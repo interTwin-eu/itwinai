@@ -1,0 +1,19 @@
+{
+    "markdownlint.config": {
+        "MD013": {
+            "line_length": 120,
+            "code_blocks": false,
+            "tables": false
+          },
+          "MD014": false,
+          "MD024": false,
+          "MD026": {
+            "punctuation": ".,:;!"
+          }
+    },
+    "cSpell.words": [
+        "Excalidraw",
+        "Geant",
+        "Horovod"
+    ]
+}
