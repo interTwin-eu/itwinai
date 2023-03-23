@@ -2,8 +2,8 @@
 
 ## Maintainers
 
-Matteo Bunino \<matteo.bunino@cern.ch\>
-Alexander Zöchbauer \<alexander.zoechbauer@cern.ch\>
+Matteo Bunino \<matteo.bunino@cern.ch\>  
+Alexander Zöchbauer \<alexander.zoechbauer@cern.ch\>  
 Rakesh Sarma \<r.sarma@fz-juelich.de\>
 
 ## Contributors
