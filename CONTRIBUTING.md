@@ -11,7 +11,7 @@ contribute are also welcome.
 ## Feedback and Questions
 
 If you wish to discuss anything related to the project, please open a
-[GitHub issue](https://github.com/interTwin-eu/REPOSITORY/issues/new).
+[GitHub issue](https://github.com/interTwin-eu/T6.5-AI-and-ML/issues/new).
 
 ## Contribution Process
 

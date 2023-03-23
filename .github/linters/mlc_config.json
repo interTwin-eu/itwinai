@@ -13,12 +13,6 @@
     },
     {
       "pattern": "^https://example.com"
-    },
-    {
-      "pattern": "https://github.com/interTwin-eu/REPOSITORY/issues/new"
-    },
-    {
-      "pattern": "https://github.com/interTwin-eu/REPOSITORY/graphs/contributors"
     }
   ]
 }
