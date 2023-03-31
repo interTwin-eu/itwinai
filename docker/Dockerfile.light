@@ -1,0 +1,23 @@
+# Lightweight image version of the 'simple' Dockerfile
+
+### Build container ###
+
+FROM condaforge/mambaforge:latest as conda
+
+# Install conda env
+COPY environment.yml .
+RUN mamba env create -p /env --file environment.yml
+RUN conda clean -afy
+
+# Install app from source code
+COPY src /app/src/
+COPY setup.py /app/setup.py
+RUN conda run -p /env python -m pip install --no-deps /app
+
+### Primary container ###
+
+FROM gcr.io/distroless/base-debian10
+
+COPY --from=conda /env /env
+
+CMD ["/env/bin/python"]

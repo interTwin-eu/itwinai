@@ -1,0 +1,8 @@
+name: itwin-ai
+channels:
+  - conda-forge
+dependencies:
+  - python=3.9.16
+  - mlflow
+  - pytorch
+  - conda-lock
