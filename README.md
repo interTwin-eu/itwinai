@@ -26,6 +26,9 @@ from testai import foo
 foo.hello()
 ```
 
+you are executing the code of the Python app
+located at `./src`!
+
 Bonus (to be completed):
 
 ```bash
