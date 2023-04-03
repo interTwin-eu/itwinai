@@ -1,104 +1,33 @@
-# interTwin T6.5
+# interTwin: an end2end prototype
 
-Got to the [wiki](https://gitlab.cern.ch/mbunino/intertwin-t6.5/-/wikis/home) to check the current progress.
+The goal is to simulate the whole interTwin software stack,
+starting from a minimal prototype, with a special focus on
+AI/ML workflows (T6.5).
 
-## Usage
+## Workflow
 
-From conda env, as usual. We use local virtual env to
-save space in the home directory.
+1. Preprocessing: inside `./preproc`
+2. AI/ML workflows (T6.5): inside `./ai`
+3. SQAaaS: inside `./sqaaas`
 
-```bash
-# Python virtual environment
-conda activate -p ./.venv
-```
+## Use cases
 
-Now you can use our custom CLI:
+In order of complexity;
 
-```bash
-itwinai --help
-```
+1. MNIST CV tasks (e.g., generation, classification)
+2. (Simplified) CERN use case (i.e., fastSim)
+3. EO ML task: pre-processing openEO. An example is cloud removal.
+Ask Ilaria for ideas.
+4. Streaming: online ML. Collaborate with Virgo (?).
 
-From within a container:
+## Tasks
 
-```bash
-# Simple container
-docker run --rm -it itwin-ai-light:latest
-```
+- Containers (backbone) and link with the infrastructure
+(e.g., Kubernetes, TOSCA)
+- AI workflows logic
+  - Training/validation
+  - Integration with `mlflow` logging
+  - Define a standard configuration for the task (e.g., NN arch,
+  learning rate), which is loaded from JSON files.
 
-It will open a Python shell. Type the code:
-
-```python
-from itwinai import foo
-
-foo.hello()
-```
-
-you are executing the code of the Python app
-located at `./src`!
-
-Bonus (to be completed):
-
-```bash
-# Arch-dependent app
-ARCH="linux-64"
-docker run --rm -t itwin-ai-$ARCH:latest
-```
-
-### DevOps
-
-When the virtual environment changes (e.g., new packages are added):
-
-- Export env: this generates/updates environment.yml file
-- Generate lock files for reproducibility on different architectures
-
-```bash
-make lock
-```
-
-## Installation
-
-### Setup development env
-
-Install [Mambaforge](https://github.com/conda-forge/miniforge#unix-like-platforms-mac-os--linux) (suggested),
-or any other conda
-variant, like miniforge (you can use this [guide](https://abpcomputing.web.cern.ch/guides/python_inst/)).
-
-### Conda / Mamba environment
-
-Below, `mamba` commands can be replaced with `conda` commands.
-
-Install mamba env. To save space in the home directory, we'll create the
-environment locally, in the project folder.
-
-```bash
-# Install env locally (./.venv folder) and activate it
-mamba env create -p ./.venv --file environment.yml
-mamba activate ./.venv
-pip install -e .
-
-# Alteratively, install arch-specific env from lock file
-mamba create -p ./.venv --file locks/conda-linux-64.lock
-mamba activate ./.venv
-pip install -e .
-```
-
-### Build container image
-
-For fast prototyping, you can build a simple container with:
-
-```bash
-make light
-```
-
-When building the container image for some specific platform (i.e., architecture),
-you need to specify the architecture on which you are planning to deploy the container.
-Some examples:
-
-- `linux-64`: Linux for Intel x64 arch
-- `linux-aarch64`: Linux for ARM64 arch
-- `linux-ppc64le`
-
-```bash
-ARCH="linux-64"
-make $ARCH
-```
+- Use case-specific pre-processing.
