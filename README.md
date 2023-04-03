@@ -4,24 +4,31 @@ Got to the [wiki](https://gitlab.cern.ch/mbunino/intertwin-t6.5/-/wikis/home) to
 
 ## Usage
 
-From conda env, as usual.
+From conda env, as usual. We use local virtual env to
+save space in the home directory.
 
 ```bash
 # Python virtual environment
-conda activate -n itwin-ai
+conda activate -p ./.venv
+```
+
+Now you can use our custom CLI:
+
+```bash
+itwinai --help
 ```
 
 From within a container:
 
 ```bash
 # Simple container
-docker run -it itwin-ai-light:latest
+docker run --rm -it itwin-ai-light:latest
 ```
 
 It will open a Python shell. Type the code:
 
 ```python
-from testai import foo
+from itwinai import foo
 
 foo.hello()
 ```
@@ -34,7 +41,7 @@ Bonus (to be completed):
 ```bash
 # Arch-dependent app
 ARCH="linux-64"
-docker run -t itwin-ai-$ARCH:latest
+docker run --rm -t itwin-ai-$ARCH:latest
 ```
 
 ### DevOps
@@ -58,18 +65,21 @@ variant, like miniforge (you can use this [guide](https://abpcomputing.web.cern.
 
 ### Conda / Mamba environment
 
-Below, `mamba` command can be replaced with `conda` command.
+Below, `mamba` commands can be replaced with `conda` commands.
 
-Install mamba env for local usage
+Install mamba env. To save space in the home directory, we'll create the
+environment locally, in the project folder.
 
 ```bash
-# Install generic env and activate it
-mamba env create -n itwin-ai --file environment.yml
-mamba activate itwin-ai
+# Install env locally (./.venv folder) and activate it
+mamba env create -p ./.venv --file environment.yml
+mamba activate ./.venv
+pip install -e .
 
 # Alteratively, install arch-specific env from lock file
-mamba create -n itwin-ai --file locks/conda-linux-64.lock
-mamba activate itwin-ai
+mamba create -p ./.venv --file locks/conda-linux-64.lock
+mamba activate ./.venv
+pip install -e .
 ```
 
 ### Build container image
