@@ -23,7 +23,7 @@ Ask Ilaria for ideas.
 ## Tasks
 
 - Containers (backbone) and link with the infrastructure
-(e.g., Kubernetes, TOSCA)
+(e.g., Kubernetes, TOSCA). The workflow steps will be deployed as containers.
 - AI workflows logic
   - Training/validation
   - Integration with `mlflow` logging
