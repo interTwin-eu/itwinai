@@ -71,13 +71,13 @@ environment locally, in the project folder.
 ```bash
 # Install env locally (./.venv folder) and activate it
 mamba env create -p ./.venv --file environment.yml
-mamba activate ./.venv
-pip install -e .
+conda activate ./.venv
+python -m pip install -e .
 
 # Alteratively, install arch-specific env from lock file
 mamba create -p ./.venv --file locks/conda-linux-64.lock
-mamba activate ./.venv
-pip install -e .
+conda activate ./.venv
+python -m pip install -e .
 ```
 
 ### Build container image
