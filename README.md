@@ -1,33 +1,22 @@
-# interTwin: an end2end prototype
+# PoC workflow
 
-The goal is to simulate the whole interTwin software stack,
-starting from a minimal prototype, with a special focus on
-AI/ML workflows (T6.5).
+The entry point of a workflow is given by the orchestrator script `run-workflow.py` .
 
-## Workflow
+See some examples of workflow executions in `examples.sh` , for instance:
 
-1. Preprocessing: inside `./preproc`
-2. AI/ML workflows (T6.5): inside `./ai`
-3. SQAaaS: inside `./sqaaas`
+```bash
+conda run -p ./.venv python run-workflow.py -f ./use-cases/mnist/training-workflow.yml
+```
 
-## Use cases
+## Installation
 
-In order of complexity;
+Requirements:
 
-1. MNIST CV tasks (e.g., generation, classification)
-2. (Simplified) CERN use case (i.e., fastSim)
-3. EO ML task: pre-processing openEO. An example is cloud removal.
-Ask Ilaria for ideas.
-4. Streaming: online ML. Collaborate with Virgo (?).
+- Mamba: [Installation guide](https://mamba.readthedocs.io/en/latest/installation.html) (suggested Mambaforge).
 
-## Tasks
+Install the orchestrator virtual environment.
 
-- Containers (backbone) and link with the infrastructure
-(e.g., Kubernetes, TOSCA). The workflow steps will be deployed as containers.
-- AI workflows logic
-  - Training/validation
-  - Integration with `mlflow` logging
-  - Define a standard configuration for the task (e.g., NN arch,
-  learning rate), which is loaded from JSON files.
-
-- Use case-specific pre-processing.
+```bash
+mamba env create -p ./.venv --file environment.yml
+conda activate ./.venv
+```
