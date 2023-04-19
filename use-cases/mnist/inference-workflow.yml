@@ -1,10 +1,10 @@
 datasets:
-  - preproc-images-inference:
-      location: ./data/mnist/preproc-images-inference
-  - ml-logs:
-      location: ./data/mnist/ml-logs
-  - ml-predictions:
-      location: ./data/mnist/ml-predictions
+  preproc-images-inference:
+    location: ./data/mnist/preproc-images-inference
+  ml-logs:
+    location: ./data/mnist/ml-logs
+  ml-predictions:
+    location: ./data/mnist/ml-predictions
 
 steps:
   - preprocessing:
@@ -15,7 +15,7 @@ steps:
         file: ./use-cases/mnist/preproc-env.yml
         prefix: ./use-cases/mnist/.venv-preproc
       params:
-        - rnd-seed: 42
+        rnd-seed: 42
   - ml-inference:
       input: preproc-images-inference
       output: ml-predictions
@@ -24,4 +24,4 @@ steps:
         file: ./ai/inference-env.yml
         prefix: ./ai/.venv-inference
       params:
-        - model-id: TODO
+        model-id: TODO

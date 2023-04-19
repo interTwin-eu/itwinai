@@ -5,5 +5,17 @@
     "cSpell.ignoreWords": [
         "itwinpreproc",
         "typer"
+    ],
+    "cSpell.words": [
+        "Convolutional",
+        "hyperparams",
+        "ipython",
+        "Mambaforge",
+        "mlflow",
+        "mnist",
+        "preproc",
+        "pytest",
+        "relu",
+        "venv"
     ]
 }

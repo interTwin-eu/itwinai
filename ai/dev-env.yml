@@ -1,0 +1,13 @@
+name: ai-training
+channels:
+  - conda-forge
+dependencies:
+  - python=3.9.12
+  - lightning
+  - mlflow>=2
+  # - typer
+  # - rich
+# Dev dependencies
+  - ipython
+  - pytest
+  - flake8

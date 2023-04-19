@@ -41,18 +41,39 @@ if __name__ == "__main__":
             print(f'Deploying "{step_name}" step...')
             # Install python env
             subprocess.run(
-                f"mamba env create -p {step_data['env']['prefix']} --file {step_data['env']['file']}",
+                (f"mamba env create -p {step_data['env']['prefix']} "
+                 f"--file {step_data['env']['file']}"),
                 shell=True,
                 check=True
             )
 
     # 3. Run the workflow step-by-step. Like 'conda run ...'
-
+    datasets = workflow.get('datasets')
     for step in workflow.get('steps'):
         step_name, step_data = next(iter(step.items()))
+        input_dataset = (
+            datasets[step_data['input']]['location']
+            if step_data['input'] is not None
+            else None
+        )
+        output_dataset = (
+            datasets[step_data['output']]['location']
+            if step_data['output'] is not None
+            else None
+        )
         print(f'Running "{step_name}" step...')
+        print(
+             f"conda run -p {step_data['env']['prefix']} "
+             f"{step_data['command']} "
+             f"--input {input_dataset} "
+             f"--output {output_dataset} \n\n"
+             )
         subprocess.run(
-            f"conda run -p {step_data['env']['prefix']} {step_data['command']}",
+            (f"conda run -p {step_data['env']['prefix']} "
+             f"{step_data['command']} "
+             f"--input {input_dataset} "
+             f"--output {output_dataset} "
+             ),
             shell=True,
-            check=True
+            check=True,
         )

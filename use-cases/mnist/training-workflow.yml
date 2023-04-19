@@ -1,8 +1,8 @@
 datasets:
-  - preproc-images-train:
-      location: ./data/mnist/preproc-images-train
-  - ml-logs:
-      location: ./data/mnist/ml-logs
+  preproc-images-train:
+    location: ./data/mnist/preproc-images-train
+  ml-logs:
+    location: ./data/mnist/ml-logs
 
 steps:
   - preprocessing:
@@ -12,8 +12,7 @@ steps:
       env: 
         file: ./use-cases/mnist/preproc-env.yml
         prefix: ./use-cases/mnist/.venv-preproc
-      params:
-        - rnd-seed: 42
+      params: null
   - ml-training:
       input: preproc-images-train
       output: ml-logs
@@ -22,10 +21,10 @@ steps:
         file: ./ai/training-env.yml
         prefix: ./ai/.venv-training
       params:
-        - task: classification
-        - input-dimensions:
+        task: classification
+        input-dimensions:
             h: 28
             w: 28
             c: 1
-        - lr: 1e-3
-        - batch-size: 32
+        lr: 1e-3
+        batch-size: 32
