@@ -1,25 +1,22 @@
-# T6.5-AI-and-ML
+# PoC workflow
 
-WP6 task concerning the development of AI and ML workflows to support data-driven digital twins.
+The entry point of a workflow is given by the orchestrator script `run-workflow.py` .
 
-## GitHub repository management rules
+See some examples of workflow executions in `examples.sh` , for instance:
 
-All changes should go through Pull Requests.
+```bash
+conda run -p ./.venv python run-workflow.py -f ./use-cases/mnist/training-workflow.yml
+```
 
-### Merge management
+## Installation
 
-- Only squash should be enforced in the repository settings.
-- Update commit message for the squashed commits as needed.
+Requirements:
 
-### Protection on main branch
+- Mamba: [Installation guide](https://mamba.readthedocs.io/en/latest/installation.html) (suggested Mambaforge).
 
-To be configured on the repository settings.
+Install the orchestrator virtual environment.
 
-- Require pull request reviews before merging
-  - Dismiss stale pull request approvals when new commits are pushed
-  - Require review from Code Owners
-- Require status checks to pass before merging
-  - GitHub actions if available
-  - Other checks as available and relevant
-  - Require branches to be up to date before merging
-- Include administrators
+```bash
+mamba env create -p ./.venv --file environment.yml
+conda activate ./.venv
+```
