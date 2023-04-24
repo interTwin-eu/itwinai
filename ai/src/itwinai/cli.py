@@ -1,29 +1,61 @@
-# """
-# Command line interface for out Python application.
-# You can call commands from the command line.
-# Example
+"""
+Command line interface for out Python application.
+You can call commands from the command line.
+Example
 
-# >>> $ itwinai --help
+>>> $ itwinai --help
 
-# """
+"""
 
-# from typing import Optional
-# import typer
-
-# app = typer.Typer()
-
-
-# @app.command()
-# def hello(name: str):
-#     print(f"Hello {name}")
+from typing import Optional
+import yaml
+import typer
+import lightning as L
+from lightning.pytorch.loggers import CSVLogger
 
 
-# @app.command()
-# def goodbye(name: str, formal: bool = False):
-#     if formal:
-#         print(f"Goodbye Ms. {name}. Have a good day.")
-#     else:
-#         print(f"Bye {name}!")
+from itwinai.utils import dynamically_import_class
+
+app = typer.Typer()
+
+
+@app.command()
+def train(
+    data_dir: str = typer.Option(
+        'unk',
+        help="Path to training dataset."
+    ),
+    config: str = typer.Option(
+        'unk',
+        help="Path to training configuration file."
+    ),
+    output: str = typer.Option(
+        'logs/',
+        help="Path to logs storage."
+    ),
+):
+    """
+    Train a neural network expressed as a Pytorch Lightning model.
+    """
+
+    with open(config, 'r', encoding='utf-8') as yaml_file:
+        try:
+            train_config = yaml.safe_load(yaml_file)
+        except yaml.YAMLError as exc:
+            print(exc)
+            raise exc
+
+    model_class = dynamically_import_class(train_config['model'])
+    model = model_class(data_dir, **train_config['hyperparams'])
+
+    trainer = L.Trainer(
+        accelerator="auto",
+        devices=1,
+        max_epochs=3,
+        logger=CSVLogger(save_dir=output),
+    )
+
+    trainer.fit(model)
 
 
 # @app.command()
@@ -40,11 +72,11 @@
 #               "(e.g., 'SomePackage==1.0.4)")
 #     )
 # ):
-#     """Install custom dependencies in this Python env using pip.
+#     """
+#     Install custom dependencies in this Python env using pip.
 #     """
 #     # TODO: improve using conda/mamba, for better compatibility
 #     # with base env. Or give both options...
 
-
-# if __name__ == "__main__":
-#     app()
+if __name__ == "__main__":
+    app()

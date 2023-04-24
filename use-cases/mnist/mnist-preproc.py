@@ -2,7 +2,8 @@ import argparse
 from torchvision.datasets import MNIST
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='Preprocessing of MNIST dataset.')
+    parser = argparse.ArgumentParser(
+        description='Preprocessing of MNIST dataset.')
     parser.add_argument(
         '-i', '--input',
         type=str,
@@ -17,7 +18,8 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
 
-    MNIST(args.output, download=True)
+    MNIST(args.output, train=True, download=True)
+    MNIST(args.output, train=False, download=True)
 
     print(
         """
@@ -32,6 +34,3 @@ if __name__ == "__main__":
 
     """
     )
-
-
-

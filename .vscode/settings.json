@@ -7,15 +7,28 @@
         "typer"
     ],
     "cSpell.words": [
+        "argmax",
         "Convolutional",
+        "cuda",
+        "dataloaders",
         "hyperparams",
         "ipython",
+        "itwinai",
+        "logits",
         "Mambaforge",
         "mlflow",
         "mnist",
+        "multiclass",
+        "optim",
+        "plmodels",
+        "preds",
         "preproc",
         "pytest",
+        "pyyaml",
         "relu",
+        "softmax",
+        "torchmetrics",
+        "torchvision",
         "venv"
     ]
 }

@@ -1,12 +1,19 @@
 name: ai-training
 channels:
   - conda-forge
+  - pytorch
+  # - nvidia
 dependencies:
   - python=3.9.12
+  - pytorch
+  # - pytorch-cuda=11.7
+  - torchvision
   - lightning
+  - torchmetrics
   - mlflow>=2
-  # - typer
-  # - rich
+  - typer
+  - rich
+  - pyyaml
 # Dev dependencies
   - ipython
   - pytest

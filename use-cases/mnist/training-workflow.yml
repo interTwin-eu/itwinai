@@ -21,10 +21,4 @@ steps:
         file: ./ai/training-env.yml
         prefix: ./ai/.venv-training
       params:
-        task: classification
-        input-dimensions:
-            h: 28
-            w: 28
-            c: 1
-        lr: 1e-3
-        batch-size: 32
+        config: ./use-cases/mnist/mnist-ai.yml
