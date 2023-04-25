@@ -1,4 +1,4 @@
-name: ai-training
+name: ai-dev
 channels:
   - conda-forge
   - pytorch

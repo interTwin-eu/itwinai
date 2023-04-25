@@ -7,7 +7,7 @@ Example
 
 """
 
-from typing import Optional
+# from typing import Optional
 import yaml
 import typer
 import lightning as L
@@ -57,26 +57,6 @@ def train(
 
     trainer.fit(model)
 
-
-# @app.command()
-# def setup_env(
-#     deps: Optional[str] = typer.Option(
-#         None,
-#         help=("Comma separated requirements, each in pip format "
-#               "(e.g., 'SomePackage==1.0.4,SomeOtherPackage>=2.3.0'). "
-#               "If given, other arguments are ignored.")
-#     ),
-#     file: Optional[str] = typer.Option(
-#         None,
-#         help=("Path to requirements text file, in pip format "
-#               "(e.g., 'SomePackage==1.0.4)")
-#     )
-# ):
-#     """
-#     Install custom dependencies in this Python env using pip.
-#     """
-#     # TODO: improve using conda/mamba, for better compatibility
-#     # with base env. Or give both options...
 
 if __name__ == "__main__":
     app()
