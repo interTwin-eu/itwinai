@@ -12,7 +12,7 @@ inputs:
     AIDir:    
         type: File
         # A default value that can be overridden, e.g. --message "Hola mundo"
-        #default: "/afs/cern.ch/work/a/azoechba/intertwin-t6.5/ai/ai-training.py"
+        #default: "/afs/cern.ch/work/a/azoechba/T6.5-AI-and-ML/ai/ai-training.py"
 
 
 steps:
