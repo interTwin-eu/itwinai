@@ -7,7 +7,7 @@ Example
 
 """
 
-# NOTE: import libs in the command's function, not here.
+# NOTE: import libs in the command"s function, not here.
 # Otherwise this will slow the whole CLI.
 
 # from typing import Optional
@@ -22,15 +22,15 @@ app = typer.Typer()
 @app.command()
 def train(
     input: str = typer.Option(
-        'unk',
+        "unk",
         help="Path to training dataset."
     ),
     config: str = typer.Option(
-        'unk',
+        "unk",
         help="Path to training configuration file."
     ),
     output: str = typer.Option(
-        'logs/',
+        "logs/",
         help="Path to logs storage."
     ),
 ):
@@ -41,15 +41,15 @@ def train(
     from lightning.pytorch.loggers import CSVLogger
     from itwinai.utils import dynamically_import_class
 
-    with open(config, 'r', encoding='utf-8') as yaml_file:
+    with open(config, "r", encoding="utf-8") as yaml_file:
         try:
             train_config = yaml.safe_load(yaml_file)
         except yaml.YAMLError as exc:
             print(exc)
             raise exc
 
-    model_class = dynamically_import_class(train_config['model'])
-    model = model_class(input, **train_config['hyperparams'])
+    model_class = dynamically_import_class(train_config["model"])
+    model = model_class(input, **train_config["hyperparams"])
 
     os.makedirs(output, exist_ok=True)
     trainer = L.Trainer(
@@ -65,7 +65,7 @@ def train(
 @app.command()
 def hello():
     """Say hello"""
-    print('hello')
+    print("hello")
 
 
 if __name__ == "__main__":

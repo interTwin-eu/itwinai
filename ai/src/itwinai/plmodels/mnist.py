@@ -24,7 +24,7 @@ class LitMNIST(L.LightningModule):
         data_dir: str,
         hidden_size: int = 64,
         learning_rate: float = 2e-4,
-        batch_size: int = 32
+        batch_size: int = 32,
     ):
         super().__init__()
 
@@ -108,13 +108,11 @@ class LitMNIST(L.LightningModule):
         # Assign train/val datasets for use in dataloaders
         if stage == "fit" or stage is None:
             mnist_full = MNIST(
-                self.data_dir,
-                train=True,
+                self.data_dir, train=True,
                 transform=self.transform
             )
             self.mnist_train, self.mnist_val = random_split(
-                mnist_full,
-                [55000, 5000]
+                mnist_full, [55000, 5000]
             )
 
         # Assign test dataset for use in dataloader(s)
