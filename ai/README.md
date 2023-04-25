@@ -1,6 +1,6 @@
 # AI workflows (T6.5)
 
-## Development
+## Development env setup
 
 Requirements:
 

@@ -14,8 +14,7 @@ def dynamically_import_class(name: str):
     Returns:
         __class__: class object.
     """
-    components = name.split('.')
-    mod = __import__(components[0])
-    for comp in components[1:]:
-        mod = getattr(mod, comp)
-    return mod
+    module, class_name = name.rsplit('.', 1)
+    mod = __import__(module, fromlist=[class_name])
+    klass = getattr(mod, class_name)
+    return klass

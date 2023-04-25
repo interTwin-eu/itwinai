@@ -39,40 +39,58 @@ if __name__ == "__main__":
         step_name, step_data = next(iter(step.items()))
         if not os.path.exists(step_data['env']['prefix']):
             print(f'Deploying "{step_name}" step...')
-            # Install python env
+            # Install python env from conda env definition file
             subprocess.run(
                 (f"mamba env create -p {step_data['env']['prefix']} "
                  f"--file {step_data['env']['file']}"),
                 shell=True,
                 check=True
             )
+            # Install local python project from source, if present
+            if step_data['env']['source'] is not None:
+                subprocess.run(
+                    (f"conda run -p {step_data['env']['prefix']} "
+                     "python -m pip install --no-deps "
+                     f"-e {step_data['env']['source']}"),
+                    shell=True,
+                    check=True
+                )
 
     # 3. Run the workflow step-by-step. Like 'conda run ...'
     datasets = workflow.get('datasets')
     for step in workflow.get('steps'):
         step_name, step_data = next(iter(step.items()))
+        # Step input
         input_dataset = (
             datasets[step_data['input']]['location']
             if step_data['input'] is not None
             else None
         )
+        # Step output
         output_dataset = (
             datasets[step_data['output']]['location']
             if step_data['output'] is not None
             else None
         )
+        # Step params
+        params_str = ''
+        if step_data['params'] is not None:
+            params_str = " ".join([
+                f"--{k} {v}" for k, v in step_data['params'].items()
+            ])
         print(f'Running "{step_name}" step...')
         print(
-             f"conda run -p {step_data['env']['prefix']} "
-             f"{step_data['command']} "
-             f"--input {input_dataset} "
-             f"--output {output_dataset} \n\n"
-             )
+            f"conda run -p {step_data['env']['prefix']} "
+            f"{step_data['command']} "
+            f"--input {input_dataset} "
+            f"--output {output_dataset} {params_str}\n\n"
+        )
         subprocess.run(
             (f"conda run -p {step_data['env']['prefix']} "
              f"{step_data['command']} "
              f"--input {input_dataset} "
              f"--output {output_dataset} "
+             f"{params_str}"
              ),
             shell=True,
             check=True,

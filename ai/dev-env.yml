@@ -1,3 +1,7 @@
+# Resources:
+# - https://pytorch.org/get-started/previous-versions/ 
+# - https://conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html#creating-an-environment-file-manually
+
 name: ai-dev
 channels:
   - conda-forge
@@ -5,9 +9,12 @@ channels:
   # - nvidia
 dependencies:
   - python=3.9.12
-  - pytorch
-  # - pytorch-cuda=11.7
-  - torchvision
+  - pytorch::pytorch=1.13.1
+  - pytorch::torchvision=0.14.1
+  # - pytorch::torchaudio=0.13.1
+  # Either use pytorch-cuda or cpuonly, depending on GPU availability
+  # - pytorch::pytorch-cuda=11.6
+  - pytorch::cpuonly
   - lightning
   - torchmetrics
   - mlflow>=2

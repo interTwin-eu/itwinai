@@ -14,6 +14,7 @@ steps:
       env: 
         file: ./use-cases/mnist/preproc-env.yml
         prefix: ./use-cases/mnist/.venv-preproc
+        source: null
       params:
         rnd-seed: 42
   - ml-inference:
@@ -23,5 +24,6 @@ steps:
       env: 
         file: ./ai/inference-env.yml
         prefix: ./ai/.venv-inference
+        source: ./ai
       params:
         model-id: TODO

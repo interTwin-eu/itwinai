@@ -12,13 +12,16 @@ steps:
       env: 
         file: ./use-cases/mnist/preproc-env.yml
         prefix: ./use-cases/mnist/.venv-preproc
+        source: null
       params: null
   - ml-training:
       input: preproc-images-train
       output: ml-logs
-      command: python ./ai/ai-training.py
+      # command: python ./ai/ai-training.py
+      command: itwinai train
       env: 
         file: ./ai/training-env.yml
         prefix: ./ai/.venv-training
+        source: ./ai
       params:
         config: ./use-cases/mnist/mnist-ai.yml
