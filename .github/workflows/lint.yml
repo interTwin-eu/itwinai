@@ -36,6 +36,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           MARKDOWN_CONFIG_FILE: .markdownlint.json
           PYTHON_FLAKE8_CONFIG_FILE: .flake8
+          VALIDATE_PYTHON_FLAKE8: true
           # Only check new or edited files
           VALIDATE_ALL_CODEBASE: false
           # Fail on errors
