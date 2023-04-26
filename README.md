@@ -1,6 +1,6 @@
 # PoC for AI-centric digital twin workflows
 
-[![GitHub Super-Linter](https://github.com/interTwin-eu/T6.5-AI-and-ML/workflows/Lint%20Code%20Base/badge.svg)](https://github.com/marketplace/actions/super-linter)
+[![GitHub Super-Linter](https://github.com/interTwin-eu/T6.5-AI-and-ML/actions/workflows/lint.yml/badge.svg)](https://github.com/marketplace/actions/super-linter)
 
 The entry point of a workflow is given by the orchestrator script `run-workflow.py` .
 
