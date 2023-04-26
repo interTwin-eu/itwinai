@@ -29,7 +29,7 @@ jobs:
           fetch-depth: 0
 
       # Runs the Super-Linter action
-      - name: Run Super-Linter on new changes
+      - name: Lint Code Base
         uses: github/super-linter/slim@v5
         env:
           DEFAULT_BRANCH: main
