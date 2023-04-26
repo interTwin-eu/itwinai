@@ -7,7 +7,7 @@ on:
 
 jobs:
   super-lint:
-    name: Lint Code Base
+    name: Lint with Super-Linter
     runs-on: ubuntu-latest
 
     ############################################
@@ -29,7 +29,7 @@ jobs:
           fetch-depth: 0
 
       # Runs the Super-Linter action
-      - name: Lint Code Base
+      - name: Run Super-Linter on new changes
         uses: github/super-linter/slim@v5
         env:
           DEFAULT_BRANCH: main
