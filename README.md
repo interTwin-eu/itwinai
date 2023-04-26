@@ -1,4 +1,7 @@
-# PoC workflow
+# PoC for AI-centric digital twin workflows
+
+[![GitHub Super-Linter](https://github.com/interTwin-eu/T6.5-AI-and-ML/actions/workflows/lint.yml/badge.svg)](https://github.com/marketplace/actions/super-linter)
+[![GitHub Super-Linter](https://github.com/interTwin-eu/T6.5-AI-and-ML/actions/workflows/check-links.yml/badge.svg)](https://github.com/marketplace/actions/markdown-link-check)
 
 The entry point of a workflow is given by the orchestrator script `run-workflow.py` .
 
