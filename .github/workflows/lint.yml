@@ -10,6 +10,14 @@ jobs:
     name: Lint with Super-Linter
     runs-on: ubuntu-latest
 
+    ############################################
+    # Grant status permission for MULTI_STATUS #
+    ############################################
+    permissions:
+      contents: read
+      packages: read
+      statuses: write
+
     steps:
       # Checks out a copy of your repository on the ubuntu-latest machine
       - name: Checkout code
@@ -22,11 +30,16 @@ jobs:
 
       # Runs the Super-Linter action
       - name: Run Super-Linter on new changes
-        uses: docker://ghcr.io/github/super-linter:slim-v4
+        uses: github/super-linter/slim@v5
         env:
           DEFAULT_BRANCH: main
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           MARKDOWN_CONFIG_FILE: .markdownlint.json
+          PYTHON_FLAKE8_CONFIG_FILE: .flake8
+          VALIDATE_PYTHON_BLACK: false
+          VALIDATE_PYTHON_ISORT: false
+          VALIDATE_PYTHON_MYPY: false
+          VALIDATE_PYTHON_PYLINT: false
           # Only check new or edited files
           VALIDATE_ALL_CODEBASE: false
           # Fail on errors

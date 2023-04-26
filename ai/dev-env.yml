@@ -1,4 +1,8 @@
-name: ai-inference
+# Resources:
+# - https://pytorch.org/get-started/previous-versions/ 
+# - https://conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html#creating-an-environment-file-manually
+
+name: ai-dev
 channels:
   - conda-forge
   - pytorch
@@ -17,3 +21,7 @@ dependencies:
   - typer
   - rich
   - pyyaml
+# Dev dependencies
+  - ipython
+  - pytest
+  - flake8

@@ -1,8 +1,8 @@
 datasets:
-  - preproc-images-train:
-      location: ./data/mnist/preproc-images-train
-  - ml-logs:
-      location: ./data/mnist/ml-logs
+  preproc-images-train:
+    location: ./data/mnist/preproc-images-train
+  ml-logs:
+    location: ./data/mnist/ml-logs
 
 steps:
   - preprocessing:
@@ -12,20 +12,16 @@ steps:
       env: 
         file: ./use-cases/mnist/preproc-env.yml
         prefix: ./use-cases/mnist/.venv-preproc
-      params:
-        - rnd-seed: 42
+        source: null
+      params: null
   - ml-training:
       input: preproc-images-train
       output: ml-logs
-      command: python ./ai/ai-training.py
+      # command: python ./ai/ai-training.py
+      command: itwinai train
       env: 
         file: ./ai/training-env.yml
         prefix: ./ai/.venv-training
+        source: ./ai
       params:
-        - task: classification
-        - input-dimensions:
-            h: 28
-            w: 28
-            c: 1
-        - lr: 1e-3
-        - batch-size: 32
+        config: ./use-cases/mnist/mnist-ai.yml

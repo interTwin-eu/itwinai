@@ -1,0 +1,10 @@
+# Configuration file of AI workflows for MNIST use case
+
+model: itwinai.plmodels.mnist.LitMNIST
+task: classification
+
+# Have to coincide with constructor param names
+hyperparams:
+  learning_rate: 0.001
+  batch_size: 32
+  hidden_size: 64
