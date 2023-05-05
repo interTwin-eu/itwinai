@@ -5,11 +5,32 @@ baseCommand: python
 
 
 inputs:
-  message:
-    type: string
-    # A default value that can be overridden, e.g. --message "/afs /eos"
-    # Bind this message value as an argument to "cd".
-    default: "/afs/cern.ch/work/a/azoechba/intertwin-t6.5/ai/ai-training.py"
+  # filepath:
+  #     type: File
+  #     label: Aligned sequences in BAM format
+  #     #format: edam:format_2572 fix an exact format later
+  #     #path: /tmp/test.txt
+  #     default: File(ai/ai-training.py)
+  #     inputBinding:
+  #       position: 1
+
+
+  filepath:
+    type: File
     inputBinding:
-      position: 1
+      position: 1    
+
+
 outputs: []
+#   flag:    
+#     type: boolean
+#     # A default value that can be overridden, e.g. --message "Hola mundo"
+#     #outputBinding: true
+#     value: true
+#   flag:
+#     type: string
+#     outputBinding:
+#       loadContents: abcd
+
+
+  
