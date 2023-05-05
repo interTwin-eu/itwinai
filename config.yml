@@ -1,13 +1,9 @@
-#preprocessEnv: pytorch_envx
-
 preprocessDir:  # type 'File'
     class: File
     path: /afs/cern.ch/work/a/azoechba/T6.5-AI-and-ML/use-cases/mnist/mnist-preproc.py
 
-    
 AIDir:  # type 'File'
     class: File
     path: /afs/cern.ch/work/a/azoechba/T6.5-AI-and-ML/ai/ai-training.py
-
 
 flag: true
