@@ -1,7 +1,8 @@
 cwlVersion: v1.2
 class: CommandLineTool
 
-baseCommand: python
+baseCommand: conda
+#mamba activate
 
 
 inputs:
@@ -15,10 +16,15 @@ inputs:
   #       position: 1
 
 
-  filepath:
-    type: File
+  commandName:
+    type: string
     inputBinding:
       position: 1    
+
+  argumentName:
+    type: string
+    inputBinding:
+      position: 2
 
 
 outputs: []
