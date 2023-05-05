@@ -38,7 +38,7 @@ def train(
     Train a neural network expressed as a Pytorch Lightning model.
     """
     import lightning as L
-    from lightning.pytorch.loggers import CSVLogger
+    from lightning.pytorch.loggers import CSVLogger, MLFlowLogger
     from itwinai.utils import dynamically_import_class
 
     with open(config, "r", encoding="utf-8") as yaml_file:
@@ -51,15 +51,36 @@ def train(
     model_class = dynamically_import_class(train_config["model"])
     model = model_class(input, **train_config["hyperparams"])
 
+    mlflow_logger = MLFlowLogger(
+        experiment_name=train_config['experiment_name'],
+        tracking_uri=output,
+        log_model='all'
+    )
+
     os.makedirs(output, exist_ok=True)
     trainer = L.Trainer(
         accelerator="auto",
         devices=1,
-        max_epochs=3,
-        logger=CSVLogger(save_dir=output),
+        max_epochs=2,
+        logger=mlflow_logger
+        # logger=CSVLogger(save_dir=output),
     )
 
     trainer.fit(model)
+
+
+@app.command()
+def visualize(
+    path: str = typer.Option(
+        "logs/",
+        help="Path to logs storage."
+    ),
+):
+    """
+    Visualize Mlflow logs.
+    """
+    import subprocess
+    subprocess.run(f"mlflow ui --backend-store-uri {path}".split())
 
 
 @app.command()
