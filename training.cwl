@@ -24,6 +24,9 @@ inputs:
       position: 2
       prefix: --input
 
+  # preprocessingFlag:
+  #   type: string
+
 outputs: []
 # outputs:
 #   output_file:
