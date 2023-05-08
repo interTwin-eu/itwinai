@@ -5,37 +5,31 @@ requirements:
   InlineJavascriptRequirement: {}
 
 inputs:
-    preprocessDir:    
-        type: File
-    AIDir:    
-        type: File
-        # A default value that can be overridden, e.g. --message "Hola mundo"
-        #default: "/afs/cern.ch/work/a/azoechba/T6.5-AI-and-ML/ai/ai-training.py"
-    flag:
-      type: boolean
-      default: true
+    preprocessInput:    
+        type: string
+    preprocessOutput:    
+        type: string
 
-outputs:
-  output_file:
-    type: File
-    outputBinding:
-      glob: output_file.txt
+    config:    
+        type: string
 
 
 steps:
-  preprocess:
-    run: preprocess.cwl
-    in:
-        filepath: preprocessDir
-    out:
-      datasetPath: preprocesseDataset.txt
 
-  AI:
-    run: python.cwl
+  preprocess:
+    run: preprocessing.cwl
     in:
-        filepath: AIDir
-        datasetPath: preprocess/datasetPath
+        rawDatasetPath: preprocessInput
+        preprocesseDatasetPath: preprocessOutput
     out: []
+
+  training:
+    run: training.cwl
+    in:
+        preprocesseDatasetPath: preprocessOutput
+        configPath: config
+    out: []
+
 
 
 
