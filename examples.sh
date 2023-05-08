@@ -1,3 +1,4 @@
+#!/bin/bash
 # Launch some workflows
 
 # MNIST training
