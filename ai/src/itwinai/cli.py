@@ -12,7 +12,6 @@ Example
 
 # from typing import Optional
 import os
-import yaml
 import typer
 
 
@@ -32,14 +31,20 @@ def train(
     output: str = typer.Option(
         "logs/",
         help="Path to logs storage."
-    ),
+    )
 ):
     """
     Train a neural network expressed as a Pytorch Lightning model.
     """
+    import copy
+    import yaml
     import lightning as L
-    from lightning.pytorch.loggers import CSVLogger, MLFlowLogger
-    from itwinai.utils import dynamically_import_class
+    from lightning.pytorch.loggers import MLFlowLogger
+    import mlflow
+
+    from itwinai.utils import dynamically_import_class, flatten_dict
+
+    os.makedirs(output, exist_ok=True)
 
     with open(config, "r", encoding="utf-8") as yaml_file:
         try:
@@ -51,22 +56,49 @@ def train(
     model_class = dynamically_import_class(train_config["model"])
     model = model_class(input, **train_config["hyperparams"])
 
-    mlflow_logger = MLFlowLogger(
-        experiment_name=train_config['experiment_name'],
-        tracking_uri=output,
-        log_model='all'
-    )
+    mlflow.set_tracking_uri("file:" + output)
+    mlflow.set_experiment(train_config['experiment_name'])
+    mlflow.pytorch.autolog(log_every_n_step=train_config['log_every_n_steps'])
 
-    os.makedirs(output, exist_ok=True)
-    trainer = L.Trainer(
-        accelerator="auto",
-        devices=1,
-        max_epochs=2,
-        logger=mlflow_logger
-        # logger=CSVLogger(save_dir=output),
-    )
+    # Note: we use autolog and MlFlowLogger combined:
+    # - MlFlow logger provides better flexibility
+    # - autolog takes care of repetitive operations
+    # Ref: https://github.com/Lightning-AI/lightning/discussions/11197
 
-    trainer.fit(model)
+    # Start Mlflow run
+    with mlflow.start_run(description=train_config['description']):
+        # Log hyperparameters
+        config_params = copy.copy(train_config)
+        config_params['input'] = input
+        config_params['output'] = output
+        config_params['config'] = config
+        mlflow.log_params(flatten_dict(config_params['hyperparams']))
+        del config_params['hyperparams']
+        mlflow.log_params(flatten_dict(config_params))
+        # Save config file used for this specific training run
+        # for reproducibility
+        mlflow.log_artifact(config)
+
+        mlflow_logger = MLFlowLogger(
+            experiment_name=mlflow.get_experiment(
+                mlflow.active_run().info.experiment_id
+            ).name,
+            tracking_uri=mlflow.get_tracking_uri(),
+            run_id=mlflow.active_run().info.run_id,
+            log_model='all'
+        )
+
+        trainer = L.Trainer(
+            accelerator=train_config["accelerator"],
+            devices=train_config["devices"],
+            max_epochs=train_config["max_epochs"],
+            logger=mlflow_logger
+        )
+
+        # Train + validation
+        trainer.fit(model)
+        # Test
+        trainer.test()
 
 
 @app.command()
@@ -81,12 +113,6 @@ def visualize(
     """
     import subprocess
     subprocess.run(f"mlflow ui --backend-store-uri {path}".split())
-
-
-@app.command()
-def hello():
-    """Say hello"""
-    print("hello")
 
 
 if __name__ == "__main__":

@@ -1,7 +1,12 @@
 # Configuration file of AI workflows for MNIST use case
 
+experiment_name: MNIST classification lite
+description: A MLP classifier for MNIST dataset.
 model: itwinai.plmodels.mnist.LitMNIST
-task: classification
+max_epochs: 2
+log_every_n_steps: 1
+accelerator: auto
+devices: auto
 
 # Have to coincide with constructor param names
 hyperparams:

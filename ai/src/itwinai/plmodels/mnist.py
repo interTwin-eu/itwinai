@@ -60,6 +60,17 @@ class LitMNIST(L.LightningModule):
         self.val_accuracy = Accuracy(task="multiclass", num_classes=10)
         self.test_accuracy = Accuracy(task="multiclass", num_classes=10)
 
+    # def on_train_start(self):
+    #     # Save hyperparameters (alternative way)
+    #     self.logger.log_hyperparams(
+    #         dict(
+    #             data_dir=self.data_dir,
+    #             hidden_size=self.hidden_size,
+    #             learning_rate=self.learning_rate,
+    #             batch_size=self.batch_size
+    #         )
+    #     )
+
     def forward(self, x):
         x = self.model(x)
         return F.log_softmax(x, dim=1)
@@ -68,6 +79,22 @@ class LitMNIST(L.LightningModule):
         x, y = batch
         logits = self(x)
         loss = F.nll_loss(logits, y)
+
+        # Log metrics with autolog
+        self.log(
+            "train_loss",
+            loss,
+            on_step=True,
+            on_epoch=True
+        )
+
+        # Good alternative
+        # # Log with generic logger
+        # self.logger.log_metrics(
+        #     metrics=dict(train_loss=loss.item()),
+        #     step=self.global_step
+        # )
+
         return loss
 
     def validation_step(self, batch, batch_idx):
@@ -77,9 +104,31 @@ class LitMNIST(L.LightningModule):
         preds = torch.argmax(logits, dim=1)
         self.val_accuracy.update(preds, y)
 
-        # Calling self.log will surface up scalars for you in TensorBoard
-        self.log("val_loss", loss, prog_bar=True)
-        self.log("val_acc", self.val_accuracy, prog_bar=True)
+        self.log(
+            "val_loss",
+            loss,
+            prog_bar=True,
+            on_step=True,
+            on_epoch=True
+        )
+        self.log(
+            "val_acc",
+            self.val_accuracy,
+            prog_bar=True,
+            on_step=True,
+            on_epoch=True
+        )
+
+        # good alternative
+        # # Log with generic logger
+        # self.logger.log_metrics(
+        #     metrics=dict(val_loss=loss.item()),
+        #     step=self.global_step
+        # )
+        # self.logger.log_metrics(
+        #     metrics=dict(val_acc=acc.item()),
+        #     step=self.global_step
+        # )
 
     def test_step(self, batch, batch_idx):
         x, y = batch
@@ -88,9 +137,8 @@ class LitMNIST(L.LightningModule):
         preds = torch.argmax(logits, dim=1)
         self.test_accuracy.update(preds, y)
 
-        # Calling self.log will surface up scalars for you in TensorBoard
-        self.log("test_loss", loss, prog_bar=True)
-        self.log("test_acc", self.test_accuracy, prog_bar=True)
+        self.log("test_loss", loss)
+        self.log("test_acc", self.test_accuracy)
 
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(self.parameters(), lr=self.learning_rate)

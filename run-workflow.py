@@ -42,8 +42,7 @@ if __name__ == "__main__":
             # Install python env from conda env definition file
             subprocess.run(
                 (f"mamba env create -p {step_data['env']['prefix']} "
-                 f"--file {step_data['env']['file']}"),
-                shell=True,
+                 f"--file {step_data['env']['file']}").split(),
                 check=True
             )
             # Install local python project from source, if present
@@ -51,8 +50,7 @@ if __name__ == "__main__":
                 subprocess.run(
                     (f"conda run -p {step_data['env']['prefix']} "
                      "python -m pip install --no-deps "
-                     f"-e {step_data['env']['source']}"),
-                    shell=True,
+                     f"-e {step_data['env']['source']}").split(),
                     check=True
                 )
 
@@ -91,7 +89,6 @@ if __name__ == "__main__":
              f"--input {input_dataset} "
              f"--output {output_dataset} "
              f"{params_str}"
-             ),
-            shell=True,
+             ).split(),
             check=True,
         )

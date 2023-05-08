@@ -1,5 +1,7 @@
 TODO
 data
+nohup*
+lightning_logs
 
 # Custom envs
 .venv*

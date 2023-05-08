@@ -2,6 +2,7 @@ datasets:
   preproc-images-train:
     location: ./data/mnist/preproc-images-train
   ml-logs:
+    # MLflow tracking URI
     location: ./data/mnist/ml-logs
 
 steps:
