@@ -2,6 +2,9 @@ TODO
 data
 nohup*
 lightning_logs
+mlruns
+tmp*
+.tmp*
 
 # Custom envs
 .venv*

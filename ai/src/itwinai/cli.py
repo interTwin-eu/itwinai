@@ -19,7 +19,7 @@ app = typer.Typer()
 
 
 @app.command()
-def train(
+def train_old(
     input: str = typer.Option(
         "unk",
         help="Path to training dataset."
@@ -38,9 +38,9 @@ def train(
     """
     import copy
     import yaml
+    import mlflow
     import lightning as L
     from lightning.pytorch.loggers import MLFlowLogger
-    import mlflow
 
     from itwinai.utils import dynamically_import_class, flatten_dict
 
@@ -56,9 +56,14 @@ def train(
     model_class = dynamically_import_class(train_config["model"])
     model = model_class(input, **train_config["hyperparams"])
 
+    log_conf = train_config['logger']
     mlflow.set_tracking_uri("file:" + output)
-    mlflow.set_experiment(train_config['experiment_name'])
-    mlflow.pytorch.autolog(log_every_n_step=train_config['log_every_n_steps'])
+    mlflow.set_experiment(log_conf['experiment_name'])
+    mlflow.pytorch.autolog(
+        log_every_n_epoch=log_conf['log_every_n_epoch'],
+        log_every_n_step=log_conf['log_every_n_steps'],
+        registered_model_name=log_conf['registered_model_name']
+    )
 
     # Note: we use autolog and MlFlowLogger combined:
     # - MlFlow logger provides better flexibility
@@ -66,15 +71,14 @@ def train(
     # Ref: https://github.com/Lightning-AI/lightning/discussions/11197
 
     # Start Mlflow run
-    with mlflow.start_run(description=train_config['description']):
+    with mlflow.start_run(description=log_conf['description']):
         # Log hyperparameters
         config_params = copy.copy(train_config)
-        config_params['input'] = input
-        config_params['output'] = output
-        config_params['config'] = config
-        mlflow.log_params(flatten_dict(config_params['hyperparams']))
-        del config_params['hyperparams']
+        config_params['cli.input'] = input
+        config_params['cli.output'] = output
+        config_params['cli.config'] = config
         mlflow.log_params(flatten_dict(config_params))
+
         # Save config file used for this specific training run
         # for reproducibility
         mlflow.log_artifact(config)
@@ -99,6 +103,95 @@ def train(
         trainer.fit(model)
         # Test
         trainer.test()
+
+
+@app.command()
+def train(
+    input: str = typer.Option(
+        "unk",
+        help="Path to training dataset."
+    ),
+    config: str = typer.Option(
+        "unk",
+        help="Path to training configuration file."
+    ),
+    output: str = typer.Option(
+        "logs/",
+        help="Path to logs storage."
+    )
+):
+    """
+    Train a neural network expressed as a Pytorch Lightning model.
+    """
+    import copy
+    import mlflow
+    from lightning.pytorch.cli import LightningCLI
+
+    from itwinai.utils import load_yaml, flatten_dict
+    from itwinai.plmodels.base import ItwinaiBasePlModel
+
+    os.makedirs(output, exist_ok=True)
+    train_config = load_yaml(config)
+
+    log_conf = train_config['logger']
+    mlflow.set_tracking_uri("file:" + output)
+    mlflow.set_experiment(log_conf['experiment_name'])
+    mlflow.pytorch.autolog(
+        log_every_n_epoch=log_conf['log_every_n_epoch'],
+        log_every_n_step=log_conf['log_every_n_steps'],
+        registered_model_name=log_conf['registered_model_name']
+    )
+
+    # Note: we use autolog and MlFlowLogger combined:
+    # - MlFlow logger provides better flexibility
+    # - autolog takes care of repetitive operations
+    # Ref: https://github.com/Lightning-AI/lightning/discussions/11197
+
+    # Load training configuration
+    lightning_conf = load_yaml(train_config['train-config']['path'])
+
+    # Start Mlflow run
+    with mlflow.start_run(description=log_conf['description']):
+        # Log hyperparameters
+        config_params = copy.copy(train_config)
+        config_params['cli.input'] = input
+        config_params['cli.output'] = output
+        config_params['cli.config'] = config
+        mlflow.log_params(flatten_dict(config_params))
+
+        # Save config file used for this specific training run
+        # for reproducibility
+        mlflow.log_artifact(config)
+
+        # Update lightning MLFlow logger constructor args
+        # Infer MlFlow conf from pre-configured mlflow client
+        lightning_conf['trainer']['logger']['init_args'].update(dict(
+            experiment_name=mlflow.get_experiment(
+                mlflow.active_run().info.experiment_id
+            ).name,
+            tracking_uri=mlflow.get_tracking_uri(),
+            log_model='all',
+            run_id=mlflow.active_run().info.run_id
+        ))
+
+        cli = LightningCLI(
+            args=lightning_conf,
+            model_class=ItwinaiBasePlModel,
+            run=False,
+            save_config_kwargs={"overwrite": True,
+                                "config_filename": "pl-config.yml"},
+            subclass_mode_model=True,
+            subclass_mode_data=True
+        )
+
+        # Save updated lightning conf as an mlflow artifact
+        mlflow.log_artifact(
+            os.path.join(cli.trainer.log_dir, "pl-config.yml")
+        )
+
+        # Train + validation, and test
+        cli.trainer.fit(cli.model)
+        cli.trainer.test()
 
 
 @app.command()

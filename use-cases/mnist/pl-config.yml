@@ -1,0 +1,60 @@
+# lightning.pytorch==2.0.1.post0
+seed_everything: 4231162351
+trainer:
+  accelerator: auto
+  strategy: auto
+  devices: auto
+  num_nodes: 1
+  precision: 32-true
+  logger:
+    class_path: lightning.pytorch.loggers.MLFlowLogger
+    init_args:
+      experiment_name: lightning_logs
+      run_name: null
+      tracking_uri: null
+      tags: null
+      save_dir: ./mlruns
+      log_model: false
+      prefix: ''
+      artifact_location: null
+      run_id: null
+  callbacks: null
+  fast_dev_run: false
+  max_epochs: 2
+  min_epochs: null
+  max_steps: -1
+  min_steps: null
+  max_time: null
+  limit_train_batches: null
+  limit_val_batches: null
+  limit_test_batches: null
+  limit_predict_batches: null
+  overfit_batches: 0.0
+  val_check_interval: null
+  check_val_every_n_epoch: 1
+  num_sanity_val_steps: null
+  log_every_n_steps: null
+  enable_checkpointing: null
+  enable_progress_bar: null
+  enable_model_summary: null
+  accumulate_grad_batches: 1
+  gradient_clip_val: null
+  gradient_clip_algorithm: null
+  deterministic: null
+  benchmark: null
+  inference_mode: true
+  use_distributed_sampler: true
+  profiler: null
+  detect_anomaly: false
+  barebones: false
+  plugins: null
+  sync_batchnorm: false
+  reload_dataloaders_every_n_epochs: 0
+  default_root_dir: null
+model:
+  class_path: itwinai.plmodels.mnist.LitMNIST
+  init_args:
+    data_dir: ./data/mnist/preproc-images-train
+    hidden_size: 64
+    learning_rate: 0.0002
+    batch_size: 32

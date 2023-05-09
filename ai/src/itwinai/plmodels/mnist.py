@@ -9,10 +9,11 @@ from torch.utils.data import DataLoader, random_split
 from torchmetrics import Accuracy
 from torchvision import transforms
 from torchvision.datasets import MNIST
-import lightning as L
+
+from .base import ItwinaiBasePlModel
 
 
-class LitMNIST(L.LightningModule):
+class LitMNIST(ItwinaiBasePlModel):
     """
     Simple PL model for MNIST.
     Adapted from
