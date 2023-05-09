@@ -184,14 +184,14 @@ def train(
             subclass_mode_data=True
         )
 
+        # Train + validation, and test
+        cli.trainer.fit(cli.model)
+        cli.trainer.test()
+
         # Save updated lightning conf as an mlflow artifact
         mlflow.log_artifact(
             os.path.join(cli.trainer.log_dir, "pl-config.yml")
         )
-
-        # Train + validation, and test
-        cli.trainer.fit(cli.model)
-        cli.trainer.test()
 
 
 @app.command()
