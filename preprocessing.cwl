@@ -24,14 +24,8 @@ inputs:
       position: 2
       prefix: --output
 
-# outputs:
-#   DatasetPath:
-#     type: File
-#     outputBinding:
-#       glob: t10k-images-idx3-ubyte
-
 outputs:
-  output_parameter:
+  preprocessingStdout:
     type: stdout
 
 

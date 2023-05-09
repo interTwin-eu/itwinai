@@ -15,9 +15,9 @@ inputs:
 
 
 outputs:
-  output_parameter:
+  preprocessingStdout:
     type: File
-    outputSource: preprocess/output_parameter
+    outputSource: preprocess/preprocessingStdout
 
 steps:
   preprocess:
@@ -25,25 +25,12 @@ steps:
     in:
         rawDatasetPath: preprocessInput
         preprocesseDatasetPath: preprocessOutput
-    out: [output_parameter]
+    out: [preprocessingStdout]
 
   training:
     run: training.cwl
     in:
         preprocesseDatasetPath: preprocessOutput
         configPath: config
-        #preprocessingFlag: preprocess/output_parameter
+        preprocessingFlag: preprocess/preprocessingStdout
     out: []
-
-
-
-
-#outputs: []
-  # stored_flag:
-  #   type: string
-  #   outputSource: preprocess/flag
-
-
-
-
-

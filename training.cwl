@@ -24,13 +24,9 @@ inputs:
       position: 2
       prefix: --input
 
-  # preprocessingFlag:
-  #   type: string
+  preprocessingFlag:
+    type: File
 
 outputs: []
-# outputs:
-#   output_file:
-#     type: File
-#     outputBinding:
-#       glob: output_file.txt
+
 
