@@ -1,18 +1,13 @@
 cwlVersion: v1.2
 class: Workflow
 
-requirements:
-  InlineJavascriptRequirement: {}
-
 inputs:
     preprocessInput:    
         type: string
     preprocessOutput:    
         type: string
-
     config:    
         type: string
-
 
 outputs:
   preprocessingStdout:
@@ -21,14 +16,14 @@ outputs:
 
 steps:
   preprocess:
-    run: preprocessing.cwl
+    run: cwl/preprocessing.cwl
     in:
         rawDatasetPath: preprocessInput
         preprocesseDatasetPath: preprocessOutput
     out: [preprocessingStdout]
 
   training:
-    run: training.cwl
+    run: cwl/training.cwl
     in:
         preprocesseDatasetPath: preprocessOutput
         configPath: config
