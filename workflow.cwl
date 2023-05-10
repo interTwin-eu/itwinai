@@ -1,12 +1,23 @@
 cwlVersion: v1.2
 class: Workflow
 
+
+
 inputs:
+    preprocessEnvironment:
+        type: string
+    preprocessScript:
+        type: string
     preprocessInput:    
         type: string
     preprocessOutput:    
         type: string
-    config:    
+
+    trainingConfig:    
+        type: string
+    trainingEnvironment:    
+        type: string
+    trainingCommand:    
         type: string
 
 outputs:
@@ -16,16 +27,20 @@ outputs:
 
 steps:
   preprocess:
-    run: cwl/preprocessing.cwl
+    run: use-cases/mnist/mnist-preproc.cwl
     in:
+        preprocessEnvironment: preprocessEnvironment
+        preprocessScript: preprocessScript
         rawDatasetPath: preprocessInput
         preprocesseDatasetPath: preprocessOutput
     out: [preprocessingStdout]
 
   training:
-    run: cwl/training.cwl
+    run: ai/src/training.cwl
     in:
         preprocesseDatasetPath: preprocessOutput
-        configPath: config
+        trainingConfig: trainingConfig
+        trainingEnvironment: trainingEnvironment
+        trainingCommand: trainingCommand
         preprocessingFlag: preprocess/preprocessingStdout
     out: []

@@ -1,0 +1,10 @@
+#Preprocessing
+preprocessInput: None
+preprocessOutput: /afs/cern.ch/work/a/azoechba/T6.5-AI-and-ML/data/mnist/preproc-images-train
+preprocessEnvironment: /afs/cern.ch/work/a/azoechba/T6.5-AI-and-ML/use-cases/mnist/.venv-preproc
+preprocessScript: /afs/cern.ch/work/a/azoechba/T6.5-AI-and-ML/use-cases/mnist/mnist-preproc.py
+
+#Training
+trainingConfig: /afs/cern.ch/work/a/azoechba/T6.5-AI-and-ML/use-cases/mnist/mnist-ai.yml
+trainingEnvironment: /afs/cern.ch/work/a/azoechba/T6.5-AI-and-ML/ai/.venv-training
+trainingCommand: train

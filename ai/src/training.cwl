@@ -2,7 +2,7 @@ cwlVersion: v1.2
 class: CommandLineTool
 
 # Define the command that will be executed when the tool is run
-baseCommand: [conda, run, -p, /afs/cern.ch/work/a/azoechba/T6.5-AI-and-ML/ai/.venv-training, itwinai, train]
+baseCommand: [conda, run]
 
 # Define requirements for the tool
 # In this case, set an environment variable to try to solve a permission error
@@ -13,16 +13,29 @@ requirements:
 
 # Define inputs for the tool
 inputs:
-  configPath:
+
+  trainingEnvironment:
     type: string
     inputBinding:
       position: 1
+      prefix: -p
+
+  trainingCommand:
+    type: string
+    inputBinding:
+      position: 2
+      prefix: itwinai
+
+  trainingConfig:
+    type: string
+    inputBinding:
+      position: 3
       prefix: --config
 
   preprocesseDatasetPath:
     type: string
     inputBinding:
-      position: 2
+      position: 4
       prefix: --input
 
   preprocessingFlag:
