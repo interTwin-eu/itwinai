@@ -18,7 +18,9 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
 
+    # Download and store training dataset
     MNIST(args.output, train=True, download=True)
+    # Download and store test dataset
     MNIST(args.output, train=False, download=True)
 
     print(
@@ -28,8 +30,8 @@ if __name__ == "__main__":
     ******************************
 
     - Download dataset
-    - TODO: Split the dataset in training and inference
-    - TODO: Preprocess it
+    - Split the dataset in training and inference
+    - Preprocess it
     - Store it to local filesystem
 
     """
