@@ -5,7 +5,8 @@
 
 ## Running a workflow in CWL
 
-The entry point of a workflow is given by the orchestrator script `workflow.cwl` . You can run it with any tool that supports the CWL worklfow format, e.g. `cwltool`.
+The entry point of a workflow is given by the orchestrator script `workflow.cwl`.
+You can run it with any tool that supports the CWL worklfow format, e.g. `cwltool`.
 
 See some examples of workflow executions in `examples.sh` , for instance:
 
@@ -28,31 +29,31 @@ Requirements:
 
 To install the `cwltool` and activate the enviroment to run the workflow:
 
-```
+```bash
 mamba create --name cwltool_test cwltool -c conda-forge
 conda activate cwltool
 ```
 
 You need to install the virtual environement with the following commands for preprocessing and training:
 
-```
+```bash
 mamba env create -p ./use-cases/mnist/.venv-preproc --file ./use-cases/mnist/preproc-env.yml
 ```
 
 If you want training with GPU support with CUDA run:
 
-```
+```bash
 mamba env create -p ./ai/.venv-training-gpu --file ./ai/training-env-gpu.yml
 ```
 
 otherwise, to install PyTorch with only CPU support:
 
-```
+```bash
 mamba env create -p ./ai/.venv-training --file ./ai/training-env.yml
 ```
 
 To install the `itwinai` module run:
 
-```
+```bash
 conda run -p ./ai/.venv-training-gpu python -m pip install --no-deps ./ai
 ```
