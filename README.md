@@ -15,7 +15,9 @@ conda run -p ./.venv python run-workflow.py -f ./use-cases/mnist/training-workfl
 
 Requirements:
 
+- Linux environment
 - Mamba: [Installation guide](https://mamba.readthedocs.io/en/latest/installation.html) (suggested Mambaforge).
+- VS Code, for development.
 
 Install the orchestrator virtual environment.
 
