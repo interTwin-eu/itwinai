@@ -19,25 +19,25 @@ stdout: ./logs/mnist-preproc-stdout.txt
 # Defines the inputs to the CWL tool
 inputs:
   preprocessEnvironment:
-    type: string
+    type: Directory
     inputBinding:
       position: 1
       prefix: -p
 
   preprocessScript:
-    type: string
+    type: File
     inputBinding:
       position: 2
       prefix: python
 
   rawDatasetPath:
-    type: string           # Specifies the data type of the input as a string
+    type: Directory?          # Specifies the data type of the input as a string
     inputBinding:          # Defines how the input should be passed to the command line tool
       position: 3          # Specifies the position of the argument in the command line
       prefix: --input      # Specifies the prefix to be used for the argument
 
   preprocesseDatasetPath:
-    type: string           # Specifies the data type of the input as a string
+    type: Directory           # Specifies the data type of the input as a string
     inputBinding:          # Defines how the input should be passed to the command line tool
       position: 4          # Specifies the position of the argument in the command line
       prefix: --output     # Specifies the prefix to be used for the argument

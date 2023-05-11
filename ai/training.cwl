@@ -15,7 +15,7 @@ requirements:
 inputs:
 
   trainingEnvironment:
-    type: string
+    type: Directory
     inputBinding:
       position: 1
       prefix: -p
@@ -27,13 +27,13 @@ inputs:
       prefix: itwinai
 
   trainingConfig:
-    type: string
+    type: File
     inputBinding:
       position: 3
       prefix: --config
 
   preprocesseDatasetPath:
-    type: string
+    type: Directory
     inputBinding:
       position: 4
       prefix: --input

@@ -1,0 +1,5 @@
+name: cwltool
+channels:
+  - conda-forge
+dependencies:
+  - cwltool

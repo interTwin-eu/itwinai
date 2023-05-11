@@ -5,18 +5,18 @@ class: Workflow
 
 inputs:
     preprocessEnvironment:
-        type: string
+        type: Directory
     preprocessScript:
-        type: string
+        type: File
     preprocessInput:    
-        type: string
+        type: Directory?
     preprocessOutput:    
-        type: string
+        type: Directory
 
     trainingConfig:    
-        type: string
+        type: File
     trainingEnvironment:    
-        type: string
+        type: Directory
     trainingCommand:    
         type: string
 
@@ -36,7 +36,7 @@ steps:
     out: [preprocessingStdout]
 
   training:
-    run: ai/src/training.cwl
+    run: ai/training.cwl
     in:
         preprocesseDatasetPath: preprocessOutput
         trainingConfig: trainingConfig
