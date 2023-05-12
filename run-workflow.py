@@ -58,8 +58,8 @@ if __name__ == "__main__":
 
     # 3. Run the by invoking the CWL execution tool'
     subprocess.run(
-            ("cwltool workflow.cwl"
-            f" {args.workflow_file}"),
+            ("cwltool workflow.cwl "
+             f"{args.workflow_file}"),
             shell=True,
             check=True,
         )
