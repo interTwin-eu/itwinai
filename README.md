@@ -11,7 +11,8 @@ See some examples of workflow executions in `examples.sh` , for instance:
 conda run -p ./.venv python run-workflow.py -f ./use-cases/mnist/training-workflow.yml
 ```
 
-If you want to run using the Common Workflow Language (CWL). Note that logging and saving models/metric is currently not supported using CWL.
+If you want to run using the Common Workflow Language (CWL).
+Note that logging and saving models/metric is currently not supported using CWL.
 
 ```bash
 conda run -p ./.venv python run-workflow.py -f ./use-cases/mnist/training-workflow-cwl.yml --cwl
