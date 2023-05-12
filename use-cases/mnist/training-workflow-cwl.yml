@@ -1,5 +1,7 @@
-###Preprocessing ###
+#Definition of steps required for CWL workflow exection
+#Explanation about the how the inputs need to be defined: https://www.commonwl.org/v1.2/Workflow.html#File and https://www.commonwl.org/v1.2/Workflow.html#Directory
 
+#preprocessing step
 preprocessEnvironment:
   class: Directory
   path: .venv-preproc
@@ -17,7 +19,7 @@ preprocessOutput:
   class: Directory
   path: ../../data/mnist/preproc-images-train
 
-### Training ###
+#training step
 trainingConfig:
   class: File
   path: mnist-ai.yml
@@ -28,7 +30,7 @@ trainingEnvironment:
 
 trainingCommand: train
 
-#setup
+#setup of environment
 steps:
   - preprocessing:
       env: 
