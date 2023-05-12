@@ -25,3 +25,5 @@ steps:
         source: ./ai
       params:
         config: ./use-cases/mnist/mnist-ai.yml
+
+

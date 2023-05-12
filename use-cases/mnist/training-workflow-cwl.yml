@@ -1,4 +1,5 @@
 ###Preprocessing ###
+
 preprocessEnvironment:
   class: Directory
   path: .venv-preproc
@@ -26,3 +27,18 @@ trainingEnvironment:
   path: ../../ai/.venv-training
 
 trainingCommand: train
+
+#setup
+steps:
+  - preprocessing:
+      env: 
+        file: ./use-cases/mnist/preproc-env.yml
+        prefix: ./use-cases/mnist/.venv-preproc
+        source: null
+  - ml-training:
+      env: 
+        file: ./ai/training-env.yml
+        prefix: ./ai/.venv-training
+        source: ./ai
+
+
