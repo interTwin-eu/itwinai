@@ -1,10 +1,45 @@
-#Preprocessing
-preprocessInput: None
-preprocessOutput: /afs/cern.ch/work/a/azoechba/T6.5-AI-and-ML/data/mnist/preproc-images-train
-preprocessEnvironment: /afs/cern.ch/work/a/azoechba/T6.5-AI-and-ML/use-cases/mnist/.venv-preproc
-preprocessScript: /afs/cern.ch/work/a/azoechba/T6.5-AI-and-ML/use-cases/mnist/mnist-preproc.py
+#Definition of steps required for CWL workflow exection
+#Explanation about the how the inputs need to be defined: https://www.commonwl.org/v1.2/Workflow.html#File and https://www.commonwl.org/v1.2/Workflow.html#Directory
 
-#Training
-trainingConfig: /afs/cern.ch/work/a/azoechba/T6.5-AI-and-ML/use-cases/mnist/mnist-ai.yml
-trainingEnvironment: /afs/cern.ch/work/a/azoechba/T6.5-AI-and-ML/ai/.venv-training-gpu
+#preprocessing step
+preprocessEnvironment:
+  class: Directory
+  path: .venv-preproc
+
+preprocessScript:
+  class: File
+  path: mnist-preproc.py
+
+#Placeholder for input dataset
+# preprocessInput:
+#   class: Directory
+#   path:
+
+preprocessOutput:
+  class: Directory
+  path: ../../data/mnist/preproc-images-train
+
+#training step
+trainingConfig:
+  class: File
+  path: mnist-ai.yml
+
+trainingEnvironment:
+  class: Directory
+  path: ../../ai/.venv-training-gpu
+
 trainingCommand: train
+
+#setup of environment
+steps:
+  - preprocessing:
+      env: 
+        file: ./use-cases/mnist/preproc-env.yml
+        prefix: ./use-cases/mnist/.venv-preproc
+        source: null
+  - ml-training:
+      env: 
+        file: ./ai/training-env-gpu.yml
+        prefix: ./ai/.venv-training-gpu
+        source: ./ai
+
