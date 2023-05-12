@@ -2,6 +2,7 @@
     "python.linting.flake8Enabled": true,
     "python.linting.enabled": true,
     "editor.formatOnSave": true,
+    "editor.defaultFormatter": "ms-python.autopep8",
     "cSpell.ignoreWords": [
         "itwinpreproc",
         "typer"

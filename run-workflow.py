@@ -25,8 +25,7 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         '--cwl',
-        action=argparse.BooleanOptionalAction#,
-        #help='Flag if workflow should be invoked with CWL.'
+        action=argparse.BooleanOptionalAction
     )
     args = parser.parse_args()
 
@@ -62,21 +61,21 @@ if __name__ == "__main__":
                 )
 
     # 3. Run the by invoking the CWL execution tool'
-    #invoke workflow with CWL
+        # invoke workflow with CWL
     if args.cwl:
         print('Invoked workflow with CWL.')
         print(
-                ("cwltool workflow.cwl "
-                f"{args.workflow_file}")
+            ("cwltool workflow.cwl "
+             f"{args.workflow_file}")
         )
         subprocess.run(
-                ("cwltool workflow.cwl "
-                f"{args.workflow_file}"),
-                shell=True,
-                check=True,
-            )
+            ("cwltool workflow.cwl "
+             f"{args.workflow_file}"),
+            shell=True,
+            check=True,
+        )
 
-    #invoke workflow step-by-step with 'conda run ...'
+    # invoke workflow step-by-step with 'conda run ...'
     else:
         datasets = workflow.get('datasets')
         for step in workflow.get('steps'):
@@ -108,11 +107,11 @@ if __name__ == "__main__":
             )
             subprocess.run(
                 (f"conda run -p {step_data['env']['prefix']} "
-                f"{step_data['command']} "
-                f"--input {input_dataset} "
-                f"--output {output_dataset} "
-                f"{params_str}"
-                ),
+                 f"{step_data['command']} "
+                 f"--input {input_dataset} "
+                 f"--output {output_dataset} "
+                 f"{params_str}"
+                 ),
                 shell=True,
                 check=True,
             )
