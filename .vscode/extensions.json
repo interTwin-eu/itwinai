@@ -1,0 +1,12 @@
+{
+    "recommendations": [
+        "ms-python.flake8",
+        "streetsidesoftware.code-spell-checker",
+        "njpwerner.autodocstring",
+        "dlyz.md-link-checker",
+        "davidanson.vscode-markdownlint",
+        "ms-python.vscode-pylance",
+        "ms-python.python",
+        "ms-python.autopep8"
+    ]
+}

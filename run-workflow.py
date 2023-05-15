@@ -23,6 +23,10 @@ if __name__ == "__main__":
         help='Path to file describing DT a workflow.',
         required=True
     )
+    parser.add_argument(
+        '--cwl',
+        action=argparse.BooleanOptionalAction
+    )
     args = parser.parse_args()
 
     # 1. parse workflow file
@@ -56,42 +60,58 @@ if __name__ == "__main__":
                     check=True
                 )
 
-    # 3. Run the workflow step-by-step. Like 'conda run ...'
-    datasets = workflow.get('datasets')
-    for step in workflow.get('steps'):
-        step_name, step_data = next(iter(step.items()))
-        # Step input
-        input_dataset = (
-            datasets[step_data['input']]['location']
-            if step_data['input'] is not None
-            else None
-        )
-        # Step output
-        output_dataset = (
-            datasets[step_data['output']]['location']
-            if step_data['output'] is not None
-            else None
-        )
-        # Step params
-        params_str = ''
-        if step_data['params'] is not None:
-            params_str = " ".join([
-                f"--{k} {v}" for k, v in step_data['params'].items()
-            ])
-        print(f'Running "{step_name}" step...')
+    # 3. Run the by invoking the CWL execution tool'
+        # invoke workflow with CWL
+    if args.cwl:
+        print('Invoked workflow with CWL.')
         print(
-            f"conda run -p {step_data['env']['prefix']} "
-            f"{step_data['command']} "
-            f"--input {input_dataset} "
-            f"--output {output_dataset} {params_str}\n\n"
+            (f"cwltool {workflow.get('workflowFileCWL')} "
+             f"{args.workflow_file}")
         )
         subprocess.run(
-            (f"conda run -p {step_data['env']['prefix']} "
-             f"{step_data['command']} "
-             f"--input {input_dataset} "
-             f"--output {output_dataset} "
-             f"{params_str}"
-             ),
+            (f"cwltool {workflow.get('workflowFileCWL')} "
+             f"{args.workflow_file}"),
             shell=True,
             check=True,
         )
+
+    # invoke workflow step-by-step with 'conda run ...'
+    else:
+        datasets = workflow.get('datasets')
+        for step in workflow.get('steps'):
+            step_name, step_data = next(iter(step.items()))
+            # Step input
+            input_dataset = (
+                datasets[step_data['input']]['location']
+                if step_data['input'] is not None
+                else None
+            )
+            # Step output
+            output_dataset = (
+                datasets[step_data['output']]['location']
+                if step_data['output'] is not None
+                else None
+            )
+            # Step params
+            params_str = ''
+            if step_data['params'] is not None:
+                params_str = " ".join([
+                    f"--{k} {v}" for k, v in step_data['params'].items()
+                ])
+            print(f'Running "{step_name}" step...')
+            print(
+                f"conda run -p {step_data['env']['prefix']} "
+                f"{step_data['command']} "
+                f"--input {input_dataset} "
+                f"--output {output_dataset} {params_str}\n\n"
+            )
+            subprocess.run(
+                (f"conda run -p {step_data['env']['prefix']} "
+                 f"{step_data['command']} "
+                 f"--input {input_dataset} "
+                 f"--output {output_dataset} "
+                 f"{params_str}"
+                 ),
+                shell=True,
+                check=True,
+            )
