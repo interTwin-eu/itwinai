@@ -2,5 +2,6 @@ name: workflow-orchestrator
 channels:
   - conda-forge
 dependencies:
+  - cwltool
   - python=3.9.12
   - pyyaml

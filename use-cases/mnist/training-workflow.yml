@@ -1,3 +1,4 @@
+#Workflow definition in classical style
 datasets:
   preproc-images-train:
     location: ./data/mnist/preproc-images-train
@@ -26,3 +27,35 @@ steps:
         source: ./ai
       params:
         config: ./use-cases/mnist/mnist-ai.yml
+
+#Workflow definition in CWL style
+
+workflowFileCWL: use-cases/mnist/workflow.cwl
+
+preprocessEnvironment:
+  class: Directory
+  path: .venv-preproc
+
+preprocessScript:
+  class: File
+  path: mnist-preproc.py
+
+#Placeholder for input dataset
+# preprocessInput:
+#   class: Directory
+#   path:
+
+preprocessOutput:
+  class: Directory
+  path: ../../data/mnist/preproc-images-train
+
+#training step
+trainingConfig:
+  class: File
+  path: mnist-ai.yml
+
+trainingEnvironment:
+  class: Directory
+  path: ../../ai/.venv-training
+
+trainingCommand: train
