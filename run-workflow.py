@@ -65,11 +65,11 @@ if __name__ == "__main__":
     if args.cwl:
         print('Invoked workflow with CWL.')
         print(
-            ("cwltool workflow.cwl "
+            (f"cwltool {workflow.get('workflowFileCWL')} "
              f"{args.workflow_file}")
         )
         subprocess.run(
-            ("cwltool workflow.cwl "
+            (f"cwltool {workflow.get('workflowFileCWL')} "
              f"{args.workflow_file}"),
             shell=True,
             check=True,

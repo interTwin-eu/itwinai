@@ -27,7 +27,7 @@ outputs:
 
 steps:
   preprocess:
-    run: use-cases/mnist/mnist-preproc.cwl
+    run: mnist-preproc.cwl
     in:
         preprocessEnvironment: preprocessEnvironment
         preprocessScript: preprocessScript
@@ -36,7 +36,7 @@ steps:
     out: [preprocessingStdout]
 
   training:
-    run: ai/training.cwl
+    run: ../../ai/training.cwl
     in:
         preprocesseDatasetPath: preprocessOutput
         trainingConfig: trainingConfig
