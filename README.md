@@ -3,13 +3,9 @@
 [![GitHub Super-Linter](https://github.com/interTwin-eu/T6.5-AI-and-ML/actions/workflows/lint.yml/badge.svg)](https://github.com/marketplace/actions/super-linter)
 [![GitHub Super-Linter](https://github.com/interTwin-eu/T6.5-AI-and-ML/actions/workflows/check-links.yml/badge.svg)](https://github.com/marketplace/actions/markdown-link-check)
 
-The entry point of a workflow is given by the orchestrator script `run-workflow.py` .
+See our wiki for a [quick overview](https://github.com/interTwin-eu/T6.5-AI-and-ML/wiki) of this platform for advanced AI/ML workflows in digital twin applications.
 
-See some examples of workflow executions in `examples.sh` , for instance:
-
-```bash
-conda run -p ./.venv python run-workflow.py -f ./use-cases/mnist/training-workflow.yml
-```
+If you want to integrate a new use case, you can follow this [step-by-step guide](https://github.com/interTwin-eu/T6.5-AI-and-ML/wiki/How-to-use-this-software).
 
 ## Installation
 
