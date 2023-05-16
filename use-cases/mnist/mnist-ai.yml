@@ -1,10 +1,18 @@
 # Configuration file of AI workflows for MNIST use case
 
-model: itwinai.plmodels.mnist.LitMNIST
-task: classification
+# Pytorch lightning config
+train-config:
+  type: lightning
+  # Follows lightning config file format:
+  # https://pytorch-lightning.readthedocs.io/en/1.6.5/common/lightning_cli.html#multiple-models-and-or-datasets
+  path: ./use-cases/mnist/pl-config.yml
 
-# Have to coincide with constructor param names
-hyperparams:
-  learning_rate: 0.001
-  batch_size: 32
-  hidden_size: 64
+# Mlflow
+logger:
+  experiment_name: MNIST classification lite
+  description: A MLP classifier for MNIST dataset.
+  log_every_n_epoch: 1
+  log_every_n_steps: 1
+  # Name used in Models Registry. If given, it is automatically
+  # registered in the Models Registry.
+  registered_model_name: MNIST-clf-lite

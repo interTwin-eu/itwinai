@@ -1,4 +1,4 @@
-name: ai-inference
+name: ai-training
 channels:
   - conda-forge
   - pytorch
@@ -17,3 +17,8 @@ dependencies:
   - typer
   - rich
   - pyyaml
+
+    # Pip dependencies
+  - pip
+  - pip:
+    - jsonargparse[signatures]>=4.17.0

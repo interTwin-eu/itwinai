@@ -1,6 +1,30 @@
 """
 Utilities for itwinai package.
 """
+from typing import Dict
+from collections.abc import MutableMapping
+import yaml
+
+
+def load_yaml(path: str) -> Dict:
+    """Load YAML file as dict.
+
+    Args:
+        path (str): path to YAML file.
+
+    Raises:
+        exc: yaml.YAMLError for loading/parsing errors.
+
+    Returns:
+        Dict: nested dict representation of parsed YAML file.
+    """
+    with open(path, "r", encoding="utf-8") as yaml_file:
+        try:
+            loaded_config = yaml.safe_load(yaml_file)
+        except yaml.YAMLError as exc:
+            print(exc)
+            raise exc
+    return loaded_config
 
 
 def dynamically_import_class(name: str):
@@ -18,3 +42,29 @@ def dynamically_import_class(name: str):
     mod = __import__(module, fromlist=[class_name])
     klass = getattr(mod, class_name)
     return klass
+
+
+def flatten_dict(
+        d: MutableMapping,
+        parent_key: str = '',
+        sep: str = '.'
+) -> MutableMapping:
+    """Flatten dictionary
+
+    Args:
+        d (MutableMapping): nested dictionary to flatten
+        parent_key (str, optional): prefix for all keys. Defaults to ''.
+        sep (str, optional): separator for nested key concatenation.
+            Defaults to '.'.
+
+    Returns:
+        MutableMapping: flattened dictionary with new keys.
+    """
+    items = []
+    for k, v in d.items():
+        new_key = parent_key + sep + k if parent_key else k
+        if isinstance(v, MutableMapping):
+            items.extend(flatten_dict(v, new_key, sep=sep).items())
+        else:
+            items.append((new_key, v))
+    return dict(items)
