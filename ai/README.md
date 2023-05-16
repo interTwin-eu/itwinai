@@ -12,9 +12,9 @@ Installation:
 # Optional
 cd ./ai
 # Inside ./ai folder
-mamba env create -p ./.venv --file ./dev-env.yml
+mamba env create -p ./.venv-dev --file ./dev-env.yml
 # Install this package
-conda run -p ./.venv python -m pip install --no-deps -e .
+conda run -p ./.venv-dev python -m pip install --no-deps -e .
 # Activate env
-conda activate ./.venv
+conda activate ./.venv-dev
 ```
