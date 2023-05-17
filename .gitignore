@@ -5,6 +5,7 @@ lightning_logs
 mlruns
 tmp*
 .tmp*
+*.txt
 
 # Custom envs
 .venv*
