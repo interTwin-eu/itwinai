@@ -21,6 +21,9 @@ itwinai train --input ./data/mnist/preproc-images-train --output ./data/mnist/ml
 # MNIST inference
 conda run -p ./.venv python run-workflow.py -f ./use-cases/mnist/inference-workflow.yml
 
+# MNIST inference
+itwinai predict --output ./data/mnist/predictions --config ./use-cases/mnist/mnist-ai.yml
+
 ################################
 ###  Visualization examples  ###
 ################################

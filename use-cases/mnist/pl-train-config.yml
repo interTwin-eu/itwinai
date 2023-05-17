@@ -33,9 +33,17 @@ trainer:
     - class_path: lightning.pytorch.callbacks.lr_monitor.LearningRateMonitor
       init_args:
         logging_interval: step
+    - class_path: lightning.pytorch.callbacks.ModelCheckpoint
+      init_args:
+        dirpath: checkpoints
+        filename: best-checkpoint
+        save_top_k: 1
+        verbose: true
+        monitor: val_loss
+        mode: min
 
   fast_dev_run: false
-  max_epochs: 5
+  max_epochs: 1
   min_epochs: null
   max_steps: -1
   min_steps: null
@@ -71,9 +79,13 @@ trainer:
 model:
   class_path: itwinai.plmodels.mnist.LitMNIST
   init_args:
-    data_dir: ./data/mnist/preproc-images-train
     hidden_size: 64
-    learning_rate: 0.0002
+
+# Lightning data module configuration
+data:
+  class_path: itwinai.plmodels.mnist.MNISTDataModule
+  init_args:
+    data_dir: ./data/mnist/preproc-images
     batch_size: 32
 
 # Torch Optimizer configuration

@@ -6,6 +6,7 @@ mlruns
 tmp*
 .tmp*
 *.txt
+checkpoints/
 
 # Custom envs
 .venv*

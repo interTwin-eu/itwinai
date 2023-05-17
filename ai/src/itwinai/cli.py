@@ -41,7 +41,10 @@ def train(
     from lightning.pytorch.cli import LightningCLI
 
     from itwinai.utils import load_yaml, flatten_dict
-    from itwinai.plmodels.base import ItwinaiBasePlModel
+    from itwinai.plmodels.base import (
+        ItwinaiBasePlModule,
+        ItwinaiBasePlDataModule
+    )
 
     os.makedirs(output, exist_ok=True)
     train_config = load_yaml(config)
@@ -89,7 +92,8 @@ def train(
 
         cli = LightningCLI(
             args=lightning_conf,
-            model_class=ItwinaiBasePlModel,
+            model_class=ItwinaiBasePlModule,
+            datamodule_class=ItwinaiBasePlDataModule,
             run=False,
             save_config_kwargs={"overwrite": True,
                                 "config_filename": "pl-config.yml"},
@@ -98,8 +102,8 @@ def train(
         )
 
         # Train + validation, and test
-        cli.trainer.fit(cli.model)
-        cli.trainer.test()
+        cli.trainer.fit(cli.model, datamodule=cli.datamodule)
+        cli.trainer.test(dataloaders=cli.datamodule, datamodule=cli.datamodule)
 
         # Save updated lightning conf as an mlflow artifact
         mlflow.log_artifact(
@@ -109,10 +113,6 @@ def train(
 
 @app.command()
 def predict(
-    input: str = typer.Option(
-        "unk",
-        help="Path to inference dataset."
-    ),
     config: str = typer.Option(
         "unk",
         help="Path to inference configuration file."
@@ -125,8 +125,88 @@ def predict(
     """
     Apply a pre-trained neural network to a set of unseen data.
     """
-    # TODO: implement inference
-    pass
+    import mlflow
+    from lightning.pytorch.cli import LightningCLI
+    from lightning.pytorch.trainer.trainer import Trainer
+    import torch
+
+    from itwinai.utils import load_yaml
+    from itwinai.plmodels.base import (
+        ItwinaiBasePlModule,
+        ItwinaiBasePlDataModule
+    )
+
+    # Load ML configuration
+    ml_conf = load_yaml(config)
+    ml_conf = ml_conf['inference-config']
+
+    os.makedirs(output, exist_ok=True)
+
+    mlflow.set_tracking_uri(ml_conf['tracking_uri'])
+
+    # Download training configuration
+    train_conf_path = mlflow.artifacts.download_artifacts(
+        run_id=ml_conf['run_id'],
+        artifact_path=ml_conf['train_config_artifact_path'],
+        dst_path='tmp/',
+        tracking_uri=mlflow.get_tracking_uri()
+    )
+
+    # Download last ckpt
+    ckpt_path = mlflow.artifacts.download_artifacts(
+        run_id=ml_conf['run_id'],
+        artifact_path=ml_conf['ckpt_path'],
+        dst_path='tmp/',
+        tracking_uri=mlflow.get_tracking_uri()
+    )
+
+    # Instantiate PL model
+    lightning_conf = load_yaml(train_conf_path)
+
+    cli = LightningCLI(
+        args=lightning_conf,
+        model_class=ItwinaiBasePlModule,
+        run=False,
+        subclass_mode_model=True,
+        subclass_mode_data=True,
+        save_config_callback=None
+    )
+
+    # Load best model
+    loaded_model = cli.model.load_from_checkpoint(
+        ckpt_path,
+        lightning_conf['model']['init_args']
+    )
+
+    # Load Data module
+    if ml_conf.get('data') is not None:
+        # New/updated datamodule
+        loaded_data_module: ItwinaiBasePlDataModule = None
+        raise NotImplementedError
+    else:
+        # Reuse same datamodule used for training
+        loaded_data_module: ItwinaiBasePlDataModule = cli.datamodule
+
+    # Test best model once again (TODO: remove)
+    trainer = Trainer()
+    trainer.test(
+        loaded_model,
+        dataloaders=loaded_data_module,
+        datamodule=loaded_data_module
+    )  # , ckpt_path='best')
+
+    # Predict
+    predictions = trainer.predict(
+        loaded_model,
+        datamodule=loaded_data_module
+    )  # , ckpt_path='best')
+    pred_class_names = loaded_data_module.preds_to_names(
+        torch.cat(predictions)
+    )
+
+    # Save list of predictions as class names
+    with open(os.path.join(output, 'predictions.txt'), 'w') as preds_file:
+        preds_file.write('\n'.join(pred_class_names))
 
 
 @app.command()

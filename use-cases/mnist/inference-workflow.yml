@@ -1,6 +1,6 @@
 datasets:
-  preproc-images-inference:
-    location: ./data/mnist/preproc-images-inference
+  preproc-images:
+    location: ./data/mnist/preproc-images
   ml-logs:
     # MLflow tracking URI
     location: ./data/mnist/ml-logs
@@ -10,7 +10,7 @@ datasets:
 steps:
   - preprocessing:
       input: null
-      output: preproc-images-inference
+      output: preproc-images
       command: python ./use-cases/mnist/mnist-preproc.py
       env: 
         file: ./use-cases/mnist/preproc-env.yml
@@ -19,7 +19,7 @@ steps:
       params:
         rnd-seed: 42
   - ml-inference:
-      input: preproc-images-inference
+      input: preproc-images
       output: ml-predictions
       command: itwinai predict
       env: 

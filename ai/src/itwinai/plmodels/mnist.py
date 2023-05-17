@@ -2,6 +2,8 @@
 Pytorch Lightning models for MNIST dataset.
 """
 
+from typing import Callable, List, Optional, Union
+from lightning.pytorch.utilities.types import EVAL_DATALOADERS
 import torch
 from torch import nn
 from torch.nn import functional as F
@@ -10,10 +12,116 @@ from torchmetrics import Accuracy
 from torchvision import transforms
 from torchvision.datasets import MNIST
 
-from .base import ItwinaiBasePlModel
+from .base import ItwinaiBasePlModule, ItwinaiBasePlDataModule
 
 
-class LitMNIST(ItwinaiBasePlModel):
+class MNISTDataModule(ItwinaiBasePlDataModule):
+    """Pytorch Lightning data module for MNIST dataset
+
+        Args:
+            data_dir (str): path to dataset directory
+            batch_size (int, optional): batch size. Defaults to 32.
+            train_prop (float, optional): proportion of examples in the train
+                split, after dataset is split into train and validation.
+                Defaults to 0.7.
+            transform (Optional[Callable], optional): transformations to apply
+                to the loaded images. Defaults to None.
+    """
+
+    def __init__(
+        self,
+            data_dir: str,
+            batch_size: int = 32,
+            train_prop: float = 0.7,
+            transform: Optional[Callable] = None,
+    ) -> None:
+        super().__init__()
+        self.data_dir = data_dir
+        self.batch_size = batch_size
+        self.train_prop = train_prop
+        if transform is None:
+            self.transform = transforms.Compose(
+                [
+                    transforms.ToTensor(),
+                    transforms.Normalize((0.1307,), (0.3081,)),
+                ]
+            )
+        else:
+            self.transform = transform
+
+    def setup(self, stage=None):
+        # Assign train/val datasets for use in dataloaders
+        if stage == "fit" or stage is None:
+            mnist_full = MNIST(
+                self.data_dir, train=True,
+                transform=self.transform,
+                download=False
+            )
+            n_train_samples = int(self.train_prop * len(mnist_full))
+            n_val_samples = len(mnist_full) - n_train_samples
+            self.mnist_train, self.mnist_val = random_split(
+                mnist_full, [n_train_samples, n_val_samples]
+            )
+
+        # Assign test dataset for use in dataloader(s)
+        if stage == "test" or stage is None:
+            self.mnist_test = MNIST(
+                self.data_dir,
+                train=False,
+                download=False,
+                transform=self.transform
+            )
+
+        if stage == "predict":
+            self.mnist_predict = MNIST(
+                self.data_dir,
+                train=False,
+                download=False,
+                transform=self.transform
+            )
+
+    def train_dataloader(self):
+        return DataLoader(
+            self.mnist_train,
+            batch_size=self.batch_size
+        )
+
+    def val_dataloader(self):
+        return DataLoader(
+            self.mnist_val,
+            batch_size=self.batch_size
+        )
+
+    def test_dataloader(self):
+        return DataLoader(
+            self.mnist_test,
+            batch_size=self.batch_size
+        )
+
+    def predict_dataloader(self) -> EVAL_DATALOADERS:
+        return DataLoader(
+            self.mnist_predict,
+            batch_size=self.batch_size
+        )
+
+    def preds_to_names(
+        self,
+        preds: Union[torch.Tensor, List[torch.Tensor]]
+    ) -> List[str]:
+        """Convert predictions to class names."""
+        # Convert prediction to label: in this case is easy, as the label
+        # is an integer.
+        if not isinstance(preds, list):
+            preds = [preds]
+
+        names = []
+        for p in preds:
+            p += 1
+            names.extend([str(el) for el in p.tolist()])
+        return names
+
+
+class LitMNIST(ItwinaiBasePlModule):
     """
     Simple PL model for MNIST.
     Adapted from
@@ -22,18 +130,15 @@ class LitMNIST(ItwinaiBasePlModel):
 
     def __init__(
         self,
-        data_dir: str,
         hidden_size: int = 64,
-        learning_rate: float = 2e-4,
-        batch_size: int = 32,
     ):
         super().__init__()
 
+        # Automatically save constructor args as hyperparameters
+        self.save_hyperparameters()
+
         # Set our init args as class attributes
-        self.data_dir = data_dir
         self.hidden_size = hidden_size
-        self.learning_rate = learning_rate
-        self.batch_size = batch_size
 
         # Hardcode some dataset specific attributes
         self.num_classes = 10
@@ -60,17 +165,6 @@ class LitMNIST(ItwinaiBasePlModel):
 
         self.val_accuracy = Accuracy(task="multiclass", num_classes=10)
         self.test_accuracy = Accuracy(task="multiclass", num_classes=10)
-
-    # def on_train_start(self):
-    #     # Save hyperparameters (alternative way)
-    #     self.logger.log_hyperparams(
-    #         dict(
-    #             data_dir=self.data_dir,
-    #             hidden_size=self.hidden_size,
-    #             learning_rate=self.learning_rate,
-    #             batch_size=self.batch_size
-    #         )
-    #     )
 
     def forward(self, x):
         x = self.model(x)
@@ -141,53 +235,8 @@ class LitMNIST(ItwinaiBasePlModel):
         self.log("test_loss", loss)
         self.log("test_acc", self.test_accuracy)
 
-    def configure_optimizers(self):
-        optimizer = torch.optim.Adam(self.parameters(), lr=self.learning_rate)
-        return optimizer
-
-    ####################
-    # DATA RELATED HOOKS
-    ####################
-
-    # def prepare_data(self):
-    #     MNIST(self.data_dir, train=True, download=False)
-    #     MNIST(self.data_dir, train=False, download=False)
-
-    def setup(self, stage=None):
-        # Assign train/val datasets for use in dataloaders
-        if stage == "fit" or stage is None:
-            mnist_full = MNIST(
-                self.data_dir, train=True,
-                transform=self.transform,
-                download=False
-            )
-            self.mnist_train, self.mnist_val = random_split(
-                mnist_full, [55000, 5000]
-            )
-
-        # Assign test dataset for use in dataloader(s)
-        if stage == "test" or stage is None:
-            self.mnist_test = MNIST(
-                self.data_dir,
-                train=False,
-                download=False,
-                transform=self.transform
-            )
-
-    def train_dataloader(self):
-        return DataLoader(
-            self.mnist_train,
-            batch_size=self.batch_size
-        )
-
-    def val_dataloader(self):
-        return DataLoader(
-            self.mnist_val,
-            batch_size=self.batch_size
-        )
-
-    def test_dataloader(self):
-        return DataLoader(
-            self.mnist_test,
-            batch_size=self.batch_size
-        )
+    def predict_step(self, batch, batch_idx, dataloader_idx=0):
+        x, _ = batch
+        logits = self(x)
+        preds = torch.argmax(logits, dim=1)
+        return preds

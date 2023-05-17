@@ -1,7 +1,7 @@
 #Workflow definition in classical style
 datasets:
-  preproc-images-train:
-    location: ./data/mnist/preproc-images-train
+  preproc-images:
+    location: ./data/mnist/preproc-images
   ml-logs:
     # MLflow tracking URI
     location: ./data/mnist/ml-logs
@@ -9,7 +9,7 @@ datasets:
 steps:
   - preprocessing:
       input: null
-      output: preproc-images-train
+      output: preproc-images
       command: python ./use-cases/mnist/mnist-preproc.py
       env: 
         file: ./use-cases/mnist/preproc-env.yml
@@ -17,7 +17,7 @@ steps:
         source: null
       params: null
   - ml-training:
-      input: preproc-images-train
+      input: preproc-images
       output: ml-logs
       command: itwinai train
       env: 
@@ -46,7 +46,7 @@ preprocessScript:
 
 preprocessOutput:
   class: Directory
-  path: ../../data/mnist/preproc-images-train
+  path: ../../data/mnist/preproc-images
 
 #training step
 trainingConfig:
