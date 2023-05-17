@@ -38,7 +38,8 @@ The two MNIST workflows can be summarized as follows:
             ai_depl -.-> |Saves to| pred
     ```
 
-The interactions among workflows and their step can be described in more details as the following, where dependencies among different workflow steps are represented by solid arrows:
+The interactions among workflows and their step can be described in more details as the following, where dependencies
+among different workflow steps are represented by solid arrows:
 
 ```mermaid
 graph TD
