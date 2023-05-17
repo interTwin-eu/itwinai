@@ -21,10 +21,10 @@ steps:
   - ml-inference:
       input: preproc-images-inference
       output: ml-predictions
-      command: python ./ai/ai-inference.py
+      command: itwinai predict
       env: 
         file: ./ai/inference-env.yml
         prefix: ./ai/.venv-inference
         source: ./ai
       params:
-        model-id: TODO
+        config: ./use-cases/mnist/mnist-ai.yml

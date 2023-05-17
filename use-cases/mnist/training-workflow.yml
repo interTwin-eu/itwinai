@@ -19,7 +19,6 @@ steps:
   - ml-training:
       input: preproc-images-train
       output: ml-logs
-      # command: python ./ai/ai-training.py
       command: itwinai train
       env: 
         file: ./ai/training-env.yml

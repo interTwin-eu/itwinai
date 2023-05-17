@@ -34,7 +34,7 @@ def train(
     )
 ):
     """
-    Train a neural network expressed as a Pytorch Lightning model.
+    Train a neural network defined as a Pytorch Lightning model.
     """
     import copy
     import mlflow
@@ -105,6 +105,28 @@ def train(
         mlflow.log_artifact(
             os.path.join(cli.trainer.log_dir, "pl-config.yml")
         )
+
+
+@app.command()
+def predict(
+    input: str = typer.Option(
+        "unk",
+        help="Path to inference dataset."
+    ),
+    config: str = typer.Option(
+        "unk",
+        help="Path to inference configuration file."
+    ),
+    output: str = typer.Option(
+        "preds/",
+        help="Path to predictions storage."
+    )
+):
+    """
+    Apply a pre-trained neural network to a set of unseen data.
+    """
+    # TODO: implement inference
+    pass
 
 
 @app.command()
