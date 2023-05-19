@@ -1,0 +1,10 @@
+# Inference configuration
+inference:
+  type: lightning
+  # Run ID in MLFlow server: pre-trained model
+  # IMPORTANT: this has to be updated!
+  run_id: 5639f0c55e2a462283b3ada6693402fc
+  ckpt_path: model/checkpoints/best-checkpoint-v3/best-checkpoint-v3.ckpt
+  train_config_artifact_path: pl-training.yml
+  conf:
+    data: null

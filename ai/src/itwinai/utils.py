@@ -45,8 +45,9 @@ def load_yaml_with_deps(path: str) -> DictConfig:
     """
     yaml_conf = load_yaml(path)
     deps = []
-    for dependency in yaml_conf['conf-dependencies']:
-        deps.append(load_yaml(dependency))
+    if yaml_conf.get('conf-dependencies'):
+        for dependency in yaml_conf['conf-dependencies']:
+            deps.append(load_yaml(dependency))
 
     return OmegaConf.merge(yaml_conf, *deps)
 

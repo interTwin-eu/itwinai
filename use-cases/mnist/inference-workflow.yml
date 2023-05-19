@@ -22,4 +22,4 @@ steps:
         file: ./ai/pytorch-env.yml
         prefix: ./ai/.venv-pytorch
         source: ./ai
-      config: ./use-cases/mnist/mnist-ai.yml
+      config: ./use-cases/mnist/mnist-ai-inference.yml

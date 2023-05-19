@@ -12,7 +12,7 @@ conda run -p ./.venv python run-workflow.py -f ./use-cases/mnist/training-workfl
 conda run -p ./.venv python run-workflow.py -f ./use-cases/mnist/training-workflow.yml --cwl
 
 # AI commnd: from within AI venv
-itwinai train --input ./data/mnist/preproc-images --output ./data/mnist/ml-logs --config ./use-cases/mnist/mnist-ai.yml
+itwinai train --input ./data/mnist/preproc-images --output ./data/mnist/ml-logs --config ./use-cases/mnist/mnist-ai-train.yml
 
 ################################
 ###   Inference examples     ###
@@ -22,7 +22,7 @@ itwinai train --input ./data/mnist/preproc-images --output ./data/mnist/ml-logs 
 conda run -p ./.venv python run-workflow.py -f ./use-cases/mnist/inference-workflow.yml
 
 # MNIST inference
-itwinai predict --output ./data/mnist/predictions --config ./use-cases/mnist/mnist-ai.yml
+itwinai predict --output ./data/mnist/predictions --config ./use-cases/mnist/mnist-ai-inference.yml --ml-logs ./data/mnist/ml-logs
 
 ################################
 ###  Visualization examples  ###

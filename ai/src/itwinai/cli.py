@@ -134,7 +134,11 @@ def predict(
     output: str = typer.Option(
         "preds/",
         help="Path to predictions storage."
-    )
+    ),
+    ml_logs: str = typer.Option(
+        "logs/",
+        help="Path to MLFLow logs."
+    ),
 ):
     """
     Apply a pre-trained neural network to a set of unseen data.
@@ -143,20 +147,23 @@ def predict(
     from lightning.pytorch.cli import LightningCLI
     from lightning.pytorch.trainer.trainer import Trainer
     import torch
+    from omegaconf import DictConfig, OmegaConf
 
-    from itwinai.utils import load_yaml
+    from itwinai.utils import load_yaml_with_deps, load_yaml
     from itwinai.plmodels.base import (
         ItwinaiBasePlModule,
         ItwinaiBasePlDataModule
     )
 
-    # Load ML configuration
-    ml_conf = load_yaml(config)
+    os.makedirs(output, exist_ok=True)
+    ml_conf: DictConfig = load_yaml_with_deps(config)
+    # print(OmegaConf.to_yaml(ml_conf))
+    ml_conf = OmegaConf.to_container(ml_conf, resolve=True)
     ml_conf = ml_conf['inference']
 
     os.makedirs(output, exist_ok=True)
 
-    mlflow.set_tracking_uri(ml_conf['tracking_uri'])
+    mlflow.set_tracking_uri('file:' + ml_logs)
 
     # Download training configuration
     train_conf_path = mlflow.artifacts.download_artifacts(
