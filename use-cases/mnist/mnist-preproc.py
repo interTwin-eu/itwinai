@@ -5,21 +5,9 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Preprocessing of MNIST dataset.")
     parser.add_argument(
-        "-i", "--input",
-        type=str,
-        help="Path to input dataset.",
-        default=None
-    )
-    parser.add_argument(
         "-o", "--output",
         type=str,
         help="Path to output dataset (preprocessed dataset).",
-        default=None
-    )
-    parser.add_argument(
-        "-c", "--config",
-        type=str,
-        help="Configuration file path (unused).",
         default=None
     )
     args = parser.parse_args()
