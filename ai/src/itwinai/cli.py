@@ -64,7 +64,7 @@ def train(
     # Ref: https://github.com/Lightning-AI/lightning/discussions/11197
 
     # Load training configuration
-    lightning_conf = load_yaml(train_config['train-config']['path'])
+    lightning_conf = load_yaml(train_config['train']['path'])
 
     # Start Mlflow run
     with mlflow.start_run(description=log_conf['description']):
@@ -96,7 +96,7 @@ def train(
             datamodule_class=ItwinaiBasePlDataModule,
             run=False,
             save_config_kwargs={"overwrite": True,
-                                "config_filename": "pl-config.yml"},
+                                "config_filename": "pl-training.yml"},
             subclass_mode_model=True,
             subclass_mode_data=True
         )
@@ -107,7 +107,7 @@ def train(
 
         # Save updated lightning conf as an mlflow artifact
         mlflow.log_artifact(
-            os.path.join(cli.trainer.log_dir, "pl-config.yml")
+            os.path.join(cli.trainer.log_dir, "pl-training.yml")
         )
 
 
@@ -138,7 +138,7 @@ def predict(
 
     # Load ML configuration
     ml_conf = load_yaml(config)
-    ml_conf = ml_conf['inference-config']
+    ml_conf = ml_conf['inference']
 
     os.makedirs(output, exist_ok=True)
 

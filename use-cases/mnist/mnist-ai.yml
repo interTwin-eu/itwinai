@@ -1,20 +1,25 @@
 # Configuration file of AI workflows for MNIST use case
 
+# When executing this use case in a new environment, you need
+# to update the following fields:
+# - inference.run_id
+
 # Pytorch lightning config
-train-config:
+train:
   type: lightning
   # Follows lightning config file format:
   # https://pytorch-lightning.readthedocs.io/en/1.6.5/common/lightning_cli.html#multiple-models-and-or-datasets
-  path: ./use-cases/mnist/pl-train-config.yml
+  path: ./use-cases/mnist/pl-training.yml
 
-inference-config:
+inference:
   type: lightning
   # MLFlow tracking URI
   tracking_uri: file:./data/mnist/ml-logs
   # Run ID in MLFlow server: pre-trained model
+  # IMPORTANT: this has to be updated!
   run_id: c239a06d49c440af9e68fa6b5e5ceba1
   ckpt_path: model/checkpoints/best-checkpoint/best-checkpoint.ckpt
-  train_config_artifact_path: pl-config.yml 
+  train_config_artifact_path: pl-training.yml 
 
 # Mlflow
 logger:
