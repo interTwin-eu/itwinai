@@ -283,5 +283,16 @@ def datasets(
     console.print(table)
 
 
+@app.command()
+def workflows(
+    use_case: str = typer.Option(
+        "./use-cases/mnist",
+        help="Path to use case files."
+    ),
+):
+    """List workflows of an use case."""
+    # TODO
+
+
 if __name__ == "__main__":
     app()
