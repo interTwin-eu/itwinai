@@ -20,6 +20,26 @@ Requirements:
 Install the orchestrator virtual environment.
 
 ```bash
-mamba env create -p ./.venv --file environment-cern.yml
+# Create local env
+make
+
+# Activate env
 conda activate ./.venv
+```
+
+## Development env setup
+
+Requirements:
+
+- Linux environment
+- Mamba: [Installation guide](https://mamba.readthedocs.io/en/latest/installation.html) (suggested Mambaforge).
+- VS Code, for development.
+
+Installation:
+
+```bash
+make dev-env
+
+# Activate env
+conda activate ./.venv-dev
 ```

@@ -16,15 +16,14 @@ steps:
         file: ./use-cases/mnist/preproc-env.yml
         prefix: ./use-cases/mnist/.venv-preproc
         source: null
-      params:
-        rnd-seed: 42
+      params: null
   - ml-inference:
       input: preproc-images
       output: ml-predictions
       command: itwinai predict
       env: 
-        file: ./ai/inference-env.yml
-        prefix: ./ai/.venv-inference
+        file: ./ai/pytorch-env.yml
+        prefix: ./ai/.venv-pytorch
         source: ./ai
       params:
         config: ./use-cases/mnist/mnist-ai.yml

@@ -113,6 +113,10 @@ def train(
 
 @app.command()
 def predict(
+    input: str = typer.Option(
+        "unk",
+        help="Path to predictions dataset."
+    ),
     config: str = typer.Option(
         "unk",
         help="Path to inference configuration file."
