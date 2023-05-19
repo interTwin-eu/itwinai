@@ -15,7 +15,6 @@ Requirements:
 
 - Linux environment
 - Mamba: [Installation guide](https://mamba.readthedocs.io/en/latest/installation.html) (suggested Mambaforge).
-- VS Code, for development.
 
 Install the orchestrator virtual environment.
 
@@ -42,4 +41,22 @@ make dev-env
 
 # Activate env
 conda activate ./.venv-dev
+```
+
+## AI environment setup
+
+Requirements:
+
+- Linux environment
+- Mamba: [Installation guide](https://mamba.readthedocs.io/en/latest/installation.html) (suggested Mambaforge).
+
+**NOTE**: this environment gets automatically setup when a workflow is executed!
+
+However, you can also set it up explicitly with:
+
+```bash
+make ai-env
+
+# Activate env
+conda activate ./ai/.venv-pytorch
 ```

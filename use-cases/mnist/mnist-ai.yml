@@ -17,7 +17,7 @@ inference:
   tracking_uri: file:./data/mnist/ml-logs
   # Run ID in MLFlow server: pre-trained model
   # IMPORTANT: this has to be updated!
-  run_id: ca7abe138f624ac19bfacdf37bea262a
+  run_id: e1383711ab42434eb69d67cd281fbf76
   ckpt_path: model/checkpoints/best-checkpoint/best-checkpoint.ckpt
   train_config_artifact_path: pl-training.yml 
 
