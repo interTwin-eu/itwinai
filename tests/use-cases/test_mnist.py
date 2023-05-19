@@ -10,5 +10,9 @@ import pytest
 
 @pytest.mark.integration
 def test_training_workflow():
+    """
+    Run training workflow in an end-to-end manner and verify that
+    everything works as expected.
+    """
     # TODO: complete
     assert 1 == 1

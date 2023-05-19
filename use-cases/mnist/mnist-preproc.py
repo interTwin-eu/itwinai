@@ -16,6 +16,12 @@ if __name__ == "__main__":
         help="Path to output dataset (preprocessed dataset).",
         default=None
     )
+    parser.add_argument(
+        "-c", "--config",
+        type=str,
+        help="Configuration file path (unused).",
+        default=None
+    )
     args = parser.parse_args()
 
     # Download and store training dataset

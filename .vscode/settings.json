@@ -24,6 +24,7 @@
         "mnist",
         "multiclass",
         "mypackage",
+        "omegaconf",
         "optim",
         "plmodels",
         "preds",

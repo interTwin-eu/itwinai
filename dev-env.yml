@@ -21,6 +21,8 @@ dependencies:
   - typer
   - rich
   - pyyaml
+  - omegaconf
+  - ipykernel
 
   # Pip dependencies
   - pip

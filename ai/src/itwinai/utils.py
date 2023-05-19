@@ -4,6 +4,8 @@ Utilities for itwinai package.
 from typing import Dict
 from collections.abc import MutableMapping
 import yaml
+from omegaconf import OmegaConf
+from omegaconf.dictconfig import DictConfig
 
 
 def load_yaml(path: str) -> Dict:
@@ -25,6 +27,28 @@ def load_yaml(path: str) -> Dict:
             print(exc)
             raise exc
     return loaded_config
+
+
+def load_yaml_with_deps(path: str) -> DictConfig:
+    """
+    Load YAML file with OmegaConf and merge it with its dependencies
+    specified in the `conf-dependencies` field.
+
+    Args:
+        path (str): path to YAML file.
+
+    Raises:
+        exc: yaml.YAMLError for loading/parsing errors.
+
+    Returns:
+        DictConfig: nested representation of parsed YAML file.
+    """
+    yaml_conf = load_yaml(path)
+    deps = []
+    for dependency in yaml_conf['conf-dependencies']:
+        deps.append(load_yaml(dependency))
+
+    return OmegaConf.merge(yaml_conf, *deps)
 
 
 def dynamically_import_class(name: str):

@@ -1,5 +1,5 @@
 """
-Entry point of the any workflow.
+Entry point of any workflow.
 This script gathers the info from the workflow definition file
 and runs a workflow step by step, passing the info loaded from
 the workflow definition file.
@@ -13,7 +13,31 @@ Example:
 import os
 import subprocess
 import argparse
+from typing import Dict
 import yaml
+from omegaconf import OmegaConf
+
+
+def load_yaml(path: str) -> Dict:
+    """Load YAML file as dict.
+
+    Args:
+        path (str): path to YAML file.
+
+    Raises:
+        exc: yaml.YAMLError for loading/parsing errors.
+
+    Returns:
+        Dict: nested dict representation of parsed YAML file.
+    """
+    with open(path, "r", encoding="utf-8") as yaml_file:
+        try:
+            loaded_config = yaml.safe_load(yaml_file)
+        except yaml.YAMLError as exc:
+            print(exc)
+            raise exc
+    return loaded_config
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Run a simple DT workflow.')
@@ -29,13 +53,16 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
 
-    # 1. parse workflow file
+    # 1. Parse workflow file
 
-    with open(args.workflow_file, "r") as stream:
-        try:
-            workflow = yaml.safe_load(stream)
-        except yaml.YAMLError as exc:
-            print(exc)
+    # workflow definition file
+    workflow = load_yaml(args.workflow_file)
+
+    deps = []
+    for dependency in workflow['conf-dependencies']:
+        deps.append(load_yaml(dependency))
+
+    workflow = OmegaConf.merge(workflow, *deps)
 
     # 2. Deploy steps (i.e., create conda envs), if not already there
 
@@ -75,40 +102,29 @@ if __name__ == "__main__":
 
     # invoke workflow step-by-step with 'conda run ...'
     else:
-        datasets = workflow.get('datasets')
         for step in workflow.get('steps'):
             step_name, step_data = next(iter(step.items()))
             # Step input
-            input_dataset = (
-                datasets[step_data['input']]['location']
-                if step_data['input'] is not None
-                else None
-            )
+            input_dataset = step_data['input']
             # Step output
-            output_dataset = (
-                datasets[step_data['output']]['location']
-                if step_data['output'] is not None
-                else None
-            )
+            output_dataset = step_data['output']
             # Step params
-            params_str = ''
-            if step_data['params'] is not None:
-                params_str = " ".join([
-                    f"--{k} {v}" for k, v in step_data['params'].items()
-                ])
+            step_config = step_data['config']
+
             print(f'Running "{step_name}" step...')
             print(
                 f"conda run -p {step_data['env']['prefix']} "
                 f"{step_data['command']} "
                 f"--input {input_dataset} "
-                f"--output {output_dataset} {params_str}\n\n"
+                f"--output {output_dataset} "
+                f"--config {step_config}\n\n"
             )
             subprocess.run(
                 (f"conda run -p {step_data['env']['prefix']} "
                  f"{step_data['command']} "
                  f"--input {input_dataset} "
                  f"--output {output_dataset} "
-                 f"{params_str}"
+                 f"--config {step_config}"
                  ),
                 shell=True,
                 check=True,

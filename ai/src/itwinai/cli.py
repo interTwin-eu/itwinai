@@ -39,18 +39,27 @@ def train(
     import copy
     import mlflow
     from lightning.pytorch.cli import LightningCLI
+    from omegaconf import DictConfig, OmegaConf
 
-    from itwinai.utils import load_yaml, flatten_dict
+    from itwinai.utils import load_yaml_with_deps, flatten_dict
     from itwinai.plmodels.base import (
         ItwinaiBasePlModule,
         ItwinaiBasePlDataModule
     )
+    cli_conf = dict(cli=dict(
+        input_dataset=input,
+        ml_logs=output
+    ))
+    cli_conf = OmegaConf.create(cli_conf)
 
     os.makedirs(output, exist_ok=True)
-    train_config = load_yaml(config)
+    train_config: DictConfig = load_yaml_with_deps(config)
+    train_config = OmegaConf.merge(train_config, cli_conf)
+    # print(OmegaConf.to_yaml(train_config))
+    train_config = OmegaConf.to_container(train_config, resolve=True)
 
     log_conf = train_config['logger']
-    mlflow.set_tracking_uri("file:" + output)
+    mlflow.set_tracking_uri('file:' + output)
     mlflow.set_experiment(log_conf['experiment_name'])
     mlflow.pytorch.autolog(
         log_every_n_epoch=log_conf['log_every_n_epoch'],
@@ -64,7 +73,8 @@ def train(
     # Ref: https://github.com/Lightning-AI/lightning/discussions/11197
 
     # Load training configuration
-    lightning_conf = load_yaml(train_config['train']['path'])
+    lightning_conf = train_config['train']['conf']
+    # lightning_conf = OmegaConf.to_container(lightning_conf, resolve=True)
 
     # Start Mlflow run
     with mlflow.start_run(description=log_conf['description']):
@@ -225,6 +235,45 @@ def visualize(
     """
     import subprocess
     subprocess.run(f"mlflow ui --backend-store-uri {path}".split())
+
+
+@app.command()
+def datasets(
+    use_case: str = typer.Option(
+        "./use-cases/mnist",
+        help="Path to use case files."
+    ),
+):
+    """List datasets of an use case."""
+    from rich.console import Console
+    from rich.table import Table
+    from itwinai.utils import load_yaml
+    datasets_reg = load_yaml(
+        os.path.join(use_case, 'datasets-registry.yml')
+    )
+    rows = []
+    columns = [
+        "Name",
+        "Description",
+        "Location"
+    ]
+    for ds_name, ds_info in datasets_reg['datasets'].items():
+        rows.append(
+            [
+                ds_name,
+                ds_info['doc'],
+                ds_info['location']
+            ]
+        )
+
+    use_case_dir = os.path.basename(use_case.strip('/'))
+    table = Table(title=f"Datasets registry for '{use_case_dir}' use case")
+    for column in columns:
+        table.add_column(column)
+    for row in rows:
+        table.add_row(*row, style='bright_green')
+    console = Console()
+    console.print(table)
 
 
 if __name__ == "__main__":

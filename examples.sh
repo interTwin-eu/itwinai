@@ -30,3 +30,6 @@ itwinai predict --output ./data/mnist/predictions --config ./use-cases/mnist/mni
 
 # Visualize logs
 conda activate ./ai/.venv-pytorch && itwinai visualize --path ./data/mnist/ml-logs
+
+# Datasets registry
+conda activate ./ai/.venv-pytorch && itwinai datasets --use-case use-cases/mnist/
