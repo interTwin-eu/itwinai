@@ -118,10 +118,15 @@ The DT developer must provide a set of configuration files to launch training. F
 Training can be triggered also from withing the training environment running the following command:
 
 ```bash
-itwinai train --input TRAINING_DATASET_PATH --output MLFLOW_TRACKING_URI --config ./use-cases/mnist/mnist-ai.yml
+itwinai train --input TRAINING_DATASET_PATH \
+    --output MLFLOW_TRACKING_URI \
+    --config ./use-cases/mnist/mnist-ai.yml
 
 # Extended version
-conda activate ./ai/.venv-pytorch && itwinai train --input TRAINING_DATASET_PATH --output MLFLOW_TRACKING_URI --config ./use-cases/mnist/mnist-ai.yml
+conda activate ./ai/.venv-pytorch && \
+    itwinai train --input TRAINING_DATASET_PATH \
+        --output MLFLOW_TRACKING_URI \
+        --config ./use-cases/mnist/mnist-ai.yml
 ```
 
 While training is running, the produced ML logs can be inspected in real-time from MLFlow UI by running the command in
@@ -148,10 +153,15 @@ run inference workflow.
 Inference/prediction can be triggered also from withing the training environment running the following command:
 
 ```bash
-itwinai predict --input UNSEEN_EXAMPLES_DATASET_PATH --output PREDICTIONS_LOCATION --config ./use-cases/mnist/mnist-ai.yml
+itwinai predict --input UNSEEN_EXAMPLES_DATASET_PATH \
+    --output PREDICTIONS_LOCATION \
+    --config ./use-cases/mnist/mnist-ai.yml
 
 # Extended version
-conda activate ./ai/.venv-pytorch && itwinai predict --input UNSEEN_EXAMPLES_DATASET_PATH --output PREDICTIONS_LOCATION --config ./use-cases/mnist/mnist-ai.yml
+conda activate ./ai/.venv-pytorch && \
+    itwinai predict --input UNSEEN_EXAMPLES_DATASET_PATH \
+        --output PREDICTIONS_LOCATION \
+        --config ./use-cases/mnist/mnist-ai.yml
 ```
 
 ## References
