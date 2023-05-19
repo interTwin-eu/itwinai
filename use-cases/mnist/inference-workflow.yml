@@ -6,20 +6,23 @@ conf-dependencies:
 
 steps:
   - preprocessing:
-      input: null
-      output: ${datasets.preproc-images.location}
+      doc: Download and split MNIST dataset into train and test sets
       command: python ./use-cases/mnist/mnist-preproc.py
       env: 
         file: ./use-cases/mnist/preproc-env.yml
         prefix: ./use-cases/mnist/.venv-preproc
-        source: null
-      config: null
+      args:
+        output: ${datasets.preproc-images.location}
   - ml-inference:
-      input: ${datasets.preproc-images.location}
-      output: ${datasets.ml-predictions.location}
+      doc: Apply a pre-trained neural network on unseen data and store them
       command: itwinai predict
       env: 
         file: ./ai/pytorch-env.yml
         prefix: ./ai/.venv-pytorch
         source: ./ai
-      config: ./use-cases/mnist/mnist-ai-inference.yml
+      args:
+        config: ./use-cases/mnist/mnist-ai-inference.yml
+        input: ${datasets.preproc-images.location}
+        output: ${datasets.ml-predictions.location}
+        ml-logs: ${datasets.ml-logs.location}
+

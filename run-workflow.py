@@ -77,7 +77,7 @@ if __name__ == "__main__":
                 check=True
             )
             # Install local python project from source, if present
-            if step_data['env']['source'] is not None:
+            if step_data['env'].get('source') is not None:
                 subprocess.run(
                     (f"conda run -p {step_data['env']['prefix']} "
                      "python -m pip install --no-deps "
@@ -104,28 +104,21 @@ if __name__ == "__main__":
     else:
         for step in workflow.get('steps'):
             step_name, step_data = next(iter(step.items()))
-            # Step input
-            input_dataset = step_data['input']
-            # Step output
-            output_dataset = step_data['output']
-            # Step params
-            step_config = step_data['config']
+            # Args
+            args_str = ''
+            if step_data['args'] is not None:
+                args_str = " ".join([
+                    f"--{k} {v}" for k, v in step_data['args'].items()
+                ])
 
             print(f'Running "{step_name}" step...')
             print(
                 f"conda run -p {step_data['env']['prefix']} "
-                f"{step_data['command']} "
-                f"--input {input_dataset} "
-                f"--output {output_dataset} "
-                f"--config {step_config}\n\n"
+                f"{step_data['command']} {args_str} \n\n"
             )
             subprocess.run(
                 (f"conda run -p {step_data['env']['prefix']} "
-                 f"{step_data['command']} "
-                 f"--input {input_dataset} "
-                 f"--output {output_dataset} "
-                 f"--config {step_config}"
-                 ),
+                 f"{step_data['command']} {args_str} "),
                 shell=True,
                 check=True,
             )

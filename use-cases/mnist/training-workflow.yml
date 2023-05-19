@@ -8,23 +8,24 @@ conf-dependencies:
 
 steps:
   - preprocessing:
-      input: null
-      output: ${datasets.preproc-images.location}
+      doc: Download and split MNIST dataset into train and test sets
       command: python ./use-cases/mnist/mnist-preproc.py
       env: 
         file: ./use-cases/mnist/preproc-env.yml
         prefix: ./use-cases/mnist/.venv-preproc
-        source: null
-      config: null
+      args:
+        output: ${datasets.preproc-images.location}
   - ml-training:
-      input: ${datasets.preproc-images.location}
-      output: ${datasets.ml-logs.location}
+      doc: Train a neural network to classify MNIST images
       command: itwinai train
       env: 
         file: ./ai/pytorch-env.yml
         prefix: ./ai/.venv-pytorch
         source: ./ai
-      config: ./use-cases/mnist/mnist-ai-train.yml
+      args:
+        input: ${datasets.preproc-images.location}
+        output: ${datasets.ml-logs.location}
+        config: ./use-cases/mnist/mnist-ai-train.yml
 
 # #Workflow definition in CWL style
 
