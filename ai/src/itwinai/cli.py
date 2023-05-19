@@ -155,6 +155,8 @@ def predict(
         ItwinaiBasePlDataModule
     )
 
+    # TODO: define input as PL dataModule
+
     os.makedirs(output, exist_ok=True)
     ml_conf: DictConfig = load_yaml_with_deps(config)
     # print(OmegaConf.to_yaml(ml_conf))
