@@ -257,6 +257,7 @@ def datasets(
     from rich.console import Console
     from rich.table import Table
     from itwinai.utils import load_yaml
+    from pathlib import Path
     datasets_reg = load_yaml(
         os.path.join(use_case, 'datasets-registry.yml')
     )
@@ -275,7 +276,7 @@ def datasets(
             ]
         )
 
-    use_case_dir = os.path.basename(use_case.strip('/'))
+    use_case_dir = os.path.basename(Path(use_case))
     table = Table(title=f"Datasets registry for '{use_case_dir}' use case")
     for column in columns:
         table.add_column(column)
@@ -293,7 +294,45 @@ def workflows(
     ),
 ):
     """List workflows of an use case."""
-    # TODO
+    from omegaconf import OmegaConf
+    from rich.console import Console
+    from rich.table import Table
+    from pathlib import Path
+    from itwinai.utils import load_yaml_with_deps
+    use_case_dir = os.path.basename(Path(use_case))
+    wf_files = filter(lambda itm: itm.endswith(
+        "-workflow.yml"), os.listdir(use_case))
+    columns = [
+        "Step",
+        "Description",
+        "Command",
+        "Env location",
+        "Env file"
+    ]
+    for workflow_file in wf_files:
+        wf = load_yaml_with_deps(
+            os.path.join(use_case, workflow_file)
+        )
+        wf_name = workflow_file.split('.')[0]
+        rows = []
+        for step in wf.steps:
+            step = OmegaConf.to_container(step, resolve=True)
+            step_name, step_data = list(step.items())[0]
+            rows.append([
+                step_name,
+                step_data['doc'],
+                step_data['command'],
+                step_data['env']['prefix'],
+                step_data['env']['file'],
+            ])
+
+        table = Table(title=f"'{wf_name}' for '{use_case_dir}' use case")
+        for column in columns:
+            table.add_column(column)
+        for row in rows:
+            table.add_row(*row, style='bright_green')
+        console = Console()
+        console.print(table)
 
 
 if __name__ == "__main__":
