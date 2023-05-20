@@ -33,3 +33,6 @@ conda activate ./ai/.venv-pytorch && itwinai visualize --path ./data/mnist/ml-lo
 
 # Datasets registry
 conda activate ./ai/.venv-pytorch && itwinai datasets --use-case use-cases/mnist/
+
+# Workflows (any file '*-worlflow.yml')
+conda activate ./ai/.venv-pytorch && itwinai workflows --use-case use-cases/mnist/
