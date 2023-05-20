@@ -1,4 +1,9 @@
 #!/bin/bash
+
+# Setup workflow runner
+make
+
+
 # Launch some workflows
 
 ################################

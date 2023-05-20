@@ -12,6 +12,7 @@ Example
 
 # from typing import Optional
 import os
+import sys
 import typer
 
 
@@ -100,6 +101,9 @@ def train(
             run_id=mlflow.active_run().info.run_id
         ))
 
+        # Reset argv before using Lightning CLI
+        old_argv = sys.argv
+        sys.argv = sys.argv[:1]
         cli = LightningCLI(
             args=lightning_conf,
             model_class=ItwinaiBasePlModule,
@@ -110,10 +114,15 @@ def train(
             subclass_mode_model=True,
             subclass_mode_data=True
         )
+        sys.argv = old_argv
 
         # Train + validation, and test
         cli.trainer.fit(cli.model, datamodule=cli.datamodule)
-        cli.trainer.test(dataloaders=cli.datamodule, datamodule=cli.datamodule)
+        cli.trainer.test(
+            dataloaders=cli.datamodule,
+            datamodule=cli.datamodule,
+            ckpt_path='best'
+        )
 
         # Save updated lightning conf as an mlflow artifact
         mlflow.log_artifact(
@@ -185,7 +194,11 @@ def predict(
 
     # Instantiate PL model
     lightning_conf = load_yaml(train_conf_path)
+    # lightning_conf['trainer']['logger'] = None
 
+    # Reset argv before using Lightning CLI
+    old_argv = sys.argv
+    sys.argv = sys.argv[:1]
     cli = LightningCLI(
         args=lightning_conf,
         model_class=ItwinaiBasePlModule,
@@ -194,6 +207,7 @@ def predict(
         subclass_mode_data=True,
         save_config_callback=None
     )
+    sys.argv = old_argv
 
     # Load best model
     loaded_model = cli.model.load_from_checkpoint(
@@ -210,13 +224,13 @@ def predict(
         # Reuse same datamodule used for training
         loaded_data_module: ItwinaiBasePlDataModule = cli.datamodule
 
-    # Test best model once again (TODO: remove)
-    trainer = Trainer()
-    trainer.test(
-        loaded_model,
-        dataloaders=loaded_data_module,
-        datamodule=loaded_data_module
-    )  # , ckpt_path='best')
+    trainer = Trainer(logger=cli.trainer.logger)
+    # # Test best model once again (TODO: remove
+    # trainer.test(
+    #     loaded_model,
+    #     dataloaders=loaded_data_module,
+    #     datamodule=loaded_data_module
+    # )  # , ckpt_path='best')
 
     # Predict
     predictions = trainer.predict(
