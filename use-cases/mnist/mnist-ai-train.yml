@@ -10,7 +10,7 @@
 conf-dependencies:
   - ./use-cases/mnist/datasets-registry.yml
 
-# Pytorch lightning config
+# Pytorch lightning config for training
 train:
   type: lightning
   # Follows lightning config file format:
