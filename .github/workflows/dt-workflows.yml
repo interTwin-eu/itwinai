@@ -27,7 +27,8 @@ jobs:
           echo 'alias mamba="micromamba"' >> ~/.bashrc
           mamba --version
           echo $PATH
-          make
+          cat ~/.bashrc
+          source ~/.bashrc && make
 
 
       # - name: check2
