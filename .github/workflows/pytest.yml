@@ -24,7 +24,7 @@ jobs:
         uses: mamba-org/provision-with-micromamba@main
         with:
           environment-file: dev-env1.yml
-          environment-name: dev-env
+          # environment-name: dev-env
           # cache-downloads: true
           # channels: pytorch, conda-forge
         

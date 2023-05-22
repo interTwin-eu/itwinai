@@ -5,10 +5,7 @@ channels:
   - nvidia
 dependencies:
   - python=3.9.12
-  - pytorch::pytorch
-  - pytorch::torchvision
-  - pytorch::cpuonly
-  - nvidia::libcufile>=1.4
+  - pytorch
   - lightning
   - torchmetrics
   - mlflow>=2
