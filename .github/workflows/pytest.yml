@@ -25,8 +25,8 @@ jobs:
         with:
           environment-file: dev-env1.yml
           environment-name: dev-env
-          cache-downloads: true
-          channels: pytorch, conda-forge
+          # cache-downloads: true
+          # channels: pytorch, conda-forge
         
       # - name: Run tests
       #   shell: bash -l {0}
