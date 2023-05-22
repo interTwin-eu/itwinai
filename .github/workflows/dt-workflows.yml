@@ -18,8 +18,8 @@ jobs:
         run: curl micro.mamba.pm/install.sh | bash
 
       - name: check
-        run: micromamba --info
+        run: micromamba --version
 
       - name: check2
-        run: mamba --info
+        run: mamba --version
 
