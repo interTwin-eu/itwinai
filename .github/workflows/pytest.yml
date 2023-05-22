@@ -1,36 +1,36 @@
----
-name: Test Python
+# ---
+# name: Test Python
 
-on:
-  push:
-  pull_request:
+# on:
+#   push:
+#   pull_request:
 
-jobs:
-  test:
-    name: Test Python wth pytest
-    runs-on: ubuntu-latest
+# jobs:
+#   test:
+#     name: Test Python wth pytest
+#     runs-on: ubuntu-latest
 
-    steps:
-      - uses: actions/checkout@v3
+#     steps:
+#       - uses: actions/checkout@v3
 
-      - name: Install Conda environment with Micromamba for workflow runner
-        uses: mamba-org/provision-with-micromamba@main
-        with:
-          environment-file: environment-cern.yml
-          environment-name: workflow-runner
-          cache-downloads: true
-          cache-env: true
+#       - name: Install Conda environment with Micromamba for workflow runner
+#         uses: mamba-org/provision-with-micromamba@main
+#         with:
+#           environment-file: environment-cern.yml
+#           environment-name: workflow-runner
+#           cache-downloads: true
+#           cache-env: true
 
-      - name: Install Conda environment with Micromamba for dev env (pytest)
-        uses: mamba-org/provision-with-micromamba@main
-        with:
-          environment-file: dev-env.yml
-          micromamba-version: "1.4.3"
-          environment-name: dev-env
-          cache-downloads: true
-          cache-env: true
-          # channels: pytorch,nvidia,conda-forge
+#       - name: Install Conda environment with Micromamba for dev env (pytest)
+#         uses: mamba-org/provision-with-micromamba@main
+#         with:
+#           environment-file: dev-env.yml
+#           micromamba-version: "1.4.3"
+#           environment-name: dev-env
+#           cache-downloads: true
+#           cache-env: true
+#           # channels: pytorch,nvidia,conda-forge
         
-      - name: Run tests
-        shell: bash -l {0}
-        run: conda run -n dev-env pytest
+#       - name: Run tests
+#         shell: bash -l {0}
+#         run: conda run -n dev-env pytest

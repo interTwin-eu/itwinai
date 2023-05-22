@@ -4,6 +4,7 @@
 
 name: ai-dev
 channels:
+  # Order = priority! Don't mess this up.
   - pytorch
   # - nvidia
   - conda-forge
