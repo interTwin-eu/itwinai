@@ -15,24 +15,18 @@ jobs:
         
       - name: Install micromamba
         shell: bash -l {0}
-        run: curl micro.mamba.pm/install.sh | bash
-
-      - name: check
-        # shell: bash -l {0}
         run: |
+          curl micro.mamba.pm/install.sh | bash
           micromamba --version
       
-      - name: make
+      - name: Make workflow runner
         shell: bash -l {0}
-        run: make
+        run: make workflow-runner-cern
 
+      - name: Make dev env runner
+        shell: bash -l {0}
+        run: make dev-env
 
-
-      # - name: check2
-      #   run: echo 'alias mamba="micromamba"' >> ~/.bashrc
-      #   shell: bash -l {0}
-      # - run: mamba --version
-      #   shell: bash -l {0}
-      # - run: make
-      #   shell: bash -l {0}
-
+      - name: pytest for workflows
+        shell: bash -l {0}
+        run: conda -p ./.venv-dev pytest

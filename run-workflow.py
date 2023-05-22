@@ -72,7 +72,7 @@ if __name__ == "__main__":
             print(f'Deploying "{step_name}" step...')
             # Install python env from conda env definition file
             subprocess.run(
-                (f"mamba env create -p {step_data['env']['prefix']} "
+                (f"micromamba env create -p {step_data['env']['prefix']} "
                  f"--file {step_data['env']['file']}").split(),
                 check=True
             )
