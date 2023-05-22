@@ -23,10 +23,6 @@ jobs:
         shell: bash -l {0}
         run: make workflow-runner-cern
 
-      # - name: Make dev env runner
-      #   shell: bash -l {0}
-      #   run: make dev-env
-
-      - name: pytest for workflows
+      - name: Run pytest for workflows
         shell: bash -l {0}
         run: conda run -p ./.venv pytest ./tests/
