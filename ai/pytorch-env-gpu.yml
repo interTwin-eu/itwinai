@@ -1,8 +1,8 @@
 name: ai-training
 channels:
-  - conda-forge
   - pytorch
   # - nvidia
+  - conda-forge
 dependencies:
   - python=3.9.12
   - pytorch::pytorch=1.13.1

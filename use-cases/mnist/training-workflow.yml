@@ -23,8 +23,8 @@ steps:
         prefix: ./ai/.venv-pytorch
         source: ./ai
       args:
-        input: ${datasets.preproc-images.location}
-        output: ${datasets.ml-logs.location}
+        train-dataset: ${datasets.preproc-images.location}
+        ml-logs: ${datasets.ml-logs.location}
         config: ./use-cases/mnist/mnist-ai-train.yml
 
 # #Workflow definition in CWL style

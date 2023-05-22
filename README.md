@@ -26,6 +26,15 @@ make
 conda activate ./.venv
 ```
 
+To run tests use:
+
+```bash
+# Activate env
+conda activate ./.venv
+
+pytest tests/
+```
+
 ## Development env setup
 
 Requirements:

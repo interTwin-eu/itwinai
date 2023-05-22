@@ -7,7 +7,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "-o", "--output",
         type=str,
-        help="Path to output dataset (preprocessed dataset).",
+        help="Path where to store preprocessed datasets.",
         default=None
     )
     args = parser.parse_args()

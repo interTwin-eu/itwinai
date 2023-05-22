@@ -21,7 +21,7 @@ app = typer.Typer()
 
 @app.command()
 def train(
-    input: str = typer.Option(
+    train_dataset: str = typer.Option(
         "unk",
         help="Path to training dataset."
     ),
@@ -29,7 +29,7 @@ def train(
         "unk",
         help="Path to training configuration file."
     ),
-    output: str = typer.Option(
+    ml_logs: str = typer.Option(
         "logs/",
         help="Path to logs storage."
     )
@@ -49,12 +49,12 @@ def train(
         ItwinaiBasePlDataModule
     )
     cli_conf = dict(cli=dict(
-        input_dataset=input,
-        ml_logs=output
+        train_dataset=train_dataset,
+        ml_logs=ml_logs
     ))
     cli_conf = OmegaConf.create(cli_conf)
 
-    os.makedirs(output, exist_ok=True)
+    os.makedirs(ml_logs, exist_ok=True)
     train_config: DictConfig = load_yaml_with_deps(config)
     train_config = OmegaConf.merge(train_config, cli_conf)
     # print(OmegaConf.to_yaml(train_config))
@@ -66,7 +66,7 @@ def train(
         shutil.rmtree('checkpoints')
 
     log_conf = train_config['logger']
-    mlflow.set_tracking_uri('file:' + output)
+    mlflow.set_tracking_uri('file:' + ml_logs)
     mlflow.set_experiment(log_conf['experiment_name'])
     mlflow.pytorch.autolog(
         log_every_n_epoch=log_conf['log_every_n_epoch'],
@@ -87,8 +87,8 @@ def train(
     with mlflow.start_run(description=log_conf['description']):
         # Log hyperparameters
         config_params = copy.copy(train_config)
-        config_params['cli.input'] = input
-        config_params['cli.output'] = output
+        config_params['cli.input'] = train_dataset
+        config_params['cli.output'] = ml_logs
         config_params['cli.config'] = config
         mlflow.log_params(flatten_dict(config_params))
 
@@ -138,17 +138,17 @@ def train(
 
 @app.command()
 def predict(
-    input: str = typer.Option(
+    input_dataset: str = typer.Option(
         "unk",
-        help="Path to predictions dataset."
+        help="Path to dataset of unseen data to make predictions."
     ),
     config: str = typer.Option(
         "unk",
         help="Path to inference configuration file."
     ),
-    output: str = typer.Option(
+    predictions_location: str = typer.Option(
         "preds/",
-        help="Path to predictions storage."
+        help="Where to save predictions."
     ),
     ml_logs: str = typer.Option(
         "logs/",
@@ -174,13 +174,13 @@ def predict(
 
     # TODO: define input as PL dataModule
 
-    os.makedirs(output, exist_ok=True)
+    os.makedirs(predictions_location, exist_ok=True)
     ml_conf: DictConfig = load_yaml_with_deps(config)
     # print(OmegaConf.to_yaml(ml_conf))
     ml_conf = OmegaConf.to_container(ml_conf, resolve=True)
     ml_conf = ml_conf['inference']
 
-    os.makedirs(output, exist_ok=True)
+    os.makedirs(predictions_location, exist_ok=True)
 
     mlflow.set_tracking_uri('file:' + ml_logs)
 
@@ -201,6 +201,7 @@ def predict(
         new_run_id = runs[runs.status == 'FINISHED'].iloc[0]['run_id']
         ml_conf['run_id'] = new_run_id
         logging.warning(f"Using Run ID: '{new_run_id}'")
+        return
 
     # Download training configuration
     train_conf_path = mlflow.artifacts.download_artifacts(
@@ -251,7 +252,7 @@ def predict(
         loaded_data_module: ItwinaiBasePlDataModule = cli.datamodule
 
     trainer = Trainer(logger=cli.trainer.logger)
-    # # Test best model once again (TODO: remove
+    # # Test best model once again. TODO: remove
     # trainer.test(
     #     loaded_model,
     #     dataloaders=loaded_data_module,
@@ -268,7 +269,8 @@ def predict(
     )
 
     # Save list of predictions as class names
-    with open(os.path.join(output, 'predictions.txt'), 'w') as preds_file:
+    preds_file = os.path.join(predictions_location, 'predictions.txt')
+    with open(preds_file, 'w') as preds_file:
         preds_file.write('\n'.join(pred_class_names))
 
 

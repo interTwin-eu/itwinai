@@ -22,7 +22,7 @@ steps:
         source: ./ai
       args:
         config: ./use-cases/mnist/mnist-ai-inference.yml
-        input: ${datasets.preproc-images.location}
-        output: ${datasets.ml-predictions.location}
+        input-dataset: ${datasets.preproc-images.location}
+        predictions-location: ${datasets.ml-predictions.location}
         ml-logs: ${datasets.ml-logs.location}
 

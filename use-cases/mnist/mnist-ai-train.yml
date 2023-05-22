@@ -102,7 +102,7 @@ train:
     data:
       class_path: itwinai.plmodels.mnist.MNISTDataModule
       init_args:
-        data_dir: ${cli.input_dataset}
+        data_dir: ${cli.train_dataset}
         batch_size: 32
 
     # Torch Optimizer configuration
