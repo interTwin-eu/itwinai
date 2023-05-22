@@ -21,14 +21,11 @@ jobs:
         # shell: bash -l {0}
         run: |
           micromamba --version
-          shopt -s expand_aliases
-          alias mamba="micromamba"
-          echo 'shopt -s expand_aliases' > ~/.bashrc
-          echo 'alias mamba="micromamba"' >> ~/.bashrc
-          mamba --version
-          echo $PATH
-          cat ~/.bashrc
-          source ~/.bashrc && make
+      
+      - name: make
+        shell: bash -l {0}
+        run: make
+
 
 
       # - name: check2
