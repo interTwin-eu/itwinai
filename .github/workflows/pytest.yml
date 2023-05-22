@@ -23,10 +23,10 @@ jobs:
       - name: Install Conda environment with Micromamba for dev env (pytest)
         uses: mamba-org/provision-with-micromamba@main
         with:
-          environment-file: dev-env1.yml
-          # micromamba-version: "1.4.3"
-          # environment-name: dev-env
-          # cache-downloads: true
+          environment-file: dev-env.yml
+          micromamba-version: "1.4.3"
+          environment-name: dev-env
+          cache-downloads: true
           # channels: pytorch,nvidia,conda-forge
         
       # - name: Run tests
