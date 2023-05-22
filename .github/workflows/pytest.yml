@@ -13,17 +13,17 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      # - name: Install Conda environment with Micromamba for workflow runner
-      #   uses: mamba-org/provision-with-micromamba@main
-      #   with:
-      #     environment-file: environment-cern.yml
-      #     environment-name: workflow-runner
-      #     cache-downloads: true
+      - name: Install Conda environment with Micromamba for workflow runner
+        uses: mamba-org/provision-with-micromamba@main
+        with:
+          environment-file: environment-cern.yml
+          environment-name: workflow-runner
+          cache-downloads: true
 
       - name: Install Conda environment with Micromamba for dev env (pytest)
         uses: mamba-org/provision-with-micromamba@main
         with:
-          environment-file: dev-env.yml
+          environment-file: dev-env1.yml
           environment-name: dev-env
           cache-downloads: true
         
