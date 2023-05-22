@@ -24,9 +24,10 @@ jobs:
         uses: mamba-org/provision-with-micromamba@main
         with:
           environment-file: dev-env1.yml
+          # micromamba-version: "1.4.3"
           # environment-name: dev-env
           # cache-downloads: true
-          # channels: pytorch, conda-forge
+          # channels: pytorch,nvidia,conda-forge
         
       # - name: Run tests
       #   shell: bash -l {0}

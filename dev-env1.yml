@@ -5,7 +5,7 @@ channels:
   - conda-forge
 dependencies:
   - python=3.9.12
-  - pytorch=1.13.1
+  - pytorch::pytorch=1.13.1
   # - pytorch::torchvision=0.14.1
   # - pytorch::cpuonly
   - lightning
