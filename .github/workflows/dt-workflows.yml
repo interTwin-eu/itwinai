@@ -23,10 +23,11 @@ jobs:
           micromamba --version
           shopt -s expand_aliases
           alias mamba="micromamba"
-          echo 'shopt -s expand_aliases' >> ~/.bashrc
+          echo 'shopt -s expand_aliases' > ~/.bashrc
           echo 'alias mamba="micromamba"' >> ~/.bashrc
           mamba --version
           echo $PATH
+          make
 
 
       # - name: check2
