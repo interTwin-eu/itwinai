@@ -22,7 +22,7 @@ jobs:
         run: micromamba --version
 
       - name: check2
-        run: alias mamba="micromamba"
+        run: echo 'alias mamba="micromamba"' >> ~/.bashrc
         shell: bash -l {0}
       - run: mamba --version
         shell: bash -l {0}
