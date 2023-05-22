@@ -1,11 +1,13 @@
 name: ai-dev
 channels:
-  - conda-forge
   - pytorch
   - nvidia
+  - conda-forge
 dependencies:
   - python=3.9.12
-  - pytorch
+  - pytorch=1.13.1
+  # - pytorch::torchvision=0.14.1
+  # - pytorch::cpuonly
   - lightning
   - torchmetrics
   - mlflow>=2
@@ -14,9 +16,11 @@ dependencies:
   - pyyaml
   - omegaconf
   - ipykernel
+
   - pip
   - pip:
     - jsonargparse[signatures]>=4.17.0
+
   - ipython
   - pytest
   - flake8
