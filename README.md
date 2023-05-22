@@ -26,7 +26,7 @@ make
 conda activate ./.venv
 ```
 
-To run tests use:
+To run tests on workflows use:
 
 ```bash
 # Activate env
@@ -50,6 +50,15 @@ make dev-env
 
 # Activate env
 conda activate ./.venv-dev
+```
+
+To run tests on itwinai package:
+
+```bash
+# Activate env
+conda activate ./.venv-dev
+
+pytest tests/ai/
 ```
 
 ## AI environment setup
