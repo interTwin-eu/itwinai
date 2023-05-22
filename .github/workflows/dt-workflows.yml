@@ -18,8 +18,14 @@ jobs:
         run: curl micro.mamba.pm/install.sh | bash
 
       - name: check
+        shell: bash -l {0}
         run: micromamba --version
 
       - name: check2
-        run: alias mamba="micromamba" && mamba --version
+        run: alias mamba="micromamba"
+        shell: bash -l {0}
+      - run: mamba --version
+        shell: bash -l {0}
+      - run: make
+        shell: bash -l {0}
 
