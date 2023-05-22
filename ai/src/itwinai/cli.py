@@ -172,10 +172,14 @@ def predict(
         ItwinaiBasePlDataModule
     )
 
-    # TODO: define input as PL dataModule
+    cli_conf = dict(cli=dict(
+        input_dataset=input_dataset,
+    ))
+    cli_conf = OmegaConf.create(cli_conf)
 
     os.makedirs(predictions_location, exist_ok=True)
     ml_conf: DictConfig = load_yaml_with_deps(config)
+    ml_conf = OmegaConf.merge(ml_conf, cli_conf)
     # print(OmegaConf.to_yaml(ml_conf))
     ml_conf = OmegaConf.to_container(ml_conf, resolve=True)
     ml_conf = ml_conf['inference']
@@ -201,7 +205,6 @@ def predict(
         new_run_id = runs[runs.status == 'FINISHED'].iloc[0]['run_id']
         ml_conf['run_id'] = new_run_id
         logging.warning(f"Using Run ID: '{new_run_id}'")
-        return
 
     # Download training configuration
     train_conf_path = mlflow.artifacts.download_artifacts(
@@ -221,7 +224,12 @@ def predict(
 
     # Instantiate PL model
     lightning_conf = load_yaml(train_conf_path)
-    # lightning_conf['trainer']['logger'] = None
+    if ml_conf['conf'] is not None:
+        # Override training configuration with the one
+        # provided during inference.
+        # Example: predictions dataset is different
+        # from training dataset
+        lightning_conf.update(ml_conf['conf'])
 
     # Reset argv before using Lightning CLI
     old_argv = sys.argv
@@ -243,21 +251,9 @@ def predict(
     )
 
     # Load Data module
-    if ml_conf.get('data') is not None:
-        # New/updated datamodule
-        loaded_data_module: ItwinaiBasePlDataModule = None
-        raise NotImplementedError
-    else:
-        # Reuse same datamodule used for training
-        loaded_data_module: ItwinaiBasePlDataModule = cli.datamodule
+    loaded_data_module: ItwinaiBasePlDataModule = cli.datamodule
 
     trainer = Trainer(logger=cli.trainer.logger)
-    # # Test best model once again. TODO: remove
-    # trainer.test(
-    #     loaded_model,
-    #     dataloaders=loaded_data_module,
-    #     datamodule=loaded_data_module
-    # )  # , ckpt_path='best')
 
     # Predict
     predictions = trainer.predict(

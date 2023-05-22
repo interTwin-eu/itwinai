@@ -7,4 +7,9 @@ inference:
   ckpt_path: model/checkpoints/best-checkpoint/best-checkpoint.ckpt
   train_config_artifact_path: pl-training.yml
   conf:
-    data: null
+    # Lightning data module configuration
+    data:
+      class_path: itwinai.plmodels.mnist.MNISTDataModule
+      init_args:
+        data_dir: ${cli.input_dataset}
+        batch_size: 32
