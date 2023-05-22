@@ -15,6 +15,7 @@ steps:
         prefix: ./use-cases/mnist/.venv-preproc
       args:
         output: ${datasets.preproc-images.location}
+        stage: train
   - ml-training:
       doc: Train a neural network to classify MNIST images
       command: itwinai train
@@ -46,7 +47,7 @@ steps:
 
 # preprocessOutput:
 #   class: Directory
-#   path: ../../data/mnist/preproc-images
+#   path: ../../data/mnist/preproc-images-train
 
 # #training step
 # trainingConfig:

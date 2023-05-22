@@ -10,12 +10,22 @@ if __name__ == "__main__":
         help="Path where to store preprocessed datasets.",
         default=None
     )
+    # Syntactic sugar
+    parser.add_argument(
+        "-s", "--stage",
+        type=str,
+        help="Kind of dataset split to use.",
+        default='train',
+        choices=('train', 'test')
+    )
     args = parser.parse_args()
 
-    # Download and store training dataset
-    MNIST(args.output, train=True, download=True)
-    # Download and store test dataset
-    MNIST(args.output, train=False, download=True)
+    if args.stage == 'train':
+        # Download and store training dataset
+        MNIST(args.output, train=True, download=True)
+    if args.stage == 'test':
+        # Download and store test dataset
+        MNIST(args.output, train=False, download=True)
 
     print(
         """

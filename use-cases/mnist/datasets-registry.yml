@@ -1,6 +1,6 @@
 datasets:
   preproc-images:
-    doc: Preprocessed images
+    doc: Preprocessed MNIST images
     location: ./data/mnist/preproc-images
   ml-logs:
     doc: MLflow tracking URI for local logging

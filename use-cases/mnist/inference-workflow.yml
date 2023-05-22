@@ -13,6 +13,7 @@ steps:
         prefix: ./use-cases/mnist/.venv-preproc
       args:
         output: ${datasets.preproc-images.location}
+        stage: test
   - ml-inference:
       doc: Apply a pre-trained neural network on unseen data and store them
       command: itwinai predict

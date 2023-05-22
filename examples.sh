@@ -31,8 +31,8 @@ conda run -p ./.venv python run-workflow.py \
     -f ./use-cases/mnist/inference-workflow.yml
 
 # MNIST inference
-itwinai predict --input-dataset unk \
-    --predictions-location ./data/mnist/predictions \
+itwinai predict --input-dataset ./data/mnist/preproc-images \
+    --predictions-location ./data/mnist/ml-predictions \
     --config ./use-cases/mnist/mnist-ai-inference.yml \
     --ml-logs ./data/mnist/ml-logs
 
