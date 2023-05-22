@@ -43,6 +43,6 @@ jobs:
           cache-downloads: true
           cache-env: true
           # channels: pytorch,nvidia,conda-forge
-        
+      - name: Run tests
         shell: bash -l {0}
         run: pytest ai/tests
