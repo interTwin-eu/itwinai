@@ -44,7 +44,7 @@ jobs:
           cache-env: true
           # channels: pytorch,nvidia,conda-forge
       - name: Install itwinai
-        shall: bash -l {0}
+        shell: bash -l {0}
         run: python -m pip install --no-deps -e ./ai
       - name: Run tests
         shell: bash -l {0}
