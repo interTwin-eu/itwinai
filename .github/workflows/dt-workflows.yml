@@ -19,13 +19,19 @@ jobs:
 
       - name: check
         shell: bash -l {0}
-        run: micromamba --version
+        run: |
+          micromamba --version
+          shopt -s expand_aliases
+          alias mamba="micromamba"
+          mamba --version
+          make
 
-      - name: check2
-        run: echo 'alias mamba="micromamba"' >> ~/.bashrc
-        shell: bash -l {0}
-      - run: mamba --version
-        shell: bash -l {0}
-      - run: make
-        shell: bash -l {0}
+
+      # - name: check2
+      #   run: echo 'alias mamba="micromamba"' >> ~/.bashrc
+      #   shell: bash -l {0}
+      # - run: mamba --version
+      #   shell: bash -l {0}
+      # - run: make
+      #   shell: bash -l {0}
 
