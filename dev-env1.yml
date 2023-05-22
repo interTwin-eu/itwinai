@@ -2,6 +2,7 @@ name: ai-dev
 channels:
   - conda-forge
   - pytorch
+  - nvidia
 dependencies:
   - python=3.9.12
   - pytorch::pytorch
