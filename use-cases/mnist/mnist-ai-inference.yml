@@ -1,10 +1,10 @@
 # Inference configuration
 inference:
   type: lightning
+  experiment_name: MNIST classification lite
   # Run ID in MLFlow server: pre-trained model
-  # IMPORTANT: this has to be updated!
-  run_id: 05ddff17a2d9422892c520beebcd4a18
-  ckpt_path: model/checkpoints/best-checkpoint-v2/best-checkpoint-v2.ckpt
+  run_id: unk
+  ckpt_path: model/checkpoints/best-checkpoint/best-checkpoint.ckpt
   train_config_artifact_path: pl-training.yml
   conf:
     data: null

@@ -38,6 +38,7 @@ def train(
     Train a neural network defined as a Pytorch Lightning model.
     """
     import copy
+    import shutil
     import mlflow
     from lightning.pytorch.cli import LightningCLI
     from omegaconf import DictConfig, OmegaConf
@@ -58,6 +59,11 @@ def train(
     train_config = OmegaConf.merge(train_config, cli_conf)
     # print(OmegaConf.to_yaml(train_config))
     train_config = OmegaConf.to_container(train_config, resolve=True)
+
+    # Setup logger
+    if os.path.exists('checkpoints'):
+        # Remove old checkpoints
+        shutil.rmtree('checkpoints')
 
     log_conf = train_config['logger']
     mlflow.set_tracking_uri('file:' + output)
@@ -152,7 +158,9 @@ def predict(
     """
     Apply a pre-trained neural network to a set of unseen data.
     """
+    import logging
     import mlflow
+    from mlflow.exceptions import MlflowException
     from lightning.pytorch.cli import LightningCLI
     from lightning.pytorch.trainer.trainer import Trainer
     import torch
@@ -175,6 +183,24 @@ def predict(
     os.makedirs(output, exist_ok=True)
 
     mlflow.set_tracking_uri('file:' + ml_logs)
+
+    # Check if run ID exists
+    try:
+        mlflow.get_run(ml_conf['run_id'])
+        # mlflow_client.get_run(ml_conf['run_id'])
+    except MlflowException:
+        logging.warning(
+            f"Run ID '{ml_conf['run_id']}' not found! "
+            "Using latest run available for experiment "
+            f"'{ml_conf['experiment_name']}' instead."
+        )
+        runs = mlflow.search_runs(
+            experiment_names=[ml_conf['experiment_name']],
+
+        )
+        new_run_id = runs[runs.status == 'FINISHED'].iloc[0]['run_id']
+        ml_conf['run_id'] = new_run_id
+        logging.warning(f"Using Run ID: '{new_run_id}'")
 
     # Download training configuration
     train_conf_path = mlflow.artifacts.download_artifacts(
