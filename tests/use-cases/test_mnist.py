@@ -8,6 +8,11 @@ do not break use cases' workflows.
 import pytest
 import subprocess
 
+# TODO: add tests for use case folder format:
+#   - structure
+#   - naming convention
+#   - file exist
+
 
 @pytest.mark.integration
 def test_training_workflow():

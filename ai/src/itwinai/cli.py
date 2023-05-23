@@ -30,7 +30,7 @@ def train(
         help="Path to training configuration file."
     ),
     ml_logs: str = typer.Option(
-        "logs/",
+        "ml-logs/",
         help="Path to logs storage."
     )
 ):
@@ -48,8 +48,11 @@ def train(
         ItwinaiBasePlModule,
         ItwinaiBasePlDataModule
     )
+
+    # Replicate args under cli field, to be used in imported config files
     cli_conf = dict(cli=dict(
         train_dataset=train_dataset,
+        config=config,
         ml_logs=ml_logs
     ))
     cli_conf = OmegaConf.create(cli_conf)
@@ -109,7 +112,8 @@ def train(
 
         # Reset argv before using Lightning CLI
         old_argv = sys.argv
-        sys.argv = sys.argv[:1]
+        print(old_argv)
+        sys.argv = ['some_script.py']
         cli = LightningCLI(
             args=lightning_conf,
             model_class=ItwinaiBasePlModule,
@@ -151,7 +155,7 @@ def predict(
         help="Where to save predictions."
     ),
     ml_logs: str = typer.Option(
-        "logs/",
+        "ml-logs/",
         help="Path to MLFLow logs."
     ),
 ):
@@ -172,8 +176,12 @@ def predict(
         ItwinaiBasePlDataModule
     )
 
+    # Replicate args under cli field, to be used in imported config files
     cli_conf = dict(cli=dict(
         input_dataset=input_dataset,
+        config=config,
+        predictions_location=predictions_location,
+        ml_logs=ml_logs
     ))
     cli_conf = OmegaConf.create(cli_conf)
 
@@ -271,9 +279,9 @@ def predict(
 
 
 @app.command()
-def visualize(
+def mlflow_ui(
     path: str = typer.Option(
-        "logs/",
+        "ml-logs/",
         help="Path to logs storage."
     ),
 ):

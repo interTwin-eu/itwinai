@@ -40,7 +40,10 @@ jobs:
           VALIDATE_PYTHON_ISORT: false
           VALIDATE_PYTHON_MYPY: false
           VALIDATE_PYTHON_PYLINT: false
+          VALIDATE_HTML: false
           # Only check new or edited files
           VALIDATE_ALL_CODEBASE: false
           # Fail on errors
           DISABLE_ERRORS: false
+          # Skip linting of docs
+          FILTER_REGEX_EXCLUDE: .*docs/index.md|.*docs/docs/.*

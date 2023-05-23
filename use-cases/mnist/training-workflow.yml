@@ -20,7 +20,7 @@ steps:
       doc: Train a neural network to classify MNIST images
       command: itwinai train
       env: 
-        file: ./ai/pytorch-env.yml
+        file: ./ai/pytorch-env-freeze.yml
         prefix: ./ai/.venv-pytorch
         source: ./ai
       args:

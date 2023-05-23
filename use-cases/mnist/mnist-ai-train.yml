@@ -1,11 +1,6 @@
 # Configuration file of AI workflows for MNIST use case
 # Load with OmegaConf
 
-# When executing this use case in a new environment, you need
-# to update the following fields:
-# - inference.run_id
-
-
 # Other configuration files to merge with this file via OmegaConf 
 conf-dependencies:
   - ./use-cases/mnist/datasets-registry.yml
