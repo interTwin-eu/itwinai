@@ -8,6 +8,13 @@ This guide provides a detailed explanation on how to use the AI/ML workflow tool
 
 **Target audience**: anyone aiming to simplify MLOps for their digital twin (DT) use case/project.
 
+## Table of contents
+
+{: .no_toc .text-delta }
+
+1. TOC
+{:toc}
+
 ## 1. Clone this repo
 
 ```bash
