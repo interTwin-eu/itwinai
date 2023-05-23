@@ -6,9 +6,11 @@ nav_order: 1
 ---
 
 # MNIST: toy example for DT workflows
+
 {: .no_toc }
 
 ## Table of contents
+
 {: .no_toc .text-delta }
 
 1. TOC

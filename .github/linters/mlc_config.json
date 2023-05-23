@@ -18,6 +18,15 @@
     },
     {
       "pattern": "docs/"
+    },
+    {
+      "pattern": "./"
+    },
+    {
+      "pattern": "../"
+    },
+    {
+      "pattern": "use-cases/"
     }
   ]
 }
