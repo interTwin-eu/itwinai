@@ -48,6 +48,6 @@ For further details on how to define a DT workflow in itwinai, follow [this guid
 
 To integrate an existing use case in itwinai platform, the ML engineer rewrites her ML experiments
 according to a format supported by itwinai. Some examples can be found by looking at the use cases
-already integrated [here](../use-cases).
+already integrated [here](docs/use-cases/index), located at `use-cases/`.
 
 A detailed guide on how to integrate a new use case in itwinai can be found [here](docs/How-to-use-this-software).

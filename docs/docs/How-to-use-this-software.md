@@ -5,11 +5,9 @@ nav_order: 2
 ---
 
 # How to use this software
-
 {: .no_toc }
 
 ## Table of contents
-
 {: .no_toc .text-delta }
 
 1. TOC
@@ -41,7 +39,7 @@ make
 You can define one or more workflows for your DT use case (e.g., ML training, ML inference, other). A workflow is
 defined through configuration files in the use case subfolder.
 
-To begin with, you can start by looking at an example of the [MNIST toy use case](../../use-cases/mnist).
+To begin with, you can start by looking at an example of the [MNIST toy use case](use-cases/mnist), located at `use-cases/mnist`.
 
 The workflow is defined in the `training-workflow.yml` file and is written in two different styles: classical style and
 CWL style. Which of the two is used is defined by setting the `--cwl` flag (explained [below](#5-run-the-workflow)).
@@ -97,6 +95,8 @@ the first step. The training is performed using the train command from the `itwi
 file located in the `./use-cases/mnist` directory.
 
 The CWL style workflow is defined in the bottom of the `training-workflow.yml` file:
+
+**NOTE**: CWL is not working at the moment!
 
 ```yaml
 #Workflow definition in CWL style
@@ -179,8 +179,8 @@ AI/ML workflows are implemented by the `itwinai` module. The DT developer who wa
 only a reduced amount of code to describe its neural network, plus some configuration files.
 
 The developer must implement the neural network she wants to train and include it inside
-[`itwinai`](../../ai/src/itwinai) module. For instance, see the example of
-[LitMNIST model](../../ai/src/itwinai/plmodels/mnist.py#L15).
+`itwinai` python package, located at `ai/src/itwinai`. For instance, see the example of
+`LitMNIST` model, in `ai/src/itwinai/plmodels/mnist.py`.
 Once a model has been included inside the `itwinai` python module, then it can be imported during training.
 In the future, `itwinai` will support also neural networks not provided out-of-the-box by `itwinai`.
 
@@ -199,8 +199,14 @@ An example configuration file is provided below, where the fields have been repl
 
 # Training configuration
 train:
-  type: can be 'lightning' or 'tf', depending whether the neural network is defined in PyTorch Lightning or TensorFlow. At the moment, only 'lightning' is supported.
-  path: path to the training configuration (YAML) file. It is in a format coherent with the type of training framework of choice (i.e., lightning or tf).
+  type: >
+    can be 'lightning' or 'tf', depending whether the neural network is defined
+    using PyTorch Lightning or TensorFlow.
+    At the moment, only 'lightning' is supported.
+  path: >
+    path to the training configuration (YAML) file.
+    It is in a format coherent with the type of training framework
+    of choice (i.e., lightning or tf).
 
 inference:
   type: lightning
@@ -214,11 +220,15 @@ inference:
 
 # Mlflow logger configuration
 logger:
-  experiment_name: Unique name for an experiment, to group all similar runs under the same experiment
+  experiment_name: >
+    Unique name for an experiment, to group all similar
+    runs under the same experiment
   description: Description for this specific run.
   log_every_n_epoch: how often to log (epochs)
   log_every_n_steps: how often to log (steps, i.e., batches)
-  registered_model_name: Unique name used in Models Registry to identify an ML model. If given, it is automatically registered in the Models Registry.
+  registered_model_name: >
+    Unique name used in Models Registry to identify an ML model.
+    If given, it is automatically registered in the Models Registry.
 ```
 
 ### 2. Framework-specific configuration
@@ -235,7 +245,7 @@ pre-defined by lightning authors for the PL CLI. See its documentation
 [here](https://pytorch-lightning.readthedocs.io/en/1.6.5/common/lightning_cli.html#optimizers-and-learning-rate-schedulers).
 
 An example taken from
-[MNIST use case](https://github.com/interTwin-eu/T6.5-AI-and-ML/tree/main/use-cases/mnist):
+[MNIST use case](use-cases/mnist) located at `use-cases/mnist`:
 
 ```yaml
 # lightning.pytorch==2.0.1.post0
@@ -313,8 +323,7 @@ This script performs two main actions:
 A workflow can be executed following CWL definition, adding the `--cwl` flag to the command above.
 
 See some examples of workflow executions in
-[`examples.sh`](https://github.com/interTwin-eu/T6.5-AI-and-ML/blob/main/examples.sh) ,
-for instance:
+`examples.sh`, for instance:
 
 ```bash
 # Run workflow for MNIST toy use case

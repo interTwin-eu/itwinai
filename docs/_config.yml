@@ -13,6 +13,9 @@ nav_external_links:
   - title: itwinai on GitHub
     url: https://github.com/interTwin-eu/T6.5-AI-and-ML
     hide_icon: false # set to true to hide the external link icon - defaults to false
+  - title: interTwin on GitHub
+    url: https://github.com/interTwin-eu/
+    hide_icon: false # set to true to hide the external link icon - defaults to false
   - title: interTwin project
     url: https://www.intertwin.eu/
     hide_icon: false # set to true to hide the external link icon - defaults to false

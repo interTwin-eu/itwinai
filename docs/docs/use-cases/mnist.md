@@ -6,6 +6,15 @@ nav_order: 1
 ---
 
 # MNIST: toy example for DT workflows
+{: .no_toc }
+
+## Table of contents
+{: .no_toc .text-delta }
+
+1. TOC
+{:toc}
+
+---
 
 Of course MNIST images classification is not a digital twin. Still, it is useful to
 provide an example on how to define an end-to-end digital twin workflow with the
@@ -173,4 +182,4 @@ conda activate ./ai/.venv-pytorch && \
 
 ## References
 
-To learn more on how to use this software, e.g., to deploy a new use case, please refer to [this guide](https://github.com/interTwin-eu/T6.5-AI-and-ML/wiki/How-to-use-this-software).
+To learn more on how to use this software, e.g., to deploy a new use case, please refer to [this guide](../How-to-use-this-software).
