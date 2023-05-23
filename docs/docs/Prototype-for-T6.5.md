@@ -4,6 +4,14 @@ title: Prototype for itwinai
 nav_order: 3
 ---
 
+
+## Table of contents
+
+{: .no_toc .text-delta }
+
+1. TOC
+{:toc}
+
 ## TL;DR 🏷️
 
 Planning for interTwin AI workflows prototype. Simulate whole AI-centric digital twin workflows, with a special

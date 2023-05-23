@@ -1,6 +1,7 @@
 ---
-title: Home
+title: Overview
 layout: home
+nav_order: 1
 ---
 
 Welcome to the `itwinai` docs! A framework for advanced AI/ML workflows in digital twins (DTs).

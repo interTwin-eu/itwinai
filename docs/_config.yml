@@ -16,3 +16,8 @@ nav_external_links:
   - title: interTwin project
     url: https://www.intertwin.eu/
     hide_icon: false # set to true to hide the external link icon - defaults to false
+
+mermaid:
+  # Version of mermaid library
+  # Pick an available version from https://cdn.jsdelivr.net/npm/mermaid/
+  version: "9.1.3"
