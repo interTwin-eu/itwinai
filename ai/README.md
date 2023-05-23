@@ -1,20 +1,5 @@
 # AI workflows (T6.5)
 
-## Development env setup
-
-Requirements:
-
-- Mamba / conda
-
-Installation:
-
-```bash
-# Optional
-cd ./ai
-# Inside ./ai folder
-mamba env create -p ./.venv-dev --file ./dev-env.yml
-# Install this package
-conda run -p ./.venv-dev python -m pip install --no-deps -e .
-# Activate env
-conda activate ./.venv-dev
-```
+At the moment only PyTorch is supported.
+To setup the AI environment read the instructions
+[here](https://github.com/interTwin-eu/T6.5-AI-and-ML/tree/13-integrate-toy-use-case#ai-environment-setup).

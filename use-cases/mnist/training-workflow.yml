@@ -1,61 +1,61 @@
-#Workflow definition in classical style
-datasets:
-  preproc-images-train:
-    location: ./data/mnist/preproc-images-train
-  ml-logs:
-    # MLflow tracking URI
-    location: ./data/mnist/ml-logs
+# Workflow definition in classical style
+
+# Load with OmegaConf
+
+# Other configuration files to merge with this file via OmegaConf 
+conf-dependencies:
+  - ./use-cases/mnist/datasets-registry.yml
 
 steps:
   - preprocessing:
-      input: null
-      output: preproc-images-train
+      doc: Download and split MNIST dataset into train and test sets
       command: python ./use-cases/mnist/mnist-preproc.py
       env: 
         file: ./use-cases/mnist/preproc-env.yml
         prefix: ./use-cases/mnist/.venv-preproc
-        source: null
-      params: null
+      args:
+        output: ${datasets.preproc-images.location}
+        stage: train
   - ml-training:
-      input: preproc-images-train
-      output: ml-logs
-      # command: python ./ai/ai-training.py
+      doc: Train a neural network to classify MNIST images
       command: itwinai train
       env: 
-        file: ./ai/training-env.yml
-        prefix: ./ai/.venv-training
+        file: ./ai/pytorch-env.yml
+        prefix: ./ai/.venv-pytorch
         source: ./ai
-      params:
-        config: ./use-cases/mnist/mnist-ai.yml
+      args:
+        train-dataset: ${datasets.preproc-images.location}
+        ml-logs: ${datasets.ml-logs.location}
+        config: ./use-cases/mnist/mnist-ai-train.yml
 
-#Workflow definition in CWL style
+# #Workflow definition in CWL style
 
-workflowFileCWL: use-cases/mnist/workflow.cwl
+# workflowFileCWL: use-cases/mnist/workflow.cwl
 
-preprocessEnvironment:
-  class: Directory
-  path: .venv-preproc
-
-preprocessScript:
-  class: File
-  path: mnist-preproc.py
-
-#Placeholder for input dataset
-# preprocessInput:
+# preprocessEnvironment:
 #   class: Directory
-#   path:
+#   path: .venv-preproc
 
-preprocessOutput:
-  class: Directory
-  path: ../../data/mnist/preproc-images-train
+# preprocessScript:
+#   class: File
+#   path: mnist-preproc.py
 
-#training step
-trainingConfig:
-  class: File
-  path: mnist-ai.yml
+# #Placeholder for input dataset
+# # preprocessInput:
+# #   class: Directory
+# #   path:
 
-trainingEnvironment:
-  class: Directory
-  path: ../../ai/.venv-training
+# preprocessOutput:
+#   class: Directory
+#   path: ../../data/mnist/preproc-images-train
 
-trainingCommand: train
+# #training step
+# trainingConfig:
+#   class: File
+#   path: mnist-ai.yml
+
+# trainingEnvironment:
+#   class: Directory
+#   path: ../../ai/.venv-training
+
+# trainingCommand: train

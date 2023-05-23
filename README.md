@@ -14,12 +14,67 @@ If you want to integrate a new use case, you can follow this
 Requirements:
 
 - Linux environment
-- Mamba: [Installation guide](https://mamba.readthedocs.io/en/latest/installation.html) (suggested Mambaforge).
-- VS Code, for development.
+- Micromamba: [Installation guide](https://mamba.readthedocs.io/en/latest/installation.html#micromamba).
 
 Install the orchestrator virtual environment.
 
 ```bash
-mamba env create -p ./.venv --file environment-cern.yml
+# Create local env
+make
+
+# Activate env
 conda activate ./.venv
+```
+
+To run tests on workflows use:
+
+```bash
+# Activate env
+conda activate ./.venv
+
+pytest tests/
+```
+
+## Development env setup
+
+Requirements:
+
+- Linux environment
+- Micromamba: [Installation guide](https://mamba.readthedocs.io/en/latest/installation.html#micromamba).
+- VS Code, for development.
+
+Installation:
+
+```bash
+make dev-env
+
+# Activate env
+conda activate ./.venv-dev
+```
+
+To run tests on itwinai package:
+
+```bash
+# Activate env
+conda activate ./.venv-dev
+
+pytest tests/ai/
+```
+
+## AI environment setup
+
+Requirements:
+
+- Linux environment
+- Micromamba: [Installation guide](https://mamba.readthedocs.io/en/latest/installation.html#micromamba).
+
+**NOTE**: this environment gets automatically setup when a workflow is executed!
+
+However, you can also set it up explicitly with:
+
+```bash
+make ai-env
+
+# Activate env
+conda activate ./ai/.venv-pytorch
 ```

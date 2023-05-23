@@ -1,0 +1,4 @@
+[tool.pytest.ini_options]
+markers = [
+    "integration: integration tests (deselect with '-m \"not slow\"')",
+]

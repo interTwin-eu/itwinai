@@ -7,9 +7,6 @@ dependencies:
   - python=3.9.12
   - pytorch::pytorch=1.13.1
   - pytorch::torchvision=0.14.1
-  # - pytorch::torchaudio=0.13.1
-  # Either use pytorch-cuda or cpuonly, depending on GPU availability
-  # - pytorch::pytorch-cuda=11.6
   - pytorch::cpuonly
   - lightning
   - torchmetrics
@@ -17,8 +14,10 @@ dependencies:
   - typer
   - rich
   - pyyaml
+  - omegaconf
 
     # Pip dependencies
   - pip
   - pip:
     - jsonargparse[signatures]>=4.17.0
+
