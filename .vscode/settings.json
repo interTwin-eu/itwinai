@@ -20,6 +20,7 @@
         "itwinai",
         "logits",
         "Mambaforge",
+        "Micromamba",
         "mlflow",
         "mnist",
         "multiclass",
@@ -32,6 +33,7 @@
         "pytest",
         "pyyaml",
         "relu",
+        "Roadmap",
         "softmax",
         "torchmetrics",
         "torchvision",
@@ -46,5 +48,8 @@
     "[python]": {
         "editor.defaultFormatter": "ms-python.autopep8"
     },
-    "python.formatting.provider": "none"
+    "python.formatting.provider": "none",
+    "[markdown]": {
+        "editor.formatOnSave": false
+    }
 }

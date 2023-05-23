@@ -8,7 +8,7 @@ dependencies:
   - pytorch::pytorch=1.13.1
   - pytorch::torchvision=0.14.1
   - pytorch::cpuonly
-  - lightning
+  - lightning=2.0.0
   - torchmetrics
   - mlflow>=2
   - typer
@@ -16,7 +16,10 @@ dependencies:
   - pyyaml
   - omegaconf
 
-    # Pip dependencies
+  - typing-extensions=4.5.0
+  - typing_extensions=4.5.0
+
+  # Pip dependencies
   - pip
   - pip:
     - jsonargparse[signatures]>=4.17.0

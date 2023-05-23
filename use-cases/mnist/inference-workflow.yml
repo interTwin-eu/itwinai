@@ -18,7 +18,7 @@ steps:
       doc: Apply a pre-trained neural network on unseen data and store them
       command: itwinai predict
       env: 
-        file: ./ai/pytorch-env.yml
+        file: ./ai/pytorch-env-freeze.yml
         prefix: ./ai/.venv-pytorch
         source: ./ai
       args:
