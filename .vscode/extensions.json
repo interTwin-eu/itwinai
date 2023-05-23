@@ -8,6 +8,7 @@
         "ms-python.vscode-pylance",
         "ms-python.python",
         "ms-python.autopep8",
-        "bungcip.better-toml"
+        "bungcip.better-toml",
+        "bierner.markdown-mermaid"
     ]
 }

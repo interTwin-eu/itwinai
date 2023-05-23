@@ -3,30 +3,48 @@ title: Home
 layout: home
 ---
 
-This is a *bare-minimum* template to create a Jekyll site that uses the [Just the Docs] theme. You can easily set the created site to be published on [GitHub Pages] – the [README] file explains how to do that, along with other details.
+Welcome to the `itwinai` docs! A framework for advanced AI/ML workflows in digital twins (DTs).
 
-If [Jekyll] is installed on your computer, you can also build and preview the created site *locally*. This lets you test changes before committing them, and avoids waiting for GitHub Pages.[^1] And you will be able to deploy your local build to a different platform than GitHub Pages.
+Below we you are going to find an overview of interTwin's AI/ML workflows component. This platform
+is intended to support general-purpose MLOps for digital twin use cases in interTwin.
 
-More specifically, the created site:
+Additional resources include:
 
-- uses a gem-based approach, i.e. uses a `Gemfile` and loads the `just-the-docs` gem
-- uses the [GitHub Pages / Actions workflow] to build and publish the site on GitHub Pages
+- Detailed instructions on [How to use this software](docs/How-to-use-this-software).
+- Roadmap towards a prototype for T6.5 AI workflows for
+digital twins here: [Prototype for T6.5](docs/Prototype-for-T6.5).
 
-Other than that, you're free to customize sites that you create with this template, however you like. You can easily change the versions of `just-the-docs` and Jekyll it uses, as well as adding further plugins.
+## Overview: platform for machine learning workflows in digital twins
 
-[Browse our documentation][Just the Docs] to learn more about how to use this theme.
+The goal of this platform is to provide ML researchers with an easy-to-use endpoint
+to manage general-purpose machine learning (ML) workflows, with limited engineering overhead,
+and providing state-of-the-art MLOps practices.
 
-To get started with creating a site, just click "[use this template]"!
+We call this platform `itwinai`.
 
-If you want to maintain your docs in the `docs` directory of an existing project repo, see [Hosting your docs from an existing project repo](https://github.com/just-the-docs/just-the-docs-template/blob/main/README.md#hosting-your-docs-from-an-existing-project-repo) in the template README.
+The user is going to provide as input an set of configuration files, to fully describe ML workflows,
+in the context of digital twin (DT) applications. itwinai platform produces as output a
+visualization of ML metrics produced by executing the input ML configuration. As a result of ML
+training, the best model (on validation set) is saved to the Models Registry for future inference jobs.
 
-----
+![image](docs/img/user-platform%20interaction%20full.png)
 
-[^1]: [It can take up to 10 minutes for changes to your site to publish after you push the changes to GitHub](https://docs.github.com/en/pages/setting-up-a-github-pages-site-with-jekyll/creating-a-github-pages-site-with-jekyll#creating-your-site).
+### Simulating a whole DT workflow
 
-[Just the Docs]: https://just-the-docs.github.io/just-the-docs/
-[GitHub Pages]: https://docs.github.com/en/pages
-[README]: https://github.com/just-the-docs/just-the-docs-template/blob/main/README.md
-[Jekyll]: https://jekyllrb.com
-[GitHub Pages / Actions workflow]: https://github.blog/changelog/2022-07-27-github-pages-custom-github-actions-workflows-beta/
-[use this template]: https://github.com/just-the-docs/just-the-docs-template/generate
+A DT workflow is more than ML. Generally speaking, MLOps (like training and validation, prediction,
+ML model lifecycle management), can be considered just as a step of a larger DT workflow.
+
+![image](docs/img/cwl-workflow.png)
+
+In itwinai platform, we focus mainly on the MLOps step, simulating or oversimplifying all the rest
+(e.g., pre-processing, user authentication).
+
+For further details on how to define a DT workflow in itwinai, follow [this guide](docs/How-to-use-this-software#2-define-a-dt-workflow).
+
+### How to integrate a new use case
+
+To integrate an existing use case in itwinai platform, the ML engineer rewrites her ML experiments
+according to a format supported by itwinai. Some examples can be found by looking at the use cases
+already integrated [here](../use-cases).
+
+A detailed guide on how to integrate a new use case in itwinai can be found [here](docs/How-to-use-this-software).
