@@ -42,6 +42,7 @@ jobs:
           VALIDATE_PYTHON_PYLINT: false
           VALIDATE_HTML: false
           VALIDATE_GITLEAKS: false
+
           # Only check new or edited files
           VALIDATE_ALL_CODEBASE: false
           # Fail on errors
