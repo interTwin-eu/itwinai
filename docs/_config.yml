@@ -1,0 +1,8 @@
+title: itwinai
+description: A starter template for a Jeykll site using the Just the Docs theme!
+theme: just-the-docs
+
+url: https://interTwin-eu.github.io/T6.5-AI-and-ML
+
+aux_links:
+  Template Repository: https://github.com/interTwin-eu/T6.5-AI-and-ML
