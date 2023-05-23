@@ -4,15 +4,20 @@ title: How to use this software
 nav_order: 2
 ---
 
-This guide provides a detailed explanation on how to use the AI/ML workflow tool, developed in the context of interTwin.
-
-**Target audience**: anyone aiming to simplify MLOps for their digital twin (DT) use case/project.
+# How to use this software
+{: .no_toc }
 
 ## Table of contents
 {: .no_toc .text-delta }
 
 1. TOC
 {:toc}
+
+---
+
+This guide provides a detailed explanation on how to use the AI/ML workflow tool, developed in the context of interTwin.
+
+**Target audience**: anyone aiming to simplify MLOps for their digital twin (DT) use case/project.
 
 ## 1. Clone this repo
 
