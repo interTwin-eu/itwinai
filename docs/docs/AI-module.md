@@ -3,8 +3,8 @@ layout: default
 title: AI module
 nav_order: 4
 ---
-## Table of contents
 
+## Table of contents
 {: .no_toc .text-delta }
 
 1. TOC
