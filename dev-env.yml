@@ -4,9 +4,10 @@
 
 name: ai-dev
 channels:
-  - conda-forge
+  # Order = priority! Don't mess this up.
   - pytorch
   # - nvidia
+  - conda-forge
 dependencies:
   - python=3.9.12
   - pytorch::pytorch=1.13.1
@@ -21,6 +22,8 @@ dependencies:
   - typer
   - rich
   - pyyaml
+  - omegaconf
+  - ipykernel
 
   # Pip dependencies
   - pip

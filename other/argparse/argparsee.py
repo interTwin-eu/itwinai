@@ -1,7 +1,7 @@
 from jsonargparse import ArgumentParser
 import yaml
 
-from itwinai.plmodels.base import ItwinaiBasePlModel
+from itwinai.plmodels.base import ItwinaiBasePlModule
 
 # Ref:
 # https://jsonargparse.readthedocs.io/en/stable/#class-type-and-sub-classes
@@ -10,7 +10,7 @@ parser = ArgumentParser()
 
 parser.add_argument('--car', type=str)
 parser.add_argument('--number', type=int)
-parser.add_subclass_arguments(ItwinaiBasePlModel, 'model')
+parser.add_subclass_arguments(ItwinaiBasePlModule, 'model')
 
 
 # Parse (part of) YAML loaded in memory

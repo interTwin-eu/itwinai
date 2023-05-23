@@ -1,0 +1,15 @@
+# Inference configuration
+inference:
+  type: lightning
+  experiment_name: MNIST classification lite
+  # Run ID in MLFlow server: pre-trained model
+  run_id: unk
+  ckpt_path: model/checkpoints/best-checkpoint/best-checkpoint.ckpt
+  train_config_artifact_path: pl-training.yml
+  conf:
+    # Lightning data module configuration
+    data:
+      class_path: itwinai.plmodels.mnist.MNISTDataModule
+      init_args:
+        data_dir: ${cli.input_dataset}
+        batch_size: 32

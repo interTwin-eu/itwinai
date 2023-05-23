@@ -5,6 +5,9 @@ lightning_logs
 mlruns
 tmp*
 .tmp*
+*.txt
+checkpoints/
+mamba*
 
 # Custom envs
 .venv*

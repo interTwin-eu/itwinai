@@ -1,30 +1,29 @@
-datasets:
-  preproc-images-inference:
-    location: ./data/mnist/preproc-images-inference
-  ml-logs:
-    # MLflow tracking URI
-    location: ./data/mnist/ml-logs
-  ml-predictions:
-    location: ./data/mnist/ml-predictions
+# Load with OmegaConf
+
+# Other configuration files to merge with this file via OmegaConf 
+conf-dependencies:
+  - ./use-cases/mnist/datasets-registry.yml
 
 steps:
   - preprocessing:
-      input: null
-      output: preproc-images-inference
+      doc: Download and split MNIST dataset into train and test sets
       command: python ./use-cases/mnist/mnist-preproc.py
       env: 
         file: ./use-cases/mnist/preproc-env.yml
         prefix: ./use-cases/mnist/.venv-preproc
-        source: null
-      params:
-        rnd-seed: 42
+      args:
+        output: ${datasets.preproc-images.location}
+        stage: test
   - ml-inference:
-      input: preproc-images-inference
-      output: ml-predictions
-      command: python ./ai/ai-inference.py
+      doc: Apply a pre-trained neural network on unseen data and store them
+      command: itwinai predict
       env: 
-        file: ./ai/inference-env.yml
-        prefix: ./ai/.venv-inference
+        file: ./ai/pytorch-env.yml
+        prefix: ./ai/.venv-pytorch
         source: ./ai
-      params:
-        model-id: TODO
+      args:
+        config: ./use-cases/mnist/mnist-ai-inference.yml
+        input-dataset: ${datasets.preproc-images.location}
+        predictions-location: ${datasets.ml-predictions.location}
+        ml-logs: ${datasets.ml-logs.location}
+
