@@ -5,9 +5,11 @@ nav_order: 2
 ---
 
 # How to use this software
+
 {: .no_toc }
 
 ## Table of contents
+
 {: .no_toc .text-delta }
 
 1. TOC
@@ -39,7 +41,7 @@ make
 You can define one or more workflows for your DT use case (e.g., ML training, ML inference, other). A workflow is
 defined through configuration files in the use case subfolder.
 
-To begin with, you can start by looking at an example of the [MNIST toy use case](https://github.com/interTwin-eu/T6.5-AI-and-ML/tree/main/use-cases/mnist).
+To begin with, you can start by looking at an example of the [MNIST toy use case](../../use-cases/mnist).
 
 The workflow is defined in the `training-workflow.yml` file and is written in two different styles: classical style and
 CWL style. Which of the two is used is defined by setting the `--cwl` flag (explained [below](#5-run-the-workflow)).
@@ -322,7 +324,7 @@ conda run -p ./.venv python run-workflow.py -f ./use-cases/mnist/training-workfl
 If you want to run using the Common Workflow Language (CWL).
 Note that logging and saving models/metric is currently not supported using CWL.
 
-**NOTE**: CWL support is stil experimental and may not be fully working.
+**NOTE**: CWL support is still experimental and may not be fully working.
 
 ```bash
 conda run -p ./.venv python run-workflow.py -f ./use-cases/mnist/training-workflow.yml --cwl

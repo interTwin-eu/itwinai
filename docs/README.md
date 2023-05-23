@@ -13,7 +13,7 @@ More specifically, the created site:
 
 To get started with creating a site, just click "[use this template]"!
 
-If you want to maintain your docs in the `docs` directory of an existing project repo, see
+If you want to maintain your docs in the `docs` directory of an existing project repository, see
 [Hosting your docs from an existing project repo](#hosting-your-docs-from-an-existing-project-repo).
 
 After completing the creation of your new site on GitHub, update it as needed:
@@ -23,7 +23,7 @@ After completing the creation of your new site on GitHub, update it as needed:
 Update the following files to your own content:
 
 - `index.md` (your new home page)
-- `README.md` (information for those who access your site repo on GitHub)
+- `README.md` (information for those who access your site repository on GitHub)
 
 ## Changing the version of the theme and/or Jekyll
 
@@ -67,7 +67,7 @@ Note: If you are using a Jekyll version less than 3.5.0, use the `gems` key inst
 
 2. Push your updated `_config.yml` to your site on GitHub.
 
-3. In your newly created repo on GitHub:
+3. In your newly created repository on GitHub:
     - go to the `Settings` tab -> `Pages` -> `Build and deployment`, then select `Source`: `GitHub Actions`.
     - if there were any failed Actions, go to the `Actions` tab and click on `Re-run jobs`.
 
@@ -93,24 +93,24 @@ You're free to customize sites that you create with this template, however you l
 
 [Browse our documentation][Just the Docs] to learn more about how to use this theme.
 
-## Hosting your docs from an existing project repo
+## Hosting your docs from an existing project repository
 
-You might want to maintain your docs in an existing project repo. Instead of creating a new repo using
+You might want to maintain your docs in an existing project repository. Instead of creating a new repository using
 the [just-the-docs template](https://github.com/just-the-docs/just-the-docs-template), you can copy the template
-files into your existing repo and configure the template's Github Actions workflow to
+files into your existing repository and configure the template's GitHub Actions workflow to
 build from a `docs` directory. You can clone the template to your local machine or download the `.zip` file
 to access the files.
 
 ### Copy the template files
 
-1. Create a `.github/workflows` directory at your project root if your repo doesn't already have one.
-Copy the `pages.yml` file into this directory. Github Actions searches this directory for workflow files.
+1. Create a `.github/workflows` directory at your project root if your repository doesn't already have one.
+Copy the `pages.yml` file into this directory. GitHub Actions searches this directory for workflow files.
 
 2. Create a `docs` directory at your project root and copy all remaining template files into this directory.
 
-### Modify the Github Actions worklow
+### Modify the GitHub Actions workflow
 
-The Github Actions workflow that builds and deploys your site to Github Pages is defined by the `pages.yml` file.
+The GitHub Actions workflow that builds and deploys your site to GitHub Pages is defined by the `pages.yml` file.
 You'll need to edit this file to that so that your build and deploy steps look to your `docs` directory,
 rather than the project root.
 

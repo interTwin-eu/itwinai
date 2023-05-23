@@ -1,8 +1,8 @@
----
+<!-- ---
 layout: default
 title: Architecture diagrams
 nav_order: 5
----
+--- -->
 
 # Architecture diagrams
 
