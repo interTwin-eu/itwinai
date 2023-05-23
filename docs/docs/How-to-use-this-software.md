@@ -15,9 +15,11 @@ nav_order: 2
 
 ---
 
-This guide provides a detailed explanation on how to use the AI/ML workflow tool, developed in the context of interTwin.
+This guide provides a detailed explanation on how to use the AI/ML workflow
+tool, developed in the context of [interTwin](https://github.com/interTwin-eu/).
 
-**Target audience**: anyone aiming to simplify MLOps for their digital twin (DT) use case/project.
+**Target audience**: anyone aiming to simplify MLOps for their digital twin (DT)
+use case/project. Use cases from interTwin project.
 
 ## 1. Clone this repo
 
@@ -36,13 +38,28 @@ make
 
 ## 2. Define a DT workflow
 
-You can define one or more workflows for your DT use case (e.g., ML training, ML inference, other). A workflow is
+You can define one or more workflows for your DT use case (e.g., ML training,
+ML inference, other). A workflow is
 defined through configuration files in the use case subfolder.
 
-To begin with, you can start by looking at an example of the [MNIST toy use case](use-cases/mnist), located at `use-cases/mnist`.
+To begin with, you can start by looking at an example of the
+[MNIST toy use case](use-cases/mnist), located at `use-cases/mnist`
+in the code repository.
 
-The workflow is defined in the `training-workflow.yml` file and is written in two different styles: classical style and
-CWL style. Which of the two is used is defined by setting the `--cwl` flag (explained [below](#5-run-the-workflow)).
+### Datasets registry
+
+### Workflow configuration
+
+The workflow is defined in the `training-workflow.yml` file and is written in
+two different styles: "classical" style and
+CWL style.
+Classical workflow definition is an intuitive standard we created for
+this prototype, for easy prototyping.
+Which of the two is used is defined by setting the `--cwl` flag
+(explained [below](#5-run-the-workflow)).
+
+Moreover, the list of datasets used by some use case
+
 The classical style is described in the top and is composed of the `datasets` and `steps` sections:
 
 ```yaml
@@ -96,7 +113,8 @@ file located in the `./use-cases/mnist` directory.
 
 The CWL style workflow is defined in the bottom of the `training-workflow.yml` file:
 
-**NOTE**: CWL is not working at the moment!
+**NOTE**. At the moment, support for CWL is under development,
+and is not available.
 
 ```yaml
 #Workflow definition in CWL style
