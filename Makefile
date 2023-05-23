@@ -7,6 +7,6 @@ dev-env: dev-env.yml
 	conda run -p ./.venv-dev python -m pip install --no-deps -e ./ai
 
 # Create pytorch env under ./ai/ folder
-ai-env: ai/pytorch-env.yml
-	micromamba env create -p ./ai/.venv-pytorch --file ai/pytorch-env.yml
+ai-env: ai/pytorch-env-freeze.yml
+	micromamba env create -p ./ai/.venv-pytorch --file ai/pytorch-env-freeze.yml
 	conda run -p ./ai/.venv-pytorch python -m pip install --no-deps -e ./ai
