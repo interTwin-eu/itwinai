@@ -14,7 +14,7 @@ More specifically, the created site:
 To get started with creating a site, just click "[use this template]"!
 
 If you want to maintain your docs in the `docs` directory of an existing project repository, see
-[Hosting your docs from an existing project repo](#hosting-your-docs-from-an-existing-project-repo).
+[Hosting your docs from an existing project repository](#hosting-your-docs-from-an-existing-project-repository).
 
 After completing the creation of your new site on GitHub, update it as needed:
 

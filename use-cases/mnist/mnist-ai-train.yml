@@ -19,7 +19,6 @@ train:
       strategy: auto
       devices: auto
       num_nodes: 1
-      precision: 32-true
       
       # MLFlow logger (initial) configuration.
       # To be completed with run details, later on
