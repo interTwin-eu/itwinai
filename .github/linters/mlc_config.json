@@ -1,7 +1,9 @@
 {
   "httpHeaders": [
     {
-      "urls": ["https://docs.github.com/"],
+      "urls": [
+        "https://docs.github.com/"
+      ],
       "headers": {
         "Accept-Encoding": "zstd, br, gzip, deflate"
       }
@@ -13,6 +15,9 @@
     },
     {
       "pattern": "^https://example.com"
+    },
+    {
+      "pattern": "docs/"
     }
   ]
 }
