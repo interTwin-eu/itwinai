@@ -44,3 +44,5 @@ jobs:
           VALIDATE_ALL_CODEBASE: false
           # Fail on errors
           DISABLE_ERRORS: false
+          # Skip linting of docs
+          FILTER_REGEX_EXCLUDE: .*docs/index.md|.*docs/docs/.*
