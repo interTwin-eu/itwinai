@@ -4,6 +4,8 @@ layout: home
 nav_order: 1
 ---
 
+# Overview
+
 Welcome to the `itwinai` docs! A framework for advanced AI/ML workflows in digital twins (DTs).
 
 Below we you are going to find an overview of interTwin's AI/ML workflows component. This platform
@@ -15,7 +17,7 @@ Additional resources include:
 - Roadmap towards a prototype for T6.5 AI workflows for
 digital twins here: [Prototype for T6.5](docs/Prototype-for-T6.5).
 
-## Overview: platform for machine learning workflows in digital twins
+## Platform for machine learning workflows in digital twins
 
 The goal of this platform is to provide ML researchers with an easy-to-use endpoint
 to manage general-purpose machine learning (ML) workflows, with limited engineering overhead,

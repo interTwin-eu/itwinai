@@ -4,6 +4,8 @@ title: Architecture diagrams
 nav_order: 5
 ---
 
+# Architecture diagrams
+
 You can find architecture diagrams for interTwin
 [here](https://github.com/interTwin-eu/architecture-diagrams)
 and for AI/ML workflows

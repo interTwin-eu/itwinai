@@ -4,11 +4,15 @@ title: AI module
 nav_order: 4
 ---
 
+# AI module
+
 ## Table of contents
 {: .no_toc .text-delta }
 
 1. TOC
 {:toc}
+
+---
 
 ## Overview
 
