@@ -42,7 +42,7 @@ make dev-env
 ## Define a DT workflow
 
 Before delving into workflow definition rules, make sure to have
-understood *what is* a [workflow](Concepts#workflow) in this context.
+understood *what is* a [workflow](./Concepts#workflow) in this context.
 
 You can define one or more workflows for your DT use case (e.g., ML training,
 ML inference, other). A workflow is
@@ -98,7 +98,7 @@ of [OmegaConf](https://omegaconf.readthedocs.io/)'s
 This way, you can easily import datasets metadata (e.g., location on
 file system) from datasets registry.
 
-Dataset registry of an use case can be visualized using [itwinai CLI](CLI#visualization):
+Dataset registry of an use case can be visualized using [itwinai CLI](./CLI#visualization):
 
 ```bash
 USE_CASE_ROOT='use-cases/mnist/'
@@ -282,12 +282,12 @@ In the future, `itwinai` will support also neural networks not provided out-of-t
 
 The developer must define two configuration files to access `itwinai`
 functionalities.
-First, ML training configuration, associated with `$ itwinai train` [CLI](CLI) command.
-Second, ML inference configuration, associated with `$ itwinai predict` [CLI](CLI) command.
+First, ML training configuration, associated with `$ itwinai train` [CLI](./CLI) command.
+Second, ML inference configuration, associated with `$ itwinai predict` [CLI](./CLI) command.
 
-MLOps heavily relies on commands provided by [itwinai CLI](CLI).
+MLOps heavily relies on commands provided by [itwinai CLI](./CLI).
 Therefore, before continuing, make sure to have understood how
-[itwinai CLI](CLI) works.
+[itwinai CLI](./CLI) works.
 
 ### ML training configuration
 
