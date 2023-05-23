@@ -1,11 +1,11 @@
 ---
 layout: default
 title: Concepts
-nav_order: 3
+nav_order: 4
 ---
 
 # Concepts
-{: .no_toc }
+<!-- {: .no_toc }
 
 ## Table of contents
 {: .no_toc .text-delta }
@@ -14,6 +14,7 @@ nav_order: 3
 {:toc}
 
 ---
+-->
 
 Here we presents the key concepts on which `itwinai` is based.
 

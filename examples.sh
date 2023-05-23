@@ -42,13 +42,13 @@ itwinai predict --input-dataset ./data/mnist/preproc-images \
 
 # Visualize logs
 conda activate ./ai/.venv-pytorch && \
-    itwinai visualize --path ./data/mnist/ml-logs
+    itwinai mlflow-ui --path ./data/mnist/ml-logs
 
 # Datasets registry
 conda activate ./ai/.venv-pytorch && \
     itwinai datasets --use-case use-cases/mnist/
 
-# Workflows (any file '*-worlflow.yml')
+# Workflows (any file '*-workflow.yml')
 conda activate ./ai/.venv-pytorch && \
     itwinai workflows --use-case use-cases/mnist/
 

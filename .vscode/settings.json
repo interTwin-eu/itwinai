@@ -20,6 +20,7 @@
         "itwinai",
         "logits",
         "Mambaforge",
+        "Micromamba",
         "mlflow",
         "mnist",
         "multiclass",
@@ -50,5 +51,5 @@
     "python.formatting.provider": "none",
     "[markdown]": {
         "editor.formatOnSave": false
-    },
+    }
 }

@@ -20,7 +20,7 @@ Of course MNIST images classification is not a digital twin. Still, it is useful
 provide an example on how to define an end-to-end digital twin workflow with the
 software provided in this repository.
 
-The two MNIST workflows can be summarized as follows:
+The MNIST use case implements two workflows:
 
 1. Training workflow: train a neural network to classify MNIST images, and save the trained
 neural network to the Models Registry.
@@ -102,6 +102,8 @@ graph TD
 ## Workflow steps
 
 Here we explain in more details how the workflow steps have been configured.
+Configuration files and Python scripts are organized under `use-cases/mnist/`
+folder, in the core repository.
 
 ### Pre-processing
 
@@ -111,9 +113,12 @@ to any custom dataset format.
 
 ### ML training
 
-Is the step in which a neural network is trained on the training dataset, and validated on the validation dataset (these
-two are a result from a split of the pre-processed training dataset, produced by the pre-processing step).
-This step terminates the **training workflow**, and results into ML logs and a trained neural network, which is saved to
+Is the step in which a neural network is trained on the training dataset, and
+validated on the validation dataset.
+The mentioned datasets are a result from a split of the pre-processed training
+dataset, produced by the pre-processing step.
+This step completes the **training workflow**, and results into ML logs and a
+trained neural network, which is saved to
 the Models Registry. The training workflow can be re-run multiple times with different (hyper)parameters, with the goal
 of optimizing some ML validation metric. The neural network with the best validation performances is used to make
 predictions on unseen data, in the inference step.
@@ -123,36 +128,32 @@ configuration files. For the moment, we assume that the neural network and the t
 `itwinai` library.
 
 Both ML training and inference are implemented by commands executed in the same virtual environment. At the moment,
-only pytorch is supported. The corresponding virtual environment definition, used by the `itwinai` library,
-is located at `./ai/pytorch-env.yml`.
+only PyTorch is supported. The corresponding virtual environment definition, used by the `itwinai` library,
+is located at `ai/pytorch-env.yml`.
 
-The DT developer must provide a set of configuration files to launch training. For this use cases, they are:
+The ML training logic provided by `itwinai` library is accessed via the
+[itwinai CLI](../CLI).
 
-- `mnist-ai.yml`, the high-level definition of MLOps for this use case.
-- `pl-training.yml`, the training configuration used when training the neural network with Pytorch Lightning.
+The DT developer must provide a training configuration file, following some
+rules explained in [this section](../How-to-use-this-software#ml-training-configuration). For MNIST use case, the
+training configuration is provided by `mnist-ai-train.yml` file.
 
-Training can be triggered also from withing the training environment running the following command:
+Training command is automatically managed by the workflow runner, but it can also
+be triggered from withing the ai environment running the following command:
 
 ```bash
-itwinai train --input TRAINING_DATASET_PATH \
-    --output MLFLOW_TRACKING_URI \
-    --config ./use-cases/mnist/mnist-ai.yml
-
-# Extended version
 conda activate ./ai/.venv-pytorch && \
-    itwinai train --input TRAINING_DATASET_PATH \
-        --output MLFLOW_TRACKING_URI \
-        --config ./use-cases/mnist/mnist-ai.yml
+    itwinai train --train-dataset $TRAINING_DATASET_PATH \
+        --ml-logs $MLFLOW_TRACKING_URI \
+        --config ./use-cases/mnist/mnist-ai-train.yml
 ```
 
 While training is running, the produced ML logs can be inspected in real-time from MLFlow UI by running the command in
 the training virtual environment (Conda):
 
 ```bash
-itwinai visualize --path PATH_TO_ML_LOGS
-
-# Extended version
-conda activate ./ai/.venv-pytorch && itwinai visualize --path PATH_TO_ML_LOGS
+conda activate ./ai/.venv-pytorch && \
+    itwinai mlflow-ui --path $PATH_TO_ML_LOGS
 ```
 
 ### ML inference
@@ -162,22 +163,21 @@ A pre-trained neural network is applied to a set of data which was not used to t
 network to make predictions on new data, to support decision making. *Example*: forecast fire risk maps in Sicily in
 August 2023, starting from newly-collected satellite images, to alert local authorities in case of elevated fire risk.
 
-To select a pre-trained ML model, the DT developer must provide the `RUN ID` of the training
-run created by MLFLow for that specific training run. Now, you can update `mnist-ai.yml` and
-run inference workflow.
+To select a pre-trained ML model, the DT developer must retrieve the `RUN ID` of
+the training run created by MLFLow for some specific training.
 
-Inference/prediction can be triggered also from withing the training environment running the following command:
+The, the DT developer can update the inference configuration file
+`mnist-ai-inference.yml` and run inference workflow.
+
+Inference/prediction command is automatically managed by the workflow runner, but it can also be triggered from within
+the ai environment running the following command:
 
 ```bash
-itwinai predict --input UNSEEN_EXAMPLES_DATASET_PATH \
-    --output PREDICTIONS_LOCATION \
-    --config ./use-cases/mnist/mnist-ai.yml
-
-# Extended version
 conda activate ./ai/.venv-pytorch && \
-    itwinai predict --input UNSEEN_EXAMPLES_DATASET_PATH \
-        --output PREDICTIONS_LOCATION \
-        --config ./use-cases/mnist/mnist-ai.yml
+    itwinai predict --input-dataset $UNSEEN_EXAMPLES_DATASET_PATH \
+        --predictions-location $PREDICTIONS_LOCATION \
+        --ml-logs $PATH_TO_ML_LOGS \
+        --config ./use-cases/mnist/mnist-ai-inference.yml 
 ```
 
 ## References
