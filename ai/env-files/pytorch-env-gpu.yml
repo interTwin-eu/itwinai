@@ -1,4 +1,8 @@
-name: ai-training
+# Resources:
+# - https://pytorch.org/get-started/previous-versions/ 
+# - https://conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html#creating-an-environment-file-manually
+
+name: ai-training-gpu
 channels:
   - pytorch
   # - nvidia
@@ -11,7 +15,6 @@ dependencies:
   # Either use pytorch-cuda or cpuonly, depending on GPU availability
   #- pytorch::pytorch-cuda=12.1
   - cudatoolkit=10.1
-  #- pytorch::cpuonly
   - lightning
   - torchmetrics
   - mlflow>=2
@@ -19,3 +22,18 @@ dependencies:
   - rich
   - pyyaml
   - omegaconf
+
+  - typing-extensions=4.5.0
+  - typing_extensions=4.5.0
+
+  # Pip dependencies should be given in the setup.py
+
+
+platforms:
+  # For conda lock
+  - linux-64
+  # - osx-64
+  # - win-64
+  # - osx-arm64  # For Apple Silicon, e.g. M1/M2
+  # - linux-aarch64  # aka arm64, use for Docker on Apple Silicon
+  # - linux-ppc64le

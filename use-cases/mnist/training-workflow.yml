@@ -20,9 +20,9 @@ steps:
       doc: Train a neural network to classify MNIST images
       command: itwinai train
       env: 
-        file: ./ai/env-files/pytorch-env-freeze.yml
-        prefix: ./ai/.venv-pytorch
-        source: ./ai
+        file: ${ai-root}/env-files/pytorch-lock.yml
+        prefix: ${ai-root}/.venv-pytorch
+        source: ${ai-root}
       args:
         train-dataset: ${datasets.preproc-images.location}
         ml-logs: ${datasets.ml-logs.location}

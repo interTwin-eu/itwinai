@@ -1,9 +1,13 @@
 # Configuration file for use case metadata
 # Load with OmegaConf
 
-# Use case root location
-root: ./use-cases/mnist2
+# Use case root location. End without path '/' char!
+root: ./use-cases/mnist
 
+# AI folder location. End without path '/' char!
+ai-root: ./ai
+
+# Datasets registry
 datasets:
   preproc-images:
     doc: Preprocessed MNIST images

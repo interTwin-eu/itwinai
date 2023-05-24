@@ -18,9 +18,9 @@ steps:
       doc: Apply a pre-trained neural network on unseen data and store them
       command: itwinai predict
       env: 
-        file: ./ai/env-files/pytorch-env-freeze.yml
-        prefix: ./ai/.venv-pytorch
-        source: ./ai
+        file: ${ai-root}/env-files/pytorch-lock.yml
+        prefix: ${ai-root}/.venv-pytorch
+        source: ${ai-root}
       args:
         config: ${root}/mnist-ai-inference.yml
         input-dataset: ${datasets.preproc-images.location}

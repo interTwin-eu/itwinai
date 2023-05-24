@@ -99,14 +99,14 @@ if __name__ == "__main__":
             # Install python env from conda env definition file
             subprocess.run(
                 (f"micromamba env create -p {step_data['env']['prefix']} "
-                 f"--file {step_data['env']['file']}").split(),
+                    f"--file {step_data['env']['file']}").split(),
                 check=True
             )
             # Install local python project from source, if present
             if step_data['env'].get('source') is not None:
                 subprocess.run(
                     (f"conda run -p {step_data['env']['prefix']} "
-                     "python -m pip install --no-deps "
+                     "python -m pip install "  # --no-deps
                      f"-e {step_data['env']['source']}").split(),
                     check=True
                 )
