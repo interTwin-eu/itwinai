@@ -67,6 +67,14 @@ conda activate ./.venv-dev
 pytest tests/ai/
 ```
 
+To lock conda env files for ai workflows, after they have been updated:
+
+```bash
+conda activate ./.venv
+
+make lock-ai
+```
+
 ## AI environment setup
 
 Requirements:
