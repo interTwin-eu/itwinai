@@ -1,0 +1,16 @@
+# Configuration file for use case metadata
+# Load with OmegaConf
+
+# Use case root location
+root: ./use-cases/mnist2
+
+datasets:
+  preproc-images:
+    doc: Preprocessed MNIST images
+    location: ${root}/data/preproc-images
+  ml-logs:
+    doc: MLflow tracking URI for local logging
+    location: ${root}/data/ml-logs
+  ml-predictions:
+    doc: predictions on unseen data
+    location: ${root}/data/ml-predictions

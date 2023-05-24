@@ -34,3 +34,4 @@ dependencies:
   - ipython
   - pytest
   - flake8
+  - conda-lock

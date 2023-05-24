@@ -16,6 +16,7 @@ import argparse
 from typing import Dict
 import yaml
 from omegaconf import OmegaConf
+from omegaconf.dictconfig import DictConfig
 
 
 def load_yaml(path: str) -> Dict:
@@ -39,6 +40,37 @@ def load_yaml(path: str) -> Dict:
     return loaded_config
 
 
+def load_yaml_with_deps(path: str) -> DictConfig:
+    """
+    Load YAML file with OmegaConf and merge it with its dependencies
+    specified in the `conf-dependencies` field.
+    Assume that the dependencies live in the same folder of the
+    YAML file which is importing them.
+
+    Args:
+        path (str): path to YAML file.
+
+    Raises:
+        exc: yaml.YAMLError for loading/parsing errors.
+
+    Returns:
+        DictConfig: nested representation of parsed YAML file.
+    """
+    yaml_conf = load_yaml(path)
+    use_case_dir = os.path.dirname(path)
+    deps = []
+    if yaml_conf.get('conf-dependencies'):
+        for dependency in yaml_conf['conf-dependencies']:
+            deps.append(load_yaml(
+                os.path.join(
+                    use_case_dir,
+                    dependency
+                ))
+            )
+
+    return OmegaConf.merge(yaml_conf, *deps)
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Run a simple DT workflow.')
     parser.add_argument(
@@ -56,13 +88,7 @@ if __name__ == "__main__":
     # 1. Parse workflow file
 
     # workflow definition file
-    workflow = load_yaml(args.workflow_file)
-
-    deps = []
-    for dependency in workflow['conf-dependencies']:
-        deps.append(load_yaml(dependency))
-
-    workflow = OmegaConf.merge(workflow, *deps)
+    workflow = load_yaml_with_deps(args.workflow_file)
 
     # 2. Deploy steps (i.e., create conda envs), if not already there
 

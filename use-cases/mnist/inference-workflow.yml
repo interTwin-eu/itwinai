@@ -2,15 +2,15 @@
 
 # Other configuration files to merge with this file via OmegaConf 
 conf-dependencies:
-  - ./use-cases/mnist/datasets-registry.yml
+  - meta.yml
 
 steps:
   - preprocessing:
       doc: Download and split MNIST dataset into train and test sets
-      command: python ./use-cases/mnist/mnist-preproc.py
+      command: python ${root}/mnist-preproc.py
       env: 
-        file: ./use-cases/mnist/preproc-env.yml
-        prefix: ./use-cases/mnist/.venv-preproc
+        file: ${root}/env-files/preproc-env.yml
+        prefix: ${root}/.venv-preproc
       args:
         output: ${datasets.preproc-images.location}
         stage: test
@@ -18,11 +18,11 @@ steps:
       doc: Apply a pre-trained neural network on unseen data and store them
       command: itwinai predict
       env: 
-        file: ./ai/pytorch-env-freeze.yml
+        file: ./ai/env-files/pytorch-env-freeze.yml
         prefix: ./ai/.venv-pytorch
         source: ./ai
       args:
-        config: ./use-cases/mnist/mnist-ai-inference.yml
+        config: ${root}/mnist-ai-inference.yml
         input-dataset: ${datasets.preproc-images.location}
         predictions-location: ${datasets.ml-predictions.location}
         ml-logs: ${datasets.ml-logs.location}
