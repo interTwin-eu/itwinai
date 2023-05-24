@@ -13,7 +13,7 @@ If you want to integrate a new use case, you can follow this
 
 Requirements:
 
-- Linux environment
+- Linux, MacOS environment. Windows was never tested.
 - Micromamba: [Installation guide](https://mamba.readthedocs.io/en/latest/installation.html#micromamba).
 
 Install the orchestrator virtual environment.
@@ -45,7 +45,7 @@ locally using [these instructions](docs/README#building-and-previewing-your-site
 
 Requirements:
 
-- Linux environment
+- Linux, MacOS environment. Windows was never tested.
 - Micromamba: [Installation guide](https://mamba.readthedocs.io/en/latest/installation.html#micromamba).
 - VS Code, for development.
 
@@ -79,7 +79,7 @@ make lock-ai
 
 Requirements:
 
-- Linux environment
+- Linux, MacOS environment. Windows was never tested.
 - Micromamba: [Installation guide](https://mamba.readthedocs.io/en/latest/installation.html#micromamba).
 
 **NOTE**: this environment gets automatically setup when a workflow is executed!
