@@ -24,6 +24,7 @@ dependencies:
   - typing_extensions=4.5.0
 
   # Pip dependencies should be given in the setup.py
+  # If given here, conda-lock breaks
 
 
 platforms:
