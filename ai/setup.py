@@ -12,5 +12,9 @@ setup(
         "console_scripts": [
             "itwinai=itwinai.cli:app"
         ]
-    }
+    },
+    # Pip dependencies
+    install_requires=[
+        'jsonargparse[signatures]>=4.17.0'
+    ]
 )

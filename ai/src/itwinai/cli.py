@@ -112,8 +112,7 @@ def train(
 
         # Reset argv before using Lightning CLI
         old_argv = sys.argv
-        print(old_argv)
-        sys.argv = ['some_script.py']
+        sys.argv = ['some_script_placeholder.py']
         cli = LightningCLI(
             args=lightning_conf,
             model_class=ItwinaiBasePlModule,
@@ -241,7 +240,7 @@ def predict(
 
     # Reset argv before using Lightning CLI
     old_argv = sys.argv
-    sys.argv = ['some_script.py']
+    sys.argv = ['some_script_placeholder.py']
     cli = LightningCLI(
         args=lightning_conf,
         model_class=ItwinaiBasePlModule,
@@ -304,9 +303,17 @@ def datasets(
     from rich.table import Table
     from itwinai.utils import load_yaml
     from pathlib import Path
+    from omegaconf import OmegaConf
+
     datasets_reg = load_yaml(
-        os.path.join(use_case, 'datasets-registry.yml')
+        os.path.join(use_case, 'meta.yml')
     )
+    # datasets_reg = OmegaConf.create(datasets_reg)
+    datasets_reg = OmegaConf.to_container(
+        OmegaConf.create(datasets_reg),
+        resolve=True
+    )
+
     rows = []
     columns = [
         "Name",

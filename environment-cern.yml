@@ -6,6 +6,7 @@ dependencies:
   - python=3.9.12
   - pyyaml
   - omegaconf
+  - conda-lock
 
   # Testing
   - pytest

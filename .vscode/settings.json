@@ -18,6 +18,7 @@
         "hyperparams",
         "ipython",
         "itwinai",
+        "Lockfiles",
         "logits",
         "Mambaforge",
         "Micromamba",
