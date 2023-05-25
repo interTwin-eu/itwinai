@@ -1,10 +1,6 @@
 # Configuration file of AI workflows for MNIST use case
 # Load with OmegaConf
 
-# Other configuration files to merge with this file via OmegaConf 
-conf-dependencies:
-  - ./use-cases/mnist/datasets-registry.yml
-
 # Pytorch lightning config for training
 train:
   type: lightning

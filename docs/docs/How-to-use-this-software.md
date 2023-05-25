@@ -60,15 +60,20 @@ To begin with, you can start by looking at an example of the
 [MNIST toy use case](use-cases/mnist), located at `use-cases/mnist`
 in the code repository.
 
-### Datasets registry
+### Use case metadata
 
-The datasets registry is a configuration file which stores the metadata
+The main configuration file of an use case is `meta.yml`, which stores
+the metadata of it. When creating a new use case, you need to update the
+`root` field with the path to the use case folder, with respect to the
+repo root.
+
+The datasets registry is a field in this configuration file,
+which stores the metadata
 for all datasets involved in a use case. This configuration provides a
 unified place where datasets can be maintained, making it easy to access
 them from other configuration files.
 
-The dataset registry is `datasets-registry.yml` file in a use case folder,
-and has the format:
+The dataset registry has the format:
 
 ```yaml
 datasets:
@@ -77,19 +82,26 @@ datasets:
     location: path/to/dataset/disk/location
 ```
 
-Example of datasets registry from [MNIST use case](use-cases/mnist):
+Example of `meta.yml` from [MNIST use case](use-cases/mnist):
 
 ```yaml
+# Use case root location. End without path '/' char!
+root: ./use-cases/mnist
+
+# AI folder location. End without path '/' char!
+ai-root: ./ai
+
+# Datasets registry
 datasets:
   preproc-images:
     doc: Preprocessed MNIST images
-    location: ./data/mnist/preproc-images
+    location: ${root}/data/preproc-images
   ml-logs:
     doc: MLflow tracking URI for local logging
-    location: ./data/mnist/ml-logs
+    location: ${root}/data/ml-logs
   ml-predictions:
     doc: predictions on unseen data
-    location: ./data/mnist/ml-predictions
+    location: ${root}/data/ml-predictions
 ```
 
 Datasets are imported from the datasets registry to other files by means
@@ -150,10 +162,10 @@ Example workflow from [MNIST use case](use-cases/mnist), defined in
 steps:
   - preprocessing:
       doc: Download and split MNIST dataset into train and test sets
-      command: python ./use-cases/mnist/mnist-preproc.py
+      command: python ${root}/mnist-preproc.py
       env: 
-        file: ./use-cases/mnist/preproc-env.yml
-        prefix: ./use-cases/mnist/.venv-preproc
+        file: ${root}/env-files/preproc-env.yml
+        prefix: ${root}/.venv-preproc
       args:
         output: ${datasets.preproc-images.location}
         stage: train
@@ -161,13 +173,13 @@ steps:
       doc: Train a neural network to classify MNIST images
       command: itwinai train
       env: 
-        file: ./ai/pytorch-env.yml
-        prefix: ./ai/.venv-pytorch
-        source: ./ai
+        file: ${ai-root}/env-files/pytorch-lock.yml
+        prefix: ${ai-root}/.venv-pytorch
+        source: ${ai-root}
       args:
         train-dataset: ${datasets.preproc-images.location}
         ml-logs: ${datasets.ml-logs.location}
-        config: ./use-cases/mnist/mnist-ai-train.yml
+        config: ${root}/mnist-ai-train.yml
 ```
 
 Step 1 is named `preprocessing` and uses the `mnist-preproc.py` script to pre-process the MNIST dataset. It takes no
@@ -519,3 +531,17 @@ A workflow can be executed following CWL definition, adding the `--cwl` flag to 
 ```bash
 conda run -p ./.venv python run-workflow.py -f ./use-cases/mnist/training-workflow.yml --cwl
 ``` -->
+
+## Write tests cases
+
+Integrating an new use case means defining new workflows for it.
+It is strongly suggested to define "integration" test cases for
+those workflows. This way, every time `itwinai`
+framework is updated, integration tests automatically verify that
+the use case integrates well with the new changes introduced in the
+main framework.
+Moreover, integration tests verify that an use case case is stable,
+and is not hiding some "bug".
+
+Add test for your use case under the `test/` folder. You can take
+inspiration from other use cases' tests.

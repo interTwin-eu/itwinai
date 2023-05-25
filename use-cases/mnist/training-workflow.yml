@@ -4,15 +4,15 @@
 
 # Other configuration files to merge with this file via OmegaConf 
 conf-dependencies:
-  - ./use-cases/mnist/datasets-registry.yml
+  - meta.yml
 
 steps:
   - preprocessing:
       doc: Download and split MNIST dataset into train and test sets
-      command: python ./use-cases/mnist/mnist-preproc.py
+      command: python ${root}/mnist-preproc.py
       env: 
-        file: ./use-cases/mnist/preproc-env.yml
-        prefix: ./use-cases/mnist/.venv-preproc
+        file: ${root}/env-files/preproc-env.yml
+        prefix: ${root}/.venv-preproc
       args:
         output: ${datasets.preproc-images.location}
         stage: train
@@ -20,13 +20,13 @@ steps:
       doc: Train a neural network to classify MNIST images
       command: itwinai train
       env: 
-        file: ./ai/pytorch-env-freeze.yml
-        prefix: ./ai/.venv-pytorch
-        source: ./ai
+        file: ${ai-root}/env-files/pytorch-lock.yml
+        prefix: ${ai-root}/.venv-pytorch
+        source: ${ai-root}
       args:
         train-dataset: ${datasets.preproc-images.location}
         ml-logs: ${datasets.ml-logs.location}
-        config: ./use-cases/mnist/mnist-ai-train.yml
+        config: ${root}/mnist-ai-train.yml
 
 # #Workflow definition in CWL style
 

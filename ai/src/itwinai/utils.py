@@ -2,6 +2,7 @@
 Utilities for itwinai package.
 """
 from typing import Dict
+import os
 from collections.abc import MutableMapping
 import yaml
 from omegaconf import OmegaConf
@@ -33,6 +34,8 @@ def load_yaml_with_deps(path: str) -> DictConfig:
     """
     Load YAML file with OmegaConf and merge it with its dependencies
     specified in the `conf-dependencies` field.
+    Assume that the dependencies live in the same folder of the
+    YAML file which is importing them.
 
     Args:
         path (str): path to YAML file.
@@ -44,10 +47,16 @@ def load_yaml_with_deps(path: str) -> DictConfig:
         DictConfig: nested representation of parsed YAML file.
     """
     yaml_conf = load_yaml(path)
+    use_case_dir = os.path.dirname(path)
     deps = []
     if yaml_conf.get('conf-dependencies'):
         for dependency in yaml_conf['conf-dependencies']:
-            deps.append(load_yaml(dependency))
+            deps.append(load_yaml(
+                os.path.join(
+                    use_case_dir,
+                    dependency
+                ))
+            )
 
     return OmegaConf.merge(yaml_conf, *deps)
 
