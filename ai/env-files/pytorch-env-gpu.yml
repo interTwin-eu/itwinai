@@ -29,9 +29,8 @@ dependencies:
   # Pip dependencies should be given in the setup.py
   # If given here, conda-lock breaks
 
-
+# Supported platforms (conda-lock)
 platforms:
-  # For conda lock
   - linux-64
   # - osx-64
   # - win-64

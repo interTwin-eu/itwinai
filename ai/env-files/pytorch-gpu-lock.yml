@@ -1799,14 +1799,14 @@ package:
   dependencies:
     python: '>=3.6'
   hash:
-    md5: 8efaddc1c8b8ce262c4d1a7c6571c799
-    sha256: a31c22b21cd74485098a20b3bb939cf94cd6d7e84753338465dbc068aa201f33
+    md5: 95c5be3c7cbd872509d16c216617fdab
+    sha256: eb11fd8b927d9c5ff9482cfbd6cd810a43a1351c44a288e9680542ea698a19a0
   manager: conda
   name: prometheus_client
   optional: false
   platform: linux-64
-  url: https://conda.anaconda.org/conda-forge/noarch/prometheus_client-0.16.0-pyhd8ed1ab_0.conda
-  version: 0.16.0
+  url: https://conda.anaconda.org/conda-forge/noarch/prometheus_client-0.17.0-pyhd8ed1ab_0.conda
+  version: 0.17.0
 - category: main
   dependencies:
     libgcc-ng: '>=12'
