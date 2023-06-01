@@ -25,6 +25,13 @@ outputs:
     type: File
     outputSource: preprocess/preprocessingStdout
 
+  outputCheckpoint:
+    type: Directory
+    outputSource: training/outputCheckpoint
+#   mlLogs:
+#     type: File
+#     outputSource: training/mlLogs
+
 steps:
   preprocess:
     run: mnist-preproc.cwl
@@ -38,9 +45,9 @@ steps:
   training:
     run: ../../ai/training.cwl
     in:
-        preprocesseDatasetPath: preprocessOutput
+        preprocessedDatasetPath: preprocessOutput
         trainingConfig: trainingConfig
         trainingEnvironment: trainingEnvironment
         trainingCommand: trainingCommand
         preprocessingFlag: preprocess/preprocessingStdout
-    out: []
+    out: [outputCheckpoint]

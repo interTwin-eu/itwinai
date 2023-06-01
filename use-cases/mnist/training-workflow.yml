@@ -30,32 +30,32 @@ steps:
 
 # #Workflow definition in CWL style
 
-# workflowFileCWL: use-cases/mnist/workflow.cwl
+workflowFileCWL: use-cases/mnist/workflow.cwl
 
-# preprocessEnvironment:
+preprocessEnvironment:
+  class: Directory
+  path: .venv-preproc
+
+preprocessScript:
+  class: File
+  path: mnist-preproc.py
+
+#Placeholder for input dataset
+# preprocessInput:
 #   class: Directory
-#   path: .venv-preproc
+#   path:
 
-# preprocessScript:
-#   class: File
-#   path: mnist-preproc.py
+preprocessOutput:
+  class: Directory
+  path: ../../data/mnist/preproc-images-train
 
-# #Placeholder for input dataset
-# # preprocessInput:
-# #   class: Directory
-# #   path:
+#training step
+trainingConfig:
+  class: File
+  path: mnist-ai-train.yml
 
-# preprocessOutput:
-#   class: Directory
-#   path: ../../data/mnist/preproc-images-train
+trainingEnvironment:
+  class: Directory
+  path: ../../ai/.venv-pytorch
 
-# #training step
-# trainingConfig:
-#   class: File
-#   path: mnist-ai.yml
-
-# trainingEnvironment:
-#   class: Directory
-#   path: ../../ai/.venv-training
-
-# trainingCommand: train
+trainingCommand: train

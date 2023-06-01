@@ -115,17 +115,17 @@ if __name__ == "__main__":
         # invoke workflow with CWL
     if args.cwl:
         print('Invoked workflow with CWL.')
-        raise NotImplementedError('CWL workflow definition need to be updated')
-        # print(
-        #     (f"cwltool {workflow.get('workflowFileCWL')} "
-        #      f"{args.workflow_file}")
-        # )
-        # subprocess.run(
-        #     (f"cwltool {workflow.get('workflowFileCWL')} "
-        #      f"{args.workflow_file}"),
-        #     shell=True,
-        #     check=True,
-        # )
+        #raise NotImplementedError('CWL workflow definition need to be updated')
+        print(
+            (f"cwltool {workflow.get('workflowFileCWL')} "
+             f"{args.workflow_file}")
+        )
+        subprocess.run(
+            (f"cwltool --leave-tmpdir {workflow.get('workflowFileCWL')} "
+             f"{args.workflow_file}"),
+            shell=True,
+            check=True,
+        )
 
     # invoke workflow step-by-step with 'conda run ...'
     else:

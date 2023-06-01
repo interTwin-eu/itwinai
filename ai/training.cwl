@@ -32,15 +32,25 @@ inputs:
       position: 3
       prefix: --config
 
-  preprocesseDatasetPath:
+  preprocessedDatasetPath:
     type: Directory
     inputBinding:
       position: 4
-      prefix: --input
+      prefix: --train-dataset
 
   preprocessingFlag:
     type: File
 
 # Define outputs for the tool
 # In this case, there are no outputs
-outputs: []
+outputs:
+    outputCheckpoint:
+     type: Directory
+     outputBinding:
+      glob: checkpoints
+    
+    # mlLogs:
+    #  type: File
+    #  outputBinding:
+    #   glob: "*.yml"     
+      
