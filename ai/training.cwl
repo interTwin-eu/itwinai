@@ -52,5 +52,10 @@ outputs:
     # mlLogs:
     #  type: File
     #  outputBinding:
-    #   glob: "*.yml"     
+    #   glob: "*.yml" 
+
+    mlLogs:
+     type: Directory
+     outputBinding:
+      glob: "ml-logs"     
       
