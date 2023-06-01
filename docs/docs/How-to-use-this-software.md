@@ -29,15 +29,8 @@ git clone git@github.com:interTwin-eu/T6.5-AI-and-ML.git
 
 A new use case/project can be added under `./use-cases` folder.
 
-Build the workflow runner environment and development environment:
-
-```bash
-# This will create a local conda environment, located at ./.venv
-make
-
-# This will create a local conda environment, located at ./.venv-dev
-make dev-env
-```
+Build the workflow runner environment and development environment
+following the instructions on the README file.
 
 ## Define a DT workflow
 
@@ -114,7 +107,7 @@ Dataset registry of an use case can be visualized using [itwinai CLI](./CLI#visu
 
 ```bash
 USE_CASE_ROOT='use-cases/mnist/'
-conda activate ./.venv-dev && \
+micromamba activate ./.venv-dev && \
   itwinai datasets --use-case $USE_CASE_ROOT
 ```
 
@@ -143,10 +136,10 @@ they have to be executed:
 steps:
   - some-step-name:
       doc: Documentation string for this step
-      env: # Conda environment metadata
+      env: # micromamba environment metadata
         file: some-conda-env.yml
         prefix: path/to/conda/env/
-      command: Command to execute inside conda env
+      command: Command to execute inside micromamba env
       args: # Command arguments.
         # Note interpolation with datasets registry here! 
         some-arg: ${datasets.my-dataset.location}
@@ -254,12 +247,12 @@ environment. A command can be implemented by providing, for instance, a python s
 To execute a step, the workflow engine will run something like:
 
 ```bash
-conda run -p PATH_TO_STEP_ENV CMD --arg1 ARG_1_VAL ... --argN ARG_N_VAL
+micromamba run -p PATH_TO_STEP_ENV CMD --arg1 ARG_1_VAL ... --argN ARG_N_VAL
 ```
 
 Where:
 
-- `PATH_TO_STEP_ENV` is the path to the conda environment for this step.
+- `PATH_TO_STEP_ENV` is the path to the micromamba environment for this step.
 - `CMD` is the command to execute in that environment.
 - The developer can use additional parameters which are automatically appended
 to the command.
@@ -269,7 +262,7 @@ the preprocessing step is implemented by a python script, which downloads and
 splits the MNIST dataset in a specific location. Using a command similar to:
 
 ```bash
-conda run -p ./use-cases/mnist/.venv-preproc \
+micromamba run -p ./use-cases/mnist/.venv-preproc \
     python ./use-cases/mnist/mnist-preproc.py \
     --output ./data/mnist/preproc-images-inference \
     --stage train
@@ -506,7 +499,7 @@ future releases.
 Once a workflow has been configured, it can be run by executing `run-workflow.py` in the root of this repo:
 
 ```bash
-conda run -p ./.venv python run-workflow.py -f WORKFLOW_DEFINITION_FILE
+micromamba run -p ./.venv python run-workflow.py -f WORKFLOW_DEFINITION_FILE
 ```
 
 This script performs two main actions:
@@ -518,7 +511,7 @@ See some examples of workflow executions in `examples.sh`, for instance:
 
 ```bash
 # Run workflow for MNIST toy use case
-conda run -p ./.venv python run-workflow.py -f ./use-cases/mnist/training-workflow.yml
+micromamba run -p ./.venv python run-workflow.py -f ./use-cases/mnist/training-workflow.yml
 ```
 
 <!-- If you want to run using the Common Workflow Language (CWL).
@@ -529,7 +522,7 @@ A workflow can be executed following CWL definition, adding the `--cwl` flag to 
 **NOTE**: CWL support is still experimental and may not be fully working.
 
 ```bash
-conda run -p ./.venv python run-workflow.py -f ./use-cases/mnist/training-workflow.yml --cwl
+micromamba run -p ./.venv python run-workflow.py -f ./use-cases/mnist/training-workflow.yml --cwl
 ``` -->
 
 ## Write tests cases

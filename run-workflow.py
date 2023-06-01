@@ -90,22 +90,22 @@ if __name__ == "__main__":
     # workflow definition file
     workflow = load_yaml_with_deps(args.workflow_file)
 
-    # 2. Deploy steps (i.e., create conda envs), if not already there
+    # 2. Deploy steps (i.e., create micromamba envs), if not already there
 
     for step in workflow.get('steps'):
         step_name, step_data = next(iter(step.items()))
         if not os.path.exists(step_data['env']['prefix']):
             print(f'Deploying "{step_name}" step...')
-            # Install python env from conda env definition file
+            # Install python env from micromamba env definition file
             subprocess.run(
                 (f"micromamba env create -p {step_data['env']['prefix']} "
-                    f"--file {step_data['env']['file']}").split(),
+                    f"--file {step_data['env']['file']} -y").split(),
                 check=True
             )
             # Install local python project from source, if present
             if step_data['env'].get('source') is not None:
                 subprocess.run(
-                    (f"conda run -p {step_data['env']['prefix']} "
+                    (f"micromamba run -p {step_data['env']['prefix']} "
                      "python -m pip install "  # --no-deps
                      f"-e {step_data['env']['source']}").split(),
                     check=True
@@ -127,7 +127,7 @@ if __name__ == "__main__":
         #     check=True,
         # )
 
-    # invoke workflow step-by-step with 'conda run ...'
+    # invoke workflow step-by-step with 'micromamba run ...'
     else:
         for step in workflow.get('steps'):
             step_name, step_data = next(iter(step.items()))
@@ -140,11 +140,11 @@ if __name__ == "__main__":
 
             print(f'Running "{step_name}" step...')
             print(
-                f"conda run -p {step_data['env']['prefix']} "
+                f"micromamba run -p {step_data['env']['prefix']} "
                 f"{step_data['command']} {args_str} \n\n"
             )
             subprocess.run(
-                (f"conda run -p {step_data['env']['prefix']} "
+                (f"micromamba run -p {step_data['env']['prefix']} "
                  f"{step_data['command']} {args_str} ").split(),
                 check=True,
             )
