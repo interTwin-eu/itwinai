@@ -26,7 +26,7 @@ Consider that Micromamba can eat a lot of space when building environments becau
 the local filesystem after being downloaded. To clear cache you can use `micromamba clean -a`.
 Micromamba data are kept under the `$HOME` location. However, in some systems, `$HOME` has a limited storage
 space and it would be cleverer to install Micromamba in another location with more storage space.
-Thus by changing the `$MAMBA_ROOT_PREFIX` variable. See a complete installation example below, where the
+Thus by changing the `$MAMBA_ROOT_PREFIX` variable. See a complete installation example for Linux below, where the
 default `$MAMBA_ROOT_PREFIX` is overridden:
 
 ```bash

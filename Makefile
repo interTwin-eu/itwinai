@@ -14,7 +14,7 @@ ai-env: ai/env-files/pytorch-lock.yml ai/setup.py
 
 lock-ai: ai/env-files/pytorch-env.yml ai/env-files/pytorch-env-gpu.yml
 	@echo "NOTE: Run this command from *whitin* ./.venv where conda-lock is available!"
-	# Lock for pytorch CPU
-	conda-lock lock -f ai/env-files/pytorch-env.yml --lockfile ai/env-files/pytorch-lock.yml
-	# Lock for pytorch GPU
-	conda-lock lock -f ai/env-files/pytorch-env-gpu.yml --lockfile ai/env-files/pytorch-gpu-lock.yml
+	@echo Lock for pytorch CPU
+	conda-lock lock --micromamba -f ai/env-files/pytorch-env.yml --lockfile ai/env-files/pytorch-lock.yml
+	@# Lock for pytorch GPU
+	@# conda-lock lock --micromamba -f ai/env-files/pytorch-env-gpu.yml --lockfile ai/env-files/pytorch-gpu-lock.yml
