@@ -50,6 +50,7 @@ echo 'PATH="$(dirname $MAMBA_EXE):$PATH"' >> ~/.bashrc
 Install the (custom) orchestrator virtual environment.
 
 ```bash
+source ~/.bashrc
 # Create local env
 make
 
@@ -77,13 +78,7 @@ locally using [these instructions](docs/README#building-and-previewing-your-site
 Requirements:
 
 - Linux, macOS environment. Windows was never tested.
-- Micromamba: [Installation guide](https://mamba.readthedocs.io/en/latest/installation.html#micromamba).
-After installing Micromamba, you may need to add it to `$PATH` by running the following command:
-
-    ```bash
-    PATH=$HOME/.local/bin:$PATH
-    ```
-
+- Micromamba: see the installation instructions above.
 - VS Code, for development.
 
 Installation:
@@ -109,12 +104,8 @@ pytest tests/ai/
 Requirements:
 
 - Linux, macOS environment. Windows was never tested.
-- Micromamba: [Installation guide](https://mamba.readthedocs.io/en/latest/installation.html#micromamba).
-After installing Micromamba, you may need to add it to `$PATH` by running the following command:
-
-    ```bash
-    PATH=$HOME/.local/bin:$PATH
-    ```
+- Micromamba: see the installation instructions above.
+- VS Code, for development.
 
 **NOTE**: this environment gets automatically setup when a workflow is executed!
 
