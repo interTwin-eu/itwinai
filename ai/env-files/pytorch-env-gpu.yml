@@ -5,17 +5,19 @@
 name: ai-training-gpu
 channels:
   - pytorch
-  # - nvidia
+  - nvidia
   - conda-forge
 dependencies:
   - python=3.9.12
   - pytorch::pytorch=1.13.1
-  - pytorch::torchvision
-  # - pytorch::torchaudio=0.13.1
-  # Either use pytorch-cuda or cpuonly, depending on GPU availability
-  #- pytorch::pytorch-cuda=12.1
+  - pytorch::torchvision=0.14.1
+  - pytorch::pytorch-cuda=11.7
+  - pytorch::torchaudio=0.13.1
   - cudatoolkit=10.1
-  - lightning
+  # Either use pytorch-cuda or cpuonly, depending on GPU availability
+  # - pytorch::pytorch-cuda=11.6
+  # - pytorch::cpuonly
+  - lightning=2.0.0
   - torchmetrics
   - mlflow>=2
   - typer
