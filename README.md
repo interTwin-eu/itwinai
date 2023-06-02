@@ -50,6 +50,7 @@ echo 'PATH="$(dirname $MAMBA_EXE):$PATH"' >> ~/.bashrc
 Install the (custom) orchestrator virtual environment.
 
 ```bash
+source ~/.bashrc
 # Create local env
 make
 
