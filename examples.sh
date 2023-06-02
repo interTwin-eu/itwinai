@@ -3,6 +3,9 @@
 # Setup workflow runner
 make
 
+# Run mlflow server
+mlflow server --backend-store-uri file:./use-cases/mnist/data/ml-logs/
+
 # Launch some workflows
 
 ################################
@@ -22,6 +25,10 @@ itwinai train --train-dataset ./use-cases/mnist/data/preproc-images \
     --ml-logs ./use-cases/mnist/data/ml-logs \
     --config ./use-cases/mnist/mnist-ai-train.yml
 
+itwinai train --train-dataset ./use-cases/mnist/data/preproc-images \
+    --ml-logs http://127.0.0.1:5000 \
+    --config ./use-cases/mnist/mnist-ai-train.yml
+
 ################################
 ###   Inference examples     ###
 ################################
@@ -35,6 +42,11 @@ itwinai predict --input-dataset ./use-cases/mnist/data/preproc-images \
     --predictions-location ./use-cases/mnist/data/ml-predictions \
     --config ./use-cases/mnist/mnist-ai-inference.yml \
     --ml-logs ./use-cases/mnist/data/ml-logs
+
+itwinai predict --input-dataset ./use-cases/mnist/data/preproc-images \
+    --predictions-location ./use-cases/mnist/data/ml-predictions \
+    --config ./use-cases/mnist/mnist-ai-inference.yml \
+    --ml-logs http://127.0.0.1:5000
 
 ################################
 ###  Visualization examples  ###

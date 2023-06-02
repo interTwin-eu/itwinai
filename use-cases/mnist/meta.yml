@@ -14,7 +14,10 @@ datasets:
     location: ${root}/data/preproc-images
   ml-logs:
     doc: MLflow tracking URI for local logging
-    location: ${root}/data/ml-logs
+    location: http://127.0.0.1:5000
+  mlflow-backend-store-uri:
+    docs: MLFlow server storage location
+    location: file:${root}/data/ml-logs
   ml-predictions:
     doc: predictions on unseen data
     location: ${root}/data/ml-predictions
