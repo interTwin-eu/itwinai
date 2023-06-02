@@ -21,7 +21,7 @@ from the development environment:
 
 ```bash
 # Activate development environment
-conda activate ./.venv-dev
+micromamba activate ./.venv-dev
 
 # Access itwinai CLI
 itwinai --help

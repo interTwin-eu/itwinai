@@ -20,7 +20,7 @@ def test_training_workflow():
     Test MNIST training workflow by running it end-to-end.
     """
     cmd = (
-        "conda run -p ./.venv python run-workflow.py "
+        "micromamba run -p ./.venv python run-workflow.py "
         "-f ./use-cases/mnist/training-workflow.yml"
     )
     subprocess.run(cmd.split(), check=True)
@@ -35,7 +35,7 @@ def test_inference_workflow():
     Test MNIST inference workflow by running it end-to-end.
     """
     cmd = (
-        "conda run -p ./.venv python run-workflow.py "
+        "micromamba run -p ./.venv python run-workflow.py "
         "-f ./use-cases/mnist/inference-workflow.yml"
     )
     subprocess.run(cmd.split(), check=True)

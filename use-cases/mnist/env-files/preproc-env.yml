@@ -1,6 +1,8 @@
 name: preproc-env
 channels:
+  - pytorch
   - conda-forge
 dependencies:
   - python=3.9.12
   - torchvision
+  - pytorch::cpuonly
