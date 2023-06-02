@@ -16,7 +16,7 @@ datasets:
     doc: MLflow tracking URI for local logging
     location: http://127.0.0.1:5000
   mlflow-backend-store-uri:
-    docs: MLFlow server storage location
+    doc: MLFlow server storage location
     location: ${root}/data/ml-logs
   ml-predictions:
     doc: predictions on unseen data
