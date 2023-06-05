@@ -117,7 +117,9 @@ if __name__ == "__main__":
         print('Invoked workflow with CWL.')
         #raise NotImplementedError('CWL workflow definition need to be updated')
         print(
-            (f"cwltool {workflow.get('workflowFileCWL')} "
+            (f"cwltool --leave-tmpdir " 
+             f"--outdir={workflow['root'] + '/data'} "
+             f"{workflow.get('workflowFileCWL')} "
              f"{args.workflow_file}")
         )
         subprocess.run(
