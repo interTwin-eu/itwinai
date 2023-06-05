@@ -11,7 +11,7 @@ inputs:
     preprocessInput:    
         type: Directory?
     preprocessOutput:    
-        type: Directory
+        type: string?
 
     trainingConfig:    
         type: File
@@ -28,9 +28,10 @@ outputs:
   outputCheckpoint:
     type: Directory
     outputSource: training/outputCheckpoint
-#   mlLogs:
-#     type: File
-#     outputSource: training/mlLogs
+
+  preprocessedDatasetPath:
+    type: Directory
+    outputSource: preprocess/preprocessedDatasetPath
 
   mlLogs:
     type: Directory
@@ -43,13 +44,13 @@ steps:
         preprocessEnvironment: preprocessEnvironment
         preprocessScript: preprocessScript
         rawDatasetPath: preprocessInput
-        preprocesseDatasetPath: preprocessOutput
-    out: [preprocessingStdout]
+        preprocessOutput: preprocessOutput
+    out: [preprocessingStdout, preprocessedDatasetPath]
 
   training:
     run: ../../ai/training.cwl
     in:
-        preprocessedDatasetPath: preprocessOutput
+        preprocessedDatasetPath: preprocess/preprocessedDatasetPath
         trainingConfig: trainingConfig
         trainingEnvironment: trainingEnvironment
         trainingCommand: trainingCommand

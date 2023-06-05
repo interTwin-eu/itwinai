@@ -42,7 +42,6 @@ inputs:
     type: File
 
 # Define outputs for the tool
-# In this case, there are no outputs
 outputs:
     outputCheckpoint:
      type: Directory

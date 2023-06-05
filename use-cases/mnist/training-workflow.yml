@@ -45,9 +45,7 @@ preprocessScript:
 #   class: Directory
 #   path:
 
-preprocessOutput:
-  class: Directory
-  path: ../../data/mnist/preproc-images-train
+preprocessOutput: preproc-images
 
 #training step
 trainingConfig:

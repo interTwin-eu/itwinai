@@ -36,8 +36,8 @@ inputs:
       position: 3          # Specifies the position of the argument in the command line
       prefix: --input      # Specifies the prefix to be used for the argument
 
-  preprocesseDatasetPath:
-    type: Directory           # Specifies the data type of the input as a string
+  preprocessOutput:
+    type: string?           # Specifies the data type of the input as a string
     inputBinding:          # Defines how the input should be passed to the command line tool
       position: 4          # Specifies the position of the argument in the command line
       prefix: --output     # Specifies the prefix to be used for the argument
@@ -46,3 +46,9 @@ inputs:
 outputs:
   preprocessingStdout:
     type: stdout           # Specifies that the output type is the standard output of the command.
+
+  preprocessedDatasetPath:
+    type: Directory
+    outputBinding:
+      glob: "preproc-images" 
+      
