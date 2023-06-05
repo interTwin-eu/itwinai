@@ -50,5 +50,5 @@ outputs:
   preprocessedDatasetPath:
     type: Directory
     outputBinding:
-      glob: "preproc-images" 
+      glob: "use-cases/mnist/data/preproc-images" 
       

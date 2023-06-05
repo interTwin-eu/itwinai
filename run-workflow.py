@@ -121,7 +121,9 @@ if __name__ == "__main__":
              f"{args.workflow_file}")
         )
         subprocess.run(
-            (f"cwltool --leave-tmpdir {workflow.get('workflowFileCWL')} "
+            (f"cwltool --leave-tmpdir " 
+             f"--outdir={workflow['root'] + '/data'} "
+             f"{workflow.get('workflowFileCWL')} "
              f"{args.workflow_file}"),
             shell=True,
             check=True,
