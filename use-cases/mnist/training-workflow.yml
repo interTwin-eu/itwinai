@@ -16,6 +16,16 @@ steps:
       args:
         output: ${datasets.preproc-images.location}
         stage: train
+  - run-mlflow-server:
+      doc: Run MLFlow server on localhost
+      command: python ${root}/mlflow-server.py
+      env: 
+        file: ${ai-root}/env-files/pytorch-lock.yml
+        prefix: ${ai-root}/.venv-pytorch
+        source: ${ai-root}
+      args:
+        path: ${datasets.mlflow-backend-store-uri.location}
+        port: ${mlflow.port}
   - ml-training:
       doc: Train a neural network to classify MNIST images
       command: itwinai train
@@ -27,6 +37,16 @@ steps:
         train-dataset: ${datasets.preproc-images.location}
         ml-logs: ${datasets.ml-logs.location}
         config: ${root}/mnist-ai-train.yml
+  - stop-mlflow-server:
+      doc: Stop MLFlow server on localhost, if running
+      command: python ${root}/mlflow-server.py
+      env: 
+        file: ${ai-root}/env-files/pytorch-lock.yml
+        prefix: ${ai-root}/.venv-pytorch
+        source: ${ai-root}
+      args:
+        mode: kill
+        port: ${mlflow.port}
 
 # #Workflow definition in CWL style
 
