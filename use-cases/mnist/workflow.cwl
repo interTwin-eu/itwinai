@@ -2,41 +2,41 @@ cwlVersion: v1.2
 class: Workflow
 
 inputs:
-    preprocessEnvironment:
+    preprocessEnvironment:   # Input directory for the preprocess environment
         type: Directory
-    preprocessScript:
+    preprocessScript:   # Input file for the preprocess script
         type: File
-    preprocessInput:    
+    preprocessInput:   # Optional input directory for preprocess
         type: Directory?
-    preprocessOutput:    
+    preprocessOutput:   # Optional output string for preprocess
         type: string?
 
-    trainingConfig:    
+    trainingConfig:   # Input file for the training configuration
         type: File
-    trainingEnvironment:    
+    trainingEnvironment:   # Input directory for the training environment
         type: Directory
-    trainingCommand:    
+    trainingCommand:   # Input string for the training command
         type: string
 
 outputs:
-  preprocessingStdout:
+  preprocessingStdout:   # Output file for the preprocessing stdout
     type: File
     outputSource: preprocess/preprocessingStdout
 
-  outputCheckpoint:
+  outputCheckpoint:   # Output directory for the trained model checkpoint
     type: Directory
     outputSource: training/outputCheckpoint
 
-  preprocessedDatasetPath:
+  preprocessedDatasetPath:   # Output directory for the preprocessed dataset
     type: Directory
     outputSource: preprocess/preprocessedDatasetPath
 
-  mlLogs:
+  mlLogs:   # Output directory for the machine learning logs
     type: Directory
     outputSource: training/mlLogs
 
 steps:
-  preprocess:
+  preprocess:   # Step for preprocessing
     run: mnist-preproc.cwl
     in:
         preprocessEnvironment: preprocessEnvironment
@@ -45,7 +45,7 @@ steps:
         preprocessOutput: preprocessOutput
     out: [preprocessingStdout, preprocessedDatasetPath]
 
-  training:
+  training:   # Step for training
     run: ../../ai/training.cwl
     in:
         preprocessedDatasetPath: preprocess/preprocessedDatasetPath
