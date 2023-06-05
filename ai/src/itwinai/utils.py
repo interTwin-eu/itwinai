@@ -9,6 +9,26 @@ from omegaconf import OmegaConf
 from omegaconf.dictconfig import DictConfig
 
 
+def check_server(uri: str) -> bool:
+    """Check if an HTTP server is reachable
+
+    Args:
+        uri (str): Server URL
+
+    Returns:
+        bool: True if reachable.
+    """
+    import requests
+    from requests import ConnectionError
+
+    success = True
+    try:
+        _ = requests.get(uri)
+    except ConnectionError:
+        success = False
+    return success
+
+
 def load_yaml(path: str) -> Dict:
     """Load YAML file as dict.
 

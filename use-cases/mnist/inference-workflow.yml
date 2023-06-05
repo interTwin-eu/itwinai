@@ -14,6 +14,16 @@ steps:
       args:
         output: ${datasets.preproc-images.location}
         stage: test
+  - run-mlflow-server:
+      doc: Run MLFlow server on localhost
+      command: python ${root}/mlflow-server.py
+      env: 
+        file: ${ai-root}/env-files/pytorch-lock.yml
+        prefix: ${ai-root}/.venv-pytorch
+        source: ${ai-root}
+      args:
+        path: ${datasets.mlflow-backend-store-uri.location}
+        port: ${mlflow.port}
   - ml-inference:
       doc: Apply a pre-trained neural network on unseen data and store them
       command: itwinai predict
@@ -26,4 +36,14 @@ steps:
         input-dataset: ${datasets.preproc-images.location}
         predictions-location: ${datasets.ml-predictions.location}
         ml-logs: ${datasets.ml-logs.location}
+  - stop-mlflow-server:
+      doc: Stop MLFlow server on localhost, if running
+      command: python ${root}/mlflow-server.py
+      env: 
+        file: ${ai-root}/env-files/pytorch-lock.yml
+        prefix: ${ai-root}/.venv-pytorch
+        source: ${ai-root}
+      args:
+        mode: kill
+        port: ${mlflow.port}
 
