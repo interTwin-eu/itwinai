@@ -43,7 +43,11 @@ def train(
     from lightning.pytorch.cli import LightningCLI
     from omegaconf import DictConfig, OmegaConf
 
-    from itwinai.utils import load_yaml_with_deps, flatten_dict
+    from itwinai.utils import (
+        load_yaml_with_deps,
+        check_server,
+        flatten_dict
+    )
     from itwinai.plmodels.base import (
         ItwinaiBasePlModule,
         ItwinaiBasePlDataModule
@@ -57,7 +61,7 @@ def train(
     ))
     cli_conf = OmegaConf.create(cli_conf)
 
-    os.makedirs(ml_logs, exist_ok=True)
+    # os.makedirs(ml_logs, exist_ok=True)
     train_config: DictConfig = load_yaml_with_deps(config)
     train_config = OmegaConf.merge(train_config, cli_conf)
     # print(OmegaConf.to_yaml(train_config))
@@ -68,15 +72,19 @@ def train(
         # Remove old checkpoints
         shutil.rmtree('checkpoints')
 
+    # Check if MLflow server is reachable
+    if not check_server(ml_logs):
+        raise RuntimeError("MLFlow server not reachable!")
+
     log_conf = train_config['logger']
-    mlflow.set_tracking_uri('file:' + ml_logs)
+    # mlflow.set_tracking_uri('file:' + ml_logs)
+    mlflow.set_tracking_uri(ml_logs)
     mlflow.set_experiment(log_conf['experiment_name'])
     mlflow.pytorch.autolog(
         log_every_n_epoch=log_conf['log_every_n_epoch'],
         log_every_n_step=log_conf['log_every_n_steps'],
         registered_model_name=log_conf['registered_model_name']
     )
-
     # Note: we use autolog and MlFlowLogger combined:
     # - MlFlow logger provides better flexibility
     # - autolog takes care of repetitive operations
@@ -90,8 +98,8 @@ def train(
     with mlflow.start_run(description=log_conf['description']):
         # Log hyperparameters
         config_params = copy.copy(train_config)
-        config_params['cli.input'] = train_dataset
-        config_params['cli.output'] = ml_logs
+        config_params['cli.train_dataset'] = train_dataset
+        config_params['cli.ml_logs'] = ml_logs
         config_params['cli.config'] = config
         mlflow.log_params(flatten_dict(config_params))
 
@@ -107,8 +115,19 @@ def train(
             ).name,
             tracking_uri=mlflow.get_tracking_uri(),
             log_model='all',
-            run_id=mlflow.active_run().info.run_id
+            run_id=mlflow.active_run().info.run_id,
+            save_dir=None
         ))
+        # Append CSVLogger in front:
+        # https://github.com/Lightning-AI/lightning/issues/16310#issuecomment-1404177131
+        csv_log_conf = dict(
+            class_path='lightning.pytorch.loggers.CSVLogger',
+            init_args=dict(save_dir='./.tmp')
+        )
+        lightning_conf['trainer']['logger'] = [
+            csv_log_conf,
+            lightning_conf['trainer']['logger']
+        ]
 
 
 
@@ -125,8 +144,8 @@ def train(
             subclass_mode_model=True,
             subclass_mode_data=True
         )
+        print(cli.trainer.log_dir)
         sys.argv = old_argv
-
         # Train + validation, and test
         cli.trainer.fit(cli.model, datamodule=cli.datamodule)
         cli.trainer.test(
@@ -195,7 +214,8 @@ def predict(
 
     os.makedirs(predictions_location, exist_ok=True)
 
-    mlflow.set_tracking_uri('file:' + ml_logs)
+    # mlflow.set_tracking_uri('file:' + ml_logs)
+    mlflow.set_tracking_uri(ml_logs)
 
     # Check if run ID exists
     try:

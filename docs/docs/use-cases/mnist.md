@@ -42,7 +42,7 @@ neural network to the Models Registry.
     This workflow is executed by running the command:
 
     ```bash
-    conda run -p ./.venv python run-workflow.py -f ./use-cases/mnist/training-workflow.yml
+    micromamba run -p ./.venv python run-workflow.py -f ./use-cases/mnist/training-workflow.yml
     ```
 
 1. Inference workflow: use the pre-trained neural network to classify unseen images (the test set, in this case).
@@ -64,7 +64,7 @@ neural network to the Models Registry.
     This workflow is executed by running the command:
 
     ```bash
-    conda run -p ./.venv python run-workflow.py -f ./use-cases/mnist/inference-workflow.yml
+    micromamba run -p ./.venv python run-workflow.py -f ./use-cases/mnist/inference-workflow.yml
     ```
 
 The interactions among workflows and their steps can be described in more details as the following, where conceptual ordering
@@ -107,7 +107,7 @@ folder, in the core repository.
 
 ### Pre-processing
 
-This step is implemented by executing `mnist-preproc.py` script in its dedicated conda environment, defined by
+This step is implemented by executing `mnist-preproc.py` script in its dedicated micromamba environment, defined by
 `preproc-env.yml`. This solution gives full freedom to the DT developer to implement any preprocessing logic, adaptable
 to any custom dataset format.
 
@@ -142,7 +142,7 @@ Training command is automatically managed by the workflow runner, but it can als
 be triggered from withing the ai environment running the following command:
 
 ```bash
-conda activate ./ai/.venv-pytorch && \
+micromamba activate ./ai/.venv-pytorch && \
     itwinai train --train-dataset $TRAINING_DATASET_PATH \
         --ml-logs $MLFLOW_TRACKING_URI \
         --config ./use-cases/mnist/mnist-ai-train.yml
@@ -152,7 +152,7 @@ While training is running, the produced ML logs can be inspected in real-time fr
 the training virtual environment (Conda):
 
 ```bash
-conda activate ./ai/.venv-pytorch && \
+micromamba activate ./ai/.venv-pytorch && \
     itwinai mlflow-ui --path $PATH_TO_ML_LOGS
 ```
 
@@ -173,7 +173,7 @@ Inference/prediction command is automatically managed by the workflow runner, bu
 the ai environment running the following command:
 
 ```bash
-conda activate ./ai/.venv-pytorch && \
+micromamba activate ./ai/.venv-pytorch && \
     itwinai predict --input-dataset $UNSEEN_EXAMPLES_DATASET_PATH \
         --predictions-location $PREDICTIONS_LOCATION \
         --ml-logs $PATH_TO_ML_LOGS \

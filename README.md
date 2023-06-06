@@ -14,23 +14,55 @@ If you want to integrate a new use case, you can follow this
 Requirements:
 
 - Linux, macOS environment. Windows was never tested.
-- Micromamba: [Installation guide](https://mamba.readthedocs.io/en/latest/installation.html#micromamba).
 
-Install the orchestrator virtual environment.
+### Micromamba installation
+
+To manage Conda environments we use micromamba, a light weight version of conda.
+
+It is suggested to refer to the
+[Manual installation guide](https://mamba.readthedocs.io/en/latest/installation.html#manual-installation).
+
+Consider that Micromamba can eat a lot of space when building environments because packages are cached on
+the local filesystem after being downloaded. To clear cache you can use `micromamba clean -a`.
+Micromamba data are kept under the `$HOME` location. However, in some systems, `$HOME` has a limited storage
+space and it would be cleverer to install Micromamba in another location with more storage space.
+Thus by changing the `$MAMBA_ROOT_PREFIX` variable. See a complete installation example for Linux below, where the
+default `$MAMBA_ROOT_PREFIX` is overridden:
 
 ```bash
+cd $HOME
+
+# Download micromamba (This command is for Linux Intel (x86_64) systems. Find the right one for your system!)
+curl -Ls https://micro.mamba.pm/api/micromamba/linux-64/latest | tar -xvj bin/micromamba
+
+# Install micromamba in a custom directory
+MAMBA_ROOT_PREFIX='my-mamba-root'
+./bin/micromamba shell init $MAMBA_ROOT_PREFIX
+
+# To invoke micromamba from Makefile, you need to add explicitly to $PATH
+echo 'PATH="$(dirname $MAMBA_EXE):$PATH"' >> ~/.bashrc
+```
+
+**Reference**: [Micromamba installation guide](https://mamba.readthedocs.io/en/latest/installation.html#micromamba).
+
+### Workflow orchestrator
+
+Install the (custom) orchestrator virtual environment.
+
+```bash
+source ~/.bashrc
 # Create local env
 make
 
 # Activate env
-conda activate ./.venv
+micromamba activate ./.venv
 ```
 
 To run tests on workflows use:
 
 ```bash
 # Activate env
-conda activate ./.venv
+micromamba activate ./.venv
 
 pytest tests/
 ```
@@ -46,7 +78,7 @@ locally using [these instructions](docs/README#building-and-previewing-your-site
 Requirements:
 
 - Linux, macOS environment. Windows was never tested.
-- Micromamba: [Installation guide](https://mamba.readthedocs.io/en/latest/installation.html#micromamba).
+- Micromamba: see the installation instructions above.
 - VS Code, for development.
 
 Installation:
@@ -55,14 +87,14 @@ Installation:
 make dev-env
 
 # Activate env
-conda activate ./.venv-dev
+micromamba activate ./.venv-dev
 ```
 
 To run tests on itwinai package:
 
 ```bash
 # Activate env
-conda activate ./.venv-dev
+micromamba activate ./.venv-dev
 
 pytest tests/ai/
 ```
@@ -72,7 +104,8 @@ pytest tests/ai/
 Requirements:
 
 - Linux, macOS environment. Windows was never tested.
-- Micromamba: [Installation guide](https://mamba.readthedocs.io/en/latest/installation.html#micromamba).
+- Micromamba: see the installation instructions above.
+- VS Code, for development.
 
 **NOTE**: this environment gets automatically setup when a workflow is executed!
 
@@ -82,7 +115,7 @@ However, you can also set it up explicitly with:
 make ai-env
 
 # Activate env
-conda activate ./ai/.venv-pytorch
+micromamba activate ./ai/.venv-pytorch
 ```
 
 ### Updating the environment files
@@ -100,7 +133,7 @@ When the "simple" environment file (e.g., `pytorch-env.yml`) changes,
 lock it with [`conda-lock`](https://conda.github.io/conda-lock/cli/gen/):
 
 ```bash
-conda activate ./.venv
+micromamba activate ./.venv
 
 make lock-ai
 ```

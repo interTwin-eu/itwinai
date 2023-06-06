@@ -18,7 +18,7 @@ train:
       precision: 32-true
       
       # MLFlow logger (initial) configuration.
-      # To be completed with run details, later on
+      # Do not modify this field
       logger:
         class_path: lightning.pytorch.loggers.MLFlowLogger
         init_args:
