@@ -129,8 +129,6 @@ def train(
             lightning_conf['trainer']['logger']
         ]
 
-
-
         # Reset argv before using Lightning CLI
         old_argv = sys.argv
         sys.argv = ['some_script_placeholder.py']
