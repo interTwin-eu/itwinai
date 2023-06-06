@@ -25,8 +25,8 @@ def test_training_workflow():
     )
     subprocess.run(cmd.split(), check=True)
 
-    # # CWL
-    # subprocess.run(cmd.split() + ['--cwl'], check=True)
+    # CWL
+    subprocess.run(cmd.split() + ['--cwl'], check=True)
 
 
 @pytest.mark.integration
@@ -40,5 +40,5 @@ def test_inference_workflow():
     )
     subprocess.run(cmd.split(), check=True)
 
-    # # CWL
-    # subprocess.run(cmd.split() + ['--cwl'], check=True)
+    # CWL
+    subprocess.run(cmd.split() + ['--cwl'], check=True)

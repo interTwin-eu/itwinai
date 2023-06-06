@@ -50,32 +50,27 @@ steps:
 
 # #Workflow definition in CWL style
 
-# workflowFileCWL: use-cases/mnist/workflow.cwl
+workflowFileCWL: use-cases/mnist/workflow.cwl
 
-# preprocessEnvironment:
-#   class: Directory
-#   path: .venv-preproc
+preprocessEnvironment:
+  class: Directory
+  path: .venv-preproc
 
-# preprocessScript:
-#   class: File
-#   path: mnist-preproc.py
+preprocessScript:
+  class: File
+  path: mnist-preproc.py
 
-# #Placeholder for input dataset
-# # preprocessInput:
-# #   class: Directory
-# #   path:
+# OmegaConf referencing does not work in CWL definition
+#preprocessOutput: ${datasets.preproc-images.location}
+preprocessOutput: use-cases/mnist/data/preproc-images
 
-# preprocessOutput:
-#   class: Directory
-#   path: ../../data/mnist/preproc-images-train
+#training step
+trainingConfig:
+  class: File
+  path: mnist-ai-train.yml
 
-# #training step
-# trainingConfig:
-#   class: File
-#   path: mnist-ai.yml
+trainingEnvironment:
+  class: Directory
+  path: ../../ai/.venv-pytorch
 
-# trainingEnvironment:
-#   class: Directory
-#   path: ../../ai/.venv-training
-
-# trainingCommand: train
+trainingCommand: train
