@@ -20,8 +20,6 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
 
-    #args.output = "preproc-images"
-
     if args.stage == 'train':
         # Download and store training dataset
         MNIST(args.output, train=True, download=True)
