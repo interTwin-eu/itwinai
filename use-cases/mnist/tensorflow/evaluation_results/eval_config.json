@@ -1,0 +1,39 @@
+{
+  "evalConfig": {
+    "modelSpecs": [
+      {
+        "labelKey": "label"
+      }
+    ],
+    "slicingSpecs": [
+      {}
+    ],
+    "metricsSpecs": [
+      {
+        "metrics": [
+          {
+            "className": "ExampleCount"
+          },
+          {
+            "className": "MeanAbsoluteError"
+          },
+          {
+            "className": "MeanSquaredError"
+          },
+          {
+            "className": "MeanPrediction"
+          }
+        ],
+        "modelNames": [
+          ""
+        ]
+      }
+    ]
+  },
+  "version": "0.44.0",
+  "dataLocation": "<user provided PCollection>",
+  "fileFormat": "<unknown>",
+  "modelLocations": {
+    "": "/media/linx/Secondary/C_T6/use-cases/mnist/tensorflow/pipelines/pipes/Trainer/model/386/Format-Serving"
+  }
+}

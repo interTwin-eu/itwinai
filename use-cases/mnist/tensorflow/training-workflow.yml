@@ -1,0 +1,46 @@
+# Workflow definition in classical style
+
+# Load with OmegaConf
+
+# Other configuration files to merge with this file via OmegaConf 
+conf-dependencies:
+  - meta.yml
+
+steps:
+  - dataset:
+      doc: Preparation of the MNIST dataset
+      command: python ${root}/mnist2tfr.py
+      env:
+        file: ${root}/env-files/preproc-env.yml
+        prefix: ${root}/.venv-preproc
+      args:
+        directory: /media/linx/Secondary/C_T6/use-cases/mnist/tensorflow/data
+  - tfx_train:
+      doc: Subpipeline via TFX for training
+      command: python ${root}/mnist-train.py
+      env: 
+        file: ${root}/env-files/preproc-env.yml
+        prefix: ${root}/.venv-preproc
+      args:
+        name: train_pipe
+        dataset: ${root}/data/train
+  - tfx_test:
+        doc: Subpipeline via TFX for training
+        command: python ${root}/mnist-test.py
+        env:
+          file: ${root}/env-files/preproc-env.yml
+          prefix: ${root}/.venv-preproc
+        args:
+          output: test_pipe
+          model: ${root}/pipelines/pipes/Trainer/model/386/Format-Serving
+          dataset: ${root}/data/test/test.tfrecords
+
+preprocessEnvironment:
+  class: Directory
+  path: .venv-preproc
+
+preprocessScript:
+  class: File
+  path: mnist-train.py
+
+preprocessOutput: use-cases/mnist/tensorflow/data/preproc-images
