@@ -11,6 +11,7 @@ train:
 
     # Lightning Trainer configuration
     trainer:
+      # Set to cpu when using pytorch "cpuonly" 
       accelerator: auto
       strategy: auto
       devices: auto

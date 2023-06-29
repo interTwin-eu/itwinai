@@ -20,7 +20,7 @@ steps:
       doc: Run MLFlow server on localhost
       command: python ${root}/mlflow-server.py
       env: 
-        file: ${ai-root}/env-files/pytorch-lock.yml
+        file: ${ai-root}/env-files/pytorch-gpu-lock.yml
         prefix: ${ai-root}/.venv-pytorch
         source: ${ai-root}
       args:
@@ -30,7 +30,7 @@ steps:
       doc: Train a neural network to classify MNIST images
       command: itwinai train
       env: 
-        file: ${ai-root}/env-files/pytorch-env-gpu.yml
+        file: ${ai-root}/env-files/pytorch-gpu-lock.yml
         prefix: ${ai-root}/.venv-pytorch
         source: ${ai-root}
       args:
@@ -41,7 +41,7 @@ steps:
       doc: Stop MLFlow server on localhost, if running
       command: python ${root}/mlflow-server.py
       env: 
-        file: ${ai-root}/env-files/pytorch-lock.yml
+        file: ${ai-root}/env-files/pytorch-gpu-lock.yml
         prefix: ${ai-root}/.venv-pytorch
         source: ${ai-root}
       args:
