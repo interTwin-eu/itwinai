@@ -1,0 +1,43 @@
+Bootstrap: docker
+From: python:3.9.17-slim
+Stage: build
+
+%setup
+
+%files
+    ../env-files/preproc-env-container.txt /home/preproc-env-container.txt
+
+%environment
+    export LC_ALL=C
+
+%post
+    echo "Upgrade pip"
+    pip install --upgrade pip
+    echo "Installing python requirements"
+    pip install -r /home/preproc-env-container.txt
+
+%runscript
+    python -V
+    echo "packages installed:"
+    cat /home/preproc-env-container.txt
+
+%startscript
+
+%test
+    grep -q NAME=\"Debian\ GNU/Linux\" /etc/os-release
+    if [ $? -eq 0 ]; then
+        echo "Container base is Debian GNU/Linux as expected."
+    else
+        echo "Container base is not Debian GNU/Linux."
+        exit 1
+    fi
+
+%labels
+    Author azoechba
+    Version v0.0.1
+
+%help
+    This is a demonstration of creating a Python environment within a container,
+    derived from a demo container that showcases the usage of all supported sections
+    in a Singularity definition file. The purpose of this container is to install 
+    the necessary preprocessing environment for data manipulation or transformation.

@@ -1,0 +1,54 @@
+Bootstrap: docker
+From: python:3.9.17-slim
+Stage: build
+
+%setup
+
+%files
+    #./requirements.txt /home/requirements.txt 
+    #../ai/env-files/pytorch-env-container.txt /home/requirements.txt
+    ../ /home/ai
+
+%environment
+    export LC_ALL=C
+
+%post
+    #TODO: make the container work with yum
+    #echo "Update yum"
+    #yum -y update
+    #echo "Installing Development Tools"
+    #yum groupinstall -y "Development Tools"
+
+    echo "Upgrade pip"
+    pip install --upgrade pip
+    echo "Installing python requirements"
+    pip install -r /home/ai/env-files/pytorch-env-container.txt
+    echo "Installing python requirements"
+    pip install -e /home/ai
+
+%runscript
+    python -V
+    echo "packages installed:"
+    cat /home/ai/env-files/pytorch-env-container.txt
+    echo "Accessing itwinai module:"
+    itwinai --help
+
+%startscript
+
+%test
+    grep -q NAME=\"Debian\ GNU/Linux\" /etc/os-release
+    if [ $? -eq 0 ]; then
+        echo "Container base is Debian GNU/Linux as expected."
+    else
+        echo "Container base is not Debian GNU/Linux."
+        exit 1
+    fi
+
+%labels
+    Author azoechba
+    Version v0.0.1
+
+%help
+    This is a small demo building an python environment derived from the
+    demo container used to illustrate a def file that uses all
+    supported sections.
