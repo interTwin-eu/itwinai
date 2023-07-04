@@ -5,6 +5,7 @@ Stage: build
 %setup
 
 %files
+<<<<<<< HEAD
     #Staging files necessary individually 
     #instead of whole T6.5 repo keeps container size to a minimum
     ./ai/env-files  /home/ai/env-files
@@ -12,6 +13,11 @@ Stage: build
     ./ai/tests      /home/ai/tests
     ./ai/setup.py   /home/ai/setup.py
     ./ai/README.md  /home/ai/README.md
+=======
+    #./requirements.txt /home/requirements.txt 
+    #../ai/env-files/pytorch-env-container.txt /home/requirements.txt
+    ../ /home/ai
+>>>>>>> 00abab4 (ported AI and preprocessing module to singularity)
 
 %environment
     export LC_ALL=C
@@ -26,15 +32,25 @@ Stage: build
     echo "Upgrade pip"
     pip install --upgrade pip
     echo "Installing python requirements"
+<<<<<<< HEAD
 
     pip install -r home/ai/env-files/pytorch-env-container.txt
     echo "Installing python requirements"
     pip install -e home/ai
+=======
+    pip install -r /home/ai/env-files/pytorch-env-container.txt
+    echo "Installing python requirements"
+    pip install -e /home/ai
+>>>>>>> 00abab4 (ported AI and preprocessing module to singularity)
 
 %runscript
     python -V
     echo "packages installed:"
+<<<<<<< HEAD
     cat home/ai/env-files/pytorch-env-container.txt
+=======
+    cat /home/ai/env-files/pytorch-env-container.txt
+>>>>>>> 00abab4 (ported AI and preprocessing module to singularity)
     echo "Accessing itwinai module:"
     itwinai --help
 
@@ -54,4 +70,10 @@ Stage: build
     Version v0.0.1
 
 %help
+<<<<<<< HEAD
     This is the base image of the itwinai library in Singularity.
+=======
+    This is a small demo building an python environment derived from the
+    demo container used to illustrate a def file that uses all
+    supported sections.
+>>>>>>> 00abab4 (ported AI and preprocessing module to singularity)

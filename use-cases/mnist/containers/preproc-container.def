@@ -5,7 +5,11 @@ Stage: build
 %setup
 
 %files
+<<<<<<< HEAD
     ./use-cases/mnist/env-files/preproc-env-container.txt /home/preproc-env-container.txt
+=======
+    ../env-files/preproc-env-container.txt /home/preproc-env-container.txt
+>>>>>>> 00abab4 (ported AI and preprocessing module to singularity)
 
 %environment
     export LC_ALL=C
