@@ -27,9 +27,15 @@ jobs:
 
       - name: Continue if Singularity Recipe Exists
         run: |
+          ls
+          ls home
+          ls home/azoechba
+
+      - name: list directories
+        run: |
           if [[ -f "${{ matrix.recipe }}" ]]; then
             echo "keepgoing=true" >> $GITHUB_ENV
-          fi          
+          fi      
 
       - name: Set up Go 1.19
         if: ${{ env.keepgoing == 'true' }}
