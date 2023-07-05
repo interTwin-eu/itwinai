@@ -8,7 +8,7 @@ Stage: build
     #./requirements.txt /home/requirements.txt 
     #../ai/env-files/pytorch-env-container.txt /home/requirements.txt
     ../ /home/ai
-    ../env-files/pytorch-env-container.txt /home/ai/env-files/pytorch-env-container.txt
+    ai/env-files/pytorch-env-container.txt /home/ai/env-files/pytorch-env-container.txt
 
 %environment
     export LC_ALL=C
