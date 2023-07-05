@@ -17,7 +17,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        recipe: ["ai/containers/build-base-container.sh"]
+        recipe: ["ai/containers/base-container.def"]
 
     name: Check ${{ matrix.recipe }}
     steps:
