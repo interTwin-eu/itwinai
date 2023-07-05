@@ -31,6 +31,12 @@ jobs:
           ls ai
           ls ai/env-files/
 
+      - name: Continue if requirements file xists
+        run: |
+          if test -f ai/env-files/pytorch-env-container.txt; then
+              echo "keepgoing=true" >> $GITHUB_ENV
+          fi
+ 
       - name: Continue if Singularity Recipe Exists
         run: |
           if [[ -f "${{ matrix.recipe }}" ]]; then

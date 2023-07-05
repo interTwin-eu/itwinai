@@ -25,7 +25,8 @@ Stage: build
     echo "Installing python requirements"
 
     echo "list directory"
-    ls 
+    ls
+    ls home
 
     pip install -r ai/env-files/pytorch-env-container.txt
     echo "Installing python requirements"
