@@ -25,13 +25,13 @@ jobs:
       - name: Check out code for the container build
         uses: actions/checkout@v3
 
-      - name: Continue if Singularity Recipe Exists
+      - name: list directories
         run: |
           ls
-          ls home
-          ls home/azoechba
+          ls ai
+          ls ai/env-files/
 
-      - name: list directories
+      - name: Continue if Singularity Recipe Exists
         run: |
           if [[ -f "${{ matrix.recipe }}" ]]; then
             echo "keepgoing=true" >> $GITHUB_ENV
