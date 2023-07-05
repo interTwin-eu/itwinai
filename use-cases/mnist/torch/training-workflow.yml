@@ -62,7 +62,7 @@ preprocessScript:
 
 # OmegaConf referencing does not work in CWL definition
 #preprocessOutput: ${datasets.preproc-images.location}
-preprocessOutput: use-cases/mnist/data/preproc-images
+preprocessOutput: use-cases/mnist/torch/data/preproc-images
 
 #training step
 trainingConfig:

@@ -2,7 +2,7 @@
 # Load with OmegaConf
 
 # Use case root location. End without path '/' char!
-root: ./use-cases/mnist
+root: ./use-cases/mnist/torch
 
 # AI folder location. End without path '/' char!
 ai-root: ./ai

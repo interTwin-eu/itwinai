@@ -1,0 +1,104 @@
+TrainerConf:
+  # Load with OmegaConf
+  # Pytorch lightning config for training
+  train:
+    # Follows lightning config file format:
+    # https://pytorch-lightning.readthedocs.io/en/1.6.5/common/lightning_cli.html#multiple-models-and-or-datasets
+    seed_everything: 4231162351
+
+    # Lightning Trainer configuration
+    trainer:
+      accelerator: auto
+      accumulate_grad_batches: 1
+      barebones: false
+      benchmark: null
+      callbacks:
+        - class_path: lightning.pytorch.callbacks.early_stopping.EarlyStopping
+          init_args:
+            monitor: val_loss
+            patience: 2
+        - class_path: lightning.pytorch.callbacks.lr_monitor.LearningRateMonitor
+          init_args:
+            logging_interval: step
+        - class_path: lightning.pytorch.callbacks.ModelCheckpoint
+          init_args:
+            dirpath: checkpoints
+            filename: best-checkpoint
+            mode: min
+            monitor: val_loss
+            save_top_k: 1
+            verbose: true
+      check_val_every_n_epoch: 1
+      default_root_dir: null
+      detect_anomaly: false
+      deterministic: null
+      devices: auto
+      enable_checkpointing: null
+      enable_model_summary: null
+      enable_progress_bar: null
+      fast_dev_run: false
+      gradient_clip_algorithm: null
+      gradient_clip_val: null
+      inference_mode: true
+      limit_predict_batches: null
+      limit_test_batches: null
+      limit_train_batches: null
+      limit_val_batches: null
+      log_every_n_steps: null
+      logger:
+        - class_path: lightning.pytorch.loggers.CSVLogger
+          init_args:
+            save_dir: ./.tmp
+        - class_path: lightning.pytorch.loggers.MLFlowLogger
+          init_args:
+            artifact_location: null
+            experiment_name: MNIST classification lite
+            log_model: all
+            prefix: ''
+            run_id: 23e3fee1440747408abbb00b4bd7d0d8
+            run_name: null
+            save_dir: null
+            tags: null
+            tracking_uri: http://127.0.0.1:5000
+      max_epochs: 1
+      max_steps: -1
+      max_time: null
+      min_epochs: null
+      min_steps: null
+      num_nodes: 1
+      num_sanity_val_steps: null
+      overfit_batches: 0.0
+      plugins: null
+      precision: 32-true
+      profiler: null
+      reload_dataloaders_every_n_epochs: 0
+      strategy: auto
+      sync_batchnorm: false
+      use_distributed_sampler: true
+      val_check_interval: null
+
+    # Lightning Model configuration
+    model:
+      class_path: models.mnist.MNISTModel
+      init_args:
+        hidden_size: 64
+
+    # Lightning data module configuration
+    data:
+      class_path: dataloader.MNISTDataModule
+      init_args:
+        batch_size: 32
+        path: ./tmp
+        train_prop: 0.8
+
+    # Torch Optimizer configuration
+    optimizer:
+      class_path: torch.optim.AdamW
+      init_args:
+        lr: 0.001
+
+    # Torch LR scheduler configuration
+    lr_scheduler:
+      class_path: torch.optim.lr_scheduler.ExponentialLR
+      init_args:
+        gamma: 0.1
