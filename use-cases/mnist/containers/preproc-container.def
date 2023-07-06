@@ -5,7 +5,7 @@ Stage: build
 %setup
 
 %files
-    ../env-files/preproc-env-container.txt /home/preproc-env-container.txt
+    ./use-cases/mnist/env-files/preproc-env-container.txt /home/preproc-env-container.txt
 
 %environment
     export LC_ALL=C

@@ -3,7 +3,7 @@
 IMAGE_NAME="$1"
 
 if [ -z "$IMAGE_NAME" ]; then
-    IMAGE_NAME=preproc-container.sif
+    IMAGE_NAME=use-cases/mnist/containers/preproc-container.sif
 fi
 
-singularity build $IMAGE_NAME preproc-container.def
+singularity build $IMAGE_NAME use-cases/mnist/containers/preproc-container.def
