@@ -5,10 +5,13 @@ Stage: build
 %setup
 
 %files
-    #./requirements.txt /home/requirements.txt 
-    #../ai/env-files/pytorch-env-container.txt /home/requirements.txt
-    ./ /home/t6_5
-    #ai/env-files/pytorch-env-container.txt ai/env-files/pytorch-env-container.txt
+    #Staging files necessary individually 
+    #instead of whole T6.5 repo keeps container size to a minimum
+    ./ai/env-files  /home/ai/env-files
+    ./ai/src        /home/ai/src
+    ./ai/tests      /home/ai/tests
+    ./ai/setup.py   /home/ai/setup.py
+    ./ai/README.md  /home/ai/README.md
 
 %environment
     export LC_ALL=C
@@ -24,15 +27,9 @@ Stage: build
     pip install --upgrade pip
     echo "Installing python requirements"
 
-    echo "list directory"
-    ls
-    ls home
-    ls home/t6_5
-    ls home/t6_5/ai/env-files
-
-    pip install -r home/t6_5/ai/env-files/pytorch-env-container.txt
+    pip install -r home/ai/env-files/pytorch-env-container.txt
     echo "Installing python requirements"
-    pip install -e home/t6_5/ai
+    pip install -e home/ai
 
 %runscript
     python -V
