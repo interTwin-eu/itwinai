@@ -27,15 +27,16 @@ Stage: build
     echo "list directory"
     ls
     ls home
+    ls home/ai/env-files/
 
-    pip install -r ai/env-files/pytorch-env-container.txt
+    pip install -r home/ai/env-files/pytorch-env-container.txt
     echo "Installing python requirements"
     pip install -e ai
 
 %runscript
     python -V
     echo "packages installed:"
-    cat ai/env-files/pytorch-env-container.txt
+    cat home/ai/env-files/pytorch-env-container.txt
     echo "Accessing itwinai module:"
     itwinai --help
 
