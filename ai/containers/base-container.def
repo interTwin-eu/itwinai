@@ -7,7 +7,7 @@ Stage: build
 %files
     #./requirements.txt /home/requirements.txt 
     #../ai/env-files/pytorch-env-container.txt /home/requirements.txt
-    ../ /home/ai
+    ./ /home/t6_5
     #ai/env-files/pytorch-env-container.txt ai/env-files/pytorch-env-container.txt
 
 %environment
@@ -27,11 +27,12 @@ Stage: build
     echo "list directory"
     ls
     ls home
-    ls home/ai/env-files/
+    ls home/t6_5
+    ls home/t6_5/ai/env-files
 
-    pip install -r home/ai/env-files/pytorch-env-container.txt
+    pip install -r home/t6_5/ai/env-files/pytorch-env-container.txt
     echo "Installing python requirements"
-    pip install -e ai
+    pip install -e home/t6_5/ai
 
 %runscript
     python -V
