@@ -121,6 +121,6 @@ jobs:
                 echo "IMAGE_NAME is $IMAGE_NAME"
                 echo ${{ secrets.GITHUB_TOKEN }} | singularity remote login -u ${{ secrets.GHCR_USERNAME }} --password-stdin oras://ghcr.io
                 # Both ways of pushing images works indeed
-                # singularity push $CONTAINER_NAME.sif oras://ghcr.io/${GITHUB_REPOSITORY}-${IMAGE_NAME}:${tag}
-                singularity push $CONTAINER_NAME.sif oras://${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${tag}
+                singularity push $CONTAINER_NAME.sif oras://ghcr.io/${GITHUB_REPOSITORY}-${IMAGE_NAME}:${tag}
+                #singularity push $CONTAINER_NAME.sif oras://${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${tag}
             fi
