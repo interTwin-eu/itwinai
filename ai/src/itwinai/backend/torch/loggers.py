@@ -2,7 +2,7 @@ import wandb
 import mlflow
 import mlflow.keras
 
-from components import Logger
+from ..components import Logger
 
 class WanDBLogger(Logger):
     def __init__(self):

@@ -1,0 +1,10 @@
+name: tensorflow-env
+channels:
+  - tensorflow
+  - conda-forge
+dependencies:
+  - tensorflow
+  - python=3.9.12
+  - pip:
+      - tfx
+      - scipy==1.9.3

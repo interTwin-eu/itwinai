@@ -1,7 +1,4 @@
-# TODO: Solve relative import
-import sys
-sys.path.append("..")
-from components import Executor
+from ..components import Executor
 
 
 class TensorflowExecutor(Executor):

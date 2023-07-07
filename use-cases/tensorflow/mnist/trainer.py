@@ -1,10 +1,6 @@
 import tensorflow.keras as keras
 
-# TODO: Solve relative import
-import sys
-sys.path.append("..")
-from components import Trainer
-
+from itwinai.backend.components import Trainer
 from marshmallow_dataclass import dataclass
 
 

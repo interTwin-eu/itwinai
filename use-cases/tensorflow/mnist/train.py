@@ -1,11 +1,11 @@
 import yaml
 
 from models.mnist import mnist_model, ModelConf
-from trainer import TensorflowTrainer, TrainerConf
-from dataloader import DataGetterConf, TensorflowDataGetter, TensorflowDataPreproc, DataPreprocConf
-from executor import TensorflowExecutor
+from trainer import TensorflowTrainer
+from dataloader import TensorflowDataGetter, TensorflowDataPreproc
 from utils import to_json, from_json
-from loggers import WanDBLogger, MLFlowLogger
+from itwinai.backend.tensorflow.executor import TensorflowExecutor
+from itwinai.backend.tensorflow.loggers import WanDBLogger, MLFlowLogger
 
 if __name__ == '__main__':
     # Read config
@@ -22,7 +22,7 @@ if __name__ == '__main__':
             from_json('./model.json')
 
             # Initialize logger
-            logger = MLFlowLogger()
+            logger = WanDBLogger()
 
             # Create functional Pipeline
             pipeline = [

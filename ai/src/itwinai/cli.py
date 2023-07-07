@@ -132,6 +132,7 @@ def train(
         # Reset argv before using Lightning CLI
         old_argv = sys.argv
         sys.argv = ['some_script_placeholder.py']
+        print(lightning_conf)
         cli = LightningCLI(
             args=lightning_conf,
             model_class=ItwinaiBasePlModule,
