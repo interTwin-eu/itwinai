@@ -12,6 +12,7 @@ steps:
         file: ${root}/env-files/tensorflow-env.yml
         prefix: ${root}/.venv-tensorflow
       args:
+        output_dir: ${root}/data
   - Training:
       doc: Run Tensorflow Cyclone training
       command: python -u ${root}/train.py
