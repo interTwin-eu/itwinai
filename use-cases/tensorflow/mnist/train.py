@@ -1,40 +1,23 @@
-import yaml
-
-from models.mnist import mnist_model, ModelConf
 from trainer import TensorflowTrainer
 from dataloader import TensorflowDataGetter, TensorflowDataPreproc
-from utils import to_json, from_json
 from itwinai.backend.tensorflow.executor import TensorflowExecutor
-from itwinai.backend.tensorflow.loggers import WanDBLogger, MLFlowLogger
+from itwinai.backend.tensorflow.utils import parse_pipe_config
+from jsonargparse import ArgumentParser
+
 
 if __name__ == '__main__':
-    # Read config
-    with open("config.yaml", "r") as stream:
-        try:
-            config = yaml.safe_load(stream)
+    # Create parser for the pipeline (ordered)
+    parser = ArgumentParser()
+    parser.add_subclass_arguments(TensorflowDataGetter, 'getter')
+    parser.add_subclass_arguments(TensorflowDataPreproc, 'preproc')
+    parser.add_subclass_arguments(TensorflowTrainer, 'trainer')
 
-            # Load model from config
-            model_config = ModelConf.Schema().load(config['ModelConf'])
-            model = mnist_model(model_config)
+    # Parse, Instantiate pipe
+    parsed = parse_pipe_config('pipeline.yaml', parser)
+    pipe = parser.instantiate_classes(parsed)
+    # Make pipe as a list
+    pipe = [getattr(pipe, arg) for arg in vars(pipe)]
 
-            # Save, Load form JSON
-            to_json(model, './model.json')
-            from_json('./model.json')
-
-            # Initialize logger
-            logger = WanDBLogger()
-
-            # Create functional Pipeline
-            pipeline = [
-                TensorflowDataGetter(),
-                TensorflowDataPreproc(),
-                TensorflowTrainer(model, logger)
-            ]
-
-            # Execute pipeline
-            executor = TensorflowExecutor()
-            executor.config(pipeline, config)
-            executor.execute(pipeline)
-
-        except yaml.YAMLError as exc:
-            print(exc)
+    # Execute pipe
+    executor = TensorflowExecutor()
+    executor.execute(pipe)

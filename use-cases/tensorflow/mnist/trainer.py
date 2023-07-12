@@ -1,25 +1,24 @@
 import tensorflow.keras as keras
 
 from itwinai.backend.components import Trainer
-from marshmallow_dataclass import dataclass
+from itwinai.backend.components import Logger
 
-
-@dataclass
-class TrainerConf:
-    epochs:int
-    loss:dict
-    optimizer:dict
 
 class TensorflowTrainer(Trainer):
-    def __init__(self, model: keras.Model, logger):
-        self.trainer = None
+    def __init__(
+            self,
+            epochs: int,
+            loss: dict,
+            optimizer: dict,
+            model: keras.Model,
+            logger: Logger
+    ):
+        # Configurable
+        self.loss = keras.losses.get(loss)
+        self.optimizer = keras.optimizers.get(optimizer)
+        self.epochs = epochs
         self.model = model
         self.logger = logger
-
-        # Configurable
-        self.loss = None
-        self.optimizer = None
-        self.epochs = None
 
     def train(self, data):
         x, y = data
@@ -29,11 +28,3 @@ class TensorflowTrainer(Trainer):
 
     def execute(self, data):
         self.train(data[0])
-
-    def config(self, config):
-        config = TrainerConf.Schema().load(config['TrainerConf'])
-        self.loss = keras.losses.get(config.loss['class_name'])
-        self.optimizer = keras.optimizers.get(config.optimizer['identifier'])
-        self.epochs = config.epochs
-
-

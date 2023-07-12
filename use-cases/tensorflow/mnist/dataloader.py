@@ -1,11 +1,6 @@
 import tensorflow.keras as keras
 
 from itwinai.backend.components import DataGetter, DataPreproc
-from marshmallow_dataclass import dataclass
-
-@dataclass
-class DataGetterConf:
-    pass
 
 class TensorflowDataGetter(DataGetter):
     def __init__(self):
@@ -18,16 +13,9 @@ class TensorflowDataGetter(DataGetter):
         train, test = self.load()
         return [train, test]
 
-    def config(self, config):
-        pass
-
-@dataclass
-class DataPreprocConf:
-    classes: int
-
 class TensorflowDataPreproc(DataPreproc):
-    def __init__(self):
-        self.classes = None
+    def __init__(self, classes: int):
+        self.classes = classes
 
     def preproc(self, datasets):
         preprocessed = []
@@ -39,7 +27,3 @@ class TensorflowDataPreproc(DataPreproc):
 
     def execute(self, datasets):
         return self.preproc(datasets)
-
-    def config(self, config):
-        config = DataPreprocConf.Schema().load(config['DataPreprocConf'])
-        self.classes = config.classes

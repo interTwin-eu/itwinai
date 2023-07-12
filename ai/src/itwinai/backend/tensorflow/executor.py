@@ -9,8 +9,3 @@ class TensorflowExecutor(Executor):
         args = None
         for executable in pipeline:
             args = executable.execute(args)
-
-    def config(self, pipeline, config):
-        for configurable in pipeline:
-            print(configurable)
-            configurable.config(config)

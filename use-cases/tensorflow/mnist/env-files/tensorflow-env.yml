@@ -8,3 +8,4 @@ dependencies:
   - pip:
       - tfx
       - scipy==1.9.3
+      - git+https://github.com/User3574/C_T6.git

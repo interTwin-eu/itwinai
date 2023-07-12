@@ -5,10 +5,6 @@ class Executable(metaclass=ABCMeta):
     def execute(self, args):
         pass
 
-    @abstractmethod
-    def config(self, config):
-        pass
-
 class Trainer(Executable):
     @abstractmethod
     def train(self, data):
