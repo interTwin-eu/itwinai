@@ -5,6 +5,10 @@ class Executable(metaclass=ABCMeta):
     def execute(self, args):
         pass
 
+    @abstractmethod
+    def setup(self, args):
+        pass
+
 class Trainer(Executable):
     @abstractmethod
     def train(self, data):
@@ -37,9 +41,13 @@ class Saver(Executable):
     def save(self, args):
         pass
 
-class Executor(metaclass=ABCMeta):
+class Executor(Executable):
     @abstractmethod
     def execute(self, pipeline):
+        pass
+
+    @abstractmethod
+    def setup(self, pipeline):
         pass
 
 class Logger(metaclass=ABCMeta):

@@ -12,3 +12,4 @@ steps:
         file: ${root}/env-files/tensorflow-env.yml
         prefix: ${root}/.venv-tensorflow
       args:
+        pipeline: ${root}/pipeline.yaml
