@@ -1,0 +1,16 @@
+name: lightning-env
+channels:
+  - pytorch
+  - conda-forge
+dependencies:
+  - python=3.9.12
+  - torchvision
+  - pytorch::cpuonly
+  - pip:
+    - pyyaml
+    - lightning
+    - marshmallow-dataclass
+    - omegaconf
+    - wandb
+    - mlflow
+    - git+https://github.com/User3574/C_T6.git#egg=itwinai&subdirectory=ai
