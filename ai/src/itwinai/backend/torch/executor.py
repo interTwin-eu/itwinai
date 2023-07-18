@@ -9,3 +9,8 @@ class TorchExecutor(Executor):
         args = None
         for executable in pipeline:
             args = executable.execute(args)
+
+    def setup(self, pipeline):
+        args = None
+        for executable in pipeline:
+            args = executable.setup(args)
