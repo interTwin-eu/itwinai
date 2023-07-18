@@ -1,7 +1,6 @@
 executor:
   class_path: executor.CycloneExecutor
   init_args:
-    root_dir: '/media/linx/Secondary/C_T6/use-cases/cyclones'
     run_name: 'default'
 
 getter:

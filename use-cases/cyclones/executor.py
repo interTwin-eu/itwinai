@@ -19,13 +19,14 @@ class CycloneExecutor(Executor):
             args = executable.execute(args)
 
     def setup(self, args):
-        pipeline, root_dir = args
+        pipeline, root_dir = args[0], args[1]
+        print(pipeline, root_dir)
 
         # Paths, Folders
         FORMATTED_DATETIME = str(datetime.now().strftime('%Y-%m-%d_%H-%M-%S'))
         MODEL_BACKUP_DIR = join(root_dir, 'models/')
         EXPERIMENTS_DIR = join(root_dir, 'experiments')
-        RUN_DIR = join(EXPERIMENTS_DIR, run_name + '_' + FORMATTED_DATETIME)
+        RUN_DIR = join(EXPERIMENTS_DIR, self.run_name + '_' + FORMATTED_DATETIME)
         SCALER_DIR = join(RUN_DIR, 'scalers')
         TENSORBOARD_DIR = join(RUN_DIR, 'tensorboard')
         CHECKPOINTS_DIR = join(RUN_DIR, 'checkpoints')
