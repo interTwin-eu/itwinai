@@ -2,6 +2,7 @@ import tensorflow.keras as keras
 
 from itwinai.backend.components import DataGetter, DataPreproc
 
+
 class TensorflowDataGetter(DataGetter):
     def __init__(self):
         pass
@@ -15,6 +16,7 @@ class TensorflowDataGetter(DataGetter):
 
     def setup(self, args):
         pass
+
 
 class TensorflowDataPreproc(DataPreproc):
     def __init__(self, classes: int):

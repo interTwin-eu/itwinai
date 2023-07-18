@@ -8,13 +8,7 @@ setup(
     version="0.1",
     packages=find_packages("src"),
     package_dir={"": "src"},
-    entry_points={
-        "console_scripts": [
-            "itwinai=itwinai.cli:app"
-        ]
-    },
+    entry_points={"console_scripts": ["itwinai=itwinai.cli:app"]},
     # Pip dependencies
-    install_requires=[
-        'jsonargparse[signatures]>=4.17.0'
-    ]
+    install_requires=["jsonargparse[signatures]>=4.17.0"],
 )

@@ -7,16 +7,15 @@ from lightning.pytorch.cli import LightningCLI
 from omegaconf import DictConfig, OmegaConf
 from utils import load_yaml_with_deps_from_dict
 
+
 class TorchTrainer(Trainer):
     def __init__(self, train: dict):
         # Convert from YAML
         train_config: DictConfig = load_yaml_with_deps_from_dict(
-            train,
-            os.path.dirname(__file__)
+            train, os.path.dirname(__file__)
         )
         train_config = OmegaConf.to_container(train_config, resolve=True)
         self.conf = train_config
-
 
     def train(self, data):
         cli = LightningCLI(
@@ -26,10 +25,10 @@ class TorchTrainer(Trainer):
             run=False,
             save_config_kwargs={
                 "overwrite": True,
-                "config_filename": "pl-training.yml"
+                "config_filename": "pl-training.yml",
             },
-            subclass_mode_model = True,
-            subclass_mode_data = True
+            subclass_mode_model=True,
+            subclass_mode_data=True,
         )
         cli.trainer.fit(cli.model, datamodule=cli.datamodule)
 
@@ -38,4 +37,3 @@ class TorchTrainer(Trainer):
 
     def setup(self, args):
         pass
-

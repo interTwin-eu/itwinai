@@ -6,12 +6,12 @@ from itwinai.backend.components import Logger
 
 class TensorflowTrainer(Trainer):
     def __init__(
-            self,
-            epochs: int,
-            loss: dict,
-            optimizer: dict,
-            model: keras.Model,
-            logger: Logger
+        self,
+        epochs: int,
+        loss: dict,
+        optimizer: dict,
+        model: keras.Model,
+        logger: Logger,
     ):
         # Configurable
         self.loss = keras.losses.get(loss)

@@ -1,6 +1,7 @@
 import yaml
 
-#Parse (part of) YAML loaded in memory
+
+# Parse (part of) YAML loaded in memory
 def parse_pipe_config(yaml_file, parser):
     with open(yaml_file, "r", encoding="utf-8") as f:
         try:

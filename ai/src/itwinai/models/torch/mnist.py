@@ -51,12 +51,7 @@ class MNISTModel(L.LightningModule):
         loss = F.nll_loss(logits, y)
 
         # Log metrics with autolog
-        self.log(
-            "train_loss",
-            loss,
-            on_step=True,
-            on_epoch=True
-        )
+        self.log("train_loss", loss, on_step=True, on_epoch=True)
 
         return loss
 
@@ -65,13 +60,7 @@ class MNISTModel(L.LightningModule):
         logits = self(x)
         loss = F.nll_loss(logits, y)
         preds = torch.argmax(logits, dim=1)
-        self.log(
-            "val_loss",
-            loss,
-            prog_bar=True,
-            on_step=True,
-            on_epoch=True
-        )
+        self.log("val_loss", loss, prog_bar=True, on_step=True, on_epoch=True)
 
     def test_step(self, batch, batch_idx):
         x, y = batch

@@ -4,6 +4,7 @@ from torchvision.datasets import MNIST
 from torch.utils.data import DataLoader, random_split
 from torchvision import transforms
 
+
 class MNISTDataModule(L.LightningModule):
     def __init__(
         self,
@@ -24,16 +25,24 @@ class MNISTDataModule(L.LightningModule):
 
     def setup(self, stage=None):
         if stage == "fit":
-            mnist_full = MNIST(self.path, train=True, download=True, transform=self.transform)
+            mnist_full = MNIST(
+                self.path, train=True, download=True, transform=self.transform
+            )
             n_train_samples = int(self.train_prop * len(mnist_full))
             n_val_samples = len(mnist_full) - n_train_samples
-            self.mnist_train, self.mnist_val = random_split(mnist_full, [n_train_samples, n_val_samples])
+            self.mnist_train, self.mnist_val = random_split(
+                mnist_full, [n_train_samples, n_val_samples]
+            )
 
         if stage == "test":
-            self.mnist_test = MNIST(self.path, train=False, download=True, transform=self.transform)
+            self.mnist_test = MNIST(
+                self.path, train=False, download=True, transform=self.transform
+            )
 
         if stage == "predict":
-            self.mnist_predict = MNIST(self.path, train=False, download=True, transform=self.transform)
+            self.mnist_predict = MNIST(
+                self.path, train=False, download=True, transform=self.transform
+            )
 
     def train_dataloader(self):
         return DataLoader(self.mnist_train, batch_size=self.batch_size, num_workers=4)

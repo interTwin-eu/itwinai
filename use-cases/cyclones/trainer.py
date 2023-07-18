@@ -9,19 +9,28 @@ from lib.strategy import get_mirrored_strategy
 from lib.utils import Timer, saveparams, get_network_config, load_model
 from itwinai.backend.components import Trainer
 from lib.callbacks import ProcessBenchmark
-from lib.macros import PatchType, Network, Losses, RegularizationStrength, Activation, LabelNoCyclone, AugmentationType
+from lib.macros import (
+    PatchType,
+    Network,
+    Losses,
+    RegularizationStrength,
+    Activation,
+    LabelNoCyclone,
+    AugmentationType,
+)
+
 
 class TensorflowTrainer(Trainer):
     def __init__(
-            self,
-            network:Network,
-            activation:Activation,
-            regularization_strength:RegularizationStrength,
-            learning_rate:float,
-            loss:Losses,
-            kernel_size: int = None,
-            model_backup: str = None,
-            cores: int = None
+        self,
+        network: Network,
+        activation: Activation,
+        regularization_strength: RegularizationStrength,
+        learning_rate: float,
+        loss: Losses,
+        kernel_size: int = None,
+        model_backup: str = None,
+        cores: int = None,
     ):
         # Configurable
         self.cores = cores
@@ -40,11 +49,15 @@ class TensorflowTrainer(Trainer):
 
         # set mirrored strategy
         mirrored_strategy, n_devices = get_mirrored_strategy(cores=self.cores)
-        logging.debug(f'Mirrored strategy created with {n_devices} devices')
+        logging.debug(f"Mirrored strategy created with {n_devices} devices")
 
         # distribute datasets among MirroredStrategy's replicas
-        dist_train_dataset = mirrored_strategy.experimental_distribute_dataset(train_dataset)
-        dist_valid_dataset = mirrored_strategy.experimental_distribute_dataset(valid_dataset)
+        dist_train_dataset = mirrored_strategy.experimental_distribute_dataset(
+            train_dataset
+        )
+        dist_valid_dataset = mirrored_strategy.experimental_distribute_dataset(
+            valid_dataset
+        )
 
         # Inside the strategy load the model, data generators and train
         with mirrored_strategy.scope():
@@ -55,16 +68,16 @@ class TensorflowTrainer(Trainer):
                     activation=self.activation,
                     regularizer=self.regularizer,
                     kernel_size=self.kernel_size,
-                    channels=self.channels
+                    channels=self.channels,
                 )
-                logging.debug(f'New model created')
+                logging.debug(f"New model created")
             else:
                 model = load_model(model_fpath=self.best_model_name)
-                logging.debug(f'Model loaded from backup at {self.best_model_name}')
+                logging.debug(f"Model loaded from backup at {self.best_model_name}")
 
-            metrics = [keras.metrics.MeanAbsoluteError(name='mae')]
+            metrics = [keras.metrics.MeanAbsoluteError(name="mae")]
             model.compile(loss=self.loss, optimizer=self.optimizer, metrics=metrics)
-        logging.debug(f'Model compiled')
+        logging.debug(f"Model compiled")
 
         # print model summary to check if model's architecture is correct
         print(model.summary())
@@ -80,51 +93,59 @@ class TensorflowTrainer(Trainer):
             steps_per_epoch=steps_per_epoch,
             validation_steps=validation_steps,
             epochs=self.epochs,
-            callbacks=self.callbacks
+            callbacks=self.callbacks,
         )
-        logging.debug(f'Model trained')
+        logging.debug(f"Model trained")
 
         # save the best model
         model.save(self.last_model_name)
-        logging.debug(f'Saved training history')
+        logging.debug(f"Saved training history")
 
     def execute(self, data):
         self.train(data)
 
     def setup(self, args):
-        self.experiment_dir = args['experiment_dir']
-        self.run_dir = args['run_dir']
-        self.epochs = args['epochs']
-        self.batch_size = args['batch_size']
-        self.patch_size = args['patch_size']
-        self.channels = args['channels']
+        self.experiment_dir = args["experiment_dir"]
+        self.run_dir = args["run_dir"]
+        self.epochs = args["epochs"]
+        self.batch_size = args["batch_size"]
+        self.patch_size = args["patch_size"]
+        self.channels = args["channels"]
 
         # Paths
-        CHECKPOINTS_DIR = join(self.run_dir, 'checkpoints')
+        CHECKPOINTS_DIR = join(self.run_dir, "checkpoints")
 
         # files and csvs definition
-        CHECKPOINTS_FILEPATH = join(CHECKPOINTS_DIR, 'model_{epoch:02d}.h5')
-        LOSS_METRICS_HISTORY_CSV = join(self.run_dir, 'loss_metrics_history.csv')
-        BENCHMARK_HISTORY_CSV = join(self.run_dir, 'benchmark_history.csv')
+        CHECKPOINTS_FILEPATH = join(CHECKPOINTS_DIR, "model_{epoch:02d}.h5")
+        LOSS_METRICS_HISTORY_CSV = join(self.run_dir, "loss_metrics_history.csv")
+        BENCHMARK_HISTORY_CSV = join(self.run_dir, "benchmark_history.csv")
 
         self.callbacks = [
-            keras.callbacks.EarlyStopping(monitor='val_loss', patience=100, min_delta=0.0001, restore_best_weights=True, verbose=1, mode='min'),
+            keras.callbacks.EarlyStopping(
+                monitor="val_loss",
+                patience=100,
+                min_delta=0.0001,
+                restore_best_weights=True,
+                verbose=1,
+                mode="min",
+            ),
             keras.callbacks.CSVLogger(LOSS_METRICS_HISTORY_CSV),
             ProcessBenchmark(BENCHMARK_HISTORY_CSV),
             keras.callbacks.ModelCheckpoint(
                 filepath=CHECKPOINTS_FILEPATH,
-                save_best_only=True, monitor='val_loss',
-                mode='min', save_weights_only=False, verbose=1
-            )
+                save_best_only=True,
+                monitor="val_loss",
+                mode="min",
+                save_weights_only=False,
+                verbose=1,
+            ),
         ]
 
         # Check if model backup exists
         if self.model_backup is not None and not exists(self.model_backup):
-            raise FileNotFoundError('Model backup file not found')
+            raise FileNotFoundError("Model backup file not found")
         if self.model_backup:
-            self.best_model_name = join(self.model_backup, 'best_model.h5')
-        self.last_model = join(self.run_dir, 'last_model.h5')
+            self.best_model_name = join(self.model_backup, "best_model.h5")
+        self.last_model = join(self.run_dir, "last_model.h5")
 
         return args
-
-

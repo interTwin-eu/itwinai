@@ -69,14 +69,9 @@ def load_yaml_with_deps(path: str) -> DictConfig:
     yaml_conf = load_yaml(path)
     use_case_dir = os.path.dirname(path)
     deps = []
-    if yaml_conf.get('conf-dependencies'):
-        for dependency in yaml_conf['conf-dependencies']:
-            deps.append(load_yaml(
-                os.path.join(
-                    use_case_dir,
-                    dependency
-                ))
-            )
+    if yaml_conf.get("conf-dependencies"):
+        for dependency in yaml_conf["conf-dependencies"]:
+            deps.append(load_yaml(os.path.join(use_case_dir, dependency)))
 
     return OmegaConf.merge(yaml_conf, *deps)
 
@@ -99,9 +94,7 @@ def dynamically_import_class(name: str):
 
 
 def flatten_dict(
-        d: MutableMapping,
-        parent_key: str = '',
-        sep: str = '.'
+    d: MutableMapping, parent_key: str = "", sep: str = "."
 ) -> MutableMapping:
     """Flatten dictionary
 

@@ -1,5 +1,6 @@
 from abc import ABCMeta, abstractmethod
 
+
 class Executable(metaclass=ABCMeta):
     @abstractmethod
     def execute(self, args):
@@ -9,10 +10,12 @@ class Executable(metaclass=ABCMeta):
     def setup(self, args):
         pass
 
+
 class Trainer(Executable):
     @abstractmethod
     def train(self, data):
         pass
+
 
 class DataGetter(Executable):
     @abstractmethod
@@ -31,15 +34,18 @@ class StatGetter(Executable):
     def stats(self, args):
         pass
 
+
 class Evaluator(Executable):
     @abstractmethod
     def evaluate(self, args):
         pass
 
+
 class Saver(Executable):
     @abstractmethod
     def save(self, args):
         pass
+
 
 class Executor(Executable):
     @abstractmethod
@@ -49,6 +55,7 @@ class Executor(Executable):
     @abstractmethod
     def setup(self, pipeline):
         pass
+
 
 class Logger(metaclass=ABCMeta):
     @abstractmethod

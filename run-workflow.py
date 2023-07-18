@@ -59,30 +59,23 @@ def load_yaml_with_deps(path: str) -> DictConfig:
     yaml_conf = load_yaml(path)
     use_case_dir = os.path.dirname(path)
     deps = []
-    if yaml_conf.get('conf-dependencies'):
-        for dependency in yaml_conf['conf-dependencies']:
-            deps.append(load_yaml(
-                os.path.join(
-                    use_case_dir,
-                    dependency
-                ))
-            )
+    if yaml_conf.get("conf-dependencies"):
+        for dependency in yaml_conf["conf-dependencies"]:
+            deps.append(load_yaml(os.path.join(use_case_dir, dependency)))
 
     return OmegaConf.merge(yaml_conf, *deps)
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='Run a simple DT workflow.')
+    parser = argparse.ArgumentParser(description="Run a simple DT workflow.")
     parser.add_argument(
-        '-f', '--workflow-file',
+        "-f",
+        "--workflow-file",
         type=str,
-        help='Path to file describing DT a workflow.',
-        required=True
+        help="Path to file describing DT a workflow.",
+        required=True,
     )
-    parser.add_argument(
-        '--cwl',
-        action=argparse.BooleanOptionalAction
-    )
+    parser.add_argument("--cwl", action=argparse.BooleanOptionalAction)
     args = parser.parse_args()
 
     # 1. Parse workflow file
@@ -92,55 +85,63 @@ if __name__ == "__main__":
 
     # 2. Deploy steps (i.e., create micromamba envs), if not already there
 
-    for step in workflow.get('steps'):
+    for step in workflow.get("steps"):
         step_name, step_data = next(iter(step.items()))
-        if not os.path.exists(step_data['env']['prefix']):
+        if not os.path.exists(step_data["env"]["prefix"]):
             print(f'Deploying "{step_name}" step...')
             # Install python env from micromamba env definition file
             subprocess.run(
-                (f"micromamba env create -p {step_data['env']['prefix']} "
-                    f"--file {step_data['env']['file']} -y").split(),
-                check=True
+                (
+                    f"micromamba env create -p {step_data['env']['prefix']} "
+                    f"--file {step_data['env']['file']} -y"
+                ).split(),
+                check=True,
             )
             # Install local python project from source, if present
-            if step_data['env'].get('source') is not None:
+            if step_data["env"].get("source") is not None:
                 subprocess.run(
-                    (f"micromamba run -p {step_data['env']['prefix']} "
-                     "python -m pip install "  # --no-deps
-                     f"-e {step_data['env']['source']}").split(),
-                    check=True
+                    (
+                        f"micromamba run -p {step_data['env']['prefix']} "
+                        "python -m pip install "  # --no-deps
+                        f"-e {step_data['env']['source']}"
+                    ).split(),
+                    check=True,
                 )
 
     # 3. Run the by invoking the CWL execution tool'
-        # invoke workflow with CWL
+    # invoke workflow with CWL
     if args.cwl:
-        print('Invoked workflow with CWL.')
+        print("Invoked workflow with CWL.")
         # raise NotImplementedError('CWL workflow definition need to be updated')
         print(
-            (f"cwltool --leave-tmpdir "
-             f"--outdir={workflow['root'] + '/data'} "
-             f"{workflow.get('workflowFileCWL')} "
-             f"{args.workflow_file}")
+            (
+                f"cwltool --leave-tmpdir "
+                f"--outdir={workflow['root'] + '/data'} "
+                f"{workflow.get('workflowFileCWL')} "
+                f"{args.workflow_file}"
+            )
         )
         subprocess.run(
-            (f"cwltool --leave-tmpdir "
-             f"--outdir={workflow['root'] + '/data'} "
-             f"{workflow.get('workflowFileCWL')} "
-             f"{args.workflow_file}"),
+            (
+                f"cwltool --leave-tmpdir "
+                f"--outdir={workflow['root'] + '/data'} "
+                f"{workflow.get('workflowFileCWL')} "
+                f"{args.workflow_file}"
+            ),
             shell=True,
             check=True,
         )
 
     # invoke workflow step-by-step with 'micromamba run ...'
     else:
-        for step in workflow.get('steps'):
+        for step in workflow.get("steps"):
             step_name, step_data = next(iter(step.items()))
             # Args
-            args_str = ''
-            if step_data['args'] is not None:
-                args_str = " ".join([
-                    f"--{k} {v}" for k, v in step_data['args'].items()
-                ])
+            args_str = ""
+            if step_data["args"] is not None:
+                args_str = " ".join(
+                    [f"--{k} {v}" for k, v in step_data["args"].items()]
+                )
 
             print(f'Running "{step_name}" step...')
             print(
@@ -148,7 +149,9 @@ if __name__ == "__main__":
                 f"{step_data['command']} {args_str} \n\n"
             )
             subprocess.run(
-                (f"micromamba run -p {step_data['env']['prefix']} "
-                 f"{step_data['command']} {args_str} ").split(),
+                (
+                    f"micromamba run -p {step_data['env']['prefix']} "
+                    f"{step_data['command']} {args_str} "
+                ).split(),
                 check=True,
             )
