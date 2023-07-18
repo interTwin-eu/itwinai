@@ -6,7 +6,7 @@ conf-dependencies:
 
 steps:
   - Training:
-      doc: Run Tensorflow training sub-pipe for training
+      doc: Run Tensorflow Cyclone training
       command: python ${root}/train.py
       env:
         file: ${root}/env-files/tensorflow-env.yml

@@ -10,6 +10,7 @@ if __name__ == "__main__":
     # Create CLI Parser
     parser = argparse.ArgumentParser()
     parser.add_argument('-p', '--pipeline', type=str)
+    parser.add_argument('-r', '--root_dir', type=str)
     args = parser.parse_args()
 
     # Create parser for the pipeline (ordered)
@@ -26,7 +27,7 @@ if __name__ == "__main__":
     pipe = [getattr(steps, arg) for arg in list(vars(steps))[1:]]
 
     # Run pipe
-    executor.setup(pipe)
+    executor.setup((pipe, args.root_dir))
     executor.execute(pipe)
 
 

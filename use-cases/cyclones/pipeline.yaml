@@ -1,7 +1,7 @@
 executor:
   class_path: executor.CycloneExecutor
   init_args:
-    root_dir: '/media/linx/Secondary/C_T6/use-cases/tensorflow/cyclones'
+    root_dir: '/media/linx/Secondary/C_T6/use-cases/cyclones'
     run_name: 'default'
 
 getter:
@@ -28,5 +28,5 @@ trainer:
     network: VGG_V1
     activation: LINEAR
     regularization_strength: NONE
-    learning_rate: 0.001
-    loss: MSE
+    learning_rate: 0.0001
+    loss: MAE

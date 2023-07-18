@@ -26,14 +26,14 @@ class TensorflowTrainer(Trainer):
         # Configurable
         self.cores = cores
         self.model_backup = model_backup
-        self.network = network
-        self.activation = activation
+        self.network = network.value
+        self.activation = activation.value
         self.kernel_size = kernel_size
         self.regularization_strength, self.regularizer = regularization_strength.value
         self.loss_name, self.loss = loss.value
 
         # Optimizers, Losses
-        self.optimizer = keras.optimizers.Adam(learning_rate=learning_rate)  # 0.001)
+        self.optimizer = keras.optimizers.Adam(learning_rate=learning_rate)
 
     def train(self, data):
         (train_dataset, n_train), (valid_dataset, n_valid) = data[0], data[1]

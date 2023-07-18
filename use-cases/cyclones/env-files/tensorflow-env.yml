@@ -8,6 +8,6 @@ dependencies:
   - pip:
       - tfx
       - scipy==1.9.3
+      - scikit-learn
+      - gdown
       - git+https://github.com/User3574/C_T6.git#egg=itwinai&subdirectory=ai
-      - wandb
-      - mlflow

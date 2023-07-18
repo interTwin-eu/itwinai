@@ -32,13 +32,14 @@ class TensorflowDataGetter(DataGetter):
         self.split_ratio = split_ratio
         self.epochs = epochs
         self.target_scale = target_scale
-        self.label_no_cyclone = label_no_cyclone
+        self.label_no_cyclone = label_no_cyclone.value
         self.shuffle_buffer = shuffle_buffer
-        self.aug_type = aug_type
-        self.patch_type = patch_type
+        self.aug_type = aug_type.value
+        self.patch_type = patch_type.value
         self.augment = augment
         self.shuffle = shuffle
-        self.drv_vars, self.coo_vars, self.msk_var = experiment['DRV_VARS_1'], experiment['COO_VARS_1'], experiment['MSK_VAR_1']
+        self.drv_vars, self.coo_vars = experiment['DRV_VARS_1'], experiment['COO_VARS_1']
+        self.msk_var = None if experiment['MSK_VAR_1'] == 'None' else experiment['MSK_VAR_!']
         self.channels = [len(self.drv_vars), len(self.coo_vars)]
 
         # Shuffle
@@ -82,17 +83,17 @@ class TensorflowDataGetter(DataGetter):
         train_dataset = eFlowsTFRecordDataset(cyc_fnames=train_c_fs, adj_fnames=train_a_fs,
                                                        rnd_fnames=train_r_fs, batch_size=self.batch_size, epochs=self.epochs,
                                                        scalers=scalers, target_scale=self.target_scale, shape=self.shape,
-                                                       label_no_cyclone=self.label_no_cyclone.value, drv_vars=self.drv_vars,
+                                                       label_no_cyclone=self.label_no_cyclone, drv_vars=self.drv_vars,
                                                        coo_vars=self.coo_vars, msk_var=self.msk_var,
                                                        shuffle_buffer=self.shuffle_buffer, aug_fns=self.aug_fns,
-                                                       patch_type=self.patch_type.value, aug_type=self.aug_type.value)
+                                                       patch_type=self.patch_type, aug_type=self.aug_type)
         valid_dataset = eFlowsTFRecordDataset(cyc_fnames=valid_c_fs, adj_fnames=valid_a_fs,
                                                        rnd_fnames=valid_r_fs, batch_size=self.batch_size, epochs=self.epochs,
                                                        scalers=scalers, target_scale=self.target_scale, shape=self.shape,
-                                                       label_no_cyclone=self.label_no_cyclone.value, drv_vars=self.drv_vars,
+                                                       label_no_cyclone=self.label_no_cyclone, drv_vars=self.drv_vars,
                                                        coo_vars=self.coo_vars, msk_var=self.msk_var,
                                                        shuffle_buffer=self.shuffle_buffer, aug_fns=self.aug_fns,
-                                                       patch_type=self.patch_type.value, aug_type=self.aug_type.value)
+                                                       patch_type=self.patch_type, aug_type=self.aug_type)
         return train_dataset, valid_dataset
 
     def execute(self, args):
@@ -111,15 +112,15 @@ class TensorflowDataGetter(DataGetter):
         # Scalar fields
         self.root_dir = root_dir
         self.dataset_dir = join(root_dir, 'data', 'tfrecords', 'trainval/')
-        self.scaler_file = join(root_dir, 'minmax.tfrecord')
+        self.scaler_file = join(args['scaler_dir'], 'minmax.tfrecord')
 
         # get records filenames
         self.cyclone_files = sorted([join(self.dataset_dir, f) for f in listdir(self.dataset_dir) if
                                 f.endswith('.tfrecord') and f.startswith(PatchType.CYCLONE.value)])
-        if self.patch_type == PatchType.NEAREST:
+        if self.patch_type == PatchType.NEAREST.value:
             self.adj_files = sorted([join(self.dataset_dir, f) for f in listdir(self.dataset_dir) if
                                 f.endswith('.tfrecord') and f.startswith(PatchType.NEAREST.value)])
-        elif self.patch_type == PatchType.ALLADJACENT:
+        elif self.patch_type == PatchType.ALLADJACENT.value:
             self.adj_files = sorted([join(self.dataset_dir, f) for f in listdir(self.dataset_dir) if
                                 f.endswith('.tfrecord') and f.startswith(PatchType.ALLADJACENT.value)])
         self.random_files = sorted([join(self.dataset_dir, f) for f in listdir(self.dataset_dir) if

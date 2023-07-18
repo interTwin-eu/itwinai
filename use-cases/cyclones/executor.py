@@ -9,9 +9,18 @@ from lib.macros import PATCH_SIZE as patch_size, SHAPE as shape
 class CycloneExecutor(Executor):
     def __init__(
             self,
-            root_dir:str,
             run_name:str
     ):
+        self.run_name = run_name
+
+    def execute(self, pipeline):
+        args = None
+        for executable in pipeline:
+            args = executable.execute(args)
+
+    def setup(self, args):
+        pipeline, root_dir = args
+
         # Paths, Folders
         FORMATTED_DATETIME = str(datetime.now().strftime('%Y-%m-%d_%H-%M-%S'))
         MODEL_BACKUP_DIR = join(root_dir, 'models/')
@@ -48,11 +57,5 @@ class CycloneExecutor(Executor):
         logging.basicConfig(format="[%(asctime)s] %(levelname)s : %(message)s", level=logging.DEBUG, filename=LOG_FILE,
                             datefmt='%Y-%m-%d %H:%M:%S')
 
-    def execute(self, pipeline):
-        args = None
-        for executable in pipeline:
-            args = executable.execute(args)
-
-    def setup(self, pipeline):
         for executable in pipeline:
             self.args = executable.setup(self.args)
