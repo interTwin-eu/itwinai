@@ -1,10 +1,11 @@
 """
 Utilities for itwinai package.
 """
-from typing import Dict
 import os
-from collections.abc import MutableMapping
 import yaml
+
+from collections.abc import MutableMapping
+from typing import Dict
 from omegaconf import OmegaConf
 from omegaconf.dictconfig import DictConfig
 
@@ -50,7 +51,7 @@ def load_yaml(path: str) -> Dict:
     return loaded_config
 
 
-def load_yaml_with_deps(path: str) -> DictConfig:
+def load_yaml_with_deps_from_file(path: str) -> DictConfig:
     """
     Load YAML file with OmegaConf and merge it with its dependencies
     specified in the `conf-dependencies` field.
@@ -74,6 +75,16 @@ def load_yaml_with_deps(path: str) -> DictConfig:
             deps.append(load_yaml(os.path.join(use_case_dir, dependency)))
 
     return OmegaConf.merge(yaml_conf, *deps)
+
+
+def load_yaml_with_deps_from_dict(dict_conf, use_case_dir) -> DictConfig:
+    deps = []
+
+    if dict_conf.get("conf-dependencies"):
+        for dependency in dict_conf["conf-dependencies"]:
+            deps.append(load_yaml(os.path.join(use_case_dir, dependency)))
+
+    return OmegaConf.merge(dict_conf, *deps)
 
 
 def dynamically_import_class(name: str):
