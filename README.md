@@ -9,6 +9,12 @@ for a quick overview of this platform for advanced AI/ML workflows in digital tw
 If you want to integrate a new use case, you can follow this
 [step-by-step guide](https://intertwin-eu.github.io/T6.5-AI-and-ML/docs/How-to-use-this-software.html).
 
+## CMCC Use-case:
+To run do: 
+```
+micromamba run -p ./.venv python run-workflow.py -f ./use-cases/cyclones/workflows/workflow-train.yml
+```
+
 ## Installation
 
 Requirements:
