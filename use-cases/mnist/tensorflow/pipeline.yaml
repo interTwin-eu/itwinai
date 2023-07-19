@@ -1,0 +1,33 @@
+getter:
+  class_path: dataloader.TensorflowDataGetter
+
+preproc:
+  class_path: dataloader.TensorflowDataPreproc
+  init_args:
+    classes: 10
+
+trainer:
+  class_path: trainer.TensorflowTrainer
+  init_args:
+    epochs: 10
+    loss: {
+      class_name: "CategoricalCrossentropy",
+      config: {
+        from_logits: True
+      }
+    }
+    optimizer: {
+      class_name: "Adam",
+      config: {
+          learning_rate: 0.001
+      }
+    }
+    model:
+      class_path: itwinai.models.tensorflow.mnist.MNIST_Model
+      init_args:
+        input_shape: [ 28, 28, 1 ]
+        output_shape: 10
+    loggers: [
+      class_path: itwinai.backend.tensorflow.loggers.WanDBLogger,
+      class_path: itwinai.backend.tensorflow.loggers.MLFlowLogger
+    ]
