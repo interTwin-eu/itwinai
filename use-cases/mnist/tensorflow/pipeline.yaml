@@ -28,5 +28,6 @@ trainer:
         input_shape: [ 28, 28, 1 ]
         output_shape: 10
     loggers: [
-      class_path: itwinai.backend.tensorflow.loggers.WanDBLogger
+      class_path: itwinai.backend.tensorflow.loggers.WanDBLogger,
+      class_path: itwinai.backend.tensorflow.loggers.MLFlowLogger
     ]

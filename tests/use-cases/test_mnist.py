@@ -15,30 +15,30 @@ import subprocess
 
 
 @pytest.mark.integration
-def test_training_workflow():
+def test_mnist():
     """
-    Test MNIST training workflow by running it end-to-end.
+    Test MNIST training workflow(s) by running it end-to-end.
     """
-    cmd = (
-        "micromamba run -p ./.venv python run-workflow.py "
-        "-f ./use-cases/mnist/training-workflow.yml"
-    )
-    subprocess.run(cmd.split(), check=True)
+    workflows = [
+        "./use-cases/mnist/torch/workflows/training-workflow.yml",
+        "./use-cases/mnist/tensorflow/workflows/training-workflow.yml"
+    ]
 
-    # CWL
-    subprocess.run(cmd.split() + ["--cwl"], check=True)
-
+    for workflow in workflows:
+        cmd = f"micromamba run -p ./.venv python run-workflow.py -f {workflow}"
+        subprocess.run(cmd.split(), check=True)
+        subprocess.run(cmd.split() + ["--cwl"], check=True)
 
 @pytest.mark.integration
-def test_inference_workflow():
+def test_cyclones():
     """
-    Test MNIST inference workflow by running it end-to-end.
+    Test MNIST training workflow(s) by running it end-to-end.
     """
-    cmd = (
-        "micromamba run -p ./.venv python run-workflow.py "
-        "-f ./use-cases/mnist/inference-workflow.yml"
-    )
-    subprocess.run(cmd.split(), check=True)
+    workflows = [
+        "./use-cases/cyclones/workflows/training-workflow.yml",
+    ]
 
-    # CWL
-    subprocess.run(cmd.split() + ["--cwl"], check=True)
+    for workflow in workflows:
+        cmd = f"micromamba run -p ./.venv python run-workflow.py -f {workflow}"
+        subprocess.run(cmd.split(), check=True)
+        subprocess.run(cmd.split() + ["--cwl"], check=True)

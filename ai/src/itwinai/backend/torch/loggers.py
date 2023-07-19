@@ -15,8 +15,7 @@ class WanDBLogger(Logger):
 
 class MLFlowLogger(Logger):
     def __init__(self):
-        mlflow.set_tracking_uri("http://127.0.0.1:5000")
-        mlflow.set_experiment("test-experiment")
+        pass
 
     def log(self, args):
         mlflow.pytorch.autolog()
