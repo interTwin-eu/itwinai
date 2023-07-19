@@ -2,7 +2,7 @@ import tensorflow.keras as keras
 
 from itwinai.backend.components import Trainer
 from itwinai.backend.components import Logger
-
+from typing import List
 
 class TensorflowTrainer(Trainer):
     def __init__(
@@ -11,19 +11,20 @@ class TensorflowTrainer(Trainer):
         loss: dict,
         optimizer: dict,
         model: keras.Model,
-        logger: Logger,
+        loggers: List[Logger],
     ):
         # Configurable
         self.loss = keras.losses.get(loss)
         self.optimizer = keras.optimizers.get(optimizer)
         self.epochs = epochs
         self.model = model
-        self.logger = logger
+        self.loggers = loggers
 
     def train(self, data):
         x, y = data
         self.model.compile(optimizer=self.optimizer, loss=self.loss)
-        self.logger.log()
+        for logger in self.loggers:
+            logger.log(None)
         self.model.fit(x, y, epochs=self.epochs)
 
     def execute(self, data):

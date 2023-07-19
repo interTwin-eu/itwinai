@@ -59,5 +59,5 @@ class Executor(Executable):
 
 class Logger(metaclass=ABCMeta):
     @abstractmethod
-    def log(self):
+    def log(self, args):
         pass
