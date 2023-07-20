@@ -15,13 +15,12 @@ import subprocess
 
 
 @pytest.mark.integration
-def test_mnist_train():
+def test_cyclones_train():
     """
     Test MNIST training workflow(s) by running it end-to-end.
     """
     workflows = [
-        "./use-cases/mnist/torch/workflows/training-workflow.yml",
-        "./use-cases/mnist/tensorflow/workflows/training-workflow.yml"
+        "./use-cases/cyclones/workflows/training-workflow.yml",
     ]
 
     for workflow in workflows:
