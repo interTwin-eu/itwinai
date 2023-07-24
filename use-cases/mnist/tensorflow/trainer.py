@@ -4,6 +4,7 @@ from itwinai.backend.components import Trainer
 from itwinai.backend.components import Logger
 from typing import List
 
+
 class TensorflowTrainer(Trainer):
     def __init__(
         self,
