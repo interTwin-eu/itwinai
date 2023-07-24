@@ -21,7 +21,7 @@ def test_mnist_train():
     """
     workflows = [
         "./use-cases/mnist/torch/workflows/training-workflow.yml",
-        "./use-cases/mnist/tensorflow/workflows/training-workflow.yml"
+        "./use-cases/mnist/tensorflow/workflows/training-workflow.yml",
     ]
 
     for workflow in workflows:

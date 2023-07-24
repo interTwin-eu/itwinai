@@ -1,7 +1,7 @@
-import tensorflow as tf
 
-from .functions import get_tensor_decoding_fn, get_scaling_fn, get_masking_fn, get_scale_target_fn
+import tensorflow as tf
 from ..macros import PatchType, AugmentationType
+from .functions import get_tensor_decoding_fn, get_scaling_fn, get_masking_fn, get_scale_target_fn
 
 
 

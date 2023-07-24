@@ -18,11 +18,9 @@ MASK_VAR = 'cyclone_mask'
 
 # ESPERIMENTI TIPO 1
 # variabili per la prima parte degli esperimenti (regressione per trovare coordinate row-col intra-patch)
-EXPERIMENT_1 = {
-    'DRV_VARS_1': ['fg10', 'msl', 't_500', 't_300'],
-    'COO_VARS_1': ['patch_cyclone'],
-    'MSK_VAR_1': None
-}
+DRV_VARS_1 = ['fg10', 'msl', 't_500', 't_300']
+COO_VARS_1 = ['patch_cyclone']
+MSK_VAR_1 = None
 
 # dataset parameters
 PATCH_SIZE = 40
