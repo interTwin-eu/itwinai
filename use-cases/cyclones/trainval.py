@@ -19,7 +19,7 @@ from lib.strategy import get_mirrored_strategy
 from lib.callbacks import ProcessBenchmark
 from lib.scaling import save_tf_minmax
 from lib.utils import Timer, saveparams
-from trainer import TensorflowTrainer
+from trainer import CyclonesTrainer
 
 
 def trainval(args):
@@ -30,6 +30,8 @@ def trainval(args):
     MODEL_BACKUP_DIR = join(MAIN_DIR, 'models/')
     DATASET_DIR = join(DATA_DIR, 'tfrecords', 'trainval/')
     LIB_DIR = join(MAIN_DIR, 'lib/')
+    EXPERIMENTS_DIR = join(MAIN_DIR, 'experiments')
+    RUN_DIR = join(EXPERIMENTS_DIR, args.run_name +'_'+FORMATTED_DATETIME)
 
     # define timer names
     tot_exec_timer = 'tot_exec_elapsed_time'
@@ -41,15 +43,18 @@ def trainval(args):
     get_time.start(tot_exec_timer)
 
     # Trainer from CLI args
-    trainer = TensorflowTrainer(
+    trainer = CyclonesTrainer(
+        MAIN_DIR,
+        args.epochs,
         args.network,
         args.activation,
         args.regularization_strength,
         args.learning_rate,
         args.loss,
+        [len(DRV_VARS_1), len(COO_VARS_1)],
+        args.batch_size,
+        patch_size,
         args.kernel_size,
-        args.model_backup,
-        args.cores,
     )
 
     # CLI argument parsing
@@ -85,8 +90,6 @@ def trainval(args):
     #################################################################################################
 
     # directories setup
-    EXPERIMENTS_DIR = join(MAIN_DIR, 'experiments')
-    RUN_DIR = join(EXPERIMENTS_DIR, run_name+'_'+FORMATTED_DATETIME)
     SCALER_DIR = join(RUN_DIR, 'scalers')
     TENSORBOARD_DIR = join(RUN_DIR,'tensorboard')
     CHECKPOINTS_DIR = join(RUN_DIR,'checkpoints')
@@ -106,18 +109,6 @@ def trainval(args):
     TRAINVAL_TIME_CSV = join(RUN_DIR, 'trainval_time.csv')
     HYPERPARAMETERS_DUMP = join(RUN_DIR, 'hyperpars.dump')
     SCALER_FILE = join(SCALER_DIR, 'minmax.tfrecord')
-
-    # setup dirs for trainer
-    trainer.setup(
-        {
-            'experiment_dir': EXPERIMENTS_DIR,
-            'run_dir': RUN_DIR,
-            'epochs': epochs,
-            'batch_size': batch_size,
-            'patch_size': patch_size,
-            'channels': channels
-        }
-    )
 
     # initialize logger
     logging.basicConfig(format="[%(asctime)s] %(levelname)s : %(message)s", level=logging.DEBUG, filename=LOG_FILE, datefmt='%Y-%m-%d %H:%M:%S')
@@ -230,8 +221,8 @@ def trainval(args):
     trainer.train([train, test])
 
     # save run hyperparameters
-    df_hypp.loc[len(df_hypp.index)] = [FORMATTED_DATETIME, epochs, batch_size, shuffle, int(False), feature_range[0], feature_range[1], split_ratio[0], split_ratio[1], optimizer.get_config(), loss, 0, activation, aug_fns, 0, 0]
-    df_hypp.to_csv(PATH_HYPERPARAMETERS_CSV)
+    # df_hypp.loc[len(df_hypp.index)] = [FORMATTED_DATETIME, epochs, batch_size, shuffle, int(False), feature_range[0], feature_range[1], split_ratio[0], split_ratio[1], optimizer.get_config(), loss, 0, activation, aug_fns, 0, 0]
+    # df_hypp.to_csv(PATH_HYPERPARAMETERS_CSV)
 
     # log
     logging.debug(f'Saved run hyperparameters history')

@@ -1,7 +1,9 @@
 import tensorflow.keras as keras
 import logging
+import tensorflow as tf
 
-from itwinai.backend.components import Trainer
+from datetime import datetime
+from tqdm import tqdm
 from os.path import join, exists
 from lib.strategy import get_mirrored_strategy
 from lib.models.setup import get_network_config, load_model
@@ -16,133 +18,112 @@ from lib.macros import (
     AugmentationType,
 )
 
+# TODO: Abstraction for Trainer
+class TensorflowTrainer:
+    def __init__(self, strategy, loss, epochs, batch_size, callbacks, optimizer, model_func, metrics_func):
+        self.strategy = strategy
+        self.epochs = epochs
+        self.batch_size = batch_size
+        self.loss = loss
+        self.callbacks = callbacks
+        self.global_batch_size = self.batch_size * self.strategy.num_replicas_in_sync
+        self.optimizer = optimizer
 
-class TensorflowTrainer(Trainer):
+        # Create distributed TF vars
+        with self.strategy.scope():
+            self.model = model_func()
+            self.model.compile(loss=self.loss, optimizer=self.optimizer, metrics=metrics_func())
+
+    def train(self, data):
+        (train, n_train), (test, n_test) = data
+        train = self.strategy.experimental_distribute_dataset(train)
+        test = self.strategy.experimental_distribute_dataset(test)
+
+        # compute the steps per epoch for train and valid
+        train_steps = n_train // self.batch_size
+        test_steps = n_test // self.batch_size
+
+        # train the model
+        self.model.fit(
+            train,
+            validation_data=test,
+            steps_per_epoch=train_steps,
+            validation_steps=test_steps,
+            epochs=self.epochs,
+            callbacks=self.callbacks,
+        )
+
+        logging.debug(f"Model trained")
+
+class CyclonesTrainer(TensorflowTrainer):
     def __init__(
         self,
+        RUN_DIR,
+        epochs,
         network,
         activation,
         regularization_strength,
         learning_rate: float,
         loss,
+        channels,
+        batch_size,
+        patch_size,
         kernel_size: int = None,
-        model_backup: str = None,
-        cores: int = None,
     ):
         # Configurable
-        self.cores = cores
-        self.model_backup = model_backup
-        self.network = network
-        self.activation = activation
-        self.kernel_size = kernel_size
-        self.regularization_strength, self.regularizer = \
+        regularization_strength, regularizer = \
         [rg.value for rg in RegularizationStrength if rg.name.lower() == regularization_strength][0]
-        self.loss_name, self.loss = [l.value for l in Losses if l.name.lower() == loss][0]
-        # Optimizers, Losses
-        self.optimizer = keras.optimizers.Adam(learning_rate=learning_rate)
+        loss_name, loss = [l.value for l in Losses if l.name.lower() == loss][0]
+        optimizer = keras.optimizers.Adam(learning_rate=learning_rate)
 
-    def train(self, data):
-        (train_dataset, n_train), (valid_dataset, n_valid) = data[0], data[1]
-
-        # set mirrored strategy
-        mirrored_strategy, n_devices = get_mirrored_strategy(cores=self.cores)
-        logging.debug(f"Mirrored strategy created with {n_devices} devices")
-
-        # distribute datasets among MirroredStrategy's replicas
-        dist_train_dataset = mirrored_strategy.experimental_distribute_dataset(
-            train_dataset
-        )
-        dist_valid_dataset = mirrored_strategy.experimental_distribute_dataset(
-            valid_dataset
-        )
-
-        # Inside the strategy load the model, data generators and train
-        with mirrored_strategy.scope():
-            if not self.model_backup:
-                model = get_network_config(
-                    network=self.network,
-                    patch_size=self.patch_size,
-                    activation=self.activation,
-                    regularizer=self.regularizer,
-                    kernel_size=self.kernel_size,
-                    channels=self.channels,
-                )
-                logging.debug(f"New model created")
-            else:
-                model = load_model(model_fpath=self.best_model_name)
-                logging.debug(f"Model loaded from backup at {self.best_model_name}")
-
-            metrics = [keras.metrics.MeanAbsoluteError(name="mae")]
-            model.compile(loss=self.loss, optimizer=self.optimizer, metrics=metrics)
-        logging.debug(f"Model compiled")
-
-        # print model summary to check if model's architecture is correct
-        print(model.summary())
-
-        # compute the steps per epoch for train and valid
-        steps_per_epoch = n_train // self.batch_size
-        validation_steps = n_valid // self.batch_size
-
-        # train the model
-        model.fit(
-            dist_train_dataset,
-            validation_data=dist_valid_dataset,
-            steps_per_epoch=steps_per_epoch,
-            validation_steps=validation_steps,
-            epochs=self.epochs,
-            callbacks=self.callbacks,
-        )
-        logging.debug(f"Model trained")
-
-        # save the best model
-        model.save(self.last_model_name)
-        logging.debug(f"Saved training history")
-
-    def execute(self, data):
-        self.train(data)
-
-    def setup(self, args):
-        self.experiment_dir = args["experiment_dir"]
-        self.run_dir = args["run_dir"]
-        self.epochs = args["epochs"]
-        self.batch_size = args["batch_size"]
-        self.patch_size = args["patch_size"]
-        self.channels = args["channels"]
-
-        # Paths
-        CHECKPOINTS_DIR = join(self.run_dir, "checkpoints")
+        # Paths, Folders
+        SCALER_DIR = join(RUN_DIR, "scalers")
+        TENSORBOARD_DIR = join(RUN_DIR, "tensorboard")
+        CHECKPOINTS_DIR = join(RUN_DIR, "checkpoints")
 
         # files and csvs definition
         CHECKPOINTS_FILEPATH = join(CHECKPOINTS_DIR, "model_{epoch:02d}.h5")
-        LOSS_METRICS_HISTORY_CSV = join(self.run_dir, "loss_metrics_history.csv")
-        BENCHMARK_HISTORY_CSV = join(self.run_dir, "benchmark_history.csv")
+        LOSS_METRICS_HISTORY_CSV = join(RUN_DIR, "loss_metrics_history.csv")
+        BENCHMARK_HISTORY_CSV = join(RUN_DIR, "benchmark_history.csv")
 
-        self.callbacks = [
-            keras.callbacks.EarlyStopping(
-                monitor="val_loss",
-                patience=100,
-                min_delta=0.0001,
-                restore_best_weights=True,
-                verbose=1,
-                mode="min",
+        super().__init__(
+            strategy=tf.distribute.MirroredStrategy(),
+            loss=loss,
+            epochs=epochs,
+            batch_size=batch_size,
+            callbacks=[
+                keras.callbacks.EarlyStopping(
+                    monitor="val_loss",
+                    patience=100,
+                    min_delta=0.0001,
+                    restore_best_weights=True,
+                    verbose=1,
+                    mode="min",
+                ),
+                keras.callbacks.CSVLogger(LOSS_METRICS_HISTORY_CSV),
+                ProcessBenchmark(BENCHMARK_HISTORY_CSV),
+                keras.callbacks.ModelCheckpoint(
+                    filepath=CHECKPOINTS_FILEPATH,
+                    save_best_only=True,
+                    monitor="val_loss",
+                    mode="min",
+                    save_weights_only=False,
+                    verbose=1,
+                ),
+            ],
+            optimizer=optimizer,
+            model_func=lambda: get_network_config(
+                network=network,
+                patch_size=patch_size,
+                activation=activation,
+                regularizer=regularizer,
+                kernel_size=kernel_size,
+                channels=channels,
             ),
-            keras.callbacks.CSVLogger(LOSS_METRICS_HISTORY_CSV),
-            ProcessBenchmark(BENCHMARK_HISTORY_CSV),
-            keras.callbacks.ModelCheckpoint(
-                filepath=CHECKPOINTS_FILEPATH,
-                save_best_only=True,
-                monitor="val_loss",
-                mode="min",
-                save_weights_only=False,
-                verbose=1,
-            ),
-        ]
+            metrics_func=lambda: [keras.metrics.MeanAbsoluteError(name="mae")]
+        )
 
-        # Check if model backup exists
-        if self.model_backup is not None and not exists(self.model_backup):
-            raise FileNotFoundError("Model backup file not found")
-        if self.model_backup:
-            self.best_model_name = join(self.model_backup, "best_model.h5")
-        self.last_model = join(self.run_dir, "last_model.h5")
+    def train(self, data):
+        # TODO: Integrate train_step locally and pass it into the super distributed training function
+        super().train(data)
 
-        return args
