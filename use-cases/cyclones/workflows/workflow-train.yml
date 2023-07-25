@@ -7,11 +7,11 @@ conf-dependencies:
 steps:
   - Training:
       doc: Run Tensorflow Cyclone training
-      command: python ${root}/trainer.py
+      command: python ${root}/trainval.py
       env:
         file: ${root}/env-files/tensorflow-env.yml
         prefix: ${root}/.venv-tensorflow
       args:
         batch_size: 16
         epochs: 1
-        MAIN_DIR: ${root}
+        main_dir: ${root}
