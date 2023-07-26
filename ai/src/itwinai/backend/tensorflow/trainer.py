@@ -16,6 +16,7 @@ class TensorflowTrainer(Trainer):
         with self.strategy.scope():
             self.model = model_func()
             self.model.compile(loss=self.loss, optimizer=self.optimizer, metrics=metrics_func())
+        print(f"Strategy is working with: {strategy.num_replicas_in_sync} devices")
 
     def train(self, data):
         (train, n_train), (test, n_test) = data
