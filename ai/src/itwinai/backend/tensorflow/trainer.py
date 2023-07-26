@@ -1,15 +1,15 @@
 import logging
+import tensorflow as tf
 
 from ..components import Trainer
 
 class TensorflowTrainer(Trainer):
-    def __init__(self, strategy, loss, epochs, batch_size, callbacks, optimizer, model_func, metrics_func):
+    def __init__(self, loss, epochs, batch_size, callbacks, optimizer, model_func, metrics_func, strategy=tf.distribute.MirroredStrategy()):
         self.strategy = strategy
         self.epochs = epochs
         self.batch_size = batch_size
         self.loss = loss
         self.callbacks = callbacks
-        self.global_batch_size = self.batch_size * self.strategy.num_replicas_in_sync
         self.optimizer = optimizer
 
         # Create distributed TF vars
