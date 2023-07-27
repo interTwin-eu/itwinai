@@ -10,6 +10,7 @@ from lib.macros import (
 )
 from itwinai.backend.tensorflow.trainer import TensorflowTrainer
 
+
 class CyclonesTrainer(TensorflowTrainer):
     def __init__(
         self,
@@ -27,8 +28,10 @@ class CyclonesTrainer(TensorflowTrainer):
     ):
         # Configurable
         regularization_strength, regularizer = \
-        [rg.value for rg in RegularizationStrength if rg.name.lower() == regularization_strength][0]
-        loss_name, loss = [l.value for l in Losses if l.name.lower() == loss][0]
+            [rg.value for rg in RegularizationStrength if rg.name.lower() ==
+             regularization_strength][0]
+        loss_name, loss = [
+            l.value for l in Losses if l.name.lower() == loss][0]
         optimizer = keras.optimizers.Adam(learning_rate=learning_rate)
 
         # Paths, Folders

@@ -35,6 +35,7 @@
         "pyyaml",
         "relu",
         "Roadmap",
+        "SLURM",
         "softmax",
         "torchmetrics",
         "torchvision",
