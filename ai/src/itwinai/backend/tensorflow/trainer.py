@@ -20,8 +20,8 @@ class TensorflowTrainer(Trainer):
 
     def train(self, data):
         (train, n_train), (test, n_test) = data
-        train = self.strategy.experimental_distribute_dataset(train)
-        test = self.strategy.experimental_distribute_dataset(test)
+        #train = self.strategy.experimental_distribute_dataset(train)
+        #test = self.strategy.experimental_distribute_dataset(test)
 
         # compute the steps per epoch for train and valid
         train_steps = n_train // self.batch_size
