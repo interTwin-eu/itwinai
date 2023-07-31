@@ -4,9 +4,11 @@ import sys
 import os
 import time
 from typing import Optional
-from itwinai.backend.torch.trainer import TorchDistributedBackend, TorchDistributedStrategy
-import numpy as np
-import random
+from itwinai.backend.torch.trainer import (
+    TorchDistributedBackend,
+    TorchDistributedStrategy
+)
+
 
 # ml libs
 import torch
@@ -20,8 +22,6 @@ from torchvision import datasets, transforms
 from .exmptrainer import Net, train, test
 from .utils import save_state, seed_worker
 from .trainer import TorchTrainer
-
-# parsed settings
 
 
 def pars_ini():
@@ -104,6 +104,9 @@ class MNISTTrainer(TorchTrainer):
 
     def training_step(self, batch, batch_idx):
         # optim = self.optimizers()
+        pass
+
+    def validation_step(self, batch, batch_idx):
         pass
 
 
