@@ -241,7 +241,7 @@ class TorchTrainer(Trainer):
                 validation_dataloader
             )
 
-        self._optimizers = self.configure_optimizers()
+        # self._optimizers = self.configure_optimizers()
 
         self.model.train()
         for _ in range(self.epochs):
