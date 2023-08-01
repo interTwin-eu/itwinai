@@ -1,6 +1,6 @@
 name: tensorflow-env
 channels:
-  - tensorflow-gpu
+  - tensorflow
   - conda-forge
 dependencies:
   - tensorflow-gpu
