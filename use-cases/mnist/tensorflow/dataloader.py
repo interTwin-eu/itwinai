@@ -3,7 +3,7 @@ import tensorflow.keras as keras
 from itwinai.backend.components import DataGetter, DataPreproc
 
 
-class TensorflowDataGetter(DataGetter):
+class MNISTDataGetter(DataGetter):
     def __init__(self):
         pass
 
@@ -18,7 +18,7 @@ class TensorflowDataGetter(DataGetter):
         pass
 
 
-class TensorflowDataPreproc(DataPreproc):
+class MNISTDataPreproc(DataPreproc):
     def __init__(self, classes: int):
         self.classes = classes
 

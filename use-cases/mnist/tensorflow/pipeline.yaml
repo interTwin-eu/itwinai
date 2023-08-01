@@ -1,15 +1,16 @@
 getter:
-  class_path: dataloader.TensorflowDataGetter
+  class_path: dataloader.MNISTDataGetter
 
 preproc:
-  class_path: dataloader.TensorflowDataPreproc
+  class_path: dataloader.MNISTDataPreproc
   init_args:
     classes: 10
 
 trainer:
-  class_path: trainer.TensorflowTrainer
+  class_path: trainer.MNISTTrainer
   init_args:
     epochs: 10
+    batch_size: 16
     loss: {
       class_name: "CategoricalCrossentropy",
       config: {

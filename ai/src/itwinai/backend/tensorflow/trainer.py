@@ -3,8 +3,19 @@ import tensorflow as tf
 
 from ..components import Trainer
 
+
 class TensorflowTrainer(Trainer):
-    def __init__(self, loss, epochs, batch_size, callbacks, optimizer, model_func, metrics_func, strategy=tf.distribute.MirroredStrategy()):
+    def __init__(
+            self,
+            loss,
+            epochs,
+            batch_size,
+            callbacks,
+            optimizer,
+            model_func,
+            metrics_func,
+            strategy=tf.distribute.MirroredStrategy()
+    ):
         self.strategy = strategy
         self.epochs = epochs
         self.batch_size = batch_size
@@ -19,9 +30,19 @@ class TensorflowTrainer(Trainer):
         print(f"Strategy is working with: {strategy.num_replicas_in_sync} devices")
 
     def train(self, data):
-        (train, n_train), (test, n_test) = data
-        #train = self.strategy.experimental_distribute_dataset(train)
-        #test = self.strategy.experimental_distribute_dataset(test)
+        train, test = data
+
+        # Set batch size to the dataset
+        train = train.batch(self.batch_size)
+        test = test.batch(self.batch_size)
+
+        # Extract number of samples for each dataset
+        n_train = train.cardinality().numpy()
+        n_test = test.cardinality().numpy()
+
+        # Distribute dataset
+        train = self.strategy.experimental_distribute_dataset(train)
+        test = self.strategy.experimental_distribute_dataset(test)
 
         # compute the steps per epoch for train and valid
         train_steps = n_train // self.batch_size
