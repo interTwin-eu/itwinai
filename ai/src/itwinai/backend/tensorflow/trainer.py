@@ -31,7 +31,9 @@ class TensorflowTrainer(Trainer):
         else:
             self.model = model_func()
             self.model.compile(loss=self.loss, optimizer=self.optimizer, metrics=metrics_func())
-        print(f"Strategy is working with: {strategy.num_replicas_in_sync} devices")
+
+        num_devices = self.strategy.num_replicas_in_sync if self.strategy else 1
+        print(f"Strategy is working with: {num_devices} devices")
 
     def train(self, data):
         train, test = data
