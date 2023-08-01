@@ -3,7 +3,7 @@ channels:
   - tensorflow
   - conda-forge
 dependencies:
-  - tensorflow
+  - tensorflow-gpu
   - python=3.9.12
   - pip:
       - tfx

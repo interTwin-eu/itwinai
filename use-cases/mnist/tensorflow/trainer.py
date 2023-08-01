@@ -27,7 +27,7 @@ class MNISTTrainer(TensorflowTrainer):
             optimizer=keras.optimizers.get(optimizer),
             model_func=lambda: model,
             metrics_func=lambda: [],
-            strategy=tf.distribute.MirroredStrategy()
+            strategy=None
         )
 
     def train(self, data):

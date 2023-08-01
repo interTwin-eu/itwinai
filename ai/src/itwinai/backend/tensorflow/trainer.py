@@ -14,7 +14,7 @@ class TensorflowTrainer(Trainer):
             optimizer,
             model_func,
             metrics_func,
-            strategy=tf.distribute.MirroredStrategy()
+            strategy
     ):
         self.strategy = strategy
         self.epochs = epochs
@@ -24,7 +24,11 @@ class TensorflowTrainer(Trainer):
         self.optimizer = optimizer
 
         # Create distributed TF vars
-        with self.strategy.scope():
+        if self.strategy:
+            with self.strategy.scope():
+                self.model = model_func()
+                self.model.compile(loss=self.loss, optimizer=self.optimizer, metrics=metrics_func())
+        else:
             self.model = model_func()
             self.model.compile(loss=self.loss, optimizer=self.optimizer, metrics=metrics_func())
         print(f"Strategy is working with: {strategy.num_replicas_in_sync} devices")
@@ -41,8 +45,9 @@ class TensorflowTrainer(Trainer):
         n_test = test.cardinality().numpy()
 
         # Distribute dataset
-        train = self.strategy.experimental_distribute_dataset(train)
-        test = self.strategy.experimental_distribute_dataset(test)
+        if self.strategy:
+            train = self.strategy.experimental_distribute_dataset(train)
+            test = self.strategy.experimental_distribute_dataset(test)
 
         # compute the steps per epoch for train and valid
         train_steps = n_train // self.batch_size
