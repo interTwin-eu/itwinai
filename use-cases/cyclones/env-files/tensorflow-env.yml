@@ -1,9 +1,9 @@
 name: tensorflow-env
 channels:
-  - tensorflow
+  - tensorflow-gpu
   - conda-forge
 dependencies:
-  - tensorflow
+  - tensorflow-gpu
   - python=3.9.12
   - pip:
       - tfx
