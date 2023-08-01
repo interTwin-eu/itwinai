@@ -34,7 +34,7 @@ class MNISTTrainer(TensorflowTrainer):
         super().train(data)
 
     def execute(self, data):
-        self.train(data[0])
+        self.train(data)
 
     def setup(self, args):
         pass
