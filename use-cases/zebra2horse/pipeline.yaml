@@ -37,22 +37,19 @@ trainer:
       gen_F_optimizer: {
         class_name: "Adam",
         config: {
-          learning_rate: 2e-4,
-          beta_1: 0.5
+            learning_rate: 0.001
         }
       }
       disc_X_optimizer: {
         class_name: "Adam",
         config: {
-          learning_rate: 2e-4,
-          beta_1: 0.5
+            learning_rate: 0.001
         }
       }
       disc_Y_optimizer: {
         class_name: "Adam",
         config: {
-          learning_rate: 2e-4,
-          beta_1: 0.5
+            learning_rate: 0.001
         }
       }
     loggers: [
