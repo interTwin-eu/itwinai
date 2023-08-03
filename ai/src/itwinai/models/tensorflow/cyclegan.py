@@ -208,10 +208,10 @@ class Discriminator(keras.Model):
 class CycleGAN(keras.Model):
     def __init__(
             self,
-            generator_G,
-            generator_F,
-            discriminator_X,
-            discriminator_Y,
+            generator_G:keras.Model,
+            generator_F:keras.Model,
+            discriminator_X:keras.Model,
+            discriminator_Y:keras.Model,
             lambda_cycle=10.0,
             lambda_identity=0.5,
     ):

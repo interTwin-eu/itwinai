@@ -3,7 +3,6 @@ import tensorflow.keras as keras
 
 from itwinai.backend.tensorflow.trainer import TensorflowTrainer
 from itwinai.backend.components import Logger
-from itwinai.models.tensorflow.cyclegan import CycleGAN, Generator, Discriminator
 from typing import List
 
 
