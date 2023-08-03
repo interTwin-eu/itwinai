@@ -25,7 +25,7 @@ class MNISTTrainer(TensorflowTrainer):
             batch_size=batch_size,
             callbacks=[],
             optimizer=keras.optimizers.get(optimizer),
-            model_func=lambda: model,
+            model_func=lambda: keras.models.clone_model(model),
             metrics_func=lambda: [],
             strategy=None
         )
