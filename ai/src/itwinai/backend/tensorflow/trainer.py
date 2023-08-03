@@ -7,30 +7,26 @@ from ..components import Trainer
 class TensorflowTrainer(Trainer):
     def __init__(
             self,
-            loss,
             epochs,
             batch_size,
             callbacks,
-            optimizer,
             model_func,
-            metrics_func,
+            compile_conf,
             strategy
     ):
         self.strategy = strategy
         self.epochs = epochs
         self.batch_size = batch_size
-        self.loss = loss
         self.callbacks = callbacks
-        self.optimizer = optimizer
 
         # Create distributed TF vars
         if self.strategy:
             with self.strategy.scope():
                 self.model = model_func()
-                self.model.compile(loss=self.loss, optimizer=self.optimizer, metrics=metrics_func())
+                self.model.compile(compile_conf)
         else:
             self.model = model_func()
-            self.model.compile(loss=self.loss, optimizer=self.optimizer, metrics=metrics_func())
+            self.model.compile()
 
         num_devices = self.strategy.num_replicas_in_sync if self.strategy else 1
         print(f"Strategy is working with: {num_devices} devices")

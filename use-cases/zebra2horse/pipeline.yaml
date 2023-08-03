@@ -1,0 +1,58 @@
+dataloader:
+  class_path: dataloader.Zebra2HorseDataLoader
+  init_args:
+    buffer_size: 100
+
+trainer:
+  class_path: trainer.Zebra2HorseTrainer
+  init_args:
+    epochs: 10
+    batch_size: 16
+    model:
+      class_path: itwinai.models.tensorflow.cyclegan.CycleGAN
+      init_args:
+        generator_G:
+          class_path: itwinai.models.tensorflow.cyclegan.Generator
+          init_args:
+        generator_F:
+          class_path: itwinai.models.tensorflow.cyclegan.Generator
+          init_args:
+        discriminator_X:
+          class_path: itwinai.models.tensorflow.cyclegan.Discriminator
+          init_args:
+        discriminator_Y:
+          class_path: itwinai.models.tensorflow.cyclegan.Discriminator
+          init_args:
+    compile_conf:
+      gen_G_optimizer: {
+        class_name: "Adam",
+        config: {
+            learning_rate: 2e-4,
+            beta_1: 0.5
+        }
+      }
+      gen_F_optimizer: {
+        class_name: "Adam",
+        config: {
+          learning_rate: 2e-4,
+          beta_1: 0.5
+        }
+      }
+      disc_X_optimizer: {
+        class_name: "Adam",
+        config: {
+          learning_rate: 2e-4,
+          beta_1: 0.5
+        }
+      }
+      disc_Y_optimizer: {
+        class_name: "Adam",
+        config: {
+          learning_rate: 2e-4,
+          beta_1: 0.5
+        }
+      }
+    loggers: [
+      class_path: itwinai.backend.tensorflow.loggers.WanDBLogger,
+      class_path: itwinai.backend.tensorflow.loggers.MLFlowLogger
+    ]
