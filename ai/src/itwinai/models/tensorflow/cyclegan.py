@@ -123,14 +123,15 @@ def upsample(
 class Generator(keras.Model):
     def __init__(
             self,
+            name:str,
             filters=64,
             num_downsampling_blocks=2,
             num_residual_blocks=9,
             num_upsample_blocks=2,
             gamma_initializer=keras.initializers.RandomNormal(mean=0.0, stddev=0.02),
-            name=None,
             input_img_size = (256, 256, 3)
     ):
+        super().__init__()
         img_input = layers.Input(shape=input_img_size, name=name + "_img_input")
         x = ReflectionPadding2D(padding=(3, 3))(img_input)
         x = layers.Conv2D(filters, (7, 7), kernel_initializer=keras.initializers.RandomNormal(mean=0.0, stddev=0.02), use_bias=False)(
@@ -165,7 +166,8 @@ class Generator(keras.Model):
 
 
 class Discriminator(keras.Model):
-    def __init__(self, filters=64, kernel_initializer=keras.initializers.RandomNormal(mean=0.0, stddev=0.02), num_downsampling=3, name=None, input_img_size = (256, 256, 3)):
+    def __init__(self, name:str, filters=64, kernel_initializer=keras.initializers.RandomNormal(mean=0.0, stddev=0.02), num_downsampling=3, input_img_size = (256, 256, 3)):
+        super().__init__()
         img_input = layers.Input(shape=input_img_size, name=name + "_img_input")
         x = layers.Conv2D(
             filters,

@@ -7,24 +7,24 @@ trainer:
   class_path: trainer.Zebra2HorseTrainer
   init_args:
     epochs: 10
-    batch_size: 16
+    batch_size: 1
     model:
-      class_path: tmp.CycleGAN
+      class_path: itwinai.models.tensorflow.cyclegan.CycleGAN
       init_args:
         generator_G:
-          class_path: tmp.Generator
+          class_path: itwinai.models.tensorflow.cyclegan.Generator
           init_args:
             name: generator_G
         generator_F:
-          class_path: tmp.Generator
+          class_path: itwinai.models.tensorflow.cyclegan.Generator
           init_args:
             name: generator_F
         discriminator_X:
-          class_path: tmp.Discriminator
+          class_path: itwinai.models.tensorflow.cyclegan.Discriminator
           init_args:
             name: discriminator_X
         discriminator_Y:
-          class_path: tmp.Discriminator
+          class_path: itwinai.models.tensorflow.cyclegan.Discriminator
           init_args:
             name: discriminator_Y
     compile_conf:

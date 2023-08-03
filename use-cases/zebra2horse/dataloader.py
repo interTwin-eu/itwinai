@@ -8,7 +8,6 @@ from itwinai.backend.components import DataGetter, DataPreproc
 class Zebra2HorseDataLoader(DataGetter):
     def __init__(self, buffer_size:int):
         self.buffer_size = buffer_size
-        self.batch_size = 1
 
     def load(self):
         # Load the horse-zebra dataset using tensorflow-datasets.
@@ -47,13 +46,11 @@ class Zebra2HorseDataLoader(DataGetter):
             train_horses.map(preproc_train_fn, num_parallel_calls=tf.data.AUTOTUNE)
             .cache()
             .shuffle(self.buffer_size)
-            .batch(self.batch_size)
         )
         train_zebras = (
             train_zebras.map(preproc_train_fn, num_parallel_calls=tf.data.AUTOTUNE)
             .cache()
             .shuffle(self.buffer_size)
-            .batch(self.batch_size)
         )
 
         # Apply the preprocessing operations to the test data
@@ -61,13 +58,11 @@ class Zebra2HorseDataLoader(DataGetter):
             test_horses.map(preproc_test_fn, num_parallel_calls=tf.data.AUTOTUNE)
             .cache()
             .shuffle(self.buffer_size)
-            .batch(self.batch_size)
         )
         test_zebras = (
             test_zebras.map(preproc_test_fn, num_parallel_calls=tf.data.AUTOTUNE)
             .cache()
             .shuffle(self.buffer_size)
-            .batch(self.batch_size)
         )
 
         return tf.data.Dataset.zip((train_horses, train_zebras)), tf.data.Dataset.zip((test_horses, test_zebras))
