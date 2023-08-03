@@ -1,4 +1,4 @@
-dataloader:
+loader:
   class_path: dataloader.Zebra2HorseDataLoader
   init_args:
     buffer_size: 100
@@ -9,26 +9,29 @@ trainer:
     epochs: 10
     batch_size: 16
     model:
-      class_path: itwinai.models.tensorflow.cyclegan.CycleGAN
+      class_path: tmp.CycleGAN
       init_args:
         generator_G:
-          class_path: itwinai.models.tensorflow.cyclegan.Generator
+          class_path: tmp.Generator
           init_args:
+            name: generator_G
         generator_F:
-          class_path: itwinai.models.tensorflow.cyclegan.Generator
+          class_path: tmp.Generator
           init_args:
+            name: generator_F
         discriminator_X:
-          class_path: itwinai.models.tensorflow.cyclegan.Discriminator
+          class_path: tmp.Discriminator
           init_args:
+            name: discriminator_X
         discriminator_Y:
-          class_path: itwinai.models.tensorflow.cyclegan.Discriminator
+          class_path: tmp.Discriminator
           init_args:
+            name: discriminator_Y
     compile_conf:
       gen_G_optimizer: {
         class_name: "Adam",
         config: {
-            learning_rate: 2e-4,
-            beta_1: 0.5
+            learning_rate: 0.001
         }
       }
       gen_F_optimizer: {

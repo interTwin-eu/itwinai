@@ -18,11 +18,15 @@ class Zebra2HorseTrainer(TensorflowTrainer):
         # Configurable
         self.loggers = loggers
 
+        # Parse down the optimizers
+        for key in compile_conf.keys():
+            compile_conf[key] = keras.optimizers.get(compile_conf[key])
+
         super().__init__(
             epochs=epochs,
             batch_size=batch_size,
             callbacks=[],
-            model_func=lambda: keras.models.clone_model(model),
+            model_func=lambda: model, #keras.models.clone_model(model),
             compile_conf=compile_conf,
             strategy=None
         )

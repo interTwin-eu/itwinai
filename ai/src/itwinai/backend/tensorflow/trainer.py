@@ -26,7 +26,7 @@ class TensorflowTrainer(Trainer):
                 self.model.compile(compile_conf)
         else:
             self.model = model_func()
-            self.model.compile()
+            self.model.compile(compile_conf)
 
         num_devices = self.strategy.num_replicas_in_sync if self.strategy else 1
         print(f"Strategy is working with: {num_devices} devices")
