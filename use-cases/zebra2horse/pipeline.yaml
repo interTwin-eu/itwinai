@@ -13,20 +13,12 @@ trainer:
       init_args:
         generator_G:
           class_path: itwinai.models.tensorflow.cyclegan.Generator
-          init_args:
-            name: generator_G
         generator_F:
           class_path: itwinai.models.tensorflow.cyclegan.Generator
-          init_args:
-            name: generator_F
         discriminator_X:
           class_path: itwinai.models.tensorflow.cyclegan.Discriminator
-          init_args:
-            name: discriminator_X
         discriminator_Y:
           class_path: itwinai.models.tensorflow.cyclegan.Discriminator
-          init_args:
-            name: discriminator_Y
     compile_conf:
       gen_G_optimizer: {
         class_name: "Adam",

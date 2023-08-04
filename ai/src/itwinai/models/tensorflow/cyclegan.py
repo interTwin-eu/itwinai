@@ -30,6 +30,13 @@ class ReflectionPadding2D(layers.Layer):
         ]
         return tf.pad(input_tensor, padding_tensor, mode="REFLECT")
 
+    def get_config(self):
+        config = super().get_config().copy()
+        config.update({
+            'padding': self.padding,
+        })
+        return config
+
 
 def residual_block(
         x,
@@ -123,7 +130,6 @@ def upsample(
 class Generator(keras.Model):
     def __init__(
             self,
-            name:str,
             filters=64,
             num_downsampling_blocks=2,
             num_residual_blocks=9,
@@ -132,6 +138,16 @@ class Generator(keras.Model):
             input_img_size = (256, 256, 3)
     ):
         super().__init__()
+
+        name = 'gen'
+
+        self.filters = filters
+        self.num_downsampling_blocks = num_downsampling_blocks
+        self.num_residual_blocks = num_residual_blocks
+        self.num_upsample_blocks = num_upsample_blocks
+        self.gamma_initializer = gamma_initializer
+        self.input_img_size = input_img_size
+
         img_input = layers.Input(shape=input_img_size, name=name + "_img_input")
         x = ReflectionPadding2D(padding=(3, 3))(img_input)
         x = layers.Conv2D(filters, (7, 7), kernel_initializer=keras.initializers.RandomNormal(mean=0.0, stddev=0.02), use_bias=False)(
@@ -164,10 +180,34 @@ class Generator(keras.Model):
     def call(self, inputs, training=False):
         return self.model(inputs)
 
+    def get_config(self):
+        config = super().get_config().copy()
+        config.update({
+            'filters': self.filters,
+            'num_downsampling_blocks': self.num_downsampling_blocks,
+            'num_residual_blocks': self.num_residual_blocks,
+            'num_upsample_blocks': self.num_upsample_blocks,
+            'gamma_initializer': self.gamma_initializer,
+            'input_img_size': self.input_img_size,
+        })
+        return config
 
 class Discriminator(keras.Model):
-    def __init__(self, name:str, filters=64, kernel_initializer=keras.initializers.RandomNormal(mean=0.0, stddev=0.02), num_downsampling=3, input_img_size = (256, 256, 3)):
+    def __init__(
+            self,
+            filters=64,
+            kernel_initializer=keras.initializers.RandomNormal(mean=0.0, stddev=0.02),
+            num_downsampling=3,
+            input_img_size = (256, 256, 3)
+    ):
         super().__init__()
+
+        name = 'disc'
+        self.filters = filters
+        self.kernel_initializer = kernel_initializer
+        self.num_downsampling = num_downsampling
+        self.input_img_size = input_img_size
+
         img_input = layers.Input(shape=input_img_size, name=name + "_img_input")
         x = layers.Conv2D(
             filters,
@@ -205,6 +245,16 @@ class Discriminator(keras.Model):
 
     def call(self, inputs, training=False):
         return self.model(inputs)
+
+    def get_config(self):
+        config = super().get_config().copy()
+        config.update({
+            'filters': self.filters,
+            'kernel_initializer': self.kernel_initializer,
+            'num_downsampling': self.num_downsampling,
+            'input_img_size': self.input_img_size,
+        })
+        return config
 
 
 class CycleGAN(keras.Model):
@@ -352,3 +402,15 @@ class CycleGAN(keras.Model):
             "D_X_loss": disc_X_loss,
             "D_Y_loss": disc_Y_loss,
         }
+
+    def get_config(self):
+        config = super().get_config().copy()
+        config.update({
+            'generator_G': self.gen_G,
+            'generator_F': self.gen_F,
+            'discriminator_X': self.disc_X,
+            'discriminator_Y': self.disc_Y,
+            'lambda_cycle': self.lambda_cycle,
+            'lambda_identity': self.lambda_identity,
+        })
+        return config

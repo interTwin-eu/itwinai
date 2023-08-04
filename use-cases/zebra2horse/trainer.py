@@ -26,9 +26,9 @@ class Zebra2HorseTrainer(TensorflowTrainer):
             epochs=epochs,
             batch_size=batch_size,
             callbacks=[],
-            model_func=lambda: model, #keras.models.clone_model(model),
+            model_func=lambda: keras.models.clone_model(model),
             compile_conf=compile_conf,
-            strategy=None
+            strategy=tf.distribute.MirroredStrategy()
         )
 
     def train(self, data):
