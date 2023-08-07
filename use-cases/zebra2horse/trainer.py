@@ -12,7 +12,7 @@ class Zebra2HorseTrainer(TensorflowTrainer):
             epochs: int,
             batch_size: int,
             compile_conf: dict,
-            model: keras.Model,
+            model: dict,
             loggers: List[Logger],
     ):
         # Configurable
@@ -22,11 +22,13 @@ class Zebra2HorseTrainer(TensorflowTrainer):
         for key in compile_conf.keys():
             compile_conf[key] = keras.optimizers.get(compile_conf[key])
 
+        print(model)
+
         super().__init__(
             epochs=epochs,
             batch_size=batch_size,
             callbacks=[],
-            model_func=lambda: keras.models.clone_model(model),
+            model_dict=model,
             compile_conf=compile_conf,
             strategy=tf.distribute.MirroredStrategy()
         )

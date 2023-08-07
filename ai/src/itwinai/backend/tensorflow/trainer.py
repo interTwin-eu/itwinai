@@ -1,7 +1,18 @@
 import logging
+import importlib
 import tensorflow as tf
+import argparse
 
+from jsonargparse import ArgumentParser
 from ..components import Trainer
+from itwinai.models.tensorflow.cyclegan import CycleGAN
+
+def import_class(name):
+    components = name.split('.')
+    mod = __import__(components[0])
+    for comp in components[1:]:
+        mod = getattr(mod, comp)
+    return mod
 
 
 class TensorflowTrainer(Trainer):
@@ -10,7 +21,7 @@ class TensorflowTrainer(Trainer):
             epochs,
             batch_size,
             callbacks,
-            model_func,
+            model_dict,
             compile_conf,
             strategy
     ):
@@ -19,13 +30,19 @@ class TensorflowTrainer(Trainer):
         self.batch_size = batch_size
         self.callbacks = callbacks
 
+        # Handle the parsing
+        model_class = import_class(model_dict["class_path"])
+        parser = ArgumentParser()
+        parser.add_subclass_arguments(model_class, "model")
+        model_dict = {"model": model_dict}
+
         # Create distributed TF vars
         if self.strategy:
             with self.strategy.scope():
-                self.model = model_func()
+                self.model = parser.instantiate_classes(model_dict).model
                 self.model.compile(compile_conf)
         else:
-            self.model = model_func()
+            self.model = parser.instantiate_classes(model_dict).model
             self.model.compile(compile_conf)
 
         num_devices = self.strategy.num_replicas_in_sync if self.strategy else 1
