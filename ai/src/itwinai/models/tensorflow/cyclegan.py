@@ -403,6 +403,9 @@ class CycleGAN(keras.Model):
             "D_Y_loss": disc_Y_loss,
         }
 
+    def call(self, inputs):
+        return self.gen_G(inputs, training=False)
+
     def get_config(self):
         config = super().get_config().copy()
         config.update({

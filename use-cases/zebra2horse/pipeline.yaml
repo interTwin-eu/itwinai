@@ -7,7 +7,7 @@ trainer:
   class_path: trainer.Zebra2HorseTrainer
   init_args:
     epochs: 10
-    batch_size: 1
+    batch_size: 4
     model:
       class_path: itwinai.models.tensorflow.cyclegan.CycleGAN
       init_args:
