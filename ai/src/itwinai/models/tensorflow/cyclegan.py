@@ -284,7 +284,7 @@ class CycleGAN(keras.Model):
 
         # TODO: Define losses in config file
         # Loss function for evaluating adversarial loss
-        adv_loss_fn = keras.losses.MeanSquaredError(reduction=tf.keras.losses.Reduction.SUM)
+        adv_loss_fn = keras.losses.MeanSquaredError(reduction=tf.keras.losses.Reduction.SUM_OVER_BATCH_SIZE)
 
         # Define the loss function for the generators
         def generator_loss_fn(fake):
@@ -300,8 +300,8 @@ class CycleGAN(keras.Model):
         self.generator_loss_fn = generator_loss_fn
         self.discriminator_loss_fn = discriminator_loss_fn
 
-        self.cycle_loss_fn = keras.losses.MeanAbsoluteError(reduction=tf.keras.losses.Reduction.SUM)
-        self.identity_loss_fn = keras.losses.MeanAbsoluteError(reduction=tf.keras.losses.Reduction.SUM)
+        self.cycle_loss_fn = keras.losses.MeanAbsoluteError(reduction=tf.keras.losses.Reduction.SUM_OVER_BATCH_SIZE)
+        self.identity_loss_fn = keras.losses.MeanAbsoluteError(reduction=tf.keras.losses.Reduction.SUM_OVER_BATCH_SIZE)
 
     def train_step(self, batch_data):
         # x is Horse and y is zebra

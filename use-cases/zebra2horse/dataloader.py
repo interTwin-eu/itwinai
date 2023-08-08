@@ -45,24 +45,24 @@ class Zebra2HorseDataLoader(DataGetter):
         train_horses = (
             train_horses.map(preproc_train_fn, num_parallel_calls=tf.data.AUTOTUNE)
             .shuffle(self.buffer_size)
-            .cache()
+            #.cache()
         )
         train_zebras = (
             train_zebras.map(preproc_train_fn, num_parallel_calls=tf.data.AUTOTUNE)
             .shuffle(self.buffer_size)
-            .cache()
+            #.cache()
         )
 
         # Apply the preprocessing operations to the test data
         test_horses = (
             test_horses.map(preproc_test_fn, num_parallel_calls=tf.data.AUTOTUNE)
             .shuffle(self.buffer_size)
-            .cache()
+            #.cache()
         )
         test_zebras = (
             test_zebras.map(preproc_test_fn, num_parallel_calls=tf.data.AUTOTUNE)
             .shuffle(self.buffer_size)
-            .cache()
+            #.cache()
         )
 
         return tf.data.Dataset.zip((train_horses, train_zebras)), tf.data.Dataset.zip((test_horses, test_zebras))
