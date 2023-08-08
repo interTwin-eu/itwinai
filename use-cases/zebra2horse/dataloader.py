@@ -41,24 +41,28 @@ class Zebra2HorseDataLoader(DataGetter):
             img = normalize_img(img)
             return img
 
+        # TODO: Add shuffle?
         # Apply the preprocessing operations to the training data
         train_horses = (
             train_horses.map(preproc_train_fn, num_parallel_calls=tf.data.AUTOTUNE)
+            .cache()
         )
         train_zebras = (
             train_zebras.map(preproc_train_fn, num_parallel_calls=tf.data.AUTOTUNE)
+            .cache()
         )
 
         # Apply the preprocessing operations to the test data
         test_horses = (
             test_horses.map(preproc_test_fn, num_parallel_calls=tf.data.AUTOTUNE)
+            .cache()
         )
         test_zebras = (
             test_zebras.map(preproc_test_fn, num_parallel_calls=tf.data.AUTOTUNE)
+            .cache()
         )
 
-        return (tf.data.Dataset.zip((train_horses, train_zebras)).cache().shuffle(self.buffer_size),
-                tf.data.Dataset.zip((test_horses, test_zebras)).cache().shuffle(self.buffer_size))
+        return tf.data.Dataset.zip((train_horses, train_zebras)).cache().shuffle(), tf.data.Dataset.zip((test_horses, test_zebras))
 
     def execute(self, args):
         train, test = self.load()
