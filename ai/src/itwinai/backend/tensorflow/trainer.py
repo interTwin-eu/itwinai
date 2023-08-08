@@ -49,31 +49,22 @@ class TensorflowTrainer(Trainer):
         print(f"Strategy is working with: {num_devices} devices")
 
     def train(self, data):
+        # TODO: Batch_per_worker? Validation_steps? Train_steps?
         train, test = data
 
         # Set batch size to the dataset
         train = train.batch(self.batch_size)
         test = test.batch(self.batch_size)
 
-        # Extract number of samples for each dataset
-        n_train = train.cardinality().numpy()
-        n_test = test.cardinality().numpy()
-
         # Distribute dataset
         if self.strategy:
             train = self.strategy.experimental_distribute_dataset(train)
             test = self.strategy.experimental_distribute_dataset(test)
 
-        # compute the steps per epoch for train and valid
-        train_steps = n_train // self.batch_size
-        test_steps = n_test // self.batch_size
-
         # train the model
         self.model.fit(
             train,
             validation_data=test,
-            steps_per_epoch=train_steps,
-            validation_steps=test_steps,
             epochs=self.epochs,
             callbacks=self.callbacks,
         )
