@@ -404,6 +404,7 @@ class CycleGAN(keras.Model):
         }
 
     def call(self, inputs):
+        # TODO: Fix validation loss, how?
         return self.gen_G(inputs, training=False)
 
     def get_config(self):
