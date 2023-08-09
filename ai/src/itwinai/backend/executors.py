@@ -45,7 +45,7 @@ class RayExecutor(Executor):
             self.pipeline = yaml.safe_load(f)
 
         # Init ray
-        ray.init(ignore_reinit_error=True)
+        ray.init(address='auto', ignore_reinit_error=True)
         print('Ray is initialized')
 
     def worker_fn(self, config, pipeline, class_dict):
