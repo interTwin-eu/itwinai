@@ -403,6 +403,65 @@ class CycleGAN(keras.Model):
             "D_Y_loss": disc_Y_loss,
         }
 
+    def test_step(self, inputs):
+        real_x, real_y = inputs
+
+        # Horse to fake zebra
+        fake_y = self.gen_G(real_x, training=False)
+        # Zebra to fake horse -> y2x
+        fake_x = self.gen_F(real_y, training=False)
+
+        # Cycle (Horse to fake zebra to fake horse): x -> y -> x
+        cycled_x = self.gen_F(fake_y, training=False)
+        # Cycle (Zebra to fake horse to fake zebra) y -> x -> y
+        cycled_y = self.gen_G(fake_x, training=False)
+
+        # Identity mapping
+        same_x = self.gen_F(real_x, training=False)
+        same_y = self.gen_G(real_y, training=False)
+
+        # Discriminator output
+        disc_real_x = self.disc_X(real_x, training=False)
+        disc_fake_x = self.disc_X(fake_x, training=False)
+
+        disc_real_y = self.disc_Y(real_y, training=False)
+        disc_fake_y = self.disc_Y(fake_y, training=False)
+
+        # Generator adversarial loss
+        gen_G_loss = self.generator_loss_fn(disc_fake_y)
+        gen_F_loss = self.generator_loss_fn(disc_fake_x)
+
+        # Generator cycle loss
+        cycle_loss_G = self.cycle_loss_fn(real_y, cycled_y) * self.lambda_cycle
+        cycle_loss_F = self.cycle_loss_fn(real_x, cycled_x) * self.lambda_cycle
+
+        # Generator identity loss
+        id_loss_G = (
+                self.identity_loss_fn(real_y, same_y)
+                * self.lambda_cycle
+                * self.lambda_identity
+        )
+        id_loss_F = (
+                self.identity_loss_fn(real_x, same_x)
+                * self.lambda_cycle
+                * self.lambda_identity
+        )
+
+        # Total generator loss
+        total_loss_G = gen_G_loss + cycle_loss_G + id_loss_G
+        total_loss_F = gen_F_loss + cycle_loss_F + id_loss_F
+
+        # Discriminator loss
+        disc_X_loss = self.discriminator_loss_fn(disc_real_x, disc_fake_x)
+        disc_Y_loss = self.discriminator_loss_fn(disc_real_y, disc_fake_y)
+
+        return {
+            "G_loss": total_loss_G,
+            "F_loss": total_loss_F,
+            "D_X_loss": disc_X_loss,
+            "D_Y_loss": disc_Y_loss,
+        }
+
     def call(self, inputs):
         # TODO: Fix validation loss, how?
         return self.gen_G(inputs, training=False)

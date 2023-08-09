@@ -52,10 +52,6 @@ class TensorflowTrainer(Trainer):
         # TODO: Batch_per_worker? Validation_steps? Train_steps?
         train, test = data
 
-        # Number of samples
-        n_train = train.cardinality().numpy()
-        n_test = test.cardinality().numpy()
-
         # Set batch size to the dataset
         train = train.batch(self.batch_size * self.num_devices, drop_remainder=True)
         test = test.batch(self.batch_size * self.num_devices, drop_remainder=True)
@@ -64,6 +60,10 @@ class TensorflowTrainer(Trainer):
         if self.strategy:
             train = self.strategy.experimental_distribute_dataset(train)
             test = self.strategy.experimental_distribute_dataset(test)
+
+        # Number of samples
+        n_train = train.cardinality().numpy()
+        n_test = test.cardinality().numpy()
 
         # train the model
         self.model.fit(
