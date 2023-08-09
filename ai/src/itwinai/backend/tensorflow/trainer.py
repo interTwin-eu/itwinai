@@ -57,9 +57,9 @@ class TensorflowTrainer(Trainer):
         test = test.batch(self.batch_size)
 
         # Distribute dataset
-        if self.strategy:
-            train = self.strategy.experimental_distribute_dataset(train)
-            test = self.strategy.experimental_distribute_dataset(test)
+        # if self.strategy:
+        #     train = self.strategy.experimental_distribute_dataset(train)
+        #     test = self.strategy.experimental_distribute_dataset(test)
 
         # train the model
         self.model.fit(

@@ -62,7 +62,8 @@ class Zebra2HorseDataLoader(DataGetter):
             .cache()
         )
 
-        return tf.data.Dataset.zip((train_horses, train_zebras)).cache().shuffle(), tf.data.Dataset.zip((test_horses, test_zebras))
+        return (tf.data.Dataset.zip((train_horses, train_zebras)).shuffle(self.buffer_size),
+                tf.data.Dataset.zip((test_horses, test_zebras)).shuffle(self.buffer_size))
 
     def execute(self, args):
         train, test = self.load()
