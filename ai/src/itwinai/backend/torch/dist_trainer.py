@@ -32,13 +32,13 @@ def pars_ini():
     # IO parsers
     parser.add_argument('--data-dir', default='./',
                         help='location of the training dataset in the local filesystem')
-    # parser.add_argument('--restart-int', type=int, default=10,
-    #                     help='restart interval per epoch (default: 10)')
+    parser.add_argument('--restart-int', type=int, default=1,
+                        help='restart interval per epoch (default: 10)')
 
     # model parsers
     parser.add_argument('--batch-size', type=int, default=64,
                         help='input batch size for training (default: 64)')
-    parser.add_argument('--epochs', type=int, default=1,
+    parser.add_argument('--epochs', type=int, default=10,
                         help='number of epochs to train (default: 10)')
     parser.add_argument('--lr', type=float, default=0.01,
                         help='learning rate (default: 0.01)')
@@ -90,7 +90,7 @@ def save_state(epoch, distrib_model, loss_acc, optimizer, res_name, grank, gwsiz
             # collect state
             state = {'epoch': epoch + 1,
                      'state_dict': distrib_model.state_dict(),
-                     'best_acc': loss_acc,
+                     'best_loss': loss_acc,
                      'optimizer': optimizer.state_dict()}
 
             # write on worker with is_best
@@ -102,7 +102,7 @@ def save_state(epoch, distrib_model, loss_acc, optimizer, res_name, grank, gwsiz
         # collect state
         state = {'epoch': epoch + 1,
                  'state_dict': distrib_model.state_dict(),
-                 'best_acc': loss_acc,
+                 'best_loss': loss_acc,
                  'optimizer': optimizer.state_dict()}
 
         torch.save(state, './'+res_name)
@@ -124,6 +124,7 @@ def seed_worker(worker_id):
 def par_allgather_obj(obj, gwsize):
     res = [None]*gwsize
     dist.all_gather_object(res, obj, group=None)
+    print(f'ALLGATHER: {res}')
     return res
 #
 #
@@ -283,7 +284,7 @@ def main():
 
 # resume state
     start_epoch = 1
-    best_acc = np.Inf
+    best_loss = np.Inf
     res_name = 'checkpoint.pth.tar'
     if os.path.isfile(res_name) and not args.benchrun:
         try:
@@ -297,7 +298,7 @@ def main():
             else:
                 checkpoint = torch.load(program_dir+'/'+res_name)
             start_epoch = checkpoint['epoch']
-            best_acc = checkpoint['best_acc']
+            best_loss = checkpoint['best_loss']
             distrib_model.load_state_dict(checkpoint['state_dict'])
             optimizer.load_state_dict(checkpoint['optimizer'])
             if torch.cuda.is_available():
@@ -313,7 +314,7 @@ def main():
                 print(f'WARNING: restart file cannot be loaded, restarting!')
 
     if start_epoch >= args.epochs+1:
-        if args.cuda.is_available():
+        if torch.cuda.is_available():
             if grank == 0:
                 print(f'WARNING: given epochs are less than the one in the restart file!\n'
                       f'WARNING: SYS.EXIT is issued')
@@ -367,12 +368,12 @@ def main():
                     sort_by='self_'+str(what1)+'_time_total'))
 
         # save state if found a better state
-        is_best = loss_acc < best_acc
+        is_best = loss_acc < best_loss
         if epoch % args.restart_int == 0 and not args.benchrun:
             save_state(epoch, distrib_model, loss_acc, optimizer,
                        res_name, grank, gwsize, is_best)
             # reset best_acc
-            best_acc = min(loss_acc, best_acc)
+            best_loss = min(loss_acc, best_loss)
 
 # finalise
     # save final state
