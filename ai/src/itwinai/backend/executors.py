@@ -1,4 +1,5 @@
 import yaml
+import ray
 
 from .components import Executor
 from jsonargparse import ArgumentParser
@@ -39,6 +40,9 @@ class RayExecutor(Executor):
         self.pipeline = pipeline
         self.class_dict = class_dict
         self.param_space = param_space
+
+        # Init ray
+        ray.init()
 
     def worker_fn(self, config, pipeline, class_dict):
         # Should have same structure pipe and params
