@@ -45,26 +45,28 @@ class TensorflowTrainer(Trainer):
             self.model = parser.instantiate_classes(model_dict).model
             self.model.compile(compile_conf)
 
-        num_devices = self.strategy.num_replicas_in_sync if self.strategy else 1
-        print(f"Strategy is working with: {num_devices} devices")
+        self.num_devices = self.strategy.num_replicas_in_sync if self.strategy else 1
+        print(f"Strategy is working with: {self.num_devices} devices")
 
     def train(self, data):
         # TODO: Batch_per_worker? Validation_steps? Train_steps?
         train, test = data
 
         # Set batch size to the dataset
-        train = train.batch(self.batch_size)
-        test = test.batch(self.batch_size)
+        train = train.batch(self.batch_size * self.num_devices, drop_remainder=True)
+        test = test.batch(self.batch_size * self.num_devices, drop_remainder=True)
 
         # Distribute dataset
-        # if self.strategy:
-        #     train = self.strategy.experimental_distribute_dataset(train)
-        #     test = self.strategy.experimental_distribute_dataset(test)
+        if self.strategy:
+            train = self.strategy.experimental_distribute_dataset(train)
+            test = self.strategy.experimental_distribute_dataset(test)
 
         # train the model
         self.model.fit(
             train,
             validation_data=test,
+            steps_per_epoch=int(len(train) // self.batch_size),
+            validation_steps=int(len(test) // self.batch_size),
             epochs=self.epochs,
             callbacks=self.callbacks,
         )
