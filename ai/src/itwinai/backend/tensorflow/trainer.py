@@ -56,14 +56,14 @@ class TensorflowTrainer(Trainer):
         train = train.batch(self.batch_size * self.num_devices, drop_remainder=True)
         test = test.batch(self.batch_size * self.num_devices, drop_remainder=True)
 
+        # Number of samples
+        n_train = train.cardinality().numpy()
+        n_test = test.cardinality().numpy()
+
         # Distribute dataset
         if self.strategy:
             train = self.strategy.experimental_distribute_dataset(train)
             test = self.strategy.experimental_distribute_dataset(test)
-
-        # Number of samples
-        n_train = train.cardinality().numpy()
-        n_test = test.cardinality().numpy()
 
         # train the model
         self.model.fit(
