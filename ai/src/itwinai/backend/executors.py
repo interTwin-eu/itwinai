@@ -45,25 +45,28 @@ class RayExecutor(Executor):
         ray.init()
 
     def worker_fn(self, config, pipeline, class_dict):
+        print('Worker fn')
         # Should have same structure pipe and params
-        def replace(pipe, params):
-            for param in params:
-                if type(pipe[param]) != dict:
-                    pipe[param] = params[param]
-                else:
-                    replace(pipe[param], params[param])
-            return pipe
-
-        template = pipeline
-        with open(template, 'r') as f:
-            doc = yaml.safe_load(f)
-        doc = replace(doc, config)
-
-        executor = LocalExecutor(doc, class_dict)
-        executor.setup(None)
-        executor.execute(None)
+        # def replace(pipe, params):
+        #     for param in params:
+        #         if type(pipe[param]) != dict:
+        #             pipe[param] = params[param]
+        #         else:
+        #             replace(pipe[param], params[param])
+        #     return pipe
+        #
+        # template = pipeline
+        # with open(template, 'r') as f:
+        #     doc = yaml.safe_load(f)
+        # doc = replace(doc, config)
+        #
+        # executor = LocalExecutor(doc, class_dict)
+        # executor.setup(None)
+        # executor.execute(None)
+        return {"test": 1}
 
     def execute(self, args):
+        print('Execute')
         tuner = tune.Tuner(
             trainable=tune.with_parameters(self.worker_fn, pipeline=self.pipeline, class_dict=self.class_dict),
             param_space=self.param_space,
