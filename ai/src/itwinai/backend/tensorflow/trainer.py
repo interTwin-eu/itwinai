@@ -53,8 +53,8 @@ class TensorflowTrainer(Trainer):
         train, test = data
 
         # Set batch size to the dataset
-        train = train.batch(self.batch_size * self.num_devices, drop_remainder=True).repeat()
-        test = test.batch(self.batch_size * self.num_devices, drop_remainder=True).repeat()
+        train = train.batch(self.batch_size * self.num_devices, drop_remainder=True)
+        test = test.batch(self.batch_size * self.num_devices, drop_remainder=True)
 
         # Number of samples
         n_train = train.cardinality().numpy()
