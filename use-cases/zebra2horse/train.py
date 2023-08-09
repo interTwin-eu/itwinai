@@ -20,6 +20,7 @@ if __name__ == "__main__":
         "trainer": {
             "init_args": {
                 "batch_size": tune.randint(32, 512),
+                "epochs": tune.randint(2, 10)
             }
         }
     })
