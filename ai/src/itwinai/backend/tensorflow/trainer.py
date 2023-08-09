@@ -66,7 +66,7 @@ class TensorflowTrainer(Trainer):
             test = self.strategy.experimental_distribute_dataset(test)
 
         # train the model
-        self.model.fit(
+        history = self.model.fit(
             train,
             validation_data=test,
             steps_per_epoch=int(n_train // self.num_devices),
@@ -76,6 +76,7 @@ class TensorflowTrainer(Trainer):
         )
 
         logging.debug(f"Model trained")
+        return history
 
     # Executable
     def execute(self, args):

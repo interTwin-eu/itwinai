@@ -37,12 +37,15 @@ class LocalExecutor(Executor):
 
 class RayExecutor(Executor):
     def __init__(self, pipeline, class_dict, param_space):
-        self.pipeline = pipeline
         self.class_dict = class_dict
         self.param_space = param_space
 
+        # Read pipeline as yaml
+        with open(pipeline, 'r') as f:
+            self.pipeline = yaml.safe_load(f)
+
         # Init ray
-        ray.init(ignore_reinit_error=True, num_gpus=2)
+        ray.init(ignore_reinit_error=True)
         print('Ray is initialized')
 
     def worker_fn(self, config, pipeline, class_dict):
@@ -55,10 +58,7 @@ class RayExecutor(Executor):
                     replace(pipe[param], params[param])
             return pipe
 
-        template = pipeline
-        with open(template, 'r') as f:
-            doc = yaml.safe_load(f)
-        doc = replace(doc, config)
+        doc = replace(pipeline, config)
 
         executor = LocalExecutor(doc, class_dict)
         executor.setup(None)
