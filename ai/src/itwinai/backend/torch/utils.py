@@ -1,6 +1,4 @@
 # std libs
-import sys
-import os
 import time
 import numpy as np
 import random
@@ -8,14 +6,12 @@ import random
 # ml libs
 import torch
 import torch.distributed as dist
-import torch.nn as nn
-import torch.nn.functional as F
-import torch.optim as optim
-from torchvision import datasets, transforms
 
 
-def save_state(epoch, distrib_model, loss_acc, optimizer, res_name, grank, gwsize, is_best):
-    """save state of the training"""
+def save_state(
+    epoch, distrib_model, loss_val, optimizer, res_name, grank, gwsize, is_best
+):
+    """Save training state"""
     rt = time.time()
     # find if is_best happened in any worker
     if torch.cuda.is_available():
@@ -24,29 +20,30 @@ def save_state(epoch, distrib_model, loss_acc, optimizer, res_name, grank, gwsiz
     if torch.cuda.is_available():
         if any(is_best_m):
             # find which rank is_best happened - select first rank if multiple
-            is_best_rank = np.where(np.array(is_best_m) == True)[0][0]
+            is_best_rank = np.where(np.array(is_best_m))[0][0]
 
             # collect state
             state = {'epoch': epoch + 1,
                      'state_dict': distrib_model.state_dict(),
-                     'best_acc': loss_acc,
+                     'best_loss': loss_val,
                      'optimizer': optimizer.state_dict()}
 
             # write on worker with is_best
             if grank == is_best_rank:
                 torch.save(state, './'+res_name)
-                print(
-                    f'DEBUG: state in {grank} is saved on epoch:{epoch} in {time.time()-rt} s')
+                print(f'DEBUG: state in {grank} is saved on '
+                      f'epoch:{epoch} in {time.time()-rt} s')
     else:
         # collect state
         state = {'epoch': epoch + 1,
                  'state_dict': distrib_model.state_dict(),
-                 'best_acc': loss_acc,
+                 'best_loss': loss_val,
                  'optimizer': optimizer.state_dict()}
 
         torch.save(state, './'+res_name)
         print(
-            f'DEBUG: state in {grank} is saved on epoch:{epoch} in {time.time()-rt} s')
+            f'DEBUG: state in {grank} is saved on epoch:{epoch} '
+            f'in {time.time()-rt} s')
 
 
 def seed_worker(worker_id):
@@ -60,4 +57,5 @@ def par_allgather_obj(obj, gwsize):
     """gathers any object from the whole group in a list (to all workers)"""
     res = [None]*gwsize
     dist.all_gather_object(res, obj, group=None)
+    # print(f'ALLGATHER: {res}')
     return res

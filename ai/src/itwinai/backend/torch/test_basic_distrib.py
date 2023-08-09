@@ -1,4 +1,6 @@
-"""test"""
+"""
+Test basic distribution strategies from example online
+"""
 import os
 
 import torch
@@ -16,7 +18,7 @@ def setup(rank, world_size):
     os.environ['MASTER_PORT'] = '12355'
 
     # initialize the process group
-    dist.init_process_group("gloo", rank=rank, world_size=world_size)
+    dist.init_process_group("nccl", rank=rank, world_size=world_size)
 
 
 def cleanup():
@@ -41,6 +43,14 @@ def demo_basic(rank, world_size):
     # create model and move it to GPU with id rank
     model = ToyModel().to(rank)
     ddp_model = DDP(model, device_ids=[rank])
+    # if rank == 0:
+    #     p = next(iter(model.parameters()))
+    #     print((hash(p), id(p)))
+
+    #     p = next(iter(ddp_model.parameters()))
+    #     print((hash(p), id(p)))
+    # cleanup()
+    # return
 
     loss_fn = nn.MSELoss()
     optimizer = optim.SGD(ddp_model.parameters(), lr=0.001)

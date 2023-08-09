@@ -58,6 +58,8 @@ class Executor(Executable):
 
 
 class Logger(metaclass=ABCMeta):
+    savedir: str = None
+
     @abstractmethod
     def log(self, args):
         pass
