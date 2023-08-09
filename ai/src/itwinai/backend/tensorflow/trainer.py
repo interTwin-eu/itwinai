@@ -49,12 +49,12 @@ class TensorflowTrainer(Trainer):
         print(f"Strategy is working with: {self.num_devices} devices")
 
     def train(self, data):
-        # TODO: Batch_per_worker? Validation_steps? Train_steps?
+        # TODO: FIX Steps sizes in model.fit
         train, test = data
 
         # Set batch size to the dataset
-        train = train.batch(self.batch_size * self.num_devices, drop_remainder=True)
-        test = test.batch(self.batch_size * self.num_devices, drop_remainder=True)
+        train = train.batch(self.batch_size * self.num_devices, drop_remainder=True).repeat()
+        test = test.batch(self.batch_size * self.num_devices, drop_remainder=True).repeat()
 
         # Number of samples
         n_train = train.cardinality().numpy()
