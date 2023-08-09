@@ -69,8 +69,8 @@ class TensorflowTrainer(Trainer):
         self.model.fit(
             train,
             validation_data=test,
-            steps_per_epoch=int(n_train * self.num_devices),
-            validation_steps=int(n_test * self.num_devices),
+            steps_per_epoch=n_train,
+            validation_steps=n_test,
             epochs=self.epochs,
             callbacks=self.callbacks,
         )
