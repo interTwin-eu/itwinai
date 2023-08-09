@@ -63,7 +63,7 @@ class RayExecutor(Executor):
         tuner = tune.Tuner(
             trainable=tune.with_parameters(self.worker_fn, pipeline=self.pipeline, class_dict=self.class_dict),
             param_space=self.param_space,
-            run_config=tune.RunConfig(name="tune_run")
+            run_config=air.RunConfig(name="tune_run")
         )
         results = tuner.fit()
         print(f"Best hyperparameters found were: {results.get_best_result().config}")
