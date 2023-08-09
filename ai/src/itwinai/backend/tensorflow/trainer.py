@@ -52,6 +52,10 @@ class TensorflowTrainer(Trainer):
         # TODO: Batch_per_worker? Validation_steps? Train_steps?
         train, test = data
 
+        # Number of samples
+        n_train = train.cardinality().numpy()
+        n_test = test.cardinality().numpy()
+
         # Set batch size to the dataset
         train = train.batch(self.batch_size * self.num_devices, drop_remainder=True)
         test = test.batch(self.batch_size * self.num_devices, drop_remainder=True)
@@ -65,8 +69,8 @@ class TensorflowTrainer(Trainer):
         self.model.fit(
             train,
             validation_data=test,
-            steps_per_epoch=int(len(train) // self.batch_size),
-            validation_steps=int(len(test) // self.batch_size),
+            steps_per_epoch=int(n_train // self.batch_size),
+            validation_steps=int(n_test // self.batch_size),
             epochs=self.epochs,
             callbacks=self.callbacks,
         )
