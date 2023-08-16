@@ -4,14 +4,12 @@ FROM python:3.9.17-slim AS build
 
 WORKDIR ai
 
-RUN ls
-
 # Copy the required files to the container
 COPY env-files  env-files
 COPY src        src
 COPY tests      tests
 COPY setup.py   setup.py
-#COPY README.md  README.md
+COPY README.md  README.md
 
 # Set environment variable
 ENV LC_ALL=C
