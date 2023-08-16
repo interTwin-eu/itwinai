@@ -1,0 +1,29 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: itwinai-deployment
+  labels:
+    app: itwinai
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: itwinai
+  template:
+    metadata:
+      labels:
+        app: itwinai
+    spec:
+      containers:
+      - name: itwinai
+        image: ghcr.io/mrgweep/itwinai-test:0.0
+        #imagePullPolicy: Never
+	resources:
+	  requests:
+            memory: "100Mi"
+      	  limits:
+            memory: "200Mi"
+        ports:
+        - containerPort: 80
+
+
