@@ -14,6 +14,9 @@ COPY README.md  README.md
 # Set environment variable
 ENV LC_ALL=C
 
+# Install packages
+RUN yum install iputils
+
 # Update pip and install python requirements
 RUN pip install --upgrade pip
 RUN pip install -r /ai/env-files/pytorch-env-container.txt
