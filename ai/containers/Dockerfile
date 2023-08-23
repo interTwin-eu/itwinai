@@ -15,7 +15,7 @@ COPY README.md  README.md
 ENV LC_ALL=C
 
 # Install packages
-RUN apt update && apt install -y iputils-ping
+RUN apt update && apt install -y iputils-ping && apt install -y telnet
 RUN apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Update pip and install python requirements
