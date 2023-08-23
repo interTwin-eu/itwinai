@@ -15,7 +15,8 @@ COPY README.md  README.md
 ENV LC_ALL=C
 
 # Install packages
-RUN yum install iputils
+RUN apt update && apt install -y iputils-ping
+RUN apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Update pip and install python requirements
 RUN pip install --upgrade pip
