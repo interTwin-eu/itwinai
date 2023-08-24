@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
       - name: itwinai
-        image: ghcr.io/mrgweep/itwinai-test:0.0
+        image: ghcr.io/intertwin-eu/t6.5-ai-and-ml:containers
         #imagePullPolicy: Never
 	resources:
 	  requests:
