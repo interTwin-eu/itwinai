@@ -1,0 +1,27 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: training
+spec:
+  containers:
+    - name: mlflow-container
+      image: ghcr.io/intertwin-eu/t6.5-ai-and-ml:containers
+      command: ["mlflow"]
+      args: ["server", "--backend-store-uri", "/home/T6.5-AI-and-ML/use-cases/mnist/data/ml-logs/"]
+      # volumeMounts:
+      #   - name: shared-volume
+      #     mountPath: /home/T6.5-AI-and-ML
+    - name: itwinai-container
+      image: ghcr.io/intertwin-eu/t6.5-ai-and-ml:containers
+      command: ["ls"]
+      args: ["/var"]
+      volumeMounts:
+        - name: test-volume
+          mountPath: /test_mount_dir
+  volumes:
+    - name: test-volume
+      hostPath:
+        # directory location on host
+        path: /
+        # this field is optional
+        type: Directory
