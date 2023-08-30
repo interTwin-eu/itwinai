@@ -1,4 +1,9 @@
+"""Custom types definition."""
+
+from typing import Callable
 from enum import Enum, EnumMeta
+
+Loss = Callable
 
 
 class MetaEnum(EnumMeta):
@@ -21,12 +26,14 @@ class TorchDistributedBackend(BaseEnum):
     Enum for torch distributed backends.
     Reference: https://pytorch.org/docs/stable/distributed.html#backends
     """
+    DEFAULT = 'nccl'
     GLOO = 'gloo'
     NCCL = 'nccl'
     MPI = 'mpi'
 
 
 class TorchDistributedStrategy(BaseEnum):
+    DEFAULT = None
     NONE = None
     DDP = 'ddp'
 

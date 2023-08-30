@@ -10,6 +10,7 @@
         "ms-python.autopep8",
         "bungcip.better-toml",
         "bierner.markdown-mermaid",
-        "github.vscode-github-actions"
+        "github.vscode-github-actions",
+        "tamasfe.even-better-toml"
     ]
 }

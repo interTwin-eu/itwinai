@@ -26,6 +26,7 @@
         "mnist",
         "multiclass",
         "mypackage",
+        "NCCL",
         "omegaconf",
         "optim",
         "plmodels",
