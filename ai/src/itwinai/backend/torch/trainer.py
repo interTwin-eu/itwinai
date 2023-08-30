@@ -27,6 +27,7 @@ from .types import (
 from .types import TorchDistributedStrategy as StrategyT
 from .types import TorchDistributedBackend as BackendT
 from .loggers import BaseLogger
+from ...utils import dynamically_import_class
 
 
 def preproc_dataloader(dataloader: DataLoader, gwsize, grank):
@@ -244,6 +245,7 @@ class TorchTrainer(Trainer):
     model: nn.Module = None
     loss: Loss = None
     optimizer: Optimizer = None
+    lr_scheduler = None
     strategy: StrategyT = StrategyT.NONE.value
     backend: BackendT = BackendT.NCCL.value
     train_dataloader: DataLoader = None
@@ -253,7 +255,10 @@ class TorchTrainer(Trainer):
         self,
         model: nn.Module,
         loss: Loss,
-        optimizer: Optimizer,
+        optimizer_class: str,
+        optimizer_kwargs: Optional[Dict] = None,
+        lr_scheduler_class: Optional[str] = None,
+        lr_scheduler_kwargs: Optional[Dict] = None,
         epochs: int = 1,
         strategy: StrategyT = StrategyT.NONE.value,
         backend: BackendT = BackendT.NCCL.value,
@@ -270,7 +275,6 @@ class TorchTrainer(Trainer):
         """
         self.model = model
         self.loss = loss
-        self.optimizer = optimizer
         self.epochs = epochs
         self.testrun = testrun
         self.seed = seed
@@ -281,6 +285,20 @@ class TorchTrainer(Trainer):
         self.benchrun = benchrun
         # Checkpoint every n epochs
         self.checkpoint_every = checkpoint_every
+
+        # Optimizer and scheduler
+        optim_class = dynamically_import_class(optimizer_class)
+        optimizer_kwargs = optimizer_kwargs if optimizer_kwargs is not None else {}
+        self.optimizer = optim_class(
+            self.model.parameters(), **optimizer_kwargs
+        )
+        if lr_scheduler_class is not None:
+            scheduler_class = dynamically_import_class(lr_scheduler_class)
+            lr_scheduler_kwargs = (
+                lr_scheduler_kwargs if lr_scheduler_kwargs is not None else {}
+            )
+            self.lr_scheduler = scheduler_class(
+                self.optimizer, **lr_scheduler_kwargs)
 
         self.cuda = self.use_cuda and torch.cuda.is_available()
 
@@ -393,7 +411,8 @@ class TorchTrainer(Trainer):
 
     def _preproc_dataloader(self, dataloader: DataLoader) -> DataLoader:
         """Make dataloader distributed if using distributed training strategy.
-        TODO: improve using wrapper: https://discuss.pytorch.org/t/how-to-use-my-own-sampler-when-i-already-use-distributedsampler/62143?page=2
+        TODO: improve using wrapper: 
+        https://discuss.pytorch.org/t/how-to-use-my-own-sampler-when-i-already-use-distributedsampler/62143?page=2
 
         Args:
             dataloader (DataLoader): some torch DataLoader instance.
