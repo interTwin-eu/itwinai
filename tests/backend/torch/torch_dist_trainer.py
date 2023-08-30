@@ -53,7 +53,8 @@ if __name__ == '__main__':
     trainer = TorchTrainer(
         model=my_net,
         loss=nn.NLLLoss(),
-        optimizer=torch.optim.SGD(my_net.parameters(), lr=1e-3),
+        optimizer_class='torch.optim.SGD',
+        optimizer_kwargs=dict(lr=1e-3),
         epochs=2,
         strategy='ddp',
         backend='nccl',

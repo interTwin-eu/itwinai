@@ -1,7 +1,7 @@
 """
 Utilities for itwinai package.
 """
-from typing import Dict
+from typing import Dict, Type
 import os
 from collections.abc import MutableMapping
 import yaml
@@ -76,7 +76,7 @@ def load_yaml_with_deps(path: str) -> DictConfig:
     return OmegaConf.merge(yaml_conf, *deps)
 
 
-def dynamically_import_class(name: str):
+def dynamically_import_class(name: str) -> Type:
     """
     Dynamically import class by module path.
     Adapted from https://stackoverflow.com/a/547867
@@ -85,7 +85,7 @@ def dynamically_import_class(name: str):
         name (str): path to the class (e.g., mypackage.mymodule.MyClass)
 
     Returns:
-        __class__: class object.
+        __class__: class type.
     """
     module, class_name = name.rsplit(".", 1)
     mod = __import__(module, fromlist=[class_name])
