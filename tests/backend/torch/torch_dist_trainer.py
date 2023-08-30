@@ -2,10 +2,10 @@
 Test Trainer class. To run this script, use the following command:
 
 >>> torchrun --nnodes=1 --nproc_per_node=2 --rdzv_id=100 --rdzv_backend=c10d \
-        --rdzv_endpoint=localhost:29400 test_trainer.py
+        --rdzv_endpoint=localhost:29400 torch_dist_trainer.py
 
 """
-
+import torch
 from torch import nn
 import torch.nn.functional as F
 from torch.utils.data import DataLoader
@@ -47,15 +47,16 @@ if __name__ == '__main__':
             transforms.ToTensor(),
             transforms.Normalize((0.1307,), (0.3081,))
         ]))
+    train_dataloder = DataLoader(train_set, batch_size=32, pin_memory=True)
+    validation_dataloader = DataLoader(val_set, batch_size=32, pin_memory=True)
+    my_net = Net()
     trainer = TorchTrainer(
-        model=Net(),
-        train_dataloader=DataLoader(train_set, batch_size=32, pin_memory=True),
-        validation_dataloader=DataLoader(
-            val_set, batch_size=32, pin_memory=True),
+        model=my_net,
+        loss=nn.NLLLoss(),
+        optimizer=torch.optim.SGD(my_net.parameters(), lr=1e-3),
+        epochs=2,
         strategy='ddp',
         backend='nccl',
-        loss='NLLLoss',
-        epochs=20,
         checkpoint_every=1
     )
-    trainer.train()
+    trainer.execute(train_dataloder, validation_dataloader)

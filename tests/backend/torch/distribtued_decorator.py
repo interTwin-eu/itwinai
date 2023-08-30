@@ -1,8 +1,9 @@
 """
-Test Trainer class. To run this script, use the following command:
+Test @distributed function decorator. To run this script, use the following
+command:
 
 >>> torchrun --nnodes=1 --nproc_per_node=2 --rdzv_id=100 --rdzv_backend=c10d \
-        --rdzv_endpoint=localhost:29400 test_decorator.py
+        --rdzv_endpoint=localhost:29400 distribtued_decorator.py
 
 """
 
@@ -68,9 +69,10 @@ def test(model, device, test_loader):
 
     test_loss /= len(test_loader.dataset)
 
-    print('\nTest set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(
-        test_loss, correct, len(test_loader.dataset),
-        100. * correct / len(test_loader.dataset)))
+    print(
+        '\nTest set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(
+            test_loss, correct, len(test_loader.dataset),
+            100. * correct / len(test_loader.dataset)))
 
 
 @distributed
@@ -106,4 +108,4 @@ if __name__ == '__main__':
 
     # Train distributed
     train_func(model, train_dataloader, validation_dataloader, 'cuda',
-               optimizer, scheduler=scheduler)
+               optimizer, scheduler=scheduler, epochs=1)

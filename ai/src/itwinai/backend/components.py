@@ -1,13 +1,20 @@
+from typing import Iterable, Dict
+
 from abc import ABCMeta, abstractmethod
 
 
 class Executable(metaclass=ABCMeta):
+    _is_setup: bool = False
+
     @abstractmethod
     def execute(self, args):
         pass
 
     @abstractmethod
-    def setup(self, args):
+    def setup(self, args: Dict):
+        pass
+
+    def cleanup(self, args):
         pass
 
 
@@ -48,13 +55,12 @@ class Saver(Executable):
 
 
 class Executor(Executable):
-    @abstractmethod
-    def execute(self, pipeline):
-        pass
-
-    @abstractmethod
-    def setup(self, pipeline):
-        pass
+    def __init__(
+        self,
+        steps: Iterable[Executable],
+    ):
+        super().__init__()
+        self.steps = steps
 
 
 class Logger(metaclass=ABCMeta):
