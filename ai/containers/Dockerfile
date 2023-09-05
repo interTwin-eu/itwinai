@@ -24,6 +24,7 @@ RUN pip install -r /ai/env-files/pytorch-env-container.txt
 RUN pip install -e /ai
 
 # Define the run command when the container starts
+CMD ["sleep", "300"]
 CMD ["python", "-V"]
 
 # Additional information labels

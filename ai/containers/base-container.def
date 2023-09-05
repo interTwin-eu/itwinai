@@ -54,6 +54,4 @@ Stage: build
     Version v0.0.1
 
 %help
-    This is a small demo building an python environment derived from the
-    demo container used to illustrate a def file that uses all
-    supported sections.
+    This is the base image of the itwinai library in Singularity.

@@ -1,0 +1,35 @@
+Bootstrap: localimage
+From: base-container.sif
+Stage: final
+
+%setup
+
+%files
+    ../ /home/ai
+
+%environment
+    export LC_ALL=C
+
+%runscript
+    echo "Accessing itwinai module:"
+    itwinai --help
+
+%startscript
+
+%test
+    grep -q NAME=\"Debian\ GNU/Linux\" /etc/os-release
+    if [ $? -eq 0 ]; then
+        echo "Container base is Debian GNU/Linux as expected."
+    else
+        echo "Container base is not Debian GNU/Linux."
+        exit 1
+    fi
+
+%labels
+    Author azoechba
+    Version v0.0.1
+
+%help
+    This is a small demo building an python environment derived from the
+    demo container used to illustrate a def file that uses all
+    supported sections.
