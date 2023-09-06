@@ -10,6 +10,8 @@ checkpoints/
 mamba*
 MNIST
 mllogs
+*.out
+*.err
 
 # Custom envs
 .venv*

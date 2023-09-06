@@ -5,7 +5,7 @@ Test Trainer class. To run this script, use the following command:
         --rdzv_endpoint=localhost:29400 torch_dist_trainer.py
 
 """
-import torch
+
 from torch import nn
 import torch.nn.functional as F
 from torch.utils.data import DataLoader
@@ -49,9 +49,8 @@ if __name__ == '__main__':
         ]))
     train_dataloder = DataLoader(train_set, batch_size=32, pin_memory=True)
     validation_dataloader = DataLoader(val_set, batch_size=32, pin_memory=True)
-    my_net = Net()
     trainer = TorchTrainer(
-        model=my_net,
+        model=Net(),
         loss=nn.NLLLoss(),
         optimizer_class='torch.optim.SGD',
         optimizer_kwargs=dict(lr=1e-3),
@@ -60,4 +59,4 @@ if __name__ == '__main__':
         backend='nccl',
         checkpoint_every=1
     )
-    trainer.execute(train_dataloder, validation_dataloader)
+    trainer.execute(args=[train_dataloder, validation_dataloader])

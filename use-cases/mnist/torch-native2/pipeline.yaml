@@ -1,0 +1,30 @@
+executor:
+  class_path: itwinai.backend.components.Executor
+  init_args:
+    steps:
+      - class_path: dataloader.MNISTDataModuleTorch
+        init_args:
+          save_path: .tmp/
+          batch_size: 32
+          pin_memory: True
+          num_workers: 0
+
+      - class_path: itwinai.backend.torch.trainer.TorchTrainerMG
+        init_args:
+          model:
+            class_path: model.Net
+          loss:
+            class_path: torch.nn.NLLLoss
+            init_args:
+              reduction: mean
+          optimizer_class: torch.optim.SGD
+          optimizer_kwargs: 
+            lr: 0.001
+          epochs: 2
+          strategy: ddp
+          checkpoint_every: 1
+          cluster:
+            class_path: itwinai.cluster.LocalCluster
+            init_args:
+              gpus: 0,1
+              backend: nccl
