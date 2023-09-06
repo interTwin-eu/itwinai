@@ -9,15 +9,16 @@ import torch.distributed as dist
 
 
 def save_state(
-    epoch, distrib_model, loss_val, optimizer, res_name, grank, gwsize, is_best
+    epoch, distrib_model, loss_val, optimizer, res_name, grank, gwsize,
+    is_best, distributed: bool = True
 ):
     """Save training state"""
     rt = time.time()
     # find if is_best happened in any worker
-    if torch.cuda.is_available():
+    if torch.cuda.is_available() and distributed:
         is_best_m = par_allgather_obj(is_best, gwsize)
 
-    if torch.cuda.is_available():
+    if torch.cuda.is_available() and distributed:
         if any(is_best_m):
             # find which rank is_best happened - select first rank if multiple
             is_best_rank = np.where(np.array(is_best_m))[0][0]
