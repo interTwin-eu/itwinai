@@ -20,11 +20,11 @@ executor:
           optimizer_class: torch.optim.SGD
           optimizer_kwargs: 
             lr: 0.001
-          epochs: 2
+          epochs: 50
           strategy: ddp
           checkpoint_every: 1
           cluster:
             class_path: itwinai.cluster.LocalCluster
             init_args:
-              gpus: 0,1
+              gpus: 0,1,2,3
               backend: nccl

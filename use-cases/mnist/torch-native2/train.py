@@ -1,14 +1,16 @@
 """
-Training pipeline. To run this script, use the following command:
+Training pipeline. To run this script, use the following commands.
 
->>> torchrun --nnodes=1 --nproc_per_node=2 --rdzv_id=100 --rdzv_backend=c10d \
-        --rdzv_endpoint=localhost:29400 train.py -p pipeline.yaml
+On login node:
 
-Or:
+>>> micromamba run -p ../../../ai/.venv-pytorch/ \
+    python train.py -p pipeline.yaml -d
 
->>> torchrun --nnodes=1 --nproc_per_node=2 --rdzv_id=100 --rdzv_backend=c10d \
-        --rdzv_endpoint=localhost:29400 use-cases/mnist/torch-native/train.py \
-        -p use-cases/mnist/torch-native/pipeline.yaml
+On compute nodes:
+
+>>> micromamba run -p ../../../ai/.venv-pytorch/ \
+    python train.py -p pipeline.yaml
+
 """
 
 import argparse
@@ -21,7 +23,17 @@ from jsonargparse import ArgumentParser
 if __name__ == "__main__":
     # Create CLI Parser
     parser = argparse.ArgumentParser()
-    parser.add_argument("-p", "--pipeline", type=str, required=True)
+    parser.add_argument(
+        "-p", "--pipeline", type=str, required=True,
+        help='Configuration file to the pipeline to execute.'
+    )
+    parser.add_argument(
+        '-d', '--download-only',
+        action=argparse.BooleanOptionalAction,
+        default=False,
+        help=('Whether to download only the dataset and exit execution '
+              '(suggested on login nodes of HPC systems)')
+    )
     args = parser.parse_args()
 
     # Create parser for the pipeline (ordered)
@@ -32,5 +44,11 @@ if __name__ == "__main__":
     parsed = parse_pipe_config(args.pipeline, pipe_parser)
     pipe = pipe_parser.instantiate_classes(parsed)
     executor = getattr(pipe, 'executor')
+
+    if args.download_only:
+        print('Downloading datasets and exiting...')
+        executor = executor[:1]
+    else:
+        print('Downloading datasets (if not already done) and running...')
     executor.setup()
     executor.execute()

@@ -34,7 +34,7 @@ class BaseLogger(Logger):
         # From now on, very spaghetti...
         os.makedirs(self.savedir, exist_ok=True)
         if create_new:
-            run_dirs = sorted(os.listdir(self.savedir))
+            run_dirs = sorted([int(dir) for dir in os.listdir(self.savedir)])
             if len(run_dirs) == 0:
                 self.run_id = 0
             else:
