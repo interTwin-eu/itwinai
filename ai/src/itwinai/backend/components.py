@@ -1,3 +1,4 @@
+from __future__ import annotations
 from typing import Iterable, Dict, Any
 
 from abc import ABCMeta, abstractmethod
@@ -60,12 +61,31 @@ class Saver(Executable):
 class Executor(Executable):
     """Sets-up and executes a sequence of Executable steps."""
 
+    steps: Iterable[Executable]
+    constructor_args: Dict
+
     def __init__(
         self,
         steps: Iterable[Executable],
+        **kwargs
     ):
         super().__init__()
         self.steps = steps
+        self.constructor_args = kwargs
+
+    def __getitem__(self, subscript) -> Executor:
+        if isinstance(subscript, slice):
+            s = self.steps[subscript.start:subscript.stop: subscript.step]
+            sliced = self.__class__(
+                steps=s,
+                **self.constructor_args
+            )
+            return sliced
+        else:
+            return self.steps[subscript]
+
+    def __len__(self) -> int:
+        return len(self.steps)
 
     def setup(self, config: Dict = None):
         """Pass a key-value based configuration down the pipeline,

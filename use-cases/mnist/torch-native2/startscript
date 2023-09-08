@@ -13,8 +13,9 @@
 #SBATCH --partition=batch
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1
-#SBATCH --cpus-per-task=1
+#SBATCH --cpus-per-task=4
 #SBATCH --gpus-per-node=4
+
 #SBATCH --exclusive
 
 # gres options have to be disabled for deepv
@@ -29,5 +30,7 @@ source ~/.bashrc
 #set env
 # micromamba activate ../.venv
 
-cd ../../../
-srun micromamba run -p ./ai/.venv-pytorch python use-cases/mnist/torch-native2/train.py -p use-cases/mnist/torch-native2/pipeline.yaml
+# ON LOGIN NODE download datasets:
+# $ micromamba run -p ../../../ai/.venv-pytorch python train.py -p pipeline.yaml --download-only
+
+srun micromamba run -p ../../../ai/.venv-pytorch python train.py -p pipeline.yaml
