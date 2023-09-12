@@ -5,12 +5,14 @@ executor:
       - class_path: dataloader.MNISTDataModuleTorch
         init_args:
           save_path: .tmp/
+
           batch_size: 32
           pin_memory: True
           num_workers: 0
 
-      - class_path: itwinai.backend.torch.trainer.TorchTrainerMG
+      - class_path: itwinai.backend.torch.trainer.TorchTrainerMG2
         init_args:
+          use_cuda: False
           model:
             class_path: model.Net
           loss:
@@ -20,7 +22,15 @@ executor:
           optimizer_class: torch.optim.SGD
           optimizer_kwargs: 
             lr: 0.001
-          epochs: 50
+          train_dataloader_kwargs:
+            batch_size: 32
+            pin_memory: True
+            shuffle: True
+          validation_dataloader_kwargs:
+            batch_size: 32
+            pin_memory: True
+            shuffle: False
+          epochs: 2
           strategy: ddp
           checkpoint_every: 1
           cluster:
