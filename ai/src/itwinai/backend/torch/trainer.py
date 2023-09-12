@@ -8,14 +8,12 @@ import numpy as np
 
 import torch
 import torch.multiprocessing as mp
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, Dataset
 from torch.utils.data.distributed import DistributedSampler
 import torch.distributed as dist
 from torch.nn.parallel import DistributedDataParallel as DDP
 import torch.nn as nn
 from torch.optim.optimizer import Optimizer
-
-import lightning.pytorch as pl
 
 from ..components import Trainer, Logger
 from .utils import seed_worker, save_state
@@ -23,13 +21,14 @@ from .types import (
     TorchDistributedBackend,
     TorchDistributedStrategy,
     TorchLoss, TorchOptimizer,
-    Loss
+    Loss, LrScheduler
 )
 from .types import TorchDistributedStrategy as StrategyT
 from .types import TorchDistributedBackend as BackendT
 from .loggers import BaseLogger
 from ...utils import dynamically_import_class
 from ...cluster import ClusterEnvironment
+from ._utils import clear_key
 
 
 def preproc_dataloader(dataloader: DataLoader, gwsize, grank):
@@ -57,107 +56,6 @@ def preproc_dataloader(dataloader: DataLoader, gwsize, grank):
         persistent_workers=dataloader.persistent_workers,
         pin_memory_device=dataloader.pin_memory_device
     )
-
-
-class TorchTrainerConfig(Trainer):
-    """
-    Torch trainer for optionally distributed data-parallel (DDP) workload.
-    Assumes to be executed in a SLURM cluster with torchrun. Use the torch
-    elastic version of DDP:
-    https://pytorch.org/tutorials/intermediate/ddp_tutorial.html#initialize-ddp-with-torch-distributed-run-torchrun
-
-    TODO: load form config file (how to do with the optimizer?)
-    TODO: complete loss function and optimizer defaults
-    """
-
-    model: nn.Module = None
-    optimizer: Optimizer = None
-    loss: Callable = None
-    train_dataloader: DataLoader = None
-    validation_dataloader: DataLoader = None
-    strategy: TorchDistributedStrategy = TorchDistributedStrategy.DEFAULT.value
-    backend: TorchDistributedBackend = TorchDistributedBackend.DEFAULT.value
-
-    def __init__(
-        self,
-        model: nn.Module,
-        train_dataloader: DataLoader,
-        validation_dataloader: Optional[DataLoader] = None,
-        epochs: int = 1,
-        loss: Optional[Loss] = None,
-        optimizer: Optional[Optimizer] = None,
-        testrun: bool = False,
-        shuffle_data: bool = False,
-        seed: Optional[int] = None,
-        log_int: int = 10,
-        strategy: Optional[TorchDistributedStrategy] = None,
-        backend: TorchDistributedBackend = 'nccl',
-        use_cuda: bool = True,
-        benchrun: bool = False,
-        logger: Optional[List[Logger]] = None,
-        checkpoint_every: int = 10
-    ) -> None:
-        self.model = model
-        self.train_dataloader = train_dataloader
-        self.validation_dataloader = validation_dataloader
-        self.epochs = epochs
-        self.loss = loss
-        self.optimizer = optimizer
-        self.testrun = testrun
-        self.seed = seed
-        self.shuffle_data = shuffle_data
-        self.log_int = log_int
-        self.strategy = strategy
-        self.backend = backend
-        self.use_cuda = use_cuda
-        self.benchrun = benchrun
-        # Checkpoint every n epochs
-        self.checkpoint_every = checkpoint_every
-        self.cuda = self.use_cuda and torch.cuda.is_available()
-        self.logger = logger
-
-    @property
-    def backend(self) -> str:
-        return self._backend
-
-    @backend.setter
-    def backend(self, backend_name: str) -> None:
-        if backend_name not in TorchDistributedBackend:
-            raise ValueError(
-                "Unrecognized 'backend' field. Allowed values "
-                f"are: {TorchDistributedBackend.list()}")
-        self._backend = backend_name
-
-    @property
-    def strategy(self) -> Optional[str]:
-        return self._strategy
-
-    @strategy.setter
-    def strategy(self, strategy_name) -> None:
-        if strategy_name not in TorchDistributedStrategy:
-            raise ValueError(
-                "Unrecognized 'strategy' field. Allowed values "
-                f"are: {TorchDistributedStrategy.list()}")
-        self._strategy = strategy_name
-
-    def config(self):
-        pass
-
-    def train(self):
-        pass
-
-    def execute(self, *args, **kwargs) -> Any:
-        return self.train(*args, **kwargs)
-
-
-class LightningTrainer(pl.Trainer, pl.LightningDataModule):
-    """Test of flattened of lightning modules in one class."""
-
-    def __init__(self, dataloader, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
-    def configure_optimizers(self):
-        pass
 
 
 def distributed(func):
@@ -287,7 +185,8 @@ class TorchTrainer(Trainer):
 
         # Optimizer and scheduler
         optim_class = dynamically_import_class(optimizer_class)
-        optimizer_kwargs = optimizer_kwargs if optimizer_kwargs is not None else {}
+        optimizer_kwargs = (
+            optimizer_kwargs if optimizer_kwargs is not None else {})
         self.optimizer = optim_class(
             self.model.parameters(), **optimizer_kwargs
         )
@@ -656,6 +555,508 @@ class TorchTrainer(Trainer):
         if torch.cuda.is_available():
             dist.barrier()
             dist.destroy_process_group()
+
+
+class TorchTrainerMG2(Trainer):
+    """
+    Torch trainer for optionally distributed data-parallel (DDP) workload.
+    Multi-GPU distribution.
+
+    Args:
+        model (nn.Module): neural network instance.
+        loss (Loss): torch loss function instance.
+        optimizer_class (str): path to optimizer class
+            (e.g., 'torch.optim.SGD')
+        optimizer_kwargs (Optional[Dict], optional): optimizer constructor
+            arguments (except from parameters). Defaults to None.
+        lr_scheduler_class (Optional[str], optional): path to learning
+            rate scheduler class. Defaults to None.
+        lr_scheduler_kwargs (Optional[Dict], optional): constructor arguments
+            of the learning rate scheduler, except for the optimizer.
+            Defaults to None.
+        train_dataloader_class (str, optional): train dataloader class path.
+            Defaults to 'torch.utils.data.DataLoader'.
+        train_dataloader_kwargs (Optional[Dict], optional): constructor
+            arguments of the train dataloader, except for the dataset
+            instance. Defaults to None.
+        validation_dataloader_class (str, optional): validation dataloader
+            class path. Defaults to 'torch.utils.data.DataLoader'.
+        validation_dataloader_kwargs (Optional[Dict], optional): constructor
+            arguments of the validation dataloader, except for the dataset
+            instance. If None, it replicates `train_dataloader_kwargs`.
+            Defaults to None.
+        epochs (int, optional): number of training epochs. Defaults to 1.
+        strategy (Optional[TorchDistributedStrategy], optional): distributed
+            strategy. Defaults to StrategyT.NONE.value.
+        backend (TorchDistributedBackend, optional): computing backend.
+            Defaults to BackendT.NCCL.value.
+        shuffle_dataset (bool, optional): whether shuffle dataset before
+            sampling batches from dataloader. Defaults to False.
+        use_cuda (bool, optional): whether to use GPU. Defaults to True.
+        benchrun (bool, optional): sets up a debug run. Defaults to False.
+        testrun (bool, optional): deterministic training seeding everything.
+            Defaults to False.
+        seed (Optional[int], optional): random seed. Defaults to None.
+        logger (Optional[List[Logger]], optional): logger. Defaults to None.
+        checkpoint_every (int, optional): how often (epochs) to checkpoint the
+            best model. Defaults to 10.
+
+    Raises:
+        RuntimeError: When trying to use DDP without CUDA support.
+        NotImplementedError: when trying to use a strategy different from the
+            ones provided by TorchDistributedStrategy.
+    """
+
+    model: nn.Module = None
+    loss: Loss = None
+    optimizer: Optimizer = None
+    lr_scheduler = None
+    strategy: StrategyT = StrategyT.NONE.value
+    train_dataset: Dataset
+    validation_dataset: Dataset
+    train_dataloader: DataLoader = None
+    validation_dataloader: DataLoader = None
+
+    def __init__(
+        self,
+        model: nn.Module,
+        loss: Loss,
+        optimizer_class: str,
+        optimizer_kwargs: Optional[Dict] = None,
+        lr_scheduler_class: Optional[str] = None,
+        lr_scheduler_kwargs: Optional[Dict] = None,
+        train_dataloader_class: str = 'torch.utils.data.DataLoader',
+        train_dataloader_kwargs: Optional[Dict] = None,
+        validation_dataloader_class: str = 'torch.utils.data.DataLoader',
+        validation_dataloader_kwargs: Optional[Dict] = None,
+        epochs: int = 1,
+        strategy: str = StrategyT.NONE.value,
+        use_cuda: bool = True,
+        benchrun: bool = False,
+        testrun: bool = False,
+        seed: Optional[int] = None,
+        logger: Optional[List[Logger]] = None,
+        checkpoint_every: int = 10,
+        cluster: Optional[ClusterEnvironment] = None
+    ) -> None:
+        """Sets up the distributed backend and loggers.
+        Makes the model a DDP model.
+        """
+        super().__init__()
+        self.model = model
+        self.loss = loss
+        self.epochs = epochs
+        self.testrun = testrun
+        self.seed = seed
+        self.strategy = strategy
+        # TODO: embed use_cuda into the cluster
+        self.use_cuda = use_cuda
+        self.benchrun = benchrun
+        self.cluster = cluster
+        # Checkpoint every n epochs
+        self.checkpoint_every = checkpoint_every
+        self.cuda = self.use_cuda and torch.cuda.is_available()
+
+        # Train and validation dataloaders
+        self.train_dataloader_class = dynamically_import_class(
+            train_dataloader_class
+        )
+        self.validation_dataloader_class = dynamically_import_class(
+            validation_dataloader_class
+        )
+        train_dataloader_kwargs = (
+            train_dataloader_kwargs
+            if train_dataloader_kwargs is not None else {}
+        )
+        self.train_dataloader_kwargs = clear_key(
+            train_dataloader_kwargs, 'train_dataloader_kwargs', 'dataset'
+        )
+        # If validation_dataloader_kwargs is not given,
+        # copy train_dataloader_kwargs
+        validation_dataloader_kwargs = (
+            validation_dataloader_kwargs if validation_dataloader_kwargs
+            is not None else train_dataloader_kwargs
+        )
+        self.validation_dataloader_kwargs = clear_key(
+            validation_dataloader_kwargs, 'validation_dataloader_kwargs',
+            'dataset'
+        )
+
+        # Optimizer and scheduler
+        optim_class = dynamically_import_class(optimizer_class)
+        optimizer_kwargs = (
+            optimizer_kwargs if optimizer_kwargs is not None else {}
+        )
+        optimizer_kwargs = clear_key(
+            optimizer_kwargs, 'optimizer_kwargs', 'parameters'
+        )
+        self.optimizer: Optimizer = optim_class(
+            self.model.parameters(), **optimizer_kwargs
+        )
+        if lr_scheduler_class is not None:
+            scheduler_class = dynamically_import_class(lr_scheduler_class)
+            lr_scheduler_kwargs = (
+                lr_scheduler_kwargs if lr_scheduler_kwargs is not None else {}
+            )
+            lr_scheduler_kwargs = clear_key(
+                lr_scheduler_kwargs, 'lr_scheduler_kwargs', 'optimizer'
+            )
+            self.lr_scheduler: LrScheduler = scheduler_class(
+                self.optimizer, **lr_scheduler_kwargs
+            )
+
+        # Loggers
+        self.logger = (
+            logger if logger is not None
+            else BaseLogger(create_new=self.cluster.is_main())
+        )
+
+    @property
+    def strategy(self) -> Optional[str]:
+        return self._strategy
+
+    @strategy.setter
+    def strategy(self, strategy_name) -> None:
+        if strategy_name not in StrategyT:
+            raise ValueError(
+                "Unrecognized 'strategy' field. Allowed values "
+                f"are: {StrategyT.list()}. Received '{strategy_name}'")
+        self._strategy = strategy_name
+
+    def set_seed(self, seed: Optional[int] = None):
+        """Deterministic operations for reproducibility.
+        Sets the random seed.
+
+        Args:
+            seed (Optional[int], optional): if not None, overrides
+                `self.seed`. Defaults to None.
+        """
+        seed = seed if seed is not None else self.seed
+        np.random.seed(seed)
+        self.torch_rng = torch.Generator()
+        if seed is not None:
+            torch.manual_seed(seed)
+            self.torch_rng.manual_seed(seed)
+            if self.cuda:
+                torch.cuda.manual_seed(seed)
+
+    def setup(self, config: Dict) -> Dict:
+        return config
+
+    def execute(
+        self,
+        train_dataset: Dataset,
+        validation_dataset: Dataset,
+        model: nn.Module = None,
+        optimizer: Optimizer = None,
+        lr_scheduler: LrScheduler = None
+    ) -> Any:
+        self.train_dataset = train_dataset
+        self.validation_dataset = validation_dataset
+
+        # Update parameters passed for "interactive" use
+        if model is not None:
+            self.model = model
+        if optimizer is not None:
+            self.optimizer = optimizer
+        if lr_scheduler is not None:
+            self.lr_scheduler = lr_scheduler
+
+        # Start training
+        if self.cluster.distributed:
+            # Make training distributed
+            return mp.spawn(self._train, nprocs=self.cluster.ngpus_per_node)
+        else:
+            return self._train(0)
+
+    def _train(
+        self,
+        worker_id: int
+    ):
+        # Each worker has a different deterministic seed
+        # NB: 'worker' = replica of the training function
+        worker_seed = (
+            self.seed + worker_id if self.seed is not None else self.seed
+        )
+        self.set_seed(worker_seed)
+
+        # Instantiate dataloaders
+        self.train_dataloader = self._instantiate_dataloader(
+            dataloader_class=self.train_dataloader_class,
+            dataset=self.train_dataset,
+            init_kwargs=self.train_dataloader_kwargs
+        )
+        if self.validation_dataset is not None:
+            self.validation_dataloader = self._instantiate_dataloader(
+                dataloader_class=self.validation_dataloader_class,
+                dataset=self.validation_dataset,
+                init_kwargs=self.validation_dataloader_kwargs
+            )
+
+        # Launch effective training:
+
+        # Single worker case
+        if not self.cluster.distributed:
+            with self.cluster.init_dist_gpu(worker_id) as device:
+                self.device: torch.device = device
+                self.model = self.model.to(self.device)
+                return self.train()
+
+        # Init / connect to distributed backend
+        with self.cluster.init_dist_gpu(worker_id) as device:
+            self.device: torch.device = device
+            self._distribute_model()
+            train_result = self.train()
+
+        return train_result
+
+    def _instantiate_dataloader(
+        self,
+        dataloader_class: Type,
+        dataset: Dataset,
+        init_kwargs: Dict
+    ) -> DataLoader:
+        """Make dataloader distributed if using distributed training strategy.
+
+        Args:
+            dataloader_class (Type): some torch DataLoader type.
+            dataset (Dataset): torch dataset instance.
+            init_kwargs (Dict): constructor args.
+        """
+        init_kwargs['generator'] = init_kwargs.get(
+            'generator', self.torch_rng
+        )
+        init_kwargs['worker_init_fn'] = init_kwargs.get(
+            'worker_init_fn', seed_worker
+        )
+
+        if self.strategy == StrategyT.DDP.value and self.cluster.distributed:
+            sampler = DistributedSampler(
+                dataset=dataset,
+                num_replicas=self.cluster.world_size,
+                rank=self.cluster.rank,
+                shuffle=init_kwargs.get(
+                    'shuffle', False
+                )
+            )
+            # Overwrite existing sampler, if given.
+            # TODO: improve using wrapper:
+            # https://discuss.pytorch.org/t/how-to-use-my-own-sampler-when-i-already-use-distributedsampler/62143?page=2
+            init_kwargs['sampler'] = sampler
+            if init_kwargs.get('shuffle') is not None:
+                # sampler option is mutually exclusive with shuffle
+                del init_kwargs['shuffle']
+
+        return dataloader_class(dataset, **init_kwargs)
+
+    def _distribute_model(self):
+        if self.cluster.distributed:
+            # Distribute model
+            self.model = self.model.to(self.device)
+            if self.strategy == StrategyT.NONE.value:
+                print(
+                    "A GPU cluster is available but no distributed "
+                    "strategy was given... Falling back to single worker...")
+                if not self.cluster.is_main():
+                    # Use only GPU:0 for single worker
+                    sys.exit(0)
+            elif self.strategy == StrategyT.DDP.value:
+                self.model = DDP(
+                    self.model,
+                    device_ids=[self.device.index],
+                    output_device=self.device
+                )
+            else:
+                raise NotImplementedError("Only DDP strategy is implemented.")
+        else:
+            raise RuntimeError(
+                "Trying to distribute a model when a "
+                "distributed cluster is not available."
+            )
+
+    def training_step(self, batch, batch_idx) -> Loss:
+        x, y = batch
+        x, y = x.to(self.device), y.to(self.device)
+        pred_y = self.model(x)
+        return self.loss(pred_y, y)
+
+    def validation_step(self, batch, batch_idx) -> Loss:
+        x, y = batch
+        x, y = x.to(self.device), y.to(self.device)
+        pred_y = self.model(x)
+        return self.loss(pred_y, y)
+
+    def training_epoch(self, epoch_idx) -> Loss:
+        self.model.train()
+        train_losses = []
+        # TODO: use tqdm
+        for tr_b_idx, train_batch in enumerate(self.train_dataloader):
+            loss = self.training_step(
+                batch=train_batch,
+                batch_idx=tr_b_idx
+            )
+            self.optimizer.zero_grad()
+            loss.backward()
+            self.optimizer.step()
+            train_losses.append(loss)
+        avg_loss = torch.mean(torch.stack(train_losses)).detach().cpu()
+        print(f"Avg train loss: {avg_loss}")
+        return avg_loss
+
+    def validation_epoch(self, epoch_idx) -> Loss:
+        if self.validation_dataloader is not None:
+            self.model.eval()
+            validation_losses = []
+            # TODO: use tqdm
+            for val_b_idx, val_batch in enumerate(self.validation_dataloader):
+                loss = self.validation_step(
+                    batch=val_batch,
+                    batch_idx=val_b_idx
+                )
+                validation_losses.append(loss)
+            avg_loss = torch.mean(
+                torch.stack(validation_losses)
+            ).detach().cpu()
+            print(f"Avg validation loss: {avg_loss}")
+            return avg_loss
+
+    def train(self):
+
+        if self.optimizer is None:
+            raise ValueError("Undefined optimizer!")
+
+        if self.loss is None:
+            raise ValueError("Undefined loss function!")
+
+        st = time.time()
+
+        # Resume state
+        start_epoch = 1
+        best_loss = np.Inf
+        res_name = os.path.join(self.logger.run_path, 'checkpoint.pth.tar')
+        if os.path.isfile(res_name) and not self.benchrun:
+            try:
+                if torch.cuda.is_available() and self.cluster.distributed:
+                    dist.barrier()
+                    # Map model to be loaded to specified single gpu.
+                    loc = {'cuda:%d' % 0: 'cuda:%d' % self.lrank} if self.cuda else {
+                        'cpu:%d' % 0: 'cpu:%d' % self.lrank}
+                    checkpoint = torch.load(res_name, map_location=loc)
+                else:
+                    checkpoint = torch.load(res_name, map_location='cpu')
+                start_epoch = checkpoint['epoch']
+                best_loss = checkpoint['best_loss']
+                self.model.load_state_dict(checkpoint['state_dict'])
+                self.optimizer.load_state_dict(checkpoint['optimizer'])
+                if torch.cuda.is_available():
+                    if self.cluster.rank == 0:
+                        print(f'WARNING: restarting from {start_epoch} epoch')
+                else:
+                    print(f'WARNING: restarting from {start_epoch} epoch')
+            except:
+                if torch.cuda.is_available():
+                    if self.cluster.rank == 0:
+                        print('WARNING: restart file cannot be loaded, restarting!')
+                else:
+                    print('WARNING: restart file cannot be loaded, restarting!')
+
+        if start_epoch >= self.epochs + 1:
+            if torch.cuda.is_available() and self.cluster.distributed:
+                if self.cluster.rank == 0:
+                    print('WARNING: given epochs are less than the one in the restart file!\n'
+                          'WARNING: SYS.EXIT is issued')
+                dist.destroy_process_group()
+                sys.exit()
+            else:
+                print('WARNING: given epochs are less than the one in the restart file!\n'
+                      'WARNING: SYS.EXIT is issued')
+                sys.exit()
+
+        # start trainin/testing loop
+        if self.cluster.is_main():
+            print('TIMER: broadcast:', time.time()-st, 's')
+            print(f'\nDEBUG: start training')
+            print(f'--------------------------------------------------------')
+
+        et = time.time()
+        # TODO use tqdm? For distributed situations could be difficult
+        for epoch_idx in range(start_epoch, self.epochs + 1):
+            lt = time.time()
+
+            if self.benchrun and epoch_idx == self.epochs:
+                # profiling (done on last epoch - slower!)
+                with torch.autograd.profiler.profile(use_cuda=self.cuda,
+                                                     profile_memory=True) as prof:
+                    train_loss = self.training_epoch(epoch_idx=epoch_idx)
+            else:
+                train_loss = self.training_epoch(epoch_idx=epoch_idx)
+            val_loss = self.validation_epoch(epoch_idx=epoch_idx)
+
+            # save first epoch timer
+            if epoch_idx == start_epoch:
+                first_ep_t = time.time()-lt
+
+            # final epoch
+            if epoch_idx + 1 == self.epochs:
+                self.train_dataloader.last_epoch = True
+                self.validation_dataloader.last_epoch = True
+
+            if self.cluster.rank == 0:
+                print('TIMER: epoch time:', time.time()-lt, 's')
+                if self.benchrun and epoch_idx == self.epochs:
+                    print('\n--------------------------------------------------------')
+                    print('DEBUG: benchmark of last epoch:\n')
+                    what1 = 'cuda' if self.cuda else 'cpu'
+                    print(prof.key_averages().table(
+                        sort_by='self_'+str(what1)+'_time_total'))
+
+            # save state if found a better state
+            ref_loss = val_loss if val_loss is not None else train_loss
+            is_best = ref_loss < best_loss
+            if epoch_idx % self.checkpoint_every == 0 and not self.benchrun:
+                save_state(
+                    epoch_idx, self.model, ref_loss, self.optimizer,
+                    res_name, self.cluster.rank, self.cluster.world_size, is_best,
+                    distributed=self.cluster.distributed
+                )
+                # reset best_acc
+                best_loss = min(ref_loss, best_loss)
+
+        # save final state
+        if not self.benchrun:
+            save_state(
+                epoch_idx, self.model, ref_loss,
+                self.optimizer, res_name, self.cluster.rank, self.cluster.world_size, True,
+                distributed=self.cluster.distributed
+            )
+        if torch.cuda.is_available() and self.cluster.distributed:
+            dist.barrier()
+
+        # some debug
+        if self.cluster.rank == 0:
+            print('\n--------------------------------------------------------')
+            print('DEBUG: training results:\n')
+            print('TIMER: first epoch time:', first_ep_t, ' s')
+            print('TIMER: last epoch time:', time.time()-lt, ' s')
+            print('TIMER: average epoch time:',
+                  (time.time()-et)/self.epochs, ' s')
+            print('TIMER: total epoch time:', time.time()-et, ' s')
+            if epoch_idx > 1:
+                print('TIMER: total epoch-1 time:',
+                      time.time()-et-first_ep_t, ' s')
+                print('TIMER: average epoch-1 time:',
+                      (time.time()-et-first_ep_t)/(self.epochs-1), ' s')
+            if self.benchrun:
+                print('TIMER: total epoch-2 time:', lt-first_ep_t, ' s')
+                print('TIMER: average epoch-2 time:',
+                      (lt-first_ep_t)/(self.epochs-2), ' s')
+            # print('DEBUG: memory req:', int(torch.cuda.memory_reserved(self.lrank)/1024/1024), 'MB') \
+            #     if self.cuda and self.cluster.distributed else 'DEBUG: memory req: - MB'
+            print('DEBUG: memory summary:\n\n',
+                  torch.cuda.memory_summary(0)) if self.cuda else ''
+
+        if self.cluster.rank == 0:
+            print(f'TIMER: final time: {time.time()-st} s\n')
 
 
 class TorchTrainerMG(Trainer):

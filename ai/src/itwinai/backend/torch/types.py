@@ -1,9 +1,10 @@
 """Custom types definition."""
 
-from typing import Callable
+from typing import Callable, Any
 from enum import Enum, EnumMeta
 
 Loss = Callable
+LrScheduler = Any
 
 
 class MetaEnum(EnumMeta):
