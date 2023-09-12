@@ -51,4 +51,4 @@ if __name__ == "__main__":
     else:
         print('Downloading datasets (if not already done) and running...')
     executor.setup()
-    executor.execute()
+    executor()

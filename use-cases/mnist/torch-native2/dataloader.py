@@ -3,7 +3,7 @@
 from typing import Dict, Tuple
 import logging
 
-from torch.utils.data import DataLoader
+from torch.utils.data import Dataset
 from torchvision import transforms, datasets
 
 from itwinai.backend.components import DataGetter
@@ -17,6 +17,7 @@ class MNISTDataModuleTorch(DataGetter):
             pin_memory: bool = True,
             num_workers: int = 4
     ) -> None:
+        super().__init__()
         self.save_path = save_path
         self.batch_size = batch_size
         self.pin_memory = pin_memory
@@ -39,19 +40,20 @@ class MNISTDataModuleTorch(DataGetter):
     def setup(self, args: Dict):
         pass
 
-    def execute(self, args) -> Tuple[DataLoader, DataLoader]:
+    def execute(self) -> Tuple[Dataset, Dataset]:
         self.load()
         logging.debug("Train and valid datasets loaded.")
-        train_dataloder = DataLoader(
-            self.train_dataset,
-            batch_size=self.batch_size,
-            pin_memory=self.pin_memory,
-            num_workers=self.num_workers
-        )
-        validation_dataloader = DataLoader(
-            self.val_dataset,
-            batch_size=self.batch_size,
-            pin_memory=self.pin_memory,
-            num_workers=self.num_workers
-        )
-        return (train_dataloder, validation_dataloader)
+        # train_dataloder = DataLoader(
+        #     self.train_dataset,
+        #     batch_size=self.batch_size,
+        #     pin_memory=self.pin_memory,
+        #     num_workers=self.num_workers
+        # )
+        # validation_dataloader = DataLoader(
+        #     self.val_dataset,
+        #     batch_size=self.batch_size,
+        #     pin_memory=self.pin_memory,
+        #     num_workers=self.num_workers
+        # )
+        # return (train_dataloder, validation_dataloader)
+        return self.train_dataset, self.val_dataset
