@@ -7,7 +7,7 @@ trainer:
   class_path: trainer.Zebra2HorseTrainer
   init_args:
     epochs: 10
-    batch_size: 4
+    batch_size: 1
     model:
       class_path: itwinai.models.tensorflow.cyclegan.CycleGAN
       init_args:
@@ -44,7 +44,4 @@ trainer:
             learning_rate: 0.001
         }
       }
-    loggers: [
-      class_path: itwinai.backend.tensorflow.loggers.WanDBLogger,
-      class_path: itwinai.backend.tensorflow.loggers.MLFlowLogger
-    ]
+    loggers: []
