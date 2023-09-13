@@ -53,6 +53,18 @@ class Trainer(Executable):
     def train(self, *args, **kwargs):
         pass
 
+    @abstractmethod
+    def save_state(self):
+        pass
+
+    @abstractmethod
+    def load_state(self):
+        pass
+
+    @abstractmethod
+    def log(self, *args, **kwargs):
+        pass
+
 
 class DataGetter(Executable):
     @abstractmethod

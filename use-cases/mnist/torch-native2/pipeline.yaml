@@ -6,13 +6,8 @@ executor:
         init_args:
           save_path: .tmp/
 
-          batch_size: 32
-          pin_memory: True
-          num_workers: 0
-
       - class_path: itwinai.backend.torch.trainer.TorchTrainerMG2
         init_args:
-          use_cuda: False
           model:
             class_path: model.Net
           loss:
@@ -36,5 +31,5 @@ executor:
           cluster:
             class_path: itwinai.cluster.LocalCluster
             init_args:
-              gpus: 0,1,2,3
+              gpus: null
               backend: nccl

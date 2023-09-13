@@ -56,10 +56,13 @@ def handle_sigterm(signum, frame):
 class ClusterEnvironment(metaclass=ABCMeta):
     port: int = -1
     ngpus_per_node: int = -1
-    world_size: int = -1
-    rank: int = -1
+    global_world_size: int = -1
+    global_rank: int = -1
+    local_world_size: int = -1
+    local_rank: int = -1
     rnd_seed: int = None
     distributed: bool = False
+    # This flag tells whether the user wants to use the GPU(s)
     use_cuda: bool = False
 
     @property
@@ -74,27 +77,49 @@ class ClusterEnvironment(metaclass=ABCMeta):
                 f"are: {BackendT.list()}. Received '{backend_name}'")
         self._backend = backend_name
 
-    def is_main(self) -> bool:
-        return self.rank == 0
+    @abstractmethod
+    def is_main_worker(self) -> bool:
+        """Tells if the current process is the main/master process."""
+        pass
 
-    def cleanup_resources(self):
-        dist.barrier()
-        dist.destroy_process_group()
+    @abstractmethod
+    def is_cuda_available(self) -> bool:
+        pass
 
     @abstractmethod
     @contextmanager
     def init_dist_gpu(self, *args, **kwargs):
         pass
 
+    def cleanup_resources(self):
+        pass
 
-class LocalCluster(ClusterEnvironment):
-    """Simple single node cluster with access to multiple GPUs."""
+
+class TorchCluster(ClusterEnvironment):
+    def __init__(self) -> None:
+        super().__init__()
+
+    def is_cuda_available(self) -> bool:
+        return self.use_cuda and torch.cuda.is_available()
+
+    def is_main_worker(self) -> bool:
+        """Checks if the current process is the main/master process
+        in the whole job.
+        """
+        return self.global_rank == 0
+
+    def cleanup_resources(self):
+        dist.barrier()
+        dist.destroy_process_group()
+
+
+class LocalCluster(TorchCluster):
+    """Simple single node cluster with optional access to multiple GPUs."""
 
     def __init__(
         self,
         backend: Optional[str] = None,
-        gpus: Optional[str] = None,
-        # max_gpus: int = -1,
+        gpus: Optional[str] = '',
         port: int = 49153,
         rnd_seed: Optional[int] = 42
     ) -> None:
@@ -104,67 +129,84 @@ class LocalCluster(ClusterEnvironment):
             backend (Optional[str], optional): supported PyTorch backends.
                 If None, workload is not distributed. Defaults to None.
             gpus (Optional[str], optional): list of visible GPU devices
-                (e.g., '1,2,3'). If None, CPU is used. Defaults to None.
+                (e.g., '1,2,3'). If empty string uses all available GPUs.
+                If None, CPU is used. Defaults to ''.
             port (int, optional): TCP port used by the master process.
                 Defaults to 49153.
             rnd_seed (Optional[int], optional): random seed to be setup after
                 all processes are setup. Defaults to 42.
         """
-
         super().__init__()
         self.backend = backend
         self.gpus = gpus
         self.port = port
+        self.dist_url = f'tcp://localhost:{self.port}'
         self.rnd_seed = rnd_seed
-        os.environ['CUDA_VISIBLE_DEVICES'] = self.gpus
+
+        if self.gpus != '' and self.gpus is not None:
+            # Restrict the number of GPUs visible according to user needs
+            os.environ['CUDA_VISIBLE_DEVICES'] = self.gpus
 
         self.ngpus_per_node = torch.cuda.device_count()
-        self.rank = 0
-        self.dist_url = f'tcp://localhost:{self.port}'
-        self.world_size = self.ngpus_per_node
+        self.global_rank = 0
+        self.global_world_size = self.ngpus_per_node
 
+        print(f"{self.ngpus_per_node} GPUs are available.")
         self.distributed = True
-        self.use_cuda = True
+        # This flag tells whether the user wants to use the GPU(s)
+        self.use_cuda = (
+            self.gpus is not None  # GPU is not manually disabled
+            and torch.cuda.device_count() >= 1  # At least one GPU is selected
+        )
         if self.backend is None or self.ngpus_per_node <= 1:
             print("Distributed has been disabled.")
             self.distributed = False
             self.dist_url = None
-            self.world_size = 1
-            self.rank = 0
-        if self.gpus is None or not torch.cuda.is_available():
-            print("Cuda disabled... Running on single CPU.")
+            self.global_world_size = 1
+            self.global_rank = 0
+        if not self.is_cuda_available():
+            print("CUDA disabled... Running on single CPU.")
             self.use_cuda = False
             self.distributed = False
             self.dist_url = None
-            self.world_size = 1
-            self.rank = 0
+            self.global_world_size = 1
+            self.global_rank = 0
+
+        # Since single node case
+        self.local_world_size = self.global_world_size
 
     @contextmanager
     def init_dist_gpu(self, worker_id) -> torch.device:
         if self.distributed:
             torch.cuda.set_device(worker_id)
-            self.gpu = worker_id
-            self.rank += self.gpu
+            self.global_rank += worker_id
+            # Since single node case
+            self.local_rank = self.global_rank
+            # Simplification: worker ID mapped to GPU ID
+            self.gpu_id = worker_id
 
             try:
                 dist.init_process_group(
                     backend=self.backend,
                     init_method=self.dist_url,
-                    world_size=self.world_size,
-                    rank=self.rank
+                    world_size=self.global_world_size,
+                    rank=self.global_rank
                 )
                 fix_random_seeds(self.rnd_seed)
-                torch.cuda.set_device(self.gpu)
+                torch.cuda.set_device(self.gpu_id)
                 cudnn.benchmark = True
                 dist.barrier()
 
-                setup_for_distributed(self.is_main())
+                setup_for_distributed(self.is_main_worker())
                 print("SETUP DISTRIBUTED COMPLETE")
                 yield torch.device('cuda', worker_id)
             finally:
                 self.cleanup_resources()
         else:
             # Distributed is disabled
+            # Since single node case
+            self.global_rank = 0
+            self.local_rank = self.global_rank
             if self.use_cuda:
                 torch.cuda.set_device(worker_id)
                 yield torch.device('cuda', worker_id)
@@ -172,7 +214,7 @@ class LocalCluster(ClusterEnvironment):
                 yield torch.device('cpu')
 
 
-class SLURMCluster(ClusterEnvironment):
+class SLURMCluster(TorchCluster):
     """SLURM cluster with access to multi-node multi-GPU."""
 
     def __init__(
@@ -204,8 +246,9 @@ class SLURMCluster(ClusterEnvironment):
         self.dist_url = f'tcp://{host_name}:{self.port}'
 
         # distributed parameters
-        self.rank = int(os.getenv('SLURM_NODEID')) * self.ngpus_per_node
-        self.world_size = int(os.getenv('SLURM_NNODES')) * self.ngpus_per_node
+        self.global_rank = int(os.getenv('SLURM_NODEID')) * self.ngpus_per_node
+        self.global_world_size = int(
+            os.getenv('SLURM_NNODES')) * self.ngpus_per_node
 
     @contextmanager
     def init_dist_gpu(self):
@@ -214,20 +257,20 @@ class SLURMCluster(ClusterEnvironment):
             self.output_dir = Path(
                 str(self.output_dir).replace("%j", str(job_env.job_id)))
             self.gpu = job_env.local_rank
-            self.rank = job_env.global_rank
+            self.global_rank = job_env.global_rank
 
             dist.init_process_group(
                 backend=self.backend,
                 init_method=self.dist_url,
-                world_size=self.world_size,
-                rank=self.rank
+                world_size=self.global_world_size,
+                rank=self.global_rank
             )
             fix_random_seeds(self.rnd_seed)
             torch.cuda.set_device(self.gpu)
             cudnn.benchmark = True
             dist.barrier()
 
-            setup_for_distributed(self.is_main())
+            setup_for_distributed(self.is_main_worker())
             yield
         finally:
             self.cleanup_resources()

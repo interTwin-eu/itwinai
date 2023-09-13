@@ -16,7 +16,7 @@ import torch.nn as nn
 from torch.optim.optimizer import Optimizer
 
 from ..components import Trainer, Logger
-from .utils import seed_worker, save_state
+from .utils import seed_worker, save_state, par_allgather_obj
 from .types import (
     TorchDistributedBackend,
     TorchDistributedStrategy,
@@ -631,7 +631,6 @@ class TorchTrainerMG2(Trainer):
         validation_dataloader_kwargs: Optional[Dict] = None,
         epochs: int = 1,
         strategy: str = StrategyT.NONE.value,
-        use_cuda: bool = True,
         benchrun: bool = False,
         testrun: bool = False,
         seed: Optional[int] = None,
@@ -649,13 +648,10 @@ class TorchTrainerMG2(Trainer):
         self.testrun = testrun
         self.seed = seed
         self.strategy = strategy
-        # TODO: embed use_cuda into the cluster
-        self.use_cuda = use_cuda
         self.benchrun = benchrun
         self.cluster = cluster
         # Checkpoint every n epochs
         self.checkpoint_every = checkpoint_every
-        self.cuda = self.use_cuda and torch.cuda.is_available()
 
         # Train and validation dataloaders
         self.train_dataloader_class = dynamically_import_class(
@@ -708,7 +704,7 @@ class TorchTrainerMG2(Trainer):
         # Loggers
         self.logger = (
             logger if logger is not None
-            else BaseLogger(create_new=self.cluster.is_main())
+            else BaseLogger(create_new=self.cluster.is_main_worker())
         )
 
     @property
@@ -722,6 +718,10 @@ class TorchTrainerMG2(Trainer):
                 "Unrecognized 'strategy' field. Allowed values "
                 f"are: {StrategyT.list()}. Received '{strategy_name}'")
         self._strategy = strategy_name
+
+    @property
+    def checkpoints_location(self) -> str:
+        return self.logger.run_path
 
     def set_seed(self, seed: Optional[int] = None):
         """Deterministic operations for reproducibility.
@@ -737,7 +737,7 @@ class TorchTrainerMG2(Trainer):
         if seed is not None:
             torch.manual_seed(seed)
             self.torch_rng.manual_seed(seed)
-            if self.cuda:
+            if self.cluster.is_cuda_available():
                 torch.cuda.manual_seed(seed)
 
     def setup(self, config: Dict) -> Dict:
@@ -774,7 +774,7 @@ class TorchTrainerMG2(Trainer):
         worker_id: int
     ):
         # Each worker has a different deterministic seed
-        # NB: 'worker' = replica of the training function
+        # Here, 'worker' = replica of the training function
         worker_seed = (
             self.seed + worker_id if self.seed is not None else self.seed
         )
@@ -793,7 +793,7 @@ class TorchTrainerMG2(Trainer):
                 init_kwargs=self.validation_dataloader_kwargs
             )
 
-        # Launch effective training:
+        # Launch actual training:
 
         # Single worker case
         if not self.cluster.distributed:
@@ -833,8 +833,8 @@ class TorchTrainerMG2(Trainer):
         if self.strategy == StrategyT.DDP.value and self.cluster.distributed:
             sampler = DistributedSampler(
                 dataset=dataset,
-                num_replicas=self.cluster.world_size,
-                rank=self.cluster.rank,
+                num_replicas=self.cluster.global_world_size,
+                rank=self.cluster.global_rank,
                 shuffle=init_kwargs.get(
                     'shuffle', False
                 )
@@ -857,7 +857,7 @@ class TorchTrainerMG2(Trainer):
                 print(
                     "A GPU cluster is available but no distributed "
                     "strategy was given... Falling back to single worker...")
-                if not self.cluster.is_main():
+                if not self.cluster.is_main_worker():
                     # Use only GPU:0 for single worker
                     sys.exit(0)
             elif self.strategy == StrategyT.DDP.value:
@@ -931,109 +931,99 @@ class TorchTrainerMG2(Trainer):
         st = time.time()
 
         # Resume state
-        start_epoch = 1
-        best_loss = np.Inf
-        res_name = os.path.join(self.logger.run_path, 'checkpoint.pth.tar')
-        if os.path.isfile(res_name) and not self.benchrun:
-            try:
-                if torch.cuda.is_available() and self.cluster.distributed:
-                    dist.barrier()
-                    # Map model to be loaded to specified single gpu.
-                    loc = {'cuda:%d' % 0: 'cuda:%d' % self.lrank} if self.cuda else {
-                        'cpu:%d' % 0: 'cpu:%d' % self.lrank}
-                    checkpoint = torch.load(res_name, map_location=loc)
-                else:
-                    checkpoint = torch.load(res_name, map_location='cpu')
-                start_epoch = checkpoint['epoch']
-                best_loss = checkpoint['best_loss']
-                self.model.load_state_dict(checkpoint['state_dict'])
-                self.optimizer.load_state_dict(checkpoint['optimizer'])
-                if torch.cuda.is_available():
-                    if self.cluster.rank == 0:
-                        print(f'WARNING: restarting from {start_epoch} epoch')
-                else:
-                    print(f'WARNING: restarting from {start_epoch} epoch')
-            except:
-                if torch.cuda.is_available():
-                    if self.cluster.rank == 0:
-                        print('WARNING: restart file cannot be loaded, restarting!')
-                else:
-                    print('WARNING: restart file cannot be loaded, restarting!')
+        self.start_epoch = 1
+        self.best_loss = np.Inf
+        self.load_state()
 
-        if start_epoch >= self.epochs + 1:
-            if torch.cuda.is_available() and self.cluster.distributed:
-                if self.cluster.rank == 0:
-                    print('WARNING: given epochs are less than the one in the restart file!\n'
-                          'WARNING: SYS.EXIT is issued')
-                dist.destroy_process_group()
-                sys.exit()
-            else:
-                print('WARNING: given epochs are less than the one in the restart file!\n'
-                      'WARNING: SYS.EXIT is issued')
-                sys.exit()
-
-        # start trainin/testing loop
-        if self.cluster.is_main():
+        # start training/testing loop
+        if self.cluster.is_main_worker():
             print('TIMER: broadcast:', time.time()-st, 's')
-            print(f'\nDEBUG: start training')
-            print(f'--------------------------------------------------------')
+            print('\nDEBUG: start training')
+            print('--------------------------------------------------------')
+
+        ##############################
+        # Start training: run epochs #
+        ##############################
 
         et = time.time()
-        # TODO use tqdm? For distributed situations could be difficult
-        for epoch_idx in range(start_epoch, self.epochs + 1):
+        for epoch_idx in range(self.start_epoch, self.epochs + 1):
             lt = time.time()
+
+            #######################################################
+            # Perform one training epoch and one validation epoch #
+            #######################################################
 
             if self.benchrun and epoch_idx == self.epochs:
                 # profiling (done on last epoch - slower!)
-                with torch.autograd.profiler.profile(use_cuda=self.cuda,
-                                                     profile_memory=True) as prof:
+                with torch.autograd.profiler.profile(
+                    use_cuda=self.cluster.is_cuda_available(),
+                    profile_memory=True
+                ) as prof:
                     train_loss = self.training_epoch(epoch_idx=epoch_idx)
             else:
                 train_loss = self.training_epoch(epoch_idx=epoch_idx)
             val_loss = self.validation_epoch(epoch_idx=epoch_idx)
 
+            #####################################
+            # Save checkpoint if model improved #
+            #####################################
+
+            ref_loss = val_loss if val_loss is not None else train_loss
+            is_best = ref_loss < self.best_loss
+            if epoch_idx % self.checkpoint_every == 0 and not self.benchrun:
+                self.save_state(
+                    epoch=epoch_idx,
+                    loss_val=ref_loss,
+                    is_best=is_best
+                )
+                self.best_loss = min(ref_loss, self.best_loss)
+
+            ###########################
+            # End of epoch operations #
+            ###########################
+
             # save first epoch timer
-            if epoch_idx == start_epoch:
+            if epoch_idx == self.start_epoch:
                 first_ep_t = time.time()-lt
 
-            # final epoch
+            # Final epoch
             if epoch_idx + 1 == self.epochs:
                 self.train_dataloader.last_epoch = True
                 self.validation_dataloader.last_epoch = True
 
-            if self.cluster.rank == 0:
+            if self.cluster.is_main_worker():
                 print('TIMER: epoch time:', time.time()-lt, 's')
                 if self.benchrun and epoch_idx == self.epochs:
-                    print('\n--------------------------------------------------------')
+                    print('\n' + '-'*56)
                     print('DEBUG: benchmark of last epoch:\n')
-                    what1 = 'cuda' if self.cuda else 'cpu'
-                    print(prof.key_averages().table(
-                        sort_by='self_'+str(what1)+'_time_total'))
+                    what1 = (
+                        'cuda' if self.cluster.is_cuda_available() else 'cpu'
+                    )
+                    print(
+                        prof.key_averages().table(
+                            sort_by='self_'+str(what1)+'_time_total'
+                        )
+                    )
 
-            # save state if found a better state
-            ref_loss = val_loss if val_loss is not None else train_loss
-            is_best = ref_loss < best_loss
-            if epoch_idx % self.checkpoint_every == 0 and not self.benchrun:
-                save_state(
-                    epoch_idx, self.model, ref_loss, self.optimizer,
-                    res_name, self.cluster.rank, self.cluster.world_size, is_best,
-                    distributed=self.cluster.distributed
-                )
-                # reset best_acc
-                best_loss = min(ref_loss, best_loss)
+        ##########################
+        # Training has completed #
+        ##########################
 
         # save final state
         if not self.benchrun:
-            save_state(
-                epoch_idx, self.model, ref_loss,
-                self.optimizer, res_name, self.cluster.rank, self.cluster.world_size, True,
-                distributed=self.cluster.distributed
+            self.save_state(
+                epoch=epoch_idx,
+                loss_val=ref_loss,
+                is_best=is_best
             )
-        if torch.cuda.is_available() and self.cluster.distributed:
+        if self.cluster.is_cuda_available() and self.cluster.distributed:
             dist.barrier()
 
-        # some debug
-        if self.cluster.rank == 0:
+        ########################
+        # Print training stats #
+        ########################
+
+        if self.cluster.is_main_worker():
             print('\n--------------------------------------------------------')
             print('DEBUG: training results:\n')
             print('TIMER: first epoch time:', first_ep_t, ' s')
@@ -1050,13 +1040,137 @@ class TorchTrainerMG2(Trainer):
                 print('TIMER: total epoch-2 time:', lt-first_ep_t, ' s')
                 print('TIMER: average epoch-2 time:',
                       (lt-first_ep_t)/(self.epochs-2), ' s')
-            # print('DEBUG: memory req:', int(torch.cuda.memory_reserved(self.lrank)/1024/1024), 'MB') \
-            #     if self.cuda and self.cluster.distributed else 'DEBUG: memory req: - MB'
-            print('DEBUG: memory summary:\n\n',
-                  torch.cuda.memory_summary(0)) if self.cuda else ''
+            mem = int(torch.cuda.memory_reserved(
+                self.cluster.local_rank)/1024/1024)
+            print(
+                f'DEBUG: memory req: {mem} MB'
+                if self.cluster.is_cuda_available()
+                and self.cluster.distributed else 'DEBUG: memory req: - MB'
+            )
+            if self.cluster.is_cuda_available():
+                print('DEBUG: memory summary:\n\n',
+                      torch.cuda.memory_summary(0))
 
-        if self.cluster.rank == 0:
+        if self.cluster.is_main_worker():
             print(f'TIMER: final time: {time.time()-st} s\n')
+
+    def save_state(self, epoch: int, loss_val: Any, is_best: bool):
+        """Save training state."""
+        res_name = os.path.join(
+            self.checkpoints_location, 'checkpoint.pth.tar'
+        )
+        rt = time.time()
+
+        if (self.cluster.is_cuda_available() and self.cluster.distributed):
+            # find if is_best happened in any worker
+            is_best_m = par_allgather_obj(
+                is_best, self.cluster.global_world_size
+            )
+            if any(is_best_m):
+                # find which rank is_best happened - select first rank
+                # if multiple
+                best_rank = np.where(np.array(is_best_m))[0][0]
+                if self.cluster.global_rank == best_rank:
+                    self._save_sate(
+                        epoch=epoch+1,
+                        loss_val=loss_val,
+                        save_path=res_name
+                    )
+                    print(
+                        f'DEBUG: state in {self.cluster.global_rank} '
+                        f'is saved on epoch:{epoch} in {time.time()-rt} s'
+                    )
+        else:
+            self._save_sate(
+                epoch=epoch+1,
+                loss_val=loss_val,
+                save_path=res_name
+            )
+            print(
+                f'DEBUG: state in {self.cluster.global_rank} '
+                f'is saved on epoch:{epoch} in {time.time()-rt} s'
+            )
+
+    def _save_sate(
+        self,
+        epoch: int,
+        loss_val: Any,
+        save_path: str
+    ):
+        """Save state on disk."""
+        sched = (
+            self.lr_scheduler.state_dict()
+            if self.lr_scheduler is not None else None
+        )
+        state = {
+            'epoch': epoch,
+            'state_dict': self.model.state_dict(),
+            'best_loss': loss_val,
+            'optimizer': self.optimizer.state_dict(),
+            'lr_scheduler': sched
+        }
+        torch.save(state, save_path)
+
+    def load_state(self):
+        """Load training state."""
+        res_name = os.path.join(
+            self.checkpoints_location, 'checkpoint.pth.tar'
+        )
+        if os.path.isfile(res_name) and not self.benchrun:
+            try:
+                if (self.cluster.is_cuda_available()
+                        and self.cluster.distributed):
+                    dist.barrier()
+                    # Map model to be loaded to specified single gpu.
+                    # loc = (
+                #     {'cuda:%d' % 0: 'cuda:%d' % self.cluster.local_rank}
+                #     if self.cluster.is_cuda_available()
+                #     else {'cpu:%d' % 0: 'cpu:%d' % self.cluster.local_rank}
+                    # )
+                    # checkpoint = torch.load(res_name, map_location=loc)
+                    checkpoint = torch.load(
+                        res_name, map_location=self.device
+                    )
+                else:
+                    checkpoint = torch.load(res_name, map_location='cpu')
+                self.start_epoch = checkpoint['epoch']
+                self.best_loss = checkpoint['best_loss']
+                self.model.load_state_dict(checkpoint['state_dict'])
+                self.optimizer.load_state_dict(checkpoint['optimizer'])
+                if self.lr_scheduler is not None:
+                    self.lr_scheduler.load_state_dict(
+                        checkpoint['lr_scheduler']
+                    )
+                if self.cluster.is_cuda_available():
+                    if self.cluster.is_main_worker():
+                        print(f'WARNING: restarting from {self.start_epoch} '
+                              'epoch')
+                else:
+                    print(f'WARNING: restarting from {self.start_epoch} epoch')
+            except Exception:
+                if self.cluster.is_cuda_available():
+                    if self.cluster.is_main_worker():
+                        print('WARNING: restart file cannot be '
+                              'loaded, restarting!')
+                else:
+                    print('WARNING: restart file cannot be '
+                          'loaded, restarting!')
+
+        if self.start_epoch >= self.epochs + 1:
+            if self.cluster.is_cuda_available() and self.cluster.distributed:
+                if self.cluster.is_main_worker():
+                    print('WARNING: given epochs are less than the one in '
+                          'the restart file!\n'
+                          'WARNING: SYS.EXIT is issued')
+                sys.exit()
+            else:
+                print('WARNING: given epochs are less than the '
+                      'one in the restart file!\n'
+                      'WARNING: SYS.EXIT is issued')
+                sys.exit()
+
+    def log(self, *args, **kwargs):
+        pass
 
 
 class TorchTrainerMG(Trainer):
@@ -1159,7 +1273,7 @@ class TorchTrainerMG(Trainer):
 
         self.logger = (
             logger if logger is not None
-            else BaseLogger(create_new=self.cluster.is_main())
+            else BaseLogger(create_new=self.cluster.is_main_worker())
         )
 
     @property
@@ -1213,7 +1327,7 @@ class TorchTrainerMG(Trainer):
                 print(
                     "A GPU cluster is available but no distributed "
                     "strategy was given... Falling back to single worker...")
-                if not self.cluster.is_main():
+                if not self.cluster.is_main_worker():
                     # Use only GPU:0 for single worker
                     return
             elif self.strategy == StrategyT.DDP.value:
@@ -1265,8 +1379,8 @@ class TorchTrainerMG(Trainer):
         else:
             sampler = DistributedSampler(
                 dataloader.dataset,
-                num_replicas=self.cluster.world_size,
-                rank=self.cluster.rank,
+                num_replicas=self.cluster.global_world_size,
+                rank=self.cluster.global_rank,
                 shuffle=self.shuffle_dataset
             )
         # Recreate dataloader, with updated sampler
@@ -1362,20 +1476,20 @@ class TorchTrainerMG(Trainer):
                 self.model.load_state_dict(checkpoint['state_dict'])
                 self.optimizer.load_state_dict(checkpoint['optimizer'])
                 if torch.cuda.is_available():
-                    if self.cluster.rank == 0:
+                    if self.cluster.global_rank == 0:
                         print(f'WARNING: restarting from {start_epoch} epoch')
                 else:
                     print(f'WARNING: restarting from {start_epoch} epoch')
             except:
                 if torch.cuda.is_available():
-                    if self.cluster.rank == 0:
+                    if self.cluster.global_rank == 0:
                         print('WARNING: restart file cannot be loaded, restarting!')
                 else:
                     print('WARNING: restart file cannot be loaded, restarting!')
 
         if start_epoch >= self.epochs + 1:
             if torch.cuda.is_available() and self.cluster.distributed:
-                if self.cluster.rank == 0:
+                if self.cluster.global_rank == 0:
                     print('WARNING: given epochs are less than the one in the restart file!\n'
                           'WARNING: SYS.EXIT is issued')
                 dist.destroy_process_group()
@@ -1386,7 +1500,7 @@ class TorchTrainerMG(Trainer):
                 sys.exit()
 
         # start trainin/testing loop
-        if self.cluster.is_main():
+        if self.cluster.is_main_worker():
             print('TIMER: broadcast:', time.time()-st, 's')
             print(f'\nDEBUG: start training')
             print(f'--------------------------------------------------------')
@@ -1414,7 +1528,7 @@ class TorchTrainerMG(Trainer):
                 self.train_dataloader.last_epoch = True
                 self.validation_dataloader.last_epoch = True
 
-            if self.cluster.rank == 0:
+            if self.cluster.global_rank == 0:
                 print('TIMER: epoch time:', time.time()-lt, 's')
                 if self.benchrun and epoch_idx == self.epochs:
                     print('\n--------------------------------------------------------')
@@ -1429,7 +1543,7 @@ class TorchTrainerMG(Trainer):
             if epoch_idx % self.checkpoint_every == 0 and not self.benchrun:
                 save_state(
                     epoch_idx, self.model, ref_loss, self.optimizer,
-                    res_name, self.cluster.rank, self.cluster.world_size, is_best,
+                    res_name, self.cluster.global_rank, self.cluster.global_world_size, is_best,
                     distributed=self.cluster.distributed
                 )
                 # reset best_acc
@@ -1439,14 +1553,14 @@ class TorchTrainerMG(Trainer):
         if not self.benchrun:
             save_state(
                 epoch_idx, self.model, ref_loss,
-                self.optimizer, res_name, self.cluster.rank, self.cluster.world_size, True,
+                self.optimizer, res_name, self.cluster.global_rank, self.cluster.global_world_size, True,
                 distributed=self.cluster.distributed
             )
         if torch.cuda.is_available() and self.cluster.distributed:
             dist.barrier()
 
         # some debug
-        if self.cluster.rank == 0:
+        if self.cluster.global_rank == 0:
             print('\n--------------------------------------------------------')
             print('DEBUG: training results:\n')
             print('TIMER: first epoch time:', first_ep_t, ' s')
@@ -1468,7 +1582,7 @@ class TorchTrainerMG(Trainer):
             print('DEBUG: memory summary:\n\n',
                   torch.cuda.memory_summary(0)) if self.cuda else ''
 
-        if self.cluster.rank == 0:
+        if self.cluster.global_rank == 0:
             print(f'TIMER: final time: {time.time()-st} s\n')
 
 
