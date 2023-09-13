@@ -10,18 +10,20 @@ from itwinai.backend.components import DataGetter
 
 
 class MNISTDataModuleTorch(DataGetter):
+    """Download MNIST dataset for torch."""
+
     def __init__(
             self,
             save_path: str = '.tmp/',
-            batch_size: int = 32,
-            pin_memory: bool = True,
-            num_workers: int = 4
+            # batch_size: int = 32,
+            # pin_memory: bool = True,
+            # num_workers: int = 4
     ) -> None:
         super().__init__()
         self.save_path = save_path
-        self.batch_size = batch_size
-        self.pin_memory = pin_memory
-        self.num_workers = num_workers
+        # self.batch_size = batch_size
+        # self.pin_memory = pin_memory
+        # self.num_workers = num_workers
 
     def load(self):
         self.train_dataset = datasets.MNIST(
