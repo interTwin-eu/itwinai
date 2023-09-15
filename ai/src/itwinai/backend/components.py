@@ -4,7 +4,7 @@ from typing import Iterable, Dict, Any, Optional, Tuple
 from abc import ABCMeta, abstractmethod
 import time
 
-from ..cluster import ClusterEnvironment
+from .cluster import ClusterEnvironment
 
 
 class Executable(metaclass=ABCMeta):
@@ -78,10 +78,10 @@ class DataPreproc(Executable):
         pass
 
 
-class StatGetter(Executable):
-    @abstractmethod
-    def stats(self, *args, **kwargs):
-        pass
+# class StatGetter(Executable):
+#     @abstractmethod
+#     def stats(self, *args, **kwargs):
+#         pass
 
 
 class Evaluator(Executable):
@@ -90,10 +90,10 @@ class Evaluator(Executable):
         pass
 
 
-class Saver(Executable):
-    @abstractmethod
-    def save(self, *args, **kwargs):
-        pass
+# class Saver(Executable):
+#     @abstractmethod
+#     def save(self, *args, **kwargs):
+#         pass
 
 
 class Executor(Executable):
@@ -146,11 +146,3 @@ class Executor(Executable):
         for step in self.steps:
             args = () if args is None else args
             args = step(*args)
-
-
-class Logger(metaclass=ABCMeta):
-    savedir: str = None
-
-    @abstractmethod
-    def log(self, args):
-        pass

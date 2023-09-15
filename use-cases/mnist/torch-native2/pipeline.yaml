@@ -26,10 +26,16 @@ executor:
             pin_memory: True
             shuffle: False
           epochs: 2
+          logger: 
+            - class_path: itwinai.backend.loggers.SimpleLogger
+            - class_path: itwinai.backend.loggers.MLFlowLogger
+              init_args:
+                experiment_name: MNIST classifier
+                log_freq: batch 
           strategy: ddp
           checkpoint_every: 1
           cluster:
-            class_path: itwinai.cluster.LocalCluster
+            class_path: itwinai.backend.cluster.LocalCluster
             init_args:
               gpus: null
               backend: nccl
