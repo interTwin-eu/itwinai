@@ -1,6 +1,6 @@
 """Provides training logic for PyTorch models via Trainer classes."""
 
-from typing import Optional, Dict, Union, Callable, Tuple, Type, List, Any
+from typing import Iterable, Optional, Dict, Union, Callable, Tuple, Type, List, Any
 import time
 import os
 import sys
@@ -15,19 +15,20 @@ from torch.nn.parallel import DistributedDataParallel as DDP
 import torch.nn as nn
 from torch.optim.optimizer import Optimizer
 
-from ..components import Trainer, Logger
+from ..components import Trainer
 from .utils import seed_worker, save_state, par_allgather_obj
 from .types import (
+    Batch,
     TorchDistributedBackend,
     TorchDistributedStrategy,
     TorchLoss, TorchOptimizer,
-    Loss, LrScheduler
+    Loss, LrScheduler, Metric
 )
 from .types import TorchDistributedStrategy as StrategyT
 from .types import TorchDistributedBackend as BackendT
-from .loggers import BaseLogger
+from ..loggers import LogMixin, Logger, SimpleLogger
 from ...utils import dynamically_import_class
-from ...cluster import ClusterEnvironment
+from ..cluster import ClusterEnvironment
 from ._utils import clear_key
 
 
@@ -254,7 +255,7 @@ class TorchTrainer(Trainer):
 
         self.logger = (
             logger if logger is not None
-            else BaseLogger(create_new=self.grank == 0)
+            else SimpleLogger(create_new=self.grank == 0)
         )
 
     @property
@@ -557,7 +558,7 @@ class TorchTrainer(Trainer):
             dist.destroy_process_group()
 
 
-class TorchTrainerMG2(Trainer):
+class TorchTrainerMG2(Trainer, LogMixin):
     """
     Torch trainer for optionally distributed data-parallel (DDP) workload.
     Multi-GPU distribution.
@@ -600,11 +601,25 @@ class TorchTrainerMG2(Trainer):
         logger (Optional[List[Logger]], optional): logger. Defaults to None.
         checkpoint_every (int, optional): how often (epochs) to checkpoint the
             best model. Defaults to 10.
+        cluster (Optional[ClusterEnvironment], optional): cluster environment
+            object describing the context in which the trainer is executed.
+            Defaults to None.
+        train_metrics (Optional[Dict[str, Metric]], optional):
+            list of metrics computed in the training step on the predictions.
+            It's a dictionary with the form
+            ``{'metric_unique_name': CallableMetric}``. Defaults to None.
+        validation_metrics (Optional[Dict[str, Metric]], optional): same
+            as ``training_metrics``. If not given, it mirrors the training
+            metrics. Defaults to None.
 
     Raises:
         RuntimeError: When trying to use DDP without CUDA support.
         NotImplementedError: when trying to use a strategy different from the
             ones provided by TorchDistributedStrategy.
+
+    TODO: 
+      - Add loggers support and metrics
+      - Add logging
     """
 
     model: nn.Module = None
@@ -616,6 +631,12 @@ class TorchTrainerMG2(Trainer):
     validation_dataset: Dataset
     train_dataloader: DataLoader = None
     validation_dataloader: DataLoader = None
+    epoch_idx: int = 0
+    batch_idx: int = 0
+    train_glob_step: int = 0
+    validation_glob_step: int = 0
+    train_metrics: Iterable[Metric]
+    validation_metrics: Iterable[Metric]
 
     def __init__(
         self,
@@ -636,7 +657,9 @@ class TorchTrainerMG2(Trainer):
         seed: Optional[int] = None,
         logger: Optional[List[Logger]] = None,
         checkpoint_every: int = 10,
-        cluster: Optional[ClusterEnvironment] = None
+        cluster: Optional[ClusterEnvironment] = None,
+        train_metrics: Optional[Dict[str, Metric]] = None,
+        validation_metrics: Optional[Dict[str, Metric]] = None
     ) -> None:
         """Sets up the distributed backend and loggers.
         Makes the model a DDP model.
@@ -702,9 +725,15 @@ class TorchTrainerMG2(Trainer):
             )
 
         # Loggers
-        self.logger = (
-            logger if logger is not None
-            else BaseLogger(create_new=self.cluster.is_main_worker())
+        self.logger = logger if logger is not None else SimpleLogger()
+
+        # Metrics
+        self.train_metrics = (
+            {} if train_metrics is None else train_metrics
+        )
+        self.validation_metrics = (
+            self.train_metrics if validation_metrics is None
+            else validation_metrics
         )
 
     @property
@@ -720,8 +749,8 @@ class TorchTrainerMG2(Trainer):
         self._strategy = strategy_name
 
     @property
-    def checkpoints_location(self) -> str:
-        return self.logger.run_path
+    def global_step(self) -> int:
+        return self.train_glob_step + self.validation_glob_step
 
     def set_seed(self, seed: Optional[int] = None):
         """Deterministic operations for reproducibility.
@@ -800,14 +829,23 @@ class TorchTrainerMG2(Trainer):
             with self.cluster.init_dist_gpu(worker_id) as device:
                 self.device: torch.device = device
                 self.model = self.model.to(self.device)
-                return self.train()
+                self.setup_logger()
+                try:
+                    train_result = self.train()
+                finally:
+                    self.destroy_logger()
+                    train_result = None
+                return train_result
 
         # Init / connect to distributed backend
         with self.cluster.init_dist_gpu(worker_id) as device:
             self.device: torch.device = device
             self._distribute_model()
-            train_result = self.train()
-
+            try:
+                train_result = self.train()
+            finally:
+                self.destroy_logger()
+                train_result = None
         return train_result
 
     def _instantiate_dataloader(
@@ -874,50 +912,207 @@ class TorchTrainerMG2(Trainer):
                 "distributed cluster is not available."
             )
 
-    def training_step(self, batch, batch_idx) -> Loss:
+    def setup_logger(self):
+        if self.cluster.is_main_worker():
+            # Only setup loggers on main worker
+            if isinstance(self.logger, list):
+                for logger in self.logger:
+                    logger.create_logger_context()
+            elif isinstance(self.logger, Logger):
+                self.logger.create_logger_context()
+            else:
+                raise TypeError(
+                    "Unrecognized self.logger. Allowed types are 'list' and "
+                    f"'Logger'. Received {type(self.logger)}"
+                )
+        else:
+            self.logger = []
+
+    def destroy_logger(self):
+        if self.cluster.is_main_worker():
+            if isinstance(self.logger, list):
+                for logger in self.logger:
+                    logger.destroy_logger_context()
+            elif isinstance(self.logger, Logger):
+                self.logger.destroy_logger_context()
+            else:
+                raise TypeError(
+                    "Unrecognized self.logger. Allowed types are 'list' and "
+                    f"'Logger'. Received {type(self.logger)}"
+                )
+
+    def log(
+        self,
+        item: Union[Any, List[Any]],
+        identifier: Union[str, List[str]],
+        kind: str = 'metric',
+        step: Optional[int] = None,
+        batch_idx: Optional[int] = None,
+        force: bool = False,
+        **kwargs
+    ) -> None:
+        if self.cluster.is_main_worker() or force:
+            # Only log on main worker
+            if isinstance(self.logger, list):
+                for logger in self.logger:
+                    logger.log(
+                        item=item,
+                        identifier=identifier,
+                        kind=kind,
+                        step=step,
+                        batch_idx=batch_idx,
+                        **kwargs
+                    )
+            elif isinstance(self.logger, Logger):
+                self.logger.log(
+                    item=item,
+                    identifier=identifier,
+                    kind=kind,
+                    step=step,
+                    batch_idx=batch_idx,
+                    **kwargs
+                )
+            else:
+                raise TypeError(
+                    "Unrecognized self.logger. Allowed types are 'list' and "
+                    f"'Logger'. Received {type(self.logger)}"
+                )
+
+    def compute_metrics(
+        self,
+        metrics: Dict[str, Metric],
+        true: Batch,
+        pred: Batch,
+        logger_step: int,
+        batch_idx: int
+    ) -> Dict[str, Any]:
+        """Compute and log metrics.
+
+        Args:
+            metrics (Dict[str, Metric]): metrics dict. Can be 
+                ``self.train_metrics`` or ``self.validation_metrics``.
+            true (Batch): true values.
+            pred (Batch): predicted values.
+
+        Returns:
+            Dict[str, Any]: metric values.
+        """
+        m_values = {}
+        for m_name, metric in metrics.items():
+            m_val = metric(true, pred).detach().cpu().numpy()
+            self.log(
+                item=m_val,
+                identifier=m_name,
+                kind='metric',
+                step=logger_step,
+                batch_idx=batch_idx
+            )
+            m_values[m_name] = m_val
+        return m_values
+
+    def training_step(
+        self,
+        batch: Batch,
+        batch_idx: int
+    ) -> Tuple[Loss, Dict[str, Any]]:
         x, y = batch
         x, y = x.to(self.device), y.to(self.device)
         pred_y = self.model(x)
-        return self.loss(pred_y, y)
+        loss: Loss = self.loss(pred_y, y)
+        self.log(
+            item=loss.item(),
+            identifier='training_loss',
+            kind='metric',
+            step=self.train_glob_step,
+            batch_idx=batch_idx
+        )
+        metrics: Dict[str, Any] = self.compute_metrics(
+            metrics=self.train_metrics,
+            true=y,
+            pred=pred_y,
+            logger_step=self.train_glob_step,
+            batch_idx=batch_idx
+        )
+        return loss, metrics
 
-    def validation_step(self, batch, batch_idx) -> Loss:
+    def validation_step(
+        self,
+        batch: Batch,
+        batch_idx: int
+    ) -> Tuple[Loss, Dict[str, Any]]:
         x, y = batch
         x, y = x.to(self.device), y.to(self.device)
         pred_y = self.model(x)
-        return self.loss(pred_y, y)
+        loss: Loss = self.loss(pred_y, y)
+        self.log(
+            item=loss.item(),
+            identifier='validation_loss',
+            kind='metric',
+            step=self.validation_glob_step,
+            batch_idx=batch_idx
+        )
+        metrics: Dict[str, Any] = self.compute_metrics(
+            metrics=self.validation_metrics,
+            true=y,
+            pred=pred_y,
+            logger_step=self.validation_glob_step,
+            batch_idx=batch_idx
+        )
+        return loss, metrics
 
-    def training_epoch(self, epoch_idx) -> Loss:
+    def training_epoch(self) -> Loss:
         self.model.train()
         train_losses = []
-        # TODO: use tqdm
-        for tr_b_idx, train_batch in enumerate(self.train_dataloader):
-            loss = self.training_step(
+        for batch_idx, train_batch in enumerate(self.train_dataloader):
+            loss, metrics = self.training_step(
                 batch=train_batch,
-                batch_idx=tr_b_idx
+                batch_idx=batch_idx
             )
+            # TODO: merge and log batch metrics and loss into epoch metrics
             self.optimizer.zero_grad()
             loss.backward()
             self.optimizer.step()
             train_losses.append(loss)
+            # Important: update counter
+            self.train_glob_step += 1
+
+        # Aggregate and log losses
         avg_loss = torch.mean(torch.stack(train_losses)).detach().cpu()
-        print(f"Avg train loss: {avg_loss}")
+        self.log(
+            item=avg_loss.item(),
+            identifier='training_loss_epoch',
+            kind='metric',
+            step=self.train_glob_step,
+        )
+        # print(f"Avg train loss: {avg_loss}")
         return avg_loss
 
-    def validation_epoch(self, epoch_idx) -> Loss:
+    def validation_epoch(self) -> Loss:
         if self.validation_dataloader is not None:
             self.model.eval()
             validation_losses = []
-            # TODO: use tqdm
-            for val_b_idx, val_batch in enumerate(self.validation_dataloader):
-                loss = self.validation_step(
+            for batch_idx, val_batch \
+                    in enumerate(self.validation_dataloader):
+                # TODO: merge and log batch metrics and loss into epoch metrics
+                loss, metrics = self.validation_step(
                     batch=val_batch,
-                    batch_idx=val_b_idx
+                    batch_idx=batch_idx
                 )
                 validation_losses.append(loss)
+                # Important: update counter
+                self.validation_glob_step += 1
+
+            # Aggregate and log losses
             avg_loss = torch.mean(
                 torch.stack(validation_losses)
             ).detach().cpu()
-            print(f"Avg validation loss: {avg_loss}")
+            self.log(
+                item=avg_loss.item(),
+                identifier='validation_loss_epoch',
+                kind='metric',
+                step=self.validation_glob_step,
+            )
+            # print(f"Avg validation loss: {avg_loss}")
             return avg_loss
 
     def train(self):
@@ -946,23 +1141,24 @@ class TorchTrainerMG2(Trainer):
         ##############################
 
         et = time.time()
-        for epoch_idx in range(self.start_epoch, self.epochs + 1):
+        for self.epoch_idx in range(self.start_epoch, self.epochs + 1):
             lt = time.time()
 
             #######################################################
             # Perform one training epoch and one validation epoch #
             #######################################################
 
-            if self.benchrun and epoch_idx == self.epochs:
+            if self.benchrun and self.epoch_idx == self.epochs:
+                # TODO: move profiler into cluster environment
                 # profiling (done on last epoch - slower!)
                 with torch.autograd.profiler.profile(
                     use_cuda=self.cluster.is_cuda_available(),
                     profile_memory=True
                 ) as prof:
-                    train_loss = self.training_epoch(epoch_idx=epoch_idx)
+                    train_loss = self.training_epoch()
             else:
-                train_loss = self.training_epoch(epoch_idx=epoch_idx)
-            val_loss = self.validation_epoch(epoch_idx=epoch_idx)
+                train_loss = self.training_epoch()
+            val_loss = self.validation_epoch()
 
             #####################################
             # Save checkpoint if model improved #
@@ -970,9 +1166,9 @@ class TorchTrainerMG2(Trainer):
 
             ref_loss = val_loss if val_loss is not None else train_loss
             is_best = ref_loss < self.best_loss
-            if epoch_idx % self.checkpoint_every == 0 and not self.benchrun:
+            if (self.epoch_idx % self.checkpoint_every == 0
+                    and not self.benchrun):
                 self.save_state(
-                    epoch=epoch_idx,
                     loss_val=ref_loss,
                     is_best=is_best
                 )
@@ -983,17 +1179,17 @@ class TorchTrainerMG2(Trainer):
             ###########################
 
             # save first epoch timer
-            if epoch_idx == self.start_epoch:
+            if self.epoch_idx == self.start_epoch:
                 first_ep_t = time.time()-lt
 
             # Final epoch
-            if epoch_idx + 1 == self.epochs:
+            if self.epoch_idx + 1 == self.epochs:
                 self.train_dataloader.last_epoch = True
                 self.validation_dataloader.last_epoch = True
 
             if self.cluster.is_main_worker():
                 print('TIMER: epoch time:', time.time()-lt, 's')
-                if self.benchrun and epoch_idx == self.epochs:
+                if self.benchrun and self.epoch_idx == self.epochs:
                     print('\n' + '-'*56)
                     print('DEBUG: benchmark of last epoch:\n')
                     what1 = (
@@ -1012,7 +1208,6 @@ class TorchTrainerMG2(Trainer):
         # save final state
         if not self.benchrun:
             self.save_state(
-                epoch=epoch_idx,
                 loss_val=ref_loss,
                 is_best=is_best
             )
@@ -1031,7 +1226,7 @@ class TorchTrainerMG2(Trainer):
             print('TIMER: average epoch time:',
                   (time.time()-et)/self.epochs, ' s')
             print('TIMER: total epoch time:', time.time()-et, ' s')
-            if epoch_idx > 1:
+            if self.epoch_idx > 1:
                 print('TIMER: total epoch-1 time:',
                       time.time()-et-first_ep_t, ' s')
                 print('TIMER: average epoch-1 time:',
@@ -1054,11 +1249,9 @@ class TorchTrainerMG2(Trainer):
         if self.cluster.is_main_worker():
             print(f'TIMER: final time: {time.time()-st} s\n')
 
-    def save_state(self, epoch: int, loss_val: Any, is_best: bool):
+    def save_state(self, loss_val: Any, is_best: bool):
         """Save training state."""
-        res_name = os.path.join(
-            self.checkpoints_location, 'checkpoint.pth.tar'
-        )
+        res_name = 'checkpoint.pth.tar'
         rt = time.time()
 
         if (self.cluster.is_cuda_available() and self.cluster.distributed):
@@ -1067,29 +1260,31 @@ class TorchTrainerMG2(Trainer):
                 is_best, self.cluster.global_world_size
             )
             if any(is_best_m):
+                # TODO: is this strategy really good? Checkpointing when
+                # at least one worker improves the loss on their local
+                # data split is prone to overfitting, especially when
+                # the dataset in unbalanced!
+
                 # find which rank is_best happened - select first rank
                 # if multiple
                 best_rank = np.where(np.array(is_best_m))[0][0]
                 if self.cluster.global_rank == best_rank:
                     self._save_sate(
-                        epoch=epoch+1,
+                        epoch=self.epoch_idx+1,
                         loss_val=loss_val,
                         save_path=res_name
                     )
-                    print(
-                        f'DEBUG: state in {self.cluster.global_rank} '
-                        f'is saved on epoch:{epoch} in {time.time()-rt} s'
-                    )
+                    print(f'DEBUG: state in {self.cluster.global_rank} is '
+                          f'saved on epoch:{self.epoch_idx} '
+                          f'in {time.time()-rt} s')
         else:
             self._save_sate(
-                epoch=epoch+1,
+                epoch=self.epoch_idx+1,
                 loss_val=loss_val,
                 save_path=res_name
             )
-            print(
-                f'DEBUG: state in {self.cluster.global_rank} '
-                f'is saved on epoch:{epoch} in {time.time()-rt} s'
-            )
+            print(f'DEBUG: state in {self.cluster.global_rank} '
+                  f'is saved on epoch:{self.epoch_idx} in {time.time()-rt} s')
 
     def _save_sate(
         self,
@@ -1109,13 +1304,17 @@ class TorchTrainerMG2(Trainer):
             'optimizer': self.optimizer.state_dict(),
             'lr_scheduler': sched
         }
-        torch.save(state, save_path)
+        self.log(
+            item=state,
+            identifier=save_path,
+            kind='torch',
+            epoch_step=self.epoch_idx,
+            batch_step=0
+        )
 
     def load_state(self):
         """Load training state."""
-        res_name = os.path.join(
-            self.checkpoints_location, 'checkpoint.pth.tar'
-        )
+        res_name = 'checkpoint.pth.tar'
         if os.path.isfile(res_name) and not self.benchrun:
             try:
                 if (self.cluster.is_cuda_available()
@@ -1168,9 +1367,6 @@ class TorchTrainerMG2(Trainer):
                       'one in the restart file!\n'
                       'WARNING: SYS.EXIT is issued')
                 sys.exit()
-
-    def log(self, *args, **kwargs):
-        pass
 
 
 class TorchTrainerMG(Trainer):
@@ -1249,7 +1445,9 @@ class TorchTrainerMG(Trainer):
 
         # Optimizer and scheduler
         optim_class = dynamically_import_class(optimizer_class)
-        optimizer_kwargs = optimizer_kwargs if optimizer_kwargs is not None else {}
+        optimizer_kwargs = (
+            optimizer_kwargs if optimizer_kwargs is not None else {}
+        )
         self.optimizer = optim_class(
             self.model.parameters(), **optimizer_kwargs
         )
@@ -1273,7 +1471,7 @@ class TorchTrainerMG(Trainer):
 
         self.logger = (
             logger if logger is not None
-            else BaseLogger(create_new=self.cluster.is_main_worker())
+            else SimpleLogger(create_new=self.cluster.is_main_worker())
         )
 
     @property
@@ -1706,7 +1904,7 @@ class TorchTrainer2(Trainer):
 
         self.logger = (
             logger if logger is not None
-            else BaseLogger(create_new=self.grank == 0)
+            else SimpleLogger(create_new=self.grank == 0)
         )
 
     @property
@@ -2141,7 +2339,7 @@ class TorchTrainer3(Trainer):
 
         self.logger = (
             logger if logger is not None
-            else BaseLogger(create_new=self.grank == 0)
+            else SimpleLogger(create_new=self.grank == 0)
         )
 
     @property

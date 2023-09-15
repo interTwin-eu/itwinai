@@ -17,7 +17,7 @@ import torch
 import torch.distributed as dist
 import torch.backends.cudnn as cudnn
 
-from .backend.torch.types import TorchDistributedBackend as BackendT
+from .torch.types import TorchDistributedBackend as BackendT
 
 
 def setup_for_distributed(is_master):

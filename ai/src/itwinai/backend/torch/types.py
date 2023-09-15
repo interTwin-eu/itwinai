@@ -1,10 +1,15 @@
 """Custom types definition."""
 
-from typing import Callable, Any
+from typing import Callable
 from enum import Enum, EnumMeta
 
-Loss = Callable
-LrScheduler = Any
+import torch
+from torch import nn
+
+Loss = nn.Module
+LrScheduler = nn.Module
+Batch = torch.Tensor
+Metric = Callable
 
 
 class MetaEnum(EnumMeta):
