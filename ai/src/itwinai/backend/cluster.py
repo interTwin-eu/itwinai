@@ -20,17 +20,17 @@ import torch.backends.cudnn as cudnn
 from .torch.types import TorchDistributedBackend as BackendT
 
 
-def setup_for_distributed(is_master):
+def setup_for_distributed(is_main):
     """
     This function disables printing when not in master process
     """
     import builtins as __builtin__
     builtin_print = __builtin__.print
 
-    def print(*self, **kwself):
+    def print(*args, **kwself):
         force = kwself.pop('force', False)
-        if is_master or force:
-            builtin_print(*self, **kwself)
+        if is_main or force:
+            builtin_print(*args, **kwself)
 
     __builtin__.print = print
 
@@ -140,7 +140,7 @@ class LocalCluster(TorchCluster):
         self.backend = backend
         self.gpus = gpus
         self.port = port
-        self.dist_url = f'tcp://localhost:{self.port}'
+        self.dist_url = f'tcp://127.0.0.1:{self.port}'
         self.rnd_seed = rnd_seed
 
         if self.gpus != '' and self.gpus is not None:
@@ -180,6 +180,7 @@ class LocalCluster(TorchCluster):
         if self.distributed:
             torch.cuda.set_device(worker_id)
             self.global_rank += worker_id
+            # print(f'GLOBAL RANK: {self.global_rank}')
             # Since single node case
             self.local_rank = self.global_rank
             # Simplification: worker ID mapped to GPU ID

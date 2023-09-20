@@ -19,6 +19,7 @@
         "ipython",
         "itwinai",
         "Lockfiles",
+        "logfiles",
         "logits",
         "Mambaforge",
         "Micromamba",

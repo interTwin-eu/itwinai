@@ -43,12 +43,13 @@ if __name__ == "__main__":
     # Parse, Instantiate pipe
     parsed = parse_pipe_config(args.pipeline, pipe_parser)
     pipe = pipe_parser.instantiate_classes(parsed)
-    executor = getattr(pipe, 'executor')
+    executor: Executor = getattr(pipe, 'executor')
 
     if args.download_only:
         print('Downloading datasets and exiting...')
         executor = executor[:1]
     else:
         print('Downloading datasets (if not already done) and running...')
+        executor = executor
     executor.setup()
     executor()

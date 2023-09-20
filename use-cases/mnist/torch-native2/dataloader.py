@@ -1,7 +1,6 @@
 """Dataloader for Torch-based MNIST use case."""
 
-from typing import Dict, Tuple
-import logging
+from typing import Dict, Optional, Tuple
 
 from torch.utils.data import Dataset
 from torchvision import transforms, datasets
@@ -39,12 +38,12 @@ class MNISTDataModuleTorch(DataGetter):
                 transforms.Normalize((0.1307,), (0.3081,))
             ]))
 
-    def setup(self, args: Dict):
-        pass
-
-    def execute(self) -> Tuple[Dataset, Dataset]:
+    def execute(
+        self,
+        config: Optional[Dict] = None
+    ) -> Tuple[Tuple[Dataset, Dataset], Optional[Dict]]:
         self.load()
-        logging.debug("Train and valid datasets loaded.")
+        print("Train and valid datasets loaded.")
         # train_dataloder = DataLoader(
         #     self.train_dataset,
         #     batch_size=self.batch_size,
@@ -58,4 +57,4 @@ class MNISTDataModuleTorch(DataGetter):
         #     num_workers=self.num_workers
         # )
         # return (train_dataloder, validation_dataloader)
-        return self.train_dataset, self.val_dataset
+        return (self.train_dataset, self.val_dataset), config

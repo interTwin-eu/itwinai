@@ -5,6 +5,7 @@ from abc import ABCMeta, abstractmethod
 from contextlib import contextmanager
 from typing import Any, Dict, List, Optional, Union
 import pickle
+import pathlib
 
 import wandb
 import mlflow
@@ -153,9 +154,21 @@ class SimpleLogger(Logger):
             return
 
         if kind == 'artifact':
-            identifier = os.path.join(self.run_path, identifier)
-            print(f"SimpleLogger: Serializing to {identifier}...")
-            self.serialize(item, identifier)
+            if isinstance(item, str) and os.path.isfile(item):
+                import shutil
+                identifier = os.path.join(
+                    self.run_path,
+                    identifier
+                )
+                print(f"SimpleLogger: Serializing to {identifier}...")
+                shutil.copyfile(item, identifier)
+            else:
+                identifier = os.path.join(
+                    os.path.basename(self.run_path),
+                    identifier
+                )
+                print(f"SimpleLogger: Serializing to {identifier}...")
+                self.serialize(item, identifier)
         elif kind == 'torch':
             identifier = os.path.join(self.run_path, identifier)
             print(f"SimpleLogger: Saving to {identifier}...")
@@ -186,9 +199,10 @@ class MLFlowLogger(Logger):
 
         if self.tracking_uri is None:
             # Default MLFLow tracking URI
-            self.tracking_uri = self.savedir
+            saved_abs_path = os.path.abspath(self.savedir)
+            self.tracking_uri = pathlib.Path(saved_abs_path).as_uri()
             # self.tracking_uri = "file://" + self.savedir
-        mlflow.set_tracking_uri(self.tracking_uri)
+        print(f'MLFLOW URI: {self.tracking_uri}')
 
         # TODO: for pytorch lightning:
         # mlflow.pytorch.autolog()
@@ -199,6 +213,7 @@ class MLFlowLogger(Logger):
         ]
 
     def create_logger_context(self):
+        mlflow.set_tracking_uri(self.tracking_uri)
         mlflow.set_experiment(experiment_name=self.experiment_name)
         self.active_run: mlflow.ActiveRun = mlflow.start_run(
             description=self.run_description
