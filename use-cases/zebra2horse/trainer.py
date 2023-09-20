@@ -6,28 +6,31 @@ from itwinai.backend.components import Logger
 from typing import List
 
 
-class MNISTTrainer(TensorflowTrainer):
+class Zebra2HorseTrainer(TensorflowTrainer):
     def __init__(
-        self,
-        epochs: int,
-        batch_size: int,
-        loss: dict,
-        optimizer: dict,
-        model: keras.Model,
-        loggers: List[Logger],
+            self,
+            epochs: int,
+            batch_size: int,
+            compile_conf: dict,
+            model: dict,
+            loggers: List[Logger],
     ):
         # Configurable
         self.loggers = loggers
 
+        # Parse down the optimizers
+        for key in compile_conf.keys():
+            compile_conf[key] = keras.optimizers.get(compile_conf[key])
+
+        print(model)
+
         super().__init__(
-            loss=keras.losses.get(loss),
             epochs=epochs,
             batch_size=batch_size,
             callbacks=[],
-            optimizer=keras.optimizers.get(optimizer),
-            model_func=lambda: keras.models.clone_model(model),
-            metrics_func=lambda: [],
-            strategy=None
+            model_dict=model,
+            compile_conf=compile_conf,
+            strategy=tf.distribute.MirroredStrategy()
         )
 
     def train(self, data):

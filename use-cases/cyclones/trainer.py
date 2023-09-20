@@ -13,25 +13,23 @@ from itwinai.backend.tensorflow.trainer import TensorflowTrainer
 
 class CyclonesTrainer(TensorflowTrainer):
     def __init__(
-        self,
-        RUN_DIR,
-        epochs,
-        network,
-        activation,
-        regularization_strength,
-        learning_rate: float,
-        loss,
-        channels,
-        batch_size,
-        patch_size,
-        kernel_size: int = None,
+            self,
+            RUN_DIR,
+            epochs,
+            network,
+            activation,
+            regularization_strength,
+            learning_rate: float,
+            loss,
+            channels,
+            batch_size,
+            patch_size,
+            kernel_size: int = None,
     ):
         # Configurable
         regularization_strength, regularizer = \
-            [rg.value for rg in RegularizationStrength if rg.name.lower() ==
-             regularization_strength][0]
-        loss_name, loss = [
-            l.value for l in Losses if l.name.lower() == loss][0]
+            [rg.value for rg in RegularizationStrength if rg.name.lower() == regularization_strength][0]
+        loss_name, loss = [l.value for l in Losses if l.name.lower() == loss][0]
         optimizer = keras.optimizers.Adam(learning_rate=learning_rate)
 
         # Paths, Folders
@@ -43,7 +41,7 @@ class CyclonesTrainer(TensorflowTrainer):
         BENCHMARK_HISTORY_CSV = join(RUN_DIR, "benchmark_history.csv")
 
         super().__init__(
-            strategy=tf.distribute.MirroredStrategy(),
+            strategy=None,  # tf.distribute.MirroredStrategy(),
             loss=loss,
             epochs=epochs,
             batch_size=batch_size,
@@ -76,7 +74,7 @@ class CyclonesTrainer(TensorflowTrainer):
                 kernel_size=kernel_size,
                 channels=channels,
             ),
-            metrics_func=lambda: [keras.metrics.MeanAbsoluteError(name="mae")]
+            metrics_func=lambda: [keras.metrics.MeanAbsoluteError(name="mae")],
         )
 
     def train(self, data):

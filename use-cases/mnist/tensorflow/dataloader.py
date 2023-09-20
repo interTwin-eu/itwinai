@@ -1,9 +1,10 @@
 import tensorflow.keras as keras
+import tensorflow as tf
 
 from itwinai.backend.components import DataGetter, DataPreproc
 
 
-class TensorflowDataGetter(DataGetter):
+class MNISTDataGetter(DataGetter):
     def __init__(self):
         pass
 
@@ -18,7 +19,7 @@ class TensorflowDataGetter(DataGetter):
         pass
 
 
-class TensorflowDataPreproc(DataPreproc):
+class MNISTDataPreproc(DataPreproc):
     def __init__(self, classes: int):
         self.classes = classes
 
@@ -27,7 +28,7 @@ class TensorflowDataPreproc(DataPreproc):
         for dataset in datasets:
             x, y = dataset
             y = keras.utils.to_categorical(y, self.classes)
-            preprocessed.append((x, y))
+            preprocessed.append(tf.data.Dataset.from_tensor_slices((x, y)))
         return preprocessed
 
     def execute(self, datasets):
