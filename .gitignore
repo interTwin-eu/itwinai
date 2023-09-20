@@ -1,5 +1,6 @@
 TODO
 /data
+use-cases/mnist/data
 nohup*
 lightning_logs
 mlruns
@@ -16,6 +17,9 @@ pl-training.yml
 
 # Containers
 *.sif
+
+# Kubernetes
+kubeconfig
 
 # Custom envs
 .venv*
