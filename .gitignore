@@ -8,6 +8,11 @@ tmp*
 *.txt
 checkpoints/
 mamba*
+MNIST
+mllogs
+*.out
+*.err
+.logs/
 
 # Custom envs
 .venv*

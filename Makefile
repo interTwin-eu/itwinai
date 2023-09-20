@@ -9,7 +9,7 @@ dev-env: dev-env.yml ai/setup.py
 
 # Create pytorch env under ./ai/ folder
 ai-env: ai/env-files/pytorch-lock.yml ai/setup.py
-	micromamba env create -p ./ai/.venv-pytorch --file ai/env-files/pytorch-lock.yml -y
+	micromamba env create -p ./ai/.venv-pytorch --file ai/env-files/pytorch-gpu-lock.yml -y
 	micromamba run -p ./ai/.venv-pytorch python -m pip install -e ./ai
 
 lock-ai: ai/env-files/pytorch-env.yml ai/env-files/pytorch-env-gpu.yml

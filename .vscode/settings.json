@@ -19,6 +19,7 @@
         "ipython",
         "itwinai",
         "Lockfiles",
+        "logfiles",
         "logits",
         "Mambaforge",
         "Micromamba",
@@ -26,6 +27,7 @@
         "mnist",
         "multiclass",
         "mypackage",
+        "NCCL",
         "omegaconf",
         "optim",
         "plmodels",
@@ -35,10 +37,14 @@
         "pyyaml",
         "relu",
         "Roadmap",
+        "savedir",
+        "SLURM",
         "softmax",
+        "tensorboard",
         "torchmetrics",
         "torchvision",
-        "venv"
+        "venv",
+        "wandb"
     ],
     "markdownlint.run": "onType",
     "markdownlint.config": {

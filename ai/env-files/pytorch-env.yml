@@ -15,6 +15,7 @@ dependencies:
   - lightning=2.0.0
   - torchmetrics
   - mlflow>=2
+  - wandb
   - typer
   - rich
   - pyyaml
@@ -22,6 +23,7 @@ dependencies:
 
   - typing-extensions=4.5.0
   - typing_extensions=4.5.0
+  - submitit
 
   # Pip dependencies should be given in the setup.py
   # If given here, conda-lock breaks

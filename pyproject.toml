@@ -1,4 +1,5 @@
 [tool.pytest.ini_options]
 markers = [
-    "integration: integration tests (deselect with '-m \"not slow\"')",
+    "integration: integration tests (deselect with '-m \"not integration\"')",
+    "distributed: test distributed ML on multiple GPUs/nodes (deselect with '-m \"not distributed\"')",
 ]

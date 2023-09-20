@@ -20,10 +20,12 @@ dependencies:
   - lightning=2.0.0
   - torchmetrics
   - mlflow>=2
+  - wandb
   - typer
   - rich
   - pyyaml
   - omegaconf
+  - submitit
 
   - typing-extensions=4.5.0
   - typing_extensions=4.5.0

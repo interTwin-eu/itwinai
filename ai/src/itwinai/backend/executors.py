@@ -1,10 +1,15 @@
+"""Executors to execute a sequence of executable steps."""
+
+from typing import Any, Dict, Iterable
+from abc import abstractmethod
+
 import yaml
 import ray
-
-from .components import Executor
-from jsonargparse import ArgumentParser
-from itwinai.backend.utils import parse_pipe_config
 from ray import air, tune
+from jsonargparse import ArgumentParser
+
+from .components import Executor, Executable
+from .utils import parse_pipe_config
 
 
 class LocalExecutor(Executor):
@@ -77,3 +82,39 @@ class RayExecutor(Executor):
     # Setup is done per worker via Tune execution
     def setup(self, args):
         pass
+
+
+class ParallelExecutor(Executor):
+    """Execute a pipeline in parallel: multiprocessing and multi-node."""
+
+    def __init__(self, steps: Iterable[Executable]):
+        super().__init__(steps)
+
+    def setup(self, config: Dict = None):
+        return super().setup(config)
+
+    def execute(self, args: Any = None):
+        return super().execute(args)
+
+
+class HPCExecutor(ParallelExecutor):
+    """Execute a pipeline on an HPC system.
+    This executor provides as additional `setup_on_login` method
+    to allow for specific setup operations to be carried out on
+    the login node of a GPU cluster, being the only one with
+    network access.
+    """
+
+    def __init__(self, steps: Iterable[Executable]):
+        super().__init__(steps)
+
+    def setup(self, config: Dict = None):
+        return super().setup(config)
+
+    @abstractmethod
+    def setup_on_login(self, config: Dict = None):
+        """Access the network to download datasets and misc."""
+        raise NotImplementedError
+
+    def execute(self, args: Any = None):
+        return super().execute(args)
