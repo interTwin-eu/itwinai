@@ -12,6 +12,7 @@ MNIST
 mllogs
 *.out
 *.err
+.logs/
 
 # Custom envs
 .venv*

@@ -1,11 +1,13 @@
 """Provides training logic for PyTorch models via Trainer classes."""
 
-from typing import Iterable, Optional, Dict, Union, Callable, Tuple, Type, List, Any
+from typing import (
+    Optional, Dict, Union, Callable, Tuple, Type, List, Any
+)
 import time
 import os
 import sys
-import numpy as np
 
+import numpy as np
 import torch
 import torch.multiprocessing as mp
 from torch.utils.data import DataLoader, Dataset
@@ -616,10 +618,6 @@ class TorchTrainerMG2(Trainer, LogMixin):
         RuntimeError: When trying to use DDP without CUDA support.
         NotImplementedError: when trying to use a strategy different from the
             ones provided by TorchDistributedStrategy.
-
-    TODO: 
-      - Add loggers support and metrics
-      - Add logging
     """
 
     model: nn.Module = None
@@ -632,11 +630,10 @@ class TorchTrainerMG2(Trainer, LogMixin):
     train_dataloader: DataLoader = None
     validation_dataloader: DataLoader = None
     epoch_idx: int = 0
-    batch_idx: int = 0
     train_glob_step: int = 0
     validation_glob_step: int = 0
-    train_metrics: Iterable[Metric]
-    validation_metrics: Iterable[Metric]
+    train_metrics: Dict[str, Metric]
+    validation_metrics: Dict[str, Metric]
 
     def __init__(
         self,
@@ -769,17 +766,15 @@ class TorchTrainerMG2(Trainer, LogMixin):
             if self.cluster.is_cuda_available():
                 torch.cuda.manual_seed(seed)
 
-    def setup(self, config: Dict) -> Dict:
-        return config
-
     def execute(
         self,
         train_dataset: Dataset,
         validation_dataset: Dataset,
         model: nn.Module = None,
         optimizer: Optimizer = None,
-        lr_scheduler: LrScheduler = None
-    ) -> Any:
+        lr_scheduler: LrScheduler = None,
+        config: Optional[Dict] = None
+    ) -> Tuple[Optional[Tuple], Optional[Dict]]:
         self.train_dataset = train_dataset
         self.validation_dataset = validation_dataset
 
@@ -794,9 +789,12 @@ class TorchTrainerMG2(Trainer, LogMixin):
         # Start training
         if self.cluster.distributed:
             # Make training distributed
-            return mp.spawn(self._train, nprocs=self.cluster.ngpus_per_node)
+            result = mp.spawn(self._train, nprocs=self.cluster.ngpus_per_node)
         else:
-            return self._train(0)
+            result = self._train(0)
+
+        # Return value compliant with Executable.execute format
+        return ((result,), config)
 
     def _train(
         self,
@@ -830,9 +828,14 @@ class TorchTrainerMG2(Trainer, LogMixin):
                 self.device: torch.device = device
                 self.model = self.model.to(self.device)
                 self.setup_logger()
+                self._setup_metrics()
                 try:
                     train_result = self.train()
+                except Exception as exc:
+                    print(exc)
+                    raise exc
                 finally:
+                    print("INFO: Training ended")
                     self.destroy_logger()
                     train_result = None
                 return train_result
@@ -841,9 +844,15 @@ class TorchTrainerMG2(Trainer, LogMixin):
         with self.cluster.init_dist_gpu(worker_id) as device:
             self.device: torch.device = device
             self._distribute_model()
+            self.setup_logger()
+            self._setup_metrics()
             try:
                 train_result = self.train()
+            except Exception as exc:
+                print(exc)
+                raise exc
             finally:
+                print("INFO: Training ended")
                 self.destroy_logger()
                 train_result = None
         return train_result
@@ -887,13 +896,19 @@ class TorchTrainerMG2(Trainer, LogMixin):
 
         return dataloader_class(dataset, **init_kwargs)
 
+    def _setup_metrics(self):
+        for m_name, metric in self.train_metrics.items():
+            self.train_metrics[m_name] = metric.to(self.device)
+        for m_name, metric in self.validation_metrics.items():
+            self.validation_metrics[m_name] = metric.to(self.device)
+
     def _distribute_model(self):
         if self.cluster.distributed:
             # Distribute model
             self.model = self.model.to(self.device)
             if self.strategy == StrategyT.NONE.value:
                 print(
-                    "A GPU cluster is available but no distributed "
+                    "WARNING: A GPU cluster is available but no distributed "
                     "strategy was given... Falling back to single worker...")
                 if not self.cluster.is_main_worker():
                     # Use only GPU:0 for single worker
@@ -948,11 +963,11 @@ class TorchTrainerMG2(Trainer, LogMixin):
         kind: str = 'metric',
         step: Optional[int] = None,
         batch_idx: Optional[int] = None,
-        force: bool = False,
+        every_worker: bool = False,
         **kwargs
     ) -> None:
-        if self.cluster.is_main_worker() or force:
-            # Only log on main worker
+        if self.cluster.is_main_worker() or every_worker:
+            # Only log on main worker if not specified otherwise
             if isinstance(self.logger, list):
                 for logger in self.logger:
                     logger.log(
@@ -984,25 +999,29 @@ class TorchTrainerMG2(Trainer, LogMixin):
         true: Batch,
         pred: Batch,
         logger_step: int,
-        batch_idx: int
+        batch_idx: Optional[int],
+        stage: str = 'train'
     ) -> Dict[str, Any]:
         """Compute and log metrics.
 
         Args:
-            metrics (Dict[str, Metric]): metrics dict. Can be 
+            metrics (Dict[str, Metric]): metrics dict. Can be
                 ``self.train_metrics`` or ``self.validation_metrics``.
             true (Batch): true values.
             pred (Batch): predicted values.
+            logger_step (int): global step to pass to the logger.
+            stage (str): 'train', 'validation'...
 
         Returns:
             Dict[str, Any]: metric values.
         """
         m_values = {}
         for m_name, metric in metrics.items():
-            m_val = metric(true, pred).detach().cpu().numpy()
+            # metric = metric.to(self.device)
+            m_val = metric(pred, true).detach().cpu().numpy()
             self.log(
                 item=m_val,
-                identifier=m_name,
+                identifier=f'{m_name}_{stage}',
                 kind='metric',
                 step=logger_step,
                 batch_idx=batch_idx
@@ -1031,7 +1050,8 @@ class TorchTrainerMG2(Trainer, LogMixin):
             true=y,
             pred=pred_y,
             logger_step=self.train_glob_step,
-            batch_idx=batch_idx
+            batch_idx=batch_idx,
+            stage='training'
         )
         return loss, metrics
 
@@ -1056,7 +1076,8 @@ class TorchTrainerMG2(Trainer, LogMixin):
             true=y,
             pred=pred_y,
             logger_step=self.validation_glob_step,
-            batch_idx=batch_idx
+            batch_idx=batch_idx,
+            stage='validation'
         )
         return loss, metrics
 
@@ -1084,7 +1105,6 @@ class TorchTrainerMG2(Trainer, LogMixin):
             kind='metric',
             step=self.train_glob_step,
         )
-        # print(f"Avg train loss: {avg_loss}")
         return avg_loss
 
     def validation_epoch(self) -> Loss:
@@ -1112,7 +1132,6 @@ class TorchTrainerMG2(Trainer, LogMixin):
                 kind='metric',
                 step=self.validation_glob_step,
             )
-            # print(f"Avg validation loss: {avg_loss}")
             return avg_loss
 
     def train(self):
@@ -1132,9 +1151,9 @@ class TorchTrainerMG2(Trainer, LogMixin):
 
         # start training/testing loop
         if self.cluster.is_main_worker():
-            print('TIMER: broadcast:', time.time()-st, 's')
-            print('\nDEBUG: start training')
-            print('--------------------------------------------------------')
+            print(f'TIMER: broadcast: {time.time()-st}s')
+            print('DEBUG: start training')
+            print('-'*56)
 
         ##############################
         # Start training: run epochs #
@@ -1188,10 +1207,10 @@ class TorchTrainerMG2(Trainer, LogMixin):
                 self.validation_dataloader.last_epoch = True
 
             if self.cluster.is_main_worker():
-                print('TIMER: epoch time:', time.time()-lt, 's')
+                print(f'TIMER: epoch time: {time.time()-lt}s')
                 if self.benchrun and self.epoch_idx == self.epochs:
-                    print('\n' + '-'*56)
-                    print('DEBUG: benchmark of last epoch:\n')
+                    print('-'*56)
+                    print('benchmark of last epoch:')
                     what1 = (
                         'cuda' if self.cluster.is_cuda_available() else 'cpu'
                     )
@@ -1219,35 +1238,38 @@ class TorchTrainerMG2(Trainer, LogMixin):
         ########################
 
         if self.cluster.is_main_worker():
-            print('\n--------------------------------------------------------')
-            print('DEBUG: training results:\n')
-            print('TIMER: first epoch time:', first_ep_t, ' s')
-            print('TIMER: last epoch time:', time.time()-lt, ' s')
-            print('TIMER: average epoch time:',
-                  (time.time()-et)/self.epochs, ' s')
-            print('TIMER: total epoch time:', time.time()-et, ' s')
+            print('-'*56)
+            print('training results:')
+            print(f'TIMER: first epoch time: {first_ep_t}s')
+            print(f'TIMER: last epoch time: {time.time()-lt}s')
+            print(
+                f'TIMER: average epoch time: {(time.time()-et)/self.epochs}s')
+            print(f'TIMER: total epoch time: {time.time()-et}s')
             if self.epoch_idx > 1:
-                print('TIMER: total epoch-1 time:',
-                      time.time()-et-first_ep_t, ' s')
-                print('TIMER: average epoch-1 time:',
-                      (time.time()-et-first_ep_t)/(self.epochs-1), ' s')
+                print(
+                    f'TIMER: total epoch-1 time: {time.time()-et-first_ep_t}s'
+                )
+                print(
+                    'TIMER: average epoch-1 time: '
+                    f'{(time.time()-et-first_ep_t)/(self.epochs-1)}s')
             if self.benchrun:
-                print('TIMER: total epoch-2 time:', lt-first_ep_t, ' s')
-                print('TIMER: average epoch-2 time:',
-                      (lt-first_ep_t)/(self.epochs-2), ' s')
+                print(
+                    f'TIMER: total epoch-2 time: {lt-first_ep_t}s')
+                print('TIMER: average epoch-2 time: '
+                      f'{(lt-first_ep_t)/(self.epochs-2)}s')
             mem = int(torch.cuda.memory_reserved(
                 self.cluster.local_rank)/1024/1024)
             print(
-                f'DEBUG: memory req: {mem} MB'
+                f'memory req: {mem} MB'
                 if self.cluster.is_cuda_available()
-                and self.cluster.distributed else 'DEBUG: memory req: - MB'
+                and self.cluster.distributed else 'memory req: - MB'
             )
             if self.cluster.is_cuda_available():
-                print('DEBUG: memory summary:\n\n',
-                      torch.cuda.memory_summary(0))
+                print(
+                    f'memory summary:\n {torch.cuda.memory_summary(0)}')
 
         if self.cluster.is_main_worker():
-            print(f'TIMER: final time: {time.time()-st} s\n')
+            print(f'TIMER: final time: {time.time()-st} s')
 
     def save_state(self, loss_val: Any, is_best: bool):
         """Save training state."""
@@ -1274,17 +1296,19 @@ class TorchTrainerMG2(Trainer, LogMixin):
                         loss_val=loss_val,
                         save_path=res_name
                     )
-                    print(f'DEBUG: state in {self.cluster.global_rank} is '
-                          f'saved on epoch:{self.epoch_idx} '
-                          f'in {time.time()-rt} s')
+                    print(
+                        f'DEBUG: state in {self.cluster.global_rank} is '
+                        f'saved on epoch:{self.epoch_idx} '
+                        f'in {time.time()-rt} s')
         else:
             self._save_sate(
                 epoch=self.epoch_idx+1,
                 loss_val=loss_val,
                 save_path=res_name
             )
-            print(f'DEBUG: state in {self.cluster.global_rank} '
-                  f'is saved on epoch:{self.epoch_idx} in {time.time()-rt} s')
+            print(
+                f'DEBUG: state in {self.cluster.global_rank} '
+                f'is saved on epoch:{self.epoch_idx} in {time.time()-rt} s')
 
     def _save_sate(
         self,
@@ -1342,30 +1366,33 @@ class TorchTrainerMG2(Trainer, LogMixin):
                     )
                 if self.cluster.is_cuda_available():
                     if self.cluster.is_main_worker():
-                        print(f'WARNING: restarting from {self.start_epoch} '
-                              'epoch')
+                        print(
+                            f'WARNING: restarting from {self.start_epoch} '
+                            'epoch')
                 else:
-                    print(f'WARNING: restarting from {self.start_epoch} epoch')
+                    print(
+                        f'WARNING: restarting from {self.start_epoch} epoch')
             except Exception:
                 if self.cluster.is_cuda_available():
                     if self.cluster.is_main_worker():
-                        print('WARNING: restart file cannot be '
-                              'loaded, restarting!')
+                        print(
+                            'restart file cannot be loaded, restarting!')
                 else:
-                    print('WARNING: restart file cannot be '
-                          'loaded, restarting!')
+                    print(
+                        'WARNING: restart file cannot be loaded, restarting!')
 
         if self.start_epoch >= self.epochs + 1:
             if self.cluster.is_cuda_available() and self.cluster.distributed:
                 if self.cluster.is_main_worker():
-                    print('WARNING: given epochs are less than the one in '
-                          'the restart file!\n'
-                          'WARNING: SYS.EXIT is issued')
+                    print(
+                        'WARNING: given epochs are less than the '
+                        'one in the restart file!')
+                    print('WARNING: SYS.EXIT is issued')
                 sys.exit()
             else:
-                print('WARNING: given epochs are less than the '
-                      'one in the restart file!\n'
-                      'WARNING: SYS.EXIT is issued')
+                print(
+                    'WARNING: given epochs are less than the one in the restart file!')
+                print('WARNING: SYS.EXIT is issued')
                 sys.exit()
 
 

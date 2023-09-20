@@ -26,6 +26,19 @@ executor:
             pin_memory: True
             shuffle: False
           epochs: 2
+          train_metrics:
+            accuracy:
+              class_path: torchmetrics.classification.MulticlassAccuracy
+              init_args:
+                num_classes: 10
+            precision:
+              class_path: torchmetrics.classification.MulticlassPrecision
+              init_args:
+                num_classes: 10
+            recall:
+              class_path: torchmetrics.classification.MulticlassRecall
+              init_args:
+                num_classes: 10
           logger: 
             - class_path: itwinai.backend.loggers.SimpleLogger
             - class_path: itwinai.backend.loggers.MLFlowLogger
@@ -37,5 +50,5 @@ executor:
           cluster:
             class_path: itwinai.backend.cluster.LocalCluster
             init_args:
-              gpus: null
+              gpus: '0,1,2'
               backend: nccl
