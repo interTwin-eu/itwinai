@@ -1,9 +1,9 @@
+from typing import List
 import tensorflow as tf
 import tensorflow.keras as keras
 
 from itwinai.backend.tensorflow.trainer import TensorflowTrainer
-from itwinai.backend.components import Logger
-from typing import List
+from itwinai.backend.loggers import Logger
 
 
 class Zebra2HorseTrainer(TensorflowTrainer):
@@ -13,10 +13,10 @@ class Zebra2HorseTrainer(TensorflowTrainer):
             batch_size: int,
             compile_conf: dict,
             model: dict,
-            loggers: List[Logger],
+            logger: List[Logger],
     ):
         # Configurable
-        self.loggers = loggers
+        self.logger = logger
 
         # Parse down the optimizers
         for key in compile_conf.keys():

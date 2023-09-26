@@ -1,86 +1,54 @@
-trainer:
-  class_path: trainer.TorchTrainer
+executor:
+  class_path: itwinai.backend.components.Executor
   init_args:
-    # Pytorch lightning config for training
-    train:
-      seed_everything: 4231162351
-      trainer:
-        accelerator: auto
-        accumulate_grad_batches: 1
-        barebones: false
-        benchmark: null
-        callbacks:
-          - class_path: lightning.pytorch.callbacks.early_stopping.EarlyStopping
+    steps:
+      - class_path: dataloader.MNISTDataModuleTorch
+        init_args:
+          save_path: .tmp/
+
+      - class_path: itwinai.backend.torch.trainer.TorchTrainerMG
+        init_args:
+          model:
+            class_path: model.Net
+          loss:
+            class_path: torch.nn.NLLLoss
             init_args:
-              monitor: val_loss
-              patience: 2
-          - class_path: lightning.pytorch.callbacks.lr_monitor.LearningRateMonitor
+              reduction: mean
+          optimizer_class: torch.optim.SGD
+          optimizer_kwargs: 
+            lr: 0.001
+          train_dataloader_kwargs:
+            batch_size: 32
+            pin_memory: True
+            shuffle: True
+          validation_dataloader_kwargs:
+            batch_size: 32
+            pin_memory: True
+            shuffle: False
+          epochs: 2
+          train_metrics:
+            accuracy:
+              class_path: torchmetrics.classification.MulticlassAccuracy
+              init_args:
+                num_classes: 10
+            precision:
+              class_path: torchmetrics.classification.MulticlassPrecision
+              init_args:
+                num_classes: 10
+            recall:
+              class_path: torchmetrics.classification.MulticlassRecall
+              init_args:
+                num_classes: 10
+          logger: 
+            - class_path: itwinai.backend.loggers.SimpleLogger
+            - class_path: itwinai.backend.loggers.MLFlowLogger
+              init_args:
+                experiment_name: MNIST classifier
+                log_freq: batch 
+          strategy: ddp
+          checkpoint_every: 1
+          cluster:
+            class_path: itwinai.backend.cluster.LocalCluster
             init_args:
-              logging_interval: step
-          - class_path: lightning.pytorch.callbacks.ModelCheckpoint
-            init_args:
-              dirpath: checkpoints
-              filename: best-checkpoint
-              mode: min
-              monitor: val_loss
-              save_top_k: 1
-              verbose: true
-        check_val_every_n_epoch: 1
-        default_root_dir: null
-        detect_anomaly: false
-        deterministic: null
-        devices: auto
-        enable_checkpointing: null
-        enable_model_summary: null
-        enable_progress_bar: null
-        fast_dev_run: false
-        gradient_clip_algorithm: null
-        gradient_clip_val: null
-        inference_mode: true
-        limit_predict_batches: null
-        limit_test_batches: null
-        limit_train_batches: null
-        limit_val_batches: null
-        log_every_n_steps: null
-        logger: null
-        max_epochs: 1
-        max_steps: -1
-        max_time: null
-        min_epochs: null
-        min_steps: null
-        num_nodes: 1
-        num_sanity_val_steps: null
-        overfit_batches: 0.0
-        plugins: null
-        profiler: null
-        reload_dataloaders_every_n_epochs: 0
-        strategy: auto
-        sync_batchnorm: false
-        use_distributed_sampler: true
-        val_check_interval: null
-
-      # Lightning Model configuration
-      model:
-        class_path: itwinai.models.torch.mnist.MNISTModel
-        init_args:
-          hidden_size: 64
-
-      # Lightning data module configuration
-      data:
-        class_path: dataloader.MNISTDataModule
-        init_args:
-          batch_size: 32
-          path: ./use-cases/mnist/torch
-          train_prop: 0.8
-
-      # Torch Optimizer configuration
-      optimizer:
-        class_path: torch.optim.AdamW
-        init_args:
-          lr: 0.001
-
-      # Torch LR scheduler configuration
-      lr_scheduler:
-        class_path: torch.optim.lr_scheduler.ExponentialLR
-        init_args:
-          gamma: 0.1
+              gpus: '0,1,2'
+              backend: nccl

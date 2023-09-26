@@ -1,0 +1,13 @@
+# https://phoenixnap.com/kb/how-to-install-tensorflow-ubuntu
+name: tensorflow-env
+channels:
+  - conda-forge
+dependencies:
+  - python=3.9.12
+  - cudatoolkit=11.2
+  - cudnn=8.1.0
+  - pip
+  - pip:
+    - tensorflow-addons
+    - tensorflow-datasets
+

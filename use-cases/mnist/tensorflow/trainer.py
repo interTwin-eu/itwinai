@@ -1,9 +1,11 @@
-import tensorflow as tf
-import tensorflow.keras as keras
+from typing import Dict, List, Optional, Tuple, Any
+
+from tensorflow.keras.optimizers import Optimizer
+from tensorflow.keras.losses import Loss
+from tensorflow.python.distribute.mirrored_strategy import MirroredStrategy
 
 from itwinai.backend.tensorflow.trainer import TensorflowTrainer
-from itwinai.backend.components import Logger
-from typing import List
+from itwinai.backend.loggers import Logger
 
 
 class MNISTTrainer(TensorflowTrainer):
@@ -11,30 +13,38 @@ class MNISTTrainer(TensorflowTrainer):
         self,
         epochs: int,
         batch_size: int,
-        loss: dict,
-        optimizer: dict,
-        model: keras.Model,
-        loggers: List[Logger],
+        loss: Dict,  # Type hint prevents jsonargparse from instantiating it
+        optimizer: Dict,  # Type hint prevents jsonargparse from instantiating it
+        model: Dict,  # Type hint prevents jsonargparse from instantiating it
+        strategy: Optional[MirroredStrategy] = None,
+        logger: Optional[List[Logger]] = None
     ):
         # Configurable
-        self.loggers = loggers
-
+        self.logger = logger if logger is not None else []
+        compile_conf = dict(loss=loss, optimizer=optimizer)
+        print(f'STRATEGY: {strategy}')
         super().__init__(
-            loss=keras.losses.get(loss),
             epochs=epochs,
             batch_size=batch_size,
             callbacks=[],
-            optimizer=keras.optimizers.get(optimizer),
-            model_func=lambda: keras.models.clone_model(model),
-            metrics_func=lambda: [],
-            strategy=None
+            model_dict=model,
+            compile_conf=compile_conf,
+            strategy=strategy
         )
 
-    def train(self, data):
-        super().train(data)
+    def train(self, train_dataset, validation_dataset) -> Any:
+        return super().train(train_dataset, validation_dataset)
 
-    def execute(self, data):
-        self.train(data)
+    def execute(
+        self,
+        train_dataset,
+        validation_dataset,
+        config: Optional[Dict] = None,
+    ) -> Tuple[Optional[Tuple], Optional[Dict]]:
+        return (self.train(train_dataset, validation_dataset),), config
 
-    def setup(self, args):
-        pass
+    def load_state(self):
+        return super().load_state()
+
+    def save_state(self):
+        return super().save_state()

@@ -1,3 +1,53 @@
+# Ref: https://packaging.python.org/en/latest/specifications/declaring-project-metadata/#example
+
+[project]
+name = "itwinai"
+version = "0.1"
+description = "AI and ML workflows module for interTwin"
+readme = "README.md"
+requires-python = ">=3.9"
+license = { file = "LICENSE" }
+keywords = ["ml", "ai", "hpc"]
+authors = [
+    { name = "Matteo Bunino", email = "matteo.bunino@cern.ch" },
+    { name = "Alexander Zoechbauer", email = "alexander.zoechbauer@cern.ch" },
+    { name = "Rakesh Sarma" },
+]
+maintainers = [
+    { name = "Matteo Bunino", email = "matteo.bunino@cern.ch" },
+    { name = "Alexander Zoechbauer", email = "alexander.zoechbauer@cern.ch" },
+    { name = "Rakesh Sarma" },
+]
+classifiers = ["Development Status :: Beta", "Programming Language :: Python"]
+
+# dependencies = [
+#     "httpx",
+#     "gidgethub[httpx]>4.0.0",
+#     "django>2.1; os_name != 'nt'",
+#     "django>2.0; os_name == 'nt'",
+# ]
+
+# dynamic = ["version", "description"]
+
+# [project.optional-dependencies]
+# gui = ["PyQt5"]
+# cli = ["rich", "click"]
+
+# [project.urls]
+# Homepage = "https://example.com"
+# Documentation = "https://readthedocs.org"
+# Repository = "https://github.com/me/spam.git"
+# Changelog = "https://github.com/me/spam/blob/master/CHANGELOG.md"
+
+[project.scripts]
+itwinai = "itwinai.cli:app"
+
+# [project.gui-scripts]
+# spam-gui = "spam:main_gui"
+
+# [project.entry-points."spam.magical"]
+# tomatoes = "spam:main_tomatoes"
+
 [tool.pytest.ini_options]
 markers = [
     "integration: integration tests (deselect with '-m \"not integration\"')",
