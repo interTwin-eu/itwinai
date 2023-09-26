@@ -11,6 +11,10 @@ Welcome to the `itwinai` docs! A framework for advanced AI/ML workflows in digit
 Below we you are going to find an overview of interTwin's AI/ML workflows component. This platform
 is intended to support general-purpose MLOps for digital twin use cases in [interTwin](https://www.intertwin.eu/) project.
 
+> Beware! As the code is frequently changed, the docs are unstable and may not reflect the actual state of the code base.
+> Therefore, if you are looking for a more stable version, check out our
+> [releases](https://github.com/interTwin-eu/T6.5-AI-and-ML/releases).
+
 Additional resources include:
 
 - Detailed instructions on [How to use this software](docs/How-to-use-this-software).

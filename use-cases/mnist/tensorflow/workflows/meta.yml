@@ -1,4 +1,0 @@
-# Configuration file for use case metadata
-# Load with OmegaConf
-
-root: ./use-cases/mnist/tensorflow

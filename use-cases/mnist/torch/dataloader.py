@@ -1,57 +1,60 @@
-import lightning as L
+"""Dataloader for Torch-based MNIST use case."""
 
-from torchvision.datasets import MNIST
-from torch.utils.data import DataLoader, random_split
-from torchvision import transforms
+from typing import Dict, Optional, Tuple
+
+from torch.utils.data import Dataset
+from torchvision import transforms, datasets
+
+from itwinai.backend.components import DataGetter
 
 
-class MNISTDataModule(L.LightningModule):
+class MNISTDataModuleTorch(DataGetter):
+    """Download MNIST dataset for torch."""
+
     def __init__(
-        self,
-        path: str,
-        batch_size: int,
-        train_prop: float,
+            self,
+            save_path: str = '.tmp/',
+            # batch_size: int = 32,
+            # pin_memory: bool = True,
+            # num_workers: int = 4
     ) -> None:
         super().__init__()
-        self.path = path
-        self.batch_size = batch_size
-        self.train_prop = train_prop
-        self.transform = transforms.Compose(
-            [
+        self.save_path = save_path
+        # self.batch_size = batch_size
+        # self.pin_memory = pin_memory
+        # self.num_workers = num_workers
+
+    def load(self):
+        self.train_dataset = datasets.MNIST(
+            self.save_path, train=True, download=True,
+            transform=transforms.Compose([
                 transforms.ToTensor(),
-                transforms.Normalize((0.1307,), (0.3081,)),
-            ]
-        )
+                transforms.Normalize((0.1307,), (0.3081,))
+            ]))
+        self.val_dataset = datasets.MNIST(
+            self.save_path, train=False, download=True,
+            transform=transforms.Compose([
+                transforms.ToTensor(),
+                transforms.Normalize((0.1307,), (0.3081,))
+            ]))
 
-    def setup(self, stage=None):
-        if stage == "fit":
-            mnist_full = MNIST(
-                self.path, train=True, download=True, transform=self.transform
-            )
-            n_train_samples = int(self.train_prop * len(mnist_full))
-            n_val_samples = len(mnist_full) - n_train_samples
-            self.mnist_train, self.mnist_val = random_split(
-                mnist_full, [n_train_samples, n_val_samples]
-            )
-
-        if stage == "test":
-            self.mnist_test = MNIST(
-                self.path, train=False, download=True, transform=self.transform
-            )
-
-        if stage == "predict":
-            self.mnist_predict = MNIST(
-                self.path, train=False, download=True, transform=self.transform
-            )
-
-    def train_dataloader(self):
-        return DataLoader(self.mnist_train, batch_size=self.batch_size, num_workers=4)
-
-    def val_dataloader(self):
-        return DataLoader(self.mnist_val, batch_size=self.batch_size, num_workers=4)
-
-    def test_dataloader(self):
-        return DataLoader(self.mnist_test, batch_size=self.batch_size, num_workers=4)
-
-    def predict_dataloader(self):
-        return DataLoader(self.mnist_predict, batch_size=self.batch_size, num_workers=4)
+    def execute(
+        self,
+        config: Optional[Dict] = None
+    ) -> Tuple[Tuple[Dataset, Dataset], Optional[Dict]]:
+        self.load()
+        print("Train and valid datasets loaded.")
+        # train_dataloder = DataLoader(
+        #     self.train_dataset,
+        #     batch_size=self.batch_size,
+        #     pin_memory=self.pin_memory,
+        #     num_workers=self.num_workers
+        # )
+        # validation_dataloader = DataLoader(
+        #     self.val_dataset,
+        #     batch_size=self.batch_size,
+        #     pin_memory=self.pin_memory,
+        #     num_workers=self.num_workers
+        # )
+        # return (train_dataloder, validation_dataloader)
+        return (self.train_dataset, self.val_dataset), config

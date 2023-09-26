@@ -1,24 +1,60 @@
-# "Custom" workflow runner environment
-workflow-runner-cern: environment-cern.yml
-	micromamba env create -p ./.venv --file environment-cern.yml -y
+# Install PyTorch env (GPU support)
+torch-gpu: env-files/torch/pytorch-env-gpu.yml
+	micromamba env create -p ./.venv-pytorch --file env-files/torch/pytorch-env-gpu.yml -y
+	micromamba run -p ./.venv-pytorch python -m pip install -r env-files/common_requirements.txt
+	micromamba run -p ./.venv-pytorch python -m pip install -e .
 
-# Development environment
-dev-env: dev-env.yml ai/setup.py
-	micromamba env create -p ./.venv-dev --file dev-env.yml -y
-	micromamba run -p ./.venv-dev python -m pip install -e ./ai
+# Install PyTorch env (CPU only)
+torch-cpu: env-files/torch/pytorch-env-cpu.yml
+	micromamba env create -p ./.venv-pytorch --file env-files/torch/pytorch-env-cpu.yml -y
+	micromamba run -p ./.venv-pytorch python -m pip install -r env-files/common_requirements.txt
+	micromamba run -p ./.venv-pytorch python -m pip install -e .
 
-# Create pytorch env under ./ai/ folder
-ai-env: ai/env-files/pytorch-lock.yml ai/setup.py
-	micromamba env create -p ./ai/.venv-pytorch --file ai/env-files/pytorch-gpu-lock.yml -y
-	micromamba run -p ./ai/.venv-pytorch python -m pip install -e ./ai
 
-lock-ai: ai/env-files/pytorch-env.yml ai/env-files/pytorch-env-gpu.yml
-	@echo "NOTE: Run this command from *whitin* ./.venv where conda-lock is available!"
-	@echo
-	@echo "Lock for pytorch CPU"
-	conda-lock lock --micromamba -f ai/env-files/pytorch-env.yml --lockfile ai/env-files/pytorch-lock.yml
-	@echo
-	@echo "Lock for pytorch GPU"
-	@# Workaround: https://github.com/conda/conda-lock/issues/283#issue-1450199283
-	conda-lock lock --micromamba -f ai/env-files/pytorch-env-gpu.yml
-	mv conda-lock.yml ai/env-files/pytorch-gpu-lock.yml
+# Install TensorFlow 2.13. Creates ./.venv-tf folder.
+# Ref: https://www.tensorflow.org/install/pip#step-by-step_instructions
+tf-2.13: env-files/tensorflow/tensorflow-2.13.yml
+	ehco "Installing TensorFlow 2.13 env"
+	micromamba env create -p ./.venv-tf --file env-files/tensorflow/tensorflow-2.13.yml -y
+	micromamba run -p ./.venv-tf pip install nvidia-cudnn-cu11==8.6.0.163
+	
+	mkdir -p ./.venv-tf/etc/conda/activate.d
+	echo 'CUDNN_PATH=$$(dirname $$(python -c "import nvidia.cudnn;print(nvidia.cudnn.__file__)"))' >> ./.venv-tf/etc/conda/activate.d/env_vars.sh
+	echo 'export LD_LIBRARY_PATH=$$CUDNN_PATH/lib:$$CONDA_PREFIX/lib/:$$LD_LIBRARY_PATH' >> ./.venv-tf/etc/conda/activate.d/env_vars.sh
+	printf 'export XLA_FLAGS=--xla_gpu_cuda_data_dir=$$CONDA_PREFIX/lib/\n' >> ./.venv-tf/etc/conda/activate.d/env_vars.sh
+	
+	micromamba run -p ./.venv-tf pip install --upgrade pip
+	micromamba run -p ./.venv-tf pip install tensorflow==2.13.*
+	micromamba run -p ./.venv-pytorch python -m pip install -r env-files/common_requirements.txt
+	micromamba run -p ./.venv-tf pip install -e .
+
+	mkdir -p ./.venv-tf/lib/nvvm/libdevice
+	cp ./.venv-tf/lib/libdevice.10.bc ./.venv-tf/lib/nvvm/libdevice/
+
+# Install TensorFlow 2.11. Creates ./.venv-tf folder.
+# Ref: https://skeptric.com/tensorflow-conda/
+tf-2.11: env-files/tensorflow/tensorflow-2.11.yml
+	micromamba env create -p ./.venv-tf --file env-files/tensorflow/tensorflow-2.11.yml -y
+	@# Env variables
+	mkdir -p ./.venv-tf/etc/conda/activate.d
+	micromamba run -p ./.venv-tf echo 'export LD_LIBRARY_PATH=$$LD_LIBRARY_PATH:$$CONDA_PREFIX/lib/' >> ./.venv-tf/etc/conda/activate.d/env_vars.sh
+	micromamba run -p ./.venv-tf echo 'export XLA_FLAGS=--xla_gpu_cuda_data_dir=$$CONDA_PREFIX/lib/' >> ./.venv-tf/etc/conda/activate.d/env_vars.sh
+	@# Add library
+	mkdir -p ./.venv-tf/lib/nvvm/libdevice/
+	cp ./.venv-tf/lib/libdevice.10.bc ./.venv-tf/lib/nvvm/libdevice/
+	micromamba run -p ./.venv-tf pip install --upgrade pip
+	micromamba run -p ./.venv-tf pip install tensorflow==2.11.0
+	micromamba run -p ./.venv-pytorch python -m pip install -r env-files/common_requirements.txt
+	micromamba run -p ./.venv-tf pip install -e .
+
+# Install TensorFlow 2.10. Creates ./.venv-tf folder.
+# Ref: https://phoenixnap.com/kb/how-to-install-tensorflow-ubuntu
+tf-2.10: env-files/tensorflow/tensorflow-2.10.yml
+	micromamba env create -p ./.venv-tf --file env-files/tensorflow/tensorflow-2.10.yml -y
+	mkdir -p ./.venv-tf/etc/conda/activate.d
+	micromamba run -p ./.venv-tf echo 'export LD_LIBRARY_PATH=$$LD_LIBRARY_PATH:$$CONDA_PREFIX/lib/' >> ./.venv-tf/etc/conda/activate.d/env_vars.sh
+	micromamba run -p ./.venv-tf pip install --upgrade pip
+	micromamba run -p ./.venv-tf pip install tensorflow==2.10
+	micromamba run -p ./.venv-pytorch python -m pip install -r env-files/common_requirements.txt
+	micromamba run -p ./.venv-tf pip install -e .
+

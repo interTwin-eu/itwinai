@@ -1,34 +1,40 @@
-getter:
-  class_path: dataloader.MNISTDataGetter
-
-preproc:
-  class_path: dataloader.MNISTDataPreproc
+executor:
+  class_path: itwinai.backend.components.Executor
   init_args:
-    classes: 10
+    steps:
+      - class_path: dataloader.MNISTDataGetter
 
-trainer:
-  class_path: trainer.MNISTTrainer
-  init_args:
-    epochs: 10
-    batch_size: 16
-    loss: {
-      class_name: "CategoricalCrossentropy",
-      config: {
-        from_logits: True
-      }
-    }
-    optimizer: {
-      class_name: "Adam",
-      config: {
-          learning_rate: 0.001
-      }
-    }
-    model:
-      class_path: itwinai.models.tensorflow.mnist.MNIST_Model
-      init_args:
-        input_shape: [ 28, 28, 1 ]
-        output_shape: 10
-    loggers: [
-      class_path: itwinai.backend.tensorflow.loggers.WanDBLogger,
-      class_path: itwinai.backend.tensorflow.loggers.MLFlowLogger
-    ]
+      - class_path: dataloader.MNISTDataPreproc
+        init_args:
+          classes: 10
+
+      - class_path: trainer.MNISTTrainer
+        init_args:
+          epochs: 10
+          batch_size: 17
+
+          loss:
+            class_path: tensorflow.keras.losses.CategoricalCrossentropy
+            init_args:
+              from_logits: False
+
+          optimizer: 
+            class_path: tensorflow.keras.optimizers.Adam
+            init_args: 
+                learning_rate: 0.001
+
+          model:
+            class_path: itwinai.models.tensorflow.mnist.MNIST_Model
+            init_args:
+              input_shape: [ 28, 28, 1 ]
+              output_shape: 10
+
+          strategy: 
+            class_path: tensorflow.python.distribute.mirrored_strategy.MirroredStrategy
+
+          logger: 
+            - class_path: itwinai.backend.loggers.SimpleLogger
+            - class_path: itwinai.backend.loggers.MLFlowLogger
+              init_args:
+                experiment_name: MNIST classifier
+                log_freq: batch 
