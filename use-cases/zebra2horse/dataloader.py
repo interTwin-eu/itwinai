@@ -1,17 +1,21 @@
-import tensorflow.keras as keras
+from typing import Tuple, Dict, Optional
+
+# import tensorflow.keras as keras
 import tensorflow as tf
 import tensorflow_datasets as tfds
 
-from itwinai.backend.components import DataGetter, DataPreproc
+from itwinai.backend.components import DataGetter
 
 
 class Zebra2HorseDataLoader(DataGetter):
-    def __init__(self, buffer_size:int):
+    def __init__(self, buffer_size: int):
+        super().__init__()
         self.buffer_size = buffer_size
 
     def load(self):
         # Load the horse-zebra dataset using tensorflow-datasets.
-        dataset, _ = tfds.load("cycle_gan/horse2zebra", with_info=True, as_supervised=True)
+        dataset, _ = tfds.load("cycle_gan/horse2zebra",
+                               with_info=True, as_supervised=True)
         train_horses, train_zebras = dataset["trainA"], dataset["trainB"]
         test_horses, test_zebras = dataset["testA"], dataset["testB"]
 
@@ -44,30 +48,38 @@ class Zebra2HorseDataLoader(DataGetter):
         # TODO: Add shuffle?
         # Apply the preprocessing operations to the training data
         train_horses = (
-            train_horses.map(preproc_train_fn, num_parallel_calls=tf.data.AUTOTUNE)
+            train_horses.map(preproc_train_fn,
+                             num_parallel_calls=tf.data.AUTOTUNE)
             .cache()
         )
         train_zebras = (
-            train_zebras.map(preproc_train_fn, num_parallel_calls=tf.data.AUTOTUNE)
+            train_zebras.map(preproc_train_fn,
+                             num_parallel_calls=tf.data.AUTOTUNE)
             .cache()
         )
 
         # Apply the preprocessing operations to the test data
         test_horses = (
-            test_horses.map(preproc_test_fn, num_parallel_calls=tf.data.AUTOTUNE)
+            test_horses.map(preproc_test_fn,
+                            num_parallel_calls=tf.data.AUTOTUNE)
             .cache()
         )
         test_zebras = (
-            test_zebras.map(preproc_test_fn, num_parallel_calls=tf.data.AUTOTUNE)
+            test_zebras.map(preproc_test_fn,
+                            num_parallel_calls=tf.data.AUTOTUNE)
             .cache()
         )
 
-        return (tf.data.Dataset.zip((train_horses, train_zebras)).shuffle(self.buffer_size),
-                tf.data.Dataset.zip((test_horses, test_zebras)).shuffle(self.buffer_size))
+        return (
+            tf.data.Dataset.zip((train_horses, train_zebras)
+                                ).shuffle(self.buffer_size),
+            tf.data.Dataset.zip((test_horses, test_zebras)
+                                ).shuffle(self.buffer_size)
+        )
 
-    def execute(self, args):
+    def execute(
+        self,
+        config: Optional[Dict] = None
+    ) -> Tuple[Optional[Tuple], Optional[Dict]]:
         train, test = self.load()
-        return [train, test]
-
-    def setup(self, args):
-        pass
+        return ([train, test],), config

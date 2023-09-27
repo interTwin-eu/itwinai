@@ -16,6 +16,7 @@ import argparse
 from itwinai.backend.components import Executor
 from itwinai.backend.utils import parse_pipe_config
 from jsonargparse import ArgumentParser
+from executor import CycloneExecutor
 
 
 if __name__ == "__main__":
@@ -25,6 +26,7 @@ if __name__ == "__main__":
         "-p", "--pipeline", type=str, required=True,
         help='Configuration file to the pipeline to execute.'
     )
+    parser.add_argument("-r", "--root_dir", type=str, default='./data')
     parser.add_argument(
         '-d', '--download-only',
         action=argparse.BooleanOptionalAction,
@@ -41,7 +43,7 @@ if __name__ == "__main__":
     # Parse, Instantiate pipe
     parsed = parse_pipe_config(args.pipeline, pipe_parser)
     pipe = pipe_parser.instantiate_classes(parsed)
-    executor: Executor = getattr(pipe, 'executor')
+    executor: CycloneExecutor = getattr(pipe, 'executor')
 
     if args.download_only:
         print('Downloading datasets and exiting...')
@@ -50,4 +52,4 @@ if __name__ == "__main__":
         print('Downloading datasets (if not already done) and running...')
         executor = executor
     executor.setup()
-    executor()
+    executor(root_dir=args.root_dir)

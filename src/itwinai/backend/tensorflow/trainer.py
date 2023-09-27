@@ -54,8 +54,10 @@ class TensorflowTrainer(Trainer):
         # Create distributed TF vars
         if self.strategy:
             with self.strategy.scope():
-                # TODO: move loss, optimizer and metrics instantiation under here
-                # Ref: https://www.tensorflow.org/guide/distributed_training#use_tfdistributestrategy_with_keras_modelfit
+                # TODO: move loss, optimizer and metrics instantiation under
+                # here
+                # Ref:
+                # https://www.tensorflow.org/guide/distributed_training#use_tfdistributestrategy_with_keras_modelfit
                 # self.model: tf.keras.Model = parser.instantiate_classes(
                 #     model_dict).model
                 self.model: tf.keras.Model = instance_from_dict(model_dict)
@@ -103,7 +105,8 @@ class TensorflowTrainer(Trainer):
         # n_train = train.cardinality().numpy()
         # n_test = test.cardinality().numpy()
         print(
-            f"TRAIN CARD: {train_dataset.cardinality().numpy()} - LEN: {len(train_dataset)}")
+            f"TRAIN CARD: {train_dataset.cardinality().numpy()} - "
+            f"LEN: {len(train_dataset)}")
         print(next(iter(train_dataset)))
         print(type(train_dataset))
         # n_train = len(train) // self.batch_size
@@ -163,8 +166,10 @@ class TensorflowTrainer2(Trainer):
                 self.model = parser.instantiate_classes(model_dict).model
                 print(self.model)
                 self.model.compile(**compile_conf)
-                # TODO: move loss, optimizer and metrics instantiation under here
-                # Ref: https://www.tensorflow.org/guide/distributed_training#use_tfdistributestrategy_with_keras_modelfit
+                # TODO: move loss, optimizer and metrics instantiation under
+                # here
+                # Ref:
+                # https://www.tensorflow.org/guide/distributed_training#use_tfdistributestrategy_with_keras_modelfit
         else:
             self.model = parser.instantiate_classes(model_dict).model
             self.model.compile(**compile_conf)

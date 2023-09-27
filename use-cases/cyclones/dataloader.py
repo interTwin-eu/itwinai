@@ -1,21 +1,18 @@
-import gdown
-import numpy as np
 import logging
-
-from os import listdir, makedirs
+from os import listdir
 from os.path import join, exists
-from itwinai.backend.components import DataGetter, DataPreproc
-from typing import List, Optional
-
+from itwinai.backend.components import DataGetter
+from typing import List, Dict, Optional, Tuple
 from lib.macros import (
     PatchType,
-    Network,
-    Losses,
-    RegularizationStrength,
-    Activation,
     LabelNoCyclone,
     AugmentationType,
 )
+
+import gdown
+import numpy as np
+
+
 from lib.tfrecords.functions import read_tfrecord_as_tensor
 from lib.scaling import save_tf_minmax
 from lib.tfrecords.dataset import eFlowsTFRecordDataset
@@ -44,6 +41,7 @@ class TensorflowDataGetter(DataGetter):
         experiment: dict,
         shuffle_buffer: int = None,
     ):
+        super().__init__()
         self.batch_size = batch_size
         self.split_ratio = split_ratio
         self.epochs = epochs
@@ -59,7 +57,8 @@ class TensorflowDataGetter(DataGetter):
             experiment["COO_VARS_1"],
         )
         self.msk_var = (
-            None if experiment["MSK_VAR_1"] == "None" else experiment["MSK_VAR_!"]
+            None if experiment["MSK_VAR_1"] == "None"
+            else experiment["MSK_VAR_!"]
         )
         self.channels = [len(self.drv_vars), len(self.coo_vars)]
 
@@ -89,8 +88,8 @@ class TensorflowDataGetter(DataGetter):
     def split_files(self, files, ratio):
         n = len(files)
         return (
-            files[0 : int(ratio[0] * n)],
-            files[int(ratio[0] * n) : int((ratio[0] + ratio[1]) * n)],
+            files[0: int(ratio[0] * n)],
+            files[int(ratio[0] * n): int((ratio[0] + ratio[1]) * n)],
         )
 
     def load(self):
@@ -107,7 +106,7 @@ class TensorflowDataGetter(DataGetter):
 
         # merge all the files together
         train_files = train_c_fs + train_a_fs + train_r_fs
-        valid_files = valid_c_fs + valid_a_fs + valid_r_fs
+        # valid_files = valid_c_fs + valid_a_fs + valid_r_fs
 
         # compute scaler on training data
         Xt, _ = read_tfrecord_as_tensor(
@@ -161,30 +160,43 @@ class TensorflowDataGetter(DataGetter):
         )
         return train_dataset, valid_dataset
 
-    def execute(self, args):
+    def execute(
+        self,
+        config: Optional[Dict] = None
+    ) -> Tuple[Optional[Tuple], Optional[Dict]]:
+        config = self.setup_config(config)
         train, test = self.load()
-        logging.debug(f"Train, valid and test datasets loaded.")
-        return [train, test]
+        logging.debug("Train, valid and test datasets loaded.")
+        return (train, test), config
 
-    def setup(self, args):
-        self.shape = args["shape"]
-        root_dir = args["root_dir"]
+    def setup_config(self, config: Optional[Dict] = None) -> Dict:
+        config = config if config is not None else {}
+        self.shape = config["shape"]
+        root_dir = config["root_dir"]
 
         # Download data
-        url = "https://drive.google.com/drive/folders/15DEq33MmtRvIpe2bNCg44lnfvEiHcPaf"
-        gdown.download_folder(url=url, quiet=False, output=join(root_dir, "data"))
+        url = (
+            "https://drive.google.com/drive/folders/"
+            "15DEq33MmtRvIpe2bNCg44lnfvEiHcPaf"
+        )
+        if not exists(join(root_dir, "data")):
+            gdown.download_folder(
+                url=url, quiet=False,
+                output=join(root_dir, "data")
+            )
 
         # Scalar fields
         self.root_dir = root_dir
         self.dataset_dir = join(root_dir, "data", "tfrecords", "trainval/")
-        self.scaler_file = join(args["scaler_dir"], "minmax.tfrecord")
+        self.scaler_file = join(config["scaler_dir"], "minmax.tfrecord")
 
         # get records filenames
         self.cyclone_files = sorted(
             [
                 join(self.dataset_dir, f)
                 for f in listdir(self.dataset_dir)
-                if f.endswith(".tfrecord") and f.startswith(PatchType.CYCLONE.value)
+                if f.endswith(".tfrecord") and f.startswith(
+                    PatchType.CYCLONE.value)
             ]
         )
         if self.patch_type == PatchType.NEAREST.value:
@@ -192,7 +204,8 @@ class TensorflowDataGetter(DataGetter):
                 [
                     join(self.dataset_dir, f)
                     for f in listdir(self.dataset_dir)
-                    if f.endswith(".tfrecord") and f.startswith(PatchType.NEAREST.value)
+                    if f.endswith(".tfrecord") and f.startswith(
+                        PatchType.NEAREST.value)
                 ]
             )
         elif self.patch_type == PatchType.ALLADJACENT.value:
@@ -208,11 +221,12 @@ class TensorflowDataGetter(DataGetter):
             [
                 join(self.dataset_dir, f)
                 for f in listdir(self.dataset_dir)
-                if f.endswith(".tfrecord") and f.startswith(PatchType.RANDOM.value)
+                if f.endswith(".tfrecord") and f.startswith(
+                    PatchType.RANDOM.value)
             ]
         )
 
-        args["epochs"] = self.epochs
-        args["batch_size"] = self.batch_size
-        args["channels"] = self.channels
-        return args
+        config["epochs"] = self.epochs
+        config["batch_size"] = self.batch_size
+        config["channels"] = self.channels
+        return config

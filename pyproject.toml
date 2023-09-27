@@ -1,4 +1,6 @@
-# Ref: https://packaging.python.org/en/latest/specifications/declaring-project-metadata/#example
+# Refs:
+# https://packaging.python.org/en/latest/specifications/declaring-project-metadata/#example
+# https://setuptools.pypa.io/en/latest/userguide/dependency_management.html#dependencies-management-in-setuptools
 
 [project]
 name = "itwinai"
@@ -20,23 +22,37 @@ maintainers = [
 ]
 classifiers = ["Development Status :: Beta", "Programming Language :: Python"]
 
-# dependencies = [
-#     "httpx",
-#     "gidgethub[httpx]>4.0.0",
-#     "django>2.1; os_name != 'nt'",
-#     "django>2.0; os_name == 'nt'",
-# ]
+dependencies = [
+    "wandb>=0.15.11",
+    "mlflow>=2.7",
+    "jsonargparse[signatures]>=4.17.0",
+    "pyyaml>=6.0.1",
+    "omegaconf>=2.3.0",
+    "submitit>=1.4.6",
+    "typing-extensions==4.5.0",
+    "typing_extensions==4.5.0",
+    "urllib3>=2.0.5",
+]
 
 # dynamic = ["version", "description"]
 
-# [project.optional-dependencies]
-# gui = ["PyQt5"]
-# cli = ["rich", "click"]
+[project.optional-dependencies]
+# TODO: add torch and tensorflow
+# torch = []
+# tf = []
+cli = ["rich>=13.5.3", "typer>=0.9.0"]
+dev = [
+    "pytest>=7.4.2",
+    "pytest-mock>=3.11.1",
+    "pytest-cov>=4.1.0",
+    "ipykernel",
+    "ipython",
+]
 
-# [project.urls]
-# Homepage = "https://example.com"
-# Documentation = "https://readthedocs.org"
-# Repository = "https://github.com/me/spam.git"
+[project.urls]
+Homepage = "https://www.intertwin.eu/"
+Documentation = "https://intertwin-eu.github.io/T6.5-AI-and-ML/"
+Repository = "https://github.com/interTwin-eu/T6.5-AI-and-ML"
 # Changelog = "https://github.com/me/spam/blob/master/CHANGELOG.md"
 
 [project.scripts]

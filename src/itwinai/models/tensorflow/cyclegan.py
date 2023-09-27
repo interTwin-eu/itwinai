@@ -162,9 +162,12 @@ class Generator(keras.Model):
         img_input = layers.Input(shape=input_img_size,
                                  name=name + "_img_input")
         x = ReflectionPadding2D(padding=(3, 3))(img_input)
-        x = layers.Conv2D(filters, (7, 7), kernel_initializer=keras.initializers.RandomNormal(mean=0.0, stddev=0.02), use_bias=False)(
-            x
-        )
+        x = layers.Conv2D(
+            filters, (7, 7),
+            kernel_initializer=keras.initializers.RandomNormal(
+                mean=0.0, stddev=0.02),
+            use_bias=False
+        )(x)
         x = tfa.layers.InstanceNormalization(
             gamma_initializer=gamma_initializer)(x)
         x = layers.Activation("relu")(x)
@@ -256,7 +259,8 @@ class Discriminator(keras.Model):
                 )
 
         x = layers.Conv2D(
-            1, (4, 4), strides=(1, 1), padding="same", kernel_initializer=kernel_initializer
+            1, (4, 4), strides=(1, 1),
+            padding="same", kernel_initializer=kernel_initializer
         )(x)
         self.model = keras.models.Model(inputs=img_input, outputs=x, name=name)
 
@@ -331,12 +335,16 @@ class CycleGAN(keras.Model):
         # kinds of losses for the generators and discriminators.
         # We will perform the following steps here:
         #
-        # 1. Pass real images through the generators and get the generated images
+        # 1. Pass real images through the generators and get the generated
+        #    images
         # 2. Pass the generated images back to the generators to check if we
         #    can predict the original image from the generated image.
-        # 3. Do an identity mapping of the real images using the generators.
-        # 4. Pass the generated images in 1) to the corresponding discriminators.
-        # 5. Calculate the generators total loss (adversarial + cycle + identity)
+        # 3. Do an identity mapping of the real images using the
+        #    generators.
+        # 4. Pass the generated images in 1) to the corresponding
+        #    discriminators.
+        # 5. Calculate the generators total loss (adversarial + cycle +
+        #    identity)
         # 6. Calculate the discriminators loss
         # 7. Update the weights of the generators
         # 8. Update the weights of the discriminators

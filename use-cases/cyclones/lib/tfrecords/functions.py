@@ -1,4 +1,5 @@
 import tensorflow as tf
+
 from ..scaling import minmax_transform
 
 
@@ -116,7 +117,7 @@ def read_tfrecord_as_tensor(filenames, shape, drv_vars, coo_vars, msk_var):
 
     # Create standard dataset
     dataset = tf.data.TFRecordDataset(filenames, num_parallel_reads=AUTOTUNE).map(tensor_decoding_fn, num_parallel_calls=AUTOTUNE)
-    
+
     # read data as numpy
     Xdata, ydata = dataset.batch(batch_size=n_elems).as_numpy_iterator().next()
     Xt = tf.convert_to_tensor(Xdata)

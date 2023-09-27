@@ -6,46 +6,26 @@ on:
   pull_request:
 
 jobs:
-  # test-dt:
-  #   name: Test DT workflows
-  #   runs-on: ubuntu-latest
-
-  #   steps:
-  #     - uses: actions/checkout@v3
-        
-  #     - name: Install micromamba
-  #       shell: bash -l {0}
-  #       run: |
-  #         curl micro.mamba.pm/install.sh | bash
-  #         micromamba --version
-      
-  #     - name: Make workflow runner
-  #       shell: bash -l {0}
-  #       run: make workflow-runner-cern
-
-  #     - name: Run pytest for workflows
-  #       shell: bash -l {0}
-  #       run: micromamba run -p ./.venv pytest ./tests/
-
   test-itwinai:
     name: Test itwinai with pytest
     runs-on: ubuntu-latest
-
     steps:
       - uses: actions/checkout@v3
+        
+      - name: Install micromamba
+        shell: bash -l {0}
+        run: |
+          "${SHELL}" <(curl -L micro.mamba.pm/install.sh)
+      
+      - name: Make torch CPU env
+        shell: bash -l {0}
+        run: make torch-cpu
 
-      - name: Install micromamba environment with Micromamba for dev env (pytest)
-        uses: mamba-org/provision-with-micromamba@main
-        with:
-          environment-file: env-files/torch/pytorch-env-cpu.yml
-          micromamba-version: "1.4.3"
-          environment-name: torch-env
-          cache-downloads: true
-          cache-env: true
-          # channels: pytorch,nvidia,conda-forge
-      - name: Install itwinai
+      - name: Install dev version
         shell: bash -l {0}
-        run: python -m pip install .
-      - name: Run tests
+        run: micromamba run -p ./.venv-pytorch pip install .[dev]
+
+      - name: Run pytest for workflows
         shell: bash -l {0}
-        run: pytest -v tests
+        run: micromamba run -p ./.venv-pytorch pytest -v ./tests/ -m "not distributed"
+

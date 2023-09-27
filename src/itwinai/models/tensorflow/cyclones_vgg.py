@@ -136,7 +136,9 @@ def custom_VGG_V1(patch_size, channels, activation, regularizer):
 def custom_VGG_V2(patch_size, channels, activation, regularizer):
     model = tf.keras.Sequential()
 
-    model.add(tf.keras.layers.Input(shape=(patch_size, patch_size, channels[0])))
+    model.add(
+        tf.keras.layers.Input(shape=(patch_size, patch_size, channels[0]))
+    )
 
     model.add(
         tf.keras.layers.Conv2D(
@@ -324,7 +326,8 @@ def custom_VGG_V2(patch_size, channels, activation, regularizer):
 def custom_VGG_V3(patch_size, channels, activation, regularizer):
     model = tf.keras.Sequential()
 
-    model.add(tf.keras.layers.Input(shape=(patch_size, patch_size, channels[0])))
+    model.add(tf.keras.layers.Input(
+        shape=(patch_size, patch_size, channels[0])))
 
     model.add(
         tf.keras.layers.Conv2D(

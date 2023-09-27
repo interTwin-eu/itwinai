@@ -29,6 +29,6 @@ ml Stages/2023 StdEnv/2023 NVHPC/23.1 OpenMPI/4.1.4 cuDNN/8.6.0.163-CUDA-11.7 Py
 source ~/.bashrc
 
 # ON LOGIN NODE download datasets:
-# $ micromamba run -p ../../../.venv-pytorch python train.py -p pipeline.yaml --download-only
+# $ micromamba run -p ../../.venv-tf python train.py -p pipeline.yaml --download-only
 
-srun micromamba run -p ../../../.venv-pytorch python train.py -p pipeline.yaml
+srun micromamba run -p ../../.venv-tf python train.py -p pipeline.yaml
