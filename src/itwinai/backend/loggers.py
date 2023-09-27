@@ -245,7 +245,7 @@ class MLFlowLogger(Logger):
             kind (str, optional): type of the item to be logged. Must be one
                 among the list of self.supported_types. Defaults to 'metric'.
             step (Optional[int], optional): logging step. Defaults to None.
-            batch_idx (Optional[int], optional): batch counter (i.e., batch 
+            batch_idx (Optional[int], optional): batch counter (i.e., batch
                 idx). Defaults to None.
         """
         if not self.should_log(batch_idx=batch_idx):
@@ -357,7 +357,7 @@ class WanDBLogger(Logger):
             kind (str, optional): type of the item to be logged. Must be one
                 among the list of self.supported_types. Defaults to 'metric'.
             step (Optional[int], optional): logging step. Defaults to None.
-            batch_idx (Optional[int], optional): batch counter (i.e., batch 
+            batch_idx (Optional[int], optional): batch counter (i.e., batch
                 idx). Defaults to None.
         """
         if not self.should_log(batch_idx=batch_idx):
@@ -408,7 +408,7 @@ class TensorBoardLogger(Logger):
             kind (str, optional): type of the item to be logged. Must be one
                 among the list of self.supported_types. Defaults to 'metric'.
             step (Optional[int], optional): logging step. Defaults to None.
-            batch_idx (Optional[int], optional): batch counter (i.e., batch 
+            batch_idx (Optional[int], optional): batch counter (i.e., batch
                 idx). Defaults to None.
         """
         if not self.should_log(batch_idx=batch_idx):

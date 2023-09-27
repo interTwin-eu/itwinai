@@ -6,7 +6,8 @@ OUTPUT_CHANNELS = 3
 
 def downsample(in_c, out_c, apply_batchnorm=True):
     result = nn.Sequential()
-    result.add_module(name="Conv2d", module=nn.Conv2d(in_c, out_c, 4, 2, 1, bias=False))
+    result.add_module(name="Conv2d", module=nn.Conv2d(
+        in_c, out_c, 4, 2, 1, bias=False))
     if apply_batchnorm:
         result.add_module(name="BatchNorm2d", module=nn.BatchNorm2d(out_c))
     result.add_module(name="LeakyReLU", module=nn.LeakyReLU(inplace=True))
@@ -16,7 +17,8 @@ def downsample(in_c, out_c, apply_batchnorm=True):
 
 def upsample(in_c, out_c, apply_dropout=False):
     result = nn.Sequential()
-    result.add_module(name="ConvTranspose2d", module=nn.ConvTranspose2d(in_c, out_c, 4, 2, 1, bias=False))
+    result.add_module(name="ConvTranspose2d", module=nn.ConvTranspose2d(
+        in_c, out_c, 4, 2, 1, bias=False))
     result.add_module(name="BatchNorm2d", module=nn.BatchNorm2d(out_c))
     if apply_dropout:
         result.add_module(name="Dropout", module=nn.Dropout(0.5, inplace=True))
@@ -43,7 +45,8 @@ class Generator(nn.Module):
         self.up7 = upsample(256, 64)
 
         self.last = nn.Sequential()
-        self.last.add_module(name="ConvTranspose2d", module=nn.ConvTranspose2d(128, OUTPUT_CHANNELS, 4, 2, 1))
+        self.last.add_module(name="ConvTranspose2d", module=nn.ConvTranspose2d(
+            128, OUTPUT_CHANNELS, 4, 2, 1))
         self.last.add_module(name="tanh", module=nn.Tanh())
 
     def forward(self, image):
