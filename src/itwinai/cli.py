@@ -22,7 +22,8 @@ app = typer.Typer()
 @app.command()
 def train(
     train_dataset: str = typer.Option("unk", help="Path to training dataset."),
-    config: str = typer.Option("unk", help="Path to training configuration file."),
+    config: str = typer.Option(
+        "unk", help="Path to training configuration file."),
     ml_logs: str = typer.Option("ml-logs/", help="Path to logs storage."),
 ):
     """
@@ -35,7 +36,9 @@ def train(
     from omegaconf import DictConfig, OmegaConf
 
     from itwinai.utils import load_yaml_with_deps, check_server, flatten_dict
-    from itwinai.plmodels.base import ItwinaiBasePlModule, ItwinaiBasePlDataModule
+    from itwinai.plmodels.base import (
+        ItwinaiBasePlModule, ItwinaiBasePlDataModule
+    )
 
     # Replicate args under cli field, to be used in imported config files
     cli_conf = dict(
@@ -134,11 +137,13 @@ def train(
         # Train + validation, and test
         cli.trainer.fit(cli.model, datamodule=cli.datamodule)
         cli.trainer.test(
-            dataloaders=cli.datamodule, datamodule=cli.datamodule, ckpt_path="best"
+            dataloaders=cli.datamodule, datamodule=cli.datamodule,
+            ckpt_path="best"
         )
 
         # Save updated lightning conf as an mlflow artifact
-        mlflow.log_artifact(os.path.join(cli.trainer.log_dir, "pl-training.yml"))
+        mlflow.log_artifact(os.path.join(
+            cli.trainer.log_dir, "pl-training.yml"))
 
 
 @app.command()
@@ -146,7 +151,8 @@ def predict(
     input_dataset: str = typer.Option(
         "unk", help="Path to dataset of unseen data to make predictions."
     ),
-    config: str = typer.Option("unk", help="Path to inference configuration file."),
+    config: str = typer.Option(
+        "unk", help="Path to inference configuration file."),
     predictions_location: str = typer.Option(
         "preds/", help="Where to save predictions."
     ),
@@ -164,7 +170,9 @@ def predict(
     from omegaconf import DictConfig, OmegaConf
 
     from itwinai.utils import load_yaml_with_deps, load_yaml
-    from itwinai.plmodels.base import ItwinaiBasePlModule, ItwinaiBasePlDataModule
+    from itwinai.plmodels.base import (
+        ItwinaiBasePlModule, ItwinaiBasePlDataModule
+    )
 
     # Replicate args under cli field, to be used in imported config files
     cli_conf = dict(
@@ -258,7 +266,8 @@ def predict(
     predictions = trainer.predict(
         loaded_model, datamodule=loaded_data_module
     )  # , ckpt_path='best')
-    pred_class_names = loaded_data_module.preds_to_names(torch.cat(predictions))
+    pred_class_names = loaded_data_module.preds_to_names(
+        torch.cat(predictions))
 
     # Save list of predictions as class names
     preds_file = os.path.join(predictions_location, "predictions.txt")
@@ -280,7 +289,8 @@ def mlflow_ui(
 
 @app.command()
 def datasets(
-    use_case: str = typer.Option("./use-cases/mnist", help="Path to use case files."),
+    use_case: str = typer.Option(
+        "./use-cases/mnist", help="Path to use case files."),
 ):
     """List datasets of an use case."""
     from rich.console import Console
@@ -291,7 +301,8 @@ def datasets(
 
     datasets_reg = load_yaml(os.path.join(use_case, "meta.yml"))
     # datasets_reg = OmegaConf.create(datasets_reg)
-    datasets_reg = OmegaConf.to_container(OmegaConf.create(datasets_reg), resolve=True)
+    datasets_reg = OmegaConf.to_container(
+        OmegaConf.create(datasets_reg), resolve=True)
 
     rows = []
     columns = ["Name", "Description", "Location"]
@@ -310,7 +321,8 @@ def datasets(
 
 @app.command()
 def workflows(
-    use_case: str = typer.Option("./use-cases/mnist", help="Path to use case files."),
+    use_case: str = typer.Option(
+        "./use-cases/mnist", help="Path to use case files."),
 ):
     """List workflows of an use case."""
     from omegaconf import OmegaConf
@@ -320,7 +332,8 @@ def workflows(
     from itwinai.utils import load_yaml_with_deps
 
     use_case_dir = os.path.basename(Path(use_case))
-    wf_files = filter(lambda itm: itm.endswith("-workflow.yml"), os.listdir(use_case))
+    wf_files = filter(lambda itm: itm.endswith(
+        "-workflow.yml"), os.listdir(use_case))
     columns = ["Step", "Description", "Command", "Env location", "Env file"]
     for workflow_file in wf_files:
         wf = load_yaml_with_deps(os.path.join(use_case, workflow_file))

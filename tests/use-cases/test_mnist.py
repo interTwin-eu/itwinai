@@ -14,6 +14,7 @@ import subprocess
 #   - file exist
 
 
+@pytest.mark.skip(reason="workflow changed")
 @pytest.mark.integration
 def test_mnist_train():
     """

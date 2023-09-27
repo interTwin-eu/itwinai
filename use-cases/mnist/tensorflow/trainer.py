@@ -1,7 +1,7 @@
 from typing import Dict, List, Optional, Tuple, Any
 
-from tensorflow.keras.optimizers import Optimizer
-from tensorflow.keras.losses import Loss
+# from tensorflow.keras.optimizers import Optimizer
+# from tensorflow.keras.losses import Loss
 from tensorflow.python.distribute.mirrored_strategy import MirroredStrategy
 
 from itwinai.backend.tensorflow.trainer import TensorflowTrainer
@@ -14,7 +14,7 @@ class MNISTTrainer(TensorflowTrainer):
         epochs: int,
         batch_size: int,
         loss: Dict,  # Type hint prevents jsonargparse from instantiating it
-        optimizer: Dict,  # Type hint prevents jsonargparse from instantiating it
+        optimizer: Dict,  # Type hint prevents jsonargparse from instant. it
         model: Dict,  # Type hint prevents jsonargparse from instantiating it
         strategy: Optional[MirroredStrategy] = None,
         logger: Optional[List[Logger]] = None

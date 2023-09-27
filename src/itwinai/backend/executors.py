@@ -72,12 +72,19 @@ class RayExecutor(Executor):
     def execute(self, args):
         print('Execute')
         tuner = tune.Tuner(
-            trainable=tune.with_parameters(self.worker_fn, pipeline=self.pipeline, class_dict=self.class_dict),
+            trainable=tune.with_parameters(
+                self.worker_fn,
+                pipeline=self.pipeline,
+                class_dict=self.class_dict
+            ),
             param_space=self.param_space,
             run_config=air.RunConfig(name="tune_run")
         )
         results = tuner.fit()
-        print(f"Best hyperparameters found were: {results.get_best_result().config}")
+        print(
+            "Best hyperparameters found were: "
+            f"{results.get_best_result().config}"
+        )
 
     # Setup is done per worker via Tune execution
     def setup(self, args):

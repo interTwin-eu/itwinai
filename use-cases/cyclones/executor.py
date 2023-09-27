@@ -1,30 +1,42 @@
 import logging
-
-from os.path import join, exists
-from os import listdir, makedirs
-from itwinai.backend.components import Executor
+from os.path import join
+from os import makedirs
 from datetime import datetime
+from typing import Tuple, Dict, Optional, Iterable
+
 from lib.macros import PATCH_SIZE as patch_size, SHAPE as shape
+from itwinai.backend.components import Executor, Executable
 
 
 class CycloneExecutor(Executor):
-    def __init__(self, run_name: str):
+    def __init__(
+        self,
+        run_name: str,
+        steps: Iterable[Executable],
+        name: Optional[str] = None
+    ):
+        super().__init__(steps=steps, name=name)
         self.run_name = run_name
 
-    def execute(self, pipeline):
-        args = None
-        for executable in pipeline:
-            args = executable.execute(args)
+    def execute(
+        self,
+        root_dir,
+        config: Optional[Dict] = None,
+    ) -> Tuple[Optional[Tuple], Optional[Dict]]:
+        self.root_dir = root_dir
+        print(f" Data will be stored at: {self.root_dir}")
+        config = self.setup_config(config)
+        super().execute(config=config)
 
-    def setup(self, args):
-        pipeline, root_dir = args[0], args[1]
-        print(pipeline, root_dir)
+    def setup_config(self, config: Optional[Dict] = None) -> Dict:
+        config = config if config is not None else {}
 
         # Paths, Folders
         FORMATTED_DATETIME = str(datetime.now().strftime("%Y-%m-%d_%H-%M-%S"))
-        MODEL_BACKUP_DIR = join(root_dir, "models/")
-        EXPERIMENTS_DIR = join(root_dir, "experiments")
-        RUN_DIR = join(EXPERIMENTS_DIR, self.run_name + "_" + FORMATTED_DATETIME)
+        MODEL_BACKUP_DIR = join(self.root_dir, "models/")
+        EXPERIMENTS_DIR = join(self.root_dir, "experiments")
+        RUN_DIR = join(EXPERIMENTS_DIR, self.run_name +
+                       "_" + FORMATTED_DATETIME)
         SCALER_DIR = join(RUN_DIR, "scalers")
         TENSORBOARD_DIR = join(RUN_DIR, "tensorboard")
         CHECKPOINTS_DIR = join(RUN_DIR, "checkpoints")
@@ -39,8 +51,8 @@ class CycloneExecutor(Executor):
         makedirs(TENSORBOARD_DIR, exist_ok=True)
         makedirs(CHECKPOINTS_DIR, exist_ok=True)
 
-        self.args = {
-            "root_dir": root_dir,
+        config = {
+            "root_dir": self.root_dir,
             "experiment_dir": EXPERIMENTS_DIR,
             "run_dir": RUN_DIR,
             "scaler_dir": SCALER_DIR,
@@ -51,6 +63,7 @@ class CycloneExecutor(Executor):
             "shape": shape,
             "patch_size": patch_size,
         }
+        self.args = config
 
         # initialize logger
         logging.basicConfig(
@@ -59,6 +72,4 @@ class CycloneExecutor(Executor):
             filename=LOG_FILE,
             datefmt="%Y-%m-%d %H:%M:%S",
         )
-
-        for executable in pipeline:
-            self.args = executable.setup(self.args)
+        return config

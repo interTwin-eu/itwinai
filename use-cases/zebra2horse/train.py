@@ -2,7 +2,7 @@ import argparse
 
 from trainer import Zebra2HorseTrainer
 from dataloader import Zebra2HorseDataLoader
-from itwinai.backend.executors import LocalExecutor, RayExecutor
+from itwinai.backend.executors import LocalExecutor  # , RayExecutor
 
 
 if __name__ == "__main__":
@@ -13,10 +13,10 @@ if __name__ == "__main__":
 
     # Execute pipe
     executor = LocalExecutor(
-        pipeline=args.pipeline,
+        steps=args.pipeline,
         class_dict={
             "loader": Zebra2HorseDataLoader,
             "trainer": Zebra2HorseTrainer
-    })
+        })
     executor.setup(None)
     executor.execute(None)

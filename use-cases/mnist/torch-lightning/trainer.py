@@ -34,6 +34,3 @@ class TorchTrainer(Trainer):
 
     def execute(self, data):
         self.train(data)
-
-    def setup(self, args):
-        pass

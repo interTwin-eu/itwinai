@@ -1,20 +1,18 @@
 # Install PyTorch env (GPU support)
 torch-gpu: env-files/torch/pytorch-env-gpu.yml
 	micromamba env create -p ./.venv-pytorch --file env-files/torch/pytorch-env-gpu.yml -y
-	micromamba run -p ./.venv-pytorch python -m pip install -r env-files/common_requirements.txt
 	micromamba run -p ./.venv-pytorch python -m pip install -e .
 
 # Install PyTorch env (CPU only)
 torch-cpu: env-files/torch/pytorch-env-cpu.yml
 	micromamba env create -p ./.venv-pytorch --file env-files/torch/pytorch-env-cpu.yml -y
-	micromamba run -p ./.venv-pytorch python -m pip install -r env-files/common_requirements.txt
 	micromamba run -p ./.venv-pytorch python -m pip install -e .
 
 
 # Install TensorFlow 2.13. Creates ./.venv-tf folder.
 # Ref: https://www.tensorflow.org/install/pip#step-by-step_instructions
 tf-2.13: env-files/tensorflow/tensorflow-2.13.yml
-	ehco "Installing TensorFlow 2.13 env"
+	echo "Installing TensorFlow 2.13 env"
 	micromamba env create -p ./.venv-tf --file env-files/tensorflow/tensorflow-2.13.yml -y
 	micromamba run -p ./.venv-tf pip install nvidia-cudnn-cu11==8.6.0.163
 	
@@ -25,7 +23,6 @@ tf-2.13: env-files/tensorflow/tensorflow-2.13.yml
 	
 	micromamba run -p ./.venv-tf pip install --upgrade pip
 	micromamba run -p ./.venv-tf pip install tensorflow==2.13.*
-	micromamba run -p ./.venv-pytorch python -m pip install -r env-files/common_requirements.txt
 	micromamba run -p ./.venv-tf pip install -e .
 
 	mkdir -p ./.venv-tf/lib/nvvm/libdevice
@@ -44,7 +41,6 @@ tf-2.11: env-files/tensorflow/tensorflow-2.11.yml
 	cp ./.venv-tf/lib/libdevice.10.bc ./.venv-tf/lib/nvvm/libdevice/
 	micromamba run -p ./.venv-tf pip install --upgrade pip
 	micromamba run -p ./.venv-tf pip install tensorflow==2.11.0
-	micromamba run -p ./.venv-pytorch python -m pip install -r env-files/common_requirements.txt
 	micromamba run -p ./.venv-tf pip install -e .
 
 # Install TensorFlow 2.10. Creates ./.venv-tf folder.
@@ -55,6 +51,5 @@ tf-2.10: env-files/tensorflow/tensorflow-2.10.yml
 	micromamba run -p ./.venv-tf echo 'export LD_LIBRARY_PATH=$$LD_LIBRARY_PATH:$$CONDA_PREFIX/lib/' >> ./.venv-tf/etc/conda/activate.d/env_vars.sh
 	micromamba run -p ./.venv-tf pip install --upgrade pip
 	micromamba run -p ./.venv-tf pip install tensorflow==2.10
-	micromamba run -p ./.venv-pytorch python -m pip install -r env-files/common_requirements.txt
 	micromamba run -p ./.venv-tf pip install -e .
 

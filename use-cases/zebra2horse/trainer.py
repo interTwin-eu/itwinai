@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Dict, Tuple, Optional
 import tensorflow as tf
 import tensorflow.keras as keras
 
@@ -11,10 +11,11 @@ class Zebra2HorseTrainer(TensorflowTrainer):
             self,
             epochs: int,
             batch_size: int,
-            compile_conf: dict,
-            model: dict,
+            compile_conf: Dict,
+            model: Dict,
             logger: List[Logger],
     ):
+        super().__init__()
         # Configurable
         self.logger = logger
 
@@ -33,11 +34,14 @@ class Zebra2HorseTrainer(TensorflowTrainer):
             strategy=tf.distribute.MirroredStrategy()
         )
 
-    def train(self, data):
-        super().train(data)
+    def train(self, train_dataset, validation_dataset):
+        super().train(train_dataset, validation_dataset)
 
-    def execute(self, data):
-        self.train(data)
-
-    def setup(self, args):
-        pass
+    def execute(
+        self,
+        train_dataset,
+        validation_dataset,
+        config: Optional[Dict] = None,
+    ) -> Tuple[Optional[Tuple], Optional[Dict]]:
+        train_result = self.train(train_dataset, validation_dataset)
+        return (train_result,), config
