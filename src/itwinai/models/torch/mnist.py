@@ -59,7 +59,7 @@ class MNISTModel(L.LightningModule):
         x, y = batch
         logits = self(x)
         loss = F.nll_loss(logits, y)
-        preds = torch.argmax(logits, dim=1)
+        # preds = torch.argmax(logits, dim=1)
         self.log("val_loss", loss, prog_bar=True, on_step=True, on_epoch=True)
 
     def test_step(self, batch, batch_idx):
