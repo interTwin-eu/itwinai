@@ -10,7 +10,7 @@ jobs:
     name: Test itwinai with pytest
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         
       - name: Install micromamba
         shell: bash -l {0}
