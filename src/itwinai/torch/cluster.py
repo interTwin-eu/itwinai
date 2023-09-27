@@ -1,21 +1,22 @@
-"""Cluster environments where to run AI workflows. Partially adapted from:
-https://github.com/facebookresearch/detr/blob/master/util/misc.py and
-https://github.com/ramyamounir/Template/blob/main/lib/utils/distributed.py
-"""
+"""Cluster environments where to run AI workflows."""
 
 from __future__ import annotations
+<<<<<<<< HEAD:src/itwinai/torch/cluster.py
 from typing import Optional
+========
+from abc import ABCMeta, abstractmethod
+>>>>>>>> 64ee9d7 (FIX: refactor):src/itwinai/backend/cluster.py
 import os
-import signal
-import subprocess
-from pathlib import Path
 from contextlib import contextmanager
 
+<<<<<<<< HEAD:src/itwinai/torch/cluster.py
 import numpy as np
 
 import torch
 import torch.distributed as dist
 import torch.backends.cudnn as cudnn
+========
+>>>>>>>> 64ee9d7 (FIX: refactor):src/itwinai/backend/cluster.py
 
 from ..cluster import (
     ClusterEnvironment,
@@ -26,6 +27,7 @@ from ..cluster import (
 from .types import TorchDistributedBackend as BackendT
 
 
+<<<<<<<< HEAD:src/itwinai/torch/cluster.py
 def fix_random_seeds(seed=31):
     """
     Fix random seeds.
@@ -223,3 +225,54 @@ class SLURMCluster(TorchCluster):
             yield
         finally:
             self.cleanup_resources()
+========
+def handle_sigusr1(signum, frame):
+    os.system(f'scontrol requeue {os.getenv("SLURM_JOB_ID")}')
+    exit()
+
+
+def handle_sigterm(signum, frame):
+    pass
+
+
+class ClusterEnvironment(metaclass=ABCMeta):
+    port: int = -1
+    ngpus_per_node: int = -1
+    global_world_size: int = -1
+    global_rank: int = -1
+    local_world_size: int = -1
+    local_rank: int = -1
+    rnd_seed: int = None
+    distributed: bool = False
+    # This flag tells whether the user wants to use the GPU(s)
+    use_cuda: bool = False
+
+    @property
+    def backend(self) -> str:
+        return self._backend
+
+    @backend.setter
+    def backend(self, backend_name: str) -> None:
+        self._set_backend(backend_name)
+
+    def _set_backend(self, backend_name: str) -> None:
+        # Override to implement sanitization
+        self._backend = backend_name
+
+    @abstractmethod
+    def is_main_worker(self) -> bool:
+        """Tells if the current process is the main/master process."""
+        pass
+
+    @abstractmethod
+    def is_cuda_available(self) -> bool:
+        pass
+
+    @abstractmethod
+    @contextmanager
+    def init_dist_gpu(self, *args, **kwargs):
+        pass
+
+    def cleanup_resources(self):
+        pass
+>>>>>>>> 64ee9d7 (FIX: refactor):src/itwinai/backend/cluster.py
