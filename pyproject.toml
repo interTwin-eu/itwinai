@@ -13,12 +13,15 @@ keywords = ["ml", "ai", "hpc"]
 authors = [
     { name = "Matteo Bunino", email = "matteo.bunino@cern.ch" },
     { name = "Alexander Zoechbauer", email = "alexander.zoechbauer@cern.ch" },
-    { name = "Rakesh Sarma" },
+    { name = "Rakesh Sarma", email = "r.sarma@fz-juelich.de" },
+    { name = "Mario Ruettgers", email = "m.ruettgers@fz-juelich.de" },
+    { name = "Eric Wulff", email = "eric.wulff@cern.ch" },
 ]
 maintainers = [
     { name = "Matteo Bunino", email = "matteo.bunino@cern.ch" },
     { name = "Alexander Zoechbauer", email = "alexander.zoechbauer@cern.ch" },
-    { name = "Rakesh Sarma" },
+    { name = "Rakesh Sarma", email = "r.sarma@fz-juelich.de" },
+    { name = "Mario Ruettgers", email = "m.ruettgers@fz-juelich.de" },
 ]
 classifiers = ["Development Status :: Beta", "Programming Language :: Python"]
 
