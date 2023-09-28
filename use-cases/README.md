@@ -16,8 +16,8 @@ Show how `itwinai` can be used. Each use case folder contains:
 ## How to run a use case
 
 First, create the use case's Python environment (i.e., PyTorch or TensorFlow)
-as described [in the main README](../README), and activate it. Then, install use case-specific
-dependencies, if any:
+as described [in the main README](../README.md#environment-setup), and activate it.
+Then, install use case-specific dependencies, if any:
 
 ```bash
 pip install -r /use/case/path/requirements.txt
