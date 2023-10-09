@@ -78,7 +78,7 @@ Other TF versions are available, using the following targets `tf-2.10`, and `tf-
 Installation:
 
 ```bash
-# Install TensorFlow 2.13
+# Install PyTorch + lightning
 make torch-gpu
 
 # Activate env

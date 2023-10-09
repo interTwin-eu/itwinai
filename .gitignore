@@ -12,6 +12,7 @@ mllogs
 *.out
 *.err
 .logs/
+pl-training.yml
 
 # Custom envs
 .venv*
