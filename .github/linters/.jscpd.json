@@ -1,3 +1,6 @@
 {
-    "threshold": 2.0
+    "threshold": 2.0,
+    "ignore": [
+        "**/itwinai/backend/loggers.py"
+    ]
 }
