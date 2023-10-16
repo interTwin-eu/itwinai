@@ -7,7 +7,7 @@ name = "itwinai"
 version = "0.1"
 description = "AI and ML workflows module for interTwin"
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.8"
 license = { file = "LICENSE" }
 keywords = ["ml", "ai", "hpc"]
 authors = [
