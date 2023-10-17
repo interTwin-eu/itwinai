@@ -24,13 +24,15 @@
 # parameters
 debug=false # display debug info
 
-WORKDIR="/p/project/intertwin/zoechbauer1/T6.5-AI-and-ML/use-cases/mnist/torch"
 CONTAINERPATH="/p/project/intertwin/zoechbauer1/T6.5-AI-and-ML/containers/apptainer/torch.sif"
 
 #EXEC="python train.py -p pipeline.yaml --download-only" #for bash
 EXEC="python train.py -p pipeline.yaml"                 #for SLURM
 
 SLURM_EXECUTION=true
+
+#switch to use case folder
+cd use-cases/mnist/torch
 
 
 ### DO NOT MODIFY THE SCRIPT BELOW THIS LINE ###
@@ -65,15 +67,14 @@ if [ "$debug" = true ] ; then
   export NCCL_DEBUG=INFO
 fi
 
+
 #Choose SLURM execution or bash script execution
 if [ "$SLURM_EXECUTION" = true ]; then
     srun --cpu-bind=none bash -c "apptainer exec --nv \
-        --workdir=$WORKDIR\
         $CONTAINERPATH \
         $EXEC"
 else
     apptainer exec --nv \
-        --workdir=$WORKDIR\
         $CONTAINERPATH \
         $EXEC
 fi
