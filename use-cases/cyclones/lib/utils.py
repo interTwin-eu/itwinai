@@ -3,7 +3,7 @@ import joblib
 import time
 
 from .macros import Network
-from itwinai.models.tensorflow.cyclones_vgg import (
+from cyclones_vgg import (
     custom_VGG_V1, custom_VGG_V2, custom_VGG_V3  # , ModelV5
 )
 
