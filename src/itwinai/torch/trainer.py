@@ -23,7 +23,7 @@ from .types import (
     Batch, Loss, LrScheduler, Metric
 )
 from .types import TorchDistributedStrategy as StrategyT
-from ..loggers import LogMixin, Logger, SimpleLogger
+from ..loggers import LogMixin, Logger, ConsoleLogger
 from ..utils import dynamically_import_class
 from ..cluster import ClusterEnvironment
 
@@ -265,7 +265,7 @@ class TorchTrainerMG(Trainer, LogMixin):
             )
 
         # Loggers
-        self.logger = logger if logger is not None else SimpleLogger()
+        self.logger = logger if logger is not None else ConsoleLogger()
 
         # Metrics
         self.train_metrics = (

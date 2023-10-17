@@ -40,7 +40,7 @@ executor:
               init_args:
                 num_classes: 10
           logger: 
-            - class_path: itwinai.loggers.SimpleLogger
+            - class_path: itwinai.loggers.ConsoleLogger
             - class_path: itwinai.loggers.MLFlowLogger
               init_args:
                 experiment_name: MNIST classifier

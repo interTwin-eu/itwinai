@@ -33,7 +33,7 @@ executor:
             class_path: tensorflow.python.distribute.mirrored_strategy.MirroredStrategy
 
           logger: 
-            - class_path: itwinai.loggers.SimpleLogger
+            - class_path: itwinai.loggers.ConsoleLogger
             - class_path: itwinai.loggers.MLFlowLogger
               init_args:
                 experiment_name: MNIST classifier
