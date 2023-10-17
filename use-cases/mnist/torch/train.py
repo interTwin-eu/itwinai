@@ -3,12 +3,12 @@ Training pipeline. To run this script, use the following commands.
 
 On login node:
 
->>> micromamba run -p ../../../ai/.venv-pytorch/ \
+>>> micromamba run -p ../../../.venv-pytorch/ \
     python train.py -p pipeline.yaml -d
 
 On compute nodes:
 
->>> micromamba run -p ../../../ai/.venv-pytorch/ \
+>>> micromamba run -p ../../../.venv-pytorch/ \
     python train.py -p pipeline.yaml
 
 """

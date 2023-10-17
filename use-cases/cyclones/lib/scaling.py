@@ -83,7 +83,7 @@ def inv_transform(scaled_image, scaler, shape, channel):
 
 def transform(image, scaler, shape, channel):
     """
-    Scale the data from data range to scaler's feature range 
+    Scale the data from data range to scaler's feature range
 
     Parameters
     ----------
