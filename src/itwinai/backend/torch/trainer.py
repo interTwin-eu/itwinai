@@ -167,7 +167,7 @@ class TorchTrainerMG(Trainer, LogMixin):
     loss: Loss = None
     optimizer: Optimizer = None
     lr_scheduler = None
-    strategy: StrategyT = StrategyT.NONE.value
+    _strategy: StrategyT = StrategyT.NONE.value
     train_dataset: Dataset
     validation_dataset: Dataset
     train_dataloader: DataLoader = None
