@@ -8,10 +8,23 @@ do not break use cases' workflows.
 import pytest
 import subprocess
 
-# TODO: add tests for use case folder format:
-#   - structure
-#   - naming convention
-#   - file exist
+CYCLONES_PATH = "use-cases/cyclones"
+
+
+def test_structure_cyclones(check_folder_structure):
+    """Test cyclones folder structure."""
+    check_folder_structure(CYCLONES_PATH)
+
+
+@pytest.mark.functional
+def test_mnist_train_torch(install_requirements):
+    """
+    Test MNIST torch native trainer by running it end-to-end.
+    """
+    install_requirements(CYCLONES_PATH, pytest.TF_PREFIX)
+    cmd = (f"micromamba run -p {pytest.TF_PREFIX} python "
+           f"{CYCLONES_PATH}/train.py -p {CYCLONES_PATH}/pipeline.yaml")
+    subprocess.run(cmd.split(), check=True)
 
 
 @pytest.mark.skip(reason="workflow changed")

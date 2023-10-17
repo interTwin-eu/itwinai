@@ -4,7 +4,7 @@ import time
 
 from .macros import Network
 from itwinai.models.tensorflow.cyclones_vgg import (
-    custom_VGG_V1, custom_VGG_V2, custom_VGG_V3, ModelV5
+    custom_VGG_V1, custom_VGG_V2, custom_VGG_V3  # , ModelV5
 )
 
 
@@ -61,12 +61,12 @@ def get_network_config(network, **kwargs):
             patch_size=kwargs['patch_size'], channels=kwargs['channels'],
             activation=kwargs['activation'], regularizer=kwargs['regularizer'])
 
-    elif network == Network.MODEL_V5.value:
-        print('Using Model V5')
-        model = ModelV5(
-            patch_size=kwargs['patch_size'], channels=kwargs['channels'],
-            last_activation=kwargs['activation'],
-            kernel_size=kwargs['kernel_size'])
+    # elif network == Network.MODEL_V5.value:
+    #     print('Using Model V5')
+    #     model = ModelV5(
+    #         patch_size=kwargs['patch_size'], channels=kwargs['channels'],
+    #         last_activation=kwargs['activation'],
+    #         kernel_size=kwargs['kernel_size'])
 
     return model
 
