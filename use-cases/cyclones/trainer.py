@@ -6,7 +6,7 @@ import tensorflow.keras as keras
 
 from lib.strategy import get_mirrored_strategy
 from lib.utils import get_network_config, load_model
-from itwinai.backend.components import Trainer
+from itwinai.components import Trainer
 from lib.callbacks import ProcessBenchmark
 from lib.macros import (
     Network,

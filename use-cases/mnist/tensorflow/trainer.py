@@ -4,8 +4,8 @@ from typing import Dict, List, Optional, Tuple, Any
 # from tensorflow.keras.losses import Loss
 from tensorflow.python.distribute.mirrored_strategy import MirroredStrategy
 
-from itwinai.backend.tensorflow.trainer import TensorflowTrainer
-from itwinai.backend.loggers import Logger
+from itwinai.tensorflow.trainer import TensorflowTrainer
+from itwinai.loggers import Logger
 
 
 class MNISTTrainer(TensorflowTrainer):

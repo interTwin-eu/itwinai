@@ -5,7 +5,7 @@ from torchvision.datasets import MNIST
 from torch.utils.data import DataLoader, random_split
 from torchvision import transforms
 
-from itwinai.backend.components import DataGetter
+from itwinai.components import DataGetter
 
 
 class LightningMNISTDownloader(DataGetter):
