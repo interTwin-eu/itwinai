@@ -96,11 +96,25 @@ adding the `dev` extra:
 pip install -e .[dev]
 ```
 
-To **run tests** on itwinai package:
+#### Test with `pytest`
+
+To run tests on itwinai package:
 
 ```bash
 # Activate env
 micromamba activate ./.venv-pytorch # or ./.venv-tf
 
-pytest -v tests/
+pytest -v -m "not slurm" tests/ 
+```
+
+However, some tests are intended to be executed only on an HPC system,
+where SLURM is available. They are marked with "slurm" tag. To run also
+those tests, use the dedicated job script:
+
+```bash
+sbatch tests/slurm_tests_startscript
+
+# Upon completion, check the output:
+cat job.err
+cat job.out
 ```

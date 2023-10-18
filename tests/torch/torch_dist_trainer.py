@@ -11,7 +11,7 @@ import torch.nn.functional as F
 from torch.utils.data import DataLoader
 from torchvision import transforms, datasets
 
-from itwinai.backend.torch.trainer import TorchTrainer
+from itwinai.torch.trainer import TorchTrainer
 
 
 class Net(nn.Module):
