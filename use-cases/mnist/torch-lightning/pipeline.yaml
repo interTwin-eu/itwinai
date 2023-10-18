@@ -1,5 +1,5 @@
 executor:
-  class_path: itwinai.backend.components.Executor
+  class_path: itwinai.components.Executor
   init_args:
     steps:
       - class_path: dataloader.LightningMNISTDownloader
@@ -67,7 +67,7 @@ executor:
 
             # Lightning Model configuration
             model:
-              class_path: itwinai.models.torch.mnist.MNISTModel
+              class_path: itwinai.torch.models.mnist.MNISTModel
               init_args:
                 hidden_size: 64
 

@@ -5,7 +5,7 @@ from datetime import datetime
 from typing import Tuple, Dict, Optional, Iterable
 
 from lib.macros import PATCH_SIZE as patch_size, SHAPE as shape
-from itwinai.backend.components import Executor, Executable
+from itwinai.components import Executor, Executable
 
 
 class CycloneExecutor(Executor):

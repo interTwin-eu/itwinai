@@ -13,8 +13,8 @@ On compute nodes:
 
 import argparse
 
-from itwinai.backend.components import Executor
-from itwinai.backend.utils import parse_pipe_config
+from itwinai.components import Executor
+from itwinai.utils import parse_pipe_config
 from jsonargparse import ArgumentParser
 
 

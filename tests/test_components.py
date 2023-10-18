@@ -1,4 +1,4 @@
-from itwinai.backend.components import Executor
+from itwinai.components import Executor
 
 
 def test_slice():

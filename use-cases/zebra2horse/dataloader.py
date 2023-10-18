@@ -4,7 +4,7 @@ from typing import Tuple, Dict, Optional
 import tensorflow as tf
 import tensorflow_datasets as tfds
 
-from itwinai.backend.components import DataGetter
+from itwinai.components import DataGetter
 
 
 class Zebra2HorseDataLoader(DataGetter):

@@ -2,7 +2,7 @@
 Test Trainer class. To run this script, use the following command:
 
 >>> torchrun --nnodes=1 --nproc_per_node=2 --rdzv_id=100 --rdzv_backend=c10d \
-        --rdzv_endpoint=localhost:29400 test_trainer.py
+        --rdzv_endpoint=localhost:29400 torch_dist_trainer.py
 
 """
 
@@ -11,7 +11,7 @@ import torch.nn.functional as F
 from torch.utils.data import DataLoader
 from torchvision import transforms, datasets
 
-from itwinai.backend.torch.trainer import TorchTrainer2
+from itwinai.torch.trainer import TorchTrainer
 
 
 class Net(nn.Module):
@@ -47,15 +47,16 @@ if __name__ == '__main__':
             transforms.ToTensor(),
             transforms.Normalize((0.1307,), (0.3081,))
         ]))
-    trainer = TorchTrainer2(
+    train_dataloder = DataLoader(train_set, batch_size=32, pin_memory=True)
+    validation_dataloader = DataLoader(val_set, batch_size=32, pin_memory=True)
+    trainer = TorchTrainer(
         model=Net(),
-        train_dataloader=DataLoader(train_set, batch_size=32, pin_memory=True),
-        validation_dataloader=DataLoader(
-            val_set, batch_size=32, pin_memory=True),
+        loss=nn.NLLLoss(),
+        optimizer_class='torch.optim.SGD',
+        optimizer_kwargs=dict(lr=1e-3),
+        epochs=2,
         strategy='ddp',
         backend='nccl',
-        loss='NLLLoss',
-        epochs=20,
         checkpoint_every=1
     )
-    trainer.execute()
+    trainer.execute(args=[train_dataloder, validation_dataloader])
