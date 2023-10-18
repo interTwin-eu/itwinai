@@ -5,7 +5,7 @@ from typing import Dict, Optional, Tuple
 from torch.utils.data import Dataset
 from torchvision import transforms, datasets
 
-from itwinai.backend.components import DataGetter
+from itwinai.components import DataGetter
 
 
 class MNISTDataModuleTorch(DataGetter):

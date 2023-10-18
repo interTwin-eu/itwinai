@@ -1,8 +1,8 @@
 import os
 from typing import Union, Dict, Tuple, Optional, Any
 
-from itwinai.backend.components import Trainer
-from itwinai.models.torch.mnist import MNISTModel
+from itwinai.components import Trainer
+from itwinai.torch.models.mnist import MNISTModel
 from dataloader import MNISTDataModule
 from lightning.pytorch.cli import LightningCLI
 from utils import load_yaml

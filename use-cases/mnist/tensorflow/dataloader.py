@@ -2,7 +2,7 @@ from typing import Optional, Dict, Tuple
 import tensorflow.keras as keras
 import tensorflow as tf
 
-from itwinai.backend.components import DataGetter, DataPreproc
+from itwinai.components import DataGetter, DataPreproc
 
 
 class MNISTDataGetter(DataGetter):

@@ -113,7 +113,7 @@ class Logger(LogMixin, metaclass=ABCMeta):
         return True
 
 
-class SimpleLogger(Logger):
+class ConsoleLogger(Logger):
     """Simple logger for quick tests."""
 
     def __init__(
@@ -160,22 +160,22 @@ class SimpleLogger(Logger):
                     self.run_path,
                     identifier
                 )
-                print(f"SimpleLogger: Serializing to {identifier}...")
+                print(f"ConsoleLogger: Serializing to {identifier}...")
                 shutil.copyfile(item, identifier)
             else:
                 identifier = os.path.join(
                     os.path.basename(self.run_path),
                     identifier
                 )
-                print(f"SimpleLogger: Serializing to {identifier}...")
+                print(f"ConsoleLogger: Serializing to {identifier}...")
                 self.serialize(item, identifier)
         elif kind == 'torch':
             identifier = os.path.join(self.run_path, identifier)
-            print(f"SimpleLogger: Saving to {identifier}...")
+            print(f"ConsoleLogger: Saving to {identifier}...")
             import torch
             torch.save(item, identifier)
         else:
-            print(f"SimpleLogger: {identifier} = {item}")
+            print(f"ConsoleLogger: {identifier} = {item}")
 
 
 class MLFlowLogger(Logger):
@@ -415,3 +415,36 @@ class TensorBoardLogger(Logger):
             return
 
         # TODO: complete
+
+
+class LoggersCollection(Logger):
+    """Contains a list of loggers. Never tested."""
+
+    def __init__(
+        self,
+        loggers: List[Logger]
+    ) -> None:
+        super().__init__(savedir='/.tmp_mllogs_LoggersCollection', log_freq=0)
+        self.loggers = loggers
+
+    def should_log(self, batch_idx: int = None) -> bool:
+        return True
+
+    def log(
+        self,
+        item: Union[Any, List[Any]],
+        identifier: Union[str, List[str]],
+        kind: str = 'metric',
+        step: Optional[int] = None,
+        batch_idx: Optional[int] = None,
+        **kwargs
+    ) -> None:
+        for logger in self.loggers:
+            logger.log(
+                item=item,
+                identifier=identifier,
+                kind=kind,
+                step=step,
+                batch_idx=batch_idx,
+                **kwargs
+            )

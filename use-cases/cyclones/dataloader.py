@@ -1,7 +1,7 @@
 import logging
 from os import listdir
 from os.path import join, exists
-from itwinai.backend.components import DataGetter
+from itwinai.components import DataGetter
 from typing import List, Dict, Optional, Tuple
 from lib.macros import (
     PatchType,
@@ -40,6 +40,7 @@ class TensorflowDataGetter(DataGetter):
         aug_type: AugmentationType,
         experiment: dict,
         shuffle_buffer: int = None,
+        data_path: str = "tmp_data"
     ):
         super().__init__()
         self.batch_size = batch_size
@@ -52,6 +53,7 @@ class TensorflowDataGetter(DataGetter):
         self.patch_type = patch_type.value
         self.augment = augment
         self.shuffle = shuffle
+        self.data_path = data_path
         self.drv_vars, self.coo_vars = (
             experiment["DRV_VARS_1"],
             experiment["COO_VARS_1"],
@@ -179,15 +181,16 @@ class TensorflowDataGetter(DataGetter):
             "https://drive.google.com/drive/folders/"
             "15DEq33MmtRvIpe2bNCg44lnfvEiHcPaf"
         )
-        if not exists(join(root_dir, "data")):
+        if not exists(join(root_dir, self.data_path)):
             gdown.download_folder(
                 url=url, quiet=False,
-                output=join(root_dir, "data")
+                output=join(root_dir, self.data_path)
             )
 
         # Scalar fields
         self.root_dir = root_dir
-        self.dataset_dir = join(root_dir, "data", "tfrecords", "trainval/")
+        self.dataset_dir = join(root_dir, self.data_path,
+                                "tfrecords", "trainval/")
         self.scaler_file = join(config["scaler_dir"], "minmax.tfrecord")
 
         # get records filenames

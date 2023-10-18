@@ -9,26 +9,6 @@ from omegaconf import OmegaConf
 from omegaconf.dictconfig import DictConfig
 
 
-def check_server(uri: str) -> bool:
-    """Check if an HTTP server is reachable
-
-    Args:
-        uri (str): Server URL
-
-    Returns:
-        bool: True if reachable.
-    """
-    import requests
-    from requests import ConnectionError
-
-    success = True
-    try:
-        _ = requests.get(uri)
-    except ConnectionError:
-        success = False
-    return success
-
-
 def load_yaml(path: str) -> Dict:
     """Load YAML file as dict.
 
@@ -115,3 +95,15 @@ def flatten_dict(
         else:
             items.append((new_key, v))
     return dict(items)
+
+
+# Parse (part of) YAML loaded in memory
+def parse_pipe_config(yaml_file, parser):
+    with open(yaml_file, "r", encoding="utf-8") as f:
+        try:
+            config = yaml.safe_load(f)
+        except yaml.YAMLError as exc:
+            print(exc)
+            raise exc
+
+    return parser.parse_object(config)

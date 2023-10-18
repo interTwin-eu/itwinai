@@ -1,12 +1,12 @@
 executor:
-  class_path: itwinai.backend.components.Executor
+  class_path: itwinai.components.Executor
   init_args:
     steps:
       - class_path: dataloader.MNISTDataModuleTorch
         init_args:
           save_path: .tmp/
 
-      - class_path: itwinai.backend.torch.trainer.TorchTrainerMG
+      - class_path: itwinai.torch.trainer.TorchTrainerMG
         init_args:
           model:
             class_path: model.Net
@@ -40,15 +40,15 @@ executor:
               init_args:
                 num_classes: 10
           logger: 
-            - class_path: itwinai.backend.loggers.SimpleLogger
-            - class_path: itwinai.backend.loggers.MLFlowLogger
+            - class_path: itwinai.loggers.ConsoleLogger
+            - class_path: itwinai.loggers.MLFlowLogger
               init_args:
                 experiment_name: MNIST classifier
                 log_freq: batch 
           strategy: ddp
           checkpoint_every: 1
           cluster:
-            class_path: itwinai.backend.torch.cluster.LocalCluster
+            class_path: itwinai.torch.cluster.LocalCluster
             init_args:
               gpus: '0,1,2'
               backend: nccl

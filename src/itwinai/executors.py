@@ -20,9 +20,9 @@ class LocalExecutor(Executor):
             pipe_parser.add_subclass_arguments(v, k)
 
         # Parse, Instantiate pipe
-        if type(pipeline) == str:
+        if isinstance(pipeline, str):
             parsed = parse_pipe_config(pipeline, pipe_parser)
-        elif type(pipeline) == dict:
+        elif isinstance(pipeline, dict):
             parsed = pipe_parser.parse_object(pipeline)
         else:
             raise "Type of pipeline is not supported"
@@ -57,7 +57,7 @@ class RayExecutor(Executor):
         # Should have same structure pipe and params
         def replace(pipe, params):
             for param in params:
-                if type(pipe[param]) != dict:
+                if not isinstance(pipe[param], dict):
                     pipe[param] = params[param]
                 else:
                     replace(pipe[param], params[param])

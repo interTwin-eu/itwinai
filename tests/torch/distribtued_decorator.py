@@ -15,7 +15,7 @@ from torchvision import transforms, datasets
 import torch.optim as optim
 from torch.optim.lr_scheduler import StepLR
 
-from itwinai.backend.torch.trainer import distributed
+from itwinai.torch.trainer import distributed
 
 
 class Net(nn.Module):

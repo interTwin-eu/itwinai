@@ -9,16 +9,16 @@ trainer:
     epochs: 10
     batch_size: 1
     model:
-      class_path: itwinai.models.tensorflow.cyclegan.CycleGAN
+      class_path: cyclegan.CycleGAN
       init_args:
         generator_G:
-          class_path: itwinai.models.tensorflow.cyclegan.Generator
+          class_path: cyclegan.Generator
         generator_F:
-          class_path: itwinai.models.tensorflow.cyclegan.Generator
+          class_path: cyclegan.Generator
         discriminator_X:
-          class_path: itwinai.models.tensorflow.cyclegan.Discriminator
+          class_path: cyclegan.Discriminator
         discriminator_Y:
-          class_path: itwinai.models.tensorflow.cyclegan.Discriminator
+          class_path: cyclegan.Discriminator
     compile_conf:
       gen_G_optimizer: {
         class_name: "Adam",
