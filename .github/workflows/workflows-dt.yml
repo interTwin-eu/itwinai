@@ -31,5 +31,5 @@ jobs:
 
       - name: Run pytest for workflows
         shell: bash -l {0}
-        run: micromamba run -p ./.venv-pytorch pytest -v ./tests/ -m "not hpc"
+        run: micromamba run -p ./.venv-pytorch pytest -v ./tests/ -m "not slurm"
 

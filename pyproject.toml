@@ -70,6 +70,6 @@ itwinai = "itwinai.cli:app"
 [tool.pytest.ini_options]
 markers = [
     "integration: integration tests (deselect with '-m \"not integration\"')",
-    "hpc: require HPC resources (multiple GPUs/nodes). (deselect with '-m \"not hpc\"')",
+    "slurm: needs SLURM and HPC resources (multiple GPUs/nodes). (deselect with '-m \"not slurm\"')",
     "functional: functional tests. (deselect with '-m \"not functional\"')",
 ]

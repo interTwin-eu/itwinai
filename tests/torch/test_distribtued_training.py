@@ -4,7 +4,7 @@ import subprocess
 import pytest
 
 
-@pytest.mark.hpc
+@pytest.mark.slurm
 def test_distributed_decorator():
     """Test function decorator. Needs torchrun cmd."""
     cmd = ("micromamba run -p ./ai/.venv-pytorch "
@@ -14,7 +14,7 @@ def test_distributed_decorator():
     subprocess.run(cmd.split(), check=True)
 
 
-@pytest.mark.hpc
+@pytest.mark.slurm
 def test_distributed_trainer():
     """Test vanilla torch distributed trainer. Needs torchrun cmd."""
     cmd = ("micromamba run -p ./ai/.venv-pytorch "
