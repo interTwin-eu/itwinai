@@ -21,6 +21,10 @@ jobs:
         shell: bash -l {0}
         run: make torch-cpu
 
+      - name: Make tensorflow env
+        shell: bash -l {0}
+        run: make tf-2.13
+
       - name: Install dev version
         shell: bash -l {0}
         run: micromamba run -p ./.venv-pytorch pip install .[dev]
