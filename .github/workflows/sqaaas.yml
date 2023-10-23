@@ -17,4 +17,4 @@ jobs:
         uses: eosc-synergy/sqaaas-assessment-action@v1
         with:
           repo: 'https://github.com/eosc-synergy/sqaaas-api-server'
-          branch: 'master'
+          branch: 'main'
