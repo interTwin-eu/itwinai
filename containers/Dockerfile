@@ -3,10 +3,8 @@
 
 
 #Create from the following container
-FROM nvcr.io/nvidia/pytorch:21.12-py3 AS build
-#docker pull nvcr.io/nvidia/pytorch:21.12-py3
-
-
+#FROM nvcr.io/nvidia/pytorch:21.12-py3 AS build
+FROM nvcr.io/nvidia/pytorch:23.09-py3 AS build
 
 WORKDIR ai
 
