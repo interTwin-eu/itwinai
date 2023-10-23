@@ -14,7 +14,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
       - name: SQAaaS action step
-        uses: actions/sqaaas-assessment-action@v1
+        uses: eosc-synergy/sqaaas-assessment-action@v1
         with:
           repo: 'https://github.com/eosc-synergy/sqaaas-api-server'
           branch: 'master'
