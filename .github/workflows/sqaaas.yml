@@ -16,5 +16,5 @@ jobs:
       - name: SQAaaS action step
         uses: eosc-synergy/sqaaas-assessment-action@v1
         with:
-          repo: 'https://github.com/eosc-synergy/sqaaas-api-server'
-          branch: 'main'
+          repo: 'https://github.com/interTwin-eu/itwinai'
+          branch: 'sqaaas-code'
