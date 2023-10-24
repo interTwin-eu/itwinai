@@ -1,3 +1,4 @@
+*.pth
 TODO
 /data
 nohup*
