@@ -4,7 +4,8 @@ executor:
     steps:
       - class_path: dataloader.Lightning3DGANDownloader
         init_args:
-          data_path: data/
+          data_path: exp_data/
+          data_url: https://drive.google.com/drive/folders/1uPpz0tquokepptIfJenTzGpiENfo2xRX
 
       - class_path: trainer.Lightning3DGANTrainer
         init_args:
@@ -77,12 +78,13 @@ executor:
                 loss_weights: [3, 0.1, 25, 0.1]
                 power: 0.85
                 lr: 0.001
+                checkpoint_path: exp_data/3dgan.pth
 
             # Lightning data module configuration
             data:
               class_path: dataloader.MyDataModule
               init_args:
-                datapath: /afs/cern.ch/work/k/ktsolaki/private/projects/GAN_scripts/3DGAN/Accelerated3DGAN/src/Accelerated3DGAN/data/*.h5
+                datapath: exp_data/*/*.h5
                 batch_size: 64
 
             # Torch Optimizer configuration

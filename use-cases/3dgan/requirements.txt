@@ -1,3 +1,4 @@
 h5py>=3.7.0
 google>=3.0.0
-protobuf>=4.24.4
+protobuf>=4.24.3
+gdown>=4.7.1

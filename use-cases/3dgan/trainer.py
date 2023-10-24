@@ -1,4 +1,5 @@
 import os
+import sys
 from typing import Union, Dict, Tuple, Optional, Any
 
 from itwinai.components import Trainer
@@ -17,6 +18,8 @@ class Lightning3DGANTrainer(Trainer):
         self.conf = config
 
     def train(self) -> Any:
+        old_argv = sys.argv
+        sys.argv = ['some_script_placeholder.py']
         cli = LightningCLI(
             args=self.conf,
             model_class=ThreeDGAN,
@@ -29,6 +32,7 @@ class Lightning3DGANTrainer(Trainer):
             subclass_mode_model=True,
             subclass_mode_data=True,
         )
+        sys.argv = old_argv
         cli.trainer.fit(cli.model, datamodule=cli.datamodule)
 
     def execute(
