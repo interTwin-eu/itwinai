@@ -1,5 +1,4 @@
-*_logs
-exp_data/
+*.pth
 TODO
 /data
 nohup*
