@@ -11,8 +11,6 @@ jobs:
     runs-on: ubuntu-latest
     name: Job that triggers SQAaaS platform
     steps:
-      - name: Checkout
-        uses: actions/checkout@v3
       - name: SQAaaS action step
         uses: eosc-synergy/sqaaas-assessment-action@v1
         with:
