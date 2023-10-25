@@ -4,11 +4,7 @@
 ---
 name: SQAaaS
 
-on:
-  push:
-    branches: [main, dev]
-  pull_request:
-    branches: [main, dev]
+on: [push]
 
 jobs:
   sqaaas_job:
@@ -16,4 +12,7 @@ jobs:
     name: Job that triggers SQAaaS platform
     steps:
       - name: SQAaaS assessment step
-        uses: eosc-synergy/sqaaas-assessment-action@v2
+        uses: eosc-synergy/sqaaas-assessment-action@v1
+        with:
+          repo: 'https://github.com/interTwin-eu/itwinai'
+          branch: 'sqaaas-code'
