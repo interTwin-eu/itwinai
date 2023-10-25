@@ -1,4 +1,5 @@
 *.pth
+*_logs
 exp_data/
 TODO
 /data
