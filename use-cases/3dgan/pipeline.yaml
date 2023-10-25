@@ -38,7 +38,7 @@ executor:
               detect_anomaly: false
               deterministic: null
               devices: auto #[0]
-              enable_checkpointing: null
+              enable_checkpointing: true
               enable_model_summary: null
               enable_progress_bar: null
               fast_dev_run: false
@@ -49,13 +49,18 @@ executor:
               limit_test_batches: null
               limit_train_batches: null
               limit_val_batches: null
-              log_every_n_steps: 10
+              log_every_n_steps: 2
               logger: 
-                class_path: lightning.pytorch.loggers.CSVLogger
+                # - class_path: lightning.pytorch.loggers.CSVLogger
+                #   init_args:
+                #     save_dir: ml_logs/csv_logs
+                class_path: lightning.pytorch.loggers.MLFlowLogger
                 init_args:
-                  save_dir: "logs"
+                  experiment_name: 3DGAN
+                  save_dir: ml_logs/mlflow_logs
+                  log_model: all
               max_epochs: 1
-              max_steps: 10
+              max_steps: 20
               max_time: null
               min_epochs: null
               min_steps: null
