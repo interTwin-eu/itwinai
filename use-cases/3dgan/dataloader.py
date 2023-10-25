@@ -48,7 +48,8 @@ class MyDataset(Dataset):
         return len(self.data["X"])
 
     def __getitem__(self, idx):
-        return {"X": self.data["X"][idx], "Y": self.data["Y"][idx], "ang": self.data["ang"][idx], "ecal": self.data["ecal"][idx]}
+        return {"X": self.data["X"][idx], "Y": self.data["Y"][idx],
+                "ang": self.data["ang"][idx], "ecal": self.data["ecal"][idx]}
 
     def fetch_data(self, datapath):
 
@@ -82,12 +83,18 @@ class MyDataset(Dataset):
 
         Args:
             dataset (str): Dataset file path
-            xscale (int, optional): Value to scale the ECAL values. Defaults to 1.
-            xpower (int, optional): Value to scale the ECAL values, exponentially. Defaults to 1.
-            yscale (int, optional): Value to scale the energy values. Defaults to 100.
-            angscale (int, optional): Value to scale the angle values. Defaults to 1.
-            angtype (str, optional): Which type of angle to use. Defaults to "theta".
-            thresh (_type_, optional): Maximum value for ECAL values. Defaults to 1e-4.
+            xscale (int, optional): Value to scale the ECAL values.
+                Defaults to 1.
+            xpower (int, optional): Value to scale the ECAL values,
+                exponentially. Defaults to 1.
+            yscale (int, optional): Value to scale the energy values.
+                Defaults to 100.
+            angscale (int, optional): Value to scale the angle values.
+                Defaults to 1.
+            angtype (str, optional): Which type of angle to use.
+                Defaults to "theta".
+            thresh (_type_, optional): Maximum value for ECAL values.
+                Defaults to 1e-4.
             daxis (int, optional): Axis to expand values. Defaults to -1.
 
         Returns:
@@ -135,17 +142,20 @@ class MyDataModule(pl.LightningDataModule):
             self.dataset = MyDataset(self.datapath)
             dataset_length = len(self.dataset)
             split_point = int(dataset_length * 0.9)
-            self.train_dataset, self.val_dataset = torch.utils.data.random_split(
-                self.dataset, [split_point, dataset_length - split_point])
+            self.train_dataset, self.val_dataset = \
+                torch.utils.data.random_split(
+                    self.dataset, [split_point, dataset_length - split_point])
 
         # if stage == 'test' or stage is None:
             # self.test_dataset = MyDataset(self.data_dir, train=False)
 
     def train_dataloader(self):
-        return DataLoader(self.train_dataset, batch_size=self.batch_size, drop_last=True)
+        return DataLoader(self.train_dataset, num_workers=4,
+                          batch_size=self.batch_size, drop_last=True)
 
     def val_dataloader(self):
-        return DataLoader(self.val_dataset, batch_size=self.batch_size, drop_last=True)
+        return DataLoader(self.val_dataset, num_workers=4,
+                          batch_size=self.batch_size, drop_last=True)
 
     # def test_dataloader(self):
         # return DataLoader(self.test_dataset, batch_size=self.batch_size)
