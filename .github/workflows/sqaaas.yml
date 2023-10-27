@@ -23,4 +23,3 @@ jobs:
         with:
           repo: 'https://github.com/interTwin-eu/itwinai'
           branch: ${{ steps.extract_branch.outputs.branch }}
-
