@@ -136,6 +136,8 @@ class DummyTorchElasticLauncher(Launcher):
 class TorchElasticLauncher(Launcher):
     """
     Official Torch Elastic launcher.
+    Does NOT support passing values as environment variables.
+
     Adapted from:
     https://github.com/pytorch/pytorch/blob/main/torch/distributed/run.py
     """
@@ -215,7 +217,7 @@ class TorchElasticLauncher(Launcher):
             #     f"**************************************\n"
             # )
 
-        config, cmd, cmd_args = self.config_from_args()
+        config, _, _ = self.config_from_args()
         elastic_launch(
             config=config,
             entrypoint=func,
