@@ -1,7 +1,8 @@
 import datetime
 import abc
 import time
-from typing import Callable, Tuple, Any, Union, List
+import uuid
+from typing import Callable, Tuple, Any, Union, List, Optional
 
 from torch.distributed.elastic.agent.server.local_elastic_agent import (
     LocalElasticAgent
@@ -16,11 +17,14 @@ from torch.distributed.elastic.rendezvous.c10d_rendezvous_backend import (
 from torch.distributed import TCPStore
 from torch.distributed.elastic.multiprocessing import Std
 
+from torch.distributed.launcher.api import LaunchConfig, elastic_launch
+from torch.distributed.run import config_from_args
+
 # from lightning.pytorch.plugins.environments import (
 #     ClusterEnvironment, SLURMEnvironment,
 #     TorchElasticEnvironment, LightningEnvironment
 # )
-
+# from torch.distributed.argparse_util import check_env, env
 from cluster import ClusterEnvironment
 
 
@@ -130,7 +134,92 @@ class DummyTorchElasticLauncher(Launcher):
 
 
 class TorchElasticLauncher(Launcher):
-    """Official Torch Elastic launcher."""
+    """
+    Official Torch Elastic launcher.
+    Adapted from:
+    https://github.com/pytorch/pytorch/blob/main/torch/distributed/run.py
+    """
+
+    def __init__(
+        self,
+        nnodes: str = '1:1',
+        nproc_per_node: str = '1',
+        rdzv_backend: str = 'static',
+        rdzv_endpoint: str = '',
+        rdzv_id: str = 'none',
+        rdzv_conf: str = '',
+        standalone: bool = False,
+        max_restarts: int = 0,
+        monitor_interval: float = 5,
+        start_method: str = 'spawn',
+        role: str = 'default',
+        module: bool = False,
+        no_python: bool = False,
+        run_path: bool = False,
+        log_dir: Optional[str] = None,
+        redirects: str = '0',
+        tee: str = '0',
+        node_rank: int = 0,
+        master_addr: str = "127.0.0.1",
+        master_port: int = 29500,
+        local_addr: Optional[str] = None
+    ) -> None:
+        super().__init__()
+        # emulate CLI args
+        # TODO: include logic for 'action=check_env' or 'action=env'
+        self.nnodes = nnodes
+        self.nproc_per_node = nproc_per_node
+        self.rdzv_backend = rdzv_backend
+        self.rdzv_endpoint = rdzv_endpoint
+        self.rdzv_id = rdzv_id
+        self.rdzv_conf = rdzv_conf
+        self.standalone = standalone
+        self.max_restarts = max_restarts
+        self.monitor_interval = monitor_interval
+        self.start_method = start_method
+        self.role = role
+        self.module = module
+        self.no_python = no_python
+        self.run_path = run_path
+        self.log_dir = log_dir
+        self.redirects = redirects
+        self.tee = tee
+        self.node_rank = node_rank
+        self.master_addr = master_addr
+        self.master_port = master_port
+        self.local_addr = local_addr
+        # Placeholders
+        self.training_script = "placeholder.py"
+        self.training_script_args = []
+
+    def config_from_args(
+            self
+    ) -> Tuple[LaunchConfig, Union[Callable, str], List[str]]:
+        return config_from_args(self)
+
+    def run(
+        self,
+        func: Callable,
+        args: Tuple = ()
+    ):
+        if self.standalone:
+            self.rdzv_backend = "c10d"
+            self.rdzv_endpoint = "localhost:29400"
+            self.rdzv_id = str(uuid.uuid4())
+            # log.info(
+            #     f"\n**************************************\n"
+            #     f"Rendezvous info:\n"
+            #     f"--rdzv_backend={self.rdzv_backend} "
+            #     f"--rdzv_endpoint={self.rdzv_endpoint} "
+            #     f"--rdzv_id={self.rdzv_id}\n"
+            #     f"**************************************\n"
+            # )
+
+        config, cmd, cmd_args = self.config_from_args()
+        elastic_launch(
+            config=config,
+            entrypoint=func,
+        )(*args)
 
 
 class SimpleLauncher(Launcher):

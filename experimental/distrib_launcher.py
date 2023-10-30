@@ -5,7 +5,7 @@ from torch import nn
 from torch.utils.data import DataLoader, Dataset
 
 from strategy import Strategy, DDPStrategy
-from launcher import DummyTorchElasticLauncher
+from launcher import DummyTorchElasticLauncher, TorchElasticLauncher
 from cluster import (
     LocalEnvironment, SLURMEnvironment,
     TorchElasticEnvironment
@@ -48,6 +48,7 @@ def trainer_entrypoint_fn(a, strategy: Strategy):
 
     for epoch in range(2):
         for (x, y) in train_loader:
+            # print(f"tensor to cuda:{strategy.device}")
             x = x.to(strategy.device)
             y = y.to(strategy.device)
 
@@ -88,12 +89,13 @@ if __name__ == "__main__":
     print(cluster)
 
     # Instantiate Launcher
-    launcher = DummyTorchElasticLauncher(
-        cluster=cluster,
-        n_workers_per_node=NPROC_PRE_NODE,
-        min_nodes=MIN_NODES,
-        max_nodes=MAX_NODES
-    )
+    # launcher = DummyTorchElasticLauncher(
+    #     cluster=cluster,
+    #     n_workers_per_node=NPROC_PRE_NODE,
+    #     min_nodes=MIN_NODES,
+    #     max_nodes=MAX_NODES
+    # )
+    launcher = TorchElasticLauncher(nproc_per_node=NPROC_PRE_NODE)
 
     # Instantiate Strategy
     if (STRATEGY == 'ddp'

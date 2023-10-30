@@ -32,6 +32,17 @@ class TorchElasticEnvironment(LightningTorchElasticEnvironment):
 
 
 class LocalEnvironment(LightningEnvironment):
+
+    def world_size(self) -> int:
+        if os.environ.get('WORLD_SIZE'):
+            return int(os.environ.get('WORLD_SIZE'))
+        return self._world_size
+
+    def global_rank(self) -> int:
+        if os.environ.get('RANK'):
+            return int(os.environ.get('RANK'))
+        return self._global_rank
+
     def num_nodes(self) -> int:
         """Returns the number of nodes allocated for the current job."""
         return 1
