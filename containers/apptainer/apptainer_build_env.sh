@@ -5,5 +5,5 @@ nname='torch_env'
 # source ${nname}/bin/activate
 
 # install wheels -- from this point on, feel free to add anything
-pip3 install -r ./env-files/torch/pytorch-env-gpu-container.txt
-pip3 install -e .
+#pip3 install -r ./env-files/torch/pytorch-env-gpu-container.txt
+pip3 install -e .[dev]

@@ -24,12 +24,9 @@
 # parameters
 debug=false # display debug info
 
-CONTAINERPATH="/p/project/intertwin/zoechbauer1/T6.5-AI-and-ML/containers/apptainer/torch.sif"
+CONTAINERPATH="/p/project/intertwin/zoechbauer1/T6.5-AI-and-ML/containers/apptainer/itwinai.sif"
 
-#EXEC="python train.py -p pipeline.yaml --download-only" #for bash
-EXEC="python train.py -p pipeline.yaml"                 #for SLURM
-
-SLURM_EXECUTION=true
+SLURM_EXECUTION=false
 
 #switch to use case folder
 cd use-cases/mnist/torch
@@ -68,15 +65,28 @@ if [ "$debug" = true ] ; then
 fi
 
 
+
+#This is to overwrite the default run command in the container, e.g.:
+
+#EXEC="python train.py -p pipeline.yaml --download-only" #for bash
+# if [ "$SLURM_EXECUTION" = true ]; then
+#     srun --cpu-bind=none bash -c "apptainer exec --nv \
+#         $CONTAINERPATH \
+#         $EXEC"
+# else
+#     apptainer exec --nv \
+#         $CONTAINERPATH \
+#         $EXEC
+# fi
+
 #Choose SLURM execution or bash script execution
 if [ "$SLURM_EXECUTION" = true ]; then
-    srun --cpu-bind=none bash -c "apptainer exec --nv \
-        $CONTAINERPATH \
-        $EXEC"
+    srun --cpu-bind=none bash -c "apptainer run --nv \
+        $CONTAINERPATH"
+
 else
-    apptainer exec --nv \
-        $CONTAINERPATH \
-        $EXEC
+    apptainer run --nv \
+        $CONTAINERPATH
 fi
 
 #eof
