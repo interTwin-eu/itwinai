@@ -26,7 +26,7 @@ debug=false # display debug info
 
 CONTAINERPATH="/p/project/intertwin/zoechbauer1/T6.5-AI-and-ML/containers/apptainer/itwinai.sif"
 
-SLURM_EXECUTION=false
+SLURM_EXECUTION=true
 
 #switch to use case folder
 cd use-cases/mnist/torch
