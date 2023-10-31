@@ -1,16 +1,13 @@
+"""
+Hide the selection of launcher and strategy inside a class. 
+"""
 import os
 
 import torch
 from torch import nn
 from torch.utils.data import DataLoader, Dataset
 
-from strategy import Strategy, DDPStrategy
-from launcher import DummyTorchElasticLauncher, TorchElasticLauncher
-from launcher_factory import (
-    LauncherFactory,
-    SimpleLauncherFactory,
-    TorchElasticLauncherFactory
-)
+from strategy import Strategy
 from distributed_tools import DistributedTooling
 
 
@@ -67,48 +64,11 @@ def trainer_entrypoint_fn(a, strategy: Strategy):
     return 123
 
 
-LAUNCHER = 'torch-elastic-no'
 STRATEGY = 'ddp'
-
-RUN_ID = "my_run_id"
-MIN_NODES = 1
-MAX_NODES = 1
 NPROC_PRE_NODE = 4
-MAX_RESTARTS = 2
+
 
 if __name__ == "__main__":
-    # # STRATEGY BUILDER
-
-    # # Instantiate Launcher Factory
-    # # launcher = DummyTorchElasticLauncher(
-    # #     n_workers_per_node=NPROC_PRE_NODE,
-    # #     min_nodes=MIN_NODES,
-    # #     max_nodes=MAX_NODES
-    # # )
-    # # launcher = TorchElasticLauncher(
-    # #     rdzv_id=RUN_ID,
-    # #     nproc_per_node=NPROC_PRE_NODE,
-    # #     nnodes=f"{MIN_NODES}:{MAX_NODES}",
-    # #     max_restarts=MAX_RESTARTS
-    # # )
-    # if LAUNCHER == 'torch-elastic':
-    #     launcher_builder: LauncherFactory = TorchElasticLauncherFactory()
-    # else:
-    #     launcher_builder: LauncherFactory = SimpleLauncherFactory()
-
-    # # Instantiate launcher
-    # launcher = launcher_builder.createLauncher(
-    #     n_workers_per_node=NPROC_PRE_NODE
-    # )
-
-    # # Instantiate Strategy
-    # if (STRATEGY == 'ddp'
-    #     and torch.cuda.is_available()
-    #         and torch.cuda.device_count() > 1):
-    #     strategy = DDPStrategy(cluster=None, backend='nccl')
-    # else:
-    #     raise NotImplementedError
-
     dist_tools = DistributedTooling(n_workers_per_node=NPROC_PRE_NODE)
     launcher, strategy = dist_tools.getTools('ddp')
 

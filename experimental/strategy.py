@@ -1,6 +1,6 @@
 import os
 import abc
-from typing import Any
+from typing import Any, Optional
 
 import torch
 from torch import nn
@@ -10,7 +10,7 @@ from torch.utils.data import DataLoader, DistributedSampler
 from torch.distributed import init_process_group
 
 # from lightning.pytorch.plugins.environments import ClusterEnvironment
-from cluster import ClusterEnvironment
+from cluster import ClusterEnvironment, detect_cluster
 
 
 class Strategy(abc.ABC):
@@ -53,8 +53,8 @@ class Strategy(abc.ABC):
 class DDPStrategy(Strategy):
     def __init__(
         self,
-        cluster: ClusterEnvironment,
-        backend: str = 'nccl'
+        backend: str = 'nccl',
+        cluster: Optional[ClusterEnvironment] = None
     ) -> None:
         super().__init__()
         self.cluster = cluster
@@ -70,6 +70,11 @@ class DDPStrategy(Strategy):
         if not self._is_env_setup():
             raise RuntimeError(
                 "Distributed environment not setup correctly. Use a launcher.")
+
+        # detect_cluster() is preferred
+        if self.cluster is None:
+            self.cluster = detect_cluster()
+        print(f"DDPStrategy executed on '{self.cluster}' cluster")
 
         # Initializes the default distributed process group
         # and the distributed package

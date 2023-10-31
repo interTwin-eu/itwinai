@@ -1,4 +1,6 @@
 import datetime
+import os
+import shutil
 import abc
 import time
 import uuid
@@ -15,24 +17,19 @@ from torch.distributed.elastic.rendezvous.c10d_rendezvous_backend import (
     C10dRendezvousBackend
 )
 from torch.distributed import TCPStore
-from torch.distributed.elastic.multiprocessing import Std
+from torch.distributed.elastic.multiprocessing import Std, start_processes
 
 from torch.distributed.launcher.api import LaunchConfig, elastic_launch
 from torch.distributed.run import config_from_args
 
-# from lightning.pytorch.plugins.environments import (
-#     ClusterEnvironment, SLURMEnvironment,
-#     TorchElasticEnvironment, LightningEnvironment
-# )
-# from torch.distributed.argparse_util import check_env, env
-from cluster import ClusterEnvironment
+from cluster import ClusterEnvironment, detect_cluster
 
 
 class Launcher(abc.ABC):
     cluster: ClusterEnvironment
 
     @abc.abstractmethod
-    def run(*args):
+    def run(self, *args) -> Any:
         """Launches the distributed execution."""
 
 
@@ -41,14 +38,16 @@ class DummyTorchElasticLauncher(Launcher):
 
     def __init__(
         self,
-        cluster: ClusterEnvironment,
+        cluster: Optional[ClusterEnvironment] = None,
         n_workers_per_node: int = 1,
         min_nodes: int = 1,
         max_nodes: int = 1,
         max_restarts: int = 1
     ) -> None:
         super().__init__()
-        self.cluster = cluster
+        # detect_cluster() is preferred
+        self.cluster = cluster if cluster is not None else detect_cluster()
+        print(f"DummyTorchElasticLauncher with cluster '{self.cluster}'")
         self.n_workers_per_node = n_workers_per_node
         self.min_nodes = min_nodes
         self.max_nodes = max_nodes
@@ -85,7 +84,7 @@ class DummyTorchElasticLauncher(Launcher):
         redirect: bool = False,
         log_dir: str = 'launcher_logs',
         tee_ranks: Union[str, int, List[int]] = None
-    ) -> Any:
+    ) -> List[Any]:
         """Launches the distributed execution with Torch Elastic."""
         # Suppress all printing to console:
         # redirects={0: Std.ALL} # do no print, but save to file.
@@ -203,7 +202,7 @@ class TorchElasticLauncher(Launcher):
         self,
         func: Callable,
         args: Tuple = ()
-    ):
+    ) -> Any:
         if self.standalone:
             self.rdzv_backend = "c10d"
             self.rdzv_endpoint = "localhost:29400"
@@ -225,8 +224,72 @@ class TorchElasticLauncher(Launcher):
 
 
 class SimpleLauncher(Launcher):
-    """Simple launcher based on multiprocessing."""
+    """Simple launcher based on multiprocessing.
+    Use ONLY for single node applications.
+    """
+
+    def __init__(
+        self,
+        nproc_per_node: int,
+        run_id: Optional[str] = None,
+        master_addr: str = "127.0.0.1",
+        master_port: int = 29500
+    ) -> None:
+        super().__init__()
+        self.nproc_per_node = nproc_per_node
+        self.run_id = run_id if run_id is not None else f"RunID:{time.time()}"
+        self.master_addr = master_addr
+        self.master_port = master_port
+        self.log_dir = f'{self.__class__.__name__}_logs'
+        if os.path.exists(self.log_dir):
+            shutil.rmtree(self.log_dir)
+        os.makedirs(self.log_dir)
+
+    def run(
+        self,
+        func: Callable,
+        args: Tuple = ()
+    ) -> Any:
+        # Adapted from:
+        # https://pytorch.org/docs/stable/elastic/multiprocessing.html
+        w_args = {i: args for i in range(self.nproc_per_node)}
+        # Emulates the env variables set by torch Elastic
+        w_envs = {
+            i: dict(
+                RANK=str(i),
+                LOCAL_RANK=str(i),
+                GROUP_RANK=str(0),
+                ROLE_RANK=str(i),
+                WORLD_SIZE=str(self.nproc_per_node),
+                LOCAL_WORLD_SIZE=str(self.nproc_per_node),
+                ROLE_WORLD_SIZE=str(self.nproc_per_node),
+                TORCHELASTIC_RUN_ID=str(self.run_id),
+                MASTER_ADDR=str(self.master_addr),
+                MASTER_PORT=str(self.master_port)
+            )
+            for i in range(self.nproc_per_node)
+        }
+        ctx = start_processes(
+            name=self.__class__.__name__,
+            entrypoint=func,
+            args=w_args,
+            envs=w_envs,
+            log_dir=self.log_dir
+        )
+        ctx.wait()
+        return ctx.return_values
 
 
 class DeepSpeedLauncher(Launcher):
     """Official DeepSpeed launcher."""
+
+    def __init__(self) -> None:
+        super().__init__()
+
+    def run(
+        self,
+        func: Callable,
+        args: Tuple = ()
+    ) -> Any:
+        # TODO: complete
+        raise NotImplementedError
