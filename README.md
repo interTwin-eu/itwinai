@@ -9,9 +9,9 @@ for a quick overview of this platform for advanced AI/ML workflows in digital tw
 If you want to integrate a new use case, you can follow this
 [step-by-step guide](https://intertwin-eu.github.io/T6.5-AI-and-ML/docs/How-to-use-this-software.html).
 
-In order to use the itwinai module a proper software environment needs to be set up. Currently there are two ways to do this:
-1. containers
-2. virtual environments
+In order to use the itwinai module a proper software environment needs to be set up. Currently there are two suggested ways using:
+1. Containers
+2. Virtual Environments
 
 ## Containers
 
