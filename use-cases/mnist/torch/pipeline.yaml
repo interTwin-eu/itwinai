@@ -4,8 +4,9 @@ executor:
     steps:
       - class_path: dataloader.MNISTDataModuleTorch
         init_args:
-          #save_path: ../data_save/preproc-images
-          save_path: /p/project/intertwin/zoechbauer1/T6.5-AI-and-ML/use-cases/mnist/data/preproc-images
+          save_path: .tmp/
+          #On HPC a directory that is accessible (mounted) during container execution is necessary, e.g.
+          #save_path: /p/project/intertwin/zoechbauer1/T6.5-AI-and-ML/use-cases/mnist/data/preproc-images
 
       - class_path: itwinai.torch.trainer.TorchTrainerMG
         init_args:
