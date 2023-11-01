@@ -30,7 +30,7 @@ If you need other specs you can consults the [Release Notes](https://docs.nvidia
 There are currently three ways to execute the itwinai container on a SLURM cluster.
 
 1. Direct build on the HPC system
-2. Use build on the [itwinai repo](https://github.com/interTwin-eu/itwinai/pkgs/container/t6.5-ai-and-ml) and pull to HPC system
+2. Use build on the [itwinai repository](https://github.com/interTwin-eu/itwinai/pkgs/container/t6.5-ai-and-ml) and pull to HPC system
 3. Deploy to Kubernetes cluster and offload to HPC via [interLink](https://github.com/interTwin-eu/interLink)
 
 ![container workflow](docs/docs/img/containers.png) 
@@ -52,8 +52,8 @@ Run the startscript with
 sbatch use-cases/mnist/torch/startscript.sh
 ```
 
-#### Github container repository build
-With this method you can just pull the ready container from the github container repository:
+#### GitHub container repository build
+With this method you can just pull the ready container from the GitHub container repository:
 ```
 apptainer pull containers/apptainer/itwinai.sif docker://ghcr.io/intertwin-eu/t6.5-ai-and-ml:containers
 ```
