@@ -1,0 +1,59 @@
+from typing import Optional, List, Dict, Tuple
+import os
+import shutil
+import csv
+
+from itwinai.components import Saver
+
+
+class TorchMNISTLabelSaver(Saver):
+    """Serializes to disk the labels predicted for MNIST dataset."""
+
+    def __init__(
+        self,
+        save_dir: str = 'mnist_predictions',
+        class_labels: Optional[List] = None
+    ) -> None:
+        super().__init__()
+        self.save_dir = save_dir
+        self.class_labels = (
+            class_labels if class_labels is not None
+            else [f'Digit {i}' for i in range(10)]
+        )
+
+    def execute(
+        self,
+        predicted_classes: Dict[str, int],
+        config: Optional[Dict] = None
+    ) -> Tuple[Optional[Tuple], Optional[Dict]]:
+        """Translate predictions from class idx to class label and save
+        them to disk.
+
+        Args:
+            predicted_classes (Dict[str, int]): maps unique item ID to
+                the predicted class ID.
+            config (Optional[Dict], optional): inherited configuration.
+                Defaults to None.
+
+        Returns:
+            Tuple[Optional[Tuple], Optional[Dict]]: propagation of inherited
+                configuration and saver return value.
+        """
+        if os.path.exists(self.save_dir):
+            shutil.rmtree(self.save_dir)
+        os.makedirs(self.save_dir)
+
+        # Map class idx (int) to class label (str)
+        predicted_labels = {
+            itm_name: self.class_labels[cls_idx]
+            for itm_name, cls_idx in predicted_classes.items()
+        }
+        result = self.save(predicted_labels)
+        return ((result,), config)
+
+    def save(self, predicted_labels: Dict[str, str]) -> None:
+        filepath = os.path.join(self.save_dir, 'predictions.csv')
+        with open(filepath, 'w') as csv_file:
+            writer = csv.writer(csv_file)
+            for key, value in predicted_labels.items():
+                writer.writerow([key, value])
