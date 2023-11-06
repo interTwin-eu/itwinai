@@ -1,5 +1,7 @@
-from typing import Optional, Tuple, Dict, Any, List
+from typing import Optional, Tuple, Dict, Any, List, Union
+import os
 
+import torch
 from torch import nn
 from torch.utils.data import DataLoader, Dataset
 
@@ -8,6 +10,60 @@ from .utils import clear_key
 from ..components import Predictor
 from .types import TorchDistributedStrategy as StrategyT
 from .types import Metric
+from ..serialization import ModelLoader
+
+
+class TorchModelLoader(ModelLoader):
+    """Loads a torch model from somewhere.
+
+    Args:
+        model_uri (str): Can be a path on local filesystem
+            or an mlflow 'locator' in the form:
+            'mlflow+MLFLOW_TRACKING_URI+RUN_ID+ARTIFACT_PATH'
+    """
+
+    def __call__(self) -> nn.Module:
+        """"Loads model from model URI.
+
+        Raises:
+            ValueError: if the model URI is not recognized
+                or the model is not found.
+
+        Returns:
+            nn.Module: torch neural network.
+        """
+        if os.path.exists(self.model_uri):
+            # Model is on local filesystem.
+            model = torch.load(self.model_uri)
+            return model.eval()
+
+        if self.model_uri.startswith('mlflow+'):
+            # Model is on an MLFLow server
+            # Form is 'mlflow+MLFLOW_TRACKING_URI+RUN_ID+ARTIFACT_PATH'
+            import mlflow
+            from mlflow import MlflowException
+            _, tracking_uri, run_id, artifact_path = self.model_uri.split('+')
+            mlflow.set_tracking_uri(tracking_uri)
+
+            # Check that run exists
+            try:
+                mlflow.get_run(run_id)
+            except MlflowException:
+                raise ValueError(f"Run ID '{run_id}' was not found!")
+
+            # Download model weights
+            ckpt_path = mlflow.artifacts.download_artifacts(
+                run_id=run_id,
+                artifact_path=artifact_path,
+                dst_path='tmp/',
+                tracking_uri=mlflow.get_tracking_uri()
+            )
+            model = torch.load(ckpt_path)
+            return model.eval()
+
+        raise ValueError(
+            'Unrecognized model URI: model may not be there!'
+        )
 
 
 class TorchPredictor(Predictor):
@@ -63,7 +119,7 @@ class TorchPredictor(Predictor):
 
     def __init__(
         self,
-        model: nn.Module,
+        model: Union[nn.Module, ModelLoader],
         test_dataloader_class: str = 'torch.utils.data.DataLoader',
         test_dataloader_kwargs: Optional[Dict] = None,
         # strategy: str = StrategyT.NONE.value,
@@ -73,7 +129,7 @@ class TorchPredictor(Predictor):
         # test_metrics: Optional[Dict[str, Metric]] = None,
     ) -> None:
         super().__init__()
-        self.model = model
+        self.model = model() if isinstance(model, ModelLoader) else model
         # self.seed = seed
         # self.strategy = strategy
         # self.cluster = cluster
@@ -120,5 +176,6 @@ class TorchPredictor(Predictor):
 
     def predict(self) -> List[Any]:
         """Returns a list of predictions."""
+        # TODO: complete
 
         return []
