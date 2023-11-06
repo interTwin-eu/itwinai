@@ -193,9 +193,8 @@ class BaseComponent(ABC, Serializable):
         print("#"*len(msg))
 
 
-class Trainer(BaseComponent):
+class Trainer(Executable):
     """Trains a machine learning model."""
-
     @abstractmethod
     @monitor_exec
     def execute(
@@ -225,10 +224,42 @@ class Trainer(BaseComponent):
         pass
 
 
-class Predictor(BaseComponent):
+class Predictor(Executable):
     """Applies a pre-trained machine learning model to unseen data."""
+    @abstractmethod
+    def predict(self, *args, **kwargs):
+        pass
 
-    model: MLModel
+
+class DataGetter(Executable):
+    @abstractmethod
+    def load(self, *args, **kwargs):
+        pass
+
+
+class DataPreproc(Executable):
+    @abstractmethod
+    def preproc(self, *args, **kwargs):
+        pass
+
+
+# class StatGetter(Executable):
+#     @abstractmethod
+#     def stats(self, *args, **kwargs):
+#         pass
+
+
+class Saver(Executable):
+    @abstractmethod
+    def save(self, *args, **kwargs):
+        pass
+
+
+class Executor(Executable):
+    """Sets-up and executes a sequence of Executable steps."""
+
+    steps: Iterable[Executable]
+    constructor_args: Dict
 
     def __init__(
         self,
