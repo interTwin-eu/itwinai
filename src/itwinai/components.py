@@ -136,6 +136,7 @@ class Executable(metaclass=ABCMeta):
 
 
 class Trainer(Executable):
+    """Trains a machine learning model."""
     @abstractmethod
     def train(self, *args, **kwargs):
         pass
@@ -146,6 +147,13 @@ class Trainer(Executable):
 
     @abstractmethod
     def load_state(self):
+        pass
+
+
+class Predictor(Executable):
+    """Applies a pre-trained machine learning model to unseen data."""
+    @abstractmethod
+    def predict(self, *args, **kwargs):
         pass
 
 
@@ -167,16 +175,10 @@ class DataPreproc(Executable):
 #         pass
 
 
-class Evaluator(Executable):
+class Saver(Executable):
     @abstractmethod
-    def evaluate(self, *args, **kwargs):
+    def save(self, *args, **kwargs):
         pass
-
-
-# class Saver(Executable):
-#     @abstractmethod
-#     def save(self, *args, **kwargs):
-#         pass
 
 
 class Executor(Executable):
