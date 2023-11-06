@@ -1,8 +1,7 @@
 """Dataloader for Torch-based MNIST use case."""
 
-from typing import Optional, Tuple, Callable, Any
+from typing import Dict, Optional, Tuple, Callable, Any
 import os
-import shutil
 
 from PIL import Image
 from torch.utils.data import Dataset
@@ -42,6 +41,31 @@ class InferenceMNIST(Dataset):
 
     def __init__(
         self,
+        config: Optional[Dict] = None
+    ) -> Tuple[Tuple[Dataset, Dataset], Optional[Dict]]:
+        self.load()
+        print("Train and valid datasets loaded.")
+        # train_dataloder = DataLoader(
+        #     self.train_dataset,
+        #     batch_size=self.batch_size,
+        #     pin_memory=self.pin_memory,
+        #     num_workers=self.num_workers
+        # )
+        # validation_dataloader = DataLoader(
+        #     self.val_dataset,
+        #     batch_size=self.batch_size,
+        #     pin_memory=self.pin_memory,
+        #     num_workers=self.num_workers
+        # )
+        # return (train_dataloder, validation_dataloader)
+        return (self.train_dataset, self.val_dataset), config
+
+
+class InferenceMNIST(Dataset):
+    """Loads a set of MNIST images from a folder of JPG files."""
+
+    def __init__(
+        self,
         root: str,
         transform: Optional[Callable] = None,
         supported_format: str = '.jpg'
@@ -57,7 +81,7 @@ class InferenceMNIST(Dataset):
             if not img_file.lower().endswith(self.supported_format):
                 continue
             filename = os.path.basename(img_file)
-            img = Image.open(os.path.join(self.root, img_file))
+            img = Image.open(img_file)
             self.data[filename] = img
 
     def __len__(self) -> int:
@@ -73,6 +97,10 @@ class InferenceMNIST(Dataset):
                 is the unique identifier for the image (e.g., filename).
         """
         img_id, img = list(self.data.items())[index]
+
+        # doing this so that it is consistent with all other datasets
+        # to return a PIL Image
+        img = Image.fromarray(img.numpy(), mode="L")
 
         if self.transform is not None:
             img = self.transform(img)
@@ -92,10 +120,6 @@ class InferenceMNIST(Dataset):
             max_items (int, optional): max number of images to
                 generate. Defaults to 100.
         """
-        if os.path.exists(root):
-            shutil.rmtree(root)
-        os.makedirs(root)
-
         test_data = datasets.MNIST(root='.tmp', train=False, download=True)
         for idx, (img, _) in enumerate(test_data):
             if idx >= max_items:
@@ -105,13 +129,21 @@ class InferenceMNIST(Dataset):
 
 
 class MNISTPredictLoader(DataGetter):
-    def __init__(self, test_data_path: str) -> None:
+    def __init__(
+        self,
+        test_data_path: str
+    ) -> None:
         super().__init__()
-        self.save_parameters(**self.locals2params(locals()))
         self.test_data_path = test_data_path
 
-    @monitor_exec
-    def execute(self) -> Dataset:
+    def execute(
+        self,
+        config: Optional[Dict] = None
+    ) -> Tuple[Tuple[Dataset, Dataset], Optional[Dict]]:
+        data = self.preproc()
+        return data, config
+
+    def preproc(self) -> Dataset:
         return InferenceMNIST(
             root=self.test_data_path,
             transform=transforms.Compose([
