@@ -4,7 +4,12 @@
 # version: 211029a
 
 # std libs
-import argparse, sys, os, time, numpy as np, random
+import argparse
+import sys
+import os
+import time
+import numpy as np
+import random
 
 # ml libs
 import deepspeed
@@ -16,6 +21,8 @@ import torch.optim as optim
 from torchvision import datasets, transforms
 
 # parsed settings
+
+
 def pars_ini():
     global args
     parser = argparse.ArgumentParser(description='PyTorch MNIST Example')
@@ -71,13 +78,16 @@ def pars_ini():
 
 
 class ddpDistributedTrainer:
-    #def __init__(self, model):
+    # def __init__(self, model):
     #    self.model=model
 
-    def distributedModel(self,model,device):
+    def setup(self, *args, **kwargs):
+        self.initBackend()
+
+    def distributedModel(self, model, device):
         if torch.cuda.is_available():
-            dist_model = nn.parallel.DistributedDataParallel(model,\
-                device_ids=[device], output_device=device)
+            dist_model = nn.parallel.DistributedDataParallel(model,
+                                                             device_ids=[device], output_device=device)
         else:
             dist_model = model
 
@@ -85,29 +95,43 @@ class ddpDistributedTrainer:
 
     def initBackend(self):
         if torch.cuda.is_available():
-           dist.init_process_group(backend=args.backend)
+            dist.init_process_group(backend=args.backend)
 
     def cleanUp(self):
         if torch.cuda.is_available():
-           dist.barrier()
-           dist.destroy_process_group()
+            dist.barrier()
+            dist.destroy_process_group()
+
 
 class dsDistributedTrainer:
-    #def __init__(self, model):
+    # def __init__(self, model):
     #    self.model=model
 
-    def distributedModel(self,model,train_dataset):
+    def setup(self, model, training_dataset, optim):
+        self.initBackend()
+        distrib_model, __, train_loader, __ = deepspeed.initialize(
+            args=args, model=model, model_parameters=model.parameters(), training_data=train_dataset)
+
+        self.distrib_model = distrib_model
+        self.train_loader = train_loader
+
+    def distributedModel(self, model):
         # 1) Distributed model
         # 2) DeepSpeed optimizer
         # 3) Distributed data loader
-        distrib_model, __, train_loader, __ = deepspeed.initialize(
-            args=args, model=model, model_parameters=model.parameters(), training_data=train_dataset)
+        # distrib_model, __, train_loader, __ = deepspeed.initialize(
+        #     args=args, model=model, model_parameters=model.parameters(), training_data=train_dataset)
+        return self.distrib_model
+
+    def distributeDataloader(self, dataloader):
+        return self.train_loader
 
     def initBackend(self):
         deepspeed.init_distributed(dist_backend=args.backend)
 
     def cleanUp(self):
         deepspeed.sys.exit()
+
 
 class Net(nn.Module):
     def __init__(self):
@@ -128,11 +152,13 @@ class Net(nn.Module):
         return F.log_softmax(x)
 
 # train loop
+
+
 def train(model, device, train_loader, optimizer, epoch, grank, gwsize, args):
     model.train()
     t_list = []
-    loss_acc=0
-    if grank==0:
+    loss_acc = 0
+    if grank == 0:
         print("\n")
     for batch_idx, (data, target) in enumerate(train_loader):
         t = time.perf_counter()
@@ -142,17 +168,19 @@ def train(model, device, train_loader, optimizer, epoch, grank, gwsize, args):
         loss = F.nll_loss(output, target)
         loss.backward()
         optimizer.step()
-        if batch_idx % args.log_int == 0 and grank==0:
+        if batch_idx % args.log_int == 0 and grank == 0:
             print(
                 f'Train epoch: {epoch} [{batch_idx * len(data)}/{len(train_loader.dataset)/gwsize} '
                 f'({100.0 * batch_idx / len(train_loader):.0f}%)]\t\tLoss: {loss.item():.6f}')
         t_list.append(time.perf_counter() - t)
-        loss_acc+= loss.item()
-    if grank==0:
-        print('TIMER: train time', sum(t_list) / len(t_list),'s')
+        loss_acc += loss.item()
+    if grank == 0:
+        print('TIMER: train time', sum(t_list) / len(t_list), 's')
     return loss_acc
 
 # test loop
+
+
 def test(model, device, test_loader, grank, gwsize, args):
     model.eval()
     test_loss = 0
@@ -161,11 +189,13 @@ def test(model, device, test_loader, grank, gwsize, args):
         for data, target in test_loader:
             data, target = data.to(device), target.to(device)
             output = model(data)
-            test_loss += F.nll_loss(output, target, reduction="sum").item()  # sum up batch loss
-            pred = output.argmax(dim=1, keepdim=True)  # get the index of the max log-probability
+            # sum up batch loss
+            test_loss += F.nll_loss(output, target, reduction="sum").item()
+            # get the index of the max log-probability
+            pred = output.argmax(dim=1, keepdim=True)
             correct += pred.eq(target.view_as(pred)).sum().item()
     test_loss /= len(test_loader.dataset)
-    if grank==0:
+    if grank == 0:
         print(
             f'Test set: average loss: {test_loss:.4f}\t'
             f'accurate samples: {correct}/{len(test_loader.dataset)/gwsize}')
@@ -174,37 +204,38 @@ def test(model, device, test_loader, grank, gwsize, args):
 
 
 # save state of the training
-def save_state(epoch,distrib_model,loss_acc,optimizer,res_name,grank,gwsize,is_best):
+def save_state(epoch, distrib_model, loss_acc, optimizer, res_name, grank, gwsize, is_best):
     rt = time.time()
     # find if is_best happened in any worker
     if torch.cuda.is_available():
-        is_best_m = par_allgather_obj(is_best,gwsize)
-
+        is_best_m = par_allgather_obj(is_best, gwsize)
 
     if torch.cuda.is_available():
         if any(is_best_m):
             # find which rank is_best happened - select first rank if multiple
-            is_best_rank = np.where(np.array(is_best_m)==True)[0][0]
+            is_best_rank = np.where(np.array(is_best_m) == True)[0][0]
 
             # collect state
             state = {'epoch': epoch + 1,
-                 'state_dict': distrib_model.state_dict(),
-                 'best_acc': loss_acc,
-                 'optimizer' : optimizer.state_dict()}
+                     'state_dict': distrib_model.state_dict(),
+                     'best_acc': loss_acc,
+                     'optimizer': optimizer.state_dict()}
 
             # write on worker with is_best
-            if grank == is_best_rank: 
-                torch.save(state,'./'+res_name)
-                print(f'DEBUG: state in {grank} is saved on epoch:{epoch} in {time.time()-rt} s')
+            if grank == is_best_rank:
+                torch.save(state, './'+res_name)
+                print(
+                    f'DEBUG: state in {grank} is saved on epoch:{epoch} in {time.time()-rt} s')
     else:
         # collect state
         state = {'epoch': epoch + 1,
-                'state_dict': distrib_model.state_dict(),
-                'best_acc': loss_acc,
-                'optimizer' : optimizer.state_dict()}
-        
-        torch.save(state,'./'+res_name)
-        print(f'DEBUG: state in {grank} is saved on epoch:{epoch} in {time.time()-rt} s')
+                 'state_dict': distrib_model.state_dict(),
+                 'best_acc': loss_acc,
+                 'optimizer': optimizer.state_dict()}
+
+        torch.save(state, './'+res_name)
+        print(
+            f'DEBUG: state in {grank} is saved on epoch:{epoch} in {time.time()-rt} s')
 
 
 # deterministic dataloader
@@ -215,36 +246,50 @@ def seed_worker(worker_id):
 
 # PARALLEL HELPERS
 # sum of field over GPGPUs
+
+
 def par_sum(field):
     res = torch.tensor(field).float()
     res = res.cuda() if args.cuda else res.cpu()
-    dist.all_reduce(res,op=dist.ReduceOp.SUM,group=None,async_op=True).wait()
+    dist.all_reduce(res, op=dist.ReduceOp.SUM,
+                    group=None, async_op=True).wait()
     return res
 
 # mean of field over GPGPUs
-def par_mean(field,gwsize):
+
+
+def par_mean(field, gwsize):
     res = torch.tensor(field).float()
     res = res.cuda() if args.cuda else res.cpu()
-    dist.all_reduce(res,op=dist.ReduceOp.SUM,group=None,async_op=True).wait()
-    res/=gwsize
+    dist.all_reduce(res, op=dist.ReduceOp.SUM,
+                    group=None, async_op=True).wait()
+    res /= gwsize
     return res
 
 # max(field) over GPGPUs
+
+
 def par_max(field):
     res = torch.tensor(field).float()
     res = res.cuda() if args.cuda else res.cpu()
-    dist.all_reduce(res,op=dist.ReduceOp.MAX,group=None,async_op=True).wait()
+    dist.all_reduce(res, op=dist.ReduceOp.MAX,
+                    group=None, async_op=True).wait()
     return res
 
 # min(field) over GPGPUs
+
+
 def par_min(field):
     res = torch.tensor(field).float()
     res = res.cuda() if args.cuda else res.cpu()
-    dist.all_reduce(res,op=dist.ReduceOp.MIN,group=None,async_op=True).wait()
+    dist.all_reduce(res, op=dist.ReduceOp.MIN,
+                    group=None, async_op=True).wait()
     return res
 
 # reduce field to destination with an operation
-def par_reduce(field,dest,oper):
+
+
+def par_reduce(field, dest, oper):
     '''
     dest=0 will send the result to GPU on rank 0 (any rank is possible)
     op=oper has to be in form "dist.ReduceOp.<oper>", where <oper> is
@@ -258,48 +303,54 @@ def par_reduce(field,dest,oper):
     '''
     res = torch.Tensor([field])
     res = res.cuda() if args.cuda else res.cpu()
-    dist.reduce(res,dst=dest,op=oper,group=None,async_op=False)
+    dist.reduce(res, dst=dest, op=oper, group=None, async_op=False)
     return res
 
 # gathers tensors from the whole group in a list (to all workers)
-def par_allgather(field,gwsize):
+
+
+def par_allgather(field, gwsize):
     if args.cuda:
         sen = torch.Tensor([field]).cuda()
         res = [torch.Tensor([field]).cuda() for i in range(gwsize)]
     else:
         sen = torch.Tensor([field])
         res = [torch.Tensor([field]) for i in range(gwsize)]
-    dist.all_gather(res,sen,group=None)
+    dist.all_gather(res, sen, group=None)
     return res
 
 # gathers any object from the whole group in a list (to all workers)
-def par_allgather_obj(obj,gwsize):
+
+
+def par_allgather_obj(obj, gwsize):
     res = [None]*gwsize
-    dist.all_gather_object(res,obj,group=None)
+    dist.all_gather_object(res, obj, group=None)
     return res
 #
 #
 # MAIN
 #
 #
+
+
 def main():
     # get parse args
     print("check_0", flush=True)
     pars_ini()
-    
+
     print("check_1", flush=True)
 
     # check CUDA availibility
     args.cuda = not args.no_cuda and torch.cuda.is_available()
 
-    #Strategy for distributed training
-    if args.strategy=='DDP':
+    # Strategy for distributed training
+    if args.strategy == 'DDP':
 
-       my_trainer = ddpDistributedTrainer()
-    
-    elif args.strategy=='DS':
+        my_trainer = ddpDistributedTrainer()
 
-       my_trainer = dsDistributedTrainer()
+    elif args.strategy == 'DS':
+
+        my_trainer = dsDistributedTrainer()
 
     # limit # of CPU threads to be used per worker
     torch.set_num_threads(1)
@@ -309,7 +360,6 @@ def main():
 
     # start the time.time for profiling
     st = time.time()
-
 
     # initializes the distributed backend which will take care of sychronizing nodes/GPUs
     my_trainer.initBackend()
@@ -322,63 +372,64 @@ def main():
 
     # get job rank info - rank==0 master gpu
     if torch.cuda.is_available():
-        lwsize = torch.cuda.device_count() if args.cuda else 0 # local world size - per node
+        lwsize = torch.cuda.device_count() if args.cuda else 0  # local world size - per node
         gwsize = dist.get_world_size()     # global world size - per run
         grank = dist.get_rank()            # global rank - assign per run
-        lrank = dist.get_rank()%lwsize     # local rank - assign per node
+        lrank = dist.get_rank() % lwsize     # local rank - assign per node
     else:
         gwsize = 1
         grank = 0
 
     # some debug
-    if grank==0: 
+    if grank == 0:
         print('TIMER: initialise:', time.time()-st, 's')
         print('DEBUG: local ranks:', lwsize, '/ global ranks:', gwsize)
-        print('DEBUG: sys.version:',sys.version,'\n')
+        print('DEBUG: sys.version:', sys.version, '\n')
 
         print('DEBUG: IO parsers:')
-        print('DEBUG: args.data_dir:',args.data_dir)
-        print('DEBUG: args.restart_int:',args.restart_int,'\n')
+        print('DEBUG: args.data_dir:', args.data_dir)
+        print('DEBUG: args.restart_int:', args.restart_int, '\n')
 
         print('DEBUG: model parsers:')
-        print('DEBUG: args.batch_size:',args.batch_size)
-        print('DEBUG: args.epochs:',args.epochs)
-        print('DEBUG: args.lr:',args.lr)
-        print('DEBUG: args.concM:',args.concM)
-        print('DEBUG: args.momentum:',args.momentum)
-        print('DEBUG: args.shuff:',args.shuff,'\n')
+        print('DEBUG: args.batch_size:', args.batch_size)
+        print('DEBUG: args.epochs:', args.epochs)
+        print('DEBUG: args.lr:', args.lr)
+        print('DEBUG: args.concM:', args.concM)
+        print('DEBUG: args.momentum:', args.momentum)
+        print('DEBUG: args.shuff:', args.shuff, '\n')
 
         print('DEBUG: debug parsers:')
-        print('DEBUG: args.testrun:',args.testrun)
-        print('DEBUG: args.nseed:',args.nseed)
-        print('DEBUG: args.log_int:',args.log_int,'\n')
+        print('DEBUG: args.testrun:', args.testrun)
+        print('DEBUG: args.nseed:', args.nseed)
+        print('DEBUG: args.log_int:', args.log_int, '\n')
 
         print('DEBUG: parallel parsers:')
-        print('DEBUG: args.backend:',args.backend)
-        print('DEBUG: args.nworker:',args.nworker)
-        print('DEBUG: args.prefetch:',args.prefetch)
-        print('DEBUG: args.cuda:',args.cuda,'\n')
+        print('DEBUG: args.backend:', args.backend)
+        print('DEBUG: args.nworker:', args.nworker)
+        print('DEBUG: args.prefetch:', args.prefetch)
+        print('DEBUG: args.cuda:', args.cuda, '\n')
 
     # encapsulate the model on the GPU assigned to the current process
-    device = torch.device('cuda' if args.cuda and torch.cuda.is_available() else 'cpu',lrank)
+    device = torch.device(
+        'cuda' if args.cuda and torch.cuda.is_available() else 'cpu', lrank)
     if args.cuda:
         torch.cuda.set_device(lrank)
         # deterministic testrun
         if args.testrun:
             torch.cuda.manual_seed(args.nseed)
 
-# read data 
+# read data
     data_dir = args.data_dir
     mnist_scale = args.concM
     largeData = []
     for i in range(mnist_scale):
         largeData.append(
             datasets.MNIST(data_dir, train=True, download=False,
-            transform=transforms.Compose([
-            transforms.ToTensor(),
-            transforms.Normalize((0.1307,), (0.3081,))
-            ]))
-            )
+                           transform=transforms.Compose([
+                               transforms.ToTensor(),
+                               transforms.Normalize((0.1307,), (0.3081,))
+                           ]))
+        )
 
     # concat data
     train_dataset = torch.utils.data.ConcatDataset(largeData)
@@ -388,11 +439,11 @@ def main():
     for i in range(mnist_scale):
         largeData.append(
             datasets.MNIST(data_dir, train=False, download=False,
-            transform=transforms.Compose([
-            transforms.ToTensor(),
-            transforms.Normalize((0.1307,), (0.3081,))
-            ]))
-            )
+                           transform=transforms.Compose([
+                               transforms.ToTensor(),
+                               transforms.Normalize((0.1307,), (0.3081,))
+                           ]))
+        )
 
     # concat data
     test_dataset = torch.utils.data.ConcatDataset(largeData)
@@ -401,30 +452,33 @@ def main():
     args.shuff = args.shuff and not args.testrun
     if torch.cuda.is_available():
         train_sampler = torch.utils.data.distributed.DistributedSampler(
-                train_dataset, num_replicas=gwsize, rank=grank, shuffle = args.shuff)
+            train_dataset, num_replicas=gwsize, rank=grank, shuffle=args.shuff)
         test_sampler = torch.utils.data.distributed.DistributedSampler(
-                test_dataset, num_replicas=gwsize, rank=grank, shuffle = args.shuff)
+            test_dataset, num_replicas=gwsize, rank=grank, shuffle=args.shuff)
 
 # distribute dataset to workers
     # persistent workers is not possible for nworker=0
-    pers_w = True if args.nworker>1 else False
+    pers_w = True if args.nworker > 1 else False
 
     # deterministic testrun - the same dataset each run
-    kwargs = {'worker_init_fn': seed_worker, 'generator': g} if args.testrun else {}
+    kwargs = {'worker_init_fn': seed_worker,
+              'generator': g} if args.testrun else {}
 
     if torch.cuda.is_available():
         train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=args.batch_size,
-                sampler=train_sampler, num_workers=args.nworker, pin_memory=True,
-                persistent_workers=pers_w, prefetch_factor=args.prefetch, **kwargs )
+                                                   sampler=train_sampler, num_workers=args.nworker, pin_memory=True,
+                                                   persistent_workers=pers_w, prefetch_factor=args.prefetch, **kwargs)
         test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=args.batch_size,
-                sampler=test_sampler, num_workers=args.nworker, pin_memory=True,
-                persistent_workers=pers_w, prefetch_factor=args.prefetch, **kwargs )
+                                                  sampler=test_sampler, num_workers=args.nworker, pin_memory=True,
+                                                  persistent_workers=pers_w, prefetch_factor=args.prefetch, **kwargs)
     else:
-        train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=args.batch_size)
-        test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=args.batch_size)
+        train_loader = torch.utils.data.DataLoader(
+            train_dataset, batch_size=args.batch_size)
+        test_loader = torch.utils.data.DataLoader(
+            test_dataset, batch_size=args.batch_size)
 
-    if grank==0:
-        print('TIMER: read and concat data:', time.time()-st, 's') 
+    if grank == 0:
+        print('TIMER: read and concat data:', time.time()-st, 's')
 
     # create CNN model
     model = Net().to(device)
@@ -433,20 +487,23 @@ def main():
     distrib_model = my_trainer.distributedModel(model, device)
 
     # optimizer
-    optimizer = torch.optim.SGD(distrib_model.parameters(), lr=args.lr, momentum=args.momentum)
-    
+    optimizer = torch.optim.SGD(
+        distrib_model.parameters(), lr=args.lr, momentum=args.momentum)
 
-# resume state 
+
+# resume state
     start_epoch = 1
     best_acc = np.Inf
-    res_name='checkpoint.pth.tar'
+    res_name = 'checkpoint.pth.tar'
     if os.path.isfile(res_name):
         try:
             if torch.cuda.is_available():
                 dist.barrier()
                 # Map model to be loaded to specified single gpu.
-                loc = {'cuda:%d' % 0: 'cuda:%d' % lrank} if args.cuda else {'cpu:%d' % 0: 'cpu:%d' % lrank}
-                checkpoint = torch.load(program_dir+'/'+res_name, map_location=loc)
+                loc = {'cuda:%d' % 0: 'cuda:%d' % lrank} if args.cuda else {
+                    'cpu:%d' % 0: 'cpu:%d' % lrank}
+                checkpoint = torch.load(
+                    program_dir+'/'+res_name, map_location=loc)
             else:
                 checkpoint = torch.load(program_dir+'/'+res_name)
             start_epoch = checkpoint['epoch']
@@ -454,44 +511,46 @@ def main():
             distrib_model.load_state_dict(checkpoint['state_dict'])
             optimizer.load_state_dict(checkpoint['optimizer'])
             if torch.cuda.is_available():
-                if grank==0:
+                if grank == 0:
                     print(f'WARNING: restarting from {start_epoch} epoch')
             else:
                 print(f'WARNING: restarting from {start_epoch} epoch')
         except:
             if torch.cuda.is_available():
-                if grank==0:
+                if grank == 0:
                     print(f'WARNING: restart file cannot be loaded, restarting!')
             else:
                 print(f'WARNING: restart file cannot be loaded, restarting!')
 
-    if start_epoch>=args.epochs:
+    if start_epoch >= args.epochs:
         if torch.cuda.is_available():
-            if grank==0:
-                print(f'WARNING: given epochs are less than the one in the restart file!\n' 
-                  f'WARNING: SYS.EXIT is issued')
-            
+            if grank == 0:
+                print(f'WARNING: given epochs are less than the one in the restart file!\n'
+                      f'WARNING: SYS.EXIT is issued')
+
             my_trainer.cleanUp()
             sys.exit()
         else:
             print(f'WARNING: given epochs are less than the one in the restart file!\n'
-                    f'WARNING: SYS.EXIT is issued')
+                  f'WARNING: SYS.EXIT is issued')
             sys.exit()
 
 # start trainin/testing loop
-    if grank==0:
+    if grank == 0:
         print('TIMER: broadcast:', time.time()-st, 's')
         print(f'\nDEBUG: start training')
-        print(f'--------------------------------------------------------') 
+        print(f'--------------------------------------------------------')
 
     et = time.time()
     for epoch in range(start_epoch, args.epochs + 1):
         lt = time.time()
         # training
-        loss_acc = train(distrib_model, device, train_loader, optimizer, epoch, grank, gwsize, args)
+        loss_acc = train(distrib_model, device, train_loader,
+                         optimizer, epoch, grank, gwsize, args)
 
         # testing
-        acc_test = test(distrib_model, device, test_loader, grank, gwsize, args)
+        acc_test = test(distrib_model, device,
+                        test_loader, grank, gwsize, args)
 
         # save first epoch timer
         if epoch == start_epoch:
@@ -502,25 +561,27 @@ def main():
             train_loader.last_epoch = True
             test_loader.last_epoch = True
 
-        if grank==0:
+        if grank == 0:
             print('TIMER: epoch time:', time.time()-lt, 's')
             print('DEBUG: accuracy:', acc_test, '%')
 
         # save state if found a better state
         is_best = loss_acc < best_acc
         if epoch % args.restart_int == 0:
-            save_state(epoch,distrib_model,loss_acc,optimizer,res_name,grank,gwsize,is_best)
+            save_state(epoch, distrib_model, loss_acc, optimizer,
+                       res_name, grank, gwsize, is_best)
             # reset best_acc
             best_acc = min(loss_acc, best_acc)
 
 # finalise
     # save final state
-    save_state(epoch,distrib_model,loss_acc,optimizer,res_name,grank,gwsize,True)
+    save_state(epoch, distrib_model, loss_acc,
+               optimizer, res_name, grank, gwsize, True)
     if torch.cuda.is_available():
         dist.barrier()
 
     # some debug
-    if grank==0:
+    if grank == 0:
         print(f'\n--------------------------------------------------------')
         print('DEBUG: training results:\n')
         print('TIMER: first epoch time:', first_ep_t, ' s')
@@ -528,21 +589,24 @@ def main():
         print('TIMER: average epoch time:', (time.time()-et)/args.epochs, ' s')
         print('TIMER: total epoch time:', time.time()-et, ' s')
         if epoch > 1:
-            print('TIMER: total epoch-1 time:', time.time()-et-first_ep_t, ' s')
-            print('TIMER: average epoch-1 time:', (time.time()-et-first_ep_t)/(args.epochs-1), ' s')
+            print('TIMER: total epoch-1 time:',
+                  time.time()-et-first_ep_t, ' s')
+            print('TIMER: average epoch-1 time:',
+                  (time.time()-et-first_ep_t)/(args.epochs-1), ' s')
         print('DEBUG: last accuracy:', acc_test, '%')
-        print('DEBUG: memory req:',int(torch.cuda.memory_reserved(lrank)/1024/1024),'MB') \
-                if args.cuda else 'DEBUG: memory req: - MB'
-        print('DEBUG: memory summary:\n\n',torch.cuda.memory_summary(0)) if args.cuda else ''
+        print('DEBUG: memory req:', int(torch.cuda.memory_reserved(lrank)/1024/1024), 'MB') \
+            if args.cuda else 'DEBUG: memory req: - MB'
+        print('DEBUG: memory summary:\n\n',
+              torch.cuda.memory_summary(0)) if args.cuda else ''
 
-    if grank==0:
+    if grank == 0:
         print(f'TIMER: final time: {time.time()-st} s\n')
 
     my_trainer.cleanUp()
 
-if __name__ == "__main__": 
+
+if __name__ == "__main__":
     main()
     sys.exit()
 
-#eof
-
+# eof
