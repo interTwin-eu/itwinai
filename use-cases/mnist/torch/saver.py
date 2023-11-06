@@ -1,3 +1,7 @@
+"""
+This module is used during inference to save predicted labels to file.
+"""
+
 from typing import Optional, List, Dict, Tuple
 import os
 import shutil
@@ -12,10 +16,12 @@ class TorchMNISTLabelSaver(Saver):
     def __init__(
         self,
         save_dir: str = 'mnist_predictions',
+        predictions_file: str = 'predictions.csv',
         class_labels: Optional[List] = None
     ) -> None:
         super().__init__()
         self.save_dir = save_dir
+        self.predictions_file = predictions_file
         self.class_labels = (
             class_labels if class_labels is not None
             else [f'Digit {i}' for i in range(10)]
@@ -52,7 +58,7 @@ class TorchMNISTLabelSaver(Saver):
         return ((result,), config)
 
     def save(self, predicted_labels: Dict[str, str]) -> None:
-        filepath = os.path.join(self.save_dir, 'predictions.csv')
+        filepath = os.path.join(self.save_dir, self.predictions_file)
         with open(filepath, 'w') as csv_file:
             writer = csv.writer(csv_file)
             for key, value in predicted_labels.items():
