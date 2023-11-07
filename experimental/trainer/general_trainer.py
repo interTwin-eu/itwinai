@@ -81,17 +81,54 @@ class ddpDistributedTrainer:
     # def __init__(self, model):
     #    self.model=model
 
-    def setup(self, *args, **kwargs):
-        self.initBackend()
+    def setup(self, train_dataset, test_dataset, gwsize, grank, **kwargs):
+        model=kwargs.get("model")
+        device=kwargs.get("device")
+        shuff=kwargs.get("shuff")
+        
 
-    def distributedModel(self, model, device):
         if torch.cuda.is_available():
-            dist_model = nn.parallel.DistributedDataParallel(model,
-                                                             device_ids=[device], output_device=device)
+            dist_model = nn.parallel.DistributedDataParallel(model,device_ids=[device], output_device=device)
         else:
             dist_model = model
+        self.dist_model = dist_model
 
-        return dist_model
+        # restricts data loading to a subset of the dataset exclusive to the current process
+        if torch.cuda.is_available():
+            train_sampler = torch.utils.data.distributed.DistributedSampler(
+                train_dataset, num_replicas=gwsize, rank=grank, shuffle=shuff)
+            test_sampler = torch.utils.data.distributed.DistributedSampler(
+                test_dataset, num_replicas=gwsize, rank=grank, shuffle=shuff)
+
+        # distribute dataset to workers
+        # persistent workers is not possible for nworker=0
+        pers_w = True if args.nworker > 1 else False
+
+        # deterministic testrun - the same dataset each run
+        kwargs = {'worker_init_fn': seed_worker,
+                  'generator': g} if args.testrun else {}
+
+        if torch.cuda.is_available():
+            train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=args.batch_size,
+                                                   sampler=train_sampler, num_workers=args.nworker, pin_memory=True,
+                                                   persistent_workers=pers_w, prefetch_factor=args.prefetch, **kwargs)
+            test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=args.batch_size,
+                                                  sampler=test_sampler, num_workers=args.nworker, pin_memory=True,
+                                                  persistent_workers=pers_w, prefetch_factor=args.prefetch, **kwargs)
+        else:
+            train_loader = torch.utils.data.DataLoader(
+                train_dataset, batch_size=args.batch_size)
+            test_loader = torch.utils.data.DataLoader(
+                test_dataset, batch_size=args.batch_size)
+
+        self.train_loader=train_loader
+        self.test_loader=test_loader
+
+    def distributedModel(self):
+        return self.dist_model
+    
+    def distributedDataloader(self):
+        return self.train_loader, self.test_loader
 
     def initBackend(self):
         if torch.cuda.is_available():
@@ -107,24 +144,26 @@ class dsDistributedTrainer:
     # def __init__(self, model):
     #    self.model=model
 
-    def setup(self, model, training_dataset, optim):
-        self.initBackend()
-        distrib_model, __, train_loader, __ = deepspeed.initialize(
+    def setup(self, train_dataset, test_dataset, gwsize, grank, **kwargs):
+        model=kwargs.get("model")
+
+        test_sampler = torch.utils.data.distributed.DistributedSampler(
+           test_dataset, num_replicas=gwsize, rank=grank)
+        test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=args.batch_size,
+           sampler=test_sampler, num_workers=0, pin_memory=True, shuffle=False)
+        
+        dist_model, __, train_loader, __ = deepspeed.initialize(
             args=args, model=model, model_parameters=model.parameters(), training_data=train_dataset)
 
-        self.distrib_model = distrib_model
+        self.dist_model = dist_model
         self.train_loader = train_loader
+        self.test_loader = test_loader
 
-    def distributedModel(self, model):
-        # 1) Distributed model
-        # 2) DeepSpeed optimizer
-        # 3) Distributed data loader
-        # distrib_model, __, train_loader, __ = deepspeed.initialize(
-        #     args=args, model=model, model_parameters=model.parameters(), training_data=train_dataset)
-        return self.distrib_model
+    def distributedModel(self):
+        return self.dist_model
 
-    def distributeDataloader(self, dataloader):
-        return self.train_loader
+    def distributedDataloader(self):
+        return self.train_loader, self.test_loader
 
     def initBackend(self):
         deepspeed.init_distributed(dist_backend=args.backend)
@@ -335,10 +374,7 @@ def par_allgather_obj(obj, gwsize):
 
 def main():
     # get parse args
-    print("check_0", flush=True)
     pars_ini()
-
-    print("check_1", flush=True)
 
     # check CUDA availibility
     args.cuda = not args.no_cuda and torch.cuda.is_available()
@@ -447,49 +483,53 @@ def main():
 
     # concat data
     test_dataset = torch.utils.data.ConcatDataset(largeData)
-
-    # restricts data loading to a subset of the dataset exclusive to the current process
-    args.shuff = args.shuff and not args.testrun
-    if torch.cuda.is_available():
-        train_sampler = torch.utils.data.distributed.DistributedSampler(
-            train_dataset, num_replicas=gwsize, rank=grank, shuffle=args.shuff)
-        test_sampler = torch.utils.data.distributed.DistributedSampler(
-            test_dataset, num_replicas=gwsize, rank=grank, shuffle=args.shuff)
-
-# distribute dataset to workers
-    # persistent workers is not possible for nworker=0
-    pers_w = True if args.nworker > 1 else False
-
-    # deterministic testrun - the same dataset each run
-    kwargs = {'worker_init_fn': seed_worker,
-              'generator': g} if args.testrun else {}
-
-    if torch.cuda.is_available():
-        train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=args.batch_size,
-                                                   sampler=train_sampler, num_workers=args.nworker, pin_memory=True,
-                                                   persistent_workers=pers_w, prefetch_factor=args.prefetch, **kwargs)
-        test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=args.batch_size,
-                                                  sampler=test_sampler, num_workers=args.nworker, pin_memory=True,
-                                                  persistent_workers=pers_w, prefetch_factor=args.prefetch, **kwargs)
-    else:
-        train_loader = torch.utils.data.DataLoader(
-            train_dataset, batch_size=args.batch_size)
-        test_loader = torch.utils.data.DataLoader(
-            test_dataset, batch_size=args.batch_size)
-
-    if grank == 0:
-        print('TIMER: read and concat data:', time.time()-st, 's')
-
+    
     # create CNN model
     model = Net().to(device)
 
+    my_trainer.setup(train_dataset, test_dataset, gwsize, grank, device=device,model=model,shuff=args.shuff)
+
+    # restricts data loading to a subset of the dataset exclusive to the current process
+    #args.shuff = args.shuff and not args.testrun
+    #if torch.cuda.is_available():
+    #    train_sampler = torch.utils.data.distributed.DistributedSampler(
+    #        train_dataset, num_replicas=gwsize, rank=grank, shuffle=args.shuff)
+    #    test_sampler = torch.utils.data.distributed.DistributedSampler(
+    #        test_dataset, num_replicas=gwsize, rank=grank, shuffle=args.shuff)
+
+# distribute dataset to workers
+    # persistent workers is not possible for nworker=0
+    #pers_w = True if args.nworker > 1 else False
+
+    # deterministic testrun - the same dataset each run
+    #kwargs = {'worker_init_fn': seed_worker,
+              #'generator': g} if args.testrun else {}
+
+    #if torch.cuda.is_available():
+    #    train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=args.batch_size,
+                                                   #sampler=train_sampler, num_workers=args.nworker, pin_memory=True,
+                                                   #persistent_workers=pers_w, prefetch_factor=args.prefetch, **kwargs)
+    #    test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=args.batch_size,
+                                                  #sampler=test_sampler, num_workers=args.nworker, pin_memory=True,
+                                                  #persistent_workers=pers_w, prefetch_factor=args.prefetch, **kwargs)
+    #else:
+    #    train_loader = torch.utils.data.DataLoader(
+    #        train_dataset, batch_size=args.batch_size)
+    #    test_loader = torch.utils.data.DataLoader(
+    #        test_dataset, batch_size=args.batch_size)
+
+    #if grank == 0:
+    #    print('TIMER: read and concat data:', time.time()-st, 's')
+
+
     # distribute model to workers
-    distrib_model = my_trainer.distributedModel(model, device)
+    distrib_model = my_trainer.distributedModel()
 
     # optimizer
     optimizer = torch.optim.SGD(
         distrib_model.parameters(), lr=args.lr, momentum=args.momentum)
 
+    train_loader, test_loader = my_trainer.distributedDataloader()
 
 # resume state
     start_epoch = 1
