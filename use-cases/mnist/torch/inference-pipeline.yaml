@@ -2,21 +2,21 @@ executor:
   class_path: itwinai.components.Executor
   init_args:
     steps:
-    # TODO: complete
       - class_path: dataloader.MNISTPredictLoader
         init_args:
-          test_data_path: ...
+          test_data_path: mnist-sample-data/
 
-      - class_path: itwinai.torch.inference.TorchPredictor
+      - class_path: itwinai.torch.inference.MulticlassTorchPredictor
         init_args: 
           model:
             class_path: itwinai.torch.inference.TorchModelLoader
             init_args:
-              model_uri: ...
-          ...
+              model_uri: mnist-pre-trained.pth
+          test_dataloader_kwargs:
+            batch_size: 3
       
       - class_path: saver.TorchMNISTLabelSaver
         init_args:
-          save_dir: ...
-          predictions_file: ...
+          save_dir: mnist-predictions
+          predictions_file: predictions.csv
           class_labels: null

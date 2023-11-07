@@ -1,4 +1,4 @@
-from typing import Any
+from .types import ModelML
 import abc
 
 
@@ -10,5 +10,5 @@ class ModelLoader(abc.ABC):
         self.model_uri = model_uri
 
     @abc.abstractmethod
-    def __call__(self) -> Any:
+    def __call__(self) -> ModelML:
         """Loads model from model URI."""

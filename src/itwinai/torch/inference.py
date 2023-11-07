@@ -1,5 +1,6 @@
-from typing import Optional, Tuple, Dict, Any, List, Union
+from typing import Optional, Dict, Any, Union
 import os
+import abc
 
 import torch
 from torch import nn
@@ -9,7 +10,7 @@ from ..utils import dynamically_import_class
 from .utils import clear_key
 from ..components import Predictor
 from .types import TorchDistributedStrategy as StrategyT
-from .types import Metric
+from .types import Metric, Batch
 from ..serialization import ModelLoader
 
 
@@ -67,45 +68,7 @@ class TorchModelLoader(ModelLoader):
 
 
 class TorchPredictor(Predictor):
-    """Applies a pre-trained torch model to unseen data.
-
-    Args:
-        model (nn.Module): neural network instance.
-        test_dataloader_class (str, optional): test dataloader class path.
-            Defaults to 'torch.utils.data.DataLoader'.
-        test_dataloader_kwargs (Optional[Dict], optional): constructor
-            arguments of the test dataloader, except for the dataset
-            instance. Defaults to None.
-        strategy (Optional[TorchDistributedStrategy], optional): distributed
-            strategy. Defaults to StrategyT.NONE.value.
-        backend (TorchDistributedBackend, optional): computing backend.
-            Defaults to BackendT.NCCL.value.
-        shuffle_dataset (bool, optional): whether shuffle dataset before
-            sampling batches from dataloader. Defaults to False.
-        use_cuda (bool, optional): whether to use GPU. Defaults to True.
-        benchrun (bool, optional): sets up a debug run. Defaults to False.
-        testrun (bool, optional): deterministic training seeding everything.
-            Defaults to False.
-        seed (Optional[int], optional): random seed. Defaults to None.
-        logger (Optional[List[Logger]], optional): logger. Defaults to None.
-        checkpoint_every (int, optional): how often (epochs) to checkpoint the
-            best model. Defaults to 10.
-        cluster (Optional[ClusterEnvironment], optional): cluster environment
-            object describing the context in which the trainer is executed.
-            Defaults to None.
-        train_metrics (Optional[Dict[str, Metric]], optional):
-            list of metrics computed in the training step on the predictions.
-            It's a dictionary with the form
-            ``{'metric_unique_name': CallableMetric}``. Defaults to None.
-        validation_metrics (Optional[Dict[str, Metric]], optional): same
-            as ``training_metrics``. If not given, it mirrors the training
-            metrics. Defaults to None.
-
-    Raises:
-        RuntimeError: When trying to use DDP without CUDA support.
-        NotImplementedError: when trying to use a strategy different from the
-            ones provided by TorchDistributedStrategy.
-    """
+    """Applies a pre-trained torch model to unseen data."""
 
     model: nn.Module = None
     test_dataset: Dataset
@@ -127,9 +90,10 @@ class TorchPredictor(Predictor):
         # logger: Optional[List[Logger]] = None,
         # cluster: Optional[ClusterEnvironment] = None,
         # test_metrics: Optional[Dict[str, Metric]] = None,
+        name: str = None
     ) -> None:
-        super().__init__()
-        self.model = model() if isinstance(model, ModelLoader) else model
+        super().__init__(model=model, name=name)
+        self.model = self.model.eval()
         # self.seed = seed
         # self.strategy = strategy
         # self.cluster = cluster
@@ -158,24 +122,91 @@ class TorchPredictor(Predictor):
         #     else validation_metrics
         # )
 
-    def execute(
+    def predict(
         self,
         test_dataset: Dataset,
         model: nn.Module = None,
-        config: Optional[Dict] = None
-    ) -> Tuple[Optional[Tuple], Optional[Dict]]:
-        self.test_dataset = test_dataset
-        self.test_dataloader = self.test_dataloader_class(
+    ) -> Dict[str, Any]:
+        """Applies a torch model to a dataset for inference.
+
+        Args:
+            test_dataset (Dataset[str, Any]): each item in this dataset is a
+                couple (item_unique_id, item)
+            model (nn.Module, optional): torch model. Overrides the existing
+                model, if given. Defaults to None.
+
+        Returns:
+            Dict[str, Any]: maps each item ID to the corresponding predicted
+                value(s).
+        """
+        if model is not None:
+            # Overrides existing "internal" model
+            self.model = model
+
+        test_dataloader = self.test_dataloader_class(
             test_dataset, **self.test_dataloader_kwargs
         )
-        # Update model passed for "interactive" use
-        if model is not None:
-            self.model = model
-        result = self.predict()
-        return ((result,), config)
 
-    def predict(self) -> List[Any]:
-        """Returns a list of predictions."""
-        # TODO: complete
+        all_predictions = dict()
+        for samples_ids, samples in test_dataloader:
+            with torch.no_grad():
+                pred = self.model(samples)
+            pred = self.transform_predictions(pred)
+            for idx, pre in zip(samples_ids, pred):
+                # For each item in the batch
+                if pre.numel() == 1:
+                    pre = pre.item()
+                else:
+                    pre = pre.to_dense().tolist()
+                all_predictions[idx] = pre
+        return all_predictions
 
-        return []
+    @abc.abstractmethod
+    def transform_predictions(self, batch: Batch) -> Batch:
+        """
+        Post-process the predictions of the torch model (e.g., apply
+        threshold in case of multilabel classifier).
+        """
+
+
+class MulticlassTorchPredictor(TorchPredictor):
+    """
+    Applies a pre-trained torch model to unseen data for
+    multiclass classification.
+    """
+
+    def transform_predictions(self, batch: Batch) -> Batch:
+        batch = batch.argmax(-1)
+        return batch
+
+
+class MultilabelTorchPredictor(TorchPredictor):
+    """
+    Applies a pre-trained torch model to unseen data for
+    multilabel classification, applying a threshold on the
+    output of the neural network.
+    """
+
+    def __init__(
+        self,
+        model: Union[nn.Module, ModelLoader],
+        test_dataloader_class: str = 'torch.utils.data.DataLoader',
+        test_dataloader_kwargs: Optional[Dict] = None,
+        threshold: float = 0.5,
+        name: str = None
+    ) -> None:
+        super().__init__(
+            model, test_dataloader_class, test_dataloader_kwargs, name
+        )
+        self.threshold = threshold
+
+
+class RegressionTorchPredictor(TorchPredictor):
+    """
+    Applies a pre-trained torch model to unseen data for
+    regression, leaving untouched the output of the neural
+    network.
+    """
+
+    def transform_predictions(self, batch: Batch) -> Batch:
+        return batch
