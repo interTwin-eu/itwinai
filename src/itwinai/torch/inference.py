@@ -187,6 +187,8 @@ class MultilabelTorchPredictor(TorchPredictor):
     output of the neural network.
     """
 
+    threshold: float
+
     def __init__(
         self,
         model: Union[nn.Module, ModelLoader],
@@ -199,6 +201,9 @@ class MultilabelTorchPredictor(TorchPredictor):
             model, test_dataloader_class, test_dataloader_kwargs, name
         )
         self.threshold = threshold
+
+    def transform_predictions(self, batch: Batch) -> Batch:
+        return (batch > self.threshold).float()
 
 
 class RegressionTorchPredictor(TorchPredictor):
