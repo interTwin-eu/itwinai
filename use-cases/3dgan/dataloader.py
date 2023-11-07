@@ -1,5 +1,6 @@
 from typing import Optional, Tuple, Dict
 import os
+from lightning.pytorch.utilities.types import EVAL_DATALOADERS
 
 import numpy as np
 import torch
@@ -39,7 +40,7 @@ class Lightning3DGANDownloader(DataGetter):
         return None, config
 
 
-class MyDataset(Dataset):
+class ParticlesDataset(Dataset):
     def __init__(self, datapath):
         self.datapath = datapath
         self.data = self.fetch_data(self.datapath)
@@ -139,12 +140,17 @@ class MyDataModule(pl.LightningDataModule):
         # called on every process in DDP
 
         if stage == 'fit' or stage is None:
-            self.dataset = MyDataset(self.datapath)
+            self.dataset = ParticlesDataset(self.datapath)
             dataset_length = len(self.dataset)
             split_point = int(dataset_length * 0.9)
             self.train_dataset, self.val_dataset = \
                 torch.utils.data.random_split(
                     self.dataset, [split_point, dataset_length - split_point])
+
+        if stage == 'predict':
+            # TODO: inference dataset should be different in that it
+            # does not contain images!
+            self.predict_dataset = ParticlesDataset(self.datapath)
 
         # if stage == 'test' or stage is None:
             # self.test_dataset = MyDataset(self.data_dir, train=False)
@@ -155,6 +161,10 @@ class MyDataModule(pl.LightningDataModule):
 
     def val_dataloader(self):
         return DataLoader(self.val_dataset, num_workers=4,
+                          batch_size=self.batch_size, drop_last=True)
+
+    def predict_dataloader(self) -> EVAL_DATALOADERS:
+        return DataLoader(self.predict_dataset, num_workers=4,
                           batch_size=self.batch_size, drop_last=True)
 
     # def test_dataloader(self):
