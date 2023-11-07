@@ -25,7 +25,7 @@ executor:
             batch_size: 32
             pin_memory: True
             shuffle: False
-          epochs: 2
+          epochs: 30
           train_metrics:
             accuracy:
               class_path: torchmetrics.classification.MulticlassAccuracy
