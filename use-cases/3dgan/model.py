@@ -2,6 +2,7 @@ import sys
 import pickle
 from collections import defaultdict
 import math
+from typing import Any
 
 import torch
 import torch.nn as nn
@@ -412,6 +413,8 @@ class ThreeDGAN(pl.LightningModule):
             (self.batch_size, self.latent_size - 2),
             device=self.device
         )
+        print(f'Energy elements: {energy_batch.numel} {energy_batch.shape}')
+        print(f'Angle elements: {ang_batch.numel} {ang_batch.shape}')
         generator_ip = torch.cat(
             (energy_batch.view(-1, 1), ang_batch.view(-1, 1), noise),
             dim=1
@@ -722,6 +725,30 @@ class ThreeDGAN(pl.LightningModule):
                         "test": self.test_history}, f)
         # pickle.dump({"test": self.test_history}, open(self.pklfile, "wb"))
         # print("train-loss:" + str(self.train_history["generator"][-1][0]))
+
+    def predict_step(
+        self,
+        batch: Any,
+        batch_idx: int,
+        dataloader_idx: int = 0
+    ) -> Any:
+        energy_batch, ang_batch = batch['Y'], batch['ang']
+
+        energy_batch = energy_batch.to(self.device)
+        ang_batch = ang_batch.to(self.device)
+
+        # Generate Fake events with same energy and angle as data batch
+        noise = torch.randn(
+            (self.batch_size, self.latent_size - 2),
+            dtype=torch.float32,
+            device=self.device
+        )
+
+        generator_ip = torch.cat(
+            (energy_batch.view(-1, 1), ang_batch.view(-1, 1), noise), dim=1)
+        generated_images = self.generator(generator_ip)
+        print(f"Generated batch size {generated_images.shape}")
+        return generated_images
 
     def configure_optimizers(self):
         lr = self.lr
