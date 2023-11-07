@@ -34,3 +34,41 @@ folder containing a CSV file with the predictions as rows.
     ```
 
 Note the same entry point as for training.
+
+### Docker image
+
+Build from project root with
+
+```bash
+# Local
+docker buildx build -t itwinai-mnist-torch-inference -f use-cases/mnist/torch/Dockerfile .
+
+# Ghcr.io
+docker buildx build -t ghcr.io/intertwin-eu/itwinai-mnist-torch-inference:0.0.1 -f use-cases/mnist/torch/Dockerfile .
+docker push ghcr.io/intertwin-eu/itwinai-mnist-torch-inference:0.0.1
+```
+
+From wherever a sample of MNIST jpg images is available
+(folder called 'mnist-sample-data/'):
+
+```text
+├── $PWD
+│   ├── mnist-sample-data
+|   │   ├── digit_0.jpg
+|   │   ├── digit_1.jpg
+|   │   ├── digit_2.jpg
+...
+|   │   ├── digit_N.jpg
+```
+
+```bash
+docker run -it --rm --name running-inference -v "$PWD":/usr/data itwinai-mnist-torch-inference
+```
+
+This command will store the results in a folder called "mnist-predictions":
+
+```text
+├── $PWD
+│   ├── mnist-predictions
+|   │   ├── predictions.csv
+```

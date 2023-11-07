@@ -4,7 +4,7 @@ executor:
     steps:
       - class_path: dataloader.MNISTPredictLoader
         init_args:
-          test_data_path: mnist-sample-data/
+          test_data_path: /usr/data/mnist-sample-data
 
       - class_path: itwinai.torch.inference.MulticlassTorchPredictor
         init_args: 
@@ -17,6 +17,6 @@ executor:
       
       - class_path: saver.TorchMNISTLabelSaver
         init_args:
-          save_dir: mnist-predictions
+          save_dir: /usr/data/mnist-predictions
           predictions_file: predictions.csv
           class_labels: null
