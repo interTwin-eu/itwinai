@@ -19,7 +19,6 @@ pl-training.yml
 *-predictions/
 *-data/
 *.pth
-*.tar.gz
 
 # Custom envs
 .venv*

@@ -84,15 +84,17 @@ Example:
 
 
 from __future__ import annotations
-from typing import Any, Optional, Tuple, Union, Callable, Dict, List
-from abc import ABC, abstractmethod
+from typing import Iterable, Dict, Any, Optional, Tuple, Union
+from abc import ABCMeta, abstractmethod
 import time
 import functools
 # import logging
 # from logging import Logger as PythonLogger
 
-from .types import MLModel, MLDataset, MLArtifact
-from .serialization import ModelLoader, Serializable
+from .cluster import ClusterEnvironment
+from .types import ModelML, DatasetML
+from .serialization import ModelLoader
+
 
 
 def monitor_exec(method: Callable) -> Callable:
@@ -226,9 +228,53 @@ class Trainer(Executable):
 
 class Predictor(Executable):
     """Applies a pre-trained machine learning model to unseen data."""
+
+    model: ModelML
+
+    def __init__(
+        self,
+        model: Union[ModelML, ModelLoader],
+        name: Optional[str] = None,
+        **kwargs
+    ) -> None:
+        super().__init__(name, **kwargs)
+        self.model = model() if isinstance(model, ModelLoader) else model
+
+    def execute(
+        self,
+        predict_dataset: DatasetML,
+        config: Optional[Dict] = None,
+    ) -> Tuple[Optional[Tuple], Optional[Dict]]:
+        """"Execute some operations.
+
+        Args:
+            predict_dataset (DatasetML): dataset object for inference.
+            config (Dict, optional): key-value configuration.
+                Defaults to None.
+
+        Returns:
+            Tuple[Optional[Tuple], Optional[Dict]]: tuple structured as
+                (results, config).
+        """
+        return self.predict(predict_dataset), config
+
     @abstractmethod
-    def predict(self, *args, **kwargs):
-        pass
+    def predict(
+        self,
+        predict_dataset: DatasetML,
+        model: Optional[ModelML] = None
+    ) -> Iterable[Any]:
+        """Applies a machine learning model on a dataset of samples.
+
+        Args:
+            predict_dataset (DatasetML): dataset for inference.
+            model (Optional[ModelML], optional): overrides the internal model,
+                if given. Defaults to None.
+
+        Returns:
+            Iterable[Any]: predictions with the same cardinality of the
+                input dataset.
+        """
 
 
 class DataGetter(Executable):

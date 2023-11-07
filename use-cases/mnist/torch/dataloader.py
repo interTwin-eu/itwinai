@@ -2,6 +2,7 @@
 
 from typing import Dict, Optional, Tuple, Callable, Any
 import os
+import shutil
 
 from PIL import Image
 from torch.utils.data import Dataset
@@ -81,7 +82,7 @@ class InferenceMNIST(Dataset):
             if not img_file.lower().endswith(self.supported_format):
                 continue
             filename = os.path.basename(img_file)
-            img = Image.open(img_file)
+            img = Image.open(os.path.join(self.root, img_file))
             self.data[filename] = img
 
     def __len__(self) -> int:
@@ -100,7 +101,8 @@ class InferenceMNIST(Dataset):
 
         # doing this so that it is consistent with all other datasets
         # to return a PIL Image
-        img = Image.fromarray(img.numpy(), mode="L")
+        # print(type(img))
+        # img = Image.fromarray(img.numpy(), mode="L")
 
         if self.transform is not None:
             img = self.transform(img)
@@ -120,6 +122,10 @@ class InferenceMNIST(Dataset):
             max_items (int, optional): max number of images to
                 generate. Defaults to 100.
         """
+        if os.path.exists(root):
+            shutil.rmtree(root)
+        os.makedirs(root)
+
         test_data = datasets.MNIST(root='.tmp', train=False, download=True)
         for idx, (img, _) in enumerate(test_data):
             if idx >= max_items:
@@ -140,10 +146,10 @@ class MNISTPredictLoader(DataGetter):
         self,
         config: Optional[Dict] = None
     ) -> Tuple[Tuple[Dataset, Dataset], Optional[Dict]]:
-        data = self.preproc()
+        data = self.load()
         return data, config
 
-    def preproc(self) -> Dataset:
+    def load(self) -> Dataset:
         return InferenceMNIST(
             root=self.test_data_path,
             transform=transforms.Compose([
