@@ -13,6 +13,9 @@ mllogs
 *.err
 .logs/
 pl-training.yml
+*-predictions/
+*-data/
+*.pth
 
 # Custom envs
 .venv*
