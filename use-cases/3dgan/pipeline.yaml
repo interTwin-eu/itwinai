@@ -87,7 +87,7 @@ executor:
 
             # Lightning data module configuration
             data:
-              class_path: dataloader.MyDataModule
+              class_path: dataloader.ParticlesDataModule
               init_args:
                 datapath: exp_data/*/*.h5
                 batch_size: 64

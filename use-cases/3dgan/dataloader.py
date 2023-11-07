@@ -129,7 +129,7 @@ class ParticlesDataset(Dataset):
         return final_dataset
 
 
-class MyDataModule(pl.LightningDataModule):
+class ParticlesDataModule(pl.LightningDataModule):
     def __init__(self, batch_size: int, datapath):
         super().__init__()
         self.batch_size = batch_size
