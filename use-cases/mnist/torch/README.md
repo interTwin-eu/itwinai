@@ -62,7 +62,7 @@ From wherever a sample of MNIST jpg images is available
 ```
 
 ```bash
-docker run -it --rm --name running-inference -v "$PWD":/usr/data itwinai-mnist-torch-inference
+docker run -it --rm --name running-inference -v "$PWD":/usr/data ghcr.io/intertwin-eu/itwinai-mnist-torch-inference:0.0.1
 ```
 
 This command will store the results in a folder called "mnist-predictions":
