@@ -7,8 +7,12 @@ executor:
           data_path: exp_data/
           data_url: https://drive.google.com/drive/folders/1uPpz0tquokepptIfJenTzGpiENfo2xRX
 
-      - class_path: trainer.Lightning3DGANTrainer
+      - class_path: trainer.Lightning3DGANPredictor
         init_args:
+          model:
+            class_path: trainer.LightningModelLoader
+            init_args:
+              model_uri: 3dgan-inference.pth
           # Pytorch lightning config for training
           config:
             seed_everything: 4231162351
@@ -87,7 +91,11 @@ executor:
 
             # Lightning data module configuration
             data:
-              class_path: dataloader.MyDataModule
+              class_path: dataloader.ParticlesDataModule
               init_args:
                 datapath: exp_data/*/*.h5
                 batch_size: 64
+
+      - class_path: saver.ParticleImagesSaver
+        init_args:
+          save_dir: 3dgan-generated
