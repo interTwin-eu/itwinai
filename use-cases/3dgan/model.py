@@ -410,7 +410,9 @@ class ThreeDGAN(pl.LightningModule):
         optimizer_discriminator, optimizer_generator = self.optimizers()
 
         noise = torch.randn(
-            (self.batch_size, self.latent_size - 2),
+            (energy_batch.shape[0], self.latent_size - 2),
+            # (self.batch_size, self.latent_size - 2),
+            dtype=torch.float32,
             device=self.device
         )
         print(f'Energy elements: {energy_batch.numel} {energy_batch.shape}')
@@ -629,8 +631,12 @@ class ThreeDGAN(pl.LightningModule):
         ecal_batch = ecal_batch.to(self.device)
 
         # Generate Fake events with same energy and angle as data batch
-        noise = torch.randn((self.batch_size, self.latent_size - 2),
-                            dtype=torch.float32).to(self.device)
+        noise = torch.randn(
+            (energy_batch.shape[0], self.latent_size - 2),
+            # (self.batch_size, self.latent_size - 2),
+            dtype=torch.float32,
+            device=self.device
+        )
 
         generator_ip = torch.cat(
             (energy_batch.view(-1, 1), ang_batch.view(-1, 1), noise), dim=1)
@@ -739,15 +745,22 @@ class ThreeDGAN(pl.LightningModule):
 
         # Generate Fake events with same energy and angle as data batch
         noise = torch.randn(
-            (self.batch_size, self.latent_size - 2),
+            (energy_batch.shape[0], self.latent_size - 2),
             dtype=torch.float32,
             device=self.device
         )
 
+        # print(f"Reshape energy: {energy_batch.view(-1, 1).shape}")
+        # print(f"Reshape angle: {ang_batch.view(-1, 1).shape}")
+        # print(f"Noise: {noise.shape}")
+
         generator_ip = torch.cat(
-            (energy_batch.view(-1, 1), ang_batch.view(-1, 1), noise), dim=1)
+            [energy_batch.view(-1, 1), ang_batch.view(-1, 1), noise],
+            dim=1
+        )
+        # print(f"Generator input: {generator_ip.shape}")
         generated_images = self.generator(generator_ip)
-        print(f"Generated batch size {generated_images.shape}")
+        # print(f"Generated batch size {generated_images.shape}")
         return generated_images
 
     def configure_optimizers(self):

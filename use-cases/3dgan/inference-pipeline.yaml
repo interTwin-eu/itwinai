@@ -13,6 +13,9 @@ executor:
             class_path: trainer.LightningModelLoader
             init_args:
               model_uri: 3dgan-inference.pth
+
+          max_samples: 10
+
           # Pytorch lightning config for training
           config:
             seed_everything: 4231162351

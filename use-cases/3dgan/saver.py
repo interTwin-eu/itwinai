@@ -13,7 +13,7 @@ class ParticleImagesSaver(Saver):
 
     def __init__(
         self,
-        save_dir: str = '3dgan-generated',
+        save_dir: str = '3dgan-generated'
     ) -> None:
         super().__init__()
         self.save_dir = save_dir
