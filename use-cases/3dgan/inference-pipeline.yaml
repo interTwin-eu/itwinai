@@ -101,4 +101,4 @@ executor:
 
       - class_path: saver.ParticleImagesSaver
         init_args:
-          save_dir: 3dgan-generated
+          save_dir: 3dgan-generated-data

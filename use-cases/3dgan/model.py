@@ -761,7 +761,9 @@ class ThreeDGAN(pl.LightningModule):
         # print(f"Generator input: {generator_ip.shape}")
         generated_images = self.generator(generator_ip)
         # print(f"Generated batch size {generated_images.shape}")
-        return generated_images
+        return {'images': generated_images,
+                'energies': energy_batch,
+                'angles': ang_batch}
 
     def configure_optimizers(self):
         lr = self.lr
