@@ -41,9 +41,12 @@ class Lightning3DGANDownloader(DataGetter):
 
 
 class ParticlesDataset(Dataset):
-    def __init__(self, datapath):
+    def __init__(self, datapath: str, max_samples: Optional[int] = None):
         self.datapath = datapath
-        self.data = self.fetch_data(self.datapath)
+        self.max_samples = max_samples
+        self.data = dict()
+
+        self.fetch_data()
 
     def __len__(self):
         return len(self.data["X"])
@@ -52,34 +55,53 @@ class ParticlesDataset(Dataset):
         return {"X": self.data["X"][idx], "Y": self.data["Y"][idx],
                 "ang": self.data["ang"][idx], "ecal": self.data["ecal"][idx]}
 
-    def fetch_data(self, datapath):
+    def fetch_data(self) -> None:
 
-        print("Searching in :", datapath)
-        Files = sorted(glob.glob(datapath))
-        print("Found {} files. ".format(len(Files)))
+        print("Searching in :", self.datapath)
+        files = sorted(glob.glob(self.datapath))
+        print("Found {} files. ".format(len(files)))
+        if len(files) == 0:
+            raise RuntimeError(f"No H5 files found at '{self.datapath}'!")
 
-        concatenated_datasets = []
-        for datafile in Files:
+        # concatenated_datasets = []
+        # for datafile in files:
+        #     f = h5py.File(datafile, 'r')
+        #     dataset = self.GetDataAngleParallel(f)
+        #     concatenated_datasets.append(dataset)
+        #     # Initialize result dictionary
+        #     result = {key: [] for key in concatenated_datasets[0].keys()}
+        #     for d in concatenated_datasets:
+        #         for key in result.keys():
+        #             result[key].extend(d[key])
+        # return result
+
+        for datafile in files:
             f = h5py.File(datafile, 'r')
             dataset = self.GetDataAngleParallel(f)
-            concatenated_datasets.append(dataset)
-            # Initialize result dictionary
-            result = {key: [] for key in concatenated_datasets[0].keys()}
-            for d in concatenated_datasets:
-                for key in result.keys():
-                    result[key].extend(d[key])
-        return result
+            for field, vals_list in dataset.items():
+                if self.data.get(field) is not None:
+                    self.data[field].extend(vals_list)
+                else:
+                    self.data[field] = vals_list
+
+            # Stop loading data, if self.max_samples reached
+            if (self.max_samples is not None
+                    and len(self.data[field]) >= self.max_samples):
+                for field, vals_list in self.data.items():
+                    self.data[field] = self.data[field][:self.max_samples]
+                break
 
     def GetDataAngleParallel(
-            self,
-            dataset,
-            xscale=1,
-            xpower=0.85,
-            yscale=100,
-            angscale=1,
-            angtype="theta",
-            thresh=1e-4,
-            daxis=-1,):
+        self,
+        dataset,
+        xscale=1,
+        xpower=0.85,
+        yscale=100,
+        angscale=1,
+        angtype="theta",
+        thresh=1e-4,
+        daxis=-1
+    ):
         """Preprocess function for the dataset
 
         Args:
@@ -130,17 +152,28 @@ class ParticlesDataset(Dataset):
 
 
 class ParticlesDataModule(pl.LightningDataModule):
-    def __init__(self, batch_size: int, datapath):
+    def __init__(
+            self,
+            datapath: str,
+            batch_size: int,
+            num_workers: int = 4,
+            max_samples: Optional[int] = None
+    ) -> None:
         super().__init__()
         self.batch_size = batch_size
+        self.num_workers = num_workers
         self.datapath = datapath
+        self.max_samples = max_samples
 
     def setup(self, stage: str = None):
         # make assignments here (val/train/test split)
         # called on every process in DDP
 
         if stage == 'fit' or stage is None:
-            self.dataset = ParticlesDataset(self.datapath)
+            self.dataset = ParticlesDataset(
+                self.datapath,
+                max_samples=self.max_samples
+            )
             dataset_length = len(self.dataset)
             split_point = int(dataset_length * 0.9)
             self.train_dataset, self.val_dataset = \
@@ -150,21 +183,24 @@ class ParticlesDataModule(pl.LightningDataModule):
         if stage == 'predict':
             # TODO: inference dataset should be different in that it
             # does not contain images!
-            self.predict_dataset = ParticlesDataset(self.datapath)
+            self.predict_dataset = ParticlesDataset(
+                self.datapath,
+                max_samples=self.max_samples
+            )
 
         # if stage == 'test' or stage is None:
             # self.test_dataset = MyDataset(self.data_dir, train=False)
 
     def train_dataloader(self):
-        return DataLoader(self.train_dataset, num_workers=4,
+        return DataLoader(self.train_dataset, num_workers=self.num_workers,
                           batch_size=self.batch_size, drop_last=True)
 
     def val_dataloader(self):
-        return DataLoader(self.val_dataset, num_workers=4,
+        return DataLoader(self.val_dataset, num_workers=self.num_workers,
                           batch_size=self.batch_size, drop_last=True)
 
     def predict_dataloader(self) -> EVAL_DATALOADERS:
-        return DataLoader(self.predict_dataset, num_workers=4,
+        return DataLoader(self.predict_dataset, num_workers=self.num_workers,
                           batch_size=self.batch_size, drop_last=True)
 
     # def test_dataloader(self):
