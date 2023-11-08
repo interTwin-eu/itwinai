@@ -10,6 +10,7 @@ from lightning.pytorch.cli import LightningCLI
 from itwinai.components import Trainer, Predictor
 from itwinai.serialization import ModelLoader
 from itwinai.torch.inference import TorchModelLoader
+from itwinai.torch.types import Batch
 
 from model import ThreeDGAN
 from dataloader import ParticlesDataModule
@@ -90,6 +91,7 @@ class Lightning3DGANPredictor(Predictor):
         self,
         model: Union[ModelLoader, pl.LightningModule],
         config: Union[Dict, str],
+        max_samples: Optional[int] = None,
         name: Optional[str] = None
     ):
         super().__init__(model, name)
@@ -97,6 +99,7 @@ class Lightning3DGANPredictor(Predictor):
             # Load from YAML
             config = load_yaml(config)
         self.conf = config
+        self.max_samples = max_samples
 
     def predict(
         self,
@@ -127,11 +130,26 @@ class Lightning3DGANPredictor(Predictor):
 
         predictions = cli.trainer.predict(model, datamodule=datamodule)
 
+        predictions = [
+            self.transform_predictions(pred) for pred in predictions
+        ]
+
         predictions_dict = dict()
-        # TODO: postprocess predictions
         for idx, generated_img in enumerate(torch.cat(predictions)):
+            if (self.max_samples is not None
+                    and idx >= self.max_samples):
+                break
             predictions_dict[str(idx)] = generated_img
+
+        print(len(predictions_dict))
         return predictions_dict
+
+    def transform_predictions(self, batch: Batch) -> Batch:
+        """
+        Post-process the predictions of the torch model.
+        """
+        # TODO: post-process predictions
+        return batch
 
     def execute(
         self,
