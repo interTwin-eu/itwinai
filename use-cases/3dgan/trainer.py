@@ -91,7 +91,6 @@ class Lightning3DGANPredictor(Predictor):
         self,
         model: Union[ModelLoader, pl.LightningModule],
         config: Union[Dict, str],
-        max_samples: Optional[int] = None,
         name: Optional[str] = None
     ):
         super().__init__(model, name)
@@ -99,7 +98,6 @@ class Lightning3DGANPredictor(Predictor):
             # Load from YAML
             config = load_yaml(config)
         self.conf = config
-        self.max_samples = max_samples
 
     def predict(
         self,
@@ -143,10 +141,7 @@ class Lightning3DGANPredictor(Predictor):
         )))
 
         predictions_dict = dict()
-        for idx, (img, en, ang) in enumerate(zip(images, energies, angles)):
-            if (self.max_samples is not None
-                    and idx >= self.max_samples):
-                break
+        for img, en, ang in zip(images, energies, angles):
             sample_key = f"energy={en.item()}&angle={ang.item()}"
             predictions_dict[sample_key] = img
 

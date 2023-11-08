@@ -4,7 +4,7 @@ executor:
     steps:
       - class_path: dataloader.Lightning3DGANDownloader
         init_args:
-          data_path: exp_data/
+          data_path: /usr/data/exp_data/
           data_url: https://drive.google.com/drive/folders/1uPpz0tquokepptIfJenTzGpiENfo2xRX
 
       - class_path: trainer.Lightning3DGANPredictor
@@ -13,8 +13,6 @@ executor:
             class_path: trainer.LightningModelLoader
             init_args:
               model_uri: 3dgan-inference.pth
-
-          max_samples: 10
 
           # Pytorch lightning config for training
           config:
@@ -96,9 +94,11 @@ executor:
             data:
               class_path: dataloader.ParticlesDataModule
               init_args:
-                datapath: exp_data/*/*.h5
+                datapath: /usr/data/exp_data/*/*.h5
                 batch_size: 64
+                num_workers: 2
+                max_samples: 10
 
       - class_path: saver.ParticleImagesSaver
         init_args:
-          save_dir: 3dgan-generated-data
+          save_dir: /usr/data/3dgan-generated-data

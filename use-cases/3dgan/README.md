@@ -13,9 +13,10 @@ And select the "3DGAN" experiment.
 The following is preliminary and not 100% ML/scientifically sound.
 
 1. As inference dataset we can reuse training/validation dataset,
-for instance the one downloaded from Google Drive folder.
+for instance the one downloaded from Google Drive folder: if the
+dataset root folder is not present, the dataset will be downloaded.
 The inference dataset is a set of H5 files stored inside `exp_data`
-sub-folders.
+sub-folders:
 
     ```text
     ├── exp_data
@@ -55,12 +56,11 @@ torch tensor (.pth) and 3D scatter plot (.jpg):
 
 ```text
 ├── 3dgan-generated-data
-│   ├── data
-|   │   ├── energy=1.296749234199524&angle=1.272539496421814.pth
-|   │   ├── energy=1.296749234199524&angle=1.272539496421814.jpg
+|   ├── energy=1.296749234199524&angle=1.272539496421814.pth
+|   ├── energy=1.296749234199524&angle=1.272539496421814.jpg
 ...
-|   │   ├── energy=1.664689540863037&angle=1.4906378984451294.pth
-|   │   ├── energy=1.664689540863037&angle=1.4906378984451294.jpg
+|   ├── energy=1.664689540863037&angle=1.4906378984451294.pth
+|   ├── energy=1.664689540863037&angle=1.4906378984451294.jpg
 ```
 
 ### Docker image
@@ -72,31 +72,35 @@ Build from project root with
 docker buildx build -t itwinai-mnist-torch-inference -f use-cases/3dgan/Dockerfile .
 
 # Ghcr.io
-docker buildx build -t ghcr.io/intertwin-eu/itwinai-mnist-torch-inference:0.0.1 -f use-cases/mnist/torch/Dockerfile .
-docker push ghcr.io/intertwin-eu/itwinai-mnist-torch-inference:0.0.1
+docker buildx build -t ghcr.io/intertwin-eu/itwinai-3dgan-inference:0.0.1 -f use-cases/3dgan/Dockerfile .
+docker push ghcr.io/intertwin-eu/itwinai-3dgan-inference:0.0.1
 ```
 
 From wherever a sample of MNIST jpg images is available
 (folder called 'mnist-sample-data/'):
 
 ```text
-├── $PWD
-│   ├── mnist-sample-data
-|   │   ├── digit_0.jpg
-|   │   ├── digit_1.jpg
-|   │   ├── digit_2.jpg
+├── $PWD    
+|   ├── exp_data
+|   │   ├── data
+|   |   │   ├── file_0.h5
+|   |   │   ├── file_1.h5
 ...
-|   │   ├── digit_N.jpg
+|   |   │   ├── file_N.h5
 ```
 
 ```bash
-docker run -it --rm --name running-inference -v "$PWD":/usr/data ghcr.io/intertwin-eu/itwinai-mnist-torch-inference:0.0.1
+docker run -it --rm --name running-inference -v "$PWD":/usr/data ghcr.io/intertwin-eu/itwinai-3dgan-inference:0.0.1
 ```
 
-This command will store the results in a folder called "mnist-predictions":
+This command will store the results in a folder called "3dgan-generated-data":
 
 ```text
 ├── $PWD
-│   ├── mnist-predictions
-|   │   ├── predictions.csv
+|   ├── 3dgan-generated-data
+|   │   ├── energy=1.296749234199524&angle=1.272539496421814.pth
+|   │   ├── energy=1.296749234199524&angle=1.272539496421814.jpg
+...
+|   │   ├── energy=1.664689540863037&angle=1.4906378984451294.pth
+|   │   ├── energy=1.664689540863037&angle=1.4906378984451294.jpg
 ```
