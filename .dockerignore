@@ -4,7 +4,7 @@ pl-training.yml
 .vscode
 
 # Project folders/files
-use-cases
+# use-cases
 workflows
 tests
 CHANGELOG
