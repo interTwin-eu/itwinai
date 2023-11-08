@@ -130,26 +130,33 @@ class Lightning3DGANPredictor(Predictor):
 
         predictions = cli.trainer.predict(model, datamodule=datamodule)
 
-        predictions = [
-            self.transform_predictions(pred) for pred in predictions
-        ]
+        # Transpose predictions into images, energies and angles
+        images = torch.cat(list(map(
+            lambda pred: self.transform_predictions(
+                pred['images']), predictions
+        )))
+        energies = torch.cat(list(map(
+            lambda pred: pred['energies'], predictions
+        )))
+        angles = torch.cat(list(map(
+            lambda pred: pred['angles'], predictions
+        )))
 
         predictions_dict = dict()
-        for idx, generated_img in enumerate(torch.cat(predictions)):
+        for idx, (img, en, ang) in enumerate(zip(images, energies, angles)):
             if (self.max_samples is not None
                     and idx >= self.max_samples):
                 break
-            predictions_dict[str(idx)] = generated_img
+            sample_key = f"energy={en.item()}&angle={ang.item()}"
+            predictions_dict[sample_key] = img
 
-        print(len(predictions_dict))
         return predictions_dict
 
     def transform_predictions(self, batch: Batch) -> Batch:
         """
         Post-process the predictions of the torch model.
         """
-        # TODO: post-process predictions
-        return batch
+        return batch.squeeze(1)
 
     def execute(
         self,
