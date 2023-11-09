@@ -1,5 +1,21 @@
 # 3DGAN use case
 
+## Training
+
+At CERN, use the dedicated configuration file:
+
+```bash
+cd use-cases/3dgan
+python train.py -p cern-pipeline.yaml
+```
+
+Anywhere else, use the general purpose training configuration:
+
+```bash
+cd use-cases/3dgan
+python train.py -p pipeline.yaml
+```
+
 To visualize the logs with MLFLow run the following in the terminal:
 
 ```bash
