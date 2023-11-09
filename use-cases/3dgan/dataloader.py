@@ -16,8 +16,8 @@ from itwinai.components import DataGetter
 class Lightning3DGANDownloader(DataGetter):
     def __init__(
             self,
-            data_url: str,
             data_path: str,
+            data_url: Optional[str] = None,
             name: Optional[str] = None,
             **kwargs) -> None:
         super().__init__(name, **kwargs)
@@ -25,12 +25,12 @@ class Lightning3DGANDownloader(DataGetter):
         self.data_url = data_url
 
     def load(self):
-        if self.data_path is None:
-            print("Data path is None. Skipping dataset downloading")
-            return
-
         # Download data
         if not os.path.exists(self.data_path):
+            if self.data_url is None:
+                print("WARNING! Data URL is None. "
+                      "Skipping dataset downloading")
+
             gdown.download_folder(
                 url=self.data_url, quiet=False,
                 output=self.data_path
@@ -82,17 +82,22 @@ class ParticlesDataset(Dataset):
         for datafile in files:
             f = h5py.File(datafile, 'r')
             dataset = self.GetDataAngleParallel(f)
-            for field, vals_list in dataset.items():
+            for field, vals_array in dataset.items():
                 if self.data.get(field) is not None:
-                    self.data[field].extend(vals_list)
+                    # Resize to include the new array
+                    new_shape = list(self.data[field].shape)
+                    new_shape[0] += len(vals_array)
+                    self.data[field].resize(new_shape)
+                    self.data[field][-len(vals_array):] = vals_array
                 else:
-                    self.data[field] = vals_list
+                    self.data[field] = vals_array
 
             # Stop loading data, if self.max_samples reached
             if (self.max_samples is not None
                     and len(self.data[field]) >= self.max_samples):
-                for field, vals_list in self.data.items():
-                    self.data[field] = self.data[field][:self.max_samples]
+                for field, vals_array in self.data.items():
+                    self.data[field] = vals_array[:self.max_samples]
+
                 break
 
     def GetDataAngleParallel(
