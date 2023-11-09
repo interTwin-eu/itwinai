@@ -334,8 +334,7 @@ class ThreeDGAN(pl.LightningModule):
         self.test_history = defaultdict(list)
         self.pklfile = checkpoint_path
         checkpoint_dir = os.path.dirname(checkpoint_path)
-        if not os.path.exists(checkpoint_dir):
-            os.makedirs(checkpoint_dir)
+        os.makedirs(checkpoint_dir, exist_ok=True)
 
     def BitFlip(self, x, prob=0.05):
         """
