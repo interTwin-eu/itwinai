@@ -1,4 +1,5 @@
 import sys
+import os
 import pickle
 from collections import defaultdict
 import math
@@ -332,6 +333,9 @@ class ThreeDGAN(pl.LightningModule):
         self.train_history = defaultdict(list)
         self.test_history = defaultdict(list)
         self.pklfile = checkpoint_path
+        checkpoint_dir = os.path.dirname(checkpoint_path)
+        if not os.path.exists(checkpoint_dir):
+            os.makedirs(checkpoint_dir)
 
     def BitFlip(self, x, prob=0.05):
         """
@@ -415,8 +419,8 @@ class ThreeDGAN(pl.LightningModule):
             dtype=torch.float32,
             device=self.device
         )
-        print(f'Energy elements: {energy_batch.numel} {energy_batch.shape}')
-        print(f'Angle elements: {ang_batch.numel} {ang_batch.shape}')
+        # print(f'Energy elements: {energy_batch.numel} {energy_batch.shape}')
+        # print(f'Angle elements: {ang_batch.numel} {ang_batch.shape}')
         generator_ip = torch.cat(
             (energy_batch.view(-1, 1), ang_batch.view(-1, 1), noise),
             dim=1
@@ -429,12 +433,12 @@ class ThreeDGAN(pl.LightningModule):
         labels = [fake_batch, energy_batch, ang_batch, ecal_batch]
 
         predictions = self.discriminator(image_batch)
-        print("calculating real_batch_loss...")
+        # print("calculating real_batch_loss...")
         real_batch_loss = self.compute_global_loss(
             labels, predictions, self.loss_weights)
         self.log("real_batch_loss", sum(real_batch_loss),
                  prog_bar=True, on_step=True, on_epoch=True, sync_dist=True)
-        print("real batch disc train")
+        # print("real batch disc train")
         # the following 3 lines correspond in tf version to:
         # gradients = tape.gradient(real_batch_loss,
         # discriminator.trainable_variables)
@@ -457,7 +461,7 @@ class ThreeDGAN(pl.LightningModule):
             labels, predictions, self.loss_weights)
         self.log("fake_batch_loss", sum(fake_batch_loss),
                  prog_bar=True, on_step=True, on_epoch=True, sync_dist=True)
-        print("fake batch disc train")
+        # print("fake batch disc train")
         # the following 3 lines correspond to
         # gradients = tape.gradient(fake_batch_loss,
         # discriminator.trainable_variables)
@@ -491,7 +495,7 @@ class ThreeDGAN(pl.LightningModule):
                 labels, predictions, self.loss_weights)
             self.log("gen_loss", sum(loss), prog_bar=True,
                      on_step=True, on_epoch=True, sync_dist=True)
-            print("gen train")
+            # print("gen train")
             optimizer_generator.zero_grad()
             self.manual_backward(sum(loss))
             # sum(loss).backward()
@@ -541,13 +545,13 @@ class ThreeDGAN(pl.LightningModule):
         # if ecal sum has 100% loss(generating empty events) then end
         # the training
         if fake_batch_loss[3] == 100.0 and self.index > 10:
-            print("Empty image with Ecal loss equal to 100.0 "
-                  f"for {self.index} batch")
+            # print("Empty image with Ecal loss equal to 100.0 "
+            #       f"for {self.index} batch")
             torch.save(self.generator.state_dict(), "generator_weights.pth")
             torch.save(self.discriminator.state_dict(),
                        "discriminator_weights.pth")
-            print("real_batch_loss", real_batch_loss)
-            print("fake_batch_loss", fake_batch_loss)
+            # print("real_batch_loss", real_batch_loss)
+            # print("fake_batch_loss", fake_batch_loss)
             sys.exit()
 
         # append mean of discriminator loss for real and fake events
