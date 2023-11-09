@@ -16,8 +16,8 @@ from itwinai.components import DataGetter
 class Lightning3DGANDownloader(DataGetter):
     def __init__(
             self,
-            data_url: str,
             data_path: str,
+            data_url: Optional[str] = None,
             name: Optional[str] = None,
             **kwargs) -> None:
         super().__init__(name, **kwargs)
@@ -25,12 +25,12 @@ class Lightning3DGANDownloader(DataGetter):
         self.data_url = data_url
 
     def load(self):
-        if self.data_path is None:
-            print("Data path is None. Skipping dataset downloading")
-            return
-
         # Download data
         if not os.path.exists(self.data_path):
+            if self.data_url is None:
+                print("WARNING! Data URL is None. "
+                      "Skipping dataset downloading")
+
             gdown.download_folder(
                 url=self.data_url, quiet=False,
                 output=self.data_path
