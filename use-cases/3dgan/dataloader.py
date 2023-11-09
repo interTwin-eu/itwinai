@@ -82,21 +82,21 @@ class ParticlesDataset(Dataset):
         for datafile in files:
             f = h5py.File(datafile, 'r')
             dataset = self.GetDataAngleParallel(f)
-            for field, vals_list in dataset.items():
+            for field, vals_array in dataset.items():
                 if self.data.get(field) is not None:
-                    # self.data[field].extend(vals_list)
+                    # Resize to include the new array
                     new_shape = list(self.data[field].shape)
-                    new_shape[0] += len(vals_list)
+                    new_shape[0] += len(vals_array)
                     self.data[field].resize(new_shape)
-                    self.data[field][-len(vals_list):] = vals_list
+                    self.data[field][-len(vals_array):] = vals_array
                 else:
-                    self.data[field] = vals_list
+                    self.data[field] = vals_array
 
             # Stop loading data, if self.max_samples reached
             if (self.max_samples is not None
                     and len(self.data[field]) >= self.max_samples):
-                for field, vals_list in self.data.items():
-                    self.data[field] = vals_list[:self.max_samples]
+                for field, vals_array in self.data.items():
+                    self.data[field] = vals_array[:self.max_samples]
                 break
 
     def GetDataAngleParallel(
