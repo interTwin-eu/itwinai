@@ -92,4 +92,4 @@ executor:
                 datapath: /eos/user/k/ktsolaki/data/3dgan_data/*.h5 # exp_data/*/*.h5
                 batch_size: 128
                 num_workers: 0
-                max_samples: null
+                max_samples: 3000
