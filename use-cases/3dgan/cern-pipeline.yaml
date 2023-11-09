@@ -79,7 +79,7 @@ executor:
               class_path: model.ThreeDGAN
               init_args:
                 latent_size: 256
-                batch_size: 64
+                batch_size: 128
                 loss_weights: [3, 0.1, 25, 0.1]
                 power: 0.85
                 lr: 0.001
@@ -90,4 +90,6 @@ executor:
               class_path: dataloader.ParticlesDataModule
               init_args:
                 datapath: /eos/user/k/ktsolaki/data/3dgan_data/*.h5 # exp_data/*/*.h5
-                batch_size: 64
+                batch_size: 128
+                num_workers: 0
+                max_samples: null
