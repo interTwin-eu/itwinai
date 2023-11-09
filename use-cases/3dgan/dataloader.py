@@ -85,9 +85,9 @@ class ParticlesDataset(Dataset):
             for field, vals_list in dataset.items():
                 if self.data.get(field) is not None:
                     # self.data[field].extend(vals_list)
-                    self.data[field].resize(
-                        len(self.data[field]) + len(vals_list)
-                    )
+                    new_shape = list(self.data[field].shape)
+                    new_shape[0] += len(vals_list)
+                    self.data[field].resize(new_shape)
                     self.data[field][-len(vals_list):] = vals_list
                 else:
                     self.data[field] = vals_list
