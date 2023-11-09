@@ -25,6 +25,10 @@ class Lightning3DGANDownloader(DataGetter):
         self.data_url = data_url
 
     def load(self):
+        if self.data_path is None:
+            print("Data path is None. Skipping dataset downloading")
+            return
+
         # Download data
         if not os.path.exists(self.data_path):
             gdown.download_folder(

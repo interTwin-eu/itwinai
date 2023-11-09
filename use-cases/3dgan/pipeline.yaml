@@ -4,7 +4,7 @@ executor:
     steps:
       - class_path: dataloader.Lightning3DGANDownloader
         init_args:
-          data_path: exp_data/
+          data_path: exp_data/ # Set to null to skip dataset download
           data_url: https://drive.google.com/drive/folders/1uPpz0tquokepptIfJenTzGpiENfo2xRX
 
       - class_path: trainer.Lightning3DGANTrainer
