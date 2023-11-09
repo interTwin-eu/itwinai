@@ -1,5 +1,22 @@
 # 3DGAN use case
 
+First of all, from the repository root, create a torch environment:
+
+```bash
+make torch-gpu
+```
+
+Now, install custom requirements for 3DGAN:
+
+```bash
+micromamba activate ./.venv-pytorch
+cd use-cases/3dgan
+pip install -r requirements.txt
+```
+
+**NOTE**: Python commands below assumed to be executed from within the
+micromamba virtual environment.
+
 ## Training
 
 At CERN, use the dedicated configuration file:
