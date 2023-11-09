@@ -84,7 +84,11 @@ class ParticlesDataset(Dataset):
             dataset = self.GetDataAngleParallel(f)
             for field, vals_list in dataset.items():
                 if self.data.get(field) is not None:
-                    self.data[field].extend(vals_list)
+                    # self.data[field].extend(vals_list)
+                    self.data[field].resize(
+                        len(self.data[field]) + len(vals_list)
+                    )
+                    self.data[field][-len(vals_list):] = vals_list
                 else:
                     self.data[field] = vals_list
 
@@ -92,7 +96,7 @@ class ParticlesDataset(Dataset):
             if (self.max_samples is not None
                     and len(self.data[field]) >= self.max_samples):
                 for field, vals_list in self.data.items():
-                    self.data[field] = self.data[field][:self.max_samples]
+                    self.data[field] = vals_list[:self.max_samples]
                 break
 
     def GetDataAngleParallel(
