@@ -1,3 +1,5 @@
+*_logs
+exp_data/
 TODO
 /data
 nohup*
@@ -13,6 +15,10 @@ mllogs
 *.err
 .logs/
 pl-training.yml
+*-predictions/
+*-data/
+*.pth
+*.tar.gz
 
 # Custom envs
 .venv*

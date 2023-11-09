@@ -1,10 +1,13 @@
 from __future__ import annotations
-from .cluster import ClusterEnvironment
-from typing import Iterable, Dict, Any, Optional, Tuple
+from typing import Iterable, Dict, Any, Optional, Tuple, Union
 from abc import ABCMeta, abstractmethod
 import time
 # import logging
 # from logging import Logger as PythonLogger
+
+from .cluster import ClusterEnvironment
+from .types import ModelML, DatasetML
+from .serialization import ModelLoader
 
 
 class Executable(metaclass=ABCMeta):
@@ -136,6 +139,7 @@ class Executable(metaclass=ABCMeta):
 
 
 class Trainer(Executable):
+    """Trains a machine learning model."""
     @abstractmethod
     def train(self, *args, **kwargs):
         pass
@@ -147,6 +151,57 @@ class Trainer(Executable):
     @abstractmethod
     def load_state(self):
         pass
+
+
+class Predictor(Executable):
+    """Applies a pre-trained machine learning model to unseen data."""
+
+    model: ModelML
+
+    def __init__(
+        self,
+        model: Union[ModelML, ModelLoader],
+        name: Optional[str] = None,
+        **kwargs
+    ) -> None:
+        super().__init__(name, **kwargs)
+        self.model = model() if isinstance(model, ModelLoader) else model
+
+    def execute(
+        self,
+        predict_dataset: DatasetML,
+        config: Optional[Dict] = None,
+    ) -> Tuple[Optional[Tuple], Optional[Dict]]:
+        """"Execute some operations.
+
+        Args:
+            predict_dataset (DatasetML): dataset object for inference.
+            config (Dict, optional): key-value configuration.
+                Defaults to None.
+
+        Returns:
+            Tuple[Optional[Tuple], Optional[Dict]]: tuple structured as
+                (results, config).
+        """
+        return self.predict(predict_dataset), config
+
+    @abstractmethod
+    def predict(
+        self,
+        predict_dataset: DatasetML,
+        model: Optional[ModelML] = None
+    ) -> Iterable[Any]:
+        """Applies a machine learning model on a dataset of samples.
+
+        Args:
+            predict_dataset (DatasetML): dataset for inference.
+            model (Optional[ModelML], optional): overrides the internal model,
+                if given. Defaults to None.
+
+        Returns:
+            Iterable[Any]: predictions with the same cardinality of the
+                input dataset.
+        """
 
 
 class DataGetter(Executable):
@@ -167,16 +222,10 @@ class DataPreproc(Executable):
 #         pass
 
 
-class Evaluator(Executable):
+class Saver(Executable):
     @abstractmethod
-    def evaluate(self, *args, **kwargs):
+    def save(self, *args, **kwargs):
         pass
-
-
-# class Saver(Executable):
-#     @abstractmethod
-#     def save(self, *args, **kwargs):
-#         pass
 
 
 class Executor(Executable):
