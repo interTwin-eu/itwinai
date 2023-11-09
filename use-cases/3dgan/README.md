@@ -26,7 +26,7 @@ cd use-cases/3dgan
 python train.py -p cern-pipeline.yaml
 
 # Or better:
-micromamba run -p ../../.venv-pytorch/ torchrun python train.py -p cern-pipeline.yaml
+micromamba run -p ../../.venv-pytorch/ torchrun train.py -p cern-pipeline.yaml
 ```
 
 Anywhere else, use the general purpose training configuration:
@@ -36,7 +36,7 @@ cd use-cases/3dgan
 python train.py -p pipeline.yaml
 
 # Or better:
-micromamba run -p ../../.venv-pytorch/ torchrun python train.py -p pipeline.yaml
+micromamba run -p ../../.venv-pytorch/ torchrun train.py -p pipeline.yaml
 ```
 
 To visualize the logs with MLFLow run the following in the terminal:
