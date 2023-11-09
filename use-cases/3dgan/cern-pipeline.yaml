@@ -1,10 +1,10 @@
-pipeline:
-  class_path: itwinai.pipeline.Pipeline
+executor:
+  class_path: itwinai.components.Executor
   init_args:
     steps:
       - class_path: dataloader.Lightning3DGANDownloader
         init_args:
-          data_path: /eos/user/k/ktsolaki/data/3dgan_data
+          data_path: /eos/user/k/ktsolaki/data/3dgan_data # exp_data/
           data_url: null # https://drive.google.com/drive/folders/1uPpz0tquokepptIfJenTzGpiENfo2xRX
 
       - class_path: trainer.Lightning3DGANTrainer
@@ -17,22 +17,22 @@ pipeline:
               accumulate_grad_batches: 1
               barebones: false
               benchmark: null
-              callbacks:
-                - class_path: lightning.pytorch.callbacks.early_stopping.EarlyStopping
-                  init_args:
-                    monitor: val_generator_loss
-                    patience: 2
-                - class_path: lightning.pytorch.callbacks.lr_monitor.LearningRateMonitor
-                  init_args:
-                    logging_interval: step
-                - class_path: lightning.pytorch.callbacks.ModelCheckpoint
-                  init_args:
-                    dirpath: checkpoints
-                    filename: best-checkpoint
-                    mode: min
-                    monitor: val_generator_loss
-                    save_top_k: 1
-                    verbose: true
+              # callbacks:
+              #   # - class_path: lightning.pytorch.callbacks.early_stopping.EarlyStopping
+              #   #   init_args:
+              #   #     monitor: val_loss
+              #   #     patience: 2
+              #   - class_path: lightning.pytorch.callbacks.lr_monitor.LearningRateMonitor
+              #     init_args:
+              #       logging_interval: step
+              #   # - class_path: lightning.pytorch.callbacks.ModelCheckpoint
+              #   #   init_args:
+              #   #     dirpath: checkpoints
+              #   #     filename: best-checkpoint
+              #   #     mode: min
+              #   #     monitor: val_loss
+              #   #     save_top_k: 1
+              #   #     verbose: true
               check_val_every_n_epoch: 1
               default_root_dir: null
               detect_anomaly: false
@@ -79,17 +79,15 @@ pipeline:
               class_path: model.ThreeDGAN
               init_args:
                 latent_size: 256
-                batch_size: 128
+                batch_size: 64
                 loss_weights: [3, 0.1, 25, 0.1]
                 power: 0.85
                 lr: 0.001
-                checkpoint_path: checkpoints/3dgan.pth
+                checkpoint_path: exp_data/3dgan.pth
 
             # Lightning data module configuration
             data:
               class_path: dataloader.ParticlesDataModule
               init_args:
                 datapath: /eos/user/k/ktsolaki/data/3dgan_data/*.h5 # exp_data/*/*.h5
-                batch_size: 128
-                num_workers: 0
-                max_samples: 10000
+                batch_size: 64
