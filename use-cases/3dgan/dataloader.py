@@ -97,6 +97,7 @@ class ParticlesDataset(Dataset):
                     and len(self.data[field]) >= self.max_samples):
                 for field, vals_array in self.data.items():
                     self.data[field] = vals_array[:self.max_samples]
+
                 break
 
     def GetDataAngleParallel(
