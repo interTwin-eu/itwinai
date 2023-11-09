@@ -2,8 +2,8 @@
 name: Test workflows
 
 on:
-  # push:
   pull_request:
+    branches: [main, dev]
 
 jobs:
   test-itwinai:
