@@ -143,3 +143,16 @@ This command will store the results in a folder called "3dgan-generated-data":
 |   │   ├── energy=1.664689540863037&angle=1.4906378984451294.pth
 |   │   ├── energy=1.664689540863037&angle=1.4906378984451294.jpg
 ```
+
+### Singularity
+
+```bash
+singularity pull docker://ghcr.io/intertwin-eu/itwinai-3dgan-inference:0.0.1
+```
+
+Run overriding the working directory (`--pwd /usr/src/app`) and providing a
+writable filesystem (`-B "$PWD":/usr/data`):
+
+```bash
+singularity exec -e --pwd /usr/src/app -B "$PWD":/usr/data docker://ghcr.io/intertwin-eu/itwinai-3dgan-inference:0.0.2
+```
