@@ -21,5 +21,17 @@ RUN  pip install --no-cache-dir .
 # Add 3DGAN use case files
 COPY use-cases/3dgan/* ./
 
+# # Create results folder
+# RUN mkdir -p /tmp/data
+# RUN chmod 0777 -R /tmp/data
+
+# Create results folder
+# TODO: remove once the problem with file system permissions are solved
+RUN mkdir -p /tmp/data
+RUN mkdir -p /tmp/data/3dgan-generated-data
+RUN mkdir -p /tmp/data/exp_data
+RUN mkdir -p /tmp/data/exp_data/3dgan_data
+RUN chmod 0777 -R /tmp/data
+
 # Run inference
 CMD [ "python", "train.py", "-p", "inference-pipeline.yaml"]
