@@ -146,12 +146,8 @@ This command will store the results in a folder called "3dgan-generated-data":
 
 ### Singularity
 
-```bash
-singularity pull docker://ghcr.io/intertwin-eu/itwinai-3dgan-inference:0.0.2
-```
-
-Run overriding the working directory (`--pwd /usr/src/app`) and providing a
-writable filesystem (`-B "$PWD":/usr/data`):
+Run overriding the working directory (`--pwd /usr/src/app`, restores Docker's WORKDIR)
+and providing a writable filesystem (`-B "$PWD":/usr/data`):
 
 ```bash
 singularity exec -e --pwd /usr/src/app -B "$PWD":/usr/data docker://ghcr.io/intertwin-eu/itwinai-3dgan-inference:0.0.2
