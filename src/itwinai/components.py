@@ -2,12 +2,15 @@ from __future__ import annotations
 from typing import Iterable, Dict, Any, Optional, Tuple, Union
 from abc import ABCMeta, abstractmethod
 import time
+from jsonargparse import ArgumentParser
+
 # import logging
 # from logging import Logger as PythonLogger
 
 from .cluster import ClusterEnvironment
 from .types import ModelML, DatasetML
 from .serialization import ModelLoader
+from .utils import load_yaml
 
 
 class Executable(metaclass=ABCMeta):
@@ -231,12 +234,12 @@ class Saver(Executable):
 class Executor(Executable):
     """Sets-up and executes a sequence of Executable steps."""
 
-    steps: Iterable[Executable]
+    steps: Union[Dict[str, Executable], Iterable[Executable]]
     constructor_args: Dict
 
     def __init__(
         self,
-        steps: Iterable[Executable],
+        steps: Union[Dict[str, Executable], Iterable[Executable]],
         name: Optional[str] = None,
         # logs_dir: Optional[str] = None,
         # debug: bool = False,
@@ -247,9 +250,20 @@ class Executor(Executable):
         self.steps = steps
         self.constructor_args = kwargs
 
-    def __getitem__(self, subscript) -> Executor:
+    def __getitem__(self, subscript: Union[str, int, slice]) -> Executor:
         if isinstance(subscript, slice):
-            s = self.steps[subscript.start:subscript.stop: subscript.step]
+            # First, convert to list if is a dict
+            if isinstance(self.steps, dict):
+                steps = list(self.steps.items())
+            else:
+                steps = self.steps
+            # Second, perform slicing
+            s = steps[subscript.start:subscript.stop: subscript.step]
+            # Third, reconstruct dict, if it is a dict
+            if isinstance(self.steps, dict):
+                s = dict(s)
+            # Fourth, return sliced sub-pipeline, preserving its
+            # initial structure
             sliced = self.__class__(
                 steps=s,
                 **self.constructor_args
@@ -270,7 +284,12 @@ class Executor(Executable):
                 Defaults to None.
         """
         super().setup(parent)
-        for step in self.steps:
+        if isinstance(self.steps, dict):
+            steps = list(self.steps.values())
+        else:
+            steps = self.steps
+
+        for step in steps:
             step.setup(self)
             step.is_setup = True
 
@@ -303,7 +322,12 @@ class Executor(Executable):
             Tuple[Optional[Tuple], Optional[Dict]]: tuple structured as
                 (results, config).
         """
-        for step in self.steps:
+        if isinstance(self.steps, dict):
+            steps = list(self.steps.values())
+        else:
+            steps = self.steps
+
+        for step in steps:
             if not step.is_setup:
                 raise RuntimeError(
                     f"Step '{step.name}' was not setup!"
@@ -318,3 +342,39 @@ class Executor(Executable):
         if not isinstance(args, tuple):
             args = (args,)
         return args
+
+
+def recursive_replace(config: Dict, target_field: str, new_value: Any) -> None:
+    def _recursive_replace_key(sub_dict: Dict):
+        if not isinstance(sub_dict, dict):
+            return
+        for k, v in sub_dict.items():
+            if k == target_field:
+                sub_dict[k] = new_value
+                return
+            else:
+                _recursive_replace_key(v)
+    _recursive_replace_key(config)
+
+
+def load_pipeline_step(
+    pipe: Union[str, Dict],
+    step_id: Union[str, int],
+    override_keys: Optional[Dict[str, Any]] = None
+) -> Executable:
+    if isinstance(pipe, str):
+        # Load pipe from YAML file path
+        pipe = load_yaml(pipe)
+    step_dict_config = pipe['executor']['init_args']['steps'][step_id]
+
+    # Override fields
+    if override_keys is not None:
+        for key, value in override_keys.items():
+            recursive_replace(step_dict_config, key, value)
+
+    # Wrap config under "step" field and parse it
+    step_dict_config = dict(step=step_dict_config)
+    step_parser = ArgumentParser()
+    step_parser.add_subclass_arguments(Executable, "step")
+    parsed_namespace = step_parser.parse_object(step_dict_config)
+    return step_parser.instantiate_classes(parsed_namespace)["step"]

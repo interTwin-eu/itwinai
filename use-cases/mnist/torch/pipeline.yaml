@@ -2,11 +2,13 @@ executor:
   class_path: itwinai.components.Executor
   init_args:
     steps:
-      - class_path: dataloader.MNISTDataModuleTorch
+      dataloading_step:
+        class_path: dataloader.MNISTDataModuleTorch
         init_args:
           save_path: .tmp/
 
-      - class_path: itwinai.torch.trainer.TorchTrainerMG
+      training_step:
+        class_path: itwinai.torch.trainer.TorchTrainerMG
         init_args:
           model:
             class_path: model.Net
@@ -25,7 +27,7 @@ executor:
             batch_size: 32
             pin_memory: True
             shuffle: False
-          epochs: 30
+          epochs: 2
           train_metrics:
             accuracy:
               class_path: torchmetrics.classification.MulticlassAccuracy
