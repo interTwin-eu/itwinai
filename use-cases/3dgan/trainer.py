@@ -11,6 +11,10 @@ from itwinai.components import Trainer, Predictor
 from itwinai.serialization import ModelLoader
 from itwinai.torch.inference import TorchModelLoader
 from itwinai.torch.types import Batch
+from itwinai.torch.mlflow import (
+    init_lightning_mlflow,
+    teardown_lightning_mlflow
+)
 
 from model import ThreeDGAN
 from dataloader import ParticlesDataModule
@@ -26,6 +30,7 @@ class Lightning3DGANTrainer(Trainer):
         self.conf = config
 
     def train(self) -> Any:
+        init_lightning_mlflow(self.conf, registered_model_name='3dgan-lite')
         old_argv = sys.argv
         sys.argv = ['some_script_placeholder.py']
         cli = LightningCLI(
@@ -42,6 +47,7 @@ class Lightning3DGANTrainer(Trainer):
         )
         sys.argv = old_argv
         cli.trainer.fit(cli.model, datamodule=cli.datamodule)
+        teardown_lightning_mlflow()
 
     def execute(
         self,
