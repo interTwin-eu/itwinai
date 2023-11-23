@@ -150,5 +150,6 @@ Run overriding the working directory (`--pwd /usr/src/app`, restores Docker's WO
 and providing a writable filesystem (`-B "$PWD":/usr/data`):
 
 ```bash
-singularity exec -e --pwd /usr/src/app -B "$PWD":/usr/data docker://ghcr.io/intertwin-eu/itwinai-3dgan-inference:0.0.2
+singularity exec -B "$PWD":/usr/data docker://ghcr.io/intertwin-eu/itwinai-3dgan-inference:0.0.2 /
+bash -c "cd /usr/src/app && python train.py -p pipeline.yaml"
 ```
