@@ -415,23 +415,27 @@ class Executor(Executable):
         return args
 
 
-def recursive_replace(config: Dict, target_field: str, new_value: Any) -> None:
-    def _recursive_replace_key(sub_dict: Dict):
-        if not isinstance(sub_dict, dict):
-            return
-        for k, v in sub_dict.items():
-            if k == target_field:
-                sub_dict[k] = new_value
-                return
-            else:
-                _recursive_replace_key(v)
-    _recursive_replace_key(config)
+def add_replace_field(
+    config: Dict,
+    key_chain: str,
+    value: Any
+) -> None:
+    sub_config = config
+    for idx, k in enumerate(key_chain.split('.')):
+        if idx >= len(key_chain.split('.')) - 1:
+            # Last key reached
+            break
+        if not isinstance(sub_config.get(k), dict):
+            sub_config[k] = dict()
+        sub_config = sub_config[k]
+    sub_config[k] = value
 
 
 def load_pipeline_step(
     pipe: Union[str, Dict],
     step_id: Union[str, int],
-    override_keys: Optional[Dict[str, Any]] = None
+    override_keys: Optional[Dict[str, Any]] = None,
+    verbose: bool = False
 ) -> Executable:
     if isinstance(pipe, str):
         # Load pipe from YAML file path
@@ -440,8 +444,12 @@ def load_pipeline_step(
 
     # Override fields
     if override_keys is not None:
-        for key, value in override_keys.items():
-            recursive_replace(step_dict_config, key, value)
+        for key_chain, value in override_keys.items():
+            add_replace_field(step_dict_config, key_chain, value)
+    if verbose:
+        import json
+        print(f"NEW STEP <ID:{step_id}> CONFIG:")
+        print(json.dumps(step_dict_config, indent=4))
 
     # Wrap config under "step" field and parse it
     step_dict_config = dict(step=step_dict_config)
