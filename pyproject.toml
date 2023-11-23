@@ -35,6 +35,7 @@ dependencies = [
     "typing-extensions>=4.5.0",
     "typing_extensions>=4.5.0",
     "urllib3>=2.0.5",
+    "torchmetrics",
 ]
 
 # dynamic = ["version", "description"]

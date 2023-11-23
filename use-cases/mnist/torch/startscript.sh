@@ -26,7 +26,14 @@ debug=false # display debug info
 
 CONTAINERPATH="/p/project/intertwin/zoechbauer1/T6.5-AI-and-ML/containers/apptainer/itwinai.sif"
 
-SLURM_EXECUTION=true
+# Set slurm execution
+if [ "$1" == "--slurm" ]; then
+    SLURM_EXECUTION=true
+    echo "SLURM execution enabled"
+else
+    SLURM_EXECUTION=false
+    echo "SLURM execution disabled. Please add --slurm flag to enable."
+fi
 
 #switch to use case folder
 cd use-cases/mnist/torch

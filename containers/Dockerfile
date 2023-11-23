@@ -6,12 +6,13 @@
 #FROM nvcr.io/nvidia/pytorch:21.12-py3 AS build
 FROM nvcr.io/nvidia/pytorch:23.09-py3 AS build
 
-WORKDIR ai
+WORKDIR T6.5-AI-and-ML
 
 # Copy the required files to the container
 COPY env-files      env-files
 COPY src            src
 COPY tests          tests
+COPY use-cases      use-cases
 COPY pyproject.toml pyproject.toml 
 #COPY setup.py   setup.py
 #COPY README.md  README.md
@@ -29,6 +30,9 @@ RUN pip install --upgrade pip
 RUN ls 
 #RUN pip install -r env-files/torch/pytorch-env-gpu-container.txt
 RUN pip install -e .
+
+# modify the permission of the use-case folder, so that MLflow can create folders
+RUN chmod -R a+rwx use-cases/
 
 # Define the run command when the container starts
 #CMD ["sleep", "300"]
