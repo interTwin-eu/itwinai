@@ -71,7 +71,7 @@ executor:
               plugins: null
               profiler: null
               reload_dataloaders_every_n_epochs: 0
-              strategy: auto #ddp_find_unused_parameters_true #auto
+              strategy: auto #ddp_find_unused_parameters_true
               sync_batchnorm: false
               use_distributed_sampler: true
               val_check_interval: null
@@ -81,11 +81,9 @@ executor:
               class_path: model.ThreeDGAN
               init_args:
                 latent_size: 256
-                batch_size: 4
                 loss_weights: [3, 0.1, 25, 0.1]
                 power: 0.85
                 lr: 0.001
-                checkpoint_path: exp_data/3dgan.pth
 
             # Lightning data module configuration
             data:
