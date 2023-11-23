@@ -27,7 +27,7 @@ pipeline:
             batch_size: 32
             pin_memory: True
             shuffle: False
-          epochs: 30
+          epochs: 2
           train_metrics:
             accuracy:
               class_path: torchmetrics.classification.MulticlassAccuracy
