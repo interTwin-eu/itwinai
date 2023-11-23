@@ -1,13 +1,12 @@
 apiVersion: v1
 kind: Pod
 metadata:
-  name: itwinai-training-sleep-dummy
+  name: itwinai-training
 spec:
   containers:
     - name: itwinai-container
       image: ghcr.io/intertwin-eu/t6.5-ai-and-ml:containers
-      command: ["sleep", "10000000"]
-      #args: ["/eos"]
+      command: ["python", "train.py", "-p", "pipeline.yaml"]
 
   nodeSelector:
     kubernetes.io/role: agent
