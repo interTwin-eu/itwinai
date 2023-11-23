@@ -349,6 +349,16 @@ def add_replace_field(
     key_chain: str,
     value: Any
 ) -> None:
+    """Replace or add (if not present) a field in a dictionary, following a
+    path of dot-separated keys. Inplace operation.
+
+    Args:
+        config (Dict): dictionary to be modified.
+        key_chain (str): path of dot-separated keys to specify the location
+        if the new value (e.g., 'foo.bar.line' adds/overwrites the value
+        located at config['foo']['bar']['line']).
+        value (Any): the value to insert.
+    """
     sub_config = config
     for idx, k in enumerate(key_chain.split('.')):
         if idx >= len(key_chain.split('.')) - 1:
@@ -366,6 +376,26 @@ def load_pipeline_step(
     override_keys: Optional[Dict[str, Any]] = None,
     verbose: bool = False
 ) -> Executable:
+    """Instantiates a specific step from a pipeline configuration file, given
+    its ID (index if steps are a list, key if steps are a dictionary). It
+    allows to override the step configuration with user defined values.
+
+    Args:
+        pipe (Union[str, Dict]): pipeline configuration. Either a path to a
+        YAML file (if string), or a configuration in memory (if dict object).
+        step_id (Union[str, int]): step identifier: list index if steps are
+        represented as a list, string key if steps are represented as a
+        dictionary.
+        override_keys (Optional[Dict[str, Any]], optional): if given, maps key
+        path to the value to add/override. A key path is a string of
+        dot-separated keys (e.g., 'foo.bar.line' adds/overwrites the value
+        located at pipe['foo']['bar']['line']). Defaults to None.
+        verbose (bool, optional): if given, prints to console the new
+        configuration, obtained after overriding. Defaults to False.
+
+    Returns:
+        Executable: an instance of the selected step in the pipeline. 
+    """
     if isinstance(pipe, str):
         # Load pipe from YAML file path
         pipe = load_yaml(pipe)
