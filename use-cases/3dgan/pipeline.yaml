@@ -5,7 +5,7 @@ executor:
       dataloading_step:
         class_path: dataloader.Lightning3DGANDownloader
         init_args:
-          data_path: exp_data/ # Set to null to skip dataset download
+          data_path: exp_data/
           data_url: https://drive.google.com/drive/folders/1uPpz0tquokepptIfJenTzGpiENfo2xRX
 
       training_step:
@@ -19,27 +19,27 @@ executor:
               accumulate_grad_batches: 1
               barebones: false
               benchmark: null
-              # callbacks:
-              #   - class_path: lightning.pytorch.callbacks.early_stopping.EarlyStopping
-              #     init_args:
-              #       monitor: real_batch_loss_epoch
-              #       patience: 2
-              #   - class_path: lightning.pytorch.callbacks.lr_monitor.LearningRateMonitor
-              #     init_args:
-              #       logging_interval: step
-              #   - class_path: lightning.pytorch.callbacks.ModelCheckpoint
-              #     init_args:
-              #       dirpath: checkpoints
-              #       filename: best-checkpoint
-              #       mode: min
-              #       monitor: real_batch_loss_epoch
-              #       save_top_k: 1
-              #       verbose: true
+              callbacks:
+                - class_path: lightning.pytorch.callbacks.early_stopping.EarlyStopping
+                  init_args:
+                    monitor: val_generator_loss
+                    patience: 2
+                - class_path: lightning.pytorch.callbacks.lr_monitor.LearningRateMonitor
+                  init_args:
+                    logging_interval: step
+                - class_path: lightning.pytorch.callbacks.ModelCheckpoint
+                  init_args:
+                    dirpath: checkpoints
+                    filename: best-checkpoint
+                    mode: min
+                    monitor: val_generator_loss
+                    save_top_k: 1
+                    verbose: true
               check_val_every_n_epoch: 1
               default_root_dir: null
               detect_anomaly: false
               deterministic: null
-              devices: auto #[0]
+              devices: auto
               enable_checkpointing: true
               enable_model_summary: null
               enable_progress_bar: null
@@ -53,16 +53,12 @@ executor:
               limit_val_batches: null
               log_every_n_steps: 1
               logger: 
-                # - class_path: lightning.pytorch.loggers.CSVLogger
-                #   init_args:
-                #     save_dir: ml_logs/csv_logs
                 class_path: lightning.pytorch.loggers.MLFlowLogger
                 init_args:
                   experiment_name: 3DGAN
                   save_dir: ml_logs/mlflow_logs
                   log_model: all
               max_epochs: 5
-              # max_steps: 2000
               max_time: null
               min_epochs: null
               min_steps: null
@@ -91,5 +87,5 @@ executor:
               init_args:
                 datapath: exp_data/*/*.h5
                 batch_size: 4
-                num_workers: 0
-                max_samples: 12
+                num_workers: 3
+                max_samples: 48
