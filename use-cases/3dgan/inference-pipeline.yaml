@@ -22,22 +22,6 @@ executor:
               accumulate_grad_batches: 1
               barebones: false
               benchmark: null
-              # callbacks:
-              #   # - class_path: lightning.pytorch.callbacks.early_stopping.EarlyStopping
-              #   #   init_args:
-              #   #     monitor: val_loss
-              #   #     patience: 2
-              #   - class_path: lightning.pytorch.callbacks.lr_monitor.LearningRateMonitor
-              #     init_args:
-              #       logging_interval: step
-              #   # - class_path: lightning.pytorch.callbacks.ModelCheckpoint
-              #   #   init_args:
-              #   #     dirpath: checkpoints
-              #   #     filename: best-checkpoint
-              #   #     mode: min
-              #   #     monitor: val_loss
-              #   #     save_top_k: 1
-              #   #     verbose: true
               check_val_every_n_epoch: 1
               default_root_dir: null
               detect_anomaly: false
@@ -55,10 +39,7 @@ executor:
               limit_train_batches: null
               limit_val_batches: null
               log_every_n_steps: 2
-              logger: 
-                # - class_path: lightning.pytorch.loggers.CSVLogger
-                #   init_args:
-                #     save_dir: ml_logs/csv_logs
+              logger:
                 class_path: lightning.pytorch.loggers.MLFlowLogger
                 init_args:
                   experiment_name: 3DGAN
