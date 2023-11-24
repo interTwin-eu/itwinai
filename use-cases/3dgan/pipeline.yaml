@@ -79,7 +79,7 @@ executor:
                 latent_size: 256
                 loss_weights: [3, 0.1, 25, 0.1]
                 power: 0.85
-                lr: 0.001 
+                lr: 0.001
 
             # Lightning data module configuration
             data:
