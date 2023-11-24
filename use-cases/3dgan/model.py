@@ -1,6 +1,4 @@
 import sys
-# import os
-# import pickle
 from collections import defaultdict
 import math
 from typing import Any
@@ -309,7 +307,6 @@ class ThreeDGAN(pl.LightningModule):
         loss_weights=[3, 0.1, 25, 0.1],
         power=0.85,
         lr=0.001,
-        # checkpoint_path: str = '3Dgan.pth'
     ):
         super().__init__()
         self.save_hyperparameters()
@@ -330,9 +327,6 @@ class ThreeDGAN(pl.LightningModule):
         self.index = 0
         self.train_history = defaultdict(list)
         self.test_history = defaultdict(list)
-        # self.pklfile = checkpoint_path
-        # checkpoint_dir = os.path.dirname(checkpoint_path)
-        # os.makedirs(checkpoint_dir, exist_ok=True)
 
     def BitFlip(self, x, prob=0.05):
         """
