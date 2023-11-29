@@ -2,6 +2,7 @@
 
 [![GitHub Super-Linter](https://github.com/interTwin-eu/T6.5-AI-and-ML/actions/workflows/lint.yml/badge.svg)](https://github.com/marketplace/actions/super-linter)
 [![GitHub Super-Linter](https://github.com/interTwin-eu/T6.5-AI-and-ML/actions/workflows/check-links.yml/badge.svg)](https://github.com/marketplace/actions/markdown-link-check)
+ [![SQAaaS source code](https://github.com/EOSC-synergy/itwinai.assess.sqaaas/raw/dev/.badge/status_shields.svg)](https://sqaaas.eosc-synergy.eu/#/full-assessment/report/https://raw.githubusercontent.com/eosc-synergy/itwinai.assess.sqaaas/dev/.report/assessment_output.json)
 
 See the latest version of our [docs](https://intertwin-eu.github.io/T6.5-AI-and-ML/)
 for a quick overview of this platform for advanced AI/ML workflows in digital twin applications.
@@ -104,7 +105,7 @@ To run tests on itwinai package:
 # Activate env
 micromamba activate ./.venv-pytorch # or ./.venv-tf
 
-pytest -v -m "not slurm" tests/ 
+pytest -v -m "not slurm" tests/
 ```
 
 However, some tests are intended to be executed only on an HPC system,
