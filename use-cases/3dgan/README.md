@@ -108,10 +108,10 @@ Build from project root with
 
 ```bash
 # Local
-docker buildx build -t itwinai-mnist-torch-inference -f use-cases/3dgan/Dockerfile .
+docker buildx build -t itwinai-mnist-torch-inference -f use-cases/3dgan/Dockerfile.inference .
 
 # Ghcr.io
-docker buildx build -t ghcr.io/intertwin-eu/itwinai-3dgan-inference:0.0.3 -f use-cases/3dgan/Dockerfile .
+docker buildx build -t ghcr.io/intertwin-eu/itwinai-3dgan-inference:0.0.3 -f use-cases/3dgan/Dockerfile.inference .
 docker push ghcr.io/intertwin-eu/itwinai-3dgan-inference:0.0.3
 ```
 
