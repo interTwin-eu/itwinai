@@ -465,7 +465,7 @@ def load_pipeline_step(
         configuration, obtained after overriding. Defaults to False.
 
     Returns:
-        Executable: an instance of the selected step in the pipeline. 
+        Executable: an instance of the selected step in the pipeline.
     """
     if isinstance(pipe, str):
         # Load pipe from YAML file path
