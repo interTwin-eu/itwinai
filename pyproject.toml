@@ -7,7 +7,7 @@ name = "itwinai"
 version = "0.1"
 description = "AI and ML workflows module for interTwin"
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.8"
 license = { file = "LICENSE" }
 keywords = ["ml", "ai", "hpc"]
 authors = [
@@ -32,9 +32,10 @@ dependencies = [
     "pyyaml>=6.0.1",
     "omegaconf>=2.3.0",
     "submitit>=1.4.6",
-    "typing-extensions==4.5.0",
-    "typing_extensions==4.5.0",
+    "typing-extensions>=4.5.0",
+    "typing_extensions>=4.5.0",
     "urllib3>=2.0.5",
+    "torchmetrics",
 ]
 
 # dynamic = ["version", "description"]

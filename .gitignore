@@ -2,6 +2,7 @@
 exp_data/
 TODO
 /data
+use-cases/mnist/data
 nohup*
 lightning_logs
 mlruns
@@ -19,6 +20,12 @@ pl-training.yml
 *-data/
 *.pth
 *.tar.gz
+
+# Containers
+*.sif
+
+# Kubernetes
+kubeconfig
 
 # Custom envs
 .venv*

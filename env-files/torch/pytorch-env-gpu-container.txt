@@ -1,0 +1,13 @@
+torchmetrics
+mlflow>=2
+typer
+rich
+pyyaml>=6.0.1
+omegaconf
+typing-extensions==4.7.1
+typing_extensions==4.7.1
+
+
+
+
+
