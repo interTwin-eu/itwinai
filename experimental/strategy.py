@@ -65,7 +65,7 @@ class DDPStrategy(Strategy):
         """Returns the local rank. Assumes one worker per GPU."""
         return self.cluster.local_rank()
 
-    def setup(self) -> None:
+    def setup(self, **kwargs) -> None:
         """Setup the strategy in a distributed context."""
         if not self._is_env_setup():
             raise RuntimeError(
