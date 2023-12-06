@@ -1,0 +1,40 @@
+version: 0.0.1
+name: Experiment name
+description: This is a textual description
+authors:
+ - author1
+ - author2
+
+vars:
+  images_dataset_path: some/path/disk
+  mlflow_tracking_uri: http://localhost:5000
+  training_lr: 0.001
+
+steps:
+  preprocessing-step:
+    logic:
+      class_path: itwinai.torch.Preprocessor
+      init_args:
+        save_path: ${vars.images_dataset_path}
+    after: null 
+    env: null
+
+  training-step:
+    logic:
+      class_path: itwinai.torch.Trainer
+      init_args:
+        lr: ${vars.training_lr}
+        tracking_uri: ${vars.mlflow_tracking_uri}
+    after: preprocessing-step
+    env: null
+
+  sth_step:
+    logic: python inference.py -p pipeline.yaml
+    after: [preprocessing-step, training-step]
+    env: docker+ghcr.io/intertwin-eu/itwinai:training-0.0.1
+
+  sth_step2:
+    logic: python train.py -p pipeline.yaml
+    after: null
+    env: conda+path/to/my/local/env
+ 
