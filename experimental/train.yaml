@@ -1,3 +1,5 @@
+# AI workflow metadata/header.
+# They are optional and easily extensible in the future.
 version: 0.0.1
 name: Experiment name
 description: This is a textual description
@@ -5,14 +7,25 @@ credits:
  - author1
  - author2
 
+# Provide a unified place where this *template* can be configured.
+# Variables which can be overridden at runtime as env vars, e.g.:
+# - Execution environment details (e.g., path in container vs. in laptop, MLFlow tracking URI)
+# - Tunable parameters (e.g., learning rate)
+# - Intrinsically dynamic values (e.g., MLFLow run ID is a random value)
+# These variables are interpolated with OmegaConf.
 vars:
   images_dataset_path: some/path/disk
   mlflow_tracking_uri: http://localhost:5000
   training_lr: 0.001
 
+# Runner-independent workflow steps.
+# Each step is designed to be minimal, but easily extensible 
+# to accommodate future needs by adding new fields.
+# The only required field is 'command'. New fields can be added
+# to support future workflow executors.
 steps:
   preprocessing-step:
-    logic:
+    command:
       class_path: itwinai.torch.Preprocessor
       init_args:
         save_path: ${vars.images_dataset_path}
@@ -20,7 +33,7 @@ steps:
     env: null
 
   training-step:
-    logic:
+    command:
       class_path: itwinai.torch.Trainer
       init_args:
         lr: ${vars.training_lr}
@@ -29,12 +42,12 @@ steps:
     env: null
 
   sth_step:
-    logic: python inference.py -p pipeline.yaml
+    command: python inference.py -p pipeline.yaml
     after: [preprocessing-step, training-step]
     env: docker+ghcr.io/intertwin-eu/itwinai:training-0.0.1
 
   sth_step2:
-    logic: python train.py -p pipeline.yaml
+    command: python train.py -p pipeline.yaml
     after: null
     env: conda+path/to/my/local/env
- 
+
