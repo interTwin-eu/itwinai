@@ -4,7 +4,7 @@ workflows. The base component classes provide a template to follow for
 extending existing components or creating new ones.
 """
 
-
+from __future__ import annotations
 from typing import Any, Optional, Tuple, Union, Callable
 from abc import ABCMeta, abstractmethod
 import time

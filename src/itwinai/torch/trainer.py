@@ -17,7 +17,7 @@ from torch.nn.parallel import DistributedDataParallel as DDP
 import torch.nn as nn
 from torch.optim.optimizer import Optimizer
 
-from ..components import Trainer
+from ..components import Trainer, monitor_exec
 from .utils import seed_worker, par_allgather_obj, clear_key
 from .types import (
     Batch, Loss, LrScheduler, Metric
@@ -309,6 +309,7 @@ class TorchTrainerMG(Trainer, LogMixin):
             if self.cluster.is_cuda_available():
                 torch.cuda.manual_seed(seed)
 
+    @monitor_exec
     def execute(
         self,
         train_dataset: Dataset,
@@ -316,8 +317,7 @@ class TorchTrainerMG(Trainer, LogMixin):
         model: nn.Module = None,
         optimizer: Optimizer = None,
         lr_scheduler: LrScheduler = None,
-        config: Optional[Dict] = None
-    ) -> Tuple[Optional[Tuple], Optional[Dict]]:
+    ) -> Any:
         self.train_dataset = train_dataset
         self.validation_dataset = validation_dataset
 
@@ -337,7 +337,7 @@ class TorchTrainerMG(Trainer, LogMixin):
             result = self._train(0)
 
         # Return value compliant with Executable.execute format
-        return ((result,), config)
+        return result
 
     def _train(
         self,

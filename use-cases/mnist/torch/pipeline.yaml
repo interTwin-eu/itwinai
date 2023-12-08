@@ -1,5 +1,5 @@
-executor:
-  class_path: itwinai.components.Executor
+pipeline:
+  class_path: itwinai.pipeline.Pipeline
   init_args:
     steps:
       - class_path: dataloader.MNISTDataModuleTorch
@@ -25,7 +25,7 @@ executor:
             batch_size: 32
             pin_memory: True
             shuffle: False
-          epochs: 30
+          epochs: 2
           train_metrics:
             accuracy:
               class_path: torchmetrics.classification.MulticlassAccuracy
