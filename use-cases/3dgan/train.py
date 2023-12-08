@@ -15,7 +15,7 @@ On compute nodes:
 
 import argparse
 
-from itwinai.components import Executor
+from itwinai.components import Pipeline
 from itwinai.utils import parse_pipe_config
 from jsonargparse import ArgumentParser
 
@@ -38,12 +38,12 @@ if __name__ == "__main__":
 
     # Create parser for the pipeline (ordered)
     pipe_parser = ArgumentParser()
-    pipe_parser.add_subclass_arguments(Executor, "executor")
+    pipe_parser.add_subclass_arguments(Pipeline, "executor")
 
     # Parse, Instantiate pipe
     parsed = parse_pipe_config(args.pipeline, pipe_parser)
     pipe = pipe_parser.instantiate_classes(parsed)
-    executor: Executor = getattr(pipe, 'executor')
+    executor: Pipeline = getattr(pipe, 'executor')
 
     if args.download_only:
         print('Downloading datasets and exiting...')

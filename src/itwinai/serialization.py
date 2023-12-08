@@ -1,4 +1,4 @@
-from .types import ModelML
+from .types import MLModel
 import abc
 
 
@@ -10,5 +10,5 @@ class ModelLoader(abc.ABC):
         self.model_uri = model_uri
 
     @abc.abstractmethod
-    def __call__(self) -> ModelML:
+    def __call__(self) -> MLModel:
         """Loads model from model URI."""

@@ -8,11 +8,11 @@ import ray
 from ray import air, tune
 from jsonargparse import ArgumentParser
 
-from .components import Executor, Executable
-from .utils import parse_pipe_config
+from ..components import Pipeline, BaseComponent
+from ..utils import parse_pipe_config
 
 
-class LocalExecutor(Executor):
+class LocalExecutor(Pipeline):
     def __init__(self, pipeline, class_dict):
         # Create parser for the pipeline (ordered)
         pipe_parser = ArgumentParser()
@@ -40,7 +40,7 @@ class LocalExecutor(Executor):
             args = executable.setup(args)
 
 
-class RayExecutor(Executor):
+class RayExecutor(Pipeline):
     def __init__(self, pipeline, class_dict, param_space):
         self.class_dict = class_dict
         self.param_space = param_space
@@ -91,10 +91,10 @@ class RayExecutor(Executor):
         pass
 
 
-class ParallelExecutor(Executor):
+class ParallelExecutor(Pipeline):
     """Execute a pipeline in parallel: multiprocessing and multi-node."""
 
-    def __init__(self, steps: Iterable[Executable]):
+    def __init__(self, steps: Iterable[BaseComponent]):
         super().__init__(steps)
 
     def setup(self, config: Dict = None):
@@ -112,7 +112,7 @@ class HPCExecutor(ParallelExecutor):
     network access.
     """
 
-    def __init__(self, steps: Iterable[Executable]):
+    def __init__(self, steps: Iterable[BaseComponent]):
         super().__init__(steps)
 
     def setup(self, config: Dict = None):

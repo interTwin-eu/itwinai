@@ -5,14 +5,14 @@ from datetime import datetime
 from typing import Tuple, Dict, Optional, Iterable
 
 from lib.macros import PATCH_SIZE as patch_size, SHAPE as shape
-from itwinai.components import Executor, Executable
+from itwinai.components import Pipeline, BaseComponent
 
 
-class CycloneExecutor(Executor):
+class CycloneExecutor(Pipeline):
     def __init__(
         self,
         run_name: str,
-        steps: Iterable[Executable],
+        steps: Iterable[BaseComponent],
         name: Optional[str] = None
     ):
         super().__init__(steps=steps, name=name)
