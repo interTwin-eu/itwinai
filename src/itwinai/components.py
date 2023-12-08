@@ -44,7 +44,12 @@ def monitor_exec(method: Callable) -> Callable:
 
 
 class BaseComponent(metaclass=ABCMeta):
-    """Base component class.
+    """Base component class. Each component provides a simple interface
+    to foster modularity in machine learning code. Each component class
+    implements the `execute` method, which received some input ML artifacts
+    (e.g., datasets), performs some operations and returns new artifacts.
+    The components are meant to be assembled in complex ML workflows,
+    represented as pipelines.
 
         Args:
             name (Optional[str], optional): unique identifier for a step.
