@@ -14,14 +14,16 @@ See the help page of each class:
 from jsonargparse import ArgumentParser, ActionConfigFile
 from mycode import ServerOptions, ClientOptions
 
-parser = ArgumentParser(parser_mode="omegaconf")
-parser.add_subclass_arguments(ServerOptions, "server")
-parser.add_subclass_arguments(ClientOptions, "client")
-parser.add_argument("--config", action=ActionConfigFile)
+if __name__ == "__main__":
+    parser = ArgumentParser(parser_mode="omegaconf")
+    parser.add_subclass_arguments(ServerOptions, "server")
+    parser.add_subclass_arguments(ClientOptions, "client")
+    parser.add_argument("--config", action=ActionConfigFile)
 
-# Example of dynamic CLI override
-# cfg = parser.parse_args(["--config=example.yaml", "--server.port=212"])
-cfg = parser.parse_args()
-cfg = parser.instantiate_classes(cfg)
-print(cfg.client.url)
-print(cfg.server.port)
+    # Example of dynamic CLI override
+    # cfg = parser.parse_args(["--config=example.yaml", "--server.port=212"])
+    cfg = parser.parse_args()
+    cfg = parser.instantiate_classes(cfg)
+    print(cfg.client)
+    print(cfg.client.url)
+    print(cfg.server.port)

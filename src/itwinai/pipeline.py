@@ -20,7 +20,7 @@ config file serialization, directly from CLI, with dynamic override of
 fields, as done with Lightning CLI.
 """
 from __future__ import annotations
-from typing import Iterable, Dict, Any, Tuple
+from typing import Iterable, Dict, Any, Tuple, Union
 import inspect
 from .components import BaseComponent, monitor_exec
 
@@ -28,21 +28,32 @@ from .components import BaseComponent, monitor_exec
 class Pipeline(BaseComponent):
     """Executes a set of components arranged as a pipeline."""
 
-    steps: Iterable[BaseComponent]
+    steps: Union[Dict[str, BaseComponent], Iterable[BaseComponent]]
     constructor_args: Dict
 
     def __init__(
         self,
-        steps: Iterable[BaseComponent],
+        steps: Union[Dict[str, BaseComponent], Iterable[BaseComponent]],
         **kwargs
     ):
         super().__init__(**kwargs)
         self.steps = steps
         self.constructor_args = kwargs
 
-    def __getitem__(self, subscript) -> Pipeline:
+    def __getitem__(self, subscript: Union[str, int, slice]) -> Pipeline:
         if isinstance(subscript, slice):
-            s = self.steps[subscript.start:subscript.stop: subscript.step]
+            # First, convert to list if is a dict
+            if isinstance(self.steps, dict):
+                steps = list(self.steps.items())
+            else:
+                steps = self.steps
+            # Second, perform slicing
+            s = steps[subscript.start:subscript.stop: subscript.step]
+            # Third, reconstruct dict, if it is a dict
+            if isinstance(self.steps, dict):
+                s = dict(s)
+            # Fourth, return sliced sub-pipeline, preserving its
+            # initial structure
             sliced = self.__class__(
                 steps=s,
                 name=self.name,
@@ -58,7 +69,12 @@ class Pipeline(BaseComponent):
     @monitor_exec
     def execute(self, *args) -> Any:
         """"Execute components sequentially."""
-        for step in self.steps:
+        if isinstance(self.steps, dict):
+            steps = list(self.steps.values())
+        else:
+            steps = self.steps
+
+        for step in steps:
             step: BaseComponent
             args = self._pack_args(args)
             self.validate_args(args, step)

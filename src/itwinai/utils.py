@@ -67,9 +67,25 @@ def dynamically_import_class(name: str) -> Type:
     Returns:
         __class__: class type.
     """
-    module, class_name = name.rsplit(".", 1)
-    mod = __import__(module, fromlist=[class_name])
-    klass = getattr(mod, class_name)
+    try:
+        module, class_name = name.rsplit(".", 1)
+        mod = __import__(module, fromlist=[class_name])
+        klass = getattr(mod, class_name)
+    except ModuleNotFoundError as err:
+        print(
+            f"Module not found when trying to dynamically import '{name}'. "
+            "Make sure that the module's file is reachable from your current "
+            "directory."
+        )
+        raise err
+    except Exception as err:
+        print(
+            f"Exception occurred when trying to dynamically import '{name}'. "
+            "Make sure that the module's file is reachable from your current "
+            "directory and that the class is present in that module."
+        )
+        raise err
+
     return klass
 
 
