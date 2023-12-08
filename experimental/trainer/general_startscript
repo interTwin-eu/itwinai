@@ -26,7 +26,7 @@ strategy='DS'
 # parameters
 debug=false # do debug
 bs=32       # batch-size
-epochs=4    # epochs
+epochs=1    # epochs
 lr=0.01     # learning rate
 
 # AT
@@ -68,13 +68,13 @@ if [ "$SLURM_CPUS_PER_TASK" > 0 ] ; then
   export OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK
 fi
     
-COMMAND="general_trainer.py"
+COMMAND="general_trainer_v2.py"
 
 #launch
 if [[ $strategy == *"HVD"* ]];
 then
     EXEC="$COMMAND \
-   --strat $strategy \
+   --strategy $strategy \
    --batch-size $bs \
    --epochs $epochs \
    --lr $lr \
@@ -133,4 +133,3 @@ else
      $EXEC --deepspeed_mpi --deepspeed_config DS_config.json
   
 fi
-
