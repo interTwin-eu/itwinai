@@ -160,7 +160,7 @@ class ConfigParser:
 
     def parse_step(
         self,
-        step_name: str,
+        step_idx: Union[str, int],
         pipeline_nested_key: str = "pipeline",
         verbose: bool = False
     ) -> BaseComponent:
@@ -168,10 +168,10 @@ class ConfigParser:
         for key in pipeline_nested_key.split('.'):
             pipeline_dict = pipeline_dict[key]
 
-        step_dict_config = pipeline_dict['init_args']['steps'][step_name]
+        step_dict_config = pipeline_dict['init_args']['steps'][step_idx]
 
         if verbose:
-            print(f"STEP '{step_name}' CONFIG:")
+            print(f"STEP '{step_idx}' CONFIG:")
             print(json.dumps(step_dict_config, indent=4))
 
         # Wrap config under "step" field and parse it

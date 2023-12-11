@@ -84,7 +84,7 @@ Example:
 
 
 from __future__ import annotations
-from typing import Any, Optional, Tuple, Union, Callable, Dict
+from typing import Any, Optional, Tuple, Union, Callable, Dict, List
 from abc import ABC, abstractmethod
 import time
 import functools
@@ -299,3 +299,70 @@ class Saver(BaseComponent):
         Returns:
             MLArtifact: the same input artifact, after saving it.
         """
+
+
+class Adapter(BaseComponent):
+    """Connects to components in a sequential pipeline, allowing to
+    control with greater detail how intermediate results are propagated
+    among the components.
+
+    Args:
+            policy (List[Any]): list of the same length of the output of this
+            component, describing how to map the input args to the output.
+            name (Optional[str], optional): name of the component.
+            Defaults to None.
+
+    The adapter allows to define a policy with which inputs are re-arranged
+    before being propagated to the next component.
+    Some examples: [policy]: (input) -> (output)
+    - ["INPUT_ARG#2", "INPUT_ARG#1", "INPUT_ARG#0"]: (11,22,33) -> (33,22,11)
+    - ["INPUT_ARG#0", "INPUT_ARG#2", None]: (11, 22, 33) -> (11, 33, None)
+    - []: (11, 22, 33) -> ()
+    - [42, "INPUT_ARG#2", "hello"] -> (11,22,33,44,55) -> (42, 33, "hello")
+    - [None, 33, 3.14]: () -> (None, 33, 3.14)
+    - [None, 33, 3.14]: ("double", 44, None, True) -> (None, 33, 3.14)
+    """
+
+    policy: List[Any]
+    INPUT_PREFIX: str = "INPUT_ARG#"
+
+    def __init__(self, policy: List[Any], name: Optional[str] = None) -> None:
+        super().__init__(name)
+        self.save_parameters(policy=policy)
+
+    @monitor_exec
+    def execute(self, *args) -> Tuple:
+        """Produces an output tuple by arranging input arguments according
+        to the policy specified in the constructor.
+
+        Args:
+            args (Tuple): input arguments.
+
+        Returns:
+            Tuple: input args arranged according to some policy.
+        """
+        result = []
+        for itm in self.policy:
+            if isinstance(itm, str) and itm.startswith(self.INPUT_PREFIX):
+                arg_idx = int(itm[len(self.INPUT_PREFIX):])
+                if arg_idx >= len(args):
+                    max_idx = max(map(
+                        lambda itm: int(itm[len(self.INPUT_PREFIX):]),
+                        filter(
+                            lambda el: (
+                                isinstance(el, str)
+                                and el.startswith(self.INPUT_PREFIX)
+                            ),
+                            self.policy
+                        )))
+                    raise IndexError(
+                        f"The args received as input by '{self.name}' "
+                        "are not consistent with the given adapter policy "
+                        "because input args are too few! "
+                        f"Input args are {len(args)} but the policy foresees "
+                        f"at least {max_idx+1} items."
+                    )
+                result.append(args[arg_idx])
+            else:
+                result.append(itm)
+        return tuple(result)

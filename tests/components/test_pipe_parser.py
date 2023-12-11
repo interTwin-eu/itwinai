@@ -3,6 +3,7 @@ import pytest
 
 from itwinai.components import BaseComponent
 from itwinai.parser import ConfigParser, add_replace_field
+from itwinai.tests import FakeTrainer, FakePreproc, FakeSaver
 
 
 def test_add_replace_field():
@@ -26,8 +27,6 @@ def test_add_replace_field():
         list=[3, 2, 3]
     ))
     assert conf == target4
-
-    print('-'*55)
 
     add_replace_field(conf, "some.list.0.some.el", 7)
     target5 = dict(some=dict(
@@ -142,3 +141,76 @@ def test_dynamic_override_parser_pipeline_list():
         pipeline_nested_key="my-list-pipeline"
     )
     assert pipe.steps[0].max_items == 42
+
+
+def test_parse_step_list_pipeline():
+    """Parse a pipeline step from config file,
+    where the pipeline is define as a list of components.
+    """
+    config = yaml.safe_load(pytest.PIPE_LIST_YAML)
+    parser = ConfigParser(config=config)
+    step = parser.parse_step(
+        step_idx=1,
+        pipeline_nested_key="my-list-pipeline"
+    )
+
+    assert isinstance(step, BaseComponent)
+    assert isinstance(step, FakeTrainer)
+
+    with pytest.raises(IndexError):
+        _ = parser.parse_step(
+            step_idx=12,
+            pipeline_nested_key="my-list-pipeline"
+        )
+    with pytest.raises(TypeError):
+        _ = parser.parse_step(
+            step_idx='my-step-name',
+            pipeline_nested_key="my-list-pipeline"
+        )
+
+
+def test_parse_step_dict_pipeline():
+    """Parse a pipeline step from config file,
+    where the pipeline is define as a dict of components.
+    """
+    config = yaml.safe_load(pytest.PIPE_DICT_YAML)
+    parser = ConfigParser(config=config)
+    step = parser.parse_step(
+        step_idx='preproc-step',
+        pipeline_nested_key="my-dict-pipeline"
+    )
+
+    assert isinstance(step, BaseComponent)
+    assert isinstance(step, FakePreproc)
+
+    with pytest.raises(KeyError):
+        _ = parser.parse_step(
+            step_idx='unk-step',
+            pipeline_nested_key="my-dict-pipeline"
+        )
+    with pytest.raises(KeyError):
+        _ = parser.parse_step(
+            step_idx=0,
+            pipeline_nested_key="my-dict-pipeline"
+        )
+
+
+def test_parse_step_nested_pipeline():
+    """Parse a pipeline step from config file,
+    where the pipeline is nested under some field.
+    """
+    config = yaml.safe_load(pytest.NESTED_PIPELINE)
+    parser = ConfigParser(config=config)
+    step = parser.parse_step(
+        step_idx=2,
+        pipeline_nested_key="some.field.nst-pipeline"
+    )
+
+    assert isinstance(step, BaseComponent)
+    assert isinstance(step, FakeSaver)
+
+    with pytest.raises(KeyError):
+        _ = parser.parse_step(
+            step_idx=2,
+            pipeline_nested_key="my-pipeline"
+        )
