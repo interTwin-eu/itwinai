@@ -2,7 +2,86 @@
 This module provides the base classes to define modular and reproducible ML
 workflows. The base component classes provide a template to follow for
 extending existing components or creating new ones.
+
+There are two ways of creating workflows: simple and advanced workflows.
+
+Simple workflows can be obtained by creating a sequence of components
+wrapped in a Pipeline object, which executes them in cascade, passing the
+output of a component as the input of the following one. It is responsibility
+of the user to prevent mismatches among outputs and inputs of component
+sequences. This pipeline can be configured
+both in terms of parameters and structure, with a configuration file
+representing the whole pipeline. This configuration file can be executed
+using itwinai CLI without the need of python files.
+
+Example:
+
+>>> from itwinai.components import DataGetter, Saver
+>>> from itwinai.pipeline import Pipeline
+>>>
+>>> my_pipe = Pipeline({"getter": DataGetter(...), "data_saver": Saver(...)})
+>>> my_pipe.execute()
+>>> my_pipe.to_yaml("training_pipe.yaml")
+>>>
+>>> # The pipeline can be parsed back to Python with:
+>>> from itwinai.parser import PipeParser
+>>> my_pipe = PipeParser("training_pipe.yaml")
+>>> my_pipe.execute()
+>>>
+>>> # Run the pipeline from configuration file with dynamic override
+>>> itwinai exec-pipeline --config training_pipe.yaml \
+>>> --override pipeline.init_args.steps.data_saver.some_param 42
+
+
+Advanced workflows foresee more complicated connections between the
+components and it is very difficult to define a structure beforehand
+without risking of over-constraining the user. Therefore, advanced
+workflows are defined by explicitly connecting component outputs to
+to the inputs of other components, without a wrapper Pipeline object.
+In this case, the configuration files enable the user to persist the
+parameters passed to the argument parser, enabling reuse through
+configuration files, with the possibility of dynamic overrides of parameters.
+
+Example:
+
+>>> from jsonargparse import ArgumentParser, ActionConfigFile
+>>>
+>>> parser = ArgumentParser(description='PyTorch MNIST Example')
+>>> parser.add_argument('--batch-size', type=int, default=64,
+>>>                     help='input batch size for training (default: 64)')
+>>> parser.add_argument('--epochs', type=int, default=10,
+>>>                     help='number of epochs to train (default: 10)')
+>>> parser.add_argument('--lr', type=float, default=0.01,
+>>>                     help='learning rate (default: 0.01)')
+>>> parser.add_argument(
+>>>     "-c", "--config", action=ActionConfigFile,
+>>>     required=True,
+>>>     help="Path to a configuration file in json or yaml format."
+>>> )
+>>> args = parser.parse_args()
+>>>
+>>> from itwinai.components import (
+>>>     DataGetter, Saver, DataSplitter, Trainer
+>>> )
+>>> getter = DataGetter(...)
+>>> splitter = DataSplitter(...)
+>>> data_saver = Saver(...)
+>>> model_saver = Saver(...)
+>>> trainer = Trainer(
+>>>     batch_size=args.batch_size, lr=args.lr, epochs=args.epochs
+>>> )
+>>>
+>>> # Compose workflow
+>>> my_dataset = getter.execute()
+>>> train_set, valid_set, test_set = splitter.execute(my_dataset)
+>>> data_saver.execute("train_dataset.pkl", test_set)
+>>> _, _, _, trained_model = trainer(train_set, valid_set)
+>>> model_saver.execute(trained_model)
+>>>
+>>> # Run the script using a previous configuration with dynamic override
+>>> python my_train.py --config training_pipe.yaml --lr 0.002
 """
+
 
 from __future__ import annotations
 from typing import Any, Optional, Tuple, Union, Callable

@@ -40,6 +40,14 @@ def add_replace_field(
     sub_config[k] = value
 
 
+class ConfigParser2:
+    ...
+
+
+class ItwinaiCLI2:
+    ...
+
+
 class ConfigParser:
     """Parses a configuration file, merging the steps into
     the pipeline and returning a pipeline object.
@@ -48,10 +56,26 @@ class ConfigParser:
 
     Example:
 
+    >>> # pipeline.yaml
+    >>> pipeline:
+    >>>   class_path: itwinai.pipeline.Pipeline
+    >>>   steps: [server, client]
+    >>>
+    >>> server:
+    >>>   class_path: mycode.ServerOptions
+    >>>   init_args:
+    >>>     host: localhost
+    >>>     port: 80
+    >>>
+    >>> client:
+    >>>   class_path: mycode.ClientOptions
+    >>>   init_args:
+    >>>     url: http://${server.init_args.host}:${server.init_args.port}/
+
     >>> from itwinai.parser import ConfigParser
     >>>
     >>> parser = ConfigParser(
-    >>>     config='itwinai-conf.yaml',
+    >>>     config='pipeline.yaml',
     >>>     override_keys={
     >>>         'server.init_args.port': 777
     >>>     }
