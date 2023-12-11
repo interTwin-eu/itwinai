@@ -84,15 +84,15 @@ Example:
 
 
 from __future__ import annotations
-from typing import Any, Optional, Tuple, Union, Callable
-from abc import ABCMeta, abstractmethod
+from typing import Any, Optional, Tuple, Union, Callable, Dict
+from abc import ABC, abstractmethod
 import time
 import functools
 # import logging
 # from logging import Logger as PythonLogger
 
 from .types import MLModel, MLDataset, MLArtifact
-from .serialization import ModelLoader
+from .serialization import ModelLoader, Serializable
 
 
 def monitor_exec(method: Callable) -> Callable:
@@ -122,7 +122,7 @@ def monitor_exec(method: Callable) -> Callable:
     return monitored_method
 
 
-class BaseComponent(metaclass=ABCMeta):
+class BaseComponent(ABC, Serializable):
     """Base component class. Each component provides a simple interface
     to foster modularity in machine learning code. Each component class
     implements the `execute` method, which received some input ML artifacts
@@ -134,16 +134,26 @@ class BaseComponent(metaclass=ABCMeta):
             name (Optional[str], optional): unique identifier for a step.
                 Defaults to None.
         """
-    name: str = 'unnamed'
+    _name: str = 'unnamed'
+    parameters: Dict[Any, Any] = None
 
     def __init__(
         self,
         name: Optional[str] = None,
         # logs_dir: Optional[str] = None,
         # debug: bool = False,
-        **kwargs
     ) -> None:
-        self.name = name if name is not None else self.__class__.__name__
+        self.save_parameters(name=name)
+
+    @property
+    def name(self) -> str:
+        return (
+            self._name if self._name is not None else self.__class__.__name__
+        )
+
+    @name.setter
+    def name(self, name: str) -> None:
+        self._name = name
 
     @abstractmethod
     @monitor_exec
@@ -221,9 +231,9 @@ class Predictor(BaseComponent):
         self,
         model: Union[MLModel, ModelLoader],
         name: Optional[str] = None,
-        **kwargs
     ) -> None:
-        super().__init__(name, **kwargs)
+        super().__init__(name=name)
+        self.save_parameters(model=model, name=name)
         self.model = model() if isinstance(model, ModelLoader) else model
 
     @abstractmethod

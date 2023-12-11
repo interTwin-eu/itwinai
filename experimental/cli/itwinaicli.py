@@ -4,7 +4,7 @@
 """
 
 
-from itwinai.parser import ConfigParser
+from itwinai.parser import ConfigParser2
 from itwinai.parser import ItwinaiCLI
 
 cli = ItwinaiCLI()
@@ -13,7 +13,7 @@ print(cli.pipeline.steps)
 print(cli.pipeline.steps['server'].port)
 
 
-parser = ConfigParser(
+parser = ConfigParser2(
     config='itwinai-conf.yaml',
     override_keys={
         'server.init_args.port': 777

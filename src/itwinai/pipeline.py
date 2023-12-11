@@ -20,7 +20,7 @@ config file serialization, directly from CLI, with dynamic override of
 fields, as done with Lightning CLI.
 """
 from __future__ import annotations
-from typing import Iterable, Dict, Any, Tuple, Union
+from typing import Iterable, Dict, Any, Tuple, Union, Optional
 import inspect
 from .components import BaseComponent, monitor_exec
 
@@ -29,16 +29,15 @@ class Pipeline(BaseComponent):
     """Executes a set of components arranged as a pipeline."""
 
     steps: Union[Dict[str, BaseComponent], Iterable[BaseComponent]]
-    constructor_args: Dict
 
     def __init__(
         self,
         steps: Union[Dict[str, BaseComponent], Iterable[BaseComponent]],
-        **kwargs
+        name: Optional[str] = None
     ):
-        super().__init__(**kwargs)
+        super().__init__(name=name)
+        self.save_parameters(steps=steps, name=name)
         self.steps = steps
-        self.constructor_args = kwargs
 
     def __getitem__(self, subscript: Union[str, int, slice]) -> Pipeline:
         if isinstance(subscript, slice):
@@ -56,8 +55,7 @@ class Pipeline(BaseComponent):
             # initial structure
             sliced = self.__class__(
                 steps=s,
-                name=self.name,
-                **self.constructor_args
+                name=self.name
             )
             return sliced
         else:
