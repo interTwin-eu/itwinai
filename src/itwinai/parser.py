@@ -21,7 +21,8 @@ def add_replace_field(
     value: Any
 ) -> None:
     """Replace or add (if not present) a field in a dictionary, following a
-    path of dot-separated keys. Inplace operation.
+    path of dot-separated keys. Adding is not supported for list items.
+    Inplace operation.
     Args:
         config (Dict): dictionary to be modified.
         key_chain (str): path of nested (dot-separated) keys to specify the
@@ -49,32 +50,6 @@ def add_replace_field(
     if isinstance(sub_config, (list, tuple)):
         k = int(k)
     sub_config[k] = value
-
-
-# def add_replace_field(
-#     config: Dict,
-#     key_chain: str,
-#     value: Any
-# ) -> None:
-#     """Replace or add (if not present) a field in a dictionary, following a
-#     path of dot-separated keys. Inplace operation.
-#     Args:
-#         config (Dict): dictionary to be modified.
-#         key_chain (str): path of nested (dot-separated) keys to specify the
-#         location
-#         of the new value (e.g., 'foo.bar.line' adds/overwrites the value
-#         located at config['foo']['bar']['line']).
-#         value (Any): the value to insert.
-#     """
-#     sub_config = config
-#     for idx, k in enumerate(key_chain.split('.')):
-#         if idx >= len(key_chain.split('.')) - 1:
-#             # Last key reached
-#             break
-#         if not isinstance(sub_config.get(k), dict):
-#             sub_config[k] = dict()
-#         sub_config = sub_config[k]
-#     sub_config[k] = value
 
 
 class ConfigParser:
