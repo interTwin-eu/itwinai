@@ -70,14 +70,14 @@ def test_arguments_mismatch():
         # Adapter(policy=[f"{Adapter.INPUT_PREFIX}-1"]),
         FakeSaverExec(save_path="my_model.pth")
     ])
-    # Too many arguments for saver
-    with pytest.raises(TypeError):
+    with pytest.raises(TypeError) as exc_info:
         _ = pipeline.execute()
+    assert "received too many input arguments" in str(exc_info.value)
 
     pipeline = Pipeline([
         FakeGetterExec(data_uri='http://...'),
         FakeTrainerExec(lr=1e-3, batch_size=32),
     ])
-    # Too few arguments for trainer
-    with pytest.raises(TypeError):
+    with pytest.raises(TypeError) as exc_info:
         _ = pipeline.execute()
+    assert "received too few input arguments" in str(exc_info.value)
