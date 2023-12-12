@@ -370,6 +370,9 @@ class Adapter(BaseComponent):
 
 class DataSplitter(BaseComponent):
     """Splits a dataset into train, validation, and test splits."""
+    train_proportion: float
+    validation_proportion: float
+    test_proportion: float
 
     def __init__(
         self,

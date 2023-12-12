@@ -1,0 +1,53 @@
+"""
+Here we show how to implement component interfaces in a simple way.
+"""
+from typing import List, Optional, Tuple
+from itwinai.components import (
+    DataGetter, DataSplitter, Trainer, monitor_exec
+)
+
+
+class MyDataGetter(DataGetter):
+    def __init__(self, data_size: int, name: Optional[str] = None) -> None:
+        super().__init__(name)
+        self.save_parameters(data_size=data_size)
+
+    @monitor_exec
+    def execute(self) -> List[int]:
+        """Return a list dataset.
+
+        Returns:
+            List[int]: dataset
+        """
+        return list(range(self.data_size))
+
+
+class MyDatasetSplitter(DataSplitter):
+    @monitor_exec
+    def execute(
+        self,
+        dataset: List[int]
+    ) -> Tuple[List[int], List[int], List[int]]:
+        train_n = int(len(dataset)*self.train_proportion)
+        valid_n = int(len(dataset)*self.validation_proportion)
+        train_set = dataset[:train_n]
+        vaild_set = dataset[train_n:train_n+valid_n]
+        test_set = dataset[train_n+valid_n:]
+        return train_set, vaild_set, test_set
+
+
+class MyTrainer(Trainer):
+    @monitor_exec
+    def execute(
+        self,
+        train_set: List[int],
+        vaild_set: List[int],
+        test_set: List[int]
+    ) -> Tuple[List[int], List[int], List[int], str]:
+        return train_set, vaild_set, test_set, "my_trained_model"
+
+    def save_state(self):
+        return super().save_state()
+
+    def load_state(self):
+        return super().load_state()

@@ -126,23 +126,25 @@ class Serializable:
                 "extend 'itwinai.serialization.Serializable' class."
             )
 
-    def to_json(self, file_path: Union[str, Path]) -> None:
+    def to_json(self, file_path: Union[str, Path], nested_key: str) -> None:
         """Save a component to JSON file.
 
         Args:
             file_path (Union[str, Path]): JSON file path.
+            nested_key (str): root field containing the serialized object.
         """
         with open(file_path, "w") as fp:
-            json.dump(self.to_dict(), fp)
+            json.dump({nested_key: self.to_dict()}, fp)
 
-    def to_yaml(self, file_path: Union[str, Path]) -> None:
+    def to_yaml(self, file_path: Union[str, Path], nested_key: str) -> None:
         """Save a component to YAML file.
 
         Args:
             file_path (Union[str, Path]): YAML file path.
+            nested_key (str): root field containing the serialized object.
         """
         with open(file_path, "w") as fp:
-            yaml.dump(self.to_dict(), fp)
+            yaml.dump({nested_key: self.to_dict()}, fp)
 
 
 class ModelLoader(abc.ABC, Serializable):
