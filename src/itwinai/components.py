@@ -449,6 +449,6 @@ class DataSplitter(BaseComponent):
             dataset (MLDataset): input dataset.
 
         Returns:
-            Tuple[MLDataset, MLDataset, MLDataset]: tuple of 
+            Tuple[MLDataset, MLDataset, MLDataset]: tuple of
             train, validation and test splits.
         """
