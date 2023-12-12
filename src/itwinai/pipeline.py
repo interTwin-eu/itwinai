@@ -21,8 +21,9 @@ fields, as done with Lightning CLI.
 """
 from __future__ import annotations
 from typing import Iterable, Dict, Any, Tuple, Union, Optional
-import inspect
+
 from .components import BaseComponent, monitor_exec
+from .utils import SignatureInspector
 
 
 class Pipeline(BaseComponent):
@@ -100,16 +101,18 @@ class Pipeline(BaseComponent):
         Raises:
             RuntimeError: in case of args mismatch.
         """
-        comp_params = inspect.signature(component.execute).parameters.items()
-        non_default_par = list(filter(
-            lambda p: p[0] != 'self' and p[1].default == inspect._empty,
-            comp_params
-        ))
-        non_default_par_names = list(map(lambda p: p[0], non_default_par))
-        if len(non_default_par) != len(input_args):
-            raise RuntimeError(
-                "Mismatch into the number of non-default parameters "
-                f"of execute method of '{component.name}' component "
-                f"({non_default_par_names}), and the number of arguments "
-                f"it received as input: {input_args}."
+        inspector = SignatureInspector(component.execute)
+        if inspector.min_params_num > len(input_args):
+            raise TypeError(
+                f"Component '{component.name}' received too few "
+                f"input arguments: {input_args}. Expected at least "
+                f"{inspector.min_params_num}, with names: "
+                f"{inspector.required_params}."
+            )
+        if (inspector.max_params_num != inspector.INFTY
+                and len(input_args) > inspector.max_params_num):
+            raise TypeError(
+                f"Component '{component.name}' received too many "
+                f"input arguments: {input_args}. Expected at most "
+                f"{inspector.max_params_num}."
             )

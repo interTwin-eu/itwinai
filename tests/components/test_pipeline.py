@@ -3,6 +3,9 @@ import pytest
 
 from itwinai.pipeline import Pipeline
 from itwinai.parser import ConfigParser
+from itwinai.tests import (
+    FakeGetterExec, FakeSplitterExec, FakeTrainerExec, FakeSaverExec
+)
 
 
 def test_slice_into_sub_pipelines():
@@ -56,3 +59,25 @@ def test_serialization_pipe_dict():
     del dict_pipe['init_args']['name']
     dict_pipe = {"my-dict-pipeline": dict_pipe}
     assert dict_pipe == config
+
+
+def test_arguments_mismatch():
+    """Test mismatch of arguments passed among components in a pipeline."""
+    pipeline = Pipeline([
+        FakeGetterExec(data_uri='http://...'),
+        FakeSplitterExec(train_prop=.7),
+        FakeTrainerExec(lr=1e-3, batch_size=32),
+        # Adapter(policy=[f"{Adapter.INPUT_PREFIX}-1"]),
+        FakeSaverExec(save_path="my_model.pth")
+    ])
+    # Too many arguments for saver
+    with pytest.raises(TypeError):
+        _ = pipeline.execute()
+
+    pipeline = Pipeline([
+        FakeGetterExec(data_uri='http://...'),
+        FakeTrainerExec(lr=1e-3, batch_size=32),
+    ])
+    # Too few arguments for trainer
+    with pytest.raises(TypeError):
+        _ = pipeline.execute()

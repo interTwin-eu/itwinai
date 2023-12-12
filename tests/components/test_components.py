@@ -1,6 +1,10 @@
 import pytest
 
 from itwinai.components import Adapter
+from itwinai.pipeline import Pipeline
+from itwinai.tests import (
+    FakeGetterExec, FakeSplitterExec, FakeTrainerExec, FakeSaverExec
+)
 
 
 def test_adapter():
@@ -55,3 +59,19 @@ def test_adapter():
     )
     result = adapter.execute(*tuple(range(100)))
     assert result == ()
+
+
+@pytest.mark.integration
+def test_adapter_integration_pipeline():
+    """Test integration of Adapter component in the pipeline,
+    connecting other components.
+    """
+    pipeline = Pipeline([
+        FakeGetterExec(data_uri='http://...'),
+        FakeSplitterExec(train_prop=.7),
+        FakeTrainerExec(lr=1e-3, batch_size=32),
+        Adapter(policy=[f"{Adapter.INPUT_PREFIX}-1"]),
+        FakeSaverExec(save_path="my_model.pth")
+    ])
+    saved_model = pipeline.execute()
+    assert saved_model == FakeTrainerExec.model

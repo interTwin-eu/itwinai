@@ -1,5 +1,41 @@
 from typing import Optional
-from ..components import BaseComponent
+from ..components import BaseComponent, monitor_exec
+
+
+class FakeGetter(BaseComponent):
+    def __init__(self, data_uri: str, name: Optional[str] = None
+                 ) -> None:
+        super().__init__(name)
+        self.save_parameters(data_uri=data_uri, name=name)
+
+    def execute(self):
+        ...
+
+
+class FakeGetterExec(FakeGetter):
+    result: str = "dataset"
+
+    @monitor_exec
+    def execute(self):
+        return self.result
+
+
+class FakeSplitter(BaseComponent):
+    def __init__(self, train_prop: float, name: Optional[str] = None
+                 ) -> None:
+        super().__init__(name)
+        self.save_parameters(train_prop=train_prop, name=name)
+
+    def execute(self):
+        ...
+
+
+class FakeSplitterExec(FakeSplitter):
+    result: tuple = ("train_dataset", "val_dataset", "test_dataset")
+
+    @monitor_exec
+    def execute(self, dataset):
+        return self.result
 
 
 class FakePreproc(BaseComponent):
@@ -12,6 +48,12 @@ class FakePreproc(BaseComponent):
         ...
 
 
+class FakePreprocExec(FakePreproc):
+    @monitor_exec
+    def execute(self, train_dataset, val_dataset, test_dataset):
+        return train_dataset, val_dataset, test_dataset
+
+
 class FakeTrainer(BaseComponent):
     def __init__(self, lr: float, batch_size: int, name: Optional[str] = None
                  ) -> None:
@@ -22,6 +64,14 @@ class FakeTrainer(BaseComponent):
         ...
 
 
+class FakeTrainerExec(FakeTrainer):
+    model: str = "trained_model"
+
+    @monitor_exec
+    def execute(self, train_dataset, val_dataset, test_dataset):
+        return train_dataset, val_dataset, test_dataset, self.model
+
+
 class FakeSaver(BaseComponent):
     def __init__(self, save_path: str, name: Optional[str] = None) -> None:
         super().__init__(name)
@@ -29,3 +79,9 @@ class FakeSaver(BaseComponent):
 
     def execute(self):
         ...
+
+
+class FakeSaverExec(FakeSaver):
+    @monitor_exec
+    def execute(self, artifact):
+        return artifact

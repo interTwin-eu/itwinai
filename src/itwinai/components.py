@@ -327,8 +327,8 @@ class Adapter(BaseComponent):
     INPUT_PREFIX: str = "INPUT_ARG#"
 
     def __init__(self, policy: List[Any], name: Optional[str] = None) -> None:
-        super().__init__(name)
-        self.save_parameters(policy=policy)
+        super().__init__(name=name)
+        self.save_parameters(policy=policy, name=name)
 
     @monitor_exec
     def execute(self, *args) -> Tuple:
@@ -366,3 +366,38 @@ class Adapter(BaseComponent):
             else:
                 result.append(itm)
         return tuple(result)
+
+
+class DataSplitter(BaseComponent):
+    """Splits a dataset into train, validation, and test splits."""
+
+    def __init__(
+        self,
+        train_proportion: float,
+        validation_proportion: float,
+        test_proportion: float,
+        name: Optional[str] = None
+    ) -> None:
+        super().__init__(name)
+        self.save_parameters(
+            train_proportion=train_proportion,
+            validation_proportion=validation_proportion,
+            test_proportion=test_proportion,
+            name=name
+        )
+
+    @abstractmethod
+    @monitor_exec
+    def execute(
+        self,
+        dataset: MLDataset
+    ) -> Tuple[MLDataset, MLDataset, MLDataset]:
+        """Splits a dataset into train, validation and test splits.
+
+        Args:
+            dataset (MLDataset): input dataset.
+
+        Returns:
+            Tuple[MLDataset, MLDataset, MLDataset]: tuple of 
+            train, validation and test splits.
+        """
