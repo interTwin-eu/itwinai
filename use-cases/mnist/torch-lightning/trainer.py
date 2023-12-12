@@ -11,7 +11,7 @@ from utils import load_yaml
 class LightningMNISTTrainer(Trainer):
     def __init__(self, config: Union[Dict, str]):
         super().__init__()
-        self.save_parameters(**locals())
+        self.save_parameters(**self.locals2params(locals()))
         if isinstance(config, str) and os.path.isfile(config):
             # Load from YAML
             config = load_yaml(config)

@@ -19,7 +19,7 @@ from dataloader import ParticlesDataModule
 
 class Lightning3DGANTrainer(Trainer):
     def __init__(self, config: Union[Dict, str]):
-        self.save_parameters(**locals())
+        self.save_parameters(**self.locals2params(locals()))
         super().__init__()
         if isinstance(config, str) and os.path.isfile(config):
             # Load from YAML
@@ -88,7 +88,7 @@ class Lightning3DGANPredictor(Predictor):
         config: Union[Dict, str],
         name: Optional[str] = None
     ):
-        self.save_parameters(**locals())
+        self.save_parameters(**self.locals2params(locals()))
         super().__init__(model, name)
         if isinstance(config, str) and os.path.isfile(config):
             # Load from YAML

@@ -15,7 +15,7 @@ class LightningMNISTDownloader(DataGetter):
         name: Optional[str] = None
     ) -> None:
         super().__init__(name)
-        self.save_parameters(**locals())
+        self.save_parameters(**self.locals2params(locals()))
         self.data_path = data_path
         self._downloader = MNISTDataModule(
             data_path=self.data_path, download=True,

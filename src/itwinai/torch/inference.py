@@ -93,7 +93,7 @@ class TorchPredictor(Predictor):
         name: str = None
     ) -> None:
         super().__init__(model=model, name=name)
-        self.save_parameters(**locals())
+        self.save_parameters(**self.locals2params(locals()))
         self.model = self.model.eval()
         # self.seed = seed
         # self.strategy = strategy

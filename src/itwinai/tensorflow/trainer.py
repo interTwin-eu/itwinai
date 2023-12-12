@@ -38,11 +38,7 @@ class TensorflowTrainer(Trainer):
             strategy
     ):
         super().__init__()
-        self.save_parameters(
-            strategy=strategy, epochs=epochs, batch_size=batch_size,
-            callbacks=callbacks, model_dict=model_dict,
-            compile_conf=compile_conf, strategy=strategy
-        )
+        self.save_parameters(**self.locals2params(locals()))
         self.strategy = strategy
         self.epochs = epochs
         self.batch_size = batch_size

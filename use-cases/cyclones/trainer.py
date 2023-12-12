@@ -29,6 +29,7 @@ class TensorflowTrainer(Trainer):
         cores: int = None,
     ):
         super().__init__()
+        self.save_parameters(**self.locals2params(locals()))
         # Configurable
         self.cores = cores
         self.model_backup = model_backup
@@ -43,7 +44,7 @@ class TensorflowTrainer(Trainer):
         # Optimizers, Losses
         self.optimizer = keras.optimizers.Adam(learning_rate=learning_rate)
 
-    def train(self, train_data, validation_data):
+    def execute(self, train_data, validation_data):
         train_dataset, n_train = train_data
         valid_dataset, n_valid = validation_data
 
@@ -102,16 +103,6 @@ class TensorflowTrainer(Trainer):
         # save the best model
         model.save(self.last_model_name)
         logging.debug("Saved training history")
-
-    def execute(
-        self,
-        train_dataset,
-        validation_dataset,
-        config: Optional[Dict] = None,
-    ) -> Tuple[Optional[Tuple], Optional[Dict]]:
-        config = self.setup_config(config)
-        train_result = self.train(train_dataset, validation_dataset)
-        return (train_result,), config
 
     def setup_config(self, config: Optional[Dict] = None) -> Dict:
         config = config if config is not None else {}

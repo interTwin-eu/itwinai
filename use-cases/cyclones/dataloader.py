@@ -43,6 +43,7 @@ class TensorflowDataGetter(DataGetter):
         data_path: str = "tmp_data"
     ):
         super().__init__()
+        self.save_parameters(**self.locals2params(locals()))
         self.batch_size = batch_size
         self.split_ratio = split_ratio
         self.epochs = epochs

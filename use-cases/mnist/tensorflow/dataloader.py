@@ -8,7 +8,7 @@ from itwinai.components import DataGetter, DataPreproc, monitor_exec
 class MNISTDataGetter(DataGetter):
     def __init__(self):
         super().__init__()
-        self.save_parameters(**locals())
+        self.save_parameters(**self.locals2params(locals()))
 
     @monitor_exec
     def execute(self) -> Tuple:
@@ -19,7 +19,7 @@ class MNISTDataGetter(DataGetter):
 class MNISTDataPreproc(DataPreproc):
     def __init__(self, classes: int):
         super().__init__()
-        self.save_parameters(**locals())
+        self.save_parameters(**self.locals2params(locals()))
         self.classes = classes
 
     @monitor_exec

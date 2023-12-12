@@ -17,7 +17,7 @@ class ParticleImagesSaver(Saver):
         self,
         save_dir: str = '3dgan-generated'
     ) -> None:
-        self.save_parameters(**locals())
+        self.save_parameters(**self.locals2params(locals()))
         super().__init__()
         self.save_dir = save_dir
 

@@ -44,6 +44,23 @@ class Serializable:
         # for k, v in kwargs.items():
         #     self.__setattr__(k, v)
 
+    @staticmethod
+    def locals2params(locals: Dict, pop_self: bool = True) -> Dict:
+        """Remove ``self`` from the output of ``locals()``.
+
+        Args:
+            locals (Dict): output of ``locals()`` called in the constructor
+            of a class.
+            pop_self (bool, optional): whether to remove ``self``.
+            Defaults to True.
+
+        Returns:
+            Dict: cleaned ``locals()``.
+        """
+        if pop_self:
+            locals.pop('self', None)
+        return locals
+
     def update_parameters(self, **kwargs) -> None:
         """Updates stored parameters."""
         self.save_parameters(**kwargs)

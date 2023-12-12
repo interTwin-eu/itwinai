@@ -20,7 +20,7 @@ class Lightning3DGANDownloader(DataGetter):
         data_url: Optional[str] = None,
         name: Optional[str] = None,
     ) -> None:
-        self.save_parameters(**locals())
+        self.save_parameters(**self.locals2params(locals()))
         super().__init__(name)
         self.data_path = data_path
         self.data_url = data_url

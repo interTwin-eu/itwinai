@@ -7,6 +7,7 @@ class FakeGetter(BaseComponent):
                  ) -> None:
         super().__init__(name)
         self.save_parameters(data_uri=data_uri, name=name)
+        self.data_uri = data_uri
 
     def execute(self):
         ...
@@ -25,6 +26,7 @@ class FakeSplitter(BaseComponent):
                  ) -> None:
         super().__init__(name)
         self.save_parameters(train_prop=train_prop, name=name)
+        self.train_prop = train_prop
 
     def execute(self):
         ...
@@ -43,6 +45,7 @@ class FakePreproc(BaseComponent):
                  ) -> None:
         super().__init__(name)
         self.save_parameters(max_items=max_items, name=name)
+        self.max_items = max_items
 
     def execute(self):
         ...
@@ -59,6 +62,8 @@ class FakeTrainer(BaseComponent):
                  ) -> None:
         super().__init__(name)
         self.save_parameters(lr=lr, batch_size=batch_size, name=name)
+        self.lr = lr
+        self.batch_size = batch_size
 
     def execute(self):
         ...
@@ -76,6 +81,7 @@ class FakeSaver(BaseComponent):
     def __init__(self, save_path: str, name: Optional[str] = None) -> None:
         super().__init__(name)
         self.save_parameters(save_path=save_path, name=name)
+        self.save_path = save_path
 
     def execute(self):
         ...

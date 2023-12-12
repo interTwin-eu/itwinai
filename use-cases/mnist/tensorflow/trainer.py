@@ -28,7 +28,7 @@ class MNISTTrainer(TensorflowTrainer):
             compile_conf=dict(loss=loss, optimizer=optimizer),
             strategy=strategy
         )
-        self.save_parameters(**locals())
+        self.save_parameters(**self.locals2params(locals()))
         print(f'STRATEGY: {strategy}')
         self.logger = logger if logger is not None else []
 

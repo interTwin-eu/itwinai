@@ -134,7 +134,7 @@ class BaseComponent(ABC, Serializable):
             name (Optional[str], optional): unique identifier for a step.
                 Defaults to None.
         """
-    _name: str = 'unnamed'
+    _name: str = None
     parameters: Dict[Any, Any] = None
 
     def __init__(
@@ -144,6 +144,7 @@ class BaseComponent(ABC, Serializable):
         # debug: bool = False,
     ) -> None:
         self.save_parameters(name=name)
+        self.name = name
 
     @property
     def name(self) -> str:
@@ -329,6 +330,8 @@ class Adapter(BaseComponent):
     def __init__(self, policy: List[Any], name: Optional[str] = None) -> None:
         super().__init__(name=name)
         self.save_parameters(policy=policy, name=name)
+        self.name = name
+        self.policy = policy
 
     @monitor_exec
     def execute(self, *args) -> Tuple:
@@ -370,15 +373,15 @@ class Adapter(BaseComponent):
 
 class DataSplitter(BaseComponent):
     """Splits a dataset into train, validation, and test splits."""
-    train_proportion: float
-    validation_proportion: float
-    test_proportion: float
+    _train_proportion: Union[int, float]
+    _validation_proportion: Union[int, float]
+    _test_proportion: Union[int, float]
 
     def __init__(
         self,
-        train_proportion: float,
-        validation_proportion: float,
-        test_proportion: float,
+        train_proportion: Union[int, float],
+        validation_proportion: Union[int, float],
+        test_proportion: Union[int, float],
         name: Optional[str] = None
     ) -> None:
         super().__init__(name)
@@ -388,6 +391,51 @@ class DataSplitter(BaseComponent):
             test_proportion=test_proportion,
             name=name
         )
+        self.train_proportion = train_proportion
+        self.validation_proportion = validation_proportion
+        self.test_proportion = test_proportion
+
+    @property
+    def train_proportion(self) -> Union[int, float]:
+        """Training set proportion."""
+        return self._train_proportion
+
+    @train_proportion.setter
+    def train_proportion(self, prop: Union[int, float]) -> None:
+        if isinstance(prop, float) and not 0.0 <= prop <= 1.0:
+            raise ValueError(
+                "Train proportion should be in the interval [0.0, 1.0] "
+                f"if given as float. Received {prop}"
+            )
+        self._train_proportion = prop
+
+    @property
+    def validation_proportion(self) -> Union[int, float]:
+        """Validation set proportion."""
+        return self._validation_proportion
+
+    @validation_proportion.setter
+    def validation_proportion(self, prop: Union[int, float]) -> None:
+        if isinstance(prop, float) and not 0.0 <= prop <= 1.0:
+            raise ValueError(
+                "Validation proportion should be in the interval [0.0, 1.0] "
+                f"if given as float. Received {prop}"
+            )
+        self._validation_proportion = prop
+
+    @property
+    def test_proportion(self) -> Union[int, float]:
+        """Test set proportion."""
+        return self._ttest_proportion
+
+    @test_proportion.setter
+    def test_proportion(self, prop: Union[int, float]) -> None:
+        if isinstance(prop, float) and not 0.0 <= prop <= 1.0:
+            raise ValueError(
+                "Test proportion should be in the interval [0.0, 1.0] "
+                f"if given as float. Received {prop}"
+            )
+        self._test_proportion = prop
 
     @abstractmethod
     @monitor_exec
