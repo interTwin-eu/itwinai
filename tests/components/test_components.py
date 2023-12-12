@@ -1,6 +1,7 @@
+from typing import Optional
 import pytest
 
-from itwinai.components import Adapter
+from itwinai.components import Trainer, Adapter
 from itwinai.pipeline import Pipeline
 from itwinai.tests import (
     FakeGetterExec, FakeSplitterExec, FakeTrainerExec, FakeSaverExec
@@ -64,8 +65,26 @@ def test_serializable():
         ...
 
     comp = FakeGetterExec(data_uri=NonSerializable())
-    with pytest.raises(SerializationError):
+    with pytest.raises(SerializationError) as exc_info:
         dict_serializ = comp.to_dict()
+    assert ("is not a Python built-in type and it does not extend"
+            in str(exc_info.value))
+
+    # Local component class
+    class MyTrainer(Trainer):
+        def execute(self):
+            ...
+
+        def save_state(self):
+            ...
+
+        def load_state(self):
+            ...
+    comp = MyTrainer()
+    with pytest.raises(SerializationError) as exc_info:
+        dict_serializ = comp.to_dict()
+    assert ("is defined locally, which is not supported for serialization."
+            in str(exc_info.value))
 
 
 def test_adapter():

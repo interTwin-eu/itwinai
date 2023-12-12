@@ -51,7 +51,7 @@ class Serializable:
     def to_dict(self) -> Dict:
         """Returns a dict serialization of the current object."""
         self._validate_parameters()
-        class_path = fullname(self)
+        class_path = self._get_class_path()
         init_args = dict()
         for par_name, par in self._saved_constructor_parameters().items():
             init_args[par_name] = self._recursive_serialization(par, par_name)
@@ -78,6 +78,17 @@ class Serializable:
                     "..., param_n=param_n)' as first instruction of its "
                     f"constructor, including also '{par_name}'."
                 )
+
+    def _get_class_path(self) -> str:
+        class_path = fullname(self)
+        if "<locals>" in class_path:
+            raise SerializationError(
+                f"{self.__class__.__name__} is "
+                "defined locally, which is not supported for serialization. "
+                "Move the class to a separate Python file and import it "
+                "from there."
+            )
+        return class_path
 
     def _saved_constructor_parameters(self) -> Dict[str, Any]:
         """Extracts the current constructor parameters from all
