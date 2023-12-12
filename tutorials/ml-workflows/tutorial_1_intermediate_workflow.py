@@ -30,53 +30,69 @@ of nested key notation. Also list indices are supported:
 import subprocess
 from itwinai.pipeline import Pipeline
 from itwinai.parser import ConfigParser
+from itwinai.components import Adapter
 
-from basic_components import MyDataGetter, MyDatasetSplitter, MyTrainer
-
-pipeline = Pipeline([
-    MyDataGetter(data_size=100),
-    MyDatasetSplitter(
-        train_proportion=.5, validation_proportion=.25, test_proportion=0.25
-    ),
-    MyTrainer()
-])
-
-# Run pipeline
-_, _, _, trained_model = pipeline.execute()
-print("Trained model: ", trained_model)
-print("\n" + "="*50 + "\n")
-
-# Serialize pipeline to YAML
-pipeline.to_yaml("basic_pipeline_example.yaml", "pipeline")
-
-# Below, we show how to run a pre-existing pipeline stored as
-# a configuration file, with the possibility of dynamically
-# override some fields
-
-# Load pipeline from saved YAML (dynamic serialization)
-parser = ConfigParser(
-    config="basic_pipeline_example.yaml",
-    override_keys={
-        "pipeline.init_args.steps.0.init_args.data_size": 200
-    }
+from basic_components import (
+    MyDataGetter, MyDatasetSplitter, MyTrainer, MySaver
 )
-pipeline = parser.parse_pipeline()
-print(f"MyDataGetter's data_size is now: {pipeline.steps[0].data_size}\n")
 
-# Run parsed pipeline, with new data_size for MyDataGetter
-_, _, _, trained_model = pipeline.execute()
-print("Trained model (2): ", trained_model)
+if __name__ == "__main__":
 
-# Save new pipeline to YAML file
-pipeline.to_yaml("basic_pipeline_example_v2.yaml", "pipeline")
+    # In this pipeline, the MyTrainer produces 4 elements as output: train,
+    # validation, test datasets, and trained model. The Adapter selects the
+    # trained model only, and forwards it to the saver, which expects a single
+    # item as input.
+    pipeline = Pipeline([
+        MyDataGetter(data_size=100),
+        MyDatasetSplitter(
+            train_proportion=.5,
+            validation_proportion=.25,
+            test_proportion=0.25
+        ),
+        MyTrainer(),
+        Adapter(policy=[f"{Adapter.INPUT_PREFIX}-1"]),
+        MySaver()
+    ])
 
-print("\n" + "="*50 + "\n")
+    # Run pipeline
+    trained_model = pipeline.execute()
+    print("Trained model: ", trained_model)
+    print("\n" + "="*50 + "\n")
 
-# Emulate pipeline execution from CLI, with dynamic override of
-# pipeline configuration fields
-subprocess.run(
-    ["itwinai", "exec-pipeline", "--config", "basic_pipeline_example_v2.yaml",
-     "--override", "pipeline.init_args.steps.0.init_args.data_size=300",
-     "--override", "pipeline.init_args.steps.1.init_args.train_proportion=0.4"
-     ]
-)
+    # Serialize pipeline to YAML
+    pipeline.to_yaml("basic_pipeline_example.yaml", "pipeline")
+
+    # Below, we show how to run a pre-existing pipeline stored as
+    # a configuration file, with the possibility of dynamically
+    # override some fields
+
+    # Load pipeline from saved YAML (dynamic serialization)
+    parser = ConfigParser(
+        config="basic_pipeline_example.yaml",
+        override_keys={
+            "pipeline.init_args.steps.0.init_args.data_size": 200
+        }
+    )
+    pipeline = parser.parse_pipeline()
+    print(f"MyDataGetter's data_size is now: {pipeline.steps[0].data_size}\n")
+
+    # Run parsed pipeline, with new data_size for MyDataGetter
+    trained_model = pipeline.execute()
+    print("Trained model (2): ", trained_model)
+
+    # Save new pipeline to YAML file
+    pipeline.to_yaml("basic_pipeline_example_v2.yaml", "pipeline")
+
+    print("\n" + "="*50 + "\n")
+
+    # Emulate pipeline execution from CLI, with dynamic override of
+    # pipeline configuration fields
+    subprocess.run(
+        ["itwinai", "exec-pipeline", "--config",
+         "basic_pipeline_example_v2.yaml",
+         "--override",
+         "pipeline.init_args.steps.0.init_args.data_size=300",
+         "--override",
+         "pipeline.init_args.steps.1.init_args.train_proportion=0.4"
+         ]
+    )

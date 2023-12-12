@@ -1,9 +1,9 @@
 """
 Here we show how to implement component interfaces in a simple way.
 """
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, Any
 from itwinai.components import (
-    DataGetter, DataSplitter, Trainer, monitor_exec
+    DataGetter, DataSplitter, Trainer, Saver, monitor_exec
 )
 
 
@@ -46,6 +46,10 @@ class MyDatasetSplitter(DataSplitter):
 
 
 class MyTrainer(Trainer):
+    def __init__(self, lr: float = 1e-3, name: Optional[str] = None) -> None:
+        super().__init__(name)
+        self.save_parameters(name=name, lr=lr)
+
     @monitor_exec
     def execute(
         self,
@@ -71,3 +75,17 @@ class MyTrainer(Trainer):
 
     def load_state(self):
         return super().load_state()
+
+
+class MySaver(Saver):
+    @monitor_exec
+    def execute(self, artifact: Any) -> Any:
+        """Saves an artifact to disk.
+
+        Args:
+            artifact (Any): artifact to save (e.g., dataset, model).
+
+        Returns:
+            Any: input artifact.
+        """
+        return artifact

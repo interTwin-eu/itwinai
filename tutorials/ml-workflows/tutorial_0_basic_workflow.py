@@ -28,39 +28,44 @@ from itwinai.pipeline import Pipeline
 # Import the custom components from file
 from basic_components import MyDataGetter, MyDatasetSplitter, MyTrainer
 
-# Assemble them in a scikit-learn like pipeline
-pipeline = Pipeline([
-    MyDataGetter(data_size=100),
-    MyDatasetSplitter(
-        train_proportion=.5, validation_proportion=.25, test_proportion=0.25
-    ),
-    MyTrainer()
-])
+if __name__ == "__main__":
+    # Assemble them in a scikit-learn like pipeline
+    pipeline = Pipeline([
+        MyDataGetter(data_size=100),
+        MyDatasetSplitter(
+            train_proportion=.5,
+            validation_proportion=.25,
+            test_proportion=0.25
+        ),
+        MyTrainer()
+    ])
 
-# Inspect steps
-print(pipeline[0])
-print(pipeline[2].name)
-print(pipeline[1].train_proportion)
+    # Inspect steps
+    print(pipeline[0])
+    print(pipeline[2].name)
+    print(pipeline[1].train_proportion)
 
-# Run pipeline
-_, _, _, trained_model = pipeline.execute()
-print("Trained model: ", trained_model)
+    # Run pipeline
+    _, _, _, trained_model = pipeline.execute()
+    print("Trained model: ", trained_model)
 
-# You can also create a Pipeline from a dict of components, which simplifies
-# their retrieval by name
-pipeline = Pipeline({
-    "datagetter": MyDataGetter(data_size=100),
-    "splitter": MyDatasetSplitter(
-        train_proportion=.5, validation_proportion=.25, test_proportion=0.25
-    ),
-    "trainer": MyTrainer()
-})
+    # You can also create a Pipeline from a dict of components, which
+    # simplifies their retrieval by name
+    pipeline = Pipeline({
+        "datagetter": MyDataGetter(data_size=100),
+        "splitter": MyDatasetSplitter(
+            train_proportion=.5,
+            validation_proportion=.25,
+            test_proportion=0.25
+        ),
+        "trainer": MyTrainer()
+    })
 
-# Inspect steps
-print(pipeline["datagetter"])
-print(pipeline["trainer"].name)
-print(pipeline["splitter"].train_proportion)
+    # Inspect steps
+    print(pipeline["datagetter"])
+    print(pipeline["trainer"].name)
+    print(pipeline["splitter"].train_proportion)
 
-# Run pipeline
-_, _, _, trained_model = pipeline.execute()
-print("Trained model: ", trained_model)
+    # Run pipeline
+    _, _, _, trained_model = pipeline.execute()
+    print("Trained model: ", trained_model)

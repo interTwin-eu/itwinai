@@ -16,3 +16,11 @@ pipeline:
     - class_path: basic_components.MyTrainer
       init_args:
         name: null
+    - class_path: itwinai.components.Adapter
+      init_args:
+        name: null
+        policy:
+        - INPUT_ARG#-1
+    - class_path: basic_components.MySaver
+      init_args:
+        name: null
