@@ -1,4 +1,4 @@
-from typing import Optional, Tuple, Dict
+from typing import Optional
 import os
 from lightning.pytorch.utilities.types import EVAL_DATALOADERS
 
@@ -10,21 +10,23 @@ import glob
 import h5py
 import gdown
 
-from itwinai.components import DataGetter
+from itwinai.components import DataGetter, monitor_exec
 
 
 class Lightning3DGANDownloader(DataGetter):
     def __init__(
-            self,
-            data_path: str,
-            data_url: Optional[str] = None,
-            name: Optional[str] = None,
-            **kwargs) -> None:
-        super().__init__(name, **kwargs)
+        self,
+        data_path: str,
+        data_url: Optional[str] = None,
+        name: Optional[str] = None,
+    ) -> None:
+        self.save_parameters(**locals())
+        super().__init__(name)
         self.data_path = data_path
         self.data_url = data_url
 
-    def load(self):
+    @monitor_exec
+    def execute(self):
         # Download data
         if not os.path.exists(self.data_path):
             if self.data_url is None:
@@ -35,13 +37,6 @@ class Lightning3DGANDownloader(DataGetter):
                 url=self.data_url, quiet=False,
                 output=self.data_path
             )
-
-    def execute(
-        self,
-        config: Optional[Dict] = None
-    ) -> Tuple[None, Optional[Dict]]:
-        self.load()
-        return None, config
 
 
 class ParticlesDataset(Dataset):

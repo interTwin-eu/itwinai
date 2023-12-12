@@ -16,6 +16,7 @@ class MNISTDataModuleTorch(DataGetter):
 
     def __init__(self, save_path: str = '.tmp/',) -> None:
         super().__init__()
+        self.save_parameters(**locals())
         self.save_path = save_path
 
     @monitor_exec
@@ -106,6 +107,7 @@ class InferenceMNIST(Dataset):
 class MNISTPredictLoader(DataGetter):
     def __init__(self, test_data_path: str) -> None:
         super().__init__()
+        self.save_parameters(**locals())
         self.test_data_path = test_data_path
 
     @monitor_exec

@@ -205,6 +205,7 @@ class TorchTrainerMG(Trainer, LogMixin):
         Makes the model a DDP model.
         """
         super().__init__()
+        self.save_parameters(**locals())
         self.model = model
         self.loss = loss
         self.epochs = epochs

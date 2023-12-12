@@ -1,31 +1,32 @@
-from typing import Optional, Dict, Tuple
+from typing import Tuple
 import tensorflow.keras as keras
 import tensorflow as tf
 
-from itwinai.components import DataGetter, DataPreproc
+from itwinai.components import DataGetter, DataPreproc, monitor_exec
 
 
 class MNISTDataGetter(DataGetter):
     def __init__(self):
         super().__init__()
+        self.save_parameters(**locals())
 
-    def load(self):
-        return keras.datasets.mnist.load_data()
-
-    def execute(
-        self,
-        config: Optional[Dict] = None
-    ) -> Tuple[Optional[Tuple], Optional[Dict]]:
-        train, test = self.load()
-        return ([train, test],), config
+    @monitor_exec
+    def execute(self) -> Tuple:
+        train, test = keras.datasets.mnist.load_data()
+        return train, test
 
 
 class MNISTDataPreproc(DataPreproc):
     def __init__(self, classes: int):
         super().__init__()
+        self.save_parameters(**locals())
         self.classes = classes
 
-    def preproc(self, datasets) -> Tuple:
+    @monitor_exec
+    def execute(
+        self,
+        *datasets,
+    ) -> Tuple:
         options = tf.data.Options()
         options.experimental_distribute.auto_shard_policy = (
             tf.data.experimental.AutoShardPolicy.FILE)
@@ -37,10 +38,3 @@ class MNISTDataPreproc(DataPreproc):
             sliced = sliced.with_options(options)
             preprocessed.append(sliced)
         return tuple(preprocessed)
-
-    def execute(
-        self,
-        datasets,
-        config: Optional[Dict] = None
-    ) -> Tuple[Optional[Tuple], Optional[Dict]]:
-        return self.preproc(datasets), config

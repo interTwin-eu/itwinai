@@ -20,6 +20,7 @@ class TorchMNISTLabelSaver(Saver):
         class_labels: Optional[List] = None
     ) -> None:
         super().__init__()
+        self.save_parameters(**locals())
         self.save_dir = save_dir
         self.predictions_file = predictions_file
         self.class_labels = (

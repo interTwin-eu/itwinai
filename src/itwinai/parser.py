@@ -62,6 +62,12 @@ class ConfigParser:
     It also provides functionalities for dynamic override
     of fields by means of nested key notation.
 
+    Args:
+        config (Union[str, Dict]): path to YAML configuration file
+        or dict storing a configuration.
+        override_keys (Optional[Dict[str, Any]], optional): dict mapping
+        nested keys to the value to override. Defaults to None.
+
     Example:
 
     >>> # pipeline.yaml file
@@ -379,7 +385,7 @@ class ConfigParser2:
         return step_parser.instantiate_classes(parsed_namespace)["step"]
 
 
-class ItwinaiCLI:
+class ItwinaiCLI2:
     """
     Deprecated: the dynamic override does not work with nested parameters
     and may be confusing.

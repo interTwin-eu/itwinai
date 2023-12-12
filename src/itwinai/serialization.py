@@ -41,8 +41,8 @@ class Serializable:
             self.parameters = {}
         self.parameters.update(kwargs)
 
-        for k, v in kwargs.items():
-            self.__setattr__(k, v)
+        # for k, v in kwargs.items():
+        #     self.__setattr__(k, v)
 
     def update_parameters(self, **kwargs) -> None:
         """Updates stored parameters."""

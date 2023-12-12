@@ -1,20 +1,21 @@
-from typing import Optional, Tuple, Dict
+from typing import Optional
 import lightning as L
 
 from torchvision.datasets import MNIST
 from torch.utils.data import DataLoader, random_split
 from torchvision import transforms
 
-from itwinai.components import DataGetter
+from itwinai.components import DataGetter, monitor_exec
 
 
 class LightningMNISTDownloader(DataGetter):
     def __init__(
-            self,
-            data_path: str,
-            name: Optional[str] = None,
-            **kwargs) -> None:
-        super().__init__(name, **kwargs)
+        self,
+        data_path: str,
+        name: Optional[str] = None
+    ) -> None:
+        super().__init__(name)
+        self.save_parameters(**locals())
         self.data_path = data_path
         self._downloader = MNISTDataModule(
             data_path=self.data_path, download=True,
@@ -22,18 +23,12 @@ class LightningMNISTDownloader(DataGetter):
             batch_size=1, train_prop=.5,
         )
 
-    def load(self):
+    @monitor_exec
+    def execute(self) -> None:
         # Simulate dataset creation to force data download
         self._downloader.setup(stage='fit')
         self._downloader.setup(stage='test')
         self._downloader.setup(stage='predict')
-
-    def execute(
-        self,
-        config: Optional[Dict] = None
-    ) -> Tuple[None, Optional[Dict]]:
-        self.load()
-        return None, config
 
 
 class MNISTDataModule(L.LightningModule):

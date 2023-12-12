@@ -4,7 +4,7 @@ from typing import Dict, Any
 from jsonargparse import ArgumentParser
 import tensorflow as tf
 
-from ..components import Trainer
+from ..components import Trainer, monitor_exec
 
 
 def import_class(name):
@@ -38,6 +38,11 @@ class TensorflowTrainer(Trainer):
             strategy
     ):
         super().__init__()
+        self.save_parameters(
+            strategy=strategy, epochs=epochs, batch_size=batch_size,
+            callbacks=callbacks, model_dict=model_dict,
+            compile_conf=compile_conf, strategy=strategy
+        )
         self.strategy = strategy
         self.epochs = epochs
         self.batch_size = batch_size
@@ -96,7 +101,8 @@ class TensorflowTrainer(Trainer):
             conf[item_name] = instance_from_dict(item)
         return conf
 
-    def train(self, train_dataset, validation_dataset):
+    @monitor_exec
+    def execute(self, train_dataset, validation_dataset) -> Any:
         # Set batch size to the dataset
         # train = train.batch(self.batch_size, drop_remainder=True)
         # test = test.batch(self.batch_size, drop_remainder=True)
@@ -169,7 +175,8 @@ class TensorflowTrainer(Trainer):
 #                 # TODO: move loss, optimizer and metrics instantiation under
 #                 # here
 #                 # Ref:
-#                 # https://www.tensorflow.org/guide/distributed_training#use_tfdistributestrategy_with_keras_modelfit
+#                 # https://www.tensorflow.org/guide/distributed_training\
+#                   #use_tfdistributestrategy_with_keras_modelfit
 #         else:
 #             self.model = parser.instantiate_classes(model_dict).model
 #             self.model.compile(**compile_conf)
@@ -191,8 +198,10 @@ class TensorflowTrainer(Trainer):
 #         n_test = test.cardinality().numpy()
 
 #         # TODO: read
-#         # https://github.com/tensorflow/tensorflow/issues/56773#issuecomment-1188693881
-#         # https://www.tensorflow.org/guide/distributed_training#use_tfdistributestrategy_with_keras_modelfit
+#         # https://github.com/tensorflow/tensorflow/issues/56773\
+#           #issuecomment-1188693881
+#         # https://www.tensorflow.org/guide/distributed_training\
+#           #use_tfdistributestrategy_with_keras_modelfit
 
 #         # Distribute dataset
 #         if self.strategy:
