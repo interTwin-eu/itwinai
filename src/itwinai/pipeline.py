@@ -1,23 +1,6 @@
 """
 This module provides the functionalities to execute workflows defined in
 in form of pipelines.
-
-TODO:
-- Define input and output for components, as in KubeFlow, so that it is
-not ambiguous when creating a DAG how to split/merge outputs/inputs.
-An alternative is to define additional splitter/merger blocks to manage
-the routing of inputs/outputs:
-
->>> class Router:
->>>     ...
->>> class Splitter(Router):
->>>     ...
->>> class Merger(Router):
->>>     ...
-
-- Create a CLI parser allowing to execute pipelines directly from their
-config file serialization, directly from CLI, with dynamic override of
-fields, as done with Lightning CLI.
 """
 from __future__ import annotations
 from typing import Iterable, Dict, Any, Tuple, Union, Optional
