@@ -28,6 +28,15 @@ class MyDatasetSplitter(DataSplitter):
         self,
         dataset: List[int]
     ) -> Tuple[List[int], List[int], List[int]]:
+        """Splits a list dataset into train, validation and test datasets.
+
+        Args:
+            dataset (List[int]): input list dataset.
+
+        Returns:
+            Tuple[List[int], List[int], List[int]]: train, validation, and
+            test datasets.
+        """
         train_n = int(len(dataset)*self.train_proportion)
         valid_n = int(len(dataset)*self.validation_proportion)
         train_set = dataset[:train_n]
@@ -44,6 +53,17 @@ class MyTrainer(Trainer):
         vaild_set: List[int],
         test_set: List[int]
     ) -> Tuple[List[int], List[int], List[int], str]:
+        """Dummy ML trainer mocking a ML training algorithm.
+
+        Args:
+            train_set (List[int]): training dataset.
+            vaild_set (List[int]): validation dataset.
+            test_set (List[int]): test dataset.
+
+        Returns:
+            Tuple[List[int], List[int], List[int], str]: train, validation,
+            test datasets, and trained model.
+        """
         return train_set, vaild_set, test_set, "my_trained_model"
 
     def save_state(self):

@@ -1,0 +1,18 @@
+pipeline:
+  class_path: itwinai.pipeline.Pipeline
+  init_args:
+    name: null
+    steps:
+    - class_path: basic_components.MyDataGetter
+      init_args:
+        data_size: 200
+        name: null
+    - class_path: basic_components.MyDatasetSplitter
+      init_args:
+        name: null
+        test_proportion: 0.25
+        train_proportion: 0.5
+        validation_proportion: 0.25
+    - class_path: basic_components.MyTrainer
+      init_args:
+        name: null

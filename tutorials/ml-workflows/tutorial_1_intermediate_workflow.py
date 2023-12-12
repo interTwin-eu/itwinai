@@ -1,12 +1,20 @@
 """
-The most simple workflow that you can write is a sequential pipeline of steps,
-where the outputs of a component are fed as input to the following component,
-employing a scikit-learn-like Pipeline.
+In the previous tutorial we saw how to create new components and assemble them
+into a Pipeline for a simplified workflow execution. The Pipeline executes
+the components in the order in which they are given, *assuming* that the
+outputs of a component will fit as inputs of the following component.
+This is not always true, thus you can use the ``Adapter`` component to
+compensate for mismatches. This component allows to define a policy to
+rearrange intermediate results between two components.
 
-This allows to export the Pipeline form Python code to configuration file, to
-persist both parameters and workflow structure. Exporting to configuration file
-assumes that each component class resides in a separate python file, so that
-the pipeline configuration is agnostic from the current python script.
+Moreover, it is good for reproducibility to keep track of the pipeline
+configuration used to achieve some outstanding ML results. It would be a shame
+to forget how you achieved state-of-the-art results!
+
+itwinai allows to export the Pipeline form Python code to configuration file,
+to persist both parameters and workflow structure. Exporting to configuration
+file assumes that each component class resides in a separate python file, so
+that the pipeline configuration is agnostic from the current python script.
 
 Once the Pipeline has been exported to configuration file (YAML), it can
 be executed directly from CLI:
@@ -19,6 +27,7 @@ of nested key notation. Also list indices are supported:
 >>> itwinai exec-pipeline --config my-pipe.yaml --override nested.list.2.0=42
 
 """
+import subprocess
 from itwinai.pipeline import Pipeline
 from itwinai.parser import ConfigParser
 
@@ -58,5 +67,16 @@ print(f"MyDataGetter's data_size is now: {pipeline.steps[0].data_size}\n")
 _, _, _, trained_model = pipeline.execute()
 print("Trained model (2): ", trained_model)
 
-# Save new pipeline we YAML file
+# Save new pipeline to YAML file
 pipeline.to_yaml("basic_pipeline_example_v2.yaml", "pipeline")
+
+print("\n" + "="*50 + "\n")
+
+# Emulate pipeline execution from CLI, with dynamic override of
+# pipeline configuration fields
+subprocess.run(
+    ["itwinai", "exec-pipeline", "--config", "basic_pipeline_example_v2.yaml",
+     "--override", "pipeline.init_args.steps.0.init_args.data_size=300",
+     "--override", "pipeline.init_args.steps.1.init_args.train_proportion=0.4"
+     ]
+)
