@@ -5,6 +5,67 @@ from itwinai.pipeline import Pipeline
 from itwinai.tests import (
     FakeGetterExec, FakeSplitterExec, FakeTrainerExec, FakeSaverExec
 )
+from itwinai.serialization import SerializationError
+
+
+def test_serializable():
+    """Test serialization of components."""
+    comp = FakeGetterExec(data_uri='http://...')
+    dict_serializ = comp.to_dict()
+    assert isinstance(dict_serializ, dict)
+    assert comp.name == "FakeGetterExec"
+    assert dict_serializ == dict(
+        class_path="itwinai.tests.dummy_components.FakeGetterExec",
+        init_args=dict(data_uri='http://...', name=None)
+    )
+
+    # List
+    comp = FakeGetterExec(data_uri=[1, 2, 3])
+    dict_serializ = comp.to_dict()
+    assert isinstance(dict_serializ, dict)
+    assert comp.name == "FakeGetterExec"
+    assert dict_serializ == dict(
+        class_path="itwinai.tests.dummy_components.FakeGetterExec",
+        init_args=dict(data_uri=[1, 2, 3], name=None)
+    )
+
+    # Tuple
+    comp = FakeGetterExec(data_uri=(1, 2, 3))
+    dict_serializ = comp.to_dict()
+    assert isinstance(dict_serializ, dict)
+    assert comp.name == "FakeGetterExec"
+    assert dict_serializ == dict(
+        class_path="itwinai.tests.dummy_components.FakeGetterExec",
+        init_args=dict(data_uri=[1, 2, 3], name=None)
+    )
+
+    # Set
+    comp = FakeGetterExec(data_uri={1, 2, 3})
+    dict_serializ = comp.to_dict()
+    assert isinstance(dict_serializ, dict)
+    assert comp.name == "FakeGetterExec"
+    assert dict_serializ == dict(
+        class_path="itwinai.tests.dummy_components.FakeGetterExec",
+        init_args=dict(data_uri=[1, 2, 3], name=None)
+    )
+
+    # Dict
+    comp = FakeGetterExec(data_uri=dict(foo=12, bar="123", hl=3.14))
+    dict_serializ = comp.to_dict()
+    assert isinstance(dict_serializ, dict)
+    assert comp.name == "FakeGetterExec"
+    assert dict_serializ == dict(
+        class_path="itwinai.tests.dummy_components.FakeGetterExec",
+        init_args=dict(data_uri=dict(foo=12, bar="123", hl=3.14), name=None)
+    )
+
+    # Non serializable obj
+    class NonSerializable:
+        ...
+
+    comp = FakeGetterExec(data_uri=NonSerializable())
+    with pytest.raises(SerializationError):
+        dict_serializ = comp.to_dict()
 
 
 def test_adapter():

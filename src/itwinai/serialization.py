@@ -1,9 +1,12 @@
-from typing import Dict, Any
+from typing import Dict, Any, Union
 import abc
 import json
+import yaml
+from pathlib import Path
 import inspect
 
 from .types import MLModel
+from .utils import SignatureInspector
 
 
 def is_jsonable(x):
@@ -64,15 +67,8 @@ class Serializable:
                 "constructor."
             )
 
-        init_params = inspect.signature(self.__init__).parameters.items()
-
-        # Check that all non-default parameters are in self.parameters
-        non_default_par = list(filter(
-            lambda p: p[0] != 'self' and p[1].default == inspect._empty,
-            init_params
-        ))
-        non_default_par_names = list(map(lambda p: p[0], non_default_par))
-        for par_name in non_default_par_names:
+        init_inspector = SignatureInspector(self.__init__)
+        for par_name in init_inspector.required_params:
             if self.parameters.get(par_name) is None:
                 raise SerializationError(
                     f"Required parameter '{par_name}' of "
@@ -82,18 +78,6 @@ class Serializable:
                     "..., param_n=param_n)' as first instruction of its "
                     f"constructor, including also '{par_name}'."
                 )
-
-        # # Check that all params in self.parameters match with the signature
-        # init_par_nam = set(map(lambda x: x[0], init_params))
-        # sav_par_nam = set(self.parameters.keys())
-        # if len(init_par_nam.intersection(sav_par_nam)) != len(sav_par_nam):
-        #     raise SerializationError(
-        #         "Some parameters saved with "
-        #         "'self.save_parameters(param_1=param_1, "
-        #         "..., param_n=param_n)' "
-        #         "Are unused not present in the constructor of "
-        #         f"'{self.__class__.__name__}' class. Please remove them."
-        #     )
 
     def _saved_constructor_parameters(self) -> Dict[str, Any]:
         """Extracts the current constructor parameters from all
@@ -112,7 +96,7 @@ class Serializable:
         }
 
     def _recursive_serialization(self, item: Any, item_name: str) -> Any:
-        if isinstance(item, (tuple, list)):
+        if isinstance(item, (tuple, list, set)):
             return [self._recursive_serialization(x, item_name) for x in item]
         elif isinstance(item, dict):
             return {
@@ -130,6 +114,24 @@ class Serializable:
                 "is not a Python built-in type and it does not "
                 "extend 'itwinai.serialization.Serializable' class."
             )
+
+    def to_json(self, file_path: Union[str, Path]) -> None:
+        """Save a component to JSON file.
+
+        Args:
+            file_path (Union[str, Path]): JSON file path.
+        """
+        with open(file_path, "w") as fp:
+            json.dump(self.to_dict(), fp)
+
+    def to_yaml(self, file_path: Union[str, Path]) -> None:
+        """Save a component to YAML file.
+
+        Args:
+            file_path (Union[str, Path]): YAML file path.
+        """
+        with open(file_path, "w") as fp:
+            yaml.dump(self.to_dict(), fp)
 
 
 class ModelLoader(abc.ABC, Serializable):

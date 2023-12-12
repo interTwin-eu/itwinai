@@ -8,7 +8,6 @@ pytest.TF_PREFIX = './.venv-tf'
 FNAMES = [
     'pipeline.yaml',
     'startscript',
-    'train.py',
 ]
 
 
