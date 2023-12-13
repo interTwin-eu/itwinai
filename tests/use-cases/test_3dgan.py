@@ -66,6 +66,4 @@ def test_3dgan_inference(install_requirements, fake_model_checkpoint):
         f'-o {data_params}.datapath="exp_data/*/*.h5" '
         f'-o {saver_params}.save_dir=3dgan-generated-data '
     )
-    raise ValueError(cmd)
-
     subprocess.run(cmd.split(), check=True)
