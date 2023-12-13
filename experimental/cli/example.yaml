@@ -1,0 +1,9 @@
+server:
+  class_path: mycode.ServerOptions
+  init_args:
+    host: localhost
+    port: 80
+client:
+  class_path: mycode.ClientOptions
+  init_args:
+    url: http://${server.init_args.host}:${server.init_args.port}/

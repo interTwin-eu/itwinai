@@ -1,4 +1,4 @@
-from typing import Dict, Optional, Tuple
+from typing import Dict, Any
 import logging
 from os.path import join, exists
 
@@ -6,7 +6,7 @@ import tensorflow.keras as keras
 
 from lib.strategy import get_mirrored_strategy
 from lib.utils import get_network_config, load_model
-from itwinai.components import Trainer
+from itwinai.components import Trainer, monitor_exec
 from lib.callbacks import ProcessBenchmark
 from lib.macros import (
     Network,
@@ -24,12 +24,18 @@ class TensorflowTrainer(Trainer):
         regularization_strength: RegularizationStrength,
         learning_rate: float,
         loss: Losses,
+        epochs: int,
+        batch_size: int,
+        global_config: Dict[str, Any],
         kernel_size: int = None,
         model_backup: str = None,
         cores: int = None,
     ):
         super().__init__()
-        # Configurable
+        self.save_parameters(**self.locals2params(locals()))
+        self.epochs = epochs
+        self.batch_size = batch_size
+        self.global_config = global_config
         self.cores = cores
         self.model_backup = model_backup
         self.network = network.value
@@ -43,7 +49,11 @@ class TensorflowTrainer(Trainer):
         # Optimizers, Losses
         self.optimizer = keras.optimizers.Adam(learning_rate=learning_rate)
 
-    def train(self, train_data, validation_data):
+        # Parse global config
+        self.setup_config(self.global_config)
+
+    @monitor_exec
+    def execute(self, train_data, validation_data, channels) -> None:
         train_dataset, n_train = train_data
         valid_dataset, n_valid = validation_data
 
@@ -68,7 +78,7 @@ class TensorflowTrainer(Trainer):
                     activation=self.activation,
                     regularizer=self.regularizer,
                     kernel_size=self.kernel_size,
-                    channels=self.channels,
+                    channels=channels,
                 )
                 logging.debug("New model created")
             else:
@@ -103,24 +113,10 @@ class TensorflowTrainer(Trainer):
         model.save(self.last_model_name)
         logging.debug("Saved training history")
 
-    def execute(
-        self,
-        train_dataset,
-        validation_dataset,
-        config: Optional[Dict] = None,
-    ) -> Tuple[Optional[Tuple], Optional[Dict]]:
-        config = self.setup_config(config)
-        train_result = self.train(train_dataset, validation_dataset)
-        return (train_result,), config
-
-    def setup_config(self, config: Optional[Dict] = None) -> Dict:
-        config = config if config is not None else {}
+    def setup_config(self, config: Dict) -> None:
         self.experiment_dir = config["experiment_dir"]
         self.run_dir = config["run_dir"]
-        self.epochs = config["epochs"]
-        self.batch_size = config["batch_size"]
         self.patch_size = config["patch_size"]
-        self.channels = config["channels"]
 
         # Paths
         CHECKPOINTS_DIR = join(self.run_dir, "checkpoints")
@@ -158,8 +154,6 @@ class TensorflowTrainer(Trainer):
         if self.model_backup:
             self.best_model_name = join(self.model_backup, "best_model.h5")
         self.last_model_name = join(self.run_dir, "last_model.h5")
-
-        return config
 
     def load_state(self):
         return super().load_state()

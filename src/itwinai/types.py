@@ -3,9 +3,13 @@ Framework-independent types.
 """
 
 
-class DatasetML:
+class MLArtifact:
+    """A framework-independent machine learning artifact."""
+
+
+class MLDataset(MLArtifact):
     """A framework-independent machine learning dataset."""
 
 
-class ModelML:
+class MLModel(MLArtifact):
     """A framework-independent machine learning model."""
