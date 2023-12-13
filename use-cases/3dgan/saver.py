@@ -1,4 +1,4 @@
-from typing import Dict, Tuple, Optional
+from typing import Dict
 import os
 import shutil
 
@@ -7,7 +7,7 @@ from torch import Tensor
 import matplotlib.pyplot as plt
 import numpy as np
 
-from itwinai.components import Saver
+from itwinai.components import Saver, monitor_exec
 
 
 class ParticleImagesSaver(Saver):
@@ -17,30 +17,12 @@ class ParticleImagesSaver(Saver):
         self,
         save_dir: str = '3dgan-generated'
     ) -> None:
+        self.save_parameters(**self.locals2params(locals()))
         super().__init__()
         self.save_dir = save_dir
 
-    def execute(
-        self,
-        generated_images: Dict[str, Tensor],
-        config: Optional[Dict] = None
-    ) -> Tuple[Optional[Tuple], Optional[Dict]]:
-        """Saves generated images to disk.
-
-        Args:
-            generated_images (Dict[str, Tensor]): maps unique item ID to
-                the generated image.
-            config (Optional[Dict], optional): inherited configuration.
-                Defaults to None.
-
-        Returns:
-            Tuple[Optional[Tuple], Optional[Dict]]: propagation of inherited
-                configuration and saver return value.
-        """
-        result = self.save(generated_images)
-        return ((result,), config)
-
-    def save(self, generated_images: Dict[str, Tensor]) -> None:
+    @monitor_exec
+    def execute(self, generated_images: Dict[str, Tensor]) -> None:
         """Saves generated images to disk.
 
         Args:

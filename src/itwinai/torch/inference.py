@@ -8,7 +8,7 @@ from torch.utils.data import DataLoader, Dataset
 
 from ..utils import dynamically_import_class
 from .utils import clear_key
-from ..components import Predictor
+from ..components import Predictor, monitor_exec
 from .types import TorchDistributedStrategy as StrategyT
 from .types import Metric, Batch
 from ..serialization import ModelLoader
@@ -93,6 +93,7 @@ class TorchPredictor(Predictor):
         name: str = None
     ) -> None:
         super().__init__(model=model, name=name)
+        self.save_parameters(**self.locals2params(locals()))
         self.model = self.model.eval()
         # self.seed = seed
         # self.strategy = strategy
@@ -122,7 +123,8 @@ class TorchPredictor(Predictor):
         #     else validation_metrics
         # )
 
-    def predict(
+    @monitor_exec
+    def execute(
         self,
         test_dataset: Dataset,
         model: nn.Module = None,

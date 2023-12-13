@@ -84,18 +84,15 @@ Example:
 
 
 from __future__ import annotations
-from typing import Iterable, Dict, Any, Optional, Tuple, Union
-from abc import ABCMeta, abstractmethod
+from typing import Any, Optional, Tuple, Union, Callable, Dict, List
+from abc import ABC, abstractmethod
 import time
-from jsonargparse import ArgumentParser
-
+import functools
 # import logging
 # from logging import Logger as PythonLogger
 
-from .cluster import ClusterEnvironment
-from .types import ModelML, DatasetML
-from .serialization import ModelLoader
-from .utils import load_yaml
+from .types import MLModel, MLDataset, MLArtifact
+from .serialization import ModelLoader, Serializable
 
 
 
@@ -147,7 +144,7 @@ class BaseComponent(ABC, Serializable):
         # logs_dir: Optional[str] = None,
         # debug: bool = False,
     ) -> None:
-        self.save_parameters(**self.locals2params(locals()))
+        self.save_parameters(name=name)
         self.name = name
 
     @property
@@ -197,26 +194,25 @@ class BaseComponent(ABC, Serializable):
         print("#"*len(msg))
 
 
-class Trainer(Executable):
+class Trainer(BaseComponent):
     """Trains a machine learning model."""
+
     @abstractmethod
     @monitor_exec
     def execute(
         self,
         train_dataset: MLDataset,
-        validation_dataset: MLDataset,
-        test_dataset: MLDataset
-    ) -> Tuple[MLDataset, MLDataset, MLDataset, MLModel]:
+        validation_dataset: MLDataset
+    ) -> Tuple[MLDataset, MLDataset, MLModel]:
         """Trains a machine learning model.
 
         Args:
-            train_dataset (MLDataset): training dataset.
-            validation_dataset (MLDataset): validation dataset.
-            test_dataset (MLDataset): test dataset.
+            train_dataset (DatasetML): training dataset.
+            validation_dataset (DatasetML): validation dataset.
 
         Returns:
-            Tuple[MLDataset, MLDataset, MLDataset]: training dataset,
-            validation dataset, test dataset, trained model.
+            Tuple[DatasetML, DatasetML, ModelML]: training dataset,
+            validation dataset, trained model.
         """
 
     @abstractmethod
@@ -228,153 +224,19 @@ class Trainer(Executable):
         pass
 
 
-class Predictor(Executable):
+class Predictor(BaseComponent):
     """Applies a pre-trained machine learning model to unseen data."""
 
-    model: ModelML
+    model: MLModel
 
     def __init__(
         self,
-        model: Union[ModelML, ModelLoader],
+        model: Union[MLModel, ModelLoader],
         name: Optional[str] = None,
-        **kwargs
     ) -> None:
-        super().__init__(name, **kwargs)
+        super().__init__(name=name)
+        self.save_parameters(model=model, name=name)
         self.model = model() if isinstance(model, ModelLoader) else model
-
-    def execute(
-        self,
-        predict_dataset: DatasetML,
-        config: Optional[Dict] = None,
-    ) -> Tuple[Optional[Tuple], Optional[Dict]]:
-        """"Execute some operations.
-
-        Args:
-            predict_dataset (DatasetML): dataset object for inference.
-            config (Dict, optional): key-value configuration.
-                Defaults to None.
-
-        Returns:
-            Tuple[Optional[Tuple], Optional[Dict]]: tuple structured as
-                (results, config).
-        """
-        return self.predict(predict_dataset), config
-
-    @abstractmethod
-    def predict(
-        self,
-        predict_dataset: DatasetML,
-        model: Optional[ModelML] = None
-    ) -> Iterable[Any]:
-        """Applies a machine learning model on a dataset of samples.
-
-        Args:
-            predict_dataset (DatasetML): dataset for inference.
-            model (Optional[ModelML], optional): overrides the internal model,
-                if given. Defaults to None.
-
-        Returns:
-            Iterable[Any]: predictions with the same cardinality of the
-                input dataset.
-        """
-
-
-class DataGetter(Executable):
-    @abstractmethod
-    def load(self, *args, **kwargs):
-        pass
-
-
-class DataPreproc(Executable):
-    @abstractmethod
-    def preproc(self, *args, **kwargs):
-        pass
-
-
-# class StatGetter(Executable):
-#     @abstractmethod
-#     def stats(self, *args, **kwargs):
-#         pass
-
-
-class Saver(Executable):
-    @abstractmethod
-    def save(self, *args, **kwargs):
-        pass
-
-
-class Executor(Executable):
-    """Sets-up and executes a sequence of Executable steps."""
-
-    steps: Union[Dict[str, Executable], Iterable[Executable]]
-    constructor_args: Dict
-
-    def __init__(
-        self,
-        steps: Union[Dict[str, Executable], Iterable[Executable]],
-        name: Optional[str] = None,
-        # logs_dir: Optional[str] = None,
-        # debug: bool = False,
-        **kwargs
-    ):
-        # super().__init__(name=name, logs_dir=logs_dir, debug=debug, **kwargs)
-        super().__init__(name=name, **kwargs)
-        self.steps = steps
-        self.constructor_args = kwargs
-
-    def __getitem__(self, subscript: Union[str, int, slice]) -> Executor:
-        if isinstance(subscript, slice):
-            # First, convert to list if is a dict
-            if isinstance(self.steps, dict):
-                steps = list(self.steps.items())
-            else:
-                steps = self.steps
-            # Second, perform slicing
-            s = steps[subscript.start:subscript.stop: subscript.step]
-            # Third, reconstruct dict, if it is a dict
-            if isinstance(self.steps, dict):
-                s = dict(s)
-            # Fourth, return sliced sub-pipeline, preserving its
-            # initial structure
-            sliced = self.__class__(
-                steps=s,
-                **self.constructor_args
-            )
-            return sliced
-        else:
-            return self.steps[subscript]
-
-    def __len__(self) -> int:
-        return len(self.steps)
-
-    def setup(self, parent: Optional[Executor] = None) -> None:
-        """Inherit properties from parent Executor instance, then
-        propagates its properties to its own child steps.
-
-        Args:
-            parent (Optional[Executor], optional): parent executor.
-                Defaults to None.
-        """
-        super().setup(parent)
-        if isinstance(self.steps, dict):
-            steps = list(self.steps.values())
-        else:
-            steps = self.steps
-
-        for step in steps:
-            step.setup(self)
-            step.is_setup = True
-
-    # def setup(self, config: Dict = None):
-    #     """Pass a key-value based configuration down the pipeline,
-    #     to propagate information computed at real-time.
-
-    #     Args:
-    #         config (Dict, optional): key-value configuration.
-    #           Defaults to None.
-    #     """
-    #     for step in self.steps:
-    #         config = step.setup(config)
 
     @abstractmethod
     @monitor_exec
@@ -386,104 +248,210 @@ class Executor(Executable):
         """Applies a machine learning model on a dataset of samples.
 
         Args:
-            predict_dataset (MLDataset): dataset for inference.
-            model (Optional[MLModel], optional): overrides the internal model,
+            predict_dataset (DatasetML): dataset for inference.
+            model (Optional[ModelML], optional): overrides the internal model,
                 if given. Defaults to None.
 
         Returns:
-            MLDataset: predictions with the same cardinality of the
+            DatasetML: predictions with the same cardinality of the
                 input dataset.
         """
-        if isinstance(self.steps, dict):
-            steps = list(self.steps.values())
-        else:
-            steps = self.steps
-
-        for step in steps:
-            if not step.is_setup:
-                raise RuntimeError(
-                    f"Step '{step.name}' was not setup!"
-                )
-            args = self._pack_args(args)
-            args, config = step(*args, **kwargs, config=config)
 
 
-    def _pack_args(self, args) -> Tuple:
-        args = () if args is None else args
-        if not isinstance(args, tuple):
-            args = (args,)
-        return args
+class DataGetter(BaseComponent):
+    """Retrieves a dataset."""
+
+    @abstractmethod
+    @monitor_exec
+    def execute(self) -> MLDataset:
+        """Retrieves a dataset.
+
+        Returns:
+            MLDataset: retrieved dataset.
+        """
 
 
-def add_replace_field(
-    config: Dict,
-    key_chain: str,
-    value: Any
-) -> None:
-    """Replace or add (if not present) a field in a dictionary, following a
-    path of dot-separated keys. Inplace operation.
+class DataPreproc(BaseComponent):
+    """Performs dataset pre-processing."""
 
-    Args:
-        config (Dict): dictionary to be modified.
-        key_chain (str): path of dot-separated keys to specify the location
-        if the new value (e.g., 'foo.bar.line' adds/overwrites the value
-        located at config['foo']['bar']['line']).
-        value (Any): the value to insert.
-    """
-    sub_config = config
-    for idx, k in enumerate(key_chain.split('.')):
-        if idx >= len(key_chain.split('.')) - 1:
-            # Last key reached
-            break
-        if not isinstance(sub_config.get(k), dict):
-            sub_config[k] = dict()
-        sub_config = sub_config[k]
-    sub_config[k] = value
+    @abstractmethod
+    @monitor_exec
+    def execute(self, dataset: MLDataset) -> MLDataset:
+        """Pre-processes a dataset.
+
+        Args:
+            dataset (MLDataset): dataset.
+
+        Returns:
+            MLDataset: pre-processed dataset.
+        """
 
 
-def load_pipeline_step(
-    pipe: Union[str, Dict],
-    step_id: Union[str, int],
-    override_keys: Optional[Dict[str, Any]] = None,
-    verbose: bool = False
-) -> Executable:
-    """Instantiates a specific step from a pipeline configuration file, given
-    its ID (index if steps are a list, key if steps are a dictionary). It
-    allows to override the step configuration with user defined values.
+
+class Saver(BaseComponent):
+    """Saves artifact to disk."""
+
+    @abstractmethod
+    @monitor_exec
+    def execute(self, artifact: MLArtifact) -> MLArtifact:
+        """Saves an ML artifact to disk.
+
+        Args:
+            artifact (MLArtifact): artifact to save.
+
+        Returns:
+            MLArtifact: the same input artifact, after saving it.
+        """
+
+
+class Adapter(BaseComponent):
+    """Connects to components in a sequential pipeline, allowing to
+    control with greater detail how intermediate results are propagated
+    among the components.
 
     Args:
-        pipe (Union[str, Dict]): pipeline configuration. Either a path to a
-        YAML file (if string), or a configuration in memory (if dict object).
-        step_id (Union[str, int]): step identifier: list index if steps are
-        represented as a list, string key if steps are represented as a
-        dictionary.
-        override_keys (Optional[Dict[str, Any]], optional): if given, maps key
-        path to the value to add/override. A key path is a string of
-        dot-separated keys (e.g., 'foo.bar.line' adds/overwrites the value
-        located at pipe['foo']['bar']['line']). Defaults to None.
-        verbose (bool, optional): if given, prints to console the new
-        configuration, obtained after overriding. Defaults to False.
+            policy (List[Any]): list of the same length of the output of this
+            component, describing how to map the input args to the output.
+            name (Optional[str], optional): name of the component.
+            Defaults to None.
 
-    Returns:
-        Executable: an instance of the selected step in the pipeline.
+    The adapter allows to define a policy with which inputs are re-arranged
+    before being propagated to the next component.
+    Some examples: [policy]: (input) -> (output)
+    - ["INPUT_ARG#2", "INPUT_ARG#1", "INPUT_ARG#0"]: (11,22,33) -> (33,22,11)
+    - ["INPUT_ARG#0", "INPUT_ARG#2", None]: (11, 22, 33) -> (11, 33, None)
+    - []: (11, 22, 33) -> ()
+    - [42, "INPUT_ARG#2", "hello"] -> (11,22,33,44,55) -> (42, 33, "hello")
+    - [None, 33, 3.14]: () -> (None, 33, 3.14)
+    - [None, 33, 3.14]: ("double", 44, None, True) -> (None, 33, 3.14)
     """
-    if isinstance(pipe, str):
-        # Load pipe from YAML file path
-        pipe = load_yaml(pipe)
-    step_dict_config = pipe['executor']['init_args']['steps'][step_id]
 
-    # Override fields
-    if override_keys is not None:
-        for key_chain, value in override_keys.items():
-            add_replace_field(step_dict_config, key_chain, value)
-    if verbose:
-        import json
-        print(f"NEW STEP <ID:{step_id}> CONFIG:")
-        print(json.dumps(step_dict_config, indent=4))
+    policy: List[Any]
+    INPUT_PREFIX: str = "INPUT_ARG#"
 
-    # Wrap config under "step" field and parse it
-    step_dict_config = dict(step=step_dict_config)
-    step_parser = ArgumentParser()
-    step_parser.add_subclass_arguments(Executable, "step")
-    parsed_namespace = step_parser.parse_object(step_dict_config)
-    return step_parser.instantiate_classes(parsed_namespace)["step"]
+    def __init__(self, policy: List[Any], name: Optional[str] = None) -> None:
+        super().__init__(name=name)
+        self.save_parameters(policy=policy, name=name)
+        self.name = name
+        self.policy = policy
+
+    @monitor_exec
+    def execute(self, *args) -> Tuple:
+        """Produces an output tuple by arranging input arguments according
+        to the policy specified in the constructor.
+
+        Args:
+            args (Tuple): input arguments.
+
+        Returns:
+            Tuple: input args arranged according to some policy.
+        """
+        result = []
+        for itm in self.policy:
+            if isinstance(itm, str) and itm.startswith(self.INPUT_PREFIX):
+                arg_idx = int(itm[len(self.INPUT_PREFIX):])
+                if arg_idx >= len(args):
+                    max_idx = max(map(
+                        lambda itm: int(itm[len(self.INPUT_PREFIX):]),
+                        filter(
+                            lambda el: (
+                                isinstance(el, str)
+                                and el.startswith(self.INPUT_PREFIX)
+                            ),
+                            self.policy
+                        )))
+                    raise IndexError(
+                        f"The args received as input by '{self.name}' "
+                        "are not consistent with the given adapter policy "
+                        "because input args are too few! "
+                        f"Input args are {len(args)} but the policy foresees "
+                        f"at least {max_idx+1} items."
+                    )
+                result.append(args[arg_idx])
+            else:
+                result.append(itm)
+        return tuple(result)
+
+
+class DataSplitter(BaseComponent):
+    """Splits a dataset into train, validation, and test splits."""
+    _train_proportion: Union[int, float]
+    _validation_proportion: Union[int, float]
+    _test_proportion: Union[int, float]
+
+
+    def __init__(
+        self,
+        train_proportion: Union[int, float],
+        validation_proportion: Union[int, float],
+        test_proportion: Union[int, float],
+        name: Optional[str] = None
+    ) -> None:
+        super().__init__(name)
+        self.save_parameters(
+            train_proportion=train_proportion,
+            validation_proportion=validation_proportion,
+            test_proportion=test_proportion,
+            name=name
+        )
+        self.train_proportion = train_proportion
+        self.validation_proportion = validation_proportion
+        self.test_proportion = test_proportion
+
+    @property
+    def train_proportion(self) -> Union[int, float]:
+        """Training set proportion."""
+        return self._train_proportion
+
+    @train_proportion.setter
+    def train_proportion(self, prop: Union[int, float]) -> None:
+        if isinstance(prop, float) and not 0.0 <= prop <= 1.0:
+            raise ValueError(
+                "Train proportion should be in the interval [0.0, 1.0] "
+                f"if given as float. Received {prop}"
+            )
+        self._train_proportion = prop
+
+    @property
+    def validation_proportion(self) -> Union[int, float]:
+        """Validation set proportion."""
+        return self._validation_proportion
+
+    @validation_proportion.setter
+    def validation_proportion(self, prop: Union[int, float]) -> None:
+        if isinstance(prop, float) and not 0.0 <= prop <= 1.0:
+            raise ValueError(
+                "Validation proportion should be in the interval [0.0, 1.0] "
+                f"if given as float. Received {prop}"
+            )
+        self._validation_proportion = prop
+
+    @property
+    def test_proportion(self) -> Union[int, float]:
+        """Test set proportion."""
+        return self._test_proportion
+
+    @test_proportion.setter
+    def test_proportion(self, prop: Union[int, float]) -> None:
+        if isinstance(prop, float) and not 0.0 <= prop <= 1.0:
+            raise ValueError(
+                "Test proportion should be in the interval [0.0, 1.0] "
+                f"if given as float. Received {prop}"
+            )
+        self._test_proportion = prop
+
+    @abstractmethod
+    @monitor_exec
+    def execute(
+        self,
+        dataset: MLDataset
+    ) -> Tuple[MLDataset, MLDataset, MLDataset]:
+        """Splits a dataset into train, validation and test splits.
+
+        Args:
+            dataset (MLDataset): input dataset.
+
+        Returns:
+            Tuple[MLDataset, MLDataset, MLDataset]: tuple of
+            train, validation and test splits.
+        """

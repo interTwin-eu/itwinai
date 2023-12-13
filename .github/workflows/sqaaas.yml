@@ -4,23 +4,16 @@
 ---
 name: SQAaaS
 
-on: [push]
+on:
+  push:
+    branches: [main, dev]
+  pull_request:
+    branches: [main, dev]
 
 jobs:
   sqaaas_job:
     runs-on: ubuntu-latest
     name: Job that triggers SQAaaS platform
     steps:
-      - name: Extract branch name
-        shell: bash
-        run: echo "branch=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}" >> $GITHUB_OUTPUT
-        id: extract_branch
-      - name: Print current branch name (debug)
-        shell: bash
-        run: echo running on branch ${{ steps.extract_branch.outputs.branch }}
       - name: SQAaaS assessment step
-        uses: eosc-synergy/sqaaas-assessment-action@v1
-        with:
-          repo: 'https://github.com/interTwin-eu/itwinai'
-          branch: ${{ steps.extract_branch.outputs.branch }}
-
+        uses: eosc-synergy/sqaaas-assessment-action@v2

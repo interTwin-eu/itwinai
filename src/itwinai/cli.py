@@ -50,7 +50,6 @@ def exec_pipeline(
     # to find the local python files imported from the pipeline file
     import os
     import sys
-    sys.path.append(os.path.dirname(config))
     sys.path.append(os.getcwd())
 
     # Parse and execute pipeline

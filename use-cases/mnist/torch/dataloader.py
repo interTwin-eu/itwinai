@@ -1,6 +1,6 @@
 """Dataloader for Torch-based MNIST use case."""
 
-from typing import Dict, Optional, Tuple, Callable, Any
+from typing import Optional, Tuple, Callable, Any
 import os
 import shutil
 
@@ -42,31 +42,6 @@ class InferenceMNIST(Dataset):
 
     def __init__(
         self,
-        config: Optional[Dict] = None
-    ) -> Tuple[Tuple[Dataset, Dataset], Optional[Dict]]:
-        self.load()
-        print("Train and valid datasets loaded.")
-        # train_dataloder = DataLoader(
-        #     self.train_dataset,
-        #     batch_size=self.batch_size,
-        #     pin_memory=self.pin_memory,
-        #     num_workers=self.num_workers
-        # )
-        # validation_dataloader = DataLoader(
-        #     self.val_dataset,
-        #     batch_size=self.batch_size,
-        #     pin_memory=self.pin_memory,
-        #     num_workers=self.num_workers
-        # )
-        # return (train_dataloder, validation_dataloader)
-        return (self.train_dataset, self.val_dataset), config
-
-
-class InferenceMNIST(Dataset):
-    """Loads a set of MNIST images from a folder of JPG files."""
-
-    def __init__(
-        self,
         root: str,
         transform: Optional[Callable] = None,
         supported_format: str = '.jpg'
@@ -99,11 +74,6 @@ class InferenceMNIST(Dataset):
         """
         img_id, img = list(self.data.items())[index]
 
-        # doing this so that it is consistent with all other datasets
-        # to return a PIL Image
-        # print(type(img))
-        # img = Image.fromarray(img.numpy(), mode="L")
-
         if self.transform is not None:
             img = self.transform(img)
 
@@ -135,21 +105,13 @@ class InferenceMNIST(Dataset):
 
 
 class MNISTPredictLoader(DataGetter):
-    def __init__(
-        self,
-        test_data_path: str
-    ) -> None:
+    def __init__(self, test_data_path: str) -> None:
         super().__init__()
+        self.save_parameters(**self.locals2params(locals()))
         self.test_data_path = test_data_path
 
-    def execute(
-        self,
-        config: Optional[Dict] = None
-    ) -> Tuple[Tuple[Dataset, Dataset], Optional[Dict]]:
-        data = self.load()
-        return data, config
-
-    def load(self) -> Dataset:
+    @monitor_exec
+    def execute(self) -> Dataset:
         return InferenceMNIST(
             root=self.test_data_path,
             transform=transforms.Compose([
