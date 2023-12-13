@@ -1,4 +1,4 @@
-from typing import Dict, List, Optional, Tuple, Any
+from typing import Dict, List, Optional, Any
 
 # from tensorflow.keras.optimizers import Optimizer
 # from tensorflow.keras.losses import Loss
@@ -6,6 +6,7 @@ from tensorflow.python.distribute.mirrored_strategy import MirroredStrategy
 
 from itwinai.tensorflow.trainer import TensorflowTrainer
 from itwinai.loggers import Logger
+from itwinai.components import monitor_exec
 
 
 class MNISTTrainer(TensorflowTrainer):
@@ -19,29 +20,21 @@ class MNISTTrainer(TensorflowTrainer):
         strategy: Optional[MirroredStrategy] = None,
         logger: Optional[List[Logger]] = None
     ):
-        # Configurable
-        self.logger = logger if logger is not None else []
-        compile_conf = dict(loss=loss, optimizer=optimizer)
-        print(f'STRATEGY: {strategy}')
         super().__init__(
             epochs=epochs,
             batch_size=batch_size,
             callbacks=[],
             model_dict=model,
-            compile_conf=compile_conf,
+            compile_conf=dict(loss=loss, optimizer=optimizer),
             strategy=strategy
         )
+        self.save_parameters(**self.locals2params(locals()))
+        print(f'STRATEGY: {strategy}')
+        self.logger = logger if logger is not None else []
 
-    def train(self, train_dataset, validation_dataset) -> Any:
-        return super().train(train_dataset, validation_dataset)
-
-    def execute(
-        self,
-        train_dataset,
-        validation_dataset,
-        config: Optional[Dict] = None,
-    ) -> Tuple[Optional[Tuple], Optional[Dict]]:
-        return (self.train(train_dataset, validation_dataset),), config
+    @monitor_exec
+    def execute(self, train_dataset, validation_dataset) -> Any:
+        return super().execute(train_dataset, validation_dataset)
 
     def load_state(self):
         return super().load_state()
