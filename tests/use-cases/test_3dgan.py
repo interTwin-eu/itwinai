@@ -3,7 +3,7 @@ Tests for CERN use case (3DGAN).
 """
 import pytest
 import subprocess
-from itwinai.utils import dynamically_import_class
+# from itwinai.utils import dynamically_import_class
 
 CERN_PATH = "use-cases/3dgan"
 CKPT_PATH = "3dgan-inference.pth"
@@ -18,7 +18,7 @@ def fake_model_checkpoint() -> None:
     import torch
     sys.path.append(CERN_PATH)
     from model import ThreeDGAN
-    ThreeDGAN = dynamically_import_class('model.ThreeDGAN')
+    # ThreeDGAN = dynamically_import_class('model.ThreeDGAN')
     net = ThreeDGAN()
     torch.save(net, CKPT_PATH)
 
@@ -61,9 +61,9 @@ def test_3dgan_inference(install_requirements, fake_model_checkpoint):
         'itwinai exec-pipeline '
         '--config use-cases/3dgan/inference-pipeline.yaml '
         f'-o {getter_params}.data_path=exp_data '
-        f'-o {trainer_params}.model.init_args.model_uri="{CKPT_PATH}" '
+        f'-o {trainer_params}.model.init_args.model_uri={CKPT_PATH} '
         f'-o {logger_params}.save_dir=ml_logs/mlflow_logs '
-        f'-o {data_params}.datapath="exp_data/*/*.h5" '
+        f'-o {data_params}.datapath=exp_data/*/*.h5 '
         f'-o {saver_params}.save_dir=3dgan-generated-data '
     )
     subprocess.run(cmd.split(), check=True)
