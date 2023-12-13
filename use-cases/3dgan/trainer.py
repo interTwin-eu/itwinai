@@ -33,6 +33,7 @@ class Lightning3DGANTrainer(Trainer):
 
     @monitor_exec
     def execute(self) -> Any:
+        init_lightning_mlflow(self.conf, registered_model_name='3dgan-lite')
         old_argv = sys.argv
         sys.argv = ['some_script_placeholder.py']
         cli = LightningCLI(
