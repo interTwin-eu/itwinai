@@ -84,11 +84,9 @@ pipeline:
               class_path: model.ThreeDGAN
               init_args:
                 latent_size: 256
-                batch_size: 64
                 loss_weights: [3, 0.1, 25, 0.1]
                 power: 0.85
                 lr: 0.001
-                checkpoint_path: /usr/data/exp_data/3dgan.pth
 
             # Lightning data module configuration
             data:
