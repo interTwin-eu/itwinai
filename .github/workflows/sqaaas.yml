@@ -6,14 +6,25 @@ name: SQAaaS
 
 on:
   push:
-    branches: [main, dev]
+    branches: [main, dev, unit_test_4_dev]
   pull_request:
-    branches: [main, dev]
+    branches: [main, dev, unit_test_4_dev]
 
 jobs:
   sqaaas_job:
     runs-on: ubuntu-latest
     name: Job that triggers SQAaaS platform
     steps:
+      - name: Step definition for a SQAaaS assessment
+        uses: ./ # Uses an action in the root directory
+        id: sqaaas_step_environment
+        with:
+          name: make_and_micromamba_step
+          tool: commands
+          commands: |
+            make torch-cpu
+            make tf-2.13
+            micromamba run -p ./.venv-pytorch pip install .[dev]
+            micromamba run -p ./.venv-pytorch pytest -v ./tests/ -m "not slurm"
       - name: SQAaaS assessment step
-        uses: eosc-synergy/sqaaas-assessment-action@v2
+        uses: eosc-synergy/sqaaas-assessment-action@feature/criteria_workflows
