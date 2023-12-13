@@ -1,31 +1,39 @@
 import os
 import sys
-from typing import Union, Dict, Tuple, Optional, Any
+from typing import Union, Dict, Optional, Any
 
 import torch
 from torch import Tensor
 import lightning as pl
 from lightning.pytorch.cli import LightningCLI
 
-from itwinai.components import Trainer, Predictor
+from itwinai.components import Trainer, Predictor, monitor_exec
 from itwinai.serialization import ModelLoader
 from itwinai.torch.inference import TorchModelLoader
 from itwinai.torch.types import Batch
+from itwinai.utils import load_yaml
+from itwinai.torch.mlflow import (
+    init_lightning_mlflow,
+    teardown_lightning_mlflow
+)
+
 
 from model import ThreeDGAN
 from dataloader import ParticlesDataModule
-from utils import load_yaml
 
 
 class Lightning3DGANTrainer(Trainer):
     def __init__(self, config: Union[Dict, str]):
+        self.save_parameters(**self.locals2params(locals()))
         super().__init__()
         if isinstance(config, str) and os.path.isfile(config):
             # Load from YAML
             config = load_yaml(config)
         self.conf = config
 
-    def train(self) -> Any:
+    @monitor_exec
+    def execute(self) -> Any:
+        init_lightning_mlflow(self.conf, registered_model_name='3dgan-lite')
         old_argv = sys.argv
         sys.argv = ['some_script_placeholder.py']
         cli = LightningCLI(
@@ -42,13 +50,7 @@ class Lightning3DGANTrainer(Trainer):
         )
         sys.argv = old_argv
         cli.trainer.fit(cli.model, datamodule=cli.datamodule)
-
-    def execute(
-        self,
-        config: Optional[Dict] = None
-    ) -> Tuple[Any, Optional[Dict]]:
-        result = self.train()
-        return result, config
+        teardown_lightning_mlflow()
 
     def save_state(self):
         return super().save_state()
@@ -93,13 +95,15 @@ class Lightning3DGANPredictor(Predictor):
         config: Union[Dict, str],
         name: Optional[str] = None
     ):
+        self.save_parameters(**self.locals2params(locals()))
         super().__init__(model, name)
         if isinstance(config, str) and os.path.isfile(config):
             # Load from YAML
             config = load_yaml(config)
         self.conf = config
 
-    def predict(
+    @monitor_exec
+    def execute(
         self,
         datamodule: Optional[pl.LightningDataModule] = None,
         model: Optional[pl.LightningModule] = None
@@ -152,19 +156,3 @@ class Lightning3DGANPredictor(Predictor):
         Post-process the predictions of the torch model.
         """
         return batch.squeeze(1)
-
-    def execute(
-        self,
-        config: Optional[Dict] = None,
-    ) -> Tuple[Optional[Tuple], Optional[Dict]]:
-        """"Execute some operations.
-
-        Args:
-            config (Dict, optional): key-value configuration.
-                Defaults to None.
-
-        Returns:
-            Tuple[Optional[Tuple], Optional[Dict]]: tuple structured as
-                (results, config).
-        """
-        return self.predict(), config

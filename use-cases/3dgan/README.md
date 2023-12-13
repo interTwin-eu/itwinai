@@ -1,5 +1,22 @@
 # 3DGAN use case
 
+First of all, from the repository root, create a torch environment:
+
+```bash
+make torch-gpu
+```
+
+Now, install custom requirements for 3DGAN:
+
+```bash
+micromamba activate ./.venv-pytorch
+cd use-cases/3dgan
+pip install -r requirements.txt
+```
+
+**NOTE**: Python commands below assumed to be executed from within the
+micromamba virtual environment.
+
 ## Training
 
 At CERN, use the dedicated configuration file:
@@ -7,6 +24,9 @@ At CERN, use the dedicated configuration file:
 ```bash
 cd use-cases/3dgan
 python train.py -p cern-pipeline.yaml
+
+# Or better:
+micromamba run -p ../../.venv-pytorch/ torchrun --nproc_per_node gpu train.py -p cern-pipeline.yaml
 ```
 
 Anywhere else, use the general purpose training configuration:
@@ -14,6 +34,9 @@ Anywhere else, use the general purpose training configuration:
 ```bash
 cd use-cases/3dgan
 python train.py -p pipeline.yaml
+
+# Or better:
+micromamba run -p ../../.venv-pytorch/ torchrun --nproc_per_node gpu train.py -p pipeline.yaml
 ```
 
 To visualize the logs with MLFLow run the following in the terminal:
@@ -85,11 +108,11 @@ Build from project root with
 
 ```bash
 # Local
-docker buildx build -t itwinai-mnist-torch-inference -f use-cases/3dgan/Dockerfile .
+docker buildx build -t itwinai-mnist-torch-inference -f use-cases/3dgan/Dockerfile.inference .
 
 # Ghcr.io
-docker buildx build -t ghcr.io/intertwin-eu/itwinai-3dgan-inference:0.0.1 -f use-cases/3dgan/Dockerfile .
-docker push ghcr.io/intertwin-eu/itwinai-3dgan-inference:0.0.1
+docker buildx build -t ghcr.io/intertwin-eu/itwinai-3dgan-inference:0.0.3 -f use-cases/3dgan/Dockerfile.inference .
+docker push ghcr.io/intertwin-eu/itwinai-3dgan-inference:0.0.3
 ```
 
 From wherever a sample of MNIST jpg images is available
@@ -106,7 +129,7 @@ From wherever a sample of MNIST jpg images is available
 ```
 
 ```bash
-docker run -it --rm --name running-inference -v "$PWD":/usr/data ghcr.io/intertwin-eu/itwinai-3dgan-inference:0.0.1
+docker run -it --rm --name running-inference -v "$PWD":/tmp/data ghcr.io/intertwin-eu/itwinai-3dgan-inference:0.0.3
 ```
 
 This command will store the results in a folder called "3dgan-generated-data":
@@ -119,4 +142,14 @@ This command will store the results in a folder called "3dgan-generated-data":
 ...
 |   │   ├── energy=1.664689540863037&angle=1.4906378984451294.pth
 |   │   ├── energy=1.664689540863037&angle=1.4906378984451294.jpg
+```
+
+### Singularity
+
+Run overriding the working directory (`--pwd /usr/src/app`, restores Docker's WORKDIR)
+and providing a writable filesystem (`-B "$PWD":/usr/data`):
+
+```bash
+singularity exec -B "$PWD":/usr/data docker://ghcr.io/intertwin-eu/itwinai-3dgan-inference:0.0.3 /
+bash -c "cd /usr/src/app && python train.py -p inference-pipeline.yaml"
 ```

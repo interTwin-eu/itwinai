@@ -1,4 +1,5 @@
 import os
+from typing import Callable
 import pytest
 import subprocess
 
@@ -8,12 +9,11 @@ pytest.TF_PREFIX = './.venv-tf'
 FNAMES = [
     'pipeline.yaml',
     'startscript',
-    'train.py',
 ]
 
 
 @pytest.fixture
-def check_folder_structure():
+def check_folder_structure() -> Callable:
     """
     Verify that the use case folder complies with some predefined
     structure.
@@ -26,7 +26,7 @@ def check_folder_structure():
 
 
 @pytest.fixture
-def install_requirements():
+def install_requirements() -> Callable:
     """Install requirements.txt, if present in root folder."""
     def _install_reqs(root: str, env_prefix: str):
         req_path = os.path.join(root, 'requirements.txt')
