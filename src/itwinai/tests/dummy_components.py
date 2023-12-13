@@ -58,8 +58,12 @@ class FakePreprocExec(FakePreproc):
 
 
 class FakeTrainer(BaseComponent):
-    def __init__(self, lr: float, batch_size: int, name: Optional[str] = None
-                 ) -> None:
+    def __init__(
+        self,
+        lr: float,
+        batch_size: int,
+        name: Optional[str] = None
+    ) -> None:
         super().__init__(name)
         self.save_parameters(lr=lr, batch_size=batch_size, name=name)
         self.lr = lr

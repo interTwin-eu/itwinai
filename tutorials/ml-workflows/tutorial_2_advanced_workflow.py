@@ -34,9 +34,9 @@ from basic_components import (
 )
 
 
-class MyPredictor(Predictor):
+class MyEnsemblePredictor(Predictor):
     @monitor_exec
-    def execute(self, dataset, model) -> Any:
+    def execute(self, dataset, model_ensemble) -> Any:
         # do some predictions with model on dataset...
         return dataset
 
@@ -70,15 +70,17 @@ if __name__ == "__main__":
         validation_proportion=args.val_prop,
         test_proportion=1-args.train_prop-args.val_prop
     )
-    trainer = MyTrainer(lr=args.lr)
+    trainer1 = MyTrainer(lr=args.lr)
+    trainer2 = MyTrainer(lr=args.lr)
     saver = MySaver()
-    predictor = MyPredictor(model=None)
+    predictor = MyEnsemblePredictor(model=None)
 
     # Define ML workflow
     dataset = getter.execute()
     train_spl, val_spl, test_spl = splitter.execute(dataset)
-    _, _, _, trained_model = trainer.execute(train_spl, val_spl, test_spl)
-    _ = saver.execute(trained_model)
-    predictions = predictor.execute(test_spl, trained_model)
+    _, _, _, trained_model1 = trainer1.execute(train_spl, val_spl, test_spl)
+    _, _, _, trained_model2 = trainer2.execute(train_spl, val_spl, test_spl)
+    _ = saver.execute(trained_model1)
+    predictions = predictor.execute(test_spl, [trained_model1, trained_model2])
     print()
     print("Predictions: " + str(predictions))

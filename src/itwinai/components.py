@@ -426,7 +426,7 @@ class DataSplitter(BaseComponent):
     @property
     def test_proportion(self) -> Union[int, float]:
         """Test set proportion."""
-        return self._ttest_proportion
+        return self._test_proportion
 
     @test_proportion.setter
     def test_proportion(self, prop: Union[int, float]) -> None:
