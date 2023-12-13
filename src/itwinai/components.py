@@ -95,7 +95,6 @@ from .types import MLModel, MLDataset, MLArtifact
 from .serialization import ModelLoader, Serializable
 
 
-
 def monitor_exec(method: Callable) -> Callable:
     """Decorator for execute method of a component class.
     Computes execution time and gives some information about
@@ -144,7 +143,7 @@ class BaseComponent(ABC, Serializable):
         # logs_dir: Optional[str] = None,
         # debug: bool = False,
     ) -> None:
-        self.save_parameters(name=name)
+        self.save_parameters(**self.locals2params(locals()))
         self.name = name
 
     @property
@@ -202,17 +201,19 @@ class Trainer(BaseComponent):
     def execute(
         self,
         train_dataset: MLDataset,
-        validation_dataset: MLDataset
-    ) -> Tuple[MLDataset, MLDataset, MLModel]:
+        validation_dataset: MLDataset,
+        test_dataset: MLDataset
+    ) -> Tuple[MLDataset, MLDataset, MLDataset, MLModel]:
         """Trains a machine learning model.
 
         Args:
-            train_dataset (DatasetML): training dataset.
-            validation_dataset (DatasetML): validation dataset.
+            train_dataset (MLDataset): training dataset.
+            validation_dataset (MLDataset): validation dataset.
+            test_dataset (MLDataset): test dataset.
 
         Returns:
-            Tuple[DatasetML, DatasetML, ModelML]: training dataset,
-            validation dataset, trained model.
+            Tuple[MLDataset, MLDataset, MLDataset]: training dataset,
+            validation dataset, test dataset, trained model.
         """
 
     @abstractmethod
@@ -235,7 +236,7 @@ class Predictor(BaseComponent):
         name: Optional[str] = None,
     ) -> None:
         super().__init__(name=name)
-        self.save_parameters(model=model, name=name)
+        self.save_parameters(**self.locals2params(locals()))
         self.model = model() if isinstance(model, ModelLoader) else model
 
     @abstractmethod
@@ -248,12 +249,12 @@ class Predictor(BaseComponent):
         """Applies a machine learning model on a dataset of samples.
 
         Args:
-            predict_dataset (DatasetML): dataset for inference.
-            model (Optional[ModelML], optional): overrides the internal model,
+            predict_dataset (MLDataset): dataset for inference.
+            model (Optional[MLModel], optional): overrides the internal model,
                 if given. Defaults to None.
 
         Returns:
-            DatasetML: predictions with the same cardinality of the
+            MLDataset: predictions with the same cardinality of the
                 input dataset.
         """
 
@@ -276,16 +277,23 @@ class DataPreproc(BaseComponent):
 
     @abstractmethod
     @monitor_exec
-    def execute(self, dataset: MLDataset) -> MLDataset:
-        """Pre-processes a dataset.
+    def execute(
+        self,
+        train_dataset: MLDataset,
+        validation_dataset: MLDataset,
+        test_dataset: MLDataset
+    ) -> Tuple[MLDataset, MLDataset, MLDataset]:
+        """Trains a machine learning model.
 
         Args:
-            dataset (MLDataset): dataset.
+            train_dataset (MLDataset): training dataset.
+            validation_dataset (MLDataset): validation dataset.
+            test_dataset (MLDataset): test dataset.
 
         Returns:
-            MLDataset: pre-processed dataset.
+            Tuple[MLDataset, MLDataset, MLDataset]: preprocessed training
+            dataset, validation dataset, test dataset.
         """
-
 
 
 class Saver(BaseComponent):
@@ -331,7 +339,7 @@ class Adapter(BaseComponent):
 
     def __init__(self, policy: List[Any], name: Optional[str] = None) -> None:
         super().__init__(name=name)
-        self.save_parameters(policy=policy, name=name)
+        self.save_parameters(**self.locals2params(locals()))
         self.name = name
         self.policy = policy
 
@@ -379,7 +387,6 @@ class DataSplitter(BaseComponent):
     _validation_proportion: Union[int, float]
     _test_proportion: Union[int, float]
 
-
     def __init__(
         self,
         train_proportion: Union[int, float],
@@ -388,12 +395,7 @@ class DataSplitter(BaseComponent):
         name: Optional[str] = None
     ) -> None:
         super().__init__(name)
-        self.save_parameters(
-            train_proportion=train_proportion,
-            validation_proportion=validation_proportion,
-            test_proportion=test_proportion,
-            name=name
-        )
+        self.save_parameters(**self.locals2params(locals()))
         self.train_proportion = train_proportion
         self.validation_proportion = validation_proportion
         self.test_proportion = test_proportion
