@@ -31,4 +31,4 @@ jobs:
       - name: SQAaaS assessment step
         uses: eosc-synergy/sqaaas-assessment-action@feature/criteria_workflows
         with:
-          workflow: workflow_validation_step
+          steps: workflow_validation_step
