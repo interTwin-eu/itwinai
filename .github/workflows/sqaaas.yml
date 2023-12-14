@@ -26,5 +26,7 @@ jobs:
             make tf-2.13
             micromamba run -p ./.venv-pytorch pip install .[dev]
             micromamba run -p ./.venv-pytorch pytest -v ./tests/ -m "not slurm"
+      - name: Print out payload
+        run: cat make_and_micromamba_step.json
       - name: SQAaaS assessment step
         uses: eosc-synergy/sqaaas-assessment-action@feature/criteria_workflows
