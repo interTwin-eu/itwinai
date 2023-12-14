@@ -30,3 +30,5 @@ jobs:
         run: cat workflow_validation_step.json
       - name: SQAaaS assessment step
         uses: eosc-synergy/sqaaas-assessment-action@feature/criteria_workflows
+        with:
+          workflow: workflow_validation_step
