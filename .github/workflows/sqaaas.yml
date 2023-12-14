@@ -16,7 +16,7 @@ jobs:
     name: Job that triggers SQAaaS platform
     steps:
       - name: Step definition for a SQAaaS assessment
-        uses: ./ # Uses an action in the root directory
+        uses: eosc-synergy/sqaaas-step-action@v1
         id: sqaaas_step_environment
         with:
           name: make_and_micromamba_step
