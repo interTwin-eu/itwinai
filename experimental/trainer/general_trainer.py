@@ -71,11 +71,80 @@ def pars_ini():
     args = parser.parse_args()
 
 
-class ddpDistributedTrainer:
-    #def __init__(self, model):
-    #    self.model=model
+class DistributedStrategy(abc.ABC):
+    """Abstract class to define the distributed backend methods"""
+    @abc.abstractmethod
+    def init_backend(self) -> None:
+        """Initializes the chosen distributed backend"""
 
-    def distributedModel(self,model,device):
+    @abc.abstractmethod
+    def distribute_model(self,model,device) -> nn.Module:
+        """
+        DDP and DS: achieves data parallelism by synchronising the gradients across 
+        each model replica located in each available computing device.
+        HVD: returns the same model, parameters updates through broadcast_params method
+        """
+
+    @abc.abstractmethod
+    def broadcast_params(self, distrib_model, optimizer) -> None:
+        """
+        HVD: broadcasts variables from root rank to all other processes
+        DDP and DS: pass
+        """
+
+    @abc.abstractmethod
+    def distribute_optimizer(self, optimizer, distrib_model) -> optim.Optimizer:
+        """
+        HVD: construct a new DistributedOptimizer, which uses another optimizer 
+        under the hood for computing single-process gradient values and 
+        applying gradient updates after the gradient values have been 
+        combined across all the Horovod ranks.
+        DDP and DS: returns the same optimizer passed in argument
+        """
+
+    @abc.abstractmethod
+    def dist_gwsize(self) -> int:
+        """Returns the number of processes"""
+
+    @abc.abstractmethod
+    def dist_lwsize(self) -> int:
+        """Returns the number of GPUs available"""
+
+    @abc.abstractmethod
+    def dist_grank(self) -> int:
+        """
+        Returns the rank of the current process.
+        Rank ranges from 0 to world_size
+        """
+
+    @abc.abstractmethod
+    def dist_lrank(self) -> int:
+        """Returns the local rank of the current process."""
+
+    @abc.abstractmethod
+    def clean_up(self) -> None:
+        """Destroys the current process group."""
+
+    @abc.abstractmethod
+    def par_allgather_obj(self,obj,gwsize) -> list:
+        """
+        Gathers any object from the whole group 
+        in a list (to all workers)
+        """
+
+
+class DDPDistributedTrainer(DistributedStrategy):
+    """PyTorch DDP distributed training class"""
+    def init_backend(self) -> None:
+        """Initializes the distributed process group and the distributed package"""
+        if torch.cuda.is_available():
+           dist.init_process_group(backend=args.backend)
+
+    def distribute_model(self,model,device) -> nn.Module:
+        """
+        Achieves data parallelism by synchronising the gradients across 
+        each model replica located in each available computing device. 
+        """
         if torch.cuda.is_available():
             dist_model = torch.nn.parallel.DistributedDataParallel(model,\
                 device_ids=[device], output_device=device)
@@ -84,124 +153,163 @@ class ddpDistributedTrainer:
 
         return dist_model
 
-    def broadcastParams(self, distrib_model, optimizer):
+    def broadcast_params(self, distrib_model, optimizer) -> None:
+        """Only applicable for Horovod, else pass"""
         pass
 
-    def distributed_Optimizer(self, optimizer, distrib_model):
+    def distribute_optimizer(self, optimizer, distrib_model) -> optim.Optimizer:
+        """Only applicable for Horovod, else returns the optimizer from the argument"""
         return optimizer
 
-    def initBackend(self):
-        if torch.cuda.is_available():
-           dist.init_process_group(backend=args.backend)
-
-    def dist_gwsize(self):
+    def dist_gwsize(self) -> int:
+        """Returns the number of processes"""
         return dist.get_world_size()
 
-    def dist_lwsize(self):
+    def dist_lwsize(self) -> int:
+        """Returns the number of GPUs available"""
         return torch.cuda.device_count()
 
-    def dist_grank(self):
+    def dist_grank(self) -> int:
+        """
+        Returns the rank of the current process.
+        Rank ranges from 0 to world_size
+        """
         return dist.get_rank()
 
-    def dist_lrank(self):
+    def dist_lrank(self) -> int:
+        """Returns the local rank of the current process."""
         return dist.get_rank()%torch.cuda.device_count()
 
-    def cleanUp(self):
+    def clean_up(self) -> None:
+        """Destroys the current process group."""
         if torch.cuda.is_available():
            dist.barrier()
            dist.destroy_process_group()
 
-    # gathers any object from the whole group in a list (to all workers)
-    def par_allgather_obj(self,obj,gwsize):
+    def par_allgather_obj(self,obj,gwsize) -> list:
+        """
+        Gathers any object from the whole group 
+        in a list (to all workers)
+        """
         res = [None]*gwsize
         dist.all_gather_object(res,obj)
         return res
 
-class dsDistributedTrainer:
-    #def __init__(self, model):
-    #    self.model=model
+class DSDistributedTrainer(DistributedStrategy):
+    """DeepSpeed distributed training class"""
+    def init_backend(self) -> None:
+        """Initializes the distributed process group and the distributed package"""
+        deepspeed.init_distributed(dist_backend=args.backend)
 
-    def distributedModel(self, model, device):
-        # 1) Distributed model
-        # 2) DeepSpeed optimizer
-        # 3) Distributed data loader
+    def distribute_model(self, model, device) -> nn.Module:
+        """
+        Achieves data parallelism by synchronising the gradients across 
+        each model replica located in each available computing device. 
+        """
         distrib_model, __, __, __ = deepspeed.initialize(
             args=args, model=model, model_parameters=model.parameters(), dist_init_required=True)
         return distrib_model
 
-    def broadcastParams(self, distrib_model, optimizer):
+    def broadcast_params(self, distrib_model, optimizer) -> None:
+        """Only applicable for Horovod, else pass"""
         pass
 
-    def distributed_Optimizer(self, optimizer, distrib_model):
+    def distribute_optimizer(self, optimizer, distrib_model) -> optim.Optimizer:
+        """Only applicable for Horovod, else returns the optimizer from the argument"""
         return optimizer
 
-    def initBackend(self):
-        deepspeed.init_distributed(dist_backend=args.backend)
-
-    def dist_gwsize(self):
+    def dist_gwsize(self) -> int:
+        """Returns the number of processes"""
         return dist.get_world_size()
 
-    def dist_lwsize(self):
+    def dist_lwsize(self) -> int:
+        """Returns the number of GPUs available"""
         return torch.cuda.device_count()
 
-    def dist_grank(self):
+    def dist_grank(self) -> int:
+        """
+        Returns the rank of the current process.
+        Rank ranges from 0 to world_size
+        """
         return dist.get_rank()
 
-    def dist_lrank(self):
+    def dist_lrank(self) -> int:
+        """Returns the local rank of the current process."""
         return dist.get_rank()%torch.cuda.device_count()
 
-    def cleanUp(self):
+    def clean_up(self) -> None:
+        """Destroys the current process group."""
         deepspeed.sys.exit()
 
-    # gathers any object from the whole group in a list (to all workers)
-    def par_allgather_obj(self,obj,gwsize):
+    def par_allgather_obj(self,obj,gwsize) -> list:
+        """
+        Gathers any object from the whole group 
+        in a list (to all workers)
+        """
         res = [None]*gwsize
         dist.all_gather_object(res,obj)
         return res
 
-class hvdDistributedTrainer:
-    #def __init__(self, model):
-    #    self.model=model
+class HVDDistributedTrainer(DistributedStrategy):
+    """Horovod distributed training class"""
+    def init_backend(self) -> None:
+        """Initializes the Horovod distributed backend"""
+        hvd.init()
 
-    def distributedModel(self, model, device):
+    def distribute_model(self, model, device) -> nn.Module:
+        """For Horovod, returns the same model passed as argument"""
         distrib_model = model 
         return distrib_model
 
-    def broadcastParams(self, distrib_model, optimizer):
+    def broadcast_params(self, distrib_model, optimizer) -> None:
+        """Broadcasts variables from root rank to all other processes"""
         hvd.broadcast_parameters(distrib_model.state_dict(), root_rank=0)
         hvd.broadcast_optimizer_state(optimizer, root_rank=-0)
 
-    def distributed_Optimizer(self, optimizer, distrib_model):
+    def distribute_optimizer(self, optimizer, distrib_model) -> optim.Optimizer:
+        """
+        Construct a new DistributedOptimizer, which uses another optimizer 
+        under the hood for computing single-process gradient values and 
+        applying gradient updates after the gradient values have been 
+        combined across all the Horovod ranks.
+        """
         distOptimizer = hvd.DistributedOptimizer(optimizer, \
             named_parameters=distrib_model.named_parameters(), \
             op = hvd.Average)
         return distOptimizer
 
-    def initBackend(self):
-        hvd.init()
-
-    def dist_gwsize(self):
+    def dist_gwsize(self) -> int:
+        """Returns the number of processes"""
         return hvd.size()
 
-    def dist_lwsize(self):
+    def dist_lwsize(self) -> int:
+        """Returns the number of GPUs available"""
         return hvd.local_size()
 
-    def dist_grank(self):
+    def dist_grank(self) -> int:
+        """
+        Returns the rank of the current process.
+        Rank ranges from 0 to world_size
+        """
         return hvd.rank()
 
-    def dist_lrank(self):
+    def dist_lrank(self) -> int:
+        """Returns the local rank of the current process."""
         return hvd.local_rank()
 
-    def cleanUp(self):
+    def clean_up(self) -> None:
+        """Shuts Horovod down."""
         hvd.shutdown()
 
-    def par_allgather_obj(self,obj,gwsize):
-        """! function that gathers scalar objects across all workers to an array with size(\#worker)   
+    def par_allgather_obj(self,obj,gwsize) -> list:
+        """
+        Gathers scalar objects across 
+        all workers to a list with size(\#worker)   
         uses horovod communicator
         @param obj object in a worker
         @param gwsize global world size
 
-        @return gathered array with size(#worker)
+        @return gathered list with size(#worker)
         """
         return hvd.allgather_object(obj)
 
@@ -326,13 +434,13 @@ def main():
 
     #Strategy for distributed training
     if args.strategy=='DDP':
-       my_trainer = ddpDistributedTrainer()
+       my_trainer = DDPDistributedTrainer()
     
     elif args.strategy=='DS':
-       my_trainer = dsDistributedTrainer()
+       my_trainer = DSDistributedTrainer()
 
     elif args.strategy=='HVD':
-       my_trainer = hvdDistributedTrainer()
+       my_trainer = HVDDistributedTrainer()
 
     # limit # of CPU threads to be used per worker
     torch.set_num_threads(1)
@@ -345,7 +453,7 @@ def main():
 
 
     # initializes the distributed backend which will take care of sychronizing nodes/GPUs
-    my_trainer.initBackend()
+    my_trainer.init_backend()
 
 # deterministic testrun
     if args.testrun:
@@ -463,14 +571,14 @@ def main():
     model = Net().to(device)
 
     # distribute model to workers
-    distrib_model = my_trainer.distributedModel(model, device)
+    distrib_model = my_trainer.distribute_model(model, device)
 
     # optimizer
     optimizer = torch.optim.SGD(distrib_model.parameters(), lr=args.lr, momentum=args.momentum)
     
-    my_trainer.broadcastParams(distrib_model, optimizer)
+    my_trainer.broadcast_params(distrib_model, optimizer)
 
-    optimizer = my_trainer.distributed_Optimizer(optimizer, distrib_model)
+    optimizer = my_trainer.distribute_optimizer(optimizer, distrib_model)
 
 # resume state 
     start_epoch = 1
@@ -507,7 +615,7 @@ def main():
                 print(f'WARNING: given epochs are less than the one in the restart file!\n' 
                   f'WARNING: SYS.EXIT is issued')
             
-            my_trainer.cleanUp()
+            my_trainer.clean_up()
             sys.exit()
         else:
             print(f'WARNING: given epochs are less than the one in the restart file!\n'
@@ -574,7 +682,7 @@ def main():
     if grank==0:
         print(f'TIMER: final time: {time.time()-st} s\n')
 
-    my_trainer.cleanUp()
+    my_trainer.clean_up()
 
 if __name__ == "__main__": 
     main()
