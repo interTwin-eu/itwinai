@@ -120,8 +120,8 @@ class DDPDistributedStrategy(TorchDistributedStrategy):
             dist.init_process_group(backend=backend)
 
     def distribute_model(self, model, device) -> nn.Module:
-        """Achieves data parallelism by synchronizing the gradients 
-        across each model replica located in each available 
+        """Achieves data parallelism by synchronizing the gradients
+        across each model replica located in each available
         computing device.
 
         Args:
@@ -129,7 +129,7 @@ class DDPDistributedStrategy(TorchDistributedStrategy):
             device (Union[int, str]): Compute device to be used
 
         Returns:
-            nn.Module: Distributed model replicas across all devices 
+            nn.Module: Distributed model replicas across all devices
             that are to be synchronized
         """
         if torch.cuda.is_available():
@@ -215,7 +215,7 @@ class DDPDistributedStrategy(TorchDistributedStrategy):
             dist.destroy_process_group()
 
     def par_allgather_obj(self, obj) -> List[Any]:
-        """Gathers any object from the whole group 
+        """Gathers any object from the whole group
         in a list (to all workers)
 
         Args:
@@ -246,8 +246,8 @@ class DSDistributedStrategy(TorchDistributedStrategy):
         deepspeed.init_distributed(dist_backend=backend)
 
     def distribute_model(self, model, device) -> nn.Module:
-        """Achieves data parallelism by synchronizing the gradients 
-        across each model replica located in each available 
+        """Achieves data parallelism by synchronizing the gradients
+        across each model replica located in each available
         computing device.
 
         Args:
@@ -255,11 +255,11 @@ class DSDistributedStrategy(TorchDistributedStrategy):
             device (Union[int, str]): Compute device to be used
 
         Returns:
-            nn.Module: Distributed model replicas across all devices 
+            nn.Module: Distributed model replicas across all devices
             that are to be synchronized
         """
         distrib_model, __, __, __ = deepspeed.initialize(
-            args=args,
+            args=None,
             model=model,
             model_parameters=model.parameters(),
             dist_init_required=True
@@ -332,7 +332,7 @@ class DSDistributedStrategy(TorchDistributedStrategy):
         deepspeed.sys.exit()
 
     def par_allgather_obj(self, obj) -> list:
-        """Gathers any object from the whole group 
+        """Gathers any object from the whole group
         in a list (to all workers)
 
         Args:
@@ -376,10 +376,10 @@ class HVDDistributedStrategy(TorchDistributedStrategy):
         """Broadcasts variables from root rank to all other processes
 
         Args:
-            distrib_model (nn.Module): ML model that is to be broadcasted 
+            distrib_model (nn.Module): ML model that is to be broadcasted
             across processes
-            optimizer (optim.Optimizer): Optimizer that is to be broadcasted 
-            across processes  
+            optimizer (optim.Optimizer): Optimizer that is to be broadcasted
+            across processes
         """
         hvd.broadcast_parameters(distrib_model.state_dict(), root_rank=0)
         hvd.broadcast_optimizer_state(optimizer, root_rank=-0)
@@ -398,7 +398,7 @@ class HVDDistributedStrategy(TorchDistributedStrategy):
             distrib_model (nn.Module): ML model to be trained
 
         Returns:
-            optim.Optimizer: Distributed optimizer across all ranks 
+            optim.Optimizer: Distributed optimizer across all ranks
         """
         distOptimizer = hvd.DistributedOptimizer(
             optimizer,
@@ -447,7 +447,7 @@ class HVDDistributedStrategy(TorchDistributedStrategy):
         hvd.shutdown()
 
     def par_allgather_obj(self, obj, gwsize) -> list:
-        """Gathers scalar objects across all workers to a 
+        """Gathers scalar objects across all workers to a
         list with size(#worker), uses horovod communicator
 
         Args:
