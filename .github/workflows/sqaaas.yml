@@ -30,6 +30,6 @@ jobs:
       - name: Print out payload
         run: cat workflow_validation_step.json
       - name: SQAaaS assessment step
-        uses: eosc-synergy/sqaaas-assessment-action@feature/criteria_workflows
+        uses: eosc-synergy/sqaaas-assessment-action@v2
         with:
           steps: workflow_validation_step
