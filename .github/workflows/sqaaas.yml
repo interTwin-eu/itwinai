@@ -17,7 +17,6 @@ jobs:
     steps:
       - name: Step definition for a SQAaaS assessment
         uses: eosc-synergy/sqaaas-step-action@v1
-        id: sqaaas_step_environment
         with:
           name: workflow_validation_step
           tool: commands
