@@ -1,5 +1,7 @@
 import abc
-from typing import Any, Union, List
+from typing import Any, Union, List, Dict
+from pathlib import Path
+import json
 
 import deepspeed
 import torch
@@ -228,14 +230,34 @@ class DDPDistributedStrategy(TorchDistributedStrategy):
 class DSDistributedStrategy(TorchDistributedStrategy):
     """DeepSpeed distributed strategy class."""
 
-    def init_backend(self, backend: str, *args, **kwargs) -> None:
+    config: Dict = None
+
+    def init_backend(
+        self,
+        backend: str,
+        ds_config: Union[Dict, Path, str],
+        *args, **kwargs
+    ) -> None:
         """Initializes the distributed process group and the distributed
         package.
 
         Args:
             backend (str): Name of the communication backend to employ.
+            ds_config (Union[dict, Path, str]): DeepSpeed config. Either a
+            dictionary or a path to a JSON file.
         """
+        # https://deepspeed.readthedocs.io/en/latest/initialize.html#training-initialization
+        self._load_config(ds_config)
         deepspeed.init_distributed(dist_backend=backend)
+
+    def _load_config(self, ds_config):
+        if isinstance(ds_config, (str, Path)):
+            with open(ds_config) as fp:
+                self.config = json.load(fp)
+        elif isinstance(ds_config, dict):
+            self.config = ds_config
+        else:
+            raise ValueError("ds_config is not a dictionary not a path.")
 
     def distribute_model(
         self, model: nn.Module, device: Union[int, str]
@@ -252,11 +274,12 @@ class DSDistributedStrategy(TorchDistributedStrategy):
             nn.Module: Distributed model replicas across all devices
             that are to be synchronized.
         """
+        # https://deepspeed.readthedocs.io/en/latest/initialize.html#training-initialization
         distrib_model, __, __, __ = deepspeed.initialize(
-            args=None,
             model=model,
             model_parameters=model.parameters(),
-            dist_init_required=True
+            dist_init_required=True,
+            config=self.config
         )
         return distrib_model
 
