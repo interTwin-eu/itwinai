@@ -238,8 +238,9 @@ def main():
 
     # get job rank info - rank==0 master gpu
     if torch.cuda.is_available():
-        lwsize = my_trainer.dist_lwsize() if args.cuda else 0  # local world size - per node
-        gwsize = my_trainer.dist_gwsize()     # global world size - per run
+        # local world size - per node
+        lwsize = my_trainer.local_world_size() if args.cuda else 0
+        gwsize = my_trainer.global_world_size()     # global world size - per run
         grank = my_trainer.dist_grank()            # global rank - assign per run
         lrank = my_trainer.dist_lrank()     # local rank - assign per node
     else:
