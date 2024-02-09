@@ -3,7 +3,7 @@ Show how to use DDP, Horovod and DeepSpeed strategies interchangeably.
 Depending on the strategy you choose, you need to run this script with
 different ad-hoc commands:
 
-Torch DistributedDataParallel (DDP). Launch with torchrun::
+Torch DistributedDataParallel (DDP). Launch with torchrun:
 >>> micromamba run -p ../../.venv-pytorch/ torchrun \
     --rdzv_backend=c10d \
     --rdzv_endpoint=localhost:0 \
@@ -36,10 +36,10 @@ from torch import nn
 from torch.utils.data import DataLoader, Dataset, DistributedSampler
 
 from itwinai.torch.distributed import (
-    TorchDistributedStrategy,
-    DDPDistributedStrategy,
-    HVDDistributedStrategy,
-    DSDistributedStrategy
+    TorchDistributedStrategy_old,
+    DDPDistributedStrategy_old,
+    HVDDistributedStrategy_old,
+    DSDistributedStrategy_old
 )
 
 
@@ -74,7 +74,8 @@ class UniformRndDataset(Dataset):
 
 
 def trainer_entrypoint_fn(
-        foo: Any, args: argparse.Namespace, strategy: TorchDistributedStrategy
+        foo: Any, args: argparse.Namespace,
+        strategy: TorchDistributedStrategy_old
 ) -> int:
     """Dummy training function. This emulates custom code developed
     by some use case.
@@ -136,11 +137,11 @@ if __name__ == "__main__":
                 or not torch.cuda.device_count() > 1):
             raise RuntimeError('Resources unavailable')
 
-        strategy = DDPDistributedStrategy(backend='nccl')
+        strategy = DDPDistributedStrategy_old(backend='nccl')
     elif args.strategy == 'horovod':
-        strategy = HVDDistributedStrategy()
+        strategy = HVDDistributedStrategy_old()
     elif args.strategy == 'deepspeed':
-        strategy = DSDistributedStrategy(...)
+        strategy = DSDistributedStrategy_old(...)
     else:
         raise NotImplementedError(
             f"Strategy {args.strategy} is not recognized/implemented.")

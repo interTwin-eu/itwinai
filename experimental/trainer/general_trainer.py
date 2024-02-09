@@ -22,9 +22,9 @@ import torch.nn.functional as F
 from torchvision import datasets, transforms
 
 from itwinai.torch.distributed import (
-    DDPDistributedStrategy,
-    DSDistributedStrategy,
-    HVDDistributedStrategy
+    DDPDistributedStrategy_old,
+    DSDistributedStrategy_old,
+    HVDDistributedStrategy_old
 )
 
 # parsed settings
@@ -210,13 +210,13 @@ def main():
 
     # Strategy for distributed training
     if args.strategy == 'DDP':
-        my_trainer = DDPDistributedStrategy()
+        my_trainer = DDPDistributedStrategy_old()
 
     elif args.strategy == 'DS':
-        my_trainer = DSDistributedStrategy()
+        my_trainer = DSDistributedStrategy_old()
 
     elif args.strategy == 'HVD':
-        my_trainer = HVDDistributedStrategy()
+        my_trainer = HVDDistributedStrategy_old()
 
     # limit # of CPU threads to be used per worker
     torch.set_num_threads(1)

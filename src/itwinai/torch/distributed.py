@@ -1,19 +1,26 @@
 import abc
-from typing import Any, Union, List, Dict
+from typing import Any, Union, List, Dict, Optional, Callable, Tuple
 from pathlib import Path
 import json
+
+from pydantic import BaseModel
 
 import deepspeed
 import torch
 import torch.distributed as dist
 import horovod.torch as hvd
 import torch.nn as nn
+# from torch.nn.modules import Module
 import torch.optim as optim
+from torch.optim.lr_scheduler import _LRScheduler as LRScheduler
+from torch.optim.optimizer import Optimizer
+from torch.cuda import amp
+from torch import autocast
 
 from ..distributed import DistributedStrategy
 
 
-class TorchDistributedStrategy(DistributedStrategy):
+class TorchDistributedStrategy_old(DistributedStrategy):
     """Abstract class to define the distributed backend methods for
     PyTorch models.
     """
@@ -120,7 +127,7 @@ class TorchDistributedStrategy(DistributedStrategy):
         """
 
 
-class DDPDistributedStrategy(TorchDistributedStrategy):
+class DDPDistributedStrategy_old(TorchDistributedStrategy_old):
     """PyTorch DDP distributed strategy class.
 
     Args:
@@ -249,7 +256,7 @@ class DDPDistributedStrategy(TorchDistributedStrategy):
         return res
 
 
-class DSDistributedStrategy(TorchDistributedStrategy):
+class DSDistributedStrategy_old(TorchDistributedStrategy_old):
     """DeepSpeed distributed strategy class.
 
     Args:
@@ -387,7 +394,7 @@ class DSDistributedStrategy(TorchDistributedStrategy):
         return res
 
 
-class HVDDistributedStrategy(TorchDistributedStrategy):
+class HVDDistributedStrategy_old(TorchDistributedStrategy_old):
     """Horovod distributed strategy class."""
 
     def init_backend(self) -> None:
@@ -496,7 +503,266 @@ class HVDDistributedStrategy(TorchDistributedStrategy):
 
 ################################################################
 
-class TorchDistributedStrategy2(DistributedStrategy):
+class OptimizerConfig:
+    def __init__(self, optim_class, **kwargs) -> None:
+        self.optim_class = optim_class
+        self.kwargs = kwargs
+
+    def to_optim(self, parameters) -> optim.Optimizer:
+        return self.optim_class(parameters, **self.kwargs)
+
+
+class LRSchedulerConfig:
+    def __init__(self, scheduler_class, **kwargs) -> None:
+        self.scheduler_class = scheduler_class
+        self.kwargs = kwargs
+
+    def to_scheduler(self, optim) -> LRScheduler:
+        return self.scheduler_class(optim, **self.kwargs)
+
+
+class ModelEngineConfig(BaseModel):
+    mixed_precision: bool = False
+
+
+class ModelEngine(abc.ABC):
+    """Wrapper around distributed model"""
+
+    model: nn.Module
+    _model_parameters: Any
+    optimizer: optim.Optimizer
+    lr_scheduler: LRScheduler
+    # config: ModelEngineConfig
+    mixed_precision: bool = False
+    grad_scaler: amp.GradScaler = None
+
+    def __init__(
+        self,
+        model: nn.Module,
+        # model_parameters: Any,
+        optimizer: Union[optim.Optimizer, OptimizerConfig],
+        lr_scheduler: Optional[Union[LRScheduler, LRSchedulerConfig]] = None,
+        mixed_precision: bool = False
+        # config: Optional[ModelEngineConfig] = None
+    ) -> None:
+        super().__init__()
+        self.model = model
+        self.optimizer = optimizer
+        self.lr_scheduler = lr_scheduler
+        # self._model_parameters = model_parameters
+        # if isinstance(optimizer, OptimizerConfig):
+        #     self.optimizer = optimizer.to_optim(model_parameters)
+        # else:
+        #     self.optimizer = optimizer
+
+        # if isinstance(lr_scheduler, LRSchedulerConfig):
+        #     self.lr_scheduler = lr_scheduler.to_scheduler(self.optimizer)
+        # else:
+        #     self.lr_scheduler = lr_scheduler
+
+        # if not config:
+        #     self.config = ModelEngineConfig()
+        self.mixed_precision = mixed_precision
+        if mixed_precision:
+            self.grad_scaler = amp.GradScaler()
+
+    def __call__(self, *args: Any, **kwds: Any) -> Any:
+        """Performs the forward operation."""
+        # Wrapper of self.forward()
+        return self.forward(*args, **kwds)
+
+    def forward(self, *args: Any, **kwds: Any) -> Any:
+        """Performs the forward operation."""
+        return self.model(*args, **kwds)
+
+    def train(self, mode: bool = True) -> nn.Module:
+        """Set model in training mode."""
+        self.model.train(mode=mode)
+        return self.model
+
+    def eval(self) -> nn.Module:
+        """Set model in inference mode."""
+        self.model.eval()
+        return self.model
+
+    def to(self, device) -> nn.Module:
+        """Move model to specified device."""
+        self.model.to(device)
+        return self.model
+
+    @abc.abstractmethod
+    def zero_grad():
+        """Set gradients to zero for the optimizer."""
+
+    @abc.abstractmethod
+    def backward(self, loss_fn: Callable, *loss_args) -> torch.Tensor:
+        """Perform backward pass and return the loss.
+
+        Args:
+            loss_fn (Callable): computes the loss.
+            *loss_args: are the arguments to be passed to ``loss_fn``.
+
+        Returns:
+            torch.Tensor: computed loss.
+        """
+
+    @abc.abstractmethod
+    def optimizer_step(self):
+        """Perform optimizer step."""
+
+    @abc.abstractmethod
+    def lr_scheduler_step(self):
+        """Perform lr scheduler step, if present."""
+        # This should be incorporated in the optim step:
+        # https://deepspeed.readthedocs.io/en/latest/schedulers.html
+        # scheduler is updated automatically at each training step
+
+    @abc.abstractmethod
+    def save_checkpoint(self):
+        """Save checkpoint to persistent storage."""
+
+
+class DDPModelEngine(ModelEngine):
+    """Model engine for torch DDP distributed strategy."""
+
+    def forward(self, *args: Any, **kwds: Any) -> Any:
+        """Performs the forward operation."""
+        if self.mixed_precision:
+            # https://pytorch.org/docs/stable/notes/amp_examples.html
+            # Runs the forward pass with autocasting.
+            with autocast(device_type='cuda', dtype=torch.float16):
+                return self.model(*args, **kwds)
+        else:
+            return self.model(*args, **kwds)
+
+    def zero_grad(self):
+        """Set gradients to zero for the optimizer."""
+        self.optimizer.zero_grad()
+
+    def backward(self, loss_fn: Callable, *loss_args) -> torch.Tensor:
+        """Perform backward pass and return the loss.
+
+        Args:
+            loss_fn (Callable): computes the loss.
+            *loss_args: are the arguments to be passed to ``loss_fn``.
+
+        Returns:
+            torch.Tensor: computed loss.
+        """
+        if self.mixed_precision:
+            # https://pytorch.org/docs/stable/notes/amp_examples.html
+            # Runs the forward pass with autocasting.
+            with autocast(device_type='cuda', dtype=torch.float16):
+                loss = loss_fn(*loss_args)
+
+            # Scales loss.  Calls backward() on scaled loss to create scaled
+            # gradients.
+            # Backward passes under autocast are not recommended.
+            # Backward ops run in the same dtype autocast chose for
+            # corresponding forward ops.
+            loss = self.grad_scaler.scale(loss)
+        else:
+            loss = loss_fn(*loss_args)
+        loss.backward()
+        return loss
+
+    def optimizer_step(self):
+        """Perform optimizer step."""
+        if self.mixed_precision:
+            # https://pytorch.org/docs/stable/notes/amp_examples.html#typical-mixed-precision-training
+            # scaler.step() first unscales the gradients of the optimizer's
+            # assigned params.
+            # If these gradients do not contain infs or NaNs, optimizer.step()
+            # is then called,
+            # otherwise, optimizer.step() is skipped.
+            self.grad_scaler.step(self.optimizer)
+
+            # Updates the scale for next iteration.
+            self.grad_scaler.update()
+        else:
+            self.optimizer.step()
+
+    def lr_scheduler_step(self):
+        """Perform lr scheduler step, if present."""
+        if self.lr_scheduler:
+            self.lr_scheduler.step()
+
+    def save_checkpoint(self):
+        """Save checkpoint to persistent storage."""
+        raise NotImplementedError
+
+
+class DSModelEngine(ModelEngine):
+    """Model engine for DeeSpeed distributed strategy."""
+
+    def forward(self, *args: Any, **kwds: Any) -> Any:
+        """Performs the forward operation."""
+        if self.mixed_precision:
+            # https://pytorch.org/docs/stable/notes/amp_examples.html
+            # Runs the forward pass with autocasting.
+            with autocast(device_type='cuda', dtype=torch.float16):
+                return self.model(*args, **kwds)
+        else:
+            return self.model(*args, **kwds)
+
+    def zero_grad(self):
+        """Set gradients to zero for the optimizer."""
+        self.optimizer.zero_grad()
+
+    def backward(self, loss_fn: Callable, *loss_args) -> torch.Tensor:
+        """Perform backward pass and return the loss.
+
+        Args:
+            loss_fn (Callable): computes the loss.
+            *loss_args: are the arguments to be passed to ``loss_fn``.
+
+        Returns:
+            torch.Tensor: computed loss.
+        """
+        if self.mixed_precision:
+            # https://pytorch.org/docs/stable/notes/amp_examples.html
+            # Runs the forward pass with autocasting.
+            with autocast(device_type='cuda', dtype=torch.float16):
+                loss = loss_fn(*loss_args)
+
+            # Scales loss.  Calls backward() on scaled loss to create scaled
+            # gradients.
+            # Backward passes under autocast are not recommended.
+            # Backward ops run in the same dtype autocast chose for
+            # corresponding forward ops.
+            loss = self.grad_scaler.scale(loss)
+        else:
+            loss = loss_fn(*loss_args)
+        loss.backward()
+        return loss
+
+    def optimizer_step(self):
+        """Perform optimizer step."""
+        if self.mixed_precision:
+            # https://pytorch.org/docs/stable/notes/amp_examples.html#typical-mixed-precision-training
+            # scaler.step() first unscales the gradients of the optimizer's
+            # assigned params.
+            # If these gradients do not contain infs or NaNs, optimizer.step()
+            # is then called,
+            # otherwise, optimizer.step() is skipped.
+            self.grad_scaler.step(self.optimizer)
+
+            # Updates the scale for next iteration.
+            self.grad_scaler.update()
+        else:
+            self.optimizer.step()
+
+    def lr_scheduler_step(self):
+        """Perform lr scheduler step, if present."""
+        if self.lr_scheduler:
+            self.lr_scheduler.step()
+
+    def save_checkpoint(self):
+        """Save checkpoint to persistent storage."""
+        raise NotImplementedError
+
+
+class TorchDistributedStrategy(DistributedStrategy):
     """Abstract class to define the distributed backend methods for
     PyTorch models.
     """
@@ -504,38 +770,19 @@ class TorchDistributedStrategy2(DistributedStrategy):
     def init(self) -> None:
         """Initializes the chosen distributed backend"""
 
-    @abc.abstractmethod
-    def distribute(self, model: Any, optimizer: Any) -> Any:
-        """Distributes a machine learning model and its optimizer.
-
-        Args:
-            model (Any): a generic ML model to be distributed.
-            device (Union[int, str]): device on which the model is run.
-
-        Returns:
-            Any: distributed model instance.
-        """
+    # @abc.abstractmethod
+    # def distributed_engine(
+    #     self, model: nn.Module, optimizer: Optimizer,
+    #     lr_scheduler: Optional[LRScheduler] = None
+    # ) -> ModelEngine:
+    #     """Build a distributed model engine."""
 
     @abc.abstractmethod
-    def broadcast_params(self, model: Any, optimizer: Any) -> None:
-        """Broadcasts variables from root rank to all other processes/
-
-        Args:
-            model (Any): distributed model.
-            optimizer (Any): optimizer.
-        """
-
-    @abc.abstractmethod
-    def distribute_optimizer(self, optimizer: Any, model: Any) -> Any:
-        """Distribute optimizer.
-
-        Args:
-            optimizer (Any): optimizer.
-            model (Any): distributed model.
-
-        Returns:
-            Any: distributed optimizer.
-        """
+    def distributed(
+        self, model: nn.Module, optimizer: Optimizer,
+        lr_scheduler: Optional[LRScheduler] = None
+    ) -> Tuple[nn.Module, Optimizer, Optional[LRScheduler]]:
+        """Setup model, optimizer and scheduler for distributed."""
 
     @abc.abstractmethod
     def dist_gwsize(self) -> int:
@@ -604,7 +851,7 @@ class TorchDistributedStrategy2(DistributedStrategy):
         """
 
 
-class DDPDistributedStrategy2(TorchDistributedStrategy2):
+class DDPDistributedStrategy(TorchDistributedStrategy):
     """PyTorch DDP distributed strategy class.
 
     Args:
@@ -612,6 +859,7 @@ class DDPDistributedStrategy2(TorchDistributedStrategy2):
     """
 
     backend: str
+    model: DDPModelEngine
 
     def __init__(self, backend: str) -> None:
         super().__init__()
@@ -621,21 +869,42 @@ class DDPDistributedStrategy2(TorchDistributedStrategy2):
         """Initializes the distributed process group and the distributed
         package.
         """
-        if torch.cuda.is_available():
+        if torch.cuda.is_available() and torch.cuda.device_count() > 1:
             dist.init_process_group(backend=self.backend)
+        else:
+            print("WARNING: trying to run distributed on insufficient"
+                  " resources. Skipping distributed process group setup.")
 
-    def distribute(self, model: nn.Module) -> nn.Module:
-        """Achieves data parallelism by synchronizing the gradients
-        across each model replica located in each available
-        computing device.
+    # def distributed_engine(
+    #     self, model: nn.Module, optimizer: Optimizer,
+    #     lr_scheduler: Optional[LRScheduler] = None,
+    #     mixed_precision: bool = False
+    # ) -> ModelEngine:
+    #     """Build a distributed model engine."""
+    #     if torch.cuda.is_available():
+    #         # device = self.dist_lrank()
+    #         model = model.to(self.dist_device())
+    #         dist_model = torch.nn.parallel.DistributedDataParallel(
+    #             model,
+    #             device_ids=[self.dist_device()],
+    #             output_device=self.dist_device()
+    #         )
+    #     else:
+    #         dist_model = model
 
-        Args:
-            model (nn.Module): ML model to be distributed.
+    #     model_engine = DDPModelEngine(
+    #         dist_model, optimizer, lr_scheduler,
+    #         mixed_precision=mixed_precision
+    #     )
 
-        Returns:
-            nn.Module: Distributed model replicas across all devices.
-            that are to be synchronized.
-        """
+    #     return model_engine
+
+    def distributed(
+        self, model: nn.Module, optimizer: Optimizer,
+        lr_scheduler: Optional[LRScheduler] = None,
+        **kwargs
+    ) -> Tuple[nn.Module, Optimizer, Optional[LRScheduler]]:
+        """Setup model, optimizer and scheduler for distributed."""
         if torch.cuda.is_available():
             # device = self.dist_lrank()
             model = model.to(self.dist_device())
@@ -647,36 +916,7 @@ class DDPDistributedStrategy2(TorchDistributedStrategy2):
         else:
             dist_model = model
 
-        return dist_model
-
-    def broadcast_params(
-        self,
-        model: nn.Module,
-        optimizer: optim.Optimizer
-    ) -> None:
-        """Do nothing. Only applicable for Horovod.
-
-        Args:
-            model (nn.Module): ML model
-            optimizer (optim.Optimizer): Optimizer
-        """
-        pass
-
-    def distribute_optimizer(
-        self,
-        optimizer: optim.Optimizer,
-        model: nn.Module = None
-    ) -> optim.Optimizer:
-        """Returns the optimizer from argument.
-
-        Args:
-            optimizer (optim.Optimizer): optimizer.
-            model (nn.Module): ML model. Unused here.
-
-        Returns:
-            optim.Optimizer: Distributed optimizer.
-        """
-        return optimizer
+        return dist_model, optimizer, lr_scheduler
 
     def dist_gwsize(self) -> int:
         """Returns the total number of processes (global world size).
@@ -733,7 +973,7 @@ class DDPDistributedStrategy2(TorchDistributedStrategy2):
         return res
 
 
-class DSDistributedStrategy2(TorchDistributedStrategy2):
+class DSDistributedStrategy(TorchDistributedStrategy):
     """DeepSpeed distributed strategy class.
 
     Args:
@@ -770,53 +1010,23 @@ class DSDistributedStrategy2(TorchDistributedStrategy2):
         # https://deepspeed.readthedocs.io/en/latest/initialize.html#training-initialization
         deepspeed.init_distributed(dist_backend=self.backend)
 
-    def distribute(self, model: nn.Module) -> nn.Module:
-        """Achieves data parallelism by synchronizing the gradients
-        across each model replica located in each available
-        computing device.
-
-        Args:
-            model (nn.Module): ML model to be distributed.
-
-        Returns:
-            nn.Module: Distributed model replicas across all devices
-            that are to be synchronized.
-        """
+    def distributed(
+        self, model: nn.Module, optimizer: Optional[Optimizer] = None,
+        lr_scheduler: Optional[LRScheduler] = None,
+        model_parameters: Optional[Any] = None, **kwargs
+    ) -> Tuple[nn.Module, Optimizer, Optional[LRScheduler]]:
+        """Setup model, optimizer and scheduler for distributed."""
         # https://deepspeed.readthedocs.io/en/latest/initialize.html#training-initialization
-        distrib_model, __, __, __ = deepspeed.initialize(
+        # To prioritize optim in the config, you need to pass optim=None
+        distrib_model, optimizer, _, lr_scheduler = deepspeed.initialize(
             model=model,
-            model_parameters=model.parameters(),
+            model_parameters=model_parameters,
+            optimizer=optimizer,
+            lr_scheduler=lr_scheduler,
             dist_init_required=True,
             config=self.config
         )
-        return distrib_model
-
-    def broadcast_params(
-            self, model: nn.Module, optimizer: optim.Optimizer
-    ) -> None:
-        """Only applicable for Horovod. Does nothing.
-
-        Args:
-            model (nn.Module): ML model.
-            optimizer (optim.Optimizer): optimizer.
-        """
-        pass
-
-    def distribute_optimizer(
-        self,
-        optimizer: optim.Optimizer,
-        model: nn.Module = None
-    ) -> optim.Optimizer:
-        """Returns the optimizer from argument.
-
-        Args:
-            optimizer (optim.Optimizer): torch optimizer.
-            model (nn.Module): torch neural network.
-
-        Returns:
-            optim.Optimizer: distributed optimizer.
-        """
-        return optimizer
+        return distrib_model, optimizer, lr_scheduler
 
     def dist_gwsize(self) -> int:
         """Returns the total number of processes (global world size).
@@ -871,26 +1081,28 @@ class DSDistributedStrategy2(TorchDistributedStrategy2):
         return res
 
 
-class HVDDistributedStrategy2(TorchDistributedStrategy2):
+class HVDDistributedStrategy(TorchDistributedStrategy):
     """Horovod distributed strategy class."""
 
     def init(self) -> None:
         """Initializes the Horovod distributed backend."""
         hvd.init()
 
-    def distribute(self, model: nn.Module) -> nn.Module:
-        """Only applicable for DDP and DeepSpeed.
-        For Horovod, returns the same model passed as argument.
+    def distributed(
+        self, model: nn.Module, optimizer: Optional[Optimizer] = None,
+        lr_scheduler: Optional[LRScheduler] = None,
+        **kwargs
+    ) -> Tuple[nn.Module, Optimizer, Optional[LRScheduler]]:
+        """Setup model, optimizer and scheduler for distributed."""
+        self._broadcast_params(model, optimizer)
+        distOptimizer = hvd.DistributedOptimizer(
+            optimizer,
+            named_parameters=model.named_parameters(),
+            op=hvd.Average
+        )
+        return model, distOptimizer, lr_scheduler
 
-        Args:
-            model (nn.Module): ML model to be distributed.
-
-        Returns:
-            nn.Module: ML model passed in the argument.
-        """
-        return model
-
-    def broadcast_params(
+    def _broadcast_params(
             self, model: nn.Module, optimizer: optim.Optimizer
     ) -> None:
         """Broadcasts variables from root rank to all other processes.
@@ -903,29 +1115,6 @@ class HVDDistributedStrategy2(TorchDistributedStrategy2):
         """
         hvd.broadcast_parameters(model.state_dict(), root_rank=0)
         hvd.broadcast_optimizer_state(optimizer, root_rank=-0)
-
-    def distribute_optimizer(
-        self,
-        optimizer: optim.Optimizer,
-        model: nn.Module
-    ) -> optim.Optimizer:
-        """Constructs a DistributedOptimizer, for computing single-process
-        gradient values and applying gradient updates after the gradient values
-        have been combined across all the Horovod ranks.
-
-        Args:
-            optimizer (optim.Optimizer): Optimizer to be distributed.
-            model (nn.Module): ML model to be trained.
-
-        Returns:
-            optim.Optimizer: Distributed optimizer across all ranks.
-        """
-        distOptimizer = hvd.DistributedOptimizer(
-            optimizer,
-            named_parameters=model.named_parameters(),
-            op=hvd.Average
-        )
-        return distOptimizer
 
     def dist_gwsize(self) -> int:
         """Returns the total number of processes (global world size).
