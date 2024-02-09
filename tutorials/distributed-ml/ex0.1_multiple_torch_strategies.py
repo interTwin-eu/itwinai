@@ -13,7 +13,11 @@ Torch DistributedDataParallel (DDP). Launch with torchrun:
 
 DeepSpeed. Launch with deepspeed:
 >>> micromamba run -p ../../.venv-pytorch/ deepspeed \
-    ex0.1_multiple_torch_strategies.py -s deepspeed --deepspeed
+    ex0.1_multiple_torch_strategies.py -s deepspeed
+
+Horovod. Launch with horovodrun:
+>>> micromamba run -p ../../.venv-pytorch/ horovodrun -np 4 \
+    python ex0.1_multiple_torch_strategies.py -s horovod
 """
 from typing import Any
 import os
@@ -44,7 +48,7 @@ def parse_args() -> argparse.Namespace:
         action=argparse.BooleanOptionalAction
     )
 
-    # DeepSpeed
+    # DeepSpeed: needs to be removed
     import deepspeed
     parser.add_argument('--local_rank', type=int, default=-1,
                         help='local rank passed from distributed launcher')

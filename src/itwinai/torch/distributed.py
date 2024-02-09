@@ -1087,6 +1087,7 @@ class HVDDistributedStrategy(TorchDistributedStrategy):
     def init(self) -> None:
         """Initializes the Horovod distributed backend."""
         hvd.init()
+        torch.cuda.set_device(hvd.local_rank())
 
     def distributed(
         self, model: nn.Module, optimizer: Optional[Optimizer] = None,
@@ -1094,7 +1095,12 @@ class HVDDistributedStrategy(TorchDistributedStrategy):
         **kwargs
     ) -> Tuple[nn.Module, Optimizer, Optional[LRScheduler]]:
         """Setup model, optimizer and scheduler for distributed."""
+
+        model.to(self.dist_device())
         self._broadcast_params(model, optimizer)
+
+        # TODO: here you may need to scale the lr
+
         distOptimizer = hvd.DistributedOptimizer(
             optimizer,
             named_parameters=model.named_parameters(),
