@@ -26,17 +26,20 @@ maintainers = [
 classifiers = ["Development Status :: Beta", "Programming Language :: Python"]
 
 dependencies = [
-    "wandb>=0.15.11",
-    "mlflow>=2.7",
-    "jsonargparse[signatures]>=4.17.0",
-    "pyyaml>=6.0.1",
-    "omegaconf>=2.3.0",
-    "submitit>=1.4.6",
-    "typing-extensions==4.5.0",
-    "typing_extensions==4.5.0",
-    "urllib3>=2.0.5",
-    "deepspeed>=0.13.1",
-    "horovod[tensorflow,keras,pytorch]>=0.28.1",
+    "wandb",
+    "mlflow",
+    "jsonargparse[signatures]",
+    "pyyaml",
+    "omegaconf",
+    # "wandb>=0.15.11",
+    # "mlflow>=2.7",
+    # "jsonargparse[signatures]>=4.17.0",
+    # "pyyaml>=6.0.1",
+    # "omegaconf>=2.3.0",
+    # "submitit>=1.4.6",
+    # "typing-extensions==4.5.0",
+    # "typing_extensions==4.5.0",
+    # "urllib3>=2.0.5",
 ]
 
 # dynamic = ["version", "description"]
@@ -45,6 +48,8 @@ dependencies = [
 # TODO: add torch and tensorflow
 # torch = []
 # tf = []
+distributed = ["deepspeed>=0.13.1", "horovod[tensorflow,keras,pytorch]>=0.28.1"]
+cli = ["rich>=13.5.3", "typer>=0.9.0"]
 dev = [
     "pytest>=7.4.2",
     "pytest-mock>=3.11.1",

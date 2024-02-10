@@ -3,29 +3,28 @@ Show how to use DDP, Horovod and DeepSpeed strategies interchangeably.
 Depending on the strategy you choose, you need to run this script with
 different ad-hoc commands:
 
-Torch DistributedDataParallel (DDP). Launch with torchrun:
+Torch DistributedDataParallel (DDP). Launch from terminal with torchrun:
 >>> micromamba run -p ../../.venv-pytorch/ torchrun \
     --rdzv_backend=c10d \
     --rdzv_endpoint=localhost:0 \
     --nnodes=1 \
     --nproc_per_node=4 \
-    ex0_multiple_torch_strategies.py -s ddp
+    train.py -s ddp
+with SLURM:
+>>> sbatch ddp_slurm.sh
 
+DeepSpeed. Launch from terminal with deepspeed:
+>>> micromamba run -p ../../.venv-pytorch/ deepspeed \
+    train.py -s deepspeed
+with SLURM:
+>>> sbatch deepSpeed_slurm.sh
 
-Using a SLURM jobscript:
+Horovod. Only works with SLURM:
+>>> sbatch horovod_slurm.sh
 
-1. Torch DistributedDataParallel (DDP):
-set STRATEGY="ddp" in ``torchrun ex0_multiple_torch_strategies.sh``
-2. Horovod:
-set STRATEGY="horovod" in ``torchrun ex0_multiple_torch_strategies.sh``
-3. DeepSpeed:
-set STRATEGY="deepspeed" in ``torchrun ex0_multiple_torch_strategies.sh``
-
-Execute ``torchrun ex0_multiple_torch_strategies.sh`` in a slurm environment:
-
->>> sbatch ex0_multiple_torch_strategies.sh
-
-
+Horovod. Launch with horovodrun (NOT WORKING YET):
+>>> micromamba run -p ../../.venv-pytorch/ horovodrun -np 4 \
+    python train.py -s horovod
 """
 from typing import Any
 import os
@@ -36,10 +35,11 @@ from torch import nn
 from torch.utils.data import DataLoader, Dataset, DistributedSampler
 
 from itwinai.torch.distributed import (
-    TorchDistributedStrategy_old,
-    DDPDistributedStrategy_old,
-    HVDDistributedStrategy_old,
-    DSDistributedStrategy_old
+    TorchDistributedStrategy,
+    DDPDistributedStrategy,
+    HVDDistributedStrategy,
+    DSDistributedStrategy,
+    # ModelEngine
 )
 
 
@@ -54,7 +54,16 @@ def parse_args() -> argparse.Namespace:
         "--shuffle_dataloader",
         action=argparse.BooleanOptionalAction
     )
-    return parser.parse_args()
+
+    # DeepSpeed: needs to be removed
+    import deepspeed
+    parser.add_argument('--local_rank', type=int, default=-1,
+                        help='local rank passed from distributed launcher')
+    parser = deepspeed.add_config_arguments(parser)
+    args = parser.parse_args()
+    # os.environ['LOCAL_RANK'] = str(args.local_rank)  # may not be needed
+
+    return args
 
 
 class UniformRndDataset(Dataset):
@@ -74,13 +83,12 @@ class UniformRndDataset(Dataset):
 
 
 def trainer_entrypoint_fn(
-        foo: Any, args: argparse.Namespace,
-        strategy: TorchDistributedStrategy_old
+        foo: Any, args: argparse.Namespace, strategy: TorchDistributedStrategy
 ) -> int:
     """Dummy training function. This emulates custom code developed
     by some use case.
     """
-    strategy.init_backend()
+    strategy.init()
     print(f"{foo}: {os.environ.get('RANK')} {os.environ.get('LOCAL_RANK')} "
           f"{os.environ.get('MASTER_ADDR')} {os.environ.get('MASTER_PORT')}")
 
@@ -89,8 +97,10 @@ def trainer_entrypoint_fn(
     optim = torch.optim.Adam(model.parameters(), lr=1e-3)
     loss_fn = nn.MSELoss()
     # Distributed model
-    model: nn.Module = strategy.distribute_model(model)
-    optim: torch.optim.Optimizer = strategy.distribute_optimizer(optim, model)
+    # model_engine: ModelEngine = strategy.distributed(model, optim)
+    model, optim, lr_sched = strategy.distributed(
+        model, optim, lr_scheduler=None
+    )
 
     # Data
     train_set = UniformRndDataset(x_size=3, y_size=4)
@@ -115,13 +125,20 @@ def trainer_entrypoint_fn(
             y = y.to(device)
 
             optim.zero_grad()
+
             y_pred = model(x)
+
             loss = loss_fn(y_pred, y)
             loss.backward()
+
             optim.step()
 
             if strategy.is_main_worker():
                 print(f"Loss [epoch={epoch}]: {loss.item()}")
+
+        # Update scheduler
+        if lr_sched:
+            lr_sched.step()
 
     strategy.clean_up()
     return 123
@@ -137,11 +154,13 @@ if __name__ == "__main__":
                 or not torch.cuda.device_count() > 1):
             raise RuntimeError('Resources unavailable')
 
-        strategy = DDPDistributedStrategy_old(backend='nccl')
+        strategy = DDPDistributedStrategy(backend='nccl')
     elif args.strategy == 'horovod':
-        strategy = HVDDistributedStrategy_old()
+        strategy = HVDDistributedStrategy()
     elif args.strategy == 'deepspeed':
-        strategy = DSDistributedStrategy_old(...)
+        strategy = DSDistributedStrategy(
+            backend='nccl', config=dict(train_batch_size=4)
+        )
     else:
         raise NotImplementedError(
             f"Strategy {args.strategy} is not recognized/implemented.")
