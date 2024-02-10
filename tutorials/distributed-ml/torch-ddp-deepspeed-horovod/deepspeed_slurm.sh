@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # general configuration of the job
-#SBATCH --job-name=TorchTest
+#SBATCH --job-name=Torch_DeepSpeed_tutorial
 #SBATCH --account=intertwin
 #SBATCH --mail-user=
 #SBATCH --mail-type=ALL
@@ -11,7 +11,7 @@
 
 # configure node and process count on the CM
 #SBATCH --partition=batch
-#SBATCH --nodes=4
+#SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1
 #SBATCH --cpus-per-task=32
 #SBATCH --gpus-per-node=4
@@ -43,12 +43,18 @@ if [ "$debug" = true ] ; then
 fi
 echo
 
-# set comm
-export CUDA_VISIBLE_DEVICES="0,1,2,3"
+# # set comm
+# export CUDA_VISIBLE_DEVICES="0,1,2,3"
+# export OMP_NUM_THREADS=1
+# if [ "$SLURM_CPUS_PER_TASK" > 0 ] ; then
+#   export OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK
+# fi
+export SRUN_CPUS_PER_TASK=${SLURM_CPUS_PER_TASK}
 export OMP_NUM_THREADS=1
 if [ "$SLURM_CPUS_PER_TASK" > 0 ] ; then
   export OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK
 fi
+export CUDA_VISIBLE_DEVICES="0,1,2,3"
 
 # launch training
 TRAINING_CMD="train.py -s deepspeed"

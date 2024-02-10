@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # general configuration of the job
-#SBATCH --job-name=Hor-IT
+#SBATCH --job-name=Torch_HVD_tutorial
 #SBATCH --account=intertwin
 #SBATCH --partition=batch
 #SBATCH --output=job.out
@@ -39,15 +39,17 @@ if [ "$debug" = true ] ; then
 fi
 echo
 
-# set comm
-export CUDA_VISIBLE_DEVICES="0,1,2,3"
+# set vars
+# export NCCL_DEBUG=INFO
+export SRUN_CPUS_PER_TASK=${SLURM_CPUS_PER_TASK}
 export OMP_NUM_THREADS=1
 if [ "$SLURM_CPUS_PER_TASK" > 0 ] ; then
   export OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK
 fi
+export CUDA_VISIBLE_DEVICES="0,1,2,3"
 
 # launch training
 TRAINING_CMD="train.py -s horovod"
 
-srun --cpu-bind=none python3 -u "$TRAINING_CMD"
+srun --cpu-bind=none python3 -u $TRAINING_CMD
 

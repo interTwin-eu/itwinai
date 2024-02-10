@@ -13,6 +13,7 @@ pl-training.yml
 *.pth
 *.csv
 *tar.gz
+0
 
 # Use cases files
 MNIST

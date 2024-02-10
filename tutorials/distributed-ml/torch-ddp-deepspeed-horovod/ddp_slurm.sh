@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # general configuration of the job
-#SBATCH --job-name=TorchTest
+#SBATCH --job-name=Torch_DDP_tutorial
 #SBATCH --account=intertwin
 #SBATCH --mail-user=
 #SBATCH --mail-type=ALL
