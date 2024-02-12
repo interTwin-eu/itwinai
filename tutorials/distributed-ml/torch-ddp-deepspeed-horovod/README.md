@@ -1,6 +1,6 @@
 # Tutorial: distributed strategies for PyTorch
 
-In this tutorial we show how to use torch `DistributedDataParallel` (DDP), Horovod and DeepSpeed from the same client code.
+In this tutorial we show how to use torch `DistributedDataParallel` (DDP), Horovod and DeepSpeed from the same client code. Note that the environment is tested on the HDFML system at JSC. For other systems, the module versions might need change accordingly. 
 
 First, from the root of this repo, build the environment containing
 pytorch, horovod and deepspeed. You can *try* with:
