@@ -51,5 +51,5 @@ export CUDA_VISIBLE_DEVICES="0,1,2,3"
 # launch training
 TRAINING_CMD="train.py -s horovod"
 
-srun --cpu-bind=none python3 -u $TRAINING_CMD
+srun --cpu-bind=none python -u $TRAINING_CMD
 
