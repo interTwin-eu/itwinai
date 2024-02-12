@@ -59,5 +59,17 @@ export CUDA_VISIBLE_DEVICES="0,1,2,3"
 # launch training
 TRAINING_CMD="train.py -s deepspeed"
 
+# This command does not integrate well with torch.distributed
+# because, e.g., global rank is not recognized -> all processes print to console.
+# It raises the error: AssertionError: LOCAL_RANK (2) != OMPI_COMM_WORLD_LOCAL_RANK (0), not sure how to proceed as we're seeing conflicting local rank info.
 srun --cpu-bind=none bash -c "deepspeed $TRAINING_CMD"
+
+
+# srun python -m deepspeed.launcher.launch \
+#      --node_rank $SLURM_PROCID \
+#      --master_addr ${SLURMD_NODENAME}i \
+#      --master_port 29500 \
+#      --world_info $WID \
+#      $TRAINING_CMD --deepspeed_mpi 
+
 

@@ -61,7 +61,7 @@ def parse_args() -> argparse.Namespace:
                         help='local rank passed from distributed launcher')
     parser = deepspeed.add_config_arguments(parser)
     args = parser.parse_args()
-    # os.environ['LOCAL_RANK'] = str(args.local_rank)  # may not be needed
+    os.environ['LOCAL_RANK'] = str(args.local_rank)  # may not be needed
 
     return args
 
