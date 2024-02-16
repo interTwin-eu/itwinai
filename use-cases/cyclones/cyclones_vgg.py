@@ -582,94 +582,94 @@ def VGG_V4(patch_size, label_no_cyclone, channels, activation, regularizer):
 """
 
 
-# def ModelV5(patch_size, channels, last_activation, kernel_size=3):
-#     # kernel initializer
-#     initializer = tf.random_normal_initializer(0.0, 0.02)
+def ModelV5(patch_size, channels, last_activation, kernel_size=3):
+    # kernel initializer
+    initializer = tf.random_normal_initializer(0.0, 0.02)
 
-#     # input layer
-#     inputs = tf.keras.layers.Input(shape=(patch_size, patch_size,
-# channels[0]))
+    # input layer
+    inputs = tf.keras.layers.Input(shape=(patch_size, patch_size,
+channels[0]))
 
-#     conv_blocks = [
-#         ConvBlock(
-#             filters=32,
-#             initializer=initializer,
-#             kernel_size=kernel_size,
-#             strides=2,
-#             apply_batchnorm=True,
-#             apply_dropout=False,
-#             apply_gaussian_noise=True,
-#         ),
-#         ConvBlock(
-#             filters=64,
-#             initializer=initializer,
-#             kernel_size=kernel_size,
-#             strides=2,
-#             apply_batchnorm=False,
-#             apply_dropout=False,
-#             apply_gaussian_noise=False,
-#         ),
-#         ConvBlock(
-#             filters=128,
-#             initializer=initializer,
-#             kernel_size=3,
-#             strides=2,
-#             apply_batchnorm=False,
-#             apply_dropout=True,
-#             apply_gaussian_noise=False,
-#         ),
-#         ConvBlock(
-#             filters=256,
-#             initializer=initializer,
-#             kernel_size=3,
-#             strides=2,
-#             apply_batchnorm=False,
-#             apply_dropout=False,
-#             apply_gaussian_noise=True,
-#         ),
-#         ConvBlock(
-#             filters=512,
-#             initializer=initializer,
-#             kernel_size=3,
-#             strides=2,
-#             apply_batchnorm=False,
-#             apply_dropout=False,
-#             apply_gaussian_noise=False,
-#         ),
-#         ConvBlock(
-#             filters=1024,
-#             initializer=initializer,
-#             kernel_size=3,
-#             strides=2,
-#             apply_batchnorm=True,
-#             apply_dropout=True,
-#             apply_gaussian_noise=False,
-#         ),
-#     ]
-#     x = inputs
-#     for block in conv_blocks:
-#         x = block(x)
+    conv_blocks = [
+        ConvBlock(
+            filters=32,
+            initializer=initializer,
+            kernel_size=kernel_size,
+            strides=2,
+            apply_batchnorm=True,
+            apply_dropout=False,
+            apply_gaussian_noise=True,
+        ),
+        ConvBlock(
+            filters=64,
+            initializer=initializer,
+            kernel_size=kernel_size,
+            strides=2,
+            apply_batchnorm=False,
+            apply_dropout=False,
+            apply_gaussian_noise=False,
+        ),
+        ConvBlock(
+            filters=128,
+            initializer=initializer,
+            kernel_size=3,
+            strides=2,
+            apply_batchnorm=False,
+            apply_dropout=True,
+            apply_gaussian_noise=False,
+        ),
+        ConvBlock(
+            filters=256,
+            initializer=initializer,
+            kernel_size=3,
+            strides=2,
+            apply_batchnorm=False,
+            apply_dropout=False,
+            apply_gaussian_noise=True,
+        ),
+        ConvBlock(
+            filters=512,
+            initializer=initializer,
+            kernel_size=3,
+            strides=2,
+            apply_batchnorm=False,
+            apply_dropout=False,
+            apply_gaussian_noise=False,
+        ),
+        ConvBlock(
+            filters=1024,
+            initializer=initializer,
+            kernel_size=3,
+            strides=2,
+            apply_batchnorm=True,
+            apply_dropout=True,
+            apply_gaussian_noise=False,
+        ),
+    ]
+    x = inputs
+    for block in conv_blocks:
+        x = block(x)
 
-#     x = tf.keras.layers.Flatten()(x)
-#     x = tf.keras.layers.Dense(
-#         units=1024, activation="relu", kernel_initializer=initializer
-#     )(x)
-#     x = tf.keras.layers.Dense(
-#         units=512, activation="relu", kernel_initializer=initializer
-#     )(x)
-#     x = tf.keras.layers.Dense(
-#         units=256, activation="relu", kernel_initializer=initializer
-#     )(x)
-#     x = tf.keras.layers.Dense(
-#         units=128, activation="relu", kernel_initializer=initializer
-#     )(x)
+    x = tf.keras.layers.Flatten()(x)
+    x = tf.keras.layers.Dense(
+        units=1024, activation="relu", kernel_initializer=initializer
+    )(x)
+    x = tf.keras.layers.Dense(
+        units=512, activation="relu", kernel_initializer=initializer
+    )(x)
+    x = tf.keras.layers.Dense(
+        units=256, activation="relu", kernel_initializer=initializer
+    )(x)
+    x = tf.keras.layers.Dense(
+        units=128, activation="relu", kernel_initializer=initializer
+    )(x)
 
-#     outputs = tf.keras.layers.Dense(
-#         channels[1], activation=last_activation,
-# kernel_initializer=initializer
-#     )(x)
+    outputs = tf.keras.layers.Dense(
+        channels[1], activation=last_activation,
+kernel_initializer=initializer
+    )(x)
 
-#     return tf.keras.Model(inputs=inputs, outputs=outputs, name="model_V5")
+    return tf.keras.Model(inputs=inputs, outputs=outputs, name="model_V5")
 
 
 """
