@@ -1,10 +1,11 @@
-executor:
-  class_path: executor.CycloneExecutor
+pipeline:
+  class_path: itwinai.pipeline.Pipeline
   init_args:
-    run_name: 'default'
     steps:
-      - class_path: dataloader.TensorflowDataGetter
+      download-step:
+        class_path: dataloader.TensorflowDataGetter
         init_args:
+          data_url: https://drive.google.com/drive/folders/15DEq33MmtRvIpe2bNCg44lnfvEiHcPaf
           patch_type: NEAREST
           shuffle: False
           split_ratio: [0.75, 0.25]
@@ -19,8 +20,12 @@ executor:
             'COO_VARS_1': ['patch_cyclone'],
             'MSK_VAR_1': None
           }
-      - class_path: trainer.TensorflowTrainer
+
+      training-step:
+        class_path: trainer.TensorflowTrainer
         init_args:
+          epochs: ${pipeline.init_args.steps.download-step.init_args.epochs}
+          batch_size: ${pipeline.init_args.steps.download-step.init_args.batch_size}
           network: VGG_V1
           activation: LINEAR
           regularization_strength: NONE

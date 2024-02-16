@@ -2,6 +2,7 @@
 
 [![GitHub Super-Linter](https://github.com/interTwin-eu/T6.5-AI-and-ML/actions/workflows/lint.yml/badge.svg)](https://github.com/marketplace/actions/super-linter)
 [![GitHub Super-Linter](https://github.com/interTwin-eu/T6.5-AI-and-ML/actions/workflows/check-links.yml/badge.svg)](https://github.com/marketplace/actions/markdown-link-check)
+ [![SQAaaS source code](https://github.com/EOSC-synergy/itwinai.assess.sqaaas/raw/dev/.badge/status_shields.svg)](https://sqaaas.eosc-synergy.eu/#/full-assessment/report/https://raw.githubusercontent.com/eosc-synergy/itwinai.assess.sqaaas/dev/.report/assessment_output.json)
 
 See the latest version of our [docs](https://intertwin-eu.github.io/T6.5-AI-and-ML/)
 for a quick overview of this platform for advanced AI/ML workflows in digital twin applications.
@@ -78,7 +79,7 @@ Other TF versions are available, using the following targets `tf-2.10`, and `tf-
 Installation:
 
 ```bash
-# Install TensorFlow 2.13
+# Install PyTorch + lightning
 make torch-gpu
 
 # Activate env
@@ -96,11 +97,25 @@ adding the `dev` extra:
 pip install -e .[dev]
 ```
 
-To **run tests** on itwinai package:
+#### Test with `pytest`
+
+To run tests on itwinai package:
 
 ```bash
 # Activate env
 micromamba activate ./.venv-pytorch # or ./.venv-tf
 
-pytest -v tests/
+pytest -v -m "not slurm" tests/
+```
+
+However, some tests are intended to be executed only on an HPC system,
+where SLURM is available. They are marked with "slurm" tag. To run also
+those tests, use the dedicated job script:
+
+```bash
+sbatch tests/slurm_tests_startscript
+
+# Upon completion, check the output:
+cat job.err
+cat job.out
 ```

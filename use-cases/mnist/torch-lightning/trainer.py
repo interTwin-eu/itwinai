@@ -1,23 +1,24 @@
 import os
+from typing import Union, Dict, Any
 
-from itwinai.backend.components import Trainer
-from itwinai.models.torch.mnist import MNISTModel
+from itwinai.components import Trainer, monitor_exec
+from itwinai.torch.models.mnist import MNISTModel
 from dataloader import MNISTDataModule
 from lightning.pytorch.cli import LightningCLI
-from omegaconf import DictConfig, OmegaConf
-from utils import load_yaml_with_deps_from_dict
+from utils import load_yaml
 
 
-class TorchTrainer(Trainer):
-    def __init__(self, train: dict):
-        # Convert from YAML
-        train_config: DictConfig = load_yaml_with_deps_from_dict(
-            train, os.path.dirname(__file__)
-        )
-        train_config = OmegaConf.to_container(train_config, resolve=True)
-        self.conf = train_config
+class LightningMNISTTrainer(Trainer):
+    def __init__(self, config: Union[Dict, str]):
+        super().__init__()
+        self.save_parameters(**self.locals2params(locals()))
+        if isinstance(config, str) and os.path.isfile(config):
+            # Load from YAML
+            config = load_yaml(config)
+        self.conf = config
 
-    def train(self, data):
+    @monitor_exec
+    def execute(self) -> Any:
         cli = LightningCLI(
             args=self.conf,
             model_class=MNISTModel,
@@ -32,5 +33,8 @@ class TorchTrainer(Trainer):
         )
         cli.trainer.fit(cli.model, datamodule=cli.datamodule)
 
-    def execute(self, data):
-        self.train(data)
+    def save_state(self):
+        return super().save_state()
+
+    def load_state(self):
+        return super().load_state()

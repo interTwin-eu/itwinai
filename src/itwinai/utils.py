@@ -1,32 +1,14 @@
 """
 Utilities for itwinai package.
 """
-from typing import Dict, Type
+from typing import Dict, Type, Callable, Tuple
 import os
+import sys
+import inspect
 from collections.abc import MutableMapping
 import yaml
 from omegaconf import OmegaConf
 from omegaconf.dictconfig import DictConfig
-
-
-def check_server(uri: str) -> bool:
-    """Check if an HTTP server is reachable
-
-    Args:
-        uri (str): Server URL
-
-    Returns:
-        bool: True if reachable.
-    """
-    import requests
-    from requests import ConnectionError
-
-    success = True
-    try:
-        _ = requests.get(uri)
-    except ConnectionError:
-        success = False
-    return success
 
 
 def load_yaml(path: str) -> Dict:
@@ -87,9 +69,25 @@ def dynamically_import_class(name: str) -> Type:
     Returns:
         __class__: class type.
     """
-    module, class_name = name.rsplit(".", 1)
-    mod = __import__(module, fromlist=[class_name])
-    klass = getattr(mod, class_name)
+    try:
+        module, class_name = name.rsplit(".", 1)
+        mod = __import__(module, fromlist=[class_name])
+        klass = getattr(mod, class_name)
+    except ModuleNotFoundError as err:
+        print(
+            f"Module not found when trying to dynamically import '{name}'. "
+            "Make sure that the module's file is reachable from your current "
+            "directory."
+        )
+        raise err
+    except Exception as err:
+        print(
+            f"Exception occurred when trying to dynamically import '{name}'. "
+            "Make sure that the module's file is reachable from your current "
+            "directory and that the class is present in that module."
+        )
+        raise err
+
     return klass
 
 
@@ -115,3 +113,71 @@ def flatten_dict(
         else:
             items.append((new_key, v))
     return dict(items)
+
+
+# Parse (part of) YAML loaded in memory
+def parse_pipe_config(yaml_file, parser):
+    with open(yaml_file, "r", encoding="utf-8") as f:
+        try:
+            config = yaml.safe_load(f)
+        except yaml.YAMLError as exc:
+            print(exc)
+            raise exc
+
+    return parser.parse_object(config)
+
+
+class SignatureInspector:
+    """Provides the functionalities to inspect the signature of a function
+    or a method.
+
+    Args:
+        func (Callable): function to be inspected.
+    """
+
+    INFTY: int = sys.maxsize
+
+    def __init__(self, func: Callable) -> None:
+        self.func = func
+        self.func_params = inspect.signature(func).parameters.items()
+
+    @property
+    def has_varargs(self) -> bool:
+        """Checks if the function has ``*args`` parameter."""
+        return any(map(
+            lambda p: p[1].kind == p[1].VAR_POSITIONAL,
+            self.func_params
+        ))
+
+    @property
+    def has_kwargs(self) -> bool:
+        """Checks if the function has ``**kwargs`` parameter."""
+        return any(map(
+            lambda p: p[1].kind == p[1].VAR_KEYWORD,
+            self.func_params
+        ))
+
+    @property
+    def required_params(self) -> Tuple[str]:
+        """Names of required parameters. Class method's 'self' is skipped."""
+        required_params = list(filter(
+            lambda p: (p[0] != 'self' and p[1].default == inspect._empty
+                       and p[1].kind != p[1].VAR_POSITIONAL
+                       and p[1].kind != p[1].VAR_KEYWORD),
+            self.func_params
+        ))
+        return tuple(map(lambda p: p[0], required_params))
+
+    @property
+    def min_params_num(self) -> int:
+        """Minimum number of arguments required."""
+        return len(self.required_params)
+
+    @property
+    def max_params_num(self) -> int:
+        """Max number of supported input arguments.
+        If no limit, ``SignatureInspector.INFTY`` is returned.
+        """
+        if self.has_kwargs or self.has_varargs:
+            return self.INFTY
+        return len(self.func_params)

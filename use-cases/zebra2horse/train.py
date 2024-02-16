@@ -2,7 +2,7 @@ import argparse
 
 from trainer import Zebra2HorseTrainer
 from dataloader import Zebra2HorseDataLoader
-from itwinai.backend.executors import LocalExecutor  # , RayExecutor
+from itwinai.experimental.executors import LocalExecutor  # , RayExecutor
 
 
 if __name__ == "__main__":

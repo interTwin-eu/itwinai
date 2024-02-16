@@ -58,5 +58,10 @@
     "python.formatting.provider": "none",
     "[markdown]": {
         "editor.formatOnSave": false
-    }
+    },
+    "python.testing.pytestArgs": [
+        "tests"
+    ],
+    "python.testing.unittestEnabled": false,
+    "python.testing.pytestEnabled": true
 }

@@ -1,5 +1,7 @@
+*_logs
+exp_data/
 TODO
-data
+/data
 nohup*
 lightning_logs
 mlruns
@@ -12,6 +14,11 @@ mllogs
 *.out
 *.err
 .logs/
+pl-training.yml
+*-predictions/
+*-data/
+*.pth
+*.tar.gz
 
 # Custom envs
 .venv*

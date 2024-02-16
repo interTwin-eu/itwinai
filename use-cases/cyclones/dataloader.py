@@ -1,8 +1,7 @@
-import logging
 from os import listdir
 from os.path import join, exists
-from itwinai.backend.components import DataGetter
-from typing import List, Dict, Optional, Tuple
+from itwinai.components import DataGetter, monitor_exec
+from typing import List, Dict
 from lib.macros import (
     PatchType,
     LabelNoCyclone,
@@ -29,6 +28,7 @@ from lib.transform import (
 class TensorflowDataGetter(DataGetter):
     def __init__(
         self,
+        data_url: str,
         patch_type: PatchType,
         shuffle: bool,
         split_ratio: List[float],
@@ -38,10 +38,14 @@ class TensorflowDataGetter(DataGetter):
         target_scale: bool,
         label_no_cyclone: LabelNoCyclone,
         aug_type: AugmentationType,
-        experiment: dict,
+        experiment: Dict,
+        global_config: Dict,
         shuffle_buffer: int = None,
+        data_path: str = "tmp_data"
     ):
         super().__init__()
+        self.save_parameters(**self.locals2params(locals()))
+        self.data_url = data_url
         self.batch_size = batch_size
         self.split_ratio = split_ratio
         self.epochs = epochs
@@ -51,7 +55,9 @@ class TensorflowDataGetter(DataGetter):
         self.aug_type = aug_type.value
         self.patch_type = patch_type.value
         self.augment = augment
+        self.global_config = global_config
         self.shuffle = shuffle
+        self.data_path = data_path
         self.drv_vars, self.coo_vars = (
             experiment["DRV_VARS_1"],
             experiment["COO_VARS_1"],
@@ -85,6 +91,9 @@ class TensorflowDataGetter(DataGetter):
         else:
             self.aug_fns = {}
 
+        # Parse global config
+        self.setup_config(self.global_config)
+
     def split_files(self, files, ratio):
         n = len(files)
         return (
@@ -92,7 +101,8 @@ class TensorflowDataGetter(DataGetter):
             files[int(ratio[0] * n): int((ratio[0] + ratio[1]) * n)],
         )
 
-    def load(self):
+    @monitor_exec
+    def execute(self):
         # divide into train, valid and test dataset files
         train_c_fs, valid_c_fs = self.split_files(
             files=self.cyclone_files, ratio=self.split_ratio
@@ -158,36 +168,23 @@ class TensorflowDataGetter(DataGetter):
             patch_type=self.patch_type,
             aug_type=self.aug_type,
         )
-        return train_dataset, valid_dataset
+        return train_dataset, valid_dataset, self.channels
 
-    def execute(
-        self,
-        config: Optional[Dict] = None
-    ) -> Tuple[Optional[Tuple], Optional[Dict]]:
-        config = self.setup_config(config)
-        train, test = self.load()
-        logging.debug("Train, valid and test datasets loaded.")
-        return (train, test), config
-
-    def setup_config(self, config: Optional[Dict] = None) -> Dict:
-        config = config if config is not None else {}
+    def setup_config(self, config: Dict) -> None:
         self.shape = config["shape"]
         root_dir = config["root_dir"]
 
         # Download data
-        url = (
-            "https://drive.google.com/drive/folders/"
-            "15DEq33MmtRvIpe2bNCg44lnfvEiHcPaf"
-        )
-        if not exists(join(root_dir, "data")):
+        if not exists(join(root_dir, self.data_path)):
             gdown.download_folder(
-                url=url, quiet=False,
-                output=join(root_dir, "data")
+                url=self.data_url, quiet=False,
+                output=join(root_dir, self.data_path)
             )
 
         # Scalar fields
         self.root_dir = root_dir
-        self.dataset_dir = join(root_dir, "data", "tfrecords", "trainval/")
+        self.dataset_dir = join(root_dir, self.data_path,
+                                "tfrecords", "trainval/")
         self.scaler_file = join(config["scaler_dir"], "minmax.tfrecord")
 
         # get records filenames
@@ -225,8 +222,3 @@ class TensorflowDataGetter(DataGetter):
                     PatchType.RANDOM.value)
             ]
         )
-
-        config["epochs"] = self.epochs
-        config["batch_size"] = self.batch_size
-        config["channels"] = self.channels
-        return config

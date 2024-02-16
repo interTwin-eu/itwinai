@@ -34,7 +34,11 @@ dependencies = [
     "submitit>=1.4.6",
     "typing-extensions==4.5.0",
     "typing_extensions==4.5.0",
-    "urllib3>=2.0.5",
+    "rich>=13.5.3",
+    "typer>=0.9.0",
+    "urllib3>=1.26.18",
+    "lightning>=2.0.0",
+    "torchmetrics>=1.2.0",
 ]
 
 # dynamic = ["version", "description"]
@@ -43,7 +47,6 @@ dependencies = [
 # TODO: add torch and tensorflow
 # torch = []
 # tf = []
-cli = ["rich>=13.5.3", "typer>=0.9.0"]
 dev = [
     "pytest>=7.4.2",
     "pytest-mock>=3.11.1",
@@ -70,5 +73,6 @@ itwinai = "itwinai.cli:app"
 [tool.pytest.ini_options]
 markers = [
     "integration: integration tests (deselect with '-m \"not integration\"')",
-    "distributed: test distributed ML on multiple GPUs/nodes (deselect with '-m \"not distributed\"')",
+    "slurm: needs SLURM and HPC resources (multiple GPUs/nodes). (deselect with '-m \"not slurm\"')",
+    "functional: functional tests. (deselect with '-m \"not functional\"')",
 ]

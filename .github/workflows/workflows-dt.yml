@@ -2,8 +2,8 @@
 name: Test workflows
 
 on:
-  # push:
   pull_request:
+    branches: [main, dev]
 
 jobs:
   test-itwinai:
@@ -21,11 +21,15 @@ jobs:
         shell: bash -l {0}
         run: make torch-cpu
 
+      - name: Make tensorflow env
+        shell: bash -l {0}
+        run: make tf-2.13
+
       - name: Install dev version
         shell: bash -l {0}
         run: micromamba run -p ./.venv-pytorch pip install .[dev]
 
       - name: Run pytest for workflows
         shell: bash -l {0}
-        run: micromamba run -p ./.venv-pytorch pytest -v ./tests/ -m "not distributed"
+        run: micromamba run -p ./.venv-pytorch pytest -v ./tests/ -m "not slurm"
 

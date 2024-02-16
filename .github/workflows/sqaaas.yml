@@ -1,0 +1,19 @@
+# SPDX-FileCopyrightText: Copyright contributors to the Software Quality Assurance as a Service (SQAaaS) project.
+#
+# SPDX-License-Identifier: GPL-3.0-only
+---
+name: SQAaaS
+
+on:
+  push:
+    branches: [main, dev]
+  pull_request:
+    branches: [main, dev]
+
+jobs:
+  sqaaas_job:
+    runs-on: ubuntu-latest
+    name: Job that triggers SQAaaS platform
+    steps:
+      - name: SQAaaS assessment step
+        uses: eosc-synergy/sqaaas-assessment-action@v2

@@ -2,8 +2,8 @@ from typing import List, Dict, Tuple, Optional
 import tensorflow as tf
 import tensorflow.keras as keras
 
-from itwinai.backend.tensorflow.trainer import TensorflowTrainer
-from itwinai.backend.loggers import Logger
+from itwinai.tensorflow.trainer import TensorflowTrainer
+from itwinai.loggers import Logger
 
 
 class Zebra2HorseTrainer(TensorflowTrainer):
