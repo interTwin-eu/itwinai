@@ -144,6 +144,26 @@ This command will store the results in a folder called "3dgan-generated-data":
 |   │   ├── energy=1.664689540863037&angle=1.4906378984451294.jpg
 ```
 
+To override fields in the configuration file at runtime, you can use the `-o`
+flag. Example: `-o path.to.config.element=NEW_VALUE`.
+
+Please find a complete exampled below, showing how to override default paths
+by changing the value of `CERN_DATA_ROOT` and `CERN_CODE_ROOT` env variables:
+
+```bash
+# Data paths
+export CERN_DATA_ROOT="/usr/data"
+export CERN_CODE_ROOT="/usr/src/app"
+docker run -it --rm --name running-inference \
+-v "$PWD":/usr/data ghcr.io/intertwin-eu/itwinai:0.0.1-3dgan-inference-0.1 \
+/bin/bash -c "itwinai exec-pipeline --config inference-pipeline.yaml \
+-o pipeline.init_args.steps.0.init_args.data_path=$CERN_DATA_ROOT/exp_data \
+-o pipeline.init_args.steps.1.init_args.config.trainer.logger.init_args.save_dir=$CERN_DATA_ROOT/ml_logs/mlflow_logs \
+-o pipeline.init_args.steps.1.init_args.config.data.init_args.datapath=$CERN_DATA_ROOT/exp_data/*/*.h5 \
+-o pipeline.init_args.steps.2.init_args.save_dir=$CERN_DATA_ROOT/3dgan-generated-data \
+-o pipeline.init_args.steps.1.init_args.model.init_args.model_uri=$CERN_CODE_ROOT/3dgan-inference.pth"
+```
+
 ### Singularity
 
 Run overriding the working directory (`--pwd /usr/src/app`, restores Docker's WORKDIR)
