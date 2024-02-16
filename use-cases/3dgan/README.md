@@ -108,11 +108,11 @@ Build from project root with
 
 ```bash
 # Local
-docker buildx build -t itwinai-mnist-torch-inference -f use-cases/3dgan/Dockerfile.inference .
+docker buildx build -t itwinai:0.0.1-3dgan-inference-0.1 -f use-cases/3dgan/Dockerfile.inference .
 
 # Ghcr.io
-docker buildx build -t ghcr.io/intertwin-eu/itwinai-3dgan-inference:0.0.3 -f use-cases/3dgan/Dockerfile.inference .
-docker push ghcr.io/intertwin-eu/itwinai-3dgan-inference:0.0.3
+docker buildx build -t ghcr.io/intertwin-eu/itwinai:0.0.1-3dgan-inference-0.1 -f use-cases/3dgan/Dockerfile.inference .
+docker push ghcr.io/intertwin-eu/itwinai:0.0.1-3dgan-inference-0.1
 ```
 
 From wherever a sample of MNIST jpg images is available
@@ -129,7 +129,7 @@ From wherever a sample of MNIST jpg images is available
 ```
 
 ```bash
-docker run -it --rm --name running-inference -v "$PWD":/tmp/data ghcr.io/intertwin-eu/itwinai-3dgan-inference:0.0.3
+docker run -it --rm --name running-inference -v "$PWD":/tmp/data ghcr.io/intertwin-eu/itwinai:0.0.1-3dgan-inference-0.1
 ```
 
 This command will store the results in a folder called "3dgan-generated-data":
@@ -150,6 +150,5 @@ Run overriding the working directory (`--pwd /usr/src/app`, restores Docker's WO
 and providing a writable filesystem (`-B "$PWD":/usr/data`):
 
 ```bash
-singularity exec -B "$PWD":/usr/data docker://ghcr.io/intertwin-eu/itwinai-3dgan-inference:0.0.3 /
-bash -c "cd /usr/src/app && python train.py -p inference-pipeline.yaml"
+singularity run --nv -B "$PWD":/usr/data docker://ghcr.io/intertwin-eu/itwinai:0.0.1-3dgan-inference-0.1 /bin/bash -c "cd /usr/src/app && itwinai exec-pipeline --config inference-pipeline.yaml"
 ```
