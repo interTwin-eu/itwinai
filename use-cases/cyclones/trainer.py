@@ -44,10 +44,10 @@ class TensorflowTrainer(Trainer):
         self.regularization_strength, self.regularizer = (
             regularization_strength.value
         )
-        self.loss_name, self.loss = loss.value
 
-        # Optimizers, Losses
-        self.optimizer = keras.optimizers.Adam(learning_rate=learning_rate)
+        # Loss name and learning rate
+        self.loss_name = loss.value
+        self.learning_rate = learning_rate
 
         # Parse global config
         self.setup_config(self.global_config)
@@ -86,9 +86,10 @@ class TensorflowTrainer(Trainer):
                 logging.debug(
                     f"Model loaded from backup at {self.best_model_name}")
 
+            optimizer = keras.optimizers.Adam(learning_rate=self.learning_rate)
             metrics = [keras.metrics.MeanAbsoluteError(name="mae")]
-            model.compile(loss=self.loss,
-                          optimizer=self.optimizer, metrics=metrics)
+            model.compile(loss=self.loss_name,
+                          optimizer=optimizer, metrics=metrics)
         logging.debug("Model compiled")
 
         # print model summary to check if model's architecture is correct
