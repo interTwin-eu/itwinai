@@ -24,4 +24,4 @@ RUN  pip install --no-cache-dir .
 COPY use-cases/3dgan/* ./
 
 # Run inference
-CMD [ "python", "train.py", "-p", "inference-pipeline.yaml"]
+# CMD [ "python", "train.py", "-p", "inference-pipeline.yaml"]

@@ -82,7 +82,7 @@ folder containing generated particle traces in form of torch tensors
 (.pth files) and 3D scatter plots (.jpg images).
 
     ```bash
-    python train.py -p inference-pipeline.yaml
+    itwinai exec-pipeline --config inference-pipeline.yaml
     ```
 
 Note the same entry point as for training.
@@ -108,11 +108,11 @@ Build from project root with
 
 ```bash
 # Local
-docker buildx build -t itwinai:0.0.1-3dgan-inference-0.1 -f use-cases/3dgan/Dockerfile.inference .
+docker buildx build -t itwinai:0.0.1-3dgan-0.1 -f use-cases/3dgan/Dockerfile .
 
 # Ghcr.io
-docker buildx build -t ghcr.io/intertwin-eu/itwinai:0.0.1-3dgan-inference-0.1 -f use-cases/3dgan/Dockerfile.inference .
-docker push ghcr.io/intertwin-eu/itwinai:0.0.1-3dgan-inference-0.1
+docker buildx build -t ghcr.io/intertwin-eu/itwinai:0.0.1-3dgan-0.1 -f use-cases/3dgan/Dockerfile .
+docker push ghcr.io/intertwin-eu/itwinai:0.0.1-3dgan-0.1
 ```
 
 From wherever a sample of MNIST jpg images is available
@@ -129,7 +129,7 @@ From wherever a sample of MNIST jpg images is available
 ```
 
 ```bash
-docker run -it --rm --name running-inference -v "$PWD":/tmp/data ghcr.io/intertwin-eu/itwinai:0.0.1-3dgan-inference-0.1
+docker run -it --rm --name running-inference -v "$PWD":/tmp/data ghcr.io/intertwin-eu/itwinai:0.0.1-3dgan-0.1
 ```
 
 This command will store the results in a folder called "3dgan-generated-data":
@@ -151,17 +151,29 @@ Please find a complete exampled below, showing how to override default paths
 by changing the value of `CERN_DATA_ROOT` and `CERN_CODE_ROOT` env variables:
 
 ```bash
-# Data paths
-export CERN_DATA_ROOT="/usr/data"
+# Override variables
+export CERN_DATA_ROOT="/usr/data" 
 export CERN_CODE_ROOT="/usr/src/app"
+export MAX_DATA_SAMPLES=10 # max dataset size
+export BATCH_SIZE=64 # increase to fill up GPU memory
+export NUM_WORKERS_DL=4 # num worker processes used by the dataloader to pre-fetch data
+export AGGREGATE_PREDS="true" # write predictions in a single file
+export ACCELERATOR="cpu" # CPU/GPU
+
 docker run -it --rm --name running-inference \
--v "$PWD":/usr/data ghcr.io/intertwin-eu/itwinai:0.0.1-3dgan-inference-0.1 \
-/bin/bash -c "itwinai exec-pipeline --config inference-pipeline.yaml \
--o pipeline.init_args.steps.0.init_args.data_path=$CERN_DATA_ROOT/exp_data \
--o pipeline.init_args.steps.1.init_args.config.trainer.logger.init_args.save_dir=$CERN_DATA_ROOT/ml_logs/mlflow_logs \
--o pipeline.init_args.steps.1.init_args.config.data.init_args.datapath=$CERN_DATA_ROOT/exp_data/*/*.h5 \
--o pipeline.init_args.steps.2.init_args.save_dir=$CERN_DATA_ROOT/3dgan-generated-data \
--o pipeline.init_args.steps.1.init_args.model.init_args.model_uri=$CERN_CODE_ROOT/3dgan-inference.pth"
+-v "$PWD":/usr/data ghcr.io/intertwin-eu/itwinai:0.0.1-3dgan-0.1 \
+/bin/bash -c "itwinai exec-pipeline \
+--config use-cases/3dgan/inference-pipeline.yaml --print-config \
+-o pipeline.init_args.steps.dataloading_step.init_args.data_path=$CERN_DATA_ROOT/exp_data \
+-o pipeline.init_args.steps.inference_step.init_args.config.trainer.logger.init_args.save_dir=$CERN_DATA_ROOT/ml_logs/mlflow_logs \
+-o pipeline.init_args.steps.inference_step.init_args.config.trainer.accelerator=$ACCELERATOR \
+-o pipeline.init_args.steps.inference_step.init_args.model.init_args.model_uri=$CERN_CODE_ROOT/3dgan-inference.pth \
+-o pipeline.init_args.steps.inference_step.init_args.config.data.init_args.datapath=$CERN_DATA_ROOT/exp_data/*/*.h5 \
+-o pipeline.init_args.steps.inference_step.init_args.config.data.init_args.max_samples=$MAX_DATA_SAMPLES \
+-o pipeline.init_args.steps.inference_step.init_args.config.data.init_args.batch_size=$BATCH_SIZE \
+-o pipeline.init_args.steps.inference_step.init_args.config.data.init_args.num_workers=$NUM_WORKERS_DL \
+-o pipeline.init_args.steps.saver_step.init_args.save_dir=$CERN_DATA_ROOT/3dgan-generated-data \
+-o pipeline.init_args.steps.saver_step.init_args.aggregate_predictions=$AGGREGATE_PREDS "
 ```
 
 ### Singularity
@@ -170,6 +182,6 @@ Run overriding the working directory (`--pwd /usr/src/app`, restores Docker's WO
 and providing a writable filesystem (`-B "$PWD":/usr/data`):
 
 ```bash
-singularity run --nv -B "$PWD":/usr/data docker://ghcr.io/intertwin-eu/itwinai:0.0.1-3dgan-inference-0.1 /bin/bash -c \
+singularity run --nv -B "$PWD":/usr/data docker://ghcr.io/intertwin-eu/itwinai:0.0.1-3dgan-0.1 /bin/bash -c \
 "cd /usr/src/app && itwinai exec-pipeline --config inference-pipeline.yaml"
 ```
