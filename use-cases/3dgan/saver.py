@@ -33,15 +33,14 @@ class ParticleImagesSaver(Saver):
             generated_images (Dict[str, Tensor]): maps unique item ID to
                 the generated image.
         """
-
-        if os.path.exists(self.save_dir):
-            shutil.rmtree(self.save_dir)
-        os.makedirs(self.save_dir)
-
         if self.aggregate_predictions:
+            os.makedirs(self.save_dir, exist_ok=True)
             with open(self._random_file(), 'wb') as fp:
                 pickle.dump(generated_images, fp)
         else:
+            if os.path.exists(self.save_dir):
+                shutil.rmtree(self.save_dir)
+            os.makedirs(self.save_dir)
             # Save as torch tensor and jpg image
             for img_id, img in generated_images.items():
                 img_path = os.path.join(self.save_dir, img_id)

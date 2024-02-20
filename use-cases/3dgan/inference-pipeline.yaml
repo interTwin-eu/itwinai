@@ -103,3 +103,4 @@ pipeline:
         class_path: saver.ParticleImagesSaver
         init_args:
           save_dir: /usr/data/3dgan-generated-data
+          aggregate_predictions: false
