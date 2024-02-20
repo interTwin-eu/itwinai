@@ -14,7 +14,7 @@ cd use-cases/3dgan
 pip install -r requirements.txt
 ```
 
-**NOTE**: Python commands below assumed to be executed from within the
+**NOTE**: Python commands below assume to be executed from within the
 micromamba virtual environment.
 
 ## Training
@@ -23,20 +23,20 @@ At CERN, use the dedicated configuration file:
 
 ```bash
 cd use-cases/3dgan
-python train.py -p cern-pipeline.yaml
+itwinai exec-pipeline --config cern-pipeline.yaml
 
 # Or better:
-micromamba run -p ../../.venv-pytorch/ torchrun --nproc_per_node gpu train.py -p cern-pipeline.yaml
+micromamba run -p ../../.venv-pytorch/ torchrun --nproc_per_node gpu itwinai exec-pipeline --config cern-pipeline.yaml
 ```
 
 Anywhere else, use the general purpose training configuration:
 
 ```bash
 cd use-cases/3dgan
-python train.py -p pipeline.yaml
+itwinai exec-pipeline --config pipeline.yaml
 
 # Or better:
-micromamba run -p ../../.venv-pytorch/ torchrun --nproc_per_node gpu train.py -p pipeline.yaml
+micromamba run -p ../../.venv-pytorch/ torchrun --nproc_per_node gpu itwinai exec-pipeline --config pipeline.yaml
 ```
 
 To visualize the logs with MLFLow run the following in the terminal:
@@ -49,7 +49,7 @@ And select the "3DGAN" experiment.
 
 ## Inference
 
-The following is preliminary and not 100% ML/scientifically sound.
+Disclaimer: the following is preliminary and not 100% ML/scientifically sound.
 
 1. As inference dataset we can reuse training/validation dataset,
 for instance the one downloaded from Google Drive folder: if the
@@ -77,7 +77,7 @@ we can create a dummy version of it with:
     torch.save(my_gan, '3dgan-inference.pth')
     ```
 
-3. Run inference command. This will generate a "3dgan-generated"
+3. Run inference command. This will generate a `3dgan-generated-data`
 folder containing generated particle traces in form of torch tensors
 (.pth files) and 3D scatter plots (.jpg images).
 
@@ -85,10 +85,8 @@ folder containing generated particle traces in form of torch tensors
     itwinai exec-pipeline --config inference-pipeline.yaml
     ```
 
-Note the same entry point as for training.
-
 The inference execution will produce a folder called
-"3dgan-generated-data" containing
+`3dgan-generated-data` containing
 generated 3D particle trajectories (overwritten if already
 there). Each generated 3D image is stored both as a
 torch tensor (.pth) and 3D scatter plot (.jpg):
@@ -101,6 +99,10 @@ torch tensor (.pth) and 3D scatter plot (.jpg):
 |   ├── energy=1.664689540863037&angle=1.4906378984451294.pth
 |   ├── energy=1.664689540863037&angle=1.4906378984451294.jpg
 ```
+
+However, if `aggregate_predictions` in the `ParticleImagesSaver` step is set to `True`,
+only one pickled file will be generated inside `3dgan-generated-data` folder.
+Notice that multiple inference calls will create new files under `3dgan-generated-data` folder.
 
 ### Docker image
 
@@ -115,8 +117,8 @@ docker buildx build -t ghcr.io/intertwin-eu/itwinai:0.0.1-3dgan-0.1 -f use-cases
 docker push ghcr.io/intertwin-eu/itwinai:0.0.1-3dgan-0.1
 ```
 
-From wherever a sample of MNIST jpg images is available
-(folder called 'mnist-sample-data/'):
+You can run inference from wherever a sample of H5 files is available
+(folder called `exp_data/`'):
 
 ```text
 ├── $PWD    
@@ -132,7 +134,7 @@ From wherever a sample of MNIST jpg images is available
 docker run -it --rm --name running-inference -v "$PWD":/tmp/data ghcr.io/intertwin-eu/itwinai:0.0.1-3dgan-0.1
 ```
 
-This command will store the results in a folder called "3dgan-generated-data":
+This command will store the results in a folder called `3dgan-generated-data`:
 
 ```text
 ├── $PWD
@@ -147,8 +149,8 @@ This command will store the results in a folder called "3dgan-generated-data":
 To override fields in the configuration file at runtime, you can use the `-o`
 flag. Example: `-o path.to.config.element=NEW_VALUE`.
 
-Please find a complete exampled below, showing how to override default paths
-by changing the value of `CERN_DATA_ROOT` and `CERN_CODE_ROOT` env variables:
+Please find a complete exampled below, showing how to override default configurations
+by setting some env variables:
 
 ```bash
 # Override variables
@@ -158,12 +160,12 @@ export MAX_DATA_SAMPLES=10 # max dataset size
 export BATCH_SIZE=64 # increase to fill up GPU memory
 export NUM_WORKERS_DL=4 # num worker processes used by the dataloader to pre-fetch data
 export AGGREGATE_PREDS="true" # write predictions in a single file
-export ACCELERATOR="cpu" # CPU/GPU
+export ACCELERATOR="gpu" # choose "cpu" or "gpu"
 
 docker run -it --rm --name running-inference \
 -v "$PWD":/usr/data ghcr.io/intertwin-eu/itwinai:0.0.1-3dgan-0.1 \
 /bin/bash -c "itwinai exec-pipeline \
---config use-cases/3dgan/inference-pipeline.yaml --print-config \
+--config inference-pipeline.yaml --print-config \
 -o pipeline.init_args.steps.dataloading_step.init_args.data_path=$CERN_DATA_ROOT/exp_data \
 -o pipeline.init_args.steps.inference_step.init_args.config.trainer.logger.init_args.save_dir=$CERN_DATA_ROOT/ml_logs/mlflow_logs \
 -o pipeline.init_args.steps.inference_step.init_args.config.trainer.accelerator=$ACCELERATOR \
@@ -176,12 +178,51 @@ docker run -it --rm --name running-inference \
 -o pipeline.init_args.steps.saver_step.init_args.aggregate_predictions=$AGGREGATE_PREDS "
 ```
 
+#### How to fully exploit GPU resources
+
+Keeping the example above as reference, increase the values of `MAX_DATA_SAMPLES` and `BATCH_SIZE` as much as possible
+(just below "out of memory" errors). Also, make sure that `ACCELERATOR="gpu"`.
+
+You can try:
+
+```bash
+export MAX_DATA_SAMPLES=10000 # max dataset size
+export BATCH_SIZE=1024 # increase to fill up GPU memory
+export ACCELERATOR="gpu
+```
+
 ### Singularity
 
-Run overriding the working directory (`--pwd /usr/src/app`, restores Docker's WORKDIR)
-and providing a writable filesystem (`-B "$PWD":/usr/data`):
+Run Docker container with Singularity:
 
 ```bash
 singularity run --nv -B "$PWD":/usr/data docker://ghcr.io/intertwin-eu/itwinai:0.0.1-3dgan-0.1 /bin/bash -c \
 "cd /usr/src/app && itwinai exec-pipeline --config inference-pipeline.yaml"
+```
+
+Example with overrides (as above for Docker):
+
+```bash
+# Override variables
+export CERN_DATA_ROOT="/usr/data" 
+export CERN_CODE_ROOT="/usr/src/app"
+export MAX_DATA_SAMPLES=10 # max dataset size
+export BATCH_SIZE=64 # increase to fill up GPU memory
+export NUM_WORKERS_DL=4 # num worker processes used by the dataloader to pre-fetch data
+export AGGREGATE_PREDS="true" # write predictions in a single file
+export ACCELERATOR="gpu" # choose "cpu" or "gpu"
+
+singularity run --nv -B "$PWD":/usr/data docker://ghcr.io/intertwin-eu/itwinai:0.0.1-3dgan-0.1 /bin/bash -c \
+"cd /usr/src/app && itwinai exec-pipeline \
+--config inference-pipeline.yaml --print-config \
+-o pipeline.init_args.steps.dataloading_step.init_args.data_path=$CERN_DATA_ROOT/exp_data \
+-o pipeline.init_args.steps.inference_step.init_args.config.trainer.logger.init_args.save_dir=$CERN_DATA_ROOT/ml_logs/mlflow_logs \
+-o pipeline.init_args.steps.inference_step.init_args.config.trainer.accelerator=$ACCELERATOR \
+-o pipeline.init_args.steps.inference_step.init_args.model.init_args.model_uri=$CERN_CODE_ROOT/3dgan-inference.pth \
+-o pipeline.init_args.steps.inference_step.init_args.config.data.init_args.datapath=$CERN_DATA_ROOT/exp_data/*/*.h5 \
+-o pipeline.init_args.steps.inference_step.init_args.config.data.init_args.max_samples=$MAX_DATA_SAMPLES \
+-o pipeline.init_args.steps.inference_step.init_args.config.data.init_args.batch_size=$BATCH_SIZE \
+-o pipeline.init_args.steps.inference_step.init_args.config.data.init_args.num_workers=$NUM_WORKERS_DL \
+-o pipeline.init_args.steps.saver_step.init_args.save_dir=$CERN_DATA_ROOT/3dgan-generated-data \
+-o pipeline.init_args.steps.saver_step.init_args.aggregate_predictions=$AGGREGATE_PREDS "
 ```
