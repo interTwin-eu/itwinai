@@ -4,8 +4,8 @@ from typing import Dict, Any
 from jsonargparse import ArgumentParser
 import tensorflow as tf
 
-from ..components import Trainer, monitor_exec
-
+from ..components import Trainer
+from itwinai.tensorflow.distributed import get_strategy
 
 def import_class(name):
     components = name.split('.')
@@ -31,6 +31,8 @@ class TensorflowTrainer(Trainer):
     def __init__(
             self,
             epochs,
+            train_dataset,
+            validation_dataset,
             batch_size,
             callbacks,
             model_dict: Dict,
@@ -54,6 +56,16 @@ class TensorflowTrainer(Trainer):
 
         # Create distributed TF vars
         if self.strategy:
+            tf_dist_strategy, n_devices = get_strategy()
+            # get total number of workers
+            print("Number of devices: {}".format(n_devices))
+            # distribute datasets among MirroredStrategy's replicas
+            dist_train_dataset = tf_dist_strategy.experimental_distribute_dataset(
+                train_dataset
+            )
+            dist_validation_dataset = tf_dist_strategy.experimental_distribute_dataset(
+                validation_dataset
+            )
             with self.strategy.scope():
                 # TODO: move loss, optimizer and metrics instantiation under
                 # here
@@ -61,6 +73,7 @@ class TensorflowTrainer(Trainer):
                 # https://www.tensorflow.org/guide/distributed_training#use_tfdistributestrategy_with_keras_modelfit
                 # self.model: tf.keras.Model = parser.instantiate_classes(
                 #     model_dict).model
+                # TODO: add dataloaders and model instances
                 self.model: tf.keras.Model = instance_from_dict(model_dict)
                 compile_conf = self.instantiate_compile_conf(compile_conf)
                 self.model.compile(**compile_conf)
