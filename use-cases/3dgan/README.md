@@ -180,8 +180,11 @@ docker run -it --rm --name running-inference \
 
 #### How to fully exploit GPU resources
 
-Keeping the example above as reference, increase the values of `MAX_DATA_SAMPLES` and `BATCH_SIZE` as much as possible
-(just below "out of memory" errors). Also, make sure that `ACCELERATOR="gpu"`.
+Keeping the example above as reference, increase the value of `BATCH_SIZE` as much as possible
+(just below "out of memory" errors). Also, make sure that `ACCELERATOR="gpu"`. Also, make sure
+to use a dataset large enough by changing the value of `MAX_DATA_SAMPLES` to collect meaningful
+performance data. Consider that each H5 file contains roughly 5k items, thus setting
+`MAX_DATA_SAMPLES=10000` should be enough to use all items in each input H5 file.
 
 You can try:
 
