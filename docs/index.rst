@@ -26,13 +26,34 @@ In ``itwinai`` platform, we focus mainly on the MLOps step, simulating or oversi
 
 .. toctree::
    :maxdepth: 2
-   :caption: Contents:
+   :hidden:
+   :caption: 💡 Installation
+
+   getting_started_with_itwinai
+
+.. toctree::
+   :maxdepth: 2
+   :hidden:
+   :caption: 🪄 itwinai Modules
 
    modules
+
+.. toctree::
+   :maxdepth: 2
+   :caption: 📚 Integrated Use-cases
+
    use_cases
+
+.. toctree::
+   :maxdepth: 2
+   :hidden:
+   :caption: 🚀 Tutorials
+
    tutorials
 
    
+`interTwin Demo: itwinai integration with other DTE modules <https://www.youtube.com/watch?v=NoVCfSxwtX0>`_
+
 Indices and tables
 ==================
 
