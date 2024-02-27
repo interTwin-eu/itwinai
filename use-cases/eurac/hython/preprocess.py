@@ -5,7 +5,7 @@ from torch.utils.data import DataLoader, TensorDataset
 import numpy as np
 
 import xarray as xr
-from sampler import AbstractSampler
+from hython.sampler import AbstractSampler
 
 from typing import List
 from typing import Union, Any 
@@ -85,13 +85,11 @@ def scale(a, how, axis, m1, m2):
             
             return (a - np.expand_dims(m1, axis = axis) )/ np.expand_dims(m2, axis = axis), m1, m2
         else:
-            return (a - np.expand_dims(m2, axis = axis))/np.expand_dims(m2, axis = axis), None, None
+            return (a - np.expand_dims(m2, axis = axis))/np.expand_dims(m2, axis = axis), m1, m2
     elif how == 'minmax':
         if m1 is None or m2 is None:
             m1, m2 = np.nanmin(a, axis=axis), np.nanmax(a, axis=axis)
-            return (a - m1)/(m2 - m1), m1, m2
-        else:
-            return (a - m1)/(m2 - m1), None, None
+        return (a - m1)/(m2 - m1), m1, m2
                 
 def apply_normalization(a, type = "time", how='standard', m1=None, m2=None):
     """Assumes array of 

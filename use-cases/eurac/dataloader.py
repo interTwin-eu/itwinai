@@ -2,18 +2,15 @@ from itwinai.components import DataGetter, monitor_exec
 from typing import List, Dict
 
 import torch
-import torch.optim as optim
-from torch.optim.lr_scheduler import ReduceLROnPlateau
-from torch.utils.data import DataLoader, TensorDataset, random_split, Dataset
 
 #import gdown
 import numpy as np
 import xarray as xr
 #import hvplot.xarray 
-from preprocess import preprocess, apply_normalization
-from utils import missing_location_idx
-from datasets import LSTMDataset
-from sampler import RegularIntervalSampler
+from hython.preprocess import preprocess, apply_normalization
+from hython.utils import missing_location_idx
+from hython.datasets.datasets import LSTMDataset
+from hython.sampler import RegularIntervalSampler
 
 class LSTMDataGetter(DataGetter):
     def __init__(
@@ -30,10 +27,10 @@ class LSTMDataGetter(DataGetter):
         train_origin : list, 
         valid_origin : list, 
         spatial_batch_size: int = None, 
-        temporal_sampling_size: int = None, 
-        seq_length : int = None, 
-        hidden_size: int = None, 
-        input_size : int = None, #number of dynamic predictors - user_input
+        # temporal_sampling_size: int = None, 
+        # seq_length : int = None, 
+        # hidden_size: int = None, 
+        # input_size : int = None, #number of dynamic predictors - user_input
     ):
         super().__init__()
         self.save_parameters(**self.locals2params(locals()))
@@ -50,19 +47,17 @@ class LSTMDataGetter(DataGetter):
         self.train_origin  = tuple(train_origin)
         self.valid_origin  = tuple(valid_origin)
         self.spatial_batch_size = spatial_batch_size
-        self.temporal_sampling_size = temporal_sampling_size
-        self.seq_length    = seq_length
-        self.hidden_size   = hidden_size 
-        self.input_size    = input_size
+        # self.temporal_sampling_size = temporal_sampling_size
+        # self.seq_length    = seq_length
+        # self.hidden_size   = hidden_size 
+        # self.input_size    = input_size
 
-        self.model_params={
-            "input_size": 3, #number of dynamic predictors - user_input
-            "hidden_size": hidden_size, # user_input
-            "output_size": len(target_names), # number_target - user_input
-            "number_static_predictors": len(static_names), #number of static parameters - user_input 
-        }
-
-        self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+        # self.model_params={
+        #     "input_size": 3, #number of dynamic predictors - user_input
+        #     "hidden_size": hidden_size, # user_input
+        #     "output_size": len(target_names), # number_target - user_input
+        #     "number_static_predictors": len(static_names), #number of static parameters - user_input 
+        # }
 
     def normalization(self, Xd, Xs, Y, d_m: float | None = None, s_m : float | None = None, d_std: float | None = None, s_std : float | None = None):
             Xd, d_m, d_std = apply_normalization(Xd, type = "spacetime", how ='standard', m1 = d_m, m2 = d_std )
@@ -132,6 +127,8 @@ class LSTMDataGetter(DataGetter):
         train_dataset = LSTMDataset(Xd_clean, Y_clean, Xs_clean)
         val_dataset = LSTMDataset(Xd_valid_clean, Y_valid_clean, Xs_valid_clean)
 
-        train_loader = DataLoader(train_dataset, batch_size=self.spatial_batch_size, shuffle=True)
+        # train_loader = DataLoader(train_dataset, batch_size=self.spatial_batch_size, shuffle=True)
 
-        val_loader = DataLoader(val_dataset, batch_size=self.spatial_batch_size, shuffle=False)
+        # val_loader = DataLoader(val_dataset, batch_size=self.spatial_batch_size, shuffle=False)
+
+        return train_dataset, val_dataset 

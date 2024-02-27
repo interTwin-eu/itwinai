@@ -1,158 +1,121 @@
-import os
-import sys
-from typing import Union, Dict, Optional, Any
+from typing import Dict, Any
+import logging
+from itwinai.components import Trainer, monitor_exec
+import matplotlib.pyplot as plt
+from sklearn.metrics import root_mean_squared_error
 
-import torch
-from torch import Tensor
-import lightning as pl
-from lightning.pytorch.cli import LightningCLI
+from hython.models.lstm import CustomLSTM
+from hython.train_val import train_val
 
-from itwinai.components import Trainer, Predictor, monitor_exec
-from itwinai.serialization import ModelLoader
-from itwinai.torch.inference import TorchModelLoader
-from itwinai.torch.types import Batch
-from itwinai.utils import load_yaml
-from itwinai.torch.mlflow import (
-    init_lightning_mlflow,
-    teardown_lightning_mlflow
-)
+import torch 
+import torch.optim as optim
+from torch.optim.lr_scheduler import ReduceLROnPlateau
+from torch.utils.data import DataLoader, TensorDataset, Dataset
+from torch import nn
 
+def mse_metric(output, target, target_names = None): #target_names is added but unused for compatibility with a function in train_val
+    metric_epoch = root_mean_squared_error(output, target)
+    return metric_epoch
 
-from model import ThreeDGAN
-from dataloader import ParticlesDataModule
-
-
-class Lightning3DGANTrainer(Trainer):
-    def __init__(self, config: Union[Dict, str]):
-        self.save_parameters(**self.locals2params(locals()))
+class LSTMTrainer(Trainer):
+    def __init__(
+        self,
+        dynamic_names: list, 
+        static_names : list, 
+        target_names : list, 
+        spatial_batch_size: int = None, 
+        temporal_sampling_size: int = None, 
+        seq_length : int = None, 
+        hidden_size: int = None,  
+        input_size : int = None,  #number of dynamic predic
+        path2models: str = None, 
+        epochs: int = None
+    ):
         super().__init__()
-        if isinstance(config, str) and os.path.isfile(config):
-            # Load from YAML
-            config = load_yaml(config)
-        self.conf = config
+        
+        self.save_parameters(**self.locals2params(locals()))
+        self.spatial_batch_size     = spatial_batch_size
+        self.temporal_sampling_size = temporal_sampling_size
+        self.target_names           = target_names
+        self.static_names           = static_names
+        self.path2models            = path2models
+        self.epochs                 = epochs
+        self.seq_length             = seq_length
+
+        self.model_params={
+            "input_size": input_size, #number of dynamic predictors - user_input
+            "hidden_size": hidden_size, # user_input
+            "output_size": len(target_names), # number_target - user_input
+            "number_static_predictors": len(static_names), #number of static parameters - user_input 
+            "target_names": target_names, 
+
+        }
+
 
     @monitor_exec
-    def execute(self) -> Any:
-        init_lightning_mlflow(self.conf, registered_model_name='3dgan-lite')
-        old_argv = sys.argv
-        sys.argv = ['some_script_placeholder.py']
-        cli = LightningCLI(
-            args=self.conf,
-            model_class=ThreeDGAN,
-            datamodule_class=ParticlesDataModule,
-            run=False,
-            save_config_kwargs={
-                "overwrite": True,
-                "config_filename": "pl-training.yml",
-            },
-            subclass_mode_model=True,
-            subclass_mode_data=True,
-        )
-        sys.argv = old_argv
-        cli.trainer.fit(cli.model, datamodule=cli.datamodule)
-        teardown_lightning_mlflow()
+    def execute(self, train_data, val_data) -> None:
 
-    def save_state(self):
-        return super().save_state()
+        device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+        logging.debug("Info:: Device set to", device)
+
+        train_loader = DataLoader(train_data, batch_size=self.spatial_batch_size, shuffle=True)
+        val_loader   = DataLoader(val_data, batch_size=self.spatial_batch_size, shuffle=False)
+        logging.debug("Info: Data loaded to torch")  
+
+        #model
+        model = CustomLSTM(self.model_params)
+        model = model.to(device)
+        print(model)
+
+        opt = optim.Adam(model.parameters(), lr=1e-2)
+        lr_scheduler = ReduceLROnPlateau(opt, mode='min',factor=0.5, patience=10)
+
+        ## Set the training parameters
+        params_train={
+            "num_epochs": self.epochs,
+            "temporal_sampling_size": self.temporal_sampling_size,
+            "seq_length": self.seq_length,
+            "ts_range": train_data.y.shape[1],
+            "optimizer": opt,
+            "loss_func": nn.MSELoss(),
+            "metric_func": mse_metric,
+            "train_dl": train_loader, 
+            "val_dl"  : val_loader,
+            "lr_scheduler": lr_scheduler,
+            "path2weights": f"{self.path2models}/weights.pt", 
+            "device": device,
+            "target_names": self.target_names
+        }
+
+        logging.debug("Info: Model compiled")
+
+        model, sm_loss_history ,sm_metric_history = train_val(model, params_train)      
+        logging.debug("Info:: Model trained")
+
+        # save the best model
+        logging.debug("Saved training history")
+
+        # Extract the loss values
+        for t in self.target_names: 
+            train_loss = sm_metric_history[f'train_{t}']
+            val_loss = sm_metric_history[f'val_{t}']
+
+            # Create a list of epochs for the x-axis (e.g., [1, 2, 3, ..., 100])
+            lepochs = list(range(1,params_train["num_epochs"] + 1))
+
+            # Create the train and validation loss plots
+            plt.figure(figsize=(10, 6))
+            plt.plot(lepochs, train_loss, marker='o', linestyle='-', color='b', label='Training Loss')
+            plt.plot(lepochs, val_loss, marker='o', linestyle='-', color='r', label='Validation Loss')
+            plt.title('Validation Loss - SM')
+            plt.xlabel('Epochs')
+            plt.ylabel('Loss')
+            plt.grid(True)
+            plt.legend()
+            plt.savefig(f"loss_{t}.png")
 
     def load_state(self):
         return super().load_state()
 
-
-class LightningModelLoader(TorchModelLoader):
-    """Loads a torch lightning model from somewhere.
-
-    Args:
-        model_uri (str): Can be a path on local filesystem
-            or an mlflow 'locator' in the form:
-            'mlflow+MLFLOW_TRACKING_URI+RUN_ID+ARTIFACT_PATH'
-    """
-
-    def __call__(self) -> pl.LightningModule:
-        """"Loads model from model URI.
-
-        Raises:
-            ValueError: if the model URI is not recognized
-                or the model is not found.
-
-        Returns:
-            pl.LightningModule: torch lightning module.
-        """
-        # TODO: improve
-        # # Load best model
-        # loaded_model = cli.model.load_from_checkpoint(
-        #     ckpt_path,
-        #     lightning_conf['model']['init_args']
-        # )
-        return super().__call__()
-
-
-class Lightning3DGANPredictor(Predictor):
-
-    def __init__(
-        self,
-        model: Union[ModelLoader, pl.LightningModule],
-        config: Union[Dict, str],
-        name: Optional[str] = None
-    ):
-        self.save_parameters(**self.locals2params(locals()))
-        super().__init__(model, name)
-        if isinstance(config, str) and os.path.isfile(config):
-            # Load from YAML
-            config = load_yaml(config)
-        self.conf = config
-
-    @monitor_exec
-    def execute(
-        self,
-        datamodule: Optional[pl.LightningDataModule] = None,
-        model: Optional[pl.LightningModule] = None
-    ) -> Dict[str, Tensor]:
-        old_argv = sys.argv
-        sys.argv = ['some_script_placeholder.py']
-        cli = LightningCLI(
-            args=self.conf,
-            model_class=ThreeDGAN,
-            datamodule_class=ParticlesDataModule,
-            run=False,
-            save_config_kwargs={
-                "overwrite": True,
-                "config_filename": "pl-training.yml",
-            },
-            subclass_mode_model=True,
-            subclass_mode_data=True,
-        )
-        sys.argv = old_argv
-
-        # Override config file with inline arguments, if given
-        if datamodule is None:
-            datamodule = cli.datamodule
-        if model is None:
-            model = cli.model
-
-        predictions = cli.trainer.predict(model, datamodule=datamodule)
-
-        # Transpose predictions into images, energies and angles
-        images = torch.cat(list(map(
-            lambda pred: self.transform_predictions(
-                pred['images']), predictions
-        )))
-        energies = torch.cat(list(map(
-            lambda pred: pred['energies'], predictions
-        )))
-        angles = torch.cat(list(map(
-            lambda pred: pred['angles'], predictions
-        )))
-
-        predictions_dict = dict()
-        for img, en, ang in zip(images, energies, angles):
-            sample_key = f"energy={en.item()}&angle={ang.item()}"
-            predictions_dict[sample_key] = img
-
-        return predictions_dict
-
-    def transform_predictions(self, batch: Batch) -> Batch:
-        """
-        Post-process the predictions of the torch model.
-        """
-        return batch.squeeze(1)
+    def save_state(self):
+        return super().save_state()

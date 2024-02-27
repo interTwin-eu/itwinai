@@ -17,18 +17,21 @@ pipeline:
           train_origin: [0, 0] 
           valid_origin: [5, 5] 
           spatial_batch_size: 256
+          # temporal_sampling_size: 200 
+          # seq_length: 365 
+          # hidden_size: 128 
+          # input_size: 3 #number of dynamic predictors - user_input
+
+      training-step:
+        class_path: trainer.LSTMTrainer
+        init_args:
+          epochs: 2
+          spatial_batch_size: 256
           temporal_sampling_size: 200 
           seq_length: 365 
           hidden_size: 128 
-          input_size: 3 #number of dynamic predictors - user_input
-
-      # training-step:
-      #   class_path: trainer.TensorflowTrainer
-      #   init_args:
-      #     epochs: ${pipeline.init_args.steps.download-step.init_args.epochs}
-      #     batch_size: ${pipeline.init_args.steps.download-step.init_args.batch_size}
-      #     network: VGG_V1
-      #     activation: LINEAR
-      #     regularization_strength: NONE
-      #     learning_rate: 0.0001
-      #     loss: MAE
+          input_size: 3 #number of dynamic predic
+          path2models: "./checkpoints"
+          dynamic_names: ["precip", "pet", "temp"] 
+          static_names: [ 'M', 'thetaS', 'RootingDepth', 'Kext', 'Sl', 'Swood', 'TT', 'KsatHorFrac'] 
+          target_names: [ "vwc"] #, "actevap" ], 
