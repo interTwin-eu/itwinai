@@ -39,7 +39,6 @@ from itwinai.torch.distributed import (
     DDPDistributedStrategy,
     HVDDistributedStrategy,
     DSDistributedStrategy,
-    # ModelEngine
 )
 
 
