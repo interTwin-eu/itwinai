@@ -1,0 +1,8 @@
+numpy
+torch
+xarray
+gdown
+hvplot
+netcdf4
+h5netcdf
+
