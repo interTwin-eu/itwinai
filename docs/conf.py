@@ -14,10 +14,12 @@ sys.path.insert(0, os.path.abspath('../use-cases/mnist/torch-lightning/'))
 sys.path.insert(0, os.path.abspath('../use-cases/mnist/torch/'))
 sys.path.insert(0, os.path.abspath('../tutorials/ml-workflows/'))
 sys.path.insert(0, os.path.abspath('../src/itwinai'))
+sys.path.insert(0, os.path.abspath('../src/itwinai/tensorflow'))
+sys.path.insert(0, os.path.abspath('../src/itwinai/ptorch'))
 sys.path.insert(0, os.path.abspath('../'))
 
 project = 'itwinai'
-copyright = '2024, Matteo Bunino, Alexander Zoechbauer, Kalliopi Tsolaki'
+copyright = '2024, Matteo Bunino, Alexander Zoechbauer, Kalliopi Tsolaki on behalf of CERN'
 author = 'Matteo Bunino, Alexander Zoechbauer, Kalliopi Tsolaki'
 release = '0.0.1'
 
@@ -29,7 +31,7 @@ extensions = ['sphinx.ext.autodoc', 'sphinx.ext.doctest', 'sphinx.ext.viewcode']
 templates_path = ['_templates']
 exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 
-
+autodoc_mock_imports = ["mlflow"]
 
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
