@@ -25,7 +25,7 @@ pipeline:
       training-step:
         class_path: trainer.LSTMTrainer
         init_args:
-          epochs: 2
+          epochs: 14
           spatial_batch_size: 256
           temporal_sampling_size: 200 
           seq_length: 365 

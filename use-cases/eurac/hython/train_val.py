@@ -1,7 +1,7 @@
 import copy
 import torch
 import numpy as np
-
+import logging
 # get the current learning rate
 def get_lr(opt):
     for param_group in opt.param_groups:
@@ -81,7 +81,7 @@ def loss_epoch(model, loss_func, metric_func, dataset_dl, target_names, device, 
     return loss, metric
 
 
-def train_val(model, params):
+def train_val(model, params, wandb):
     num_epochs = params["num_epochs"]
     seq_length = params["seq_length"]
     temporal_sampling_size = params["temporal_sampling_size"]
@@ -105,6 +105,8 @@ def train_val(model, params):
     best_loss = float("inf")
 
     for epoch in range(num_epochs):
+        
+        wandb_dict = {}
         current_lr = get_lr(opt)
         
         print(f"Epoch {epoch}/{num_epochs - 1}, current lr={current_lr}")
@@ -119,19 +121,27 @@ def train_val(model, params):
             model, loss_func, metric_func, train_dl, target_names, device, opt, ts_idx, seq_length
         )
 
+        wandb_dict["train loss"] = train_loss
+
         loss_history["train"].append(train_loss)
         for t in target_names: 
             metric_history[f'train_{t}'].append(train_metric)
+            wandb_dict[f'train_{t}'] = train_metric
 
         model.eval()
         with torch.no_grad():
             val_loss, val_metric = loss_epoch(
                 model, loss_func, metric_func, val_dl, target_names, device, ts_idx= ts_idx, seq_length = seq_length
             )
-
+    
         loss_history["val"].append(val_loss)
+        wandb_dict["val loss"] = val_loss
+
         for t in target_names: 
             metric_history[f'val_{t}'].append(val_metric)
+            wandb_dict[f'val_{t}'] = val_metric
+       
+        wandb.log( wandb_dict, "metrics")
 
         if val_loss < best_loss:
             best_loss = val_loss
@@ -141,14 +151,9 @@ def train_val(model, params):
 
         lr_scheduler.step(val_loss)
 
-        # lr_scheduler.step()
-        #if current_lr != get_lr(opt):
-        #    print("Loading best model weights!")
-        #    model.load_state_dict(best_model_wts)
-
-        print(f"train loss: {train_loss}, train metric: {train_metric}")
-        print(f"val loss: {val_loss}, val metric: {val_metric}")
-        print("-" * 10)
+        logging.debug(f"train loss: {train_loss}, train metric: {train_metric}")
+        logging.debug(f"val loss: {val_loss}, val metric: {val_metric}")
+        logging.debug("-" * 10)
 
     model.load_state_dict(best_model_wts)
     

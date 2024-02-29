@@ -325,6 +325,7 @@ class WanDBLogger(Logger):
             'watch', 'metric', 'figure', 'image', 'artifact', 'torch', 'dict',
             'param', 'text'
         ]
+        wandb.init()
 
     def create_logger_context(self):
         self.active_run = wandb.init(

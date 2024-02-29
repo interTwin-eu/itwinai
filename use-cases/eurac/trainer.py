@@ -1,6 +1,7 @@
 from typing import Dict, Any
 import logging
 from itwinai.components import Trainer, monitor_exec
+from itwinai.loggers import WanDBLogger
 import matplotlib.pyplot as plt
 from sklearn.metrics import root_mean_squared_error
 
@@ -55,9 +56,14 @@ class LSTMTrainer(Trainer):
     @monitor_exec
     def execute(self, train_data, val_data) -> None:
 
+        #wandb
+        wandb = WanDBLogger()
+
+        #setup device
         device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         logging.debug("Info:: Device set to", device)
 
+        #setup data
         train_loader = DataLoader(train_data, batch_size=self.spatial_batch_size, shuffle=True)
         val_loader   = DataLoader(val_data, batch_size=self.spatial_batch_size, shuffle=False)
         logging.debug("Info: Data loaded to torch")  
@@ -67,6 +73,7 @@ class LSTMTrainer(Trainer):
         model = model.to(device)
         print(model)
 
+        #optimizer
         opt = optim.Adam(model.parameters(), lr=1e-2)
         lr_scheduler = ReduceLROnPlateau(opt, mode='min',factor=0.5, patience=10)
 
@@ -86,14 +93,12 @@ class LSTMTrainer(Trainer):
             "device": device,
             "target_names": self.target_names
         }
-
         logging.debug("Info: Model compiled")
+        wandb.save_hyperparameters(params_train)
 
-        model, sm_loss_history ,sm_metric_history = train_val(model, params_train)      
+        #train
+        model, sm_loss_history , sm_metric_history = train_val(model, params_train, wandb)      
         logging.debug("Info:: Model trained")
-
-        # save the best model
-        logging.debug("Saved training history")
 
         # Extract the loss values
         for t in self.target_names: 
@@ -106,8 +111,8 @@ class LSTMTrainer(Trainer):
             # Create the train and validation loss plots
             plt.figure(figsize=(10, 6))
             plt.plot(lepochs, train_loss, marker='o', linestyle='-', color='b', label='Training Loss')
-            plt.plot(lepochs, val_loss, marker='o', linestyle='-', color='r', label='Validation Loss')
-            plt.title('Validation Loss - SM')
+            # plt.plot(lepochs, val_loss, marker='o', linestyle='-', color='r', label='Validation Loss')
+            plt.title('Train Loss - SM')
             plt.xlabel('Epochs')
             plt.ylabel('Loss')
             plt.grid(True)
