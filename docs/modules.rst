@@ -14,3 +14,10 @@ itwinai
    itwinai.types
    itwinai.utils
 
+
+.. toctree::
+   :maxdepth: 4
+
+   itwinai.tf.modules
+   itwinai.torch.modules
+   
