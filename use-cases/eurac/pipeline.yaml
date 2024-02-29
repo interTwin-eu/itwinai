@@ -1,3 +1,5 @@
+data_root: "/Users/iluise/cernbox/interTwin/hython/data/datademo"
+
 pipeline:
   class_path: itwinai.pipeline.Pipeline
   init_args:
@@ -5,10 +7,10 @@ pipeline:
       download-step:
         class_path: dataloader.LSTMDataGetter
         init_args:
-          wd: "/Users/iluise/cernbox/interTwin/hython/data/datademo" 
-          fp_dynamic_forcings: "/Users/iluise/cernbox/interTwin/hython/data/datademo/forcings.nc" 
-          fp_wflow_static_params:  "/Users/iluise/cernbox/interTwin/hython/data/datademo/staticmaps.nc" 
-          fp_target: "/Users/iluise/cernbox/interTwin/hython/data/datademo/output.nc" 
+          wd: "${data_root}" 
+          fp_dynamic_forcings: "${data_root}/forcings.nc" 
+          fp_wflow_static_params:  "${data_root}/staticmaps.nc" 
+          fp_target: "${data_root}/output.nc" 
           dynamic_names: ["precip", "pet", "temp"] 
           static_names: [ 'M', 'thetaS', 'RootingDepth', 'Kext', 'Sl', 'Swood', 'TT', 'KsatHorFrac'] 
           target_names: [ "vwc"] #, "actevap" ], 
