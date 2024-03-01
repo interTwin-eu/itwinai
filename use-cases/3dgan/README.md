@@ -104,6 +104,37 @@ However, if `aggregate_predictions` in the `ParticleImagesSaver` step is set to 
 only one pickled file will be generated inside `3dgan-generated-data` folder.
 Notice that multiple inference calls will create new files under `3dgan-generated-data` folder.
 
+With fields overriding:
+
+```bash
+# Override variables
+export CERN_DATA_ROOT="../.."  # data root
+export TMP_DATA_ROOT=$CERN_DATA_ROOT
+export CERN_CODE_ROOT="." # where code and configuration are stored
+export MAX_DATA_SAMPLES=20000 # max dataset size
+export BATCH_SIZE=1024 # increase to fill up GPU memory
+export NUM_WORKERS_DL=4 # num worker processes used by the dataloader to pre-fetch data
+export AGGREGATE_PREDS="true" # write predictions in a single file
+export ACCELERATOR="gpu" # choose "cpu" or "gpu"
+export STRATEGY="auto" # distributed strategy
+export DEVICES="0," # GPU devices list
+
+
+itwinai exec-pipeline --print-config --config $CERN_CODE_ROOT/inference-pipeline.yaml \
+-o pipeline.init_args.steps.dataloading_step.init_args.data_path=$TMP_DATA_ROOT/exp_data \
+-o pipeline.init_args.steps.inference_step.init_args.config.trainer.logger.init_args.save_dir=$TMP_DATA_ROOT/ml_logs/mlflow_logs \
+-o pipeline.init_args.steps.inference_step.init_args.config.trainer.strategy=$STRATEGY \
+-o pipeline.init_args.steps.inference_step.init_args.config.trainer.devices=$DEVICES \
+-o pipeline.init_args.steps.inference_step.init_args.config.trainer.accelerator=$ACCELERATOR \
+-o pipeline.init_args.steps.inference_step.init_args.model.init_args.model_uri=$CERN_CODE_ROOT/3dgan-inference.pth \
+-o pipeline.init_args.steps.inference_step.init_args.config.data.init_args.datapath=$TMP_DATA_ROOT/exp_data/*/*.h5 \
+-o pipeline.init_args.steps.inference_step.init_args.config.data.init_args.max_samples=$MAX_DATA_SAMPLES \
+-o pipeline.init_args.steps.inference_step.init_args.config.data.init_args.batch_size=$BATCH_SIZE \
+-o pipeline.init_args.steps.inference_step.init_args.config.data.init_args.num_workers=$NUM_WORKERS_DL \
+-o pipeline.init_args.steps.saver_step.init_args.save_dir=$TMP_DATA_ROOT/3dgan-generated-data \
+-o pipeline.init_args.steps.saver_step.init_args.aggregate_predictions=$AGGREGATE_PREDS 
+```
+
 ### Docker image
 
 Build from project root with

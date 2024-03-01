@@ -35,8 +35,12 @@ class ParticleImagesSaver(Saver):
         """
         if self.aggregate_predictions:
             os.makedirs(self.save_dir, exist_ok=True)
+            sparse_generated_images = dict()
+            for name, res in generated_images.items():
+                sparse_generated_images[name] = res.to_sparse()
+            del generated_images
             with open(self._random_file(), 'wb') as fp:
-                pickle.dump(generated_images, fp)
+                pickle.dump(sparse_generated_images, fp)
         else:
             if os.path.exists(self.save_dir):
                 shutil.rmtree(self.save_dir)
