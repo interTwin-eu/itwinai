@@ -17,3 +17,6 @@ The `tutorial_2_advanced_workflow.py` script is ...
    :undoc-members:
    :show-inheritance:
 
+
+.. literalinclude:: ../tutorials/ml-workflows/tutorial_2_advanced_workflow.py
+   :language: python
