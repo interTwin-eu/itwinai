@@ -1,5 +1,5 @@
-3DGAN Documentation
-====================
+3DGAN
+=====
 
 The 3DGAN use case is a part of the use cases which...
 
