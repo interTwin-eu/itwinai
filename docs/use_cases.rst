@@ -10,7 +10,6 @@ Description of the use case etc...
 
 .. toctree::
    :maxdepth: 2
-   .. :caption: 3DGAN use case Documentation
 
    3dgan_doc
 
@@ -22,8 +21,9 @@ Description of the use case etc...
 
 .. toctree::
    :maxdepth: 2
-   .. :caption: MNIST Documentation
 
    mnist_doc
+
+
 
 
