@@ -1,5 +1,5 @@
-MNIST Use Case
-==============
+MNIST
+=====
 
 This section covers the MNIST use case, which utilizes the `torch-lightning` framework for training and evaluation. The following files are integral to this use case:
 
