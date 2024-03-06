@@ -52,7 +52,7 @@ In ``itwinai`` platform, we focus mainly on the MLOps step, simulating or oversi
    tutorials
 
    
-**`interTwin Demo: itwinai integration with other DTE modules <https://www.youtube.com/watch?v=NoVCfSxwtX0>`_**
+`**interTwin Demo:** itwinai integration with other DTE modules <https://www.youtube.com/watch?v=NoVCfSxwtX0>`_
 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 Indices and tables

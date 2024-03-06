@@ -1,5 +1,3 @@
-.. _use-cases:
-
 Integrated Use Cases
 ====================
 
