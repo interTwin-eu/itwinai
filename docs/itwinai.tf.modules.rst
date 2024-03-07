@@ -1,5 +1,18 @@
-itwinai.tensorflow.modules
+itwinai Tensorflow Modules
 ==========================
+
+trainer.py
+++++++++++
+
+.. literalinclude:: ../src/itwinai/tensorflow/trainer.py
+   :language: python
+
+utils.py
+++++++++
+
+.. literalinclude:: ../src/itwinai/tensorflow/utils.py
+   :language: python
+
 
 .. .. automodule:: itwinai.tensorflow.trainer
 ..    :members:
@@ -10,11 +23,4 @@ itwinai.tensorflow.modules
 ..    :members:
 ..    :undoc-members:
 ..    :show-inheritance:
-
-.. literalinclude:: ../src/itwinai/tensorflow/trainer.py
-   :language: python
-
-.. literalinclude:: ../src/itwinai/tensorflow/utils.py
-   :language: python
-
 

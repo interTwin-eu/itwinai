@@ -1,9 +1,6 @@
 Basic components
 ================
 
-Description...
-
-
 basic_components.py
 +++++++++++++++++++
 
