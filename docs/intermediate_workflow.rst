@@ -1,9 +1,6 @@
 Intermediate workflow
 =====================
 
-Description...
-
-
 tutorial_1_intermediate_workflow.py
 +++++++++++++++++++++++++++++++++++
 
