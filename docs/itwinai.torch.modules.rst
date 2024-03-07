@@ -1,20 +1,38 @@
-itwinai.torch.modules
-=====================
+itwinai PyTorch Modules
+=======================
+
+cluster.py
+++++++++++
 
 .. literalinclude:: ../src/itwinai/ptorch/cluster.py
    :language: python
 
+inference.py
+++++++++++++
+
 .. literalinclude:: ../src/itwinai/ptorch/inference.py
    :language: python
+
+mlflow.py
++++++++++
 
 .. literalinclude:: ../src/itwinai/ptorch/mlflow.py
    :language: python
 
+trainer.py
+++++++++++
+
 .. literalinclude:: ../src/itwinai/ptorch/trainer.py
    :language: python
 
+types.py
+++++++++
+
 .. literalinclude:: ../src/itwinai/ptorch/types.py
    :language: python
+
+utils.py
+++++++++
 
 .. literalinclude:: ../src/itwinai/ptorch/utils.py
    :language: python

@@ -1,9 +1,6 @@
 Basic workflow
 ==============
 
-Description...
-
-
 tutorial_0_basic_workflow.py
 ++++++++++++++++++++++++++++
 

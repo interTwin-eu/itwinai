@@ -4,7 +4,7 @@ Getting started with itwinai
 Installation
 ------------
 
-Requirements:
+Requirements
 +++++++++++++
 
 * Linux environment. 
