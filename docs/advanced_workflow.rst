@@ -1,9 +1,6 @@
 Advanced workflow
 =================
 
-Description...
-
-
 tutorial_2_advanced_workflow.py
 +++++++++++++++++++++++++++++++
 
