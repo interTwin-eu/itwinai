@@ -14,6 +14,7 @@ pl-training.yml
 *.csv
 *tar.gz
 0
+*.tar
 
 # Use cases files
 MNIST

@@ -7,7 +7,7 @@
 #SBATCH --mail-type=ALL
 #SBATCH --output=job-ds.out
 #SBATCH --error=job-ds.err
-#SBATCH --time=00:15:00
+#SBATCH --time=00:30:00
 
 # configure node and process count on the CM
 #SBATCH --partition=batch

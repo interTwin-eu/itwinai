@@ -375,7 +375,7 @@ if __name__ == "__main__":
     # resume state
     start_epoch = 1
     best_acc = np.Inf
-    res_name = 'checkpoint.pth.tar'
+    res_name = f'{args.strategy}-checkpoint.pth.tar'
     if os.path.isfile(res_name):
         try:
             if torch.cuda.is_available():
