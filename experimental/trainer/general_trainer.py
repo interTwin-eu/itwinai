@@ -230,7 +230,7 @@ def main():
     # initializes the distributed backend which will take care of sychronizing nodes/GPUs
     my_trainer.init_backend(backend=args.backend)
 
-# deterministic testrun
+    # deterministic testrun
     if args.testrun:
         torch.manual_seed(args.nseed)
         g = torch.Generator()

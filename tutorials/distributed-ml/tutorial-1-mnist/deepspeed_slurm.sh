@@ -1,12 +1,12 @@
 #!/bin/bash
 
 # general configuration of the job
-#SBATCH --job-name=Torch_DeepSpeed_tutorial
+#SBATCH --job-name=Torch_DeepSpeed_tutorial-1
 #SBATCH --account=intertwin
 #SBATCH --mail-user=
 #SBATCH --mail-type=ALL
-#SBATCH --output=job.out
-#SBATCH --error=job.err
+#SBATCH --output=job-ds.out
+#SBATCH --error=job-ds.err
 #SBATCH --time=00:15:00
 
 # configure node and process count on the CM
@@ -55,7 +55,7 @@ export CUDA_VISIBLE_DEVICES="0,1,2,3"
 export MASTER_ADDR=$(scontrol show hostnames "\$SLURM_JOB_NODELIST" | head -n 1)i
 export MASTER_PORT=29500 
 
-TRAINING_CMD="train.py -s deepspeed"
+TRAINING_CMD="train.py -s deepspeed -c config.yaml"
 
 srun --cpu-bind=none python -u $TRAINING_CMD --deepspeed
 

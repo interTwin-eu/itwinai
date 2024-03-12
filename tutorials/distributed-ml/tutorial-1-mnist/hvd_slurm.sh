@@ -1,11 +1,11 @@
 #!/bin/bash
 
 # general configuration of the job
-#SBATCH --job-name=Torch_HVD_tutorial
+#SBATCH --job-name=Torch_HVD_tutorial-1
 #SBATCH --account=intertwin
 #SBATCH --partition=batch
-#SBATCH --output=job.out
-#SBATCH --error=job.err
+#SBATCH --output=job-hvd.out
+#SBATCH --error=job-hvd.err
 #SBATCH --time=00:30:00
 #SBATCH --nodes=4
 #SBATCH --ntasks-per-node=4
@@ -49,7 +49,7 @@ fi
 export CUDA_VISIBLE_DEVICES="0,1,2,3"
 
 # launch training
-TRAINING_CMD="train.py -s horovod"
+TRAINING_CMD="train.py -s horovod -c config.yaml"
 
 srun --cpu-bind=none python -u $TRAINING_CMD
 

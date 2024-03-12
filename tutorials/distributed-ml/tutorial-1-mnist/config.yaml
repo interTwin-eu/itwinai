@@ -1,0 +1,26 @@
+# I/O
+data_dir: ./
+restart_int: 10
+download_only: False
+verbose: True
+
+# Model
+batch_size: 64
+epochs: 10
+lr: 0.001
+concM: 100
+momentum: 0.5
+shuff: False
+
+# Debugging
+testrun: False
+nseed: 10
+log_int: 10
+
+# Distributed ML
+backend: nccl
+nworker: 4 # num workers dataloader
+prefetch: 2
+no_cuda: False
+
+

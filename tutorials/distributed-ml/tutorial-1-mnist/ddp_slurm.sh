@@ -1,12 +1,12 @@
 #!/bin/bash
 
 # general configuration of the job
-#SBATCH --job-name=Torch_DDP_tutorial
+#SBATCH --job-name=Torch_DDP_tutorial-1
 #SBATCH --account=intertwin
 #SBATCH --mail-user=
 #SBATCH --mail-type=ALL
-#SBATCH --output=job.out
-#SBATCH --error=job.err
+#SBATCH --output=job-ddp.out
+#SBATCH --error=job-ddp.err
 #SBATCH --time=00:15:00
 
 # configure node and process count on the CM
@@ -51,7 +51,7 @@ if [ "$SLURM_CPUS_PER_TASK" > 0 ] ; then
 fi
 
 # launch training
-TRAINING_CMD="train.py -s ddp"
+TRAINING_CMD="train.py -s ddp -c config.yaml"
 
 srun --cpu-bind=none bash -c "torchrun \
     --log_dir='logs' \
