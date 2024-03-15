@@ -9,7 +9,7 @@ from typing import Any
 import argparse
 import tensorflow as tf
 from tensorflow import keras
-from tensorflow.keras import layers
+import os
 from itwinai.tensorflow.distributed import get_strategy
 
 
@@ -35,13 +35,17 @@ def parse_args() -> argparse.Namespace:
 
 def tf_rnd_dataset():
     """Dummy TF dataset."""
+    (x_train, y_train), (x_test, y_test) = \
+        tf.keras.datasets.mnist.load_data(
+            path=os.getcwd()+'/.keras/datasets/mnist.npz')
 
-    x_train = tf.random.normal((60000, 784), dtype='float32')
-    x_test = tf.random.normal((10000, 784), dtype='float32')
-    y_train = tf.random.uniform((60000,), minval=0, maxval=10, dtype='int32')
-    y_test = tf.random.uniform((10000,), minval=0, maxval=10, dtype='int32')
+    train_dataset = tf.data.Dataset.from_tensor_slices((x_train, y_train))
+    train_dataset = train_dataset.batch(args.batch_size)
 
-    return x_train, x_test, y_train, y_test
+    test_dataset = tf.data.Dataset.from_tensor_slices((x_test, y_test))
+    test_dataset = test_dataset.batch(args.batch_size)
+
+    return train_dataset, test_dataset
 
 
 def trainer_entrypoint_fn(
@@ -51,31 +55,24 @@ def trainer_entrypoint_fn(
     by some use case.
     """
     # dataset to be trained
-    x_train, x_test, y_train, y_test = tf_rnd_dataset()
+    train_dataset, test_dataset = tf_rnd_dataset(args)
 
     # distribute datasets among mirrored replicas
-    dist_x_train = strategy.experimental_distribute_dataset(
-        x_train
+    dist_train = strategy.experimental_distribute_dataset(
+        train_dataset
     )
-    dist_x_test = strategy.experimental_distribute_dataset(
-        x_test
-    )
-    dist_y_train = strategy.experimental_distribute_dataset(
-        y_train
-    )
-    dist_y_test = strategy.experimental_distribute_dataset(
-        y_test
+    dist_test = strategy.experimental_distribute_dataset(
+        test_dataset
     )
 
     # define and compile model within strategy.scope()
     with strategy.scope():
         # Local model
-        inputs = keras.Input(shape=(784,), name='img')
-        x = layers.Dense(64, activation='relu')(inputs)
-        x = layers.Dense(64, activation='relu')(x)
-        outputs = layers.Dense(10)(x)
-
-        model = keras.Model(inputs=inputs, outputs=outputs, name='mnist_model')
+        model = tf.keras.models.Sequential([
+            tf.keras.layers.Flatten(input_shape=(28, 28)),
+            tf.keras.layers.Dense(128, activation='relu'),
+            tf.keras.layers.Dense(10)
+        ])
 
         model.compile(loss=keras.losses.SparseCategoricalCrossentropy
                       (from_logits=True),
@@ -83,12 +80,11 @@ def trainer_entrypoint_fn(
                       metrics=['accuracy']
                       )
 
-    model.fit(dist_x_train, dist_y_train,
-              batch_size=args.batch_size,
+    model.fit(dist_train,
               epochs=5,
-              validation_split=0.2)
+              steps_per_epoch=2000)
 
-    test_scores = model.evaluate(dist_x_test, dist_y_test, verbose=0)
+    test_scores = model.evaluate(dist_test, verbose=0, steps=500)
 
     print('Test loss:', test_scores[0])
     print('Test accuracy:', test_scores[1])
