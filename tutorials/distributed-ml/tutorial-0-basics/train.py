@@ -140,6 +140,7 @@ def trainer_entrypoint_fn(
         if lr_sched:
             lr_sched.step()
 
+    print(f"<Global rank: {strategy.dist_grank()}> - TRAINING FINISHED")
     strategy.clean_up()
     return 123
 
@@ -167,5 +168,3 @@ if __name__ == "__main__":
 
     # Launch distributed training
     trainer_entrypoint_fn("foobar", args, strategy)
-
-    print("TRAINING FINISHED")

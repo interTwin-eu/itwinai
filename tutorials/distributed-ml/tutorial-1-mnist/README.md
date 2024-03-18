@@ -1,6 +1,11 @@
-# Tutorial: distributed strategies for PyTorch
+# Tutorial: distributed strategies for PyTorch model trained on MNIST dataset
 
-In this tutorial we show how to use torch `DistributedDataParallel` (DDP), Horovod and DeepSpeed from the same client code. Note that the environment is tested on the HDFML system at JSC. For other systems, the module versions might need change accordingly. 
+In this tutorial we show how to use torch `DistributedDataParallel` (DDP), Horovod and
+DeepSpeed from the same client code.
+Note that the environment is tested on the HDFML system at JSC. For other systems,
+the module versions might need change accordingly.
+
+## Setup
 
 First, from the root of this repo, build the environment containing
 pytorch, horovod and deepspeed. You can *try* with:
@@ -9,6 +14,18 @@ pytorch, horovod and deepspeed. You can *try* with:
 # Creates a Python venv called envAI_hdfml
 make torch-gpu-jsc
 ```
+
+Before launching training, since on JSC's compute nodes there is not internet connection,
+you need to download the dataset before while on the login lode:
+
+```bash
+source ../../../envAI_hdfml/bin/activate
+python train.py --download-only
+```
+
+This command creates a local folder called "MNIST" with the dataset.
+
+## Distributed training
 
 Each distributed strategy has its own SLURM job script, which
 should be used to run it:
@@ -29,4 +46,10 @@ If you want to distribute the code in `train.py` with **Horovod**, run from term
   
 ```bash
 sbatch hvd_slurm.sh
+```
+
+You can run all of them with:
+
+```bash
+bash runall.sh
 ```
