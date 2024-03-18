@@ -9,7 +9,6 @@ Tensorflow. You can *try* with:
 # Creates a Python venv called envAItf_hdfml
 make tf-gpu-jsc
 ```
-Please note this is still to be added to the make file in the root. Contact RS in the meantime for environment source file.
 
 If you want to distribute the code in `train.py`, run from terminal:
 
