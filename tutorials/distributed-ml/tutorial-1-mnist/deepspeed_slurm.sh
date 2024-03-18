@@ -7,11 +7,11 @@
 #SBATCH --mail-type=ALL
 #SBATCH --output=job-ds.out
 #SBATCH --error=job-ds.err
-#SBATCH --time=00:30:00
+#SBATCH --time=00:20:00
 
 # configure node and process count on the CM
 #SBATCH --partition=batch
-#SBATCH --nodes=4
+#SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1
 #SBATCH --cpus-per-task=32
 #SBATCH --gpus-per-node=4

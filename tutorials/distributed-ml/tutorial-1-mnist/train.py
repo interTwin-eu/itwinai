@@ -288,8 +288,11 @@ if __name__ == "__main__":
         print('TIMER: initialise:', time.time()-st, 's')
 
     # encapsulate the model on the GPU assigned to the current process
+    # device = torch.device(
+    #     'cuda' if args.cuda and torch.cuda.is_available() else 'cpu', lrank)
     device = torch.device(
-        'cuda' if args.cuda and torch.cuda.is_available() else 'cpu', lrank)
+        strategy.dist_device() if args.cuda and torch.cuda.is_available()
+        else 'cpu')
     if args.cuda:
         torch.cuda.set_device(lrank)
         # deterministic testrun
@@ -371,6 +374,10 @@ if __name__ == "__main__":
     distrib_model, optimizer, _ = strategy.distributed(
         model, optimizer, lr_scheduler=None
     )
+
+    print(f"<grank={grank}> DEVICES: DS={distrib_model.device}, "
+          f"TORCH.DIST={strategy.dist_device()}, "
+          f"ENV={os.environ['LOCAL_RANK']}")
 
     # resume state
     start_epoch = 1

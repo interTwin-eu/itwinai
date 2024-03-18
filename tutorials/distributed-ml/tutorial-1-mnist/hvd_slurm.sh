@@ -3,10 +3,14 @@
 # general configuration of the job
 #SBATCH --job-name=Torch_HVD_tutorial-1
 #SBATCH --account=intertwin
-#SBATCH --partition=batch
+#SBATCH --mail-user=
+#SBATCH --mail-type=ALL
 #SBATCH --output=job-hvd.out
 #SBATCH --error=job-hvd.err
 #SBATCH --time=00:30:00
+
+# configure node and process count on the CM
+#SBATCH --partition=batch
 #SBATCH --nodes=4
 #SBATCH --ntasks-per-node=4
 #SBATCH --cpus-per-task=8

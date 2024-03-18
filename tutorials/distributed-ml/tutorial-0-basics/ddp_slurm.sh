@@ -5,8 +5,8 @@
 #SBATCH --account=intertwin
 #SBATCH --mail-user=
 #SBATCH --mail-type=ALL
-#SBATCH --output=job.out
-#SBATCH --error=job.err
+#SBATCH --output=job-ddp.out
+#SBATCH --error=job-ddp.err
 #SBATCH --time=00:15:00
 
 # configure node and process count on the CM

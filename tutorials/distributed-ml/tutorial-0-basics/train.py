@@ -167,3 +167,5 @@ if __name__ == "__main__":
 
     # Launch distributed training
     trainer_entrypoint_fn("foobar", args, strategy)
+
+    print("TRAINING FINISHED")
