@@ -117,6 +117,10 @@ def trainer_entrypoint_fn(
     # Device allocated for this worker
     device = strategy.dist_device()
 
+    print(f"<grank={strategy.dist_grank()}> DEVICES: DS={model.device}, "
+          f"TORCH.DIST={strategy.dist_device()}, "
+          f"ENV={os.environ['LOCAL_RANK']}")
+
     for epoch in range(2):
         for (x, y) in train_loader:
             # print(f"tensor to cuda:{device}")

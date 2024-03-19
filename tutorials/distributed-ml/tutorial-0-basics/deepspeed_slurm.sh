@@ -7,13 +7,13 @@
 #SBATCH --mail-type=ALL
 #SBATCH --output=job-ds.out
 #SBATCH --error=job-ds.err
-#SBATCH --time=00:15:00
+#SBATCH --time=00:05:00
 
 # configure node and process count on the CM
 #SBATCH --partition=batch
-#SBATCH --nodes=4
+#SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1
-#SBATCH --cpus-per-task=32
+#SBATCH --cpus-per-task=4
 #SBATCH --gpus-per-node=4
 # SBATCH --exclusive
 
@@ -57,5 +57,6 @@ export MASTER_PORT=29500
 
 TRAINING_CMD="train.py -s deepspeed"
 
-srun --cpu-bind=none python -u $TRAINING_CMD --deepspeed
+# srun --cpu-bind=none python -u $TRAINING_CMD --deepspeed
+srun --cpu-bind=none deepspeed $TRAINING_CMD --deepspeed
 
