@@ -46,7 +46,7 @@ echo
 # set env vars
 export SRUN_CPUS_PER_TASK=${SLURM_CPUS_PER_TASK}
 export OMP_NUM_THREADS=1
-if [ "$SLURM_CPUS_PER_TASK" > 0 ] ; then
+if [ "$SLURM_CPUS_PER_TASK" -gt 0 ] ; then
   export OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK
 fi
 export CUDA_VISIBLE_DEVICES="0,1,2,3"

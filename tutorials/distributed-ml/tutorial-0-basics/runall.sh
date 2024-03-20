@@ -1,3 +1,4 @@
+#!/bin/bash
 # Run all versions of distributed ML
 rm *.out *.err
 echo "Torch DDP training: $(sbatch ddp_slurm.sh)"
