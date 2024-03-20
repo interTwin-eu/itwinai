@@ -7,7 +7,7 @@ the module versions might need change accordingly.
 
 ## Setup
 
-First, from the root of this repo, build the environment containing
+First, from the root of this repository, build the environment containing
 pytorch, horovod and deepspeed. You can *try* with:
 
 ```bash

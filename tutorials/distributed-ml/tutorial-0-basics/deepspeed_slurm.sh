@@ -26,7 +26,8 @@ ml Stages/2024 GCC OpenMPI CUDA/12 MPI-settings/CUDA Python HDF5 PnetCDF libaio 
 # set env
 source ../../../envAI_hdfml/bin/activate
 
-# job info 
+# job info
+debug=false
 echo "DEBUG: TIME: $(date)"
 echo "DEBUG: EXECUTE: $EXEC"
 echo "DEBUG: SLURM_SUBMIT_DIR: $SLURM_SUBMIT_DIR"
@@ -52,13 +53,14 @@ fi
 export CUDA_VISIBLE_DEVICES="0,1,2,3"
 
 # launch training
-export MASTER_ADDR=$(scontrol show hostnames "\$SLURM_JOB_NODELIST" | head -n 1)i
+MASTER_ADDR=$(scontrol show hostnames "\$SLURM_JOB_NODELIST" | head -n 1)i
+export MASTER_ADDR
 export MASTER_PORT=29500 
 
 TRAINING_CMD="train.py -s deepspeed"
 
 # Run without launcher: set --ntasks-per-node=NUM_GPUS
-srun --cpu-bind=none python -u $TRAINING_CMD --deepspeed
+srun --cpu-bind=none python -u "$TRAINING_CMD" --deepspeed
 
 # # Run with deepspeed launcher: set --ntasks-per-node=1
 # # https://www.deepspeed.ai/getting-started/#multi-node-environment-variables

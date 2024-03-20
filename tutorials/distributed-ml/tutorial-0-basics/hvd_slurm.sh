@@ -26,7 +26,8 @@ ml Stages/2024 GCC OpenMPI CUDA/12 MPI-settings/CUDA Python HDF5 PnetCDF libaio 
 # set env
 source ../../../envAI_hdfml/bin/activate
 
-# job info 
+# job info
+debug=false
 echo "DEBUG: TIME: $(date)"
 echo "DEBUG: EXECUTE: $EXEC"
 echo "DEBUG: SLURM_SUBMIT_DIR: $SLURM_SUBMIT_DIR"
@@ -55,5 +56,5 @@ export CUDA_VISIBLE_DEVICES="0,1,2,3"
 # launch training
 TRAINING_CMD="train.py -s horovod"
 
-srun --cpu-bind=none python -u $TRAINING_CMD
+srun --cpu-bind=none python -u "$TRAINING_CMD"
 
