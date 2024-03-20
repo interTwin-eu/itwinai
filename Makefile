@@ -53,3 +53,13 @@ tf-2.10: env-files/tensorflow/tensorflow-2.10.yml
 	micromamba run -p ./.venv-tf pip install tensorflow==2.10
 	micromamba run -p ./.venv-tf pip install -e .
 
+
+tf-2.13-cpu: env-files/tensorflow/tensorflow-2.13-cpu.yml
+	echo "Installing TensorFlow 2.13 env"
+	micromamba env create -p ./.venv-tf --file env-files/tensorflow/tensorflow-2.13-cpu.yml -y
+	micromamba run -p ./.venv-tf pip install --upgrade pip
+	micromamba run -p ./.venv-tf pip install tensorflow==2.13.*
+	micromamba run -p ./.venv-tf pip install -e .
+
+	mkdir -p ./.venv-tf/lib/nvvm/libdevice
+	cp ./.venv-tf/lib/libdevice.10.bc ./.venv-tf/lib/nvvm/libdevice/
