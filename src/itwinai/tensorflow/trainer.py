@@ -4,7 +4,7 @@ from typing import Dict, Any
 from jsonargparse import ArgumentParser
 import tensorflow as tf
 
-from ..components import Trainer
+from ..components import Trainer, monitor_exec
 from itwinai.tensorflow.distributed import get_strategy
 
 def import_class(name):
@@ -60,12 +60,14 @@ class TensorflowTrainer(Trainer):
             # get total number of workers
             print("Number of devices: {}".format(n_devices))
             # distribute datasets among MirroredStrategy's replicas
-            dist_train_dataset = tf_dist_strategy.experimental_distribute_dataset(
-                train_dataset
-            )
-            dist_validation_dataset = tf_dist_strategy.experimental_distribute_dataset(
-                validation_dataset
-            )
+            dist_train_dataset = (
+                tf_dist_strategy.experimental_distribute_dataset(
+                    train_dataset
+                ))
+            dist_validation_dataset = (
+                tf_dist_strategy.experimental_distribute_dataset(
+                    validation_dataset
+                ))
             with self.strategy.scope():
                 # TODO: move loss, optimizer and metrics instantiation under
                 # here
