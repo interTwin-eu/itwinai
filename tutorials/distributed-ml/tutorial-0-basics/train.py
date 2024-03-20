@@ -164,7 +164,7 @@ if __name__ == "__main__":
         strategy = HVDDistributedStrategy()
     elif args.strategy == 'deepspeed':
         strategy = DSDistributedStrategy(
-            backend='nccl', config=dict(train_batch_size=4)
+            backend='nccl', config=dict(train_batch_size=32)
         )
     else:
         raise NotImplementedError(
