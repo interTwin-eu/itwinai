@@ -2,6 +2,7 @@ import abc
 from typing import Any, Union, List, Dict, Optional, Tuple
 from pathlib import Path
 import json
+import os
 
 import deepspeed
 import torch
@@ -259,6 +260,11 @@ class DSDistributedStrategy(TorchDistributedStrategy):
         """Initializes the distributed process group and the distributed
         package.
         """
+        # https://github.com/Lightning-AI/pytorch-lightning/issues/13567
+        ompi_lrank = os.environ.get('OMPI_COMM_WORLD_LOCAL_RANK')
+        os.environ['OMPI_COMM_WORLD_LOCAL_RANK'] = os.environ.get(
+            'LOCAL_RANK', ompi_lrank)
+
         # https://deepspeed.readthedocs.io/en/latest/initialize.html#training-initialization
         deepspeed.init_distributed(dist_backend=self.backend)
 

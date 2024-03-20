@@ -57,5 +57,9 @@ export MASTER_PORT=29500
 
 TRAINING_CMD="train.py -s deepspeed -c config.yaml"
 
-srun --cpu-bind=none python -u $TRAINING_CMD --deepspeed
+# Run without launcher: set --ntasks-per-node=NUM_GPUS
+# srun --cpu-bind=none python -u $TRAINING_CMD --deepspeed
+
+# Run with deepspeed launcher: set --ntasks-per-node=1
+srun --cpu-bind=none deepspeed $TRAINING_CMD --deepspeed
 
