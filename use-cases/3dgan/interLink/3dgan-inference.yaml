@@ -1,0 +1,74 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: 3dgan
+  annotations:
+    slurm-job.vk.io/flags: "-p gpu --gres=gpu:1 --cpus-per-task=4 --mem=100G --ntasks-per-node=1 --nodes=1"
+    job.vk.io/singularity-mounts: "--bind /ceph/hpc/data/st2301-itwin-users/egarciagarcia:/exp_data"
+    #job.vk.io/pre-exec: "singularity pull /ceph/hpc/data/st2301-itwin-users/itwinaiv6_1.sif docker://ghcr.io/intertwin-eu/itwinai:0.0.1-3dgan-0.2"
+spec:
+  automountServiceAccountToken: false
+  containers:
+  - args:
+    - -c
+    - "\" cd /usr/src/app && itwinai exec-pipeline --print-config --config \\$CERN_CODE_ROOT/inference-pipeline.yaml \ 
+          -o pipeline.init_args.steps.dataloading_step.init_args.data_path=\\$CERN_DATA_ROOT \ 
+          -o pipeline.init_args.steps.inference_step.init_args.config.trainer.logger.init_args.save_dir=\\$TMP_DATA_ROOT/ml_logs/mlflow_logs \ 
+          -o pipeline.init_args.steps.inference_step.init_args.config.trainer.strategy=\\$STRATEGY \ 
+          -o pipeline.init_args.steps.inference_step.init_args.config.trainer.devices=\\$DEVICES \ 
+          -o pipeline.init_args.steps.inference_step.init_args.config.trainer.accelerator=\\$ACCELERATOR \ 
+          -o pipeline.init_args.steps.inference_step.init_args.model.init_args.model_uri=\\$CERN_CODE_ROOT/3dgan-inference.pth \ 
+          -o pipeline.init_args.steps.inference_step.init_args.config.data.init_args.datapath=\\$CERN_DATA_ROOT/*.h5 \ 
+          -o pipeline.init_args.steps.inference_step.init_args.config.data.init_args.max_samples=\\$MAX_DATA_SAMPLES \ 
+          -o pipeline.init_args.steps.inference_step.init_args.config.data.init_args.batch_size=\\$BATCH_SIZE \ 
+          -o pipeline.init_args.steps.inference_step.init_args.config.data.init_args.num_workers=\\$NUM_WORKERS_DL \ 
+          -o pipeline.init_args.steps.saver_step.init_args.save_dir=\\$TMP_DATA_ROOT/3dgan-generated-data \ 
+          -o pipeline.init_args.steps.saver_step.init_args.aggregate_predictions=\\$AGGREGATE_PREDS \""
+    command:
+    - /bin/sh
+    env:
+    - name: CERN_DATA_ROOT
+      value: "/exp_data"
+    - name: CERN_CODE_ROOT
+      value: "/usr/src/app"
+    - name: TMP_DATA_ROOT
+      value: "/exp_data"
+    - name: MAX_DATA_SAMPLES
+      value: "5000"
+    - name: BATCH_SIZE
+      value: "2501"
+    - name: NUM_WORKERS_DL
+      value: "4"
+    - name: AGGREGATE_PREDS
+      value: "true"
+    - name: ACCELERATOR
+      value: "gpu"
+    - name: STRATEGY
+      value: "auto"
+    - name: DEVICES
+      value: "auto"
+    image: /ceph/hpc/data/st2301-itwin-users/itwinaiv6_1.sif
+    imagePullPolicy: Always
+    name: oscar-container
+    resources:
+      limits:
+        cpu: "1"
+        memory: 1Gi
+      requests:
+        cpu: "1"
+        memory: 1Gi
+    terminationMessagePath: /dev/termination-log
+    terminationMessagePolicy: File
+  nodeSelector:
+    kubernetes.io/hostname: vega-new-vk
+  tolerations:
+  - key: virtual-node.interlink/no-schedule
+    operator: Exists
+  - effect: NoExecute
+    key: node.kubernetes.io/not-ready
+    operator: Exists
+    tolerationSeconds: 300
+  - effect: NoExecute
+    key: node.kubernetes.io/unreachable
+    operator: Exists
+    tolerationSeconds: 300
