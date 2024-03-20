@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>itwinai Tensorflow Modules &mdash; itwinai 0.0.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=19f00094" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="_static/jquery.js?v=5d32c60e"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="_static/documentation_options.js?v=d45e8c67"></script>
+        <script src="_static/doctools.js?v=888ff710"></script>
+        <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="itwinai PyTorch Modules" href="itwinai.torch.modules.html" />
+    <link rel="prev" title="itwinai.utils" href="itwinai.utils.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            itwinai
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">💡 Installation</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="getting_started_with_itwinai.html">Getting started with itwinai</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">🪄 itwinai Modules</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="modules.html">itwinai</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="itwinai.cli.html">itwinai.cli</a></li>
+<li class="toctree-l2"><a class="reference internal" href="itwinai.cluster.html">itwinai.cluster</a></li>
+<li class="toctree-l2"><a class="reference internal" href="itwinai.components.html">itwinai.components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="itwinai.loggers.html">itwinai.loggers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="itwinai.parser.html">itwinai.parser</a></li>
+<li class="toctree-l2"><a class="reference internal" href="itwinai.pipeline.html">itwinai.pipeline</a></li>
+<li class="toctree-l2"><a class="reference internal" href="itwinai.serialization.html">itwinai.serialization</a></li>
+<li class="toctree-l2"><a class="reference internal" href="itwinai.types.html">itwinai.types</a></li>
+<li class="toctree-l2"><a class="reference internal" href="itwinai.utils.html">itwinai.utils</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">itwinai Tensorflow Modules</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#trainer-py">trainer.py</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#utils-py">utils.py</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="itwinai.torch.modules.html">itwinai PyTorch Modules</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">📚 Integrated Use-cases</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="use_cases.html">Integrated Use Cases</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">🚀 Tutorials</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="tutorials.html">ML workflow tutorials</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">itwinai</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="modules.html">itwinai</a></li>
+      <li class="breadcrumb-item active">itwinai Tensorflow Modules</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/itwinai.tf.modules.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="itwinai-tensorflow-modules">
+<h1>itwinai Tensorflow Modules<a class="headerlink" href="#itwinai-tensorflow-modules" title="Link to this heading"></a></h1>
+<section id="trainer-py">
+<h2>trainer.py<a class="headerlink" href="#trainer-py" title="Link to this heading"></a></h2>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="sd">&quot;&quot;&quot;Base TensorFlow trainer module.&quot;&quot;&quot;</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Any</span>
+
+<span class="kn">from</span> <span class="nn">jsonargparse</span> <span class="kn">import</span> <span class="n">ArgumentParser</span>
+<span class="kn">import</span> <span class="nn">tensorflow</span> <span class="k">as</span> <span class="nn">tf</span>
+
+<span class="kn">from</span> <span class="nn">..components</span> <span class="kn">import</span> <span class="n">Trainer</span><span class="p">,</span> <span class="n">monitor_exec</span>
+
+
+<span class="k">def</span> <span class="nf">import_class</span><span class="p">(</span><span class="n">name</span><span class="p">):</span>
+    <span class="n">components</span> <span class="o">=</span> <span class="n">name</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">)</span>
+    <span class="n">mod</span> <span class="o">=</span> <span class="nb">__import__</span><span class="p">(</span><span class="n">components</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="k">for</span> <span class="n">comp</span> <span class="ow">in</span> <span class="n">components</span><span class="p">[</span><span class="mi">1</span><span class="p">:]:</span>
+        <span class="n">mod</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">mod</span><span class="p">,</span> <span class="n">comp</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">mod</span>
+
+
+<span class="k">def</span> <span class="nf">instance_from_dict</span><span class="p">(</span><span class="n">obj_dict</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj_dict</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span> <span class="ow">and</span> <span class="n">obj_dict</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;class_path&#39;</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="c1"># obj_dict is a dictionary with a structure compliant with</span>
+        <span class="c1"># jsonargparse</span>
+        <span class="n">obj_class</span> <span class="o">=</span> <span class="n">import_class</span><span class="p">(</span><span class="n">obj_dict</span><span class="p">[</span><span class="s2">&quot;class_path&quot;</span><span class="p">])</span>
+        <span class="n">parser</span> <span class="o">=</span> <span class="n">ArgumentParser</span><span class="p">()</span>
+        <span class="n">parser</span><span class="o">.</span><span class="n">add_subclass_arguments</span><span class="p">(</span><span class="n">obj_class</span><span class="p">,</span> <span class="s2">&quot;object&quot;</span><span class="p">)</span>
+        <span class="n">obj_dict</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;object&quot;</span><span class="p">:</span> <span class="n">obj_dict</span><span class="p">}</span>
+        <span class="k">return</span> <span class="n">parser</span><span class="o">.</span><span class="n">instantiate_classes</span><span class="p">(</span><span class="n">obj_dict</span><span class="p">)</span><span class="o">.</span><span class="n">object</span>
+    <span class="k">return</span> <span class="n">obj_dict</span>
+
+
+<span class="k">class</span> <span class="nc">TensorflowTrainer</span><span class="p">(</span><span class="n">Trainer</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span>
+            <span class="n">epochs</span><span class="p">,</span>
+            <span class="n">batch_size</span><span class="p">,</span>
+            <span class="n">callbacks</span><span class="p">,</span>
+            <span class="n">model_dict</span><span class="p">:</span> <span class="n">Dict</span><span class="p">,</span>
+            <span class="n">compile_conf</span><span class="p">,</span>
+            <span class="n">strategy</span>
+    <span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">save_parameters</span><span class="p">(</span><span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">locals2params</span><span class="p">(</span><span class="nb">locals</span><span class="p">()))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">strategy</span> <span class="o">=</span> <span class="n">strategy</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">epochs</span> <span class="o">=</span> <span class="n">epochs</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">batch_size</span> <span class="o">=</span> <span class="n">batch_size</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">callbacks</span> <span class="o">=</span> <span class="n">callbacks</span>
+
+        <span class="c1"># # Handle the parsing</span>
+        <span class="c1"># model_class = import_class(model_dict[&quot;class_path&quot;])</span>
+        <span class="c1"># parser = ArgumentParser()</span>
+        <span class="c1"># parser.add_subclass_arguments(model_class, &quot;model&quot;)</span>
+        <span class="c1"># model_dict = {&quot;model&quot;: model_dict}</span>
+
+        <span class="c1"># from itwinai.models.tensorflow.mnist import MNIST_Model</span>
+
+        <span class="c1"># Create distributed TF vars</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">strategy</span><span class="p">:</span>
+            <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">strategy</span><span class="o">.</span><span class="n">scope</span><span class="p">():</span>
+                <span class="c1"># TODO: move loss, optimizer and metrics instantiation under</span>
+                <span class="c1"># here</span>
+                <span class="c1"># Ref:</span>
+                <span class="c1"># https://www.tensorflow.org/guide/distributed_training#use_tfdistributestrategy_with_keras_modelfit</span>
+                <span class="c1"># self.model: tf.keras.Model = parser.instantiate_classes(</span>
+                <span class="c1">#     model_dict).model</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">Model</span> <span class="o">=</span> <span class="n">instance_from_dict</span><span class="p">(</span><span class="n">model_dict</span><span class="p">)</span>
+                <span class="n">compile_conf</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">instantiate_compile_conf</span><span class="p">(</span><span class="n">compile_conf</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="o">**</span><span class="n">compile_conf</span><span class="p">)</span>
+                <span class="c1"># print(self.model)</span>
+                <span class="c1"># self.model.compile(**compile_conf)</span>
+
+                <span class="c1"># self.model = tf.keras.Sequential([</span>
+                <span class="c1">#     tf.keras.layers.Conv2D(</span>
+                <span class="c1">#         32, 3, activation=&#39;relu&#39;, input_shape=(28, 28, 1)),</span>
+                <span class="c1">#     tf.keras.layers.MaxPooling2D(),</span>
+                <span class="c1">#     tf.keras.layers.Flatten(),</span>
+                <span class="c1">#     tf.keras.layers.Dense(64, activation=&#39;relu&#39;),</span>
+                <span class="c1">#     tf.keras.layers.Dense(10)</span>
+                <span class="c1"># ])</span>
+                <span class="c1"># self.model = MNIST_Model()</span>
+                <span class="c1"># self.model.compile(loss=&#39;mse&#39;, optimizer=&#39;sgd&#39;)</span>
+                <span class="c1"># self.model.compile(loss=tf.keras.losses.CategoricalCrossentropy(from_logits=False),</span>
+                <span class="c1">#                    optimizer=tf.keras.optimizers.Adam(</span>
+                <span class="c1">#     learning_rate=0.001),</span>
+                <span class="c1">#     metrics=[&#39;accuracy&#39;])</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">Model</span> <span class="o">=</span> <span class="n">instance_from_dict</span><span class="p">(</span><span class="n">model_dict</span><span class="p">)</span>
+            <span class="n">compile_conf</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">instantiate_compile_conf</span><span class="p">(</span><span class="n">compile_conf</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="o">**</span><span class="n">compile_conf</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">num_devices</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">strategy</span><span class="o">.</span><span class="n">num_replicas_in_sync</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">strategy</span> <span class="k">else</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Strategy is working with: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">num_devices</span><span class="si">}</span><span class="s2"> devices&quot;</span><span class="p">)</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">instantiate_compile_conf</span><span class="p">(</span><span class="n">conf</span><span class="p">:</span> <span class="n">Dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">item_name</span><span class="p">,</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">conf</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">conf</span><span class="p">[</span><span class="n">item_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">instance_from_dict</span><span class="p">(</span><span class="n">item</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">conf</span>
+
+    <span class="nd">@monitor_exec</span>
+    <span class="k">def</span> <span class="nf">execute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">train_dataset</span><span class="p">,</span> <span class="n">validation_dataset</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+        <span class="c1"># Set batch size to the dataset</span>
+        <span class="c1"># train = train.batch(self.batch_size, drop_remainder=True)</span>
+        <span class="c1"># test = test.batch(self.batch_size, drop_remainder=True)</span>
+
+        <span class="c1"># Number of samples</span>
+        <span class="c1"># n_train = train.cardinality().numpy()</span>
+        <span class="c1"># n_test = test.cardinality().numpy()</span>
+        <span class="nb">print</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;TRAIN CARD: </span><span class="si">{</span><span class="n">train_dataset</span><span class="o">.</span><span class="n">cardinality</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span><span class="si">}</span><span class="s2"> - &quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;LEN: </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">train_dataset</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="nb">next</span><span class="p">(</span><span class="nb">iter</span><span class="p">(</span><span class="n">train_dataset</span><span class="p">)))</span>
+        <span class="nb">print</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">train_dataset</span><span class="p">))</span>
+        <span class="c1"># n_train = len(train) // self.batch_size</span>
+        <span class="c1"># n_test = len(test) // self.batch_size</span>
+
+        <span class="c1"># TODO: read</span>
+        <span class="c1"># https://github.com/tensorflow/tensorflow/issues/56773#issuecomment-1188693881</span>
+        <span class="c1"># https://www.tensorflow.org/guide/distributed_training#use_tfdistributestrategy_with_keras_modelfit</span>
+
+        <span class="c1"># # Distribute dataset</span>
+        <span class="c1"># if self.strategy:</span>
+        <span class="c1">#     train = self.strategy.experimental_distribute_dataset(train)</span>
+        <span class="c1">#     test = self.strategy.experimental_distribute_dataset(test)</span>
+
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">train_dataset</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">Dataset</span><span class="p">)</span>
+
+        <span class="c1"># train the model</span>
+        <span class="n">history</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span>
+            <span class="n">train_dataset</span><span class="o">.</span><span class="n">batch</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">batch_size</span><span class="p">),</span>
+            <span class="n">validation_data</span><span class="o">=</span><span class="n">validation_dataset</span><span class="o">.</span><span class="n">batch</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">batch_size</span><span class="p">),</span>
+            <span class="c1"># steps_per_epoch=int(n_train // self.num_devices),</span>
+            <span class="c1"># validation_steps=int(n_test // self.num_devices),</span>
+            <span class="n">epochs</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">epochs</span><span class="p">,</span>
+            <span class="n">callbacks</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">callbacks</span><span class="p">,</span>
+            <span class="c1"># batch_size=self.batch_size</span>
+        <span class="p">)</span>
+
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Model trained&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">history</span>
+
+
+<span class="c1"># class TensorflowTrainer2(Trainer):</span>
+<span class="c1">#     def __init__(</span>
+<span class="c1">#             self,</span>
+<span class="c1">#             epochs,</span>
+<span class="c1">#             batch_size,</span>
+<span class="c1">#             callbacks,</span>
+<span class="c1">#             model_dict: Dict,</span>
+<span class="c1">#             compile_conf,</span>
+<span class="c1">#             strategy</span>
+<span class="c1">#     ):</span>
+<span class="c1">#         super().__init__()</span>
+<span class="c1">#         self.strategy = strategy</span>
+<span class="c1">#         self.epochs = epochs</span>
+<span class="c1">#         self.batch_size = batch_size</span>
+<span class="c1">#         self.callbacks = callbacks</span>
+
+<span class="c1">#         # Handle the parsing</span>
+<span class="c1">#         model_class = import_class(model_dict[&quot;class_path&quot;])</span>
+<span class="c1">#         parser = ArgumentParser()</span>
+<span class="c1">#         parser.add_subclass_arguments(model_class, &quot;model&quot;)</span>
+<span class="c1">#         model_dict = {&quot;model&quot;: model_dict}</span>
+
+<span class="c1">#         # Create distributed TF vars</span>
+<span class="c1">#         if self.strategy:</span>
+<span class="c1">#             with self.strategy.scope():</span>
+<span class="c1">#                 self.model = parser.instantiate_classes(model_dict).model</span>
+<span class="c1">#                 print(self.model)</span>
+<span class="c1">#                 self.model.compile(**compile_conf)</span>
+<span class="c1">#                 # TODO: move loss, optimizer and metrics instantiation under</span>
+<span class="c1">#                 # here</span>
+<span class="c1">#                 # Ref:</span>
+<span class="c1">#                 # https://www.tensorflow.org/guide/distributed_training\</span>
+<span class="c1">#                   #use_tfdistributestrategy_with_keras_modelfit</span>
+<span class="c1">#         else:</span>
+<span class="c1">#             self.model = parser.instantiate_classes(model_dict).model</span>
+<span class="c1">#             self.model.compile(**compile_conf)</span>
+
+<span class="c1">#         self.num_devices = (</span>
+<span class="c1">#             self.strategy.num_replicas_in_sync if self.strategy else 1)</span>
+<span class="c1">#         print(f&quot;Strategy is working with: {self.num_devices} devices&quot;)</span>
+
+<span class="c1">#     def train(self, train_dataset, validation_dataset):</span>
+<span class="c1">#         # TODO: FIX Steps sizes in model.fit</span>
+<span class="c1">#         train, test = train_dataset, validation_dataset</span>
+
+<span class="c1">#         # Set batch size to the dataset</span>
+<span class="c1">#         train = train.batch(self.batch_size, drop_remainder=True)</span>
+<span class="c1">#         test = test.batch(self.batch_size, drop_remainder=True)</span>
+
+<span class="c1">#         # Number of samples</span>
+<span class="c1">#         n_train = train.cardinality().numpy()</span>
+<span class="c1">#         n_test = test.cardinality().numpy()</span>
+
+<span class="c1">#         # TODO: read</span>
+<span class="c1">#         # https://github.com/tensorflow/tensorflow/issues/56773\</span>
+<span class="c1">#           #issuecomment-1188693881</span>
+<span class="c1">#         # https://www.tensorflow.org/guide/distributed_training\</span>
+<span class="c1">#           #use_tfdistributestrategy_with_keras_modelfit</span>
+
+<span class="c1">#         # Distribute dataset</span>
+<span class="c1">#         if self.strategy:</span>
+<span class="c1">#             train = self.strategy.experimental_distribute_dataset(train)</span>
+<span class="c1">#             test = self.strategy.experimental_distribute_dataset(test)</span>
+
+<span class="c1">#         # train the model</span>
+<span class="c1">#         history = self.model.fit(</span>
+<span class="c1">#             train,</span>
+<span class="c1">#             validation_data=test,</span>
+<span class="c1">#             steps_per_epoch=int(n_train // self.num_devices),</span>
+<span class="c1">#             validation_steps=int(n_test // self.num_devices),</span>
+<span class="c1">#             epochs=self.epochs,</span>
+<span class="c1">#             callbacks=self.callbacks,</span>
+<span class="c1">#         )</span>
+
+<span class="c1">#         print(&quot;Model trained&quot;)</span>
+<span class="c1">#         return history</span>
+</pre></div>
+</div>
+</section>
+<section id="utils-py">
+<h2>utils.py<a class="headerlink" href="#utils-py" title="Link to this heading"></a></h2>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">keras</span>
+<span class="kn">import</span> <span class="nn">json</span>
+
+
+<span class="k">def</span> <span class="nf">model_to_json</span><span class="p">(</span><span class="n">model</span><span class="p">:</span> <span class="n">keras</span><span class="o">.</span><span class="n">Model</span><span class="p">,</span> <span class="n">filepath</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">filepath</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="n">json</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">to_json</span><span class="p">(),</span> <span class="n">f</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">model_from_json</span><span class="p">(</span><span class="n">filepath</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">keras</span><span class="o">.</span><span class="n">Model</span><span class="p">:</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">filepath</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="n">config</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">keras</span><span class="o">.</span><span class="n">models</span><span class="o">.</span><span class="n">model_from_json</span><span class="p">(</span><span class="n">config</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="itwinai.utils.html" class="btn btn-neutral float-left" title="itwinai.utils" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="itwinai.torch.modules.html" class="btn btn-neutral float-right" title="itwinai PyTorch Modules" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, Matteo Bunino, Alexander Zoechbauer, Kalliopi Tsolaki on behalf of CERN.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

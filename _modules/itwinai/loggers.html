@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>itwinai.loggers &mdash; itwinai 0.0.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=19f00094" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../../_static/documentation_options.js?v=d45e8c67"></script>
+        <script src="../../_static/doctools.js?v=888ff710"></script>
+        <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            itwinai
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">💡 Installation</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../getting_started_with_itwinai.html">Getting started with itwinai</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">🪄 itwinai Modules</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../modules.html">itwinai</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">📚 Integrated Use-cases</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../use_cases.html">Integrated Use Cases</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">🚀 Tutorials</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../tutorials.html">ML workflow tutorials</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">itwinai</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">itwinai.loggers</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for itwinai.loggers</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;Abstraction for loggers.&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">from</span> <span class="nn">abc</span> <span class="kn">import</span> <span class="n">ABCMeta</span><span class="p">,</span> <span class="n">abstractmethod</span>
+<span class="kn">from</span> <span class="nn">contextlib</span> <span class="kn">import</span> <span class="n">contextmanager</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Union</span>
+<span class="kn">import</span> <span class="nn">pickle</span>
+<span class="kn">import</span> <span class="nn">pathlib</span>
+
+<span class="kn">import</span> <span class="nn">wandb</span>
+<span class="kn">import</span> <span class="nn">mlflow</span>
+<span class="c1"># import mlflow.keras</span>
+
+<span class="n">BASE_EXP_NAME</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;unk_experiment&#39;</span>
+
+
+<div class="viewcode-block" id="LogMixin">
+<a class="viewcode-back" href="../../itwinai.loggers.html#itwinai.loggers.LogMixin">[docs]</a>
+<span class="k">class</span> <span class="nc">LogMixin</span><span class="p">(</span><span class="n">metaclass</span><span class="o">=</span><span class="n">ABCMeta</span><span class="p">):</span>
+<div class="viewcode-block" id="LogMixin.log">
+<a class="viewcode-back" href="../../itwinai.loggers.html#itwinai.loggers.LogMixin.log">[docs]</a>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span> <span class="nf">log</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">item</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">Any</span><span class="p">]],</span>
+        <span class="n">identifier</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]],</span>
+        <span class="n">kind</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;metric&#39;</span><span class="p">,</span>
+        <span class="n">step</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">batch_idx</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Log item.&quot;&quot;&quot;</span>
+        <span class="k">pass</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="Logger">
+<a class="viewcode-back" href="../../itwinai.loggers.html#itwinai.loggers.Logger">[docs]</a>
+<span class="k">class</span> <span class="nc">Logger</span><span class="p">(</span><span class="n">LogMixin</span><span class="p">,</span> <span class="n">metaclass</span><span class="o">=</span><span class="n">ABCMeta</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Base class for logger</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        savedir (str): disk location where logs are stored.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">savedir</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">supported_types</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>  <span class="c1"># Supported logging &#39;kinds&#39;</span>
+    <span class="n">_log_freq</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">savedir</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;mllogs&#39;</span><span class="p">,</span>
+        <span class="n">log_freq</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;epoch&#39;</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">savedir</span> <span class="o">=</span> <span class="n">savedir</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">log_freq</span> <span class="o">=</span> <span class="n">log_freq</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">log_freq</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">str</span><span class="p">]:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_log_freq</span>
+
+    <span class="nd">@log_freq</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">log_freq</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">val</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">str</span><span class="p">]):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Sanitize log_freq value.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">val</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;epoch&#39;</span><span class="p">,</span> <span class="s1">&#39;batch&#39;</span><span class="p">]</span> <span class="ow">or</span> <span class="p">(</span>
+                <span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span> <span class="ow">and</span> <span class="n">val</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_log_freq</span> <span class="o">=</span> <span class="n">val</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;Wrong value for &#39;log_freq&#39;. Supported values are: &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;[&#39;epoch&#39;, &#39;batch&#39;] or int &gt; 0. Received: </span><span class="si">{</span><span class="n">val</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+
+<div class="viewcode-block" id="Logger.start_logging">
+<a class="viewcode-back" href="../../itwinai.loggers.html#itwinai.loggers.Logger.start_logging">[docs]</a>
+    <span class="nd">@contextmanager</span>
+    <span class="k">def</span> <span class="nf">start_logging</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">create_logger_context</span><span class="p">()</span>
+            <span class="k">yield</span>
+        <span class="k">finally</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">destroy_logger_context</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="Logger.create_logger_context">
+<a class="viewcode-back" href="../../itwinai.loggers.html#itwinai.loggers.Logger.create_logger_context">[docs]</a>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span> <span class="nf">create_logger_context</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">pass</span></div>
+
+
+<div class="viewcode-block" id="Logger.destroy_logger_context">
+<a class="viewcode-back" href="../../itwinai.loggers.html#itwinai.loggers.Logger.destroy_logger_context">[docs]</a>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span> <span class="nf">destroy_logger_context</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">pass</span></div>
+
+
+<div class="viewcode-block" id="Logger.save_hyperparameters">
+<a class="viewcode-back" href="../../itwinai.loggers.html#itwinai.loggers.Logger.save_hyperparameters">[docs]</a>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span> <span class="nf">save_hyperparameters</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">pass</span></div>
+
+
+<div class="viewcode-block" id="Logger.serialize">
+<a class="viewcode-back" href="../../itwinai.loggers.html#itwinai.loggers.Logger.serialize">[docs]</a>
+    <span class="k">def</span> <span class="nf">serialize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">obj</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">identifier</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Serializes object to disk and returns its path.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            obj (Any): item to save.</span>
+<span class="sd">            identifier (str): identifier of the item to log (expected to be a</span>
+<span class="sd">            path under ``self.savedir``).</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            str: local path of the serialized object to be logged.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">itm_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">savedir</span><span class="p">,</span> <span class="n">identifier</span><span class="p">)</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">itm_path</span><span class="p">,</span> <span class="s1">&#39;wb&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">itm_file</span><span class="p">:</span>
+            <span class="n">pickle</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">itm_file</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Logger.should_log">
+<a class="viewcode-back" href="../../itwinai.loggers.html#itwinai.loggers.Logger.should_log">[docs]</a>
+    <span class="k">def</span> <span class="nf">should_log</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">batch_idx</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">batch_idx</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">log_freq</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">batch_idx</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">log_freq</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="kc">True</span>
+                <span class="k">return</span> <span class="kc">False</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">log_freq</span> <span class="o">==</span> <span class="s1">&#39;batch&#39;</span><span class="p">:</span>
+                <span class="k">return</span> <span class="kc">True</span>
+            <span class="k">return</span> <span class="kc">False</span>
+        <span class="k">return</span> <span class="kc">True</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="ConsoleLogger">
+<a class="viewcode-back" href="../../itwinai.loggers.html#itwinai.loggers.ConsoleLogger">[docs]</a>
+<span class="k">class</span> <span class="nc">ConsoleLogger</span><span class="p">(</span><span class="n">Logger</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Simple logger for quick tests.&quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">savedir</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;mllogs&#39;</span><span class="p">,</span>
+        <span class="n">log_freq</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;epoch&#39;</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">savedir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">savedir</span><span class="p">,</span> <span class="s1">&#39;simple-logger&#39;</span><span class="p">)</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">savedir</span><span class="o">=</span><span class="n">savedir</span><span class="p">,</span> <span class="n">log_freq</span><span class="o">=</span><span class="n">log_freq</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">supported_types</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;torch&#39;</span><span class="p">,</span> <span class="s1">&#39;artifact&#39;</span><span class="p">]</span>
+
+<div class="viewcode-block" id="ConsoleLogger.create_logger_context">
+<a class="viewcode-back" href="../../itwinai.loggers.html#itwinai.loggers.ConsoleLogger.create_logger_context">[docs]</a>
+    <span class="k">def</span> <span class="nf">create_logger_context</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">savedir</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">run_dirs</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">([</span><span class="nb">int</span><span class="p">(</span><span class="nb">dir</span><span class="p">)</span> <span class="k">for</span> <span class="nb">dir</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">listdir</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">savedir</span><span class="p">)])</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">run_dirs</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">run_id</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">run_id</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">run_dirs</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span> <span class="o">+</span> <span class="mi">1</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">run_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">savedir</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">run_id</span><span class="p">))</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">run_path</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="ConsoleLogger.destroy_logger_context">
+<a class="viewcode-back" href="../../itwinai.loggers.html#itwinai.loggers.ConsoleLogger.destroy_logger_context">[docs]</a>
+    <span class="k">def</span> <span class="nf">destroy_logger_context</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">pass</span></div>
+
+
+<div class="viewcode-block" id="ConsoleLogger.save_hyperparameters">
+<a class="viewcode-back" href="../../itwinai.loggers.html#itwinai.loggers.ConsoleLogger.save_hyperparameters">[docs]</a>
+    <span class="k">def</span> <span class="nf">save_hyperparameters</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">pass</span></div>
+
+
+<div class="viewcode-block" id="ConsoleLogger.log">
+<a class="viewcode-back" href="../../itwinai.loggers.html#itwinai.loggers.ConsoleLogger.log">[docs]</a>
+    <span class="k">def</span> <span class="nf">log</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">item</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">Any</span><span class="p">]],</span>
+        <span class="n">identifier</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]],</span>
+        <span class="n">kind</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;metric&#39;</span><span class="p">,</span>
+        <span class="n">step</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">batch_idx</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">should_log</span><span class="p">(</span><span class="n">batch_idx</span><span class="o">=</span><span class="n">batch_idx</span><span class="p">):</span>
+            <span class="k">return</span>
+
+        <span class="k">if</span> <span class="n">kind</span> <span class="o">==</span> <span class="s1">&#39;artifact&#39;</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">and</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">item</span><span class="p">):</span>
+                <span class="kn">import</span> <span class="nn">shutil</span>
+                <span class="n">identifier</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">run_path</span><span class="p">,</span>
+                    <span class="n">identifier</span>
+                <span class="p">)</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;ConsoleLogger: Serializing to </span><span class="si">{</span><span class="n">identifier</span><span class="si">}</span><span class="s2">...&quot;</span><span class="p">)</span>
+                <span class="n">shutil</span><span class="o">.</span><span class="n">copyfile</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="n">identifier</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">identifier</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+                    <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">run_path</span><span class="p">),</span>
+                    <span class="n">identifier</span>
+                <span class="p">)</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;ConsoleLogger: Serializing to </span><span class="si">{</span><span class="n">identifier</span><span class="si">}</span><span class="s2">...&quot;</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">serialize</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="n">identifier</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">kind</span> <span class="o">==</span> <span class="s1">&#39;torch&#39;</span><span class="p">:</span>
+            <span class="n">identifier</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">run_path</span><span class="p">,</span> <span class="n">identifier</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;ConsoleLogger: Saving to </span><span class="si">{</span><span class="n">identifier</span><span class="si">}</span><span class="s2">...&quot;</span><span class="p">)</span>
+            <span class="kn">import</span> <span class="nn">torch</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="n">identifier</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;ConsoleLogger: </span><span class="si">{</span><span class="n">identifier</span><span class="si">}</span><span class="s2"> = </span><span class="si">{</span><span class="n">item</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="MLFlowLogger">
+<a class="viewcode-back" href="../../itwinai.loggers.html#itwinai.loggers.MLFlowLogger">[docs]</a>
+<span class="k">class</span> <span class="nc">MLFlowLogger</span><span class="p">(</span><span class="n">Logger</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Abstraction for MLFlow logger.&quot;&quot;&quot;</span>
+
+    <span class="n">active_run</span><span class="p">:</span> <span class="n">mlflow</span><span class="o">.</span><span class="n">ActiveRun</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">savedir</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;mllogs&#39;</span><span class="p">,</span>
+        <span class="n">experiment_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">BASE_EXP_NAME</span><span class="p">,</span>
+        <span class="n">tracking_uri</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">run_description</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">log_freq</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;epoch&#39;</span>
+    <span class="p">):</span>
+        <span class="n">savedir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">savedir</span><span class="p">,</span> <span class="s1">&#39;mlflow&#39;</span><span class="p">)</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">savedir</span><span class="o">=</span><span class="n">savedir</span><span class="p">,</span> <span class="n">log_freq</span><span class="o">=</span><span class="n">log_freq</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">experiment_name</span> <span class="o">=</span> <span class="n">experiment_name</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tracking_uri</span> <span class="o">=</span> <span class="n">tracking_uri</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">run_description</span> <span class="o">=</span> <span class="n">run_description</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">tracking_uri</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># Default MLFLow tracking URI</span>
+            <span class="n">saved_abs_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">savedir</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">tracking_uri</span> <span class="o">=</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="n">saved_abs_path</span><span class="p">)</span><span class="o">.</span><span class="n">as_uri</span><span class="p">()</span>
+            <span class="c1"># self.tracking_uri = &quot;file://&quot; + self.savedir</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;MLFLOW URI: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">tracking_uri</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+
+        <span class="c1"># TODO: for pytorch lightning:</span>
+        <span class="c1"># mlflow.pytorch.autolog()</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">supported_types</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="s1">&#39;metric&#39;</span><span class="p">,</span> <span class="s1">&#39;figure&#39;</span><span class="p">,</span> <span class="s1">&#39;image&#39;</span><span class="p">,</span> <span class="s1">&#39;artifact&#39;</span><span class="p">,</span> <span class="s1">&#39;torch&#39;</span><span class="p">,</span> <span class="s1">&#39;dict&#39;</span><span class="p">,</span> <span class="s1">&#39;param&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;text&#39;</span>
+        <span class="p">]</span>
+
+<div class="viewcode-block" id="MLFlowLogger.create_logger_context">
+<a class="viewcode-back" href="../../itwinai.loggers.html#itwinai.loggers.MLFlowLogger.create_logger_context">[docs]</a>
+    <span class="k">def</span> <span class="nf">create_logger_context</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">mlflow</span><span class="o">.</span><span class="n">set_tracking_uri</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tracking_uri</span><span class="p">)</span>
+        <span class="n">mlflow</span><span class="o">.</span><span class="n">set_experiment</span><span class="p">(</span><span class="n">experiment_name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">experiment_name</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">active_run</span><span class="p">:</span> <span class="n">mlflow</span><span class="o">.</span><span class="n">ActiveRun</span> <span class="o">=</span> <span class="n">mlflow</span><span class="o">.</span><span class="n">start_run</span><span class="p">(</span>
+            <span class="n">description</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">run_description</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="MLFlowLogger.destroy_logger_context">
+<a class="viewcode-back" href="../../itwinai.loggers.html#itwinai.loggers.MLFlowLogger.destroy_logger_context">[docs]</a>
+    <span class="k">def</span> <span class="nf">destroy_logger_context</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">mlflow</span><span class="o">.</span><span class="n">end_run</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="MLFlowLogger.save_hyperparameters">
+<a class="viewcode-back" href="../../itwinai.loggers.html#itwinai.loggers.MLFlowLogger.save_hyperparameters">[docs]</a>
+    <span class="k">def</span> <span class="nf">save_hyperparameters</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">param_name</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="n">params</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">item</span><span class="o">=</span><span class="n">val</span><span class="p">,</span> <span class="n">identifier</span><span class="o">=</span><span class="n">param_name</span><span class="p">,</span> <span class="n">step</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">kind</span><span class="o">=</span><span class="s1">&#39;param&#39;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="MLFlowLogger.log">
+<a class="viewcode-back" href="../../itwinai.loggers.html#itwinai.loggers.MLFlowLogger.log">[docs]</a>
+    <span class="k">def</span> <span class="nf">log</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">item</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">Any</span><span class="p">]],</span>
+        <span class="n">identifier</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]],</span>
+        <span class="n">kind</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;metric&#39;</span><span class="p">,</span>
+        <span class="n">step</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">batch_idx</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Log with MLFlow.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            item (Union[Any, List[Any]]): element to be logged (e.g., metric,</span>
+<span class="sd">                image, artifact...).</span>
+<span class="sd">            identifier (Union[str, List[str]]): unique identifier for the</span>
+<span class="sd">                element to log(e.g., name of a metric, artifact path).</span>
+<span class="sd">            kind (str, optional): type of the item to be logged. Must be one</span>
+<span class="sd">                among the list of self.supported_types. Defaults to &#39;metric&#39;.</span>
+<span class="sd">            step (Optional[int], optional): logging step. Defaults to None.</span>
+<span class="sd">            batch_idx (Optional[int], optional): batch counter (i.e., batch</span>
+<span class="sd">                idx). Defaults to None.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">should_log</span><span class="p">(</span><span class="n">batch_idx</span><span class="o">=</span><span class="n">batch_idx</span><span class="p">):</span>
+            <span class="k">return</span>
+
+        <span class="k">if</span> <span class="n">kind</span> <span class="o">==</span> <span class="s1">&#39;metric&#39;</span><span class="p">:</span>
+            <span class="c1"># if isinstance(item, list) and isinstance(identifier, list):</span>
+            <span class="n">mlflow</span><span class="o">.</span><span class="n">log_metric</span><span class="p">(</span>
+                <span class="n">key</span><span class="o">=</span><span class="n">identifier</span><span class="p">,</span>
+                <span class="n">value</span><span class="o">=</span><span class="n">item</span><span class="p">,</span>
+                <span class="n">step</span><span class="o">=</span><span class="n">step</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="n">kind</span> <span class="o">==</span> <span class="s1">&#39;artifact&#39;</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+                <span class="c1"># Save the object locally and then log it</span>
+                <span class="n">name</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">identifier</span><span class="p">)</span>
+                <span class="n">save_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">savedir</span><span class="p">,</span> <span class="s1">&#39;.trash&#39;</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
+                <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">save_path</span><span class="p">),</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+                <span class="n">item</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">serialize</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="n">save_path</span><span class="p">)</span>
+            <span class="n">mlflow</span><span class="o">.</span><span class="n">log_artifact</span><span class="p">(</span>
+                <span class="n">local_path</span><span class="o">=</span><span class="n">item</span><span class="p">,</span>
+                <span class="n">artifact_path</span><span class="o">=</span><span class="n">identifier</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="n">kind</span> <span class="o">==</span> <span class="s1">&#39;torch&#39;</span><span class="p">:</span>
+            <span class="kn">import</span> <span class="nn">torch</span>
+            <span class="c1"># Save the object locally and then log it</span>
+            <span class="n">name</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">identifier</span><span class="p">)</span>
+            <span class="n">save_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">savedir</span><span class="p">,</span> <span class="s1">&#39;.trash&#39;</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">save_path</span><span class="p">),</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="n">save_path</span><span class="p">)</span>
+            <span class="c1"># Log into mlflow</span>
+            <span class="n">mlflow</span><span class="o">.</span><span class="n">log_artifact</span><span class="p">(</span>
+                <span class="n">local_path</span><span class="o">=</span><span class="n">save_path</span><span class="p">,</span>
+                <span class="n">artifact_path</span><span class="o">=</span><span class="n">identifier</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="n">kind</span> <span class="o">==</span> <span class="s1">&#39;dict&#39;</span><span class="p">:</span>
+            <span class="n">mlflow</span><span class="o">.</span><span class="n">log_dict</span><span class="p">(</span>
+                <span class="n">dictionary</span><span class="o">=</span><span class="n">item</span><span class="p">,</span>
+                <span class="n">artifact_file</span><span class="o">=</span><span class="n">identifier</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="n">kind</span> <span class="o">==</span> <span class="s1">&#39;figure&#39;</span><span class="p">:</span>
+            <span class="n">mlflow</span><span class="o">.</span><span class="n">log_figure</span><span class="p">(</span>
+                <span class="n">artifact_file</span><span class="o">=</span><span class="n">identifier</span><span class="p">,</span>
+                <span class="n">figure</span><span class="o">=</span><span class="n">item</span><span class="p">,</span>
+                <span class="n">save_kwargs</span><span class="o">=</span><span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;save_kwargs&#39;</span><span class="p">)</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="n">kind</span> <span class="o">==</span> <span class="s1">&#39;image&#39;</span><span class="p">:</span>
+            <span class="n">mlflow</span><span class="o">.</span><span class="n">log_image</span><span class="p">(</span>
+                <span class="n">artifact_file</span><span class="o">=</span><span class="n">identifier</span><span class="p">,</span>
+                <span class="n">image</span><span class="o">=</span><span class="n">item</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="n">kind</span> <span class="o">==</span> <span class="s1">&#39;param&#39;</span><span class="p">:</span>
+            <span class="n">mlflow</span><span class="o">.</span><span class="n">log_param</span><span class="p">(</span>
+                <span class="n">key</span><span class="o">=</span><span class="n">identifier</span><span class="p">,</span>
+                <span class="n">value</span><span class="o">=</span><span class="n">item</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="n">kind</span> <span class="o">==</span> <span class="s1">&#39;text&#39;</span><span class="p">:</span>
+            <span class="n">mlflow</span><span class="o">.</span><span class="n">log_text</span><span class="p">(</span>
+                <span class="n">artifact_file</span><span class="o">=</span><span class="n">identifier</span><span class="p">,</span>
+                <span class="n">text</span><span class="o">=</span><span class="n">item</span>
+            <span class="p">)</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="WanDBLogger">
+<a class="viewcode-back" href="../../itwinai.loggers.html#itwinai.loggers.WanDBLogger">[docs]</a>
+<span class="k">class</span> <span class="nc">WanDBLogger</span><span class="p">(</span><span class="n">Logger</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Abstraction for WandB logger.&quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">savedir</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;mllogs&#39;</span><span class="p">,</span>
+        <span class="n">project_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">BASE_EXP_NAME</span><span class="p">,</span>
+        <span class="n">log_freq</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;epoch&#39;</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">savedir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">savedir</span><span class="p">,</span> <span class="s1">&#39;wandb&#39;</span><span class="p">)</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">savedir</span><span class="o">=</span><span class="n">savedir</span><span class="p">,</span> <span class="n">log_freq</span><span class="o">=</span><span class="n">log_freq</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">project_name</span> <span class="o">=</span> <span class="n">project_name</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">supported_types</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="s1">&#39;watch&#39;</span><span class="p">,</span> <span class="s1">&#39;metric&#39;</span><span class="p">,</span> <span class="s1">&#39;figure&#39;</span><span class="p">,</span> <span class="s1">&#39;image&#39;</span><span class="p">,</span> <span class="s1">&#39;artifact&#39;</span><span class="p">,</span> <span class="s1">&#39;torch&#39;</span><span class="p">,</span> <span class="s1">&#39;dict&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;param&#39;</span><span class="p">,</span> <span class="s1">&#39;text&#39;</span>
+        <span class="p">]</span>
+
+<div class="viewcode-block" id="WanDBLogger.create_logger_context">
+<a class="viewcode-back" href="../../itwinai.loggers.html#itwinai.loggers.WanDBLogger.create_logger_context">[docs]</a>
+    <span class="k">def</span> <span class="nf">create_logger_context</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">active_run</span> <span class="o">=</span> <span class="n">wandb</span><span class="o">.</span><span class="n">init</span><span class="p">(</span>
+            <span class="nb">dir</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">savedir</span><span class="p">,</span>
+            <span class="n">project</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">project_name</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="WanDBLogger.destroy_logger_context">
+<a class="viewcode-back" href="../../itwinai.loggers.html#itwinai.loggers.WanDBLogger.destroy_logger_context">[docs]</a>
+    <span class="k">def</span> <span class="nf">destroy_logger_context</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">pass</span></div>
+
+
+<div class="viewcode-block" id="WanDBLogger.save_hyperparameters">
+<a class="viewcode-back" href="../../itwinai.loggers.html#itwinai.loggers.WanDBLogger.save_hyperparameters">[docs]</a>
+    <span class="k">def</span> <span class="nf">save_hyperparameters</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">wandb</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">params</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="WanDBLogger.log">
+<a class="viewcode-back" href="../../itwinai.loggers.html#itwinai.loggers.WanDBLogger.log">[docs]</a>
+    <span class="k">def</span> <span class="nf">log</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">item</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">Any</span><span class="p">]],</span>
+        <span class="n">identifier</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]],</span>
+        <span class="n">kind</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;metric&#39;</span><span class="p">,</span>
+        <span class="n">step</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">batch_idx</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Log with WandB. Wrapper of https://docs.wandb.ai/ref/python/log</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            item (Union[Any, List[Any]]): element to be logged (e.g., metric,</span>
+<span class="sd">                image, artifact...).</span>
+<span class="sd">            identifier (Union[str, List[str]]): unique identifier for the</span>
+<span class="sd">                element to log(e.g., name of a metric, artifact path).</span>
+<span class="sd">            kind (str, optional): type of the item to be logged. Must be one</span>
+<span class="sd">                among the list of self.supported_types. Defaults to &#39;metric&#39;.</span>
+<span class="sd">            step (Optional[int], optional): logging step. Defaults to None.</span>
+<span class="sd">            batch_idx (Optional[int], optional): batch counter (i.e., batch</span>
+<span class="sd">                idx). Defaults to None.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">should_log</span><span class="p">(</span><span class="n">batch_idx</span><span class="o">=</span><span class="n">batch_idx</span><span class="p">):</span>
+            <span class="k">return</span>
+
+        <span class="k">if</span> <span class="n">kind</span> <span class="o">==</span> <span class="s1">&#39;watch&#39;</span><span class="p">:</span>
+            <span class="n">wandb</span><span class="o">.</span><span class="n">watch</span><span class="p">(</span><span class="n">item</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">kind</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">supported_types</span><span class="p">[</span><span class="mi">1</span><span class="p">:]:</span>
+            <span class="n">wandb</span><span class="o">.</span><span class="n">log</span><span class="p">({</span><span class="n">identifier</span><span class="p">:</span> <span class="n">item</span><span class="p">},</span> <span class="n">step</span><span class="o">=</span><span class="n">step</span><span class="p">,</span> <span class="n">commit</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="TensorBoardLogger">
+<a class="viewcode-back" href="../../itwinai.loggers.html#itwinai.loggers.TensorBoardLogger">[docs]</a>
+<span class="k">class</span> <span class="nc">TensorBoardLogger</span><span class="p">(</span><span class="n">Logger</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Abstraction for Tensorboard logger.&quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">savedir</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;mllogs&#39;</span><span class="p">,</span>
+        <span class="n">log_freq</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;epoch&#39;</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">savedir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">savedir</span><span class="p">,</span> <span class="s1">&#39;tensorboard&#39;</span><span class="p">)</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">savedir</span><span class="o">=</span><span class="n">savedir</span><span class="p">,</span> <span class="n">log_freq</span><span class="o">=</span><span class="n">log_freq</span><span class="p">)</span>
+
+<div class="viewcode-block" id="TensorBoardLogger.create_logger_context">
+<a class="viewcode-back" href="../../itwinai.loggers.html#itwinai.loggers.TensorBoardLogger.create_logger_context">[docs]</a>
+    <span class="k">def</span> <span class="nf">create_logger_context</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">pass</span></div>
+
+
+<div class="viewcode-block" id="TensorBoardLogger.destroy_logger_context">
+<a class="viewcode-back" href="../../itwinai.loggers.html#itwinai.loggers.TensorBoardLogger.destroy_logger_context">[docs]</a>
+    <span class="k">def</span> <span class="nf">destroy_logger_context</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">pass</span></div>
+
+
+<div class="viewcode-block" id="TensorBoardLogger.save_hyperparameters">
+<a class="viewcode-back" href="../../itwinai.loggers.html#itwinai.loggers.TensorBoardLogger.save_hyperparameters">[docs]</a>
+    <span class="k">def</span> <span class="nf">save_hyperparameters</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">pass</span></div>
+
+
+<div class="viewcode-block" id="TensorBoardLogger.log">
+<a class="viewcode-back" href="../../itwinai.loggers.html#itwinai.loggers.TensorBoardLogger.log">[docs]</a>
+    <span class="k">def</span> <span class="nf">log</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">item</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">Any</span><span class="p">]],</span>
+        <span class="n">identifier</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]],</span>
+        <span class="n">kind</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;metric&#39;</span><span class="p">,</span>
+        <span class="n">step</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">batch_idx</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Log with Tensorboard.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            item (Union[Any, List[Any]]): element to be logged (e.g., metric,</span>
+<span class="sd">                image, artifact...).</span>
+<span class="sd">            identifier (Union[str, List[str]]): unique identifier for the</span>
+<span class="sd">                element to log(e.g., name of a metric, artifact path).</span>
+<span class="sd">            kind (str, optional): type of the item to be logged. Must be one</span>
+<span class="sd">                among the list of self.supported_types. Defaults to &#39;metric&#39;.</span>
+<span class="sd">            step (Optional[int], optional): logging step. Defaults to None.</span>
+<span class="sd">            batch_idx (Optional[int], optional): batch counter (i.e., batch</span>
+<span class="sd">                idx). Defaults to None.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">should_log</span><span class="p">(</span><span class="n">batch_idx</span><span class="o">=</span><span class="n">batch_idx</span><span class="p">):</span>
+            <span class="k">return</span></div>
+</div>
+
+
+        <span class="c1"># TODO: complete</span>
+
+
+<div class="viewcode-block" id="LoggersCollection">
+<a class="viewcode-back" href="../../itwinai.loggers.html#itwinai.loggers.LoggersCollection">[docs]</a>
+<span class="k">class</span> <span class="nc">LoggersCollection</span><span class="p">(</span><span class="n">Logger</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Contains a list of loggers. Never tested.&quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">loggers</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Logger</span><span class="p">]</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">savedir</span><span class="o">=</span><span class="s1">&#39;/.tmp_mllogs_LoggersCollection&#39;</span><span class="p">,</span> <span class="n">log_freq</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">loggers</span> <span class="o">=</span> <span class="n">loggers</span>
+
+<div class="viewcode-block" id="LoggersCollection.should_log">
+<a class="viewcode-back" href="../../itwinai.loggers.html#itwinai.loggers.LoggersCollection.should_log">[docs]</a>
+    <span class="k">def</span> <span class="nf">should_log</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">batch_idx</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">True</span></div>
+
+
+<div class="viewcode-block" id="LoggersCollection.log">
+<a class="viewcode-back" href="../../itwinai.loggers.html#itwinai.loggers.LoggersCollection.log">[docs]</a>
+    <span class="k">def</span> <span class="nf">log</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">item</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">Any</span><span class="p">]],</span>
+        <span class="n">identifier</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]],</span>
+        <span class="n">kind</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;metric&#39;</span><span class="p">,</span>
+        <span class="n">step</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">batch_idx</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">logger</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">loggers</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">log</span><span class="p">(</span>
+                <span class="n">item</span><span class="o">=</span><span class="n">item</span><span class="p">,</span>
+                <span class="n">identifier</span><span class="o">=</span><span class="n">identifier</span><span class="p">,</span>
+                <span class="n">kind</span><span class="o">=</span><span class="n">kind</span><span class="p">,</span>
+                <span class="n">step</span><span class="o">=</span><span class="n">step</span><span class="p">,</span>
+                <span class="n">batch_idx</span><span class="o">=</span><span class="n">batch_idx</span><span class="p">,</span>
+                <span class="o">**</span><span class="n">kwargs</span>
+            <span class="p">)</span></div>
+</div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, Matteo Bunino, Alexander Zoechbauer, Kalliopi Tsolaki on behalf of CERN.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

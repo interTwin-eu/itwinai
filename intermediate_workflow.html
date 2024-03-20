@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Intermediate workflow &mdash; itwinai 0.0.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=19f00094" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="_static/jquery.js?v=5d32c60e"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="_static/documentation_options.js?v=d45e8c67"></script>
+        <script src="_static/doctools.js?v=888ff710"></script>
+        <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Advanced workflow" href="advanced_workflow.html" />
+    <link rel="prev" title="Basic workflow" href="basic_workflow.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            itwinai
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">💡 Installation</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="getting_started_with_itwinai.html">Getting started with itwinai</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">🪄 itwinai Modules</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="modules.html">itwinai</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">📚 Integrated Use-cases</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="use_cases.html">Integrated Use Cases</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">🚀 Tutorials</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="tutorials.html">ML workflow tutorials</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="tutorials.html#id1">Tutorials</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="basic_comp.html">Basic components</a></li>
+<li class="toctree-l3"><a class="reference internal" href="basic_workflow.html">Basic workflow</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">Intermediate workflow</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#tutorial-1-intermediate-workflow-py">tutorial_1_intermediate_workflow.py</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="advanced_workflow.html">Advanced workflow</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">itwinai</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="tutorials.html">ML workflow tutorials</a></li>
+      <li class="breadcrumb-item active">Intermediate workflow</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/intermediate_workflow.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="intermediate-workflow">
+<h1>Intermediate workflow<a class="headerlink" href="#intermediate-workflow" title="Link to this heading"></a></h1>
+<section id="tutorial-1-intermediate-workflow-py">
+<h2>tutorial_1_intermediate_workflow.py<a class="headerlink" href="#tutorial-1-intermediate-workflow-py" title="Link to this heading"></a></h2>
+<p>The <cite>tutorial_1_intermediate_workflow.py</cite> script is …</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">In the previous tutorial we saw how to create new components and assemble them</span>
+<span class="sd">into a Pipeline for a simplified workflow execution. The Pipeline executes</span>
+<span class="sd">the components in the order in which they are given, *assuming* that the</span>
+<span class="sd">outputs of a component will fit as inputs of the following component.</span>
+<span class="sd">This is not always true, thus you can use the ``Adapter`` component to</span>
+<span class="sd">compensate for mismatches. This component allows to define a policy to</span>
+<span class="sd">rearrange intermediate results between two components.</span>
+
+<span class="sd">Moreover, it is good for reproducibility to keep track of the pipeline</span>
+<span class="sd">configuration used to achieve some outstanding ML results. It would be a shame</span>
+<span class="sd">to forget how you achieved state-of-the-art results!</span>
+
+<span class="sd">itwinai allows to export the Pipeline form Python code to configuration file,</span>
+<span class="sd">to persist both parameters and workflow structure. Exporting to configuration</span>
+<span class="sd">file assumes that each component class resides in a separate python file, so</span>
+<span class="sd">that the pipeline configuration is agnostic from the current python script.</span>
+
+<span class="sd">Once the Pipeline has been exported to configuration file (YAML), it can</span>
+<span class="sd">be executed directly from CLI:</span>
+
+<span class="sd">&gt;&gt;&gt; itwinai exec-pipeline --config my-pipeline.yaml --override nested.key=42</span>
+
+<span class="sd">The itwinai CLI allows for dynamic override of configuration fields, by means</span>
+<span class="sd">of nested key notation. Also list indices are supported:</span>
+
+<span class="sd">&gt;&gt;&gt; itwinai exec-pipeline --config my-pipe.yaml --override nested.list.2.0=42</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">subprocess</span>
+<span class="kn">from</span> <span class="nn">itwinai.pipeline</span> <span class="kn">import</span> <span class="n">Pipeline</span>
+<span class="kn">from</span> <span class="nn">itwinai.parser</span> <span class="kn">import</span> <span class="n">ConfigParser</span>
+<span class="kn">from</span> <span class="nn">itwinai.components</span> <span class="kn">import</span> <span class="n">Adapter</span>
+
+<span class="kn">from</span> <span class="nn">basic_components</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">MyDataGetter</span><span class="p">,</span> <span class="n">MyDatasetSplitter</span><span class="p">,</span> <span class="n">MyTrainer</span><span class="p">,</span> <span class="n">MySaver</span>
+<span class="p">)</span>
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+
+    <span class="c1"># In this pipeline, the MyTrainer produces 4 elements as output: train,</span>
+    <span class="c1"># validation, test datasets, and trained model. The Adapter selects the</span>
+    <span class="c1"># trained model only, and forwards it to the saver, which expects a single</span>
+    <span class="c1"># item as input.</span>
+    <span class="n">pipeline</span> <span class="o">=</span> <span class="n">Pipeline</span><span class="p">([</span>
+        <span class="n">MyDataGetter</span><span class="p">(</span><span class="n">data_size</span><span class="o">=</span><span class="mi">100</span><span class="p">),</span>
+        <span class="n">MyDatasetSplitter</span><span class="p">(</span>
+            <span class="n">train_proportion</span><span class="o">=</span><span class="mf">.5</span><span class="p">,</span>
+            <span class="n">validation_proportion</span><span class="o">=</span><span class="mf">.25</span><span class="p">,</span>
+            <span class="n">test_proportion</span><span class="o">=</span><span class="mf">0.25</span>
+        <span class="p">),</span>
+        <span class="n">MyTrainer</span><span class="p">(),</span>
+        <span class="n">Adapter</span><span class="p">(</span><span class="n">policy</span><span class="o">=</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">Adapter</span><span class="o">.</span><span class="n">INPUT_PREFIX</span><span class="si">}</span><span class="s2">-1&quot;</span><span class="p">]),</span>
+        <span class="n">MySaver</span><span class="p">()</span>
+    <span class="p">])</span>
+
+    <span class="c1"># Run pipeline</span>
+    <span class="n">trained_model</span> <span class="o">=</span> <span class="n">pipeline</span><span class="o">.</span><span class="n">execute</span><span class="p">()</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Trained model: &quot;</span><span class="p">,</span> <span class="n">trained_model</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">+</span> <span class="s2">&quot;=&quot;</span><span class="o">*</span><span class="mi">50</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    <span class="c1"># Serialize pipeline to YAML</span>
+    <span class="n">pipeline</span><span class="o">.</span><span class="n">to_yaml</span><span class="p">(</span><span class="s2">&quot;basic_pipeline_example.yaml&quot;</span><span class="p">,</span> <span class="s2">&quot;pipeline&quot;</span><span class="p">)</span>
+
+    <span class="c1"># Below, we show how to run a pre-existing pipeline stored as</span>
+    <span class="c1"># a configuration file, with the possibility of dynamically</span>
+    <span class="c1"># override some fields</span>
+
+    <span class="c1"># Load pipeline from saved YAML (dynamic serialization)</span>
+    <span class="n">parser</span> <span class="o">=</span> <span class="n">ConfigParser</span><span class="p">(</span>
+        <span class="n">config</span><span class="o">=</span><span class="s2">&quot;basic_pipeline_example.yaml&quot;</span><span class="p">,</span>
+        <span class="n">override_keys</span><span class="o">=</span><span class="p">{</span>
+            <span class="s2">&quot;pipeline.init_args.steps.0.init_args.data_size&quot;</span><span class="p">:</span> <span class="mi">200</span>
+        <span class="p">}</span>
+    <span class="p">)</span>
+    <span class="n">pipeline</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">parse_pipeline</span><span class="p">()</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;MyDataGetter&#39;s data_size is now: </span><span class="si">{</span><span class="n">pipeline</span><span class="o">.</span><span class="n">steps</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">data_size</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    <span class="c1"># Run parsed pipeline, with new data_size for MyDataGetter</span>
+    <span class="n">trained_model</span> <span class="o">=</span> <span class="n">pipeline</span><span class="o">.</span><span class="n">execute</span><span class="p">()</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Trained model (2): &quot;</span><span class="p">,</span> <span class="n">trained_model</span><span class="p">)</span>
+
+    <span class="c1"># Save new pipeline to YAML file</span>
+    <span class="n">pipeline</span><span class="o">.</span><span class="n">to_yaml</span><span class="p">(</span><span class="s2">&quot;basic_pipeline_example_v2.yaml&quot;</span><span class="p">,</span> <span class="s2">&quot;pipeline&quot;</span><span class="p">)</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">+</span> <span class="s2">&quot;=&quot;</span><span class="o">*</span><span class="mi">50</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    <span class="c1"># Emulate pipeline execution from CLI, with dynamic override of</span>
+    <span class="c1"># pipeline configuration fields</span>
+    <span class="n">subprocess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span>
+        <span class="p">[</span><span class="s2">&quot;itwinai&quot;</span><span class="p">,</span> <span class="s2">&quot;exec-pipeline&quot;</span><span class="p">,</span> <span class="s2">&quot;--config&quot;</span><span class="p">,</span>
+         <span class="s2">&quot;basic_pipeline_example_v2.yaml&quot;</span><span class="p">,</span>
+         <span class="s2">&quot;--override&quot;</span><span class="p">,</span>
+         <span class="s2">&quot;pipeline.init_args.steps.0.init_args.data_size=300&quot;</span><span class="p">,</span>
+         <span class="s2">&quot;--override&quot;</span><span class="p">,</span>
+         <span class="s2">&quot;pipeline.init_args.steps.1.init_args.train_proportion=0.4&quot;</span>
+         <span class="p">]</span>
+    <span class="p">)</span>
+</pre></div>
+</div>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="basic_workflow.html" class="btn btn-neutral float-left" title="Basic workflow" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="advanced_workflow.html" class="btn btn-neutral float-right" title="Advanced workflow" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, Matteo Bunino, Alexander Zoechbauer, Kalliopi Tsolaki on behalf of CERN.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

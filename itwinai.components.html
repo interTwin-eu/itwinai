@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>itwinai.components &mdash; itwinai 0.0.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=19f00094" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="_static/jquery.js?v=5d32c60e"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="_static/documentation_options.js?v=d45e8c67"></script>
+        <script src="_static/doctools.js?v=888ff710"></script>
+        <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="itwinai.loggers" href="itwinai.loggers.html" />
+    <link rel="prev" title="itwinai.cluster" href="itwinai.cluster.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            itwinai
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">💡 Installation</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="getting_started_with_itwinai.html">Getting started with itwinai</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">🪄 itwinai Modules</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="modules.html">itwinai</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="itwinai.cli.html">itwinai.cli</a></li>
+<li class="toctree-l2"><a class="reference internal" href="itwinai.cluster.html">itwinai.cluster</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">itwinai.components</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#itwinai.components.Adapter"><code class="docutils literal notranslate"><span class="pre">Adapter</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#itwinai.components.Adapter.INPUT_PREFIX"><code class="docutils literal notranslate"><span class="pre">Adapter.INPUT_PREFIX</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#itwinai.components.Adapter.execute"><code class="docutils literal notranslate"><span class="pre">Adapter.execute()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#itwinai.components.Adapter.policy"><code class="docutils literal notranslate"><span class="pre">Adapter.policy</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#itwinai.components.BaseComponent"><code class="docutils literal notranslate"><span class="pre">BaseComponent</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#itwinai.components.BaseComponent.cleanup"><code class="docutils literal notranslate"><span class="pre">BaseComponent.cleanup()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#itwinai.components.BaseComponent.execute"><code class="docutils literal notranslate"><span class="pre">BaseComponent.execute()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#itwinai.components.BaseComponent.name"><code class="docutils literal notranslate"><span class="pre">BaseComponent.name</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#itwinai.components.BaseComponent.parameters"><code class="docutils literal notranslate"><span class="pre">BaseComponent.parameters</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#itwinai.components.DataGetter"><code class="docutils literal notranslate"><span class="pre">DataGetter</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#itwinai.components.DataGetter.execute"><code class="docutils literal notranslate"><span class="pre">DataGetter.execute()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#itwinai.components.DataPreproc"><code class="docutils literal notranslate"><span class="pre">DataPreproc</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#itwinai.components.DataPreproc.execute"><code class="docutils literal notranslate"><span class="pre">DataPreproc.execute()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#itwinai.components.DataSplitter"><code class="docutils literal notranslate"><span class="pre">DataSplitter</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#itwinai.components.DataSplitter.execute"><code class="docutils literal notranslate"><span class="pre">DataSplitter.execute()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#itwinai.components.DataSplitter.test_proportion"><code class="docutils literal notranslate"><span class="pre">DataSplitter.test_proportion</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#itwinai.components.DataSplitter.train_proportion"><code class="docutils literal notranslate"><span class="pre">DataSplitter.train_proportion</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#itwinai.components.DataSplitter.validation_proportion"><code class="docutils literal notranslate"><span class="pre">DataSplitter.validation_proportion</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#itwinai.components.Predictor"><code class="docutils literal notranslate"><span class="pre">Predictor</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#itwinai.components.Predictor.execute"><code class="docutils literal notranslate"><span class="pre">Predictor.execute()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#itwinai.components.Predictor.model"><code class="docutils literal notranslate"><span class="pre">Predictor.model</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#itwinai.components.Saver"><code class="docutils literal notranslate"><span class="pre">Saver</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#itwinai.components.Saver.execute"><code class="docutils literal notranslate"><span class="pre">Saver.execute()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#itwinai.components.Trainer"><code class="docutils literal notranslate"><span class="pre">Trainer</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#itwinai.components.Trainer.execute"><code class="docutils literal notranslate"><span class="pre">Trainer.execute()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#itwinai.components.Trainer.load_state"><code class="docutils literal notranslate"><span class="pre">Trainer.load_state()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#itwinai.components.Trainer.save_state"><code class="docutils literal notranslate"><span class="pre">Trainer.save_state()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#itwinai.components.monitor_exec"><code class="docutils literal notranslate"><span class="pre">monitor_exec()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="itwinai.loggers.html">itwinai.loggers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="itwinai.parser.html">itwinai.parser</a></li>
+<li class="toctree-l2"><a class="reference internal" href="itwinai.pipeline.html">itwinai.pipeline</a></li>
+<li class="toctree-l2"><a class="reference internal" href="itwinai.serialization.html">itwinai.serialization</a></li>
+<li class="toctree-l2"><a class="reference internal" href="itwinai.types.html">itwinai.types</a></li>
+<li class="toctree-l2"><a class="reference internal" href="itwinai.utils.html">itwinai.utils</a></li>
+<li class="toctree-l2"><a class="reference internal" href="itwinai.tf.modules.html">itwinai Tensorflow Modules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="itwinai.torch.modules.html">itwinai PyTorch Modules</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">📚 Integrated Use-cases</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="use_cases.html">Integrated Use Cases</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">🚀 Tutorials</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="tutorials.html">ML workflow tutorials</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">itwinai</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="modules.html">itwinai</a></li>
+      <li class="breadcrumb-item active">itwinai.components</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/itwinai.components.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-itwinai.components">
+<span id="itwinai-components"></span><h1>itwinai.components<a class="headerlink" href="#module-itwinai.components" title="Link to this heading"></a></h1>
+<p>This module provides the base classes to define modular and reproducible ML
+workflows. The base component classes provide a template to follow for
+extending existing components or creating new ones.</p>
+<p>There are two ways of creating workflows: simple and advanced workflows.</p>
+<p>Simple workflows can be obtained by creating a sequence of components
+wrapped in a Pipeline object, which executes them in cascade, passing the
+output of a component as the input of the following one. It is responsibility
+of the user to prevent mismatches among outputs and inputs of component
+sequences. This pipeline can be configured
+both in terms of parameters and structure, with a configuration file
+representing the whole pipeline. This configuration file can be executed
+using itwinai CLI without the need of python files.</p>
+<p>Example:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">itwinai.components</span> <span class="kn">import</span> <span class="n">DataGetter</span><span class="p">,</span> <span class="n">Saver</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">itwinai.pipeline</span> <span class="kn">import</span> <span class="n">Pipeline</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">my_pipe</span> <span class="o">=</span> <span class="n">Pipeline</span><span class="p">({</span><span class="s2">&quot;getter&quot;</span><span class="p">:</span> <span class="n">DataGetter</span><span class="p">(</span><span class="o">...</span><span class="p">),</span> <span class="s2">&quot;data_saver&quot;</span><span class="p">:</span> <span class="n">Saver</span><span class="p">(</span><span class="o">...</span><span class="p">)})</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">my_pipe</span><span class="o">.</span><span class="n">execute</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">my_pipe</span><span class="o">.</span><span class="n">to_yaml</span><span class="p">(</span><span class="s2">&quot;training_pipe.yaml&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># The pipeline can be parsed back to Python with:</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">itwinai.parser</span> <span class="kn">import</span> <span class="n">PipeParser</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">my_pipe</span> <span class="o">=</span> <span class="n">PipeParser</span><span class="p">(</span><span class="s2">&quot;training_pipe.yaml&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">my_pipe</span><span class="o">.</span><span class="n">execute</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># Run the pipeline from configuration file with dynamic override</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">itwinai</span> <span class="n">exec</span><span class="o">-</span><span class="n">pipeline</span> <span class="o">--</span><span class="n">config</span> <span class="n">training_pipe</span><span class="o">.</span><span class="n">yaml</span> <span class="o">&gt;&gt;&gt;</span> <span class="o">--</span><span class="n">override</span> <span class="n">pipeline</span><span class="o">.</span><span class="n">init_args</span><span class="o">.</span><span class="n">steps</span><span class="o">.</span><span class="n">data_saver</span><span class="o">.</span><span class="n">some_param</span> <span class="mi">42</span>
+</pre></div>
+</div>
+<p>Advanced workflows foresee more complicated connections between the
+components and it is very difficult to define a structure beforehand
+without risking of over-constraining the user. Therefore, advanced
+workflows are defined by explicitly connecting component outputs to
+to the inputs of other components, without a wrapper Pipeline object.
+In this case, the configuration files enable the user to persist the
+parameters passed to the argument parser, enabling reuse through
+configuration files, with the possibility of dynamic overrides of parameters.</p>
+<p>Example:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">jsonargparse</span> <span class="kn">import</span> <span class="n">ArgumentParser</span><span class="p">,</span> <span class="n">ActionConfigFile</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">parser</span> <span class="o">=</span> <span class="n">ArgumentParser</span><span class="p">(</span><span class="n">description</span><span class="o">=</span><span class="s1">&#39;PyTorch MNIST Example&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;--batch-size&#39;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mi">64</span><span class="p">,</span>
+<span class="gp">&gt;&gt;&gt; </span>                    <span class="n">help</span><span class="o">=</span><span class="s1">&#39;input batch size for training (default: 64)&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;--epochs&#39;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
+<span class="gp">&gt;&gt;&gt; </span>                    <span class="n">help</span><span class="o">=</span><span class="s1">&#39;number of epochs to train (default: 10)&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;--lr&#39;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mf">0.01</span><span class="p">,</span>
+<span class="gp">&gt;&gt;&gt; </span>                    <span class="n">help</span><span class="o">=</span><span class="s1">&#39;learning rate (default: 0.01)&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+<span class="gp">&gt;&gt;&gt; </span>    <span class="s2">&quot;-c&quot;</span><span class="p">,</span> <span class="s2">&quot;--config&quot;</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="n">ActionConfigFile</span><span class="p">,</span>
+<span class="gp">&gt;&gt;&gt; </span>    <span class="n">required</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<span class="gp">&gt;&gt;&gt; </span>    <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Path to a configuration file in json or yaml format.&quot;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">args</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">parse_args</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">itwinai.components</span> <span class="kn">import</span> <span class="p">(</span>
+<span class="gp">&gt;&gt;&gt; </span>    <span class="n">DataGetter</span><span class="p">,</span> <span class="n">Saver</span><span class="p">,</span> <span class="n">DataSplitter</span><span class="p">,</span> <span class="n">Trainer</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">getter</span> <span class="o">=</span> <span class="n">DataGetter</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">splitter</span> <span class="o">=</span> <span class="n">DataSplitter</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">data_saver</span> <span class="o">=</span> <span class="n">Saver</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">model_saver</span> <span class="o">=</span> <span class="n">Saver</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">trainer</span> <span class="o">=</span> <span class="n">Trainer</span><span class="p">(</span>
+<span class="gp">&gt;&gt;&gt; </span>    <span class="n">batch_size</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">lr</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">lr</span><span class="p">,</span> <span class="n">epochs</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">epochs</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># Compose workflow</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">my_dataset</span> <span class="o">=</span> <span class="n">getter</span><span class="o">.</span><span class="n">execute</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">train_set</span><span class="p">,</span> <span class="n">valid_set</span><span class="p">,</span> <span class="n">test_set</span> <span class="o">=</span> <span class="n">splitter</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">my_dataset</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">data_saver</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s2">&quot;train_dataset.pkl&quot;</span><span class="p">,</span> <span class="n">test_set</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">trained_model</span> <span class="o">=</span> <span class="n">trainer</span><span class="p">(</span><span class="n">train_set</span><span class="p">,</span> <span class="n">valid_set</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">model_saver</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">trained_model</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># Run the script using a previous configuration with dynamic override</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">python</span> <span class="n">my_train</span><span class="o">.</span><span class="n">py</span> <span class="o">--</span><span class="n">config</span> <span class="n">training_pipe</span><span class="o">.</span><span class="n">yaml</span> <span class="o">--</span><span class="n">lr</span> <span class="mf">0.002</span>
+</pre></div>
+</div>
+<dl class="py class">
+<dt class="sig sig-object py" id="itwinai.components.Adapter">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">itwinai.components.</span></span><span class="sig-name descname"><span class="pre">Adapter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">policy</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/itwinai/components.html#Adapter"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#itwinai.components.Adapter" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#itwinai.components.BaseComponent" title="itwinai.components.BaseComponent"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseComponent</span></code></a></p>
+<p>Connects to components in a sequential pipeline, allowing to
+control with greater detail how intermediate results are propagated
+among the components.</p>
+<dl class="simple">
+<dt>Args:</dt><dd><p>policy (List[Any]): list of the same length of the output of this
+component, describing how to map the input args to the output.
+name (Optional[str], optional): name of the component.
+Defaults to None.</p>
+</dd>
+</dl>
+<p>The adapter allows to define a policy with which inputs are re-arranged
+before being propagated to the next component.
+Some examples: [policy]: (input) -&gt; (output)
+- [“INPUT_ARG#2”, “INPUT_ARG#1”, “INPUT_ARG#0”]: (11,22,33) -&gt; (33,22,11)
+- [“INPUT_ARG#0”, “INPUT_ARG#2”, None]: (11, 22, 33) -&gt; (11, 33, None)
+- []: (11, 22, 33) -&gt; ()
+- [42, “INPUT_ARG#2”, “hello”] -&gt; (11,22,33,44,55) -&gt; (42, 33, “hello”)
+- [None, 33, 3.14]: () -&gt; (None, 33, 3.14)
+- [None, 33, 3.14]: (“double”, 44, None, True) -&gt; (None, 33, 3.14)</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="itwinai.components.Adapter.INPUT_PREFIX">
+<span class="sig-name descname"><span class="pre">INPUT_PREFIX</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'INPUT_ARG#'</span></em><a class="headerlink" href="#itwinai.components.Adapter.INPUT_PREFIX" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="itwinai.components.Adapter.execute">
+<span class="sig-name descname"><span class="pre">execute</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tuple</span></span></span><a class="reference internal" href="_modules/itwinai/components.html#Adapter.execute"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#itwinai.components.Adapter.execute" title="Link to this definition"></a></dt>
+<dd><p>Produces an output tuple by arranging input arguments according
+to the policy specified in the constructor.</p>
+<dl class="simple">
+<dt>Args:</dt><dd><p>args (Tuple): input arguments.</p>
+</dd>
+<dt>Returns:</dt><dd><p>Tuple: input args arranged according to some policy.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="itwinai.components.Adapter.policy">
+<span class="sig-name descname"><span class="pre">policy</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#itwinai.components.Adapter.policy" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="itwinai.components.BaseComponent">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">itwinai.components.</span></span><span class="sig-name descname"><span class="pre">BaseComponent</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/itwinai/components.html#BaseComponent"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#itwinai.components.BaseComponent" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">ABC</span></code>, <a class="reference internal" href="itwinai.serialization.html#itwinai.serialization.Serializable" title="itwinai.serialization.Serializable"><code class="xref py py-class docutils literal notranslate"><span class="pre">Serializable</span></code></a></p>
+<p>Base component class. Each component provides a simple interface
+to foster modularity in machine learning code. Each component class
+implements the <cite>execute</cite> method, which received some input ML artifacts
+(e.g., datasets), performs some operations and returns new artifacts.
+The components are meant to be assembled in complex ML workflows,
+represented as pipelines.</p>
+<blockquote>
+<div><dl class="simple">
+<dt>Args:</dt><dd><dl class="simple">
+<dt>name (Optional[str], optional): unique identifier for a step.</dt><dd><p>Defaults to None.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</div></blockquote>
+<dl class="py method">
+<dt class="sig sig-object py" id="itwinai.components.BaseComponent.cleanup">
+<span class="sig-name descname"><span class="pre">cleanup</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/itwinai/components.html#BaseComponent.cleanup"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#itwinai.components.BaseComponent.cleanup" title="Link to this definition"></a></dt>
+<dd><p>Cleanup resources allocated by this component.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="itwinai.components.BaseComponent.execute">
+<em class="property"><span class="pre">abstract</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">execute</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Any</span></span></span><a class="reference internal" href="_modules/itwinai/components.html#BaseComponent.execute"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#itwinai.components.BaseComponent.execute" title="Link to this definition"></a></dt>
+<dd><p>“Execute some operations.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="itwinai.components.BaseComponent.name">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">name</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></em><a class="headerlink" href="#itwinai.components.BaseComponent.name" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="itwinai.components.BaseComponent.parameters">
+<span class="sig-name descname"><span class="pre">parameters</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#itwinai.components.BaseComponent.parameters" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="itwinai.components.DataGetter">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">itwinai.components.</span></span><span class="sig-name descname"><span class="pre">DataGetter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/itwinai/components.html#DataGetter"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#itwinai.components.DataGetter" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#itwinai.components.BaseComponent" title="itwinai.components.BaseComponent"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseComponent</span></code></a></p>
+<p>Retrieves a dataset.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="itwinai.components.DataGetter.execute">
+<em class="property"><span class="pre">abstract</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">execute</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="itwinai.types.html#itwinai.types.MLDataset" title="itwinai.types.MLDataset"><span class="pre">MLDataset</span></a></span></span><a class="reference internal" href="_modules/itwinai/components.html#DataGetter.execute"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#itwinai.components.DataGetter.execute" title="Link to this definition"></a></dt>
+<dd><p>Retrieves a dataset.</p>
+<dl class="simple">
+<dt>Returns:</dt><dd><p>MLDataset: retrieved dataset.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="itwinai.components.DataPreproc">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">itwinai.components.</span></span><span class="sig-name descname"><span class="pre">DataPreproc</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/itwinai/components.html#DataPreproc"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#itwinai.components.DataPreproc" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#itwinai.components.BaseComponent" title="itwinai.components.BaseComponent"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseComponent</span></code></a></p>
+<p>Performs dataset pre-processing.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="itwinai.components.DataPreproc.execute">
+<em class="property"><span class="pre">abstract</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">execute</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">train_dataset</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="itwinai.types.html#itwinai.types.MLDataset" title="itwinai.types.MLDataset"><span class="pre">MLDataset</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">validation_dataset</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="itwinai.types.html#itwinai.types.MLDataset" title="itwinai.types.MLDataset"><span class="pre">MLDataset</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">test_dataset</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="itwinai.types.html#itwinai.types.MLDataset" title="itwinai.types.MLDataset"><span class="pre">MLDataset</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="itwinai.types.html#itwinai.types.MLDataset" title="itwinai.types.MLDataset"><span class="pre">MLDataset</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="itwinai.types.html#itwinai.types.MLDataset" title="itwinai.types.MLDataset"><span class="pre">MLDataset</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="itwinai.types.html#itwinai.types.MLDataset" title="itwinai.types.MLDataset"><span class="pre">MLDataset</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/itwinai/components.html#DataPreproc.execute"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#itwinai.components.DataPreproc.execute" title="Link to this definition"></a></dt>
+<dd><p>Trains a machine learning model.</p>
+<dl class="simple">
+<dt>Args:</dt><dd><p>train_dataset (MLDataset): training dataset.
+validation_dataset (MLDataset): validation dataset.
+test_dataset (MLDataset): test dataset.</p>
+</dd>
+<dt>Returns:</dt><dd><p>Tuple[MLDataset, MLDataset, MLDataset]: preprocessed training
+dataset, validation dataset, test dataset.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="itwinai.components.DataSplitter">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">itwinai.components.</span></span><span class="sig-name descname"><span class="pre">DataSplitter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">train_proportion</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">validation_proportion</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">test_proportion</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/itwinai/components.html#DataSplitter"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#itwinai.components.DataSplitter" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#itwinai.components.BaseComponent" title="itwinai.components.BaseComponent"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseComponent</span></code></a></p>
+<p>Splits a dataset into train, validation, and test splits.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="itwinai.components.DataSplitter.execute">
+<em class="property"><span class="pre">abstract</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">execute</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dataset</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="itwinai.types.html#itwinai.types.MLDataset" title="itwinai.types.MLDataset"><span class="pre">MLDataset</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="itwinai.types.html#itwinai.types.MLDataset" title="itwinai.types.MLDataset"><span class="pre">MLDataset</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="itwinai.types.html#itwinai.types.MLDataset" title="itwinai.types.MLDataset"><span class="pre">MLDataset</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="itwinai.types.html#itwinai.types.MLDataset" title="itwinai.types.MLDataset"><span class="pre">MLDataset</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/itwinai/components.html#DataSplitter.execute"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#itwinai.components.DataSplitter.execute" title="Link to this definition"></a></dt>
+<dd><p>Splits a dataset into train, validation and test splits.</p>
+<dl class="simple">
+<dt>Args:</dt><dd><p>dataset (MLDataset): input dataset.</p>
+</dd>
+<dt>Returns:</dt><dd><p>Tuple[MLDataset, MLDataset, MLDataset]: tuple of
+train, validation and test splits.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="itwinai.components.DataSplitter.test_proportion">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">test_proportion</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">float</span></em><a class="headerlink" href="#itwinai.components.DataSplitter.test_proportion" title="Link to this definition"></a></dt>
+<dd><p>Test set proportion.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="itwinai.components.DataSplitter.train_proportion">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">train_proportion</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">float</span></em><a class="headerlink" href="#itwinai.components.DataSplitter.train_proportion" title="Link to this definition"></a></dt>
+<dd><p>Training set proportion.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="itwinai.components.DataSplitter.validation_proportion">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">validation_proportion</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">float</span></em><a class="headerlink" href="#itwinai.components.DataSplitter.validation_proportion" title="Link to this definition"></a></dt>
+<dd><p>Validation set proportion.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="itwinai.components.Predictor">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">itwinai.components.</span></span><span class="sig-name descname"><span class="pre">Predictor</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="itwinai.types.html#itwinai.types.MLModel" title="itwinai.types.MLModel"><span class="pre">MLModel</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference internal" href="itwinai.serialization.html#itwinai.serialization.ModelLoader" title="itwinai.serialization.ModelLoader"><span class="pre">ModelLoader</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/itwinai/components.html#Predictor"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#itwinai.components.Predictor" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#itwinai.components.BaseComponent" title="itwinai.components.BaseComponent"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseComponent</span></code></a></p>
+<p>Applies a pre-trained machine learning model to unseen data.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="itwinai.components.Predictor.execute">
+<em class="property"><span class="pre">abstract</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">execute</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">predict_dataset</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="itwinai.types.html#itwinai.types.MLDataset" title="itwinai.types.MLDataset"><span class="pre">MLDataset</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">model</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="itwinai.types.html#itwinai.types.MLModel" title="itwinai.types.MLModel"><span class="pre">MLModel</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="itwinai.types.html#itwinai.types.MLDataset" title="itwinai.types.MLDataset"><span class="pre">MLDataset</span></a></span></span><a class="reference internal" href="_modules/itwinai/components.html#Predictor.execute"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#itwinai.components.Predictor.execute" title="Link to this definition"></a></dt>
+<dd><p>Applies a machine learning model on a dataset of samples.</p>
+<dl>
+<dt>Args:</dt><dd><p>predict_dataset (MLDataset): dataset for inference.
+model (Optional[MLModel], optional): overrides the internal model,</p>
+<blockquote>
+<div><p>if given. Defaults to None.</p>
+</div></blockquote>
+</dd>
+<dt>Returns:</dt><dd><dl class="simple">
+<dt>MLDataset: predictions with the same cardinality of the</dt><dd><p>input dataset.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="itwinai.components.Predictor.model">
+<span class="sig-name descname"><span class="pre">model</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="itwinai.types.html#itwinai.types.MLModel" title="itwinai.types.MLModel"><span class="pre">MLModel</span></a></em><a class="headerlink" href="#itwinai.components.Predictor.model" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="itwinai.components.Saver">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">itwinai.components.</span></span><span class="sig-name descname"><span class="pre">Saver</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/itwinai/components.html#Saver"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#itwinai.components.Saver" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#itwinai.components.BaseComponent" title="itwinai.components.BaseComponent"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseComponent</span></code></a></p>
+<p>Saves artifact to disk.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="itwinai.components.Saver.execute">
+<em class="property"><span class="pre">abstract</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">execute</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">artifact</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="itwinai.types.html#itwinai.types.MLArtifact" title="itwinai.types.MLArtifact"><span class="pre">MLArtifact</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="itwinai.types.html#itwinai.types.MLArtifact" title="itwinai.types.MLArtifact"><span class="pre">MLArtifact</span></a></span></span><a class="reference internal" href="_modules/itwinai/components.html#Saver.execute"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#itwinai.components.Saver.execute" title="Link to this definition"></a></dt>
+<dd><p>Saves an ML artifact to disk.</p>
+<dl class="simple">
+<dt>Args:</dt><dd><p>artifact (MLArtifact): artifact to save.</p>
+</dd>
+<dt>Returns:</dt><dd><p>MLArtifact: the same input artifact, after saving it.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="itwinai.components.Trainer">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">itwinai.components.</span></span><span class="sig-name descname"><span class="pre">Trainer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/itwinai/components.html#Trainer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#itwinai.components.Trainer" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#itwinai.components.BaseComponent" title="itwinai.components.BaseComponent"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseComponent</span></code></a></p>
+<p>Trains a machine learning model.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="itwinai.components.Trainer.execute">
+<em class="property"><span class="pre">abstract</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">execute</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">train_dataset</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="itwinai.types.html#itwinai.types.MLDataset" title="itwinai.types.MLDataset"><span class="pre">MLDataset</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">validation_dataset</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="itwinai.types.html#itwinai.types.MLDataset" title="itwinai.types.MLDataset"><span class="pre">MLDataset</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">test_dataset</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="itwinai.types.html#itwinai.types.MLDataset" title="itwinai.types.MLDataset"><span class="pre">MLDataset</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="itwinai.types.html#itwinai.types.MLDataset" title="itwinai.types.MLDataset"><span class="pre">MLDataset</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="itwinai.types.html#itwinai.types.MLDataset" title="itwinai.types.MLDataset"><span class="pre">MLDataset</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="itwinai.types.html#itwinai.types.MLDataset" title="itwinai.types.MLDataset"><span class="pre">MLDataset</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="itwinai.types.html#itwinai.types.MLModel" title="itwinai.types.MLModel"><span class="pre">MLModel</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/itwinai/components.html#Trainer.execute"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#itwinai.components.Trainer.execute" title="Link to this definition"></a></dt>
+<dd><p>Trains a machine learning model.</p>
+<dl class="simple">
+<dt>Args:</dt><dd><p>train_dataset (MLDataset): training dataset.
+validation_dataset (MLDataset): validation dataset.
+test_dataset (MLDataset): test dataset.</p>
+</dd>
+<dt>Returns:</dt><dd><p>Tuple[MLDataset, MLDataset, MLDataset]: training dataset,
+validation dataset, test dataset, trained model.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="itwinai.components.Trainer.load_state">
+<em class="property"><span class="pre">abstract</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">load_state</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/itwinai/components.html#Trainer.load_state"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#itwinai.components.Trainer.load_state" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="itwinai.components.Trainer.save_state">
+<em class="property"><span class="pre">abstract</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">save_state</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/itwinai/components.html#Trainer.save_state"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#itwinai.components.Trainer.save_state" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="itwinai.components.monitor_exec">
+<span class="sig-prename descclassname"><span class="pre">itwinai.components.</span></span><span class="sig-name descname"><span class="pre">monitor_exec</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">method</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Callable</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Callable</span></span></span><a class="reference internal" href="_modules/itwinai/components.html#monitor_exec"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#itwinai.components.monitor_exec" title="Link to this definition"></a></dt>
+<dd><p>Decorator for execute method of a component class.
+Computes execution time and gives some information about
+the execution of the component.</p>
+<dl class="simple">
+<dt>Args:</dt><dd><p>func (Callable): class method.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="itwinai.cluster.html" class="btn btn-neutral float-left" title="itwinai.cluster" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="itwinai.loggers.html" class="btn btn-neutral float-right" title="itwinai.loggers" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, Matteo Bunino, Alexander Zoechbauer, Kalliopi Tsolaki on behalf of CERN.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

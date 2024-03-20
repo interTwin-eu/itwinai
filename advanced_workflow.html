@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Advanced workflow &mdash; itwinai 0.0.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=19f00094" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="_static/jquery.js?v=5d32c60e"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="_static/documentation_options.js?v=d45e8c67"></script>
+        <script src="_static/doctools.js?v=888ff710"></script>
+        <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="prev" title="Intermediate workflow" href="intermediate_workflow.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            itwinai
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">💡 Installation</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="getting_started_with_itwinai.html">Getting started with itwinai</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">🪄 itwinai Modules</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="modules.html">itwinai</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">📚 Integrated Use-cases</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="use_cases.html">Integrated Use Cases</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">🚀 Tutorials</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="tutorials.html">ML workflow tutorials</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="tutorials.html#id1">Tutorials</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="basic_comp.html">Basic components</a></li>
+<li class="toctree-l3"><a class="reference internal" href="basic_workflow.html">Basic workflow</a></li>
+<li class="toctree-l3"><a class="reference internal" href="intermediate_workflow.html">Intermediate workflow</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">Advanced workflow</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#tutorial-2-advanced-workflow-py">tutorial_2_advanced_workflow.py</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">itwinai</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="tutorials.html">ML workflow tutorials</a></li>
+      <li class="breadcrumb-item active">Advanced workflow</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/advanced_workflow.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="advanced-workflow">
+<h1>Advanced workflow<a class="headerlink" href="#advanced-workflow" title="Link to this heading"></a></h1>
+<section id="tutorial-2-advanced-workflow-py">
+<h2>tutorial_2_advanced_workflow.py<a class="headerlink" href="#tutorial-2-advanced-workflow-py" title="Link to this heading"></a></h2>
+<p>The <cite>tutorial_2_advanced_workflow.py</cite> script is …</p>
+<p id="module-tutorial_2_advanced_workflow">In the first two tutorials we saw how to define simple sequential workflows by
+means of the Pipeline object, which feds the outputs of the previous component
+as inputs of the following one.</p>
+<p>In this tutorial we show how to create more complex workflows, with
+non-sequential data flows. Here, components can be arranges as an directed
+acyclic graph (DAG). Under the DAG assumption, outputs of each block can be fed
+as input potentially to any other component, granting great flexibility to the
+experimenter.</p>
+<p>The trade-off for improved flexibility is a change in the way we define
+configuration files. From now on, it will only be possible to configure the
+parameters used by the training script, but not its structure through the
+Pipeline.</p>
+<p>itwinai provides a wrapper of jsonarparse’s ArgumentParser which supports
+configuration files by default.</p>
+<p>To run as usual:
+&gt;&gt;&gt; python my_script.py -d 20 –train-prop 0.7 –val-prop 0.2 –lr 1e-5</p>
+<p>To reuse the parameters saved in a configuration file and override some
+parameter (e.g., learning rate):
+&gt;&gt;&gt; python my_script.py –config advanced_tutorial_conf.yaml –lr 2e-3</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="tutorial_2_advanced_workflow.MyEnsemblePredictor">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">tutorial_2_advanced_workflow.</span></span><span class="sig-name descname"><span class="pre">MyEnsemblePredictor</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="itwinai.types.html#itwinai.types.MLModel" title="itwinai.types.MLModel"><span class="pre">MLModel</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference internal" href="itwinai.serialization.html#itwinai.serialization.ModelLoader" title="itwinai.serialization.ModelLoader"><span class="pre">ModelLoader</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tutorial_2_advanced_workflow.html#MyEnsemblePredictor"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tutorial_2_advanced_workflow.MyEnsemblePredictor" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="itwinai.components.html#itwinai.components.Predictor" title="itwinai.components.Predictor"><code class="xref py py-class docutils literal notranslate"><span class="pre">Predictor</span></code></a></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="tutorial_2_advanced_workflow.MyEnsemblePredictor.execute">
+<span class="sig-name descname"><span class="pre">execute</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dataset</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model_ensemble</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Any</span></span></span><a class="reference internal" href="_modules/tutorial_2_advanced_workflow.html#MyEnsemblePredictor.execute"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tutorial_2_advanced_workflow.MyEnsemblePredictor.execute" title="Link to this definition"></a></dt>
+<dd><p>Applies a machine learning model on a dataset of samples.</p>
+<dl>
+<dt>Args:</dt><dd><p>predict_dataset (MLDataset): dataset for inference.
+model (Optional[MLModel], optional): overrides the internal model,</p>
+<blockquote>
+<div><p>if given. Defaults to None.</p>
+</div></blockquote>
+</dd>
+<dt>Returns:</dt><dd><dl class="simple">
+<dt>MLDataset: predictions with the same cardinality of the</dt><dd><p>input dataset.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tutorial_2_advanced_workflow.MyEnsemblePredictor.model">
+<span class="sig-name descname"><span class="pre">model</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="itwinai.types.html#itwinai.types.MLModel" title="itwinai.types.MLModel"><span class="pre">MLModel</span></a></em><a class="headerlink" href="#tutorial_2_advanced_workflow.MyEnsemblePredictor.model" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">In the first two tutorials we saw how to define simple sequential workflows by</span>
+<span class="sd">means of the Pipeline object, which feds the outputs of the previous component</span>
+<span class="sd">as inputs of the following one.</span>
+
+<span class="sd">In this tutorial we show how to create more complex workflows, with</span>
+<span class="sd">non-sequential data flows. Here, components can be arranges as an directed</span>
+<span class="sd">acyclic graph (DAG). Under the DAG assumption, outputs of each block can be fed</span>
+<span class="sd">as input potentially to any other component, granting great flexibility to the</span>
+<span class="sd">experimenter.</span>
+
+<span class="sd">The trade-off for improved flexibility is a change in the way we define</span>
+<span class="sd">configuration files. From now on, it will only be possible to configure the</span>
+<span class="sd">parameters used by the training script, but not its structure through the</span>
+<span class="sd">Pipeline.</span>
+
+<span class="sd">itwinai provides a wrapper of jsonarparse&#39;s ArgumentParser which supports</span>
+<span class="sd">configuration files by default.</span>
+
+<span class="sd">To run as usual:</span>
+<span class="sd">&gt;&gt;&gt; python my_script.py -d 20 --train-prop 0.7 --val-prop 0.2 --lr 1e-5</span>
+
+<span class="sd">To reuse the parameters saved in a configuration file and override some</span>
+<span class="sd">parameter (e.g., learning rate):</span>
+<span class="sd">&gt;&gt;&gt; python my_script.py --config advanced_tutorial_conf.yaml --lr 2e-3</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span>
+<span class="kn">from</span> <span class="nn">itwinai.parser</span> <span class="kn">import</span> <span class="n">ArgumentParser</span>
+<span class="kn">from</span> <span class="nn">itwinai.components</span> <span class="kn">import</span> <span class="n">Predictor</span><span class="p">,</span> <span class="n">monitor_exec</span>
+
+<span class="kn">from</span> <span class="nn">basic_components</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">MyDataGetter</span><span class="p">,</span> <span class="n">MyDatasetSplitter</span><span class="p">,</span> <span class="n">MyTrainer</span><span class="p">,</span> <span class="n">MySaver</span>
+<span class="p">)</span>
+
+
+<span class="k">class</span> <span class="nc">MyEnsemblePredictor</span><span class="p">(</span><span class="n">Predictor</span><span class="p">):</span>
+    <span class="nd">@monitor_exec</span>
+    <span class="k">def</span> <span class="nf">execute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dataset</span><span class="p">,</span> <span class="n">model_ensemble</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+        <span class="c1"># do some predictions with model on dataset...</span>
+        <span class="k">return</span> <span class="n">dataset</span>
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+    <span class="n">parser</span> <span class="o">=</span> <span class="n">ArgumentParser</span><span class="p">(</span><span class="n">description</span><span class="o">=</span><span class="s2">&quot;itwinai advanced workflows tutorial&quot;</span><span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--data-size&quot;</span><span class="p">,</span> <span class="s2">&quot;-d&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span> <span class="n">required</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Dataset cardinality.&quot;</span><span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--train-prop&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span> <span class="n">required</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Train split proportion.&quot;</span><span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--val-prop&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span> <span class="n">required</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Validation split proportion.&quot;</span><span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--lr&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Training learning rate.&quot;</span><span class="p">)</span>
+    <span class="n">args</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">parse_args</span><span class="p">()</span>
+
+    <span class="c1"># Save parsed arguments to configuration file.</span>
+    <span class="c1"># Previous configurations are overwritten, which is not good,</span>
+    <span class="c1"># but the versioning of configuration files is out of the scope</span>
+    <span class="c1"># of this tutorial.</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">save</span><span class="p">(</span>
+        <span class="n">args</span><span class="p">,</span> <span class="s2">&quot;advanced_tutorial_conf.yaml&quot;</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s1">&#39;yaml&#39;</span><span class="p">,</span> <span class="n">overwrite</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="c1"># Define workflow components</span>
+    <span class="n">getter</span> <span class="o">=</span> <span class="n">MyDataGetter</span><span class="p">(</span><span class="n">data_size</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">data_size</span><span class="p">)</span>
+    <span class="n">splitter</span> <span class="o">=</span> <span class="n">MyDatasetSplitter</span><span class="p">(</span>
+        <span class="n">train_proportion</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">train_prop</span><span class="p">,</span>
+        <span class="n">validation_proportion</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">val_prop</span><span class="p">,</span>
+        <span class="n">test_proportion</span><span class="o">=</span><span class="mi">1</span><span class="o">-</span><span class="n">args</span><span class="o">.</span><span class="n">train_prop</span><span class="o">-</span><span class="n">args</span><span class="o">.</span><span class="n">val_prop</span>
+    <span class="p">)</span>
+    <span class="n">trainer1</span> <span class="o">=</span> <span class="n">MyTrainer</span><span class="p">(</span><span class="n">lr</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">lr</span><span class="p">)</span>
+    <span class="n">trainer2</span> <span class="o">=</span> <span class="n">MyTrainer</span><span class="p">(</span><span class="n">lr</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">lr</span><span class="p">)</span>
+    <span class="n">saver</span> <span class="o">=</span> <span class="n">MySaver</span><span class="p">()</span>
+    <span class="n">predictor</span> <span class="o">=</span> <span class="n">MyEnsemblePredictor</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+
+    <span class="c1"># Define ML workflow</span>
+    <span class="n">dataset</span> <span class="o">=</span> <span class="n">getter</span><span class="o">.</span><span class="n">execute</span><span class="p">()</span>
+    <span class="n">train_spl</span><span class="p">,</span> <span class="n">val_spl</span><span class="p">,</span> <span class="n">test_spl</span> <span class="o">=</span> <span class="n">splitter</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">dataset</span><span class="p">)</span>
+    <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">trained_model1</span> <span class="o">=</span> <span class="n">trainer1</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">train_spl</span><span class="p">,</span> <span class="n">val_spl</span><span class="p">,</span> <span class="n">test_spl</span><span class="p">)</span>
+    <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">trained_model2</span> <span class="o">=</span> <span class="n">trainer2</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">train_spl</span><span class="p">,</span> <span class="n">val_spl</span><span class="p">,</span> <span class="n">test_spl</span><span class="p">)</span>
+    <span class="n">_</span> <span class="o">=</span> <span class="n">saver</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">trained_model1</span><span class="p">)</span>
+    <span class="n">predictions</span> <span class="o">=</span> <span class="n">predictor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">test_spl</span><span class="p">,</span> <span class="p">[</span><span class="n">trained_model1</span><span class="p">,</span> <span class="n">trained_model2</span><span class="p">])</span>
+    <span class="nb">print</span><span class="p">()</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Predictions: &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">predictions</span><span class="p">))</span>
+</pre></div>
+</div>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="intermediate_workflow.html" class="btn btn-neutral float-left" title="Intermediate workflow" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, Matteo Bunino, Alexander Zoechbauer, Kalliopi Tsolaki on behalf of CERN.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>itwinai.pipeline &mdash; itwinai 0.0.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=19f00094" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="_static/jquery.js?v=5d32c60e"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="_static/documentation_options.js?v=d45e8c67"></script>
+        <script src="_static/doctools.js?v=888ff710"></script>
+        <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="itwinai.serialization" href="itwinai.serialization.html" />
+    <link rel="prev" title="itwinai.parser" href="itwinai.parser.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            itwinai
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">💡 Installation</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="getting_started_with_itwinai.html">Getting started with itwinai</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">🪄 itwinai Modules</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="modules.html">itwinai</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="itwinai.cli.html">itwinai.cli</a></li>
+<li class="toctree-l2"><a class="reference internal" href="itwinai.cluster.html">itwinai.cluster</a></li>
+<li class="toctree-l2"><a class="reference internal" href="itwinai.components.html">itwinai.components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="itwinai.loggers.html">itwinai.loggers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="itwinai.parser.html">itwinai.parser</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">itwinai.pipeline</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#itwinai.pipeline.Pipeline"><code class="docutils literal notranslate"><span class="pre">Pipeline</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#itwinai.pipeline.Pipeline.execute"><code class="docutils literal notranslate"><span class="pre">Pipeline.execute()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#itwinai.pipeline.Pipeline.steps"><code class="docutils literal notranslate"><span class="pre">Pipeline.steps</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#itwinai.pipeline.Pipeline.validate_args"><code class="docutils literal notranslate"><span class="pre">Pipeline.validate_args()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="itwinai.serialization.html">itwinai.serialization</a></li>
+<li class="toctree-l2"><a class="reference internal" href="itwinai.types.html">itwinai.types</a></li>
+<li class="toctree-l2"><a class="reference internal" href="itwinai.utils.html">itwinai.utils</a></li>
+<li class="toctree-l2"><a class="reference internal" href="itwinai.tf.modules.html">itwinai Tensorflow Modules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="itwinai.torch.modules.html">itwinai PyTorch Modules</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">📚 Integrated Use-cases</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="use_cases.html">Integrated Use Cases</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">🚀 Tutorials</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="tutorials.html">ML workflow tutorials</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">itwinai</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="modules.html">itwinai</a></li>
+      <li class="breadcrumb-item active">itwinai.pipeline</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/itwinai.pipeline.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-itwinai.pipeline">
+<span id="itwinai-pipeline"></span><h1>itwinai.pipeline<a class="headerlink" href="#module-itwinai.pipeline" title="Link to this heading"></a></h1>
+<p>This module provides the functionalities to execute workflows defined in
+in form of pipelines.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="itwinai.pipeline.Pipeline">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">itwinai.pipeline.</span></span><span class="sig-name descname"><span class="pre">Pipeline</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">steps</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="itwinai.components.html#itwinai.components.BaseComponent" title="itwinai.components.BaseComponent"><span class="pre">BaseComponent</span></a><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Iterable</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="itwinai.components.html#itwinai.components.BaseComponent" title="itwinai.components.BaseComponent"><span class="pre">BaseComponent</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/itwinai/pipeline.html#Pipeline"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#itwinai.pipeline.Pipeline" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="itwinai.components.html#itwinai.components.BaseComponent" title="itwinai.components.BaseComponent"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseComponent</span></code></a></p>
+<p>Executes a set of components arranged as a pipeline.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="itwinai.pipeline.Pipeline.execute">
+<span class="sig-name descname"><span class="pre">execute</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Any</span></span></span><a class="reference internal" href="_modules/itwinai/pipeline.html#Pipeline.execute"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#itwinai.pipeline.Pipeline.execute" title="Link to this definition"></a></dt>
+<dd><p>“Execute components sequentially.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="itwinai.pipeline.Pipeline.steps">
+<span class="sig-name descname"><span class="pre">steps</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="itwinai.components.html#itwinai.components.BaseComponent" title="itwinai.components.BaseComponent"><span class="pre">BaseComponent</span></a><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Iterable</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="itwinai.components.html#itwinai.components.BaseComponent" title="itwinai.components.BaseComponent"><span class="pre">BaseComponent</span></a><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#itwinai.pipeline.Pipeline.steps" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="itwinai.pipeline.Pipeline.validate_args">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">validate_args</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_args</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tuple</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">component</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="itwinai.components.html#itwinai.components.BaseComponent" title="itwinai.components.BaseComponent"><span class="pre">BaseComponent</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/itwinai/pipeline.html#Pipeline.validate_args"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#itwinai.pipeline.Pipeline.validate_args" title="Link to this definition"></a></dt>
+<dd><p>Verify that the number of input args provided to some component
+match with the number of the non-default args in the component.</p>
+<dl class="simple">
+<dt>Args:</dt><dd><p>input_args (Tuple): input args to be fed to the component.
+component (BaseComponent): component to be executed.</p>
+</dd>
+<dt>Raises:</dt><dd><p>RuntimeError: in case of args mismatch.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="itwinai.parser.html" class="btn btn-neutral float-left" title="itwinai.parser" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="itwinai.serialization.html" class="btn btn-neutral float-right" title="itwinai.serialization" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, Matteo Bunino, Alexander Zoechbauer, Kalliopi Tsolaki on behalf of CERN.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

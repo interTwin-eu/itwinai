@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>itwinai.parser &mdash; itwinai 0.0.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=19f00094" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="_static/jquery.js?v=5d32c60e"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="_static/documentation_options.js?v=d45e8c67"></script>
+        <script src="_static/doctools.js?v=888ff710"></script>
+        <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="itwinai.pipeline" href="itwinai.pipeline.html" />
+    <link rel="prev" title="itwinai.loggers" href="itwinai.loggers.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            itwinai
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">💡 Installation</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="getting_started_with_itwinai.html">Getting started with itwinai</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">🪄 itwinai Modules</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="modules.html">itwinai</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="itwinai.cli.html">itwinai.cli</a></li>
+<li class="toctree-l2"><a class="reference internal" href="itwinai.cluster.html">itwinai.cluster</a></li>
+<li class="toctree-l2"><a class="reference internal" href="itwinai.components.html">itwinai.components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="itwinai.loggers.html">itwinai.loggers</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">itwinai.parser</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#itwinai.parser.ArgumentParser"><code class="docutils literal notranslate"><span class="pre">ArgumentParser</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#itwinai.parser.ArgumentParser.formatter_class"><code class="docutils literal notranslate"><span class="pre">ArgumentParser.formatter_class</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#itwinai.parser.ConfigParser"><code class="docutils literal notranslate"><span class="pre">ConfigParser</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#itwinai.parser.ConfigParser.config"><code class="docutils literal notranslate"><span class="pre">ConfigParser.config</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#itwinai.parser.ConfigParser.parse_pipeline"><code class="docutils literal notranslate"><span class="pre">ConfigParser.parse_pipeline()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#itwinai.parser.ConfigParser.parse_step"><code class="docutils literal notranslate"><span class="pre">ConfigParser.parse_step()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#itwinai.parser.ConfigParser.pipeline"><code class="docutils literal notranslate"><span class="pre">ConfigParser.pipeline</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#itwinai.parser.add_replace_field"><code class="docutils literal notranslate"><span class="pre">add_replace_field()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="itwinai.pipeline.html">itwinai.pipeline</a></li>
+<li class="toctree-l2"><a class="reference internal" href="itwinai.serialization.html">itwinai.serialization</a></li>
+<li class="toctree-l2"><a class="reference internal" href="itwinai.types.html">itwinai.types</a></li>
+<li class="toctree-l2"><a class="reference internal" href="itwinai.utils.html">itwinai.utils</a></li>
+<li class="toctree-l2"><a class="reference internal" href="itwinai.tf.modules.html">itwinai Tensorflow Modules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="itwinai.torch.modules.html">itwinai PyTorch Modules</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">📚 Integrated Use-cases</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="use_cases.html">Integrated Use Cases</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">🚀 Tutorials</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="tutorials.html">ML workflow tutorials</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">itwinai</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="modules.html">itwinai</a></li>
+      <li class="breadcrumb-item active">itwinai.parser</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/itwinai.parser.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-itwinai.parser">
+<span id="itwinai-parser"></span><h1>itwinai.parser<a class="headerlink" href="#module-itwinai.parser" title="Link to this heading"></a></h1>
+<p>Provide functionalities to manage configuration files, including parsing,
+execution, and dynamic override of fields.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="itwinai.parser.ArgumentParser">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">itwinai.parser.</span></span><span class="sig-name descname"><span class="pre">ArgumentParser</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">*args</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">env_prefix:</span> <span class="pre">bool</span> <span class="pre">|</span> <span class="pre">str</span> <span class="pre">=</span> <span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">formatter_class:</span> <span class="pre">~typing.Type[~jsonargparse._formatters.DefaultHelpFormatter]</span> <span class="pre">=</span> <span class="pre">&lt;class</span> <span class="pre">'jsonargparse._formatters.DefaultHelpFormatter'&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">exit_on_error:</span> <span class="pre">bool</span> <span class="pre">=</span> <span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">logger:</span> <span class="pre">bool</span> <span class="pre">|</span> <span class="pre">str</span> <span class="pre">|</span> <span class="pre">dict</span> <span class="pre">|</span> <span class="pre">~logging.Logger</span> <span class="pre">=</span> <span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">version:</span> <span class="pre">str</span> <span class="pre">|</span> <span class="pre">None</span> <span class="pre">=</span> <span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">print_config:</span> <span class="pre">str</span> <span class="pre">|</span> <span class="pre">None</span> <span class="pre">=</span> <span class="pre">'--print_config'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">parser_mode:</span> <span class="pre">str</span> <span class="pre">=</span> <span class="pre">'yaml'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dump_header:</span> <span class="pre">~typing.List[str]</span> <span class="pre">|</span> <span class="pre">None</span> <span class="pre">=</span> <span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">default_config_files:</span> <span class="pre">~typing.List[str</span> <span class="pre">|</span> <span class="pre">~os.PathLike]</span> <span class="pre">|</span> <span class="pre">None</span> <span class="pre">=</span> <span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">default_env:</span> <span class="pre">bool</span> <span class="pre">=</span> <span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">default_meta:</span> <span class="pre">bool</span> <span class="pre">=</span> <span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">**kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/itwinai/parser.html#ArgumentParser"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#itwinai.parser.ArgumentParser" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">ArgumentParser</span></code></p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="itwinai.parser.ArgumentParser.formatter_class">
+<span class="sig-name descname"><span class="pre">formatter_class</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Type</span><span class="p"><span class="pre">[</span></span><span class="pre">DefaultHelpFormatter</span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#itwinai.parser.ArgumentParser.formatter_class" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="itwinai.parser.ConfigParser">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">itwinai.parser.</span></span><span class="sig-name descname"><span class="pre">ConfigParser</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">config</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Dict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">override_keys</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/itwinai/parser.html#ConfigParser"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#itwinai.parser.ConfigParser" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Parses a pipeline from a configuration file.
+It also provides functionalities for dynamic override
+of fields by means of nested key notation.</p>
+<dl class="simple">
+<dt>Args:</dt><dd><p>config (Union[str, Dict]): path to YAML configuration file
+or dict storing a configuration.
+override_keys (Optional[Dict[str, Any]], optional): dict mapping
+nested keys to the value to override. Defaults to None.</p>
+</dd>
+</dl>
+<p>Example:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="c1"># pipeline.yaml file</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">pipeline</span><span class="p">:</span>
+<span class="gp">&gt;&gt;&gt; </span>  <span class="n">class_path</span><span class="p">:</span> <span class="n">itwinai</span><span class="o">.</span><span class="n">pipeline</span><span class="o">.</span><span class="n">Pipeline</span>
+<span class="gp">&gt;&gt;&gt; </span>  <span class="n">init_args</span><span class="p">:</span>
+<span class="gp">&gt;&gt;&gt; </span>    <span class="n">steps</span><span class="p">:</span>
+<span class="gp">&gt;&gt;&gt; </span>      <span class="o">-</span> <span class="n">class_path</span><span class="p">:</span> <span class="n">dataloader</span><span class="o">.</span><span class="n">MNISTDataModuleTorch</span>
+<span class="gp">&gt;&gt;&gt; </span>        <span class="n">init_args</span><span class="p">:</span>
+<span class="gp">&gt;&gt;&gt; </span>          <span class="n">save_path</span><span class="p">:</span> <span class="o">.</span><span class="n">tmp</span><span class="o">/</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span>      <span class="o">-</span> <span class="n">class_path</span><span class="p">:</span> <span class="n">itwinai</span><span class="o">.</span><span class="n">torch</span><span class="o">.</span><span class="n">trainer</span><span class="o">.</span><span class="n">TorchTrainerMG</span>
+<span class="gp">&gt;&gt;&gt; </span>        <span class="n">init_args</span><span class="p">:</span>
+<span class="gp">&gt;&gt;&gt; </span>          <span class="n">model</span><span class="p">:</span>
+<span class="gp">&gt;&gt;&gt; </span>            <span class="n">class_path</span><span class="p">:</span> <span class="n">model</span><span class="o">.</span><span class="n">Net</span>
+<span class="gp">&gt;&gt;&gt; </span>          <span class="n">loss</span><span class="p">:</span>
+<span class="gp">&gt;&gt;&gt; </span>            <span class="n">class_path</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">NLLLoss</span>
+<span class="gp">&gt;&gt;&gt; </span>            <span class="n">init_args</span><span class="p">:</span>
+<span class="gp">&gt;&gt;&gt; </span>              <span class="n">reduction</span><span class="p">:</span> <span class="n">mean</span>
+</pre></div>
+</div>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">itwinai.parser</span> <span class="kn">import</span> <span class="n">ConfigParser</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">parser</span> <span class="o">=</span> <span class="n">ConfigParser</span><span class="p">(</span>
+<span class="gp">&gt;&gt;&gt; </span>    <span class="n">config</span><span class="o">=</span><span class="s1">&#39;pipeline.yaml&#39;</span><span class="p">,</span>
+<span class="gp">&gt;&gt;&gt; </span>    <span class="n">override_keys</span><span class="o">=</span><span class="p">{</span>
+<span class="gp">&gt;&gt;&gt; </span>        <span class="s1">&#39;pipeline.init_args.steps.0.init_args.save_path&#39;</span><span class="p">:</span> <span class="o">/</span><span class="n">save</span><span class="o">/</span><span class="n">path</span>
+<span class="gp">&gt;&gt;&gt; </span>    <span class="p">}</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">pipeline</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">parse_pipeline</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">pipeline</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">pipeline</span><span class="o">.</span><span class="n">steps</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">dataloader</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">parse_step</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">dataloader</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">dataloader</span><span class="o">.</span><span class="n">save_path</span><span class="p">)</span>
+</pre></div>
+</div>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="itwinai.parser.ConfigParser.config">
+<span class="sig-name descname"><span class="pre">config</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Dict</span></em><a class="headerlink" href="#itwinai.parser.ConfigParser.config" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="itwinai.parser.ConfigParser.parse_pipeline">
+<span class="sig-name descname"><span class="pre">parse_pipeline</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pipeline_nested_key</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'pipeline'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="itwinai.pipeline.html#itwinai.pipeline.Pipeline" title="itwinai.pipeline.Pipeline"><span class="pre">Pipeline</span></a></span></span><a class="reference internal" href="_modules/itwinai/parser.html#ConfigParser.parse_pipeline"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#itwinai.parser.ConfigParser.parse_pipeline" title="Link to this definition"></a></dt>
+<dd><p>Merges steps into pipeline and parses it.</p>
+<dl class="simple">
+<dt>Args:</dt><dd><p>pipeline_nested_key (str, optional): nested key in the
+configuration file identifying the pipeline object.
+Defaults to “pipeline”.
+verbose (bool): if True, prints the assembled pipeline
+to console formatted as JSON.</p>
+</dd>
+<dt>Returns:</dt><dd><p>Pipeline: instantiated pipeline.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="itwinai.parser.ConfigParser.parse_step">
+<span class="sig-name descname"><span class="pre">parse_step</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">step_idx</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pipeline_nested_key</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'pipeline'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="itwinai.components.html#itwinai.components.BaseComponent" title="itwinai.components.BaseComponent"><span class="pre">BaseComponent</span></a></span></span><a class="reference internal" href="_modules/itwinai/parser.html#ConfigParser.parse_step"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#itwinai.parser.ConfigParser.parse_step" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="itwinai.parser.ConfigParser.pipeline">
+<span class="sig-name descname"><span class="pre">pipeline</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="itwinai.pipeline.html#itwinai.pipeline.Pipeline" title="itwinai.pipeline.Pipeline"><span class="pre">Pipeline</span></a></em><a class="headerlink" href="#itwinai.parser.ConfigParser.pipeline" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="itwinai.parser.add_replace_field">
+<span class="sig-prename descclassname"><span class="pre">itwinai.parser.</span></span><span class="sig-name descname"><span class="pre">add_replace_field</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">config</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">key_chain</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="_modules/itwinai/parser.html#add_replace_field"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#itwinai.parser.add_replace_field" title="Link to this definition"></a></dt>
+<dd><p>Replace or add (if not present) a field in a dictionary, following a
+path of dot-separated keys. Adding is not supported for list items.
+Inplace operation.
+Args:</p>
+<blockquote>
+<div><p>config (Dict): dictionary to be modified.
+key_chain (str): path of nested (dot-separated) keys to specify the
+location
+of the new value (e.g., ‘foo.bar.line’ adds/overwrites the value
+located at config[‘foo’][‘bar’][‘line’]).
+value (Any): the value to insert.</p>
+</div></blockquote>
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="itwinai.loggers.html" class="btn btn-neutral float-left" title="itwinai.loggers" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="itwinai.pipeline.html" class="btn btn-neutral float-right" title="itwinai.pipeline" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, Matteo Bunino, Alexander Zoechbauer, Kalliopi Tsolaki on behalf of CERN.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

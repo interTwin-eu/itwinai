@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>itwinai &mdash; itwinai 0.0.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=19f00094" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="_static/jquery.js?v=5d32c60e"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="_static/documentation_options.js?v=d45e8c67"></script>
+        <script src="_static/doctools.js?v=888ff710"></script>
+        <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="itwinai.cli" href="itwinai.cli.html" />
+    <link rel="prev" title="Getting started with itwinai" href="getting_started_with_itwinai.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            itwinai
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">💡 Installation</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="getting_started_with_itwinai.html">Getting started with itwinai</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">🪄 itwinai Modules</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">itwinai</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="itwinai.cli.html">itwinai.cli</a></li>
+<li class="toctree-l2"><a class="reference internal" href="itwinai.cluster.html">itwinai.cluster</a></li>
+<li class="toctree-l2"><a class="reference internal" href="itwinai.components.html">itwinai.components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="itwinai.loggers.html">itwinai.loggers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="itwinai.parser.html">itwinai.parser</a></li>
+<li class="toctree-l2"><a class="reference internal" href="itwinai.pipeline.html">itwinai.pipeline</a></li>
+<li class="toctree-l2"><a class="reference internal" href="itwinai.serialization.html">itwinai.serialization</a></li>
+<li class="toctree-l2"><a class="reference internal" href="itwinai.types.html">itwinai.types</a></li>
+<li class="toctree-l2"><a class="reference internal" href="itwinai.utils.html">itwinai.utils</a></li>
+<li class="toctree-l2"><a class="reference internal" href="itwinai.tf.modules.html">itwinai Tensorflow Modules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="itwinai.torch.modules.html">itwinai PyTorch Modules</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">📚 Integrated Use-cases</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="use_cases.html">Integrated Use Cases</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">🚀 Tutorials</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="tutorials.html">ML workflow tutorials</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">itwinai</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">itwinai</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/modules.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="itwinai">
+<h1>itwinai<a class="headerlink" href="#itwinai" title="Link to this heading"></a></h1>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="itwinai.cli.html">itwinai.cli</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="itwinai.cli.html#itwinai.cli.exec_pipeline"><code class="docutils literal notranslate"><span class="pre">exec_pipeline()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="itwinai.cli.html#itwinai.cli.kill_mlflow_server"><code class="docutils literal notranslate"><span class="pre">kill_mlflow_server()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="itwinai.cli.html#itwinai.cli.mlflow_server"><code class="docutils literal notranslate"><span class="pre">mlflow_server()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="itwinai.cli.html#itwinai.cli.mlflow_ui"><code class="docutils literal notranslate"><span class="pre">mlflow_ui()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="itwinai.cluster.html">itwinai.cluster</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="itwinai.cluster.html#itwinai.cluster.ClusterEnvironment"><code class="docutils literal notranslate"><span class="pre">ClusterEnvironment</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="itwinai.cluster.html#itwinai.cluster.ClusterEnvironment.backend"><code class="docutils literal notranslate"><span class="pre">ClusterEnvironment.backend</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="itwinai.cluster.html#itwinai.cluster.ClusterEnvironment.cleanup_resources"><code class="docutils literal notranslate"><span class="pre">ClusterEnvironment.cleanup_resources()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="itwinai.cluster.html#itwinai.cluster.ClusterEnvironment.distributed"><code class="docutils literal notranslate"><span class="pre">ClusterEnvironment.distributed</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="itwinai.cluster.html#itwinai.cluster.ClusterEnvironment.global_rank"><code class="docutils literal notranslate"><span class="pre">ClusterEnvironment.global_rank</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="itwinai.cluster.html#itwinai.cluster.ClusterEnvironment.global_world_size"><code class="docutils literal notranslate"><span class="pre">ClusterEnvironment.global_world_size</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="itwinai.cluster.html#itwinai.cluster.ClusterEnvironment.init_dist_gpu"><code class="docutils literal notranslate"><span class="pre">ClusterEnvironment.init_dist_gpu()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="itwinai.cluster.html#itwinai.cluster.ClusterEnvironment.is_cuda_available"><code class="docutils literal notranslate"><span class="pre">ClusterEnvironment.is_cuda_available()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="itwinai.cluster.html#itwinai.cluster.ClusterEnvironment.is_main_worker"><code class="docutils literal notranslate"><span class="pre">ClusterEnvironment.is_main_worker()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="itwinai.cluster.html#itwinai.cluster.ClusterEnvironment.local_rank"><code class="docutils literal notranslate"><span class="pre">ClusterEnvironment.local_rank</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="itwinai.cluster.html#itwinai.cluster.ClusterEnvironment.local_world_size"><code class="docutils literal notranslate"><span class="pre">ClusterEnvironment.local_world_size</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="itwinai.cluster.html#itwinai.cluster.ClusterEnvironment.ngpus_per_node"><code class="docutils literal notranslate"><span class="pre">ClusterEnvironment.ngpus_per_node</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="itwinai.cluster.html#itwinai.cluster.ClusterEnvironment.port"><code class="docutils literal notranslate"><span class="pre">ClusterEnvironment.port</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="itwinai.cluster.html#itwinai.cluster.ClusterEnvironment.rnd_seed"><code class="docutils literal notranslate"><span class="pre">ClusterEnvironment.rnd_seed</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="itwinai.cluster.html#itwinai.cluster.ClusterEnvironment.use_cuda"><code class="docutils literal notranslate"><span class="pre">ClusterEnvironment.use_cuda</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="itwinai.cluster.html#itwinai.cluster.handle_sigterm"><code class="docutils literal notranslate"><span class="pre">handle_sigterm()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="itwinai.cluster.html#itwinai.cluster.handle_sigusr1"><code class="docutils literal notranslate"><span class="pre">handle_sigusr1()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="itwinai.cluster.html#itwinai.cluster.setup_for_distributed"><code class="docutils literal notranslate"><span class="pre">setup_for_distributed()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="itwinai.components.html">itwinai.components</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="itwinai.components.html#itwinai.components.Adapter"><code class="docutils literal notranslate"><span class="pre">Adapter</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="itwinai.components.html#itwinai.components.Adapter.INPUT_PREFIX"><code class="docutils literal notranslate"><span class="pre">Adapter.INPUT_PREFIX</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="itwinai.components.html#itwinai.components.Adapter.execute"><code class="docutils literal notranslate"><span class="pre">Adapter.execute()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="itwinai.components.html#itwinai.components.Adapter.policy"><code class="docutils literal notranslate"><span class="pre">Adapter.policy</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="itwinai.components.html#itwinai.components.BaseComponent"><code class="docutils literal notranslate"><span class="pre">BaseComponent</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="itwinai.components.html#itwinai.components.BaseComponent.cleanup"><code class="docutils literal notranslate"><span class="pre">BaseComponent.cleanup()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="itwinai.components.html#itwinai.components.BaseComponent.execute"><code class="docutils literal notranslate"><span class="pre">BaseComponent.execute()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="itwinai.components.html#itwinai.components.BaseComponent.name"><code class="docutils literal notranslate"><span class="pre">BaseComponent.name</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="itwinai.components.html#itwinai.components.BaseComponent.parameters"><code class="docutils literal notranslate"><span class="pre">BaseComponent.parameters</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="itwinai.components.html#itwinai.components.DataGetter"><code class="docutils literal notranslate"><span class="pre">DataGetter</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="itwinai.components.html#itwinai.components.DataGetter.execute"><code class="docutils literal notranslate"><span class="pre">DataGetter.execute()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="itwinai.components.html#itwinai.components.DataPreproc"><code class="docutils literal notranslate"><span class="pre">DataPreproc</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="itwinai.components.html#itwinai.components.DataPreproc.execute"><code class="docutils literal notranslate"><span class="pre">DataPreproc.execute()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="itwinai.components.html#itwinai.components.DataSplitter"><code class="docutils literal notranslate"><span class="pre">DataSplitter</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="itwinai.components.html#itwinai.components.DataSplitter.execute"><code class="docutils literal notranslate"><span class="pre">DataSplitter.execute()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="itwinai.components.html#itwinai.components.DataSplitter.test_proportion"><code class="docutils literal notranslate"><span class="pre">DataSplitter.test_proportion</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="itwinai.components.html#itwinai.components.DataSplitter.train_proportion"><code class="docutils literal notranslate"><span class="pre">DataSplitter.train_proportion</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="itwinai.components.html#itwinai.components.DataSplitter.validation_proportion"><code class="docutils literal notranslate"><span class="pre">DataSplitter.validation_proportion</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="itwinai.components.html#itwinai.components.Predictor"><code class="docutils literal notranslate"><span class="pre">Predictor</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="itwinai.components.html#itwinai.components.Predictor.execute"><code class="docutils literal notranslate"><span class="pre">Predictor.execute()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="itwinai.components.html#itwinai.components.Predictor.model"><code class="docutils literal notranslate"><span class="pre">Predictor.model</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="itwinai.components.html#itwinai.components.Saver"><code class="docutils literal notranslate"><span class="pre">Saver</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="itwinai.components.html#itwinai.components.Saver.execute"><code class="docutils literal notranslate"><span class="pre">Saver.execute()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="itwinai.components.html#itwinai.components.Trainer"><code class="docutils literal notranslate"><span class="pre">Trainer</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="itwinai.components.html#itwinai.components.Trainer.execute"><code class="docutils literal notranslate"><span class="pre">Trainer.execute()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="itwinai.components.html#itwinai.components.Trainer.load_state"><code class="docutils literal notranslate"><span class="pre">Trainer.load_state()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="itwinai.components.html#itwinai.components.Trainer.save_state"><code class="docutils literal notranslate"><span class="pre">Trainer.save_state()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="itwinai.components.html#itwinai.components.monitor_exec"><code class="docutils literal notranslate"><span class="pre">monitor_exec()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="itwinai.loggers.html">itwinai.loggers</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="itwinai.loggers.html#itwinai.loggers.ConsoleLogger"><code class="docutils literal notranslate"><span class="pre">ConsoleLogger</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="itwinai.loggers.html#itwinai.loggers.ConsoleLogger.create_logger_context"><code class="docutils literal notranslate"><span class="pre">ConsoleLogger.create_logger_context()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="itwinai.loggers.html#itwinai.loggers.ConsoleLogger.destroy_logger_context"><code class="docutils literal notranslate"><span class="pre">ConsoleLogger.destroy_logger_context()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="itwinai.loggers.html#itwinai.loggers.ConsoleLogger.log"><code class="docutils literal notranslate"><span class="pre">ConsoleLogger.log()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="itwinai.loggers.html#itwinai.loggers.ConsoleLogger.save_hyperparameters"><code class="docutils literal notranslate"><span class="pre">ConsoleLogger.save_hyperparameters()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="itwinai.loggers.html#itwinai.loggers.ConsoleLogger.supported_types"><code class="docutils literal notranslate"><span class="pre">ConsoleLogger.supported_types</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="itwinai.loggers.html#itwinai.loggers.LogMixin"><code class="docutils literal notranslate"><span class="pre">LogMixin</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="itwinai.loggers.html#itwinai.loggers.LogMixin.log"><code class="docutils literal notranslate"><span class="pre">LogMixin.log()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="itwinai.loggers.html#itwinai.loggers.Logger"><code class="docutils literal notranslate"><span class="pre">Logger</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="itwinai.loggers.html#itwinai.loggers.Logger.create_logger_context"><code class="docutils literal notranslate"><span class="pre">Logger.create_logger_context()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="itwinai.loggers.html#itwinai.loggers.Logger.destroy_logger_context"><code class="docutils literal notranslate"><span class="pre">Logger.destroy_logger_context()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="itwinai.loggers.html#itwinai.loggers.Logger.log_freq"><code class="docutils literal notranslate"><span class="pre">Logger.log_freq</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="itwinai.loggers.html#itwinai.loggers.Logger.save_hyperparameters"><code class="docutils literal notranslate"><span class="pre">Logger.save_hyperparameters()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="itwinai.loggers.html#itwinai.loggers.Logger.savedir"><code class="docutils literal notranslate"><span class="pre">Logger.savedir</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="itwinai.loggers.html#itwinai.loggers.Logger.serialize"><code class="docutils literal notranslate"><span class="pre">Logger.serialize()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="itwinai.loggers.html#itwinai.loggers.Logger.should_log"><code class="docutils literal notranslate"><span class="pre">Logger.should_log()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="itwinai.loggers.html#itwinai.loggers.Logger.start_logging"><code class="docutils literal notranslate"><span class="pre">Logger.start_logging()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="itwinai.loggers.html#itwinai.loggers.Logger.supported_types"><code class="docutils literal notranslate"><span class="pre">Logger.supported_types</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="itwinai.loggers.html#itwinai.loggers.LoggersCollection"><code class="docutils literal notranslate"><span class="pre">LoggersCollection</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="itwinai.loggers.html#itwinai.loggers.LoggersCollection.log"><code class="docutils literal notranslate"><span class="pre">LoggersCollection.log()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="itwinai.loggers.html#itwinai.loggers.LoggersCollection.should_log"><code class="docutils literal notranslate"><span class="pre">LoggersCollection.should_log()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="itwinai.loggers.html#itwinai.loggers.LoggersCollection.supported_types"><code class="docutils literal notranslate"><span class="pre">LoggersCollection.supported_types</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="itwinai.loggers.html#itwinai.loggers.MLFlowLogger"><code class="docutils literal notranslate"><span class="pre">MLFlowLogger</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="itwinai.loggers.html#itwinai.loggers.MLFlowLogger.active_run"><code class="docutils literal notranslate"><span class="pre">MLFlowLogger.active_run</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="itwinai.loggers.html#itwinai.loggers.MLFlowLogger.create_logger_context"><code class="docutils literal notranslate"><span class="pre">MLFlowLogger.create_logger_context()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="itwinai.loggers.html#itwinai.loggers.MLFlowLogger.destroy_logger_context"><code class="docutils literal notranslate"><span class="pre">MLFlowLogger.destroy_logger_context()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="itwinai.loggers.html#itwinai.loggers.MLFlowLogger.log"><code class="docutils literal notranslate"><span class="pre">MLFlowLogger.log()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="itwinai.loggers.html#itwinai.loggers.MLFlowLogger.save_hyperparameters"><code class="docutils literal notranslate"><span class="pre">MLFlowLogger.save_hyperparameters()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="itwinai.loggers.html#itwinai.loggers.TensorBoardLogger"><code class="docutils literal notranslate"><span class="pre">TensorBoardLogger</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="itwinai.loggers.html#itwinai.loggers.TensorBoardLogger.create_logger_context"><code class="docutils literal notranslate"><span class="pre">TensorBoardLogger.create_logger_context()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="itwinai.loggers.html#itwinai.loggers.TensorBoardLogger.destroy_logger_context"><code class="docutils literal notranslate"><span class="pre">TensorBoardLogger.destroy_logger_context()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="itwinai.loggers.html#itwinai.loggers.TensorBoardLogger.log"><code class="docutils literal notranslate"><span class="pre">TensorBoardLogger.log()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="itwinai.loggers.html#itwinai.loggers.TensorBoardLogger.save_hyperparameters"><code class="docutils literal notranslate"><span class="pre">TensorBoardLogger.save_hyperparameters()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="itwinai.loggers.html#itwinai.loggers.TensorBoardLogger.supported_types"><code class="docutils literal notranslate"><span class="pre">TensorBoardLogger.supported_types</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="itwinai.loggers.html#itwinai.loggers.WanDBLogger"><code class="docutils literal notranslate"><span class="pre">WanDBLogger</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="itwinai.loggers.html#itwinai.loggers.WanDBLogger.create_logger_context"><code class="docutils literal notranslate"><span class="pre">WanDBLogger.create_logger_context()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="itwinai.loggers.html#itwinai.loggers.WanDBLogger.destroy_logger_context"><code class="docutils literal notranslate"><span class="pre">WanDBLogger.destroy_logger_context()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="itwinai.loggers.html#itwinai.loggers.WanDBLogger.log"><code class="docutils literal notranslate"><span class="pre">WanDBLogger.log()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="itwinai.loggers.html#itwinai.loggers.WanDBLogger.save_hyperparameters"><code class="docutils literal notranslate"><span class="pre">WanDBLogger.save_hyperparameters()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="itwinai.loggers.html#itwinai.loggers.WanDBLogger.supported_types"><code class="docutils literal notranslate"><span class="pre">WanDBLogger.supported_types</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="itwinai.parser.html">itwinai.parser</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="itwinai.parser.html#itwinai.parser.ArgumentParser"><code class="docutils literal notranslate"><span class="pre">ArgumentParser</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="itwinai.parser.html#itwinai.parser.ArgumentParser.formatter_class"><code class="docutils literal notranslate"><span class="pre">ArgumentParser.formatter_class</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="itwinai.parser.html#itwinai.parser.ConfigParser"><code class="docutils literal notranslate"><span class="pre">ConfigParser</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="itwinai.parser.html#itwinai.parser.ConfigParser.config"><code class="docutils literal notranslate"><span class="pre">ConfigParser.config</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="itwinai.parser.html#itwinai.parser.ConfigParser.parse_pipeline"><code class="docutils literal notranslate"><span class="pre">ConfigParser.parse_pipeline()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="itwinai.parser.html#itwinai.parser.ConfigParser.parse_step"><code class="docutils literal notranslate"><span class="pre">ConfigParser.parse_step()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="itwinai.parser.html#itwinai.parser.ConfigParser.pipeline"><code class="docutils literal notranslate"><span class="pre">ConfigParser.pipeline</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="itwinai.parser.html#itwinai.parser.add_replace_field"><code class="docutils literal notranslate"><span class="pre">add_replace_field()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="itwinai.pipeline.html">itwinai.pipeline</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="itwinai.pipeline.html#itwinai.pipeline.Pipeline"><code class="docutils literal notranslate"><span class="pre">Pipeline</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="itwinai.pipeline.html#itwinai.pipeline.Pipeline.execute"><code class="docutils literal notranslate"><span class="pre">Pipeline.execute()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="itwinai.pipeline.html#itwinai.pipeline.Pipeline.steps"><code class="docutils literal notranslate"><span class="pre">Pipeline.steps</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="itwinai.pipeline.html#itwinai.pipeline.Pipeline.validate_args"><code class="docutils literal notranslate"><span class="pre">Pipeline.validate_args()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="itwinai.serialization.html">itwinai.serialization</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="itwinai.serialization.html#itwinai.serialization.ModelLoader"><code class="docutils literal notranslate"><span class="pre">ModelLoader</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="itwinai.serialization.html#itwinai.serialization.Serializable"><code class="docutils literal notranslate"><span class="pre">Serializable</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="itwinai.serialization.html#itwinai.serialization.Serializable.locals2params"><code class="docutils literal notranslate"><span class="pre">Serializable.locals2params()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="itwinai.serialization.html#itwinai.serialization.Serializable.parameters"><code class="docutils literal notranslate"><span class="pre">Serializable.parameters</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="itwinai.serialization.html#itwinai.serialization.Serializable.save_parameters"><code class="docutils literal notranslate"><span class="pre">Serializable.save_parameters()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="itwinai.serialization.html#itwinai.serialization.Serializable.to_dict"><code class="docutils literal notranslate"><span class="pre">Serializable.to_dict()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="itwinai.serialization.html#itwinai.serialization.Serializable.to_json"><code class="docutils literal notranslate"><span class="pre">Serializable.to_json()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="itwinai.serialization.html#itwinai.serialization.Serializable.to_yaml"><code class="docutils literal notranslate"><span class="pre">Serializable.to_yaml()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="itwinai.serialization.html#itwinai.serialization.Serializable.update_parameters"><code class="docutils literal notranslate"><span class="pre">Serializable.update_parameters()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="itwinai.serialization.html#itwinai.serialization.SerializationError"><code class="docutils literal notranslate"><span class="pre">SerializationError</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="itwinai.serialization.html#itwinai.serialization.fullname"><code class="docutils literal notranslate"><span class="pre">fullname()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="itwinai.serialization.html#itwinai.serialization.is_jsonable"><code class="docutils literal notranslate"><span class="pre">is_jsonable()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="itwinai.types.html">itwinai.types</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="itwinai.types.html#itwinai.types.MLArtifact"><code class="docutils literal notranslate"><span class="pre">MLArtifact</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="itwinai.types.html#itwinai.types.MLDataset"><code class="docutils literal notranslate"><span class="pre">MLDataset</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="itwinai.types.html#itwinai.types.MLModel"><code class="docutils literal notranslate"><span class="pre">MLModel</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="itwinai.utils.html">itwinai.utils</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="itwinai.utils.html#itwinai.utils.SignatureInspector"><code class="docutils literal notranslate"><span class="pre">SignatureInspector</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="itwinai.utils.html#itwinai.utils.SignatureInspector.INFTY"><code class="docutils literal notranslate"><span class="pre">SignatureInspector.INFTY</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="itwinai.utils.html#itwinai.utils.SignatureInspector.has_kwargs"><code class="docutils literal notranslate"><span class="pre">SignatureInspector.has_kwargs</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="itwinai.utils.html#itwinai.utils.SignatureInspector.has_varargs"><code class="docutils literal notranslate"><span class="pre">SignatureInspector.has_varargs</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="itwinai.utils.html#itwinai.utils.SignatureInspector.max_params_num"><code class="docutils literal notranslate"><span class="pre">SignatureInspector.max_params_num</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="itwinai.utils.html#itwinai.utils.SignatureInspector.min_params_num"><code class="docutils literal notranslate"><span class="pre">SignatureInspector.min_params_num</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="itwinai.utils.html#itwinai.utils.SignatureInspector.required_params"><code class="docutils literal notranslate"><span class="pre">SignatureInspector.required_params</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="itwinai.utils.html#itwinai.utils.dynamically_import_class"><code class="docutils literal notranslate"><span class="pre">dynamically_import_class()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="itwinai.utils.html#itwinai.utils.flatten_dict"><code class="docutils literal notranslate"><span class="pre">flatten_dict()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="itwinai.utils.html#itwinai.utils.load_yaml"><code class="docutils literal notranslate"><span class="pre">load_yaml()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="itwinai.utils.html#itwinai.utils.load_yaml_with_deps"><code class="docutils literal notranslate"><span class="pre">load_yaml_with_deps()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="itwinai.utils.html#itwinai.utils.parse_pipe_config"><code class="docutils literal notranslate"><span class="pre">parse_pipe_config()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="itwinai.tf.modules.html">itwinai Tensorflow Modules</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="itwinai.tf.modules.html#trainer-py">trainer.py</a></li>
+<li class="toctree-l2"><a class="reference internal" href="itwinai.tf.modules.html#utils-py">utils.py</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="itwinai.torch.modules.html">itwinai PyTorch Modules</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="itwinai.torch.modules.html#cluster-py">cluster.py</a></li>
+<li class="toctree-l2"><a class="reference internal" href="itwinai.torch.modules.html#inference-py">inference.py</a></li>
+<li class="toctree-l2"><a class="reference internal" href="itwinai.torch.modules.html#mlflow-py">mlflow.py</a></li>
+<li class="toctree-l2"><a class="reference internal" href="itwinai.torch.modules.html#trainer-py">trainer.py</a></li>
+<li class="toctree-l2"><a class="reference internal" href="itwinai.torch.modules.html#types-py">types.py</a></li>
+<li class="toctree-l2"><a class="reference internal" href="itwinai.torch.modules.html#utils-py">utils.py</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="getting_started_with_itwinai.html" class="btn btn-neutral float-left" title="Getting started with itwinai" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="itwinai.cli.html" class="btn btn-neutral float-right" title="itwinai.cli" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, Matteo Bunino, Alexander Zoechbauer, Kalliopi Tsolaki on behalf of CERN.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

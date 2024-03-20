@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>itwinai.loggers &mdash; itwinai 0.0.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=19f00094" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="_static/jquery.js?v=5d32c60e"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="_static/documentation_options.js?v=d45e8c67"></script>
+        <script src="_static/doctools.js?v=888ff710"></script>
+        <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="itwinai.parser" href="itwinai.parser.html" />
+    <link rel="prev" title="itwinai.components" href="itwinai.components.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            itwinai
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">💡 Installation</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="getting_started_with_itwinai.html">Getting started with itwinai</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">🪄 itwinai Modules</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="modules.html">itwinai</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="itwinai.cli.html">itwinai.cli</a></li>
+<li class="toctree-l2"><a class="reference internal" href="itwinai.cluster.html">itwinai.cluster</a></li>
+<li class="toctree-l2"><a class="reference internal" href="itwinai.components.html">itwinai.components</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">itwinai.loggers</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#itwinai.loggers.ConsoleLogger"><code class="docutils literal notranslate"><span class="pre">ConsoleLogger</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#itwinai.loggers.ConsoleLogger.create_logger_context"><code class="docutils literal notranslate"><span class="pre">ConsoleLogger.create_logger_context()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#itwinai.loggers.ConsoleLogger.destroy_logger_context"><code class="docutils literal notranslate"><span class="pre">ConsoleLogger.destroy_logger_context()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#itwinai.loggers.ConsoleLogger.log"><code class="docutils literal notranslate"><span class="pre">ConsoleLogger.log()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#itwinai.loggers.ConsoleLogger.save_hyperparameters"><code class="docutils literal notranslate"><span class="pre">ConsoleLogger.save_hyperparameters()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#itwinai.loggers.ConsoleLogger.supported_types"><code class="docutils literal notranslate"><span class="pre">ConsoleLogger.supported_types</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#itwinai.loggers.LogMixin"><code class="docutils literal notranslate"><span class="pre">LogMixin</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#itwinai.loggers.LogMixin.log"><code class="docutils literal notranslate"><span class="pre">LogMixin.log()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#itwinai.loggers.Logger"><code class="docutils literal notranslate"><span class="pre">Logger</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#itwinai.loggers.Logger.create_logger_context"><code class="docutils literal notranslate"><span class="pre">Logger.create_logger_context()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#itwinai.loggers.Logger.destroy_logger_context"><code class="docutils literal notranslate"><span class="pre">Logger.destroy_logger_context()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#itwinai.loggers.Logger.log_freq"><code class="docutils literal notranslate"><span class="pre">Logger.log_freq</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#itwinai.loggers.Logger.save_hyperparameters"><code class="docutils literal notranslate"><span class="pre">Logger.save_hyperparameters()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#itwinai.loggers.Logger.savedir"><code class="docutils literal notranslate"><span class="pre">Logger.savedir</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#itwinai.loggers.Logger.serialize"><code class="docutils literal notranslate"><span class="pre">Logger.serialize()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#itwinai.loggers.Logger.should_log"><code class="docutils literal notranslate"><span class="pre">Logger.should_log()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#itwinai.loggers.Logger.start_logging"><code class="docutils literal notranslate"><span class="pre">Logger.start_logging()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#itwinai.loggers.Logger.supported_types"><code class="docutils literal notranslate"><span class="pre">Logger.supported_types</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#itwinai.loggers.LoggersCollection"><code class="docutils literal notranslate"><span class="pre">LoggersCollection</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#itwinai.loggers.LoggersCollection.log"><code class="docutils literal notranslate"><span class="pre">LoggersCollection.log()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#itwinai.loggers.LoggersCollection.should_log"><code class="docutils literal notranslate"><span class="pre">LoggersCollection.should_log()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#itwinai.loggers.LoggersCollection.supported_types"><code class="docutils literal notranslate"><span class="pre">LoggersCollection.supported_types</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#itwinai.loggers.MLFlowLogger"><code class="docutils literal notranslate"><span class="pre">MLFlowLogger</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#itwinai.loggers.MLFlowLogger.active_run"><code class="docutils literal notranslate"><span class="pre">MLFlowLogger.active_run</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#itwinai.loggers.MLFlowLogger.create_logger_context"><code class="docutils literal notranslate"><span class="pre">MLFlowLogger.create_logger_context()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#itwinai.loggers.MLFlowLogger.destroy_logger_context"><code class="docutils literal notranslate"><span class="pre">MLFlowLogger.destroy_logger_context()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#itwinai.loggers.MLFlowLogger.log"><code class="docutils literal notranslate"><span class="pre">MLFlowLogger.log()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#itwinai.loggers.MLFlowLogger.save_hyperparameters"><code class="docutils literal notranslate"><span class="pre">MLFlowLogger.save_hyperparameters()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#itwinai.loggers.TensorBoardLogger"><code class="docutils literal notranslate"><span class="pre">TensorBoardLogger</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#itwinai.loggers.TensorBoardLogger.create_logger_context"><code class="docutils literal notranslate"><span class="pre">TensorBoardLogger.create_logger_context()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#itwinai.loggers.TensorBoardLogger.destroy_logger_context"><code class="docutils literal notranslate"><span class="pre">TensorBoardLogger.destroy_logger_context()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#itwinai.loggers.TensorBoardLogger.log"><code class="docutils literal notranslate"><span class="pre">TensorBoardLogger.log()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#itwinai.loggers.TensorBoardLogger.save_hyperparameters"><code class="docutils literal notranslate"><span class="pre">TensorBoardLogger.save_hyperparameters()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#itwinai.loggers.TensorBoardLogger.supported_types"><code class="docutils literal notranslate"><span class="pre">TensorBoardLogger.supported_types</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#itwinai.loggers.WanDBLogger"><code class="docutils literal notranslate"><span class="pre">WanDBLogger</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#itwinai.loggers.WanDBLogger.create_logger_context"><code class="docutils literal notranslate"><span class="pre">WanDBLogger.create_logger_context()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#itwinai.loggers.WanDBLogger.destroy_logger_context"><code class="docutils literal notranslate"><span class="pre">WanDBLogger.destroy_logger_context()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#itwinai.loggers.WanDBLogger.log"><code class="docutils literal notranslate"><span class="pre">WanDBLogger.log()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#itwinai.loggers.WanDBLogger.save_hyperparameters"><code class="docutils literal notranslate"><span class="pre">WanDBLogger.save_hyperparameters()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#itwinai.loggers.WanDBLogger.supported_types"><code class="docutils literal notranslate"><span class="pre">WanDBLogger.supported_types</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="itwinai.parser.html">itwinai.parser</a></li>
+<li class="toctree-l2"><a class="reference internal" href="itwinai.pipeline.html">itwinai.pipeline</a></li>
+<li class="toctree-l2"><a class="reference internal" href="itwinai.serialization.html">itwinai.serialization</a></li>
+<li class="toctree-l2"><a class="reference internal" href="itwinai.types.html">itwinai.types</a></li>
+<li class="toctree-l2"><a class="reference internal" href="itwinai.utils.html">itwinai.utils</a></li>
+<li class="toctree-l2"><a class="reference internal" href="itwinai.tf.modules.html">itwinai Tensorflow Modules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="itwinai.torch.modules.html">itwinai PyTorch Modules</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">📚 Integrated Use-cases</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="use_cases.html">Integrated Use Cases</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">🚀 Tutorials</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="tutorials.html">ML workflow tutorials</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">itwinai</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="modules.html">itwinai</a></li>
+      <li class="breadcrumb-item active">itwinai.loggers</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/itwinai.loggers.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-itwinai.loggers">
+<span id="itwinai-loggers"></span><h1>itwinai.loggers<a class="headerlink" href="#module-itwinai.loggers" title="Link to this heading"></a></h1>
+<p>Abstraction for loggers.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="itwinai.loggers.ConsoleLogger">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">itwinai.loggers.</span></span><span class="sig-name descname"><span class="pre">ConsoleLogger</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">savedir</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'mllogs'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">log_freq</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'epoch'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/itwinai/loggers.html#ConsoleLogger"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#itwinai.loggers.ConsoleLogger" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#itwinai.loggers.Logger" title="itwinai.loggers.Logger"><code class="xref py py-class docutils literal notranslate"><span class="pre">Logger</span></code></a></p>
+<p>Simple logger for quick tests.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="itwinai.loggers.ConsoleLogger.create_logger_context">
+<span class="sig-name descname"><span class="pre">create_logger_context</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/itwinai/loggers.html#ConsoleLogger.create_logger_context"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#itwinai.loggers.ConsoleLogger.create_logger_context" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="itwinai.loggers.ConsoleLogger.destroy_logger_context">
+<span class="sig-name descname"><span class="pre">destroy_logger_context</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/itwinai/loggers.html#ConsoleLogger.destroy_logger_context"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#itwinai.loggers.ConsoleLogger.destroy_logger_context" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="itwinai.loggers.ConsoleLogger.log">
+<span class="sig-name descname"><span class="pre">log</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">item</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">identifier</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">kind</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'metric'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">step</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batch_idx</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="_modules/itwinai/loggers.html#ConsoleLogger.log"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#itwinai.loggers.ConsoleLogger.log" title="Link to this definition"></a></dt>
+<dd><p>Log item.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="itwinai.loggers.ConsoleLogger.save_hyperparameters">
+<span class="sig-name descname"><span class="pre">save_hyperparameters</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="_modules/itwinai/loggers.html#ConsoleLogger.save_hyperparameters"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#itwinai.loggers.ConsoleLogger.save_hyperparameters" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="itwinai.loggers.ConsoleLogger.supported_types">
+<span class="sig-name descname"><span class="pre">supported_types</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#itwinai.loggers.ConsoleLogger.supported_types" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="itwinai.loggers.LogMixin">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">itwinai.loggers.</span></span><span class="sig-name descname"><span class="pre">LogMixin</span></span><a class="reference internal" href="_modules/itwinai/loggers.html#LogMixin"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#itwinai.loggers.LogMixin" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="itwinai.loggers.LogMixin.log">
+<em class="property"><span class="pre">abstract</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">log</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">item</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">identifier</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">kind</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'metric'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">step</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batch_idx</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="_modules/itwinai/loggers.html#LogMixin.log"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#itwinai.loggers.LogMixin.log" title="Link to this definition"></a></dt>
+<dd><p>Log item.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="itwinai.loggers.Logger">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">itwinai.loggers.</span></span><span class="sig-name descname"><span class="pre">Logger</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">savedir</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'mllogs'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">log_freq</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'epoch'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/itwinai/loggers.html#Logger"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#itwinai.loggers.Logger" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#itwinai.loggers.LogMixin" title="itwinai.loggers.LogMixin"><code class="xref py py-class docutils literal notranslate"><span class="pre">LogMixin</span></code></a></p>
+<p>Base class for logger</p>
+<dl class="simple">
+<dt>Args:</dt><dd><p>savedir (str): disk location where logs are stored.</p>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="itwinai.loggers.Logger.create_logger_context">
+<em class="property"><span class="pre">abstract</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">create_logger_context</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/itwinai/loggers.html#Logger.create_logger_context"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#itwinai.loggers.Logger.create_logger_context" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="itwinai.loggers.Logger.destroy_logger_context">
+<em class="property"><span class="pre">abstract</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">destroy_logger_context</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/itwinai/loggers.html#Logger.destroy_logger_context"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#itwinai.loggers.Logger.destroy_logger_context" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="itwinai.loggers.Logger.log_freq">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">log_freq</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">str</span></em><a class="headerlink" href="#itwinai.loggers.Logger.log_freq" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="itwinai.loggers.Logger.save_hyperparameters">
+<em class="property"><span class="pre">abstract</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">save_hyperparameters</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="_modules/itwinai/loggers.html#Logger.save_hyperparameters"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#itwinai.loggers.Logger.save_hyperparameters" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="itwinai.loggers.Logger.savedir">
+<span class="sig-name descname"><span class="pre">savedir</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#itwinai.loggers.Logger.savedir" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="itwinai.loggers.Logger.serialize">
+<span class="sig-name descname"><span class="pre">serialize</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">obj</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">identifier</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="reference internal" href="_modules/itwinai/loggers.html#Logger.serialize"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#itwinai.loggers.Logger.serialize" title="Link to this definition"></a></dt>
+<dd><p>Serializes object to disk and returns its path.</p>
+<dl class="simple">
+<dt>Args:</dt><dd><p>obj (Any): item to save.
+identifier (str): identifier of the item to log (expected to be a
+path under <code class="docutils literal notranslate"><span class="pre">self.savedir</span></code>).</p>
+</dd>
+<dt>Returns:</dt><dd><p>str: local path of the serialized object to be logged.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="itwinai.loggers.Logger.should_log">
+<span class="sig-name descname"><span class="pre">should_log</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">batch_idx</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bool</span></span></span><a class="reference internal" href="_modules/itwinai/loggers.html#Logger.should_log"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#itwinai.loggers.Logger.should_log" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="itwinai.loggers.Logger.start_logging">
+<span class="sig-name descname"><span class="pre">start_logging</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/itwinai/loggers.html#Logger.start_logging"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#itwinai.loggers.Logger.start_logging" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="itwinai.loggers.Logger.supported_types">
+<span class="sig-name descname"><span class="pre">supported_types</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#itwinai.loggers.Logger.supported_types" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="itwinai.loggers.LoggersCollection">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">itwinai.loggers.</span></span><span class="sig-name descname"><span class="pre">LoggersCollection</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">loggers</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#itwinai.loggers.Logger" title="itwinai.loggers.Logger"><span class="pre">Logger</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/itwinai/loggers.html#LoggersCollection"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#itwinai.loggers.LoggersCollection" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#itwinai.loggers.Logger" title="itwinai.loggers.Logger"><code class="xref py py-class docutils literal notranslate"><span class="pre">Logger</span></code></a></p>
+<p>Contains a list of loggers. Never tested.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="itwinai.loggers.LoggersCollection.log">
+<span class="sig-name descname"><span class="pre">log</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">item</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">identifier</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">kind</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'metric'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">step</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batch_idx</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="_modules/itwinai/loggers.html#LoggersCollection.log"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#itwinai.loggers.LoggersCollection.log" title="Link to this definition"></a></dt>
+<dd><p>Log item.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="itwinai.loggers.LoggersCollection.should_log">
+<span class="sig-name descname"><span class="pre">should_log</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">batch_idx</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bool</span></span></span><a class="reference internal" href="_modules/itwinai/loggers.html#LoggersCollection.should_log"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#itwinai.loggers.LoggersCollection.should_log" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="itwinai.loggers.LoggersCollection.supported_types">
+<span class="sig-name descname"><span class="pre">supported_types</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#itwinai.loggers.LoggersCollection.supported_types" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="itwinai.loggers.MLFlowLogger">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">itwinai.loggers.</span></span><span class="sig-name descname"><span class="pre">MLFlowLogger</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">savedir</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'mllogs'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">experiment_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'unk_experiment'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tracking_uri</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">run_description</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">log_freq</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'epoch'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/itwinai/loggers.html#MLFlowLogger"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#itwinai.loggers.MLFlowLogger" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#itwinai.loggers.Logger" title="itwinai.loggers.Logger"><code class="xref py py-class docutils literal notranslate"><span class="pre">Logger</span></code></a></p>
+<p>Abstraction for MLFlow logger.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="itwinai.loggers.MLFlowLogger.active_run">
+<span class="sig-name descname"><span class="pre">active_run</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">mlflow.ActiveRun</span></em><a class="headerlink" href="#itwinai.loggers.MLFlowLogger.active_run" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="itwinai.loggers.MLFlowLogger.create_logger_context">
+<span class="sig-name descname"><span class="pre">create_logger_context</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/itwinai/loggers.html#MLFlowLogger.create_logger_context"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#itwinai.loggers.MLFlowLogger.create_logger_context" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="itwinai.loggers.MLFlowLogger.destroy_logger_context">
+<span class="sig-name descname"><span class="pre">destroy_logger_context</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/itwinai/loggers.html#MLFlowLogger.destroy_logger_context"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#itwinai.loggers.MLFlowLogger.destroy_logger_context" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="itwinai.loggers.MLFlowLogger.log">
+<span class="sig-name descname"><span class="pre">log</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">item</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">identifier</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">kind</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'metric'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">step</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batch_idx</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="_modules/itwinai/loggers.html#MLFlowLogger.log"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#itwinai.loggers.MLFlowLogger.log" title="Link to this definition"></a></dt>
+<dd><p>Log with MLFlow.</p>
+<dl>
+<dt>Args:</dt><dd><dl class="simple">
+<dt>item (Union[Any, List[Any]]): element to be logged (e.g., metric,</dt><dd><p>image, artifact…).</p>
+</dd>
+<dt>identifier (Union[str, List[str]]): unique identifier for the</dt><dd><p>element to log(e.g., name of a metric, artifact path).</p>
+</dd>
+<dt>kind (str, optional): type of the item to be logged. Must be one</dt><dd><p>among the list of self.supported_types. Defaults to ‘metric’.</p>
+</dd>
+</dl>
+<p>step (Optional[int], optional): logging step. Defaults to None.
+batch_idx (Optional[int], optional): batch counter (i.e., batch</p>
+<blockquote>
+<div><p>idx). Defaults to None.</p>
+</div></blockquote>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="itwinai.loggers.MLFlowLogger.save_hyperparameters">
+<span class="sig-name descname"><span class="pre">save_hyperparameters</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="_modules/itwinai/loggers.html#MLFlowLogger.save_hyperparameters"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#itwinai.loggers.MLFlowLogger.save_hyperparameters" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="itwinai.loggers.TensorBoardLogger">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">itwinai.loggers.</span></span><span class="sig-name descname"><span class="pre">TensorBoardLogger</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">savedir</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'mllogs'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">log_freq</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'epoch'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/itwinai/loggers.html#TensorBoardLogger"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#itwinai.loggers.TensorBoardLogger" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#itwinai.loggers.Logger" title="itwinai.loggers.Logger"><code class="xref py py-class docutils literal notranslate"><span class="pre">Logger</span></code></a></p>
+<p>Abstraction for Tensorboard logger.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="itwinai.loggers.TensorBoardLogger.create_logger_context">
+<span class="sig-name descname"><span class="pre">create_logger_context</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/itwinai/loggers.html#TensorBoardLogger.create_logger_context"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#itwinai.loggers.TensorBoardLogger.create_logger_context" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="itwinai.loggers.TensorBoardLogger.destroy_logger_context">
+<span class="sig-name descname"><span class="pre">destroy_logger_context</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/itwinai/loggers.html#TensorBoardLogger.destroy_logger_context"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#itwinai.loggers.TensorBoardLogger.destroy_logger_context" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="itwinai.loggers.TensorBoardLogger.log">
+<span class="sig-name descname"><span class="pre">log</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">item</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">identifier</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">kind</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'metric'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">step</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batch_idx</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="_modules/itwinai/loggers.html#TensorBoardLogger.log"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#itwinai.loggers.TensorBoardLogger.log" title="Link to this definition"></a></dt>
+<dd><p>Log with Tensorboard.</p>
+<dl>
+<dt>Args:</dt><dd><dl class="simple">
+<dt>item (Union[Any, List[Any]]): element to be logged (e.g., metric,</dt><dd><p>image, artifact…).</p>
+</dd>
+<dt>identifier (Union[str, List[str]]): unique identifier for the</dt><dd><p>element to log(e.g., name of a metric, artifact path).</p>
+</dd>
+<dt>kind (str, optional): type of the item to be logged. Must be one</dt><dd><p>among the list of self.supported_types. Defaults to ‘metric’.</p>
+</dd>
+</dl>
+<p>step (Optional[int], optional): logging step. Defaults to None.
+batch_idx (Optional[int], optional): batch counter (i.e., batch</p>
+<blockquote>
+<div><p>idx). Defaults to None.</p>
+</div></blockquote>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="itwinai.loggers.TensorBoardLogger.save_hyperparameters">
+<span class="sig-name descname"><span class="pre">save_hyperparameters</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="_modules/itwinai/loggers.html#TensorBoardLogger.save_hyperparameters"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#itwinai.loggers.TensorBoardLogger.save_hyperparameters" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="itwinai.loggers.TensorBoardLogger.supported_types">
+<span class="sig-name descname"><span class="pre">supported_types</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#itwinai.loggers.TensorBoardLogger.supported_types" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="itwinai.loggers.WanDBLogger">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">itwinai.loggers.</span></span><span class="sig-name descname"><span class="pre">WanDBLogger</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">savedir</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'mllogs'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">project_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'unk_experiment'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">log_freq</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'epoch'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/itwinai/loggers.html#WanDBLogger"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#itwinai.loggers.WanDBLogger" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#itwinai.loggers.Logger" title="itwinai.loggers.Logger"><code class="xref py py-class docutils literal notranslate"><span class="pre">Logger</span></code></a></p>
+<p>Abstraction for WandB logger.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="itwinai.loggers.WanDBLogger.create_logger_context">
+<span class="sig-name descname"><span class="pre">create_logger_context</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/itwinai/loggers.html#WanDBLogger.create_logger_context"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#itwinai.loggers.WanDBLogger.create_logger_context" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="itwinai.loggers.WanDBLogger.destroy_logger_context">
+<span class="sig-name descname"><span class="pre">destroy_logger_context</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/itwinai/loggers.html#WanDBLogger.destroy_logger_context"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#itwinai.loggers.WanDBLogger.destroy_logger_context" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="itwinai.loggers.WanDBLogger.log">
+<span class="sig-name descname"><span class="pre">log</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">item</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">identifier</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">kind</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'metric'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">step</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batch_idx</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="_modules/itwinai/loggers.html#WanDBLogger.log"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#itwinai.loggers.WanDBLogger.log" title="Link to this definition"></a></dt>
+<dd><p>Log with WandB. Wrapper of <a class="reference external" href="https://docs.wandb.ai/ref/python/log">https://docs.wandb.ai/ref/python/log</a></p>
+<dl>
+<dt>Args:</dt><dd><dl class="simple">
+<dt>item (Union[Any, List[Any]]): element to be logged (e.g., metric,</dt><dd><p>image, artifact…).</p>
+</dd>
+<dt>identifier (Union[str, List[str]]): unique identifier for the</dt><dd><p>element to log(e.g., name of a metric, artifact path).</p>
+</dd>
+<dt>kind (str, optional): type of the item to be logged. Must be one</dt><dd><p>among the list of self.supported_types. Defaults to ‘metric’.</p>
+</dd>
+</dl>
+<p>step (Optional[int], optional): logging step. Defaults to None.
+batch_idx (Optional[int], optional): batch counter (i.e., batch</p>
+<blockquote>
+<div><p>idx). Defaults to None.</p>
+</div></blockquote>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="itwinai.loggers.WanDBLogger.save_hyperparameters">
+<span class="sig-name descname"><span class="pre">save_hyperparameters</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="_modules/itwinai/loggers.html#WanDBLogger.save_hyperparameters"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#itwinai.loggers.WanDBLogger.save_hyperparameters" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="itwinai.loggers.WanDBLogger.supported_types">
+<span class="sig-name descname"><span class="pre">supported_types</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#itwinai.loggers.WanDBLogger.supported_types" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="itwinai.components.html" class="btn btn-neutral float-left" title="itwinai.components" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="itwinai.parser.html" class="btn btn-neutral float-right" title="itwinai.parser" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, Matteo Bunino, Alexander Zoechbauer, Kalliopi Tsolaki on behalf of CERN.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

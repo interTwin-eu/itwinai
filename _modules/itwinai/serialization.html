@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>itwinai.serialization &mdash; itwinai 0.0.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=19f00094" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../../_static/documentation_options.js?v=d45e8c67"></script>
+        <script src="../../_static/doctools.js?v=888ff710"></script>
+        <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            itwinai
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">💡 Installation</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../getting_started_with_itwinai.html">Getting started with itwinai</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">🪄 itwinai Modules</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../modules.html">itwinai</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">📚 Integrated Use-cases</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../use_cases.html">Integrated Use Cases</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">🚀 Tutorials</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../tutorials.html">ML workflow tutorials</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">itwinai</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">itwinai.serialization</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for itwinai.serialization</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Union</span>
+<span class="kn">import</span> <span class="nn">abc</span>
+<span class="kn">import</span> <span class="nn">json</span>
+<span class="kn">import</span> <span class="nn">yaml</span>
+<span class="kn">from</span> <span class="nn">pathlib</span> <span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">import</span> <span class="nn">inspect</span>
+
+<span class="kn">from</span> <span class="nn">.types</span> <span class="kn">import</span> <span class="n">MLModel</span>
+<span class="kn">from</span> <span class="nn">.utils</span> <span class="kn">import</span> <span class="n">SignatureInspector</span>
+
+
+<div class="viewcode-block" id="is_jsonable">
+<a class="viewcode-back" href="../../itwinai.serialization.html#itwinai.serialization.is_jsonable">[docs]</a>
+<span class="k">def</span> <span class="nf">is_jsonable</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="k">return</span> <span class="kc">True</span>
+    <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">False</span></div>
+
+
+
+<div class="viewcode-block" id="fullname">
+<a class="viewcode-back" href="../../itwinai.serialization.html#itwinai.serialization.fullname">[docs]</a>
+<span class="k">def</span> <span class="nf">fullname</span><span class="p">(</span><span class="n">o</span><span class="p">):</span>
+    <span class="n">klass</span> <span class="o">=</span> <span class="n">o</span><span class="o">.</span><span class="vm">__class__</span>
+    <span class="n">module</span> <span class="o">=</span> <span class="n">klass</span><span class="o">.</span><span class="vm">__module__</span>
+    <span class="k">if</span> <span class="n">module</span> <span class="o">==</span> <span class="s1">&#39;builtins&#39;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">klass</span><span class="o">.</span><span class="vm">__qualname__</span>  <span class="c1"># avoid outputs like &#39;builtins.str&#39;</span>
+    <span class="k">return</span> <span class="n">module</span> <span class="o">+</span> <span class="s1">&#39;.&#39;</span> <span class="o">+</span> <span class="n">klass</span><span class="o">.</span><span class="vm">__qualname__</span></div>
+
+
+
+<div class="viewcode-block" id="SerializationError">
+<a class="viewcode-back" href="../../itwinai.serialization.html#itwinai.serialization.SerializationError">[docs]</a>
+<span class="k">class</span> <span class="nc">SerializationError</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+    <span class="o">...</span></div>
+
+
+
+<div class="viewcode-block" id="Serializable">
+<a class="viewcode-back" href="../../itwinai.serialization.html#itwinai.serialization.Serializable">[docs]</a>
+<span class="k">class</span> <span class="nc">Serializable</span><span class="p">:</span>
+    <span class="n">parameters</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+
+<div class="viewcode-block" id="Serializable.save_parameters">
+<a class="viewcode-back" href="../../itwinai.serialization.html#itwinai.serialization.Serializable.save_parameters">[docs]</a>
+    <span class="k">def</span> <span class="nf">save_parameters</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Simplified way to store constructor arguments in as class</span>
+<span class="sd">        attributes. Keeps track of the parameters to enable</span>
+<span class="sd">        YAML/JSON serialization.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+
+        <span class="c1"># for k, v in kwargs.items():</span>
+        <span class="c1">#     self.__setattr__(k, v)</span>
+
+<div class="viewcode-block" id="Serializable.locals2params">
+<a class="viewcode-back" href="../../itwinai.serialization.html#itwinai.serialization.Serializable.locals2params">[docs]</a>
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">locals2params</span><span class="p">(</span><span class="nb">locals</span><span class="p">:</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">pop_self</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Remove ``self`` from the output of ``locals()``.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            locals (Dict): output of ``locals()`` called in the constructor</span>
+<span class="sd">            of a class.</span>
+<span class="sd">            pop_self (bool, optional): whether to remove ``self``.</span>
+<span class="sd">            Defaults to True.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Dict: cleaned ``locals()``.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">pop_self</span><span class="p">:</span>
+            <span class="nb">locals</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;self&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nb">locals</span></div>
+
+
+<div class="viewcode-block" id="Serializable.update_parameters">
+<a class="viewcode-back" href="../../itwinai.serialization.html#itwinai.serialization.Serializable.update_parameters">[docs]</a>
+    <span class="k">def</span> <span class="nf">update_parameters</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Updates stored parameters.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">save_parameters</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Serializable.to_dict">
+<a class="viewcode-back" href="../../itwinai.serialization.html#itwinai.serialization.Serializable.to_dict">[docs]</a>
+    <span class="k">def</span> <span class="nf">to_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Returns a dict serialization of the current object.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_validate_parameters</span><span class="p">()</span>
+        <span class="n">class_path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_class_path</span><span class="p">()</span>
+        <span class="n">init_args</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">par_name</span><span class="p">,</span> <span class="n">par</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_saved_constructor_parameters</span><span class="p">()</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">init_args</span><span class="p">[</span><span class="n">par_name</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_recursive_serialization</span><span class="p">(</span><span class="n">par</span><span class="p">,</span> <span class="n">par_name</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nb">dict</span><span class="p">(</span><span class="n">class_path</span><span class="o">=</span><span class="n">class_path</span><span class="p">,</span> <span class="n">init_args</span><span class="o">=</span><span class="n">init_args</span><span class="p">)</span></div>
+
+
+    <span class="k">def</span> <span class="nf">_validate_parameters</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">SerializationError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2"> cannot be serialized &quot;</span>
+                <span class="s2">&quot;because its constructor arguments were not saved. &quot;</span>
+                <span class="s2">&quot;Please add &#39;self.save_parameters(param_1=param_1, &quot;</span>
+                <span class="s2">&quot;..., param_n=param_n)&#39; as first instruction of its &quot;</span>
+                <span class="s2">&quot;constructor.&quot;</span>
+            <span class="p">)</span>
+
+        <span class="n">init_inspector</span> <span class="o">=</span> <span class="n">SignatureInspector</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="fm">__init__</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">par_name</span> <span class="ow">in</span> <span class="n">init_inspector</span><span class="o">.</span><span class="n">required_params</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">par_name</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">SerializationError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;Required parameter &#39;</span><span class="si">{</span><span class="n">par_name</span><span class="si">}</span><span class="s2">&#39; of &quot;</span>
+                    <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2"> class not present in &quot;</span>
+                    <span class="s2">&quot;saved parameters. &quot;</span>
+                    <span class="s2">&quot;Please add &#39;self.save_parameters(param_1=param_1, &quot;</span>
+                    <span class="s2">&quot;..., param_n=param_n)&#39; as first instruction of its &quot;</span>
+                    <span class="sa">f</span><span class="s2">&quot;constructor, including also &#39;</span><span class="si">{</span><span class="n">par_name</span><span class="si">}</span><span class="s2">&#39;.&quot;</span>
+                <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_get_class_path</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="n">class_path</span> <span class="o">=</span> <span class="n">fullname</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="k">if</span> <span class="s2">&quot;&lt;locals&gt;&quot;</span> <span class="ow">in</span> <span class="n">class_path</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">SerializationError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2"> is &quot;</span>
+                <span class="s2">&quot;defined locally, which is not supported for serialization. &quot;</span>
+                <span class="s2">&quot;Move the class to a separate Python file and import it &quot;</span>
+                <span class="s2">&quot;from there.&quot;</span>
+            <span class="p">)</span>
+        <span class="k">return</span> <span class="n">class_path</span>
+
+    <span class="k">def</span> <span class="nf">_saved_constructor_parameters</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Extracts the current constructor parameters from all</span>
+<span class="sd">        the saved parameters, as some of them may had been added by</span>
+<span class="sd">        superclasses.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Dict[str, Any]: subset of saved parameters containing only</span>
+<span class="sd">            the constructor parameters for this class.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">init_params</span> <span class="o">=</span> <span class="n">inspect</span><span class="o">.</span><span class="n">signature</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="fm">__init__</span><span class="p">)</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+        <span class="n">init_par_nam</span> <span class="o">=</span> <span class="nb">map</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">init_params</span><span class="p">)</span>
+        <span class="k">return</span> <span class="p">{</span>
+            <span class="n">par_name</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="n">par_name</span><span class="p">]</span> <span class="k">for</span> <span class="n">par_name</span> <span class="ow">in</span> <span class="n">init_par_nam</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">par_name</span><span class="p">,</span> <span class="n">inspect</span><span class="o">.</span><span class="n">_empty</span><span class="p">)</span> <span class="o">!=</span> <span class="n">inspect</span><span class="o">.</span><span class="n">_empty</span>
+        <span class="p">}</span>
+
+    <span class="k">def</span> <span class="nf">_recursive_serialization</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">item</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">item_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="p">(</span><span class="nb">tuple</span><span class="p">,</span> <span class="nb">list</span><span class="p">,</span> <span class="nb">set</span><span class="p">)):</span>
+            <span class="k">return</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_recursive_serialization</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">item_name</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">item</span><span class="p">]</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+            <span class="k">return</span> <span class="p">{</span>
+                <span class="n">k</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_recursive_serialization</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">item_name</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">item</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+            <span class="p">}</span>
+        <span class="k">elif</span> <span class="n">is_jsonable</span><span class="p">(</span><span class="n">item</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">item</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="n">Serializable</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">item</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">SerializationError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2"> cannot be serialized &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;because its constructor argument &#39;</span><span class="si">{</span><span class="n">item_name</span><span class="si">}</span><span class="s2">&#39; &quot;</span>
+                <span class="s2">&quot;is not a Python built-in type and it does not &quot;</span>
+                <span class="s2">&quot;extend &#39;itwinai.serialization.Serializable&#39; class.&quot;</span>
+            <span class="p">)</span>
+
+<div class="viewcode-block" id="Serializable.to_json">
+<a class="viewcode-back" href="../../itwinai.serialization.html#itwinai.serialization.Serializable.to_json">[docs]</a>
+    <span class="k">def</span> <span class="nf">to_json</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">file_path</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Path</span><span class="p">],</span> <span class="n">nested_key</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Save a component to JSON file.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            file_path (Union[str, Path]): JSON file path.</span>
+<span class="sd">            nested_key (str): root field containing the serialized object.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">file_path</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">fp</span><span class="p">:</span>
+            <span class="n">json</span><span class="o">.</span><span class="n">dump</span><span class="p">({</span><span class="n">nested_key</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()},</span> <span class="n">fp</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Serializable.to_yaml">
+<a class="viewcode-back" href="../../itwinai.serialization.html#itwinai.serialization.Serializable.to_yaml">[docs]</a>
+    <span class="k">def</span> <span class="nf">to_yaml</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">file_path</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Path</span><span class="p">],</span> <span class="n">nested_key</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Save a component to YAML file.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            file_path (Union[str, Path]): YAML file path.</span>
+<span class="sd">            nested_key (str): root field containing the serialized object.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">file_path</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">fp</span><span class="p">:</span>
+            <span class="n">yaml</span><span class="o">.</span><span class="n">dump</span><span class="p">({</span><span class="n">nested_key</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()},</span> <span class="n">fp</span><span class="p">)</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="ModelLoader">
+<a class="viewcode-back" href="../../itwinai.serialization.html#itwinai.serialization.ModelLoader">[docs]</a>
+<span class="k">class</span> <span class="nc">ModelLoader</span><span class="p">(</span><span class="n">abc</span><span class="o">.</span><span class="n">ABC</span><span class="p">,</span> <span class="n">Serializable</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Loads a machine learning model from somewhere.&quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model_uri</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">model_uri</span> <span class="o">=</span> <span class="n">model_uri</span>
+
+    <span class="nd">@abc</span><span class="o">.</span><span class="n">abstractmethod</span>
+    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">MLModel</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Loads model from model URI.&quot;&quot;&quot;</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, Matteo Bunino, Alexander Zoechbauer, Kalliopi Tsolaki on behalf of CERN.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

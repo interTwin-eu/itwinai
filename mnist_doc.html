@@ -1,0 +1,1019 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MNIST &mdash; itwinai 0.0.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=19f00094" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="_static/jquery.js?v=5d32c60e"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="_static/documentation_options.js?v=d45e8c67"></script>
+        <script src="_static/doctools.js?v=888ff710"></script>
+        <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="ML workflow tutorials" href="tutorials.html" />
+    <link rel="prev" title="3DGAN" href="3dgan_doc.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            itwinai
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">💡 Installation</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="getting_started_with_itwinai.html">Getting started with itwinai</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">🪄 itwinai Modules</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="modules.html">itwinai</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">📚 Integrated Use-cases</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="use_cases.html">Integrated Use Cases</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="use_cases.html#dgan-cern-use-case">3DGAN CERN use case</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="use_cases.html#mnist-use-case">MNIST use case</a><ul class="current">
+<li class="toctree-l3 current"><a class="current reference internal" href="#">MNIST</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#torch-lightning">torch-lightning</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#torch">torch</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">🚀 Tutorials</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="tutorials.html">ML workflow tutorials</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">itwinai</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="use_cases.html">Integrated Use Cases</a></li>
+      <li class="breadcrumb-item active">MNIST</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/mnist_doc.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="mnist">
+<h1>MNIST<a class="headerlink" href="#mnist" title="Link to this heading"></a></h1>
+<p>This section covers the MNIST use case, which utilizes the <cite>torch-lightning</cite> framework for training and evaluation. The following files are integral to this use case:</p>
+<section id="torch-lightning">
+<h2>torch-lightning<a class="headerlink" href="#torch-lightning" title="Link to this heading"></a></h2>
+<div class="toctree-wrapper compound">
+</div>
+<section id="dataloader-py">
+<h3>dataloader.py<a class="headerlink" href="#dataloader-py" title="Link to this heading"></a></h3>
+<p>The <cite>dataloader.py</cite> script is responsible for loading the MNIST dataset and preparing it for training.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Optional</span>
+<span class="kn">import</span> <span class="nn">lightning</span> <span class="k">as</span> <span class="nn">L</span>
+
+<span class="kn">from</span> <span class="nn">torchvision.datasets</span> <span class="kn">import</span> <span class="n">MNIST</span>
+<span class="kn">from</span> <span class="nn">torch.utils.data</span> <span class="kn">import</span> <span class="n">DataLoader</span><span class="p">,</span> <span class="n">random_split</span>
+<span class="kn">from</span> <span class="nn">torchvision</span> <span class="kn">import</span> <span class="n">transforms</span>
+
+<span class="kn">from</span> <span class="nn">itwinai.components</span> <span class="kn">import</span> <span class="n">DataGetter</span><span class="p">,</span> <span class="n">monitor_exec</span>
+
+
+<span class="k">class</span> <span class="nc">LightningMNISTDownloader</span><span class="p">(</span><span class="n">DataGetter</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">data_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">save_parameters</span><span class="p">(</span><span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">locals2params</span><span class="p">(</span><span class="nb">locals</span><span class="p">()))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data_path</span> <span class="o">=</span> <span class="n">data_path</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_downloader</span> <span class="o">=</span> <span class="n">MNISTDataModule</span><span class="p">(</span>
+            <span class="n">data_path</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">data_path</span><span class="p">,</span> <span class="n">download</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="c1"># Mock other args...</span>
+            <span class="n">batch_size</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">train_prop</span><span class="o">=</span><span class="mf">.5</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="nd">@monitor_exec</span>
+    <span class="k">def</span> <span class="nf">execute</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="c1"># Simulate dataset creation to force data download</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_downloader</span><span class="o">.</span><span class="n">setup</span><span class="p">(</span><span class="n">stage</span><span class="o">=</span><span class="s1">&#39;fit&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_downloader</span><span class="o">.</span><span class="n">setup</span><span class="p">(</span><span class="n">stage</span><span class="o">=</span><span class="s1">&#39;test&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_downloader</span><span class="o">.</span><span class="n">setup</span><span class="p">(</span><span class="n">stage</span><span class="o">=</span><span class="s1">&#39;predict&#39;</span><span class="p">)</span>
+
+
+<span class="k">class</span> <span class="nc">MNISTDataModule</span><span class="p">(</span><span class="n">L</span><span class="o">.</span><span class="n">LightningModule</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">data_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">batch_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">train_prop</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+        <span class="n">download</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data_path</span> <span class="o">=</span> <span class="n">data_path</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">download</span> <span class="o">=</span> <span class="n">download</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">batch_size</span> <span class="o">=</span> <span class="n">batch_size</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">train_prop</span> <span class="o">=</span> <span class="n">train_prop</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">transform</span> <span class="o">=</span> <span class="n">transforms</span><span class="o">.</span><span class="n">Compose</span><span class="p">(</span>
+            <span class="p">[</span>
+                <span class="n">transforms</span><span class="o">.</span><span class="n">ToTensor</span><span class="p">(),</span>
+                <span class="n">transforms</span><span class="o">.</span><span class="n">Normalize</span><span class="p">((</span><span class="mf">0.1307</span><span class="p">,),</span> <span class="p">(</span><span class="mf">0.3081</span><span class="p">,)),</span>
+            <span class="p">]</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">setup</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">stage</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">stage</span> <span class="o">==</span> <span class="s2">&quot;fit&quot;</span><span class="p">:</span>
+            <span class="n">mnist_full</span> <span class="o">=</span> <span class="n">MNIST</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">data_path</span><span class="p">,</span> <span class="n">train</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                <span class="n">download</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">download</span><span class="p">,</span>
+                <span class="n">transform</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">transform</span>
+            <span class="p">)</span>
+            <span class="n">n_train_samples</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">train_prop</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">mnist_full</span><span class="p">))</span>
+            <span class="n">n_val_samples</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">mnist_full</span><span class="p">)</span> <span class="o">-</span> <span class="n">n_train_samples</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">mnist_train</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">mnist_val</span> <span class="o">=</span> <span class="n">random_split</span><span class="p">(</span>
+                <span class="n">mnist_full</span><span class="p">,</span> <span class="p">[</span><span class="n">n_train_samples</span><span class="p">,</span> <span class="n">n_val_samples</span><span class="p">]</span>
+            <span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">stage</span> <span class="o">==</span> <span class="s2">&quot;test&quot;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">mnist_test</span> <span class="o">=</span> <span class="n">MNIST</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">data_path</span><span class="p">,</span> <span class="n">train</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                <span class="n">download</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">download</span><span class="p">,</span>
+                <span class="n">transform</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">transform</span>
+            <span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">stage</span> <span class="o">==</span> <span class="s2">&quot;predict&quot;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">mnist_predict</span> <span class="o">=</span> <span class="n">MNIST</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">data_path</span><span class="p">,</span> <span class="n">train</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                <span class="n">download</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">download</span><span class="p">,</span>
+                <span class="n">transform</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">transform</span>
+            <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">train_dataloader</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">DataLoader</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">mnist_train</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">num_workers</span><span class="o">=</span><span class="mi">4</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">val_dataloader</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">DataLoader</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">mnist_val</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">num_workers</span><span class="o">=</span><span class="mi">4</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">test_dataloader</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">DataLoader</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">mnist_test</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">num_workers</span><span class="o">=</span><span class="mi">4</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">predict_dataloader</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">DataLoader</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">mnist_predict</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">num_workers</span><span class="o">=</span><span class="mi">4</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="pipeline-yaml">
+<h3>pipeline.yaml<a class="headerlink" href="#pipeline-yaml" title="Link to this heading"></a></h3>
+<p>This YAML file defines the pipeline configuration for the MNIST use case. It includes settings for the model, training, and evaluation.</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">pipeline</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">class_path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">itwinai.pipeline.Pipeline</span>
+<span class="w">  </span><span class="nt">init_args</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">steps</span><span class="p">:</span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">class_path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">dataloader.LightningMNISTDownloader</span>
+<span class="w">        </span><span class="nt">init_args</span><span class="p">:</span>
+<span class="w">          </span><span class="nt">data_path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">data/</span>
+
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">class_path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">trainer.LightningMNISTTrainer</span>
+<span class="w">        </span><span class="nt">init_args</span><span class="p">:</span>
+<span class="w">          </span><span class="c1"># Pytorch lightning config for training</span>
+<span class="w">          </span><span class="nt">config</span><span class="p">:</span>
+<span class="w">            </span><span class="nt">seed_everything</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">4231162351</span>
+<span class="w">            </span><span class="nt">trainer</span><span class="p">:</span>
+<span class="w">              </span><span class="nt">accelerator</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">auto</span>
+<span class="w">              </span><span class="nt">accumulate_grad_batches</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1</span>
+<span class="w">              </span><span class="nt">barebones</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span>
+<span class="w">              </span><span class="nt">benchmark</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">null</span>
+<span class="w">              </span><span class="nt">callbacks</span><span class="p">:</span>
+<span class="w">                </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">class_path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">lightning.pytorch.callbacks.early_stopping.EarlyStopping</span>
+<span class="w">                  </span><span class="nt">init_args</span><span class="p">:</span>
+<span class="w">                    </span><span class="nt">monitor</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">val_loss</span>
+<span class="w">                    </span><span class="nt">patience</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">2</span>
+<span class="w">                </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">class_path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">lightning.pytorch.callbacks.lr_monitor.LearningRateMonitor</span>
+<span class="w">                  </span><span class="nt">init_args</span><span class="p">:</span>
+<span class="w">                    </span><span class="nt">logging_interval</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">step</span>
+<span class="w">                </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">class_path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">lightning.pytorch.callbacks.ModelCheckpoint</span>
+<span class="w">                  </span><span class="nt">init_args</span><span class="p">:</span>
+<span class="w">                    </span><span class="nt">dirpath</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">checkpoints</span>
+<span class="w">                    </span><span class="nt">filename</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">best-checkpoint</span>
+<span class="w">                    </span><span class="nt">mode</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">min</span>
+<span class="w">                    </span><span class="nt">monitor</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">val_loss</span>
+<span class="w">                    </span><span class="nt">save_top_k</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1</span>
+<span class="w">                    </span><span class="nt">verbose</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+<span class="w">              </span><span class="nt">check_val_every_n_epoch</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1</span>
+<span class="w">              </span><span class="nt">default_root_dir</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">null</span>
+<span class="w">              </span><span class="nt">detect_anomaly</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span>
+<span class="w">              </span><span class="nt">deterministic</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">null</span>
+<span class="w">              </span><span class="nt">devices</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">auto</span>
+<span class="w">              </span><span class="nt">enable_checkpointing</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">null</span>
+<span class="w">              </span><span class="nt">enable_model_summary</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">null</span>
+<span class="w">              </span><span class="nt">enable_progress_bar</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">null</span>
+<span class="w">              </span><span class="nt">fast_dev_run</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span>
+<span class="w">              </span><span class="nt">gradient_clip_algorithm</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">null</span>
+<span class="w">              </span><span class="nt">gradient_clip_val</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">null</span>
+<span class="w">              </span><span class="nt">inference_mode</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+<span class="w">              </span><span class="nt">limit_predict_batches</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">null</span>
+<span class="w">              </span><span class="nt">limit_test_batches</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">null</span>
+<span class="w">              </span><span class="nt">limit_train_batches</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">null</span>
+<span class="w">              </span><span class="nt">limit_val_batches</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">null</span>
+<span class="w">              </span><span class="nt">log_every_n_steps</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">null</span>
+<span class="w">              </span><span class="nt">logger</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">null</span>
+<span class="w">              </span><span class="nt">max_epochs</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">5</span>
+<span class="w">              </span><span class="nt">max_steps</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">-1</span>
+<span class="w">              </span><span class="nt">max_time</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">null</span>
+<span class="w">              </span><span class="nt">min_epochs</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">null</span>
+<span class="w">              </span><span class="nt">min_steps</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">null</span>
+<span class="w">              </span><span class="nt">num_sanity_val_steps</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">null</span>
+<span class="w">              </span><span class="nt">overfit_batches</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.0</span>
+<span class="w">              </span><span class="nt">plugins</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">null</span>
+<span class="w">              </span><span class="nt">profiler</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">null</span>
+<span class="w">              </span><span class="nt">reload_dataloaders_every_n_epochs</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0</span>
+<span class="w">              </span><span class="nt">strategy</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">auto</span>
+<span class="w">              </span><span class="nt">sync_batchnorm</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span>
+<span class="w">              </span><span class="nt">use_distributed_sampler</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+<span class="w">              </span><span class="nt">val_check_interval</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">null</span>
+
+<span class="w">            </span><span class="c1"># Lightning Model configuration</span>
+<span class="w">            </span><span class="nt">model</span><span class="p">:</span>
+<span class="w">              </span><span class="nt">class_path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">itwinai.torch.models.mnist.MNISTModel</span>
+<span class="w">              </span><span class="nt">init_args</span><span class="p">:</span>
+<span class="w">                </span><span class="nt">hidden_size</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">64</span>
+
+<span class="w">            </span><span class="c1"># Lightning data module configuration</span>
+<span class="w">            </span><span class="nt">data</span><span class="p">:</span>
+<span class="w">              </span><span class="nt">class_path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">dataloader.MNISTDataModule</span>
+<span class="w">              </span><span class="nt">init_args</span><span class="p">:</span>
+<span class="w">                </span><span class="nt">batch_size</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">32</span>
+<span class="w">                </span><span class="nt">data_path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">data/</span>
+<span class="w">                </span><span class="nt">download</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span>
+<span class="w">                </span><span class="nt">train_prop</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.8</span>
+
+<span class="w">            </span><span class="c1"># Torch Optimizer configuration</span>
+<span class="w">            </span><span class="nt">optimizer</span><span class="p">:</span>
+<span class="w">              </span><span class="nt">class_path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">torch.optim.AdamW</span>
+<span class="w">              </span><span class="nt">init_args</span><span class="p">:</span>
+<span class="w">                </span><span class="nt">lr</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.001</span>
+
+<span class="w">            </span><span class="c1"># Torch LR scheduler configuration</span>
+<span class="w">            </span><span class="nt">lr_scheduler</span><span class="p">:</span>
+<span class="w">              </span><span class="nt">class_path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">torch.optim.lr_scheduler.ExponentialLR</span>
+<span class="w">              </span><span class="nt">init_args</span><span class="p">:</span>
+<span class="w">                </span><span class="nt">gamma</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.1</span>
+</pre></div>
+</div>
+</section>
+<section id="startscript">
+<h3>startscript<a class="headerlink" href="#startscript" title="Link to this heading"></a></h3>
+<p>The <cite>startscript</cite> is a shell script to initiate the training process. It sets up the environment and starts the training using the <cite>train.py</cite> script.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="ch">#!/bin/bash</span>
+
+<span class="c1"># general configuration of the job</span>
+<span class="c1">#SBATCH --job-name=PrototypeTest</span>
+<span class="c1">#SBATCH --account=intertwin</span>
+<span class="c1">#SBATCH --mail-user=</span>
+<span class="c1">#SBATCH --mail-type=ALL</span>
+<span class="c1">#SBATCH --output=job.out</span>
+<span class="c1">#SBATCH --error=job.err</span>
+<span class="c1">#SBATCH --time=00:30:00</span>
+
+<span class="c1"># configure node and process count on the CM</span>
+<span class="c1">#SBATCH --partition=batch</span>
+<span class="c1">#SBATCH --nodes=1</span>
+<span class="c1">#SBATCH --ntasks-per-node=1</span>
+<span class="c1">#SBATCH --cpus-per-task=4</span>
+<span class="c1">#SBATCH --gpus-per-node=4</span>
+
+<span class="c1">#SBATCH --exclusive</span>
+
+<span class="c1"># gres options have to be disabled for deepv</span>
+<span class="c1">#SBATCH --gres=gpu:4</span>
+
+<span class="c1"># load modules</span>
+ml<span class="w"> </span>--force<span class="w"> </span>purge
+ml<span class="w"> </span>Stages/2023<span class="w"> </span>StdEnv/2023<span class="w"> </span>NVHPC/23.1<span class="w"> </span>OpenMPI/4.1.4<span class="w"> </span>cuDNN/8.6.0.163-CUDA-11.7<span class="w"> </span>Python/3.10.4<span class="w"> </span>HDF5<span class="w"> </span>libaio/0.3.112<span class="w"> </span>GCC/11.3.0
+
+<span class="c1"># shellcheck source=/dev/null</span>
+<span class="nb">source</span><span class="w"> </span>~/.bashrc
+
+<span class="c1"># ON LOGIN NODE download datasets:</span>
+<span class="c1"># $ micromamba run -p ../../../.venv-pytorch python train.py -p pipeline.yaml --download-only</span>
+
+srun<span class="w"> </span>micromamba<span class="w"> </span>run<span class="w"> </span>-p<span class="w"> </span>../../../.venv-pytorch<span class="w"> </span>python<span class="w"> </span>train.py<span class="w"> </span>-p<span class="w"> </span>pipeline.yaml
+</pre></div>
+</div>
+</section>
+<section id="train-py">
+<h3>train.py<a class="headerlink" href="#train-py" title="Link to this heading"></a></h3>
+<p>This script contains the training loop and is where the model is trained using the data prepared by <cite>dataloader.py</cite>.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Training pipeline. To run this script, use the following commands.</span>
+
+<span class="sd">On login node:</span>
+
+<span class="sd">&gt;&gt;&gt; micromamba run -p ../../../.venv-pytorch/ \</span>
+<span class="sd">    python train.py -p pipeline.yaml -d</span>
+
+<span class="sd">On compute nodes:</span>
+
+<span class="sd">&gt;&gt;&gt; micromamba run -p ../../../.venv-pytorch/ \</span>
+<span class="sd">    python train.py -p pipeline.yaml</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">argparse</span>
+
+<span class="kn">from</span> <span class="nn">itwinai.parser</span> <span class="kn">import</span> <span class="n">ConfigParser</span>
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+    <span class="n">parser</span> <span class="o">=</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">()</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;-p&quot;</span><span class="p">,</span> <span class="s2">&quot;--pipeline&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span> <span class="n">required</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s1">&#39;Configuration file to the pipeline to execute.&#39;</span>
+    <span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s1">&#39;-d&#39;</span><span class="p">,</span> <span class="s1">&#39;--download-only&#39;</span><span class="p">,</span>
+        <span class="n">action</span><span class="o">=</span><span class="n">argparse</span><span class="o">.</span><span class="n">BooleanOptionalAction</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="p">(</span><span class="s1">&#39;Whether to download only the dataset and exit execution &#39;</span>
+              <span class="s1">&#39;(suggested on login nodes of HPC systems)&#39;</span><span class="p">)</span>
+    <span class="p">)</span>
+    <span class="n">args</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">parse_args</span><span class="p">()</span>
+
+    <span class="c1"># Create parser for the pipeline</span>
+    <span class="n">pipe_parser</span> <span class="o">=</span> <span class="n">ConfigParser</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">pipeline</span><span class="p">)</span>
+    <span class="n">pipeline</span> <span class="o">=</span> <span class="n">pipe_parser</span><span class="o">.</span><span class="n">parse_pipeline</span><span class="p">()</span>
+
+    <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">download_only</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Downloading datasets and exiting...&#39;</span><span class="p">)</span>
+        <span class="n">pipeline</span> <span class="o">=</span> <span class="n">pipeline</span><span class="p">[:</span><span class="mi">1</span><span class="p">]</span>
+
+    <span class="n">pipeline</span><span class="o">.</span><span class="n">execute</span><span class="p">()</span>
+</pre></div>
+</div>
+</section>
+<section id="trainer-py">
+<h3>trainer.py<a class="headerlink" href="#trainer-py" title="Link to this heading"></a></h3>
+<p>The <cite>trainer.py</cite> file defines the <cite>Trainer</cite> class which sets up the training parameters and the training process.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Union</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Any</span>
+
+<span class="kn">from</span> <span class="nn">itwinai.components</span> <span class="kn">import</span> <span class="n">Trainer</span><span class="p">,</span> <span class="n">monitor_exec</span>
+<span class="kn">from</span> <span class="nn">itwinai.torch.models.mnist</span> <span class="kn">import</span> <span class="n">MNISTModel</span>
+<span class="kn">from</span> <span class="nn">dataloader</span> <span class="kn">import</span> <span class="n">MNISTDataModule</span>
+<span class="kn">from</span> <span class="nn">lightning.pytorch.cli</span> <span class="kn">import</span> <span class="n">LightningCLI</span>
+<span class="kn">from</span> <span class="nn">utils</span> <span class="kn">import</span> <span class="n">load_yaml</span>
+
+
+<span class="k">class</span> <span class="nc">LightningMNISTTrainer</span><span class="p">(</span><span class="n">Trainer</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">config</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Dict</span><span class="p">,</span> <span class="nb">str</span><span class="p">]):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">save_parameters</span><span class="p">(</span><span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">locals2params</span><span class="p">(</span><span class="nb">locals</span><span class="p">()))</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">and</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">config</span><span class="p">):</span>
+            <span class="c1"># Load from YAML</span>
+            <span class="n">config</span> <span class="o">=</span> <span class="n">load_yaml</span><span class="p">(</span><span class="n">config</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">conf</span> <span class="o">=</span> <span class="n">config</span>
+
+    <span class="nd">@monitor_exec</span>
+    <span class="k">def</span> <span class="nf">execute</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+        <span class="n">cli</span> <span class="o">=</span> <span class="n">LightningCLI</span><span class="p">(</span>
+            <span class="n">args</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">conf</span><span class="p">,</span>
+            <span class="n">model_class</span><span class="o">=</span><span class="n">MNISTModel</span><span class="p">,</span>
+            <span class="n">datamodule_class</span><span class="o">=</span><span class="n">MNISTDataModule</span><span class="p">,</span>
+            <span class="n">run</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+            <span class="n">save_config_kwargs</span><span class="o">=</span><span class="p">{</span>
+                <span class="s2">&quot;overwrite&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+                <span class="s2">&quot;config_filename&quot;</span><span class="p">:</span> <span class="s2">&quot;pl-training.yml&quot;</span><span class="p">,</span>
+            <span class="p">},</span>
+            <span class="n">subclass_mode_model</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="n">subclass_mode_data</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">cli</span><span class="o">.</span><span class="n">trainer</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">cli</span><span class="o">.</span><span class="n">model</span><span class="p">,</span> <span class="n">datamodule</span><span class="o">=</span><span class="n">cli</span><span class="o">.</span><span class="n">datamodule</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">save_state</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">save_state</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">load_state</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">load_state</span><span class="p">()</span>
+</pre></div>
+</div>
+</section>
+<section id="utils-py">
+<h3>utils.py<a class="headerlink" href="#utils-py" title="Link to this heading"></a></h3>
+<p>The <cite>utils.py</cite> script includes utility functions and classes that are used across the MNIST use case.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Utilities for itwinai package.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">yaml</span>
+
+<span class="kn">from</span> <span class="nn">collections.abc</span> <span class="kn">import</span> <span class="n">MutableMapping</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Dict</span>
+<span class="kn">from</span> <span class="nn">omegaconf</span> <span class="kn">import</span> <span class="n">OmegaConf</span>
+<span class="kn">from</span> <span class="nn">omegaconf.dictconfig</span> <span class="kn">import</span> <span class="n">DictConfig</span>
+
+
+<span class="k">def</span> <span class="nf">load_yaml</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Load YAML file as dict.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        path (str): path to YAML file.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        exc: yaml.YAMLError for loading/parsing errors.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Dict: nested dict representation of parsed YAML file.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">&quot;utf-8&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">yaml_file</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">loaded_config</span> <span class="o">=</span> <span class="n">yaml</span><span class="o">.</span><span class="n">safe_load</span><span class="p">(</span><span class="n">yaml_file</span><span class="p">)</span>
+        <span class="k">except</span> <span class="n">yaml</span><span class="o">.</span><span class="n">YAMLError</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">exc</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="n">exc</span>
+    <span class="k">return</span> <span class="n">loaded_config</span>
+
+
+<span class="k">def</span> <span class="nf">load_yaml_with_deps_from_file</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DictConfig</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Load YAML file with OmegaConf and merge it with its dependencies</span>
+<span class="sd">    specified in the `conf-dependencies` field.</span>
+<span class="sd">    Assume that the dependencies live in the same folder of the</span>
+<span class="sd">    YAML file which is importing them.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        path (str): path to YAML file.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        exc: yaml.YAMLError for loading/parsing errors.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        DictConfig: nested representation of parsed YAML file.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">yaml_conf</span> <span class="o">=</span> <span class="n">load_yaml</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+    <span class="n">use_case_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+    <span class="n">deps</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">if</span> <span class="n">yaml_conf</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;conf-dependencies&quot;</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">dependency</span> <span class="ow">in</span> <span class="n">yaml_conf</span><span class="p">[</span><span class="s2">&quot;conf-dependencies&quot;</span><span class="p">]:</span>
+            <span class="n">deps</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">load_yaml</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">use_case_dir</span><span class="p">,</span> <span class="n">dependency</span><span class="p">)))</span>
+
+    <span class="k">return</span> <span class="n">OmegaConf</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="n">yaml_conf</span><span class="p">,</span> <span class="o">*</span><span class="n">deps</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">load_yaml_with_deps_from_dict</span><span class="p">(</span><span class="n">dict_conf</span><span class="p">,</span> <span class="n">use_case_dir</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DictConfig</span><span class="p">:</span>
+    <span class="n">deps</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="k">if</span> <span class="n">dict_conf</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;conf-dependencies&quot;</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">dependency</span> <span class="ow">in</span> <span class="n">dict_conf</span><span class="p">[</span><span class="s2">&quot;conf-dependencies&quot;</span><span class="p">]:</span>
+            <span class="n">deps</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">load_yaml</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">use_case_dir</span><span class="p">,</span> <span class="n">dependency</span><span class="p">)))</span>
+
+    <span class="k">return</span> <span class="n">OmegaConf</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="n">dict_conf</span><span class="p">,</span> <span class="o">*</span><span class="n">deps</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">dynamically_import_class</span><span class="p">(</span><span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Dynamically import class by module path.</span>
+<span class="sd">    Adapted from https://stackoverflow.com/a/547867</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        name (str): path to the class (e.g., mypackage.mymodule.MyClass)</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        __class__: class object.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">module</span><span class="p">,</span> <span class="n">class_name</span> <span class="o">=</span> <span class="n">name</span><span class="o">.</span><span class="n">rsplit</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="n">mod</span> <span class="o">=</span> <span class="nb">__import__</span><span class="p">(</span><span class="n">module</span><span class="p">,</span> <span class="n">fromlist</span><span class="o">=</span><span class="p">[</span><span class="n">class_name</span><span class="p">])</span>
+    <span class="n">klass</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">mod</span><span class="p">,</span> <span class="n">class_name</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">klass</span>
+
+
+<span class="k">def</span> <span class="nf">flatten_dict</span><span class="p">(</span>
+    <span class="n">d</span><span class="p">:</span> <span class="n">MutableMapping</span><span class="p">,</span> <span class="n">parent_key</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">sep</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;.&quot;</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">MutableMapping</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Flatten dictionary</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        d (MutableMapping): nested dictionary to flatten</span>
+<span class="sd">        parent_key (str, optional): prefix for all keys. Defaults to &#39;&#39;.</span>
+<span class="sd">        sep (str, optional): separator for nested key concatenation.</span>
+<span class="sd">            Defaults to &#39;.&#39;.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        MutableMapping: flattened dictionary with new keys.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">items</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">d</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="n">new_key</span> <span class="o">=</span> <span class="n">parent_key</span> <span class="o">+</span> <span class="n">sep</span> <span class="o">+</span> <span class="n">k</span> <span class="k">if</span> <span class="n">parent_key</span> <span class="k">else</span> <span class="n">k</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">MutableMapping</span><span class="p">):</span>
+            <span class="n">items</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">flatten_dict</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">new_key</span><span class="p">,</span> <span class="n">sep</span><span class="o">=</span><span class="n">sep</span><span class="p">)</span><span class="o">.</span><span class="n">items</span><span class="p">())</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">items</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">new_key</span><span class="p">,</span> <span class="n">v</span><span class="p">))</span>
+    <span class="k">return</span> <span class="nb">dict</span><span class="p">(</span><span class="n">items</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>This section covers the MNIST use case, which utilizes the <cite>torch</cite> framework for training and evaluation. The following files are integral to this use case:</p>
+</section>
+</section>
+<section id="torch">
+<h2>torch<a class="headerlink" href="#torch" title="Link to this heading"></a></h2>
+<div class="toctree-wrapper compound">
+</div>
+<section id="id1">
+<h3>dataloader.py<a class="headerlink" href="#id1" title="Link to this heading"></a></h3>
+<p>The <cite>dataloader.py</cite> script is responsible for loading the MNIST dataset and preparing it for training.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="sd">&quot;&quot;&quot;Dataloader for Torch-based MNIST use case.&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Any</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">shutil</span>
+
+<span class="kn">from</span> <span class="nn">PIL</span> <span class="kn">import</span> <span class="n">Image</span>
+<span class="kn">from</span> <span class="nn">torch.utils.data</span> <span class="kn">import</span> <span class="n">Dataset</span>
+<span class="kn">from</span> <span class="nn">torchvision</span> <span class="kn">import</span> <span class="n">transforms</span><span class="p">,</span> <span class="n">datasets</span>
+
+<span class="kn">from</span> <span class="nn">itwinai.components</span> <span class="kn">import</span> <span class="n">DataGetter</span><span class="p">,</span> <span class="n">monitor_exec</span>
+
+
+<span class="k">class</span> <span class="nc">MNISTDataModuleTorch</span><span class="p">(</span><span class="n">DataGetter</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Download MNIST dataset for torch.&quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">save_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;.tmp/&#39;</span><span class="p">,)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">save_parameters</span><span class="p">(</span><span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">locals2params</span><span class="p">(</span><span class="nb">locals</span><span class="p">()))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">save_path</span> <span class="o">=</span> <span class="n">save_path</span>
+
+    <span class="nd">@monitor_exec</span>
+    <span class="k">def</span> <span class="nf">execute</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Dataset</span><span class="p">,</span> <span class="n">Dataset</span><span class="p">]:</span>
+        <span class="n">train_dataset</span> <span class="o">=</span> <span class="n">datasets</span><span class="o">.</span><span class="n">MNIST</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">save_path</span><span class="p">,</span> <span class="n">train</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">download</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="n">transform</span><span class="o">=</span><span class="n">transforms</span><span class="o">.</span><span class="n">Compose</span><span class="p">([</span>
+                <span class="n">transforms</span><span class="o">.</span><span class="n">ToTensor</span><span class="p">(),</span>
+                <span class="n">transforms</span><span class="o">.</span><span class="n">Normalize</span><span class="p">((</span><span class="mf">0.1307</span><span class="p">,),</span> <span class="p">(</span><span class="mf">0.3081</span><span class="p">,))</span>
+            <span class="p">]))</span>
+        <span class="n">validation_dataset</span> <span class="o">=</span> <span class="n">datasets</span><span class="o">.</span><span class="n">MNIST</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">save_path</span><span class="p">,</span> <span class="n">train</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">download</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="n">transform</span><span class="o">=</span><span class="n">transforms</span><span class="o">.</span><span class="n">Compose</span><span class="p">([</span>
+                <span class="n">transforms</span><span class="o">.</span><span class="n">ToTensor</span><span class="p">(),</span>
+                <span class="n">transforms</span><span class="o">.</span><span class="n">Normalize</span><span class="p">((</span><span class="mf">0.1307</span><span class="p">,),</span> <span class="p">(</span><span class="mf">0.3081</span><span class="p">,))</span>
+            <span class="p">]))</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Train and validation datasets loaded.&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">train_dataset</span><span class="p">,</span> <span class="n">validation_dataset</span>
+
+
+<span class="k">class</span> <span class="nc">InferenceMNIST</span><span class="p">(</span><span class="n">Dataset</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Loads a set of MNIST images from a folder of JPG files.&quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">root</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">transform</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Callable</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">supported_format</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;.jpg&#39;</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">root</span> <span class="o">=</span> <span class="n">root</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">transform</span> <span class="o">=</span> <span class="n">transform</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">supported_format</span> <span class="o">=</span> <span class="n">supported_format</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_load</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">_load</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">img_file</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">listdir</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">root</span><span class="p">):</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">img_file</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">supported_format</span><span class="p">):</span>
+                <span class="k">continue</span>
+            <span class="n">filename</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">img_file</span><span class="p">)</span>
+            <span class="n">img</span> <span class="o">=</span> <span class="n">Image</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">root</span><span class="p">,</span> <span class="n">img_file</span><span class="p">))</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">filename</span><span class="p">]</span> <span class="o">=</span> <span class="n">img</span>
+
+    <span class="k">def</span> <span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Args:</span>
+<span class="sd">            index (int): Index</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            tuple: (image_identifier, image) where image_identifier</span>
+<span class="sd">                is the unique identifier for the image (e.g., filename).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">img_id</span><span class="p">,</span> <span class="n">img</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">items</span><span class="p">())[</span><span class="n">index</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">transform</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">img</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">img</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">img_id</span><span class="p">,</span> <span class="n">img</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">generate_jpg_sample</span><span class="p">(</span>
+        <span class="n">root</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">max_items</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">100</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Generate a sample dataset of JPG images starting from</span>
+<span class="sd">            LeCun&#39;s test dataset.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            root (str): sample path on disk</span>
+<span class="sd">            max_items (int, optional): max number of images to</span>
+<span class="sd">                generate. Defaults to 100.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">root</span><span class="p">):</span>
+            <span class="n">shutil</span><span class="o">.</span><span class="n">rmtree</span><span class="p">(</span><span class="n">root</span><span class="p">)</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">root</span><span class="p">)</span>
+
+        <span class="n">test_data</span> <span class="o">=</span> <span class="n">datasets</span><span class="o">.</span><span class="n">MNIST</span><span class="p">(</span><span class="n">root</span><span class="o">=</span><span class="s1">&#39;.tmp&#39;</span><span class="p">,</span> <span class="n">train</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">download</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="p">(</span><span class="n">img</span><span class="p">,</span> <span class="n">_</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">test_data</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">idx</span> <span class="o">&gt;=</span> <span class="n">max_items</span><span class="p">:</span>
+                <span class="k">break</span>
+            <span class="n">savepath</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">root</span><span class="p">,</span> <span class="sa">f</span><span class="s1">&#39;digit_</span><span class="si">{</span><span class="n">idx</span><span class="si">}</span><span class="s1">.jpg&#39;</span><span class="p">)</span>
+            <span class="n">img</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">savepath</span><span class="p">)</span>
+
+
+<span class="k">class</span> <span class="nc">MNISTPredictLoader</span><span class="p">(</span><span class="n">DataGetter</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">test_data_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">save_parameters</span><span class="p">(</span><span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">locals2params</span><span class="p">(</span><span class="nb">locals</span><span class="p">()))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">test_data_path</span> <span class="o">=</span> <span class="n">test_data_path</span>
+
+    <span class="nd">@monitor_exec</span>
+    <span class="k">def</span> <span class="nf">execute</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dataset</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">InferenceMNIST</span><span class="p">(</span>
+            <span class="n">root</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">test_data_path</span><span class="p">,</span>
+            <span class="n">transform</span><span class="o">=</span><span class="n">transforms</span><span class="o">.</span><span class="n">Compose</span><span class="p">([</span>
+                <span class="n">transforms</span><span class="o">.</span><span class="n">ToTensor</span><span class="p">(),</span>
+                <span class="n">transforms</span><span class="o">.</span><span class="n">Normalize</span><span class="p">((</span><span class="mf">0.1307</span><span class="p">,),</span> <span class="p">(</span><span class="mf">0.3081</span><span class="p">,))</span>
+            <span class="p">]))</span>
+</pre></div>
+</div>
+</section>
+<section id="dockerfile">
+<h3>Dockerfile<a class="headerlink" href="#dockerfile" title="Link to this heading"></a></h3>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>FROM<span class="w"> </span>python:3.9.12
+
+WORKDIR<span class="w"> </span>/usr/src/app
+
+<span class="c1"># Install pytorch (cpuonly)</span>
+<span class="c1"># Ref:https://pytorch.org/get-started/previous-versions/#linux-and-windows-5</span>
+RUN<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>--no-cache-dir<span class="w"> </span><span class="nv">torch</span><span class="o">==</span><span class="m">1</span>.13.1+cpu<span class="w"> </span><span class="nv">torchvision</span><span class="o">==</span><span class="m">0</span>.14.1+cpu<span class="w"> </span><span class="nv">torchaudio</span><span class="o">==</span><span class="m">0</span>.13.1<span class="w"> </span>--extra-index-url<span class="w"> </span>https://download.pytorch.org/whl/cpu
+
+<span class="c1"># Install itwinai and dependencies</span>
+COPY<span class="w"> </span>pyproject.toml<span class="w"> </span>./
+COPY<span class="w"> </span>src<span class="w"> </span>./
+RUN<span class="w">  </span>pip<span class="w"> </span>install<span class="w"> </span>--no-cache-dir<span class="w"> </span>.
+
+<span class="c1"># Add torch MNIST use case</span>
+COPY<span class="w"> </span>use-cases/mnist/torch/*<span class="w"> </span>./
+
+<span class="c1"># Run inference</span>
+CMD<span class="w"> </span><span class="o">[</span><span class="w"> </span><span class="s2">&quot;python&quot;</span>,<span class="w"> </span><span class="s2">&quot;train.py&quot;</span>,<span class="w"> </span><span class="s2">&quot;-p&quot;</span>,<span class="w"> </span><span class="s2">&quot;inference-pipeline.yaml&quot;</span><span class="o">]</span>
+</pre></div>
+</div>
+</section>
+<section id="inference-pipeline-yaml">
+<h3>inference-pipeline.yaml<a class="headerlink" href="#inference-pipeline-yaml" title="Link to this heading"></a></h3>
+<p>This YAML file defines the pipeline configuration for the MNIST use case inference.</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">pipeline</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">class_path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">itwinai.pipeline.Pipeline</span>
+<span class="w">  </span><span class="nt">init_args</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">steps</span><span class="p">:</span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">class_path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">dataloader.MNISTPredictLoader</span>
+<span class="w">        </span><span class="nt">init_args</span><span class="p">:</span>
+<span class="w">          </span><span class="nt">test_data_path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">/usr/data/mnist-sample-data</span>
+
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">class_path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">itwinai.torch.inference.MulticlassTorchPredictor</span>
+<span class="w">        </span><span class="nt">init_args</span><span class="p">:</span><span class="w"> </span>
+<span class="w">          </span><span class="nt">model</span><span class="p">:</span>
+<span class="w">            </span><span class="nt">class_path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">itwinai.torch.inference.TorchModelLoader</span>
+<span class="w">            </span><span class="nt">init_args</span><span class="p">:</span>
+<span class="w">              </span><span class="nt">model_uri</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">mnist-pre-trained.pth</span>
+<span class="w">          </span><span class="nt">test_dataloader_kwargs</span><span class="p">:</span>
+<span class="w">            </span><span class="nt">batch_size</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">3</span>
+<span class="w">      </span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">class_path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">saver.TorchMNISTLabelSaver</span>
+<span class="w">        </span><span class="nt">init_args</span><span class="p">:</span>
+<span class="w">          </span><span class="nt">save_dir</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">/usr/data/mnist-predictions</span>
+<span class="w">          </span><span class="nt">predictions_file</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">predictions.csv</span>
+<span class="w">          </span><span class="nt">class_labels</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">null</span>
+</pre></div>
+</div>
+</section>
+<section id="model-py">
+<h3>model.py<a class="headerlink" href="#model-py" title="Link to this heading"></a></h3>
+<p>The <cite>model.py</cite> script is responsible for loading a simple model.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">torch</span> <span class="kn">import</span> <span class="n">nn</span>
+<span class="kn">import</span> <span class="nn">torch.nn.functional</span> <span class="k">as</span> <span class="nn">F</span>
+
+
+<span class="k">class</span> <span class="nc">Net</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">Net</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">conv1</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Conv2d</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="n">kernel_size</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">conv2</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Conv2d</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mi">20</span><span class="p">,</span> <span class="n">kernel_size</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">conv2_drop</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Dropout2d</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fc1</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="mi">320</span><span class="p">,</span> <span class="mi">50</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fc2</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="mi">10</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">relu</span><span class="p">(</span><span class="n">F</span><span class="o">.</span><span class="n">max_pool2d</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">conv1</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="mi">2</span><span class="p">))</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">relu</span><span class="p">(</span><span class="n">F</span><span class="o">.</span><span class="n">max_pool2d</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">conv2_drop</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">conv2</span><span class="p">(</span><span class="n">x</span><span class="p">)),</span> <span class="mi">2</span><span class="p">))</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">320</span><span class="p">)</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">relu</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fc1</span><span class="p">(</span><span class="n">x</span><span class="p">))</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">dropout</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">training</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">training</span><span class="p">)</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fc2</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">F</span><span class="o">.</span><span class="n">log_softmax</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="id2">
+<h3>pipeline.yaml<a class="headerlink" href="#id2" title="Link to this heading"></a></h3>
+<p>This YAML file defines the pipeline configuration for the MNIST use case. It includes settings for the model, training, and evaluation.</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">pipeline</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">class_path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">itwinai.pipeline.Pipeline</span>
+<span class="w">  </span><span class="nt">init_args</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">steps</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">dataloading_step</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">class_path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">dataloader.MNISTDataModuleTorch</span>
+<span class="w">        </span><span class="nt">init_args</span><span class="p">:</span>
+<span class="w">          </span><span class="nt">save_path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">.tmp/</span>
+
+<span class="w">      </span><span class="nt">training_step</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">class_path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">itwinai.torch.trainer.TorchTrainerMG</span>
+<span class="w">        </span><span class="nt">init_args</span><span class="p">:</span>
+<span class="w">          </span><span class="nt">model</span><span class="p">:</span>
+<span class="w">            </span><span class="nt">class_path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">model.Net</span>
+<span class="w">          </span><span class="nt">loss</span><span class="p">:</span>
+<span class="w">            </span><span class="nt">class_path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">torch.nn.NLLLoss</span>
+<span class="w">            </span><span class="nt">init_args</span><span class="p">:</span>
+<span class="w">              </span><span class="nt">reduction</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">mean</span>
+<span class="w">          </span><span class="nt">optimizer_class</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">torch.optim.SGD</span>
+<span class="w">          </span><span class="nt">optimizer_kwargs</span><span class="p">:</span><span class="w"> </span>
+<span class="w">            </span><span class="nt">lr</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.001</span>
+<span class="w">          </span><span class="nt">train_dataloader_kwargs</span><span class="p">:</span>
+<span class="w">            </span><span class="nt">batch_size</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">32</span>
+<span class="w">            </span><span class="nt">pin_memory</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">True</span>
+<span class="w">            </span><span class="nt">shuffle</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">True</span>
+<span class="w">          </span><span class="nt">validation_dataloader_kwargs</span><span class="p">:</span>
+<span class="w">            </span><span class="nt">batch_size</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">32</span>
+<span class="w">            </span><span class="nt">pin_memory</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">True</span>
+<span class="w">            </span><span class="nt">shuffle</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">False</span>
+<span class="w">          </span><span class="nt">epochs</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">2</span>
+<span class="w">          </span><span class="nt">train_metrics</span><span class="p">:</span>
+<span class="w">            </span><span class="nt">accuracy</span><span class="p">:</span>
+<span class="w">              </span><span class="nt">class_path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">torchmetrics.classification.MulticlassAccuracy</span>
+<span class="w">              </span><span class="nt">init_args</span><span class="p">:</span>
+<span class="w">                </span><span class="nt">num_classes</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">10</span>
+<span class="w">            </span><span class="nt">precision</span><span class="p">:</span>
+<span class="w">              </span><span class="nt">class_path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">torchmetrics.classification.MulticlassPrecision</span>
+<span class="w">              </span><span class="nt">init_args</span><span class="p">:</span>
+<span class="w">                </span><span class="nt">num_classes</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">10</span>
+<span class="w">            </span><span class="nt">recall</span><span class="p">:</span>
+<span class="w">              </span><span class="nt">class_path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">torchmetrics.classification.MulticlassRecall</span>
+<span class="w">              </span><span class="nt">init_args</span><span class="p">:</span>
+<span class="w">                </span><span class="nt">num_classes</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">10</span>
+<span class="w">          </span><span class="nt">logger</span><span class="p">:</span><span class="w"> </span>
+<span class="w">            </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">class_path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">itwinai.loggers.ConsoleLogger</span>
+<span class="w">            </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">class_path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">itwinai.loggers.MLFlowLogger</span>
+<span class="w">              </span><span class="nt">init_args</span><span class="p">:</span>
+<span class="w">                </span><span class="nt">experiment_name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">MNIST classifier</span>
+<span class="w">                </span><span class="nt">log_freq</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">batch</span><span class="w"> </span>
+<span class="w">          </span><span class="nt">strategy</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ddp</span>
+<span class="w">          </span><span class="nt">checkpoint_every</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1</span>
+<span class="w">          </span><span class="nt">cluster</span><span class="p">:</span>
+<span class="w">            </span><span class="nt">class_path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">itwinai.torch.cluster.LocalCluster</span>
+<span class="w">            </span><span class="nt">init_args</span><span class="p">:</span>
+<span class="w">              </span><span class="nt">gpus</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;0,1,2&#39;</span>
+<span class="w">              </span><span class="nt">backend</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">nccl</span>
+</pre></div>
+</div>
+</section>
+<section id="id3">
+<h3>startscript<a class="headerlink" href="#id3" title="Link to this heading"></a></h3>
+<p>The <cite>startscript</cite> is a shell script to initiate the training process. It sets up the environment and starts the training using the <cite>train.py</cite> script.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="ch">#!/bin/bash</span>
+
+<span class="c1"># general configuration of the job</span>
+<span class="c1">#SBATCH --job-name=PrototypeTest</span>
+<span class="c1">#SBATCH --account=intertwin</span>
+<span class="c1">#SBATCH --mail-user=</span>
+<span class="c1">#SBATCH --mail-type=ALL</span>
+<span class="c1">#SBATCH --output=job.out</span>
+<span class="c1">#SBATCH --error=job.err</span>
+<span class="c1">#SBATCH --time=00:30:00</span>
+
+<span class="c1"># configure node and process count on the CM</span>
+<span class="c1">#SBATCH --partition=batch</span>
+<span class="c1">#SBATCH --nodes=1</span>
+<span class="c1">#SBATCH --ntasks-per-node=1</span>
+<span class="c1">#SBATCH --cpus-per-task=4</span>
+<span class="c1">#SBATCH --gpus-per-node=4</span>
+
+<span class="c1">#SBATCH --exclusive</span>
+
+<span class="c1"># gres options have to be disabled for deepv</span>
+<span class="c1">#SBATCH --gres=gpu:4</span>
+
+<span class="c1"># load modules</span>
+ml<span class="w"> </span>--force<span class="w"> </span>purge
+ml<span class="w"> </span>Stages/2023<span class="w"> </span>StdEnv/2023<span class="w"> </span>NVHPC/23.1<span class="w"> </span>OpenMPI/4.1.4<span class="w"> </span>cuDNN/8.6.0.163-CUDA-11.7<span class="w"> </span>Python/3.10.4<span class="w"> </span>HDF5<span class="w"> </span>libaio/0.3.112<span class="w"> </span>GCC/11.3.0
+
+<span class="c1"># shellcheck source=/dev/null</span>
+<span class="nb">source</span><span class="w"> </span>~/.bashrc
+
+<span class="c1"># ON LOGIN NODE download datasets:</span>
+<span class="c1"># $ micromamba run -p ../../../.venv-pytorch python train.py -p pipeline.yaml --download-only</span>
+
+srun<span class="w"> </span>micromamba<span class="w"> </span>run<span class="w"> </span>-p<span class="w"> </span>../../../.venv-pytorch<span class="w"> </span>python<span class="w"> </span>train.py<span class="w"> </span>-p<span class="w"> </span>pipeline.yaml
+</pre></div>
+</div>
+</section>
+<section id="id4">
+<h3>train.py<a class="headerlink" href="#id4" title="Link to this heading"></a></h3>
+<p>This script contains the training loop and is where the model is trained using the data prepared by <cite>dataloader.py</cite>.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Training pipeline. To run this script, use the following commands.</span>
+
+<span class="sd">On login node:</span>
+
+<span class="sd">&gt;&gt;&gt; micromamba run -p ../../../.venv-pytorch/ \</span>
+<span class="sd">    python train.py -p pipeline.yaml -d</span>
+
+<span class="sd">On compute nodes:</span>
+
+<span class="sd">&gt;&gt;&gt; micromamba run -p ../../../.venv-pytorch/ \</span>
+<span class="sd">    python train.py -p pipeline.yaml</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">argparse</span>
+
+<span class="kn">from</span> <span class="nn">itwinai.parser</span> <span class="kn">import</span> <span class="n">ConfigParser</span>
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+    <span class="n">parser</span> <span class="o">=</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">()</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;-p&quot;</span><span class="p">,</span> <span class="s2">&quot;--pipeline&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span> <span class="n">required</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s1">&#39;Configuration file to the pipeline to execute.&#39;</span>
+    <span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s1">&#39;-d&#39;</span><span class="p">,</span> <span class="s1">&#39;--download-only&#39;</span><span class="p">,</span>
+        <span class="n">action</span><span class="o">=</span><span class="n">argparse</span><span class="o">.</span><span class="n">BooleanOptionalAction</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="p">(</span><span class="s1">&#39;Whether to download only the dataset and exit execution &#39;</span>
+              <span class="s1">&#39;(suggested on login nodes of HPC systems)&#39;</span><span class="p">)</span>
+    <span class="p">)</span>
+    <span class="n">args</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">parse_args</span><span class="p">()</span>
+
+    <span class="c1"># Create parser for the pipeline</span>
+    <span class="n">pipe_parser</span> <span class="o">=</span> <span class="n">ConfigParser</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">pipeline</span><span class="p">)</span>
+    <span class="n">pipeline</span> <span class="o">=</span> <span class="n">pipe_parser</span><span class="o">.</span><span class="n">parse_pipeline</span><span class="p">()</span>
+
+    <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">download_only</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Downloading datasets and exiting...&#39;</span><span class="p">)</span>
+        <span class="n">pipeline</span> <span class="o">=</span> <span class="n">pipeline</span><span class="p">[:</span><span class="mi">1</span><span class="p">]</span>
+
+    <span class="n">pipeline</span><span class="o">.</span><span class="n">execute</span><span class="p">()</span>
+</pre></div>
+</div>
+</section>
+<section id="saver-py">
+<h3>saver.py<a class="headerlink" href="#saver-py" title="Link to this heading"></a></h3>
+<p>…</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">This module is used during inference to save predicted labels to file.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Dict</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">shutil</span>
+<span class="kn">import</span> <span class="nn">csv</span>
+
+<span class="kn">from</span> <span class="nn">itwinai.components</span> <span class="kn">import</span> <span class="n">Saver</span><span class="p">,</span> <span class="n">monitor_exec</span>
+
+
+<span class="k">class</span> <span class="nc">TorchMNISTLabelSaver</span><span class="p">(</span><span class="n">Saver</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Serializes to disk the labels predicted for MNIST dataset.&quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">save_dir</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;mnist_predictions&#39;</span><span class="p">,</span>
+        <span class="n">predictions_file</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;predictions.csv&#39;</span><span class="p">,</span>
+        <span class="n">class_labels</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">save_parameters</span><span class="p">(</span><span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">locals2params</span><span class="p">(</span><span class="nb">locals</span><span class="p">()))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">save_dir</span> <span class="o">=</span> <span class="n">save_dir</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">predictions_file</span> <span class="o">=</span> <span class="n">predictions_file</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">class_labels</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">class_labels</span> <span class="k">if</span> <span class="n">class_labels</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+            <span class="k">else</span> <span class="p">[</span><span class="sa">f</span><span class="s1">&#39;Digit </span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s1">&#39;</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">10</span><span class="p">)]</span>
+        <span class="p">)</span>
+
+    <span class="nd">@monitor_exec</span>
+    <span class="k">def</span> <span class="nf">execute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">predicted_classes</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">],)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Translate predictions from class idx to class label and save</span>
+<span class="sd">        them to disk.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            predicted_classes (Dict[str, int]): maps unique item ID to</span>
+<span class="sd">                the predicted class ID.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Dict[str, int]: predicted classes.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">save_dir</span><span class="p">):</span>
+            <span class="n">shutil</span><span class="o">.</span><span class="n">rmtree</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">save_dir</span><span class="p">)</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">save_dir</span><span class="p">)</span>
+
+        <span class="c1"># Map class idx (int) to class label (str)</span>
+        <span class="n">predicted_labels</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="n">itm_name</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">class_labels</span><span class="p">[</span><span class="n">cls_idx</span><span class="p">]</span>
+            <span class="k">for</span> <span class="n">itm_name</span><span class="p">,</span> <span class="n">cls_idx</span> <span class="ow">in</span> <span class="n">predicted_classes</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+        <span class="p">}</span>
+
+        <span class="c1"># Save to disk</span>
+        <span class="n">filepath</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">save_dir</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">predictions_file</span><span class="p">)</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">filepath</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">csv_file</span><span class="p">:</span>
+            <span class="n">writer</span> <span class="o">=</span> <span class="n">csv</span><span class="o">.</span><span class="n">writer</span><span class="p">(</span><span class="n">csv_file</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">predicted_labels</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="n">writer</span><span class="o">.</span><span class="n">writerow</span><span class="p">([</span><span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">])</span>
+        <span class="k">return</span> <span class="n">predicted_labels</span>
+</pre></div>
+</div>
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="3dgan_doc.html" class="btn btn-neutral float-left" title="3DGAN" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="tutorials.html" class="btn btn-neutral float-right" title="ML workflow tutorials" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, Matteo Bunino, Alexander Zoechbauer, Kalliopi Tsolaki on behalf of CERN.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
