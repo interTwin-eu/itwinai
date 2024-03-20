@@ -13,6 +13,9 @@ Example
 from typing import Optional, List
 from typing_extensions import Annotated
 from pathlib import Path
+from typing import Optional, List
+from typing_extensions import Annotated
+from pathlib import Path
 import typer
 
 

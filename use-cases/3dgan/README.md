@@ -14,7 +14,7 @@ cd use-cases/3dgan
 pip install -r requirements.txt
 ```
 
-**NOTE**: Python commands below assume to be executed from within the
+**NOTE**: Python commands below assumed to be executed from within the
 micromamba virtual environment.
 
 ## Training
