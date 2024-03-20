@@ -27,7 +27,13 @@ kubectl logs --insecure-skip-tls-verify-backend POD_NAME
 
 ## Pod annotations
 
-For instance, on some HPC system it may be needed to download the docker
+Allocate resources through SLURM:
+
+```yaml
+slurm-job.vk.io/flags: "-p gpu --gres=gpu:1 --cpus-per-task=4 --mem=100G --ntasks-per-node=1 --nodes=1"
+```
+
+On some HPC system it may be needed to download the docker
 container before submitting the offloaded job. T0 do so, you can use the
 following annotation:
 
