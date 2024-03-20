@@ -15,7 +15,7 @@ echo
 
 cont1=false
 if [ "$sysN" = 'deepv' ] ; then
-  ml use $OTHERSTAGES
+  ml use "$OTHERSTAGES"
   ml Stages/2022 GCC OpenMPI cuDNN NCCL Python CMake
   cont1=true
 elif [ "$sysN" = 'juwels' ] ; then
