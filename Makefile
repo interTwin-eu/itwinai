@@ -1,12 +1,12 @@
 # Install PyTorch env (GPU support)
 torch-gpu: env-files/torch/pytorch-env-gpu.yml
 	micromamba env create -p ./.venv-pytorch --file env-files/torch/pytorch-env-gpu.yml -y
-	micromamba run -p ./.venv-pytorch python -m pip install -e .
+	micromamba run -p ./.venv-pytorch python -m pip install -e .[dev]
 
 # Install PyTorch env (CPU only)
 torch-cpu: env-files/torch/pytorch-env-cpu.yml
 	micromamba env create -p ./.venv-pytorch --file env-files/torch/pytorch-env-cpu.yml -y
-	micromamba run -p ./.venv-pytorch python -m pip install -e .
+	micromamba run -p ./.venv-pytorch python -m pip install -e .[dev]
 
 
 # Install TensorFlow 2.13. Creates ./.venv-tf folder.
@@ -53,7 +53,7 @@ tf-2.10: env-files/tensorflow/tensorflow-2.10.yml
 	micromamba run -p ./.venv-tf pip install tensorflow==2.10
 	micromamba run -p ./.venv-tf pip install -e .
 
-
+# Install TensorFlow 2.13 for CPU only systems. Creates ./.venv-tf folder.
 tf-2.13-cpu: env-files/tensorflow/tensorflow-2.13-cpu.yml
 	echo "Installing TensorFlow 2.13 env"
 	micromamba env create -p ./.venv-tf --file env-files/tensorflow/tensorflow-2.13-cpu.yml -y

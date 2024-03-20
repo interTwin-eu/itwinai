@@ -36,8 +36,12 @@ def test_3dgan_train(install_requirements):
     install_requirements(CERN_PATH, pytest.TORCH_PREFIX)
     # cmd = (f"micromamba run -p {pytest.TORCH_PREFIX} python "
     #        f"{CERN_PATH}/train.py -p {CERN_PATH}/pipeline.yaml")
+    trainer_params = "pipeline.init_args.steps.training_step.init_args"
     cmd = (f"micromamba run -p {pytest.TORCH_PREFIX} itwinai exec-pipeline "
-           f"--config {CERN_PATH}/pipeline.yaml")
+           f"--config {CERN_PATH}/pipeline.yaml "
+           f'-o {trainer_params}.config.trainer.accelerator=cpu '
+           f'-o {trainer_params}.config.trainer.strategy=auto '
+           )
     subprocess.run(cmd.split(), check=True)
 
 
@@ -52,16 +56,18 @@ def test_3dgan_inference(install_requirements, fake_model_checkpoint):
     # cmd = (f"micromamba run -p {pytest.TORCH_PREFIX} itwinai exec-pipeline "
     #        f"--config {CERN_PATH}/inference-pipeline.yaml")
 
-    getter_params = "pipeline.init_args.steps.0.init_args"
-    trainer_params = "pipeline.init_args.steps.1.init_args"
+    getter_params = "pipeline.init_args.steps.dataloading_step.init_args"
+    trainer_params = "pipeline.init_args.steps.inference_step.init_args"
     logger_params = trainer_params + ".config.trainer.logger.init_args"
     data_params = trainer_params + ".config.data.init_args"
-    saver_params = "pipeline.init_args.steps.2.init_args"
+    saver_params = "pipeline.init_args.steps.saver_step.init_args"
     cmd = (
         'itwinai exec-pipeline '
         '--config use-cases/3dgan/inference-pipeline.yaml '
         f'-o {getter_params}.data_path=exp_data '
         f'-o {trainer_params}.model.init_args.model_uri={CKPT_PATH} '
+        f'-o {trainer_params}.config.trainer.accelerator=cpu '
+        f'-o {trainer_params}.config.trainer.strategy=auto '
         f'-o {logger_params}.save_dir=ml_logs/mlflow_logs '
         f'-o {data_params}.datapath=exp_data/*/*.h5 '
         f'-o {saver_params}.save_dir=3dgan-generated-data '
