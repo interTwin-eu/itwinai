@@ -62,7 +62,7 @@ importlib-resources
 inquirer 
 installer 
 itsdangerous 
--e git+https://github.com/interTwin-eu/itwinai.git@a8f9ccb035c7736553eaafb12e06fd7b3fc73fb6#egg=itwinai
+git+https://github.com/interTwin-eu/itwinai.git@a8f9ccb035c7736553eaafb12e06fd7b3fc73fb6#egg=itwinai
 jaraco.classes 
 jeepney 
 Jinja2 
