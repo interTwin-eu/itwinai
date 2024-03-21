@@ -9,8 +9,6 @@ itwinai x 3DGAN
 
 .. toctree::
    :maxdepth: 5
-   
-   ../use-cases/3dgan/README.md
 
 
 model.py
@@ -82,8 +80,6 @@ interLink x 3DGAN
 
 .. toctree::
    :maxdepth: 5
-   
-   ../use-cases/3dgan/interLink/README.md
 
 
 3dgan-inference-cpu.yaml
