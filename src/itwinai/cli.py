@@ -28,6 +28,9 @@ def exec_pipeline(
         help=("Key in the configuration file identifying "
               "the pipeline object to execute.")
     )] = "pipeline",
+    print_config: Annotated[bool, typer.Option(
+        help=("Print config to be executed after overrides.")
+    )] = False,
     overrides_list: Annotated[
         Optional[List[str]], typer.Option(
             "--override", "-o",
@@ -60,6 +63,13 @@ def exec_pipeline(
         in map(lambda x: (x.split('=')[0], x.split('=')[1]), overrides_list)
     }
     parser = ConfigParser(config=config, override_keys=overrides)
+    if print_config:
+        import json
+        print()
+        print("#="*15 + " Used configuration " + "#="*15)
+        print(json.dumps(parser.config, indent=2))
+        print("#="*50)
+        print()
     pipeline = parser.parse_pipeline(pipeline_nested_key=pipe_key)
     pipeline.execute()
 

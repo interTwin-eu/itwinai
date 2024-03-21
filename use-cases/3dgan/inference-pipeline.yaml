@@ -2,12 +2,14 @@ pipeline:
   class_path: itwinai.pipeline.Pipeline
   init_args:
     steps:
-      - class_path: dataloader.Lightning3DGANDownloader
+      dataloading_step:
+        class_path: dataloader.Lightning3DGANDownloader
         init_args:
           data_path: /usr/data/exp_data/
           data_url: https://drive.google.com/drive/folders/1uPpz0tquokepptIfJenTzGpiENfo2xRX
 
-      - class_path: trainer.Lightning3DGANPredictor
+      inference_step:
+        class_path: trainer.Lightning3DGANPredictor
         init_args:
           model:
             class_path: trainer.LightningModelLoader
@@ -93,10 +95,12 @@ pipeline:
               class_path: dataloader.ParticlesDataModule
               init_args:
                 datapath: /usr/data/exp_data/*/*.h5
-                batch_size: 64
-                num_workers: 2
-                max_samples: 10
+                batch_size: 64 #1024
+                num_workers: 2 #4
+                max_samples: 10 #null, 10000
 
-      - class_path: saver.ParticleImagesSaver
+      saver_step:
+        class_path: saver.ParticleImagesSaver
         init_args:
           save_dir: /usr/data/3dgan-generated-data
+          aggregate_predictions: false
