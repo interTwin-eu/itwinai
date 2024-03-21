@@ -30,7 +30,7 @@ jobs:
 
       # Runs the Super-Linter action
       - name: Run Super-Linter on new changes
-        uses: super-linter/super-linter@v6.3.0  # x-release-please-version
+        uses: super-linter/super-linter/slim@v6.3.0  # x-release-please-version
         # uses: github/super-linter/slim@v5
         env:
           DEFAULT_BRANCH: main
