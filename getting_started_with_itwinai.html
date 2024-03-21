@@ -48,11 +48,10 @@
 <ul class="current">
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Getting started with itwinai</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#installation">Installation</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#requirements">Requirements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#hpc-systems">🌐 HPC systems</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#local-systems">💻 Local systems</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#micromamba-installation">Micromamba installation</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="#environment-setup">Environment setup</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#environment-setup">Environment setup</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#tensorflow">Tensorflow</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#pytorch-lightning">PyTorch (+ Lightning)</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#development-environment">Development environment</a></li>
@@ -102,8 +101,39 @@
 <h1>Getting started with itwinai<a class="headerlink" href="#getting-started-with-itwinai" title="Link to this heading"></a></h1>
 <section id="installation">
 <h2>Installation<a class="headerlink" href="#installation" title="Link to this heading"></a></h2>
-<section id="requirements">
-<h3>Requirements<a class="headerlink" href="#requirements" title="Link to this heading"></a></h3>
+<section id="hpc-systems">
+<h3>🌐 HPC systems<a class="headerlink" href="#hpc-systems" title="Link to this heading"></a></h3>
+<p>How to use torch <cite>DistributedDataParallel</cite> (DDP), Horovod and DeepSpeed from the same client code.
+Note that the environment is tested on the HDFML system at JSC. For other systems, the module versions might need change accordingly.</p>
+<p><strong>Environments</strong>
+* Install PyTorch env (GPU support) on Juelich Super Computer (tested on HDFML system)</p>
+<ul class="simple">
+<li><p>Install Tensorflow env (GPU support) on Juelich Super Computer (tested on HDFML system)</p></li>
+</ul>
+<p><strong>Setup</strong>
+First, from the root of this <a class="reference external" href="https://github.com/interTwin-eu/itwinai/tree/distributed-strategy-launcher">repository</a>, build the environment containing pytorch, horovod and deepspeed. You can try with:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Creates a Python venv called envAI_hdfml</span>
+make<span class="w"> </span>torch-gpu-jsc
+</pre></div>
+</div>
+<p><strong>Distributed training</strong>
+Each distributed strategy has its own SLURM job script, which should be used to run it:</p>
+<ul class="simple">
+<li><p>If you want to distribute the code in <cite>train.py</cite> with <strong>torch DDP</strong>, run from terminal:</p></li>
+</ul>
+<ul class="simple">
+<li><p>If you want to distribute the code in <cite>train.py</cite> with <strong>DeepSpeed</strong>, run from terminal:</p></li>
+</ul>
+<ul class="simple">
+<li><p>If you want to distribute the code in <cite>train.py</cite> with <strong>Horovod</strong>, run from terminal:</p></li>
+</ul>
+<ul class="simple">
+<li><p>You can run all of them with:</p></li>
+</ul>
+</section>
+<section id="local-systems">
+<h3>💻 Local systems<a class="headerlink" href="#local-systems" title="Link to this heading"></a></h3>
+<p><strong>Requirements</strong></p>
 <ul class="simple">
 <li><p>Linux environment.</p></li>
 <li><p>Windows and macOS were never tested.</p></li>
@@ -134,15 +164,15 @@ curl<span class="w"> </span>-Ls<span class="w"> </span>https://micro.mamba.pm/ap
 </div>
 <p><strong>Reference</strong>: <a class="reference external" href="https://mamba.readthedocs.io/en/latest/installation.html#micromamba">Micromamba installation guide</a>.</p>
 </section>
-</section>
 <section id="environment-setup">
-<h2>Environment setup<a class="headerlink" href="#environment-setup" title="Link to this heading"></a></h2>
+<h3>Environment setup<a class="headerlink" href="#environment-setup" title="Link to this heading"></a></h3>
 <p><strong>Requirements:</strong></p>
 <ul class="simple">
 <li><p>Linux environment. Windows and macOS were never tested.</p></li>
 <li><p>Micromamba: see the installation instructions above.</p></li>
 <li><p>VS Code, for development.</p></li>
 </ul>
+</section>
 <section id="tensorflow">
 <h3>Tensorflow<a class="headerlink" href="#tensorflow" title="Link to this heading"></a></h3>
 <p>Installation:</p>
@@ -204,7 +234,7 @@ cat<span class="w"> </span>job.out
   <hr/>
 
   <div role="contentinfo">
-    <p>&#169; Copyright 2024, Matteo Bunino, Alexander Zoechbauer, Kalliopi Tsolaki on behalf of CERN.</p>
+    <p>&#169; Copyright 2024, Matteo Bunino, Alexander Zoechbauer, Kalliopi Tsolaki, Rakesh Sarma on behalf of CERN &amp; JSC.</p>
   </div>
 
   Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
