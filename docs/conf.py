@@ -19,7 +19,7 @@ sys.path.insert(0, os.path.abspath('../src/itwinai/ptorch'))
 sys.path.insert(0, os.path.abspath('../'))
 
 project = 'itwinai'
-copyright = '2024, Matteo Bunino, Alexander Zoechbauer, Kalliopi Tsolaki on behalf of CERN'
+copyright = '2024, Matteo Bunino, Alexander Zoechbauer, Kalliopi Tsolaki, Rakesh Sarma on behalf of CERN & JSC'
 author = 'Matteo Bunino, Alexander Zoechbauer, Kalliopi Tsolaki'
 release = '0.0.1'
 
