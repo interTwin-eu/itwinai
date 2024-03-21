@@ -1,5 +1,5 @@
 import abc
-from typing import Any, Union, List, Dict, Optional, Tuple
+from typing import Any, List, Optional, Tuple
 from pathlib import Path
 import json
 import os
@@ -235,17 +235,14 @@ class DSDistributedStrategy(TorchDistributedStrategy):
         dictionary or a path to a JSON file.
     """
 
-    config: Dict = None
     backend: str
 
     def __init__(
         self,
-        backend: str,
-        config: Union[Dict, Path, str]
+        backend: str
     ) -> None:
         super().__init__()
         self.backend = backend
-        self._load_config(config)
 
     def _load_config(self, ds_config):
         if isinstance(ds_config, (str, Path)):
@@ -271,9 +268,12 @@ class DSDistributedStrategy(TorchDistributedStrategy):
     def distributed(
         self, model: nn.Module, optimizer: Optional[Optimizer] = None,
         lr_scheduler: Optional[LRScheduler] = None,
-        model_parameters: Optional[Any] = None, **kwargs
+        model_parameters: Optional[Any] = None,
+        **kwargs
     ) -> Tuple[nn.Module, Optimizer, Optional[LRScheduler]]:
         """Setup model, optimizer and scheduler for distributed."""
+        if kwargs.get("config"):
+            kwargs["config"] = self._load_config(kwargs.get("config"))
         # https://deepspeed.readthedocs.io/en/latest/initialize.html#training-initialization
         # To prioritize optim in the config, you need to pass optim=None
         distrib_model, optimizer, _, lr_scheduler = deepspeed.initialize(
@@ -282,7 +282,7 @@ class DSDistributedStrategy(TorchDistributedStrategy):
             optimizer=optimizer,
             lr_scheduler=lr_scheduler,
             dist_init_required=True,
-            config=self.config
+            **kwargs
         )
         return distrib_model, optimizer, lr_scheduler
 

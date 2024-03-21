@@ -11,7 +11,7 @@
 
 # configure node and process count on the CM
 #SBATCH --partition=batch
-#SBATCH --nodes=4
+#SBATCH --nodes=2
 #SBATCH --ntasks-per-node=1
 #SBATCH --cpus-per-task=32
 #SBATCH --gpus-per-node=4

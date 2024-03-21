@@ -1,30 +1,6 @@
 """
-Show how to use DDP, Horovod and DeepSpeed strategies interchangeably.
-Depending on the strategy you choose, you need to run this script with
-different ad-hoc commands:
-
-Torch DistributedDataParallel (DDP). Launch from terminal with torchrun:
->>> micromamba run -p ../../.venv-pytorch/ torchrun \
-    --rdzv_backend=c10d \
-    --rdzv_endpoint=localhost:0 \
-    --nnodes=1 \
-    --nproc_per_node=4 \
-    train.py -s ddp
-with SLURM:
->>> sbatch ddp_slurm.sh
-
-DeepSpeed. Launch from terminal with deepspeed:
->>> micromamba run -p ../../.venv-pytorch/ deepspeed \
-    train.py -s deepspeed
-with SLURM:
->>> sbatch deepSpeed_slurm.sh
-
-Horovod. Only works with SLURM:
->>> sbatch horovod_slurm.sh
-
-Horovod. Launch with horovodrun (NOT WORKING YET):
->>> micromamba run -p ../../.venv-pytorch/ horovodrun -np 4 \
-    python train.py -s horovod
+Show how to use DDP, Horovod and DeepSpeed strategies interchangeably
+with an extremely simple neural network.
 """
 from typing import Any
 import os
@@ -60,8 +36,6 @@ def parse_args() -> argparse.Namespace:
                         help='local rank passed from distributed launcher')
     parser = deepspeed.add_config_arguments(parser)
     args = parser.parse_args()
-    # os.environ['LOCAL_RANK'] = str(args.local_rank)  # may not be needed
-
     return args
 
 
@@ -96,9 +70,10 @@ def trainer_entrypoint_fn(
     optim = torch.optim.Adam(model.parameters(), lr=1e-3)
     loss_fn = nn.MSELoss()
     # Distributed model
-    # model_engine: ModelEngine = strategy.distributed(model, optim)
+    deepspeed_config = dict(train_batch_size=32)
+    # 'config_params' key is ignored if strategy != DSDistributedStrategy
     model, optim, lr_sched = strategy.distributed(
-        model, optim, lr_scheduler=None
+        model, optim, lr_scheduler=None, config_params=deepspeed_config
     )
 
     # Data
@@ -116,10 +91,6 @@ def trainer_entrypoint_fn(
 
     # Device allocated for this worker
     device = strategy.dist_device()
-
-    print(f"<grank={strategy.dist_grank()}> DEVICES: DS={model.device}, "
-          f"TORCH.DIST={strategy.dist_device()}, "
-          f"ENV={os.environ['LOCAL_RANK']}")
 
     for epoch in range(2):
         for (x, y) in train_loader:
@@ -163,9 +134,7 @@ if __name__ == "__main__":
     elif args.strategy == 'horovod':
         strategy = HVDDistributedStrategy()
     elif args.strategy == 'deepspeed':
-        strategy = DSDistributedStrategy(
-            backend='nccl', config=dict(train_batch_size=32)
-        )
+        strategy = DSDistributedStrategy(backend='nccl')
     else:
         raise NotImplementedError(
             f"Strategy {args.strategy} is not recognized/implemented.")

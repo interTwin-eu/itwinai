@@ -11,7 +11,7 @@
 
 # configure node and process count on the CM
 #SBATCH --partition=batch
-#SBATCH --nodes=4
+#SBATCH --nodes=2
 #SBATCH --ntasks-per-node=4
 #SBATCH --cpus-per-task=8
 #SBATCH --gpus-per-node=4
@@ -56,5 +56,5 @@ export CUDA_VISIBLE_DEVICES="0,1,2,3"
 # launch training
 TRAINING_CMD="train.py -s horovod"
 
-srun --cpu-bind=none python -u "$TRAINING_CMD"
+srun --cpu-bind=none python -u $TRAINING_CMD
 
