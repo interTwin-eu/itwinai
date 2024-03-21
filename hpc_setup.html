@@ -4,7 +4,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Getting started with itwinai &mdash; itwinai 0.0.2 documentation</title>
+  <title>🌐 HPC systems &mdash; itwinai 0.0.2 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=80d5e7a1" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=19f00094" />
 
@@ -21,8 +21,8 @@
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="🌐 HPC systems" href="hpc_setup.html" />
-    <link rel="prev" title="🚧 UNDER CONSTRUCTION 🚧" href="index.html" /> 
+    <link rel="next" title="💻 Local systems" href="local_setup.html" />
+    <link rel="prev" title="Getting started with itwinai" href="getting_started_with_itwinai.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -46,8 +46,8 @@
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <p class="caption" role="heading"><span class="caption-text">💡 Installation</span></p>
 <ul class="current">
-<li class="toctree-l1 current"><a class="current reference internal" href="#">Getting started with itwinai</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="hpc_setup.html">🌐 HPC systems</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="getting_started_with_itwinai.html">Getting started with itwinai</a><ul class="current">
+<li class="toctree-l2 current"><a class="current reference internal" href="#">🌐 HPC systems</a></li>
 <li class="toctree-l2"><a class="reference internal" href="local_setup.html">💻 Local systems</a></li>
 </ul>
 </li>
@@ -79,9 +79,10 @@
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
       <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
-      <li class="breadcrumb-item active">Getting started with itwinai</li>
+          <li class="breadcrumb-item"><a href="getting_started_with_itwinai.html">Getting started with itwinai</a></li>
+      <li class="breadcrumb-item active">🌐 HPC systems</li>
       <li class="wy-breadcrumbs-aside">
-            <a href="_sources/getting_started_with_itwinai.rst.txt" rel="nofollow"> View page source</a>
+            <a href="_sources/hpc_setup.rst.txt" rel="nofollow"> View page source</a>
       </li>
   </ul>
   <hr/>
@@ -89,11 +90,44 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="getting-started-with-itwinai">
-<h1>Getting started with itwinai<a class="headerlink" href="#getting-started-with-itwinai" title="Link to this heading"></a></h1>
-<div class="toctree-wrapper compound">
+  <section id="hpc-systems">
+<h1>🌐 HPC systems<a class="headerlink" href="#hpc-systems" title="Link to this heading"></a></h1>
+<p>How to use torch <cite>DistributedDataParallel</cite> (DDP), Horovod and DeepSpeed from the same client code.
+Note that the environment is tested on the HDFML system at JSC. For other systems, the module versions might need change accordingly.</p>
+<p><strong>Environments</strong></p>
+<p>Install PyTorch env (GPU support) on Juelich Super Computer (tested on HDFML system)</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>torch-gpu-jsc:<span class="w"> </span>env-files/torch/createEnvJSC.sh
+sh<span class="w"> </span>env-files/torch/createEnvJSC.sh
+</pre></div>
 </div>
-<div class="toctree-wrapper compound">
+<p>Install Tensorflow env (GPU support) on Juelich Super Computer (tested on HDFML system)</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tf-gpu-jsc:<span class="w"> </span>env-files/tensorflow/createEnvJSCTF.sh
+sh<span class="w"> </span>env-files/tensorflow/createEnvJSCTF.sh
+</pre></div>
+</div>
+<p><strong>Setup</strong>
+First, from the root of this <a class="reference external" href="https://github.com/interTwin-eu/itwinai/tree/distributed-strategy-launcher">repository</a>, build the environment containing pytorch, horovod and deepspeed. You can try with:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Creates a Python venv called envAI_hdfml</span>
+make<span class="w"> </span>torch-gpu-jsc
+</pre></div>
+</div>
+<p><strong>Distributed training</strong>
+Each distributed strategy has its own SLURM job script, which should be used to run it:</p>
+<p>If you want to distribute the code in <cite>train.py</cite> with <strong>torch DDP</strong>, run from terminal:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sbatch<span class="w"> </span>ddp_slurm.sh
+</pre></div>
+</div>
+<p>If you want to distribute the code in <cite>train.py</cite> with <strong>DeepSpeed</strong>, run from terminal:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sbatch<span class="w"> </span>deepspeed_slurm.sh
+</pre></div>
+</div>
+<p>If you want to distribute the code in <cite>train.py</cite> with <strong>Horovod</strong>, run from terminal:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sbatch<span class="w"> </span>hvd_slurm.sh
+</pre></div>
+</div>
+<p>You can run all of them with:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>bash<span class="w"> </span>runall.sh
+</pre></div>
 </div>
 </section>
 
@@ -101,8 +135,8 @@
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="index.html" class="btn btn-neutral float-left" title="🚧 UNDER CONSTRUCTION 🚧" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="hpc_setup.html" class="btn btn-neutral float-right" title="🌐 HPC systems" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="getting_started_with_itwinai.html" class="btn btn-neutral float-left" title="Getting started with itwinai" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="local_setup.html" class="btn btn-neutral float-right" title="💻 Local systems" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

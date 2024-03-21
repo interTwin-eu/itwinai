@@ -4,7 +4,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>3DGAN &mdash; itwinai 0.0.1 documentation</title>
+  <title>3DGAN &mdash; itwinai 0.0.2 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=80d5e7a1" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=19f00094" />
 
@@ -15,7 +15,7 @@
   
         <script src="_static/jquery.js?v=5d32c60e"></script>
         <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-        <script src="_static/documentation_options.js?v=d45e8c67"></script>
+        <script src="_static/documentation_options.js?v=e3a6060d"></script>
         <script src="_static/doctools.js?v=888ff710"></script>
         <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="_static/js/theme.js"></script>
@@ -56,7 +56,11 @@
 <ul class="current">
 <li class="toctree-l1 current"><a class="reference internal" href="use_cases.html">Integrated Use Cases</a><ul class="current">
 <li class="toctree-l2 current"><a class="reference internal" href="use_cases.html#dgan-cern-use-case">3DGAN CERN use case</a><ul class="current">
-<li class="toctree-l3 current"><a class="current reference internal" href="#">3DGAN</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">3DGAN</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#itwinai-x-3dgan">itwinai x 3DGAN</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#interlink-x-3dgan">interLink x 3DGAN</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="use_cases.html#mnist-use-case">MNIST use case</a></li>
@@ -95,7 +99,13 @@
              
   <section id="dgan">
 <h1>3DGAN<a class="headerlink" href="#dgan" title="Link to this heading"></a></h1>
-<p>The 3DGAN use case is a part of the use cases which…</p>
+<p>This section covers the CERN use case, which utilizes the <cite>torch-lightning</cite> framework for training and evaluation. The following files are integral to this use case:</p>
+<section id="itwinai-x-3dgan">
+<h2>itwinai x 3DGAN<a class="headerlink" href="#itwinai-x-3dgan" title="Link to this heading"></a></h2>
+<div class="toctree-wrapper compound">
+</div>
+<section id="model-py">
+<h3>model.py<a class="headerlink" href="#model-py" title="Link to this heading"></a></h3>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">sys</span>
 <span class="c1"># import os</span>
 <span class="c1"># import pickle</span>
@@ -879,6 +889,9 @@
         <span class="k">return</span> <span class="p">[</span><span class="n">optimizer_discriminator</span><span class="p">,</span> <span class="n">optimizer_generator</span><span class="p">],</span> <span class="p">[]</span>
 </pre></div>
 </div>
+</section>
+<section id="trainer-py">
+<h3>trainer.py<a class="headerlink" href="#trainer-py" title="Link to this heading"></a></h3>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">os</span>
 <span class="kn">import</span> <span class="nn">sys</span>
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Union</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Any</span>
@@ -1039,6 +1052,9 @@
         <span class="k">return</span> <span class="n">batch</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
 </pre></div>
 </div>
+</section>
+<section id="saver-py">
+<h3>saver.py<a class="headerlink" href="#saver-py" title="Link to this heading"></a></h3>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Dict</span>
 <span class="kn">import</span> <span class="nn">os</span>
 <span class="kn">import</span> <span class="nn">shutil</span>
@@ -1163,6 +1179,9 @@
         <span class="n">fig</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="n">img_path</span><span class="p">)</span>
 </pre></div>
 </div>
+</section>
+<section id="dataloader-py">
+<h3>dataloader.py<a class="headerlink" href="#dataloader-py" title="Link to this heading"></a></h3>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Optional</span>
 <span class="kn">import</span> <span class="nn">os</span>
 <span class="kn">from</span> <span class="nn">lightning.pytorch.utilities.types</span> <span class="kn">import</span> <span class="n">EVAL_DATALOADERS</span>
@@ -1375,6 +1394,506 @@
         <span class="c1"># return DataLoader(self.test_dataset, batch_size=self.batch_size)</span>
 </pre></div>
 </div>
+</section>
+<section id="cern-pipeline-yaml">
+<h3>cern-pipeline.yaml<a class="headerlink" href="#cern-pipeline-yaml" title="Link to this heading"></a></h3>
+<p>This YAML file defines the pipeline configuration for the CERN use case.</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">pipeline</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">class_path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">itwinai.pipeline.Pipeline</span>
+<span class="w">  </span><span class="nt">init_args</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">steps</span><span class="p">:</span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">class_path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">dataloader.Lightning3DGANDownloader</span>
+<span class="w">        </span><span class="nt">init_args</span><span class="p">:</span>
+<span class="w">          </span><span class="nt">data_path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">/eos/user/k/ktsolaki/data/3dgan_data</span>
+<span class="w">          </span><span class="nt">data_url</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">null</span><span class="w"> </span><span class="c1"># https://drive.google.com/drive/folders/1uPpz0tquokepptIfJenTzGpiENfo2xRX</span>
+
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">class_path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">trainer.Lightning3DGANTrainer</span>
+<span class="w">        </span><span class="nt">init_args</span><span class="p">:</span>
+<span class="w">          </span><span class="c1"># Pytorch lightning config for training</span>
+<span class="w">          </span><span class="nt">config</span><span class="p">:</span>
+<span class="w">            </span><span class="nt">seed_everything</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">4231162351</span>
+<span class="w">            </span><span class="nt">trainer</span><span class="p">:</span>
+<span class="w">              </span><span class="nt">accelerator</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">auto</span>
+<span class="w">              </span><span class="nt">accumulate_grad_batches</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1</span>
+<span class="w">              </span><span class="nt">barebones</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span>
+<span class="w">              </span><span class="nt">benchmark</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">null</span>
+<span class="w">              </span><span class="nt">callbacks</span><span class="p">:</span>
+<span class="w">                </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">class_path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">lightning.pytorch.callbacks.early_stopping.EarlyStopping</span>
+<span class="w">                  </span><span class="nt">init_args</span><span class="p">:</span>
+<span class="w">                    </span><span class="nt">monitor</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">val_generator_loss</span>
+<span class="w">                    </span><span class="nt">patience</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">2</span>
+<span class="w">                </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">class_path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">lightning.pytorch.callbacks.lr_monitor.LearningRateMonitor</span>
+<span class="w">                  </span><span class="nt">init_args</span><span class="p">:</span>
+<span class="w">                    </span><span class="nt">logging_interval</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">step</span>
+<span class="w">                </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">class_path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">lightning.pytorch.callbacks.ModelCheckpoint</span>
+<span class="w">                  </span><span class="nt">init_args</span><span class="p">:</span>
+<span class="w">                    </span><span class="nt">dirpath</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">checkpoints</span>
+<span class="w">                    </span><span class="nt">filename</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">best-checkpoint</span>
+<span class="w">                    </span><span class="nt">mode</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">min</span>
+<span class="w">                    </span><span class="nt">monitor</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">val_generator_loss</span>
+<span class="w">                    </span><span class="nt">save_top_k</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1</span>
+<span class="w">                    </span><span class="nt">verbose</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+<span class="w">              </span><span class="nt">check_val_every_n_epoch</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1</span>
+<span class="w">              </span><span class="nt">default_root_dir</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">null</span>
+<span class="w">              </span><span class="nt">detect_anomaly</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span>
+<span class="w">              </span><span class="nt">deterministic</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">null</span>
+<span class="w">              </span><span class="nt">devices</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">auto</span><span class="w"> </span><span class="c1">#[0]</span>
+<span class="w">              </span><span class="nt">enable_checkpointing</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+<span class="w">              </span><span class="nt">enable_model_summary</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">null</span>
+<span class="w">              </span><span class="nt">enable_progress_bar</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">null</span>
+<span class="w">              </span><span class="nt">fast_dev_run</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span>
+<span class="w">              </span><span class="nt">gradient_clip_algorithm</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">null</span>
+<span class="w">              </span><span class="nt">gradient_clip_val</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">null</span>
+<span class="w">              </span><span class="nt">inference_mode</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+<span class="w">              </span><span class="nt">limit_predict_batches</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">null</span>
+<span class="w">              </span><span class="nt">limit_test_batches</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">null</span>
+<span class="w">              </span><span class="nt">limit_train_batches</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">null</span>
+<span class="w">              </span><span class="nt">limit_val_batches</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">null</span>
+<span class="w">              </span><span class="nt">log_every_n_steps</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">2</span>
+<span class="w">              </span><span class="nt">logger</span><span class="p">:</span><span class="w"> </span>
+<span class="w">                </span><span class="c1"># - class_path: lightning.pytorch.loggers.CSVLogger</span>
+<span class="w">                </span><span class="c1">#   init_args:</span>
+<span class="w">                </span><span class="c1">#     save_dir: ml_logs/csv_logs</span>
+<span class="w">                </span><span class="nt">class_path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">lightning.pytorch.loggers.MLFlowLogger</span>
+<span class="w">                </span><span class="nt">init_args</span><span class="p">:</span>
+<span class="w">                  </span><span class="nt">experiment_name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">3DGAN</span>
+<span class="w">                  </span><span class="nt">save_dir</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ml_logs/mlflow_logs</span>
+<span class="w">                  </span><span class="nt">log_model</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">all</span>
+<span class="w">              </span><span class="nt">max_epochs</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">100</span>
+<span class="w">              </span><span class="nt">max_steps</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">-1</span>
+<span class="w">              </span><span class="nt">max_time</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">null</span>
+<span class="w">              </span><span class="nt">min_epochs</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">null</span>
+<span class="w">              </span><span class="nt">min_steps</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">null</span>
+<span class="w">              </span><span class="nt">num_sanity_val_steps</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">null</span>
+<span class="w">              </span><span class="nt">overfit_batches</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.0</span>
+<span class="w">              </span><span class="nt">plugins</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">null</span>
+<span class="w">              </span><span class="nt">profiler</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">null</span>
+<span class="w">              </span><span class="nt">reload_dataloaders_every_n_epochs</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0</span>
+<span class="w">              </span><span class="nt">strategy</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ddp_find_unused_parameters_true</span><span class="w"> </span><span class="c1">#auto</span>
+<span class="w">              </span><span class="nt">sync_batchnorm</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span>
+<span class="w">              </span><span class="nt">use_distributed_sampler</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+<span class="w">              </span><span class="nt">val_check_interval</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">null</span>
+
+<span class="w">            </span><span class="c1"># Lightning Model configuration</span>
+<span class="w">            </span><span class="nt">model</span><span class="p">:</span>
+<span class="w">              </span><span class="nt">class_path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">model.ThreeDGAN</span>
+<span class="w">              </span><span class="nt">init_args</span><span class="p">:</span>
+<span class="w">                </span><span class="nt">latent_size</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">256</span>
+<span class="w">                </span><span class="nt">batch_size</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">128</span>
+<span class="w">                </span><span class="nt">loss_weights</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">3</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">0.1</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">25</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">0.1</span><span class="p p-Indicator">]</span>
+<span class="w">                </span><span class="nt">power</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.85</span>
+<span class="w">                </span><span class="nt">lr</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.001</span>
+<span class="w">                </span><span class="nt">checkpoint_path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">checkpoints/3dgan.pth</span>
+
+<span class="w">            </span><span class="c1"># Lightning data module configuration</span>
+<span class="w">            </span><span class="nt">data</span><span class="p">:</span>
+<span class="w">              </span><span class="nt">class_path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">dataloader.ParticlesDataModule</span>
+<span class="w">              </span><span class="nt">init_args</span><span class="p">:</span>
+<span class="w">                </span><span class="nt">datapath</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">/eos/user/k/ktsolaki/data/3dgan_data/*.h5</span><span class="w"> </span><span class="c1"># exp_data/*/*.h5</span>
+<span class="w">                </span><span class="nt">batch_size</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">128</span>
+<span class="w">                </span><span class="nt">num_workers</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0</span>
+<span class="w">                </span><span class="nt">max_samples</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">10000</span>
+</pre></div>
+</div>
+</section>
+<section id="inference-pipeline-yaml">
+<h3>inference-pipeline.yaml<a class="headerlink" href="#inference-pipeline-yaml" title="Link to this heading"></a></h3>
+<p>This YAML file defines the pipeline configuration for the CERN use case inference.</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">pipeline</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">class_path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">itwinai.pipeline.Pipeline</span>
+<span class="w">  </span><span class="nt">init_args</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">steps</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">dataloading_step</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">class_path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">dataloader.Lightning3DGANDownloader</span>
+<span class="w">        </span><span class="nt">init_args</span><span class="p">:</span>
+<span class="w">          </span><span class="nt">data_path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">/usr/data/exp_data/</span>
+<span class="w">          </span><span class="nt">data_url</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">https://drive.google.com/drive/folders/1uPpz0tquokepptIfJenTzGpiENfo2xRX</span>
+
+<span class="w">      </span><span class="nt">inference_step</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">class_path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">trainer.Lightning3DGANPredictor</span>
+<span class="w">        </span><span class="nt">init_args</span><span class="p">:</span>
+<span class="w">          </span><span class="nt">model</span><span class="p">:</span>
+<span class="w">            </span><span class="nt">class_path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">trainer.LightningModelLoader</span>
+<span class="w">            </span><span class="nt">init_args</span><span class="p">:</span>
+<span class="w">              </span><span class="nt">model_uri</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">3dgan-inference.pth</span>
+
+<span class="w">          </span><span class="c1"># Pytorch lightning config for training</span>
+<span class="w">          </span><span class="nt">config</span><span class="p">:</span>
+<span class="w">            </span><span class="nt">seed_everything</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">4231162351</span>
+<span class="w">            </span><span class="nt">trainer</span><span class="p">:</span>
+<span class="w">              </span><span class="nt">accelerator</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">auto</span>
+<span class="w">              </span><span class="nt">accumulate_grad_batches</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1</span>
+<span class="w">              </span><span class="nt">barebones</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span>
+<span class="w">              </span><span class="nt">benchmark</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">null</span>
+<span class="w">              </span><span class="c1"># callbacks:</span>
+<span class="w">              </span><span class="c1">#   # - class_path: lightning.pytorch.callbacks.early_stopping.EarlyStopping</span>
+<span class="w">              </span><span class="c1">#   #   init_args:</span>
+<span class="w">              </span><span class="c1">#   #     monitor: val_loss</span>
+<span class="w">              </span><span class="c1">#   #     patience: 2</span>
+<span class="w">              </span><span class="c1">#   - class_path: lightning.pytorch.callbacks.lr_monitor.LearningRateMonitor</span>
+<span class="w">              </span><span class="c1">#     init_args:</span>
+<span class="w">              </span><span class="c1">#       logging_interval: step</span>
+<span class="w">              </span><span class="c1">#   # - class_path: lightning.pytorch.callbacks.ModelCheckpoint</span>
+<span class="w">              </span><span class="c1">#   #   init_args:</span>
+<span class="w">              </span><span class="c1">#   #     dirpath: checkpoints</span>
+<span class="w">              </span><span class="c1">#   #     filename: best-checkpoint</span>
+<span class="w">              </span><span class="c1">#   #     mode: min</span>
+<span class="w">              </span><span class="c1">#   #     monitor: val_loss</span>
+<span class="w">              </span><span class="c1">#   #     save_top_k: 1</span>
+<span class="w">              </span><span class="c1">#   #     verbose: true</span>
+<span class="w">              </span><span class="nt">check_val_every_n_epoch</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1</span>
+<span class="w">              </span><span class="nt">default_root_dir</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">null</span>
+<span class="w">              </span><span class="nt">detect_anomaly</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span>
+<span class="w">              </span><span class="nt">deterministic</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">null</span>
+<span class="w">              </span><span class="nt">devices</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">auto</span><span class="w"> </span><span class="c1">#[0]</span>
+<span class="w">              </span><span class="nt">enable_checkpointing</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+<span class="w">              </span><span class="nt">enable_model_summary</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">null</span>
+<span class="w">              </span><span class="nt">enable_progress_bar</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">null</span>
+<span class="w">              </span><span class="nt">fast_dev_run</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span>
+<span class="w">              </span><span class="nt">gradient_clip_algorithm</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">null</span>
+<span class="w">              </span><span class="nt">gradient_clip_val</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">null</span>
+<span class="w">              </span><span class="nt">inference_mode</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+<span class="w">              </span><span class="nt">limit_predict_batches</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">null</span>
+<span class="w">              </span><span class="nt">limit_test_batches</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">null</span>
+<span class="w">              </span><span class="nt">limit_train_batches</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">null</span>
+<span class="w">              </span><span class="nt">limit_val_batches</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">null</span>
+<span class="w">              </span><span class="nt">log_every_n_steps</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">2</span>
+<span class="w">              </span><span class="nt">logger</span><span class="p">:</span><span class="w"> </span>
+<span class="w">                </span><span class="c1"># - class_path: lightning.pytorch.loggers.CSVLogger</span>
+<span class="w">                </span><span class="c1">#   init_args:</span>
+<span class="w">                </span><span class="c1">#     save_dir: ml_logs/csv_logs</span>
+<span class="w">                </span><span class="nt">class_path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">lightning.pytorch.loggers.MLFlowLogger</span>
+<span class="w">                </span><span class="nt">init_args</span><span class="p">:</span>
+<span class="w">                  </span><span class="nt">experiment_name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">3DGAN</span>
+<span class="w">                  </span><span class="nt">save_dir</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">/usr/data/ml_logs/mlflow_logs</span>
+<span class="w">                  </span><span class="nt">log_model</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">all</span>
+<span class="w">              </span><span class="nt">max_epochs</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1</span>
+<span class="w">              </span><span class="nt">max_steps</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">20</span>
+<span class="w">              </span><span class="nt">max_time</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">null</span>
+<span class="w">              </span><span class="nt">min_epochs</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">null</span>
+<span class="w">              </span><span class="nt">min_steps</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">null</span>
+<span class="w">              </span><span class="nt">num_sanity_val_steps</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">null</span>
+<span class="w">              </span><span class="nt">overfit_batches</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.0</span>
+<span class="w">              </span><span class="nt">plugins</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">null</span>
+<span class="w">              </span><span class="nt">profiler</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">null</span>
+<span class="w">              </span><span class="nt">reload_dataloaders_every_n_epochs</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0</span>
+<span class="w">              </span><span class="nt">strategy</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ddp_find_unused_parameters_true</span><span class="w"> </span><span class="c1">#auto</span>
+<span class="w">              </span><span class="nt">sync_batchnorm</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span>
+<span class="w">              </span><span class="nt">use_distributed_sampler</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+<span class="w">              </span><span class="nt">val_check_interval</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">null</span>
+
+<span class="w">            </span><span class="c1"># Lightning Model configuration</span>
+<span class="w">            </span><span class="nt">model</span><span class="p">:</span>
+<span class="w">              </span><span class="nt">class_path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">model.ThreeDGAN</span>
+<span class="w">              </span><span class="nt">init_args</span><span class="p">:</span>
+<span class="w">                </span><span class="nt">latent_size</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">256</span>
+<span class="w">                </span><span class="nt">loss_weights</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">3</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">0.1</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">25</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">0.1</span><span class="p p-Indicator">]</span>
+<span class="w">                </span><span class="nt">power</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.85</span>
+<span class="w">                </span><span class="nt">lr</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.001</span>
+
+<span class="w">            </span><span class="c1"># Lightning data module configuration</span>
+<span class="w">            </span><span class="nt">data</span><span class="p">:</span>
+<span class="w">              </span><span class="nt">class_path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">dataloader.ParticlesDataModule</span>
+<span class="w">              </span><span class="nt">init_args</span><span class="p">:</span>
+<span class="w">                </span><span class="nt">datapath</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">/usr/data/exp_data/*/*.h5</span>
+<span class="w">                </span><span class="nt">batch_size</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">64</span><span class="w"> </span><span class="c1">#1024</span>
+<span class="w">                </span><span class="nt">num_workers</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">2</span><span class="w"> </span><span class="c1">#4</span>
+<span class="w">                </span><span class="nt">max_samples</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">10</span><span class="w"> </span><span class="c1">#null, 10000</span>
+
+<span class="w">      </span><span class="nt">saver_step</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">class_path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">saver.ParticleImagesSaver</span>
+<span class="w">        </span><span class="nt">init_args</span><span class="p">:</span>
+<span class="w">          </span><span class="nt">save_dir</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">/usr/data/3dgan-generated-data</span>
+<span class="w">          </span><span class="nt">aggregate_predictions</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span>
+</pre></div>
+</div>
+</section>
+<section id="dockerfile">
+<h3>Dockerfile<a class="headerlink" href="#dockerfile" title="Link to this heading"></a></h3>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># FROM python:3.9.12</span>
+FROM<span class="w"> </span>nvcr.io/nvidia/pytorch:23.09-py3
+
+WORKDIR<span class="w"> </span>/usr/src/app
+
+RUN<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>--upgrade<span class="w"> </span>pip
+RUN<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>--no-cache-dir<span class="w"> </span>lightning
+
+<span class="c1"># Add 3DGAN custom requirements</span>
+COPY<span class="w"> </span>use-cases/3dgan/requirements.txt<span class="w"> </span>./
+RUN<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>--no-cache-dir<span class="w"> </span>-r<span class="w"> </span>requirements.txt
+
+<span class="c1"># Install itwinai and dependencies</span>
+COPY<span class="w"> </span>pyproject.toml<span class="w"> </span>./
+COPY<span class="w"> </span>src<span class="w"> </span>./
+RUN<span class="w">  </span>pip<span class="w"> </span>install<span class="w"> </span>--no-cache-dir<span class="w"> </span>.
+
+<span class="c1"># Add 3DGAN use case files</span>
+COPY<span class="w"> </span>use-cases/3dgan/*<span class="w"> </span>./
+</pre></div>
+</div>
+</section>
+<section id="pipeline-yaml">
+<h3>pipeline.yaml<a class="headerlink" href="#pipeline-yaml" title="Link to this heading"></a></h3>
+<p>This YAML file defines the pipeline configuration for the CERN use case. It includes settings for the model, training, and evaluation.</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">pipeline</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">class_path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">itwinai.pipeline.Pipeline</span>
+<span class="w">  </span><span class="nt">init_args</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">steps</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">dataloading_step</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">class_path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">dataloader.Lightning3DGANDownloader</span>
+<span class="w">        </span><span class="nt">init_args</span><span class="p">:</span>
+<span class="w">          </span><span class="nt">data_path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">exp_data/</span><span class="w"> </span><span class="c1"># Set to null to skip dataset download</span>
+<span class="w">          </span><span class="nt">data_url</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">https://drive.google.com/drive/folders/1uPpz0tquokepptIfJenTzGpiENfo2xRX</span>
+
+<span class="w">      </span><span class="nt">training_step</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">class_path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">trainer.Lightning3DGANTrainer</span>
+<span class="w">        </span><span class="nt">init_args</span><span class="p">:</span>
+<span class="w">          </span><span class="c1"># Pytorch lightning config for training</span>
+<span class="w">          </span><span class="nt">config</span><span class="p">:</span>
+<span class="w">            </span><span class="nt">seed_everything</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">4231162351</span>
+<span class="w">            </span><span class="nt">trainer</span><span class="p">:</span>
+<span class="w">              </span><span class="nt">accelerator</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">auto</span>
+<span class="w">              </span><span class="nt">accumulate_grad_batches</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1</span>
+<span class="w">              </span><span class="nt">barebones</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span>
+<span class="w">              </span><span class="nt">benchmark</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">null</span>
+<span class="w">              </span><span class="nt">callbacks</span><span class="p">:</span>
+<span class="w">                </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">class_path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">lightning.pytorch.callbacks.early_stopping.EarlyStopping</span>
+<span class="w">                  </span><span class="nt">init_args</span><span class="p">:</span>
+<span class="w">                    </span><span class="nt">monitor</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">val_generator_loss</span>
+<span class="w">                    </span><span class="nt">patience</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">2</span>
+<span class="w">                </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">class_path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">lightning.pytorch.callbacks.lr_monitor.LearningRateMonitor</span>
+<span class="w">                  </span><span class="nt">init_args</span><span class="p">:</span>
+<span class="w">                    </span><span class="nt">logging_interval</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">step</span>
+<span class="w">                </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">class_path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">lightning.pytorch.callbacks.ModelCheckpoint</span>
+<span class="w">                  </span><span class="nt">init_args</span><span class="p">:</span>
+<span class="w">                    </span><span class="nt">dirpath</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">checkpoints</span>
+<span class="w">                    </span><span class="nt">filename</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">best-checkpoint</span>
+<span class="w">                    </span><span class="nt">mode</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">min</span>
+<span class="w">                    </span><span class="nt">monitor</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">val_generator_loss</span>
+<span class="w">                    </span><span class="nt">save_top_k</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1</span>
+<span class="w">                    </span><span class="nt">verbose</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+<span class="w">              </span><span class="nt">check_val_every_n_epoch</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1</span>
+<span class="w">              </span><span class="nt">default_root_dir</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">null</span>
+<span class="w">              </span><span class="nt">detect_anomaly</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span>
+<span class="w">              </span><span class="nt">deterministic</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">null</span>
+<span class="w">              </span><span class="nt">devices</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">auto</span><span class="w"> </span><span class="c1">#[0]</span>
+<span class="w">              </span><span class="nt">enable_checkpointing</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+<span class="w">              </span><span class="nt">enable_model_summary</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">null</span>
+<span class="w">              </span><span class="nt">enable_progress_bar</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">null</span>
+<span class="w">              </span><span class="nt">fast_dev_run</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span>
+<span class="w">              </span><span class="nt">gradient_clip_algorithm</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">null</span>
+<span class="w">              </span><span class="nt">gradient_clip_val</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">null</span>
+<span class="w">              </span><span class="nt">inference_mode</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+<span class="w">              </span><span class="nt">limit_predict_batches</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">null</span>
+<span class="w">              </span><span class="nt">limit_test_batches</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">null</span>
+<span class="w">              </span><span class="nt">limit_train_batches</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">null</span>
+<span class="w">              </span><span class="nt">limit_val_batches</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">null</span>
+<span class="w">              </span><span class="nt">log_every_n_steps</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1</span>
+<span class="w">              </span><span class="nt">logger</span><span class="p">:</span><span class="w"> </span>
+<span class="w">                </span><span class="nt">class_path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">lightning.pytorch.loggers.MLFlowLogger</span>
+<span class="w">                </span><span class="nt">init_args</span><span class="p">:</span>
+<span class="w">                  </span><span class="nt">experiment_name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">3DGAN</span>
+<span class="w">                  </span><span class="nt">save_dir</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ml_logs/mlflow_logs</span>
+<span class="w">                  </span><span class="nt">log_model</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">all</span>
+<span class="w">              </span><span class="nt">max_epochs</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">5</span>
+<span class="w">              </span><span class="nt">max_time</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">null</span>
+<span class="w">              </span><span class="nt">min_epochs</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">null</span>
+<span class="w">              </span><span class="nt">min_steps</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">null</span>
+<span class="w">              </span><span class="nt">num_sanity_val_steps</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">null</span>
+<span class="w">              </span><span class="nt">overfit_batches</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.0</span>
+<span class="w">              </span><span class="nt">plugins</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">null</span>
+<span class="w">              </span><span class="nt">profiler</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">null</span>
+<span class="w">              </span><span class="nt">reload_dataloaders_every_n_epochs</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0</span>
+<span class="w">              </span><span class="nt">strategy</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">auto</span><span class="w"> </span><span class="c1">#ddp_find_unused_parameters_true</span>
+<span class="w">              </span><span class="nt">sync_batchnorm</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span>
+<span class="w">              </span><span class="nt">use_distributed_sampler</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+<span class="w">              </span><span class="nt">val_check_interval</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">null</span>
+
+<span class="w">            </span><span class="c1"># Lightning Model configuration</span>
+<span class="w">            </span><span class="nt">model</span><span class="p">:</span>
+<span class="w">              </span><span class="nt">class_path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">model.ThreeDGAN</span>
+<span class="w">              </span><span class="nt">init_args</span><span class="p">:</span>
+<span class="w">                </span><span class="nt">latent_size</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">256</span>
+<span class="w">                </span><span class="nt">loss_weights</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">3</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">0.1</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">25</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">0.1</span><span class="p p-Indicator">]</span>
+<span class="w">                </span><span class="nt">power</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.85</span>
+<span class="w">                </span><span class="nt">lr</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.001</span>
+
+<span class="w">            </span><span class="c1"># Lightning data module configuration</span>
+<span class="w">            </span><span class="nt">data</span><span class="p">:</span>
+<span class="w">              </span><span class="nt">class_path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">dataloader.ParticlesDataModule</span>
+<span class="w">              </span><span class="nt">init_args</span><span class="p">:</span>
+<span class="w">                </span><span class="nt">datapath</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">exp_data/*/*.h5</span>
+<span class="w">                </span><span class="nt">batch_size</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">4</span>
+<span class="w">                </span><span class="nt">num_workers</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0</span>
+<span class="w">                </span><span class="nt">max_samples</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">48</span>
+</pre></div>
+</div>
+<p>This section covers the CERN use case integration with <a class="reference external" href="https://github.com/interTwin-eu/interLink">interLink</a> using <code class="docutils literal notranslate"><span class="pre">itwinai</span></code>. The following files are integral to this use case:</p>
+</section>
+</section>
+<section id="interlink-x-3dgan">
+<h2>interLink x 3DGAN<a class="headerlink" href="#interlink-x-3dgan" title="Link to this heading"></a></h2>
+<div class="toctree-wrapper compound">
+</div>
+<section id="dgan-inference-cpu-yaml">
+<h3>3dgan-inference-cpu.yaml<a class="headerlink" href="#dgan-inference-cpu-yaml" title="Link to this heading"></a></h3>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">v1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Pod</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">3dgan-cpu</span>
+<span class="w">  </span><span class="nt">annotations</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">slurm-job.vk.io/flags</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;-p</span><span class="nv"> </span><span class="s">gpu</span><span class="nv"> </span><span class="s">--gres=gpu:1</span><span class="nv"> </span><span class="s">--cpus-per-task=4</span><span class="nv"> </span><span class="s">--mem=100G</span><span class="nv"> </span><span class="s">--ntasks-per-node=1</span><span class="nv"> </span><span class="s">--nodes=1&quot;</span>
+<span class="w">    </span><span class="nt">job.vk.io/singularity-mounts</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;--bind</span><span class="nv"> </span><span class="s">/ceph/hpc/data/st2301-itwin-users/egarciagarcia:/exp_data&quot;</span>
+<span class="w">    </span><span class="c1">#job.vk.io/pre-exec: &quot;singularity pull /ceph/hpc/data/st2301-itwin-users/itwinaiv6_1.sif docker://ghcr.io/intertwin-eu/itwinai:0.0.1-3dgan-0.2&quot;</span>
+<span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">automountServiceAccountToken</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span>
+<span class="w">  </span><span class="nt">containers</span><span class="p">:</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">args</span><span class="p">:</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">-c</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="s">&quot;\&quot;</span><span class="nv"> </span><span class="s">cd</span><span class="nv"> </span><span class="s">/usr/src/app</span><span class="nv"> </span><span class="s">&amp;&amp;</span><span class="nv"> </span><span class="s">itwinai</span><span class="nv"> </span><span class="s">exec-pipeline</span><span class="nv"> </span><span class="s">--print-config</span><span class="nv"> </span><span class="s">--config</span><span class="nv"> </span><span class="s">\\$CERN_CODE_ROOT/inference-pipeline.yaml</span><span class="nv"> </span><span class="s">\ </span>
+<span class="w">          </span><span class="s">-o</span><span class="nv"> </span><span class="s">pipeline.init_args.steps.dataloading_step.init_args.data_path=\\$CERN_DATA_ROOT</span><span class="nv"> </span><span class="s">\ </span>
+<span class="w">          </span><span class="s">-o</span><span class="nv"> </span><span class="s">pipeline.init_args.steps.inference_step.init_args.config.trainer.logger.init_args.save_dir=\\$TMP_DATA_ROOT/ml_logs/mlflow_logs</span><span class="nv"> </span><span class="s">\ </span>
+<span class="w">          </span><span class="s">-o</span><span class="nv"> </span><span class="s">pipeline.init_args.steps.inference_step.init_args.config.trainer.strategy=\\$STRATEGY</span><span class="nv"> </span><span class="s">\ </span>
+<span class="w">          </span><span class="s">-o</span><span class="nv"> </span><span class="s">pipeline.init_args.steps.inference_step.init_args.config.trainer.devices=\\$DEVICES</span><span class="nv"> </span><span class="s">\ </span>
+<span class="w">          </span><span class="s">-o</span><span class="nv"> </span><span class="s">pipeline.init_args.steps.inference_step.init_args.config.trainer.accelerator=\\$ACCELERATOR</span><span class="nv"> </span><span class="s">\ </span>
+<span class="w">          </span><span class="s">-o</span><span class="nv"> </span><span class="s">pipeline.init_args.steps.inference_step.init_args.model.init_args.model_uri=\\$CERN_CODE_ROOT/3dgan-inference.pth</span><span class="nv"> </span><span class="s">\ </span>
+<span class="w">          </span><span class="s">-o</span><span class="nv"> </span><span class="s">pipeline.init_args.steps.inference_step.init_args.config.data.init_args.datapath=\\$CERN_DATA_ROOT/*.h5</span><span class="nv"> </span><span class="s">\ </span>
+<span class="w">          </span><span class="s">-o</span><span class="nv"> </span><span class="s">pipeline.init_args.steps.inference_step.init_args.config.data.init_args.max_samples=\\$MAX_DATA_SAMPLES</span><span class="nv"> </span><span class="s">\ </span>
+<span class="w">          </span><span class="s">-o</span><span class="nv"> </span><span class="s">pipeline.init_args.steps.inference_step.init_args.config.data.init_args.batch_size=\\$BATCH_SIZE</span><span class="nv"> </span><span class="s">\ </span>
+<span class="w">          </span><span class="s">-o</span><span class="nv"> </span><span class="s">pipeline.init_args.steps.inference_step.init_args.config.data.init_args.num_workers=\\$NUM_WORKERS_DL</span><span class="nv"> </span><span class="s">\ </span>
+<span class="w">          </span><span class="s">-o</span><span class="nv"> </span><span class="s">pipeline.init_args.steps.saver_step.init_args.save_dir=\\$TMP_DATA_ROOT/3dgan-generated-data</span><span class="nv"> </span><span class="s">\ </span>
+<span class="w">          </span><span class="s">-o</span><span class="nv"> </span><span class="s">pipeline.init_args.steps.saver_step.init_args.aggregate_predictions=\\$AGGREGATE_PREDS</span><span class="nv"> </span><span class="s">\&quot;&quot;</span>
+<span class="w">    </span><span class="nt">command</span><span class="p">:</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">/bin/sh</span>
+<span class="w">    </span><span class="nt">env</span><span class="p">:</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">CERN_DATA_ROOT</span>
+<span class="w">      </span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;/exp_data&quot;</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">CERN_CODE_ROOT</span>
+<span class="w">      </span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;/usr/src/app&quot;</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">TMP_DATA_ROOT</span>
+<span class="w">      </span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;/exp_data&quot;</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">MAX_DATA_SAMPLES</span>
+<span class="w">      </span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;5000&quot;</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">BATCH_SIZE</span>
+<span class="w">      </span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;1024&quot;</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">NUM_WORKERS_DL</span>
+<span class="w">      </span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;4&quot;</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">AGGREGATE_PREDS</span>
+<span class="w">      </span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;true&quot;</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ACCELERATOR</span>
+<span class="w">      </span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;cpu&quot;</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">STRATEGY</span>
+<span class="w">      </span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;auto&quot;</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">DEVICES</span>
+<span class="w">      </span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;auto&quot;</span>
+<span class="w">    </span><span class="nt">image</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">/ceph/hpc/data/st2301-itwin-users/itwinaiv6_1.sif</span>
+<span class="w">    </span><span class="nt">imagePullPolicy</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Always</span>
+<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">oscar-container</span>
+<span class="w">    </span><span class="nt">resources</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">limits</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">cpu</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;1&quot;</span>
+<span class="w">        </span><span class="nt">memory</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1Gi</span>
+<span class="w">      </span><span class="nt">requests</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">cpu</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;1&quot;</span>
+<span class="w">        </span><span class="nt">memory</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1Gi</span>
+<span class="w">    </span><span class="nt">terminationMessagePath</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">/dev/termination-log</span>
+<span class="w">    </span><span class="nt">terminationMessagePolicy</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">File</span>
+<span class="w">  </span><span class="nt">nodeSelector</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">kubernetes.io/hostname</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">vega-new-vk</span>
+<span class="w">  </span><span class="nt">tolerations</span><span class="p">:</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">virtual-node.interlink/no-schedule</span>
+<span class="w">    </span><span class="nt">operator</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Exists</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">effect</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">NoExecute</span>
+<span class="w">    </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">node.kubernetes.io/not-ready</span>
+<span class="w">    </span><span class="nt">operator</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Exists</span>
+<span class="w">    </span><span class="nt">tolerationSeconds</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">300</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">effect</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">NoExecute</span>
+<span class="w">    </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">node.kubernetes.io/unreachable</span>
+<span class="w">    </span><span class="nt">operator</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Exists</span>
+<span class="w">    </span><span class="nt">tolerationSeconds</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">300</span>
+</pre></div>
+</div>
+</section>
+<section id="dgan-inference-yaml">
+<h3>3dgan-inference.yaml<a class="headerlink" href="#dgan-inference-yaml" title="Link to this heading"></a></h3>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">v1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Pod</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">3dgan</span>
+<span class="w">  </span><span class="nt">annotations</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">slurm-job.vk.io/flags</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;-p</span><span class="nv"> </span><span class="s">gpu</span><span class="nv"> </span><span class="s">--gres=gpu:1</span><span class="nv"> </span><span class="s">--cpus-per-task=4</span><span class="nv"> </span><span class="s">--mem=100G</span><span class="nv"> </span><span class="s">--ntasks-per-node=1</span><span class="nv"> </span><span class="s">--nodes=1&quot;</span>
+<span class="w">    </span><span class="nt">job.vk.io/singularity-mounts</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;--bind</span><span class="nv"> </span><span class="s">/ceph/hpc/data/st2301-itwin-users/egarciagarcia:/exp_data&quot;</span>
+<span class="w">    </span><span class="c1">#job.vk.io/pre-exec: &quot;singularity pull /ceph/hpc/data/st2301-itwin-users/itwinaiv6_1.sif docker://ghcr.io/intertwin-eu/itwinai:0.0.1-3dgan-0.2&quot;</span>
+<span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">automountServiceAccountToken</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span>
+<span class="w">  </span><span class="nt">containers</span><span class="p">:</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">args</span><span class="p">:</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">-c</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="s">&quot;\&quot;</span><span class="nv"> </span><span class="s">cd</span><span class="nv"> </span><span class="s">/usr/src/app</span><span class="nv"> </span><span class="s">&amp;&amp;</span><span class="nv"> </span><span class="s">itwinai</span><span class="nv"> </span><span class="s">exec-pipeline</span><span class="nv"> </span><span class="s">--print-config</span><span class="nv"> </span><span class="s">--config</span><span class="nv"> </span><span class="s">\\$CERN_CODE_ROOT/inference-pipeline.yaml</span><span class="nv"> </span><span class="s">\ </span>
+<span class="w">          </span><span class="s">-o</span><span class="nv"> </span><span class="s">pipeline.init_args.steps.dataloading_step.init_args.data_path=\\$CERN_DATA_ROOT</span><span class="nv"> </span><span class="s">\ </span>
+<span class="w">          </span><span class="s">-o</span><span class="nv"> </span><span class="s">pipeline.init_args.steps.inference_step.init_args.config.trainer.logger.init_args.save_dir=\\$TMP_DATA_ROOT/ml_logs/mlflow_logs</span><span class="nv"> </span><span class="s">\ </span>
+<span class="w">          </span><span class="s">-o</span><span class="nv"> </span><span class="s">pipeline.init_args.steps.inference_step.init_args.config.trainer.strategy=\\$STRATEGY</span><span class="nv"> </span><span class="s">\ </span>
+<span class="w">          </span><span class="s">-o</span><span class="nv"> </span><span class="s">pipeline.init_args.steps.inference_step.init_args.config.trainer.devices=\\$DEVICES</span><span class="nv"> </span><span class="s">\ </span>
+<span class="w">          </span><span class="s">-o</span><span class="nv"> </span><span class="s">pipeline.init_args.steps.inference_step.init_args.config.trainer.accelerator=\\$ACCELERATOR</span><span class="nv"> </span><span class="s">\ </span>
+<span class="w">          </span><span class="s">-o</span><span class="nv"> </span><span class="s">pipeline.init_args.steps.inference_step.init_args.model.init_args.model_uri=\\$CERN_CODE_ROOT/3dgan-inference.pth</span><span class="nv"> </span><span class="s">\ </span>
+<span class="w">          </span><span class="s">-o</span><span class="nv"> </span><span class="s">pipeline.init_args.steps.inference_step.init_args.config.data.init_args.datapath=\\$CERN_DATA_ROOT/*.h5</span><span class="nv"> </span><span class="s">\ </span>
+<span class="w">          </span><span class="s">-o</span><span class="nv"> </span><span class="s">pipeline.init_args.steps.inference_step.init_args.config.data.init_args.max_samples=\\$MAX_DATA_SAMPLES</span><span class="nv"> </span><span class="s">\ </span>
+<span class="w">          </span><span class="s">-o</span><span class="nv"> </span><span class="s">pipeline.init_args.steps.inference_step.init_args.config.data.init_args.batch_size=\\$BATCH_SIZE</span><span class="nv"> </span><span class="s">\ </span>
+<span class="w">          </span><span class="s">-o</span><span class="nv"> </span><span class="s">pipeline.init_args.steps.inference_step.init_args.config.data.init_args.num_workers=\\$NUM_WORKERS_DL</span><span class="nv"> </span><span class="s">\ </span>
+<span class="w">          </span><span class="s">-o</span><span class="nv"> </span><span class="s">pipeline.init_args.steps.saver_step.init_args.save_dir=\\$TMP_DATA_ROOT/3dgan-generated-data</span><span class="nv"> </span><span class="s">\ </span>
+<span class="w">          </span><span class="s">-o</span><span class="nv"> </span><span class="s">pipeline.init_args.steps.saver_step.init_args.aggregate_predictions=\\$AGGREGATE_PREDS</span><span class="nv"> </span><span class="s">\&quot;&quot;</span>
+<span class="w">    </span><span class="nt">command</span><span class="p">:</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">/bin/sh</span>
+<span class="w">    </span><span class="nt">env</span><span class="p">:</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">CERN_DATA_ROOT</span>
+<span class="w">      </span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;/exp_data&quot;</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">CERN_CODE_ROOT</span>
+<span class="w">      </span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;/usr/src/app&quot;</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">TMP_DATA_ROOT</span>
+<span class="w">      </span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;/exp_data&quot;</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">MAX_DATA_SAMPLES</span>
+<span class="w">      </span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;5000&quot;</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">BATCH_SIZE</span>
+<span class="w">      </span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;2501&quot;</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">NUM_WORKERS_DL</span>
+<span class="w">      </span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;4&quot;</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">AGGREGATE_PREDS</span>
+<span class="w">      </span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;true&quot;</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ACCELERATOR</span>
+<span class="w">      </span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;gpu&quot;</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">STRATEGY</span>
+<span class="w">      </span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;auto&quot;</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">DEVICES</span>
+<span class="w">      </span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;auto&quot;</span>
+<span class="w">    </span><span class="nt">image</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">/ceph/hpc/data/st2301-itwin-users/itwinaiv6_1.sif</span>
+<span class="w">    </span><span class="nt">imagePullPolicy</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Always</span>
+<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">oscar-container</span>
+<span class="w">    </span><span class="nt">resources</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">limits</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">cpu</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;1&quot;</span>
+<span class="w">        </span><span class="nt">memory</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1Gi</span>
+<span class="w">      </span><span class="nt">requests</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">cpu</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;1&quot;</span>
+<span class="w">        </span><span class="nt">memory</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1Gi</span>
+<span class="w">    </span><span class="nt">terminationMessagePath</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">/dev/termination-log</span>
+<span class="w">    </span><span class="nt">terminationMessagePolicy</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">File</span>
+<span class="w">  </span><span class="nt">nodeSelector</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">kubernetes.io/hostname</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">vega-new-vk</span>
+<span class="w">  </span><span class="nt">tolerations</span><span class="p">:</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">virtual-node.interlink/no-schedule</span>
+<span class="w">    </span><span class="nt">operator</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Exists</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">effect</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">NoExecute</span>
+<span class="w">    </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">node.kubernetes.io/not-ready</span>
+<span class="w">    </span><span class="nt">operator</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Exists</span>
+<span class="w">    </span><span class="nt">tolerationSeconds</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">300</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">effect</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">NoExecute</span>
+<span class="w">    </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">node.kubernetes.io/unreachable</span>
+<span class="w">    </span><span class="nt">operator</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Exists</span>
+<span class="w">    </span><span class="nt">tolerationSeconds</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">300</span>
+</pre></div>
+</div>
+</section>
+</section>
 </section>
 
 
