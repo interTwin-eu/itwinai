@@ -21,12 +21,12 @@ sys.path.insert(0, os.path.abspath('../'))
 project = 'itwinai'
 copyright = '2024, Matteo Bunino, Alexander Zoechbauer, Kalliopi Tsolaki, Rakesh Sarma on behalf of CERN & JSC'
 author = 'Matteo Bunino, Alexander Zoechbauer, Kalliopi Tsolaki'
-release = '0.0.1'
+release = '0.0.2'
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
 
-extensions = ['sphinx.ext.autodoc', 'sphinx.ext.doctest', 'sphinx.ext.viewcode']
+extensions = ['sphinx.ext.autodoc', 'sphinx.ext.doctest', 'sphinx.ext.viewcode', 'myst_parser']
 
 templates_path = ['_templates']
 exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
