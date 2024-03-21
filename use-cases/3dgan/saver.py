@@ -1,6 +1,8 @@
 from typing import Dict
 import os
 import shutil
+import pickle
+import random
 
 import torch
 from torch import Tensor
@@ -15,11 +17,13 @@ class ParticleImagesSaver(Saver):
 
     def __init__(
         self,
-        save_dir: str = '3dgan-generated'
+        save_dir: str = '3dgan-generated',
+        aggregate_predictions: bool = False
     ) -> None:
         self.save_parameters(**self.locals2params(locals()))
         super().__init__()
         self.save_dir = save_dir
+        self.aggregate_predictions = aggregate_predictions
 
     @monitor_exec
     def execute(self, generated_images: Dict[str, Tensor]) -> None:
@@ -29,15 +33,31 @@ class ParticleImagesSaver(Saver):
             generated_images (Dict[str, Tensor]): maps unique item ID to
                 the generated image.
         """
-        if os.path.exists(self.save_dir):
-            shutil.rmtree(self.save_dir)
-        os.makedirs(self.save_dir)
+        if self.aggregate_predictions:
+            os.makedirs(self.save_dir, exist_ok=True)
+            sparse_generated_images = dict()
+            for name, res in generated_images.items():
+                sparse_generated_images[name] = res.to_sparse()
+            del generated_images
+            with open(self._random_file(), 'wb') as fp:
+                pickle.dump(sparse_generated_images, fp)
+        else:
+            if os.path.exists(self.save_dir):
+                shutil.rmtree(self.save_dir)
+            os.makedirs(self.save_dir)
+            # Save as torch tensor and jpg image
+            for img_id, img in generated_images.items():
+                img_path = os.path.join(self.save_dir, img_id)
+                torch.save(img, img_path + '.pth')
+                self._save_image(img, img_id, img_path + '.jpg')
 
-        # Save as torch tensor and jpg image
-        for img_id, img in generated_images.items():
-            img_path = os.path.join(self.save_dir, img_id)
-            torch.save(img, img_path + '.pth')
-            self._save_image(img, img_id, img_path + '.jpg')
+    def _random_file(self, extension: str = 'pkl') -> str:
+        fname = "%032x.%s" % (random.getrandbits(128), extension)
+        fpath = os.path.join(self.save_dir, fname)
+        while os.path.exists(fpath):
+            fname = "%032x.%s" % (random.getrandbits(128), extension)
+            fpath = os.path.join(self.save_dir, fname)
+        return fpath
 
     def _save_image(
         self,

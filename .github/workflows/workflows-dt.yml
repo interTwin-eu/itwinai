@@ -23,7 +23,7 @@ jobs:
 
       - name: Make tensorflow env
         shell: bash -l {0}
-        run: make tf-2.13
+        run: make tf-2.13-cpu
 
       - name: Install dev version
         shell: bash -l {0}

@@ -41,7 +41,8 @@ class TensorflowDataGetter(DataGetter):
         experiment: Dict,
         global_config: Dict,
         shuffle_buffer: int = None,
-        data_path: str = "tmp_data"
+        data_path: str = "tmp_data",
+        local_dataset_path: str = "trainval"
     ):
         super().__init__()
         self.save_parameters(**self.locals2params(locals()))
@@ -58,6 +59,7 @@ class TensorflowDataGetter(DataGetter):
         self.global_config = global_config
         self.shuffle = shuffle
         self.data_path = data_path
+        self.local_dataset_path = local_dataset_path
         self.drv_vars, self.coo_vars = (
             experiment["DRV_VARS_1"],
             experiment["COO_VARS_1"],
@@ -184,7 +186,7 @@ class TensorflowDataGetter(DataGetter):
         # Scalar fields
         self.root_dir = root_dir
         self.dataset_dir = join(root_dir, self.data_path,
-                                "tfrecords", "trainval/")
+                                self.local_dataset_path)
         self.scaler_file = join(config["scaler_dir"], "minmax.tfrecord")
 
         # get records filenames
