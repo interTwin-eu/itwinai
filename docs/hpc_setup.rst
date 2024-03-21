@@ -4,7 +4,8 @@ How to use torch `DistributedDataParallel` (DDP), Horovod and DeepSpeed from the
 Note that the environment is tested on the HDFML system at JSC. For other systems, the module versions might need change accordingly.
 
 
-**Environments**
+Environments
+++++++++++++
 
 Install PyTorch env (GPU support) on Juelich Super Computer (tested on HDFML system)
 
@@ -23,7 +24,9 @@ Install Tensorflow env (GPU support) on Juelich Super Computer (tested on HDFML 
 
 
 
-**Setup**
+Setup
++++++
+
 First, from the root of this `repository <https://github.com/interTwin-eu/itwinai/tree/distributed-strategy-launcher>`_, build the environment containing pytorch, horovod and deepspeed. You can try with:
 
 .. code-block:: bash
@@ -32,7 +35,9 @@ First, from the root of this `repository <https://github.com/interTwin-eu/itwina
     make torch-gpu-jsc
 
 
-**Distributed training**
+Distributed training
+++++++++++++++++++++
+
 Each distributed strategy has its own SLURM job script, which should be used to run it:
 
 If you want to distribute the code in `train.py` with **torch DDP**, run from terminal:
@@ -56,5 +61,5 @@ If you want to distribute the code in `train.py` with **Horovod**, run from term
 You can run all of them with:
 
 .. code-block:: bash
-    
+
     bash runall.sh
