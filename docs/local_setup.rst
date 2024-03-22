@@ -7,6 +7,10 @@
 * Windows and macOS were never tested.
 
 
+.. toctree::
+   :maxdepth: 5
+   
+
 Micromamba installation
 +++++++++++++++++++++++
 

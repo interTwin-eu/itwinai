@@ -5,8 +5,8 @@ Getting started with itwinai
 Here you can find itwinai framework installation and usage instructions for HPC and local systems.
 
 
-HPC systems
------------
+🌐 HPC systems
+---------------
 
 .. toctree::
    :maxdepth: 2
@@ -17,8 +17,8 @@ HPC systems
 
 
 
-Local systems
--------------
+💻 Local systems
+-----------------
 
 .. toctree::
    :maxdepth: 2
