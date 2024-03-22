@@ -335,8 +335,8 @@ if __name__ == "__main__":
     if strategy.is_main_worker():
         print('TIMER: read and concat data:', time.time()-st, 's')
 
-    # create CNN model
-    model = torchvision.models.resnet101()
+    # create CNN model: resnet 50, resnet101, resnet152
+    model = torchvision.models.resnet152()
     model.fc = nn.Linear(2048, args.num_classes)
 
     # optimizer
