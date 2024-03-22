@@ -24,7 +24,7 @@ jobs:
             make torch-cpu
             make tf-2.13
             micromamba run -p ./.venv-pytorch pip install .[dev]
-            micromamba run -p ./.venv-pytorch pytest -v ./tests/ -m "not slurm and not cyclones_train_tf"
+            micromamba run -p ./.venv-pytorch pytest -v ./tests/ -m "not slurm and not memory_heavy"
           container: eoscsynergy/sqaaas-micromamba:1.5.3-1
       - name: Print out payload
         run: cat workflow_validation_step.json
