@@ -11,6 +11,7 @@ import numpy as np
 import random
 
 import torch
+from torch import nn
 import torch.distributed as dist
 import torch.nn.functional as F
 import torchvision
@@ -65,6 +66,8 @@ def parse_args() -> argparse.Namespace:
                         help='momentum in SGD optimizer (default: 0.5)')
     parser.add_argument('--shuff', action='store_true', default=False,
                         help='shuffle dataset (default: False)')
+    parser.add_argument('--num-classes', type=int, default=1000,
+                        help='number of classes in dataset')
 
     # debug parsers
     parser.add_argument('--testrun', action='store_true', default=False,
@@ -292,7 +295,7 @@ if __name__ == "__main__":
         root=args.data_dir,
         transform=transform
     )
-    test_dataset = ...
+    # test_dataset = ...
 
     # restricts data loading to a subset of the dataset exclusive to the
     # current process
@@ -300,8 +303,9 @@ if __name__ == "__main__":
     if torch.cuda.is_available():
         train_sampler = DistributedSampler(
             train_dataset, num_replicas=gwsize, rank=grank, shuffle=args.shuff)
-        test_sampler = DistributedSampler(
-            test_dataset, num_replicas=gwsize, rank=grank, shuffle=args.shuff)
+        # test_sampler = DistributedSampler(
+        #     test_dataset, num_replicas=gwsize, rank=grank,
+        # shuffle=args.shuff)
     # distribute dataset to workers
     # persistent workers is not possible for nworker=0
     pers_w = True if args.nworker > 1 else False
@@ -316,22 +320,24 @@ if __name__ == "__main__":
             sampler=train_sampler, num_workers=args.nworker, pin_memory=True,
             persistent_workers=pers_w, prefetch_factor=args.prefetch, **kwargs
         )
-        test_loader = DataLoader(
-            test_dataset, batch_size=args.batch_size,
-            sampler=test_sampler, num_workers=args.nworker, pin_memory=True,
-            persistent_workers=pers_w, prefetch_factor=args.prefetch, **kwargs
-        )
+        # test_loader = DataLoader(
+        #     test_dataset, batch_size=args.batch_size,
+        #     sampler=test_sampler, num_workers=args.nworker, pin_memory=True,
+        #     persistent_workers=pers_w, prefetch_factor=args.prefetch,
+        # **kwargs
+        # )
     else:
         train_loader = DataLoader(
             train_dataset, batch_size=args.batch_size)
-        test_loader = DataLoader(
-            test_dataset, batch_size=args.batch_size)
+        # test_loader = DataLoader(
+        #     test_dataset, batch_size=args.batch_size)
 
     if strategy.is_main_worker():
         print('TIMER: read and concat data:', time.time()-st, 's')
 
     # create CNN model
-    model = torchvision.models.resnet101(pretrained=False)
+    model = torchvision.models.resnet101()
+    model.fc = nn.Linear(2048, args.num_classes)
 
     # optimizer
     optimizer = torch.optim.SGD(
@@ -410,13 +416,13 @@ if __name__ == "__main__":
             args=args
         )
 
-        # testing
-        acc_test = test(
-            model=distrib_model,
-            device=device,
-            test_loader=test_loader,
-            strategy=strategy
-        )
+        # # testing
+        # acc_test = test(
+        #     model=distrib_model,
+        #     device=device,
+        #     test_loader=test_loader,
+        #     strategy=strategy
+        # )
 
         # save first epoch timer
         if epoch == start_epoch:
@@ -425,11 +431,11 @@ if __name__ == "__main__":
         # final epoch
         if epoch + 1 == args.epochs:
             train_loader.last_epoch = True
-            test_loader.last_epoch = True
+            # test_loader.last_epoch = True
 
         if strategy.is_main_worker():
             print('TIMER: epoch time:', time.time()-lt, 's')
-            print('DEBUG: accuracy:', acc_test, '%')
+            # print('DEBUG: accuracy:', acc_test, '%')
 
         # save state if found a better state
         is_best = loss_acc < best_acc
@@ -471,7 +477,7 @@ if __name__ == "__main__":
                   time.time()-et-first_ep_t, ' s')
             print('TIMER: average epoch-1 time:',
                   (time.time()-et-first_ep_t)/(args.epochs-1), ' s')
-        print('DEBUG: last accuracy:', acc_test, '%')
+        # print('DEBUG: last accuracy:', acc_test, '%')
         print('DEBUG: memory req:',
               int(torch.cuda.memory_reserved(lrank)/1024/1024), 'MB') \
             if args.cuda else 'DEBUG: memory req: - MB'

@@ -1,14 +1,15 @@
 # I/O
-data_dir: /p/largedata2/raise/ImageNet_uncompressed
+data_dir: tmp_data #/p/project/intertwin/datasets/ImageNet_uncompressed/train
 restart_int: 10
 verbose: True
 
 # Model
 batch_size: 64
-epochs: 2
+epochs: 2 # TODO: increase to 3
 lr: 0.001
 momentum: 0.5
 shuff: False
+num_classes: 2 # TODO: reset
 
 # Debugging
 testrun: False
