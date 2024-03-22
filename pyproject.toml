@@ -75,4 +75,5 @@ markers = [
     "integration: integration tests (deselect with '-m \"not integration\"')",
     "slurm: needs SLURM and HPC resources (multiple GPUs/nodes). (deselect with '-m \"not slurm\"')",
     "functional: functional tests. (deselect with '-m \"not functional\"')",
+    "memory_heavy: high memory footprint. (deselect with '-m \"not heavy_memory\"')",
 ]
