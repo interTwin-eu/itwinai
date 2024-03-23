@@ -16,6 +16,7 @@ import torchvision
 from torchvision import datasets, transforms
 
 from itwinai.parser import ArgumentParser as ItAIArgumentParser
+from itwinai.loggers import EpochTimeTracker
 
 
 def parsIni():
@@ -293,6 +294,7 @@ def main():
         print('TIMER: broadcast:', time.time()-st, 's')
         print('\nDEBUG: start training')
         print('--------------------------------------------------------')
+        epoch_time_tracker = EpochTimeTracker(series_name="deepspeed-bl")
 
     et = time.time()
     for epoch in range(start_epoch, args.epochs + 1):
@@ -314,6 +316,7 @@ def main():
 
         if grank == 0:
             print('TIMER: epoch time:', time.time()-lt, 's')
+            epoch_time_tracker.add_epoch_time(epoch-1, time.time()-lt)
             # print('DEBUG: accuracy:', acc_test, '%')
 
     # finalise
@@ -334,6 +337,9 @@ def main():
 
     if grank == 0:
         print(f'TIMER: final time: {time.time()-st} s\n')
+        nnod = os.environ.get('SLURM_NNODES', 'unk')
+        epoch_time_tracker.save(
+            csv_file=f"epochtime_deepspeed-bl_{nnod}N.csv")
 
     print(f"<Global rank: {grank}> - TRAINING FINISHED")
 

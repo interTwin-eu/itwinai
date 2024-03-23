@@ -27,6 +27,7 @@ from itwinai.torch.distributed import (
     DSDistributedStrategy,
 )
 from itwinai.parser import ArgumentParser as ItAIArgumentParser
+from itwinai.loggers import EpochTimeTracker
 
 
 def parse_args() -> argparse.Namespace:
@@ -401,6 +402,7 @@ if __name__ == "__main__":
         print('TIMER: broadcast:', time.time()-st, 's')
         print('\nDEBUG: start training')
         print('--------------------------------------------------------')
+        epoch_time_tracker = EpochTimeTracker(series_name=args.strategy)
 
     et = time.time()
     for epoch in range(start_epoch, args.epochs + 1):
@@ -435,6 +437,7 @@ if __name__ == "__main__":
 
         if strategy.is_main_worker():
             print('TIMER: epoch time:', time.time()-lt, 's')
+            epoch_time_tracker.add_epoch_time(epoch-1, time.time()-lt)
             # print('DEBUG: accuracy:', acc_test, '%')
 
         # save state if found a better state
@@ -486,6 +489,9 @@ if __name__ == "__main__":
 
     if strategy.is_main_worker():
         print(f'TIMER: final time: {time.time()-st} s\n')
+        nnod = os.environ.get('SLURM_NNODES', 'unk')
+        epoch_time_tracker.save(
+            csv_file=f"epochtime_{args.strategy}_{nnod}N.csv")
 
     print(f"<Global rank: {strategy.dist_grank()}> - TRAINING FINISHED")
     strategy.clean_up()

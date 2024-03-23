@@ -2,6 +2,7 @@
 Scaling test of Horovod on Imagenet using Resnet.
 """
 import argparse
+import os
 import sys
 from timeit import default_timer as timer
 
@@ -14,6 +15,7 @@ import torchvision
 from torchvision import datasets, transforms
 
 from itwinai.parser import ArgumentParser as ItAIArgumentParser
+from itwinai.loggers import EpochTimeTracker
 
 
 def parsIni():
@@ -61,7 +63,6 @@ def train(epoch):
     model.train()
     # Horovod: set epoch to sampler for shuffling
     train_sampler.set_epoch(epoch)
-    print('Training:')
     for batch_idx, (data, target) in enumerate(train_loader):
         if args.cuda:
             data, target = data.cuda(), target.cuda()
@@ -222,6 +223,7 @@ if __name__ == '__main__':
 
     if hvd.rank() == 0 and hvd.local_rank() == 0:
         print('TIMER: broadcast:', timer()-st, 's')
+        epoch_time_tracker = EpochTimeTracker(series_name="horovod-bl")
 
     et = timer()
     for epoch in range(1, args.epochs + 1):
@@ -231,11 +233,18 @@ if __name__ == '__main__':
         print('TIMER: hvd.rank():', hvd.rank(),
               'hvd.local_rank():', hvd.local_rank(),
               ', epoch time:', timer()-lt, 's')
+
+        if hvd.rank() == 0 and hvd.local_rank() == 0:
+            epoch_time_tracker.add_epoch_time(epoch-1, timer()-lt)
+
     print('TIMER: last epoch time:', timer()-lt, 's')
     print('TIMER: total epoch time:', timer()-et, 's')
 
     if hvd.rank() == 0 and hvd.local_rank() == 0:
         print('\n', torch.cuda.memory_summary(0), '\n')
+        nnod = os.environ.get('SLURM_NNODES', 'unk')
+        epoch_time_tracker.save(
+            csv_file=f"epochtime_horovod-bl_{nnod}N.csv")
 
     print('DEBUG: hvd.rank():', hvd.rank(),
           'hvd.local_rank():', hvd.local_rank(),

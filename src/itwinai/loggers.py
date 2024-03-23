@@ -1,6 +1,7 @@
 """Abstraction for loggers."""
 
 import os
+import csv
 from abc import ABCMeta, abstractmethod
 from contextlib import contextmanager
 from typing import Any, Dict, List, Optional, Union
@@ -448,3 +449,19 @@ class LoggersCollection(Logger):
                 batch_idx=batch_idx,
                 **kwargs
             )
+
+
+class EpochTimeTracker:
+    def __init__(self, series_name: str) -> None:
+        self.series_name = series_name
+        self._data = []
+
+    def add_epoch_time(self, epoch_idx, time):
+        n_nodes = os.environ.get('SLURM_NNODES', -1)
+        self._data.append((self.series_name, n_nodes, epoch_idx, time))
+
+    def save(self, csv_file: str):
+        with open(csv_file, 'w') as csvfile:
+            csvwriter = csv.writer(csvfile)
+            csvwriter.writerow(['name', 'nodes', 'epoch_id', 'time'])
+            csvwriter.writerows(self._data)
