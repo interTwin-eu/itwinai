@@ -1,7 +1,6 @@
 # I/O
-data_dir: ../tmp_data #/p/project/intertwin/datasets/ImageNet_uncompressed/train
+data_dir: /p/project/intertwin/datasets/ImageNet_uncompressed/train
 verbose: True
-nworker: 4 # num workers dataloader
 
 # Model
 batch_size: 64
@@ -15,6 +14,7 @@ seed: 10
 log_interval: 10
 
 # Distributed ML
+nworker: 4 # num workers dataloader
 no_cuda: False
 fp16_allreduce: False
 gradient_predivide_factor: 1.0

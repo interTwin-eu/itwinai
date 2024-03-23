@@ -1,5 +1,5 @@
 # I/O
-data_dir: ../tmp_data #/p/project/intertwin/datasets/ImageNet_uncompressed/train
+data_dir: /p/project/intertwin/datasets/ImageNet_uncompressed/train
 restart_int: 10
 verbose: True
 
