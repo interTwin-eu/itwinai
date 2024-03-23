@@ -80,6 +80,8 @@ def train(model, device, train_loader, optimizer, epoch, grank, gwsize, args):
     if grank == 0:
         print("\n")
     for batch_idx, (data, target) in enumerate(train_loader):
+        # if grank == 0:
+        #     print(f"BS == DATA: {data.shape}, TARGET: {target.shape}")
         t = time.perf_counter()
         data, target = data.to(device), target.to(device)
         optimizer.zero_grad()

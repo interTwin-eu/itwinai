@@ -64,6 +64,8 @@ def train(epoch):
     # Horovod: set epoch to sampler for shuffling
     train_sampler.set_epoch(epoch)
     for batch_idx, (data, target) in enumerate(train_loader):
+        # if hvd.local_rank() == 0 and hvd.rank() == 0:
+        #     print(f"BS == DATA: {data.shape}, TARGET: {target.shape}")
         if args.cuda:
             data, target = data.cuda(), target.cuda()
         optimizer.zero_grad()

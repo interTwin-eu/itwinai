@@ -344,7 +344,7 @@ if __name__ == "__main__":
     optimizer = torch.optim.SGD(
         model.parameters(), lr=args.lr, momentum=args.momentum)
 
-    deepspeed_config = dict(train_batch_size=args.batch_size)
+    deepspeed_config = dict(train_micro_batch_size_per_gpu=args.batch_size)
     # 'config_params' key is ignored if strategy != DSDistributedStrategy
     distrib_model, optimizer, _ = strategy.distributed(
         model, optimizer, lr_scheduler=None, config_params=deepspeed_config

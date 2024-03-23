@@ -9,6 +9,7 @@ do
     then
         fold="hvd"
     fi
+    # echo $fold" training: $(sbatch --nodes=1 $fold"_slurm.sh")"
     echo $fold" training: $(sbatch $fold"_slurm.sh")"
     cd ..
 done
