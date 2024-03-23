@@ -328,7 +328,8 @@ def main():
     # resume state
     start_epoch = 1
     best_acc = np.Inf
-    res_name = 'ddp-checkpoint.pth.tar'
+    nnod = os.environ.get('SLURM_NNODES', 'unk')
+    res_name = f'ddp-{nnod}N-checkpoint.pth.tar'
     if os.path.isfile(res_name) and not args.benchrun:
         try:
             if torch.cuda.is_available():

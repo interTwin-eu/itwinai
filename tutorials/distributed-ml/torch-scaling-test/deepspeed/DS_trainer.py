@@ -266,7 +266,8 @@ def main():
     # resume state
     start_epoch = 1
     best_acc = np.Inf
-    res_name = 'ds-checkpoint.pth.tar'
+    nnod = os.environ.get('SLURM_NNODES', 'unk')
+    res_name = f'ds-{nnod}N-checkpoint.pth.tar'
     if os.path.isfile(res_name):
         try:
             dist.barrier()

@@ -353,7 +353,8 @@ if __name__ == "__main__":
     # resume state
     start_epoch = 1
     best_acc = np.Inf
-    res_name = f'{args.strategy}-checkpoint.pth.tar'
+    nnod = os.environ.get('SLURM_NNODES', 'unk')
+    res_name = f'{args.strategy}-{nnod}N-checkpoint.pth.tar'
     if os.path.isfile(res_name):
         try:
             if torch.cuda.is_available():
