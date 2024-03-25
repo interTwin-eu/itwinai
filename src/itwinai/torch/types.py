@@ -42,6 +42,8 @@ class TorchDistributedStrategy(BaseEnum):
     DEFAULT = None
     NONE = None
     DDP = 'ddp'
+    HVD = 'horovod'
+    DS = 'deepspeed'
 
 
 class TorchLoss(BaseEnum):

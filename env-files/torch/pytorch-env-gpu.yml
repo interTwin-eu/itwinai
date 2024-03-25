@@ -16,3 +16,4 @@ dependencies:
   - cudatoolkit=10.1
   - lightning=2.0.0
   - torchmetrics
+  - cuda-compiler
