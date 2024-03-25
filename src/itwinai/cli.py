@@ -31,7 +31,7 @@ def scalability_report(
         help=("Skip epoch ID.")
     )] = None,
     archive: Annotated[Optional[str], typer.Option(
-        help=("Archive path where to backup the data, WITHOUT EXTENSION.")
+        help=("Archive name to backup the data, without extension.")
     )] = None,
 ):
     """
@@ -40,7 +40,7 @@ def scalability_report(
 
     Example:
     >>> itwinai scalability-report --pattern="^epoch.+\.csv$" --skip-id 0 \
-    >>>     --plot-title "Some title" --archive folder/archive_name
+    >>>     --plot-title "Some title" --archive archive_name
     """
     # TODO: add max depth and path different from CWD
     import os
@@ -108,29 +108,42 @@ def scalability_report(
     sp_up_ax.plot(df["NGPUs"].values, df["Speedup - ideal"].values,
                   ls='dashed', lw=1.0, c='k', label="ideal")
     sp_up_ax.legend(ncol=1)
+
     sp_up_ax.set_xticks(df["NGPUs"].values)
-    sp_up_ax.set_yticks(df["Speedup - ideal"].values)
+    sp_up_ax.set_yticks(
+        np.arange(1, np.max(df["Speedup - ideal"].values) + 2, 1))
+
     sp_up_ax.set_ylabel('Speedup')
-    sp_up_ax.set_xlim((0, np.amax(df["NGPUs"].values+1)))
-    sp_up_ax.set_ylim((0, np.amax(df["Speedup - ideal"].values+1)))
+    sp_up_ax.set_xlabel('NGPUs (4 per node)')
     sp_up_ax.grid()
     plot_png = f"scaling_plot_{plot_title}.png"
-    plt.savefig(plot_png)
+    plt.tight_layout()
+    plt.savefig(plot_png, bbox_inches='tight', format='png')
+    print("Saved scaling plot to: ", plot_png)
 
     if archive is not None:
-        tmp_d = archive
-        os.makedirs(tmp_d)
+        if '/' in archive:
+            raise ValueError("Archive name must NOT contain a path. "
+                             f"Received: '{archive}'")
+        if '.' in archive:
+            raise ValueError("Archive name must NOT contain an extension. "
+                             f"Received: '{archive}'")
+        if os.path.isdir(archive):
+            raise ValueError(f"Folder '{archive}' already exists. "
+                             "Change archive name.")
+        os.makedirs(archive)
         for csvfile in csv_files:
-            shutil.copyfile(csvfile, os.path.join(tmp_d,
+            shutil.copyfile(csvfile, os.path.join(archive,
                                                   os.path.basename(csvfile)))
-        shutil.copyfile(plot_png, os.path.join(tmp_d, plot_png))
-        avg_times.to_csv(os.path.join(tmp_d, "avg_times.csv"), index=False)
+        shutil.copyfile(plot_png, os.path.join(archive, plot_png))
+        avg_times.to_csv(os.path.join(archive, "avg_times.csv"), index=False)
         archive_name = shutil.make_archive(
-            base_name=archive,
+            base_name=archive,  # archive file name
             format='gztar',
-            root_dir=os.path.dirname(archive),
+            # root_dir='.',
+            base_dir=archive  # folder path inside archive
         )
-        shutil.rmtree(tmp_d)
+        shutil.rmtree(archive)
         print("Archived logs and plot at: ", archive_name)
 
 
