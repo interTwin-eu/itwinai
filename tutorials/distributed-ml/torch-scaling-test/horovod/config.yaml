@@ -1,5 +1,5 @@
 # I/O
-data_dir: /p/project/intertwin/datasets/ImageNet_uncompressed/train
+data_dir: /p/project/intertwin/datasets/Imagenet_sub/ImageNet_uncompressed/train/ #/p/project/intertwin/datasets/ImageNet_uncompressed/train
 verbose: True
 
 # Model
