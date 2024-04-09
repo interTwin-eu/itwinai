@@ -32,7 +32,7 @@ fi
 if [ -d "${cDir}/envAI_${sysN}" ];then
   echo 'env already exist'
 
-  source ./envAI_${sysN}/bin/activate
+  source envAI_${sysN}/bin/activate
 else
   python3 -m venv envAI_${sysN}
 
