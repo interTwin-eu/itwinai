@@ -20,7 +20,7 @@ ml Python CMake HDF5 PnetCDF libaio mpi4py
 # ml
 
 # get python version
-pver="$(python --version 2>&1 | awk {'print $2'} | cut -f1-2 -d.)"
+pver="$(python --version 2>&1 | awk {'print $2;'} | cut -f1-2 -d.)"
 
 # use pyenv if exist
 if [ -d "$HOME/.pyenv" ];then
