@@ -36,7 +36,7 @@ echo "modules loaded"
 echo
 
 # get python version
-pver="$(python --version 2>&1 | awk {'print $2'} | cut -f1-2 -d.)"
+pver="$(python --version 2>&1 | awk '{print $2}' | cut -f1-2 -d.)"
 echo "python version is ${pver}"
 echo
 
