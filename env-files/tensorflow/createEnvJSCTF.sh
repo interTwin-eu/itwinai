@@ -92,6 +92,13 @@ else
   pip3 install --no-cache-dir horovod --ignore-installed
 fi
 
+# JUBE benchmarking environment
+if [ -f "${cDir}/envAI_${sysN}/bin/jube" ]; then
+  echo 'JUBE already installed'
+else
+  pip3 install --no-cache-dir http://apps.fz-juelich.de/jsc/jube/jube2/download.php?version=latest
+fi
+
 # get rest of the libraries$
 if [ "$cont1" = true ] ; then
   pip3 install -r reqs_TF.txt --ignore-installed
