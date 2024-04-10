@@ -170,6 +170,13 @@ if __name__ == '__main__':
 """ >> ${cDir}/envAI_${sysN}/bin/torchrun
 fi
 
+# JUBE benchmarking environment
+if [ -f "${cDir}/envAI_${sysN}/bin/jube" ]; then
+  echo 'JUBE already installed'
+else
+  pip3 install --no-cache-dir http://apps.fz-juelich.de/jsc/jube/jube2/download.php?version=latest
+fi
+
 # some tests
 echo "unit tests:"
 for item in 'torch' 'deepspeed' 'horovod';do
