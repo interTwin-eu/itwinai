@@ -27,6 +27,9 @@ def scalability_report(
     plot_title: Annotated[Optional[str], typer.Option(
         help=("Plot name.")
     )] = None,
+    logy: Annotated[bool, typer.Option(
+        help=("Log scale on y axis.")
+    )] = False,
     skip_id: Annotated[Optional[int], typer.Option(
         help=("Skip epoch ID.")
     )] = None,
@@ -40,7 +43,7 @@ def scalability_report(
 
     Example:
     >>> itwinai scalability-report --pattern="^epoch.+\.csv$" --skip-id 0 \
-    >>>     --plot-title "Some title" --archive archive_name
+    >>>     --plot-title "Some title" --logy --archive archive_name
     """
     # TODO: add max depth and path different from CWD
     import os
@@ -102,11 +105,22 @@ def scalability_report(
             df["Threadscaled Sim. Time / s"]
 
         # Plot
-        sp_up_ax.plot(
-            df["NGPUs"].values, df["Speedup"].values,
-            marker='*', lw=1.0, label=name)
-    sp_up_ax.plot(df["NGPUs"].values, df["Speedup - ideal"].values,
-                  ls='dashed', lw=1.0, c='k', label="ideal")
+        # when lines are very close to each other
+        if logy:
+            sp_up_ax.semilogy(
+                df["NGPUs"].values, df["Speedup"].values,
+                marker='*', lw=1.0, label=name)
+        else:
+            sp_up_ax.plot(
+                df["NGPUs"].values, df["Speedup"].values,
+                marker='*', lw=1.0, label=name)
+
+    if logy:
+        sp_up_ax.semilogy(df["NGPUs"].values, df["Speedup - ideal"].values,
+                          ls='dashed', lw=1.0, c='k', label="ideal")
+    else:
+        sp_up_ax.plot(df["NGPUs"].values, df["Speedup - ideal"].values,
+                      ls='dashed', lw=1.0, c='k', label="ideal")
     sp_up_ax.legend(ncol=1)
 
     sp_up_ax.set_xticks(df["NGPUs"].values)
