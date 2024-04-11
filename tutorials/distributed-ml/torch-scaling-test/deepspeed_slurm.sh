@@ -1,19 +1,19 @@
 #!/bin/bash
 
 # general configuration of the job
-#SBATCH --job-name=Torch_DDP_tutorial-1
+#SBATCH --job-name=Torch_DeepSpeed_tutorial-1
 #SBATCH --account=intertwin
 #SBATCH --mail-user=
 #SBATCH --mail-type=ALL
-#SBATCH --output=job-ddp.out
-#SBATCH --error=job-ddp.err
+#SBATCH --output=job-ds.out
+#SBATCH --error=job-ds.err
 #SBATCH --time=00:30:00
 
 # configure node and process count on the CM
 #SBATCH --partition=batch
 #SBATCH --nodes=2
-#SBATCH --ntasks-per-node=1
-#SBATCH --cpus-per-task=32
+#SBATCH --ntasks-per-node=4
+#SBATCH --cpus-per-task=4
 #SBATCH --gpus-per-node=4
 #SBATCH --exclusive
 
@@ -24,7 +24,7 @@
 ml Stages/2024 GCC OpenMPI CUDA/12 MPI-settings/CUDA Python HDF5 PnetCDF libaio mpi4py
 
 # set env
-source ../../../../envAI_hdfml/bin/activate
+source ../../../envAI_hdfml/bin/activate
 
 # job info
 debug=false
@@ -44,23 +44,31 @@ if [ "$debug" = true ] ; then
 fi
 echo
 
-# set comm
-export CUDA_VISIBLE_DEVICES="0,1,2,3"
+# set env vars
+export SRUN_CPUS_PER_TASK=${SLURM_CPUS_PER_TASK}
 export OMP_NUM_THREADS=1
 if [ "$SLURM_CPUS_PER_TASK" -gt 0 ] ; then
   export OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK
 fi
+export CUDA_VISIBLE_DEVICES="0,1,2,3"
 
 # launch training
-TRAINING_CMD="DDP_trainer.py -c config.yaml"
+MASTER_ADDR=$(scontrol show hostnames "\$SLURM_JOB_NODELIST" | head -n 1)i
+export MASTER_ADDR
+export MASTER_PORT=29500 
 
-srun --cpu-bind=none bash -c "torchrun \
-    --log_dir='logs' \
-    --nnodes=$SLURM_NNODES \
-    --nproc_per_node=$SLURM_GPUS_PER_NODE \
-    --rdzv_id=$SLURM_JOB_ID \
-    --rdzv_conf=is_host=\$(((SLURM_NODEID)) && echo 0 || echo 1) \
-    --rdzv_backend=c10d \
-    --rdzv_endpoint='$(scontrol show hostnames "$SLURM_JOB_NODELIST" | head -n 1)'i:29500 \
-    $TRAINING_CMD"
+TRAINING_CMD="DS_trainer.py -c deepspeed-config.yaml"
+
+# Run without launcher: set --ntasks-per-node=NUM_GPUS
+srun --cpu-bind=none python -u $TRAINING_CMD --deepspeed
+
+# # Run with deepspeed launcher: set --ntasks-per-node=1
+# # https://www.deepspeed.ai/getting-started/#multi-node-environment-variables
+# export NCCL_IB_DISABLE=1
+# export NCCL_SOCKET_IFNAME=eth0
+# nodelist=$(scontrol show hostname $SLURM_NODELIST)
+# echo "$nodelist" | sed -e 's/$/ slots=4/' > .hostfile
+# # Requires passwordless SSH access among compute node
+# srun --cpu-bind=none deepspeed --hostfile=.hostfile $TRAINING_CMD --deepspeed
+# rm .hostfile
 

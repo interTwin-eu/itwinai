@@ -1,0 +1,22 @@
+# I/O
+data_dir: tmp_data/
+log_int: 10
+verbose: True
+nworker: 4 # num workers dataloader
+prefetch: 2
+
+# Model
+batch_size: 64
+epochs: 3
+lr: 0.001
+momentum: 0.5
+shuff: False
+
+# Debugging
+rnd_seed: 10
+
+# Distributed ML
+no_cuda: False
+fp16_allreduce: False
+use_adasum: False
+gradient_predivide_factor: 1.0

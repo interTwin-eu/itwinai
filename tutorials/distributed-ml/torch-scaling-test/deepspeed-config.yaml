@@ -1,0 +1,18 @@
+# Data and logging
+data_dir: tmp_data/
+log_int: 10
+verbose: True
+nworker: 4 # num workers dataloader
+
+# Model
+batch_size: 64
+epochs: 3
+lr: 0.001
+
+# Reproducibility
+rnd_seed: 10
+
+# Distributed ML
+backend: nccl
+no_cuda: False
+
