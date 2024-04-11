@@ -6,6 +6,7 @@ import argparse
 import os
 import sys
 from timeit import default_timer as timer
+import time
 
 import torch.multiprocessing as mp
 import torch.nn.functional as F
@@ -253,7 +254,11 @@ def main():
         print('TIMER: broadcast:', timer()-st, 's')
         print('\nDEBUG: start training')
         print('--------------------------------------------------------')
-        epoch_time_tracker = EpochTimeTracker(series_name="horovod-bl")
+        nnod = os.environ.get('SLURM_NNODES', 'unk')
+        epoch_time_tracker = EpochTimeTracker(
+            series_name="horovod-bl",
+            csv_file=f"epochtime_horovod-bl_{nnod}N.csv"
+        )
 
     et = timer()
     start_epoch = 1
@@ -297,10 +302,7 @@ def main():
                   torch.cuda.memory_summary(0))
         print(f'TIMER: final time: {timer()-st} s\n')
 
-        nnod = os.environ.get('SLURM_NNODES', 'unk')
-        epoch_time_tracker.save(
-            csv_file=f"epochtime_horovod-bl_{nnod}N.csv")
-
+    time.sleep(1)
     print(f"<Hvd rank: {hvd.rank()}> - TRAINING FINISHED")
 
 

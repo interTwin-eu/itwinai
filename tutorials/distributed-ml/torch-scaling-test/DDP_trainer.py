@@ -6,6 +6,7 @@ import argparse
 import sys
 import os
 from timeit import default_timer as timer
+import time
 
 import torch
 import torch.distributed as dist
@@ -195,7 +196,11 @@ def main():
         print('TIMER: broadcast:', timer()-st, 's')
         print('\nDEBUG: start training')
         print('--------------------------------------------------------')
-        epoch_time_tracker = EpochTimeTracker(series_name="ddp-bl")
+        nnod = os.environ.get('SLURM_NNODES', 'unk')
+        epoch_time_tracker = EpochTimeTracker(
+            series_name="ddp-bl",
+            csv_file=f"epochtime_ddp-bl_{nnod}N.csv"
+        )
 
     et = timer()
     start_epoch = 1
@@ -241,10 +246,7 @@ def main():
                   torch.cuda.memory_summary(0))
         print(f'TIMER: final time: {timer()-st} s\n')
 
-        nnod = os.environ.get('SLURM_NNODES', 'unk')
-        epoch_time_tracker.save(
-            csv_file=f"epochtime_ddp-bl_{nnod}N.csv")
-
+    time.sleep(1)
     print(f"<Global rank: {grank}> - TRAINING FINISHED")
 
     # Clean-up

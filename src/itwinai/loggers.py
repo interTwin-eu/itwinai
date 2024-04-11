@@ -452,15 +452,25 @@ class LoggersCollection(Logger):
 
 
 class EpochTimeTracker:
-    def __init__(self, series_name: str) -> None:
+    def __init__(self, series_name: str, csv_file: str) -> None:
         self.series_name = series_name
         self._data = []
+        self.csv_file = csv_file
+        with open(csv_file, 'w') as csvfile:
+            csvwriter = csv.writer(csvfile)
+            csvwriter.writerow(['name', 'nodes', 'epoch_id', 'time'])
 
     def add_epoch_time(self, epoch_idx, time):
         n_nodes = os.environ.get('SLURM_NNODES', -1)
-        self._data.append((self.series_name, n_nodes, epoch_idx, time))
+        fields = (self.series_name, n_nodes, epoch_idx, time)
+        self._data.append(fields)
+        with open(self.csv_file, 'a') as csvfile:
+            csvwriter = csv.writer(csvfile)
+            csvwriter.writerow(fields)
 
-    def save(self, csv_file: str):
+    def save(self, csv_file: Optional[str] = None):
+        if not csv_file:
+            csv_file = self.csv_file
         with open(csv_file, 'w') as csvfile:
             csvwriter = csv.writer(csvfile)
             csvwriter.writerow(['name', 'nodes', 'epoch_id', 'time'])
