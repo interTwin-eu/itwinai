@@ -5,8 +5,8 @@
 #SBATCH --account=intertwin
 #SBATCH --mail-user=
 #SBATCH --mail-type=ALL
-#SBATCH --output=job-hvd.out
-#SBATCH --error=job-hvd.err
+#SBATCH --output=job-horovod.out
+#SBATCH --error=job-horovod.err
 #SBATCH --time=00:30:00
 
 # configure node and process count on the CM

@@ -17,7 +17,7 @@ def set_seed(rnd_seed: Optional[int], use_cuda: bool) -> torch.Generator:
 
     Args:
         rnd_seed (Optional[int]): random seed. If None, the seed is not set.
-        use_cuda (bool): whether GPU is available. 
+        use_cuda (bool): whether GPU is available.
 
     Returns:
         torch.Generator: PRNG object.
@@ -25,10 +25,13 @@ def set_seed(rnd_seed: Optional[int], use_cuda: bool) -> torch.Generator:
     g = torch.Generator()
     if rnd_seed is not None:
         # Deterministic execution
+        np.random.seed(rnd_seed)
+        random.seed(rnd_seed)
         torch.manual_seed(rnd_seed)
         g.manual_seed(rnd_seed)
         if use_cuda:
             torch.cuda.manual_seed(rnd_seed)
+            torch.cuda.manual_seed_all(rnd_seed)
     return g
 
 

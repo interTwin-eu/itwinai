@@ -8,10 +8,12 @@ import sys
 from timeit import default_timer as timer
 import time
 
-import torch.multiprocessing as mp
+import torch
+# import torch.multiprocessing as mp
 import torch.nn.functional as F
 import torch.optim as optim
-import torch.utils.data.distributed
+from torch.utils.data import DataLoader
+from torch.utils.data.distributed import DistributedSampler
 import horovod.torch as hvd
 import torchvision
 
@@ -76,13 +78,13 @@ def parse_params():
 
 
 def train(
-        model, optimizer, train_sampler, train_loader, args, use_cuda, epoch
+        model, optimizer, train_sampler, train_loader,
+        args, use_cuda, epoch, grank
 ):
     model.train()
-    is_main_worker = hvd.local_rank() == 0 and hvd.rank() == 0
     t_list = []
     loss_acc = 0
-    if is_main_worker:
+    if grank == 0:
         print("\n")
     for batch_idx, (data, target) in enumerate(train_loader):
         # if hvd.local_rank() == 0 and hvd.rank() == 0:
@@ -95,8 +97,7 @@ def train(
         loss = F.nll_loss(output, target)
         loss.backward()
         optimizer.step()
-        if (args.log_int > 0 and batch_idx % args.log_int == 0
-                and is_main_worker):
+        if grank == 0 and args.log_int > 0 and batch_idx % args.log_int == 0:
             # Use train_sampler to determine the number of examples in
             # this worker's partition
             print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
@@ -104,7 +105,7 @@ def train(
                 100. * batch_idx / len(train_loader), loss.item()))
         t_list.append(timer() - t)
         loss_acc += loss.item()
-    if is_main_worker:
+    if grank == 0:
         print('TIMER: train time', sum(t_list) / len(t_list), 's')
     return loss_acc
 
@@ -130,9 +131,9 @@ def main():
     # Set random seed for reproducibility
     torch_prng = set_seed(args.rnd_seed, use_cuda)
 
-    is_main_worker = True
-    if is_distributed and (hvd.rank() != 0 or hvd.local_rank() != 0):
-        is_main_worker = False
+    # is_main_worker = True
+    # if is_distributed and (hvd.rank() != 0 or hvd.local_rank() != 0):
+    #     is_main_worker = False
 
     # Get local rank
     if is_distributed:
@@ -147,7 +148,7 @@ def main():
         gwsize = 1
         lwsize = 1
 
-    if is_main_worker:
+    if grank == 0:
         print('TIMER: initialise:', timer()-st, 's')
         print('DEBUG: local ranks:', lwsize, '/ global ranks:', gwsize)
         print('DEBUG: sys.version:', sys.version)
@@ -186,32 +187,33 @@ def main():
     # Dataset
     train_dataset = imagenet_dataset(args.data_dir)
 
-    kwargs = {}
-    # When supported, use 'forkserver' to spawn dataloader workers instead...
-    # issues with Infiniband implementations that are not fork-safe
-    if (args.nworker > 0 and hasattr(mp, '_supports_context')
-        and
-            mp._supports_context and
-            'forkserver' in mp.get_all_start_methods()):
-        kwargs['multiprocessing_context'] = 'forkserver'
+    # kwargs = {}
+    # # When supported, use 'forkserver' to spawn dataloader workers instead...
+    # # issues with Infiniband implementations that are not fork-safe
+    # if (args.nworker > 0 and hasattr(mp, '_supports_context')
+    #     and
+    #         mp._supports_context and
+    #         'forkserver' in mp.get_all_start_methods()):
+    #     kwargs['multiprocessing_context'] = 'forkserver'
 
     if is_distributed:
         # Use DistributedSampler to partition the training data
-        train_sampler = torch.utils.data.distributed.DistributedSampler(
-            train_dataset, num_replicas=gwsize, rank=grank,
+        train_sampler = DistributedSampler(
+            train_dataset,  # num_replicas=gwsize, rank=grank,
             shuffle=(args.shuff and args.rnd_seed is None)
         )
-        train_loader = torch.utils.data.DataLoader(
+        train_loader = DataLoader(
             train_dataset, batch_size=args.batch_size,
             sampler=train_sampler, num_workers=args.nworker, pin_memory=True,
             persistent_workers=(args.nworker > 1),
             prefetch_factor=args.prefetch, generator=torch_prng,
-            worker_init_fn=seed_worker, **kwargs)
+            worker_init_fn=seed_worker
+        )  # , **kwargs)
     else:
-        train_loader = torch.utils.data.DataLoader(
+        train_loader = DataLoader(
             train_dataset, batch_size=args.batch_size, generator=torch_prng,
             worker_init_fn=seed_worker
-        )
+        )  # , **kwargs)
 
     # Create CNN model
     model = torchvision.models.resnet152()
@@ -250,7 +252,7 @@ def main():
             op=hvd.Adasum if args.use_adasum else hvd.Average,
             gradient_predivide_factor=args.gradient_predivide_factor)
 
-    if is_main_worker:
+    if grank == 0:
         print('TIMER: broadcast:', timer()-st, 's')
         print('\nDEBUG: start training')
         print('--------------------------------------------------------')
@@ -268,8 +270,10 @@ def main():
             # Inform the sampler that a new epoch started: shuffle
             # may be needed
             train_sampler.set_epoch(epoch)
+
+        # Training
         train(model, optimizer, train_sampler,
-              train_loader, args, use_cuda, epoch)
+              train_loader, args, use_cuda, epoch, grank)
 
         # Save first epoch timer
         if epoch == start_epoch:
@@ -279,11 +283,11 @@ def main():
         if epoch + 1 == args.epochs:
             train_loader.last_epoch = True
 
-        if is_main_worker:
+        if grank == 0:
             print('TIMER: epoch time:', timer()-lt, 's')
             epoch_time_tracker.add_epoch_time(epoch-1, timer()-lt)
 
-    if is_main_worker:
+    if grank == 0:
         print('\n--------------------------------------------------------')
         print('DEBUG: training results:\n')
         print('TIMER: first epoch time:', first_ep_t, ' s')

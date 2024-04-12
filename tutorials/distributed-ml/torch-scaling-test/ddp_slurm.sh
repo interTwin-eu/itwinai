@@ -52,7 +52,7 @@ if [ "$SLURM_CPUS_PER_TASK" -gt 0 ] ; then
 fi
 
 # launch training
-TRAINING_CMD="DDP_trainer.py -c ddp-config.yaml"
+TRAINING_CMD="ddp_trainer.py -c ddp-config.yaml"
 
 srun --cpu-bind=none bash -c "torchrun \
     --log_dir='logs' \

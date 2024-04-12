@@ -5,8 +5,8 @@
 #SBATCH --account=intertwin
 #SBATCH --mail-user=
 #SBATCH --mail-type=ALL
-#SBATCH --output=job-ds.out
-#SBATCH --error=job-ds.err
+#SBATCH --output=job-deepspeed.out
+#SBATCH --error=job-deepspeed.err
 #SBATCH --time=00:30:00
 
 # configure node and process count on the CM
@@ -57,7 +57,7 @@ MASTER_ADDR=$(scontrol show hostnames "\$SLURM_JOB_NODELIST" | head -n 1)i
 export MASTER_ADDR
 export MASTER_PORT=29500 
 
-TRAINING_CMD="DS_trainer.py -c deepspeed-config.yaml"
+TRAINING_CMD="deepspeed_trainer.py -c deepspeed-config.yaml"
 
 # Run without launcher: set --ntasks-per-node=NUM_GPUS
 srun --cpu-bind=none python -u $TRAINING_CMD --deepspeed
