@@ -37,6 +37,8 @@ def parse_params():
     parser.add_argument('--nworker', type=int, default=0,
                         help=('number of workers in DataLoader '
                               '(default: 0 - only main)'))
+    parser.add_argument('--prefetch', type=int, default=2,
+                        help='prefetch data in DataLoader (default: 2)')
 
     # Model
     parser.add_argument('--batch-size', type=int, default=64, metavar='N',
@@ -135,7 +137,6 @@ def main():
         grank = 0
         lrank = 0
 
-    # some debug
     if grank == 0:
         print('TIMER: initialise:', timer()-st, 's')
         print('DEBUG: local ranks:', lwsize, '/ global ranks:', gwsize)
@@ -143,6 +144,7 @@ def main():
         print('DEBUG: args.data_dir:', args.data_dir)
         print('DEBUG: args.log_int:', args.log_int)
         print('DEBUG: args.nworker:', args.nworker)
+        print('DEBUG: args.prefetch:', args.prefetch)
         print('DEBUG: args.batch_size:', args.batch_size)
         print('DEBUG: args.epochs:', args.epochs)
         print('DEBUG: args.lr:', args.lr)
@@ -183,12 +185,12 @@ def main():
     # Create CNN model
     model = torchvision.models.resnet152()
 
-    # Initialize DeepSpeed to use the following features
+    # Initialize DeepSpeed and get:
     # 1) Distributed model
     # 2) DeepSpeed optimizer
     # 3) Distributed data loader
     deepspeed_config = {
-        # "train_micro_batch_size_per_gpu": args.batch_size,
+        "train_micro_batch_size_per_gpu": args.batch_size,  # redundant
         "optimizer": {
             "type": "SGD",
             "params": {

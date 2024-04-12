@@ -3,6 +3,7 @@ data_dir: tmp_data/ #/p/scratch/intertwin/datasets/imagenet/ILSVRC2012/train/ # 
 log_int: 10
 verbose: True
 nworker: 4 # num workers dataloader
+prefetch: 2
 
 # Model
 batch_size: 64 # micro batch size

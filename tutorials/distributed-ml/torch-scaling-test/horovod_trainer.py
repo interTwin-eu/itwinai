@@ -198,8 +198,11 @@ def main():
 
     if is_distributed:
         # Use DistributedSampler to partition the training data
+        # Since Horovod is not based on torch.distributed,
+        # `num_replicas` and `rank` cannot be retrieved from the
+        # current distributed group, thus they need to be provided explicitly.
         train_sampler = DistributedSampler(
-            train_dataset,  # num_replicas=gwsize, rank=grank,
+            train_dataset, num_replicas=gwsize, rank=grank,
             shuffle=(args.shuff and args.rnd_seed is None)
         )
         train_loader = DataLoader(
