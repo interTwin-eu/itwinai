@@ -89,7 +89,7 @@ def train(model, device, train_loader, optimizer, epoch, grank, gwsize, args):
         if grank == 0 and args.log_int > 0 and batch_idx % args.log_int == 0:
             print(
                 f'Train epoch: {epoch} [{batch_idx * len(data)}/'
-                f'{len(train_loader.dataset)/gwsize} '
+                f'{len(train_loader.dataset) / gwsize} '
                 f'({100.0 * batch_idx / len(train_loader):.0f}%)]\t\tLoss: '
                 f'{loss.item():.6f}')
         t_list.append(timer() - t)
@@ -225,8 +225,8 @@ def main():
             train_loader.last_epoch = True
 
         if grank == 0:
-            print('TIMER: epoch time:', timer()-lt, 's')
-            epoch_time_tracker.add_epoch_time(epoch-1, timer()-lt)
+            print('TIMER: epoch time:', timer() - lt, 's')
+            epoch_time_tracker.add_epoch_time(epoch-1, timer() - lt)
 
     if is_distributed:
         dist.barrier()
@@ -235,20 +235,20 @@ def main():
         print('\n--------------------------------------------------------')
         print('DEBUG: training results:\n')
         print('TIMER: first epoch time:', first_ep_t, ' s')
-        print('TIMER: last epoch time:', timer()-lt, ' s')
-        print('TIMER: average epoch time:', (timer()-et)/args.epochs, ' s')
-        print('TIMER: total epoch time:', timer()-et, ' s')
+        print('TIMER: last epoch time:', timer() - lt, ' s')
+        print('TIMER: average epoch time:', (timer() - et)/args.epochs, ' s')
+        print('TIMER: total epoch time:', timer() - et, ' s')
         if epoch > 1:
             print('TIMER: total epoch-1 time:',
-                  timer()-et-first_ep_t, ' s')
+                  timer() - et - first_ep_t, ' s')
             print('TIMER: average epoch-1 time:',
-                  (timer()-et-first_ep_t)/(args.epochs-1), ' s')
+                  (timer() - et - first_ep_t) / (args.epochs - 1), ' s')
         if use_cuda:
             print('DEBUG: memory req:',
-                  int(torch.cuda.memory_reserved(lrank)/1024/1024), 'MB')
+                  int(torch.cuda.memory_reserved(lrank) / 1024 / 1024), 'MB')
             print('DEBUG: memory summary:\n\n',
                   torch.cuda.memory_summary(0))
-        print(f'TIMER: final time: {timer()-st} s\n')
+        print(f'TIMER: final time: {timer() - st} s\n')
 
     time.sleep(1)
     print(f"<Global rank: {grank}> - TRAINING FINISHED")
