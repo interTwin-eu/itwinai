@@ -1,5 +1,5 @@
 # Data and logging
-data_dir: tmp_data/ #/p/scratch/intertwin/datasets/imagenet/ILSVRC2012/train/ # tmp_data/
+data_dir: /p/scratch/intertwin/datasets/imagenet/ILSVRC2012/train/ # tmp_data/
 log_int: 10
 verbose: True
 nworker: 4 # num workers dataloader
@@ -16,5 +16,5 @@ shuff: False
 rnd_seed: 10
 
 # Distributed ML
-no_cuda: False
+verbose: False
 
