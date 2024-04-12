@@ -244,14 +244,14 @@ class DSDistributedStrategy(TorchDistributedStrategy):
         super().__init__()
         self.backend = backend
 
-    def _load_config(self, ds_config):
+    def _load_config(self, ds_config) -> None:
         if isinstance(ds_config, (str, Path)):
             with open(ds_config) as fp:
                 self.config = json.load(fp)
         elif isinstance(ds_config, dict):
             self.config = ds_config
         else:
-            raise ValueError("ds_config is not a dictionary not a path.")
+            raise ValueError("ds_config is neither a dictionary not a path.")
 
     def init(self) -> None:
         """Initializes the distributed process group and the distributed
@@ -269,11 +269,11 @@ class DSDistributedStrategy(TorchDistributedStrategy):
         self, model: nn.Module, optimizer: Optional[Optimizer] = None,
         lr_scheduler: Optional[LRScheduler] = None,
         model_parameters: Optional[Any] = None,
-        **kwargs
+        **init_kwargs
     ) -> Tuple[nn.Module, Optimizer, Optional[LRScheduler]]:
         """Setup model, optimizer and scheduler for distributed."""
-        if kwargs.get("config"):
-            kwargs["config"] = self._load_config(kwargs.get("config"))
+        if init_kwargs.get("config"):
+            self._load_config(init_kwargs.get("config"))
         # https://deepspeed.readthedocs.io/en/latest/initialize.html#training-initialization
         # To prioritize optim in the config, you need to pass optim=None
         distrib_model, optimizer, _, lr_scheduler = deepspeed.initialize(
@@ -282,7 +282,7 @@ class DSDistributedStrategy(TorchDistributedStrategy):
             optimizer=optimizer,
             lr_scheduler=lr_scheduler,
             dist_init_required=True,
-            **kwargs
+            **init_kwargs
         )
         return distrib_model, optimizer, lr_scheduler
 
@@ -350,19 +350,28 @@ class HVDDistributedStrategy(TorchDistributedStrategy):
     def distributed(
         self, model: nn.Module, optimizer: Optional[Optimizer] = None,
         lr_scheduler: Optional[LRScheduler] = None,
-        **kwargs
+        **optim_kwargs
     ) -> Tuple[nn.Module, Optimizer, Optional[LRScheduler]]:
         """Setup model, optimizer and scheduler for distributed."""
 
         model.to(self.dist_device())
-        self._broadcast_params(model, optimizer)
 
-        # TODO: here you may need to scale the lr
+        # Scale learning rate
+        # https://github.com/horovod/horovod/issues/1653#issuecomment-574764452
+        lr_scaler = 1
+        if optim_kwargs.get('op') == hvd.Adasum:
+            lr_scaler = hvd.local_size()
+        elif optim_kwargs.get('op') == hvd.Average:
+            lr_scaler = hvd.size()
+        for g in optimizer.param_groups:
+            g['lr'] *= lr_scaler
+
+        self._broadcast_params(model, optimizer)
 
         distOptimizer = hvd.DistributedOptimizer(
             optimizer,
             named_parameters=model.named_parameters(),
-            op=hvd.Average
+            **optim_kwargs
         )
         return model, distOptimizer, lr_scheduler
 

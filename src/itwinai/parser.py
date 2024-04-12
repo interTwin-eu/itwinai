@@ -10,6 +10,7 @@ from jsonargparse import ArgumentParser as JAPArgumentParser
 from jsonargparse import ActionConfigFile
 from jsonargparse._formatters import DefaultHelpFormatter
 
+
 class ArgumentParser(JAPArgumentParser):
     def __init__(
         self,
@@ -27,7 +28,11 @@ class ArgumentParser(JAPArgumentParser):
         default_meta: bool = True,
         **kwargs,
     ) -> None:
-        """Initializer for ArgumentParser instance.
+        """Initializer for ArgumentParser instance. It can parse arguments from
+        a series of configuration files. Example:
+
+        >>> python main.py --config base-conf.yaml --config other-conf.yaml \\
+        >>> --param OVERRIDE_VAL
 
         All the arguments from the initializer of `argparse.ArgumentParser
         <https://docs.python.org/3/library/argparse.html#argparse.ArgumentParser>`_

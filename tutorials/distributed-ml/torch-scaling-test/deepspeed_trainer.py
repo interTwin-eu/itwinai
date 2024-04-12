@@ -47,6 +47,8 @@ def parse_params():
                         help='number of epochs to train (default: 10)')
     parser.add_argument('--lr', type=float, default=0.01, metavar='LR',
                         help='learning rate (default: 0.01)')
+    parser.add_argument('--momentum', type=float, default=0.5,
+                        help='momentum in SGD optimizer (default: 0.5)')
     parser.add_argument('--shuff', action='store_true', default=False,
                         help='shuffle dataset (default: False)')
 
@@ -148,6 +150,7 @@ def main():
         print('DEBUG: args.batch_size:', args.batch_size)
         print('DEBUG: args.epochs:', args.epochs)
         print('DEBUG: args.lr:', args.lr)
+        print('DEBUG: args.momentum:', args.momentum)
         print('DEBUG: args.shuff:', args.shuff)
         print('DEBUG: args.rnd_seed:', args.rnd_seed)
         print('DEBUG: args.backend:', args.backend)
@@ -163,7 +166,9 @@ def main():
 
     if is_distributed:
         # Distributed sampler restricts data loading to a subset of the dataset
-        # exclusive to the current process
+        # exclusive to the current process.
+        # `mun_replicas` and `rank` are automatically retrieved from
+        # the current distributed group.
         train_sampler = DistributedSampler(
             train_dataset,  # num_replicas=gwsize, rank=grank,
             shuffle=(args.shuff and args.rnd_seed is None)
@@ -195,7 +200,7 @@ def main():
             "type": "SGD",
             "params": {
                 "lr": args.lr,
-                "momentum": 0.5
+                "momentum": args.momentum
             }
         },
         "fp16": {

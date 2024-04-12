@@ -1,42 +1,64 @@
 """
-Scaling test of torch Distributed Data Parallel on Imagenet using Resnet.
+Show how to use DDP, Horovod and DeepSpeed strategies interchangeably
+with a large neural network trained on Imagenet dataset, showing how
+to use checkpoints.
 """
 from typing import Optional
+import os
 import argparse
 import sys
-import os
 from timeit import default_timer as timer
 import time
 
 import torch
-import torch.distributed as dist
-import torch.nn as nn
 import torch.nn.functional as F
+import torchvision
 from torch.utils.data import DataLoader
 from torch.utils.data.distributed import DistributedSampler
-import torchvision
 
+import deepspeed
+import horovod.torch as hvd
+
+from itwinai.torch.distributed import (
+    TorchDistributedStrategy,
+    DDPDistributedStrategy,
+    HVDDistributedStrategy,
+    DSDistributedStrategy,
+)
 from itwinai.parser import ArgumentParser as ItAIArgumentParser
 from itwinai.loggers import EpochTimeTracker
 
 from utils import seed_worker, imagenet_dataset, set_seed
 
 
-def parse_params():
-    parser = ItAIArgumentParser(description='PyTorch Imagenet scaling test')
+def parse_params() -> argparse.Namespace:
+    """
+    Parse CLI args, which can also be loaded from a configuration file
+    using the --config flag:
+
+    >>> train.py --strategy ddp --config base-config.yaml --config foo.yaml
+    """
+    parser = ItAIArgumentParser(description='PyTorch Imagenet Example')
+
+    # Distributed ML strategy
+    parser.add_argument(
+        "--strategy", "-s", type=str,
+        choices=['ddp', 'horovod', 'deepspeed'],
+        default='ddp'
+    )
 
     # Data and logging
     parser.add_argument('--data-dir', default='./',
-                        help=('location of the training dataset in the '
-                              'local filesystem'))
+                        help=('location of the training dataset in the local '
+                              'filesystem'))
     parser.add_argument('--log-int', type=int, default=10,
-                        help='log interval per training. Disabled if < 0.')
+                        help='log interval per training')
     parser.add_argument('--verbose',
                         action=argparse.BooleanOptionalAction,
                         help='Print parsed arguments')
     parser.add_argument('--nworker', type=int, default=0,
-                        help=('number of workers in DataLoader '
-                              '(default: 0 - only main)'))
+                        help=('number of workers in DataLoader (default: 0 -'
+                              ' only main)'))
     parser.add_argument('--prefetch', type=int, default=2,
                         help='prefetch data in DataLoader (default: 2)')
 
@@ -61,24 +83,43 @@ def parse_params():
                         help='backend for parrallelisation (default: nccl)')
     parser.add_argument('--no-cuda', action='store_true', default=False,
                         help='disables GPGPUs')
+    parser.add_argument('--local_rank', type=int, default=-1,
+                        help='local rank passed from distributed launcher')
 
+    # Horovod
+    parser.add_argument('--fp16-allreduce', action='store_true', default=False,
+                        help='use fp16 compression during allreduce')
+    parser.add_argument('--use-adasum', action='store_true', default=False,
+                        help='use adasum algorithm to do reduction')
+    parser.add_argument('--gradient-predivide-factor', type=float, default=1.0,
+                        help=('apply gradient pre-divide factor in optimizer '
+                              '(default: 1.0)'))
+
+    # DeepSpeed
+    parser = deepspeed.add_config_arguments(parser)
     args = parser.parse_args()
 
     if args.verbose:
         args_list = [f"{key}: {val}" for key, val in args.items()]
         print("PARSED ARGS:\n", '\n'.join(args_list))
+
     return args
 
 
-def train(model, device, train_loader, optimizer, epoch, grank, gwsize, args):
+def train(
+    model, device, train_loader, optimizer, epoch,
+    strategy: TorchDistributedStrategy, args
+):
+    """
+    Training function, representing an epoch.
+    """
     model.train()
     t_list = []
     loss_acc = 0
-    if grank == 0:
+    gwsize = strategy.dist_gwsize()
+    if strategy.is_main_worker():
         print("\n")
     for batch_idx, (data, target) in enumerate(train_loader):
-        # if grank == 0:
-        #     print(f"BS == DATA: {data.shape}, TARGET: {target.shape}")
         t = timer()
         data, target = data.to(device), target.to(device)
         optimizer.zero_grad()
@@ -86,15 +127,16 @@ def train(model, device, train_loader, optimizer, epoch, grank, gwsize, args):
         loss = F.nll_loss(output, target)
         loss.backward()
         optimizer.step()
-        if grank == 0 and args.log_int > 0 and batch_idx % args.log_int == 0:
+        if (strategy.is_main_worker() and args.log_int > 0
+                and batch_idx % args.log_int == 0):
             print(
-                f'Train epoch: {epoch} [{batch_idx * len(data)}/'
-                f'{len(train_loader.dataset) / gwsize} '
-                f'({100.0 * batch_idx / len(train_loader):.0f}%)]\t\tLoss: '
-                f'{loss.item():.6f}')
+                f'Train epoch: {epoch} '
+                f'[{batch_idx * len(data)}/{len(train_loader.dataset)/gwsize} '
+                f'({100.0 * batch_idx / len(train_loader):.0f}%)]\t\t'
+                f'Loss: {loss.item():.6f}')
         t_list.append(timer() - t)
         loss_acc += loss.item()
-    if grank == 0:
+    if strategy.is_main_worker():
         print('TIMER: train time', sum(t_list) / len(t_list), 's')
     return loss_acc
 
@@ -102,6 +144,34 @@ def train(model, device, train_loader, optimizer, epoch, grank, gwsize, args):
 def main():
     # Parse CLI args
     args = parse_params()
+
+    # Instantiate Strategy
+    if args.strategy == 'ddp':
+        if (not torch.cuda.is_available()
+                or not torch.cuda.device_count() > 1):
+            raise RuntimeError('Resources unavailable')
+
+        strategy = DDPDistributedStrategy(backend=args.backend)
+        distribute_kwargs = {}
+    elif args.strategy == 'horovod':
+        strategy = HVDDistributedStrategy()
+        distribute_kwargs = dict(
+            compression=(
+                hvd.Compression.fp16 if args.fp16_allreduce
+                else hvd.Compression.none
+            ),
+            op=hvd.Adasum if args.use_adasum else hvd.Average,
+            gradient_predivide_factor=args.gradient_predivide_factor
+        )
+    elif args.strategy == 'deepspeed':
+        strategy = DSDistributedStrategy(backend=args.backend)
+        distribute_kwargs = dict(
+            config_params=dict(train_micro_batch_size_per_gpu=args.batch_size)
+        )
+    else:
+        raise NotImplementedError(
+            f"Strategy {args.strategy} is not recognized/implemented.")
+    strategy.init()
 
     # Check resources availability
     use_cuda = not args.no_cuda and torch.cuda.is_available()
@@ -112,23 +182,19 @@ def main():
     # Limit # of CPU threads to be used per worker
     # torch.set_num_threads(1)
 
-    # Start the timer for profiling
+    # start the timer for profiling
     st = timer()
-
-    if is_distributed:
-        # Initializes the distributed backend which will
-        # take care of synchronizing the workers (nodes/GPUs)
-        dist.init_process_group(backend=args.backend)
 
     # Set random seed for reproducibility
     torch_prng = set_seed(args.rnd_seed, use_cuda)
 
+    # get job rank info - rank==0 master gpu
     if is_distributed:
-        # get job rank info - rank==0 master gpu
-        lwsize = torch.cuda.device_count()  # local world size - per run
-        gwsize = dist.get_world_size()      # global world size - per run
-        grank = dist.get_rank()             # global rank - assign per run
-        lrank = dist.get_rank() % lwsize    # local rank - assign per node
+        # local world size - per node
+        lwsize = strategy.dist_lwsize()   # local world size - per run
+        gwsize = strategy.dist_gwsize()   # global world size - per run
+        grank = strategy.dist_grank()     # global rank - assign per run
+        lrank = strategy.dist_lrank()     # local rank - assign per node
     else:
         # Use a single worker (either on GPU or CPU)
         lwsize = 1
@@ -136,7 +202,7 @@ def main():
         grank = 0
         lrank = 0
 
-    if grank == 0:
+    if strategy.is_main_worker():
         print('TIMER: initialise:', timer()-st, 's')
         print('DEBUG: local ranks:', lwsize, '/ global ranks:', gwsize)
         print('DEBUG: sys.version:', sys.version)
@@ -154,7 +220,9 @@ def main():
         print('DEBUG: args.no_cuda:', args.no_cuda, '\n')
 
     # Encapsulate the model on the GPU assigned to the current process
-    device = torch.device('cuda' if use_cuda else 'cpu', lrank)
+    device = torch.device(
+        strategy.dist_device() if use_cuda and torch.cuda.is_available()
+        else 'cpu')
     if use_cuda:
         torch.cuda.set_device(lrank)
 
@@ -164,10 +232,8 @@ def main():
     if is_distributed:
         # Distributed sampler restricts data loading to a subset of the dataset
         # exclusive to the current process.
-        # `mun_replicas` and `rank` are automatically retrieved from
-        # the current distributed group.
         train_sampler = DistributedSampler(
-            train_dataset,  # num_replicas=gwsize, rank=grank,
+            train_dataset, num_replicas=gwsize, rank=grank,
             shuffle=(args.shuff and args.rnd_seed is None)
         )
 
@@ -184,29 +250,28 @@ def main():
             worker_init_fn=seed_worker
         )
 
-    # Create CNN model
-    model = torchvision.models.resnet152().to(device)
-
-    # Distribute model to workers
-    if is_distributed:
-        model = nn.parallel.DistributedDataParallel(
-            model,
-            device_ids=[device],
-            output_device=device)
+    # Create CNN model: resnet 50, resnet101, resnet152
+    model = torchvision.models.resnet152()
 
     # Optimizer
     optimizer = torch.optim.SGD(
         model.parameters(), lr=args.lr, momentum=args.momentum)
 
+    if is_distributed:
+        distrib_model, optimizer, _ = strategy.distributed(
+            model, optimizer, lr_scheduler=None, **distribute_kwargs
+        )
+
     # Start training loop
-    if grank == 0:
+    if strategy.is_main_worker():
         print('TIMER: broadcast:', timer()-st, 's')
         print('\nDEBUG: start training')
         print('--------------------------------------------------------')
         nnod = os.environ.get('SLURM_NNODES', 'unk')
+        s_name = f"{args.strategy}-it"
         epoch_time_tracker = EpochTimeTracker(
-            series_name="ddp-bl",
-            csv_file=f"epochtime_ddp-bl_{nnod}N.csv"
+            series_name=s_name,
+            csv_file=f"epochtime_{s_name}_{nnod}N.csv"
         )
 
     et = timer()
@@ -219,8 +284,16 @@ def main():
             train_sampler.set_epoch(epoch)
 
         # Training
-        train(model, device, train_loader,
-              optimizer, epoch, grank, gwsize, args)
+        train(
+            model=distrib_model,
+            device=device,
+            train_loader=train_loader,
+            optimizer=optimizer,
+            epoch=epoch,
+            strategy=strategy,
+            args=args
+        )
+
         # Save first epoch timer
         if epoch == start_epoch:
             first_ep_t = timer()-lt
@@ -229,39 +302,36 @@ def main():
         if epoch + 1 == args.epochs:
             train_loader.last_epoch = True
 
-        if grank == 0:
-            print('TIMER: epoch time:', timer() - lt, 's')
-            epoch_time_tracker.add_epoch_time(epoch-1, timer() - lt)
+        if strategy.is_main_worker():
+            print('TIMER: epoch time:', timer()-lt, 's')
+            epoch_time_tracker.add_epoch_time(epoch-1, timer()-lt)
 
-    if is_distributed:
-        dist.barrier()
-
-    if grank == 0:
+    if strategy.is_main_worker():
         print('\n--------------------------------------------------------')
         print('DEBUG: training results:\n')
         print('TIMER: first epoch time:', first_ep_t, ' s')
-        print('TIMER: last epoch time:', timer() - lt, ' s')
-        print('TIMER: average epoch time:', (timer() - et)/args.epochs, ' s')
-        print('TIMER: total epoch time:', timer() - et, ' s')
+        print('TIMER: last epoch time:', timer()-lt, ' s')
+        print('TIMER: average epoch time:', (timer()-et)/args.epochs, ' s')
+        print('TIMER: total epoch time:', timer()-et, ' s')
         if epoch > 1:
             print('TIMER: total epoch-1 time:',
-                  timer() - et - first_ep_t, ' s')
+                  timer()-et-first_ep_t, ' s')
             print('TIMER: average epoch-1 time:',
-                  (timer() - et - first_ep_t) / (args.epochs - 1), ' s')
+                  (timer()-et-first_ep_t)/(args.epochs-1), ' s')
         if use_cuda:
             print('DEBUG: memory req:',
-                  int(torch.cuda.memory_reserved(lrank) / 1024 / 1024), 'MB')
+                  int(torch.cuda.memory_reserved(lrank)/1024/1024), 'MB')
             print('DEBUG: memory summary:\n\n',
                   torch.cuda.memory_summary(0))
-        print(f'TIMER: final time: {timer() - st} s\n')
+
+        print(f'TIMER: final time: {timer()-st} s\n')
 
     time.sleep(1)
-    print(f"<Global rank: {grank}> - TRAINING FINISHED")
+    print(f"<Global rank: {strategy.dist_grank()}> - TRAINING FINISHED")
 
     # Clean-up
     if is_distributed:
-        dist.barrier()
-        dist.destroy_process_group()
+        strategy.clean_up()
 
 
 if __name__ == "__main__":
