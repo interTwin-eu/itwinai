@@ -102,4 +102,8 @@ itwinai scalability-report --pattern="^epoch.+\.csv$" \
 
 The last command prints to terminal the average epoch time per training
 configuration and per number of nodes, and it generated scaling test
-analysis plot, which is saved as `.png` file.
+analysis plot, which is saved as `.png` file. This command will also
+create a `.tar.gz` archive of all the analyzed `.csv` files and  
+the generated plots, allowing you to easily organize different experiments
+and reducing the risk of overwriting the logs generated during the scaling
+test.
