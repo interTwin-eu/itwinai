@@ -50,4 +50,4 @@ jobs:
           DISABLE_ERRORS: false
           # Skip linting of docs
           FILTER_REGEX_EXCLUDE: .*docs/index.md|.*docs/docs/.*|.*ISSUE_TEMPLATE/.*|use-cases/.*|experimental/.*
-          BASH_SEVERITY: warning
+          BASH_SEVERITY: error
