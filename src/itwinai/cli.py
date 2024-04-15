@@ -132,7 +132,7 @@ def scalability_report(
     sp_up_ax.grid()
     plot_png = f"scaling_plot_{plot_title}.png"
     plt.tight_layout()
-    plt.savefig(plot_png, bbox_inches='tight', format='png')
+    plt.savefig(plot_png, bbox_inches='tight', format='png', dpi=300)
     print("Saved scaling plot to: ", plot_png)
 
     if archive is not None:
