@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - docs_dev
+    tags:
+      - 'v*'
 
 jobs:
   build-and-deploy:
