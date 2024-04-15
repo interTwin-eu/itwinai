@@ -1,5 +1,7 @@
 #!/bin/bash
 
+# SLURM jobscript for JSC systems
+
 # Job configuration
 #SBATCH --job-name=distributed_training
 #SBATCH --account=intertwin
@@ -23,7 +25,9 @@
 ml Stages/2024 GCC OpenMPI CUDA/12 MPI-settings/CUDA Python HDF5 PnetCDF libaio mpi4py
 
 # Activate Python env
-source ../../../envAI_hdfml/bin/activate
+sysN="$(uname -n | cut -f2- -d.)"
+sysN="${sysN%%[0-9]*}"
+source ../../../envAI_${sysN}/bin/activate
 
 # Job info
 echo "DEBUG: TIME: $(date)"

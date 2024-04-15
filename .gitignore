@@ -27,7 +27,7 @@ exp_data/
 
 # Custom envs
 .venv*
-envAI_hdfml*
+envAI_*
 
 # Logs
 logs/
