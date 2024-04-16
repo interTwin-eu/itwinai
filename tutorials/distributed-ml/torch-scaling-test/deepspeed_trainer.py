@@ -94,7 +94,7 @@ def train(args, model, train_loader, optimizer, epoch, grank, gwsize):
             print(
                 f'Train epoch: {epoch} [{batch_idx * len(data)}/'
                 f'{len(train_loader.dataset) / gwsize} '
-                f'({100.0 * batch_idx *len(data) / len(train_loader):.0f}%)]'
+                f'({100.0 * batch_idx * len(data) / len(train_loader):.0f}%)]'
                 f'\t\tLoss: {loss.item():.6f}')
         t_list.append(timer() - t)
         loss_acc += loss.item()

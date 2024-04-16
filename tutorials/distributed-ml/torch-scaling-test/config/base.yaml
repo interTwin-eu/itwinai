@@ -14,7 +14,3 @@ shuff: False
 
 # Reproducibility
 rnd_seed: 10
-
-# Distributed ML
-verbose: False
-

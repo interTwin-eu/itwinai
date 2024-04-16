@@ -44,6 +44,8 @@ jobs:
           VALIDATE_HTML: false
           VALIDATE_GITLEAKS: false
           VALIDATE_BASH_EXEC: false
+          VALIDATE_CHECKOV: false # activate to lint k8s pods
+          VALIDATE_SHELL_SHFMT: false
 
           # Only check new or edited files
           VALIDATE_ALL_CODEBASE: false

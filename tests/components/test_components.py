@@ -105,7 +105,7 @@ def test_adapter():
     assert result == (0, 0, 0, 0)
 
     adapter = Adapter(
-        policy=[f"{prefix}{i%2}" for i in range(4)]
+        policy=[f"{prefix}{i % 2}" for i in range(4)]
     )
     result = adapter.execute(0, 1, 2, 3)
     assert result == (0, 1, 0, 1)

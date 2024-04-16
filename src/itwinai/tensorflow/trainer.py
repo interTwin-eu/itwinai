@@ -7,6 +7,7 @@ import tensorflow as tf
 from ..components import Trainer, monitor_exec
 from itwinai.tensorflow.distributed import get_strategy
 
+
 def import_class(name):
     components = name.split('.')
     mod = __import__(components[0])

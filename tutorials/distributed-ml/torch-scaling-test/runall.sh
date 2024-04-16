@@ -15,8 +15,8 @@ else
 fi
 
 # Common options
-CMD="--nodes=$N --time=$T --account=intertwin --partition=batch slurm.sh"
-PYTHON_VENV="../../../envAI_hdfml"
+CMD="--nodes=$N --time=$T --account=atmo-rep --partition=booster slurm.sh"
+PYTHON_VENV="../../../envAI_juwels"
 
 echo "Distributing training over $N nodes. Timeout set to: $T"
 
