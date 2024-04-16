@@ -5,7 +5,7 @@ execution, and dynamic override of fields.
 
 import logging
 import os
-from typing import List, Type, Union, Optional
+from typing import Dict, Any, List, Type, Union, Optional
 from jsonargparse import ArgumentParser as JAPArgumentParser
 from jsonargparse import ActionConfigFile
 from jsonargparse._formatters import DefaultHelpFormatter
@@ -184,7 +184,6 @@ class ConfigParser:
         step_parser.add_subclass_arguments(BaseComponent, "step")
         parsed_namespace = step_parser.parse_object(step_dict_config)
         return step_parser.instantiate_classes(parsed_namespace)["step"]
-
 
 
 class ArgumentParser(JAPArgumentParser):
