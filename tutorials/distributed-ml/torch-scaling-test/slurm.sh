@@ -24,13 +24,11 @@
 # Load environment modules
 ml Stages/2024 GCC OpenMPI CUDA/12 MPI-settings/CUDA Python HDF5 PnetCDF libaio mpi4py
 
-# Activate Python env
-sysN="$(uname -n | cut -f2- -d.)"
-sysN="${sysN%%[0-9]*}"
-source ../../../envAI_${sysN}/bin/activate
-
 # Job info
 echo "DEBUG: TIME: $(date)"
+sysN="$(uname -n | cut -f2- -d.)"
+sysN="${sysN%%[0-9]*}"
+echo "Running on system: $sysN"
 echo "DEBUG: EXECUTE: $EXEC"
 echo "DEBUG: SLURM_SUBMIT_DIR: $SLURM_SUBMIT_DIR"
 echo "DEBUG: SLURM_JOB_ID: $SLURM_JOB_ID"
@@ -56,16 +54,22 @@ fi
 
 # Env vairables check
 if [ -z "$DIST_MODE" ]; then 
-  >&2 echo "ERROR: \$DIST_MODE env variable is not set. Allowed values are 'horovod', 'ddp' or 'deepspeed'"
+  >&2 echo "ERROR: env variable DIST_MODE is not set. Allowed values are 'horovod', 'ddp' or 'deepspeed'"
   exit 1
 fi
 if [ -z "$RUN_NAME" ]; then 
-  >&2 echo "WARNING: \$RUN_NAME env variable is not set. It's a way to identify some specific run of an experiment."
+  >&2 echo "WARNING: env variable RUN_NAME is not set. It's a way to identify some specific run of an experiment."
   RUN_NAME=$DIST_MODE
 fi
 if [ -z "$TRAINING_CMD" ]; then 
-  >&2 echo "ERROR: \$TRAINING_CMD env variable is not set. It's the python command to execute."
+  >&2 echo "ERROR: env variable TRAINING_CMD is not set. It's the python command to execute."
   exit 1
+fi
+if [ -z "$PYTHON_VENV" ]; then 
+  >&2 echo "WARNING: env variable PYTHON_VENV is not set. It's the path to a python virtual environment."
+else
+  # Activate Python virtual env
+  source $PYTHON_VENV/bin/activate
 fi
 
 # Launch training
@@ -73,10 +77,10 @@ if [ "$DIST_MODE" == "ddp" ] ; then
   echo "DDP training: $TRAINING_CMD"
   srun --cpu-bind=none --ntasks-per-node=1 \
     --job-name="$RUN_NAME-n$SLURM_NNODES" \
-    --output="job-$RUN_NAME-n$SLURM_NNODES.out" \
-    --error="job-$RUN_NAME-n$SLURM_NNODES.err" \
+    --output="logs_slurm/job-$RUN_NAME-n$SLURM_NNODES.out" \
+    --error="logs_slurm/job-$RUN_NAME-n$SLURM_NNODES.err" \
     bash -c "torchrun \
-    --log_dir='logs' \
+    --log_dir='logs_torchrun' \
     --nnodes=$SLURM_NNODES \
     --nproc_per_node=$SLURM_GPUS_PER_NODE \
     --rdzv_id=$SLURM_JOB_ID \
@@ -92,8 +96,8 @@ elif [ "$DIST_MODE" == "deepspeed" ] ; then
 
   srun --cpu-bind=none --ntasks-per-node=$SLURM_GPUS_PER_NODE --cpus-per-task=$SLURM_CPUS_PER_GPU \
     --job-name="$RUN_NAME-n$SLURM_NNODES" \
-    --output="job-$RUN_NAME-n$SLURM_NNODES.out" \
-    --error="job-$RUN_NAME-n$SLURM_NNODES.err" \
+    --output="logs_slurm/job-$RUN_NAME-n$SLURM_NNODES.out" \
+    --error="logs_slurm/job-$RUN_NAME-n$SLURM_NNODES.err" \
     python -u $TRAINING_CMD --deepspeed
 
   # # Run with deepspeed launcher: set --ntasks-per-node=1
@@ -109,8 +113,8 @@ elif [ "$DIST_MODE" == "horovod" ] ; then
   echo "HOROVOD training: $TRAINING_CMD"
   srun --cpu-bind=none --ntasks-per-node=$SLURM_GPUS_PER_NODE --cpus-per-task=$SLURM_CPUS_PER_GPU \
     --job-name="$RUN_NAME-imagenet-n$SLURM_NNODES" \
-    --output="job-$RUN_NAME-n$SLURM_NNODES.out" \
-    --error="job-$RUN_NAME-n$SLURM_NNODES.err" \
+    --output="logs_slurm/job-$RUN_NAME-n$SLURM_NNODES.out" \
+    --error="logs_slurm/job-$RUN_NAME-n$SLURM_NNODES.err" \
     python -u $TRAINING_CMD
 else
   >&2 echo "ERROR: unrecognized \$DIST_MODE env variable"

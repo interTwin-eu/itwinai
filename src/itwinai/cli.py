@@ -42,7 +42,7 @@ def scalability_report(
     records in sub-folders.
 
     Example:
-    >>> itwinai scalability-report --pattern="^epoch.+\.csv$" --skip-id 0 \
+    >>> itwinai scalability-report --pattern="^epoch.+\.csv$" --skip-id 0 \\
     >>>     --plot-title "Some title" --logy --archive archive_name
     """
     # TODO: add max depth and path different from CWD
@@ -51,7 +51,7 @@ def scalability_report(
     import shutil
     import pandas as pd
     import matplotlib.pyplot as plt
-    import numpy as np
+    # import numpy as np
 
     regex = re.compile(r'{}'.format(pattern))
     combined_df = pd.DataFrame()
@@ -124,8 +124,8 @@ def scalability_report(
     sp_up_ax.legend(ncol=1)
 
     sp_up_ax.set_xticks(df["NGPUs"].values)
-    sp_up_ax.set_yticks(
-        np.arange(1, np.max(df["Speedup - ideal"].values) + 2, 1))
+    # sp_up_ax.set_yticks(
+    #     np.arange(1, np.max(df["Speedup - ideal"].values) + 2, 1))
 
     sp_up_ax.set_ylabel('Speedup')
     sp_up_ax.set_xlabel('NGPUs (4 per node)')

@@ -1,6 +1,7 @@
 s*.png
 *.pdf
 *_logs
+logs_*
 TODO
 /data
 nohup*
