@@ -17,6 +17,7 @@ def test_structure_cyclones(check_folder_structure):
 
 
 @pytest.mark.functional
+@pytest.mark.memory_heavy
 def test_cyclones_train_tf(install_requirements):
     """
     Test Cyclones tensorflow trainer by running it end-to-end.
