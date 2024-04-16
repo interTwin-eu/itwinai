@@ -11,12 +11,10 @@ torch-gpu-jsc: env-files/torch/createEnvJSC.sh
 tf-gpu-jsc: env-files/tensorflow/createEnvJSCTF.sh
 	sh env-files/tensorflow/createEnvJSCTF.sh
 
-
 # Install PyTorch env (CPU only)
 torch-cpu: env-files/torch/pytorch-env-cpu.yml
 	micromamba env create -p ./.venv-pytorch --file env-files/torch/pytorch-env-cpu.yml -y
 	micromamba run -p ./.venv-pytorch python -m pip install -e .[dev]
-
 
 # Install TensorFlow 2.13. Creates ./.venv-tf folder.
 # Ref: https://www.tensorflow.org/install/pip#step-by-step_instructions

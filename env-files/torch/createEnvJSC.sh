@@ -185,7 +185,7 @@ done
 
 # Install itwinai
 pip install --upgrade pip
-pip install -e .
+pip install -e .[dev]
 
 # cleanup
 rm -rf horovod *.tar.gz
