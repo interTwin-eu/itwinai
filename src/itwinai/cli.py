@@ -48,6 +48,7 @@ def scalability_report(
     # TODO: add max depth and path different from CWD
     import os
     import re
+    import glob
     import shutil
     import pandas as pd
     import matplotlib
@@ -154,6 +155,18 @@ def scalability_report(
                                                   os.path.basename(csvfile)))
         shutil.copyfile(plot_png, os.path.join(archive, plot_png))
         avg_times.to_csv(os.path.join(archive, "avg_times.csv"), index=False)
+        print("Archived AVG epoch times CSV")
+
+        # Copy SLURM logs: *.err *.out files
+        if os.path.exists('logs_slurm'):
+            print("Archived SLURM logs")
+            shutil.copytree('logs_slurm', os.path.join(archive, 'logs_slurm'))
+        # Copy other SLURM logs
+        for ext in ['*.out', '*.err']:
+            for file in glob.glob(ext):
+                shutil.copyfile(file, os.path.join(archive, file))
+
+        # Create archive
         archive_name = shutil.make_archive(
             base_name=archive,  # archive file name
             format='gztar',

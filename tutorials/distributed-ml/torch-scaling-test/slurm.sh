@@ -15,7 +15,7 @@
 #SBATCH --partition=batch
 #SBATCH --nodes=2
 #SBATCH --gpus-per-node=4
-#SBATCH --cpus-per-gpu=8
+#SBATCH --cpus-per-gpu=4
 #SBATCH --exclusive
 
 # gres options have to be disabled for deepv
