@@ -72,13 +72,13 @@ else
   source $PYTHON_VENV/bin/activate
 fi
 
+# Get GPUs info per node
+srun --cpu-bind=none --ntasks-per-node=1 bash -c 'echo -e "NODE hostname: $(hostname)\n$(nvidia-smi)\n\n"'
+
 # Launch training
 if [ "$DIST_MODE" == "ddp" ] ; then
   echo "DDP training: $TRAINING_CMD"
   srun --cpu-bind=none --ntasks-per-node=1 \
-    --job-name="$RUN_NAME-n$SLURM_NNODES" \
-    --output="logs_slurm/job-$RUN_NAME-n$SLURM_NNODES.out" \
-    --error="logs_slurm/job-$RUN_NAME-n$SLURM_NNODES.err" \
     bash -c "torchrun \
     --log_dir='logs_torchrun' \
     --nnodes=$SLURM_NNODES \
@@ -95,9 +95,6 @@ elif [ "$DIST_MODE" == "deepspeed" ] ; then
   export MASTER_PORT=29500 
 
   srun --cpu-bind=none --ntasks-per-node=$SLURM_GPUS_PER_NODE --cpus-per-task=$SLURM_CPUS_PER_GPU \
-    --job-name="$RUN_NAME-n$SLURM_NNODES" \
-    --output="logs_slurm/job-$RUN_NAME-n$SLURM_NNODES.out" \
-    --error="logs_slurm/job-$RUN_NAME-n$SLURM_NNODES.err" \
     python -u $TRAINING_CMD --deepspeed
 
   # # Run with deepspeed launcher: set --ntasks-per-node=1
@@ -112,9 +109,6 @@ elif [ "$DIST_MODE" == "deepspeed" ] ; then
 elif [ "$DIST_MODE" == "horovod" ] ; then
   echo "HOROVOD training: $TRAINING_CMD"
   srun --cpu-bind=none --ntasks-per-node=$SLURM_GPUS_PER_NODE --cpus-per-task=$SLURM_CPUS_PER_GPU \
-    --job-name="$RUN_NAME-imagenet-n$SLURM_NNODES" \
-    --output="logs_slurm/job-$RUN_NAME-n$SLURM_NNODES.out" \
-    --error="logs_slurm/job-$RUN_NAME-n$SLURM_NNODES.err" \
     python -u $TRAINING_CMD
 else
   >&2 echo "ERROR: unrecognized \$DIST_MODE env variable"
