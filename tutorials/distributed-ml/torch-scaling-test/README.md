@@ -97,7 +97,7 @@ itwinai scalability-report --help
 
 # Generate a scalability report
 itwinai scalability-report --pattern="^epoch.+\.csv$" \
-    --plot-title "ResNet152 on Imagenet" --archive imagenet_results
+    --plot-title "ResNet152 on Imagenet" --log-scale --archive imagenet_results
 ```
 
 The last command prints to terminal the average epoch time per training
