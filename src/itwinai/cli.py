@@ -27,9 +27,6 @@ def scalability_report(
     plot_title: Annotated[Optional[str], typer.Option(
         help=("Plot name.")
     )] = None,
-    log_scale: Annotated[bool, typer.Option(
-        help=("Log scale on x axis.")
-    )] = False,
     skip_id: Annotated[Optional[int], typer.Option(
         help=("Skip epoch ID.")
     )] = None,
@@ -43,7 +40,7 @@ def scalability_report(
 
     Example:
     >>> itwinai scalability-report --pattern="^epoch.+\\.csv$" --skip-id 0 \\
-    >>>     --plot-title "Some title" --log-scale --archive archive_name
+    >>>     --plot-title "Some title" --archive archive_name
     """
     # TODO: add max depth and path different from CWD
     import os
@@ -85,6 +82,9 @@ def scalability_report(
     if plot_title is not None:
         fig.suptitle(plot_title)
 
+    sp_up_ax.set_yscale("log")
+    sp_up_ax.set_xscale("log")
+
     markers = iter("ov^s*dXpD.+12348")
 
     series_names = sorted(set(avg_times.name.values))
@@ -108,10 +108,6 @@ def scalability_report(
             df["nodes"] * df["Nworkers"]
         df["Efficiency"] = df["Threadscaled Sim. Time / s"].iloc[0] / \
             df["Threadscaled Sim. Time / s"]
-
-        if log_scale:
-            sp_up_ax.set_yscale("log")
-            sp_up_ax.set_xscale("log")
 
         sp_up_ax.plot(
             df["NGPUs"].values, df["Speedup"].values,
