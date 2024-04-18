@@ -10,7 +10,6 @@ Here you can find itwinai framework installation and usage instructions for HPC 
 
 .. toctree::
    :maxdepth: 2
-   :hidden:
    
    hpc_setup
 
@@ -21,7 +20,6 @@ Here you can find itwinai framework installation and usage instructions for HPC 
 
 .. toctree::
    :maxdepth: 2
-   :hidden:
    
    local_setup
 
