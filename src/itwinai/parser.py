@@ -8,8 +8,9 @@ import os
 from typing import Dict, Any, List, Type, Union, Optional
 from jsonargparse import ArgumentParser as JAPArgumentParser
 from jsonargparse import ActionConfigFile
-import json
 from jsonargparse._formatters import DefaultHelpFormatter
+
+import json
 from omegaconf import OmegaConf
 from pathlib import Path
 
@@ -60,15 +61,12 @@ class ConfigParser:
     Parses a pipeline from a configuration file.
     It also provides functionalities for dynamic override
     of fields by means of nested key notation.
-
     Args:
         config (Union[str, Dict]): path to YAML configuration file
         or dict storing a configuration.
         override_keys (Optional[Dict[str, Any]], optional): dict mapping
         nested keys to the value to override. Defaults to None.
-
     Example:
-
     >>> # pipeline.yaml file
     >>> pipeline:
     >>>   class_path: itwinai.pipeline.Pipeline
@@ -86,7 +84,6 @@ class ConfigParser:
     >>>             class_path: torch.nn.NLLLoss
     >>>             init_args:
     >>>               reduction: mean
-
     >>> from itwinai.parser import ConfigParser
     >>>
     >>> parser = ConfigParser(
@@ -137,14 +134,12 @@ class ConfigParser:
         verbose: bool = False
     ) -> Pipeline:
         """Merges steps into pipeline and parses it.
-
         Args:
             pipeline_nested_key (str, optional): nested key in the
             configuration file identifying the pipeline object.
             Defaults to "pipeline".
             verbose (bool): if True, prints the assembled pipeline
             to console formatted as JSON.
-
         Returns:
             Pipeline: instantiated pipeline.
         """
@@ -208,7 +203,11 @@ class ArgumentParser(JAPArgumentParser):
         default_meta: bool = True,
         **kwargs,
     ) -> None:
-        """Initializer for ArgumentParser instance.
+        """Initializer for ArgumentParser instance. It can parse arguments from
+        a series of configuration files. Example:
+
+        >>> python main.py --config base-conf.yaml --config other-conf.yaml \\
+        >>> --param OVERRIDE_VAL
 
         All the arguments from the initializer of `argparse.ArgumentParser
         <https://docs.python.org/3/library/argparse.html#argparse.ArgumentParser>`_

@@ -1,0 +1,3 @@
+fp16_allreduce: False
+use_adasum: False
+gradient_predivide_factor: 1.0
