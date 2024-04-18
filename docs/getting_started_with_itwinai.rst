@@ -11,7 +11,6 @@ Here you can find itwinai framework installation and usage instructions for HPC 
 .. toctree::
    :maxdepth: 2
    :hidden:
-   :caption: 🌐 HPC systems
    
    hpc_setup
 
@@ -23,7 +22,6 @@ Here you can find itwinai framework installation and usage instructions for HPC 
 .. toctree::
    :maxdepth: 2
    :hidden:
-   :caption: 💻 Local systems
    
    local_setup
 

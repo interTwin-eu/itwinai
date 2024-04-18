@@ -1,11 +1,11 @@
 name: Build and Deploy Sphinx Documentation
 
-on:
-  push:
-    branches:
-      - docs_dev
-    tags:
-      - 'v*'
+# on:
+#   push:
+#     branches:
+#       - docs_dev
+#     tags:
+#       - 'v*'
 
 jobs:
   build-and-deploy:
