@@ -9,9 +9,9 @@
 Welcome to itwinai's documentation!
 ===================================
 
-``itwinai`` is a framework for advanced AI/ML workflows in digital twins.
+``itwinai`` is a framework for advanced AI/ML workflows in Digital Twins (DTs).
 
-This platform is intended to support general-purpose MLOps for digital twin use cases in `interTwin <https://www.intertwin.eu/>`_ project.
+This platform is intended to support general-purpose MLOps for Digital Twin use cases in the `interTwin <https://www.intertwin.eu/>`_ project.
 
 Platform for machine learning workflows in digital twins
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -19,10 +19,10 @@ Platform for machine learning workflows in digital twins
 The goal of this platform is to provide ML researchers with an easy-to-use endpoint to manage general-purpose ML workflows, 
 with limited engineering overhead, while providing state-of-the-art MLOps best practices.
 
-The user is going to provide as input a set of configuration files, to fully describe ML workflows, in the context of digital twin applications. 
-``itwinai`` platform instantiates ML workflows with the configurations provided by the DT developer.
-The execution of ML workflows produces as output a set of ML metrics, which are visualized by ``itwinai`` via `MLFlow <https://mlflow.org/>`_. 
-As a result of ML training, the best model (on validation dataset) is saved to the Models Registry for future predictions. 
+The user can fully describe ML workflows for DT applications by providing a set of configuration files as input.
+The ``itwinai`` platform instantiates ML workflows with the configurations provided by the DT developer.
+The execution of ML workflows outputs a set of ML metrix, which are visualised by ``itwinai`` via `MLFlow <https://mlflow.org/>`_.
+The trained ML model that performed best on the validation dataset is saved to the Models Registry for future predictions.
 
 In ``itwinai`` platform, we focus mainly on the MLOps step, simulating or oversimplifying all the rest (e.g., pre-processing, authentication, workflow execution).
 
