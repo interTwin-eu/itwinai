@@ -24,7 +24,7 @@ The ``itwinai`` platform instantiates ML workflows with the configurations provi
 The execution of ML workflows outputs a set of ML metrix, which are visualised by ``itwinai`` via `MLFlow <https://mlflow.org/>`_.
 The trained ML model that performed best on the validation dataset is saved to the Models Registry for future predictions.
 
-In ``itwinai`` platform, we focus mainly on the MLOps step, simulating or oversimplifying all the rest (e.g., pre-processing, authentication, workflow execution).
+In ``itwinai`` platform, we focus mainly on the MLOps step, simulating or oversimplifying the rest (e.g., pre-processing, authentication, workflow execution).
 
 
 .. toctree::
