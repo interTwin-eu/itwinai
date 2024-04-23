@@ -40,3 +40,4 @@ jube result -a bench_run --id last
 
 This will create `result-csv.dat` file in the `results` folder.
 
+The scaling and efficiency plots can be generated with the `bench_plot.ipynb` file which takes the `result-csv.dat` file as input.
