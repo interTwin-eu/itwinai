@@ -41,8 +41,12 @@ setting SLURM environment variables using the `--export` option:
 DIST_MODE="ddp"
 RUN_NAME="ddp-bl-imagenent"
 TRAINING_CMD="ddp_trainer.py -c config/base.yaml -c config/ddp.yaml"
-sbatch --export=ALL,DIST_MODE="$DIST_MODE",RUN_NAME="$RUN_NAME",TRAINING_CMD="$TRAINING_CMD" \
-    --job-name="$RUN_NAME" slurm.sh
+PYTHON_VENV="../../../envAI_hdfml"
+sbatch --export=ALL,DIST_MODE="$DIST_MODE",RUN_NAME="$RUN_NAME",TRAINING_CMD="$TRAINING_CMD",PYTHON_VENV="$PYTHON_VENV" \
+    --job-name="$RUN_NAME-n$N" \
+    --output="logs_slurm/job-$RUN_NAME-n$N.out" \
+    --error="logs_slurm/job-$RUN_NAME-n$N.err" \
+    slurm.sh
 ```
 
 ## Run all training configurations
