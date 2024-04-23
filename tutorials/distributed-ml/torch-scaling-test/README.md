@@ -38,11 +38,11 @@ setting SLURM environment variables using the `--export` option:
 
 ```bash
 # Launch a distributed training setup with Torch DDP
-DIST_MODE="ddp"
-RUN_NAME="ddp-bl-imagenent"
-TRAINING_CMD="ddp_trainer.py -c config/base.yaml -c config/ddp.yaml"
-PYTHON_VENV="../../../envAI_hdfml"
-N=2 # Number of nodes
+export DIST_MODE="ddp"
+export RUN_NAME="ddp-bl-imagenent"
+export TRAINING_CMD="ddp_trainer.py -c config/base.yaml -c config/ddp.yaml"
+export PYTHON_VENV="../../../envAI_hdfml"
+export N=2 # Number of nodes
 sbatch --export=ALL,DIST_MODE="$DIST_MODE",RUN_NAME="$RUN_NAME",TRAINING_CMD="$TRAINING_CMD",PYTHON_VENV="$PYTHON_VENV" \
     --job-name="$RUN_NAME-n$N" \
     --output="logs_slurm/job-$RUN_NAME-n$N.out" \
