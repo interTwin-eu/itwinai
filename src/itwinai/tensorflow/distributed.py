@@ -8,8 +8,7 @@ def get_strategy():
     if not os.environ.get('SLURM_JOB_ID'):
         # TODO: improve
         print('not in SLURM env!')
-        tf_dist_strategy = dist.MirroredStrategy()
-        return tf_dist_strategy, tf_dist_strategy.num_replicas_in_sync
+        return dist.MirroredStrategy()
     cluster_resolver = dist.cluster_resolver.SlurmClusterResolver(
         port_base=12345)
     implementation = dist.experimental.CommunicationImplementation.NCCL
@@ -39,4 +38,4 @@ def get_strategy():
     print("Number of devices: {}".format(
         tf_dist_strategy.num_replicas_in_sync))
 
-    return tf_dist_strategy, tf_dist_strategy.num_replicas_in_sync
+    return tf_dist_strategy

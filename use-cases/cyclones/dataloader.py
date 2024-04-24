@@ -42,7 +42,7 @@ class TensorflowDataGetter(DataGetter):
         global_config: Dict,
         shuffle_buffer: int = None,
         data_path: str = "tmp_data",
-        local_dataset_path: str = "trainval"
+        local_dataset_path: str = ""
     ):
         super().__init__()
         self.save_parameters(**self.locals2params(locals()))

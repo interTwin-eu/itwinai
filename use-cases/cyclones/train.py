@@ -18,15 +18,11 @@ from os.path import join
 from os import makedirs
 from datetime import datetime
 
-import tensorflow.keras as keras
-import tensorflow as tf
+# # import tensorflow.keras as keras
+# import tensorflow as tf
 
-# the mock-0.3.1 dir contains testcase.py, testutils.py & mock.py
-import sys
-sys.path.append('/p/project/intertwin/ruettgers1/cyclone_usecase/itwinai_0/src/itwinai/tensorflow/')
-from distributed import get_strategy
-#sys.path.append('/p/project/intertwin/ruettgers1/cyclone_usecase/itwinai/src/itwinai/')
-#from parser import ConfigParser, ArgumentParser
+# # the mock-0.3.1 dir contains testcase.py, testutils.py & mock.py
+# from itwinai.tensorflow.distributed import get_strategy
 from itwinai.parser import ConfigParser, ArgumentParser
 
 from lib.macros import PATCH_SIZE, SHAPE
@@ -79,6 +75,7 @@ def setup_config(args) -> Dict:
     )
     return config
 
+
 if __name__ == "__main__":
     parser = ArgumentParser()
     parser.add_argument(
@@ -104,23 +101,23 @@ if __name__ == "__main__":
         choices=['mirrored'],
         default='mirrored'
     )
-    #parser.add_argument(
+    # parser.add_argument(
     #    "--shuffle_dataloader",
     #    action=argparse.BooleanOptionalAction,
     #    default=True,
-    #)
+    # )
 
     args = parser.parse_args()
     global_config = setup_config(args)
 
-    # Instantiate Strategy
-    if args.strategy == 'mirrored':
-            if (len(tf.config.list_physical_devices('GPU')) == 0):
-                raise RuntimeError('Resources unavailable')
-            mirrored_strategy, num_replicas = get_strategy()
-    else:
-            raise NotImplementedError(
-                f"Strategy {args.strategy} is not recognized/implemented.")
+    # # Instantiate Strategy
+    # if args.strategy == 'mirrored':
+    #     if (len(tf.config.list_physical_devices('GPU')) == 0):
+    #         raise RuntimeError('Resources unavailable')
+    #     mirrored_strategy = get_strategy()
+    # else:
+    #     raise NotImplementedError(
+    #         f"Strategy {args.strategy} is not recognized/implemented.")
 
     # Create parser for the pipeline
     downloader_params = "pipeline.init_args.steps.download-step.init_args."
@@ -133,7 +130,7 @@ if __name__ == "__main__":
             downloader_params + "data_path": args.data_path,
             downloader_params + "global_config": global_config,
             trainer_params + "global_config": global_config,
-            trainer_params + "strategy": mirrored_strategy
+            # trainer_params + "strategy": mirrored_strategy
         }
     )
     pipeline = pipe_parser.parse_pipeline()

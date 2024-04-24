@@ -16,7 +16,7 @@
 #SBATCH --cpus-per-task=4
 #SBATCH --gpus-per-node=4
 
-#SBATCH --exclusive
+# SBATCH --exclusive
 
 # gres options have to be disabled for deepv
 #SBATCH --gres=gpu:4
@@ -51,7 +51,7 @@ echo "DEBUG: SLURM_NODELIST: $SLURM_NODELIST"
 echo
 
 # ON LOGIN NODE download datasets:
-#micromamba run -p /p/project/intertwin/ruettgers1/cyclone_usecase/itwinai/.venv-tf python train.py -p pipeline.yaml --download-only
+#micromamba run -p ../../.venv-tf python train.py -p pipeline.yaml --download-only
 
 # set comm
 export CUDA_VISIBLE_DEVICES="0,1,2,3"
