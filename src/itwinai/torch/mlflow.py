@@ -35,6 +35,7 @@ def _mlflow_log_pl_config(pl_config: Dict, local_yaml_path: str) -> None:
 def init_lightning_mlflow(
     pl_config: Dict,
     default_experiment_name: str = 'Default',
+    tmp_dir: str = '.tmp',
     **autolog_kwargs
 ) -> None:
     """Initialize mlflow for pytorch lightning, also setting up
@@ -45,6 +46,7 @@ def init_lightning_mlflow(
         pl_config (Dict): pytorch lightning configuration loaded in memory.
         default_experiment_name (str, optional): used as experiment name
         if it is not given in the lightning conf. Defaults to 'Default'.
+        tmp_dir (str): where to temporarily store some artifacts. 
         **autolog_kwargs (kwargs): args for mlflow.pytorch.autolog(...).
     """
     mlflow_conf: Optional[Dict] = _get_mlflow_logger_conf(pl_config)
@@ -63,12 +65,13 @@ def init_lightning_mlflow(
     mlflow.set_tracking_uri(tracking_uri)
     mlflow.set_experiment(experiment_name)
     mlflow.pytorch.autolog(**autolog_kwargs)
-    mlflow.start_run()
+    run = mlflow.start_run()
+    print(f"MLFlow's artifacts URI: {run.info.artifact_uri}")
 
     mlflow_conf['experiment_name'] = experiment_name
     mlflow_conf['run_id'] = mlflow.active_run().info.run_id
 
-    _mlflow_log_pl_config(pl_config, '.tmp/pl_config.yml')
+    _mlflow_log_pl_config(pl_config, os.path.join(tmp_dir, 'pl_config.yml'))
 
 
 def teardown_lightning_mlflow() -> None:

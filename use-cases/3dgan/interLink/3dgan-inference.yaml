@@ -5,7 +5,7 @@ metadata:
   annotations:
     slurm-job.vk.io/flags: "-p gpu --gres=gpu:1 --cpus-per-task=4 --mem=100G --ntasks-per-node=1 --nodes=1"
     job.vk.io/singularity-mounts: "--bind /ceph/hpc/data/st2301-itwin-users/egarciagarcia:/exp_data"
-    #job.vk.io/pre-exec: "singularity pull /ceph/hpc/data/st2301-itwin-users/itwinaiv6_1.sif docker://ghcr.io/intertwin-eu/itwinai:0.0.1-3dgan-0.2"
+    #job.vk.io/pre-exec: "singularity pull /ceph/hpc/data/st2301-itwin-users/itwinaiv6_1.sif docker://ghcr.io/intertwin-eu/itwinai:0.0.1-3dgan-0.4"
 spec:
   automountServiceAccountToken: false
   containers:

@@ -20,6 +20,9 @@ pl-training.yml
 *.pth
 *.tar.gz
 
+# Kubernetes
+secret*.yaml
+
 # Custom envs
 .venv*
 
