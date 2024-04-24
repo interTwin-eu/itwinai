@@ -3,8 +3,15 @@ import logging
 from os.path import join, exists
 
 import tensorflow.keras as keras
+import tensorflow as tf
 
-from lib.strategy import get_mirrored_strategy
+import sys
+# the mock-0.3.1 dir contains testcase.py, testutils.py & mock.py
+sys.path.append('/p/project/intertwin/ruettgers1/cyclone_usecase/itwinai_0/src/itwinai/tensorflow/')
+from distributed import get_strategy
+#from lib.strategy import get_mirrored_strategy
+#from itwinai.tensorflow.distributed import get_strategy
+
 from lib.utils import get_network_config, load_model
 from itwinai.components import Trainer, monitor_exec
 from lib.callbacks import ProcessBenchmark
@@ -12,7 +19,8 @@ from lib.macros import (
     Network,
     Losses,
     RegularizationStrength,
-    Activation,
+    Activation
+    #Strategy,
 )
 
 
@@ -22,6 +30,7 @@ class TensorflowTrainer(Trainer):
         network: Network,
         activation: Activation,
         regularization_strength: RegularizationStrength,
+        strategy: tf.distribute.Strategy,
         learning_rate: float,
         loss: Losses,
         epochs: int,
@@ -44,6 +53,7 @@ class TensorflowTrainer(Trainer):
         self.regularization_strength, self.regularizer = (
             regularization_strength.value
         )
+        self.strategy = strategy
 
         # Loss name and learning rate
         self.loss_name = loss.value
@@ -57,11 +67,21 @@ class TensorflowTrainer(Trainer):
         train_dataset, n_train = train_data
         valid_dataset, n_valid = validation_data
 
-        # set mirrored strategy
-        mirrored_strategy, n_devices = get_mirrored_strategy(cores=self.cores)
-        logging.debug(f"Mirrored strategy created with {n_devices} devices")
+        # Instantiate Strategy
+        #if self.strategy == 'mirrored':
+        #    if (len(tf.config.list_physical_devices('GPU')) == 0):
+        #        raise RuntimeError('Resources unavailable')
+        #    mirrored_strategy, num_replicas = get_strategy()
+        #else:
+        #    raise NotImplementedError(
+        #        f"Strategy {args.strategy} is not recognized/implemented.")
 
-        # distribute datasets among MirroredStrategy's replicas
+        # set mirrored strategy
+        #mirrored_strategy, n_devices = get_mirrored_strategy(cores=self.cores)
+        #logging.debug(f"Mirrored strategy created with {n_devices} devices")
+
+        # distribute datasets among MirroredStrategy's replica
+        mirrored_strategy=self.strategy
         dist_train_dataset = mirrored_strategy.experimental_distribute_dataset(
             train_dataset
         )

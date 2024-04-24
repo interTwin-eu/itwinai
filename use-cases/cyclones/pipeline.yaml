@@ -20,7 +20,7 @@ pipeline:
             'COO_VARS_1': ['patch_cyclone'],
             'MSK_VAR_1': None
           }
-
+          
       training-step:
         class_path: trainer.TensorflowTrainer
         init_args:
