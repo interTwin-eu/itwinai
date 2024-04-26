@@ -1,14 +1,13 @@
 Getting started with itwinai
 ============================
 
-
-Here you can find itwinai framework installation and usage instructions for HPC and local systems.
+In this section, we will run you through the installation and give some instructions for the use of the itwinai framework for HPC and local systems.
 
 
 🌐 HPC systems
 ---------------
    
-How to use torch `DistributedDataParallel` (DDP), Horovod and DeepSpeed from the same client code.
+Here, we lay out how to use torch `DistributedDataParallel` (DDP), Horovod and DeepSpeed from the same client code.
 Note that the environment is tested on the HDFML system at JSC. For other systems, the module versions might need change accordingly.
 
 
@@ -34,38 +33,38 @@ Install Tensorflow env (GPU support) on Juelich Super Computer (tested on HDFML 
 Setup
 +++++
 
-First, from the root of this `repository <https://github.com/interTwin-eu/itwinai/tree/distributed-strategy-launcher>`_, build the environment containing pytorch, horovod and deepspeed. You can try with:
+First, from the root of `this repository <https://github.com/interTwin-eu/itwinai/tree/distributed-strategy-launcher>`_, build the environment containing pytorch, horovod, and deepspeed. You can try with:
 
 .. code-block:: bash
 
-    # Creates a Python venv called envAI_hdfml
+    # Creates a Python environment called envAI_hdfml
     make torch-gpu-jsc
 
 
 Distributed training
 ++++++++++++++++++++
 
-Each distributed strategy has its own SLURM job script, which should be used to run it:
+ Each distributed strategy is described with a SLURM job script used to run that strategy.
 
-If you want to distribute the code in `train.py` with **torch DDP**, run from terminal:
+So if you want to distribute the code in `train.py` with, for example, **torch DDP**, run from terminal:
 
 .. code-block:: bash
 
     sbatch ddp_slurm.sh
 
-If you want to distribute the code in `train.py` with **DeepSpeed**, run from terminal:
+Similarly, if you want to distribute the code in `train.py` with **DeepSpeed**, run from terminal:
 
 .. code-block:: bash
 
     sbatch deepspeed_slurm.sh
 
-If you want to distribute the code in `train.py` with **Horovod**, run from terminal:
+To distribute the code in `train.py` with **Horovod**, run from terminal:
 
 .. code-block:: bash
 
     sbatch hvd_slurm.sh
 
-You can run all of them with:
+Finally, you can run all of them with:
 
 .. code-block:: bash
 
@@ -81,22 +80,20 @@ You can run all of them with:
 **Requirements**
 
 * Linux environment. 
-* Windows and macOS were never tested.
+
+Windows and macOS were never tested.
    
 
 Micromamba installation
 +++++++++++++++++++++++
 
-To manage Conda environments we use micromamba, a light weight version of conda.
+To manage Conda environments we use micromamba, a lightweight version of Conda.
 
-It is suggested to refer to the `Manual installation guide <https://mamba.readthedocs.io/en/latest/micromamba-installation.html#umamba-install/>`_.
+In order to install micromamba, please refer to the `Manual installation guide <https://mamba.readthedocs.io/en/latest/micromamba-installation.html#umamba-install/>`_.
 
-Consider that Micromamba can eat a lot of space when building environments because packages are cached on
-the local filesystem after being downloaded. To clear cache you can use `micromamba clean -a`.
-Micromamba data are kept under the `$HOME` location. However, in some systems, `$HOME` has a limited storage
-space and it would be cleverer to install Micromamba in another location with more storage space.
-Thus by changing the `$MAMBA_ROOT_PREFIX` variable. See a complete installation example for Linux below, where the
-default `$MAMBA_ROOT_PREFIX` is overridden:
+Consider that Micromamba can eat a lot of space when building environments because packages are cached on the local filesystem after being downloaded. To clear cache, you can use `micromamba clean -a`.
+Micromamba data are kept under the `$HOME` location. However, in some systems, `$HOME` has a limited storage space so it is recommended to install Micromamba in another location with more storage space by changing the `$MAMBA_ROOT_PREFIX` variable. 
+Below is a complete installation example where the default `$MAMBA_ROOT_PREFIX` is overridden for Linux:
 
 
 .. code-block:: bash
@@ -138,7 +135,7 @@ Installation:
     # Activate env
     micromamba activate ./.venv-tf
 
-Other TF versions are available, using the following targets `tf-2.10`, and `tf-2.11`.
+Other TensorFlow versions are available, using the following targets `tf-2.10`, and `tf-2.11`.
 
 
 PyTorch (+ Lightning)
@@ -154,7 +151,7 @@ Installation:
     # Activate env
     micromamba activate ./.venv-pytorch
 
-Other also CPU-only version is available at the target `torch-cpu`.
+Other similarly CPU-only version is available at the target `torch-cpu`.
 
 
 Development environment
@@ -178,7 +175,7 @@ To run tests on itwinai package:
     pytest -v -m "not slurm" tests/
 
 
-However, some tests are intended to be executed only on an HPC system, where SLURM is available. They are marked with "slurm" tag. To run also those tests, use the dedicated job script:
+However, some tests are intended to be executed only on HPC systems, where SLURM is available. They are marked with "slurm" tags. To run these tests, use the dedicated job script:
 
 .. code-block:: bash
 
