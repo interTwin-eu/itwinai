@@ -1,5 +1,5 @@
 import sys
-# import os
+import os
 # import pickle
 from collections import defaultdict
 import math
@@ -309,6 +309,7 @@ class ThreeDGAN(pl.LightningModule):
         loss_weights=[3, 0.1, 25, 0.1],
         power=0.85,
         lr=0.001,
+        checkpoints_dir: str = '.'
         # checkpoint_path: str = '3Dgan.pth'
     ):
         super().__init__()
@@ -319,6 +320,8 @@ class ThreeDGAN(pl.LightningModule):
         self.loss_weights = loss_weights
         self.lr = lr
         self.power = power
+        self.checkpoints_dir = checkpoints_dir
+        os.makedirs(self.checkpoints_dir, exist_ok=True)
 
         self.generator = Generator(self.latent_size)
         self.discriminator = Discriminator(self.power)
@@ -544,9 +547,10 @@ class ThreeDGAN(pl.LightningModule):
         if fake_batch_loss[3] == 100.0 and self.index > 10:
             # print("Empty image with Ecal loss equal to 100.0 "
             #       f"for {self.index} batch")
-            torch.save(self.generator.state_dict(), "generator_weights.pth")
-            torch.save(self.discriminator.state_dict(),
-                       "discriminator_weights.pth")
+            torch.save(self.generator.state_dict(), os.path.join(
+                self.checkpoints_dir, "generator_weights.pth"))
+            torch.save(self.discriminator.state_dict(), os.path.join(
+                       self.checkpoints_dir, "discriminator_weights.pth"))
             # print("real_batch_loss", real_batch_loss)
             # print("fake_batch_loss", fake_batch_loss)
             sys.exit()
@@ -609,9 +613,10 @@ class ThreeDGAN(pl.LightningModule):
         print(ROW_FMT.format("discriminator (train)",
               *self.train_history["discriminator"][-1]))
 
-        torch.save(self.generator.state_dict(), "generator_weights.pth")
-        torch.save(self.discriminator.state_dict(),
-                   "discriminator_weights.pth")
+        torch.save(self.generator.state_dict(), os.path.join(
+            self.checkpoints_dir, "generator_weights.pth"))
+        torch.save(self.discriminator.state_dict(), os.path.join(
+            self.checkpoints_dir, "discriminator_weights.pth"))
 
         # with open(self.pklfile, "wb") as f:
         #     pickle.dump({"train": self.train_history,

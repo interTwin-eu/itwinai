@@ -13,6 +13,7 @@
         "Convolutional",
         "cuda",
         "dataloaders",
+        "dataloading",
         "fromlist",
         "hyperparameters",
         "hyperparams",
