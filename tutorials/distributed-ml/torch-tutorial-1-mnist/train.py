@@ -21,9 +21,9 @@ import deepspeed
 from itwinai.torch.distributed import (
     distributed_resources_available,
     TorchDistributedStrategy,
-    DDPDistributedStrategy,
-    HVDDistributedStrategy,
-    DSDistributedStrategy,
+    TorchDDPStrategy,
+    HorovodStrategy,
+    DeepSpeedStrategy,
     NonDistributedStrategy
 )
 from itwinai.parser import ArgumentParser as ItAIArgumentParser
@@ -271,10 +271,10 @@ if __name__ == "__main__":
                 or not torch.cuda.device_count() > 1):
             raise RuntimeError('Resources unavailable')
 
-        strategy = DDPDistributedStrategy(backend=args.backend)
+        strategy = TorchDDPStrategy(backend=args.backend)
         distribute_kwargs = {}
     elif args.strategy == 'horovod':
-        strategy = HVDDistributedStrategy()
+        strategy = HorovodStrategy()
         distribute_kwargs = dict(
             compression=(
                 hvd.Compression.fp16 if args.fp16_allreduce
@@ -284,7 +284,7 @@ if __name__ == "__main__":
             gradient_predivide_factor=args.gradient_predivide_factor
         )
     elif args.strategy == 'deepspeed':
-        strategy = DSDistributedStrategy(backend=args.backend)
+        strategy = DeepSpeedStrategy(backend=args.backend)
         distribute_kwargs = dict(
             config_params=dict(train_micro_batch_size_per_gpu=args.batch_size)
         )

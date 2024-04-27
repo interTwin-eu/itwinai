@@ -15,9 +15,9 @@ import horovod.torch as hvd
 from itwinai.torch.distributed import (
     distributed_resources_available,
     TorchDistributedStrategy,
-    DDPDistributedStrategy,
-    HVDDistributedStrategy,
-    DSDistributedStrategy,
+    TorchDDPStrategy,
+    HorovodStrategy,
+    DeepSpeedStrategy,
     NonDistributedStrategy
 )
 
@@ -127,17 +127,17 @@ if __name__ == "__main__":
         strategy = NonDistributedStrategy()
         distribute_kwargs = {}
     elif args.strategy == 'ddp':
-        strategy = DDPDistributedStrategy(backend='nccl')
+        strategy = TorchDDPStrategy(backend='nccl')
         distribute_kwargs = {}
     elif args.strategy == 'horovod':
-        strategy = HVDDistributedStrategy()
+        strategy = HorovodStrategy()
         distribute_kwargs = dict(
             compression=hvd.Compression.none,
             op=hvd.Average,
             gradient_predivide_factor=1.0
         )
     elif args.strategy == 'deepspeed':
-        strategy = DSDistributedStrategy(backend='nccl')
+        strategy = DeepSpeedStrategy(backend='nccl')
         distribute_kwargs = dict(
             config_params=dict(train_micro_batch_size_per_gpu=args.batch_size)
         )

@@ -288,8 +288,8 @@ class TorchDistributedStrategy(DistributedStrategy):
         """
 
 
-class DDPDistributedStrategy(TorchDistributedStrategy):
-    """PyTorch DDP distributed strategy class.
+class TorchDDPStrategy(TorchDistributedStrategy):
+    """PyTorch ``DistributedDataParallel`` distributed strategy class.
 
     Args:
         backend (str): Name of the communication backend to employ.
@@ -435,7 +435,7 @@ class DDPDistributedStrategy(TorchDistributedStrategy):
         return res
 
 
-class DSDistributedStrategy(TorchDistributedStrategy):
+class DeepSpeedStrategy(TorchDistributedStrategy):
     """DeepSpeed distributed strategy class.
 
     Args:
@@ -580,7 +580,7 @@ class DSDistributedStrategy(TorchDistributedStrategy):
         return res
 
 
-class HVDDistributedStrategy(TorchDistributedStrategy):
+class HorovodStrategy(TorchDistributedStrategy):
     """Horovod distributed strategy class."""
 
     def init(self) -> None:
