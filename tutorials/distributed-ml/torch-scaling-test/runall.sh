@@ -20,9 +20,12 @@ PYTHON_VENV="../../../envAI_hdfml"
 
 echo "Distributing training over $N nodes. Timeout set to: $T"
 
+# Clear SLURM logs (*.out and *.err files)
 rm -rf logs_slurm
 mkdir logs_slurm
-rm *.csv #*.out *.err *checkpoint.pth.tar 
+
+# Clear scaling test logs 
+rm *.csv # *checkpoint.pth.tar 
 
 # DDP baseline
 DIST_MODE="ddp"

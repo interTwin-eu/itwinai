@@ -2,13 +2,16 @@
 Show how to use DDP, Horovod and DeepSpeed strategies interchangeably
 with an extremely simple neural network.
 """
-from typing import Any
+from typing import Any, Dict
 import os
 import argparse
+import time
 
 import torch
 from torch import nn
 from torch.utils.data import DataLoader, Dataset, DistributedSampler
+
+import horovod.torch as hvd
 
 from itwinai.torch.distributed import (
     TorchDistributedStrategy,
@@ -29,6 +32,9 @@ def parse_args() -> argparse.Namespace:
         "--shuffle_dataloader",
         action=argparse.BooleanOptionalAction
     )
+    parser.add_argument(
+        '--batch-size', type=int, default=10,
+        help='input batch size for training (default: 10)')
 
     # DeepSpeed: needs to be removed
     import deepspeed
@@ -56,7 +62,10 @@ class UniformRndDataset(Dataset):
 
 
 def trainer_entrypoint_fn(
-        foo: Any, args: argparse.Namespace, strategy: TorchDistributedStrategy
+        foo: Any,
+        args: argparse.Namespace,
+        strategy: TorchDistributedStrategy,
+        distribute_kwargs: Dict
 ) -> int:
     """Dummy training function. This emulates custom code developed
     by some use case.
@@ -70,10 +79,8 @@ def trainer_entrypoint_fn(
     optim = torch.optim.Adam(model.parameters(), lr=1e-3)
     loss_fn = nn.MSELoss()
     # Distributed model
-    deepspeed_config = dict(train_batch_size=32)
-    # 'config_params' key is ignored if strategy != DSDistributedStrategy
     model, optim, lr_sched = strategy.distributed(
-        model, optim, lr_scheduler=None, config_params=deepspeed_config
+        model, optim, lr_scheduler=None, **distribute_kwargs
     )
 
     # Data
@@ -115,6 +122,7 @@ def trainer_entrypoint_fn(
         if lr_sched:
             lr_sched.step()
 
+    time.sleep(1)
     print(f"<Global rank: {strategy.dist_grank()}> - TRAINING FINISHED")
     strategy.clean_up()
     return 123
@@ -131,13 +139,22 @@ if __name__ == "__main__":
             raise RuntimeError('Resources unavailable')
 
         strategy = DDPDistributedStrategy(backend='nccl')
+        distribute_kwargs = {}
     elif args.strategy == 'horovod':
         strategy = HVDDistributedStrategy()
+        distribute_kwargs = dict(
+            compression=hvd.Compression.none,
+            op=hvd.Average,
+            gradient_predivide_factor=1.0
+        )
     elif args.strategy == 'deepspeed':
         strategy = DSDistributedStrategy(backend='nccl')
+        distribute_kwargs = dict(
+            config_params=dict(train_micro_batch_size_per_gpu=args.batch_size)
+        )
     else:
         raise NotImplementedError(
             f"Strategy {args.strategy} is not recognized/implemented.")
 
     # Launch distributed training
-    trainer_entrypoint_fn("foobar", args, strategy)
+    trainer_entrypoint_fn("foobar", args, strategy, distribute_kwargs)
