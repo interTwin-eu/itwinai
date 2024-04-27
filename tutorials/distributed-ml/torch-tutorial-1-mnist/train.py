@@ -136,7 +136,7 @@ class Net(nn.Module):
 
 
 def train(
-    model, device, train_loader, optimizer, epoch,
+    model, train_loader, optimizer, epoch,
     strategy: TorchDistributedStrategy, args
 ):
     """
@@ -149,7 +149,8 @@ def train(
         print("\n")
     for batch_idx, (data, target) in enumerate(train_loader):
         t = timer()
-        data, target = data.to(device), target.to(device)
+        data = data.to(strategy.device())
+        target = target.to(strategy.device())
         optimizer.zero_grad()
         output = model(data)
         loss = F.nll_loss(output, target)
@@ -170,7 +171,7 @@ def train(
     return loss_acc
 
 
-def test(model, device, test_loader, strategy: TorchDistributedStrategy):
+def test(model, test_loader, strategy: TorchDistributedStrategy):
     """
     Model validation.
     """
@@ -179,7 +180,8 @@ def test(model, device, test_loader, strategy: TorchDistributedStrategy):
     correct = 0
     with torch.no_grad():
         for data, target in test_loader:
-            data, target = data.to(device), target.to(device)
+            data = data.to(strategy.device())
+            target = target.to(strategy.device())
             output = model(data)
             # Sum up batch loss
             test_loss += F.nll_loss(output, target, reduction="sum").item()
@@ -267,10 +269,6 @@ if __name__ == "__main__":
         strategy = NonDistributedStrategy()
         distribute_kwargs = {}
     elif args.strategy == 'ddp':
-        if (not torch.cuda.is_available()
-                or not torch.cuda.device_count() > 1):
-            raise RuntimeError('Resources unavailable')
-
         strategy = TorchDDPStrategy(backend=args.backend)
         distribute_kwargs = {}
     elif args.strategy == 'horovod':
@@ -318,12 +316,6 @@ if __name__ == "__main__":
         print('DEBUG: args.rnd_seed:', args.rnd_seed)
         print('DEBUG: args.backend:', args.backend)
 
-    # Encapsulate the model on the GPU assigned to the current process
-    device = torch.device(
-        strategy.device() if torch.cuda.is_available() else 'cpu')
-    if torch.cuda.is_available():
-        torch.cuda.set_device(strategy.local_rank())
-
     # Dataset
     train_dataset, test_dataset = mnist_dataset(args.dataset_replication)
     # Distributed dataloaders
@@ -346,13 +338,13 @@ if __name__ == "__main__":
         print('TIMER: read and concat data:', timer()-st, 's')
 
     # Create CNN model
-    model = Net().to(device)
+    model = Net().to(strategy.device())
 
     # Optimizer
     optimizer = torch.optim.SGD(
         model.parameters(), lr=args.lr, momentum=args.momentum)
 
-    # Distributed model
+    # Distributed model, optimizer, and scheduler
     model, optimizer, _ = strategy.distributed(
         model, optimizer, lr_scheduler=None, **distribute_kwargs
     )
@@ -376,7 +368,6 @@ if __name__ == "__main__":
         # Training
         loss_acc = train(
             model=model,
-            device=device,
             train_loader=train_loader,
             optimizer=optimizer,
             epoch=epoch,
@@ -387,7 +378,6 @@ if __name__ == "__main__":
         # Testing
         acc_test = test(
             model=model,
-            device=device,
             test_loader=test_loader,
             strategy=strategy
         )

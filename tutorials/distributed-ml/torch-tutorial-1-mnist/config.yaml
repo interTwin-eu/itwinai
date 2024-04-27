@@ -4,7 +4,7 @@ log_int: 10
 verbose: True
 restart_int: 10
 download_only: False
-dataset_replication: 100
+dataset_replication: 10
 shuff: False
 nworker: 4 # num workers dataloader
 prefetch: 2
