@@ -6,6 +6,7 @@ PYTHON_VENV="../../../envAI_hdfml"
 # Clear SLURM logs (*.out and *.err files)
 rm -rf logs_slurm
 mkdir logs_slurm
+rm -rf logs_torchrun
 
 # DDP itwinai
 DIST_MODE="ddp"

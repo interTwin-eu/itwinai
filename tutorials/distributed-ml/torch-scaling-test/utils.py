@@ -1,38 +1,4 @@
-from typing import Optional
-import numpy as np
-import random
-
-import torch
 from torchvision import datasets, transforms
-
-
-def seed_worker(worker_id):
-    worker_seed = torch.initial_seed() % 2**32
-    np.random.seed(worker_seed)
-    random.seed(worker_seed)
-
-
-def set_seed(rnd_seed: Optional[int], use_cuda: bool) -> torch.Generator:
-    """Set torch random seed and return a PRNG object.
-
-    Args:
-        rnd_seed (Optional[int]): random seed. If None, the seed is not set.
-        use_cuda (bool): whether GPU is available.
-
-    Returns:
-        torch.Generator: PRNG object.
-    """
-    g = torch.Generator()
-    if rnd_seed is not None:
-        # Deterministic execution
-        np.random.seed(rnd_seed)
-        random.seed(rnd_seed)
-        torch.manual_seed(rnd_seed)
-        g.manual_seed(rnd_seed)
-        if use_cuda:
-            torch.cuda.manual_seed(rnd_seed)
-            torch.cuda.manual_seed_all(rnd_seed)
-    return g
 
 
 def imagenet_dataset(data_root: str):

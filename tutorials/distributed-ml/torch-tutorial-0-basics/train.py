@@ -2,8 +2,7 @@
 Show how to use DDP, Horovod and DeepSpeed strategies interchangeably
 with an extremely simple neural network.
 """
-from typing import Any, Dict
-import os
+from typing import Dict
 import argparse
 import time
 
@@ -61,18 +60,13 @@ class UniformRndDataset(Dataset):
         return torch.rand(self.x_size), torch.rand(self.y_size)
 
 
-def trainer_entrypoint_fn(
-        foo: Any,
+def training_fn(
         args: argparse.Namespace,
         strategy: TorchDistributedStrategy,
         distribute_kwargs: Dict
 ) -> int:
-    """Dummy training function. This emulates custom code developed
-    by some use case.
-    """
+    """Dummy training function."""
     strategy.init()
-    print(f"{foo}: {os.environ.get('RANK')} {os.environ.get('LOCAL_RANK')} "
-          f"{os.environ.get('MASTER_ADDR')} {os.environ.get('MASTER_PORT')}")
 
     # Local model
     model = nn.Linear(3, 4)
@@ -157,4 +151,4 @@ if __name__ == "__main__":
             f"Strategy {args.strategy} is not recognized/implemented.")
 
     # Launch distributed training
-    trainer_entrypoint_fn("foobar", args, strategy, distribute_kwargs)
+    training_fn(args, strategy, distribute_kwargs)

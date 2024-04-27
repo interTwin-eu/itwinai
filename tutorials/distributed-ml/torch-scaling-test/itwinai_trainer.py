@@ -27,8 +27,11 @@ from itwinai.torch.distributed import (
 )
 from itwinai.parser import ArgumentParser as ItAIArgumentParser
 from itwinai.loggers import EpochTimeTracker
+from itwinai.torch.reproducibility import (
+    seed_worker, set_seed
+)
 
-from utils import seed_worker, imagenet_dataset, set_seed
+from utils import imagenet_dataset
 
 
 def parse_params() -> argparse.Namespace:
@@ -182,13 +185,13 @@ def main():
     # Limit # of CPU threads to be used per worker
     # torch.set_num_threads(1)
 
-    # start the timer for profiling
+    # Start the timer for profiling
     st = timer()
 
     # Set random seed for reproducibility
-    torch_prng = set_seed(args.rnd_seed, use_cuda)
+    torch_prng = set_seed(args.rnd_seed, deterministic_cudnn=False)
 
-    # get job rank info - rank==0 master gpu
+    # Get job rank info - rank==0 master gpu
     if is_distributed:
         # local world size - per node
         lwsize = strategy.dist_lwsize()   # local world size - per run
@@ -221,7 +224,7 @@ def main():
 
     # Encapsulate the model on the GPU assigned to the current process
     device = torch.device(
-        strategy.dist_device() if use_cuda and torch.cuda.is_available()
+        strategy.dist_device() if use_cuda
         else 'cpu')
     if use_cuda:
         torch.cuda.set_device(lrank)
