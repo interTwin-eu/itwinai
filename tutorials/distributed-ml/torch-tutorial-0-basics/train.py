@@ -8,15 +8,17 @@ import time
 
 import torch
 from torch import nn
-from torch.utils.data import DataLoader, Dataset, DistributedSampler
+from torch.utils.data import Dataset
 
 import horovod.torch as hvd
 
 from itwinai.torch.distributed import (
+    distributed_resources_available,
     TorchDistributedStrategy,
     DDPDistributedStrategy,
     HVDDistributedStrategy,
     DSDistributedStrategy,
+    NonDistributedStrategy
 )
 
 
@@ -80,18 +82,11 @@ def training_fn(
     # Data
     train_set = UniformRndDataset(x_size=3, y_size=4)
     # Distributed dataloader
-    train_loader = DataLoader(
-        train_set, batch_size=10, num_workers=1,
-        sampler=DistributedSampler(
-            train_set,
-            num_replicas=strategy.dist_gwsize(),
-            rank=strategy.dist_grank(),
-            shuffle=args.shuffle_dataloader
-        )
-    )
+    train_loader = strategy.create_dataloader(
+        train_set, batch_size=args.batch_size, num_workers=1)
 
     # Device allocated for this worker
-    device = strategy.dist_device()
+    device = strategy.device()
 
     for epoch in range(2):
         for (x, y) in train_loader:
@@ -108,7 +103,7 @@ def training_fn(
 
             optim.step()
 
-            if strategy.is_main_worker():
+            if strategy.is_main_worker:
                 print(f"Loss [epoch={epoch}]: {loss.item()}")
             print(f"NNLoss [epoch={epoch}]: {loss.item()}")
 
@@ -117,7 +112,7 @@ def training_fn(
             lr_sched.step()
 
     time.sleep(1)
-    print(f"<Global rank: {strategy.dist_grank()}> - TRAINING FINISHED")
+    print(f"<Global rank: {strategy.global_rank()}> - TRAINING FINISHED")
     strategy.clean_up()
     return 123
 
@@ -127,11 +122,11 @@ if __name__ == "__main__":
     args = parse_args()
 
     # Instantiate Strategy
-    if args.strategy == 'ddp':
-        if (not torch.cuda.is_available()
-                or not torch.cuda.device_count() > 1):
-            raise RuntimeError('Resources unavailable')
-
+    if not distributed_resources_available():
+        print("WARNING: falling back to non-distributed strategy.")
+        strategy = NonDistributedStrategy()
+        distribute_kwargs = {}
+    elif args.strategy == 'ddp':
         strategy = DDPDistributedStrategy(backend='nccl')
         distribute_kwargs = {}
     elif args.strategy == 'horovod':
@@ -149,6 +144,5 @@ if __name__ == "__main__":
     else:
         raise NotImplementedError(
             f"Strategy {args.strategy} is not recognized/implemented.")
-
     # Launch distributed training
     training_fn(args, strategy, distribute_kwargs)

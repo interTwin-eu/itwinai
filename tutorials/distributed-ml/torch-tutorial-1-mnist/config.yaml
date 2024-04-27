@@ -20,7 +20,6 @@ rnd_seed: 10
 
 # Distributed ML
 backend: nccl # ignored when using Horovod
-no_cuda: False
 
 # Horovod: ignored when NOT using Horovod
 fp16_allreduce: False
