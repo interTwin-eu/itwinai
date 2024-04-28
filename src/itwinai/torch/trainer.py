@@ -39,6 +39,11 @@ from .distributed import (
 )
 
 
+class Config:
+    def __init__(self, my_dict):
+        self.__dict__.update(my_dict)
+
+
 class TorchTrainer(Trainer, LogMixin):
     """Trainer class for torch training algorithms.
 
@@ -60,6 +65,8 @@ class TorchTrainer(Trainer, LogMixin):
         Defaults to None.
         log_all_workers (bool, optional): if True, the ``log`` method is
         called on all workers in the distributed context. Defaults to False.
+        metrics (Optional[Dict[str, Metric]], optional): map of torchmetrics
+        metrics. Defaults to None.
         name (Optional[str], optional): trainer custom name. Defaults to None.
     """
 
@@ -101,7 +108,7 @@ class TorchTrainer(Trainer, LogMixin):
         # config is mean to store all hyperparameters, which can very from use
         # case to use case
         # and include learning_rate, batch_size....
-        self.config = config
+        self.config = Config(config)
         self.epochs = epochs
         self.model = model
         self.strategy = strategy
@@ -335,12 +342,13 @@ class TorchTrainer(Trainer, LogMixin):
         """Main training logic (training loop)."""
         # start_time = time.perf_counter()
         for epoch in range(self.epochs):
+            epoch_n = epoch + 1
             self._set_epoch_dataloaders(epoch)
-            self.train_epoch(epoch)
-            if self.validation_every and self.validation_every % epoch == 0:
-                self.validation_epoch(epoch)
-            if self.test_every and self.test_every % epoch == 0:
-                self.test_epoch(epoch)
+            self.train_epoch()
+            if self.validation_every and self.validation_every % epoch_n == 0:
+                self.validation_epoch()
+            if self.test_every and self.test_every % epoch_n == 0:
+                self.test_epoch()
 
     def compute_metrics(
         self,
@@ -481,7 +489,7 @@ class TorchTrainer(Trainer, LogMixin):
             )
             return avg_loss
 
-    def test_epoch(self, epoch: int):
+    def test_epoch(self):
         # TODO: implement test epoch
         raise NotImplementedError()
 

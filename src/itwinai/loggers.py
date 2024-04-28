@@ -4,7 +4,7 @@ import os
 import csv
 from abc import ABCMeta, abstractmethod
 from contextlib import contextmanager
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union, Literal
 import pickle
 import pathlib
 
@@ -38,12 +38,12 @@ class Logger(LogMixin, metaclass=ABCMeta):
     """
     savedir: str = None
     supported_types: List[str]  # Supported logging 'kinds'
-    _log_freq: Union[int, str]
+    _log_freq: Union[int, Literal['epoch', 'batch']]
 
     def __init__(
         self,
         savedir: str = 'mllogs',
-        log_freq: Union[int, str] = 'epoch'
+        log_freq: Union[int, Literal['epoch', 'batch']] = 'epoch'
     ) -> None:
         self.savedir = savedir
         self.log_freq = log_freq
@@ -120,7 +120,7 @@ class ConsoleLogger(Logger):
     def __init__(
         self,
         savedir: str = 'mllogs',
-        log_freq: Union[int, str] = 'epoch'
+        log_freq: Union[int, Literal['epoch', 'batch']] = 'epoch'
     ) -> None:
         savedir = os.path.join(savedir, 'simple-logger')
         super().__init__(savedir=savedir, log_freq=log_freq)
@@ -190,7 +190,7 @@ class MLFlowLogger(Logger):
         experiment_name: str = BASE_EXP_NAME,
         tracking_uri: Optional[str] = None,
         run_description: Optional[str] = None,
-        log_freq: Union[int, str] = 'epoch'
+        log_freq: Union[int, Literal['epoch', 'batch']] = 'epoch'
     ):
         savedir = os.path.join(savedir, 'mlflow')
         super().__init__(savedir=savedir, log_freq=log_freq)
@@ -317,7 +317,7 @@ class WanDBLogger(Logger):
         self,
         savedir: str = 'mllogs',
         project_name: str = BASE_EXP_NAME,
-        log_freq: Union[int, str] = 'epoch'
+        log_freq: Union[int, Literal['epoch', 'batch']] = 'epoch'
     ) -> None:
         savedir = os.path.join(savedir, 'wandb')
         super().__init__(savedir=savedir, log_freq=log_freq)
@@ -376,7 +376,7 @@ class TensorBoardLogger(Logger):
     def __init__(
         self,
         savedir: str = 'mllogs',
-        log_freq: Union[int, str] = 'epoch'
+        log_freq: Union[int, Literal['epoch', 'batch']] = 'epoch'
     ) -> None:
         savedir = os.path.join(savedir, 'tensorboard')
         super().__init__(savedir=savedir, log_freq=log_freq)
@@ -425,7 +425,7 @@ class LoggersCollection(Logger):
         self,
         loggers: List[Logger]
     ) -> None:
-        super().__init__(savedir='/.tmp_mllogs_LoggersCollection', log_freq=0)
+        super().__init__(savedir='/.tmp_mllogs_LoggersCollection', log_freq=1)
         self.loggers = loggers
 
     def should_log(self, batch_idx: int = None) -> bool:
@@ -449,6 +449,18 @@ class LoggersCollection(Logger):
                 batch_idx=batch_idx,
                 **kwargs
             )
+
+    def create_logger_context(self):
+        for logger in self.loggers:
+            logger.create_logger_context()
+
+    def destroy_logger_context(self):
+        for logger in self.loggers:
+            logger.destroy_logger_context()
+
+    def save_hyperparameters(self, params: Dict[str, Any]) -> None:
+        for logger in self.loggers:
+            logger.save_hyperparameters(params=params)
 
 
 class EpochTimeTracker:

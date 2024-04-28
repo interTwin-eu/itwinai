@@ -8,27 +8,22 @@ pipeline:
           save_path: .tmp/
 
       training_step:
-        class_path: itwinai.torch.trainer.TorchTrainerMG
+        class_path: itwinai.torch.trainer.TorchTrainer
         init_args:
+          config:
+            batch_size: 64
+            num_workers: 4
+            pin_memory: False
+            lr: 0.001
+            momentum: 0.9
+            fp16_allreduce: False
+            use_adasum: False
+            gradient_predivide_factor: 1.0
+
           model:
             class_path: model.Net
-          loss:
-            class_path: torch.nn.NLLLoss
-            init_args:
-              reduction: mean
-          optimizer_class: torch.optim.SGD
-          optimizer_kwargs: 
-            lr: 0.001
-          train_dataloader_kwargs:
-            batch_size: 32
-            pin_memory: True
-            shuffle: True
-          validation_dataloader_kwargs:
-            batch_size: 32
-            pin_memory: True
-            shuffle: False
           epochs: 2
-          train_metrics:
+          metrics:
             accuracy:
               class_path: torchmetrics.classification.MulticlassAccuracy
               init_args:
@@ -41,16 +36,21 @@ pipeline:
               class_path: torchmetrics.classification.MulticlassRecall
               init_args:
                 num_classes: 10
-          logger: 
-            - class_path: itwinai.loggers.ConsoleLogger
-            - class_path: itwinai.loggers.MLFlowLogger
-              init_args:
-                experiment_name: MNIST classifier
-                log_freq: batch 
-          strategy: ddp
-          checkpoint_every: 1
-          cluster:
-            class_path: itwinai.torch.cluster.LocalCluster
+          logger:
+            class_path: itwinai.loggers.LoggersCollection
             init_args:
-              gpus: '0,1,2'
-              backend: nccl
+              loggers:
+                - class_path: itwinai.loggers.ConsoleLogger
+                  init_args:
+                    log_freq: 100
+                - class_path: itwinai.loggers.MLFlowLogger
+                  init_args:
+                    experiment_name: MNIST classifier
+                    log_freq: batch 
+          strategy: ddp
+          # checkpoint_every: 1
+          # cluster:
+          #   class_path: itwinai.torch.cluster.LocalCluster
+          #   init_args:
+          #     gpus: '0,1,2'
+          #     backend: nccl
