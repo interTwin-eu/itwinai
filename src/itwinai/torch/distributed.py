@@ -16,7 +16,7 @@ from torch.utils.data import Dataset, Sampler, DistributedSampler, DataLoader
 from torch.utils.data.dataloader import T_co, _worker_init_fn_t, _collate_fn_t
 
 from ..distributed import DistributedStrategy
-from .types import UninitializedStrategyError
+from .types import UninitializedStrategyError, DistributedStrategyError
 
 
 def distributed_resources_available() -> bool:
@@ -36,7 +36,7 @@ class TorchDistributedStrategy(DistributedStrategy):
     PyTorch models.
     """
     is_distributed: bool = True
-    _initialized: bool = False
+    is_initialized: bool = False
 
     @property
     def is_main_worker(self) -> bool:
@@ -45,7 +45,7 @@ class TorchDistributedStrategy(DistributedStrategy):
         Returns:
             bool: True if main worker.
         """
-        if not self._initialized:
+        if not self.is_initialized:
             raise UninitializedStrategyError(
                 "Strategy has not been initialized. Use the init method.")
         return self.global_rank() == 0
@@ -108,7 +108,7 @@ class TorchDistributedStrategy(DistributedStrategy):
         Returns:
             str: torch device in the form 'cuda:N'.
         """
-        if not self._initialized:
+        if not self.is_initialized:
             raise UninitializedStrategyError(
                 "Strategy has not been initialized. Use the init method.")
         return f"cuda:{self.local_rank()}"
@@ -246,7 +246,7 @@ class TorchDistributedStrategy(DistributedStrategy):
         .. _multiprocessing context:
             https://docs.python.org/3/library/multiprocessing.html#contexts-and-start-methods
     """
-        if not self._initialized:
+        if not self.is_initialized:
             raise UninitializedStrategyError(
                 "Strategy has not been initialized. Use the init method.")
 
@@ -307,12 +307,16 @@ class TorchDDPStrategy(TorchDistributedStrategy):
 
         Raises:
             RuntimeError: when there are not (enough) GPUs available.
+            DistributedStrategyError: when trying to initialize a strategy
+            already initialized.
         """
         if not distributed_resources_available():
             raise RuntimeError(
                 "Trying to run distributed on insufficient resources.")
+        if self.is_initialized:
+            raise DistributedStrategyError("Strategy was already initialized")
         dist.init_process_group(backend=self.backend)
-        self._initialized = True
+        self.is_initialized = True
 
         torch.cuda.device(self.local_rank())
 
@@ -346,7 +350,7 @@ class TorchDDPStrategy(TorchDistributedStrategy):
         **kwargs
     ) -> Tuple[nn.Module, Optimizer, Optional[LRScheduler]]:
         """Setup model, optimizer and scheduler for distributed."""
-        if not self._initialized:
+        if not self.is_initialized:
             raise UninitializedStrategyError(
                 "Strategy has not been initialized. Use the init method.")
         if torch.cuda.is_available():
@@ -368,7 +372,7 @@ class TorchDDPStrategy(TorchDistributedStrategy):
         Returns:
             int: global world size.
         """
-        if not self._initialized:
+        if not self.is_initialized:
             raise UninitializedStrategyError(
                 "Strategy has not been initialized. Use the init method.")
         return dist.get_world_size()
@@ -380,7 +384,7 @@ class TorchDDPStrategy(TorchDistributedStrategy):
         Returns:
             int: local world size.
         """
-        if not self._initialized:
+        if not self.is_initialized:
             raise UninitializedStrategyError(
                 "Strategy has not been initialized. Use the init method.")
         return torch.cuda.device_count()
@@ -392,7 +396,7 @@ class TorchDDPStrategy(TorchDistributedStrategy):
         Returns:
             int: global rank.
         """
-        if not self._initialized:
+        if not self.is_initialized:
             raise UninitializedStrategyError(
                 "Strategy has not been initialized. Use the init method.")
         return dist.get_rank()
@@ -403,14 +407,14 @@ class TorchDDPStrategy(TorchDistributedStrategy):
         Returns:
             int: local rank.
         """
-        if not self._initialized:
+        if not self.is_initialized:
             raise UninitializedStrategyError(
                 "Strategy has not been initialized. Use the init method.")
         return dist.get_rank() % torch.cuda.device_count()
 
     def clean_up(self) -> None:
         """Destroys the current process group."""
-        if not self._initialized:
+        if not self.is_initialized:
             raise UninitializedStrategyError(
                 "Strategy has not been initialized. Use the init method.")
         if torch.cuda.is_available():
@@ -427,7 +431,7 @@ class TorchDDPStrategy(TorchDistributedStrategy):
         Returns:
             List[Any]: List of gathered objects.
         """
-        if not self._initialized:
+        if not self.is_initialized:
             raise UninitializedStrategyError(
                 "Strategy has not been initialized. Use the init method.")
         res = [None] * self.global_world_size()
@@ -468,10 +472,15 @@ class DeepSpeedStrategy(TorchDistributedStrategy):
 
         Raises:
             RuntimeError: when there are not (enough) GPUs available.
+            DistributedStrategyError: when trying to initialize a strategy
+            already initialized.
         """
         if not distributed_resources_available():
             raise RuntimeError(
                 "Trying to run distributed on insufficient resources.")
+
+        if self.is_initialized:
+            raise DistributedStrategyError("Strategy was already initialized")
 
         # https://github.com/Lightning-AI/pytorch-lightning/issues/13567
         ompi_lrank = os.environ.get('OMPI_COMM_WORLD_LOCAL_RANK')
@@ -480,7 +489,7 @@ class DeepSpeedStrategy(TorchDistributedStrategy):
 
         # https://deepspeed.readthedocs.io/en/latest/initialize.html#training-initialization
         deepspeed.init_distributed(dist_backend=self.backend)
-        self._initialized = True
+        self.is_initialized = True
 
         torch.cuda.device(self.local_rank())
 
@@ -491,7 +500,7 @@ class DeepSpeedStrategy(TorchDistributedStrategy):
         **init_kwargs
     ) -> Tuple[nn.Module, Optimizer, Optional[LRScheduler]]:
         """Setup model, optimizer and scheduler for distributed."""
-        if not self._initialized:
+        if not self.is_initialized:
             raise UninitializedStrategyError(
                 "Strategy has not been initialized. Use the init method.")
 
@@ -515,7 +524,7 @@ class DeepSpeedStrategy(TorchDistributedStrategy):
         Returns:
             int: global world size.
         """
-        if not self._initialized:
+        if not self.is_initialized:
             raise UninitializedStrategyError(
                 "Strategy has not been initialized. Use the init method.")
         return dist.get_world_size()
@@ -527,7 +536,7 @@ class DeepSpeedStrategy(TorchDistributedStrategy):
         Returns:
             int: local world size.
         """
-        if not self._initialized:
+        if not self.is_initialized:
             raise UninitializedStrategyError(
                 "Strategy has not been initialized. Use the init method.")
         return torch.cuda.device_count()
@@ -539,7 +548,7 @@ class DeepSpeedStrategy(TorchDistributedStrategy):
         Returns:
             int: global rank.
         """
-        if not self._initialized:
+        if not self.is_initialized:
             raise UninitializedStrategyError(
                 "Strategy has not been initialized. Use the init method.")
         return dist.get_rank()
@@ -550,14 +559,14 @@ class DeepSpeedStrategy(TorchDistributedStrategy):
         Returns:
             int: local rank.
         """
-        if not self._initialized:
+        if not self.is_initialized:
             raise UninitializedStrategyError(
                 "Strategy has not been initialized. Use the init method.")
         return dist.get_rank() % torch.cuda.device_count()
 
     def clean_up(self) -> None:
         """Destroys the current process group."""
-        if not self._initialized:
+        if not self.is_initialized:
             raise UninitializedStrategyError(
                 "Strategy has not been initialized. Use the init method.")
         deepspeed.sys.exit()
@@ -572,7 +581,7 @@ class DeepSpeedStrategy(TorchDistributedStrategy):
         Returns:
             List[Any]: List of gathered objects.
         """
-        if not self._initialized:
+        if not self.is_initialized:
             raise UninitializedStrategyError(
                 "Strategy has not been initialized. Use the init method.")
         res = [None] * self.global_world_size()
@@ -588,12 +597,16 @@ class HorovodStrategy(TorchDistributedStrategy):
 
         Raises:
             RuntimeError: when there are not (enough) GPUs available.
+            DistributedStrategyError: when trying to initialize a strategy
+            already initialized.
         """
         if not distributed_resources_available():
             raise RuntimeError(
                 "Trying to run distributed on insufficient resources.")
+        if self.is_initialized:
+            raise DistributedStrategyError("Strategy was already initialized")
         hvd.init()
-        self._initialized = True
+        self.is_initialized = True
 
         torch.cuda.device(self.local_rank())
 
@@ -603,7 +616,7 @@ class HorovodStrategy(TorchDistributedStrategy):
         **optim_kwargs
     ) -> Tuple[nn.Module, Optimizer, Optional[LRScheduler]]:
         """Setup model, optimizer and scheduler for distributed."""
-        if not self._initialized:
+        if not self.is_initialized:
             raise UninitializedStrategyError(
                 "Strategy has not been initialized. Use the init method.")
 
@@ -648,7 +661,7 @@ class HorovodStrategy(TorchDistributedStrategy):
         Returns:
             int: global world size.
         """
-        if not self._initialized:
+        if not self.is_initialized:
             raise UninitializedStrategyError(
                 "Strategy has not been initialized. Use the init method.")
         return hvd.size()
@@ -660,7 +673,7 @@ class HorovodStrategy(TorchDistributedStrategy):
         Returns:
             int: local world size.
         """
-        if not self._initialized:
+        if not self.is_initialized:
             raise UninitializedStrategyError(
                 "Strategy has not been initialized. Use the init method.")
         return hvd.local_size()
@@ -672,7 +685,7 @@ class HorovodStrategy(TorchDistributedStrategy):
         Returns:
             int: global rank.
         """
-        if not self._initialized:
+        if not self.is_initialized:
             raise UninitializedStrategyError(
                 "Strategy has not been initialized. Use the init method.")
         return hvd.rank()
@@ -683,14 +696,14 @@ class HorovodStrategy(TorchDistributedStrategy):
         Returns:
             int: local rank.
         """
-        if not self._initialized:
+        if not self.is_initialized:
             raise UninitializedStrategyError(
                 "Strategy has not been initialized. Use the init method.")
         return hvd.local_rank()
 
     def clean_up(self) -> None:
         """Shuts Horovod down."""
-        if not self._initialized:
+        if not self.is_initialized:
             raise UninitializedStrategyError(
                 "Strategy has not been initialized. Use the init method.")
         hvd.shutdown()
@@ -705,7 +718,7 @@ class HorovodStrategy(TorchDistributedStrategy):
         Returns:
             list: gathered list with size(#worker).
         """
-        if not self._initialized:
+        if not self.is_initialized:
             raise UninitializedStrategyError(
                 "Strategy has not been initialized. Use the init method.")
         return hvd.allgather_object(obj)
@@ -717,10 +730,17 @@ class NonDistributedStrategy(TorchDistributedStrategy):
     is_distributed: bool = False
 
     def init(self) -> None:
-        """If CUDA is available set CUDA device, and do nothing more."""
+        """If CUDA is available set CUDA device, and do nothing more.
+
+        Raises:
+            DistributedStrategyError: when trying to initialize a strategy
+            already initialized.
+        """
+        if self.is_initialized:
+            raise DistributedStrategyError("Strategy was already initialized")
         if torch.cuda.is_available():
             torch.cuda.device(self.local_rank())
-        self._initialized = True
+        self.is_initialized = True
 
     def device(self) -> str:
         """Device used by local worker.
@@ -728,7 +748,7 @@ class NonDistributedStrategy(TorchDistributedStrategy):
         Returns:
             str: cpu device if CUDA is not available.
         """
-        if not self._initialized:
+        if not self.is_initialized:
             raise UninitializedStrategyError(
                 "Strategy has not been initialized. Use the init method.")
         if torch.cuda.is_available():
@@ -741,7 +761,7 @@ class NonDistributedStrategy(TorchDistributedStrategy):
         **kwargs
     ) -> Tuple[nn.Module, Optimizer, Optional[LRScheduler]]:
         """Do nothing and return model, optimizer and scheduler."""
-        if not self._initialized:
+        if not self.is_initialized:
             raise UninitializedStrategyError(
                 "Strategy has not been initialized. Use the init method.")
         if torch.cuda.is_available():

@@ -1,7 +1,7 @@
 """Provides training logic for PyTorch models via Trainer classes."""
 
 from typing import (
-    Optional, Dict, Union, Tuple, Type, List, Any
+    Optional, Dict, Union, Tuple, Type, List, Any, Literal
 )
 import time
 import os
@@ -17,8 +17,10 @@ from torch.nn.parallel import DistributedDataParallel as DDP
 import torch.nn as nn
 from torch.optim.optimizer import Optimizer
 
+import horovod.torch as hvd
+
 from ..components import Trainer, monitor_exec
-from .utils import seed_worker, par_allgather_obj, clear_key
+from .utils import par_allgather_obj, clear_key
 from .types import (
     Batch, Loss, LrScheduler, Metric
 )
@@ -26,12 +28,286 @@ from .types import TorchDistributedStrategy as StrategyT
 from ..loggers import LogMixin, Logger, ConsoleLogger
 from ..utils import dynamically_import_class
 from ..cluster import ClusterEnvironment
-# from .distributed import (
-#     TorchDistributedStrategy,
-#     DDPDistributedStrategy,
-#     DSDistributedStrategy,
-#     HVDDistributedStrategy
-# )
+from .reproducibility import seed_worker, set_seed
+from .distributed import (
+    TorchDistributedStrategy,
+    TorchDDPStrategy,
+    HorovodStrategy,
+    DeepSpeedStrategy,
+    NonDistributedStrategy,
+    distributed_resources_available
+)
+
+
+class TorchTrainer(Trainer):
+    """Trainer class for torch training algorithms.
+
+    Args:
+        config (Dict): training configuration containing hyperparameters.
+        epochs (int): number of training epochs.
+        model (Optional[nn.Module], optional): model to train.
+        Defaults to None.
+        strategy (Literal[&quot;ddp&quot;, &quot;deepspeed&quot;,
+        &quot;horovod&quot;], optional): distributed strategy.
+        Defaults to 'ddp'.
+        validation_every (Optional[int], optional): run a validation epoch
+        every ``validation_every`` epochs. Disabled if None. Defaults to 1.
+        test_every (Optional[int], optional): run a test epoch
+        every ``test_every`` epochs. Disabled if None. Defaults to None.
+        random_seed (Optional[int], optional): set random seed for
+        reproducibility. If None, the seed is not set. Defaults to None.
+        logger (Optional[Logger], optional): logger for ML tracking.
+        Defaults to None.
+        name (Optional[str], optional): trainer custom name. Defaults to None.
+    """
+
+    _strategy: TorchDistributedStrategy = None
+
+    train_dataloader: DataLoader = None
+    validation_dataloader: DataLoader = None
+    test_dataloader: DataLoader = None
+
+    model: nn.Module = None
+    loss: Loss = None
+    optimizer: Optimizer = None
+    lr_scheduler: LrScheduler = None
+
+    torch_rng: torch.Generator = None
+    logger: Logger = None
+
+    def __init__(
+        self,
+        config: Dict,
+        epochs: int,
+        model: Optional[nn.Module] = None,
+        strategy: Literal["ddp", "deepspeed", "horovod"] = 'ddp',
+        validation_every: Optional[int] = 1,
+        test_every: Optional[int] = None,
+        random_seed: Optional[int] = None,
+        logger: Optional[Logger] = None,
+        name: Optional[str] = None
+    ) -> None:
+        super().__init__(name)
+        self.save_parameters(**self.locals2params(locals()))
+
+        # config is mean to store all hyperparameters, which can very from use
+        # case to use case
+        # and include learning_rate, batch_size....
+        self.config = config
+        self.epochs = epochs
+        self.model = model
+        self.strategy = strategy
+        self.validation_every = validation_every
+        self.test_every = test_every
+        self.random_seed = random_seed
+        self.logger = logger
+
+    @property
+    def strategy(self) -> TorchDistributedStrategy:
+        return self._strategy
+
+    @strategy.setter
+    def strategy(self, strategy: Union[str, TorchDistributedStrategy]) -> None:
+        if isinstance(strategy, TorchDistributedStrategy):
+            self._strategy = strategy
+        else:
+            self._strategy = self._detect_strategy(strategy)
+
+    def _detect_strategy(self, strategy: str) -> TorchDistributedStrategy:
+        if not distributed_resources_available():
+            print("WARNING: falling back to non-distributed strategy.")
+            dist_str = NonDistributedStrategy()
+        elif strategy == 'ddp':
+            dist_str = TorchDDPStrategy(backend='nccl')
+        elif strategy == 'horovod':
+            dist_str = HorovodStrategy()
+        elif strategy == 'deepspeed':
+            dist_str = DeepSpeedStrategy(backend='nccl')
+        else:
+            raise NotImplementedError(
+                f"Strategy '{strategy}' is not recognized/implemented.")
+        return dist_str
+
+    def _init_distributed_strategy(self) -> None:
+        if not self.strategy.is_initialized:
+            self.strategy.init()
+
+    def create_model_loss_optimizer(self) -> None:
+        """
+        Instantiate a torch model, loss, optimizer, and LR scheduler using the
+        configuration provided in the Trainer constructor.
+        Generally a user-define method.
+        """
+        ###################################
+        # Dear user, this is a method you #
+        # may be interested to override!  #
+        ###################################
+
+        if self.model is None:
+            # Model was not passed to the constructor.
+            # Create a model here
+            raise ValueError(
+                "self.model is None! Either pass it to the constructor or "
+                "override this method."
+            )
+
+        # A simple NLLLoss
+        self.loss = nn.functional.nll_loss
+
+        # TODO: improve robustness of getting from config
+        self.optimizer = torch.optim.SGD(
+            self.model.parameters(),
+            lr=self.config.lr,
+            momentum=self.config.momentum
+        )
+        # Create self.lr_scheduler if needed
+
+        # IMPORTANT: model, optimizer, and scheduler need to be distributed
+
+        # First, define strategy-wise optional configurations
+        # TODO: improve robustness of getting from config
+        if isinstance(self.strategy, DeepSpeedStrategy):
+            # Batch size definition is not optional for DeepSpeedStrategy!
+            distribute_kwargs = dict(
+                config_params=dict(
+                    train_micro_batch_size_per_gpu=self.config.batch_size
+                )
+            )
+        elif isinstance(self.strategy, HorovodStrategy):
+            distribute_kwargs = dict(
+                compression=(
+                    hvd.Compression.fp16 if self.config.fp16_allreduce
+                    else hvd.Compression.none
+                ),
+                op=hvd.Adasum if self.config.use_adasum else hvd.Average,
+                gradient_predivide_factor=self.config.gradient_predivide_factor
+            )
+        else:
+            distribute_kwargs = {}
+
+        # Distributed model, optimizer, and scheduler
+        (
+            self.model,
+            self.optimizer,
+            self.lr_scheduler
+        ) = self.strategy.distributed(
+            self.model, self.optimizer, self.lr_scheduler, **distribute_kwargs
+        )
+
+    def create_dataloaders(
+        self,
+        train_dataset: Dataset,
+        validation_dataset: Optional[Dataset] = None,
+        test_dataset: Optional[Dataset] = None
+    ) -> None:
+        """
+        Create train, validation and test dataloaders using the
+        configuration provided in the Trainer constructor.
+        Generally a user-define method.
+
+        Args:
+            train_dataset (Dataset): training dataset object.
+            validation_dataset (Optional[Dataset]): validation dataset object.
+            Default None.
+            test_dataset (Optional[Dataset]): test dataset object.
+            Default None.
+        """
+
+        ###################################
+        # Dear user, this is a method you #
+        # may be interested to override!  #
+        ###################################
+
+        # TODO: improve robustness of getting from config
+        self.train_dataloader = self.strategy.create_dataloader(
+            dataset=train_dataset,
+            batch_size=self.config.batch_size,
+            num_workers=self.config.num_workers,
+            pin_memory=self.config.pin_memory,
+            generator=self.torch_rng
+        )
+        if validation_dataset is not None:
+            self.validation_dataloader = self.strategy.create_dataloader(
+                dataset=train_dataset,
+                batch_size=self.config.batch_size,
+                num_workers=self.config.num_workers,
+                pin_memory=self.config.pin_memory,
+                generator=self.torch_rng
+            )
+        if test_dataset is not None:
+            self.test_dataloader = self.strategy.create_dataloader(
+                dataset=train_dataset,
+                batch_size=self.config.batch_size,
+                num_workers=self.config.num_workers,
+                pin_memory=self.config.pin_memory,
+                generator=self.torch_rng
+            )
+
+    @monitor_exec
+    def execute(
+        self,
+        train_dataset: Dataset,
+        validation_dataset: Dataset,
+        test_dataset: Dataset
+    ) -> Tuple[Dataset, Dataset, Dataset, Any]:
+        """Trains a machine learning model.
+
+        Args:
+            train_dataset (Dataset): training dataset.
+            validation_dataset (Dataset): validation dataset.
+            test_dataset (Dataset): test dataset.
+
+        Returns:
+            Tuple[Dataset, Dataset, Dataset, Any]: training dataset,
+            validation dataset, test dataset, trained model.
+        """
+        self.torch_rng = set_seed(self.random_seed)
+        self._init_distributed_strategy()
+        self.create_dataloaders(
+            train_dataset=train_dataset,
+            validation_dataset=validation_dataset,
+            test_dataset=test_dataset
+        )
+        self.create_model_loss_optimizer()
+        self.train()
+        return train_dataset, validation_dataset, test_dataset, self.model
+
+    def _set_epoch_dataloaders(self, epoch: int):
+        """
+        Sets epoch in the distributed sampler of a dataloader when using it.
+        """
+        if self.strategy.is_distributed:
+            self.train_dataloader.sampler.set_epoch(epoch)
+            if self.validation_dataloader is not None:
+                self.validation_dataloader.sampler.set_epoch(epoch)
+            if self.test_dataloader is not None:
+                self.test_dataloader.sampler.set_epoch(epoch)
+
+    def train(self):
+        """Main training logic (training loop)."""
+        # start_time = time.perf_counter()
+        for epoch in range(self.epochs):
+            self._set_epoch_dataloaders(epoch)
+            self.train_epoch(epoch)
+            if self.validation_every and self.validation_every % epoch == 0:
+                self.validation_epoch(epoch)
+            if self.test_every and self.test_every % epoch == 0:
+                self.test_epoch(epoch)
+
+    def train_epoch(self, epoch: int):
+        pass
+
+    def validation_epoch(self, epoch: int):
+        pass
+
+    def test_epoch(self, epoch: int):
+        pass
+
+    def save_state(self):
+        return super().save_state()
+
+    def load_state(self):
+        return super().load_state()
 
 
 def preproc_dataloader(dataloader: DataLoader, gwsize, grank):

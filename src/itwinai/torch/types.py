@@ -68,3 +68,7 @@ class TorchOptimizer(BaseEnum):
 
 class UninitializedStrategyError(Exception):
     """Error raised when a strategy has not been initialized."""
+
+
+class DistributedStrategyError(Exception):
+    """Error raised when a strategy has already been initialized."""
