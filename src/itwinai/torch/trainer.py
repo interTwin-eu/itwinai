@@ -39,7 +39,7 @@ from .distributed import (
 )
 
 
-class TorchTrainer(Trainer):
+class TorchTrainer(Trainer, LogMixin):
     """Trainer class for torch training algorithms.
 
     Args:
@@ -58,6 +58,8 @@ class TorchTrainer(Trainer):
         reproducibility. If None, the seed is not set. Defaults to None.
         logger (Optional[Logger], optional): logger for ML tracking.
         Defaults to None.
+        log_all_workers (bool, optional): if True, the ``log`` method is
+        called on all workers in the distributed context. Defaults to False.
         name (Optional[str], optional): trainer custom name. Defaults to None.
     """
 
@@ -74,6 +76,10 @@ class TorchTrainer(Trainer):
 
     torch_rng: torch.Generator = None
     logger: Logger = None
+    train_glob_step: int = 0
+    validation_glob_step: int = 0
+    test_glob_step: int = 0
+    metrics: Dict[str, Metric]
 
     def __init__(
         self,
@@ -85,6 +91,8 @@ class TorchTrainer(Trainer):
         test_every: Optional[int] = None,
         random_seed: Optional[int] = None,
         logger: Optional[Logger] = None,
+        log_all_workers: bool = False,
+        metrics: Optional[Dict[str, Metric]] = None,
         name: Optional[str] = None
     ) -> None:
         super().__init__(name)
@@ -101,6 +109,8 @@ class TorchTrainer(Trainer):
         self.test_every = test_every
         self.random_seed = random_seed
         self.logger = logger
+        self.log_all_workers = log_all_workers
+        self.metrics = metrics if metrics is not None else {}
 
     @property
     def strategy(self) -> TorchDistributedStrategy:
@@ -112,6 +122,10 @@ class TorchTrainer(Trainer):
             self._strategy = strategy
         else:
             self._strategy = self._detect_strategy(strategy)
+
+    @property
+    def device(self) -> str:
+        return self.strategy.device()
 
     def _detect_strategy(self, strategy: str) -> TorchDistributedStrategy:
         if not distributed_resources_available():
@@ -243,6 +257,11 @@ class TorchTrainer(Trainer):
                 generator=self.torch_rng
             )
 
+    def _setup_metrics(self):
+        """Move metrics to current device."""
+        for m_name, metric in self.metrics.items():
+            self.metrics[m_name] = metric.to(self.device)
+
     @monitor_exec
     def execute(
         self,
@@ -263,13 +282,22 @@ class TorchTrainer(Trainer):
         """
         self.torch_rng = set_seed(self.random_seed)
         self._init_distributed_strategy()
+        self._setup_metrics()
+
         self.create_dataloaders(
             train_dataset=train_dataset,
             validation_dataset=validation_dataset,
             test_dataset=test_dataset
         )
         self.create_model_loss_optimizer()
+
+        if self.strategy.is_main_worker:
+            self.logger.create_logger_context()
+
         self.train()
+
+        if self.strategy.is_main_worker:
+            self.logger.destroy_logger_context()
         return train_dataset, validation_dataset, test_dataset, self.model
 
     def _set_epoch_dataloaders(self, epoch: int):
@@ -283,6 +311,26 @@ class TorchTrainer(Trainer):
             if self.test_dataloader is not None:
                 self.test_dataloader.sampler.set_epoch(epoch)
 
+    def log(
+        self,
+        item: Union[Any, List[Any]],
+        identifier: Union[str, List[str]],
+        kind: str = 'metric',
+        step: Optional[int] = None,
+        batch_idx: Optional[int] = None,
+        **kwargs
+    ) -> None:
+        if self.logger and (
+                self.strategy.is_main_worker or self.log_all_workers):
+            self.logger.log(
+                item=item,
+                identifier=identifier,
+                kind=kind,
+                step=step,
+                batch_idx=batch_idx,
+                **kwargs
+            )
+
     def train(self):
         """Main training logic (training loop)."""
         # start_time = time.perf_counter()
@@ -294,14 +342,148 @@ class TorchTrainer(Trainer):
             if self.test_every and self.test_every % epoch == 0:
                 self.test_epoch(epoch)
 
-    def train_epoch(self, epoch: int):
-        pass
+    def compute_metrics(
+        self,
+        true: Batch,
+        pred: Batch,
+        logger_step: int,
+        batch_idx: Optional[int],
+        stage: str = 'train'
+    ) -> Dict[str, Any]:
+        """Compute and log metrics.
 
-    def validation_epoch(self, epoch: int):
-        pass
+        Args:
+            metrics (Dict[str, Metric]): metrics dict. Can be
+                ``self.train_metrics`` or ``self.validation_metrics``.
+            true (Batch): true values.
+            pred (Batch): predicted values.
+            logger_step (int): global step to pass to the logger.
+            stage (str): 'train', 'validation'...
+
+        Returns:
+            Dict[str, Any]: metric values.
+        """
+        m_values = {}
+        for m_name, metric in self.metrics.items():
+            # metric = metric.to(self.device)
+            m_val = metric(pred, true).detach().cpu().numpy()
+            self.log(
+                item=m_val,
+                identifier=f'{m_name}_{stage}',
+                kind='metric',
+                step=logger_step,
+                batch_idx=batch_idx
+            )
+            m_values[m_name] = m_val
+        return m_values
+
+    def training_step(
+        self,
+        batch: Batch,
+        batch_idx: int
+    ) -> Tuple[Loss, Dict[str, Any]]:
+        x, y = batch
+        x, y = x.to(self.device), y.to(self.device)
+        pred_y = self.model(x)
+        loss: Loss = self.loss(pred_y, y)
+        self.log(
+            item=loss.item(),
+            identifier='training_loss',
+            kind='metric',
+            step=self.train_glob_step,
+            batch_idx=batch_idx
+        )
+        metrics: Dict[str, Any] = self.compute_metrics(
+            true=y,
+            pred=pred_y,
+            logger_step=self.train_glob_step,
+            batch_idx=batch_idx,
+            stage='training'
+        )
+        return loss, metrics
+
+    def validation_step(
+        self,
+        batch: Batch,
+        batch_idx: int
+    ) -> Tuple[Loss, Dict[str, Any]]:
+        x, y = batch
+        x, y = x.to(self.device), y.to(self.device)
+        with torch.no_grad():
+            pred_y = self.model(x)
+            loss: Loss = self.loss(pred_y, y)
+        self.log(
+            item=loss.item(),
+            identifier='validation_loss',
+            kind='metric',
+            step=self.validation_glob_step,
+            batch_idx=batch_idx
+        )
+        metrics: Dict[str, Any] = self.compute_metrics(
+            true=y,
+            pred=pred_y,
+            logger_step=self.validation_glob_step,
+            batch_idx=batch_idx,
+            stage='validation'
+        )
+        return loss, metrics
+
+    def train_epoch(self) -> Loss:
+        self.model.train()
+        train_losses = []
+        for batch_idx, train_batch in enumerate(self.train_dataloader):
+            loss, metrics = self.training_step(
+                batch=train_batch,
+                batch_idx=batch_idx
+            )
+            # TODO: merge and log batch metrics and loss into epoch metrics
+            self.optimizer.zero_grad()
+            loss.backward()
+            self.optimizer.step()
+            train_losses.append(loss)
+            # Important: update counter
+            self.train_glob_step += 1
+
+        # Aggregate and log losses
+        avg_loss = torch.mean(torch.stack(train_losses)).detach().cpu()
+        self.log(
+            item=avg_loss.item(),
+            identifier='training_loss_epoch',
+            kind='metric',
+            step=self.train_glob_step,
+        )
+        return avg_loss
+
+    def validation_epoch(self) -> Loss:
+        if self.validation_dataloader is not None:
+            self.model.eval()
+            validation_losses = []
+            for batch_idx, val_batch \
+                    in enumerate(self.validation_dataloader):
+                # TODO: merge and log batch metrics and loss into epoch metrics
+                loss, metrics = self.validation_step(
+                    batch=val_batch,
+                    batch_idx=batch_idx
+                )
+                validation_losses.append(loss)
+                # Important: update counter
+                self.validation_glob_step += 1
+
+            # Aggregate and log losses
+            avg_loss = torch.mean(
+                torch.stack(validation_losses)
+            ).detach().cpu()
+            self.log(
+                item=avg_loss.item(),
+                identifier='validation_loss_epoch',
+                kind='metric',
+                step=self.validation_glob_step,
+            )
+            return avg_loss
 
     def test_epoch(self, epoch: int):
-        pass
+        # TODO: implement test epoch
+        raise NotImplementedError()
 
     def save_state(self):
         return super().save_state()
