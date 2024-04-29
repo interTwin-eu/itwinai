@@ -8,6 +8,11 @@ jobs:
       image: pytorch/pytorch:latest # docker://{docker-image-name}:{tag}
       options: --volume ${{ github.workspace }}:${{ github.workspace }}
     steps:
+    - name: Cache Docker image layers
+      uses: actions/cache@v2
+      with:
+        path: /var/lib/docker/image
+        key: ${{ runner.os }}-docker-${{ hashFiles('**/Dockerfile') }}
     - name: Run commands in container
       run: |
         # Now the repository code is available inside the Docker container
@@ -15,5 +20,5 @@ jobs:
         cd ${{ github.workspace }} &&
         # Run your commands here
         ls -la &&
-        pwd
-        && echo  ${{ github.workspace }}
+        pwd &&
+        echo  ${{ github.workspace }}
