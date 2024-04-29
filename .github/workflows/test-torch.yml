@@ -30,7 +30,8 @@ jobs:
       run: |
         whoami &&
         pwd &&
-        ls -la $(pwd)
+        ls -la $(pwd) &&
+        ls -la /repo
       #   # Now the repository code is available inside the Docker container
       #   # You can use it as needed
       #   cd ${{ github.workspace }} &&
