@@ -5,7 +5,7 @@ jobs:
   my_job:
     runs-on: ubuntu-latest
     container:
-      image: pytorch/pytorch:latest # docker://{docker-image-name}:{tag}
+      image: python:3.9 #pytorch/pytorch:latest # docker://{docker-image-name}:{tag}
       options: --volume ${{ github.workspace }}:${{ github.workspace }}
     steps:
     - name: Cache Docker image layers

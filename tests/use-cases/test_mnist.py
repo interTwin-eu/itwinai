@@ -29,7 +29,7 @@ def mnist_torch_inference_files(
         root (str, optional): where to create the files.
         Defaults to '.'.
     """
-    sys.path.append(os.getcwd())
+    sys.path = [os.getcwd()] + sys.path
     from dataloader import InferenceMNIST
     sample = os.path.join(root, samples_path)
     InferenceMNIST.generate_jpg_sample(sample, 10)
@@ -40,7 +40,7 @@ def mnist_torch_inference_files(
     mdl_ckpt = os.path.join(root, model_name)
     torch.save(dummy_nn, mdl_ckpt)
 
-    sys.path.pop()
+    sys.path = sys.path[1:]
 
 
 @pytest.mark.skip(reason="structure changed")
