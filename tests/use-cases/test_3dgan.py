@@ -3,30 +3,9 @@ Tests for CERN use case (3DGAN).
 """
 import pytest
 import subprocess
-import os
 
 CERN_PATH = "use-cases/3dgan"
 CKPT_PATH = "3dgan-inference.pth"
-
-
-@pytest.fixture(scope="module")
-def fake_model_checkpoint() -> None:
-    """
-    Create a dummy model checkpoint for inference
-    under ``CERN_PATH`` location.
-    """
-    import sys
-    import torch
-    curr_path = os.getcwd()
-    os.chdir(CERN_PATH)
-    sys.path.append(os.getcwd())
-
-    from model import ThreeDGAN
-    net = ThreeDGAN()
-    torch.save(net, CKPT_PATH)
-
-    sys.path.pop(sys.path.index(os.getcwd()))
-    os.chdir(curr_path)
 
 
 @pytest.mark.skip("deprecated")
@@ -54,17 +33,18 @@ def test_3dgan_train(torch_env, install_requirements):
 def test_3dgan_inference(
     torch_env,
     install_requirements,
-    fake_model_checkpoint
+    # fake_model_checkpoint
 ):
     """
     Test 3DGAN torch lightning trainer by running it end-to-end.
     """
     install_requirements(CERN_PATH, torch_env)
-    # cmd = (f"micromamba run -p {torch_env} python "
-    #        f"{CERN_PATH}/train.py -p {CERN_PATH}/pipeline.yaml")
-    # cmd = (f"micromamba run -p {torch_env} itwinai exec-pipeline "
-    #        f"--config {CERN_PATH}/inference-pipeline.yaml")
 
+    # Create fake inference dataset and checkpoint
+    cmd = f"{torch_env}/bin/python create_inference_sample.py"
+    subprocess.run(cmd.split(), check=True, cwd=CERN_PATH)
+
+    # Test inference
     getter_params = "pipeline.init_args.steps.dataloading_step.init_args"
     trainer_params = "pipeline.init_args.steps.inference_step.init_args"
     logger_params = trainer_params + ".config.trainer.logger.init_args"

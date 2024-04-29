@@ -1,5 +1,7 @@
 name: Test workflows based on torch
-on: [push]
+on: null
+
+# https://docs.github.com/en/actions/using-jobs/running-jobs-in-a-container
 
 jobs:
   torch_tests:

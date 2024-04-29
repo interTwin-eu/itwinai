@@ -6,42 +6,12 @@ do not break use cases' workflows.
 """
 
 import pytest
-import os
-import sys
 import subprocess
 # from itwinai.cli import exec_pipeline
 
 TORCH_PATH = "use-cases/mnist/torch"
 LIGHTNING_PATH = "use-cases/mnist/torch-lightning"
 TF_PATH = "use-cases/mnist/tensorflow"
-
-
-def mnist_torch_inference_files(
-    root: str = '.',
-    samples_path: str = 'mnist-sample-data/',
-    model_name: str = 'mnist-pre-trained.pth'
-):
-    """Create sample dataset and fake model to test mnist
-    inference workflow. Assumes to be run from
-    the use case folder.
-
-    Args:
-        root (str, optional): where to create the files.
-        Defaults to '.'.
-    """
-    sys.path = [os.getcwd()] + sys.path
-
-    from dataloader import InferenceMNIST
-    sample = os.path.join(root, samples_path)
-    InferenceMNIST.generate_jpg_sample(sample, 10)
-
-    import torch
-    from model import Net
-    dummy_nn = Net()
-    mdl_ckpt = os.path.join(root, model_name)
-    torch.save(dummy_nn, mdl_ckpt)
-
-    sys.path = sys.path[1:]
 
 
 @pytest.mark.skip(reason="structure changed")
@@ -88,30 +58,11 @@ def test_mnist_inference_torch(torch_env, install_requirements):
     """
     install_requirements(TORCH_PATH, torch_env)
 
-    samples_path: str = 'mnist-sample-data/'
-    model_name: str = 'mnist-pre-trained.pth'
-    root_path = os.getcwd()
-    os.chdir(TORCH_PATH)
-    # sys.path.append(os.path.join(os.getcwd(), TORCH_PATH))
-    # sys.path.append(os.getcwd())
-    try:
-        mnist_torch_inference_files(
-            samples_path=samples_path,
-            model_name=model_name
-        )
-        # exec_pipeline(
-        #     config='config.yaml',
-        #     pipe_key='inference_pipeline',
-        #     overrides_list=[
-        #         f"predictions_dir={samples_path}",
-        #         f"inference_model_mlflow_uri={model_name}"
-        #     ]
-        # )
-    except Exception as e:
-        raise e
-    finally:
-        os.chdir(root_path)
-        # sys.path.pop(sys.path.index(os.getcwd()))
+    # Create fake inference dataset and checkpoint
+    cmd = f"{torch_env}/bin/python create_inference_sample.py"
+    subprocess.run(cmd.split(), check=True, cwd=TORCH_PATH)
+
+    # Test inference
     cmd = (f"{torch_env}/bin/itwinai exec-pipeline "
            f"--config config.yaml --pipe-key inference_pipeline")
     subprocess.run(cmd.split(), check=True, cwd=TORCH_PATH)

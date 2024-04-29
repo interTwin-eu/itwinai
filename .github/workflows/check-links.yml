@@ -2,7 +2,7 @@
 name: Check links
 
 on:
-  # push:
+  push:
   pull_request:
 
 jobs:
