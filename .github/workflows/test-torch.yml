@@ -2,46 +2,43 @@ name: Test workflows based on torch
 on: [push]
 
 jobs:
-
-  my_job1:
-    runs-on: ubuntu-latest
-    
-    steps:
-      - uses: actions/checkout@v4
-        
-      - name: Check workspace
-        shell: bash -l {0}
-        run: ls -la ${{ github.workspace }}
-
-  my_job:
+  torch_tests:
     runs-on: ubuntu-latest
     container:
-      image: ubuntu:latest #pytorch/pytorch:latest # docker://{docker-image-name}:{tag}
+      image: pytorch/pytorch:latest
       volumes:
         - ${{ github.workspace }}/src:/repo/src
         - ${{ github.workspace }}/use-cases:/repo/use-cases
         - ${{ github.workspace }}/tests:/repo/tests
+        - ${{ github.workspace }}/env-files:/repo/env-files
         - ${{ github.workspace }}/pyproject.toml:/repo/pyproject.toml
+        - ${{ github.workspace }}/Makefile:/repo/Makefile
     steps:
     # - name: Cache Docker image layers
     #   uses: actions/cache@v2
     #   with:
     #     path: /var/lib/docker/image
     #     key: ${{ runner.os }}-docker-${{ hashFiles('**/Dockerfile') }}
-    - name: Run commands in container
-      # run: ls -la /repo
-      run: |
-        whoami &&
-        pwd &&
-        ls -la $(pwd) &&
-        ls -la /repo
-      #   # Now the repository code is available inside the Docker container
-      #   # You can use it as needed
-      #   cd ${{ github.workspace }} &&
-      #   # Run your commands here
-      #   ls -la . &&
-      #   ls -la ${{ github.workspace }} && 
-      #   ls -la ${{ github.workspace }}/.. && 
+    - name: Install environment
+      run: pip install --no-cache .[dev]
+    
+    - name: Run tests
+      run: which pip
+
+    - name: Run tests
+      run: pytest -v tests/
+      # run: |
+      #   whoami &&
       #   pwd &&
-      #   echo  ${{ github.workspace }} &&
-      #   pip install .
+      #   ls -la $(pwd) &&
+      #   ls -la /repo
+      # #   # Now the repository code is available inside the Docker container
+      # #   # You can use it as needed
+      # #   cd ${{ github.workspace }} &&
+      # #   # Run your commands here
+      # #   ls -la . &&
+      # #   ls -la ${{ github.workspace }} && 
+      # #   ls -la ${{ github.workspace }}/.. && 
+      # #   pwd &&
+      # #   echo  ${{ github.workspace }} &&
+      # #   pip install .
