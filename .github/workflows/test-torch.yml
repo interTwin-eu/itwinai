@@ -14,4 +14,6 @@ jobs:
         # You can use it as needed
         cd ${{ github.workspace }} &&
         # Run your commands here
-        ls -la
+        ls -la &&
+        pwd
+        && echo  ${{ github.workspace }}
