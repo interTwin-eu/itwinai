@@ -1,0 +1,15 @@
+cfgrib
+threadpoolctl
+joblib
+importlib-resources
+#numpy
+#torch
+xarray
+#cartopy
+geoviews
+#pyproj
+gdown
+hvplot
+netcdf4
+h5netcdf
+

@@ -1,0 +1,40 @@
+data_root: "./datademo"
+
+pipeline:
+  class_path: itwinai.pipeline.Pipeline
+  init_args:
+    steps:
+      download-step:
+        class_path: dataloader.LSTMDataGetter
+        init_args:
+          wd: "${data_root}" 
+          fp_dynamic_forcings: "${data_root}/forcings.nc" 
+          fp_wflow_static_params:  "${data_root}/staticmaps.nc" 
+          fp_target: "${data_root}/output.nc" 
+          surrogate_data: "${data_root}/data_large.zarr"
+          dp_surrogate_model: "${data_root}/demo"
+          strategy_name: "ddp" #[horovod, ddp, deepspeed, None]
+          dynamic_names: ["precip", "pet", "temp"] 
+          static_names: [ 'M', 'thetaS', 'RootingDepth', 'Kext', 'Sl', 'Swood', 'TT', 'KsatHorFrac'] 
+          target_names: [ "vwc"] #, "actevap" ], 
+          timeslice: ["2016-01-01","2020-12-31"] 
+          intervals: [10, 10]
+          train_origin: [0, 0] 
+          valid_origin: [5, 5] 
+          spatial_batch_size: 256
+
+      training-step:
+        class_path: trainer.LSTMTrainer
+        init_args:
+          epochs: 14
+          spatial_batch_size: 256
+          temporal_sampling_size: 200 
+          seq_length: 365 
+          hidden_size: 128 
+          input_size: 3 #number of dynamic predic
+          path2models: "./checkpoints"
+          dynamic_names: ["precip", "pet", "temp"] 
+          static_names: [ 'M', 'thetaS', 'RootingDepth', 'Kext', 'Sl', 'Swood', 'TT', 'KsatHorFrac'] 
+          target_names: [ "vwc"] #, "actevap" ], 
+          strategy_name: "ddp" #[horovod, ddp, deepspeed, None]
+          shuffle_dataloader: True

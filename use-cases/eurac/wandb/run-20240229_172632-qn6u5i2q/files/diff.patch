@@ -1,0 +1,85 @@
+diff --git a/env-files/torch/pytorch-env-gpu.yml b/env-files/torch/pytorch-env-gpu.yml
+index 1c82cc3..485b961 100644
+--- a/env-files/torch/pytorch-env-gpu.yml
++++ b/env-files/torch/pytorch-env-gpu.yml
+@@ -8,7 +8,7 @@ channels:
+   - nvidia
+   - conda-forge
+ dependencies:
+-  - python=3.9.12
++  - python=3.10
+   - pytorch::pytorch=1.13.1
+   - pytorch::torchvision=0.14.1
+   - pytorch::pytorch-cuda=11.7
+diff --git a/use-cases/eurac/pipeline.yaml b/use-cases/eurac/pipeline.yaml
+index 6d947f7..e3e7b69 100644
+--- a/use-cases/eurac/pipeline.yaml
++++ b/use-cases/eurac/pipeline.yaml
+@@ -1,4 +1,4 @@
+-data_root: "/Users/iluise/cernbox/interTwin/hython/data/datademo"
++data_root: "./datademo"
+ 
+ pipeline:
+   class_path: itwinai.pipeline.Pipeline
+diff --git a/use-cases/eurac/requirements.txt b/use-cases/eurac/requirements.txt
+index e130176..0c76349 100644
+--- a/use-cases/eurac/requirements.txt
++++ b/use-cases/eurac/requirements.txt
+@@ -1,9 +1,13 @@
+-numpy
+-torch
++cfgrib
++threadpoolctl
++joblib
++importlib-resources
++#numpy
++#torch
+ xarray
+-cartopy
++#cartopy
+ geoviews
+-pyproj
++#pyproj
+ gdown
+ hvplot
+ netcdf4
+diff --git a/use-cases/eurac/startscript b/use-cases/eurac/startscript
+deleted file mode 100644
+index 59adc04..0000000
+--- a/use-cases/eurac/startscript
++++ /dev/null
+@@ -1,34 +0,0 @@
+-#!/bin/bash
+-
+-# general configuration of the job
+-#SBATCH --job-name=PrototypeTest
+-#SBATCH --account=deepacf
+-#SBATCH --mail-user=
+-#SBATCH --mail-type=ALL
+-#SBATCH --output=job.out
+-#SBATCH --error=job.err
+-#SBATCH --time=00:30:00
+-
+-# configure node and process count on the CM
+-#SBATCH --partition=batch
+-#SBATCH --nodes=1
+-#SBATCH --ntasks-per-node=1
+-#SBATCH --cpus-per-task=4
+-#SBATCH --gpus-per-node=4
+-
+-#SBATCH --exclusive
+-
+-# gres options have to be disabled for deepv
+-#SBATCH --gres=gpu:4
+-
+-# load modules
+-ml --force purge
+-ml Stages/2023 StdEnv/2023 NVHPC/23.1 OpenMPI/4.1.4 cuDNN/8.6.0.163-CUDA-11.7 Python/3.10.4 HDF5 libaio/0.3.112 GCC/11.3.0
+-
+-# shellcheck source=/dev/null
+-source ~/.bashrc
+-
+-# ON LOGIN NODE download datasets:
+-# $ micromamba run -p ../../.venv-tf python train.py -p pipeline.yaml --download-only
+-
+-srun micromamba run -p ../../.pyenv python train.py -p pipeline.yaml
