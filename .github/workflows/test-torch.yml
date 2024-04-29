@@ -18,7 +18,7 @@ jobs:
     container:
       image: python:3.9 #pytorch/pytorch:latest # docker://{docker-image-name}:{tag}
       volumes: 
-        - /home/runner/work/itwinai/itwinai/use-cases:/repo
+        - /home/runner/work/itwinai/itwinai/:/repo
     steps:
     - name: Cache Docker image layers
       uses: actions/cache@v2

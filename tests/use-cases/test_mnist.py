@@ -30,12 +30,13 @@ def mnist_torch_inference_files(
         Defaults to '.'.
     """
     sys.path = [os.getcwd()] + sys.path
-    raise ValueError(sys.path)
+
     from dataloader import InferenceMNIST
     sample = os.path.join(root, samples_path)
     InferenceMNIST.generate_jpg_sample(sample, 10)
 
     import torch
+    raise ValueError(sys.path)
     from model import Net
     dummy_nn = Net()
     mdl_ckpt = os.path.join(root, model_name)
