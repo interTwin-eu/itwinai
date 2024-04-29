@@ -29,6 +29,7 @@ def mnist_torch_inference_files(
         root (str, optional): where to create the files.
         Defaults to '.'.
     """
+    sys.path.append(os.getcwd())
     from dataloader import InferenceMNIST
     sample = os.path.join(root, samples_path)
     InferenceMNIST.generate_jpg_sample(sample, 10)
@@ -38,6 +39,8 @@ def mnist_torch_inference_files(
     dummy_nn = Net()
     mdl_ckpt = os.path.join(root, model_name)
     torch.save(dummy_nn, mdl_ckpt)
+
+    sys.path.pop()
 
 
 @pytest.mark.skip(reason="structure changed")
@@ -89,7 +92,7 @@ def test_mnist_inference_torch(torch_env, install_requirements):
     root_path = os.getcwd()
     os.chdir(TORCH_PATH)
     # sys.path.append(os.path.join(os.getcwd(), TORCH_PATH))
-    sys.path.append(os.getcwd())
+    # sys.path.append(os.getcwd())
     try:
         mnist_torch_inference_files(
             samples_path=samples_path,
@@ -107,7 +110,7 @@ def test_mnist_inference_torch(torch_env, install_requirements):
         raise e
     finally:
         os.chdir(root_path)
-        sys.path.pop(sys.path.index(os.getcwd()))
+        # sys.path.pop(sys.path.index(os.getcwd()))
     cmd = (f"{torch_env}/bin/itwinai exec-pipeline "
            f"--config config.yaml --pipe-key inference_pipeline")
     subprocess.run(cmd.split(), check=True, cwd=TORCH_PATH)
