@@ -26,8 +26,11 @@ jobs:
         path: /var/lib/docker/image
         key: ${{ runner.os }}-docker-${{ hashFiles('**/Dockerfile') }}
     - name: Run commands in container
-      run: ls -la /repo
-      # run: |
+      # run: ls -la /repo
+      run: |
+        whoami &&
+        pwd &&
+        ls $(pwd)
       #   # Now the repository code is available inside the Docker container
       #   # You can use it as needed
       #   cd ${{ github.workspace }} &&
