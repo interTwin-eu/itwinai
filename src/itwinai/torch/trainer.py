@@ -40,7 +40,8 @@ from .distributed import (
 
 
 class Config:
-    def __init__(self, my_dict):
+    def __init__(self, my_dict: Optional[Dict] = None):
+        my_dict = my_dict if my_dict is not None else {}
         self.__dict__.update(my_dict)
 
 
@@ -69,6 +70,12 @@ class TorchTrainer(Trainer, LogMixin):
         metrics. Defaults to None.
         name (Optional[str], optional): trainer custom name. Defaults to None.
     """
+    # TODO:
+    #   - add checkpointing.
+    #   - extract BaseTorchTrainer and extend it creating a set of trainer
+    #     templates (e.g.. GAN, Classifier, Transformer) allowing scientists
+    #     to reuse ML algos.
+    #   - improve get from configuration object
 
     _strategy: TorchDistributedStrategy = None
 
@@ -276,7 +283,8 @@ class TorchTrainer(Trainer, LogMixin):
         validation_dataset: Dataset,
         test_dataset: Dataset
     ) -> Tuple[Dataset, Dataset, Dataset, Any]:
-        """Trains a machine learning model.
+        """Prepares distributed environment and data structures
+        for the actual training.
 
         Args:
             train_dataset (Dataset): training dataset.
@@ -305,6 +313,7 @@ class TorchTrainer(Trainer, LogMixin):
 
         if self.strategy.is_main_worker:
             self.logger.destroy_logger_context()
+        self.strategy.clean_up()
         return train_dataset, validation_dataset, test_dataset, self.model
 
     def _set_epoch_dataloaders(self, epoch: int):
@@ -339,7 +348,18 @@ class TorchTrainer(Trainer, LogMixin):
             )
 
     def train(self):
-        """Main training logic (training loop)."""
+        """Trains a machine learning model.
+        Main training loop/logic.
+
+        Args:
+            train_dataset (Dataset): training dataset.
+            validation_dataset (Dataset): validation dataset.
+            test_dataset (Dataset): test dataset.
+
+        Returns:
+            Tuple[Dataset, Dataset, Dataset, Any]: training dataset,
+            validation dataset, test dataset, trained model.
+        """
         # start_time = time.perf_counter()
         for epoch in range(self.epochs):
             epoch_n = epoch + 1

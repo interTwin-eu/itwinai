@@ -13,6 +13,3 @@ RUN  pip install --no-cache-dir .
 
 # Add torch MNIST use case
 COPY use-cases/mnist/torch/* ./
-
-# Run inference
-CMD [ "python", "train.py", "-p", "inference-pipeline.yaml"]

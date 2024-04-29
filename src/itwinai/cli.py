@@ -173,6 +173,22 @@ def scalability_report(
         print("Archived logs and plot at: ", archive_name)
 
 
+def str_to_slice(interval: str) -> slice:
+    import re
+    # TODO: add support for slices starting with empty index
+    # e.g., :20:3
+    if not re.match("\d+(:\d+)?(:\d+)?", interval):
+        raise ValueError(
+            f"Received invalid interval for slice: '{interval}'"
+        )
+    if ":" in interval:
+        return slice(*map(
+            lambda x: int(x.strip()) if x.strip() else None,
+            interval.split(':')
+        ))
+    return int(interval)
+
+
 @app.command()
 def exec_pipeline(
     config: Annotated[Path, typer.Option(
@@ -182,6 +198,11 @@ def exec_pipeline(
         help=("Key in the configuration file identifying "
               "the pipeline object to execute.")
     )] = "pipeline",
+    steps: Annotated[Optional[str], typer.Option(
+        help=("Run only some steps of the pipeline. Accepted values are "
+              "indices, python slices (e.g., 0:3 or 2:10:100), and "
+              "string names of steps.")
+    )] = None,
     print_config: Annotated[bool, typer.Option(
         help=("Print config to be executed after overrides.")
     )] = False,
@@ -207,6 +228,7 @@ def exec_pipeline(
     # to find the local python files imported from the pipeline file
     import os
     import sys
+    import re
     sys.path.append(os.path.dirname(config))
     sys.path.append(os.getcwd())
 
@@ -225,6 +247,12 @@ def exec_pipeline(
         print("#="*50)
         print()
     pipeline = parser.parse_pipeline(pipeline_nested_key=pipe_key)
+    if steps:
+        if not re.match("\d+(:\d+)?(:\d+)?", steps):
+            print(f"Looking for step name '{steps}'")
+        else:
+            steps = str_to_slice(steps)
+        pipeline = pipeline[steps]
     pipeline.execute()
 
 

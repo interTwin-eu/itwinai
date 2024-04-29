@@ -203,7 +203,7 @@ class MLFlowLogger(Logger):
             saved_abs_path = os.path.abspath(self.savedir)
             self.tracking_uri = pathlib.Path(saved_abs_path).as_uri()
             # self.tracking_uri = "file://" + self.savedir
-        print(f'MLFLOW URI: {self.tracking_uri}')
+        # print(f'MLFLOW URI: {self.tracking_uri}')
 
         # TODO: for pytorch lightning:
         # mlflow.pytorch.autolog()
