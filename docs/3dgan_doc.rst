@@ -1,7 +1,7 @@
 3DGAN
 =====
 
-This section covers the CERN use case, which utilizes the `torch-lightning` framework for training and evaluation. The following files are integral to this use case:
+This section covers the CERN use case that utilizes the `torch-lightning` framework for training and evaluation. The following files are integral to this use case:
 
 itwinai x 3DGAN
 ---------------
