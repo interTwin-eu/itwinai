@@ -17,7 +17,11 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: ubuntu:latest #pytorch/pytorch:latest # docker://{docker-image-name}:{tag}
-      options:  --volume ${{ github.workspace }}:/repo
+      volumes:
+        - ${{ github.workspace }}/src:/repo/src
+        - ${{ github.workspace }}/use-cases:/repo/use-cases
+        - ${{ github.workspace }}/tests:/repo/tests
+        - ${{ github.workspace }}/pyproject.toml:/repo/pyproject.toml
     steps:
     # - name: Cache Docker image layers
     #   uses: actions/cache@v2
