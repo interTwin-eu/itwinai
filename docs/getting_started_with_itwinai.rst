@@ -7,7 +7,7 @@ In this section, we will run you through the installation and give some instruct
 🌐 HPC systems
 ---------------
    
-Here, we lay out how to use torch `DistributedDataParallel` (DDP), Horovod and DeepSpeed from the same client code.
+Here, we lay out how to use torch DistributedDataParallel (DDP), Horovod, and DeepSpeed from the same client code.
 Note that the environment is tested on the HDFML system at JSC. For other systems, the module versions might need change accordingly.
 
 
