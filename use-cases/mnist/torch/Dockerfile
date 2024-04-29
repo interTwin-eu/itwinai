@@ -1,4 +1,5 @@
-FROM python:3.9.12
+# FROM python:3.9
+FROM nvcr.io/nvidia/pytorch:23.09-py3
 
 WORKDIR /usr/src/app
 

@@ -1,7 +1,6 @@
 {
     "threshold": 2.0,
     "ignore": [
-        "**/itwinai/loggers.py",
-        "**/itwinai/torch/engine.py"
+        "**/itwinai/loggers.py"
     ]
 }

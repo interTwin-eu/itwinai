@@ -16,7 +16,7 @@ from pathlib import Path
 import typer
 
 
-app = typer.Typer()
+app = typer.Typer(pretty_exceptions_enable=False)
 
 
 @app.command()
@@ -173,22 +173,6 @@ def scalability_report(
         print("Archived logs and plot at: ", archive_name)
 
 
-def str_to_slice(interval: str) -> slice:
-    import re
-    # TODO: add support for slices starting with empty index
-    # e.g., :20:3
-    if not re.match("\d+(:\d+)?(:\d+)?", interval):
-        raise ValueError(
-            f"Received invalid interval for slice: '{interval}'"
-        )
-    if ":" in interval:
-        return slice(*map(
-            lambda x: int(x.strip()) if x.strip() else None,
-            interval.split(':')
-        ))
-    return int(interval)
-
-
 @app.command()
 def exec_pipeline(
     config: Annotated[Path, typer.Option(
@@ -229,11 +213,13 @@ def exec_pipeline(
     import os
     import sys
     import re
+    from .utils import str_to_slice
     sys.path.append(os.path.dirname(config))
     sys.path.append(os.getcwd())
 
     # Parse and execute pipeline
     from itwinai.parser import ConfigParser
+    overrides_list = overrides_list if overrides_list is not None else []
     overrides = {
         k: v for k, v
         in map(lambda x: (x.split('=')[0], x.split('=')[1]), overrides_list)
@@ -248,12 +234,16 @@ def exec_pipeline(
         print()
     pipeline = parser.parse_pipeline(pipeline_nested_key=pipe_key)
     if steps:
-        if not re.match("\d+(:\d+)?(:\d+)?", steps):
+        if not re.match(r"\d+(:\d+)?(:\d+)?", steps):
             print(f"Looking for step name '{steps}'")
         else:
             steps = str_to_slice(steps)
         pipeline = pipeline[steps]
     pipeline.execute()
+
+    # Cleanup PYTHONPATH
+    sys.path.pop()
+    sys.path.pop()
 
 
 @app.command()

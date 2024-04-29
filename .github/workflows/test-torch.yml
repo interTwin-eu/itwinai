@@ -1,0 +1,17 @@
+name: Test workflows based on torch
+on: [push]
+
+jobs:
+  my_job:
+    runs-on: ubuntu-latest
+    container:
+      image: pytorch/pytorch:latest # docker://{docker-image-name}:{tag}
+      options: --volume ${{ github.workspace }}:${{ github.workspace }}
+    steps:
+    - name: Run commands in container
+      run: |
+        # Now the repository code is available inside the Docker container
+        # You can use it as needed
+        cd ${{ github.workspace }} &&
+        # Run your commands here
+        ls -la

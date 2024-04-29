@@ -35,9 +35,3 @@ class MNISTTrainer(TensorflowTrainer):
     @monitor_exec
     def execute(self, train_dataset, validation_dataset) -> Any:
         return super().execute(train_dataset, validation_dataset)
-
-    def load_state(self):
-        return super().load_state()
-
-    def save_state(self):
-        return super().save_state()
