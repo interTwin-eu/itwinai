@@ -23,4 +23,5 @@ jobs:
         ls -la ${{ github.workspace }} && 
         ls -la ${{ github.workspace }}/.. && 
         pwd &&
-        echo  ${{ github.workspace }}
+        echo  ${{ github.workspace }} &&
+        pip install .
