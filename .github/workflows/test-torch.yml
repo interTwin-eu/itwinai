@@ -16,7 +16,7 @@ jobs:
   my_job:
     runs-on: ubuntu-latest
     container:
-      image: python:3.9 #pytorch/pytorch:latest # docker://{docker-image-name}:{tag}
+      image: ubuntu:latest #pytorch/pytorch:latest # docker://{docker-image-name}:{tag}
       volumes: 
         - ${{ github.workspace }}:/repo
     steps:
