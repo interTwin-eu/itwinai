@@ -18,13 +18,13 @@ jobs:
     container:
       image: python:3.9 #pytorch/pytorch:latest # docker://{docker-image-name}:{tag}
       volumes: 
-        - /home/runner/work/itwinai/itwinai/:/repo
+        - ${{ github.workspace }}:/repo
     steps:
-    - name: Cache Docker image layers
-      uses: actions/cache@v2
-      with:
-        path: /var/lib/docker/image
-        key: ${{ runner.os }}-docker-${{ hashFiles('**/Dockerfile') }}
+    # - name: Cache Docker image layers
+    #   uses: actions/cache@v2
+    #   with:
+    #     path: /var/lib/docker/image
+    #     key: ${{ runner.os }}-docker-${{ hashFiles('**/Dockerfile') }}
     - name: Run commands in container
       # run: ls -la /repo
       run: |

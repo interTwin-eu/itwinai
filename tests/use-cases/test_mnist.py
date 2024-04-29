@@ -36,7 +36,6 @@ def mnist_torch_inference_files(
     InferenceMNIST.generate_jpg_sample(sample, 10)
 
     import torch
-    raise ValueError(sys.path)
     from model import Net
     dummy_nn = Net()
     mdl_ckpt = os.path.join(root, model_name)
