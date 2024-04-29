@@ -3,6 +3,7 @@ on: [push]
 
 jobs:
   torch_tests:
+    name: Run pytest for torch
     runs-on: ubuntu-latest
     container:
       image: pytorch/pytorch:latest
@@ -14,13 +15,12 @@ jobs:
         - ${{ github.workspace }}/pyproject.toml:/repo/pyproject.toml
         - ${{ github.workspace }}/Makefile:/repo/Makefile
     steps:
-    # - name: Cache Docker image layers
-    #   uses: actions/cache@v2
-    #   with:
-    #     path: /var/lib/docker/image
-    #     key: ${{ runner.os }}-docker-${{ hashFiles('**/Dockerfile') }}
     - name: Install environment
-      run: pip install --no-cache .[dev]
+      run: |
+        ls -la $(pwd) && 
+        ls -la /repo && 
+        cd /repo &&
+        pip install --no-cache .[dev]
     
     - name: Run tests
       run: which pip
