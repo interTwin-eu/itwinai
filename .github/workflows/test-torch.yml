@@ -9,7 +9,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         
-      - name: Install micromamba
+      - name: Check workspace
         shell: bash -l {0}
         run: ls -la ${{ github.workspace }}
 
@@ -18,7 +18,7 @@ jobs:
     container:
       image: python:3.9 #pytorch/pytorch:latest # docker://{docker-image-name}:{tag}
       volumes: 
-        - "${{ github.workspace }}:${{ github.workspace }}"
+        - ${{ github.workspace }}:/repo
     steps:
     - name: Cache Docker image layers
       uses: actions/cache@v2
@@ -26,14 +26,15 @@ jobs:
         path: /var/lib/docker/image
         key: ${{ runner.os }}-docker-${{ hashFiles('**/Dockerfile') }}
     - name: Run commands in container
-      run: |
-        # Now the repository code is available inside the Docker container
-        # You can use it as needed
-        cd ${{ github.workspace }} &&
-        # Run your commands here
-        ls -la . &&
-        ls -la ${{ github.workspace }} && 
-        ls -la ${{ github.workspace }}/.. && 
-        pwd &&
-        echo  ${{ github.workspace }} &&
-        pip install .
+      run: ls -la /repo
+      # run: |
+      #   # Now the repository code is available inside the Docker container
+      #   # You can use it as needed
+      #   cd ${{ github.workspace }} &&
+      #   # Run your commands here
+      #   ls -la . &&
+      #   ls -la ${{ github.workspace }} && 
+      #   ls -la ${{ github.workspace }}/.. && 
+      #   pwd &&
+      #   echo  ${{ github.workspace }} &&
+      #   pip install .
