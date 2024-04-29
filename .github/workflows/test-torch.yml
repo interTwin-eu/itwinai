@@ -18,7 +18,7 @@ jobs:
     container:
       image: python:3.9 #pytorch/pytorch:latest # docker://{docker-image-name}:{tag}
       volumes: 
-        - ${{ github.workspace }}:/repo
+        - ${{ github.workspace }}/use-cases:/repo
     steps:
     - name: Cache Docker image layers
       uses: actions/cache@v2
