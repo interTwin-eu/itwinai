@@ -20,10 +20,14 @@ jobs:
         ls -la $(pwd) && 
         ls -la /repo && 
         cd /repo &&
-        pip install --no-cache .[dev]
+        pip install --no-cache /repo[dev]
     
     - name: Run tests
-      run: which pip
+      run: |
+        which pip &&
+        which pip3 &&
+        which python &&
+        which python3
 
     - name: Run tests
       run: pytest -v tests/
