@@ -2,6 +2,10 @@
 # https://packaging.python.org/en/latest/specifications/declaring-project-metadata/#example
 # https://setuptools.pypa.io/en/latest/userguide/dependency_management.html#dependencies-management-in-setuptools
 
+[build-system]
+requires = ["setuptools", "setuptools-scm", "wheel"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "itwinai"
 version = "0.1"
@@ -33,6 +37,8 @@ dependencies = [
     "omegaconf",
     "rich>=13.5.3",
     "typer>=0.9.0",
+    # "packaging",                #horovod
+    # "wheel",                    #horovod
     # "wandb>=0.15.11",
     # "mlflow>=2.7",
     # "jsonargparse[signatures]>=4.17.0",
@@ -47,10 +53,15 @@ dependencies = [
 # dynamic = ["version", "description"]
 
 [project.optional-dependencies]
-# TODO: add torch and tensorflow
-# torch = []
-# tf = []
-distributed = ["deepspeed>=0.13.1", "horovod[tensorflow,keras,pytorch]>=0.28.1"]
+torch = [
+    "torch",
+    "torchvision",
+    "torchmetrics",
+    "lightning",
+    "deepspeed",
+    # "horovod[pytorch]",
+]
+tensorflow = ["tensorflow[and-cuda]"] # "horovod[tensorflow,keras]"
 dev = [
     "pytest>=7.4.2",
     "pytest-mock>=3.11.1",
@@ -61,8 +72,8 @@ dev = [
 
 [project.urls]
 Homepage = "https://www.intertwin.eu/"
-Documentation = "https://intertwin-eu.github.io/T6.5-AI-and-ML/"
-Repository = "https://github.com/interTwin-eu/T6.5-AI-and-ML"
+Documentation = "https://itwinai.readthedocs.io/"
+Repository = "https://github.com/interTwin-eu/itwinai"
 # Changelog = "https://github.com/me/spam/blob/master/CHANGELOG.md"
 
 [project.scripts]

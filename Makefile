@@ -1,7 +1,15 @@
 # Install PyTorch env (GPU support)
-torch-gpu: env-files/torch/pytorch-env-gpu.yml
+torch-env:
+	python -m venv .venv-pytorch
+	.venv-pytorch/bin/pip install -e .[dev,torch]
+
+tensorflow-env:
+	python -m venv .venv-tf
+	.venv-tf/bin/pip install -e .[dev,torch]
+
+torch-gpu-mamba: env-files/torch/pytorch-env-gpu.yml
 	micromamba env create -p ./.venv-pytorch --file env-files/torch/pytorch-env-gpu.yml -y
-	micromamba run -p ./.venv-pytorch python -m pip install -e .[distributed,dev]
+	micromamba run -p ./.venv-pytorch python -m pip install -e .[dev]
 
 # Install PyTorch env (GPU support) on Juelich Super Computer (tested on HDFML system)
 torch-gpu-jsc: env-files/torch/createEnvJSC.sh
@@ -12,7 +20,7 @@ tf-gpu-jsc: env-files/tensorflow/createEnvJSCTF.sh
 	sh env-files/tensorflow/createEnvJSCTF.sh
 
 # Install PyTorch env (CPU only)
-torch-cpu: env-files/torch/pytorch-env-cpu.yml
+torch-cpu-mamba: env-files/torch/pytorch-env-cpu.yml
 	micromamba env create -p ./.venv-pytorch --file env-files/torch/pytorch-env-cpu.yml -y
 	micromamba run -p ./.venv-pytorch python -m pip install -e .[dev]
 
