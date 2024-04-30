@@ -7,6 +7,7 @@ do not break use cases' workflows.
 
 import pytest
 import subprocess
+import os
 # from itwinai.cli import exec_pipeline
 
 TORCH_PATH = "use-cases/mnist/torch"
@@ -33,7 +34,7 @@ def test_structure_mnist_tf(check_folder_structure):
 
 
 @pytest.mark.functional
-def test_mnist_train_torch(torch_env, install_requirements):
+def test_mnist_train_torch(torch_env, tmp_test_dir, install_requirements):
     """
     Test MNIST torch native trainer by running it end-to-end.
 
@@ -42,13 +43,14 @@ def test_mnist_train_torch(torch_env, install_requirements):
     >>> export TORCH_ENV="my_env"
     """
     install_requirements(TORCH_PATH, torch_env)
+    conf = os.path.join(os.path.abspath(TORCH_PATH), 'config.yaml')
     cmd = (f"{torch_env}/bin/itwinai exec-pipeline "
-           f"--config config.yaml --pipe-key training_pipeline")
-    subprocess.run(cmd.split(), check=True, cwd=TORCH_PATH)
+           f"--config {conf} --pipe-key training_pipeline")
+    subprocess.run(cmd.split(), check=True, cwd=tmp_test_dir)
 
 
 @pytest.mark.functional
-def test_mnist_inference_torch(torch_env, install_requirements):
+def test_mnist_inference_torch(torch_env, tmp_test_dir, install_requirements):
     """
     Test MNIST torch native inference by running it end-to-end.
 
@@ -59,17 +61,25 @@ def test_mnist_inference_torch(torch_env, install_requirements):
     install_requirements(TORCH_PATH, torch_env)
 
     # Create fake inference dataset and checkpoint
-    cmd = f"{torch_env}/bin/python create_inference_sample.py"
-    subprocess.run(cmd.split(), check=True, cwd=TORCH_PATH)
+    exec = os.path.join(os.path.abspath(TORCH_PATH),
+                        'create_inference_sample.py')
+    cmd = (f"{torch_env}/bin/python {exec} "
+           f"--root {tmp_test_dir}")
+    subprocess.run(cmd.split(), check=True, cwd=tmp_test_dir)
 
     # Test inference
+    conf = os.path.join(os.path.abspath(TORCH_PATH), 'config.yaml')
     cmd = (f"{torch_env}/bin/itwinai exec-pipeline "
-           f"--config config.yaml --pipe-key inference_pipeline")
-    subprocess.run(cmd.split(), check=True, cwd=TORCH_PATH)
+           f"--config {conf} --pipe-key inference_pipeline")
+    subprocess.run(cmd.split(), check=True, cwd=tmp_test_dir)
 
 
 @pytest.mark.functional
-def test_mnist_train_torch_lightning(torch_env, install_requirements):
+def test_mnist_train_torch_lightning(
+    torch_env,
+    tmp_test_dir,
+    install_requirements
+):
     """
     Test MNIST torch lightning trainer by running it end-to-end.
 
@@ -77,18 +87,20 @@ def test_mnist_train_torch_lightning(torch_env, install_requirements):
 
     >>> export TORCH_ENV="my_env"
     """
-    install_requirements(TORCH_PATH, torch_env)
+    install_requirements(LIGHTNING_PATH, torch_env)
+    conf = os.path.join(os.path.abspath(LIGHTNING_PATH), 'config.yaml')
     cmd = (f"{torch_env}/bin/itwinai exec-pipeline "
-           f"--config config.yaml --pipe-key training_pipeline")
-    subprocess.run(cmd.split(), check=True, cwd=LIGHTNING_PATH)
+           f"--config {conf} --pipe-key training_pipeline")
+    subprocess.run(cmd.split(), check=True, cwd=tmp_test_dir)
 
 
 @pytest.mark.functional
-def test_mnist_train_tf(tf_env, install_requirements):
+def test_mnist_train_tf(tf_env, tmp_test_dir, install_requirements):
     """
     Test MNIST tensorflow trainer by running it end-to-end.
     """
     install_requirements(TF_PATH, tf_env)
+    conf = os.path.join(os.path.abspath(TF_PATH), 'pipeline.yaml')
     cmd = (f"{tf_env}/bin/itwinai exec-pipeline "
-           f"--config pipeline.yaml --pipe-key pipeline")
-    subprocess.run(cmd.split(), check=True, cwd=TF_PATH)
+           f"--config {conf} --pipe-key pipeline")
+    subprocess.run(cmd.split(), check=True, cwd=tmp_test_dir)

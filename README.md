@@ -96,7 +96,35 @@ pip install -e .[dev]
 
 #### Test with `pytest`
 
-To run tests on itwinai package:
+Do this only if you are a developer wanting to test your code with pytest.
+
+First, you need to create virtual environments both for torch and tensorflow.
+For instance, you can use:
+
+```bash
+make torch-cpu
+make make tf-2.13-cpu
+```
+
+To select the name of the torch and tf environments you can set the following
+environment variables, which allow to run the tests in environments with
+custom names which are different from `.venv-pytorch` and `.venv-tf`.
+
+```bash
+export TORCH_ENV="my_torch_env"
+export TF_ENV="my_tf_env"
+```
+
+Functional tests (marked with `pytest.mark.functional`) will be executed under
+`/tmp/pytest` location to guarantee they are run in a clean environment.
+
+To run functional tests use:
+
+```bash
+pytest -v tests/ -m "functional"
+```
+
+To run all tests on itwinai package:
 
 ```bash
 # Activate env

@@ -2,12 +2,32 @@ import os
 from typing import Callable
 import pytest
 import subprocess
+import random
+import string
 
 
 FNAMES = [
     'pipeline.yaml',
     'startscript',
 ]
+
+
+def rnd_string(len: int = 26):
+    return ''.join(random.sample(string.ascii_lowercase, len))
+
+
+@pytest.fixture
+def tmp_test_dir():
+    root = '/tmp/pytest'
+    os.makedirs(root, exist_ok=True)
+    test_dir = os.path.join(root, rnd_string())
+    while os.path.exists(test_dir):
+        test_dir = os.path.join(root, rnd_string())
+    os.makedirs(test_dir, exist_ok=True)
+
+    yield test_dir
+
+    # Optional: remove dir here...
 
 
 @pytest.fixture
@@ -21,7 +41,7 @@ def torch_env() -> str:
         env_p = './.venv-pytorch'
     else:
         env_p = os.environ.get('TORCH_ENV')
-    return os.path.join(os.getcwd(), env_p)
+    return os.path.abspath(env_p)
 
 
 @pytest.fixture
@@ -35,7 +55,7 @@ def tf_env() -> str:
         env_p = './.venv-tf'
     else:
         env_p = os.environ.get('TF_ENV')
-    return os.path.join(os.getcwd(), env_p)
+    return os.path.abspath(env_p)
 
 
 @pytest.fixture
