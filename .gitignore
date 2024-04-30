@@ -26,6 +26,9 @@ mnist-sample-data/
 exp_data/
 
 
+# Kubernetes
+secret*.yaml
+
 # Custom envs
 .venv*
 envAI_*
