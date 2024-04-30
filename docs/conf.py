@@ -21,7 +21,8 @@ sys.path.insert(0, os.path.abspath('../src/itwinai/torch'))
 sys.path.insert(0, os.path.abspath('../'))
 
 project = 'itwinai'
-copyright = '2024, Matteo Bunino, Alexander Zoechbauer, Kalliopi Tsolaki, Rakesh Sarma on behalf of CERN & JSC'
+copyright = ('2024, Matteo Bunino, Alexander Zoechbauer, '
+             'Kalliopi Tsolaki, Rakesh Sarma on behalf of CERN & JSC')
 author = 'Matteo Bunino, Alexander Zoechbauer, Kalliopi Tsolaki'
 # version = '0.0'  # short version
 # release = '0.0.2'  # full version
@@ -43,7 +44,9 @@ autodoc_mock_imports = ["mlflow"]
 
 def get_git_tag():
     try:
-        return subprocess.check_output(['git', 'describe', '--tags', '--abbrev=0']).decode('utf-8').strip()
+        return subprocess.check_output(
+            ['git', 'describe', '--tags', '--abbrev=0']
+        ).decode('utf-8').strip()
     except subprocess.CalledProcessError:
         return 'unknown'
 

@@ -61,12 +61,8 @@ sub-folders:
 2. As model, if a pre-trained checkpoint is not available,
 we can create a dummy version of it with:
 
-    ```python
-    import torch
-    from model import ThreeDGAN
-    # Same params as in the training config file!
-    my_gan = ThreeDGAN()
-    torch.save(my_gan, '3dgan-inference.pth')
+    ```bash
+    python create_inference_sample.py
     ```
 
 3. Run inference command. This will generate a `3dgan-generated-data`
