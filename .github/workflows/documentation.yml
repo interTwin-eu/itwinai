@@ -1,0 +1,38 @@
+name: Build and Deploy Sphinx Documentation
+
+# on:
+#   push:
+#     branches:
+#       - docs_dev
+#     tags:
+#       - 'v*'
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        persist-credentials: false
+
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.9'
+
+    - name: Install dependencies
+      run: |
+        pip install -r docs/requirements.txt
+        pip install sphinx sphinx-rtd-theme
+
+    - name: Build documentation
+      run: |
+        cd docs
+        make html
+
+    - name: Deploy to GitHub Pages
+      uses: peaceiris/actions-gh-pages@v3
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_dir: ./docs/_build/html

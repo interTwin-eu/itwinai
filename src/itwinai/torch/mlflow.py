@@ -16,6 +16,8 @@ def _get_mlflow_logger_conf(pl_config: Dict) -> Optional[Dict]:
         Optional[Dict]: if present, MLFLowLogger constructor arguments
         (under 'init_args' key).
     """
+    if not pl_config['trainer'].get('logger'):
+        return None
     if isinstance(pl_config['trainer']['logger'], list):
         # If multiple loggers are provided
         for logger_conf in pl_config['trainer']['logger']:

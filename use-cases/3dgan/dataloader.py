@@ -35,7 +35,8 @@ class Lightning3DGANDownloader(DataGetter):
 
             gdown.download_folder(
                 url=self.data_url, quiet=False,
-                output=self.data_path
+                output=self.data_path,
+                verify=False
             )
 
 

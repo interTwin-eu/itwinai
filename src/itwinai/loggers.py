@@ -1,15 +1,15 @@
 """Abstraction for loggers."""
 
 import os
+import csv
 from abc import ABCMeta, abstractmethod
 from contextlib import contextmanager
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union, Literal
 import pickle
 import pathlib
 
 import wandb
 import mlflow
-# import mlflow.keras
 
 BASE_EXP_NAME: str = 'unk_experiment'
 
@@ -37,12 +37,12 @@ class Logger(LogMixin, metaclass=ABCMeta):
     """
     savedir: str = None
     supported_types: List[str]  # Supported logging 'kinds'
-    _log_freq: Union[int, str]
+    _log_freq: Union[int, Literal['epoch', 'batch']]
 
     def __init__(
         self,
         savedir: str = 'mllogs',
-        log_freq: Union[int, str] = 'epoch'
+        log_freq: Union[int, Literal['epoch', 'batch']] = 'epoch'
     ) -> None:
         self.savedir = savedir
         self.log_freq = log_freq
@@ -119,7 +119,7 @@ class ConsoleLogger(Logger):
     def __init__(
         self,
         savedir: str = 'mllogs',
-        log_freq: Union[int, str] = 'epoch'
+        log_freq: Union[int, Literal['epoch', 'batch']] = 'epoch'
     ) -> None:
         savedir = os.path.join(savedir, 'simple-logger')
         super().__init__(savedir=savedir, log_freq=log_freq)
@@ -189,7 +189,7 @@ class MLFlowLogger(Logger):
         experiment_name: str = BASE_EXP_NAME,
         tracking_uri: Optional[str] = None,
         run_description: Optional[str] = None,
-        log_freq: Union[int, str] = 'epoch'
+        log_freq: Union[int, Literal['epoch', 'batch']] = 'epoch'
     ):
         savedir = os.path.join(savedir, 'mlflow')
         super().__init__(savedir=savedir, log_freq=log_freq)
@@ -202,7 +202,7 @@ class MLFlowLogger(Logger):
             saved_abs_path = os.path.abspath(self.savedir)
             self.tracking_uri = pathlib.Path(saved_abs_path).as_uri()
             # self.tracking_uri = "file://" + self.savedir
-        print(f'MLFLOW URI: {self.tracking_uri}')
+        # print(f'MLFLOW URI: {self.tracking_uri}')
 
         # TODO: for pytorch lightning:
         # mlflow.pytorch.autolog()
@@ -316,7 +316,7 @@ class WanDBLogger(Logger):
         self,
         savedir: str = 'mllogs',
         project_name: str = BASE_EXP_NAME,
-        log_freq: Union[int, str] = 'epoch'
+        log_freq: Union[int, Literal['epoch', 'batch']] = 'epoch'
     ) -> None:
         savedir = os.path.join(savedir, 'wandb')
         super().__init__(savedir=savedir, log_freq=log_freq)
@@ -375,7 +375,7 @@ class TensorBoardLogger(Logger):
     def __init__(
         self,
         savedir: str = 'mllogs',
-        log_freq: Union[int, str] = 'epoch'
+        log_freq: Union[int, Literal['epoch', 'batch']] = 'epoch'
     ) -> None:
         savedir = os.path.join(savedir, 'tensorboard')
         super().__init__(savedir=savedir, log_freq=log_freq)
@@ -424,7 +424,7 @@ class LoggersCollection(Logger):
         self,
         loggers: List[Logger]
     ) -> None:
-        super().__init__(savedir='/.tmp_mllogs_LoggersCollection', log_freq=0)
+        super().__init__(savedir='/.tmp_mllogs_LoggersCollection', log_freq=1)
         self.loggers = loggers
 
     def should_log(self, batch_idx: int = None) -> bool:
@@ -448,3 +448,41 @@ class LoggersCollection(Logger):
                 batch_idx=batch_idx,
                 **kwargs
             )
+
+    def create_logger_context(self):
+        for logger in self.loggers:
+            logger.create_logger_context()
+
+    def destroy_logger_context(self):
+        for logger in self.loggers:
+            logger.destroy_logger_context()
+
+    def save_hyperparameters(self, params: Dict[str, Any]) -> None:
+        for logger in self.loggers:
+            logger.save_hyperparameters(params=params)
+
+
+class EpochTimeTracker:
+    def __init__(self, series_name: str, csv_file: str) -> None:
+        self.series_name = series_name
+        self._data = []
+        self.csv_file = csv_file
+        with open(csv_file, 'w') as csvfile:
+            csvwriter = csv.writer(csvfile)
+            csvwriter.writerow(['name', 'nodes', 'epoch_id', 'time'])
+
+    def add_epoch_time(self, epoch_idx, time):
+        n_nodes = os.environ.get('SLURM_NNODES', -1)
+        fields = (self.series_name, n_nodes, epoch_idx, time)
+        self._data.append(fields)
+        with open(self.csv_file, 'a') as csvfile:
+            csvwriter = csv.writer(csvfile)
+            csvwriter.writerow(fields)
+
+    def save(self, csv_file: Optional[str] = None):
+        if not csv_file:
+            csv_file = self.csv_file
+        with open(csv_file, 'w') as csvfile:
+            csvwriter = csv.writer(csvfile)
+            csvwriter.writerow(['name', 'nodes', 'epoch_id', 'time'])
+            csvwriter.writerows(self._data)

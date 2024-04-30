@@ -2,14 +2,60 @@ import os
 from typing import Callable
 import pytest
 import subprocess
+import random
+import string
 
-pytest.TORCH_PREFIX = './.venv-pytorch'
-pytest.TF_PREFIX = './.venv-tf'
 
 FNAMES = [
     'pipeline.yaml',
     'startscript',
 ]
+
+
+def rnd_string(len: int = 26):
+    return ''.join(random.sample(string.ascii_lowercase, len))
+
+
+@pytest.fixture
+def tmp_test_dir():
+    root = '/tmp/pytest'
+    os.makedirs(root, exist_ok=True)
+    test_dir = os.path.join(root, rnd_string())
+    while os.path.exists(test_dir):
+        test_dir = os.path.join(root, rnd_string())
+    os.makedirs(test_dir, exist_ok=True)
+
+    yield test_dir
+
+    # Optional: remove dir here...
+
+
+@pytest.fixture
+def torch_env() -> str:
+    """
+    Return absolute path to torch virtual environment parsing it
+    from environment variables, if provided, otherwise fall back
+    to ``./.venv-pytorch``.
+    """
+    if os.environ.get('TORCH_ENV') is None:
+        env_p = './.venv-pytorch'
+    else:
+        env_p = os.environ.get('TORCH_ENV')
+    return os.path.abspath(env_p)
+
+
+@pytest.fixture
+def tf_env() -> str:
+    """
+    Return absolute path to tensorflow virtual environment parsing it
+    from environment variables, if provided, otherwise fall back
+    to ``./.venv-tf``.
+    """
+    if os.environ.get('TF_ENV') is None:
+        env_p = './.venv-tf'
+    else:
+        env_p = os.environ.get('TF_ENV')
+    return os.path.abspath(env_p)
 
 
 @pytest.fixture
@@ -31,7 +77,6 @@ def install_requirements() -> Callable:
     def _install_reqs(root: str, env_prefix: str):
         req_path = os.path.join(root, 'requirements.txt')
         if os.path.isfile(req_path):
-            cmd = (f"micromamba run -p {env_prefix} "
-                   f"pip install -r {req_path}")
+            cmd = f"{env_prefix}/bin/pip install -r {req_path}"
             subprocess.run(cmd.split(), check=True)
     return _install_reqs

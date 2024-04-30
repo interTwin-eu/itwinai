@@ -1,4 +1,5 @@
-FROM python:3.9.12
+# FROM python:3.9
+FROM nvcr.io/nvidia/pytorch:23.09-py3
 
 WORKDIR /usr/src/app
 
@@ -13,6 +14,3 @@ RUN  pip install --no-cache-dir .
 
 # Add torch MNIST use case
 COPY use-cases/mnist/torch/* ./
-
-# Run inference
-CMD [ "python", "train.py", "-p", "inference-pipeline.yaml"]

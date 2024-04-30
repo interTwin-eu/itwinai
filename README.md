@@ -4,11 +4,8 @@
 [![GitHub Super-Linter](https://github.com/interTwin-eu/T6.5-AI-and-ML/actions/workflows/check-links.yml/badge.svg)](https://github.com/marketplace/actions/markdown-link-check)
  [![SQAaaS source code](https://github.com/EOSC-synergy/itwinai.assess.sqaaas/raw/dev/.badge/status_shields.svg)](https://sqaaas.eosc-synergy.eu/#/full-assessment/report/https://raw.githubusercontent.com/eosc-synergy/itwinai.assess.sqaaas/dev/.report/assessment_output.json)
 
-See the latest version of our [docs](https://intertwin-eu.github.io/T6.5-AI-and-ML/)
+See the latest version of our [docs](https://intertwin-eu.github.io/itwinai/)
 for a quick overview of this platform for advanced AI/ML workflows in digital twin applications.
-
-If you want to integrate a new use case, you can follow this
-[step-by-step guide](https://intertwin-eu.github.io/T6.5-AI-and-ML/docs/How-to-use-this-software.html).
 
 ## Installation
 
@@ -21,7 +18,7 @@ Requirements:
 To manage Conda environments we use micromamba, a light weight version of conda.
 
 It is suggested to refer to the
-[Manual installation guide](https://mamba.readthedocs.io/en/latest/micromamba-installation.html#umamba-install).
+[Manual installation guide](https://mamba.readthedocs.io/en/latest/installation/micromamba-installation.html#manual-installation).
 
 Consider that Micromamba can eat a lot of space when building environments because packages are cached on
 the local filesystem after being downloaded. To clear cache you can use `micromamba clean -a`.
@@ -44,12 +41,12 @@ MAMBA_ROOT_PREFIX='my-mamba-root'
 echo 'PATH="$(dirname $MAMBA_EXE):$PATH"' >> ~/.bashrc
 ```
 
-**Reference**: [Micromamba installation guide](https://mamba.readthedocs.io/en/latest/installation.html#micromamba).
+**Reference**: [Micromamba installation guide](https://mamba.readthedocs.io/en/latest/installation/micromamba-installation.html).
 
 ### Documentation folder
 
 Documentation for this repository is maintained under `./docs` location.
-If you are using code from a previous release, you can build the docs webpage
+If you are using code from a previous release, you can build the docs web page
 locally using [these instructions](docs/README#building-and-previewing-your-site-locally).
 
 ## Environment setup
@@ -99,7 +96,35 @@ pip install -e .[dev]
 
 #### Test with `pytest`
 
-To run tests on itwinai package:
+Do this only if you are a developer wanting to test your code with pytest.
+
+First, you need to create virtual environments both for torch and tensorflow.
+For instance, you can use:
+
+```bash
+make torch-cpu
+make make tf-2.13-cpu
+```
+
+To select the name of the torch and tf environments you can set the following
+environment variables, which allow to run the tests in environments with
+custom names which are different from `.venv-pytorch` and `.venv-tf`.
+
+```bash
+export TORCH_ENV="my_torch_env"
+export TF_ENV="my_tf_env"
+```
+
+Functional tests (marked with `pytest.mark.functional`) will be executed under
+`/tmp/pytest` location to guarantee they are run in a clean environment.
+
+To run functional tests use:
+
+```bash
+pytest -v tests/ -m "functional"
+```
+
+To run all tests on itwinai package:
 
 ```bash
 # Activate env

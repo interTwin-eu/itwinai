@@ -1,33 +1,47 @@
+s*.png
+*.pdf
 *_logs
-exp_data/
+logs_*
 TODO
 /data
 nohup*
-lightning_logs
-mlruns
 tmp*
 .tmp*
 checkpoints/
 mamba*
-MNIST
-mllogs
-*.out
-*.err
-.logs/
 pl-training.yml
 *-predictions/
 *-data/
-*.pth
 *.tar.gz
+*.pth
+*.csv
+*tar.gz
+0
+*.tar
+
+# Use cases files
+MNIST
+3dgan-generated-data/
+mnist-sample-data/
+exp_data/
+
 
 # Kubernetes
 secret*.yaml
 
 # Custom envs
 .venv*
+envAI_*
 
 # Logs
 logs/
+ml_logs/
+mllogs/
+*.out
+*.err
+.logs/
+lightning_logs/
+mlruns/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

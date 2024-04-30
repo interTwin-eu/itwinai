@@ -42,6 +42,8 @@ class TorchDistributedStrategy(BaseEnum):
     DEFAULT = None
     NONE = None
     DDP = 'ddp'
+    HVD = 'horovod'
+    DS = 'deepspeed'
 
 
 class TorchLoss(BaseEnum):
@@ -62,3 +64,11 @@ class TorchOptimizer(BaseEnum):
     """
     SGD = 'SGD'
     ADAM = 'Adam'
+
+
+class UninitializedStrategyError(Exception):
+    """Error raised when a strategy has not been initialized."""
+
+
+class DistributedStrategyError(Exception):
+    """Error raised when a strategy has already been initialized."""

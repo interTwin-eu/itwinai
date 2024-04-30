@@ -34,7 +34,7 @@ class MNISTDataModuleTorch(DataGetter):
                 transforms.Normalize((0.1307,), (0.3081,))
             ]))
         print("Train and validation datasets loaded.")
-        return train_dataset, validation_dataset
+        return train_dataset, validation_dataset, None
 
 
 class InferenceMNIST(Dataset):

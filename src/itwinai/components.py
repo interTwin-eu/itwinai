@@ -216,14 +216,6 @@ class Trainer(BaseComponent):
             validation dataset, test dataset, trained model.
         """
 
-    @abstractmethod
-    def save_state(self):
-        pass
-
-    @abstractmethod
-    def load_state(self):
-        pass
-
 
 class Predictor(BaseComponent):
     """Applies a pre-trained machine learning model to unseen data."""

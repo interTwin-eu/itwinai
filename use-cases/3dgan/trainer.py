@@ -57,12 +57,6 @@ class Lightning3DGANTrainer(Trainer):
         cli.trainer.fit(cli.model, datamodule=cli.datamodule)
         teardown_lightning_mlflow()
 
-    def save_state(self):
-        return super().save_state()
-
-    def load_state(self):
-        return super().load_state()
-
 
 class LightningModelLoader(TorchModelLoader):
     """Loads a torch lightning model from somewhere.

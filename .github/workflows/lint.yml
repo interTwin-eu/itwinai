@@ -30,7 +30,7 @@ jobs:
 
       # Runs the Super-Linter action
       - name: Run Super-Linter on new changes
-        uses: github/super-linter/slim@v5
+        uses: super-linter/super-linter/slim@v6.3.0
         env:
           DEFAULT_BRANCH: main
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -43,10 +43,14 @@ jobs:
           VALIDATE_PYTHON_PYLINT: false
           VALIDATE_HTML: false
           VALIDATE_GITLEAKS: false
+          VALIDATE_BASH_EXEC: false
+          VALIDATE_CHECKOV: false # activate to lint k8s pods
+          VALIDATE_SHELL_SHFMT: false
 
           # Only check new or edited files
           VALIDATE_ALL_CODEBASE: false
           # Fail on errors
           DISABLE_ERRORS: false
           # Skip linting of docs
-          FILTER_REGEX_EXCLUDE: .*docs/index.md|.*docs/docs/.*|.*ISSUE_TEMPLATE/.*|use-cases/.*
+          FILTER_REGEX_EXCLUDE: .*docs/index.md|.*docs/docs/.*|.*ISSUE_TEMPLATE/.*|use-cases/.*|experimental/.*
+          BASH_SEVERITY: error

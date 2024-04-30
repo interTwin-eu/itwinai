@@ -1,0 +1,37 @@
+---
+name: Unit and integration tests
+
+on:
+  pull_request:
+    branches: [main, dev]
+
+# TODO: use container and set custom TORCH_ENV and TF_ENV env variables
+
+jobs:
+  test-itwinai:
+    name: Test itwinai with pytest
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        
+      - name: Install micromamba
+        shell: bash -l {0}
+        run: |
+          "${SHELL}" <(curl -L micro.mamba.pm/install.sh)
+      
+      - name: Make torch CPU env
+        shell: bash -l {0}
+        run: make torch-cpu
+
+      - name: Make tensorflow env
+        shell: bash -l {0}
+        run: make tf-2.13-cpu
+
+      - name: Install dev version
+        shell: bash -l {0}
+        run: micromamba run -p ./.venv-pytorch pip install .[dev]
+
+      - name: Run pytest for workflows
+        shell: bash -l {0}
+        run: micromamba run -p ./.venv-pytorch pytest -v ./tests/ -m "not slurm"
+
