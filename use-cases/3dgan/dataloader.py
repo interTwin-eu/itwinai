@@ -58,7 +58,8 @@ class ParticlesDataset(Dataset):
     def fetch_data(self) -> None:
 
         print("Searching in :", self.datapath)
-        files = sorted(glob.glob(self.datapath))
+        files = sorted(glob.glob(os.path.join(
+            self.datapath, '**/*.h5'), recursive=True))
         print("Found {} files. ".format(len(files)))
         if len(files) == 0:
             raise RuntimeError(f"No H5 files found at '{self.datapath}'!")
