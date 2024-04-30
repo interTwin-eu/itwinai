@@ -5,7 +5,7 @@ torch-env:
 
 tensorflow-env:
 	python -m venv .venv-tf
-	.venv-tf/bin/pip install -e .[dev,torch]
+	.venv-tf/bin/pip install -e .[dev,tensorflow]
 
 torch-gpu-mamba: env-files/torch/pytorch-env-gpu.yml
 	micromamba env create -p ./.venv-pytorch --file env-files/torch/pytorch-env-gpu.yml -y
