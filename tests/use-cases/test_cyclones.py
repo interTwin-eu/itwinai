@@ -7,6 +7,7 @@ do not break use cases' workflows.
 
 import pytest
 import subprocess
+import os
 
 CYCLONES_PATH = "use-cases/cyclones"
 
@@ -19,12 +20,14 @@ def test_structure_cyclones(check_folder_structure):
 
 @pytest.mark.functional
 @pytest.mark.memory_heavy
-def test_cyclones_train_tf(tf_env, install_requirements):
+def test_cyclones_train_tf(tf_env, tmp_test_dir, install_requirements):
     """
     Test Cyclones tensorflow trainer by running it end-to-end.
     """
     # TODO: create a small sample dataset for tests only
     install_requirements(CYCLONES_PATH, tf_env)
-    cmd = (f"{tf_env}/bin/python train.py "
-           f"-p pipeline.yaml")
-    subprocess.run(cmd.split(), check=True, cwd=CYCLONES_PATH)
+    pipe = os.path.join(os.path.abspath(CYCLONES_PATH), 'pipeline.yaml')
+    train = os.path.join(os.path.abspath(CYCLONES_PATH), 'train.py')
+    cmd = (f"{tf_env}/bin/python {train} "
+           f"-p {pipe}")
+    subprocess.run(cmd.split(), check=True, cwd=tmp_test_dir)

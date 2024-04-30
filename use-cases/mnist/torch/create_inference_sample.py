@@ -2,6 +2,7 @@
 
 import torch
 import os
+import argparse
 
 from model import Net
 from dataloader import InferenceMNIST
@@ -31,4 +32,11 @@ def mnist_torch_inference_files(
 
 
 if __name__ == "__main__":
-    mnist_torch_inference_files()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--root", type=str, default='.')
+    parser.add_argument("--samples-path", type=str,
+                        default='mnist-sample-data')
+    parser.add_argument("--model-name", type=str,
+                        default='mnist-pre-trained.pth')
+    args = parser.parse_args()
+    mnist_torch_inference_files(**vars(args))
