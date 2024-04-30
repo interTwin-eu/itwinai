@@ -31,7 +31,7 @@ class LightningMNISTDownloader(DataGetter):
         self._downloader.setup(stage='predict')
 
 
-class MNISTDataModule(L.LightningModule):
+class MNISTDataModule(L.LightningDataModule):
     def __init__(
         self,
         data_path: str,

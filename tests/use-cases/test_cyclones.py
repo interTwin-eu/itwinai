@@ -7,10 +7,12 @@ do not break use cases' workflows.
 
 import pytest
 import subprocess
+import os
 
 CYCLONES_PATH = "use-cases/cyclones"
 
 
+@pytest.mark.skip("deprecated")
 def test_structure_cyclones(check_folder_structure):
     """Test cyclones folder structure."""
     check_folder_structure(CYCLONES_PATH)
@@ -18,11 +20,14 @@ def test_structure_cyclones(check_folder_structure):
 
 @pytest.mark.functional
 @pytest.mark.memory_heavy
-def test_cyclones_train_tf(install_requirements):
+def test_cyclones_train_tf(tf_env, tmp_test_dir, install_requirements):
     """
     Test Cyclones tensorflow trainer by running it end-to-end.
     """
-    install_requirements(CYCLONES_PATH, pytest.TF_PREFIX)
-    cmd = (f"micromamba run -p {pytest.TF_PREFIX} python "
-           f"{CYCLONES_PATH}/train.py -p {CYCLONES_PATH}/pipeline.yaml")
-    subprocess.run(cmd.split(), check=True)
+    # TODO: create a small sample dataset for tests only
+    install_requirements(CYCLONES_PATH, tf_env)
+    pipe = os.path.join(os.path.abspath(CYCLONES_PATH), 'pipeline.yaml')
+    train = os.path.join(os.path.abspath(CYCLONES_PATH), 'train.py')
+    cmd = (f"{tf_env}/bin/python {train} "
+           f"-p {pipe}")
+    subprocess.run(cmd.split(), check=True, cwd=tmp_test_dir)

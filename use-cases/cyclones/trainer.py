@@ -155,9 +155,3 @@ class TensorflowTrainer(Trainer):
         if self.model_backup:
             self.best_model_name = join(self.model_backup, "best_model.h5")
         self.last_model_name = join(self.run_dir, "last_model.h5")
-
-    def load_state(self):
-        return super().load_state()
-
-    def save_state(self):
-        return super().save_state()

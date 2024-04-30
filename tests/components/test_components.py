@@ -74,11 +74,6 @@ def test_serializable():
         def execute(self):
             ...
 
-        def save_state(self):
-            ...
-
-        def load_state(self):
-            ...
     comp = MyTrainer()
     with pytest.raises(SerializationError) as exc_info:
         dict_serializ = comp.to_dict()

@@ -1,5 +1,5 @@
 import abc
-from typing import Any, List, Optional, Tuple
+from typing import Any, List, Optional, Tuple, Union, Iterable
 from pathlib import Path
 import json
 import os
@@ -12,18 +12,47 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.optim.lr_scheduler import _LRScheduler as LRScheduler
 from torch.optim.optimizer import Optimizer
+from torch.utils.data import Dataset, Sampler, DistributedSampler, DataLoader
+from torch.utils.data.dataloader import T_co, _worker_init_fn_t, _collate_fn_t
 
 from ..distributed import DistributedStrategy
+from .types import UninitializedStrategyError, DistributedStrategyError
+
+
+def distributed_resources_available() -> bool:
+    """Check if the current execution environment
+    has (enough) GPUs available to allow for distributed ML.
+
+    Returns:
+        bool: env can support distributed ML.
+    """
+    if torch.cuda.is_available() and torch.cuda.device_count() > 1:
+        return True
+    return False
 
 
 class TorchDistributedStrategy(DistributedStrategy):
     """Abstract class to define the distributed backend methods for
     PyTorch models.
     """
+    is_distributed: bool = True
+    is_initialized: bool = False
+
+    @property
+    def is_main_worker(self) -> bool:
+        """Checks if local worker has global rank equal to zero.
+
+        Returns:
+            bool: True if main worker.
+        """
+        if not self.is_initialized:
+            raise UninitializedStrategyError(
+                "Strategy has not been initialized. Use the init method.")
+        return self.global_rank() == 0
+
     @abc.abstractmethod
     def init(self) -> None:
         """Initializes the chosen distributed backend"""
-
     # @abc.abstractmethod
     # def distributed_engine(
     #     self, model: nn.Module, optimizer: Optimizer,
@@ -39,7 +68,7 @@ class TorchDistributedStrategy(DistributedStrategy):
         """Setup model, optimizer and scheduler for distributed."""
 
     @abc.abstractmethod
-    def dist_gwsize(self) -> int:
+    def global_world_size(self) -> int:
         """Returns the total number of processes (global world size).
 
         Returns:
@@ -47,7 +76,7 @@ class TorchDistributedStrategy(DistributedStrategy):
         """
 
     @abc.abstractmethod
-    def dist_lwsize(self) -> int:
+    def local_world_size(self) -> int:
         """Returns the number of local workers available on a node
         (local world size).
         Usually it is equal to the number of available GPUs.
@@ -57,7 +86,7 @@ class TorchDistributedStrategy(DistributedStrategy):
         """
 
     @abc.abstractmethod
-    def dist_grank(self) -> int:
+    def global_rank(self) -> int:
         """Returns the global rank of the current process.
         Rank ranges from 0 to world_size.
 
@@ -66,28 +95,182 @@ class TorchDistributedStrategy(DistributedStrategy):
         """
 
     @abc.abstractmethod
-    def dist_lrank(self) -> int:
+    def local_rank(self) -> int:
         """Returns the local rank of the current process.
 
         Returns:
             int: local rank.
         """
 
-    def is_main_worker(self) -> bool:
-        """Checks if local worker has global rank equal to zero.
-
-        Returns:
-            bool: True if main worker.
-        """
-        return self.dist_grank() == 0
-
-    def dist_device(self) -> str:
+    def device(self) -> str:
         """Device used by local worker.
 
         Returns:
             str: torch device in the form 'cuda:N'.
         """
-        return f"cuda:{self.dist_lrank()}"
+        if not self.is_initialized:
+            raise UninitializedStrategyError(
+                "Strategy has not been initialized. Use the init method.")
+        return f"cuda:{self.local_rank()}"
+
+    def create_dataloader(
+        self, dataset: Dataset[T_co], batch_size: Optional[int] = 1,
+        shuffle: Optional[bool] = None,
+        sampler: Union[Sampler, Iterable, None] = None,
+        batch_sampler: Union[Sampler[List], Iterable[List], None] = None,
+        num_workers: int = 0, collate_fn: Optional[_collate_fn_t] = None,
+        pin_memory: bool = False, drop_last: bool = False,
+        timeout: float = 0,
+        worker_init_fn: Optional[_worker_init_fn_t] = None,
+        multiprocessing_context=None, generator=None,
+        *, prefetch_factor: Optional[int] = None,
+        persistent_workers: bool = False,
+        pin_memory_device: str = ""
+    ):
+        """Create a distributed DataLoader by using ``DistributedSampler`` as
+        random sampler.
+
+        Args:
+            dataset (Dataset): dataset from which to load the data.
+            batch_size (int, optional): how many samples per batch to load
+                (default: ``1``).
+            shuffle (bool, optional): set to ``True`` to have the data
+                reshuffled at every epoch (default: ``False``).
+            sampler (Sampler or Iterable, optional): defines the strategy to
+                draw
+                samples from the dataset. Can be any ``Iterable`` with
+                ``__len__``
+                implemented. If specified, :attr:`shuffle` must not be
+                specified.
+            batch_sampler (Sampler or Iterable, optional): like
+                :attr:`sampler`, but
+                returns a batch of indices at a time. Mutually exclusive with
+                :attr:`batch_size`, :attr:`shuffle`, :attr:`sampler`,
+                and :attr:`drop_last`.
+            num_workers (int, optional): how many subprocesses to use for data
+                loading. ``0`` means that the data will be loaded in the main
+                process. (default: ``0``)
+            collate_fn (Callable, optional): merges a list of samples to form a
+                mini-batch of Tensor(s).  Used when using batched loading from
+                a map-style dataset.
+            pin_memory (bool, optional): If ``True``, the data loader will
+                copy Tensors
+                into device/CUDA pinned memory before returning them.  If your
+                data elements
+                are a custom type, or your :attr:`collate_fn` returns a batch
+                that is a custom type,
+                see the example below.
+            drop_last (bool, optional): set to ``True`` to drop the last
+                incomplete batch,
+                if the dataset size is not divisible by the batch size.
+                If ``False`` and
+                the size of dataset is not divisible by the batch size, then
+                the last batch
+                will be smaller. (default: ``False``)
+            timeout (numeric, optional): if positive, the timeout value for
+                collecting a batch
+                from workers. Should always be non-negative. (default: ``0``)
+            worker_init_fn (Callable, optional): If not ``None``,
+                this will be called on each
+                worker subprocess with the worker id (an int in
+                ``[0, num_workers - 1]``) as
+                input, after seeding and before data loading.
+                (default: ``None``)
+            multiprocessing_context (str or
+                multiprocessing.context.BaseContext, optional): If
+                ``None``, the default `multiprocessing context`_ of
+                your operating system will
+                be used. (default: ``None``)
+            generator (torch.Generator, optional): If not ``None``,
+                this RNG will be used
+                by RandomSampler to generate random indexes and
+                multiprocessing to generate
+                ``base_seed`` for workers. (default: ``None``)
+            prefetch_factor (int, optional, keyword-only arg): Number of
+                batches loaded
+                in advance by each worker. ``2`` means there will be a total of
+                2 * num_workers batches prefetched across all workers.
+                (default value depends
+                on the set value for num_workers. If value of num_workers=0
+                default is ``None``.
+                Otherwise, if value of ``num_workers > 0`` default is ``2``).
+            persistent_workers (bool, optional): If ``True``, the data loader
+                will not shut down
+                the worker processes after a dataset has been consumed once.
+                This allows to
+                maintain the workers `Dataset` instances alive.
+                (default: ``False``)
+            pin_memory_device (str, optional): the device to
+                :attr:`pin_memory` to if ``pin_memory`` is ``True``.
+
+
+        .. warning:: If the ``spawn`` start method is used,
+                    :attr:`worker_init_fn`
+                    cannot be an unpicklable object, e.g., a lambda function.
+                    See :ref:`multiprocessing-best-practices` on more
+                    details related to multiprocessing in PyTorch.
+
+        .. warning:: ``len(dataloader)`` heuristic is based on the length of
+                    the sampler used.
+                    When :attr:`dataset` is an
+                    :class:`~torch.utils.data.IterableDataset`,
+                    it instead returns an estimate based on
+                    ``len(dataset) / batch_size``, with proper
+                    rounding depending on :attr:`drop_last`, regardless
+                    of multi-process loading
+                    configurations. This represents the best guess PyTorch
+                    can make because PyTorch
+                    trusts user :attr:`dataset` code in correctly handling
+                    multi-process
+                    loading to avoid duplicate data.
+
+                    However, if sharding results in multiple workers having
+                    incomplete last batches,
+                    this estimate can still be inaccurate, because (1) an
+                    otherwise complete batch can
+                    be broken into multiple ones and (2) more than one batch
+                    worth of samples can be
+                    dropped when :attr:`drop_last` is set. Unfortunately,
+                    PyTorch can not detect such cases in general.
+
+                    See `Dataset Types`_ for more details on these two
+                    types of datasets and how
+                    :class:`~torch.utils.data.IterableDataset` interacts with
+                    `Multi-process data loading`_.
+
+        .. warning:: See :ref:`reproducibility`, and
+                    :ref:`dataloader-workers-random-seed`, and
+                    :ref:`data-loading-randomness` notes for random
+                    seed related questions.
+
+        .. _multiprocessing context:
+            https://docs.python.org/3/library/multiprocessing.html#contexts-and-start-methods
+    """
+        if not self.is_initialized:
+            raise UninitializedStrategyError(
+                "Strategy has not been initialized. Use the init method.")
+
+        if self.is_distributed:
+            if sampler is not None:
+                raise RuntimeError(
+                    "User-provided sampler is not supported."
+                )
+            sampler = DistributedSampler(
+                dataset, num_replicas=self.global_world_size(),
+                rank=self.global_rank(),
+                shuffle=shuffle
+            )
+        # shuffle and batch_sampler must be unset
+        return DataLoader(
+            dataset=dataset, batch_size=batch_size, sampler=sampler,
+            num_workers=num_workers, collate_fn=collate_fn,
+            pin_memory=pin_memory, drop_last=drop_last, timeout=timeout,
+            worker_init_fn=worker_init_fn,
+            multiprocessing_context=multiprocessing_context,
+            generator=generator, prefetch_factor=prefetch_factor,
+            persistent_workers=persistent_workers,
+            pin_memory_device=pin_memory_device
+        )
 
     @abc.abstractmethod
     def clean_up(self) -> None:
@@ -105,8 +288,8 @@ class TorchDistributedStrategy(DistributedStrategy):
         """
 
 
-class DDPDistributedStrategy(TorchDistributedStrategy):
-    """PyTorch DDP distributed strategy class.
+class TorchDDPStrategy(TorchDistributedStrategy):
+    """PyTorch ``DistributedDataParallel`` distributed strategy class.
 
     Args:
         backend (str): Name of the communication backend to employ.
@@ -121,12 +304,21 @@ class DDPDistributedStrategy(TorchDistributedStrategy):
     def init(self) -> None:
         """Initializes the distributed process group and the distributed
         package.
+
+        Raises:
+            RuntimeError: when there are not (enough) GPUs available.
+            DistributedStrategyError: when trying to initialize a strategy
+            already initialized.
         """
-        if torch.cuda.is_available() and torch.cuda.device_count() > 1:
-            dist.init_process_group(backend=self.backend)
-        else:
-            print("WARNING: trying to run distributed on insufficient"
-                  " resources. Skipping distributed process group setup.")
+        if not distributed_resources_available():
+            raise RuntimeError(
+                "Trying to run distributed on insufficient resources.")
+        if self.is_initialized:
+            raise DistributedStrategyError("Strategy was already initialized")
+        dist.init_process_group(backend=self.backend)
+        self.is_initialized = True
+
+        torch.cuda.device(self.local_rank())
 
     # def distributed_engine(
     #     self, model: nn.Module, optimizer: Optimizer,
@@ -158,55 +350,73 @@ class DDPDistributedStrategy(TorchDistributedStrategy):
         **kwargs
     ) -> Tuple[nn.Module, Optimizer, Optional[LRScheduler]]:
         """Setup model, optimizer and scheduler for distributed."""
+        if not self.is_initialized:
+            raise UninitializedStrategyError(
+                "Strategy has not been initialized. Use the init method.")
         if torch.cuda.is_available():
             # device = self.dist_lrank()
-            model = model.to(self.dist_device())
+            model = model.to(self.device())
             dist_model = torch.nn.parallel.DistributedDataParallel(
                 model,
-                device_ids=[self.dist_device()],
-                output_device=self.dist_device()
+                device_ids=[self.device()],
+                output_device=self.device()
             )
         else:
             dist_model = model
 
         return dist_model, optimizer, lr_scheduler
 
-    def dist_gwsize(self) -> int:
+    def global_world_size(self) -> int:
         """Returns the total number of processes (global world size).
 
         Returns:
             int: global world size.
         """
+        if not self.is_initialized:
+            raise UninitializedStrategyError(
+                "Strategy has not been initialized. Use the init method.")
         return dist.get_world_size()
 
-    def dist_lwsize(self) -> int:
+    def local_world_size(self) -> int:
         """Returns the local number of workers available per node,
         which is usually the number of GPUs available.
 
         Returns:
             int: local world size.
         """
+        if not self.is_initialized:
+            raise UninitializedStrategyError(
+                "Strategy has not been initialized. Use the init method.")
         return torch.cuda.device_count()
 
-    def dist_grank(self) -> int:
+    def global_rank(self) -> int:
         """Returns the global rank of the current process, where
         rank ranges from 0 to world_size.
 
         Returns:
             int: global rank.
         """
+        if not self.is_initialized:
+            raise UninitializedStrategyError(
+                "Strategy has not been initialized. Use the init method.")
         return dist.get_rank()
 
-    def dist_lrank(self) -> int:
+    def local_rank(self) -> int:
         """Returns the local rank of the current process.
 
         Returns:
             int: local rank.
         """
+        if not self.is_initialized:
+            raise UninitializedStrategyError(
+                "Strategy has not been initialized. Use the init method.")
         return dist.get_rank() % torch.cuda.device_count()
 
     def clean_up(self) -> None:
         """Destroys the current process group."""
+        if not self.is_initialized:
+            raise UninitializedStrategyError(
+                "Strategy has not been initialized. Use the init method.")
         if torch.cuda.is_available():
             dist.barrier()
             dist.destroy_process_group()
@@ -221,12 +431,15 @@ class DDPDistributedStrategy(TorchDistributedStrategy):
         Returns:
             List[Any]: List of gathered objects.
         """
-        res = [None] * self.dist_gwsize()
+        if not self.is_initialized:
+            raise UninitializedStrategyError(
+                "Strategy has not been initialized. Use the init method.")
+        res = [None] * self.global_world_size()
         dist.all_gather_object(res, obj)
         return res
 
 
-class DSDistributedStrategy(TorchDistributedStrategy):
+class DeepSpeedStrategy(TorchDistributedStrategy):
     """DeepSpeed distributed strategy class.
 
     Args:
@@ -256,7 +469,19 @@ class DSDistributedStrategy(TorchDistributedStrategy):
     def init(self) -> None:
         """Initializes the distributed process group and the distributed
         package.
+
+        Raises:
+            RuntimeError: when there are not (enough) GPUs available.
+            DistributedStrategyError: when trying to initialize a strategy
+            already initialized.
         """
+        if not distributed_resources_available():
+            raise RuntimeError(
+                "Trying to run distributed on insufficient resources.")
+
+        if self.is_initialized:
+            raise DistributedStrategyError("Strategy was already initialized")
+
         # https://github.com/Lightning-AI/pytorch-lightning/issues/13567
         ompi_lrank = os.environ.get('OMPI_COMM_WORLD_LOCAL_RANK')
         os.environ['OMPI_COMM_WORLD_LOCAL_RANK'] = os.environ.get(
@@ -264,6 +489,9 @@ class DSDistributedStrategy(TorchDistributedStrategy):
 
         # https://deepspeed.readthedocs.io/en/latest/initialize.html#training-initialization
         deepspeed.init_distributed(dist_backend=self.backend)
+        self.is_initialized = True
+
+        torch.cuda.device(self.local_rank())
 
     def distributed(
         self, model: nn.Module, optimizer: Optional[Optimizer] = None,
@@ -272,6 +500,10 @@ class DSDistributedStrategy(TorchDistributedStrategy):
         **init_kwargs
     ) -> Tuple[nn.Module, Optimizer, Optional[LRScheduler]]:
         """Setup model, optimizer and scheduler for distributed."""
+        if not self.is_initialized:
+            raise UninitializedStrategyError(
+                "Strategy has not been initialized. Use the init method.")
+
         if init_kwargs.get("config"):
             self._load_config(init_kwargs.get("config"))
         # https://deepspeed.readthedocs.io/en/latest/initialize.html#training-initialization
@@ -286,42 +518,57 @@ class DSDistributedStrategy(TorchDistributedStrategy):
         )
         return distrib_model, optimizer, lr_scheduler
 
-    def dist_gwsize(self) -> int:
+    def global_world_size(self) -> int:
         """Returns the total number of processes (global world size).
 
         Returns:
             int: global world size.
         """
+        if not self.is_initialized:
+            raise UninitializedStrategyError(
+                "Strategy has not been initialized. Use the init method.")
         return dist.get_world_size()
 
-    def dist_lwsize(self) -> int:
+    def local_world_size(self) -> int:
         """Returns the local number of workers available per node,
         which is usually the number of GPUs available.
 
         Returns:
             int: local world size.
         """
+        if not self.is_initialized:
+            raise UninitializedStrategyError(
+                "Strategy has not been initialized. Use the init method.")
         return torch.cuda.device_count()
 
-    def dist_grank(self) -> int:
+    def global_rank(self) -> int:
         """Returns the global rank of the current process, where
         rank ranges from 0 to world_size.
 
         Returns:
             int: global rank.
         """
+        if not self.is_initialized:
+            raise UninitializedStrategyError(
+                "Strategy has not been initialized. Use the init method.")
         return dist.get_rank()
 
-    def dist_lrank(self) -> int:
+    def local_rank(self) -> int:
         """Returns the local rank of the current process.
 
         Returns:
             int: local rank.
         """
+        if not self.is_initialized:
+            raise UninitializedStrategyError(
+                "Strategy has not been initialized. Use the init method.")
         return dist.get_rank() % torch.cuda.device_count()
 
     def clean_up(self) -> None:
         """Destroys the current process group."""
+        if not self.is_initialized:
+            raise UninitializedStrategyError(
+                "Strategy has not been initialized. Use the init method.")
         deepspeed.sys.exit()
 
     def par_allgather_obj(self, obj: Any) -> list[Any]:
@@ -334,18 +581,34 @@ class DSDistributedStrategy(TorchDistributedStrategy):
         Returns:
             List[Any]: List of gathered objects.
         """
-        res = [None] * self.dist_gwsize()
+        if not self.is_initialized:
+            raise UninitializedStrategyError(
+                "Strategy has not been initialized. Use the init method.")
+        res = [None] * self.global_world_size()
         dist.all_gather_object(res, obj)
         return res
 
 
-class HVDDistributedStrategy(TorchDistributedStrategy):
+class HorovodStrategy(TorchDistributedStrategy):
     """Horovod distributed strategy class."""
 
     def init(self) -> None:
-        """Initializes the Horovod distributed backend."""
+        """Initializes the Horovod distributed backend.
+
+        Raises:
+            RuntimeError: when there are not (enough) GPUs available.
+            DistributedStrategyError: when trying to initialize a strategy
+            already initialized.
+        """
+        if not distributed_resources_available():
+            raise RuntimeError(
+                "Trying to run distributed on insufficient resources.")
+        if self.is_initialized:
+            raise DistributedStrategyError("Strategy was already initialized")
         hvd.init()
-        torch.cuda.set_device(hvd.local_rank())
+        self.is_initialized = True
+
+        torch.cuda.device(self.local_rank())
 
     def distributed(
         self, model: nn.Module, optimizer: Optional[Optimizer] = None,
@@ -353,8 +616,11 @@ class HVDDistributedStrategy(TorchDistributedStrategy):
         **optim_kwargs
     ) -> Tuple[nn.Module, Optimizer, Optional[LRScheduler]]:
         """Setup model, optimizer and scheduler for distributed."""
+        if not self.is_initialized:
+            raise UninitializedStrategyError(
+                "Strategy has not been initialized. Use the init method.")
 
-        model.to(self.dist_device())
+        model.to(self.device())
 
         # Scale learning rate
         # https://github.com/horovod/horovod/issues/1653#issuecomment-574764452
@@ -389,42 +655,57 @@ class HVDDistributedStrategy(TorchDistributedStrategy):
         hvd.broadcast_parameters(model.state_dict(), root_rank=0)
         hvd.broadcast_optimizer_state(optimizer, root_rank=-0)
 
-    def dist_gwsize(self) -> int:
+    def global_world_size(self) -> int:
         """Returns the total number of processes (global world size).
 
         Returns:
             int: global world size.
         """
+        if not self.is_initialized:
+            raise UninitializedStrategyError(
+                "Strategy has not been initialized. Use the init method.")
         return hvd.size()
 
-    def dist_lwsize(self) -> int:
+    def local_world_size(self) -> int:
         """Returns the local number of workers available per node,
         which is usually the number of GPUs available.
 
         Returns:
             int: local world size.
         """
+        if not self.is_initialized:
+            raise UninitializedStrategyError(
+                "Strategy has not been initialized. Use the init method.")
         return hvd.local_size()
 
-    def dist_grank(self) -> int:
+    def global_rank(self) -> int:
         """Returns the global rank of the current process, where
         rank ranges from 0 to world_size.
 
         Returns:
             int: global rank.
         """
+        if not self.is_initialized:
+            raise UninitializedStrategyError(
+                "Strategy has not been initialized. Use the init method.")
         return hvd.rank()
 
-    def dist_lrank(self) -> int:
+    def local_rank(self) -> int:
         """Returns the local rank of the current process.
 
         Returns:
             int: local rank.
         """
+        if not self.is_initialized:
+            raise UninitializedStrategyError(
+                "Strategy has not been initialized. Use the init method.")
         return hvd.local_rank()
 
     def clean_up(self) -> None:
         """Shuts Horovod down."""
+        if not self.is_initialized:
+            raise UninitializedStrategyError(
+                "Strategy has not been initialized. Use the init method.")
         hvd.shutdown()
 
     def par_allgather_obj(self, obj: Any) -> list[Any]:
@@ -437,484 +718,99 @@ class HVDDistributedStrategy(TorchDistributedStrategy):
         Returns:
             list: gathered list with size(#worker).
         """
+        if not self.is_initialized:
+            raise UninitializedStrategyError(
+                "Strategy has not been initialized. Use the init method.")
         return hvd.allgather_object(obj)
 
 
-# class TorchDistributedStrategy_old(DistributedStrategy):
-#     """Abstract class to define the distributed backend methods for
-#     PyTorch models.
-#     """
-#     @abc.abstractmethod
-#     def init_backend(self) -> None:
-#         """Initializes the chosen distributed backend"""
-
-#     @abc.abstractmethod
-#     def distribute_model(self, model: Any) -> Any:
-#         """Distributes a machine learning model.
-
-#         Args:
-#             model (Any): a generic ML model to be distributed.
-
-#         Returns:
-#             Any: distributed model instance.
-#         """
-
-#     @abc.abstractmethod
-#     def broadcast_params(self, model: Any, optimizer: Any) -> None:
-#         """Broadcasts variables from root rank to all other processes/
-
-#         Args:
-#             model (Any): distributed model.
-#             optimizer (Any): optimizer.
-#         """
-
-#     @abc.abstractmethod
-#     def distribute_optimizer(self, optimizer: Any, model: Any) -> Any:
-#         """Distribute optimizer.
-
-#         Args:
-#             optimizer (Any): optimizer.
-#             model (Any): distributed model.
-
-#         Returns:
-#             Any: distributed optimizer.
-#         """
-
-#     @abc.abstractmethod
-#     def dist_gwsize(self) -> int:
-#         """Returns the total number of processes (global world size).
-
-#         Returns:
-#             int: global world size.
-#         """
-
-#     @abc.abstractmethod
-#     def dist_lwsize(self) -> int:
-#         """Returns the number of local workers available on a node
-#         (local world size).
-#         Usually it is equal to the number of available GPUs.
-
-#         Returns:
-#             int: local world size.
-#         """
-
-#     @abc.abstractmethod
-#     def dist_grank(self) -> int:
-#         """Returns the global rank of the current process.
-#         Rank ranges from 0 to world_size.
-
-#         Returns:
-#             int: global rank.
-#         """
-
-#     @abc.abstractmethod
-#     def dist_lrank(self) -> int:
-#         """Returns the local rank of the current process.
-
-#         Returns:
-#             int: local rank.
-#         """
-
-#     def is_main_worker(self) -> bool:
-#         """Checks if local worker has global rank equal to zero.
-
-#         Returns:
-#             bool: True if main worker.
-#         """
-#         return self.dist_grank() == 0
-
-#     def dist_device(self) -> str:
-#         """Device used by local worker.
-
-#         Returns:
-#             str: torch device in the form 'cuda:N'.
-#         """
-#         return f"cuda:{self.dist_lrank()}"
-
-#     @abc.abstractmethod
-#     def clean_up(self) -> None:
-#         """Cleans up resources allocated by distributed strategy."""
-
-#     @abc.abstractmethod
-#     def par_allgather_obj(self, obj: Any) -> List[Any]:
-#         """Gathers any object from the whole group in a list
-#            (to all workers).
-
-#         Args:
-#             obj (Any): object to gather from all workers.
-
-#         Returns:
-#             List[Any]: list of objects gathered from all workers.
-#         """
-
-
-# class DDPDistributedStrategy_old(TorchDistributedStrategy_old):
-#     """PyTorch DDP distributed strategy class.
-
-#     Args:
-#         backend (str): Name of the communication backend to employ.
-#     """
-
-#     backend: str
-
-#     def __init__(self, backend: str) -> None:
-#         super().__init__()
-#         self.backend = backend
-
-#     def init_backend(self) -> None:
-#         """Initializes the distributed process group and the distributed
-#         package.
-#         """
-#         if torch.cuda.is_available():
-#             dist.init_process_group(backend=self.backend)
-
-#     def distribute_model(self, model: nn.Module) -> nn.Module:
-#         """Achieves data parallelism by synchronizing the gradients
-#         across each model replica located in each available
-#         computing device.
-
-#         Args:
-#             model (nn.Module): ML model to be distributed.
-
-#         Returns:
-#             nn.Module: Distributed model replicas across all devices.
-#             that are to be synchronized.
-#         """
-#         if torch.cuda.is_available():
-#             # device = self.dist_lrank()
-#             model = model.to(self.dist_device())
-#             dist_model = torch.nn.parallel.DistributedDataParallel(
-#                 model,
-#                 device_ids=[self.dist_device()],
-#                 output_device=self.dist_device()
-#             )
-#         else:
-#             dist_model = model
-
-#         return dist_model
-
-#     def broadcast_params(
-#         self,
-#         model: nn.Module,
-#         optimizer: optim.Optimizer
-#     ) -> None:
-#         """Do nothing. Only applicable for Horovod.
-
-#         Args:
-#             model (nn.Module): ML model
-#             optimizer (optim.Optimizer): Optimizer
-#         """
-#         pass
-
-#     def distribute_optimizer(
-#         self,
-#         optimizer: optim.Optimizer,
-#         model: nn.Module = None
-#     ) -> optim.Optimizer:
-#         """Returns the optimizer from argument.
-
-#         Args:
-#             optimizer (optim.Optimizer): optimizer.
-#             model (nn.Module): ML model. Unused here.
-
-#         Returns:
-#             optim.Optimizer: Distributed optimizer.
-#         """
-#         return optimizer
-
-#     def dist_gwsize(self) -> int:
-#         """Returns the total number of processes (global world size).
-
-#         Returns:
-#             int: global world size.
-#         """
-#         return dist.get_world_size()
-
-#     def dist_lwsize(self) -> int:
-#         """Returns the local number of workers available per node,
-#         which is usually the number of GPUs available.
-
-#         Returns:
-#             int: local world size.
-#         """
-#         return torch.cuda.device_count()
-
-#     def dist_grank(self) -> int:
-#         """Returns the global rank of the current process, where
-#         rank ranges from 0 to world_size.
-
-#         Returns:
-#             int: global rank.
-#         """
-#         return dist.get_rank()
-
-#     def dist_lrank(self) -> int:
-#         """Returns the local rank of the current process.
-
-#         Returns:
-#             int: local rank.
-#         """
-#         return dist.get_rank() % torch.cuda.device_count()
-
-#     def clean_up(self) -> None:
-#         """Destroys the current process group."""
-#         if torch.cuda.is_available():
-#             dist.barrier()
-#             dist.destroy_process_group()
-
-#     def par_allgather_obj(self, obj: Any) -> List[Any]:
-#         """Gathers any object from the whole group
-#         in a list (to all workers).
-
-#         Args:
-#             obj (Any): Object to gather from all workers.
-
-#         Returns:
-#             List[Any]: List of gathered objects.
-#         """
-#         res = [None] * self.dist_gwsize()
-#         dist.all_gather_object(res, obj)
-#         return res
-
-
-# class DSDistributedStrategy_old(TorchDistributedStrategy_old):
-#     """DeepSpeed distributed strategy class.
-
-#     Args:
-#         backend (str): Name of the communication backend to employ.
-#         config (Union[dict, Path, str]): DeepSpeed config. Either a
-#         dictionary or a path to a JSON file.
-#     """
-
-#     config: Dict = None
-#     backend: str
-
-#     def __init__(
-#         self,
-#         backend: str,
-#         config: Union[Dict, Path, str]
-#     ) -> None:
-#         super().__init__()
-#         self.backend = backend
-#         self._load_config(config)
-
-#     def _load_config(self, ds_config):
-#         if isinstance(ds_config, (str, Path)):
-#             with open(ds_config) as fp:
-#                 self.config = json.load(fp)
-#         elif isinstance(ds_config, dict):
-#             self.config = ds_config
-#         else:
-#             raise ValueError("ds_config is not a dictionary not a path.")
-
-#     def init_backend(self) -> None:
-#         """Initializes the distributed process group and the distributed
-#         package.
-#         """
-#         deepspeed.init_distributed(dist_backend=self.backend)
-
-#     def distribute_model(self, model: nn.Module) -> nn.Module:
-#         """Achieves data parallelism by synchronizing the gradients
-#         across each model replica located in each available
-#         computing device.
-
-#         Args:
-#             model (nn.Module): ML model to be distributed.
-
-#         Returns:
-#             nn.Module: Distributed model replicas across all devices
-#             that are to be synchronized.
-#         """
-#         distrib_model, __, __, __ = deepspeed.initialize(
-#             model=model,
-#             model_parameters=model.parameters(),
-#             dist_init_required=True,
-#             config=self.config
-#         )
-#         return distrib_model
-
-#     def broadcast_params(
-#             self, model: nn.Module, optimizer: optim.Optimizer
-#     ) -> None:
-#         """Only applicable for Horovod. Does nothing.
-
-#         Args:
-#             model (nn.Module): ML model.
-#             optimizer (optim.Optimizer): optimizer.
-#         """
-#         pass
-
-#     def distribute_optimizer(
-#         self,
-#         optimizer: optim.Optimizer,
-#         model: nn.Module = None
-#     ) -> optim.Optimizer:
-#         """Returns the optimizer from argument.
-
-#         Args:
-#             optimizer (optim.Optimizer): torch optimizer.
-#             model (nn.Module): torch neural network.
-
-#         Returns:
-#             optim.Optimizer: distributed optimizer.
-#         """
-#         return optimizer
-
-#     def dist_gwsize(self) -> int:
-#         """Returns the total number of processes (global world size).
-
-#         Returns:
-#             int: global world size.
-#         """
-#         return dist.get_world_size()
-
-#     def dist_lwsize(self) -> int:
-#         """Returns the local number of workers available per node,
-#         which is usually the number of GPUs available.
-
-#         Returns:
-#             int: local world size.
-#         """
-#         return torch.cuda.device_count()
-
-#     def dist_grank(self) -> int:
-#         """Returns the global rank of the current process, where
-#         rank ranges from 0 to world_size.
-
-#         Returns:
-#             int: global rank.
-#         """
-#         return dist.get_rank()
-
-#     def dist_lrank(self) -> int:
-#         """Returns the local rank of the current process.
-
-#         Returns:
-#             int: local rank.
-#         """
-#         return dist.get_rank() % torch.cuda.device_count()
-
-#     def clean_up(self) -> None:
-#         """Destroys the current process group."""
-#         deepspeed.sys.exit()
-
-#     def par_allgather_obj(self, obj: Any) -> list[Any]:
-#         """Gathers any object from the whole group
-#         in a list (to all workers).
-
-#         Args:
-#             obj (Any): Object to gather from all workers.
-
-#         Returns:
-#             List[Any]: List of gathered objects.
-#         """
-#         res = [None] * self.dist_gwsize()
-#         dist.all_gather_object(res, obj)
-#         return res
-
-
-# class HVDDistributedStrategy_old(TorchDistributedStrategy_old):
-#     """Horovod distributed strategy class."""
-
-#     def init_backend(self) -> None:
-#         """Initializes the Horovod distributed backend."""
-#         hvd.init()
-
-#     def distribute_model(self, model: nn.Module) -> nn.Module:
-#         """Only applicable for DDP and DeepSpeed.
-#         For Horovod, returns the same model passed as argument.
-
-#         Args:
-#             model (nn.Module): ML model to be distributed.
-
-#         Returns:
-#             nn.Module: ML model passed in the argument.
-#         """
-#         return model
-
-#     def broadcast_params(
-#             self, model: nn.Module, optimizer: optim.Optimizer
-#     ) -> None:
-#         """Broadcasts variables from root rank to all other processes.
-
-#         Args:
-#             model (nn.Module): ML model that is to be broadcasted
-#             across processes.
-#             optimizer (optim.Optimizer): Optimizer that is to be broadcasted
-#             across processes.
-#         """
-#         hvd.broadcast_parameters(model.state_dict(), root_rank=0)
-#         hvd.broadcast_optimizer_state(optimizer, root_rank=-0)
-
-#     def distribute_optimizer(
-#         self,
-#         optimizer: optim.Optimizer,
-#         model: nn.Module
-#     ) -> optim.Optimizer:
-#         """Constructs a DistributedOptimizer, for computing single-process
-#         gradient values and applying gradient updates after the gradients
-#         have been combined across all the Horovod ranks.
-
-#         Args:
-#             optimizer (optim.Optimizer): Optimizer to be distributed.
-#             model (nn.Module): ML model to be trained.
-
-#         Returns:
-#             optim.Optimizer: Distributed optimizer across all ranks.
-#         """
-#         distOptimizer = hvd.DistributedOptimizer(
-#             optimizer,
-#             named_parameters=model.named_parameters(),
-#             op=hvd.Average
-#         )
-#         return distOptimizer
-
-#     def dist_gwsize(self) -> int:
-#         """Returns the total number of processes (global world size).
-
-#         Returns:
-#             int: global world size.
-#         """
-#         return hvd.size()
-
-#     def dist_lwsize(self) -> int:
-#         """Returns the local number of workers available per node,
-#         which is usually the number of GPUs available.
-
-#         Returns:
-#             int: local world size.
-#         """
-#         return hvd.local_size()
-
-#     def dist_grank(self) -> int:
-#         """Returns the global rank of the current process, where
-#         rank ranges from 0 to world_size.
-
-#         Returns:
-#             int: global rank.
-#         """
-#         return hvd.rank()
-
-#     def dist_lrank(self) -> int:
-#         """Returns the local rank of the current process.
-
-#         Returns:
-#             int: local rank.
-#         """
-#         return hvd.local_rank()
-
-#     def clean_up(self) -> None:
-#         """Shuts Horovod down."""
-#         hvd.shutdown()
-
-#     def par_allgather_obj(self, obj: Any) -> list[Any]:
-#         """Gathers scalar objects across all workers to a
-#         list with size(#worker), uses horovod communicator
-
-#         Args:
-#             obj (Any): object in a worker.
-
-#         Returns:
-#             list: gathered list with size(#worker).
-#         """
-#         return hvd.allgather_object(obj)
+class NonDistributedStrategy(TorchDistributedStrategy):
+    """Dummy class for non-distributed environments."""
+
+    is_distributed: bool = False
+
+    def init(self) -> None:
+        """If CUDA is available set CUDA device, and do nothing more.
+
+        Raises:
+            DistributedStrategyError: when trying to initialize a strategy
+            already initialized.
+        """
+        if self.is_initialized:
+            raise DistributedStrategyError("Strategy was already initialized")
+        if torch.cuda.is_available():
+            torch.cuda.device(self.local_rank())
+        self.is_initialized = True
+
+    def device(self) -> str:
+        """Device used by local worker.
+
+        Returns:
+            str: cpu device if CUDA is not available.
+        """
+        if not self.is_initialized:
+            raise UninitializedStrategyError(
+                "Strategy has not been initialized. Use the init method.")
+        if torch.cuda.is_available():
+            return super().device()
+        return "cpu"
+
+    def distributed(
+        self, model: nn.Module, optimizer: Optional[Optimizer] = None,
+        lr_scheduler: Optional[LRScheduler] = None,
+        **kwargs
+    ) -> Tuple[nn.Module, Optimizer, Optional[LRScheduler]]:
+        """Do nothing and return model, optimizer and scheduler."""
+        if not self.is_initialized:
+            raise UninitializedStrategyError(
+                "Strategy has not been initialized. Use the init method.")
+        if torch.cuda.is_available():
+            model = model.cuda()
+        return model, optimizer, lr_scheduler
+
+    def global_world_size(self) -> int:
+        """Returns the total number of processes (global world size).
+
+        Returns:
+            int: global world size.
+        """
+        return 1
+
+    def local_world_size(self) -> int:
+        """Returns the local number of workers available per node,
+        which is usually the number of GPUs available.
+
+        Returns:
+            int: local world size.
+        """
+        return 1
+
+    def global_rank(self) -> int:
+        """Returns the global rank of the current process, where
+        rank ranges from 0 to world_size.
+
+        Returns:
+            int: global rank.
+        """
+        return 0
+
+    def local_rank(self) -> int:
+        """Returns the local rank of the current process.
+
+        Returns:
+            int: local rank.
+        """
+        return 0
+
+    def clean_up(self) -> None:
+        """Do nothing."""
+
+    def par_allgather_obj(self, obj: Any) -> list[Any]:
+        """Raise error as this operation is not available.
+
+        Args:
+            obj (Any): object in a worker.
+        """
+        raise RuntimeError(
+            f"{self.__class__.__name__} does not support this operation."
+        )

@@ -1,17 +1,23 @@
-import tensorflow as tf
 import os
+import tensorflow as tf
+import tensorflow.distribute as dist
 
 
 def get_strategy():
     """Strategy for distributed TensorFlow training"""
-    cluster_resolver = tf.distribute.cluster_resolver.SlurmClusterResolver(
+    if not os.environ.get('SLURM_JOB_ID'):
+        # TODO: improve
+        print('not in SLURM env!')
+        tf_dist_strategy = dist.MirroredStrategy()
+        return tf_dist_strategy, tf_dist_strategy.num_replicas_in_sync
+    cluster_resolver = dist.cluster_resolver.SlurmClusterResolver(
         port_base=12345)
-    implementation = tf.distribute.experimental.CommunicationImplementation.NCCL
-    communication_options = tf.distribute.experimental.CommunicationOptions(
+    implementation = dist.experimental.CommunicationImplementation.NCCL
+    communication_options = dist.experimental.CommunicationOptions(
         implementation=implementation)
 
     # declare distribution strategy
-    tf_dist_strategy = tf.distribute.MultiWorkerMirroredStrategy(
+    tf_dist_strategy = dist.MultiWorkerMirroredStrategy(
         cluster_resolver=cluster_resolver,
         communication_options=communication_options
     )

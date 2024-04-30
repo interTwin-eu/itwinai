@@ -1,4 +1,4 @@
-pipeline:
+training_pipeline:
   class_path: itwinai.pipeline.Pipeline
   init_args:
     steps:
@@ -6,7 +6,7 @@ pipeline:
         init_args:
           data_path: data/
 
-      - class_path: trainer.LightningMNISTTrainer
+      - class_path: itwinai.torch.trainer.TorchLightningTrainer #trainer.LightningMNISTTrainer
         init_args:
           # Pytorch lightning config for training
           config:

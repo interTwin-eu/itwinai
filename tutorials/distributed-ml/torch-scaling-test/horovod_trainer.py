@@ -19,8 +19,11 @@ import torchvision
 
 from itwinai.parser import ArgumentParser as ItAIArgumentParser
 from itwinai.loggers import EpochTimeTracker
+from itwinai.torch.reproducibility import (
+    seed_worker, set_seed
+)
 
-from utils import imagenet_dataset, seed_worker, set_seed
+from utils import imagenet_dataset
 
 
 def parse_params():
@@ -129,7 +132,7 @@ def main():
         hvd.init()
 
     # Set random seed for reproducibility
-    torch_prng = set_seed(args.rnd_seed, use_cuda)
+    torch_prng = set_seed(args.rnd_seed, deterministic_cudnn=False)
 
     # is_main_worker = True
     # if is_distributed and (hvd.rank() != 0 or hvd.local_rank() != 0):

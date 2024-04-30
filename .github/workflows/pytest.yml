@@ -1,9 +1,11 @@
 ---
-name: Test workflows
+name: Unit and integration tests
 
 on:
   pull_request:
     branches: [main, dev]
+
+# TODO: use container and set custom TORCH_ENV and TF_ENV env variables
 
 jobs:
   test-itwinai:

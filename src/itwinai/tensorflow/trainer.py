@@ -28,12 +28,19 @@ def instance_from_dict(obj_dict: Any) -> Any:
     return obj_dict
 
 
+# TODO: the TF trainer is incomplete:
+#   - strategy is not received from constructor argument: if not needed,
+#     remove it
+#   - dataset is not distributed
+#   - much commented code that has to be removed or included
+
+
 class TensorflowTrainer(Trainer):
     def __init__(
             self,
             epochs,
-            train_dataset,
-            validation_dataset,
+            # train_dataset,
+            # validation_dataset,
             batch_size,
             callbacks,
             model_dict: Dict,
@@ -61,14 +68,14 @@ class TensorflowTrainer(Trainer):
             # get total number of workers
             print("Number of devices: {}".format(n_devices))
             # distribute datasets among MirroredStrategy's replicas
-            dist_train_dataset = (
-                tf_dist_strategy.experimental_distribute_dataset(
-                    train_dataset
-                ))
-            dist_validation_dataset = (
-                tf_dist_strategy.experimental_distribute_dataset(
-                    validation_dataset
-                ))
+            # dist_train_dataset = (
+            #     tf_dist_strategy.experimental_distribute_dataset(
+            #         train_dataset
+            #     ))
+            # dist_validation_dataset = (
+            #     tf_dist_strategy.experimental_distribute_dataset(
+            #         validation_dataset
+            #     ))
             with self.strategy.scope():
                 # TODO: move loss, optimizer and metrics instantiation under
                 # here
