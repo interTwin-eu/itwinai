@@ -27,6 +27,7 @@ def test_cyclones_train_tf(tf_env, tmp_test_dir, install_requirements):
     # TODO: create a small sample dataset for tests only
     install_requirements(CYCLONES_PATH, tf_env)
     pipe = os.path.join(os.path.abspath(CYCLONES_PATH), 'pipeline.yaml')
-    cmd = (f"{tf_env}/bin/python train.py "
+    train = os.path.join(os.path.abspath(CYCLONES_PATH), 'train.py')
+    cmd = (f"{tf_env}/bin/python {train} "
            f"-p {pipe}")
     subprocess.run(cmd.split(), check=True, cwd=tmp_test_dir)

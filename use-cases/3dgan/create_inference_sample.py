@@ -20,4 +20,4 @@ if __name__ == "__main__":
     parser.add_argument("--root", type=str, default='.')
     parser.add_argument("--ckpt-name", type=str, default="3dgan-inference.pth")
     args = parser.parse_args()
-    create_checkpoint(vars(args))
+    create_checkpoint(**vars(args))
