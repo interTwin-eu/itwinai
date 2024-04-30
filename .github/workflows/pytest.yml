@@ -19,12 +19,26 @@ jobs:
       #   shell: bash -l {0}
       #   run: |
       #     "${SHELL}" <(curl -L micro.mamba.pm/install.sh)
-      
-      - name: Make torch CPU env
+
+      - name: Install GCC
+        run: sudo apt-get update && sudo apt-get install -y gcc-11 g++-11
+      - name: Verify compiler installation
+        run: gcc --version
+
+      - name: Install CMake
+        run: sudo apt-get update && sudo apt-get install -y cmake
+      - name: Verify compiler installation
+        run: cmake --version
+        
+      - name: Make PyTorch virtualenv
         shell: bash -l {0}
         run: make torch-env
 
-      - name: Make tensorflow env
+      - name: Install Horovod
+        shell: bash -l {0}
+        run: .venv-pytorch/bin/pip install horovod[pytorch]
+
+      - name: Make Tensorflow virtualenv
         shell: bash -l {0}
         run: make tensorflow-env
 
