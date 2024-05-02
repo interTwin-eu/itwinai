@@ -6,10 +6,6 @@ with SLURM:
 
 """
 import os
-# Using legacy (2.16) version of Keras
- # Latest version with TF (2.16) installs Keras 3.3
- # which returns an error for multi-node execution
- os.environ["TF_USE_LEGACY_KERAS"] = "1"
 from typing import Any
 import argparse
 import tensorflow as tf
