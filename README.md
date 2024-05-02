@@ -1,4 +1,4 @@
-# PoC for AI-centric digital twin workflows
+# itwinai
 
 [![GitHub Super-Linter](https://github.com/interTwin-eu/T6.5-AI-and-ML/actions/workflows/lint.yml/badge.svg)](https://github.com/marketplace/actions/super-linter)
 [![GitHub Super-Linter](https://github.com/interTwin-eu/T6.5-AI-and-ML/actions/workflows/check-links.yml/badge.svg)](https://github.com/marketplace/actions/markdown-link-check)
@@ -16,12 +16,27 @@ Requirements:
 ### Python virtual environment
 
 Depending on your environment, there are different ways to
-select a specific python version. If you are working on a laptop
+select a specific python version.
+
+#### Laptop or GPU node
+
+If you are working on a laptop
 or on a simple on-prem setup, you could consider using
 [pyenv](https://github.com/pyenv/pyenv). See the
 [installation instructions](https://github.com/pyenv/pyenv?tab=readme-ov-file#installation). If you are using pyenv,
 make sure to read [this](https://github.com/pyenv/pyenv/wiki#suggested-build-environment).
 
+#### Julelich Super Computer
+
+```bash
+ml Stages/2024 GCC OpenMPI CUDA/12 cuDNN MPI-settings/CUDA
+ml Python CMake HDF5 PnetCDF libaio mpi4py
+```
+
+#### Install itwinai
+
+Regardless of how you loaded your environment, you can create the
+python virtual environments with the following commands.
 Once the correct Python version is loaded, create the virtual
 environments using our pre-make Makefile:
 

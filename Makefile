@@ -12,6 +12,7 @@ torch-env:
 		HOROVOD_WITHOUT_TENSORFLOW=1 \
 		HOROVOD_WITHOUT_MXNET=1 \
 		bash -c '.venv-pytorch/bin/pip install --no-cache-dir git+https://github.com/thomas-bouvier/horovod.git@compile-cpp17'
+	.venv-pytorch/bin/horovodrun --check-build 
 
 # Install PyTorch env (Horovod has not NCCL support)
 torch-env-cpu:
@@ -23,6 +24,7 @@ torch-env-cpu:
 		HOROVOD_WITHOUT_TENSORFLOW=1 \
 		HOROVOD_WITHOUT_MXNET=1 \
 		bash -c '.venv-pytorch/bin/pip install --no-cache-dir git+https://github.com/thomas-bouvier/horovod.git@compile-cpp17'
+	.venv-pytorch/bin/horovodrun --check-build 
 
 tensorflow-env:
 	python3 -m venv .venv-tf
