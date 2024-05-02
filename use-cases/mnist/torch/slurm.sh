@@ -95,7 +95,7 @@ elif [ "$DIST_MODE" == "deepspeed" ] ; then
   export MASTER_PORT=29500 
 
   srun --cpu-bind=none --ntasks-per-node=$SLURM_GPUS_PER_NODE --cpus-per-task=$SLURM_CPUS_PER_GPU \
-    python -u $TRAINING_CMD --deepspeed
+    $TRAINING_CMD
 
   # # Run with deepspeed launcher: set --ntasks-per-node=1
   # # https://www.deepspeed.ai/getting-started/#multi-node-environment-variables
@@ -109,9 +109,8 @@ elif [ "$DIST_MODE" == "deepspeed" ] ; then
 elif [ "$DIST_MODE" == "horovod" ] ; then
   echo "HOROVOD training: $TRAINING_CMD"
   srun --cpu-bind=none --ntasks-per-node=$SLURM_GPUS_PER_NODE --cpus-per-task=$SLURM_CPUS_PER_GPU \
-    python -u $TRAINING_CMD
+    $TRAINING_CMD
 else
   >&2 echo "ERROR: unrecognized \$DIST_MODE env variable"
   exit 1
 fi
-

@@ -70,12 +70,6 @@ class MyTrainer(Trainer):
         """
         return train_set, vaild_set, test_set, "my_trained_model"
 
-    def save_state(self):
-        return super().save_state()
-
-    def load_state(self):
-        return super().load_state()
-
 
 class MySaver(Saver):
     @monitor_exec

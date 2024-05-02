@@ -1,0 +1,208 @@
+# Main configurations
+dataset_location: exp_data/
+dataset_url: https://drive.google.com/drive/folders/1uPpz0tquokepptIfJenTzGpiENfo2xRX
+hw_accelerators: auto
+distributed_strategy: auto #ddp_find_unused_parameters_true
+devices: auto #[0]
+checkpoints_path: checkpoints
+logs_dir: ml_logs
+mlflow_tracking_uri: https://131.154.99.166.myip.cloud.infn.it
+batch_size: 4
+num_workers_dataloader: 0
+max_epochs: 2
+max_dataset_size: 48
+random_seed: 4231162351
+inference_results_location: 3dgan-generated-data/
+inference_model_uri: 3dgan-inference.pth
+aggregate_predictions: false
+
+# Dataloading step is common and can be reused
+dataloading_step:
+  class_path: dataloader.Lightning3DGANDownloader
+  init_args:
+    data_path: ${dataset_location} # Set to null to skip dataset download
+    data_url: ${dataset_url}
+
+# AI workflows
+training_pipeline:
+  class_path: itwinai.pipeline.Pipeline
+  init_args:
+    steps:
+      dataloading_step: ${dataloading_step}
+
+      training_step:
+        class_path: trainer.Lightning3DGANTrainer
+        init_args:
+          exp_root: ${logs_dir}
+          # Pytorch lightning config for training
+          config:
+            seed_everything: ${random_seed}
+            trainer:
+              accelerator: ${hw_accelerators}
+              accumulate_grad_batches: 1
+              barebones: false
+              benchmark: null
+              callbacks:
+                - class_path: lightning.pytorch.callbacks.early_stopping.EarlyStopping
+                  init_args:
+                    monitor: val_generator_loss
+                    patience: 2
+                - class_path: lightning.pytorch.callbacks.lr_monitor.LearningRateMonitor
+                  init_args:
+                    logging_interval: step
+                - class_path: lightning.pytorch.callbacks.ModelCheckpoint
+                  init_args:
+                    dirpath: ${checkpoints_path}
+                    filename: best-checkpoint
+                    mode: min
+                    monitor: val_generator_loss
+                    save_top_k: 1
+                    verbose: true
+              check_val_every_n_epoch: 1
+              default_root_dir: null
+              detect_anomaly: false
+              deterministic: null
+              devices: ${devices}
+              enable_checkpointing: true
+              enable_model_summary: null
+              enable_progress_bar: null
+              fast_dev_run: false
+              gradient_clip_algorithm: null
+              gradient_clip_val: null
+              inference_mode: true
+              limit_predict_batches: null
+              limit_test_batches: null
+              limit_train_batches: null
+              limit_val_batches: null
+              log_every_n_steps: 1
+              logger:
+                - class_path: lightning.pytorch.loggers.CSVLogger
+                  init_args:
+                    name: 3DGAN
+                    save_dir: ${logs_dir}
+                - class_path: lightning.pytorch.loggers.MLFlowLogger
+                  init_args:
+                    experiment_name: 3DGAN
+                    save_dir: null #ml_logs/mlflow_logs
+                    tracking_uri: ${mlflow_tracking_uri}
+                    log_model: all
+              max_epochs: ${max_epochs}
+              max_time: null
+              min_epochs: null
+              min_steps: null
+              num_sanity_val_steps: null
+              overfit_batches: 0.0
+              plugins: null
+              profiler: null
+              reload_dataloaders_every_n_epochs: 0
+              strategy: ${distributed_strategy}
+              sync_batchnorm: false
+              use_distributed_sampler: true
+              val_check_interval: null
+
+            # Lightning Model configuration
+            model:
+              class_path: model.ThreeDGAN
+              init_args:
+                latent_size: 256
+                loss_weights: [3, 0.1, 25, 0.1]
+                power: 0.85
+                lr: 0.001
+                checkpoints_dir: ${checkpoints_path}
+
+            # Lightning data module configuration
+            data:
+              class_path: dataloader.ParticlesDataModule
+              init_args:
+                datapath: ${dataset_location}
+                batch_size: ${batch_size}
+                num_workers: ${num_workers_dataloader}
+                max_samples: ${max_dataset_size}
+
+inference_pipeline:
+  class_path: itwinai.pipeline.Pipeline
+  init_args:
+    steps:
+      dataloading_step: ${dataloading_step}
+
+      inference_step:
+        class_path: trainer.Lightning3DGANPredictor
+        init_args:
+          model:
+            class_path: trainer.LightningModelLoader
+            init_args:
+              model_uri: ${inference_model_uri}
+
+          # Pytorch lightning config for training
+          config:
+            seed_everything: ${random_seed}
+            trainer:
+              accelerator: ${hw_accelerators}
+              accumulate_grad_batches: 1
+              barebones: false
+              benchmark: null
+              check_val_every_n_epoch: 1
+              default_root_dir: null
+              detect_anomaly: false
+              deterministic: null
+              devices: ${devices}
+              enable_checkpointing: true
+              enable_model_summary: null
+              enable_progress_bar: null
+              fast_dev_run: false
+              gradient_clip_algorithm: null
+              gradient_clip_val: null
+              inference_mode: true
+              limit_predict_batches: null
+              limit_test_batches: null
+              limit_train_batches: null
+              limit_val_batches: null
+              log_every_n_steps: 2
+              logger: 
+                # - class_path: lightning.pytorch.loggers.CSVLogger
+                #   init_args:
+                #     save_dir: ml_logs/csv_logs
+                class_path: lightning.pytorch.loggers.MLFlowLogger
+                init_args:
+                  experiment_name: 3DGAN
+                  save_dir: ${logs_dir}
+                  log_model: all
+              max_epochs: ${max_epochs}
+              max_steps: 20
+              max_time: null
+              min_epochs: null
+              min_steps: null
+              num_sanity_val_steps: null
+              overfit_batches: 0.0
+              plugins: null
+              profiler: null
+              reload_dataloaders_every_n_epochs: 0
+              strategy: ${distributed_strategy}
+              sync_batchnorm: false
+              use_distributed_sampler: true
+              val_check_interval: null
+
+            # Lightning Model configuration
+            model:
+              class_path: model.ThreeDGAN
+              init_args:
+                latent_size: 256
+                loss_weights: [3, 0.1, 25, 0.1]
+                power: 0.85
+                lr: 0.001
+                checkpoints_dir: ${checkpoints_path}
+
+            # Lightning data module configuration
+            data:
+              class_path: dataloader.ParticlesDataModule
+              init_args:
+                datapath: ${dataset_location}
+                batch_size: ${batch_size} #1024
+                num_workers: ${num_workers_dataloader} #4
+                max_samples: ${max_dataset_size} #null, 10000
+
+      saver_step:
+        class_path: saver.ParticleImagesSaver
+        init_args:
+          save_dir: ${inference_results_location}
+          aggregate_predictions: ${aggregate_predictions}

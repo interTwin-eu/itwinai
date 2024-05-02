@@ -18,8 +18,11 @@ import torchvision
 
 from itwinai.parser import ArgumentParser as ItAIArgumentParser
 from itwinai.loggers import EpochTimeTracker
+from itwinai.torch.reproducibility import (
+    seed_worker, set_seed
+)
 
-from utils import seed_worker, imagenet_dataset, set_seed
+from utils import imagenet_dataset
 
 
 def parse_params():
@@ -121,7 +124,7 @@ def main():
         dist.init_process_group(backend=args.backend)
 
     # Set random seed for reproducibility
-    torch_prng = set_seed(args.rnd_seed, use_cuda)
+    torch_prng = set_seed(args.rnd_seed, deterministic_cudnn=False)
 
     if is_distributed:
         # get job rank info - rank==0 master gpu

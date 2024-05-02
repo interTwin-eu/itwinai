@@ -21,14 +21,17 @@ import horovod.torch as hvd
 
 from itwinai.torch.distributed import (
     TorchDistributedStrategy,
-    DDPDistributedStrategy,
-    HVDDistributedStrategy,
-    DSDistributedStrategy,
+    TorchDDPStrategy,
+    HorovodStrategy,
+    DeepSpeedStrategy,
 )
 from itwinai.parser import ArgumentParser as ItAIArgumentParser
 from itwinai.loggers import EpochTimeTracker
+from itwinai.torch.reproducibility import (
+    seed_worker, set_seed
+)
 
-from utils import seed_worker, imagenet_dataset, set_seed
+from utils import imagenet_dataset
 
 
 def parse_params() -> argparse.Namespace:
@@ -116,8 +119,8 @@ def train(
     model.train()
     t_list = []
     loss_acc = 0
-    gwsize = strategy.dist_gwsize()
-    if strategy.is_main_worker():
+    gwsize = strategy.global_world_size()
+    if strategy.is_main_worker:
         print("\n")
     for batch_idx, (data, target) in enumerate(train_loader):
         t = timer()
@@ -127,7 +130,7 @@ def train(
         loss = F.nll_loss(output, target)
         loss.backward()
         optimizer.step()
-        if (strategy.is_main_worker() and args.log_int > 0
+        if (strategy.is_main_worker and args.log_int > 0
                 and batch_idx % args.log_int == 0):
             print(
                 f'Train epoch: {epoch} '
@@ -136,7 +139,7 @@ def train(
                 f'Loss: {loss.item():.6f}')
         t_list.append(timer() - t)
         loss_acc += loss.item()
-    if strategy.is_main_worker():
+    if strategy.is_main_worker:
         print('TIMER: train time', sum(t_list) / len(t_list), 's')
     return loss_acc
 
@@ -151,10 +154,10 @@ def main():
                 or not torch.cuda.device_count() > 1):
             raise RuntimeError('Resources unavailable')
 
-        strategy = DDPDistributedStrategy(backend=args.backend)
+        strategy = TorchDDPStrategy(backend=args.backend)
         distribute_kwargs = {}
     elif args.strategy == 'horovod':
-        strategy = HVDDistributedStrategy()
+        strategy = HorovodStrategy()
         distribute_kwargs = dict(
             compression=(
                 hvd.Compression.fp16 if args.fp16_allreduce
@@ -164,7 +167,7 @@ def main():
             gradient_predivide_factor=args.gradient_predivide_factor
         )
     elif args.strategy == 'deepspeed':
-        strategy = DSDistributedStrategy(backend=args.backend)
+        strategy = DeepSpeedStrategy(backend=args.backend)
         distribute_kwargs = dict(
             config_params=dict(train_micro_batch_size_per_gpu=args.batch_size)
         )
@@ -182,19 +185,19 @@ def main():
     # Limit # of CPU threads to be used per worker
     # torch.set_num_threads(1)
 
-    # start the timer for profiling
+    # Start the timer for profiling
     st = timer()
 
     # Set random seed for reproducibility
-    torch_prng = set_seed(args.rnd_seed, use_cuda)
+    torch_prng = set_seed(args.rnd_seed, deterministic_cudnn=False)
 
-    # get job rank info - rank==0 master gpu
+    # Get job rank info - rank==0 master gpu
     if is_distributed:
         # local world size - per node
-        lwsize = strategy.dist_lwsize()   # local world size - per run
-        gwsize = strategy.dist_gwsize()   # global world size - per run
-        grank = strategy.dist_grank()     # global rank - assign per run
-        lrank = strategy.dist_lrank()     # local rank - assign per node
+        lwsize = strategy.local_world_size()   # local world size - per run
+        gwsize = strategy.global_world_size()   # global world size - per run
+        grank = strategy.global_rank()     # global rank - assign per run
+        lrank = strategy.local_rank()     # local rank - assign per node
     else:
         # Use a single worker (either on GPU or CPU)
         lwsize = 1
@@ -202,7 +205,7 @@ def main():
         grank = 0
         lrank = 0
 
-    if strategy.is_main_worker():
+    if strategy.is_main_worker:
         print('TIMER: initialise:', timer()-st, 's')
         print('DEBUG: local ranks:', lwsize, '/ global ranks:', gwsize)
         print('DEBUG: sys.version:', sys.version)
@@ -221,7 +224,7 @@ def main():
 
     # Encapsulate the model on the GPU assigned to the current process
     device = torch.device(
-        strategy.dist_device() if use_cuda and torch.cuda.is_available()
+        strategy.device() if use_cuda
         else 'cpu')
     if use_cuda:
         torch.cuda.set_device(lrank)
@@ -263,7 +266,7 @@ def main():
         )
 
     # Start training loop
-    if strategy.is_main_worker():
+    if strategy.is_main_worker:
         print('TIMER: broadcast:', timer()-st, 's')
         print('\nDEBUG: start training')
         print('--------------------------------------------------------')
@@ -302,11 +305,11 @@ def main():
         if epoch + 1 == args.epochs:
             train_loader.last_epoch = True
 
-        if strategy.is_main_worker():
+        if strategy.is_main_worker:
             print('TIMER: epoch time:', timer()-lt, 's')
             epoch_time_tracker.add_epoch_time(epoch-1, timer()-lt)
 
-    if strategy.is_main_worker():
+    if strategy.is_main_worker:
         print('\n--------------------------------------------------------')
         print('DEBUG: training results:\n')
         print('TIMER: first epoch time:', first_ep_t, ' s')
@@ -327,7 +330,7 @@ def main():
         print(f'TIMER: final time: {timer()-st} s\n')
 
     time.sleep(1)
-    print(f"<Global rank: {strategy.dist_grank()}> - TRAINING FINISHED")
+    print(f"<Global rank: {strategy.global_rank()}> - TRAINING FINISHED")
 
     # Clean-up
     if is_distributed:

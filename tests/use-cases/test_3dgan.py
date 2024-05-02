@@ -3,73 +3,63 @@ Tests for CERN use case (3DGAN).
 """
 import pytest
 import subprocess
-# from itwinai.utils import dynamically_import_class
+import os
 
 CERN_PATH = "use-cases/3dgan"
-CKPT_PATH = "3dgan-inference.pth"
+CKPT_NAME = "3dgan-inference.pth"
 
 
-@pytest.fixture(scope="module")
-def fake_model_checkpoint() -> None:
-    """
-    Create a dummy model checkpoint for inference.
-    """
-    import sys
-    import torch
-    sys.path.append(CERN_PATH)
-    from model import ThreeDGAN
-    # ThreeDGAN = dynamically_import_class('model.ThreeDGAN')
-    net = ThreeDGAN()
-    torch.save(net, CKPT_PATH)
-
-
+@pytest.mark.skip("deprecated")
 def test_structure_3dgan(check_folder_structure):
     """Test 3DGAN folder structure."""
     check_folder_structure(CERN_PATH)
 
 
 @pytest.mark.functional
-def test_3dgan_train(install_requirements):
+def test_3dgan_train(torch_env, tmp_test_dir, install_requirements):
     """
     Test 3DGAN torch lightning trainer by running it end-to-end.
     """
-    install_requirements(CERN_PATH, pytest.TORCH_PREFIX)
-    # cmd = (f"micromamba run -p {pytest.TORCH_PREFIX} python "
-    #        f"{CERN_PATH}/train.py -p {CERN_PATH}/pipeline.yaml")
-    trainer_params = "pipeline.init_args.steps.training_step.init_args"
-    cmd = (f"micromamba run -p {pytest.TORCH_PREFIX} itwinai exec-pipeline "
-           f"--config {CERN_PATH}/pipeline.yaml "
-           f'-o {trainer_params}.config.trainer.accelerator=cpu '
-           f'-o {trainer_params}.config.trainer.strategy=auto '
+    install_requirements(CERN_PATH, torch_env)
+    conf = os.path.join(os.path.abspath(CERN_PATH), 'config.yaml')
+    cmd = (f"{torch_env}/bin/itwinai exec-pipeline "
+           f"--config {conf} --pipe-key training_pipeline "
+           '-o hw_accelerators=auto '
+           '-o distributed_strategy=auto '
            )
-    subprocess.run(cmd.split(), check=True)
+    subprocess.run(cmd.split(), check=True, cwd=tmp_test_dir)
 
 
 @pytest.mark.functional
-def test_3dgan_inference(install_requirements, fake_model_checkpoint):
+def test_3dgan_inference(
+    torch_env,
+    tmp_test_dir,
+    install_requirements,
+    # fake_model_checkpoint
+):
     """
     Test 3DGAN torch lightning trainer by running it end-to-end.
     """
-    install_requirements(CERN_PATH, pytest.TORCH_PREFIX)
-    # cmd = (f"micromamba run -p {pytest.TORCH_PREFIX} python "
-    #        f"{CERN_PATH}/train.py -p {CERN_PATH}/pipeline.yaml")
-    # cmd = (f"micromamba run -p {pytest.TORCH_PREFIX} itwinai exec-pipeline "
-    #        f"--config {CERN_PATH}/inference-pipeline.yaml")
+    install_requirements(CERN_PATH, torch_env)
 
-    getter_params = "pipeline.init_args.steps.dataloading_step.init_args"
-    trainer_params = "pipeline.init_args.steps.inference_step.init_args"
-    logger_params = trainer_params + ".config.trainer.logger.init_args"
-    data_params = trainer_params + ".config.data.init_args"
-    saver_params = "pipeline.init_args.steps.saver_step.init_args"
+    # Create fake inference dataset and checkpoint
+    exec = os.path.join(os.path.abspath(CERN_PATH),
+                        'create_inference_sample.py')
+    cmd = (f"{torch_env}/bin/python {exec} "
+           f"--root {tmp_test_dir} "
+           f"--ckpt-name {CKPT_NAME}")
+    subprocess.run(cmd.split(), check=True, cwd=tmp_test_dir)
+
+    # Test inference
+    conf = os.path.join(os.path.abspath(CERN_PATH), 'config.yaml')
     cmd = (
-        'itwinai exec-pipeline '
-        '--config use-cases/3dgan/inference-pipeline.yaml '
-        f'-o {getter_params}.data_path=exp_data '
-        f'-o {trainer_params}.model.init_args.model_uri={CKPT_PATH} '
-        f'-o {trainer_params}.config.trainer.accelerator=cpu '
-        f'-o {trainer_params}.config.trainer.strategy=auto '
-        f'-o {logger_params}.save_dir=ml_logs/mlflow_logs '
-        f'-o {data_params}.datapath=exp_data/*/*.h5 '
-        f'-o {saver_params}.save_dir=3dgan-generated-data '
+        f'{torch_env}/bin/itwinai exec-pipeline '
+        f'--config {conf} --pipe-key inference_pipeline '
+        '-o dataset_location=exp_data '
+        f'-o inference_model_uri={CKPT_NAME} '
+        '-o hw_accelerators=auto '
+        '-o distributed_strategy=auto '
+        '-o logs_dir=ml_logs/mlflow_logs '
+        '-o inference_results_location=3dgan-generated-data '
     )
-    subprocess.run(cmd.split(), check=True)
+    subprocess.run(cmd.split(), check=True, cwd=CERN_PATH)

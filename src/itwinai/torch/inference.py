@@ -6,8 +6,7 @@ import torch
 from torch import nn
 from torch.utils.data import DataLoader, Dataset
 
-from ..utils import dynamically_import_class
-from .utils import clear_key
+from ..utils import dynamically_import_class, clear_key
 from ..components import Predictor, monitor_exec
 from .types import TorchDistributedStrategy as StrategyT
 from .types import Metric, Batch

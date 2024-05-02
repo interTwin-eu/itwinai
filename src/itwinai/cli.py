@@ -16,7 +16,7 @@ from pathlib import Path
 import typer
 
 
-app = typer.Typer()
+app = typer.Typer(pretty_exceptions_enable=False)
 
 
 @app.command()
@@ -27,9 +27,6 @@ def scalability_report(
     plot_title: Annotated[Optional[str], typer.Option(
         help=("Plot name.")
     )] = None,
-    logy: Annotated[bool, typer.Option(
-        help=("Log scale on y axis.")
-    )] = False,
     skip_id: Annotated[Optional[int], typer.Option(
         help=("Skip epoch ID.")
     )] = None,
@@ -43,15 +40,17 @@ def scalability_report(
 
     Example:
     >>> itwinai scalability-report --pattern="^epoch.+\\.csv$" --skip-id 0 \\
-    >>>     --plot-title "Some title" --logy --archive archive_name
+    >>>     --plot-title "Some title" --archive archive_name
     """
     # TODO: add max depth and path different from CWD
     import os
     import re
+    import glob
     import shutil
     import pandas as pd
+    import matplotlib
     import matplotlib.pyplot as plt
-    # import numpy as np
+    import numpy as np
 
     regex = re.compile(r'{}'.format(pattern))
     combined_df = pd.DataFrame()
@@ -83,7 +82,13 @@ def scalability_report(
     if plot_title is not None:
         fig.suptitle(plot_title)
 
-    for name in set(avg_times.name.values):
+    sp_up_ax.set_yscale("log")
+    sp_up_ax.set_xscale("log")
+
+    markers = iter("ov^s*dXpD.+12348")
+
+    series_names = sorted(set(avg_times.name.values))
+    for name in series_names:
         df = avg_times[avg_times.name == name].drop(columns='name')
 
         # Debug
@@ -104,32 +109,27 @@ def scalability_report(
         df["Efficiency"] = df["Threadscaled Sim. Time / s"].iloc[0] / \
             df["Threadscaled Sim. Time / s"]
 
-        # Plot
-        # when lines are very close to each other
-        if logy:
-            sp_up_ax.semilogy(
-                df["NGPUs"].values, df["Speedup"].values,
-                marker='*', lw=1.0, label=name)
-        else:
-            sp_up_ax.plot(
-                df["NGPUs"].values, df["Speedup"].values,
-                marker='*', lw=1.0, label=name)
+        sp_up_ax.plot(
+            df["NGPUs"].values, df["Speedup"].values,
+            marker=next(markers), lw=1.0, label=name, alpha=0.7)
 
-    if logy:
-        sp_up_ax.semilogy(df["NGPUs"].values, df["Speedup - ideal"].values,
-                          ls='dashed', lw=1.0, c='k', label="ideal")
-    else:
-        sp_up_ax.plot(df["NGPUs"].values, df["Speedup - ideal"].values,
-                      ls='dashed', lw=1.0, c='k', label="ideal")
+    sp_up_ax.plot(df["NGPUs"].values, df["Speedup - ideal"].values,
+                  ls='dashed', lw=1.0, c='k', label="ideal")
     sp_up_ax.legend(ncol=1)
 
     sp_up_ax.set_xticks(df["NGPUs"].values)
-    # sp_up_ax.set_yticks(
-    #     np.arange(1, np.max(df["Speedup - ideal"].values) + 2, 1))
+    sp_up_ax.get_xaxis().set_major_formatter(
+        matplotlib.ticker.ScalarFormatter())
 
     sp_up_ax.set_ylabel('Speedup')
     sp_up_ax.set_xlabel('NGPUs (4 per node)')
     sp_up_ax.grid()
+
+    # Sort legend
+    handles, labels = sp_up_ax.get_legend_handles_labels()
+    order = np.argsort(labels)
+    plt.legend([handles[idx] for idx in order], [labels[idx] for idx in order])
+
     plot_png = f"scaling_plot_{plot_title}.png"
     plt.tight_layout()
     plt.savefig(plot_png, bbox_inches='tight', format='png', dpi=300)
@@ -151,6 +151,18 @@ def scalability_report(
                                                   os.path.basename(csvfile)))
         shutil.copyfile(plot_png, os.path.join(archive, plot_png))
         avg_times.to_csv(os.path.join(archive, "avg_times.csv"), index=False)
+        print("Archived AVG epoch times CSV")
+
+        # Copy SLURM logs: *.err *.out files
+        if os.path.exists('logs_slurm'):
+            print("Archived SLURM logs")
+            shutil.copytree('logs_slurm', os.path.join(archive, 'logs_slurm'))
+        # Copy other SLURM logs
+        for ext in ['*.out', '*.err']:
+            for file in glob.glob(ext):
+                shutil.copyfile(file, os.path.join(archive, file))
+
+        # Create archive
         archive_name = shutil.make_archive(
             base_name=archive,  # archive file name
             format='gztar',
@@ -170,6 +182,11 @@ def exec_pipeline(
         help=("Key in the configuration file identifying "
               "the pipeline object to execute.")
     )] = "pipeline",
+    steps: Annotated[Optional[str], typer.Option(
+        help=("Run only some steps of the pipeline. Accepted values are "
+              "indices, python slices (e.g., 0:3 or 2:10:100), and "
+              "string names of steps.")
+    )] = None,
     print_config: Annotated[bool, typer.Option(
         help=("Print config to be executed after overrides.")
     )] = False,
@@ -195,11 +212,14 @@ def exec_pipeline(
     # to find the local python files imported from the pipeline file
     import os
     import sys
+    import re
+    from .utils import str_to_slice
     sys.path.append(os.path.dirname(config))
     sys.path.append(os.getcwd())
 
     # Parse and execute pipeline
     from itwinai.parser import ConfigParser
+    overrides_list = overrides_list if overrides_list is not None else []
     overrides = {
         k: v for k, v
         in map(lambda x: (x.split('=')[0], x.split('=')[1]), overrides_list)
@@ -213,7 +233,17 @@ def exec_pipeline(
         print("#="*50)
         print()
     pipeline = parser.parse_pipeline(pipeline_nested_key=pipe_key)
+    if steps:
+        if not re.match(r"\d+(:\d+)?(:\d+)?", steps):
+            print(f"Looking for step name '{steps}'")
+        else:
+            steps = str_to_slice(steps)
+        pipeline = pipeline[steps]
     pipeline.execute()
+
+    # Cleanup PYTHONPATH
+    sys.path.pop()
+    sys.path.pop()
 
 
 @app.command()

@@ -114,4 +114,3 @@ else
   >&2 echo "ERROR: unrecognized \$DIST_MODE env variable"
   exit 1
 fi
-

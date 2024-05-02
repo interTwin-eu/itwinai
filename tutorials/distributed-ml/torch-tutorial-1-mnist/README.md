@@ -33,19 +33,43 @@ should be used to run it:
 If you want to distribute the code in `train.py` with **torch DDP**, run from terminal:
   
 ```bash
-sbatch ddp_slurm.sh
+export DIST_MODE="ddp"
+export RUN_NAME="ddp-itwinai"
+export TRAINING_CMD="train.py -s ddp -c config.yaml"
+export PYTHON_VENV="../../../envAI_hdfml"
+sbatch --export=ALL,DIST_MODE="$DIST_MODE",RUN_NAME="$RUN_NAME",TRAINING_CMD="$TRAINING_CMD",PYTHON_VENV="$PYTHON_VENV" \
+    --job-name="$RUN_NAME-n$N" \
+    --output="logs_slurm/job-$RUN_NAME-n$N.out" \
+    --error="logs_slurm/job-$RUN_NAME-n$N.err" \
+    slurm.sh
 ```
 
 If you want to distribute the code in `train.py` with **DeepSpeed**, run from terminal:
   
 ```bash
-sbatch deepspeed_slurm.sh
+export DIST_MODE="deepspeed"
+export RUN_NAME="deepspeed-itwinai"
+export TRAINING_CMD="train.py -s deepspeed -c config.yaml"
+export PYTHON_VENV="../../../envAI_hdfml"
+sbatch --export=ALL,DIST_MODE="$DIST_MODE",RUN_NAME="$RUN_NAME",TRAINING_CMD="$TRAINING_CMD",PYTHON_VENV="$PYTHON_VENV" \
+    --job-name="$RUN_NAME-n$N" \
+    --output="logs_slurm/job-$RUN_NAME-n$N.out" \
+    --error="logs_slurm/job-$RUN_NAME-n$N.err" \
+    slurm.sh
 ```
 
 If you want to distribute the code in `train.py` with **Horovod**, run from terminal:
   
 ```bash
-sbatch hvd_slurm.sh
+export DIST_MODE="horovod"
+export RUN_NAME="horovod-itwinai"
+export TRAINING_CMD="train.py -s horovod -c config.yaml"
+export PYTHON_VENV="../../../envAI_hdfml"
+sbatch --export=ALL,DIST_MODE="$DIST_MODE",RUN_NAME="$RUN_NAME",TRAINING_CMD="$TRAINING_CMD",PYTHON_VENV="$PYTHON_VENV" \
+    --job-name="$RUN_NAME-n$N" \
+    --output="logs_slurm/job-$RUN_NAME-n$N.out" \
+    --error="logs_slurm/job-$RUN_NAME-n$N.err" \
+    slurm.sh
 ```
 
 You can run all of them with:

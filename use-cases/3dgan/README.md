@@ -19,30 +19,22 @@ micromamba virtual environment.
 
 ## Training
 
-At CERN, use the dedicated configuration file:
+Launch training using `itwinai` and the training configuration:
 
 ```bash
 cd use-cases/3dgan
-itwinai exec-pipeline --config cern-pipeline.yaml
+itwinai exec-pipeline --config config.yaml --pipe-key training_pipeline
 
 # Or better:
-micromamba run -p ../../.venv-pytorch/ torchrun --nproc_per_node gpu itwinai exec-pipeline --config cern-pipeline.yaml
+micromamba run -p ../../.venv-pytorch/ torchrun --nproc_per_node gpu \
+    itwinai exec-pipeline --config config.yaml --pipe-key training_pipeline
 ```
 
-Anywhere else, use the general purpose training configuration:
+To visualize the logs with MLFLow, if you set a local path as tracking URI,
+run the following in the terminal:
 
 ```bash
-cd use-cases/3dgan
-itwinai exec-pipeline --config pipeline.yaml
-
-# Or better:
-micromamba run -p ../../.venv-pytorch/ torchrun --nproc_per_node gpu itwinai exec-pipeline --config pipeline.yaml
-```
-
-To visualize the logs with MLFLow run the following in the terminal:
-
-```bash
-micromamba run -p ../../.venv-pytorch mlflow ui --backend-store-uri ml_logs/mlflow_logs
+micromamba run -p ../../.venv-pytorch mlflow ui --backend-store-uri LOCAL_TRACKING_URI
 ```
 
 And select the "3DGAN" experiment.
@@ -69,12 +61,8 @@ sub-folders:
 2. As model, if a pre-trained checkpoint is not available,
 we can create a dummy version of it with:
 
-    ```python
-    import torch
-    from model import ThreeDGAN
-    # Same params as in the training config file!
-    my_gan = ThreeDGAN()
-    torch.save(my_gan, '3dgan-inference.pth')
+    ```bash
+    python create_inference_sample.py
     ```
 
 3. Run inference command. This will generate a `3dgan-generated-data`
@@ -82,7 +70,7 @@ folder containing generated particle traces in form of torch tensors
 (.pth files) and 3D scatter plots (.jpg images).
 
     ```bash
-    itwinai exec-pipeline --config inference-pipeline.yaml
+    itwinai exec-pipeline --config config.yaml --pipe-key inference_pipeline
     ```
 
 The inference execution will produce a folder called
@@ -120,19 +108,20 @@ export STRATEGY="auto" # distributed strategy
 export DEVICES="0," # GPU devices list
 
 
-itwinai exec-pipeline --print-config --config $CERN_CODE_ROOT/inference-pipeline.yaml \
--o pipeline.init_args.steps.dataloading_step.init_args.data_path=$TMP_DATA_ROOT/exp_data \
--o pipeline.init_args.steps.inference_step.init_args.config.trainer.logger.init_args.save_dir=$TMP_DATA_ROOT/ml_logs/mlflow_logs \
--o pipeline.init_args.steps.inference_step.init_args.config.trainer.strategy=$STRATEGY \
--o pipeline.init_args.steps.inference_step.init_args.config.trainer.devices=$DEVICES \
--o pipeline.init_args.steps.inference_step.init_args.config.trainer.accelerator=$ACCELERATOR \
--o pipeline.init_args.steps.inference_step.init_args.model.init_args.model_uri=$CERN_CODE_ROOT/3dgan-inference.pth \
--o pipeline.init_args.steps.inference_step.init_args.config.data.init_args.datapath=$TMP_DATA_ROOT/exp_data/*/*.h5 \
--o pipeline.init_args.steps.inference_step.init_args.config.data.init_args.max_samples=$MAX_DATA_SAMPLES \
--o pipeline.init_args.steps.inference_step.init_args.config.data.init_args.batch_size=$BATCH_SIZE \
--o pipeline.init_args.steps.inference_step.init_args.config.data.init_args.num_workers=$NUM_WORKERS_DL \
--o pipeline.init_args.steps.saver_step.init_args.save_dir=$TMP_DATA_ROOT/3dgan-generated-data \
--o pipeline.init_args.steps.saver_step.init_args.aggregate_predictions=$AGGREGATE_PREDS 
+itwinai exec-pipeline --print-config --config $CERN_CODE_ROOT/config.yaml \
+    --pipe-key inference_pipeline \
+    -o dataset_location=$CERN_DATA_ROOT/exp_data \
+    -o logs_dir=$TMP_DATA_ROOT/ml_logs/mlflow_logs \
+    -o distributed_strategy=$STRATEGY \
+    -o devices=$DEVICES \
+    -o hw_accelerators=$ACCELERATOR \
+    -o checkpoints_path=\\$TMP_DATA_ROOT/checkpoints \
+    -o inference_model_uri=$CERN_CODE_ROOT/3dgan-inference.pth \
+    -o max_dataset_size=$MAX_DATA_SAMPLES \
+    -o batch_size=$BATCH_SIZE \
+    -o num_workers_dataloader=$NUM_WORKERS_DL \
+    -o inference_results_location=$TMP_DATA_ROOT/3dgan-generated-data \
+    -o aggregate_predictions=$AGGREGATE_PREDS
 ```
 
 ### Docker image
@@ -196,17 +185,20 @@ export ACCELERATOR="gpu" # choose "cpu" or "gpu"
 docker run -it --rm --name running-inference \
 -v "$PWD":/usr/data ghcr.io/intertwin-eu/itwinai:0.0.1-3dgan-0.1 \
 /bin/bash -c "itwinai exec-pipeline \
---config inference-pipeline.yaml --print-config \
--o pipeline.init_args.steps.dataloading_step.init_args.data_path=$CERN_DATA_ROOT/exp_data \
--o pipeline.init_args.steps.inference_step.init_args.config.trainer.logger.init_args.save_dir=$CERN_DATA_ROOT/ml_logs/mlflow_logs \
--o pipeline.init_args.steps.inference_step.init_args.config.trainer.accelerator=$ACCELERATOR \
--o pipeline.init_args.steps.inference_step.init_args.model.init_args.model_uri=$CERN_CODE_ROOT/3dgan-inference.pth \
--o pipeline.init_args.steps.inference_step.init_args.config.data.init_args.datapath=$CERN_DATA_ROOT/exp_data/*/*.h5 \
--o pipeline.init_args.steps.inference_step.init_args.config.data.init_args.max_samples=$MAX_DATA_SAMPLES \
--o pipeline.init_args.steps.inference_step.init_args.config.data.init_args.batch_size=$BATCH_SIZE \
--o pipeline.init_args.steps.inference_step.init_args.config.data.init_args.num_workers=$NUM_WORKERS_DL \
--o pipeline.init_args.steps.saver_step.init_args.save_dir=$CERN_DATA_ROOT/3dgan-generated-data \
--o pipeline.init_args.steps.saver_step.init_args.aggregate_predictions=$AGGREGATE_PREDS "
+    --print-config --config $CERN_CODE_ROOT/config.yaml \
+    --pipe-key inference_pipeline \
+    -o dataset_location=$CERN_DATA_ROOT/exp_data \
+    -o logs_dir=$TMP_DATA_ROOT/ml_logs/mlflow_logs \
+    -o distributed_strategy=$STRATEGY \
+    -o devices=$DEVICES \
+    -o hw_accelerators=$ACCELERATOR \
+    -o checkpoints_path=\\$TMP_DATA_ROOT/checkpoints \
+    -o inference_model_uri=$CERN_CODE_ROOT/3dgan-inference.pth \
+    -o max_dataset_size=$MAX_DATA_SAMPLES \
+    -o batch_size=$BATCH_SIZE \
+    -o num_workers_dataloader=$NUM_WORKERS_DL \
+    -o inference_results_location=$TMP_DATA_ROOT/3dgan-generated-data \
+    -o aggregate_predictions=$AGGREGATE_PREDS "
 ```
 
 #### How to fully exploit GPU resources
@@ -231,7 +223,7 @@ Run Docker container with Singularity:
 
 ```bash
 singularity run --nv -B "$PWD":/usr/data docker://ghcr.io/intertwin-eu/itwinai:0.0.1-3dgan-0.1 /bin/bash -c \
-"cd /usr/src/app && itwinai exec-pipeline --config inference-pipeline.yaml"
+"cd /usr/src/app && itwinai exec-pipeline --config config.yaml --pipe-key inference_pipeline"
 ```
 
 Example with overrides (as above for Docker):
@@ -248,15 +240,18 @@ export ACCELERATOR="gpu" # choose "cpu" or "gpu"
 
 singularity run --nv -B "$PWD":/usr/data docker://ghcr.io/intertwin-eu/itwinai:0.0.1-3dgan-0.1 /bin/bash -c \
 "cd /usr/src/app && itwinai exec-pipeline \
---config inference-pipeline.yaml --print-config \
--o pipeline.init_args.steps.dataloading_step.init_args.data_path=$CERN_DATA_ROOT/exp_data \
--o pipeline.init_args.steps.inference_step.init_args.config.trainer.logger.init_args.save_dir=$CERN_DATA_ROOT/ml_logs/mlflow_logs \
--o pipeline.init_args.steps.inference_step.init_args.config.trainer.accelerator=$ACCELERATOR \
--o pipeline.init_args.steps.inference_step.init_args.model.init_args.model_uri=$CERN_CODE_ROOT/3dgan-inference.pth \
--o pipeline.init_args.steps.inference_step.init_args.config.data.init_args.datapath=$CERN_DATA_ROOT/exp_data/*/*.h5 \
--o pipeline.init_args.steps.inference_step.init_args.config.data.init_args.max_samples=$MAX_DATA_SAMPLES \
--o pipeline.init_args.steps.inference_step.init_args.config.data.init_args.batch_size=$BATCH_SIZE \
--o pipeline.init_args.steps.inference_step.init_args.config.data.init_args.num_workers=$NUM_WORKERS_DL \
--o pipeline.init_args.steps.saver_step.init_args.save_dir=$CERN_DATA_ROOT/3dgan-generated-data \
--o pipeline.init_args.steps.saver_step.init_args.aggregate_predictions=$AGGREGATE_PREDS "
+    --print-config --config $CERN_CODE_ROOT/config.yaml \
+    --pipe-key inference_pipeline \
+    -o dataset_location=$CERN_DATA_ROOT/exp_data \
+    -o logs_dir=$TMP_DATA_ROOT/ml_logs/mlflow_logs \
+    -o distributed_strategy=$STRATEGY \
+    -o devices=$DEVICES \
+    -o hw_accelerators=$ACCELERATOR \
+    -o checkpoints_path=\\$TMP_DATA_ROOT/checkpoints \
+    -o inference_model_uri=$CERN_CODE_ROOT/3dgan-inference.pth \
+    -o max_dataset_size=$MAX_DATA_SAMPLES \
+    -o batch_size=$BATCH_SIZE \
+    -o num_workers_dataloader=$NUM_WORKERS_DL \
+    -o inference_results_location=$TMP_DATA_ROOT/3dgan-generated-data \
+    -o aggregate_predictions=$AGGREGATE_PREDS "
 ```

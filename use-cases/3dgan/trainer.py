@@ -23,17 +23,22 @@ from dataloader import ParticlesDataModule
 
 
 class Lightning3DGANTrainer(Trainer):
-    def __init__(self, config: Union[Dict, str]):
+    def __init__(self, config: Union[Dict, str], exp_root: str = '.'):
         self.save_parameters(**self.locals2params(locals()))
         super().__init__()
         if isinstance(config, str) and os.path.isfile(config):
             # Load from YAML
             config = load_yaml(config)
         self.conf = config
+        self.exp_root = exp_root
 
     @monitor_exec
     def execute(self) -> Any:
-        init_lightning_mlflow(self.conf, registered_model_name='3dgan-lite')
+        init_lightning_mlflow(
+            self.conf,
+            tmp_dir=os.path.join(self.exp_root, '.tmp'),
+            registered_model_name='3dgan-lite'
+        )
         old_argv = sys.argv
         sys.argv = ['some_script_placeholder.py']
         cli = LightningCLI(
@@ -51,12 +56,6 @@ class Lightning3DGANTrainer(Trainer):
         sys.argv = old_argv
         cli.trainer.fit(cli.model, datamodule=cli.datamodule)
         teardown_lightning_mlflow()
-
-    def save_state(self):
-        return super().save_state()
-
-    def load_state(self):
-        return super().load_state()
 
 
 class LightningModelLoader(TorchModelLoader):

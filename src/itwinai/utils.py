@@ -1,14 +1,11 @@
 """
 Utilities for itwinai package.
 """
-from typing import Dict, Type, Callable, Tuple
-import os
+from typing import Dict, Type, Callable, Tuple, Hashable
 import sys
 import inspect
 from collections.abc import MutableMapping
 import yaml
-from omegaconf import OmegaConf
-from omegaconf.dictconfig import DictConfig
 
 
 def load_yaml(path: str) -> Dict:
@@ -30,32 +27,6 @@ def load_yaml(path: str) -> Dict:
             print(exc)
             raise exc
     return loaded_config
-
-
-def load_yaml_with_deps(path: str) -> DictConfig:
-    """
-    Load YAML file with OmegaConf and merge it with its dependencies
-    specified in the `conf-dependencies` field.
-    Assume that the dependencies live in the same folder of the
-    YAML file which is importing them.
-
-    Args:
-        path (str): path to YAML file.
-
-    Raises:
-        exc: yaml.YAMLError for loading/parsing errors.
-
-    Returns:
-        DictConfig: nested representation of parsed YAML file.
-    """
-    yaml_conf = load_yaml(path)
-    use_case_dir = os.path.dirname(path)
-    deps = []
-    if yaml_conf.get("conf-dependencies"):
-        for dependency in yaml_conf["conf-dependencies"]:
-            deps.append(load_yaml(os.path.join(use_case_dir, dependency)))
-
-    return OmegaConf.merge(yaml_conf, *deps)
 
 
 def dynamically_import_class(name: str) -> Type:
@@ -115,18 +86,6 @@ def flatten_dict(
     return dict(items)
 
 
-# Parse (part of) YAML loaded in memory
-def parse_pipe_config(yaml_file, parser):
-    with open(yaml_file, "r", encoding="utf-8") as f:
-        try:
-            config = yaml.safe_load(f)
-        except yaml.YAMLError as exc:
-            print(exc)
-            raise exc
-
-    return parser.parse_object(config)
-
-
 class SignatureInspector:
     """Provides the functionalities to inspect the signature of a function
     or a method.
@@ -181,3 +140,42 @@ class SignatureInspector:
         if self.has_kwargs or self.has_varargs:
             return self.INFTY
         return len(self.func_params)
+
+
+def str_to_slice(interval: str) -> slice:
+    import re
+    # TODO: add support for slices starting with empty index
+    # e.g., :20:3
+    if not re.match(r"\d+(:\d+)?(:\d+)?", interval):
+        raise ValueError(
+            f"Received invalid interval for slice: '{interval}'"
+        )
+    if ":" in interval:
+        return slice(*map(
+            lambda x: int(x.strip()) if x.strip() else None,
+            interval.split(':')
+        ))
+    return int(interval)
+
+
+def clear_key(
+        my_dict: Dict,
+        dict_name: str,
+        key: Hashable,
+        complain: bool = True
+) -> Dict:
+    """Remove key from dictionary if present and complain.
+
+    Args:
+        my_dict (Dict): Dictionary.
+        dict_name (str): name of the dictionary.
+        key (Hashable): Key to remove.
+    """
+    if key in my_dict:
+        if complain:
+            print(
+                f"Field '{key}' should not be present "
+                f"in dictionary '{dict_name}'"
+            )
+        del my_dict[key]
+    return my_dict

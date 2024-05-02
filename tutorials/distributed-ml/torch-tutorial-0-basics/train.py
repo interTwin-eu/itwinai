@@ -2,19 +2,23 @@
 Show how to use DDP, Horovod and DeepSpeed strategies interchangeably
 with an extremely simple neural network.
 """
-from typing import Any
-import os
+from typing import Dict
 import argparse
+import time
 
 import torch
 from torch import nn
-from torch.utils.data import DataLoader, Dataset, DistributedSampler
+from torch.utils.data import Dataset
+
+import horovod.torch as hvd
 
 from itwinai.torch.distributed import (
+    distributed_resources_available,
     TorchDistributedStrategy,
-    DDPDistributedStrategy,
-    HVDDistributedStrategy,
-    DSDistributedStrategy,
+    TorchDDPStrategy,
+    HorovodStrategy,
+    DeepSpeedStrategy,
+    NonDistributedStrategy
 )
 
 
@@ -29,6 +33,9 @@ def parse_args() -> argparse.Namespace:
         "--shuffle_dataloader",
         action=argparse.BooleanOptionalAction
     )
+    parser.add_argument(
+        '--batch-size', type=int, default=10,
+        help='input batch size for training (default: 10)')
 
     # DeepSpeed: needs to be removed
     import deepspeed
@@ -55,42 +62,31 @@ class UniformRndDataset(Dataset):
         return torch.rand(self.x_size), torch.rand(self.y_size)
 
 
-def trainer_entrypoint_fn(
-        foo: Any, args: argparse.Namespace, strategy: TorchDistributedStrategy
+def training_fn(
+        args: argparse.Namespace,
+        strategy: TorchDistributedStrategy,
+        distribute_kwargs: Dict
 ) -> int:
-    """Dummy training function. This emulates custom code developed
-    by some use case.
-    """
+    """Dummy training function."""
     strategy.init()
-    print(f"{foo}: {os.environ.get('RANK')} {os.environ.get('LOCAL_RANK')} "
-          f"{os.environ.get('MASTER_ADDR')} {os.environ.get('MASTER_PORT')}")
 
     # Local model
     model = nn.Linear(3, 4)
     optim = torch.optim.Adam(model.parameters(), lr=1e-3)
     loss_fn = nn.MSELoss()
     # Distributed model
-    deepspeed_config = dict(train_batch_size=32)
-    # 'config_params' key is ignored if strategy != DSDistributedStrategy
     model, optim, lr_sched = strategy.distributed(
-        model, optim, lr_scheduler=None, config_params=deepspeed_config
+        model, optim, lr_scheduler=None, **distribute_kwargs
     )
 
     # Data
     train_set = UniformRndDataset(x_size=3, y_size=4)
     # Distributed dataloader
-    train_loader = DataLoader(
-        train_set, batch_size=10, num_workers=1,
-        sampler=DistributedSampler(
-            train_set,
-            num_replicas=strategy.dist_gwsize(),
-            rank=strategy.dist_grank(),
-            shuffle=args.shuffle_dataloader
-        )
-    )
+    train_loader = strategy.create_dataloader(
+        train_set, batch_size=args.batch_size, num_workers=1)
 
     # Device allocated for this worker
-    device = strategy.dist_device()
+    device = strategy.device()
 
     for epoch in range(2):
         for (x, y) in train_loader:
@@ -107,7 +103,7 @@ def trainer_entrypoint_fn(
 
             optim.step()
 
-            if strategy.is_main_worker():
+            if strategy.is_main_worker:
                 print(f"Loss [epoch={epoch}]: {loss.item()}")
             print(f"NNLoss [epoch={epoch}]: {loss.item()}")
 
@@ -115,7 +111,8 @@ def trainer_entrypoint_fn(
         if lr_sched:
             lr_sched.step()
 
-    print(f"<Global rank: {strategy.dist_grank()}> - TRAINING FINISHED")
+    time.sleep(1)
+    print(f"<Global rank: {strategy.global_rank()}> - TRAINING FINISHED")
     strategy.clean_up()
     return 123
 
@@ -125,19 +122,27 @@ if __name__ == "__main__":
     args = parse_args()
 
     # Instantiate Strategy
-    if args.strategy == 'ddp':
-        if (not torch.cuda.is_available()
-                or not torch.cuda.device_count() > 1):
-            raise RuntimeError('Resources unavailable')
-
-        strategy = DDPDistributedStrategy(backend='nccl')
+    if not distributed_resources_available():
+        print("WARNING: falling back to non-distributed strategy.")
+        strategy = NonDistributedStrategy()
+        distribute_kwargs = {}
+    elif args.strategy == 'ddp':
+        strategy = TorchDDPStrategy(backend='nccl')
+        distribute_kwargs = {}
     elif args.strategy == 'horovod':
-        strategy = HVDDistributedStrategy()
+        strategy = HorovodStrategy()
+        distribute_kwargs = dict(
+            compression=hvd.Compression.none,
+            op=hvd.Average,
+            gradient_predivide_factor=1.0
+        )
     elif args.strategy == 'deepspeed':
-        strategy = DSDistributedStrategy(backend='nccl')
+        strategy = DeepSpeedStrategy(backend='nccl')
+        distribute_kwargs = dict(
+            config_params=dict(train_micro_batch_size_per_gpu=args.batch_size)
+        )
     else:
         raise NotImplementedError(
             f"Strategy {args.strategy} is not recognized/implemented.")
-
     # Launch distributed training
-    trainer_entrypoint_fn("foobar", args, strategy)
+    training_fn(args, strategy, distribute_kwargs)

@@ -104,5 +104,8 @@ if [ "$cont1" = true ] ; then
   pip3 install -r reqs_TF.txt --ignore-installed
 fi
 
+# Install itwinai
+pip install --upgrade pip
+pip install -e .[dev]
 
 # eof

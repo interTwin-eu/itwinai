@@ -53,3 +53,14 @@ nodeSelector:
 ```
 
 Additional info in [interLink](https://github.com/interTwin-eu/interLink) docs.
+
+## Secrets
+
+See [this guide](https://kubernetes.io/docs/tasks/inject-data-application/distribute-credentials-secure/#define-container-environment-variables-using-secret-data)
+on how to set Kubernetes secretes as env variables of a container.
+
+Example:
+
+```bash
+kubectl create secret generic mlflow-server --from-literal=username='XYZ' --from-literal=password='ABC'
+```

@@ -12,6 +12,10 @@ CHANGELOG
 # Docs
 docs
 
+# interLink pods
+**/interLink
+**/interlink
+
 # Data
 **/MNIST
 **/*-predictions/
