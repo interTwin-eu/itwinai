@@ -30,6 +30,11 @@ ml Stages/2024 GCC/12.3.0 OpenMPI CUDA/12 MPI-settings/CUDA Python HDF5 PnetCDF 
 # set env - change to location of your environment
 source itwinai/envAItf_hdfml/bin/activate
 
+# Using legacy (2.16) version of Keras
+# Latest version with TF (2.16) installs Keras 3.3
+# which returns an error for multi-node execution
+export TF_USE_LEGACY_KERAS=1
+ 
 # sleep a sec
 sleep 1
 
