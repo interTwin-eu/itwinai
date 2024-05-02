@@ -1,8 +1,9 @@
 # Install PyTorch env (GPU support)
 torch-env:
-	python -m venv .venv-pytorch
+	python3 -m venv .venv-pytorch
 	.venv-pytorch/bin/pip install -e .[dev,torch]
 	@# Install horovod AFTER torch
+	@# https://github.com/horovod/horovod/pull/3998
 	env HOROVOD_CPU_OPERATIONS=MPI \
 		HOROVOD_GPU_ALLREDUCE=NCCL \
 		HOROVOD_NCCL_LINK=SHARED \
@@ -10,20 +11,21 @@ torch-env:
 		HOROVOD_WITH_PYTORCH=1 \
 		HOROVOD_WITHOUT_TENSORFLOW=1 \
 		HOROVOD_WITHOUT_MXNET=1 \
-		bash -c '.venv-pytorch/bin/pip install --no-cache-dir horovod[pytorch]'
+		bash -c '.venv-pytorch/bin/pip install --no-cache-dir git+https://github.com/thomas-bouvier/horovod.git@compile-cpp17'
 
 # Install PyTorch env (Horovod has not NCCL support)
 torch-env-cpu:
-	python -m venv .venv-pytorch
+	python3 -m venv .venv-pytorch
 	.venv-pytorch/bin/pip install -e .[dev,torch]
 	@# Install horovod AFTER torch
+	@# https://github.com/horovod/horovod/pull/3998
 	env HOROVOD_WITH_PYTORCH=1 \
 		HOROVOD_WITHOUT_TENSORFLOW=1 \
 		HOROVOD_WITHOUT_MXNET=1 \
-		bash -c '.venv-pytorch/bin/pip install --no-cache-dir horovod[pytorch]'
+		bash -c '.venv-pytorch/bin/pip install --no-cache-dir git+https://github.com/thomas-bouvier/horovod.git@compile-cpp17'
 
 tensorflow-env:
-	python -m venv .venv-tf
+	python3 -m venv .venv-tf
 	.venv-tf/bin/pip install -e .[dev,tensorflow]
 
 torch-gpu-mamba: env-files/torch/pytorch-env-gpu.yml

@@ -13,6 +13,23 @@ Requirements:
 
 - Linux environment. Windows and macOS were never tested.
 
+### Python virtual environment
+
+Depending on your environment, there are different ways to
+select a specific python version. If you are working on a laptop
+or on a simple on-prem setup, you could consider using
+[pyenv](https://github.com/pyenv/pyenv). See the
+[installation instructions](https://github.com/pyenv/pyenv?tab=readme-ov-file#installation). If you are using pyenv,
+make sure to read [this](https://github.com/pyenv/pyenv/wiki#suggested-build-environment).
+
+Once the correct Python version is loaded, create the virtual
+environments using our pre-make Makefile:
+
+```bash
+make torch-env
+make tensorflow-env
+```
+
 ### Micromamba installation
 
 To manage Conda environments we use micromamba, a light weight version of conda.

@@ -26,6 +26,7 @@ def test_3dgan_train(torch_env, tmp_test_dir, install_requirements):
            f"--config {conf} --pipe-key training_pipeline "
            '-o hw_accelerators=auto '
            '-o distributed_strategy=auto '
+           '-o mlflow_tracking_uri=ml_logs/mlflow'
            )
     subprocess.run(cmd.split(), check=True, cwd=tmp_test_dir)
 
