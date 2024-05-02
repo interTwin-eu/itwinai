@@ -63,4 +63,4 @@ def test_3dgan_inference(
         '-o logs_dir=ml_logs/mlflow_logs '
         '-o inference_results_location=3dgan-generated-data '
     )
-    subprocess.run(cmd.split(), check=True, cwd=CERN_PATH)
+    subprocess.run(cmd.split(), check=True, cwd=tmp_test_dir)

@@ -62,7 +62,8 @@ class TorchModelLoader(ModelLoader):
             return model.eval()
 
         raise ValueError(
-            'Unrecognized model URI: model may not be there!'
+            'Unrecognized model URI: model may not be there! '
+            f'Received model URI: {self.model_uri}'
         )
 
 
