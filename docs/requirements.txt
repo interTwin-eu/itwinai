@@ -2,4 +2,4 @@ Sphinx==7.2.6
 sphinx-rtd-theme==2.0.0
 
 # local path to itwinai module, assuming that pip install -r docs/requirements.txt is run form the repository root
-.[dev]
+.
