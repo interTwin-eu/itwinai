@@ -47,7 +47,7 @@ torch = [
     # Horovod cannot be compiled with torch>=2.1
     # See: https://github.com/horovod/horovod/issues/3996
     # and https://github.com/horovod/horovod/pull/3998
-    "torch==2.0.*",
+    "torch",
     "torchvision",
     "torchmetrics",
     "lightning",
