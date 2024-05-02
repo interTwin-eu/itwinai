@@ -51,10 +51,11 @@ torch = [
     "torchvision",
     "torchmetrics",
     "lightning",
+    "wheel",        # needed by horovod and deepspeed
     "deepspeed",
     # "horovod[pytorch]", # needs to be installed AFTER torch
 ]
-tensorflow = ["tensorflow[and-cuda]"] # "horovod[tensorflow,keras]"
+tensorflow = ["tensorflow[and-cuda]==2.13.*"] # "horovod[tensorflow,keras]"
 dev = [
     "pytest>=7.4.2",
     "pytest-mock>=3.11.1",
