@@ -180,7 +180,7 @@ class TensorflowDataGetter(DataGetter):
         if not exists(join(root_dir, self.data_path)):
             gdown.download_folder(
                 url=self.data_url, quiet=False,
-                verify=False,
+                # verify=False,
                 output=join(root_dir, self.data_path)
             )
 

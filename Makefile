@@ -2,6 +2,25 @@
 torch-env:
 	python -m venv .venv-pytorch
 	.venv-pytorch/bin/pip install -e .[dev,torch]
+	@# Install horovod AFTER torch
+	env HOROVOD_CPU_OPERATIONS=MPI \
+		HOROVOD_GPU_ALLREDUCE=NCCL \
+		HOROVOD_NCCL_LINK=SHARED \
+		HOROVOD_NCCL_HOME=$EBROOTNCCL \
+		HOROVOD_WITH_PYTORCH=1 \
+		HOROVOD_WITHOUT_TENSORFLOW=1 \
+		HOROVOD_WITHOUT_MXNET=1 \
+		bash -c '.venv-pytorch/bin/pip install --no-cache-dir horovod[pytorch]'
+
+# Install PyTorch env (Horovod has not NCCL support)
+torch-env-cpu:
+	python -m venv .venv-pytorch
+	.venv-pytorch/bin/pip install -e .[dev,torch]
+	@# Install horovod AFTER torch
+	env HOROVOD_WITH_PYTORCH=1 \
+		HOROVOD_WITHOUT_TENSORFLOW=1 \
+		HOROVOD_WITHOUT_MXNET=1 \
+		bash -c '.venv-pytorch/bin/pip install --no-cache-dir horovod[pytorch]'
 
 tensorflow-env:
 	python -m venv .venv-tf

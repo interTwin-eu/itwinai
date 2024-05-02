@@ -8,8 +8,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "itwinai"
-version = "0.1"
-description = "AI and ML workflows module for interTwin"
+version = "0.0.1"
+description = "AI and ML workflows module for scientific digital twins."
 readme = "README.md"
 requires-python = ">=3.9"
 license = { file = "LICENSE" }
@@ -37,29 +37,22 @@ dependencies = [
     "omegaconf",
     "rich>=13.5.3",
     "typer>=0.9.0",
-    # "packaging",                #horovod
-    # "wheel",                    #horovod
-    # "wandb>=0.15.11",
-    # "mlflow>=2.7",
-    # "jsonargparse[signatures]>=4.17.0",
-    # "pyyaml>=6.0.1",
-    # "omegaconf>=2.3.0",
-    # "submitit>=1.4.6",
-    # "typing-extensions==4.5.0",
-    # "typing_extensions==4.5.0",
-    # "urllib3>=2.0.5",
 ]
 
 # dynamic = ["version", "description"]
 
 [project.optional-dependencies]
 torch = [
-    "torch",
+    # Natively we can support up to torch 2.0.1, because
+    # Horovod cannot be compiled with torch>=2.1
+    # See: https://github.com/horovod/horovod/issues/3996
+    # and https://github.com/horovod/horovod/pull/3998
+    "torch==2.0.*",
     "torchvision",
     "torchmetrics",
     "lightning",
     "deepspeed",
-    # "horovod[pytorch]",
+    # "horovod[pytorch]", # needs to be installed AFTER torch
 ]
 tensorflow = ["tensorflow[and-cuda]"] # "horovod[tensorflow,keras]"
 dev = [
