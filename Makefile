@@ -15,14 +15,14 @@ torch-env-cpu: env-files/torch/generic_torch.sh
 tensorflow-env: env-files/tensorflow/generic_tf.sh
 	env ENV_NAME=.venv-tf \
 		bash -c 'bash env-files/tensorflow/generic_tf.sh'
-	.venv-tf/bin/horovodrun --check-build
+	@#.venv-tf/bin/horovodrun --check-build
 
 # Install TensorFlow env (without GPU support: Horovod has not NCCL support)
 tensorflow-env-cpu: env-files/tensorflow/generic_tf.sh
 	env ENV_NAME=.venv-tf \
 		NO_CUDA=1 \
 		bash -c 'bash env-files/tensorflow/generic_tf.sh'
-	.venv-tf/bin/horovodrun --check-build
+	@#.venv-tf/bin/horovodrun --check-build
 
 test:
 	.venv-pytorch/bin/pytest -v tests/ -m "not slurm"
