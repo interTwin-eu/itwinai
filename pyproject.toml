@@ -44,6 +44,14 @@ dependencies = [
 
 [project.optional-dependencies]
 torch = ["lightning", "torchmetrics"]
+# torch-cpu = [
+#     "torch==2.1.*",
+#     "torchvision",
+#     "torchaudio",
+#     "lightning",
+#     "torchmetrics",
+#     "deepspeed",
+# ]
 dev = [
     "pytest>=7.4.2",
     "pytest-mock>=3.11.1",

@@ -48,6 +48,7 @@ else
     pip3 install --no-cache-dir \
       torch==2.1.* torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
   else
+    # CPU only installation
     pip3 install --no-cache-dir \
       torch==2.1.* torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
   fi
@@ -85,12 +86,6 @@ if [ -f "${cDir}/$ENV_NAME/bin/horovodrun" ]; then
 else
 
   if [ -z "$NO_CUDA" ]; then
-    export LDSHARED="$CC -shared" &&
-    export CMAKE_CXX_STANDARD=17 
-    export HOROVOD_WITH_PYTORCH=1
-    export HOROVOD_WITHOUT_TENSORFLOW=1
-    export HOROVOD_WITHOUT_MXNET=1
-  else
     # compiler vars
     export LDSHARED="$CC -shared" &&
     export CMAKE_CXX_STANDARD=17 
@@ -105,6 +100,11 @@ else
     export HOROVOD_NCCL_HOME=$EBROOTNCCL
 
     # Host language vars
+    export HOROVOD_WITH_PYTORCH=1
+    export HOROVOD_WITHOUT_TENSORFLOW=1
+    export HOROVOD_WITHOUT_MXNET=1
+  else
+    # CPU only installation
     export HOROVOD_WITH_PYTORCH=1
     export HOROVOD_WITHOUT_TENSORFLOW=1
     export HOROVOD_WITHOUT_MXNET=1

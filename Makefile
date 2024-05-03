@@ -108,7 +108,7 @@ tf-2.13-cpu: env-files/tensorflow/tensorflow-2.13-cpu.yml
 # 	env HOROVOD_CPU_OPERATIONS=MPI \
 # 		HOROVOD_GPU_ALLREDUCE=NCCL \
 # 		HOROVOD_NCCL_LINK=SHARED \
-# 		HOROVOD_NCCL_HOME=$EBROOTNCCL \
+# 		HOROVOD_NCCL_HOME=$$EBROOTNCCL \
 # 		HOROVOD_WITH_PYTORCH=1 \
 # 		HOROVOD_WITHOUT_TENSORFLOW=1 \
 # 		HOROVOD_WITHOUT_MXNET=1 \
@@ -118,14 +118,15 @@ tf-2.13-cpu: env-files/tensorflow/tensorflow-2.13-cpu.yml
 # # Install PyTorch env (Horovod has not NCCL support)
 # torch-env-cpu:
 # 	python3 -m venv .venv-pytorch
-# 	.venv-pytorch/bin/pip install -e .[dev,torch]
+# 	.venv-pytorch/bin/pip install -e .[dev,torch-cpu]
 # 	@# Install horovod AFTER torch
 # 	@# https://github.com/horovod/horovod/pull/3998
 # 	env HOROVOD_WITH_PYTORCH=1 \
 # 		HOROVOD_WITHOUT_TENSORFLOW=1 \
 # 		HOROVOD_WITHOUT_MXNET=1 \
 # 		bash -c '.venv-pytorch/bin/pip install --no-cache-dir git+https://github.com/thomas-bouvier/horovod.git@compile-cpp17'
-# 	.venv-pytorch/bin/horovodrun --check-build 
+# 	.venv-pytorch/bin/horovodrun --check-build
+
 
 # # Install PyTorch env (without GPU support: Horovod has not NCCL support)
 # torch-env-cpu: 
