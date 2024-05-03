@@ -11,7 +11,7 @@ name = "itwinai"
 version = "0.0.1"
 description = "AI and ML workflows module for scientific digital twins."
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.11"
 license = { file = "LICENSE" }
 keywords = ["ml", "ai", "hpc"]
 authors = [
@@ -27,7 +27,10 @@ maintainers = [
     { name = "Rakesh Sarma", email = "r.sarma@fz-juelich.de" },
     { name = "Mario Ruettgers", email = "m.ruettgers@fz-juelich.de" },
 ]
-classifiers = ["Development Status :: Beta", "Programming Language :: Python"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Programming Language :: Python",
+]
 
 dependencies = [
     "wandb",
