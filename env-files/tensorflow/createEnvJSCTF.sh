@@ -16,16 +16,7 @@ echo "system:${sysN}"
 echo
 
 cont1=false
-if [ "$sysN" = 'deepv' ] ; then
-  ml use "$OTHERSTAGES"
-  ml Stages/2022 GCC OpenMPI cuDNN NCCL Python CMake
-  cont1=true
-elif [ "$sysN" = 'juwels' ] ; then
-  ml Stages/2022 GCC ParaStationMPI Python CMake NCCL libaio cuDNN
-  cont1=true
-elif [ "$sysN" = 'hdfml' ] ; then
-  #ml Stages/2022 GCC OpenMPI Python NCCL cuDNN libaio CMake
-  #ml Stages/2023 NVHPC/23.1 ParaStationMPI/5.8.0-1-mt NCCL/default-CUDA-11.7 cuDNN/8.6.0.163-CUDA-11.7 Python CMake
+if [ "$sysN" = 'hdfml' ] ; then
   ml Stages/2024 GCC/12.3.0 OpenMPI CUDA/12 MPI-settings/CUDA Python HDF5 PnetCDF libaio mpi4py CMake cuDNN/8.9.5.29-CUDA-12
   cont1=true
 else

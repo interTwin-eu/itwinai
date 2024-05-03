@@ -5,11 +5,11 @@ with SLURM:
 >>> sbatch tfmirrored_slurm.sh
 
 """
+import os
 from typing import Any
 import argparse
 import tensorflow as tf
 from tensorflow import keras
-import os
 from itwinai.tensorflow.distributed import get_strategy
 
 
