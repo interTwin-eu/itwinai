@@ -12,7 +12,6 @@ cDir=$PWD
 # get sys info
 sysN="$(uname -n | cut -f2- -d.)"
 sysN="${sysN%%[0-9]*}"
-sysN="test"
 
 # load modules
 ml --force purge

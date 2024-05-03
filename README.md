@@ -42,7 +42,93 @@ make torch-gpu-jsc
 make tf-gpu-jsc
 ```
 
-### Micromamba installation
+## Environment setup
+
+Requirements:
+
+- Linux environment. Windows and macOS were never tested.
+- VS Code, for development.
+
+### TensorFlow
+
+Installation:
+
+```bash
+# Install TensorFlow 2.13
+make tensorflow-env
+
+# Activate env
+source .venv-tf/bin/activate
+```
+
+A CPU-only version is available at the target `tensorflow-env-cpu`.
+
+### PyTorch (+ Lightning)
+
+Installation:
+
+```bash
+# Install PyTorch + lightning
+make torch-env
+
+# Activate env
+source .venv-pytorch/bin/activate
+```
+
+A CPU-only version is available at the target `torch-env-cpu`.
+
+### Development environment
+
+This is for developers only. To have it, update the installed `itwinai` package
+adding the `dev` extra:
+
+```bash
+pip install -e .[dev]
+```
+
+#### Test with `pytest`
+
+Do this only if you are a developer wanting to test your code with pytest.
+
+First, you need to create virtual environments both for torch and tensorflow.
+For instance, you can use:
+
+```bash
+make torch-env-cpu
+make tensorflow-env-cpu
+```
+
+To select the name of the torch and tf environments you can set the following
+environment variables, which allow to run the tests in environments with
+custom names which are different from `.venv-pytorch` and `.venv-tf`.
+
+```bash
+export TORCH_ENV="my_torch_env"
+export TF_ENV="my_tf_env"
+```
+
+Functional tests (marked with `pytest.mark.functional`) will be executed under
+`/tmp/pytest` location to guarantee they are run in a clean environment.
+
+To run functional tests use:
+
+```bash
+pytest -v tests/ -m "functional"
+```
+
+To run all tests on itwinai package:
+
+```bash
+make test
+```
+
+Run tests in JSC virtual environments:
+
+```bash
+make test-jsc
+```
+
+### Micromamba installation (deprecated)
 
 To manage Conda environments we use micromamba, a light weight version of conda.
 
@@ -71,115 +157,3 @@ echo 'PATH="$(dirname $MAMBA_EXE):$PATH"' >> ~/.bashrc
 ```
 
 **Reference**: [Micromamba installation guide](https://mamba.readthedocs.io/en/latest/installation/micromamba-installation.html).
-
-### Documentation folder
-
-Documentation for this repository is maintained under `./docs` location.
-If you are using code from a previous release, you can build the docs web page
-locally using [these instructions](docs/README#building-and-previewing-your-site-locally).
-
-## Environment setup
-
-Requirements:
-
-- Linux environment. Windows and macOS were never tested.
-- Micromamba: see the installation instructions above.
-- VS Code, for development.
-
-### TensorFlow
-
-Installation:
-
-```bash
-# Install TensorFlow 2.13
-make tf-2.13
-
-# Activate env
-micromamba activate ./.venv-tf
-```
-
-Other TF versions are available, using the following targets `tf-2.10`, and `tf-2.11`.
-
-### PyTorch (+ Lightning)
-
-Installation:
-
-```bash
-# Install PyTorch + lightning
-make torch-gpu
-
-# Activate env
-micromamba activate ./.venv-pytorch
-```
-
-Other also CPU-only version is available at the target `torch-cpu`.
-
-### Development environment
-
-This is for developers only. To have it, update the installed `itwinai` package
-adding the `dev` extra:
-
-```bash
-pip install -e .[dev]
-```
-
-#### Test with `pytest`
-
-Do this only if you are a developer wanting to test your code with pytest.
-
-First, you need to create virtual environments both for torch and tensorflow.
-For instance, you can use:
-
-```bash
-make torch-cpu
-make make tf-2.13-cpu
-```
-
-To select the name of the torch and tf environments you can set the following
-environment variables, which allow to run the tests in environments with
-custom names which are different from `.venv-pytorch` and `.venv-tf`.
-
-```bash
-export TORCH_ENV="my_torch_env"
-export TF_ENV="my_tf_env"
-```
-
-Functional tests (marked with `pytest.mark.functional`) will be executed under
-`/tmp/pytest` location to guarantee they are run in a clean environment.
-
-To run functional tests use:
-
-```bash
-pytest -v tests/ -m "functional"
-```
-
-To run all tests on itwinai package:
-
-```bash
-# Activate env
-micromamba activate ./.venv-pytorch # or ./.venv-tf
-
-pytest -v -m "not slurm" tests/
-```
-
-Run tests in JSC virtual environments:
-
-```bash
-ml --force purge
-ml Stages/2024 GCC OpenMPI CUDA/12 cuDNN MPI-settings/CUDA
-ml Python CMake HDF5 PnetCDF libaio mpi4py
-env TORCH_ENV=envAI_hdfml TF_ENV=envAItf_hdfml \
-    bash -c 'envAI_hdfml/bin/pytest -v tests/ -m "not slurm"'
-```
-
-However, some tests are intended to be executed only on an HPC system,
-where SLURM is available. They are marked with "slurm" tag. To run also
-those tests, use the dedicated job script:
-
-```bash
-sbatch tests/slurm_tests_startscript
-
-# Upon completion, check the output:
-cat job.err
-cat job.out
-```

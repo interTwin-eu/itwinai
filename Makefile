@@ -24,6 +24,12 @@ tensorflow-env-cpu: env-files/tensorflow/generic_tf.sh
 		bash -c 'bash env-files/tensorflow/generic_tf.sh'
 	.venv-tf/bin/horovodrun --check-build
 
+test:
+	.venv-pytorch/bin/pytest -v tests/ -m "not slurm"
+
+test-jsc: tests/run_on_jsc.sh
+	bash tests/run_on_jsc.sh
+
 torch-gpu-mamba: env-files/torch/pytorch-env-gpu.yml
 	micromamba env create -p ./.venv-pytorch --file env-files/torch/pytorch-env-gpu.yml -y
 	micromamba run -p ./.venv-pytorch python -m pip install -e .[dev]
