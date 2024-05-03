@@ -42,7 +42,6 @@ class TensorflowDataGetter(DataGetter):
         global_config: Dict,
         shuffle_buffer: int = None,
         data_path: str = "tmp_data",
-        local_dataset_path: str = ""
     ):
         super().__init__()
         self.save_parameters(**self.locals2params(locals()))
@@ -59,7 +58,6 @@ class TensorflowDataGetter(DataGetter):
         self.global_config = global_config
         self.shuffle = shuffle
         self.data_path = data_path
-        self.local_dataset_path = local_dataset_path
         self.drv_vars, self.coo_vars = (
             experiment["DRV_VARS_1"],
             experiment["COO_VARS_1"],

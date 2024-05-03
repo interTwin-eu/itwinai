@@ -30,7 +30,8 @@ ml Stages/2024 GCC/12.3.0 OpenMPI CUDA/12 MPI-settings/CUDA Python HDF5 PnetCDF 
 #ml Stages/2023 StdEnv/2023 NVHPC/23.1 OpenMPI/4.1.4 cuDNN/8.6.0.163-CUDA-11.7 Python/3.10.4 HDF5 libaio/0.3.112 GCC/11.3.0
 
 # shellcheck source=/dev/null
-source ~/.bashrc
+#source ~/.bashrc
+source /p/project/intertwin/ruettgers1/cyclone_usecase/itwinai/envAItf_hdfml/bin/activate
 
 # sleep a sec
 sleep 1
@@ -52,6 +53,11 @@ echo
 
 # ON LOGIN NODE download datasets:
 #micromamba run -p ../../.venv-tf python train.py -p pipeline.yaml --download-only
+
+# Using legacy (2.16) version of Keras
+# Latest version with TF (2.16) installs Keras 3.3
+# which returns an error for multi-node execution
+export TF_USE_LEGACY_KERAS=1
 
 # set comm
 export CUDA_VISIBLE_DEVICES="0,1,2,3"

@@ -3,13 +3,10 @@ import logging
 from os.path import join, exists
 
 import tensorflow.keras as keras
-# import tensorflow as tf
 
 # import sys
 # the mock-0.3.1 dir contains testcase.py, testutils.py & mock.py
 from itwinai.tensorflow.distributed import get_strategy
-# from lib.strategy import get_mirrored_strategy
-# from itwinai.tensorflow.distributed import get_strategy
 
 from lib.utils import get_network_config, load_model
 from itwinai.components import Trainer, monitor_exec
@@ -19,7 +16,6 @@ from lib.macros import (
     Losses,
     RegularizationStrength,
     Activation
-    # Strategy,
 )
 
 
@@ -29,7 +25,7 @@ class TensorflowTrainer(Trainer):
         network: Network,
         activation: Activation,
         regularization_strength: RegularizationStrength,
-        strategy: str,  # tf.distribute.Strategy,
+        strategy: str,
         learning_rate: float,
         loss: Losses,
         epochs: int,
@@ -52,10 +48,10 @@ class TensorflowTrainer(Trainer):
         self.regularization_strength, self.regularizer = (
             regularization_strength.value
         )
-        self.strategy = get_strategy()
+        self.strategy, self.cores = get_strategy()
 
         # Loss name and learning rate
-        self.loss_name = loss.value
+        self.loss_name, self.loss = loss.value
         self.learning_rate = learning_rate
 
         # Parse global config
@@ -105,6 +101,8 @@ class TensorflowTrainer(Trainer):
         steps_per_epoch = n_train // self.batch_size
         validation_steps = n_valid // self.batch_size
 
+        print("batch_size: ",self.batch_size,flush=True)
+
         # train the model
         model.fit(
             dist_train_dataset,
@@ -129,7 +127,7 @@ class TensorflowTrainer(Trainer):
         CHECKPOINTS_DIR = join(self.run_dir, "checkpoints")
 
         # files and csvs definition
-        CHECKPOINTS_FILEPATH = join(CHECKPOINTS_DIR, "model_{epoch:02d}.h5")
+        CHECKPOINTS_FILEPATH = join(CHECKPOINTS_DIR, "model_{epoch:02d}.keras")
         LOSS_METRICS_HISTORY_CSV = join(
             self.run_dir, "loss_metrics_history.csv")
         BENCHMARK_HISTORY_CSV = join(self.run_dir, "benchmark_history.csv")
@@ -159,5 +157,5 @@ class TensorflowTrainer(Trainer):
         if self.model_backup is not None and not exists(self.model_backup):
             raise FileNotFoundError("Model backup file not found")
         if self.model_backup:
-            self.best_model_name = join(self.model_backup, "best_model.h5")
-        self.last_model_name = join(self.run_dir, "last_model.h5")
+            self.best_model_name = join(self.model_backup, "best_model.keras")
+        self.last_model_name = join(self.run_dir, "last_model.keras")

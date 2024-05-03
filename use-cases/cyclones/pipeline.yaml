@@ -10,7 +10,7 @@ pipeline:
           patch_type: NEAREST
           shuffle: False
           split_ratio: [0.75, 0.25]
-          batch_size: 16
+          batch_size: 32
           augment: True
           epochs: 1
           target_scale: False
