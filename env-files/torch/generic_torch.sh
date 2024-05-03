@@ -48,7 +48,7 @@ else
     pip3 install --no-cache-dir \
       torch==2.1.* torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
   else
-    # CPU only installation
+    # CPU only installation 
     pip3 install --no-cache-dir \
       torch==2.1.* torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
   fi
@@ -65,15 +65,20 @@ fi
 if [ -f "${cDir}/$ENV_NAME/bin/deepspeed" ]; then
   echo 'DeepSpeed already installed'
 else
-  export DS_BUILD_CCL_COMM=1
-  export DS_BUILD_UTILS=1
-  export DS_BUILD_AIO=1
-  export DS_BUILD_FUSED_ADAM=1
-  export DS_BUILD_FUSED_LAMB=1
-  export DS_BUILD_TRANSFORMER=1
-  export DS_BUILD_STOCHASTIC_TRANSFORMER=1
-  export DS_BUILD_TRANSFORMER_INFERENCE=1
-  pip3 install --no-cache-dir DeepSpeed
+  if [ -z "$NO_CUDA" ]; then
+    export DS_BUILD_CCL_COMM=1
+    export DS_BUILD_UTILS=1
+    export DS_BUILD_AIO=1
+    export DS_BUILD_FUSED_ADAM=1
+    export DS_BUILD_FUSED_LAMB=1
+    export DS_BUILD_TRANSFORMER=1
+    export DS_BUILD_STOCHASTIC_TRANSFORMER=1
+    export DS_BUILD_TRANSFORMER_INFERENCE=1
+    pip3 install --no-cache-dir DeepSpeed
+  else
+    # CPU only installation
+    pip3 install deepspeed
+  fi
 
   # fix .triton/autotune/Fp16Matmul_2d_kernel.pickle bug
   line=$(cat -n $ENV_NAME/lib/python${pver}/site-packages/deepspeed/ops/transformer/inference/triton/matmul_ext.py | grep os.rename | awk '{print $1}' | head -n 1)
