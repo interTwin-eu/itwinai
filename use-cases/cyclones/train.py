@@ -18,11 +18,7 @@ from os.path import join
 from os import makedirs
 from datetime import datetime
 
-# # import tensorflow.keras as keras
-# import tensorflow as tf
-
 # # the mock-0.3.1 dir contains testcase.py, testutils.py & mock.py
-# from itwinai.tensorflow.distributed import get_strategy
 from itwinai.parser import ConfigParser, ArgumentParser
 
 from lib.macros import PATCH_SIZE, SHAPE
@@ -87,7 +83,7 @@ if __name__ == "__main__":
                         default='./data/data_path')
     parser.add_argument("-n", "--run_name", default="noname", type=str)
     parser.add_argument("-e", "--epochs", default=1, type=int)
-    parser.add_argument("-b", "--batch_size", default=32, type=int)
+    parser.add_argument("-b", "--batch_size", default=64, type=int)
     parser.add_argument(
         '-d', '--download-only',
         action=argparse.BooleanOptionalAction,
@@ -101,23 +97,9 @@ if __name__ == "__main__":
         choices=['mirrored'],
         default='mirrored'
     )
-    # parser.add_argument(
-    #    "--shuffle_dataloader",
-    #    action=argparse.BooleanOptionalAction,
-    #    default=True,
-    # )
 
     args = parser.parse_args()
     global_config = setup_config(args)
-
-    # # Instantiate Strategy
-    # if args.strategy == 'mirrored':
-    #     if (len(tf.config.list_physical_devices('GPU')) == 0):
-    #         raise RuntimeError('Resources unavailable')
-    #     mirrored_strategy = get_strategy()
-    # else:
-    #     raise NotImplementedError(
-    #         f"Strategy {args.strategy} is not recognized/implemented.")
 
     # Create parser for the pipeline
     downloader_params = "pipeline.init_args.steps.download-step.init_args."
@@ -130,7 +112,6 @@ if __name__ == "__main__":
             downloader_params + "data_path": args.data_path,
             downloader_params + "global_config": global_config,
             trainer_params + "global_config": global_config,
-            # trainer_params + "strategy": mirrored_strategy
         }
     )
     pipeline = pipe_parser.parse_pipeline()

@@ -6,7 +6,6 @@ pipeline:
         class_path: dataloader.TensorflowDataGetter
         init_args:
           data_url: https://drive.google.com/drive/folders/1GuxV0JgNpc1AWOPdP8LpHGgxPx3GTjHZ #1TnmujO4T-8_j4bCxqNe5HEw9njJIIBQD #https://drive.google.com/drive/folders/15DEq33MmtRvIpe2bNCg44lnfvEiHcPaf
-          local_dataset_path: ''
           patch_type: NEAREST
           shuffle: False
           split_ratio: [0.75, 0.25]

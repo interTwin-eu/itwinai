@@ -184,8 +184,8 @@ class TensorflowDataGetter(DataGetter):
 
         # Scalar fields
         self.root_dir = root_dir
-        self.dataset_dir = join(self.data_path,
-                                self.local_dataset_path)
+        self.dataset_dir = join(root_dir, self.data_path,
+                                "tfrecords", "trainval/")
         self.scaler_file = join(config["scaler_dir"], "minmax.tfrecord")
 
         # get records filenames
