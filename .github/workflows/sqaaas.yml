@@ -21,10 +21,9 @@ jobs:
           name: workflow_validation_step
           tool: commands
           commands: |
-            make torch-cpu
-            make tf-2.13
-            micromamba run -p ./.venv-pytorch pip install .[dev]
-            micromamba run -p ./.venv-pytorch pytest -v ./tests/ -m "not slurm and not memory_heavy"
+            make torch-env-cpu
+            make tensorflow-env-cpu
+            .venv-pytorch/bin/pytest -v ./tests/ -m "not slurm and not memory_heavy"
           container: eoscsynergy/sqaaas-micromamba:1.5.3-1
       - name: Print out payload
         run: cat workflow_validation_step.json

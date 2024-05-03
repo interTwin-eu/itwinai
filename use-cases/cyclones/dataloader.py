@@ -177,16 +177,16 @@ class TensorflowDataGetter(DataGetter):
         root_dir = config["root_dir"]
 
         # Download data
-        if not exists(join(root_dir, self.data_path)):
+        if not exists(self.data_path):
             gdown.download_folder(
                 url=self.data_url, quiet=False,
                 # verify=False,
-                output=join(root_dir, self.data_path)
+                output=self.data_path
             )
 
         # Scalar fields
         self.root_dir = root_dir
-        self.dataset_dir = join(root_dir, self.data_path,
+        self.dataset_dir = join(self.data_path,
                                 self.local_dataset_path)
         self.scaler_file = join(config["scaler_dir"], "minmax.tfrecord")
 

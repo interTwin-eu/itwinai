@@ -37,25 +37,13 @@ dependencies = [
     "omegaconf",
     "rich>=13.5.3",
     "typer>=0.9.0",
+    "wheel",
 ]
 
 # dynamic = ["version", "description"]
 
 [project.optional-dependencies]
-torch = [
-    # Natively we can support up to torch 2.0.1, because
-    # Horovod cannot be compiled with torch>=2.1
-    # See: https://github.com/horovod/horovod/issues/3996
-    # and https://github.com/horovod/horovod/pull/3998
-    "torch",
-    "torchvision",
-    "torchmetrics",
-    "lightning",
-    "wheel",        # needed by horovod and deepspeed
-    "deepspeed",
-    # "horovod[pytorch]", # needs to be installed AFTER torch
-]
-tensorflow = ["tensorflow[and-cuda]==2.13.*"] # "horovod[tensorflow,keras]"
+torch = ["lightning", "torchmetrics"]
 dev = [
     "pytest>=7.4.2",
     "pytest-mock>=3.11.1",

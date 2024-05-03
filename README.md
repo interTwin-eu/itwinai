@@ -26,14 +26,7 @@ or on a simple on-prem setup, you could consider using
 [installation instructions](https://github.com/pyenv/pyenv?tab=readme-ov-file#installation). If you are using pyenv,
 make sure to read [this](https://github.com/pyenv/pyenv/wiki#suggested-build-environment).
 
-#### Julelich Super Computer
-
-```bash
-ml Stages/2024 GCC OpenMPI CUDA/12 cuDNN MPI-settings/CUDA
-ml Python CMake HDF5 PnetCDF libaio mpi4py
-```
-
-#### Install itwinai
+#### Install itwinai environment
 
 Regardless of how you loaded your environment, you can create the
 python virtual environments with the following commands.
@@ -41,8 +34,12 @@ Once the correct Python version is loaded, create the virtual
 environments using our pre-make Makefile:
 
 ```bash
-make torch-env
-make tensorflow-env
+make torch-env # or make torch-env-cpu
+make tensorflow-env # or make tensorflow-env-cpu
+
+# Juelich supercomputer
+make torch-gpu-jsc
+make tf-gpu-jsc
 ```
 
 ### Micromamba installation
@@ -163,6 +160,16 @@ To run all tests on itwinai package:
 micromamba activate ./.venv-pytorch # or ./.venv-tf
 
 pytest -v -m "not slurm" tests/
+```
+
+Run tests in JSC virtual environments:
+
+```bash
+ml --force purge
+ml Stages/2024 GCC OpenMPI CUDA/12 cuDNN MPI-settings/CUDA
+ml Python CMake HDF5 PnetCDF libaio mpi4py
+env TORCH_ENV=envAI_hdfml TF_ENV=envAItf_hdfml \
+    bash -c 'envAI_hdfml/bin/pytest -v tests/ -m "not slurm"'
 ```
 
 However, some tests are intended to be executed only on an HPC system,
