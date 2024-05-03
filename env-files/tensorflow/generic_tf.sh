@@ -47,9 +47,10 @@ if [ -f "${cDir}/$ENV_NAME/bin/tensorboard" ]; then
 else
   # export TMPDIR=${cDir}
   if [ -z "$NO_CUDA" ]; then
-    pip3 install --upgrade tensorflow==2.13.* --no-cache-dir
-  else
     pip3 install --upgrade tensorflow[and-cuda]==2.13.* --no-cache-dir
+  else
+    # CPU only installation
+    pip3 install --upgrade tensorflow==2.13.* --no-cache-dir
   fi
 fi
 
@@ -60,11 +61,12 @@ fi
 #   echo
 # else
 #   if [ -z "$NO_CUDA" ]; then
+#     export HOROVOD_GPU=CUDA
+#     export HOROVOD_GPU_OPERATIONS=NCCL
 #     export HOROVOD_WITH_TENSORFLOW=1
 #     # export TMPDIR=${cDir}
 #   else
-#     export HOROVOD_GPU=CUDA
-#     export HOROVOD_GPU_OPERATIONS=NCCL
+#     # CPU only installation
 #     export HOROVOD_WITH_TENSORFLOW=1
 #     # export TMPDIR=${cDir}
 #   fi
