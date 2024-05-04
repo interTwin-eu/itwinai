@@ -66,23 +66,28 @@ if [ -z "$TRAINING_CMD" ]; then
   TRAINING_CMD='itwinai exec-pipeline --config config.yaml --pipe-key training_pipeline -o strategy=ddp'
   >&2 echo "setting TRAINING_CMD=$TRAINING_CMD"
 fi
-if [ -z "$PYTHON_VENV" ]; then 
-  >&2 echo "WARNING: env variable PYTHON_VENV is not set. It's the path to a python virtual environment."
-  PYTHON_VENV="../../../envAI_hdfml"
-  >&2 echo "setting PYTHON_VENV=$PYTHON_VENV"
-fi
-# Activate Python virtual env
-source $PYTHON_VENV/bin/activate
+# if [ -z "$PYTHON_VENV" ]; then 
+#   >&2 echo "WARNING: env variable PYTHON_VENV is not set. It's the path to a python virtual environment."
+# else
+#   # Activate Python virtual env
+#   source $PYTHON_VENV/bin/activate
+# fi
 
+# Uncomment this line to repeat pull every time:
+# rm -rf itwinai_torch.sif
+
+# Pull Singularity image on login node
+singularity pull itwinai_torch.sif docker://ghcr.io/intertwin-eu/itwinai:0.0.1-torch-2.1
 
 # Get GPUs info per node
-srun --cpu-bind=none --ntasks-per-node=1 bash -c 'echo -e "NODE hostname: $(hostname)\n$(nvidia-smi)\n\n"'
+# srun --cpu-bind=none --ntasks-per-node=1 bash -c 'echo -e "NODE hostname: $(hostname)\n$(nvidia-smi)\n\n"'
 
 # Launch training
 if [ "$DIST_MODE" == "ddp" ] ; then
   echo "DDP training: $TRAINING_CMD"
   srun --cpu-bind=none --ntasks-per-node=1 \
-    bash -c "torchrun \
+    singularity run --nv itwinai_torch.sif /bin/bash -c \
+    "torchrun \
     --log_dir='logs_torchrun' \
     --nnodes=$SLURM_NNODES \
     --nproc_per_node=$SLURM_GPUS_PER_NODE \
@@ -98,21 +103,15 @@ elif [ "$DIST_MODE" == "deepspeed" ] ; then
   export MASTER_PORT=29500 
 
   srun --cpu-bind=none --ntasks-per-node=$SLURM_GPUS_PER_NODE --cpus-per-task=$SLURM_CPUS_PER_GPU \
-    $TRAINING_CMD
+    singularity run --nv itwinai_torch.sif \
+    --env MASTER_ADDR=$MASTER_ADDR,MASTER_PORT=$MASTER_PORT \
+    /bin/bash -c $TRAINING_CMD
 
-  # # Run with deepspeed launcher: set --ntasks-per-node=1
-  # # https://www.deepspeed.ai/getting-started/#multi-node-environment-variables
-  # export NCCL_IB_DISABLE=1
-  # export NCCL_SOCKET_IFNAME=eth0
-  # nodelist=$(scontrol show hostname $SLURM_NODELIST)
-  # echo "$nodelist" | sed -e 's/$/ slots=4/' > .hostfile
-  # # Requires passwordless SSH access among compute node
-  # srun --cpu-bind=none deepspeed --hostfile=.hostfile $TRAINING_CMD --deepspeed
-  # rm .hostfile
 elif [ "$DIST_MODE" == "horovod" ] ; then
   echo "HOROVOD training: $TRAINING_CMD"
   srun --cpu-bind=none --ntasks-per-node=$SLURM_GPUS_PER_NODE --cpus-per-task=$SLURM_CPUS_PER_GPU \
-    $TRAINING_CMD
+    singularity run --nv itwinai_torch.sif \
+    /bin/bash -c $TRAINING_CMD
 else
   >&2 echo "ERROR: unrecognized \$DIST_MODE env variable"
   exit 1

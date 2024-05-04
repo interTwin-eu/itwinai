@@ -30,6 +30,12 @@ test:
 test-jsc: tests/run_on_jsc.sh
 	bash tests/run_on_jsc.sh
 
+torch-container:
+	docker buildx build -t ghcr.io/intertwin-eu/itwinai:0.0.1-torch-2.1 -f env-files/torch/Dockerfile .
+
+tensorflow-container:
+	docker buildx build -t ghcr.io/intertwin-eu/itwinai:0.0.1-tensorflow-2.13 -f env-files/tensorflow/Dockerfile .
+
 torch-gpu-mamba: env-files/torch/pytorch-env-gpu.yml
 	micromamba env create -p ./.venv-pytorch --file env-files/torch/pytorch-env-gpu.yml -y
 	micromamba run -p ./.venv-pytorch python -m pip install -e .[dev]
