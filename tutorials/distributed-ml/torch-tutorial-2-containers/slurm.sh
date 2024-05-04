@@ -63,21 +63,9 @@ if [ -z "$RUN_NAME" ]; then
 fi
 if [ -z "$TRAINING_CMD" ]; then 
   >&2 echo "WARNING: env variable TRAINING_CMD is not set. It's the python command to execute."
-  TRAINING_CMD='itwinai exec-pipeline --config config.yaml --pipe-key training_pipeline -o strategy=ddp'
+  TRAINING_CMD='$(/usr/bin/which itwinai) exec-pipeline --config config.yaml --pipe-key training_pipeline -o strategy=ddp'
   >&2 echo "setting TRAINING_CMD=$TRAINING_CMD"
 fi
-# if [ -z "$PYTHON_VENV" ]; then 
-#   >&2 echo "WARNING: env variable PYTHON_VENV is not set. It's the path to a python virtual environment."
-# else
-#   # Activate Python virtual env
-#   source $PYTHON_VENV/bin/activate
-# fi
-
-# Uncomment this line to repeat pull every time:
-# rm -rf itwinai_torch.sif
-
-# Pull Singularity image on login node
-singularity pull itwinai_torch.sif docker://ghcr.io/intertwin-eu/itwinai:0.0.1-torch-2.1
 
 # Get GPUs info per node
 # srun --cpu-bind=none --ntasks-per-node=1 bash -c 'echo -e "NODE hostname: $(hostname)\n$(nvidia-smi)\n\n"'
@@ -105,13 +93,13 @@ elif [ "$DIST_MODE" == "deepspeed" ] ; then
   srun --cpu-bind=none --ntasks-per-node=$SLURM_GPUS_PER_NODE --cpus-per-task=$SLURM_CPUS_PER_GPU \
     singularity run --nv itwinai_torch.sif \
     --env MASTER_ADDR=$MASTER_ADDR,MASTER_PORT=$MASTER_PORT \
-    /bin/bash -c $TRAINING_CMD
+    /bin/bash -c "$TRAINING_CMD"
 
 elif [ "$DIST_MODE" == "horovod" ] ; then
   echo "HOROVOD training: $TRAINING_CMD"
   srun --cpu-bind=none --ntasks-per-node=$SLURM_GPUS_PER_NODE --cpus-per-task=$SLURM_CPUS_PER_GPU \
     singularity run --nv itwinai_torch.sif \
-    /bin/bash -c $TRAINING_CMD
+    /bin/bash -c "$TRAINING_CMD"
 else
   >&2 echo "ERROR: unrecognized \$DIST_MODE env variable"
   exit 1

@@ -1,6 +1,6 @@
 #!/bin/bash
 
-CMD="itwinai exec-pipeline --config config.yaml --pipe-key training_pipeline -o strategy=ddp"
+CMD="itwinai exec-pipeline --config config.yaml --pipe-key training_pipeline"
 
 # Run command in the itwinai torch Docker container
 if [ -z "$1" ]; then
