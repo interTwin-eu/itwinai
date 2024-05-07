@@ -1,18 +1,49 @@
 # Install PyTorch env (GPU support)
-torch-gpu: env-files/torch/pytorch-env-gpu.yml
+torch-env: env-files/torch/generic_torch.sh
+	env ENV_NAME=.venv-pytorch \
+		bash -c 'bash env-files/torch/generic_torch.sh'
+	.venv-pytorch/bin/horovodrun --check-build 
+
+# Install PyTorch env (without GPU support: Horovod has not NCCL support)
+torch-env-cpu: env-files/torch/generic_torch.sh
+	env ENV_NAME=.venv-pytorch \
+		NO_CUDA=1 \
+		bash -c 'bash env-files/torch/generic_torch.sh'
+	.venv-pytorch/bin/horovodrun --check-build 
+
+# Install TensorFlow env (GPU support)
+tensorflow-env: env-files/tensorflow/generic_tf.sh
+	env ENV_NAME=.venv-tf \
+		bash -c 'bash env-files/tensorflow/generic_tf.sh'
+	@#.venv-tf/bin/horovodrun --check-build
+
+# Install TensorFlow env (without GPU support: Horovod has not NCCL support)
+tensorflow-env-cpu: env-files/tensorflow/generic_tf.sh
+	env ENV_NAME=.venv-tf \
+		NO_CUDA=1 \
+		bash -c 'bash env-files/tensorflow/generic_tf.sh'
+	@#.venv-tf/bin/horovodrun --check-build
+
+test:
+	.venv-pytorch/bin/pytest -v tests/ -m "not slurm"
+
+test-jsc: tests/run_on_jsc.sh
+	bash tests/run_on_jsc.sh
+
+torch-gpu-mamba: env-files/torch/pytorch-env-gpu.yml
 	micromamba env create -p ./.venv-pytorch --file env-files/torch/pytorch-env-gpu.yml -y
-	micromamba run -p ./.venv-pytorch python -m pip install -e .[distributed,dev]
+	micromamba run -p ./.venv-pytorch python -m pip install -e .[dev]
 
 # Install PyTorch env (GPU support) on Juelich Super Computer (tested on HDFML system)
-torch-gpu-jsc: env-files/torch/createEnvJSC.sh
+torch-gpu-jsc: env-files/torch/createEnvJSC.sh env-files/torch/generic_torch.sh
 	sh env-files/torch/createEnvJSC.sh
 
 # Install Tensorflow env (GPU support) on Juelich Super Computer (tested on HDFML system)
-tf-gpu-jsc: env-files/tensorflow/createEnvJSCTF.sh
+tf-gpu-jsc: env-files/tensorflow/createEnvJSCTF.sh env-files/tensorflow/generic_tf.sh
 	sh env-files/tensorflow/createEnvJSCTF.sh
 
 # Install PyTorch env (CPU only)
-torch-cpu: env-files/torch/pytorch-env-cpu.yml
+torch-cpu-mamba: env-files/torch/pytorch-env-cpu.yml
 	micromamba env create -p ./.venv-pytorch --file env-files/torch/pytorch-env-cpu.yml -y
 	micromamba run -p ./.venv-pytorch python -m pip install -e .[dev]
 
@@ -67,3 +98,48 @@ tf-2.13-cpu: env-files/tensorflow/tensorflow-2.13-cpu.yml
 	micromamba run -p ./.venv-tf pip install --upgrade pip
 	micromamba run -p ./.venv-tf pip install tensorflow==2.13.*
 	micromamba run -p ./.venv-tf pip install -e .
+
+# # Install PyTorch env (GPU support)
+# torch-env2:
+# 	python3 -m venv .venv-pytorch
+# 	.venv-pytorch/bin/pip install -e .[dev,torch]
+# 	@# Install horovod AFTER torch
+# 	@# https://github.com/horovod/horovod/pull/3998
+# 	env HOROVOD_CPU_OPERATIONS=MPI \
+# 		HOROVOD_GPU_ALLREDUCE=NCCL \
+# 		HOROVOD_NCCL_LINK=SHARED \
+# 		HOROVOD_NCCL_HOME=$$EBROOTNCCL \
+# 		HOROVOD_WITH_PYTORCH=1 \
+# 		HOROVOD_WITHOUT_TENSORFLOW=1 \
+# 		HOROVOD_WITHOUT_MXNET=1 \
+# 		bash -c '.venv-pytorch/bin/pip install --no-cache-dir git+https://github.com/thomas-bouvier/horovod.git@compile-cpp17'
+# 	.venv-pytorch/bin/horovodrun --check-build 
+
+# # Install PyTorch env (Horovod has not NCCL support)
+# torch-env-cpu:
+# 	python3 -m venv .venv-pytorch
+# 	.venv-pytorch/bin/pip install -e .[dev,torch-cpu]
+# 	@# Install horovod AFTER torch
+# 	@# https://github.com/horovod/horovod/pull/3998
+# 	env HOROVOD_WITH_PYTORCH=1 \
+# 		HOROVOD_WITHOUT_TENSORFLOW=1 \
+# 		HOROVOD_WITHOUT_MXNET=1 \
+# 		bash -c '.venv-pytorch/bin/pip install --no-cache-dir git+https://github.com/thomas-bouvier/horovod.git@compile-cpp17'
+# 	.venv-pytorch/bin/horovodrun --check-build
+
+
+# # Install PyTorch env (without GPU support: Horovod has not NCCL support)
+# torch-env-cpu: 
+# 	env ENV_NAME=.venv-pytorch \
+# 		NO_CUDA=1 \
+# 		bash -c 'bash env-files/torch/generic_torch.sh'
+# 	.venv-pytorch/bin/horovodrun --check-build 
+
+# # Install TensorFlow env (GPU support)
+# tensorflow-env:
+# 	python3 -m venv .venv-tf
+# 	.venv-tf/bin/pip install -e .[dev,tensorflow]
+# 	env HOROVOD_GPU=CUDA \
+#   		HOROVOD_GPU_OPERATIONS=NCCL \
+#   		HOROVOD_WITH_TENSORFLOW=1 \
+# 		bash -c '.venv-tf/bin/pip install --no-cache-dir horovod[tensorflow,keras]'

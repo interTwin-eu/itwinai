@@ -29,6 +29,6 @@ ml Stages/2023 StdEnv/2023 NVHPC/23.1 OpenMPI/4.1.4 cuDNN/8.6.0.163-CUDA-11.7 Py
 source ~/.bashrc
 
 # ON LOGIN NODE download datasets:
-# $ micromamba run -p ../../.venv-pytorch itwinai exec-pipeline --config pipeline.yaml --download-only
-
-srun micromamba run -p ../../.venv-pytorch itwinai exec-pipeline --config pipeline.yaml
+# ../../.venv-pytorch/bin/itwinai exec-pipeline --config pipeline.yaml --pipe-key training_pipeline --steps dataloading_step
+source ../../.venv-pytorch/bin/activate
+srun itwinai exec-pipeline --config pipeline.yaml --pipe-key training_pipeline

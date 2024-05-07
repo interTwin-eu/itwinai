@@ -62,7 +62,7 @@ training_pipeline:
               loggers:
                 - class_path: itwinai.loggers.ConsoleLogger
                   init_args:
-                    log_freq: 100
+                    log_freq: 10000
                 - class_path: itwinai.loggers.MLFlowLogger
                   init_args:
                     experiment_name: MNIST classifier

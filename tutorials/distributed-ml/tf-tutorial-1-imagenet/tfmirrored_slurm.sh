@@ -7,11 +7,11 @@
 #SBATCH --mail-type=ALL
 #SBATCH --output=job.out
 #SBATCH --error=job.err
-#SBATCH --time=00:15:00
+#SBATCH --time=01:00:00
 
 # configure node and process count on the CM
 #SBATCH --partition=batch
-#SBATCH --nodes=2
+#SBATCH --nodes=4
 #SBATCH --ntasks-per-node=1
 #SBATCH --cpus-per-task=32
 #SBATCH --gpus-per-node=4
@@ -27,14 +27,14 @@ unset http_proxy https_proxy HTTP_PROXY HTTPS_PROXY
 ml --force purge
 ml Stages/2024 GCC/12.3.0 OpenMPI CUDA/12 MPI-settings/CUDA Python HDF5 PnetCDF libaio mpi4py CMake cuDNN/8.9.5.29-CUDA-12
 
-# set env - change to location of your environment
-source itwinai/envAItf_hdfml/bin/activate
+# set env
+source /p/project/intertwin/rakesh/repo_push/itwinai/envAItf_hdfml/bin/activate
 
 # Using legacy (2.16) version of Keras
 # Latest version with TF (2.16) installs Keras 3.3
 # which returns an error for multi-node execution
 export TF_USE_LEGACY_KERAS=1
- 
+
 # sleep a sec
 sleep 1
 
@@ -60,8 +60,11 @@ if [ "$SLURM_CPUS_PER_TASK" -gt 0 ] ; then
   export OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK
 fi
 
+dataDir='/p/scratch/intertwin/datasets/imagenet/'
+
 COMMAND="train.py"
 
-EXEC="$COMMAND "
+EXEC="$COMMAND \
+    --data_dir $dataDir"
 
 srun python -u $EXEC
