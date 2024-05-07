@@ -3,11 +3,11 @@ Training pipeline. To run this script, use the following commands.
 
 On login node:
 
->>> micromamba run -p ./.venv-tf python train.py -p pipeline.yaml -d
+>>> python train.py -p pipeline.yaml -d
 
 On compute nodes:
 
->>>  micromamba run -p ./.venv-tf python train.py -p pipeline.yaml
+>>>  python train.py -p pipeline.yaml
 
 """
 
@@ -78,6 +78,8 @@ if __name__ == "__main__":
         help='Configuration file to the pipeline to execute.'
     )
     parser.add_argument("-r", "--root_dir", type=str, default='./data')
+    parser.add_argument("--data_path", type=str,
+                        default='./data/data_path')
     parser.add_argument("-n", "--run_name", default="noname", type=str)
     parser.add_argument("-e", "--epochs", default=1, type=int)
     parser.add_argument("-b", "--batch_size", default=32, type=int)
@@ -99,6 +101,7 @@ if __name__ == "__main__":
         override_keys={
             downloader_params + "epochs": args.epochs,
             downloader_params + "batch_size": args.batch_size,
+            downloader_params + "data_path": args.data_path,
             downloader_params + "global_config": global_config,
             trainer_params + "global_config": global_config
         }

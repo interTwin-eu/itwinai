@@ -31,34 +31,6 @@ def tmp_test_dir():
 
 
 @pytest.fixture
-def torch_env() -> str:
-    """
-    Return absolute path to torch virtual environment parsing it
-    from environment variables, if provided, otherwise fall back
-    to ``./.venv-pytorch``.
-    """
-    if os.environ.get('TORCH_ENV') is None:
-        env_p = './.venv-pytorch'
-    else:
-        env_p = os.environ.get('TORCH_ENV')
-    return os.path.abspath(env_p)
-
-
-@pytest.fixture
-def tf_env() -> str:
-    """
-    Return absolute path to tensorflow virtual environment parsing it
-    from environment variables, if provided, otherwise fall back
-    to ``./.venv-tf``.
-    """
-    if os.environ.get('TF_ENV') is None:
-        env_p = './.venv-tf'
-    else:
-        env_p = os.environ.get('TF_ENV')
-    return os.path.abspath(env_p)
-
-
-@pytest.fixture
 def check_folder_structure() -> Callable:
     """
     Verify that the use case folder complies with some predefined

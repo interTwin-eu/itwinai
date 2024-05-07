@@ -13,6 +13,7 @@ import os
 TORCH_PATH = "use-cases/mnist/torch"
 LIGHTNING_PATH = "use-cases/mnist/torch-lightning"
 TF_PATH = "use-cases/mnist/tensorflow"
+DEFAULT_MNIST_DATASET = '.tmp'
 
 
 @pytest.mark.skip(reason="structure changed")
@@ -38,14 +39,21 @@ def test_mnist_train_torch(torch_env, tmp_test_dir, install_requirements):
     """
     Test MNIST torch native trainer by running it end-to-end.
 
-    To set the torch env path set the ``TORCH_ENV`` env variable:
-
-    >>> export TORCH_ENV="my_env"
+    If MNIST_DATASET env variable is defined, it is used to
+    override the default dataset download location: useful
+    when it contains a local copy of the dataset, preventing
+    downloading it again.
     """
     install_requirements(TORCH_PATH, torch_env)
+
+    if os.environ.get('MNIST_DATASET'):
+        dataset_path = os.environ.get('MNIST_DATASET')
+    else:
+        dataset_path = DEFAULT_MNIST_DATASET
     conf = os.path.join(os.path.abspath(TORCH_PATH), 'config.yaml')
     cmd = (f"{torch_env}/bin/itwinai exec-pipeline "
-           f"--config {conf} --pipe-key training_pipeline")
+           f"--config {conf} --pipe-key training_pipeline "
+           f"-o dataset_root={dataset_path}")
     subprocess.run(cmd.split(), check=True, cwd=tmp_test_dir)
 
 
@@ -53,10 +61,6 @@ def test_mnist_train_torch(torch_env, tmp_test_dir, install_requirements):
 def test_mnist_inference_torch(torch_env, tmp_test_dir, install_requirements):
     """
     Test MNIST torch native inference by running it end-to-end.
-
-    To set the torch env path set the ``TORCH_ENV`` env variable:
-
-    >>> export TORCH_ENV="my_env"
     """
     install_requirements(TORCH_PATH, torch_env)
 
@@ -83,14 +87,21 @@ def test_mnist_train_torch_lightning(
     """
     Test MNIST torch lightning trainer by running it end-to-end.
 
-    To set the torch env path set the ``TORCH_ENV`` env variable:
-
-    >>> export TORCH_ENV="my_env"
+    If MNIST_DATASET env variable is defined, it is used to
+    override the default dataset download location: useful
+    when it contains a local copy of the dataset, preventing
+    downloading it again.
     """
     install_requirements(LIGHTNING_PATH, torch_env)
+
+    if os.environ.get('MNIST_DATASET'):
+        dataset_path = os.environ.get('MNIST_DATASET')
+    else:
+        dataset_path = DEFAULT_MNIST_DATASET
     conf = os.path.join(os.path.abspath(LIGHTNING_PATH), 'config.yaml')
     cmd = (f"{torch_env}/bin/itwinai exec-pipeline "
-           f"--config {conf} --pipe-key training_pipeline")
+           f"--config {conf} --pipe-key training_pipeline "
+           f"-o dataset_root={dataset_path}")
     subprocess.run(cmd.split(), check=True, cwd=tmp_test_dir)
 
 

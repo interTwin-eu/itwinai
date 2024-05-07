@@ -2,12 +2,16 @@
 # https://packaging.python.org/en/latest/specifications/declaring-project-metadata/#example
 # https://setuptools.pypa.io/en/latest/userguide/dependency_management.html#dependencies-management-in-setuptools
 
+[build-system]
+requires = ["setuptools", "setuptools-scm", "wheel"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "itwinai"
-version = "0.1"
-description = "AI and ML workflows module for interTwin"
+version = "0.0.1"
+description = "AI and ML workflows module for scientific digital twins."
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.11"
 license = { file = "LICENSE" }
 keywords = ["ml", "ai", "hpc"]
 authors = [
@@ -23,7 +27,10 @@ maintainers = [
     { name = "Rakesh Sarma", email = "r.sarma@fz-juelich.de" },
     { name = "Mario Ruettgers", email = "m.ruettgers@fz-juelich.de" },
 ]
-classifiers = ["Development Status :: Beta", "Programming Language :: Python"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Programming Language :: Python",
+]
 
 dependencies = [
     "wandb",
@@ -33,24 +40,21 @@ dependencies = [
     "omegaconf",
     "rich>=13.5.3",
     "typer>=0.9.0",
-    # "wandb>=0.15.11",
-    # "mlflow>=2.7",
-    # "jsonargparse[signatures]>=4.17.0",
-    # "pyyaml>=6.0.1",
-    # "omegaconf>=2.3.0",
-    # "submitit>=1.4.6",
-    # "typing-extensions==4.5.0",
-    # "typing_extensions==4.5.0",
-    # "urllib3>=2.0.5",
+    "wheel",
 ]
 
 # dynamic = ["version", "description"]
 
 [project.optional-dependencies]
-# TODO: add torch and tensorflow
-# torch = []
-# tf = []
-distributed = ["deepspeed>=0.13.1", "horovod[tensorflow,keras,pytorch]>=0.28.1"]
+torch = ["lightning", "torchmetrics"]
+# torch-cpu = [
+#     "torch==2.1.*",
+#     "torchvision",
+#     "torchaudio",
+#     "lightning",
+#     "torchmetrics",
+#     "deepspeed",
+# ]
 dev = [
     "pytest>=7.4.2",
     "pytest-mock>=3.11.1",
@@ -61,8 +65,8 @@ dev = [
 
 [project.urls]
 Homepage = "https://www.intertwin.eu/"
-Documentation = "https://intertwin-eu.github.io/T6.5-AI-and-ML/"
-Repository = "https://github.com/interTwin-eu/T6.5-AI-and-ML"
+Documentation = "https://itwinai.readthedocs.io/"
+Repository = "https://github.com/interTwin-eu/itwinai"
 # Changelog = "https://github.com/me/spam/blob/master/CHANGELOG.md"
 
 [project.scripts]

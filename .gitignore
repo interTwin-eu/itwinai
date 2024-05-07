@@ -31,7 +31,7 @@ secret*.yaml
 
 # Custom envs
 .venv*
-envAI_*
+envAI*
 
 # Logs
 logs/

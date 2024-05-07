@@ -1,8 +1,10 @@
 #!/bin/bash
 # -*- coding: utf-8 -*-
-# author: RS
-# version: 220302a
-# creates machine specific python env
+
+if [ ! -f "env-files/tensorflow/generic_tf.sh" ]; then
+  echo "ERROR: env-tensorflow/torch/generic_tf.sh not found!"
+  exit 1
+fi
 
 # set modules
 ml --force purge
@@ -60,28 +62,10 @@ if [ "$cont1" = true ] ; then
   fi
 fi
 
-# install TF 
-if [ -f "${cDir}/envAItf_${sysN}/bin/tensorboard" ]; then
-  echo 'TF already installed'
-  echo
-else
-  export TMPDIR=${cDir}
-
-  pip3 install --upgrade tensorflow[and-cuda] --no-cache-dir
-fi
-
-# install horovod
-if [ -f "${cDir}/envAItf_${sysN}/bin/horovodrun" ]; then
-  echo 'Horovod already installed'
-  echo
-else
-  export HOROVOD_GPU=CUDA
-  export HOROVOD_GPU_OPERATIONS=NCCL
-  export HOROVOD_WITH_TENSORFLOW=1
-  export TMPDIR=${cDir}
-
-  pip3 install --no-cache-dir horovod --ignore-installed
-fi
+# Install TF dependencies in env
+export ENV_NAME="envAItf_$sysN"
+bash env-files/tensorflow/generic_tf.sh
+source $ENV_NAME/bin/activate
 
 # JUBE benchmarking environment
 if [ -f "${cDir}/envAI_${sysN}/bin/jube" ]; then
@@ -90,19 +74,8 @@ else
   pip3 install --no-cache-dir http://apps.fz-juelich.de/jsc/jube/jube2/download.php?version=latest
 fi
 
-# get rest of the libraries$
-if [ "$cont1" = true ] ; then
-  pip3 install -r reqs_TF.txt --ignore-installed
-fi
+# # get rest of the libraries$
+# if [ "$cont1" = true ] ; then
+#   pip3 install -r reqs_TF.txt #--ignore-installed
+# fi
 
-# Install itwinai
-pip install --upgrade pip
-pip install -e .[dev]
-
-# install legacy version of keras (2.16)
-# Since TF 2.16, keras updated to 3.3,
-# which leads to an error when more than 1 node is used
-# https://keras.io/getting_started/
-pip3 install tf_keras
-
-# eof
