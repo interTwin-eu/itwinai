@@ -82,20 +82,12 @@ if __name__ == "__main__":
     parser.add_argument("--data_path", type=str,
                         default='./data/data_path')
     parser.add_argument("-n", "--run_name", default="noname", type=str)
-    parser.add_argument("-e", "--epochs", default=1, type=int)
-    parser.add_argument("-b", "--batch_size", default=64, type=int)
     parser.add_argument(
         '-d', '--download-only',
         action=argparse.BooleanOptionalAction,
         default=False,
         help=('Whether to download only the dataset and exit execution '
               '(suggested on login nodes of HPC systems)')
-    )
-
-    parser.add_argument(
-        "--strategy", "-s", type=str,
-        choices=['mirrored'],
-        default='mirrored'
     )
 
     args = parser.parse_args()
