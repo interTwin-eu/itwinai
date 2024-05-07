@@ -10,7 +10,7 @@ WORKDIR /usr/src/app
 COPY pyproject.toml ./
 COPY src ./
 COPY env-files/torch/create_container_env.sh ./
-RUN bash create_container_env.sh
+RUN bash create_container_env.sh 23.09-py3
 
 # Create non-root user
 RUN groupadd -g 10001 dotnet \

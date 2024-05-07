@@ -22,7 +22,8 @@
 #SBATCH --gres=gpu:4
 
 # Load environment modules
-ml Stages/2024 GCC OpenMPI CUDA/12 MPI-settings/CUDA Python HDF5 PnetCDF libaio mpi4py
+# ml Stages/2024 GCC OpenMPI CUDA/12 MPI-settings/CUDA Python HDF5 PnetCDF libaio  mpi4py
+ml --force purge
 
 # Job info
 echo "DEBUG: TIME: $(date)"
@@ -91,14 +92,14 @@ elif [ "$DIST_MODE" == "deepspeed" ] ; then
   export MASTER_PORT=29500 
 
   srun --cpu-bind=none --ntasks-per-node=$SLURM_GPUS_PER_NODE --cpus-per-task=$SLURM_CPUS_PER_GPU \
-    singularity run --nv itwinai_torch.sif \
+    --mpi=pmi2 singularity run --nv  \
     --env MASTER_ADDR=$MASTER_ADDR,MASTER_PORT=$MASTER_PORT \
-    /bin/bash -c "$TRAINING_CMD"
+    itwinai_torch.sif /bin/bash -c "$TRAINING_CMD"
 
 elif [ "$DIST_MODE" == "horovod" ] ; then
   echo "HOROVOD training: $TRAINING_CMD"
   srun --cpu-bind=none --ntasks-per-node=$SLURM_GPUS_PER_NODE --cpus-per-task=$SLURM_CPUS_PER_GPU \
-    singularity run --nv itwinai_torch.sif \
+    --mpi=pmi2 singularity run --nv itwinai_torch.sif \
     /bin/bash -c "$TRAINING_CMD"
 else
   >&2 echo "ERROR: unrecognized \$DIST_MODE env variable"
