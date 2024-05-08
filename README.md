@@ -4,7 +4,7 @@
 [![GitHub Super-Linter](https://github.com/interTwin-eu/T6.5-AI-and-ML/actions/workflows/check-links.yml/badge.svg)](https://github.com/marketplace/actions/markdown-link-check)
  [![SQAaaS source code](https://github.com/EOSC-synergy/itwinai.assess.sqaaas/raw/dev/.badge/status_shields.svg)](https://sqaaas.eosc-synergy.eu/#/full-assessment/report/https://raw.githubusercontent.com/eosc-synergy/itwinai.assess.sqaaas/dev/.report/assessment_output.json)
 
-See the latest version of our [docs](https://intertwin-eu.github.io/itwinai/)
+See the latest version of our [docs](https://itwinai.readthedocs.io/)
 for a quick overview of this platform for advanced AI/ML workflows in digital twin applications.
 
 ## Installation
