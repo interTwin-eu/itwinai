@@ -189,6 +189,14 @@ class TensorflowTrainer(Trainer):
         # Instantiate here model, optimizer, loss under the strategy scope, #
         # if not done previously through `model_compile_config` and         #
         # `model_config` !                                                  #
+        # Always remember that they should be instantiated under the        #
+        # distributed strategy scope: ``with self.strategy.scope():``       #
+        #                                                                   #
+        # Example:                                                          #
+        # with self.strategy.scope():                                       #
+        #   model = tf.keras.Sequential(...)                                #
+        #   optimizer = rf.keras.optimizers.Adam(...)                       #
+        #   loss = tf.keras.losses.BinaryCrossentropy(...)                  #
         #####################################################################
 
         # Train the model
