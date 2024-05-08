@@ -1,3 +1,4 @@
+from typing import Optional
 import tensorflow as tf
 
 from .functions import (
@@ -209,7 +210,8 @@ def eFlowsTFRecordTestDataset(
 def eFlowsTFRecordDataset(
     cyc_fnames, adj_fnames, rnd_fnames, batch_size, epochs,
     scalers, target_scale=False, drv_vars=[], coo_vars=None,
-    msk_var=None, shape=(40, 40), label_no_cyclone=-0.3,
+    msk_var=None, shape=(40, 40),
+    label_no_cyclone: Optional[float] = -0.3,
     shuffle_buffer=None, patch_type=PatchType.NEAREST.value,
     aug_type=AugmentationType.ONLY_TCS.value, aug_fns={},
     drop_remainder=True

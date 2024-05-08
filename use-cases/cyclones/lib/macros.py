@@ -105,6 +105,3 @@ class LabelNoCyclone(Enum):
     ZERO_3 = -0.3
     ONE = -1.0
     NONE = None
-
-#class Strategy(Enum):
-#    MIRRORED = 'mirrored'

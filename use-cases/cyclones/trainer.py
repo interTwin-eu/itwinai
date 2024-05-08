@@ -1,15 +1,15 @@
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 import logging
 from os.path import join, exists
 
+
+import tensorflow as tf
 import tensorflow.keras as keras
 
-# import sys
-# the mock-0.3.1 dir contains testcase.py, testutils.py & mock.py
 from itwinai.tensorflow.distributed import get_strategy
+from itwinai.components import Trainer, monitor_exec
 
 from lib.utils import get_network_config, load_model
-from itwinai.components import Trainer, monitor_exec
 from lib.callbacks import ProcessBenchmark
 from lib.macros import (
     Network,
@@ -20,27 +20,27 @@ from lib.macros import (
 
 
 class TensorflowTrainer(Trainer):
+    strategy: tf.distribute.Strategy
+    num_workers: int
+
     def __init__(
         self,
         network: Network,
         activation: Activation,
         regularization_strength: RegularizationStrength,
-        strategy: str,
         learning_rate: float,
         loss: Losses,
         epochs: int,
         batch_size: int,
         global_config: Dict[str, Any],
-        kernel_size: int = None,
-        model_backup: str = None,
-        cores: int = None,
+        kernel_size: Optional[int] = None,
+        model_backup: Optional[str] = None
     ):
         super().__init__()
         self.save_parameters(**self.locals2params(locals()))
         self.epochs = epochs
         self.batch_size = batch_size
         self.global_config = global_config
-        self.cores = cores
         self.model_backup = model_backup
         self.network = network.value
         self.activation = activation.value
@@ -48,7 +48,7 @@ class TensorflowTrainer(Trainer):
         self.regularization_strength, self.regularizer = (
             regularization_strength.value
         )
-        self.strategy, self.cores = get_strategy()
+        self.strategy, self.num_workers = get_strategy()
 
         # Loss name and learning rate
         self.loss_name, self.loss = loss.value
@@ -62,17 +62,16 @@ class TensorflowTrainer(Trainer):
         train_dataset, n_train = train_data
         valid_dataset, n_valid = validation_data
 
-        # distribute datasets among MirroredStrategy's replica
-        mirrored_strategy = self.strategy
-        dist_train_dataset = mirrored_strategy.experimental_distribute_dataset(
+        # Distribute datasets among strategy's replica
+        dist_train_dataset = self.strategy.experimental_distribute_dataset(
             train_dataset
         )
-        dist_valid_dataset = mirrored_strategy.experimental_distribute_dataset(
+        dist_valid_dataset = self.strategy.experimental_distribute_dataset(
             valid_dataset
         )
 
         # Inside the strategy load the model, data generators and train
-        with mirrored_strategy.scope():
+        with self.strategy.scope():
             if not self.model_backup:
                 model = get_network_config(
                     network=self.network,
@@ -94,16 +93,16 @@ class TensorflowTrainer(Trainer):
                           optimizer=optimizer, metrics=metrics)
         logging.debug("Model compiled")
 
-        # print model summary to check if model's architecture is correct
+        # Print model summary to check if model's architecture is correct
         print(model.summary())
 
-        # compute the steps per epoch for train and valid
+        # Compute the steps per epoch for train and valid
         steps_per_epoch = n_train // self.batch_size
         validation_steps = n_valid // self.batch_size
 
-        print("batch_size: ",self.batch_size,flush=True)
+        print("batch_size: ", self.batch_size, flush=True)
 
-        # train the model
+        # Train the model
         model.fit(
             dist_train_dataset,
             validation_data=dist_valid_dataset,
@@ -114,7 +113,7 @@ class TensorflowTrainer(Trainer):
         )
         logging.debug("Model trained")
 
-        # save the best model
+        # Save the best model
         model.save(self.last_model_name)
         logging.debug("Saved training history")
 

@@ -1,14 +1,35 @@
+"""
+TensorFlow distributed strategies.
+"""
+
+from typing import Tuple
 import os
 import tensorflow as tf
 import tensorflow.distribute as dist
 
 
-def get_strategy():
-    """Strategy for distributed TensorFlow training"""
-    if not os.environ.get('SLURM_JOB_ID'):
-        # TODO: improve
-        print('not in SLURM env!')
-        return dist.MirroredStrategy()
+def get_strategy() -> Tuple[tf.distribute.Strategy, int]:
+    """Strategy for distributed TensorFlow training. It will automatically
+    detect if you are running in a multi-node environment, returning the
+    correct TensorFlow distributed strategy for data parallel distributed
+    training.
+
+    Returns:
+        Tuple[tf.distribute.Strategy, int]: strategy and number of parallel
+        workers. See:
+        https://stackoverflow.com/questions/66005641/why-we-are-using-strategy-num-replicas-in-sync).
+    """
+
+    slurm_jobid = os.environ.get('SLURM_JOB_ID')
+    slurm_nnodes = int(os.environ.get('SLURM_NNODES', 0))
+    if not slurm_jobid or slurm_nnodes < 2:
+        # Single-node environment
+        print('Not in SLURM env! Assuming that you '
+              'are running on a single node')
+        mirrored_strategy = dist.MirroredStrategy()
+        return mirrored_strategy, mirrored_strategy.num_replicas_in_sync
+
+    # Multi-node environment in SLURM
     cluster_resolver = dist.cluster_resolver.SlurmClusterResolver(
         port_base=12345)
     implementation = dist.experimental.CommunicationImplementation.NCCL
@@ -38,4 +59,4 @@ def get_strategy():
     print("Number of devices: {}".format(
         tf_dist_strategy.num_replicas_in_sync))
 
-    return tf_dist_strategy
+    return tf_dist_strategy, tf_dist_strategy.num_replicas_in_sync

@@ -24,7 +24,15 @@ from itwinai.parser import ConfigParser, ArgumentParser
 from lib.macros import PATCH_SIZE, SHAPE
 
 
-def setup_config(args) -> Dict:
+def dynamic_config(args) -> Dict:
+    """Generates a configuration with values computed at runtime.
+
+    Args:
+        args (argparse.Namespace): arguments parsed from command line.
+
+    Returns:
+        Dict: configuration.
+    """
     config = {}
 
     # Paths, Folders
@@ -91,22 +99,20 @@ if __name__ == "__main__":
     )
 
     args = parser.parse_args()
-    global_config = setup_config(args)
+    global_config = dynamic_config(args)
 
     # Create parser for the pipeline
-    downloader_params = "pipeline.init_args.steps.download-step.init_args."
-    trainer_params = "pipeline.init_args.steps.training-step.init_args."
     pipe_parser = ConfigParser(
         config=args.pipeline,
         override_keys={
-            downloader_params + "epochs": args.epochs,
-            downloader_params + "batch_size": args.batch_size,
-            downloader_params + "data_path": args.data_path,
-            downloader_params + "global_config": global_config,
-            trainer_params + "global_config": global_config,
+            "dataset_root": args.data_path,
+            "global_config": global_config,
+            "global_config": global_config,
         }
     )
-    pipeline = pipe_parser.parse_pipeline()
+    pipeline = pipe_parser.parse_pipeline(
+        pipeline_nested_key='training_pipeline'
+    )
 
     if args.download_only:
         print('Downloading datasets and exiting...')

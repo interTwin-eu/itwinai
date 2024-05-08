@@ -1,7 +1,7 @@
 from os import listdir
 from os.path import join, exists
 from itwinai.components import DataGetter, monitor_exec
-from typing import List, Dict
+from typing import List, Dict, Optional
 from lib.macros import (
     PatchType,
     LabelNoCyclone,
@@ -28,7 +28,7 @@ from lib.transform import (
 class TensorflowDataGetter(DataGetter):
     def __init__(
         self,
-        data_url: str,
+        dataset_url: str,
         patch_type: PatchType,
         shuffle: bool,
         split_ratio: List[float],
@@ -40,12 +40,13 @@ class TensorflowDataGetter(DataGetter):
         aug_type: AugmentationType,
         experiment: Dict,
         global_config: Dict,
-        shuffle_buffer: int = None,
-        data_path: str = "tmp_data",
+        shuffle_buffer: Optional[int] = None,
+        dataset_root: str = "tmp_data",
+        tfrecords_dir: str = "trainval"
     ):
         super().__init__()
         self.save_parameters(**self.locals2params(locals()))
-        self.data_url = data_url
+        self.dataset_url = dataset_url
         self.batch_size = batch_size
         self.split_ratio = split_ratio
         self.epochs = epochs
@@ -57,7 +58,8 @@ class TensorflowDataGetter(DataGetter):
         self.augment = augment
         self.global_config = global_config
         self.shuffle = shuffle
-        self.data_path = data_path
+        self.dataset_root = dataset_root
+        self.tfrecords_dir = tfrecords_dir
         self.drv_vars, self.coo_vars = (
             experiment["DRV_VARS_1"],
             experiment["COO_VARS_1"],
@@ -93,6 +95,60 @@ class TensorflowDataGetter(DataGetter):
 
         # Parse global config
         self.setup_config(self.global_config)
+
+    def setup_config(self, config: Dict) -> None:
+        self.shape = config["shape"]
+        root_dir = config["root_dir"]
+
+        # Download data
+        if not exists(self.dataset_root):
+            gdown.download_folder(
+                url=self.dataset_url, quiet=False,
+                # verify=False,
+                output=self.dataset_root
+            )
+
+        # Scalar fields
+        self.root_dir = root_dir
+        self.tfrecords_path = join(self.dataset_root,
+                                   self.tfrecords_dir)
+        self.scaler_file = join(config["scaler_dir"], "minmax.tfrecord")
+
+        # get records filenames
+        self.cyclone_files = sorted(
+            [
+                join(self.tfrecords_path, f)
+                for f in listdir(self.tfrecords_path)
+                if f.endswith(".tfrecord") and f.startswith(
+                    PatchType.CYCLONE.value)
+            ]
+        )
+        if self.patch_type == PatchType.NEAREST.value:
+            self.adj_files = sorted(
+                [
+                    join(self.tfrecords_path, f)
+                    for f in listdir(self.tfrecords_path)
+                    if f.endswith(".tfrecord") and f.startswith(
+                        PatchType.NEAREST.value)
+                ]
+            )
+        elif self.patch_type == PatchType.ALLADJACENT.value:
+            self.adj_files = sorted(
+                [
+                    join(self.tfrecords_path, f)
+                    for f in listdir(self.tfrecords_path)
+                    if f.endswith(".tfrecord")
+                    and f.startswith(PatchType.ALLADJACENT.value)
+                ]
+            )
+        self.random_files = sorted(
+            [
+                join(self.tfrecords_path, f)
+                for f in listdir(self.tfrecords_path)
+                if f.endswith(".tfrecord") and f.startswith(
+                    PatchType.RANDOM.value)
+            ]
+        )
 
     def split_files(self, files, ratio):
         n = len(files)
@@ -169,57 +225,3 @@ class TensorflowDataGetter(DataGetter):
             aug_type=self.aug_type,
         )
         return train_dataset, valid_dataset, self.channels
-
-    def setup_config(self, config: Dict) -> None:
-        self.shape = config["shape"]
-        root_dir = config["root_dir"]
-
-        # Download data
-        if not exists(self.data_path):
-            gdown.download_folder(
-                url=self.data_url, quiet=False,
-                # verify=False,
-                output=self.data_path
-            )
-
-        # Scalar fields
-        self.root_dir = root_dir
-        self.dataset_dir = join(root_dir, self.data_path,
-                                "tfrecords", "trainval/")
-        self.scaler_file = join(config["scaler_dir"], "minmax.tfrecord")
-
-        # get records filenames
-        self.cyclone_files = sorted(
-            [
-                join(self.dataset_dir, f)
-                for f in listdir(self.dataset_dir)
-                if f.endswith(".tfrecord") and f.startswith(
-                    PatchType.CYCLONE.value)
-            ]
-        )
-        if self.patch_type == PatchType.NEAREST.value:
-            self.adj_files = sorted(
-                [
-                    join(self.dataset_dir, f)
-                    for f in listdir(self.dataset_dir)
-                    if f.endswith(".tfrecord") and f.startswith(
-                        PatchType.NEAREST.value)
-                ]
-            )
-        elif self.patch_type == PatchType.ALLADJACENT.value:
-            self.adj_files = sorted(
-                [
-                    join(self.dataset_dir, f)
-                    for f in listdir(self.dataset_dir)
-                    if f.endswith(".tfrecord")
-                    and f.startswith(PatchType.ALLADJACENT.value)
-                ]
-            )
-        self.random_files = sorted(
-            [
-                join(self.dataset_dir, f)
-                for f in listdir(self.dataset_dir)
-                if f.endswith(".tfrecord") and f.startswith(
-                    PatchType.RANDOM.value)
-            ]
-        )
