@@ -241,3 +241,5 @@ class ArgumentParser(JAPArgumentParser):
             "-c", "--config", action=ActionConfigFile,
             help="Path to a configuration file in json or yaml format."
         )
+
+# type: ignore

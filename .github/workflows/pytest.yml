@@ -3,7 +3,7 @@ name: Unit and integration tests
 
 on:
   pull_request:
-    branches: [main, dev]
+    branches: [main, dev, distributed-strategy-launcher]
 
 jobs:
   test-itwinai:
