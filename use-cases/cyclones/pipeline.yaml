@@ -1,8 +1,9 @@
 # General configuration
-epochs: 1
-batch_size: 32
+epochs: 3
+micro_batch_size: 32
 dataset_url: https://drive.google.com/drive/folders/1TnmujO4T-8_j4bCxqNe5HEw9njJIIBQD #https://drive.google.com/drive/folders/15DEq33MmtRvIpe2bNCg44lnfvEiHcPaf
 dataset_root: tmp_cyclones_data
+verbose: auto
 global_config: null
 
 # Workflows
@@ -11,7 +12,7 @@ training_pipeline:
   init_args:
     steps:
       download-step:
-        class_path: dataloader.TensorflowDataGetter
+        class_path: dataloader.CyclonesDataGetter
         init_args:
           dataset_url: ${dataset_url}
           dataset_root: ${dataset_root}
@@ -19,7 +20,6 @@ training_pipeline:
           patch_type: NEAREST
           shuffle: False
           split_ratio: [0.75, 0.25]
-          batch_size: ${batch_size}
           augment: True
           epochs: ${epochs}
           target_scale: False
@@ -32,13 +32,14 @@ training_pipeline:
           }
           
       training-step:
-        class_path: trainer.TensorflowTrainer
+        class_path: trainer.CyclonesTrainer
         init_args:
           epochs: ${epochs}
-          batch_size: ${batch_size}
+          micro_batch_size: ${micro_batch_size}
           global_config: ${global_config}
           network: VGG_V1
           activation: LINEAR
           regularization_strength: NONE
           learning_rate: 0.0001
           loss: MAE
+          verbose: ${verbose}

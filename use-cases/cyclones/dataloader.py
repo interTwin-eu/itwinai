@@ -1,17 +1,17 @@
+from typing import List, Dict, Optional
 from os import listdir
 from os.path import join, exists
+
+import gdown
+import numpy as np
+
 from itwinai.components import DataGetter, monitor_exec
-from typing import List, Dict, Optional
+
 from lib.macros import (
     PatchType,
     LabelNoCyclone,
     AugmentationType,
 )
-
-import gdown
-import numpy as np
-
-
 from lib.tfrecords.functions import read_tfrecord_as_tensor
 from lib.scaling import save_tf_minmax
 from lib.tfrecords.dataset import eFlowsTFRecordDataset
@@ -25,14 +25,13 @@ from lib.transform import (
 )
 
 
-class TensorflowDataGetter(DataGetter):
+class CyclonesDataGetter(DataGetter):
     def __init__(
         self,
         dataset_url: str,
         patch_type: PatchType,
         shuffle: bool,
         split_ratio: List[float],
-        batch_size: int,
         augment: bool,
         epochs: int,
         target_scale: bool,
@@ -47,7 +46,6 @@ class TensorflowDataGetter(DataGetter):
         super().__init__()
         self.save_parameters(**self.locals2params(locals()))
         self.dataset_url = dataset_url
-        self.batch_size = batch_size
         self.split_ratio = split_ratio
         self.epochs = epochs
         self.target_scale = target_scale
@@ -192,7 +190,6 @@ class TensorflowDataGetter(DataGetter):
             cyc_fnames=train_c_fs,
             adj_fnames=train_a_fs,
             rnd_fnames=train_r_fs,
-            batch_size=self.batch_size,
             epochs=self.epochs,
             scalers=scalers,
             target_scale=self.target_scale,
@@ -210,7 +207,6 @@ class TensorflowDataGetter(DataGetter):
             cyc_fnames=valid_c_fs,
             adj_fnames=valid_a_fs,
             rnd_fnames=valid_r_fs,
-            batch_size=self.batch_size,
             epochs=self.epochs,
             scalers=scalers,
             target_scale=self.target_scale,

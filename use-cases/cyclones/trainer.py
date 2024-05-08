@@ -1,4 +1,4 @@
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, Union
 import logging
 from os.path import join, exists
 
@@ -7,7 +7,8 @@ import tensorflow as tf
 import tensorflow.keras as keras
 
 from itwinai.tensorflow.distributed import get_strategy
-from itwinai.components import Trainer, monitor_exec
+from itwinai.tensorflow.trainer import TensorflowTrainer
+from itwinai.components import monitor_exec
 
 from lib.utils import get_network_config, load_model
 from lib.callbacks import ProcessBenchmark
@@ -19,7 +20,7 @@ from lib.macros import (
 )
 
 
-class TensorflowTrainer(Trainer):
+class CyclonesTrainer(TensorflowTrainer):
     strategy: tf.distribute.Strategy
     num_workers: int
 
@@ -31,15 +32,20 @@ class TensorflowTrainer(Trainer):
         learning_rate: float,
         loss: Losses,
         epochs: int,
-        batch_size: int,
+        micro_batch_size: int,
         global_config: Dict[str, Any],
         kernel_size: Optional[int] = None,
-        model_backup: Optional[str] = None
+        model_backup: Optional[str] = None,
+        rnd_seed: Optional[int] = None,
+        verbose: Union[str, int] = 'auto'
     ):
-        super().__init__()
+        super().__init__(
+            epochs=epochs,
+            micro_batch_size=micro_batch_size,
+            rnd_seed=rnd_seed,
+            verbose=verbose
+        )
         self.save_parameters(**self.locals2params(locals()))
-        self.epochs = epochs
-        self.batch_size = batch_size
         self.global_config = global_config
         self.model_backup = model_backup
         self.network = network.value
@@ -48,26 +54,34 @@ class TensorflowTrainer(Trainer):
         self.regularization_strength, self.regularizer = (
             regularization_strength.value
         )
-        self.strategy, self.num_workers = get_strategy()
 
         # Loss name and learning rate
         self.loss_name, self.loss = loss.value
         self.learning_rate = learning_rate
 
         # Parse global config
-        self.setup_config(self.global_config)
+        self.dynamic_config(self.global_config)
 
     @monitor_exec
     def execute(self, train_data, validation_data, channels) -> None:
-        train_dataset, n_train = train_data
-        valid_dataset, n_valid = validation_data
+        # train_size and valid_size are the number of unique elements
+        # in the dataset, before calling tf.data.Dataset.repeat(num_epochs)
+        train_dataset, train_size = train_data
+        valid_dataset, valid_size = validation_data
 
-        # Distribute datasets among strategy's replica
+        # Batch and distribute datasets among strategy's replica.
+        # Each batch is further split among the workers
         dist_train_dataset = self.strategy.experimental_distribute_dataset(
-            train_dataset
+            train_dataset.batch(
+                self.macro_batch_size, drop_remainder=True,
+                num_parallel_calls=tf.data.AUTOTUNE
+            )
         )
         dist_valid_dataset = self.strategy.experimental_distribute_dataset(
-            valid_dataset
+            valid_dataset.batch(
+                self.macro_batch_size, drop_remainder=True,
+                num_parallel_calls=tf.data.AUTOTUNE
+            )
         )
 
         # Inside the strategy load the model, data generators and train
@@ -97,10 +111,10 @@ class TensorflowTrainer(Trainer):
         print(model.summary())
 
         # Compute the steps per epoch for train and valid
-        steps_per_epoch = n_train // self.batch_size
-        validation_steps = n_valid // self.batch_size
+        steps_per_epoch = train_size // self.macro_batch_size
+        validation_steps = valid_size // self.macro_batch_size
 
-        print("batch_size: ", self.batch_size, flush=True)
+        print("macro_batch_size: ", self.macro_batch_size, flush=True)
 
         # Train the model
         model.fit(
@@ -117,7 +131,8 @@ class TensorflowTrainer(Trainer):
         model.save(self.last_model_name)
         logging.debug("Saved training history")
 
-    def setup_config(self, config: Dict) -> None:
+    def dynamic_config(self, config: Dict) -> None:
+        """Parse configuration generated at runtime."""
         self.experiment_dir = config["experiment_dir"]
         self.run_dir = config["run_dir"]
         self.patch_size = config["patch_size"]

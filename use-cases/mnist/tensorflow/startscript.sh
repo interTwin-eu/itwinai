@@ -11,7 +11,7 @@
 
 # configure node and process count on the CM
 #SBATCH --partition=batch
-#SBATCH --nodes=1
+#SBATCH --nodes=2
 #SBATCH --ntasks-per-node=1
 #SBATCH --cpus-per-task=4
 #SBATCH --gpus-per-node=4
@@ -23,12 +23,12 @@
 
 # load modules
 ml --force purge
-ml Stages/2023 StdEnv/2023 NVHPC/23.1 OpenMPI/4.1.4 cuDNN/8.6.0.163-CUDA-11.7 Python/3.10.4 HDF5 libaio/0.3.112 GCC/11.3.0
+ml Stages/2024 GCC/12.3.0 OpenMPI CUDA/12 MPI-settings/CUDA Python/3.11 HDF5 PnetCDF libaio mpi4py CMake cuDNN/8.9.5.29-CUDA-12
 
 # shellcheck source=/dev/null
 source ~/.bashrc
 
 # ON LOGIN NODE download datasets:
-# ../../.venv-tf/bin/itwinai exec-pipeline --config pipeline.yaml --steps 0
-source ../../.venv-tf/bin/activate
-srun itwinai exec-pipeline --config pipeline.yaml
+# ../../../.venv-tf/bin/itwinai exec-pipeline --config pipeline.yaml --pipe-key pipeline --steps 0
+source ../../../envAItf_hdfml/bin/activate
+srun itwinai exec-pipeline --config pipeline.yaml --pipe-key pipeline -o verbose=2
