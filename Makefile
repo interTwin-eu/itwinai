@@ -32,6 +32,7 @@ test-jsc: tests/run_on_jsc.sh
 
 torch-container:
 	docker buildx build -t ghcr.io/intertwin-eu/itwinai:0.0.1-torch-2.1 -f env-files/torch/Dockerfile .
+	docker buildx build -t ghcr.io/intertwin-eu/itwinai:0.0.1-torch-2.1-hpc -f env-files/torch/Dockerfile.hpc .
 
 tensorflow-container:
 	docker buildx build -t ghcr.io/intertwin-eu/itwinai:0.0.1-tensorflow-2.13 -f env-files/tensorflow/Dockerfile .

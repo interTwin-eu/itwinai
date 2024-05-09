@@ -6,6 +6,9 @@ FROM nvcr.io/nvidia/pytorch:23.09-py3
 
 WORKDIR /usr/src/app
 
+# https://github.com/mpi4py/mpi4py/pull/431
+RUN env SETUPTOOLS_USE_DISTUTILS=local python -m pip install --no-cache-dir mpi4py
+
 # Install itwinai
 COPY pyproject.toml ./
 COPY src ./
@@ -18,5 +21,5 @@ RUN groupadd -g 10001 dotnet \
     && chown -R dotnet:dotnet /usr/src/app
 USER dotnet:dotnet
 
-# ENTRYPOINT [ "/bin/sh" ]
-# CMD [  ]
+ENTRYPOINT [ "/bin/sh" ]
+CMD [  ]
