@@ -4,8 +4,6 @@ FROM nvcr.io/nvidia/pytorch:23.09-py3
 # 23.09-py3: torch==2.1.0
 # 24.04-py3: torch==2.3.0
 
-WORKDIR /usr/src/app
-
 # Install SLURM
 RUN apt-get -y update && DEBIAN_FRONTEND=noninteractive apt-get -y install build-essential \
     && cd /root \

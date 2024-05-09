@@ -1,8 +1,8 @@
 FROM itwinai-slurm:0.0.1
 
 # Install MPICH
-ENV SINGULARITY_MPICH_DIR=/usr/local
-ENV APPTAINER_MPICH_DIR=/usr/local
+ENV SINGULARITY_MPICH_DIR=/usr/local/mpi
+ENV APPTAINER_MPICH_DIR=/usr/local/mpi
 RUN apt-get -y update && DEBIAN_FRONTEND=noninteractive apt-get -y install build-essential libfabric-dev libibverbs-dev gfortran \
     && cd /root \
     && wget https://www.mpich.org/static/downloads/4.2.1/mpich-4.2.1.tar.gz \
@@ -18,22 +18,8 @@ RUN apt-get -y update && DEBIAN_FRONTEND=noninteractive apt-get -y install build
     #
     # https://github.com/pmodels/mpich/issues/6060#issuecomment-1159308474
     && apt install -y libpmi0-dev \
-    && ./configure --prefix=/usr/local --with-pmilib=slurm --with-slurm --with-pmi=slurm \
+    && ./configure --prefix=/usr/local/mpi --with-pmilib=slurm --with-slurm --with-pmi=slurm \
     --with-slurm-include=/usr/local/include/slurm --with-slurm-lib=/usr/local/lib/slurm/ \
-    --with-cuda=/usr/local/cuda --with-pm=no --with-libfabric=/usr/lib/x86_64-linux-gnu/ \
+    --with-cuda=/usr/local/cuda --with-pm=no --with-device=ch3:nemesis:ofi \
     #
     && make -j8 && make install
-
-
-# Install OpenMPI
-RUN apt-get -y update && DEBIAN_FRONTEND=noninteractive apt-get -y install build-essential libfabric-dev libibverbs-dev gfortran \
-    && cd /root \
-    && wget https://download.open-mpi.org/release/open-mpi/v4.1/openmpi-4.1.6.tar.gz \
-    && tar zxf openmpi-4.1.6.tar.gz && rm openmpi-4.1.6.tar.gz && cd openmpi-4.1.6  \
-    # https://github.com/pmodels/mpich/issues/6060#issuecomment-1159308474
-    && apt install -y libpmi0-dev \
-    # && ./configure --prefix /usr/local --with-slurm --with-pmi=/usr/include/slurm/ --with-cuda=/usr/local/cuda --with-pmi-libdir=/usr/lib/x86_64-linux-gnu/ \
-    # https://github.com/open-mpi/ompi/issues/10076#issuecomment-1064400002
-    && ./configure --prefix /usr/local --with-slurm --with-pmi=/usr --with-cuda=/usr/local/cuda --with-pmi-libdir=/usr/lib/x86_64-linux-gnu/ \
-    && make all install
-
