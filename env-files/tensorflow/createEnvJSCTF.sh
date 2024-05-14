@@ -1,8 +1,10 @@
 #!/bin/bash
 # -*- coding: utf-8 -*-
-# author: RS
-# version: 220302a
-# creates machine specific python env
+
+if [ ! -f "env-files/tensorflow/generic_tf.sh" ]; then
+  echo "ERROR: env-tensorflow/torch/generic_tf.sh not found!"
+  exit 1
+fi
 
 # set modules
 ml --force purge
@@ -14,16 +16,7 @@ echo "system:${sysN}"
 echo
 
 cont1=false
-if [ "$sysN" = 'deepv' ] ; then
-  ml use "$OTHERSTAGES"
-  ml Stages/2022 GCC OpenMPI cuDNN NCCL Python CMake
-  cont1=true
-elif [ "$sysN" = 'juwels' ] ; then
-  ml Stages/2022 GCC ParaStationMPI Python CMake NCCL libaio cuDNN
-  cont1=true
-elif [ "$sysN" = 'hdfml' ] ; then
-  #ml Stages/2022 GCC OpenMPI Python NCCL cuDNN libaio CMake
-  #ml Stages/2023 NVHPC/23.1 ParaStationMPI/5.8.0-1-mt NCCL/default-CUDA-11.7 cuDNN/8.6.0.163-CUDA-11.7 Python CMake
+if [ "$sysN" = 'hdfml' ] ; then
   ml Stages/2024 GCC/12.3.0 OpenMPI CUDA/12 MPI-settings/CUDA Python HDF5 PnetCDF libaio mpi4py CMake cuDNN/8.9.5.29-CUDA-12
   cont1=true
 else
@@ -69,28 +62,10 @@ if [ "$cont1" = true ] ; then
   fi
 fi
 
-# install TF 
-if [ -f "${cDir}/envAItf_${sysN}/bin/tensorboard" ]; then
-  echo 'TF already installed'
-  echo
-else
-  export TMPDIR=${cDir}
-
-  pip3 install --upgrade tensorflow[and-cuda] --no-cache-dir
-fi
-
-# install horovod
-if [ -f "${cDir}/envAItf_${sysN}/bin/horovodrun" ]; then
-  echo 'Horovod already installed'
-  echo
-else
-  export HOROVOD_GPU=CUDA
-  export HOROVOD_GPU_OPERATIONS=NCCL
-  export HOROVOD_WITH_TENSORFLOW=1
-  export TMPDIR=${cDir}
-
-  pip3 install --no-cache-dir horovod --ignore-installed
-fi
+# Install TF dependencies in env
+export ENV_NAME="envAItf_$sysN"
+bash env-files/tensorflow/generic_tf.sh
+source $ENV_NAME/bin/activate
 
 # JUBE benchmarking environment
 if [ -f "${cDir}/envAI_${sysN}/bin/jube" ]; then
@@ -99,13 +74,8 @@ else
   pip3 install --no-cache-dir http://apps.fz-juelich.de/jsc/jube/jube2/download.php?version=latest
 fi
 
-# get rest of the libraries$
-if [ "$cont1" = true ] ; then
-  pip3 install -r reqs_TF.txt --ignore-installed
-fi
+# # get rest of the libraries$
+# if [ "$cont1" = true ] ; then
+#   pip3 install -r reqs_TF.txt #--ignore-installed
+# fi
 
-# Install itwinai
-pip install --upgrade pip
-pip install -e .[dev]
-
-# eof
