@@ -14,6 +14,13 @@ utils.py
    :language: python
 
 
+distributed.py
+++++++++++++++
+
+.. literalinclude:: ../src/itwinai/tensorflow/distributed.py
+   :language: python
+
+
 .. .. automodule:: itwinai.tensorflow.trainer
 ..    :members:
 ..    :undoc-members:

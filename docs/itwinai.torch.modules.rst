@@ -1,10 +1,10 @@
 itwinai PyTorch Modules
 =======================
 
-cluster.py
-++++++++++
+distributed.py
+++++++++++++++
 
-.. literalinclude:: ../src/itwinai/torch/cluster.py
+.. literalinclude:: ../src/itwinai/torch/distributed.py
    :language: python
 
 inference.py
@@ -31,10 +31,10 @@ types.py
 .. literalinclude:: ../src/itwinai/torch/types.py
    :language: python
 
-utils.py
-++++++++
+reproducibility.py
+++++++++++++++++++
 
-.. literalinclude:: ../src/itwinai/torch/utils.py
+.. literalinclude:: ../src/itwinai/torch/reproducibility.py
    :language: python
 
 

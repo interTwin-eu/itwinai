@@ -38,22 +38,22 @@ dataloader.py
    :language: python
 
 
-cern-pipeline.yaml
-++++++++++++++++++
+config.yaml
++++++++++++
 
 This YAML file defines the pipeline configuration for the CERN use case.
 
-.. literalinclude:: ../use-cases/3dgan/cern-pipeline.yaml
+.. literalinclude:: ../use-cases/3dgan/config.yaml
    :language: yaml
 
 
-inference-pipeline.yaml
-+++++++++++++++++++++++
+create_inference_sample.py
+++++++++++++++++++++++++++
 
-This YAML file defines the pipeline configuration for the CERN use case inference.
+This file defines a pipeline configuration for the CERN use case inference.
 
-.. literalinclude:: ../use-cases/3dgan/inference-pipeline.yaml
-   :language: yaml
+.. literalinclude:: ../use-cases/3dgan/create_inference_sample.py
+   :language: python
 
 
 Dockerfile
@@ -63,13 +63,11 @@ Dockerfile
    :language: bash
 
 
-pipeline.yaml
-+++++++++++++
+startscript
++++++++++++
 
-This YAML file defines the pipeline configuration for the CERN use case. It includes settings for the model, training, and evaluation.
-
-.. literalinclude:: ../use-cases/3dgan/pipeline.yaml
-   :language: yaml
+.. literalinclude:: ../use-cases/3dgan/startscript
+   :language: bash
 
 
 
@@ -90,11 +88,17 @@ interLink x 3DGAN
 
 
 3dgan-inference.yaml
-++++++++++++++++++++++++
+++++++++++++++++++++
 
 .. literalinclude:: ../use-cases/3dgan/interLink/3dgan-inference.yaml
    :language: yaml
 
+
+3dgan-train.yaml
+++++++++++++++++
+
+.. literalinclude:: ../use-cases/3dgan/interLink/3dgan-train.yaml
+   :language: yaml
 
 
 

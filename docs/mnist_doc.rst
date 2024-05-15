@@ -22,12 +22,12 @@ The `dataloader.py` script is responsible for loading the MNIST dataset and prep
 ..    :undoc-members:
 ..    :show-inheritance:
 
-pipeline.yaml
-+++++++++++++
+config.yaml
++++++++++++
 
 This YAML file defines the pipeline configuration for the MNIST use case. It includes settings for the model, training, and evaluation.
 
-.. literalinclude:: ../use-cases/mnist/torch-lightning/pipeline.yaml
+.. literalinclude:: ../use-cases/mnist/torch-lightning/config.yaml
    :language: yaml
 
 startscript
@@ -38,31 +38,6 @@ The `startscript` is a shell script to initiate the training process. It sets up
 .. literalinclude:: ../use-cases/mnist/torch-lightning/startscript
    :language: bash
 
-train.py
-++++++++
-
-This script contains the training loop and is where the model is trained using the data prepared by `dataloader.py`.
-
-.. literalinclude:: ../use-cases/mnist/torch-lightning/train.py
-   :language: python
-
-.. .. automodule:: torch-lightning.train
-..    :members:
-..    :undoc-members:
-..    :show-inheritance:
-
-trainer.py
-++++++++++
-
-The `trainer.py` file defines the `Trainer` class which sets up the training parameters and the training process.
-
-.. literalinclude:: ../use-cases/mnist/torch-lightning/trainer.py
-   :language: python
-
-.. .. automodule:: torch-lightning.trainer
-..    :members:
-..    :undoc-members:
-..    :show-inheritance:
 
 utils.py
 ++++++++
@@ -102,13 +77,13 @@ Dockerfile
    :language: bash
 
 
-inference-pipeline.yaml
-+++++++++++++++++++++++
+create_inference_sample.py
+++++++++++++++++++++++++++
 
-This YAML file defines the pipeline configuration for the MNIST use case inference.
+This file defines a pipeline configuration for the MNIST use case inference.
 
-.. literalinclude:: ../use-cases/mnist/torch/inference-pipeline.yaml
-   :language: yaml
+.. literalinclude:: ../use-cases/mnist/torch/create_inference_sample.py
+   :language: python
 
 model.py
 ++++++++
@@ -118,12 +93,12 @@ The `model.py` script is responsible for loading a simple model.
 .. literalinclude:: ../use-cases/mnist/torch/model.py
    :language: python
 
-pipeline.yaml
-+++++++++++++
+config.yaml
++++++++++++
 
 This YAML file defines the pipeline configuration for the MNIST use case. It includes settings for the model, training, and evaluation.
 
-.. literalinclude:: ../use-cases/mnist/torch/pipeline.yaml
+.. literalinclude:: ../use-cases/mnist/torch/config.yaml
    :language: yaml
 
 startscript
@@ -134,13 +109,6 @@ The `startscript` is a shell script to initiate the training process. It sets up
 .. literalinclude:: ../use-cases/mnist/torch/startscript
    :language: bash
 
-train.py
-++++++++
-
-This script contains the training loop and is where the model is trained using the data prepared by `dataloader.py`.
-
-.. literalinclude:: ../use-cases/mnist/torch/train.py
-   :language: python
 
 saver.py
 ++++++++
@@ -149,3 +117,64 @@ saver.py
 .. literalinclude:: ../use-cases/mnist/torch/saver.py
    :language: python
 
+
+runall.sh
++++++++++
+
+.. literalinclude:: ../use-cases/mnist/torch/runall.sh
+   :language: bash
+
+
+slurm.sh
+++++++++
+
+.. literalinclude:: ../use-cases/mnist/torch/slurm.sh
+   :language: bash
+
+
+
+This section covers the MNIST use case, which utilizes the `tensorflow` framework for training and evaluation. The following files are integral to this use case:
+
+tensorflow
+----------
+
+.. toctree::
+   :maxdepth: 5
+
+dataloader.py
++++++++++++++
+
+The `dataloader.py` script is responsible for loading the MNIST dataset and preparing it for training.
+
+.. literalinclude:: ../use-cases/mnist/tensorflow/dataloader.py
+   :language: python
+
+
+pipeline.yaml
++++++++++++++
+
+This YAML file defines the pipeline configuration for the MNIST use case. It includes settings for the model, training, and evaluation.
+
+.. literalinclude:: ../use-cases/mnist/tensorflow/pipeline.yaml
+   :language: yaml
+
+
+startscript
++++++++++++
+
+The `startscript` is a shell script to initiate the training process. It sets up the environment and starts the training using the `train.py` script.
+
+.. literalinclude:: ../use-cases/mnist/tensorflow/startscript
+   :language: bash
+
+
+trainer.py
+++++++++++
+
+The `trainer.py` script is responsible for configuring the training process.
+
+.. literalinclude:: ../use-cases/mnist/tensorflow/dataloader.py
+   :language: python
+
+
+   
