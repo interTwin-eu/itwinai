@@ -6,10 +6,8 @@ This section covers the CERN use case that utilizes the `torch-lightning` framew
 itwinai x 3DGAN
 ---------------
 
-
 .. toctree::
    :maxdepth: 5
-
 
 model.py
 ++++++++

@@ -31,7 +31,13 @@ author = 'Matteo Bunino, Alexander Zoechbauer, Kalliopi Tsolaki'
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
 
 extensions = ['sphinx.ext.autodoc', 'sphinx.ext.doctest',
-              'sphinx.ext.viewcode']  # 'myst_parser'
+              'sphinx.ext.viewcode', 'myst_parser', 'nbsphinx']  # 'myst_parser'
+
+source_suffix = {
+    '.rst': 'restructuredtext',
+    '.txt': 'markdown',
+    '.md': 'markdown',
+}
 
 templates_path = ['_templates']
 exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
