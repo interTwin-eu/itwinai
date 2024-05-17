@@ -60,18 +60,18 @@ To launch the training with Horovod use:
 > [!NOTE]  
 > NOTE: Assuming 4 GPUs are available.
 
-If your setup has a different number of GPUs, change the `-np=4` part.
+If your setup has a different number of GPUs, change the `-np 4 -H localhost:4` part.
 
 > [!WARNING]  
 > To use `horovodrun`, make sure that `mpirun` is available in your environment. Otherwise
-> you cannot use Horovod.
+> you cannot use Horovod in interactive mode.
 
 ```bash
 # Assuming 4 GPUs are available (-np=4)
-horovodrun -np=4 train.py -s horovod
+horovodrun -np 4 -H localhost:4 train.py -s horovod
 
 # Optional -- from a SLURM login node:
-srun --jobid XXXX --ntasks-per-node=1 horovodrun -np=4 python -u train.py -s horovod
+srun --jobid XXXX --ntasks-per-node=1 horovodrun -np 4 -H localhost:4 python -u train.py -s horovod
 ```
 
 ## Distributed training with SLURM (batch mode)
