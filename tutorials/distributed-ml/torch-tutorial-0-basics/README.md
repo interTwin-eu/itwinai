@@ -59,7 +59,6 @@ To launch the training with Horovod use:
 
 > [!NOTE]  
 > NOTE: Assuming 4 GPUs are available.
-
 > [!WARNING]  
 > To use `horovodrun`, make sure that `mpirun` is available in your environment. Otherwise
 > you cannot use Horovod.
