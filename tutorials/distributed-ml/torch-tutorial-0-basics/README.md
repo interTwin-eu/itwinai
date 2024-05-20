@@ -21,7 +21,6 @@ If you want to use SLURM in interactive mode, do the following:
 
 ```bash
 # Allocate resources
-$ salloc --account=intertwin --partition=batch --nodes=1 --ntasks-per-node=1 --cpus-per-task=4 --gpus-per-node=4 #--time=00:30:00
 $ salloc --partition=batch --nodes=1 --account=intertwin  --gres=gpu:4 --time=1:59:00
 job ID is XXXX
 # Get a shell in the compute node (if using SLURM)
@@ -29,13 +28,12 @@ $ srun --jobid XXXX --overlap --pty /bin/bash
 # Now you are inside the compute node
 
 # On JSC, you may need to load some modules...
+ml --force purge
 ml Stages/2024 GCC OpenMPI CUDA/12 MPI-settings/CUDA Python HDF5 PnetCDF libaio mpi4py
 
 # ...before activating the Python environment (adapt this to your env name/path)
 source ../../../envAI_hdfml/bin/activate
 ```
-
-<!-- The commands below assume that you are running on a node with `$NUM_GPUS` gpus available. -->
 
 To launch the training with torch DDP use:
 
