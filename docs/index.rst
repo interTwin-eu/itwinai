@@ -28,6 +28,7 @@ In ``itwinai`` platform, we focus mainly on the MLOps step, simulating or oversi
 
 
 .. toctree::
+   :numbered:
    :maxdepth: 2
    :hidden:
    :caption: 💡 Installation
@@ -37,7 +38,7 @@ In ``itwinai`` platform, we focus mainly on the MLOps step, simulating or oversi
 .. toctree::
    :maxdepth: 2
    :hidden:
-   :caption: 📚 Integrated Use-cases
+   :caption: 📚 Integrated Use Cases
 
    use_cases
 
