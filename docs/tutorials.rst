@@ -1,5 +1,7 @@
 .. _tutorials:
 
+
+
 Distributed ML tutorials
 ========================
 
@@ -8,8 +10,25 @@ Here you can find a collection of tutorials for distributing Tensorflow and PyTo
 Tensorflow tutorials
 --------------------
 
+.. toctree::
+   :maxdepth: 2
+
+   tf_scaling_test
+   tf_tutorial_0_basics
+   tf_tutorial_1_imagenet
+
+
+
 PyTorch tutorials
 -----------------
+
+.. toctree::
+   :maxdepth: 2
+
+   torch_scaling_test
+   torch_tutorial_0_basics
+   torch_tutorial_1_mnist
+
 
 
 
