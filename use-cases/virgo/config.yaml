@@ -14,5 +14,6 @@ training_pipeline:
           rnd_seed: 42
           images_dataset: data/Image_dataset_synthetic_64x64.pkl
       - class_path: data.TimeSeriesProcessor
-      # - class_path: trainer.VirgoTrainer
-      #   init_args:
+      - class_path: trainer.NoiseGeneratorTrainer
+        init_args:
+          batch_size: 20

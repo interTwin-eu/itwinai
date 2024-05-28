@@ -307,12 +307,12 @@ class TorchTrainer(Trainer, LogMixin):
         )
         self.create_model_loss_optimizer()
 
-        if self.strategy.is_main_worker:
+        if self.strategy.is_main_worker and self.logger:
             self.logger.create_logger_context()
 
         self.train()
 
-        if self.strategy.is_main_worker:
+        if self.strategy.is_main_worker and self.logger:
             self.logger.destroy_logger_context()
         self.strategy.clean_up()
         return train_dataset, validation_dataset, test_dataset, self.model

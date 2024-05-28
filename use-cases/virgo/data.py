@@ -114,7 +114,8 @@ class TimerSeriesDatasetSplitter(DataSplitter):
         df_aux_all_2d = pd.DataFrame(df[aux_channels])
         df_main_all_2d = pd.DataFrame(df[main_channel])
         X_train_2d, X_test_2d, y_train_2d, y_test_2d = train_test_split(
-            df_aux_all_2d, df_main_all_2d, test_size=self.validation_proportion, random_state=42)
+            df_aux_all_2d, df_main_all_2d,
+            test_size=self.validation_proportion, random_state=self.rnd_seed)
         return (X_train_2d, y_train_2d), (X_test_2d, y_test_2d), None
 
 
