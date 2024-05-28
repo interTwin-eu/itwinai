@@ -1,3 +1,4 @@
+from typing import Optional
 import tensorflow as tf
 
 from .functions import (
@@ -32,187 +33,14 @@ def get_interleave(cyc_weights, nocyc_weights):
     return tf.cast(interleave, dtype=tf.int64)
 
 
-def eFlowsSimpleDataset(
-        fnames, batch_size, epochs, scalers,
-        shuffle_buffer=None, drop_remainder=False,
-        target_scale=False, drv_vars=[], coo_vars=None,
-        msk_var=None, shape=(40, 40), label_no_cyclone=-0.3
-):
-    """
-    Dataset with single type filenames.
-
-    """
-    # set autotune parameter to automatically manage resourches
-    AUTOTUNE = tf.data.AUTOTUNE
-
-    # setup dynamical lambda functions to be applied to this dataset
-    tensor_decoding_fn = get_tensor_decoding_fn(
-        shape=shape, drv_vars=drv_vars, coo_vars=coo_vars, msk_var=msk_var)
-    scaling_fn = get_scaling_fn(scalers=scalers)
-    masking_fn = get_masking_fn(mask=label_no_cyclone)
-    scale_target_fn = get_scale_target_fn(
-        label_no_cyclone=label_no_cyclone, patch_size=shape[0])
-
-    # compute the number of samples into the dataset
-    n_elems = sum([int(fname.split('/')[-1].split('.tfrecord')
-                  [0].split('_')[-1]) for fname in fnames])
-
-    # create standard datasets for each patch category
-    dataset = tf.data.TFRecordDataset(fnames, num_parallel_reads=AUTOTUNE).map(
-        tensor_decoding_fn, num_parallel_calls=AUTOTUNE)
-
-    # separate in batches
-    if batch_size:
-        dataset = dataset.batch(
-            batch_size,
-            drop_remainder=drop_remainder,
-            num_parallel_calls=AUTOTUNE
-        )
-    else:
-        dataset = dataset.batch(
-            n_elems,
-            drop_remainder=drop_remainder,
-            num_parallel_calls=AUTOTUNE
-        )
-
-    # apply mask on target if label_no_cyclone is provided
-    if label_no_cyclone:
-        dataset = dataset.map(lambda X, y: (
-            masking_fn((X, y))), num_parallel_calls=AUTOTUNE)
-
-    # shuffle if necessary
-    if shuffle_buffer:
-        dataset = dataset.shuffle(
-            shuffle_buffer, reshuffle_each_iteration=True)
-
-    # scale the data
-    if scalers:
-        dataset = dataset.map(lambda X, y: (
-            scaling_fn((X, y))), num_parallel_calls=AUTOTUNE)
-    if target_scale:
-        dataset = dataset.map(lambda X, y: (
-            scale_target_fn((X, y))), num_parallel_calls=AUTOTUNE)
-
-    # set number of epochs that can be repeated on this dataset
-    dataset = dataset.repeat(count=epochs)
-
-    # add parallelism option
-    options = tf.data.Options()
-    options.experimental_distribute.auto_shard_policy = (
-        tf.data.experimental.AutoShardPolicy.OFF
-    )
-    options.experimental_threading.max_intra_op_parallelism = 1
-    dataset = dataset.with_options(options)
-
-    # prefetch
-    dataset = dataset.prefetch(buffer_size=AUTOTUNE)
-
-    # return the dataset
-    return dataset, n_elems
-
-
-def eFlowsTFRecordTestDataset(
-        cyc_fnames, nocyc_fnames, batch_size, epochs, scalers,
-        target_scale=False, drv_vars=[], coo_vars=None, msk_var=None,
-        shape=(40, 40), label_no_cyclone=-0.3
-):
-    """
-    Test dataset for eFlows. It is different from eFlowsDataset because we
-    have only two kinds of filenames to be used in this case.
-
-    """
-    # set autotune parameter to automatically manage resourches
-    AUTOTUNE = tf.data.AUTOTUNE
-
-    # setup dynamical lambda functions to be applied to this dataset
-    tensor_decoding_fn = get_tensor_decoding_fn(
-        shape=shape, drv_vars=drv_vars, coo_vars=coo_vars, msk_var=msk_var)
-    scaling_fn = get_scaling_fn(scalers=scalers)
-    masking_fn = get_masking_fn(mask=label_no_cyclone)
-    scale_target_fn = get_scale_target_fn(
-        label_no_cyclone=label_no_cyclone, patch_size=shape[0])
-
-    # compute the number of samples into the dataset
-    cyc_n_elems = sum([int(fname.split('/')[-1].split('.tfrecord')
-                      [0].split('_')[-1]) for fname in cyc_fnames])
-    nocyc_n_elems = sum(
-        [int(fname.split('/')[-1].split('.tfrecord')[0].split('_')[-1])
-         for fname in nocyc_fnames]
-    )
-    n_elems = cyc_n_elems + nocyc_n_elems
-
-    # total number of samples that will be yielded by this dataset
-    count = n_elems * epochs
-
-    # create standard datasets for each patch category
-    cyc_dataset = tf.data.TFRecordDataset(
-        cyc_fnames,
-        num_parallel_reads=AUTOTUNE
-    ).map(
-        tensor_decoding_fn, num_parallel_calls=AUTOTUNE
-    )
-    nocyc_dataset = tf.data.TFRecordDataset(
-        nocyc_fnames,
-        num_parallel_reads=AUTOTUNE
-    ).map(
-        tensor_decoding_fn, num_parallel_calls=AUTOTUNE)
-
-    # define the datasets from which we provide data
-    datasets = [cyc_dataset, nocyc_dataset]
-
-    # select the order in which the augmented samples must be interleaved
-    choice_dataset = tf.data.Dataset.range(len(datasets)).repeat(count=count)
-
-    # statically interleave elements from all the datasets
-    dataset = tf.data.experimental.choose_from_datasets(
-        datasets=datasets, choice_dataset=choice_dataset)
-
-    # separate in batches
-    if batch_size:
-        dataset = dataset.batch(
-            batch_size, drop_remainder=False, num_parallel_calls=AUTOTUNE)
-    else:
-        dataset = dataset.batch(
-            n_elems, drop_remainder=False, num_parallel_calls=AUTOTUNE)
-
-    # apply mask on target if label_no_cyclone is provided
-    if label_no_cyclone:
-        dataset = dataset.map(lambda X, y: (
-            masking_fn((X, y))), num_parallel_calls=AUTOTUNE)
-
-    # scale the data
-    if scalers:
-        dataset = dataset.map(lambda X, y: (
-            scaling_fn((X, y))), num_parallel_calls=AUTOTUNE)
-    if target_scale:
-        dataset = dataset.map(lambda X, y: (
-            scale_target_fn((X, y))), num_parallel_calls=AUTOTUNE)
-
-    # set number of epochs that can be repeated on this dataset
-    dataset = dataset.repeat(count=epochs)
-
-    # add parallelism option
-    options = tf.data.Options()
-    options.experimental_distribute.auto_shard_policy = (
-        tf.data.experimental.AutoShardPolicy.OFF
-    )
-    options.experimental_threading.max_intra_op_parallelism = 1
-    dataset = dataset.with_options(options)
-
-    # prefetch
-    dataset = dataset.prefetch(buffer_size=AUTOTUNE)
-
-    # return the dataset
-    return dataset, n_elems
-
-
 def eFlowsTFRecordDataset(
-    cyc_fnames, adj_fnames, rnd_fnames, batch_size, epochs,
+    cyc_fnames, adj_fnames, rnd_fnames,  epochs,  # batch_size,
     scalers, target_scale=False, drv_vars=[], coo_vars=None,
-    msk_var=None, shape=(40, 40), label_no_cyclone=-0.3,
+    msk_var=None, shape=(40, 40),
+    label_no_cyclone: Optional[float] = -0.3,
     shuffle_buffer=None, patch_type=PatchType.NEAREST.value,
     aug_type=AugmentationType.ONLY_TCS.value, aug_fns={},
-    drop_remainder=True
+    # drop_remainder=True
 ):
     # set autotune parameter to automatically manage resourches
     AUTOTUNE = tf.data.AUTOTUNE
@@ -336,15 +164,20 @@ def eFlowsTFRecordDataset(
         dataset = dataset.shuffle(
             shuffle_buffer, reshuffle_each_iteration=True)
 
-    # separate in batches
-    if batch_size:
-        dataset = dataset.batch(
-            batch_size, drop_remainder=drop_remainder,
-            num_parallel_calls=AUTOTUNE)
-    else:
-        dataset = dataset.batch(
-            n_elems, drop_remainder=drop_remainder,
-            num_parallel_calls=AUTOTUNE)
+    # NOTE: when running distributed training, the dataset
+    # should be batched knowing the number of parallel
+    # workers taking part to the pool! Skipping it now...
+    # Example:
+    #  batch_size = num_workers * worker_batch_size
+    # # separate in batches
+    # if batch_size:
+    #     dataset = dataset.batch(
+    #         batch_size, drop_remainder=drop_remainder,
+    #         num_parallel_calls=AUTOTUNE)
+    # else:
+    #     dataset = dataset.batch(
+    #         n_elems, drop_remainder=drop_remainder,
+    #         num_parallel_calls=AUTOTUNE)
 
     # apply mask on target if label_no_cyclone is provided
     if label_no_cyclone:

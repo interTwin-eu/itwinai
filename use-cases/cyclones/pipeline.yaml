@@ -1,17 +1,27 @@
-pipeline:
+# General configuration
+epochs: 3
+micro_batch_size: 32
+dataset_url: https://drive.google.com/drive/folders/1TnmujO4T-8_j4bCxqNe5HEw9njJIIBQD #https://drive.google.com/drive/folders/15DEq33MmtRvIpe2bNCg44lnfvEiHcPaf
+dataset_root: tmp_cyclones_data
+verbose: auto
+global_config: null
+
+# Workflows
+training_pipeline:
   class_path: itwinai.pipeline.Pipeline
   init_args:
     steps:
       download-step:
-        class_path: dataloader.TensorflowDataGetter
+        class_path: dataloader.CyclonesDataGetter
         init_args:
-          data_url: https://drive.google.com/drive/folders/1TnmujO4T-8_j4bCxqNe5HEw9njJIIBQD #https://drive.google.com/drive/folders/15DEq33MmtRvIpe2bNCg44lnfvEiHcPaf
+          dataset_url: ${dataset_url}
+          dataset_root: ${dataset_root}
+          global_config: ${global_config}
           patch_type: NEAREST
           shuffle: False
           split_ratio: [0.75, 0.25]
-          batch_size: 16
           augment: True
-          epochs: 1
+          epochs: ${epochs}
           target_scale: False
           label_no_cyclone: NONE
           aug_type: ONLY_TCS
@@ -20,14 +30,16 @@ pipeline:
             'COO_VARS_1': ['patch_cyclone'],
             'MSK_VAR_1': None
           }
-
+          
       training-step:
-        class_path: trainer.TensorflowTrainer
+        class_path: trainer.CyclonesTrainer
         init_args:
-          epochs: ${pipeline.init_args.steps.download-step.init_args.epochs}
-          batch_size: ${pipeline.init_args.steps.download-step.init_args.batch_size}
+          epochs: ${epochs}
+          micro_batch_size: ${micro_batch_size}
+          global_config: ${global_config}
           network: VGG_V1
           activation: LINEAR
           regularization_strength: NONE
           learning_rate: 0.0001
           loss: MAE
+          verbose: ${verbose}
