@@ -38,12 +38,7 @@ from .mlflow import (
     init_lightning_mlflow,
     teardown_lightning_mlflow
 )
-
-
-class Config:
-    def __init__(self, my_dict: Optional[Dict] = None):
-        my_dict = my_dict if my_dict is not None else {}
-        self.__dict__.update(my_dict)
+from .config import TrainingConfiguration
 
 
 class TorchTrainer(Trainer, LogMixin):
@@ -116,7 +111,7 @@ class TorchTrainer(Trainer, LogMixin):
         # config is mean to store all hyperparameters, which can very from use
         # case to use case
         # and include learning_rate, batch_size....
-        self.config = Config(config)
+        self.config = TrainingConfiguration(**config)
         self.epochs = epochs
         self.model = model
         self.strategy = strategy

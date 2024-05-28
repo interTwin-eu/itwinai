@@ -1,5 +1,7 @@
 # General configuration
 data_root: data
+epochs: 20
+batch_size: 20
 
 training_pipeline:
   class_path: itwinai.pipeline.Pipeline
@@ -16,4 +18,6 @@ training_pipeline:
       - class_path: data.TimeSeriesProcessor
       - class_path: trainer.NoiseGeneratorTrainer
         init_args:
-          batch_size: 20
+          generator: unet
+          batch_size: ${batch_size}
+          num_epochs: ${epochs}

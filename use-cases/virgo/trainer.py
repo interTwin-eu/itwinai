@@ -8,6 +8,7 @@ from itwinai.torch.trainer import TorchTrainer
 from itwinai.torch.distributed import (
     DeepSpeedStrategy,
 )
+from itwinai.torch.config import TrainingConfiguration
 
 from src.model import Decoder, Decoder_2d_deep, UNet, GeneratorResNet
 from src.utils import init_weights
@@ -27,21 +28,22 @@ class NoiseGeneratorTrainer(TorchTrainer):
         loss: Literal["L1", "L2"] = "L1",
         name: str | None = None
     ) -> None:
-        # Global configuration
-        config = dict(
-            batch_size=batch_size,
-            num_workers=4,
-            pin_memory=False,
-            save_best=False,
-            checkpoint_path="checkpoints/epoch_{}.pth"
-        )
-        super().__init__(config=config, epochs=num_epochs, name=name)
+        super().__init__(epochs=num_epochs, name=name)
         self.save_parameters(**self.locals2params(locals()))
         self.num_epochs = num_epochs
         self.batch_size = batch_size
         self.learning_rate = learning_rate
         self._generator = generator
         self._loss = loss
+        # Global configuration
+        _config = dict(
+            batch_size=batch_size,
+            num_workers=4,
+            pin_memory=False,
+            save_best=False,
+            checkpoint_path="checkpoints/epoch_{}.pth"
+        )
+        self.config = TrainingConfiguration(**_config)
 
     def create_model_loss_optimizer(self) -> None:
         # Select generator
