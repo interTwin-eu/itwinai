@@ -18,6 +18,7 @@ pl-training.yml
 *tar.gz
 0
 *.tar
+*.sif
 
 # Use cases files
 MNIST

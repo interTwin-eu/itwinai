@@ -105,7 +105,7 @@ def training_fn(
 
             if strategy.is_main_worker:
                 print(f"Loss [epoch={epoch}]: {loss.item()}")
-            print(f"NNLoss [epoch={epoch}]: {loss.item()}")
+            # print(f"NNLoss [epoch={epoch}]: {loss.item()}")
 
         # Update scheduler
         if lr_sched:

@@ -45,12 +45,11 @@ if [ -f "${cDir}/$ENV_NAME/bin/tensorboard" ]; then
   echo 'TF already installed'
   echo
 else
-  # export TMPDIR=${cDir}
   if [ -z "$NO_CUDA" ]; then
-    pip3 install --upgrade tensorflow[and-cuda]==2.13.* --no-cache-dir
+    pip3 install tensorflow[and-cuda]==2.15 --no-cache-dir
   else
     # CPU only installation
-    pip3 install --upgrade tensorflow==2.13.* --no-cache-dir
+    pip3 install tensorflow==2.15 --no-cache-dir
   fi
 fi
 

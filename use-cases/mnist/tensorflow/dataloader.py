@@ -29,7 +29,7 @@ class MNISTDataPreproc(DataPreproc):
     ) -> Tuple:
         options = tf.data.Options()
         options.experimental_distribute.auto_shard_policy = (
-            tf.data.experimental.AutoShardPolicy.FILE)
+            tf.data.experimental.AutoShardPolicy.DATA)
         preprocessed = []
         for dataset in datasets:
             x, y = dataset
