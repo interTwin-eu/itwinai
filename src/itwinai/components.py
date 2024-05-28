@@ -264,7 +264,7 @@ class DataGetter(BaseComponent):
         """
 
 
-class DataPreproc(BaseComponent):
+class DataProcessor(BaseComponent):
     """Performs dataset pre-processing."""
 
     @abstractmethod

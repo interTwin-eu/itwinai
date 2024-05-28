@@ -21,7 +21,7 @@ from datetime import datetime
 # # the mock-0.3.1 dir contains testcase.py, testutils.py & mock.py
 from itwinai.parser import ConfigParser, ArgumentParser
 
-from lib.macros import PATCH_SIZE, SHAPE
+from src.macros import PATCH_SIZE, SHAPE
 
 
 def dynamic_config(args) -> Dict:

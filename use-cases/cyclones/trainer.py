@@ -10,9 +10,9 @@ from itwinai.tensorflow.distributed import get_strategy
 from itwinai.tensorflow.trainer import TensorflowTrainer
 from itwinai.components import monitor_exec
 
-from lib.utils import get_network_config, load_model
-from lib.callbacks import ProcessBenchmark
-from lib.macros import (
+from src.utils import get_network_config, load_model
+from src.callbacks import ProcessBenchmark
+from src.macros import (
     Network,
     Losses,
     RegularizationStrength,
