@@ -12,6 +12,7 @@ training_pipeline:
         init_args:
           train_proportion: 0.9
           rnd_seed: 42
+          images_dataset: data/Image_dataset_synthetic_64x64.pkl
       - class_path: data.TimeSeriesProcessor
       # - class_path: trainer.VirgoTrainer
       #   init_args:
