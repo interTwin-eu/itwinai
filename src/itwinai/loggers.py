@@ -1,5 +1,4 @@
-"""Abstraction for loggers."""
-
+"""Abstraction layer for loggers."""
 import os
 import csv
 from abc import ABCMeta, abstractmethod
@@ -54,8 +53,7 @@ class Logger(LogMixin, metaclass=ABCMeta):
     @log_freq.setter
     def log_freq(self, val: Union[int, str]):
         """Sanitize log_freq value."""
-        if val in ['epoch', 'batch'] or (
-                isinstance(val, int) and val > 0):
+        if val in ['epoch', 'batch'] or (isinstance(val, int) and val > 0):
             self._log_freq = val
         else:
             raise ValueError(
@@ -375,19 +373,40 @@ class TensorBoardLogger(Logger):
     def __init__(
         self,
         savedir: str = 'mllogs',
-        log_freq: Union[int, Literal['epoch', 'batch']] = 'epoch'
+        log_freq: Union[int, Literal['epoch', 'batch']] = 'epoch',
+        framework: Literal['tensorflow', 'pytorch'] = 'tensorflow'
     ) -> None:
         savedir = os.path.join(savedir, 'tensorboard')
         super().__init__(savedir=savedir, log_freq=log_freq)
+        self.framework = framework
+        if framework == 'tensorflow':
+            import tensorflow as tf
+            self.tf = tf
+            self.writer = tf.summary.create_file_writer(savedir)
+        elif framework == 'pytorch':
+            from torch.utils.tensorboard import SummaryWriter
+            self.writer = SummaryWriter(savedir)
+        else:
+            raise ValueError(
+                "Framework must be either 'tensorflow' or 'pytorch'")
+        self.supported_types = ['metric', 'image',
+                                'text', 'figure', 'torch', 'hparams']
 
     def create_logger_context(self):
-        pass
+        if self.framework == 'tensorflow':
+            self.writer.set_as_default()
 
     def destroy_logger_context(self):
-        pass
+        self.writer.close()
 
     def save_hyperparameters(self, params: Dict[str, Any]) -> None:
-        pass
+        if self.framework == 'tensorflow':
+            from tensorboard.plugins.hparams import api as hp
+            hparams = {hp.HParam(k): v for k, v in params.items()}
+            with self.writer.as_default():
+                hp.hparams(hparams)
+        elif self.framework == 'pytorch':
+            self.writer.add_hparams(params, {})
 
     def log(
         self,
@@ -414,7 +433,27 @@ class TensorBoardLogger(Logger):
         if not self.should_log(batch_idx=batch_idx):
             return
 
-        # TODO: complete
+        if self.framework == 'tensorflow':
+            with self.writer.as_default():
+                if kind == 'metric':
+                    self.tf.summary.scalar(identifier, item, step=step)
+                elif kind == 'image':
+                    self.tf.summary.image(identifier, item, step=step)
+                elif kind == 'text':
+                    self.tf.summary.text(identifier, item, step=step)
+                elif kind == 'figure':
+                    self.tf.summary.figure(identifier, item, step=step)
+        elif self.framework == 'pytorch':
+            if kind == 'metric':
+                self.writer.add_scalar(identifier, item, global_step=step)
+            elif kind == 'image':
+                self.writer.add_image(identifier, item, global_step=step)
+            elif kind == 'text':
+                self.writer.add_text(identifier, item, global_step=step)
+            elif kind == 'figure':
+                self.writer.add_figure(identifier, item, global_step=step)
+            elif kind == 'torch':
+                self.writer.add_graph(item)
 
 
 class LoggersCollection(Logger):

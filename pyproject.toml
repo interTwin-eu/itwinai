@@ -18,11 +18,13 @@ authors = [
     { name = "Matteo Bunino", email = "matteo.bunino@cern.ch" },
     { name = "Rakesh Sarma", email = "r.sarma@fz-juelich.de" },
     { name = "Mario Ruettgers", email = "m.ruettgers@fz-juelich.de" },
+    { name = "Kalliopi Tsolaki", email = "kalliopi.tsolaki@cern.ch" },
 ]
 maintainers = [
     { name = "Matteo Bunino", email = "matteo.bunino@cern.ch" },
     { name = "Rakesh Sarma", email = "r.sarma@fz-juelich.de" },
     { name = "Mario Ruettgers", email = "m.ruettgers@fz-juelich.de" },
+    { name = "Kalliopi Tsolaki", email = "kalliopi.tsolaki@cern.ch" },
 ]
 classifiers = [
     "Development Status :: 4 - Beta",
@@ -59,6 +61,7 @@ dev = [
     "pytest-cov>=4.1.0",
     "ipykernel",
     "ipython",
+    "tensorflow==2.15",    # needed by tests on tensorboard
 ]
 
 [project.urls]

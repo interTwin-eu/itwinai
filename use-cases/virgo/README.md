@@ -44,5 +44,5 @@ bash runall.sh
 
 > [!WARNING]
 > The file `train.py` is not to be considered the suggested way to launch training,
-> as it is deprecated and is there to testify an intermediate step if integration
+> as it is deprecated and is there to testify an intermediate integration step
 > of the use case into `itwinai`.
