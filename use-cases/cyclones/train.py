@@ -106,8 +106,7 @@ if __name__ == "__main__":
         config=args.pipeline,
         override_keys={
             "dataset_root": args.data_path,
-            "global_config": global_config,
-            "global_config": global_config,
+            "global_config": global_config
         }
     )
     pipeline = pipe_parser.parse_pipeline(

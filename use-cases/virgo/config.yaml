@@ -1,7 +1,8 @@
 # General configuration
 data_root: data
-epochs: 20
+epochs: 2
 batch_size: 20
+strategy: ddp
 
 training_pipeline:
   class_path: itwinai.pipeline.Pipeline
@@ -10,7 +11,7 @@ training_pipeline:
       - class_path: data.TimeSeriesDatasetGenerator
         init_args:
           data_root: ${data_root}
-      - class_path: data.TimerSeriesDatasetSplitter
+      - class_path: data.TimeSeriesDatasetSplitter
         init_args:
           train_proportion: 0.9
           rnd_seed: 42
@@ -21,3 +22,4 @@ training_pipeline:
           generator: unet
           batch_size: ${batch_size}
           num_epochs: ${epochs}
+          strategy: ${strategy}

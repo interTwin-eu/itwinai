@@ -26,9 +26,15 @@ class NoiseGeneratorTrainer(TorchTrainer):
         num_epochs: int = 2,
         generator: Literal["simple", "deep", "resnet", "unet"] = "unet",
         loss: Literal["L1", "L2"] = "L1",
+        strategy: Literal["ddp", "deepspeed", "horovod"] = 'ddp',
         name: str | None = None
     ) -> None:
-        super().__init__(epochs=num_epochs, name=name)
+        super().__init__(
+            epochs=num_epochs,
+            config={},
+            strategy=strategy,
+            name=name
+        )
         self.save_parameters(**self.locals2params(locals()))
         self.num_epochs = num_epochs
         self.batch_size = batch_size
@@ -71,7 +77,7 @@ class NoiseGeneratorTrainer(TorchTrainer):
         elif loss == "L2":
             self.loss = nn.MSELoss()
         else:
-            raise ValueError("Unrecognized loss type! Got", generator)
+            raise ValueError("Unrecognized loss type! Got", loss)
 
         # Optimizer
         self.optimizer = torch.optim.Adam(
@@ -150,8 +156,9 @@ class NoiseGeneratorTrainer(TorchTrainer):
             # accuracy: {}'.format(epoch,loss_plot[-1],val_loss_plot[-1],
             # acc_plot[-1],val_acc_plot[-1]))
             et = time.time()
-            print('epoch: {} loss: {} val loss: {} time:{}s'.format(
-                epoch, loss_plot[-1], val_loss_plot[-1], et-st))
+            if self.strategy.is_main_worker:
+                print('epoch: {} loss: {} val loss: {} time:{}s'.format(
+                    epoch, loss_plot[-1], val_loss_plot[-1], et-st))
 
             # Save checkpoint every 100 epochs
             if (epoch+1) % 100 == 0:

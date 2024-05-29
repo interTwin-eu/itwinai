@@ -61,7 +61,7 @@ class TimeSeriesDatasetGenerator(DataGetter):
         return df
 
 
-class TimerSeriesDatasetSplitter(DataSplitter):
+class TimeSeriesDatasetSplitter(DataSplitter):
     def __init__(
         self,
         train_proportion: int | float,

@@ -569,7 +569,7 @@ class DeepSpeedStrategy(TorchDistributedStrategy):
         if not self.is_initialized:
             raise UninitializedStrategyError(
                 "Strategy has not been initialized. Use the init method.")
-        deepspeed.sys.exit()
+        # deepspeed.sys.exit() # disabled as it kills the execution
 
     def par_allgather_obj(self, obj: Any) -> list[Any]:
         """Gathers any object from the whole group

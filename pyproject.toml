@@ -8,7 +8,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "itwinai"
-version = "0.0.1"
+version = "0.0.2"
 description = "AI and ML workflows module for scientific digital twins."
 readme = "README.md"
 requires-python = ">=3.10"
@@ -16,14 +16,11 @@ license = { file = "LICENSE" }
 keywords = ["ml", "ai", "hpc"]
 authors = [
     { name = "Matteo Bunino", email = "matteo.bunino@cern.ch" },
-    { name = "Alexander Zoechbauer", email = "alexander.zoechbauer@cern.ch" },
     { name = "Rakesh Sarma", email = "r.sarma@fz-juelich.de" },
     { name = "Mario Ruettgers", email = "m.ruettgers@fz-juelich.de" },
-    { name = "Eric Wulff", email = "eric.wulff@cern.ch" },
 ]
 maintainers = [
     { name = "Matteo Bunino", email = "matteo.bunino@cern.ch" },
-    { name = "Alexander Zoechbauer", email = "alexander.zoechbauer@cern.ch" },
     { name = "Rakesh Sarma", email = "r.sarma@fz-juelich.de" },
     { name = "Mario Ruettgers", email = "m.ruettgers@fz-juelich.de" },
 ]
@@ -41,6 +38,7 @@ dependencies = [
     "rich>=13.5.3",
     "typer>=0.9.0",
     "wheel",
+    "pydantic",
 ]
 
 # dynamic = ["version", "description"]

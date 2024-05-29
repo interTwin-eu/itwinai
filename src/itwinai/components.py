@@ -91,8 +91,9 @@ import functools
 # import logging
 # from logging import Logger as PythonLogger
 
-from .types import MLModel, MLDataset, MLArtifact
+from .type import MLModel, MLDataset, MLArtifact
 from .serialization import ModelLoader, Serializable
+from .distributed import detect_distributed_environment
 
 
 def monitor_exec(method: Callable) -> Callable:
@@ -105,18 +106,28 @@ def monitor_exec(method: Callable) -> Callable:
     """
     @functools.wraps(method)
     def monitored_method(self: BaseComponent, *args, **kwargs) -> Any:
-        msg = f"Starting execution of '{self.name}'..."
-        self._printout(msg)
-        start_t = time.time()
-        try:
-            # print(f'ARGS: {args}')
-            # print(f'KWARGS: {kwargs}')
-            result = method(self, *args, **kwargs)
-        finally:
-            self.cleanup()
-        self.exec_t = time.time() - start_t
-        msg = f"'{self.name}' executed in {self.exec_t:.3f}s"
-        self._printout(msg)
+        dist_grank = detect_distributed_environment().global_rank
+        if dist_grank == 0:
+            # I am the main worker
+            msg = f"Starting execution of '{self.name}'..."
+            self._printout(msg)
+            start_t = time.time()
+            try:
+                # print(f'ARGS: {args}')
+                # print(f'KWARGS: {kwargs}')
+                result = method(self, *args, **kwargs)
+            finally:
+                self.cleanup()
+            self.exec_t = time.time() - start_t
+            msg = f"'{self.name}' executed in {self.exec_t:.3f}s"
+            self._printout(msg)
+        else:
+            # Just call the function
+            try:
+                result = method(self, *args, **kwargs)
+            finally:
+                self.cleanup()
+
         return result
 
     return monitored_method
