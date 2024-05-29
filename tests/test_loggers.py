@@ -12,8 +12,8 @@ from itwinai.loggers import (
 )
 
 
-@pytest.fixture
-def console_logger(scope="module"):
+@pytest.fixture(scope="module")
+def console_logger():
     yield ConsoleLogger(savedir='/tmp/console/test_mllogs', log_freq=1)
     shutil.rmtree('/tmp/console/test_mllogs', ignore_errors=True)
 
