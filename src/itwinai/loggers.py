@@ -370,6 +370,9 @@ class WanDBLogger(Logger):
 class TensorBoardLogger(Logger):
     """Abstraction for Tensorboard logger."""
 
+    # TODO: decouple the logger into TorchTBLogger and TFTBLogger
+    # and add the missing logging types supported by each.
+
     def __init__(
         self,
         savedir: str = 'mllogs',
@@ -390,7 +393,7 @@ class TensorBoardLogger(Logger):
             raise ValueError(
                 "Framework must be either 'tensorflow' or 'pytorch'")
         self.supported_types = ['metric', 'image',
-                                'text', 'figure', 'torch', 'hparams']
+                                'text', 'figure', 'torch']
 
     def create_logger_context(self):
         if self.framework == 'tensorflow':
@@ -457,7 +460,7 @@ class TensorBoardLogger(Logger):
 
 
 class LoggersCollection(Logger):
-    """Contains a list of loggers. Never tested."""
+    """Wrapper of a set of loggers, allowing to use them simultaneously."""
 
     def __init__(
         self,
