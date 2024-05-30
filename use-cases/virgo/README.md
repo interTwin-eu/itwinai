@@ -1,5 +1,9 @@
 # Noise Simulation for Gravitational Waves Detector (Virgo)
 
+The code is adapted from
+[this notebook](https://github.com/interTwin-eu/DT-Virgo-notebooks/blob/main/WP_4_4/interTwin_wp_4.4_synthetic_data.ipynb)
+available on the Virgo use case's [repository](https://github.com/interTwin-eu/DT-Virgo-notebooks).
+
 ## Installation
 
 Before continuing, install the required libraries in the pre-existing itwinai environment.

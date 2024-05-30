@@ -64,6 +64,10 @@ class TorchTrainer(Trainer, LogMixin):
         called on all workers in the distributed context. Defaults to False.
         metrics (Optional[Dict[str, Metric]], optional): map of torchmetrics
         metrics. Defaults to None.
+        checkpoints_location (str): path to checkpoints directory.
+        Defaults to "checkpoints".
+        checkpoint_every (Optional[int]): save a checkpoint every
+        ``checkpoint_every`` epochs. Disabled if None. Defaults to None.
         name (Optional[str], optional): trainer custom name. Defaults to None.
     """
     # TODO:
@@ -103,6 +107,8 @@ class TorchTrainer(Trainer, LogMixin):
         logger: Optional[Logger] = None,
         log_all_workers: bool = False,
         metrics: Optional[Dict[str, Metric]] = None,
+        checkpoints_location: str = "checkpoints",
+        checkpoint_every: Optional[int] = None,
         name: Optional[str] = None
     ) -> None:
         super().__init__(name)
@@ -121,6 +127,9 @@ class TorchTrainer(Trainer, LogMixin):
         self.logger = logger
         self.log_all_workers = log_all_workers
         self.metrics = metrics if metrics is not None else {}
+        self.checkpoints_location = checkpoints_location
+        os.makedirs(self.checkpoints_location, exist_ok=True)
+        self.checkpoint_every = checkpoint_every
 
     @property
     def strategy(self) -> TorchDistributedStrategy:
@@ -343,6 +352,43 @@ class TorchTrainer(Trainer, LogMixin):
                 **kwargs
             )
 
+    def save_checkpoint(
+            self, name: str, epoch: int, loss: Optional[torch.Tensor] = None
+    ) -> None:
+        """Save training checkpoint.
+
+        Args:
+            name (str): name of the checkpoint.
+            epoch (int): current training epoch.
+            loss (Optional[torch.Tensor]): current loss (if available).
+        """
+        state = dict(
+            epoch=epoch,
+            loss=loss,
+            optimizer=self.optimizer.state_dict(),
+            model=self.model.state_dict(),
+            lr_scheduler=self.lr_scheduler
+        )
+        ckpt_path = os.path.join(self.checkpoints_location, name)
+        torch.save(state, ckpt_path)
+        print(f"Saved '{name}' checkpoint at {ckpt_path}")
+
+        # Save checkpoint to logger
+        self.log(ckpt_path, name, kind='artifact')
+
+    def load_checkpoint(self, name: str) -> None:
+        """Load state from a checkpoint.
+
+        Args:
+            name (str): name of the checkpoint to load, assuming it
+            is under ``self.checkpoints_location`` location.
+        """
+        ckpt_path = os.path.join(self.checkpoints_location, name)
+        state = torch.load(ckpt_path, map_location=self.device)
+        self.model.load_state_dict(state['model'])
+        self.optimizer.load_state_dict(state['optimizer'])
+        self.lr_scheduler = state['lr_scheduler']
+
     def train(self):
         """Trains a machine learning model.
         Main training loop/logic.
@@ -356,15 +402,34 @@ class TorchTrainer(Trainer, LogMixin):
             Tuple[Dataset, Dataset, Dataset, Any]: training dataset,
             validation dataset, test dataset, trained model.
         """
-        # start_time = time.perf_counter()
+        best_loss = float('inf')
         for epoch in range(self.epochs):
             epoch_n = epoch + 1
             self._set_epoch_dataloaders(epoch)
             self.train_epoch()
-            if self.validation_every and self.validation_every % epoch_n == 0:
-                self.validation_epoch()
-            if self.test_every and self.test_every % epoch_n == 0:
+            if self.validation_every and epoch_n % self.validation_every == 0:
+                val_loss = self.validation_epoch()
+
+                # Checkpointing current best model
+                worker_val_losses = self.strategy.gather_obj(
+                    val_loss, dst_rank=0)
+                if self.strategy.global_rank() == 0:
+                    avg_loss = torch.mean(
+                        torch.stack(worker_val_losses)
+                    ).detach().cpu()
+                    if avg_loss < best_loss:
+                        ckpt_name = "best_model.pth"
+                        self.save_checkpoint(
+                            name=ckpt_name, epoch=epoch, loss=avg_loss)
+
+            if self.test_every and epoch_n % self.test_every == 0:
                 self.test_epoch()
+
+            # Periodic checkpointing
+            if (self.strategy.is_main_worker and self.checkpoint_every
+                    and epoch_n % self.checkpoint_every == 0):
+                ckpt_name = f"epoch_{epoch}.pth"
+                self.save_checkpoint(name=ckpt_name, epoch=epoch)
 
     def compute_metrics(
         self,
