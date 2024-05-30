@@ -3,6 +3,7 @@ data_root: data
 epochs: 2
 batch_size: 20
 strategy: ddp
+checkpoint_path: checkpoints/epoch_{}.pth
 
 training_pipeline:
   class_path: itwinai.pipeline.Pipeline
@@ -23,3 +24,16 @@ training_pipeline:
           batch_size: ${batch_size}
           num_epochs: ${epochs}
           strategy: ${strategy}
+          checkpoint_path: ${checkpoint_path}
+          # logger:
+          #   class_path: itwinai.loggers.LoggersCollection
+          #   init_args:
+          #     loggers:
+          #       - class_path: itwinai.loggers.ConsoleLogger
+          #         init_args:
+          #           log_freq: 10000
+          #       - class_path: itwinai.loggers.MLFlowLogger
+          #         init_args:
+          #           experiment_name: MNIST classifier
+          #           log_freq: batch 
+          

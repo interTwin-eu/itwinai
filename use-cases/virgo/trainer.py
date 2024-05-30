@@ -1,4 +1,5 @@
-from typing import Literal
+from typing import Literal, Optional
+import os
 import torch.nn as nn
 import torch
 import time
@@ -9,6 +10,7 @@ from itwinai.torch.distributed import (
     DeepSpeedStrategy,
 )
 from itwinai.torch.config import TrainingConfiguration
+from itwinai.loggers import Logger
 
 from src.model import Decoder, Decoder_2d_deep, UNet, GeneratorResNet
 from src.utils import init_weights
@@ -27,12 +29,16 @@ class NoiseGeneratorTrainer(TorchTrainer):
         generator: Literal["simple", "deep", "resnet", "unet"] = "unet",
         loss: Literal["L1", "L2"] = "L1",
         strategy: Literal["ddp", "deepspeed", "horovod"] = 'ddp',
+        checkpoint_path: str = "checkpoints/epoch_{}.pth",
+        save_best: bool = True,
+        logger: Optional[Logger] = None,
         name: str | None = None
     ) -> None:
         super().__init__(
             epochs=num_epochs,
             config={},
             strategy=strategy,
+            logger=logger,
             name=name
         )
         self.save_parameters(**self.locals2params(locals()))
@@ -41,13 +47,11 @@ class NoiseGeneratorTrainer(TorchTrainer):
         self.learning_rate = learning_rate
         self._generator = generator
         self._loss = loss
+        self.checkpoint_path = checkpoint_path
         # Global configuration
         _config = dict(
             batch_size=batch_size,
-            num_workers=4,
-            pin_memory=False,
-            save_best=False,
-            checkpoint_path="checkpoints/epoch_{}.pth"
+            save_best=save_best
         )
         self.config = TrainingConfiguration(**_config)
 
@@ -112,7 +116,7 @@ class NoiseGeneratorTrainer(TorchTrainer):
         val_loss_plot = []
         acc_plot = []
         val_acc_plot = []
-        best_val_loss = 5000000
+        best_val_loss = float('inf')
         for epoch in tqdm(range(1, self.num_epochs+1)):
             st = time.time()
             epoch_loss = []
@@ -152,6 +156,17 @@ class NoiseGeneratorTrainer(TorchTrainer):
             val_loss_plot.append(np.mean(val_loss))
             acc_plot.append(np.mean(epoch_acc))
             val_acc_plot.append(np.mean(val_acc))
+
+            # Log metrics/losses
+            self.log(np.mean(epoch_loss), 'epoch_loss',
+                     kind='metric', step=epoch)
+            self.log(np.mean(val_loss), 'val_loss',
+                     kind='metric', step=epoch)
+            self.log(np.mean(epoch_acc), 'epoch_acc',
+                     kind='metric', step=epoch)
+            self.log(np.mean(val_acc), 'val_acc',
+                     kind='metric', step=epoch)
+
             # print('epoch: {} loss: {} val loss: {} accuracy: {} val
             # accuracy: {}'.format(epoch,loss_plot[-1],val_loss_plot[-1],
             # acc_plot[-1],val_acc_plot[-1]))
@@ -161,44 +176,59 @@ class NoiseGeneratorTrainer(TorchTrainer):
                     epoch, loss_plot[-1], val_loss_plot[-1], et-st))
 
             # Save checkpoint every 100 epochs
-            if (epoch+1) % 100 == 0:
+            if (epoch+1) % 1 == 0:
                 # uncomment the following if you want to save checkpoint every
                 # 100 epochs regardless of the performance of the model
                 # checkpoint = {
                 #     'epoch': epoch,
                 #     'model_state_dict': generator.state_dict(),
-                #     'optimizer_state_dict': optimizer.state_dict(),
+                #     'optim_state_dict': optimizer.state_dict(),
                 #     'loss': loss_plot[-1],
                 #     'val_loss': val_loss_plot[-1],
                 # }
+                # if self.strategy.is_main_worker:
+                #     # Save only in the main worker
+                #     checkpoint_filename = checkpoint_path.format(epoch)
+                #     torch.save(checkpoint, checkpoint_filename)
 
-                # checkpoint_filename = checkpoint_path.format(epoch)
-                # torch.save(checkpoint, checkpoint_filename)
+                # Average loss among all workers
+                worker_val_losses = self.strategy.gather_obj(val_loss_plot[-1])
+                if self.strategy.is_main_worker:
+                    # Save only in the main worker
 
-                # instead of val_loss and best_val loss we should
-                # use accuracy!!!
-                if self.config.save_best and val_loss_plot[-1] < best_val_loss:
-                    # create checkpoint
-                    checkpoint = {
-                        'epoch': epoch,
-                        'model_state_dict': self.model.state_dict(),
-                        'optimizer_state_dict': self.optimizer.state_dict(),
-                        'loss': loss_plot[-1],
-                        'val_loss': val_loss_plot[-1],
-                    }
+                    # avg_loss has a meaning only in the main worker
+                    avg_loss = np.mean(worker_val_losses)
 
-                    # save checkpoint only if it is better than
-                    # the previous ones
-                    checkpoint_filename = self.config.checkpoint_path.format(
-                        epoch)
-                    torch.save(checkpoint, checkpoint_filename)
+                    # instead of val_loss and best_val loss we should
+                    # use accuracy!!!
+                    if self.config.save_best and avg_loss < best_val_loss:
+                        # create checkpoint
+                        checkpoint = {
+                            'epoch': epoch,
+                            'model_state_dict': self.model.state_dict(),
+                            'optim_state_dict': self.optimizer.state_dict(),
+                            'loss': loss_plot[-1],
+                            'val_loss': val_loss_plot[-1],
+                        }
 
-                    # update best model
-                    best_val_loss = val_loss_plot[-1]
-                    best_checkpoint_filename = (
-                        self.config.checkpoint_path.format('best')
-                    )
-                    torch.save(checkpoint, best_checkpoint_filename)
+                        # save checkpoint only if it is better than
+                        # the previous ones
+                        checkpoint_filename = self.checkpoint_path.format(
+                            epoch)
+                        torch.save(checkpoint, checkpoint_filename)
+                        self.log(checkpoint_filename,
+                                 os.path.basename(checkpoint_filename),
+                                 kind='artifact')
+
+                        # update best model
+                        best_val_loss = val_loss_plot[-1]
+                        best_checkpoint_filename = (
+                            self.checkpoint_path.format('best')
+                        )
+                        torch.save(checkpoint, best_checkpoint_filename)
+                        self.log(best_checkpoint_filename,
+                                 os.path.basename(best_checkpoint_filename),
+                                 kind='artifact')
         # return (loss_plot, val_loss_plot,
         # acc_plot, val_acc_plot ,acc_plot, val_acc_plot)
         return loss_plot, val_loss_plot, acc_plot, val_acc_plot
