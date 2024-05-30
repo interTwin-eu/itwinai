@@ -15,8 +15,8 @@ The training scripts are:
 - ``ddp_trainer.py``: baseline of distributed training with vanilla torch DDP
 - ``deepspeed_trainer.py``: baseline of distributed training with vanilla Microsoft DeepSpeed
 - ``horovod_trainer.py``: baseline of distributed training with vanilla Horovod
-- ``itwinai_trainer.py``: provides the same functionalities as all the above,
-using the unified itwinai's distributed training interface.
+- ``itwinai_trainer.py``: provides the same functionalities as all the above, using the unified itwinai's distributed training interface.
+
 
 Configuration files are stored into ``config/`` folder. ``base.yaml`` provides the
 configuration common to all training experiments, whereas ``ddp.yaml``, ``deepspeed.yaml``,
