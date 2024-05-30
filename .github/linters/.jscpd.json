@@ -1,6 +1,8 @@
 {
     "threshold": 2.0,
     "ignore": [
-        "**/itwinai/loggers.py"
+        "**/itwinai/loggers.py",
+        "use-cases",
+        "tutorials"
     ]
 }
