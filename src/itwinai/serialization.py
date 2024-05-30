@@ -5,7 +5,7 @@ import yaml
 from pathlib import Path
 import inspect
 
-from .types import MLModel
+from .type import MLModel
 from .utils import SignatureInspector
 
 

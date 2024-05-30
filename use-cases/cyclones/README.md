@@ -1,5 +1,8 @@
 # Tropical cyclone detection
 
+The code is adapted from the CMCC use case's
+[repository](https://github.com/CMCC-Foundation/ml-tropical-cyclones-detection).
+
 ## Setup env
 
 ```bash

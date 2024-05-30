@@ -7,15 +7,15 @@ import numpy as np
 
 from itwinai.components import DataGetter, monitor_exec
 
-from lib.macros import (
+from src.macros import (
     PatchType,
     LabelNoCyclone,
     AugmentationType,
 )
-from lib.tfrecords.functions import read_tfrecord_as_tensor
-from lib.scaling import save_tf_minmax
-from lib.tfrecords.dataset import eFlowsTFRecordDataset
-from lib.transform import (
+from src.tfrecords.functions import read_tfrecord_as_tensor
+from src.scaling import save_tf_minmax
+from src.tfrecords.dataset import eFlowsTFRecordDataset
+from src.transform import (
     coo_left_right,
     coo_up_down,
     coo_rot180,

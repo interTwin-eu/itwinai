@@ -21,7 +21,7 @@ from datetime import datetime
 # # the mock-0.3.1 dir contains testcase.py, testutils.py & mock.py
 from itwinai.parser import ConfigParser, ArgumentParser
 
-from lib.macros import PATCH_SIZE, SHAPE
+from src.macros import PATCH_SIZE, SHAPE
 
 
 def dynamic_config(args) -> Dict:
@@ -106,8 +106,7 @@ if __name__ == "__main__":
         config=args.pipeline,
         override_keys={
             "dataset_root": args.data_path,
-            "global_config": global_config,
-            "global_config": global_config,
+            "global_config": global_config
         }
     )
     pipeline = pipe_parser.parse_pipeline(
