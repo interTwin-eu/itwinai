@@ -48,6 +48,7 @@ class NoiseGeneratorTrainer(TorchTrainer):
         self._generator = generator
         self._loss = loss
         self.checkpoint_path = checkpoint_path
+        os.makedirs(os.path.dirname(checkpoint_path), exist_ok=True)
         # Global configuration
         _config = dict(
             batch_size=batch_size,
@@ -136,6 +137,11 @@ class NoiseGeneratorTrainer(TorchTrainer):
                 loss.backward()
                 self.optimizer.step()
                 epoch_loss.append(loss.detach().cpu().numpy())
+                self.log(loss.detach().cpu().numpy(),
+                         'epoch_loss_batch',
+                         kind='metric',
+                         step=epoch*len(self.train_dataloader) + i,
+                         batch_idx=i)
                 # acc=accuracy(generated.detach().cpu().numpy(),target.detach().cpu().numpy(),20)
                 # epoch_acc.append(acc)
             val_loss = []
@@ -150,6 +156,11 @@ class NoiseGeneratorTrainer(TorchTrainer):
                     # generated=normalize_(generated,1)
                     loss = self.loss(generated, target)
                     val_loss.append(loss.detach().cpu().numpy())
+                    self.log(loss.detach().cpu().numpy(),
+                             'val_loss_batch',
+                             kind='metric',
+                             step=epoch*len(self.validation_dataloader) + i,
+                             batch_idx=i)
                     # acc=accuracy(generated.detach().cpu().numpy(),target.detach().cpu().numpy(),20)
                     # val_acc.append(acc)
             loss_plot.append(np.mean(epoch_loss))
@@ -162,10 +173,10 @@ class NoiseGeneratorTrainer(TorchTrainer):
                      kind='metric', step=epoch)
             self.log(np.mean(val_loss), 'val_loss',
                      kind='metric', step=epoch)
-            self.log(np.mean(epoch_acc), 'epoch_acc',
-                     kind='metric', step=epoch)
-            self.log(np.mean(val_acc), 'val_acc',
-                     kind='metric', step=epoch)
+            # self.log(np.mean(epoch_acc), 'epoch_acc',
+            #          kind='metric', step=epoch)
+            # self.log(np.mean(val_acc), 'val_acc',
+            #          kind='metric', step=epoch)
 
             # print('epoch: {} loss: {} val loss: {} accuracy: {} val
             # accuracy: {}'.format(epoch,loss_plot[-1],val_loss_plot[-1],

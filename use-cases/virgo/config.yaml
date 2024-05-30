@@ -25,15 +25,15 @@ training_pipeline:
           num_epochs: ${epochs}
           strategy: ${strategy}
           checkpoint_path: ${checkpoint_path}
-          # logger:
-          #   class_path: itwinai.loggers.LoggersCollection
-          #   init_args:
-          #     loggers:
-          #       - class_path: itwinai.loggers.ConsoleLogger
-          #         init_args:
-          #           log_freq: 10000
-          #       - class_path: itwinai.loggers.MLFlowLogger
-          #         init_args:
-          #           experiment_name: MNIST classifier
-          #           log_freq: batch 
+          logger:
+            class_path: itwinai.loggers.LoggersCollection
+            init_args:
+              loggers:
+                - class_path: itwinai.loggers.ConsoleLogger
+                  init_args:
+                    log_freq: 100
+                - class_path: itwinai.loggers.MLFlowLogger
+                  init_args:
+                    experiment_name: Noise simulator (Virgo)
+                    log_freq: batch 
           

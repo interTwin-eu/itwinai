@@ -50,3 +50,12 @@ bash runall.sh
 > The file `train.py` is not to be considered the suggested way to launch training,
 > as it is deprecated and is there to testify an intermediate integration step
 > of the use case into `itwinai`.
+
+When using MLFLow logger, you can visualize the logs in from the MLFlow UI:
+
+```bash
+mlflow ui --backend-store-uri mllogs/mlflow
+
+# In background 
+mlflow ui --backend-store-uri mllogs/mlflow > /dev/null 2>&1 &
+```

@@ -44,3 +44,24 @@ def detect_distributed_environment() -> ClusterEnvironment:
         return ClusterEnvironment()
     else:
         return ClusterEnvironment()
+
+
+def distributed_patch_print(is_main: bool) -> None:
+    """Disable ``print()`` when not in main worker.
+
+    Args:
+        is_main (bool): whether it is called from main worker.
+    """
+    import builtins as __builtin__
+    builtin_print = __builtin__.print
+
+    def print(*args, **kwself):
+        """Print is disables on workers different from
+        the main one, unless the print is called with
+        ``force=True`` argument.
+        """
+        force = kwself.pop('force', False)
+        if is_main or force:
+            builtin_print(*args, **kwself)
+
+    __builtin__.print = print
