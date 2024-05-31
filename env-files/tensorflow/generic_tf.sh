@@ -9,6 +9,12 @@ if [ -z "$ENV_NAME" ]; then
   ENV_NAME=".venv-tf"
 fi
 
+if [ -z "$NO_CUDA" ]; then
+  echo "Installing itwinai and its dependencies in '$ENV_NAME' virtual env (CUDA enabled)"
+else
+  echo "Installing itwinai and its dependencies in '$ENV_NAME' virtual env (CUDA disabled)"
+fi
+
 # get python version
 pver="$(python --version 2>&1 | awk '{print $2}' | cut -f1-2 -d.)"
 
