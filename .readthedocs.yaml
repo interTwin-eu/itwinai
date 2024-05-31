@@ -18,8 +18,7 @@ build:
     - gcc-11
     - g++-11
     - cmake
-
-
+    - pandoc
 
 # Build documentation in the "docs/" directory with Sphinx
 sphinx:
