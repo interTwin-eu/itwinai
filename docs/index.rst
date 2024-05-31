@@ -25,7 +25,6 @@ In ``itwinai`` platform, we focus mainly on the MLOps step, simulating or oversi
 
 
 .. toctree::
-   :numbered:
    :maxdepth: 2
    :hidden:
    :caption: 💡 Installation
