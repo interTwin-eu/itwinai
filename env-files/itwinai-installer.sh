@@ -18,6 +18,8 @@ if ! nvidia-smi > /dev/null 2>&1; then
     export NO_CUDA=1
 fi
 
+echo $CHOICE
+
 # Begin installation of dependencies + itwinai
 if [ "$choice" -eq 1 ]; then
     echo "Installing itwinai with PyTorch support..."
