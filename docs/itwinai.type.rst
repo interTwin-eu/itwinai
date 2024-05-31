@@ -1,7 +1,7 @@
-itwinai.types
+itwinai.type
 =============
 
-.. automodule:: itwinai.types
+.. automodule:: itwinai.type
    :members:
    :undoc-members:
    :show-inheritance:
