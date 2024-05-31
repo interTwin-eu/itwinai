@@ -3,9 +3,6 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-🚧 UNDER CONSTRUCTION 🚧
-=========================
-
 Welcome to itwinai's documentation!
 ===================================
 
@@ -37,14 +34,14 @@ In ``itwinai`` platform, we focus mainly on the MLOps step, simulating or oversi
 .. toctree::
    :maxdepth: 2
    :hidden:
-   :caption: 🪄 itwinai Modules
+   :caption: 🪄 Itwinai how it works
 
-   modules
+   ddp_why
 
 .. toctree::
    :maxdepth: 2
    :hidden:
-   :caption: 📚 Integrated Use-cases
+   :caption: 📚 Integrated Use Cases
 
    use_cases
 
@@ -55,13 +52,27 @@ In ``itwinai`` platform, we focus mainly on the MLOps step, simulating or oversi
 
    tutorials
 
-   
+.. toctree::
+   :maxdepth: 2
+   :hidden:
+   :caption: ⚡ Python API reference
+
+   modules
+
+.. .. toctree::
+..    :maxdepth: 2
+..    :hidden:
+..    :caption: Additional resources
+
+..    notebooks/example
+
+
 `interTwin Demo: itwinai integration with other DTE modules <https://www.youtube.com/watch?v=NoVCfSxwtX0>`_
 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 
 Indices and tables
-==================
+++++++++++++++++++
 
 * :ref:`genindex`
 * :ref:`modindex`

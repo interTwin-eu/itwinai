@@ -71,7 +71,7 @@ def flatten_dict(
         d (MutableMapping): nested dictionary to flatten
         parent_key (str, optional): prefix for all keys. Defaults to ''.
         sep (str, optional): separator for nested key concatenation.
-            Defaults to '.'.
+        Defaults to '.'.
 
     Returns:
         MutableMapping: flattened dictionary with new keys.

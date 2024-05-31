@@ -341,6 +341,19 @@ class TorchTrainer(Trainer, LogMixin):
         batch_idx: Optional[int] = None,
         **kwargs
     ) -> None:
+        """Log ``item`` with ``identifier`` name of ``kind`` type at ``step``
+        time step.
+
+        Args:
+            item (Union[Any, List[Any]]): element to be logged (e.g., metric).
+            identifier (Union[str, List[str]]): unique identifier for the
+            element to log(e.g., name of a metric).
+            kind (str, optional): type of the item to be logged. Must be one
+            among the list of self.supported_types. Defaults to 'metric'.
+            step (Optional[int], optional): logging step. Defaults to None.
+            batch_idx (Optional[int], optional): DataLoader batch counter
+            (i.e., batch idx), if available. Defaults to None.
+        """
         if self.logger and (
                 self.strategy.is_main_worker or self.log_all_workers):
             self.logger.log(
@@ -443,7 +456,7 @@ class TorchTrainer(Trainer, LogMixin):
 
         Args:
             metrics (Dict[str, Metric]): metrics dict. Can be
-                ``self.train_metrics`` or ``self.validation_metrics``.
+            ``self.train_metrics`` or ``self.validation_metrics``.
             true (Batch): true values.
             pred (Batch): predicted values.
             logger_step (int): global step to pass to the logger.

@@ -49,7 +49,7 @@ def init_lightning_mlflow(
         default_experiment_name (str, optional): used as experiment name
         if it is not given in the lightning conf. Defaults to 'Default'.
         tmp_dir (str): where to temporarily store some artifacts.
-        **autolog_kwargs (kwargs): args for mlflow.pytorch.autolog(...).
+        autolog_kwargs (kwargs): args for mlflow.pytorch.autolog(...).
     """
     mlflow_conf: Optional[Dict] = _get_mlflow_logger_conf(pl_config)
     if not mlflow_conf:
