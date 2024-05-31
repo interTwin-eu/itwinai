@@ -34,7 +34,7 @@ In ``itwinai`` platform, we focus mainly on the MLOps step, simulating or oversi
 .. toctree::
    :maxdepth: 2
    :hidden:
-   :caption: Itwinai how it works
+   :caption: 🪄 Itwinai how it works
 
    ddp_why
 
