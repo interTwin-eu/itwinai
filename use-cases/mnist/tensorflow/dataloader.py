@@ -2,7 +2,7 @@ from typing import Tuple
 import tensorflow.keras as keras
 import tensorflow as tf
 
-from itwinai.components import DataGetter, DataPreproc, monitor_exec
+from itwinai.components import DataGetter, DataProcessor, monitor_exec
 
 
 class MNISTDataGetter(DataGetter):
@@ -16,7 +16,7 @@ class MNISTDataGetter(DataGetter):
         return train, test
 
 
-class MNISTDataPreproc(DataPreproc):
+class MNISTDataPreproc(DataProcessor):
     def __init__(self, classes: int):
         super().__init__()
         self.save_parameters(**self.locals2params(locals()))

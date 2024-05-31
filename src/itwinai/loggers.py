@@ -1,5 +1,4 @@
-"""Abstraction for loggers."""
-
+"""Abstraction layer for loggers."""
 import os
 import csv
 from abc import ABCMeta, abstractmethod
@@ -11,7 +10,7 @@ import pathlib
 import wandb
 import mlflow
 
-BASE_EXP_NAME: str = 'unk_experiment'
+BASE_EXP_NAME: str = 'default_experiment'
 
 
 class LogMixin(metaclass=ABCMeta):
@@ -25,15 +24,38 @@ class LogMixin(metaclass=ABCMeta):
         batch_idx: Optional[int] = None,
         **kwargs
     ) -> None:
-        """Log item."""
-        pass
+        """Log ``item`` with ``identifier`` name of ``kind`` type at ``step``
+        time step.
+
+        Args:
+            item (Union[Any, List[Any]]): element to be logged (e.g., metric).
+            identifier (Union[str, List[str]]): unique identifier for the
+                element to log(e.g., name of a metric).
+            kind (str, optional): type of the item to be logged. Must be one
+                among the list of self.supported_types. Defaults to 'metric'.
+            step (Optional[int], optional): logging step. Defaults to None.
+            batch_idx (Optional[int], optional): DataLoader batch counter
+                (i.e., batch idx), if available. Defaults to None.
+        """
 
 
 class Logger(LogMixin, metaclass=ABCMeta):
     """Base class for logger
 
     Args:
-        savedir (str): disk location where logs are stored.
+        savedir (str, optional): filesystem location where logs are stored.
+        Defaults to 'mllogs'.
+        log_freq (Union[int, Literal[&#39;epoch&#39;, &#39;batch&#39;]],
+        optional): how often should the logger fulfill calls to the `log()`
+        method:
+        - When set to ``'epoch'``, the logger logs only if
+        ``batch_idx`` is not passed to the ``log`` method.
+        - When an integer
+        is given, the logger logs if ``batch_idx`` is a multiple of
+        ``log_freq``.
+        - When set to ``'batch'``, the logger logs always.
+
+        Defaults to ``'epoch'``.
     """
     savedir: str = None
     supported_types: List[str]  # Supported logging 'kinds'
@@ -48,14 +70,15 @@ class Logger(LogMixin, metaclass=ABCMeta):
         self.log_freq = log_freq
 
     @property
-    def log_freq(self) -> Union[int, str]:
+    def log_freq(self) -> Union[int, Literal['epoch', 'batch']]:
+        """Get ``log_feq``, namely how often should the logger
+        fulfill or ignore calls to the `log()` method."""
         return self._log_freq
 
     @log_freq.setter
-    def log_freq(self, val: Union[int, str]):
+    def log_freq(self, val: Union[int, Literal['epoch', 'batch']]):
         """Sanitize log_freq value."""
-        if val in ['epoch', 'batch'] or (
-                isinstance(val, int) and val > 0):
+        if val in ['epoch', 'batch'] or (isinstance(val, int) and val > 0):
             self._log_freq = val
         else:
             raise ValueError(
@@ -65,6 +88,16 @@ class Logger(LogMixin, metaclass=ABCMeta):
 
     @contextmanager
     def start_logging(self):
+        """Start logging context.
+
+        Example:
+
+
+        >>> with my_logger.start_logging():
+        >>>     my_logger.log(123, 'value', kind='metric', step=0)
+
+
+        """
         try:
             self.create_logger_context()
             yield
@@ -73,15 +106,19 @@ class Logger(LogMixin, metaclass=ABCMeta):
 
     @abstractmethod
     def create_logger_context(self):
-        pass
+        """Initialize logger."""
 
     @abstractmethod
     def destroy_logger_context(self):
-        pass
+        """Destroy logger."""
 
     @abstractmethod
     def save_hyperparameters(self, params: Dict[str, Any]) -> None:
-        pass
+        """Save hyperparameters.
+
+        Args:
+            params (Dict[str, Any]): hyperparameters dictionary.
+        """
 
     def serialize(self, obj: Any, identifier: str) -> str:
         """Serializes object to disk and returns its path.
@@ -100,8 +137,24 @@ class Logger(LogMixin, metaclass=ABCMeta):
 
     def should_log(
         self,
-        batch_idx: Optional[int]
+        batch_idx: Optional[int] = None
     ) -> bool:
+        """Determines whether the logger should fulfill or ignore calls to the
+        `log()` method, depending on the ``log_freq`` property:
+         - When ``log_freq`` is set to ``'epoch'``, the logger logs only if
+        ``batch_idx`` is not passed to the ``log`` method.
+        - When ``log_freq`` is an integer
+        is given, the logger logs if ``batch_idx`` is a multiple of
+        ``log_freq``.
+        - When ``log_freq`` is set to ``'batch'``, the logger logs always.
+
+        Args:
+            batch_idx (Optional[int]): the dataloader batch idx, if available.
+            Defaults to None.
+
+        Returns:
+            bool: True if the logger should log, False otherwise.
+        """
         if batch_idx is not None:
             if isinstance(self.log_freq, int):
                 if batch_idx % self.log_freq == 0:
@@ -114,7 +167,16 @@ class Logger(LogMixin, metaclass=ABCMeta):
 
 
 class ConsoleLogger(Logger):
-    """Simple logger for quick tests."""
+    """Simplified logger.
+
+    Args:
+        savedir (str, optional): where to store artifacts.
+        Defaults to 'mllogs'.
+        log_freq (Union[int, Literal[&#39;epoch&#39;, &#39;batch&#39;]],
+        optional): determines whether the logger should fulfill or ignore
+        calls to the `log()` method. See ``should_log`` method for more
+        details. Defaults to ``'epoch'``.
+    """
 
     def __init__(
         self,
@@ -126,6 +188,7 @@ class ConsoleLogger(Logger):
         self.supported_types = ['torch', 'artifact']
 
     def create_logger_context(self):
+        """Initialize logger."""
         os.makedirs(self.savedir, exist_ok=True)
         run_dirs = sorted([int(dir) for dir in os.listdir(self.savedir)])
         if len(run_dirs) == 0:
@@ -136,10 +199,14 @@ class ConsoleLogger(Logger):
         os.makedirs(self.run_path)
 
     def destroy_logger_context(self):
-        pass
+        """Destroy logger. Do nothing."""
 
     def save_hyperparameters(self, params: Dict[str, Any]) -> None:
-        pass
+        """Save hyperparameters. Do nothing.
+
+        Args:
+            params (Dict[str, Any]): hyperparameters dictionary.
+        """
 
     def log(
         self,
@@ -150,6 +217,18 @@ class ConsoleLogger(Logger):
         batch_idx: Optional[int] = None,
         **kwargs
     ) -> None:
+        """Print metrics to stdout and save artifacts to the filesystem.
+
+        Args:
+            item (Union[Any, List[Any]]): element to be logged (e.g., metric).
+            identifier (Union[str, List[str]]): unique identifier for the
+                element to log(e.g., name of a metric).
+            kind (str, optional): type of the item to be logged. Must be one
+                among the list of self.supported_types. Defaults to 'metric'.
+            step (Optional[int], optional): logging step. Defaults to None.
+            batch_idx (Optional[int], optional): DataLoader batch counter
+                (i.e., batch idx), if available. Defaults to None.
+        """
         if not self.should_log(batch_idx=batch_idx):
             return
 
@@ -179,7 +258,22 @@ class ConsoleLogger(Logger):
 
 
 class MLFlowLogger(Logger):
-    """Abstraction for MLFlow logger."""
+    """Abstraction around MLFlow logger.
+
+    Args:
+        savedir (str, optional): path on local filesystem where logs are
+        stored. Defaults to 'mllogs'.
+        experiment_name (str, optional): experiment name. Defaults to
+        ``itwinai.loggers.BASE_EXP_NAME``.
+        tracking_uri (Optional[str], optional): MLFLow tracking URI.
+        Overrides ``savedir`` if given. Defaults to None.
+        run_description (Optional[str], optional): run description.
+        Defaults to None.
+        log_freq (Union[int, Literal[&#39;epoch&#39;, &#39;batch&#39;]],
+        optional): determines whether the logger should fulfill or ignore
+        calls to the `log()` method. See ``should_log`` method for more
+        details. Defaults to ``'epoch'``.
+    """
 
     active_run: mlflow.ActiveRun
 
@@ -201,8 +295,6 @@ class MLFlowLogger(Logger):
             # Default MLFLow tracking URI
             saved_abs_path = os.path.abspath(self.savedir)
             self.tracking_uri = pathlib.Path(saved_abs_path).as_uri()
-            # self.tracking_uri = "file://" + self.savedir
-        # print(f'MLFLOW URI: {self.tracking_uri}')
 
         # TODO: for pytorch lightning:
         # mlflow.pytorch.autolog()
@@ -213,6 +305,7 @@ class MLFlowLogger(Logger):
         ]
 
     def create_logger_context(self):
+        """Initialize logger. Start MLFLow run."""
         mlflow.set_tracking_uri(self.tracking_uri)
         mlflow.set_experiment(experiment_name=self.experiment_name)
         self.active_run: mlflow.ActiveRun = mlflow.start_run(
@@ -220,9 +313,15 @@ class MLFlowLogger(Logger):
         )
 
     def destroy_logger_context(self):
+        """Destroy logger. End current MLFlow run."""
         mlflow.end_run()
 
     def save_hyperparameters(self, params: Dict[str, Any]) -> None:
+        """Save hyperparameters as MLFlow parameters.
+
+        Args:
+            params (Dict[str, Any]): hyperparameters dictionary.
+        """
         for param_name, val in params.items():
             self.log(item=val, identifier=param_name, step=0, kind='param')
 
@@ -238,15 +337,14 @@ class MLFlowLogger(Logger):
         """Log with MLFlow.
 
         Args:
-            item (Union[Any, List[Any]]): element to be logged (e.g., metric,
-                image, artifact...).
+            item (Union[Any, List[Any]]): element to be logged (e.g., metric).
             identifier (Union[str, List[str]]): unique identifier for the
-                element to log(e.g., name of a metric, artifact path).
+                element to log(e.g., name of a metric).
             kind (str, optional): type of the item to be logged. Must be one
                 among the list of self.supported_types. Defaults to 'metric'.
             step (Optional[int], optional): logging step. Defaults to None.
-            batch_idx (Optional[int], optional): batch counter (i.e., batch
-                idx). Defaults to None.
+            batch_idx (Optional[int], optional): DataLoader batch counter
+                (i.e., batch idx), if available. Defaults to None.
         """
         if not self.should_log(batch_idx=batch_idx):
             return
@@ -310,7 +408,18 @@ class MLFlowLogger(Logger):
 
 
 class WanDBLogger(Logger):
-    """Abstraction for WandB logger."""
+    """Abstraction around WandB logger.
+
+    Args:
+        savedir (str, optional): location on local filesystem where logs
+        are stored. Defaults to 'mllogs'.
+        project_name (str, optional): experiment name. Defaults to
+        ``itwinai.loggers.BASE_EXP_NAME``.
+        log_freq (Union[int, Literal[&#39;epoch&#39;, &#39;batch&#39;]],
+        optional): determines whether the logger should fulfill or ignore
+        calls to the `log()` method. See ``should_log`` method for more
+        details. Defaults to ``'epoch'``.
+    """
 
     def __init__(
         self,
@@ -327,15 +436,21 @@ class WanDBLogger(Logger):
         ]
 
     def create_logger_context(self):
+        """Initialize logger. Init WandB run."""
         self.active_run = wandb.init(
             dir=self.savedir,
             project=self.project_name
         )
 
     def destroy_logger_context(self):
-        pass
+        """Destroy logger."""
 
     def save_hyperparameters(self, params: Dict[str, Any]) -> None:
+        """Save hyperparameters.
+
+        Args:
+            params (Dict[str, Any]): hyperparameters dictionary.
+        """
         wandb.config.update(params)
 
     def log(
@@ -350,15 +465,14 @@ class WanDBLogger(Logger):
         """Log with WandB. Wrapper of https://docs.wandb.ai/ref/python/log
 
         Args:
-            item (Union[Any, List[Any]]): element to be logged (e.g., metric,
-                image, artifact...).
+            item (Union[Any, List[Any]]): element to be logged (e.g., metric).
             identifier (Union[str, List[str]]): unique identifier for the
-                element to log(e.g., name of a metric, artifact path).
+                element to log(e.g., name of a metric).
             kind (str, optional): type of the item to be logged. Must be one
                 among the list of self.supported_types. Defaults to 'metric'.
             step (Optional[int], optional): logging step. Defaults to None.
-            batch_idx (Optional[int], optional): batch counter (i.e., batch
-                idx). Defaults to None.
+            batch_idx (Optional[int], optional): DataLoader batch counter
+                (i.e., batch idx), if available. Defaults to None.
         """
         if not self.should_log(batch_idx=batch_idx):
             return
@@ -370,24 +484,71 @@ class WanDBLogger(Logger):
 
 
 class TensorBoardLogger(Logger):
-    """Abstraction for Tensorboard logger."""
+    """Abstraction around TensorBoard logger, both for PyTorch and
+    TensorFlow.
+
+    Args:
+        savedir (str, optional): location on local filesystem where logs
+        are stored. Defaults to 'mllogs'.
+        log_freq (Union[int, Literal[&#39;epoch&#39;, &#39;batch&#39;]],
+        optional): determines whether the logger should fulfill or ignore
+        calls to the `log()` method. See ``should_log`` method for more
+        details. Defaults to ``'epoch'``.
+        framework (Literal[&#39;tensorflow&#39;, &#39;pytorch&#39;],
+        optional): whether to log PyTorch or TensorFlow ML data.
+        Defaults to 'pytorch'.
+
+    Raises:
+        ValueError: when ``framework`` is not recognized.
+    """
+
+    # TODO: decouple the logger into TorchTBLogger and TFTBLogger
+    # and add the missing logging types supported by each.
 
     def __init__(
         self,
         savedir: str = 'mllogs',
-        log_freq: Union[int, Literal['epoch', 'batch']] = 'epoch'
+        log_freq: Union[int, Literal['epoch', 'batch']] = 'epoch',
+        framework: Literal['tensorflow', 'pytorch'] = 'pytorch'
     ) -> None:
         savedir = os.path.join(savedir, 'tensorboard')
         super().__init__(savedir=savedir, log_freq=log_freq)
+        self.framework = framework
+        if framework.lower() == 'tensorflow':
+            import tensorflow as tf
+            self.tf = tf
+            self.writer = tf.summary.create_file_writer(savedir)
+        elif framework.lower() == 'pytorch':
+            from torch.utils.tensorboard import SummaryWriter
+            self.writer = SummaryWriter(savedir)
+        else:
+            raise ValueError(
+                "Framework must be either 'tensorflow' or 'pytorch'")
+        self.supported_types = ['metric', 'image',
+                                'text', 'figure', 'torch']
 
     def create_logger_context(self):
-        pass
+        """Initialize logger."""
+        if self.framework == 'tensorflow':
+            self.writer.set_as_default()
 
     def destroy_logger_context(self):
-        pass
+        """Destroy logger. Close SummaryWriter."""
+        self.writer.close()
 
     def save_hyperparameters(self, params: Dict[str, Any]) -> None:
-        pass
+        """Save hyperparameters.
+
+        Args:
+            params (Dict[str, Any]): hyperparameters dictionary.
+        """
+        if self.framework == 'tensorflow':
+            from tensorboard.plugins.hparams import api as hp
+            hparams = {hp.HParam(k): v for k, v in params.items()}
+            with self.writer.as_default():
+                hp.hparams(hparams)
+        elif self.framework == 'pytorch':
+            self.writer.add_hparams(params, {})
 
     def log(
         self,
@@ -401,33 +562,66 @@ class TensorBoardLogger(Logger):
         """Log with Tensorboard.
 
         Args:
-            item (Union[Any, List[Any]]): element to be logged (e.g., metric,
-                image, artifact...).
+            item (Union[Any, List[Any]]): element to be logged (e.g., metric).
             identifier (Union[str, List[str]]): unique identifier for the
-                element to log(e.g., name of a metric, artifact path).
+                element to log(e.g., name of a metric).
             kind (str, optional): type of the item to be logged. Must be one
                 among the list of self.supported_types. Defaults to 'metric'.
             step (Optional[int], optional): logging step. Defaults to None.
-            batch_idx (Optional[int], optional): batch counter (i.e., batch
-                idx). Defaults to None.
+            batch_idx (Optional[int], optional): DataLoader batch counter
+                (i.e., batch idx), if available. Defaults to None.
         """
         if not self.should_log(batch_idx=batch_idx):
             return
 
-        # TODO: complete
+        if self.framework == 'tensorflow':
+            with self.writer.as_default():
+                if kind == 'metric':
+                    self.tf.summary.scalar(identifier, item, step=step)
+                elif kind == 'image':
+                    self.tf.summary.image(identifier, item, step=step)
+                elif kind == 'text':
+                    self.tf.summary.text(identifier, item, step=step)
+                elif kind == 'figure':
+                    self.tf.summary.figure(identifier, item, step=step)
+        elif self.framework == 'pytorch':
+            if kind == 'metric':
+                self.writer.add_scalar(identifier, item, global_step=step)
+            elif kind == 'image':
+                self.writer.add_image(identifier, item, global_step=step)
+            elif kind == 'text':
+                self.writer.add_text(identifier, item, global_step=step)
+            elif kind == 'figure':
+                self.writer.add_figure(identifier, item, global_step=step)
+            elif kind == 'torch':
+                self.writer.add_graph(item)
 
 
 class LoggersCollection(Logger):
-    """Contains a list of loggers. Never tested."""
+    """Wrapper of a set of loggers, allowing to use them simultaneously.
+
+    Args:
+        loggers (List[Logger]): list of itwinai loggers.
+    """
 
     def __init__(
         self,
         loggers: List[Logger]
     ) -> None:
-        super().__init__(savedir='/.tmp_mllogs_LoggersCollection', log_freq=1)
+        super().__init__(savedir='/tmp/mllogs_LoggersCollection', log_freq=1)
         self.loggers = loggers
 
     def should_log(self, batch_idx: int = None) -> bool:
+        """Transparent method which delegates the ``should_log``
+        to individual loggers. Always returns True.
+
+        Args:
+            batch_idx (int, optional): dataloader batch index.
+            Defaults to None.
+
+        Returns:
+            bool: always True.
+        """
         return True
 
     def log(
@@ -439,6 +633,18 @@ class LoggersCollection(Logger):
         batch_idx: Optional[int] = None,
         **kwargs
     ) -> None:
+        """Log on all loggers.
+
+        Args:
+            item (Union[Any, List[Any]]): element to be logged (e.g., metric).
+            identifier (Union[str, List[str]]): unique identifier for the
+                element to log(e.g., name of a metric).
+            kind (str, optional): type of the item to be logged. Must be one
+                among the list of self.supported_types. Defaults to 'metric'.
+            step (Optional[int], optional): logging step. Defaults to None.
+            batch_idx (Optional[int], optional): DataLoader batch counter
+                (i.e., batch idx), if available. Defaults to None.
+        """
         for logger in self.loggers:
             logger.log(
                 item=item,
@@ -450,19 +656,36 @@ class LoggersCollection(Logger):
             )
 
     def create_logger_context(self):
+        """Initialize all loggers."""
         for logger in self.loggers:
             logger.create_logger_context()
 
     def destroy_logger_context(self):
+        """Destroy all loggers."""
         for logger in self.loggers:
             logger.destroy_logger_context()
 
     def save_hyperparameters(self, params: Dict[str, Any]) -> None:
+        """Save hyperparameters for all loggers.
+
+        Args:
+            params (Dict[str, Any]): hyperparameters dictionary.
+        """
         for logger in self.loggers:
             logger.save_hyperparameters(params=params)
 
 
 class EpochTimeTracker:
+    """Profiler for epoch execution time used to support scaling tests.
+    It uses CSV files to store, for each epoch, the ``name`` of the
+    experiment, the number of compute ``nodes`` used, the ``epoch_id``,
+    and the execution ``time`` in seconds.
+
+    Args:
+        series_name (str): name of the experiment/job.
+        csv_file (str): path to CSV file to store experiments times.
+    """
+
     def __init__(self, series_name: str, csv_file: str) -> None:
         self.series_name = series_name
         self._data = []
@@ -471,7 +694,13 @@ class EpochTimeTracker:
             csvwriter = csv.writer(csvfile)
             csvwriter.writerow(['name', 'nodes', 'epoch_id', 'time'])
 
-    def add_epoch_time(self, epoch_idx, time):
+    def add_epoch_time(self, epoch_idx: int, time: float) -> None:
+        """Add row to the current experiment's CSV file in append mode.
+
+        Args:
+            epoch_idx (int): epoch order idx.
+            time (float): epoch execution time (seconds).
+        """
         n_nodes = os.environ.get('SLURM_NNODES', -1)
         fields = (self.series_name, n_nodes, epoch_idx, time)
         self._data.append(fields)
@@ -479,7 +708,14 @@ class EpochTimeTracker:
             csvwriter = csv.writer(csvfile)
             csvwriter.writerow(fields)
 
-    def save(self, csv_file: Optional[str] = None):
+    def save(self, csv_file: Optional[str] = None) -> None:
+        """Save data to a new CSV file.
+
+        Args:
+            csv_file (Optional[str], optional): path to the CSV file.
+            If not given, uses the one given in the constructor.
+            Defaults to None.
+        """
         if not csv_file:
             csv_file = self.csv_file
         with open(csv_file, 'w') as csvfile:
