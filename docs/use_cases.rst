@@ -76,5 +76,22 @@ how to define an end-to-end digital twin workflow with the ``itwinai`` software.
 Tropical Cyclones Detection | CMCC use case
 -------------------------------------------
 
+Below you can find the training and validation of a Tropical Cyclones (TCs) Detection model, developed by CMCC, integrated with ``itwinai`` framework.
 
+.. toctree::
+   :maxdepth: 2
+
+   cyclones_doc
+
+
+
+Noise Simulation for Gravitational Waves Detector (Virgo) | INFN use case
+-------------------------------------------------------------------------
+
+Below you can find the integration of the Virgo use case with ``itwinai`` framework, developed by INFN.
+
+.. toctree::
+   :maxdepth: 2
+
+   virgo_doc
 
