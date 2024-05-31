@@ -13,6 +13,7 @@ if [ -z "$ML_FRAMEWORK" ]; then
     exit 1
 fi
 
+
 # Detect python env and CUDA env
 if [ -z "$VIRTUAL_ENV" ]; then
     echo "Error: Not in a Python virtual environment."
