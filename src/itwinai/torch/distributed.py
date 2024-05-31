@@ -213,8 +213,9 @@ class TorchDistributedStrategy(DistributedStrategy):
         .. warning:: If the ``spawn`` start method is used,
                     :attr:`worker_init_fn`
                     cannot be an unpicklable object, e.g., a lambda function.
-                    See :ref:`multiprocessing-best-practices` on more
+                    See `Multiprocessing best practices`_ on more
                     details related to multiprocessing in PyTorch.
+
 
         .. warning:: ``len(dataloader)`` heuristic is based on the length of
                     the sampler used.
@@ -244,13 +245,28 @@ class TorchDistributedStrategy(DistributedStrategy):
                     :class:`~torch.utils.data.IterableDataset` interacts with
                     `Multi-process data loading`_.
 
-        .. warning:: See :ref:`reproducibility`, and
-                    :ref:`dataloader-workers-random-seed`, and
-                    :ref:`data-loading-randomness` notes for random
-                    seed related questions.
+
+        .. warning:: See `Reproducibility`_, and
+                    `My data loader workers return identical random numbers`_,
+                    and
+                    `Randomness in multi-process data loading`_ notes for
+                    random seed related questions.
+
 
         .. _multiprocessing context:
             https://docs.python.org/3/library/multiprocessing.html#contexts-and-start-methods
+        .. _Multiprocessing best practices:
+            https://pytorch.org/docs/stable/notes/multiprocessing.html#multiprocessing-best-practices
+        .. _Reproducibility:
+            https://pytorch.org/docs/stable/notes/randomness.html#reproducibility
+        .. _My data loader workers return identical random numbers:
+            https://pytorch.org/docs/stable/notes/faq.html#dataloader-workers-random-seed
+        .. _Randomness in multi-process data loading:
+            https://pytorch.org/docs/stable/data.html#data-loading-randomness
+        .. _Multi-process data loading:
+            https://pytorch.org/docs/stable/data.html#multi-process-data-loading
+        .. _Dataset Types:
+            https://pytorch.org/docs/stable/data.html#dataset-types
     """
         if not self.is_initialized:
             raise UninitializedStrategyError(
@@ -302,7 +318,7 @@ class TorchDistributedStrategy(DistributedStrategy):
         Args:
             obj (Any): object to gather from all workers.
             dst_rank (int): rank of the worker on which the objects list
-                are gathered.
+            are gathered.
 
         Returns:
             List[Any]: list of objects gathered from all workers.
@@ -467,7 +483,7 @@ class TorchDDPStrategy(TorchDistributedStrategy):
         Args:
             obj (Any): object to gather from all workers.
             dst_rank (int): rank of the worker on which the objects list
-                are gathered.
+            are gathered.
 
         Returns:
             Optional[List[Any]]: list of objects gathered from all workers
@@ -642,7 +658,7 @@ class DeepSpeedStrategy(TorchDistributedStrategy):
         Args:
             obj (Any): object to gather from all workers.
             dst_rank (int): rank of the worker on which the objects list
-                are gathered.
+            are gathered.
 
         Returns:
             Optional[List[Any]]: list of objects gathered from all workers

@@ -252,11 +252,11 @@ class Predictor(BaseComponent):
         Args:
             predict_dataset (MLDataset): dataset for inference.
             model (Optional[MLModel], optional): overrides the internal model,
-                if given. Defaults to None.
+            if given. Defaults to None.
 
         Returns:
             MLDataset: predictions with the same cardinality of the
-                input dataset.
+            input dataset.
         """
 
 

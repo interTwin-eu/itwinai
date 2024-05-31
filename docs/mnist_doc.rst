@@ -227,12 +227,12 @@ This YAML file defines the pipeline configuration for the MNIST use case. It inc
 .. literalinclude:: ../use-cases/mnist/torch/config.yaml
    :language: yaml
 
-startscript
-+++++++++++
+startscript.sh
+++++++++++++++
 
 The `startscript` is a shell script to initiate the training process. It sets up the environment and starts the training using the `train.py` script.
 
-.. literalinclude:: ../use-cases/mnist/torch/startscript
+.. literalinclude:: ../use-cases/mnist/torch/startscript.sh
    :language: bash
 
 

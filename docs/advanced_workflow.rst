@@ -4,14 +4,12 @@ Advanced workflow
 .. tutorial_2_advanced_workflow.py
 .. +++++++++++++++++++++++++++++++
 
-.. .. literalinclude:: ../use-cases/mnist/torch-lightning/dataloader.py
-..    :language: python
 
-.. automodule:: tutorial_2_advanced_workflow
-   :members:
-   :undoc-members:
-   :show-inheritance:
+.. .. automodule:: tutorial_2_advanced_workflow
+..    :members:
+..    :undoc-members:
+..    :show-inheritance:
 
 
-.. .. literalinclude:: ../tutorials/ml-workflows/tutorial_2_advanced_workflow.py
+.. literalinclude:: ../tutorials/ml-workflows/tutorial_2_advanced_workflow.py
    :language: python

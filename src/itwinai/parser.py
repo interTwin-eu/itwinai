@@ -27,6 +27,7 @@ def add_replace_field(
     """Replace or add (if not present) a field in a dictionary, following a
     path of dot-separated keys. Adding is not supported for list items.
     Inplace operation.
+
     Args:
         config (Dict): dictionary to be modified.
         key_chain (str): path of nested (dot-separated) keys to specify the
@@ -61,12 +62,16 @@ class ConfigParser:
     Parses a pipeline from a configuration file.
     It also provides functionalities for dynamic override
     of fields by means of nested key notation.
+
     Args:
         config (Union[str, Dict]): path to YAML configuration file
         or dict storing a configuration.
         override_keys (Optional[Dict[str, Any]], optional): dict mapping
         nested keys to the value to override. Defaults to None.
+
     Example:
+
+
     >>> # pipeline.yaml file
     >>> pipeline:
     >>>   class_path: itwinai.pipeline.Pipeline
@@ -96,6 +101,7 @@ class ConfigParser:
     >>> dataloader = parser.parse_step(0)
     >>> print(dataloader)
     >>> print(dataloader.save_path)
+
     """
 
     config: Dict
@@ -131,12 +137,14 @@ class ConfigParser:
         verbose: bool = False
     ) -> Pipeline:
         """Merges steps into pipeline and parses it.
+
         Args:
             pipeline_nested_key (str, optional): nested key in the
             configuration file identifying the pipeline object.
             Defaults to "pipeline".
             verbose (bool): if True, prints the assembled pipeline
             to console formatted as JSON.
+
         Returns:
             Pipeline: instantiated pipeline.
         """

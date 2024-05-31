@@ -30,12 +30,12 @@ class LogMixin(metaclass=ABCMeta):
         Args:
             item (Union[Any, List[Any]]): element to be logged (e.g., metric).
             identifier (Union[str, List[str]]): unique identifier for the
-                element to log(e.g., name of a metric).
+            element to log(e.g., name of a metric).
             kind (str, optional): type of the item to be logged. Must be one
-                among the list of self.supported_types. Defaults to 'metric'.
+            among the list of self.supported_types. Defaults to 'metric'.
             step (Optional[int], optional): logging step. Defaults to None.
             batch_idx (Optional[int], optional): DataLoader batch counter
-                (i.e., batch idx), if available. Defaults to None.
+            (i.e., batch idx), if available. Defaults to None.
         """
 
 
@@ -141,7 +141,7 @@ class Logger(LogMixin, metaclass=ABCMeta):
     ) -> bool:
         """Determines whether the logger should fulfill or ignore calls to the
         `log()` method, depending on the ``log_freq`` property:
-         - When ``log_freq`` is set to ``'epoch'``, the logger logs only if
+        - When ``log_freq`` is set to ``'epoch'``, the logger logs only if
         ``batch_idx`` is not passed to the ``log`` method.
         - When ``log_freq`` is an integer
         is given, the logger logs if ``batch_idx`` is a multiple of
@@ -222,12 +222,12 @@ class ConsoleLogger(Logger):
         Args:
             item (Union[Any, List[Any]]): element to be logged (e.g., metric).
             identifier (Union[str, List[str]]): unique identifier for the
-                element to log(e.g., name of a metric).
+            element to log(e.g., name of a metric).
             kind (str, optional): type of the item to be logged. Must be one
-                among the list of self.supported_types. Defaults to 'metric'.
+            among the list of self.supported_types. Defaults to 'metric'.
             step (Optional[int], optional): logging step. Defaults to None.
             batch_idx (Optional[int], optional): DataLoader batch counter
-                (i.e., batch idx), if available. Defaults to None.
+            (i.e., batch idx), if available. Defaults to None.
         """
         if not self.should_log(batch_idx=batch_idx):
             return
@@ -339,12 +339,12 @@ class MLFlowLogger(Logger):
         Args:
             item (Union[Any, List[Any]]): element to be logged (e.g., metric).
             identifier (Union[str, List[str]]): unique identifier for the
-                element to log(e.g., name of a metric).
+            element to log(e.g., name of a metric).
             kind (str, optional): type of the item to be logged. Must be one
-                among the list of self.supported_types. Defaults to 'metric'.
+            among the list of self.supported_types. Defaults to 'metric'.
             step (Optional[int], optional): logging step. Defaults to None.
             batch_idx (Optional[int], optional): DataLoader batch counter
-                (i.e., batch idx), if available. Defaults to None.
+            (i.e., batch idx), if available. Defaults to None.
         """
         if not self.should_log(batch_idx=batch_idx):
             return
@@ -467,12 +467,12 @@ class WanDBLogger(Logger):
         Args:
             item (Union[Any, List[Any]]): element to be logged (e.g., metric).
             identifier (Union[str, List[str]]): unique identifier for the
-                element to log(e.g., name of a metric).
+            element to log(e.g., name of a metric).
             kind (str, optional): type of the item to be logged. Must be one
-                among the list of self.supported_types. Defaults to 'metric'.
+            among the list of self.supported_types. Defaults to 'metric'.
             step (Optional[int], optional): logging step. Defaults to None.
             batch_idx (Optional[int], optional): DataLoader batch counter
-                (i.e., batch idx), if available. Defaults to None.
+            (i.e., batch idx), if available. Defaults to None.
         """
         if not self.should_log(batch_idx=batch_idx):
             return
@@ -564,12 +564,12 @@ class TensorBoardLogger(Logger):
         Args:
             item (Union[Any, List[Any]]): element to be logged (e.g., metric).
             identifier (Union[str, List[str]]): unique identifier for the
-                element to log(e.g., name of a metric).
+            element to log(e.g., name of a metric).
             kind (str, optional): type of the item to be logged. Must be one
-                among the list of self.supported_types. Defaults to 'metric'.
+            among the list of self.supported_types. Defaults to 'metric'.
             step (Optional[int], optional): logging step. Defaults to None.
             batch_idx (Optional[int], optional): DataLoader batch counter
-                (i.e., batch idx), if available. Defaults to None.
+            (i.e., batch idx), if available. Defaults to None.
         """
         if not self.should_log(batch_idx=batch_idx):
             return
@@ -638,12 +638,12 @@ class LoggersCollection(Logger):
         Args:
             item (Union[Any, List[Any]]): element to be logged (e.g., metric).
             identifier (Union[str, List[str]]): unique identifier for the
-                element to log(e.g., name of a metric).
+            element to log(e.g., name of a metric).
             kind (str, optional): type of the item to be logged. Must be one
-                among the list of self.supported_types. Defaults to 'metric'.
+            among the list of self.supported_types. Defaults to 'metric'.
             step (Optional[int], optional): logging step. Defaults to None.
             batch_idx (Optional[int], optional): DataLoader batch counter
-                (i.e., batch idx), if available. Defaults to None.
+            (i.e., batch idx), if available. Defaults to None.
         """
         for logger in self.loggers:
             logger.log(
