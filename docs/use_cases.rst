@@ -74,5 +74,15 @@ how to define an end-to-end digital twin workflow with the ``itwinai`` software.
 
 
 Tropical Cyclones Detection | CMCC use case
--------------------------------------------
+-------------------------------------------Additional DDP resources
+------------------------
+A brief summary on the benefits of using DDP and some additional resources
+
+.. toctree::
+   :maxdepth: 2
+
+
+   ddp_why
+
+
 

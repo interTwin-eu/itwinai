@@ -1,10 +1,8 @@
 Advanced workflow
 =================
 
-tutorial_2_advanced_workflow.py
-+++++++++++++++++++++++++++++++
-
-The `tutorial_2_advanced_workflow.py` script is ...
+.. tutorial_2_advanced_workflow.py
+.. +++++++++++++++++++++++++++++++
 
 .. .. literalinclude:: ../use-cases/mnist/torch-lightning/dataloader.py
 ..    :language: python
@@ -15,5 +13,5 @@ The `tutorial_2_advanced_workflow.py` script is ...
    :show-inheritance:
 
 
-.. literalinclude:: ../tutorials/ml-workflows/tutorial_2_advanced_workflow.py
+.. .. literalinclude:: ../tutorials/ml-workflows/tutorial_2_advanced_workflow.py
    :language: python

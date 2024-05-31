@@ -4,31 +4,55 @@ itwinai PyTorch Modules
 distributed.py
 ++++++++++++++
 
-.. literalinclude:: ../src/itwinai/torch/distributed.py
+.. automodule:: itwinai.torch.distributed
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+.. .. literalinclude:: ../src/itwinai/torch/distributed.py
    :language: python
 
 inference.py
 ++++++++++++
+.. automodule:: itwinai.torch.inference
+   :members:
+   :undoc-members:
+   :show-inheritance:
 
-.. literalinclude:: ../src/itwinai/torch/inference.py
+.. .. literalinclude:: ../src/itwinai/torch/inference.py
    :language: python
 
 mlflow.py
 +++++++++
 
-.. literalinclude:: ../src/itwinai/torch/mlflow.py
+.. automodule:: itwinai.torch.mlflow
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+.. .. literalinclude:: ../src/itwinai/torch/mlflow.py
    :language: python
 
 trainer.py
 ++++++++++
 
-.. literalinclude:: ../src/itwinai/torch/trainer.py
+.. automodule:: itwinai.torch.trainer
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+.. .. literalinclude:: ../src/itwinai/torch/trainer.py
    :language: python
 
 types.py
 ++++++++
 
-.. literalinclude:: ../src/itwinai/torch/types.py
+.. automodule:: itwinai.torch.types
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+.. .. literalinclude:: ../src/itwinai/torch/types.py
    :language: python
 
 reproducibility.py

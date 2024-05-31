@@ -3,11 +3,8 @@ Basic components
 
 basic_components.py
 +++++++++++++++++++
-
-The `basic_components.py` script is ...
-
-.. .. literalinclude:: ../use-cases/mnist/torch-lightning/dataloader.py
-..    :language: python
+.. .. literalinclude:: ../tutorials/ml-workflows/basic_components.py
+   :language: python
 
 .. automodule:: basic_components
    :members:

@@ -11,7 +11,7 @@
    itwinai.parser
    itwinai.pipeline
    itwinai.serialization
-   itwinai.types
+   itwinai.type
    itwinai.utils
 
 

@@ -2,13 +2,11 @@
 In the first two tutorials we saw how to define simple sequential workflows by
 means of the Pipeline object, which feds the outputs of the previous component
 as inputs of the following one.
-
 In this tutorial we show how to create more complex workflows, with
 non-sequential data flows. Here, components can be arranges as an directed
 acyclic graph (DAG). Under the DAG assumption, outputs of each block can be fed
 as input potentially to any other component, granting great flexibility to the
 experimenter.
-
 The trade-off for improved flexibility is a change in the way we define
 configuration files. From now on, it will only be possible to configure the
 parameters used by the training script, but not its structure through the
@@ -24,6 +22,7 @@ To reuse the parameters saved in a configuration file and override some
 parameter (e.g., learning rate):
 >>> python my_script.py --config advanced_tutorial_conf.yaml --lr 2e-3
 
+
 """
 from typing import Any
 from itwinai.parser import ArgumentParser
@@ -37,7 +36,9 @@ from basic_components import (
 class MyEnsemblePredictor(Predictor):
     @monitor_exec
     def execute(self, dataset, model_ensemble) -> Any:
-        # do some predictions with model on dataset...
+        """
+        do some predictions with model on dataset...
+        """
         return dataset
 
 
