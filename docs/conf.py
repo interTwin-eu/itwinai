@@ -25,23 +25,23 @@ sys.path.insert(0, os.path.abspath('../src'))
 # sys.path.insert(0, os.path.abspath('../...'))
 
 project = 'itwinai'
-copyright = ('2024, Matteo Bunino, Alexander Zoechbauer, '
-             'Kalliopi Tsolaki, Rakesh Sarma on behalf of CERN & JSC')
-author = 'Matteo Bunino, Alexander Zoechbauer, Kalliopi Tsolaki'
-# version = '0.0'  # short version
-# release = '0.0.2'  # full version
+copyright = ('2024, Matteo Bunino, Kalliopi Tsolaki,'
+             'Rakesh Sarma, Mario Ruettgers on behalf of CERN & JSC')
+author = 'Matteo Bunino, Kalliopi Tsolaki, Rakesh Sarma, Mario Ruettgers'
+version = '0.0'  # short version
+release = '0.0.2'  # full version
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
 
 extensions = ['sphinx.ext.autodoc', 'sphinx.ext.doctest',
-              'sphinx.ext.viewcode', 'myst_parser', 'nbsphinx'] 
+              'sphinx.ext.viewcode', 'myst_parser', 'nbsphinx']
 
 source_suffix = {
     '.rst': 'restructuredtext',
     '.txt': 'markdown',
-    '.md': 'markdown'#,
-    #'.ipynb': 'nbsphinx'
+    '.md': 'markdown'  # ,
+    # '.ipynb': 'nbsphinx'
 }
 
 templates_path = ['_templates']
