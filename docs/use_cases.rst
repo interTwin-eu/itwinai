@@ -79,7 +79,7 @@ Tropical Cyclones Detection | CMCC use case
 Below you can find the training and validation of a Tropical Cyclones (TCs) Detection model, developed by CMCC, integrated with ``itwinai`` framework.
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
 
    cyclones_doc
 
@@ -91,7 +91,7 @@ Noise Simulation for Gravitational Waves Detector (Virgo) | INFN use case
 Below you can find the integration of the Virgo use case with ``itwinai`` framework, developed by INFN.
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
 
    virgo_doc
 
