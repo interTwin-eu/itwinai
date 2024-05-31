@@ -101,8 +101,3 @@ trainer.py
    :language: python
 
 
-train.py
-++++++++++
-.. literalinclude:: ../use-cases/virgo/train.py
-   :language: python
-
