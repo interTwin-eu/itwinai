@@ -1,4 +1,88 @@
+# Refs:
+# https://packaging.python.org/en/latest/specifications/declaring-project-metadata/#example
+# https://setuptools.pypa.io/en/latest/userguide/dependency_management.html#dependencies-management-in-setuptools
+
+[build-system]
+requires = ["setuptools", "setuptools-scm", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "itwinai"
+version = "0.0.2"
+description = "AI and ML workflows module for scientific digital twins."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { file = "LICENSE" }
+keywords = ["ml", "ai", "hpc"]
+authors = [
+    { name = "Matteo Bunino", email = "matteo.bunino@cern.ch" },
+    { name = "Rakesh Sarma", email = "r.sarma@fz-juelich.de" },
+    { name = "Mario Ruettgers", email = "m.ruettgers@fz-juelich.de" },
+    { name = "Kalliopi Tsolaki", email = "kalliopi.tsolaki@cern.ch" },
+]
+maintainers = [
+    { name = "Matteo Bunino", email = "matteo.bunino@cern.ch" },
+    { name = "Rakesh Sarma", email = "r.sarma@fz-juelich.de" },
+    { name = "Mario Ruettgers", email = "m.ruettgers@fz-juelich.de" },
+    { name = "Kalliopi Tsolaki", email = "kalliopi.tsolaki@cern.ch" },
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Programming Language :: Python",
+]
+
+dependencies = [
+    "wandb",
+    "mlflow",
+    "jsonargparse[signatures]",
+    "pyyaml",
+    "omegaconf",
+    "rich>=13.5.3",
+    "typer>=0.9.0",
+    "wheel",
+    "pydantic",
+]
+
+# dynamic = ["version", "description"]
+
+[project.optional-dependencies]
+torch = ["lightning", "torchmetrics"]
+# torch-cpu = [
+#     "torch==2.1.*",
+#     "torchvision",
+#     "torchaudio",
+#     "lightning",
+#     "torchmetrics",
+#     "deepspeed",
+# ]
+dev = [
+    "pytest>=7.4.2",
+    "pytest-mock>=3.11.1",
+    "pytest-cov>=4.1.0",
+    "ipykernel",
+    "ipython",
+    "tensorflow==2.15",    # needed by tests on tensorboard
+]
+
+[project.urls]
+Homepage = "https://www.intertwin.eu/"
+Documentation = "https://itwinai.readthedocs.io/"
+Repository = "https://github.com/interTwin-eu/itwinai"
+# Changelog = "https://github.com/me/spam/blob/master/CHANGELOG.md"
+
+[project.scripts]
+itwinai = "itwinai.cli:app"
+
+# [project.gui-scripts]
+# spam-gui = "spam:main_gui"
+
+# [project.entry-points."spam.magical"]
+# tomatoes = "spam:main_tomatoes"
+
 [tool.pytest.ini_options]
 markers = [
-    "integration: integration tests (deselect with '-m \"not slow\"')",
+    "integration: integration tests (deselect with '-m \"not integration\"')",
+    "slurm: needs SLURM and HPC resources (multiple GPUs/nodes). (deselect with '-m \"not slurm\"')",
+    "functional: functional tests. (deselect with '-m \"not functional\"')",
+    "memory_heavy: high memory footprint. (deselect with '-m \"not heavy_memory\"')",
 ]

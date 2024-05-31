@@ -36,16 +36,22 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           MARKDOWN_CONFIG_FILE: .markdownlint.json
           PYTHON_FLAKE8_CONFIG_FILE: .flake8
+          JSCPD_CONFIG_FILE: .jscpd.json
           VALIDATE_PYTHON_BLACK: false
           VALIDATE_PYTHON_ISORT: false
           VALIDATE_PYTHON_MYPY: false
           VALIDATE_PYTHON_PYLINT: false
           VALIDATE_HTML: false
           VALIDATE_GITLEAKS: false
+          VALIDATE_BASH_EXEC: false
+          VALIDATE_CHECKOV: false # activate to lint k8s pods
+          VALIDATE_SHELL_SHFMT: false
+          VALIDATE_JSCPD: false
 
           # Only check new or edited files
           VALIDATE_ALL_CODEBASE: false
           # Fail on errors
           DISABLE_ERRORS: false
           # Skip linting of docs
-          FILTER_REGEX_EXCLUDE: .*docs/index.md|.*docs/docs/.*|.*ISSUE_TEMPLATE/.*
+          FILTER_REGEX_EXCLUDE: .*docs/index.md|.*docs/docs/.*|.*ISSUE_TEMPLATE/.*|use-cases/.*|experimental/.*
+          BASH_SEVERITY: error

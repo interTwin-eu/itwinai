@@ -1,0 +1,45 @@
+# General configuration
+epochs: 3
+micro_batch_size: 32
+dataset_url: https://drive.google.com/drive/folders/1TnmujO4T-8_j4bCxqNe5HEw9njJIIBQD #https://drive.google.com/drive/folders/15DEq33MmtRvIpe2bNCg44lnfvEiHcPaf
+dataset_root: tmp_cyclones_data
+verbose: auto
+global_config: null
+
+# Workflows
+training_pipeline:
+  class_path: itwinai.pipeline.Pipeline
+  init_args:
+    steps:
+      download-step:
+        class_path: dataloader.CyclonesDataGetter
+        init_args:
+          dataset_url: ${dataset_url}
+          dataset_root: ${dataset_root}
+          global_config: ${global_config}
+          patch_type: NEAREST
+          shuffle: False
+          split_ratio: [0.75, 0.25]
+          augment: True
+          epochs: ${epochs}
+          target_scale: False
+          label_no_cyclone: NONE
+          aug_type: ONLY_TCS
+          experiment: {
+            'DRV_VARS_1': ['fg10', 'msl', 't_500', 't_300'],
+            'COO_VARS_1': ['patch_cyclone'],
+            'MSK_VAR_1': None
+          }
+          
+      training-step:
+        class_path: trainer.CyclonesTrainer
+        init_args:
+          epochs: ${epochs}
+          micro_batch_size: ${micro_batch_size}
+          global_config: ${global_config}
+          network: VGG_V1
+          activation: LINEAR
+          regularization_strength: NONE
+          learning_rate: 0.0001
+          loss: MAE
+          verbose: ${verbose}

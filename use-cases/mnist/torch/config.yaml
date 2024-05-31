@@ -1,0 +1,98 @@
+# General config
+dataset_root: .tmp/
+num_classes: 10
+batch_size: 64
+num_workers_dataloader: 4
+pin_memory: False
+lr: 0.001
+momentum: 0.9
+fp16_allreduce: False
+use_adasum: False
+gradient_predivide_factor: 1.0
+epochs: 2
+strategy: ddp
+test_data_path: mnist-sample-data
+inference_model_mlflow_uri: mnist-pre-trained.pth
+predictions_dir: mnist-predictions
+predictions_file: predictions.csv
+class_labels: null
+checkpoints_location: checkpoints
+checkpoint_every: 1
+
+# Workflows configuration
+training_pipeline:
+  class_path: itwinai.pipeline.Pipeline
+  init_args:
+    steps:
+      dataloading_step:
+        class_path: dataloader.MNISTDataModuleTorch
+        init_args:
+          save_path: ${dataset_root}
+
+      training_step:
+        class_path: itwinai.torch.trainer.TorchTrainer
+        init_args:
+          config:
+            batch_size: ${batch_size}
+            num_workers: ${num_workers_dataloader}
+            pin_memory: ${pin_memory}
+            lr: ${lr}
+            momentum: ${momentum}
+            fp16_allreduce: ${fp16_allreduce}
+            use_adasum: ${use_adasum}
+            gradient_predivide_factor: ${gradient_predivide_factor}
+
+          model:
+            class_path: model.Net
+          epochs: ${epochs}
+          metrics:
+            accuracy:
+              class_path: torchmetrics.classification.MulticlassAccuracy
+              init_args:
+                num_classes: ${num_classes}
+            precision:
+              class_path: torchmetrics.classification.MulticlassPrecision
+              init_args:
+                num_classes: ${num_classes}
+            recall:
+              class_path: torchmetrics.classification.MulticlassRecall
+              init_args:
+                num_classes: ${num_classes}
+          logger:
+            class_path: itwinai.loggers.LoggersCollection
+            init_args:
+              loggers:
+                - class_path: itwinai.loggers.ConsoleLogger
+                  init_args:
+                    log_freq: 10000
+                - class_path: itwinai.loggers.MLFlowLogger
+                  init_args:
+                    experiment_name: MNIST classifier
+                    log_freq: batch 
+          strategy: ${strategy}
+          checkpoint_every: ${checkpoint_every}
+          checkpoints_location: ${checkpoints_location}
+
+
+inference_pipeline:
+  class_path: itwinai.pipeline.Pipeline
+  init_args:
+    steps:
+      - class_path: dataloader.MNISTPredictLoader
+        init_args:
+          test_data_path: ${test_data_path}
+
+      - class_path: itwinai.torch.inference.MulticlassTorchPredictor
+        init_args: 
+          model:
+            class_path: itwinai.torch.inference.TorchModelLoader
+            init_args:
+              model_uri: ${inference_model_mlflow_uri}
+          test_dataloader_kwargs:
+            batch_size: ${batch_size}
+      
+      - class_path: saver.TorchMNISTLabelSaver
+        init_args:
+          save_dir: ${predictions_dir}
+          predictions_file: ${predictions_file}
+          class_labels: ${class_labels}

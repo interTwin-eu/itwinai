@@ -1,0 +1,33 @@
+# SPDX-FileCopyrightText: Copyright contributors to the Software Quality Assurance as a Service (SQAaaS) project.
+#
+# SPDX-License-Identifier: GPL-3.0-only
+---
+name: SQAaaS
+
+on:
+  push:
+    branches: [main, dev]
+  # pull_request:
+  #   branches: [main, dev]
+
+jobs:
+  sqaaas_job:
+    runs-on: ubuntu-latest
+    name: Job that triggers SQAaaS platform
+    steps:
+      - name: Step definition for validating the workflow
+        uses: eosc-synergy/sqaaas-step-action@v1
+        with:
+          name: workflow_validation_step
+          tool: commands
+          commands: |
+            make torch-env-cpu
+            make tensorflow-env-cpu
+            .venv-pytorch/bin/pytest -v ./tests/ -m "not slurm and not memory_heavy"
+          container: eoscsynergy/sqaaas-micromamba:1.5.3-1
+      - name: Print out payload
+        run: cat workflow_validation_step.json
+      - name: SQAaaS assessment with unit testing (QC.Uni) step
+        uses: eosc-synergy/sqaaas-assessment-action@v2
+        with:
+          qc_uni_steps: workflow_validation_step

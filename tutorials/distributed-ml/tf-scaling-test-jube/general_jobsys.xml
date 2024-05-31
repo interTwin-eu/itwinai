@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jube>
+  <benchmark name="bench" outpath="bench_run">
+    <comment>General benchmark script</comment>
+
+    <!-- bench configuration -->
+    <parameterset name="paramset">
+      <!-- iterated nodes -->
+      <parameter name="iterNO" type="int">1,2,4,8</parameter>
+      <!-- iterated #workers -->
+      <parameter name="iterNW" type="int">8</parameter>
+      <!-- modify the name of the job script -->
+      <parameter name="script">train.py</parameter>
+    </parameterset>
+
+    <!-- job configuration -->
+    <parameterset name="executeset">
+      <parameter name="systemname" mode="shell">if [ -f /etc/FZJ/systemname ]; then cat /etc/FZJ/systemname | tr -d "\n"; else uname -n | head -c 3; fi</parameter>
+      <parameter name="submit_cmd">sbatch</parameter>
+      <parameter name="nodes">$iterNO</parameter>
+      <parameter name="nnw">$iterNW</parameter>
+      <parameter name="ready_file">ready</parameter>
+      <parameter name="job_file">jube_ddp.sh</parameter>
+      <parameter name="ngpu" mode="python" type="int">
+        { "hdfml": 4,
+        }["${systemname}"]
+      </parameter>
+      <parameter name="account">intertwin</parameter>
+      <!-- main run -->
+      <parameter name="timelimit" tag="!devel">04:00:00</parameter>
+      <parameter name="queue" tag="!devel" mode="python">
+        { "hdfml": "batch",
+        }["${systemname}"]
+      </parameter>
+      <!-- devel run -->
+      <parameter name="timelimit" tag="devel">00:10:00</parameter>
+      <parameter name="queue" tag="devel" mode="python">
+	{ "hdfml": "batch",
+        }["${systemname}"]
+      </parameter>
+    </parameterset>
+
+    <parameterset name="envirset">
+      <parameter name="load_modules" separator="!" mode="python">  {
+	  "hdfml": "ml ml Stages/2024 GCC/12.3.0 OpenMPI CUDA/12 MPI-settings/CUDA Python HDF5 PnetCDF libaio mpi4py CMake  cuDNN/8.9.5.29-CUDA-12",
+        }["${systemname}"]
+      </parameter>
+      <parameter name="python_env">source /p/project/intertwin/rakesh/repo_push/itwinai/envAItf_hdfml/bin/activate</parameter>
+      <parameter name="devices" separator="!" mode="python">{
+	  "hdfml": "export CUDA_VISIBLE_DEVICES=0,1,2,3"
+      }["${systemname}"]
+      </parameter>
+    </parameterset>
+
+    <!-- load jobfile -->
+    <fileset name="files">
+      <copy>$job_file</copy>
+      <link>$script</link>
+    </fileset>
+
+    <!-- substitute jobfile -->
+    <substituteset name="sub_job">
+      <iofile in="${job_file}" out="$job_file" />
+      <sub source="#NODES#" dest="$nodes" />
+      <sub source="#READY#" dest="$ready_file" />
+      <sub source="#NW#" dest="$nnw" />
+      <sub source="#SCRIPT#" dest="$script" />
+      <sub source="#ACC#" dest="$account" />
+      <sub source="#NGPU#" dest="$ngpu" />
+      <sub source="#TIMELIM#" dest="$timelimit" />
+      <sub source="#QUEUE#" dest="$queue" />
+      <sub source="#MODULES#" dest="$load_modules" />
+      <sub source="#ENVS#" dest="$python_env" />
+      <sub source="#DEVICES#" dest="$devices" />
+    </substituteset>
+
+    <!-- operation/execution of bench -->
+    <step name="submit" work_dir="JUBE/${jube_benchmark_id}_${jube_wp_id}" >
+      <use>paramset</use>
+      <use>executeset</use>
+      <use>envirset</use>
+      <use>files,sub_job</use>
+      <do>echo "nID: $jube_wp_id"</do> <!-- shell command -->
+
+      <do done_file="$ready_file">$submit_cmd $job_file</do> <!-- shell command -->
+    </step>
+
+   <!-- results -->
+    <!-- regex pattern -->
+    <patternset name="pattern">
+      <pattern name="ID" type="int">${jube_wp_id}</pattern>
+      <pattern name="Nnodes" type="int">${nodes}</pattern>
+      <pattern name="Nworkers" type="int">${nnw}</pattern>
+      <pattern name="calcTime" unit="s" type="float">\s*TIMER: total epoch time:\s+$jube_pat_wrd\s*</pattern>
+      <pattern name="avgEpochT" unit="s" type="float">\s*TIMER: average epoch time:\s+$jube_pat_wrd\s*</pattern>
+      <pattern name="Naet" unit="s" type="float" mode="python">${avgEpochT}</pattern>
+    </patternset>
+
+    <!-- analyse -->
+    <analyzer name="analyse" >
+      <use>pattern</use> <!-- use existing patternset -->
+      <analyse step="submit">
+        <file>stdout</file>
+        <file>job.out</file>
+      </analyse>
+    </analyzer>
+
+    <!-- create result table in CSV-->
+    <result result_dir="results">
+      <use>analyse</use>
+      <table name="result-csv" style="csv" sort="jube_wp_id">
+        <column>ID</column>
+        <column>Nnodes</column>
+        <column>Nworkers</column>
+	<column format=".3f">calcTime</column>
+        <column format=".3f">avgEpochT</column>
+        <column format=".3f">Naet</column>
+        <column format=".1f">memoryGPU</column>
+      </table>
+    </result>
+
+    <!-- create result table -->
+    <result>
+      <use>analyse</use>
+      <table name="result" style="pretty" sort="jube_wp_id">
+        <column>ID</column>
+        <column>Nnodes</column>
+        <column>Nworkers</column>
+	<column format=".3f">calcTime</column>
+        <column format=".3f">avgEpochT</column>
+        <column format=".3f">Naet</column>
+        <column format=".1f">memoryGPU</column>
+      </table>
+    </result>
+
+  </benchmark>
+</jube>
+
+<!-- eof -->
+

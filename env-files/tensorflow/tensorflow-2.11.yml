@@ -1,0 +1,19 @@
+# Ref: https://skeptric.com/tensorflow-conda/
+name: tensorflow
+channels:
+  - defaults
+  - conda-forge
+  - nvidia/label/cuda-11.7.1
+dependencies:
+  - python=3.9
+  - cudatoolkit=11.7
+  - cudnn=8.1.0
+  - cuda-nvcc
+  - pip
+  - pip:
+    - tensorflow-addons
+    - tensorflow-datasets
+
+# variables:
+#   LD_LIBRARY_PATH: "'$LD_LIBRARY_PATH:$CONDA_PREFIX/lib/'"
+#   XLA_FLAGS: "'--xla_gpu_cuda_data_dir=$CONDA_PREFIX/lib/'"

@@ -1,0 +1,17 @@
+# https://www.tensorflow.org/install/pip#step-by-step_instructions
+# https://phoenixnap.com/kb/how-to-install-tensorflow-ubuntu
+# https://skeptric.com/tensorflow-conda/
+name: tensorflow-env
+channels:
+  - conda-forge
+  - nvidia
+dependencies:
+  - python=3.9.12
+  - cudatoolkit=11.8.0
+  - cuda-nvcc=11.3.58
+  - pip
+  - pip:
+    - tensorflow-addons
+    - tensorflow-datasets
+    # - git+https://github.com/interTwin-eu/T6.5-AI-and-ML.git@pipelines_backend#egg=itwinai&subdirectory=ai
+
