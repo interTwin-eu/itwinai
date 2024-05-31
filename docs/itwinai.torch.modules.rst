@@ -49,6 +49,14 @@ reproducibility.py
    :show-inheritance:
 
 
+config.py
+++++++++++++++++++
+.. automodule:: itwinai.torch.config
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+
 
 
    
