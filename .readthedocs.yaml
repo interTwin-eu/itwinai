@@ -14,9 +14,10 @@ build:
     # nodejs: "19"
     # rust: "1.64"
     # golang: "1.19"
-  jobs:
-    pre_system_dependencies:
-      - sudo apt-get update && sudo apt-get install -y gcc-11 g++-11 && sudo apt-get install -y cmake
+  apt_packages:
+    - gcc-11
+    - g++-11
+    - cmake
 
 
 
