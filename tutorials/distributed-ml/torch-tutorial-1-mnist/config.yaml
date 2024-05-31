@@ -1,0 +1,28 @@
+# Data and logging
+data_dir: ./
+log_int: 10
+verbose: True
+restart_int: 10
+download_only: False
+dataset_replication: 10
+shuff: False
+nworker: 4 # num workers dataloader
+prefetch: 2
+
+# Model
+batch_size: 64
+epochs: 2
+lr: 0.001
+momentum: 0.5
+
+# Reproducibility
+rnd_seed: 10
+
+# Distributed ML
+backend: nccl # ignored when using Horovod
+
+# Horovod: ignored when NOT using Horovod
+fp16_allreduce: False
+use_adasum: False
+gradient_predivide_factor: 1.0
+

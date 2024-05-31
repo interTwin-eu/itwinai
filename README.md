@@ -1,27 +1,139 @@
-# PoC for AI-centric digital twin workflows
+# itwinai
 
 [![GitHub Super-Linter](https://github.com/interTwin-eu/T6.5-AI-and-ML/actions/workflows/lint.yml/badge.svg)](https://github.com/marketplace/actions/super-linter)
 [![GitHub Super-Linter](https://github.com/interTwin-eu/T6.5-AI-and-ML/actions/workflows/check-links.yml/badge.svg)](https://github.com/marketplace/actions/markdown-link-check)
- [![SQAaaS source code](https://github.com/EOSC-synergy/itwinai.assess.sqaaas/raw/main/.badge/status_shields.svg)](https://sqaaas.eosc-synergy.eu/#/full-assessment/report/https://raw.githubusercontent.com/eosc-synergy/itwinai.assess.sqaaas/main/.report/assessment_output.json)
+ [![SQAaaS source code](https://github.com/EOSC-synergy/itwinai.assess.sqaaas/raw/dev/.badge/status_shields.svg)](https://sqaaas.eosc-synergy.eu/#/full-assessment/report/https://raw.githubusercontent.com/eosc-synergy/itwinai.assess.sqaaas/dev/.report/assessment_output.json)
 
-See the latest version of our [docs](https://intertwin-eu.github.io/itwinai/)
+See the latest version of our [docs](https://itwinai.readthedocs.io/)
 for a quick overview of this platform for advanced AI/ML workflows in digital twin applications.
-
-If you want to integrate a new use case, you can follow this
-[step-by-step guide](https://intertwin-eu.github.io/itwinai/docs/How-to-use-this-software.html).
 
 ## Installation
 
 Requirements:
 
-- Linux, macOS environment. Windows was never tested.
+- Linux environment. Windows and macOS were never tested.
 
-### Micromamba installation
+### Python virtual environment
+
+Depending on your environment, there are different ways to
+select a specific python version.
+
+#### Laptop or GPU node
+
+If you are working on a laptop
+or on a simple on-prem setup, you could consider using
+[pyenv](https://github.com/pyenv/pyenv). See the
+[installation instructions](https://github.com/pyenv/pyenv?tab=readme-ov-file#installation). If you are using pyenv,
+make sure to read [this](https://github.com/pyenv/pyenv/wiki#suggested-build-environment).
+
+#### Install itwinai environment
+
+Regardless of how you loaded your environment, you can create the
+python virtual environments with the following commands.
+Once the correct Python version is loaded, create the virtual
+environments using our pre-make Makefile:
+
+```bash
+make torch-env # or make torch-env-cpu
+make tensorflow-env # or make tensorflow-env-cpu
+
+# Juelich supercomputer
+make torch-gpu-jsc
+make tf-gpu-jsc
+```
+
+## Environment setup
+
+Requirements:
+
+- Linux environment. Windows and macOS were never tested.
+- VS Code, for development.
+
+### TensorFlow
+
+Installation:
+
+```bash
+# Install TensorFlow 2.13
+make tensorflow-env
+
+# Activate env
+source .venv-tf/bin/activate
+```
+
+A CPU-only version is available at the target `tensorflow-env-cpu`.
+
+### PyTorch (+ Lightning)
+
+Installation:
+
+```bash
+# Install PyTorch + lightning
+make torch-env
+
+# Activate env
+source .venv-pytorch/bin/activate
+```
+
+A CPU-only version is available at the target `torch-env-cpu`.
+
+### Development environment
+
+This is for developers only. To have it, update the installed `itwinai` package
+adding the `dev` extra:
+
+```bash
+pip install -e .[dev]
+```
+
+#### Test with `pytest`
+
+Do this only if you are a developer wanting to test your code with pytest.
+
+First, you need to create virtual environments both for torch and tensorflow.
+For instance, you can use:
+
+```bash
+make torch-env-cpu
+make tensorflow-env-cpu
+```
+
+To select the name of the torch and tf environments you can set the following
+environment variables, which allow to run the tests in environments with
+custom names which are different from `.venv-pytorch` and `.venv-tf`.
+
+```bash
+export TORCH_ENV="my_torch_env"
+export TF_ENV="my_tf_env"
+```
+
+Functional tests (marked with `pytest.mark.functional`) will be executed under
+`/tmp/pytest` location to guarantee they are run in a clean environment.
+
+To run functional tests use:
+
+```bash
+pytest -v tests/ -m "functional"
+```
+
+To run all tests on itwinai package:
+
+```bash
+make test
+```
+
+Run tests in JSC virtual environments:
+
+```bash
+make test-jsc
+```
+
+### Micromamba installation (deprecated)
 
 To manage Conda environments we use micromamba, a light weight version of conda.
 
 It is suggested to refer to the
-[Manual installation guide](https://mamba.readthedocs.io/en/latest/installation.html#manual-installation).
+[Manual installation guide](https://mamba.readthedocs.io/en/latest/installation/micromamba-installation.html#manual-installation).
 
 Consider that Micromamba can eat a lot of space when building environments because packages are cached on
 the local filesystem after being downloaded. To clear cache you can use `micromamba clean -a`.
@@ -44,97 +156,4 @@ MAMBA_ROOT_PREFIX='my-mamba-root'
 echo 'PATH="$(dirname $MAMBA_EXE):$PATH"' >> ~/.bashrc
 ```
 
-**Reference**: [Micromamba installation guide](https://mamba.readthedocs.io/en/latest/installation.html#micromamba).
-
-### Workflow orchestrator
-
-Install the (custom) orchestrator virtual environment.
-
-```bash
-source ~/.bashrc
-# Create local env
-make
-
-# Activate env
-micromamba activate ./.venv
-```
-
-To run tests on workflows use:
-
-```bash
-# Activate env
-micromamba activate ./.venv
-
-pytest tests/
-```
-
-### Documentation folder
-
-Documentation for this repository is maintained under `./docs` location.
-If you are using code from a previous release, you can build the docs webpage
-locally using [these instructions](docs/README#building-and-previewing-your-site-locally).
-
-## Development env setup
-
-Requirements:
-
-- Linux, macOS environment. Windows was never tested.
-- Micromamba: see the installation instructions above.
-- VS Code, for development.
-
-Installation:
-
-```bash
-make dev-env
-
-# Activate env
-micromamba activate ./.venv-dev
-```
-
-To run tests on itwinai package:
-
-```bash
-# Activate env
-micromamba activate ./.venv-dev
-
-pytest tests/ai/
-```
-
-## AI environment setup
-
-Requirements:
-
-- Linux, macOS environment. Windows was never tested.
-- Micromamba: see the installation instructions above.
-- VS Code, for development.
-
-**NOTE**: this environment gets automatically setup when a workflow is executed!
-
-However, you can also set it up explicitly with:
-
-```bash
-make ai-env
-
-# Activate env
-micromamba activate ./ai/.venv-pytorch
-```
-
-### Updating the environment files
-
-The files under `ai/env-files/` are of two categories:
-
-- Simple environment definition, such as `pytorch-env.yml`
-and `pytorch-env-gpu.yml`
-- Lockfiles, such as `pytorch-lock.yml` and `pytorch-gpu-lock.yml`,
-generated by [`conda-lock`](https://conda.github.io/conda-lock/cli/gen/).
-
-**When you install the ai environment, install it from the lock file!**
-
-When the "simple" environment file (e.g., `pytorch-env.yml`) changes,
-lock it with [`conda-lock`](https://conda.github.io/conda-lock/cli/gen/):
-
-```bash
-micromamba activate ./.venv
-
-make lock-ai
-```
+**Reference**: [Micromamba installation guide](https://mamba.readthedocs.io/en/latest/installation/micromamba-installation.html).

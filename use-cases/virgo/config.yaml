@@ -1,0 +1,39 @@
+# General configuration
+data_root: data
+epochs: 2
+batch_size: 20
+strategy: ddp
+checkpoint_path: checkpoints/epoch_{}.pth
+
+training_pipeline:
+  class_path: itwinai.pipeline.Pipeline
+  init_args:
+    steps:
+      - class_path: data.TimeSeriesDatasetGenerator
+        init_args:
+          data_root: ${data_root}
+      - class_path: data.TimeSeriesDatasetSplitter
+        init_args:
+          train_proportion: 0.9
+          rnd_seed: 42
+          images_dataset: data/Image_dataset_synthetic_64x64.pkl
+      - class_path: data.TimeSeriesProcessor
+      - class_path: trainer.NoiseGeneratorTrainer
+        init_args:
+          generator: unet
+          batch_size: ${batch_size}
+          num_epochs: ${epochs}
+          strategy: ${strategy}
+          checkpoint_path: ${checkpoint_path}
+          logger:
+            class_path: itwinai.loggers.LoggersCollection
+            init_args:
+              loggers:
+                - class_path: itwinai.loggers.ConsoleLogger
+                  init_args:
+                    log_freq: 100
+                - class_path: itwinai.loggers.MLFlowLogger
+                  init_args:
+                    experiment_name: Noise simulator (Virgo)
+                    log_freq: batch 
+          

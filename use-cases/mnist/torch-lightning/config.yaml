@@ -1,0 +1,96 @@
+# General config
+dataset_root: .tmp/
+
+training_pipeline:
+  class_path: itwinai.pipeline.Pipeline
+  init_args:
+    steps:
+      - class_path: dataloader.LightningMNISTDownloader
+        init_args:
+          data_path: ${dataset_root}
+
+      - class_path: itwinai.torch.trainer.TorchLightningTrainer #trainer.LightningMNISTTrainer
+        init_args:
+          # Pytorch lightning config for training
+          config:
+            seed_everything: 4231162351
+            trainer:
+              accelerator: auto
+              accumulate_grad_batches: 1
+              barebones: false
+              benchmark: null
+              callbacks:
+                - class_path: lightning.pytorch.callbacks.early_stopping.EarlyStopping
+                  init_args:
+                    monitor: val_loss
+                    patience: 2
+                - class_path: lightning.pytorch.callbacks.lr_monitor.LearningRateMonitor
+                  init_args:
+                    logging_interval: step
+                - class_path: lightning.pytorch.callbacks.ModelCheckpoint
+                  init_args:
+                    dirpath: checkpoints
+                    filename: best-checkpoint
+                    mode: min
+                    monitor: val_loss
+                    save_top_k: 1
+                    verbose: true
+              check_val_every_n_epoch: 1
+              default_root_dir: null
+              detect_anomaly: false
+              deterministic: null
+              devices: auto
+              enable_checkpointing: null
+              enable_model_summary: null
+              enable_progress_bar: null
+              fast_dev_run: false
+              gradient_clip_algorithm: null
+              gradient_clip_val: null
+              inference_mode: true
+              limit_predict_batches: null
+              limit_test_batches: null
+              limit_train_batches: null
+              limit_val_batches: null
+              log_every_n_steps: null
+              logger: null
+              max_epochs: 5
+              max_steps: -1
+              max_time: null
+              min_epochs: null
+              min_steps: null
+              num_sanity_val_steps: null
+              overfit_batches: 0.0
+              plugins: null
+              profiler: null
+              reload_dataloaders_every_n_epochs: 0
+              strategy: auto
+              sync_batchnorm: false
+              use_distributed_sampler: true
+              val_check_interval: null
+
+            # Lightning Model configuration
+            model:
+              class_path: itwinai.torch.models.mnist.MNISTModel
+              init_args:
+                hidden_size: 64
+
+            # Lightning data module configuration
+            data:
+              class_path: dataloader.MNISTDataModule
+              init_args:
+                batch_size: 32
+                data_path: ${dataset_root}
+                download: false
+                train_prop: 0.8
+
+            # Torch Optimizer configuration
+            optimizer:
+              class_path: torch.optim.AdamW
+              init_args:
+                lr: 0.001
+
+            # Torch LR scheduler configuration
+            lr_scheduler:
+              class_path: torch.optim.lr_scheduler.ExponentialLR
+              init_args:
+                gamma: 0.1

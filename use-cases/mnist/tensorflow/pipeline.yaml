@@ -1,0 +1,50 @@
+# General config
+verbose: auto
+micro_batch_size: 17
+epochs: 3
+checkpoints_path: checkpoints
+tb_log_dir: ./logs
+
+# Training pipeline
+pipeline:
+  class_path: itwinai.pipeline.Pipeline
+  init_args:
+    steps:
+      - class_path: dataloader.MNISTDataGetter
+
+      - class_path: dataloader.MNISTDataPreproc
+        init_args:
+          classes: 10
+
+      - class_path: itwinai.tensorflow.trainer.TensorflowTrainer
+        init_args:
+          epochs: ${epochs}
+          micro_batch_size: ${micro_batch_size}
+          verbose: ${verbose}
+          model_compile_config:
+            loss:
+              class_path: tensorflow.keras.losses.CategoricalCrossentropy
+              init_args:
+                from_logits: False
+
+            optimizer: 
+              class_path: tensorflow.keras.optimizers.Adam
+              init_args: 
+                  learning_rate: 0.001
+
+          model_config:
+            class_path: itwinai.tensorflow.models.mnist.MNIST_Model
+            init_args:
+              input_shape: [ 28, 28, 1 ]
+              output_shape: 10
+        
+          callbacks:
+            - class_path: keras.callbacks.EarlyStopping
+              init_args:
+                patience: 2
+            - class_path: keras.callbacks.ModelCheckpoint
+              init_args:
+                filepath: ${checkpoints_path}/model.{epoch:02d}-{val_loss:.2f}.keras
+            - class_path: keras.callbacks.TensorBoard
+              init_args:
+                log_dir: ${tb_log_dir}

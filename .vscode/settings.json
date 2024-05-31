@@ -1,6 +1,4 @@
 {
-    "python.linting.flake8Enabled": true,
-    "python.linting.enabled": true,
     "editor.formatOnSave": true,
     "editor.defaultFormatter": null,
     "cSpell.ignoreWords": [
@@ -13,12 +11,15 @@
         "Convolutional",
         "cuda",
         "dataloaders",
+        "dataloading",
         "fromlist",
         "hyperparameters",
         "hyperparams",
+        "imagenet",
         "ipython",
         "itwinai",
         "Lockfiles",
+        "logfiles",
         "logits",
         "Mambaforge",
         "Micromamba",
@@ -26,6 +27,7 @@
         "mnist",
         "multiclass",
         "mypackage",
+        "NCCL",
         "omegaconf",
         "optim",
         "plmodels",
@@ -35,10 +37,14 @@
         "pyyaml",
         "relu",
         "Roadmap",
+        "savedir",
+        "SLURM",
         "softmax",
+        "tensorboard",
         "torchmetrics",
         "torchvision",
-        "venv"
+        "venv",
+        "wandb"
     ],
     "markdownlint.run": "onType",
     "markdownlint.config": {
@@ -49,8 +55,12 @@
     "[python]": {
         "editor.defaultFormatter": "ms-python.autopep8"
     },
-    "python.formatting.provider": "none",
-    "[markdown]": {
-        "editor.formatOnSave": false
-    }
+    "python.testing.pytestArgs": [
+        "tests"
+    ],
+    "python.testing.unittestEnabled": false,
+    "python.testing.pytestEnabled": true,
+    "python.analysis.extraPaths": [
+        "./src/itwinai"
+    ]
 }
