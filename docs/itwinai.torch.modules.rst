@@ -33,9 +33,9 @@ trainer.py
    :show-inheritance:
 
 
-type.py
+types.py
 ++++++++
-.. automodule:: itwinai.torch.type
+.. automodule:: itwinai.torch.types
    :members:
    :undoc-members:
    :show-inheritance:
