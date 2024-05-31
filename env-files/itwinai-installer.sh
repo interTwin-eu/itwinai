@@ -9,7 +9,7 @@
 # read -p "Enter your choice (1 or 2): " choice
 
 if [ -z "$ML_FRAMEWORK" ]; then
-    echo "Error: ML_FRAMEWORK env variable not set. Accepted values are 'torch' and 'tensorflow'"
+    echo "Error: ML_FRAMEWORK env variable not set. Accepted values are 'pytorch' and 'tensorflow'"
     exit 1
 fi
 
@@ -27,7 +27,7 @@ if ! nvidia-smi > /dev/null 2>&1; then
 fi
 
 # Begin installation of dependencies + itwinai
-if [ "$ML_FRAMEWORK" == "torch" ]; then
+if [ "$ML_FRAMEWORK" == "pytorch" ]; then
     echo "Installing itwinai with PyTorch support..."
     # Skip last line (head -n -1) because it contains the istallation of itwinai
     curl -fsSL https://github.com/interTwin-eu/itwinai/raw/main/env-files/torch/generic_torch.sh | head -n -1 | bash
@@ -44,5 +44,3 @@ elif [ "$ML_FRAMEWORK" == "tensorflow" ]; then
 else
     echo "Invalid choice. Please run the script again and select either 1 or 2."
 fi
-
-# curl -fsSL itwinai-installer.sh https://github.com/interTwin-eu/itwinai/raw/user-install/env-files/itwinai-installer.sh | bash

@@ -46,8 +46,12 @@ Install itwinai and its dependencies using the
 following command, and follow the instructions:
 
 ```bash
+export ML_FRAMEWORK="pytorch" # or "tensorflow"
 curl -fsSL https://github.com/interTwin-eu/itwinai/raw/main/env-files/itwinai-installer.sh | bash
 ```
+
+The `ML_FRAMEWORK` environment variable controls whether you are installing
+itwinai for PyTorch or TensorFlow.
 
 ## Installation for developers
 
