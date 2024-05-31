@@ -75,14 +75,7 @@ make torch-gpu-jsc
 make tf-gpu-jsc
 ```
 
-## Environment setup
-
-Requirements:
-
-- Linux environment. Windows and macOS were never tested.
-- VS Code, for development.
-
-### TensorFlow
+#### TensorFlow
 
 Installation:
 
@@ -96,7 +89,7 @@ source .venv-tf/bin/activate
 
 A CPU-only version is available at the target `tensorflow-env-cpu`.
 
-### PyTorch (+ Lightning)
+#### PyTorch (+ Lightning)
 
 Installation:
 
