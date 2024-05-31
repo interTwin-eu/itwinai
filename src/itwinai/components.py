@@ -91,8 +91,12 @@ import functools
 # import logging
 # from logging import Logger as PythonLogger
 
-from .types import MLModel, MLDataset, MLArtifact
+from .type import MLModel, MLDataset, MLArtifact
 from .serialization import ModelLoader, Serializable
+from .distributed import (
+    detect_distributed_environment,
+    distributed_patch_print
+)
 
 
 def monitor_exec(method: Callable) -> Callable:
@@ -105,6 +109,11 @@ def monitor_exec(method: Callable) -> Callable:
     """
     @functools.wraps(method)
     def monitored_method(self: BaseComponent, *args, **kwargs) -> Any:
+        # Disable print in workers different from the main one,
+        # when in distributed environments.
+        dist_grank = detect_distributed_environment().global_rank
+        distributed_patch_print(is_main=dist_grank == 0)
+
         msg = f"Starting execution of '{self.name}'..."
         self._printout(msg)
         start_t = time.time()
@@ -264,7 +273,7 @@ class DataGetter(BaseComponent):
         """
 
 
-class DataPreproc(BaseComponent):
+class DataProcessor(BaseComponent):
     """Performs dataset pre-processing."""
 
     @abstractmethod

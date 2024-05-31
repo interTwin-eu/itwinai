@@ -16,6 +16,8 @@ inference_model_mlflow_uri: mnist-pre-trained.pth
 predictions_dir: mnist-predictions
 predictions_file: predictions.csv
 class_labels: null
+checkpoints_location: checkpoints
+checkpoint_every: 1
 
 # Workflows configuration
 training_pipeline:
@@ -68,12 +70,9 @@ training_pipeline:
                     experiment_name: MNIST classifier
                     log_freq: batch 
           strategy: ${strategy}
-          # checkpoint_every: 1
-          # cluster:
-          #   class_path: itwinai.torch.cluster.LocalCluster
-          #   init_args:
-          #     gpus: '0,1,2'
-          #     backend: nccl
+          checkpoint_every: ${checkpoint_every}
+          checkpoints_location: ${checkpoints_location}
+
 
 inference_pipeline:
   class_path: itwinai.pipeline.Pipeline
