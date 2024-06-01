@@ -56,7 +56,6 @@ def distributed_patch_print(is_main: bool) -> None:
     Args:
         is_main (bool): whether it is called from main worker.
     """
-    # builtin_print = __builtin__.print
 
     def print(*args, **kwself):
         """Print is disables on workers different from
