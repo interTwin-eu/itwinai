@@ -7,6 +7,7 @@ distributed.py
    :members:
    :undoc-members:
    :show-inheritance:
+   :member-order: bysource
 
 
 inference.py
@@ -15,6 +16,7 @@ inference.py
    :members:
    :undoc-members:
    :show-inheritance:
+   :member-order: bysource
 
 
 mlflow.py
@@ -23,6 +25,7 @@ mlflow.py
    :members:
    :undoc-members:
    :show-inheritance:
+   :member-order: bysource
 
 
 trainer.py
@@ -31,6 +34,7 @@ trainer.py
    :members:
    :undoc-members:
    :show-inheritance:
+   :member-order: bysource
 
 
 type.py
@@ -39,6 +43,7 @@ type.py
    :members:
    :undoc-members:
    :show-inheritance:
+   :member-order: bysource
 
 
 reproducibility.py
@@ -47,6 +52,7 @@ reproducibility.py
    :members:
    :undoc-members:
    :show-inheritance:
+   :member-order: bysource
 
 
 config.py
@@ -55,6 +61,7 @@ config.py
    :members:
    :undoc-members:
    :show-inheritance:
+   :member-order: bysource
 
 
 

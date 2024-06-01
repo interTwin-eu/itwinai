@@ -279,7 +279,7 @@ class MLFlowLogger(Logger):
             Defaults to None.
         log_freq (Union[int, Literal['epoch', 'batch']], optional):
             determines whether the logger should fulfill or ignore
-            calls to the `log()` method. See `Logger.should_log`` method for
+            calls to the `log()` method. See ``Logger.should_log`` method for
             more details. Defaults to 'epoch'.
     """
 
@@ -427,7 +427,7 @@ class WanDBLogger(Logger):
             ``itwinai.loggers.BASE_EXP_NAME``.
         log_freq (Union[int, Literal['epoch', 'batch']], optional):
             determines whether the logger should fulfill or ignore
-            calls to the `log()` method. See `Logger.should_log`` method for
+            calls to the `log()` method. See ``Logger.should_log`` method for
             more details. Defaults to 'epoch'.
     """
 
@@ -504,7 +504,7 @@ class TensorBoardLogger(Logger):
             are stored. Defaults to 'mllogs'.
         log_freq (Union[int, Literal['epoch', 'batch']], optional):
             determines whether the logger should fulfill or ignore
-            calls to the `log()` method. See `Logger.should_log`` method for
+            calls to the `log()` method. See ``Logger.should_log`` method for
             more details. Defaults to 'epoch'.
         framework (Literal['tensorflow', 'pytorch'], optional):
             whether to log PyTorch or TensorFlow ML data.
