@@ -30,12 +30,12 @@ class LogMixin(metaclass=ABCMeta):
         Args:
             item (Union[Any, List[Any]]): element to be logged (e.g., metric).
             identifier (Union[str, List[str]]): unique identifier for the
-            element to log(e.g., name of a metric).
+                element to log(e.g., name of a metric).
             kind (str, optional): type of the item to be logged. Must be one
-            among the list of self.supported_types. Defaults to 'metric'.
+                among the list of self.supported_types. Defaults to 'metric'.
             step (Optional[int], optional): logging step. Defaults to None.
             batch_idx (Optional[int], optional): DataLoader batch counter
-            (i.e., batch idx), if available. Defaults to None.
+                (i.e., batch idx), if available. Defaults to None.
         """
 
 
@@ -44,18 +44,21 @@ class Logger(LogMixin, metaclass=ABCMeta):
 
     Args:
         savedir (str, optional): filesystem location where logs are stored.
-        Defaults to 'mllogs'.
-        log_freq (Union[int, Literal[&#39;epoch&#39;, &#39;batch&#39;]],
-        optional): how often should the logger fulfill calls to the `log()`
-        method:
-        - When set to ``'epoch'``, the logger logs only if
-        ``batch_idx`` is not passed to the ``log`` method.
-        - When an integer
-        is given, the logger logs if ``batch_idx`` is a multiple of
-        ``log_freq``.
-        - When set to ``'batch'``, the logger logs always.
+            Defaults to 'mllogs'.
+        log_freq (Union[int, Literal['epoch', 'batch']], optional):
+            how often should the logger fulfill calls to the `log()`
+            method:
 
-        Defaults to ``'epoch'``.
+            - When set to 'epoch', the logger logs only if ``batch_idx``
+              is not passed to the ``log`` method.
+
+            - When an integer
+              is given, the logger logs if ``batch_idx`` is a multiple of
+              ``log_freq``.
+
+            - When set to ``'batch'``, the logger logs always.
+
+            Defaults to 'epoch'.
     """
     savedir: str = None
     supported_types: List[str]  # Supported logging 'kinds'
@@ -126,7 +129,7 @@ class Logger(LogMixin, metaclass=ABCMeta):
         Args:
             obj (Any): item to save.
             identifier (str): identifier of the item to log (expected to be a
-            path under ``self.savedir``).
+                path under ``self.savedir``).
 
         Returns:
             str: local path of the serialized object to be logged.
@@ -141,16 +144,19 @@ class Logger(LogMixin, metaclass=ABCMeta):
     ) -> bool:
         """Determines whether the logger should fulfill or ignore calls to the
         `log()` method, depending on the ``log_freq`` property:
-        - When ``log_freq`` is set to ``'epoch'``, the logger logs only if
-        ``batch_idx`` is not passed to the ``log`` method.
+
+        - When ``log_freq`` is set to 'epoch', the logger logs only if
+          ``batch_idx`` is not passed to the ``log`` method.
+
         - When ``log_freq`` is an integer
-        is given, the logger logs if ``batch_idx`` is a multiple of
-        ``log_freq``.
+          is given, the logger logs if ``batch_idx`` is a multiple of
+          ``log_freq``.
+
         - When ``log_freq`` is set to ``'batch'``, the logger logs always.
 
         Args:
             batch_idx (Optional[int]): the dataloader batch idx, if available.
-            Defaults to None.
+                Defaults to None.
 
         Returns:
             bool: True if the logger should log, False otherwise.
@@ -171,11 +177,11 @@ class ConsoleLogger(Logger):
 
     Args:
         savedir (str, optional): where to store artifacts.
-        Defaults to 'mllogs'.
-        log_freq (Union[int, Literal[&#39;epoch&#39;, &#39;batch&#39;]],
-        optional): determines whether the logger should fulfill or ignore
-        calls to the `log()` method. See ``should_log`` method for more
-        details. Defaults to ``'epoch'``.
+            Defaults to 'mllogs'.
+        log_freq (Union[int, Literal['epoch', 'batch']], optional):
+            determines whether the logger should fulfill or ignore
+            calls to the `log()` method. See ``Logger.should_log`` method for
+            more details. Defaults to 'epoch'.
     """
 
     def __init__(
@@ -222,12 +228,14 @@ class ConsoleLogger(Logger):
         Args:
             item (Union[Any, List[Any]]): element to be logged (e.g., metric).
             identifier (Union[str, List[str]]): unique identifier for the
-            element to log(e.g., name of a metric).
-            kind (str, optional): type of the item to be logged. Must be one
-            among the list of self.supported_types. Defaults to 'metric'.
+                element to log(e.g., name of a metric).
+            kind (str, optional): type of the item to be logged. Must be
+                one among the list of ``self.supported_types``.
+                Defaults to 'metric'.
             step (Optional[int], optional): logging step. Defaults to None.
             batch_idx (Optional[int], optional): DataLoader batch counter
-            (i.e., batch idx), if available. Defaults to None.
+                (i.e., batch idx), if available. Defaults to None.
+            kwargs: keyword arguments to pass to the logger.
         """
         if not self.should_log(batch_idx=batch_idx):
             return
@@ -262,17 +270,17 @@ class MLFlowLogger(Logger):
 
     Args:
         savedir (str, optional): path on local filesystem where logs are
-        stored. Defaults to 'mllogs'.
+            stored. Defaults to 'mllogs'.
         experiment_name (str, optional): experiment name. Defaults to
-        ``itwinai.loggers.BASE_EXP_NAME``.
+            ``itwinai.loggers.BASE_EXP_NAME``.
         tracking_uri (Optional[str], optional): MLFLow tracking URI.
-        Overrides ``savedir`` if given. Defaults to None.
+            Overrides ``savedir`` if given. Defaults to None.
         run_description (Optional[str], optional): run description.
-        Defaults to None.
-        log_freq (Union[int, Literal[&#39;epoch&#39;, &#39;batch&#39;]],
-        optional): determines whether the logger should fulfill or ignore
-        calls to the `log()` method. See ``should_log`` method for more
-        details. Defaults to ``'epoch'``.
+            Defaults to None.
+        log_freq (Union[int, Literal['epoch', 'batch']], optional):
+            determines whether the logger should fulfill or ignore
+            calls to the `log()` method. See ``Logger.should_log`` method for
+            more details. Defaults to 'epoch'.
     """
 
     active_run: mlflow.ActiveRun
@@ -339,12 +347,14 @@ class MLFlowLogger(Logger):
         Args:
             item (Union[Any, List[Any]]): element to be logged (e.g., metric).
             identifier (Union[str, List[str]]): unique identifier for the
-            element to log(e.g., name of a metric).
-            kind (str, optional): type of the item to be logged. Must be one
-            among the list of self.supported_types. Defaults to 'metric'.
+                element to log(e.g., name of a metric).
+            kind (str, optional): type of the item to be logged. Must be
+                one among the list of ``self.supported_types``.
+                Defaults to 'metric'.
             step (Optional[int], optional): logging step. Defaults to None.
             batch_idx (Optional[int], optional): DataLoader batch counter
-            (i.e., batch idx), if available. Defaults to None.
+                (i.e., batch idx), if available. Defaults to None.
+            kwargs: keyword arguments to pass to the logger.
         """
         if not self.should_log(batch_idx=batch_idx):
             return
@@ -412,13 +422,13 @@ class WanDBLogger(Logger):
 
     Args:
         savedir (str, optional): location on local filesystem where logs
-        are stored. Defaults to 'mllogs'.
+            are stored. Defaults to 'mllogs'.
         project_name (str, optional): experiment name. Defaults to
-        ``itwinai.loggers.BASE_EXP_NAME``.
-        log_freq (Union[int, Literal[&#39;epoch&#39;, &#39;batch&#39;]],
-        optional): determines whether the logger should fulfill or ignore
-        calls to the `log()` method. See ``should_log`` method for more
-        details. Defaults to ``'epoch'``.
+            ``itwinai.loggers.BASE_EXP_NAME``.
+        log_freq (Union[int, Literal['epoch', 'batch']], optional):
+            determines whether the logger should fulfill or ignore
+            calls to the `log()` method. See ``Logger.should_log`` method for
+            more details. Defaults to 'epoch'.
     """
 
     def __init__(
@@ -467,12 +477,14 @@ class WanDBLogger(Logger):
         Args:
             item (Union[Any, List[Any]]): element to be logged (e.g., metric).
             identifier (Union[str, List[str]]): unique identifier for the
-            element to log(e.g., name of a metric).
-            kind (str, optional): type of the item to be logged. Must be one
-            among the list of self.supported_types. Defaults to 'metric'.
+                element to log(e.g., name of a metric).
+            kind (str, optional): type of the item to be logged. Must be
+                one among the list of ``self.supported_types``.
+                Defaults to 'metric'.
             step (Optional[int], optional): logging step. Defaults to None.
             batch_idx (Optional[int], optional): DataLoader batch counter
-            (i.e., batch idx), if available. Defaults to None.
+                (i.e., batch idx), if available. Defaults to None.
+            kwargs: keyword arguments to pass to the logger.
         """
         if not self.should_log(batch_idx=batch_idx):
             return
@@ -489,14 +501,14 @@ class TensorBoardLogger(Logger):
 
     Args:
         savedir (str, optional): location on local filesystem where logs
-        are stored. Defaults to 'mllogs'.
-        log_freq (Union[int, Literal[&#39;epoch&#39;, &#39;batch&#39;]],
-        optional): determines whether the logger should fulfill or ignore
-        calls to the `log()` method. See ``should_log`` method for more
-        details. Defaults to ``'epoch'``.
-        framework (Literal[&#39;tensorflow&#39;, &#39;pytorch&#39;],
-        optional): whether to log PyTorch or TensorFlow ML data.
-        Defaults to 'pytorch'.
+            are stored. Defaults to 'mllogs'.
+        log_freq (Union[int, Literal['epoch', 'batch']], optional):
+            determines whether the logger should fulfill or ignore
+            calls to the `log()` method. See ``Logger.should_log`` method for
+            more details. Defaults to 'epoch'.
+        framework (Literal['tensorflow', 'pytorch'], optional):
+            whether to log PyTorch or TensorFlow ML data.
+            Defaults to 'pytorch'.
 
     Raises:
         ValueError: when ``framework`` is not recognized.
@@ -564,12 +576,14 @@ class TensorBoardLogger(Logger):
         Args:
             item (Union[Any, List[Any]]): element to be logged (e.g., metric).
             identifier (Union[str, List[str]]): unique identifier for the
-            element to log(e.g., name of a metric).
-            kind (str, optional): type of the item to be logged. Must be one
-            among the list of self.supported_types. Defaults to 'metric'.
+                element to log(e.g., name of a metric).
+            kind (str, optional): type of the item to be logged. Must be
+                one among the list of ``self.supported_types``.
+                Defaults to 'metric'.
             step (Optional[int], optional): logging step. Defaults to None.
             batch_idx (Optional[int], optional): DataLoader batch counter
-            (i.e., batch idx), if available. Defaults to None.
+                (i.e., batch idx), if available. Defaults to None.
+            kwargs: keyword arguments to pass to the logger.
         """
         if not self.should_log(batch_idx=batch_idx):
             return
@@ -612,7 +626,7 @@ class LoggersCollection(Logger):
         self.loggers = loggers
 
     def should_log(self, batch_idx: int = None) -> bool:
-        """Transparent method which delegates the ``should_log``
+        """Transparent method which delegates the `Logger.should_log``
         to individual loggers. Always returns True.
 
         Args:
@@ -638,12 +652,14 @@ class LoggersCollection(Logger):
         Args:
             item (Union[Any, List[Any]]): element to be logged (e.g., metric).
             identifier (Union[str, List[str]]): unique identifier for the
-            element to log(e.g., name of a metric).
-            kind (str, optional): type of the item to be logged. Must be one
-            among the list of self.supported_types. Defaults to 'metric'.
+                element to log(e.g., name of a metric).
+            kind (str, optional): type of the item to be logged. Must be
+                one among the list of ``self.supported_types``.
+                Defaults to 'metric'.
             step (Optional[int], optional): logging step. Defaults to None.
             batch_idx (Optional[int], optional): DataLoader batch counter
-            (i.e., batch idx), if available. Defaults to None.
+                (i.e., batch idx), if available. Defaults to None.
+            kwargs: keyword arguments to pass to the logger.
         """
         for logger in self.loggers:
             logger.log(
@@ -713,8 +729,8 @@ class EpochTimeTracker:
 
         Args:
             csv_file (Optional[str], optional): path to the CSV file.
-            If not given, uses the one given in the constructor.
-            Defaults to None.
+                If not given, uses the one given in the constructor.
+                Defaults to None.
         """
         if not csv_file:
             csv_file = self.csv_file

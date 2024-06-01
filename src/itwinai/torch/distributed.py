@@ -16,7 +16,7 @@ from torch.utils.data import Dataset, Sampler, DistributedSampler, DataLoader
 from torch.utils.data.dataloader import T_co, _worker_init_fn_t, _collate_fn_t
 
 from ..distributed import DistributedStrategy
-from .types import UninitializedStrategyError, DistributedStrategyError
+from .type import UninitializedStrategyError, DistributedStrategyError
 
 
 def distributed_resources_available() -> bool:
@@ -318,7 +318,7 @@ class TorchDistributedStrategy(DistributedStrategy):
         Args:
             obj (Any): object to gather from all workers.
             dst_rank (int): rank of the worker on which the objects list
-            are gathered.
+                are gathered.
 
         Returns:
             List[Any]: list of objects gathered from all workers.
@@ -345,7 +345,7 @@ class TorchDDPStrategy(TorchDistributedStrategy):
         Raises:
             RuntimeError: when there are not (enough) GPUs available.
             DistributedStrategyError: when trying to initialize a strategy
-            already initialized.
+                which is already initialized.
         """
         if not distributed_resources_available():
             raise RuntimeError(
@@ -483,7 +483,7 @@ class TorchDDPStrategy(TorchDistributedStrategy):
         Args:
             obj (Any): object to gather from all workers.
             dst_rank (int): rank of the worker on which the objects list
-            are gathered.
+                are gathered.
 
         Returns:
             Optional[List[Any]]: list of objects gathered from all workers
@@ -507,7 +507,7 @@ class DeepSpeedStrategy(TorchDistributedStrategy):
     Args:
         backend (str): Name of the communication backend to employ.
         config (Union[dict, Path, str]): DeepSpeed config. Either a
-        dictionary or a path to a JSON file.
+            dictionary or a path to a JSON file.
     """
 
     backend: str
@@ -535,7 +535,7 @@ class DeepSpeedStrategy(TorchDistributedStrategy):
         Raises:
             RuntimeError: when there are not (enough) GPUs available.
             DistributedStrategyError: when trying to initialize a strategy
-            already initialized.
+                already initialized.
         """
         if not distributed_resources_available():
             raise RuntimeError(
@@ -658,7 +658,7 @@ class DeepSpeedStrategy(TorchDistributedStrategy):
         Args:
             obj (Any): object to gather from all workers.
             dst_rank (int): rank of the worker on which the objects list
-            are gathered.
+                are gathered.
 
         Returns:
             Optional[List[Any]]: list of objects gathered from all workers
@@ -685,7 +685,7 @@ class HorovodStrategy(TorchDistributedStrategy):
         Raises:
             RuntimeError: when there are not (enough) GPUs available.
             DistributedStrategyError: when trying to initialize a strategy
-            already initialized.
+                already initialized.
         """
         if not distributed_resources_available():
             raise RuntimeError(
@@ -735,9 +735,9 @@ class HorovodStrategy(TorchDistributedStrategy):
 
         Args:
             model (nn.Module): ML model that is to be broadcasted
-            across processes.
+                across processes.
             optimizer (optim.Optimizer): Optimizer that is to be broadcasted
-            across processes.
+                across processes.
         """
         hvd.broadcast_parameters(model.state_dict(), root_rank=0)
         hvd.broadcast_optimizer_state(optimizer, root_rank=-0)
@@ -837,7 +837,7 @@ class NonDistributedStrategy(TorchDistributedStrategy):
 
         Raises:
             DistributedStrategyError: when trying to initialize a strategy
-            already initialized.
+                already initialized.
         """
         if self.is_initialized:
             raise DistributedStrategyError("Strategy was already initialized")

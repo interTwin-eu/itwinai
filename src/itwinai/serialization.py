@@ -50,9 +50,9 @@ class Serializable:
 
         Args:
             locals (Dict): output of ``locals()`` called in the constructor
-            of a class.
+                of a class.
             pop_self (bool, optional): whether to remove ``self``.
-            Defaults to True.
+                Defaults to True.
 
         Returns:
             Dict: cleaned ``locals()``.
