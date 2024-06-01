@@ -37,5 +37,5 @@ elif [ "$ML_FRAMEWORK" == "tensorflow" ]; then
     # Install from PyPI
     pip install itwinai
 else
-    echo "Invalid choice. Please run the script again and select either 1 or 2."
+    echo "Invalid choice. Please run the script again by setting a valid ML_FRAMEWORK. Accepted values are 'pytorch' and 'tensorflow'."
 fi
