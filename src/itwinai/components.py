@@ -252,7 +252,7 @@ class Predictor(BaseComponent):
         Args:
             predict_dataset (MLDataset): dataset for inference.
             model (Optional[MLModel], optional): overrides the internal model,
-            if given. Defaults to None.
+                if given. Defaults to None.
 
         Returns:
             MLDataset: predictions with the same cardinality of the
@@ -319,20 +319,27 @@ class Adapter(BaseComponent):
     among the components.
 
     Args:
-            policy (List[Any]): list of the same length of the output of this
+        policy (List[Any]): list of the same length of the output of this
             component, describing how to map the input args to the output.
-            name (Optional[str], optional): name of the component.
+        name (Optional[str], optional): name of the component.
             Defaults to None.
 
     The adapter allows to define a policy with which inputs are re-arranged
     before being propagated to the next component.
     Some examples: [policy]: (input) -> (output)
+
     - ["INPUT_ARG#2", "INPUT_ARG#1", "INPUT_ARG#0"]: (11,22,33) -> (33,22,11)
+
     - ["INPUT_ARG#0", "INPUT_ARG#2", None]: (11, 22, 33) -> (11, 33, None)
+
     - []: (11, 22, 33) -> ()
+
     - [42, "INPUT_ARG#2", "hello"] -> (11,22,33,44,55) -> (42, 33, "hello")
+
     - [None, 33, 3.14]: () -> (None, 33, 3.14)
+
     - [None, 33, 3.14]: ("double", 44, None, True) -> (None, 33, 3.14)
+
     """
 
     policy: List[Any]

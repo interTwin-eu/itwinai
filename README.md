@@ -53,6 +53,11 @@ curl -fsSL https://github.com/interTwin-eu/itwinai/raw/main/env-files/itwinai-in
 The `ML_FRAMEWORK` environment variable controls whether you are installing
 itwinai for PyTorch or TensorFlow.
 
+> [!WARNING]  
+> itwinai depends on Horovod, which requires `CMake>=1.13` and
+> [other packages](https://horovod.readthedocs.io/en/latest/install_include.html#requirements).
+> Make sure to have them installed in your environment before proceeding.
+
 ## Installation for developers
 
 If you are contributing to this repository, please continue below for

@@ -4,6 +4,12 @@
 .. toctree::
    :maxdepth: 4
 
+   itwinai.torch.modules
+   itwinai.tf.modules
+
+.. toctree::
+   :maxdepth: 4
+
    itwinai.cli
    itwinai.components
    itwinai.distributed
@@ -13,11 +19,3 @@
    itwinai.serialization
    itwinai.type
    itwinai.utils
-
-
-.. toctree::
-   :maxdepth: 4
-
-   itwinai.tf.modules
-   itwinai.torch.modules
-   

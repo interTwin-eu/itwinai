@@ -12,6 +12,7 @@ trainer.py
    :members:
    :undoc-members:
    :show-inheritance:
+   :member-order: bysource
 
 utils.py
 ++++++++
@@ -20,6 +21,7 @@ utils.py
    :members:
    :undoc-members:
    :show-inheritance:
+   :member-order: bysource
 
 .. .. literalinclude:: ../src/itwinai/tensorflow/utils.py
    :language: python
@@ -32,6 +34,7 @@ distributed.py
    :members:
    :undoc-members:
    :show-inheritance:
+   :member-order: bysource
 
 .. .. literalinclude:: ../src/itwinai/tensorflow/distributed.py
    :language: python

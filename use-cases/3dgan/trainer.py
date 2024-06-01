@@ -10,7 +10,7 @@ from lightning.pytorch.cli import LightningCLI
 from itwinai.components import Trainer, Predictor, monitor_exec
 from itwinai.serialization import ModelLoader
 from itwinai.torch.inference import TorchModelLoader
-from itwinai.torch.types import Batch
+from itwinai.torch.type import Batch
 from itwinai.utils import load_yaml
 from itwinai.torch.mlflow import (
     init_lightning_mlflow,

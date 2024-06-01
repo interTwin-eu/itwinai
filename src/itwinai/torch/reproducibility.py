@@ -26,8 +26,8 @@ def set_seed(
     Args:
         rnd_seed (Optional[int]): random seed. If None, the seed is not set.
         deterministic_cudnn (bool): if True, sets
-        ``torch.backends.cudnn.benchmark = False``, which may affect
-        performances.
+            ``torch.backends.cudnn.benchmark = False``, which may affect
+            performances.
 
     Returns:
         torch.Generator: PRNG object.
