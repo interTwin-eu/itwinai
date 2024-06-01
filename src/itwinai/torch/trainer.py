@@ -20,7 +20,7 @@ from lightning.pytorch.cli import LightningCLI
 import horovod.torch as hvd
 
 from ..components import Trainer, monitor_exec
-from .types import (
+from .type import (
     Batch, Loss, LrScheduler, Metric
 )
 from ..loggers import LogMixin, Logger

@@ -16,7 +16,7 @@ from torch.utils.data import Dataset, Sampler, DistributedSampler, DataLoader
 from torch.utils.data.dataloader import T_co, _worker_init_fn_t, _collate_fn_t
 
 from ..distributed import DistributedStrategy
-from .types import UninitializedStrategyError, DistributedStrategyError
+from .type import UninitializedStrategyError, DistributedStrategyError
 
 
 def distributed_resources_available() -> bool:

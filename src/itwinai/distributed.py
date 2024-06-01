@@ -1,6 +1,7 @@
 import abc
 import os
 from pydantic import BaseModel
+import builtins as __builtin__
 
 
 class DistributedStrategy(abc.ABC):
@@ -45,14 +46,17 @@ def detect_distributed_environment() -> ClusterEnvironment:
         return ClusterEnvironment()
 
 
+#: Save original builtin print before patching it in distributed environments
+builtin_print = __builtin__.print
+
+
 def distributed_patch_print(is_main: bool) -> None:
     """Disable ``print()`` when not in main worker.
 
     Args:
         is_main (bool): whether it is called from main worker.
     """
-    import builtins as __builtin__
-    builtin_print = __builtin__.print
+    # builtin_print = __builtin__.print
 
     def print(*args, **kwself):
         """Print is disables on workers different from
@@ -63,4 +67,5 @@ def distributed_patch_print(is_main: bool) -> None:
         if is_main or force:
             builtin_print(*args, **kwself)
 
+    # Patch builtin print
     __builtin__.print = print

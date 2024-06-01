@@ -8,8 +8,7 @@ from torch.utils.data import DataLoader, Dataset
 
 from ..utils import dynamically_import_class, clear_key
 from ..components import Predictor, monitor_exec
-from .types import TorchDistributedStrategy as StrategyT
-from .types import Metric, Batch
+from .type import Metric, Batch
 from ..serialization import ModelLoader
 
 
@@ -73,7 +72,6 @@ class TorchPredictor(Predictor):
     model: nn.Module = None
     test_dataset: Dataset
     test_dataloader: DataLoader = None
-    _strategy: StrategyT = StrategyT.NONE.value
     epoch_idx: int = 0
     train_glob_step: int = 0
     validation_glob_step: int = 0
@@ -85,7 +83,6 @@ class TorchPredictor(Predictor):
         model: Union[nn.Module, ModelLoader],
         test_dataloader_class: str = 'torch.utils.data.DataLoader',
         test_dataloader_kwargs: Optional[Dict] = None,
-        # strategy: str = StrategyT.NONE.value,
         # seed: Optional[int] = None,
         # logger: Optional[List[Logger]] = None,
         # cluster: Optional[ClusterEnvironment] = None,
