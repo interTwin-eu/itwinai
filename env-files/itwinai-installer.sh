@@ -3,12 +3,10 @@
 # Simple installation for users
 # It expects ML_FRAMEWORK env variable to be set
 
-
 if [ -z "$ML_FRAMEWORK" ]; then
     echo "Error: ML_FRAMEWORK env variable not set. Accepted values are 'pytorch' and 'tensorflow'"
     exit 1
 fi
-
 
 # Detect python env and CUDA env
 if [ -z "$VIRTUAL_ENV" ]; then
