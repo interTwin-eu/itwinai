@@ -43,20 +43,20 @@ class TensorflowTrainer(Trainer):
         Args:
             epochs (int): number of training epochs.
             micro_batch_size (int): per-worker batch size. Equals macro batch
-            size when not running distributed.
+                size when not running distributed.
             shuffle_buffer (Optional[int], optional): if given, shuffles
-            dataset using a buffer of given size. See
-            ``tf.data.Dataset.shuffle``. Defaults to None.
+                dataset using a buffer of given size. See
+                ``tf.data.Dataset.shuffle``. Defaults to None.
             callbacks (Optional[List], optional): list fo Keras callbacks.
-            Can be a list of dictionary configurations. Defaults to None.
+                Can be a list of dictionary configurations. Defaults to None.
             model_config (Optional[Dict], optional): model configuration. If
-            given, a model is instantiated from this configuration.
-            Defaults to None.
+                given, a model is instantiated from this configuration.
+                Defaults to None.
             model_compile_config (Optional[Dict], optional): configuration for
-            ``keras.Model.compile``. Defaults to None.
+                ``keras.Model.compile``. Defaults to None.
             rnd_seed (Optional[int], optional): random seed. Defaults to None.
             verbose (Union[str, int], optional): verbosity level for
-            ``keras.Model.fit``. Defaults to 'auto'.
+                ``keras.Model.fit``. Defaults to 'auto'.
     """
 
     strategy: tf.distribute.Strategy
@@ -119,7 +119,7 @@ class TensorflowTrainer(Trainer):
 
         Args:
             model_compile_config (Dict): fields of Keras ``model.compile()``
-            serialized as dictionary.
+                serialized as dictionary.
 
         Returns:
             Dict[str, Any]: dictionary mapping compile argument names to
@@ -165,11 +165,11 @@ class TensorflowTrainer(Trainer):
 
         Args:
             train_dataset (Dataset): train dataset of type
-            ``tensorflow.data.Dataset``.
+                ``tensorflow.data.Dataset``.
             validation_dataset (Dataset): validation dataset of type
-            ``tensorflow.data.Dataset``.
+                ``tensorflow.data.Dataset``.
             test_dataset (Optional[Dataset], optional): test dataset
-            of type ``tensorflow.data.Dataset``. Defaults to None.
+                of type ``tensorflow.data.Dataset``. Defaults to None.
 
         Returns:
             Tuple[Dataset, Dataset, Dataset, keras.Model]: tuple of

@@ -26,28 +26,28 @@ class TrainingConfiguration(Configuration):
 
     """
     #: Batch size. In a distributed environment it is usually the
-    #: per-worker batch size. Default 32.
+    #: per-worker batch size. Defaults to 32.
     batch_size: int = 32
     #: Whether to pin GPU memory. Property of torch ``DataLoader``.
-    #: Default False.
+    #: Defaults to False.
     pin_memory: bool = False
     #: Number of parallel workers used by torch ``DataLoader``.
-    #: Default 4.
+    #: Defaults to 4.
     num_workers: int = 4
-    #: Learning rate used by the optimizer. Default 1e-3.
+    #: Learning rate used by the optimizer. Defaults to 1e-3.
     lr: float = 1e-3
-    #: Momentum used by some optimizers (e.g., SGD). Default 0.9.
+    #: Momentum used by some optimizers (e.g., SGD). Defaults to 0.9.
     momentum: float = .9
-    #: Parameter of Horovod's `DistributedOptimizer: uses float16
+    #: Parameter of Horovod's ``DistributedOptimizer``: uses float16
     #: operations in the allreduce
     #: distributed gradients aggregation. Better performances at
-    #: lower precision. Default False.
+    #: lower precision. Defaults to False.
     fp16_allreduce: bool = False
     #: Parameter of Horovod's ``DistributedOptimizer``: use Adasum
     #: optimization.
-    #: Default False.
+    #: Defaults to False.
     use_adasum: bool = False
     #: Parameter of Horovod's ``DistributedOptimizer``: scale
     #: gradients before adding them up.
-    #: Default 1.0.
+    #: Defaults to 1.0.
     gradient_predivide_factor: float = 1.0

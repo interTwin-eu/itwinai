@@ -35,7 +35,8 @@ release = '0.0.2'  # full version
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
 
 extensions = ['sphinx.ext.autodoc', 'sphinx.ext.doctest',
-              'sphinx.ext.viewcode', 'myst_parser', 'nbsphinx']
+              'sphinx.ext.viewcode', 'myst_parser', 'nbsphinx',
+              'sphinx.ext.napoleon']
 
 source_suffix = {
     '.rst': 'restructuredtext',

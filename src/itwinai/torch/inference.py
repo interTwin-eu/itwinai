@@ -83,18 +83,11 @@ class TorchPredictor(Predictor):
         model: Union[nn.Module, ModelLoader],
         test_dataloader_class: str = 'torch.utils.data.DataLoader',
         test_dataloader_kwargs: Optional[Dict] = None,
-        # seed: Optional[int] = None,
-        # logger: Optional[List[Logger]] = None,
-        # cluster: Optional[ClusterEnvironment] = None,
-        # test_metrics: Optional[Dict[str, Metric]] = None,
         name: str = None
     ) -> None:
         super().__init__(model=model, name=name)
         self.save_parameters(**self.locals2params(locals()))
         self.model = self.model.eval()
-        # self.seed = seed
-        # self.strategy = strategy
-        # self.cluster = cluster
 
         # Train and validation dataloaders
         self.test_dataloader_class = dynamically_import_class(
@@ -107,18 +100,6 @@ class TorchPredictor(Predictor):
         self.test_dataloader_kwargs = clear_key(
             test_dataloader_kwargs, 'train_dataloader_kwargs', 'dataset'
         )
-
-        # # Loggers
-        # self.logger = logger if logger is not None else ConsoleLogger()
-
-        # # Metrics
-        # self.train_metrics = (
-        #     {} if train_metrics is None else train_metrics
-        # )
-        # self.validation_metrics = (
-        #     self.train_metrics if validation_metrics is None
-        #     else validation_metrics
-        # )
 
     @monitor_exec
     def execute(
@@ -164,7 +145,7 @@ class TorchPredictor(Predictor):
     def transform_predictions(self, batch: Batch) -> Batch:
         """
         Post-process the predictions of the torch model (e.g., apply
-        threshold in case of multilabel classifier).
+        threshold in case of multi-label classifier).
         """
 
 

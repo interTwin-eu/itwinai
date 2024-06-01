@@ -48,34 +48,32 @@ class TorchTrainer(Trainer, LogMixin):
         config (Dict): training configuration containing hyperparameters.
         epochs (int): number of training epochs.
         model (Optional[nn.Module], optional): model to train.
-        Defaults to None.
-        strategy (Literal[&quot;ddp&quot;, &quot;deepspeed&quot;,
-        &quot;horovod&quot;], optional): distributed strategy.
-        Defaults to 'ddp'.
+            Defaults to None.
+        strategy (Literal['ddp', 'deepspeed', 'horovod'], optional):
+            distributed strategy. Defaults to 'ddp'.
         validation_every (Optional[int], optional): run a validation epoch
-        every ``validation_every`` epochs. Disabled if None. Defaults to 1.
+            every ``validation_every`` epochs. Disabled if None. Defaults to 1.
         test_every (Optional[int], optional): run a test epoch
-        every ``test_every`` epochs. Disabled if None. Defaults to None.
+            every ``test_every`` epochs. Disabled if None. Defaults to None.
         random_seed (Optional[int], optional): set random seed for
-        reproducibility. If None, the seed is not set. Defaults to None.
+            reproducibility. If None, the seed is not set. Defaults to None.
         logger (Optional[Logger], optional): logger for ML tracking.
-        Defaults to None.
+            Defaults to None.
         log_all_workers (bool, optional): if True, the ``log`` method is
-        called on all workers in the distributed context. Defaults to False.
+            called on all workers in the distributed context.
+            Defaults to False.
         metrics (Optional[Dict[str, Metric]], optional): map of torchmetrics
-        metrics. Defaults to None.
+            metrics. Defaults to None.
         checkpoints_location (str): path to checkpoints directory.
-        Defaults to "checkpoints".
+            Defaults to "checkpoints".
         checkpoint_every (Optional[int]): save a checkpoint every
-        ``checkpoint_every`` epochs. Disabled if None. Defaults to None.
+            ``checkpoint_every`` epochs. Disabled if None. Defaults to None.
         name (Optional[str], optional): trainer custom name. Defaults to None.
     """
     # TODO:
-    #   - add checkpointing.
     #   - extract BaseTorchTrainer and extend it creating a set of trainer
     #     templates (e.g.. GAN, Classifier, Transformer) allowing scientists
     #     to reuse ML algos.
-    #   - improve get from configuration object
 
     _strategy: TorchDistributedStrategy = None
 
@@ -144,6 +142,7 @@ class TorchTrainer(Trainer, LogMixin):
 
     @property
     def device(self) -> str:
+        """Current device from distributed strategy."""
         return self.strategy.device()
 
     def _detect_strategy(self, strategy: str) -> TorchDistributedStrategy:
@@ -241,9 +240,9 @@ class TorchTrainer(Trainer, LogMixin):
         Args:
             train_dataset (Dataset): training dataset object.
             validation_dataset (Optional[Dataset]): validation dataset object.
-            Default None.
+                Default None.
             test_dataset (Optional[Dataset]): test dataset object.
-            Default None.
+                Default None.
         """
 
         ###################################
@@ -347,12 +346,12 @@ class TorchTrainer(Trainer, LogMixin):
         Args:
             item (Union[Any, List[Any]]): element to be logged (e.g., metric).
             identifier (Union[str, List[str]]): unique identifier for the
-            element to log(e.g., name of a metric).
+                element to log(e.g., name of a metric).
             kind (str, optional): type of the item to be logged. Must be one
-            among the list of self.supported_types. Defaults to 'metric'.
+                among the list of self.supported_types. Defaults to 'metric'.
             step (Optional[int], optional): logging step. Defaults to None.
             batch_idx (Optional[int], optional): DataLoader batch counter
-            (i.e., batch idx), if available. Defaults to None.
+                (i.e., batch idx), if available. Defaults to None.
         """
         if self.logger and (
                 self.strategy.is_main_worker or self.log_all_workers):
@@ -394,7 +393,7 @@ class TorchTrainer(Trainer, LogMixin):
 
         Args:
             name (str): name of the checkpoint to load, assuming it
-            is under ``self.checkpoints_location`` location.
+                is under ``self.checkpoints_location`` location.
         """
         ckpt_path = os.path.join(self.checkpoints_location, name)
         state = torch.load(ckpt_path, map_location=self.device)
@@ -456,7 +455,7 @@ class TorchTrainer(Trainer, LogMixin):
 
         Args:
             metrics (Dict[str, Metric]): metrics dict. Can be
-            ``self.train_metrics`` or ``self.validation_metrics``.
+                ``self.train_metrics`` or ``self.validation_metrics``.
             true (Batch): true values.
             pred (Batch): predicted values.
             logger_step (int): global step to pass to the logger.
@@ -592,10 +591,13 @@ class TorchLightningTrainer(Trainer):
     """Generic trainer for torch Lightning workflows.
 
         Args:
-            config (Union[Dict, str]): (path to a) Lightning configuration
-            https://pytorch-lightning.readthedocs.io/en/1.6.5/common/lightning_cli.html
+            config (Union[Dict, str]): `Lightning configuration`_
+                which can be the path to a file or a Python dictionary.
             mlflow_saved_model (str, optional): name of the model created in
-            MLFlow. Defaults to 'my_model'.
+                MLFlow. Defaults to 'my_model'.
+
+        .. _Lightning configuration:
+            https://pytorch-lightning.readthedocs.io/en/1.6.5/common/lightning_cli.html
         """
 
     def __init__(
