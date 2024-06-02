@@ -8,7 +8,7 @@ from torch.utils.data import DataLoader, Dataset
 
 from ..utils import dynamically_import_class, clear_key
 from ..components import Predictor, monitor_exec
-from .type import Metric, Batch
+from .type import Batch
 from ..serialization import ModelLoader
 
 
@@ -69,14 +69,12 @@ class TorchModelLoader(ModelLoader):
 class TorchPredictor(Predictor):
     """Applies a pre-trained torch model to unseen data."""
 
+    #: Pre-trained PyTorch model used to make predictions.
     model: nn.Module = None
+    #: ``Dataset`` on which to make predictions (ML inference).
     test_dataset: Dataset
+    #: ``DataLoader`` for test dataset.
     test_dataloader: DataLoader = None
-    epoch_idx: int = 0
-    train_glob_step: int = 0
-    validation_glob_step: int = 0
-    train_metrics: Dict[str, Metric]
-    validation_metrics: Dict[str, Metric]
 
     def __init__(
         self,
@@ -167,7 +165,9 @@ class MultilabelTorchPredictor(TorchPredictor):
     output of the neural network.
     """
 
-    threshold: float
+    #: Threshold to transform probabilities into class predictions.
+    #: Defaults to 0.5.
+    threshold: float = 0.5
 
     def __init__(
         self,

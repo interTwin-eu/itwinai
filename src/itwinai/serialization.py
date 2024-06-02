@@ -30,6 +30,8 @@ class SerializationError(Exception):
 
 
 class Serializable:
+    #: Dictionary storing constructor arguments. Needed to serialize the
+    #: class to dictionary. Set by ``self.save_parameters()`` method.
     parameters: Dict[Any, Any] = None
 
     def save_parameters(self, **kwargs) -> None:

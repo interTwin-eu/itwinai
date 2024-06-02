@@ -10,10 +10,19 @@ class DistributedStrategy(abc.ABC):
 
 class ClusterEnvironment(BaseModel):
     """Stores information about distributed environment."""
+    #: Global rank of current worker, in a distributed environment.
+    #: ``global_rank==0`` identifies the main worker.
+    #: Defaults to 0.
     global_rank: int = 0
+    #: Local rank of current worker, in a distributed environment.
+    #: Defaults to 0.
     local_rank: int = 0
-    local_world_size: int = 1
+    #: Total number of workers in a distributed environment.
+    #: Defaults to 1.
     global_world_size: int = 1
+    #: Number of workers on the same node in a distributed environment.
+    #: Defaults to 1.
+    local_world_size: int = 1
 
 
 def detect_distributed_environment() -> ClusterEnvironment:

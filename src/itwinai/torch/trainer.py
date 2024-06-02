@@ -77,20 +77,31 @@ class TorchTrainer(Trainer, LogMixin):
 
     _strategy: TorchDistributedStrategy = None
 
+    #: PyTorch ``DataLoader`` for training dataset.
     train_dataloader: DataLoader = None
+    #: PyTorch ``DataLoader`` for validation dataset.
     validation_dataloader: DataLoader = None
+    #: PyTorch ``DataLoader`` for test dataset.
     test_dataloader: DataLoader = None
-
+    #: PyTorch model to train.
     model: nn.Module = None
+    #: Loss criterion.
     loss: Loss = None
+    #: Optimizer.
     optimizer: Optimizer = None
+    #: Learning rate scheduler.
     lr_scheduler: LrScheduler = None
-
+    #: PyTorch random number generator (PRNG).
     torch_rng: torch.Generator = None
+    #: itwinai ``itwinai.Logger``
     logger: Logger = None
+    #: Total number training batches used so far, across all epochs.
     train_glob_step: int = 0
+    #: Total number validation batches used so far, across all epochs.
     validation_glob_step: int = 0
+    #: Total number test batches used so far, across all epochs.
     test_glob_step: int = 0
+    #: Dictionary of ``torchmetrics`` metrics, indexed by user-defined names.
     metrics: Dict[str, Metric]
 
     def __init__(
@@ -131,6 +142,7 @@ class TorchTrainer(Trainer, LogMixin):
 
     @property
     def strategy(self) -> TorchDistributedStrategy:
+        """Strategy currently in use."""
         return self._strategy
 
     @strategy.setter
@@ -483,6 +495,17 @@ class TorchTrainer(Trainer, LogMixin):
         batch: Batch,
         batch_idx: int
     ) -> Tuple[Loss, Dict[str, Any]]:
+        """Perform a single optimization step using a batch sampled from the
+        training dataset.
+
+        Args:
+            batch (Batch): batch sampled by a dataloader.
+            batch_idx (int): batch index in the dataloader.
+
+        Returns:
+            Tuple[Loss, Dict[str, Any]]: batch loss and dictionary of metric
+            values with the same structure of ``self.metrics``.
+        """
         x, y = batch
         x, y = x.to(self.device), y.to(self.device)
         pred_y = self.model(x)
@@ -508,6 +531,17 @@ class TorchTrainer(Trainer, LogMixin):
         batch: Batch,
         batch_idx: int
     ) -> Tuple[Loss, Dict[str, Any]]:
+        """Perform a single optimization step using a batch sampled from the
+        validation dataset.
+
+        Args:
+            batch (Batch): batch sampled by a dataloader.
+            batch_idx (int): batch index in the dataloader.
+
+        Returns:
+            Tuple[Loss, Dict[str, Any]]: batch loss and dictionary of metric
+            values with the same structure of ``self.metrics``.
+        """
         x, y = batch
         x, y = x.to(self.device), y.to(self.device)
         with torch.no_grad():
@@ -530,6 +564,12 @@ class TorchTrainer(Trainer, LogMixin):
         return loss, metrics
 
     def train_epoch(self) -> Loss:
+        """Perform a complete sweep over the training dataset, completing an
+        epoch of training.
+
+        Returns:
+            Loss: average training loss for the current epoch.
+        """
         self.model.train()
         train_losses = []
         for batch_idx, train_batch in enumerate(self.train_dataloader):
@@ -556,6 +596,12 @@ class TorchTrainer(Trainer, LogMixin):
         return avg_loss
 
     def validation_epoch(self) -> Loss:
+        """Perform a complete sweep over the validation dataset, completing an
+        epoch of validation.
+
+        Returns:
+            Loss: average validation loss for the current epoch.
+        """
         if self.validation_dataloader is not None:
             self.model.eval()
             validation_losses = []
@@ -583,7 +629,11 @@ class TorchTrainer(Trainer, LogMixin):
             return avg_loss
 
     def test_epoch(self):
-        # TODO: implement test epoch
+        """Test epoch not implemented yet.
+
+        Raises:
+            NotImplementedError: not implemented yet.
+        """
         raise NotImplementedError()
 
 

@@ -143,6 +143,18 @@ class SignatureInspector:
 
 
 def str_to_slice(interval: str) -> slice:
+    """Transform string interval to Python slice.
+    Example: "1:17:3" -> slice(1,17,3)
+
+    Args:
+        interval (str): interval to parse.
+
+    Raises:
+        ValueError: when interval is invalid.
+
+    Returns:
+        slice: parsed slice.
+    """
     import re
     # TODO: add support for slices starting with empty index
     # e.g., :20:3

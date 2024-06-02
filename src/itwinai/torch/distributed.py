@@ -1,5 +1,5 @@
 import abc
-from typing import Any, List, Optional, Tuple, Union, Iterable
+from typing import Any, List, Optional, Tuple, Union, Iterable, Literal
 from pathlib import Path
 import json
 import os
@@ -35,7 +35,12 @@ class TorchDistributedStrategy(DistributedStrategy):
     """Abstract class to define the distributed backend methods for
     PyTorch models.
     """
+
+    #: Allows to discriminate distributed strategies from non-distributed.
+    #: Defaults to True.
     is_distributed: bool = True
+    #: Set to True when the current strategy is initialized.
+    #: Defaults to False.
     is_initialized: bool = False
 
     @property
@@ -329,12 +334,14 @@ class TorchDDPStrategy(TorchDistributedStrategy):
     """PyTorch ``DistributedDataParallel`` distributed strategy class.
 
     Args:
-        backend (str): Name of the communication backend to employ.
+        backend (Literal['nccl', 'gloo', 'mpi']): Name of the
+            distributed communication backend to employ.
     """
 
-    backend: str
+    #: Torch distributed communication backend.
+    backend: Literal['nccl', 'gloo', 'mpi']
 
-    def __init__(self, backend: str) -> None:
+    def __init__(self, backend: Literal['nccl', 'gloo', 'mpi']) -> None:
         super().__init__()
         self.backend = backend
 
@@ -505,16 +512,18 @@ class DeepSpeedStrategy(TorchDistributedStrategy):
     """DeepSpeed distributed strategy class.
 
     Args:
-        backend (str): Name of the communication backend to employ.
+        backend (Literal['nccl', 'gloo', 'mpi']): Name of the
+            distributed communication backend to employ.
         config (Union[dict, Path, str]): DeepSpeed config. Either a
             dictionary or a path to a JSON file.
     """
 
-    backend: str
+    #: Torch distributed communication backend.
+    backend: Literal['nccl', 'gloo', 'mpi']
 
     def __init__(
         self,
-        backend: str
+        backend: Literal['nccl', 'gloo', 'mpi']
     ) -> None:
         super().__init__()
         self.backend = backend
@@ -830,6 +839,9 @@ class HorovodStrategy(TorchDistributedStrategy):
 class NonDistributedStrategy(TorchDistributedStrategy):
     """Dummy class for non-distributed environments."""
 
+    #: This strategy is not distributed.
+    #: Defaults to False.
+    is_distributed: bool = True
     is_distributed: bool = False
 
     def init(self) -> None:
