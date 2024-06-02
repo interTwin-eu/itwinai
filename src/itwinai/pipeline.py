@@ -12,6 +12,8 @@ from .utils import SignatureInspector
 class Pipeline(BaseComponent):
     """Executes a set of components arranged as a pipeline."""
 
+    #: Pipeline steps. Can be a list of ``BaseComponent`` or a dictionary
+    #: allowing the user to name each ``BaseComponent``.
     steps: Union[Dict[str, BaseComponent], Iterable[BaseComponent]]
 
     def __init__(

@@ -59,14 +59,23 @@ class TensorflowTrainer(Trainer):
                 ``keras.Model.fit``. Defaults to 'auto'.
     """
 
+    #: TensorFlow distributed strategy.
     strategy: tf.distribute.Strategy
+    #: Total number of workers in distributed strategy.
     num_workers: int
+    #: List of Keras callbacks. Defaults to None.
     callbacks: Optional[List] = None
+    #: Total number of training epochs.
     epochs: int
-    shuffle_buffer: Optional[int]
+    #: Buffer used to shuffle dataset. Defaults to None.
+    shuffle_buffer: Optional[int] = None
+    #: Per-worker batch size (when distributed).
     micro_batch_size: int
+    #: Total batch size. When distributed, it is the sum of
+    #: ``micro_batch_size`` across all workers.
     macro_batch_size: int
-    rnd_seed: Optional[int]
+    #: Random seed for reproducibility. Defaults to None.
+    rnd_seed: Optional[int] = None
 
     def __init__(
         self,
