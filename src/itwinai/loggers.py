@@ -60,8 +60,10 @@ class Logger(LogMixin, metaclass=ABCMeta):
 
             Defaults to 'epoch'.
     """
+    #: Location on filesystem where to store data.
     savedir: str = None
-    supported_types: List[str]  # Supported logging 'kinds'
+    #: Supported logging 'kind's.
+    supported_types: List[str]
     _log_freq: Union[int, Literal['epoch', 'batch']]
 
     def __init__(
@@ -283,6 +285,7 @@ class MLFlowLogger(Logger):
             more details. Defaults to 'epoch'.
     """
 
+    #: Current MLFLow experiment's run.
     active_run: mlflow.ActiveRun
 
     def __init__(

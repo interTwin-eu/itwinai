@@ -104,7 +104,9 @@ class ConfigParser:
 
     """
 
+    #: Configuration to parse.
     config: Dict
+    #: Pipeline object instantiated from the configuration file.
     pipeline: Pipeline
 
     def __init__(
