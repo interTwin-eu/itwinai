@@ -48,7 +48,7 @@ following command, and follow the instructions:
 ```bash
 # Create a python virtual environment and activate it
 $ python -m venv ENV_NAME
-$ ENV_NAME/bin/activate
+$ source ENV_NAME/bin/activate
 
 # Install itwinai inside the environment
 (ENV_NAME) $ export ML_FRAMEWORK="pytorch" # or "tensorflow"
