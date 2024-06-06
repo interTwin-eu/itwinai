@@ -50,13 +50,19 @@ pip3 install --no-cache-dir wheel
 if [ -f "${cDir}/$ENV_NAME/bin/torchrun" ]; then
   echo 'Torch already installed'
 else
-  if [ -z "$NO_CUDA" ]; then
+  if [ -z "$NO_CUDA" ] ; then
     pip3 install --no-cache-dir \
-      torch==2.1.* torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
+    torch==2.1.* torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
   else
-    # CPU only installation 
-    pip3 install --no-cache-dir \
-      torch==2.1.* torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
+    # CPU only installation for MacOS
+    if [[ "$OSTYPE" =~ ^darwin ]] ; then
+      pip3 install --no-cache-dir \
+        torch==2.2.0 torchvision==0.17.0 torchaudio==2.2.0
+    else
+    # CPU only installation for other OSs
+      pip3 install --no-cache-dir \
+         torch==2.1.* torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
+    fi
   fi
 fi
 
@@ -64,7 +70,11 @@ fi
 if [ -f "${cDir}/$ENV_NAME/bin/ray" ]; then
   echo 'Ray already installed'
 else
-  pip3 install --no-cache-dir ray ray[tune]
+  if [[ "$OSTYPE" =~ ^darwin ]] ; then
+    echo 'Installation issues: Skipping Ray installation for MacOS'
+  else
+    pip3 install --no-cache-dir ray ray[tune]
+  fi
 fi
 
 # install deepspeed
