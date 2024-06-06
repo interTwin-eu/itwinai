@@ -151,7 +151,7 @@ def main():
     et = timer()
 
     # trains the model
-    model.fit(dist_train, epochs=args.epochs, steps_per_epoch=2000, verbose=10)
+    model.fit(dist_train, epochs=args.epochs, steps_per_epoch=500, verbose=10)
 
     print('TIMER: total epoch time:',
           timer() - et, ' s')
