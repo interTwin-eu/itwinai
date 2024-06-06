@@ -26,7 +26,39 @@ or on a simple on-prem setup, you could consider using
 [installation instructions](https://github.com/pyenv/pyenv?tab=readme-ov-file#installation). If you are using pyenv,
 make sure to read [this](https://github.com/pyenv/pyenv/wiki#suggested-build-environment).
 
-#### Install itwinai environment
+#### HPC environment
+
+In HPC systems it is more popular to load dependencies using
+Environment Modules or Lmod. Contact the system administrator
+to learn how to select the proper python modules.
+
+On JSC, we activate the required modules in this way:
+
+```bash
+ml --force purge
+ml Stages/2024 GCC OpenMPI CUDA/12 cuDNN MPI-settings/CUDA
+ml Python CMake HDF5 PnetCDF libaio mpi4py
+```
+
+### Install itwinai
+
+Install itwinai and its dependencies using the
+following command, and follow the instructions:
+
+```bash
+export ML_FRAMEWORK="pytorch" # or "tensorflow"
+curl -fsSL https://github.com/interTwin-eu/itwinai/raw/main/env-files/itwinai-installer.sh | bash
+```
+
+The `ML_FRAMEWORK` environment variable controls whether you are installing
+itwinai for PyTorch or TensorFlow.
+
+## Installation for developers
+
+If you are contributing to this repository, please continue below for
+more advanced instructions.
+
+### Install itwinai environment
 
 Regardless of how you loaded your environment, you can create the
 python virtual environments with the following commands.
@@ -42,14 +74,7 @@ make torch-gpu-jsc
 make tf-gpu-jsc
 ```
 
-## Environment setup
-
-Requirements:
-
-- Linux environment. Windows and macOS were never tested.
-- VS Code, for development.
-
-### TensorFlow
+#### TensorFlow
 
 Installation:
 
@@ -63,7 +88,7 @@ source .venv-tf/bin/activate
 
 A CPU-only version is available at the target `tensorflow-env-cpu`.
 
-### PyTorch (+ Lightning)
+#### PyTorch (+ Lightning)
 
 Installation:
 
