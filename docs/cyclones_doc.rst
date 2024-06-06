@@ -62,7 +62,7 @@ On JSC, the dataset is pre-downloaded and you can use the following command:
 cyclones_vgg.py
 +++++++++++++++
 
-.. literalinclude:: ../use-cases/cyclones/dataloader.py
+.. literalinclude:: ../use-cases/cyclones/cyclones_vgg.py
    :language: python
 
 
