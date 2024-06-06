@@ -10,6 +10,7 @@ from itwinai.components import (
 class MyDataGetter(DataGetter):
     def __init__(self, data_size: int, name: Optional[str] = None) -> None:
         super().__init__(name)
+        self.data_size = data_size
         self.save_parameters(data_size=data_size)
 
     @monitor_exec

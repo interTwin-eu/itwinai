@@ -1,0 +1,17 @@
+cartopy
+cftime
+codecarbon
+dask
+datetime
+imageio
+ipykernel
+matplotlib
+numpy
+pandas
+torch
+torchvision
+tqdm
+urllib3==1.26.13
+xarray
+netCDF4
+h5netcdf
