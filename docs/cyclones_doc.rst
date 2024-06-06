@@ -4,6 +4,10 @@ Tropical Cyclones Detection
 The code is adapted from the CMCC use case's
 `repository <https://github.com/CMCC-Foundation/ml-tropical-cyclones-detection>`_.
 
+To know more on the interTwin tropical cyclones detection use case and its DT, please visit the published deliverables,
+`D4.1 <https://zenodo.org/records/10417135>`_, 
+`D7.1 <https://zenodo.org/records/10417158>`_ and `D7.3 <https://zenodo.org/records/10224252>`_.
+
 Setup env
 +++++++++
 
