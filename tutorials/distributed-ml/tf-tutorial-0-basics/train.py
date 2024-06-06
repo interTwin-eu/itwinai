@@ -5,7 +5,6 @@ with SLURM:
 >>> sbatch tfmirrored_slurm.sh
 
 """
-import os
 from typing import Any
 import argparse
 import tensorflow as tf
