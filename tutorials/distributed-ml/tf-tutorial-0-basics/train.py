@@ -33,11 +33,11 @@ def parse_args() -> argparse.Namespace:
     return args
 
 
-def tf_rnd_dataset():
+def tf_rnd_dataset(args):
     """Dummy TF dataset."""
     (x_train, y_train), (x_test, y_test) = \
         tf.keras.datasets.mnist.load_data(
-            path=os.getcwd()+'/.keras/datasets/mnist.npz')
+            path='p/scratch/intertwin/datasets/.keras/datasets/mnist.npz')
 
     train_dataset = tf.data.Dataset.from_tensor_slices((x_train, y_train))
     train_dataset = train_dataset.batch(args.batch_size)
