@@ -57,22 +57,6 @@ On JSC, the dataset is pre-downloaded and you can use the following command:
     # Launch a job with SLURM
     sbatch startscript.sh
 
-
-
-cyclones_vgg.py
-+++++++++++++++
-
-.. literalinclude:: ../use-cases/cyclones/cyclones_vgg.py
-   :language: python
-
-
-dataloader.py
-+++++++++++++
-
-.. literalinclude:: ../use-cases/cyclones/dataloader.py
-   :language: python
-
-
 pipeline.yaml
 +++++++++++++
 
@@ -81,6 +65,21 @@ This YAML file defines the pipeline configuration for the CMCC use case.
 .. literalinclude:: ../use-cases/cyclones/pipeline.yaml
    :language: yaml
 
+train.py
+++++++++++
+.. literalinclude:: ../use-cases/cyclones/train.py
+   :language: python
+
+dataloader.py
++++++++++++++
+
+.. literalinclude:: ../use-cases/cyclones/dataloader.py
+   :language: python
+
+trainer.py
+++++++++++
+.. literalinclude:: ../use-cases/cyclones/trainer.py
+   :language: python
 
 startscript
 +++++++++++
@@ -88,15 +87,8 @@ startscript
 .. literalinclude:: ../use-cases/cyclones/startscript.sh
    :language: bash
 
+cyclones_vgg.py
++++++++++++++++
 
-trainer.py
-++++++++++
-.. literalinclude:: ../use-cases/cyclones/trainer.py
+.. literalinclude:: ../use-cases/cyclones/cyclones_vgg.py
    :language: python
-
-
-train.py
-++++++++++
-.. literalinclude:: ../use-cases/cyclones/train.py
-   :language: python
-
