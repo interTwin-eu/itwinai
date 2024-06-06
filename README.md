@@ -68,6 +68,11 @@ itwinai for PyTorch or TensorFlow.
 If you are contributing to this repository, please continue below for
 more advanced instructions.
 
+> [!WARNING]
+> Branch protection rules are applied to all branches which names
+> match this regex: `[dm][ea][vi]*` . When creating new branches,
+> please avoid using names that match that regex.
+
 ### Install itwinai environment
 
 Regardless of how you loaded your environment, you can create the
