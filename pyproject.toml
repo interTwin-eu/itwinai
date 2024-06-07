@@ -61,7 +61,7 @@ dev = [
     "pytest-cov>=4.1.0",
     "ipykernel",
     "ipython",
-#    "tensorflow==2.15",    # needed by tests on tensorboard
+    "tensorflow==2.16.*",    # needed by tests on tensorboard
 ]
 
 [project.urls]
