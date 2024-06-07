@@ -28,6 +28,11 @@ ml Stages/2024 GCC/12.3.0 OpenMPI CUDA/12 MPI-settings/CUDA Python/3.11 HDF5 Pne
 # shellcheck source=/dev/null
 source ~/.bashrc
 
+# Using legacy (2.16) version of Keras
+# Latest version with TF (2.16) installs Keras 3.3
+# which returns an error for multi-node execution
+export TF_USE_LEGACY_KERAS=1
+
 # ON LOGIN NODE download datasets:
 # ../../../.venv-tf/bin/itwinai exec-pipeline --config pipeline.yaml --pipe-key pipeline --steps 0
 source ../../../envAItf_hdfml/bin/activate
