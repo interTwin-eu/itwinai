@@ -45,7 +45,7 @@ class MNIST_Model(tf.keras.Model):
             tf.keras.layers.AveragePooling2D(2),
             tf.keras.layers.Conv2D(
                 filters=16, kernel_size=(3, 3), activation='relu'),
-            tf.keras.layers.AveragePooling2D(),
+            tf.keras.layers.AveragePooling2D(2),
             tf.keras.layers.Flatten(),
             tf.keras.layers.Dense(units=120, activation='relu'),
             tf.keras.layers.Dense(units=84, activation='relu'),
