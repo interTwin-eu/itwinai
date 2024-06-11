@@ -18,7 +18,7 @@ class MNIST_Model(tf.keras.Model):
                 tf.keras.layers.Conv2D(
                     32, kernel_size=3, activation="relu",
                     input_shape=input_shape),
-                tf.keras.layers.MaxPooling2D(),
+                tf.keras.layers.MaxPooling2D(2),
                 # tf.keras.layers.Conv2D(
                 #     64, kernel_size=3, activation="relu"),
                 # tf.keras.layers.MaxPooling2D(pool_size=2),
@@ -31,7 +31,7 @@ class MNIST_Model(tf.keras.Model):
         self.model = tf.keras.Sequential([
             tf.keras.layers.Conv2D(
                 32, 3, activation='relu', input_shape=input_shape),
-            tf.keras.layers.MaxPooling2D(),
+            tf.keras.layers.MaxPooling2D(2),
             tf.keras.layers.Flatten(),
             tf.keras.layers.Dense(64, activation='relu'),
             tf.keras.layers.Dense(output_shape)
@@ -42,10 +42,10 @@ class MNIST_Model(tf.keras.Model):
 
             tf.keras.layers.Conv2D(filters=6, kernel_size=(
                 3, 3), activation='relu', input_shape=(28, 28, 1)),
-            tf.keras.layers.AveragePooling2D(),
+            tf.keras.layers.AveragePooling2D(2),
             tf.keras.layers.Conv2D(
                 filters=16, kernel_size=(3, 3), activation='relu'),
-            tf.keras.layers.AveragePooling2D(),
+            tf.keras.layers.AveragePooling2D(2),
             tf.keras.layers.Flatten(),
             tf.keras.layers.Dense(units=120, activation='relu'),
             tf.keras.layers.Dense(units=84, activation='relu'),

@@ -52,10 +52,10 @@ if [ -f "${cDir}/$ENV_NAME/bin/tensorboard" ]; then
   echo
 else
   if [ -z "$NO_CUDA" ]; then
-    pip3 install tensorflow[and-cuda]==2.15 --no-cache-dir
+    pip3 install tensorflow[and-cuda]==2.16 --no-cache-dir
   else
     # CPU only installation
-    pip3 install tensorflow==2.15 --no-cache-dir
+    pip3 install tensorflow==2.16 --no-cache-dir
   fi
 fi
 
@@ -84,7 +84,7 @@ fi
 # # Since TF 2.16, keras updated to 3.3,
 # # which leads to an error when more than 1 node is used
 # # https://keras.io/getting_started/
-# pip3 install tf_keras
+pip3 install tf_keras
 
 # itwinai
 pip3 install -e .[dev]

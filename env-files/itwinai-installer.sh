@@ -25,14 +25,14 @@ fi
 if [ "$ML_FRAMEWORK" == "pytorch" ]; then
     echo "Installing itwinai with PyTorch support..."
     # Skip last line (head -n -1) because it contains the istallation of itwinai
-    curl -fsSL https://github.com/interTwin-eu/itwinai/raw/main/env-files/torch/generic_torch.sh | head -n -1 | bash
+    curl -fsSL https://github.com/interTwin-eu/itwinai/raw/main/env-files/torch/generic_torch.sh | sed '$d' | bash
     # cat ../env-files/torch/generic_torch.sh | head -n -1 | bash
     # Install from PyPI
     pip install itwinai[torch]
 elif [ "$ML_FRAMEWORK" == "tensorflow" ]; then
     echo "Installing itwinai with TensorFlow support..."
     # Skip last line (head -n -1) because it contains the istallation of itwinai
-    curl -fsSL https://github.com/interTwin-eu/itwinai/raw/main/env-files/tensorflow/generic_tf.sh | head -n -1 | bash
+    curl -fsSL https://github.com/interTwin-eu/itwinai/raw/main/env-files/tensorflow/generic_tf.sh | sed '$d' | bash
     # cat ../env-files/tensorflow/generic_tf.sh | head -n -1 | bash
     # Install from PyPI
     pip install itwinai
