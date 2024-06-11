@@ -16,11 +16,11 @@ training_pipeline:
         init_args:
           train_proportion: 0.9
           rnd_seed: 42
-          images_dataset: data/Image_dataset_synthetic_64x64.pkl
+          images_dataset: ${data_root}/Image_dataset_synthetic_64x64.pkl
       - class_path: data.TimeSeriesProcessor
       - class_path: trainer.NoiseGeneratorTrainer
         init_args:
-          generator: unet
+          generator: unet #simple #unet
           batch_size: ${batch_size}
           num_epochs: ${epochs}
           strategy: ${strategy}
@@ -36,4 +36,7 @@ training_pipeline:
                   init_args:
                     experiment_name: Noise simulator (Virgo)
                     log_freq: batch 
+                # - class_path: itwinai.loggers.WandBLogger
+                #   init_args:
+                #     log_freq: batch 
           

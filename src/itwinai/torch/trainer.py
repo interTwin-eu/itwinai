@@ -262,13 +262,13 @@ class TorchTrainer(Trainer, LogMixin):
         # may be interested to override!  #
         ###################################
 
-        # TODO: improve robustness of getting from config
         self.train_dataloader = self.strategy.create_dataloader(
             dataset=train_dataset,
             batch_size=self.config.batch_size,
             num_workers=self.config.num_workers,
             pin_memory=self.config.pin_memory,
-            generator=self.torch_rng
+            generator=self.torch_rng,
+            shuffle=self.config.shuffle_train
         )
         if validation_dataset is not None:
             self.validation_dataloader = self.strategy.create_dataloader(
@@ -276,7 +276,8 @@ class TorchTrainer(Trainer, LogMixin):
                 batch_size=self.config.batch_size,
                 num_workers=self.config.num_workers,
                 pin_memory=self.config.pin_memory,
-                generator=self.torch_rng
+                generator=self.torch_rng,
+                shuffle=self.config.shuffle_validation
             )
         if test_dataset is not None:
             self.test_dataloader = self.strategy.create_dataloader(
@@ -284,7 +285,8 @@ class TorchTrainer(Trainer, LogMixin):
                 batch_size=self.config.batch_size,
                 num_workers=self.config.num_workers,
                 pin_memory=self.config.pin_memory,
-                generator=self.torch_rng
+                generator=self.torch_rng,
+                shuffle=self.config.shuffle_test
             )
 
     def _setup_metrics(self):
@@ -342,6 +344,14 @@ class TorchTrainer(Trainer, LogMixin):
                 self.validation_dataloader.sampler.set_epoch(epoch)
             if self.test_dataloader is not None:
                 self.test_dataloader.sampler.set_epoch(epoch)
+
+    def set_epoch(self, epoch: int) -> None:
+        """Set current epoch at the beginning of training.
+
+        Args:
+            epoch (int): epoch number, from 0 to ``epochs-1``.
+        """
+        self._set_epoch_dataloaders(epoch)
 
     def log(
         self,
@@ -429,7 +439,7 @@ class TorchTrainer(Trainer, LogMixin):
         best_loss = float('inf')
         for epoch in range(self.epochs):
             epoch_n = epoch + 1
-            self._set_epoch_dataloaders(epoch)
+            self.set_epoch(epoch)
             self.train_epoch()
             if self.validation_every and epoch_n % self.validation_every == 0:
                 val_loss = self.validation_epoch()

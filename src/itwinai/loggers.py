@@ -420,7 +420,7 @@ class MLFlowLogger(Logger):
             )
 
 
-class WanDBLogger(Logger):
+class WandBLogger(Logger):
     """Abstraction around WandB logger.
 
     Args:
@@ -434,6 +434,8 @@ class WanDBLogger(Logger):
             more details. Defaults to 'epoch'.
     """
 
+    # TODO: add support for artifacts logging
+
     def __init__(
         self,
         savedir: str = 'mllogs',
@@ -444,14 +446,15 @@ class WanDBLogger(Logger):
         super().__init__(savedir=savedir, log_freq=log_freq)
         self.project_name = project_name
         self.supported_types = [
-            'watch', 'metric', 'figure', 'image', 'artifact', 'torch', 'dict',
+            'watch', 'metric', 'figure', 'image', 'torch', 'dict',
             'param', 'text'
         ]
 
     def create_logger_context(self):
         """Initialize logger. Init WandB run."""
+        os.makedirs(os.path.join(self.savedir, 'wandb'), exist_ok=True)
         self.active_run = wandb.init(
-            dir=self.savedir,
+            dir=os.path.abspath(self.savedir),
             project=self.project_name
         )
 
@@ -484,7 +487,7 @@ class WanDBLogger(Logger):
             kind (str, optional): type of the item to be logged. Must be
                 one among the list of ``self.supported_types``.
                 Defaults to 'metric'.
-            step (Optional[int], optional): logging step. Defaults to None.
+            step (Optional[int], optional): ignored by ``WandBLogger``.
             batch_idx (Optional[int], optional): DataLoader batch counter
                 (i.e., batch idx), if available. Defaults to None.
             kwargs: keyword arguments to pass to the logger.
@@ -495,7 +498,9 @@ class WanDBLogger(Logger):
         if kind == 'watch':
             wandb.watch(item)
         if kind in self.supported_types[1:]:
-            wandb.log({identifier: item}, step=step, commit=True)
+            # wandb.log({identifier: item}, step=step, commit=True)
+            # Let WandB use its preferred step
+            wandb.log({identifier: item}, commit=True)
 
 
 class TensorBoardLogger(Logger):

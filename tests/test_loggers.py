@@ -6,7 +6,7 @@ from unittest.mock import patch, MagicMock
 from itwinai.loggers import (
     ConsoleLogger,
     MLFlowLogger,
-    WanDBLogger,
+    WandBLogger,
     TensorBoardLogger,
     LoggersCollection
 )
@@ -31,7 +31,7 @@ def mlflow_logger():
 
 @pytest.fixture(scope="module")
 def wandb_logger():
-    yield WanDBLogger(savedir='/tmp/wandb/test_mllogs',
+    yield WandBLogger(savedir='/tmp/wandb/test_mllogs',
                       project_name='test_project')
     shutil.rmtree('/tmp/wandb/test_mllogs', ignore_errors=True)
 

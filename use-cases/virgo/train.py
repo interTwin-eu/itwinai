@@ -23,7 +23,7 @@ from src.utils import init_weights, calculate_iou_2d
 
 # Global parameters
 DATA_ROOT = "data"
-LOAD_DATASET = True
+LOAD_DATASET = False
 BATCH_SIZE = 20
 LR = 0.00005
 SAVE_CHECKPOINT = 'choose_your_path.checkpoint_epoch_{}.pth'
