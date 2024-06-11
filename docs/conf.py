@@ -25,13 +25,11 @@ sys.path.insert(0, os.path.abspath('../src'))
 # sys.path.insert(0, os.path.abspath('../...'))
 
 project = 'itwinai'
-copyright = ('2024, Matteo Bunino, Kalliopi Tsolaki,'
+copyright = ('2024, Matteo Bunino, Kalliopi Tsolaki, '
              'Rakesh Sarma, Mario Ruettgers on behalf of CERN & JSC')
 author = 'Matteo Bunino, Kalliopi Tsolaki, Rakesh Sarma, Mario Ruettgers'
 version = '0.0'  # short version
 release = '0.0.2'  # full version
-
-github_url = 'https://github.com/interTwin-eu/itwinai'
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
