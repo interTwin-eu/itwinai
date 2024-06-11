@@ -32,6 +32,7 @@ class NoiseGeneratorTrainer(TorchTrainer):
         checkpoint_path: str = "checkpoints/epoch_{}.pth",
         save_best: bool = True,
         logger: Optional[Logger] = None,
+        random_seed: Optional[int] = None,
         name: str | None = None
     ) -> None:
         super().__init__(
@@ -39,6 +40,7 @@ class NoiseGeneratorTrainer(TorchTrainer):
             config={},
             strategy=strategy,
             logger=logger,
+            random_seed=random_seed,
             name=name
         )
         self.save_parameters(**self.locals2params(locals()))
@@ -119,7 +121,7 @@ class NoiseGeneratorTrainer(TorchTrainer):
         val_acc_plot = []
         best_val_loss = float('inf')
         for epoch in tqdm(range(self.num_epochs)):
-            # itwinai - Important: set number of epochs
+            # itwinai - IMPORTANT: set current epoch ID
             self.set_epoch(epoch)
 
             st = time.time()

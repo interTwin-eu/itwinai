@@ -272,7 +272,7 @@ class TorchTrainer(Trainer, LogMixin):
         )
         if validation_dataset is not None:
             self.validation_dataloader = self.strategy.create_dataloader(
-                dataset=train_dataset,
+                dataset=validation_dataset,
                 batch_size=self.config.batch_size,
                 num_workers=self.config.num_workers,
                 pin_memory=self.config.pin_memory,
@@ -281,7 +281,7 @@ class TorchTrainer(Trainer, LogMixin):
             )
         if test_dataset is not None:
             self.test_dataloader = self.strategy.create_dataloader(
-                dataset=train_dataset,
+                dataset=test_dataset,
                 batch_size=self.config.batch_size,
                 num_workers=self.config.num_workers,
                 pin_memory=self.config.pin_memory,

@@ -1,4 +1,7 @@
 """
+
+THIS SCRIPT IS DEPRECATED! Follow the instructions on README.
+
 Simplified training script: data generation + training in one
 procedural script. This is an INTERMEDIATE step of integration in itwinai.
 """
@@ -22,7 +25,7 @@ from src.model import UNet  # ,Decoder, Decoder_2d_deep, GeneratorResNet
 from src.utils import init_weights, calculate_iou_2d
 
 # Global parameters
-DATA_ROOT = "data"
+DATA_ROOT = "tmp_data"
 LOAD_DATASET = False
 BATCH_SIZE = 20
 LR = 0.00005
