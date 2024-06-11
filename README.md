@@ -46,17 +46,33 @@ Install itwinai and its dependencies using the
 following command, and follow the instructions:
 
 ```bash
-export ML_FRAMEWORK="pytorch" # or "tensorflow"
-curl -fsSL https://github.com/interTwin-eu/itwinai/raw/main/env-files/itwinai-installer.sh | bash
+# Create a python virtual environment and activate it
+$ python -m venv ENV_NAME
+$ source ENV_NAME/bin/activate
+
+# Install itwinai inside the environment
+(ENV_NAME) $ export ML_FRAMEWORK="pytorch" # or "tensorflow"
+(ENV_NAME) $ curl -fsSL https://github.com/interTwin-eu/itwinai/raw/main/env-files/itwinai-installer.sh | bash
 ```
 
 The `ML_FRAMEWORK` environment variable controls whether you are installing
 itwinai for PyTorch or TensorFlow.
 
+> [!WARNING]  
+> itwinai depends on Horovod, which requires `CMake>=1.13` and
+> [other packages](https://horovod.readthedocs.io/en/latest/install_include.html#requirements).
+> Make sure to have them installed in your environment before proceeding.
+
 ## Installation for developers
 
 If you are contributing to this repository, please continue below for
 more advanced instructions.
+
+> [!WARNING]
+> Branch protection rules are applied to all branches which names
+> match this regex: `[dm][ea][vi]*` . When creating new branches,
+> please avoid using names that match that regex, otherwise branch
+> protection rules will block direct pushes to that branch.
 
 ### Install itwinai environment
 

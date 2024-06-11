@@ -144,6 +144,8 @@ class BaseComponent(ABC, Serializable):
                 Defaults to None.
         """
     _name: str = None
+    #: Dictionary storing constructor arguments. Needed to serialize the
+    #: class to dictionary. Set by ``self.save_parameters()`` method.
     parameters: Dict[Any, Any] = None
 
     def __init__(
@@ -157,6 +159,8 @@ class BaseComponent(ABC, Serializable):
 
     @property
     def name(self) -> str:
+        """Name of current component. Defaults to ``self.__class__.__name__``.
+        """
         return (
             self._name if self._name is not None else self.__class__.__name__
         )
@@ -202,64 +206,6 @@ class BaseComponent(ABC, Serializable):
         print("#"*len(msg))
 
 
-class Trainer(BaseComponent):
-    """Trains a machine learning model."""
-
-    @abstractmethod
-    @monitor_exec
-    def execute(
-        self,
-        train_dataset: MLDataset,
-        validation_dataset: MLDataset,
-        test_dataset: MLDataset
-    ) -> Tuple[MLDataset, MLDataset, MLDataset, MLModel]:
-        """Trains a machine learning model.
-
-        Args:
-            train_dataset (MLDataset): training dataset.
-            validation_dataset (MLDataset): validation dataset.
-            test_dataset (MLDataset): test dataset.
-
-        Returns:
-            Tuple[MLDataset, MLDataset, MLDataset]: training dataset,
-            validation dataset, test dataset, trained model.
-        """
-
-
-class Predictor(BaseComponent):
-    """Applies a pre-trained machine learning model to unseen data."""
-
-    model: MLModel
-
-    def __init__(
-        self,
-        model: Union[MLModel, ModelLoader],
-        name: Optional[str] = None,
-    ) -> None:
-        super().__init__(name=name)
-        self.save_parameters(**self.locals2params(locals()))
-        self.model = model() if isinstance(model, ModelLoader) else model
-
-    @abstractmethod
-    @monitor_exec
-    def execute(
-        self,
-        predict_dataset: MLDataset,
-        model: Optional[MLModel] = None
-    ) -> MLDataset:
-        """Applies a machine learning model on a dataset of samples.
-
-        Args:
-            predict_dataset (MLDataset): dataset for inference.
-            model (Optional[MLModel], optional): overrides the internal model,
-            if given. Defaults to None.
-
-        Returns:
-            MLDataset: predictions with the same cardinality of the
-            input dataset.
-        """
-
-
 class DataGetter(BaseComponent):
     """Retrieves a dataset."""
 
@@ -295,91 +241,6 @@ class DataProcessor(BaseComponent):
             Tuple[MLDataset, MLDataset, MLDataset]: preprocessed training
             dataset, validation dataset, test dataset.
         """
-
-
-class Saver(BaseComponent):
-    """Saves artifact to disk."""
-
-    @abstractmethod
-    @monitor_exec
-    def execute(self, artifact: MLArtifact) -> MLArtifact:
-        """Saves an ML artifact to disk.
-
-        Args:
-            artifact (MLArtifact): artifact to save.
-
-        Returns:
-            MLArtifact: the same input artifact, after saving it.
-        """
-
-
-class Adapter(BaseComponent):
-    """Connects to components in a sequential pipeline, allowing to
-    control with greater detail how intermediate results are propagated
-    among the components.
-
-    Args:
-            policy (List[Any]): list of the same length of the output of this
-            component, describing how to map the input args to the output.
-            name (Optional[str], optional): name of the component.
-            Defaults to None.
-
-    The adapter allows to define a policy with which inputs are re-arranged
-    before being propagated to the next component.
-    Some examples: [policy]: (input) -> (output)
-    - ["INPUT_ARG#2", "INPUT_ARG#1", "INPUT_ARG#0"]: (11,22,33) -> (33,22,11)
-    - ["INPUT_ARG#0", "INPUT_ARG#2", None]: (11, 22, 33) -> (11, 33, None)
-    - []: (11, 22, 33) -> ()
-    - [42, "INPUT_ARG#2", "hello"] -> (11,22,33,44,55) -> (42, 33, "hello")
-    - [None, 33, 3.14]: () -> (None, 33, 3.14)
-    - [None, 33, 3.14]: ("double", 44, None, True) -> (None, 33, 3.14)
-    """
-
-    policy: List[Any]
-    INPUT_PREFIX: str = "INPUT_ARG#"
-
-    def __init__(self, policy: List[Any], name: Optional[str] = None) -> None:
-        super().__init__(name=name)
-        self.save_parameters(**self.locals2params(locals()))
-        self.name = name
-        self.policy = policy
-
-    @monitor_exec
-    def execute(self, *args) -> Tuple:
-        """Produces an output tuple by arranging input arguments according
-        to the policy specified in the constructor.
-
-        Args:
-            args (Tuple): input arguments.
-
-        Returns:
-            Tuple: input args arranged according to some policy.
-        """
-        result = []
-        for itm in self.policy:
-            if isinstance(itm, str) and itm.startswith(self.INPUT_PREFIX):
-                arg_idx = int(itm[len(self.INPUT_PREFIX):])
-                if arg_idx >= len(args):
-                    max_idx = max(map(
-                        lambda itm: int(itm[len(self.INPUT_PREFIX):]),
-                        filter(
-                            lambda el: (
-                                isinstance(el, str)
-                                and el.startswith(self.INPUT_PREFIX)
-                            ),
-                            self.policy
-                        )))
-                    raise IndexError(
-                        f"The args received as input by '{self.name}' "
-                        "are not consistent with the given adapter policy "
-                        "because input args are too few! "
-                        f"Input args are {len(args)} but the policy foresees "
-                        f"at least {max_idx+1} items."
-                    )
-                result.append(args[arg_idx])
-            else:
-                result.append(itm)
-        return tuple(result)
 
 
 class DataSplitter(BaseComponent):
@@ -458,3 +319,155 @@ class DataSplitter(BaseComponent):
             Tuple[MLDataset, MLDataset, MLDataset]: tuple of
             train, validation and test splits.
         """
+
+
+class Trainer(BaseComponent):
+    """Trains a machine learning model."""
+
+    @abstractmethod
+    @monitor_exec
+    def execute(
+        self,
+        train_dataset: MLDataset,
+        validation_dataset: MLDataset,
+        test_dataset: MLDataset
+    ) -> Tuple[MLDataset, MLDataset, MLDataset, MLModel]:
+        """Trains a machine learning model.
+
+        Args:
+            train_dataset (MLDataset): training dataset.
+            validation_dataset (MLDataset): validation dataset.
+            test_dataset (MLDataset): test dataset.
+
+        Returns:
+            Tuple[MLDataset, MLDataset, MLDataset]: training dataset,
+            validation dataset, test dataset, trained model.
+        """
+
+
+class Predictor(BaseComponent):
+    """Applies a pre-trained machine learning model to unseen data."""
+
+    #: Pre-trained ML model used to make predictions.
+    model: MLModel
+
+    def __init__(
+        self,
+        model: Union[MLModel, ModelLoader],
+        name: Optional[str] = None,
+    ) -> None:
+        super().__init__(name=name)
+        self.save_parameters(**self.locals2params(locals()))
+        self.model = model() if isinstance(model, ModelLoader) else model
+
+    @abstractmethod
+    @monitor_exec
+    def execute(
+        self,
+        predict_dataset: MLDataset,
+        model: Optional[MLModel] = None
+    ) -> MLDataset:
+        """Applies a machine learning model on a dataset of samples.
+
+        Args:
+            predict_dataset (MLDataset): dataset for inference.
+            model (Optional[MLModel], optional): overrides the internal model,
+                if given. Defaults to None.
+
+        Returns:
+            MLDataset: predictions with the same cardinality of the
+            input dataset.
+        """
+
+
+class Saver(BaseComponent):
+    """Saves artifact to disk."""
+
+    @abstractmethod
+    @monitor_exec
+    def execute(self, artifact: MLArtifact) -> MLArtifact:
+        """Saves an ML artifact to disk.
+
+        Args:
+            artifact (MLArtifact): artifact to save.
+
+        Returns:
+            MLArtifact: the same input artifact, after saving it.
+        """
+
+
+class Adapter(BaseComponent):
+    """Connects to components in a sequential pipeline, allowing to
+    control with greater detail how intermediate results are propagated
+    among the components.
+
+    Args:
+        policy (List[Any]): list of the same length of the output of this
+            component, describing how to map the input args to the output.
+        name (Optional[str], optional): name of the component.
+            Defaults to None.
+
+    The adapter allows to define a policy with which inputs are re-arranged
+    before being propagated to the next component.
+    Some examples: [policy]: (input) -> (output)
+
+    - ["INPUT_ARG#2", "INPUT_ARG#1", "INPUT_ARG#0"]: (11,22,33) -> (33,22,11)
+
+    - ["INPUT_ARG#0", "INPUT_ARG#2", None]: (11, 22, 33) -> (11, 33, None)
+
+    - []: (11, 22, 33) -> ()
+
+    - [42, "INPUT_ARG#2", "hello"] -> (11,22,33,44,55) -> (42, 33, "hello")
+
+    - [None, 33, 3.14]: () -> (None, 33, 3.14)
+
+    - [None, 33, 3.14]: ("double", 44, None, True) -> (None, 33, 3.14)
+
+    """
+
+    #: Adapter policy.
+    policy: List[Any]
+    INPUT_PREFIX: str = "INPUT_ARG#"
+
+    def __init__(self, policy: List[Any], name: Optional[str] = None) -> None:
+        super().__init__(name=name)
+        self.save_parameters(**self.locals2params(locals()))
+        self.name = name
+        self.policy = policy
+
+    @monitor_exec
+    def execute(self, *args) -> Tuple:
+        """Produces an output tuple by arranging input arguments according
+        to the policy specified in the constructor.
+
+        Args:
+            args (Tuple): input arguments.
+
+        Returns:
+            Tuple: input args arranged according to some policy.
+        """
+        result = []
+        for itm in self.policy:
+            if isinstance(itm, str) and itm.startswith(self.INPUT_PREFIX):
+                arg_idx = int(itm[len(self.INPUT_PREFIX):])
+                if arg_idx >= len(args):
+                    max_idx = max(map(
+                        lambda itm: int(itm[len(self.INPUT_PREFIX):]),
+                        filter(
+                            lambda el: (
+                                isinstance(el, str)
+                                and el.startswith(self.INPUT_PREFIX)
+                            ),
+                            self.policy
+                        )))
+                    raise IndexError(
+                        f"The args received as input by '{self.name}' "
+                        "are not consistent with the given adapter policy "
+                        "because input args are too few! "
+                        f"Input args are {len(args)} but the policy foresees "
+                        f"at least {max_idx+1} items."
+                    )
+                result.append(args[arg_idx])
+            else:
+                result.append(itm)
+        return tuple(result)

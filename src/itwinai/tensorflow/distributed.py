@@ -15,9 +15,11 @@ def get_strategy() -> Tuple[tf.distribute.Strategy, int]:
     training.
 
     Returns:
-        Tuple[tf.distribute.Strategy, int]: strategy and number of parallel
-        workers. See:
-        https://stackoverflow.com/questions/66005641/why-we-are-using-strategy-num-replicas-in-sync).
+        Tuple[tf.distribute.Strategy, int]: strategy and number of
+        `parallel workers`_.
+
+        .. _parallel workers:
+            https://stackoverflow.com/questions/66005641/why-we-are-using-strategy-num-replicas-in-sync.
     """
 
     slurm_jobid = os.environ.get('SLURM_JOB_ID')

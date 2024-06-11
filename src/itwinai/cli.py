@@ -39,8 +39,10 @@ def scalability_report(
     records in sub-folders.
 
     Example:
+
     >>> itwinai scalability-report --pattern="^epoch.+\\.csv$" --skip-id 0 \\
     >>>     --plot-title "Some title" --archive archive_name
+
     """
     # TODO: add max depth and path different from CWD
     import os

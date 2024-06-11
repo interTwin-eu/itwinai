@@ -1,16 +1,17 @@
 """Base TensorFlow trainer module."""
-from typing import Dict, Any, Optional, List, Union
+from typing import Dict, Any, Optional, List, Union, Tuple
 
 from jsonargparse import ArgumentParser
 import tensorflow as tf
 from tensorflow.data import Dataset
 from keras.callbacks import Callback
+import keras
 
 from ..components import Trainer, monitor_exec
 from itwinai.tensorflow.distributed import get_strategy
 
 
-def import_class(name):
+def _import_class(name):
     components = name.split('.')
     mod = __import__(components[0])
     for comp in components[1:]:
@@ -18,11 +19,11 @@ def import_class(name):
     return mod
 
 
-def instance_from_dict(obj_dict: Dict, fail_untyped: bool = True) -> Any:
+def _instance_from_dict(obj_dict: Dict, fail_untyped: bool = True) -> Any:
     if isinstance(obj_dict, dict) and obj_dict.get('class_path') is not None:
         # obj_dict is a dictionary with a structure compliant with
         # jsonargparse
-        obj_class = import_class(obj_dict["class_path"])
+        obj_class = _import_class(obj_dict["class_path"])
         parser = ArgumentParser()
         parser.add_subclass_arguments(
             obj_class, "object", fail_untyped=fail_untyped)
@@ -42,30 +43,39 @@ class TensorflowTrainer(Trainer):
         Args:
             epochs (int): number of training epochs.
             micro_batch_size (int): per-worker batch size. Equals macro batch
-            size when not running distributed.
+                size when not running distributed.
             shuffle_buffer (Optional[int], optional): if given, shuffles
-            dataset using a buffer of given size. See
-            ``tf.data.Dataset.shuffle``. Defaults to None.
+                dataset using a buffer of given size. See
+                ``tf.data.Dataset.shuffle``. Defaults to None.
             callbacks (Optional[List], optional): list fo Keras callbacks.
-            Can be a list of dictionary configurations. Defaults to None.
+                Can be a list of dictionary configurations. Defaults to None.
             model_config (Optional[Dict], optional): model configuration. If
-            given, a model is instantiated from this configuration.
-            Defaults to None.
+                given, a model is instantiated from this configuration.
+                Defaults to None.
             model_compile_config (Optional[Dict], optional): configuration for
-            ``keras.Model.compile``. Defaults to None.
+                ``keras.Model.compile``. Defaults to None.
             rnd_seed (Optional[int], optional): random seed. Defaults to None.
             verbose (Union[str, int], optional): verbosity level for
-            ``keras.Model.fit``. Defaults to 'auto'.
+                ``keras.Model.fit``. Defaults to 'auto'.
     """
 
+    #: TensorFlow distributed strategy.
     strategy: tf.distribute.Strategy
+    #: Total number of workers in distributed strategy.
     num_workers: int
+    #: List of Keras callbacks. Defaults to None.
     callbacks: Optional[List] = None
+    #: Total number of training epochs.
     epochs: int
-    shuffle_buffer: Optional[int]
+    #: Buffer used to shuffle dataset. Defaults to None.
+    shuffle_buffer: Optional[int] = None
+    #: Per-worker batch size (when distributed).
     micro_batch_size: int
+    #: Total batch size. When distributed, it is the sum of
+    #: ``micro_batch_size`` across all workers.
     macro_batch_size: int
-    rnd_seed: Optional[int]
+    #: Random seed for reproducibility. Defaults to None.
+    rnd_seed: Optional[int] = None
 
     def __init__(
         self,
@@ -100,7 +110,7 @@ class TensorflowTrainer(Trainer):
         # Compile model from configuration, if given
         if model_config is not None and model_compile_config is not None:
             with self.strategy.scope():
-                self.model: tf.keras.Model = instance_from_dict(model_config)
+                self.model: tf.keras.Model = _instance_from_dict(model_config)
                 model_compile_config = self.instantiate_compile_conf(
                     model_compile_config
                 )
@@ -112,22 +122,44 @@ class TensorflowTrainer(Trainer):
             )
 
     @staticmethod
-    def instantiate_compile_conf(conf: Dict) -> Dict:
+    def instantiate_compile_conf(model_compile_config: Dict) -> Dict[str, Any]:
+        """Instantiate fields of Keras ``model.compile()`` from
+        their dictionary serialization.
+
+        Args:
+            model_compile_config (Dict): fields of Keras ``model.compile()``
+                serialized as dictionary.
+
+        Returns:
+            Dict[str, Any]: dictionary mapping compile argument names to
+            the instantiated objects.
+        """
         final_conf = {}
-        for item_name, item in conf.items():
+        for item_name, item in model_compile_config.items():
             if isinstance(item, dict):
-                item = instance_from_dict(item)
+                item = _instance_from_dict(item)
             final_conf[item_name] = item
         return final_conf
 
     @staticmethod
-    def instantiate_callbacks(callbacks: List) -> List:
+    def instantiate_callbacks(
+        callbacks: List[Union[Dict, Callback]]
+    ) -> List[Callback]:
+        """Instantiate Keras callbacks from dictionaries.
+
+        Args:
+            callbacks (List[Union[Dict, Callback]]): list of Keras callbacks
+            in serialized as dictionary.
+
+        Returns:
+            List[Callback]: list of instantiated callbacks.
+        """
         final_callbacks = []
         for item in callbacks:
             if isinstance(item, dict):
                 # Not all constructor args in keras callbacks
                 # are typed!
-                item = instance_from_dict(item, fail_untyped=False)
+                item = _instance_from_dict(item, fail_untyped=False)
             final_callbacks.append(item)
         return final_callbacks
 
@@ -137,7 +169,22 @@ class TensorflowTrainer(Trainer):
         train_dataset: Dataset,
         validation_dataset: Dataset,
         test_dataset: Optional[Dataset] = None
-    ) -> Any:
+    ) -> Tuple[Dataset, Dataset, Dataset, keras.Model]:
+        """Run training. Users should override this method.
+
+        Args:
+            train_dataset (Dataset): train dataset of type
+                ``tensorflow.data.Dataset``.
+            validation_dataset (Dataset): validation dataset of type
+                ``tensorflow.data.Dataset``.
+            test_dataset (Optional[Dataset], optional): test dataset
+                of type ``tensorflow.data.Dataset``. Defaults to None.
+
+        Returns:
+            Tuple[Dataset, Dataset, Dataset, keras.Model]: tuple of
+            train_dataset, validation_dataset, test_dataset, and trained
+            Keras model.
+        """
 
         print(f"len(train_dataset): {len(train_dataset)}")
         print(f"len(validation_dataset): {len(validation_dataset)}")

@@ -3,16 +3,10 @@
 # Simple installation for users
 # It expects ML_FRAMEWORK env variable to be set
 
-# echo "Please choose an option:"
-# echo "1. Install itwinai with PyTorch support"
-# echo "2. Install itwinai with TensorFlow support"
-# read -p "Enter your choice (1 or 2): " choice
-
 if [ -z "$ML_FRAMEWORK" ]; then
     echo "Error: ML_FRAMEWORK env variable not set. Accepted values are 'pytorch' and 'tensorflow'"
     exit 1
 fi
-
 
 # Detect python env and CUDA env
 if [ -z "$VIRTUAL_ENV" ]; then
@@ -31,17 +25,17 @@ fi
 if [ "$ML_FRAMEWORK" == "pytorch" ]; then
     echo "Installing itwinai with PyTorch support..."
     # Skip last line (head -n -1) because it contains the istallation of itwinai
-    curl -fsSL https://github.com/interTwin-eu/itwinai/raw/main/env-files/torch/generic_torch.sh | head -n -1 | bash
+    curl -fsSL https://github.com/interTwin-eu/itwinai/raw/main/env-files/torch/generic_torch.sh | sed '$d' | bash
     # cat ../env-files/torch/generic_torch.sh | head -n -1 | bash
     # Install from PyPI
     pip install itwinai[torch]
 elif [ "$ML_FRAMEWORK" == "tensorflow" ]; then
     echo "Installing itwinai with TensorFlow support..."
     # Skip last line (head -n -1) because it contains the istallation of itwinai
-    curl -fsSL https://github.com/interTwin-eu/itwinai/raw/main/env-files/tensorflow/generic_tf.sh | head -n -1 | bash
+    curl -fsSL https://github.com/interTwin-eu/itwinai/raw/main/env-files/tensorflow/generic_tf.sh | sed '$d' | bash
     # cat ../env-files/tensorflow/generic_tf.sh | head -n -1 | bash
     # Install from PyPI
     pip install itwinai
 else
-    echo "Invalid choice. Please run the script again and select either 1 or 2."
+    echo "Invalid choice. Please run the script again by setting a valid ML_FRAMEWORK. Accepted values are 'pytorch' and 'tensorflow'."
 fi
