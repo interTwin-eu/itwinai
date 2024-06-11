@@ -48,7 +48,7 @@ following command, and follow the instructions:
 ```bash
 # Create a python virtual environment and activate it
 $ python -m venv ENV_NAME
-$ ENV_NAME/bin/activate
+$ source ENV_NAME/bin/activate
 
 # Install itwinai inside the environment
 (ENV_NAME) $ export ML_FRAMEWORK="pytorch" # or "tensorflow"
@@ -67,6 +67,12 @@ itwinai for PyTorch or TensorFlow.
 
 If you are contributing to this repository, please continue below for
 more advanced instructions.
+
+> [!WARNING]
+> Branch protection rules are applied to all branches which names
+> match this regex: `[dm][ea][vi]*` . When creating new branches,
+> please avoid using names that match that regex, otherwise branch
+> protection rules will block direct pushes to that branch.
 
 ### Install itwinai environment
 
