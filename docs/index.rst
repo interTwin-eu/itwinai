@@ -84,6 +84,14 @@ The specific version numbers (like 'v0.0.2-beta' and 'v0.0.1') correspond to par
 
    modules
 
+.. toctree::
+   :maxdepth: 2
+   :hidden:
+   :caption: 🎯 Github repository
+
+   itwinai <https://github.com/interTwin-eu/itwinai>
+
+
 .. .. toctree::
 ..    :maxdepth: 2
 ..    :hidden:
