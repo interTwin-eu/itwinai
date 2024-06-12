@@ -6,7 +6,7 @@ from unittest.mock import patch, MagicMock
 from itwinai.loggers import (
     ConsoleLogger,
     MLFlowLogger,
-    WanDBLogger,
+    WandBLogger,
     TensorBoardLogger,
     LoggersCollection
 )
@@ -31,7 +31,7 @@ def mlflow_logger():
 
 @pytest.fixture(scope="module")
 def wandb_logger():
-    yield WanDBLogger(savedir='/tmp/wandb/test_mllogs',
+    yield WandBLogger(savedir='/tmp/wandb/test_mllogs',
                       project_name='test_project')
     shutil.rmtree('/tmp/wandb/test_mllogs', ignore_errors=True)
 
@@ -77,9 +77,9 @@ def test_wandb_logger_log(wandb_logger):
     with patch('wandb.init') as mock_init, patch('wandb.log') as mock_log:
         mock_init.return_value = MagicMock()
         wandb_logger.create_logger_context()
-        wandb_logger.log(0.5, 'test_metric', kind='metric', step=1)
+        wandb_logger.log(0.5, 'test_metric', kind='metric')
         mock_log.assert_called_once_with(
-            {'test_metric': 0.5}, step=1, commit=True)
+            {'test_metric': 0.5}, commit=True)
 
 
 def test_tensorboard_logger_log_tf(tensorboard_logger_tf):
@@ -160,6 +160,6 @@ def test_loggers_collection_log(loggers_collection):
         mock_log_metric.assert_called_once_with(
             key='test_metric', value=0.5, step=1)
         mock_wandb_log.assert_called_once_with(
-            {'test_metric': 0.5}, step=1, commit=True)
+            {'test_metric': 0.5}, commit=True)
 
         loggers_collection.destroy_logger_context()
