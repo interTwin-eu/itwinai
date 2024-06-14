@@ -24,6 +24,14 @@ tensorflow-env-cpu: env-files/tensorflow/generic_tf.sh
 		bash -c 'bash env-files/tensorflow/generic_tf.sh'
 	@#.venv-tf/bin/horovodrun --check-build
 
+# Torch with GPU support on Vega
+torch-env-vega:
+	@ml Python
+	@python -m venv .venv-pytorch
+	env ENV_NAME=.venv-pytorch \
+		bash -c 'bash env-files/torch/generic_torch.sh'
+	.venv-pytorch/bin/horovodrun --check-build
+
 test:
 	.venv-pytorch/bin/pytest -v tests/ -m "not slurm"
 

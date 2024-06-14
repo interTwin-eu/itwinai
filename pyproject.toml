@@ -41,6 +41,7 @@ dependencies = [
     "typer>=0.9.0",
     "wheel",
     "pydantic",
+    "prov4ml@git+https://github.com/matbun/ProvML@mlflow_detach", # Prov4ML
 ]
 
 # dynamic = ["version", "description"]
