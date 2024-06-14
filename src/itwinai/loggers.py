@@ -792,30 +792,30 @@ class Prov4MLLogger(Logger):
             kwargs: keyword arguments to pass to the logger.
         """
 
-        if kind == LoggingItemKind.METRIC:
+        if kind == LoggingItemKind.METRIC.value:
             prov4ml.log_metric(identifier, item, context, step=step)
-        elif kind == LoggingItemKind.FLOPS_PER_BATCH:
+        elif kind == LoggingItemKind.FLOPS_PER_BATCH.value:
             model, batch = item
             prov4ml.log_flops_per_batch(
                 identifier, model=model,
                 batch=batch, context=context, step=step)
-        elif kind == LoggingItemKind.FLOPS_PER_EPOCH:
+        elif kind == LoggingItemKind.FLOPS_PER_EPOCH.value:
             model, dataset = item
             prov4ml.log_flops_per_epoch(
                 identifier, model=model,
                 dataset=dataset, context=context, step=step)
-        elif kind == LoggingItemKind.SYSTEM_METRIC:
+        elif kind == LoggingItemKind.SYSTEM_METRIC.value:
             prov4ml.log_system_metrics(context=context, step=step)
-        elif kind == LoggingItemKind.CARBON_METRIC:
+        elif kind == LoggingItemKind.CARBON_METRIC.value:
             prov4ml.log_carbon_metrics(context=context, step=step)
-        elif kind == LoggingItemKind.EXECUTION_TIME:
+        elif kind == LoggingItemKind.EXECUTION_TIME.value:
             prov4ml.log_current_execution_time(identifier, context, step=step)
-        elif kind == LoggingItemKind.MODEL_VERSION:
+        elif kind == LoggingItemKind.MODEL_VERSION.value:
             prov4ml.save_model_version(item, identifier, context, step=step)
-        elif kind == LoggingItemKind.FINAL_MODEL_VERSION:
+        elif kind == LoggingItemKind.FINAL_MODEL_VERSION.value:
             prov4ml.log_model(item, identifier, log_model_info=True,
                               log_as_artifact=True)
-        elif kind == LoggingItemKind.PARAMETER:
+        elif kind == LoggingItemKind.PARAMETER.value:
             from torch.utils.data import DataLoader
             if isinstance(item, DataLoader):
                 prov4ml.log_dataset(item, identifier)

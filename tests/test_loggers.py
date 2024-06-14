@@ -11,7 +11,6 @@ from itwinai.loggers import (
     LoggersCollection,
     Prov4MLLogger
 )
-from prov4ml.datamodel.attribute_type import LoggingItemKind
 from prov4ml.provenance.context import Context
 
 
@@ -197,7 +196,7 @@ def test_log_metric(mock_log_metric, prov4ml_logger):
     identifier = "test_metric"
     context = MagicMock(spec=Context)
     prov4ml_logger.log(
-        item, identifier, kind=LoggingItemKind.METRIC, step=0, context=context)
+        item, identifier, kind='metric', step=0, context=context)
     mock_log_metric.assert_called_once_with(identifier, item, context, step=0)
 
 
@@ -207,7 +206,7 @@ def test_log_flops_per_batch(mock_log_flops_per_batch, prov4ml_logger):
     identifier = "test_flops"
     context = MagicMock(spec=Context)
     prov4ml_logger.log(
-        item, identifier, kind=LoggingItemKind.FLOPS_PER_BATCH, step=0,
+        item, identifier, kind='flops_pb', step=0,
         context=context)
     mock_log_flops_per_batch.assert_called_once_with(
         identifier, model=item[0], batch=item[1], context=context, step=0)
