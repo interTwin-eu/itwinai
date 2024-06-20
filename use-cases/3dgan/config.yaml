@@ -6,7 +6,7 @@ distributed_strategy: auto #ddp_find_unused_parameters_true
 devices: auto #[0]
 checkpoints_path: checkpoints
 logs_dir: ml_logs
-mlflow_tracking_uri: https://131.154.99.166.myip.cloud.infn.it
+mlflow_tracking_uri: mlruns # https://131.154.99.166.myip.cloud.infn.it
 batch_size: 4
 num_workers_dataloader: 0
 max_epochs: 2
@@ -38,6 +38,23 @@ training_pipeline:
           config:
             seed_everything: ${random_seed}
             trainer:
+              itwinai_logger:
+                class_path: itwinai.loggers.LoggersCollection
+                init_args:
+                  loggers:
+                    - class_path: itwinai.loggers.ConsoleLogger
+                      init_args:
+                        log_freq: 100
+                    - class_path: itwinai.loggers.MLFlowLogger
+                      init_args:
+                        experiment_name: 3DGAN
+                        log_freq: batch
+                    - class_path: itwinai.loggers.Prov4MLLogger
+                      init_args:
+                        provenance_save_dir: prov_logs
+                    # - class_path: itwinai.loggers.WandBLogger
+                    #   init_args:
+                    #     log_freq: batch
               accelerator: ${hw_accelerators}
               accumulate_grad_batches: 1
               barebones: false

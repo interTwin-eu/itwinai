@@ -6,6 +6,7 @@ import torch
 from torch import Tensor
 import lightning as pl
 from lightning.pytorch.cli import LightningCLI
+from lightning.pytorch import Trainer as LightningTrainer
 
 from itwinai.components import Trainer, Predictor, monitor_exec
 from itwinai.serialization import ModelLoader
@@ -16,10 +17,26 @@ from itwinai.torch.mlflow import (
     init_lightning_mlflow,
     teardown_lightning_mlflow
 )
+from itwinai.loggers import Logger
 
 
 from model import ThreeDGAN
 from dataloader import ParticlesDataModule
+
+
+class GANTrainer(LightningTrainer):
+    itwinai_logger: Logger
+
+    def __init__(self, itwinai_logger: Optional[Logger] = None, **kwargs):
+        super().__init__(**kwargs)
+        self.itwinai_logger = itwinai_logger
+        if self.itwinai_logger:
+            self.itwinai_logger.create_logger_context()
+
+    def fit(self, *args, **kwargs):
+        super().fit(*args, **kwargs)
+        if self.itwinai_logger:
+            self.itwinai_logger.destroy_logger_context()
 
 
 class Lightning3DGANTrainer(Trainer):
@@ -45,6 +62,7 @@ class Lightning3DGANTrainer(Trainer):
             args=self.conf,
             model_class=ThreeDGAN,
             datamodule_class=ParticlesDataModule,
+            trainer_class=GANTrainer,
             run=False,
             save_config_kwargs={
                 "overwrite": True,

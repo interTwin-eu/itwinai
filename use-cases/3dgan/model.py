@@ -312,8 +312,8 @@ class ThreeDGAN(pl.LightningModule):
         loss_weights=[3, 0.1, 25, 0.1],
         power=0.85,
         lr=0.001,
-        checkpoints_dir: str = '.',
-        itwinai_logger: BaseItwinaiLogger = None
+        checkpoints_dir: str = '.'
+        # itwinai_logger: BaseItwinaiLogger = None
     ):
         super().__init__()
         self.save_hyperparameters()
@@ -325,7 +325,7 @@ class ThreeDGAN(pl.LightningModule):
         self.power = power
         self.checkpoints_dir = checkpoints_dir
         os.makedirs(self.checkpoints_dir, exist_ok=True)
-        self.itwinai_logger = itwinai_logger
+        # self.itwinai_logger = itwinai_logger
 
         self.generator = Generator(self.latent_size)
         self.discriminator = Discriminator(self.power)
@@ -340,6 +340,10 @@ class ThreeDGAN(pl.LightningModule):
         # self.pklfile = checkpoint_path
         # checkpoint_dir = os.path.dirname(checkpoint_path)
         # os.makedirs(checkpoint_dir, exist_ok=True)
+
+    @property
+    def itwinai_logger(self) -> BaseItwinaiLogger:
+        return self.trainer.itwinai_logger
 
     def BitFlip(self, x, prob=0.05):
         """
@@ -733,22 +737,28 @@ class ThreeDGAN(pl.LightningModule):
         if self.itwinai_logger and self.global_rank == 0:
             # Some provenance metrics
             self.itwinai_logger.log(
-                "epoch", self.current_epoch, kind='metric',
-                step=self.current_epoch, context=con)
+                item=self.current_epoch,
+                identifier="epoch",
+                kind='metric', step=self.current_epoch,
+                context=con)
             self.itwinai_logger.log(
-                self, f"model_version_{self.current_epoch}",
+                item=self,
+                identifier=f"model_version_{self.current_epoch}",
                 kind='model_version', step=self.current_epoch,
                 context=con)
+            # Nvidia GPUs may not be supported atm
+            # self.itwinai_logger.log(
+            #     item=None, identifier=None,
+            #     kind='system', step=self.current_epoch,
+            #     context=con)
             self.itwinai_logger.log(
-                None, None, kind='system',
-                step=self.current_epoch,
+                item=None, identifier=None,
+                kind='carbon', step=self.current_epoch,
                 context=con)
             self.itwinai_logger.log(
-                None, None, kind='carbon',
-                step=self.current_epoch, context=con)
-            self.itwinai_logger.log(
-                None, "train_epoch_time", kind='execution_time',
-                step=self.current_epoch, context=con)
+                item=None, identifier="train_epoch_time",
+                kind='execution_time', step=self.current_epoch,
+                context=con)
 
     def on_validation_epoch_end(self):
 
@@ -823,7 +833,7 @@ class ThreeDGAN(pl.LightningModule):
             lr
         )
 
-        if self.itwinai_logger and self.global_rank() == 0:
+        if self.itwinai_logger and self.global_rank == 0:
             self.itwinai_logger.log(
                 optimizer_discriminator, 'optimizer_discriminator',
                 kind='torch')

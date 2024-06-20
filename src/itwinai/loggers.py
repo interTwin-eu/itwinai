@@ -378,11 +378,16 @@ class MLFlowLogger(Logger):
 
     def create_logger_context(self):
         """Initialize logger. Start MLFLow run."""
-        mlflow.set_tracking_uri(self.tracking_uri)
-        mlflow.set_experiment(experiment_name=self.experiment_name)
-        self.active_run: mlflow.ActiveRun = mlflow.start_run(
-            description=self.run_description
-        )
+        active_run = mlflow.active_run()
+        if active_run:
+            print("Detected an active MLFlow run. Attaching to it...")
+            self.active_run = active_run
+        else:
+            mlflow.set_tracking_uri(self.tracking_uri)
+            mlflow.set_experiment(experiment_name=self.experiment_name)
+            self.active_run: mlflow.ActiveRun = mlflow.start_run(
+                description=self.run_description
+            )
 
     def destroy_logger_context(self):
         """Destroy logger. End current MLFlow run."""
