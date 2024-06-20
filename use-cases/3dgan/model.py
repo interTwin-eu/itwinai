@@ -11,6 +11,9 @@ import torch.nn.functional as F
 import lightning as pl
 import numpy as np
 
+from itwinai.loggers import Logger as BaseItwinaiLogger
+from prov4ml import Context
+
 
 class Generator(nn.Module):
     def __init__(self, latent_dim):  # img_shape
@@ -309,8 +312,8 @@ class ThreeDGAN(pl.LightningModule):
         loss_weights=[3, 0.1, 25, 0.1],
         power=0.85,
         lr=0.001,
-        checkpoints_dir: str = '.'
-        # checkpoint_path: str = '3Dgan.pth'
+        checkpoints_dir: str = '.',
+        itwinai_logger: BaseItwinaiLogger = None
     ):
         super().__init__()
         self.save_hyperparameters()
@@ -322,6 +325,7 @@ class ThreeDGAN(pl.LightningModule):
         self.power = power
         self.checkpoints_dir = checkpoints_dir
         os.makedirs(self.checkpoints_dir, exist_ok=True)
+        self.itwinai_logger = itwinai_logger
 
         self.generator = Generator(self.latent_size)
         self.discriminator = Discriminator(self.power)
@@ -597,6 +601,9 @@ class ThreeDGAN(pl.LightningModule):
         # return avg_disc_loss + avg_generator_loss
 
     def on_train_epoch_end(self):  # outputs
+
+        self._log_provenance(context='training')
+
         discriminator_train_loss = np.mean(
             np.array(self.epoch_disc_loss), axis=0)
         generator_train_loss = np.mean(np.array(self.epoch_gen_loss), axis=0)
@@ -714,7 +721,39 @@ class ThreeDGAN(pl.LightningModule):
         # evaluate generator loss
         self.gen_epoch_test_loss.append(gen_eval_loss)
 
+    def _log_provenance(self, context: str):
+
+        if context.lower() == "training":
+            con = Context.TRAINING
+        elif context.lower() == "validation":
+            con = Context.VALIDATION
+        else:
+            raise ValueError("unrecognized context: ", context)
+
+        if self.itwinai_logger and self.global_rank == 0:
+            # Some provenance metrics
+            self.itwinai_logger.log(
+                "epoch", self.current_epoch, kind='metric',
+                step=self.current_epoch, context=con)
+            self.itwinai_logger.log(
+                self, f"model_version_{self.current_epoch}",
+                kind='model_version', step=self.current_epoch,
+                context=con)
+            self.itwinai_logger.log(
+                None, None, kind='system',
+                step=self.current_epoch,
+                context=con)
+            self.itwinai_logger.log(
+                None, None, kind='carbon',
+                step=self.current_epoch, context=con)
+            self.itwinai_logger.log(
+                None, "train_epoch_time", kind='execution_time',
+                step=self.current_epoch, context=con)
+
     def on_validation_epoch_end(self):
+
+        self._log_provenance(context='validation')
+
         discriminator_test_loss = np.mean(
             np.array(self.disc_epoch_test_loss), axis=0)
         generator_test_loss = np.mean(
@@ -783,4 +822,13 @@ class ThreeDGAN(pl.LightningModule):
             self.generator.parameters(),
             lr
         )
+
+        if self.itwinai_logger and self.global_rank() == 0:
+            self.itwinai_logger.log(
+                optimizer_discriminator, 'optimizer_discriminator',
+                kind='torch')
+            self.itwinai_logger.log(
+                optimizer_generator, 'optimizer_generator',
+                kind='torch')
+
         return [optimizer_discriminator, optimizer_generator], []

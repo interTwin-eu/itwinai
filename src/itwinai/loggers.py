@@ -1,9 +1,61 @@
-"""Abstraction layer for loggers."""
+"""
+``itwinai`` wrappers for well-known ML loggers.
+
+A logger allows to save objects of different kinds:
+
+.. list-table:: Logger kinds
+   :widths: 25 75
+   :header-rows: 1
+
+   * - Object ``kind``
+     - Description
+   * - ``metric``
+     - Number, usually representing a ML metric of interest (e.g., loss,
+       accuracy).
+   * - ``torch``
+     - PyTorch object (e.g., tensor).
+   * - ``artifact``
+     - File on the local filesystem to be stored by the logger.
+   * - ``figure``
+     - Matplotlib of Plotly figure
+   * - ``image``
+     - PIL image or numpy array storing an image.
+   * - ``param``
+     - Hyper-parameter (e.g., learning rate, batch size, number of layers)
+       as a primitive Python type.
+   * - ``text``
+     - Running text (string).
+   * - ``dict``
+     - Python dictionary.
+   * - ``watch``
+     - WandB ``watch``: Hook into the torch model to collect gradients and the
+       topology (https://docs.wandb.ai/ref/python/watch).
+   * - ``flops_pb``
+     - Flops per batch, used by :class:`~itwinai.loggers.Prov4MLLogger`.
+   * - ``flops_pb``
+     - Flops per batch, used by :class:`~itwinai.loggers.Prov4MLLogger`.
+   * - ``flops_pe``
+     - Flops per epoch, used by :class:`~itwinai.loggers.Prov4MLLogger`.
+   * - ``system``
+     - System metrics, used by :class:`~itwinai.loggers.Prov4MLLogger`.
+   * - ``carbon``
+     - Carbon footprint information, used
+       by :class:`~itwinai.loggers.Prov4MLLogger`.
+   * - ``execution_time``
+     - Execution time, used by :class:`~itwinai.loggers.Prov4MLLogger`.
+   * - ``model``
+     - Model checkpoint, used by :class:`~itwinai.loggers.Prov4MLLogger`.
+   * - ``best_model``
+     - Best model checkpoint, used by :class:`~itwinai.loggers.Prov4MLLogger`.
+   * - ``dataset``
+     - Torch dataloader, used by :class:`~itwinai.loggers.Prov4MLLogger`.
+"""
+
 import os
 import csv
 from abc import ABCMeta, abstractmethod
 from contextlib import contextmanager
-from typing import Any, Dict, List, Optional, Union, Literal
+from typing import Any, Dict, List, Optional, Union, Literal, Tuple
 from typing_extensions import override
 import pickle
 import pathlib
@@ -36,7 +88,7 @@ class LogMixin(metaclass=ABCMeta):
             identifier (Union[str, List[str]]): unique identifier for the
                 element to log(e.g., name of a metric).
             kind (str, optional): type of the item to be logged. Must be one
-                among the list of self.supported_types. Defaults to 'metric'.
+                among the list of self.supported_kinds. Defaults to 'metric'.
             step (Optional[int], optional): logging step. Defaults to None.
             batch_idx (Optional[int], optional): DataLoader batch counter
                 (i.e., batch idx), if available. Defaults to None.
@@ -67,7 +119,7 @@ class Logger(LogMixin, metaclass=ABCMeta):
     #: Location on filesystem where to store data.
     savedir: str = None
     #: Supported logging 'kind's.
-    supported_types: List[str]
+    supported_kinds: Tuple[str]
     _log_freq: Union[int, Literal['epoch', 'batch']]
 
     def __init__(
@@ -190,6 +242,10 @@ class ConsoleLogger(Logger):
             more details. Defaults to 'epoch'.
     """
 
+    #: Supported kinds in the ``log`` method
+    supported_kinds: Tuple[Literal['torch', 'artifact', 'metric']] = (
+        'torch', 'artifact', 'metric')
+
     def __init__(
         self,
         savedir: str = 'mllogs',
@@ -197,7 +253,6 @@ class ConsoleLogger(Logger):
     ) -> None:
         savedir = os.path.join(savedir, 'simple-logger')
         super().__init__(savedir=savedir, log_freq=log_freq)
-        self.supported_types = ['torch', 'artifact']
 
     def create_logger_context(self):
         """Initialize logger."""
@@ -236,7 +291,7 @@ class ConsoleLogger(Logger):
             identifier (Union[str, List[str]]): unique identifier for the
                 element to log(e.g., name of a metric).
             kind (str, optional): type of the item to be logged. Must be
-                one among the list of ``self.supported_types``.
+                one among the list of ``self.supported_kinds``.
                 Defaults to 'metric'.
             step (Optional[int], optional): logging step. Defaults to None.
             batch_idx (Optional[int], optional): DataLoader batch counter
@@ -289,6 +344,13 @@ class MLFlowLogger(Logger):
             more details. Defaults to 'epoch'.
     """
 
+    #: Supported kinds in the ``log`` method
+    supported_kinds: Tuple[Literal[
+        'metric', 'figure', 'image', 'artifact', 'torch', 'dict', 'param',
+        'text']] = (
+        'metric', 'figure', 'image', 'artifact', 'torch', 'dict', 'param',
+            'text')
+
     #: Current MLFLow experiment's run.
     active_run: mlflow.ActiveRun
 
@@ -313,11 +375,6 @@ class MLFlowLogger(Logger):
 
         # TODO: for pytorch lightning:
         # mlflow.pytorch.autolog()
-
-        self.supported_types = [
-            'metric', 'figure', 'image', 'artifact', 'torch', 'dict', 'param',
-            'text'
-        ]
 
     def create_logger_context(self):
         """Initialize logger. Start MLFLow run."""
@@ -356,7 +413,7 @@ class MLFlowLogger(Logger):
             identifier (Union[str, List[str]]): unique identifier for the
                 element to log(e.g., name of a metric).
             kind (str, optional): type of the item to be logged. Must be
-                one among the list of ``self.supported_types``.
+                one among the list of ``self.supported_kinds``.
                 Defaults to 'metric'.
             step (Optional[int], optional): logging step. Defaults to None.
             batch_idx (Optional[int], optional): DataLoader batch counter
@@ -439,6 +496,12 @@ class WandBLogger(Logger):
     """
 
     # TODO: add support for artifacts logging
+    #: Supported kinds in the ``log`` method
+    supported_kinds: Tuple[Literal[
+        'watch', 'metric', 'figure', 'image', 'torch', 'dict',
+        'param', 'text']] = (
+        'watch', 'metric', 'figure', 'image', 'torch', 'dict',
+        'param', 'text')
 
     def __init__(
         self,
@@ -449,10 +512,6 @@ class WandBLogger(Logger):
         savedir = os.path.join(savedir, 'wandb')
         super().__init__(savedir=savedir, log_freq=log_freq)
         self.project_name = project_name
-        self.supported_types = [
-            'watch', 'metric', 'figure', 'image', 'torch', 'dict',
-            'param', 'text'
-        ]
 
     def create_logger_context(self):
         """Initialize logger. Init WandB run."""
@@ -489,7 +548,7 @@ class WandBLogger(Logger):
             identifier (Union[str, List[str]]): unique identifier for the
                 element to log(e.g., name of a metric).
             kind (str, optional): type of the item to be logged. Must be
-                one among the list of ``self.supported_types``.
+                one among the list of ``self.supported_kinds``.
                 Defaults to 'metric'.
             step (Optional[int], optional): ignored by ``WandBLogger``.
             batch_idx (Optional[int], optional): DataLoader batch counter
@@ -501,7 +560,7 @@ class WandBLogger(Logger):
 
         if kind == 'watch':
             wandb.watch(item)
-        if kind in self.supported_types[1:]:
+        elif kind in self.supported_kinds:
             # wandb.log({identifier: item}, step=step, commit=True)
             # Let WandB use its preferred step
             wandb.log({identifier: item}, commit=True)
@@ -529,6 +588,11 @@ class TensorBoardLogger(Logger):
     # TODO: decouple the logger into TorchTBLogger and TFTBLogger
     # and add the missing logging types supported by each.
 
+    #: Supported kinds in the ``log`` method
+    supported_kinds: Tuple[Literal[
+        'metric', 'image', 'text', 'figure', 'torch']] = (
+        'metric', 'image', 'text', 'figure', 'torch')
+
     def __init__(
         self,
         savedir: str = 'mllogs',
@@ -548,8 +612,6 @@ class TensorBoardLogger(Logger):
         else:
             raise ValueError(
                 "Framework must be either 'tensorflow' or 'pytorch'")
-        self.supported_types = ['metric', 'image',
-                                'text', 'figure', 'torch']
 
     def create_logger_context(self):
         """Initialize logger."""
@@ -590,7 +652,7 @@ class TensorBoardLogger(Logger):
             identifier (Union[str, List[str]]): unique identifier for the
                 element to log(e.g., name of a metric).
             kind (str, optional): type of the item to be logged. Must be
-                one among the list of ``self.supported_types``.
+                one among the list of ``self.supported_kinds``.
                 Defaults to 'metric'.
             step (Optional[int], optional): logging step. Defaults to None.
             batch_idx (Optional[int], optional): DataLoader batch counter
@@ -630,6 +692,9 @@ class LoggersCollection(Logger):
         loggers (List[Logger]): list of itwinai loggers.
     """
 
+    #: Supported kinds are delegated to the loggers in the collection.
+    supported_kinds: Tuple
+
     def __init__(
         self,
         loggers: List[Logger]
@@ -666,7 +731,7 @@ class LoggersCollection(Logger):
             identifier (Union[str, List[str]]): unique identifier for the
                 element to log(e.g., name of a metric).
             kind (str, optional): type of the item to be logged. Must be
-                one among the list of ``self.supported_types``.
+                one among the list of ``self.supported_kinds``.
                 Defaults to 'metric'.
             step (Optional[int], optional): logging step. Defaults to None.
             batch_idx (Optional[int], optional): DataLoader batch counter
@@ -718,6 +783,15 @@ class Prov4MLLogger(Logger):
             should be flushed. Defaults to 100.
     """
 
+    #: Supported kinds in the ``log`` method
+    supported_kinds: Tuple[Literal[
+        'metric', 'flops_pb', 'flops_pe', 'system', 'carbon',
+        'execution_time', 'model_version', 'model_version_final',
+        'param']] = (
+        'metric', 'flops_pb', 'flops_pe', 'system', 'carbon',
+        'execution_time', 'model_version', 'model_version_final',
+        'param')
+
     def __init__(
         self,
         prov_user_namespace="www.example.org",
@@ -737,8 +811,6 @@ class Prov4MLLogger(Logger):
         self.save_after_n_logs = save_after_n_logs
         self.create_graph = create_graph
         self.create_svg = create_svg
-
-        self.supported_types = [e.value for e in LoggingItemKind]
 
     @override
     def create_logger_context(self):
@@ -784,7 +856,7 @@ class Prov4MLLogger(Logger):
             identifier (Union[str, List[str]]): unique identifier for the
                 element to log(e.g., name of a metric).
             kind (str, optional): type of the item to be logged. Must be
-                one among the list of ``self.supported_types``.
+                one among the list of ``self.supported_kinds``.
                 Defaults to 'metric'.
             step (Optional[int], optional): logging step. Defaults to None.
             batch_idx (Optional[int], optional): DataLoader batch counter
@@ -810,17 +882,17 @@ class Prov4MLLogger(Logger):
             prov4ml.log_carbon_metrics(context=context, step=step)
         elif kind == LoggingItemKind.EXECUTION_TIME.value:
             prov4ml.log_current_execution_time(identifier, context, step=step)
-        elif kind == LoggingItemKind.MODEL_VERSION.value:
+        elif kind == 'model':  # LoggingItemKind.MODEL_VERSION.value:
             prov4ml.save_model_version(item, identifier, context, step=step)
-        elif kind == LoggingItemKind.FINAL_MODEL_VERSION.value:
+        elif kind == 'best_model':
+            # LoggingItemKind.FINAL_MODEL_VERSION.value:
             prov4ml.log_model(item, identifier, log_model_info=True,
                               log_as_artifact=True)
-        elif kind == LoggingItemKind.PARAMETER.value:
-            from torch.utils.data import DataLoader
-            if isinstance(item, DataLoader):
-                prov4ml.log_dataset(item, identifier)
-            else:
-                prov4ml.log_param(identifier, item)
+        elif kind == 'torch':  # LoggingItemKind.PARAMETER.value:
+            prov4ml.log_param(identifier, item)
+        elif kind == 'dataset':
+            # Log torch DataLoader
+            prov4ml.log_dataset(item, identifier)
 
 
 class EpochTimeTracker:
