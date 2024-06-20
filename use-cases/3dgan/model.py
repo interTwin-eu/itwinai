@@ -345,6 +345,14 @@ class ThreeDGAN(pl.LightningModule):
     def itwinai_logger(self) -> BaseItwinaiLogger:
         return self.trainer.itwinai_logger
 
+    def setup(self, stage: str):
+        if self.itwinai_logger:
+            self.itwinai_logger.create_logger_context()
+
+    def teardown(self, stage: str):
+        if self.itwinai_logger:
+            self.itwinai_logger.destroy_logger_context()
+
     def BitFlip(self, x, prob=0.05):
         """
         Flips a single bit according to a certain probability.
@@ -604,7 +612,7 @@ class ThreeDGAN(pl.LightningModule):
 
         # return avg_disc_loss + avg_generator_loss
 
-    def on_train_epoch_end(self):  # outputs
+    def on_train_epoch_end(self):
 
         self._log_provenance(context='training')
 

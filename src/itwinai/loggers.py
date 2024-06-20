@@ -349,7 +349,7 @@ class MLFlowLogger(Logger):
     #: Supported kinds in the ``log`` method
     supported_kinds: Tuple[str] = (
         'metric', 'figure', 'image', 'artifact', 'torch', 'dict', 'param',
-        'text')
+        'text', 'model', 'dataset')
 
     #: Current MLFLow experiment's run.
     active_run: mlflow.ActiveRun
@@ -376,7 +376,7 @@ class MLFlowLogger(Logger):
         # TODO: for pytorch lightning:
         # mlflow.pytorch.autolog()
 
-    def create_logger_context(self):
+    def create_logger_context(self) -> mlflow.ActiveRun:
         """Initialize logger. Start MLFLow run."""
         active_run = mlflow.active_run()
         if active_run:
@@ -388,6 +388,7 @@ class MLFlowLogger(Logger):
             self.active_run: mlflow.ActiveRun = mlflow.start_run(
                 description=self.run_description
             )
+        return self.active_run
 
     def destroy_logger_context(self):
         """Destroy logger. End current MLFlow run."""
@@ -446,6 +447,23 @@ class MLFlowLogger(Logger):
                 local_path=item,
                 artifact_path=identifier
             )
+        if kind == 'model':
+            import torch
+            if isinstance(item, torch.nn.Module):
+                mlflow.pytorch.log_model(item, identifier)
+            else:
+                print("WARNING: unrecognized model type")
+        if kind == 'dataset':
+            # Log mlflow dataset
+            # https://mlflow.org/docs/latest/python_api/mlflow.html#mlflow.log_input
+            # It may be needed to convert item into a mlflow dataset, e.g.:
+            # https://mlflow.org/docs/latest/python_api/mlflow.data.html#mlflow.data.from_pandas
+            # ATM delegated to the user
+            if isinstance(item, mlflow.data.Dataset):
+                mlflow.log_input(item)
+            else:
+                print("WARNING: unrecognized dataset type. "
+                      "Must be an MLFlow dataset")
         if kind == 'torch':
             import torch
             # Save the object locally and then log it
@@ -788,8 +806,8 @@ class Prov4MLLogger(Logger):
     #: Supported kinds in the ``log`` method
     supported_kinds: Tuple[str] = (
         'metric', 'flops_pb', 'flops_pe', 'system', 'carbon',
-        'execution_time', 'model_version', 'model_version_final',
-        'param')
+        'execution_time', 'model', 'best_model',
+        'torch')
 
     def __init__(
         self,
@@ -888,10 +906,12 @@ class Prov4MLLogger(Logger):
             prov4ml.log_model(item, identifier, log_model_info=True,
                               log_as_artifact=True)
         elif kind == 'torch':  # LoggingItemKind.PARAMETER.value:
-            prov4ml.log_param(identifier, item)
-        elif kind == 'dataset':
-            # Log torch DataLoader
-            prov4ml.log_dataset(item, identifier)
+            from torch.utils.data import DataLoader
+            if isinstance(item, DataLoader):
+                prov4ml.log_dataset(item, identifier)
+            else:
+                # log_param name is misleading and should be renamed...
+                prov4ml.log_param(identifier, item)
 
 
 class EpochTimeTracker:

@@ -30,13 +30,6 @@ class GANTrainer(LightningTrainer):
     def __init__(self, itwinai_logger: Optional[Logger] = None, **kwargs):
         super().__init__(**kwargs)
         self.itwinai_logger = itwinai_logger
-        if self.itwinai_logger:
-            self.itwinai_logger.create_logger_context()
-
-    def fit(self, *args, **kwargs):
-        super().fit(*args, **kwargs)
-        if self.itwinai_logger:
-            self.itwinai_logger.destroy_logger_context()
 
 
 class Lightning3DGANTrainer(Trainer):
@@ -73,6 +66,16 @@ class Lightning3DGANTrainer(Trainer):
         )
         sys.argv = old_argv
         cli.trainer.fit(cli.model, datamodule=cli.datamodule)
+        cli.trainer.itwinai_logger.log(
+            cli.trainer.train_dataloader,
+            "train_dataloader",
+            kind='torch'
+        )
+        cli.trainer.itwinai_logger.log(
+            cli.trainer.val_dataloaders,
+            "val_dataloader",
+            kind='torch'
+        )
         teardown_lightning_mlflow()
 
 
