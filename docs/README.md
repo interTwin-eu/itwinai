@@ -18,3 +18,8 @@ and serve them on localhost:
 ```bash
 make docs-jsc
 ```
+
+## RTD management page
+
+To manage the documentation page visit
+[https://readthedocs.org/projects/itwinai](https://readthedocs.org/projects/itwinai/).
