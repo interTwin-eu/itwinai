@@ -310,6 +310,8 @@ class ConsoleLogger(Logger):
                     self.run_path,
                     identifier
                 )
+                if len(os.path.dirname(identifier)) > 0:
+                    os.makedirs(os.path.dirname(identifier), exist_ok=True)
                 print(f"ConsoleLogger: Serializing to {identifier}...")
                 shutil.copyfile(item, identifier)
             else:

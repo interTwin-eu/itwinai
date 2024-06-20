@@ -589,6 +589,19 @@ class ThreeDGAN(pl.LightningModule):
                 self.checkpoints_dir, "generator_weights.pth"))
             torch.save(self.discriminator.state_dict(), os.path.join(
                        self.checkpoints_dir, "discriminator_weights.pth"))
+            if self.itwinai_logger and self.global_rank == 0:
+                self.itwinai_logger.log(
+                    item=os.path.join(self.checkpoints_dir,
+                                      "generator_weights.pth"),
+                    identifier='final_generator_weights',
+                    kind='artifact'
+                )
+                self.itwinai_logger.log(
+                    item=os.path.join(self.checkpoints_dir,
+                                      "discriminator_weights.pth"),
+                    identifier='final_discriminator_weights',
+                    kind='artifact'
+                )
             # print("real_batch_loss", real_batch_loss)
             # print("fake_batch_loss", fake_batch_loss)
             sys.exit()
@@ -658,6 +671,27 @@ class ThreeDGAN(pl.LightningModule):
             self.checkpoints_dir, "generator_weights.pth"))
         torch.save(self.discriminator.state_dict(), os.path.join(
             self.checkpoints_dir, "discriminator_weights.pth"))
+
+        if self.itwinai_logger and self.global_rank == 0:
+            self.itwinai_logger.log(
+                item=os.path.join(self.checkpoints_dir,
+                                  "generator_weights.pth"),
+                identifier='ckpts/generator_weights_epoch_' +
+                str(self.current_epoch),
+                kind='artifact'
+            )
+            self.itwinai_logger.log(
+                item=self.generator,
+                identifier='generator_epoch_' + str(self.current_epoch),
+                kind='model'
+            )
+            self.itwinai_logger.log(
+                item=os.path.join(self.checkpoints_dir,
+                                  "discriminator_weights.pth"),
+                identifier='ckpts/discriminator_weights_epoch_' +
+                str(self.current_epoch),
+                kind='artifact'
+            )
 
         # with open(self.pklfile, "wb") as f:
         #     pickle.dump({"train": self.train_history,
