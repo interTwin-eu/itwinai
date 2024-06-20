@@ -746,11 +746,10 @@ class ThreeDGAN(pl.LightningModule):
                 identifier=f"model_version_{self.current_epoch}",
                 kind='model_version', step=self.current_epoch,
                 context=con)
-            # Nvidia GPUs may not be supported atm
-            # self.itwinai_logger.log(
-            #     item=None, identifier=None,
-            #     kind='system', step=self.current_epoch,
-            #     context=con)
+            self.itwinai_logger.log(
+                item=None, identifier=None,
+                kind='system', step=self.current_epoch,
+                context=con)
             self.itwinai_logger.log(
                 item=None, identifier=None,
                 kind='carbon', step=self.current_epoch,

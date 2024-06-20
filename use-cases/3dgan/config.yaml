@@ -52,6 +52,7 @@ training_pipeline:
                     - class_path: itwinai.loggers.Prov4MLLogger
                       init_args:
                         provenance_save_dir: prov_logs
+                        experiment_name: 3DGAN
                     # - class_path: itwinai.loggers.WandBLogger
                     #   init_args:
                     #     log_freq: batch
