@@ -246,8 +246,7 @@ class ConsoleLogger(Logger):
     """
 
     #: Supported kinds in the ``log`` method
-    supported_kinds: Tuple[Literal['torch', 'artifact', 'metric']] = (
-        'torch', 'artifact', 'metric')
+    supported_kinds: Tuple[str] = ('torch', 'artifact', 'metric')
 
     def __init__(
         self,
@@ -348,11 +347,9 @@ class MLFlowLogger(Logger):
     """
 
     #: Supported kinds in the ``log`` method
-    supported_kinds: Tuple[Literal[
+    supported_kinds: Tuple[str] = (
         'metric', 'figure', 'image', 'artifact', 'torch', 'dict', 'param',
-        'text']] = (
-        'metric', 'figure', 'image', 'artifact', 'torch', 'dict', 'param',
-            'text')
+        'text')
 
     #: Current MLFLow experiment's run.
     active_run: mlflow.ActiveRun
@@ -505,9 +502,7 @@ class WandBLogger(Logger):
 
     # TODO: add support for artifacts logging
     #: Supported kinds in the ``log`` method
-    supported_kinds: Tuple[Literal[
-        'watch', 'metric', 'figure', 'image', 'torch', 'dict',
-        'param', 'text']] = (
+    supported_kinds: Tuple[str] = (
         'watch', 'metric', 'figure', 'image', 'torch', 'dict',
         'param', 'text')
 
@@ -597,8 +592,7 @@ class TensorBoardLogger(Logger):
     # and add the missing logging types supported by each.
 
     #: Supported kinds in the ``log`` method
-    supported_kinds: Tuple[Literal[
-        'metric', 'image', 'text', 'figure', 'torch']] = (
+    supported_kinds: Tuple[str] = (
         'metric', 'image', 'text', 'figure', 'torch')
 
     def __init__(
@@ -701,7 +695,7 @@ class LoggersCollection(Logger):
     """
 
     #: Supported kinds are delegated to the loggers in the collection.
-    supported_kinds: Tuple
+    supported_kinds: Tuple[str]
 
     def __init__(
         self,
@@ -792,10 +786,7 @@ class Prov4MLLogger(Logger):
     """
 
     #: Supported kinds in the ``log`` method
-    supported_kinds: Tuple[Literal[
-        'metric', 'flops_pb', 'flops_pe', 'system', 'carbon',
-        'execution_time', 'model_version', 'model_version_final',
-        'param']] = (
+    supported_kinds: Tuple[str] = (
         'metric', 'flops_pb', 'flops_pe', 'system', 'carbon',
         'execution_time', 'model_version', 'model_version_final',
         'param')
