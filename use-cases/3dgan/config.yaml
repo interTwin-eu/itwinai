@@ -60,22 +60,22 @@ training_pipeline:
               accumulate_grad_batches: 1
               barebones: false
               benchmark: null
-              callbacks:
-                - class_path: lightning.pytorch.callbacks.early_stopping.EarlyStopping
-                  init_args:
-                    monitor: val_generator_loss
-                    patience: 2
-                - class_path: lightning.pytorch.callbacks.lr_monitor.LearningRateMonitor
-                  init_args:
-                    logging_interval: step
-                - class_path: lightning.pytorch.callbacks.ModelCheckpoint
-                  init_args:
-                    dirpath: ${checkpoints_path}
-                    filename: best-checkpoint
-                    mode: min
-                    monitor: val_generator_loss
-                    save_top_k: 1
-                    verbose: true
+              # callbacks:
+              #   - class_path: lightning.pytorch.callbacks.early_stopping.EarlyStopping
+              #     init_args:
+              #       monitor: val_generator_loss
+              #       patience: 2
+              #   - class_path: lightning.pytorch.callbacks.lr_monitor.LearningRateMonitor
+              #     init_args:
+              #       logging_interval: step
+              #   - class_path: lightning.pytorch.callbacks.ModelCheckpoint
+              #     init_args:
+              #       dirpath: ${checkpoints_path}
+              #       filename: best-checkpoint
+              #       mode: min
+              #       monitor: val_generator_loss
+              #       save_top_k: 1
+              #       verbose: true
               check_val_every_n_epoch: 1
               default_root_dir: null
               detect_anomaly: false
@@ -93,17 +93,17 @@ training_pipeline:
               limit_train_batches: null
               limit_val_batches: null
               log_every_n_steps: 1
-              logger:
-                - class_path: lightning.pytorch.loggers.CSVLogger
-                  init_args:
-                    name: 3DGAN
-                    save_dir: ${logs_dir}
-                - class_path: lightning.pytorch.loggers.MLFlowLogger
-                  init_args:
-                    experiment_name: 3DGAN
-                    save_dir: null #ml_logs/mlflow_logs
-                    tracking_uri: ${mlflow_tracking_uri}
-                    log_model: all
+              # logger:
+              #   - class_path: lightning.pytorch.loggers.CSVLogger
+              #     init_args:
+              #       name: 3DGAN
+              #       save_dir: ${logs_dir}
+              #   - class_path: lightning.pytorch.loggers.MLFlowLogger
+              #     init_args:
+              #       experiment_name: 3DGAN
+              #       save_dir: null #ml_logs/mlflow_logs
+              #       tracking_uri: ${mlflow_tracking_uri}
+              #       log_model: all
               max_epochs: ${max_epochs}
               max_time: null
               min_epochs: null

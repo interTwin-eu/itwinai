@@ -1,6 +1,8 @@
 import os
 import sys
 from typing import Union, Dict, Optional, Any
+import tempfile
+import yaml
 
 import torch
 from torch import Tensor
@@ -13,10 +15,10 @@ from itwinai.serialization import ModelLoader
 from itwinai.torch.inference import TorchModelLoader
 from itwinai.torch.type import Batch
 from itwinai.utils import load_yaml
-from itwinai.torch.mlflow import (
-    init_lightning_mlflow,
-    teardown_lightning_mlflow
-)
+# from itwinai.torch.mlflow import (
+#     init_lightning_mlflow,
+#     teardown_lightning_mlflow
+# )
 from itwinai.loggers import Logger
 
 
@@ -44,11 +46,8 @@ class Lightning3DGANTrainer(Trainer):
 
     @monitor_exec
     def execute(self) -> Any:
-        init_lightning_mlflow(
-            self.conf,
-            tmp_dir=os.path.join(self.exp_root, '.tmp'),
-            registered_model_name='3dgan-lite'
-        )
+
+        # Parse lightning configuration
         old_argv = sys.argv
         sys.argv = ['some_script_placeholder.py']
         cli = LightningCLI(
@@ -65,6 +64,10 @@ class Lightning3DGANTrainer(Trainer):
             subclass_mode_data=True,
         )
         sys.argv = old_argv
+
+        cli.trainer.itwinai_logger.create_logger_context()
+        self._log_config(cli.trainer.itwinai_logger)
+
         cli.trainer.fit(cli.model, datamodule=cli.datamodule)
         cli.trainer.itwinai_logger.log(
             cli.trainer.train_dataloader,
@@ -76,7 +79,15 @@ class Lightning3DGANTrainer(Trainer):
             "val_dataloader",
             kind='torch'
         )
-        teardown_lightning_mlflow()
+
+        cli.trainer.itwinai_logger.destroy_logger_context()
+
+    def _log_config(self, logger: Logger):
+        with tempfile.TemporaryDirectory(dir=os.getcwd()) as tmp_dir:
+            local_yaml_path = os.path.join(tmp_dir, 'pl-conf.yaml')
+            with open(local_yaml_path, 'w') as outfile:
+                yaml.dump(self.conf, outfile, default_flow_style=False)
+            logger.log(local_yaml_path, 'lightning-config', kind='artifact')
 
 
 class LightningModelLoader(TorchModelLoader):

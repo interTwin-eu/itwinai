@@ -863,7 +863,7 @@ class Prov4MLLogger(Logger):
         identifier: Union[str, List[str]],
         kind: Union[str, LoggingItemKind] = 'metric',
         step: Optional[int] = None,
-        context: Optional[Context] = None,
+        context: Optional[Context] = 'training',
         **kwargs
     ) -> None:
         """Logs with Prov4ML.
