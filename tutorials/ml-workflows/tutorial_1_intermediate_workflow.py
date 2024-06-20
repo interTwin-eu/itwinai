@@ -4,7 +4,7 @@ into a Pipeline for a simplified workflow execution. The Pipeline executes
 the components in the order in which they are given, *assuming* that the
 outputs of a component will fit as inputs of the following component.
 This is not always true, thus you can use the ``Adapter`` component to
-compensate for mismatches. This component allows to define a policy to
+compensate for mismatches. This component allows users to define a policy to
 rearrange intermediate results between two components.
 
 Moreover, it is good for reproducibility to keep track of the pipeline
