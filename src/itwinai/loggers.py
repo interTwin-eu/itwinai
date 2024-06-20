@@ -27,6 +27,13 @@ A logger allows to save objects of different kinds:
      - Running text (string).
    * - ``dict``
      - Python dictionary.
+   * - ``model``
+     - ML model. At the moment only :class:`~torch.nn.Module` is supported.
+   * - ``best_model``
+     - Best ML model. At the moment only :class:`~torch.nn.Module` is
+       supported.
+   * - ``dataset``
+     - Dataset object (e.g., objects of type :class:`~mlflow.data.Dataset`).
    * - ``watch``
      - | WandB ``watch``: Hook into the torch model to collect gradients and
        | the topology. `More info`_.
@@ -43,12 +50,6 @@ A logger allows to save objects of different kinds:
        by :class:`~itwinai.loggers.Prov4MLLogger`.
    * - ``execution_time``
      - Execution time, used by :class:`~itwinai.loggers.Prov4MLLogger`.
-   * - ``model``
-     - Model checkpoint, used by :class:`~itwinai.loggers.Prov4MLLogger`.
-   * - ``best_model``
-     - Best model checkpoint, used by :class:`~itwinai.loggers.Prov4MLLogger`.
-   * - ``dataset``
-     - Torch dataloader, used by :class:`~itwinai.loggers.Prov4MLLogger`.
 
 .. _More info:
     https://docs.wandb.ai/ref/python/watch
