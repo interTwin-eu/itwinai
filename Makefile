@@ -32,6 +32,30 @@ torch-env-vega:
 		bash -c 'bash env-files/torch/generic_torch.sh'
 	.venv-pytorch/bin/horovodrun --check-build
 
+# Env to build docs locally on JSC systems
+docs-env-jsc:
+	ml --force purge
+	ml Stages/2024 GCC OpenMPI CUDA/12 cuDNN MPI-settings/CUDA
+	ml Python CMake HDF5 PnetCDF libaio mpi4py
+
+	cmake --version
+	gcc --version
+
+	rm -rf .venv
+	python -m venv .venv
+	source .venv/bin/activate
+	pip install -r docs/requirements.txt
+
+# Build and serve docs on JSC
+docs-jsc:
+	ml --force purge
+	ml Stages/2024 GCC OpenMPI CUDA/12 cuDNN MPI-settings/CUDA
+	ml Python CMake HDF5 PnetCDF libaio mpi4py
+	ml Stages/2023 Pandoc/2.19.2
+	source .venv/bin/activate
+	cd docs
+	make clean && make html && python -m http.server -d _build/html
+
 test:
 	.venv-pytorch/bin/pytest -v tests/ -m "not slurm"
 
