@@ -4,7 +4,7 @@
 A logger allows to save objects of different kinds:
 
 .. list-table:: Logger kinds
-   :widths: 25 75
+   :widths: 25 25
    :header-rows: 1
 
    * - Object ``kind``
@@ -21,15 +21,15 @@ A logger allows to save objects of different kinds:
    * - ``image``
      - PIL image or numpy array storing an image.
    * - ``param``
-     - Hyper-parameter (e.g., learning rate, batch size, number of layers)
-       as a primitive Python type.
+     - | Hyper-parameter (e.g., learning rate, batch size, number of layers)
+       | as a primitive Python type.
    * - ``text``
      - Running text (string).
    * - ``dict``
      - Python dictionary.
    * - ``watch``
-     - WandB ``watch``: Hook into the torch model to collect gradients and the
-       topology (https://docs.wandb.ai/ref/python/watch).
+     - | WandB ``watch``: Hook into the torch model to collect gradients and
+       | the topology. `More info`_.
    * - ``flops_pb``
      - Flops per batch, used by :class:`~itwinai.loggers.Prov4MLLogger`.
    * - ``flops_pb``
@@ -49,6 +49,9 @@ A logger allows to save objects of different kinds:
      - Best model checkpoint, used by :class:`~itwinai.loggers.Prov4MLLogger`.
    * - ``dataset``
      - Torch dataloader, used by :class:`~itwinai.loggers.Prov4MLLogger`.
+
+.. _More info:
+    https://docs.wandb.ai/ref/python/watch
 """
 
 import os
