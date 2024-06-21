@@ -61,7 +61,7 @@ The specific version numbers (like 'v0.0.2-beta' and 'v0.0.1') correspond to par
    :hidden:
    :caption: 🪄 Itwinai how it works
 
-   ddp_why
+   explain_ddp
 
 .. toctree::
    :maxdepth: 2
