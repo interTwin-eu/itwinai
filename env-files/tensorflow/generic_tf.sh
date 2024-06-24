@@ -52,10 +52,10 @@ if [ -f "${cDir}/$ENV_NAME/bin/tensorboard" ]; then
   echo
 else
   if [ -z "$NO_CUDA" ]; then
-    pip3 install tensorflow[and-cuda]==2.16 --no-cache-dir
+    pip3 install tensorflow[and-cuda]==2.16.* --no-cache-dir
   else
     # CPU only installation
-    pip3 install tensorflow==2.16 --no-cache-dir
+    pip3 install tensorflow==2.16.* --no-cache-dir
   fi
 fi
 
