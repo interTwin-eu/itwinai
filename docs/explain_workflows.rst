@@ -23,26 +23,40 @@ Below is given an overview of each component:
 
 Components:
 ------------------
-
+Components are defined as discrete steps in a `Pipeline`.
 For each pipeline component, an `execute()` function is defined that provides a unified interface with every component as well as the whole pipeline.
 
 GET
 ^^^^^^^^^^^^^^
+.. image:: figures/Datagetter.png
+    :scale: 12%
+
 
 SPLIT
 ^^^^^^^^^^^^^
+.. image:: figures/Datasplitter.png
+    :scale: 12%
 
 PROCESS
 ^^^^^^^^^^^^^^^^
+.. image:: figures/Dataproc.png
+    :scale: 12%
+
 
 TRAIN
 ^^^^^^^^^^^^^^^^
+.. image:: figures/Datatrain.png
+    :scale: 12%
 
 ADAPT
 ^^^^^^^^^^^^^^
+.. image:: figures/DataAdapt.png
+    :scale: 12%
 
 PREDICT
 ^^^^^^^^^^^^
+.. image:: figures/Datapredict.png
+    :scale: 12%
 
 
 .. note::
