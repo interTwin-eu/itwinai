@@ -28,34 +28,34 @@ For each pipeline component, an `execute()` function is defined that provides a 
 
 GET
 ^^^^^^^^^^^^^^
-.. image:: figures/Datagetter.png
+.. image:: figures/comp_Get.png
     :scale: 12%
 
 
 SPLIT
 ^^^^^^^^^^^^^
-.. image:: figures/Datasplitter.png
+.. image:: figures/comp_Split.png
     :scale: 12%
 
 PROCESS
 ^^^^^^^^^^^^^^^^
-.. image:: figures/Dataproc.png
+.. image:: figures/comp_Proc.png
     :scale: 12%
 
 
 TRAIN
 ^^^^^^^^^^^^^^^^
-.. image:: figures/Datatrain.png
+.. image:: figures/comp_Train.png
     :scale: 12%
 
 ADAPT
 ^^^^^^^^^^^^^^
-.. image:: figures/DataAdapt.png
+.. image:: figures/comp_Adapt.png
     :scale: 12%
 
 PREDICT
 ^^^^^^^^^^^^
-.. image:: figures/Datapredict.png
+.. image:: figures/comp_Predict.png
     :scale: 12%
 
 
