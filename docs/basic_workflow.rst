@@ -4,11 +4,19 @@ Basic workflow
 .. tutorial_0_basic_workflow.py
 .. ++++++++++++++++++++++++++++
 
+.. .. toctree::
+..     :hidden:
+..     :maxdepth: 2
+..     :caption: Contents
 
-.. .. literalinclude:: ../tutorials/ml-workflows/tutorial_0_basic_workflow.py
+..     notebooks/basic_workflow_notebook
+
+
+
+.. literalinclude:: ../tutorials/ml-workflows/tutorial_0_basic_workflow.py
    :language: python
 
-.. automodule:: tutorial_0_basic_workflow
-   :members:
-   :undoc-members:
-   :show-inheritance:
+.. .. automodule:: tutorial_0_basic_workflow
+..    :members:
+..    :undoc-members:
+..    :show-inheritance:
