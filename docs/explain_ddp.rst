@@ -25,6 +25,3 @@ Investigation of expected performance improvement:
 
 * https://www.mdpi.com/2079-9292/11/10/1525
 
-
-
-
