@@ -1,8 +1,6 @@
 hython[complete] @ git+https://github.com/interTwin-eu/hython.git@dev
-matplotlib
 scikit-learn
 tqdm
 cf_xarray
-zarr
 requests
 aiohttp
