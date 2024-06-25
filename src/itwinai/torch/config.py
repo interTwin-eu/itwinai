@@ -28,6 +28,16 @@ class TrainingConfiguration(Configuration):
     #: Batch size. In a distributed environment it is usually the
     #: per-worker batch size. Defaults to 32.
     batch_size: int = 32
+    #: Whether to shuffle train dataset when creating a torch ``DataLoader``.
+    #: Defaults to False.
+    shuffle_train: bool = False
+    #: Whether to shuffle validation dataset when creating a torch
+    #: ``DataLoader``.
+    #: Defaults to False.
+    shuffle_validation: bool = False
+    #: Whether to shuffle test dataset when creating a torch ``DataLoader``.
+    #: Defaults to False.
+    shuffle_test: bool = False
     #: Whether to pin GPU memory. Property of torch ``DataLoader``.
     #: Defaults to False.
     pin_memory: bool = False

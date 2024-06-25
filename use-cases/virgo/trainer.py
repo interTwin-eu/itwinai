@@ -32,6 +32,7 @@ class NoiseGeneratorTrainer(TorchTrainer):
         checkpoint_path: str = "checkpoints/epoch_{}.pth",
         save_best: bool = True,
         logger: Optional[Logger] = None,
+        random_seed: Optional[int] = None,
         name: str | None = None
     ) -> None:
         super().__init__(
@@ -39,6 +40,7 @@ class NoiseGeneratorTrainer(TorchTrainer):
             config={},
             strategy=strategy,
             logger=logger,
+            random_seed=random_seed,
             name=name
         )
         self.save_parameters(**self.locals2params(locals()))
@@ -49,12 +51,12 @@ class NoiseGeneratorTrainer(TorchTrainer):
         self._loss = loss
         self.checkpoint_path = checkpoint_path
         os.makedirs(os.path.dirname(checkpoint_path), exist_ok=True)
-        # Global configuration
-        _config = dict(
+        # Global training configuration
+        self.config = TrainingConfiguration(
             batch_size=batch_size,
-            save_best=save_best
+            save_best=save_best,
+            shuffle_train=True
         )
-        self.config = TrainingConfiguration(**_config)
 
     def create_model_loss_optimizer(self) -> None:
         # Select generator
@@ -118,10 +120,13 @@ class NoiseGeneratorTrainer(TorchTrainer):
         acc_plot = []
         val_acc_plot = []
         best_val_loss = float('inf')
-        for epoch in tqdm(range(1, self.num_epochs+1)):
+        for epoch in tqdm(range(self.num_epochs)):
+            # itwinai - IMPORTANT: set current epoch ID
+            self.set_epoch(epoch)
+
             st = time.time()
             epoch_loss = []
-            epoch_acc = []
+            # epoch_acc = []
             for i, batch in enumerate(self.train_dataloader):
                 # batch= transform(batch)
                 target = batch[:, 0].unsqueeze(1).to(self.device)
@@ -137,6 +142,7 @@ class NoiseGeneratorTrainer(TorchTrainer):
                 loss.backward()
                 self.optimizer.step()
                 epoch_loss.append(loss.detach().cpu().numpy())
+                # itwinai - log loss as metric
                 self.log(loss.detach().cpu().numpy(),
                          'epoch_loss_batch',
                          kind='metric',
@@ -145,8 +151,8 @@ class NoiseGeneratorTrainer(TorchTrainer):
                 # acc=accuracy(generated.detach().cpu().numpy(),target.detach().cpu().numpy(),20)
                 # epoch_acc.append(acc)
             val_loss = []
-            val_acc = []
-            for batch in (self.validation_dataloader):
+            # val_acc = []
+            for i, batch in enumerate(self.validation_dataloader):
                 # batch= transform(batch)
                 target = batch[:, 0].unsqueeze(1).to(self.device)
                 target = target.float()
@@ -155,20 +161,21 @@ class NoiseGeneratorTrainer(TorchTrainer):
                     generated = self.model(input.float())
                     # generated=normalize_(generated,1)
                     loss = self.loss(generated, target)
-                    val_loss.append(loss.detach().cpu().numpy())
-                    self.log(loss.detach().cpu().numpy(),
-                             'val_loss_batch',
-                             kind='metric',
-                             step=epoch*len(self.validation_dataloader) + i,
-                             batch_idx=i)
-                    # acc=accuracy(generated.detach().cpu().numpy(),target.detach().cpu().numpy(),20)
-                    # val_acc.append(acc)
+                val_loss.append(loss.detach().cpu().numpy())
+                # itwinai -log loss as metric
+                self.log(loss.detach().cpu().numpy(),
+                         'val_loss_batch',
+                         kind='metric',
+                         step=epoch*len(self.validation_dataloader) + i,
+                         batch_idx=i)
+                # acc=accuracy(generated.detach().cpu().numpy(),target.detach().cpu().numpy(),20)
+                # val_acc.append(acc)
             loss_plot.append(np.mean(epoch_loss))
             val_loss_plot.append(np.mean(val_loss))
-            acc_plot.append(np.mean(epoch_acc))
-            val_acc_plot.append(np.mean(val_acc))
+            # acc_plot.append(np.mean(epoch_acc))
+            # val_acc_plot.append(np.mean(val_acc))
 
-            # Log metrics/losses
+            # itwinai - Log metrics/losses
             self.log(np.mean(epoch_loss), 'epoch_loss',
                      kind='metric', step=epoch)
             self.log(np.mean(val_loss), 'val_loss',
@@ -182,12 +189,13 @@ class NoiseGeneratorTrainer(TorchTrainer):
             # accuracy: {}'.format(epoch,loss_plot[-1],val_loss_plot[-1],
             # acc_plot[-1],val_acc_plot[-1]))
             et = time.time()
+            # itwinai - print() in a multi-worker context (distributed)
             if self.strategy.is_main_worker:
                 print('epoch: {} loss: {} val loss: {} time:{}s'.format(
                     epoch, loss_plot[-1], val_loss_plot[-1], et-st))
 
             # Save checkpoint every 100 epochs
-            if (epoch+1) % 1 == 0:
+            if epoch % 1 == 0:
                 # uncomment the following if you want to save checkpoint every
                 # 100 epochs regardless of the performance of the model
                 # checkpoint = {
@@ -203,6 +211,7 @@ class NoiseGeneratorTrainer(TorchTrainer):
                 #     torch.save(checkpoint, checkpoint_filename)
 
                 # Average loss among all workers
+                # itwinai - gather local loss from all the workers
                 worker_val_losses = self.strategy.gather_obj(val_loss_plot[-1])
                 if self.strategy.is_main_worker:
                     # Save only in the main worker
@@ -227,6 +236,7 @@ class NoiseGeneratorTrainer(TorchTrainer):
                         checkpoint_filename = self.checkpoint_path.format(
                             epoch)
                         torch.save(checkpoint, checkpoint_filename)
+                        # itwinai - log checkpoint as artifact
                         self.log(checkpoint_filename,
                                  os.path.basename(checkpoint_filename),
                                  kind='artifact')
@@ -237,6 +247,7 @@ class NoiseGeneratorTrainer(TorchTrainer):
                             self.checkpoint_path.format('best')
                         )
                         torch.save(checkpoint, best_checkpoint_filename)
+                        # itwinai - log checkpoint as artifact
                         self.log(best_checkpoint_filename,
                                  os.path.basename(best_checkpoint_filename),
                                  kind='artifact')
