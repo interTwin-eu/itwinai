@@ -63,7 +63,7 @@ HIDDEN_SIZE = 24
 DYNAMIC_INPUT_SIZE = len(dynamic_names)
 STATIC_INPUT_SIZE = len(static_names)
 OUTPUT_SIZE = len(target_names)
-TARGET_WEIGHTS = {t:0.5 for t in target_names}
+TARGET_WEIGHTS = {t:1/len(target_names) for t in target_names}
 
 
 
@@ -242,25 +242,21 @@ if __name__ == "__main__":
 
     lepochs = list(range(1, EPOCHS + 1))
 
-    fig, axs = plt.subplots(3, 1, figsize= (12,6), sharex=True)
+    fig, axs = plt.subplots(len(target_names) +1, 1, figsize= (12,10), sharex=True)
 
-    axs[0].plot(lepochs, metric_history['train_vwc'], marker='.', linestyle='-', color='b', label='Training')
-    axs[0].plot(lepochs, metric_history['val_vwc'], marker='.', linestyle='-', color='r', label='Validation')
-    axs[0].set_title('SM')
-    axs[0].set_ylabel(metric_fn.__class__.__name__)
-    axs[0].grid(True)
-    axs[0].legend(bbox_to_anchor=(1,1))
+    for i, variable in enumerate(target_names):
+        axs[i].plot(lepochs, metric_history[f'train_{variable}'], marker='.', linestyle='-', color='b', label='Training')
+        axs[i].plot(lepochs, metric_history[f'val_{variable}'], marker='.', linestyle='-', color='r', label='Validation')
+        axs[i].set_title(variable)
+        axs[i].set_ylabel(metric_fn.__class__.__name__)
+        axs[i].grid(True)
+        axs[i].legend(bbox_to_anchor=(1,1))
 
-    axs[1].plot(lepochs, metric_history['train_actevap'], marker='.', linestyle='-', color='b', label='Training')
-    axs[1].plot(lepochs, metric_history['val_actevap'], marker='.', linestyle='-', color='r', label='Validation')
-    axs[1].set_title('ET')
-    axs[1].set_ylabel(metric_fn.__class__.__name__)
-    axs[1].grid(True)
-
-    axs[2].plot(lepochs, [i.detach().cpu().numpy() for i in loss_history['train']], marker='.', linestyle='-', color='b', label='Training')
-    axs[2].plot(lepochs, [i.detach().cpu().numpy() for i in loss_history['val']], marker='.', linestyle='-', color='r', label='Validation')
-    axs[2].set_title('Loss')
-    axs[2].set_xlabel('Epochs')
-    axs[2].set_ylabel(loss_fn.__name__)
-    axs[2].grid(True)
+    axs[i+1].plot(lepochs, [i.detach().cpu().numpy() for i in loss_history['train']], marker='.', linestyle='-', color='b', label='Training')
+    axs[i+1].plot(lepochs, [i.detach().cpu().numpy() for i in loss_history['val']], marker='.', linestyle='-', color='r', label='Validation')
+    axs[i+1].set_title('Loss')
+    axs[i+1].set_xlabel('Epochs')
+    axs[i+1].set_ylabel(loss_fn.__name__)
+    axs[i+1].grid(True)
+    axs[i+1].legend(bbox_to_anchor=(1,1))
     plt.show()
