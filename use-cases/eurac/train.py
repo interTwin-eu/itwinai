@@ -47,6 +47,7 @@ dynamic_names = ["precip", "pet", "temp"]
 static_names = [ 'thetaS', 'thetaR', 'RootingDepth', 'Swood','KsatVer', "Sl"] 
 target_names = [ "vwc", "actevap"]
 
+DONWSAMPLING = False
 
 # === MASK ========================================================================================
 
@@ -54,7 +55,7 @@ mask_names = ["mask_missing", "mask_lake"] # names depends on preprocessing appl
 
 # === DATASET ========================================================================================
 
-DATASET = "LSTMDataset"
+DATASET = "LSTMDataset" # "XBatchDataset"
 
 # == MODEL  ========================================================================================
 
@@ -124,16 +125,26 @@ if __name__ == "__main__":
 
     # === SAMPLER ===================================================================
 
-    train_sampler_builder = SamplerBuilder(sampling_method= "downsampling_regular", 
-                                        sampling_method_kwargs = {"intervals": [4,4], "origin": [0, 0]},
-                                        minibatch_sampling="random", 
-                                        processing="single-gpu")
+    if DONWSAMPLING:
+        train_sampler_builder = SamplerBuilder(sampling_method= "downsampling_regular", 
+                                            sampling_method_kwargs = {"intervals": [4,4], "origin": [0, 0]},
+                                            minibatch_sampling="random", 
+                                            processing="single-gpu")
 
-    test_sampler_builder = SamplerBuilder(sampling_method= "downsampling_regular", 
-                                        sampling_method_kwargs = {"intervals": [4,4], "origin": [2, 2]}, 
-                                        minibatch_sampling="sequential", 
-                                        processing="single-gpu")
+        test_sampler_builder = SamplerBuilder(sampling_method= "downsampling_regular", 
+                                            sampling_method_kwargs = {"intervals": [4,4], "origin": [2, 2]}, 
+                                            minibatch_sampling="sequential", 
+                                            processing="single-gpu")
+    else:
+        train_sampler_builder = SamplerBuilder(sampling_method= "default", 
+                                            minibatch_sampling="random", 
+                                            processing="single-gpu")
+
+        test_sampler_builder = SamplerBuilder(sampling_method= "default", 
+                                            minibatch_sampling="sequential", 
+                                            processing="single-gpu")
     
+    # Initialize samplers, remove indices equivalent to missing values
     train_sampler_builder.initialize(
         shape=SHAPE, mask_missing=masks.values, 
     )
@@ -153,14 +164,17 @@ if __name__ == "__main__":
 
     normalizer_target = Normalizer(method="standardize", type="spacetime", shape="1D")
 
+    # TODO: precompute and pass statistics as parameters
     normalizer_dynamic.compute_stats(Xd[train_sampler_builder.indices])
     normalizer_static.compute_stats(Xs[train_sampler_builder.indices])
     normalizer_target.compute_stats(Y[train_sampler_builder.indices])
 
+    # save statistics to disk
     Xd = normalizer_dynamic.normalize(Xd, write_to = f"{TMP_STATS}/xd.npy")
     Xs = normalizer_static.normalize(Xs, write_to = f"{TMP_STATS}/xs.npy")
     Y = normalizer_target.normalize(Y, write_to = f"{TMP_STATS}/y.npy")
 
+    # normalize test
     Xd_test = normalizer_dynamic.normalize(Xd_test)
     Y_test = normalizer_target.normalize(Y_test)
 
