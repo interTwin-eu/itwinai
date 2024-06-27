@@ -1,5 +1,8 @@
 Example of pipeline components
 ==============================
+Pipeline components all adhere to some design principles which allows them to be seamlessly packaged in a Pipeline structure.
+
+
 
 .. basic_components.py
 .. +++++++++++++++++++

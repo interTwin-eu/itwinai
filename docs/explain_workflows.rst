@@ -28,17 +28,33 @@ For each pipeline component, an `execute()` function is defined that provides a 
 
 GET
 ^^^^^^^^^^^^^^
+This component gets or loads the data from a given source and passes it on to the next component.
+Its `execute()` function therefore takes no input and passes on the dataset as a single output.
+The dataset source can be ...
+This component sits at the start of the Pipeline and is usually followed by a `split` component.
+(?) Where can the data be loaded from? 
+(?) Format limits?
+(?)
+
 .. image:: figures/comp_Get.png
     :scale: 12%
 
 
 SPLIT
 ^^^^^^^^^^^^^
+The `split` component splits a given dataset into three outputs following a user-defined split ratio.
+These three outputs will be passed on and used as train, validation, and test sets.
+
 .. image:: figures/comp_Split.png
     :scale: 12%
 
 PROCESS
 ^^^^^^^^^^^^^^^^
+The `process` component is used for data preprocessing.
+
+It is worth noting that data preprocessing before the `split` component is not feasible with this component as it assumes the data to already be split into train, test, and validation sets.
+This assumption is made to avoid the introduction of bias or skew in the data 
+
 .. image:: figures/comp_Proc.png
     :scale: 12%
 
