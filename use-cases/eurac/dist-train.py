@@ -143,7 +143,7 @@ if __name__ == "__main__":
     # === SAMPLER ============================================================
 
     if DISTRIBUTED:
-
+        # TODO: change with distributed sampler from Iacopo
         train_sampler_builder = DistributedSampler(dataset=train_dataset)
         test_sampler_builder = DistributedSampler(dataset=test_dataset)
 
