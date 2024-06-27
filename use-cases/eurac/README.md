@@ -2,6 +2,11 @@
 
 ## Installation
 
+First, make sure to install itwinai from this branch!
+Use the [developer installation instructions](https://github.com/interTwin-eu/itwinai/tree/usecase_eurac?tab=readme-ov-file#installation-for-developers).
+
+Then:
+
 ```bash
 pip install -r requirements.txt
 ```
