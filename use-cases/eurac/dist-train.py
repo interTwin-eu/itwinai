@@ -12,7 +12,10 @@ from torch.utils.data import DistributedSampler
 
 
 from hython.datasets.datasets import get_dataset
-from hython.trainer import train_val
+
+# override below
+# from hython.trainer import train_val
+
 from hython.sampler import SamplerBuilder
 from hython.metrics import MSEMetric
 from hython.losses import RMSELoss
@@ -21,7 +24,9 @@ from hython.models.cudnnLSTM import CuDNNLSTM
 from hython.trainer import RNNTrainer, RNNTrainParams
 from hython.normalizer import Normalizer
 
-from itwinai.torch.distributed import TorchDDPStrategy, NonDistributedStrategy
+from itwinai.torch.distributed import (
+    TorchDDPStrategy, NonDistributedStrategy, TorchDistributedStrategy
+)
 
 import matplotlib.pyplot as plt
 
@@ -80,6 +85,95 @@ SEQ_LENGTH = 60
 DISTRIBUTED = True
 
 assert sum(v for v in TARGET_WEIGHTS.values()) == 1, "check target weights"
+
+
+def train_val(
+    trainer,
+    model,
+    train_loader,
+    val_loader,
+    epochs,
+    optimizer,
+    lr_scheduler,
+    dp_weights,
+    strategy: TorchDistributedStrategy
+):
+    """Override version of hython to support distributed strategy."""
+
+    import tqdm
+    import copy
+
+    device = strategy.device
+
+    loss_history = {"train": [], "val": []}
+    metric_history = {f"train_{target}": []
+                      for target in trainer.P.target_names}
+    metric_history.update({f"val_{target}": []
+                          for target in trainer.P.target_names})
+
+    best_loss = float("inf")
+
+    for epoch in tqdm(range(epochs)):
+
+        # *Added for distributed*
+        train_loader.sampler.set_epoch(epoch)
+        val_loader.sampler.set_epoch(epoch)
+
+        model.train()
+
+        # set time indices for training
+        # This has effect only if the trainer overload the
+        # method (i.e. for RNN)
+        trainer.temporal_index([train_loader, val_loader])
+
+        train_loss, train_metric = trainer.epoch_step(
+            model, train_loader, device, opt=optimizer
+        )
+
+        # *Added for distributed*
+        # It is a rough way to avoid race conditions among workers
+        # when serializing the best model. More sensible strategies
+        # will come.
+        if strategy.is_main_worker:
+            model.eval()
+            with torch.no_grad():
+
+                # set time indices for validation
+                # This has effect only if the trainer overload the method
+                # (i.e. for RNN)
+                trainer.temporal_index([train_loader, val_loader])
+
+                val_loss, val_metric = trainer.epoch_step(
+                    model, val_loader, device, opt=None
+                )
+
+            lr_scheduler.step(val_loss)
+
+            loss_history["train"].append(train_loss)
+            loss_history["val"].append(val_loss)
+
+            for target in trainer.P.target_names:
+                metric_history[f"train_{target}"].append(train_metric[target])
+                metric_history[f"val_{target}"].append(val_metric[target])
+
+            if val_loss < best_loss:
+                best_loss = val_loss
+                # The code `best_model_weights` appears to be a variable name in Python. It is not
+                # assigned any value or operation in the provided snippet, so it is difficult to
+                # determine its specific purpose without additional context. It could potentially be
+                # used to store the weights of a machine learning model or any other relevant data
+                # related to a model.
+                best_model_weights = copy.deepcopy(model.state_dict())
+                trainer.save_weights(model, dp_weights)
+                print("Copied best model weights!")
+
+            print(f"train loss: {train_loss}")
+            print(f"val loss: {val_loss}")
+
+            model.load_state_dict(best_model_weights)
+
+    # NOTE: best model weights are returned only on main worker!
+    return model, loss_history, metric_history
 
 
 if __name__ == "__main__":
@@ -241,8 +335,8 @@ if __name__ == "__main__":
     strategy.init()
     device = strategy.device
 
-    model, opt, _ = strategy.distributed(
-        model=model, optimizer=opt
+    model, opt, lr_scheduler = strategy.distributed(
+        model=model, optimizer=opt, lr_scheduler=lr_scheduler
     )
 
     # Distributed dataloader
@@ -265,10 +359,6 @@ if __name__ == "__main__":
             loss_func=loss_fn)
     )
 
-    # TODO:
-    # - add `set_epoch` to distributed samplers
-    # - check if in main worker before printing or writing to disk
-    # - checkpointing in a distributed env
     model, loss_history, metric_history = train_val(
         trainer,
         model,
@@ -278,7 +368,7 @@ if __name__ == "__main__":
         opt,
         lr_scheduler,
         SURROGATE_MODEL_OUTPUT,
-        device
+        strategy=strategy
     )
 
     if strategy.is_main_worker:
