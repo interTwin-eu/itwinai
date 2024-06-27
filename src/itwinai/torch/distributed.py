@@ -214,6 +214,11 @@ class TorchDistributedStrategy(DistributedStrategy):
             pin_memory_device (str, optional): the device to
                 :attr:`pin_memory` to if ``pin_memory`` is ``True``.
 
+        Raises:
+            UninitializedStrategyError: when this method is called for a
+                strategy which had not been initialized.
+            RuntimeError: when a user-provided sampler, if given, is not of
+                type ``DistributedSampler``.
 
         .. warning:: If the ``spawn`` start method is used,
                     :attr:`worker_init_fn`
@@ -277,16 +282,22 @@ class TorchDistributedStrategy(DistributedStrategy):
             raise UninitializedStrategyError(
                 "Strategy has not been initialized. Use the init method.")
 
-        if self.is_distributed:
-            if sampler is not None:
-                raise RuntimeError(
-                    "User-provided sampler is not supported."
-                )
-            sampler = DistributedSampler(
-                dataset, num_replicas=self.global_world_size(),
-                rank=self.global_rank(),
-                shuffle=shuffle
+        if batch_sampler is not None:
+            print(
+                "WARNING: batch_sampler is ignored by TorchDistributedStrategy"
             )
+
+        if self.is_distributed:
+            if sampler is None:
+                sampler = DistributedSampler(
+                    dataset, num_replicas=self.global_world_size(),
+                    rank=self.global_rank(),
+                    shuffle=shuffle
+                )
+            elif not isinstance(sampler, DistributedSampler):
+                raise RuntimeError(
+                    "User-provided sampler must implement DistributedSampler."
+                )
         # shuffle and batch_sampler must be unset
         return DataLoader(
             dataset=dataset, batch_size=batch_size, sampler=sampler,
