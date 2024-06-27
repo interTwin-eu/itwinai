@@ -6,9 +6,9 @@ Pipeline:
 
 For simple workflows, itwinai defines a `Pipeline`, defined as an array or dictionary of ordered components.
 Much like a python notebook, the Pipeline sequentially runs through the user-defined components inside of it, ensuring code legibility and organisation.
-The pipeline execution also avoids I/O overheads typical of serialization of intermediate results to storage when moving to the next component, ensuring efficient workflows
-The pipeline structure handles component connection by passing preceding components' output into following components' input whilst staying in-memory, similarly to scikit-learn.
+The pipeline execution also avoids I/O overheads typical of serialization of intermediate results to storage when moving to the next component, ensuring efficient workflows.
 
+The pipeline structure handles component connection by passing preceding components' output into following components' input whilst staying in-memory, similarly to scikit-learn.
 This also implies that the Pipeline structure only handles sequential workflows; more advanced (Directed Acyclic Graphs or DAG) can be implemented with alternative methods as explained in the section :ref:`advanced_workflows`.
 
 A  `Pipeline` can be directly defined in Python code but can also be fully represented in a  **configuration file**. 
@@ -35,9 +35,11 @@ This component gets or loads the data from a given source and passes it on to th
 Its `execute()` function therefore takes no input and passes on the dataset as a single output.
 The dataset source can be ...
 This component sits at the start of the Pipeline and is usually followed by a `split` component.
+
 (?) Where can the data be loaded from? 
+
 (?) Format limits?
-(?)
+
 
 .. image:: figures/comp_Get.png
     :scale: 12%
@@ -70,14 +72,22 @@ Taking train, test, and validation datasets as inputs, the Datatrainer returns i
 .. image:: figures/comp_Train.png
     :scale: 12%
 
-ADAPT
+DataAdapt
 ^^^^^^^^^^^^^^
 The Adapter component gives the user a lot of flexibility in component arrangement.
 It takes any number of inputs and can output any number of them in any order.
 Since this component only selects and rearranges the given inputs, there is no restriction on number or format of inputs.
 The user then defines which inputs they want passed on and in what order these should be passed on.
-An example of this is given in (?).
+An example of this is shown in the diagram :ref:`DataAdapt Example` :ref:`adaptexample`
+
 .. image:: figures/comp_Adapt.png
+    :scale: 12%
+    :align: center
+
+.. _adaptexample:
+.. image:: figures/Adapt_example.png
+    :name: DataAdapt Example
+    :align: center
     :scale: 12%
 
 PREDICT
@@ -100,7 +110,7 @@ Simple Pipeline Example
 ^^^^^^^^^^^^^^^^^^^^^^^^
 The figure below shows a diagram of the simplest possible pipeline structure, using only the DataGetter, DataSplitter, and DataProcessor components.
 As the output of each component is suited to the input of its following component, they can be packaged sequentially in a Pipeline wrapper.
-Upon execution, each component will run in turn and automatically pass on its output through the execute() function that each component interfaces through.
+Upon execution, each component will run in turn and automatically pass on its output to the execute() function that each component interfaces through.
 
 .. image:: figures/simple_pipeline.png
     :alt: Diagram of a simple pipeline structure
