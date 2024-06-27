@@ -1,2 +1,1 @@
-.. include::
-    ../tutorials/ml-workflows/basic_workflow_notebook
+.. include:: ../tutorials/mlworkflows/basic_workflow_notebook

@@ -11,7 +11,7 @@ Intermediate workflow
 ..    :undoc-members:
 ..    :show-inheritance:
 
-.. literalinclude:: ../tutorials/ml-workflows/tutorial_1_intermediate_workflow.py
+.. literalinclude:: ../tutorials/mlworkflows/tutorial_1_intermediate_workflow.py
    :language: python
 
 

@@ -6,7 +6,7 @@ Pipeline components all adhere to some design principles which allows them to be
 
 .. basic_components.py
 .. +++++++++++++++++++
-.. literalinclude:: ../tutorials/ml-workflows/basic_components.py
+.. literalinclude:: ../tutorials/mlworkflows/basic_components.py
   :language: python
 
 .. .. automodule:: basic_components
