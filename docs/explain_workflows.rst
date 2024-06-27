@@ -106,5 +106,6 @@ Example notebook
     :maxdepth: 2
     :caption: Contents
 
-    notebooks/example
+    notebooks/basic_workflow_notebook
     basic_workflow_notebook
+    basic_link

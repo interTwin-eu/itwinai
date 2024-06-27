@@ -16,7 +16,7 @@ exclude_patterns = 'requirements.txt'
 # sys.path.insert(0, os.path.abspath('../use-cases/3dgan/'))
 # sys.path.insert(0, os.path.abspath('../use-cases/mnist/torch-lightning/'))
 # sys.path.insert(0, os.path.abspath('../use-cases/mnist/torch/'))
-sys.path.insert(0, os.path.abspath('../tutorials/ml-workflows/'))
+sys.path.insert(0, os.path.abspath('../tutorials/mlworkflows/'))
 # sys.path.insert(0, os.path.abspath('../tutorials/distributed-ml/'))
 # sys.path.insert(0, os.path.abspath('../src/itwinai'))
 # sys.path.insert(0, os.path.abspath('../src/itwinai/tensorflow'))
