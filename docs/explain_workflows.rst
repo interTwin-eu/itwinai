@@ -54,7 +54,6 @@ These three outputs will be passed on and used as train, validation, and test se
 Dataprocessor
 ^^^^^^^^^^^^^^^^
 The **Dataproc**  component is used for data preprocessing.
-
 It is worth noting that data preprocessing before the `split` component is not feasible with this component as it assumes the data to already be split into train, test, and validation sets.
 This assumption is made to avoid the introduction of bias or skew in the data.
 
@@ -66,18 +65,25 @@ This assumption is made to avoid the introduction of bias or skew in the data.
 TRAIN
 ^^^^^^^^^^^^^^^^
 The Datrainer component covers the actual model training. 
-Taking train, test, and validation datasets as inputs, the Datatrainer returns 
+Taking train, test, and validation datasets as inputs, the Datatrainer returns its input as well as the final trained ML model for further use.
 
 .. image:: figures/comp_Train.png
     :scale: 12%
 
 ADAPT
 ^^^^^^^^^^^^^^
+The Adapter component gives the user a lot of flexibility in component arrangement.
+It takes any number of inputs and can output any number of them in any order.
+Since this component only selects and rearranges the given inputs, there is no restriction on number or format of inputs.
+The user then defines which inputs they want passed on and in what order these should be passed on.
+An example of this is given in (?).
 .. image:: figures/comp_Adapt.png
     :scale: 12%
 
 PREDICT
 ^^^^^^^^^^^^
+In order to gauge the performance of the trained model, the Datapredict component receives the trained model and the test dataset as input, then outputs a prediction dataset for that model.
+
 .. image:: figures/comp_Predict.png
     :scale: 12%
 
@@ -92,6 +98,9 @@ PREDICT
 
 Simple Pipeline Example
 ^^^^^^^^^^^^^^^^^^^^^^^^
+The figure below shows a diagram of the simplest possible pipeline structure, using only the DataGetter, DataSplitter, and DataProcessor components.
+As the output of each component is suited to the input of its following component, they can be packaged sequentially in a Pipeline wrapper.
+Upon execution, each component will run in turn and automatically pass on its output through the execute() function that each component interfaces through.
 
 .. image:: figures/simple_pipeline.png
     :alt: Diagram of a simple pipeline structure
@@ -102,10 +111,4 @@ Example notebook
 ===================
 
 .. toctree::
-    :hidden:
-    :maxdepth: 2
-    :caption: Contents
-
-    notebooks/basic_workflow_notebook
-    basic_workflow_notebook
-    basic_link
+    basic_workflow

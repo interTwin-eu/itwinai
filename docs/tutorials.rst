@@ -41,11 +41,9 @@ Here you can find a collection of tutorials for various complexity ML workflows.
 
 .. toctree::
    :maxdepth: 1
-   :numbered:
-
+   
    basic_comp
    notebooks/basic_workflow_notebook
-   basic_workflow
    intermediate_workflow
    advanced_workflow
 

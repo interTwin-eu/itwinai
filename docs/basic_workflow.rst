@@ -4,14 +4,9 @@ Basic workflow
 .. tutorial_0_basic_workflow.py
 .. ++++++++++++++++++++++++++++
 
-.. .. toctree::
-..     :hidden:
-..     :maxdepth: 2
-..     :caption: Contents
+.. toctree::
 
-..     notebooks/basic_workflow_notebook
-
-
+    notebooks/basic_workflow_notebook
 
 .. literalinclude:: ../tutorials/mlworkflows/tutorial_0_basic_workflow.py
    :language: python
