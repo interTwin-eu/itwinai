@@ -30,7 +30,8 @@ Components are defined as discrete steps in a `Pipeline` and implemented as Pyth
 For each pipeline component, an `execute()` function is defined that provides a unified interface with every component as well as the whole pipeline.
 
 Components provide the structure in which user's python code can be easily integrated and deployed for DDP.
-These components are 'empty'; users have total freedom in how to implement each component, after which the Pipeline wrapper ensures DDP deployability (?).
+These components are 'empty'; users have total freedom in how to implement each component, after which the Pipeline wrapper ensures DDP deployability. 
+.. (?).
 
 .. structures are `empty`
 
@@ -54,8 +55,7 @@ Datasplitter
 ^^^^^^^^^^^^^
 The `split` component splits a given dataset into three outputs following a user-defined split ratio.
 These three outputs will be passed on and used as train, validation, and test sets.
-The splitting method is defined by the user. (?) (expand here)
-
+The splitting method is defined by the user. 
 
 .. Are any broad examples available?
 
@@ -75,7 +75,7 @@ However, as the components leave the implementation method undefined, there is n
     :scale: 12%
 
 
-TRAIN
+DataTrainer
 ^^^^^^^^^^^^^^^^
 The Datrainer component covers the actual model training. 
 Taking train, test, and validation datasets as inputs, the Datatrainer returns its input as well as the final trained ML model for further use.
@@ -95,7 +95,7 @@ The user then defines which inputs they want passed on and in what order these s
     :scale: 12%
     :align: center
 
-An example of this is shown in the diagram :ref:`DataAdapt Example` :ref:`adaptexample`.
+An example of this is shown in the diagram below.
 In this case, the DataAdapt component receives three inputs.
 The user defines the component's policy, which describes what the output will look like.
 In this example, the user decides that `input_arg0` is not needed.
@@ -110,7 +110,7 @@ Thus, the policy becomes `[input_arg2, input_arg1]`; leaving out the first input
     :align: center
     :scale: 12%
 
-PREDICT
+DataPredict
 ^^^^^^^^^^^^
 In order to gauge the performance of the trained model, the Datapredict component receives the trained model and the test dataset as input, then outputs a prediction dataset for that model.
 
@@ -137,8 +137,7 @@ Upon execution, each component will run in turn and automatically pass on its ou
     :align: center
 
 
+
 Example notebook
 ===================
-
-.. toctree::
-    basic_workflow
+:doc:`notebooks/tutorial_0_basic_workflow`
