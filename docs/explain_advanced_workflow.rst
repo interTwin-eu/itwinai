@@ -3,7 +3,7 @@
 Advanced Workflows
 ===================
 
-.. image:: figures/advanced_workflow.png
-    :alt: Diagram of a simple pipeline structure
+.. image:: figures/Advanced_workflow.png
+    :alt: Diagram of an advanced DAC workflow
     :align: center
 
