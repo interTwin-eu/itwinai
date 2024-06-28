@@ -8,9 +8,11 @@ from itwinai.components import (
 
 
 """
-New components are defined as classes inheriting from the BaseComponent class or 
+New components are defined as classes inheriting from the BaseComponent class or
 an already defined component.
 """
+
+
 class MyDataGetter(DataGetter):
     def __init__(self, data_size: int, name: Optional[str] = None) -> None:
         super().__init__(name)
