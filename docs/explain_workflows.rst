@@ -29,12 +29,20 @@ Components:
 Components are defined as discrete steps in a `Pipeline` and implemented as Python classes.
 For each pipeline component, an `execute()` function is defined that provides a unified interface with every component as well as the whole pipeline.
 
+Components provide the structure in which user's python code can be easily integrated and deployed for DDP.
+These components are 'empty'; users have total freedom in how to implement each component, after which the Pipeline wrapper ensures DDP deployability (?).
+
+.. structures are `empty`
+
 Datagetter
 ^^^^^^^^^^^^^^
 This component gets or loads the data from a given source and passes it on to the next component.
 Its `execute()` function therefore takes no input and passes on the dataset as a single output.
 The dataset source can be ...
 This component sits at the start of the Pipeline and is usually followed by a `split` component.
+
+The method of loading data is user-defined; the DataGet component provides the needed structure to integrate into the Pipeline structure.
+As such, the user is unconstrained in terms of dataset format, structure, or size.
 
 (?) Where can the data be loaded from? 
 
@@ -49,6 +57,11 @@ Datasplitter
 ^^^^^^^^^^^^^
 The `split` component splits a given dataset into three outputs following a user-defined split ratio.
 These three outputs will be passed on and used as train, validation, and test sets.
+The splitting method is defined by the user. (?) (expand here)
+
+
+.. Are any broad examples available?
+
 
 .. image:: figures/comp_Split.png
     :scale: 12%
@@ -58,6 +71,7 @@ Dataprocessor
 The **Dataproc**  component is used for data preprocessing.
 It is worth noting that data preprocessing before the `split` component is not feasible with this component as it assumes the data to already be split into train, test, and validation sets.
 This assumption is made to avoid the introduction of bias or skew in the data.
+However, as the components leave the implementation method undefined, there is no preprocessing requirement. 
 
 
 .. image:: figures/comp_Proc.png
@@ -78,7 +92,15 @@ The Adapter component gives the user a lot of flexibility in component arrangeme
 It takes any number of inputs and can output any number of them in any order.
 Since this component only selects and rearranges the given inputs, there is no restriction on number or format of inputs.
 The user then defines which inputs they want passed on and in what order these should be passed on.
-An example of this is shown in the diagram :ref:`DataAdapt Example` :ref:`adaptexample`
+
+An example of this is shown in the diagram :ref:`DataAdapt Example` :ref:`adaptexample`.
+In this case, the DataAdapt component receives three inputs.
+The user defines the component's policy, which describes what the output will look like.
+In this example, the user decides that `input_arg0` is not needed.
+By excluding `input_arg0` from the policy, the first input is not passed on.
+The order of input arguments in the policy defines the order in which the inputs are passed through.
+In our example, the user decides they want to output the second input first.
+Thus, the policy becomes `[input_arg2, input_arg1]`; leaving out the first input and naming first the third, then the second inputs in the policy gives us the desired output seen in the diagram.
 
 .. image:: figures/comp_Adapt.png
     :scale: 12%
