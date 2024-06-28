@@ -1,7 +1,7 @@
 Workflows
 ====================
 
-Pipeline:
+Pipeline
 ------------------
 
 For simple workflows, itwinai defines a `Pipeline`, defined as an array or dictionary of ordered components.
@@ -24,7 +24,7 @@ It takes any number of inputs and will output some or all of those inputs in a u
 
 Below is given an overview of each component:
 
-Components:
+Components
 ------------------
 Components are defined as discrete steps in a `Pipeline` and implemented as Python classes.
 For each pipeline component, an `execute()` function is defined that provides a unified interface with every component as well as the whole pipeline.
@@ -44,9 +44,6 @@ This component sits at the start of the Pipeline and is usually followed by a `s
 The method of loading data is user-defined; the DataGet component provides the needed structure to integrate into the Pipeline structure.
 As such, the user is unconstrained in terms of dataset format, structure, or size.
 
-(?) Where can the data be loaded from? 
-
-(?) Format limits?
 
 
 .. image:: figures/comp_Get.png
