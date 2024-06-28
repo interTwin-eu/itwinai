@@ -46,7 +46,8 @@ class TorchTrainer(Trainer, LogMixin):
     """Trainer class for torch training algorithms.
 
     Args:
-        config (Dict): training configuration containing hyperparameters.
+        config (TrainingConfiguration): training configuration containing
+            hyperparameters.
         epochs (int): number of training epochs.
         model (Optional[Union[nn.Module, str]], optional): pytorch model to
             train or a string identifier. Defaults to None.
@@ -107,7 +108,7 @@ class TorchTrainer(Trainer, LogMixin):
 
     def __init__(
         self,
-        config: Dict,
+        config: TrainingConfiguration,
         epochs: int,
         model: Optional[Union[nn.Module, str]] = None,
         strategy: Literal["ddp", "deepspeed", "horovod"] = 'ddp',
@@ -325,16 +326,18 @@ class TorchTrainer(Trainer, LogMixin):
     def execute(
         self,
         train_dataset: Dataset,
-        validation_dataset: Dataset,
-        test_dataset: Dataset
+        validation_dataset: Optional[Dataset] = None,
+        test_dataset: Optional[Dataset] = None
     ) -> Tuple[Dataset, Dataset, Dataset, Any]:
         """Prepares distributed environment and data structures
         for the actual training.
 
         Args:
             train_dataset (Dataset): training dataset.
-            validation_dataset (Dataset): validation dataset.
-            test_dataset (Dataset): test dataset.
+            validation_dataset (Optional[Dataset], optional): validation
+                dataset. Defaults to None.
+            test_dataset (Optional[Dataset], optional): test dataset.
+                Defaults to None.
 
         Returns:
             Tuple[Dataset, Dataset, Dataset, Any]: training dataset,
