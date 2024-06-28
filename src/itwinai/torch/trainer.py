@@ -13,6 +13,7 @@ import torch.distributed as dist
 from torch.nn.parallel import DistributedDataParallel as DDP
 import torch.nn as nn
 from torch.optim.optimizer import Optimizer
+import torch.optim as optim
 
 import lightning as L
 from lightning.pytorch.cli import LightningCLI
@@ -47,8 +48,8 @@ class TorchTrainer(Trainer, LogMixin):
     Args:
         config (Dict): training configuration containing hyperparameters.
         epochs (int): number of training epochs.
-        model (Optional[nn.Module], optional): model to train.
-            Defaults to None.
+        model (Optional[Union[nn.Module, str]], optional): pytorch model to
+            train or a string identifier. Defaults to None.
         strategy (Literal['ddp', 'deepspeed', 'horovod'], optional):
             distributed strategy. Defaults to 'ddp'.
         validation_every (Optional[int], optional): run a validation epoch
@@ -108,7 +109,7 @@ class TorchTrainer(Trainer, LogMixin):
         self,
         config: Dict,
         epochs: int,
-        model: Optional[nn.Module] = None,
+        model: Optional[Union[nn.Module, str]] = None,
         strategy: Literal["ddp", "deepspeed", "horovod"] = 'ddp',
         validation_every: Optional[int] = 1,
         test_every: Optional[int] = None,
@@ -176,6 +177,40 @@ class TorchTrainer(Trainer, LogMixin):
         if not self.strategy.is_initialized:
             self.strategy.init()
 
+    def _optimizer_from_config(self) -> None:
+        if self.config.optimizer == 'adadelta':
+            self.optimizer = optim.Adadelta(
+                self.model.parameters(),
+                lr=self.config.optim_lr,
+                weight_decay=self.config.optim_weight_decay
+            )
+        elif self.config.optimizer == 'adam':
+            self.optimizer = optim.Adam(
+                self.model.parameters(),
+                lr=self.config.optim_lr,
+                weight_decay=self.config.optim_weight_decay
+            )
+        elif self.config.optimizer == 'rmsprop':
+            self.optimizer = optim.RMSprop(
+                self.model.parameters(),
+                lr=self.config.optim_lr,
+                weight_decay=self.config.optim_weight_decay,
+                momentum=self.config.optim_momentum
+            )
+        elif self.config.optimizer == 'sgd':
+            self.optimizer = optim.SGD(
+                self.model.parameters(),
+                lr=self.config.optim_lr,
+                weight_decay=self.config.optim_weight_decay,
+                momentum=self.config.optim_momentum
+            )
+        else:
+            raise ValueError(
+                "Unrecognized self.config.optimizer! Check the docs for "
+                "supported values and consider overriding "
+                "create_model_loss_optimizer method for more flexibility."
+            )
+
     def create_model_loss_optimizer(self) -> None:
         """
         Instantiate a torch model, loss, optimizer, and LR scheduler using the
@@ -188,28 +223,20 @@ class TorchTrainer(Trainer, LogMixin):
         ###################################
 
         if self.model is None:
-            # Model was not passed to the constructor.
-            # Create a model here
             raise ValueError(
                 "self.model is None! Either pass it to the constructor or "
-                "override this method."
+                "override create_model_loss_optimizer method."
             )
+
+        # Parse optimizer from training configuration
+        self._optimizer_from_config()
 
         # A simple NLLLoss
         self.loss = nn.functional.nll_loss
 
-        # TODO: improve robustness of getting from config
-        self.optimizer = torch.optim.SGD(
-            self.model.parameters(),
-            lr=self.config.lr,
-            momentum=self.config.momentum
-        )
-        # Create self.lr_scheduler if needed
-
         # IMPORTANT: model, optimizer, and scheduler need to be distributed
 
         # First, define strategy-wise optional configurations
-        # TODO: improve robustness of getting from config
         if isinstance(self.strategy, DeepSpeedStrategy):
             # Batch size definition is not optional for DeepSpeedStrategy!
             distribute_kwargs = dict(
@@ -265,8 +292,8 @@ class TorchTrainer(Trainer, LogMixin):
         self.train_dataloader = self.strategy.create_dataloader(
             dataset=train_dataset,
             batch_size=self.config.batch_size,
-            num_workers=self.config.num_workers,
-            pin_memory=self.config.pin_memory,
+            num_workers=self.config.num_workers_dataloader,
+            pin_memory=self.config.pin_gpu_memory,
             generator=self.torch_rng,
             shuffle=self.config.shuffle_train
         )
@@ -274,8 +301,8 @@ class TorchTrainer(Trainer, LogMixin):
             self.validation_dataloader = self.strategy.create_dataloader(
                 dataset=validation_dataset,
                 batch_size=self.config.batch_size,
-                num_workers=self.config.num_workers,
-                pin_memory=self.config.pin_memory,
+                num_workers=self.config.num_workers_dataloader,
+                pin_memory=self.config.pin_gpu_memory,
                 generator=self.torch_rng,
                 shuffle=self.config.shuffle_validation
             )
@@ -283,8 +310,8 @@ class TorchTrainer(Trainer, LogMixin):
             self.test_dataloader = self.strategy.create_dataloader(
                 dataset=test_dataset,
                 batch_size=self.config.batch_size,
-                num_workers=self.config.num_workers,
-                pin_memory=self.config.pin_memory,
+                num_workers=self.config.num_workers_dataloader,
+                pin_memory=self.config.pin_gpu_memory,
                 generator=self.torch_rng,
                 shuffle=self.config.shuffle_test
             )

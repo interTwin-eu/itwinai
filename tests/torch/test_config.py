@@ -13,7 +13,7 @@ def test_values_parsing():
     assert cfg.batch_size == 11
     assert cfg.param_abc == '11'
     assert cfg.param_xyz == 1.1
-    assert isinstance(cfg.pin_memory, bool)
+    assert isinstance(cfg.pin_gpu_memory, bool)
 
     # Check dict-like getitem
     assert cfg['batch_size'] == 11

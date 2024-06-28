@@ -34,10 +34,11 @@ training_pipeline:
         init_args:
           config:
             batch_size: ${batch_size}
-            num_workers: ${num_workers_dataloader}
-            pin_memory: ${pin_memory}
-            lr: ${lr}
-            momentum: ${momentum}
+            num_workers_dataloader: ${num_workers_dataloader}
+            pin_gpu_memory: ${pin_memory}
+            optimizer: sgd
+            optim_lr: ${lr}
+            optim_momentum: ${momentum}
             fp16_allreduce: ${fp16_allreduce}
             use_adasum: ${use_adasum}
             gradient_predivide_factor: ${gradient_predivide_factor}
