@@ -10,6 +10,7 @@ from torchvision import datasets, transforms
 
 from itwinai.torch.trainer import TorchTrainer
 from itwinai.torch.config import TrainingConfiguration
+from itwinai.loggers import MLFlowLogger
 
 
 class Net(nn.Module):
@@ -34,7 +35,7 @@ class Net(nn.Module):
         x = F.relu(x)
         x = self.dropout2(x)
         x = self.fc2(x)
-        output = F.log_softmax(x, dim=1)
+        output = F.softmax(x, dim=1)
         return output
 
 
@@ -66,18 +67,28 @@ def main():
     validation_dataset = datasets.MNIST('../data', train=False,
                                         transform=transform)
 
-    # Neural network
+    # Neural network to train
     model = Net()
 
     training_conf = TrainingConfiguration(
         batch_size=args.batch_size,
         optim_lr=args.lr,
-        optimizer='adam'
+        optimizer='adam',
+        loss='cross_entropy'
     )
+
+    logger = MLFlowLogger(experiment_name='mnist-tutorial', log_freq=10)
+    import torchmetrics
+    metrics = {
+        'accuracy': torchmetrics.Accuracy(task='multiclass', num_classes=10),
+        'precision': torchmetrics.Precision(task='multiclass', num_classes=10)
+    }
 
     trainer = TorchTrainer(
         config=training_conf,
         model=model,
+        metrics=metrics,
+        logger=logger,
         strategy=args.strategy,
         epochs=args.epochs,
         random_seed=args.seed,

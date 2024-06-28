@@ -46,8 +46,8 @@ class TorchTrainer(Trainer, LogMixin):
     """Trainer class for torch training algorithms.
 
     Args:
-        config (TrainingConfiguration): training configuration containing
-            hyperparameters.
+        config (Union[Dict, TrainingConfiguration]): training configuration
+            containing hyperparameters.
         epochs (int): number of training epochs.
         model (Optional[Union[nn.Module, str]], optional): pytorch model to
             train or a string identifier. Defaults to None.
@@ -108,7 +108,7 @@ class TorchTrainer(Trainer, LogMixin):
 
     def __init__(
         self,
-        config: TrainingConfiguration,
+        config: Union[Dict, TrainingConfiguration],
         epochs: int,
         model: Optional[Union[nn.Module, str]] = None,
         strategy: Literal["ddp", "deepspeed", "horovod"] = 'ddp',
@@ -128,7 +128,10 @@ class TorchTrainer(Trainer, LogMixin):
         # config is mean to store all hyperparameters, which can very from use
         # case to use case
         # and include learning_rate, batch_size....
-        self.config = TrainingConfiguration(**config)
+        if isinstance(config, dict):
+            self.config = TrainingConfiguration(**config)
+        else:
+            self.config = config
         self.epochs = epochs
         self.model = model
         self.strategy = strategy
@@ -212,6 +215,20 @@ class TorchTrainer(Trainer, LogMixin):
                 "create_model_loss_optimizer method for more flexibility."
             )
 
+    def _loss_from_config(self) -> None:
+        if self.config.loss == 'nllloss':
+            self.loss = nn.functional.nll_loss
+        elif self.config.loss == 'cross_entropy':
+            self.loss = nn.functional.cross_entropy
+        elif self.config.loss == 'mse':
+            self.loss = nn.functional.mse_loss
+        else:
+            raise ValueError(
+                "Unrecognized self.config.loss! Check the docs for "
+                "supported values and consider overriding "
+                "create_model_loss_optimizer method for more flexibility."
+            )
+
     def create_model_loss_optimizer(self) -> None:
         """
         Instantiate a torch model, loss, optimizer, and LR scheduler using the
@@ -230,10 +247,12 @@ class TorchTrainer(Trainer, LogMixin):
             )
 
         # Parse optimizer from training configuration
+        # Optimizer can be changed with a custom one here!
         self._optimizer_from_config()
 
-        # A simple NLLLoss
-        self.loss = nn.functional.nll_loss
+        # Parse loss from training configuration
+        # Loss can be changed with a custom one here!
+        self._loss_from_config()
 
         # IMPORTANT: model, optimizer, and scheduler need to be distributed
 
