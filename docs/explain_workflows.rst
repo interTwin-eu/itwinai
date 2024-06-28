@@ -31,9 +31,7 @@ For each pipeline component, an `execute()` function is defined that provides a 
 
 Components provide the structure in which user's python code can be easily integrated and deployed for DDP.
 These components are 'empty'; users have total freedom in how to implement each component, after which the Pipeline wrapper ensures DDP deployability. 
-.. (?).
 
-.. structures are `empty`
 
 Datagetter
 ^^^^^^^^^^^^^^
@@ -49,6 +47,7 @@ As such, the user is unconstrained in terms of dataset format, structure, or siz
 
 .. image:: figures/comp_Get.png
     :scale: 12%
+    :align: center
 
 
 Datasplitter
@@ -57,11 +56,14 @@ The `split` component splits a given dataset into three outputs following a user
 These three outputs will be passed on and used as train, validation, and test sets.
 The splitting method is defined by the user. 
 
-.. Are any broad examples available?
+.. 
+    _Are any broad examples available?
 
 
 .. image:: figures/comp_Split.png
     :scale: 12%
+    :align: center
+
 
 Dataprocessor
 ^^^^^^^^^^^^^^^^
@@ -73,6 +75,7 @@ However, as the components leave the implementation method undefined, there is n
 
 .. image:: figures/comp_Proc.png
     :scale: 12%
+    :align: center
 
 
 DataTrainer
@@ -82,6 +85,7 @@ Taking train, test, and validation datasets as inputs, the Datatrainer returns i
 
 .. image:: figures/comp_Train.png
     :scale: 12%
+    :align: center
 
 DataAdapt
 ^^^^^^^^^^^^^^
@@ -94,6 +98,7 @@ The user then defines which inputs they want passed on and in what order these s
 .. image:: figures/comp_Adapt.png
     :scale: 12%
     :align: center
+
 
 An example of this is shown in the diagram below.
 In this case, the DataAdapt component receives three inputs.
@@ -116,6 +121,7 @@ In order to gauge the performance of the trained model, the Datapredict componen
 
 .. image:: figures/comp_Predict.png
     :scale: 12%
+    :align: center
 
 
 .. note::
@@ -140,4 +146,4 @@ Upon execution, each component will run in turn and automatically pass on its ou
 
 Example notebook
 ===================
-:doc:`notebooks/tutorial_0_basic_workflow`
+:doc:`Basic workflow tutorial <notebooks/tutorial_0_basic_workflow>`
