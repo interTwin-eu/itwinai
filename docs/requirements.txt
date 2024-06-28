@@ -9,6 +9,7 @@ torchvision
 torchaudio
 git+https://github.com/thomas-bouvier/horovod.git@compile-cpp17
 deepspeed
+IPython
 
 # local path to itwinai module, assuming that pip install -r docs/requirements.txt is run form the repository root
 # If needed, you can add optional dependencies, like: ".[dev]"

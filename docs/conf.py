@@ -86,3 +86,7 @@ html_sidebars = {
         html_footer  # Adds the custom footer with version information
     ]
 }
+
+nbsphinx_custom_formats = {
+    ".md": ["jupytext.reads", {"fmt": "mystnb"}],
+}

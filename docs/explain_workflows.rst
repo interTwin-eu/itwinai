@@ -90,6 +90,11 @@ It takes any number of inputs and can output any number of them in any order.
 Since this component only selects and rearranges the given inputs, there is no restriction on number or format of inputs.
 The user then defines which inputs they want passed on and in what order these should be passed on.
 
+
+.. image:: figures/comp_Adapt.png
+    :scale: 12%
+    :align: center
+
 An example of this is shown in the diagram :ref:`DataAdapt Example` :ref:`adaptexample`.
 In this case, the DataAdapt component receives three inputs.
 The user defines the component's policy, which describes what the output will look like.
@@ -98,10 +103,6 @@ By excluding `input_arg0` from the policy, the first input is not passed on.
 The order of input arguments in the policy defines the order in which the inputs are passed through.
 In our example, the user decides they want to output the second input first.
 Thus, the policy becomes `[input_arg2, input_arg1]`; leaving out the first input and naming first the third, then the second inputs in the policy gives us the desired output seen in the diagram.
-
-.. image:: figures/comp_Adapt.png
-    :scale: 12%
-    :align: center
 
 .. _adaptexample:
 .. image:: figures/Adapt_example.png
