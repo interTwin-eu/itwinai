@@ -8,7 +8,6 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torchvision import datasets, transforms
-from torch.optim import Adam
 import torchmetrics
 
 from itwinai.torch.trainer import TorchTrainer
@@ -43,14 +42,6 @@ class Net(nn.Module):
         # return output
 
 
-class MyTrainer(TorchTrainer):
-
-    def create_model_loss_optimizer(self) -> None:
-        self.model = Net().to('cuda')
-        self.optimizer = Adam(self.model.parameters(), lr=1e-3)
-        self.loss = nn.CrossEntropyLoss()
-
-
 def main():
     # Training settings
     parser = argparse.ArgumentParser(description='PyTorch MNIST Example')
@@ -82,10 +73,10 @@ def main():
     # Neural network to train
     model = Net()
 
-    training_conf = TrainingConfiguration(
+    training_config = TrainingConfiguration(
         batch_size=args.batch_size,
         optim_lr=args.lr,
-        optimizer='adam',
+        optimizer='adadelta',
         loss='cross_entropy'
     )
 
@@ -96,8 +87,8 @@ def main():
         'precision': torchmetrics.Precision(task='multiclass', num_classes=10)
     }
 
-    trainer = MyTrainer(
-        config=training_conf,
+    trainer = TorchTrainer(
+        config=training_config,
         model=model,
         metrics=metrics,
         logger=logger,
