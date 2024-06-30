@@ -41,6 +41,7 @@ dependencies = [
     "typer>=0.9.0",
     "wheel",
     "pydantic",
+    "pandas",
 ]
 
 # dynamic = ["version", "description"]

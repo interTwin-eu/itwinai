@@ -45,6 +45,12 @@ class TrainingConfiguration(Configuration):
     #: Number of parallel workers used by torch ``DataLoader``.
     #: Defaults to 4.
     num_workers_dataloader: int = 4
+    #: Loss function. Defaults to 'cross_entropy'
+    loss: Literal[
+        'mse',
+        'nllloss',
+        'cross_entropy'
+    ] = 'cross_entropy'
     #: Name of the optimizer to use. Defaults to 'adam'.
     optimizer: Literal['adadelta', 'adam', 'rmsprop', 'sgd'] = 'adam'
     #: Learning rate used by the optimizer. Defaults to 1e-3.
