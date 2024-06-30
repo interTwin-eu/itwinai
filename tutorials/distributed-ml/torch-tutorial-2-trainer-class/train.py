@@ -3,10 +3,13 @@ Adapted from: https://github.com/pytorch/examples/blob/main/mnist/main.py
 """
 
 import argparse
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torchvision import datasets, transforms
+from torch.optim import Adam
+import torchmetrics
 
 from itwinai.torch.trainer import TorchTrainer
 from itwinai.torch.config import TrainingConfiguration
@@ -35,8 +38,17 @@ class Net(nn.Module):
         x = F.relu(x)
         x = self.dropout2(x)
         x = self.fc2(x)
-        output = F.softmax(x, dim=1)
-        return output
+        return x
+        # output = F.softmax(x, dim=1)
+        # return output
+
+
+class MyTrainer(TorchTrainer):
+
+    def create_model_loss_optimizer(self) -> None:
+        self.model = Net().to('cuda')
+        self.optimizer = Adam(self.model.parameters(), lr=1e-3)
+        self.loss = nn.CrossEntropyLoss()
 
 
 def main():
@@ -47,7 +59,7 @@ def main():
     parser.add_argument('--epochs', type=int, default=14,
                         help='number of epochs to train (default: 14)')
     parser.add_argument('--strategy', type=str, default='ddp',
-                        help='number of epochs to train (default: 14)')
+                        help='distributed strategy (default=ddp)')
     parser.add_argument('--lr', type=float, default=1.0,
                         help='learning rate (default: 1.0)')
     parser.add_argument('--seed', type=int, default=1,
@@ -78,13 +90,13 @@ def main():
     )
 
     logger = MLFlowLogger(experiment_name='mnist-tutorial', log_freq=10)
-    import torchmetrics
+
     metrics = {
         'accuracy': torchmetrics.Accuracy(task='multiclass', num_classes=10),
         'precision': torchmetrics.Precision(task='multiclass', num_classes=10)
     }
 
-    trainer = TorchTrainer(
+    trainer = MyTrainer(
         config=training_conf,
         model=model,
         metrics=metrics,

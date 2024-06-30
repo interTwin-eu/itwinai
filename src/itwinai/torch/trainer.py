@@ -14,6 +14,7 @@ from torch.nn.parallel import DistributedDataParallel as DDP
 import torch.nn as nn
 from torch.optim.optimizer import Optimizer
 import torch.optim as optim
+import pandas as pd
 
 import lightning as L
 from lightning.pytorch.cli import LightningCLI
@@ -375,6 +376,7 @@ class TorchTrainer(Trainer, LogMixin):
 
         if self.strategy.is_main_worker and self.logger:
             self.logger.create_logger_context()
+            self.logger.save_hyperparameters(self.config.model_dump())
 
         self.train()
 
@@ -472,6 +474,41 @@ class TorchTrainer(Trainer, LogMixin):
         self.optimizer.load_state_dict(state['optimizer'])
         self.lr_scheduler = state['lr_scheduler']
 
+    def compute_metrics(
+        self,
+        true: Batch,
+        pred: Batch,
+        logger_step: int,
+        batch_idx: Optional[int],
+        stage: str = 'train'
+    ) -> Dict[str, Any]:
+        """Compute and log metrics.
+
+        Args:
+            metrics (Dict[str, Metric]): metrics dict. Can be
+                ``self.train_metrics`` or ``self.validation_metrics``.
+            true (Batch): true values.
+            pred (Batch): predicted values.
+            logger_step (int): global step to pass to the logger.
+            stage (str): 'train', 'validation'...
+
+        Returns:
+            Dict[str, Any]: metric values.
+        """
+        m_values = {}
+        for m_name, metric in self.metrics.items():
+            # metric = metric.to(self.device)
+            m_val = metric(pred, true).detach().cpu().numpy()
+            self.log(
+                item=m_val,
+                identifier=f'{stage}_{m_name}',
+                kind='metric',
+                step=logger_step,
+                batch_idx=batch_idx
+            )
+            m_values[m_name] = m_val
+        return m_values
+
     def train(self):
         """Trains a machine learning model.
         Main training loop/logic.
@@ -504,6 +541,7 @@ class TorchTrainer(Trainer, LogMixin):
                         ckpt_name = "best_model.pth"
                         self.save_checkpoint(
                             name=ckpt_name, epoch=epoch, loss=avg_loss)
+                        best_loss = avg_loss
 
             if self.test_every and epoch_n % self.test_every == 0:
                 self.test_epoch()
@@ -514,42 +552,48 @@ class TorchTrainer(Trainer, LogMixin):
                 ckpt_name = f"epoch_{epoch}.pth"
                 self.save_checkpoint(name=ckpt_name, epoch=epoch)
 
-    def compute_metrics(
-        self,
-        true: Batch,
-        pred: Batch,
-        logger_step: int,
-        batch_idx: Optional[int],
-        stage: str = 'train'
-    ) -> Dict[str, Any]:
-        """Compute and log metrics.
-
-        Args:
-            metrics (Dict[str, Metric]): metrics dict. Can be
-                ``self.train_metrics`` or ``self.validation_metrics``.
-            true (Batch): true values.
-            pred (Batch): predicted values.
-            logger_step (int): global step to pass to the logger.
-            stage (str): 'train', 'validation'...
+    def train_epoch(self) -> Loss:
+        """Perform a complete sweep over the training dataset, completing an
+        epoch of training.
 
         Returns:
-            Dict[str, Any]: metric values.
+            Loss: average training loss for the current epoch.
         """
-        m_values = {}
-        for m_name, metric in self.metrics.items():
-            # metric = metric.to(self.device)
-            m_val = metric(pred, true).detach().cpu().numpy()
-            self.log(
-                item=m_val,
-                identifier=f'{m_name}_{stage}',
-                kind='metric',
-                step=logger_step,
+        self.model.train()
+        train_losses = []
+        train_metrics = []
+        for batch_idx, train_batch in enumerate(self.train_dataloader):
+            loss, metrics = self.train_step(
+                batch=train_batch,
                 batch_idx=batch_idx
             )
-            m_values[m_name] = m_val
-        return m_values
+            train_losses.append(loss)
+            train_metrics.append(metrics)
 
-    def training_step(
+            # Important: update counter
+            self.train_glob_step += 1
+
+        # Aggregate and log losses
+        avg_loss = torch.mean(torch.stack(train_losses)).detach().cpu()
+        self.log(
+            item=avg_loss.item(),
+            identifier='train_loss_epoch',
+            kind='metric',
+            step=self.train_glob_step,
+        )
+        # Aggregate and log metrics
+        avg_metrics = pd.DataFrame(train_metrics).mean().to_dict()
+        for m_name, m_val in avg_metrics.items():
+            self.log(
+                item=m_val,
+                identifier='train_' + m_name + '_epoch',
+                kind='metric',
+                step=self.train_glob_step,
+            )
+
+        return avg_loss
+
+    def train_step(
         self,
         batch: Batch,
         batch_idx: int
@@ -567,11 +611,17 @@ class TorchTrainer(Trainer, LogMixin):
         """
         x, y = batch
         x, y = x.to(self.device), y.to(self.device)
+
+        self.optimizer.zero_grad()
         pred_y = self.model(x)
-        loss: Loss = self.loss(pred_y, y)
+        loss = self.loss(pred_y, y)
+        loss.backward()
+        self.optimizer.step()
+
+        # Log metrics
         self.log(
             item=loss.item(),
-            identifier='training_loss',
+            identifier='train_loss',
             kind='metric',
             step=self.train_glob_step,
             batch_idx=batch_idx
@@ -581,9 +631,54 @@ class TorchTrainer(Trainer, LogMixin):
             pred=pred_y,
             logger_step=self.train_glob_step,
             batch_idx=batch_idx,
-            stage='training'
+            stage='train'
         )
         return loss, metrics
+
+    def validation_epoch(self) -> Loss:
+        """Perform a complete sweep over the validation dataset, completing an
+        epoch of validation.
+
+        Returns:
+            Loss: average validation loss for the current epoch.
+        """
+        if self.validation_dataloader is not None:
+            self.model.eval()
+            validation_losses = []
+            validation_metrics = []
+            for batch_idx, val_batch \
+                    in enumerate(self.validation_dataloader):
+                loss, metrics = self.validation_step(
+                    batch=val_batch,
+                    batch_idx=batch_idx
+                )
+                validation_losses.append(loss)
+                validation_metrics.append(metrics)
+
+                # Important: update counter
+                self.validation_glob_step += 1
+
+            # Aggregate and log losses
+            avg_loss = torch.mean(
+                torch.stack(validation_losses)
+            ).detach().cpu()
+            self.log(
+                item=avg_loss.item(),
+                identifier='validation_loss_epoch',
+                kind='metric',
+                step=self.validation_glob_step,
+            )
+            # Aggregate and log metrics
+            avg_metrics = pd.DataFrame(validation_metrics).mean().to_dict()
+            for m_name, m_val in avg_metrics.items():
+                self.log(
+                    item=m_val,
+                    identifier='validation_' + m_name + '_epoch',
+                    kind='metric',
+                    step=self.validation_glob_step,
+                )
+
+            return avg_loss
 
     def validation_step(
         self,
@@ -622,76 +717,30 @@ class TorchTrainer(Trainer, LogMixin):
         )
         return loss, metrics
 
-    def train_epoch(self) -> Loss:
-        """Perform a complete sweep over the training dataset, completing an
-        epoch of training.
+    def test_epoch(self) -> Loss:
+        """Perform a complete sweep over the test dataset, completing an
+        epoch of test.
 
         Returns:
-            Loss: average training loss for the current epoch.
+            Loss: average test loss for the current epoch.
         """
-        self.model.train()
-        train_losses = []
-        for batch_idx, train_batch in enumerate(self.train_dataloader):
-            loss, metrics = self.training_step(
-                batch=train_batch,
-                batch_idx=batch_idx
-            )
-            # TODO: merge and log batch metrics and loss into epoch metrics
-            self.optimizer.zero_grad()
-            loss.backward()
-            self.optimizer.step()
-            train_losses.append(loss)
-            # Important: update counter
-            self.train_glob_step += 1
+        raise NotImplementedError()
 
-        # Aggregate and log losses
-        avg_loss = torch.mean(torch.stack(train_losses)).detach().cpu()
-        self.log(
-            item=avg_loss.item(),
-            identifier='training_loss_epoch',
-            kind='metric',
-            step=self.train_glob_step,
-        )
-        return avg_loss
+    def test_step(
+        self,
+        batch: Batch,
+        batch_idx: int
+    ) -> Tuple[Loss, Dict[str, Any]]:
+        """Perform a single predictions step using a batch sampled from the
+        test dataset.
 
-    def validation_epoch(self) -> Loss:
-        """Perform a complete sweep over the validation dataset, completing an
-        epoch of validation.
+        Args:
+            batch (Batch): batch sampled by a dataloader.
+            batch_idx (int): batch index in the dataloader.
 
         Returns:
-            Loss: average validation loss for the current epoch.
-        """
-        if self.validation_dataloader is not None:
-            self.model.eval()
-            validation_losses = []
-            for batch_idx, val_batch \
-                    in enumerate(self.validation_dataloader):
-                # TODO: merge and log batch metrics and loss into epoch metrics
-                loss, metrics = self.validation_step(
-                    batch=val_batch,
-                    batch_idx=batch_idx
-                )
-                validation_losses.append(loss)
-                # Important: update counter
-                self.validation_glob_step += 1
-
-            # Aggregate and log losses
-            avg_loss = torch.mean(
-                torch.stack(validation_losses)
-            ).detach().cpu()
-            self.log(
-                item=avg_loss.item(),
-                identifier='validation_loss_epoch',
-                kind='metric',
-                step=self.validation_glob_step,
-            )
-            return avg_loss
-
-    def test_epoch(self):
-        """Test epoch not implemented yet.
-
-        Raises:
-            NotImplementedError: not implemented yet.
+            Tuple[Loss, Dict[str, Any]]: batch loss and dictionary of metric
+            values with the same structure of ``self.metrics``.
         """
         raise NotImplementedError()
 
@@ -748,7 +797,7 @@ class TorchLightningTrainer(Trainer):
         teardown_lightning_mlflow()
 
 
-def preproc_dataloader(dataloader: DataLoader, gwsize, grank):
+def _distributed_dataloader(dataloader: DataLoader, gwsize, grank):
     """Makes a Dataloader distributed."""
     sampler = DistributedSampler(
         dataloader.dataset,
@@ -808,9 +857,10 @@ def distributed(func):
         model = model.to(device)
         model = DDP(model, device_ids=[device], output_device=device)
 
-        train_dataloader = preproc_dataloader(train_dataloader, gwsize, grank)
+        train_dataloader = _distributed_dataloader(
+            train_dataloader, gwsize, grank)
         if validation_dataloader is not None:
-            validation_dataloader = preproc_dataloader(
+            validation_dataloader = _distributed_dataloader(
                 validation_dataloader, gwsize, grank)
 
         try:
