@@ -8,8 +8,8 @@ from itwinai.components import (
 
 
 """
-New components are defined as classes inheriting from the BaseComponent class or
-an already defined component.
+New components are defined as classes inheriting from the BaseComponent class
+or an already defined component.
 """
 
 
