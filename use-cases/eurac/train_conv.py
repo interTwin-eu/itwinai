@@ -262,28 +262,19 @@ if __name__ == "__main__":
 
     # === SAMPLER ===================================================================
 
-    if DISTRIBUTED:
-        # TODO: change with distributed sampler from Iacopo
-        train_sampler_builder = DistributedSampler(dataset=train_dataset)
-        test_sampler_builder = DistributedSampler(dataset=test_dataset)
-    else:
-        train_sampler_builder = SamplerBuilder(sampling_method= "cubelets", 
-                                            minibatch_sampling="sequential", 
-                                            processing="single-gpu")
+    train_sampler_builder = SamplerBuilder(
+        train_dataset,
+        sampling="random", 
+        processing="multi-gpu" if DISTRIBUTED else "single-gpu")
 
-        test_sampler_builder = SamplerBuilder(sampling_method= "cubelets", 
-                                            minibatch_sampling="random", 
-                                            processing="single-gpu")
+    test_sampler_builder = SamplerBuilder(
+        test_dataset,
+        sampling="sequential", 
+        processing="multi-gpu" if DISTRIBUTED else "single-gpu")
 
-        train_sampler_builder.initialize(
-            train_dataset
-        ) 
-        test_sampler_builder.initialize(
-            test_dataset
-        )
 
-        train_sampler = train_sampler_builder.get_sampler()
-        test_sampler = test_sampler_builder.get_sampler()
+    train_sampler = train_sampler_builder.get_sampler()
+    test_sampler = test_sampler_builder.get_sampler()
     
 
     # === DATA LOADER ===================================================================

@@ -271,27 +271,16 @@ if __name__ == "__main__":
 
     # === SAMPLER ============================================================
 
-    if DISTRIBUTED:
-        # TODO: change with distributed sampler from Iacopo
-        train_sampler_builder = DistributedSampler(dataset=train_dataset)
-        test_sampler_builder = DistributedSampler(dataset=test_dataset)
+    train_sampler_builder = SamplerBuilder(
+        train_dataset,
+        sampling="random", 
+        processing="multi-gpu" if DISTRIBUTED else "single-gpu")
 
-    else:
-        train_sampler_builder = SamplerBuilder(sampling_method= "default", 
-                                                minibatch_sampling="random", 
-                                                processing="single-gpu")
+    test_sampler_builder = SamplerBuilder(
+        test_dataset,
+        sampling="sequential", 
+        processing="multi-gpu" if DISTRIBUTED else "single-gpu")
 
-        test_sampler_builder = SamplerBuilder(sampling_method= "default", 
-                                                minibatch_sampling="sequential", 
-                                                processing="single-gpu")
-
-    # Initialize samplers, remove indices equivalent to missing values
-    train_sampler_builder.initialize(
-        train_dataset.grid_idx_1d_valid
-    )
-    test_sampler_builder.initialize(
-        test_dataset.grid_idx_1d_valid
-    )
 
     train_sampler = train_sampler_builder.get_sampler()
     test_sampler = test_sampler_builder.get_sampler()

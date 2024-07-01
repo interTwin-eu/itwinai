@@ -167,20 +167,17 @@ if __name__ == "__main__":
 
     # === SAMPLER ===================================================================
 
-    train_sampler_builder = SamplerBuilder(sampling_method= "default", 
-                                            minibatch_sampling="random", 
-                                            processing="single-gpu")
 
-    test_sampler_builder = SamplerBuilder(sampling_method= "default", 
-                                            minibatch_sampling="sequential", 
-                                            processing="single-gpu")
-    
-    train_sampler_builder.initialize(
-        train_dataset
-    )
-    test_sampler_builder.initialize(
-        test_dataset
-    )
+    train_sampler_builder = SamplerBuilder(
+        train_dataset,
+        sampling="random", 
+        processing="single-gpu")
+
+    test_sampler_builder = SamplerBuilder(
+        test_dataset,
+        sampling="sequential", 
+        processing="single-gpu")
+
 
     train_sampler = train_sampler_builder.get_sampler()
     test_sampler = test_sampler_builder.get_sampler()
