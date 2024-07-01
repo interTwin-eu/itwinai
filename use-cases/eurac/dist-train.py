@@ -16,7 +16,7 @@ from hython.datasets.datasets import get_dataset
 # override below
 # from hython.trainer import train_val
 
-from hython.sampler import SamplerBuilder
+from hython.sampler import SamplerBuilder, RegularIntervalDownsampler
 from hython.metrics import MSEMetric
 from hython.losses import RMSELoss
 from hython.utils import read_from_zarr, set_seed
@@ -76,13 +76,15 @@ TARGET_WEIGHTS = {t: 1/len(target_names) for t in target_names}
 
 # === SAMPLER/TRAINER ========================================================
 
+DISTRIBUTED = True
+
 SEED = 1696
 EPOCHS = 20
 BATCH = 256
 TEMPORAL_SUBSAMPLING = True
 TEMPORAL_SUBSET = [150, 150]
 SEQ_LENGTH = 60
-DISTRIBUTED = True
+
 
 assert sum(v for v in TARGET_WEIGHTS.values()) == 1, "check target weights"
 
@@ -222,16 +224,49 @@ if __name__ == "__main__":
         .any(dim="mask_layer")
     )
 
-    # === DATASET ===========================================================
+    # === DOWNSAMPLING =================================================================
+
+    if DONWSAMPLING:
+       train_downsampler = RegularIntervalDownsampler(
+            intervals=[3,3], origin=[0,0]
+        )       
+       test_downsampler = RegularIntervalDownsampler(
+            intervals=[3,3], origin=[2,2]
+        )
+    else:
+        train_downsampler,test_downsampler = None,None
+
+    # === NORMALIZE ======================================================================
+
+    normalizer_dynamic = Normalizer(method="standardize", type="spacetime", axis_order = "NTC", save_stats= f"{TMP_STATS}/xd.npy")
+    normalizer_static = Normalizer(method="standardize", type="space", axis_order = "NTC", save_stats= f"{TMP_STATS}/xs.npy")
+    normalizer_target = Normalizer(method="standardize", type="spacetime", axis_order = "NTC", save_stats= f"{TMP_STATS}/y.npy")
+
+
+
+    # === DATSET =======================================================================
 
     train_dataset = get_dataset(DATASET)(
-        torch.Tensor(Xd.values), torch.Tensor(
-            Y.values), torch.Tensor(Xs.values)
+            Xd.values,
+            Y.values,
+            Xs.values,
+            original_domain_shape=SHAPE,
+            mask = masks,
+            downsampler = train_downsampler,
+            normalizer_dynamic = normalizer_dynamic,
+            normalizer_static = normalizer_static,
+            normalizer_target = normalizer_target
     )
     test_dataset = get_dataset(DATASET)(
-        torch.Tensor(Xd_test.values),
-        torch.Tensor(Y_test.values),
-        torch.Tensor(Xs.values),
+            Xd_test.values,
+            Y_test.values,
+            Xs.values,
+            original_domain_shape=SHAPE,
+            mask = masks,
+            downsampler = test_downsampler,
+            normalizer_dynamic = normalizer_dynamic,
+            normalizer_static = normalizer_static,
+            normalizer_target = normalizer_target
     )
 
     # === SAMPLER ============================================================
@@ -241,72 +276,27 @@ if __name__ == "__main__":
         train_sampler_builder = DistributedSampler(dataset=train_dataset)
         test_sampler_builder = DistributedSampler(dataset=test_dataset)
 
-    elif DONWSAMPLING:
-        train_sampler_builder = SamplerBuilder(
-            sampling_method="downsampling_regular",
-            sampling_method_kwargs={
-                "intervals": [4, 4], "origin": [0, 0]},
-            minibatch_sampling="random",
-            processing="single-gpu")
-
-        test_sampler_builder = SamplerBuilder(
-            sampling_method="downsampling_regular",
-            sampling_method_kwargs={
-                "intervals": [4, 4], "origin": [2, 2]},
-            minibatch_sampling="sequential",
-            processing="single-gpu")
     else:
-        train_sampler_builder = SamplerBuilder(
-            sampling_method="default",
-            minibatch_sampling="random",
-            processing="single-gpu")
+        train_sampler_builder = SamplerBuilder(sampling_method= "default", 
+                                                minibatch_sampling="random", 
+                                                processing="single-gpu")
 
-        test_sampler_builder = SamplerBuilder(
-            sampling_method="default",
-            minibatch_sampling="sequential",
-            processing="single-gpu")
+        test_sampler_builder = SamplerBuilder(sampling_method= "default", 
+                                                minibatch_sampling="sequential", 
+                                                processing="single-gpu")
 
     # Initialize samplers, remove indices equivalent to missing values
     train_sampler_builder.initialize(
-        shape=SHAPE, mask_missing=masks.values,
+        train_dataset.grid_idx_1d_valid
     )
     test_sampler_builder.initialize(
-        shape=SHAPE, mask_missing=masks.values,
+        test_dataset.grid_idx_1d_valid
     )
 
     train_sampler = train_sampler_builder.get_sampler()
     test_sampler = test_sampler_builder.get_sampler()
 
-    # === NORMALIZER =========================================================
 
-    normalizer_dynamic = Normalizer(
-        method="standardize", type="spacetime", shape="1D")
-
-    normalizer_static = Normalizer(
-        method="standardize", type="space", shape="1D")
-
-    normalizer_target = Normalizer(
-        method="standardize", type="spacetime", shape="1D")
-
-    # TODO: precompute and pass statistics as parameters
-    normalizer_dynamic.compute_stats(Xd[train_sampler_builder.indices])
-    normalizer_static.compute_stats(Xs[train_sampler_builder.indices])
-    normalizer_target.compute_stats(Y[train_sampler_builder.indices])
-
-    # save statistics to disk
-    Xd = normalizer_dynamic.normalize(Xd, write_to=f"{TMP_STATS}/xd.npy")
-    Xs = normalizer_static.normalize(Xs, write_to=f"{TMP_STATS}/xs.npy")
-    Y = normalizer_target.normalize(Y, write_to=f"{TMP_STATS}/y.npy")
-
-    # normalize test
-    Xd_test = normalizer_dynamic.normalize(Xd_test)
-    Y_test = normalizer_target.normalize(Y_test)
-
-    # # === DATA LOADER ======================================================
-    # train_loader = DataLoader(
-    #     train_dataset, batch_size=BATCH, sampler=train_sampler)
-    # test_loader = DataLoader(
-    #     test_dataset, batch_size=BATCH, sampler=test_sampler)
 
     # === MODEL OPTIM LOSS ================================================
 
@@ -375,33 +365,22 @@ if __name__ == "__main__":
 
         lepochs = list(range(1, EPOCHS + 1))
 
-        fig, axs = plt.subplots(len(target_names) + 1, 1,
-                                figsize=(12, 10), sharex=True)
+        fig, axs = plt.subplots(len(target_names) +1, 1, figsize= (12,10), sharex=True)
+
+        axs[0].plot(lepochs, [i.detach().cpu().numpy() for i in loss_history['train']], marker='.', linestyle='-', color='b', label='Training')
+        axs[0].plot(lepochs, [i.detach().cpu().numpy() for i in loss_history['val']], marker='.', linestyle='-', color='r', label='Validation')
+        axs[0].set_title('Loss')
+        axs[0].set_ylabel(loss_fn.__name__)
+        axs[0].grid(True)
+        axs[0].legend(bbox_to_anchor=(1,1))
 
         for i, variable in enumerate(target_names):
-            axs[i].plot(
-                lepochs, metric_history[f'train_{variable}'],
-                marker='.', linestyle='-', color='b', label='Training')
-            axs[i].plot(
-                lepochs, metric_history[f'val_{variable}'],
-                marker='.', linestyle='-', color='r', label='Validation')
-            axs[i].set_title(variable)
-            axs[i].set_ylabel(metric_fn.__class__.__name__)
-            axs[i].grid(True)
-            axs[i].legend(bbox_to_anchor=(1, 1))
-
-        axs[i+1].plot(
-            lepochs, [i.detach().cpu().numpy() for i in loss_history['train']],
-            marker='.', linestyle='-', color='b', label='Training')
-        axs[i+1].plot(
-            lepochs, [i.detach().cpu().numpy() for i in loss_history['val']],
-            marker='.', linestyle='-', color='r', label='Validation')
-        axs[i+1].set_title('Loss')
-        axs[i+1].set_xlabel('Epochs')
-        axs[i+1].set_ylabel(loss_fn.__name__)
-        axs[i+1].grid(True)
-        axs[i+1].legend(bbox_to_anchor=(1, 1))
-        plt.show()
+            axs[i+1].plot(lepochs, metric_history[f'train_{variable}'], marker='.', linestyle='-', color='b', label='Training')
+            axs[i+1].plot(lepochs, metric_history[f'val_{variable}'], marker='.', linestyle='-', color='r', label='Validation')
+            axs[i+1].set_title(variable)
+            axs[i+1].set_ylabel(metric_fn.__class__.__name__)
+            axs[i+1].grid(True)
+            axs[i+1].legend(bbox_to_anchor=(1,1))
 
     # End distributed
     strategy.clean_up()

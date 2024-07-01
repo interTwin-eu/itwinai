@@ -14,7 +14,7 @@ from torch.utils.data import DataLoader
 
 from hython.datasets.datasets import get_dataset
 from hython.trainer import train_val
-from hython.sampler import SamplerBuilder
+from hython.sampler import SamplerBuilder, RegularIntervalDownsampler
 from hython.metrics import MSEMetric
 from hython.losses import RMSELoss
 from hython.utils import read_from_zarr, set_seed
@@ -24,8 +24,6 @@ from hython.normalizer import Normalizer
 
 
 import matplotlib.pyplot as plt
-
-
 
 # PARAMETERS 
 
@@ -47,7 +45,7 @@ dynamic_names = ["precip", "pet", "temp"]
 static_names = [ 'thetaS', 'thetaR', 'RootingDepth', 'Swood','KsatVer', "Sl"] 
 target_names = [ "vwc", "actevap"]
 
-DONWSAMPLING = False
+DONWSAMPLING = True
 
 # === MASK ========================================================================================
 
@@ -123,71 +121,70 @@ if __name__ == "__main__":
         .any(dim="mask_layer")
     )
 
-    # === SAMPLER ===================================================================
+    # === DOWNSAMPLING =================================================================
 
     if DONWSAMPLING:
-        train_sampler_builder = SamplerBuilder(sampling_method= "downsampling_regular", 
-                                            sampling_method_kwargs = {"intervals": [4,4], "origin": [0, 0]},
-                                            minibatch_sampling="random", 
-                                            processing="single-gpu")
-
-        test_sampler_builder = SamplerBuilder(sampling_method= "downsampling_regular", 
-                                            sampling_method_kwargs = {"intervals": [4,4], "origin": [2, 2]}, 
-                                            minibatch_sampling="sequential", 
-                                            processing="single-gpu")
+       train_downsampler = RegularIntervalDownsampler(
+            intervals=[3,3], origin=[0,0]
+        )       
+       test_downsampler = RegularIntervalDownsampler(
+            intervals=[3,3], origin=[2,2]
+        )
     else:
-        train_sampler_builder = SamplerBuilder(sampling_method= "default", 
+        train_downsampler,test_downsampler = None,None
+
+    # === NORMALIZE ======================================================================
+
+    normalizer_dynamic = Normalizer(method="standardize", type="spacetime", axis_order = "NTC", save_stats= f"{TMP_STATS}/xd.npy")
+    normalizer_static = Normalizer(method="standardize", type="space", axis_order = "NTC", save_stats= f"{TMP_STATS}/xs.npy")
+    normalizer_target = Normalizer(method="standardize", type="spacetime", axis_order = "NTC", save_stats= f"{TMP_STATS}/y.npy")
+
+
+    # === DATSET =======================================================================
+
+    train_dataset = get_dataset(DATASET)(
+            Xd,
+            Y,
+            Xs,
+            original_domain_shape=SHAPE,
+            mask = masks,
+            downsampler = train_downsampler,
+            normalizer_dynamic = normalizer_dynamic,
+            normalizer_static = normalizer_static,
+            normalizer_target = normalizer_target
+    )
+    test_dataset = get_dataset(DATASET)(
+            Xd_test,
+            Y_test,
+            Xs,
+            original_domain_shape=SHAPE,
+            mask = masks,
+            downsampler = test_downsampler,
+            normalizer_dynamic = normalizer_dynamic,
+            normalizer_static = normalizer_static,
+            normalizer_target = normalizer_target
+    )
+
+    # === SAMPLER ===================================================================
+
+    train_sampler_builder = SamplerBuilder(sampling_method= "default", 
                                             minibatch_sampling="random", 
                                             processing="single-gpu")
 
-        test_sampler_builder = SamplerBuilder(sampling_method= "default", 
+    test_sampler_builder = SamplerBuilder(sampling_method= "default", 
                                             minibatch_sampling="sequential", 
                                             processing="single-gpu")
     
-    # Initialize samplers, remove indices equivalent to missing values
     train_sampler_builder.initialize(
-        shape=SHAPE, mask_missing=masks.values, 
+        train_dataset
     )
     test_sampler_builder.initialize(
-        shape=SHAPE, mask_missing=masks.values, 
+        test_dataset
     )
 
     train_sampler = train_sampler_builder.get_sampler()
     test_sampler = test_sampler_builder.get_sampler()
 
-
-    # === NORMALIZER ===================================================================
-
-    normalizer_dynamic = Normalizer(method="standardize", type="spacetime", shape="1D")
-
-    normalizer_static = Normalizer(method="standardize", type="space", shape="1D")
-
-    normalizer_target = Normalizer(method="standardize", type="spacetime", shape="1D")
-
-    # TODO: precompute and pass statistics as parameters
-    normalizer_dynamic.compute_stats(Xd[train_sampler_builder.indices])
-    normalizer_static.compute_stats(Xs[train_sampler_builder.indices])
-    normalizer_target.compute_stats(Y[train_sampler_builder.indices])
-
-    # save statistics to disk
-    Xd = normalizer_dynamic.normalize(Xd, write_to = f"{TMP_STATS}/xd.npy")
-    Xs = normalizer_static.normalize(Xs, write_to = f"{TMP_STATS}/xs.npy")
-    Y = normalizer_target.normalize(Y, write_to = f"{TMP_STATS}/y.npy")
-
-    # normalize test
-    Xd_test = normalizer_dynamic.normalize(Xd_test)
-    Y_test = normalizer_target.normalize(Y_test)
-
-    # === DATASET ===================================================================
-
-    train_dataset = get_dataset(DATASET)(
-    torch.Tensor(Xd.values), torch.Tensor(Y.values), torch.Tensor(Xs.values)
-    )
-    test_dataset = get_dataset(DATASET)(
-        torch.Tensor(Xd_test.values),
-        torch.Tensor(Y_test.values),
-        torch.Tensor(Xs.values),
-    )
 
     # === DATA LOADER ===================================================================
 
@@ -214,7 +211,6 @@ if __name__ == "__main__":
 
     loss_fn = RMSELoss(target_weight=TARGET_WEIGHTS)
     metric_fn = MSEMetric(target_names=target_names)
-
 
     trainer = RNNTrainer(
         RNNTrainParams(
@@ -244,19 +240,17 @@ if __name__ == "__main__":
 
     fig, axs = plt.subplots(len(target_names) +1, 1, figsize= (12,10), sharex=True)
 
-    for i, variable in enumerate(target_names):
-        axs[i].plot(lepochs, metric_history[f'train_{variable}'], marker='.', linestyle='-', color='b', label='Training')
-        axs[i].plot(lepochs, metric_history[f'val_{variable}'], marker='.', linestyle='-', color='r', label='Validation')
-        axs[i].set_title(variable)
-        axs[i].set_ylabel(metric_fn.__class__.__name__)
-        axs[i].grid(True)
-        axs[i].legend(bbox_to_anchor=(1,1))
+    axs[0].plot(lepochs, [i.detach().cpu().numpy() for i in loss_history['train']], marker='.', linestyle='-', color='b', label='Training')
+    axs[0].plot(lepochs, [i.detach().cpu().numpy() for i in loss_history['val']], marker='.', linestyle='-', color='r', label='Validation')
+    axs[0].set_title('Loss')
+    axs[0].set_ylabel(loss_fn.__name__)
+    axs[0].grid(True)
+    axs[0].legend(bbox_to_anchor=(1,1))
 
-    axs[i+1].plot(lepochs, [i.detach().cpu().numpy() for i in loss_history['train']], marker='.', linestyle='-', color='b', label='Training')
-    axs[i+1].plot(lepochs, [i.detach().cpu().numpy() for i in loss_history['val']], marker='.', linestyle='-', color='r', label='Validation')
-    axs[i+1].set_title('Loss')
-    axs[i+1].set_xlabel('Epochs')
-    axs[i+1].set_ylabel(loss_fn.__name__)
-    axs[i+1].grid(True)
-    axs[i+1].legend(bbox_to_anchor=(1,1))
-    plt.show()
+    for i, variable in enumerate(target_names):
+        axs[i+1].plot(lepochs, metric_history[f'train_{variable}'], marker='.', linestyle='-', color='b', label='Training')
+        axs[i+1].plot(lepochs, metric_history[f'val_{variable}'], marker='.', linestyle='-', color='r', label='Validation')
+        axs[i+1].set_title(variable)
+        axs[i+1].set_ylabel(metric_fn.__class__.__name__)
+        axs[i+1].grid(True)
+        axs[i+1].legend(bbox_to_anchor=(1,1))
