@@ -247,9 +247,9 @@ if __name__ == "__main__":
     # === DATSET =======================================================================
 
     train_dataset = get_dataset(DATASET)(
-            Xd.values,
-            Y.values,
-            Xs.values,
+            Xd,
+            Y,
+            Xs,
             original_domain_shape=SHAPE,
             mask = masks,
             downsampler = train_downsampler,
@@ -258,9 +258,9 @@ if __name__ == "__main__":
             normalizer_target = normalizer_target
     )
     test_dataset = get_dataset(DATASET)(
-            Xd_test.values,
-            Y_test.values,
-            Xs.values,
+            Xd_test,
+            Y_test,
+            Xs,
             original_domain_shape=SHAPE,
             mask = masks,
             downsampler = test_downsampler,
