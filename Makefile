@@ -24,6 +24,14 @@ tensorflow-env-cpu: env-files/tensorflow/generic_tf.sh
 		bash -c 'bash env-files/tensorflow/generic_tf.sh'
 	@#.venv-tf/bin/horovodrun --check-build
 
+# Install PyTorch env (GPU support) on Vega Super Computer
+torch-env-vega: env-files/torch/createEnvVega.sh env-files/torch/generic_torch.sh
+	sh env-files/torch/createEnvVega.sh
+
+# Install TensorFlow env (GPU support) on Vega Super Computer
+tf-env-vega: env-files/tensorflow/createEnvVegaTF.sh env-files/tensorflow/generic_tf.sh
+	sh env-files/tensorflow/createEnvVegaTF.sh
+
 test:
 	.venv-pytorch/bin/pytest -v tests/ -m "not slurm"
 

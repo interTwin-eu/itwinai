@@ -41,16 +41,16 @@ if [ "$cont1" = true ] ; then
     source envAItf_${sysN}/bin/activate
   else
     # create env
-    python3 -m venv envAItf_${sysN}
+    python -m venv envAItf_${sysN}
 
     # get headers for pip
-    if [ -f "${cDir}/envAItf_${sysN}/bin/pip3" ]; then
+    if [ -f "${cDir}/envAItf_${sysN}/bin/pip" ]; then
       echo 'pip already exist'
     else
-      cp "$(which pip3)" $cDir/envAItf_${sysN}/bin/
-      ln -s $cDir/envAItf_${sysN}/bin/pip3 $cDir/envAItf_${sysN}/bin/pip${pver}
+      cp "$(which pip)" $cDir/envAItf_${sysN}/bin/
+      ln -s $cDir/envAItf_${sysN}/bin/pip $cDir/envAItf_${sysN}/bin/pip${pver}
       var="#!$cDir/envAItf_${sysN}/bin/python${pver}"
-      sed -i "1s|.*|$var|" $cDir/envAItf_${sysN}/bin/pip3
+      sed -i "1s|.*|$var|" $cDir/envAItf_${sysN}/bin/pip
     fi
 
     # activate env
@@ -71,11 +71,11 @@ source $ENV_NAME/bin/activate
 if [ -f "${cDir}/envAI_${sysN}/bin/jube" ]; then
   echo 'JUBE already installed'
 else
-  pip3 install --no-cache-dir http://apps.fz-juelich.de/jsc/jube/jube2/download.php?version=latest
+  pip install --no-cache-dir http://apps.fz-juelich.de/jsc/jube/jube2/download.php?version=latest
 fi
 
 # # get rest of the libraries$
 # if [ "$cont1" = true ] ; then
-#   pip3 install -r reqs_TF.txt #--ignore-installed
+#   pip install -r reqs_TF.txt #--ignore-installed
 # fi
 
