@@ -1,6 +1,7 @@
 """Default configuration"""
 
 from pydantic import BaseModel
+from typing import Literal
 
 
 class Configuration(BaseModel, extra='allow'):
@@ -40,14 +41,24 @@ class TrainingConfiguration(Configuration):
     shuffle_test: bool = False
     #: Whether to pin GPU memory. Property of torch ``DataLoader``.
     #: Defaults to False.
-    pin_memory: bool = False
+    pin_gpu_memory: bool = False
     #: Number of parallel workers used by torch ``DataLoader``.
     #: Defaults to 4.
-    num_workers: int = 4
+    num_workers_dataloader: int = 4
+    #: Loss function. Defaults to 'cross_entropy'
+    loss: Literal[
+        'mse',
+        'nllloss',
+        'cross_entropy'
+    ] = 'cross_entropy'
+    #: Name of the optimizer to use. Defaults to 'adam'.
+    optimizer: Literal['adadelta', 'adam', 'rmsprop', 'sgd'] = 'adam'
     #: Learning rate used by the optimizer. Defaults to 1e-3.
-    lr: float = 1e-3
+    optim_lr: float = 1e-3
     #: Momentum used by some optimizers (e.g., SGD). Defaults to 0.9.
-    momentum: float = .9
+    optim_momentum: float = .9
+    #: Weight decay parameter for the optimizer. Defaults to 0.
+    optim_weight_decay: float = .0
     #: Parameter of Horovod's ``DistributedOptimizer``: uses float16
     #: operations in the allreduce
     #: distributed gradients aggregation. Better performances at
