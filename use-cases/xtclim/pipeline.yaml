@@ -4,7 +4,8 @@ epochs: 3
 batch_size: 10
 lr: 0.001
 scenario: '245'
-strategy: 'ddp'
+strategy: ddp
+evaluation: 'past'
 
 # Workflows
 pipeline:
@@ -21,11 +22,24 @@ pipeline:
            init_args:
                scenario: ${scenario} 
          training-step:
-             #class_path: src.trainer_dist.XTClimTrainer
-           class_path: src.trainer.TorchTrainer
+           class_path: src.trainer.XTClimTrainer
            init_args:
                epochs: ${epochs}
                batch_size: ${batch_size}
                lr: ${lr}
-               #strategy: ${strategy}
-        
+               strategy: ${strategy}
+               logger:
+                 class_path: itwinai.loggers.LoggersCollection
+                 init_args:
+                   loggers:
+                     - class_path: itwinai.loggers.MLFlowLogger
+                       init_args:
+                         experiment_name: XTClim (Cerfacs)
+                         log_freq: epoch 
+                     - class_path: itwinai.loggers.WandBLogger
+                       init_args:
+                         log_freq: epoch
+         evaluation-step:
+           class_path: src.anomaly.XTClimPredictor
+           init_args:
+               evaluation: ${evaluation}

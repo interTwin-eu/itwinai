@@ -24,7 +24,16 @@ The file `train.py` trains the network. Caution: It will overwrite the weights o
 
 The `anomaly.py` file evaluates the network on the available datasets - train, test, and projection.
 
-## How to launch pipeline
+## Installation
+
+Please follow the documentation to install the itwinai environment.
+After that, install the required libraries with the itwinai environment with:
+
+```bash
+pip install -r Requirements.txt
+```
+
+## How to launch pipeline locally
 
 The config file `pipeline.yaml` contains all the steps to execute the workflow. You can launch it from the root of the repository with:
 
@@ -33,5 +42,28 @@ python train.py -p pipeline.yaml
 
 ```
 
-## TODOs
-Integration of post-processing step + distributed strategies
+## How to launch pipeline on an HPC system
+
+The `startscript` job script can be used to launch a pipeline with SLURM on an HPC system.
+These steps should be followed to export the environment variables required by the script.
+
+```bash
+# Distributed training with torch DistributedDataParallel
+PYTHON_VENV="../../envAI_hdfml"
+DIST_MODE="ddp"
+RUN_NAME="ddp-cerfacs"
+sbatch --export=ALL,DIST_MODE="$DIST_MODE",RUN_NAME="$RUN_NAME",PYTHON_VENV="$PYTHON_VENV" \
+    startscript
+```
+
+The results and/or errors are available in `job.out` and `job.err` log files.
+
+With MLFLow logger, the logs can be visualized in the MLFlow UI:
+
+```bash
+mlflow ui --backend-store-uri mllogs/mlflow
+
+# In background
+mlflow ui --backend-store-uri mllogs/mlflow > /dev/null 2>&1 &
+```
+
