@@ -37,6 +37,19 @@ A logger allows to save objects of different kinds:
    * - ``watch``
      - | WandB ``watch``: Hook into the torch model to collect gradients and
        | the topology. `More info`_.
+   * - ``flops_pb``
+     - Flops per batch, used by :class:`~itwinai.loggers.Prov4MLLogger`.
+   * - ``flops_pb``
+     - Flops per batch, used by :class:`~itwinai.loggers.Prov4MLLogger`.
+   * - ``flops_pe``
+     - Flops per epoch, used by :class:`~itwinai.loggers.Prov4MLLogger`.
+   * - ``system``
+     - System metrics, used by :class:`~itwinai.loggers.Prov4MLLogger`.
+   * - ``carbon``
+     - Carbon footprint information, used
+       by :class:`~itwinai.loggers.Prov4MLLogger`.
+   * - ``execution_time``
+     - Execution time, used by :class:`~itwinai.loggers.Prov4MLLogger`.
 
 .. _More info:
     https://docs.wandb.ai/ref/python/watch
@@ -47,11 +60,15 @@ import csv
 from abc import ABCMeta, abstractmethod
 from contextlib import contextmanager
 from typing import Any, Dict, List, Optional, Union, Literal, Tuple
+from typing_extensions import override
 import pickle
 import pathlib
 
 import wandb
 import mlflow
+import prov4ml
+from prov4ml.provenance.context import Context
+from prov4ml.datamodel.attribute_type import LoggingItemKind
 
 
 BASE_EXP_NAME: str = 'default_experiment'
@@ -773,6 +790,132 @@ class LoggersCollection(Logger):
         """
         for logger in self.loggers:
             logger.save_hyperparameters(params=params)
+
+
+class Prov4MLLogger(Logger):
+    """
+    Abstraction around Prov4ML logger.
+
+    Args:
+        name (Optional[str]): The name of the experiment.
+            Defaults to "lightning_logs".
+        version (Optional[Union[int, str]]): The version of the experiment.
+            Defaults to None.
+        prefix (str): The prefix for the experiment.
+            Defaults to an empty string.
+        flush_logs_every_n_steps (int): The number of steps after which logs
+            should be flushed. Defaults to 100.
+    """
+
+    #: Supported kinds in the ``log`` method
+    supported_kinds: Tuple[str] = (
+        'metric', 'flops_pb', 'flops_pe', 'system', 'carbon',
+        'execution_time', 'model', 'best_model',
+        'torch')
+
+    def __init__(
+        self,
+        prov_user_namespace="www.example.org",
+        experiment_name="experiment_name",
+        provenance_save_dir="prov",
+        collect_all_processes: Optional[bool] = False,
+        save_after_n_logs: Optional[int] = 100,
+        create_graph: Optional[bool] = True,
+        create_svg: Optional[bool] = True,
+    ) -> None:
+        super().__init__()
+        self.name = experiment_name
+        self.version = None
+        self.prov_user_namespace = prov_user_namespace
+        self.provenance_save_dir = provenance_save_dir
+        self.collect_all_processes = collect_all_processes
+        self.save_after_n_logs = save_after_n_logs
+        self.create_graph = create_graph
+        self.create_svg = create_svg
+
+    @override
+    def create_logger_context(self):
+        """
+        Initializes the logger context.
+        """
+        prov4ml.start_run(
+            prov_user_namespace=self.prov_user_namespace,
+            experiment_name=self.name,
+            provenance_save_dir=self.provenance_save_dir,
+            save_after_n_logs=self.save_after_n_logs,
+            collect_all_processes=self.collect_all_processes,
+        )
+
+    @override
+    def destroy_logger_context(self):
+        """
+        Destroys the logger context.
+        """
+        prov4ml.end_run(
+            create_graph=self.create_graph,
+            create_svg=self.create_svg)
+
+    @override
+    def save_hyperparameters(self, params: Dict[str, Any]) -> None:
+        # prov4ml.log_params(params)
+        pass
+
+    @override
+    def log(
+        self,
+        item: Union[Any, List[Any]],
+        identifier: Union[str, List[str]],
+        kind: Union[str, LoggingItemKind] = 'metric',
+        step: Optional[int] = None,
+        context: Optional[Context] = 'training',
+        **kwargs
+    ) -> None:
+        """Logs with Prov4ML.
+
+        Args:
+            item (Union[Any, List[Any]]): element to be logged (e.g., metric).
+            identifier (Union[str, List[str]]): unique identifier for the
+                element to log(e.g., name of a metric).
+            kind (str, optional): type of the item to be logged. Must be
+                one among the list of ``self.supported_kinds``.
+                Defaults to 'metric'.
+            step (Optional[int], optional): logging step. Defaults to None.
+            batch_idx (Optional[int], optional): DataLoader batch counter
+                (i.e., batch idx), if available. Defaults to None.
+            kwargs: keyword arguments to pass to the logger.
+        """
+
+        if kind == LoggingItemKind.METRIC.value:
+            prov4ml.log_metric(identifier, item, context, step=step)
+        elif kind == LoggingItemKind.FLOPS_PER_BATCH.value:
+            model, batch = item
+            prov4ml.log_flops_per_batch(
+                identifier, model=model,
+                batch=batch, context=context, step=step)
+        elif kind == LoggingItemKind.FLOPS_PER_EPOCH.value:
+            model, dataset = item
+            prov4ml.log_flops_per_epoch(
+                identifier, model=model,
+                dataset=dataset, context=context, step=step)
+        elif kind == LoggingItemKind.SYSTEM_METRIC.value:
+            prov4ml.log_system_metrics(context=context, step=step)
+        elif kind == LoggingItemKind.CARBON_METRIC.value:
+            prov4ml.log_carbon_metrics(context=context, step=step)
+        elif kind == LoggingItemKind.EXECUTION_TIME.value:
+            prov4ml.log_current_execution_time(identifier, context, step=step)
+        elif kind == 'model':  # LoggingItemKind.MODEL_VERSION.value:
+            prov4ml.save_model_version(item, identifier, context, step=step)
+        elif kind == 'best_model':
+            # LoggingItemKind.FINAL_MODEL_VERSION.value:
+            prov4ml.log_model(item, identifier, log_model_info=True,
+                              log_as_artifact=True)
+        elif kind == 'torch':  # LoggingItemKind.PARAMETER.value:
+            from torch.utils.data import DataLoader
+            if isinstance(item, DataLoader):
+                prov4ml.log_dataset(item, identifier)
+            else:
+                # log_param name is misleading and should be renamed...
+                prov4ml.log_param(identifier, item)
 
 
 class EpochTimeTracker:

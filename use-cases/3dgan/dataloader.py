@@ -11,6 +11,7 @@ import h5py
 import gdown
 
 from itwinai.components import DataGetter, monitor_exec
+from itwinai.loggers import Logger as BaseItwinaiLogger
 
 
 class Lightning3DGANDownloader(DataGetter):
@@ -158,17 +159,21 @@ class ParticlesDataset(Dataset):
 
 class ParticlesDataModule(pl.LightningDataModule):
     def __init__(
-            self,
-            datapath: str,
-            batch_size: int,
-            num_workers: int = 4,
-            max_samples: Optional[int] = None
+        self,
+        datapath: str,
+        batch_size: int,
+        num_workers: int = 4,
+        max_samples: Optional[int] = None
     ) -> None:
         super().__init__()
         self.batch_size = batch_size
         self.num_workers = num_workers
         self.datapath = datapath
         self.max_samples = max_samples
+
+    @property
+    def itwinai_logger(self) -> BaseItwinaiLogger:
+        return self.trainer.itwinai_logger
 
     def setup(self, stage: str = None):
         # make assignments here (val/train/test split)
