@@ -286,8 +286,7 @@ def kill_mlflow_server(
     import subprocess
 
     subprocess.run(
-        f"kill -9 $(lsof -t -i:{port})",
-        shell=True,
+        f"kill -9 $(lsof -t -i:{port})".split(),
         check=True,
         stderr=subprocess.DEVNULL
     )

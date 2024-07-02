@@ -1,14 +1,58 @@
-"""Abstraction layer for loggers."""
+"""
+``itwinai`` wrappers for well-known ML loggers.
+
+A logger allows to save objects of different kinds:
+
+.. list-table:: Logger kinds
+   :widths: 25 25
+   :header-rows: 1
+
+   * - Object ``kind``
+     - Description
+   * - ``metric``
+     - Number, usually representing a ML metric of interest (e.g., loss,
+       accuracy).
+   * - ``torch``
+     - PyTorch object (e.g., tensor).
+   * - ``artifact``
+     - File on the local filesystem to be stored by the logger.
+   * - ``figure``
+     - Matplotlib of Plotly figure
+   * - ``image``
+     - PIL image or numpy array storing an image.
+   * - ``param``
+     - | Hyper-parameter (e.g., learning rate, batch size, number of layers)
+       | as a primitive Python type.
+   * - ``text``
+     - Running text (string).
+   * - ``dict``
+     - Python dictionary.
+   * - ``model``
+     - ML model. At the moment only :class:`~torch.nn.Module` is supported.
+   * - ``best_model``
+     - Best ML model. At the moment only :class:`~torch.nn.Module` is
+       supported.
+   * - ``dataset``
+     - Dataset object (e.g., objects of type :class:`~mlflow.data.Dataset`).
+   * - ``watch``
+     - | WandB ``watch``: Hook into the torch model to collect gradients and
+       | the topology. `More info`_.
+
+.. _More info:
+    https://docs.wandb.ai/ref/python/watch
+"""
+
 import os
 import csv
 from abc import ABCMeta, abstractmethod
 from contextlib import contextmanager
-from typing import Any, Dict, List, Optional, Union, Literal
+from typing import Any, Dict, List, Optional, Union, Literal, Tuple
 import pickle
 import pathlib
 
 import wandb
 import mlflow
+
 
 BASE_EXP_NAME: str = 'default_experiment'
 
@@ -32,7 +76,7 @@ class LogMixin(metaclass=ABCMeta):
             identifier (Union[str, List[str]]): unique identifier for the
                 element to log(e.g., name of a metric).
             kind (str, optional): type of the item to be logged. Must be one
-                among the list of self.supported_types. Defaults to 'metric'.
+                among the list of self.supported_kinds. Defaults to 'metric'.
             step (Optional[int], optional): logging step. Defaults to None.
             batch_idx (Optional[int], optional): DataLoader batch counter
                 (i.e., batch idx), if available. Defaults to None.
@@ -63,7 +107,7 @@ class Logger(LogMixin, metaclass=ABCMeta):
     #: Location on filesystem where to store data.
     savedir: str = None
     #: Supported logging 'kind's.
-    supported_types: List[str]
+    supported_kinds: Tuple[str]
     _log_freq: Union[int, Literal['epoch', 'batch']]
 
     def __init__(
@@ -186,6 +230,9 @@ class ConsoleLogger(Logger):
             more details. Defaults to 'epoch'.
     """
 
+    #: Supported kinds in the ``log`` method
+    supported_kinds: Tuple[str] = ('torch', 'artifact', 'metric')
+
     def __init__(
         self,
         savedir: str = 'mllogs',
@@ -193,7 +240,6 @@ class ConsoleLogger(Logger):
     ) -> None:
         savedir = os.path.join(savedir, 'simple-logger')
         super().__init__(savedir=savedir, log_freq=log_freq)
-        self.supported_types = ['torch', 'artifact']
 
     def create_logger_context(self):
         """Initialize logger."""
@@ -232,7 +278,7 @@ class ConsoleLogger(Logger):
             identifier (Union[str, List[str]]): unique identifier for the
                 element to log(e.g., name of a metric).
             kind (str, optional): type of the item to be logged. Must be
-                one among the list of ``self.supported_types``.
+                one among the list of ``self.supported_kinds``.
                 Defaults to 'metric'.
             step (Optional[int], optional): logging step. Defaults to None.
             batch_idx (Optional[int], optional): DataLoader batch counter
@@ -249,6 +295,8 @@ class ConsoleLogger(Logger):
                     self.run_path,
                     identifier
                 )
+                if len(os.path.dirname(identifier)) > 0:
+                    os.makedirs(os.path.dirname(identifier), exist_ok=True)
                 print(f"ConsoleLogger: Serializing to {identifier}...")
                 shutil.copyfile(item, identifier)
             else:
@@ -285,6 +333,11 @@ class MLFlowLogger(Logger):
             more details. Defaults to 'epoch'.
     """
 
+    #: Supported kinds in the ``log`` method
+    supported_kinds: Tuple[str] = (
+        'metric', 'figure', 'image', 'artifact', 'torch', 'dict', 'param',
+        'text', 'model', 'dataset')
+
     #: Current MLFLow experiment's run.
     active_run: mlflow.ActiveRun
 
@@ -310,18 +363,19 @@ class MLFlowLogger(Logger):
         # TODO: for pytorch lightning:
         # mlflow.pytorch.autolog()
 
-        self.supported_types = [
-            'metric', 'figure', 'image', 'artifact', 'torch', 'dict', 'param',
-            'text'
-        ]
-
-    def create_logger_context(self):
+    def create_logger_context(self) -> mlflow.ActiveRun:
         """Initialize logger. Start MLFLow run."""
-        mlflow.set_tracking_uri(self.tracking_uri)
-        mlflow.set_experiment(experiment_name=self.experiment_name)
-        self.active_run: mlflow.ActiveRun = mlflow.start_run(
-            description=self.run_description
-        )
+        active_run = mlflow.active_run()
+        if active_run:
+            print("Detected an active MLFlow run. Attaching to it...")
+            self.active_run = active_run
+        else:
+            mlflow.set_tracking_uri(self.tracking_uri)
+            mlflow.set_experiment(experiment_name=self.experiment_name)
+            self.active_run: mlflow.ActiveRun = mlflow.start_run(
+                description=self.run_description
+            )
+        return self.active_run
 
     def destroy_logger_context(self):
         """Destroy logger. End current MLFlow run."""
@@ -352,7 +406,7 @@ class MLFlowLogger(Logger):
             identifier (Union[str, List[str]]): unique identifier for the
                 element to log(e.g., name of a metric).
             kind (str, optional): type of the item to be logged. Must be
-                one among the list of ``self.supported_types``.
+                one among the list of ``self.supported_kinds``.
                 Defaults to 'metric'.
             step (Optional[int], optional): logging step. Defaults to None.
             batch_idx (Optional[int], optional): DataLoader batch counter
@@ -380,6 +434,23 @@ class MLFlowLogger(Logger):
                 local_path=item,
                 artifact_path=identifier
             )
+        if kind == 'model':
+            import torch
+            if isinstance(item, torch.nn.Module):
+                mlflow.pytorch.log_model(item, identifier)
+            else:
+                print("WARNING: unrecognized model type")
+        if kind == 'dataset':
+            # Log mlflow dataset
+            # https://mlflow.org/docs/latest/python_api/mlflow.html#mlflow.log_input
+            # It may be needed to convert item into a mlflow dataset, e.g.:
+            # https://mlflow.org/docs/latest/python_api/mlflow.data.html#mlflow.data.from_pandas
+            # ATM delegated to the user
+            if isinstance(item, mlflow.data.Dataset):
+                mlflow.log_input(item)
+            else:
+                print("WARNING: unrecognized dataset type. "
+                      "Must be an MLFlow dataset")
         if kind == 'torch':
             import torch
             # Save the object locally and then log it
@@ -436,6 +507,11 @@ class WandBLogger(Logger):
 
     # TODO: add support for artifacts logging
 
+    #: Supported kinds in the ``log`` method
+    supported_kinds: Tuple[str] = (
+        'watch', 'metric', 'figure', 'image', 'torch', 'dict',
+        'param', 'text')
+
     def __init__(
         self,
         savedir: str = 'mllogs',
@@ -445,10 +521,6 @@ class WandBLogger(Logger):
         savedir = os.path.join(savedir, 'wandb')
         super().__init__(savedir=savedir, log_freq=log_freq)
         self.project_name = project_name
-        self.supported_types = [
-            'watch', 'metric', 'figure', 'image', 'torch', 'dict',
-            'param', 'text'
-        ]
 
     def create_logger_context(self):
         """Initialize logger. Init WandB run."""
@@ -485,7 +557,7 @@ class WandBLogger(Logger):
             identifier (Union[str, List[str]]): unique identifier for the
                 element to log(e.g., name of a metric).
             kind (str, optional): type of the item to be logged. Must be
-                one among the list of ``self.supported_types``.
+                one among the list of ``self.supported_kinds``.
                 Defaults to 'metric'.
             step (Optional[int], optional): ignored by ``WandBLogger``.
             batch_idx (Optional[int], optional): DataLoader batch counter
@@ -497,7 +569,7 @@ class WandBLogger(Logger):
 
         if kind == 'watch':
             wandb.watch(item)
-        if kind in self.supported_types[1:]:
+        elif kind in self.supported_kinds:
             # wandb.log({identifier: item}, step=step, commit=True)
             # Let WandB use its preferred step
             wandb.log({identifier: item}, commit=True)
@@ -525,6 +597,10 @@ class TensorBoardLogger(Logger):
     # TODO: decouple the logger into TorchTBLogger and TFTBLogger
     # and add the missing logging types supported by each.
 
+    #: Supported kinds in the ``log`` method
+    supported_kinds: Tuple[str] = (
+        'metric', 'image', 'text', 'figure', 'torch')
+
     def __init__(
         self,
         savedir: str = 'mllogs',
@@ -544,8 +620,6 @@ class TensorBoardLogger(Logger):
         else:
             raise ValueError(
                 "Framework must be either 'tensorflow' or 'pytorch'")
-        self.supported_types = ['metric', 'image',
-                                'text', 'figure', 'torch']
 
     def create_logger_context(self):
         """Initialize logger."""
@@ -586,7 +660,7 @@ class TensorBoardLogger(Logger):
             identifier (Union[str, List[str]]): unique identifier for the
                 element to log(e.g., name of a metric).
             kind (str, optional): type of the item to be logged. Must be
-                one among the list of ``self.supported_types``.
+                one among the list of ``self.supported_kinds``.
                 Defaults to 'metric'.
             step (Optional[int], optional): logging step. Defaults to None.
             batch_idx (Optional[int], optional): DataLoader batch counter
@@ -626,6 +700,9 @@ class LoggersCollection(Logger):
         loggers (List[Logger]): list of itwinai loggers.
     """
 
+    #: Supported kinds are delegated to the loggers in the collection.
+    supported_kinds: Tuple[str]
+
     def __init__(
         self,
         loggers: List[Logger]
@@ -662,7 +739,7 @@ class LoggersCollection(Logger):
             identifier (Union[str, List[str]]): unique identifier for the
                 element to log(e.g., name of a metric).
             kind (str, optional): type of the item to be logged. Must be
-                one among the list of ``self.supported_types``.
+                one among the list of ``self.supported_kinds``.
                 Defaults to 'metric'.
             step (Optional[int], optional): logging step. Defaults to None.
             batch_idx (Optional[int], optional): DataLoader batch counter
