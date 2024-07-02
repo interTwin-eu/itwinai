@@ -1,8 +1,8 @@
 import torch
 import torch.nn as nn
 
-
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+# Device is now obtained from itwinai backend
+#device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 # Mean-Squared Error as the average difference between the pixels
 # in the original image vs. the reconstructed one
