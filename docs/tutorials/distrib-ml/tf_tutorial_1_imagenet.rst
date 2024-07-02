@@ -1,5 +1,5 @@
-Tensorflow basics example
-=========================
+Tensorflow ImageNet example
+===========================
 
 Tutorial: distributed strategies for Tensorflow
 -----------------------------------------------
@@ -17,7 +17,6 @@ Tensorflow. You can *try* with:
     # Creates a Python venv called envAItf_hdfml
     make tf-gpu-jsc
 
-
 If you want to distribute the code in ``train.py``, run from terminal:
 
 .. code-block:: bash
@@ -28,13 +27,13 @@ If you want to distribute the code in ``train.py``, run from terminal:
 train.py
 ++++++++
 
-.. literalinclude:: ../tutorials/distributed-ml/tf-tutorial-0-basics/train.py
+.. literalinclude:: ../../../tutorials/distributed-ml/tf-tutorial-1-imagenet/train.py
    :language: python
 
 
 tfmirrored_slurm.sh
 +++++++++++++++++++
 
-.. literalinclude:: ../tutorials/distributed-ml/tf-tutorial-0-basics/tfmirrored_slurm.sh
+.. literalinclude:: ../../../tutorials/distributed-ml/tf-tutorial-1-imagenet/tfmirrored_slurm.sh
    :language: bash
 

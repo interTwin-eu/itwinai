@@ -74,34 +74,34 @@ When using MLFLow logger, you can visualize the logs in from the MLFlow UI:
 
 config.yaml
 +++++++++++
-.. literalinclude:: ../use-cases/virgo/config.yaml
+.. literalinclude:: ../../use-cases/virgo/config.yaml
    :language: yaml
 
 
 data.py
 +++++++
 
-.. literalinclude:: ../use-cases/virgo/data.py
+.. literalinclude:: ../../use-cases/virgo/data.py
    :language: python
 
 
 runall.sh
 +++++++++
 
-.. literalinclude:: ../use-cases/virgo/runall.sh
+.. literalinclude:: ../../use-cases/virgo/runall.sh
    :language: bash
 
 
 slurm.sh
 ++++++++
 
-.. literalinclude:: ../use-cases/virgo/slurm.sh
+.. literalinclude:: ../../use-cases/virgo/slurm.sh
    :language: bash
 
 
 trainer.py
 ++++++++++
-.. literalinclude:: ../use-cases/virgo/trainer.py
+.. literalinclude:: ../../use-cases/virgo/trainer.py
    :language: python
 
 

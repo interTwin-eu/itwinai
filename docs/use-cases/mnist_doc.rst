@@ -32,7 +32,7 @@ dataloader.py
 
 The `dataloader.py` script is responsible for loading the MNIST dataset and preparing it for training.
 
-.. literalinclude:: ../use-cases/mnist/torch-lightning/dataloader.py
+.. literalinclude:: ../../use-cases/mnist/torch-lightning/dataloader.py
    :language: python
 
 .. .. automodule:: torch-lightning.dataloader
@@ -45,7 +45,7 @@ config.yaml
 
 This YAML file defines the pipeline configuration for the MNIST use case. It includes settings for the model, training, and evaluation.
 
-.. literalinclude:: ../use-cases/mnist/torch-lightning/config.yaml
+.. literalinclude:: ../../use-cases/mnist/torch-lightning/config.yaml
    :language: yaml
 
 startscript
@@ -53,7 +53,7 @@ startscript
 
 The `startscript` is a shell script to initiate the training process. It sets up the environment and starts the training using the `train.py` script.
 
-.. literalinclude:: ../use-cases/mnist/torch-lightning/startscript
+.. literalinclude:: ../../use-cases/mnist/torch-lightning/startscript
    :language: bash
 
 
@@ -62,7 +62,7 @@ utils.py
 
 The `utils.py` script includes utility functions and classes that are used across the MNIST use case.
 
-.. literalinclude:: ../use-cases/mnist/torch-lightning/utils.py
+.. literalinclude:: ../../use-cases/mnist/torch-lightning/utils.py
    :language: python
 
 
@@ -192,14 +192,14 @@ dataloader.py
 
 The `dataloader.py` script is responsible for loading the MNIST dataset and preparing it for training.
 
-.. literalinclude:: ../use-cases/mnist/torch/dataloader.py
+.. literalinclude:: ../../use-cases/mnist/torch/dataloader.py
    :language: python
 
 
 Dockerfile
 ++++++++++
 
-.. literalinclude:: ../use-cases/mnist/torch/Dockerfile
+.. literalinclude:: ../../use-cases/mnist/torch/Dockerfile
    :language: bash
 
 
@@ -208,7 +208,7 @@ create_inference_sample.py
 
 This file defines a pipeline configuration for the MNIST use case inference.
 
-.. literalinclude:: ../use-cases/mnist/torch/create_inference_sample.py
+.. literalinclude:: ../../use-cases/mnist/torch/create_inference_sample.py
    :language: python
 
 model.py
@@ -216,7 +216,7 @@ model.py
 
 The `model.py` script is responsible for loading a simple model.
 
-.. literalinclude:: ../use-cases/mnist/torch/model.py
+.. literalinclude:: ../../use-cases/mnist/torch/model.py
    :language: python
 
 config.yaml
@@ -224,7 +224,7 @@ config.yaml
 
 This YAML file defines the pipeline configuration for the MNIST use case. It includes settings for the model, training, and evaluation.
 
-.. literalinclude:: ../use-cases/mnist/torch/config.yaml
+.. literalinclude:: ../../use-cases/mnist/torch/config.yaml
    :language: yaml
 
 startscript.sh
@@ -232,7 +232,7 @@ startscript.sh
 
 The `startscript` is a shell script to initiate the training process. It sets up the environment and starts the training using the `train.py` script.
 
-.. literalinclude:: ../use-cases/mnist/torch/startscript.sh
+.. literalinclude:: ../../use-cases/mnist/torch/startscript.sh
    :language: bash
 
 
@@ -240,21 +240,21 @@ saver.py
 ++++++++
 ...
 
-.. literalinclude:: ../use-cases/mnist/torch/saver.py
+.. literalinclude:: ../../use-cases/mnist/torch/saver.py
    :language: python
 
 
 runall.sh
 +++++++++
 
-.. literalinclude:: ../use-cases/mnist/torch/runall.sh
+.. literalinclude:: ../../use-cases/mnist/torch/runall.sh
    :language: bash
 
 
 slurm.sh
 ++++++++
 
-.. literalinclude:: ../use-cases/mnist/torch/slurm.sh
+.. literalinclude:: ../../use-cases/mnist/torch/slurm.sh
    :language: bash
 
 
@@ -272,7 +272,7 @@ dataloader.py
 
 The `dataloader.py` script is responsible for loading the MNIST dataset and preparing it for training.
 
-.. literalinclude:: ../use-cases/mnist/tensorflow/dataloader.py
+.. literalinclude:: ../../use-cases/mnist/tensorflow/dataloader.py
    :language: python
 
 
@@ -281,7 +281,7 @@ pipeline.yaml
 
 This YAML file defines the pipeline configuration for the MNIST use case. It includes settings for the model, training, and evaluation.
 
-.. literalinclude:: ../use-cases/mnist/tensorflow/pipeline.yaml
+.. literalinclude:: ../../use-cases/mnist/tensorflow/pipeline.yaml
    :language: yaml
 
 
@@ -290,7 +290,7 @@ startscript.sh
 
 The `startscript` is a shell script to initiate the training pipeline.
 
-.. literalinclude:: ../use-cases/mnist/tensorflow/startscript.sh
+.. literalinclude:: ../../use-cases/mnist/tensorflow/startscript.sh
    :language: bash
 
 

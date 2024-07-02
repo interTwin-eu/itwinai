@@ -4,7 +4,7 @@ Getting started with itwinai
 In this section, we will run you through the installation and give some instructions for the use of the itwinai framework for HPC and local systems.
 
 
-.. include:: ../README.md
+.. include:: ../../README.md
    :parser: myst_parser.sphinx_
 
 

@@ -287,27 +287,27 @@ Example with overrides (as above for Docker):
 model.py
 ++++++++
 
-.. literalinclude:: ../use-cases/3dgan/model.py
+.. literalinclude:: ../../use-cases/3dgan/model.py
    :language: python
 
 
 trainer.py
 ++++++++++
-.. literalinclude:: ../use-cases/3dgan/trainer.py
+.. literalinclude:: ../../use-cases/3dgan/trainer.py
    :language: python
 
 
 saver.py
 ++++++++
 
-.. literalinclude:: ../use-cases/3dgan/saver.py
+.. literalinclude:: ../../use-cases/3dgan/saver.py
    :language: python
 
 
 dataloader.py
 +++++++++++++
 
-.. literalinclude:: ../use-cases/3dgan/dataloader.py
+.. literalinclude:: ../../use-cases/3dgan/dataloader.py
    :language: python
 
 
@@ -316,7 +316,7 @@ config.yaml
 
 This YAML file defines the pipeline configuration for the CERN use case.
 
-.. literalinclude:: ../use-cases/3dgan/config.yaml
+.. literalinclude:: ../../use-cases/3dgan/config.yaml
    :language: yaml
 
 
@@ -325,21 +325,21 @@ create_inference_sample.py
 
 This file defines a pipeline configuration for the CERN use case inference.
 
-.. literalinclude:: ../use-cases/3dgan/create_inference_sample.py
+.. literalinclude:: ../../use-cases/3dgan/create_inference_sample.py
    :language: python
 
 
 Dockerfile
 ++++++++++
 
-.. literalinclude:: ../use-cases/3dgan/Dockerfile
+.. literalinclude:: ../../use-cases/3dgan/Dockerfile
    :language: bash
 
 
 startscript
 +++++++++++
 
-.. literalinclude:: ../use-cases/3dgan/startscript
+.. literalinclude:: ../../use-cases/3dgan/startscript
    :language: bash
 
 
@@ -356,21 +356,21 @@ interLink x 3DGAN
 3dgan-inference-cpu.yaml
 ++++++++++++++++++++++++
 
-.. literalinclude:: ../use-cases/3dgan/interLink/3dgan-inference-cpu.yaml
+.. literalinclude:: ../../use-cases/3dgan/interLink/3dgan-inference-cpu.yaml
    :language: yaml
 
 
 3dgan-inference.yaml
 ++++++++++++++++++++
 
-.. literalinclude:: ../use-cases/3dgan/interLink/3dgan-inference.yaml
+.. literalinclude:: ../../use-cases/3dgan/interLink/3dgan-inference.yaml
    :language: yaml
 
 
 3dgan-train.yaml
 ++++++++++++++++
 
-.. literalinclude:: ../use-cases/3dgan/interLink/3dgan-train.yaml
+.. literalinclude:: ../../use-cases/3dgan/interLink/3dgan-train.yaml
    :language: yaml
 
 

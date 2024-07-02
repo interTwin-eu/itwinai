@@ -11,5 +11,5 @@ Advanced workflow
 ..    :show-inheritance:
 
 
-.. literalinclude:: ../tutorials/ml-workflows/tutorial_2_advanced_workflow.py
+.. literalinclude:: ../../../tutorials/ml-workflows/tutorial_2_advanced_workflow.py
    :language: python

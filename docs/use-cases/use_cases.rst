@@ -1,22 +1,5 @@
-Integrated Use Cases
-====================
-
-Here you can find a collection of use cases showing how ``itwinai`` can be used. Each use case folder contains:
-
-- ``pipeline.yaml``: textual description of the ML workflow for that use case
-- ``train.py``: entry point of training workflow.
-- ``startscript``: file to execute the training workflow on a SLURM-based cluster.
-- ``requirements.txt``: (optional) use case-specific requirements. can be installed with:
-  
-.. code-block:: bash
-
-  cd use/case/folder
-  # After activating the correct environment...
-  pip install -r requirements.txt
-
-
 How to run a use case
----------------------
+======================
 
 First, create the use case's Python environment (i.e., PyTorch or TensorFlow)
 as described `here <https://itwinai.readthedocs.io/latest/getting_started_with_itwinai.html#environment-setup>`_, and activate it.
@@ -49,7 +32,7 @@ From here you can run the use case (having activated the correct Python env):
 
 
 Fast particle detector simulation | CERN use case
--------------------------------------------------
+=================================================
 
 The first ``interTwin`` use case integrated with ``itwinai`` framework is the DT for fast particle detector simulation. 
 3D Generative Adversarial Network (3DGAN) for generation of images of calorimeter depositions. 
@@ -62,7 +45,7 @@ This project is based on the prototype `3DGAN <https://github.com/svalleco/3Dgan
 
 
 MNIST dataset use case
-----------------------
+=========================
 
 MNIST image classification is used to provide an example on 
 how to define an end-to-end digital twin workflow with the ``itwinai`` software.
@@ -74,7 +57,7 @@ how to define an end-to-end digital twin workflow with the ``itwinai`` software.
 
 
 Tropical Cyclones Detection | CMCC use case
--------------------------------------------
+==============================================
 
 Below you can find the training and validation of a Tropical Cyclones (TCs) Detection model, developed by CMCC, integrated with ``itwinai`` framework.
 
@@ -86,7 +69,7 @@ Below you can find the training and validation of a Tropical Cyclones (TCs) Dete
 
 
 Noise Simulation for Gravitational Waves Detector (Virgo) | INFN use case
--------------------------------------------------------------------------
+===========================================================================
 
 Below you can find the integration of the Virgo use case with ``itwinai`` framework, developed by INFN.
 

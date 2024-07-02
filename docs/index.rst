@@ -54,37 +54,36 @@ The specific version numbers (like 'v0.0.2-beta' and 'v0.0.1') correspond to par
    :hidden:
    :caption: 💡 Installation
 
-   getting_started_with_itwinai
+   getting-started/getting_started_with_itwinai
 
 .. toctree::
    :maxdepth: 2
    :hidden:
    :caption: 🪄 How it works
 
-   explain_ddp
-   explain_workflows
-   explain_advanced_workflow
+   how-it-works/training/explain_ddp
+   how-it-works/workflows/explain_workflows
 
 .. toctree::
    :maxdepth: 2
    :hidden:
    :caption: 📚 Integrated Use Cases
 
-   use_cases
+   use-cases/use_cases
 
 .. toctree::
    :maxdepth: 2
    :hidden:
    :caption: 🚀 Tutorials
 
-   tutorials
+   tutorials/tutorials
 
 .. toctree::
    :maxdepth: 2
    :hidden:
    :caption: ⚡ Python API reference
 
-   modules
+   python-api/modules
 
 .. toctree::
    :maxdepth: 2

@@ -62,33 +62,33 @@ pipeline.yaml
 
 This YAML file defines the pipeline configuration for the CMCC use case.
 
-.. literalinclude:: ../use-cases/cyclones/pipeline.yaml
+.. literalinclude:: ../../use-cases/cyclones/pipeline.yaml
    :language: yaml
 
 train.py
 ++++++++++
-.. literalinclude:: ../use-cases/cyclones/train.py
+.. literalinclude:: ../../use-cases/cyclones/train.py
    :language: python
 
 dataloader.py
 +++++++++++++
 
-.. literalinclude:: ../use-cases/cyclones/dataloader.py
+.. literalinclude:: ../../use-cases/cyclones/dataloader.py
    :language: python
 
 trainer.py
 ++++++++++
-.. literalinclude:: ../use-cases/cyclones/trainer.py
+.. literalinclude:: ../../use-cases/cyclones/trainer.py
    :language: python
 
 startscript
 +++++++++++
 
-.. literalinclude:: ../use-cases/cyclones/startscript.sh
+.. literalinclude:: ../../use-cases/cyclones/startscript.sh
    :language: bash
 
 cyclones_vgg.py
 +++++++++++++++
 
-.. literalinclude:: ../use-cases/cyclones/cyclones_vgg.py
+.. literalinclude:: ../../use-cases/cyclones/cyclones_vgg.py
    :language: python

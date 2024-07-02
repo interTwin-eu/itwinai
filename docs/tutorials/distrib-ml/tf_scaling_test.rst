@@ -60,19 +60,19 @@ which takes the ``result-csv.dat`` file as input.
 bench_plot.ipynb
 ++++++++++++++++
 
-.. literalinclude:: ../tutorials/distributed-ml/tf-scaling-test-jube/bench_plot.ipynb
+.. literalinclude:: ../../../tutorials/distributed-ml/tf-scaling-test-jube/bench_plot.ipynb
    :language: python
 
 
 train.py
 ++++++++
 
-.. literalinclude:: ../tutorials/distributed-ml/tf-scaling-test-jube/train.py
+.. literalinclude:: ../../../tutorials/distributed-ml/tf-scaling-test-jube/train.py
    :language: python
 
 
 jube_ddp.sh
 +++++++++++
 
-.. literalinclude:: ../tutorials/distributed-ml/tf-scaling-test-jube/jube_ddp.sh
+.. literalinclude:: ../../../tutorials/distributed-ml/tf-scaling-test-jube/jube_ddp.sh
    :language: bash
