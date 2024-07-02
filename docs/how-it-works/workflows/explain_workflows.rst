@@ -8,7 +8,7 @@ For simple workflows, itwinai defines a `Pipeline`, defined as an array or dicti
 Much like a python notebook, the Pipeline sequentially runs through the user-defined components inside of it, ensuring code legibility and organisation.
 The pipeline execution also avoids I/O overheads typical of serialization of intermediate results to storage when moving to the next component, ensuring efficient workflows.
 
-The pipeline structure handles component connection by passing preceding components' output into following components' input whilst staying in-memory, similarly to scikit-learn.
+The pipeline structure handles component connection by passing preceding components' output into following components' input whilst staying in-memory, similarly to scikit-learn's Pipeline.
 This also implies that the Pipeline structure only handles sequential workflows; more advanced (Directed Acyclic Graphs or DAG) can be implemented with alternative methods as explained in the section :ref:`dag_workflows`.
 
 A  `Pipeline` can be directly defined in Python code but can also be fully represented in a  **configuration file**. 
@@ -18,28 +18,29 @@ This files contains all the parameters and structure variables required to uniqu
 Crucially, the input(s) for a component must be appropriate for that component.
 Pipeline execution occurs in the order defined by the user. 
 Thus, the output of a component must be suitable for the input of the following component.
-The Adapter component can be used to ensure this. 
+The :ref:`adapter_component` component can be used to ensure this. 
 It takes any number of inputs and will output some or all of those inputs in a user-specified order.
 
 
-Below is given an overview of each component:
+Below you can find an overview of each component.
 
 Pipeline components
 ---------------------
 Components are defined as discrete steps in a `Pipeline` and implemented as Python classes.
-For each pipeline component, an `execute()` function is defined that provides a unified interface with every component as well as the whole pipeline.
+For each pipeline component, an `execute()` method is defined that provides a unified interface with every component as well as the whole pipeline.
 
 Components provide the structure in which user's python code can be easily integrated and deployed for DDP.
 These components are 'empty'; users have total freedom in how to implement each component, after which the Pipeline wrapper ensures DDP deployability. 
 
+.. _getter_component: 
 
 DataGetter
 ^^^^^^^^^^^^^^
 This component gets or loads the data from a given source and passes it on to the next component.
-Its `execute()` function therefore takes no input and passes on the dataset as a single output.
-This component sits at the start of the Pipeline and is usually followed by a DataSplitter component.
+Its `execute()` method therefore takes no input and passes on the dataset as a single output.
+This component sits at the start of the Pipeline and is usually followed by a :ref:`splitter_component` component.
 
-The method of loading data is user-defined; the DataGet component provides the needed structure to integrate into the Pipeline structure.
+The method of loading data is user-defined; the **DataGetter** component provides the needed structure to integrate into the Pipeline structure.
 As such, the user is unconstrained in terms of dataset format, structure, or size.
 
 
@@ -48,6 +49,8 @@ As such, the user is unconstrained in terms of dataset format, structure, or siz
     :scale: 12%
     :align: center
 
+
+.. _splitter_component: 
 
 DataSplitter
 ^^^^^^^^^^^^^
@@ -64,11 +67,13 @@ The splitting method is defined by the user.
     :align: center
 
 
+.. _processor_component: 
+
 DataProcessor
 ^^^^^^^^^^^^^^^^
 The **DataProcessor**  component is used for data preprocessing.
-It is worth noting that data preprocessing before the DataSplitter component is not feasible with this component as it assumes the data to already be split into train, test, and validation sets.
-This assumption is made to avoid the introduction of bias or skew in the data.
+It is worth noting that data preprocessing before the :ref:`splitter_component` component is not feasible with this component as it assumes the data to already be split into train, test, and validation sets.
+This assumption is made to avoid the introduction of bias or skew in the data, which may happen when preprocessing data before splitting it.
 However, as the components leave the implementation method undefined, there is no preprocessing requirement. 
 
 
@@ -76,6 +81,7 @@ However, as the components leave the implementation method undefined, there is n
     :scale: 12%
     :align: center
 
+.. _trainer_component: 
 
 Trainer
 ^^^^^^^^^^^^^^^^
@@ -85,6 +91,32 @@ Taking train, test, and validation datasets as inputs, the Trainer returns its i
 .. image:: figures/comp_Train.png
     :scale: 12%
     :align: center
+
+
+.. _predictor_component: 
+
+Predictor
+^^^^^^^^^^^^
+In order to gauge the performance of the trained model, the **Predictor** component receives the trained model and the test dataset as input, then outputs a prediction dataset for that model.
+
+.. image:: figures/comp_Predict.png
+    :scale: 12%
+    :align: center
+
+
+.. _saver_component: 
+
+Saver
+^^^^^^^^
+
+The **Saver** component receives as input an element, saves it to storage following the strategy implemented by the user, and returns the same value received as input.
+
+.. image:: figures/comp_Save.png
+    :scale: 12%
+    :align: center
+
+
+.. _adapter_component: 
 
 Adapter
 ^^^^^^^^^^^^^^
@@ -115,29 +147,23 @@ Thus, the policy becomes `[input_arg2, input_arg1]`; leaving out the first input
     :align: center
     :scale: 12%
 
-Predictor
-^^^^^^^^^^^^
-In order to gauge the performance of the trained model, the **Predictor** component receives the trained model and the test dataset as input, then outputs a prediction dataset for that model.
 
-.. image:: figures/comp_Predict.png
-    :scale: 12%
-    :align: center
 
 |
 
-.. note::
+.. warning::
     The `Pipeline` structure does not handle improper inputs for its components! 
     Each component expects predefined inputs which should be taken into account when constructing your Pipeline.
-    The Adapter component can be used to ensure components receive the correct input if the preceding component's output is unsuited.
-    For example, DataSplitter returns three data arrays whereas Saver only takes one input argument.
-    To save after a split, Adapter can be used to select the element to be saved.
+    The :ref:`adapter_component` component can be used to ensure components receive the correct input if the preceding component's output is unsuited.
+    For example, :ref:`splitter_component` returns three data arrays whereas Saver only takes one input argument.
+    To save after a split, :ref:`saver_component` can be used to select the element to be saved.
 
 
 Simple Pipeline Example
 ^^^^^^^^^^^^^^^^^^^^^^^^
-The figure below shows a diagram of the simplest possible pipeline structure, using only the DataGetter, DataSplitter, and DataProcessor components.
+The figure below shows a diagram of a simple pipeline structure, using only the :ref:`getter_component`, :ref:`splitter_component`, and :ref:`processor_component` components.
 As the output of each component is suited to the input of its following component, they can be packaged sequentially in a Pipeline wrapper.
-Upon execution, each component will run in turn and automatically pass on its output to the `execute()` function that each component interfaces through.
+Upon execution, each component will run in turn and automatically pass on its output as input to the `execute()` method that each component interfaces through.
 
 .. image:: figures/simple_pipeline.png
     :alt: Diagram of a simple pipeline structure
@@ -147,7 +173,6 @@ Upon execution, each component will run in turn and automatically pass on its ou
 
 Tutorials on the itwinai Pipeline
 ----------------------------------
-.. :doc:`Basic workflow tutorial <notebooks/tutorial_0_basic_workflow>`
 
 - :doc:`Simple Pipeline workflow <../../tutorials/workflows/notebooks/tutorial_0_basic_workflow>`
 - :doc:`Pipeline and configuration files <../../tutorials/workflows/notebooks/tutorial_1_intermediate_workflow>`
@@ -158,6 +183,7 @@ Tutorials on the itwinai Pipeline
 DAG Workflows
 ------------------
 
+Below you can find an example of a DAG workflow, in which the sequential Pipeline is replaced with a graph of itwinai **Components**. 
 
 .. image:: figures/Advanced_workflow.png
     :alt: Diagram of an advanced DAG workflow
@@ -166,5 +192,6 @@ DAG Workflows
 
 Tutorials on DAG workflows
 ----------------------------------
+
 - :doc:`Simple DAG workflow <../../tutorials/workflows/notebooks/tutorial_2_advanced_workflow>`
 
