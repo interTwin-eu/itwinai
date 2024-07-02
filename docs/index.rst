@@ -61,7 +61,7 @@ The specific version numbers (like 'v0.0.2-beta' and 'v0.0.1') correspond to par
    :hidden:
    :caption: 🪄 How it works
 
-   how-it-works/training/explain_ddp
+   how-it-works/training/training
    how-it-works/workflows/explain_workflows
 
 .. toctree::

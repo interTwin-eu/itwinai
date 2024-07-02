@@ -1,5 +1,5 @@
-ML workflows
-====================
+Defining machine learning workflows
+====================================
 
 Pipeline for sequential workflows
 ---------------------------------
