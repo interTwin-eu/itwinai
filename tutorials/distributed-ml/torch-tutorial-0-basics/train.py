@@ -79,16 +79,23 @@ def training_fn(
         model, optim, lr_scheduler=None, **distribute_kwargs
     )
 
-    # Data
+    # Dataset
     train_set = UniformRndDataset(x_size=3, y_size=4)
     # Distributed dataloader
     train_loader = strategy.create_dataloader(
-        train_set, batch_size=args.batch_size, num_workers=1)
+        train_set,
+        batch_size=args.batch_size,
+        num_workers=1,
+        shuffle=True
+    )
 
     # Device allocated for this worker
     device = strategy.device()
 
     for epoch in range(2):
+        # IMPORTANT: set current epoch ID in distributed sampler
+        train_loader.sampler.set_epoch(epoch)
+
         for (x, y) in train_loader:
             # print(f"tensor to cuda:{device}")
             x = x.to(device)
