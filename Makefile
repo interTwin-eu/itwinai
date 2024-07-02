@@ -1,3 +1,5 @@
+SHELL := /bin/bash
+
 # Install PyTorch env (GPU support)
 torch-env: env-files/torch/generic_torch.sh
 	env ENV_NAME=.venv-pytorch \
@@ -23,6 +25,14 @@ tensorflow-env-cpu: env-files/tensorflow/generic_tf.sh
 		NO_CUDA=1 \
 		bash -c 'bash env-files/tensorflow/generic_tf.sh'
 	@#.venv-tf/bin/horovodrun --check-build
+
+# Env to build docs locally on JSC systems
+docs-env-jsc:
+	bash env-files/docs/create-docs-env-jsc.sh 
+
+# Build and serve docs on JSC
+docs-jsc:
+	bash env-files/docs/build-docs-jsc.sh
 
 test:
 	.venv-pytorch/bin/pytest -v tests/ -m "not slurm"
