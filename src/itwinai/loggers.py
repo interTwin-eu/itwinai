@@ -506,6 +506,7 @@ class WandBLogger(Logger):
     """
 
     # TODO: add support for artifacts logging
+
     #: Supported kinds in the ``log`` method
     supported_kinds: Tuple[str] = (
         'watch', 'metric', 'figure', 'image', 'torch', 'dict',

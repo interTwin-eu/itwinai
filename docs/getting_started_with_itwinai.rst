@@ -4,190 +4,194 @@ Getting started with itwinai
 In this section, we will run you through the installation and give some instructions for the use of the itwinai framework for HPC and local systems.
 
 
-User Installation
------------------
+.. include:: ../README.md
+   :parser: myst_parser.sphinx_
 
-Requirements:
 
-- Linux environment. Windows and macOS were never tested.
+.. User Installation
+.. -----------------
 
-Python virtual environment
-++++++++++++++++++++++++++
+.. Requirements:
 
-Depending on your environment, there are different ways to
-select a specific python version.
+.. - Linux environment. Windows and macOS were never tested.
 
-💻 Laptop or GPU node
-++++++++++++++++++++++
+.. Python virtual environment
+.. ++++++++++++++++++++++++++
 
-If you are working on a laptop
-or on a simple on-prem setup, you could consider using
-`pyenv <https://github.com/pyenv/pyenv>`_. See the
-`installation instructions <https://github.com/pyenv/pyenv?tab=readme-ov-file#installation>`_. If you are using pyenv,
-make sure to read `this <https://github.com/pyenv/pyenv/wiki#suggested-build-environment>`_.
+.. Depending on your environment, there are different ways to
+.. select a specific python version.
 
-🌐 HPC environment
-+++++++++++++++++++
+.. 💻 Laptop or GPU node
+.. ++++++++++++++++++++++
 
-In HPC systems it is more popular to load dependencies using
-Environment Modules or Lmod. Contact the system administrator
-to learn how to select the proper python modules.
+.. If you are working on a laptop
+.. or on a simple on-prem setup, you could consider using
+.. `pyenv <https://github.com/pyenv/pyenv>`_. See the
+.. `installation instructions <https://github.com/pyenv/pyenv?tab=readme-ov-file#installation>`_. If you are using pyenv,
+.. make sure to read `this <https://github.com/pyenv/pyenv/wiki#suggested-build-environment>`_.
 
-On JSC, we activate the required modules in this way:
+.. 🌐 HPC environment
+.. +++++++++++++++++++
 
-.. code-block:: bash
+.. In HPC systems it is more popular to load dependencies using
+.. Environment Modules or Lmod. Contact the system administrator
+.. to learn how to select the proper python modules.
 
-    ml --force purge
-    ml Stages/2024 GCC OpenMPI CUDA/12 cuDNN MPI-settings/CUDA
-    ml Python CMake HDF5 PnetCDF libaio mpi4py
+.. On JSC, we activate the required modules in this way:
 
+.. .. code-block:: bash
 
-Install itwinai
-+++++++++++++++
+..     ml --force purge
+..     ml Stages/2024 GCC OpenMPI CUDA/12 cuDNN MPI-settings/CUDA
+..     ml Python CMake HDF5 PnetCDF libaio mpi4py
 
-Install itwinai and its dependencies using the
-following command, and follow the instructions:
 
-.. code-block:: bash
+.. Install itwinai
+.. +++++++++++++++
 
-    # Create a python virtual environment and activate it
-    $ python -m venv ENV_NAME
-    $ source ENV_NAME/bin/activate
+.. Install itwinai and its dependencies using the
+.. following command, and follow the instructions:
 
-    # Install itwinai inside the environment
-    (ENV_NAME) $ export ML_FRAMEWORK="pytorch" # or "tensorflow"
-    (ENV_NAME) $ curl -fsSL https://github.com/interTwin-eu/itwinai/raw/main/env-files/itwinai-installer.sh | bash
+.. .. code-block:: bash
 
+..     # Create a python virtual environment and activate it
+..     $ python -m venv ENV_NAME
+..     $ source ENV_NAME/bin/activate
 
-The ``ML_FRAMEWORK`` environment variable controls whether you are installing
-itwinai for PyTorch or TensorFlow.
+..     # Install itwinai inside the environment
+..     (ENV_NAME) $ export ML_FRAMEWORK="pytorch" # or "tensorflow"
+..     (ENV_NAME) $ curl -fsSL https://github.com/interTwin-eu/itwinai/raw/main/env-files/itwinai-installer.sh | bash
 
-.. warning::
-   itwinai depends on Horovod, which requires ``CMake>=1.13`` and 
-   `other packages <https://horovod.readthedocs.io/en/latest/install_include.html#requirements>`_. 
-   Make sure to have them installed in your environment before proceeding.
 
+.. The ``ML_FRAMEWORK`` environment variable controls whether you are installing
+.. itwinai for PyTorch or TensorFlow.
 
+.. .. warning::
+..    itwinai depends on Horovod, which requires ``CMake>=1.13`` and 
+..    `other packages <https://horovod.readthedocs.io/en/latest/install_include.html#requirements>`_. 
+..    Make sure to have them installed in your environment before proceeding.
 
-Developer Installation
-----------------------
 
-If you are contributing to this repository, please continue below for
-more advanced instructions.
 
-.. warning::
-   Branch protection rules are applied to all branches which names 
-   match this regex: ``[dm][ea][vi]*`` . When creating new branches, 
-   please avoid using names that match that regex.
+.. Developer Installation
+.. ----------------------
 
+.. If you are contributing to this repository, please continue below for
+.. more advanced instructions.
 
-Install itwinai environment
-+++++++++++++++++++++++++++
+.. .. warning::
+..    Branch protection rules are applied to all branches which names 
+..    match this regex: ``[dm][ea][vi]*`` . When creating new branches, 
+..    please avoid using names that match that regex.
 
-Regardless of how you loaded your environment, you can create the
-python virtual environments with the following commands.
-Once the correct Python version is loaded, create the virtual
-environments using our pre-make Makefile:
 
-.. code-block:: bash
+.. Install itwinai environment
+.. +++++++++++++++++++++++++++
 
-    make torch-env # or make torch-env-cpu
-    make tensorflow-env # or make tensorflow-env-cpu
+.. Regardless of how you loaded your environment, you can create the
+.. python virtual environments with the following commands.
+.. Once the correct Python version is loaded, create the virtual
+.. environments using our pre-make Makefile:
 
-    # Juelich supercomputer
-    make torch-gpu-jsc
-    make tf-gpu-jsc
+.. .. code-block:: bash
 
+..     make torch-env # or make torch-env-cpu
+..     make tensorflow-env # or make tensorflow-env-cpu
 
-TensorFlow
-++++++++++
+..     # Juelich supercomputer
+..     make torch-gpu-jsc
+..     make tf-gpu-jsc
 
-Installation:
 
-.. code-block:: bash
+.. TensorFlow
+.. ++++++++++
 
-    # Install TensorFlow 2.13
-    make tensorflow-env
+.. Installation:
 
-    # Activate env
-    source .venv-tf/bin/activate
+.. .. code-block:: bash
 
+..     # Install TensorFlow 2.13
+..     make tensorflow-env
 
-A CPU-only version is available at the target ``tensorflow-env-cpu``.
+..     # Activate env
+..     source .venv-tf/bin/activate
 
-PyTorch (+ Lightning)
-+++++++++++++++++++++
 
-Installation:
+.. A CPU-only version is available at the target ``tensorflow-env-cpu``.
 
-.. code-block:: bash
+.. PyTorch (+ Lightning)
+.. +++++++++++++++++++++
 
-    # Install PyTorch + lightning
-    make torch-env
+.. Installation:
 
-    # Activate env
-    source .venv-pytorch/bin/activate
+.. .. code-block:: bash
 
+..     # Install PyTorch + lightning
+..     make torch-env
 
-A CPU-only version is available at the target ``torch-env-cpu``.
+..     # Activate env
+..     source .venv-pytorch/bin/activate
 
-Development environment
-+++++++++++++++++++++++
 
-This is for developers only. To have it, update the installed ``itwinai`` package
-adding the ``dev`` extra:
+.. A CPU-only version is available at the target ``torch-env-cpu``.
 
-.. code-block:: bash
+.. Development environment
+.. +++++++++++++++++++++++
 
-    pip install -e .[dev]
+.. This is for developers only. To have it, update the installed ``itwinai`` package
+.. adding the ``dev`` extra:
 
+.. .. code-block:: bash
 
-Test with ``pytest``
-++++++++++++++++++++
+..     pip install -e .[dev]
 
-Do this only if you are a developer wanting to test your code with pytest.
 
-First, you need to create virtual environments both for torch and tensorflow.
-For instance, you can use:
+.. Test with ``pytest``
+.. ++++++++++++++++++++
 
-.. code-block:: bash
+.. Do this only if you are a developer wanting to test your code with pytest.
 
-    make torch-env-cpu
-    make tensorflow-env-cpu
+.. First, you need to create virtual environments both for torch and tensorflow.
+.. For instance, you can use:
 
+.. .. code-block:: bash
 
-To select the name of the torch and tf environments you can set the following
-environment variables, which allow to run the tests in environments with
-custom names which are different from ``.venv-pytorch`` and ``.venv-tf``.
+..     make torch-env-cpu
+..     make tensorflow-env-cpu
 
-.. code-block:: bash
 
-    export TORCH_ENV="my_torch_env"
-    export TF_ENV="my_tf_env"
+.. To select the name of the torch and tf environments you can set the following
+.. environment variables, which allow to run the tests in environments with
+.. custom names which are different from ``.venv-pytorch`` and ``.venv-tf``.
 
+.. .. code-block:: bash
 
-Functional tests (marked with ``pytest.mark.functional``) will be executed under
-``/tmp/pytest`` location to guarantee they are run in a clean environment.
+..     export TORCH_ENV="my_torch_env"
+..     export TF_ENV="my_tf_env"
 
-To run functional tests use:
 
-.. code-block:: bash
+.. Functional tests (marked with ``pytest.mark.functional``) will be executed under
+.. ``/tmp/pytest`` location to guarantee they are run in a clean environment.
 
-    pytest -v tests/ -m "functional"
+.. To run functional tests use:
 
+.. .. code-block:: bash
 
-To run all tests on itwinai package:
+..     pytest -v tests/ -m "functional"
 
-.. code-block:: bash
 
-    make test
+.. To run all tests on itwinai package:
 
+.. .. code-block:: bash
 
-Run tests in JSC virtual environments:
+..     make test
 
-.. code-block:: bash
 
-    make test-jsc
+.. Run tests in JSC virtual environments:
+
+.. .. code-block:: bash
+
+..     make test-jsc
 
 
 

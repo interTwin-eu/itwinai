@@ -7,6 +7,12 @@ from itwinai.components import (
 )
 
 
+"""
+New components are defined as classes inheriting from the BaseComponent class
+or an already defined component.
+"""
+
+
 class MyDataGetter(DataGetter):
     def __init__(self, data_size: int, name: Optional[str] = None) -> None:
         super().__init__(name)
@@ -36,7 +42,7 @@ class MyDatasetSplitter(DataSplitter):
 
         Returns:
             Tuple[List[int], List[int], List[int]]: train, validation, and
-            test datasets.
+            test datasets respectively.
         """
         train_n = int(len(dataset)*self.train_proportion)
         valid_n = int(len(dataset)*self.validation_proportion)
