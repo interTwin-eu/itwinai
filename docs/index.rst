@@ -79,7 +79,6 @@ The specific version numbers (like 'v0.0.2-beta' and 'v0.0.1') correspond to par
 
    use-cases/use_cases
 
-
 .. toctree::
    :maxdepth: 2
    :hidden:
