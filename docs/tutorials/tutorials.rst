@@ -2,8 +2,8 @@
 
 
 
-Distributed ML training tutorials
-=================================
+Distributed machine learning training
+======================================
 
 Here you can find a collection of tutorials for distributing PyTorch and Tensorflow based workflows.
 
@@ -33,8 +33,8 @@ Distributed ML with TensorFlow
    distrib-ml/tf_scaling_test
 
 
-ML workflow tutorials
-=====================
+Machine learning workflows
+===========================
 
 Here you can find a collection of tutorials for various complexity ML workflows.
 
