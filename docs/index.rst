@@ -52,9 +52,10 @@ The specific version numbers (like 'v0.0.2-beta' and 'v0.0.1') correspond to par
 .. toctree::
    :maxdepth: 2
    :hidden:
-   :caption: 💡 Installation
+   :caption: 💡 Getting started
 
    getting-started/getting_started_with_itwinai
+   getting-started/slurm
 
 .. toctree::
    :maxdepth: 2

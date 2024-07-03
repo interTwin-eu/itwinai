@@ -1,5 +1,5 @@
-Getting started with SLURM job scheduler
--------------------------------------------------
+Submitting jobs to SLURM on HPC
+====================================
 
 Here you can find a minimal set of resources to use SLURM job scheduler on an HPC cluster.
 
@@ -11,7 +11,7 @@ SLURM cheatsheets:
 - https://www.carc.usc.edu/user-information/user-guides/hpc-basics/slurm-cheatsheet
 
 Commands
-++++++++
+--------
 
 - ``sinfo``: get cluster status (e.g., number of free nodes at the moment).
 - ``squeue -u USERNAME``: visualize the queue of jobs of ``USERNAME`` user.
@@ -27,14 +27,14 @@ More commands here: https://docs.rc.fas.harvard.edu/kb/convenient-slurm-commands
 SLURM commands on JSC: https://apps.fz-juelich.de/jsc/hps/juwels/batchsystem.html#slurm-commands
 
 Job scripts for batch jobs
-++++++++++++++++++++++++++
+--------------------------
 
 SLURM job scripts are regular shell files enriched with some ``#SBATCH`` directives at the top.
 
 To know more, see this: https://www.osc.edu/book/export/html/2861
 
 Check job status
-++++++++++++++++
+----------------
 
 Once a job is submitted to the SLURM queue, it goes through a number of states before finishing.
 You can check in which state is a job of interest using the following command:
@@ -46,7 +46,7 @@ You can check in which state is a job of interest using the following command:
 To interpret the state code, use this guide: https://confluence.cscs.ch/display/KB/Meaning+of+Slurm+job+state+codes 
 
 Interactive shell on a compute node
-+++++++++++++++++++++++++++++++++++
+-----------------------------------
 
 Allocate a compute node with 4 GPUs on JSC supercomputer:
 
@@ -66,14 +66,14 @@ Once resources are available, the command will return a ``JOBID``. Use it to jum
 Eventually, remember to load the correct environment modules before activating the python virtual environment.
 
 Environment variables
-+++++++++++++++++++++
+---------------------
 
 Before running a job, SLURM will set some environment variables in the job environment.
 
 See here a table of them: https://www.glue.umd.edu/hpcc/help/slurmenv.html
 
 Job arrays
-++++++++++
+----------
 
 Job arrays allow to conveniently submit a collection of similar and independent jobs.
 

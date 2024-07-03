@@ -22,5 +22,3 @@ Below, you can find some tutorials that will help you getting familiar with the 
 |
 
 .. include:: explain_ddp.rst
-
-.. include:: slurm.rst

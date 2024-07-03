@@ -1,4 +1,4 @@
-Getting started with itwinai
+Install itwinai
 ============================
 
 In this section, we will run you through the installation and give some instructions for the use of the itwinai framework for HPC and local systems.
