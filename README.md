@@ -167,7 +167,7 @@ Commands to be executed before activating the python virtual environment:
 
 - When not on an HPC: do nothing.
 
-For instance, on JSC you can activate the virtual environment in this way:
+For instance, on JSC you can activate the PyTorch virtual environment in this way:
 
 ```bash
 # Load environment modules
@@ -181,7 +181,7 @@ source envAI_hdfml/bin/activate
 
 #### Load modules before TensorFlow virtual environment
 
-Makefile targets to be executed before activating the python virtual environment:
+Commands to be executed before activating the python virtual environment:
 
 - Juelich Supercomputer (JSC):
 
@@ -201,7 +201,7 @@ Makefile targets to be executed before activating the python virtual environment
 
 - When not on an HPC: do nothing.
 
-For instance, on JSC you can activate the virtual environment in this way:
+For instance, on JSC you can activate the TensorFlow virtual environment in this way:
 
 ```bash
 # Load environment modules
