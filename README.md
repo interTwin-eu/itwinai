@@ -7,11 +7,13 @@
 See the latest version of our [docs](https://itwinai.readthedocs.io/)
 for a quick overview of this platform for advanced AI/ML workflows in digital twin applications.
 
-## Installation
+If you are a **developer**, please refer to the [developers installation guide](#installation-for-developers).
+
+## User installation
 
 Requirements:
 
-- Linux environment. Windows and macOS were never tested.
+- Linux or MacOS environment. Windows was never tested.
 
 ### Python virtual environment
 
@@ -74,39 +76,27 @@ more advanced instructions.
 > please avoid using names that match that regex, otherwise branch
 > protection rules will block direct pushes to that branch.
 
+### Clone the itwinai repository
+
+```bash
+git clone git@github.com:interTwin-eu/itwinai.git
+```
+
 ### Install itwinai environment
 
-Regardless of how you loaded your environment, you can create the
-python virtual environments with the following commands.
-Once the correct Python version is loaded, create the virtual
-environments using our pre-make Makefile:
+You can create the
+Python virtual environments using our predefined Makefile targets.
 
-```bash
-make torch-env # or make torch-env-cpu
-make tensorflow-env # or make tensorflow-env-cpu
+#### PyTorch (+ Lightning) virtual environment
 
-# Juelich supercomputer
-make torch-gpu-jsc
-make tf-gpu-jsc
-```
+Makefile targets:
 
-#### TensorFlow
+- Juelich Supercomputer (JSC): `torch-gpu-jsc`
+- Vega supercomputer: `torch-env-vega`
+- In any other cases, when CUDA is available: `torch-env`
+- In any other cases, when CUDA **NOT** is available (CPU-only installation): `torch-env-cpu`
 
-Installation:
-
-```bash
-# Install TensorFlow 2.13
-make tensorflow-env
-
-# Activate env
-source .venv-tf/bin/activate
-```
-
-A CPU-only version is available at the target `tensorflow-env-cpu`.
-
-#### PyTorch (+ Lightning)
-
-Installation:
+For instance, on a laptop with a CUDA-compatible GPU you can use:
 
 ```bash
 # Install PyTorch + lightning
@@ -116,32 +106,37 @@ make torch-env
 source .venv-pytorch/bin/activate
 ```
 
-A CPU-only version is available at the target `torch-env-cpu`.
+#### TensorFlow virtual environment
 
-### Development environment
+Makefile targets:
 
-This is for developers only. To have it, update the installed `itwinai` package
-adding the `dev` extra:
+- Juelich Supercomputer (JSC): `tf-gpu-jsc`
+- Vega supercomputer: `tf-env-vega`
+- In any other case, when CUDA is available: `tensorflow-env`
+- In any other case, when CUDA **NOT** is available (CPU-only installation): `tensorflow-env-cpu`
+
+For instance, on a laptop with a CUDA-compatible GPU you can use:
 
 ```bash
-pip install -e .[dev]
+make tensorflow-env
+
+# Activate env
+source .venv-tf/bin/activate
 ```
 
 #### Test with `pytest`
 
 Do this only if you are a developer wanting to test your code with pytest.
 
-First, you need to create virtual environments both for torch and tensorflow.
-For instance, you can use:
+First, you need to create virtual environments both for torch and tensorflow,
+following the instructions above, depending on the system that you are using
+(e.g., JSC).
 
-```bash
-make torch-env-cpu
-make tensorflow-env-cpu
-```
-
-To select the name of the torch and tf environments you can set the following
-environment variables, which allow to run the tests in environments with
-custom names which are different from `.venv-pytorch` and `.venv-tf`.
+To select the name of the torch and tf environments in which the tests will be
+executed you can set the following environment variables.
+If these env variables are not set, the testing suite will assume that the
+PyTorch environment is under
+`.venv-pytorch` and the TensorFlow environment is under `.venv-tf`.
 
 ```bash
 export TORCH_ENV="my_torch_env"
@@ -149,7 +144,7 @@ export TF_ENV="my_tf_env"
 ```
 
 Functional tests (marked with `pytest.mark.functional`) will be executed under
-`/tmp/pytest` location to guarantee they are run in a clean environment.
+`/tmp/pytest` location to guarantee isolation among tests.
 
 To run functional tests use:
 
@@ -157,18 +152,25 @@ To run functional tests use:
 pytest -v tests/ -m "functional"
 ```
 
-To run all tests on itwinai package:
+> [!NOTE]
+> Depending on the system that you are using, we implemented a tailored Makefile
+> target to run the test suite on it. Read these instructions until the end!
+
+We provide some Makefile targets to run the whole test suite including unit, integration,
+and functional tests. Choose the right target depending on the system that you are using:
+
+Makefile targets:
+
+- Juelich Supercomputer (JSC): `test-jsc`
+- In any other case: `test`
+
+For instance, to run the test suite on your laptop user:
 
 ```bash
 make test
 ```
 
-Run tests in JSC virtual environments:
-
-```bash
-make test-jsc
-```
-
+<!--
 ### Micromamba installation (deprecated)
 
 To manage Conda environments we use micromamba, a light weight version of conda.
@@ -198,3 +200,5 @@ echo 'PATH="$(dirname $MAMBA_EXE):$PATH"' >> ~/.bashrc
 ```
 
 **Reference**: [Micromamba installation guide](https://mamba.readthedocs.io/en/latest/installation/micromamba-installation.html).
+
+-->

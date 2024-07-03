@@ -1,7 +1,7 @@
 Training a neural network
 ===========================
 
-itwinai amis at simplifying the way you train deep learning models, helping you to scale training to HPC resources,
+itwinai aims at simplifying the way you train deep learning models, helping you to scale training to HPC resources,
 while integrating popular logging frameworks, such as MLFlow, Weights&Biases, and Tensorboard.
 
 itwinai TorchTrainer
