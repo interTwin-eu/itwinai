@@ -75,7 +75,7 @@ The specific version numbers (like 'v0.0.2-beta' and 'v0.0.1') correspond to par
 .. toctree::
    :maxdepth: 2
    :hidden:
-   :caption: 📚 Integrated Use Cases
+   :caption: 📚 Scientific Use Cases
 
    use-cases/use_cases
 
