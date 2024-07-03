@@ -17,6 +17,7 @@ echo
 
 cont1=false
 if [ "$sysN" = 'hdfml' ] ; then
+  # NOTE: REFLECT THEM IN THE MAIN README! 
   ml Stages/2024 GCC/12.3.0 OpenMPI CUDA/12 MPI-settings/CUDA Python/3.11 HDF5 PnetCDF libaio mpi4py CMake cuDNN/8.9.5.29-CUDA-12
   cont1=true
 else
