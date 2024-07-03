@@ -83,7 +83,9 @@ Install itwinai and its dependencies using the
 following command, and follow the instructions:
 
 ```bash
-# Create a python virtual environment and activate it
+# First, load the required environment modules, if on an HPC
+
+# Second, create a python virtual environment and activate it
 $ python -m venv ENV_NAME
 $ source ENV_NAME/bin/activate
 
