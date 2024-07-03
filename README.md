@@ -31,16 +31,51 @@ make sure to read [this](https://github.com/pyenv/pyenv/wiki#suggested-build-env
 #### HPC environment
 
 In HPC systems it is more popular to load dependencies using
-Environment Modules or Lmod. Contact the system administrator
-to learn how to select the proper python modules.
+Environment Modules or Lmod. If you don't know what modules to load,
+contact the system administrator
+to learn how to select the proper modules.
 
-On JSC, we activate the required modules in this way:
+##### PyTorch environment
 
-```bash
-ml --force purge
-ml Stages/2024 GCC OpenMPI CUDA/12 cuDNN MPI-settings/CUDA
-ml Python CMake HDF5 PnetCDF libaio mpi4py
-```
+Commands to execute every time **before** installing or activating the python virtual
+environment for PyTorch:
+
+- Juelich Supercomputer (JSC):
+
+    ```bash
+    ml --force purge
+    ml Stages/2024 GCC OpenMPI CUDA/12 cuDNN MPI-settings/CUDA
+    ml Python CMake HDF5 PnetCDF libaio mpi4py
+    ```
+
+- Vega supercomputer:
+
+    ```bash
+    ml --force purge
+    ml Python CMake/3.24.3-GCCcore-11.3.0 mpi4py OpenMPI CUDA/11.7
+    ml GCCcore/11.3.0 NCCL/2.12.12-GCCcore-11.3.0-CUDA-11.7.0 cuDNN
+    ```
+
+##### TensorFlow environment
+
+Commands to execute every time **before** installing or activating the python virtual
+environment for TensorFlow:
+
+- Juelich Supercomputer (JSC):
+
+    ```bash
+    ml --force purge
+    ml Stages/2024 GCC/12.3.0 OpenMPI CUDA/12 MPI-settings/CUDA
+    ml Python/3.11 HDF5 PnetCDF libaio mpi4py CMake cuDNN/8.9.5.29-CUDA-12
+    ```
+
+- Vega supercomputer:
+
+    ```bash
+    ml --force purge
+    ml Python CMake/3.24.3-GCCcore-11.3.0 mpi4py OpenMPI CUDA/11.7
+    ml GCCcore/11.3.0 NCCL/2.12.12-GCCcore-11.3.0-CUDA-11.7.0 cuDNN
+    ```
 
 ### Install itwinai
 
