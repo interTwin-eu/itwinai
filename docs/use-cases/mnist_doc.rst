@@ -6,22 +6,9 @@ This section covers the MNIST use case, which utilizes the `torch-lightning` fra
 Torch Lightning
 ---------------
 
-**Training**
-
-.. code-block:: bash
-
-   # Download dataset and exit: only run first step in the pipeline (index=0)
-   itwinai exec-pipeline --config config.yaml --pipe-key training_pipeline --steps 0
-
-   # Run the whole training pipeline
-   itwinai exec-pipeline --config config.yaml --pipe-key training_pipeline 
-
-
-View training logs on MLFLow server (if activated from the configuration):
-
-.. code-block:: bash
-
-   mlflow ui --backend-store-uri mllogs/mlflow/
+.. include:: ../../use-cases/mnist/torch-lightning/README.md
+   :parser: myst_parser.sphinx_
+   :start-line: 2
 
 
 .. toctree::
@@ -72,115 +59,9 @@ This section covers the MNIST use case, which utilizes the `torch` framework for
 PyTorch
 -------
 
-**Training**
-
-.. code-block:: bash
-
-   # Download dataset and exit
-   itwinai exec-pipeline --config config.yaml --pipe-key training_pipeline --steps dataloading_step
-
-   # Run the whole training pipeline
-   itwinai exec-pipeline --config config.yaml --pipe-key training_pipeline 
-
-
-View training logs on MLFLow server (if activated from the configuration):
-
-.. code-block:: bash
-
-   mlflow ui --backend-store-uri mllogs/mlflow/
-
-
-**Inference**
-
-1. Create sample dataset
-
-   .. code-block:: python
-
-      from dataloader import InferenceMNIST
-      InferenceMNIST.generate_jpg_sample('mnist-sample-data/', 10)
-    
-
-2. Generate a dummy pre-trained neural network
-
-   .. code-block:: python
-
-      import torch
-      from model import Net
-      dummy_nn = Net()
-      torch.save(dummy_nn, 'mnist-pre-trained.pth')
-   
-
-3. Run inference command. This will generate a "mnist-predictions" folder containing a CSV file with the predictions as rows.
-
-   .. code-block:: bash
-      
-      itwinai exec-pipeline --config config.yaml --pipe-key inference_pipeline 
-    
-
-Note the same entry point as for training.
-
-Docker image
-++++++++++++
-
-Build from project root with
-
-.. code-block:: bash
-
-   # Local
-   docker buildx build -t itwinai:0.0.1-mnist-torch-0.1 -f use-cases/mnist/torch/Dockerfile .
-
-   # Ghcr.io
-   docker buildx build -t ghcr.io/intertwin-eu/itwinai:0.0.1-mnist-torch-0.1 -f use-cases/mnist/torch/Dockerfile .
-   docker push ghcr.io/intertwin-eu/itwinai:0.0.1-mnist-torch-0.1
-
-
-**Training with Docker container**
-
-.. code-block:: bash
-
-   docker run -it --rm --name running-inference \
-      -v "$PWD":/usr/data ghcr.io/intertwin-eu/itwinai:0.01-mnist-torch-0.1 \
-      /bin/bash -c "itwinai exec-pipeline --print-config \
-      --config /usr/src/app/config.yaml \
-      --pipe-key training_pipeline \
-      -o dataset_root=/usr/data/mnist-dataset "
-
-
-**Inference with Docker container**
-
-From wherever a sample of MNIST jpg images is available
-(folder called 'mnist-sample-data/'):
-
-::
-
-   ├── $PWD
-   │   ├── mnist-sample-data
-   │   │   ├── digit_0.jpg
-   │   │   ├── digit_1.jpg
-   │   │   ├── digit_2.jpg
-   ...
-   │   │   ├── digit_N.jpg
-
-
-.. code-block:: bash
-   
-   docker run -it --rm --name running-inference \
-      -v "$PWD":/usr/data ghcr.io/intertwin-eu/itwinai:0.01-mnist-torch-0.1 \
-      /bin/bash -c "itwinai exec-pipeline --print-config \
-      --config /usr/src/app/config.yaml \
-      --pipe-key inference_pipeline \
-      -o test_data_path=/usr/data/mnist-sample-data \
-      -o inference_model_mlflow_uri=/usr/src/app/mnist-pre-trained.pth \
-      -o predictions_dir=/usr/data/mnist-predictions "
-
-
-This command will store the results in a folder called "mnist-predictions":
-
-::
-
-   ├── $PWD
-   │   ├── mnist-predictions
-   |   │   ├── predictions.csv
+.. include:: ../../use-cases/mnist/torch/README.md
+   :parser: myst_parser.sphinx_
+   :start-line: 2
 
 
 
