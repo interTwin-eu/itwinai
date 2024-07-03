@@ -174,8 +174,8 @@ Upon execution, each component will run in turn and automatically pass on its ou
 Tutorials on the itwinai Pipeline
 ----------------------------------
 
-- :doc:`Simple Pipeline workflow <../../tutorials/workflows/notebooks/tutorial_0_basic_workflow>`
-- :doc:`Pipeline and configuration files <../../tutorials/workflows/notebooks/tutorial_1_intermediate_workflow>`
+- :doc:`Simple Pipeline workflow <../../tutorials/workflows/01-pipeline-introduction/tutorial_0_basic_workflow>`
+- :doc:`Pipeline and configuration files <../../tutorials/workflows/02-pipeline-configuration/tutorial_1_intermediate_workflow>`
 
 
 .. _dag_workflows: 
@@ -193,5 +193,6 @@ Below you can find an example of a DAG workflow, in which the sequential Pipelin
 Tutorials on DAG workflows
 ----------------------------------
 
-- :doc:`Simple DAG workflow <../../tutorials/workflows/notebooks/tutorial_2_advanced_workflow>`
+- :doc:`Simple DAG workflow <../../tutorials/workflows/03-dag-workflows/tutorial_2_advanced_workflow>`
+- :doc:`DAG workflow and configuration files <../../tutorials/workflows/04_itwinai_argparser>`
 
