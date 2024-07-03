@@ -42,9 +42,10 @@ Here you can find a collection of tutorials for various complexity ML workflows.
 .. toctree::
    :maxdepth: 1
    
-   workflows/notebooks/tutorial_0_basic_workflow
-   workflows/notebooks/tutorial_1_intermediate_workflow
-   workflows/notebooks/tutorial_2_advanced_workflow
+   workflows/01-pipeline-introduction/tutorial_0_basic_workflow
+   workflows/02-pipeline-configuration/tutorial_1_intermediate_workflow
+   workflows/03-dag-workflows/tutorial_2_advanced_workflow
+   workflows/04_itwinai_argparser
  
  
 
