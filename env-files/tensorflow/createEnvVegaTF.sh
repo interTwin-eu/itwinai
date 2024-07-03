@@ -7,6 +7,7 @@ if [ ! -f "env-files/tensorflow/generic_tf.sh" ]; then
 fi
 
 # Load modules
+# NOTE: REFLECT THEM IN THE MAIN README! 
 ml --force purge
 ml Python 
 ml CMake/3.24.3-GCCcore-11.3.0

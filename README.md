@@ -13,7 +13,7 @@ If you are a **developer**, please refer to the [developers installation guide](
 
 Requirements:
 
-- Linux or MacOS environment. Windows was never tested.
+- Linux or macOS environment. Windows was never tested.
 
 ### Python virtual environment
 
@@ -89,7 +89,7 @@ Python virtual environments using our predefined Makefile targets.
 
 #### PyTorch (+ Lightning) virtual environment
 
-Makefile targets:
+Makefile targets for environment installation:
 
 - Juelich Supercomputer (JSC): `torch-gpu-jsc`
 - Vega supercomputer: `torch-env-vega`
@@ -99,16 +99,22 @@ Makefile targets:
 For instance, on a laptop with a CUDA-compatible GPU you can use:
 
 ```bash
-# Install PyTorch + lightning
-make torch-env
+make torch-env 
+```
 
-# Activate env
+When not on an HPC system, you can activate the python environment directly with:
+
+```bash
 source .venv-pytorch/bin/activate
 ```
 
+Otherwise, if you are on an HPC system, please refer to
+[this section](#activate-itwinai-environment-on-hpc)
+explaining how to load the required environment modules before the python environment.
+
 #### TensorFlow virtual environment
 
-Makefile targets:
+Makefile targets for environment installation:
 
 - Juelich Supercomputer (JSC): `tf-gpu-jsc`
 - Vega supercomputer: `tf-env-vega`
@@ -119,12 +125,95 @@ For instance, on a laptop with a CUDA-compatible GPU you can use:
 
 ```bash
 make tensorflow-env
+```
 
-# Activate env
+When not on an HPC system, you can activate the python environment directly with:
+
+```bash
 source .venv-tf/bin/activate
 ```
 
-#### Test with `pytest`
+Otherwise, if you are on an HPC system, please refer to
+[this section](#activate-itwinai-environment-on-hpc)
+explaining how to load the required environment modules before the python environment.
+
+### Activate itwinai environment on HPC
+
+Usually, HPC systems organize their software in modules which need to be imported by the users
+every time they open a new shell, **before** activating a Python virtual environment.
+
+Below you can find some examples on how to load the correct environment modules on the HPC
+systems we are currently working with.
+
+#### Load modules before PyTorch virtual environment
+
+Commands to be executed before activating the python virtual environment:
+
+- Juelich Supercomputer (JSC):
+
+    ```bash
+    ml --force purge
+    ml Stages/2024 GCC OpenMPI CUDA/12 cuDNN MPI-settings/CUDA
+    ml Python CMake HDF5 PnetCDF libaio mpi4py
+    ```
+
+- Vega supercomputer:
+
+    ```bash
+    ml --force purge
+    ml Python CMake/3.24.3-GCCcore-11.3.0 mpi4py OpenMPI CUDA/11.7
+    ml GCCcore/11.3.0 NCCL/2.12.12-GCCcore-11.3.0-CUDA-11.7.0 cuDNN
+    ```
+
+- When not on an HPC: do nothing.
+
+For instance, on JSC you can activate the PyTorch virtual environment in this way:
+
+```bash
+# Load environment modules
+ml --force purge
+ml Stages/2024 GCC OpenMPI CUDA/12 cuDNN MPI-settings/CUDA
+ml Python CMake HDF5 PnetCDF libaio mpi4py
+
+# Activate virtual env
+source envAI_hdfml/bin/activate
+```
+
+#### Load modules before TensorFlow virtual environment
+
+Commands to be executed before activating the python virtual environment:
+
+- Juelich Supercomputer (JSC):
+
+    ```bash
+    ml --force purge
+    ml Stages/2024 GCC/12.3.0 OpenMPI CUDA/12 MPI-settings/CUDA
+    ml Python/3.11 HDF5 PnetCDF libaio mpi4py CMake cuDNN/8.9.5.29-CUDA-12
+    ```
+
+- Vega supercomputer:
+
+    ```bash
+    ml --force purge
+    ml Python CMake/3.24.3-GCCcore-11.3.0 mpi4py OpenMPI CUDA/11.7
+    ml GCCcore/11.3.0 NCCL/2.12.12-GCCcore-11.3.0-CUDA-11.7.0 cuDNN
+    ```
+
+- When not on an HPC: do nothing.
+
+For instance, on JSC you can activate the TensorFlow virtual environment in this way:
+
+```bash
+# Load environment modules
+ml --force purge
+ml Stages/2024 GCC/12.3.0 OpenMPI CUDA/12 MPI-settings/CUDA
+ml Python/3.11 HDF5 PnetCDF libaio mpi4py CMake cuDNN/8.9.5.29-CUDA-12
+
+# Activate virtual env
+source envAItf_hdfml/bin/activate
+```
+
+### Test with `pytest`
 
 Do this only if you are a developer wanting to test your code with pytest.
 
