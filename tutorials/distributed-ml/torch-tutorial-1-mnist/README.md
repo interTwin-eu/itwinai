@@ -27,6 +27,8 @@ This command creates a local folder called "MNIST" with the dataset.
 
 ## Distributed training
 
+Before running any of the commands below independently, for the first time, ensure you have created the `logs_slurm` folder to ensure output and error files are stored correctly. Ignore this step if you are to execute the `runall.sh` script as it creates the folder. 
+
 Each distributed strategy has its own SLURM job script, which
 should be used to run it:
 
