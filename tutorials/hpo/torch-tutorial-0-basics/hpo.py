@@ -196,13 +196,13 @@ def train_cifar(config):
         train_set,
         batch_size=int(config["batch_size"]),
         shuffle=True,
-        num_workers=30)
+        num_workers=4)
     
     test_loader = torch.utils.data.DataLoader(
         test_set,
         batch_size=int(config["batch_size"]),
         shuffle=False,
-        num_workers=30)
+        num_workers=4)
 
     # prepare the dataloaders for Ray Tune
     train_loader = train.torch.prepare_data_loader(train_loader)
@@ -329,7 +329,7 @@ def main(args):
         # default hyperparameters for the function
         train_loop_config={"batch_size": 64, "lr": 0.1, "data_dir": "/"},
         # setting the default resources/workers to use for the training function, including the number of CPUs and GPUs
-        scaling_config=ScalingConfig(num_workers=args.ngpus, use_gpu=True, resources_per_worker={"CPU": 30, "GPU": 1}),
+        scaling_config=ScalingConfig(num_workers=args.ngpus, use_gpu=True, resources_per_worker={"CPU": 4, "GPU": 1}),
     )
     
     # defining the hyperparameter tuner 
