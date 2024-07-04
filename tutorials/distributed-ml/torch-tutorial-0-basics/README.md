@@ -74,8 +74,8 @@ srun --jobid XXXX --ntasks-per-node=1 horovodrun -np 4 -H localhost:4 python -u 
 
 ## Distributed training with SLURM (batch mode)
 
-Before running any of the commands below independently, for the first time, 
-ensure you have created the `logs_slurm` folder to ensure output and error files are stored correctly. 
+Before running any of the commands below independently, for the first time,
+ensure you have created the `logs_slurm` folder to ensure output and error files are stored correctly.
 Ignore this step if you are to execute the `runall.sh` script as it creates the folder.
 
 Each distributed strategy has its own SLURM job script, which
