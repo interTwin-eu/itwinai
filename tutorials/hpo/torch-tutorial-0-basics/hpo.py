@@ -87,6 +87,7 @@ import ray.train as train
 from ray.train.torch import TorchTrainer
 from ray.air.config import ScalingConfig
 from ray.tune.tuner import Tuner, TuneConfig
+from ray.train import Checkpoint
 
 def parsIni():
     parser = argparse.ArgumentParser(description='Ray Tune Cifar-10 Example')
@@ -188,6 +189,20 @@ def train_cifar(config):
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.SGD(model.parameters(), lr=config["lr"]*dist.get_world_size())
 
+    current_epoch = 0
+    
+    # Load existing model and optimizer checkpoint through `get_checkpoint()` API.
+    if train.get_checkpoint():
+        loaded_checkpoint = train.get_checkpoint()
+        with loaded_checkpoint.as_directory() as loaded_checkpoint_dir:
+            # Load checkpoint
+            checkpoint = torch.load(os.path.join(loaded_checkpoint_dir, "checkpoint.pt"))
+
+            # Restore epoch value, model state, and optimizer state
+            current_epoch = checkpoint['current_epoch']
+            model.load_state_dict(checkpoint['model_state_dict'])
+            optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+
     # load the training and test data
     train_set, test_set = load_data(str(config["data_dir"]))
     
@@ -218,7 +233,7 @@ def train_cifar(config):
     test_total = 0
     
     # training and testing loop
-    for epoch in range(100):
+    for epoch in range(current_epoch, 100):
         # prepare model for training and loop over training dataset
         model.train()
         for i, (images, target) in enumerate(train_loader):
@@ -268,8 +283,18 @@ def train_cifar(config):
                 # compute final test accuracy
                 test_acc = test_correct/test_total
             
+            # Save current state of model and optimizer
+            os.makedirs("tune_model", exist_ok=True)
+            torch.save({
+                'current_epoch': epoch+1,
+                'model_state_dict': model.state_dict(),
+                'optimizer_state_dict': optimizer.state_dict()
+            }, "tune_model/checkpoint.pt")
+
+            checkpoint = Checkpoint.from_directory("tune_model")
+
             # report the training and testing accuracy back to the head node of Ray Tune
-            session.report({"train_acc": train_acc.item(), "test_acc": test_acc.item()})
+            session.report({"train_acc": train_acc.item(), "test_acc": test_acc.item()}, checkpoint = checkpoint)
 
 def main(args):
     """! main function
