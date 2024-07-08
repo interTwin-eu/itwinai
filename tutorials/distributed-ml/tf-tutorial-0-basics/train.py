@@ -36,12 +36,12 @@ def tf_rnd_dataset(args):
     """Dummy TF dataset."""
     (x_train, y_train), (x_test, y_test) = \
         tf.keras.datasets.mnist.load_data(
-            path='p/scratch/intertwin/datasets/.keras/datasets/mnist.npz')
+            path='/p/scratch/intertwin/datasets/.keras/datasets/mnist.npz')
 
-    train_dataset = tf.data.Dataset.from_tensor_slices((x_train, y_train))
+    train_dataset = tf.data.Dataset.from_tensor_slices((x_train, y_train)).repeat()
     train_dataset = train_dataset.batch(args.batch_size)
 
-    test_dataset = tf.data.Dataset.from_tensor_slices((x_test, y_test))
+    test_dataset = tf.data.Dataset.from_tensor_slices((x_test, y_test)).repeat()
     test_dataset = test_dataset.batch(args.batch_size)
 
     return train_dataset, test_dataset
@@ -79,16 +79,16 @@ def trainer_entrypoint_fn(
                       metrics=['accuracy']
                       )
 
-    model.fit(dist_train,
-              epochs=5,
-              steps_per_epoch=2000)
+        model.fit(dist_train,
+                  epochs=5,
+                  steps_per_epoch=2000)
 
-    test_scores = model.evaluate(dist_test, verbose=0, steps=500)
+        test_scores = model.evaluate(dist_test, verbose=0, steps=500)
 
-    print('Test loss:', test_scores[0])
-    print('Test accuracy:', test_scores[1])
+        print('Test loss:', test_scores[0])
+        print('Test accuracy:', test_scores[1])
 
-    return 123
+        return 123
 
 
 if __name__ == "__main__":
