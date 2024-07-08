@@ -28,6 +28,10 @@ def parse_args() -> argparse.Namespace:
         default='/p/scratch/intertwin/datasets/.keras/datasets/mnist.npz'
     )
     parser.add_argument(
+        "--epochs", type=int,
+        default=3
+    )
+    parser.add_argument(
         "--shuffle_dataloader",
         action=argparse.BooleanOptionalAction
     )
@@ -83,7 +87,7 @@ def trainer_entrypoint_fn(
                       )
 
         model.fit(dist_train,
-                  epochs=5,
+                  epochs=args.epochs,
                   steps_per_epoch=len(x_train)//batch_size)
 
         test_scores = model.evaluate(dist_test, 
