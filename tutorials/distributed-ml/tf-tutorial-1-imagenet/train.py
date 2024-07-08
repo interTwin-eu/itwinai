@@ -78,12 +78,12 @@ def tf_records_loader(files_path, shuffle=False):
     Returns:
         tf.data.Dataset: Returns dataset to be trained
     """
-    datasets = tf.data.Dataset.from_tensor_slices(files_path).repeat()
+    datasets = tf.data.Dataset.from_tensor_slices(files_path)
     datasets = datasets.shuffle(len(files_path)) if shuffle else datasets
     datasets = datasets.flat_map(tf.data.TFRecordDataset)
     datasets = datasets.map(
         deserialization_fn, num_parallel_calls=tf.data.AUTOTUNE)
-    return datasets
+    return datasets, len(tf.data.Dataset.from_tensor_slices(files_path))
 
 
 def main():
@@ -131,13 +131,13 @@ def main():
             tf.io.gfile.glob(dir_imagenet + f'/{test_shard_suffix}')
         )
     
-        train_dataset = tf_records_loader(train_set_path, shuffle=True)
-        test_dataset = tf_records_loader(test_set_path)
+        train_dataset, train_size = tf_records_loader(train_set_path, shuffle=True)
+        test_dataset, test_size = tf_records_loader(test_set_path)
     
         train_dataset = train_dataset.batch(
-            batch_size).prefetch(tf.data.experimental.AUTOTUNE)
+            batch_size).prefetch(tf.data.experimental.AUTOTUNE).repeat()
         test_dataset = test_dataset.batch(
-            batch_size).prefetch(tf.data.experimental.AUTOTUNE)
+            batch_size).prefetch(tf.data.experimental.AUTOTUNE).repeat()
     
         # distribute datasets among mirrored replicas
         dist_train = strategy.experimental_distribute_dataset(
@@ -151,14 +151,19 @@ def main():
         et = timer()
     
         # trains the model
-        model.fit(dist_train, epochs=args.epochs, steps_per_epoch=500, verbose=10)
+        model.fit(dist_train, 
+                  epochs=args.epochs, 
+                  steps_per_epoch=train_size//batch_size, 
+                  verbose=10)
     
         print('TIMER: total epoch time:',
               timer() - et, ' s')
         print('TIMER: average epoch time:',
               (timer() - et) / (args.epochs), ' s')
     
-        test_scores = model.evaluate(dist_test, steps=100, verbose=5)
+        test_scores = model.evaluate(dist_test, 
+                                     steps=test_size//batch_size, 
+                                     verbose=5)
     
         print('Test loss:', test_scores[0])
         print('Test accuracy:', test_scores[1])
