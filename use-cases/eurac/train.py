@@ -46,7 +46,7 @@ dynamic_names = ["precip", "pet", "temp"]
 static_names = [ 'thetaS', 'thetaR', 'RootingDepth', 'Swood','KsatVer', "Sl"] 
 target_names = [ "vwc", "actevap"]
 
-DONWSAMPLING = True
+DONWSAMPLING = False
 
 # === MASK ========================================================================================
 
