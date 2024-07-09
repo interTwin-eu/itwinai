@@ -29,10 +29,11 @@ import matplotlib.pyplot as plt
 
 EXPERIMENT  = "test"
 
-SURROGATE_INPUT = "https://eurac-eo.s3.amazonaws.com/INTERTWIN/SURROGATE_INPUT/adg1km_eobs_preprocessed.zarr/"
+#SURROGATE_INPUT = "https://eurac-eo.s3.amazonaws.com/INTERTWIN/SURROGATE_INPUT/adg1km_eobs_preprocessed.zarr/"
+SURROGATE_INPUT = "/p/scratch/intertwin/datasets/eurac/input/adg1km_eobs_preprocessed.zarr/"
 
-SURROGATE_MODEL_OUTPUT = f"./tmp/{EXPERIMENT}.pt"
-TMP_STATS = "./tmp"
+SURROGATE_MODEL_OUTPUT = f"/p/scratch/intertwin/datasets/eurac/model/{EXPERIMENT}.pt"
+TMP_STATS = "/p/scratch/intertwin/datasets/eurac/stats"
 
 # === FILTER ==============================================================
 
