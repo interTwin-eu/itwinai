@@ -7,14 +7,14 @@ This file explains details about the parameters that can be changed by the user 
 ## general configuration of the job
 
 HDFML has 16 CPUs per node, this might be different for other systems. 
-Each node launches one task with all GPUs ('--gpus-per-node=4', '--gres=gpu:4') and CPUs ('--cpus-per-task=16')
-Ray takes care to distribute the resources internally
+Each node launches one task with all GPUs ('--gpus-per-node=4', '--gres=gpu:4') and CPUs ('--cpus-per-task=16').
+Ray takes care to distribute the resources internally.
 
 ## command
 
-'--num-samples 6' stands for the number of HPO configurations that will be investigated
-'--ngpus 1' is the number of GPUs that are used to train one configuration
-'--max-iterations 2' is the maximum number of epochs for each configuration
+'--num-samples 6' stands for the number of HPO configurations that will be investigated.
+'--ngpus 1' is the number of GPUs that are used to train one configuration.
+'--max-iterations 2' is the maximum number of epochs for each configuration.
 '--scheduler ASHA' is one of three popular schedulers. 
      
 For more details about code for the other schedulers see: https://gitlab.jsc.fz-juelich.de/CoE-RAISE/FZJ/ai4hpc/ai4hpc/-/tree/master/HPO/Cases?ref_type=heads
