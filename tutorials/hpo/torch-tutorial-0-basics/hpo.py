@@ -1,68 +1,3 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""! @brief HPO """ 
-
-##
-# @mainpage HPO
-#
-# @section description_main Description
-# Hyperparameter optimization of neural networks with Ray Tune library.
-#
-#
-#
-# @section notes_main Notes
-# - The data directory of the CIFAR-10 dataset has the be specified in the startscript
-#
-# Copyright (c) 2023 RAISE, All rights reserved.
-
-
-##
-# @file cifar_tune_asha.py
-#
-# @brief Optimizing the hyperparameters of a ResNet18 trained on the CIFAR-10 dataset with Ray Tune libray and the ASHA algorithm.
-#
-# @section description_cifar_tune_asha description
-# A standard ResNet18 model is trained on the CIFAR-10 vision dataset. To optimize the performance, multiple 
-# training runs (trials) with different hyperparameters (chagend learning rate and batch size) are performed using 
-# the Ray Tune library. The overall hyperparameter optimization process, as well as the single training runs can be 
-# parallelized across multiple GPUs. Trials with low performance (in terms of test set acuracy) are terminated early 
-# with the ASHA aglorithm.
-# 
-#
-# @section libraries_main Libraries/Modules
-# - argparse standard library (https://docs.python.org/3/library/argparse.html)
-#   - Parse command-line options 
-# - sys standard library (https://docs.python.org/3/library/sys.html)
-#   - System commands
-# - os standard library (https://docs.python.org/3/library/os.html)
-#   - OS commands 
-# - time standard library (https://docs.python.org/3/library/time.html)
-#   - Access timers for profilers 
-# - numpy library (https://numpy.org/)
-#   - Access numpy functions
-# - random standard library (https://docs.python.org/3/library/time.html)
-#   - Generate random numbers
-# - matplotlib library (https://matplotlib.org/)
-#   - Post-process data for validation 
-# - torch library (https://pytorch.org/)
-#   - ML framework
-# - torchvision library (https://pypi.org/project/torchvision/)
-#   - Torch library additions for popular datasets and their transformations
-# - ray libray (https://www.ray.io/)
-#   - Framework for distributed computing with a focus on hyperparameter optimization
-#
-# @section notes_doxygen_example Notes
-# - None.
-#
-# @section todo TODO
-# - None.
-#
-# @section author Author(s)
-# - Created by MA on 04/05/2023.
-# - Modified by 
-#
-# Copyright (c) 2023 RAISE, All rights reserved.
-
 # load general modules
 import argparse
 import os
@@ -103,6 +38,8 @@ def parsIni():
                     help='data directory for cifar-10 dataset')
     parser.add_argument('--nworker', type=int, default=0,
                     help='number of workers in DataLoader (default: 0 - only main)')
+    parser.add_argument('--ngpus-per-node', type=int, default=4,
+                    help='number of GPUs per node (default: 4)')
     return parser
 
 def accuracy(output, target):
@@ -211,13 +148,13 @@ def train_cifar(config):
         train_set,
         batch_size=int(config["batch_size"]),
         shuffle=True,
-        num_workers=4)
+        num_workers=int(args.nworker/args.ngpus_per_node))
     
     test_loader = torch.utils.data.DataLoader(
         test_set,
         batch_size=int(config["batch_size"]),
         shuffle=False,
-        num_workers=4)
+        num_workers=int(args.nworker/args.ngpus_per_node))
 
     # prepare the dataloaders for Ray Tune
     train_loader = train.torch.prepare_data_loader(train_loader)
@@ -354,7 +291,7 @@ def main(args):
         # default hyperparameters for the function
         train_loop_config={"batch_size": 64, "lr": 0.1, "data_dir": "/"},
         # setting the default resources/workers to use for the training function, including the number of CPUs and GPUs
-        scaling_config=ScalingConfig(num_workers=args.ngpus, use_gpu=True, resources_per_worker={"CPU": 4, "GPU": 1}),
+        scaling_config=ScalingConfig(num_workers=args.ngpus, use_gpu=True, resources_per_worker={"CPU": int(args.nworker/args.ngpus_per_node), "GPU": args.ngpus}),
     )
     
     # defining the hyperparameter tuner 

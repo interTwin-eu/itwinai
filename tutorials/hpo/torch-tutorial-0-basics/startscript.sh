@@ -9,7 +9,6 @@
 #SBATCH --ntasks-per-node=1
 #SBATCH --cpus-per-task=16
 #SBATCH --gpus-per-node=4
-### SBATCH --gpus-per-task=1
 #SBATCH --exclusive
 #SBATCH --gres=gpu:4
 
@@ -18,10 +17,10 @@ ml Stages/2024 GCC OpenMPI CUDA/12 MPI-settings/CUDA Python HDF5 PnetCDF libaio 
 
 # command
 dataDir=/p/scratch/intertwin/datasets/cifar10/data
-#dataDir=/p/project1/intertwin/ruettgers1/HPO/itwinai/tutorials/hpo/torch-tutorial-0-basics/datasets/
 COMMAND="hpo.py --num-samples 6 --ngpus 1 --max-iterations 2 --scheduler ASHA"
 EXEC="$COMMAND \
   --nworker $SLURM_CPUS_PER_TASK \
+  --ngpus-per-node $SLURM_GPUS_PER_NODE \
   --data-dir $dataDir"
 
 # set modules
