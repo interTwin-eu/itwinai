@@ -23,27 +23,25 @@ For more details about code for the other schedulers see: https://gitlab.jsc.fz-
 
 Depending on the parameters explained above, the user should also define the type and range of hyperparameters, and the default configuration:
 
-    ```bash
-    # define the hyperparameter search space 
-    config = {
-        "batch_size": tune.choice([64, 128, 256, 512]),
-        "lr": tune.loguniform(10e-5, 1),
-        "data_dir": tune.choice([args.data_dir]),
-    }
-    ```
+```bash
+# define the hyperparameter search space 
+config = {
+   "batch_size": tune.choice([64, 128, 256, 512]),
+   "lr": tune.loguniform(10e-5, 1),
+   "data_dir": tune.choice([args.data_dir]),
+}
 
-    ```bash
-    # default hyperparameters for the function
-    train_loop_config={"batch_size": 64, "lr": 0.1, "data_dir": "/"},
-    ```
+# default hyperparameters for the function
+train_loop_config={"batch_size": 64, "lr": 0.1, "data_dir": "/"},
+```
 
 Furthermore, it is important to specify the metric which is used to evaluate a trained configuration. Here, the test accuracy is chosen as the metric:
 
-    ```bash
-    # define which metric to use for measuring the performance of the trials
-    metric="test_acc",
-    # if the metric should be maximized or minimized 
-    mode="max",
-    ```
+```bash
+# define which metric to use for measuring the performance of the trials
+metric="test_acc",
+# if the metric should be maximized or minimized 
+mode="max",
+```
 
 If all parameters are set, Ray runs the optimization and, finally, the hyperparameters of the configuration with the best metric are printed.
