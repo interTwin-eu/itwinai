@@ -797,14 +797,24 @@ class Prov4MLLogger(Logger):
     Abstraction around Prov4ML logger.
 
     Args:
-        name (Optional[str]): The name of the experiment.
-            Defaults to "lightning_logs".
-        version (Optional[Union[int, str]]): The version of the experiment.
-            Defaults to None.
-        prefix (str): The prefix for the experiment.
-            Defaults to an empty string.
-        flush_logs_every_n_steps (int): The number of steps after which logs
-            should be flushed. Defaults to 100.
+        prov_user_namespace (str, optional): _description_.
+            Defaults to "www.example.org".
+        experiment_name (str, optional): _description_.
+            Defaults to "experiment_name".
+        provenance_save_dir (str, optional): _description_.
+            Defaults to "prov".
+        collect_all_processes (Optional[bool], optional): _description_.
+            Defaults to False.
+        save_after_n_logs (Optional[int], optional): _description_.
+            Defaults to 100.
+        create_graph (Optional[bool], optional): _description_.
+            Defaults to True.
+        create_svg (Optional[bool], optional): _description_.
+            Defaults to True.
+        log_on_workers (Optional[Union[int, List[int]]]): if -1, log on all
+            workers; if int log on worker with rank equal to log_on_workers;
+            if List[int], log on workers which rank is in the list.
+            Defaults to 0.
     """
 
     #: Supported kinds in the ``log`` method
@@ -822,6 +832,7 @@ class Prov4MLLogger(Logger):
         save_after_n_logs: Optional[int] = 100,
         create_graph: Optional[bool] = True,
         create_svg: Optional[bool] = True,
+        log_on_workers: Union[int, List[int]] = 0
     ) -> None:
         super().__init__()
         self.name = experiment_name
@@ -832,6 +843,7 @@ class Prov4MLLogger(Logger):
         self.save_after_n_logs = save_after_n_logs
         self.create_graph = create_graph
         self.create_svg = create_svg
+        self.log_on_workers = log_on_workers
 
     @override
     def create_logger_context(self):
@@ -861,13 +873,30 @@ class Prov4MLLogger(Logger):
         pass
 
     @override
+    def should_log(self, batch_idx: int = None, worker_rank: int = 0) -> bool:
+        worker_ok = (
+            (isinstance(self.log_on_workers, int) and (
+                self.log_on_workers == -1 or
+                self.log_on_workers == worker_rank
+            )
+            )
+            or
+            (isinstance(self.log_on_workers, list)
+             and worker_rank in self.log_on_workers)
+        )
+
+        return super().should_log(batch_idx) and worker_ok
+
+    @override
     def log(
         self,
         item: Union[Any, List[Any]],
         identifier: Union[str, List[str]],
         kind: Union[str, LoggingItemKind] = 'metric',
         step: Optional[int] = None,
+        batch_idx: Optional[int] = None,
         context: Optional[Context] = 'training',
+        rank: int = 0,
         **kwargs
     ) -> None:
         """Logs with Prov4ML.
@@ -882,8 +911,12 @@ class Prov4MLLogger(Logger):
             step (Optional[int], optional): logging step. Defaults to None.
             batch_idx (Optional[int], optional): DataLoader batch counter
                 (i.e., batch idx), if available. Defaults to None.
+            rank (int): distributed rank of worker. Defaults to 0.
             kwargs: keyword arguments to pass to the logger.
         """
+
+        if not self.should_log(batch_idx=batch_idx, worker_rank=rank):
+            return
 
         if kind == LoggingItemKind.METRIC.value:
             prov4ml.log_metric(identifier, item, context, step=step)
