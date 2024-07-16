@@ -525,16 +525,17 @@ class TorchDDPStrategy(TorchDistributedStrategy):
         if not self.is_initialized:
             raise UninitializedStrategyError(
                 "Strategy has not been initialized. Use the init method.")
-        
+
         # Ensure that the tensor is on the correct device (CUDA)
         # tensor = tensor.to(torch.device self.device,None)
-        
+
         if self.global_rank() == dst_rank:
-            res = [torch.zeros_like(tensor,device=self.device()) for _ in range(self.global_world_size())]
+            res = [torch.zeros_like(tensor, device=self.device()) for _ in
+                   range(self.global_world_size())]
 
             dist.gather(tensor, gather_list=res, dst=dst_rank)
             return res
-        
+
         dist.gather(tensor, dst=dst_rank)
 
 
@@ -719,16 +720,17 @@ class DeepSpeedStrategy(TorchDistributedStrategy):
         if not self.is_initialized:
             raise UninitializedStrategyError(
                 "Strategy has not been initialized. Use the init method.")
-        
+
         # Ensure that the tensor is on the correct device (CUDA)
         # tensor = tensor.to(self.device)
-        
+
         if self.global_rank() == dst_rank:
-            res = [torch.zeros_like(tensor,device=self.device()) for _ in range(self.global_world_size())]
+            res = [torch.zeros_like(tensor, device=self.device())
+                   for _ in range(self.global_world_size())]
 
             dist.gather(tensor, gather_list=res, dst=dst_rank)
             return res
-        
+
         dist.gather(tensor, dst=dst_rank)
 
 
@@ -881,18 +883,19 @@ class HorovodStrategy(TorchDistributedStrategy):
             raise UninitializedStrategyError(
                 "Strategy has not been initialized. Use the init method.")
         return self.allgather_obj(obj)
-    
+
     def gather(self, tensor: torch.Tensor, dst_rank: int = 0):
         # https://pytorch.org/docs/stable/distributed.html#collective-functions
         if not self.is_initialized:
             raise UninitializedStrategyError(
                 "Strategy has not been initialized. Use the init method.")
-        
+
         # Ensure that the tensor is on the correct device (CUDA)
         # tensor = tensor.to(self.device)
-        
+
         if self.global_rank() == dst_rank:
-            res = [torch.zeros_like(tensor,device=self.device()) for _ in range(self.global_world_size())]
+            res = [torch.zeros_like(tensor, device=self.device())
+                   for _ in range(self.global_world_size())]
 
             dist.gather(tensor, gather_list=res, dst=dst_rank)
             return res
@@ -1006,18 +1009,19 @@ class NonDistributedStrategy(TorchDistributedStrategy):
             list[Any]: input object wrapped in a list.
         """
         return [obj]
-    
+
     def gather(self, tensor: torch.Tensor, dst_rank: int = 0):
         # https://pytorch.org/docs/stable/distributed.html#collective-functions
         if not self.is_initialized:
             raise UninitializedStrategyError(
                 "Strategy has not been initialized. Use the init method.")
-        
+
         # Ensure that the tensor is on the correct device (CUDA)
         # tensor = tensor.to(self.device)
-        
+
         if self.global_rank() == dst_rank:
-            res = [torch.zeros_like(tensor,device=self.device()) for _ in range(self.global_world_size())]
+            res = [torch.zeros_like(tensor, device=self.device())
+                   for _ in range(self.global_world_size())]
 
             dist.gather(tensor, gather_list=res, dst=dst_rank)
             return res

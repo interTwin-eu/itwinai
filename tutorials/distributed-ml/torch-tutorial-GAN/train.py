@@ -1,5 +1,4 @@
 import os
-import sys
 import argparse
 import torch
 import torch.nn as nn
@@ -13,7 +12,7 @@ from itwinai.loggers import MLFlowLogger
 from typing import (
     Optional, Dict, Union, Literal
 )
-from itwinai.loggers import LogMixin, Logger
+from itwinai.loggers import Logger
 from itwinai.torch.type import Metric
 import matplotlib.pyplot as plt
 import numpy as np
@@ -28,6 +27,8 @@ G_losses = []
 D_losses = []
 
 # Define Generator
+
+
 class Generator(nn.Module):
     def __init__(self):
         super(Generator, self).__init__()
@@ -59,6 +60,8 @@ class Generator(nn.Module):
         return self.main(input)
 
 # Discriminator
+
+
 class Discriminator(nn.Module):
     def __init__(self):
         super(Discriminator, self).__init__()
@@ -120,16 +123,18 @@ class GANTrainer(TorchTrainer):
         self.discriminator = discriminator
         self.generator = generator
 
-
     def create_model_loss_optimizer(self) -> None:
         self.optimizerD = optim.Adam(
-            self.discriminator.parameters(), lr=self.config.lr, betas=(0.5, 0.999))
+            self.discriminator.parameters(), lr=self.config.lr,
+            betas=(0.5, 0.999))
         self.optimizerG = optim.Adam(
             self.generator.parameters(), lr=self.config.lr, betas=(0.5, 0.999))
         self.criterion = nn.BCELoss()
-            # Distribute discriminator and its optimizer
-        self.discriminator, self.optimizerD, scheduler = self.strategy.distributed(self.discriminator, self.optimizerD)
-        self.generator, self.optimizerG, scheduler = self.strategy.distributed(self.generator, self.optimizerG)
+        # Distribute discriminator and its optimizer
+        self.discriminator, self.optimizerD, _ = self.strategy.distributed(
+            self.discriminator, self.optimizerD)
+        self.generator, self.optimizerG, _ = self.strategy.distributed(
+            self.generator, self.optimizerG)
 
     def train_epoch(self):
         self.discriminator.train()
@@ -144,7 +149,8 @@ class GANTrainer(TorchTrainer):
         self.discriminator.eval()
         self.generator.eval()
         validation_loss = torch.tensor(0.0, device=self.device)
-        for batch_idx, (real_images, _) in enumerate(self.validation_dataloader):
+        for batch_idx, (real_images, _) in enumerate(
+                self.validation_dataloader):
             validation_loss += self.validation_step(
                 real_images, batch_idx).item()
         return validation_loss / len(self.validation_dataloader)
@@ -153,9 +159,7 @@ class GANTrainer(TorchTrainer):
         real_images = real_images.to(self.device)
         batch_size = real_images.size(0)
         label = torch.full((batch_size,), REAL_LABEL,
-                            dtype=torch.float, device=self.device)
-        
-        
+                           dtype=torch.float, device=self.device)
 
         # Train Discriminator with real images
         self.discriminator.zero_grad()
@@ -184,7 +188,7 @@ class GANTrainer(TorchTrainer):
         G_losses.append(lossG.item())
         D_losses.append(lossD_real.item() +
                         lossD_fake.item())
-        
+
         return G_losses, D_losses, fake_images
 
     def validation_step(self, real_images, batch_idx):
@@ -199,7 +203,7 @@ class GANTrainer(TorchTrainer):
         # fake_labels = torch.full(
         #     (batch_size,), FAKE_LABEL, dtype=torch.float, device=self.device)
         label = torch.full((batch_size,), REAL_LABEL,
-                            dtype=torch.float, device=self.device)
+                           dtype=torch.float, device=self.device)
         label.fill_(FAKE_LABEL)
 
         # Calculate loss on fake images
@@ -243,7 +247,8 @@ class GANTrainer(TorchTrainer):
             'generator_state_dict': self.generator.state_dict(),
             'optimizerD_state_dict': self.optimizerD.state_dict(),
             'optimizerG_state_dict': self.optimizerG.state_dict(),
-            'lr_scheduler': self.lr_scheduler.state_dict() if self.lr_scheduler else None
+            'lr_scheduler': self.lr_scheduler.state_dict() if
+            self.lr_scheduler else None
         }
 
         torch.save(checkpoint, checkpoint_path)
@@ -259,12 +264,14 @@ class GANTrainer(TorchTrainer):
         self.optimizerD.load_state_dict(checkpoint['optimizerD_state_dict'])
         self.optimizerG.load_state_dict(checkpoint['optimizerG_state_dict'])
 
-        if 'lr_scheduler' in checkpoint and checkpoint['lr_scheduler'] is not None:
-            self.lr_scheduler.load_state_dict(checkpoint['lr_scheduler'])
+        if 'lr_scheduler' in checkpoint:
+            if checkpoint['lr_scheduler'] is not None:
+                self.lr_scheduler.load_state_dict(checkpoint['lr_scheduler'])
 
         print(f"Checkpoint loaded from {checkpoint_path}")
 
-    def save_plots_and_images(self, epoch, lossG, lossD, real_images, fake_images):
+    def save_plots_and_images(self, epoch, lossG, lossD,
+                              real_images, fake_images):
         """Save training plots and images generated by the GAN."""
         images_dir = os.path.join(self.checkpoints_location, 'images')
         if not os.path.exists(images_dir):
@@ -342,9 +349,11 @@ def main():
             m.bias.data.fill_(0)
 
     # Models
-    netG = Generator().to(torch.device("cuda" if torch.cuda.is_available() else "cpu "))
+    netG = Generator().to(torch.device("cuda" if torch.cuda.is_available()
+                                       else "cpu "))
     netG.apply(weights_init)
-    netD = Discriminator().to(torch.device("cuda" if torch.cuda.is_available() else "cpu"))
+    netD = Discriminator().to(torch.device("cuda" if torch.cuda.is_available()
+                                           else "cpu"))
     netD.apply(weights_init)
 
     # Training configuration
@@ -375,7 +384,6 @@ def main():
         random_seed=args.seed,
         logger=logger
     )
-
 
     # Launch training
     _, _, _, trained_model = trainer.execute(
