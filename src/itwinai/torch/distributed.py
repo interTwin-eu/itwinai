@@ -328,6 +328,19 @@ class TorchDistributedStrategy(DistributedStrategy):
         Returns:
             List[Any]: list of objects gathered from all workers.
         """
+    @abc.abstractmethod
+    def gather(self, tensor: torch.Tensor, dst_rank: int = 0):
+        """Gathers any object from the whole group in a list
+        (to all workers).
+
+        Args:
+            obj (Any): object to gather from all workers.
+            dst_rank (int): rank of the worker on which the objects list
+                are gathered.
+
+        Returns:
+            List[Any]: list of objects gathered from all workers.
+        """
 
 
 class TorchDDPStrategy(TorchDistributedStrategy):
@@ -507,6 +520,23 @@ class TorchDDPStrategy(TorchDistributedStrategy):
 
         dist.gather_object(obj, dst=dst_rank)
 
+    def gather(self, tensor: torch.Tensor, dst_rank: int = 0):
+        # https://pytorch.org/docs/stable/distributed.html#collective-functions
+        if not self.is_initialized:
+            raise UninitializedStrategyError(
+                "Strategy has not been initialized. Use the init method.")
+        
+        # Ensure that the tensor is on the correct device (CUDA)
+        # tensor = tensor.to(torch.device self.device,None)
+        
+        if self.global_rank() == dst_rank:
+            res = [torch.zeros_like(tensor,device=self.device()) for _ in range(self.global_world_size())]
+
+            dist.gather(tensor, gather_list=res, dst=dst_rank)
+            return res
+        
+        dist.gather(tensor, dst=dst_rank)
+
 
 class DeepSpeedStrategy(TorchDistributedStrategy):
     """DeepSpeed distributed strategy class.
@@ -684,6 +714,23 @@ class DeepSpeedStrategy(TorchDistributedStrategy):
 
         dist.gather_object(obj, dst=dst_rank)
 
+    def gather(self, tensor: torch.Tensor, dst_rank: int = 0):
+        # https://pytorch.org/docs/stable/distributed.html#collective-functions
+        if not self.is_initialized:
+            raise UninitializedStrategyError(
+                "Strategy has not been initialized. Use the init method.")
+        
+        # Ensure that the tensor is on the correct device (CUDA)
+        # tensor = tensor.to(self.device)
+        
+        if self.global_rank() == dst_rank:
+            res = [torch.zeros_like(tensor,device=self.device()) for _ in range(self.global_world_size())]
+
+            dist.gather(tensor, gather_list=res, dst=dst_rank)
+            return res
+        
+        dist.gather(tensor, dst=dst_rank)
+
 
 class HorovodStrategy(TorchDistributedStrategy):
     """Horovod distributed strategy class."""
@@ -834,6 +881,23 @@ class HorovodStrategy(TorchDistributedStrategy):
             raise UninitializedStrategyError(
                 "Strategy has not been initialized. Use the init method.")
         return self.allgather_obj(obj)
+    
+    def gather(self, tensor: torch.Tensor, dst_rank: int = 0):
+        # https://pytorch.org/docs/stable/distributed.html#collective-functions
+        if not self.is_initialized:
+            raise UninitializedStrategyError(
+                "Strategy has not been initialized. Use the init method.")
+        
+        # Ensure that the tensor is on the correct device (CUDA)
+        # tensor = tensor.to(self.device)
+        
+        if self.global_rank() == dst_rank:
+            res = [torch.zeros_like(tensor,device=self.device()) for _ in range(self.global_world_size())]
+
+            dist.gather(tensor, gather_list=res, dst=dst_rank)
+            return res
+
+        dist.gather(tensor, dst=dst_rank)
 
 
 class NonDistributedStrategy(TorchDistributedStrategy):
@@ -942,3 +1006,20 @@ class NonDistributedStrategy(TorchDistributedStrategy):
             list[Any]: input object wrapped in a list.
         """
         return [obj]
+    
+    def gather(self, tensor: torch.Tensor, dst_rank: int = 0):
+        # https://pytorch.org/docs/stable/distributed.html#collective-functions
+        if not self.is_initialized:
+            raise UninitializedStrategyError(
+                "Strategy has not been initialized. Use the init method.")
+        
+        # Ensure that the tensor is on the correct device (CUDA)
+        # tensor = tensor.to(self.device)
+        
+        if self.global_rank() == dst_rank:
+            res = [torch.zeros_like(tensor,device=self.device()) for _ in range(self.global_world_size())]
+
+            dist.gather(tensor, gather_list=res, dst=dst_rank)
+            return res
+
+        dist.gather(tensor, dst=dst_rank)

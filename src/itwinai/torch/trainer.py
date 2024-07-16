@@ -498,7 +498,7 @@ class TorchTrainer(Trainer, LogMixin):
         m_values = {}
         for m_name, metric in self.metrics.items():
             # metric = metric.to(self.device)
-            m_val = metric(pred, true).detach().cpu().numpy()
+            m_val = metric(pred, true)
             self.log(
                 item=m_val,
                 identifier=f'{stage}_{m_name}',
@@ -531,11 +531,13 @@ class TorchTrainer(Trainer, LogMixin):
                 val_loss = self.validation_epoch()
 
                 # Checkpointing current best model
-                worker_val_losses = self.strategy.gather_obj(
+                # worker_val_losses = self.strategy.gather_obj(
+                #     val_loss, dst_rank=0)
+                worker_val_losses = self.strategy.gather(
                     val_loss, dst_rank=0)
                 if self.strategy.global_rank() == 0:
                     avg_loss = torch.mean(
-                        torch.stack(worker_val_losses)
+                        torch.stack(worker_val_losses)                       
                     ).detach().cpu()
                     if avg_loss < best_loss:
                         ckpt_name = "best_model.pth"
