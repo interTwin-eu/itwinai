@@ -39,6 +39,10 @@ mlflow ui --backend-store-uri LOCAL_TRACKING_URI
 
 And select the "3DGAN" experiment.
 
+### Docker image
+
+JupyterLab: ghcr.io/intertwin-eu/itwinai:0.2.1-3dgan-jlab-0.0
+
 ## Inference
 
 Disclaimer: the following is preliminary and not 100% ML/scientifically sound.
