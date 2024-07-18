@@ -38,7 +38,7 @@ spec:
     - name: MAX_DATA_SAMPLES
       value: "1000"
     - name: BATCH_SIZE
-      value: "32"
+      value: "256"
     - name: NUM_WORKERS_DL
       value: "4"
     - name: ACCELERATOR
