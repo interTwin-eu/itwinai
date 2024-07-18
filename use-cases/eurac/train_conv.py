@@ -8,14 +8,14 @@ import numpy as np
 import xarray as xr
 import torch.optim as optim
 from torch.optim.lr_scheduler import ReduceLROnPlateau
-from torch.utils.data import DistributedSampler,  DataLoader
+from torch.utils.data import DataLoader
 
 
 # override below
 from hython.trainer import train_val
 
 from hython.datasets.datasets import get_dataset
-from hython.sampler import SamplerBuilder
+from hython.sampler import SamplerBuilder, CubeletsDownsampler
 from hython.metrics import MSEMetric
 from hython.losses import RMSELoss
 from hython.utils import read_from_zarr, set_seed
@@ -31,28 +31,26 @@ from hython.normalizer import Normalizer
 import matplotlib.pyplot as plt
 
 
-
 # PARAMETERS 
 
-EXPERIMENT  = "test"
+EXPERIMENT  = "convlstm"
 
-SURROGATE_INPUT = "https://eurac-eo.s3.amazonaws.com/INTERTWIN/SURROGATE_INPUT/adg1km_eobs_original.zarr/"
+SURROGATE_INPUT = "/p/scratch/intertwin/datasets/eurac/input/adg1km_eobs_original.zarr"
 
-SURROGATE_MODEL_OUTPUT = f"./tmp/{EXPERIMENT}.pt"
-TMP_STATS = "./tmp"
+SURROGATE_MODEL_OUTPUT = f"/p/scratch/intertwin/datasets/eurac/model/{EXPERIMENT}.pt"
+TMP_STATS = "/p/scratch/intertwin/datasets/eurac/stats"
 
 # === FILTER ==============================================================
 
 # train/test temporal range
-train_temporal_range = slice("2016-01-01","2018-12-31")
+train_temporal_range = slice("2012-01-01","2018-12-31")
 test_temporal_range = slice("2019-01-01", "2020-12-31")
 
 # variables
 dynamic_names = ["precip", "pet", "temp"] 
-static_names = [ 'thetaS', 'thetaR', 'RootingDepth', 'Swood','KsatVer', "Sl"] 
-target_names = [ "vwc", "actevap"]
+static_names = [ "wflow_dem", "Slope", "wflow_uparea"] 
+target_names = ["runoff_river" ] 
 
-DONWSAMPLING = False
 
 # === MASK ========================================================================================
 
@@ -60,33 +58,50 @@ mask_names = ["mask_missing", "mask_lake"] # names depends on preprocessing appl
 
 # === DATASET ========================================================================================
 
-DATASET = "CubeletsDataset" 
-LOAD_IN_MEMORY = True
 
+DATASET = "CubeletsDataset"
+
+# size of the sample, in height (YSIZE), width (XSIZE) and time (TSIZE) 
 XSIZE,YSIZE, TSIZE = 60, 60, 60
+# sample pixel overlapping 
 XOVER,YOVER,TOVER = 10, 10, 10
-FILL_MISSING = 0
+
+# Criteria for keeping/removing missing or nodata. 
+# Available options are: 
+# - max fraction of missing data tolerated in each sample
+# - if "any" missing in a sample remove it from the pool
+# - if "all" missing in a sample remove it from the pool 
+MISSING_POLICY = 0.05 # "any", "all"
+FILL_MISSING = 0 # nan are converted to whatever value defined here
 
 
 # == MODEL  ========================================================================================
 
-HIDDEN_SIZE = 24
-KERNEL_SIZE = (3, 3)
-NUM_LSTM_LAYER = 2
+HIDDEN_SIZE = 36
 DYNAMIC_INPUT_SIZE = len(dynamic_names)
 STATIC_INPUT_SIZE = len(static_names)
+KERNEL_SIZE = (3, 3)
+NUM_LSTM_LAYER = 2
 OUTPUT_SIZE = len(target_names)
+
 TARGET_WEIGHTS = {t:1/len(target_names) for t in target_names}
 
 
 
 # === SAMPLER/TRAINER ===================================================================================
 
-DISTRIBUTED = False
+# If true the samples are downsampled in either temporal and spatial dimension (or both) by a defined fraction
+# The first value in the list correspond to the train samples and the second to the test samples 
+DONWSAMPLING = True
+TEMPORAL_FRAC = [0.2, 0.5] # train, test
+SPATIAL_FRAC = [1, 1] # train, test
 
-SEED = 1696
-EPOCHS = 20
-BATCH = 256
+
+SEED = 42
+EPOCHS = 30
+BATCH = 16
+
+DISTRIBUTED = False
 
 
 assert sum(v for v in TARGET_WEIGHTS.values()) == 1, "check target weights"
@@ -193,8 +208,6 @@ if __name__ == "__main__":
     Xs = read_from_zarr(SURROGATE_INPUT, group="xs")[static_names]
     Y = read_from_zarr(SURROGATE_INPUT,  group= "y").sel(time=train_temporal_range)[target_names]
 
-    SHAPE = Xd[dynamic_names[0]].shape
-
     # === READ TEST ===================================================================
 
     Y_test = (
@@ -214,63 +227,70 @@ if __name__ == "__main__":
         .any(dim="mask_layer")
     )
 
+    # === DOWNSAMPLING ===============================================================
     if DONWSAMPLING:
-        raise NotImplementedError("Downsampling not yet implemented")
+        train_downsampler = CubeletsDownsampler(
+                temporal_donwsample_fraction= TEMPORAL_FRAC[0], 
+                spatial_downsample_fraction= SPATIAL_FRAC[0]
+            )       
+        test_downsampler = CubeletsDownsampler(
+                temporal_donwsample_fraction= TEMPORAL_FRAC[-1], 
+                spatial_downsample_fraction= SPATIAL_FRAC[-1]
+            )
     else:
-        train_downsampler,test_downsampler = None,None
+        train_downsampler,test_downsampler = None, None
 
     # === NORMALIZE ======================================================================
 
-    normalizer_dynamic = Normalizer(method="standardize", type="spacetime", axis_order = "xarray_dataset", save_stats= f"{TMP_STATS}/xd.npy")
-    normalizer_static = Normalizer(method="standardize", type="space", axis_order = "xarray_dataset", save_stats= f"{TMP_STATS}/xs.npy")
-    normalizer_target = Normalizer(method="standardize", type="spacetime", axis_order = "xarray_dataset", save_stats= f"{TMP_STATS}/y.npy")
+    normalizer_dynamic = Normalizer(method = "standardize", type="spacetime", axis_order = "xarray_dataset", save_stats=  f"{TMP_STATS}/{EXPERIMENT}_xd.nc")
+    normalizer_static = Normalizer(method = "standardize", type="space", axis_order = "xarray_dataset", save_stats=  f"{TMP_STATS}/{EXPERIMENT}_xs.nc")
+    normalizer_target = Normalizer(method = "standardize", type="spacetime", axis_order = "xarray_dataset", save_stats=  f"{TMP_STATS}/{EXPERIMENT}_y.nc")
 
     # === DATASET ===================================================================
 
-    train_dataset = get_dataset(DATASET)(
-            Xd,
-            Y, 
-            Xs,
-            masks = masks,
-            downsampler = train_downsampler,
-            normalizer_dynamic = normalizer_dynamic,
-            normalizer_static = normalizer_static,
-            normalizer_target = normalizer_target,
-            shape=SHAPE, # time, lat, lon
-            batch_size={"xsize":XSIZE,"ysize":YSIZE,"tsize":TSIZE}, 
-            overlap={"xover":XOVER, "yover":YOVER, "tover":TOVER},
-            fill_missing=FILL_MISSING,
-            persist=LOAD_IN_MEMORY, 
-            static_to_dynamic=True
-    )
-    test_dataset = get_dataset(DATASET)(
-            Xd_test,
-            Y_test,
-            Xs,
-            masks = masks,
-            downsampler = test_downsampler,
-            normalizer_dynamic = normalizer_dynamic,
-            normalizer_static = normalizer_static,
-            normalizer_target = normalizer_target,
-            shape=SHAPE, # time, lat, lon
-            batch_size={"xsize":XSIZE,"ysize":YSIZE,"tsize":TSIZE}, 
-            overlap={"xover":XOVER, "yover":YOVER, "tover":TOVER},
-            fill_missing=FILL_MISSING,
-            persist=LOAD_IN_MEMORY, 
-            static_to_dynamic=True
-    )
+    train_dataset = get_dataset(DATASET)(Xd, 
+                            Y,
+                            Xs,
+                            mask = masks,
+                            downsampler=train_downsampler,
+                            normalizer_dynamic = normalizer_dynamic, 
+                            normalizer_static = normalizer_static,
+                            normalizer_target = normalizer_target,
+                            shape=Xd.precip.shape, # time, lat, lon
+                            batch_size={"xsize":XSIZE,"ysize":YSIZE,"tsize":TSIZE}, 
+                            overlap={"xover":XOVER, "yover":YOVER, "tover":TOVER},
+                            missing_policy=MISSING_POLICY,
+                            fill_missing=FILL_MISSING,
+                            persist=True, 
+                            )
+    test_dataset = get_dataset(DATASET)(Xd_test, 
+                            Y_test,
+                            Xs,
+                            mask = masks,
+                            downsampler=test_downsampler,
+                            normalizer_dynamic = normalizer_dynamic, 
+                            normalizer_static = normalizer_static,
+                            normalizer_target = normalizer_target,
+                            shape=Xd_test.precip.shape, # time, lat, lon
+                            batch_size={"xsize":XSIZE,"ysize":YSIZE,"tsize":TSIZE}, 
+                            overlap={"xover":XOVER, "yover":YOVER, "tover":TOVER},
+                            missing_policy=MISSING_POLICY,
+                            fill_missing=FILL_MISSING,
+                            persist=True, 
+                            )
 
     # === SAMPLER ===================================================================
+
 
     train_sampler_builder = SamplerBuilder(
         train_dataset,
         sampling="random", 
-        processing="multi-gpu" if DISTRIBUTED else "single-gpu")
+        processing="single-gpu")
 
     test_sampler_builder = SamplerBuilder(
         test_dataset,
         sampling="sequential", 
-        processing="multi-gpu" if DISTRIBUTED else "single-gpu")
+        processing="single-gpu")
 
 
     train_sampler = train_sampler_builder.get_sampler()
@@ -292,7 +312,7 @@ if __name__ == "__main__":
         kernel_size = KERNEL_SIZE,
         num_layers = NUM_LSTM_LAYER,
         batch_first = True,
-        bias = True,
+        bias = False,
         return_all_layers = False
     ).to(device)
 
@@ -312,7 +332,9 @@ if __name__ == "__main__":
     
     trainer = HythonTrainer(
         RNNTrainParams(
-                experiment=EXPERIMENT,
+                experiment=EXPERIMENT, 
+                temporal_subsampling=False, 
+                temporal_subset=1, 
                 target_names=target_names,
                 metric_func=metric_fn,
                 loss_func=loss_fn)
