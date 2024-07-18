@@ -3,29 +3,31 @@ kind: Pod
 metadata:
   name: 3dgan-train
   annotations:
-    slurm-job.vk.io/flags: "-p gpu --gres=gpu:1 --cpus-per-task=4 --mem=100G --ntasks-per-node=1 --nodes=1 --time=00:55:00"
-    job.vk.io/singularity-mounts: "--bind /ceph/hpc/data/st2301-itwin-users/egarciagarcia:/exp_data"
-    # job.vk.io/pre-exec: "singularity pull /ceph/hpc/data/st2301-itwin-users/itwinai_v9.5.sif docker://ghcr.io/intertwin-eu/itwinai:0.0.1-3dgan-0.4"
+    slurm-job.vk.io/flags: "-p gpu --gres=gpu:1 --ntasks-per-node=1 --nodes=1 --time=00:55:00"
+    slurm-job.vk.io/singularity-mounts: "--bind /ceph/hpc/data/st2301-itwin-users/egarciagarcia:/exp_data"
+    # slurm-job.vk.io/pre-exec: "singularity pull /ceph/hpc/data/st2301-itwin-users/itwinai_v10.1.sif docker://ghcr.io/intertwin-eu/itwinai:0.2.1-3dgan-0.1"
 spec:
   automountServiceAccountToken: false
   containers:
   - args:
-    - -c
-    - "\" cd /usr/src/app && itwinai exec-pipeline --print-config \
-          --config \\$CERN_CODE_ROOT/config.yaml \ 
+    # cd to writable location before launching training
+    - " cd /tmp && itwinai exec-pipeline --print-config \
+          --config $CERN_CODE_ROOT/config.yaml \ 
           --pipe-key training_pipeline \
-          -o dataset_location=\\$CERN_DATA_ROOT \ 
-          -o pipeline.init_args.steps.training_step.init_args.exp_root=\\$TMP_DATA_ROOT \ 
-          -o logs_dir=\\$TMP_DATA_ROOT/ml_logs \ 
-          -o distributed_strategy=\\$STRATEGY \ 
-          -o devices=\\$DEVICES \ 
-          -o hw_accelerators=\\$ACCELERATOR \ 
-          -o checkpoints_path=\\$TMP_DATA_ROOT/checkpoints \
-          -o max_samples=\\$MAX_DATA_SAMPLES \ 
-          -o batch_size=\\$BATCH_SIZE \ 
-          -o max_dataset_size=\\$NUM_WORKERS_DL \""
+          -o dataset_location=$CERN_DATA_ROOT \ 
+          -o logs_dir=$TMP_DATA_ROOT/ml_logs \ 
+          -o distributed_strategy=$STRATEGY \ 
+          -o devices=$DEVICES \ 
+          -o hw_accelerators=$ACCELERATOR \ 
+          -o checkpoints_path=$TMP_DATA_ROOT/checkpoints \
+          -o batch_size=$BATCH_SIZE \ 
+          -o num_workers_dataloader=$NUM_WORKERS_DL \
+          -o max_dataset_size=$MAX_DATA_SAMPLES \
+          -o mlflow_tracking_uri=$MLFLOW_TRACKING_URI \
+          -o train_dataset_proportion=$TRAIN_PROPORTION"
     command:
     - /bin/sh
+    - -c
     env:
     - name: CERN_DATA_ROOT
       value: "/exp_data"
@@ -36,7 +38,7 @@ spec:
     - name: MAX_DATA_SAMPLES
       value: "1000"
     - name: BATCH_SIZE
-      value: "512"
+      value: "256"
     - name: NUM_WORKERS_DL
       value: "4"
     - name: ACCELERATOR
@@ -45,6 +47,10 @@ spec:
       value: "auto"
     - name: DEVICES
       value: "auto"
+    - name: MLFLOW_TRACKING_URI
+      value: "https://131.154.99.166.myip.cloud.infn.it"
+    - name: TRAIN_PROPORTION
+      value: "0.5"
 
     # - name: MLFLOW_TRACKING_USERNAME
     #   valueFrom:
@@ -57,20 +63,32 @@ spec:
     #       name: mlflow-server
     #       key: password
 
+
+
+
+
+
+
+
+
+
+
+
     - name: MLFLOW_TRACKING_USERNAME
-      value: "XXX"
+      value: "intertwin"
     - name: MLFLOW_TRACKING_PASSWORD
-      value: "XXX"
-    image: /ceph/hpc/data/st2301-itwin-users/itwinai_v9.5.sif
+      value: "uoBzY8Bgv68FUAT9pGkY"
+
+    image: /ceph/hpc/data/st2301-itwin-users/itwinai_v10.1.sif
     imagePullPolicy: Always
-    name: oscar-container
+    name: 3dgan-container
     resources:
       limits:
-        cpu: "1"
-        memory: 1Gi
+        cpu: "48"
+        memory: 150Gi
       requests:
-        cpu: "1"
-        memory: 1Gi
+        cpu: "4"
+        memory: 20Gi
     terminationMessagePath: /dev/termination-log
     terminationMessagePolicy: File
   nodeSelector:

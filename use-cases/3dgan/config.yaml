@@ -8,6 +8,7 @@ checkpoints_path: checkpoints
 logs_dir: ml_logs
 mlflow_tracking_uri: https://131.154.99.166.myip.cloud.infn.it
 batch_size: 4
+train_dataset_proportion: 0.7
 num_workers_dataloader: 0
 max_epochs: 2
 max_dataset_size: 48
@@ -118,6 +119,7 @@ training_pipeline:
                 batch_size: ${batch_size}
                 num_workers: ${num_workers_dataloader}
                 max_samples: ${max_dataset_size}
+                train_proportion: ${train_dataset_proportion}
 
 inference_pipeline:
   class_path: itwinai.pipeline.Pipeline
