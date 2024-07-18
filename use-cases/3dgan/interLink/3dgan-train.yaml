@@ -3,7 +3,7 @@ kind: Pod
 metadata:
   name: 3dgan-train
   annotations:
-    slurm-job.vk.io/flags: "-p gpu --gres=gpu:1 --ntasks-per-node=1 --nodes=1 --time=00:55:00"
+    slurm-job.vk.io/flags: "-p gpu --gres=gpu:4 --ntasks-per-node=1 --nodes=1 --time=00:55:00"
     slurm-job.vk.io/singularity-mounts: "--bind /ceph/hpc/data/st2301-itwin-users/egarciagarcia:/exp_data"
     # slurm-job.vk.io/pre-exec: "singularity pull /ceph/hpc/data/st2301-itwin-users/itwinai_v10.1.sif docker://ghcr.io/intertwin-eu/itwinai:0.2.1-3dgan-0.1"
 spec:
@@ -11,7 +11,8 @@ spec:
   containers:
   - args:
     # cd to writable location before launching training
-    - " cd /tmp && itwinai exec-pipeline --print-config \
+    - " cd /tmp && torchrun --standalone --nnodes=1 --nproc-per-node=gpu \
+          $(which itwinai) exec-pipeline --print-config \
           --config $CERN_CODE_ROOT/config.yaml \ 
           --pipe-key training_pipeline \
           -o dataset_location=$CERN_DATA_ROOT \ 
@@ -36,7 +37,7 @@ spec:
     - name: TMP_DATA_ROOT
       value: "/exp_data"
     - name: MAX_DATA_SAMPLES
-      value: "1000"
+      value: "10000"
     - name: BATCH_SIZE
       value: "256"
     - name: NUM_WORKERS_DL
@@ -44,7 +45,7 @@ spec:
     - name: ACCELERATOR
       value: "gpu"
     - name: STRATEGY
-      value: "auto"
+      value: "ddp_find_unused_parameters_true" #"auto"
     - name: DEVICES
       value: "auto"
     - name: MLFLOW_TRACKING_URI
