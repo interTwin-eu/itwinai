@@ -177,6 +177,13 @@ def train_val(
 
 if __name__ == "__main__":
 
+    if DISTRIBUTED:
+        strategy = TorchDDPStrategy(backend='nccl')
+    else:
+        strategy = NonDistributedStrategy()
+
+    strategy.init()
+
     set_seed(SEED)
 
     # moved below
@@ -302,13 +309,6 @@ if __name__ == "__main__":
     metric_fn = MSEMetric(target_names=target_names)
 
     # Distributed model
-
-    if DISTRIBUTED:
-        strategy = TorchDDPStrategy(backend='nccl')
-    else:
-        strategy = NonDistributedStrategy()
-
-    strategy.init()
     device = strategy.device
 
     model, opt, lr_scheduler = strategy.distributed(
