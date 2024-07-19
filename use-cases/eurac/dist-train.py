@@ -99,7 +99,7 @@ def train_val(
 ):
     """Override version of hython to support distributed strategy."""
 
-    import tqdm
+    from tqdm.auto import tqdm
     import copy
 
     device = strategy.device
