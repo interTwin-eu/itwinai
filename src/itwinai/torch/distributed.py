@@ -885,22 +885,20 @@ class HorovodStrategy(TorchDistributedStrategy):
         return self.allgather_obj(obj)
 
     def gather(self, tensor: torch.Tensor, dst_rank: int = 0):
-        # https://pytorch.org/docs/stable/distributed.html#collective-functions
+        """The same as ``allgather_obj``, as gather is not supported
+        by Horovod.
+
+        Args:
+            tensor (Any): object in a worker.
+            dst_rank (int): ignored.
+
+        Returns:
+            list: gathered list with size(#worker).
+        """
         if not self.is_initialized:
             raise UninitializedStrategyError(
                 "Strategy has not been initialized. Use the init method.")
-
-        # Ensure that the tensor is on the correct device (CUDA)
-        # tensor = tensor.to(self.device)
-
-        if self.global_rank() == dst_rank:
-            res = [torch.zeros_like(tensor, device=self.device())
-                   for _ in range(self.global_world_size())]
-
-            dist.gather(tensor, gather_list=res, dst=dst_rank)
-            return res
-
-        dist.gather(tensor, dst=dst_rank)
+        return self.allgather_obj(tensor)
 
 
 class NonDistributedStrategy(TorchDistributedStrategy):
@@ -1011,19 +1009,13 @@ class NonDistributedStrategy(TorchDistributedStrategy):
         return [obj]
 
     def gather(self, tensor: torch.Tensor, dst_rank: int = 0):
-        # https://pytorch.org/docs/stable/distributed.html#collective-functions
-        if not self.is_initialized:
-            raise UninitializedStrategyError(
-                "Strategy has not been initialized. Use the init method.")
+        """Wraps ``tensor`` into a List object.
 
-        # Ensure that the tensor is on the correct device (CUDA)
-        # tensor = tensor.to(self.device)
+        Args:
+            tensor (Any): object in a worker.
+            dst_rank (int): ignored.
 
-        if self.global_rank() == dst_rank:
-            res = [torch.zeros_like(tensor, device=self.device())
-                   for _ in range(self.global_world_size())]
-
-            dist.gather(tensor, gather_list=res, dst=dst_rank)
-            return res
-
-        dist.gather(tensor, dst=dst_rank)
+        Returns:
+            list[Any]: input object wrapped in a list.
+        """
+        return [tensor]

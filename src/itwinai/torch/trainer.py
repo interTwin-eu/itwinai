@@ -376,7 +376,10 @@ class TorchTrainer(Trainer, LogMixin):
 
         if self.strategy.is_main_worker and self.logger:
             self.logger.create_logger_context()
-            self.logger.save_hyperparameters(self.config.model_dump())
+
+            hparams = self.config.model_dump()
+            hparams['distributed_strategy'] = self.strategy.__class__.__name__
+            self.logger.save_hyperparameters(hparams)
 
         self.train()
 
@@ -526,9 +529,9 @@ class TorchTrainer(Trainer, LogMixin):
         for epoch in range(self.epochs):
             epoch_n = epoch + 1
             self.set_epoch(epoch)
-            self.train_epoch()
+            self.train_epoch(epoch)
             if self.validation_every and epoch_n % self.validation_every == 0:
-                val_loss = self.validation_epoch()
+                val_loss = self.validation_epoch(epoch)
 
                 # Checkpointing current best model
                 # worker_val_losses = self.strategy.gather_obj(
@@ -537,7 +540,7 @@ class TorchTrainer(Trainer, LogMixin):
                     val_loss, dst_rank=0)
                 if self.strategy.global_rank() == 0:
                     avg_loss = torch.mean(
-                        torch.stack(worker_val_losses)                       
+                        torch.stack(worker_val_losses)
                     ).detach().cpu()
                     if avg_loss < best_loss:
                         ckpt_name = "best_model.pth"
@@ -546,7 +549,7 @@ class TorchTrainer(Trainer, LogMixin):
                         best_loss = avg_loss
 
             if self.test_every and epoch_n % self.test_every == 0:
-                self.test_epoch()
+                self.test_epoch(epoch)
 
             # Periodic checkpointing
             if (self.strategy.is_main_worker and self.checkpoint_every
@@ -554,9 +557,12 @@ class TorchTrainer(Trainer, LogMixin):
                 ckpt_name = f"epoch_{epoch}.pth"
                 self.save_checkpoint(name=ckpt_name, epoch=epoch)
 
-    def train_epoch(self) -> Loss:
+    def train_epoch(self, epoch: int) -> Loss:
         """Perform a complete sweep over the training dataset, completing an
         epoch of training.
+
+        Args:
+            epoch (int): current epoch number, from 0 to ``self.epochs - 1``.
 
         Returns:
             Loss: average training loss for the current epoch.
@@ -576,7 +582,7 @@ class TorchTrainer(Trainer, LogMixin):
             self.train_glob_step += 1
 
         # Aggregate and log losses
-        avg_loss = torch.mean(torch.stack(train_losses)).detach().cpu()
+        avg_loss = torch.mean(torch.stack(train_losses))
         self.log(
             item=avg_loss.item(),
             identifier='train_loss_epoch',
@@ -593,7 +599,7 @@ class TorchTrainer(Trainer, LogMixin):
                 step=self.train_glob_step,
             )
 
-        return avg_loss
+        return avg_loss.item()
 
     def train_step(
         self,
@@ -637,9 +643,12 @@ class TorchTrainer(Trainer, LogMixin):
         )
         return loss, metrics
 
-    def validation_epoch(self) -> Loss:
+    def validation_epoch(self, epoch: int) -> Loss:
         """Perform a complete sweep over the validation dataset, completing an
         epoch of validation.
+
+        Args:
+            epoch (int): current epoch number, from 0 to ``self.epochs - 1``.
 
         Returns:
             Loss: average validation loss for the current epoch.
@@ -661,9 +670,7 @@ class TorchTrainer(Trainer, LogMixin):
                 self.validation_glob_step += 1
 
             # Aggregate and log losses
-            avg_loss = torch.mean(
-                torch.stack(validation_losses)
-            ).detach().cpu()
+            avg_loss = torch.mean(torch.stack(validation_losses))
             self.log(
                 item=avg_loss.item(),
                 identifier='validation_loss_epoch',
@@ -680,7 +687,7 @@ class TorchTrainer(Trainer, LogMixin):
                     step=self.validation_glob_step,
                 )
 
-            return avg_loss
+            return avg_loss.item()
 
     def validation_step(
         self,
@@ -719,9 +726,12 @@ class TorchTrainer(Trainer, LogMixin):
         )
         return loss, metrics
 
-    def test_epoch(self) -> Loss:
+    def test_epoch(self, epoch: int) -> Loss:
         """Perform a complete sweep over the test dataset, completing an
         epoch of test.
+
+        Args:
+            epoch (int): current epoch number, from 0 to ``self.epochs - 1``.
 
         Returns:
             Loss: average test loss for the current epoch.
