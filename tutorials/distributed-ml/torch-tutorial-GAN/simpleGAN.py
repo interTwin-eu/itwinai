@@ -18,7 +18,7 @@ Z_DIM = 100
 G_HIDDEN = 64
 X_DIM = 64
 D_HIDDEN = 64
-EPOCH_NUM = 3
+EPOCH_NUM = 10
 REAL_LABEL = 1
 FAKE_LABEL = 0
 lr = 2e-4
@@ -226,7 +226,7 @@ def train_GAN_model(EPOCH_NUM, netD, netG, optimizerG,
     plt.ylabel("Loss")
     plt.legend()
     plt.show()
-    plt.savefig('learning_curve.png')
+    # plt.savefig('simpleGANlearning_curve.png')
     # Grab a batch of real images from the dataloader
     real_batch = next(iter(dataloader))
     # Plot the real images
@@ -236,14 +236,14 @@ def train_GAN_model(EPOCH_NUM, netD, netG, optimizerG,
     plt.title("Real Images")
     plt.imshow(np.transpose(vutils.make_grid(real_batch[0].to(device)[
         :64], padding=5, normalize=True).cpu(), (1, 2, 0)))
-    plt.savefig('real_image.png')
+    # plt.savefig('simpleGANreal_image.png')
     # Plot the fake images from the last epoch
     plt.subplot(1, 2, 2)
     plt.axis("off")
     plt.title("Fake Images")
     plt.imshow(np.transpose(img_list[-1], (1, 2, 0)))
     plt.show()
-    plt.savefig('fake_image.png')
+    # plt.savefig('simpleGANfake_image.png')
 
 
 train_GAN_model(EPOCH_NUM, netD, netG, optimizerG,

@@ -33,7 +33,7 @@ job ID is XXXX
 $ srun --jobid XXXX --overlap --pty /bin/bash 
 # Now you are inside the compute node
 
-# On JSC, you may need to load some modules...
+# On JSC, you may need to load some modules
 ml --force purge
 ml Stages/2024 GCC OpenMPI CUDA/12 MPI-settings/CUDA Python HDF5 PnetCDF libaio mpi4py
 
@@ -78,6 +78,42 @@ horovodrun -np 4 -H localhost:4 train.py -s horovod
 srun --jobid XXXX --ntasks-per-node=1 horovodrun -np 4 -H localhost:4 python -u train.py -s horovod
 ```
 
+## Distributed training with SLURM (batch mode)
+
+Before running distributed training with slurm, make sure to create the `logs_slurm` folder in your
+current working directory to store slurm logs and outputs.
+
+Each distributed strategy has its own SLURM job script, which
+should be used to run it:
+
+If you want to distribute the code in `train.py` with **torch DDP**, run from terminal:
+  
+```bash
+export DIST_MODE="ddp"
+export RUN_NAME="ddp-itwinai"
+export TRAINING_CMD="train3.py --strategy ddp"
+export PYTHON_VENV="../../../envAI_hdfml"
+sbatch --export=ALL,DIST_MODE="$DIST_MODE",RUN_NAME="$RUN_NAME",TRAINING_CMD="$TRAINING_CMD",PYTHON_VENV="$PYTHON_VENV" \
+    --job-name="$RUN_NAME-n$N" \
+    --output="logs_slurm/job-$RUN_NAME-n$N.out" \
+    --error="logs_slurm/job-$RUN_NAME-n$N.err" \
+    slurm.sh
+```
+
+If you want to distribute the code in `train.py` with **DeepSpeed**, run from terminal:
+  
+```bash
+export DIST_MODE="deepspeed"
+export RUN_NAME="deepspeed-itwinai"
+export TRAINING_CMD="train.py --strategy deepspeed"
+export PYTHON_VENV="../../../envAI_hdfml"
+sbatch --export=ALL,DIST_MODE="$DIST_MODE",RUN_NAME="$RUN_NAME",TRAINING_CMD="$TRAINING_CMD",PYTHON_VENV="$PYTHON_VENV" \
+    --job-name="$RUN_NAME-n$N" \
+    --output="logs_slurm/job-$RUN_NAME-n$N.out" \
+    --error="logs_slurm/job-$RUN_NAME-n$N.err" \
+    slurm.sh
+```
+
 ## Analyze the logs
 
 Analyze the logs with MLFlow:
@@ -116,29 +152,7 @@ Here we define a simple Generator architecture with 1 input and output layer plu
 
 ```python
 class Generator(nn.Module):
-    def __init__(self):
-        super(Generator, self).__init__()
-        self.main = nn.Sequential(
-            nn.ConvTranspose2d(Z_DIM, G_HIDDEN * 8, 4, 1, 0, bias=False),
-            nn.BatchNorm2d(G_HIDDEN * 8),
-            nn.ReLU(True),
-            nn.ConvTranspose2d(G_HIDDEN * 8, G_HIDDEN * \
-                               4, 4, 2, 1, bias=False),
-            nn.BatchNorm2d(G_HIDDEN * 4),
-            nn.ReLU(True),
-            nn.ConvTranspose2d(G_HIDDEN * 4, G_HIDDEN * \
-                               2, 4, 2, 1, bias=False),
-            nn.BatchNorm2d(G_HIDDEN * 2),
-            nn.ReLU(True),
-            nn.ConvTranspose2d(G_HIDDEN * 2, G_HIDDEN, 4, 2, 1, bias=False),
-            nn.BatchNorm2d(G_HIDDEN),
-            nn.ReLU(True),
-            nn.ConvTranspose2d(G_HIDDEN, IMAGE_CHANNEL, 4, 2, 1, bias=False),
-            nn.Tanh()
-        )
 
-    def forward(self, input):
-        return self.main(input)
 ```
 
 #### Discriminator Architecture
@@ -147,26 +161,7 @@ Here we define a simple Discriminator architecture with 4 layers plus one output
 
 ```python
 class Discriminator(nn.Module):
-    def __init__(self):
-        super(Discriminator, self).__init__()
-        self.main = nn.Sequential(
-            nn.Conv2d(IMAGE_CHANNEL, D_HIDDEN, 4, 2, 1, bias=False),
-            nn.LeakyReLU(0.2, inplace=True),
-            nn.Conv2d(D_HIDDEN, D_HIDDEN * 2, 4, 2, 1, bias=False),
-            nn.BatchNorm2d(D_HIDDEN * 2),
-            nn.LeakyReLU(0.2, inplace=True),
-            nn.Conv2d(D_HIDDEN * 2, D_HIDDEN * 4, 4, 2, 1, bias=False),
-            nn.BatchNorm2d(D_HIDDEN * 4),
-            nn.LeakyReLU(0.2, inplace=True),
-            nn.Conv2d(D_HIDDEN * 4, D_HIDDEN * 8, 4, 2, 1, bias=False),
-            nn.BatchNorm2d(D_HIDDEN * 8),
-            nn.LeakyReLU(0.2, inplace=True),
-            nn.Conv2d(D_HIDDEN * 8, 1, 4, 1, 0, bias=False),
-            nn.Sigmoid()
-        )
 
-    def forward(self, input):
-        return self.main(input).view(-1, 1).squeeze(1)
 ```
 
 ### Step 2: Implement Distributed Training
@@ -179,38 +174,7 @@ handled by the TorchTrainer that looks expects and handles one model.
 
 ```python
 class GANTrainer(TorchTrainer):
-    def __init__(self,
-                 config: Union[Dict, TrainingConfiguration],
-                 epochs: int, discriminator: nn.Module,
-                 generator: nn.Module,
-                 strategy: Literal["ddp", "deepspeed", "horovod"] = 'ddp',
-                 validation_every: Optional[int] = 1,
-                 test_every: Optional[int] = None,
-                 random_seed: Optional[int] = None,
-                 logger: Optional[Logger] = None,
-                 log_all_workers: bool = False,
-                 metrics: Optional[Dict[str, Metric]] = None,
-                 checkpoints_location: str = "checkpoints",
-                 checkpoint_every: Optional[int] = None,
-                 name: Optional[str] = None, **kwargs) -> None:
-        super().__init__(config=config,
-                         epochs=epochs,
-                         model=None,
-                         strategy=strategy,
-                         validation_every=validation_every,
-                         test_every=test_every,
-                         random_seed=random_seed,
-                         logger=logger,
-                         log_all_workers=log_all_workers,
-                         metrics=metrics,
-                         checkpoints_location=checkpoints_location,
-                         checkpoint_every=checkpoint_every,
-                         name=name,
-                         **kwargs)
-        self.save_parameters(**self.locals2params(locals()))
-        self.discriminator = discriminator
-        self.generator = generator
-        self.create_model_loss_optimizer()
+
 ```
 
 We also create custom optimizers for the Optimizer and Discriminator GAN models:
@@ -218,15 +182,6 @@ We also create custom optimizers for the Optimizer and Discriminator GAN models:
 ```python
 
 def create_model_loss_optimizer(self) -> None:
-        self.optimizerD = optim.Adam(
-            self.discriminator.parameters(), lr=self.config.lr, betas=(0.5, 0.999))
-        self.optimizerG = optim.Adam(
-            self.generator.parameters(), lr=self.config.lr, betas=(0.5, 0.999))
-        self.criterion = nn.BCELoss()
-        if self.strategy:
-            self.discriminator, self.optimizerD, scheduler = self.strategy.distributed(self.discriminator, self.optimizerD)
-            self.generator, self.optimizerG, scheduler = self.strategy.distributed(self.generator, self.optimizerG)
-
 
 ```
 
@@ -258,7 +213,7 @@ def save_plots_and_images(self, epoch, real_images, fake_images):
     #  This method plots training losses and saving image samples
 ```
 
-## Take aways
+## Takeaways
 
 This README describes steps taken to adapt a GAN for distributed training, aimed at enhancing efficiency and scalability
 for training on large-scale datasets. From this use case we learn the following:
