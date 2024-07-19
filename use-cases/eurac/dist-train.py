@@ -102,7 +102,7 @@ def train_val(
     from tqdm.auto import tqdm
     import copy
 
-    device = strategy.device
+    device = strategy.device()
 
     loss_history = {"train": [], "val": []}
     metric_history = {f"train_{target}": []
