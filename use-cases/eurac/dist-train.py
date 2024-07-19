@@ -35,13 +35,10 @@ import matplotlib.pyplot as plt
 
 EXPERIMENT = "test"
 
-SURROGATE_INPUT = (
-    "https://eurac-eo.s3.amazonaws.com/INTERTWIN/"
-    "SURROGATE_INPUT/adg1km_eobs_preprocessed.zarr/"
-)
+SURROGATE_INPUT = "/p/scratch/intertwin/datasets/eurac/input/adg1km_eobs_preprocessed.zarr/"
 
-SURROGATE_MODEL_OUTPUT = f"./tmp/{EXPERIMENT}.pt"
-TMP_STATS = "./tmp"
+SURROGATE_MODEL_OUTPUT = f"/p/scratch/intertwin/datasets/eurac/model/{EXPERIMENT}.pt"
+TMP_STATS = "/p/scratch/intertwin/datasets/eurac/stats"
 
 # === FILTER ==============================================================
 
@@ -63,7 +60,7 @@ mask_names = ["mask_missing", "mask_lake"]
 
 # === DATASET ===============================================================
 
-DATASET = "LSTMDataset"  # "XBatchDataset"
+DATASET = "LSTMDataset" 
 
 # == MODEL  ==================================================================
 
@@ -238,9 +235,9 @@ if __name__ == "__main__":
 
     # === NORMALIZE ======================================================================
 
-    normalizer_dynamic = Normalizer(method="standardize", type="spacetime", axis_order = "NTC", save_stats= f"{TMP_STATS}/xd.npy")
-    normalizer_static = Normalizer(method="standardize", type="space", axis_order = "NTC", save_stats= f"{TMP_STATS}/xs.npy")
-    normalizer_target = Normalizer(method="standardize", type="spacetime", axis_order = "NTC", save_stats= f"{TMP_STATS}/y.npy")
+    normalizer_dynamic = Normalizer(method="standardize", type="spacetime", axis_order = "NTC", save_stats= f"{TMP_STATS}/{EXPERIMENT}_xd.npy")
+    normalizer_static = Normalizer(method="standardize", type="space", axis_order = "NTC", save_stats= f"{TMP_STATS}/{EXPERIMENT}_xs.npy")
+    normalizer_target = Normalizer(method="standardize", type="spacetime", axis_order = "NTC", save_stats= f"{TMP_STATS}/{EXPERIMENT}_y.npy")
 
 
 
