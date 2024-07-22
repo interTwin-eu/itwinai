@@ -842,9 +842,13 @@ class Prov4MLLogger(Logger):
         self.log_on_workers = log_on_workers
 
     @override
-    def create_logger_context(self):
+    def create_logger_context(self, rank: Optional[int] = None):
         """
         Initializes the logger context.
+
+        Args:
+            rank (Optional[int]): global rank of current process,
+                used in distributed environments. Defualts to None.
         """
         prov4ml.start_run(
             prov_user_namespace=self.prov_user_namespace,
@@ -852,6 +856,7 @@ class Prov4MLLogger(Logger):
             provenance_save_dir=self.provenance_save_dir,
             save_after_n_logs=self.save_after_n_logs,
             collect_all_processes=True,
+            rank=rank
         )
 
     @override
