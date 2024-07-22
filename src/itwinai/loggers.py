@@ -1011,8 +1011,6 @@ class Prov4MLLogger(Logger):
         if not self.should_log():
             return
 
-        print("STARTED PROVML")
-
         prov4ml.start_run(
             prov_user_namespace=self.prov_user_namespace,
             experiment_name=self.name,
@@ -1073,10 +1071,11 @@ class Prov4MLLogger(Logger):
         if not self.should_log(batch_idx=batch_idx):
             return
 
-        print(f"PROV4ML LOGGING {identifier}: {item} ({kind})")
+        # print(f"PROV4ML LOGGING {identifier}: {item} ({kind})")
 
         if kind == "metric":
-            prov4ml.log_metric(identifier, item, context, step=step)
+            prov4ml.log_metric(key=identifier, value=item,
+                               context=context, step=step)
         elif kind == "flops_pb":
             model, batch = item
             prov4ml.log_flops_per_batch(
@@ -1092,19 +1091,21 @@ class Prov4MLLogger(Logger):
         elif kind == "carbon":
             prov4ml.log_carbon_metrics(context=context, step=step)
         elif kind == "execution_time":
-            prov4ml.log_current_execution_time(identifier, context, step=step)
+            prov4ml.log_current_execution_time(
+                label=identifier, context=context, step=step)
         elif kind == 'model':
-            prov4ml.save_model_version(item, identifier, context, step=step)
+            prov4ml.save_model_version(
+                model=item, model_name=identifier, context=context, step=step)
         elif kind == 'best_model':
-            prov4ml.log_model(item, identifier, log_model_info=True,
-                              log_as_artifact=True)
+            prov4ml.log_model(model=item, model_name=identifier,
+                              log_model_info=True, log_as_artifact=True)
         elif kind == 'torch':
             from torch.utils.data import DataLoader
             if isinstance(item, DataLoader):
-                prov4ml.log_dataset(item, identifier)
+                prov4ml.log_dataset(dataset=item, label=identifier)
             else:
                 # log_param name is misleading and should be renamed...
-                prov4ml.log_param(identifier, item)
+                prov4ml.log_param(key=identifier, value=item)
 
 
 class EpochTimeTracker:

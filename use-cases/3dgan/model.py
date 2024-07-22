@@ -354,13 +354,21 @@ class ThreeDGAN(pl.LightningModule):
 
         # Log optimizers' state dicts
         optimizer_discriminator, optimizer_generator = self.optimizers()
+        opt_d = dict(
+            state_dict=optimizer_discriminator.state_dict(),
+            optim_class=optimizer_discriminator.__class__.__name__
+        )
+        opt_g = dict(
+            state_dict=optimizer_generator.state_dict(),
+            optim_class=optimizer_generator.__class__.__name__
+        )
         if self.itwinai_logger:
             self.itwinai_logger.log(
-                optimizer_discriminator.state_dict(),
+                opt_d,
                 'optimizer_discriminator',
                 kind='torch')
             self.itwinai_logger.log(
-                optimizer_generator.state_dict(),
+                opt_g,
                 'optimizer_generator',
                 kind='torch')
 
