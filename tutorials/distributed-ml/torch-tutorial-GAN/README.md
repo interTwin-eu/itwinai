@@ -55,7 +55,6 @@ deepspeed train.py -s deepspeed --deepspeed
 srun --jobid XXXX --ntasks-per-node=1 deepspeed train.py --strategy deepspeed
 ```
 
-
 ## Distributed training with SLURM (batch mode)
 
 Before running distributed training with slurm, make sure to create the `logs_slurm` folder in your
