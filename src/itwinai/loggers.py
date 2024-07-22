@@ -797,20 +797,18 @@ class Prov4MLLogger(Logger):
     Abstraction around Prov4ML logger.
 
     Args:
-        prov_user_namespace (str, optional): _description_.
-            Defaults to "www.example.org".
-        experiment_name (str, optional): _description_.
+        prov_user_namespace (str, optional): location to where provenance
+            files will be uploaded. Defaults to "www.example.org".
+        experiment_name (str, optional): experiment name.
             Defaults to "experiment_name".
-        provenance_save_dir (str, optional): _description_.
-            Defaults to "prov".
-        collect_all_processes (Optional[bool], optional): _description_.
-            Defaults to False.
-        save_after_n_logs (Optional[int], optional): _description_.
-            Defaults to 100.
-        create_graph (Optional[bool], optional): _description_.
-            Defaults to True.
-        create_svg (Optional[bool], optional): _description_.
-            Defaults to True.
+        provenance_save_dir (str, optional): path where to store provenance
+            files and logs. Defaults to "prov".
+        save_after_n_logs (Optional[int], optional): how often to save
+            logs to disk from main memory. Defaults to 100.
+        create_graph (Optional[bool], optional): whether to create a
+            provenance graph. Defaults to True.
+        create_svg (Optional[bool], optional): whether to create an SVG
+            representation of the provenance graph. Defaults to True.
         log_on_workers (Optional[Union[int, List[int]]]): if -1, log on all
             workers; if int log on worker with rank equal to log_on_workers;
             if List[int], log on workers which rank is in the list.
@@ -828,7 +826,6 @@ class Prov4MLLogger(Logger):
         prov_user_namespace="www.example.org",
         experiment_name="experiment_name",
         provenance_save_dir="prov",
-        collect_all_processes: Optional[bool] = False,
         save_after_n_logs: Optional[int] = 100,
         create_graph: Optional[bool] = True,
         create_svg: Optional[bool] = True,
@@ -839,7 +836,6 @@ class Prov4MLLogger(Logger):
         self.version = None
         self.prov_user_namespace = prov_user_namespace
         self.provenance_save_dir = provenance_save_dir
-        self.collect_all_processes = collect_all_processes
         self.save_after_n_logs = save_after_n_logs
         self.create_graph = create_graph
         self.create_svg = create_svg
@@ -855,7 +851,7 @@ class Prov4MLLogger(Logger):
             experiment_name=self.name,
             provenance_save_dir=self.provenance_save_dir,
             save_after_n_logs=self.save_after_n_logs,
-            collect_all_processes=self.collect_all_processes,
+            collect_all_processes=True,
         )
 
     @override
@@ -896,7 +892,7 @@ class Prov4MLLogger(Logger):
         step: Optional[int] = None,
         batch_idx: Optional[int] = None,
         context: Optional[Context] = 'training',
-        rank: int = 0,
+        rank: Optional[int] = None,
         **kwargs
     ) -> None:
         """Logs with Prov4ML.
@@ -911,7 +907,7 @@ class Prov4MLLogger(Logger):
             step (Optional[int], optional): logging step. Defaults to None.
             batch_idx (Optional[int], optional): DataLoader batch counter
                 (i.e., batch idx), if available. Defaults to None.
-            rank (int): distributed rank of worker. Defaults to 0.
+            rank (Optional[int]): distributed rank of worker. Defaults to None.
             kwargs: keyword arguments to pass to the logger.
         """
 
