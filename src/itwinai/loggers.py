@@ -911,6 +911,8 @@ class Prov4MLLogger(Logger):
             kwargs: keyword arguments to pass to the logger.
         """
 
+       # TODO: propagate rank to prov4ml calls
+
         if not self.should_log(batch_idx=batch_idx, worker_rank=rank):
             return
 
