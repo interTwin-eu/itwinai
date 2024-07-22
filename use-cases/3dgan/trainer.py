@@ -65,10 +65,14 @@ class Lightning3DGANTrainer(Trainer):
         )
         sys.argv = old_argv
 
-        cli.trainer.itwinai_logger.create_logger_context()
-        self._log_config(cli.trainer.itwinai_logger)
+        try:
+            # The itwinai_logger is initialized inside the model,
+            # during the .fit()
+            cli.trainer.fit(cli.model, datamodule=cli.datamodule)
+        finally:
+            # Try to save current config before exiting
+            self._log_config(cli.trainer.itwinai_logger)
 
-        cli.trainer.fit(cli.model, datamodule=cli.datamodule)
         cli.trainer.itwinai_logger.log(
             cli.trainer.train_dataloader,
             "train_dataloader",
@@ -79,8 +83,6 @@ class Lightning3DGANTrainer(Trainer):
             "val_dataloader",
             kind='torch'
         )
-
-        cli.trainer.itwinai_logger.destroy_logger_context()
 
     def _log_config(self, logger: Logger):
         with tempfile.TemporaryDirectory(dir=os.getcwd()) as tmp_dir:

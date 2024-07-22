@@ -2,7 +2,7 @@
 dataset_location: exp_data/
 dataset_url: https://drive.google.com/drive/folders/1uPpz0tquokepptIfJenTzGpiENfo2xRX
 hw_accelerators: auto
-distributed_strategy: auto #ddp_find_unused_parameters_true
+distributed_strategy: ddp_find_unused_parameters_true
 devices: auto #[0]
 checkpoints_path: checkpoints
 logs_dir: ml_logs
@@ -42,17 +42,19 @@ training_pipeline:
                 class_path: itwinai.loggers.LoggersCollection
                 init_args:
                   loggers:
-                    - class_path: itwinai.loggers.ConsoleLogger
-                      init_args:
-                        log_freq: 100
-                    - class_path: itwinai.loggers.MLFlowLogger
-                      init_args:
-                        experiment_name: 3DGAN
-                        log_freq: batch
+                    # - class_path: itwinai.loggers.ConsoleLogger
+                    #   init_args:
+                    #     log_freq: 100
+                    # - class_path: itwinai.loggers.MLFlowLogger
+                    #   init_args:
+                    #     experiment_name: 3DGAN
+                    #     log_freq: batch
                     - class_path: itwinai.loggers.Prov4MLLogger
                       init_args:
-                        provenance_save_dir: prov_logs
+                        provenance_save_dir: mllogs/prov_logs
                         experiment_name: 3DGAN
+                        log_freq: 'batch'
+                        log_on_workers: -1
                     # - class_path: itwinai.loggers.WandBLogger
                     #   init_args:
                     #     log_freq: batch
