@@ -67,9 +67,6 @@ import pathlib
 import wandb
 import mlflow
 import prov4ml
-from prov4ml.provenance.context import Context
-from prov4ml.datamodel.attribute_type import LoggingItemKind
-
 
 BASE_EXP_NAME: str = 'default_experiment'
 
@@ -1052,10 +1049,10 @@ class Prov4MLLogger(Logger):
         self,
         item: Union[Any, List[Any]],
         identifier: Union[str, List[str]],
-        kind: Union[str, LoggingItemKind] = 'metric',
+        kind: str = 'metric',
         step: Optional[int] = None,
         batch_idx: Optional[int] = None,
-        context: Optional[Context] = 'training',
+        context: Optional[str] = 'training',
         **kwargs
     ) -> None:
         """Logs with Prov4ML.
@@ -1078,31 +1075,30 @@ class Prov4MLLogger(Logger):
 
         print(f"PROV4ML LOGGING {identifier}: {item} ({kind})")
 
-        if kind == LoggingItemKind.METRIC.value:
+        if kind == "metric":
             prov4ml.log_metric(identifier, item, context, step=step)
-        elif kind == LoggingItemKind.FLOPS_PER_BATCH.value:
+        elif kind == "flops_pb":
             model, batch = item
             prov4ml.log_flops_per_batch(
                 identifier, model=model,
                 batch=batch, context=context, step=step)
-        elif kind == LoggingItemKind.FLOPS_PER_EPOCH.value:
+        elif kind == "flops_pe":
             model, dataset = item
             prov4ml.log_flops_per_epoch(
                 identifier, model=model,
                 dataset=dataset, context=context, step=step)
-        elif kind == LoggingItemKind.SYSTEM_METRIC.value:
+        elif kind == "system":
             prov4ml.log_system_metrics(context=context, step=step)
-        elif kind == LoggingItemKind.CARBON_METRIC.value:
+        elif kind == "carbon":
             prov4ml.log_carbon_metrics(context=context, step=step)
-        elif kind == LoggingItemKind.EXECUTION_TIME.value:
+        elif kind == "execution_time":
             prov4ml.log_current_execution_time(identifier, context, step=step)
-        elif kind == 'model':  # LoggingItemKind.MODEL_VERSION.value:
+        elif kind == 'model':
             prov4ml.save_model_version(item, identifier, context, step=step)
         elif kind == 'best_model':
-            # LoggingItemKind.FINAL_MODEL_VERSION.value:
             prov4ml.log_model(item, identifier, log_model_info=True,
                               log_as_artifact=True)
-        elif kind == 'torch':  # LoggingItemKind.PARAMETER.value:
+        elif kind == 'torch':
             from torch.utils.data import DataLoader
             if isinstance(item, DataLoader):
                 prov4ml.log_dataset(item, identifier)
