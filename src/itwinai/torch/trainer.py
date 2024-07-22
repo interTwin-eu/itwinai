@@ -687,7 +687,7 @@ class TorchTrainer(Trainer, LogMixin):
                     step=self.validation_glob_step,
                 )
 
-            return avg_loss.item()
+            return avg_loss
 
     def validation_step(
         self,
