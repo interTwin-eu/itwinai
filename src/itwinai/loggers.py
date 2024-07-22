@@ -856,9 +856,9 @@ class Prov4MLLogger(Logger):
             provenance_save_dir=self.provenance_save_dir,
             save_after_n_logs=self.save_after_n_logs,
             collect_all_processes=True,
-            # rank=rank # TODO: uncomment when prov4ml supports it 
+            # rank=rank # TODO: uncomment when prov4ml supports it
         )
-       self.worker_rank = rank
+        self.worker_rank = rank
 
     @override
     def destroy_logger_context(self):
@@ -885,7 +885,7 @@ class Prov4MLLogger(Logger):
             )
             or
             (isinstance(self.log_on_workers, list)
-             and worker_rank in self.log_on_workers)
+             and self.worker_rank in self.log_on_workers)
         )
 
         return super().should_log(batch_idx) and worker_ok
@@ -898,7 +898,7 @@ class Prov4MLLogger(Logger):
         kind: Union[str, LoggingItemKind] = 'metric',
         step: Optional[int] = None,
         batch_idx: Optional[int] = None,
-        context: Optional[Context] = 'training'
+        context: Optional[Context] = 'training',
         **kwargs
     ) -> None:
         """Logs with Prov4ML.
