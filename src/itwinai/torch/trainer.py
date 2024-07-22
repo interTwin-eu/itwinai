@@ -501,7 +501,7 @@ class TorchTrainer(Trainer, LogMixin):
         m_values = {}
         for m_name, metric in self.metrics.items():
             # metric = metric.to(self.device)
-            m_val = metric(pred, true)
+            m_val = metric(pred, true).detach().cpu().numpy()
             self.log(
                 item=m_val,
                 identifier=f'{stage}_{m_name}',
