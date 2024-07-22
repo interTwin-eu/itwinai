@@ -858,6 +858,7 @@ class Prov4MLLogger(Logger):
             collect_all_processes=True,
             rank=rank
         )
+       self.worker_rank = rank
 
     @override
     def destroy_logger_context(self):
@@ -874,11 +875,12 @@ class Prov4MLLogger(Logger):
         pass
 
     @override
-    def should_log(self, batch_idx: int = None, worker_rank: int = 0) -> bool:
+    def should_log(self, batch_idx: int = None) -> bool:
         worker_ok = (
+            self.worker_rank is None or
             (isinstance(self.log_on_workers, int) and (
                 self.log_on_workers == -1 or
-                self.log_on_workers == worker_rank
+                self.log_on_workers == self.worker_rank
             )
             )
             or
@@ -896,8 +898,7 @@ class Prov4MLLogger(Logger):
         kind: Union[str, LoggingItemKind] = 'metric',
         step: Optional[int] = None,
         batch_idx: Optional[int] = None,
-        context: Optional[Context] = 'training',
-        rank: Optional[int] = None,
+        context: Optional[Context] = 'training'
         **kwargs
     ) -> None:
         """Logs with Prov4ML.
@@ -912,13 +913,10 @@ class Prov4MLLogger(Logger):
             step (Optional[int], optional): logging step. Defaults to None.
             batch_idx (Optional[int], optional): DataLoader batch counter
                 (i.e., batch idx), if available. Defaults to None.
-            rank (Optional[int]): distributed rank of worker. Defaults to None.
             kwargs: keyword arguments to pass to the logger.
         """
 
-       # TODO: propagate rank to prov4ml calls
-
-        if not self.should_log(batch_idx=batch_idx, worker_rank=rank):
+        if not self.should_log(batch_idx=batch_idx):
             return
 
         if kind == LoggingItemKind.METRIC.value:
