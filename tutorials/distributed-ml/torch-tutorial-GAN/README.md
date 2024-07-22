@@ -7,12 +7,8 @@ and a simple GAN model as the baseline that can be found in a file named `simple
 ## Setup
 
 First, from the root of this repository, build the environment containing
-pytorch, horovod and deepspeed. You can *try* with:
-
-```bash
-# Creates a Python venv called envAI_hdfml
-make torch-gpu-jsc
-```
+pytorch and deepspeed.
+Refer to the [itwinai installation steps](https://itwinai.readthedocs.io/latest/getting-started/getting_started_with_itwinai.html#install-itwinai).
 
 Then navigate to the project working directory
 
@@ -56,27 +52,9 @@ To launch the training with Microsoft DeepSpeed use:
 deepspeed train.py -s deepspeed --deepspeed
 
 # Optional -- from a SLURM login node:
-srun --jobid XXXX --ntasks-per-node=1 deepspeed train.py -s deepspeed --deepspeed 
+srun --jobid XXXX --ntasks-per-node=1 deepspeed train.py --strategy deepspeed
 ```
 
-To launch the training with Horovod use:
-
-> \[!NOTE]  
-> NOTE: Assuming 4 GPUs are available.
-
-If your setup has a different number of GPUs, change the `-np 4 -H localhost:4` part.
-
-> \[!WARNING]  
-> To use `horovodrun`, make sure that `mpirun` is available in your environment. Otherwise
-> you cannot use Horovod in interactive mode.
-
-```bash
-# Assuming 4 GPUs are available (-np=4)
-horovodrun -np 4 -H localhost:4 train.py -s horovod
-
-# Optional -- from a SLURM login node:
-srun --jobid XXXX --ntasks-per-node=1 horovodrun -np 4 -H localhost:4 python -u train.py -s horovod
-```
 
 ## Distributed training with SLURM (batch mode)
 

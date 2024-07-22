@@ -527,7 +527,7 @@ class TorchDDPStrategy(TorchDistributedStrategy):
                 "Strategy has not been initialized. Use the init method.")
 
         # Ensure that the tensor is on the correct device (CUDA)
-        # tensor = tensor.to(torch.device self.device,None)
+        tensor = tensor.to(self.device())
 
         if self.global_rank() == dst_rank:
             res = [torch.zeros_like(tensor, device=self.device()) for _ in
@@ -722,7 +722,7 @@ class DeepSpeedStrategy(TorchDistributedStrategy):
                 "Strategy has not been initialized. Use the init method.")
 
         # Ensure that the tensor is on the correct device (CUDA)
-        # tensor = tensor.to(self.device)
+        tensor = tensor.to(self.device())
 
         if self.global_rank() == dst_rank:
             res = [torch.zeros_like(tensor, device=self.device())

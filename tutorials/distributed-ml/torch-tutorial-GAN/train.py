@@ -20,40 +20,31 @@ from itwinai.torch.distributed import (
     DeepSpeedStrategy
 )
 
-REAL_LABEL = 1
-FAKE_LABEL = 0
-Z_DIM = 100
-G_HIDDEN = 64
-IMAGE_CHANNEL = 1
-D_HIDDEN = 64
-
-NOISE_DIM = 100
-
 
 class Generator(nn.Module):
-    def __init__(self):
+    def __init__(self, z_dim, g_hidden, image_channel):
         super(Generator, self).__init__()
         self.main = nn.Sequential(
             # input layer
-            nn.ConvTranspose2d(Z_DIM, G_HIDDEN * 8, 4, 1, 0, bias=False),
-            nn.BatchNorm2d(G_HIDDEN * 8),
+            nn.ConvTranspose2d(z_dim, g_hidden * 8, 4, 1, 0, bias=False),
+            nn.BatchNorm2d(g_hidden * 8),
             nn.ReLU(True),
             # 1st hidden layer
-            nn.ConvTranspose2d(G_HIDDEN * 8, G_HIDDEN * \
+            nn.ConvTranspose2d(g_hidden * 8, g_hidden * \
                                4, 4, 2, 1, bias=False),
-            nn.BatchNorm2d(G_HIDDEN * 4),
+            nn.BatchNorm2d(g_hidden * 4),
             nn.ReLU(True),
             # 2nd hidden layer
-            nn.ConvTranspose2d(G_HIDDEN * 4, G_HIDDEN * \
+            nn.ConvTranspose2d(g_hidden * 4, g_hidden * \
                                2, 4, 2, 1, bias=False),
-            nn.BatchNorm2d(G_HIDDEN * 2),
+            nn.BatchNorm2d(g_hidden * 2),
             nn.ReLU(True),
             # 3rd hidden layer
-            nn.ConvTranspose2d(G_HIDDEN * 2, G_HIDDEN, 4, 2, 1, bias=False),
-            nn.BatchNorm2d(G_HIDDEN),
+            nn.ConvTranspose2d(g_hidden * 2, g_hidden, 4, 2, 1, bias=False),
+            nn.BatchNorm2d(g_hidden),
             nn.ReLU(True),
             # output layer
-            nn.ConvTranspose2d(G_HIDDEN, IMAGE_CHANNEL, 4, 2, 1, bias=False),
+            nn.ConvTranspose2d(g_hidden, image_channel, 4, 2, 1, bias=False),
             nn.Tanh()
         )
 
@@ -62,26 +53,26 @@ class Generator(nn.Module):
 
 
 class Discriminator(nn.Module):
-    def __init__(self):
+    def __init__(self, d_hidden, image_channel):
         super(Discriminator, self).__init__()
         self.main = nn.Sequential(
             # 1st layer
-            nn.Conv2d(IMAGE_CHANNEL, D_HIDDEN, 4, 2, 1, bias=False),
+            nn.Conv2d(image_channel, d_hidden, 4, 2, 1, bias=False),
             nn.LeakyReLU(0.2, inplace=True),
             # 2nd layer
-            nn.Conv2d(D_HIDDEN, D_HIDDEN * 2, 4, 2, 1, bias=False),
-            nn.BatchNorm2d(D_HIDDEN * 2),
+            nn.Conv2d(d_hidden, d_hidden * 2, 4, 2, 1, bias=False),
+            nn.BatchNorm2d(d_hidden * 2),
             nn.LeakyReLU(0.2, inplace=True),
             # 3rd layer
-            nn.Conv2d(D_HIDDEN * 2, D_HIDDEN * 4, 4, 2, 1, bias=False),
-            nn.BatchNorm2d(D_HIDDEN * 4),
+            nn.Conv2d(d_hidden * 2, d_hidden * 4, 4, 2, 1, bias=False),
+            nn.BatchNorm2d(d_hidden * 4),
             nn.LeakyReLU(0.2, inplace=True),
             # 4th layer
-            nn.Conv2d(D_HIDDEN * 4, D_HIDDEN * 8, 4, 2, 1, bias=False),
-            nn.BatchNorm2d(D_HIDDEN * 8),
+            nn.Conv2d(d_hidden * 4, d_hidden * 8, 4, 2, 1, bias=False),
+            nn.BatchNorm2d(d_hidden * 8),
             nn.LeakyReLU(0.2, inplace=True),
             # output layer
-            nn.Conv2d(D_HIDDEN * 8, 1, 4, 1, 0, bias=False),
+            nn.Conv2d(d_hidden * 8, 1, 4, 1, 0, bias=False),
             nn.Sigmoid()
         )
 
@@ -93,7 +84,8 @@ class GANTrainer(TorchTrainer):
     def __init__(
             self,
             config: Union[Dict, TrainingConfiguration],
-            epochs: int, discriminator: nn.Module,
+            epochs: int,
+            discriminator: nn.Module,
             generator: nn.Module,
             strategy: Literal["ddp", "deepspeed"] = 'ddp',
             validation_every: Optional[int] = 1,
@@ -236,18 +228,19 @@ class GANTrainer(TorchTrainer):
     def train_step(self, real_images, batch_idx):
         real_images = real_images.to(self.device)
         batch_size = real_images.size(0)
-        real_labels = torch.full(
-            (batch_size,), REAL_LABEL,
+        real_labels = torch.ones(
+            (batch_size,),
             dtype=torch.float, device=self.device)
-        fake_labels = torch.full(
-            (batch_size,), FAKE_LABEL,
+        fake_labels = torch.zeros(
+            (batch_size,),
             dtype=torch.float, device=self.device)
 
         # Train Discriminator with real images
         output_real = self.discriminator(real_images)
         lossD_real = self.criterion(output_real, real_labels)
         # Generate fake images and train Discriminator
-        noise = torch.randn(batch_size, NOISE_DIM, 1, 1, device=self.device)
+        noise = torch.randn(
+            batch_size, self.config.z_dim, 1, 1, device=self.device)
 
         fake_images = self.generator(noise)
         output_fake = self.discriminator(fake_images.detach())
@@ -271,17 +264,18 @@ class GANTrainer(TorchTrainer):
     def validation_step(self, real_images, batch_idx):
         real_images = real_images.to(self.device)
         batch_size = real_images.size(0)
-        real_labels = torch.full((batch_size,), REAL_LABEL,
+        real_labels = torch.ones((batch_size,),
                                  dtype=torch.float, device=self.device)
-        fake_labels = torch.full((batch_size,), FAKE_LABEL,
-                                 dtype=torch.float, device=self.device)
+        fake_labels = torch.zeros((batch_size,),
+                                  dtype=torch.float, device=self.device)
 
         # Validate with real images
         output_real = self.discriminator(real_images)
         loss_real = self.criterion(output_real, real_labels)
 
         # Generate and validate fake images
-        noise = torch.randn(batch_size, NOISE_DIM, 1, 1, device=self.device)
+        noise = torch.randn(
+            batch_size, self.config.z_dim, 1, 1, device=self.device)
 
         with torch.no_grad():
             fake_images = self.generator(noise)
@@ -330,9 +324,6 @@ class GANTrainer(TorchTrainer):
         )
         return loss_gen, accuracy_gen
 
-    def configure_optimizers(self):
-        return [self.optimizerD, self.optimizerG]
-
     def save_checkpoint(self, name, epoch, loss=None):
         """Save training checkpoint with both optimizers."""
         if not os.path.exists(self.checkpoints_location):
@@ -371,7 +362,7 @@ class GANTrainer(TorchTrainer):
 
     def save_plots_and_images(self, epoch):
         self.generator.eval()
-        noise = torch.randn(64, NOISE_DIM, 1, 1, device=self.device)
+        noise = torch.randn(64, self.config.z_dim, 1, 1, device=self.device)
         fake_images = self.generator(noise)
         fake_images_grid = torchvision.utils.make_grid(
             fake_images, normalize=True)
@@ -427,11 +418,9 @@ def main():
             m.bias.data.fill_(0)
 
     # Models
-    netG = Generator().to(torch.device("cuda" if torch.cuda.is_available()
-                                       else "cpu "))
+    netG = Generator(z_dim=100, g_hidden=64, image_channel=1)
     netG.apply(weights_init)
-    netD = Discriminator().to(torch.device("cuda" if torch.cuda.is_available()
-                                           else "cpu"))
+    netD = Discriminator(d_hidden=64, image_channel=1)
     netD.apply(weights_init)
 
     # Training configuration
@@ -439,23 +428,18 @@ def main():
         batch_size=args.batch_size,
         lr=args.lr,
         epochs=args.epochs,
-        loss='cross_entropy'
+        loss='cross_entropy',
+        z_dim=100
     )
 
     # Logger
     logger = MLFlowLogger(experiment_name='Distributed GAN MNIST', log_freq=10)
-
-    metrics = {
-        'accuracy': torchmetrics.Accuracy(task='multiclass', num_classes=10),
-        'precision': torchmetrics.Precision(task='multiclass', num_classes=10)
-    }
 
     # Trainer
     trainer = GANTrainer(
         config=training_config,
         discriminator=netD,
         generator=netG,
-        metrics=metrics,
         strategy=args.strategy,
         epochs=args.epochs,
         random_seed=args.seed,
