@@ -856,7 +856,7 @@ class Prov4MLLogger(Logger):
             provenance_save_dir=self.provenance_save_dir,
             save_after_n_logs=self.save_after_n_logs,
             collect_all_processes=True,
-            rank=rank
+            # rank=rank # TODO: uncomment when prov4ml supports it 
         )
        self.worker_rank = rank
 
