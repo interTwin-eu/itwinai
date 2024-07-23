@@ -110,7 +110,7 @@ class GANTrainer(TorchTrainer):
         name (Optional[str], optional): trainer custom name. Defaults to None.
     """
 
-    def __init__(         
+    def __init__(
             self,
             config: Union[Dict, TrainingConfiguration],
             epochs: int,
@@ -195,7 +195,7 @@ class GANTrainer(TorchTrainer):
         avg_disc_accuracy = torch.mean(torch.stack(disc_train_accuracy))
         self.log(
             item=avg_disc_accuracy.item(),
-            identifier='gen_train_loss_per_epoch',
+            identifier='disc_train_accuracy_per_epoch',
             kind='metric',
             step=epoch,
         )
