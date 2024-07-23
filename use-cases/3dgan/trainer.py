@@ -69,20 +69,30 @@ class Lightning3DGANTrainer(Trainer):
             # The itwinai_logger is initialized inside the model,
             # during the .fit()
             cli.trainer.fit(cli.model, datamodule=cli.datamodule)
-        finally:
-            # Try to save current config before exiting
-            self._log_config(cli.trainer.itwinai_logger)
 
-        cli.trainer.itwinai_logger.log(
-            cli.trainer.train_dataloader,
-            "train_dataloader",
-            kind='torch'
-        )
-        cli.trainer.itwinai_logger.log(
-            cli.trainer.val_dataloaders,
-            "val_dataloader",
-            kind='torch'
-        )
+            self._log_config(cli.trainer.itwinai_logger)
+            cli.trainer.itwinai_logger.log(
+                cli.trainer.train_dataloader,
+                "train_dataloader",
+                kind='torch'
+            )
+            cli.trainer.itwinai_logger.log(
+                cli.trainer.val_dataloaders,
+                "val_dataloader",
+                kind='torch'
+            )
+
+            # import torch.nn as nn
+            # net = nn.Linear(100, 11)
+            # optim = torch.optim.SGD(net.parameters(), lr=1e-3)
+            # cli.trainer.itwinai_logger.log(
+            #     optim,
+            #     "some_optim",
+            #     kind='torch'
+            # )
+        finally:
+            # This is needed by Prov4ML logger!
+            cli.trainer.itwinai_logger.destroy_logger_context()
 
     def _log_config(self, logger: Logger):
         with tempfile.TemporaryDirectory(dir=os.getcwd()) as tmp_dir:

@@ -1071,8 +1071,6 @@ class Prov4MLLogger(Logger):
         if not self.should_log(batch_idx=batch_idx):
             return
 
-        # print(f"PROV4ML LOGGING {identifier}: {item} ({kind})")
-
         if kind == "metric":
             prov4ml.log_metric(key=identifier, value=item,
                                context=context, step=step)
