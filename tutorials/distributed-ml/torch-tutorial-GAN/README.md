@@ -2,7 +2,9 @@
 
 The code is adapted from
 [this example](https://github.com/pytorch/examples/blob/main/mnist/main.py)
-and a simple GAN model as the baseline that can be found in a file named `simpleGAN.py` in this directory.
+and a simple non-distributed GAN model can be found in a file named `simpleGAN.py`
+that serves as a baseline GAN example but focus is mainly on the `train.py`
+file for the distributed GAN use case.
 
 ## Setup
 
@@ -146,7 +148,7 @@ class Discriminator(nn.Module):
 The `GANTrainer` class extends the custom itwinia `TorchTrainer` class and handles the initialization of models,
 optimizers, and the distributed training strategy for the GAN. The snippet below shows how the GANTrainer is extending
 the TorchTrainer class and initializing the parameters.
-This is essentially done to handle the scenario for the GAN which comproses of two Neaural Network models which is not
+This is essentially done to handle the scenario for the GAN which comprises of two Neural Network models which is not
 handled by the TorchTrainer that looks expects and handles one model.
 
 ```python
@@ -195,7 +197,7 @@ def save_plots_and_images(self, epoch, real_images, fake_images):
 This README describes steps taken to adapt a GAN for distributed training, aimed at enhancing efficiency and scalability
 for training on large-scale datasets. From this use case we learn the following:
 
-- atwinai `TorchTrainer` can easily be adapted to different unique use cases like the GAN that has two models.
+- itwinai `TorchTrainer` can easily be adapted to different unique use cases like the GAN that has two models.
 - Training models in a distributed environment may require some level of customization in the training architecturing but
 it comes with lots of performance improvements.
 - Distributed training for GANs requires a large dataset to reduce the chances of overfitting to the smaller data splits

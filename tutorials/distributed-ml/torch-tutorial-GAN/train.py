@@ -110,7 +110,7 @@ class GANTrainer(TorchTrainer):
         name (Optional[str], optional): trainer custom name. Defaults to None.
     """
 
-    def __init__(
+    def __init__(         
             self,
             config: Union[Dict, TrainingConfiguration],
             epochs: int,
@@ -182,25 +182,34 @@ class GANTrainer(TorchTrainer):
         self.generator.train()
         gen_train_losses = []
         disc_train_losses = []
+        disc_train_accuracy = []
         for batch_idx, (real_images, _) in enumerate(self.train_dataloader):
-            lossG, lossD = self.train_step(
+            lossG, lossD, accuracy_disc = self.train_step(
                 real_images, batch_idx)
             gen_train_losses.append(lossG)
             disc_train_losses.append(lossD)
+            disc_train_accuracy.append(accuracy_disc)
 
             self.train_glob_step += 1
-        # Aggregate and log losses
-        avg_g_loss = torch.mean(torch.stack(gen_train_losses))
+        # Aggregate and log losses and accuracy
+        avg_disc_accuracy = torch.mean(torch.stack(disc_train_accuracy))
         self.log(
-            item=avg_g_loss.item(),
+            item=avg_disc_accuracy.item(),
+            identifier='gen_train_loss_per_epoch',
+            kind='metric',
+            step=epoch,
+        )
+        avg_gen_loss = torch.mean(torch.stack(gen_train_losses))
+        self.log(
+            item=avg_gen_loss.item(),
             identifier='gen_train_loss_per_epoch',
             kind='metric',
             step=epoch,
         )
 
-        avg_d_loss = torch.mean(torch.stack(disc_train_losses))
+        avg_disc_loss = torch.mean(torch.stack(disc_train_losses))
         self.log(
-            item=avg_d_loss.item(),
+            item=avg_disc_loss.item(),
             identifier='disc_train_loss_per_epoch',
             kind='metric',
             step=epoch,
@@ -215,7 +224,6 @@ class GANTrainer(TorchTrainer):
         disc_validation_accuracy = []
         self.discriminator.eval()
         self.generator.eval()
-        gen_validation_loss = torch.tensor(0.0, device=self.device)
         for batch_idx, (real_images, _) in enumerate(
                 self.validation_dataloader):
             loss_gen, accuracy_gen, loss_disc, accuracy_disc = (
@@ -289,12 +297,23 @@ class GANTrainer(TorchTrainer):
         lossD.backward()
         self.optimizerD.step()
 
+        accuracy = ((output_real > 0.5).float() == real_labels).float().mean(
+        ) + ((output_fake < 0.5).float() == fake_labels).float().mean()
+        accuracy_disc = accuracy.mean()
+
         # Train Generator
         output_fake = self.discriminator(fake_images)
         lossG = self.criterion(output_fake, real_labels)
         self.optimizerG.zero_grad()
         lossG.backward()
         self.optimizerG.step()
+        self.log(
+            item=accuracy_disc,
+            identifier='disc_train_accuracy_per_batch',
+            kind='metric',
+            step=self.train_glob_step,
+            batch_idx=batch_idx
+        )
         self.log(
             item=lossG,
             identifier='gen_train_loss_per_batch',
@@ -310,7 +329,7 @@ class GANTrainer(TorchTrainer):
             batch_idx=batch_idx
         )
 
-        return lossG, lossD
+        return lossG, lossD, accuracy_disc
 
     def validation_step(self, real_images, batch_idx):
         real_images = real_images.to(self.device)
@@ -340,7 +359,7 @@ class GANTrainer(TorchTrainer):
 
         # Calculate total discriminator loss and accuracy
         loss_disc = (loss_real + loss_fake) / 2
-        accuracy = ((output_real > 0.4).float() == real_labels).float().mean(
+        accuracy = ((output_real > 0.5).float() == real_labels).float().mean(
         ) + ((output_fake < 0.5).float() == fake_labels).float().mean()
         accuracy_disc = accuracy.mean()
 
