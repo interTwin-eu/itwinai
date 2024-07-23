@@ -175,7 +175,7 @@ class Logger(LogMixin, metaclass=ABCMeta):
 
         """
         try:
-            self.create_logger_context()
+            self.create_logger_context(rank=rank)
             yield
         finally:
             self.destroy_logger_context()

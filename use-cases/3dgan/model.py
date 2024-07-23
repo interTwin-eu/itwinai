@@ -341,42 +341,18 @@ class ThreeDGAN(pl.LightningModule):
 
     @property
     def itwinai_logger(self) -> BaseItwinaiLogger:
-        return self.trainer.itwinai_logger
+        try:
+            itwinai_logger = self.trainer.itwinai_logger
+        except AttributeError:
+            print("WARNING: itwinai_logger attribute not set "
+                  f"in {self.__class__.__name__}")
+            itwinai_logger = None
+        return itwinai_logger
 
     def on_fit_start(self) -> None:
-        # Initialize itwinai logger: pass global rank of current worker
-        self.itwinai_logger.create_logger_context(
-            rank=self.global_rank
-        )
-
-        # Log hparams
-        self.itwinai_logger.save_hyperparameters(self.hparams)
-
-        # Log optimizers' state dicts
-        optimizer_discriminator, optimizer_generator = self.optimizers()
-        opt_d = dict(
-            state_dict=optimizer_discriminator.state_dict(),
-            optim_class=optimizer_discriminator.__class__.__name__
-        )
-        opt_g = dict(
-            state_dict=optimizer_generator.state_dict(),
-            optim_class=optimizer_generator.__class__.__name__
-        )
         if self.itwinai_logger:
-            self.itwinai_logger.log(
-                opt_d,
-                'optimizer_discriminator',
-                kind='torch')
-            self.itwinai_logger.log(
-                opt_g,
-                'optimizer_generator',
-                kind='torch')
-
-    def on_fit_end(self) -> None:
-        # # Destroy itwinai logger. Do it only if you don't want to
-        # # log after the end of training
-        # self.itwinai_logger.destroy_logger_context()
-        pass
+            # Log hyper-parameters
+            self.itwinai_logger.save_hyperparameters(self.hparams)
 
     def BitFlip(self, x, prob=0.05):
         """
@@ -934,5 +910,15 @@ class ThreeDGAN(pl.LightningModule):
             self.generator.parameters(),
             lr
         )
+
+        if self.itwinai_logger:
+            self.itwinai_logger.log(
+                optimizer_discriminator,
+                'optimizer_discriminator',
+                kind='torch')
+            self.itwinai_logger.log(
+                optimizer_generator,
+                'optimizer_generator',
+                kind='torch')
 
         return [optimizer_discriminator, optimizer_generator], []

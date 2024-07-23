@@ -26,23 +26,19 @@ from model import ThreeDGAN
 from dataloader import ParticlesDataModule
 
 
-class GANTrainer(LightningTrainer):
-    itwinai_logger: Logger
-
-    def __init__(self, itwinai_logger: Optional[Logger] = None, **kwargs):
-        super().__init__(**kwargs)
-        self.itwinai_logger = itwinai_logger
-
-
 class Lightning3DGANTrainer(Trainer):
-    def __init__(self, config: Union[Dict, str], exp_root: str = '.'):
+    def __init__(
+        self,
+        config: Union[Dict, str],
+        itwinai_logger: Optional[Logger] = None
+    ):
         self.save_parameters(**self.locals2params(locals()))
         super().__init__()
         if isinstance(config, str) and os.path.isfile(config):
             # Load from YAML
             config = load_yaml(config)
         self.conf = config
-        self.exp_root = exp_root
+        self.itwinai_logger = itwinai_logger
 
     @monitor_exec
     def execute(self) -> Any:
@@ -54,7 +50,7 @@ class Lightning3DGANTrainer(Trainer):
             args=self.conf,
             model_class=ThreeDGAN,
             datamodule_class=ParticlesDataModule,
-            trainer_class=GANTrainer,
+            trainer_class=LightningTrainer,
             run=False,
             save_config_kwargs={
                 "overwrite": True,
@@ -65,37 +61,30 @@ class Lightning3DGANTrainer(Trainer):
         )
         sys.argv = old_argv
 
-        try:
-            # The itwinai_logger is initialized inside the model,
-            # during the .fit()
+        # Get current worker rank (assuming torchrun launcher)
+        global_rank = int(os.getenv('RANK', 0))
+
+        with self.itwinai_logger.start_logging(rank=global_rank):
+            # Set the logger into the LightningTrainer
+            cli.trainer.itwinai_logger = self.itwinai_logger
+
+            # Start training
             cli.trainer.fit(cli.model, datamodule=cli.datamodule)
 
-            self._log_config(cli.trainer.itwinai_logger)
-            cli.trainer.itwinai_logger.log(
+            self._log_config(self.itwinai_logger)
+            self.itwinai_logger.log(
                 cli.trainer.train_dataloader,
                 "train_dataloader",
                 kind='torch'
             )
-            cli.trainer.itwinai_logger.log(
+            self.itwinai_logger.log(
                 cli.trainer.val_dataloaders,
                 "val_dataloader",
                 kind='torch'
             )
 
-            # import torch.nn as nn
-            # net = nn.Linear(100, 11)
-            # optim = torch.optim.SGD(net.parameters(), lr=1e-3)
-            # cli.trainer.itwinai_logger.log(
-            #     optim,
-            #     "some_optim",
-            #     kind='torch'
-            # )
-        finally:
-            # This is needed by Prov4ML logger!
-            cli.trainer.itwinai_logger.destroy_logger_context()
-
     def _log_config(self, logger: Logger):
-        with tempfile.TemporaryDirectory(dir=os.getcwd()) as tmp_dir:
+        with tempfile.TemporaryDirectory(dir='/tmp') as tmp_dir:
             local_yaml_path = os.path.join(tmp_dir, 'pl-conf.yaml')
             with open(local_yaml_path, 'w') as outfile:
                 yaml.dump(self.conf, outfile, default_flow_style=False)
