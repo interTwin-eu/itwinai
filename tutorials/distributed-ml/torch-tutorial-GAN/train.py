@@ -80,7 +80,7 @@ class Discriminator(nn.Module):
 
 
 class GANTrainer(TorchTrainer):
-    """Trainer class for GAN model using pytorch and MNIST dataset.
+    """Trainer class for GAN model using pytorch.
 
     Args:
         config (Union[Dict, TrainingConfiguration]): training configuration
@@ -241,7 +241,7 @@ class GANTrainer(TorchTrainer):
             item=disc_validation_loss.item(),
             identifier='disc_valid_loss_per_epoch',
             kind='metric',
-            step=self.validation_glob_step,
+            step=epoch,
         )
         disc_validation_accuracy = torch.mean(torch.stack(
             disc_validation_accuracy))
@@ -249,7 +249,7 @@ class GANTrainer(TorchTrainer):
             item=disc_validation_accuracy.item(),
             identifier='disc_valid_accuracy_epoch',
             kind='metric',
-            step=self.validation_glob_step,
+            step=epoch,
         )
         gen_validation_loss = torch.mean(torch.stack(
             gen_validation_losses))
@@ -257,7 +257,7 @@ class GANTrainer(TorchTrainer):
             item=gen_validation_loss.item(),
             identifier='gen_valid_loss_per_epoch',
             kind='metric',
-            step=self.validation_glob_step,
+            step=epoch,
         )
         gen_validation_accuracy = torch.mean(torch.stack(
             gen_validation_accuracy))
@@ -265,7 +265,7 @@ class GANTrainer(TorchTrainer):
             item=gen_validation_accuracy.item(),
             identifier='gen_valid_accuracy_epoch',
             kind='metric',
-            step=self.validation_glob_step,
+            step=epoch,
         )
 
         return gen_validation_loss
@@ -498,7 +498,6 @@ def main():
         batch_size=args.batch_size,
         lr=args.lr,
         epochs=args.epochs,
-        loss='cross_entropy',
         z_dim=100
     )
 
