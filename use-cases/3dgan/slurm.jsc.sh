@@ -31,6 +31,7 @@ ml Python CMake HDF5 PnetCDF libaio mpi4py
 # shellcheck source=/dev/null
 source ~/.bashrc
 
+# Activate the environment
 source ../../envAI_hdfml/bin/activate
 
 # launch training

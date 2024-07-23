@@ -311,8 +311,8 @@ class ThreeDGAN(pl.LightningModule):
         loss_weights=[3, 0.1, 25, 0.1],
         power=0.85,
         lr=0.001,
-        checkpoints_dir: str = '.'
-        # itwinai_logger: BaseItwinaiLogger = None
+        checkpoints_dir: str = '.',
+        provenance_verbose: bool = False
     ):
         super().__init__()
         self.save_hyperparameters()
@@ -323,6 +323,7 @@ class ThreeDGAN(pl.LightningModule):
         self.lr = lr
         self.power = power
         self.checkpoints_dir = checkpoints_dir
+        self.provenance_verbose = provenance_verbose
         os.makedirs(self.checkpoints_dir, exist_ok=True)
 
         self.generator = Generator(self.latent_size)
@@ -612,6 +613,11 @@ class ThreeDGAN(pl.LightningModule):
                     identifier='final_discriminator_weights',
                     kind='artifact'
                 )
+                # Log provenance information
+                if self.provenance_verbose:
+                    # Log provenance at every training step
+                    self._log_provenance(context='training')
+
             # print("real_batch_loss", real_batch_loss)
             # print("fake_batch_loss", fake_batch_loss)
             sys.exit()
@@ -659,7 +665,9 @@ class ThreeDGAN(pl.LightningModule):
 
     def on_train_epoch_end(self):
 
-        self._log_provenance(context='training')
+        if not self.provenance_verbose:
+            # Log provenance only at the end of an epoch
+            self._log_provenance(context='training')
 
         discriminator_train_loss = np.mean(
             np.array(self.epoch_disc_loss), axis=0)
@@ -777,6 +785,10 @@ class ThreeDGAN(pl.LightningModule):
                 identifier="val_generator_loss",
                 kind='metric', step=self.global_step,
                 batch_idx=batch_idx)
+            # Log provenance information
+            if self.provenance_verbose:
+                # Log provenance at every training step
+                self._log_provenance(context='training')
 
         # self.log('val_discriminator_loss', sum(
         #     disc_eval_loss), on_epoch=True, prog_bar=True, sync_dist=True)
@@ -840,7 +852,9 @@ class ThreeDGAN(pl.LightningModule):
 
     def on_validation_epoch_end(self):
 
-        self._log_provenance(context='validation')
+        if not self.provenance_verbose:
+            # Log provenance only at the end of an epoch
+            self._log_provenance(context='validation')
 
         discriminator_test_loss = np.mean(
             np.array(self.disc_epoch_test_loss), axis=0)

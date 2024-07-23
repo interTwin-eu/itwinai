@@ -13,12 +13,12 @@
 
 # Resources allocation
 #SBATCH --partition=gpu
-#SBATCH --nodes=2
+#SBATCH --nodes=4
 #SBATCH --gpus-per-node=4
 #SBATCH --cpus-per-gpu=4
 #SBATCH --ntasks-per-node=1
+# SBATCH --mem-per-gpu=10G
 #SBATCH --exclusive
-#SBATCH --mem 40G
 
 # gres options have to be disabled for deepv
 #SBATCH --gres=gpu:4
@@ -33,12 +33,12 @@ echo "DEBUG: SLURM_SUBMIT_HOST: $SLURM_SUBMIT_HOST"
 echo "DEBUG: SLURMD_NODENAME: $SLURMD_NODENAME"
 echo "DEBUG: CUDA_VISIBLE_DEVICES: $CUDA_VISIBLE_DEVICES"
 
-ml --force purge
-ml Python CMake/3.24.3-GCCcore-11.3.0 mpi4py OpenMPI CUDA/11.7
-ml GCCcore/11.3.0 NCCL/2.12.12-GCCcore-11.3.0-CUDA-11.7.0 cuDNN
+ml Python
+module unload OpenSSL
 
 source ~/.bashrc
 
+# Activate the environment
 source ../../.venv-pytorch/bin/activate
 
 # launch training

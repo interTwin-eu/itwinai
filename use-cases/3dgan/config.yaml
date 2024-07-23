@@ -16,6 +16,7 @@ inference_results_location: 3dgan-generated-data/
 inference_model_uri: 3dgan-inference.pth
 aggregate_predictions: false
 num_nodes: 1
+provenance_verbose: true
 
 # Dataloading step is common and can be reused
 dataloading_step:
@@ -130,6 +131,7 @@ training_pipeline:
                 power: 0.85
                 lr: 0.001
                 checkpoints_dir: ${checkpoints_path}
+                provenance_verbose: ${provenance_verbose}
 
             # Lightning data module configuration
             data:
