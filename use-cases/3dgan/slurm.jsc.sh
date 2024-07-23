@@ -25,15 +25,17 @@
 
 # load modules
 ml --force purge
-ml Stages/2023 StdEnv/2023 NVHPC/23.1 OpenMPI/4.1.4 cuDNN/8.6.0.163-CUDA-11.7 Python/3.10.4 HDF5 libaio/0.3.112 GCC/11.3.0
+ml Stages/2024 GCC OpenMPI CUDA/12 cuDNN MPI-settings/CUDA
+ml Python CMake HDF5 PnetCDF libaio mpi4py
 
 # shellcheck source=/dev/null
 source ~/.bashrc
 
-source ../../.venv-pytorch/bin/activate
+source ../../envAI_hdfml/bin/activate
 
 # launch training
-TRAINING_CMD="$(which itwinai) exec-pipeline --config config.yaml --pipe-key training_pipeline"
+TRAINING_CMD="$(which itwinai) exec-pipeline --config config.yaml --pipe-key training_pipeline \
+                -o num_nodes=$SLURM_NNODES "
 
 srun --cpu-bind=none --ntasks-per-node=1 \
     bash -c "torchrun \

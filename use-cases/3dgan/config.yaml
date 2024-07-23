@@ -10,11 +10,12 @@ mlflow_tracking_uri: mlruns # https://131.154.99.166.myip.cloud.infn.it
 batch_size: 4
 num_workers_dataloader: 0
 max_epochs: 2
-max_dataset_size: 48
+max_dataset_size: 10000
 random_seed: 4231162351
 inference_results_location: 3dgan-generated-data/
 inference_model_uri: 3dgan-inference.pth
 aggregate_predictions: false
+num_nodes: 1
 
 # Dataloading step is common and can be reused
 dataloading_step:
@@ -82,6 +83,7 @@ training_pipeline:
               detect_anomaly: false
               deterministic: null
               devices: ${devices}
+              num_nodes: ${num_nodes}
               enable_checkpointing: true
               enable_model_summary: null
               enable_progress_bar: null
