@@ -787,8 +787,8 @@ class ThreeDGAN(pl.LightningModule):
                 batch_idx=batch_idx)
             # Log provenance information
             if self.provenance_verbose:
-                # Log provenance at every training step
-                self._log_provenance(context='training')
+                # Log provenance at every validation step
+                self._log_provenance(context='validation')
 
         # self.log('val_discriminator_loss', sum(
         #     disc_eval_loss), on_epoch=True, prog_bar=True, sync_dist=True)
