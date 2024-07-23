@@ -456,8 +456,8 @@ def main():
                         help='number of epochs to train (default: 15)')
     parser.add_argument('--strategy', type=str, default='ddp',
                         help='distributed strategy (default=ddp)')
-    parser.add_argument('--lr', type=float, default=0.0002,
-                        help='learning rate (default: 1.0)')
+    parser.add_argument('--lr', type=float, default=0.001,
+                        help='learning rate (default: 0.001)')
     parser.add_argument('--seed', type=int, default=1,
                         help='random seed (default: 1)')
     parser.add_argument(
