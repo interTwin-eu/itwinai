@@ -2,7 +2,7 @@
 dataset_location: exp_data/
 dataset_url: https://drive.google.com/drive/folders/1uPpz0tquokepptIfJenTzGpiENfo2xRX
 hw_accelerators: auto
-distributed_strategy: ddp_find_unused_parameters_true
+distributed_strategy: ddp_find_unused_parameters_true #deepspeed auto horovod
 devices: auto #[0]
 checkpoints_path: checkpoints
 logs_dir: ml_logs
