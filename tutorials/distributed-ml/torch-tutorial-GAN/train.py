@@ -247,7 +247,7 @@ class GANTrainer(TorchTrainer):
             disc_validation_accuracy))
         self.log(
             item=disc_validation_accuracy.item(),
-            identifier='disc_validation_accuracy_epoch',
+            identifier='disc_valid_accuracy_epoch',
             kind='metric',
             step=self.validation_glob_step,
         )
@@ -263,7 +263,7 @@ class GANTrainer(TorchTrainer):
             gen_validation_accuracy))
         self.log(
             item=gen_validation_accuracy.item(),
-            identifier='gen_validation_accuracy_epoch',
+            identifier='gen_valid_accuracy_epoch',
             kind='metric',
             step=self.validation_glob_step,
         )

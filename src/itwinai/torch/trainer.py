@@ -903,7 +903,6 @@ class GANTrainer(TorchTrainer):
         disc_validation_accuracy = []
         self.discriminator.eval()
         self.generator.eval()
-        gen_validation_loss = torch.tensor(0.0, device=self.device)
         for batch_idx, (real_images, _) in enumerate(
                 self.validation_dataloader):
             loss_gen, accuracy_gen, loss_disc, accuracy_disc = (
@@ -927,7 +926,7 @@ class GANTrainer(TorchTrainer):
             disc_validation_accuracy))
         self.log(
             item=disc_validation_accuracy.item(),
-            identifier='disc_validation_accuracy_epoch',
+            identifier='disc_valid_accuracy_epoch',
             kind='metric',
             step=self.validation_glob_step,
         )
@@ -943,7 +942,7 @@ class GANTrainer(TorchTrainer):
             gen_validation_accuracy))
         self.log(
             item=gen_validation_accuracy.item(),
-            identifier='gen_validation_accuracy_epoch',
+            identifier='gen_valid_accuracy_epoch',
             kind='metric',
             step=self.validation_glob_step,
         )
@@ -1039,7 +1038,7 @@ class GANTrainer(TorchTrainer):
 
         # Calculate total discriminator loss and accuracy
         d_total_loss = (loss_real + loss_fake) / 2
-        accuracy = ((output_real > 0.4).float() == real_labels).float().mean(
+        accuracy = ((output_real > 0.5).float() == real_labels).float().mean(
         ) + ((output_fake < 0.5).float() == fake_labels).float().mean()
         d_accuracy = accuracy.item()/2
 
