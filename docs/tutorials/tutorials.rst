@@ -31,6 +31,7 @@ Distributed ML with TensorFlow
    distrib-ml/tf_tutorial_0_basics
    distrib-ml/tf_tutorial_1_imagenet
    distrib-ml/tf_scaling_test
+   distrib-ml/torch-tutorial-GAN
 
 
 Machine learning workflows
