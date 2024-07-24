@@ -18,6 +18,7 @@ def test_structure_cyclones(check_folder_structure):
     check_folder_structure(CYCLONES_PATH)
 
 
+@pytest.mark.skip("deprecated")
 @pytest.mark.functional
 @pytest.mark.memory_heavy
 def test_cyclones_train_tf(tf_env, tmp_test_dir, install_requirements):
