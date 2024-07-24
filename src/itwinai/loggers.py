@@ -1103,7 +1103,6 @@ class Prov4MLLogger(Logger):
             if isinstance(item, DataLoader):
                 prov4ml.log_dataset(dataset=item, label=identifier)
             else:
-                # log_param name is misleading and should be renamed...
                 prov4ml.log_param(key=identifier, value=item)
 
 
