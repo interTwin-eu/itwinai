@@ -18,8 +18,8 @@ Distributed ML with PyTorch
    distrib-ml/torch_tutorial_0_basics
    distrib-ml/torch_tutorial_1_mnist
    distrib-ml/torch_tutorial_2_trainer_class
-   distrib-ml/torch_scaling_test
    distrib-ml/torch-tutorial-GAN
+   distrib-ml/torch_scaling_test
 
 
 Distributed ML with TensorFlow
