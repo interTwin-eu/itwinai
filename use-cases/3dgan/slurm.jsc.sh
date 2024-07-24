@@ -34,12 +34,12 @@ source ~/.bashrc
 # Activate the environment
 source ../../envAI_hdfml/bin/activate
 
-3DGAN_DATASET="exp_data" #"/p/scratch/intertwin/datasets/cern/"
+GAN_DATASET="exp_data" #"/p/scratch/intertwin/datasets/cern/"
 
 # launch training
 TRAINING_CMD="$(which itwinai) exec-pipeline --config config.yaml --pipe-key training_pipeline \
                 -o num_nodes=$SLURM_NNODES \
-                -o dataset_location=$3DGAN_DATA "
+                -o dataset_location=$GAN_DATASET "
 
 srun --cpu-bind=none --ntasks-per-node=1 \
     bash -c "torchrun \
