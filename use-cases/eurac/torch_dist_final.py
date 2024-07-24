@@ -85,7 +85,7 @@ assert sum(v for v in TARGET_WEIGHTS.values()) == 1, "check target weights"
 
 
 class RNNDistributedTrainer(TorchTrainer):
-    """Trainer class for LSTM model using pytorch.
+    """Trainer class for RNN model using pytorch.
 
     Args:
         config (Union[Dict, TrainingConfiguration]): training configuration
@@ -153,7 +153,7 @@ class RNNDistributedTrainer(TorchTrainer):
         )
         self.lr_scheduler = ReduceLROnPlateau(
             self.optimizer, mode="min", factor=0.5, patience=10)
-        self.loss_fn = nn.BCELoss()
+        self.loss_fn = RMSELoss(target_weight=TARGET_WEIGHTS)
         self.metric_fn = MSEMetric(target_names=target_names)
 
         if isinstance(self.strategy, DeepSpeedStrategy):
@@ -167,7 +167,7 @@ class RNNDistributedTrainer(TorchTrainer):
             distribute_kwargs = {}
         # Distribute discriminator and its optimizer
         self.model, self.optimizer, _ = self.strategy.distributed(
-            self.model, self.optimizer, **distribute_kwargs)
+            model=self.model, optimizer=self.optimizer, lr_scheduler=self.lr_scheduler, **distribute_kwargs)
               
     def train(self):
         """Override version of hython to support distributed strategy."""
@@ -193,10 +193,11 @@ class RNNDistributedTrainer(TorchTrainer):
         best_loss = float("inf")
 
         for epoch in tqdm(range(self.epochs)):
-
-            # *Added for distributed*
-            self.train_loader.sampler.set_epoch(epoch)
-            self.val_loader.sampler.set_epoch(epoch)
+            
+            if self.strategy.is_distributed:
+                # *Added for distributed*
+                self.train_loader.sampler.set_epoch(epoch)
+                self.val_loader.sampler.set_epoch(epoch)
 
             self.model.train()
 
@@ -210,30 +211,34 @@ class RNNDistributedTrainer(TorchTrainer):
             )
 
             # Checkpointing current best model
+            # if self.strategy.global_rank() == 0:
+            # if self.strategy.is_main_worker:
+            self.model.eval()
+            with torch.no_grad():
+
+                # set time indices for validation
+                # This has effect only if the trainer overload the method
+                # (i.e. for RNN)
+                trainer.temporal_index([self.train_loader, self.val_loader])
+
+                val_loss, val_metric = trainer.epoch_step(
+                    self.model, self.val_loader, device, opt=None
+                )
+            print(val_loss,self.device)
+            worker_val_losses = self.strategy.gather(val_loss, dst_rank=0)
+            print(worker_val_losses)
             if self.strategy.global_rank() == 0:
-                self.model.eval()
-                with torch.no_grad():
-
-                    # set time indices for validation
-                    # This has effect only if the trainer overload the method
-                    # (i.e. for RNN)
-                    trainer.temporal_index([self.train_loader, self.val_loader])
-
-                    val_loss, val_metric = trainer.epoch_step(
-                        self.model, self.val_loader, device, opt=None
-                    )
-
-                self.lr_scheduler.step(val_loss)
-
+                avg_val_loss = torch.mean(torch.stack(worker_val_losses)).detach().cpu()
+                self.lr_scheduler.step(avg_val_loss)
                 loss_history["train"].append(train_loss)
-                loss_history["val"].append(val_loss)
+                loss_history["val"].append(avg_val_loss)
 
                 for target in trainer.P.target_names:
                     metric_history[f"train_{target}"].append(train_metric[target])
                     metric_history[f"val_{target}"].append(val_metric[target])
 
-                if val_loss < best_loss:
-                    best_loss = val_loss
+                if avg_val_loss < best_loss:
+                    best_loss = avg_val_loss
                     # The code `best_model_weights` appears to be a variable name in Python. It is not
                     # assigned any value or operation in the provided snippet, so it is difficult to
                     # determine its specific purpose without additional context. It could potentially be
@@ -243,14 +248,14 @@ class RNNDistributedTrainer(TorchTrainer):
                     trainer.save_weights(self.model, self.config.dp_weights)
                     print("Copied best model weights!")
 
-                print(f"train loss: {train_loss}")
-                print(f"val loss: {val_loss}")
+                    print(f"train loss: {train_loss}")
+                    print(f"val loss: {avg_val_loss}")
 
                 self.model.load_state_dict(best_model_weights)
 
         return loss_history, metric_history
 
-    def create_dataloaders(self, train_dataset, validation_dataset):
+    def create_dataloaders(self, train_dataset, validation_dataset, test_dataset):
         # === SAMPLER =======================================================
         train_sampler_builder = SamplerBuilder(
             train_dataset,
@@ -268,8 +273,8 @@ class RNNDistributedTrainer(TorchTrainer):
         self.train_loader = self.strategy.create_dataloader(
             dataset=train_dataset,
             batch_size=self.config.batch_size,
-            num_workers=self.config.num_workers,
-            pin_memory=self.config.pin_memory,
+            num_workers=self.config.num_workers_dataloader,
+            pin_memory=self.config.pin_gpu_memory,
             generator=self.torch_rng,
             sampler=train_sampler
         )
@@ -278,8 +283,8 @@ class RNNDistributedTrainer(TorchTrainer):
             self.val_loader = self.strategy.create_dataloader(
                 dataset=validation_dataset,
                 batch_size=self.config.batch_size,
-                num_workers=self.config.num_workers,
-                pin_memory=self.config.pin_memory,
+                num_workers=self.config.num_workers_dataloader,
+                pin_memory=self.config.pin_gpu_memory,
                 generator=self.torch_rng,
                 sampler=val_sampler
             )
@@ -288,7 +293,7 @@ def main():
     parser = argparse.ArgumentParser(description='PyTorch LSTM Example')
     parser.add_argument('--batch-size', type=int, default=256,
                         help='input batch size for training (default: 128)')
-    parser.add_argument('--epochs', type=int, default=1,
+    parser.add_argument('--epochs', type=int, default=2,
                         help='number of epochs to train (default: 20)')
     parser.add_argument('--lr', type=float, default=0.0001,
                         help='learning rate (default: 0.0001)')
