@@ -27,7 +27,7 @@ itwinai exec-pipeline --config config.yaml --pipe-key training_pipeline
 
 The command above shows how to run the training using a single worker,
 but if you want to run distributed ML training you have two options: interactive
-(launch from terminal) or batch.
+(launch from terminal) or batch (launch form SLURM job script).
 
 > [!WARNING]
 > Before running distributed ML, make sure that the distributed strategy used
