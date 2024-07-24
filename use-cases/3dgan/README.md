@@ -32,8 +32,8 @@ but if you want to run distributed ML training you have two options: interactive
 > [!WARNING]
 > Before running distributed ML, make sure that the distributed strategy used
 > by pytorch lightning is set to `ddp_find_unused_parameters_true` . You can set
-> this manually in `config.py` by setting
-> `distributed_strategy: ddp_find_unused_parameters_true` .
+> this manually by setting
+> `distributed_strategy: ddp_find_unused_parameters_true` in `config.yaml`.
 
 ### Distributed training on a single node (interactive)
 
