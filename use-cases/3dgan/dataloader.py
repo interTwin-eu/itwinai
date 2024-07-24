@@ -183,16 +183,6 @@ class ParticlesDataModule(pl.LightningDataModule):
             itwinai_logger = None
         return itwinai_logger
 
-    @property
-    def itwinai_logger(self) -> BaseItwinaiLogger:
-        try:
-            itwinai_logger = self.trainer.itwinai_logger
-        except AttributeError:
-            print("WARNING: itwinai_logger attribute not set "
-                  f"in {self.__class__.__name__}")
-            itwinai_logger = None
-        return itwinai_logger
-
     def setup(self, stage: str = None):
         # make assignments here (val/train/test split)
         # called on every process in DDP
