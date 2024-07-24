@@ -35,6 +35,8 @@ but if you want to run distributed ML training you have two options: interactive
 > this manually by setting
 > `distributed_strategy: ddp_find_unused_parameters_true` in `config.yaml`.
 
+To know more on SLURM, see our [SLURM cheatsheet](https://itwinai.readthedocs.io/latest/getting-started/slurm.html).
+
 ### Distributed training on a single node (interactive)
 
 If you want to use SLURM in interactive mode, do the following:
