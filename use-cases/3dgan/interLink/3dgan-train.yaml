@@ -63,21 +63,10 @@ spec:
     #       name: mlflow-server
     #       key: password
 
-
-
-
-
-
-
-
-
-
-
-
     - name: MLFLOW_TRACKING_USERNAME
-      value: "intertwin"
+      value: "xxx"
     - name: MLFLOW_TRACKING_PASSWORD
-      value: "uoBzY8Bgv68FUAT9pGkY"
+      value: "xxx"
 
     image: /ceph/hpc/data/st2301-itwin-users/itwinai_v10.1.sif
     imagePullPolicy: Always
