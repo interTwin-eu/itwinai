@@ -37,6 +37,19 @@ A logger allows to save objects of different kinds:
    * - ``watch``
      - | WandB ``watch``: Hook into the torch model to collect gradients and
        | the topology. `More info`_.
+   * - ``flops_pb``
+     - Flops per batch, used by :class:`~itwinai.loggers.Prov4MLLogger`.
+   * - ``flops_pb``
+     - Flops per batch, used by :class:`~itwinai.loggers.Prov4MLLogger`.
+   * - ``flops_pe``
+     - Flops per epoch, used by :class:`~itwinai.loggers.Prov4MLLogger`.
+   * - ``system``
+     - System metrics, used by :class:`~itwinai.loggers.Prov4MLLogger`.
+   * - ``carbon``
+     - Carbon footprint information, used
+       by :class:`~itwinai.loggers.Prov4MLLogger`.
+   * - ``execution_time``
+     - Execution time, used by :class:`~itwinai.loggers.Prov4MLLogger`.
 
 .. _More info:
     https://docs.wandb.ai/ref/python/watch
@@ -47,12 +60,13 @@ import csv
 from abc import ABCMeta, abstractmethod
 from contextlib import contextmanager
 from typing import Any, Dict, List, Optional, Union, Literal, Tuple
+from typing_extensions import override
 import pickle
 import pathlib
 
 import wandb
 import mlflow
-
+import prov4ml
 
 BASE_EXP_NAME: str = 'default_experiment'
 
@@ -103,20 +117,29 @@ class Logger(LogMixin, metaclass=ABCMeta):
             - When set to ``'batch'``, the logger logs always.
 
             Defaults to 'epoch'.
+        log_on_workers (Optional[Union[int, List[int]]]): if -1, log on all
+            workers; if int log on worker with rank equal to log_on_workers;
+            if List[int], log on workers which rank is in the list.
+            Defaults to 0 (the global rank of the main worker).
     """
     #: Location on filesystem where to store data.
     savedir: str = None
     #: Supported logging 'kind's.
     supported_kinds: Tuple[str]
+    #: Current worker global rank
+    worker_rank: int
+
     _log_freq: Union[int, Literal['epoch', 'batch']]
 
     def __init__(
         self,
         savedir: str = 'mllogs',
-        log_freq: Union[int, Literal['epoch', 'batch']] = 'epoch'
+        log_freq: Union[int, Literal['epoch', 'batch']] = 'epoch',
+        log_on_workers: Union[int, List[int]] = 0
     ) -> None:
         self.savedir = savedir
         self.log_freq = log_freq
+        self.log_on_workers = log_on_workers
 
     @property
     def log_freq(self) -> Union[int, Literal['epoch', 'batch']]:
@@ -136,8 +159,12 @@ class Logger(LogMixin, metaclass=ABCMeta):
             )
 
     @contextmanager
-    def start_logging(self):
+    def start_logging(self, rank: Optional[int] = None):
         """Start logging context.
+
+        Args:
+            rank (Optional[int]): global rank of current process,
+                used in distributed environments. Defaults to None.
 
         Example:
 
@@ -148,17 +175,23 @@ class Logger(LogMixin, metaclass=ABCMeta):
 
         """
         try:
-            self.create_logger_context()
+            self.create_logger_context(rank=rank)
             yield
         finally:
             self.destroy_logger_context()
 
     @abstractmethod
-    def create_logger_context(self):
-        """Initialize logger."""
+    def create_logger_context(self, rank: Optional[int] = None) -> Any:
+        """
+        Initializes the logger context.
+
+        Args:
+            rank (Optional[int]): global rank of current process,
+                used in distributed environments. Defaults to None.
+        """
 
     @abstractmethod
-    def destroy_logger_context(self):
+    def destroy_logger_context(self) -> None:
         """Destroy logger."""
 
     @abstractmethod
@@ -200,6 +233,9 @@ class Logger(LogMixin, metaclass=ABCMeta):
 
         - When ``log_freq`` is set to ``'batch'``, the logger logs always.
 
+        It also takes into account whether logging on the current worker
+        rank is allowed by ``self.log_on_workers``.
+
         Args:
             batch_idx (Optional[int]): the dataloader batch idx, if available.
                 Defaults to None.
@@ -207,6 +243,22 @@ class Logger(LogMixin, metaclass=ABCMeta):
         Returns:
             bool: True if the logger should log, False otherwise.
         """
+        # Check worker's global rank
+        worker_ok = (
+            self.worker_rank is None or
+            (isinstance(self.log_on_workers, int) and (
+                self.log_on_workers == -1 or
+                self.log_on_workers == self.worker_rank
+            )
+            )
+            or
+            (isinstance(self.log_on_workers, list)
+             and self.worker_rank in self.log_on_workers)
+        )
+        if not worker_ok:
+            return False
+
+        # Check batch ID
         if batch_idx is not None:
             if isinstance(self.log_freq, int):
                 if batch_idx % self.log_freq == 0:
@@ -228,6 +280,10 @@ class ConsoleLogger(Logger):
             determines whether the logger should fulfill or ignore
             calls to the `log()` method. See ``Logger.should_log`` method for
             more details. Defaults to 'epoch'.
+        log_on_workers (Optional[Union[int, List[int]]]): if -1, log on all
+            workers; if int log on worker with rank equal to log_on_workers;
+            if List[int], log on workers which rank is in the list.
+            Defaults to 0 (the global rank of the main worker).
     """
 
     #: Supported kinds in the ``log`` method
@@ -236,13 +292,29 @@ class ConsoleLogger(Logger):
     def __init__(
         self,
         savedir: str = 'mllogs',
-        log_freq: Union[int, Literal['epoch', 'batch']] = 'epoch'
+        log_freq: Union[int, Literal['epoch', 'batch']] = 'epoch',
+        log_on_workers: Union[int, List[int]] = 0
     ) -> None:
         savedir = os.path.join(savedir, 'simple-logger')
-        super().__init__(savedir=savedir, log_freq=log_freq)
+        super().__init__(
+            savedir=savedir,
+            log_freq=log_freq,
+            log_on_workers=log_on_workers
+        )
 
-    def create_logger_context(self):
-        """Initialize logger."""
+    def create_logger_context(self, rank: Optional[int] = None):
+        """
+        Initializes the logger context.
+
+        Args:
+            rank (Optional[int]): global rank of current process,
+                used in distributed environments. Defaults to None.
+        """
+        self.worker_rank = rank
+
+        if not self.should_log():
+            return
+
         os.makedirs(self.savedir, exist_ok=True)
         run_dirs = sorted([int(dir) for dir in os.listdir(self.savedir)])
         if len(run_dirs) == 0:
@@ -261,6 +333,10 @@ class ConsoleLogger(Logger):
         Args:
             params (Dict[str, Any]): hyperparameters dictionary.
         """
+        if not self.should_log():
+            return
+
+        # Save hyperparams
 
     def log(
         self,
@@ -331,6 +407,10 @@ class MLFlowLogger(Logger):
             determines whether the logger should fulfill or ignore
             calls to the `log()` method. See ``Logger.should_log`` method for
             more details. Defaults to 'epoch'.
+        log_on_workers (Optional[Union[int, List[int]]]): if -1, log on all
+            workers; if int log on worker with rank equal to log_on_workers;
+            if List[int], log on workers which rank is in the list.
+            Defaults to 0 (the global rank of the main worker).
     """
 
     #: Supported kinds in the ``log`` method
@@ -347,10 +427,15 @@ class MLFlowLogger(Logger):
         experiment_name: str = BASE_EXP_NAME,
         tracking_uri: Optional[str] = None,
         run_description: Optional[str] = None,
-        log_freq: Union[int, Literal['epoch', 'batch']] = 'epoch'
+        log_freq: Union[int, Literal['epoch', 'batch']] = 'epoch',
+        log_on_workers: Union[int, List[int]] = 0
     ):
         savedir = os.path.join(savedir, 'mlflow')
-        super().__init__(savedir=savedir, log_freq=log_freq)
+        super().__init__(
+            savedir=savedir,
+            log_freq=log_freq,
+            log_on_workers=log_on_workers
+        )
         self.experiment_name = experiment_name
         self.tracking_uri = tracking_uri
         self.run_description = run_description
@@ -363,8 +448,25 @@ class MLFlowLogger(Logger):
         # TODO: for pytorch lightning:
         # mlflow.pytorch.autolog()
 
-    def create_logger_context(self) -> mlflow.ActiveRun:
-        """Initialize logger. Start MLFLow run."""
+    def create_logger_context(
+        self,
+        rank: Optional[int] = None
+    ) -> mlflow.ActiveRun:
+        """
+        Initializes the logger context. Start MLFLow run.
+
+        Args:
+            rank (Optional[int]): global rank of current process,
+                used in distributed environments. Defaults to None.
+
+        Returns:
+            mlflow.ActiveRun: active MLFlow run.
+        """
+        self.worker_rank = rank
+
+        if not self.should_log():
+            return
+
         active_run = mlflow.active_run()
         if active_run:
             print("Detected an active MLFlow run. Attaching to it...")
@@ -379,6 +481,9 @@ class MLFlowLogger(Logger):
 
     def destroy_logger_context(self):
         """Destroy logger. End current MLFlow run."""
+        if not self.should_log():
+            return
+
         mlflow.end_run()
 
     def save_hyperparameters(self, params: Dict[str, Any]) -> None:
@@ -387,6 +492,9 @@ class MLFlowLogger(Logger):
         Args:
             params (Dict[str, Any]): hyperparameters dictionary.
         """
+        if not self.should_log():
+            return
+
         for param_name, val in params.items():
             self.log(item=val, identifier=param_name, step=0, kind='param')
 
@@ -503,6 +611,10 @@ class WandBLogger(Logger):
             determines whether the logger should fulfill or ignore
             calls to the `log()` method. See ``Logger.should_log`` method for
             more details. Defaults to 'epoch'.
+        log_on_workers (Optional[Union[int, List[int]]]): if -1, log on all
+            workers; if int log on worker with rank equal to log_on_workers;
+            if List[int], log on workers which rank is in the list.
+            Defaults to 0 (the global rank of the main worker).
     """
 
     # TODO: add support for artifacts logging
@@ -516,14 +628,30 @@ class WandBLogger(Logger):
         self,
         savedir: str = 'mllogs',
         project_name: str = BASE_EXP_NAME,
-        log_freq: Union[int, Literal['epoch', 'batch']] = 'epoch'
+        log_freq: Union[int, Literal['epoch', 'batch']] = 'epoch',
+        log_on_workers: Union[int, List[int]] = 0
     ) -> None:
         savedir = os.path.join(savedir, 'wandb')
-        super().__init__(savedir=savedir, log_freq=log_freq)
+        super().__init__(
+            savedir=savedir,
+            log_freq=log_freq,
+            log_on_workers=log_on_workers
+        )
         self.project_name = project_name
 
-    def create_logger_context(self):
-        """Initialize logger. Init WandB run."""
+    def create_logger_context(self, rank: Optional[int] = None) -> None:
+        """
+        Initializes the logger context. Init WandB run.
+
+        Args:
+            rank (Optional[int]): global rank of current process,
+                used in distributed environments. Defaults to None.
+        """
+        self.worker_rank = rank
+
+        if not self.should_log():
+            return
+
         os.makedirs(os.path.join(self.savedir, 'wandb'), exist_ok=True)
         self.active_run = wandb.init(
             dir=os.path.abspath(self.savedir),
@@ -532,6 +660,8 @@ class WandBLogger(Logger):
 
     def destroy_logger_context(self):
         """Destroy logger."""
+        if not self.should_log():
+            return
 
     def save_hyperparameters(self, params: Dict[str, Any]) -> None:
         """Save hyperparameters.
@@ -539,6 +669,9 @@ class WandBLogger(Logger):
         Args:
             params (Dict[str, Any]): hyperparameters dictionary.
         """
+        if not self.should_log():
+            return
+
         wandb.config.update(params)
 
     def log(
@@ -589,6 +722,10 @@ class TensorBoardLogger(Logger):
         framework (Literal['tensorflow', 'pytorch'], optional):
             whether to log PyTorch or TensorFlow ML data.
             Defaults to 'pytorch'.
+        log_on_workers (Optional[Union[int, List[int]]]): if -1, log on all
+            workers; if int log on worker with rank equal to log_on_workers;
+            if List[int], log on workers which rank is in the list.
+            Defaults to 0 (the global rank of the main worker).
 
     Raises:
         ValueError: when ``framework`` is not recognized.
@@ -605,10 +742,15 @@ class TensorBoardLogger(Logger):
         self,
         savedir: str = 'mllogs',
         log_freq: Union[int, Literal['epoch', 'batch']] = 'epoch',
-        framework: Literal['tensorflow', 'pytorch'] = 'pytorch'
+        framework: Literal['tensorflow', 'pytorch'] = 'pytorch',
+        log_on_workers: Union[int, List[int]] = 0
     ) -> None:
         savedir = os.path.join(savedir, 'tensorboard')
-        super().__init__(savedir=savedir, log_freq=log_freq)
+        super().__init__(
+            savedir=savedir,
+            log_freq=log_freq,
+            log_on_workers=log_on_workers
+        )
         self.framework = framework
         if framework.lower() == 'tensorflow':
             import tensorflow as tf
@@ -621,13 +763,27 @@ class TensorBoardLogger(Logger):
             raise ValueError(
                 "Framework must be either 'tensorflow' or 'pytorch'")
 
-    def create_logger_context(self):
-        """Initialize logger."""
+    def create_logger_context(self, rank: Optional[int] = None) -> None:
+        """
+        Initializes the logger context. Init Tensorboard run.
+
+        Args:
+            rank (Optional[int]): global rank of current process,
+                used in distributed environments. Defaults to None.
+        """
+        self.worker_rank = rank
+
+        if not self.should_log():
+            return
+
         if self.framework == 'tensorflow':
             self.writer.set_as_default()
 
     def destroy_logger_context(self):
         """Destroy logger. Close SummaryWriter."""
+        if not self.should_log():
+            return
+
         self.writer.close()
 
     def save_hyperparameters(self, params: Dict[str, Any]) -> None:
@@ -636,6 +792,9 @@ class TensorBoardLogger(Logger):
         Args:
             params (Dict[str, Any]): hyperparameters dictionary.
         """
+        if not self.should_log():
+            return
+
         if self.framework == 'tensorflow':
             from tensorboard.plugins.hparams import api as hp
             hparams = {hp.HParam(k): v for k, v in params.items()}
@@ -756,10 +915,16 @@ class LoggersCollection(Logger):
                 **kwargs
             )
 
-    def create_logger_context(self):
-        """Initialize all loggers."""
+    def create_logger_context(self, rank: Optional[int] = None) -> Any:
+        """
+        Initializes all loggers.
+
+        Args:
+            rank (Optional[int]): global rank of current process,
+                used in distributed environments. Defaults to None.
+        """
         for logger in self.loggers:
-            logger.create_logger_context()
+            logger.create_logger_context(rank=rank)
 
     def destroy_logger_context(self):
         """Destroy all loggers."""
@@ -774,6 +939,171 @@ class LoggersCollection(Logger):
         """
         for logger in self.loggers:
             logger.save_hyperparameters(params=params)
+
+
+class Prov4MLLogger(Logger):
+    """
+    Abstraction around Prov4ML logger.
+
+    Args:
+        prov_user_namespace (str, optional): location to where provenance
+            files will be uploaded. Defaults to "www.example.org".
+        experiment_name (str, optional): experiment name.
+            Defaults to "experiment_name".
+        provenance_save_dir (str, optional): path where to store provenance
+            files and logs. Defaults to "prov".
+        save_after_n_logs (Optional[int], optional): how often to save
+            logs to disk from main memory. Defaults to 100.
+        create_graph (Optional[bool], optional): whether to create a
+            provenance graph. Defaults to True.
+        create_svg (Optional[bool], optional): whether to create an SVG
+            representation of the provenance graph. Defaults to True.
+        log_freq (Union[int, Literal['epoch', 'batch']], optional):
+            determines whether the logger should fulfill or ignore
+            calls to the `log()` method. See ``Logger.should_log`` method for
+            more details. Defaults to 'epoch'.
+        log_on_workers (Optional[Union[int, List[int]]]): if -1, log on all
+            workers; if int log on worker with rank equal to log_on_workers;
+            if List[int], log on workers which rank is in the list.
+            Defaults to 0 (the global rank of the main worker).
+    """
+
+    #: Supported kinds in the ``log`` method
+    supported_kinds: Tuple[str] = (
+        'metric', 'flops_pb', 'flops_pe', 'system', 'carbon',
+        'execution_time', 'model', 'best_model',
+        'torch')
+
+    def __init__(
+        self,
+        prov_user_namespace="www.example.org",
+        experiment_name="experiment_name",
+        provenance_save_dir="mllogs/prov_logs",
+        save_after_n_logs: Optional[int] = 100,
+        create_graph: Optional[bool] = True,
+        create_svg: Optional[bool] = True,
+        log_freq: Union[int, Literal['epoch', 'batch']] = 'epoch',
+        log_on_workers: Union[int, List[int]] = 0
+    ) -> None:
+        super().__init__(
+            savedir=provenance_save_dir,
+            log_freq=log_freq,
+            log_on_workers=log_on_workers
+        )
+        self.name = experiment_name
+        self.version = None
+        self.prov_user_namespace = prov_user_namespace
+        self.provenance_save_dir = provenance_save_dir
+        self.save_after_n_logs = save_after_n_logs
+        self.create_graph = create_graph
+        self.create_svg = create_svg
+
+    @override
+    def create_logger_context(self, rank: Optional[int] = None):
+        """
+        Initializes the logger context.
+
+        Args:
+            rank (Optional[int]): global rank of current process,
+                used in distributed environments. Defaults to None.
+        """
+        self.worker_rank = rank
+
+        if not self.should_log():
+            return
+
+        prov4ml.start_run(
+            prov_user_namespace=self.prov_user_namespace,
+            experiment_name=self.name,
+            provenance_save_dir=self.provenance_save_dir,
+            save_after_n_logs=self.save_after_n_logs,
+            # This class will control which workers can log
+            collect_all_processes=True,
+            rank=rank
+        )
+
+    @override
+    def destroy_logger_context(self):
+        """
+        Destroys the logger context.
+        """
+        if not self.should_log():
+            return
+
+        prov4ml.end_run(
+            create_graph=self.create_graph,
+            create_svg=self.create_svg)
+
+    @override
+    def save_hyperparameters(self, params: Dict[str, Any]) -> None:
+        if not self.should_log():
+            return
+
+        # Save hyperparams
+        for param_name, val in params.items():
+            prov4ml.log_param(param_name, val)
+
+    @override
+    def log(
+        self,
+        item: Union[Any, List[Any]],
+        identifier: Union[str, List[str]],
+        kind: str = 'metric',
+        step: Optional[int] = None,
+        batch_idx: Optional[int] = None,
+        context: Optional[str] = 'training',
+        **kwargs
+    ) -> None:
+        """Logs with Prov4ML.
+
+        Args:
+            item (Union[Any, List[Any]]): element to be logged (e.g., metric).
+            identifier (Union[str, List[str]]): unique identifier for the
+                element to log(e.g., name of a metric).
+            kind (str, optional): type of the item to be logged. Must be
+                one among the list of ``self.supported_kinds``.
+                Defaults to 'metric'.
+            step (Optional[int], optional): logging step. Defaults to None.
+            batch_idx (Optional[int], optional): DataLoader batch counter
+                (i.e., batch idx), if available. Defaults to None.
+            kwargs: keyword arguments to pass to the logger.
+        """
+
+        if not self.should_log(batch_idx=batch_idx):
+            return
+
+        if kind == "metric":
+            prov4ml.log_metric(key=identifier, value=item,
+                               context=context, step=step)
+        elif kind == "flops_pb":
+            model, batch = item
+            prov4ml.log_flops_per_batch(
+                identifier, model=model,
+                batch=batch, context=context, step=step)
+        elif kind == "flops_pe":
+            model, dataset = item
+            prov4ml.log_flops_per_epoch(
+                identifier, model=model,
+                dataset=dataset, context=context, step=step)
+        elif kind == "system":
+            prov4ml.log_system_metrics(context=context, step=step)
+        elif kind == "carbon":
+            prov4ml.log_carbon_metrics(context=context, step=step)
+        elif kind == "execution_time":
+            prov4ml.log_current_execution_time(
+                label=identifier, context=context, step=step)
+        elif kind == 'model':
+            prov4ml.save_model_version(
+                model=item, model_name=identifier, context=context, step=step)
+        elif kind == 'best_model':
+            prov4ml.log_model(model=item, model_name=identifier,
+                              log_model_info=True, log_as_artifact=True)
+        elif kind == 'torch':
+            from torch.utils.data import DataLoader
+            if isinstance(item, DataLoader):
+                prov4ml.log_dataset(dataset=item, label=identifier)
+            else:
+                prov4ml.log_param(key=identifier, value=item)
 
 
 class EpochTimeTracker:

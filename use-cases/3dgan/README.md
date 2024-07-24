@@ -1,12 +1,10 @@
 # 3DGAN use case
 
-First of all, from the repository root, create a torch environment:
+First of all, from the repository root, create a torch environment
+following the [installation instructions](https://itwinai.readthedocs.io/latest/getting-started/getting_started_with_itwinai.html).
 
-```bash
-make torch-gpu
-```
-
-Now, install custom requirements for 3DGAN:
+Now, install custom requirements for this use case in
+`requirements.txt` file. Example:
 
 ```bash
 source .venv-pytorch/bin/activate
@@ -19,18 +17,79 @@ pip install -r requirements.txt
 
 ## Training
 
-Launch training using `itwinai` and the training configuration:
+Launch training using `itwinai` and the provided training configuration `config.yaml`:
 
 ```bash
 cd use-cases/3dgan
 itwinai exec-pipeline --config config.yaml --pipe-key training_pipeline
-
-# Or better:
-torchrun --nproc_per_node gpu \
-    itwinai exec-pipeline --config config.yaml --pipe-key training_pipeline
 ```
 
-To visualize the logs with MLFLow, if you set a local path as tracking URI,
+The command above shows how to run the training using a single worker,
+but if you want to run distributed ML training you have two options: interactive
+(launch from terminal) or batch.
+
+### Distributed training on a single node (interactive)
+
+If you want to use SLURM in interactive mode, do the following:
+
+```bash
+# Allocate resources (on JSC)
+$ salloc --partition=batch --nodes=1 --account=intertwin  --gres=gpu:4 --time=1:59:00
+job ID is XXXX
+# Get a shell in the compute node (if using SLURM)
+$ srun --jobid XXXX --overlap --pty /bin/bash 
+# Now you are inside the compute node
+
+# On JSC, you may need to load some modules
+ml --force purge
+ml Stages/2024 GCC OpenMPI CUDA/12 MPI-settings/CUDA Python HDF5 PnetCDF libaio mpi4py
+
+# ...before activating the Python environment (adapt this to your env name/path)
+source ../../envAI_hdfml/bin/activate
+```
+
+To launch the training with torch DDP use:
+
+```bash
+torchrun --standalone --nnodes=1 --nproc-per-node=gpu \
+    $(which itwinai) exec-pipeline --config config.yaml --pipe-key training_pipeline
+
+# Alternatively, from a SLURM login node:
+srun --jobid XXXX --ntasks-per-node=1 torchrun --standalone --nnodes=1 --nproc-per-node=gpu \
+    $(which itwinai) exec-pipeline --config config.yaml --pipe-key training_pipeline
+```
+
+### Distributed training with SLURM (batch mode)
+
+Differently from the interactive approach, this way allows you to use more than one
+compute node, thus allowing to scale the distributed ML to larger resources.
+
+Remember that on JSC there is no internet connection on compute nodes, thus if
+your script tries to contact the internet it will fail. If needed, make sure to download
+the datasets from the SLURM login node before launching the job.
+
+```bash
+# Launch a SLURM batch job (on JSC)
+sbatch slurm.jsc.sh
+
+# Launch a SLURM batch job (on Vega)
+sbatch slurm.vega.sh
+
+# Check the job in the SLURM queue
+squeue -u YOUR_USERNAME
+
+# Check the job status
+sacct -j JOBID
+```
+
+Job's **stderr** is usually saved to `job.out` and its **stderr** is saved to `job.err`.
+
+### Visualize the results of training
+
+Depending on the logging service that you are using, there are different ways to inspect
+the logs generated during ML training.
+
+To visualize the logs generated with **MLFLow**, if you set a local path as tracking URI,
 run the following in the terminal:
 
 ```bash
@@ -39,9 +98,39 @@ mlflow ui --backend-store-uri LOCAL_TRACKING_URI
 
 And select the "3DGAN" experiment.
 
-## Inference
+### Offload training with interLink (batch mode)
 
-Disclaimer: the following is preliminary and not 100% ML/scientifically sound.
+To submit a SLURM job to a remote HPC system, you can use interLink
+(find more info in the [interLink](interLink) directory).
+
+For short, this is the usual workflow:
+
+1. Make sure to have `kubectl` installed on your system (e.g., laptop, VM)
+and to have it using a valid `kubeconfig`.
+1. Create a Docker container containing your code and the python environment
+(all python dependencies needed by your code).
+1. Push the Docker container to your preferred public containers registry.
+1. Update the Kubernetes pod accordingly, making sure that the newly created
+container image is pulled on the remote HPC system and used to run your job.
+1. Submit the job through interLink.
+
+Example:
+
+```bash
+# Check current pods status
+kubectl get pods
+
+# Delete existing pod before re-submitting it
+kubectl delete pod POD_NAME
+
+# Submit new pod for ML training
+kubectl apply -y interLink/3dgan-train.yaml
+
+# Once completed, retrieve the pod logs
+kubectl logs --insecure-skip-tls-verify-backend POD_NAME
+```
+
+## Inference
 
 1. As inference dataset we can reuse training/validation dataset,
 for instance the one downloaded from Google Drive folder: if the
@@ -115,7 +204,7 @@ itwinai exec-pipeline --print-config --config $CERN_CODE_ROOT/config.yaml \
     -o distributed_strategy=$STRATEGY \
     -o devices=$DEVICES \
     -o hw_accelerators=$ACCELERATOR \
-    -o checkpoints_path=\\$TMP_DATA_ROOT/checkpoints \
+    -o checkpoints_path=$TMP_DATA_ROOT/checkpoints \
     -o inference_model_uri=$CERN_CODE_ROOT/3dgan-inference.pth \
     -o max_dataset_size=$MAX_DATA_SAMPLES \
     -o batch_size=$BATCH_SIZE \
@@ -124,7 +213,7 @@ itwinai exec-pipeline --print-config --config $CERN_CODE_ROOT/config.yaml \
     -o aggregate_predictions=$AGGREGATE_PREDS
 ```
 
-### Docker image
+## Docker image
 
 Build from project root with
 
@@ -192,7 +281,7 @@ docker run -it --rm --name running-inference \
     -o distributed_strategy=$STRATEGY \
     -o devices=$DEVICES \
     -o hw_accelerators=$ACCELERATOR \
-    -o checkpoints_path=\\$TMP_DATA_ROOT/checkpoints \
+    -o checkpoints_path=$TMP_DATA_ROOT/checkpoints \
     -o inference_model_uri=$CERN_CODE_ROOT/3dgan-inference.pth \
     -o max_dataset_size=$MAX_DATA_SAMPLES \
     -o batch_size=$BATCH_SIZE \
@@ -201,7 +290,7 @@ docker run -it --rm --name running-inference \
     -o aggregate_predictions=$AGGREGATE_PREDS "
 ```
 
-#### How to fully exploit GPU resources
+### How to fully exploit GPU resources
 
 Keeping the example above as reference, increase the value of `BATCH_SIZE` as much as possible
 (just below "out of memory" errors). Also, make sure that `ACCELERATOR="gpu"`. Also, make sure
@@ -247,7 +336,7 @@ singularity run --nv -B "$PWD":/usr/data docker://ghcr.io/intertwin-eu/itwinai:0
     -o distributed_strategy=$STRATEGY \
     -o devices=$DEVICES \
     -o hw_accelerators=$ACCELERATOR \
-    -o checkpoints_path=\\$TMP_DATA_ROOT/checkpoints \
+    -o checkpoints_path=$TMP_DATA_ROOT/checkpoints \
     -o inference_model_uri=$CERN_CODE_ROOT/3dgan-inference.pth \
     -o max_dataset_size=$MAX_DATA_SAMPLES \
     -o batch_size=$BATCH_SIZE \

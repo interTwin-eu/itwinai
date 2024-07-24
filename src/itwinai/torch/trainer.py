@@ -65,9 +65,6 @@ class TorchTrainer(Trainer, LogMixin):
             reproducibility. If None, the seed is not set. Defaults to None.
         logger (Optional[Logger], optional): logger for ML tracking.
             Defaults to None.
-        log_all_workers (bool, optional): if True, the ``log`` method is
-            called on all workers in the distributed context.
-            Defaults to False.
         metrics (Optional[Dict[str, Metric]], optional): map of torchmetrics
             metrics. Defaults to None.
         checkpoints_location (str): path to checkpoints directory.
@@ -120,7 +117,6 @@ class TorchTrainer(Trainer, LogMixin):
         test_every: Optional[int] = None,
         random_seed: Optional[int] = None,
         logger: Optional[Logger] = None,
-        log_all_workers: bool = False,
         metrics: Optional[Dict[str, Metric]] = None,
         checkpoints_location: str = "checkpoints",
         checkpoint_every: Optional[int] = None,
@@ -143,7 +139,6 @@ class TorchTrainer(Trainer, LogMixin):
         self.test_every = test_every
         self.random_seed = random_seed
         self.logger = logger
-        self.log_all_workers = log_all_workers
         self.metrics = metrics if metrics is not None else {}
         self.checkpoints_location = checkpoints_location
         os.makedirs(self.checkpoints_location, exist_ok=True)
@@ -377,16 +372,15 @@ class TorchTrainer(Trainer, LogMixin):
         )
         self.create_model_loss_optimizer()
 
-        if self.strategy.is_main_worker and self.logger:
-            self.logger.create_logger_context()
-
+        if self.logger:
+            self.logger.create_logger_context(rank=self.strategy.global_rank())
             hparams = self.config.model_dump()
             hparams['distributed_strategy'] = self.strategy.__class__.__name__
             self.logger.save_hyperparameters(hparams)
 
         self.train()
 
-        if self.strategy.is_main_worker and self.logger:
+        if self.logger:
             self.logger.destroy_logger_context()
         self.strategy.clean_up()
         return train_dataset, validation_dataset, test_dataset, self.model
@@ -432,8 +426,7 @@ class TorchTrainer(Trainer, LogMixin):
             batch_idx (Optional[int], optional): DataLoader batch counter
                 (i.e., batch idx), if available. Defaults to None.
         """
-        if self.logger and (
-                self.strategy.is_main_worker or self.log_all_workers):
+        if self.logger:
             self.logger.log(
                 item=item,
                 identifier=identifier,
@@ -777,9 +770,6 @@ class GANTrainer(TorchTrainer):
             reproducibility. If None, the seed is not set. Defaults to None.
         logger (Optional[Logger], optional): logger for ML tracking.
             Defaults to None.
-        log_all_workers (bool, optional): if True, the ``log`` method is
-            called on all workers in the distributed context.
-            Defaults to False.
         metrics (Optional[Dict[str, Metric]], optional): map of torch metrics
             metrics. Defaults to None.
         checkpoints_location (str): path to checkpoints directory.
@@ -800,7 +790,6 @@ class GANTrainer(TorchTrainer):
             test_every: Optional[int] = None,
             random_seed: Optional[int] = None,
             logger: Optional[Logger] = None,
-            log_all_workers: bool = False,
             metrics: Optional[Dict[str, Metric]] = None,
             checkpoints_location: str = "checkpoints",
             checkpoint_every: Optional[int] = None,
@@ -814,7 +803,6 @@ class GANTrainer(TorchTrainer):
             test_every=test_every,
             random_seed=random_seed,
             logger=logger,
-            log_all_workers=log_all_workers,
             metrics=metrics,
             checkpoints_location=checkpoints_location,
             checkpoint_every=checkpoint_every,
