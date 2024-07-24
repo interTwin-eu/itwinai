@@ -9,13 +9,13 @@ make torch-gpu
 Now, install custom requirements for 3DGAN:
 
 ```bash
-source ./.venv-pytorch/bin/activate
+source .venv-pytorch/bin/activate
 cd use-cases/3dgan
 pip install -r requirements.txt
 ```
 
-**NOTE**: Python commands below assumed to be executed from within the
-virtual environment.
+> [!NOTE] Python commands below assumed to be executed from within the
+> virtual environment.
 
 ## Training
 
