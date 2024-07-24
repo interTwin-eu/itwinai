@@ -5,6 +5,7 @@ from torch.utils.data import DistributedSampler, DataLoader
 import matplotlib.pyplot as plt
 import argparse
 import torch.nn as nn
+import pandas as pd
 
 from hython.datasets.datasets import get_dataset
 from hython.sampler import SamplerBuilder, RegularIntervalDownsampler
@@ -103,9 +104,6 @@ class RNNDistributedTrainer(TorchTrainer):
             reproducibility. If None, the seed is not set. Defaults to None.
         logger (Optional[Logger], optional): logger for ML tracking.
             Defaults to None.
-        log_all_workers (bool, optional): if True, the ``log`` method is
-            called on all workers in the distributed context.
-            Defaults to False.
         metrics (Optional[Dict[str, Metric]], optional): map of torch metrics
             metrics. Defaults to None.
         checkpoints_location (str): path to checkpoints directory.
@@ -125,7 +123,6 @@ class RNNDistributedTrainer(TorchTrainer):
             test_every: Optional[int] = None,
             random_seed: Optional[int] = None,
             logger: Optional[Logger] = None,
-            log_all_workers: bool = False,
             metrics: Optional[Dict[str, Metric]] = None,
             checkpoints_location: str = "checkpoints",
             checkpoint_every: Optional[int] = None,
@@ -139,7 +136,6 @@ class RNNDistributedTrainer(TorchTrainer):
             test_every=test_every,
             random_seed=random_seed,
             logger=logger,
-            log_all_workers=log_all_workers,
             metrics=metrics,
             checkpoints_location=checkpoints_location,
             checkpoint_every=checkpoint_every,
@@ -224,18 +220,37 @@ class RNNDistributedTrainer(TorchTrainer):
                 val_loss, val_metric = trainer.epoch_step(
                     self.model, self.val_loader, device, opt=None
                 )
-            print(val_loss,self.device)
             worker_val_losses = self.strategy.gather(val_loss, dst_rank=0)
-            print(worker_val_losses)
             if self.strategy.global_rank() == 0:
                 avg_val_loss = torch.mean(torch.stack(worker_val_losses)).detach().cpu()
                 self.lr_scheduler.step(avg_val_loss)
                 loss_history["train"].append(train_loss)
                 loss_history["val"].append(avg_val_loss)
+                self.log(
+                    item=train_loss.item(),
+                    identifier='train_loss_per_epoch',
+                    kind='metric',
+                    step=epoch,
+                )
+                self.log(
+                    item=avg_val_loss.item(),
+                    identifier='val_loss_per_epoch',
+                    kind='metric',
+                    step=epoch,
+                )
 
                 for target in trainer.P.target_names:
                     metric_history[f"train_{target}"].append(train_metric[target])
                     metric_history[f"val_{target}"].append(val_metric[target])
+                # Aggregate and log metrics
+                avg_metrics = pd.DataFrame(metric_history).mean().to_dict()
+                for m_name, m_val in avg_metrics.items():
+                    self.log(
+                        item=m_val,
+                        identifier=m_name + '_epoch',
+                        kind='metric',
+                        step=epoch,
+                    )
 
                 if avg_val_loss < best_loss:
                     best_loss = avg_val_loss
@@ -293,7 +308,7 @@ def main():
     parser = argparse.ArgumentParser(description='PyTorch LSTM Example')
     parser.add_argument('--batch-size', type=int, default=256,
                         help='input batch size for training (default: 128)')
-    parser.add_argument('--epochs', type=int, default=2,
+    parser.add_argument('--epochs', type=int, default=10,
                         help='number of epochs to train (default: 20)')
     parser.add_argument('--lr', type=float, default=0.0001,
                         help='learning rate (default: 0.0001)')
