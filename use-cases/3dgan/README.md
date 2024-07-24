@@ -9,13 +9,13 @@ make torch-gpu
 Now, install custom requirements for 3DGAN:
 
 ```bash
-micromamba activate ./.venv-pytorch
+source .venv-pytorch/bin/activate
 cd use-cases/3dgan
 pip install -r requirements.txt
 ```
 
-**NOTE**: Python commands below assumed to be executed from within the
-micromamba virtual environment.
+> [!NOTE] Python commands below assumed to be executed from within the
+> virtual environment.
 
 ## Training
 
@@ -26,7 +26,7 @@ cd use-cases/3dgan
 itwinai exec-pipeline --config config.yaml --pipe-key training_pipeline
 
 # Or better:
-micromamba run -p ../../.venv-pytorch/ torchrun --nproc_per_node gpu \
+torchrun --nproc_per_node gpu \
     itwinai exec-pipeline --config config.yaml --pipe-key training_pipeline
 ```
 
@@ -34,7 +34,7 @@ To visualize the logs with MLFLow, if you set a local path as tracking URI,
 run the following in the terminal:
 
 ```bash
-micromamba run -p ../../.venv-pytorch mlflow ui --backend-store-uri LOCAL_TRACKING_URI
+mlflow ui --backend-store-uri LOCAL_TRACKING_URI
 ```
 
 And select the "3DGAN" experiment.

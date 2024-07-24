@@ -52,37 +52,47 @@ The specific version numbers (like 'v0.0.2-beta' and 'v0.0.1') correspond to par
 .. toctree::
    :maxdepth: 2
    :hidden:
-   :caption: 💡 Installation
+   :caption: 💡 Getting started
 
-   getting_started_with_itwinai
-
-.. toctree::
-   :maxdepth: 2
-   :hidden:
-   :caption: 🪄 Itwinai how it works
-
-   ddp_why
+   getting-started/getting_started_with_itwinai
+   getting-started/slurm
 
 .. toctree::
    :maxdepth: 2
    :hidden:
-   :caption: 📚 Integrated Use Cases
+   :caption: 🪄 How it works
 
-   use_cases
+   how-it-works/training/training
+   how-it-works/workflows/explain_workflows
 
 .. toctree::
    :maxdepth: 2
    :hidden:
    :caption: 🚀 Tutorials
 
-   tutorials
+   tutorials/tutorials
+
+.. toctree::
+   :maxdepth: 2
+   :hidden:
+   :caption: 📚 Scientific Use Cases
+
+   use-cases/use_cases
 
 .. toctree::
    :maxdepth: 2
    :hidden:
    :caption: ⚡ Python API reference
 
-   modules
+   python-api/modules
+
+.. toctree::
+   :maxdepth: 2
+   :hidden:
+   :caption: 🎯 Github repository
+
+   itwinai <https://github.com/interTwin-eu/itwinai>
+
 
 .. toctree::
    :maxdepth: 2

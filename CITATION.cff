@@ -1,0 +1,38 @@
+# This CITATION.cff file was generated with cffinit.
+# Visit https://bit.ly/cffinit to generate yours today!
+
+cff-version: 1.2.0
+title: itwinai
+message: >-
+  If you use this software, please cite it using the
+  metadata from this file.
+type: software
+authors:
+  - given-names: Matteo
+    family-names: Bunino
+    email: matteo.bunino@cern.ch
+    affiliation: CERN
+    orcid: 'https://orcid.org/0009-0008-5100-9300'
+  - given-names: Rakesh
+    family-names: Sarma
+    email: r.sarma@fz-juelich.de
+    affiliation: FZ Juelich
+  - given-names: Mario
+    family-names: Ruettgers
+    affiliation: FZ Juelich
+    email: m.ruettgers@fz-juelich.de
+  - given-names: Kalliopi
+    family-names: Tsolaki
+    email: kalliopi.tsolaki@cern.ch
+    affiliation: CERN
+    orcid: 'https://orcid.org/0000-0002-3192-4260'
+repository-code: 'https://github.com/interTwin-eu/itwinai'
+url: 'https://itwinai.readthedocs.io/'
+abstract: AI on cloud and HPC made simple for science
+keywords:
+  - Artificial intelligence
+  - Machine learning
+  - Digital twins
+  - Climate research
+  - Physics research
+license: MIT

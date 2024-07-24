@@ -12,7 +12,7 @@ of the user to prevent mismatches among outputs and inputs of component
 sequences. This pipeline can be configured
 both in terms of parameters and structure, with a configuration file
 representing the whole pipeline. This configuration file can be executed
-using itwinai CLI without the need of python files.
+using itwinai CLI without the need for python files.
 
 Example:
 
@@ -34,7 +34,7 @@ Example:
 
 
 Advanced workflows foresee more complicated connections between the
-components and it is very difficult to define a structure beforehand
+components, thus complicating the definition of a structure structure beforehand
 without risking of over-constraining the user. Therefore, advanced
 workflows are defined by explicitly connecting component outputs to
 to the inputs of other components, without a wrapper Pipeline object.
