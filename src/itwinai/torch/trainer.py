@@ -770,9 +770,6 @@ class GANTrainer(TorchTrainer):
             reproducibility. If None, the seed is not set. Defaults to None.
         logger (Optional[Logger], optional): logger for ML tracking.
             Defaults to None.
-        log_all_workers (bool, optional): if True, the ``log`` method is
-            called on all workers in the distributed context.
-            Defaults to False.
         metrics (Optional[Dict[str, Metric]], optional): map of torch metrics
             metrics. Defaults to None.
         checkpoints_location (str): path to checkpoints directory.
@@ -793,7 +790,6 @@ class GANTrainer(TorchTrainer):
             test_every: Optional[int] = None,
             random_seed: Optional[int] = None,
             logger: Optional[Logger] = None,
-            log_all_workers: bool = False,
             metrics: Optional[Dict[str, Metric]] = None,
             checkpoints_location: str = "checkpoints",
             checkpoint_every: Optional[int] = None,
@@ -807,7 +803,6 @@ class GANTrainer(TorchTrainer):
             test_every=test_every,
             random_seed=random_seed,
             logger=logger,
-            log_all_workers=log_all_workers,
             metrics=metrics,
             checkpoints_location=checkpoints_location,
             checkpoint_every=checkpoint_every,
