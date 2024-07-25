@@ -70,7 +70,7 @@ If you want to distribute the code in `train.py` with **torch DDP**, run from te
 ```bash
 export DIST_MODE="ddp"
 export RUN_NAME="ddp-itwinai"
-export TRAINING_CMD="train3.py --strategy ddp"
+export TRAINING_CMD="train.py --strategy ddp"
 export PYTHON_VENV="../../../envAI_hdfml"
 sbatch --export=ALL,DIST_MODE="$DIST_MODE",RUN_NAME="$RUN_NAME",TRAINING_CMD="$TRAINING_CMD",PYTHON_VENV="$PYTHON_VENV" \
     --job-name="$RUN_NAME-n$N" \
