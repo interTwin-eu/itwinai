@@ -295,7 +295,7 @@ def main():
     parser = argparse.ArgumentParser(description='PyTorch LSTM Example')
     parser.add_argument('--batch-size', type=int, default=256,
                         help='input batch size for training (default: 128)')
-    parser.add_argument('--epochs', type=int, default=1,
+    parser.add_argument('--epochs', type=int, default=20,
                         help='number of epochs to train (default: 20)')
     parser.add_argument('--lr', type=float, default=0.0001,
                         help='learning rate (default: 0.0001)')
