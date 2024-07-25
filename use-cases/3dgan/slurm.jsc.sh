@@ -25,8 +25,9 @@
 
 # load modules
 ml --force purge
-ml Stages/2024 GCC OpenMPI CUDA/12 cuDNN MPI-settings/CUDA
-ml Python CMake HDF5 PnetCDF libaio mpi4py
+ml Stages/2024 GCC CUDA/12 cuDNN Python 
+# ml Stages/2024 GCC OpenMPI CUDA/12 cuDNN MPI-settings/CUDA
+# ml Python CMake HDF5 PnetCDF libaio mpi4py
 
 # shellcheck source=/dev/null
 source ~/.bashrc
