@@ -1,7 +1,7 @@
 import torch
 import torch.optim as optim
 from torch.optim.lr_scheduler import ReduceLROnPlateau
-from torch.utils.data import DistributedSampler, DataLoader
+from torch.utils.data import DataLoader
 import matplotlib.pyplot as plt
 import argparse
 import torch.nn as nn
@@ -15,9 +15,6 @@ from hython.utils import read_from_zarr, set_seed
 from hython.models.cudnnLSTM import CuDNNLSTM
 from hython.trainer import RNNTrainer, RNNTrainParams
 from hython.normalizer import Normalizer
-from itwinai.torch.distributed import (
-    TorchDDPStrategy, NonDistributedStrategy, TorchDistributedStrategy
-)
 from itwinai.torch.distributed import (
     DeepSpeedStrategy
 )
@@ -34,12 +31,9 @@ from tqdm.auto import tqdm
 import copy
 # PARAMETERS
 EXPERIMENT = "test"
-
 SURROGATE_INPUT = "/p/scratch/intertwin/datasets/eurac/input/adg1km_eobs_preprocessed.zarr/"
 SURROGATE_MODEL_OUTPUT = f"/p/scratch/intertwin/datasets/eurac/model/{EXPERIMENT}.pt"
 TMP_STATS = "/p/scratch/intertwin/datasets/eurac/stats"
-
-# === FILTER ==============================================================
 
 # train/test temporal range
 train_temporal_range = slice("2016-01-01", "2018-12-31")
@@ -52,26 +46,16 @@ target_names = ["vwc", "actevap"]
 
 DONWSAMPLING = False
 
-# === MASK ==================================================================
-
 # names depends on preprocessing application
 mask_names = ["mask_missing", "mask_lake"]
 
-# === DATASET ===============================================================
-
 DATASET = "LSTMDataset"
-
-# == MODEL  ==================================================================
 
 HIDDEN_SIZE = 24
 DYNAMIC_INPUT_SIZE = len(dynamic_names)
 STATIC_INPUT_SIZE = len(static_names)
 OUTPUT_SIZE = len(target_names)
 TARGET_WEIGHTS = {t: 1/len(target_names) for t in target_names}
-
-
-# === SAMPLER/TRAINER ========================================================
-
 DISTRIBUTED = True
 
 SEED = 1696
@@ -163,7 +147,8 @@ class RNNDistributedTrainer(TorchTrainer):
             distribute_kwargs = {}
         # Distribute discriminator and its optimizer
         self.model, self.optimizer, _ = self.strategy.distributed(
-            model=self.model, optimizer=self.optimizer, lr_scheduler=self.lr_scheduler, **distribute_kwargs)
+            model=self.model, optimizer=self.optimizer,
+            lr_scheduler=self.lr_scheduler, **distribute_kwargs)
               
     def train(self):
         """Override version of hython to support distributed strategy."""
@@ -189,7 +174,6 @@ class RNNDistributedTrainer(TorchTrainer):
         best_loss = float("inf")
 
         for epoch in tqdm(range(self.epochs)):
-            
             if self.strategy.is_distributed:
                 # *Added for distributed*
                 self.train_loader.sampler.set_epoch(epoch)
@@ -206,12 +190,8 @@ class RNNDistributedTrainer(TorchTrainer):
                 self.model, self.train_loader, device, opt=self.optimizer
             )
 
-            # Checkpointing current best model
-            # if self.strategy.global_rank() == 0:
-            # if self.strategy.is_main_worker:
             self.model.eval()
             with torch.no_grad():
-
                 # set time indices for validation
                 # This has effect only if the trainer overload the method
                 # (i.e. for RNN)
@@ -220,9 +200,11 @@ class RNNDistributedTrainer(TorchTrainer):
                 val_loss, val_metric = trainer.epoch_step(
                     self.model, self.val_loader, device, opt=None
                 )
+            # gather losses from each worker and place them on the main worker.
             worker_val_losses = self.strategy.gather(val_loss, dst_rank=0)
             if self.strategy.global_rank() == 0:
-                avg_val_loss = torch.mean(torch.stack(worker_val_losses)).detach().cpu()
+                avg_val_loss = torch.mean(torch.stack(
+                    worker_val_losses)).detach().cpu()
                 self.lr_scheduler.step(avg_val_loss)
                 loss_history["train"].append(train_loss)
                 loss_history["val"].append(avg_val_loss)
@@ -240,8 +222,10 @@ class RNNDistributedTrainer(TorchTrainer):
                 )
 
                 for target in trainer.P.target_names:
-                    metric_history[f"train_{target}"].append(train_metric[target])
-                    metric_history[f"val_{target}"].append(val_metric[target])
+                    metric_history[f"train_{target}"].append(
+                        train_metric[target])
+                    metric_history[f"val_{target}"].append(
+                        val_metric[target])
                 # Aggregate and log metrics
                 avg_metrics = pd.DataFrame(metric_history).mean().to_dict()
                 for m_name, m_val in avg_metrics.items():
@@ -254,11 +238,13 @@ class RNNDistributedTrainer(TorchTrainer):
 
                 if avg_val_loss < best_loss:
                     best_loss = avg_val_loss
-                    # The code `best_model_weights` appears to be a variable name in Python. It is not
-                    # assigned any value or operation in the provided snippet, so it is difficult to
-                    # determine its specific purpose without additional context. It could potentially be
-                    # used to store the weights of a machine learning model or any other relevant data
-                    # related to a model.
+                    # The code `best_model_weights` appears to be a variable
+                    # name in Python. It is not assigned any value
+                    # or operation in the provided snippet, so it is
+                    # difficult to determine its specific purpose
+                    # without additional context. It could potentially be
+                    # used to store the weights of a machine learning model
+                    # or any other relevant data  related to a model.
                     best_model_weights = copy.deepcopy(self.model.state_dict())
                     trainer.save_weights(self.model, self.config.dp_weights)
                     print("Copied best model weights!")
@@ -270,8 +256,8 @@ class RNNDistributedTrainer(TorchTrainer):
 
         return loss_history, metric_history
 
-    def create_dataloaders(self, train_dataset, validation_dataset, test_dataset):
-        # === SAMPLER =======================================================
+    def create_dataloaders(
+            self, train_dataset, validation_dataset, test_dataset):
         train_sampler_builder = SamplerBuilder(
             train_dataset,
             sampling="random",
@@ -304,11 +290,12 @@ class RNNDistributedTrainer(TorchTrainer):
                 sampler=val_sampler
             )
 
+
 def main():
     parser = argparse.ArgumentParser(description='PyTorch LSTM Example')
     parser.add_argument('--batch-size', type=int, default=256,
                         help='input batch size for training (default: 128)')
-    parser.add_argument('--epochs', type=int, default=10,
+    parser.add_argument('--epochs', type=int, default=1,
                         help='number of epochs to train (default: 20)')
     parser.add_argument('--lr', type=float, default=0.0001,
                         help='learning rate (default: 0.0001)')
@@ -317,14 +304,13 @@ def main():
     parser.add_argument('--seed', type=int, default=1696,
                         help='random seed (default: 1696)')
     parser.add_argument(
-        '--ckpt-interval', type=int, default=2,
+        '--ckpt-interval', type=int, default=1,
         help='how many batches to wait before logging training status')
     args = parser.parse_args()
 
     torch.manual_seed(args.seed)
 
-    # Dataset preparation 
-    # === READ TRAIN =========================================================
+    # Dataset preparation
     Xd = (
         read_from_zarr(url=SURROGATE_INPUT, group="xd", multi_index="gridcell")
         .sel(time=train_temporal_range)
@@ -342,8 +328,6 @@ def main():
 
     SHAPE = Xd.attrs["shape"]
 
-    # === READ TEST ==========================================================
-
     Y_test = (
         read_from_zarr(url=SURROGATE_INPUT, group="y", multi_index="gridcell")
         .sel(time=test_temporal_range)
@@ -355,33 +339,31 @@ def main():
         .xd.sel(feat=dynamic_names)
     )
 
-    # === READ MASK =========================================================
-
     masks = (
         read_from_zarr(url=SURROGATE_INPUT, group="mask")
         .mask.sel(mask_layer=mask_names)
         .any(dim="mask_layer")
     )
 
-    # === DOWNSAMPLING =================================================================
-
     if DONWSAMPLING:
-       train_downsampler = RegularIntervalDownsampler(
-            intervals=[3,3], origin=[0,0]
+        train_downsampler = RegularIntervalDownsampler(
+            intervals=[3, 3], origin=[0, 0]
         )       
-       test_downsampler = RegularIntervalDownsampler(
-            intervals=[3,3], origin=[2,2]
+        test_downsampler = RegularIntervalDownsampler(
+            intervals=[3, 3], origin=[2, 2]
         )
     else:
-        train_downsampler,test_downsampler = None,None
+        train_downsampler, test_downsampler = None, None
 
-    # === NORMALIZE ======================================================================
-
-    normalizer_dynamic = Normalizer(method="standardize", type="spacetime", axis_order = "NTC", save_stats= f"{TMP_STATS}/{EXPERIMENT}_xd.npy")
-    normalizer_static = Normalizer(method="standardize", type="space", axis_order = "NTC", save_stats= f"{TMP_STATS}/{EXPERIMENT}_xs.npy")
-    normalizer_target = Normalizer(method="standardize", type="spacetime", axis_order = "NTC", save_stats= f"{TMP_STATS}/{EXPERIMENT}_y.npy")
-
-    # === DATSET =======================================================================
+    normalizer_dynamic = Normalizer(method="standardize",
+                                    type="spacetime", axis_order="NTC",
+                                    save_stats=f"{TMP_STATS}/{EXPERIMENT}_xd.npy")
+    normalizer_static = Normalizer(method="standardize",
+                                   type="space", axis_order="NTC",
+                                   save_stats=f"{TMP_STATS}/{EXPERIMENT}_xs.npy")
+    normalizer_target = Normalizer(method="standardize", type="spacetime",
+                                   axis_order="NTC",
+                                   save_stats=f"{TMP_STATS}/{EXPERIMENT}_y.npy")
 
     train_dataset = get_dataset(DATASET)(
             Xd,
@@ -431,7 +413,8 @@ def main():
     )
 
     # Logger
-    logger = MLFlowLogger(experiment_name='Distributed Eurac Use case', log_freq=10)
+    logger = MLFlowLogger(experiment_name='Distributed Eurac Use case',
+                          log_freq=10)
 
     # Trainer
     trainer = RNNDistributedTrainer(
