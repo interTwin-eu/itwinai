@@ -1,8 +1,6 @@
 import torch
 import torch.optim as optim
 from torch.optim.lr_scheduler import ReduceLROnPlateau
-from torch.utils.data import DataLoader
-import matplotlib.pyplot as plt
 import argparse
 import torch.nn as nn
 import pandas as pd
@@ -11,7 +9,7 @@ from hython.datasets.datasets import get_dataset
 from hython.sampler import SamplerBuilder, RegularIntervalDownsampler
 from hython.metrics import MSEMetric
 from hython.losses import RMSELoss
-from hython.utils import read_from_zarr, set_seed
+from hython.utils import read_from_zarr
 from hython.models.cudnnLSTM import CuDNNLSTM
 from hython.trainer import RNNTrainer, RNNTrainParams
 from hython.normalizer import Normalizer
@@ -56,15 +54,7 @@ DYNAMIC_INPUT_SIZE = len(dynamic_names)
 STATIC_INPUT_SIZE = len(static_names)
 OUTPUT_SIZE = len(target_names)
 TARGET_WEIGHTS = {t: 1/len(target_names) for t in target_names}
-DISTRIBUTED = True
-
-SEED = 1696
-EPOCHS = 20
-BATCH = 256
-TEMPORAL_SUBSAMPLING = True
 TEMPORAL_SUBSET = [150, 150]
-SEQ_LENGTH = 60
-
 
 assert sum(v for v in TARGET_WEIGHTS.values()) == 1, "check target weights"
 
@@ -149,7 +139,7 @@ class RNNDistributedTrainer(TorchTrainer):
         self.model, self.optimizer, _ = self.strategy.distributed(
             model=self.model, optimizer=self.optimizer,
             lr_scheduler=self.lr_scheduler, **distribute_kwargs)
-              
+
     def train(self):
         """Override version of hython to support distributed strategy."""
         trainer = RNNTrainer(
@@ -164,7 +154,6 @@ class RNNDistributedTrainer(TorchTrainer):
         )
 
         device = self.strategy.device()
-
         loss_history = {"train": [], "val": []}
         metric_history = {f"train_{target}": []
                           for target in trainer.P.target_names}
@@ -172,7 +161,6 @@ class RNNDistributedTrainer(TorchTrainer):
                               for target in trainer.P.target_names})
 
         best_loss = float("inf")
-
         for epoch in tqdm(range(self.epochs)):
             if self.strategy.is_distributed:
                 # *Added for distributed*
@@ -200,6 +188,7 @@ class RNNDistributedTrainer(TorchTrainer):
                 val_loss, val_metric = trainer.epoch_step(
                     self.model, self.val_loader, device, opt=None
                 )
+
             # gather losses from each worker and place them on the main worker.
             worker_val_losses = self.strategy.gather(val_loss, dst_rank=0)
             if self.strategy.global_rank() == 0:
@@ -261,12 +250,12 @@ class RNNDistributedTrainer(TorchTrainer):
         train_sampler_builder = SamplerBuilder(
             train_dataset,
             sampling="random",
-            processing="multi-gpu" if DISTRIBUTED else "single-gpu")
+            processing="multi-gpu" if self.config.distributed else "single-gpu")
 
         val_sampler_builder = SamplerBuilder(
             validation_dataset,
             sampling="sequential",
-            processing="multi-gpu" if DISTRIBUTED else "single-gpu")
+            processing="multi-gpu" if self.config.distributed else "single-gpu")
 
         train_sampler = train_sampler_builder.get_sampler()
         val_sampler = val_sampler_builder.get_sampler()
@@ -306,6 +295,12 @@ def main():
     parser.add_argument(
         '--ckpt-interval', type=int, default=1,
         help='how many batches to wait before logging training status')
+    parser.add_argument('--seq_length', type=int, default=60,
+                        help='sequence length (default: 60)')
+    parser.add_argument('--distributed', action=argparse.BooleanOptionalAction,
+                        default=True)
+    parser.add_argument('--temporal_subsampling',
+                        action=argparse.BooleanOptionalAction, default=True)
     args = parser.parse_args()
 
     torch.manual_seed(args.seed)
@@ -388,7 +383,6 @@ def main():
             normalizer_target=normalizer_target
     )
 
-
     # Model
     model = CuDNNLSTM(
         hidden_size=HIDDEN_SIZE,
@@ -403,13 +397,14 @@ def main():
         lr=args.lr,
         epochs=args.epochs,
         experiment=EXPERIMENT,
-        temporal_subsampling=TEMPORAL_SUBSAMPLING,
+        temporal_subsampling=args.temporal_subsampling,
         temporal_subset=TEMPORAL_SUBSET,
-        seq_length=SEQ_LENGTH,
+        seq_length=args.seq_length,
         target_names=target_names,
         train_temporal_range=slice("2016-01-01", "2018-12-31"),
         test_temporal_range=slice("2019-01-01", "2020-12-31"),
-        dp_weights=SURROGATE_MODEL_OUTPUT
+        dp_weights=SURROGATE_MODEL_OUTPUT,
+        distributed=args.distributed
     )
 
     # Logger
