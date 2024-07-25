@@ -27,7 +27,15 @@ itwinai exec-pipeline --config config.yaml --pipe-key training_pipeline
 
 The command above shows how to run the training using a single worker,
 but if you want to run distributed ML training you have two options: interactive
-(launch from terminal) or batch.
+(launch from terminal) or batch (launch form SLURM job script).
+
+> [!WARNING]
+> Before running distributed ML, make sure that the distributed strategy used
+> by pytorch lightning is set to `ddp_find_unused_parameters_true` . You can set
+> this manually by setting
+> `distributed_strategy: ddp_find_unused_parameters_true` in `config.yaml`.
+
+To know more on SLURM, see our [SLURM cheatsheet](https://itwinai.readthedocs.io/latest/getting-started/slurm.html).
 
 ### Distributed training on a single node (interactive)
 
