@@ -23,11 +23,20 @@
 # gres options have to be disabled for deepv
 #SBATCH --gres=gpu:4
 
+echo "DEBUG: SLURM_SUBMIT_DIR: $SLURM_SUBMIT_DIR"
+echo "DEBUG: SLURM_JOB_ID: $SLURM_JOB_ID"
+echo "DEBUG: SLURM_JOB_NODELIST: $SLURM_JOB_NODELIST"
+echo "DEBUG: SLURM_NNODES: $SLURM_NNODES"
+echo "DEBUG: SLURM_NTASKS: $SLURM_NTASKS"
+echo "DEBUG: SLURM_TASKS_PER_NODE: $SLURM_TASKS_PER_NODE"
+echo "DEBUG: SLURM_SUBMIT_HOST: $SLURM_SUBMIT_HOST"
+echo "DEBUG: SLURMD_NODENAME: $SLURMD_NODENAME"
+echo "DEBUG: SLURM_GPUS_PER_NODE: $SLURM_GPUS_PER_NODE"
+echo "DEBUG: CUDA_VISIBLE_DEVICES: $CUDA_VISIBLE_DEVICES"
+
 # load modules
 ml --force purge
 ml Stages/2024 GCC CUDA/12 cuDNN Python 
-# ml Stages/2024 GCC OpenMPI CUDA/12 cuDNN MPI-settings/CUDA
-# ml Python CMake HDF5 PnetCDF libaio mpi4py
 
 # shellcheck source=/dev/null
 source ~/.bashrc
@@ -35,12 +44,13 @@ source ~/.bashrc
 # Activate the environment
 source ../../envAI_hdfml/bin/activate
 
-GAN_DATASET="exp_data" #"/p/scratch/intertwin/datasets/cern/"
+GAN_DATASET="/p/scratch/intertwin/datasets/cern/" #"exp_data"
 
 # launch training
 TRAINING_CMD="$(which itwinai) exec-pipeline --config config.yaml --pipe-key training_pipeline \
                 -o num_nodes=$SLURM_NNODES \
                 -o dataset_location=$GAN_DATASET "
+
 
 srun --cpu-bind=none --ntasks-per-node=1 \
     bash -c "torchrun \

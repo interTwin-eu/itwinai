@@ -7,11 +7,11 @@ devices: auto #[0]
 checkpoints_path: checkpoints
 logs_dir: ml_logs
 mlflow_tracking_uri: mlruns # https://131.154.99.166.myip.cloud.infn.it
-batch_size: 4
+batch_size: 64
 train_dataset_proportion: 0.7
 num_workers_dataloader: 0
 max_epochs: 2
-max_dataset_size: 10000
+max_dataset_size: 20000
 random_seed: 4231162351
 inference_results_location: 3dgan-generated-data/
 inference_model_uri: 3dgan-inference.pth

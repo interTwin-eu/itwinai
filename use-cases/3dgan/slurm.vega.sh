@@ -15,13 +15,10 @@
 #SBATCH --partition=gpu
 #SBATCH --nodes=2
 #SBATCH --gpus-per-node=4
+#SBATCH --gres=gpu:4
 #SBATCH --cpus-per-gpu=4
 #SBATCH --ntasks-per-node=1
-# SBATCH --mem-per-gpu=10G
 #SBATCH --exclusive
-
-# gres options have to be disabled for deepv
-#SBATCH --gres=gpu:4
 
 echo "DEBUG: SLURM_SUBMIT_DIR: $SLURM_SUBMIT_DIR"
 echo "DEBUG: SLURM_JOB_ID: $SLURM_JOB_ID"
@@ -31,6 +28,7 @@ echo "DEBUG: SLURM_NTASKS: $SLURM_NTASKS"
 echo "DEBUG: SLURM_TASKS_PER_NODE: $SLURM_TASKS_PER_NODE"
 echo "DEBUG: SLURM_SUBMIT_HOST: $SLURM_SUBMIT_HOST"
 echo "DEBUG: SLURMD_NODENAME: $SLURMD_NODENAME"
+echo "DEBUG: SLURM_GPUS_PER_NODE: $SLURM_GPUS_PER_NODE"
 echo "DEBUG: CUDA_VISIBLE_DEVICES: $CUDA_VISIBLE_DEVICES"
 
 # ml --force purge
@@ -45,7 +43,7 @@ source ~/.bashrc
 # Activate the environment
 source ../../.venv-pytorch/bin/activate
 
-GAN_DATASET="exp_data" #"/ceph/hpc/data/st2301-itwin-users/egarciagarcia"
+GAN_DATASET="/ceph/hpc/data/st2301-itwin-users/egarciagarcia" #"exp_data"
 
 # launch training
 TRAINING_CMD="$(which itwinai) exec-pipeline --config config.yaml --pipe-key training_pipeline \
