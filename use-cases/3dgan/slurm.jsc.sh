@@ -44,10 +44,12 @@ source ~/.bashrc
 # Activate the environment
 source ../../envAI_hdfml/bin/activate
 
+# Params
 GAN_DATASET="/p/scratch/intertwin/datasets/cern/" #"exp_data"
+PIPELINE="training_pipeline_prov"
 
 # launch training
-TRAINING_CMD="$(which itwinai) exec-pipeline --config config.yaml --pipe-key training_pipeline \
+TRAINING_CMD="$(which itwinai) exec-pipeline --config config.yaml --pipe-key $PIPELINE \
                 -o num_nodes=$SLURM_NNODES \
                 -o dataset_location=$GAN_DATASET "
 

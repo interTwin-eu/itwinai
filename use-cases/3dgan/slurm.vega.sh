@@ -43,10 +43,12 @@ source ~/.bashrc
 # Activate the environment
 source ../../.venv-pytorch/bin/activate
 
+# Params
 GAN_DATASET="/ceph/hpc/data/st2301-itwin-users/egarciagarcia" #"exp_data"
+PIPELINE="training_pipeline_prov"
 
 # launch training
-TRAINING_CMD="$(which itwinai) exec-pipeline --config config.yaml --pipe-key training_pipeline \
+TRAINING_CMD="$(which itwinai) exec-pipeline --config config.yaml --pipe-key $PIPELINE \
                 -o num_nodes=$SLURM_NNODES \
                 -o dataset_location=$GAN_DATASET "
 
