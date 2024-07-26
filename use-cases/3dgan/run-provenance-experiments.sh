@@ -11,9 +11,15 @@ SLURM_SCRIPT="slurm.jsc.sh"
 
 # Launch experiments
 
-# 1 worker
+# 1, 2, 3 workers
 sbatch --wait --nodes=1 --output=slurm_logs/1_worker.out --error=slurm_logs/1_worker.err \
     --gres=gpu:1 --gpus-per-node=1 --time=02:00:00 $SLURM_SCRIPT
+
+sbatch --wait --nodes=1 --output=slurm_logs/2_worker.out --error=slurm_logs/2_worker.err \
+    --gres=gpu:2 --gpus-per-node=2 --time=02:00:00 $SLURM_SCRIPT
+
+sbatch --wait --nodes=1 --output=slurm_logs/3_worker.out --error=slurm_logs/3_worker.err \
+    --gres=gpu:3 --gpus-per-node=3 --time=02:00:00 $SLURM_SCRIPT
 
 # 4, 8, 16... workers
 sbatch --wait --nodes=1 --output=slurm_logs/4_worker.out --error=slurm_logs/4_worker.err --time=00:59:00 $SLURM_SCRIPT
