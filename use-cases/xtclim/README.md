@@ -35,10 +35,12 @@ pip install -r Requirements.txt
 
 ## How to launch pipeline locally
 
-The config file `pipeline.yaml` contains all the steps to execute the workflow. You can launch it from the root of the repository with:
+The config file `pipeline.yaml` contains all the steps to execute the workflow. 
+This file also contains all the seasons, and a separate run is launched for each season.
+You can launch it from the root of the repository with:
 
 ```bash
-python train.py -p pipeline.yaml
+python train.py
 
 ```
 
