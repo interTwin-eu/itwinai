@@ -14,7 +14,7 @@
 #SBATCH --exclusive
 
 # command
-COMMAND="train.py -p pipeline.yaml"
+COMMAND="train.py"
 EXEC="$COMMAND"
 
 # set modules
