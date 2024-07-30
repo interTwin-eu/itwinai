@@ -28,8 +28,8 @@ project = 'itwinai'
 copyright = ('2024, Matteo Bunino, Kalliopi Tsolaki, '
              'Rakesh Sarma, Mario Ruettgers on behalf of CERN & JSC')
 author = 'Matteo Bunino, Kalliopi Tsolaki, Rakesh Sarma, Mario Ruettgers'
-version = '0.0'  # short version
-release = '0.0.2'  # full version
+version = '0.2'  # short version
+release = '0.2.2'  # full version
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration

@@ -74,6 +74,10 @@ srun --jobid XXXX --ntasks-per-node=1 horovodrun -np 4 -H localhost:4 python -u 
 
 ## Distributed training with SLURM (batch mode)
 
+Before running any of the commands below independently, for the first time,
+ensure you have created the `logs_slurm` folder to ensure output and error files are stored correctly.
+Ignore this step if you are to execute the `runall.sh` script as it creates the folder.
+
 Each distributed strategy has its own SLURM job script, which
 should be used to run it:
 
@@ -108,9 +112,9 @@ sbatch --export=ALL,DIST_MODE="$DIST_MODE",RUN_NAME="$RUN_NAME",TRAINING_CMD="$T
 If you want to distribute the code in `train.py` with **Horovod**, run from terminal:
   
 ```bash
-export DIST_MODE="deepspeed"
-export RUN_NAME="deepspeed-itwinai"
-export TRAINING_CMD="train.py -s deepspeed"
+export DIST_MODE="horovod"
+export RUN_NAME="horovod-itwinai"
+export TRAINING_CMD="train.py -s horovod"
 export PYTHON_VENV="../../../envAI_hdfml"
 sbatch --export=ALL,DIST_MODE="$DIST_MODE",RUN_NAME="$RUN_NAME",TRAINING_CMD="$TRAINING_CMD",PYTHON_VENV="$PYTHON_VENV" \
     --job-name="$RUN_NAME-n$N" \

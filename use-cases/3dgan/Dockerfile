@@ -16,10 +16,10 @@ COPY use-cases/3dgan/* ./
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Create non-root user
-RUN groupadd -g 10001 dotnet \
-    && useradd -m -u 10000 -g dotnet dotnet \
-    && chown -R dotnet:dotnet /usr/src/app
-USER dotnet:dotnet
+RUN groupadd -g 10001 jovyan \
+    && useradd -m -u 10000 -g jovyan jovyan \
+    && chown -R jovyan:jovyan /usr/src/app
+USER jovyan:jovyan
 
 # ENTRYPOINT [ "itwinai", "exec-pipeline" ]
 # CMD [ "--config", "pipeline.yaml" ]

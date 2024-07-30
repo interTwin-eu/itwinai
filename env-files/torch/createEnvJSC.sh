@@ -14,11 +14,10 @@ sysN="$(uname -n | cut -f2- -d.)"
 sysN="${sysN%%[0-9]*}"
 
 # load modules
+# NOTE: REFLECT THEM IN THE MAIN README! 
 ml --force purge
 ml Stages/2024 GCC OpenMPI CUDA/12 cuDNN MPI-settings/CUDA
 ml Python CMake HDF5 PnetCDF libaio mpi4py
-# echo "these modules are loaded:"
-# ml
 
 # Create and install torch env
 export ENV_NAME="envAI_$sysN"

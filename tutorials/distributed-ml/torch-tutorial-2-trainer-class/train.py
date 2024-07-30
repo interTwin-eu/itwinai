@@ -38,8 +38,6 @@ class Net(nn.Module):
         x = self.dropout2(x)
         x = self.fc2(x)
         return x
-        # output = F.softmax(x, dim=1)
-        # return output
 
 
 def main():

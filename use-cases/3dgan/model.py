@@ -11,6 +11,8 @@ import torch.nn.functional as F
 import lightning as pl
 import numpy as np
 
+from itwinai.loggers import Logger as BaseItwinaiLogger
+
 
 class Generator(nn.Module):
     def __init__(self, latent_dim):  # img_shape
@@ -309,8 +311,8 @@ class ThreeDGAN(pl.LightningModule):
         loss_weights=[3, 0.1, 25, 0.1],
         power=0.85,
         lr=0.001,
-        checkpoints_dir: str = '.'
-        # checkpoint_path: str = '3Dgan.pth'
+        checkpoints_dir: str = '.',
+        provenance_verbose: bool = False
     ):
         super().__init__()
         self.save_hyperparameters()
@@ -321,6 +323,7 @@ class ThreeDGAN(pl.LightningModule):
         self.lr = lr
         self.power = power
         self.checkpoints_dir = checkpoints_dir
+        self.provenance_verbose = provenance_verbose
         os.makedirs(self.checkpoints_dir, exist_ok=True)
 
         self.generator = Generator(self.latent_size)
@@ -336,6 +339,21 @@ class ThreeDGAN(pl.LightningModule):
         # self.pklfile = checkpoint_path
         # checkpoint_dir = os.path.dirname(checkpoint_path)
         # os.makedirs(checkpoint_dir, exist_ok=True)
+
+    @property
+    def itwinai_logger(self) -> BaseItwinaiLogger:
+        try:
+            itwinai_logger = self.trainer.itwinai_logger
+        except AttributeError:
+            print("WARNING: itwinai_logger attribute not set "
+                  f"in {self.__class__.__name__}")
+            itwinai_logger = None
+        return itwinai_logger
+
+    def on_fit_start(self) -> None:
+        if self.itwinai_logger:
+            # Log hyper-parameters
+            self.itwinai_logger.save_hyperparameters(self.hparams)
 
     def BitFlip(self, x, prob=0.05):
         """
@@ -436,8 +454,18 @@ class ThreeDGAN(pl.LightningModule):
         # print("calculating real_batch_loss...")
         real_batch_loss = self.compute_global_loss(
             labels, predictions, self.loss_weights)
-        self.log("real_batch_loss", sum(real_batch_loss),
-                 prog_bar=True, on_step=True, on_epoch=True, sync_dist=True)
+        if self.itwinai_logger:
+            self.itwinai_logger.log(
+                item=sum(real_batch_loss),
+                identifier="real_batch_loss",
+                kind='metric',
+                step=self.global_step,
+                batch_idx=batch_idx,
+                context='training'
+            )
+
+        # self.log("real_batch_loss", sum(real_batch_loss),
+        #          prog_bar=True, on_step=True, on_epoch=True, sync_dist=True)
         # print("real batch disc train")
         # the following 3 lines correspond in tf version to:
         # gradients = tape.gradient(real_batch_loss,
@@ -459,8 +487,19 @@ class ThreeDGAN(pl.LightningModule):
 
         fake_batch_loss = self.compute_global_loss(
             labels, predictions, self.loss_weights)
-        self.log("fake_batch_loss", sum(fake_batch_loss),
-                 prog_bar=True, on_step=True, on_epoch=True, sync_dist=True)
+        # self.log("fake_batch_loss", sum(fake_batch_loss),
+        #          prog_bar=True, on_step=True, on_epoch=True, sync_dist=True)
+
+        if self.itwinai_logger:
+            self.itwinai_logger.log(
+                item=sum(fake_batch_loss),
+                identifier="fake_batch_loss",
+                kind='metric',
+                step=self.global_step,
+                batch_idx=batch_idx,
+                context='training'
+            )
+
         # print("fake batch disc train")
         # the following 3 lines correspond to
         # gradients = tape.gradient(fake_batch_loss,
@@ -493,8 +532,19 @@ class ThreeDGAN(pl.LightningModule):
 
             loss = self.compute_global_loss(
                 labels, predictions, self.loss_weights)
-            self.log("gen_loss", sum(loss), prog_bar=True,
-                     on_step=True, on_epoch=True, sync_dist=True)
+            # self.log("gen_loss", sum(loss), prog_bar=True,
+            #          on_step=True, on_epoch=True, sync_dist=True)
+
+            if self.itwinai_logger:
+                self.itwinai_logger.log(
+                    item=sum(loss),
+                    identifier="gen_loss",
+                    kind='metric',
+                    step=self.global_step,
+                    batch_idx=batch_idx,
+                    context='training'
+                )
+
             # print("gen train")
             optimizer_generator.zero_grad()
             self.manual_backward(sum(loss))
@@ -505,8 +555,23 @@ class ThreeDGAN(pl.LightningModule):
                 gen_losses_train.append(el)
 
         avg_generator_loss = sum(gen_losses_train) / len(gen_losses_train)
-        self.log("generator_loss", avg_generator_loss.item(),
-                 prog_bar=True, on_step=True, on_epoch=True, sync_dist=True)
+        # self.log("generator_loss", avg_generator_loss.item(),
+        #          prog_bar=True, on_step=True, on_epoch=True, sync_dist=True)
+
+        if self.itwinai_logger:
+            self.itwinai_logger.log(
+                item=avg_generator_loss.item(),
+                identifier="generator_loss",
+                kind='metric',
+                step=self.global_step,
+                batch_idx=batch_idx,
+                context='training'
+            )
+            # Log provenance information
+            if self.provenance_verbose:
+                # Log provenance at every training step
+                self._log_provenance(context='training')
+
         # avg_generator_loss = [(a + b) / 2 for a, b in zip(*gen_losses_train)]
         # self.log("generator_loss", sum(avg_generator_loss), prog_bar=True,
         # on_step=True, on_epoch=True, sync_dist=True)
@@ -551,6 +616,22 @@ class ThreeDGAN(pl.LightningModule):
                 self.checkpoints_dir, "generator_weights.pth"))
             torch.save(self.discriminator.state_dict(), os.path.join(
                        self.checkpoints_dir, "discriminator_weights.pth"))
+            if self.itwinai_logger:
+                self.itwinai_logger.log(
+                    item=os.path.join(self.checkpoints_dir,
+                                      "generator_weights.pth"),
+                    identifier='final_generator_weights',
+                    kind='artifact',
+                    context='training'
+                )
+                self.itwinai_logger.log(
+                    item=os.path.join(self.checkpoints_dir,
+                                      "discriminator_weights.pth"),
+                    identifier='final_discriminator_weights',
+                    kind='artifact',
+                    context='training'
+                )
+
             # print("real_batch_loss", real_batch_loss)
             # print("fake_batch_loss", fake_batch_loss)
             sys.exit()
@@ -596,7 +677,12 @@ class ThreeDGAN(pl.LightningModule):
 
         # return avg_disc_loss + avg_generator_loss
 
-    def on_train_epoch_end(self):  # outputs
+    def on_train_epoch_end(self):
+
+        if not self.provenance_verbose:
+            # Log provenance only at the end of an epoch
+            self._log_provenance(context='training')
+
         discriminator_train_loss = np.mean(
             np.array(self.epoch_disc_loss), axis=0)
         generator_train_loss = np.mean(np.array(self.epoch_gen_loss), axis=0)
@@ -617,6 +703,30 @@ class ThreeDGAN(pl.LightningModule):
             self.checkpoints_dir, "generator_weights.pth"))
         torch.save(self.discriminator.state_dict(), os.path.join(
             self.checkpoints_dir, "discriminator_weights.pth"))
+
+        if self.itwinai_logger:
+            self.itwinai_logger.log(
+                item=os.path.join(self.checkpoints_dir,
+                                  "generator_weights.pth"),
+                identifier='ckpts/generator_weights_epoch_' +
+                str(self.current_epoch),
+                kind='artifact',
+                context='training'
+            )
+            self.itwinai_logger.log(
+                item=self.generator,
+                identifier='generator_epoch_' + str(self.current_epoch),
+                kind='model',
+                context='training'
+            )
+            self.itwinai_logger.log(
+                item=os.path.join(self.checkpoints_dir,
+                                  "discriminator_weights.pth"),
+                identifier='ckpts/discriminator_weights_epoch_' +
+                str(self.current_epoch),
+                kind='artifact',
+                context='training'
+            )
 
         # with open(self.pklfile, "wb") as f:
         #     pickle.dump({"train": self.train_history,
@@ -681,10 +791,32 @@ class ThreeDGAN(pl.LightningModule):
         gen_eval_loss = self.compute_global_loss(
             labels, gen_eval, self.loss_weights)
 
-        self.log('val_discriminator_loss', sum(
-            disc_eval_loss), on_epoch=True, prog_bar=True, sync_dist=True)
-        self.log('val_generator_loss', sum(gen_eval_loss),
-                 on_epoch=True, prog_bar=True, sync_dist=True)
+        if self.itwinai_logger:
+            self.itwinai_logger.log(
+                item=sum(disc_eval_loss),
+                identifier="val_discriminator_loss",
+                kind='metric',
+                step=self.global_step,
+                batch_idx=batch_idx,
+                context='validation'
+            )
+            self.itwinai_logger.log(
+                item=sum(gen_eval_loss),
+                identifier="val_generator_loss",
+                kind='metric',
+                step=self.global_step,
+                batch_idx=batch_idx,
+                context='validation'
+            )
+            # Log provenance information
+            if self.provenance_verbose:
+                # Log provenance at every validation step
+                self._log_provenance(context='validation')
+
+        # self.log('val_discriminator_loss', sum(
+        #     disc_eval_loss), on_epoch=True, prog_bar=True, sync_dist=True)
+        # self.log('val_generator_loss', sum(gen_eval_loss),
+        #          on_epoch=True, prog_bar=True, sync_dist=True)
 
         disc_test_loss = [disc_eval_loss[0], disc_eval_loss[1],
                           disc_eval_loss[2], disc_eval_loss[3]]
@@ -714,7 +846,44 @@ class ThreeDGAN(pl.LightningModule):
         # evaluate generator loss
         self.gen_epoch_test_loss.append(gen_eval_loss)
 
+    def _log_provenance(self, context: str):
+
+        if self.itwinai_logger:
+            # Some provenance metrics
+            self.itwinai_logger.log(
+                item=self.current_epoch,
+                identifier="epoch",
+                kind='metric',
+                step=self.current_epoch,
+                context=context)
+            self.itwinai_logger.log(
+                item=self,
+                identifier=f"model_version_{self.current_epoch}",
+                kind='model_version',
+                step=self.current_epoch,
+                context=context)
+            self.itwinai_logger.log(
+                item=None, identifier=None,
+                kind='system',
+                step=self.current_epoch,
+                context=context)
+            self.itwinai_logger.log(
+                item=None, identifier=None,
+                kind='carbon',
+                step=self.current_epoch,
+                context=context)
+            self.itwinai_logger.log(
+                item=None, identifier="train_epoch_time",
+                kind='execution_time',
+                step=self.current_epoch,
+                context=context)
+
     def on_validation_epoch_end(self):
+
+        if not self.provenance_verbose:
+            # Log provenance only at the end of an epoch
+            self._log_provenance(context='validation')
+
         discriminator_test_loss = np.mean(
             np.array(self.disc_epoch_test_loss), axis=0)
         generator_test_loss = np.mean(
@@ -783,4 +952,15 @@ class ThreeDGAN(pl.LightningModule):
             self.generator.parameters(),
             lr
         )
+
+        if self.itwinai_logger:
+            self.itwinai_logger.log(
+                optimizer_discriminator,
+                'optimizer_discriminator',
+                kind='torch')
+            self.itwinai_logger.log(
+                optimizer_generator,
+                'optimizer_generator',
+                kind='torch')
+
         return [optimizer_discriminator, optimizer_generator], []

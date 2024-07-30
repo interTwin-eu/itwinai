@@ -6,6 +6,9 @@ The code is adapted from [this example](https://github.com/pytorch/examples/blob
 
 ```bash
 python train.py
+
+# With distributed training (interactive)
+torchrun --standalone --nnodes=1 --nproc-per-node=gpu train.py --strategy ddp
 ```
 
 ## Analyze the logs

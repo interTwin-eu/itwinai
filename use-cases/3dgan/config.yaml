@@ -2,19 +2,22 @@
 dataset_location: exp_data/
 dataset_url: https://drive.google.com/drive/folders/1uPpz0tquokepptIfJenTzGpiENfo2xRX
 hw_accelerators: auto
-distributed_strategy: auto #ddp_find_unused_parameters_true
+distributed_strategy: ddp_find_unused_parameters_true #deepspeed auto horovod
 devices: auto #[0]
 checkpoints_path: checkpoints
 logs_dir: ml_logs
-mlflow_tracking_uri: https://131.154.99.166.myip.cloud.infn.it
+mlflow_tracking_uri: mlruns # https://131.154.99.166.myip.cloud.infn.it
 batch_size: 4
+train_dataset_proportion: 0.7
 num_workers_dataloader: 0
 max_epochs: 2
-max_dataset_size: 48
+max_dataset_size: 10000
 random_seed: 4231162351
 inference_results_location: 3dgan-generated-data/
 inference_model_uri: 3dgan-inference.pth
 aggregate_predictions: false
+num_nodes: 1
+provenance_verbose: true
 
 # Dataloading step is common and can be reused
 dataloading_step:
@@ -33,7 +36,26 @@ training_pipeline:
       training_step:
         class_path: trainer.Lightning3DGANTrainer
         init_args:
-          exp_root: ${logs_dir}
+          itwinai_logger:
+            class_path: itwinai.loggers.LoggersCollection
+            init_args:
+              loggers:
+                # - class_path: itwinai.loggers.ConsoleLogger
+                #   init_args:
+                #     log_freq: 100
+                # - class_path: itwinai.loggers.MLFlowLogger
+                #   init_args:
+                #     experiment_name: 3DGAN
+                #     log_freq: batch
+                - class_path: itwinai.loggers.Prov4MLLogger
+                  init_args:
+                    provenance_save_dir: mllogs/prov_logs
+                    experiment_name: 3DGAN
+                    log_freq: batch
+                    log_on_workers: -1
+                # - class_path: itwinai.loggers.WandBLogger
+                #   init_args:
+                #     log_freq: batch
           # Pytorch lightning config for training
           config:
             seed_everything: ${random_seed}
@@ -42,27 +64,28 @@ training_pipeline:
               accumulate_grad_batches: 1
               barebones: false
               benchmark: null
-              callbacks:
-                - class_path: lightning.pytorch.callbacks.early_stopping.EarlyStopping
-                  init_args:
-                    monitor: val_generator_loss
-                    patience: 2
-                - class_path: lightning.pytorch.callbacks.lr_monitor.LearningRateMonitor
-                  init_args:
-                    logging_interval: step
-                - class_path: lightning.pytorch.callbacks.ModelCheckpoint
-                  init_args:
-                    dirpath: ${checkpoints_path}
-                    filename: best-checkpoint
-                    mode: min
-                    monitor: val_generator_loss
-                    save_top_k: 1
-                    verbose: true
+              # callbacks:
+              #   - class_path: lightning.pytorch.callbacks.early_stopping.EarlyStopping
+              #     init_args:
+              #       monitor: val_generator_loss
+              #       patience: 2
+              #   - class_path: lightning.pytorch.callbacks.lr_monitor.LearningRateMonitor
+              #     init_args:
+              #       logging_interval: step
+              #   - class_path: lightning.pytorch.callbacks.ModelCheckpoint
+              #     init_args:
+              #       dirpath: ${checkpoints_path}
+              #       filename: best-checkpoint
+              #       mode: min
+              #       monitor: val_generator_loss
+              #       save_top_k: 1
+              #       verbose: true
               check_val_every_n_epoch: 1
               default_root_dir: null
               detect_anomaly: false
               deterministic: null
               devices: ${devices}
+              num_nodes: ${num_nodes}
               enable_checkpointing: true
               enable_model_summary: null
               enable_progress_bar: null
@@ -75,17 +98,17 @@ training_pipeline:
               limit_train_batches: null
               limit_val_batches: null
               log_every_n_steps: 1
-              logger:
-                - class_path: lightning.pytorch.loggers.CSVLogger
-                  init_args:
-                    name: 3DGAN
-                    save_dir: ${logs_dir}
-                - class_path: lightning.pytorch.loggers.MLFlowLogger
-                  init_args:
-                    experiment_name: 3DGAN
-                    save_dir: null #ml_logs/mlflow_logs
-                    tracking_uri: ${mlflow_tracking_uri}
-                    log_model: all
+              # logger:
+              #   - class_path: lightning.pytorch.loggers.CSVLogger
+              #     init_args:
+              #       name: 3DGAN
+              #       save_dir: ${logs_dir}
+              #   - class_path: lightning.pytorch.loggers.MLFlowLogger
+              #     init_args:
+              #       experiment_name: 3DGAN
+              #       save_dir: null #ml_logs/mlflow_logs
+              #       tracking_uri: ${mlflow_tracking_uri}
+              #       log_model: all
               max_epochs: ${max_epochs}
               max_time: null
               min_epochs: null
@@ -109,6 +132,7 @@ training_pipeline:
                 power: 0.85
                 lr: 0.001
                 checkpoints_dir: ${checkpoints_path}
+                provenance_verbose: ${provenance_verbose}
 
             # Lightning data module configuration
             data:
@@ -118,6 +142,7 @@ training_pipeline:
                 batch_size: ${batch_size}
                 num_workers: ${num_workers_dataloader}
                 max_samples: ${max_dataset_size}
+                train_proportion: ${train_dataset_proportion}
 
 inference_pipeline:
   class_path: itwinai.pipeline.Pipeline

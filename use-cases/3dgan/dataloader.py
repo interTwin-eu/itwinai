@@ -11,6 +11,7 @@ import h5py
 import gdown
 
 from itwinai.components import DataGetter, monitor_exec
+from itwinai.loggers import Logger as BaseItwinaiLogger
 
 
 class Lightning3DGANDownloader(DataGetter):
@@ -162,13 +163,25 @@ class ParticlesDataModule(pl.LightningDataModule):
             datapath: str,
             batch_size: int,
             num_workers: int = 4,
-            max_samples: Optional[int] = None
+            max_samples: Optional[int] = None,
+            train_proportion: float = 0.9
     ) -> None:
         super().__init__()
         self.batch_size = batch_size
         self.num_workers = num_workers
         self.datapath = datapath
         self.max_samples = max_samples
+        self.train_proportion = train_proportion
+
+    @property
+    def itwinai_logger(self) -> BaseItwinaiLogger:
+        try:
+            itwinai_logger = self.trainer.itwinai_logger
+        except AttributeError:
+            print("WARNING: itwinai_logger attribute not set "
+                  f"in {self.__class__.__name__}")
+            itwinai_logger = None
+        return itwinai_logger
 
     def setup(self, stage: str = None):
         # make assignments here (val/train/test split)
@@ -180,7 +193,7 @@ class ParticlesDataModule(pl.LightningDataModule):
                 max_samples=self.max_samples
             )
             dataset_length = len(self.dataset)
-            split_point = int(dataset_length * 0.9)
+            split_point = int(dataset_length * self.train_proportion)
             self.train_dataset, self.val_dataset = \
                 torch.utils.data.random_split(
                     self.dataset, [split_point, dataset_length - split_point])
