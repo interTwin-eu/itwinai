@@ -39,9 +39,10 @@ def parse_args() -> argparse.Namespace:
     args = parser.parse_args()
     return args
 
+
 def trainer_entrypoint_fn(
-        foo: Any, 
-        args: argparse.Namespace, 
+        foo: Any,
+        args: argparse.Namespace,
         strategy,
         num_replicas
 ) -> int:
@@ -62,7 +63,7 @@ def trainer_entrypoint_fn(
     # batching dataset and repeat
     train_dataset = train_dataset.batch(batch_size).repeat()
     test_dataset = test_dataset.batch(batch_size).repeat()
-    
+
     # distribute datasets among mirrored replicas
     dist_train = strategy.experimental_distribute_dataset(
         train_dataset
@@ -90,8 +91,8 @@ def trainer_entrypoint_fn(
                   epochs=args.epochs,
                   steps_per_epoch=len(x_train)//batch_size)
 
-        test_scores = model.evaluate(dist_test, 
-                                     verbose=1, 
+        test_scores = model.evaluate(dist_test,
+                                     verbose=1,
                                      steps=len(x_test)//batch_size)
 
         print('Test loss:', test_scores[0])
