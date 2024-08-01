@@ -27,6 +27,7 @@ from typing import (
 from itwinai.torch.config import TrainingConfiguration
 from tqdm.auto import tqdm
 import copy
+
 # PARAMETERS
 EXPERIMENT = "test"
 SURROGATE_INPUT = "/p/scratch/intertwin/datasets/eurac/input/adg1km_eobs_preprocessed.zarr/"
@@ -34,7 +35,7 @@ SURROGATE_MODEL_OUTPUT = f"/p/scratch/intertwin/datasets/eurac/model/{EXPERIMENT
 TMP_STATS = "/p/scratch/intertwin/datasets/eurac/stats"
 
 # train/test temporal range
-train_temporal_range = slice("2016-01-01", "2018-12-31")
+train_temporal_range = slice("2014-01-01", "2018-12-31")
 test_temporal_range = slice("2019-01-01", "2020-12-31")
 
 # variables
@@ -42,7 +43,7 @@ dynamic_names = ["precip", "pet", "temp"]
 static_names = ['thetaS', 'thetaR', 'RootingDepth', 'Swood', 'KsatVer', "Sl"]
 target_names = ["vwc", "actevap"]
 
-DONWSAMPLING = False
+DONWSAMPLING = True
 
 # names depends on preprocessing application
 mask_names = ["mask_missing", "mask_lake"]
@@ -301,6 +302,8 @@ def main():
                         default=True)
     parser.add_argument('--temporal_subsampling',
                         action=argparse.BooleanOptionalAction, default=True)
+    parser.add_argument('--run-name', type=str, default='test1', 
+                        help='run name (default: test1)')
     args = parser.parse_args()
 
     torch.manual_seed(args.seed)
@@ -351,14 +354,14 @@ def main():
         train_downsampler, test_downsampler = None, None
 
     normalizer_dynamic = Normalizer(method="standardize",
-                                    type="spacetime", axis_order="NTC",
-                                    save_stats=f"{TMP_STATS}/{EXPERIMENT}_xd.npy")
+                                    type="spacetime", axis_order="NTC")
+                                    #save_stats=f"{TMP_STATS}/{EXPERIMENT}_xd.npy")
     normalizer_static = Normalizer(method="standardize",
-                                   type="space", axis_order="NTC",
-                                   save_stats=f"{TMP_STATS}/{EXPERIMENT}_xs.npy")
+                                   type="space", axis_order="NTC")
+                                   #save_stats=f"{TMP_STATS}/{EXPERIMENT}_xs.npy")
     normalizer_target = Normalizer(method="standardize", type="spacetime",
-                                   axis_order="NTC",
-                                   save_stats=f"{TMP_STATS}/{EXPERIMENT}_y.npy")
+                                   axis_order="NTC")
+                                   #save_stats=f"{TMP_STATS}/{EXPERIMENT}_y.npy")
 
     train_dataset = get_dataset(DATASET)(
             Xd,
@@ -401,14 +404,15 @@ def main():
         temporal_subset=TEMPORAL_SUBSET,
         seq_length=args.seq_length,
         target_names=target_names,
-        train_temporal_range=slice("2016-01-01", "2018-12-31"),
-        test_temporal_range=slice("2019-01-01", "2020-12-31"),
+        train_temporal_range=train_temporal_range,
+        test_temporal_range=test_temporal_range,
         dp_weights=SURROGATE_MODEL_OUTPUT,
         distributed=args.distributed
     )
 
     # Logger
     logger = MLFlowLogger(experiment_name='Distributed Eurac Use case',
+                          run_name=args.run_name,
                           log_freq=10)
 
     # Trainer
