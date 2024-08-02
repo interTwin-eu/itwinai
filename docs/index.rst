@@ -32,14 +32,14 @@ guides on Distributed ML training and ML workflow tutorials. Lastly, the "Python
 resource for detailed information on the framework's API, helping you to implement specific features and functions in your projects. 
 By following these sections systematically, you can maximize your understanding and effective use of the ``itwinai`` framework.
 
-``itwinai`` documentation also offers different versions, such as the 'latest', 'stable', 'dev', and 'v0.2.1'. 
+``itwinai`` documentation also offers different versions, such as the 'latest', 'stable', and 'v0.2.1'. 
 The 'latest' version includes the most recent updates and features reflecting `main <https://github.com/interTwin-eu/itwinai>`_ branch developments, 
 while the 'stable' version tracks the most recent project release based on semantic tagging and is recommended for production 
 use due to its reliability (`learn more <https://docs.readthedocs.io/en/stable/versions.html#version-states>`_). 
-<!--
-The 'dev' version contains the latest development changes and is suitable for contributors and early testers, 
-reflecting `dev <https://github.com/interTwin-eu/itwinai/tree/dev>`_ branch.
--->
+
+.. The 'dev' version contains the latest development changes and is suitable for contributors and early testers, 
+   reflecting `dev <https://github.com/interTwin-eu/itwinai/tree/dev>`_ branch.
+
 
 .. toctree::
    :maxdepth: 2
