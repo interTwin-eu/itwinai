@@ -1,18 +1,13 @@
 import torch
 import torch.optim as optim
 from torch.optim.lr_scheduler import ReduceLROnPlateau
-import argparse
 import torch.nn as nn
 import pandas as pd
 
-from hython.datasets.datasets import get_dataset
-from hython.sampler import SamplerBuilder, RegularIntervalDownsampler
+from hython.sampler import SamplerBuilder
 from hython.metrics import MSEMetric
 from hython.losses import RMSELoss
-from hython.utils import read_from_zarr
-from hython.models.cudnnLSTM import CuDNNLSTM, LandSurfaceLSTM
 from hython.trainer import RNNTrainer, RNNTrainParams
-from hython.normalizer import Normalizer
 from itwinai.torch.distributed import (
     DeepSpeedStrategy
 )
@@ -20,51 +15,12 @@ from itwinai.torch.distributed import (
 from itwinai.torch.trainer import TorchTrainer
 from itwinai.loggers import Logger
 from itwinai.torch.type import Metric
-from itwinai.loggers import MLFlowLogger
 from typing import (
     Optional, Dict, Union, Literal
 )
 from itwinai.torch.config import TrainingConfiguration
 from tqdm.auto import tqdm
 import copy
-
-# PARAMETERS
-EXPERIMENT = "test"
-SURROGATE_INPUT = "/p/scratch/intertwin/datasets/eurac/input/adg1km_eobs_preprocessed.zarr/"
-SURROGATE_MODEL_OUTPUT = f"/p/scratch/intertwin/datasets/eurac/model/{EXPERIMENT}.pt"
-TMP_STATS = "/p/scratch/intertwin/datasets/eurac/stats"
-
-# train/test temporal range
-train_temporal_range = slice("2014-01-01", "2018-12-31")
-test_temporal_range = slice("2019-01-01", "2020-12-31")
-
-# variables
-dynamic_names = ["precip", "pet", "temp"]
-static_names = ['thetaS', 'thetaR', 'RootingDepth', 'Swood', 'KsatVer', "Sl"]
-target_names = ["vwc", "actevap"]
-
-DONWSAMPLING = False
-
-# names depends on preprocessing application
-mask_names = ["mask_missing", "mask_lake"]
-
-DATASET = "LSTMDataset"
-
-HIDDEN_SIZE = 24
-DROPOUT = 0.0
-NUM_LAYERS = 1
-DYNAMIC_INPUT_SIZE = len(dynamic_names)
-STATIC_INPUT_SIZE = len(static_names)
-OUTPUT_SIZE = len(target_names)
-TARGET_WEIGHTS = {t: 1/len(target_names) for t in target_names}
-TEMPORAL_SUBSET = [150, 150]
-
-module_dict = {
-    "vwc": {"input_size": len(static_names) + len(dynamic_names),"hidden_size":HIDDEN_SIZE, "num_layers":NUM_LAYERS, "dropout":DROPOUT},
-    "actevap":{"input_size": len(static_names) + len(dynamic_names),"hidden_size":HIDDEN_SIZE, "num_layers":NUM_LAYERS, "dropout":DROPOUT},
-}
-
-assert sum(v for v in TARGET_WEIGHTS.values()) == 1, "check target weights"
 
 
 class RNNDistributedTrainer(TorchTrainer):
@@ -131,8 +87,10 @@ class RNNDistributedTrainer(TorchTrainer):
         )
         self.lr_scheduler = ReduceLROnPlateau(
             self.optimizer, mode="min", factor=0.5, patience=10)
+        
+        TARGET_WEIGHTS = {t: 1/len(self.config.target_names) for t in self.config.target_names}
         self.loss_fn = RMSELoss(target_weight=TARGET_WEIGHTS)
-        self.metric_fn = MSEMetric(target_names=target_names)
+        self.metric_fn = MSEMetric(target_names=self.config.target_names)
 
         if isinstance(self.strategy, DeepSpeedStrategy):
             # Batch size definition is not optional for DeepSpeedStrategy!
@@ -156,7 +114,7 @@ class RNNDistributedTrainer(TorchTrainer):
                     temporal_subsampling=self.config.temporal_subsampling,
                     temporal_subset=self.config.temporal_subset,
                     seq_length=self.config.seq_length,
-                    target_names=target_names,
+                    target_names=self.config.target_names,
                     metric_func=self.metric_fn,
                     loss_func=self.loss_fn)
         )
@@ -255,6 +213,7 @@ class RNNDistributedTrainer(TorchTrainer):
 
     def create_dataloaders(
             self, train_dataset, validation_dataset, test_dataset):
+        print(self.config)
         train_sampler_builder = SamplerBuilder(
             train_dataset,
             sampling="random",
@@ -288,157 +247,6 @@ class RNNDistributedTrainer(TorchTrainer):
             )
 
 
-def main():
-    parser = argparse.ArgumentParser(description='PyTorch LSTM Example')
-    parser.add_argument('--batch-size', type=int, default=256,
-                        help='input batch size for training (default: 128)')
-    parser.add_argument('--epochs', type=int, default=20,
-                        help='number of epochs to train (default: 20)')
-    parser.add_argument('--lr', type=float, default=0.0001,
-                        help='learning rate (default: 0.0001)')
-    parser.add_argument('--strategy', type=str, default='ddp',
-                        help='distributed strategy (default=ddp)')
-    parser.add_argument('--seed', type=int, default=1696,
-                        help='random seed (default: 1696)')
-    parser.add_argument(
-        '--ckpt-interval', type=int, default=1,
-        help='how many batches to wait before logging training status')
-    parser.add_argument('--seq_length', type=int, default=60,
-                        help='sequence length (default: 60)')
-    parser.add_argument('--distributed', action=argparse.BooleanOptionalAction,
-                        default=True)
-    parser.add_argument('--temporal_subsampling',
-                        action=argparse.BooleanOptionalAction, default=True)
-    parser.add_argument('--run-name', type=str, default='test1', 
-                        help='run name (default: test1)')
-    args = parser.parse_args()
-
-    torch.manual_seed(args.seed)
-
-    # Dataset preparation
-    Xd = (
-        read_from_zarr(url=SURROGATE_INPUT, group="xd", multi_index="gridcell")
-        .sel(time=train_temporal_range)
-        .xd.sel(feat=dynamic_names)
-    )
-    Xs = read_from_zarr(
-        url=SURROGATE_INPUT, group="xs", multi_index="gridcell").xs.sel(
-        feat=static_names
-    )
-    Y = (
-        read_from_zarr(url=SURROGATE_INPUT, group="y", multi_index="gridcell")
-        .sel(time=train_temporal_range)
-        .y.sel(feat=target_names)
-    )
-
-    SHAPE = Xd.attrs["shape"]
-
-    Y_test = (
-        read_from_zarr(url=SURROGATE_INPUT, group="y", multi_index="gridcell")
-        .sel(time=test_temporal_range)
-        .y.sel(feat=target_names)
-    )
-    Xd_test = (
-        read_from_zarr(url=SURROGATE_INPUT, group="xd", multi_index="gridcell")
-        .sel(time=test_temporal_range)
-        .xd.sel(feat=dynamic_names)
-    )
-
-    masks = (
-        read_from_zarr(url=SURROGATE_INPUT, group="mask")
-        .mask.sel(mask_layer=mask_names)
-        .any(dim="mask_layer")
-    )
-
-    if DONWSAMPLING:
-        train_downsampler = RegularIntervalDownsampler(
-            intervals=[3, 3], origin=[0, 0]
-        )       
-        test_downsampler = RegularIntervalDownsampler(
-            intervals=[3, 3], origin=[2, 2]
-        )
-    else:
-        train_downsampler, test_downsampler = None, None
-
-    normalizer_dynamic = Normalizer(method="standardize",
-                                    type="spacetime", axis_order="NTC")
-                                    #save_stats=f"{TMP_STATS}/{EXPERIMENT}_xd.npy")
-    normalizer_static = Normalizer(method="standardize",
-                                   type="space", axis_order="NTC")
-                                   #save_stats=f"{TMP_STATS}/{EXPERIMENT}_xs.npy")
-    normalizer_target = Normalizer(method="standardize", type="spacetime",
-                                   axis_order="NTC")
-                                   #save_stats=f"{TMP_STATS}/{EXPERIMENT}_y.npy")
-
-    train_dataset = get_dataset(DATASET)(
-            Xd,
-            Y,
-            Xs,
-            original_domain_shape=SHAPE,
-            mask=masks,
-            downsampler=train_downsampler,
-            normalizer_dynamic=normalizer_dynamic,
-            normalizer_static=normalizer_static,
-            normalizer_target=normalizer_target
-    )
-    validation_dataset = get_dataset(DATASET)(
-            Xd_test,
-            Y_test,
-            Xs,
-            original_domain_shape=SHAPE,
-            mask=masks,
-            downsampler=test_downsampler,
-            normalizer_dynamic=normalizer_dynamic,
-            normalizer_static=normalizer_static,
-            normalizer_target=normalizer_target
-    )
-
-    # Model
-    model = CuDNNLSTM(
-        #module_dict = module_dict,
-        hidden_size=HIDDEN_SIZE,
-        dynamic_input_size=DYNAMIC_INPUT_SIZE,
-        static_input_size=STATIC_INPUT_SIZE,
-        output_size=OUTPUT_SIZE,
-        num_layers=NUM_LAYERS,
-        dropout=DROPOUT
-    )
-
-    # Training configuration
-    training_config = TrainingConfiguration(
-        batch_size=args.batch_size,
-        lr=args.lr,
-        epochs=args.epochs,
-        experiment=EXPERIMENT,
-        temporal_subsampling=args.temporal_subsampling,
-        temporal_subset=TEMPORAL_SUBSET,
-        seq_length=args.seq_length,
-        target_names=target_names,
-        train_temporal_range=train_temporal_range,
-        test_temporal_range=test_temporal_range,
-        dp_weights=SURROGATE_MODEL_OUTPUT,
-        distributed=args.distributed
-    )
-
-    # Logger
-    logger = MLFlowLogger(experiment_name='Distributed Eurac Use case',
-                          run_name=args.run_name,
-                          log_freq=10)
-
-    # Trainer
-    trainer = RNNDistributedTrainer(
-        config=training_config,
-        model=model,
-        strategy=args.strategy,
-        epochs=args.epochs,
-        random_seed=args.seed,
-        logger=logger
-    )
-
-    # Launch training
-    _, _, _, trained_model = trainer.execute(
-        train_dataset, validation_dataset, None)
 
 
-if __name__ == '__main__':
-    main()
+
