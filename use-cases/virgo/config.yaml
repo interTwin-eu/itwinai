@@ -1,5 +1,6 @@
 # General configuration
-data_root: data
+root_folder: /p/scratch/intertwin/datasets/virgo
+data_root: ./data
 epochs: 2
 batch_size: 20
 strategy: ddp
@@ -16,7 +17,7 @@ training_pipeline:
         init_args:
           train_proportion: 0.9
           rnd_seed: 42
-          images_dataset: ${data_root}/Image_dataset_synthetic_64x64.pkl
+          root_folder: ${root_folder}
       - class_path: data.TimeSeriesProcessor
       - class_path: trainer.NoiseGeneratorTrainer
         init_args:
