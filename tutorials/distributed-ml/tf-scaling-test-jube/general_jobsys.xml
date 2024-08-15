@@ -93,7 +93,7 @@
       <pattern name="Nworkers" type="int">${nnw}</pattern>
       <pattern name="calcTime" unit="s" type="float">\s*TIMER: total epoch time:\s+$jube_pat_wrd\s*</pattern>
       <pattern name="avgEpochT" unit="s" type="float">\s*TIMER: average epoch time:\s+$jube_pat_wrd\s*</pattern>
-      <pattern name="Naet" unit="s" type="float" mode="python">${avgEpochT}</pattern>
+      <pattern name="Naet" unit="s" type="float" mode="python">${avgEpochT}/${nodes}</pattern>
     </patternset>
 
     <!-- analyse -->
