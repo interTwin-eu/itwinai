@@ -102,7 +102,7 @@ itwinai for PyTorch or TensorFlow.
 > [other packages](https://horovod.readthedocs.io/en/latest/install_include.html#requirements).
 > Make sure to have them installed in your environment before proceeding.
 
-## Installation for developers
+## Developer installation
 
 If you are contributing to this repository, please continue below for
 more advanced instructions.
