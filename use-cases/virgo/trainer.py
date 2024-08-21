@@ -3,6 +3,7 @@ import os
 import torch.nn as nn
 import torch
 import time
+from timeit import default_timer as timer
 import numpy as np
 
 from itwinai.torch.trainer import TorchTrainer
@@ -10,7 +11,7 @@ from itwinai.torch.distributed import (
     DeepSpeedStrategy,
 )
 from itwinai.torch.config import TrainingConfiguration
-from itwinai.loggers import Logger
+from itwinai.loggers import Logger, EpochTimeTracker
 
 from src.model import Decoder, Decoder_2d_deep, UNet, GeneratorResNet
 from src.utils import init_weights
@@ -109,25 +110,38 @@ class NoiseGeneratorTrainer(TorchTrainer):
         )
 
     def train(self):
+        # Start the timer for profiling
+        st = timer()
         # uncomment all lines relative to accuracy if you want to measure
         # IOU between generated and real spectrograms.
         # Note that it significantly slows down the whole process
         # it also might not work as the function has not been fully
         # implemented yet
-
+        if self.strategy.is_main_worker:
+            print('TIMER: broadcast:', timer()-st, 's')
+            print('\nDEBUG: start training')
+            print('--------------------------------------------------------')
+            nnod = os.environ.get('SLURM_NNODES', 'unk')
+            s_name = f"{os.environ.get('DIST_MODE', 'unk')}-torch"
+            epoch_time_tracker = EpochTimeTracker(
+                series_name=s_name,
+                csv_file=f"epochtime_{s_name}_{nnod}N.csv"
+            )
         loss_plot = []
         val_loss_plot = []
         acc_plot = []
         val_acc_plot = []
         best_val_loss = float('inf')
         for epoch in tqdm(range(self.num_epochs)):
+            lt = timer()
             # itwinai - IMPORTANT: set current epoch ID
             self.set_epoch(epoch)
-
+            t_list = []
             st = time.time()
             epoch_loss = []
             # epoch_acc = []
             for i, batch in enumerate(self.train_dataloader):
+                t = timer()
                 # batch= transform(batch)
                 target = batch[:, 0].unsqueeze(1).to(self.device)
                 # print(f'TARGET ON DEVICE: {target.get_device()}')
@@ -142,6 +156,7 @@ class NoiseGeneratorTrainer(TorchTrainer):
                 loss.backward()
                 self.optimizer.step()
                 epoch_loss.append(loss.detach().cpu().numpy())
+                t_list.append(timer() - t)
                 # itwinai - log loss as metric
                 self.log(loss.detach().cpu().numpy(),
                          'epoch_loss_batch',
@@ -150,6 +165,8 @@ class NoiseGeneratorTrainer(TorchTrainer):
                          batch_idx=i)
                 # acc=accuracy(generated.detach().cpu().numpy(),target.detach().cpu().numpy(),20)
                 # epoch_acc.append(acc)
+            if self.strategy.is_main_worker:
+                print('TIMER: train time', sum(t_list) / len(t_list), 's')
             val_loss = []
             # val_acc = []
             for i, batch in enumerate(self.validation_dataloader):
@@ -253,4 +270,7 @@ class NoiseGeneratorTrainer(TorchTrainer):
                                  kind='artifact')
         # return (loss_plot, val_loss_plot,
         # acc_plot, val_acc_plot ,acc_plot, val_acc_plot)
+            if self.strategy.is_main_worker:
+                print('TIMER: epoch time:', timer()-lt, 's')
+                epoch_time_tracker.add_epoch_time(epoch-1, timer()-lt)
         return loss_plot, val_loss_plot, acc_plot, val_acc_plot
