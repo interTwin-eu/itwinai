@@ -3,6 +3,18 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
+.. |br| raw:: html
+
+   <br>
+
+.. image:: ../images/icon-itwinai-orange-black-subtitle.png
+    :alt: itwinai logo
+    :class: logo
+
+|br|
+|br|
+|br|
+
 Welcome to itwinai's documentation!
 ===================================
 

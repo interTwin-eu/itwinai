@@ -22,6 +22,7 @@ sys.path.insert(0, os.path.abspath('../tutorials/ml-workflows/'))
 # sys.path.insert(0, os.path.abspath('../src/itwinai/tensorflow'))
 # sys.path.insert(0, os.path.abspath('../src/itwinai/torch'))
 sys.path.insert(0, os.path.abspath('../src'))
+sys.path.insert(0, os.path.abspath('../images'))
 # sys.path.insert(0, os.path.abspath('../...'))
 
 project = 'itwinai'
@@ -69,6 +70,12 @@ release = version
 
 html_theme = 'sphinx_rtd_theme'  # 'alabaster'
 html_static_path = ['_static']
+
+html_logo = "../images/icon-itwinai-orange.png"
+html_theme_options = {
+    'logo_only': True,
+    'style_nav_header_background': 'black'
+}
 
 html_context = {
     'display_version': True,
