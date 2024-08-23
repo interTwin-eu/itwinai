@@ -69,5 +69,5 @@ HPO has been implemented using Ray tuner to run in a non distributed environment
 Launch the hpo expirement:
 
 ```bash
-bash startscript_hpo.sh
+sbatch startscript_hpo.sh
 ```
