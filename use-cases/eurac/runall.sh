@@ -14,7 +14,7 @@ else
     T=$2
 fi
 # Python virtual environment (no conda/micromamba)
-PYTHON_VENV="../../../envAI_hdfml"
+PYTHON_VENV="../../envAI_hdfml"
 CMD="--nodes=$N --time=$T --account=intertwin --partition=batch slurm.sh"
 
 echo "Distributing training over $N nodes. Timeout set to: $T"
@@ -39,7 +39,7 @@ sbatch --export=ALL,DIST_MODE="$DIST_MODE",RUN_NAME="$RUN_NAME",TRAINING_CMD="$T
 # DeepSpeed itwinai
 DIST_MODE="deepspeed"
 RUN_NAME="deepspeed-itwinai"
-TRAINING_CMD="torch_dist_final_scaling.py --strategy deepspeed"
+TRAINING_CMD="python torch_dist_final_scaling.py --strategy deepspeed"
 sbatch --export=ALL,DIST_MODE="$DIST_MODE",RUN_NAME="$RUN_NAME",TRAINING_CMD="$TRAINING_CMD",PYTHON_VENV="$PYTHON_VENV" \
     --job-name="$RUN_NAME-n$N" \
     --output="logs_slurm/job-$RUN_NAME-n$N.out" \
@@ -47,11 +47,11 @@ sbatch --export=ALL,DIST_MODE="$DIST_MODE",RUN_NAME="$RUN_NAME",TRAINING_CMD="$T
     $CMD
 
 # Horovod itwinai
-DIST_MODE="horovod"
-RUN_NAME="horovod-itwinai"
-TRAINING_CMD="torch_dist_final_scaling.py -s horovod"
-sbatch --export=ALL,DIST_MODE="$DIST_MODE",RUN_NAME="$RUN_NAME",TRAINING_CMD="$TRAINING_CMD",PYTHON_VENV="$PYTHON_VENV" \
-    --job-name="$RUN_NAME-n$N" \
-    --output="logs_slurm/job-$RUN_NAME-n$N.out" \
-    --error="logs_slurm/job-$RUN_NAME-n$N.err" \
-    $CMD
+# DIST_MODE="horovod"
+# RUN_NAME="horovod-itwinai"
+# TRAINING_CMD="python torch_dist_final_scaling.py --strategy horovod"
+# sbatch --export=ALL,DIST_MODE="$DIST_MODE",RUN_NAME="$RUN_NAME",TRAINING_CMD="$TRAINING_CMD",PYTHON_VENV="$PYTHON_VENV" \
+#     --job-name="$RUN_NAME-n$N" \
+#     --output="logs_slurm/job-$RUN_NAME-n$N.out" \
+#     --error="logs_slurm/job-$RUN_NAME-n$N.err" \
+#     $CMD
