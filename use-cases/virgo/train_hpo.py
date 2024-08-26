@@ -1,10 +1,3 @@
-"""
-
-THIS SCRIPT IS DEPRECATED! Follow the instructions on README.
-
-Simplified training script: data generation + training in one
-procedural script. This is an INTERMEDIATE step of integration in itwinai.
-"""
 import os
 import pandas as pd
 import torch
@@ -14,6 +7,9 @@ import time
 import numpy as np
 from sklearn.model_selection import train_test_split
 from tqdm import tqdm
+from ray import tune
+from ray.tune.schedulers import ASHAScheduler
+from ray.air import session
 
 from src.dataset import (
     generate_dataset_aux_channels,
@@ -21,16 +17,14 @@ from src.dataset import (
     generate_cut_image_dataset,
     normalize_
 )
-from src.model import UNet  # ,Decoder, Decoder_2d_deep, GeneratorResNet
+from src.model import UNet
 from src.utils import init_weights, calculate_iou_2d
 
 # Global parameters
 DATA_ROOT = "/p/scratch/intertwin/datasets/virgo/test_data"
 LOAD_DATASET = False
-BATCH_SIZE = 20
-LR = 0.00005
-SAVE_CHECKPOINT = 'checkpoints{}.pth'
 N_EPOCHS = 50
+SAVE_CHECKPOINT = 'checkpoints/checkpoint_epoch_{}.pth'
 
 
 def generate_dataset():
@@ -42,7 +36,7 @@ def generate_dataset():
         df_aux_ts, weights=None, noise_amplitude=0.1
     )
 
-    # save datasets
+    # Save datasets
     save_name_main = 'TimeSeries_dataset_synthetic_main.pkl'
     save_name_aux = 'TimeSeries_dataset_synthetic_aux.pkl'
     df_main_ts.to_pickle(os.path.join(DATA_ROOT, save_name_main))
@@ -58,26 +52,8 @@ def generate_dataset():
     df.to_pickle(os.path.join(DATA_ROOT, save_name))
 
 
-def train_decoder(
-    num_epochs, generator, criterion, optimizer, dataloader,
-    val_loader, accuracy, checkpoint_path, save_best=True
-):
-    # num_epochs: (int) number of epochs for training
-    # generator: (NN.Module) NN model to train
-    # criterion: (torch.optim) optimizer to use in training
-    # dataloader: (DataLoader) training data
-    # val_loader: (Dataloader) validation data
-    # accuracy: (function) metric to measure performance of the model
-    #   (Note not to be confused with loss)
-    # checkpoint_path: (str) full path (including filename in the form
-    #   filename_{}.pkl so to insert num_epoch) to save checkpoints at
-    # save_best: (bool) if you want to save best performing model
-
-    # uncomment all lines relative to accuracy if you want to measure IOU
-    #   between generated and real spectrograms.
-    # Note that it significantly slows down the whole process
-    # it also might not work as the function has not been fully implemented yet
-
+def train_decoder(num_epochs, generator, criterion, optimizer, dataloader,
+                  val_loader, accuracy, checkpoint_path, save_best=True):
     loss_plot = []
     val_loss_plot = []
     acc_plot = []
@@ -162,35 +138,27 @@ def train_decoder(
                 best_val_loss = val_loss_plot[-1]
                 best_checkpoint_filename = checkpoint_path.format('best')
                 torch.save(checkpoint, best_checkpoint_filename)
+        session.report({"loss": np.mean(val_loss)})
 
     return loss_plot, val_loss_plot, acc_plot, val_acc_plot
 
 
-if __name__ == "__main__":
-    if torch.cuda.is_available():
-        device = 'cuda'
-        print(torch.cuda.get_device_name(torch.cuda.current_device()))
-    else:
-        device = 'cpu'
 
-    # Generate dataset
+def main(config):
     if not LOAD_DATASET:
         generate_dataset()
 
-    # Split data
     file_path = os.path.join(DATA_ROOT, 'Image_dataset_synthetic_64x64.pkl')
     df = pd.read_pickle(file_path)
-    # Convert data to torch
-    df = df.applymap(lambda x: torch.tensor(x))
+    df = df.applymap(lambda x: torch.tensor(x).float())
 
-    # Divide Image dataset in main and aux channels. Note that df generated in
-    # the section Generate Synthetic Dataset will always have the main channel
-    # as its first column
     main_channel = list(df.columns)[0]
+    print(f'The main channel is: {main_channel}')
     aux_channels = list(df.columns)[1:]
+    print(f"The AUX channels: {aux_channels}")
 
-    df_aux_all_2d = pd.DataFrame(df[aux_channels])
     df_main_all_2d = pd.DataFrame(df[main_channel])
+    df_aux_all_2d = pd.DataFrame(df[aux_channels])
 
     X_train_2d, X_test_2d, y_train_2d, y_test_2d = train_test_split(
         df_aux_all_2d, df_main_all_2d, test_size=0.1, random_state=42)
@@ -254,12 +222,12 @@ if __name__ == "__main__":
     # Create dataloader objects with preprocessed dataset
     dataloader = DataLoader(
         train_data_2d,
-        batch_size=BATCH_SIZE,
+        batch_size=int(config['batch_size']),
         shuffle=True,
     )
     test_dataloader = DataLoader(
         test_data_2d,
-        batch_size=BATCH_SIZE,
+        batch_size=int(config['batch_size']),
         shuffle=False,
     )
 
@@ -272,10 +240,50 @@ if __name__ == "__main__":
     l2_loss = nn.MSELoss()  # this is l2!!!
     l1_loss = nn.L1Loss()  # this is L1!!!
     loss = l1_loss  # LogCoshLoss()
-    G_optimizer = torch.optim.Adam(generator_2d.parameters(), lr=LR)
+    G_optimizer = torch.optim.Adam(generator_2d.parameters(), lr=config['lr'])
 
-    # Training
-    loss_plot, val_loss_plot, acc_plot, val_acc_plot = train_decoder(
-        N_EPOCHS, generator_2d, loss, G_optimizer, dataloader, test_dataloader,
-        calculate_iou_2d, SAVE_CHECKPOINT
+    generator = UNet(input_channels=3, output_channels=1, norm=False).to(device)
+    init_weights(generator, 'normal', scaling=.02)
+
+    train_decoder(N_EPOCHS, generator_2d, loss, G_optimizer, dataloader,
+                  test_dataloader, calculate_iou_2d, SAVE_CHECKPOINT.format('_best'))
+
+if __name__ == "__main__":
+    if torch.cuda.is_available():
+        device = 'cuda'
+        print(torch.cuda.get_device_name(torch.cuda.current_device()))
+    else:
+        device = 'cpu'
+        
+    search_space = {
+        'batch_size': tune.choice([16, 32, 64]),
+        'lr': tune.loguniform(1e-5, 1e-3)
+    }
+    scheduler = ASHAScheduler(
+        max_t=N_EPOCHS,
+        grace_period=10,
+        reduction_factor=2
     )
+    analysis = tune.run(
+        main,
+        config=search_space,
+        num_samples=10,
+        scheduler=scheduler,
+        resources_per_trial={'cpu': 8, 'gpu': 1},
+        metric="loss",
+        mode="min"
+    )
+
+    # Access the results dataframe
+    df = analysis.dataframe()
+    
+    sorted_df = df.sort_values("loss", ascending=True)
+    print("Results dataframe sorted by loss:")
+    print(sorted_df)
+    
+    # Optionally, you can also print the best trial's config and loss
+    print("Best hyperparameters found were:", analysis.best_config)
+    best_trial_loss = sorted_df.iloc[0]['loss']
+    print("Best trial loss:", best_trial_loss)
+    
+    
