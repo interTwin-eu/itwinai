@@ -16,7 +16,7 @@ from itwinai.torch.trainer import TorchTrainer
 from itwinai.loggers import Logger
 from itwinai.torch.type import Metric
 from typing import (
-    Optional, Dict, Union, Literal
+    Optional, Dict, Union, Literal, List
 )
 from itwinai.torch.config import TrainingConfiguration
 from tqdm.auto import tqdm
@@ -201,13 +201,13 @@ class RNNDistributedTrainer(TorchTrainer):
                     # used to store the weights of a machine learning model
                     # or any other relevant data  related to a model.
                     best_model_weights = copy.deepcopy(self.model.state_dict())
-                    trainer.save_weights(self.model, self.config.dp_weights)
+                    #trainer.save_weights(self.model, self.config.dp_weights)
                     print("Copied best model weights!")
 
                     print(f"train loss: {train_loss}")
                     print(f"val loss: {avg_val_loss}")
 
-                self.model.load_state_dict(best_model_weights)
+                #self.model.load_state_dict(best_model_weights)
 
         return loss_history, metric_history
 
@@ -217,7 +217,7 @@ class RNNDistributedTrainer(TorchTrainer):
         train_sampler_builder = SamplerBuilder(
             train_dataset,
             sampling="random",
-            processing="multi-gpu" if self.config.distributed else "single-gpu")
+            processing="multi-gpu" if self.config.distributed else "single-gpu") # 
 
         val_sampler_builder = SamplerBuilder(
             validation_dataset,

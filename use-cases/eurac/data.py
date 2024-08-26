@@ -9,6 +9,7 @@ from itwinai.components import (
 )
 from hython.utils import read_from_zarr
 from hython.sampler import AbstractDownSampler
+from hython.datasets.datasets import LSTMDataset
 from hython.normalizer import Normalizer
 from hython.datasets.datasets import get_dataset
 
@@ -31,8 +32,8 @@ class RNNDatasetGetterAndSplitter(DataSplitter):
         self.static_names = static_names 
         self.target_names = target_names
         self.mask_names = mask_names
-        self.train_temporal_range = train_temporal_range
-        self.test_temporal_range = test_temporal_range
+        self.train_temporal_range = slice(train_temporal_range[0], train_temporal_range[1])
+        self.test_temporal_range = slice(test_temporal_range[0], test_temporal_range[1])
 
     @monitor_exec
     def execute(
@@ -107,7 +108,7 @@ class RNNProcessor(DataProcessor):
         validation_dataset: Tuple,
         test_dataset: Any = None,
         masks: xr.Dataset = None,
-    ) -> Tuple[torch.Tensor, torch.Tensor, None]:
+    ) -> Tuple[LSTMDataset, LSTMDataset, None]:
 
         Xd, Xs, Y = train_dataset
         Xd_test, Xs_test, Y_test = validation_dataset 
