@@ -83,7 +83,7 @@ def tf_records_loader(files_path, shuffle=False):
     datasets = datasets.flat_map(tf.data.TFRecordDataset)
     datasets = datasets.map(
         deserialization_fn, num_parallel_calls=tf.data.AUTOTUNE)
-    return datasets
+    return datasets, len(tf.data.Dataset.from_tensor_slices(files_path))
 
 
 def main():
@@ -117,51 +117,57 @@ def main():
                       metrics=['accuracy']
                       )
 
-    # scale batch size with number of workers
-    batch_size = args.batch_size * get_strategy()[1]
+        # scale batch size with number of workers
+        batch_size = args.batch_size * get_strategy()[1]
 
-    dir_imagenet = args.data_dir+'imagenet-1K-tfrecords'
-    train_shard_suffix = 'train-*-of-01024'
-    test_shard_suffix = 'validation-*-of-00128'
+        dir_imagenet = args.data_dir+'imagenet-1K-tfrecords'
+        train_shard_suffix = 'train-*-of-01024'
+        test_shard_suffix = 'validation-*-of-00128'
 
-    train_set_path = sorted(
-        tf.io.gfile.glob(dir_imagenet + f'/{train_shard_suffix}')
-    )
-    test_set_path = sorted(
-        tf.io.gfile.glob(dir_imagenet + f'/{test_shard_suffix}')
-    )
+        train_set_path = sorted(
+            tf.io.gfile.glob(dir_imagenet + f'/{train_shard_suffix}')
+        )
+        test_set_path = sorted(
+            tf.io.gfile.glob(dir_imagenet + f'/{test_shard_suffix}')
+        )
 
-    train_dataset = tf_records_loader(train_set_path, shuffle=True)
-    test_dataset = tf_records_loader(test_set_path)
+        train_dataset, train_size = tf_records_loader(
+            train_set_path, shuffle=True)
+        test_dataset, test_size = tf_records_loader(test_set_path)
 
-    train_dataset = train_dataset.batch(
-        batch_size).prefetch(tf.data.experimental.AUTOTUNE)
-    test_dataset = test_dataset.batch(
-        batch_size).prefetch(tf.data.experimental.AUTOTUNE)
+        train_dataset = train_dataset.batch(
+            batch_size).prefetch(tf.data.experimental.AUTOTUNE).repeat()
+        test_dataset = test_dataset.batch(
+            batch_size).prefetch(tf.data.experimental.AUTOTUNE).repeat()
 
-    # distribute datasets among mirrored replicas
-    dist_train = strategy.experimental_distribute_dataset(
-        train_dataset
-    )
-    dist_test = strategy.experimental_distribute_dataset(
-        test_dataset
-    )
+        # distribute datasets among mirrored replicas
+        dist_train = strategy.experimental_distribute_dataset(
+            train_dataset
+        )
+        dist_test = strategy.experimental_distribute_dataset(
+            test_dataset
+        )
 
-    # TODO: add callbacks to evaluate per epoch time
-    et = timer()
+        # TODO: add callbacks to evaluate per epoch time
+        et = timer()
 
-    # trains the model
-    model.fit(dist_train, epochs=args.epochs, steps_per_epoch=500, verbose=10)
+        # trains the model
+        model.fit(dist_train,
+                  epochs=args.epochs,
+                  steps_per_epoch=train_size//batch_size,
+                  verbose=10)
 
-    print('TIMER: total epoch time:',
-          timer() - et, ' s')
-    print('TIMER: average epoch time:',
-          (timer() - et) / (args.epochs), ' s')
+        print('TIMER: total epoch time:',
+              timer() - et, ' s')
+        print('TIMER: average epoch time:',
+              (timer() - et) / (args.epochs), ' s')
 
-    test_scores = model.evaluate(dist_test, steps=100, verbose=5)
+        test_scores = model.evaluate(dist_test,
+                                     steps=test_size//batch_size,
+                                     verbose=5)
 
-    print('Test loss:', test_scores[0])
-    print('Test accuracy:', test_scores[1])
+        print('Test loss:', test_scores[0])
+        print('Test accuracy:', test_scores[1])
 
 
 if __name__ == "__main__":

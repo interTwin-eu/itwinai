@@ -84,7 +84,7 @@ fi
 # Since TF 2.16, keras updated to 3.3,
 # which leads to an error when more than 1 node is used
 # https://keras.io/getting_started/
-pip3 install tf_keras
+pip3 install tf_keras==2.16.*
 
 # itwinai
 pip3 install -e .[dev]

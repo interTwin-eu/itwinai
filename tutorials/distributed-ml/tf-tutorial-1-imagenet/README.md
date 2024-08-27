@@ -3,10 +3,41 @@
 In this tutorial we show how to use Tensorflow `MultiWorkerMirroredStrategy`.
 Note that the environment is tested on the HDFML system at JSC.
 For other systems, the module versions might need change accordingly.
-Other strategies will be updated here.
+Before starting training, the following aspects should be considered in the trainer script.
 
-First, from the root of this repository, build the environment containing
-Tensorflow. You can *try* with:
+Importantly, it should be kept it mind that under distributed training with Tensorflow,
+the batch size should be scaled with the number of workers in this way:
+
+```bash
+# scale batch size with number of workers, returned by get_strategy()[1]
+batch_size = args.batch_size * get_strategy()[1]
+```
+
+The other point to consider is the specification of epochs in Tensorflow.
+An example code snipped for training an ML model in Tensorflow is shown below.
+
+```bash
+# trains the model
+model.fit(dist_train,
+          epochs=args.epochs,
+          steps_per_epoch=train_size//batch_size,
+          verbose=10)
+```
+
+Here `steps_per_epoch` specifies the number of iterations of `train_dataset`
+over the specified number of `epochs`, where `train_dataset`
+is the TF dataset class that is employed for training the model.
+If `train_dataset` is too small, then the amount of data could be too less
+for the specified number of `epochs`. This can be mitigated with the `repeat()`
+option, which ensures that there is sufficient data for training.
+
+```bash
+train_dataset = train_dataset.batch(
+            batch_size).prefetch(tf.data.experimental.AUTOTUNE).repeat()
+```
+
+After consideration of these aspects, from the root of this repository,
+build the environment containing Tensorflow. You can *try* with:
 
 ```bash
 # Creates a Python venv called envAItf_hdfml
