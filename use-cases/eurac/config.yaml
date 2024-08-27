@@ -27,11 +27,12 @@ training_pipeline:
       - class_path: trainer.RNNDistributedTrainer
         init_args:
           config:
-            class_path: itwinai.torch.config.TrainingConfiguration
-            init_args:
-              experiment: ${run_name}
-              batch_size: 256
-              lr: 0.001
+#            class_path: itwinai.torch.config.TrainingConfiguration
+#            init_args:
+            experiment: ${run_name}
+            batch_size: 256
+            lr: 0.001
+            rnn_config:
               temporal_subsampling: True
               temporal_subset: [150, 150]
               seq_length: 60
@@ -54,7 +55,7 @@ training_pipeline:
           #   class_path: itwinai.loggers.LoggersCollection
           #   init_args:
           #     loggers:
-          #       - class_path: itwinai.loggers.MLFlowLogger
+          #       - class_path: itwinai.loggers.ConsoleLogger
           #         init_args:
           #           experiment_name: ${experiment}
           #           run_name: ${run_name}

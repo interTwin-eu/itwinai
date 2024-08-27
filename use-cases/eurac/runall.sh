@@ -14,7 +14,8 @@ else
     T=$2
 fi
 # Python virtual environment (no conda/micromamba)
-PYTHON_VENV="../../envAI_hdfml"
+#PYTHON_VENV="../../envAI_hdfml"
+PYTHON_VENV="../../../hython-dev"
 CMD="--nodes=$N --time=$T --account=intertwin --partition=batch slurm.sh"
 
 echo "Distributing training over $N nodes. Timeout set to: $T"

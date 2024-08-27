@@ -165,7 +165,7 @@ def create_data_loaders(train_dataset, test_dataset, batch_size):
 if __name__ == "__main__":
     config = {
         "lr": tune.loguniform(1e-5, 1e-1),
-        "batch_size": tune.choice([64, 128, 256, 512])
+        "batch_size": tune.choice([64, 128, 256, 512]),
     }
     analysis = tune.run(
         main,

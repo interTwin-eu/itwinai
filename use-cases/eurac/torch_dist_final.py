@@ -287,6 +287,20 @@ class RNNDistributedTrainer(TorchTrainer):
                 sampler=val_sampler
             )
 
+    def save_images(self, epoch):
+        self.model.eval()
+        # noise = torch.randn(64, self.config.z_dim, 1, 1, device=self.device)
+        # fake_images = self.generator(noise)
+        # fig, ax = plt.subplots(figsize=(8, 8))
+        # ax.set_axis_off()
+        # ax.set_title(f'Fake images for epoch {epoch}')
+        # ax.imshow(np.transpose(fake_images_grid.cpu().numpy(), (1, 2, 0)))
+        # self.log(
+        #     item=fig,
+        #     identifier=f'fake_images_epoch_{epoch}.png',
+        #     kind='figure',
+        #     step=epoch,
+        # )
 
 def main():
     parser = argparse.ArgumentParser(description='PyTorch LSTM Example')

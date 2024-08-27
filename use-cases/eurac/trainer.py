@@ -22,6 +22,15 @@ from itwinai.torch.config import TrainingConfiguration
 from tqdm.auto import tqdm
 import copy
 
+# class RNNTrainingConfiguration:
+#     experiment: str = ''
+#     lr: float = 0.01
+#     temporal_subsampling: bool = True 
+#     temporal_subset: List[int] = [150, 150]
+#     seq_length: int = 60 
+#     target_names: List[str] = [ 'vwc', 'actevap'] 
+#     dp_weights: str = '' 
+#     distributed: bool = True
 
 class RNNDistributedTrainer(TorchTrainer):
     """Trainer class for RNN model using pytorch.
@@ -88,9 +97,9 @@ class RNNDistributedTrainer(TorchTrainer):
         self.lr_scheduler = ReduceLROnPlateau(
             self.optimizer, mode="min", factor=0.5, patience=10)
         
-        TARGET_WEIGHTS = {t: 1/len(self.config.target_names) for t in self.config.target_names}
+        TARGET_WEIGHTS = {t: 1/len(self.config.rnn_config["target_names"]) for t in self.config.rnn_config["target_names"]}
         self.loss_fn = RMSELoss(target_weight=TARGET_WEIGHTS)
-        self.metric_fn = MSEMetric(target_names=self.config.target_names)
+        self.metric_fn = MSEMetric(target_names=self.config.rnn_config["target_names"])
 
         if isinstance(self.strategy, DeepSpeedStrategy):
             # Batch size definition is not optional for DeepSpeedStrategy!
@@ -111,10 +120,10 @@ class RNNDistributedTrainer(TorchTrainer):
         trainer = RNNTrainer(
                 RNNTrainParams(
                     experiment=self.config.experiment,
-                    temporal_subsampling=self.config.temporal_subsampling,
-                    temporal_subset=self.config.temporal_subset,
-                    seq_length=self.config.seq_length,
-                    target_names=self.config.target_names,
+                    temporal_subsampling=self.config.rnn_config["temporal_subsampling"],
+                    temporal_subset=self.config.rnn_config["temporal_subset"],
+                    seq_length=self.config.rnn_config["seq_length"],
+                    target_names=self.config.rnn_config["target_names"],
                     metric_func=self.metric_fn,
                     loss_func=self.loss_fn)
         )
@@ -213,16 +222,15 @@ class RNNDistributedTrainer(TorchTrainer):
 
     def create_dataloaders(
             self, train_dataset, validation_dataset, test_dataset):
-        print(self.config)
         train_sampler_builder = SamplerBuilder(
             train_dataset,
             sampling="random",
-            processing="multi-gpu" if self.config.distributed else "single-gpu") # 
+            processing="multi-gpu" if self.config.rnn_config["distributed"] else "single-gpu") # 
 
         val_sampler_builder = SamplerBuilder(
             validation_dataset,
             sampling="sequential",
-            processing="multi-gpu" if self.config.distributed else "single-gpu")
+            processing="multi-gpu" if self.config.rnn_config["distributed"] else "single-gpu")
 
         train_sampler = train_sampler_builder.get_sampler()
         val_sampler = val_sampler_builder.get_sampler()
