@@ -11,8 +11,8 @@ fi
 if [ "$1" == "23.09-py3" ]; then
     # Tested for torch==2.1.0
 
-    pip install --upgrade pip
-    pip install --no-cache-dir lightning torchmetrics wheel ray ray[tune]
+    pip install --no-cache-dir --upgrade pip
+    # pip install --no-cache-dir lightning torchmetrics wheel ray ray[tune]
 
     # DeepSpeed
     
@@ -70,7 +70,7 @@ if [ "$1" == "23.09-py3" ]; then
     fi
 
     # itwinai
-    pip install .[dev,torch]
+    pip --no-cache-dir install .[torch]
 
 else
     echo "ERROR: unrecognized tag."

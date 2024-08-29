@@ -69,31 +69,3 @@ training_pipeline:
                     log_freq: batch 
           strategy: ${strategy}
           # checkpoint_every: 1
-          # cluster:
-          #   class_path: itwinai.torch.cluster.LocalCluster
-          #   init_args:
-          #     gpus: '0,1,2'
-          #     backend: nccl
-
-inference_pipeline:
-  class_path: itwinai.pipeline.Pipeline
-  init_args:
-    steps:
-      - class_path: dataloader.MNISTPredictLoader
-        init_args:
-          test_data_path: ${test_data_path}
-
-      - class_path: itwinai.torch.inference.MulticlassTorchPredictor
-        init_args: 
-          model:
-            class_path: itwinai.torch.inference.TorchModelLoader
-            init_args:
-              model_uri: ${inference_model_mlflow_uri}
-          test_dataloader_kwargs:
-            batch_size: ${batch_size}
-      
-      - class_path: saver.TorchMNISTLabelSaver
-        init_args:
-          save_dir: ${predictions_dir}
-          predictions_file: ${predictions_file}
-          class_labels: ${class_labels}

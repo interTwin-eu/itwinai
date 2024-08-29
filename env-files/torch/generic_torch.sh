@@ -46,7 +46,7 @@ else
   echo "$ENV_NAME environment is created in ${cDir}"
 fi
 
-pip install --upgrade pip
+pip install --no-cache-dir --upgrade pip
 
 pip install --no-cache-dir packaging wheel
 
@@ -97,7 +97,7 @@ else
     pip install --no-cache-dir DeepSpeed
   else
     # CPU only installation
-    pip install deepspeed
+    pip install --no-cache-dir  deepspeed
   fi
 
   # fix .triton/autotune/Fp16Matmul_2d_kernel.pickle bug
@@ -171,4 +171,4 @@ else
 fi
 
 # Install itwinai
-pip install -e .[dev,torch]
+pip install --no-cache-dir -e .[torch]

@@ -5,6 +5,9 @@ ARG IMG_TAG=23.09-py3
 
 FROM nvcr.io/nvidia/pytorch:${IMG_TAG}
 
+# https://stackoverflow.com/a/56748289
+ARG IMG_TAG
+
 WORKDIR /usr/src/app
 
 # https://github.com/mpi4py/mpi4py/pull/431

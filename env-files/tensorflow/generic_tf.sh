@@ -41,7 +41,7 @@ else
   echo "$ENV_NAME environment is created in ${cDir}"
 fi
 
-pip3 install --upgrade pip
+pip3 install --no-cache-dir  --upgrade pip
 
 # get wheel -- setuptools extension
 pip3 install --no-cache-dir wheel
@@ -84,7 +84,7 @@ fi
 # Since TF 2.16, keras updated to 3.3,
 # which leads to an error when more than 1 node is used
 # https://keras.io/getting_started/
-pip3 install tf_keras
+pip3 install --no-cache-dir  tf_keras==2.16.*
 
 # itwinai
-pip3 install -e .[dev]
+pip3 install --no-cache-dir  -e .

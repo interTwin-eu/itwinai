@@ -2,6 +2,7 @@ ARG IMG_TAG=24.08-tf2-py3
 
 # 23.09-tf2-py3: tensorflow==2.13.0
 # 24.04-tf2-py3: tensorflow==2.15.0
+# 24.08-tf2-py3: tensorflow==2.16.1
 
 FROM nvcr.io/nvidia/tensorflow:${IMG_TAG}
 
