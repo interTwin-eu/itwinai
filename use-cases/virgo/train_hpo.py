@@ -22,7 +22,7 @@ from src.utils import init_weights, calculate_iou_2d
 
 # Global parameters
 DATA_ROOT = "/p/scratch/intertwin/datasets/virgo/test_data"
-LOAD_DATASET = False
+LOAD_DATASET = True
 N_EPOCHS = 50
 SAVE_CHECKPOINT = 'checkpoints/checkpoint_epoch_{}.pth'
 
@@ -277,6 +277,7 @@ if __name__ == "__main__":
     # Access the results dataframe
     df = analysis.dataframe()
     
+    
     sorted_df = df.sort_values("loss", ascending=True)
     print("Results dataframe sorted by loss:")
     print(sorted_df)
@@ -285,5 +286,6 @@ if __name__ == "__main__":
     print("Best hyperparameters found were:", analysis.best_config)
     best_trial_loss = sorted_df.iloc[0]['loss']
     print("Best trial loss:", best_trial_loss)
+    df.to_csv('result_hpo.csv')
     
     
