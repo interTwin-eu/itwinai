@@ -155,6 +155,8 @@ class TorchTrainer(Trainer, LogMixin):
         else:
             raise NotImplementedError(
                 f"Strategy '{strategy}' is not recognized/implemented.")
+
+        print("USING DISTRIBUTED STRATEGY: ", dist_str.__class__.__name__)
         return dist_str
 
     def _init_distributed_strategy(self) -> None:
