@@ -49,7 +49,7 @@ dependencies = [
 # dynamic = ["version", "description"]
 
 [project.optional-dependencies]
-torch = ["lightning", "torchmetrics"]
+torch = ["lightning==2.*", "torchmetrics"]
 # torch-cpu = [
 #     "torch==2.1.*",
 #     "torchvision",
