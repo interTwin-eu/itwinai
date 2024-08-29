@@ -35,5 +35,5 @@ sphinx:
 python:
    install:
   #  - wheel
-   - torch==2.1.*
+   - requirements: docs/pre-requirements.txt
    - requirements: docs/requirements.txt
