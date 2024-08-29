@@ -27,9 +27,14 @@ unset http_proxy https_proxy HTTP_PROXY HTTPS_PROXY
 ml --force purge
 ml Stages/2024 GCC/12.3.0 OpenMPI CUDA/12 MPI-settings/CUDA Python HDF5 PnetCDF libaio mpi4py CMake cuDNN/8.9.5.29-CUDA-12
 
-# set env
-source /p/project/intertwin/rakesh/T6.5-AI-and-ML/dist_trainer/TF_runs/testAI_hdfml/bin/activate
+# set env - change to location of your environment
+source itwinai/envAItf_hdfml/bin/activate
 
+# Using legacy (2.16) version of Keras
+# Latest version with TF (2.16) installs Keras 3.3
+# which returns an error for multi-node execution
+export TF_USE_LEGACY_KERAS=1
+ 
 # sleep a sec
 sleep 1
 

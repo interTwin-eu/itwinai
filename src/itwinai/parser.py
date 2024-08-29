@@ -27,12 +27,13 @@ def add_replace_field(
     """Replace or add (if not present) a field in a dictionary, following a
     path of dot-separated keys. Adding is not supported for list items.
     Inplace operation.
+
     Args:
         config (Dict): dictionary to be modified.
         key_chain (str): path of nested (dot-separated) keys to specify the
-        location
-        of the new value (e.g., 'foo.bar.line' adds/overwrites the value
-        located at config['foo']['bar']['line']).
+            location
+            of the new value (e.g., 'foo.bar.line' adds/overwrites the value
+            located at config['foo']['bar']['line']).
         value (Any): the value to insert.
     """
     sub_config = config
@@ -61,12 +62,16 @@ class ConfigParser:
     Parses a pipeline from a configuration file.
     It also provides functionalities for dynamic override
     of fields by means of nested key notation.
+
     Args:
         config (Union[str, Dict]): path to YAML configuration file
-        or dict storing a configuration.
+            or dict storing a configuration.
         override_keys (Optional[Dict[str, Any]], optional): dict mapping
-        nested keys to the value to override. Defaults to None.
+            nested keys to the value to override. Defaults to None.
+
     Example:
+
+
     >>> # pipeline.yaml file
     >>> pipeline:
     >>>   class_path: itwinai.pipeline.Pipeline
@@ -96,9 +101,12 @@ class ConfigParser:
     >>> dataloader = parser.parse_step(0)
     >>> print(dataloader)
     >>> print(dataloader.save_path)
+
     """
 
+    #: Configuration to parse.
     config: Dict
+    #: Pipeline object instantiated from the configuration file.
     pipeline: Pipeline
 
     def __init__(
@@ -131,12 +139,14 @@ class ConfigParser:
         verbose: bool = False
     ) -> Pipeline:
         """Merges steps into pipeline and parses it.
+
         Args:
             pipeline_nested_key (str, optional): nested key in the
-            configuration file identifying the pipeline object.
-            Defaults to "pipeline".
+                configuration file identifying the pipeline object.
+                Defaults to "pipeline".
             verbose (bool): if True, prints the assembled pipeline
-            to console formatted as JSON.
+                to console formatted as JSON.
+
         Returns:
             Pipeline: instantiated pipeline.
         """
@@ -184,6 +194,46 @@ class ConfigParser:
 
 
 class ArgumentParser(JAPArgumentParser):
+    """Wrapper of ``jsonargparse.ArgumentParser``.
+    Initializer for ArgumentParser instance. It can parse arguments from
+    a series of configuration files. Example:
+
+    >>> python main.py --config base-conf.yaml --config other-conf.yaml \\
+    >>> --param OVERRIDE_VAL
+
+    All the arguments from the initializer of `argparse.ArgumentParser
+    <https://docs.python.org/3/library/argparse.html#argparse.ArgumentParser>`_
+    are supported. Additionally it accepts:
+
+    Args:
+        env_prefix (Union[bool, str], optional): Prefix for environment
+            variables. ``True`` to derive from ``prog``.. Defaults to True.
+        formatter_class (Type[DefaultHelpFormatter], optional): Class for
+            printing help messages. Defaults to DefaultHelpFormatter.
+        exit_on_error (bool, optional): Defaults to True.
+        logger (Union[bool, str, dict, logging.Logger], optional):
+            Configures the logger, see :class:`.LoggerProperty`.
+            Defaults to False.
+        version (Optional[str], optional): Program version which will be
+            printed by the --version argument. Defaults to None.
+        print_config (Optional[str], optional): Add this as argument to
+            print config, set None to disable.
+            Defaults to "--print_config".
+        parser_mode (str, optional): Mode for parsing config files:
+            ``'yaml'``, ``'jsonnet'`` or ones added via
+            :func:`.set_loader`.. Defaults to "yaml".
+        dump_header (Optional[List[str]], optional): Header to include
+            as comment when dumping a config object. Defaults to None.
+        default_config_files
+            (Optional[List[Union[str, os.PathLike]]], optional):
+            Default config file locations, e.g.
+            :code:`['~/.config/myapp/*.yaml']`. Defaults to None.
+        default_env (bool, optional): Set the default value on whether
+            to parse environment variables. Defaults to False.
+        default_meta (bool, optional): Set the default value on whether
+            to include metadata in config objects. Defaults to True.
+    """
+
     def __init__(
         self,
         *args,
@@ -200,36 +250,6 @@ class ArgumentParser(JAPArgumentParser):
         default_meta: bool = True,
         **kwargs,
     ) -> None:
-        """Initializer for ArgumentParser instance. It can parse arguments from
-        a series of configuration files. Example:
-
-        >>> python main.py --config base-conf.yaml --config other-conf.yaml \\
-        >>> --param OVERRIDE_VAL
-
-        All the arguments from the initializer of `argparse.ArgumentParser
-        <https://docs.python.org/3/library/argparse.html#argparse.ArgumentParser>`_
-        are supported. Additionally it accepts:
-
-        Args:
-            env_prefix: Prefix for environment variables. ``True`` to derive
-            from ``prog``.
-            formatter_class: Class for printing help messages.
-            logger: Configures the logger, see :class:`.LoggerProperty`.
-            version: Program version which will be printed by the --version
-            argument.
-            print_config: Add this as argument to print config, set None to
-            disable.
-            parser_mode: Mode for parsing config files: ``'yaml'``,
-            ``'jsonnet'`` or ones added via :func:`.set_loader`.
-            dump_header: Header to include as comment when dumping a config
-            object.
-            default_config_files: Default config file locations, e.g.
-            :code:`['~/.config/myapp/*.yaml']`.
-            default_env: Set the default value on whether to parse environment
-            variables.
-            default_meta: Set the default value on whether to include metadata
-            in config objects.
-        """
         super().__init__(
             *args, env_prefix=env_prefix, formatter_class=formatter_class,
             exit_on_error=exit_on_error, logger=logger, version=version,
@@ -241,3 +261,5 @@ class ArgumentParser(JAPArgumentParser):
             "-c", "--config", action=ActionConfigFile,
             help="Path to a configuration file in json or yaml format."
         )
+
+# type: ignore

@@ -18,12 +18,21 @@ from os.path import join
 from os import makedirs
 from datetime import datetime
 
+# # the mock-0.3.1 dir contains testcase.py, testutils.py & mock.py
 from itwinai.parser import ConfigParser, ArgumentParser
 
-from lib.macros import PATCH_SIZE, SHAPE
+from src.macros import PATCH_SIZE, SHAPE
 
 
-def setup_config(args) -> Dict:
+def dynamic_config(args) -> Dict:
+    """Generates a configuration with values computed at runtime.
+
+    Args:
+        args (argparse.Namespace): arguments parsed from command line.
+
+    Returns:
+        Dict: configuration.
+    """
     config = {}
 
     # Paths, Folders
@@ -81,8 +90,6 @@ if __name__ == "__main__":
     parser.add_argument("--data_path", type=str,
                         default='./data/data_path')
     parser.add_argument("-n", "--run_name", default="noname", type=str)
-    parser.add_argument("-e", "--epochs", default=1, type=int)
-    parser.add_argument("-b", "--batch_size", default=32, type=int)
     parser.add_argument(
         '-d', '--download-only',
         action=argparse.BooleanOptionalAction,
@@ -90,23 +97,21 @@ if __name__ == "__main__":
         help=('Whether to download only the dataset and exit execution '
               '(suggested on login nodes of HPC systems)')
     )
+
     args = parser.parse_args()
-    global_config = setup_config(args)
+    global_config = dynamic_config(args)
 
     # Create parser for the pipeline
-    downloader_params = "pipeline.init_args.steps.download-step.init_args."
-    trainer_params = "pipeline.init_args.steps.training-step.init_args."
     pipe_parser = ConfigParser(
         config=args.pipeline,
         override_keys={
-            downloader_params + "epochs": args.epochs,
-            downloader_params + "batch_size": args.batch_size,
-            downloader_params + "data_path": args.data_path,
-            downloader_params + "global_config": global_config,
-            trainer_params + "global_config": global_config
+            "dataset_root": args.data_path,
+            "global_config": global_config
         }
     )
-    pipeline = pipe_parser.parse_pipeline()
+    pipeline = pipe_parser.parse_pipeline(
+        pipeline_nested_key='training_pipeline'
+    )
 
     if args.download_only:
         print('Downloading datasets and exiting...')

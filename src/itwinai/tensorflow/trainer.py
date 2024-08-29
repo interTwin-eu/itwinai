@@ -1,14 +1,17 @@
 """Base TensorFlow trainer module."""
-from typing import Dict, Any
+from typing import Dict, Any, Optional, List, Union, Tuple
 
 from jsonargparse import ArgumentParser
 import tensorflow as tf
+from tensorflow.data import Dataset
+from keras.callbacks import Callback
+import keras
 
 from ..components import Trainer, monitor_exec
 from itwinai.tensorflow.distributed import get_strategy
 
 
-def import_class(name):
+def _import_class(name):
     components = name.split('.')
     mod = __import__(components[0])
     for comp in components[1:]:
@@ -16,226 +19,242 @@ def import_class(name):
     return mod
 
 
-def instance_from_dict(obj_dict: Any) -> Any:
+def _instance_from_dict(obj_dict: Dict, fail_untyped: bool = True) -> Any:
     if isinstance(obj_dict, dict) and obj_dict.get('class_path') is not None:
         # obj_dict is a dictionary with a structure compliant with
         # jsonargparse
-        obj_class = import_class(obj_dict["class_path"])
+        obj_class = _import_class(obj_dict["class_path"])
         parser = ArgumentParser()
-        parser.add_subclass_arguments(obj_class, "object")
+        parser.add_subclass_arguments(
+            obj_class, "object", fail_untyped=fail_untyped)
         obj_dict = {"object": obj_dict}
         return parser.instantiate_classes(obj_dict).object
-    return obj_dict
 
-
-# TODO: the TF trainer is incomplete:
-#   - strategy is not received from constructor argument: if not needed,
-#     remove it
-#   - dataset is not distributed
-#   - much commented code that has to be removed or included
+    raise ValueError(
+        "Unable to instantiate object with this "
+        f"dict configuration: {obj_dict}.\nIt should have "
+        "valid 'class_path' and 'init_args' fields"
+    )
 
 
 class TensorflowTrainer(Trainer):
+    """Trains a Keras model.
+
+        Args:
+            epochs (int): number of training epochs.
+            micro_batch_size (int): per-worker batch size. Equals macro batch
+                size when not running distributed.
+            shuffle_buffer (Optional[int], optional): if given, shuffles
+                dataset using a buffer of given size. See
+                ``tf.data.Dataset.shuffle``. Defaults to None.
+            callbacks (Optional[List], optional): list fo Keras callbacks.
+                Can be a list of dictionary configurations. Defaults to None.
+            model_config (Optional[Dict], optional): model configuration. If
+                given, a model is instantiated from this configuration.
+                Defaults to None.
+            model_compile_config (Optional[Dict], optional): configuration for
+                ``keras.Model.compile``. Defaults to None.
+            rnd_seed (Optional[int], optional): random seed. Defaults to None.
+            verbose (Union[str, int], optional): verbosity level for
+                ``keras.Model.fit``. Defaults to 'auto'.
+    """
+
+    #: TensorFlow distributed strategy.
+    strategy: tf.distribute.Strategy
+    #: Total number of workers in distributed strategy.
+    num_workers: int
+    #: List of Keras callbacks. Defaults to None.
+    callbacks: Optional[List] = None
+    #: Total number of training epochs.
+    epochs: int
+    #: Buffer used to shuffle dataset. Defaults to None.
+    shuffle_buffer: Optional[int] = None
+    #: Per-worker batch size (when distributed).
+    micro_batch_size: int
+    #: Total batch size. When distributed, it is the sum of
+    #: ``micro_batch_size`` across all workers.
+    macro_batch_size: int
+    #: Random seed for reproducibility. Defaults to None.
+    rnd_seed: Optional[int] = None
+
     def __init__(
-            self,
-            epochs,
-            # train_dataset,
-            # validation_dataset,
-            batch_size,
-            callbacks,
-            model_dict: Dict,
-            compile_conf,
-            strategy
+        self,
+        epochs: int,
+        micro_batch_size: int,
+        shuffle_buffer: Optional[int] = None,
+        callbacks: Optional[List[Union[Dict, Callback]]] = None,
+        model_config: Optional[Dict] = None,
+        model_compile_config: Optional[Dict] = None,
+        rnd_seed: Optional[int] = None,
+        verbose: Union[str, int] = 'auto'
     ):
         super().__init__()
         self.save_parameters(**self.locals2params(locals()))
-        self.strategy = strategy
         self.epochs = epochs
-        self.batch_size = batch_size
-        self.callbacks = callbacks
-
-        # # Handle the parsing
-        # model_class = import_class(model_dict["class_path"])
-        # parser = ArgumentParser()
-        # parser.add_subclass_arguments(model_class, "model")
-        # model_dict = {"model": model_dict}
-
-        # from itwinai.models.tensorflow.mnist import MNIST_Model
-
-        # Create distributed TF vars
-        if self.strategy:
-            tf_dist_strategy, n_devices = get_strategy()
-            # get total number of workers
-            print("Number of devices: {}".format(n_devices))
-            # distribute datasets among MirroredStrategy's replicas
-            # dist_train_dataset = (
-            #     tf_dist_strategy.experimental_distribute_dataset(
-            #         train_dataset
-            #     ))
-            # dist_validation_dataset = (
-            #     tf_dist_strategy.experimental_distribute_dataset(
-            #         validation_dataset
-            #     ))
-            with self.strategy.scope():
-                # TODO: move loss, optimizer and metrics instantiation under
-                # here
-                # Ref:
-                # https://www.tensorflow.org/guide/distributed_training#use_tfdistributestrategy_with_keras_modelfit
-                # self.model: tf.keras.Model = parser.instantiate_classes(
-                #     model_dict).model
-                # TODO: add dataloaders and model instances
-                self.model: tf.keras.Model = instance_from_dict(model_dict)
-                compile_conf = self.instantiate_compile_conf(compile_conf)
-                self.model.compile(**compile_conf)
-                # print(self.model)
-                # self.model.compile(**compile_conf)
-
-                # self.model = tf.keras.Sequential([
-                #     tf.keras.layers.Conv2D(
-                #         32, 3, activation='relu', input_shape=(28, 28, 1)),
-                #     tf.keras.layers.MaxPooling2D(),
-                #     tf.keras.layers.Flatten(),
-                #     tf.keras.layers.Dense(64, activation='relu'),
-                #     tf.keras.layers.Dense(10)
-                # ])
-                # self.model = MNIST_Model()
-                # self.model.compile(loss='mse', optimizer='sgd')
-                # self.model.compile(loss=tf.keras.losses.CategoricalCrossentropy(from_logits=False),
-                #                    optimizer=tf.keras.optimizers.Adam(
-                #     learning_rate=0.001),
-                #     metrics=['accuracy'])
-
+        self.micro_batch_size = micro_batch_size
+        self.shuffle_buffer = shuffle_buffer
+        self.rnd_seed = rnd_seed
+        self.verbose = verbose
+        if callbacks is not None:
+            self.callbacks = self.instantiate_callbacks(callbacks)
         else:
-            self.model: tf.keras.Model = instance_from_dict(model_dict)
-            compile_conf = self.instantiate_compile_conf(compile_conf)
-            self.model.compile(**compile_conf)
+            self.callbacks = []
 
-        self.num_devices = (
-            self.strategy.num_replicas_in_sync if self.strategy else 1)
-        print(f"Strategy is working with: {self.num_devices} devices")
+        # Distributed strategy
+        self.strategy, self.num_workers = get_strategy()
+        print(
+            f"Distributed strategy is working with: {self.num_workers} devices"
+        )
+        self.macro_batch_size = self.micro_batch_size * self.num_workers
+
+        # Compile model from configuration, if given
+        if model_config is not None and model_compile_config is not None:
+            with self.strategy.scope():
+                self.model: tf.keras.Model = _instance_from_dict(model_config)
+                model_compile_config = self.instantiate_compile_conf(
+                    model_compile_config
+                )
+                self.model.compile(**model_compile_config)
+        else:
+            print(
+                "Either model_config or model_compile_config were not given. "
+                "Skipping automatic model compilation."
+            )
 
     @staticmethod
-    def instantiate_compile_conf(conf: Dict) -> Dict:
-        for item_name, item in conf.items():
-            conf[item_name] = instance_from_dict(item)
-        return conf
+    def instantiate_compile_conf(model_compile_config: Dict) -> Dict[str, Any]:
+        """Instantiate fields of Keras ``model.compile()`` from
+        their dictionary serialization.
+
+        Args:
+            model_compile_config (Dict): fields of Keras ``model.compile()``
+                serialized as dictionary.
+
+        Returns:
+            Dict[str, Any]: dictionary mapping compile argument names to
+            the instantiated objects.
+        """
+        final_conf = {}
+        for item_name, item in model_compile_config.items():
+            if isinstance(item, dict):
+                item = _instance_from_dict(item)
+            final_conf[item_name] = item
+        return final_conf
+
+    @staticmethod
+    def instantiate_callbacks(
+        callbacks: List[Union[Dict, Callback]]
+    ) -> List[Callback]:
+        """Instantiate Keras callbacks from dictionaries.
+
+        Args:
+            callbacks (List[Union[Dict, Callback]]): list of Keras callbacks
+            in serialized as dictionary.
+
+        Returns:
+            List[Callback]: list of instantiated callbacks.
+        """
+        final_callbacks = []
+        for item in callbacks:
+            if isinstance(item, dict):
+                # Not all constructor args in keras callbacks
+                # are typed!
+                item = _instance_from_dict(item, fail_untyped=False)
+            final_callbacks.append(item)
+        return final_callbacks
 
     @monitor_exec
-    def execute(self, train_dataset, validation_dataset) -> Any:
-        # Set batch size to the dataset
-        # train = train.batch(self.batch_size, drop_remainder=True)
-        # test = test.batch(self.batch_size, drop_remainder=True)
+    def execute(
+        self,
+        train_dataset: Dataset,
+        validation_dataset: Dataset,
+        test_dataset: Optional[Dataset] = None
+    ) -> Tuple[Dataset, Dataset, Dataset, keras.Model]:
+        """Run training. Users should override this method.
 
-        # Number of samples
-        # n_train = train.cardinality().numpy()
-        # n_test = test.cardinality().numpy()
-        print(
-            f"TRAIN CARD: {train_dataset.cardinality().numpy()} - "
-            f"LEN: {len(train_dataset)}")
-        print(next(iter(train_dataset)))
-        print(type(train_dataset))
-        # n_train = len(train) // self.batch_size
-        # n_test = len(test) // self.batch_size
+        Args:
+            train_dataset (Dataset): train dataset of type
+                ``tensorflow.data.Dataset``.
+            validation_dataset (Dataset): validation dataset of type
+                ``tensorflow.data.Dataset``.
+            test_dataset (Optional[Dataset], optional): test dataset
+                of type ``tensorflow.data.Dataset``. Defaults to None.
 
-        # TODO: read
-        # https://github.com/tensorflow/tensorflow/issues/56773#issuecomment-1188693881
-        # https://www.tensorflow.org/guide/distributed_training#use_tfdistributestrategy_with_keras_modelfit
+        Returns:
+            Tuple[Dataset, Dataset, Dataset, keras.Model]: tuple of
+            train_dataset, validation_dataset, test_dataset, and trained
+            Keras model.
+        """
 
-        # # Distribute dataset
-        # if self.strategy:
-        #     train = self.strategy.experimental_distribute_dataset(train)
-        #     test = self.strategy.experimental_distribute_dataset(test)
+        print(f"len(train_dataset): {len(train_dataset)}")
+        print(f"len(validation_dataset): {len(validation_dataset)}")
+        print("micro_batch_size: ", self.micro_batch_size, flush=True)
+        print("macro_batch_size: ", self.macro_batch_size, flush=True)
 
-        assert isinstance(train_dataset, tf.data.Dataset)
+        # Shuffle dataset
+        if self.shuffle_buffer:
+            train_ds = train_dataset.shuffle(
+                self.shuffle_buffer, seed=self.rnd_seed)
+            valid_ds = validation_dataset.shuffle(
+                self.shuffle_buffer, seed=self.rnd_seed)
+        else:
+            train_ds = train_dataset
+            valid_ds = validation_dataset
 
-        # train the model
-        history = self.model.fit(
-            train_dataset.batch(self.batch_size),
-            validation_data=validation_dataset.batch(self.batch_size),
-            # steps_per_epoch=int(n_train // self.num_devices),
-            # validation_steps=int(n_test // self.num_devices),
-            epochs=self.epochs,
-            callbacks=self.callbacks,
-            # batch_size=self.batch_size
+        # Set batch size to the dataset and repeat
+        train_ds = train_ds.batch(
+            self.macro_batch_size, drop_remainder=True,
+            num_parallel_calls=tf.data.AUTOTUNE
+        ).repeat(self.epochs)
+        valid_ds = valid_ds.batch(
+            self.macro_batch_size, drop_remainder=True,
+            num_parallel_calls=tf.data.AUTOTUNE
+        ).repeat(self.epochs)
+
+        print(f"len(train_ds): {len(train_ds)}")
+        print(f"len(valid_ds): {len(valid_ds)}")
+
+        # Distribute datasets among strategy's replica
+        dist_train_dataset = self.strategy.experimental_distribute_dataset(
+            train_ds
+        )
+        dist_valid_dataset = self.strategy.experimental_distribute_dataset(
+            valid_ds
         )
 
-        print("Model trained")
-        return history
+        print(f"len(dist_train_dataset): {len(train_ds)}")
+        print(f"len(dist_train_dataset): {len(valid_ds)}")
 
+        # Compute the steps per epoch for train and valid
+        steps_per_epoch = len(train_dataset) // self.macro_batch_size
+        validation_steps = len(validation_dataset) // self.macro_batch_size
 
-# class TensorflowTrainer2(Trainer):
-#     def __init__(
-#             self,
-#             epochs,
-#             batch_size,
-#             callbacks,
-#             model_dict: Dict,
-#             compile_conf,
-#             strategy
-#     ):
-#         super().__init__()
-#         self.strategy = strategy
-#         self.epochs = epochs
-#         self.batch_size = batch_size
-#         self.callbacks = callbacks
+        print(f"steps_per_epoch: {steps_per_epoch}")
+        print(f"validation_steps: {validation_steps}")
 
-#         # Handle the parsing
-#         model_class = import_class(model_dict["class_path"])
-#         parser = ArgumentParser()
-#         parser.add_subclass_arguments(model_class, "model")
-#         model_dict = {"model": model_dict}
+        #####################################################################
+        # Instantiate here model, optimizer, loss under the strategy scope, #
+        # if not done previously through `model_compile_config` and         #
+        # `model_config` !                                                  #
+        # Always remember that they should be instantiated under the        #
+        # distributed strategy scope: ``with self.strategy.scope():``       #
+        #                                                                   #
+        # Example:                                                          #
+        # with self.strategy.scope():                                       #
+        #   model = tf.keras.Sequential(...)                                #
+        #   optimizer = rf.keras.optimizers.Adam(...)                       #
+        #   loss = tf.keras.losses.BinaryCrossentropy(...)                  #
+        #####################################################################
 
-#         # Create distributed TF vars
-#         if self.strategy:
-#             with self.strategy.scope():
-#                 self.model = parser.instantiate_classes(model_dict).model
-#                 print(self.model)
-#                 self.model.compile(**compile_conf)
-#                 # TODO: move loss, optimizer and metrics instantiation under
-#                 # here
-#                 # Ref:
-#                 # https://www.tensorflow.org/guide/distributed_training\
-#                   #use_tfdistributestrategy_with_keras_modelfit
-#         else:
-#             self.model = parser.instantiate_classes(model_dict).model
-#             self.model.compile(**compile_conf)
-
-#         self.num_devices = (
-#             self.strategy.num_replicas_in_sync if self.strategy else 1)
-#         print(f"Strategy is working with: {self.num_devices} devices")
-
-#     def train(self, train_dataset, validation_dataset):
-#         # TODO: FIX Steps sizes in model.fit
-#         train, test = train_dataset, validation_dataset
-
-#         # Set batch size to the dataset
-#         train = train.batch(self.batch_size, drop_remainder=True)
-#         test = test.batch(self.batch_size, drop_remainder=True)
-
-#         # Number of samples
-#         n_train = train.cardinality().numpy()
-#         n_test = test.cardinality().numpy()
-
-#         # TODO: read
-#         # https://github.com/tensorflow/tensorflow/issues/56773\
-#           #issuecomment-1188693881
-#         # https://www.tensorflow.org/guide/distributed_training\
-#           #use_tfdistributestrategy_with_keras_modelfit
-
-#         # Distribute dataset
-#         if self.strategy:
-#             train = self.strategy.experimental_distribute_dataset(train)
-#             test = self.strategy.experimental_distribute_dataset(test)
-
-#         # train the model
-#         history = self.model.fit(
-#             train,
-#             validation_data=test,
-#             steps_per_epoch=int(n_train // self.num_devices),
-#             validation_steps=int(n_test // self.num_devices),
-#             epochs=self.epochs,
-#             callbacks=self.callbacks,
-#         )
-
-#         print("Model trained")
-#         return history
+        # Train the model
+        self.model.fit(
+            dist_train_dataset,
+            validation_data=dist_valid_dataset,
+            steps_per_epoch=steps_per_epoch,
+            validation_steps=validation_steps,
+            epochs=self.epochs,
+            callbacks=self.callbacks,
+            verbose=self.verbose
+        )
+        print("Training completed")
+        return train_dataset, validation_dataset, test_dataset, self.model

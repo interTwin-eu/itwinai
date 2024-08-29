@@ -4,17 +4,16 @@
 [![GitHub Super-Linter](https://github.com/interTwin-eu/T6.5-AI-and-ML/actions/workflows/check-links.yml/badge.svg)](https://github.com/marketplace/actions/markdown-link-check)
  [![SQAaaS source code](https://github.com/EOSC-synergy/itwinai.assess.sqaaas/raw/main/.badge/status_shields.svg)](https://sqaaas.eosc-synergy.eu/#/full-assessment/report/https://raw.githubusercontent.com/eosc-synergy/itwinai.assess.sqaaas/main/.report/assessment_output.json)
 
-See the latest version of our [docs](https://intertwin-eu.github.io/itwinai/)
+See the latest version of our [docs](https://itwinai.readthedocs.io/)
 for a quick overview of this platform for advanced AI/ML workflows in digital twin applications.
 
-If you want to integrate a new use case, you can follow this
-[step-by-step guide](https://intertwin-eu.github.io/itwinai/docs/How-to-use-this-software.html).
+If you are a **developer**, please refer to the [developers installation guide](#installation-for-developers).
 
-## Installation
+## User installation
 
 Requirements:
 
-- Linux environment. Windows and macOS were never tested.
+- Linux or macOS environment. Windows was never tested.
 
 ### Python virtual environment
 
@@ -29,81 +28,241 @@ or on a simple on-prem setup, you could consider using
 [installation instructions](https://github.com/pyenv/pyenv?tab=readme-ov-file#installation). If you are using pyenv,
 make sure to read [this](https://github.com/pyenv/pyenv/wiki#suggested-build-environment).
 
-#### Install itwinai environment
+#### HPC environment
 
-Regardless of how you loaded your environment, you can create the
-python virtual environments with the following commands.
-Once the correct Python version is loaded, create the virtual
-environments using our pre-make Makefile:
+In HPC systems it is more popular to load dependencies using
+Environment Modules or Lmod. If you don't know what modules to load,
+contact the system administrator
+to learn how to select the proper modules.
+
+##### PyTorch environment
+
+Commands to execute every time **before** installing or activating the python virtual
+environment for PyTorch:
+
+- Juelich Supercomputer (JSC):
+
+    ```bash
+    ml --force purge
+    ml Stages/2024 GCC OpenMPI CUDA/12 cuDNN MPI-settings/CUDA
+    ml Python CMake HDF5 PnetCDF libaio mpi4py
+    ```
+
+- Vega supercomputer:
+
+    ```bash
+    ml --force purge
+    ml Python CMake/3.24.3-GCCcore-11.3.0 mpi4py OpenMPI CUDA/11.7
+    ml GCCcore/11.3.0 NCCL/2.12.12-GCCcore-11.3.0-CUDA-11.7.0 cuDNN
+    ```
+
+##### TensorFlow environment
+
+Commands to execute every time **before** installing or activating the python virtual
+environment for TensorFlow:
+
+- Juelich Supercomputer (JSC):
+
+    ```bash
+    ml --force purge
+    ml Stages/2024 GCC/12.3.0 OpenMPI CUDA/12 MPI-settings/CUDA
+    ml Python/3.11 HDF5 PnetCDF libaio mpi4py CMake cuDNN/8.9.5.29-CUDA-12
+    ```
+
+- Vega supercomputer:
+
+    ```bash
+    ml --force purge
+    ml Python CMake/3.24.3-GCCcore-11.3.0 mpi4py OpenMPI CUDA/11.7
+    ml GCCcore/11.3.0 NCCL/2.12.12-GCCcore-11.3.0-CUDA-11.7.0 cuDNN
+    ```
+
+### Install itwinai
+
+Install itwinai and its dependencies using the
+following command, and follow the instructions:
 
 ```bash
-make torch-env # or make torch-env-cpu
-make tensorflow-env # or make tensorflow-env-cpu
+# First, load the required environment modules, if on an HPC
 
-# Juelich supercomputer
-make torch-gpu-jsc
-make tf-gpu-jsc
+# Second, create a python virtual environment and activate it
+$ python -m venv ENV_NAME
+$ source ENV_NAME/bin/activate
+
+# Install itwinai inside the environment
+(ENV_NAME) $ export ML_FRAMEWORK="pytorch" # or "tensorflow"
+(ENV_NAME) $ curl -fsSL https://github.com/interTwin-eu/itwinai/raw/main/env-files/itwinai-installer.sh | bash
 ```
 
-## Environment setup
+The `ML_FRAMEWORK` environment variable controls whether you are installing
+itwinai for PyTorch or TensorFlow.
 
-Requirements:
+> [!WARNING]  
+> itwinai depends on Horovod, which requires `CMake>=1.13` and
+> [other packages](https://horovod.readthedocs.io/en/latest/install_include.html#requirements).
+> Make sure to have them installed in your environment before proceeding.
 
-- Linux environment. Windows and macOS were never tested.
-- VS Code, for development.
+## Installation for developers
 
-### TensorFlow
+If you are contributing to this repository, please continue below for
+more advanced instructions.
 
-Installation:
+> [!WARNING]
+> Branch protection rules are applied to all branches which names
+> match this regex: `[dm][ea][vi]*` . When creating new branches,
+> please avoid using names that match that regex, otherwise branch
+> protection rules will block direct pushes to that branch.
+
+### Clone the itwinai repository
 
 ```bash
-# Install TensorFlow 2.13
-make tensorflow-env
-
-# Activate env
-source .venv-tf/bin/activate
+git clone git@github.com:interTwin-eu/itwinai.git
 ```
 
-A CPU-only version is available at the target `tensorflow-env-cpu`.
+### Install itwinai environment
 
-### PyTorch (+ Lightning)
+You can create the
+Python virtual environments using our predefined Makefile targets.
 
-Installation:
+#### PyTorch (+ Lightning) virtual environment
+
+Makefile targets for environment installation:
+
+- Juelich Supercomputer (JSC): `torch-gpu-jsc`
+- Vega supercomputer: `torch-env-vega`
+- In any other cases, when CUDA is available: `torch-env`
+- In any other cases, when CUDA **NOT** is available (CPU-only installation): `torch-env-cpu`
+
+For instance, on a laptop with a CUDA-compatible GPU you can use:
 
 ```bash
-# Install PyTorch + lightning
-make torch-env
+make torch-env 
+```
 
-# Activate env
+When not on an HPC system, you can activate the python environment directly with:
+
+```bash
 source .venv-pytorch/bin/activate
 ```
 
-A CPU-only version is available at the target `torch-env-cpu`.
+Otherwise, if you are on an HPC system, please refer to
+[this section](#activate-itwinai-environment-on-hpc)
+explaining how to load the required environment modules before the python environment.
 
-### Development environment
+#### TensorFlow virtual environment
 
-This is for developers only. To have it, update the installed `itwinai` package
-adding the `dev` extra:
+Makefile targets for environment installation:
+
+- Juelich Supercomputer (JSC): `tf-gpu-jsc`
+- Vega supercomputer: `tf-env-vega`
+- In any other case, when CUDA is available: `tensorflow-env`
+- In any other case, when CUDA **NOT** is available (CPU-only installation): `tensorflow-env-cpu`
+
+For instance, on a laptop with a CUDA-compatible GPU you can use:
 
 ```bash
-pip install -e .[dev]
+make tensorflow-env
 ```
 
-#### Test with `pytest`
+When not on an HPC system, you can activate the python environment directly with:
+
+```bash
+source .venv-tf/bin/activate
+```
+
+Otherwise, if you are on an HPC system, please refer to
+[this section](#activate-itwinai-environment-on-hpc)
+explaining how to load the required environment modules before the python environment.
+
+### Activate itwinai environment on HPC
+
+Usually, HPC systems organize their software in modules which need to be imported by the users
+every time they open a new shell, **before** activating a Python virtual environment.
+
+Below you can find some examples on how to load the correct environment modules on the HPC
+systems we are currently working with.
+
+#### Load modules before PyTorch virtual environment
+
+Commands to be executed before activating the python virtual environment:
+
+- Juelich Supercomputer (JSC):
+
+    ```bash
+    ml --force purge
+    ml Stages/2024 GCC OpenMPI CUDA/12 cuDNN MPI-settings/CUDA
+    ml Python CMake HDF5 PnetCDF libaio mpi4py
+    ```
+
+- Vega supercomputer:
+
+    ```bash
+    ml --force purge
+    ml Python CMake/3.24.3-GCCcore-11.3.0 mpi4py OpenMPI CUDA/11.7
+    ml GCCcore/11.3.0 NCCL/2.12.12-GCCcore-11.3.0-CUDA-11.7.0 cuDNN
+    ```
+
+- When not on an HPC: do nothing.
+
+For instance, on JSC you can activate the PyTorch virtual environment in this way:
+
+```bash
+# Load environment modules
+ml --force purge
+ml Stages/2024 GCC OpenMPI CUDA/12 cuDNN MPI-settings/CUDA
+ml Python CMake HDF5 PnetCDF libaio mpi4py
+
+# Activate virtual env
+source envAI_hdfml/bin/activate
+```
+
+#### Load modules before TensorFlow virtual environment
+
+Commands to be executed before activating the python virtual environment:
+
+- Juelich Supercomputer (JSC):
+
+    ```bash
+    ml --force purge
+    ml Stages/2024 GCC/12.3.0 OpenMPI CUDA/12 MPI-settings/CUDA
+    ml Python/3.11 HDF5 PnetCDF libaio mpi4py CMake cuDNN/8.9.5.29-CUDA-12
+    ```
+
+- Vega supercomputer:
+
+    ```bash
+    ml --force purge
+    ml Python CMake/3.24.3-GCCcore-11.3.0 mpi4py OpenMPI CUDA/11.7
+    ml GCCcore/11.3.0 NCCL/2.12.12-GCCcore-11.3.0-CUDA-11.7.0 cuDNN
+    ```
+
+- When not on an HPC: do nothing.
+
+For instance, on JSC you can activate the TensorFlow virtual environment in this way:
+
+```bash
+# Load environment modules
+ml --force purge
+ml Stages/2024 GCC/12.3.0 OpenMPI CUDA/12 MPI-settings/CUDA
+ml Python/3.11 HDF5 PnetCDF libaio mpi4py CMake cuDNN/8.9.5.29-CUDA-12
+
+# Activate virtual env
+source envAItf_hdfml/bin/activate
+```
+
+### Test with `pytest`
 
 Do this only if you are a developer wanting to test your code with pytest.
 
-First, you need to create virtual environments both for torch and tensorflow.
-For instance, you can use:
+First, you need to create virtual environments both for torch and tensorflow,
+following the instructions above, depending on the system that you are using
+(e.g., JSC).
 
-```bash
-make torch-env-cpu
-make tensorflow-env-cpu
-```
-
-To select the name of the torch and tf environments you can set the following
-environment variables, which allow to run the tests in environments with
-custom names which are different from `.venv-pytorch` and `.venv-tf`.
+To select the name of the torch and tf environments in which the tests will be
+executed you can set the following environment variables.
+If these env variables are not set, the testing suite will assume that the
+PyTorch environment is under
+`.venv-pytorch` and the TensorFlow environment is under `.venv-tf`.
 
 ```bash
 export TORCH_ENV="my_torch_env"
@@ -111,7 +270,7 @@ export TF_ENV="my_tf_env"
 ```
 
 Functional tests (marked with `pytest.mark.functional`) will be executed under
-`/tmp/pytest` location to guarantee they are run in a clean environment.
+`/tmp/pytest` location to guarantee isolation among tests.
 
 To run functional tests use:
 
@@ -119,18 +278,25 @@ To run functional tests use:
 pytest -v tests/ -m "functional"
 ```
 
-To run all tests on itwinai package:
+> [!NOTE]
+> Depending on the system that you are using, we implemented a tailored Makefile
+> target to run the test suite on it. Read these instructions until the end!
+
+We provide some Makefile targets to run the whole test suite including unit, integration,
+and functional tests. Choose the right target depending on the system that you are using:
+
+Makefile targets:
+
+- Juelich Supercomputer (JSC): `test-jsc`
+- In any other case: `test`
+
+For instance, to run the test suite on your laptop user:
 
 ```bash
 make test
 ```
 
-Run tests in JSC virtual environments:
-
-```bash
-make test-jsc
-```
-
+<!--
 ### Micromamba installation (deprecated)
 
 To manage Conda environments we use micromamba, a light weight version of conda.
@@ -160,3 +326,5 @@ echo 'PATH="$(dirname $MAMBA_EXE):$PATH"' >> ~/.bashrc
 ```
 
 **Reference**: [Micromamba installation guide](https://mamba.readthedocs.io/en/latest/installation/micromamba-installation.html).
+
+-->

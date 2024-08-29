@@ -8,8 +8,7 @@ from torch.utils.data import DataLoader, Dataset
 
 from ..utils import dynamically_import_class, clear_key
 from ..components import Predictor, monitor_exec
-from .types import TorchDistributedStrategy as StrategyT
-from .types import Metric, Batch
+from .type import Batch
 from ..serialization import ModelLoader
 
 
@@ -70,34 +69,23 @@ class TorchModelLoader(ModelLoader):
 class TorchPredictor(Predictor):
     """Applies a pre-trained torch model to unseen data."""
 
+    #: Pre-trained PyTorch model used to make predictions.
     model: nn.Module = None
+    #: ``Dataset`` on which to make predictions (ML inference).
     test_dataset: Dataset
+    #: ``DataLoader`` for test dataset.
     test_dataloader: DataLoader = None
-    _strategy: StrategyT = StrategyT.NONE.value
-    epoch_idx: int = 0
-    train_glob_step: int = 0
-    validation_glob_step: int = 0
-    train_metrics: Dict[str, Metric]
-    validation_metrics: Dict[str, Metric]
 
     def __init__(
         self,
         model: Union[nn.Module, ModelLoader],
         test_dataloader_class: str = 'torch.utils.data.DataLoader',
         test_dataloader_kwargs: Optional[Dict] = None,
-        # strategy: str = StrategyT.NONE.value,
-        # seed: Optional[int] = None,
-        # logger: Optional[List[Logger]] = None,
-        # cluster: Optional[ClusterEnvironment] = None,
-        # test_metrics: Optional[Dict[str, Metric]] = None,
         name: str = None
     ) -> None:
         super().__init__(model=model, name=name)
         self.save_parameters(**self.locals2params(locals()))
         self.model = self.model.eval()
-        # self.seed = seed
-        # self.strategy = strategy
-        # self.cluster = cluster
 
         # Train and validation dataloaders
         self.test_dataloader_class = dynamically_import_class(
@@ -110,18 +98,6 @@ class TorchPredictor(Predictor):
         self.test_dataloader_kwargs = clear_key(
             test_dataloader_kwargs, 'train_dataloader_kwargs', 'dataset'
         )
-
-        # # Loggers
-        # self.logger = logger if logger is not None else ConsoleLogger()
-
-        # # Metrics
-        # self.train_metrics = (
-        #     {} if train_metrics is None else train_metrics
-        # )
-        # self.validation_metrics = (
-        #     self.train_metrics if validation_metrics is None
-        #     else validation_metrics
-        # )
 
     @monitor_exec
     def execute(
@@ -167,7 +143,7 @@ class TorchPredictor(Predictor):
     def transform_predictions(self, batch: Batch) -> Batch:
         """
         Post-process the predictions of the torch model (e.g., apply
-        threshold in case of multilabel classifier).
+        threshold in case of multi-label classifier).
         """
 
 
@@ -189,7 +165,9 @@ class MultilabelTorchPredictor(TorchPredictor):
     output of the neural network.
     """
 
-    threshold: float
+    #: Threshold to transform probabilities into class predictions.
+    #: Defaults to 0.5.
+    threshold: float = 0.5
 
     def __init__(
         self,

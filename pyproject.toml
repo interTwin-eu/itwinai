@@ -8,26 +8,28 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "itwinai"
-version = "0.0.1"
+version = "0.2.2"
 description = "AI and ML workflows module for scientific digital twins."
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 license = { file = "LICENSE" }
 keywords = ["ml", "ai", "hpc"]
 authors = [
     { name = "Matteo Bunino", email = "matteo.bunino@cern.ch" },
-    { name = "Alexander Zoechbauer", email = "alexander.zoechbauer@cern.ch" },
     { name = "Rakesh Sarma", email = "r.sarma@fz-juelich.de" },
     { name = "Mario Ruettgers", email = "m.ruettgers@fz-juelich.de" },
-    { name = "Eric Wulff", email = "eric.wulff@cern.ch" },
+    { name = "Kalliopi Tsolaki", email = "kalliopi.tsolaki@cern.ch" },
 ]
 maintainers = [
     { name = "Matteo Bunino", email = "matteo.bunino@cern.ch" },
-    { name = "Alexander Zoechbauer", email = "alexander.zoechbauer@cern.ch" },
     { name = "Rakesh Sarma", email = "r.sarma@fz-juelich.de" },
     { name = "Mario Ruettgers", email = "m.ruettgers@fz-juelich.de" },
+    { name = "Kalliopi Tsolaki", email = "kalliopi.tsolaki@cern.ch" },
 ]
-classifiers = ["Development Status :: Beta", "Programming Language :: Python"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Programming Language :: Python",
+]
 
 dependencies = [
     "wandb",
@@ -38,6 +40,9 @@ dependencies = [
     "rich>=13.5.3",
     "typer>=0.9.0",
     "wheel",
+    "pydantic",
+    "prov4ml@git+https://github.com/HPCI-Lab/ProvML@main", # Prov4ML
+    "pandas",
 ]
 
 # dynamic = ["version", "description"]
@@ -58,6 +63,7 @@ dev = [
     "pytest-cov>=4.1.0",
     "ipykernel",
     "ipython",
+    "tensorflow==2.16.*",  # needed by tests on tensorboard
 ]
 
 [project.urls]

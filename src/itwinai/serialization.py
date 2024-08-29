@@ -5,7 +5,7 @@ import yaml
 from pathlib import Path
 import inspect
 
-from .types import MLModel
+from .type import MLModel
 from .utils import SignatureInspector
 
 
@@ -30,6 +30,8 @@ class SerializationError(Exception):
 
 
 class Serializable:
+    #: Dictionary storing constructor arguments. Needed to serialize the
+    #: class to dictionary. Set by ``self.save_parameters()`` method.
     parameters: Dict[Any, Any] = None
 
     def save_parameters(self, **kwargs) -> None:
@@ -50,9 +52,9 @@ class Serializable:
 
         Args:
             locals (Dict): output of ``locals()`` called in the constructor
-            of a class.
+                of a class.
             pop_self (bool, optional): whether to remove ``self``.
-            Defaults to True.
+                Defaults to True.
 
         Returns:
             Dict: cleaned ``locals()``.

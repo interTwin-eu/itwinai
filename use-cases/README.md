@@ -1,10 +1,9 @@
-# itwinai use cases
+# interTwin use cases integrated into itwinai
 
-Show how `itwinai` can be used. Each use case folder contains:
+Show how `itwinai` can be used to support scientific use cases. Each use case folder contains:
 
-- `pipeline.yaml`: textual description of the ML workflow for that use case
-- `train.py`: entry point of training workflow.
-- `startscript`: file to execute the training workflow on a SLURM-based cluster.
+- A YAML configuration file describing the ML workflows for that use case.
+- A SLURM job script, used to execute the ML workflows on a SLURM-based cluster.
 - `requirements.txt`: (optional) use case-specific requirements. can be installed with:
   
   ```bash
@@ -28,15 +27,7 @@ Alternatively, you can use the use case Docker image, if available.
 Then, go to the use case's directory:
 
 ```bash
-cd /use/case/path
+cd use/case/path
 ```
 
-From here you can run the use case (having activated the correct Python env):
-
-```bash
-# Locally
-python train.py [OPTIONS...]
-
-# With SLURM: stdout and stderr will be saved to job.out and job.err files
-sbatch startscript
-```
+From there you can run the use case following the instruction provided in the use case's folder.

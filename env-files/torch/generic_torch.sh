@@ -3,10 +3,21 @@
 # ENV VARIABLES:
 #   - ENV_NAME: set custom name for virtual env. Default: ".venv-pytorch"
 #   - NO_CUDA: if set, install without cuda support
+#   - PIP_INDEX_TORCH_CUDA: pip index to be used to install torch with CUDA. Defaults to https://download.pytorch.org/whl/cu121
 
 # Detect custom env name from env
 if [ -z "$ENV_NAME" ]; then
   ENV_NAME=".venv-pytorch"
+fi
+
+if [ -z "$NO_CUDA" ]; then
+  echo "Installing itwinai and its dependencies in '$ENV_NAME' virtual env (CUDA enabled)"
+else
+  echo "Installing itwinai and its dependencies in '$ENV_NAME' virtual env (CUDA disabled)"
+fi
+
+if [ -z "$PIP_INDEX_TORCH_CUDA" ]; then
+  PIP_INDEX_TORCH_CUDA="https://download.pytorch.org/whl/cu121"
 fi
 
 # get python version
@@ -27,7 +38,7 @@ if [ -d "${cDir}/$ENV_NAME" ];then
 
   source $ENV_NAME/bin/activate
 else
-  python3 -m venv $ENV_NAME
+  python -m venv $ENV_NAME
 
   # activate env
   source $ENV_NAME/bin/activate
@@ -35,22 +46,27 @@ else
   echo "$ENV_NAME environment is created in ${cDir}"
 fi
 
-pip3 install --upgrade pip
+pip install --upgrade pip
 
-# get wheel -- setuptools extension
-pip3 install --no-cache-dir wheel
+pip install --no-cache-dir packaging wheel
 
 # install Torch
 if [ -f "${cDir}/$ENV_NAME/bin/torchrun" ]; then
   echo 'Torch already installed'
 else
-  if [ -z "$NO_CUDA" ]; then
-    pip3 install --no-cache-dir \
-      torch==2.1.* torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
+  if [ -z "$NO_CUDA" ] ; then
+    pip install --no-cache-dir \
+    torch==2.1.* torchvision torchaudio --index-url "$PIP_INDEX_TORCH_CUDA"
   else
-    # CPU only installation 
-    pip3 install --no-cache-dir \
-      torch==2.1.* torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
+    # CPU only installation for MacOS
+    if [[ "$OSTYPE" =~ ^darwin ]] ; then
+      pip install --no-cache-dir \
+        torch==2.2.0 torchvision==0.17.0 torchaudio==2.2.0
+    else
+    # CPU only installation for other OSs
+      pip install --no-cache-dir \
+         torch==2.1.* torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
+    fi
   fi
 fi
 
@@ -58,7 +74,11 @@ fi
 if [ -f "${cDir}/$ENV_NAME/bin/ray" ]; then
   echo 'Ray already installed'
 else
-  pip3 install --no-cache-dir ray ray[tune]
+  if [[ "$OSTYPE" =~ ^darwin ]] ; then
+    echo 'Installation issues: Skipping Ray installation for MacOS'
+  else
+    pip install --no-cache-dir ray ray[tune]
+  fi
 fi
 
 # install deepspeed
@@ -74,10 +94,10 @@ else
     export DS_BUILD_TRANSFORMER=1
     export DS_BUILD_STOCHASTIC_TRANSFORMER=1
     export DS_BUILD_TRANSFORMER_INFERENCE=1
-    pip3 install --no-cache-dir DeepSpeed
+    pip install --no-cache-dir DeepSpeed
   else
     # CPU only installation
-    pip3 install deepspeed
+    pip install deepspeed
   fi
 
   # fix .triton/autotune/Fp16Matmul_2d_kernel.pickle bug
@@ -129,20 +149,20 @@ else
 #   tar czf horovod.tar.gz horovod
   
 #   # install
-#   pip3 install --no-cache-dir horovod.tar.gz
+#   pip install --no-cache-dir horovod.tar.gz
 #   rm -rf horovod horovod.tar.gz
 
   # Cleaner Horovod installation
 	# https://github.com/horovod/horovod/pull/3998
   # Assume that Horovod env vars are already in the current env!
-  pip3 install --no-cache-dir git+https://github.com/thomas-bouvier/horovod.git@compile-cpp17
+  pip install --no-cache-dir git+https://github.com/thomas-bouvier/horovod.git@compile-cpp17
 fi
 
 # get required libraries in reqs.txt
 if [ -f "${cDir}/$ENV_NAME/lib/python${pver}/site-packages/torchnlp/_third_party/weighted_random_sampler.py" ]; then
    echo 'required libs already exist'
 else
-#   pip3 install -r Scripts/reqs.txt --no-cache-dir
+#   pip install -r Scripts/reqs.txt --no-cache-dir
 
   # fix int bug: modify l.4 of /torchnlp/_third_party/weighted_random_sampler.py
   var='int_classes = int'
@@ -151,4 +171,4 @@ else
 fi
 
 # Install itwinai
-pip3 install -e .[dev,torch]
+pip install -e .[dev,torch]

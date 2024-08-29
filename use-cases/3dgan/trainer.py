@@ -1,21 +1,25 @@
 import os
 import sys
 from typing import Union, Dict, Optional, Any
+import tempfile
+import yaml
 
 import torch
 from torch import Tensor
 import lightning as pl
 from lightning.pytorch.cli import LightningCLI
+from lightning.pytorch import Trainer as LightningTrainer
 
 from itwinai.components import Trainer, Predictor, monitor_exec
 from itwinai.serialization import ModelLoader
 from itwinai.torch.inference import TorchModelLoader
-from itwinai.torch.types import Batch
+from itwinai.torch.type import Batch
 from itwinai.utils import load_yaml
-from itwinai.torch.mlflow import (
-    init_lightning_mlflow,
-    teardown_lightning_mlflow
-)
+# from itwinai.torch.mlflow import (
+#     init_lightning_mlflow,
+#     teardown_lightning_mlflow
+# )
+from itwinai.loggers import Logger
 
 
 from model import ThreeDGAN
@@ -23,28 +27,30 @@ from dataloader import ParticlesDataModule
 
 
 class Lightning3DGANTrainer(Trainer):
-    def __init__(self, config: Union[Dict, str], exp_root: str = '.'):
+    def __init__(
+        self,
+        config: Union[Dict, str],
+        itwinai_logger: Optional[Logger] = None
+    ):
         self.save_parameters(**self.locals2params(locals()))
         super().__init__()
         if isinstance(config, str) and os.path.isfile(config):
             # Load from YAML
             config = load_yaml(config)
         self.conf = config
-        self.exp_root = exp_root
+        self.itwinai_logger = itwinai_logger
 
     @monitor_exec
     def execute(self) -> Any:
-        init_lightning_mlflow(
-            self.conf,
-            tmp_dir=os.path.join(self.exp_root, '.tmp'),
-            registered_model_name='3dgan-lite'
-        )
+
+        # Parse lightning configuration
         old_argv = sys.argv
         sys.argv = ['some_script_placeholder.py']
         cli = LightningCLI(
             args=self.conf,
             model_class=ThreeDGAN,
             datamodule_class=ParticlesDataModule,
+            trainer_class=LightningTrainer,
             run=False,
             save_config_kwargs={
                 "overwrite": True,
@@ -54,8 +60,35 @@ class Lightning3DGANTrainer(Trainer):
             subclass_mode_data=True,
         )
         sys.argv = old_argv
-        cli.trainer.fit(cli.model, datamodule=cli.datamodule)
-        teardown_lightning_mlflow()
+
+        # Get current worker rank (assuming torchrun launcher)
+        global_rank = int(os.getenv('RANK', 0))
+
+        with self.itwinai_logger.start_logging(rank=global_rank):
+            # Set the logger into the LightningTrainer
+            cli.trainer.itwinai_logger = self.itwinai_logger
+
+            # Start training
+            cli.trainer.fit(cli.model, datamodule=cli.datamodule)
+
+            self._log_config(self.itwinai_logger)
+            self.itwinai_logger.log(
+                cli.trainer.train_dataloader,
+                "train_dataloader",
+                kind='torch'
+            )
+            self.itwinai_logger.log(
+                cli.trainer.val_dataloaders,
+                "val_dataloader",
+                kind='torch'
+            )
+
+    def _log_config(self, logger: Logger):
+        with tempfile.TemporaryDirectory(dir='/tmp') as tmp_dir:
+            local_yaml_path = os.path.join(tmp_dir, 'pl-conf.yaml')
+            with open(local_yaml_path, 'w') as outfile:
+                yaml.dump(self.conf, outfile, default_flow_style=False)
+            logger.log(local_yaml_path, 'lightning-config', kind='artifact')
 
 
 class LightningModelLoader(TorchModelLoader):

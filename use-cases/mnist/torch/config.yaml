@@ -16,6 +16,8 @@ inference_model_mlflow_uri: mnist-pre-trained.pth
 predictions_dir: mnist-predictions
 predictions_file: predictions.csv
 class_labels: null
+checkpoints_location: checkpoints
+checkpoint_every: 1
 
 # Workflows configuration
 training_pipeline:
@@ -32,10 +34,11 @@ training_pipeline:
         init_args:
           config:
             batch_size: ${batch_size}
-            num_workers: ${num_workers_dataloader}
-            pin_memory: ${pin_memory}
-            lr: ${lr}
-            momentum: ${momentum}
+            num_workers_dataloader: ${num_workers_dataloader}
+            pin_gpu_memory: ${pin_memory}
+            optimizer: sgd
+            optim_lr: ${lr}
+            optim_momentum: ${momentum}
             fp16_allreduce: ${fp16_allreduce}
             use_adasum: ${use_adasum}
             gradient_predivide_factor: ${gradient_predivide_factor}
@@ -68,12 +71,9 @@ training_pipeline:
                     experiment_name: MNIST classifier
                     log_freq: batch 
           strategy: ${strategy}
-          # checkpoint_every: 1
-          # cluster:
-          #   class_path: itwinai.torch.cluster.LocalCluster
-          #   init_args:
-          #     gpus: '0,1,2'
-          #     backend: nccl
+          checkpoint_every: ${checkpoint_every}
+          checkpoints_location: ${checkpoints_location}
+
 
 inference_pipeline:
   class_path: itwinai.pipeline.Pipeline

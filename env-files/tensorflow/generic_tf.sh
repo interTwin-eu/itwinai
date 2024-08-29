@@ -9,6 +9,12 @@ if [ -z "$ENV_NAME" ]; then
   ENV_NAME=".venv-tf"
 fi
 
+if [ -z "$NO_CUDA" ]; then
+  echo "Installing itwinai and its dependencies in '$ENV_NAME' virtual env (CUDA enabled)"
+else
+  echo "Installing itwinai and its dependencies in '$ENV_NAME' virtual env (CUDA disabled)"
+fi
+
 # get python version
 pver="$(python --version 2>&1 | awk '{print $2}' | cut -f1-2 -d.)"
 
@@ -45,12 +51,11 @@ if [ -f "${cDir}/$ENV_NAME/bin/tensorboard" ]; then
   echo 'TF already installed'
   echo
 else
-  # export TMPDIR=${cDir}
   if [ -z "$NO_CUDA" ]; then
-    pip3 install --upgrade tensorflow[and-cuda]==2.13.* --no-cache-dir
+    pip3 install tensorflow[and-cuda]==2.16.* --no-cache-dir
   else
     # CPU only installation
-    pip3 install --upgrade tensorflow==2.13.* --no-cache-dir
+    pip3 install tensorflow==2.16.* --no-cache-dir
   fi
 fi
 
@@ -75,11 +80,11 @@ fi
 # fi
 
 # WHEN USING TF >= 2.16:
-# # install legacy version of keras (2.16)
-# # Since TF 2.16, keras updated to 3.3,
-# # which leads to an error when more than 1 node is used
-# # https://keras.io/getting_started/
-# pip3 install tf_keras
+# install legacy version of keras (2.16)
+# Since TF 2.16, keras updated to 3.3,
+# which leads to an error when more than 1 node is used
+# https://keras.io/getting_started/
+pip3 install tf_keras
 
 # itwinai
 pip3 install -e .[dev]
