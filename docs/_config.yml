@@ -1,0 +1,26 @@
+title: itwinai 
+description: Docs for task T6.5 prototype of interTwin project
+theme: just-the-docs
+
+url: https://interTwin-eu.github.io/itwinai
+
+aux_links:
+  Template Repository: https://github.com/interTwin-eu/itwinai
+
+favicon_ico: "favicon.ico"
+
+nav_external_links:
+  - title: itwinai on GitHub
+    url: https://github.com/interTwin-eu/itwinai
+    hide_icon: false # set to true to hide the external link icon - defaults to false
+  - title: interTwin on GitHub
+    url: https://github.com/interTwin-eu/
+    hide_icon: false # set to true to hide the external link icon - defaults to false
+  - title: interTwin project
+    url: https://www.intertwin.eu/
+    hide_icon: false # set to true to hide the external link icon - defaults to false
+
+mermaid:
+  # Version of mermaid library
+  # Pick an available version from https://cdn.jsdelivr.net/npm/mermaid/
+  version: "10.1.0"
