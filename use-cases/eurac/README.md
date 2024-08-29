@@ -71,3 +71,5 @@ Launch the hpo expirement:
 ```bash
 sbatch startscript_hpo.sh
 ```
+
+Visualize the HPO results by running `python visualize_hpo.py`. Adjust the `main_dir = '/p/home/jusers/<username>/hdfml/ray_results/<specific run folder name>'` accordingly based on the run folder name, the results path can be got from your slurm output file at the top.
