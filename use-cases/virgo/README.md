@@ -83,7 +83,7 @@ itwinai scalability-report --help
 itwinai scalability-report --pattern="^epoch.+\.csv$" \
     --plot-title "Virgo usecase scaling" --archive virgo_scaling
 ```
-
+ /p/project1/intertwin/<user-name>/itwinai/use-cases/eurac
 
 ## Running HPO for EURAC Non-distributed
 
