@@ -49,7 +49,10 @@ dependencies = [
 # dynamic = ["version", "description"]
 
 [project.optional-dependencies]
-torch = ["lightning==2.*", "torchmetrics"]
+
+# Torch should be already installed, but it is specified here to
+# prevent itwinai dependencies from cheing its version.
+torch = ["torch==2.1.*", "lightning==2.*", "torchmetrics"]
 # torch-cpu = [
 #     "torch==2.1.*",
 #     "torchvision",

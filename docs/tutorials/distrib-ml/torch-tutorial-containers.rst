@@ -1,5 +1,8 @@
-GAN tutorial with PyTorch
+itwinai and containers (Docker and Singularity)
 =========================
+
+In this tutorial you will learn how to use itwinai's containers images to run your ML workflows
+without having to setup the python environment by means of virtual environments.
 
 .. include:: ../../../tutorials/distributed-ml/torch-tutorial-containers/README.md
    :parser: myst_parser.sphinx_
