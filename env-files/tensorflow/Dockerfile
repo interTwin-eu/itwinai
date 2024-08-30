@@ -22,3 +22,8 @@ USER jovyan:jovyan
 
 # ENTRYPOINT [ "/bin/sh" ]
 # CMD [  ]
+
+LABEL org.opencontainers.image.source=https://github.com/interTwin-eu/itwinai
+LABEL org.opencontainers.image.description="Base itwinai image with tensorflow dependencies and CUDA drivers"
+LABEL org.opencontainers.image.licenses=MIT
+LABEL maintainer="Matteo Bunino - matteo.bunino@cern.ch"

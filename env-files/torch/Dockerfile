@@ -25,3 +25,8 @@ RUN groupadd -g 10001 jovyan \
     && useradd -m -u 10000 -g jovyan jovyan \
     && chown -R jovyan:jovyan /usr/src/app
 USER jovyan:jovyan
+
+LABEL org.opencontainers.image.source=https://github.com/interTwin-eu/itwinai
+LABEL org.opencontainers.image.description="Base itwinai image with torch dependencies and CUDA drivers"
+LABEL org.opencontainers.image.licenses=MIT
+LABEL maintainer="Matteo Bunino - matteo.bunino@cern.ch"

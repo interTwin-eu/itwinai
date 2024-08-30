@@ -11,7 +11,7 @@ from itwinai.loggers import (
     LoggersCollection,
     Prov4MLLogger
 )
-from prov4ml.provenance.context import Context
+# from prov4ml.provenance.context import Context
 
 
 @pytest.fixture(scope="module")
