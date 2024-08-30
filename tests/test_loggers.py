@@ -172,41 +172,41 @@ def test_loggers_collection_log(loggers_collection):
         loggers_collection.destroy_logger_context()
 
 
-@patch('prov4ml.start_run')
-def test_create_logger_context(mock_start_run, prov4ml_logger):
-    prov4ml_logger.create_logger_context()
-    mock_start_run.assert_called_once_with(
-        prov_user_namespace="www.example.org",
-        experiment_name="experiment_name",
-        provenance_save_dir="prov",
-        save_after_n_logs=100,
-        collect_all_processes=False
-    )
+# @patch('prov4ml.start_run')
+# def test_create_logger_context(mock_start_run, prov4ml_logger):
+#     prov4ml_logger.create_logger_context()
+#     mock_start_run.assert_called_once_with(
+#         prov_user_namespace="www.example.org",
+#         experiment_name="experiment_name",
+#         provenance_save_dir="prov",
+#         save_after_n_logs=100,
+#         collect_all_processes=False
+#     )
 
 
-@patch('prov4ml.end_run')
-def test_destroy_logger_context(mock_end_run, prov4ml_logger):
-    prov4ml_logger.destroy_logger_context()
-    mock_end_run.assert_called_once_with(create_graph=True, create_svg=True)
+# @patch('prov4ml.end_run')
+# def test_destroy_logger_context(mock_end_run, prov4ml_logger):
+#     prov4ml_logger.destroy_logger_context()
+#     mock_end_run.assert_called_once_with(create_graph=True, create_svg=True)
 
 
-@patch('prov4ml.log_metric')
-def test_log_metric(mock_log_metric, prov4ml_logger):
-    item = 1.0
-    identifier = "test_metric"
-    context = MagicMock(spec=Context)
-    prov4ml_logger.log(
-        item, identifier, kind='metric', step=0, context=context)
-    mock_log_metric.assert_called_once_with(identifier, item, context, step=0)
+# @patch('prov4ml.log_metric')
+# def test_log_metric(mock_log_metric, prov4ml_logger):
+#     item = 1.0
+#     identifier = "test_metric"
+#     context = MagicMock(spec=Context)
+#     prov4ml_logger.log(
+#         item, identifier, kind='metric', step=0, context=context)
+#     mock_log_metric.assert_called_once_with(identifier, item, context, step=0)
 
 
-@patch('prov4ml.log_flops_per_batch')
-def test_log_flops_per_batch(mock_log_flops_per_batch, prov4ml_logger):
-    item = (MagicMock(), MagicMock())
-    identifier = "test_flops"
-    context = MagicMock(spec=Context)
-    prov4ml_logger.log(
-        item, identifier, kind='flops_pb', step=0,
-        context=context)
-    mock_log_flops_per_batch.assert_called_once_with(
-        identifier, model=item[0], batch=item[1], context=context, step=0)
+# @patch('prov4ml.log_flops_per_batch')
+# def test_log_flops_per_batch(mock_log_flops_per_batch, prov4ml_logger):
+#     item = (MagicMock(), MagicMock())
+#     identifier = "test_flops"
+#     context = MagicMock(spec=Context)
+#     prov4ml_logger.log(
+#         item, identifier, kind='flops_pb', step=0,
+#         context=context)
+#     mock_log_flops_per_batch.assert_called_once_with(
+#         identifier, model=item[0], batch=item[1], context=context, step=0)

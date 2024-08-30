@@ -69,10 +69,12 @@ if [ "$1" == "23.09-py3" ]; then
         exit 2
     fi
 
-    # itwinai
-    pip --no-cache-dir install .[torch]
+    # Install itwinai
+    # $(python -c 'import torch;print(torch.__version__)') serves to enforce that the current version of
+    # torch in the container is preserved, otherwise, if updated, Horovod will complain.
+    pip install .[torch] torch==$(python -c 'import torch;print(torch.__version__)') --no-cache-dir
 
 else
     echo "ERROR: unrecognized tag."
     exit 2
-fi 
+fi

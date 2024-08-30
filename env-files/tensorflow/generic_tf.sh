@@ -87,4 +87,4 @@ fi
 pip3 install --no-cache-dir  tf_keras==2.16.*
 
 # itwinai
-pip3 install --no-cache-dir  -e .
+pip3 install --no-cache-dir  -e .[dev]

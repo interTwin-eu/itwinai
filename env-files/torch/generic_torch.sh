@@ -171,4 +171,4 @@ else
 fi
 
 # Install itwinai
-pip install --no-cache-dir -e .[torch]
+pip install --no-cache-dir -e .[torch,dev]
