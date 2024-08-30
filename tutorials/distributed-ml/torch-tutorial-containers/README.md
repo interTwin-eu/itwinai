@@ -21,7 +21,7 @@ FROM ghcr.io/intertwin-eu/itwinai:0.2.2-torch-2.1
 RUN pip install --no-cache-dir PYTHON_PACKAGE
 ```
 
-## Docker (non-HPC environment)
+## Docker (non-HPC environments)
 
 When executing a Docker container, you need to explicitly mount the current working directory
 in the container, making it possible for the script executed in the container to use existing
@@ -40,7 +40,7 @@ in this folder:
 itwinai exec-pipeline --config config.yaml --pipe-key training_pipeline
 ```
 
-## Singularity (HPC environment)
+## Singularity (HPC environments)
 
 With singularity there is no need to explicitly bind mount the current working directory (CWD) in the container
 as this is already done automatically by Singularity. Moreover, the CWD inside the container *coincides*
@@ -49,7 +49,7 @@ the container. However, differently from Docker, Singularity does
 not automatically allow to write in locations inside the container. It is therefore suggested to save
 results in the CWD, or in other locations mounted in the container.
 
-Distributed ML on multiple compute nodes:
+First of all, pull the Docker image and convert it to a Singularity image:
 
 ```bash
 # If needed, remove existing Singularity image before proceeding
@@ -57,15 +57,24 @@ rm -rf itwinai_torch.sif
 
 # Pull Docker image and convert it to Singularity on login node
 singularity pull itwinai_torch.sif docker://ghcr.io/intertwin-eu/itwinai:0.2.2-torch-2.1
+```
 
-# Download dataset locally
+Before running distributed ML on the computing node of some HPC cluster, make sure to download
+the dataset as usually there is not internet connection on compute nodes:
+
+```bash
+# Run only the first step on the HPC login node, which downloads the datasets if not present
 singularity run itwinai_torch.sif /bin/bash -c \
     "itwinai exec-pipeline --config config.yaml --pipe-key training_pipeline --steps dataloading_step"
+```
 
+Now run distributed ML on multiple compute nodes using both Torch DDP and Microsoft DeepSpeed:
+
+```bash
 # Run on distributed ML job (torch DDP is the default one)
 sbatch slurm.sh
 
-# Run all distributed jobs
+# Alternatively, run all distributed jobs
 bash runall.sh
 ```
 
