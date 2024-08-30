@@ -18,7 +18,6 @@ COPY pyproject.toml ./
 COPY src ./
 COPY env-files/torch/create_container_env.sh ./
 RUN bash create_container_env.sh ${IMG_TAG}
-# RUN pip install .[torch] torch==2.1.0a0+32f93b1
 
 # Create non-root user
 RUN groupadd -g 10001 jovyan \
