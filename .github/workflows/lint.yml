@@ -47,6 +47,9 @@ jobs:
           VALIDATE_CHECKOV: false # activate to lint k8s pods
           VALIDATE_SHELL_SHFMT: false
           VALIDATE_JSCPD: false
+          VALIDATE_MARKDOWN_PRETTIER: false
+          VALIDATE_YAML_PRETTIER: false
+          VALIDATE_PYTHON_PYINK: false
 
           # Only check new or edited files
           VALIDATE_ALL_CODEBASE: false
