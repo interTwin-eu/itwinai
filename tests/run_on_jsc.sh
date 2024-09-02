@@ -21,8 +21,8 @@ if [ ! -d "$TF_ENV" ]; then
 fi
 
 # Avoid downloading datasets from Gdrive
-export CERN_DATASET="/p/project/intertwin/smalldata/3dgan-sample"
-export CMCCC_DATASET="/p/project/intertwin/smalldata/cmcc"
-export MNIST_DATASET="/p/project/intertwin/smalldata/mnist"
+export CERN_DATASET="/p/project1/intertwin/smalldata/3dgan-sample"
+export CMCCC_DATASET="/p/project1/intertwin/smalldata/cmcc"
+export MNIST_DATASET="/p/project1/intertwin/smalldata/mnist"
 
 $TORCH_ENV/bin/pytest -v tests/ -m "not slurm"

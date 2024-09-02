@@ -270,6 +270,40 @@ class Logger(LogMixin, metaclass=ABCMeta):
         return True
 
 
+class _EmptyLogger(Logger):
+    """Dummy logger which can be used as a placeholder when a real logger is
+    not available. All methods do nothing.
+    """
+
+    def __init__(
+        self,
+        savedir: str = 'mllogs',
+        log_freq: int | Literal['epoch'] | Literal['batch'] = 'epoch',
+        log_on_workers: int | List[int] = 0
+    ) -> None:
+        super().__init__(savedir, log_freq, log_on_workers)
+
+    def create_logger_context(self, rank: Optional[int] = None):
+        pass
+
+    def destroy_logger_context(self):
+        pass
+
+    def save_hyperparameters(self, params: Dict[str, Any]) -> None:
+        pass
+
+    def log(
+        self,
+        item: Union[Any, List[Any]],
+        identifier: Union[str, List[str]],
+        kind: str = 'metric',
+        step: Optional[int] = None,
+        batch_idx: Optional[int] = None,
+        **kwargs
+    ) -> None:
+        pass
+
+
 class ConsoleLogger(Logger):
     """Simplified logger.
 

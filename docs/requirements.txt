@@ -1,12 +1,7 @@
-Sphinx==7.2.6
 sphinx-rtd-theme==2.0.0
 nbsphinx==0.9.4
 myst-parser==2.0.0
-wheel
-tensorflow==2.16.*
-torch==2.1.*
-torchvision
-torchaudio
+
 git+https://github.com/thomas-bouvier/horovod.git@compile-cpp17
 deepspeed
 IPython
