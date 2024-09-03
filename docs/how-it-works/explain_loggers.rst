@@ -19,7 +19,23 @@ The supported loggers, also shown in figure :numref:`logger_fig`, are listed in 
 Getting started with loggers
 ----------------------
 
-Itwinai provides a wrapper that allows the user to call a logger in a standardised manner regardless of which logger is used on the backend.
+Itwinai provides a wrapper that allows the user to call a logger in a unified manner regardless of which logger is used on the backend.
+
+The use of loggers
+++++++++++++++++++
+
+Logging tradeoff
+++++++++++++++++
+
+
+Neural networks will work through a number of input vectors before updating the internal model parameters, only updating after after each "batch".
+This number of inputs before update is referred to as the batch size.
+
+The model will also run through the data
+
+
+Supported loggers
++++++++++++++++++
 
 `log` is used to log data of interest from training runs. See `itwinai.loggers` for a list of objects that can be logged
 
@@ -39,5 +55,6 @@ When set to `batch`, every batch is logged
 Further references
 -------------------
 - `WandB documentation <https://docs.wandb.ai/ref/python/watch>`_
-- `Tensorboard log documentation <https://lightning.ai/docs/pytorch/stable/api/lightning.pytorch.loggers.tensorboard.html>`_
+- `Tensorboard documentation <https://tensorflow.org/tensorboard>`
+- `More on tensorboard <https://lightning.ai/docs/pytorch/stable/api/lightning.pytorch.loggers.tensorboard.html>`
 - `MLFlow logger documentation <https://mlflow.org/docs/latest/tracking/tracking-api.html#manual-logging>`_

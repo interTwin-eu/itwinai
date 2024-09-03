@@ -55,7 +55,7 @@ use due to its reliability (`learn more <https://docs.readthedocs.io/en/stable/v
    :caption: 🪄 How it works
 
    how-it-works/training/training
-   how-it-works/training/logging
+   how-it-works/explain_loggers
    how-it-works/workflows/explain_workflows
 
 .. toctree::
