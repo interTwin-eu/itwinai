@@ -1,10 +1,8 @@
 #!/bin/bash
-
 # ENV VARIABLES:
 #   - ENV_NAME: set custom name for virtual env. Default: ".venv-pytorch"
 #   - NO_CUDA: if set, install without cuda support
 #   - PIP_INDEX_TORCH_CUDA: pip index to be used to install torch with CUDA. Defaults to https://download.pytorch.org/whl/cu121
-
 # Detect custom env name from env
 if [ -z "$ENV_NAME" ]; then
   ENV_NAME=".venv-pytorch"
@@ -21,7 +19,7 @@ if [ -z "$PIP_INDEX_TORCH_CUDA" ]; then
 fi
 
 # get python version
-pver="$(python --version 2>&1 | awk '{print $2}' | cut -f1-2 -d.)"
+pver="$(python3 --version 2>&1 | awk '{print $2}' | cut -f1-2 -d.)"
 
 # use pyenv if exist
 if [ -d "$HOME/.pyenv" ];then
@@ -38,7 +36,7 @@ if [ -d "${cDir}/$ENV_NAME" ];then
 
   source $ENV_NAME/bin/activate
 else
-  python -m venv $ENV_NAME
+  python3 -m venv $ENV_NAME
 
   # activate env
   source $ENV_NAME/bin/activate
@@ -46,9 +44,9 @@ else
   echo "$ENV_NAME environment is created in ${cDir}"
 fi
 
-pip install --no-cache-dir --upgrade pip
-
-pip install --no-cache-dir packaging wheel
+pip install --no-cache-dir --upgrade pip 
+pip install --no-cache-dir packaging wheel 
+pip install --no-cache-dir 'numpy<2.0.0' || exit 1
 
 # install Torch
 if [ -f "${cDir}/$ENV_NAME/bin/torchrun" ]; then
@@ -56,16 +54,16 @@ if [ -f "${cDir}/$ENV_NAME/bin/torchrun" ]; then
 else
   if [ -z "$NO_CUDA" ] ; then
     pip install --no-cache-dir \
-    torch==2.1.* torchvision torchaudio --index-url "$PIP_INDEX_TORCH_CUDA"
+    'torch<2.2.0' torchvision torchaudio --index-url "$PIP_INDEX_TORCH_CUDA" || exit 1
   else
     # CPU only installation for MacOS
     if [[ "$OSTYPE" =~ ^darwin ]] ; then
       pip install --no-cache-dir \
-        torch==2.2.0 torchvision==0.17.0 torchaudio==2.2.0
+        'torch<2.2.0' torchvision torchaudio || exit 1
     else
     # CPU only installation for other OSs
       pip install --no-cache-dir \
-         torch==2.1.* torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
+         'torch<2.2.0' torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu || exit 1
     fi
   fi
 fi
@@ -77,7 +75,7 @@ else
   if [[ "$OSTYPE" =~ ^darwin ]] ; then
     echo 'Installation issues: Skipping Ray installation for MacOS'
   else
-    pip install --no-cache-dir ray ray[tune]
+    pip install --no-cache-dir ray ray[tune] || exit 1
   fi
 fi
 
@@ -94,15 +92,15 @@ else
     export DS_BUILD_TRANSFORMER=1
     export DS_BUILD_STOCHASTIC_TRANSFORMER=1
     export DS_BUILD_TRANSFORMER_INFERENCE=1
-    pip install --no-cache-dir DeepSpeed
-  else
-    # CPU only installation
-    pip install --no-cache-dir  deepspeed
   fi
+  pip install --no-cache-dir py-cpuinfo || exit 1
+  pip install --no-cache-dir deepspeed || exit 1
 
   # fix .triton/autotune/Fp16Matmul_2d_kernel.pickle bug
   line=$(cat -n $ENV_NAME/lib/python${pver}/site-packages/deepspeed/ops/transformer/inference/triton/matmul_ext.py | grep os.rename | awk '{print $1}' | head -n 1)
-  sed -i "${line}s|^|#|" $ENV_NAME/lib/python${pver}/site-packages/deepspeed/ops/transformer/inference/triton/matmul_ext.py
+  sed -i .backup_file "${line}s|^|#|" $ENV_NAME/lib/python${pver}/site-packages/deepspeed/ops/transformer/inference/triton/matmul_ext.py
+  # Remove the unnecessary backup file
+  rm $ENV_NAME/lib/python${pver}/site-packages/deepspeed/ops/transformer/inference/triton/matmul_ext.py.backup_file
 fi
 
 # install horovod
@@ -155,7 +153,7 @@ else
   # Cleaner Horovod installation
 	# https://github.com/horovod/horovod/pull/3998
   # Assume that Horovod env vars are already in the current env!
-  pip install --no-cache-dir git+https://github.com/thomas-bouvier/horovod.git@compile-cpp17
+  pip install --no-cache-dir git+https://github.com/thomas-bouvier/horovod.git@compile-cpp17 || exit 1
 fi
 
 # get required libraries in reqs.txt
@@ -171,4 +169,4 @@ else
 fi
 
 # Install itwinai
-pip install --no-cache-dir -e .[torch,dev]
+pip install --no-cache-dir -e .[torch,dev] || exit 1
