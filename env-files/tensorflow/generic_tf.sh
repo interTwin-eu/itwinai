@@ -86,5 +86,12 @@ fi
 # https://keras.io/getting_started/
 pip3 install --no-cache-dir  tf_keras==2.16.*
 
+# Install Pov4ML
+if [[ "$OSTYPE" =~ ^darwin ]] ; then
+  pip install "prov4ml[apple]@git+https://github.com/matbun/ProvML@main"
+else
+  pip install "prov4ml[linux]@git+https://github.com/matbun/ProvML@main"
+fi
+
 # itwinai
 pip3 install --no-cache-dir  -e .[dev]
