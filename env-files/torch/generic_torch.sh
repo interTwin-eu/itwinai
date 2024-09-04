@@ -168,5 +168,12 @@ else
     ${cDir}/$ENV_NAME/lib/python${pver}/site-packages/torchnlp/_third_party/weighted_random_sampler.py
 fi
 
+# Install Pov4ML
+if [[ "$OSTYPE" =~ ^darwin ]] ; then
+  pip install prov4ml@git+https://github.com/matbun/ProvML@main[apple]
+else
+  pip install prov4ml@git+https://github.com/matbun/ProvML@main[linux]
+fi
+
 # Install itwinai
 pip install --no-cache-dir -e .[torch,dev] || exit 1
