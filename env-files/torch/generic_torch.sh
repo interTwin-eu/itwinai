@@ -170,9 +170,9 @@ fi
 
 # Install Pov4ML
 if [[ "$OSTYPE" =~ ^darwin ]] ; then
-  pip install prov4ml[apple] @ git+https://github.com/matbun/ProvML@main
+  pip install "prov4ml[apple]@git+https://github.com/matbun/ProvML@main"
 else
-  pip install prov4ml[linux] @ git+https://github.com/matbun/ProvML@main
+  pip install "prov4ml[linux]@git+https://github.com/matbun/ProvML@main"
 fi
 
 # Install itwinai
