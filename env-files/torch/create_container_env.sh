@@ -28,12 +28,7 @@ if [ "$1" == "23.09-py3" ]; then
     export DS_BUILD_TRANSFORMER=1
     export DS_BUILD_STOCHASTIC_TRANSFORMER=1
     export DS_BUILD_TRANSFORMER_INFERENCE=1
-    pip3 install --no-cache-dir DeepSpeed
-
-    if [ $? -ne 0 ]; then
-        echo "DeepSpeed installation FAILED"
-        exit 2
-    fi
+    pip3 install --no-cache-dir DeepSpeed || exit 1
 
     # fix .triton/autotune/Fp16Matmul_2d_kernel.pickle bug
     pver="$(python --version 2>&1 | awk '{print $2}' | cut -f1-2 -d.)"
@@ -62,11 +57,13 @@ if [ "$1" == "23.09-py3" ]; then
     # Fix needed to compile horovod with torch >= 2.1
     # https://github.com/horovod/horovod/pull/3998
     # Assume that Horovod env vars are already in the current env!
-    pip3 install --no-cache-dir git+https://github.com/thomas-bouvier/horovod.git@compile-cpp17
+    pip3 install --no-cache-dir git+https://github.com/thomas-bouvier/horovod.git@compile-cpp17 || exit 1
 
-    if [ $? -ne 0 ]; then
-        echo "Horovod installation FAILED"
-        exit 2
+    # Install Pov4ML
+    if [[ "$OSTYPE" =~ ^darwin ]] ; then
+      pip install "prov4ml[apple]@git+https://github.com/matbun/ProvML@main"
+    else
+      pip install "prov4ml[linux]@git+https://github.com/matbun/ProvML@main"
     fi
 
     # Install itwinai
