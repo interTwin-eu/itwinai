@@ -151,6 +151,17 @@ Otherwise, if you are on an HPC system, please refer to
 [this section](#activate-itwinai-environment-on-hpc)
 explaining how to load the required environment modules before the python environment.
 
+To  build a Docker image for the pytorch version (need to adapt `TAG`):
+
+```bash
+# Local
+docker buildx build -t itwinai:TAG -f env-files/torch/Dockerfile .
+
+# Ghcr.io
+docker buildx build -t ghcr.io/intertwin-eu/itwinai:TAG -f env-files/torch/Dockerfile .
+docker push ghcr.io/intertwin-eu/itwinai:TAG
+```
+
 #### TensorFlow virtual environment
 
 Makefile targets for environment installation:
@@ -175,6 +186,17 @@ source .venv-tf/bin/activate
 Otherwise, if you are on an HPC system, please refer to
 [this section](#activate-itwinai-environment-on-hpc)
 explaining how to load the required environment modules before the python environment.
+
+To  build a Docker image for the tensorflow version (need to adapt `TAG`):
+
+```bash
+# Local
+docker buildx build -t itwinai:TAG -f env-files/tensorflow/Dockerfile .
+
+# Ghcr.io
+docker buildx build -t ghcr.io/intertwin-eu/itwinai:TAG -f env-files/tensorflow/Dockerfile .
+docker push ghcr.io/intertwin-eu/itwinai:TAG
+```
 
 ### Activate itwinai environment on HPC
 
