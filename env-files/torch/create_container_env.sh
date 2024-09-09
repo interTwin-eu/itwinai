@@ -60,7 +60,7 @@ if [ "$1" == "23.09-py3" ]; then
     pip install --no-cache-dir git+https://github.com/thomas-bouvier/horovod.git@compile-cpp17 || exit 1
 
     # Install Pov4ML
-    pip install "prov4ml[linux]@git+https://github.com/matbun/ProvML@main" || exit 1
+    pip install --no-cache-dir "prov4ml[linux]@git+https://github.com/matbun/ProvML@main" || exit 1
 
     # Install itwinai
     # $(python -c 'import torch;print(torch.__version__)') serves to enforce that the current version of
