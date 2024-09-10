@@ -13,11 +13,7 @@ pip install --no-cache-dir --upgrade pip
 pip install --no-cache-dir tf_keras==2.16.* || exit 1
 
 # Install Pov4ML
-if [[ "$OSTYPE" =~ ^darwin ]] ; then
-  pip install "prov4ml[apple]@git+https://github.com/matbun/ProvML@main"
-else
-  pip install "prov4ml[linux]@git+https://github.com/matbun/ProvML@main"
-fi
+pip install --no-cache-dir "prov4ml[linux]@git+https://github.com/matbun/ProvML@main" || exit 1
 
 # itwinai
-pip --no-cache-dir install .
+pip --no-cache-dir install . || exit 1

@@ -28,12 +28,13 @@ if [ "$1" == "23.09-py3" ]; then
     export DS_BUILD_TRANSFORMER=1
     export DS_BUILD_STOCHASTIC_TRANSFORMER=1
     export DS_BUILD_TRANSFORMER_INFERENCE=1
-    pip3 install --no-cache-dir DeepSpeed || exit 1
+
+    pip3 install --no-cache-dir deepspeed || exit 1
 
     # fix .triton/autotune/Fp16Matmul_2d_kernel.pickle bug
     pver="$(python --version 2>&1 | awk '{print $2}' | cut -f1-2 -d.)"
     line=$(cat -n /usr/lib/python${pver}/site-packages/deepspeed/ops/transformer/inference/triton/matmul_ext.py | grep os.rename | awk '{print $1}' | head -n 1)
-    sed -i "${line}s|^|#|" /usr/lib/python${pver}/site-packages/deepspeed/ops/transformer/inference/triton/matmul_ext.py
+    sed -i "${line}s|^|#|" /usr/lib/python${pver}/site-packages/deepspeed/ops/transformer/inference/triton/matmul_ext.py || exit 1
 
     # Horovod
     # compiler vars
@@ -61,15 +62,15 @@ if [ "$1" == "23.09-py3" ]; then
 
     # Install Pov4ML
     if [[ "$OSTYPE" =~ ^darwin ]] ; then
-      pip install "prov4ml[apple]@git+https://github.com/matbun/ProvML@main"
+      pip install "prov4ml[apple]@git+https://github.com/matbun/ProvML@main" || exit 1
     else
-      pip install "prov4ml[linux]@git+https://github.com/matbun/ProvML@main"
+      pip install "prov4ml[linux]@git+https://github.com/matbun/ProvML@main" || exit 1
     fi
 
     # Install itwinai
     # $(python -c 'import torch;print(torch.__version__)') serves to enforce that the current version of
     # torch in the container is preserved, otherwise, if updated, Horovod will complain.
-    pip install .[torch] torch==$(python -c 'import torch;print(torch.__version__)') --no-cache-dir
+    pip install .[torch] torch==$(python -c 'import torch;print(torch.__version__)') --no-cache-dir || exit 1
 
 else
     echo "ERROR: unrecognized tag."
