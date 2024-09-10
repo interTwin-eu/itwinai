@@ -7,4 +7,7 @@ deepspeed
 IPython
 # local path to itwinai module, assuming that pip install -r docs/requirements.txt is run form the repository root
 # If needed, you can add optional dependencies, like: ".[dev]"
+
+prov4ml[linux]@git+https://github.com/matbun/ProvML@main
+
 .[torch]
