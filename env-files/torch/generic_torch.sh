@@ -93,8 +93,8 @@ else
     export DS_BUILD_STOCHASTIC_TRANSFORMER=1
     export DS_BUILD_TRANSFORMER_INFERENCE=1
   fi
-  pip install --no-cache-dir py-cpuinfo || exit 1
-  pip install --no-cache-dir deepspeed || exit 1
+  pip install --no-cache-dir py-cpuinfo || exit 1
+  pip install --no-cache-dir deepspeed || exit 1
 
   # fix .triton/autotune/Fp16Matmul_2d_kernel.pickle bug
   line=$(cat -n $ENV_NAME/lib/python${pver}/site-packages/deepspeed/ops/transformer/inference/triton/matmul_ext.py | grep os.rename | awk '{print $1}' | head -n 1)
