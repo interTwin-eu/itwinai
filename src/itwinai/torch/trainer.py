@@ -1,32 +1,32 @@
 """Provides training logic for PyTorch models via Trainer classes."""
 
-from typing import (
-    Optional, Dict, Union, Tuple, List, Any, Literal
-)
 import os
 import sys
-
 import torch
-from torch.utils.data import DataLoader, Dataset
-from torch.utils.data.distributed import DistributedSampler
-import torch.distributed as dist
-from torch.nn.parallel import DistributedDataParallel as DDP
-import torch.nn as nn
-from torch.optim.optimizer import Optimizer
-import torch.optim as optim
-import pandas as pd
 import torchvision
+
+import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-
 import lightning as L
-from lightning.pytorch.cli import LightningCLI
-
 import horovod.torch as hvd
+import torch.nn as nn
+import torch.distributed as dist
+import torch.optim as optim
 
+from lightning.pytorch.cli import LightningCLI
+from torch.utils.data import DataLoader, Dataset
+from torch.utils.data.distributed import DistributedSampler
+from torch.nn.parallel import DistributedDataParallel as DDP
+from torch.optim.optimizer import Optimizer
+from typing import (
+    Optional, Dict, Union, Tuple, List, Any, Literal, Callable
+)
+
+# Imports from this repository
 from ..components import Trainer, monitor_exec
 from .type import (
-    Batch, Loss, LrScheduler, Metric
+    Batch, LrScheduler, Metric
 )
 from ..loggers import LogMixin, Logger
 from .reproducibility import seed_worker, set_seed
@@ -89,7 +89,7 @@ class TorchTrainer(Trainer, LogMixin):
     #: PyTorch model to train.
     model: nn.Module = None
     #: Loss criterion.
-    loss: Loss = None
+    loss_function: Callable = None
     #: Optimizer.
     optimizer: Optimizer = None
     #: Learning rate scheduler.
@@ -551,7 +551,7 @@ class TorchTrainer(Trainer, LogMixin):
                 ckpt_name = f"epoch_{epoch}.pth"
                 self.save_checkpoint(name=ckpt_name, epoch=epoch)
 
-    def train_epoch(self, epoch: int) -> Loss:
+    def train_epoch(self, epoch: int) -> torch.Tensor:
         """Perform a complete sweep over the training dataset, completing an
         epoch of training.
 
@@ -599,7 +599,7 @@ class TorchTrainer(Trainer, LogMixin):
         self,
         batch: Batch,
         batch_idx: int
-    ) -> Tuple[Loss, Dict[str, Any]]:
+    ) -> Tuple[torch.Tensor, Dict[str, Any]]:
         """Perform a single optimization step using a batch sampled from the
         training dataset.
 
@@ -637,7 +637,7 @@ class TorchTrainer(Trainer, LogMixin):
         )
         return loss, metrics
 
-    def validation_epoch(self, epoch: int) -> Loss:
+    def validation_epoch(self, epoch: int) -> torch.Tensor:
         """Perform a complete sweep over the validation dataset, completing an
         epoch of validation.
 
@@ -687,7 +687,7 @@ class TorchTrainer(Trainer, LogMixin):
         self,
         batch: Batch,
         batch_idx: int
-    ) -> Tuple[Loss, Dict[str, Any]]:
+    ) -> Tuple[torch.Tensor, Dict[str, Any]]:
         """Perform a single optimization step using a batch sampled from the
         validation dataset.
 
@@ -703,7 +703,7 @@ class TorchTrainer(Trainer, LogMixin):
         x, y = x.to(self.device), y.to(self.device)
         with torch.no_grad():
             pred_y = self.model(x)
-            loss: Loss = self.loss(pred_y, y)
+            loss: torch.Tensor = self.loss(pred_y, y)
         self.log(
             item=loss.item(),
             identifier='validation_loss',
@@ -720,7 +720,7 @@ class TorchTrainer(Trainer, LogMixin):
         )
         return loss, metrics
 
-    def test_epoch(self, epoch: int) -> Loss:
+    def test_epoch(self, epoch: int) -> torch.Tensor:
         """Perform a complete sweep over the test dataset, completing an
         epoch of test.
 
@@ -736,7 +736,7 @@ class TorchTrainer(Trainer, LogMixin):
         self,
         batch: Batch,
         batch_idx: int
-    ) -> Tuple[Loss, Dict[str, Any]]:
+    ) -> Tuple[torch.Tensor, Dict[str, Any]]:
         """Perform a single predictions step using a batch sampled from the
         test dataset.
 

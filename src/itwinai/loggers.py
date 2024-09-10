@@ -57,21 +57,22 @@ A logger allows to save objects of different kinds:
 
 import os
 import csv
-from abc import ABCMeta, abstractmethod
-from contextlib import contextmanager
-from typing import Any, Dict, List, Optional, Union, Literal, Tuple
-from typing_extensions import override
 import pickle
 import pathlib
-
 import wandb
 import mlflow
 import prov4ml
 
+
+from abc import abstractmethod, ABC
+from contextlib import contextmanager
+from typing import Any, Dict, List, Optional, Union, Literal, Tuple
+from typing_extensions import override
+
 BASE_EXP_NAME: str = 'default_experiment'
 
 
-class LogMixin(metaclass=ABCMeta):
+class LogMixin(ABC):
     @abstractmethod
     def log(
         self,
@@ -97,7 +98,7 @@ class LogMixin(metaclass=ABCMeta):
         """
 
 
-class Logger(LogMixin, metaclass=ABCMeta):
+class Logger(LogMixin):
     """Base class for logger
 
     Args:
