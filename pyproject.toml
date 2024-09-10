@@ -8,7 +8,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "itwinai"
-version = "0.2.1"
+version = "0.2.2"
 description = "AI and ML workflows module for scientific digital twins."
 readme = "README.md"
 requires-python = ">=3.10"
@@ -41,13 +41,18 @@ dependencies = [
     "typer>=0.9.0",
     "wheel",
     "pydantic",
+    # "prov4ml@git+https://github.com/HPCI-Lab/ProvML@main", # Prov4ML
+    # "prov4ml@git+https://github.com/matbun/ProvML@main",
     "pandas",
 ]
 
 # dynamic = ["version", "description"]
 
 [project.optional-dependencies]
-torch = ["lightning", "torchmetrics"]
+
+# Torch should be already installed, but it is specified here to
+# prevent itwinai dependencies from cheing its version.
+torch = ["torch==2.1.*", "lightning==2.*", "torchmetrics"]
 # torch-cpu = [
 #     "torch==2.1.*",
 #     "torchvision",

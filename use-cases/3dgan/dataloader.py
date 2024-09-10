@@ -11,6 +11,7 @@ import h5py
 import gdown
 
 from itwinai.components import DataGetter, monitor_exec
+from itwinai.loggers import Logger as BaseItwinaiLogger
 
 
 class Lightning3DGANDownloader(DataGetter):
@@ -171,6 +172,16 @@ class ParticlesDataModule(pl.LightningDataModule):
         self.datapath = datapath
         self.max_samples = max_samples
         self.train_proportion = train_proportion
+
+    @property
+    def itwinai_logger(self) -> BaseItwinaiLogger:
+        try:
+            itwinai_logger = self.trainer.itwinai_logger
+        except AttributeError:
+            print("WARNING: itwinai_logger attribute not set "
+                  f"in {self.__class__.__name__}")
+            itwinai_logger = None
+        return itwinai_logger
 
     def setup(self, stage: str = None):
         # make assignments here (val/train/test split)

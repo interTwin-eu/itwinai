@@ -52,7 +52,7 @@ spec:
       value: "auto"
     image: /ceph/hpc/data/st2301-itwin-users/itwinai_v10.1.sif
     imagePullPolicy: Always
-    name: oscar-container
+    name: 3dgan-container
     resources:
       limits:
         cpu: "48"
