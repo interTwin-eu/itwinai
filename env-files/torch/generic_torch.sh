@@ -1,5 +1,5 @@
 #!/bin/bash
-# ENV VARIABLES:
+#jENV VARIABLES:
 #   - ENV_NAME: set custom name for virtual env. Default: ".venv-pytorch"
 #   - NO_CUDA: if set, install without cuda support
 #   - PIP_INDEX_TORCH_CUDA: pip index to be used to install torch with CUDA. Defaults to https://download.pytorch.org/whl/cu121
