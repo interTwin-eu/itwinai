@@ -4,9 +4,6 @@ import torch
 from torch import nn
 from typing import Callable
 
-#: Torch Loss function.
-Loss = nn.Module
-
 #: Torch learning rate scheduler
 LrScheduler = nn.Module
 

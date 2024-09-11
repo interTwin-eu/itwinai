@@ -1,8 +1,8 @@
-from typing import Dict, Optional
 import os
-
 import mlflow
 import yaml
+
+from typing import Dict, Optional
 
 
 def _get_mlflow_logger_conf(pl_config: Dict) -> Optional[Dict]:

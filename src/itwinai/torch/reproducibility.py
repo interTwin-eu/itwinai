@@ -3,11 +3,11 @@ This module provides the tools to support reproducible execution of
 torch scripts.
 """
 
-from typing import Optional
-import numpy as np
 import random
-
 import torch
+import numpy as np
+
+from typing import Optional
 
 
 def seed_worker(worker_id):

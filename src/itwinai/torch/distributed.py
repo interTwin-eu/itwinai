@@ -1,6 +1,4 @@
 import abc
-from typing import Any, List, Optional, Tuple, Union, Iterable, Literal
-from pathlib import Path
 import json
 import os
 
@@ -10,10 +8,13 @@ import torch.distributed as dist
 import horovod.torch as hvd
 import torch.nn as nn
 import torch.optim as optim
+
 from torch.optim.lr_scheduler import _LRScheduler as LRScheduler
 from torch.optim.optimizer import Optimizer
 from torch.utils.data import Dataset, Sampler, DistributedSampler, DataLoader
 from torch.utils.data.dataloader import T_co, _worker_init_fn_t, _collate_fn_t
+from typing import Any, List, Optional, Tuple, Union, Iterable, Literal
+from pathlib import Path
 
 from ..distributed import DistributedStrategy
 from .type import UninitializedStrategyError, DistributedStrategyError
@@ -26,9 +27,7 @@ def distributed_resources_available() -> bool:
     Returns:
         bool: env can support distributed ML.
     """
-    if torch.cuda.is_available() and torch.cuda.device_count() > 1:
-        return True
-    return False
+    return torch.cuda.is_available() and torch.cuda.device_count() > 1
 
 
 class TorchDistributedStrategy(DistributedStrategy):
