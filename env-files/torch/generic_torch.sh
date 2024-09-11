@@ -164,7 +164,8 @@ else
 
   # fix int bug: modify l.4 of /torchnlp/_third_party/weighted_random_sampler.py
   var='int_classes = int'
-  sed -i .backup_file "4s|.*|$var|" ${cDir}/$ENV_NAME/lib/python${pver}/site-packages/torchnlp/_third_party/weighted_random_sampler.py || exit 1
+  sed -i .backup_file "4s|.*|$var|" \
+    ${cDir}/$ENV_NAME/lib/python${pver}/site-packages/torchnlp/_third_party/weighted_random_sampler.py || exit 1
   # Deleting unnecessary backup file
   rm ${cDir}/$ENV_NAME/lib/python${pver}/site-packages/torchnlp/_third_party/weighted_random_sampler.py.backup_file
 fi
