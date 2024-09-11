@@ -157,18 +157,18 @@ else
 fi
 
 # get required libraries in reqs.txt
-if [ -f "${cDir}/$ENV_NAME/lib/python${pver}/site-packages/torchnlp/_third_party/weighted_random_sampler.py" ]; then
-   echo 'required libs already exist'
-else
+# if [ -f "${cDir}/$ENV_NAME/lib/python${pver}/site-packages/torchnlp/_third_party/weighted_random_sampler.py" ]; then
+   # echo 'required libs already exist'
+# else
 #   pip install -r Scripts/reqs.txt --no-cache-dir
 
   # fix int bug: modify l.4 of /torchnlp/_third_party/weighted_random_sampler.py
-  var='int_classes = int'
-  sed -i .backup_file "4s|.*|$var|" \
-    ${cDir}/$ENV_NAME/lib/python${pver}/site-packages/torchnlp/_third_party/weighted_random_sampler.py || exit 1
+  # var='int_classes = int'
+  # sed -i .backup_file "4s|.*|$var|" \
+    # ${cDir}/$ENV_NAME/lib/python${pver}/site-packages/torchnlp/_third_party/weighted_random_sampler.py || exit 1
   # Deleting unnecessary backup file
-  rm ${cDir}/$ENV_NAME/lib/python${pver}/site-packages/torchnlp/_third_party/weighted_random_sampler.py.backup_file
-fi
+  # rm ${cDir}/$ENV_NAME/lib/python${pver}/site-packages/torchnlp/_third_party/weighted_random_sampler.py.backup_file
+# fi
 
 # Install Pov4ML
 if [[ "$OSTYPE" =~ ^darwin ]] ; then
