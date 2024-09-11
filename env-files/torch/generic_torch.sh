@@ -98,9 +98,12 @@ else
 
   # fix .triton/autotune/Fp16Matmul_2d_kernel.pickle bug
   line=$(cat -n $ENV_NAME/lib/python${pver}/site-packages/deepspeed/ops/transformer/inference/triton/matmul_ext.py | grep os.rename | awk '{print $1}' | head -n 1)
-  sed -i .backup_file "${line}s|^|#|" $ENV_NAME/lib/python${pver}/site-packages/deepspeed/ops/transformer/inference/triton/matmul_ext.py || exit 1
-  # Remove the unnecessary backup file
-  rm $ENV_NAME/lib/python${pver}/site-packages/deepspeed/ops/transformer/inference/triton/matmul_ext.py.backup_file
+
+	if [[ "$OSTYPE" =~ ^darwin ]] ; then
+		sed -i '' "${line}s|^|#|" $ENV_NAME/lib/python${pver}/site-packages/deepspeed/ops/transformer/inference/triton/matmul_ext.py || exit 1
+		else
+			sed -i "${line}s|^|#|" $ENV_NAME/lib/python${pver}/site-packages/deepspeed/ops/transformer/inference/triton/matmul_ext.py || exit 1
+	fi
 fi
 
 # install horovod
