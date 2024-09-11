@@ -98,7 +98,7 @@ else
 
   # fix .triton/autotune/Fp16Matmul_2d_kernel.pickle bug
   line=$(cat -n $ENV_NAME/lib/python${pver}/site-packages/deepspeed/ops/transformer/inference/triton/matmul_ext.py | grep os.rename | awk '{print $1}' | head -n 1)
-  sed -i .backup_file "${line}s|^|#|" $ENV_NAME/lib/python${pver}/site-packages/deepspeed/ops/transformer/inference/triton/matmul_ext.py || exit 1
+  sed -i .backup_file "${line}s|^|#|" $ENV_NAME/lib/python${pver}/site-packages/deepspeed/ops/transformer/inference/triton/matmul_ext.py
   # Remove the unnecessary backup file
   rm $ENV_NAME/lib/python${pver}/site-packages/deepspeed/ops/transformer/inference/triton/matmul_ext.py.backup_file
 fi
@@ -164,8 +164,7 @@ else
 
   # fix int bug: modify l.4 of /torchnlp/_third_party/weighted_random_sampler.py
   var='int_classes = int'
-  sed -i .backup_file "4s|.*|$var|" \
-		${cDir}/$ENV_NAME/lib/python${pver}/site-packages/torchnlp/_third_party/weighted_random_sampler.py || exit 1
+  sed -i .backup_file "4s|.*|$var|" ${cDir}/$ENV_NAME/lib/python${pver}/site-packages/torchnlp/_third_party/weighted_random_sampler.py
   # Deleting unnecessary backup file
   rm ${cDir}/$ENV_NAME/lib/python${pver}/site-packages/torchnlp/_third_party/weighted_random_sampler.py.backup_file
 fi
