@@ -118,7 +118,7 @@ more advanced instructions.
 ### Clone the itwinai repository
 
 ```bash
-git clone git@github.com:interTwin-eu/itwinai.git
+git clone [--recurse-submodules] git@github.com:interTwin-eu/itwinai.git
 ```
 
 ### Install itwinai environment
