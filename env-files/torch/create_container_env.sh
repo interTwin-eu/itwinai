@@ -29,7 +29,7 @@ if [ "$1" == "23.09-py3" ]; then
     export DS_BUILD_STOCHASTIC_TRANSFORMER=1
     export DS_BUILD_TRANSFORMER_INFERENCE=1
 
-    pip3 install --no-cache-dir deepspeed || exit 1
+    pip install --no-cache-dir deepspeed || exit 1
 
     # fix .triton/autotune/Fp16Matmul_2d_kernel.pickle bug
     pver="$(python --version 2>&1 | awk '{print $2}' | cut -f1-2 -d.)"
@@ -58,12 +58,10 @@ if [ "$1" == "23.09-py3" ]; then
     # Fix needed to compile horovod with torch >= 2.1
     # https://github.com/horovod/horovod/pull/3998
     # Assume that Horovod env vars are already in the current env!
-    pip3 install --no-cache-dir git+https://github.com/thomas-bouvier/horovod.git@compile-cpp17 || exit 1
+    pip install --no-cache-dir git+https://github.com/thomas-bouvier/horovod.git@compile-cpp17 || exit 1
 
     # Install Pov4ML
-    if [[ ! "$OSTYPE" =~ ^darwin ]] ; then
-      pip install "prov4ml[linux]@git+https://github.com/matbun/ProvML@main" || exit 1
-    fi
+    pip install "prov4ml[linux]@git+https://github.com/matbun/ProvML@main" || exit 1
 
     # Install itwinai
     # $(python -c 'import torch;print(torch.__version__)') serves to enforce that the current version of
