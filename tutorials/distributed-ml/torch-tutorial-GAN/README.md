@@ -120,7 +120,7 @@ actual data, and the Discriminator improves its ability to detect fakes.
 
 ## Steps to make a distributed GAN model
 
-The code for all steps can be seen in the attached python file. 
+The code for all steps can be seen in the attached python file.
 
 ### Step 1: Define Model Architecture
 
@@ -133,7 +133,7 @@ The `GANTrainer` class extends the custom itwinia `TorchTrainer` class and handl
 optimizers, and the distributed training strategy for the GAN. The snippet below shows how the GANTrainer is extending
 the TorchTrainer class and initializing the parameters.
 This is essentially done to handle the scenario for the GAN which comprises of two Neural Network models which is not
-handled by the TorchTrainer that expects and handles one model. We also create custom optimizers for the Optimizer 
+handled by the TorchTrainer that expects and handles one model. We also create custom optimizers for the Optimizer
 and Discriminator GAN models:
 
 ### Step 3: Training and Validation Logic
