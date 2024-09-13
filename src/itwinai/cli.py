@@ -243,10 +243,6 @@ def exec_pipeline(
         pipeline = pipeline[steps]
     pipeline.execute()
 
-    # Cleanup PYTHONPATH
-    sys.path.pop()
-    sys.path.pop()
-
 
 @app.command()
 def mlflow_ui(
