@@ -61,9 +61,7 @@ if [ "$1" == "23.09-py3" ]; then
     pip3 install --no-cache-dir git+https://github.com/thomas-bouvier/horovod.git@compile-cpp17 || exit 1
 
     # Install Pov4ML
-    if [[ "$OSTYPE" =~ ^darwin ]] ; then
-      pip install "prov4ml[apple]@git+https://github.com/matbun/ProvML@main" || exit 1
-    else
+    if [[ ! "$OSTYPE" =~ ^darwin ]] ; then
       pip install "prov4ml[linux]@git+https://github.com/matbun/ProvML@main" || exit 1
     fi
 

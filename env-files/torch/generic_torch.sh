@@ -1,5 +1,5 @@
 #!/bin/bash
-#jENV VARIABLES:
+#ENV VARIABLES:
 #   - ENV_NAME: set custom name for virtual env. Default: ".venv-pytorch"
 #   - NO_CUDA: if set, install without cuda support
 #   - PIP_INDEX_TORCH_CUDA: pip index to be used to install torch with CUDA. Defaults to https://download.pytorch.org/whl/cu121
@@ -46,6 +46,8 @@ fi
 
 pip install --no-cache-dir --upgrade pip 
 pip install --no-cache-dir packaging wheel 
+
+# Adding this constraint as numpy >= 2 seems to clash with other packages
 pip install --no-cache-dir 'numpy<2.0.0' || exit 1
 
 # install Torch
@@ -83,27 +85,27 @@ fi
 if [ -f "${cDir}/$ENV_NAME/bin/deepspeed" ]; then
   echo 'DeepSpeed already installed'
 else
-  if [ -z "$NO_CUDA" ]; then
-    export DS_BUILD_CCL_COMM=1
-    export DS_BUILD_UTILS=1
-    export DS_BUILD_AIO=1
-    export DS_BUILD_FUSED_ADAM=1
-    export DS_BUILD_FUSED_LAMB=1
-    export DS_BUILD_TRANSFORMER=1
-    export DS_BUILD_STOCHASTIC_TRANSFORMER=1
-    export DS_BUILD_TRANSFORMER_INFERENCE=1
-  fi
-  pip install --no-cache-dir py-cpuinfo || exit 1
-  pip install --no-cache-dir deepspeed || exit 1
+	if [ -z "$NO_CUDA" ]; then
+  	export DS_BUILD_CCL_COMM=1
+		export DS_BUILD_UTILS=1
+		export DS_BUILD_AIO=1
+		export DS_BUILD_FUSED_ADAM=1
+		export DS_BUILD_FUSED_LAMB=1
+		export DS_BUILD_TRANSFORMER=1
+		export DS_BUILD_STOCHASTIC_TRANSFORMER=1
+		export DS_BUILD_TRANSFORMER_INFERENCE=1
+	fi
+	pip install --no-cache-dir py-cpuinfo || exit 1
+	pip install --no-cache-dir deepspeed || exit 1
 
-  # fix .triton/autotune/Fp16Matmul_2d_kernel.pickle bug
-  line=$(cat -n $ENV_NAME/lib/python${pver}/site-packages/deepspeed/ops/transformer/inference/triton/matmul_ext.py | grep os.rename | awk '{print $1}' | head -n 1)
+	# fix .triton/autotune/Fp16Matmul_2d_kernel.pickle bug
+	line=$(cat -n $ENV_NAME/lib/python${pver}/site-packages/deepspeed/ops/transformer/inference/triton/matmul_ext.py | grep os.rename | awk '{print $1}' | head -n 1)
 
 	# 'sed' is implemented differently on MacOS than on Linux (https://stackoverflow.com/questions/4247068/sed-command-with-i-option-failing-on-mac-but-works-on-linux)
 	if [[ "$OSTYPE" =~ ^darwin ]] ; then
 		sed -i '' "${line}s|^|#|" $ENV_NAME/lib/python${pver}/site-packages/deepspeed/ops/transformer/inference/triton/matmul_ext.py || exit 1
-		else
-			sed -i "${line}s|^|#|" $ENV_NAME/lib/python${pver}/site-packages/deepspeed/ops/transformer/inference/triton/matmul_ext.py || exit 1
+	else
+	  sed -i "${line}s|^|#|" $ENV_NAME/lib/python${pver}/site-packages/deepspeed/ops/transformer/inference/triton/matmul_ext.py || exit 1
 	fi
 fi
 
@@ -176,9 +178,9 @@ fi
 
 # Install Pov4ML
 if [[ "$OSTYPE" =~ ^darwin ]] ; then
-  pip install "prov4ml[apple]@git+https://github.com/matbun/ProvML@main"
+  pip install "prov4ml[apple]@git+https://github.com/matbun/ProvML@main" || exit 1
 else
-  pip install "prov4ml[linux]@git+https://github.com/matbun/ProvML@main"
+  pip install "prov4ml[linux]@git+https://github.com/matbun/ProvML@main" || exit 1
 fi
 
 # Install Pov4ML
