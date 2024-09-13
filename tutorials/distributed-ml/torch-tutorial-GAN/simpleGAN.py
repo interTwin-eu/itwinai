@@ -65,13 +65,11 @@ class Generator(nn.Module):
             nn.BatchNorm2d(G_HIDDEN * 8),
             nn.ReLU(True),
             # 1st hidden layer
-            nn.ConvTranspose2d(G_HIDDEN * 8, G_HIDDEN * \
-                               4, 4, 2, 1, bias=False),
+            nn.ConvTranspose2d(G_HIDDEN * 8, G_HIDDEN * 4, 4, 2, 1, bias=False),
             nn.BatchNorm2d(G_HIDDEN * 4),
             nn.ReLU(True),
             # 2nd hidden layer
-            nn.ConvTranspose2d(G_HIDDEN * 4, G_HIDDEN * \
-                               2, 4, 2, 1, bias=False),
+            nn.ConvTranspose2d(G_HIDDEN * 4, G_HIDDEN * 2, 4, 2, 1, bias=False),
             nn.BatchNorm2d(G_HIDDEN * 2),
             nn.ReLU(True),
             # 3rd hidden layer
