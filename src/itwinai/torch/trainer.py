@@ -89,7 +89,7 @@ class TorchTrainer(Trainer, LogMixin):
     #: PyTorch model to train.
     model: nn.Module = None
     #: Loss criterion.
-    loss_function: Callable = None
+    loss: Callable = None
     #: Optimizer.
     optimizer: Optimizer = None
     #: Learning rate scheduler.
@@ -126,8 +126,7 @@ class TorchTrainer(Trainer, LogMixin):
         self.save_parameters(**self.locals2params(locals()))
 
         # config is mean to store all hyperparameters, which can very from use
-        # case to use case
-        # and include learning_rate, batch_size....
+        # case to use case and include learning_rate, batch_size....
         if isinstance(config, dict):
             self.config = TrainingConfiguration(**config)
         else:
