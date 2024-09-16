@@ -27,7 +27,6 @@ The use of loggers
 ++++++++++++++++++
 Users can centralise logging scripts using the itwinai logger, which offers a consistent method to log information of interest.
 
-
 To get started with the itwinai logger, make sure to follow the initial :ref:`itwinai setup guide<>` first.
 The following outlines how to concretely use the logger on a toy example:
 (*)
@@ -57,10 +56,7 @@ Logging on distributed workflows
 Distributed workflows could potentially suffer from *race conditions*.
 Workers performing computational tasks concurrently might lead to situations in which the execution order of threads or processes accessing and modifying the same resources determine the behaviour of software.
 
-The itwinai logger provides a `rank` parameter that allows the user to log only on a single worker.
-
-(explanation of log_on_worker)
-
+The itwinai logger provides a `rank` parameter that allows the user to log only on a single worker or a list of workers using the `log_on_worker` parameter.
 
 
 Supported loggers
