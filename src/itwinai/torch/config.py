@@ -17,7 +17,7 @@ class TrainingConfiguration(Configuration):
 
     Example:
 
-    >>> cfg = TrainingConfiguration(batch_size=2, param_a=42)
+    >>> cfg = TrainingConfiguration(batch_size=17, param_a=42)
     >>> print(cfg.batch_size)  # returns 17 (overrides default)
     >>> print(cfg.param_a)     # returns 42 (new value)
     >>> print(cfg.pin_memory)  # returns the default value
