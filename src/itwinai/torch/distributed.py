@@ -1,5 +1,5 @@
 import abc
-from typing import Any, List, Optional, Tuple, Union, Iterable, Literal
+from typing import Any, List, Optional, Tuple, Union, Iterable, Literal, Dict
 from pathlib import Path
 import json
 import os
@@ -559,12 +559,12 @@ class DeepSpeedStrategy(TorchDistributedStrategy):
         super().__init__()
         self.backend = backend
 
-    def _load_config(self, ds_config) -> None:
+    def _load_config(self, ds_config) -> Dict:
         if isinstance(ds_config, (str, Path)):
             with open(ds_config) as fp:
-                self.config = json.load(fp)
+                return json.load(fp)
         elif isinstance(ds_config, dict):
-            self.config = ds_config
+            return ds_config
         else:
             raise ValueError("ds_config is neither a dictionary not a path.")
 
@@ -610,6 +610,9 @@ class DeepSpeedStrategy(TorchDistributedStrategy):
             self._load_config(init_kwargs.get("config"))
         # https://deepspeed.readthedocs.io/en/latest/initialize.html#training-initialization
         # To prioritize optim in the config, you need to pass optim=None
+    
+        print(f"The config passed to deepspeed initialize method is: {init_kwargs}")
+
         distrib_model, optimizer, _, lr_scheduler = deepspeed.initialize(
             model=model,
             model_parameters=model_parameters,
