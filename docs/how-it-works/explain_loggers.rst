@@ -57,16 +57,7 @@ Distributed workflows could potentially suffer from *race conditions*.
 Workers performing computational tasks concurrently might lead to situations in which the execution order of threads or processes accessing and modifying the same resources determine the behaviour of software.
 
 The itwinai logger provides a `rank` parameter that allows the user to log only on a single worker or a list of workers using the `log_on_worker` parameter.
-
-
-Supported loggers
-+++++++++++++++++
-
-`log` is used to log data of interest from training runs. See `itwinai.loggers` for a list of objects that can be logged
-
-The itwinai logger also contains a dashboard for logged data visualisation.
-
-
+See `itwinai.loggers` for a list of objects that can be logged
 
 
 
