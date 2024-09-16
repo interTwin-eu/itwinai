@@ -610,8 +610,9 @@ class DeepSpeedStrategy(TorchDistributedStrategy):
             self._load_config(init_kwargs.get("config"))
         # https://deepspeed.readthedocs.io/en/latest/initialize.html#training-initialization
         # To prioritize optim in the config, you need to pass optim=None
-    
-        print(f"The config passed to deepspeed initialize method is: {init_kwargs}")
+
+        print(
+            f"The config passed to deepspeed initialize method is: {init_kwargs}")
 
         distrib_model, optimizer, _, lr_scheduler = deepspeed.initialize(
             model=model,
