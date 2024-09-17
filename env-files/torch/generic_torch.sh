@@ -1,5 +1,5 @@
 #!/bin/bash
-#ENV VARIABLES:
+# ENV VARIABLES:
 #   - ENV_NAME: set custom name for virtual env. Default: ".venv-pytorch"
 #   - NO_CUDA: if set, install without cuda support
 #   - PIP_INDEX_TORCH_CUDA: pip index to be used to install torch with CUDA. Defaults to https://download.pytorch.org/whl/cu121
@@ -47,7 +47,7 @@ fi
 pip install --no-cache-dir --upgrade pip 
 pip install --no-cache-dir packaging wheel 
 
-# Adding this constraint as numpy >= 2 seems to clash with other packages
+# Adding this constraint as numpy >= 2 seems to clash with DeepSpeed
 pip install --no-cache-dir 'numpy<2.0.0' || exit 1
 
 # install Torch
@@ -56,7 +56,7 @@ if [ -f "${cDir}/$ENV_NAME/bin/torchrun" ]; then
 else
   if [ -z "$NO_CUDA" ] ; then
     pip install --no-cache-dir \
-    'torch<2.2.0' torchvision torchaudio --index-url "$PIP_INDEX_TORCH_CUDA" || exit 1
+    'torch==2.4.0' torchvision torchaudio --index-url "$PIP_INDEX_TORCH_CUDA" || exit 1
   else
     # CPU only installation for MacOS
     if [[ "$OSTYPE" =~ ^darwin ]] ; then
@@ -65,7 +65,7 @@ else
     else
     # CPU only installation for other OSs
       pip install --no-cache-dir \
-         'torch<2.2.0' torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu || exit 1
+         'torch==2.4.0' torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu || exit 1
     fi
   fi
 fi
@@ -179,16 +179,9 @@ fi
 
 # Install Pov4ML
 if [[ "$OSTYPE" =~ ^darwin ]] ; then
-  pip install "prov4ml[apple]@git+https://github.com/matbun/ProvML@main" || exit 1
+  pip install --no-cache-dir "prov4ml[apple]@git+https://github.com/matbun/ProvML" || exit 1
 else
-  pip install "prov4ml[linux]@git+https://github.com/matbun/ProvML@main" || exit 1
-fi
-
-# Install Pov4ML
-if [[ "$OSTYPE" =~ ^darwin ]] ; then
-  pip install "prov4ml[apple]@git+https://github.com/matbun/ProvML@main" || exit 1
-else
-  pip install "prov4ml[linux]@git+https://github.com/matbun/ProvML@main" || exit 1
+  pip install --no-cache-dir "prov4ml[linux]@git+https://github.com/matbun/ProvML" || exit 1
 fi
 
 # Install itwinai
