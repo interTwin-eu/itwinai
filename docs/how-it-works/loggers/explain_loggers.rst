@@ -39,96 +39,258 @@ code duplication and simplify the maintenance of large-scale projects.
 
 To get started with the itwinai logger, make sure to follow the initial
 :doc:`itwinai setup guide <../../getting-started/getting_started_with_itwinai>` first.
-The following outlines how to concretely use the logger on a toy example:
 
-.. code-block:: python
+The itwinai :class:`~itwinai.loggers.Logger` provides a unique interface to log any
+*kind* of data trough the :meth:`~itwinai.loggers.LogMixin.log` method. You can use
+it to log metrics, model checkpoints, images, text, provenance information...
+However, to make sure that the item you want to log is correctly managed, you need
+to specify its kind by means of the ``kind`` argument.
+See :py:mod:`itwinai.loggers` module documentation for a list of object kinds
+that can be logged.
 
-    from itwinai.loggers import MLFlowLogger
+.. admonition:: Example of basic usage of itwinai Logger
 
-    my_logger = MLFlowLogger(
-        experiment_name='may_awesome_experiment',
-        log_freq=100
-    )
+    The following outlines how to concretely use the logger on a toy example:
 
-    # Initialize logger
-    my_logger.create_logger_context()
+    .. code-block:: python
 
-   ...
+        from itwinai.loggers import MLFlowLogger
 
-    # During PyTorch model training
-    for epoch in range(100):
-        
-        loss_accumulator = .0
-        for batch_idx, batch in enumerate(train_dataloader):
-            x, y = batch
-            pred = my_net(x)
-            loss = loss_criterion(y, pred)
-            ...
-            # Log the loss with "batch" granularity
-            my_logger.log(
-                item=loss.item(),
-                identifier='my_training_loss_batch',
-                kind='metric',
-                batch_idx=batch_idx
-            )
-            loss_accumulator += loss.item()
-            ...
-        
-        epoch_loss = loss_accumulator / len(train_dataloader)
-        # Log the loss with "epoch" granularity
-        my_logger.log(
-            item=loss.item(),
-            identifier='my_training_loss_epoch',
-            kind='metric'
+        my_logger = MLFlowLogger(
+            experiment_name='may_awesome_experiment',
+            log_freq=100
         )
 
-    # Save model after training
-    my_logger.log(
-        item=my_net,
-        identifier='trained_model',
-        kind='model'
-    )
+        # Initialize logger
+        my_logger.create_logger_context()
 
-    # Destroy logger before exiting
-    my_logger.destroy_logger_context()
+        # During PyTorch model training
+        for epoch in range(100):
+            
+            loss_accumulator = .0
+            for batch_idx, batch in enumerate(train_dataloader):
+                x, y = batch
+                pred = my_net(x)
+                loss = loss_criterion(y, pred)
+                ...
+                # Log the loss with "batch" granularity
+                my_logger.log(
+                    item=loss.item(),
+                    identifier='my_training_loss_batch',
+                    kind='metric',
+                    batch_idx=batch_idx
+                )
+                loss_accumulator += loss.item()
+                ...
+            
+            epoch_loss = loss_accumulator / len(train_dataloader)
+            # Log the loss with "epoch" granularity
+            my_logger.log(
+                item=loss.item(),
+                identifier='my_training_loss_epoch',
+                kind='metric'
+            )
+
+        # Save model after training
+        my_logger.log(
+            item=my_net,
+            identifier='trained_model',
+            kind='model'
+        )
+
+        # Destroy logger before exiting
+        my_logger.destroy_logger_context()
 
 
-Logging frequency tradeoff
+Similarly, you can use itwinai loggers in the itwinai :class:`~itwinai.torch.trainer.TorchTrainer`.
+
+.. admonition:: Example of itwinai Logger and TorchTrainer
+
+    .. code-block:: python
+
+        from itwinai.loggers import WandBLogger
+        from itwinai.torch.trainer import TorchTrainer
+
+        my_logger = WandBLogger(
+            project_name='may_awesome_experiment',
+            log_freq=100
+        )
+
+        # If needed, override the default trainer
+        class MyCustomTrainer(TorchTrainer):
+            ...
+
+            def train(self, ...):
+                ...
+                self.logger.log(
+                    item=some_metric,
+                    identifier='my_metric_name',
+                    kind='metric'
+                )
+
+        # Instantiate the trainer passing some itwinai logger
+        my_trainer = MyCustomTrainer(
+            config=...,
+            epochs=100,
+            model=my_net,
+            strategy='ddp',
+            logger=my_logger
+        )
+
+        ...
+
+        # Start training
+        my_trainer.execute(train_dataset, validation_dataset)
+
+Logging frequency trade-off
 +++++++++++++++++++++++++++
 
-Neural networks will work through a number of input vectors, also called a _batch_,
-before updating the internal model parameters.
-An _epoch_ refers to one pass through the entire dataset.
-Logging model parameters each batch would provide users with the most granular
-information map possible but comes at a significant cost in training speed due to
-the slow process of writing to disk after each batch.
-Thus, logging every few batches or only once per epoch will be a worthy tradeoff
+Neural networks parameters are iteratively optimized on small data samples
+extracted from some training dataset, also called **batches**.
+On the other hand, an **epoch** refers to one sweep through the entire dataset,
+iterating over all batches that compose it.
+
+Logging ML metadata for each batch of each epoch would provide users with the most
+granular information possible, but it comes at a significant cost in training speed due to
+the slow process of writing to disk after each batch (a.k.a. I/O bottleneck).
+Thus, logging every few batches or only once per epoch will be a worthy trade-off
 depending on the use case.
 
-The `log_freq` parameter allows the user to determine at which batch interval the
-logger is called.
-When an integer is given for this parameter, the logger will log when that batch's
-batch id is a multiple of the given integer.
-Thus, should `log_freq = 5`, the first batch (`batch_id=0`) is logged, after which
-the 11th batch (`batch_id=10`) is logged, after which the 20th batch is logged and so
+The ``log_freq`` argument in the :class:`~itwinai.loggers.Logger` constructor
+allows the user to determine at which batch interval the action of logging is
+actually performed, without having to change the training routine.
+When an integer is passed as ``log_freq``, the logger will honor the call to the
+:meth:`~itwinai.loggers.LogMixin.log` method for each batch, if that batch's
+index is a multiple of the given integer (i.e., ``batch_id % log_freq == 0``).
+In all the other cases (i.e., ``batch_id % log_freq != 0``), the logger will ignore
+the :meth:`~itwinai.loggers.LogMixin.log`
+call in a transparent way for the user.
 
-`log_freq` can also be set to the values `epoch` or `batch`.
-When set to `epoch`, the logger only logs the epoch.
-The logger only logs if `batch_idx` is not passed as parameter to `log`
-When set to `batch`, every batch is logged 
+.. admonition:: Example on the functioning of ``log_freq`` constructor argument
 
-Logging on distributed workflows
+    Should ``log_freq = 5``, the first batch (``batch_id=0``) is logged, after which
+    the 11th batch (``batch_id=10``) is logged, after which the 15th batch is logged
+    and so on.
+
+``log_freq`` can also receive the following string values: ``"epoch"`` or ``"batch"``.
+
+- When set to ``"epoch"``, the logger only logs when called outside of the nested
+  training loop iterating over dataset batches. In other words, the logger only
+  logs if ``batch_idx`` is not passed as parameter to the
+  :meth:`~itwinai.loggers.LogMixin.log` method.
+- When set to ``"batch"``, every batch is logged.
+
+.. warning::
+
+    The logger assumes to be outside of the inner training loop (namely, the one
+    iterating over dataset batches) when the ``batch_idx`` argument of the
+    :meth:`~itwinai.loggers.LogMixin.log` method is set to ``None`` or is
+    simply not given. It is therefore your responsibility to make sure that
+    ``batch_idx`` is always passed to the :meth:`~itwinai.loggers.LogMixin.log`
+    method when available (i.e., when iterating over batches)!
+    If you don't do it, the logger will always log, regardless of what you pass
+    to the ``log_freq`` argument in the :class:`~itwinai.loggers.Logger`
+    constructor.
+
+Logging during distributed ML
 ++++++++++++++++++++++++++++++++++
 
 Distributed workflows could potentially suffer from *race conditions*.
 Workers performing computational tasks concurrently might lead to situations in which
 the execution order of threads or processes accessing and modifying the same resources
 determine the behavior of software.
+In fact, if all workers in the distributed ML job tried to log its local copy of some
+variable, they may end up writing to the same file, resulting in race conditions.
+In other cases local variables are identical across all workers (e.g., model parameters
+when training with data parallelism) thus if not controlled, all workers would log
+redundant information.
 
-The itwinai logger provides a `rank` parameter that allows the user to log only on a
-single worker or a list of workers using the `log_on_worker` parameter.
-See :py:mod:`itwinai.loggers` module documentation for a list of objects that can be
-logged.
+In a distributed environment, different workers are usually uniquely identified by
+their **global rank**, namely an integer going from :math:`0` to :math:`N - 1`,
+where :math:`N` is the total number of workers.
+
+The itwinai logger provides a way to control which workers are allowed to log
+and, conversely, in which workers calls to the :meth:`~itwinai.loggers.LogMixin.log`
+method should be ignored. In the :class:`~itwinai.loggers.Logger` constructor,
+the ``log_on_workers`` argument allows the user to specify which
+worker, or a list of workers, are allowed to log by specifying their global rank.
+
+To make aware each logger replica of its worker global rank, the
+:meth:`~itwinai.loggers.Logger.create_logger_context` method received a ``rank`` integer.
+
+.. admonition:: Example of itwinai Logger in a distributed ML job
+
+    In this example, we use the itwinai :class:`~itwinai.loggers.MLFlowLogger` to log
+    only on the worker with global rank equal to 0. In all the other workers, calls
+    to the :meth:`~itwinai.loggers.LogMixin.log` method will be ignored.
+
+    As you can see, the code is very similar to the example above, with the only
+    difference in the logger constructor and :meth:`~itwinai.loggers.Logger.create_logger_context`
+    methods.
+
+    When using the itwinai :class:`~itwinai.torch.trainer.TorchTrainer`, the rank will
+    be automatically passed
+    to the logger's :meth:`~itwinai.loggers.Logger.create_logger_context` method
+    by the :class:`~itwinai.torch.trainer.TorchTrainer`.
+
+    .. code-block:: python
+
+        import os
+        from itwinai.loggers import MLFlowLogger
+
+        my_logger = MLFlowLogger(
+            experiment_name='may_awesome_experiment',
+            log_freq=100,
+            log_on_workers=0
+        )
+
+        # Initialize logger, assuming RANK env variable by torchrun launcher
+        my_logger.create_logger_context(rank=int(os.environ['RANK']))
+
+        # During PyTorch model training
+        for epoch in range(100):
+            
+            loss_accumulator = .0
+            for batch_idx, batch in enumerate(train_dataloader):
+                x, y = batch
+                pred = my_net(x)
+                loss = loss_criterion(y, pred)
+                ...
+                # Log the loss with "batch" granularity
+                my_logger.log(
+                    item=loss.item(),
+                    identifier='my_training_loss_batch',
+                    kind='metric',
+                    batch_idx=batch_idx
+                )
+                loss_accumulator += loss.item()
+                ...
+            
+            epoch_loss = loss_accumulator / len(train_dataloader)
+            # Log the loss with "epoch" granularity
+            my_logger.log(
+                item=loss.item(),
+                identifier='my_training_loss_epoch',
+                kind='metric'
+            )
+
+        # Save model after training
+        my_logger.log(
+            item=my_net,
+            identifier='trained_model',
+            kind='model'
+        )
+
+        # Destroy logger before exiting
+        my_logger.destroy_logger_context()
+
+
+.. note::
+
+    When logging on more than one worker using the same logger, it is responsibility
+    of the user to verify
+    that the chosen logging framework supports multiprocessing, adapting it accordingly
+    if not.
 
 Further references
 -------------------
@@ -138,7 +300,7 @@ Further references
   An open-source logger, MLFlow integrates with most commonly used ML libraries. MLFlow
   offers tools such as a model registry to aid in version tracking, facilitation of model
   deployment through MLFlow Models, and strong integration with commonly used ML frameworks.
-- `WandB <https://docs.wandb.ai/ref/python/watch>`_: Besides comprehensive
+- `Weights&Biases <https://docs.wandb.ai/ref/python/watch>`_: Besides comprehensive
   tracking of hyperparameters, model metrics, and system
   performance measures, WandB offers an interactive web-based dashboard that
   visualises logged metrics in real time.
