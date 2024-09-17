@@ -1,34 +1,13 @@
 import os
-from typing import Callable
-import pytest
 import subprocess
-import random
-import string
+from typing import Callable
 
+import pytest
 
 FNAMES = [
     'pipeline.yaml',
     'startscript',
 ]
-
-
-def rnd_string(len: int = 26):
-    return ''.join(random.sample(string.ascii_lowercase, len))
-
-
-@pytest.fixture
-def tmp_test_dir():
-    root = '/tmp/pytest'
-    os.makedirs(root, exist_ok=True)
-    test_dir = os.path.join(root, rnd_string())
-    while os.path.exists(test_dir):
-        test_dir = os.path.join(root, rnd_string())
-    os.makedirs(test_dir, exist_ok=True)
-
-    yield test_dir
-
-    # Optional: remove dir here...
-
 
 @pytest.fixture
 def check_folder_structure() -> Callable:
@@ -52,3 +31,4 @@ def install_requirements() -> Callable:
             cmd = f"{env_prefix}/bin/pip install -r {req_path}"
             subprocess.run(cmd.split(), check=True)
     return _install_reqs
+
