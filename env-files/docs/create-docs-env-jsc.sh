@@ -12,4 +12,5 @@ gcc --version
 rm -rf .venv-docs
 python -m venv .venv-docs
 source .venv-docs/bin/activate
+pip install -r docs/pre-requirements.txt
 pip install -r docs/requirements.txt

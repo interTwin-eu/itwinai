@@ -46,7 +46,7 @@ else
   echo "$ENV_NAME environment is created in ${cDir}"
 fi
 
-pip install --upgrade pip
+pip install --no-cache-dir --upgrade pip
 
 pip install --no-cache-dir packaging wheel
 
@@ -97,7 +97,7 @@ else
     pip install --no-cache-dir DeepSpeed
   else
     # CPU only installation
-    pip install deepspeed
+    pip install --no-cache-dir  deepspeed
   fi
 
   # fix .triton/autotune/Fp16Matmul_2d_kernel.pickle bug
@@ -170,5 +170,12 @@ else
     ${cDir}/$ENV_NAME/lib/python${pver}/site-packages/torchnlp/_third_party/weighted_random_sampler.py
 fi
 
+# Install Pov4ML
+if [[ "$OSTYPE" =~ ^darwin ]] ; then
+  pip install "prov4ml[apple]@git+https://github.com/matbun/ProvML@main" || exit 1
+else
+  pip install "prov4ml[linux]@git+https://github.com/matbun/ProvML@main" || exit 1
+fi
+
 # Install itwinai
-pip install -e .[dev,torch]
+pip install --no-cache-dir -e .[torch,dev]
