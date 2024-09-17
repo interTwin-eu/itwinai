@@ -1,7 +1,7 @@
 ARG IMG_TAG=23.09-py3
 
-# 23.09-py3: torch==2.1.0
-# 24.04-py3: torch==2.3.0
+# 23.09-py3: https://docs.nvidia.com/deeplearning/frameworks/pytorch-release-notes/rel-23-09.html
+# 24.04-py3: https://docs.nvidia.com/deeplearning/frameworks/pytorch-release-notes/rel-24-04.html
 
 FROM nvcr.io/nvidia/pytorch:${IMG_TAG}
 
