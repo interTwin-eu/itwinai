@@ -25,10 +25,14 @@ from ..components import Trainer, monitor_exec
 from ..loggers import Logger, LogMixin
 from ..utils import load_yaml
 from .config import TrainingConfiguration
-from .distributed import (DeepSpeedStrategy, HorovodStrategy,
-                          NonDistributedStrategy, TorchDDPStrategy,
-                          TorchDistributedStrategy,
-                          distributed_resources_available)
+from .distributed import (
+    DeepSpeedStrategy,
+    HorovodStrategy,
+    NonDistributedStrategy,
+    TorchDDPStrategy,
+    TorchDistributedStrategy,
+    distributed_resources_available,
+)
 from .mlflow import init_lightning_mlflow, teardown_lightning_mlflow
 from .reproducibility import seed_worker, set_seed
 from .type import Batch, LrScheduler, Metric
