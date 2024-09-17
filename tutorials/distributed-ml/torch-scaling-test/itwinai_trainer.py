@@ -23,7 +23,7 @@ from itwinai.torch.distributed import (
     TorchDistributedStrategy,
     TorchDDPStrategy,
     HorovodStrategy,
-    DeepSpeedStrategy,
+    DeepSpeedStrategy
 )
 from itwinai.parser import ArgumentParser as ItAIArgumentParser
 from itwinai.loggers import EpochTimeTracker
