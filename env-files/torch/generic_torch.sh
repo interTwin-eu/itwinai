@@ -61,7 +61,7 @@ else
     # CPU only installation for MacOS
     if [[ "$OSTYPE" =~ ^darwin ]] ; then
       pip install --no-cache-dir \
-        'torch<2.2.0' torchvision torchaudio || exit 1
+        'torch==2.4.0' torchvision torchaudio || exit 1
     else
     # CPU only installation for other OSs
       pip install --no-cache-dir \
