@@ -55,18 +55,17 @@ A logger allows to save objects of different kinds:
     https://docs.wandb.ai/ref/python/watch
 """
 
-import os
 import csv
-import pickle
+import os
 import pathlib
-import wandb
+import pickle
+from abc import ABC, abstractmethod
+from contextlib import contextmanager
+from typing import Any, Dict, List, Literal, Optional, Tuple, Union
+
 import mlflow
 import prov4ml
-
-
-from abc import abstractmethod, ABC
-from contextlib import contextmanager
-from typing import Any, Dict, List, Optional, Union, Literal, Tuple
+import wandb
 from typing_extensions import override
 
 BASE_EXP_NAME: str = 'default_experiment'
@@ -596,6 +595,7 @@ class MLFlowLogger(Logger):
                       "Must be an MLFlow dataset")
         if kind == 'torch':
             import torch
+
             # Save the object locally and then log it
             name = os.path.basename(identifier)
             save_path = os.path.join(self.savedir, '.trash', name)

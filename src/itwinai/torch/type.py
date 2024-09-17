@@ -1,8 +1,9 @@
 """Custom types definition."""
 
+from typing import Callable
+
 import torch
 from torch import nn
-from typing import Callable
 
 #: Torch learning rate scheduler
 LrScheduler = nn.Module

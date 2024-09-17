@@ -2,48 +2,36 @@
 
 import os
 import sys
-import torch
-import torchvision
+from typing import Any, Callable, Dict, List, Literal, Optional, Tuple, Union
 
-import pandas as pd
-import numpy as np
-import matplotlib.pyplot as plt
-import lightning as L
 import horovod.torch as hvd
-import torch.nn as nn
+import lightning as L
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+import torch
 import torch.distributed as dist
+import torch.nn as nn
 import torch.optim as optim
-
+import torchvision
 from lightning.pytorch.cli import LightningCLI
-from torch.utils.data import DataLoader, Dataset
-from torch.utils.data.distributed import DistributedSampler
 from torch.nn.parallel import DistributedDataParallel as DDP
 from torch.optim.optimizer import Optimizer
-from typing import (
-    Optional, Dict, Union, Tuple, List, Any, Literal, Callable
-)
+from torch.utils.data import DataLoader, Dataset
+from torch.utils.data.distributed import DistributedSampler
 
 # Imports from this repository
 from ..components import Trainer, monitor_exec
-from .type import (
-    Batch, LrScheduler, Metric
-)
-from ..loggers import LogMixin, Logger
-from .reproducibility import seed_worker, set_seed
-from .distributed import (
-    TorchDistributedStrategy,
-    TorchDDPStrategy,
-    HorovodStrategy,
-    DeepSpeedStrategy,
-    NonDistributedStrategy,
-    distributed_resources_available
-)
+from ..loggers import Logger, LogMixin
 from ..utils import load_yaml
-from .mlflow import (
-    init_lightning_mlflow,
-    teardown_lightning_mlflow
-)
 from .config import TrainingConfiguration
+from .distributed import (DeepSpeedStrategy, HorovodStrategy,
+                          NonDistributedStrategy, TorchDDPStrategy,
+                          TorchDistributedStrategy,
+                          distributed_resources_available)
+from .mlflow import init_lightning_mlflow, teardown_lightning_mlflow
+from .reproducibility import seed_worker, set_seed
+from .type import Batch, LrScheduler, Metric
 
 
 class TorchTrainer(Trainer, LogMixin):

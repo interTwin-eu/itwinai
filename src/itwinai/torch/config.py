@@ -1,7 +1,8 @@
 """Default configuration"""
 
-from pydantic import BaseModel
 from typing import Literal
+
+from pydantic import BaseModel
 
 
 class Configuration(BaseModel, extra='allow'):

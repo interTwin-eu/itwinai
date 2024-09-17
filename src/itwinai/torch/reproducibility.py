@@ -4,10 +4,10 @@ torch scripts.
 """
 
 import random
-import torch
-import numpy as np
-
 from typing import Optional
+
+import numpy as np
+import torch
 
 
 def seed_worker(worker_id):
