@@ -5,6 +5,11 @@
 # Required
 version: 2
 
+submodules:
+  include:
+    - tutorials/plugins
+  recursive: true
+
 # Set the OS, Python version and other tools you might need
 build:
   os: ubuntu-22.04
@@ -35,4 +40,5 @@ sphinx:
 python:
    install:
   #  - wheel
+   - requirements: docs/pre-requirements.txt
    - requirements: docs/requirements.txt

@@ -19,7 +19,7 @@ from itwinai.utils import load_yaml
 #     init_lightning_mlflow,
 #     teardown_lightning_mlflow
 # )
-from itwinai.loggers import Logger
+from itwinai.loggers import Logger, _EmptyLogger
 
 
 from model import ThreeDGAN
@@ -38,7 +38,9 @@ class Lightning3DGANTrainer(Trainer):
             # Load from YAML
             config = load_yaml(config)
         self.conf = config
-        self.itwinai_logger = itwinai_logger
+        self.itwinai_logger = (
+            itwinai_logger if itwinai_logger else _EmptyLogger()
+        )
 
     @monitor_exec
     def execute(self) -> Any:
