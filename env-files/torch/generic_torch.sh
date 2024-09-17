@@ -159,7 +159,8 @@ else
   # Cleaner Horovod installation
 	# https://github.com/horovod/horovod/pull/3998
   # Assume that Horovod env vars are already in the current env!
-  pip install --no-cache-dir git+https://github.com/thomas-bouvier/horovod.git@compile-cpp17 || exit 1
+  pip install --no-cache-dir git+https://github.com/horovod/horovod.git || exit 1
+  # pip install --no-cache-dir git+https://github.com/thomas-bouvier/horovod.git@compile-cpp17 || exit 1
 fi
 
 # get required libraries in reqs.txt
