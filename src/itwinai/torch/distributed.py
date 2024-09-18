@@ -557,15 +557,6 @@ class DeepSpeedStrategy(TorchDistributedStrategy):
         super().__init__()
         self.backend = backend
 
-    def _load_config(self, ds_config) -> None:
-        if isinstance(ds_config, (str, Path)):
-            with open(ds_config) as fp:
-                self.config = json.load(fp)
-        elif isinstance(ds_config, dict):
-            self.config = ds_config
-        else:
-            raise ValueError("ds_config is neither a dictionary not a path.")
-
     def init(self) -> None:
         """Initializes the distributed process group and the distributed
         package.
@@ -604,10 +595,6 @@ class DeepSpeedStrategy(TorchDistributedStrategy):
             raise UninitializedStrategyError(
                 "Strategy has not been initialized. Use the init method.")
 
-        if init_kwargs.get("config"):
-            self._load_config(init_kwargs.get("config"))
-        # https://deepspeed.readthedocs.io/en/latest/initialize.html#training-initialization
-        # To prioritize optim in the config, you need to pass optim=None
         distrib_model, optimizer, _, lr_scheduler = deepspeed.initialize(
             model=model,
             model_parameters=model_parameters,

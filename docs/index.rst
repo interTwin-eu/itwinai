@@ -60,6 +60,7 @@ use due to its reliability (`learn more <https://docs.readthedocs.io/en/stable/v
 
    getting-started/getting_started_with_itwinai
    getting-started/slurm
+   getting-started/plugins
 
 .. toctree::
    :maxdepth: 2

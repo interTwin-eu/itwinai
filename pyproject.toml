@@ -17,8 +17,6 @@ keywords = ["ml", "ai", "hpc"]
 authors = [
     { name = "Matteo Bunino", email = "matteo.bunino@cern.ch" },
     { name = "Rakesh Sarma", email = "r.sarma@fz-juelich.de" },
-    { name = "Mario Ruettgers", email = "m.ruettgers@fz-juelich.de" },
-    { name = "Kalliopi Tsolaki", email = "kalliopi.tsolaki@cern.ch" },
 ]
 maintainers = [
     { name = "Matteo Bunino", email = "matteo.bunino@cern.ch" },
