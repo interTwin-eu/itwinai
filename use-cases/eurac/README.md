@@ -16,6 +16,21 @@ pip install -r requirements.txt
 Allocate 4 GPUs on a compute node and run distributed algorithms:
 see "[Distributed training on a single node (interactive)](https://github.com/interTwin-eu/itwinai/tree/main/tutorials/distributed-ml/torch-tutorial-0-basics#distributed-training-on-a-single-node-interactive)."
 
+```bash
+
+salloc --partition=batch --nodes=1 --account=intertwin  --gres=gpu:4 --time=1:59:00
+
+srun --jobid XXXX --overlap --pty /bin/bash
+
+ml --force purge
+
+ml Stages/2024 GCC OpenMPI CUDA/12 MPI-settings/CUDA Python HDF5 PnetCDF libaio mpi4py
+
+source ../../../hython-dev/bin/activate
+
+torchrun --standalone --nnodes=1 --nproc-per-node=gpu dist-train.py
+
+```
 
 ## Training
 
@@ -32,9 +47,18 @@ itwinai exec-pipeline --config config.yaml --pipe-key training_pipeline --steps 
 
 Launch distributed training with SLURM using the dedicated `run.sh` job script:
 
+Train LSTM
+
 ```bash
 # Distributed training with torch DistributedDataParallel
-./run.sh
+./run.sh config.yaml
+```
+
+Train ConvLSTM
+
+```bash
+# Distributed training with torch DistributedDataParallel
+./run.sh config_conv.yaml
 ```
 
 ## Running scaling tests

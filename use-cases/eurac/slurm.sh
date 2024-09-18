@@ -52,6 +52,8 @@ if [ "$SLURM_CPUS_PER_GPU" -gt 0 ] ; then
   export OMP_NUM_THREADS=$SLURM_CPUS_PER_GPU
 fi
 
+export TORCH_DISTRIBUTED_DEBUG="DETAIL"
+
 # Env vairables check
 if [ -z "$DIST_MODE" ]; then 
   >&2 echo "ERROR: env variable DIST_MODE is not set. Allowed values are 'horovod', 'ddp' or 'deepspeed'"
