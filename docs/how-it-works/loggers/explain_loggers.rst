@@ -14,11 +14,11 @@ their ML training run regardless of which supported logger is used.
 The core idea is to abstract user-developed code from popular logging frameworks
 (such as MLFlow, Weights&Biases, Tensorboard), allowing itwinai users to easily
 switch between loggers with no changes to their code. Moreover, this abstraction
-layer allows to use multiple logging frameworks at the same time, enabling our
+layer allows the use of multiple logging frameworks at the same time, enabling our
 users to pick the best from each one.
 
 The supported loggers, also shown in figure :numref:`logger_abstraction_fig`, are listed in
-:py:mod:`itwinai.loggers` module documentation.
+the :py:mod:`itwinai.loggers` module documentation.
 
 .. _logger_abstraction_fig:
 .. figure::  figures/logger_fig.png
@@ -42,7 +42,7 @@ To get started with the itwinai logger, make sure to follow the initial
 
 The itwinai :class:`~itwinai.loggers.Logger` provides a unique interface to log any
 *kind* of data trough the :meth:`~itwinai.loggers.LogMixin.log` method. You can use
-it to log metrics, model checkpoints, images, text, provenance information...
+it to log metrics, model checkpoints, images, text, provenance information, and more.
 However, to make sure that the item you want to log is correctly managed, you need
 to specify its kind by means of the ``kind`` argument.
 See :py:mod:`itwinai.loggers` module documentation for a list of object kinds
@@ -57,7 +57,7 @@ that can be logged.
         from itwinai.loggers import MLFlowLogger
 
         my_logger = MLFlowLogger(
-            experiment_name='may_awesome_experiment',
+            experiment_name='my_awesome_experiment',
             log_freq=100
         )
 
@@ -112,7 +112,7 @@ Similarly, you can use itwinai loggers in the itwinai :class:`~itwinai.torch.tra
         from itwinai.torch.trainer import TorchTrainer
 
         my_logger = WandBLogger(
-            project_name='may_awesome_experiment',
+            project_name='my_awesome_experiment',
             log_freq=100
         )
 
@@ -148,12 +148,13 @@ Logging frequency trade-off
 Neural networks parameters are iteratively optimized on small data samples
 extracted from some training dataset, also called **batches**.
 On the other hand, an **epoch** refers to one sweep through the entire dataset,
-iterating over all batches that compose it.
+iterating over all batches that compose it. Thus, an epoch consists of multiple
+batch iterations.
 
 Logging ML metadata for each batch of each epoch would provide users with the most
 granular information possible, but it comes at a significant cost in training speed due to
 the slow process of writing to disk after each batch (a.k.a. I/O bottleneck).
-Thus, logging every few batches or only once per epoch will be a worthy trade-off
+Thus, logging every few batches or only once per epoch can be a worthy trade-off
 depending on the use case.
 
 The ``log_freq`` argument in the :class:`~itwinai.loggers.Logger` constructor
@@ -190,7 +191,10 @@ call in a transparent way for the user.
     method when available (i.e., when iterating over batches)!**
     If you don't do it, the logger will always log, regardless of what you pass
     to the ``log_freq`` argument in the :class:`~itwinai.loggers.Logger`
-    constructor.
+    constructor. In other words, if you do not pass the ``batch_idx`` argument
+    to the :meth:`~itwinai.loggers.LogMixin.log` where you should, then you can
+    run into the situation where you told the logger to only log on epochs,
+    but then it also logs on batches.
 
 Logging during distributed ML
 ++++++++++++++++++++++++++++++++++
@@ -231,8 +235,8 @@ integer.
     to the :meth:`~itwinai.loggers.LogMixin.log` method will be ignored.
 
     As you can see, the code is very similar to the example above, with the only
-    difference in the logger constructor and :meth:`~itwinai.loggers.Logger.create_logger_context`
-    methods.
+    differences being in the logger constructor and the
+    :meth:`~itwinai.loggers.Logger.create_logger_context` method.
 
     When using the itwinai :class:`~itwinai.torch.trainer.TorchTrainer`, the rank will
     be automatically passed
@@ -245,7 +249,7 @@ integer.
         from itwinai.loggers import MLFlowLogger
 
         my_logger = MLFlowLogger(
-            experiment_name='may_awesome_experiment',
+            experiment_name='my_awesome_experiment',
             log_freq=100,
             log_on_workers=0
         )
@@ -315,3 +319,5 @@ Further references
   graph visualisation of neural networks, and image and audio logging besides scalar
   outputs.
 - `Tensorboard for PyTorch <https://lightning.ai/docs/pytorch/stable/api/lightning.pytorch.loggers.tensorboard.html>`_
+  Similarly as for TensorFlow, you can use this variant of TensorBoard when
+  training PyTorch models. 
