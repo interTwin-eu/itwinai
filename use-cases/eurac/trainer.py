@@ -335,8 +335,8 @@ class ConvRNNDistributedTrainer(TorchTrainer):
         trainer = HythonTrainer(
                 RNNTrainParams(
                     experiment=self.config.experiment,
-                    temporal_subsampling=self.config.rnn_config["temporal_subsampling"],
-                    temporal_subset=self.config.rnn_config["temporal_subset"],
+                    temporal_subsampling=False,
+                    temporal_subset=1,
                     target_names=self.config.rnn_config["target_names"],
                     metric_func=self.metric_fn,
                     loss_func=self.loss_fn)
