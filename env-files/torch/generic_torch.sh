@@ -56,16 +56,16 @@ if [ -f "${cDir}/$ENV_NAME/bin/torchrun" ]; then
 else
   if [ -z "$NO_CUDA" ] ; then
     pip install --no-cache-dir \
-    'torch==2.4.0' torchvision torchaudio --index-url "$PIP_INDEX_TORCH_CUDA" || exit 1
+    'torch==2.4.*' torchvision torchaudio --index-url "$PIP_INDEX_TORCH_CUDA" || exit 1
   else
     # CPU only installation for MacOS
     if [[ "$OSTYPE" =~ ^darwin ]] ; then
       pip install --no-cache-dir \
-        'torch==2.4.0' torchvision torchaudio || exit 1
+        'torch==2.4.*' torchvision torchaudio || exit 1
     else
     # CPU only installation for other OSs
       pip install --no-cache-dir \
-         'torch==2.4.0' torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu || exit 1
+         'torch==2.4.*' torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu || exit 1
     fi
   fi
 fi

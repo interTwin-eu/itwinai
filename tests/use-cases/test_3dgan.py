@@ -92,12 +92,3 @@ def test_3dgan_inference(
 
         # Running the inference
         subprocess.run(run_inference_cmd.split(), check=True, cwd=temp_dir)
-
-
-
-
-
-
-
-
-
