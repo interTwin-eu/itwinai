@@ -86,7 +86,7 @@ that can be logged.
             epoch_loss = loss_accumulator / len(train_dataloader)
             # Log the loss with "epoch" granularity
             my_logger.log(
-                item=loss.item(),
+                item=epoch_loss,
                 identifier='my_training_loss_epoch',
                 kind='metric'
             )
@@ -168,8 +168,8 @@ call in a transparent way for the user.
 
 .. admonition:: Example on the functioning of ``log_freq`` constructor argument
 
-    Should ``log_freq = 5``, the first batch (``batch_id=0``) is logged, after which
-    the 11th batch (``batch_id=10``) is logged, after which the 15th batch is logged
+    Should ``log_freq = 10``, the first batch (``batch_id = 0``) is logged, after which
+    the 11th batch (``batch_id = 10``) is logged, after which the 21th batch is logged
     and so on.
 
 ``log_freq`` can also receive the following string values: ``"epoch"`` or ``"batch"``.
@@ -185,9 +185,9 @@ call in a transparent way for the user.
     The logger assumes to be outside of the inner training loop (namely, the one
     iterating over dataset batches) when the ``batch_idx`` argument of the
     :meth:`~itwinai.loggers.LogMixin.log` method is set to ``None`` or is
-    simply not given. It is therefore your responsibility to make sure that
+    simply not given. **It is therefore your responsibility to make sure that
     ``batch_idx`` is always passed to the :meth:`~itwinai.loggers.LogMixin.log`
-    method when available (i.e., when iterating over batches)!
+    method when available (i.e., when iterating over batches)!**
     If you don't do it, the logger will always log, regardless of what you pass
     to the ``log_freq`` argument in the :class:`~itwinai.loggers.Logger`
     constructor.
@@ -195,28 +195,34 @@ call in a transparent way for the user.
 Logging during distributed ML
 ++++++++++++++++++++++++++++++++++
 
-Distributed workflows could potentially suffer from *race conditions*.
-Workers performing computational tasks concurrently might lead to situations in which
-the execution order of threads or processes accessing and modifying the same resources
-determine the behavior of software.
-In fact, if all workers in the distributed ML job tried to log its local copy of some
-variable, they may end up writing to the same file, resulting in race conditions.
-In other cases local variables are identical across all workers (e.g., model parameters
-when training with data parallelism) thus if not controlled, all workers would log
-redundant information.
+In distributed workflows, multiple workers perform tasks at the same time.
+This can sometimes cause problems called race conditions,
+where the order in which different workers access or modify the same resource
+affects the software's behavior. For example, if every
+worker in a distributed ML job tries to log its local copy of a variable,
+they might all write to the same file simultaneously,
+leading to errors. In other cases, if all workers log identical information
+(like model parameters when using data parallelism), it
+can result in unnecessary redundancy.
 
-In a distributed environment, different workers are usually uniquely identified by
-their **global rank**, namely an integer going from :math:`0` to :math:`N - 1`,
-where :math:`N` is the total number of workers.
+To manage this, each worker in a distributed environment is given a unique
+number, called its **global rank**. This is simply an integer
+going from :math:`0` to :math:`N - 1`,
+where :math:`N` is the total number of workers. A worker's rank can be
+accessed from a process using various methods, such
+as through environment variables set by the
+`torchrun <https://pytorch.org/docs/stable/elastic/run.html>`_ launcher.
 
-The itwinai logger provides a way to control which workers are allowed to log
+The itwinai logger helps control which workers are allowed to log
 and, conversely, in which workers calls to the :meth:`~itwinai.loggers.LogMixin.log`
-method should be ignored. In the :class:`~itwinai.loggers.Logger` constructor,
-the ``log_on_workers`` argument allows the user to specify which
-worker, or a list of workers, are allowed to log by specifying their global rank.
+method should be ignored.
+Using the ``log_on_workers argument`` argument in the
+:class:`~itwinai.loggers.Logger` constructor,
+you can specify which worker(s) should log based on their global rank.
 
-To make aware each logger replica of its worker global rank, the
-:meth:`~itwinai.loggers.Logger.create_logger_context` method received a ``rank`` integer.
+To make sure each logger knows its worker's rank, the
+:meth:`~itwinai.loggers.Logger.create_logger_context` method accepts a ``rank``
+integer.
 
 .. admonition:: Example of itwinai Logger in a distributed ML job
 
@@ -287,9 +293,9 @@ To make aware each logger replica of its worker global rank, the
 
 .. note::
 
-    When logging on more than one worker using the same logger, it is responsibility
+    When logging on more than one worker using the same logger, **it is responsibility
     of the user to verify
-    that the chosen logging framework supports multiprocessing, adapting it accordingly
+    that the chosen logging framework supports multiprocessing**, adapting it accordingly
     if not.
 
 Further references
