@@ -5,12 +5,14 @@ Intended to be integration tests, to make sure that updates in the code base
 do not break use cases' workflows.
 """
 
-import pytest
-import subprocess
 import os
+import subprocess
+import tempfile
+from pathlib import Path
 
-CYCLONES_PATH = "use-cases/cyclones"
+import pytest
 
+CYCLONES_PATH = Path("use-cases", "cyclones")
 
 @pytest.mark.skip("deprecated")
 def test_structure_cyclones(check_folder_structure):
@@ -21,7 +23,7 @@ def test_structure_cyclones(check_folder_structure):
 @pytest.mark.skip("deprecated")
 @pytest.mark.functional
 @pytest.mark.memory_heavy
-def test_cyclones_train_tf(tf_env, tmp_test_dir, install_requirements):
+def test_cyclones_train_tf(tf_env, install_requirements):
     """
     Test Cyclones tensorflow trainer by running it end-to-end.
 
@@ -40,4 +42,5 @@ def test_cyclones_train_tf(tf_env, tmp_test_dir, install_requirements):
     train = os.path.join(os.path.abspath(CYCLONES_PATH), 'train.py')
     cmd = (f"{tf_env}/bin/python {train} "
            f"-p {pipe} --data_path {dataset_path}")
-    subprocess.run(cmd.split(), check=True, cwd=tmp_test_dir)
+    with tempfile.TemporaryDirectory() as tmpdirname: 
+        subprocess.run(cmd.split(), check=True, cwd=tmpdirname)

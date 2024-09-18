@@ -28,7 +28,8 @@ if [ "$1" == "23.09-py3" ]; then
     export DS_BUILD_TRANSFORMER=1
     export DS_BUILD_STOCHASTIC_TRANSFORMER=1
     export DS_BUILD_TRANSFORMER_INFERENCE=1
-    pip3 install --no-cache-dir deepspeed || exit 1
+
+    pip install --no-cache-dir deepspeed || exit 1
 
     # fix .triton/autotune/Fp16Matmul_2d_kernel.pickle bug
     pver="$(python --version 2>&1 | awk '{print $2}' | cut -f1-2 -d.)"
