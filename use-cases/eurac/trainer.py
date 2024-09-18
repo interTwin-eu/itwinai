@@ -89,9 +89,9 @@ class RNNDistributedTrainer(TorchTrainer):
         self.lr_scheduler = ReduceLROnPlateau(
             self.optimizer, mode="min", factor=0.5, patience=10)
         
-        TARGET_WEIGHTS = {t: 1/len(self.config.rnn_config["target_names"]) for t in self.config.rnn_config["target_names"]}
+        TARGET_WEIGHTS = {t: 1/len(self.config.target_names) for t in self.config.target_names}
         self.loss_fn = RMSELoss(target_weight=TARGET_WEIGHTS)
-        self.metric_fn = MSEMetric(target_names=self.config.rnn_config["target_names"])
+        self.metric_fn = MSEMetric(target_names=self.config.target_names)
 
         if isinstance(self.strategy, DeepSpeedStrategy):
             # Batch size definition is not optional for DeepSpeedStrategy!
@@ -112,10 +112,10 @@ class RNNDistributedTrainer(TorchTrainer):
         trainer = RNNTrainer(
                 RNNTrainParams(
                     experiment=self.config.experiment,
-                    temporal_subsampling=self.config.rnn_config["temporal_subsampling"],
-                    temporal_subset=self.config.rnn_config["temporal_subset"],
-                    seq_length=self.config.rnn_config["seq_length"],
-                    target_names=self.config.rnn_config["target_names"],
+                    temporal_subsampling=self.config.temporal_subsampling,
+                    temporal_subset=self.config.temporal_subset,
+                    seq_length=self.config.seq_length,
+                    target_names=self.config.target_names,
                     metric_func=self.metric_fn,
                     loss_func=self.loss_fn)
         )
@@ -178,10 +178,8 @@ class RNNDistributedTrainer(TorchTrainer):
                 )
 
                 for target in trainer.P.target_names:
-                    metric_history[f"train_{target}"].append(
-                        train_metric[target])
-                    metric_history[f"val_{target}"].append(
-                        val_metric[target])
+                    metric_history[f"train_{target}"].append( train_metric[target])
+                    metric_history[f"val_{target}"].append( val_metric[target])
                 # Aggregate and log metrics
                 avg_metrics = pd.DataFrame(metric_history).mean().to_dict()
                 for m_name, m_val in avg_metrics.items():
@@ -217,12 +215,12 @@ class RNNDistributedTrainer(TorchTrainer):
         train_sampler_builder = SamplerBuilder(
             train_dataset,
             sampling="random",
-            processing="multi-gpu" if self.config.rnn_config["distributed"] else "single-gpu") # 
+            processing="multi-gpu" if self.config.distributed else "single-gpu") # 
 
         val_sampler_builder = SamplerBuilder(
             validation_dataset,
             sampling="sequential",
-            processing="multi-gpu" if self.config.rnn_config["distributed"] else "single-gpu")
+            processing="multi-gpu" if self.config.distributed else "single-gpu")
 
         train_sampler = train_sampler_builder.get_sampler()
         val_sampler = val_sampler_builder.get_sampler()

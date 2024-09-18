@@ -30,13 +30,12 @@ training_pipeline:
             experiment: ${run_name}
             batch_size: 256
             lr: 0.001
-            rnn_config:
-              temporal_subsampling: True
-              temporal_subset: [150, 150]
-              seq_length: 60
-              target_names:  [ "vwc","actevap"]
-              dp_weights: ${surrogate_model_output}
-              distributed: True
+            temporal_subsampling: True
+            temporal_subset: [150, 150]
+            seq_length: 60
+            target_names:  [ "vwc","actevap"]
+            dp_weights: ${surrogate_model_output}
+            distributed: True
           model:
             class_path: hython.models.cudnnLSTM.CuDNNLSTM
             init_args:
