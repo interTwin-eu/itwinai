@@ -20,10 +20,10 @@ COPY env-files/torch/create_container_env.sh ./
 RUN bash create_container_env.sh ${IMG_TAG}
 
 # Create non-root user
-RUN groupadd -g 10001 jovyan \
-    && useradd -m -u 10000 -g jovyan jovyan \
-    && chown -R jovyan:jovyan /usr/src/app
-USER jovyan:jovyan
+#RUN groupadd -g 10001 jovyan \
+#    && useradd -m -u 10000 -g jovyan jovyan \
+#    && chown -R jovyan:jovyan /usr/src/app
+#USER jovyan:jovyan
 
 LABEL org.opencontainers.image.source=https://github.com/interTwin-eu/itwinai
 LABEL org.opencontainers.image.description="Base itwinai image with torch dependencies and CUDA drivers"
