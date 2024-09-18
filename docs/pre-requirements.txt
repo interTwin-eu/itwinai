@@ -1,5 +1,5 @@
 wheel
 tensorflow==2.16.*
-torch==2.1.*
+torch==2.4.*
 torchvision
 torchaudio
