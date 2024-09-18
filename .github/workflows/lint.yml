@@ -37,6 +37,7 @@ jobs:
           MARKDOWN_CONFIG_FILE: .markdownlint.json
           PYTHON_FLAKE8_CONFIG_FILE: .flake8
           JSCPD_CONFIG_FILE: .jscpd.json
+          PYTHON_ISORT_CONFIG_FILE: .isort.cfg
 
           VALIDATE_PYTHON_BLACK: false
           VALIDATE_PYTHON_MYPY: false

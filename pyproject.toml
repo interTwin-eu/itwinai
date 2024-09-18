@@ -90,6 +90,3 @@ markers = [
     "functional: functional tests. (deselect with '-m \"not functional\"')",
     "memory_heavy: high memory footprint. (deselect with '-m \"not heavy_memory\"')",
 ]
-
-[tool.isort]
-profile = "black"
