@@ -7,8 +7,8 @@
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
 import os
-import sys
 import subprocess
+import sys
 
 exclude_patterns = 'requirements.txt'
 
