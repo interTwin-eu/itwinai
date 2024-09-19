@@ -416,6 +416,7 @@ class TorchDDPStrategy(TorchDistributedStrategy):
     def distributed(
         self, model: nn.Module, optimizer: Optimizer,
         lr_scheduler: Optional[LRScheduler] = None,
+        find_unused_parameters: bool = False,
         **kwargs
     ) -> Tuple[nn.Module, Optimizer, Optional[LRScheduler]]:
         """Setup model, optimizer and scheduler for distributed."""
@@ -428,7 +429,8 @@ class TorchDDPStrategy(TorchDistributedStrategy):
             dist_model = torch.nn.parallel.DistributedDataParallel(
                 model,
                 device_ids=[self.device()],
-                output_device=self.device()
+                output_device=self.device(),
+                find_unused_parameters=find_unused_parameters
             )
         else:
             dist_model = model
