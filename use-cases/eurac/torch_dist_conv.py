@@ -3,22 +3,17 @@ Simplified training script: data generation + training in one
 procedural script. This is an INTERMEDIATE step of integration in itwinai.
 """
 
+import matplotlib.pyplot as plt
 import torch
-
-from trainer import ConvRNNDistributedTrainer
-
 from hython.datasets.datasets import get_dataset
-from hython.sampler import CubeletsDownsampler
-from hython.utils import read_from_zarr, set_seed
 from hython.models.convLSTM import ConvLSTM
 from hython.normalizer import Normalizer
-
+from hython.sampler import CubeletsDownsampler
+from hython.utils import read_from_zarr, set_seed
 from itwinai.loggers import MLFlowLogger
-
 from itwinai.torch.config import TrainingConfiguration
 
-import matplotlib.pyplot as plt
-
+from trainer import ConvRNNDistributedTrainer
 
 # PARAMETERS
 

@@ -1,6 +1,7 @@
 import os
-import pandas as pd
+
 import matplotlib.pyplot as plt
+import pandas as pd
 
 # Path to the main directory
 main_dir = '/p/home/jusers/<username>/hdfml/ray_results/<specific run folder name>'

@@ -3,27 +3,21 @@ Simplified training script: data generation + training in one
 procedural script. This is an INTERMEDIATE step of integration in itwinai.
 """
 
-import torch
+import matplotlib.pyplot as plt
 import numpy as np
-import xarray as xr
+import torch
 import torch.optim as optim
+import xarray as xr
+from hython.datasets.datasets import get_dataset
+from hython.losses import RMSELoss
+from hython.metrics import MSEMetric
+from hython.models.cudnnLSTM import CuDNNLSTM
+from hython.normalizer import Normalizer
+from hython.sampler import RegularIntervalDownsampler, SamplerBuilder
+from hython.trainer import RNNTrainer, RNNTrainParams, train_val
+from hython.utils import read_from_zarr, set_seed
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 from torch.utils.data import DataLoader
-
-
-
-from hython.datasets.datasets import get_dataset
-from hython.trainer import train_val
-from hython.sampler import SamplerBuilder, RegularIntervalDownsampler
-from hython.metrics import MSEMetric
-from hython.losses import RMSELoss
-from hython.utils import read_from_zarr, set_seed
-from hython.models.cudnnLSTM import CuDNNLSTM
-from hython.trainer import RNNTrainer, RNNTrainParams
-from hython.normalizer import Normalizer
-
-
-import matplotlib.pyplot as plt
 
 # PARAMETERS 
 
