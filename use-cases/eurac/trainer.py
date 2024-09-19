@@ -97,7 +97,7 @@ class RNNDistributedTrainer(TorchTrainer):
         else:
             distribute_kwargs = {}
 
-        if 'find_unused_parameters' not in self.config:
+        if 'find_unused_parameters' not in self.config.__fields__:
             self.config.find_unused_parameters = False
         
         # Distribute discriminator and its optimizer
