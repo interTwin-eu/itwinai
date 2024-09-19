@@ -129,9 +129,9 @@ class TorchTrainer(Trainer, LogMixin):
         # case to use case
         # and include learning_rate, batch_size....
         if isinstance(config, dict):
-            self.config = TrainingConfiguration(**config)
-        else:
-            self.config = config
+            config = TrainingConfiguration(**config)
+
+        self.config = config
         self.epochs = epochs
         self.model = model
         self.strategy = strategy

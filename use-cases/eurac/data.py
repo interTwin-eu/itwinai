@@ -114,7 +114,6 @@ class RNNProcessor(DataProcessor):
         Xd_test, Xs_test, Y_test = validation_dataset 
 
         SHAPE = Xd.attrs["shape"]
-        print(SHAPE)
 
         train_dataset = get_dataset(self.dataset)(
                 Xd,
@@ -250,7 +249,6 @@ class ConvRNNProcessor(DataProcessor):
         Xd_test, Xs_test, Y_test = validation_dataset 
 
         SHAPE = Xd.precip.shape
-        print(SHAPE)
 
         train_dataset = get_dataset(self.dataset)(
                 Xd,
