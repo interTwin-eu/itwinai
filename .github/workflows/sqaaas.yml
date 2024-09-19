@@ -6,7 +6,7 @@ name: SQAaaS
 
 on:
   push:
-    branches: [main, flake8-pyproject]
+    branches: [main]
   # pull_request:
   #   branches: [main, dev]
 
