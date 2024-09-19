@@ -28,12 +28,12 @@ A logger allows to save objects of different kinds:
    * - ``dict``
      - Python dictionary.
    * - ``model``
-     - ML model. At the moment only :class:`~torch.nn.Module` is supported.
+     - ML model. At the moment only :class:`torch.nn.Module` is supported.
    * - ``best_model``
-     - Best ML model. At the moment only :class:`~torch.nn.Module` is
+     - Best ML model. At the moment only :class:`torch.nn.Module` is
        supported.
    * - ``dataset``
-     - Dataset object (e.g., objects of type :class:`~mlflow.data.Dataset`).
+     - Dataset object (e.g., objects of type :class:`mlflow.data.Dataset`).
    * - ``watch``
      - | WandB ``watch``: Hook into the torch model to collect gradients and
        | the topology. `More info`_.
