@@ -194,7 +194,7 @@ def save_plots_and_images(self, epoch, real_images, fake_images):
 
 ## Takeaways
 
-This README describes steps taken to adapt a GAN for distributed training, aimed at enhancing efficiency and scalability
+This readme describes steps taken to adapt a GAN for distributed training, aimed at enhancing efficiency and scalability
 for training on large-scale datasets. From this use case we learn the following:
 
 - itwinai `TorchTrainer` can easily be adapted to different unique use cases like the GAN that has two models.
