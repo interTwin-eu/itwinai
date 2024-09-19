@@ -186,9 +186,9 @@ call in a transparent way for the user.
     The logger assumes to be outside of the inner training loop (namely, the one
     iterating over dataset batches) when the ``batch_idx`` argument of the
     :meth:`~itwinai.loggers.LogMixin.log` method is set to ``None`` or is
-    simply not given. **It is therefore your responsibility to make sure that
-    ``batch_idx`` is always passed to the :meth:`~itwinai.loggers.LogMixin.log`
-    method when available (i.e., when iterating over batches)!**
+    simply not given. **It is therefore your responsibility to make sure that**
+    ``batch_idx`` **is always passed to the** :meth:`~itwinai.loggers.LogMixin.log`
+    **method when available (i.e., when iterating over batches)!**
     If you don't do it, the logger will always log, regardless of what you pass
     to the ``log_freq`` argument in the :class:`~itwinai.loggers.Logger`
     constructor. In other words, if you do not pass the ``batch_idx`` argument
