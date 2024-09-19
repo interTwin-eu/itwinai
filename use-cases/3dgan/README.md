@@ -18,10 +18,14 @@ pip install -r requirements.txt
 
 ## Training
 
-Launch training using `itwinai` and the provided training configuration `config.yaml`:
+Make sure to be in the `use-cases/3dgan` folder. Before you can start training, you have 
+to download the data using the dataloading script:
+```bash
+itwinai exec-pipeline --config config.yaml --pipe-key training_pipeline --steps dataloading_step
+```
+Now you can launch training using `itwinai` and the provided training configuration `config.yaml`:
 
 ```bash
-cd use-cases/3dgan
 itwinai exec-pipeline --config config.yaml --pipe-key training_pipeline
 ```
 
@@ -91,7 +95,7 @@ squeue -u YOUR_USERNAME
 sacct -j JOBID
 ```
 
-Job's **stderr** is usually saved to `job.out` and its **stderr** is saved to `job.err`.
+Job's **stdout** is usually saved to `job.out` and its **stderr** is saved to `job.err`.
 
 ### Visualize the results of training
 

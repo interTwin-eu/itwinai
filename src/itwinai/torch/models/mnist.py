@@ -1,7 +1,6 @@
+import lightning as L
 import torch
 import torch.nn as nn
-import lightning as L
-
 from torch.nn import functional as F
 
 
