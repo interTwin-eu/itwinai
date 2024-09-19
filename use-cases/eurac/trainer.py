@@ -96,10 +96,16 @@ class RNNDistributedTrainer(TorchTrainer):
             )
         else:
             distribute_kwargs = {}
+
+        if 'find_unused_parameters' not in self.config:
+            self.config.find_unused_parameters = False
+        
         # Distribute discriminator and its optimizer
         self.model, self.optimizer, _ = self.strategy.distributed(
             model=self.model, optimizer=self.optimizer,
-            lr_scheduler=self.lr_scheduler, **distribute_kwargs)
+            lr_scheduler=self.lr_scheduler, 
+            find_unused_parameters=self.config.find_unused_parameters,
+            **distribute_kwargs)
 
     def train(self):
         """Override version of hython to support distributed strategy."""
