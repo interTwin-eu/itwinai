@@ -27,6 +27,7 @@ training_pipeline:
           strategy: ${strategy}
           checkpoint_path: ${checkpoint_path}
           random_seed: 17
+          validation_every: 0
           logger:
             class_path: itwinai.loggers.LoggersCollection
             init_args:

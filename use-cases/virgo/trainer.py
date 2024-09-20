@@ -34,7 +34,8 @@ class NoiseGeneratorTrainer(TorchTrainer):
         save_best: bool = True,
         logger: Optional[Logger] = None,
         random_seed: Optional[int] = None,
-        name: str | None = None
+        name: str | None = None,
+        validation_every: int = 0
     ) -> None:
         super().__init__(
             epochs=num_epochs,
@@ -42,7 +43,8 @@ class NoiseGeneratorTrainer(TorchTrainer):
             strategy=strategy,
             logger=logger,
             random_seed=random_seed,
-            name=name
+            name=name,
+            validation_every=validation_every
         )
         self.save_parameters(**self.locals2params(locals()))
         self.num_epochs = num_epochs
@@ -212,7 +214,7 @@ class NoiseGeneratorTrainer(TorchTrainer):
                     epoch, loss_plot[-1], val_loss_plot[-1], et-st))
 
             # Save checkpoint every 100 epochs
-            if epoch % 1 == 0:
+            if self.validation_every and epoch % self.validation_every == 0:
                 # uncomment the following if you want to save checkpoint every
                 # 100 epochs regardless of the performance of the model
                 # checkpoint = {

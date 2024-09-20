@@ -1,15 +1,20 @@
 import os
+import argparse
 import pandas as pd
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
+import matplotlib.pyplot as plt
 import time
 import numpy as np
 from sklearn.model_selection import train_test_split
 from tqdm import tqdm
+import ray
 from ray import tune
 from ray.tune.schedulers import ASHAScheduler
-from ray.air import session
+from ray import train
+from ray.tune.schedulers.hb_bohb import HyperBandForBOHB
+from ray.tune.search.bohb import TuneBOHB
 
 from src.dataset import (
     generate_dataset_aux_channels,
@@ -138,10 +143,24 @@ def train_decoder(num_epochs, generator, criterion, optimizer, dataloader,
                 best_val_loss = val_loss_plot[-1]
                 best_checkpoint_filename = checkpoint_path.format('best')
                 torch.save(checkpoint, best_checkpoint_filename)
-        session.report({"loss": np.mean(val_loss)})
+
+        # Report training metrics of last epoch to Ray
+        train.report({"loss": np.mean(val_loss),
+                     "train_loss": np.mean(epoch_loss)})
+
+        if all(loss == val_loss_plot[0] for loss in val_loss_plot):
+            print(
+                f"All recorded results of validation loss in epoch {epoch} were the same.")
+            print(
+                f"There were a total of {len(val_loss_plot)} losses recorded for this epoch.")
+
+        if all(loss == loss_plot[0] for loss in loss_plot):
+            print(
+                f"All recorded results of training loss in epoch {epoch} were the same.")
+            print(
+                f"There were a total of {len(loss_plot)} losses recorded for this epoch.")
 
     return loss_plot, val_loss_plot, acc_plot, val_acc_plot
-
 
 
 def main(config):
@@ -242,50 +261,158 @@ def main(config):
     loss = l1_loss  # LogCoshLoss()
     G_optimizer = torch.optim.Adam(generator_2d.parameters(), lr=config['lr'])
 
-    generator = UNet(input_channels=3, output_channels=1, norm=False).to(device)
+    generator = UNet(input_channels=3, output_channels=1,
+                     norm=False).to(device)
     init_weights(generator, 'normal', scaling=.02)
 
     train_decoder(N_EPOCHS, generator_2d, loss, G_optimizer, dataloader,
                   test_dataloader, calculate_iou_2d, SAVE_CHECKPOINT.format('_best'))
 
+
+def run_hpo(args):
+
+    if not args.load_old_results:
+
+        # Initialize Ray with cluster configuration from environment variables
+        ray.init(
+        address=os.environ["ip_head"],  
+        _node_ip_address=os.environ["head_node_ip"],
+        )
+
+        # Define the search space for hyperparameters
+        search_space = {
+            'batch_size': tune.choice([16, 16, 16]),
+            'lr': tune.choice([0.000270, 0.000270, 0.000270])
+        }
+
+        # TuneConfig for configuring search algorithm and scheduler
+        tune_config = tune.TuneConfig(
+            metric=args.metric,  # Metric to optimize (loss by default)
+            mode="min",  # Minimize the loss
+            search_alg=args.search_alg,
+            scheduler=args.scheduler,
+            num_samples=args.num_samples  # Number of trials to run
+        )
+
+        # Ray's RunConfig for experiment name and stopping criteria
+        run_config = train.RunConfig(
+            name="Virgo-Ray-Experiment",
+            stop={"training_iteration": args.max_iterations}
+        )
+
+        # Set resource allocation for each trial (number of GPUs and/or number of CPUs)
+        resources_per_trial = {"gpu": args.ngpus}
+
+        # Set up Ray Tune Tuner
+        tuner = tune.Tuner(
+            tune.with_resources(main, resources=resources_per_trial),
+            tune_config=tune_config,
+            run_config=run_config,
+            param_space=search_space  # Search space defined above
+        )
+
+        # Run the hyperparameter optimization and get results
+        result_grid = tuner.fit()
+
+    else:
+        # Load results from an earlier Ray Tune run
+        print(f"Loading results from {args.experiment_path}...")
+
+        # Restore tuner from saved results
+        restored_tuner = tune.Tuner.restore(
+            args.experiment_path, trainable=main)
+        result_grid = restored_tuner.get_results()
+
+    # Display experiment statistics
+    print(f"Number of errored trials: {result_grid.num_errors}")
+    print(f"Number of terminated trials: {result_grid.num_terminated}")
+    print(f"Ray Tune experiment path: {result_grid.experiment_path}")
+
+    # Get the best result based on the last 10 iterations' average
+    best_result = result_grid.get_best_result(
+        scope="last-10-avg", metric=args.metric, mode="min")
+    print(f"Best result: {best_result}")
+
+    # Print a dataframe with all trial results
+    result_df = result_grid.get_dataframe()
+    print(f"All results dataframe: {result_df}")
+    print(f"All result columns: {result_df.columns}")
+
+    # Plot the results for all trials
+    plot_results(result_grid, metric=args.metric, filename="ray-loss-plot.png")
+    plot_results(result_grid, metric="train_loss",
+                 filename="ray-train_loss-plot.png")
+
+    debug_weird_validation_loss(result_grid)
+    debug_weird_validation_loss(result_grid, metric="train_loss")
+
+
+# Function to plot the results for all trials
+def plot_results(result_grid, metric="loss", filename="plot.png"):
+    ax = None
+    for result in result_grid:
+        label = f"lr={result.config['lr']:.6f}, batch size={result.config['batch_size']}"
+        if ax is None:
+            ax = result.metrics_dataframe.plot(
+                "training_iteration", metric, label=label)
+        else:
+            result.metrics_dataframe.plot(
+                "training_iteration", metric, ax=ax, label=label)
+
+    ax.set_title(
+        f"{metric.capitalize()} vs. Training Iteration for All Trials")
+    ax.set_ylabel(metric.capitalize())
+
+    # Save the plot to a file
+    plt.savefig(filename)
+
+    # Show the plot
+    plt.show()
+
+
+def debug_weird_validation_loss(result_grid, metric="loss"):
+    for i in range(len(result_grid)):
+        result = result_grid[i]
+        all_recorded_metrics = result.metrics_dataframe[metric].tolist()
+
+        if all(metric == all_recorded_metrics[0] for metric in all_recorded_metrics):
+            print(
+                f"In trial {i}, all recorded results of metric {metric} were the same.")
+            print(
+                f"There were a total of {len(all_recorded_metrics)} losses recorded for this trial.")
+
+
 if __name__ == "__main__":
+
+    # Parse command-line arguments
+    parser = argparse.ArgumentParser(
+        description='Hyperparameter Optimization with Ray Tune')
+    parser.add_argument('--load_old_results', type=bool,
+                        default=False,
+                        help='Set this to true if you want to load results from an older ray run.')
+    parser.add_argument('--experiment_path', type=str,
+                        default='~/ray_results/Virgo-Ray-Experiment',
+                        help='Directory where the results of the previous run are stored. Set this only if load_old_results is set to True. Defaults to ~/ray_results/Virgo-Ray-Experiment')
+    parser.add_argument('--num-samples', type=int,
+                        default=10, help='Number of trials to run')
+    parser.add_argument('--ngpus', type=int, default=1,
+                        help='Number of GPUs per trial')
+    parser.add_argument('--metric', type=str, default='loss',
+                        help='Metric to optimise.')
+    parser.add_argument('--scheduler', type=str, default=None,
+                        choices=['ASHA', 'FIFO'], help='Scheduler to use for tuning')
+    parser.add_argument('--search_alg', type=str, default=None,
+                        choices=['BayesOpt', 'HyperOpt'], help='Optimizer to use for tuning')
+    parser.add_argument('--max-iterations', type=int,
+                        default='20', help='...')
+    args = parser.parse_args()  # Parse the command-line arguments
+
+
+    # Check for available GPU
     if torch.cuda.is_available():
         device = 'cuda'
         print(torch.cuda.get_device_name(torch.cuda.current_device()))
     else:
         device = 'cpu'
-        
-    search_space = {
-        'batch_size': tune.choice([16, 32, 64]),
-        'lr': tune.loguniform(1e-5, 1e-3)
-    }
-    scheduler = ASHAScheduler(
-        max_t=N_EPOCHS,
-        grace_period=10,
-        reduction_factor=2
-    )
-    analysis = tune.run(
-        main,
-        config=search_space,
-        num_samples=10,
-        scheduler=scheduler,
-        resources_per_trial={'cpu': 8, 'gpu': 1},
-        metric="loss",
-        mode="min"
-    )
 
-    # Access the results dataframe
-    df = analysis.dataframe()
-    
-    
-    sorted_df = df.sort_values("loss", ascending=True)
-    print("Results dataframe sorted by loss:")
-    print(sorted_df)
-    
-    # Optionally, you can also print the best trial's config and loss
-    print("Best hyperparameters found were:", analysis.best_config)
-    best_trial_loss = sorted_df.iloc[0]['loss']
-    print("Best trial loss:", best_trial_loss)
-    df.to_csv('result_hpo.csv')
-    
-    
+    run_hpo(args)
