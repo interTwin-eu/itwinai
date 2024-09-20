@@ -15,7 +15,6 @@ from ray.tune.schedulers import ASHAScheduler
 from ray import train
 from ray.tune.schedulers.hb_bohb import HyperBandForBOHB
 from ray.tune.search.bohb import TuneBOHB
-from itwinai.torch.reproducibility import set_seed
 
 from src.dataset import (
     generate_dataset_aux_channels,
@@ -148,15 +147,7 @@ def train_decoder(num_epochs, generator, criterion, optimizer, dataloader,
         # Report training metrics of last epoch to Ray
         train.report({"loss": np.mean(val_loss),
                      "train_loss": np.mean(epoch_loss)})
-
-        all_val_losses_the_same = all(loss == val_loss_plot[0] for loss in val_loss_plot)
-        print(
-            f"Were all recorded results of validation loss in epoch {epoch} the same? - {all_val_losses_the_same}")
-
-        all_training_losses_the_same = all(loss == loss_plot[0] for loss in loss_plot)
-        print(
-            f"Were all recorded results of training loss in epoch {epoch} the same? - {all_training_losses_the_same}")
-
+        
     return loss_plot, val_loss_plot, acc_plot, val_acc_plot
 
 
@@ -271,10 +262,9 @@ def run_hpo(args):
     if not args.load_old_results:
 
         # Initialize Ray with cluster configuration from environment variables
-        ray.init(
-            address=os.environ["ip_head"],  
-            _node_ip_address=os.environ["head_node_ip"],
-        )
+        # ray.init(
+        # address=os.environ["ip_head"],  
+        # _node_ip_address=os.environ["head_node_ip"])
 
         # Define the search space for hyperparameters
         search_space = {
@@ -298,11 +288,12 @@ def run_hpo(args):
         )
 
         # Set resource allocation for each trial (number of GPUs and/or number of CPUs)
-        resources_per_trial = {"gpu": args.ngpus}
+        #resources_per_trial = {"gpu": args.ngpus}
 
         # Set up Ray Tune Tuner
         tuner = tune.Tuner(
-            tune.with_resources(main, resources=resources_per_trial),
+            main,
+            #tune.with_resources(main, resources=resources_per_trial),
             tune_config=tune_config,
             run_config=run_config,
             param_space=search_space  # Search space defined above
@@ -404,7 +395,6 @@ if __name__ == "__main__":
                         default='20', help='...')
     args = parser.parse_args()  # Parse the command-line arguments
 
-    set_seed(200)
 
     # Check for available GPU
     if torch.cuda.is_available():
