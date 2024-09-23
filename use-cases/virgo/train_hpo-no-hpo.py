@@ -3,6 +3,7 @@ import argparse
 import pandas as pd
 import torch
 import torch.nn as nn
+import random
 from torch.utils.data import DataLoader
 import matplotlib.pyplot as plt
 import time
@@ -15,6 +16,7 @@ from ray.tune.schedulers import ASHAScheduler
 from ray import train
 from ray.tune.schedulers.hb_bohb import HyperBandForBOHB
 from ray.tune.search.bohb import TuneBOHB
+from itwinai.torch.reproducibility import set_seed
 
 from src.dataset import (
     generate_dataset_aux_channels,
@@ -28,11 +30,17 @@ from src.utils import init_weights, calculate_iou_2d
 # Global parameters
 DATA_ROOT = "/p/scratch/intertwin/datasets/virgo/test_data"
 LOAD_DATASET = True
-N_EPOCHS = 50
+N_EPOCHS = 40
 SAVE_CHECKPOINT = 'checkpoints/checkpoint_epoch_{}.pth'
+
+def seed_worker(worker_id):
+    worker_seed = torch.initial_seed() % 2**32
+    np.random.seed(worker_seed)
+    random.seed(worker_seed)
 
 
 def generate_dataset():
+    raise RuntimeError("generate_dataset should not be called!")
     df_aux_ts = generate_dataset_aux_channels(
         1000, 3, duration=16, sample_rate=500,
         num_waves_range=(20, 25), noise_amplitude=0.6
@@ -87,6 +95,7 @@ def train_decoder(num_epochs, generator, criterion, optimizer, dataloader,
             # epoch_acc.append(acc)
         val_loss = []
         val_acc = []
+
         for batch in (val_loader):
             # batch= transform(batch)
             target = batch[:, 0].unsqueeze(1).to(device)
@@ -145,13 +154,25 @@ def train_decoder(num_epochs, generator, criterion, optimizer, dataloader,
                 torch.save(checkpoint, best_checkpoint_filename)
 
         # Report training metrics of last epoch to Ray
-        train.report({"loss": np.mean(val_loss),
-                     "train_loss": np.mean(epoch_loss)})
-        
+        #train.report({"loss": np.mean(val_loss),
+        #             "train_loss": np.mean(epoch_loss)})
+
+        # all_val_losses_the_same = all(loss == val_loss_plot[0] for loss in val_loss_plot)
+        # print(
+        #     f"Were all recorded results of validation loss in epoch {epoch} the same? - {all_val_losses_the_same}")
+
+        # all_training_losses_the_same = all(loss == loss_plot[0] for loss in loss_plot)
+        # print(
+        #     f"Were all recorded results of training loss in epoch {epoch} the same? - {all_training_losses_the_same}")
+
+    plot_training_vs_validation(loss_plot, val_loss_plot)
+
     return loss_plot, val_loss_plot, acc_plot, val_acc_plot
 
 
 def main(config):
+    g = set_seed(500)
+
     if not LOAD_DATASET:
         generate_dataset()
 
@@ -226,32 +247,37 @@ def main(config):
     train_data_2d = normalize_(train_data_2d)
     test_data_2d = normalize_(test_data_2d)
 
+    print(f"Train set has size: {train_data_2d.size()}")
+    print(f"Test set has size {test_data_2d.size()}")
+
     # Create dataloader objects with preprocessed dataset
     dataloader = DataLoader(
         train_data_2d,
         batch_size=int(config['batch_size']),
         shuffle=True,
+        worker_init_fn=seed_worker,
+        num_workers=2,
+        generator=g
     )
     test_dataloader = DataLoader(
         test_data_2d,
         batch_size=int(config['batch_size']),
         shuffle=False,
+        worker_init_fn=seed_worker,
+        num_workers=2,
+        generator=g
     )
 
     # Model to train
     generator_2d = UNet(
         input_channels=3, output_channels=1, norm=False).to(device)
-    init_weights(generator_2d, 'normal', scaling=.02)
+    init_weights(generator_2d, 'normal', scaling=.02, generator=g)
 
     # loss function, learning rate, and optimizer
     l2_loss = nn.MSELoss()  # this is l2!!!
     l1_loss = nn.L1Loss()  # this is L1!!!
     loss = l1_loss  # LogCoshLoss()
     G_optimizer = torch.optim.Adam(generator_2d.parameters(), lr=config['lr'])
-
-    generator = UNet(input_channels=3, output_channels=1,
-                     norm=False).to(device)
-    init_weights(generator, 'normal', scaling=.02)
 
     train_decoder(N_EPOCHS, generator_2d, loss, G_optimizer, dataloader,
                   test_dataloader, calculate_iou_2d, SAVE_CHECKPOINT.format('_best'))
@@ -262,14 +288,15 @@ def run_hpo(args):
     if not args.load_old_results:
 
         # Initialize Ray with cluster configuration from environment variables
-        # ray.init(
-        # address=os.environ["ip_head"],  
-        # _node_ip_address=os.environ["head_node_ip"])
+        ray.init(
+            address=os.environ["ip_head"],  
+            _node_ip_address=os.environ["head_node_ip"],
+        )
 
         # Define the search space for hyperparameters
         search_space = {
-            'batch_size': tune.choice([16, 16, 16]),
-            'lr': tune.choice([0.000270, 0.000270, 0.000270])
+            'batch_size': tune.choice([64]),
+            'lr': tune.uniform(1e-4, 1e-2)
         }
 
         # TuneConfig for configuring search algorithm and scheduler
@@ -288,12 +315,11 @@ def run_hpo(args):
         )
 
         # Set resource allocation for each trial (number of GPUs and/or number of CPUs)
-        #resources_per_trial = {"gpu": args.ngpus}
+        resources_per_trial = {"gpu": args.ngpus}
 
         # Set up Ray Tune Tuner
         tuner = tune.Tuner(
-            main,
-            #tune.with_resources(main, resources=resources_per_trial),
+            tune.with_resources(main, resources=resources_per_trial),
             tune_config=tune_config,
             run_config=run_config,
             param_space=search_space  # Search space defined above
@@ -357,11 +383,50 @@ def plot_results(result_grid, metric="loss", filename="plot.png"):
     # Show the plot
     plt.show()
 
+import matplotlib.pyplot as plt
+
+def plot_training_vs_validation(train, val, title="Training vs Validation Loss"):
+    """
+    Plots the training and validation metrics against the number of epochs.
+    
+    Parameters:
+        train (list or array): List of training losses or metrics per epoch.
+        val (list or array): List of validation losses or metrics per epoch.
+        title (str): Title for the plot (default is "Training vs Validation Loss").
+    """
+    epochs = range(1, len(train) + 1)  # x-axis values as epoch numbers
+
+    plt.figure(figsize=(10, 6))
+    
+    # Plot training and validation losses
+    plt.plot(epochs, train, 'bo-', label='Training Loss')  # blue line with circle markers
+    plt.plot(epochs, val, 'ro-', label='Validation Loss')  # red line with circle markers
+    
+    # Add title and labels
+    plt.title(title)
+    plt.xlabel('Epochs')
+    plt.ylabel('Loss')
+    
+    # Display legend
+    plt.legend()
+
+    # Show the grid for better readability
+    plt.grid(True)
+    
+    # Display the plot
+    plt.savefig("rayless-loss-plot.png")
+
+# Example usage:
+# train_losses = [0.5, 0.4, 0.35, 0.3]
+# val_losses = [0.45, 0.43, 0.38, 0.35]
+# plot_training_vs_validation(train_losses, val_losses)
+
 
 def debug_weird_validation_loss(result_grid, metric="loss"):
     for i in range(len(result_grid)):
         result = result_grid[i]
         all_recorded_metrics = result.metrics_dataframe[metric].tolist()
+        #print(f"Trial {i}: {all_recorded_metrics}")
 
         if all(metric == all_recorded_metrics[0] for metric in all_recorded_metrics):
             print(
@@ -395,7 +460,6 @@ if __name__ == "__main__":
                         default='20', help='...')
     args = parser.parse_args()  # Parse the command-line arguments
 
-
     # Check for available GPU
     if torch.cuda.is_available():
         device = 'cuda'
@@ -403,4 +467,12 @@ if __name__ == "__main__":
     else:
         device = 'cpu'
 
-    run_hpo(args)
+    config = {
+            'batch_size': 64,
+            'lr': 0.0003
+        }
+    
+    main(config)
+
+    #run_hpo(args)
+

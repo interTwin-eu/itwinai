@@ -14,8 +14,8 @@
 #SBATCH --gres=gpu:4
 
 # Output and error logs
-#SBATCH -o logs_slurm/log_%x_%j.out
-#SBATCH -e logs_slurm/log_%x_%j.err
+#SBATCH -o logs_slurm/job.out
+#SBATCH -e logs_slurm/job.err
 
 # Load environment modules
 ml --force purge
@@ -80,7 +80,8 @@ echo All Ray workers started.
 # Run the Python script using Ray
 echo 'Starting HPO.'
 
-python -u train_hpo.py --num-samples 10 --max-iterations 20
+#python -u train_hpo.py --num-samples 10 --max-iterations 50
+python train_hpo-no-hpo.py
 
 # Shutdown Ray after completion
 ray stop
