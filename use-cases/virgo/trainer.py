@@ -117,6 +117,7 @@ class NoiseGeneratorTrainer(TorchTrainer):
         # Note that it significantly slows down the whole process
         # it also might not work as the function has not been fully
         # implemented yet
+
         if self.strategy.is_main_worker:
             print('TIMER: broadcast:', timer()-st, 's')
             print('\nDEBUG: start training')
@@ -212,7 +213,7 @@ class NoiseGeneratorTrainer(TorchTrainer):
                     epoch, loss_plot[-1], val_loss_plot[-1], et-st))
 
             # Save checkpoint every 100 epochs
-            if epoch % 1 == 0:
+            if self.validation_every and epoch % self.validation_every == 0:
                 # uncomment the following if you want to save checkpoint every
                 # 100 epochs regardless of the performance of the model
                 # checkpoint = {
@@ -250,7 +251,7 @@ class NoiseGeneratorTrainer(TorchTrainer):
 
                         # save checkpoint only if it is better than
                         # the previous ones
-                        checkpoint_filename = self.checkpoint_path.format(
+                        checkpoint_filename = self.checkpoints_location.format(
                             epoch)
                         torch.save(checkpoint, checkpoint_filename)
                         # itwinai - log checkpoint as artifact
@@ -261,7 +262,7 @@ class NoiseGeneratorTrainer(TorchTrainer):
                         # update best model
                         best_val_loss = val_loss_plot[-1]
                         best_checkpoint_filename = (
-                            self.checkpoint_path.format('best')
+                            self.checkpoints_location.format('best')
                         )
                         torch.save(checkpoint, best_checkpoint_filename)
                         # itwinai - log checkpoint as artifact
