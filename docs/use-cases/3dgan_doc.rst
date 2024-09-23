@@ -65,18 +65,25 @@ Dockerfile
    :language: bash
 
 
-startscript
-+++++++++++
+SLURM job script for JSC (HDFML system)
++++++++++++++++++++++++++++++++++++++++++
 
-.. literalinclude:: ../../use-cases/3dgan/startscript
+.. literalinclude:: ../../use-cases/3dgan/slurm.jsc.sh
    :language: bash
 
 
+SLURM job script for Vega Supercomputer (GPU partition)
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-This section covers the CERN use case integration with `interLink <https://github.com/interTwin-eu/interLink>`_ using ``itwinai``. The following files are integral to this use case:
+.. literalinclude:: ../../use-cases/3dgan/slurm.vega.sh
+   :language: bash
+
 
 interLink x 3DGAN
 -----------------
+
+This section covers the CERN use case integration with `interLink <https://github.com/interTwin-eu/interLink>`_ using ``itwinai``. The following files are integral to this use case:
+
 
 .. toctree::
    :maxdepth: 5

@@ -3,35 +3,31 @@ Show how to use DDP, Horovod and DeepSpeed strategies interchangeably
 with a large neural network trained on Imagenet dataset, showing how
 to use checkpoints.
 """
-from typing import Optional
-import os
 import argparse
+import os
 import sys
-from timeit import default_timer as timer
 import time
+from timeit import default_timer as timer
+from typing import Optional
 
+import deepspeed
+import horovod.torch as hvd
 import torch
 import torch.nn.functional as F
 import torchvision
 from torch.utils.data import DataLoader
 from torch.utils.data.distributed import DistributedSampler
-
-import deepspeed
-import horovod.torch as hvd
-
-from itwinai.torch.distributed import (
-    TorchDistributedStrategy,
-    TorchDDPStrategy,
-    HorovodStrategy,
-    DeepSpeedStrategy,
-)
-from itwinai.parser import ArgumentParser as ItAIArgumentParser
-from itwinai.loggers import EpochTimeTracker
-from itwinai.torch.reproducibility import (
-    seed_worker, set_seed
-)
-
 from utils import imagenet_dataset
+
+from itwinai.loggers import EpochTimeTracker
+from itwinai.parser import ArgumentParser as ItAIArgumentParser
+from itwinai.torch.distributed import (
+    DeepSpeedStrategy,
+    HorovodStrategy,
+    TorchDDPStrategy,
+    TorchDistributedStrategy,
+)
+from itwinai.torch.reproducibility import seed_worker, set_seed
 
 
 def parse_params() -> argparse.Namespace:
