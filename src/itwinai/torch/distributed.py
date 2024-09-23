@@ -26,9 +26,7 @@ def distributed_resources_available() -> bool:
     Returns:
         bool: env can support distributed ML.
     """
-    if torch.cuda.is_available() and torch.cuda.device_count() > 1:
-        return True
-    return False
+    return torch.cuda.is_available() and torch.cuda.device_count() > 1
 
 
 class TorchDistributedStrategy(DistributedStrategy):
