@@ -40,6 +40,12 @@ in this folder:
 itwinai exec-pipeline --config config.yaml --pipe-key training_pipeline
 ```
 
+> [!WARNING]
+> When using Docker, if your container does not recognizes the GPUs of your VM
+> you may need to install the
+> [Nvidia container toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/index.html)
+> , if not already installed.
+
 ## Singularity (HPC environments)
 
 With singularity there is no need to explicitly bind mount the current working directory (CWD) in the container

@@ -1,22 +1,20 @@
 import abc
-from typing import Any, List, Optional, Tuple, Union, Iterable, Literal
-from pathlib import Path
-import json
 import os
+from typing import Any, Iterable, List, Literal, Optional, Tuple, Union
 
 import deepspeed
+import horovod.torch as hvd
 import torch
 import torch.distributed as dist
-import horovod.torch as hvd
 import torch.nn as nn
 import torch.optim as optim
 from torch.optim.lr_scheduler import _LRScheduler as LRScheduler
 from torch.optim.optimizer import Optimizer
-from torch.utils.data import Dataset, Sampler, DistributedSampler, DataLoader
-from torch.utils.data.dataloader import T_co, _worker_init_fn_t, _collate_fn_t
+from torch.utils.data import DataLoader, Dataset, DistributedSampler, Sampler
+from torch.utils.data.dataloader import T_co, _collate_fn_t, _worker_init_fn_t
 
 from ..distributed import DistributedStrategy
-from .type import UninitializedStrategyError, DistributedStrategyError
+from .type import DistributedStrategyError, UninitializedStrategyError
 
 
 def distributed_resources_available() -> bool:
@@ -26,9 +24,7 @@ def distributed_resources_available() -> bool:
     Returns:
         bool: env can support distributed ML.
     """
-    if torch.cuda.is_available() and torch.cuda.device_count() > 1:
-        return True
-    return False
+    return torch.cuda.is_available() and torch.cuda.device_count() > 1
 
 
 class TorchDistributedStrategy(DistributedStrategy):
@@ -559,15 +555,6 @@ class DeepSpeedStrategy(TorchDistributedStrategy):
         super().__init__()
         self.backend = backend
 
-    def _load_config(self, ds_config) -> None:
-        if isinstance(ds_config, (str, Path)):
-            with open(ds_config) as fp:
-                self.config = json.load(fp)
-        elif isinstance(ds_config, dict):
-            self.config = ds_config
-        else:
-            raise ValueError("ds_config is neither a dictionary not a path.")
-
     def init(self) -> None:
         """Initializes the distributed process group and the distributed
         package.
@@ -606,10 +593,6 @@ class DeepSpeedStrategy(TorchDistributedStrategy):
             raise UninitializedStrategyError(
                 "Strategy has not been initialized. Use the init method.")
 
-        if init_kwargs.get("config"):
-            self._load_config(init_kwargs.get("config"))
-        # https://deepspeed.readthedocs.io/en/latest/initialize.html#training-initialization
-        # To prioritize optim in the config, you need to pass optim=None
         distrib_model, optimizer, _, lr_scheduler = deepspeed.initialize(
             model=model,
             model_parameters=model_parameters,

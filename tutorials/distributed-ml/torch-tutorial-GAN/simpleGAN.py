@@ -1,16 +1,15 @@
+import matplotlib.pyplot as plt
 import numpy as np
 import torch
+import torch.backends.cudnn as cudnn
 import torch.nn as nn
 import torch.nn.parallel
-import torch.backends.cudnn as cudnn
 import torch.optim as optim
 import torch.utils.data
-import torchvision.transforms as transforms
 import torchvision.datasets as dset
+import torchvision.transforms as transforms
 import torchvision.utils as vutils
-import matplotlib.pyplot as plt
 
-CUDA = False
 DATA_PATH = '../data'
 BATCH_SIZE = 128
 IMAGE_CHANNEL = 1
@@ -24,14 +23,15 @@ FAKE_LABEL = 0
 lr = 2e-4
 seed = 1
 
-CUDA = CUDA and torch.cuda.is_available()
+USE_CUDA = False
+CUDA = torch.cuda.is_available() and USE_CUDA
+device = torch.device("cuda:0" if CUDA else "cpu")
+
 print("PyTorch version: {}".format(torch.__version__))
 if CUDA:
     print("CUDA version: {}\n".format(torch.version.cuda))
-
-if CUDA:
     torch.cuda.manual_seed(seed)
-device = torch.device("cuda:0" if CUDA else "cpu")
+
 cudnn.benchmark = True
 
 # Data preprocessing
@@ -65,13 +65,11 @@ class Generator(nn.Module):
             nn.BatchNorm2d(G_HIDDEN * 8),
             nn.ReLU(True),
             # 1st hidden layer
-            nn.ConvTranspose2d(G_HIDDEN * 8, G_HIDDEN * \
-                               4, 4, 2, 1, bias=False),
+            nn.ConvTranspose2d(G_HIDDEN * 8, G_HIDDEN * 4, 4, 2, 1, bias=False),
             nn.BatchNorm2d(G_HIDDEN * 4),
             nn.ReLU(True),
             # 2nd hidden layer
-            nn.ConvTranspose2d(G_HIDDEN * 4, G_HIDDEN * \
-                               2, 4, 2, 1, bias=False),
+            nn.ConvTranspose2d(G_HIDDEN * 4, G_HIDDEN * 2, 4, 2, 1, bias=False),
             nn.BatchNorm2d(G_HIDDEN * 2),
             nn.ReLU(True),
             # 3rd hidden layer
