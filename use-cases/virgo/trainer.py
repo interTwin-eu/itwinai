@@ -212,7 +212,7 @@ class NoiseGeneratorTrainer(TorchTrainer):
                 print('epoch: {} loss: {} val loss: {} time:{}s'.format(
                     epoch, loss_plot[-1], val_loss_plot[-1], et-st))
 
-            # Save checkpoint every 100 epochs
+            # Save checkpoint every #validation_every epochs
             if self.validation_every and epoch % self.validation_every == 0:
                 # uncomment the following if you want to save checkpoint every
                 # 100 epochs regardless of the performance of the model
