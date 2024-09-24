@@ -4,9 +4,11 @@ surrogate_model_output: /p/scratch/intertwin/datasets/eurac/model
 tmp_stats: /p/scratch/intertwin/datasets/eurac/stats
 
 experiment: "drought use case lstm"
-run_name: "test"
-epochs: 4
+run_name: "complex_effective_const_h64"
+epochs: 40
 random_seed: 1010
+
+target_names: [ "vwc", "actevap","snow","snowwater"] #, "runoff_river", "runoff_land"
 
 training_pipeline:
   class_path: itwinai.pipeline.Pipeline
@@ -16,10 +18,10 @@ training_pipeline:
         init_args:
           surrogate_input: ${surrogate_input}
           dynamic_names: ["precip", "pet", "temp"]
-          static_names: [ 'thetaS', 'RootingDepth', 'Swood','KsatVer', "Sl"]
-          target_names: [ "vwc","actevap"]
+          static_names: [ 'thetaS', 'thetaR', 'SoilThickness','RootingDepth', 'Swood','KsatVer', 'Sl', 'f', 'Kext','wflow_dem', 'Slope']
+          target_names: ${target_names}
           mask_names: ["mask_missing", "mask_lake"]
-          train_temporal_range: ["2016-01-01", "2018-12-31"] 
+          train_temporal_range: ["2012-01-01", "2018-12-31"] 
           test_temporal_range: ["2019-01-01", "2020-12-31"] 
       - class_path: data.RNNProcessor
         init_args:
@@ -33,42 +35,34 @@ training_pipeline:
             num_workers_dataloader: 1
             temporal_subsampling: True
             temporal_subset: [150, 150]
-            seq_length: 60
-            target_names:  [ "vwc","actevap"]
+            seq_length: 365
+            target_names: ${target_names}
             dp_weights: ${surrogate_model_output}
             distributed: True
           model:
             class_path: hython.models.cudnnLSTM.CuDNNLSTM
             init_args:
-              hidden_size: 24
+              hidden_size: 64
               dynamic_input_size: 3
-              static_input_size: 5
-              output_size: 2
+              static_input_size: 11
+              output_size: 4
               num_layers: 1
               dropout: 0.0
           strategy: ddp
           epochs: ${epochs}
           random_seed: ${random_seed}
-          # logger:
-          #   class_path: itwinai.loggers.LoggersCollection
-          #   init_args:
-          #     loggers:
-          #       - class_path: itwinai.loggers.ConsoleLogger
-          #         init_args:
-          #           experiment_name: ${experiment}
-          #           run_name: ${run_name}
-          #           log_freq: 10
-          # logger:
-          #   class_path: itwinai.loggers.LoggersCollection
-          #   init_args:
-          #     loggers:
-          #       - class_path: itwinai.loggers.ConsoleLogger
-          #         init_args:
-          #           log_freq: 100
-          #       - class_path: itwinai.loggers.MLFlowLogger
-          #         init_args:
-          #           experiment_name: Noise simulator (Virgo)
-          #           log_freq: batch 
-          #       - class_path: itwinai.loggers.WandBLogger
-          #         init_args:
-          #           log_freq: batch
+          logger:
+            class_path: itwinai.loggers.LoggersCollection
+            init_args:
+              loggers:
+                - class_path: itwinai.loggers.ConsoleLogger
+                  init_args:
+                    log_freq: 100
+                - class_path: itwinai.loggers.MLFlowLogger
+                  init_args:
+                    experiment_name: ${experiment}
+                    run_name: ${run_name}
+                    log_freq: batch 
+                # - class_path: itwinai.loggers.WandBLogger
+                #   init_args:
+                #     log_freq: batch
