@@ -6,7 +6,7 @@ name: SQAaaS
 
 on:
   push:
-    branches: [main]
+    branches: [improve_sqaaas_badge]
   # pull_request:
   #   branches: [main, dev]
 
