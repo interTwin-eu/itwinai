@@ -85,7 +85,7 @@ class RNNDistributedTrainer(TorchTrainer):
         
         TARGET_WEIGHTS = {t: 1/len(self.config.target_names) for t in self.config.target_names}
         self.loss_fn = RMSELoss(target_weight=TARGET_WEIGHTS)
-        self.metric_fn = MSEMetric(target_names=self.config.target_names)
+        self.metric_fn = MSEMetric()
 
         if isinstance(self.strategy, DeepSpeedStrategy):
             # Batch size definition is not optional for DeepSpeedStrategy!
@@ -314,7 +314,7 @@ class ConvRNNDistributedTrainer(TorchTrainer):
         
         TARGET_WEIGHTS = {t: 1/len(self.config.rnn_config["target_names"]) for t in self.config.rnn_config["target_names"]}
         self.loss_fn = RMSELoss(target_weight=TARGET_WEIGHTS)
-        self.metric_fn = MSEMetric(target_names=self.config.rnn_config["target_names"])
+        self.metric_fn = MSEMetric()
 
         if isinstance(self.strategy, DeepSpeedStrategy):
             # Batch size definition is not optional for DeepSpeedStrategy!
