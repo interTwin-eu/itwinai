@@ -1,35 +1,33 @@
-from typing import Literal, Optional
 import os
-import torch.nn as nn
-import torch
 import time
 from timeit import default_timer as timer
+from typing import Literal, Optional, Dict, Union
+
 import numpy as np
-
-from itwinai.torch.trainer import TorchTrainer
-from itwinai.torch.distributed import (
-    DeepSpeedStrategy,
-)
-from itwinai.torch.config import TrainingConfiguration
-from itwinai.loggers import Logger, EpochTimeTracker
-
-from src.model import Decoder, Decoder_2d_deep, UNet, GeneratorResNet
+import torch
+import torch.nn as nn
+from ray import train
+from src.model import Decoder, Decoder_2d_deep, GeneratorResNet, UNet
 from src.utils import init_weights
-
-
 from tqdm import tqdm
+
+from itwinai.loggers import EpochTimeTracker, Logger
+from itwinai.torch.config import TrainingConfiguration
+from itwinai.torch.distributed import DeepSpeedStrategy
+from itwinai.torch.trainer import TorchTrainer
 
 
 class NoiseGeneratorTrainer(TorchTrainer):
 
     def __init__(
         self,
+        config: Union[Dict, TrainingConfiguration],
         batch_size: int,
         learning_rate: float = 1e-3,
         num_epochs: int = 2,
         generator: Literal["simple", "deep", "resnet", "unet"] = "unet",
         loss: Literal["L1", "L2"] = "L1",
-        strategy: Literal["ddp", "deepspeed", "horovod"] = 'ddp',
+        strategy: Literal["ddp", "deepspeed", "horovod"] | None = 'ddp',
         checkpoint_path: str = "checkpoints/epoch_{}.pth",
         save_best: bool = True,
         logger: Optional[Logger] = None,
@@ -39,7 +37,7 @@ class NoiseGeneratorTrainer(TorchTrainer):
     ) -> None:
         super().__init__(
             epochs=num_epochs,
-            config={},
+            config=config,
             strategy=strategy,
             logger=logger,
             random_seed=random_seed,
@@ -52,7 +50,7 @@ class NoiseGeneratorTrainer(TorchTrainer):
         self.learning_rate = learning_rate
         self._generator = generator
         self._loss = loss
-        self.checkpoint_path = checkpoint_path
+        self.checkpoints_location = checkpoint_path
         os.makedirs(os.path.dirname(checkpoint_path), exist_ok=True)
         # Global training configuration
         self.config = TrainingConfiguration(
@@ -135,6 +133,7 @@ class NoiseGeneratorTrainer(TorchTrainer):
         acc_plot = []
         val_acc_plot = []
         best_val_loss = float('inf')
+
         for epoch in tqdm(range(self.num_epochs)):
             lt = timer()
             # itwinai - IMPORTANT: set current epoch ID
@@ -271,9 +270,14 @@ class NoiseGeneratorTrainer(TorchTrainer):
                         self.log(best_checkpoint_filename,
                                  os.path.basename(best_checkpoint_filename),
                                  kind='artifact')
-        # return (loss_plot, val_loss_plot,
-        # acc_plot, val_acc_plot ,acc_plot, val_acc_plot)
+            # return (loss_plot, val_loss_plot,
+            # acc_plot, val_acc_plot ,acc_plot, val_acc_plot)
             if self.strategy.is_main_worker:
                 print('TIMER: epoch time:', timer()-lt, 's')
                 epoch_time_tracker.add_epoch_time(epoch-1, timer()-lt)
+
+            # Report training metrics of last epoch to Ray
+            train.report({"loss": np.mean(val_loss),
+                          "train_loss": np.mean(epoch_loss)})
+
         return loss_plot, val_loss_plot, acc_plot, val_acc_plot

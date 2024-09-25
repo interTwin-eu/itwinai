@@ -80,8 +80,7 @@ echo All Ray workers started.
 # Run the Python script using Ray
 echo 'Starting HPO.'
 
-#python -u train_hpo.py --num-samples 10 --max-iterations 50
-python train_hpo-no-hpo.py
+python hpo.py --num_samples 8 --max_iterations 5
 
 # Shutdown Ray after completion
 ray stop
