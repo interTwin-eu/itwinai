@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import ray
 import torch
+from pathlib import Path
 from data import TimeSeriesDatasetSplitter, TimeSeriesProcessor
 from ray import train, tune
 from trainer import NoiseGeneratorTrainer
@@ -14,6 +15,11 @@ from itwinai.pipeline import Pipeline
 # Global variable for data root directory - this is the synthetic Virgo test data,
 # which can generally be used so that new data does not need to be generated for every run
 DATA_ROOT = "/p/scratch/intertwin/datasets/virgo/test_data"
+
+# Set path to be able to import config file from inside the run_trial function,
+# executed by the Ray Tuner
+cwd = Path.cwd()
+config_path = cwd / "config.yaml"
 
 
 def run_trial(config):
@@ -52,7 +58,7 @@ def run_trial(config):
     # Note: Comment out the TimeSeriesDatasetGenerator class and the
     # WandBLogger in the config.yaml file to make it run on hdfml and pre-generated dataset
     parser = ConfigParser(
-        config='/p/project1/intertwin/lappe1/itwinai/use-cases/virgo/config.yaml',
+        config=config_path,
         override_keys={
             'batch_size': config['batch_size'],
             'learning_rate': config['lr']
