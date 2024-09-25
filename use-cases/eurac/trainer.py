@@ -11,7 +11,7 @@ from hython.sampler import CubeletsDownsampler, SamplerBuilder
 from hython.trainer import HythonTrainer, RNNTrainer, RNNTrainParams
 from itwinai.loggers import Logger
 from itwinai.torch.config import TrainingConfiguration
-from itwinai.torch.distributed import DeepSpeedStrategy
+from itwinai.torch.distributed import DeepSpeedStrategy, TorchDDPStrategy, distributed_resources_available
 from itwinai.torch.trainer import TorchTrainer
 from itwinai.torch.type import Metric
 from torch.optim.lr_scheduler import ReduceLROnPlateau
@@ -51,7 +51,7 @@ class RNNDistributedTrainer(TorchTrainer):
             config: Union[Dict, TrainingConfiguration],
             epochs: int,
             model: Optional[nn.Module] = None,
-            strategy: Literal["ddp", "deepspeed"] = 'ddp',
+            strategy: Literal["ddp", "deepspeed", "horovod"] = 'ddp',
             validation_every: Optional[int] = 1,
             test_every: Optional[int] = None,
             random_seed: Optional[int] = None,
@@ -75,6 +75,9 @@ class RNNDistributedTrainer(TorchTrainer):
             name=name,
             **kwargs)
         self.save_parameters(**self.locals2params(locals()))
+        print(f"Distributed available: {distributed_resources_available()}")
+        print(f"torch.cuda.is_available(): {torch.cuda.is_available()}") 
+        print(f"torch.cuda.device_count(): {torch.cuda.device_count()}") 
 
     def create_model_loss_optimizer(self) -> None:
         self.optimizer = optim.Adam(
@@ -94,17 +97,20 @@ class RNNDistributedTrainer(TorchTrainer):
                     train_micro_batch_size_per_gpu=self.config.batch_size
                 )
             )
+        elif isinstance(self.strategy, TorchDDPStrategy): 
+            if 'find_unused_parameters' not in self.config.__fields__:
+                self.config.find_unused_parameters = False
+                distribute_kwargs = dict(
+                    find_unused_parameters=self.config.find_unused_parameters
+                )
         else:
             distribute_kwargs = {}
 
-        if 'find_unused_parameters' not in self.config.__fields__:
-            self.config.find_unused_parameters = False
         
         # Distribute discriminator and its optimizer
         self.model, self.optimizer, _ = self.strategy.distributed(
             model=self.model, optimizer=self.optimizer,
             lr_scheduler=self.lr_scheduler, 
-            find_unused_parameters=self.config.find_unused_parameters,
             **distribute_kwargs)
 
     def train(self):
@@ -280,7 +286,7 @@ class ConvRNNDistributedTrainer(TorchTrainer):
             config: Union[Dict, TrainingConfiguration],
             epochs: int,
             model: Optional[nn.Module] = None,
-            strategy: Literal["ddp", "deepspeed"] = 'ddp',
+            strategy: Literal["ddp", "deepspeed", "horovod"] = 'ddp',
             validation_every: Optional[int] = 1,
             test_every: Optional[int] = None,
             random_seed: Optional[int] = None,
