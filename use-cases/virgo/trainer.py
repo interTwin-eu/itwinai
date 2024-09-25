@@ -21,10 +21,10 @@ class NoiseGeneratorTrainer(TorchTrainer):
 
     def __init__(
         self,
-        config: Union[Dict, TrainingConfiguration],
         batch_size: int,
         learning_rate: float = 1e-3,
         num_epochs: int = 2,
+        config: Union[Dict, TrainingConfiguration] | None = None,
         generator: Literal["simple", "deep", "resnet", "unet"] = "unet",
         loss: Literal["L1", "L2"] = "L1",
         strategy: Literal["ddp", "deepspeed", "horovod"] | None = 'ddp',

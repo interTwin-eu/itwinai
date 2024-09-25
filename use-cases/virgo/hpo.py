@@ -8,26 +8,26 @@ import torch
 from data import TimeSeriesDatasetSplitter, TimeSeriesProcessor
 from ray import train, tune
 from trainer import NoiseGeneratorTrainer
-
+from itwinai.parser import ConfigParser
 from itwinai.pipeline import Pipeline
 
-# Global variable for data root directory
+# Global variable for data root directory - this is the synthetic Virgo test data,
+# which can generally be used so that new data does not need to be generated for every run
 DATA_ROOT = "/p/scratch/intertwin/datasets/virgo/test_data"
 
 
 def run_trial(config):
     """
     Execute a single trial using the given configuration (config).
-    This runs a full training pipeline, which involves splitting the dataset,
-    processing it, and then training the NoiseGenerator model.
+    This runs a full training pipeline - you can also specify a pipeline as a dictionary, 
+    e.g. if you only want to run certain parts without changing your config.yaml file (see below).
 
     Args:
     - config: Dictionary with hyperparameters (e.g., 'batch_size', 'lr').
-    """
+
+    Example to run with a manual pipeline:
+
     my_pipeline = Pipeline(
-        # Passing a seed to TimeSeriesDatasetSplitter and NoiseGeneratorTrainer
-        # will make runs uniform across trials
-        # (reducing the variablility to the hyperparameter settings)
         [
             TimeSeriesDatasetSplitter(
                 train_proportion=0.9,
@@ -43,6 +43,26 @@ def run_trial(config):
             )
         ]
     )
+    """
+
+    # Passing a seed to TimeSeriesDatasetSplitter and NoiseGeneratorTrainer
+    # will make runs uniform across trials
+    # (reducing the variablility to the hyperparameter settings)
+
+    # Note: Comment out the TimeSeriesDatasetGenerator class and the
+    # WandBLogger in the config.yaml file to make it run on hdfml and pre-generated dataset
+    parser = ConfigParser(
+        config='/p/project1/intertwin/lappe1/itwinai/use-cases/virgo/config.yaml',
+        override_keys={
+            'batch_size': config['batch_size'],
+            'learning_rate': config['lr']
+        }
+    )
+    my_pipeline = parser.parse_pipeline(
+        pipeline_nested_key='training_pipeline',
+        verbose=True
+    )
+
     # Load data from the specified pickle file
     file_path = os.path.join(DATA_ROOT, 'Image_dataset_synthetic_64x64.pkl')
     df = pd.read_pickle(file_path)
