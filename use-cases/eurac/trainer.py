@@ -1,6 +1,8 @@
-from typing import Dict, Literal, Optional, Union
-
+import os
 import pandas as pd
+from typing import Dict, Literal, Optional, Union
+from timeit import default_timer as timer
+
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -8,7 +10,7 @@ from hython.losses import RMSELoss
 from hython.metrics import MSEMetric
 from hython.sampler import SamplerBuilder
 from hython.trainer import HythonTrainer, RNNTrainer, RNNTrainParams
-from itwinai.loggers import Logger
+from itwinai.loggers import Logger, EpochTimeTracker
 from itwinai.torch.config import TrainingConfiguration
 from itwinai.torch.distributed import DeepSpeedStrategy, HorovodStrategy, TorchDDPStrategy
 from itwinai.torch.trainer import TorchTrainer
@@ -94,7 +96,7 @@ class RNNDistributedTrainer(TorchTrainer):
                 )
             )
         elif isinstance(self.strategy, TorchDDPStrategy): 
-            if 'find_unused_parameters' not in self.config.__fields__:
+            if 'find_unused_parameters' not in self.config.model_fields:
                 self.config.find_unused_parameters = False
                 distribute_kwargs = dict(
                     find_unused_parameters=self.config.find_unused_parameters
@@ -113,6 +115,15 @@ class RNNDistributedTrainer(TorchTrainer):
 
     def train(self):
         """Override version of hython to support distributed strategy."""
+        # Tracking epoch times for scaling test
+        if self.strategy.is_main_worker: 
+            num_nodes = os.environ.get("SLURM_NNODES", "unk")
+            series_name = os.environ.get("DIST_MODE", "unk") + "-torch"
+            file_name = f"epochtime_{series_name}_{num_nodes}N.csv"
+            epoch_time_tracker = EpochTimeTracker(
+                    series_name=series_name,
+                    csv_file=file_name
+            )
         trainer = RNNTrainer(
                 RNNTrainParams(
                     experiment=self.config.experiment,
@@ -134,6 +145,7 @@ class RNNDistributedTrainer(TorchTrainer):
 
         best_loss = float("inf")
         for epoch in tqdm(range(self.epochs)):
+            epoch_start_time = timer()
             if self.strategy.is_distributed:
                 # *Added for distributed*
                 self.train_loader.sampler.set_epoch(epoch)
@@ -164,9 +176,17 @@ class RNNDistributedTrainer(TorchTrainer):
             # gather losses from each worker and place them on the main worker.
             worker_val_losses = self.strategy.gather(val_loss, dst_rank=0)
 
-            # Only do the next part if we are rank 0
+
             if self.strategy.global_rank() != 0:
+                # Logging time for scaling tests
+                if self.strategy.is_main_worker: 
+                    epoch_end_time = timer()
+                    epoch_time_tracker.add_epoch_time(
+                            epoch-1, 
+                            epoch_end_time - epoch_start_time
+                    ) 
                 continue
+
 
             # Moving them all to the cpu() before performing calculations
             worker_val_losses = [wvl.cpu() for wvl in worker_val_losses]
@@ -204,6 +224,13 @@ class RNNDistributedTrainer(TorchTrainer):
                 best_loss = avg_val_loss
                 print(f"train loss: {train_loss}")
                 print(f"val loss: {avg_val_loss}")
+
+            if self.strategy.is_main_worker: 
+                epoch_end_time = timer()
+                epoch_time_tracker.add_epoch_time(
+                        epoch-1, 
+                        epoch_end_time - epoch_start_time
+                ) 
 
         return loss_history, metric_history
 

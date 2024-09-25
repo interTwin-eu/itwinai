@@ -19,12 +19,20 @@ source ../../envAI_hdfml/bin/activate
 export OMP_NUM_THREADS=$SLURM_CPUS_PER_GPU
 
 # This needs to be modified depending on how many GPUs you have per node
-export CUDA_VISIBLE_DEVICES=0,1
-
+export CUDA_VISIBLE_DEVICES=0,1,2,3
 if [ -z "$EPOCHS" ]; then 
 	EPOCHS=2
 fi
-echo "Starting slurm script with strategy: horovod and with $EPOCHS epochs"
+
+echo "SLURM SCRIPT:"
+echo "Strategy: Horovod"
+echo "Number of nodes: $SLURM_NNODES"
+echo "Number of GPUs per node: $SLURM_GPUS_PER_NODE"
+echo "Number of epochs: $EPOCHS"
+echo "CUDA_VISIBLE_DEVICES: $CUDA_VISIBLE_DEVICES"
+
+
+export DIST_MODE=horovod
 
 # Since Horovod is MPI-based, it does not use 'torchrun' like the others
 srun 	--cpu-bind=none \
@@ -34,7 +42,3 @@ srun 	--cpu-bind=none \
 	--config config.yaml \
 	--pipe-key training_pipeline \
 	-o strategy=horovod
-			# python -u torch_dist_final_scaling.py \
-			# --epochs $EPOCHS \
-			# --strategy horovod
-

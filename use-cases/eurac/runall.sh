@@ -1,14 +1,15 @@
 #!/bin/bash
 
-NUM_NODES=2
-NUM_GPUS=2
-EPOCHS=2
-TIME=0:10:00
+NUM_NODES=4
+NUM_GPUS=4
+EPOCHS=5
+TIME=0:20:00
 
 sbatch --export=ALL,STRATEGY="ddp",EPOCHS="$EPOCHS" \
 	--output="logs_slurm/job-ddp-n$NUM_NODES.out" \
 	--error="logs_slurm/job-ddp-n$NUM_NODES.err" \
 	--nodes=$NUM_NODES \
+	--gpus-per-node=$NUM_GPUS \
 	--time=$TIME \
 	ddp_deepspeed_slurm.sh
 
@@ -16,6 +17,7 @@ sbatch --export=ALL,STRATEGY="deepspeed",EPOCHS="$EPOCHS" \
 	--output="logs_slurm/job-deepspeed-n$NUM_NODES.out" \
 	--error="logs_slurm/job-deepspeed-n$NUM_NODES.err" \
 	--nodes=$NUM_NODES \
+	--gpus-per-node=$NUM_GPUS \
 	--time=$TIME \
 	ddp_deepspeed_slurm.sh
 
@@ -23,6 +25,7 @@ sbatch --export=ALL,EPOCHS="$EPOCHS" \
 	--output="logs_slurm/job-horovod-n$NUM_NODES.out" \
 	--error="logs_slurm/job-horovod-n$NUM_NODES.err" \
 	--nodes=$NUM_NODES \
+	--gpus-per-node=$NUM_GPUS \
 	--time=$TIME \
 	horovod_slurm.sh
 

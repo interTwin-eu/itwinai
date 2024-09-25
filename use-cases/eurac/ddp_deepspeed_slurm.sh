@@ -29,7 +29,15 @@ fi
 if [ -z "$EPOCHS" ]; then 
 	EPOCHS=2
 fi
-echo "Starting slurm script with strategy: $STRATEGY and with $EPOCHS epochs"
+
+echo "SLURM SCRIPT:"
+echo "Strategy: $STRATEGY"
+echo "Number of nodes: $SLURM_NNODES"
+echo "Number of GPUs per node: $SLURM_GPUS_PER_NODE"
+echo "Number of epochs: $EPOCHS"
+
+# Needed for the scaling test
+export DIST_MODE=$STRATEGY
 
 # Run the training command
 srun --ntasks-per-node=1 --gpus-per-node=$SLURM_GPUS_PER_NODE \
