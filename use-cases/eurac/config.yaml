@@ -5,10 +5,11 @@ tmp_stats: /p/scratch/intertwin/datasets/eurac/stats
 
 experiment: "drought use case lstm"
 run_name: "complex_effective_const_h64"
-epochs: 40
+epochs: 2
 random_seed: 1010
 
 target_names: [ "vwc", "actevap","snow","snowwater"] #, "runoff_river", "runoff_land"
+strategy: ddp
 
 target_names: [ "vwc", "actevap","snow","snowwater"] #, "runoff_river", "runoff_land"
 
@@ -50,7 +51,7 @@ training_pipeline:
               output_size: 4
               num_layers: 1
               dropout: 0.0
-          strategy: ddp
+          strategy: ${strategy}
           epochs: ${epochs}
           random_seed: ${random_seed}
           logger:

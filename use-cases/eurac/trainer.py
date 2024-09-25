@@ -1,5 +1,4 @@
-import copy
-from typing import Dict, List, Literal, Optional, Union
+from typing import Dict, Literal, Optional, Union
 
 import pandas as pd
 import torch
@@ -7,11 +6,11 @@ import torch.nn as nn
 import torch.optim as optim
 from hython.losses import RMSELoss
 from hython.metrics import MSEMetric
-from hython.sampler import CubeletsDownsampler, SamplerBuilder
+from hython.sampler import SamplerBuilder
 from hython.trainer import HythonTrainer, RNNTrainer, RNNTrainParams
 from itwinai.loggers import Logger
 from itwinai.torch.config import TrainingConfiguration
-from itwinai.torch.distributed import DeepSpeedStrategy, TorchDDPStrategy, distributed_resources_available
+from itwinai.torch.distributed import DeepSpeedStrategy, HorovodStrategy, TorchDDPStrategy
 from itwinai.torch.trainer import TorchTrainer
 from itwinai.torch.type import Metric
 from torch.optim.lr_scheduler import ReduceLROnPlateau
@@ -75,9 +74,6 @@ class RNNDistributedTrainer(TorchTrainer):
             name=name,
             **kwargs)
         self.save_parameters(**self.locals2params(locals()))
-        print(f"Distributed available: {distributed_resources_available()}")
-        print(f"torch.cuda.is_available(): {torch.cuda.is_available()}") 
-        print(f"torch.cuda.device_count(): {torch.cuda.device_count()}") 
 
     def create_model_loss_optimizer(self) -> None:
         self.optimizer = optim.Adam(
@@ -109,9 +105,11 @@ class RNNDistributedTrainer(TorchTrainer):
         
         # Distribute discriminator and its optimizer
         self.model, self.optimizer, _ = self.strategy.distributed(
-            model=self.model, optimizer=self.optimizer,
+            model=self.model, 
+            optimizer=self.optimizer,
             lr_scheduler=self.lr_scheduler, 
-            **distribute_kwargs)
+            **distribute_kwargs
+        )
 
     def train(self):
         """Override version of hython to support distributed strategy."""
@@ -123,7 +121,8 @@ class RNNDistributedTrainer(TorchTrainer):
                     seq_length=self.config.seq_length,
                     target_names=self.config.target_names,
                     metric_func=self.metric_fn,
-                    loss_func=self.loss_fn)
+                    loss_func=self.loss_fn
+                )
         )
 
         device = self.strategy.device()
@@ -164,69 +163,71 @@ class RNNDistributedTrainer(TorchTrainer):
 
             # gather losses from each worker and place them on the main worker.
             worker_val_losses = self.strategy.gather(val_loss, dst_rank=0)
-            if self.strategy.global_rank() == 0:
-                avg_val_loss = torch.mean(torch.stack(
-                    worker_val_losses)).detach().cpu()
-                self.lr_scheduler.step(avg_val_loss)
-                loss_history["train"].append(train_loss)
-                loss_history["val"].append(avg_val_loss)
+
+            # Only do the next part if we are rank 0
+            if self.strategy.global_rank() != 0:
+                continue
+
+            # Moving them all to the cpu() before performing calculations
+            worker_val_losses = [wvl.cpu() for wvl in worker_val_losses]
+            avg_val_loss = torch.mean(torch.stack(worker_val_losses)).detach().cpu()
+            self.lr_scheduler.step(avg_val_loss)
+            loss_history["train"].append(train_loss)
+            loss_history["val"].append(avg_val_loss)
+            self.log(
+                item=train_loss.item(),
+                identifier='train_loss_per_epoch',
+                kind='metric',
+                step=epoch,
+            )
+            self.log(
+                item=avg_val_loss.item(),
+                identifier='val_loss_per_epoch',
+                kind='metric',
+                step=epoch,
+            )
+
+            for target in trainer.P.target_names:
+                metric_history[f"train_{target}"].append( train_metric[target])
+                metric_history[f"val_{target}"].append( val_metric[target])
+            # Aggregate and log metrics
+            avg_metrics = pd.DataFrame(metric_history).mean().to_dict()
+            for m_name, m_val in avg_metrics.items():
                 self.log(
-                    item=train_loss.item(),
-                    identifier='train_loss_per_epoch',
+                    item=m_val,
+                    identifier=m_name + '_epoch',
                     kind='metric',
                     step=epoch,
                 )
-                self.log(
-                    item=avg_val_loss.item(),
-                    identifier='val_loss_per_epoch',
-                    kind='metric',
-                    step=epoch,
-                )
 
-                for target in trainer.P.target_names:
-                    metric_history[f"train_{target}"].append( train_metric[target])
-                    metric_history[f"val_{target}"].append( val_metric[target])
-                # Aggregate and log metrics
-                avg_metrics = pd.DataFrame(metric_history).mean().to_dict()
-                for m_name, m_val in avg_metrics.items():
-                    self.log(
-                        item=m_val,
-                        identifier=m_name + '_epoch',
-                        kind='metric',
-                        step=epoch,
-                    )
-
-                if avg_val_loss < best_loss:
-                    best_loss = avg_val_loss
-                    # The code `best_model_weights` appears to be a variable
-                    # name in Python. It is not assigned any value
-                    # or operation in the provided snippet, so it is
-                    # difficult to determine its specific purpose
-                    # without additional context. It could potentially be
-                    # used to store the weights of a machine learning model
-                    # or any other relevant data  related to a model.
-                    best_model_weights = copy.deepcopy(self.model.state_dict())
-                    #trainer.save_weights(self.model, self.config.dp_weights)
-                    print("Copied best model weights!")
-
-                    print(f"train loss: {train_loss}")
-                    print(f"val loss: {avg_val_loss}")
-
-                #self.model.load_state_dict(best_model_weights)
+            if avg_val_loss < best_loss:
+                best_loss = avg_val_loss
+                print(f"train loss: {train_loss}")
+                print(f"val loss: {avg_val_loss}")
 
         return loss_history, metric_history
 
     def create_dataloaders(
-            self, train_dataset, validation_dataset, test_dataset):
+            self, train_dataset, validation_dataset, test_dataset
+        ):
+        sampling_kwargs = {}
+        if isinstance(self.strategy, HorovodStrategy): 
+            sampling_kwargs["num_replicas"] = self.strategy.global_world_size()
+            sampling_kwargs["rank"] = self.strategy.global_rank()
+
         train_sampler_builder = SamplerBuilder(
             train_dataset,
             sampling="random",
-            processing="multi-gpu" if self.config.distributed else "single-gpu") # 
+            processing="multi-gpu" if self.config.distributed else "single-gpu",
+            sampling_kwargs=sampling_kwargs
+        )  
 
         val_sampler_builder = SamplerBuilder(
             validation_dataset,
             sampling="sequential",
-            processing="multi-gpu" if self.config.distributed else "single-gpu")
+            processing="multi-gpu" if self.config.distributed else "single-gpu",
+            sampling_kwargs=sampling_kwargs
+        )
 
         train_sampler = train_sampler_builder.get_sampler()
         val_sampler = val_sampler_builder.get_sampler()
@@ -237,7 +238,8 @@ class RNNDistributedTrainer(TorchTrainer):
             num_workers=self.config.num_workers_dataloader,
             pin_memory=self.config.pin_gpu_memory,
             generator=self.torch_rng,
-            sampler=train_sampler
+            sampler=train_sampler, 
+            drop_last=True
         )
 
         if validation_dataset is not None:
@@ -247,7 +249,8 @@ class RNNDistributedTrainer(TorchTrainer):
                 num_workers=self.config.num_workers_dataloader,
                 pin_memory=self.config.pin_gpu_memory,
                 generator=self.torch_rng,
-                sampler=val_sampler
+                sampler=val_sampler,
+               drop_last=True
             )
 
 
@@ -429,9 +432,9 @@ class ConvRNNDistributedTrainer(TorchTrainer):
                     # without additional context. It could potentially be
                     # used to store the weights of a machine learning model
                     # or any other relevant data  related to a model.
-                    best_model_weights = copy.deepcopy(self.model.state_dict())
+                    # best_model_weights = copy.deepcopy(self.model.state_dict())
                     #trainer.save_weights(self.model, self.config.dp_weights)
-                    print("Copied best model weights!")
+                    # print("Copied best model weights!")
 
                     print(f"train loss: {train_loss}")
                     print(f"val loss: {avg_val_loss}")

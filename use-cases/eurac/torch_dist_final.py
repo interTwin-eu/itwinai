@@ -248,16 +248,26 @@ class RNNDistributedTrainer(TorchTrainer):
         return loss_history, metric_history
 
     def create_dataloaders(
-            self, train_dataset, validation_dataset, test_dataset):
+            self, train_dataset, validation_dataset, test_dataset
+        ):
+        sampling_kwargs = {}
+        if isinstance(self.strategy, HorovodStrategy): 
+            sampling_kwargs["num_replicas"] = self.strategy.global_world_size()
+            sampling_kwargs["rank"] = self.strategy.global_rank()
+
         train_sampler_builder = SamplerBuilder(
             train_dataset,
             sampling="random",
-            processing="multi-gpu" if self.config.distributed else "single-gpu")
+            processing="multi-gpu" if self.config.distributed else "single-gpu",
+            sampling_kwargs=sampling_kwargs
+        )
 
         val_sampler_builder = SamplerBuilder(
             validation_dataset,
             sampling="sequential",
-            processing="multi-gpu" if self.config.distributed else "single-gpu")
+            processing="multi-gpu" if self.config.distributed else "single-gpu",
+            sampling_kwargs=sampling_kwargs
+        )
 
         train_sampler = train_sampler_builder.get_sampler()
         val_sampler = val_sampler_builder.get_sampler()
