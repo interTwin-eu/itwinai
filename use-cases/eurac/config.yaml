@@ -4,10 +4,11 @@ surrogate_model_output: /p/scratch/intertwin/datasets/eurac/model
 tmp_stats: /p/scratch/intertwin/datasets/eurac/stats
 
 experiment: "drought use case lstm"
-run_name: "EURAC Use Case"
-epochs: 5
+run_name: "complex_effective_const_h64"
+epochs: 40
 random_seed: 1010
-strategy: ddp
+
+target_names: [ "vwc", "actevap","snow","snowwater"] #, "runoff_river", "runoff_land"
 
 target_names: [ "vwc", "actevap","snow","snowwater"] #, "runoff_river", "runoff_land"
 
@@ -49,9 +50,9 @@ training_pipeline:
               output_size: 4
               num_layers: 1
               dropout: 0.0
+          strategy: ddp
           epochs: ${epochs}
           random_seed: ${random_seed}
-          strategy: ${strategy}
           logger:
             class_path: itwinai.loggers.LoggersCollection
             init_args:
