@@ -91,6 +91,10 @@ if [ "$SLURM_CPUS_PER_GPU" -gt 0 ] ; then
   export OMP_NUM_THREADS=$SLURM_CPUS_PER_GPU
 fi
 
+# Preparing the necessary directories
+mkdir -p logs_slurm # STDOUT and STDERR for slurm
+mkdir -p logs_epoch # Logs used for scalability tests
+
 # Launch training
 if [ "$DIST_MODE" == "horovod" ] ; then
 	srun --cpu-bind=none \

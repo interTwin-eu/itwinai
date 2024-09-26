@@ -8,7 +8,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from hython.losses import RMSELoss
-from hython.metrics import MSEMetric
+from hython.metrics import MSEMetric, mse_metric
 from hython.sampler import SamplerBuilder
 from hython.trainer import HythonTrainer, RNNTrainer, RNNTrainParams
 from itwinai.loggers import EpochTimeTracker, Logger
@@ -351,7 +351,7 @@ class ConvRNNDistributedTrainer(TorchTrainer):
         
         TARGET_WEIGHTS = {t: 1/len(self.config.rnn_config["target_names"]) for t in self.config.rnn_config["target_names"]}
         self.loss_fn = RMSELoss(target_weight=TARGET_WEIGHTS)
-        self.metric_fn = MSEMetric()
+        # self.metric_fn = MSEMetric()
 
         if isinstance(self.strategy, DeepSpeedStrategy):
             # Batch size definition is not optional for DeepSpeedStrategy!
@@ -375,7 +375,7 @@ class ConvRNNDistributedTrainer(TorchTrainer):
                     temporal_subsampling=False,
                     temporal_subset=1,
                     target_names=self.config.rnn_config["target_names"],
-                    metric_func=self.metric_fn,
+                    metric_func=mse_metric,
                     loss_func=self.loss_fn)
         )
 
