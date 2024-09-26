@@ -1,7 +1,7 @@
 import os
 import time
 from timeit import default_timer as timer
-from typing import Literal, Optional, Dict, Union
+from typing import Dict, Literal, Optional, Union
 
 import numpy as np
 import torch

@@ -1,25 +1,18 @@
 import argparse
 import os
+from pathlib import Path
 
 import matplotlib.pyplot as plt
 import pandas as pd
 import ray
 import torch
-from pathlib import Path
-from data import TimeSeriesDatasetSplitter, TimeSeriesProcessor
 from ray import train, tune
-from trainer import NoiseGeneratorTrainer
+
 from itwinai.parser import ConfigParser
-from itwinai.pipeline import Pipeline
 
 # Global variable for data root directory - this is the synthetic Virgo test data,
 # which can generally be used so that new data does not need to be generated for every run
 DATA_ROOT = "/p/scratch/intertwin/datasets/virgo/test_data"
-
-# Set path to be able to import config file from inside the run_trial function,
-# executed by the Ray Tuner
-cwd = Path.cwd()
-config_path = cwd / "config.yaml"
 
 
 def run_trial(config):
@@ -31,7 +24,7 @@ def run_trial(config):
     Args:
     - config: Dictionary with hyperparameters (e.g., 'batch_size', 'lr').
 
-    Example to run with a manual pipeline:
+    Example to run with a manual pipeline (you would have to import these classes):
 
     my_pipeline = Pipeline(
         [
@@ -55,10 +48,8 @@ def run_trial(config):
     # will make runs uniform across trials
     # (reducing the variablility to the hyperparameter settings)
 
-    # Note: Comment out the TimeSeriesDatasetGenerator class and the
-    # WandBLogger in the config.yaml file to make it run on hdfml and pre-generated dataset
     parser = ConfigParser(
-        config=config_path,
+        config=Path('config.yaml'),
         override_keys={
             'batch_size': config['batch_size'],
             'learning_rate': config['lr']
@@ -66,7 +57,7 @@ def run_trial(config):
     )
     my_pipeline = parser.parse_pipeline(
         pipeline_nested_key='training_pipeline',
-        verbose=True
+        verbose=False
     )
 
     # Load data from the specified pickle file
@@ -76,7 +67,8 @@ def run_trial(config):
     # Convert data to tensors for training
     df = df.map(lambda x: torch.tensor(x).float())
 
-    my_pipeline.execute(df)
+    # Skip the first step of the pipeline (data generation)
+    my_pipeline[1:].execute(df)
 
 
 def run_hpo(args):

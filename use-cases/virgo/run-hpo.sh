@@ -6,16 +6,15 @@
 #SBATCH --time 0:30:00
 
 # Resources allocation
-#SBATCH --cpus-per-task=16
+#SBATCH --cpus-per-task=1
 #SBATCH --nodes=2
 #SBATCH --ntasks-per-node=1
-#SBATCH --gpus-per-node=4
+#SBATCH --gpus-per-node=3
 #SBATCH --exclusive
-#SBATCH --gres=gpu:4
 
 # Output and error logs
-#SBATCH -o logs_slurm/job.out
-#SBATCH -e logs_slurm/job.err
+#SBATCH -o logs_slurm/hpo-job.out
+#SBATCH -e logs_slurm/hpo-job.err
 
 # Load environment modules
 ml --force purge
@@ -26,20 +25,17 @@ ml Python/3.11 HDF5 PnetCDF libaio mpi4py CMake cuDNN/8.9.5.29-CUDA-12
 PYTHON_VENV="../../envAI_hdfml"
 source $PYTHON_VENV/bin/activate
 
-#pip install hpbandster ConfigSpace
-
 # make sure CUDA devices are visible
 export CUDA_VISIBLE_DEVICES="0,1,2,3"
-export SRUN_CPUS_PER_TASK=${SLURM_CPUS_PER_TASK}  # TODO: test if this makes a difference
 
 num_gpus=$SLURM_GPUS_PER_NODE
-
-## Limit number of max pending trials
-#export TUNE_MAX_PENDING_TRIALS_PG=$(($SLURM_NNODES * 4))
 
 ## Disable Ray Usage Stats
 export RAY_USAGE_STATS_DISABLE=1
 
+# This tells Tune to not change the working directory to the trial directory
+# which makes relative paths accessible from inside a trial
+export RAY_CHDIR_TO_TRIAL_DIR=0
 
 #########   Set up Ray cluster   ########
 
@@ -51,6 +47,7 @@ nodes_array=($nodes)
 head_node=${nodes_array[0]}
 port=7639
 
+# This is so that the ray.init() command called from the hpo.py script knows which ports to connect to
 export ip_head="$head_node"i:"$port"
 export head_node_ip="$head_node"i
 
@@ -80,7 +77,7 @@ echo All Ray workers started.
 # Run the Python script using Ray
 echo 'Starting HPO.'
 
-python hpo.py --num_samples 8 --max_iterations 5
+python hpo.py --num_samples 3 --max_iterations 2
 
 # Shutdown Ray after completion
 ray stop
