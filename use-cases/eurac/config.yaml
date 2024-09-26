@@ -1,0 +1,66 @@
+# General configuration
+surrogate_input: /p/scratch/intertwin/datasets/eurac/input/adg1km_eobs_preprocessed.zarr
+surrogate_model_output: /p/scratch/intertwin/datasets/eurac/model
+tmp_stats: /p/scratch/intertwin/datasets/eurac/stats
+
+experiment: "drought use case lstm"
+run_name: "complex_effective_const_h64"
+epochs: 2
+random_seed: 1010
+
+target_names: [ "vwc", "actevap","snow","snowwater"] #, "runoff_river", "runoff_land"
+strategy: ddp
+
+training_pipeline:
+  class_path: itwinai.pipeline.Pipeline
+  init_args:
+    steps:
+      - class_path: data.RNNDatasetGetterAndSplitter
+        init_args:
+          surrogate_input: ${surrogate_input}
+          dynamic_names: ["precip", "pet", "temp"]
+          static_names: [ 'thetaS', 'thetaR', 'SoilThickness','RootingDepth', 'Swood','KsatVer', 'Sl', 'f', 'Kext','wflow_dem', 'Slope']
+          target_names: ${target_names}
+          mask_names: ["mask_missing", "mask_lake"]
+          train_temporal_range: ["2012-01-01", "2018-12-31"] 
+          test_temporal_range: ["2019-01-01", "2020-12-31"] 
+      - class_path: data.RNNProcessor
+        init_args:
+          dataset: LSTMDataset
+      - class_path: trainer.RNNDistributedTrainer
+        init_args:
+          config:
+            experiment: ${run_name}
+            batch_size: 256
+            lr: 0.001
+            num_workers_dataloader: 1
+            temporal_subsampling: True
+            temporal_subset: [150, 150]
+            seq_length: 365
+            target_names: ${target_names}
+            dp_weights: ${surrogate_model_output}
+            distributed: True
+          model:
+            class_path: hython.models.cudnnLSTM.CuDNNLSTM
+            init_args:
+              hidden_size: 64
+              dynamic_input_size: 3
+              static_input_size: 11
+              output_size: 4
+              num_layers: 1
+              dropout: 0.0
+          strategy: ${strategy}
+          epochs: ${epochs}
+          random_seed: ${random_seed}
+          logger:
+            class_path: itwinai.loggers.LoggersCollection
+            init_args:
+              loggers:
+                - class_path: itwinai.loggers.ConsoleLogger
+                  init_args:
+                    log_freq: 100
+                - class_path: itwinai.loggers.MLFlowLogger
+                  init_args:
+                    experiment_name: ${experiment}
+                    run_name: ${run_name}
+                    log_freq: batch 

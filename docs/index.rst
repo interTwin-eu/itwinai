@@ -100,6 +100,14 @@ use due to its reliability (`learn more <https://docs.readthedocs.io/en/stable/v
    itwinai <https://github.com/interTwin-eu/itwinai>
 
 
+.. toctree::
+   :maxdepth: 2
+   :hidden:
+   :caption: 🎯 Github repository
+
+   itwinai <https://github.com/interTwin-eu/itwinai>
+
+
 .. .. toctree::
 ..    :maxdepth: 2
 ..    :hidden:

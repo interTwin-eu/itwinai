@@ -120,9 +120,9 @@ class TorchTrainer(Trainer, LogMixin):
         # config is mean to store all hyperparameters, which can very from use
         # case to use case and include learning_rate, batch_size....
         if isinstance(config, dict):
-            self.config = TrainingConfiguration(**config)
-        else:
-            self.config = config
+            config = TrainingConfiguration(**config)
+
+        self.config = config
         self.epochs = epochs
         self.model = model
         self.strategy = strategy

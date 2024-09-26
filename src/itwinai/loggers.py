@@ -356,7 +356,7 @@ class ConsoleLogger(Logger):
         else:
             self.run_id = int(run_dirs[-1]) + 1
         self.run_path = os.path.join(self.savedir, str(self.run_id))
-        os.makedirs(self.run_path)
+        os.makedirs(self.run_path, exist_ok=True)
 
     def destroy_logger_context(self):
         """Destroy logger. Do nothing."""
@@ -437,6 +437,8 @@ class MLFlowLogger(Logger):
             Overrides ``savedir`` if given. Defaults to None.
         run_description (Optional[str], optional): run description.
             Defaults to None.
+        run_name (Optional[str], optional): run name.
+            Defaults to None.
         log_freq (Union[int, Literal['epoch', 'batch']], optional):
             determines whether the logger should fulfill or ignore
             calls to the `log()` method. See ``Logger.should_log`` method for
@@ -461,6 +463,7 @@ class MLFlowLogger(Logger):
         experiment_name: str = BASE_EXP_NAME,
         tracking_uri: Optional[str] = None,
         run_description: Optional[str] = None,
+        run_name: Optional[str] = None,
         log_freq: Union[int, Literal['epoch', 'batch']] = 'epoch',
         log_on_workers: Union[int, List[int]] = 0
     ):
@@ -473,6 +476,7 @@ class MLFlowLogger(Logger):
         self.experiment_name = experiment_name
         self.tracking_uri = tracking_uri
         self.run_description = run_description
+        self.run_name = run_name
 
         if self.tracking_uri is None:
             # Default MLFLow tracking URI
@@ -509,7 +513,8 @@ class MLFlowLogger(Logger):
             mlflow.set_tracking_uri(self.tracking_uri)
             mlflow.set_experiment(experiment_name=self.experiment_name)
             self.active_run: mlflow.ActiveRun = mlflow.start_run(
-                description=self.run_description
+                description=self.run_description,
+                run_name=self.run_name
             )
         return self.active_run
 
