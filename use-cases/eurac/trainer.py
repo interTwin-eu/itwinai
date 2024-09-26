@@ -13,8 +13,12 @@ from hython.sampler import SamplerBuilder
 from hython.trainer import HythonTrainer, RNNTrainer, RNNTrainParams
 from itwinai.loggers import EpochTimeTracker, Logger
 from itwinai.torch.config import TrainingConfiguration
-from itwinai.torch.distributed import (DeepSpeedStrategy, HorovodStrategy,
-                                       TorchDDPStrategy)
+from itwinai.torch.distributed import (
+        DeepSpeedStrategy, 
+        HorovodStrategy,
+        TorchDDPStrategy, 
+        NonDistributedStrategy
+)
 from itwinai.torch.trainer import TorchTrainer
 from itwinai.torch.type import Metric
 from torch.optim.lr_scheduler import ReduceLROnPlateau
@@ -243,17 +247,22 @@ class RNNDistributedTrainer(TorchTrainer):
             sampling_kwargs["num_replicas"] = self.strategy.global_world_size()
             sampling_kwargs["rank"] = self.strategy.global_rank()
 
+        if isinstance(self.strategy, NonDistributedStrategy): 
+            processing="single-gpu"
+        else: 
+            processing="multi-gpu"
+
         train_sampler_builder = SamplerBuilder(
             train_dataset,
             sampling="random",
-            processing="multi-gpu" if self.config.distributed else "single-gpu",
+            processing=processing,
             sampling_kwargs=sampling_kwargs
         )  
 
         val_sampler_builder = SamplerBuilder(
             validation_dataset,
             sampling="sequential",
-            processing="multi-gpu" if self.config.distributed else "single-gpu",
+            processing=processing,
             sampling_kwargs=sampling_kwargs
         )
 
@@ -381,10 +390,8 @@ class ConvRNNDistributedTrainer(TorchTrainer):
 
         device = self.strategy.device()
         loss_history = {"train": [], "val": []}
-        metric_history = {f"train_{target}": []
-                          for target in trainer.P.target_names}
-        metric_history.update({f"val_{target}": []
-                              for target in trainer.P.target_names})
+        metric_history = {f"train_{target}": [] for target in trainer.P.target_names}
+        metric_history.update({f"val_{target}": [] for target in trainer.P.target_names})
 
         best_loss = float("inf")
         for epoch in tqdm(range(self.epochs)):
@@ -472,7 +479,8 @@ class ConvRNNDistributedTrainer(TorchTrainer):
         return loss_history, metric_history
 
     def create_dataloaders(
-            self, train_dataset, validation_dataset, test_dataset):
+            self, train_dataset, validation_dataset, test_dataset
+        ):
         train_sampler_builder = SamplerBuilder(
             train_dataset,
             sampling="random",
