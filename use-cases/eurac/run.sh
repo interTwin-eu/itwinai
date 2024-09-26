@@ -1,8 +1,8 @@
 #!/bin/bash
 
 # Python virtual environment (no conda/micromamba)
-# PYTHON_VENV="../../../hython-dev"
-PYTHON_VENV="../../envAI_hdfml"
+PYTHON_VENV="../../../hython-dev"
+#PYTHON_VENV="../../envAI_hdfml"
 
 if [ -z "$1" ]; then
     CONFIG_FILE=config.yaml

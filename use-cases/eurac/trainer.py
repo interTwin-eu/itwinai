@@ -2,7 +2,7 @@ import os
 from pathlib import Path
 from timeit import default_timer as timer
 from typing import Dict, Literal, Optional, Union
-
+from copy import deepcopy
 import pandas as pd
 import torch
 import torch.nn as nn
@@ -92,7 +92,7 @@ class RNNDistributedTrainer(TorchTrainer):
         
         TARGET_WEIGHTS = {t: 1/len(self.config.target_names) for t in self.config.target_names}
         self.loss_fn = RMSELoss(target_weight=TARGET_WEIGHTS)
-        self.metric_fn = MSEMetric(target_names=self.config.target_names)
+        self.metric_fn = MSEMetric()
 
         distribute_kwargs = {}
         if isinstance(self.strategy, DeepSpeedStrategy):
@@ -229,6 +229,8 @@ class RNNDistributedTrainer(TorchTrainer):
                 best_loss = avg_val_loss
                 print(f"train loss: {train_loss}")
                 print(f"val loss: {avg_val_loss}")
+                #best_model = deepcopy(self.model.state_dict())
+
 
             if self.strategy.is_main_worker: 
                 epoch_end_time = timer()
@@ -236,6 +238,14 @@ class RNNDistributedTrainer(TorchTrainer):
                         epoch-1, 
                         epoch_end_time - epoch_start_time
                 ) 
+        
+        # logging the best model
+        # self.log(
+        #     item=best_model,
+        #     identifier='best_model',
+        #     kind='model'
+        # )
+
 
         return loss_history, metric_history
 

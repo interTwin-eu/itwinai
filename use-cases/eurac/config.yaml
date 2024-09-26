@@ -4,7 +4,7 @@ surrogate_model_output: /p/scratch/intertwin/datasets/eurac/model
 tmp_stats: /p/scratch/intertwin/datasets/eurac/stats
 
 experiment: "drought use case lstm"
-run_name: "complex_effective_const_h64"
+run_name: "testing_log_model"
 epochs: 2
 random_seed: 1010
 
