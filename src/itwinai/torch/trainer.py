@@ -369,7 +369,6 @@ class TorchTrainer(Trainer, LogMixin):
             hparams['distributed_strategy'] = self.strategy.__class__.__name__
             self.logger.save_hyperparameters(hparams)
 
-        
         self.train()
 
         if self.logger:
