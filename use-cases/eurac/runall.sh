@@ -21,10 +21,6 @@ if [ -z "$PYTHON_VENV" ]; then
 	PYTHON_VENV="../../envAI_hdfml"
 fi
 
-# Preparing the necessary directories
-mkdir -p logs_slurm # STDOUT and STDERR for slurm
-mkdir -p logs_epoch # Logs used for scalability tests
-
 submit_job () {
     local mode=$1
     sbatch --export=ALL,DIST_MODE="$mode",RUN_NAME="$mode",TIME="$TIME",DEBUG="$DEBUG",PYTHON_VENV=$PYTHON_VENV \
