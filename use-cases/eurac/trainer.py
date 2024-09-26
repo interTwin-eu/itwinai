@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 import pandas as pd
 from typing import Dict, Literal, Optional, Union
 from timeit import default_timer as timer
@@ -86,25 +87,23 @@ class RNNDistributedTrainer(TorchTrainer):
         
         TARGET_WEIGHTS = {t: 1/len(self.config.target_names) for t in self.config.target_names}
         self.loss_fn = RMSELoss(target_weight=TARGET_WEIGHTS)
-        self.metric_fn = MSEMetric()
+        self.metric_fn = MSEMetric(target_names=self.config.target_names)
 
+        distribute_kwargs = {}
         if isinstance(self.strategy, DeepSpeedStrategy):
             # Batch size definition is not optional for DeepSpeedStrategy!
-            distribute_kwargs = dict(
-                config_params=dict(
-                    train_micro_batch_size_per_gpu=self.config.batch_size
-                )
-            )
+            distribute_kwargs = {
+                "config_params": {
+                    "train_micro_batch_size_per_gpu": self.config.batch_size
+                }
+            }
         elif isinstance(self.strategy, TorchDDPStrategy): 
             if 'find_unused_parameters' not in self.config.model_fields:
                 self.config.find_unused_parameters = False
-                distribute_kwargs = dict(
-                    find_unused_parameters=self.config.find_unused_parameters
-                )
-        else:
-            distribute_kwargs = {}
+            distribute_kwargs = {
+                    "find_unused_parameters": self.config.find_unused_parameters
+            }
 
-        
         # Distribute discriminator and its optimizer
         self.model, self.optimizer, _ = self.strategy.distributed(
             model=self.model, 
@@ -120,9 +119,10 @@ class RNNDistributedTrainer(TorchTrainer):
             num_nodes = os.environ.get("SLURM_NNODES", "unk")
             series_name = os.environ.get("DIST_MODE", "unk") + "-torch"
             file_name = f"epochtime_{series_name}_{num_nodes}N.csv"
+            file_path = Path("logs_epoch") / file_name
             epoch_time_tracker = EpochTimeTracker(
                     series_name=series_name,
-                    csv_file=file_name
+                    csv_file=file_path
             )
         trainer = RNNTrainer(
                 RNNTrainParams(

@@ -1,73 +1,43 @@
 #!/bin/bash
+# 
+# Script for running all the distributed trainings with a certain number of 
+# GPUs on a certain number of compute nodes. Can be run as a stand-alone script or 
+# from another script. Change the values of the script either by changing the default 
+# values below or by exporting environment variables before running the script. 
 
-NUM_NODES=4
-NUM_GPUS=4
-EPOCHS=5
-TIME=0:20:00
+if [ -z "$NUM_NODES" ]; then 
+	NUM_NODES=2
+fi
+if [ -z "$NUM_GPUS" ]; then 
+	NUM_GPUS=4
+fi
+if [ -z "$TIME" ]; then 
+	TIME=0:20:00
+fi
+if [ -z "$DEBUG" ]; then 
+	DEBUG=false
+fi
+if [ -z "$PYTHON_VENV" ]; then 
+	PYTHON_VENV="../../envAI_hdfml"
+fi
 
-sbatch --export=ALL,STRATEGY="ddp",EPOCHS="$EPOCHS" \
-	--output="logs_slurm/job-ddp-n$NUM_NODES.out" \
-	--error="logs_slurm/job-ddp-n$NUM_NODES.err" \
-	--nodes=$NUM_NODES \
-	--gpus-per-node=$NUM_GPUS \
-	--time=$TIME \
-	ddp_deepspeed_slurm.sh
+# Preparing the necessary directories
+mkdir -p logs_slurm # STDOUT and STDERR for slurm
+mkdir -p logs_epoch # Logs used for scalability tests
 
-sbatch --export=ALL,STRATEGY="deepspeed",EPOCHS="$EPOCHS" \
-	--output="logs_slurm/job-deepspeed-n$NUM_NODES.out" \
-	--error="logs_slurm/job-deepspeed-n$NUM_NODES.err" \
-	--nodes=$NUM_NODES \
-	--gpus-per-node=$NUM_GPUS \
-	--time=$TIME \
-	ddp_deepspeed_slurm.sh
+submit_job () {
+    local mode=$1
+    sbatch --export=ALL,DIST_MODE="$mode",RUN_NAME="$mode",TIME="$TIME",DEBUG="$DEBUG",PYTHON_VENV=$PYTHON_VENV \
+        --job-name="$mode" \
+        --output="logs_slurm/job-$mode-n$NUM_NODES.out" \
+        --error="logs_slurm/job-$mode-n$NUM_NODES.err" \
+        --nodes="$NUM_NODES" \
+        --gpus-per-node="$NUM_GPUS" \
+        --time="$TIME" \
+        slurm.sh
+}
 
-sbatch --export=ALL,EPOCHS="$EPOCHS" \
-	--output="logs_slurm/job-horovod-n$NUM_NODES.out" \
-	--error="logs_slurm/job-horovod-n$NUM_NODES.err" \
-	--nodes=$NUM_NODES \
-	--gpus-per-node=$NUM_GPUS \
-	--time=$TIME \
-	horovod_slurm.sh
-
-# Python virtual environment (no conda/micromamba)
-#PYTHON_VENV="../../envAI_hdfml"
-# CMD="--nodes=$NUM_NODES --time=$TIME --account=intertwin --partition=batch slurm.sh"
-
-# echo "Distributing training over $N nodes. Timeout set to: $T"
-
-# Clear SLURM logs (*.out and *.err files)
-# rm -rf logs_slurm checkpoints*
-# mkdir logs_slurm
-# rm -rf logs_torchrun
-# # Clear scaling test logs 
-# rm *.csv
-
-# DDP itwinai
-# DIST_MODE="ddp"
-# RUN_NAME="ddp-itwinai"
-# TRAINING_CMD="torch_dist_final_scaling.py --strategy ddp"
-# sbatch --export=ALL,DIST_MODE="$DIST_MODE",RUN_NAME="$RUN_NAME",TRAINING_CMD="$TRAINING_CMD",PYTHON_VENV="$PYTHON_VENV" \
-#     --job-name="$RUN_NAME-n$N" \
-#     --output="logs_slurm/job-$RUN_NAME-n$N.out" \
-#     --error="logs_slurm/job-$RUN_NAME-n$N.err" \
-#     $CMD
-#
-# # DeepSpeed itwinai
-# DIST_MODE="deepspeed"
-# RUN_NAME="deepspeed-itwinai"
-# TRAINING_CMD="python torch_dist_final_scaling.py --strategy deepspeed"
-# sbatch --export=ALL,DIST_MODE="$DIST_MODE",RUN_NAME="$RUN_NAME",TRAINING_CMD="$TRAINING_CMD",PYTHON_VENV="$PYTHON_VENV" \
-#     --job-name="$RUN_NAME-n$N" \
-#     --output="logs_slurm/job-$RUN_NAME-n$N.out" \
-#     --error="logs_slurm/job-$RUN_NAME-n$N.err" \
-#     $CMD
-
-# Horovod itwinai
-# DIST_MODE="horovod"
-# RUN_NAME="horovod-itwinai"
-# TRAINING_CMD="python torch_dist_final_scaling.py --strategy horovod"
-# sbatch --export=ALL,DIST_MODE="$DIST_MODE",RUN_NAME="$RUN_NAME",TRAINING_CMD="$TRAINING_CMD",PYTHON_VENV="$PYTHON_VENV" \
-#     --job-name="$RUN_NAME-n$N" \
-#     --output="logs_slurm/job-$RUN_NAME-n$N.out" \
-#     --error="logs_slurm/job-$RUN_NAME-n$N.err" \
-#     $CMD
+echo "Running distributed training on $NUM_NODES nodes with $NUM_GPUS GPUs per node"
+submit_job "ddp"
+submit_job "deepspeed"
+submit_job "horovod"

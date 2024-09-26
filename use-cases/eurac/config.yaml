@@ -11,8 +11,6 @@ random_seed: 1010
 target_names: [ "vwc", "actevap","snow","snowwater"] #, "runoff_river", "runoff_land"
 strategy: ddp
 
-target_names: [ "vwc", "actevap","snow","snowwater"] #, "runoff_river", "runoff_land"
-
 training_pipeline:
   class_path: itwinai.pipeline.Pipeline
   init_args:
