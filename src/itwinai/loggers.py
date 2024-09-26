@@ -356,7 +356,7 @@ class ConsoleLogger(Logger):
         else:
             self.run_id = int(run_dirs[-1]) + 1
         self.run_path = os.path.join(self.savedir, str(self.run_id))
-        os.makedirs(self.run_path)
+        os.makedirs(self.run_path, exist_ok=True)
 
     def destroy_logger_context(self):
         """Destroy logger. Do nothing."""
