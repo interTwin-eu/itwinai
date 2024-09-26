@@ -3,6 +3,18 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
+.. |br| raw:: html
+
+   <br>
+
+.. image:: ../docs/images/icon-itwinai-orange-black-subtitle.png
+    :alt: itwinai logo
+    :class: logo
+
+|br|
+|br|
+|br|
+
 Welcome to itwinai's documentation!
 ===================================
 
@@ -48,6 +60,7 @@ use due to its reliability (`learn more <https://docs.readthedocs.io/en/stable/v
 
    getting-started/getting_started_with_itwinai
    getting-started/slurm
+   getting-started/plugins
 
 .. toctree::
    :maxdepth: 2
@@ -55,6 +68,7 @@ use due to its reliability (`learn more <https://docs.readthedocs.io/en/stable/v
    :caption: 🪄 How it works
 
    how-it-works/training/training
+   how-it-works/loggers/explain_loggers
    how-it-works/workflows/explain_workflows
 
 .. toctree::

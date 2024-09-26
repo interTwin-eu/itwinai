@@ -1,15 +1,15 @@
-from typing import Optional, Dict, Any, Union
-import os
 import abc
+import os
+from typing import Any, Dict, Optional, Union
 
 import torch
 from torch import nn
 from torch.utils.data import DataLoader, Dataset
 
-from ..utils import dynamically_import_class, clear_key
 from ..components import Predictor, monitor_exec
-from .type import Batch
 from ..serialization import ModelLoader
+from ..utils import clear_key, dynamically_import_class
+from .type import Batch
 
 
 class TorchModelLoader(ModelLoader):

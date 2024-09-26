@@ -14,7 +14,7 @@ services (e.g., Read The Docs cloud), use the following commands
 
 ```bash
 # Clone the repo, if not done yet
-git clone https://github.com/interTwin-eu/itwinai.git itwinai-docs
+git clone --recurse-submodules https://github.com/interTwin-eu/itwinai.git itwinai-docs
 cd itwinai-docs
 
 # The first time, you may need to install some Linux packages (assuming Ubuntu system here)

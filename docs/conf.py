@@ -7,8 +7,8 @@
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
 import os
-import sys
 import subprocess
+import sys
 
 exclude_patterns = 'requirements.txt'
 
@@ -22,6 +22,7 @@ sys.path.insert(0, os.path.abspath('../tutorials/ml-workflows/'))
 # sys.path.insert(0, os.path.abspath('../src/itwinai/tensorflow'))
 # sys.path.insert(0, os.path.abspath('../src/itwinai/torch'))
 sys.path.insert(0, os.path.abspath('../src'))
+sys.path.insert(0, os.path.abspath('../images'))
 # sys.path.insert(0, os.path.abspath('../...'))
 
 project = 'itwinai'
@@ -50,6 +51,9 @@ exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 
 autodoc_mock_imports = ["mlflow"]
 
+# Enable numref
+numfig = True
+
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
@@ -69,6 +73,12 @@ release = version
 
 html_theme = 'sphinx_rtd_theme'  # 'alabaster'
 html_static_path = ['_static']
+
+html_logo = "../docs/images/icon-itwinai-orange.png"
+html_theme_options = {
+    'logo_only': True,
+    'style_nav_header_background': 'black'
+}
 
 html_context = {
     'display_version': True,

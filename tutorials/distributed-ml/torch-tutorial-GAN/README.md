@@ -120,28 +120,12 @@ actual data, and the Discriminator improves its ability to detect fakes.
 
 ## Steps to make a distributed GAN model
 
+The code for all steps can be seen in the attached python file.
+
 ### Step 1: Define Model Architecture
 
 Both the Generator and Discriminator are defined using PyTorch's `nn.Module`. The specific architecture for both
 includes convolutional layers that are well-suited for processing image data.
-
-#### Generator Architecture
-
-Here we define a simple Generator architecture with 1 input and output layer plus 3 hidden layers.
-
-```python
-class Generator(nn.Module):
-
-```
-
-#### Discriminator Architecture
-
-Here we define a simple Discriminator architecture with 4 layers plus one output layer.
-
-```python
-class Discriminator(nn.Module):
-
-```
 
 ### Step 2: Implement Distributed Training
 
@@ -149,48 +133,17 @@ The `GANTrainer` class extends the custom itwinia `TorchTrainer` class and handl
 optimizers, and the distributed training strategy for the GAN. The snippet below shows how the GANTrainer is extending
 the TorchTrainer class and initializing the parameters.
 This is essentially done to handle the scenario for the GAN which comprises of two Neural Network models which is not
-handled by the TorchTrainer that looks expects and handles one model.
-
-```python
-class GANTrainer(TorchTrainer):
-
-```
-
-We also create custom optimizers for the Optimizer and Discriminator GAN models:
-
-```python
-
-def create_model_loss_optimizer(self) -> None:
-
-```
+handled by the TorchTrainer that expects and handles one model. We also create custom optimizers for the Optimizer
+and Discriminator GAN models:
 
 ### Step 3: Training and Validation Logic
 
 The training alternates between updating the Discriminator using real and generated images and training the Generator
-to fool the Discriminator.
-
-```python
-def train_step(self, real_images):
-    # Training logic
-
-   
-```
-
-Validation evaluates the performance of the Generator in deceiving the Discriminator.
-
-```python
-def validation_step(self, real_images):
-    # Validation logic
-```
+to fool the Discriminator. Validation evaluates the performance of the Generator in deceiving the Discriminator.
 
 ### Step 4: Visualization and Monitoring
 
 Training progress is monitored through visualizations of loss metrics and image samples generated periodically.
-
-```python
-def save_plots_and_images(self, epoch, real_images, fake_images):
-    #  This method plots training losses and saving image samples
-```
 
 ## Takeaways
 

@@ -1,5 +1,5 @@
 itwinai and containers (Docker and Singularity)
-=========================
+===================================================
 
 In this tutorial you will learn how to use itwinai's containers images to run your ML workflows
 without having to setup the python environment by means of virtual environments.

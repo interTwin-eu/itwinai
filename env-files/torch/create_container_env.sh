@@ -28,17 +28,13 @@ if [ "$1" == "23.09-py3" ]; then
     export DS_BUILD_TRANSFORMER=1
     export DS_BUILD_STOCHASTIC_TRANSFORMER=1
     export DS_BUILD_TRANSFORMER_INFERENCE=1
-    pip3 install --no-cache-dir DeepSpeed
 
-    if [ $? -ne 0 ]; then
-        echo "DeepSpeed installation FAILED"
-        exit 2
-    fi
+    pip install --no-cache-dir deepspeed || exit 1
 
     # fix .triton/autotune/Fp16Matmul_2d_kernel.pickle bug
     pver="$(python --version 2>&1 | awk '{print $2}' | cut -f1-2 -d.)"
     line=$(cat -n /usr/lib/python${pver}/site-packages/deepspeed/ops/transformer/inference/triton/matmul_ext.py | grep os.rename | awk '{print $1}' | head -n 1)
-    sed -i "${line}s|^|#|" /usr/lib/python${pver}/site-packages/deepspeed/ops/transformer/inference/triton/matmul_ext.py
+    sed -i "${line}s|^|#|" /usr/lib/python${pver}/site-packages/deepspeed/ops/transformer/inference/triton/matmul_ext.py 
 
     # Horovod
     # compiler vars
@@ -62,17 +58,14 @@ if [ "$1" == "23.09-py3" ]; then
     # Fix needed to compile horovod with torch >= 2.1
     # https://github.com/horovod/horovod/pull/3998
     # Assume that Horovod env vars are already in the current env!
-    pip3 install --no-cache-dir git+https://github.com/thomas-bouvier/horovod.git@compile-cpp17
+    pip install --no-cache-dir git+https://github.com/horovod/horovod.git || exit 1
 
-    if [ $? -ne 0 ]; then
-        echo "Horovod installation FAILED"
-        exit 2
-    fi
+    # Store container torch version
+    # Enforce that the current version of torch in the container is preserved, otherwise, if updated, Horovod will complain.
+    CONTAINER_TORCH_VERSION=$(python -c 'import torch;print(torch.__version__)')
 
-    # Install itwinai
-    # $(python -c 'import torch;print(torch.__version__)') serves to enforce that the current version of
-    # torch in the container is preserved, otherwise, if updated, Horovod will complain.
-    pip install .[torch] torch==$(python -c 'import torch;print(torch.__version__)') --no-cache-dir
+    # Install twinai and Pov4ML, forcing pip to preserve current torch version
+    pip install --no-cache-dir .[torch] "prov4ml[linux]@git+https://github.com/matbun/ProvML" torch==$CONTAINER_TORCH_VERSION --no-cache-dir || exit 1
 
 else
     echo "ERROR: unrecognized tag."

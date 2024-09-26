@@ -17,8 +17,6 @@ keywords = ["ml", "ai", "hpc"]
 authors = [
     { name = "Matteo Bunino", email = "matteo.bunino@cern.ch" },
     { name = "Rakesh Sarma", email = "r.sarma@fz-juelich.de" },
-    { name = "Mario Ruettgers", email = "m.ruettgers@fz-juelich.de" },
-    { name = "Kalliopi Tsolaki", email = "kalliopi.tsolaki@cern.ch" },
 ]
 maintainers = [
     { name = "Matteo Bunino", email = "matteo.bunino@cern.ch" },
@@ -42,7 +40,7 @@ dependencies = [
     "wheel",
     "pydantic",
     # "prov4ml@git+https://github.com/HPCI-Lab/ProvML@main", # Prov4ML
-    "prov4ml@git+https://github.com/matbun/ProvML@main",
+    # "prov4ml@git+https://github.com/matbun/ProvML@main",
     "pandas",
 ]
 
@@ -52,7 +50,7 @@ dependencies = [
 
 # Torch should be already installed, but it is specified here to
 # prevent itwinai dependencies from cheing its version.
-torch = ["torch==2.1.*", "lightning==2.*", "torchmetrics"]
+torch = ["lightning==2.*", "torchmetrics"]
 # torch-cpu = [
 #     "torch==2.1.*",
 #     "torchvision",
@@ -92,3 +90,7 @@ markers = [
     "functional: functional tests. (deselect with '-m \"not functional\"')",
     "memory_heavy: high memory footprint. (deselect with '-m \"not heavy_memory\"')",
 ]
+
+[tool.isort]
+profile = "black"
+known_first_party = ["itwinai"]
