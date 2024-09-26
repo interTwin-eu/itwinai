@@ -23,6 +23,7 @@ from itwinai.torch.trainer import TorchTrainer
 from itwinai.torch.type import Metric
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 from tqdm.auto import tqdm
+from ray import train
 
 
 class RNNDistributedTrainer(TorchTrainer):
@@ -235,6 +236,10 @@ class RNNDistributedTrainer(TorchTrainer):
                     epoch-1,
                     epoch_end_time - epoch_start_time
                 )
+
+            # Report training metrics of last epoch to Ray
+            train.report({"loss": avg_val_loss.item(),
+                          "train_loss": train_loss.item()})
 
         return loss_history, metric_history
 

@@ -3,7 +3,7 @@
 # Job configuration
 #SBATCH --job-name=ray_tune_hpo    
 #SBATCH --account=intertwin       
-#SBATCH --time 0:30:00
+#SBATCH --time 01:00:00
 
 # Resources allocation
 #SBATCH --cpus-per-task=16
@@ -26,8 +26,6 @@ ml Python/3.11 HDF5 PnetCDF libaio mpi4py CMake cuDNN/8.9.5.29-CUDA-12
 PYTHON_VENV="../../envAI_hdfml"
 source $PYTHON_VENV/bin/activate
 
-#pip install hpbandster ConfigSpace
-
 # make sure CUDA devices are visible
 export CUDA_VISIBLE_DEVICES="0,1,2,3"
 export SRUN_CPUS_PER_TASK=${SLURM_CPUS_PER_TASK}  # TODO: test if this makes a difference
@@ -39,6 +37,10 @@ num_gpus=$SLURM_GPUS_PER_NODE
 
 ## Disable Ray Usage Stats
 export RAY_USAGE_STATS_DISABLE=1
+
+# This tells Tune to not change the working directory to the trial directory
+# which makes relative paths accessible from inside a trial
+export RAY_CHDIR_TO_TRIAL_DIR=0
 
 
 #########   Set up Ray cluster   ########

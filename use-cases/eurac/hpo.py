@@ -1,5 +1,6 @@
 import argparse
 import os
+import sys
 
 import matplotlib.pyplot as plt
 import ray
@@ -62,7 +63,7 @@ def run_trial(config):
     )
     my_pipeline = parser.parse_pipeline(
         pipeline_nested_key='training_pipeline',
-        verbose=True
+        verbose=False
     )
 
     # Load data from the specified pickle file
@@ -93,7 +94,7 @@ def run_hpo(args):
 
         # Define the search space for hyperparameters
         search_space = {
-            'batch_size': tune.choice([8, 16, 32, 64]),
+            'batch_size': tune.choice([64, 128, 256]),
             'lr': tune.uniform(1e-5, 1e-3)
         }
 
