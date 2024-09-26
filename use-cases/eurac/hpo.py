@@ -1,21 +1,17 @@
 import argparse
 import os
+from pathlib import Path
 
 import matplotlib.pyplot as plt
 import ray
 import torch
-from pathlib import Path
 from ray import train, tune
+
 from itwinai.parser import ConfigParser
 
 # Global variable for data root directory - this is the synthetic Virgo test data,
 # which can generally be used so that new data does not need to be generated for every run
 DATA_ROOT = "/p/scratch/intertwin/datasets/virgo/test_data"
-
-# Set path to be able to import config file from inside the run_trial function,
-# executed by the Ray Tuner
-cwd = Path.cwd()
-config_path = cwd / "config.yaml"
 
 
 def run_trial(config):
@@ -54,7 +50,7 @@ def run_trial(config):
     # Note: Comment out the TimeSeriesDatasetGenerator class and the
     # WandBLogger in the config.yaml file to make it run on hdfml and pre-generated dataset
     parser = ConfigParser(
-        config=config_path,
+        config=Path('config.yaml'),
         override_keys={
             'batch_size': config['batch_size'],
             'learning_rate': config['lr']
@@ -64,13 +60,6 @@ def run_trial(config):
         pipeline_nested_key='training_pipeline',
         verbose=False
     )
-
-    # Load data from the specified pickle file
-    # file_path = os.path.join(DATA_ROOT, 'Image_dataset_synthetic_64x64.pkl')
-    # df = pd.read_pickle(file_path)
-
-    # Convert data to tensors for training
-    # df = df.map(lambda x: torch.tensor(x).float())
 
     my_pipeline.execute()
 
@@ -108,7 +97,7 @@ def run_hpo(args):
 
         # Ray's RunConfig for experiment name and stopping criteria
         run_config = train.RunConfig(
-            name="Virgo-Ray-Experiment",
+            name="Eurac-Ray-Experiment",
             stop={"training_iteration": args.max_iterations}
         )
 

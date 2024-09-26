@@ -3,19 +3,18 @@
 # Job configuration
 #SBATCH --job-name=ray_tune_hpo    
 #SBATCH --account=intertwin       
-#SBATCH --time 01:00:00
+#SBATCH --time 0:30:00
 
 # Resources allocation
-#SBATCH --cpus-per-task=16
+#SBATCH --cpus-per-task=1
 #SBATCH --nodes=2
 #SBATCH --ntasks-per-node=1
-#SBATCH --gpus-per-node=4
+#SBATCH --gpus-per-node=3
 #SBATCH --exclusive
-#SBATCH --gres=gpu:4
 
 # Output and error logs
-#SBATCH -o logs_slurm/job.out
-#SBATCH -e logs_slurm/job.err
+#SBATCH -o logs_slurm/hpo-job.out
+#SBATCH -e logs_slurm/hpo-job.err
 
 # Load environment modules
 ml --force purge
@@ -28,12 +27,8 @@ source $PYTHON_VENV/bin/activate
 
 # make sure CUDA devices are visible
 export CUDA_VISIBLE_DEVICES="0,1,2,3"
-export SRUN_CPUS_PER_TASK=${SLURM_CPUS_PER_TASK}  # TODO: test if this makes a difference
 
 num_gpus=$SLURM_GPUS_PER_NODE
-
-## Limit number of max pending trials
-#export TUNE_MAX_PENDING_TRIALS_PG=$(($SLURM_NNODES * 4))
 
 ## Disable Ray Usage Stats
 export RAY_USAGE_STATS_DISABLE=1
