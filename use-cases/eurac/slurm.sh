@@ -31,9 +31,13 @@ if [ -z "$RUN_NAME" ]; then
   >&2 echo "WARNING: env variable RUN_NAME is not set. Defaulting to $DIST_MODE."
   RUN_NAME=$DIST_MODE
 fi
+if [ -z "$CONFIG_FILE" ]; then 
+  CONFIG_FILE=config.yaml
+  >&2 echo "WARNING: env variable CONFIG_FILE is not set. Defaulting to $CONFIG_FILE."
+fi
 if [ -z "$TRAINING_CMD" ]; then 
  	TRAINING_CMD="$(which itwinai) exec-pipeline \
-	--config config.yaml \
+	--config $CONFIG_FILE \
 	--pipe-key training_pipeline \
 	-o strategy=$DIST_MODE"
   >&2 echo "WARNING: env variable TRAINING_CMD is not set. Defaulting to $TRAINING_CMD."
