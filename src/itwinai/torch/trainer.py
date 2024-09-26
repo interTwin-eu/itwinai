@@ -104,7 +104,7 @@ class TorchTrainer(Trainer, LogMixin):
         config: Union[Dict, TrainingConfiguration],
         epochs: int,
         model: Optional[Union[nn.Module, str]] = None,
-        strategy: Literal["ddp", "deepspeed", "horovod"] | None = 'ddp',
+        strategy: Optional[Literal["ddp", "deepspeed", "horovod"]] = 'ddp',
         validation_every: Optional[int] = 1,
         test_every: Optional[int] = None,
         random_seed: Optional[int] = None,

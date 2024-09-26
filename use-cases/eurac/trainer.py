@@ -8,7 +8,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from hython.losses import RMSELoss
-from hython.metrics import MSEMetric
+from hython.metrics import MSEMetric, mse_metric
 from hython.sampler import SamplerBuilder
 from hython.trainer import HythonTrainer, RNNTrainer, RNNTrainParams
 from itwinai.loggers import EpochTimeTracker, Logger
@@ -54,7 +54,7 @@ class RNNDistributedTrainer(TorchTrainer):
             config: Union[Dict, TrainingConfiguration],
             epochs: int,
             model: Optional[nn.Module] = None,
-            strategy: Literal["ddp", "deepspeed", "horovod"] = 'ddp',
+            strategy: Optional[Literal["ddp", "deepspeed", "horovod"]] = 'ddp',
             validation_every: Optional[int] = 1,
             test_every: Optional[int] = None,
             random_seed: Optional[int] = None,
@@ -85,10 +85,11 @@ class RNNDistributedTrainer(TorchTrainer):
         )
         self.lr_scheduler = ReduceLROnPlateau(
             self.optimizer, mode="min", factor=0.5, patience=10)
-        
-        TARGET_WEIGHTS = {t: 1/len(self.config.target_names) for t in self.config.target_names}
+
+        TARGET_WEIGHTS = {t: 1/len(self.config.target_names)
+                          for t in self.config.target_names}
         self.loss_fn = RMSELoss(target_weight=TARGET_WEIGHTS)
-        self.metric_fn = MSEMetric(target_names=self.config.target_names)
+        # self.metric_fn = MSEMetric(target_names=self.config.target_names)
 
         distribute_kwargs = {}
         if isinstance(self.strategy, DeepSpeedStrategy):
@@ -98,43 +99,43 @@ class RNNDistributedTrainer(TorchTrainer):
                     "train_micro_batch_size_per_gpu": self.config.batch_size
                 }
             }
-        elif isinstance(self.strategy, TorchDDPStrategy): 
+        elif isinstance(self.strategy, TorchDDPStrategy):
             if 'find_unused_parameters' not in self.config.model_fields:
                 self.config.find_unused_parameters = False
             distribute_kwargs = {
-                    "find_unused_parameters": self.config.find_unused_parameters
+                "find_unused_parameters": self.config.find_unused_parameters
             }
 
         # Distribute discriminator and its optimizer
         self.model, self.optimizer, _ = self.strategy.distributed(
-            model=self.model, 
+            model=self.model,
             optimizer=self.optimizer,
-            lr_scheduler=self.lr_scheduler, 
+            lr_scheduler=self.lr_scheduler,
             **distribute_kwargs
         )
 
     def train(self):
         """Override version of hython to support distributed strategy."""
         # Tracking epoch times for scaling test
-        if self.strategy.is_main_worker: 
+        if self.strategy.is_main_worker:
             num_nodes = os.environ.get("SLURM_NNODES", "unk")
             series_name = os.environ.get("DIST_MODE", "unk") + "-torch"
             file_name = f"epochtime_{series_name}_{num_nodes}N.csv"
             file_path = Path("logs_epoch") / file_name
             epoch_time_tracker = EpochTimeTracker(
-                    series_name=series_name,
-                    csv_file=file_path
+                series_name=series_name,
+                csv_file=file_path
             )
         trainer = RNNTrainer(
-                RNNTrainParams(
-                    experiment=self.config.experiment,
-                    temporal_subsampling=self.config.temporal_subsampling,
-                    temporal_subset=self.config.temporal_subset,
-                    seq_length=self.config.seq_length,
-                    target_names=self.config.target_names,
-                    metric_func=self.metric_fn,
-                    loss_func=self.loss_fn
-                )
+            RNNTrainParams(
+                experiment=self.config.experiment,
+                temporal_subsampling=self.config.temporal_subsampling,
+                temporal_subset=self.config.temporal_subset,
+                seq_length=self.config.seq_length,
+                target_names=self.config.target_names,
+                metric_func=mse_metric,
+                loss_func=self.loss_fn
+            )
         )
 
         device = self.strategy.device()
@@ -177,17 +178,15 @@ class RNNDistributedTrainer(TorchTrainer):
             # gather losses from each worker and place them on the main worker.
             worker_val_losses = self.strategy.gather(val_loss, dst_rank=0)
 
-
             if self.strategy.global_rank() != 0:
                 # Logging time for scaling tests
-                if self.strategy.is_main_worker: 
+                if self.strategy.is_main_worker:
                     epoch_end_time = timer()
                     epoch_time_tracker.add_epoch_time(
-                            epoch-1, 
-                            epoch_end_time - epoch_start_time
-                    ) 
+                        epoch-1,
+                        epoch_end_time - epoch_start_time
+                    )
                 continue
-
 
             # Moving them all to the cpu() before performing calculations
             worker_val_losses = [wvl.cpu() for wvl in worker_val_losses]
@@ -209,8 +208,8 @@ class RNNDistributedTrainer(TorchTrainer):
             )
 
             for target in trainer.P.target_names:
-                metric_history[f"train_{target}"].append( train_metric[target])
-                metric_history[f"val_{target}"].append( val_metric[target])
+                metric_history[f"train_{target}"].append(train_metric[target])
+                metric_history[f"val_{target}"].append(val_metric[target])
             # Aggregate and log metrics
             avg_metrics = pd.DataFrame(metric_history).mean().to_dict()
             for m_name, m_val in avg_metrics.items():
@@ -226,20 +225,20 @@ class RNNDistributedTrainer(TorchTrainer):
                 print(f"train loss: {train_loss}")
                 print(f"val loss: {avg_val_loss}")
 
-            if self.strategy.is_main_worker: 
+            if self.strategy.is_main_worker:
                 epoch_end_time = timer()
                 epoch_time_tracker.add_epoch_time(
-                        epoch-1, 
-                        epoch_end_time - epoch_start_time
-                ) 
+                    epoch-1,
+                    epoch_end_time - epoch_start_time
+                )
 
         return loss_history, metric_history
 
     def create_dataloaders(
-            self, train_dataset, validation_dataset, test_dataset
-        ):
+        self, train_dataset, validation_dataset, test_dataset
+    ):
         sampling_kwargs = {}
-        if isinstance(self.strategy, HorovodStrategy): 
+        if isinstance(self.strategy, HorovodStrategy):
             sampling_kwargs["num_replicas"] = self.strategy.global_world_size()
             sampling_kwargs["rank"] = self.strategy.global_rank()
 
@@ -248,7 +247,7 @@ class RNNDistributedTrainer(TorchTrainer):
             sampling="random",
             processing="multi-gpu" if self.config.distributed else "single-gpu",
             sampling_kwargs=sampling_kwargs
-        )  
+        )
 
         val_sampler_builder = SamplerBuilder(
             validation_dataset,
@@ -266,7 +265,7 @@ class RNNDistributedTrainer(TorchTrainer):
             num_workers=self.config.num_workers_dataloader,
             pin_memory=self.config.pin_gpu_memory,
             generator=self.torch_rng,
-            sampler=train_sampler, 
+            sampler=train_sampler,
             drop_last=True
         )
 
@@ -278,10 +277,8 @@ class RNNDistributedTrainer(TorchTrainer):
                 pin_memory=self.config.pin_gpu_memory,
                 generator=self.torch_rng,
                 sampler=val_sampler,
-               drop_last=True
+                drop_last=True
             )
-
-
 
 
 class ConvRNNDistributedTrainer(TorchTrainer):
@@ -348,8 +345,9 @@ class ConvRNNDistributedTrainer(TorchTrainer):
         )
         self.lr_scheduler = ReduceLROnPlateau(
             self.optimizer, mode="min", factor=0.5, patience=10)
-        
-        TARGET_WEIGHTS = {t: 1/len(self.config.rnn_config["target_names"]) for t in self.config.rnn_config["target_names"]}
+
+        TARGET_WEIGHTS = {
+            t: 1/len(self.config.rnn_config["target_names"]) for t in self.config.rnn_config["target_names"]}
         self.loss_fn = RMSELoss(target_weight=TARGET_WEIGHTS)
         self.metric_fn = MSEMetric()
 
@@ -361,7 +359,7 @@ class ConvRNNDistributedTrainer(TorchTrainer):
                 )
             )
         else:
-            distribute_kwargs = {} # dict(find_unused_parameters=True)
+            distribute_kwargs = {}  # dict(find_unused_parameters=True)
         # Distribute discriminator and its optimizer
         self.model, self.optimizer, _ = self.strategy.distributed(
             model=self.model, optimizer=self.optimizer,
@@ -370,13 +368,13 @@ class ConvRNNDistributedTrainer(TorchTrainer):
     def train(self):
         """Override version of hython to support distributed strategy."""
         trainer = HythonTrainer(
-                RNNTrainParams(
-                    experiment=self.config.experiment,
-                    temporal_subsampling=False,
-                    temporal_subset=1,
-                    target_names=self.config.rnn_config["target_names"],
-                    metric_func=self.metric_fn,
-                    loss_func=self.loss_fn)
+            RNNTrainParams(
+                experiment=self.config.experiment,
+                temporal_subsampling=False,
+                temporal_subset=1,
+                target_names=self.config.rnn_config["target_names"],
+                metric_func=self.metric_fn,
+                loss_func=self.loss_fn)
         )
 
         device = self.strategy.device()
@@ -461,13 +459,13 @@ class ConvRNNDistributedTrainer(TorchTrainer):
                     # used to store the weights of a machine learning model
                     # or any other relevant data  related to a model.
                     # best_model_weights = copy.deepcopy(self.model.state_dict())
-                    #trainer.save_weights(self.model, self.config.dp_weights)
+                    # trainer.save_weights(self.model, self.config.dp_weights)
                     # print("Copied best model weights!")
 
                     print(f"train loss: {train_loss}")
                     print(f"val loss: {avg_val_loss}")
 
-                #self.model.load_state_dict(best_model_weights)
+                # self.model.load_state_dict(best_model_weights)
 
         return loss_history, metric_history
 
@@ -476,7 +474,7 @@ class ConvRNNDistributedTrainer(TorchTrainer):
         train_sampler_builder = SamplerBuilder(
             train_dataset,
             sampling="random",
-            processing="multi-gpu" if self.config.rnn_config["distributed"] else "single-gpu") # 
+            processing="multi-gpu" if self.config.rnn_config["distributed"] else "single-gpu")
 
         val_sampler_builder = SamplerBuilder(
             validation_dataset,
@@ -504,4 +502,3 @@ class ConvRNNDistributedTrainer(TorchTrainer):
                 generator=self.torch_rng,
                 sampler=val_sampler
             )
-

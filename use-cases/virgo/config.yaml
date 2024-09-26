@@ -30,13 +30,13 @@ training_pipeline:
           random_seed: 17
           validation_every: 0
           learning_rate: ${learning_rate}
-          logger:
-            class_path: itwinai.loggers.LoggersCollection
-            init_args:
-              loggers:
-                - class_path: itwinai.loggers.ConsoleLogger
-                  init_args:
-                    log_freq: 2
+          # logger:
+          #   class_path: itwinai.loggers.LoggersCollection
+          #   init_args:
+              #loggers:
+                # - class_path: itwinai.loggers.ConsoleLogger
+                #   init_args:
+                #     log_freq: 2
                 # - class_path: itwinai.loggers.MLFlowLogger
                 #   init_args:
                 #     experiment_name: Noise simulator (Virgo)
