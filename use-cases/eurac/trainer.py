@@ -1,9 +1,9 @@
 import os
 from pathlib import Path
-import pandas as pd
-from typing import Dict, Literal, Optional, Union
 from timeit import default_timer as timer
+from typing import Dict, Literal, Optional, Union
 
+import pandas as pd
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -11,9 +11,10 @@ from hython.losses import RMSELoss
 from hython.metrics import MSEMetric
 from hython.sampler import SamplerBuilder
 from hython.trainer import HythonTrainer, RNNTrainer, RNNTrainParams
-from itwinai.loggers import Logger, EpochTimeTracker
+from itwinai.loggers import EpochTimeTracker, Logger
 from itwinai.torch.config import TrainingConfiguration
-from itwinai.torch.distributed import DeepSpeedStrategy, HorovodStrategy, TorchDDPStrategy
+from itwinai.torch.distributed import (DeepSpeedStrategy, HorovodStrategy,
+                                       TorchDDPStrategy)
 from itwinai.torch.trainer import TorchTrainer
 from itwinai.torch.type import Metric
 from torch.optim.lr_scheduler import ReduceLROnPlateau
