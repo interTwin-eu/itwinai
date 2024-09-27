@@ -3,21 +3,29 @@ Adapted from: https://github.com/pytorch/examples/blob/main/mnist/main.py
 """
 
 import argparse
+from pathlib import Path
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torchvision import datasets, transforms
 import torchmetrics
+from torch.profiler import ProfilerActivity, profile, record_function
+from torchvision import datasets, transforms
 
-from itwinai.torch.trainer import TorchTrainer
-from itwinai.torch.config import TrainingConfiguration
 from itwinai.loggers import MLFlowLogger
+from itwinai.torch.config import TrainingConfiguration
+from itwinai.torch.trainer import TorchTrainer
 
-class ProfilerTrainer(TorchTrainer): 
 
-    def train(self): 
-        pass
+class ProfilerTrainer(TorchTrainer):
+
+    def train(self):
+        with profile(activities=[ProfilerActivity.CUDA]) as prof:
+            with record_function("train_func"): 
+                super().train()
+
+        # sort_string = "cuda_time_total"
+        print(f"prof.key_averages() {prof.key_averages().table()}")
 
 
 class Net(nn.Module):
@@ -55,13 +63,13 @@ def main():
         help="input batch size for training (default: 64)",
     )
     parser.add_argument(
-        "--epochs", type=int, default=14, help="number of epochs to train (default: 14)"
+        "--epochs", type=int, default=2, help="number of epochs to train (default: 14)"
     )
     parser.add_argument(
         "--strategy", type=str, default="ddp", help="distributed strategy (default=ddp)"
     )
     parser.add_argument(
-        "--lr", type=float, default=1.0, help="learning rate (default: 1.0)"
+        "--lr", type=float, default=1e-4, help="learning rate (default: 1.0)"
     )
     parser.add_argument("--seed", type=int, default=1, help="random seed (default: 1)")
     parser.add_argument(
@@ -76,10 +84,11 @@ def main():
     transform = transforms.Compose(
         [transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))]
     )
+    root_dir = Path("data")
     train_dataset = datasets.MNIST(
-        "../data", train=True, download=True, transform=transform
+        str(root_dir), train=True, download=True, transform=transform
     )
-    validation_dataset = datasets.MNIST("../data", train=False, transform=transform)
+    validation_dataset = datasets.MNIST(str(root_dir), train=False, transform=transform)
 
     # Neural network to train
     model = Net()
@@ -89,6 +98,7 @@ def main():
         optim_lr=args.lr,
         optimizer="adadelta",
         loss="cross_entropy",
+        num_workers_dataloader=1
     )
 
     logger = MLFlowLogger(experiment_name="mnist-tutorial", log_freq=10)
@@ -98,7 +108,7 @@ def main():
         "precision": torchmetrics.Precision(task="multiclass", num_classes=10),
     }
 
-    trainer = TorchTrainer(
+    profiler_trainer = ProfilerTrainer(
         config=training_config,
         model=model,
         metrics=metrics,
@@ -107,10 +117,10 @@ def main():
         epochs=args.epochs,
         random_seed=args.seed,
         checkpoint_every=args.ckpt_interval,
-    )
+)
 
     # Launch training
-    _, _, _, trained_model = trainer.execute(train_dataset, validation_dataset, None)
+    profiler_trainer.execute(train_dataset, validation_dataset, None)
 
 
 if __name__ == "__main__":
