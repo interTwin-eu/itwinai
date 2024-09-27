@@ -52,8 +52,11 @@ def run_trial(config):
     parser = ConfigParser(
         config=Path('config.yaml'),
         override_keys={
+            # Set HPOs controlled by ray
             'batch_size': config['batch_size'],
-            'learning_rate': config['lr']
+            'learning_rate': config['lr'],
+            # Override logger field, because performance is logged by ray
+            'training_pipeline.init_args.steps.2.init_args.logger': None
         }
     )
     my_pipeline = parser.parse_pipeline(
