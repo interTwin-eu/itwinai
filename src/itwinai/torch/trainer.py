@@ -104,7 +104,7 @@ class TorchTrainer(Trainer, LogMixin):
         config: Union[Dict, TrainingConfiguration],
         epochs: int,
         model: Optional[Union[nn.Module, str]] = None,
-        strategy: Literal["ddp", "deepspeed", "horovod"] = 'ddp',
+        strategy: Optional[Literal["ddp", "deepspeed", "horovod"]] = 'ddp',
         validation_every: Optional[int] = 1,
         test_every: Optional[int] = None,
         random_seed: Optional[int] = None,
@@ -153,7 +153,7 @@ class TorchTrainer(Trainer, LogMixin):
         return self.strategy.device()
 
     def _detect_strategy(self, strategy: str) -> TorchDistributedStrategy:
-        if not distributed_resources_available():
+        if strategy is None or not distributed_resources_available():
             print("WARNING: falling back to non-distributed strategy.")
             dist_str = NonDistributedStrategy()
         elif strategy == 'ddp':

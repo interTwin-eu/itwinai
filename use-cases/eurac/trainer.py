@@ -1,4 +1,5 @@
 import os
+from copy import deepcopy
 from pathlib import Path
 from timeit import default_timer as timer
 from typing import Dict, Literal, Optional, Union
@@ -11,18 +12,20 @@ from hython.losses import RMSELoss
 from hython.metrics import MSEMetric, mse_metric
 from hython.sampler import SamplerBuilder
 from hython.trainer import HythonTrainer, RNNTrainer, RNNTrainParams
+from ray import train
+from torch.optim.lr_scheduler import ReduceLROnPlateau
+from tqdm.auto import tqdm
+
 from itwinai.loggers import EpochTimeTracker, Logger
 from itwinai.torch.config import TrainingConfiguration
 from itwinai.torch.distributed import (
     DeepSpeedStrategy,
     HorovodStrategy,
-    TorchDDPStrategy,
     NonDistributedStrategy,
+    TorchDDPStrategy,
 )
 from itwinai.torch.trainer import TorchTrainer
 from itwinai.torch.type import Metric
-from torch.optim.lr_scheduler import ReduceLROnPlateau
-from tqdm.auto import tqdm
 
 
 class RNNDistributedTrainer(TorchTrainer):
@@ -58,7 +61,7 @@ class RNNDistributedTrainer(TorchTrainer):
         config: Union[Dict, TrainingConfiguration],
         epochs: int,
         model: Optional[nn.Module] = None,
-        strategy: Literal["ddp", "deepspeed", "horovod"] = "ddp",
+        strategy: Optional[Literal["ddp", "deepspeed", "horovod"]] = "ddp",
         validation_every: Optional[int] = 1,
         test_every: Optional[int] = None,
         random_seed: Optional[int] = None,
@@ -239,6 +242,10 @@ class RNNDistributedTrainer(TorchTrainer):
         #     identifier='best_model',
         #     kind='model'
         # )
+
+            # Report training metrics of last epoch to Ray
+            train.report({"loss": avg_val_loss.item(),
+                          "train_loss": train_loss.item()})
 
         return loss_history, metric_history
 
