@@ -1,8 +1,9 @@
 import os
+from copy import deepcopy
 from pathlib import Path
 from timeit import default_timer as timer
 from typing import Dict, Literal, Optional, Union
-from copy import deepcopy
+
 import pandas as pd
 import torch
 import torch.nn as nn
@@ -11,19 +12,20 @@ from hython.losses import RMSELoss
 from hython.metrics import MSEMetric, mse_metric
 from hython.sampler import SamplerBuilder
 from hython.trainer import HythonTrainer, RNNTrainer, RNNTrainParams
+from ray import train
+from torch.optim.lr_scheduler import ReduceLROnPlateau
+from tqdm.auto import tqdm
+
 from itwinai.loggers import EpochTimeTracker, Logger
 from itwinai.torch.config import TrainingConfiguration
 from itwinai.torch.distributed import (
     DeepSpeedStrategy,
     HorovodStrategy,
+    NonDistributedStrategy,
     TorchDDPStrategy,
-    NonDistributedStrategy
 )
 from itwinai.torch.trainer import TorchTrainer
 from itwinai.torch.type import Metric
-from torch.optim.lr_scheduler import ReduceLROnPlateau
-from tqdm.auto import tqdm
-from ray import train
 
 
 class RNNDistributedTrainer(TorchTrainer):
