@@ -116,7 +116,10 @@ def run_hpo(args):
 
         # Set up Ray Tune Tuner
         tuner = tune.Tuner(
-            tune.with_resources(run_trial, resources=resources_per_trial),
+            tune.with_resources(
+                run_trial,
+                resources=resources_per_trial
+            ),
             tune_config=tune_config,
             run_config=run_config,
             param_space=search_space  # Search space defined above
@@ -155,9 +158,16 @@ def run_hpo(args):
     print(f"All result columns: {result_df.columns}")
 
     # Plot the results for all trials
-    plot_results(result_grid, metric=args.metric, filename="ray-loss-plot.png")
-    plot_results(result_grid, metric="train_loss",
-                 filename="ray-train_loss-plot.png")
+    plot_results(
+        result_grid,
+        metric=args.metric,
+        filename="ray-loss-plot.png"
+    )
+    plot_results(
+        result_grid,
+        metric="train_loss",
+        filename="ray-train_loss-plot.png"
+    )
 
 
 def plot_results(result_grid, metric="loss", filename="plot.png"):
@@ -174,10 +184,16 @@ def plot_results(result_grid, metric="loss", filename="plot.png"):
         label = f"lr={result.config['lr']:.6f}, batch size={result.config['batch_size']}"
         if ax is None:
             ax = result.metrics_dataframe.plot(
-                "training_iteration", metric, label=label)
+                "training_iteration",
+                metric,
+                label=label
+            )
         else:
             result.metrics_dataframe.plot(
-                "training_iteration", metric, ax=ax, label=label)
+                "training_iteration",
+                metric, ax=ax,
+                label=label
+            )
 
     ax.set_title(
         f"{metric.capitalize()} vs. Training Iteration for All Trials")
@@ -195,35 +211,60 @@ if __name__ == "__main__":
 
     # Parse command-line arguments
     parser = argparse.ArgumentParser(
-        description='Hyperparameter Optimization with Ray Tune')
+        description='Hyperparameter Optimization with Ray Tune'
+    )
     parser.add_argument(
-        '--load_old_results', type=bool,
+        '--load_old_results',
+        type=bool,
         default=False,
-        help='Set this to true if you want to load results from an older ray run.')
+        help='Set this to true if you want to load results from an older ray run.'
+    )
     parser.add_argument(
-        '--experiment_path', type=str,
+        '--experiment_path',
+        type=str,
         default='~/ray_results/Virgo-Ray-Experiment',
         help='Directory where the results of the previous run are stored. \
         Set this only if load_old_results is set to True. \
-        Defaults to ~/ray_results/Virgo-Ray-Experiment')
+        Defaults to ~/ray_results/Virgo-Ray-Experiment'
+    )
     parser.add_argument(
-        '--num_samples', type=int,
-        default=10, help='Number of trials to run')
+        '--num_samples',
+        type=int,
+        default=10,
+        help='Number of trials to run'
+    )
     parser.add_argument(
-        '--ngpus', type=int, default=1,
-        help='Number of GPUs per trial')
+        '--ngpus',
+        type=int,
+        default=1,
+        help='Number of GPUs per trial'
+    )
     parser.add_argument(
-        '--metric', type=str, default='loss',
-        help='Metric to optimise.')
+        '--metric',
+        type=str,
+        default='loss',
+        help='Metric to optimise.'
+    )
     parser.add_argument(
-        '--scheduler', type=str, default=None,
-        choices=['ASHA', 'FIFO'], help='Scheduler to use for tuning')
+        '--scheduler',
+        type=str,
+        default=None,
+        choices=['ASHA', 'FIFO'],
+        help='Scheduler to use for tuning'
+    )
     parser.add_argument(
-        '--search_alg', type=str, default=None,
-        choices=['BayesOpt', 'HyperOpt'], help='Optimizer to use for tuning')
+        '--search_alg',
+        type=str,
+        default=None,
+        choices=['BayesOpt', 'HyperOpt'],
+        help='Optimizer to use for tuning'
+    )
     parser.add_argument(
-        '--max_iterations', type=int,
-        default='20', help='Maximum iterations per trial')
+        '--max_iterations',
+        type=int,
+        default='20',
+        help='Maximum iterations per trial'
+    )
 
     args = parser.parse_args()  # Parse the command-line arguments
 
