@@ -3,19 +3,69 @@ Adapted from: https://github.com/pytorch/examples/blob/main/mnist/main.py
 """
 
 import argparse
+import time
 from pathlib import Path
+from typing import Dict
+from pprint import pprint
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import torchmetrics
 from torch.profiler import ProfilerActivity, profile, record_function
 from torchvision import datasets, transforms
 
-from itwinai.loggers import MLFlowLogger
+from itwinai.loggers import ConsoleLogger
 from itwinai.torch.config import TrainingConfiguration
 from itwinai.torch.trainer import TorchTrainer
+from itwinai.torch.distributed import TorchDistributedStrategy
 
+import GPUtil
+from threading import Thread
+import time
+
+class Monitor(Thread):
+    """Class for monitoring GPU utilization using a different thread than the main one. 
+    Works by sleeping for a certain amount of time, specified by `delay`, allowing 
+    the GIL in Python to run other threads in the mean time. 
+    """
+    def __init__(self, delay: int, strategy: TorchDistributedStrategy, global_rank: int) -> None:
+        super(Monitor, self).__init__()
+        self.stopped = False
+        self.delay = delay 
+        self.strategy: TorchDistributedStrategy = strategy
+        self.start_time = time.time()
+        self.monitoring_log: Dict = {}
+        self.global_rank = global_rank
+        self.start()
+
+
+    def run(self) -> None:
+        if not self.strategy.global_rank() == self.global_rank: 
+            return
+
+        local_gpus = list(range(self.strategy.local_world_size()))
+        print(f"local_gpus: {local_gpus}")
+
+        while not self.stopped:
+            gpus = GPUtil.getGPUs()
+
+            for gpu in gpus: 
+                if gpu.id not in local_gpus: 
+                    continue
+                print(gpu.id)
+
+                empty_gpu_log = {"load": [],"memory": []}
+                gpu_stats = self.monitoring_log.get(gpu.id, empty_gpu_log)
+
+                gpu_stats["load"].append(gpu.load)
+                gpu_stats["memory"].append(gpu.memoryUtil)
+                self.monitoring_log[gpu.id] = gpu_stats
+
+            time.sleep(self.delay)
+
+    def stop(self):
+        self.stopped = True
+        
 
 class ProfilerTrainer(TorchTrainer):
 
@@ -25,7 +75,7 @@ class ProfilerTrainer(TorchTrainer):
                 super().train()
 
         # sort_string = "cuda_time_total"
-        print(f"prof.key_averages() {prof.key_averages().table()}")
+        print(f"prof.key_averages():\n {prof.key_averages().table()}")
 
 
 class Net(nn.Module):
@@ -100,27 +150,55 @@ def main():
         loss="cross_entropy",
         num_workers_dataloader=1
     )
+    logger = ConsoleLogger()
 
-    logger = MLFlowLogger(experiment_name="mnist-tutorial", log_freq=10)
-
-    metrics = {
-        "accuracy": torchmetrics.Accuracy(task="multiclass", num_classes=10),
-        "precision": torchmetrics.Precision(task="multiclass", num_classes=10),
-    }
-
-    profiler_trainer = ProfilerTrainer(
+    trainer = TorchTrainer(
         config=training_config,
         model=model,
-        metrics=metrics,
-        logger=logger,
         strategy=args.strategy,
         epochs=args.epochs,
         random_seed=args.seed,
         checkpoint_every=args.ckpt_interval,
-)
+        logger=logger
+    )
+    strategy = trainer.strategy
+    monitors = []
 
+    strategy.init()
     # Launch training
-    profiler_trainer.execute(train_dataset, validation_dataset, None)
+    print(f"local rank: {strategy.local_rank()}, global rank: {strategy.global_rank()}")
+    if strategy.local_rank() == 0: 
+        print("making monitor!")
+        monitor = Monitor(
+                    delay=5, 
+                    strategy=strategy, 
+                    global_rank=strategy.global_rank()
+            )
+        monitors.append(monitor)
+    trainer.execute(train_dataset, validation_dataset, None)
+    print(f"Monitors: {monitors}")
+    for monitor in monitors: 
+        monitor.stop()
+        print(monitor.monitoring_log)
+
+    
+    
+    # print(monitor.monitoring_log)
+    # global_dict = {}
+    # gpu_counter = 0
+    # for node_log in monitor.monitoring_log.values():  
+    #     print(f"Node log:")
+    #     print(node_log)
+    #     for node_info in node_log.values(): 
+    #         print(f"gpu_counter: {gpu_counter}")
+    #         global_dict[gpu_counter] = node_info
+    #         gpu_counter += 1
+    # print(f"Printing global dict!")
+    # print(global_dict)
+    # for gpu_id, info in monitor.monitoring_log.items(): 
+    #     mean_load = sum(info["load"]) / len(info["load"])
+    #     print(f"Mean load for GPU {gpu_id} was {mean_load}")
+
 
 
 if __name__ == "__main__":
