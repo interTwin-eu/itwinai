@@ -48,11 +48,9 @@ class Monitor(Thread):
 
         while not self.stopped:
             gpus = GPUtil.getGPUs()
-
             for gpu in gpus: 
                 if gpu.id not in local_gpus: 
                     continue
-                print(gpu.id)
 
                 empty_gpu_log = {"load": [],"memory": []}
                 gpu_stats = self.monitoring_log.get(gpu.id, empty_gpu_log)
@@ -69,13 +67,57 @@ class Monitor(Thread):
 
 class ProfilerTrainer(TorchTrainer):
 
-    def train(self):
-        with profile(activities=[ProfilerActivity.CUDA]) as prof:
-            with record_function("train_func"): 
-                super().train()
+    # def train(self):
+    #     with profile(activities=[ProfilerActivity.CUDA]) as prof:
+    #         with record_function("train_func"): 
+    #             super().train()
+    #
+    #     # sort_string = "cuda_time_total"
+    #     print(f"prof.key_averages():\n {prof.key_averages().table()}")
+    
+    def execute(
+        self,
+        train_dataset,
+        validation_dataset = None,
+        test_dataset = None
+    ):
+        """Prepares distributed environment and data structures
+        for the actual training.
 
-        # sort_string = "cuda_time_total"
-        print(f"prof.key_averages():\n {prof.key_averages().table()}")
+        Args:
+            train_dataset (Dataset): training dataset.
+            validation_dataset (Optional[Dataset], optional): validation
+                dataset. Defaults to None.
+            test_dataset (Optional[Dataset], optional): test dataset.
+                Defaults to None.
+
+        Returns:
+            Tuple[Dataset, Dataset, Dataset, Any]: training dataset,
+            validation dataset, test dataset, trained model.
+        """
+        self._init_distributed_strategy()
+        self._setup_metrics()
+
+        self.create_dataloaders(
+            train_dataset=train_dataset,
+            validation_dataset=validation_dataset,
+            test_dataset=test_dataset
+        )
+        self.create_model_loss_optimizer()
+
+        if self.logger:
+            self.logger.create_logger_context(rank=self.strategy.global_rank())
+            hparams = self.config.model_dump()
+            hparams['distributed_strategy'] = self.strategy.__class__.__name__
+            self.logger.save_hyperparameters(hparams)
+
+        
+        self.train()
+
+        if self.logger:
+            self.logger.destroy_logger_context()
+        # self.strategy.clean_up()
+        return train_dataset, validation_dataset, test_dataset, self.model
 
 
 class Net(nn.Module):
@@ -152,7 +194,7 @@ def main():
     )
     logger = ConsoleLogger()
 
-    trainer = TorchTrainer(
+    trainer = ProfilerTrainer(
         config=training_config,
         model=model,
         strategy=args.strategy,
@@ -161,25 +203,26 @@ def main():
         checkpoint_every=args.ckpt_interval,
         logger=logger
     )
-    strategy = trainer.strategy
-    monitors = []
 
+    strategy = trainer.strategy
     strategy.init()
     # Launch training
     print(f"local rank: {strategy.local_rank()}, global rank: {strategy.global_rank()}")
+    monitor = None
     if strategy.local_rank() == 0: 
-        print("making monitor!")
         monitor = Monitor(
-                    delay=5, 
+                    delay=3, 
                     strategy=strategy, 
                     global_rank=strategy.global_rank()
             )
-        monitors.append(monitor)
-    trainer.execute(train_dataset, validation_dataset, None)
-    print(f"Monitors: {monitors}")
-    for monitor in monitors: 
+    trainer.execute(train_dataset, validation_dataset)
+    # This cleans up, which probably kills the threads...
+    if monitor is not None: 
         monitor.stop()
         print(monitor.monitoring_log)
+
+    strategy.clean_up()
+    return
 
     
     
