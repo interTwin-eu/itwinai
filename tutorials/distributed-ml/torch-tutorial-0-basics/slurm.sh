@@ -90,12 +90,16 @@ if [ "$DIST_MODE" == "ddp" ] ; then
     $TRAINING_CMD"
 elif [ "$DIST_MODE" == "deepspeed" ] ; then
   echo "DEEPSPEED training: $TRAINING_CMD"
-  MASTER_ADDR=$(scontrol show hostnames "\$SLURM_JOB_NODELIST" | head -n 1)i
-  export MASTER_ADDR
-  export MASTER_PORT=29500 
-
-  srun --cpu-bind=none --ntasks-per-node=$SLURM_GPUS_PER_NODE --cpus-per-task=$SLURM_CPUS_PER_GPU \
-    python -u $TRAINING_CMD --deepspeed
+  srun --cpu-bind=none --ntasks-per-node=1 \
+    bash -c "torchrun \
+    --log_dir='logs_torchrun' \
+    --nnodes=$SLURM_NNODES \
+    --nproc_per_node=$SLURM_GPUS_PER_NODE \
+    --rdzv_id=$SLURM_JOB_ID \
+    --rdzv_conf=is_host=\$(((SLURM_NODEID)) && echo 0 || echo 1) \
+    --rdzv_backend=c10d \
+    --rdzv_endpoint='$(scontrol show hostnames "$SLURM_JOB_NODELIST" | head -n 1)'i:29500 \
+    $TRAINING_CMD --deepspeed"
 
   # # Run with deepspeed launcher: set --ntasks-per-node=1
   # # https://www.deepspeed.ai/getting-started/#multi-node-environment-variables

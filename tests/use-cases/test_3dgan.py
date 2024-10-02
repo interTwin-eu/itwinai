@@ -1,11 +1,14 @@
 """
 Tests for CERN use case (3DGAN).
 """
-import pytest
-import subprocess
 import os
+import subprocess
+import tempfile
+from pathlib import Path
 
-CERN_PATH = "use-cases/3dgan"
+import pytest
+
+CERN_PATH = Path("use-cases", "3dgan")
 CKPT_NAME = "3dgan-inference.pth"
 DEFAULT_DATASET_PATH = 'exp_data'
 
@@ -17,7 +20,7 @@ def test_structure_3dgan(check_folder_structure):
 
 
 @pytest.mark.functional
-def test_3dgan_train(torch_env, tmp_test_dir, install_requirements):
+def test_3dgan_train(torch_env, install_requirements):
     """
     Test 3DGAN torch lightning trainer by running it end-to-end.
 
@@ -31,7 +34,7 @@ def test_3dgan_train(torch_env, tmp_test_dir, install_requirements):
         dataset_path = os.environ.get('CERN_DATASET')
     else:
         dataset_path = DEFAULT_DATASET_PATH
-    conf = os.path.join(os.path.abspath(CERN_PATH), 'config.yaml')
+    conf = (CERN_PATH / "config.yaml").resolve()
     cmd = (f"{torch_env}/bin/itwinai exec-pipeline "
            f"--config {conf} --pipe-key training_pipeline "
            f'-o dataset_location={dataset_path} '
@@ -39,13 +42,14 @@ def test_3dgan_train(torch_env, tmp_test_dir, install_requirements):
            '-o distributed_strategy=auto '
            '-o mlflow_tracking_uri=ml_logs/mlflow'
            )
-    subprocess.run(cmd.split(), check=True, cwd=tmp_test_dir)
+
+    with tempfile.TemporaryDirectory() as temp_dir: 
+        subprocess.run(cmd.split(), check=True, cwd=temp_dir)
 
 
 @pytest.mark.functional
 def test_3dgan_inference(
     torch_env,
-    tmp_test_dir,
     install_requirements,
     # fake_model_checkpoint
 ):
@@ -59,21 +63,16 @@ def test_3dgan_inference(
     """
     install_requirements(CERN_PATH, torch_env)
 
-    # Create fake inference dataset and checkpoint
-    exec = os.path.join(os.path.abspath(CERN_PATH),
-                        'create_inference_sample.py')
-    cmd = (f"{torch_env}/bin/python {exec} "
-           f"--root {tmp_test_dir} "
-           f"--ckpt-name {CKPT_NAME}")
-    subprocess.run(cmd.split(), check=True, cwd=tmp_test_dir)
-
     # Test inference
     if os.environ.get('CERN_DATASET'):
         dataset_path = os.environ.get('CERN_DATASET')
     else:
         dataset_path = DEFAULT_DATASET_PATH
-    conf = os.path.join(os.path.abspath(CERN_PATH), 'config.yaml')
-    cmd = (
+
+    conf = (CERN_PATH / "config.yaml").resolve()
+    exec = (CERN_PATH / "create_inference_sample.py").resolve()
+
+    run_inference_cmd = (
         f'{torch_env}/bin/itwinai exec-pipeline '
         f'--config {conf} --pipe-key inference_pipeline '
         f'-o dataset_location={dataset_path} '
@@ -83,4 +82,13 @@ def test_3dgan_inference(
         '-o logs_dir=ml_logs/mlflow_logs '
         '-o inference_results_location=3dgan-generated-data '
     )
-    subprocess.run(cmd.split(), check=True, cwd=tmp_test_dir)
+
+    with tempfile.TemporaryDirectory() as temp_dir: 
+        # Create fake inference dataset and checkpoint
+        generate_model_cmd = (f"{torch_env}/bin/python {exec} "
+               f"--root {str(Path(temp_dir).resolve())} "
+               f"--ckpt-name {CKPT_NAME}")
+        subprocess.run(generate_model_cmd.split(), check=True, cwd=temp_dir)
+
+        # Running the inference
+        subprocess.run(run_inference_cmd.split(), check=True, cwd=temp_dir)

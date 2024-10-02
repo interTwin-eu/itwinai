@@ -156,7 +156,7 @@ Thus, the policy becomes `[input_arg2, input_arg1]`; leaving out the first input
     Each component expects predefined inputs which should be taken into account when constructing your Pipeline.
     The :ref:`adapter_component` component can be used to ensure components receive the correct input if the preceding component's output is unsuited.
     For example, :ref:`splitter_component` returns three data arrays whereas Saver only takes one input argument.
-    To save after a split, :ref:`saver_component` can be used to select the element to be saved.
+    To save after a split, :ref:`adapter_component` can be used to select the element to be saved by :ref:`saver_component`.
 
 
 Simple Pipeline Example

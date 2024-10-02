@@ -5,14 +5,18 @@ Intended to be integration tests, to make sure that updates in the code base
 do not break use cases' workflows.
 """
 
-import pytest
-import subprocess
 import os
-# from itwinai.cli import exec_pipeline
+import subprocess
+import tempfile
+from pathlib import Path
 
-TORCH_PATH = "use-cases/mnist/torch"
-LIGHTNING_PATH = "use-cases/mnist/torch-lightning"
-TF_PATH = "use-cases/mnist/tensorflow"
+import pytest
+
+MNIST_FOLDER = Path("use-cases", "mnist")
+TORCH_PATH = MNIST_FOLDER / "torch"
+LIGHTNING_PATH = MNIST_FOLDER / "torch-lightning"
+TF_PATH = MNIST_FOLDER / "tensorflow"
+
 DEFAULT_MNIST_DATASET = '.tmp'
 
 
@@ -35,7 +39,7 @@ def test_structure_mnist_tf(check_folder_structure):
 
 
 @pytest.mark.functional
-def test_mnist_train_torch(torch_env, tmp_test_dir, install_requirements):
+def test_mnist_train_torch(torch_env, install_requirements):
     """
     Test MNIST torch native trainer by running it end-to-end.
 
@@ -50,38 +54,39 @@ def test_mnist_train_torch(torch_env, tmp_test_dir, install_requirements):
         dataset_path = os.environ.get('MNIST_DATASET')
     else:
         dataset_path = DEFAULT_MNIST_DATASET
-    conf = os.path.join(os.path.abspath(TORCH_PATH), 'config.yaml')
+    conf = (TORCH_PATH / "config.yaml").resolve()
     cmd = (f"{torch_env}/bin/itwinai exec-pipeline "
            f"--config {conf} --pipe-key training_pipeline "
            f"-o dataset_root={dataset_path}")
-    subprocess.run(cmd.split(), check=True, cwd=tmp_test_dir)
+    with tempfile.TemporaryDirectory() as temp_dir: 
+        subprocess.run(cmd.split(), check=True, cwd=temp_dir)
 
 
 @pytest.mark.functional
-def test_mnist_inference_torch(torch_env, tmp_test_dir, install_requirements):
+def test_mnist_inference_torch(torch_env, install_requirements):
     """
     Test MNIST torch native inference by running it end-to-end.
     """
     install_requirements(TORCH_PATH, torch_env)
 
-    # Create fake inference dataset and checkpoint
-    exec = os.path.join(os.path.abspath(TORCH_PATH),
-                        'create_inference_sample.py')
-    cmd = (f"{torch_env}/bin/python {exec} "
-           f"--root {tmp_test_dir}")
-    subprocess.run(cmd.split(), check=True, cwd=tmp_test_dir)
+    conf = (TORCH_PATH / "config.yaml").resolve()
+    exec = (TORCH_PATH / "create_inference_sample.py").resolve()
 
-    # Test inference
-    conf = os.path.join(os.path.abspath(TORCH_PATH), 'config.yaml')
-    cmd = (f"{torch_env}/bin/itwinai exec-pipeline "
+    run_inference_cmd = (f"{torch_env}/bin/itwinai exec-pipeline "
            f"--config {conf} --pipe-key inference_pipeline")
-    subprocess.run(cmd.split(), check=True, cwd=tmp_test_dir)
+    with tempfile.TemporaryDirectory() as temp_dir: 
+        # Create fake inference dataset and checkpoint
+        generate_model_cmd = (f"{torch_env}/bin/python {exec} "
+               f"--root {temp_dir}")
+        subprocess.run(generate_model_cmd.split(), check=True, cwd=temp_dir)
+
+        # Running inference
+        subprocess.run(run_inference_cmd.split(), check=True, cwd=temp_dir)
 
 
 @pytest.mark.functional
 def test_mnist_train_torch_lightning(
     torch_env,
-    tmp_test_dir,
     install_requirements
 ):
     """
@@ -98,15 +103,16 @@ def test_mnist_train_torch_lightning(
         dataset_path = os.environ.get('MNIST_DATASET')
     else:
         dataset_path = DEFAULT_MNIST_DATASET
-    conf = os.path.join(os.path.abspath(LIGHTNING_PATH), 'config.yaml')
+    conf = (LIGHTNING_PATH / "config.yaml").resolve()
     cmd = (f"{torch_env}/bin/itwinai exec-pipeline "
            f"--config {conf} --pipe-key training_pipeline "
            f"-o dataset_root={dataset_path}")
-    subprocess.run(cmd.split(), check=True, cwd=tmp_test_dir)
+    with tempfile.TemporaryDirectory() as temp_dir: 
+        subprocess.run(cmd.split(), check=True, cwd=temp_dir)
 
 
 @pytest.mark.functional
-def test_mnist_train_tf(tf_env, tmp_test_dir, install_requirements):
+def test_mnist_train_tf(tf_env, install_requirements):
     """
     Test MNIST tensorflow trainer by running it end-to-end.
     """
@@ -114,4 +120,5 @@ def test_mnist_train_tf(tf_env, tmp_test_dir, install_requirements):
     conf = os.path.join(os.path.abspath(TF_PATH), 'pipeline.yaml')
     cmd = (f"{tf_env}/bin/itwinai exec-pipeline "
            f"--config {conf} --pipe-key pipeline")
-    subprocess.run(cmd.split(), check=True, cwd=tmp_test_dir)
+    with tempfile.TemporaryDirectory() as temp_dir: 
+        subprocess.run(cmd.split(), check=True, cwd=temp_dir)

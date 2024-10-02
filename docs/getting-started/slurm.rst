@@ -58,7 +58,7 @@ Once resources are available, the command will return a ``JOBID``. Use it to jum
 
 .. code-block:: bash
 
-   run --jobid JOBID --overlap --pty /bin/bash
+   srun --jobid JOBID --overlap --pty /bin/bash
 
    # Check that you are in the compute node and you have 4 GPUs
    nvidia-smi

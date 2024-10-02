@@ -3,10 +3,10 @@ This module provides the tools to support reproducible execution of
 torch scripts.
 """
 
-from typing import Optional
-import numpy as np
 import random
+from typing import Optional
 
+import numpy as np
 import torch
 
 

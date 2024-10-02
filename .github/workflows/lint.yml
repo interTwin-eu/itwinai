@@ -30,15 +30,16 @@ jobs:
 
       # Runs the Super-Linter action
       - name: Run Super-Linter on new changes
-        uses: github/super-linter/slim@v6
+        uses: github/super-linter/slim@v7
         env:
           DEFAULT_BRANCH: main
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           MARKDOWN_CONFIG_FILE: .markdownlint.json
           PYTHON_FLAKE8_CONFIG_FILE: .flake8
           JSCPD_CONFIG_FILE: .jscpd.json
+          PYTHON_ISORT_CONFIG_FILE: .isort.cfg
+
           VALIDATE_PYTHON_BLACK: false
-          VALIDATE_PYTHON_ISORT: false
           VALIDATE_PYTHON_MYPY: false
           VALIDATE_PYTHON_PYLINT: false
           VALIDATE_HTML: false
@@ -47,6 +48,9 @@ jobs:
           VALIDATE_CHECKOV: false # activate to lint k8s pods
           VALIDATE_SHELL_SHFMT: false
           VALIDATE_JSCPD: false
+          VALIDATE_MARKDOWN_PRETTIER: false
+          VALIDATE_YAML_PRETTIER: false
+          VALIDATE_PYTHON_PYINK: false
 
           # Only check new or edited files
           VALIDATE_ALL_CODEBASE: false

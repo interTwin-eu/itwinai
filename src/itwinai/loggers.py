@@ -28,12 +28,12 @@ A logger allows to save objects of different kinds:
    * - ``dict``
      - Python dictionary.
    * - ``model``
-     - ML model. At the moment only :class:`~torch.nn.Module` is supported.
+     - ML model. At the moment only :class:`torch.nn.Module` is supported.
    * - ``best_model``
-     - Best ML model. At the moment only :class:`~torch.nn.Module` is
+     - Best ML model. At the moment only :class:`torch.nn.Module` is
        supported.
    * - ``dataset``
-     - Dataset object (e.g., objects of type :class:`~mlflow.data.Dataset`).
+     - Dataset object (e.g., objects of type :class:`mlflow.data.Dataset`).
    * - ``watch``
      - | WandB ``watch``: Hook into the torch model to collect gradients and
        | the topology. `More info`_.
@@ -55,23 +55,23 @@ A logger allows to save objects of different kinds:
     https://docs.wandb.ai/ref/python/watch
 """
 
-import os
 import csv
-from abc import ABCMeta, abstractmethod
-from contextlib import contextmanager
-from typing import Any, Dict, List, Optional, Union, Literal, Tuple
-from typing_extensions import override
-import pickle
+import os
 import pathlib
+import pickle
+from abc import ABC, abstractmethod
+from contextlib import contextmanager
+from typing import Any, Dict, List, Literal, Optional, Tuple, Union
 
-import wandb
 import mlflow
 import prov4ml
+import wandb
+from typing_extensions import override
 
 BASE_EXP_NAME: str = 'default_experiment'
 
 
-class LogMixin(metaclass=ABCMeta):
+class LogMixin(ABC):
     @abstractmethod
     def log(
         self,
@@ -97,7 +97,7 @@ class LogMixin(metaclass=ABCMeta):
         """
 
 
-class Logger(LogMixin, metaclass=ABCMeta):
+class Logger(LogMixin):
     """Base class for logger
 
     Args:
@@ -268,6 +268,40 @@ class Logger(LogMixin, metaclass=ABCMeta):
                 return True
             return False
         return True
+
+
+class _EmptyLogger(Logger):
+    """Dummy logger which can be used as a placeholder when a real logger is
+    not available. All methods do nothing.
+    """
+
+    def __init__(
+        self,
+        savedir: str = 'mllogs',
+        log_freq: int | Literal['epoch'] | Literal['batch'] = 'epoch',
+        log_on_workers: int | List[int] = 0
+    ) -> None:
+        super().__init__(savedir, log_freq, log_on_workers)
+
+    def create_logger_context(self, rank: Optional[int] = None):
+        pass
+
+    def destroy_logger_context(self):
+        pass
+
+    def save_hyperparameters(self, params: Dict[str, Any]) -> None:
+        pass
+
+    def log(
+        self,
+        item: Union[Any, List[Any]],
+        identifier: Union[str, List[str]],
+        kind: str = 'metric',
+        step: Optional[int] = None,
+        batch_idx: Optional[int] = None,
+        **kwargs
+    ) -> None:
+        pass
 
 
 class ConsoleLogger(Logger):
@@ -561,6 +595,7 @@ class MLFlowLogger(Logger):
                       "Must be an MLFlow dataset")
         if kind == 'torch':
             import torch
+
             # Save the object locally and then log it
             name = os.path.basename(identifier)
             save_path = os.path.join(self.savedir, '.trash', name)

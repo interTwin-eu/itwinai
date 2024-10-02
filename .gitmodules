@@ -1,0 +1,3 @@
+[submodule "tutorials/plugins"]
+	path = tutorials/plugins
+	url = https://github.com/interTwin-eu/itwinai-plugin-template/

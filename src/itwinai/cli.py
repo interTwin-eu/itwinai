@@ -10,11 +10,11 @@ Example
 # NOTE: import libs in the command"s function, not here.
 # Otherwise this will slow the whole CLI.
 
-from typing import Optional, List
-from typing_extensions import Annotated
 from pathlib import Path
-import typer
+from typing import List, Optional
 
+import typer
+from typing_extensions import Annotated
 
 app = typer.Typer(pretty_exceptions_enable=False)
 
@@ -45,14 +45,15 @@ def scalability_report(
 
     """
     # TODO: add max depth and path different from CWD
+    import glob
     import os
     import re
-    import glob
     import shutil
-    import pandas as pd
+
     import matplotlib
     import matplotlib.pyplot as plt
     import numpy as np
+    import pandas as pd
 
     regex = re.compile(r'{}'.format(pattern))
     combined_df = pd.DataFrame()
@@ -213,8 +214,9 @@ def exec_pipeline(
     # Add working directory to python path so that the interpreter is able
     # to find the local python files imported from the pipeline file
     import os
-    import sys
     import re
+    import sys
+
     from .utils import str_to_slice
     sys.path.append(os.path.dirname(config))
     sys.path.append(os.getcwd())
@@ -242,10 +244,6 @@ def exec_pipeline(
             steps = str_to_slice(steps)
         pipeline = pipeline[steps]
     pipeline.execute()
-
-    # Cleanup PYTHONPATH
-    sys.path.pop()
-    sys.path.pop()
 
 
 @app.command()

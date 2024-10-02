@@ -4,6 +4,8 @@
 [![GitHub Super-Linter](https://github.com/interTwin-eu/T6.5-AI-and-ML/actions/workflows/check-links.yml/badge.svg)](https://github.com/marketplace/actions/markdown-link-check)
  [![SQAaaS source code](https://github.com/EOSC-synergy/itwinai.assess.sqaaas/raw/main/.badge/status_shields.svg)](https://sqaaas.eosc-synergy.eu/#/full-assessment/report/https://raw.githubusercontent.com/eosc-synergy/itwinai.assess.sqaaas/main/.report/assessment_output.json)
 
+ ![itwinai Logo](./docs/images/icon-itwinai-orange-black-subtitle.png)
+
 See the latest version of our [docs](https://itwinai.readthedocs.io/)
 for a quick overview of this platform for advanced AI/ML workflows in digital twin applications.
 
@@ -116,7 +118,7 @@ more advanced instructions.
 ### Clone the itwinai repository
 
 ```bash
-git clone git@github.com:interTwin-eu/itwinai.git
+git clone [--recurse-submodules] git@github.com:interTwin-eu/itwinai.git
 ```
 
 ### Install itwinai environment
@@ -149,6 +151,17 @@ Otherwise, if you are on an HPC system, please refer to
 [this section](#activate-itwinai-environment-on-hpc)
 explaining how to load the required environment modules before the python environment.
 
+To  build a Docker image for the pytorch version (need to adapt `TAG`):
+
+```bash
+# Local
+docker buildx build -t itwinai:TAG -f env-files/torch/Dockerfile .
+
+# Ghcr.io
+docker buildx build -t ghcr.io/intertwin-eu/itwinai:TAG -f env-files/torch/Dockerfile .
+docker push ghcr.io/intertwin-eu/itwinai:TAG
+```
+
 #### TensorFlow virtual environment
 
 Makefile targets for environment installation:
@@ -173,6 +186,17 @@ source .venv-tf/bin/activate
 Otherwise, if you are on an HPC system, please refer to
 [this section](#activate-itwinai-environment-on-hpc)
 explaining how to load the required environment modules before the python environment.
+
+To  build a Docker image for the tensorflow version (need to adapt `TAG`):
+
+```bash
+# Local
+docker buildx build -t itwinai:TAG -f env-files/tensorflow/Dockerfile .
+
+# Ghcr.io
+docker buildx build -t ghcr.io/intertwin-eu/itwinai:TAG -f env-files/tensorflow/Dockerfile .
+docker push ghcr.io/intertwin-eu/itwinai:TAG
+```
 
 ### Activate itwinai environment on HPC
 
