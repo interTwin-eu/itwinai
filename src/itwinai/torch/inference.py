@@ -1,26 +1,23 @@
 import os
-from typing import (
-    Optional, Dict, Union, List, Any, Literal
-)
+from typing import Any, Dict, List, Literal, Optional, Union
 
 import torch
 from torch import nn
 from torch.utils.data import DataLoader, Dataset
-from .distributed import (
-    TorchDistributedStrategy,
-    TorchDDPStrategy,
-    HorovodStrategy,
-    DeepSpeedStrategy,
-    NonDistributedStrategy,
-    distributed_resources_available
-)
 
 from ..components import Predictor, monitor_exec
 from ..loggers import Logger
-from .config import TrainingConfiguration
-
-from .type import Batch
 from ..serialization import ModelLoader
+from .config import TrainingConfiguration
+from .distributed import (
+    DeepSpeedStrategy,
+    HorovodStrategy,
+    NonDistributedStrategy,
+    TorchDDPStrategy,
+    TorchDistributedStrategy,
+    distributed_resources_available
+)
+from .type import Batch
 
 
 class TorchModelLoader(ModelLoader):
