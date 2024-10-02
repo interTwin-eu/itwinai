@@ -15,7 +15,7 @@ from .distributed import (
     NonDistributedStrategy,
     TorchDDPStrategy,
     TorchDistributedStrategy,
-    distributed_resources_available
+    distributed_resources_available,
 )
 from .type import Batch
 
