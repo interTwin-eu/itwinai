@@ -1,14 +1,12 @@
 import os
 from typing import (
-    Optional, Dict, Union, Tuple, List, Any, Literal
+    Optional, Dict, Union, List, Any, Literal
 )
 
 import torch
 from torch import nn
 from torch.utils.data import DataLoader, Dataset
-from torch.utils.data.distributed import DistributedSampler
 import torch.distributed as dist
-from torch.nn.parallel import DistributedDataParallel as DDP
 from .distributed import (
     TorchDistributedStrategy,
     TorchDDPStrategy,
@@ -17,21 +15,13 @@ from .distributed import (
     NonDistributedStrategy,
     distributed_resources_available
 )
-import horovod.torch as hvd
 
-from ..utils import dynamically_import_class, clear_key
 from ..components import Predictor, monitor_exec
-from ..loggers import LogMixin, Logger
+from ..loggers import Logger
 from .config import TrainingConfiguration
 
 from .type import Batch
 from ..serialization import ModelLoader
-from ..utils import load_yaml
-from .mlflow import (
-    init_lightning_mlflow,
-    teardown_lightning_mlflow
-)
-
 
 class TorchModelLoader(ModelLoader):
     """Loads a torch model from somewhere.
