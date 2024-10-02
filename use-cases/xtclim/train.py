@@ -20,13 +20,14 @@ def read_config(file_path):
     return config
 
 if __name__ == "__main__":
-    # read the config file defined in pipeline.yaml
+
     config = read_config('pipeline.yaml')
-    # load the list of seasons
     seasons_list = config['seasons']
-    # loop over the seasons and launch pipelines iteratively
     for season in seasons_list:
         config['pipeline']['init_args']['steps']['training-step']['init_args']['seasons'] = season
+        model_uri = f"outputs/cvae_model_{season}1d_1memb.pth"
+        config['pipeline']['init_args']['steps']['evaluation-step']['init_args']['model_uri'] = model_uri
+        config['pipeline']['init_args']['steps']['evaluation-step']['init_args']['seasons'] = season
         pipe_parser = ConfigParser(
             config=config,
         )
