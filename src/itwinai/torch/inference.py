@@ -21,6 +21,7 @@ from .distributed import (
 from .type import Batch
 
 
+
 class TorchModelLoader(ModelLoader):
     """Loads a torch model from somewhere.
 
@@ -45,7 +46,6 @@ class TorchModelLoader(ModelLoader):
             device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
             model = torch.load(self.model_uri, map_location=device)
             return model
-
 
         if self.model_uri.startswith('mlflow+'):
             # Model is on an MLFLow server
