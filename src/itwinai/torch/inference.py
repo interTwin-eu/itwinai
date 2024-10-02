@@ -21,7 +21,6 @@ from .distributed import (
 from .type import Batch
 
 
-
 class TorchModelLoader(ModelLoader):
     """Loads a torch model from somewhere.
 
