@@ -46,7 +46,7 @@ pip3 install --upgrade pip
 # get wheel -- setuptools extension
 pip3 install --no-cache-dir wheel
 
-# install TF 
+# install TF
 if [ -f "${cDir}/$ENV_NAME/bin/tensorboard" ]; then
   echo 'TF already installed'
   echo
@@ -84,7 +84,14 @@ fi
 # # Since TF 2.16, keras updated to 3.3,
 # # which leads to an error when more than 1 node is used
 # # https://keras.io/getting_started/
-pip3 install tf_keras==2.16.*
+pip3 install --no-cache-dir tf_keras==2.16.*
+
+# Install Pov4ML
+if [[ "$OSTYPE" =~ ^darwin ]] ; then
+  pip install "prov4ml[apple]@git+https://github.com/matbun/ProvML@main" || exit 1
+else
+  pip install "prov4ml[linux]@git+https://github.com/matbun/ProvML@main" || exit 1
+fi
 
 # itwinai
-pip3 install -e .[dev]
+pip3 install --no-cache-dir -e .[dev]
