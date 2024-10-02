@@ -6,7 +6,6 @@ from typing import (
 import torch
 from torch import nn
 from torch.utils.data import DataLoader, Dataset
-import torch.distributed as dist
 from .distributed import (
     TorchDistributedStrategy,
     TorchDDPStrategy,
