@@ -30,6 +30,7 @@ from .distributed import (
 from .type import Batch
 
 
+
 class TorchModelLoader(ModelLoader):
     """Loads a torch model from somewhere.
 
@@ -55,8 +56,7 @@ class TorchModelLoader(ModelLoader):
             model = torch.load(self.model_uri, map_location=device)
             return model
 
-
-        if self.model_uri.startswith("mlflow+"):
+        if self.model_uri.startswith('mlflow+'):
             # Model is on an MLFLow server
             # Form is 'mlflow+MLFLOW_TRACKING_URI+RUN_ID+ARTIFACT_PATH'
             import mlflow
