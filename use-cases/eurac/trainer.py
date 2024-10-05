@@ -227,7 +227,7 @@ class RNNDistributedTrainer(TorchTrainer):
                 best_loss = avg_val_loss
                 print(f"train loss: {train_loss}")
                 print(f"val loss: {avg_val_loss}")
-                best_model = deepcopy(self.model.state_dict())
+                best_model = self.model.state_dict()
 
             epoch_end_time = timer()
             epoch_time_tracker.add_epoch_time(
@@ -235,13 +235,19 @@ class RNNDistributedTrainer(TorchTrainer):
             )
 
         if self.strategy.is_main_worker:
-            print(best_model)
-        # logging the best model
-        # self.log(
-        #     item=best_model,
-        #     identifier='best_model',
-        #     kind='model'
-        # )
+            #print(best_model)
+            #logging the best model
+            # self.log(
+            #     item=best_model,
+            #     identifier='best_model',
+            #     kind='artifact'
+            # )
+            self.model.load_state_dict(best_model)
+            self.log(
+                item=self.model,
+                identifier='LSTM',
+                kind='model'
+            )
 
             # Report training metrics of last epoch to Ray
             train.report({"loss": avg_val_loss.item(),

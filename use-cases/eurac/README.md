@@ -97,3 +97,43 @@ sbatch startscript_hpo.sh
 ```
 
 Visualize the HPO results by running `python visualize_hpo.py`. Adjust the `main_dir = '/p/home/jusers/<username>/hdfml/ray_results/<specific run folder name>'` accordingly based on the run folder name, the results path can be got from your slurm output file at the top.
+
+## Exporting a local mlflow run to the on EGI cloud mlflow remote tracking server
+
+Install [mlflow-export-import](https://github.com/mlflow/mlflow-export-import)
+
+```bash
+export MLFLOW_TRACKING_INSECURE_TLS='true'
+export MLFLOW_TRACKING_USERNAME='iacopo.ferrario@eurac.edu'
+export MLFLOW_TRACKING_PASSWORD='YOUR_PWD'
+export MLFLOW_TRACKING_URI='https://mlflow.intertwin.fedcloud.eu/'
+```
+
+Assuming the working directory is the eurac usecase, export the run-id from the local mlflow logs directory. This will also export all the associated artifacts (included models and model weights)
+
+
+```bash
+copy-run --run-id 27a81c42c2cb40dfb7505032f1ac1ef5 --experiment-name "drought use case lstm" --src-mlflow-uri mllogs/mlflow --dst-mlflow-uri https://mlflow.intertwin.fedcloud.eu/
+```
+
+## Loading a pre-trained model from the mlflow registry on the local host for prediction/fine-tuning
+
+```bash
+export MLFLOW_TRACKING_INSECURE_TLS='true'
+export MLFLOW_TRACKING_USERNAME='iacopo.ferrario@eurac.edu'
+export MLFLOW_TRACKING_PASSWORD='YOUR_PWD'
+export MLFLOW_TRACKING_URI='https://mlflow.intertwin.fedcloud.eu/'
+```
+
+```python
+
+import mlflow
+
+logged_model = 'runs:/1811bd3835d54585b6376dd97f6687a5/LSTM'
+
+loaded_model = mlflow.pyfunc.load_model(logged_model)
+
+```
+
+> :warning: While the model is loading an error occurs **RuntimeError: Default process group has not been initialized, please make sure to call init_process_group.**
+> Possible reasons due to package version mismatch https://github.com/mlflow/mlflow/issues/4903.

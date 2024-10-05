@@ -4,7 +4,7 @@ surrogate_model_output: /p/scratch/intertwin/datasets/eurac/model
 tmp_stats: /p/scratch/intertwin/datasets/eurac/stats
 
 experiment: "drought use case lstm"
-run_name: "testing_log_model"
+run_name: "testing_log_model_ok"
 epochs: 2
 random_seed: 1010
 lr: 0.0001
@@ -65,4 +65,6 @@ training_pipeline:
                   init_args:
                     experiment_name: ${experiment}
                     run_name: ${run_name}
-                    log_freq: batch 
+                    log_freq: batch
+                    savedir: /p/project1/intertwin/ferrario1/itwinai/use-cases/eurac/mllogs
+                    
