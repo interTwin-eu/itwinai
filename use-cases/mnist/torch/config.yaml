@@ -98,8 +98,6 @@ inference_pipeline:
             class_path: itwinai.torch.inference.TorchModelLoader
             init_args:
               model_uri: ${inference_model_mlflow_uri}
-          test_dataloader_kwargs:
-            batch_size: ${batch_size}
       
       - class_path: saver.TorchMNISTLabelSaver
         init_args:
