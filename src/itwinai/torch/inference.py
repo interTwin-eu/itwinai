@@ -155,7 +155,7 @@ class TorchPredictor(Predictor):
             )
         distribute_kwargs = {}
         # Distributed model, optimizer, and scheduler
-        (self.model,) = self.strategy.distributed(
+        self.model,_,_ = self.strategy.distributed(
             self.model, None, None, **distribute_kwargs
         )
 
