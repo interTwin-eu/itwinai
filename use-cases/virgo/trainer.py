@@ -4,6 +4,7 @@ from timeit import default_timer as timer
 from typing import Dict, Literal, Optional, Union
 
 import numpy as np
+from torch.utils.data import Dataset
 import torch
 import torch.nn as nn
 from ray import train
@@ -108,6 +109,51 @@ class NoiseGeneratorTrainer(TorchTrainer):
         self.model, self.optimizer, _ = self.strategy.distributed(
             self.model, self.optimizer, **distribute_kwargs
         )
+
+    def create_dataloaders(self, train_dataset: Dataset, validation_dataset: Dataset | None = None, test_dataset: Dataset | None = None) -> None:
+        """
+        Override the create_dataloaders function to use the custom_collate function. 
+        """
+        self.train_dataloader = self.strategy.create_dataloader(
+            dataset=train_dataset,
+            batch_size=self.config.batch_size,
+            num_workers=self.config.num_workers_dataloader,
+            pin_memory=self.config.pin_gpu_memory,
+            generator=self.torch_rng,
+            shuffle=self.config.shuffle_train,
+            collate_fn=self.custom_collate
+        )
+        if validation_dataset is not None:
+            self.validation_dataloader = self.strategy.create_dataloader(
+                dataset=validation_dataset,
+                batch_size=self.config.batch_size,
+                num_workers=self.config.num_workers_dataloader,
+                pin_memory=self.config.pin_gpu_memory,
+                generator=self.torch_rng,
+                shuffle=self.config.shuffle_validation,
+                collate_fn=self.custom_collate
+            )
+        if test_dataset is not None:
+            self.test_dataloader = self.strategy.create_dataloader(
+                dataset=test_dataset,
+                batch_size=self.config.batch_size,
+                num_workers=self.config.num_workers_dataloader,
+                pin_memory=self.config.pin_gpu_memory,
+                generator=self.torch_rng,
+                shuffle=self.config.shuffle_test,
+                collate_fn=self.custom_collate
+            )
+
+    def custom_collate(self, batch):
+        """
+        Custom collate function to concatenate input tensors along their first dimension.
+        """
+        # Some batches contain None values, if any files from the dataset did not match the criteria
+        # (i.e. three auxilliary channels)
+        batch = list(filter(lambda x: x is not None, batch))
+        batch = torch.cat(batch)
+
+        return batch
 
     def train(self):
         # Start the timer for profiling

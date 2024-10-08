@@ -55,7 +55,7 @@ def run_trial(config):
             'batch_size': config['batch_size'],
             'learning_rate': config['lr'],
             # Override logger field, because performance is logged by ray
-            'training_pipeline.init_args.steps.3.init_args.logger': None
+            'training_pipeline.init_args.steps.2.init_args.logger': None
         }
     )
     my_pipeline = parser.parse_pipeline(
@@ -63,15 +63,8 @@ def run_trial(config):
         verbose=False
     )
 
-    # Load data from the specified pickle file
-    file_path = os.path.join(DATA_ROOT, 'Image_dataset_synthetic_64x64.pkl')
-    df = pd.read_pickle(file_path)
-
-    # Convert data to tensors for training
-    df = df.map(lambda x: torch.tensor(x).float())
-
     # Skip the first step of the pipeline (data generation)
-    my_pipeline[1:].execute(df)
+    my_pipeline[1:].execute()
 
 
 def run_hpo(args):
@@ -92,7 +85,7 @@ def run_hpo(args):
 
         # Define the search space for hyperparameters
         search_space = {
-            'batch_size': tune.choice([8, 16, 32, 64]),
+            'batch_size': tune.choice([2, 3, 4]),
             'lr': tune.uniform(1e-5, 1e-3)
         }
 
@@ -112,7 +105,7 @@ def run_hpo(args):
         )
 
         # Set resource allocation for each trial (number of GPUs and/or number of CPUs)
-        resources_per_trial = {"gpu": args.ngpus}
+        resources_per_trial = {"gpu": args.ngpus, "cpu": args.ncpus}
 
         # Set up Ray Tune Tuner
         tuner = tune.Tuner(
@@ -211,6 +204,9 @@ if __name__ == "__main__":
         default=10, help='Number of trials to run')
     parser.add_argument(
         '--ngpus', type=int, default=1,
+        help='Number of GPUs per trial')
+    parser.add_argument(
+        '--ncpus', type=int, default=4,
         help='Number of GPUs per trial')
     parser.add_argument(
         '--metric', type=str, default='loss',

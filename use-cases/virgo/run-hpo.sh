@@ -3,13 +3,13 @@
 # Job configuration
 #SBATCH --job-name=ray_tune_hpo    
 #SBATCH --account=intertwin       
-#SBATCH --time 0:30:00
+#SBATCH --time 01:30:00
 
 # Resources allocation
-#SBATCH --cpus-per-task=1
+#SBATCH --cpus-per-task=16
 #SBATCH --nodes=2
 #SBATCH --ntasks-per-node=1
-#SBATCH --gpus-per-node=3
+#SBATCH --gpus-per-node=4
 #SBATCH --exclusive
 
 # Output and error logs
@@ -29,6 +29,8 @@ source $PYTHON_VENV/bin/activate
 export CUDA_VISIBLE_DEVICES="0,1,2,3"
 
 num_gpus=$SLURM_GPUS_PER_NODE
+num_cpus=$SLURM_CPUS_PER_TASK
+
 
 ## Disable Ray Usage Stats
 export RAY_USAGE_STATS_DISABLE=1
@@ -54,10 +56,11 @@ export head_node_ip="$head_node"i
 echo "Starting HEAD at $head_node"
 srun --nodes=1 --ntasks=1 -w "$head_node" \
     ray start --head --node-ip-address="$head_node"i --port=$port \
-    --num-cpus "${SLURM_CPUS_PER_TASK}" --num-gpus $num_gpus  --block &
+    --num-cpus "$num_cpus" --num-gpus "$num_gpus"  --block &
 
 sleep 10  # Wait for head node to intitialize
 
+echo HEAD started.
 
 # Start Ray worker nodes
 worker_num=$((SLURM_JOB_NUM_NODES - 1))
@@ -66,7 +69,7 @@ for ((i = 1; i <= worker_num; i++)); do
     echo "Starting WORKER $i at $node_i"
     srun --nodes=1 --ntasks=1 -w "$node_i" \
         ray start --address "$head_node"i:"$port" --redis-password='5241580000000000' \
-        --num-cpus "${SLURM_CPUS_PER_TASK}" --num-gpus $num_gpus --block &
+        --num-cpus "$num_cpus" --num-gpus "$num_gpus" --block &
     sleep 5
 done
 echo All Ray workers started.
@@ -77,7 +80,7 @@ echo All Ray workers started.
 # Run the Python script using Ray
 echo 'Starting HPO.'
 
-python hpo.py --num_samples 3 --max_iterations 2
+python hpo.py --num_samples 8 --max_iterations 1
 
 # Shutdown Ray after completion
 ray stop
