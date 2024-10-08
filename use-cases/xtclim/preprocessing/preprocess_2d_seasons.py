@@ -112,8 +112,8 @@ class SplitPreprocessedData(DataGetter):
         scenarios = [self.scenario]
         # Load preprocessed "daily temperature images" and time series
 
-        train_images = np.load("input/preprocessed_2d_train_data_allssp.npy")
-        test_images = np.load("input/preprocessed_2d_test_data_allssp.npy")
+        train_images = np.load("input/preprocessed_2d_train_data_allssp.npy", allow_pickle=True)
+        test_images = np.load("input/preprocessed_2d_test_data_allssp.npy", allow_pickle=True)
         train_time = pd.read_csv("input/dates_train_data.csv")
         test_time = pd.read_csv("input/dates_test_data.csv")
 
@@ -131,7 +131,7 @@ class SplitPreprocessedData(DataGetter):
         ##### 4. Apply to Projection Datasets
 
         for scenario in scenarios:
-            proj_images = np.load(f"input/preprocessed_2d_proj{scenario}_data_allssp.npy")
+            proj_images = np.load(f"input/preprocessed_2d_proj{scenario}_data_allssp.npy", allow_pickle=True)
             proj_time = pd.read_csv("input/dates_proj_data.csv")
 
             proj_season_images, proj_season_time = self.season_split(
