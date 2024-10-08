@@ -94,6 +94,8 @@ class TorchPredictor(Predictor):
     inference_dataloader: DataLoader = None
     #: Pre-trained PyTorch model used to make predictions.
     model: nn.Module = None
+    #: PyTorch random number generator (PRNG).
+    torch_rng: torch.Generator = None
     #: itwinai ``itwinai.Logger``
     logger: Logger = None
 
