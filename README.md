@@ -79,7 +79,7 @@ environment for TensorFlow:
     ml GCCcore/11.3.0 NCCL/2.12.12-GCCcore-11.3.0-CUDA-11.7.0 cuDNN
     ```
 
-### Install itwinai
+### Install itwinai for users
 
 Install itwinai and its dependencies using the
 following command, and follow the instructions:
