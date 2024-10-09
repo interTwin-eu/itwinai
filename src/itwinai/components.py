@@ -89,15 +89,15 @@ import builtins as __builtin__
 import functools
 import time
 from abc import ABC, abstractmethod
-from typing import Any, Optional, Tuple, Union, Callable, Dict, List
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 from .distributed import (
+    builtin_print,
     detect_distributed_environment,
-    distributed_patch_print,
-    builtin_print
+    distributed_patch_print
 )
 from .serialization import ModelLoader, Serializable
-from .type import MLModel, MLDataset, MLArtifact
+from .type import MLArtifact, MLDataset, MLModel
 
 
 def monitor_exec(print_on_main_worker_only: bool = False) -> Callable:
