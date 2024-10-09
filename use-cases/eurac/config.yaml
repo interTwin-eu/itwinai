@@ -1,16 +1,16 @@
 # General configuration
-surrogate_input: /p/scratch/intertwin/datasets/eurac/input/adg1km_eobs_preprocessed.zarr
+surrogate_input: /p/scratch/intertwin/datasets/eurac/input/alps1km_eobs_preprocessed.zarr
 surrogate_model_output: /p/scratch/intertwin/datasets/eurac/model
 tmp_stats: /p/scratch/intertwin/datasets/eurac/stats
 
 experiment: "drought use case lstm"
-run_name: "adg_test"
+run_name: "alps_test"
 epochs: 2
 random_seed: 1010
 lr: 0.001
 batch_size: 256
 
-target_names: ["vwc", "actevap", "snow"]
+target_names: ["vwc", "actevap"]
 strategy: ddp
 
 training_pipeline:
@@ -48,7 +48,7 @@ training_pipeline:
               hidden_size: 64
               dynamic_input_size: 3
               static_input_size: 9
-              output_size: 3
+              output_size: 2
               num_layers: 1
               dropout: 0.0
           strategy: ${strategy}
