@@ -9,9 +9,9 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from hython.losses import RMSELoss
-from hython.metrics import MSEMetric, mse_metric
+from hython.metrics import MSEMetric
 from hython.sampler import SamplerBuilder
-from hython.trainer import HythonTrainer, RNNTrainer, RNNTrainParams
+from hython.trainer import ConvTrainer, RNNTrainer, RNNTrainParams
 from ray import train
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 from tqdm.auto import tqdm
@@ -99,7 +99,7 @@ class RNNDistributedTrainer(TorchTrainer):
             t: 1 / len(self.config.target_names) for t in self.config.target_names
         }
         self.loss_fn = RMSELoss(target_weight=TARGET_WEIGHTS)
-        # self.metric_fn = MSEMetric()
+        self.metric_fn = MSEMetric()
 
         distribute_kwargs = {}
         if isinstance(self.strategy, DeepSpeedStrategy):
@@ -142,7 +142,7 @@ class RNNDistributedTrainer(TorchTrainer):
                 temporal_subset=self.config.temporal_subset,
                 seq_length=self.config.seq_length,
                 target_names=self.config.target_names,
-                metric_func=mse_metric,
+                metric_func=self.metric_fn,
                 loss_func=self.loss_fn,
             )
         )
@@ -377,7 +377,7 @@ class ConvRNNDistributedTrainer(TorchTrainer):
             for t in self.config.rnn_config["target_names"]
         }
         self.loss_fn = RMSELoss(target_weight=TARGET_WEIGHTS)
-        # self.metric_fn = MSEMetric()
+        self.metric_fn = MSEMetric()
 
         if isinstance(self.strategy, DeepSpeedStrategy):
             # Batch size definition is not optional for DeepSpeedStrategy!
@@ -398,13 +398,13 @@ class ConvRNNDistributedTrainer(TorchTrainer):
 
     def train(self):
         """Override version of hython to support distributed strategy."""
-        trainer = HythonTrainer(
+        trainer = ConvTrainer(
             RNNTrainParams(
                 experiment=self.config.experiment,
                 temporal_subsampling=False,
                 temporal_subset=1,
                 target_names=self.config.rnn_config["target_names"],
-                metric_func=mse_metric,
+                metric_func=self.metric_fn,
                 loss_func=self.loss_fn,
             )
         )

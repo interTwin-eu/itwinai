@@ -4,13 +4,13 @@ surrogate_model_output: /p/scratch/intertwin/datasets/eurac/model
 tmp_stats: /p/scratch/intertwin/datasets/eurac/stats
 
 experiment: "drought use case lstm"
-run_name: "testing_log_model_ok"
+run_name: "adg_test"
 epochs: 2
 random_seed: 1010
-lr: 0.0001
+lr: 0.001
 batch_size: 256
 
-target_names: [ "vwc", "actevap","snow","snowwater"] #, "runoff_river", "runoff_land"
+target_names: ["vwc", "actevap", "snow"]
 strategy: ddp
 
 training_pipeline:
@@ -21,10 +21,10 @@ training_pipeline:
         init_args:
           surrogate_input: ${surrogate_input}
           dynamic_names: ["precip", "pet", "temp"]
-          static_names: [ 'thetaS', 'thetaR', 'SoilThickness','RootingDepth', 'Swood','KsatVer', 'Sl', 'f', 'Kext','wflow_dem', 'Slope']
+          static_names: [ 'thetaS', 'thetaR', 'SoilThickness','RootingDepth', 'Swood','KsatVer', 'Sl', 'f', 'Kext']
           target_names: ${target_names}
           mask_names: ["mask_missing", "mask_lake"]
-          train_temporal_range: ["2012-01-01", "2018-12-31"] 
+          train_temporal_range: ["2016-01-01", "2018-12-31"] 
           test_temporal_range: ["2019-01-01", "2020-12-31"] 
       - class_path: data.RNNProcessor
         init_args:
@@ -38,7 +38,7 @@ training_pipeline:
             num_workers_dataloader: 1
             temporal_subsampling: True
             temporal_subset: [150, 150]
-            seq_length: 365
+            seq_length: 360
             target_names: ${target_names}
             dp_weights: ${surrogate_model_output}
             distributed: True
@@ -47,8 +47,8 @@ training_pipeline:
             init_args:
               hidden_size: 64
               dynamic_input_size: 3
-              static_input_size: 11
-              output_size: 4
+              static_input_size: 9
+              output_size: 3
               num_layers: 1
               dropout: 0.0
           strategy: ${strategy}

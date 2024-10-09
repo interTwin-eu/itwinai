@@ -1,10 +1,10 @@
 from typing import Any, Tuple
 
 import xarray as xr
-from hython.datasets.datasets import LSTMDataset, get_dataset
+from hython.datasets import LSTMDataset, get_dataset
 from hython.normalizer import Normalizer
 from hython.sampler import AbstractDownSampler
-from hython.utils import read_from_zarr
+from hython.io import read_from_zarr
 from itwinai.components import DataProcessor, DataSplitter, monitor_exec
 
 

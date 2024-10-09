@@ -7,7 +7,7 @@
 #SBATCH --account=intertwin
 #SBATCH --output=logs_slurm/job.out
 #SBATCH --error=logs_slurm/job.err
-#SBATCH --time=00:20:00
+#SBATCH --time=00:59:00
 
 # Resources allocation
 #SBATCH --partition=batch
