@@ -15,7 +15,7 @@ from itwinai.torch.config import TrainingConfiguration
 from itwinai.torch.trainer import TorchTrainer
 
 from net import Net
-from utils import imagenet_dataset
+from dataset import imagenet_dataset
 from torch.profiler import ProfilerActivity, profile
 from torch.utils.data import Subset
 
