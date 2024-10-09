@@ -118,8 +118,6 @@ def monitor_exec(method: Callable) -> Callable:
         self._printout(msg)
         start_t = time.time()
         try:
-            # print(f'ARGS: {args}')
-            # print(f'KWARGS: {kwargs}')
             result = method(self, *args, **kwargs)
         finally:
             self.cleanup()
