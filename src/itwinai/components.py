@@ -109,10 +109,10 @@ def monitor_exec(method: Callable) -> Callable:
     """
     @functools.wraps(method)
     def monitored_method(self: BaseComponent, *args, **kwargs) -> Any:
-        # Disable print in workers different from the main one,
-        # when in distributed environments.
-        dist_grank = detect_distributed_environment().global_rank
-        distributed_patch_print(is_main=dist_grank == 0)
+        # # Disable print in workers different from the main one,
+        # # when in distributed environments.
+        # dist_grank = detect_distributed_environment().global_rank
+        # distributed_patch_print(is_main=dist_grank == 0)
 
         msg = f"Starting execution of '{self.name}'..."
         self._printout(msg)
