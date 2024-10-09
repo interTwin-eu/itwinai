@@ -94,7 +94,7 @@ from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 from .distributed import (
     builtin_print,
     detect_distributed_environment,
-    distributed_patch_print
+    distributed_patch_print,
 )
 from .serialization import ModelLoader, Serializable
 from .type import MLArtifact, MLDataset, MLModel
