@@ -95,38 +95,50 @@ from .type import MLModel, MLDataset, MLArtifact
 from .serialization import ModelLoader, Serializable
 from .distributed import (
     detect_distributed_environment,
-    distributed_patch_print
+    distributed_patch_print,
+    builtin_print
 )
 
 
-def monitor_exec(method: Callable) -> Callable:
+def monitor_exec(print_on_main_worker_only: bool = False) -> Callable:
     """Decorator for execute method of a component class.
     Computes execution time and gives some information about
     the execution of the component.
 
     Args:
-        func (Callable): class method.
+        print_on_main_worker_only (bool): whether to ignore ``print()`` calls on
+            workers which are not the main worker in a distributed context,
+            such as distributed ML. If set to ``True``, to force printing on
+            all workers you will need to use ``print(..., force=True)``.
     """
-    @functools.wraps(method)
-    def monitored_method(self: BaseComponent, *args, **kwargs) -> Any:
-        # # Disable print in workers different from the main one,
-        # # when in distributed environments.
-        # dist_grank = detect_distributed_environment().global_rank
-        # distributed_patch_print(is_main=dist_grank == 0)
 
-        msg = f"Starting execution of '{self.name}'..."
-        self._printout(msg)
-        start_t = time.time()
-        try:
-            result = method(self, *args, **kwargs)
-        finally:
-            self.cleanup()
-        self.exec_t = time.time() - start_t
-        msg = f"'{self.name}' executed in {self.exec_t:.3f}s"
-        self._printout(msg)
-        return result
+    def method_decorator(method: Callable) -> Callable:
+        @functools.wraps(method)
+        def wrapper(self: BaseComponent, *args, **kwargs) -> Any:
+            if print_on_main_worker_only:
+                # Disable print in workers different from the main one,
+                # when in distributed environments.
+                dist_grank = detect_distributed_environment().global_rank
+                distributed_patch_print(is_main=dist_grank == 0)
 
-    return monitored_method
+            msg = f"Starting execution of '{self.name}'..."
+            self._printout(msg)
+            start_t = time.time()
+            try:
+                result = method(self, *args, **kwargs)
+            finally:
+                self.cleanup()
+            self.exec_t = time.time() - start_t
+            msg = f"'{self.name}' executed in {self.exec_t:.3f}s"
+            self._printout(msg)
+
+            # Reset print() to __builtins__ one
+            __builtin__.print = builtin_print
+
+            return result
+
+        return wrapper
+    return method_decorator
 
 
 class BaseComponent(ABC, Serializable):
