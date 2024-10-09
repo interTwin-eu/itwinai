@@ -47,3 +47,4 @@ def calculate_comp_and_comm_time(df: pd.DataFrame) -> Tuple[float, float]:
   comm_time *= 1e-6
   
   return comp_time, comm_time
+
