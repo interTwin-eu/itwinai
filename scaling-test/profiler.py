@@ -41,12 +41,12 @@ def main():
     parser.add_argument(
         "--strategy", type=str, default="ddp", help="distributed strategy (default=ddp)"
     )
-    parser.add_argument(
-        "--profiler-output", 
-        type=str, 
-        default="logs/dataframe.csv", 
-        help="Path to location where dataframe with profiler information will be stored"
-    )
+    # parser.add_argument(
+    #     "--profiler-output", 
+    #     type=str, 
+    #     default="logs/dataframe.csv", 
+    #     help="Path to location where dataframe with profiler information will be stored"
+    # )
     args = parser.parse_args()
     train_dataset = imagenet_dataset(args.data_dir)
 
@@ -118,11 +118,11 @@ def main():
         "calls": event.count,
     })
     grank = strategy.global_rank()
-    strat_size = strategy.global_world_size()
+    num_gpus = strategy.global_world_size()
     df = pd.DataFrame(profiling_data)
 
     output_dir = Path("logs")
-    output_path = output_dir / f"profile_{args.strategy}_{strat_size}_{grank}.csv"
+    output_path = output_dir / f"profile_{args.strategy}_{num_gpus}_{grank}.csv"
 
     print(f"Saving the dataframe to {output_path}", force=True)
     df.to_csv(output_path, index=False)
