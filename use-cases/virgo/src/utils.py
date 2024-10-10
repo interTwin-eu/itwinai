@@ -4,7 +4,7 @@ import numpy as np
 from gwpy.timeseries import TimeSeries
 
 
-def init_weights(net, init_type='normal', scaling=0.02):
+def init_weights(net, init_type='normal', scaling=0.02, generator=None):
     """
     Initialize the weights of the neural network according to the specified
     initialization type.

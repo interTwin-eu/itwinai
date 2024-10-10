@@ -1,23 +1,20 @@
-import os
 import argparse
+import os
+from typing import Dict, Literal, Optional, Union
+
+import matplotlib.pyplot as plt
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
 import torchvision
 from torchvision import datasets, transforms
-from itwinai.torch.trainer import TorchTrainer
+
+from itwinai.loggers import Logger, MLFlowLogger
 from itwinai.torch.config import TrainingConfiguration
-from itwinai.loggers import MLFlowLogger
-from typing import (
-    Optional, Dict, Union, Literal
-)
-from itwinai.loggers import Logger
+from itwinai.torch.distributed import DeepSpeedStrategy
+from itwinai.torch.trainer import TorchTrainer
 from itwinai.torch.type import Metric
-import matplotlib.pyplot as plt
-import numpy as np
-from itwinai.torch.distributed import (
-    DeepSpeedStrategy
-)
 
 
 class Generator(nn.Module):
@@ -29,13 +26,11 @@ class Generator(nn.Module):
             nn.BatchNorm2d(g_hidden * 8),
             nn.ReLU(True),
             # 1st hidden layer
-            nn.ConvTranspose2d(g_hidden * 8, g_hidden * \
-                               4, 4, 2, 1, bias=False),
+            nn.ConvTranspose2d(g_hidden * 8, g_hidden * 4, 4, 2, 1, bias=False),
             nn.BatchNorm2d(g_hidden * 4),
             nn.ReLU(True),
             # 2nd hidden layer
-            nn.ConvTranspose2d(g_hidden * 4, g_hidden * \
-                               2, 4, 2, 1, bias=False),
+            nn.ConvTranspose2d(g_hidden * 4, g_hidden * 2, 4, 2, 1, bias=False),
             nn.BatchNorm2d(g_hidden * 2),
             nn.ReLU(True),
             # 3rd hidden layer
