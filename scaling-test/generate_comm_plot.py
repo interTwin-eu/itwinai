@@ -7,6 +7,7 @@ matplotlib.use("Agg")
 import argparse
 import re
 from pathlib import Path
+from re import Pattern
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -24,10 +25,10 @@ def create_combined_comm_overhead_df(logs_dir: Path, pattern: str) -> pd.DataFra
     the first one is the strategy, the second one the number of GPUs and the
     third one the global rank of the worker.
     """
-    pattern = re.compile(pattern)
+    re_pattern: Pattern = re.compile(pattern)
     dataframes = []
     for entry in logs_dir.iterdir():
-        match = pattern.search(str(entry))
+        match = re_pattern.search(str(entry))
         if not match:
             continue
 
@@ -45,9 +46,9 @@ def create_combined_comm_overhead_df(logs_dir: Path, pattern: str) -> pd.DataFra
 
 
 def get_comp_fraction_full_array(df: pd.DataFrame) -> np.ndarray:
-    """Creates a MxN NumPy array where M is the number of strategies 
-    and N is the number of GPU configurations. The strategies are sorted 
-    alphabetically and the GPU configurations are sorted in ascending number 
+    """Creates a MxN NumPy array where M is the number of strategies
+    and N is the number of GPU configurations. The strategies are sorted
+    alphabetically and the GPU configurations are sorted in ascending number
     of GPUs."""
     unique_num_gpus = sorted(df["num_gpus"].unique(), key=lambda x: int(x))
     unique_strategies = sorted(df["strategy"].unique())
@@ -89,7 +90,7 @@ def main():
     args = parser.parse_args()
 
     logs_dir = Path("logs")
-    pattern = f"profile_(\w+)_(\d+)_(\d+)\.csv$"
+    pattern = r"profile_(\w+)_(\d+)_(\d+)\.csv$"
     df = create_combined_comm_overhead_df(logs_dir=logs_dir, pattern=pattern)
     values = get_comp_fraction_full_array(df)
 
@@ -97,7 +98,7 @@ def main():
     gpu_numbers = sorted(df["num_gpus"].unique(), key=lambda x: int(x))
 
     # Generating and showing the plot
-    fig, ax = create_stacked_plot(values, strategies, gpu_numbers)
+    fig, _ = create_stacked_plot(values, strategies, gpu_numbers)
     fig.set_figwidth(8)
     fig.set_figheight(6)
 
