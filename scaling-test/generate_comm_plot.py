@@ -45,8 +45,12 @@ def create_combined_comm_overhead_df(logs_dir: Path, pattern: str) -> pd.DataFra
 
 
 def get_comp_fraction_full_array(df: pd.DataFrame) -> np.ndarray:
+    """Creates a MxN NumPy array where M is the number of strategies 
+    and N is the number of GPU configurations. The strategies are sorted 
+    alphabetically and the GPU configurations are sorted in ascending number 
+    of GPUs."""
     unique_num_gpus = sorted(df["num_gpus"].unique(), key=lambda x: int(x))
-    unique_strategies = df["strategy"].unique()
+    unique_strategies = sorted(df["strategy"].unique())
     values = []
 
     for strategy in unique_strategies:
