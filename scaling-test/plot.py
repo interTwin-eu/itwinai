@@ -1,25 +1,28 @@
-from typing import List, Tuple, Any
+from typing import Any, List, Tuple
 
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.patches import Patch
 
 
-def create_stacked_plot(values: np.ndarray, strategy_labels: List, gpu_numbers: List) -> Tuple[Any, Any]:
-    """Creates a stacked plot showing values from 0 to 1, where the given value 
-    will be placed on the bottom and the complement will be placed on top for 
-    each value in 'values'. 
-    
-    Notes: 
-        - Assumes that the rows of 'values' correspond to the labels in 
-            'strategy_labels' sorted alphabetically and that the columns 
-            correspond to the GPU numbers in 'gpu_numbers' sorted numerically 
-            in ascending order. 
+def create_stacked_plot(
+    values: np.ndarray, strategy_labels: List, gpu_numbers: List
+) -> Tuple[Any, Any]:
+    """Creates a stacked plot showing values from 0 to 1, where the given value
+    will be placed on the bottom and the complement will be placed on top for
+    each value in 'values'. Returns the figure and the axis so that the caller can
+    do what they want with it, e.g. save to file, change it or just show it.
+
+    Notes:
+        - Assumes that the rows of 'values' correspond to the labels in
+            'strategy_labels' sorted alphabetically and that the columns
+            correspond to the GPU numbers in 'gpu_numbers' sorted numerically
+            in ascending order.
     """
     assert values.shape[0] == len(strategy_labels)
     assert values.shape[1] == len(gpu_numbers)
     assert (values >= 0).all() and (values <= 1).all()
-    
+
     strategy_labels = sorted(strategy_labels)
     gpu_numbers = sorted(gpu_numbers, key=lambda x: int(x))
 
@@ -77,6 +80,15 @@ def create_stacked_plot(values: np.ndarray, strategy_labels: List, gpu_numbers: 
         Patch(facecolor=comm_color, label="Communication"),
         Patch(facecolor=comp_color, label="Computation"),
     ]
-    ax.legend(handles=legend_elements, loc="upper right")
-    fig.subplots_adjust(bottom=0.3)
+    # ax.legend(handles=legend_elements, loc="upper right")
+    # ax.legend(handles=legend_elements, loc="upper right", bbox_to_anchor=(1.2, 1))
+
+    ax.legend(
+        handles=legend_elements,
+        loc="upper left",  # Anchor point of the legend
+        bbox_to_anchor=(0.80, 1.22),  # Position outside the plot
+        borderaxespad=0.0,  # No padding between legend and axes
+    )
+    fig.subplots_adjust(bottom=0.25)
+    fig.subplots_adjust(top=0.85)
     return fig, ax
