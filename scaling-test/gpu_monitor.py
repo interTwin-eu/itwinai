@@ -15,23 +15,25 @@ from itwinai.torch.trainer import TorchTrainer
 
 
 class Monitor(Thread):
-    """Class for monitoring GPU utilization using a different thread than the main one. 
-    Works by sleeping for a certain amount of time, specified by `delay`, allowing 
-    the GIL in Python to run other threads in the mean time. 
+    """Class for monitoring GPU utilization using a different thread than the main one.
+    Works by sleeping for a certain amount of time, specified by `delay`, allowing
+    the GIL in Python to run other threads in the mean time.
     """
-    def __init__(self, delay: int, strategy: TorchDistributedStrategy, global_rank: int) -> None:
+
+    def __init__(
+        self, delay: int, strategy: TorchDistributedStrategy, global_rank: int
+    ) -> None:
         super(Monitor, self).__init__()
         self.stopped = False
-        self.delay = delay 
+        self.delay = delay
         self.strategy: TorchDistributedStrategy = strategy
         self.start_time = time.time()
         self.monitoring_log: Dict = {}
         self.global_rank = global_rank
         self.start()
 
-
     def run(self) -> None:
-        if not self.strategy.global_rank() == self.global_rank: 
+        if not self.strategy.global_rank() == self.global_rank:
             return
 
         local_gpus = list(range(self.strategy.local_world_size()))
@@ -39,11 +41,11 @@ class Monitor(Thread):
 
         while not self.stopped:
             gpus = GPUtil.getGPUs()
-            for gpu in gpus: 
-                if gpu.id not in local_gpus: 
+            for gpu in gpus:
+                if gpu.id not in local_gpus:
                     continue
 
-                empty_gpu_log = {"load": [],"memory": []}
+                empty_gpu_log = {"load": [], "memory": []}
                 gpu_stats = self.monitoring_log.get(gpu.id, empty_gpu_log)
 
                 gpu_stats["load"].append(gpu.load)
@@ -55,15 +57,10 @@ class Monitor(Thread):
     def stop(self):
         self.stopped = True
 
+
 class GPUMonitorTrainer(TorchTrainer):
 
-
-    def execute(
-        self,
-        train_dataset,
-        validation_dataset = None,
-        test_dataset = None
-    ):
+    def execute(self, train_dataset, validation_dataset=None, test_dataset=None):
         """Prepares distributed environment and data structures
         for the actual training.
 
@@ -84,23 +81,23 @@ class GPUMonitorTrainer(TorchTrainer):
         self.create_dataloaders(
             train_dataset=train_dataset,
             validation_dataset=validation_dataset,
-            test_dataset=test_dataset
+            test_dataset=test_dataset,
         )
         self.create_model_loss_optimizer()
 
         if self.logger:
             self.logger.create_logger_context(rank=self.strategy.global_rank())
             hparams = self.config.model_dump()
-            hparams['distributed_strategy'] = self.strategy.__class__.__name__
+            hparams["distributed_strategy"] = self.strategy.__class__.__name__
             self.logger.save_hyperparameters(hparams)
 
-        
         self.train()
 
         if self.logger:
             self.logger.destroy_logger_context()
         # self.strategy.clean_up()
         return train_dataset, validation_dataset, test_dataset, self.model
+
 
 def main():
     # Training settings
@@ -147,7 +144,7 @@ def main():
         optim_lr=args.lr,
         optimizer="adadelta",
         loss="cross_entropy",
-        num_workers_dataloader=1
+        num_workers_dataloader=1,
     )
     logger = ConsoleLogger()
 
@@ -158,24 +155,23 @@ def main():
         epochs=args.epochs,
         random_seed=args.seed,
         checkpoint_every=args.ckpt_interval,
-        logger=logger
+        logger=logger,
     )
 
     monitor = None
     time_delay = 3
     strategy = trainer.strategy
     strategy.init()
-    if strategy.local_rank() == 0: 
+    if strategy.local_rank() == 0:
         monitor = Monitor(
-                delay=time_delay, 
-                strategy=strategy, 
-                global_rank=strategy.global_rank()  
+            delay=time_delay, strategy=strategy, global_rank=strategy.global_rank()
         )
 
     trainer.execute(train_dataset, validation_dataset)
 
-    if monitor is not None: 
+    if monitor is not None:
         monitor.stop()
+
 
 if __name__ == "__main__":
     main()
