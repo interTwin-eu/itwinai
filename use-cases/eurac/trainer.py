@@ -3,7 +3,7 @@ from copy import deepcopy
 from pathlib import Path
 from timeit import default_timer as timer
 from typing import Dict, Literal, Optional, Union
-from copy import deepcopy
+
 import pandas as pd
 import torch
 import torch.nn as nn

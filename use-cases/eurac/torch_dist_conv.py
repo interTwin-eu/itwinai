@@ -10,10 +10,10 @@ from hython.models.convLSTM import ConvLSTM
 from hython.normalizer import Normalizer
 from hython.sampler import CubeletsDownsampler
 from hython.utils import read_from_zarr, set_seed
+from trainer import ConvRNNDistributedTrainer
+
 from itwinai.loggers import MLFlowLogger
 from itwinai.torch.config import TrainingConfiguration
-
-from trainer import ConvRNNDistributedTrainer
 
 # PARAMETERS
 
