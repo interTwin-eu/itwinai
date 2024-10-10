@@ -21,13 +21,13 @@ def calculate_comp_and_comm_time(df: pd.DataFrame) -> Tuple[float, float]:
         r"ncclKernel_(?:AllReduce|Broadcast|Reduce|AllGather|ReduceScatter)"
     )
     cuda_stream_pattern = r"cudaStream(?:WaitEvent|Synchronize)"
-    
+
     # Any operation that is a part of PyTorch's ATen library is considered a computation
     aten_comp_pattern = r"aten::"
 
     comm_df = df[
-        (df["name"].str.contains(nccl_comm_pattern)) | 
-        (df["name"].str.contains(cuda_stream_pattern))
+        (df["name"].str.contains(nccl_comm_pattern))
+        | (df["name"].str.contains(cuda_stream_pattern))
     ]
     comp_df = df[df["name"].str.contains(aten_comp_pattern)]
 
