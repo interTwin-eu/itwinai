@@ -43,7 +43,7 @@ def main():
     train_dataset = imagenet_dataset(args.data_dir)
 
     # Only consider the first 1000 elements
-    indices = list(range(2000))
+    indices = list(range(4000))
     train_dataset = Subset(train_dataset, indices)
 
     model = torchvision.models.resnet152()
