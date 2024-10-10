@@ -3,11 +3,13 @@
 ## Installation
 
 First, make sure to install itwinai from this branch!
-Use the [developer installation instructions](https://github.com/interTwin-eu/itwinai/tree/usecase_eurac?tab=readme-ov-file#installation-for-developers).
+Use the [developer installation instructions](https://github.com/interTwin-eu/itwinai/#installation-for-developers).
 
-Then:
+Then install the dependencies specific to this use case by first entering the 
+folder and then installing the dependencies with pip:
 
 ```bash
+cd use-cases/eurac
 pip install -r requirements.txt
 ```
 
@@ -45,13 +47,13 @@ itwinai exec-pipeline --config config.yaml --pipe-key training_pipeline
 itwinai exec-pipeline --config config.yaml --pipe-key training_pipeline --steps 1:
 ```
 
-Launch distributed training with SLURM using the dedicated `run.sh` job script:
+Launch distributed training with SLURM using the dedicated `runall.sh` job script:
 
 Train LSTM
 
 ```bash
 # Distributed training with torch DistributedDataParallel
-./run.sh config.yaml
+./runall.sh config.yaml
 ```
 
 Train ConvLSTM
@@ -62,6 +64,7 @@ Train ConvLSTM
 ```
 
 ## Running scaling tests
+
 Scaling tests have been integrated into the eurac usecase to provide timing of experiments run and ths show the power of distributed model training and itwinai. Refer to the following files `runall.sh , scaling-test.sh, torch_dist_final_scaling.py`.
 
 Launch the scaling test:

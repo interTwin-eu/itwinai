@@ -116,7 +116,6 @@ class RNNDistributedTrainer(TorchTrainer):
                 "find_unused_parameters": self.config.find_unused_parameters
             }
 
-        # Distribute discriminator and its optimizer
         self.model, self.optimizer, _ = self.strategy.distributed(
             model=self.model,
             optimizer=self.optimizer,
@@ -235,13 +234,6 @@ class RNNDistributedTrainer(TorchTrainer):
             )
 
         if self.strategy.is_main_worker:
-            #print(best_model)
-            #logging the best model
-            # self.log(
-            #     item=best_model,
-            #     identifier='best_model',
-            #     kind='artifact'
-            # )
             self.model.load_state_dict(best_model)
             self.log(
                 item=self.model,
@@ -250,8 +242,9 @@ class RNNDistributedTrainer(TorchTrainer):
             )
 
             # Report training metrics of last epoch to Ray
-            train.report({"loss": avg_val_loss.item(),
-                          "train_loss": train_loss.item()})
+            train.report(
+                    {"loss": avg_val_loss.item(), "train_loss": train_loss.item()}
+            )
 
         return loss_history, metric_history
 
