@@ -38,10 +38,8 @@ class FakeComponent(BaseComponent):
 @pytest.fixture
 def mock_component():
     """Fixture to provide a mock BaseComponent."""
-    component = MagicMock()
+    component = MagicMock(spec=BaseComponent)
     component.name = "TestComponent"
-    component._printout = MagicMock()
-    component.cleanup = MagicMock()
     return component
 
 
@@ -49,15 +47,17 @@ def mock_component():
 def mock_fake_component():
     """Fixture to provide a FakeComponent instance."""
     component = FakeComponent(max_items=10)
-    component.cleanup = MagicMock()    # Mock the cleanup method
+    component.cleanup = MagicMock(spec=FakeComponent.cleanup)
     return component
 
 
 def test_suppress_workers_print_decorator():
     """Test suppress_workers_print decorator behavior."""
-    with patch('builtins.print') as mock_print, \
-            patch('itwinai.distributed.detect_distributed_environment') as mock_env, \
-            patch('itwinai.distributed.distributed_patch_print') as mock_patch_print:
+    with patch('builtins.print', autospec=True) as mock_print, \
+            patch('itwinai.distributed.detect_distributed_environment',
+                  autospec=True) as mock_env, \
+            patch('itwinai.distributed.distributed_patch_print',
+                  autospec=True) as mock_patch_print:
 
         # Mock environment: global rank different from 0 (non-main worker)
         mock_env.return_value.global_rank = 1
@@ -86,9 +86,11 @@ def test_suppress_workers_print_decorator():
 def test_suppress_workers_print_component():
     """Test suppress_workers_print decorator behavioron SilentComponent's
     execute method."""
-    with patch('builtins.print') as mock_print, \
-            patch('itwinai.distributed.detect_distributed_environment') as mock_env, \
-            patch('itwinai.distributed.distributed_patch_print') as mock_patch_print:
+    with patch('builtins.print', autospec=True) as mock_print, \
+            patch('itwinai.distributed.detect_distributed_environment',
+                  autospec=True) as mock_env, \
+            patch('itwinai.distributed.distributed_patch_print',
+                  autospec=True) as mock_patch_print:
 
         # Initialize the SilentComponent instance
         silent_component = SilentComponent(max_items=10)
@@ -151,10 +153,12 @@ def test_combined_decorators_on_fake_component(mock_fake_component):
     """Test the combination of suppress_workers_print and monitor_exec decorators
     on FakeComponent."""
 
-    with patch('builtins.print') as mock_print, \
-            patch('itwinai.distributed.detect_distributed_environment') as mock_env, \
-            patch('itwinai.distributed.distributed_patch_print') as mock_patch_print, \
-            patch('time.time') as mock_time:
+    with patch('builtins.print', autospec=True) as mock_print, \
+            patch('itwinai.distributed.detect_distributed_environment',
+                  autospec=True) as mock_env, \
+            patch('itwinai.distributed.distributed_patch_print',
+                  autospec=True) as mock_patch_print, \
+            patch('time.time', autospec=True) as mock_time:
 
         # Simulate time progression for execution timing
         mock_time.side_effect = [100.0, 105.0]  # Simulate a 5-second execution time
