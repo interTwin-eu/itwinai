@@ -1,9 +1,9 @@
-from itwinai.components import BaseComponent
-import pytest
-from unittest.mock import patch, MagicMock, call
+from unittest.mock import MagicMock, call, patch
 
+import pytest
+
+from itwinai.components import BaseComponent, monitor_exec
 from itwinai.distributed import suppress_workers_print
-from itwinai.components import monitor_exec
 
 
 class SilentComponent(BaseComponent):
@@ -126,7 +126,7 @@ def test_monitor_exec_decorator(mock_component):
     with patch('time.time') as mock_time:
         mock_time.side_effect = [100.0, 105.0]  # Simulate 5 seconds execution time
 
-        @ monitor_exec
+        @monitor_exec
         def dummy_method(self):
             return "Execution result"
 
