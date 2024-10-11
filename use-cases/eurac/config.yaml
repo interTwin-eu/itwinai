@@ -62,12 +62,12 @@ rnn_training_pipeline:
                 - class_path: itwinai.loggers.ConsoleLogger
                   init_args:
                     log_freq: 100
-                - class_path: itwinai.loggers.MLFlowLogger
-                  init_args:
-                    experiment_name: ${experiment}
-                    run_name: ${run_name}
-                    log_freq: batch
-                    savedir: /p/project1/intertwin/ferrario1/itwinai/use-cases/eurac/mllogs
+                # - class_path: itwinai.loggers.MLFlowLogger
+                #   init_args:
+                #     experiment_name: ${experiment}
+                #     run_name: ${run_name}
+                #     log_freq: batch
+                #     savedir: /p/project1/intertwin/ferrario1/itwinai/use-cases/eurac/mllogs
                     
 conv_training_pipeline:
   class_path: itwinai.pipeline.Pipeline

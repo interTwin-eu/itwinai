@@ -233,11 +233,6 @@ class RNNDistributedTrainer(TorchTrainer):
 
         if self.strategy.is_main_worker:
             self.model.load_state_dict(best_model)
-
-            # TODO: Remove
-            torch.save(self.model.state_dict(), "test_model.pth")
-
-            # Moving it temporarily to the CPU for logging purposes
             self.log(
                 item=self.model,
                 identifier='LSTM',

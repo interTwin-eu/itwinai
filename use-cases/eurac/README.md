@@ -25,6 +25,7 @@ If you want to use the Conv pipeline instead, you can replace `rnn_training_pipe
 with `conv_training_pipeline`.
 
 ### Distributed runs
+
 You can run the training in a distributed manner using all strategies by running 
 `runall.sh`. This will launch jobs for all the strategies and log their outputs into the 
 `logs_slurm` folder. You can pass arguments by prepending environment variables. E.g. if 
