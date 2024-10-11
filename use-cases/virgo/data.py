@@ -68,7 +68,7 @@ class TimeSeriesDatasetGenerator(DataGetter):
 
 class DataFrameDataset(Dataset):
     def __init__(self, file_paths: list[str]):
-        """Initialize the DataFrameDataset class.
+        """ Initialize the DataFrameDataset class.
 
         Args:
             file_paths (list[str]): List of paths to pickled DataFrames.
@@ -80,13 +80,14 @@ class DataFrameDataset(Dataset):
         return len(self.file_paths)
 
     def __getitem__(self, idx):
-        """Retrieve a data sample by index, convert to tensor, and normalize.
+        """ Retrieve a data sample by index, convert to tensor, and normalize.
 
         Args:
             idx (int): Index of the file to retrieve.
 
         Returns:
-            torch.Tensor: Concatenated and normalized data tensor of main and auxiliary channels.
+            torch.Tensor: Concatenated and normalized data tensor
+            of main and auxiliary channels.
         """
         # Load a single dataframe from the file
         dataframe = pd.read_pickle(self.file_paths[idx])
@@ -203,6 +204,16 @@ class TimeSeriesDatasetSplitterSmall(DataSplitter):
         images_dataset: str = "TimeSeries_dataset_synthetic_main.pkl",
         name: Optional[str] = None
     ) -> None:
+        """ Class for splitting of smaller datasets. Use this class in the pipeline if the entire dataset can fit into memory.
+
+        Args:
+            train_proportion (int | float): _description_
+            validation_proportion (int | float, optional): _description_. Defaults to 0.0.
+            test_proportion (int | float, optional): _description_. Defaults to 0.0.
+            rnd_seed (Optional[int], optional): _description_. Defaults to None.
+            images_dataset (str, optional): _description_. Defaults to "TimeSeries_dataset_synthetic_main.pkl".
+            name (Optional[str], optional): _description_. Defaults to None.
+        """
         super().__init__(
             train_proportion, validation_proportion,
             test_proportion, name
@@ -253,6 +264,11 @@ class TimeSeriesDatasetSplitterSmall(DataSplitter):
 
 class TimeSeriesProcessorSmall(DataProcessor):
     def __init__(self, name: str | None = None) -> None:
+        """Preprocesses small datasets that can fit into memory.
+
+        Args:
+            name (str | None, optional): Defaults to None.
+        """
         super().__init__(name)
         self.save_parameters(**self.locals2params(locals()))
 

@@ -89,14 +89,12 @@ def run_hpo(args):
             'lr': tune.uniform(1e-5, 1e-3)
         }
 
-        # TuneConfig for configuring search algorithm and scheduler
         tune_config = tune.TuneConfig(
             metric=args.metric,  # Metric to optimize (loss by default)
             mode="min",  # Minimize the loss
             num_samples=args.num_samples  # Number of trials to run
         )
 
-        # Ray's RunConfig for experiment name and stopping criteria
         run_config = train.RunConfig(
             name="Virgo-Ray-Experiment",
             stop={"training_iteration": args.max_iterations}

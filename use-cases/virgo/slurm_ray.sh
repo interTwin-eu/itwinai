@@ -31,12 +31,11 @@ export CUDA_VISIBLE_DEVICES="0,1,2,3"
 num_gpus=$SLURM_GPUS_PER_NODE
 num_cpus=$SLURM_CPUS_PER_TASK
 
-## Disable Ray Usage Stats
-export RAY_USAGE_STATS_DISABLE=1
-
 # This tells Tune to not change the working directory to the trial directory
 # which makes relative paths accessible from inside a trial
 export RAY_CHDIR_TO_TRIAL_DIR=0
+
+export RAY_USAGE_STATS_DISABLE=1
 
 #########   Set up Ray cluster   ########
 
@@ -89,7 +88,7 @@ echo All Ray workers started.
 # Run the Python script using Ray
 echo 'Starting HPO.'
 
-python hpo.py --num_samples 8 --max_iterations 2 --ngpus $num_gpus --ncpus $num_cpus
+python hpo.py --num_samples 4 --max_iterations 2 --ngpus $num_gpus --ncpus $num_cpus
 
 # Shutdown Ray after completion
 ray stop

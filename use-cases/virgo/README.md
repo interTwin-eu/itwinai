@@ -1,12 +1,13 @@
 # Noise Simulation for Gravitational Waves Detector (Virgo)
 
-The code is adapted from
+This repository contains code for simulating noise in the Virgo gravitational wave detector. The code is adapted from
 [this notebook](https://github.com/interTwin-eu/DT-Virgo-notebooks/blob/main/WP_4_4/interTwin_wp_4.4_synthetic_data.ipynb)
 available on the Virgo use case's [repository](https://github.com/interTwin-eu/DT-Virgo-notebooks).
 
 ## Installation
 
-Before continuing, install the required libraries in the pre-existing itwinai environment.
+If running the pipeline directly on a node (or from your terminal),
+first install the required libraries in the pre-existing itwinai environment using the following command:
 
 ```bash
 pip install -r requirements.txt
@@ -25,7 +26,7 @@ itwinai exec-pipeline --config config.yaml --pipe-key training_pipeline
 itwinai exec-pipeline --config config.yaml --pipe-key training_pipeline --steps 1:
 ```
 
-Launch distributed training with SLURM using the dedicated `slurm.sh` job script:
+Alternatively, you can run distributed training with SLURM using the dedicated `slurm.sh` job script:
 
 ```bash
 # Distributed training with torch DistributedDataParallel
@@ -46,11 +47,6 @@ check the content of `runall.sh`:
 bash runall.sh
 ```
 
-> [!WARNING]
-> The file `train.py` is not to be considered the suggested way to launch training,
-> as it is deprecated and is there to testify an intermediate integration step
-> of the use case into `itwinai`.
-
 When using MLFLow logger, you can visualize the logs in from the MLFlow UI:
 
 ```bash
@@ -61,7 +57,9 @@ mlflow ui --backend-store-uri mllogs/mlflow > /dev/null 2>&1 &
 ```
 
 ## Running scaling tests
-Scaling tests have been integrated into the eurac usecase to provide timing of experiments run and ths show the power of distributed model training and itwinai. Refer to the following files `runall.sh , scaling-test.sh, torch_dist_final_scaling.py`.
+
+Scaling tests have been integrated into the eurac usecase to provide timing of experiments run and thus show the power of distributed model training and itwinai.
+Refer to the files `runall.sh and scaling-test.sh.
 
 Launch the scaling test:
 
@@ -74,7 +72,7 @@ Once all jobs have completed, you can automatically generate scalability report
 using itwinai's CLI:
 
 ```bash
-# First, activate you Python virtual environment
+# First, activate your Python virtual environment
 
 # For more info run
 itwinai scalability-report --help
@@ -83,16 +81,20 @@ itwinai scalability-report --help
 itwinai scalability-report --pattern="^epoch.+\.csv$" \
     --plot-title "Virgo usecase scaling" --archive virgo_scaling
 ```
- /p/project1/intertwin/<user-name>/itwinai/use-cases/eurac
 
-## Running HPO for EURAC Non-distributed
+## Running HPO for Virgo Non-distributed
 
-HPO has been implemented using Ray tuner to run in a non distributed environment. Refer to `train_hpo.py` file which was adapted from `train.py`. The current HPO parameters include learning rate(lr) and batch_size. 
+Hyperparameter optimization (HPO) is integrated into the pipeline using Ray Tune.
+This allows you to run multiple trials and fine-tune model parameters efficiently.
+HPO is configured to run multiple trials in parallel, but run those trials each in a non-distributed way.
 
-Launch the hpo expirement:
+To launch an HPO experiment, run
 
 ```bash
-sbatch startscript_hpo.sh
+sbatch slurm_ray.sh
 ```
 
-Visualize the HPO results by running `python visualize_hpo.py`. Adjust the `main_dir = '/p/home/jusers/<username>/hdfml/ray_results/<specific run folder name>'` accordingly based on the run folder name, the results path can be got from your slurm output file at the top.
+Make sure to adjust the #SBATCH directives in the script to specify the number of nodes, CPUs, and GPUs you want to allocate for the job.
+The slurm_ray.sh script sets up a Ray cluster and runs hpo.py for hyperparameter tuning.This script creates a ray cluster,
+and runs the python file `hpo.py`. You may change CLI variables for the python command to change parameters, such as the number of trials you want to run, or change the stopping criteria for the trials.
+By default, trials monitor validation loss, and results are plotted once all trials are completed.

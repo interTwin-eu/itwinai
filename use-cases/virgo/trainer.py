@@ -150,7 +150,7 @@ class NoiseGeneratorTrainer(TorchTrainer):
         """
         # Some batches contain None values, if any files from the dataset did not match the criteria
         # (i.e. three auxilliary channels)
-        batch = list(filter(lambda x: x is not None, batch))
+        batch = [x for x in batch if x is not None]
 
         return torch.cat(batch)
 

@@ -1,6 +1,7 @@
 import argparse
 import os
 from pathlib import Path
+from typing import Dict
 
 import matplotlib.pyplot as plt
 import ray
@@ -10,7 +11,7 @@ from ray import train, tune
 from itwinai.parser import ConfigParser
 
 
-def run_trial(config):
+def run_trial(config: Dict, data: Dict):
     """ Execute a single trial using the given configuration (config).
     This runs a full training pipeline - you can also specify a pipeline as a dictionary,
     e.g. if you only want to run certain parts without changing your config.yaml file.
@@ -19,12 +20,14 @@ def run_trial(config):
         config (dict): A dictionary containing hyperparameters, such as:
             - 'batch_size' (int): The size of the batch for training.
             - 'lr' (float): The learning rate for the optimizer.
+        pipeline_path (str): Path to the config file where the training pipeline is defined.
     """
+    config_path = Path(data["config_path"])
 
     parser = ConfigParser(
-        config=Path('config.yaml'),
+        config=config_path,
         override_keys={
-            # Set HPOs controlled by ray
+            # Set hyperparameters controlled by ray
             'batch_size': config['batch_size'],
             'learning_rate': config['lr'],
             # Override logger field, because performance is logged by ray
@@ -78,15 +81,25 @@ def run_hpo(args):
         ngpus_per_trial = max(1, args.ngpus // args.num_samples)
         ncpus_per_trial = max(1, args.ncpus // args.num_samples)
 
-        # Set resource allocation for each trial (number of GPUs and/or number of CPUs)
+        # Set up Ray Tune Tuner with resources and parameters
         resources_per_trial = {"gpu": ngpus_per_trial, "cpu": ncpus_per_trial}
+        trainable_with_resources = tune.with_resources(
+            run_trial,
+            resources=resources_per_trial
+        )
 
-        # Set up Ray Tune Tuner
+        # Change this to parse from another config file
+        data = {'config_path': 'config.yaml'}
+        trainable_with_parameters = tune.with_parameters(
+            trainable_with_resources,
+            data=data
+        )
+
         tuner = tune.Tuner(
-            tune.with_resources(run_trial, resources=resources_per_trial),
+            trainable_with_parameters,
             tune_config=tune_config,
             run_config=run_config,
-            param_space=search_space  # Search space defined above
+            param_space=search_space
         )
 
         # Run the hyperparameter optimization and get results
