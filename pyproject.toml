@@ -57,6 +57,7 @@ dev = [
     "ipykernel",
     "ipython",
     "isort",
+    "dagger",
     "tensorflow==2.16.*",  # needed by tests on tensorboard
 ]
 docs = [ 
