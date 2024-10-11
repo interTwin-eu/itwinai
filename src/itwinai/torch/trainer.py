@@ -522,7 +522,8 @@ class TorchTrainer(Trainer, LogMixin):
 
                 # Checkpointing current best model
                 worker_val_losses = self.strategy.gather(
-                    val_loss, dst_rank=0)
+                    val_loss, dst_rank=0
+                )
                 if self.strategy.global_rank() == 0:
                     avg_loss = torch.mean(
                         torch.stack(worker_val_losses)

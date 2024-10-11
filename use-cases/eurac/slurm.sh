@@ -38,7 +38,7 @@ fi
 if [ -z "$TRAINING_CMD" ]; then 
  	TRAINING_CMD="$(which itwinai) exec-pipeline \
 	--config $CONFIG_FILE \
-	--pipe-key conv_training_pipeline \
+	--pipe-key rnn_training_pipeline \
 	-o strategy=$DIST_MODE"
   >&2 echo "WARNING: env variable TRAINING_CMD is not set. Defaulting to $TRAINING_CMD."
 fi
