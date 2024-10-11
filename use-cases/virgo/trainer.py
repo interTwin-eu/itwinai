@@ -9,6 +9,7 @@ import torch.nn as nn
 from ray import train
 from src.model import Decoder, Decoder_2d_deep, GeneratorResNet, UNet
 from src.utils import init_weights
+from torch.utils.data import Dataset
 from tqdm import tqdm
 
 from itwinai.loggers import EpochTimeTracker, Logger
@@ -27,7 +28,7 @@ class NoiseGeneratorTrainer(TorchTrainer):
         config: Union[Dict, TrainingConfiguration] | None = None,
         generator: Literal["simple", "deep", "resnet", "unet"] = "unet",
         loss: Literal["L1", "L2"] = "L1",
-        strategy: Literal["ddp", "deepspeed", "horovod"] | None = 'ddp',
+        strategy: Optional[Literal["ddp", "deepspeed", "horovod"]] = 'ddp',
         checkpoint_path: str = "checkpoints/epoch_{}.pth",
         save_best: bool = True,
         logger: Optional[Logger] = None,
@@ -108,6 +109,50 @@ class NoiseGeneratorTrainer(TorchTrainer):
         self.model, self.optimizer, _ = self.strategy.distributed(
             self.model, self.optimizer, **distribute_kwargs
         )
+
+    def create_dataloaders(self, train_dataset: Dataset, validation_dataset: Dataset | None = None, test_dataset: Dataset | None = None) -> None:
+        """
+        Override the create_dataloaders function to use the custom_collate function. 
+        """
+        self.train_dataloader = self.strategy.create_dataloader(
+            dataset=train_dataset,
+            batch_size=self.config.batch_size,
+            num_workers=self.config.num_workers_dataloader,
+            pin_memory=self.config.pin_gpu_memory,
+            generator=self.torch_rng,
+            shuffle=self.config.shuffle_train,
+            collate_fn=self.custom_collate
+        )
+        if validation_dataset is not None:
+            self.validation_dataloader = self.strategy.create_dataloader(
+                dataset=validation_dataset,
+                batch_size=self.config.batch_size,
+                num_workers=self.config.num_workers_dataloader,
+                pin_memory=self.config.pin_gpu_memory,
+                generator=self.torch_rng,
+                shuffle=self.config.shuffle_validation,
+                collate_fn=self.custom_collate
+            )
+        if test_dataset is not None:
+            self.test_dataloader = self.strategy.create_dataloader(
+                dataset=test_dataset,
+                batch_size=self.config.batch_size,
+                num_workers=self.config.num_workers_dataloader,
+                pin_memory=self.config.pin_gpu_memory,
+                generator=self.torch_rng,
+                shuffle=self.config.shuffle_test,
+                collate_fn=self.custom_collate
+            )
+
+    def custom_collate(self, batch):
+        """
+        Custom collate function to concatenate input tensors along their first dimension.
+        """
+        # Some batches contain None values, if any files from the dataset did not match the criteria
+        # (i.e. three auxilliary channels)
+        batch = list(filter(lambda x: x is not None, batch))
+
+        return torch.cat(batch)
 
     def train(self):
         # Start the timer for profiling
@@ -277,7 +322,9 @@ class NoiseGeneratorTrainer(TorchTrainer):
                 epoch_time_tracker.add_epoch_time(epoch-1, timer()-lt)
 
             # Report training metrics of last epoch to Ray
-            train.report({"loss": np.mean(val_loss),
-                          "train_loss": np.mean(epoch_loss)})
+            train.report(
+                {"loss": np.mean(val_loss),
+                 "train_loss": np.mean(epoch_loss)}
+            )
 
         return loss_plot, val_loss_plot, acc_plot, val_acc_plot

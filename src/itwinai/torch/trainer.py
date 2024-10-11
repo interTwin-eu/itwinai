@@ -223,7 +223,7 @@ class TorchTrainer(Trainer, LogMixin):
         """
         Instantiate a torch model, loss, optimizer, and LR scheduler using the
         configuration provided in the Trainer constructor.
-        Generally a user-define method.
+        Generally a user-defined method.
         """
         ###################################
         # Dear user, this is a method you #
@@ -284,7 +284,7 @@ class TorchTrainer(Trainer, LogMixin):
         """
         Create train, validation and test dataloaders using the
         configuration provided in the Trainer constructor.
-        Generally a user-define method.
+        Generally a user-defined method.
 
         Args:
             train_dataset (Dataset): training dataset object.

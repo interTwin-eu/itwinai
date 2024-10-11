@@ -1,28 +1,32 @@
-from typing import Optional, Tuple, Any
 import os
+from typing import Optional, Tuple
+
 import pandas as pd
 import torch
-from sklearn.model_selection import train_test_split
-from itwinai.components import (
-    DataGetter, DataProcessor, DataSplitter, monitor_exec
-)
-
 from src.dataset import (
+    generate_cut_image_dataset,
     generate_dataset_aux_channels,
     generate_dataset_main_channel,
-    generate_cut_image_dataset,
-    normalize_
+    normalize_,
 )
-from torch.utils.data import DataLoader, Dataset
-import numpy as np
+from torch.utils.data import Dataset, random_split
+from sklearn.model_selection import train_test_split
+
+from itwinai.components import DataGetter, DataProcessor, DataSplitter, monitor_exec
+
 
 class TimeSeriesDatasetGenerator(DataGetter):
-    # TODO: move configuration to the constructor.
     def __init__(
         self,
         data_root: str = "data",
         name: Optional[str] = None
     ) -> None:
+        """Initialize the TimeSeriesDatasetGenerator class.
+
+        Args:
+            data_root (str): Root folder where datasets will be saved.
+            name (Optional[str]): Name of the data getter component.
+        """
         super().__init__(name)
         self.save_parameters(**self.locals2params(locals()))
         self.data_root = data_root
@@ -61,23 +65,66 @@ class TimeSeriesDatasetGenerator(DataGetter):
         df.to_pickle(os.path.join(self.data_root, save_name))
         return df
 
+
 class DataFrameDataset(Dataset):
-    def __init__(self, root_folder):
-        self.file_paths = []
-        self.file_paths = [os.path.join(dirpath, f)
-                           for dirpath, dirs, files in os.walk(root_folder)
-                           for f in files if f.endswith('.pkl')]
-        print(self.file_paths)
+    def __init__(self, file_paths: list[str]):
+        """Initialize the DataFrameDataset class.
+
+        Args:
+            file_paths (list[str]): List of paths to pickled DataFrames.
+        """
+        self.file_paths = file_paths
+
     def __len__(self):
+        """Return the total number of files in the dataset."""
         return len(self.file_paths)
-    
+
     def __getitem__(self, idx):
+        """Retrieve a data sample by index, convert to tensor, and normalize.
+
+        Args:
+            idx (int): Index of the file to retrieve.
+
+        Returns:
+            torch.Tensor: Concatenated and normalized data tensor of main and auxiliary channels.
+        """
+        # Load a single dataframe from the file
         dataframe = pd.read_pickle(self.file_paths[idx])
-        return dataframe
-    
-def custom_collate(batch):
-    # Combine all dataframes in the batch into a single dataframe
-    return pd.concat(batch, ignore_index=True)
+
+        # Convert all data in the DataFrame to torch tensors
+        df = dataframe.map(lambda x: torch.tensor(x))
+
+        # Divide Image dataset in main and aux channels.
+        main_channel = list(df.columns)[0]
+        aux_channels = list(df.columns)[1:]
+
+        # Ensure that there are at least 3 auxiliary channels
+        if len(aux_channels) < 3:
+            print(f"Item with the index {idx} only has {len(aux_channels)} channels!")
+            return None
+
+        # Extract the main channel and auxiliary channels
+        df_aux_all_2d = pd.DataFrame(df[aux_channels])
+        df_main_all_2d = pd.DataFrame(df[main_channel])
+
+        # Stack the main and auxiliary channels into 2D tensors
+        signal_data_train_2d = torch.stack(
+            [torch.stack(
+                [df_main_all_2d[main_channel].iloc[i]]) for i in range(df_main_all_2d.shape[0])])
+
+        aux_data_train_2d = torch.stack(
+            [torch.stack(
+                [df_aux_all_2d.iloc[i, 0],
+                    df_aux_all_2d.iloc[i, 1],
+                    df_aux_all_2d.iloc[i, 2]]
+            ) for i in range(df_aux_all_2d.shape[0])]
+        )
+
+        # Concatenate the main and auxiliary channel tensors
+        data_tensor = torch.cat([signal_data_train_2d, aux_data_train_2d], dim=1)
+
+        # Normalize and return the concatenated tensor
+        return normalize_(data_tensor)
 
 
 class TimeSeriesDatasetSplitter(DataSplitter):
@@ -86,10 +133,75 @@ class TimeSeriesDatasetSplitter(DataSplitter):
         train_proportion: int | float,
         validation_proportion: int | float = 0.0,
         test_proportion: int | float = 0.0,
-        rnd_seed: int | None = None,
-        # images_dataset: str = "TimeSeries_dataset_synthetic_main.pkl",
-        root_folder: str | None = None,
-        name: str | None = None
+        rnd_seed: Optional[int] = None,
+        root_folder: Optional[str] = None,
+        name: Optional[str] = None
+    ) -> None:
+        """Initialize the splitter for time-series datasets.
+
+        Args:
+            train_proportion (int | float): Proportion of files for the training set.
+            validation_proportion (int | float): Proportion for validation.
+            test_proportion (int | float): Proportion for testing.
+            rnd_seed (int | None): Seed for randomization (optional).
+            root_folder (str | None): Folder containing the dataset files.
+            name (str | None): Name of the data splitter.
+        """
+        super().__init__(
+            train_proportion,
+            validation_proportion,
+            test_proportion,
+            name
+        )
+        self.save_parameters(**self.locals2params(locals()))
+        self.rnd_seed = rnd_seed
+        self.root_folder = root_folder
+
+    @monitor_exec
+    def execute(self) -> Tuple[Dataset, Dataset, Dataset]:
+        """Execute the dataset splitting process.
+
+        Finds all pickled files in the root folder, then splits them into
+        training, validation, and test sets based on the specified proportions.
+
+        Returns:
+            Tuple[Dataset, Dataset, Dataset]: Training, validation, and test datasets.
+        """
+
+        # Ensure the root folder exists
+        if not os.path.isdir(self.root_folder):
+            raise FileNotFoundError(f"Root folder '{self.root_folder}' not found.")
+
+        # Find all file paths in root folder
+        all_file_paths = [os.path.join(dirpath, f)
+                          for dirpath, dirs, files in os.walk(self.root_folder)
+                          for f in files if f.endswith('.pkl')]
+
+        # Split file paths into train, validation, and test sets
+        [train_paths, validation_paths, test_paths] = random_split(
+            all_file_paths,
+            [self.train_proportion,
+             self.validation_proportion,
+             self.test_proportion]
+        )
+
+        # Create dataset objects for each split
+        train_dataset = DataFrameDataset(train_paths)
+        validation_dataset = DataFrameDataset(validation_paths)
+        test_dataset = DataFrameDataset(test_paths)
+
+        return train_dataset, validation_dataset, test_dataset
+
+
+class TimeSeriesDatasetSplitterSmall(DataSplitter):
+    def __init__(
+        self,
+        train_proportion: int | float,
+        validation_proportion: int | float = 0.0,
+        test_proportion: int | float = 0.0,
+        rnd_seed: Optional[int] = None,
+        images_dataset: str = "TimeSeries_dataset_synthetic_main.pkl",
+        name: Optional[str] = None
     ) -> None:
         super().__init__(
             train_proportion, validation_proportion,
@@ -98,18 +210,14 @@ class TimeSeriesDatasetSplitter(DataSplitter):
         self.save_parameters(**self.locals2params(locals()))
         self.validation_proportion = 1-train_proportion
         self.rnd_seed = rnd_seed
-        self.name = name
-        # self.images_dataset = images_dataset
-        self.root_folder = root_folder
-        self.loader = DataLoader(
-            DataFrameDataset(root_folder),
-            batch_size=300,
-            collate_fn=custom_collate
-                )
+        self.images_dataset = images_dataset
 
-    def get_or_load(self):
-        for combined_df in self.loader:
-            return combined_df
+    def get_or_load(self, dataset: Optional[pd.DataFrame] = None):
+        """If the dataset is not given, load it from disk."""
+        if dataset is None:
+            print("WARNING: loading time series dataset from disk.")
+            return pd.read_pickle(self.images_dataset)
+        return dataset
 
     @monitor_exec
     def execute(
@@ -124,11 +232,17 @@ class TimeSeriesDatasetSplitter(DataSplitter):
         Returns:
             Tuple: tuple of train, validation and test splits. Test is None.
         """
-        dataset = self.get_or_load()
+        dataset = self.get_or_load(dataset)
+
+        # Convert data to torch
         df = dataset.applymap(lambda x: torch.tensor(x))
 
+        # Divide Image dataset in main and aux channels. Note that df
+        # generated in the section Generate Synthetic Dataset will always have
+        # the main channel as its first column
         main_channel = list(df.columns)[0]
         aux_channels = list(df.columns)[1:]
+
         df_aux_all_2d = pd.DataFrame(df[aux_channels])
         df_main_all_2d = pd.DataFrame(df[main_channel])
         X_train_2d, X_test_2d, y_train_2d, y_test_2d = train_test_split(
@@ -137,7 +251,7 @@ class TimeSeriesDatasetSplitter(DataSplitter):
         return (X_train_2d, y_train_2d), (X_test_2d, y_test_2d), None
 
 
-class TimeSeriesProcessor(DataProcessor):
+class TimeSeriesProcessorSmall(DataProcessor):
     def __init__(self, name: str | None = None) -> None:
         super().__init__(name)
         self.save_parameters(**self.locals2params(locals()))
@@ -146,8 +260,7 @@ class TimeSeriesProcessor(DataProcessor):
     def execute(
         self,
         train_dataset: Tuple,
-        validation_dataset: Tuple,
-        test_dataset: Any = None
+        validation_dataset: Tuple
     ) -> Tuple[torch.Tensor, torch.Tensor, None]:
         """Pre-process datasets: rearrange and normalize before training.
 

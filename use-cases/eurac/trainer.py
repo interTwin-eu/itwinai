@@ -91,9 +91,9 @@ class RNNDistributedTrainer(TorchTrainer):
     def create_model_loss_optimizer(self) -> None:
         self.optimizer = optim.Adam(self.model.parameters(), lr=self.config.lr)
         self.lr_scheduler = ReduceLROnPlateau(
-            self.optimizer, 
-            mode="min", 
-            factor=self.config.lr_reduction_factor, 
+            self.optimizer,
+            mode="min",
+            factor=self.config.lr_reduction_factor,
             patience=self.config.lr_reduction_patience
         )
 
@@ -227,7 +227,6 @@ class RNNDistributedTrainer(TorchTrainer):
                 best_loss = avg_val_loss
                 best_model = self.model.state_dict()
 
-
             epoch_end_time = timer()
             epoch_time_tracker.add_epoch_time(
                 epoch - 1, epoch_end_time - epoch_start_time
@@ -243,7 +242,8 @@ class RNNDistributedTrainer(TorchTrainer):
 
             # Report training metrics of last epoch to Ray
             train.report(
-                    {"loss": avg_val_loss.item(), "train_loss": train_loss.item()}
+                {"loss": avg_val_loss.item(),
+                 "train_loss": train_loss.item()}
             )
 
         return loss_history, metric_history
@@ -362,9 +362,9 @@ class ConvRNNDistributedTrainer(TorchTrainer):
     def create_model_loss_optimizer(self) -> None:
         self.optimizer = optim.Adam(self.model.parameters(), lr=self.config.lr)
         self.lr_scheduler = ReduceLROnPlateau(
-            self.optimizer, 
-            mode="min", 
-            factor=self.config.lr_reduction_factor, 
+            self.optimizer,
+            mode="min",
+            factor=self.config.lr_reduction_factor,
             patience=self.config.lr_reduction_patience
         )
 
@@ -443,7 +443,7 @@ class ConvRNNDistributedTrainer(TorchTrainer):
 
             # gather losses from each worker and place them on the main worker.
             worker_val_losses = self.strategy.gather(val_loss, dst_rank=0)
-            if not self.strategy.global_rank() == 0: 
+            if not self.strategy.global_rank() == 0:
                 continue
 
             avg_val_loss = torch.mean(torch.stack(worker_val_losses)).detach().cpu()
