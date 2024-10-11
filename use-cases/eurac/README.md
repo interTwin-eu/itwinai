@@ -49,7 +49,7 @@ To generate the plots, refer to the
 
 ## Running HPO for EURAC Non-distributed
 
-HHyperparameter optimization (HPO) is integrated into the pipeline using Ray Tune.
+Hyperparameter optimization (HPO) is integrated into the pipeline using Ray Tune.
 This allows you to run multiple trials and fine-tune model parameters efficiently.
 HPO is configured to run multiple trials in parallel, but run those trials each in a non-distributed way.
 
@@ -59,9 +59,9 @@ To launch an HPO experiment, run
 sbatch slurm_ray.sh
 ```
 
-Make sure to adjust the #SBATCH directives in the script to specify the number of nodes, CPUs, and GPUs you want to allocate for the job.
-The slurm_ray.sh script sets up a Ray cluster and runs hpo.py for hyperparameter tuning.This script creates a ray cluster,
-and runs the python file `hpo.py`. You may change CLI variables for the python command to change parameters, such as the number of trials you want to run, or change the stopping criteria for the trials.
+This script sets up a Ray cluster and runs `hpo.py` for hyperparameter tuning.
+You may change CLI variables for `hpo.py` to change parameters,
+such as the number of trials you want to run, to change the stopping criteria for the trials or to set a different metric on which ray will evaluate trial results.
 By default, trials monitor validation loss, and results are plotted once all trials are completed.
 
 ## Exporting a local MLFlow run to the EGI cloud MLFlow remote tracking server

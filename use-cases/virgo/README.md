@@ -26,22 +26,8 @@ itwinai exec-pipeline --config config.yaml --pipe-key training_pipeline
 itwinai exec-pipeline --config config.yaml --pipe-key training_pipeline --steps 1:
 ```
 
-Alternatively, you can run distributed training with SLURM using the dedicated `slurm.sh` job script:
-
-```bash
-# Distributed training with torch DistributedDataParallel
-PYTHON_VENV="../../envAI_hdfml"
-DIST_MODE="ddp"
-RUN_NAME="ddp-virgo"
-TRAINING_CMD="$PYTHON_VENV/bin/itwinai exec-pipeline --config config.yaml --steps 1: --pipe-key training_pipeline -o strategy=ddp"
-sbatch --export=ALL,DIST_MODE="$DIST_MODE",RUN_NAME="$RUN_NAME",TRAINING_CMD="$TRAINING_CMD",PYTHON_VENV="$PYTHON_VENV" \
-    slurm.sh
-```
-
-...and check the results in `job.out` and `job.err` log files.
-
-To understand how to use all the distributed strategies supported by `itwinai`,
-check the content of `runall.sh`:
+You can run the training in a distributed manner using all strategies by running `runall.sh`.
+This will launch jobs for all the strategies and log their outputs into the logs_slurm folder.
 
 ```bash
 bash runall.sh
@@ -58,29 +44,14 @@ mlflow ui --backend-store-uri mllogs/mlflow > /dev/null 2>&1 &
 
 ## Running scaling tests
 
-Scaling tests have been integrated into the eurac usecase to provide timing of experiments run and thus show the power of distributed model training and itwinai.
-Refer to the files `runall.sh and scaling-test.sh.
-
-Launch the scaling test:
+Scaling tests provide information about how well the different distributed strategies scale.
+We have integrated them into this use case and you can run them using the scaling-test.sh script.´:
 
 ```bash
 bash scaling-test.sh
 ```
 
-Generate plots for the outputs of the scaling tests
-Once all jobs have completed, you can automatically generate scalability report
-using itwinai's CLI:
-
-```bash
-# First, activate your Python virtual environment
-
-# For more info run
-itwinai scalability-report --help
-
-# Generate a scalability report
-itwinai scalability-report --pattern="^epoch.+\.csv$" \
-    --plot-title "Virgo usecase scaling" --archive virgo_scaling
-```
+To generate the plots, refer to the [Scaling-Test Tutorial](https://github.com/interTwin-eu/itwinai/tree/main/tutorials/distributed-ml/torch-scaling-test#analyze-results).
 
 ## Running HPO for Virgo Non-distributed
 
@@ -94,8 +65,7 @@ To launch an HPO experiment, run
 sbatch slurm_ray.sh
 ```
 
-Make sure to adjust the #SBATCH directives in the script to specify the number of nodes, CPUs, and GPUs you want to allocate for the job.
-The slurm_ray.sh script sets up a Ray cluster and runs hpo.py for hyperparameter tuning. This script creates a ray cluster,
-and runs the python file `hpo.py`. You may change CLI variables for the python command to change parameters,
-such as the number of trials you want to run, or change the stopping criteria for the trials.
+This script sets up a Ray cluster and runs `hpo.py` for hyperparameter tuning.
+You may change CLI variables for `hpo.py` to change parameters,
+such as the number of trials you want to run, to change the stopping criteria for the trials or to set a different metric on which ray will evaluate trial results.
 By default, trials monitor validation loss, and results are plotted once all trials are completed.
