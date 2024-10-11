@@ -4,6 +4,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 from gwpy.timeseries import TimeSeries
+from ..src.dataset import generate_cut_image_dataset
 
 from ..src.dataset import generate_cut_image_dataset
 
