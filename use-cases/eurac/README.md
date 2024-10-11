@@ -13,85 +13,41 @@ cd use-cases/eurac
 pip install -r requirements.txt
 ```
 
-## Interactive session on SLURM
-
-Allocate 4 GPUs on a compute node and run distributed algorithms:
-see "[Distributed training on a single node (interactive)](https://github.com/interTwin-eu/itwinai/tree/main/tutorials/distributed-ml/torch-tutorial-0-basics#distributed-training-on-a-single-node-interactive)."
-
-```bash
-
-salloc --partition=batch --nodes=1 --account=intertwin  --gres=gpu:4 --time=1:59:00
-
-srun --jobid XXXX --overlap --pty /bin/bash
-
-ml --force purge
-
-ml Stages/2024 GCC OpenMPI CUDA/12 MPI-settings/CUDA Python HDF5 PnetCDF libaio mpi4py
-
-source ../../../hython-dev/bin/activate
-
-torchrun --standalone --nnodes=1 --nproc-per-node=gpu dist-train.py
-
-```
-
 ## Training
 
-You can run the whole pipeline in one shot, including dataset generation, or you can
-execute it from the second step (after the synthetic dataset have been generated).
+You can run the RNN pipeline with the following command:
 
 ```bash
-itwinai exec-pipeline --config config.yaml --pipe-key training_pipeline
-
-# Run from the second step (use python-like slicing syntax).
-# In this case, the dataset is loaded from "data/Image_dataset_synthetic_64x64.pkl"
-itwinai exec-pipeline --config config.yaml --pipe-key training_pipeline --steps 1:
+itwinai exec-pipeline --config config.yaml --pipe-key rnn_training_pipeline
 ```
 
-Launch distributed training with SLURM using the dedicated `runall.sh` job script:
+If you want to use the Conv pipeline instead, you can replace `rnn_training_pipeline` 
+with `conv_training_pipeline`.
 
-Train LSTM
-
-```bash
-# Distributed training with torch DistributedDataParallel
-./runall.sh config.yaml
-```
-
-Train ConvLSTM
+### Distributed runs
+You can run the training in a distributed manner using all strategies by running 
+`runall.sh`. This will launch jobs for all the strategies and log their outputs into the 
+`logs_slurm` folder. You can pass arguments by prepending environment variables. E.g. if 
+you want to turn debug-mode on, you pass `DEBUG=false` as follows: 
 
 ```bash
-# Distributed training with torch DistributedDataParallel
-./run.sh config_conv.yaml
+DEBUG=false ./runall.sh
 ```
 
 ## Running scaling tests
 
-Scaling tests have been integrated into the eurac usecase to provide timing of experiments run and ths show the power of distributed model training and itwinai. Refer to the following files `runall.sh , scaling-test.sh, torch_dist_final_scaling.py`.
+Scaling tests provide information about how well the different 
+distributed strategies scale. We have integrated them into this use case
+and you can run them using the `scaling-test.sh` script. 
 
-Launch the scaling test:
-
-```bash
-bash scaling-test.sh
-```
-
-Generate plots for the outputs of the scaling tests
-Once all jobs have completed, you can automatically generate scalability report
-using itwinai's CLI:
-
-```bash
-# First, activate you Python virtual environment
-
-# For more info run
-itwinai scalability-report --help
-
-# Generate a scalability report
-itwinai scalability-report --pattern="^epoch.+\.csv$" \
-    --plot-title "Eurac usecase scaling" --archive eurac_scaling
-```
-
+To generate the plots, refer to the
+[Scaling-Test Tutorial](https://github.com/interTwin-eu/itwinai/tree/main/tutorials/distributed-ml/torch-scaling-test#analyze-results).
 
 ## Running HPO for EURAC Non-distributed
 
-HPO has been implemented using Ray tuner to run in a non distributed environment. Refer to `train_hpo.py` file which was adapted from `train.py`. The current HPO parameters include learning rate(lr) and batch_size. 
+HPO has been implemented using the Ray tuner to run in a non-distributed 
+environment. Refer to `train_hpo.py` file which was adapted from 
+`train.py`. The current HPO parameters include learning rate (lr) and batch_size. 
 
 Launch the hpo expirement:
 
@@ -101,7 +57,7 @@ sbatch startscript_hpo.sh
 
 Visualize the HPO results by running `python visualize_hpo.py`. Adjust the `main_dir = '/p/home/jusers/<username>/hdfml/ray_results/<specific run folder name>'` accordingly based on the run folder name, the results path can be got from your slurm output file at the top.
 
-## Exporting a local mlflow run to the on EGI cloud mlflow remote tracking server
+## Exporting a local MLFlow run to the EGI cloud MLFlow remote tracking server
 
 Install [mlflow-export-import](https://github.com/mlflow/mlflow-export-import)
 
@@ -112,7 +68,9 @@ export MLFLOW_TRACKING_PASSWORD='YOUR_PWD'
 export MLFLOW_TRACKING_URI='https://mlflow.intertwin.fedcloud.eu/'
 ```
 
-Assuming the working directory is the eurac usecase, export the run-id from the local mlflow logs directory. This will also export all the associated artifacts (included models and model weights)
+Assuming the working directory is the EURAC use case, export the run-id from the 
+local mlflow logs directory. This will also export all the associated artifacts 
+(including models and model weights)
 
 
 ```bash
