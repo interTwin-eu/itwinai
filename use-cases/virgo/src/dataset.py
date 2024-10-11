@@ -14,13 +14,14 @@ Process Data that to save time.
 """
 
 
-import pandas as pd
-import numpy as np
-from tqdm import tqdm
-import matplotlib.pyplot as plt
 import multiprocessing
-from gwpy.timeseries import TimeSeries
+
+import matplotlib.pyplot as plt
 import matplotlib.transforms as mtrans
+import numpy as np
+import pandas as pd
+from gwpy.timeseries import TimeSeries
+from tqdm import tqdm
 
 
 def generate_dataset_aux_channels(

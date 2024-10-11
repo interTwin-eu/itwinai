@@ -4,12 +4,12 @@ from timeit import default_timer as timer
 from typing import Dict, Literal, Optional, Union
 
 import numpy as np
-from torch.utils.data import Dataset
 import torch
 import torch.nn as nn
 from ray import train
 from src.model import Decoder, Decoder_2d_deep, GeneratorResNet, UNet
 from src.utils import init_weights
+from torch.utils.data import Dataset
 from tqdm import tqdm
 
 from itwinai.loggers import EpochTimeTracker, Logger

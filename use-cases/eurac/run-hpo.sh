@@ -3,13 +3,13 @@
 # Job configuration
 #SBATCH --job-name=ray_tune_hpo    
 #SBATCH --account=intertwin       
-#SBATCH --time 0:30:00
+#SBATCH --time 01:00:00
 
 # Resources allocation
-#SBATCH --cpus-per-task=1
-#SBATCH --nodes=2
+#SBATCH --cpus-per-task=24
+#SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1
-#SBATCH --gpus-per-node=3
+#SBATCH --gpus-per-node=4
 #SBATCH --exclusive
 
 # Output and error logs
@@ -29,6 +29,7 @@ source $PYTHON_VENV/bin/activate
 export CUDA_VISIBLE_DEVICES="0,1,2,3"
 
 num_gpus=$SLURM_GPUS_PER_NODE
+num_cpus=$SLURM_CPUS_PER_TASK
 
 ## Disable Ray Usage Stats
 export RAY_USAGE_STATS_DISABLE=1
@@ -76,8 +77,7 @@ echo All Ray workers started.
 
 # Run the Python script using Ray
 echo 'Starting HPO.'
-
-python hpo.py --num_samples 8 --max_iterations 5
+python hpo.py --num_samples 4 --max_iterations 4 --ngpus $num_gpus --ncpus $num_cpus
 
 # Shutdown Ray after completion
 ray stop

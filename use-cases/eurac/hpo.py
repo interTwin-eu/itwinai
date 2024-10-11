@@ -9,10 +9,6 @@ from ray import train, tune
 
 from itwinai.parser import ConfigParser
 
-# Global variable for data root directory - this is the synthetic Virgo test data,
-# which can generally be used so that new data does not need to be generated for every run
-DATA_ROOT = "/p/scratch/intertwin/datasets/virgo/test_data"
-
 
 def run_trial(config):
     """
@@ -22,33 +18,8 @@ def run_trial(config):
 
     Args:
     - config: Dictionary with hyperparameters (e.g., 'batch_size', 'lr').
-
-    Example to run with a manual pipeline:
-
-    my_pipeline = Pipeline(
-        [
-            TimeSeriesDatasetSplitter(
-                train_proportion=0.9,
-                root_folder="/p/scratch/intertwin/datasets/virgo"
-            ),
-            TimeSeriesProcessor(),
-            NoiseGeneratorTrainer(
-                config=config,
-                num_epochs=4,
-                strategy=None,
-                checkpoint_path='checkpoints/checkpoint_epoch_{}.pth',
-                validation_every=20
-            )
-        ]
-    )
     """
 
-    # Passing a seed to TimeSeriesDatasetSplitter and NoiseGeneratorTrainer
-    # will make runs uniform across trials
-    # (reducing the variablility to the hyperparameter settings)
-
-    # Note: Comment out the TimeSeriesDatasetGenerator class and the
-    # WandBLogger in the config.yaml file to make it run on hdfml and pre-generated dataset
     parser = ConfigParser(
         config=Path('config.yaml'),
         override_keys={
@@ -93,8 +64,6 @@ def run_hpo(args):
         tune_config = tune.TuneConfig(
             metric=args.metric,  # Metric to optimize (loss by default)
             mode="min",  # Minimize the loss
-            search_alg=args.search_alg,
-            scheduler=args.scheduler,
             num_samples=args.num_samples  # Number of trials to run
         )
 
@@ -104,8 +73,13 @@ def run_hpo(args):
             stop={"training_iteration": args.max_iterations}
         )
 
+        # Determine GPU and CPU utilization per trial
+        # We are allocating all available ressources per node evenly across trials
+        ngpus_per_trial = max(1, args.ngpus // args.num_samples)
+        ncpus_per_trial = max(1, args.ncpus // args.num_samples)
+
         # Set resource allocation for each trial (number of GPUs and/or number of CPUs)
-        resources_per_trial = {"gpu": args.ngpus}
+        resources_per_trial = {"gpu": ngpus_per_trial, "cpu": ncpus_per_trial}
 
         # Set up Ray Tune Tuner
         tuner = tune.Tuner(
@@ -195,25 +169,22 @@ if __name__ == "__main__":
         help='Set this to true if you want to load results from an older ray run.')
     parser.add_argument(
         '--experiment_path', type=str,
-        default='~/ray_results/Virgo-Ray-Experiment',
+        default='~/ray_results/Eurac-Ray-Experiment',
         help='Directory where the results of the previous run are stored. \
         Set this only if load_old_results is set to True. \
-        Defaults to ~/ray_results/Virgo-Ray-Experiment')
+        Defaults to ~/ray_results/Eurac-Ray-Experiment')
     parser.add_argument(
         '--num_samples', type=int,
         default=10, help='Number of trials to run')
     parser.add_argument(
-        '--ngpus', type=int, default=1,
-        help='Number of GPUs per trial')
+        '--ngpus', type=int,
+        help='Number of GPUs available on node.')
+    parser.add_argument(
+        '--ncpus', type=int,
+        help='Number of CPUs available on node.')
     parser.add_argument(
         '--metric', type=str, default='loss',
         help='Metric to optimise.')
-    parser.add_argument(
-        '--scheduler', type=str, default=None,
-        choices=['ASHA', 'FIFO'], help='Scheduler to use for tuning')
-    parser.add_argument(
-        '--search_alg', type=str, default=None,
-        choices=['BayesOpt', 'HyperOpt'], help='Optimizer to use for tuning')
     parser.add_argument(
         '--max_iterations', type=int,
         default='20', help='Maximum iterations per trial')
