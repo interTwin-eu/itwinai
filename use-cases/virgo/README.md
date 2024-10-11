@@ -69,3 +69,28 @@ This script sets up a Ray cluster and runs `hpo.py` for hyperparameter tuning.
 You may change CLI variables for `hpo.py` to change parameters,
 such as the number of trials you want to run, to change the stopping criteria for the trials or to set a different metric on which ray will evaluate trial results.
 By default, trials monitor validation loss, and results are plotted once all trials are completed.
+
+## Generating Synthetic Data for the Virgo Use Case
+
+This project includes another SLURM script, `synthetic_data_gen/data_generation.sh`, that allows users to generate synthetic data for the Virgo gravitational wave detector use case.
+This step is typically not required unless you need to create new synthetic datasets.
+The synthetic data is generated using a Python script, file_gen.py, which creates multiple files containing simulated data.
+
+If you need to generate a new dataset, you can run the SLURM script with the following command:
+
+```bash
+sbatch data_generation.sh
+```
+
+The script will generate multiple data files and store them in separate folders, which are automatically created in the
+`/p/scratch/intertwin/datasets/virgo/ directory`.
+Each SLURM array job will create its own folder and populate it with the synthetic data files.
+The number of files created in each folder can be customized by setting the `NUM_FILES` environment variable before submitting the job.
+For example, to generate 50 files per array job, you can run:
+
+```bash
+export NUM_FILES=50
+sbatch data_generation.sh
+```
+
+If you do not specify `NUM_FILES`, the script will default to creating 100 files per folder.

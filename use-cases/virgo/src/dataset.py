@@ -259,34 +259,24 @@ def process_image(row, row_idx, channels, square_size):
     return df_row
 
 
-def generate_cut_image_dataset(
-        df, channels, num_processes=20, square_size=128
-):
-    """
-    Generates qplot dataset taking pandas df containing main+aux channels as
-    input. The output is a df containing qtransforms (frequency range 10-150Hz)
-    in the form of square_sizexsquare_size 2d np.array.
+def generate_cut_image_dataset(df, channels, num_processes=20, square_size=128):
+    """ Generates qplot dataset taking pandas df containing main+aux channels as input.
+    The output is a df containing qtransforms (frequency range 10-150Hz) in the form of square_sizexsquare_size 2d np.array
 
-
-     Parameters:
-        - df (DataFrame): DataFrame containing Main and Aux channels'
-            gwpy TimeSeries (Main channel is always first).
-        - channels (list): Name of columns in the DataFrame.
-        - num_processes (int): Number of cores for multiprocess (default 20)
-        - square_size (int): Size in pixels of qplot image (default is
-            500 samples per second).
+     Args:
+        df (DataFrame): DataFrame containing Main and Aux channels' gwpy TimeSeries (Main channel is always first).
+        channels (list): Name of columns in the DataFrame.
+        num_processes (int): Number of cores for multiprocess (default 20)
+        square_size (int): Size in pixels of qplot image (default is 500 samples per second).
 
     Returns:
-        - DataFrame: Pandas DataFrame containing the q_transform np.array data.
+        DataFrame: Pandas DataFrame containing the q_transform np.array data.
     """
 
-    print(channels)
-    args = [(df.iloc[row], row, channels, square_size)
-            for row in range(df.shape[0])]
+    args = [(df.iloc[row], row, channels, square_size) for row in range(df.shape[0])]
     with multiprocessing.Pool(processes=num_processes) as pool:
         # Use map to pass multiple arguments to process_image
-        results = list(
-            tqdm(pool.starmap(process_image, args), total=len(args)))
+        results = list(pool.starmap(process_image, args))
 
     df = pd.concat(results, ignore_index=True)
     return df
