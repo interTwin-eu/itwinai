@@ -1,10 +1,11 @@
 from typing import Any, Tuple
 
 import xarray as xr
-from hython.datasets.datasets import LSTMDataset, get_dataset
+from hython.datasets import LSTMDataset, get_dataset
+from hython.io import read_from_zarr
 from hython.normalizer import Normalizer
 from hython.sampler import AbstractDownSampler
-from hython.utils import read_from_zarr
+
 from itwinai.components import DataProcessor, DataSplitter, monitor_exec
 
 
@@ -31,9 +32,7 @@ class RNNDatasetGetterAndSplitter(DataSplitter):
         self.test_temporal_range = slice(test_temporal_range[0], test_temporal_range[1])
 
     @monitor_exec
-    def execute(
-        self
-    ) -> Tuple:
+    def execute(self) -> Tuple:
 
         # Dataset preparation
         Xd = (
@@ -86,15 +85,15 @@ class RNNProcessor(DataProcessor):
         self.downsampling_train = downsampling_train
         self.downsampling_test = downsampling_test
         # For the moment these are fixed
-        self.normalizer_dynamic = Normalizer(method="standardize",
-                                        type="spacetime", axis_order="NTC")
-                                        #save_stats=f"{TMP_STATS}/{EXPERIMENT}_xd.npy")
-        self.normalizer_static = Normalizer(method="standardize",
-                                        type="space", axis_order="NTC")
-                                        #save_stats=f"{TMP_STATS}/{EXPERIMENT}_xs.npy")
-        self.normalizer_target = Normalizer(method="standardize", type="spacetime",
-                                        axis_order="NTC")
-                                        #save_stats=f"{TMP_STATS}/{EXPERIMENT}_y.npy")
+        self.normalizer_dynamic = Normalizer(
+            method="standardize", type="spacetime", axis_order="NTC"
+        )
+        self.normalizer_static = Normalizer(
+            method="standardize", type="space", axis_order="NTC"
+        )
+        self.normalizer_target = Normalizer(
+            method="standardize", type="spacetime", axis_order="NTC"
+        )
 
     @monitor_exec
     def execute(
@@ -135,10 +134,6 @@ class RNNProcessor(DataProcessor):
 
         # Pass to trainer 
         return train_dataset, validation_dataset, None
-
-
-
-
 
 
 class ConvRNNDatasetGetterAndSplitter(DataSplitter):
@@ -215,18 +210,21 @@ class ConvRNNProcessor(DataProcessor):
         self.downsampling_train = downsampling_train
         self.downsampling_test = downsampling_test
         # For the moment these are fixed
-        self.normalizer_dynamic = Normalizer(method="standardize",
-                                        type="spacetime", axis_order="xarray_dataset")
-        self.normalizer_static = Normalizer(method="standardize",
-                                        type="space", axis_order="xarray_dataset")
-        self.normalizer_target = Normalizer(method="standardize", type="spacetime",
-                                        axis_order="xarray_dataset")
+        self.normalizer_dynamic = Normalizer(
+            method="standardize", type="spacetime", axis_order="xarray_dataset"
+        )
+        self.normalizer_static = Normalizer(
+            method="standardize", type="space", axis_order="xarray_dataset"
+        )
+        self.normalizer_target = Normalizer(
+                method="standardize", type="spacetime", axis_order="xarray_dataset"
+        )
 
         #TODO: HARDCODED!
         XSIZE,YSIZE, TSIZE = 20, 20, 60
         XOVER,YOVER,TOVER = 5, 5, 50
         self.missing_policy = 0.05
-        self.batch_size = {"xsize":XSIZE,"ysize":YSIZE,"tsize":TSIZE}
+        self.batch_size = {"xsize":XSIZE, "ysize":YSIZE, "tsize":TSIZE}
         self.overlap = {"xover":XOVER, "yover":YOVER, "tover":TOVER}
         self.persist = True 
         self.static_to_dynamic = True
