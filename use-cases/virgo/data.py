@@ -3,6 +3,7 @@ from typing import Optional, Tuple
 
 import pandas as pd
 import torch
+from sklearn.model_selection import train_test_split
 from src.dataset import (
     generate_cut_image_dataset,
     generate_dataset_aux_channels,
@@ -10,7 +11,6 @@ from src.dataset import (
     normalize_,
 )
 from torch.utils.data import Dataset, random_split
-from sklearn.model_selection import train_test_split
 
 from itwinai.components import DataGetter, DataProcessor, DataSplitter, monitor_exec
 

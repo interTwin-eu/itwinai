@@ -21,7 +21,6 @@ import matplotlib.transforms as mtrans
 import numpy as np
 import pandas as pd
 from gwpy.timeseries import TimeSeries
-from tqdm import tqdm
 
 
 def generate_dataset_aux_channels(
