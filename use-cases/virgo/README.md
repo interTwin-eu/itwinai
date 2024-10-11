@@ -74,7 +74,7 @@ By default, trials monitor validation loss, and results are plotted once all tri
 
 This project includes another SLURM script, `synthetic_data_gen/data_generation.sh`, that allows users to generate synthetic data for the Virgo gravitational wave detector use case.
 This step is typically not required unless you need to create new synthetic datasets.
-The synthetic data is generated using a Python script, file_gen.py, which creates multiple files containing simulated data.
+The synthetic data is generated using a Python script, `file_gen.py`, which creates multiple files containing simulated data.
 
 If you need to generate a new dataset, you can run the SLURM script with the following command:
 
@@ -83,7 +83,7 @@ sbatch data_generation.sh
 ```
 
 The script will generate multiple data files and store them in separate folders, which are automatically created in the
-`/p/scratch/intertwin/datasets/virgo/ directory`.
+`/p/scratch/intertwin/datasets/virgo/` directory.
 Each SLURM array job will create its own folder and populate it with the synthetic data files.
 The number of files created in each folder can be customized by setting the `NUM_FILES` environment variable before submitting the job.
 For example, to generate 50 files per array job, you can run:
