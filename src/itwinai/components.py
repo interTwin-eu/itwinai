@@ -95,8 +95,7 @@ from .type import MLArtifact, MLDataset, MLModel
 
 
 def monitor_exec(method: Callable) -> Callable:
-    """
-    Decorator for ``BaseComponent``'s methods.
+    """Decorator for ``BaseComponent``'s methods.
     Prints when the component starts and ends executing, indicating
     its execution time.
     """
