@@ -10,10 +10,9 @@ from src.dataset import (
     normalize_,
 )
 from torch.utils.data import Dataset, random_split
-from trainer import NoiseGeneratorTrainer
+from sklearn.model_selection import train_test_split
 
-from itwinai.components import DataGetter, DataSplitter, monitor_exec
-from itwinai.pipeline import Pipeline
+from itwinai.components import DataGetter, DataProcessor, DataSplitter, monitor_exec
 
 
 class TimeSeriesDatasetGenerator(DataGetter):
@@ -124,10 +123,8 @@ class DataFrameDataset(Dataset):
         # Concatenate the main and auxiliary channel tensors
         data_tensor = torch.cat([signal_data_train_2d, aux_data_train_2d], dim=1)
 
-        # Normalize the concatenated tensor
-        data_tensor = normalize_(data_tensor)
-
-        return data_tensor
+        # Normalize and return the concatenated tensor
+        return normalize_(data_tensor)
 
 
 class TimeSeriesDatasetSplitter(DataSplitter):
@@ -136,9 +133,9 @@ class TimeSeriesDatasetSplitter(DataSplitter):
         train_proportion: int | float,
         validation_proportion: int | float = 0.0,
         test_proportion: int | float = 0.0,
-        rnd_seed: int | None = None,
-        root_folder: str | None = None,
-        name: str | None = None
+        rnd_seed: Optional[int] = None,
+        root_folder: Optional[str] = None,
+        name: Optional[str] = None
     ) -> None:
         """Initialize the splitter for time-series datasets.
 
@@ -196,29 +193,158 @@ class TimeSeriesDatasetSplitter(DataSplitter):
         return train_dataset, validation_dataset, test_dataset
 
 
-if __name__ == "__main__":
-    root_folder = "/p/scratch/intertwin/datasets/virgo"
-
-    pipeline = Pipeline({
-        "splitter": TimeSeriesDatasetSplitter(
-            train_proportion=0.5,
-            validation_proportion=0.3,
-            test_proportion=0.2,
-            rnd_seed=42,
-            root_folder=root_folder,
-            name="Test Splitter"
-        ),
-        "trainer": NoiseGeneratorTrainer(
-            generator='simple',  # unet
-            batch_size=3,
-            num_epochs=2,
-            strategy='ddp',
-            random_seed=17,
-            validation_every=500,
-            learning_rate=0.0005
+class TimeSeriesDatasetSplitterSmall(DataSplitter):
+    def __init__(
+        self,
+        train_proportion: int | float,
+        validation_proportion: int | float = 0.0,
+        test_proportion: int | float = 0.0,
+        rnd_seed: Optional[int] = None,
+        images_dataset: str = "TimeSeries_dataset_synthetic_main.pkl",
+        name: Optional[str] = None
+    ) -> None:
+        super().__init__(
+            train_proportion, validation_proportion,
+            test_proportion, name
         )
-    })
+        self.save_parameters(**self.locals2params(locals()))
+        self.validation_proportion = 1-train_proportion
+        self.rnd_seed = rnd_seed
+        self.images_dataset = images_dataset
 
-    # Run pipeline
-    _, _, _, trained_model = pipeline.execute()
-    print("Trained model: ", trained_model)
+    def get_or_load(self, dataset: Optional[pd.DataFrame] = None):
+        """If the dataset is not given, load it from disk."""
+        if dataset is None:
+            print("WARNING: loading time series dataset from disk.")
+            return pd.read_pickle(self.images_dataset)
+        return dataset
+
+    @monitor_exec
+    def execute(
+        self,
+        dataset: Optional[pd.DataFrame] = None
+    ) -> Tuple:
+        """Splits a dataset into train, validation and test splits.
+
+        Args:
+            dataset (pd.DataFrame): input dataset.
+
+        Returns:
+            Tuple: tuple of train, validation and test splits. Test is None.
+        """
+        dataset = self.get_or_load(dataset)
+
+        # Convert data to torch
+        df = dataset.applymap(lambda x: torch.tensor(x))
+
+        # Divide Image dataset in main and aux channels. Note that df
+        # generated in the section Generate Synthetic Dataset will always have
+        # the main channel as its first column
+        main_channel = list(df.columns)[0]
+        aux_channels = list(df.columns)[1:]
+
+        df_aux_all_2d = pd.DataFrame(df[aux_channels])
+        df_main_all_2d = pd.DataFrame(df[main_channel])
+        X_train_2d, X_test_2d, y_train_2d, y_test_2d = train_test_split(
+            df_aux_all_2d, df_main_all_2d,
+            test_size=self.validation_proportion, random_state=self.rnd_seed)
+        return (X_train_2d, y_train_2d), (X_test_2d, y_test_2d), None
+
+
+class TimeSeriesProcessorSmall(DataProcessor):
+    def __init__(self, name: str | None = None) -> None:
+        super().__init__(name)
+        self.save_parameters(**self.locals2params(locals()))
+
+    @monitor_exec
+    def execute(
+        self,
+        train_dataset: Tuple,
+        validation_dataset: Tuple
+    ) -> Tuple[torch.Tensor, torch.Tensor, None]:
+        """Pre-process datasets: rearrange and normalize before training.
+
+        Args:
+            train_dataset (Tuple): training dataset.
+            validation_dataset (Tuple): validation dataset.
+            test_dataset (Any, optional): unused placeholder. Defaults to None.
+
+        Returns:
+            Tuple[torch.Tensor, torch.Tensor, None]: train, validation, and
+                test (placeholder) datasets. Ready to be used for training.
+        """
+        X_train_2d, y_train_2d = train_dataset
+        X_test_2d, y_test_2d = validation_dataset
+
+        # Name of the main channel (assuming it's in position 0)
+        main_channel = list(y_train_2d.columns)[0]
+
+        # TRAINING SET
+
+        # # smaller dataset
+        # signal_data_train_small_2d = torch.stack([
+        #     torch.stack([y_train_2d[main_channel].iloc[i]])
+        #     for i in range(100)
+        # ])  # for i in range(y_train.shape[0])
+        # aux_data_train_small_2d = torch.stack([
+        #     torch.stack([X_train_2d.iloc[i][0], X_train_2d.iloc[i]
+        #                 [1], X_train_2d.iloc[i][2]])
+        #     for i in range(100)
+        # ])  # for i in range(X_train.shape[0])
+
+        # whole dataset
+        signal_data_train_2d = torch.stack([
+            torch.stack([y_train_2d[main_channel].iloc[i]])
+            for i in range(y_train_2d.shape[0])
+        ])
+        aux_data_train_2d = torch.stack([
+            torch.stack(
+                [X_train_2d.iloc[i][0], X_train_2d.iloc[i][1],
+                 X_train_2d.iloc[i][2]])
+            for i in range(X_train_2d.shape[0])
+        ])
+
+        # concatenate torch.tensors
+        train_data_2d = torch.cat(
+            [signal_data_train_2d, aux_data_train_2d], dim=1)
+        # train_data_small_2d = torch.cat(
+        #     [signal_data_train_small_2d, aux_data_train_small_2d], dim=1)
+
+        # VALIDATION SET
+
+        # # smaller dataset
+        # signal_data_test_small_2d = torch.stack([
+        #     torch.stack(
+        #         [y_test_2d[main_channel].iloc[i]])
+        #     for i in range(100)
+        # ])  # for i in range(y_test.shape[0])
+        # aux_data_test_small_2d = torch.stack([
+        #     torch.stack(
+        #         [X_test_2d.iloc[i][0], X_test_2d.iloc[i][1],
+        #          X_test_2d.iloc[i][2]])
+        #     for i in range(100)
+        # ])  # for i in range(X_test.shape[0])
+
+        # whole dataset
+        signal_data_test_2d = torch.stack([
+            torch.stack(
+                [y_test_2d[main_channel].iloc[i]])
+            for i in range(y_test_2d.shape[0])
+        ])
+        aux_data_test_2d = torch.stack([
+            torch.stack(
+                [X_test_2d.iloc[i][0], X_test_2d.iloc[i][1],
+                 X_test_2d.iloc[i][2]])
+            for i in range(X_test_2d.shape[0])
+        ])
+
+        test_data_2d = torch.cat(
+            [signal_data_test_2d, aux_data_test_2d], dim=1)
+        # test_data_small_2d = torch.cat(
+        #     [signal_data_test_small_2d, aux_data_test_small_2d], dim=1)
+
+        # NORMALIZE
+        train_data_2d = normalize_(train_data_2d)
+        test_data_2d = normalize_(test_data_2d)
+
+        return train_data_2d, test_data_2d, None

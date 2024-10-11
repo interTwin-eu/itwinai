@@ -11,13 +11,14 @@ from itwinai.parser import ConfigParser
 
 
 def run_trial(config):
-    """
-    Execute a single trial using the given configuration (config).
-    This runs a full training pipeline - you can also specify a pipeline as a dictionary, 
-    e.g. if you only want to run certain parts without changing your config.yaml file (see below).
+    """ Execute a single trial using the given configuration (config).
+    This runs a full training pipeline - you can also specify a pipeline as a dictionary,
+    e.g. if you only want to run certain parts without changing your config.yaml file.
 
     Args:
-    - config: Dictionary with hyperparameters (e.g., 'batch_size', 'lr').
+        config (dict): A dictionary containing hyperparameters, such as:
+            - 'batch_size' (int): The size of the batch for training.
+            - 'lr' (float): The learning rate for the optimizer.
     """
 
     parser = ConfigParser(
@@ -39,8 +40,7 @@ def run_trial(config):
 
 
 def run_hpo(args):
-    """
-    Run hyperparameter optimization using Ray Tune.
+    """ Run hyperparameter optimization using Ray Tune.
     Either starts a new optimization run or resumes from previous results.
 
     Args:
@@ -122,14 +122,20 @@ def run_hpo(args):
     print(f"All result columns: {result_df.columns}")
 
     # Plot the results for all trials
-    plot_results(result_grid, metric=args.metric, filename="ray-loss-plot.png")
-    plot_results(result_grid, metric="train_loss",
-                 filename="ray-train_loss-plot.png")
+    plot_results(
+        result_grid,
+        metric=args.metric,
+        filename="ray-loss-plot.png"
+    )
+    plot_results(
+        result_grid,
+        metric="train_loss",
+        filename="ray-train_loss-plot.png"
+    )
 
 
 def plot_results(result_grid, metric="loss", filename="plot.png"):
-    """
-    Plot the results for all trials and save the plot to a file.
+    """ Plot the results for all trials and save the plot to a file.
 
     Args:
     - result_grid: Results from Ray Tune trials.
@@ -141,16 +147,18 @@ def plot_results(result_grid, metric="loss", filename="plot.png"):
         label = f"lr={result.config['lr']:.6f}, batch size={result.config['batch_size']}"
         if ax is None:
             ax = result.metrics_dataframe.plot(
-                "training_iteration", metric, label=label)
+                "training_iteration", metric, label=label
+            )
         else:
             result.metrics_dataframe.plot(
-                "training_iteration", metric, ax=ax, label=label)
+                "training_iteration", metric, ax=ax, label=label
+            )
 
     ax.set_title(
-        f"{metric.capitalize()} vs. Training Iteration for All Trials")
+        f"{metric.capitalize()} vs. Training Iteration for All Trials"
+    )
     ax.set_ylabel(metric.capitalize())
 
-    # Save the plot to a file
     plt.savefig(filename)
 
     # Show the plot
@@ -162,32 +170,49 @@ if __name__ == "__main__":
 
     # Parse command-line arguments
     parser = argparse.ArgumentParser(
-        description='Hyperparameter Optimization with Ray Tune')
+        description='Hyperparameter Optimization with Ray Tune'
+    )
     parser.add_argument(
-        '--load_old_results', type=bool,
+        '--load_old_results',
+        type=bool,
         default=False,
-        help='Set this to true if you want to load results from an older ray run.')
+        help='Set this to true if you want to load results from an older ray run.'
+    )
     parser.add_argument(
-        '--experiment_path', type=str,
+        '--experiment_path',
+        type=str,
         default='~/ray_results/Eurac-Ray-Experiment',
         help='Directory where the results of the previous run are stored. \
         Set this only if load_old_results is set to True. \
-        Defaults to ~/ray_results/Eurac-Ray-Experiment')
+        Defaults to ~/ray_results/Eurac-Ray-Experiment'
+    )
     parser.add_argument(
-        '--num_samples', type=int,
-        default=10, help='Number of trials to run')
+        '--num_samples',
+        type=int,
+        default=10, help='Number of trials to run'
+    )
     parser.add_argument(
-        '--ngpus', type=int,
-        help='Number of GPUs available on node.')
+        '--ngpus',
+        type=int,
+        help='Number of GPUs available on node.'
+    )
     parser.add_argument(
-        '--ncpus', type=int,
-        help='Number of CPUs available on node.')
+        '--ncpus',
+        type=int,
+        help='Number of CPUs available on node.'
+    )
     parser.add_argument(
-        '--metric', type=str, default='loss',
-        help='Metric to optimise.')
+        '--metric',
+        type=str,
+        default='loss',
+        help='Metric to optimise.'
+    )
     parser.add_argument(
-        '--max_iterations', type=int,
-        default='20', help='Maximum iterations per trial')
+        '--max_iterations',
+        type=int,
+        default='20',
+        help='Maximum iterations per trial'
+    )
 
     args = parser.parse_args()  # Parse the command-line arguments
 

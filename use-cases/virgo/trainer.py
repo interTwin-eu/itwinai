@@ -28,7 +28,7 @@ class NoiseGeneratorTrainer(TorchTrainer):
         config: Union[Dict, TrainingConfiguration] | None = None,
         generator: Literal["simple", "deep", "resnet", "unet"] = "unet",
         loss: Literal["L1", "L2"] = "L1",
-        strategy: Literal["ddp", "deepspeed", "horovod"] | None = 'ddp',
+        strategy: Optional[Literal["ddp", "deepspeed", "horovod"]] = 'ddp',
         checkpoint_path: str = "checkpoints/epoch_{}.pth",
         save_best: bool = True,
         logger: Optional[Logger] = None,
@@ -151,9 +151,8 @@ class NoiseGeneratorTrainer(TorchTrainer):
         # Some batches contain None values, if any files from the dataset did not match the criteria
         # (i.e. three auxilliary channels)
         batch = list(filter(lambda x: x is not None, batch))
-        batch = torch.cat(batch)
 
-        return batch
+        return torch.cat(batch)
 
     def train(self):
         # Start the timer for profiling
@@ -323,7 +322,9 @@ class NoiseGeneratorTrainer(TorchTrainer):
                 epoch_time_tracker.add_epoch_time(epoch-1, timer()-lt)
 
             # Report training metrics of last epoch to Ray
-            train.report({"loss": np.mean(val_loss),
-                          "train_loss": np.mean(epoch_loss)})
+            train.report(
+                {"loss": np.mean(val_loss),
+                 "train_loss": np.mean(epoch_loss)}
+            )
 
         return loss_plot, val_loss_plot, acc_plot, val_acc_plot
