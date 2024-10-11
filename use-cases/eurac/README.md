@@ -33,6 +33,8 @@ you want to turn debug-mode on, you pass `DEBUG=false` as follows:
 ```bash
 DEBUG=false ./runall.sh
 ```
+The same can be done with any other variables you might want to change. You can see 
+all the variables in `runall.sh`. 
 
 ## Running scaling tests
 
