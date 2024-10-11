@@ -1,5 +1,4 @@
 import os
-from copy import deepcopy
 from pathlib import Path
 from timeit import default_timer as timer
 from typing import Dict, Literal, Optional, Union
@@ -98,10 +97,10 @@ class RNNDistributedTrainer(TorchTrainer):
             patience=self.config.lr_reduction_patience
         )
 
-        TARGET_WEIGHTS = {
+        target_weights = {
             t: 1 / len(self.config.target_names) for t in self.config.target_names
         }
-        self.loss_fn = RMSELoss(target_weight=TARGET_WEIGHTS)
+        self.loss_fn = RMSELoss(target_weight=target_weights)
         self.metric_fn = MSEMetric()
 
         distribute_kwargs = {}
@@ -370,10 +369,10 @@ class ConvRNNDistributedTrainer(TorchTrainer):
         )
 
 
-        TARGET_WEIGHTS = {
+        target_weights = {
             t: 1 / len(self.config.target_names) for t in self.config.target_names
         }
-        self.loss_fn = RMSELoss(target_weight=TARGET_WEIGHTS)
+        self.loss_fn = RMSELoss(target_weight=target_weights)
         self.metric_fn = MSEMetric()
 
         if isinstance(self.strategy, DeepSpeedStrategy):
@@ -490,7 +489,7 @@ class ConvRNNDistributedTrainer(TorchTrainer):
             processing=(
                 "multi-gpu" if self.config.distributed else "single-gpu"
             ),
-        )  #
+        )  
 
         val_sampler_builder = SamplerBuilder(
             validation_dataset,

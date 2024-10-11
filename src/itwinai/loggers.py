@@ -452,7 +452,8 @@ class MLFlowLogger(Logger):
     #: Supported kinds in the ``log`` method
     supported_kinds: Tuple[str] = (
         'metric', 'figure', 'image', 'artifact', 'torch', 'dict', 'param',
-        'text', 'model', 'dataset')
+        'text', 'model', 'dataset'
+    )
 
     #: Current MLFLow experiment's run.
     active_run: mlflow.ActiveRun
