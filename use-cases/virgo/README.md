@@ -95,6 +95,7 @@ sbatch slurm_ray.sh
 ```
 
 Make sure to adjust the #SBATCH directives in the script to specify the number of nodes, CPUs, and GPUs you want to allocate for the job.
-The slurm_ray.sh script sets up a Ray cluster and runs hpo.py for hyperparameter tuning.This script creates a ray cluster,
-and runs the python file `hpo.py`. You may change CLI variables for the python command to change parameters, such as the number of trials you want to run, or change the stopping criteria for the trials.
+The slurm_ray.sh script sets up a Ray cluster and runs hpo.py for hyperparameter tuning. This script creates a ray cluster,
+and runs the python file `hpo.py`. You may change CLI variables for the python command to change parameters,
+such as the number of trials you want to run, or change the stopping criteria for the trials.
 By default, trials monitor validation loss, and results are plotted once all trials are completed.
