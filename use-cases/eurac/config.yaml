@@ -43,6 +43,8 @@ rnn_training_pipeline:
             target_names: ${target_names}
             dp_weights: ${surrogate_model_output}
             distributed: True
+            lr_reduction_factor: 0.5
+            lr_reduction_patience: 10
           model:
             class_path: hython.models.cudnnLSTM.CuDNNLSTM
             init_args:
@@ -100,12 +102,13 @@ conv_training_pipeline:
           config:
             experiment: ${run_name}
             batch_size: 32
+            lr_reduction_factor: 0.5
+            lr_reduction_patience: 10
             lr: 0.001
-            rnn_config:
-              temporal_subsampling: True
-              temporal_subset: 1
-              target_names:  [ "vwc","actevap"]
-              distributed: True
+            temporal_subsampling: True
+            temporal_subset: 1
+            target_names:  [ "vwc","actevap"]
+            distributed: True
           model:
             class_path: hython.models.convLSTM.ConvLSTM
             init_args:

@@ -347,8 +347,8 @@ class TorchDistributedStrategy(DistributedStrategy):
                 are gathered.
 
         Returns:
-            Optional[List[Any]]: list of objects gathered from all workers if main 
-                worker, otherwise return None. 
+            Optional[List[Any]]: list of objects gathered from all workers if main
+                worker, otherwise return None.
         """
 
 
@@ -543,14 +543,13 @@ class TorchDDPStrategy(TorchDistributedStrategy):
             dist.gather(tensor, dst=dst_rank)
             return
 
-        res = [torch.zeros_like(tensor, device=self.device()) 
+        res = [torch.zeros_like(tensor, device=self.device())
                for _ in range(self.global_world_size())]
 
         dist.gather(tensor, gather_list=res, dst=dst_rank)
 
         # Moving everything to the CPU before returning
         return [val.cpu() for val in res]
-
 
 
 class DeepSpeedStrategy(TorchDistributedStrategy):
@@ -737,7 +736,6 @@ class DeepSpeedStrategy(TorchDistributedStrategy):
         return [val.cpu() for val in res]
 
 
-
 class HorovodStrategy(TorchDistributedStrategy):
     """Horovod distributed strategy class."""
 
@@ -869,7 +867,8 @@ class HorovodStrategy(TorchDistributedStrategy):
         """
         if not self.is_initialized:
             raise UninitializedStrategyError(
-                "Strategy has not been initialized. Use the init method.")
+                "Strategy has not been initialized. Use the init method."
+            )
         return hvd.allgather_object(obj)
 
     def gather_obj(self, obj: Any, dst_rank: int = 0) -> list[Any]:
@@ -885,7 +884,8 @@ class HorovodStrategy(TorchDistributedStrategy):
         """
         if not self.is_initialized:
             raise UninitializedStrategyError(
-                "Strategy has not been initialized. Use the init method.")
+                "Strategy has not been initialized. Use the init method."
+            )
         return self.allgather_obj(obj)
 
     def gather(self, tensor: torch.Tensor, dst_rank: int = 0):
@@ -901,9 +901,10 @@ class HorovodStrategy(TorchDistributedStrategy):
         """
         if not self.is_initialized:
             raise UninitializedStrategyError(
-                "Strategy has not been initialized. Use the init method.")
+                "Strategy has not been initialized. Use the init method."
+            )
 
-        # Moving all the tensors to CPU before returning 
+        # Moving all the tensors to CPU before returning
         result = self.allgather_obj(tensor)
         return [val.cpu() for val in result]
 

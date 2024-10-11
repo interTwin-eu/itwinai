@@ -92,7 +92,10 @@ class RNNDistributedTrainer(TorchTrainer):
     def create_model_loss_optimizer(self) -> None:
         self.optimizer = optim.Adam(self.model.parameters(), lr=self.config.lr)
         self.lr_scheduler = ReduceLROnPlateau(
-            self.optimizer, mode="min", factor=0.5, patience=10
+            self.optimizer, 
+            mode="min", 
+            factor=self.config.lr_reduction_factor, 
+            patience=self.config.lr_reduction_patience
         )
 
         TARGET_WEIGHTS = {
@@ -360,8 +363,12 @@ class ConvRNNDistributedTrainer(TorchTrainer):
     def create_model_loss_optimizer(self) -> None:
         self.optimizer = optim.Adam(self.model.parameters(), lr=self.config.lr)
         self.lr_scheduler = ReduceLROnPlateau(
-            self.optimizer, mode="min", factor=0.5, patience=10
+            self.optimizer, 
+            mode="min", 
+            factor=self.config.lr_reduction_factor, 
+            patience=self.config.lr_reduction_patience
         )
+
 
         TARGET_WEIGHTS = {
             t: 1 / len(self.config.target_names) for t in self.config.target_names
