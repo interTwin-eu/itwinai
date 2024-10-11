@@ -7,7 +7,7 @@
 #SBATCH --account=intertwin
 #SBATCH --output=logs_slurm/job.out
 #SBATCH --error=logs_slurm/job.err
-#SBATCH --time=00:20:00
+#SBATCH --time=01:00:00
 
 # Resources allocation
 #SBATCH --partition=batch
@@ -38,7 +38,7 @@ fi
 if [ -z "$TRAINING_CMD" ]; then 
  	TRAINING_CMD="$(which itwinai) exec-pipeline \
 	--config $CONFIG_FILE \
-	--pipe-key training_pipeline \
+	--pipe-key rnn_training_pipeline \
 	-o strategy=$DIST_MODE"
   >&2 echo "WARNING: env variable TRAINING_CMD is not set. Defaulting to $TRAINING_CMD."
 fi
