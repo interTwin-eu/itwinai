@@ -184,5 +184,5 @@ else
   pip install --no-cache-dir "prov4ml[linux]@git+https://github.com/matbun/ProvML" || exit 1
 fi
 
-# Install itwinai
+# Install itwinai: MUST be last line of the script for the user installation script to work!
 pip install --no-cache-dir -e .[torch,dev] || exit 1
