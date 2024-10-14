@@ -57,7 +57,7 @@ def generate_pkl_dataset(
             # Determine the number of sine waves to generate for this column randomly
             num_waves = np.random.randint(*num_waves_range)
 
-         # Generate each sine wave
+             # Generate each sine wave
             for _ in range(num_waves):
                 # Randomly generate parameters for the sine wave (amplitude, frequency, phase)
                 amplitude = np.random.uniform(0.5, 2.0)
@@ -81,7 +81,6 @@ def generate_pkl_dataset(
             dictionary_aux[channel_name] = [ts]
 
         # Creating the main timeseries
-
         main_data += np.random.normal(0, noise_amplitude)
         ts_main = TimeSeries(main_data, dt=1/sample_rate)
 
@@ -98,17 +97,14 @@ def generate_pkl_dataset(
 
         datapoints.append(df)
         if len(datapoints) % datapoints_per_file == 0:
+            # Create a new file when the number of datapoints in the accumulator
+            # reaches datapoints_per_file.
             df_concat = pd.concat(datapoints)
             df_concat.to_pickle(filepath)
             datapoints = []
 
-        # save dataframe to PICKLE file
-        # df.to_pickle(filepath)
-
 
 if __name__ == "__main__":
-
-    # Parse command-line arguments
     parser = argparse.ArgumentParser(
         description='Virgo Dataset Generation'
     )
@@ -123,15 +119,16 @@ if __name__ == "__main__":
         help='Number of files which will be created.'
     )
 
-    args = parser.parse_args()  # Parse the command-line arguments
+    args = parser.parse_args()
 
     # Creating the folders with the PKL files of timeseries data
-    generate_pkl_dataset(folder_name=args.target_folder_name,
-                         num_files=args.file_number,
-                         duration=16,
-                         sample_rate=500,
-                         num_aux_channels=3,
-                         num_waves_range=(10, 15),
-                         noise_amplitude=0.5,
-                         datapoints_per_file=500
-                         )
+    generate_pkl_dataset(
+        folder_name=args.target_folder_name,
+        num_files=args.file_number,
+        duration=16,
+        sample_rate=500,
+        num_aux_channels=3,
+        num_waves_range=(10, 15),
+        noise_amplitude=0.5,
+        datapoints_per_file=500
+    )
