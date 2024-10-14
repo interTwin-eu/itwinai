@@ -114,7 +114,7 @@ class TorchPredictor(Predictor):
             self.config = TrainingConfiguration(**config)
         else:
             self.config = config
-        self.model = self.model
+        self.model = self.model.eval()
         self.strategy = strategy
         self.logger = logger
         self.checkpoints_location = checkpoints_location
@@ -165,7 +165,7 @@ class TorchPredictor(Predictor):
             )
         distribute_kwargs = {}
         # Distributed model, optimizer, and scheduler
-        self.model,_,_ = self.strategy.distributed(
+        self.model, _, _ = self.strategy.distributed(
             self.model, None, None, **distribute_kwargs
         )
 
@@ -225,9 +225,10 @@ class TorchPredictor(Predictor):
             self.logger.save_hyperparameters(hparams)
 
         all_predictions = dict()
-        for samples_ids, samples in inference_dataset:
+        for ids, (samples_ids, samples) in enumerate(self.inference_dataloader):
             with torch.no_grad():
-                pred = self.model(samples)
+                pred = self.model(samples.to(self.device))
+            pred = self.transform_predictions(pred)
             for idx, pre in zip(samples_ids, pred):
                 # For each item in the batch
                 if pre.numel() == 1:
@@ -274,6 +275,13 @@ class TorchPredictor(Predictor):
                 batch_idx=batch_idx,
                 **kwargs
             )
+    
+    @abc.abstractmethod
+    def transform_predictions(self, batch: Batch) -> Batch:
+        """
+        Post-process the predictions of the torch model (e.g., apply
+        threshold in case of multi-label classifier).
+        """
 
 
 class MulticlassTorchPredictor(TorchPredictor):
