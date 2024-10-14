@@ -97,6 +97,10 @@ from .distributed import detect_distributed_environment, distributed_patch_print
 from .serialization import ModelLoader, Serializable
 from .type import MLArtifact, MLDataset, MLModel
 
+from .distributed import detect_distributed_environment, distributed_patch_print
+from .serialization import ModelLoader, Serializable
+from .type import MLArtifact, MLDataset, MLModel
+
 
 def monitor_exec(method: Callable) -> Callable:
     """Decorator for ``BaseComponent``'s methods.
@@ -118,6 +122,84 @@ def monitor_exec(method: Callable) -> Callable:
         self._printout(msg)
         return result
     return wrapper
+
+def profile_torch_trainer(method: Callable) -> Callable: 
+    """Decorator for execute method for components. Profiles the communication time 
+    vs. computation time and stores the result for future analysis. 
+    """
+
+    from torch.profiler import ProfilerActivity, profile
+
+    from itwinai.torch.trainer import TorchTrainer
+
+    def gather_profiling_data(key_averages: Iterable) -> pd.DataFrame: 
+        profiling_data = []
+        for event in key_averages:
+            profiling_data.append(
+                {
+                    "name": event.key,
+                    "node_id": event.node_id,
+                    "self_cpu_time_total": event.self_cpu_time_total,
+                    "cpu_time_total": event.cpu_time_total,
+                    "cpu_time_total_str": event.cpu_time_total_str,
+                    "self_cuda_time_total": event.self_cuda_time_total,
+                    "cuda_time_total": event.cuda_time_total,
+                    "cuda_time_total_str": event.cuda_time_total_str,
+                    "calls": event.count,
+                }
+            )
+        return pd.DataFrame(profiling_data)
+
+
+
+    @functools.wraps(method)
+    def profiled_method(self: TorchTrainer, *args, **kwargs) -> Any: 
+
+        profiler = profile(
+            activities=[ProfilerActivity.CUDA, ProfilerActivity.CPU],
+            with_modules=True,
+        )
+        profiler.start()
+        # TODO: Make sure this doesn't clean up the strategy
+        try: 
+            result = method(self, *args, **kwargs)
+        finally: 
+            profiler.stop()
+
+        strategy = self.strategy
+        if isinstance(strategy, NonDistributedStrategy): 
+            strategy_str = "non-dist"
+        elif isinstance(strategy, TorchDDPStrategy): 
+            strategy_str = "ddp"
+        elif isinstance(strategy, DeepSpeedStrategy): 
+            strategy_str = "deepspeed"
+        elif isinstance(strategy, HorovodStrategy): 
+            strategy_str = "horovod"
+        else: 
+            strategy_str = "unk"
+
+        global_rank = strategy.global_rank()
+        global_size = strategy.global_world_size()
+
+        key_averages = profiler.key_averages()
+        profiling_dataframe = gather_profiling_data(key_averages=key_averages)
+        
+        profiling_log_dir = Path("profiling_logs")
+        profiling_log_dir.mkdir(parents=True, exist_ok=True)
+
+        filename: str = f"profile_{strategy_str}_{global_size}_{global_rank}.csv"
+        output_path = profiling_log_dir / filename
+
+        print(f"Writing profiling dataframe to {output_path}")
+        profiling_dataframe.to_csv(output_path)
+        strategy.clean_up()
+
+        return result
+    
+    return profiled_method
+
+
+
 
 def profile_torch_trainer(method: Callable) -> Callable: 
     """Decorator for execute method for components. Profiles the communication time 

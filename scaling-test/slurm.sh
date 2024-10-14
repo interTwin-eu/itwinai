@@ -3,10 +3,10 @@
 # SLURM jobscript for JSC systems
 
 # Job configuration
-#SBATCH --job-name=comm_analysis_horovod
+#SBATCH --job-name=comm_test
 #SBATCH --account=intertwin
-#SBATCH --output=logs_slurm/horovod.out
-#SBATCH --error=logs_slurm/horovod.err
+#SBATCH --output=logs_slurm/deepspeed.out
+#SBATCH --error=logs_slurm/deepspeed.err
 #SBATCH --time=00:30:00
 
 # Resources allocation
@@ -22,7 +22,7 @@ ml Stages/2024 GCC OpenMPI CUDA/12 MPI-settings/CUDA Python HDF5 PnetCDF libaio 
 PYTHON_VENV="../envAI_hdfml"
 source $PYTHON_VENV/bin/activate
 
-EPOCHS=5
+EPOCHS=2
 TORCHRUN_STRATEGY="deepspeed"
 
 run_torchrun() {
@@ -45,6 +45,6 @@ run_horovod() {
         python profiler.py --epochs $EPOCHS --strategy horovod
 }
 
-# run_torchrun
-run_horovod
+run_torchrun
+# run_horovod
 
