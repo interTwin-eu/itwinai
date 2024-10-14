@@ -164,7 +164,7 @@ class TorchPredictor(Predictor):
                 "self.model is None! Mandatory constructor argument "
             )
         distribute_kwargs = {}
-        # Distributed model, optimizer, and scheduler
+        # Distributed model
         self.model, _, _ = self.strategy.distributed(
             self.model, None, None, **distribute_kwargs
         )
