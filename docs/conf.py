@@ -12,23 +12,13 @@ import sys
 
 exclude_patterns = 'requirements.txt'
 
-# sys.path.insert(0, os.path.abspath('../use-cases/'))
-# sys.path.insert(0, os.path.abspath('../use-cases/3dgan/'))
-# sys.path.insert(0, os.path.abspath('../use-cases/mnist/torch-lightning/'))
-# sys.path.insert(0, os.path.abspath('../use-cases/mnist/torch/'))
 sys.path.insert(0, os.path.abspath('../tutorials/ml-workflows/'))
-# sys.path.insert(0, os.path.abspath('../tutorials/distributed-ml/'))
-# sys.path.insert(0, os.path.abspath('../src/itwinai'))
-# sys.path.insert(0, os.path.abspath('../src/itwinai/tensorflow'))
-# sys.path.insert(0, os.path.abspath('../src/itwinai/torch'))
 sys.path.insert(0, os.path.abspath('../src'))
 sys.path.insert(0, os.path.abspath('../images'))
-# sys.path.insert(0, os.path.abspath('../...'))
 
 project = 'itwinai'
-copyright = ('2024, Matteo Bunino, Kalliopi Tsolaki, '
-             'Rakesh Sarma, Mario Ruettgers on behalf of CERN & JSC')
-author = 'Matteo Bunino, Kalliopi Tsolaki, Rakesh Sarma, Mario Ruettgers'
+copyright = ('2024, Matteo Bunino on behalf of CERN')
+author = 'Matteo Bunino'
 version = '0.2'  # short version
 release = '0.2.2'  # full version
 
