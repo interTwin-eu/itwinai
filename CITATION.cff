@@ -13,19 +13,6 @@ authors:
     email: matteo.bunino@cern.ch
     affiliation: CERN
     orcid: 'https://orcid.org/0009-0008-5100-9300'
-  - given-names: Rakesh
-    family-names: Sarma
-    email: r.sarma@fz-juelich.de
-    affiliation: FZ Juelich
-  - given-names: Mario
-    family-names: Ruettgers
-    affiliation: FZ Juelich
-    email: m.ruettgers@fz-juelich.de
-  - given-names: Kalliopi
-    family-names: Tsolaki
-    email: kalliopi.tsolaki@cern.ch
-    affiliation: CERN
-    orcid: 'https://orcid.org/0000-0002-3192-4260'
 repository-code: 'https://github.com/interTwin-eu/itwinai'
 url: 'https://itwinai.readthedocs.io/'
 abstract: AI on cloud and HPC made simple for science
