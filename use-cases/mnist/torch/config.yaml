@@ -103,6 +103,7 @@ inference_pipeline:
             num_workers_dataloader: 4
             pin_gpu_memory: true
             shuffle_test: false
+          strategy: ${strategy}
       
       - class_path: saver.TorchMNISTLabelSaver
         init_args:
