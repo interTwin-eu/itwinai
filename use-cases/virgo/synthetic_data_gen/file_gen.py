@@ -19,8 +19,8 @@ def generate_pkl_dataset(
     num_processes=4,
     square_size=64,
     datapoints_per_file=10
-):
-    """ Generate a folder with num_files h5py files containing synthetic gravitational waves data.
+) -> None:
+    """Generate a folder with num_files pickle files containing synthetic gravitational waves data.
 
     Args:
         folder_name (string): the path and name where the files will be stored
@@ -33,10 +33,7 @@ def generate_pkl_dataset(
         noise_amplitude (float): Amplitude of the smooth random noise added to the time series data (default is 0.1).
         num_processes (int): Number of cores for multiprocess (default 20)
         square_size (int): Size in pixels of qplot image (default is 500 samples per second).
-
-    Returns:
-        A folder containing an arbitrary number of h5py files. Each file contains an arbitrary number of channels with synthetic data.
-        The files are named foldername-file-number.h5
+        datapoints_per_file (int): number of independent datapoints per pickle file.
     """
 
     datapoints = []
