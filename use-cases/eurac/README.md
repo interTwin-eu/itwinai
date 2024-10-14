@@ -102,5 +102,5 @@ loaded_model = mlflow.pyfunc.load_model(logged_model)
 
 ```
 
-> :warning: While the model is loading an error occurs **RuntimeError: Default process group has not been initialized, please make sure to call init_process_group.**
+> [!WARNING] While the model is loading an error occurs **RuntimeError: Default process group has not been initialized, please make sure to call init_process_group.**
 > Possible reasons due to package version mismatch <https://github.com/mlflow/mlflow/issues/4903>.
