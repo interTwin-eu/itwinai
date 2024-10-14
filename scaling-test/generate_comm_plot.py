@@ -89,7 +89,8 @@ def main():
     )
     args = parser.parse_args()
 
-    logs_dir = Path("logs")
+    logs_dir = Path("profiling_logs")
+    logs_dir.mkdir(parents=True, exist_ok=True)
     pattern = r"profile_(\w+)_(\d+)_(\d+)\.csv$"
     df = create_combined_comm_overhead_df(logs_dir=logs_dir, pattern=pattern)
     values = get_comp_fraction_full_array(df)
