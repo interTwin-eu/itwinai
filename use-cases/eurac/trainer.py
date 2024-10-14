@@ -16,7 +16,6 @@ from torch.optim.lr_scheduler import ReduceLROnPlateau
 from torch.utils.data import Dataset
 from tqdm.auto import tqdm
 
-from itwinai.distributed import suppress_workers_print
 from itwinai.loggers import EpochTimeTracker, Logger
 from itwinai.torch.config import TrainingConfiguration
 from itwinai.torch.distributed import (
@@ -27,7 +26,7 @@ from itwinai.torch.distributed import (
 )
 from itwinai.torch.trainer import TorchTrainer
 from itwinai.torch.type import Metric
-from itwinai.torch.profiler import profile_torch_trainer
+from itwinai.components import profile_torch_trainer
 
 class RNNDistributedTrainer(TorchTrainer):
     """Trainer class for RNN model using pytorch.
@@ -89,9 +88,9 @@ class RNNDistributedTrainer(TorchTrainer):
             **kwargs,
         )
         self.save_parameters(**self.locals2params(locals()))
+        # self.execute = types.MethodType(profile_torch_trainer(self.execute), self)
 
 
-    @suppress_workers_print
     @profile_torch_trainer
     def execute(
         self, 
@@ -138,14 +137,6 @@ class RNNDistributedTrainer(TorchTrainer):
             **distribute_kwargs,
         )
 
-    def set_epoch(self, epoch: int): 
-        if self.profiler is not None: 
-            self.profiler.step()
-
-        if self.strategy.is_distributed:
-            self.train_loader.sampler.set_epoch(epoch)
-            self.val_loader.sampler.set_epoch(epoch)
-
     def train(self):
         """Override version of hython to support distributed strategy."""
         # Tracking epoch times for scaling test
@@ -179,7 +170,10 @@ class RNNDistributedTrainer(TorchTrainer):
         best_loss = float("inf")
         for epoch in tqdm(range(self.epochs)):
             epoch_start_time = timer()
-            self.set_epoch(epoch)
+            if self.strategy.is_distributed:
+                # *Added for distributed*
+                self.train_loader.sampler.set_epoch(epoch)
+                self.val_loader.sampler.set_epoch(epoch)
 
             self.model.train()
 

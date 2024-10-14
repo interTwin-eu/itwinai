@@ -98,8 +98,6 @@ class TorchTrainer(Trainer, LogMixin):
     test_glob_step: int = 0
     #: Dictionary of ``torchmetrics`` metrics, indexed by user-defined names.
     metrics: Dict[str, Metric]
-    #: PyTorch Profiler for communication vs. computation comparison
-    profiler: Optional[Any]
 
     def __init__(
         self,
@@ -136,7 +134,6 @@ class TorchTrainer(Trainer, LogMixin):
         self.checkpoints_location = checkpoints_location
         os.makedirs(self.checkpoints_location, exist_ok=True)
         self.checkpoint_every = checkpoint_every
-        self.profiler = None
 
     @property
     def strategy(self) -> TorchDistributedStrategy:
@@ -301,6 +298,7 @@ class TorchTrainer(Trainer, LogMixin):
         # Dear user, this is a method you #
         # may be interested to override!  #
         ###################################
+
         self.train_dataloader = self.strategy.create_dataloader(
             dataset=train_dataset,
             batch_size=self.config.batch_size,
@@ -395,8 +393,6 @@ class TorchTrainer(Trainer, LogMixin):
         Args:
             epoch (int): epoch number, from 0 to ``epochs-1``.
         """
-        if self.profiler is not None:
-            self.profiler.step()
         self._set_epoch_dataloaders(epoch)
 
     def log(
@@ -639,7 +635,7 @@ class TorchTrainer(Trainer, LogMixin):
             epoch (int): current epoch number, from 0 to ``self.epochs - 1``.
 
         Returns:
-            Optional[Loss]: average validation loss for the current epoch if
+            Optional[Loss]: average validation loss for the current epoch if 
                 self.validation_dataloader is not None
         """
         if self.validation_dataloader is None:
