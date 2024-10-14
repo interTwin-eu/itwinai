@@ -265,7 +265,7 @@ class TorchPredictor(Predictor):
                 batch_idx=batch_idx,
                 **kwargs
             )
-    
+
     @abc.abstractmethod
     def transform_predictions(self, batch: Batch) -> Batch:
         """
