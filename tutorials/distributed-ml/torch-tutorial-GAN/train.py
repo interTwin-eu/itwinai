@@ -39,7 +39,7 @@ class Generator(nn.Module):
             nn.ReLU(True),
             # output layer
             nn.ConvTranspose2d(g_hidden, image_channel, 4, 2, 1, bias=False),
-            nn.Tanh()
+            nn.Tanh(),
         )
 
     def forward(self, input):
@@ -67,7 +67,7 @@ class Discriminator(nn.Module):
             nn.LeakyReLU(0.2, inplace=True),
             # output layer
             nn.Conv2d(d_hidden * 8, 1, 4, 1, 0, bias=False),
-            nn.Sigmoid()
+            nn.Sigmoid(),
         )
 
     def forward(self, input):
@@ -103,20 +103,22 @@ class GANTrainer(TorchTrainer):
     """
 
     def __init__(
-            self,
-            config: Union[Dict, TrainingConfiguration],
-            epochs: int,
-            discriminator: nn.Module,
-            generator: nn.Module,
-            strategy: Literal["ddp", "deepspeed"] = 'ddp',
-            validation_every: Optional[int] = 1,
-            test_every: Optional[int] = None,
-            random_seed: Optional[int] = None,
-            logger: Optional[Logger] = None,
-            metrics: Optional[Dict[str, Metric]] = None,
-            checkpoints_location: str = "checkpoints",
-            checkpoint_every: Optional[int] = None,
-            name: Optional[str] = None, **kwargs) -> None:
+        self,
+        config: Union[Dict, TrainingConfiguration],
+        epochs: int,
+        discriminator: nn.Module,
+        generator: nn.Module,
+        strategy: Literal["ddp", "deepspeed"] = "ddp",
+        validation_every: Optional[int] = 1,
+        test_every: Optional[int] = None,
+        random_seed: Optional[int] = None,
+        logger: Optional[Logger] = None,
+        metrics: Optional[Dict[str, Metric]] = None,
+        checkpoints_location: str = "checkpoints",
+        checkpoint_every: Optional[int] = None,
+        name: Optional[str] = None,
+        **kwargs,
+    ) -> None:
         super().__init__(
             config=config,
             epochs=epochs,
@@ -130,26 +132,26 @@ class GANTrainer(TorchTrainer):
             checkpoints_location=checkpoints_location,
             checkpoint_every=checkpoint_every,
             name=name,
-            **kwargs)
+            **kwargs,
+        )
         self.save_parameters(**self.locals2params(locals()))
         self.discriminator = discriminator
         self.generator = generator
 
     def create_model_loss_optimizer(self) -> None:
         self.optimizerD = optim.Adam(
-            self.discriminator.parameters(), lr=self.config.lr,
-            betas=(0.5, 0.999)
+            self.discriminator.parameters(), lr=self.config.lr, betas=(0.5, 0.999)
         )
         self.optimizerG = optim.Adam(
-            self.generator.parameters(), lr=self.config.lr,
-            betas=(0.5, 0.999))
+            self.generator.parameters(), lr=self.config.lr, betas=(0.5, 0.999)
+        )
         self.criterion = nn.BCELoss()
 
         # https://stackoverflow.com/a/67437077
         self.discriminator = torch.nn.SyncBatchNorm.convert_sync_batchnorm(
-            self.discriminator)
-        self.generator = torch.nn.SyncBatchNorm.convert_sync_batchnorm(
-            self.generator)
+            self.discriminator
+        )
+        self.generator = torch.nn.SyncBatchNorm.convert_sync_batchnorm(self.generator)
 
         # First, define strategy-wise optional configurations
         if isinstance(self.strategy, DeepSpeedStrategy):
@@ -163,9 +165,13 @@ class GANTrainer(TorchTrainer):
             distribute_kwargs = {}
         # Distribute discriminator and its optimizer
         self.discriminator, self.optimizerD, _ = self.strategy.distributed(
-            self.discriminator, self.optimizerD, **distribute_kwargs)
+            self.discriminator, self.optimizerD, **distribute_kwargs
+        )
         self.generator, self.optimizerG, _ = self.strategy.distributed(
-            self.generator, self.optimizerG, **distribute_kwargs)
+            self.generator, self.optimizerG, **distribute_kwargs
+        )
+        self.discriminator.to(self.device)
+        self.generator.to(self.device)
 
     def train_epoch(self, epoch: int):
         self.discriminator.train()
@@ -174,8 +180,7 @@ class GANTrainer(TorchTrainer):
         disc_train_losses = []
         disc_train_accuracy = []
         for batch_idx, (real_images, _) in enumerate(self.train_dataloader):
-            lossG, lossD, accuracy_disc = self.train_step(
-                real_images, batch_idx)
+            lossG, lossD, accuracy_disc = self.train_step(real_images, batch_idx)
             gen_train_losses.append(lossG)
             disc_train_losses.append(lossD)
             disc_train_accuracy.append(accuracy_disc)
@@ -185,23 +190,23 @@ class GANTrainer(TorchTrainer):
         avg_disc_accuracy = torch.mean(torch.stack(disc_train_accuracy))
         self.log(
             item=avg_disc_accuracy.item(),
-            identifier='disc_train_accuracy_per_epoch',
-            kind='metric',
+            identifier="disc_train_accuracy_per_epoch",
+            kind="metric",
             step=epoch,
         )
         avg_gen_loss = torch.mean(torch.stack(gen_train_losses))
         self.log(
             item=avg_gen_loss.item(),
-            identifier='gen_train_loss_per_epoch',
-            kind='metric',
+            identifier="gen_train_loss_per_epoch",
+            kind="metric",
             step=epoch,
         )
 
         avg_disc_loss = torch.mean(torch.stack(disc_train_losses))
         self.log(
             item=avg_disc_loss.item(),
-            identifier='disc_train_loss_per_epoch',
-            kind='metric',
+            identifier="disc_train_loss_per_epoch",
+            kind="metric",
             step=epoch,
         )
 
@@ -214,10 +219,10 @@ class GANTrainer(TorchTrainer):
         disc_validation_accuracy = []
         self.discriminator.eval()
         self.generator.eval()
-        for batch_idx, (real_images, _) in enumerate(
-                self.validation_dataloader):
-            loss_gen, accuracy_gen, loss_disc, accuracy_disc = (
-                self.validation_step(real_images, batch_idx))
+        for batch_idx, (real_images, _) in enumerate(self.validation_dataloader):
+            loss_gen, accuracy_gen, loss_disc, accuracy_disc = self.validation_step(
+                real_images, batch_idx
+            )
             gen_validation_losses.append(loss_gen)
             gen_validation_accuracy.append(accuracy_gen)
             disc_validation_losses.append(loss_disc)
@@ -225,36 +230,32 @@ class GANTrainer(TorchTrainer):
             self.validation_glob_step += 1
 
         # Aggregate and log metrics
-        disc_validation_loss = torch.mean(torch.stack(
-            disc_validation_losses))
+        disc_validation_loss = torch.mean(torch.stack(disc_validation_losses))
         self.log(
             item=disc_validation_loss.item(),
-            identifier='disc_valid_loss_per_epoch',
-            kind='metric',
+            identifier="disc_valid_loss_per_epoch",
+            kind="metric",
             step=epoch,
         )
-        disc_validation_accuracy = torch.mean(torch.stack(
-            disc_validation_accuracy))
+        disc_validation_accuracy = torch.mean(torch.stack(disc_validation_accuracy))
         self.log(
             item=disc_validation_accuracy.item(),
-            identifier='disc_valid_accuracy_epoch',
-            kind='metric',
+            identifier="disc_valid_accuracy_epoch",
+            kind="metric",
             step=epoch,
         )
-        gen_validation_loss = torch.mean(torch.stack(
-            gen_validation_losses))
+        gen_validation_loss = torch.mean(torch.stack(gen_validation_losses))
         self.log(
             item=gen_validation_loss.item(),
-            identifier='gen_valid_loss_per_epoch',
-            kind='metric',
+            identifier="gen_valid_loss_per_epoch",
+            kind="metric",
             step=epoch,
         )
-        gen_validation_accuracy = torch.mean(torch.stack(
-            gen_validation_accuracy))
+        gen_validation_accuracy = torch.mean(torch.stack(gen_validation_accuracy))
         self.log(
             item=gen_validation_accuracy.item(),
-            identifier='gen_valid_accuracy_epoch',
-            kind='metric',
+            identifier="gen_valid_accuracy_epoch",
+            kind="metric",
             step=epoch,
         )
 
@@ -263,32 +264,28 @@ class GANTrainer(TorchTrainer):
     def train_step(self, real_images, batch_idx):
         real_images = real_images.to(self.device)
         batch_size = real_images.size(0)
-        real_labels = torch.ones(
-            (batch_size,),
-            dtype=torch.float, device=self.device)
-        fake_labels = torch.zeros(
-            (batch_size,),
-            dtype=torch.float, device=self.device)
+        real_labels = torch.ones((batch_size,), dtype=torch.float, device=self.device)
+        fake_labels = torch.zeros((batch_size,), dtype=torch.float, device=self.device)
 
         # Train Discriminator with real images
         output_real = self.discriminator(real_images)
         lossD_real = self.criterion(output_real, real_labels)
         # Generate fake images and train Discriminator
-        noise = torch.randn(
-            batch_size, self.config.z_dim, 1, 1, device=self.device)
+        noise = torch.randn(batch_size, self.config.z_dim, 1, 1, device=self.device)
 
         fake_images = self.generator(noise)
         output_fake = self.discriminator(fake_images.detach())
         lossD_fake = self.criterion(output_fake, fake_labels)
 
-        lossD = (lossD_real+lossD_fake)/2
+        lossD = (lossD_real + lossD_fake) / 2
 
         self.optimizerD.zero_grad()
         lossD.backward()
         self.optimizerD.step()
 
-        accuracy = ((output_real > 0.5).float() == real_labels).float().mean(
-        ) + ((output_fake < 0.5).float() == fake_labels).float().mean()
+        accuracy = ((output_real > 0.5).float() == real_labels).float().mean() + (
+            (output_fake < 0.5).float() == fake_labels
+        ).float().mean()
         accuracy_disc = accuracy.mean()
 
         # Train Generator
@@ -299,24 +296,24 @@ class GANTrainer(TorchTrainer):
         self.optimizerG.step()
         self.log(
             item=accuracy_disc,
-            identifier='disc_train_accuracy_per_batch',
-            kind='metric',
+            identifier="disc_train_accuracy_per_batch",
+            kind="metric",
             step=self.train_glob_step,
-            batch_idx=batch_idx
+            batch_idx=batch_idx,
         )
         self.log(
             item=lossG,
-            identifier='gen_train_loss_per_batch',
-            kind='metric',
+            identifier="gen_train_loss_per_batch",
+            kind="metric",
             step=self.train_glob_step,
-            batch_idx=batch_idx
+            batch_idx=batch_idx,
         )
         self.log(
             item=lossD,
-            identifier='disc_train_loss_per_batch',
-            kind='metric',
+            identifier="disc_train_loss_per_batch",
+            kind="metric",
             step=self.train_glob_step,
-            batch_idx=batch_idx
+            batch_idx=batch_idx,
         )
 
         return lossG, lossD, accuracy_disc
@@ -324,18 +321,15 @@ class GANTrainer(TorchTrainer):
     def validation_step(self, real_images, batch_idx):
         real_images = real_images.to(self.device)
         batch_size = real_images.size(0)
-        real_labels = torch.ones((batch_size,),
-                                 dtype=torch.float, device=self.device)
-        fake_labels = torch.zeros((batch_size,),
-                                  dtype=torch.float, device=self.device)
+        real_labels = torch.ones((batch_size,), dtype=torch.float, device=self.device)
+        fake_labels = torch.zeros((batch_size,), dtype=torch.float, device=self.device)
 
         # Validate with real images
         output_real = self.discriminator(real_images)
         loss_real = self.criterion(output_real, real_labels)
 
         # Generate and validate fake images
-        noise = torch.randn(
-            batch_size, self.config.z_dim, 1, 1, device=self.device)
+        noise = torch.randn(batch_size, self.config.z_dim, 1, 1, device=self.device)
 
         with torch.no_grad():
             fake_images = self.generator(noise)
@@ -344,43 +338,43 @@ class GANTrainer(TorchTrainer):
 
         # Generator's attempt to fool the discriminator
         loss_gen = self.criterion(output_fake, real_labels)
-        accuracy_gen = (
-            (output_fake > 0.5).float() == real_labels).float().mean()
+        accuracy_gen = ((output_fake > 0.5).float() == real_labels).float().mean()
 
         # Calculate total discriminator loss and accuracy
         loss_disc = (loss_real + loss_fake) / 2
-        accuracy = ((output_real > 0.5).float() == real_labels).float().mean(
-        ) + ((output_fake < 0.5).float() == fake_labels).float().mean()
+        accuracy = ((output_real > 0.5).float() == real_labels).float().mean() + (
+            (output_fake < 0.5).float() == fake_labels
+        ).float().mean()
         accuracy_disc = accuracy.mean()
 
         self.log(
             item=loss_gen.item(),
-            identifier='gen_valid_loss_per_batch',
-            kind='metric',
+            identifier="gen_valid_loss_per_batch",
+            kind="metric",
             step=self.validation_glob_step,
-            batch_idx=batch_idx
+            batch_idx=batch_idx,
         )
         self.log(
             item=accuracy_gen.item(),
-            identifier='gen_valid_accuracy_per_batch',
-            kind='metric',
+            identifier="gen_valid_accuracy_per_batch",
+            kind="metric",
             step=self.validation_glob_step,
-            batch_idx=batch_idx
+            batch_idx=batch_idx,
         )
 
         self.log(
             item=loss_disc.item(),
-            identifier='disc_valid_loss_per_batch',
-            kind='metric',
+            identifier="disc_valid_loss_per_batch",
+            kind="metric",
             step=self.validation_glob_step,
-            batch_idx=batch_idx
+            batch_idx=batch_idx,
         )
         self.log(
             item=accuracy_disc,
-            identifier='disc_valid_accuracy_per_batch',
-            kind='metric',
+            identifier="disc_valid_accuracy_per_batch",
+            kind="metric",
             step=self.validation_glob_step,
-            batch_idx=batch_idx
+            batch_idx=batch_idx,
         )
         return loss_gen, accuracy_gen, loss_disc, accuracy_disc
 
@@ -391,14 +385,15 @@ class GANTrainer(TorchTrainer):
 
         checkpoint_path = os.path.join(self.checkpoints_location, f"{name}")
         checkpoint = {
-            'epoch': epoch,
-            'loss': loss.item() if loss is not None else None,
-            'discriminator_state_dict': self.discriminator.state_dict(),
-            'generator_state_dict': self.generator.state_dict(),
-            'optimizerD_state_dict': self.optimizerD.state_dict(),
-            'optimizerG_state_dict': self.optimizerG.state_dict(),
-            'lr_scheduler': self.lr_scheduler.state_dict() if
-            self.lr_scheduler else None
+            "epoch": epoch,
+            "loss": loss.item() if loss is not None else None,
+            "discriminator_state_dict": self.discriminator.state_dict(),
+            "generator_state_dict": self.generator.state_dict(),
+            "optimizerD_state_dict": self.optimizerD.state_dict(),
+            "optimizerG_state_dict": self.optimizerG.state_dict(),
+            "lr_scheduler": (
+                self.lr_scheduler.state_dict() if self.lr_scheduler else None
+            ),
         }
 
         torch.save(checkpoint, checkpoint_path)
@@ -408,15 +403,13 @@ class GANTrainer(TorchTrainer):
         """Load models and optimizers from checkpoint."""
         checkpoint = torch.load(checkpoint_path)
 
-        self.discriminator.load_state_dict(
-            checkpoint['discriminator_state_dict'])
-        self.generator.load_state_dict(checkpoint['generator_state_dict'])
-        self.optimizerD.load_state_dict(checkpoint['optimizerD_state_dict'])
-        self.optimizerG.load_state_dict(checkpoint['optimizerG_state_dict'])
+        self.discriminator.load_state_dict(checkpoint["discriminator_state_dict"])
+        self.generator.load_state_dict(checkpoint["generator_state_dict"])
+        self.optimizerD.load_state_dict(checkpoint["optimizerD_state_dict"])
+        self.optimizerG.load_state_dict(checkpoint["optimizerG_state_dict"])
 
-        if 'lr_scheduler' in checkpoint:
-            if checkpoint['lr_scheduler'] is not None:
-                self.lr_scheduler.load_state_dict(checkpoint['lr_scheduler'])
+        if "lr_scheduler" in checkpoint and checkpoint["lr_scheduler"] is not None:
+            self.lr_scheduler.load_state_dict(checkpoint["lr_scheduler"])
 
         print(f"Checkpoint loaded from {checkpoint_path}")
 
@@ -424,56 +417,66 @@ class GANTrainer(TorchTrainer):
         self.generator.eval()
         noise = torch.randn(64, self.config.z_dim, 1, 1, device=self.device)
         fake_images = self.generator(noise)
-        fake_images_grid = torchvision.utils.make_grid(
-            fake_images, normalize=True)
+        fake_images_grid = torchvision.utils.make_grid(fake_images, normalize=True)
         fig, ax = plt.subplots(figsize=(8, 8))
         ax.set_axis_off()
-        ax.set_title(f'Fake images for epoch {epoch}')
+        ax.set_title(f"Fake images for epoch {epoch}")
         ax.imshow(np.transpose(fake_images_grid.cpu().numpy(), (1, 2, 0)))
         self.log(
             item=fig,
-            identifier=f'fake_images_epoch_{epoch}.png',
-            kind='figure',
+            identifier=f"fake_images_epoch_{epoch}.png",
+            kind="figure",
             step=epoch,
         )
 
 
 def main():
-    parser = argparse.ArgumentParser(description='PyTorch MNIST GAN Example')
-    parser.add_argument('--batch-size', type=int, default=128,
-                        help='input batch size for training (default: 128)')
-    parser.add_argument('--epochs', type=int, default=15,
-                        help='number of epochs to train (default: 15)')
-    parser.add_argument('--strategy', type=str, default='ddp',
-                        help='distributed strategy (default=ddp)')
-    parser.add_argument('--lr', type=float, default=0.001,
-                        help='learning rate (default: 0.001)')
-    parser.add_argument('--seed', type=int, default=1,
-                        help='random seed (default: 1)')
+    parser = argparse.ArgumentParser(description="PyTorch MNIST GAN Example")
     parser.add_argument(
-        '--ckpt-interval', type=int, default=2,
-        help='how many batches to wait before logging training status')
+        "--batch-size",
+        type=int,
+        default=128,
+        help="input batch size for training (default: 128)",
+    )
+    parser.add_argument(
+        "--epochs", type=int, default=15, help="number of epochs to train (default: 15)"
+    )
+    parser.add_argument(
+        "--strategy", type=str, default="ddp", help="distributed strategy (default=ddp)"
+    )
+    parser.add_argument(
+        "--lr", type=float, default=0.001, help="learning rate (default: 0.001)"
+    )
+    parser.add_argument("--seed", type=int, default=1, help="random seed (default: 1)")
+    parser.add_argument(
+        "--ckpt-interval",
+        type=int,
+        default=2,
+        help="how many batches to wait before logging training status",
+    )
     args = parser.parse_args()
 
     torch.manual_seed(args.seed)
 
     # Dataset
-    transform = transforms.Compose([
-        transforms.Resize(64),
-        transforms.ToTensor(),
-        transforms.Normalize((0.5,), (0.5,))
-    ])
+    transform = transforms.Compose(
+        [
+            transforms.Resize(64),
+            transforms.ToTensor(),
+            transforms.Normalize((0.5,), (0.5,)),
+        ]
+    )
 
     train_dataset = datasets.MNIST(
-        '../data', train=True, download=True, transform=transform)
-    validation_dataset = datasets.MNIST(
-        '../data', train=False, transform=transform)
+        "../data", train=True, download=True, transform=transform
+    )
+    validation_dataset = datasets.MNIST("../data", train=False, transform=transform)
 
     def weights_init(m):
         classname = m.__class__.__name__
-        if classname.find('Conv') != -1:
+        if classname.find("Conv") != -1:
             m.weight.data.normal_(0.0, 0.02)
-        elif classname.find('BatchNorm') != -1:
+        elif classname.find("BatchNorm") != -1:
             m.weight.data.normal_(1.0, 0.02)
             m.bias.data.fill_(0)
 
@@ -485,14 +488,11 @@ def main():
 
     # Training configuration
     training_config = TrainingConfiguration(
-        batch_size=args.batch_size,
-        lr=args.lr,
-        epochs=args.epochs,
-        z_dim=100
+        batch_size=args.batch_size, lr=args.lr, epochs=args.epochs, z_dim=100
     )
 
     # Logger
-    logger = MLFlowLogger(experiment_name='Distributed GAN MNIST', log_freq=10)
+    logger = MLFlowLogger(experiment_name="Distributed GAN MNIST", log_freq=10)
 
     # Trainer
     trainer = GANTrainer(
@@ -502,13 +502,12 @@ def main():
         strategy=args.strategy,
         epochs=args.epochs,
         random_seed=args.seed,
-        logger=logger
+        logger=logger,
     )
 
     # Launch training
-    _, _, _, trained_model = trainer.execute(
-        train_dataset, validation_dataset, None)
+    _, _, _, trained_model = trainer.execute(train_dataset, validation_dataset, None)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
