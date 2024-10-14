@@ -78,7 +78,7 @@ users to generate synthetic dataset for the Virgo gravitational wave detector us
 This step is typically not required unless you need to create new synthetic datasets.
 
 The synthetic data is generated using a Python script, `file_gen.py`, which creates multiple files
-containing simulated data. Eacgh file is a pickled pandas dataframe containing `datapoints_per_file`
+containing simulated data. Each file is a pickled pandas dataframe containing `datapoints_per_file`
 datapoints (defaults to 500), each
 one representing a set of time series for main and strain detector channels. 
 
