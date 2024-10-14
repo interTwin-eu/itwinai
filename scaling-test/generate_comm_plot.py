@@ -1,5 +1,4 @@
 import matplotlib
-from torch._dynamo.skipfiles import comptime
 
 # Doing this because otherwise I get an error about X11 Forwarding which I believe
 # is due to the server trying to pass the image to the client computer
@@ -33,7 +32,7 @@ def create_combined_comm_overhead_df(logs_dir: Path, pattern: str) -> pd.DataFra
         if not match:
             continue
 
-        # Getting the captured regex groups, e.g. the contents of "(\d+)"
+        # Getting the captured regex groups, i.e. the contents of "(\d+)"
         strategy, num_gpus, global_rank = match.groups()
         df = pd.read_csv(entry)
         df["num_gpus"] = num_gpus
@@ -50,40 +49,32 @@ def get_comp_fraction_full_array(df: pd.DataFrame) -> np.ndarray:
     """Creates a MxN NumPy array where M is the number of strategies
     and N is the number of GPU configurations. The strategies are sorted
     alphabetically and the GPU configurations are sorted in ascending number
-    of GPUs.
-    """
+    of GPUs."""
     unique_num_gpus = sorted(df["num_gpus"].unique(), key=lambda x: int(x))
     unique_strategies = sorted(df["strategy"].unique())
     values = []
 
-    print(f"{'-'*50}")
-    print(f"{'Strategy':>12} | {'Num. GPUs':>10} | {'Comp.':>9} | {'Comm.':>8}")
-    print(f"{'-'*50}")
     for strategy in unique_strategies:
         strategy_values = []
         for num_gpus in unique_num_gpus:
             filtered_df = df[
                 (df["strategy"] == strategy) & (df["num_gpus"] == num_gpus)
             ]
-            log_string = f"{strategy:>12} | {num_gpus:>10}"
 
-            # Don't need to test all configurations, still want to print it 
-            if len(filtered_df) == 0: 
-                comp_time, comm_time = np.NaN, np.NaN
-                strategy_values.append(np.NaN)
+            # For now we assume that we test all strategies for all sizes, but this might
+            # be useful to change later
+            assert len(filtered_df) > 0
+            comp_time, comm_time = calculate_comp_and_comm_time(df=filtered_df)
+            comp_fraction = comp_time / (comp_time + comm_time)
+            strategy_values.append(comp_fraction)
 
-                log_string += f" | {'(NO DATA)':>15}"
-            else: 
-                comp_time, comm_time = calculate_comp_and_comm_time(df=filtered_df)
-                comp_fraction = comp_time / (comp_time + comm_time)
-                strategy_values.append(comp_fraction)
-
-                log_string += f" | {comp_time:>8.2f}s"
-                log_string += f" | {comm_time:>8.2f}s"
-
-            print(log_string)
+            print(
+                f"Strategy: {strategy:>10}, "
+                f"Num. GPUs: {num_gpus}, "
+                f"Comp. time: {comp_time:>5.2f}s, "
+                f"Comm. time: {comm_time:>5.2f}s"
+            )
         values.append(strategy_values)
-    print(f"{'-'*50}")
 
     return np.array(values)
 
@@ -100,7 +91,6 @@ def main():
 
     logs_dir = Path("profiling_logs")
     logs_dir.mkdir(parents=True, exist_ok=True)
-
     pattern = r"profile_(\w+)_(\d+)_(\d+)\.csv$"
     df = create_combined_comm_overhead_df(logs_dir=logs_dir, pattern=pattern)
     values = get_comp_fraction_full_array(df)
