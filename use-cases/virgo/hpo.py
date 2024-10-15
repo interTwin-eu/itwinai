@@ -21,8 +21,9 @@ def run_trial(config: Dict, data: Dict):
         config (dict): A dictionary containing hyperparameters, such as:
             - 'batch_size' (int): The size of the batch for training.
             - 'lr' (float): The learning rate for the optimizer.
-        data (dict): A dictionary containing a "pipeline_path" field, which points to the yaml 
-            file containing the pipeline definition
+        data (dict): A dictionary containing a "pipeline_name" field,
+            which specifies the training pipeline to be used.
+            Must be defined in a file called "config.yaml"
 
     You can also run a manual pipeline by directly creating it with imported classes:
 
@@ -49,12 +50,10 @@ def run_trial(config: Dict, data: Dict):
     Note: Passing a seed to TimeSeriesDatasetSplitter and NoiseGeneratorTrainer will make runs
     uniform across trials, reducing the variablility to only the hyperparameter settings
     """
-    pipeline_path = Path(data["pipeline_path"])
-
     parser = ConfigParser(
-        config=pipeline_path,
+        config="config.yaml",
         override_keys={
-            # Set HPOs controlled by ray
+            # Set hyperparameters controlled by ray
             'batch_size': config['batch_size'],
             'learning_rate': config['lr'],
             # Override logger field, because performance is logged by ray
@@ -62,7 +61,7 @@ def run_trial(config: Dict, data: Dict):
         }
     )
     my_pipeline = parser.parse_pipeline(
-        pipeline_nested_key='training_pipeline',
+        pipeline_nested_key=data["pipeline_name"],
         verbose=False
     )
 
@@ -114,7 +113,7 @@ def run_hpo(args):
             resources=resources_per_trial
         )
 
-        data = {"pipeline_path": args.config_path}
+        data = {"pipeline_name": args.pipeline_name}
         trainable_with_parameters = tune.with_parameters(
             run_with_resources,
             data=data
@@ -217,10 +216,12 @@ if __name__ == "__main__":
         help='Set this to true if you want to load results from an older ray run.'
     )
     parser.add_argument(
-        '--config_path',
+        '--pipeline_name',
         type=str,
-        default='config.yaml',
-        help='Path to the yaml file where the training pipeline is defined.'
+        default='training_pipeline',
+        help='Name of the training pipeline to be used. \
+            This pipeline has to be defined in a file called "config.yaml". \
+            Defaults to "training_pipeline"'
     )
     parser.add_argument(
         '--experiment_path',

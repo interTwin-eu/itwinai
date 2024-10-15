@@ -88,7 +88,7 @@ echo All Ray workers started.
 # Run the Python script using Ray
 echo 'Starting HPO.'
 
-python hpo.py --num_samples 4 --max_iterations 2 --ngpus $num_gpus --ncpus $num_cpus --config_path large_ds_config.yaml
+python hpo.py --num_samples 4 --max_iterations 2 --ngpus $num_gpus --ncpus $num_cpus --pipeline_name training_pipeline_small
 
 # Shutdown Ray after completion
 ray stop

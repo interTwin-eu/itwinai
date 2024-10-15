@@ -26,13 +26,13 @@ The dataset generation step can also be skipped for subsequent runs.
 To run the entire pipeline, including dataset generation, use the following command:
 
 ```bash
-itwinai exec-pipeline --config small_ds_config.yaml --pipe-key training_pipeline
+itwinai exec-pipeline --config config.yaml --pipe-key training_pipeline_small
 ```
 
 If you’ve already generated the dataset in a previous run, you can skip the dataset generation step by executing the following command:
 
 ```bash
-itwinai exec-pipeline --config small_ds_config.yaml --pipe-key training_pipeline --steps 1:
+itwinai exec-pipeline --config config.yaml --pipe-key training_pipeline_small --steps 1:
 ```
 
 This will load the dataset from memory and proceed with the training steps.
@@ -74,7 +74,7 @@ If you do not specify `NUM_FILES`, the script will default to creating 100 files
 Once the dataset is generated, you can proceed with training:
 
 ```bash
-itwinai exec-pipeline --config large_ds_config.yaml --pipe-key training_pipeline
+itwinai exec-pipeline --config config.yaml --pipe-key training_pipeline
 ```
 
 You can also run the training in a distributed manner using all strategies by running runall.sh:

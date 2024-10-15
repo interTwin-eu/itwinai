@@ -30,7 +30,7 @@ rm *.csv
 # DDP itwinai
 DIST_MODE="ddp"
 RUN_NAME="ddp-itwinai"
-TRAINING_CMD="$PYTHON_VENV/bin/itwinai exec-pipeline --config large_ds_config.yaml --pipe-key training_pipeline -o strategy=ddp -o checkpoint_path=checkpoints_ddp/epoch_{}.pth"
+TRAINING_CMD="$PYTHON_VENV/bin/itwinai exec-pipeline --config config.yaml --pipe-key training_pipeline -o strategy=ddp -o checkpoint_path=checkpoints_ddp/epoch_{}.pth"
 sbatch --export=ALL,DIST_MODE="$DIST_MODE",RUN_NAME="$RUN_NAME",TRAINING_CMD="$TRAINING_CMD",PYTHON_VENV="$PYTHON_VENV" \
     --job-name="$RUN_NAME-n$N" \
     --output="logs_slurm/job-$RUN_NAME-n$N.out" \
@@ -40,7 +40,7 @@ sbatch --export=ALL,DIST_MODE="$DIST_MODE",RUN_NAME="$RUN_NAME",TRAINING_CMD="$T
 # DeepSpeed itwinai
 DIST_MODE="deepspeed"
 RUN_NAME="deepspeed-itwinai"
-TRAINING_CMD="$PYTHON_VENV/bin/itwinai exec-pipeline --config large_ds_config.yaml --pipe-key training_pipeline -o strategy=deepspeed -o checkpoint_path=checkpoints_deepspeed/epoch_{}.pth"
+TRAINING_CMD="$PYTHON_VENV/bin/itwinai exec-pipeline --config config.yaml --pipe-key training_pipeline -o strategy=deepspeed -o checkpoint_path=checkpoints_deepspeed/epoch_{}.pth"
 sbatch --export=ALL,DIST_MODE="$DIST_MODE",RUN_NAME="$RUN_NAME",TRAINING_CMD="$TRAINING_CMD",PYTHON_VENV="$PYTHON_VENV" \
     --job-name="$RUN_NAME-n$N" \
     --output="logs_slurm/job-$RUN_NAME-n$N.out" \
@@ -50,7 +50,7 @@ sbatch --export=ALL,DIST_MODE="$DIST_MODE",RUN_NAME="$RUN_NAME",TRAINING_CMD="$T
 # Horovod itwinai
 DIST_MODE="horovod"
 RUN_NAME="horovod-itwinai"
-TRAINING_CMD="$PYTHON_VENV/bin/itwinai exec-pipeline --config large_ds_config.yaml --pipe-key training_pipeline -o strategy=horovod -o checkpoint_path=checkpoints_horovod/epoch_{}.pth"
+TRAINING_CMD="$PYTHON_VENV/bin/itwinai exec-pipeline --config config.yaml --pipe-key training_pipeline -o strategy=horovod -o checkpoint_path=checkpoints_horovod/epoch_{}.pth"
 sbatch --export=ALL,DIST_MODE="$DIST_MODE",RUN_NAME="$RUN_NAME",TRAINING_CMD="$TRAINING_CMD",PYTHON_VENV="$PYTHON_VENV" \
     --job-name="$RUN_NAME-n$N" \
     --output="logs_slurm/job-$RUN_NAME-n$N.out" \

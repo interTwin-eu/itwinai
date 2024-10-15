@@ -24,10 +24,8 @@ def run_trial(config: Dict, data: Dict):
         data (dict): A dictionary containing a "pipeline_path" field, which points to the yaml 
             file containing the pipeline definition
     """
-    config_path = Path(data["config_path"])
-
     parser = ConfigParser(
-        config=config_path,
+        config="config.yaml",
         override_keys={
             # Set hyperparameters controlled by ray
             'batch_size': config['batch_size'],
@@ -37,7 +35,7 @@ def run_trial(config: Dict, data: Dict):
         }
     )
     my_pipeline = parser.parse_pipeline(
-        pipeline_nested_key='training_pipeline',
+        pipeline_nested_key=data["pipeline_name"],
         verbose=False
     )
 
@@ -90,7 +88,7 @@ def run_hpo(args):
             resources=resources_per_trial
         )
 
-        data = {'config_path': args.config_path}
+        data = {"pipeline_name": args.pipeline_name}
         trainable_with_parameters = tune.with_parameters(
             trainable_with_resources,
             data=data
@@ -193,10 +191,12 @@ if __name__ == "__main__":
         help='Set this to true if you want to load results from an older ray run.'
     )
     parser.add_argument(
-        '--config_path',
+        '--pipeline_name',
         type=str,
-        default='config.yaml',
-        help='Path to the yaml file where the training pipeline is defined.'
+        default='training_pipeline',
+        help='Name of the training pipeline to be used. \
+            This pipeline has to be defined in a file called "config.yaml". \
+            Defaults to "training_pipeline"'
     )
     parser.add_argument(
         '--experiment_path',
