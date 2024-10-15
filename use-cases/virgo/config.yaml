@@ -23,7 +23,7 @@ training_pipeline:
             generator: simple #unet
             batch_size: ${batch_size}
             optim_lr: ${learning_rate}
-            loss: L1
+            loss: l1
             save_best: true
             shuffle_train: true
           num_epochs: ${epochs}
@@ -64,7 +64,7 @@ training_pipeline_small:
             generator: simple #unet
             batch_size: ${batch_size}
             optim_lr: ${learning_rate}
-            loss: L1
+            loss: l1
             save_best: true
             shuffle_train: true
           num_epochs: ${epochs}
