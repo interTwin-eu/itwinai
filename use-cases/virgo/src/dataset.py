@@ -27,8 +27,7 @@ def generate_dataset_aux_channels(
         rows, columns, duration=10, sample_rate=500,
         num_waves_range=(10, 15), noise_amplitude=0.1
 ):
-    """
-    Generate a Pandas DataFrame with randomly generated smooth sine wave time
+    """Generate a Pandas DataFrame with randomly generated smooth sine wave time
     series with added smooth random noise.
 
     Parameters:
@@ -98,8 +97,7 @@ def generate_dataset_aux_channels(
 
 
 def generate_dataset_main_channel(input_df, weights=None, noise_amplitude=0.1):
-    """
-    Generate a dataset where each row of a single column is a weighted linear
+    """Generate a dataset where each row of a single column is a weighted linear
     combination of the entries
     in the corresponding row in the input DataFrame plus random noise.
 
@@ -145,8 +143,7 @@ def generate_dataset_main_channel(input_df, weights=None, noise_amplitude=0.1):
 
 
 def extract_peak_frequency(hq):
-    """
-    Calculates peak frequency (and relative time) of a given qplot
+    """Calculates peak frequency (and relative time) of a given qplot
 
     Input:
     -hq (gwpy.Spectrgram) : Qtransform
@@ -170,8 +167,7 @@ def extract_peak_frequency(hq):
 
 
 def cut_image(qplot_array, index_freq, index_time, square_size=64):
-    """
-    Cut qplot as square_size X square_size 2D np.array centered at peak
+    """Cut qplot as square_size X square_size 2D np.array centered at peak
     frequency and corresponding time
 
     Input:
@@ -226,8 +222,7 @@ def cut_image(qplot_array, index_freq, index_time, square_size=64):
 
 
 def process_image(row, row_idx, channels, square_size):
-    """
-    Processes df's row to generate qplot images
+    """Processes df's row to generate qplot images
 
     Input:
     - row (pd.Series) : row of TimeSeries Dataframe
@@ -259,7 +254,7 @@ def process_image(row, row_idx, channels, square_size):
 
 
 def generate_cut_image_dataset(df, channels, num_processes=20, square_size=128):
-    """ Generates qplot dataset taking pandas df containing main+aux channels as input.
+    """Generates qplot dataset taking pandas df containing main+aux channels as input.
     The output is a df containing qtransforms (frequency range 10-150Hz) in the form of square_sizexsquare_size 2d np.array
 
      Args:
@@ -282,8 +277,7 @@ def generate_cut_image_dataset(df, channels, num_processes=20, square_size=128):
 
 
 def show_dataset(df, size, num_plots=10):
-    """
-    Plots qtransforms for first 4 columns in given df
+    """Plots qtransforms for first 4 columns in given df
 
     Input:
     - df (DataFrame) : DataFrame containing qtransforms in the form of 2d
@@ -368,8 +362,7 @@ def show_dataset(df, size, num_plots=10):
 
 
 def normalize_(data, chan=4):
-    """
-    Normalizes the qplot data to the range [0,1] for NN convergence purposes
+    """Normalizes the qplot data to the range [0,1] for NN convergence purposes
 
     Input:
     - data (torch.Tensor) : dataset of qtransforms

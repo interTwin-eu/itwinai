@@ -1,7 +1,10 @@
 import abc
-import os
-from pydantic import BaseModel
 import builtins as __builtin__
+import functools
+import os
+from typing import Any, Callable
+
+from pydantic import BaseModel
 
 
 class DistributedStrategy(abc.ABC):
@@ -59,14 +62,17 @@ def detect_distributed_environment() -> ClusterEnvironment:
 builtin_print = __builtin__.print
 
 
-def distributed_patch_print(is_main: bool) -> None:
+def distributed_patch_print(is_main: bool) -> Callable:
     """Disable ``print()`` when not in main worker.
 
     Args:
         is_main (bool): whether it is called from main worker.
+
+    Returns:
+        Callable: patched ``print()``.
     """
 
-    def print(*args, **kwself):
+    def patched_print(*args, **kwself):
         """Print is disables on workers different from
         the main one, unless the print is called with
         ``force=True`` argument.
@@ -75,5 +81,30 @@ def distributed_patch_print(is_main: bool) -> None:
         if is_main or force:
             builtin_print(*args, **kwself)
 
-    # Patch builtin print
-    __builtin__.print = print
+    return patched_print
+
+
+def suppress_workers_print(func: Callable) -> Callable:
+    """
+    Decorator to suppress ``print()`` calls in workers having global rank
+    different from 0. To force printing on all workers you need to use
+    ``print(..., force=True)``.
+    """
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs) -> Any:
+        # Disable print in workers different from the main one,
+        # when in distributed environments.
+        dist_grank = detect_distributed_environment().global_rank
+        patched_print = distributed_patch_print(is_main=dist_grank == 0)
+        previous_print_backup = __builtin__.print
+        __builtin__.print = patched_print
+        try:
+            result = func(*args, **kwargs)
+        except Exception as exc:
+            # Reset print to builtin before raising the exception.
+            __builtin__.print = previous_print_backup
+            raise exc
+        # Reset print to builtin
+        __builtin__.print = previous_print_backup
+        return result
+    return wrapper

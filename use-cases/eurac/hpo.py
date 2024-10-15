@@ -12,20 +12,20 @@ from itwinai.parser import ConfigParser
 
 
 def run_trial(config: Dict, data: Dict):
-    """ Execute a single trial using the given configuration (config).
-    This runs a full training pipeline - you can also specify a pipeline as a dictionary,
-    e.g. if you only want to run certain parts without changing your config.yaml file.
+    """Execute a single trial using the given configuration (config).
+    This runs a full training pipeline - you can also specify a pipeline as a dictionary, 
+    e.g. if you only want to run certain parts without changing your config.yaml file 
+    (see below).
 
     Args:
         config (dict): A dictionary containing hyperparameters, such as:
             - 'batch_size' (int): The size of the batch for training.
             - 'lr' (float): The learning rate for the optimizer.
-        pipeline_path (str): Path to the config file where the training pipeline is defined.
+        data (dict): A dictionary containing a "pipeline_path" field, which points to the yaml 
+            file containing the pipeline definition
     """
-    config_path = Path(data["config_path"])
-
     parser = ConfigParser(
-        config=config_path,
+        config="config.yaml",
         override_keys={
             # Set hyperparameters controlled by ray
             'batch_size': config['batch_size'],
@@ -35,7 +35,7 @@ def run_trial(config: Dict, data: Dict):
         }
     )
     my_pipeline = parser.parse_pipeline(
-        pipeline_nested_key='training_pipeline',
+        pipeline_nested_key=data["pipeline_name"],
         verbose=False
     )
 
@@ -43,7 +43,7 @@ def run_trial(config: Dict, data: Dict):
 
 
 def run_hpo(args):
-    """ Run hyperparameter optimization using Ray Tune.
+    """Run hyperparameter optimization using Ray Tune.
     Either starts a new optimization run or resumes from previous results.
 
     Args:
@@ -88,8 +88,7 @@ def run_hpo(args):
             resources=resources_per_trial
         )
 
-        # Change this to parse from another config file
-        data = {'config_path': 'config.yaml'}
+        data = {"pipeline_name": args.pipeline_name}
         trainable_with_parameters = tune.with_parameters(
             trainable_with_resources,
             data=data
@@ -148,7 +147,7 @@ def run_hpo(args):
 
 
 def plot_results(result_grid, metric="loss", filename="plot.png"):
-    """ Plot the results for all trials and save the plot to a file.
+    """Plot the results for all trials and save the plot to a file.
 
     Args:
     - result_grid: Results from Ray Tune trials.
@@ -190,6 +189,14 @@ if __name__ == "__main__":
         type=bool,
         default=False,
         help='Set this to true if you want to load results from an older ray run.'
+    )
+    parser.add_argument(
+        '--pipeline_name',
+        type=str,
+        default='training_pipeline',
+        help='Name of the training pipeline to be used. \
+            This pipeline has to be defined in a file called "config.yaml". \
+            Defaults to "training_pipeline"'
     )
     parser.add_argument(
         '--experiment_path',

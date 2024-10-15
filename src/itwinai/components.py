@@ -103,32 +103,31 @@ from itwinai.torch.distributed import (
     TorchDDPStrategy,
 )
 
+import functools
+import time
+from abc import ABC, abstractmethod
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+
+from .serialization import ModelLoader, Serializable
+from .type import MLArtifact, MLDataset, MLModel
+
 from .distributed import detect_distributed_environment, distributed_patch_print
 from .serialization import ModelLoader, Serializable
 from .type import MLArtifact, MLDataset, MLModel
 
 
 def monitor_exec(method: Callable) -> Callable:
-    """Decorator for execute method of a component class.
-    Computes execution time and gives some information about
-    the execution of the component.
-
-    Args:
-        func (Callable): class method.
+    """Decorator for ``BaseComponent``'s methods.
+    Prints when the component starts and ends executing, indicating
+    its execution time.
     """
-    @functools.wraps(method)
-    def monitored_method(self: BaseComponent, *args, **kwargs) -> Any:
-        # Disable print in workers different from the main one,
-        # when in distributed environments.
-        dist_grank = detect_distributed_environment().global_rank
-        distributed_patch_print(is_main=dist_grank == 0)
 
+    @functools.wraps(method)
+    def wrapper(self: BaseComponent, *args, **kwargs) -> Any:
         msg = f"Starting execution of '{self.name}'..."
         self._printout(msg)
         start_t = time.time()
         try:
-            # print(f'ARGS: {args}')
-            # print(f'KWARGS: {kwargs}')
             result = method(self, *args, **kwargs)
         finally:
             self.cleanup()
@@ -136,8 +135,7 @@ def monitor_exec(method: Callable) -> Callable:
         msg = f"'{self.name}' executed in {self.exec_t:.3f}s"
         self._printout(msg)
         return result
-
-    return monitored_method
+    return wrapper
 
 def profile_torch_trainer(method: Callable) -> Callable: 
     """Decorator for execute method for components. Profiles the communication time 

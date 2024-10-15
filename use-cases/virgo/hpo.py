@@ -11,8 +11,8 @@ from ray import train, tune
 from itwinai.parser import ConfigParser
 
 
-def run_trial(config: Dict):
-    """ Execute a single trial using the given configuration (config).
+def run_trial(config: Dict, data: Dict):
+    """Execute a single trial using the given configuration (config).
     This runs a full training pipeline - you can also specify a pipeline as a dictionary, 
     e.g. if you only want to run certain parts without changing your config.yaml file 
     (see below).
@@ -21,7 +21,9 @@ def run_trial(config: Dict):
         config (dict): A dictionary containing hyperparameters, such as:
             - 'batch_size' (int): The size of the batch for training.
             - 'lr' (float): The learning rate for the optimizer.
-
+        data (dict): A dictionary containing a "pipeline_name" field,
+            which specifies the training pipeline to be used.
+            Must be defined in a file called "config.yaml"
 
     You can also run a manual pipeline by directly creating it with imported classes:
 
@@ -48,28 +50,27 @@ def run_trial(config: Dict):
     Note: Passing a seed to TimeSeriesDatasetSplitter and NoiseGeneratorTrainer will make runs
     uniform across trials, reducing the variablility to only the hyperparameter settings
     """
-
     parser = ConfigParser(
-        config=Path('config.yaml'),
+        config="config.yaml",
         override_keys={
-            # Set HPOs controlled by ray
+            # Set hyperparameters controlled by ray
             'batch_size': config['batch_size'],
             'learning_rate': config['lr'],
             # Override logger field, because performance is logged by ray
-            'training_pipeline.init_args.steps.2.init_args.logger': None
+            'training_pipeline.init_args.steps.1.init_args.logger': None
         }
     )
     my_pipeline = parser.parse_pipeline(
-        pipeline_nested_key='training_pipeline',
+        pipeline_nested_key=data["pipeline_name"],
         verbose=False
     )
 
     # Skip the first step of the pipeline (data generation)
-    my_pipeline[1:].execute()
+    my_pipeline.execute()
 
 
 def run_hpo(args):
-    """ Run hyperparameter optimization using Ray Tune.
+    """Run hyperparameter optimization using Ray Tune.
     Either starts a new optimization run or resumes from previous results.
 
     Args:
@@ -101,16 +102,26 @@ def run_hpo(args):
         )
 
         # Determine GPU and CPU utilization per trial
-        # We are allocating all available ressources per node evenly across trials
+        # We are allocating all available resources per node evenly across trials
         ngpus_per_trial = max(1, args.ngpus // args.num_samples)
         ncpus_per_trial = max(1, args.ncpus // args.num_samples)
 
         # Set resource allocation for each trial (number of GPUs and/or number of CPUs)
         resources_per_trial = {"gpu": ngpus_per_trial, "cpu": ncpus_per_trial}
+        run_with_resources = tune.with_resources(
+            run_trial,
+            resources=resources_per_trial
+        )
+
+        data = {"pipeline_name": args.pipeline_name}
+        trainable_with_parameters = tune.with_parameters(
+            run_with_resources,
+            data=data
+        )
 
         # Set up Ray Tune Tuner
         tuner = tune.Tuner(
-            tune.with_resources(run_trial, resources=resources_per_trial),
+            trainable_with_parameters,
             tune_config=tune_config,
             run_config=run_config,
             param_space=search_space  # Search space defined above
@@ -203,6 +214,14 @@ if __name__ == "__main__":
         type=bool,
         default=False,
         help='Set this to true if you want to load results from an older ray run.'
+    )
+    parser.add_argument(
+        '--pipeline_name',
+        type=str,
+        default='training_pipeline',
+        help='Name of the training pipeline to be used. \
+            This pipeline has to be defined in a file called "config.yaml". \
+            Defaults to "training_pipeline"'
     )
     parser.add_argument(
         '--experiment_path',

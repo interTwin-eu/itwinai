@@ -178,7 +178,6 @@ class RNNDistributedTrainer(TorchTrainer):
         for epoch in tqdm(range(self.epochs)):
             epoch_start_time = timer()
             self.set_epoch(epoch)
-
             self.model.train()
 
             # set time indices for training

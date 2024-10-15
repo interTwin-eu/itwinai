@@ -93,5 +93,5 @@ else
   pip install "prov4ml[linux]@git+https://github.com/matbun/ProvML@main" || exit 1
 fi
 
-# itwinai
+# Install itwinai: MUST be last line of the script for the user installation script to work!
 pip3 install --no-cache-dir  -e .[dev]
