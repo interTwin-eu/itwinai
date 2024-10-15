@@ -123,38 +123,3 @@ You may change CLI variables for `hpo.py` to change parameters,
 such as the number of trials you want to run, to change the stopping criteria for the trials or to set a
 different metric on which ray will evaluate trial results.
 By default, trials monitor validation loss, and results are plotted once all trials are completed.
-
-## Generating Synthetic Data for the Virgo Use Case
-
-This project includes another SLURM job script, `synthetic_data_gen/data_generation.sh`, that allows
-users to generate synthetic dataset for the Virgo gravitational wave detector use case.
-This step is typically not required unless you need to create new synthetic datasets.
-
-The synthetic data is generated using a Python script, `file_gen.py`, which creates multiple files
-containing simulated data. Each file is a pickled pandas dataframe containing `datapoints_per_file`
-datapoints (defaults to 500), each
-one representing a set of time series for main and strain detector channels. 
-
-If you need to generate a new dataset, you can run the SLURM script with the following command:
-
-```bash
-sbatch data_generation.sh
-```
-
-The script will generate multiple data files and store them in separate folders, which are
-created in the `target_folder_name` directory.
-
-The generated pickle files are organized in a set of nested folders to avoid creating too many
-files in the same folder. To generate such folders and its files we use SLURM 
-[job arrays](https://slurm.schedmd.com/job_array.html).
-Each SLURM array job will create its own folder and populate it with the synthetic data files.
-The number of files created in each folder can be customized by setting the `NUM_FILES` environment
-variablebefore submitting the job.
-For example, to generate 50 files per array job, you can run:
-
-```bash
-export NUM_FILES=50
-sbatch data_generation.sh
-```
-
-If you do not specify `NUM_FILES`, the script will default to creating 100 files per folder.

@@ -1,7 +1,7 @@
 import os
 from pathlib import Path
 from timeit import default_timer as timer
-from typing import Dict, Literal, Optional, Union, Any, Tuple
+from typing import Dict, Literal, Optional, Union
 
 import pandas as pd
 import torch
@@ -13,7 +13,6 @@ from hython.sampler import SamplerBuilder
 from hython.trainer import ConvTrainer, RNNTrainer, RNNTrainParams
 from ray import train
 from torch.optim.lr_scheduler import ReduceLROnPlateau
-from torch.utils.data import Dataset
 from tqdm.auto import tqdm
 
 from itwinai.loggers import EpochTimeTracker, Logger
@@ -26,7 +25,7 @@ from itwinai.torch.distributed import (
 )
 from itwinai.torch.trainer import TorchTrainer
 from itwinai.torch.type import Metric
-from itwinai.components import profile_torch_trainer
+
 
 class RNNDistributedTrainer(TorchTrainer):
     """Trainer class for RNN model using pytorch.
@@ -88,17 +87,6 @@ class RNNDistributedTrainer(TorchTrainer):
             **kwargs,
         )
         self.save_parameters(**self.locals2params(locals()))
-        # self.execute = types.MethodType(profile_torch_trainer(self.execute), self)
-
-
-    @profile_torch_trainer
-    def execute(
-        self, 
-        train_dataset: Dataset, 
-        validation_dataset: Optional[Dataset] = None, 
-        test_dataset: Optional[Dataset] = None
-    ) -> Tuple[Dataset, Dataset, Dataset, Any]:
-        return super().execute(train_dataset, validation_dataset, test_dataset)
 
     def create_model_loss_optimizer(self) -> None:
         self.optimizer = optim.Adam(self.model.parameters(), lr=self.config.lr)

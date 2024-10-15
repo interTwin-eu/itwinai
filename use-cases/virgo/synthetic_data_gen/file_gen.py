@@ -7,8 +7,6 @@ from gwpy.timeseries import TimeSeries
 
 from ..src.dataset import generate_cut_image_dataset
 
-from ..src.dataset import generate_cut_image_dataset
-
 
 def generate_pkl_dataset(
     folder_name='test_folder',

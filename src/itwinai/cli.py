@@ -282,13 +282,16 @@ def exec_pipeline(
 @app.command()
 def mlflow_ui(
     path: str = typer.Option("ml-logs/", help="Path to logs storage."),
+    port: int = typer.Option(
+        5000, help="Port on which the MLFlow UI is listening."
+    ),
 ):
     """
     Visualize Mlflow logs.
     """
     import subprocess
 
-    subprocess.run(f"mlflow ui --backend-store-uri {path}".split())
+    subprocess.run(f"mlflow ui --backend-store-uri {path} --port {port}".split())
 
 
 @app.command()
@@ -302,8 +305,7 @@ def mlflow_server(
     """
     import subprocess
 
-    subprocess.run(
-        f"mlflow server --backend-store-uri {path} --port {port}".split())
+    subprocess.run(f"mlflow server --backend-store-uri {path} --port {port}".split())
 
 
 @app.command()
