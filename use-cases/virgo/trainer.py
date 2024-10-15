@@ -18,19 +18,24 @@ from itwinai.torch.distributed import DeepSpeedStrategy
 from itwinai.torch.trainer import TorchTrainer
 
 
+class VirgoTrainingConfiguration(TrainingConfiguration):
+    """Virgo TrainingConfiguration"""
+    #: Whether to save best model on validation dataset. Defaults to True.
+    save_best: bool = True
+    #: Loss function. Defaults to "L1".
+    loss: Literal["L1", "L2"] = "L1",
+    #: Generator to train. Defaults to "unet".
+    generator: Literal["simple", "deep", "resnet", "unet"] = "unet"
+
+
 class NoiseGeneratorTrainer(TorchTrainer):
 
     def __init__(
         self,
-        batch_size: int,
-        learning_rate: float = 1e-3,
         num_epochs: int = 2,
         config: Union[Dict, TrainingConfiguration] | None = None,
-        generator: Literal["simple", "deep", "resnet", "unet"] = "unet",
-        loss: Literal["L1", "L2"] = "L1",
         strategy: Optional[Literal["ddp", "deepspeed", "horovod"]] = 'ddp',
         checkpoint_path: str = "checkpoints/epoch_{}.pth",
-        save_best: bool = True,
         logger: Optional[Logger] = None,
         random_seed: Optional[int] = None,
         name: str | None = None,
@@ -46,22 +51,18 @@ class NoiseGeneratorTrainer(TorchTrainer):
             validation_every=validation_every
         )
         self.save_parameters(**self.locals2params(locals()))
+        # Global training configuration
+        if isinstance(config, dict):
+            config = VirgoTrainingConfiguration(**config)
+        self.config = config
         self.num_epochs = num_epochs
-        self._generator = generator
-        self._loss = loss
         self.checkpoints_location = checkpoint_path
         os.makedirs(os.path.dirname(checkpoint_path), exist_ok=True)
-        # Global training configuration
-        self.config = TrainingConfiguration(
-            batch_size=batch_size,
-            learning_rate=learning_rate,
-            save_best=save_best,
-            shuffle_train=True
-        )
+
 
     def create_model_loss_optimizer(self) -> None:
         # Select generator
-        generator = self._generator.lower()
+        generator = self.config.generator.lower()
         if generator == "simple":
             self.model = Decoder(3, norm=False)
             init_weights(self.model, 'normal', scaling=.02)
@@ -79,7 +80,7 @@ class NoiseGeneratorTrainer(TorchTrainer):
             raise ValueError("Unrecognized generator type! Got", generator)
 
         # Select loss
-        loss = self._loss.upper()
+        loss = self.config.loss.upper()
         if loss == "L1":
             self.loss = nn.L1Loss()
         elif loss == "L2":
@@ -89,7 +90,7 @@ class NoiseGeneratorTrainer(TorchTrainer):
 
         # Optimizer
         self.optimizer = torch.optim.Adam(
-            self.model.parameters(), lr=self.config.learning_rate)
+            self.model.parameters(), lr=self.config.optim_lr)
 
         # IMPORTANT: model, optimizer, and scheduler need to be distributed
 
