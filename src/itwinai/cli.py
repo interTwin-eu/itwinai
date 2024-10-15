@@ -20,6 +20,39 @@ app = typer.Typer(pretty_exceptions_enable=False)
 
 
 @app.command()
+def sanity_check(
+    torch: Annotated[Optional[bool], typer.Option(
+        help=("Check also itwinai.torch modules.")
+    )] = False,
+    tensorflow: Annotated[Optional[bool], typer.Option(
+        help=("Check also itwinai.tensorflow modules.")
+    )] = False,
+    all: Annotated[Optional[bool], typer.Option(
+        help=("Check all modules.")
+    )] = False,
+):
+    """Run sanity checks on the installation of itwinai and
+    its dependencies by trying to import itwinai modules.
+    By default, only itwinai core modules (neither torch, nor
+    tensorflow) are tested."""
+    from itwinai.tests.sanity_check import (
+        sanity_check_all,
+        sanity_check_slim,
+        sanity_check_tensorflow,
+        sanity_check_torch,
+    )
+    all = (torch and tensorflow) or all
+    if all:
+        sanity_check_all()
+    elif torch:
+        sanity_check_torch()
+    elif tensorflow:
+        sanity_check_tensorflow()
+    else:
+        sanity_check_slim()
+
+
+@app.command()
 def scalability_report(
     pattern: Annotated[str, typer.Option(
         help="Python pattern matching names of CSVs in sub-folders."
