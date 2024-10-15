@@ -206,8 +206,7 @@ def profile_torch_trainer(method: Callable) -> Callable:
     vs. computation time and stores the result for future analysis. 
     """
 
-    from torch.profiler import ProfilerActivity, profile
-
+    from torch.profiler import ProfilerActivity, profile, schedule
     from itwinai.torch.trainer import TorchTrainer
 
     def gather_profiling_data(key_averages: Iterable) -> pd.DataFrame: 
@@ -236,9 +235,16 @@ def profile_torch_trainer(method: Callable) -> Callable:
         profiler = profile(
             activities=[ProfilerActivity.CUDA, ProfilerActivity.CPU],
             with_modules=True,
+            schedule=schedule(
+                # skip_first=1
+                wait=1,
+                warmup=2,
+                active=100
+            ),
         )
         profiler.start()
         # TODO: Make sure this doesn't clean up the strategy
+        self.profiler = profiler
         try: 
             result = method(self, *args, **kwargs)
         finally: 
@@ -265,7 +271,7 @@ def profile_torch_trainer(method: Callable) -> Callable:
         profiling_log_dir = Path("profiling_logs")
         profiling_log_dir.mkdir(parents=True, exist_ok=True)
 
-        filename: str = f"profile_{strategy_str}_{global_size}_{global_rank}.csv"
+        filename = f"profile_{strategy_str}_{global_size}_{global_rank}.csv"
         output_path = profiling_log_dir / filename
 
         print(f"Writing profiling dataframe to {output_path}")
