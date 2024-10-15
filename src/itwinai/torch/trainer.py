@@ -134,6 +134,7 @@ class TorchTrainer(Trainer, LogMixin):
         self.checkpoints_location = checkpoints_location
         os.makedirs(self.checkpoints_location, exist_ok=True)
         self.checkpoint_every = checkpoint_every
+        self.profiler = None
 
     @property
     def strategy(self) -> TorchDistributedStrategy:
@@ -393,6 +394,8 @@ class TorchTrainer(Trainer, LogMixin):
         Args:
             epoch (int): epoch number, from 0 to ``epochs-1``.
         """
+        if self.profiler is not None: 
+            self.profiler.step()
         self._set_epoch_dataloaders(epoch)
 
     def log(

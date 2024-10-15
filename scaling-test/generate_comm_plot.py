@@ -46,7 +46,7 @@ def create_combined_comm_overhead_df(logs_dir: Path, pattern: str) -> pd.DataFra
     return df
 
 
-def get_comp_fraction_full_array(df: pd.DataFrame) -> np.ndarray:
+def get_comp_fraction_full_array(df: pd.DataFrame, print_table: bool = False) -> np.ndarray:
     """Creates a MxN NumPy array where M is the number of strategies
     and N is the number of GPU configurations. The strategies are sorted
     alphabetically and the GPU configurations are sorted in ascending number
@@ -56,34 +56,41 @@ def get_comp_fraction_full_array(df: pd.DataFrame) -> np.ndarray:
     unique_strategies = sorted(df["strategy"].unique())
     values = []
 
-    print(f"{'-'*50}")
-    print(f"{'Strategy':>12} | {'Num. GPUs':>10} | {'Comp.':>9} | {'Comm.':>8}")
-    print(f"{'-'*50}")
+    table_string = ""
+
     for strategy in unique_strategies:
         strategy_values = []
         for num_gpus in unique_num_gpus:
             filtered_df = df[
                 (df["strategy"] == strategy) & (df["num_gpus"] == num_gpus)
             ]
-            log_string = f"{strategy:>12} | {num_gpus:>10}"
+            row_string = f"{strategy:>12} | {num_gpus:>10}"
 
-            # Don't need to test all configurations, still want to print it 
+            # Allows asymmetric testing, i.e. not testing all num gpus and all 
+            # strategies together
             if len(filtered_df) == 0: 
                 comp_time, comm_time = np.NaN, np.NaN
                 strategy_values.append(np.NaN)
 
-                log_string += f" | {'(NO DATA)':>15}"
+                row_string += f" | {'(NO DATA)':>15}"
             else: 
                 comp_time, comm_time = calculate_comp_and_comm_time(df=filtered_df)
-                comp_fraction = comp_time / (comp_time + comm_time)
+                # Avoid division-by-zero errors (1e-10)
+                comp_fraction = comp_time / (comp_time + comm_time + 1e-10)
                 strategy_values.append(comp_fraction)
 
-                log_string += f" | {comp_time:>8.2f}s"
-                log_string += f" | {comm_time:>8.2f}s"
+                row_string += f" | {comp_time:>8.2f}s"
+                row_string += f" | {comm_time:>8.2f}s"
 
-            print(log_string)
+            table_string += row_string + "\n"
         values.append(strategy_values)
-    print(f"{'-'*50}")
+
+    if print_table:
+        print(f"{'-'*50}")
+        print(f"{'Strategy':>12} | {'Num. GPUs':>10} | {'Comp.':>9} | {'Comm.':>8}")
+        print(f"{'-'*50}")
+        print(table_string)
+        print(f"{'-'*50}")
 
     return np.array(values)
 
@@ -103,7 +110,7 @@ def main():
 
     pattern = r"profile_(\w+)_(\d+)_(\d+)\.csv$"
     df = create_combined_comm_overhead_df(logs_dir=logs_dir, pattern=pattern)
-    values = get_comp_fraction_full_array(df)
+    values = get_comp_fraction_full_array(df, print_table=True)
 
     strategies = df["strategy"].unique()
     gpu_numbers = sorted(df["num_gpus"].unique(), key=lambda x: int(x))
