@@ -19,9 +19,9 @@ def create_stacked_plot(
             correspond to the GPU numbers in 'gpu_numbers' sorted numerically
             in ascending order.
     """
-    assert values.shape[0] == len(strategy_labels)
-    assert values.shape[1] == len(gpu_numbers)
-    assert (values >= 0).all() and (values <= 1).all()
+    # assert values.shape[0] == len(strategy_labels)
+    # assert values.shape[1] == len(gpu_numbers)
+    # assert (values >= 0).all() and (values <= 1).all()
 
     strategy_labels = sorted(strategy_labels)
     gpu_numbers = sorted(gpu_numbers, key=lambda x: int(x))
@@ -37,57 +37,59 @@ def create_stacked_plot(
 
     # Creating an offset to "center" around zero
     static_offset = len(strategy_labels) / 2 - 0.5
-    for idx in range(len(strategy_labels)):
-        dynamic_bar_offset = idx - static_offset
+    for strategy_idx in range(len(strategy_labels)):
+        dynamic_bar_offset = strategy_idx - static_offset
+
 
         # Drawing the stacked bars
         ax.bar(
             x=x + dynamic_bar_offset * width,
-            height=values[idx],
+            height=values[strategy_idx],
             width=width,
             color=comp_color,
         )
         ax.bar(
             x=x + dynamic_bar_offset * width,
-            height=complements[idx],
+            height=complements[strategy_idx],
             width=width,
-            bottom=values[idx],
+            bottom=values[strategy_idx],
             color=comm_color,
         )
 
-        for i in range(len(gpu_numbers)):
+        for gpu_idx in range(len(gpu_numbers)):
             # Positioning the labels under the stacks
-            dynamic_label_offset = idx - static_offset
+            if np.isnan(values[strategy_idx, gpu_idx]): 
+                continue
+            dynamic_label_offset = strategy_idx - static_offset
             ax.text(
-                x=x[i] + dynamic_label_offset * width,
+                x=x[gpu_idx] + dynamic_label_offset * width,
                 y=-0.1,
-                s=strategy_labels[idx],
+                s=strategy_labels[strategy_idx],
                 ha="center",
                 va="top",
                 fontsize=10,
                 rotation=60,
             )
 
-    # Adjust the bottom of the plot to accommodate the new labels
 
     ax.set_ylabel("Computation fraction")
     ax.set_title("Computation vs Communication Time by Method")
     ax.set_xticks(x)
     ax.set_xticklabels(gpu_numbers)
-    ax.set_ylim(0, 1)  # Ensure y-axis goes from 0 to 1
+    ax.set_ylim(0, 1)
 
+    # Setting the appropriate colors since the legend is manual
     legend_elements = [
         Patch(facecolor=comm_color, label="Communication"),
         Patch(facecolor=comp_color, label="Computation"),
     ]
-    # ax.legend(handles=legend_elements, loc="upper right")
-    # ax.legend(handles=legend_elements, loc="upper right", bbox_to_anchor=(1.2, 1))
 
+    # Positioning the legend outside of the plot to not obstruct
     ax.legend(
         handles=legend_elements,
-        loc="upper left",  # Anchor point of the legend
-        bbox_to_anchor=(0.80, 1.22),  # Position outside the plot
-        borderaxespad=0.0,  # No padding between legend and axes
+        loc="upper left",  
+        bbox_to_anchor=(0.80, 1.22),  
+        borderaxespad=0.0,  
     )
     fig.subplots_adjust(bottom=0.25)
     fig.subplots_adjust(top=0.85)
