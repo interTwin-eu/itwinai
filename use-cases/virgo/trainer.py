@@ -43,7 +43,7 @@ class NoiseGeneratorTrainer(TorchTrainer):
     ) -> None:
         super().__init__(
             epochs=num_epochs,
-            config=config,
+            config={},
             strategy=strategy,
             logger=logger,
             random_seed=random_seed,
@@ -58,7 +58,6 @@ class NoiseGeneratorTrainer(TorchTrainer):
         self.num_epochs = num_epochs
         self.checkpoints_location = checkpoint_path
         os.makedirs(os.path.dirname(checkpoint_path), exist_ok=True)
-
 
     def create_model_loss_optimizer(self) -> None:
         # Select generator
