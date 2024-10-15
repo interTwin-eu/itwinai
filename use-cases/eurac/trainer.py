@@ -88,7 +88,6 @@ class RNNDistributedTrainer(TorchTrainer):
             **kwargs,
         )
         self.save_parameters(**self.locals2params(locals()))
-        # self.execute = types.MethodType(profile_torch_trainer(self.execute), self)
 
 
     @profile_torch_trainer
@@ -137,6 +136,14 @@ class RNNDistributedTrainer(TorchTrainer):
             **distribute_kwargs,
         )
 
+    def set_epoch(self, epoch: int): 
+        if self.profiler is not None: 
+            self.profiler.step()
+
+        if self.strategy.is_distributed:
+            self.train_loader.sampler.set_epoch(epoch)
+            self.val_loader.sampler.set_epoch(epoch)
+
     def train(self):
         """Override version of hython to support distributed strategy."""
         # Tracking epoch times for scaling test
@@ -170,10 +177,7 @@ class RNNDistributedTrainer(TorchTrainer):
         best_loss = float("inf")
         for epoch in tqdm(range(self.epochs)):
             epoch_start_time = timer()
-            if self.strategy.is_distributed:
-                # *Added for distributed*
-                self.train_loader.sampler.set_epoch(epoch)
-                self.val_loader.sampler.set_epoch(epoch)
+            self.set_epoch(epoch)
 
             self.model.train()
 
