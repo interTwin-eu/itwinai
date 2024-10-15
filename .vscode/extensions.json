@@ -11,6 +11,6 @@
         "bierner.markdown-mermaid",
         "github.vscode-github-actions",
         "tamasfe.even-better-toml",
-        "ms-python.isort"
+        "ms-python.isort",
     ]
 }

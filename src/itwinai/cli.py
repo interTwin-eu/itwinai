@@ -39,7 +39,7 @@ def sanity_check(
         sanity_check_all,
         sanity_check_slim,
         sanity_check_tensorflow,
-        sanity_check_torch
+        sanity_check_torch,
     )
     all = (torch and tensorflow) or all
     if all:
