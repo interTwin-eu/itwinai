@@ -298,7 +298,6 @@ class TorchTrainer(Trainer, LogMixin):
         # Dear user, this is a method you #
         # may be interested to override!  #
         ###################################
-
         self.train_dataloader = self.strategy.create_dataloader(
             dataset=train_dataset,
             batch_size=self.config.batch_size,

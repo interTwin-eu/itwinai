@@ -1,8 +1,8 @@
-# General configuration
+# Configuration using entire synthetic dataset that is generated prior to running the pipeline
 root_folder: /p/scratch/intertwin/datasets/virgo
 data_root: ./data
-epochs: 15
-batch_size: 3
+epochs: 2
+batch_size: 2
 learning_rate: 0.0001
 strategy: ddp
 checkpoint_path: checkpoints/epoch_{}.pth
@@ -11,9 +11,6 @@ training_pipeline:
   class_path: itwinai.pipeline.Pipeline
   init_args:
     steps:
-      - class_path: data.TimeSeriesDatasetGenerator
-        init_args:
-          data_root: ${data_root}
       - class_path: data.TimeSeriesDatasetSplitter
         init_args:
           train_proportion: 0.9
@@ -41,7 +38,4 @@ training_pipeline:
                   init_args:
                     experiment_name: Noise simulator (Virgo)
                     log_freq: batch 
-                - class_path: itwinai.loggers.WandBLogger
-                  init_args:
-                    log_freq: batch
           

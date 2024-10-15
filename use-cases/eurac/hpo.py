@@ -12,15 +12,17 @@ from itwinai.parser import ConfigParser
 
 
 def run_trial(config: Dict, data: Dict):
-    """ Execute a single trial using the given configuration (config).
-    This runs a full training pipeline - you can also specify a pipeline as a dictionary,
-    e.g. if you only want to run certain parts without changing your config.yaml file.
+    """Execute a single trial using the given configuration (config).
+    This runs a full training pipeline - you can also specify a pipeline as a dictionary, 
+    e.g. if you only want to run certain parts without changing your config.yaml file 
+    (see below).
 
     Args:
         config (dict): A dictionary containing hyperparameters, such as:
             - 'batch_size' (int): The size of the batch for training.
             - 'lr' (float): The learning rate for the optimizer.
-        pipeline_path (str): Path to the config file where the training pipeline is defined.
+        data (dict): A dictionary containing a "pipeline_path" field, which points to the yaml 
+            file containing the pipeline definition
     """
     config_path = Path(data["config_path"])
 
@@ -43,7 +45,7 @@ def run_trial(config: Dict, data: Dict):
 
 
 def run_hpo(args):
-    """ Run hyperparameter optimization using Ray Tune.
+    """Run hyperparameter optimization using Ray Tune.
     Either starts a new optimization run or resumes from previous results.
 
     Args:
@@ -88,8 +90,7 @@ def run_hpo(args):
             resources=resources_per_trial
         )
 
-        # Change this to parse from another config file
-        data = {'config_path': 'config.yaml'}
+        data = {'config_path': args.config_path}
         trainable_with_parameters = tune.with_parameters(
             trainable_with_resources,
             data=data
@@ -148,7 +149,7 @@ def run_hpo(args):
 
 
 def plot_results(result_grid, metric="loss", filename="plot.png"):
-    """ Plot the results for all trials and save the plot to a file.
+    """Plot the results for all trials and save the plot to a file.
 
     Args:
     - result_grid: Results from Ray Tune trials.
@@ -190,6 +191,12 @@ if __name__ == "__main__":
         type=bool,
         default=False,
         help='Set this to true if you want to load results from an older ray run.'
+    )
+    parser.add_argument(
+        '--config_path',
+        type=str,
+        default='config.yaml',
+        help='Path to the yaml file where the training pipeline is defined.'
     )
     parser.add_argument(
         '--experiment_path',

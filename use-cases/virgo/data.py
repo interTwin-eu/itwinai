@@ -10,7 +10,7 @@ from src.dataset import (
     generate_dataset_main_channel,
     normalize_,
 )
-from torch.utils.data import Dataset, random_split
+from torch.utils.data import Dataset, TensorDataset, random_split
 
 from itwinai.components import DataGetter, DataProcessor, DataSplitter, monitor_exec
 
@@ -66,14 +66,22 @@ class TimeSeriesDatasetGenerator(DataGetter):
         return df
 
 
-class DataFrameDataset(Dataset):
-    def __init__(self, file_paths: list[str]):
-        """ Initialize the DataFrameDataset class.
+class SyntheticTimeSeriesDataset(Dataset):
+    def __init__(self, root_folder: Optional[str] = None,):
+        """Initialize the DataFrameDataset class.
 
         Args:
-            file_paths (list[str]): List of paths to pickled DataFrames.
+            root_folder (str): Location of the pickled DataFrames.
         """
-        self.file_paths = file_paths
+
+        # Ensure the root folder exists
+        if not os.path.isdir(root_folder):
+            raise FileNotFoundError(f"Root folder '{root_folder}' not found.")
+
+        # Find all file paths in root folder
+        self.file_paths = [os.path.join(dirpath, f)
+                           for dirpath, dirs, files in os.walk(root_folder)
+                           for f in files if f.endswith('.pkl')]
 
     def __len__(self):
         """Return the total number of files in the dataset."""
@@ -134,8 +142,8 @@ class TimeSeriesDatasetSplitter(DataSplitter):
         train_proportion: int | float,
         validation_proportion: int | float = 0.0,
         test_proportion: int | float = 0.0,
-        rnd_seed: Optional[int] = None,
         root_folder: Optional[str] = None,
+        rnd_seed: Optional[int] = None,
         name: Optional[str] = None
     ) -> None:
         """Initialize the splitter for time-series datasets.
@@ -169,28 +177,18 @@ class TimeSeriesDatasetSplitter(DataSplitter):
             Tuple[Dataset, Dataset, Dataset]: Training, validation, and test datasets.
         """
 
-        # Ensure the root folder exists
-        if not os.path.isdir(self.root_folder):
-            raise FileNotFoundError(f"Root folder '{self.root_folder}' not found.")
-
-        # Find all file paths in root folder
-        all_file_paths = [os.path.join(dirpath, f)
-                          for dirpath, dirs, files in os.walk(self.root_folder)
-                          for f in files if f.endswith('.pkl')]
+        whole_dataset = SyntheticTimeSeriesDataset(root_folder=self.root_folder)
 
         # Split file paths into train, validation, and test sets
-        [train_paths, validation_paths, test_paths] = random_split(
-            all_file_paths,
+        generator = torch.Generator().manual_seed(self.rnd_seed)
+        [train_dataset, validation_dataset, test_dataset] = random_split(
+            whole_dataset,
             [self.train_proportion,
              self.validation_proportion,
-             self.test_proportion]
+             self.test_proportion],
+            generator=generator
         )
-
-        # Create dataset objects for each split
-        train_dataset = DataFrameDataset(train_paths)
-        validation_dataset = DataFrameDataset(validation_paths)
-        test_dataset = DataFrameDataset(test_paths)
-
+        print(f"Shape of item: {train_dataset.__getitem__(idx=5).shape}")
         return train_dataset, validation_dataset, test_dataset
 
 
@@ -201,17 +199,19 @@ class TimeSeriesDatasetSplitterSmall(DataSplitter):
         validation_proportion: int | float = 0.0,
         test_proportion: int | float = 0.0,
         rnd_seed: Optional[int] = None,
-        images_dataset: str = "TimeSeries_dataset_synthetic_main.pkl",
+        images_dataset: str = "data/Image_dataset_synthetic_64x64.pkl",
         name: Optional[str] = None
     ) -> None:
-        """ Class for splitting of smaller datasets. Use this class in the pipeline if the entire dataset can fit into memory.
+        """Class for splitting of smaller datasets. Use this class in the pipeline if the 
+        entire dataset can fit into memory.
 
         Args:
             train_proportion (int | float): _description_
             validation_proportion (int | float, optional): _description_. Defaults to 0.0.
             test_proportion (int | float, optional): _description_. Defaults to 0.0.
             rnd_seed (Optional[int], optional): _description_. Defaults to None.
-            images_dataset (str, optional): _description_. Defaults to "TimeSeries_dataset_synthetic_main.pkl".
+            images_dataset (str, optional): _description_. 
+                Defaults to "data/Image_dataset_synthetic_64x64.pkl".
             name (Optional[str], optional): _description_. Defaults to None.
         """
         super().__init__(
@@ -246,7 +246,7 @@ class TimeSeriesDatasetSplitterSmall(DataSplitter):
         dataset = self.get_or_load(dataset)
 
         # Convert data to torch
-        df = dataset.applymap(lambda x: torch.tensor(x))
+        df = dataset.map(lambda x: torch.tensor(x))
 
         # Divide Image dataset in main and aux channels. Note that df
         # generated in the section Generate Synthetic Dataset will always have
@@ -259,7 +259,7 @@ class TimeSeriesDatasetSplitterSmall(DataSplitter):
         X_train_2d, X_test_2d, y_train_2d, y_test_2d = train_test_split(
             df_aux_all_2d, df_main_all_2d,
             test_size=self.validation_proportion, random_state=self.rnd_seed)
-        return (X_train_2d, y_train_2d), (X_test_2d, y_test_2d), None
+        return (X_train_2d, y_train_2d), (X_test_2d, y_test_2d)
 
 
 class TimeSeriesProcessorSmall(DataProcessor):
@@ -349,8 +349,8 @@ class TimeSeriesProcessorSmall(DataProcessor):
         ])
         aux_data_test_2d = torch.stack([
             torch.stack(
-                [X_test_2d.iloc[i][0], X_test_2d.iloc[i][1],
-                 X_test_2d.iloc[i][2]])
+                [X_test_2d.iloc[i, 0], X_test_2d.iloc[i, 1],
+                 X_test_2d.iloc[i, 2]])
             for i in range(X_test_2d.shape[0])
         ])
 
@@ -363,4 +363,6 @@ class TimeSeriesProcessorSmall(DataProcessor):
         train_data_2d = normalize_(train_data_2d)
         test_data_2d = normalize_(test_data_2d)
 
-        return train_data_2d, test_data_2d, None
+        print(f"Shape of training tensor: {train_data_2d.shape}")
+
+        return TensorDataset(train_data_2d), TensorDataset(test_data_2d), None

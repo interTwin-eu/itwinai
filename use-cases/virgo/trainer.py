@@ -9,7 +9,7 @@ import torch.nn as nn
 from ray import train
 from src.model import Decoder, Decoder_2d_deep, GeneratorResNet, UNet
 from src.utils import init_weights
-from torch.utils.data import Dataset
+from torch.utils.data import Dataset, TensorDataset
 from tqdm import tqdm
 
 from itwinai.loggers import EpochTimeTracker, Logger
@@ -47,8 +47,6 @@ class NoiseGeneratorTrainer(TorchTrainer):
         )
         self.save_parameters(**self.locals2params(locals()))
         self.num_epochs = num_epochs
-        self.batch_size = batch_size
-        self.learning_rate = learning_rate
         self._generator = generator
         self._loss = loss
         self.checkpoints_location = checkpoint_path
@@ -56,6 +54,7 @@ class NoiseGeneratorTrainer(TorchTrainer):
         # Global training configuration
         self.config = TrainingConfiguration(
             batch_size=batch_size,
+            learning_rate=learning_rate,
             save_best=save_best,
             shuffle_train=True
         )
@@ -90,7 +89,7 @@ class NoiseGeneratorTrainer(TorchTrainer):
 
         # Optimizer
         self.optimizer = torch.optim.Adam(
-            self.model.parameters(), lr=self.learning_rate)
+            self.model.parameters(), lr=self.config.learning_rate)
 
         # IMPORTANT: model, optimizer, and scheduler need to be distributed
 
@@ -110,39 +109,54 @@ class NoiseGeneratorTrainer(TorchTrainer):
             self.model, self.optimizer, **distribute_kwargs
         )
 
-    def create_dataloaders(self, train_dataset: Dataset, validation_dataset: Dataset | None = None, test_dataset: Dataset | None = None) -> None:
+    def create_dataloaders(
+        self,
+        train_dataset: Dataset,
+        validation_dataset: Dataset | None = None,
+        test_dataset: Dataset | None = None
+    ) -> None:
+        """Override the create_dataloaders function to use the custom_collate function.
         """
-        Override the create_dataloaders function to use the custom_collate function. 
-        """
-        self.train_dataloader = self.strategy.create_dataloader(
-            dataset=train_dataset,
-            batch_size=self.config.batch_size,
-            num_workers=self.config.num_workers_dataloader,
-            pin_memory=self.config.pin_gpu_memory,
-            generator=self.torch_rng,
-            shuffle=self.config.shuffle_train,
-            collate_fn=self.custom_collate
-        )
-        if validation_dataset is not None:
-            self.validation_dataloader = self.strategy.create_dataloader(
-                dataset=validation_dataset,
+        # This is the case if a small dataset is used in-memory
+        # - we can use the default collate_fn function
+        if isinstance(train_dataset, TensorDataset):
+            return super().create_dataloaders(
+                train_dataset=train_dataset,
+                validation_dataset=validation_dataset,
+                test_dataset=test_dataset
+            )
+        else:
+            # If we are using a custom dataset for the large dataset,
+            # we need to overwrite the collate_fn function
+            self.train_dataloader = self.strategy.create_dataloader(
+                dataset=train_dataset,
                 batch_size=self.config.batch_size,
                 num_workers=self.config.num_workers_dataloader,
                 pin_memory=self.config.pin_gpu_memory,
                 generator=self.torch_rng,
-                shuffle=self.config.shuffle_validation,
+                shuffle=self.config.shuffle_train,
                 collate_fn=self.custom_collate
             )
-        if test_dataset is not None:
-            self.test_dataloader = self.strategy.create_dataloader(
-                dataset=test_dataset,
-                batch_size=self.config.batch_size,
-                num_workers=self.config.num_workers_dataloader,
-                pin_memory=self.config.pin_gpu_memory,
-                generator=self.torch_rng,
-                shuffle=self.config.shuffle_test,
-                collate_fn=self.custom_collate
-            )
+            if validation_dataset is not None:
+                self.validation_dataloader = self.strategy.create_dataloader(
+                    dataset=validation_dataset,
+                    batch_size=self.config.batch_size,
+                    num_workers=self.config.num_workers_dataloader,
+                    pin_memory=self.config.pin_gpu_memory,
+                    generator=self.torch_rng,
+                    shuffle=self.config.shuffle_validation,
+                    collate_fn=self.custom_collate
+                )
+            if test_dataset is not None:
+                self.test_dataloader = self.strategy.create_dataloader(
+                    dataset=test_dataset,
+                    batch_size=self.config.batch_size,
+                    num_workers=self.config.num_workers_dataloader,
+                    pin_memory=self.config.pin_gpu_memory,
+                    generator=self.torch_rng,
+                    shuffle=self.config.shuffle_test,
+                    collate_fn=self.custom_collate
+                )
 
     def custom_collate(self, batch):
         """
@@ -189,6 +203,9 @@ class NoiseGeneratorTrainer(TorchTrainer):
             # epoch_acc = []
             for i, batch in enumerate(self.train_dataloader):
                 t = timer()
+                # The TensorDataset returns batches as lists of length 1
+                if isinstance(batch, list):
+                    batch = batch[0]
                 # batch= transform(batch)
                 target = batch[:, 0].unsqueeze(1).to(self.device)
                 # print(f'TARGET ON DEVICE: {target.get_device()}')
@@ -218,6 +235,8 @@ class NoiseGeneratorTrainer(TorchTrainer):
             # val_acc = []
             for i, batch in enumerate(self.validation_dataloader):
                 # batch= transform(batch)
+                if isinstance(batch, list):
+                    batch = batch[0]
                 target = batch[:, 0].unsqueeze(1).to(self.device)
                 target = target.float()
                 input = batch[:, 1:].to(self.device)
