@@ -12,7 +12,7 @@ if [ -z "$NUM_GPUS" ]; then
 	NUM_GPUS=4
 fi
 if [ -z "$TIME" ]; then 
-	TIME=0:20:00
+	TIME=0:40:00
 fi
 if [ -z "$DEBUG" ]; then 
 	DEBUG=false
