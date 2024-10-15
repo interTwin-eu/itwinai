@@ -50,7 +50,9 @@ class TrainingConfiguration(Configuration):
     loss: Literal[
         'mse',
         'nllloss',
-        'cross_entropy'
+        'cross_entropy',
+        'l1',
+        'l2'
     ] = 'cross_entropy'
     #: Name of the optimizer to use. Defaults to 'adam'.
     optimizer: Literal['adadelta', 'adam', 'rmsprop', 'sgd'] = 'adam'
