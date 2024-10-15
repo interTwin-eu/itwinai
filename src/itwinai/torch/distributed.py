@@ -210,6 +210,11 @@ class TorchDistributedStrategy(DistributedStrategy):
             pin_memory_device (str, optional): the device to
                 :attr:`pin_memory` to if ``pin_memory`` is ``True``.
 
+        Raises:
+            UninitializedStrategyError: when this method is called for a
+                strategy which had not been initialized.
+            RuntimeError: when a user-provided sampler, if given, is not of
+                type ``DistributedSampler``.
 
         .. warning:: If the ``spawn`` start method is used,
                     :attr:`worker_init_fn`
@@ -273,16 +278,22 @@ class TorchDistributedStrategy(DistributedStrategy):
             raise UninitializedStrategyError(
                 "Strategy has not been initialized. Use the init method.")
 
-        if self.is_distributed:
-            if sampler is not None:
-                raise RuntimeError(
-                    "User-provided sampler is not supported."
-                )
-            sampler = DistributedSampler(
-                dataset, num_replicas=self.global_world_size(),
-                rank=self.global_rank(),
-                shuffle=shuffle
+        if batch_sampler is not None:
+            print(
+                "WARNING: batch_sampler is ignored by TorchDistributedStrategy"
             )
+
+        if self.is_distributed:
+            if sampler is None:
+                sampler = DistributedSampler(
+                    dataset, num_replicas=self.global_world_size(),
+                    rank=self.global_rank(),
+                    shuffle=shuffle
+                )
+            elif not isinstance(sampler, DistributedSampler):
+                raise RuntimeError(
+                    "User-provided sampler must implement DistributedSampler."
+                )
         # shuffle and batch_sampler must be unset
         return DataLoader(
             dataset=dataset, batch_size=batch_size, sampler=sampler,
@@ -324,8 +335,9 @@ class TorchDistributedStrategy(DistributedStrategy):
         Returns:
             List[Any]: list of objects gathered from all workers.
         """
+
     @abc.abstractmethod
-    def gather(self, tensor: torch.Tensor, dst_rank: int = 0):
+    def gather(self, tensor: torch.Tensor, dst_rank: int = 0) -> Optional[List]:
         """Gathers any object from the whole group in a list
         (to all workers).
 
@@ -335,7 +347,8 @@ class TorchDistributedStrategy(DistributedStrategy):
                 are gathered.
 
         Returns:
-            List[Any]: list of objects gathered from all workers.
+            Optional[List[Any]]: list of objects gathered from all workers if main
+                worker, otherwise return None.
         """
 
 
@@ -400,6 +413,7 @@ class TorchDDPStrategy(TorchDistributedStrategy):
     def distributed(
         self, model: nn.Module, optimizer: Optimizer,
         lr_scheduler: Optional[LRScheduler] = None,
+        find_unused_parameters: bool = False,
         **kwargs
     ) -> Tuple[nn.Module, Optimizer, Optional[LRScheduler]]:
         """Setup model, optimizer and scheduler for distributed."""
@@ -412,7 +426,8 @@ class TorchDDPStrategy(TorchDistributedStrategy):
             dist_model = torch.nn.parallel.DistributedDataParallel(
                 model,
                 device_ids=[self.device()],
-                output_device=self.device()
+                output_device=self.device(),
+                find_unused_parameters=find_unused_parameters
             )
         else:
             dist_model = model
@@ -516,7 +531,7 @@ class TorchDDPStrategy(TorchDistributedStrategy):
 
         dist.gather_object(obj, dst=dst_rank)
 
-    def gather(self, tensor: torch.Tensor, dst_rank: int = 0):
+    def gather(self, tensor: torch.Tensor, dst_rank: int = 0) -> Optional[List]:
         # https://pytorch.org/docs/stable/distributed.html#collective-functions
         if not self.is_initialized:
             raise UninitializedStrategyError(
@@ -524,15 +539,17 @@ class TorchDDPStrategy(TorchDistributedStrategy):
 
         # Ensure that the tensor is on the correct device (CUDA)
         tensor = tensor.to(self.device())
+        if self.global_rank() != dst_rank:
+            dist.gather(tensor, dst=dst_rank)
+            return
 
-        if self.global_rank() == dst_rank:
-            res = [torch.zeros_like(tensor, device=self.device()) for _ in
-                   range(self.global_world_size())]
+        res = [torch.zeros_like(tensor, device=self.device())
+               for _ in range(self.global_world_size())]
 
-            dist.gather(tensor, gather_list=res, dst=dst_rank)
-            return res
+        dist.gather(tensor, gather_list=res, dst=dst_rank)
 
-        dist.gather(tensor, dst=dst_rank)
+        # Moving everything to the CPU before returning
+        return [val.cpu() for val in res]
 
 
 class DeepSpeedStrategy(TorchDistributedStrategy):
@@ -698,7 +715,7 @@ class DeepSpeedStrategy(TorchDistributedStrategy):
 
         dist.gather_object(obj, dst=dst_rank)
 
-    def gather(self, tensor: torch.Tensor, dst_rank: int = 0):
+    def gather(self, tensor: torch.Tensor, dst_rank: int = 0) -> Optional[List]:
         # https://pytorch.org/docs/stable/distributed.html#collective-functions
         if not self.is_initialized:
             raise UninitializedStrategyError(
@@ -706,15 +723,17 @@ class DeepSpeedStrategy(TorchDistributedStrategy):
 
         # Ensure that the tensor is on the correct device (CUDA)
         tensor = tensor.to(self.device())
+        if self.global_rank() != dst_rank:
+            dist.gather(tensor, dst=dst_rank)
+            return
 
-        if self.global_rank() == dst_rank:
-            res = [torch.zeros_like(tensor, device=self.device())
-                   for _ in range(self.global_world_size())]
+        res = [torch.zeros_like(tensor, device=self.device())
+               for _ in range(self.global_world_size())]
 
-            dist.gather(tensor, gather_list=res, dst=dst_rank)
-            return res
+        dist.gather(tensor, gather_list=res, dst=dst_rank)
 
-        dist.gather(tensor, dst=dst_rank)
+        # Moving all the tensors to CPU before returning
+        return [val.cpu() for val in res]
 
 
 class HorovodStrategy(TorchDistributedStrategy):
@@ -848,7 +867,8 @@ class HorovodStrategy(TorchDistributedStrategy):
         """
         if not self.is_initialized:
             raise UninitializedStrategyError(
-                "Strategy has not been initialized. Use the init method.")
+                "Strategy has not been initialized. Use the init method."
+            )
         return hvd.allgather_object(obj)
 
     def gather_obj(self, obj: Any, dst_rank: int = 0) -> list[Any]:
@@ -864,7 +884,8 @@ class HorovodStrategy(TorchDistributedStrategy):
         """
         if not self.is_initialized:
             raise UninitializedStrategyError(
-                "Strategy has not been initialized. Use the init method.")
+                "Strategy has not been initialized. Use the init method."
+            )
         return self.allgather_obj(obj)
 
     def gather(self, tensor: torch.Tensor, dst_rank: int = 0):
@@ -880,8 +901,12 @@ class HorovodStrategy(TorchDistributedStrategy):
         """
         if not self.is_initialized:
             raise UninitializedStrategyError(
-                "Strategy has not been initialized. Use the init method.")
-        return self.allgather_obj(tensor)
+                "Strategy has not been initialized. Use the init method."
+            )
+
+        # Moving all the tensors to CPU before returning
+        result = self.allgather_obj(tensor)
+        return [val.cpu() for val in result]
 
 
 class NonDistributedStrategy(TorchDistributedStrategy):

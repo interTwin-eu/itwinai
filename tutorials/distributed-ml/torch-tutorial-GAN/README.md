@@ -15,7 +15,6 @@ Refer to the [itwinai installation steps](https://itwinai.readthedocs.io/latest/
 Then navigate to the project working directory
 
 ```bash
-# Creates a Python venv called envAI_hdfml
 cd tutorials/distributed-ml/torch-tutorial-GAN
 ```
 

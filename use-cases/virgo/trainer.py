@@ -1,39 +1,45 @@
-from typing import Literal, Optional
 import os
-import torch.nn as nn
-import torch
 import time
+from timeit import default_timer as timer
+from typing import Dict, Literal, Optional, Union
+
 import numpy as np
-
-from itwinai.torch.trainer import TorchTrainer
-from itwinai.torch.distributed import (
-    DeepSpeedStrategy,
-)
-from itwinai.torch.config import TrainingConfiguration
-from itwinai.loggers import Logger
-
-from src.model import Decoder, Decoder_2d_deep, UNet, GeneratorResNet
+import torch
+import torch.nn as nn
+from ray import train
+from src.model import Decoder, Decoder_2d_deep, GeneratorResNet, UNet
 from src.utils import init_weights
-
-
+from torch.utils.data import Dataset, TensorDataset
 from tqdm import tqdm
+
+from itwinai.loggers import EpochTimeTracker, Logger
+from itwinai.torch.config import TrainingConfiguration
+from itwinai.torch.distributed import DeepSpeedStrategy
+from itwinai.torch.trainer import TorchTrainer
+
+
+class VirgoTrainingConfiguration(TrainingConfiguration):
+    """Virgo TrainingConfiguration"""
+    #: Whether to save best model on validation dataset. Defaults to True.
+    save_best: bool = True
+    #: Loss function. Defaults to "L1".
+    loss: Literal["L1", "L2"] = "L1",
+    #: Generator to train. Defaults to "unet".
+    generator: Literal["simple", "deep", "resnet", "unet"] = "unet"
 
 
 class NoiseGeneratorTrainer(TorchTrainer):
 
     def __init__(
         self,
-        batch_size: int,
-        learning_rate: float = 1e-3,
         num_epochs: int = 2,
-        generator: Literal["simple", "deep", "resnet", "unet"] = "unet",
-        loss: Literal["L1", "L2"] = "L1",
-        strategy: Literal["ddp", "deepspeed", "horovod"] = 'ddp',
+        config: Union[Dict, TrainingConfiguration] | None = None,
+        strategy: Optional[Literal["ddp", "deepspeed", "horovod"]] = 'ddp',
         checkpoint_path: str = "checkpoints/epoch_{}.pth",
-        save_best: bool = True,
         logger: Optional[Logger] = None,
         random_seed: Optional[int] = None,
-        name: str | None = None
+        name: str | None = None,
+        validation_every: int = 0
     ) -> None:
         super().__init__(
             epochs=num_epochs,
@@ -41,26 +47,21 @@ class NoiseGeneratorTrainer(TorchTrainer):
             strategy=strategy,
             logger=logger,
             random_seed=random_seed,
-            name=name
+            name=name,
+            validation_every=validation_every
         )
         self.save_parameters(**self.locals2params(locals()))
-        self.num_epochs = num_epochs
-        self.batch_size = batch_size
-        self.learning_rate = learning_rate
-        self._generator = generator
-        self._loss = loss
-        self.checkpoint_path = checkpoint_path
-        os.makedirs(os.path.dirname(checkpoint_path), exist_ok=True)
         # Global training configuration
-        self.config = TrainingConfiguration(
-            batch_size=batch_size,
-            save_best=save_best,
-            shuffle_train=True
-        )
+        if isinstance(config, dict):
+            config = VirgoTrainingConfiguration(**config)
+        self.config = config
+        self.num_epochs = num_epochs
+        self.checkpoints_location = checkpoint_path
+        os.makedirs(os.path.dirname(checkpoint_path), exist_ok=True)
 
     def create_model_loss_optimizer(self) -> None:
         # Select generator
-        generator = self._generator.lower()
+        generator = self.config.generator.lower()
         if generator == "simple":
             self.model = Decoder(3, norm=False)
             init_weights(self.model, 'normal', scaling=.02)
@@ -78,7 +79,7 @@ class NoiseGeneratorTrainer(TorchTrainer):
             raise ValueError("Unrecognized generator type! Got", generator)
 
         # Select loss
-        loss = self._loss.upper()
+        loss = self.config.loss.upper()
         if loss == "L1":
             self.loss = nn.L1Loss()
         elif loss == "L2":
@@ -88,7 +89,7 @@ class NoiseGeneratorTrainer(TorchTrainer):
 
         # Optimizer
         self.optimizer = torch.optim.Adam(
-            self.model.parameters(), lr=self.learning_rate)
+            self.model.parameters(), lr=self.config.optim_lr)
 
         # IMPORTANT: model, optimizer, and scheduler need to be distributed
 
@@ -108,26 +109,103 @@ class NoiseGeneratorTrainer(TorchTrainer):
             self.model, self.optimizer, **distribute_kwargs
         )
 
+    def create_dataloaders(
+        self,
+        train_dataset: Dataset,
+        validation_dataset: Dataset | None = None,
+        test_dataset: Dataset | None = None
+    ) -> None:
+        """Override the create_dataloaders function to use the custom_collate function.
+        """
+        # This is the case if a small dataset is used in-memory
+        # - we can use the default collate_fn function
+        if isinstance(train_dataset, TensorDataset):
+            return super().create_dataloaders(
+                train_dataset=train_dataset,
+                validation_dataset=validation_dataset,
+                test_dataset=test_dataset
+            )
+        else:
+            # If we are using a custom dataset for the large dataset,
+            # we need to overwrite the collate_fn function
+            self.train_dataloader = self.strategy.create_dataloader(
+                dataset=train_dataset,
+                batch_size=self.config.batch_size,
+                num_workers=self.config.num_workers_dataloader,
+                pin_memory=self.config.pin_gpu_memory,
+                generator=self.torch_rng,
+                shuffle=self.config.shuffle_train,
+                collate_fn=self.custom_collate
+            )
+            if validation_dataset is not None:
+                self.validation_dataloader = self.strategy.create_dataloader(
+                    dataset=validation_dataset,
+                    batch_size=self.config.batch_size,
+                    num_workers=self.config.num_workers_dataloader,
+                    pin_memory=self.config.pin_gpu_memory,
+                    generator=self.torch_rng,
+                    shuffle=self.config.shuffle_validation,
+                    collate_fn=self.custom_collate
+                )
+            if test_dataset is not None:
+                self.test_dataloader = self.strategy.create_dataloader(
+                    dataset=test_dataset,
+                    batch_size=self.config.batch_size,
+                    num_workers=self.config.num_workers_dataloader,
+                    pin_memory=self.config.pin_gpu_memory,
+                    generator=self.torch_rng,
+                    shuffle=self.config.shuffle_test,
+                    collate_fn=self.custom_collate
+                )
+
+    def custom_collate(self, batch):
+        """
+        Custom collate function to concatenate input tensors along their first dimension.
+        """
+        # Some batches contain None values, if any files from the dataset did not match the criteria
+        # (i.e. three auxilliary channels)
+        batch = [x for x in batch if x is not None]
+
+        return torch.cat(batch)
+
     def train(self):
+        # Start the timer for profiling
+        st = timer()
         # uncomment all lines relative to accuracy if you want to measure
         # IOU between generated and real spectrograms.
         # Note that it significantly slows down the whole process
         # it also might not work as the function has not been fully
         # implemented yet
 
+        if self.strategy.is_main_worker:
+            print('TIMER: broadcast:', timer()-st, 's')
+            print('\nDEBUG: start training')
+            print('--------------------------------------------------------')
+            nnod = os.environ.get('SLURM_NNODES', 'unk')
+            s_name = f"{os.environ.get('DIST_MODE', 'unk')}-torch"
+            epoch_time_tracker = EpochTimeTracker(
+                series_name=s_name,
+                csv_file=f"epochtime_{s_name}_{nnod}N.csv"
+            )
         loss_plot = []
         val_loss_plot = []
         acc_plot = []
         val_acc_plot = []
         best_val_loss = float('inf')
+
         for epoch in tqdm(range(self.num_epochs)):
+            lt = timer()
             # itwinai - IMPORTANT: set current epoch ID
             self.set_epoch(epoch)
-
+            t_list = []
             st = time.time()
             epoch_loss = []
             # epoch_acc = []
             for i, batch in enumerate(self.train_dataloader):
+                t = timer()
+                # The TensorDataset returns batches as lists of length 1
+                if isinstance(batch, list):
+                    batch = batch[0]
                 # batch= transform(batch)
                 target = batch[:, 0].unsqueeze(1).to(self.device)
                 # print(f'TARGET ON DEVICE: {target.get_device()}')
@@ -142,6 +220,7 @@ class NoiseGeneratorTrainer(TorchTrainer):
                 loss.backward()
                 self.optimizer.step()
                 epoch_loss.append(loss.detach().cpu().numpy())
+                t_list.append(timer() - t)
                 # itwinai - log loss as metric
                 self.log(loss.detach().cpu().numpy(),
                          'epoch_loss_batch',
@@ -150,10 +229,14 @@ class NoiseGeneratorTrainer(TorchTrainer):
                          batch_idx=i)
                 # acc=accuracy(generated.detach().cpu().numpy(),target.detach().cpu().numpy(),20)
                 # epoch_acc.append(acc)
+            if self.strategy.is_main_worker:
+                print('TIMER: train time', sum(t_list) / len(t_list), 's')
             val_loss = []
             # val_acc = []
             for i, batch in enumerate(self.validation_dataloader):
                 # batch= transform(batch)
+                if isinstance(batch, list):
+                    batch = batch[0]
                 target = batch[:, 0].unsqueeze(1).to(self.device)
                 target = target.float()
                 input = batch[:, 1:].to(self.device)
@@ -194,8 +277,8 @@ class NoiseGeneratorTrainer(TorchTrainer):
                 print('epoch: {} loss: {} val loss: {} time:{}s'.format(
                     epoch, loss_plot[-1], val_loss_plot[-1], et-st))
 
-            # Save checkpoint every 100 epochs
-            if epoch % 1 == 0:
+            # Save checkpoint every #validation_every epochs
+            if self.validation_every and epoch % self.validation_every == 0:
                 # uncomment the following if you want to save checkpoint every
                 # 100 epochs regardless of the performance of the model
                 # checkpoint = {
@@ -233,7 +316,7 @@ class NoiseGeneratorTrainer(TorchTrainer):
 
                         # save checkpoint only if it is better than
                         # the previous ones
-                        checkpoint_filename = self.checkpoint_path.format(
+                        checkpoint_filename = self.checkpoints_location.format(
                             epoch)
                         torch.save(checkpoint, checkpoint_filename)
                         # itwinai - log checkpoint as artifact
@@ -244,13 +327,23 @@ class NoiseGeneratorTrainer(TorchTrainer):
                         # update best model
                         best_val_loss = val_loss_plot[-1]
                         best_checkpoint_filename = (
-                            self.checkpoint_path.format('best')
+                            self.checkpoints_location.format('best')
                         )
                         torch.save(checkpoint, best_checkpoint_filename)
                         # itwinai - log checkpoint as artifact
                         self.log(best_checkpoint_filename,
                                  os.path.basename(best_checkpoint_filename),
                                  kind='artifact')
-        # return (loss_plot, val_loss_plot,
-        # acc_plot, val_acc_plot ,acc_plot, val_acc_plot)
+            # return (loss_plot, val_loss_plot,
+            # acc_plot, val_acc_plot ,acc_plot, val_acc_plot)
+            if self.strategy.is_main_worker:
+                print('TIMER: epoch time:', timer()-lt, 's')
+                epoch_time_tracker.add_epoch_time(epoch-1, timer()-lt)
+
+            # Report training metrics of last epoch to Ray
+            train.report(
+                {"loss": np.mean(val_loss),
+                 "train_loss": np.mean(epoch_loss)}
+            )
+
         return loss_plot, val_loss_plot, acc_plot, val_acc_plot

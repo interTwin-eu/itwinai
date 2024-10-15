@@ -104,7 +104,7 @@ class TorchTrainer(Trainer, LogMixin):
         config: Union[Dict, TrainingConfiguration],
         epochs: int,
         model: Optional[Union[nn.Module, str]] = None,
-        strategy: Literal["ddp", "deepspeed", "horovod"] = 'ddp',
+        strategy: Optional[Literal["ddp", "deepspeed", "horovod"]] = 'ddp',
         validation_every: Optional[int] = 1,
         test_every: Optional[int] = None,
         random_seed: Optional[int] = None,
@@ -120,9 +120,9 @@ class TorchTrainer(Trainer, LogMixin):
         # config is mean to store all hyperparameters, which can very from use
         # case to use case and include learning_rate, batch_size....
         if isinstance(config, dict):
-            self.config = TrainingConfiguration(**config)
-        else:
-            self.config = config
+            config = TrainingConfiguration(**config)
+
+        self.config = config
         self.epochs = epochs
         self.model = model
         self.strategy = strategy
@@ -153,7 +153,7 @@ class TorchTrainer(Trainer, LogMixin):
         return self.strategy.device()
 
     def _detect_strategy(self, strategy: str) -> TorchDistributedStrategy:
-        if not distributed_resources_available():
+        if strategy is None or not distributed_resources_available():
             print("WARNING: falling back to non-distributed strategy.")
             dist_str = NonDistributedStrategy()
         elif strategy == 'ddp':
@@ -223,7 +223,7 @@ class TorchTrainer(Trainer, LogMixin):
         """
         Instantiate a torch model, loss, optimizer, and LR scheduler using the
         configuration provided in the Trainer constructor.
-        Generally a user-define method.
+        Generally a user-defined method.
         """
         ###################################
         # Dear user, this is a method you #
@@ -284,7 +284,7 @@ class TorchTrainer(Trainer, LogMixin):
         """
         Create train, validation and test dataloaders using the
         configuration provided in the Trainer constructor.
-        Generally a user-define method.
+        Generally a user-defined method.
 
         Args:
             train_dataset (Dataset): training dataset object.
@@ -298,7 +298,6 @@ class TorchTrainer(Trainer, LogMixin):
         # Dear user, this is a method you #
         # may be interested to override!  #
         ###################################
-
         self.train_dataloader = self.strategy.create_dataloader(
             dataset=train_dataset,
             batch_size=self.config.batch_size,
@@ -522,7 +521,8 @@ class TorchTrainer(Trainer, LogMixin):
 
                 # Checkpointing current best model
                 worker_val_losses = self.strategy.gather(
-                    val_loss, dst_rank=0)
+                    val_loss, dst_rank=0
+                )
                 if self.strategy.global_rank() == 0:
                     avg_loss = torch.mean(
                         torch.stack(worker_val_losses)

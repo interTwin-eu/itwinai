@@ -1,43 +1,86 @@
-# General configuration
-data_root: data
+root_folder: /p/scratch/intertwin/datasets/virgo
+data_root: ./data
 epochs: 2
-batch_size: 20
+batch_size: 3
+learning_rate: 0.0001
 strategy: ddp
 checkpoint_path: checkpoints/epoch_{}.pth
 
+# To use the entire synthetic dataset that is generated prior to running the pipeline
 training_pipeline:
   class_path: itwinai.pipeline.Pipeline
   init_args:
     steps:
-      - class_path: data.TimeSeriesDatasetGenerator
-        init_args:
-          data_root: ${data_root}
       - class_path: data.TimeSeriesDatasetSplitter
         init_args:
           train_proportion: 0.9
+          validation_proportion: 0.1
           rnd_seed: 42
-          images_dataset: ${data_root}/Image_dataset_synthetic_64x64.pkl
-      - class_path: data.TimeSeriesProcessor
+          root_folder: ${root_folder}
       - class_path: trainer.NoiseGeneratorTrainer
         init_args:
-          generator: simple #unet
-          batch_size: ${batch_size}
+          config:
+            generator: simple #unet
+            batch_size: ${batch_size}
+            optim_lr: ${learning_rate}
+            loss: l1
+            save_best: true
+            shuffle_train: true
           num_epochs: ${epochs}
           strategy: ${strategy}
           checkpoint_path: ${checkpoint_path}
           random_seed: 17
+          validation_every: 0
           logger:
             class_path: itwinai.loggers.LoggersCollection
             init_args:
               loggers:
                 - class_path: itwinai.loggers.ConsoleLogger
                   init_args:
-                    log_freq: 100
+                    log_freq: 1
                 - class_path: itwinai.loggers.MLFlowLogger
                   init_args:
                     experiment_name: Noise simulator (Virgo)
                     log_freq: batch 
-                - class_path: itwinai.loggers.WandBLogger
-                  init_args:
-                    log_freq: batch
+       
           
+# To use a small dataset that is generated within the pipeline
+training_pipeline_small:
+  class_path: itwinai.pipeline.Pipeline
+  init_args:
+    steps:
+      - class_path: data.TimeSeriesDatasetGenerator
+        init_args:
+          data_root: ${data_root}
+      - class_path: data.TimeSeriesDatasetSplitterSmall
+        init_args:
+          train_proportion: 0.9
+          validation_proportion: 0.1
+          rnd_seed: 42
+      - class_path: data.TimeSeriesProcessorSmall          
+      - class_path: trainer.NoiseGeneratorTrainer
+        init_args:
+        config:
+            generator: simple #unet
+            batch_size: ${batch_size}
+            optim_lr: ${learning_rate}
+            loss: l1
+            save_best: true
+            shuffle_train: true
+        num_epochs: ${epochs}
+        strategy: ${strategy}
+        checkpoint_path: ${checkpoint_path}
+        random_seed: 17
+        validation_every: 0
+        logger:
+          class_path: itwinai.loggers.LoggersCollection
+          init_args:
+            loggers:
+              - class_path: itwinai.loggers.ConsoleLogger
+                init_args:
+                  log_freq: 1
+              - class_path: itwinai.loggers.MLFlowLogger
+                init_args:
+                  experiment_name: Noise simulator (Virgo)
+                  log_freq: batch 
+      
