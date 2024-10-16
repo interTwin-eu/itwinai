@@ -27,7 +27,6 @@ def generate_communication_plot(
 ) -> None:
     """Generate stacked plot showing computation vs. communication fraction. Stores it
 
-
     Args:
         log_dir: The directory where the csv logs are stored. Defauls to
             ``profiling_logs``.
@@ -38,7 +37,7 @@ def generate_communication_plot(
     """
     import matplotlib.pyplot as plt
 
-    from itwinai.torch.communication_plot import (
+    from itwinai.torch.profiling.communication_plot import (
         create_combined_comm_overhead_df,
         create_stacked_plot,
         get_comp_fraction_full_array,
