@@ -2,20 +2,9 @@ from __future__ import annotations
 
 import functools
 from pathlib import Path
-from typing import Any
-
-import matplotlib
-import pandas as pd
-
-# Doing this because otherwise I get an error about X11 Forwarding which I believe
-# is due to the server trying to pass the image to the client computer
-matplotlib.use("Agg")
-
-# import logging
-# from logging import Logger as PythonLogger
-from pathlib import Path
 from typing import Any, Callable, Iterable
 
+import matplotlib
 import pandas as pd
 from torch.profiler import ProfilerActivity, profile, schedule
 
@@ -26,6 +15,13 @@ from itwinai.torch.distributed import (
     TorchDDPStrategy,
 )
 from itwinai.torch.trainer import TorchTrainer
+
+# Doing this because otherwise I get an error about X11 Forwarding which I believe
+# is due to the server trying to pass the image to the client computer
+matplotlib.use("Agg")
+
+# import logging
+# from logging import Logger as PythonLogger
 
 
 def profile_torch_trainer(method: Callable) -> Callable:
