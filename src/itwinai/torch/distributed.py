@@ -2,7 +2,6 @@ import abc
 import os
 from typing import Any, Iterable, List, Literal, Optional, Tuple, Union
 
-import horovod.torch as hvd
 import torch
 import torch.distributed as dist
 import torch.nn as nn
@@ -578,6 +577,7 @@ class DeepSpeedStrategy(TorchDistributedStrategy):
                 already initialized.
         """
         import deepspeed
+        self.deepspeed = deepspeed
         if not distributed_resources_available():
             raise RuntimeError(
                 "Trying to run distributed on insufficient resources.")
@@ -592,7 +592,7 @@ class DeepSpeedStrategy(TorchDistributedStrategy):
         )
 
         # https://deepspeed.readthedocs.io/en/latest/initialize.html#training-initialization
-        deepspeed.init_distributed(dist_backend=self.backend)
+        self.deepspeed.init_distributed(dist_backend=self.backend)
         self.is_initialized = True
 
         self.set_device()
@@ -608,9 +608,8 @@ class DeepSpeedStrategy(TorchDistributedStrategy):
             raise UninitializedStrategyError(
                 "Strategy has not been initialized. Use the init method."
             )
-        import deepspeed
 
-        distrib_model, optimizer, _, lr_scheduler = deepspeed.initialize(
+        distrib_model, optimizer, _, lr_scheduler = self.deepspeed.initialize(
             model=model,
             model_parameters=model_parameters,
             optimizer=optimizer,
@@ -752,7 +751,11 @@ class HorovodStrategy(TorchDistributedStrategy):
                 "Trying to run distributed on insufficient resources.")
         if self.is_initialized:
             raise DistributedStrategyError("Strategy was already initialized")
-        hvd.init()
+
+        import horovod.torch as hvd
+        self.hvd = hvd
+
+        self.hvd.init()
         self.is_initialized = True
 
         self.set_device()
@@ -772,16 +775,16 @@ class HorovodStrategy(TorchDistributedStrategy):
         # Scale learning rate
         # https://github.com/horovod/horovod/issues/1653#issuecomment-574764452
         lr_scaler = 1
-        if optim_kwargs.get('op') == hvd.Adasum:
-            lr_scaler = hvd.local_size()
-        elif optim_kwargs.get('op') == hvd.Average:
-            lr_scaler = hvd.size()
+        if optim_kwargs.get('op') == self.hvd.Adasum:
+            lr_scaler = self.hvd.local_size()
+        elif optim_kwargs.get('op') == self.hvd.Average:
+            lr_scaler = self.hvd.size()
         for g in optimizer.param_groups:
             g['lr'] *= lr_scaler
 
         self._broadcast_params(model, optimizer)
 
-        distOptimizer = hvd.DistributedOptimizer(
+        distOptimizer = self.hvd.DistributedOptimizer(
             optimizer,
             named_parameters=model.named_parameters(),
             **optim_kwargs
@@ -799,8 +802,8 @@ class HorovodStrategy(TorchDistributedStrategy):
             optimizer (optim.Optimizer): Optimizer that is to be broadcasted
                 across processes.
         """
-        hvd.broadcast_parameters(model.state_dict(), root_rank=0)
-        hvd.broadcast_optimizer_state(optimizer, root_rank=-0)
+        self.hvd.broadcast_parameters(model.state_dict(), root_rank=0)
+        self.hvd.broadcast_optimizer_state(optimizer, root_rank=-0)
 
     def global_world_size(self) -> int:
         """Returns the total number of processes (global world size).
@@ -811,7 +814,7 @@ class HorovodStrategy(TorchDistributedStrategy):
         if not self.is_initialized:
             raise UninitializedStrategyError(
                 "Strategy has not been initialized. Use the init method.")
-        return hvd.size()
+        return self.hvd.size()
 
     def local_world_size(self) -> int:
         """Returns the local number of workers available per node,
@@ -823,7 +826,7 @@ class HorovodStrategy(TorchDistributedStrategy):
         if not self.is_initialized:
             raise UninitializedStrategyError(
                 "Strategy has not been initialized. Use the init method.")
-        return hvd.local_size()
+        return self.hvd.local_size()
 
     def global_rank(self) -> int:
         """Returns the global rank of the current process, where
@@ -835,7 +838,7 @@ class HorovodStrategy(TorchDistributedStrategy):
         if not self.is_initialized:
             raise UninitializedStrategyError(
                 "Strategy has not been initialized. Use the init method.")
-        return hvd.rank()
+        return self.hvd.rank()
 
     def local_rank(self) -> int:
         """Returns the local rank of the current process.
@@ -846,14 +849,14 @@ class HorovodStrategy(TorchDistributedStrategy):
         if not self.is_initialized:
             raise UninitializedStrategyError(
                 "Strategy has not been initialized. Use the init method.")
-        return hvd.local_rank()
+        return self.hvd.local_rank()
 
     def clean_up(self) -> None:
         """Shuts Horovod down."""
         if not self.is_initialized:
             raise UninitializedStrategyError(
                 "Strategy has not been initialized. Use the init method.")
-        hvd.shutdown()
+        self.hvd.shutdown()
 
     def allgather_obj(self, obj: Any) -> list[Any]:
         """All-gathers scalar objects across all workers to a
@@ -869,7 +872,7 @@ class HorovodStrategy(TorchDistributedStrategy):
             raise UninitializedStrategyError(
                 "Strategy has not been initialized. Use the init method."
             )
-        return hvd.allgather_object(obj)
+        return self.hvd.allgather_object(obj)
 
     def gather_obj(self, obj: Any, dst_rank: int = 0) -> list[Any]:
         """The same as ``allgather_obj``, as gather is not supported
