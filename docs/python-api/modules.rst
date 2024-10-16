@@ -1,11 +1,5 @@
-`itwinai <https://pypi.org/project/itwinai/>`_
-==============================================
-
-.. toctree::
-   :maxdepth: 4
-
-   itwinai.torch.modules
-   itwinai.tf.modules
+itwinai 
+=======
 
 .. toctree::
    :maxdepth: 4
@@ -17,5 +11,8 @@
    itwinai.parser
    itwinai.pipeline
    itwinai.serialization
+   itwinai.tests.modules
+   itwinai.tf.modules
+   itwinai.torch.modules
    itwinai.type
    itwinai.utils
