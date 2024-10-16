@@ -395,7 +395,7 @@ class TorchTrainer(Trainer, LogMixin):
         Args:
             epoch (int): epoch number, from 0 to ``epochs-1``.
         """
-        if self.profiler is not None: 
+        if self.profiler is not None:
             self.profiler.step()
         self._set_epoch_dataloaders(epoch)
 
@@ -639,7 +639,7 @@ class TorchTrainer(Trainer, LogMixin):
             epoch (int): current epoch number, from 0 to ``self.epochs - 1``.
 
         Returns:
-            Optional[Loss]: average validation loss for the current epoch if 
+            Optional[Loss]: average validation loss for the current epoch if
                 self.validation_dataloader is not None
         """
         if self.validation_dataloader is None:
