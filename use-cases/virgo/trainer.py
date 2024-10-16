@@ -43,7 +43,7 @@ class NoiseGeneratorTrainer(TorchTrainer):
     ) -> None:
         super().__init__(
             epochs=num_epochs,
-            config={},
+            config=config,
             strategy=strategy,
             logger=logger,
             random_seed=random_seed,
