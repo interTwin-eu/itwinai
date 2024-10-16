@@ -209,7 +209,7 @@ def profile_torch_trainer(method: Callable) -> Callable:
         profiling_dataframe = gather_profiling_data(key_averages=key_averages)
         profiling_dataframe["strategy"] = strategy_str
         profiling_dataframe["num_gpus"] = num_gpus_global
-        profiling_dataframe["global_rank"] = strategy_str
+        profiling_dataframe["global_rank"] = global_rank
         
         profiling_log_dir = Path("profiling_logs")
         profiling_log_dir.mkdir(parents=True, exist_ok=True)
@@ -224,9 +224,6 @@ def profile_torch_trainer(method: Callable) -> Callable:
         return result
     
     return profiled_method
-
-
-
 
 
 class BaseComponent(ABC, Serializable):
