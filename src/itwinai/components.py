@@ -158,7 +158,7 @@ class BaseComponent(ABC, Serializable):
     @abstractmethod
     @monitor_exec
     def execute(self, *args, **kwargs) -> Any:
-        """ "Execute some operations."""
+        """Execute some operations."""
 
     # def setup_console(self):
     #     """Setup Python logging"""
