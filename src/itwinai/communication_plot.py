@@ -1,19 +1,18 @@
-import matplotlib
-
-# Doing this because otherwise I get an error about X11 Forwarding which I believe
-# is due to the server trying to pass the image to the client computer
-matplotlib.use("Agg")
-
-import re
 from pathlib import Path
-from re import Pattern
+from re import Pattern, compile
 from typing import Any, List, Tuple
 
+import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
 from matplotlib.patches import Patch
+
+# Doing this because otherwise I get an error about X11 Forwarding which I believe
+# is due to the server trying to pass the image to the client computer
+matplotlib.use("Agg")
+
 
 
 def calculate_comp_and_comm_time(df: pd.DataFrame) -> Tuple[float, float]:
@@ -148,7 +147,7 @@ def create_combined_comm_overhead_df(logs_dir: Path, pattern: str) -> pd.DataFra
     Raises:
         ValueError: If not all expected columns are found in the stored DataFrame.
     """
-    re_pattern: Pattern = re.compile(pattern)
+    re_pattern: Pattern = compile(pattern)
     dataframes = []
     expected_columns = {
         "strategy",

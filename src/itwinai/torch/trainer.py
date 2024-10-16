@@ -375,7 +375,7 @@ class TorchTrainer(Trainer, LogMixin):
 
         if self.logger:
             self.logger.destroy_logger_context()
-        self.strategy.clean_up()
+        # self.strategy.clean_up()
         return train_dataset, validation_dataset, test_dataset, self.model
 
     def _set_epoch_dataloaders(self, epoch: int):
@@ -395,7 +395,7 @@ class TorchTrainer(Trainer, LogMixin):
         Args:
             epoch (int): epoch number, from 0 to ``epochs-1``.
         """
-        if self.profiler is not None: 
+        if self.profiler is not None:
             self.profiler.step()
         self._set_epoch_dataloaders(epoch)
 
@@ -525,10 +525,8 @@ class TorchTrainer(Trainer, LogMixin):
                 val_loss = self.validation_epoch(epoch)
 
                 # Checkpointing current best model
-                worker_val_losses = self.strategy.gather(
-                    val_loss, dst_rank=0
-                )
-                if self.strategy.global_rank() == 0:
+                worker_val_losses = self.strategy.gather(val_loss, dst_rank=0)
+                if self.strategy.is_main_worker:
                     avg_loss = torch.mean(
                         torch.stack(worker_val_losses)
                     ).detach().cpu()
@@ -633,7 +631,7 @@ class TorchTrainer(Trainer, LogMixin):
         )
         return loss, metrics
 
-    def validation_epoch(self, epoch: int) -> torch.Tensor:
+    def validation_epoch(self, epoch: int) -> Optional[torch.Tensor]:
         """Perform a complete sweep over the validation dataset, completing an
         epoch of validation.
 
@@ -641,43 +639,45 @@ class TorchTrainer(Trainer, LogMixin):
             epoch (int): current epoch number, from 0 to ``self.epochs - 1``.
 
         Returns:
-            Loss: average validation loss for the current epoch.
+            Optional[Loss]: average validation loss for the current epoch if
+                self.validation_dataloader is not None
         """
-        if self.validation_dataloader is not None:
-            self.model.eval()
-            validation_losses = []
-            validation_metrics = []
-            for batch_idx, val_batch \
-                    in enumerate(self.validation_dataloader):
-                loss, metrics = self.validation_step(
-                    batch=val_batch,
-                    batch_idx=batch_idx
-                )
-                validation_losses.append(loss)
-                validation_metrics.append(metrics)
+        if self.validation_dataloader is None:
+            return
 
-                # Important: update counter
-                self.validation_glob_step += 1
+        self.model.eval()
+        validation_losses = []
+        validation_metrics = []
+        for batch_idx, val_batch in enumerate(self.validation_dataloader):
+            loss, metrics = self.validation_step(
+                batch=val_batch,
+                batch_idx=batch_idx
+            )
+            validation_losses.append(loss)
+            validation_metrics.append(metrics)
 
-            # Aggregate and log losses
-            avg_loss = torch.mean(torch.stack(validation_losses))
+            # Important: update counter
+            self.validation_glob_step += 1
+
+        # Aggregate and log losses
+        avg_loss = torch.mean(torch.stack(validation_losses))
+        self.log(
+            item=avg_loss.item(),
+            identifier='validation_loss_epoch',
+            kind='metric',
+            step=self.validation_glob_step,
+        )
+        # Aggregate and log metrics
+        avg_metrics = pd.DataFrame(validation_metrics).mean().to_dict()
+        for m_name, m_val in avg_metrics.items():
             self.log(
-                item=avg_loss.item(),
-                identifier='validation_loss_epoch',
+                item=m_val,
+                identifier='validation_' + m_name + '_epoch',
                 kind='metric',
                 step=self.validation_glob_step,
             )
-            # Aggregate and log metrics
-            avg_metrics = pd.DataFrame(validation_metrics).mean().to_dict()
-            for m_name, m_val in avg_metrics.items():
-                self.log(
-                    item=m_val,
-                    identifier='validation_' + m_name + '_epoch',
-                    kind='metric',
-                    step=self.validation_glob_step,
-                )
 
-            return avg_loss
+        return avg_loss
 
     def validation_step(
         self,

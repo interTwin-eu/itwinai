@@ -82,7 +82,6 @@ Example:
 >>> python my_train.py --config training_pipe.yaml --lr 0.002
 """
 
-
 from __future__ import annotations
 
 import functools
@@ -103,32 +102,22 @@ from itwinai.torch.distributed import (
     TorchDDPStrategy,
 )
 
-from .distributed import detect_distributed_environment, distributed_patch_print
 from .serialization import ModelLoader, Serializable
 from .type import MLArtifact, MLDataset, MLModel
 
 
 def monitor_exec(method: Callable) -> Callable:
-    """Decorator for execute method of a component class.
-    Computes execution time and gives some information about
-    the execution of the component.
-
-    Args:
-        func (Callable): class method.
+    """Decorator for ``BaseComponent``'s methods.
+    Prints when the component starts and ends executing, indicating
+    its execution time.
     """
-    @functools.wraps(method)
-    def monitored_method(self: BaseComponent, *args, **kwargs) -> Any:
-        # Disable print in workers different from the main one,
-        # when in distributed environments.
-        dist_grank = detect_distributed_environment().global_rank
-        distributed_patch_print(is_main=dist_grank == 0)
 
+    @functools.wraps(method)
+    def wrapper(self: BaseComponent, *args, **kwargs) -> Any:
         msg = f"Starting execution of '{self.name}'..."
         self._printout(msg)
         start_t = time.time()
         try:
-            # print(f'ARGS: {args}')
-            # print(f'KWARGS: {kwargs}')
             result = method(self, *args, **kwargs)
         finally:
             self.cleanup()
@@ -137,17 +126,18 @@ def monitor_exec(method: Callable) -> Callable:
         self._printout(msg)
         return result
 
-    return monitored_method
+    return wrapper
 
-def profile_torch_trainer(method: Callable) -> Callable: 
-    """Decorator for execute method for components. Profiles the communication time 
-    vs. computation time and stores the result for future analysis. 
+
+def profile_torch_trainer(method: Callable) -> Callable:
+    """Decorator for execute method for components. Profiles the communication time
+    vs. computation time and stores the result for future analysis.
     """
 
     from torch.profiler import ProfilerActivity, profile, schedule
     from itwinai.torch.trainer import TorchTrainer
 
-    def gather_profiling_data(key_averages: Iterable) -> pd.DataFrame: 
+    def gather_profiling_data(key_averages: Iterable) -> pd.DataFrame:
         profiling_data = []
         for event in key_averages:
             profiling_data.append(
@@ -165,10 +155,8 @@ def profile_torch_trainer(method: Callable) -> Callable:
             )
         return pd.DataFrame(profiling_data)
 
-
-
     @functools.wraps(method)
-    def profiled_method(self: TorchTrainer, *args, **kwargs) -> Any: 
+    def profiled_method(self: TorchTrainer, *args, **kwargs) -> Any:
 
         profiler = profile(
             activities=[ProfilerActivity.CUDA, ProfilerActivity.CPU],
@@ -177,28 +165,28 @@ def profile_torch_trainer(method: Callable) -> Callable:
                 # skip_first=1
                 wait=1,
                 warmup=2,
-                active=100
+                active=100,
             ),
         )
         profiler.start()
 
         # TODO: Make sure this doesn't clean up the strategy
         self.profiler = profiler
-        try: 
+        try:
             result = method(self, *args, **kwargs)
-        finally: 
+        finally:
             profiler.stop()
 
         strategy = self.strategy
-        if isinstance(strategy, NonDistributedStrategy): 
+        if isinstance(strategy, NonDistributedStrategy):
             strategy_str = "non-dist"
-        elif isinstance(strategy, TorchDDPStrategy): 
+        elif isinstance(strategy, TorchDDPStrategy):
             strategy_str = "ddp"
-        elif isinstance(strategy, DeepSpeedStrategy): 
+        elif isinstance(strategy, DeepSpeedStrategy):
             strategy_str = "deepspeed"
-        elif isinstance(strategy, HorovodStrategy): 
+        elif isinstance(strategy, HorovodStrategy):
             strategy_str = "horovod"
-        else: 
+        else:
             strategy_str = "unk"
 
         global_rank = strategy.global_rank()
@@ -210,7 +198,7 @@ def profile_torch_trainer(method: Callable) -> Callable:
         profiling_dataframe["strategy"] = strategy_str
         profiling_dataframe["num_gpus"] = num_gpus_global
         profiling_dataframe["global_rank"] = global_rank
-        
+
         profiling_log_dir = Path("profiling_logs")
         profiling_log_dir.mkdir(parents=True, exist_ok=True)
 
@@ -222,7 +210,7 @@ def profile_torch_trainer(method: Callable) -> Callable:
         strategy.clean_up()
 
         return result
-    
+
     return profiled_method
 
 
@@ -237,7 +225,8 @@ class BaseComponent(ABC, Serializable):
         Args:
             name (Optional[str], optional): unique identifier for a step.
                 Defaults to None.
-        """
+    """
+
     _name: str = None
     #: Dictionary storing constructor arguments. Needed to serialize the
     #: class to dictionary. Set by ``self.save_parameters()`` method.
@@ -254,11 +243,8 @@ class BaseComponent(ABC, Serializable):
 
     @property
     def name(self) -> str:
-        """Name of current component. Defaults to ``self.__class__.__name__``.
-        """
-        return (
-            self._name if self._name is not None else self.__class__.__name__
-        )
+        """Name of current component. Defaults to ``self.__class__.__name__``."""
+        return self._name if self._name is not None else self.__class__.__name__
 
     @name.setter
     def name(self, name: str) -> None:
@@ -267,7 +253,7 @@ class BaseComponent(ABC, Serializable):
     @abstractmethod
     @monitor_exec
     def execute(self, *args, **kwargs) -> Any:
-        """"Execute some operations."""
+        """ "Execute some operations."""
 
     # def setup_console(self):
     #     """Setup Python logging"""
@@ -296,9 +282,9 @@ class BaseComponent(ABC, Serializable):
     @staticmethod
     def _printout(msg: str):
         msg = f"# {msg} #"
-        print("#"*len(msg))
+        print("#" * len(msg))
         print(msg)
-        print("#"*len(msg))
+        print("#" * len(msg))
 
 
 class DataGetter(BaseComponent):
@@ -323,7 +309,7 @@ class DataProcessor(BaseComponent):
         self,
         train_dataset: MLDataset,
         validation_dataset: MLDataset,
-        test_dataset: MLDataset
+        test_dataset: MLDataset,
     ) -> Tuple[MLDataset, MLDataset, MLDataset]:
         """Trains a machine learning model.
 
@@ -340,6 +326,7 @@ class DataProcessor(BaseComponent):
 
 class DataSplitter(BaseComponent):
     """Splits a dataset into train, validation, and test splits."""
+
     _train_proportion: Union[int, float]
     _validation_proportion: Union[int, float]
     _test_proportion: Union[int, float]
@@ -349,7 +336,7 @@ class DataSplitter(BaseComponent):
         train_proportion: Union[int, float],
         validation_proportion: Union[int, float],
         test_proportion: Union[int, float],
-        name: Optional[str] = None
+        name: Optional[str] = None,
     ) -> None:
         super().__init__(name)
         self.save_parameters(**self.locals2params(locals()))
@@ -401,10 +388,7 @@ class DataSplitter(BaseComponent):
 
     @abstractmethod
     @monitor_exec
-    def execute(
-        self,
-        dataset: MLDataset
-    ) -> Tuple[MLDataset, MLDataset, MLDataset]:
+    def execute(self, dataset: MLDataset) -> Tuple[MLDataset, MLDataset, MLDataset]:
         """Splits a dataset into train, validation and test splits.
 
         Args:
@@ -425,7 +409,7 @@ class Trainer(BaseComponent):
         self,
         train_dataset: MLDataset,
         validation_dataset: MLDataset,
-        test_dataset: MLDataset
+        test_dataset: MLDataset,
     ) -> Tuple[MLDataset, MLDataset, MLDataset, MLModel]:
         """Trains a machine learning model.
 
@@ -458,9 +442,7 @@ class Predictor(BaseComponent):
     @abstractmethod
     @monitor_exec
     def execute(
-        self,
-        predict_dataset: MLDataset,
-        model: Optional[MLModel] = None
+        self, predict_dataset: MLDataset, model: Optional[MLModel] = None
     ) -> MLDataset:
         """Applies a machine learning model on a dataset of samples.
 
@@ -543,21 +525,23 @@ class Adapter(BaseComponent):
         """
         result = []
         for itm in self.policy:
-            if not(isinstance(itm, str) and itm.startswith(self.INPUT_PREFIX)):
+            if not (isinstance(itm, str) and itm.startswith(self.INPUT_PREFIX)):
                 result.append(itm)
                 continue
 
-            arg_idx = int(itm[len(self.INPUT_PREFIX):])
+            arg_idx = int(itm[len(self.INPUT_PREFIX) :])
             if arg_idx >= len(args):
-                max_idx = max(map(
-                    lambda itm: int(itm[len(self.INPUT_PREFIX):]),
-                    filter(
-                        lambda el: (
-                            isinstance(el, str)
-                            and el.startswith(self.INPUT_PREFIX)
+                max_idx = max(
+                    map(
+                        lambda itm: int(itm[len(self.INPUT_PREFIX) :]),
+                        filter(
+                            lambda el: (
+                                isinstance(el, str) and el.startswith(self.INPUT_PREFIX)
+                            ),
+                            self.policy,
                         ),
-                        self.policy
-                    )))
+                    )
+                )
                 raise IndexError(
                     f"The args received as input by '{self.name}' "
                     "are not consistent with the given adapter policy "
