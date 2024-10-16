@@ -1,20 +1,3 @@
-.. itwinai documentation master file, created by
-   sphinx-quickstart on Fri Feb  9 13:58:30 2024.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
-
-.. |br| raw:: html
-
-   <br>
-
-.. image:: ../docs/images/icon-itwinai-orange-black-subtitle.png
-    :alt: itwinai logo
-    :width: 400px
-
-|br|
-|br|
-|br|
-
 Welcome to itwinai's documentation!
 ===================================
 
@@ -36,7 +19,7 @@ experiment management.
 Moreover, the toolkit is designed with extensibility in mind, allowing third-party developers to build and integrate their own
 plugins, enhancing the flexibility and adaptability of the platform.
 
-``itwinai`` is primarily developed by `Matteo Bunino <mailto:matteo.bunino@cern.ch>`_` from `CERN <https://home.cern/>`_, in
+``itwinai`` is primarily developed by `Matteo Bunino <matteo.bunino@cern.ch>`_` from `CERN <https://home.cern/>`_, in
 collaboration with the `interTwin <https://www.intertwin.eu/>`_
 project, which aims to advance the use of digital twins in scientific research.
 

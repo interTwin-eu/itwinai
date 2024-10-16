@@ -64,7 +64,7 @@ release = version
 html_theme = 'sphinx_rtd_theme'  # 'alabaster'
 html_static_path = ['_static']
 
-html_logo = "../docs/images/icon-itwinai-orange.png"
+html_logo = "../docs/images/icon-itwinai-orange-black-subtitle-small.png"
 html_theme_options = {
     'logo_only': True,
     'style_nav_header_background': 'black'
