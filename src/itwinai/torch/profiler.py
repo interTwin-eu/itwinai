@@ -20,9 +20,6 @@ from itwinai.torch.trainer import TorchTrainer
 # is due to the server trying to pass the image to the client computer
 matplotlib.use("Agg")
 
-# import logging
-# from logging import Logger as PythonLogger
-
 
 def profile_torch_trainer(method: Callable) -> Callable:
     """Decorator for execute method for components. Profiles the communication time
@@ -62,7 +59,6 @@ def profile_torch_trainer(method: Callable) -> Callable:
         )
         profiler.start()
 
-        # TODO: Make sure this doesn't clean up the strategy
         self.profiler = profiler
         try:
             result = method(self, *args, **kwargs)
