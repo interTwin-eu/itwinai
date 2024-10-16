@@ -207,6 +207,7 @@ def profile_torch_trainer(method: Callable) -> Callable:
     """
 
     from torch.profiler import ProfilerActivity, profile, schedule
+
     from itwinai.torch.trainer import TorchTrainer
 
     def gather_profiling_data(key_averages: Iterable) -> pd.DataFrame:
