@@ -20,6 +20,47 @@ app = typer.Typer(pretty_exceptions_enable=False)
 
 
 @app.command()
+def generate_communication_plot(): 
+    """Generate stacked plot showing computation vs. communication fraction. """
+    import matplotlib.pyplot as plt
+
+    from itwinai.communication_plot import (
+        create_combined_comm_overhead_df,
+        create_stacked_plot,
+        get_comp_fraction_full_array,
+    )
+
+    logs_dir = Path("profiling_logs")
+    if not logs_dir.exists(): 
+        raise IOError(
+            f"The directory '{logs_dir.resolve()}' does not exist, so could not" \
+            f"extract profiling logs. Make sure you are running this command in the " \
+            f"same directory as the logging dir."
+        )
+
+    pattern = r"profile_(\w+)_(\d+)_(\d+)\.csv$"
+    df = create_combined_comm_overhead_df(logs_dir=logs_dir, pattern=pattern)
+    values = get_comp_fraction_full_array(df, print_table=True)
+
+    strategies = sorted(df["strategy"].unique())
+    gpu_numbers = sorted(df["num_gpus"].unique(), key=lambda x: int(x))
+
+    # Generating and showing the plot
+    fig, _ = create_stacked_plot(values, strategies, gpu_numbers)
+
+    # TODO: set these dynamically? 
+    fig.set_figwidth(8)
+    fig.set_figheight(6)
+
+    output_folder = Path("plots")
+    output_folder.mkdir(parents=True, exist_ok=True)
+    output_path = output_folder / "comm_plot.png"
+
+    plt.savefig(output_path)
+    print(f"\nSaved computation vs. communication plot at '{output_path.resolve()}'")
+
+
+@app.command()
 def sanity_check(
     torch: Annotated[Optional[bool], typer.Option(
         help=("Check also itwinai.torch modules.")
@@ -173,14 +214,17 @@ def scalability_report(
 
     if archive is not None:
         if '/' in archive:
-            raise ValueError("Archive name must NOT contain a path. "
-                             f"Received: '{archive}'")
+            raise ValueError(
+                f"Archive name must NOT contain a path. Received: '{archive}'"
+            )
         if '.' in archive:
-            raise ValueError("Archive name must NOT contain an extension. "
-                             f"Received: '{archive}'")
+            raise ValueError(
+                f"Archive name must NOT contain an extension. Received: '{archive}'"
+            )
         if os.path.isdir(archive):
-            raise ValueError(f"Folder '{archive}' already exists. "
-                             "Change archive name.")
+            raise ValueError(
+                f"Folder '{archive}' already exists. Change archive name."
+            )
         os.makedirs(archive)
         for csvfile in csv_files:
             shutil.copyfile(csvfile, os.path.join(archive,
@@ -241,9 +285,7 @@ def exec_pipeline(
         )
     ] = None
 ):
-    """Execute a pipeline from configuration file.
-    Allows dynamic override of fields.
-    """
+    """Execute a pipeline from configuration file. Allows dynamic override of fields. """
     # Add working directory to python path so that the interpreter is able
     # to find the local python files imported from the pipeline file
     import os
@@ -286,9 +328,7 @@ def mlflow_ui(
         5000, help="Port on which the MLFlow UI is listening."
     ),
 ):
-    """
-    Visualize Mlflow logs.
-    """
+    """Visualize Mlflow logs. """
     import subprocess
 
     subprocess.run(f"mlflow ui --backend-store-uri {path} --port {port}".split())
@@ -300,9 +340,7 @@ def mlflow_server(
     port: int = typer.Option(
         5000, help="Port on which the server is listening."),
 ):
-    """
-    Spawn Mlflow server.
-    """
+    """Spawn Mlflow server. """
     import subprocess
 
     subprocess.run(f"mlflow server --backend-store-uri {path} --port {port}".split())
@@ -313,9 +351,7 @@ def kill_mlflow_server(
     port: int = typer.Option(
         5000, help="Port on which the server is listening."),
 ):
-    """
-    Kill Mlflow server.
-    """
+    """Kill Mlflow server. """
     import subprocess
 
     subprocess.run(
