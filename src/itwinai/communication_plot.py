@@ -160,12 +160,17 @@ def create_combined_comm_overhead_df(logs_dir: Path, pattern: str) -> pd.DataFra
 
         df = pd.read_csv(entry)
         if not expected_columns.issubset(df.columns): 
+            missing_columns = expected_columns - set(df.columns)
             raise ValueError(
-                f"Invalid data format! File at '{match.string}' doesn't contain all" \
-                f" necessary columns: \n{expected_columns}"
+                f"Invalid data format! File at '{match.string}' doesn't contain all" 
+                f" necessary columns. \nMissing columns: {missing_columns}"
             )
 
         dataframes.append(df)
+    if len(dataframes) == 0: 
+        raise ValueError(
+            f"No matching files found in '{logs_dir.resolve()}' for pattern '{pattern}'"
+        )
     return pd.concat(dataframes)
 
 
