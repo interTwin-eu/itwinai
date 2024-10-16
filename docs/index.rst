@@ -1,56 +1,51 @@
-.. itwinai documentation master file, created by
-   sphinx-quickstart on Fri Feb  9 13:58:30 2024.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
-
-.. |br| raw:: html
-
-   <br>
-
-.. image:: ../docs/images/icon-itwinai-orange-black-subtitle.png
-    :alt: itwinai logo
-    :class: logo
-
-|br|
-|br|
-|br|
-
 Welcome to itwinai's documentation!
 ===================================
 
-``itwinai`` is a framework for advanced AI/ML workflows in Digital Twins (DTs).
+``itwinai`` is a versatile toolkit designed to accelerate AI and machine learning (ML) workflows for researchers and scientists, 
+particularly in the realm of Digital Twins (DTs). This toolkit provides a suite of user-friendly tools to effortlessly
+scale machine learning projects to high-performance computing (HPC) resources, seamlessly integrating with cloud-based services.
+The primary focus of ``itwinai`` is to reduce the engineering burden on researchers, enabling them to concentrate more on advancing
+their science.
 
-This platform is intended to support general-purpose MLOps for Digital Twin use cases in the `interTwin <https://www.intertwin.eu/>`_ project.
+Empowering AI in Scientific Digital Twins
++++++++++++++++++++++++++++++++++++++++++
 
-Platform for machine learning workflows in digital twins
-++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+The ``itwinai`` toolkit is engineered to support AI-driven research in scientific digital twins. It offers powerful capabilities for
+distributed machine learning training and inference on HPC systems, efficient hyper-parameter optimization (HPO), and simplified
+ML logging with integration to popular tools like MLflow, Weights & Biases, and TensorBoard. Additionally, it includes an
+intuitive framework to define, configure, and manage modular and reusable ML workflows, providing a streamlined approach to
+experiment management.
 
-The goal of this platform is to provide ML researchers with an easy-to-use endpoint to manage general-purpose ML workflows, 
-with limited engineering overhead, while providing state-of-the-art MLOps best practices.
+Moreover, the toolkit is designed with extensibility in mind, allowing third-party developers to build and integrate their own
+plugins, enhancing the flexibility and adaptability of the platform.
 
-How to read the docs
+``itwinai`` is primarily developed by `Matteo Bunino <matteo.bunino@cern.ch>`_ from `CERN <https://home.cern/>`_, in
+collaboration with the `interTwin <https://www.intertwin.eu/>`_
+project, which aims to advance the use of digital twins in scientific research.
+
+
+How to Read the Docs
 ++++++++++++++++++++
 
-To effectively utilize the ``itwinai`` framework documentation, start by exploring the "Getting started" section. 
-This section is crucial for understanding  the basics, setting up the framework, including detailed instructions for 
-different types of installations such as User Installation either on HPC or on your laptop and Developer Installation. 
-For a deeper understanding of the toolkit's core functionalities, refer to the "How It Works" section, which covers
-key concepts addressed by itwinai.
+To effectively utilize the ``itwinai`` toolkit documentation, begin by exploring the "Getting Started" section. This part is essential
+for grasping the basics and setting up the toolkit, with detailed instructions for different installation scenarios, whether on HPC
+systems or your local machine.
 
-The "Scientific Use Cases" section provides practical examples and interTwin project use cases' scenarios where ``itwinai``
-has been applied, offering valuable insights into real-world applications. 
-To further enhance your skills, explore the "Tutorials" section, which includes comprehensive 
-guides on Distributed ML training and ML workflow tutorials. Lastly, the "Python API Reference" section is an essential 
-resource for detailed information on the framework's API, helping you to implement specific features and functions in your projects. 
-By following these sections systematically, you can maximize your understanding and effective use of the ``itwinai`` framework.
+For a deeper dive into the core functionalities, check out the "How It Works" section, which breaks down the key concepts that power
+``itwinai``. The "Scientific Use Cases" section offers practical examples and scenarios from the `interTwin <https://www.intertwin.eu/>`_
+project, showcasing how the toolkit is applied in real-world research.
 
-``itwinai`` documentation also offers different versions, such as the 'latest', 'stable', and 'v0.2.1'. 
-The 'latest' version includes the most recent updates and features reflecting `main <https://github.com/interTwin-eu/itwinai>`_ branch developments, 
-while the 'stable' version tracks the most recent project release based on semantic tagging and is recommended for production 
-use due to its reliability (`learn more <https://docs.readthedocs.io/en/stable/versions.html#version-states>`_). 
+Enhance your skills by exploring the "Tutorials" section, filled with step-by-step guides on distributed ML training and workflow
+creation. Lastly, the "Python API Reference" is your go-to resource for a detailed overview of the toolkit's capabilities, helping
+you implement specific features in your projects.
 
-.. The 'dev' version contains the latest development changes and is suitable for contributors and early testers, 
-   reflecting `dev <https://github.com/interTwin-eu/itwinai/tree/dev>`_ branch.
+Following these sections systematically will help you maximize your understanding and make the most of the ``itwinai`` toolkit in
+your research endeavors.
+
+``itwinai`` documentation is also available in different versions: 'latest', 'stable', and specific release versions like 'v0.2.1'.
+The 'latest' version reflects the most recent updates, while the 'stable' version is recommended for production use, as it
+contains thoroughly tested features aligned with the toolkit's most recent release
+(`learn more <https://docs.readthedocs.io/en/stable/versions.html#version-states>`_).
 
 
 .. toctree::
@@ -91,14 +86,6 @@ use due to its reliability (`learn more <https://docs.readthedocs.io/en/stable/v
    :caption: ⚡ Python API reference
 
    python-api/modules
-
-.. toctree::
-   :maxdepth: 2
-   :hidden:
-   :caption: 🎯 Github repository
-
-   itwinai <https://github.com/interTwin-eu/itwinai>
-
 
 .. toctree::
    :maxdepth: 2

@@ -4,10 +4,15 @@
 [![GitHub Super-Linter](https://github.com/interTwin-eu/T6.5-AI-and-ML/actions/workflows/check-links.yml/badge.svg)](https://github.com/marketplace/actions/markdown-link-check)
  [![SQAaaS source code](https://github.com/EOSC-synergy/itwinai.assess.sqaaas/raw/main/.badge/status_shields.svg)](https://sqaaas.eosc-synergy.eu/#/full-assessment/report/https://raw.githubusercontent.com/eosc-synergy/itwinai.assess.sqaaas/main/.report/assessment_output.json)
 
- ![itwinai Logo](./docs/images/icon-itwinai-orange-black-subtitle.png)
+![itwinai Logo](./docs/images/icon-itwinai-orange-black-subtitle.png)
 
-See the latest version of our [docs](https://itwinai.readthedocs.io/)
-for a quick overview of this platform for advanced AI/ML workflows in digital twin applications.
+`itwinai` is a powerful Python toolkit designed to help scientists and researchers streamline AI and machine learning
+workflows, specifically for digital twin applications. It provides easy-to-use tools for distributed training,
+hyper-parameter optimization on HPC systems, and integrated ML logging, reducing engineering overhead and accelerating
+research. Developed primarily by CERN, `itwinai` supports modular and reusable ML workflows, with
+the flexibility to be extended through third-party plugins, empowering AI-driven scientific research in digital twins.
+
+See the latest version of our docs [here](https://itwinai.readthedocs.io/).
 
 If you are a **developer**, please refer to the [developers installation guide](#installation-for-developers).
 
