@@ -14,7 +14,6 @@ from matplotlib.patches import Patch
 matplotlib.use("Agg")
 
 
-
 def calculate_comp_and_comm_time(df: pd.DataFrame) -> Tuple[float, float]:
     """Calculates the time spent computing and time spent communicating and
     returns a tuple of these numbers in seconds
