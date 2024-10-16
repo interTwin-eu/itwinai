@@ -98,6 +98,8 @@ class TorchTrainer(Trainer, LogMixin):
     test_glob_step: int = 0
     #: Dictionary of ``torchmetrics`` metrics, indexed by user-defined names.
     metrics: Dict[str, Metric]
+    #: PyTorch Profiler for communication vs. computation comparison
+    profiler: Optional[Any]
 
     def __init__(
         self,
