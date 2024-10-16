@@ -15,17 +15,20 @@ matplotlib.use("Agg")
 
 
 def calculate_comp_and_comm_time(df: pd.DataFrame) -> Tuple[float, float]:
-    """Calculates the time spent computing and time spent communicating and
-    returns a tuple of these numbers in seconds
+    """Calculates the time spent computing and time spent communicating and returns a 
+    tuple of these numbers in seconds. Assumes that you are running with an NCCL 
+    backend. 
 
-    Notes:
-      - Assumes that you are running with an NCCL backend.
+    Raises: 
+        ValueError: If not all expected columns ('name', 'self_cuda_time_total') are 
+            found in the given DataFrame. 
     """
-    if "name" not in df.columns:
-        raise ValueError("DataFrame should contain column 'name', but does not!")
-    if "self_cuda_time_total" not in df.columns:
+    expected_columns = {"name", "self_cuda_time_total"}
+    if not expected_columns.issubset(df.columns):
+        missing_columns = expected_columns - set(df.columns)
         raise ValueError(
-            "DataFrame should contain column 'self_cuda_time_total', but does not!"
+            f"Invalid data format! DataFrame does not contain the necessary columns."
+            f"\nMissing columns: {missing_columns}"
         )
 
     nccl_comm_pattern = (
@@ -61,10 +64,9 @@ def create_stacked_plot(
     do what they want with it, e.g. save to file, change it or just show it.
 
     Notes:
-        - Assumes that the rows of 'values' correspond to the labels in
-            'strategy_labels' sorted alphabetically and that the columns
-            correspond to the GPU numbers in 'gpu_numbers' sorted numerically
-            in ascending order.
+        - Assumes that the rows of 'values' correspond to the labels in 
+            'strategy_labels' sorted alphabetically and that the columns correspond to 
+            the GPU numbers in 'gpu_numbers' sorted numerically in ascending order.
     """
     sns.set_theme()
 
@@ -77,7 +79,6 @@ def create_stacked_plot(
     complements = 1 - values
 
     x = np.arange(len(gpu_numbers))
-    # Create the plot
     fig, ax = plt.subplots()
 
     # Creating an offset to "center" around zero
@@ -85,7 +86,6 @@ def create_stacked_plot(
     for strategy_idx in range(len(strategy_labels)):
         dynamic_bar_offset = strategy_idx - static_offset
 
-        # Drawing the stacked bars
         ax.bar(
             x=x + dynamic_bar_offset * width,
             height=values[strategy_idx],
@@ -100,8 +100,8 @@ def create_stacked_plot(
             color=comm_color,
         )
 
+        # Positioning the labels under the stacks
         for gpu_idx in range(len(gpu_numbers)):
-            # Positioning the labels under the stacks
             if np.isnan(values[strategy_idx, gpu_idx]):
                 continue
             dynamic_label_offset = strategy_idx - static_offset
@@ -127,7 +127,7 @@ def create_stacked_plot(
         Patch(facecolor=comp_color, label="Computation"),
     ]
 
-    # Positioning the legend outside of the plot to not obstruct
+    # Positioning the legend outside of the plot to not obstruct it
     ax.legend(
         handles=legend_elements,
         loc="upper left",
@@ -145,6 +145,7 @@ def create_combined_comm_overhead_df(logs_dir: Path, pattern: str) -> pd.DataFra
 
     Raises:
         ValueError: If not all expected columns are found in the stored DataFrame.
+        ValueError: If no matching files are found in the given logging directory.
     """
     re_pattern: Pattern = compile(pattern)
     dataframes = []
