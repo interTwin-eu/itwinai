@@ -38,7 +38,7 @@ def generate_communication_plot(
     """
     import matplotlib.pyplot as plt
 
-    from itwinai.communication_plot import (
+    from itwinai.torch.communication_plot import (
         create_combined_comm_overhead_df,
         create_stacked_plot,
         get_comp_fraction_full_array,

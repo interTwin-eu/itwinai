@@ -35,7 +35,7 @@ def calculate_comp_and_comm_time(df: pd.DataFrame) -> Tuple[float, float]:
         )
 
     nccl_comm_pattern = (
-        r"ncclKernel_(?:AllReduce|Broadcast|Reduce|AllGather|ReduceScatter)"
+        r"ncclKernel_(?:AllReduce|Broadcast|Reduce|AllGather|ReduceScatter|SendRecv)"
     )
     cuda_stream_pattern = r"cudaStream(?:WaitEvent|Synchronize)"
 
