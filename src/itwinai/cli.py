@@ -20,8 +20,22 @@ app = typer.Typer(pretty_exceptions_enable=False)
 
 
 @app.command()
-def generate_communication_plot(): 
-    """Generate stacked plot showing computation vs. communication fraction. """
+def generate_communication_plot(
+    log_dir: str = "profiling_logs", 
+    pattern: str = r"profile_(\w+)_(\d+)_(\d+)\.csv$",
+    output_file: str = "plots/comm_plot.png"
+) -> None: 
+    """Generate stacked plot showing computation vs. communication fraction. Stores it 
+
+
+    Args: 
+        log_dir: The directory where the csv logs are stored. Defauls to 
+            ``profiling_logs``.
+        pattern: A regex pattern to recognize the file names in the 'log_dir' folder. 
+            Defaults to ``profile_(\\w+)_(\\d+)_(\\d+)\\.csv$``.
+        output_file: The path to where the resulting plot should be saved. Defaults to
+            ``plots/comm_plot.png``.
+    """
     import matplotlib.pyplot as plt
 
     from itwinai.communication_plot import (
@@ -30,31 +44,28 @@ def generate_communication_plot():
         get_comp_fraction_full_array,
     )
 
-    logs_dir = Path("profiling_logs")
-    if not logs_dir.exists(): 
+    log_dir_path = Path(log_dir)
+    if not log_dir_path.exists(): 
         raise IOError(
-            f"The directory '{logs_dir.resolve()}' does not exist, so could not" \
-            f"extract profiling logs. Make sure you are running this command in the " \
+            f"The directory '{log_dir_path.resolve()}' does not exist, so could not"
+            f"extract profiling logs. Make sure you are running this command in the "
             f"same directory as the logging dir."
         )
 
-    pattern = r"profile_(\w+)_(\d+)_(\d+)\.csv$"
-    df = create_combined_comm_overhead_df(logs_dir=logs_dir, pattern=pattern)
+    df = create_combined_comm_overhead_df(logs_dir=log_dir_path, pattern=pattern)
     values = get_comp_fraction_full_array(df, print_table=True)
 
     strategies = sorted(df["strategy"].unique())
     gpu_numbers = sorted(df["num_gpus"].unique(), key=lambda x: int(x))
 
-    # Generating and showing the plot
     fig, _ = create_stacked_plot(values, strategies, gpu_numbers)
 
     # TODO: set these dynamically? 
     fig.set_figwidth(8)
     fig.set_figheight(6)
 
-    output_folder = Path("plots")
-    output_folder.mkdir(parents=True, exist_ok=True)
-    output_path = output_folder / "comm_plot.png"
+    output_path = Path(output_file)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
 
     plt.savefig(output_path)
     print(f"\nSaved computation vs. communication plot at '{output_path.resolve()}'")
@@ -72,9 +83,8 @@ def sanity_check(
         help=("Check all modules.")
     )] = False,
 ):
-    """Run sanity checks on the installation of itwinai and
-    its dependencies by trying to import itwinai modules.
-    By default, only itwinai core modules (neither torch, nor
+    """Run sanity checks on the installation of itwinai and its dependencies by trying 
+    to import itwinai modules. By default, only itwinai core modules (neither torch, nor
     tensorflow) are tested."""
     from itwinai.tests.sanity_check import (
         sanity_check_all,
