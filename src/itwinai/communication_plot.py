@@ -23,9 +23,9 @@ def calculate_comp_and_comm_time(df: pd.DataFrame) -> Tuple[float, float]:
     Notes:
       - Assumes that you are running with an NCCL backend.
     """
-    if not "name" in df.columns:
+    if "name" not in df.columns:
         raise ValueError("DataFrame should contain column 'name', but does not!")
-    if not "self_cuda_time_total" in df.columns:
+    if "self_cuda_time_total" not in df.columns:
         raise ValueError(
             "DataFrame should contain column 'self_cuda_time_total', but does not!"
         )
@@ -52,6 +52,7 @@ def calculate_comp_and_comm_time(df: pd.DataFrame) -> Tuple[float, float]:
     comm_time *= 1e-6
 
     return comp_time, comm_time
+
 
 def create_stacked_plot(
     values: np.ndarray, strategy_labels: List, gpu_numbers: List
@@ -86,7 +87,6 @@ def create_stacked_plot(
     for strategy_idx in range(len(strategy_labels)):
         dynamic_bar_offset = strategy_idx - static_offset
 
-
         # Drawing the stacked bars
         ax.bar(
             x=x + dynamic_bar_offset * width,
@@ -104,7 +104,7 @@ def create_stacked_plot(
 
         for gpu_idx in range(len(gpu_numbers)):
             # Positioning the labels under the stacks
-            if np.isnan(values[strategy_idx, gpu_idx]): 
+            if np.isnan(values[strategy_idx, gpu_idx]):
                 continue
             dynamic_label_offset = strategy_idx - static_offset
             ax.text(
@@ -116,7 +116,6 @@ def create_stacked_plot(
                 fontsize=10,
                 rotation=60,
             )
-
 
     ax.set_ylabel("Computation fraction")
     ax.set_title("Computation vs Communication Time by Method")
@@ -133,25 +132,30 @@ def create_stacked_plot(
     # Positioning the legend outside of the plot to not obstruct
     ax.legend(
         handles=legend_elements,
-        loc="upper left",  
-        bbox_to_anchor=(0.80, 1.22),  
-        borderaxespad=0.0,  
+        loc="upper left",
+        bbox_to_anchor=(0.80, 1.22),
+        borderaxespad=0.0,
     )
     fig.subplots_adjust(bottom=0.25)
     fig.subplots_adjust(top=0.85)
     return fig, ax
 
+
 def create_combined_comm_overhead_df(logs_dir: Path, pattern: str) -> pd.DataFrame:
-    """Reads and combines all files in a folder that matches the given regex pattern 
+    """Reads and combines all files in a folder that matches the given regex pattern
     into a single DataFrame. The files must be formatted as csv files.
 
-    Raises: 
+    Raises:
         ValueError: If not all expected columns are found in the stored DataFrame.
     """
     re_pattern: Pattern = re.compile(pattern)
     dataframes = []
     expected_columns = {
-        "strategy", "num_gpus", "global_rank", "name", "self_cuda_time_total"
+        "strategy",
+        "num_gpus",
+        "global_rank",
+        "name",
+        "self_cuda_time_total",
     }
     for entry in logs_dir.iterdir():
         match = re_pattern.search(str(entry))
@@ -159,22 +163,24 @@ def create_combined_comm_overhead_df(logs_dir: Path, pattern: str) -> pd.DataFra
             continue
 
         df = pd.read_csv(entry)
-        if not expected_columns.issubset(df.columns): 
+        if not expected_columns.issubset(df.columns):
             missing_columns = expected_columns - set(df.columns)
             raise ValueError(
-                f"Invalid data format! File at '{match.string}' doesn't contain all" 
+                f"Invalid data format! File at '{match.string}' doesn't contain all"
                 f" necessary columns. \nMissing columns: {missing_columns}"
             )
 
         dataframes.append(df)
-    if len(dataframes) == 0: 
+    if len(dataframes) == 0:
         raise ValueError(
             f"No matching files found in '{logs_dir.resolve()}' for pattern '{pattern}'"
         )
     return pd.concat(dataframes)
 
 
-def get_comp_fraction_full_array(df: pd.DataFrame, print_table: bool = False) -> np.ndarray:
+def get_comp_fraction_full_array(
+    df: pd.DataFrame, print_table: bool = False
+) -> np.ndarray:
     """Creates a MxN NumPy array where M is the number of strategies
     and N is the number of GPU configurations. The strategies are sorted
     alphabetically and the GPU configurations are sorted in ascending number
@@ -192,17 +198,17 @@ def get_comp_fraction_full_array(df: pd.DataFrame, print_table: bool = False) ->
             filtered_df = df[
                 (df["strategy"] == strategy) & (df["num_gpus"] == num_gpus)
             ]
-            
+
             row_string = f"{strategy:>12} | {num_gpus:>10}"
 
-            # Allows asymmetric testing, i.e. not testing all num gpus and all 
+            # Allows asymmetric testing, i.e. not testing all num gpus and all
             # strategies together
-            if len(filtered_df) == 0: 
+            if len(filtered_df) == 0:
                 comp_time, comm_time = np.NaN, np.NaN
                 strategy_values.append(np.NaN)
 
                 row_string += f" | {'(NO DATA)':>15}"
-            else: 
+            else:
                 comp_time, comm_time = calculate_comp_and_comm_time(df=filtered_df)
                 # Avoid division-by-zero errors (1e-10)
                 comp_fraction = comp_time / (comp_time + comm_time + 1e-10)
