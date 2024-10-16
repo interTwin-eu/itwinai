@@ -92,8 +92,6 @@ from abc import ABC, abstractmethod
 # from logging import Logger as PythonLogger
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
-
-
 from .serialization import ModelLoader, Serializable
 from .type import MLArtifact, MLDataset, MLModel
 
