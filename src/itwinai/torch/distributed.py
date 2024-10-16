@@ -564,10 +564,7 @@ class DeepSpeedStrategy(TorchDistributedStrategy):
     #: Torch distributed communication backend.
     backend: Literal['nccl', 'gloo', 'mpi']
 
-    def __init__(
-        self,
-        backend: Literal['nccl', 'gloo', 'mpi']
-    ) -> None:
+    def __init__(self, backend: Literal['nccl', 'gloo', 'mpi']) -> None:
         super().__init__()
         self.backend = backend
 
@@ -591,7 +588,8 @@ class DeepSpeedStrategy(TorchDistributedStrategy):
         # https://github.com/Lightning-AI/pytorch-lightning/issues/13567
         ompi_lrank = os.environ.get('OMPI_COMM_WORLD_LOCAL_RANK')
         os.environ['OMPI_COMM_WORLD_LOCAL_RANK'] = os.environ.get(
-            'LOCAL_RANK', ompi_lrank)
+            'LOCAL_RANK', ompi_lrank
+        )
 
         # https://deepspeed.readthedocs.io/en/latest/initialize.html#training-initialization
         deepspeed.init_distributed(dist_backend=self.backend)
@@ -608,7 +606,9 @@ class DeepSpeedStrategy(TorchDistributedStrategy):
         """Setup model, optimizer and scheduler for distributed."""
         if not self.is_initialized:
             raise UninitializedStrategyError(
-                "Strategy has not been initialized. Use the init method.")
+                "Strategy has not been initialized. Use the init method."
+            )
+        import deepspeed
 
         distrib_model, optimizer, _, lr_scheduler = deepspeed.initialize(
             model=model,

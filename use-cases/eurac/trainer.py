@@ -16,6 +16,7 @@ from torch.optim.lr_scheduler import ReduceLROnPlateau
 from torch.utils.data import Dataset
 from tqdm.auto import tqdm
 
+from itwinai.distributed import suppress_workers_print
 from itwinai.loggers import EpochTimeTracker, Logger
 from itwinai.torch.config import TrainingConfiguration
 from itwinai.torch.distributed import (
@@ -90,6 +91,7 @@ class RNNDistributedTrainer(TorchTrainer):
         self.save_parameters(**self.locals2params(locals()))
 
 
+    @suppress_workers_print
     @profile_torch_trainer
     def execute(
         self, 
