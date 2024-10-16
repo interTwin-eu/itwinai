@@ -9,7 +9,6 @@
 
 .. image:: ../docs/images/icon-itwinai-orange-black-subtitle.png
     :alt: itwinai logo
-    :class: logo
     :width: 400px
 
 |br|
