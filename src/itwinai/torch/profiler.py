@@ -1,6 +1,15 @@
 from __future__ import annotations
 
 import functools
+from pathlib import Path
+from typing import Any
+
+import matplotlib
+import pandas as pd
+
+# Doing this because otherwise I get an error about X11 Forwarding which I believe
+# is due to the server trying to pass the image to the client computer
+matplotlib.use("Agg")
 
 # import logging
 # from logging import Logger as PythonLogger
