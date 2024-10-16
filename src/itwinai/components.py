@@ -95,12 +95,6 @@ from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
 
 import pandas as pd
 
-from itwinai.torch.distributed import (
-    DeepSpeedStrategy,
-    HorovodStrategy,
-    NonDistributedStrategy,
-    TorchDDPStrategy,
-)
 
 from .serialization import ModelLoader, Serializable
 from .type import MLArtifact, MLDataset, MLModel
@@ -137,6 +131,12 @@ def profile_torch_trainer(method: Callable) -> Callable:
     from torch.profiler import ProfilerActivity, profile, schedule
 
     from itwinai.torch.trainer import TorchTrainer
+    from itwinai.torch.distributed import (
+        DeepSpeedStrategy,
+        HorovodStrategy,
+        NonDistributedStrategy,
+        TorchDDPStrategy,
+    )
 
     def gather_profiling_data(key_averages: Iterable) -> pd.DataFrame:
         profiling_data = []
