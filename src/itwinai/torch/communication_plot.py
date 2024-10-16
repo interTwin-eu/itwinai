@@ -1,4 +1,3 @@
-from pathlib import Path
 from re import Pattern, compile
 from typing import Any, List, Tuple
 
@@ -15,6 +14,10 @@ matplotlib.use("Agg")
 
 # import logging
 # from logging import Logger as PythonLogger
+from pathlib import Path
+from typing import Any
+
+import pandas as pd
 
 
 def calculate_comp_and_comm_time(df: pd.DataFrame) -> Tuple[float, float]:
