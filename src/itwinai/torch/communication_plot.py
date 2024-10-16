@@ -1,4 +1,3 @@
-from pathlib import Path
 from re import Pattern, compile
 from typing import Any, List, Tuple
 
@@ -13,15 +12,22 @@ from matplotlib.patches import Patch
 # is due to the server trying to pass the image to the client computer
 matplotlib.use("Agg")
 
+# import logging
+# from logging import Logger as PythonLogger
+from pathlib import Path
+from typing import Any
+
+import pandas as pd
+
 
 def calculate_comp_and_comm_time(df: pd.DataFrame) -> Tuple[float, float]:
-    """Calculates the time spent computing and time spent communicating and returns a 
-    tuple of these numbers in seconds. Assumes that you are running with an NCCL 
-    backend. 
+    """Calculates the time spent computing and time spent communicating and returns a
+    tuple of these numbers in seconds. Assumes that you are running with an NCCL
+    backend.
 
-    Raises: 
-        ValueError: If not all expected columns ('name', 'self_cuda_time_total') are 
-            found in the given DataFrame. 
+    Raises:
+        ValueError: If not all expected columns ('name', 'self_cuda_time_total') are
+            found in the given DataFrame.
     """
     expected_columns = {"name", "self_cuda_time_total"}
     if not expected_columns.issubset(df.columns):
@@ -64,8 +70,8 @@ def create_stacked_plot(
     do what they want with it, e.g. save to file, change it or just show it.
 
     Notes:
-        - Assumes that the rows of 'values' correspond to the labels in 
-            'strategy_labels' sorted alphabetically and that the columns correspond to 
+        - Assumes that the rows of 'values' correspond to the labels in
+            'strategy_labels' sorted alphabetically and that the columns correspond to
             the GPU numbers in 'gpu_numbers' sorted numerically in ascending order.
     """
     sns.set_theme()
