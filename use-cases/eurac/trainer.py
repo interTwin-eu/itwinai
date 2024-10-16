@@ -26,7 +26,7 @@ from itwinai.torch.distributed import (
 )
 from itwinai.torch.trainer import TorchTrainer
 from itwinai.torch.type import Metric
-from itwinai.components import profile_torch_trainer
+from itwinai.torch.profiler import profile_torch_trainer
 
 class RNNDistributedTrainer(TorchTrainer):
     """Trainer class for RNN model using pytorch.

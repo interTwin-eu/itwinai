@@ -2,7 +2,6 @@ import abc
 import os
 from typing import Any, Iterable, List, Literal, Optional, Tuple, Union
 
-import deepspeed
 import horovod.torch as hvd
 import torch
 import torch.distributed as dist
@@ -581,6 +580,7 @@ class DeepSpeedStrategy(TorchDistributedStrategy):
             DistributedStrategyError: when trying to initialize a strategy
                 already initialized.
         """
+        import deepspeed
         if not distributed_resources_available():
             raise RuntimeError(
                 "Trying to run distributed on insufficient resources.")
