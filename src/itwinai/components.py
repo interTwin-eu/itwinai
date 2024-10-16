@@ -181,6 +181,7 @@ def profile_torch_trainer(method: Callable) -> Callable:
             ),
         )
         profiler.start()
+
         # TODO: Make sure this doesn't clean up the strategy
         self.profiler = profiler
         try: 
@@ -201,15 +202,19 @@ def profile_torch_trainer(method: Callable) -> Callable:
             strategy_str = "unk"
 
         global_rank = strategy.global_rank()
-        global_size = strategy.global_world_size()
+        num_gpus_global = strategy.global_world_size()
 
+        # Extracting and storing the profiling data
         key_averages = profiler.key_averages()
         profiling_dataframe = gather_profiling_data(key_averages=key_averages)
+        profiling_dataframe["strategy"] = strategy_str
+        profiling_dataframe["num_gpus"] = num_gpus_global
+        profiling_dataframe["global_rank"] = strategy_str
         
         profiling_log_dir = Path("profiling_logs")
         profiling_log_dir.mkdir(parents=True, exist_ok=True)
 
-        filename = f"profile_{strategy_str}_{global_size}_{global_rank}.csv"
+        filename = f"profile_{strategy_str}_{num_gpus_global}_{global_rank}.csv"
         output_path = profiling_log_dir / filename
 
         print(f"Writing profiling dataframe to {output_path}")
