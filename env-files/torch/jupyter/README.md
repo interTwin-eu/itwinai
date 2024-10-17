@@ -21,3 +21,10 @@ it to the `docker build`:
 docker build -t <IMG>:<TAG> -f env-files/torch/jupyter/Dockerfile \
     --build-arg REQUIREMENTS=path/to/requirements.txt .
 ```
+
+For instance:
+
+```bash
+docker build -t <IMG>:<TAG> -f env-files/torch/jupyter/Dockerfile \
+    --build-arg REQUIREMENTS=env-files/torch/jupyter/cmcc-requirements.txt .
+```
