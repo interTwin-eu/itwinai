@@ -8,9 +8,8 @@ if [ -z "$1" ]; then
     exit 2
 fi
 
-if [ "$1" == "23.09-py3" ]; then
-    # Tested for torch==2.1.0
-
+if [[ "$1" == "23.09-py3" || "$1" == "24.09-py3" ]]; then
+    
     pip install --no-cache-dir --upgrade pip
     # pip install --no-cache-dir lightning torchmetrics wheel ray ray[tune]
 
@@ -31,12 +30,11 @@ if [ "$1" == "23.09-py3" ]; then
 
     pip install --no-cache-dir deepspeed || exit 1
     
-
-    # TODO adapt to multi-stage build
     # # fix .triton/autotune/Fp16Matmul_2d_kernel.pickle bug
     # pver="$(python --version 2>&1 | awk '{print $2}' | cut -f1-2 -d.)"
     # line=$(cat -n /usr/lib/python${pver}/site-packages/deepspeed/ops/transformer/inference/triton/matmul_ext.py | grep os.rename | awk '{print $1}' | head -n 1)
     # sed -i "${line}s|^|#|" /usr/lib/python${pver}/site-packages/deepspeed/ops/transformer/inference/triton/matmul_ext.py 
+
 
     # Horovod
     # compiler vars

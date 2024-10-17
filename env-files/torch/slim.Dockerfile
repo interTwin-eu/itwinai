@@ -1,3 +1,5 @@
+# Dockerfile for slim itwinai image. MPI, CUDA and other need to be mounted from the host machine.
+
 ARG IMG_TAG=24.09-py3
 
 # 23.09-py3: https://docs.nvidia.com/deeplearning/frameworks/pytorch-release-notes/rel-23-09.html
@@ -10,12 +12,15 @@ ARG IMG_TAG
 
 WORKDIR /app
 
+#RUN apt-get update && apt-get install -y python3.10-venv && rm -rf /var/lib/apt/lists/*
+
 # Virtual env
-ENV VIRTUAL_ENV=/opt/venv \
-    PATH="/opt/venv/bin:$PATH"
+#ENV VIRTUAL_ENV=/opt/venv \
+#    PATH="/opt/venv/bin:$PATH"
 # User python3.10 explicitly to force /opt/venv/bin/python to point to python3.10. Needed to link
 # /usr/local/bin/python3.10 (in the app image) to /usr/bin/python3.10 (in the builder image)
-RUN python3.10 -m venv /opt/venv
+#RUN python3.10 -m venv /opt/venv && \
+#    pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cu124
 
 # https://github.com/mpi4py/mpi4py/pull/431
 RUN env SETUPTOOLS_USE_DISTUTILS=local python -m pip install --no-cache-dir mpi4py
@@ -35,12 +40,15 @@ LABEL org.opencontainers.image.licenses=MIT
 LABEL maintainer="Matteo Bunino - matteo.bunino@cern.ch"
 
 # Copy virtual env
-COPY --from=build /opt/venv /opt/venv
+#COPY --from=build /opt/venv /opt/venv
+#Need to copy /usr/local/lib/python3.10/dist-packages (6GB)?
+COPY --from=build /usr/local/lib/python3.10/dist-packages /usr/local/lib/python3.10/dist-packages
+ENV PYTHONPATH="/usr/local/lib/python3.10/dist-packages:PYTHONPATH"
 
 # Link /usr/local/bin/python3.10 (in the app image) to /usr/bin/python3.10 (in the builder image)
-RUN ln -s /usr/local/bin/python3.10 /usr/bin/python3.10
+#RUN ln -s /usr/local/bin/python3.10 /usr/bin/python3.10
 
 # Activate the virtualenv in the container
 # See here for more information:
 # https://pythonspeed.com/articles/multi-stage-docker-python/
-ENV PATH="/opt/venv/bin:$PATH"
+#ENV PATH="/opt/venv/bin:$PATH"
