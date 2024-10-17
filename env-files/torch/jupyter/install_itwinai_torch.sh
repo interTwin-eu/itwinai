@@ -1,17 +1,4 @@
 #!/bin/bash
-# ENV VARIABLES:
-#   - NO_CUDA: if set, install without cuda support
-#   - PIP_INDEX_TORCH_CUDA: pip index to be used to install torch with CUDA. Defaults to https://download.pytorch.org/whl/cu121
-
-if [ -z "$NO_CUDA" ]; then
-  echo "Installing itwinai and its dependencies (CUDA enabled)"
-else
-  echo "Installing itwinai and its dependencies (CUDA disabled)"
-fi
-
-if [ -z "$PIP_INDEX_TORCH_CUDA" ]; then
-  PIP_INDEX_TORCH_CUDA="https://download.pytorch.org/whl/cu121"
-fi
 
 pip install --no-cache-dir --upgrade pip 
 pip install --no-cache-dir packaging wheel 
@@ -19,33 +6,11 @@ pip install --no-cache-dir packaging wheel
 # Adding this constraint as numpy >= 2 seems to clash with DeepSpeed
 pip install --no-cache-dir 'numpy<2.0.0' || exit 1
 
-# install Torch
-
-if [ -z "$NO_CUDA" ] ; then
-pip install --no-cache-dir \
-'torch==2.4.*' torchvision torchaudio --index-url "$PIP_INDEX_TORCH_CUDA" || exit 1
-else
-# CPU only installation
-    pip install --no-cache-dir \
-        'torch==2.4.*' torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu || exit 1
-fi
-
-
 # HPO - RayTune
 pip install --no-cache-dir ray ray[tune] || exit 1
 
 
-# install deepspeed
-if [ -z "$NO_CUDA" ]; then
-    export DS_BUILD_CCL_COMM=1
-    export DS_BUILD_UTILS=1
-    export DS_BUILD_AIO=1
-    export DS_BUILD_FUSED_ADAM=1
-    export DS_BUILD_FUSED_LAMB=1
-    export DS_BUILD_TRANSFORMER=1
-    export DS_BUILD_STOCHASTIC_TRANSFORMER=1
-    export DS_BUILD_TRANSFORMER_INFERENCE=1
-fi
+# DeepSpeed
 pip install --no-cache-dir py-cpuinfo || exit 1
 pip install --no-cache-dir deepspeed || exit 1
 
@@ -61,30 +26,9 @@ pip install --no-cache-dir deepspeed || exit 1
 
 
 # install horovod
-if [ -z "$NO_CUDA" ]; then
-# compiler vars
-export LDSHARED="$CC -shared" &&
-export CMAKE_CXX_STANDARD=17 
-
-# CPU vars
-export HOROVOD_MPI_THREADS_DISABLE=1
-export HOROVOD_CPU_OPERATIONS=MPI
-
-# GPU vars
-export HOROVOD_GPU_ALLREDUCE=NCCL
-export HOROVOD_NCCL_LINK=SHARED
-export HOROVOD_NCCL_HOME=$EBROOTNCCL
-
-# Host language vars
 export HOROVOD_WITH_PYTORCH=1
 export HOROVOD_WITHOUT_TENSORFLOW=1
 export HOROVOD_WITHOUT_MXNET=1
-else
-# CPU only installation
-export HOROVOD_WITH_PYTORCH=1
-export HOROVOD_WITHOUT_TENSORFLOW=1
-export HOROVOD_WITHOUT_MXNET=1
-fi
 
 pip install --no-cache-dir git+https://github.com/horovod/horovod.git || exit 1
 
