@@ -1,7 +1,7 @@
 import os
 from pathlib import Path
 from timeit import default_timer as timer
-from typing import Dict, Literal, Optional, Union
+from typing import Dict, Literal, Optional, Union, Any, Tuple
 
 import pandas as pd
 import torch
@@ -13,8 +13,10 @@ from hython.sampler import SamplerBuilder
 from hython.trainer import ConvTrainer, RNNTrainer, RNNTrainParams
 from ray import train
 from torch.optim.lr_scheduler import ReduceLROnPlateau
+from torch.utils.data import Dataset
 from tqdm.auto import tqdm
 
+from itwinai.distributed import suppress_workers_print
 from itwinai.loggers import EpochTimeTracker, Logger
 from itwinai.torch.config import TrainingConfiguration
 from itwinai.torch.distributed import (
@@ -25,6 +27,7 @@ from itwinai.torch.distributed import (
 )
 from itwinai.torch.trainer import TorchTrainer
 from itwinai.torch.type import Metric
+from itwinai.torch.profiling.profiler import profile_torch_trainer
 
 
 class RNNDistributedTrainer(TorchTrainer):
@@ -88,6 +91,16 @@ class RNNDistributedTrainer(TorchTrainer):
         )
         self.save_parameters(**self.locals2params(locals()))
 
+    @suppress_workers_print
+    @profile_torch_trainer
+    def execute(
+        self,
+        train_dataset: Dataset,
+        validation_dataset: Optional[Dataset] = None,
+        test_dataset: Optional[Dataset] = None
+    ) -> Tuple[Dataset, Dataset, Dataset, Any]:
+        return super().execute(train_dataset, validation_dataset, test_dataset)
+
     def create_model_loss_optimizer(self) -> None:
         self.optimizer = optim.Adam(self.model.parameters(), lr=self.config.lr)
         self.lr_scheduler = ReduceLROnPlateau(
@@ -125,6 +138,14 @@ class RNNDistributedTrainer(TorchTrainer):
             **distribute_kwargs,
         )
 
+    def set_epoch(self, epoch: int):
+        if self.profiler is not None:
+            self.profiler.step()
+
+        if self.strategy.is_distributed:
+            self.train_loader.sampler.set_epoch(epoch)
+            self.val_loader.sampler.set_epoch(epoch)
+
     def train(self):
         """Override version of hython to support distributed strategy."""
         # Tracking epoch times for scaling test
@@ -158,11 +179,7 @@ class RNNDistributedTrainer(TorchTrainer):
         best_loss = float("inf")
         for epoch in tqdm(range(self.epochs)):
             epoch_start_time = timer()
-            if self.strategy.is_distributed:
-                # *Added for distributed*
-                self.train_loader.sampler.set_epoch(epoch)
-                self.val_loader.sampler.set_epoch(epoch)
-
+            self.set_epoch(epoch)
             self.model.train()
 
             # set time indices for training
@@ -368,7 +385,6 @@ class ConvRNNDistributedTrainer(TorchTrainer):
             patience=self.config.lr_reduction_patience
         )
 
-
         target_weights = {
             t: 1 / len(self.config.target_names) for t in self.config.target_names
         }
@@ -489,7 +505,7 @@ class ConvRNNDistributedTrainer(TorchTrainer):
             processing=(
                 "multi-gpu" if self.config.distributed else "single-gpu"
             ),
-        )  
+        )
 
         val_sampler_builder = SamplerBuilder(
             validation_dataset,
