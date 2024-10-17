@@ -106,20 +106,23 @@ RUN mkdir -p /opt/rucio/etc \
 #RUN chown -R $NB_UID /etc/ipython
 ENV JUPYTER_ENABLE_LAB=yes
 
-WORKDIR /app
 USER $NB_UID
+WORKDIR $HOME
 
 # Install rucio-jupyterlab with jlab v=3
 RUN pip install --no-cache-dir rucio-jupyterlab==0.10.0 \
     && jupyter serverextension enable --py rucio_jupyterlab --sys-prefix 
 
 # Install itwinai
+WORKDIR $HOME/itwinai
 COPY env-files/torch/jupyter/install_itwinai_torch.sh ./
 COPY pyproject.toml ./
 COPY src ./
-RUN env NO_CUDA=1 bash install_itwinai_torch.sh && rm install_itwinai_torch.sh
-# RUN pip install --no-cache-dir deepspeed git+https://github.com/horovod/horovod.git "prov4ml[linux]@git+https://github.com/matbun/ProvML" &&\
-#     pip install --no-cache-dir git+https://github.com/interTwin-eu/itwinai.git
+RUN bash install_itwinai_torch.sh && rm install_itwinai_torch.sh 
+# Additional pip deps
+ARG REQUIREMENTS=env-files/torch/jupyter/requirements.txt
+COPY ${REQUIREMENTS} ./
+RUN pip install --no-cache-dir -r $(basename ${REQUIREMENTS})
 
 WORKDIR $HOME
 
