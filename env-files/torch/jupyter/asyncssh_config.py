@@ -3,14 +3,15 @@
 #
 # D. Ciangottini
 #
-import asyncio
-import os
 import re
 import sys
-from subprocess import Popen
-
-import asyncssh
 from jupyterhub.singleuser import main
+import asyncssh
+import logging
+import sys
+import asyncio
+import os
+from subprocess import Popen
 
 ssh_host = os.environ.get("JHUB_HOST")
 ssh_url_port = os.environ.get("SSH_PORT")
