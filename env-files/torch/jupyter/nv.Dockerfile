@@ -1,7 +1,14 @@
+ARG NGC_TAG=24.09-py3
+
+
 # FROM jupyter/scipy-notebook:python-3.10.11 as nb
 FROM quay.io/jupyter/pytorch-notebook:x86_64-cuda12-python-3.11 AS nb
 
-FROM nvcr.io/nvidia/pytorch:23.09-py3 AS nvidia
+
+# 23.09-py3: https://docs.nvidia.com/deeplearning/frameworks/pytorch-release-notes/rel-23-09.html
+# 24.04-py3: https://docs.nvidia.com/deeplearning/frameworks/pytorch-release-notes/rel-24-04.html
+
+FROM nvcr.io/nvidia/pytorch:${NGC_TAG}
 
 
 #################################################################################################
@@ -403,48 +410,70 @@ RUN pip install --no-cache-dir --upgrade pip \
     && pip install --no-cache-dir rucio-jupyterlab==0.10.0 \
     && jupyter serverextension enable --py rucio_jupyterlab --sys-prefix 
 
-### itwinai ###
-# Dependencies
-RUN pip install --no-cache-dir \
-    'numpy<2' \
-    packaging \
-    # torch==2.4.* torchvision torchaudio --index-url https://download.pytorch.org/whl/cu124 \
-    wheel
-ENV HOROVOD_WITH_PYTORCH=1 \
-    HOROVOD_WITHOUT_TENSORFLOW=1 \
-    HOROVOD_WITHOUT_MXNET=1 \
-    LDSHARED="$CC -shared" \
-    CMAKE_CXX_STANDARD=17 \
-    HOROVOD_MPI_THREADS_DISABLE=1 \
-    HOROVOD_CPU_OPERATIONS=MPI \
-    HOROVOD_GPU_ALLREDUCE=NCCL \
-    HOROVOD_NCCL_LINK=SHARED \
-    HOROVOD_NCCL_HOME=$EBROOTNCCL \
-    DS_BUILD_UTILS=1 \
-    DS_BUILD_AIO=1 \
-    DS_BUILD_FUSED_ADAM=1 \
-    DS_BUILD_FUSED_LAMB=1 \
-    DS_BUILD_TRANSFORMER=1 \
-    DS_BUILD_STOCHASTIC_TRANSFORMER=1 \
-    DS_BUILD_TRANSFORMER_INFERENCE=1
-RUN pip install --no-cache-dir py-cpuinfo \
-    && pip install --no-cache-dir \
-    deepspeed \
-    git+https://github.com/horovod/horovod.git \
-    "prov4ml[linux]@git+https://github.com/matbun/ProvML" \
-    ray ray[tune]
-# Core itwinai lib
+# itwinai
+# https://stackoverflow.com/a/56748289
+ARG NGC_TAG
+
+USER root
 WORKDIR /opt/itwinai
-# COPY env-files/torch/jupyter/install_itwinai_torch.sh ./
+
+# https://github.com/mpi4py/mpi4py/pull/431
+RUN env SETUPTOOLS_USE_DISTUTILS=local python -m pip install --no-cache-dir mpi4py
+
+# Install itwinai
 COPY pyproject.toml ./
 COPY src ./
-RUN pip install --no-cache-dir ".[torch,dev]" && itwinai sanity-check --torch
-# RUN bash install_itwinai_torch.sh && rm install_itwinai_torch.sh 
-# Additional pip deps
-ARG REQUIREMENTS=env-files/torch/jupyter/requirements.txt
-COPY ${REQUIREMENTS} ./
-RUN pip install --no-cache-dir -r $(basename ${REQUIREMENTS})
+COPY env-files/torch/jupyter/install_itwinai_deps_jlab.sh ./
+RUN bash install_itwinai_deps_jlab.sh ${NGC_TAG}
 
+########################################
+
+### itwinai ###
+# # Dependencies
+# RUN pip install --no-cache-dir \
+#     'numpy<2' \
+#     packaging \
+#     # torch==2.4.* torchvision torchaudio --index-url https://download.pytorch.org/whl/cu124 \
+#     wheel
+# ENV HOROVOD_WITH_PYTORCH=1 \
+#     HOROVOD_WITHOUT_TENSORFLOW=1 \
+#     HOROVOD_WITHOUT_MXNET=1 \
+#     LDSHARED="$CC -shared" \
+#     # -fopnmp needed in this case: https://stackoverflow.com/a/40428527
+#     # LDFLAGS="${LDFLAGS} -fopenmp" \
+#     CMAKE_CXX_STANDARD=17 \
+#     HOROVOD_MPI_THREADS_DISABLE=1 \
+#     HOROVOD_CPU_OPERATIONS=MPI \
+#     HOROVOD_GPU_ALLREDUCE=NCCL \
+#     HOROVOD_NCCL_LINK=SHARED \
+#     HOROVOD_NCCL_HOME=$EBROOTNCCL \
+#     DS_BUILD_UTILS=1 \
+#     DS_BUILD_AIO=1 \
+#     DS_BUILD_FUSED_ADAM=1 \
+#     DS_BUILD_FUSED_LAMB=1 \
+#     DS_BUILD_TRANSFORMER=1 \
+#     DS_BUILD_STOCHASTIC_TRANSFORMER=1 \
+#     DS_BUILD_TRANSFORMER_INFERENCE=1
+# RUN pip install --no-cache-dir py-cpuinfo \
+#     && pip install --no-cache-dir \
+#     deepspeed \
+#     git+https://github.com/horovod/horovod.git \
+#     "prov4ml[linux]@git+https://github.com/matbun/ProvML" \
+#     ray ray[tune]
+# # Core itwinai lib
+# WORKDIR /opt/itwinai
+# # COPY env-files/torch/jupyter/install_itwinai_torch.sh ./
+# COPY pyproject.toml ./
+# COPY src ./
+# RUN pip install --no-cache-dir ".[torch,dev]" && itwinai sanity-check --torch
+# # RUN bash install_itwinai_torch.sh && rm install_itwinai_torch.sh 
+# # Additional pip deps
+# ARG REQUIREMENTS=env-files/torch/jupyter/requirements.txt
+# COPY ${REQUIREMENTS} ./
+# RUN pip install --no-cache-dir -r $(basename ${REQUIREMENTS})
+
+
+# Outro
 USER $NB_UID
 WORKDIR $HOME
 
