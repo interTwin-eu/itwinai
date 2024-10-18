@@ -1,16 +1,18 @@
 # https://jupyter-docker-stacks.readthedocs.io/en/latest/using/selecting.html#jupyter-pytorch-notebook
 # https://github.com/jupyter/docker-stacks/wiki
 
-FROM quay.io/jupyter/pytorch-notebook:x86_64-cuda12-python-3.11
+FROM jupyter/scipy-notebook:python-3.10.11
+# FROM quay.io/jupyter/pytorch-notebook:x86_64-cuda12-python-3.11
 
 USER $NB_UID
 
+# jupyterhub must be < 2
 RUN conda install -y -n base mamba \
     && mamba install -y -c conda-forge python-gfal2 \
     nodejs \
     jupyterlab"<4" \
     notebook"<7" \
-    jupyterhub \
+    jupyterhub"<2" \
     jsonschema \
     jupyterlab_server \
     jupyter_server \
@@ -32,10 +34,11 @@ RUN apt-get update && apt-get install -y \
 
 RUN apt update -y \
     && apt install -y curl voms-clients-java software-properties-common \
-    && apt clean -y \
     && rm /opt/conda/bin/voms-proxy-init \
     && ln -s /usr/bin/voms-proxy-init /opt/conda/bin/voms-proxy-init \
+    && apt clean -y \
     && rm -rf /var/lib/apt/lists/*
+
 
 # ESCAPE grid-security and VOMS setup
 RUN wget -q -O - https://dist.eugridpma.info/distribution/igtf/current/GPG-KEY-EUGridPMA-RPM-3 | apt-key add -
@@ -110,15 +113,33 @@ USER $NB_UID
 WORKDIR $HOME
 
 # Install rucio-jupyterlab with jlab v=3
-RUN pip install --no-cache-dir rucio-jupyterlab==0.10.0 \
+RUN pip install --no-cache-dir --upgrade pip \
+    && pip install --no-cache-dir rucio-jupyterlab==0.10.0 \
     && jupyter serverextension enable --py rucio_jupyterlab --sys-prefix 
 
-# Install itwinai
+### itwinai ###
+# Dependencies
+ENV HOROVOD_WITH_PYTORCH=1 \
+    HOROVOD_WITHOUT_TENSORFLOW=1 \
+    HOROVOD_WITHOUT_MXNET=1
+RUN pip install --no-cache-dir \
+    'numpy<2' \
+    packaging \
+    py-cpuinfo \
+    torch==2.4.* torchvision torchaudio --index-url https://download.pytorch.org/whl/cu124 \
+    wheel \
+    && pip install --no-cache-dir \
+    deepspeed \
+    git+https://github.com/horovod/horovod.git \
+    "prov4ml[linux]@git+https://github.com/matbun/ProvML" \
+    ray ray[tune]
+# Core itwinai lib
 WORKDIR $HOME/itwinai
-COPY env-files/torch/jupyter/install_itwinai_torch.sh ./
+# COPY env-files/torch/jupyter/install_itwinai_torch.sh ./
 COPY pyproject.toml ./
 COPY src ./
-RUN bash install_itwinai_torch.sh && rm install_itwinai_torch.sh 
+RUN pip install --no-cache-dir ".[torch,dev]" && itwinai sanity-check --torch
+# RUN bash install_itwinai_torch.sh && rm install_itwinai_torch.sh 
 # Additional pip deps
 ARG REQUIREMENTS=env-files/torch/jupyter/requirements.txt
 COPY ${REQUIREMENTS} ./
