@@ -68,7 +68,9 @@ if [[ "$1" == "23.09-py3" || "$1" == "24.09-py3" ]]; then
     pip install --no-cache-dir \
         .[torch] \
         "prov4ml[linux]@git+https://github.com/matbun/ProvML" \
-        torch==$CONTAINER_TORCH_VERSION \
+        torch==$CONTAINER_TORCH_VERSION  \
+        # blinker==1.4 is needed no to make the Nvidia+jlab container fail
+        blinker==1.4 \
         || exit 1
 
 else
