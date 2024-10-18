@@ -1,7 +1,7 @@
 # FROM jupyter/scipy-notebook:python-3.10.11 as nb
 FROM quay.io/jupyter/pytorch-notebook:x86_64-cuda12-python-3.11 AS nb
 
-FROM nvcr.io/nvidia/pytorch:23.09-py3 AS nvidia
+FROM nvcr.io/nvidia/pytorch:24.09-py3 AS nvidia
 
 
 #################################################################################################
@@ -55,19 +55,19 @@ ENV CONDA_DIR=/opt/conda \
     LC_ALL=C.UTF-8 \
     LANG=C.UTF-8 \
     LANGUAGE=C.UTF-8
-# ENV PATH="${CONDA_DIR}/bin:${PATH}" \
-ENV HOME="/home/${NB_USER}"
+ENV PATH="${CONDA_DIR}/bin:${PATH}" \
+    HOME="/home/${NB_USER}"
 
 # Copy a script that we will use to correct permissions after running certain commands
 COPY --from=nb /usr/local/bin/fix-permissions /usr/local/bin/fix-permissions
 RUN chmod a+rx /usr/local/bin/fix-permissions
 
-# # Enable prompt color in the skeleton .bashrc before creating the default NB_USER
-# # hadolint ignore=SC2016
-# RUN sed -i 's/^#force_color_prompt=yes/force_color_prompt=yes/' /etc/skel/.bashrc && \
-#     # More information in: https://github.com/jupyter/docker-stacks/pull/2047
-#     # and docs: https://docs.conda.io/projects/conda/en/latest/dev-guide/deep-dives/activation.html
-#     echo 'eval "$(conda shell.bash hook)"' >> /etc/skel/.bashrc
+# Enable prompt color in the skeleton .bashrc before creating the default NB_USER
+# hadolint ignore=SC2016
+RUN sed -i 's/^#force_color_prompt=yes/force_color_prompt=yes/' /etc/skel/.bashrc && \
+    # More information in: https://github.com/jupyter/docker-stacks/pull/2047
+    # and docs: https://docs.conda.io/projects/conda/en/latest/dev-guide/deep-dives/activation.html
+    echo 'eval "$(conda shell.bash hook)"' >> /etc/skel/.bashrc
 
 # Delete existing user with UID="${NB_UID}" if it exists
 # hadolint ignore=SC2046
@@ -106,36 +106,36 @@ RUN mkdir "/home/${NB_USER}/work" && \
 # Correct permissions
 # Do all this in a single RUN command to avoid duplicating all of the
 # files across image layers when the permissions change
-# COPY --from=nb --chown="${NB_UID}:${NB_GID}" "${CONDA_DIR}/.condarc" "${CONDA_DIR}/.condarc"
+COPY --from=nb --chown="${NB_UID}:${NB_GID}" "${CONDA_DIR}/.condarc" "${CONDA_DIR}/.condarc"
 WORKDIR /tmp
-# RUN set -x && \
-#     arch=$(uname -m) && \
-#     if [ "${arch}" = "x86_64" ]; then \
-#     # Should be simpler, see <https://github.com/mamba-org/mamba/issues/1437>
-#     arch="64"; \
-#     fi && \
-#     # https://mamba.readthedocs.io/en/latest/installation/micromamba-installation.html#linux-and-macos
-#     wget --progress=dot:giga -O - \
-#     "https://micro.mamba.pm/api/micromamba/linux-${arch}/latest" | tar -xvj bin/micromamba && \
-#     PYTHON_SPECIFIER="python=${PYTHON_VERSION}" && \
-#     if [[ "${PYTHON_VERSION}" == "default" ]]; then PYTHON_SPECIFIER="python"; fi && \
-#     # Install the packages
-#     ./bin/micromamba install \
-#     --root-prefix="${CONDA_DIR}" \
-#     --prefix="${CONDA_DIR}" \
-#     --yes \
-#     'jupyter_core' \
-#     # excluding mamba 2.X due to several breaking changes
-#     # https://github.com/jupyter/docker-stacks/pull/2147
-#     'mamba<2.0.0' \
-#     "${PYTHON_SPECIFIER}" && \
-#     rm -rf /tmp/bin/ && \
-#     # Pin major.minor version of python
-#     # https://conda.io/projects/conda/en/latest/user-guide/tasks/manage-pkgs.html#preventing-packages-from-updating-pinning
-#     mamba list --full-name 'python' | awk 'END{sub("[^.]*$", "*", $2); print $1 " " $2}' >> "${CONDA_DIR}/conda-meta/pinned" && \
-#     mamba clean --all -f -y && \
-#     fix-permissions "${CONDA_DIR}" && \
-#     fix-permissions "/home/${NB_USER}"
+RUN set -x && \
+    arch=$(uname -m) && \
+    if [ "${arch}" = "x86_64" ]; then \
+    # Should be simpler, see <https://github.com/mamba-org/mamba/issues/1437>
+    arch="64"; \
+    fi && \
+    # https://mamba.readthedocs.io/en/latest/installation/micromamba-installation.html#linux-and-macos
+    wget --progress=dot:giga -O - \
+    "https://micro.mamba.pm/api/micromamba/linux-${arch}/latest" | tar -xvj bin/micromamba && \
+    PYTHON_SPECIFIER="python=${PYTHON_VERSION}" && \
+    if [[ "${PYTHON_VERSION}" == "default" ]]; then PYTHON_SPECIFIER="python"; fi && \
+    # Install the packages
+    ./bin/micromamba install \
+    --root-prefix="${CONDA_DIR}" \
+    --prefix="${CONDA_DIR}" \
+    --yes \
+    'jupyter_core' \
+    # excluding mamba 2.X due to several breaking changes
+    # https://github.com/jupyter/docker-stacks/pull/2147
+    'mamba<2.0.0' \
+    "${PYTHON_SPECIFIER}" && \
+    rm -rf /tmp/bin/ && \
+    # Pin major.minor version of python
+    # https://conda.io/projects/conda/en/latest/user-guide/tasks/manage-pkgs.html#preventing-packages-from-updating-pinning
+    mamba list --full-name 'python' | awk 'END{sub("[^.]*$", "*", $2); print $1 " " $2}' >> "${CONDA_DIR}/conda-meta/pinned" && \
+    mamba clean --all -f -y && \
+    fix-permissions "${CONDA_DIR}" && \
+    fix-permissions "/home/${NB_USER}"
 
 # Copy local files as late as possible to avoid cache busting
 COPY --from=nb /usr/local/bin/run-hooks.sh /usr/local/bin/run-hooks.sh
@@ -150,7 +150,7 @@ USER root
 RUN mkdir /usr/local/bin/start-notebook.d && \
     mkdir /usr/local/bin/before-notebook.d
 
-# COPY --from=nb /usr/local/bin/before-notebook.d/10activate-conda-env.sh /usr/local/bin/before-notebook.d/10activate-conda-env.sh
+COPY --from=nb /usr/local/bin/before-notebook.d/10activate-conda-env.sh /usr/local/bin/before-notebook.d/10activate-conda-env.sh
 
 # Switch back to jovyan to avoid accidental container runs as root
 USER ${NB_UID}
@@ -180,11 +180,10 @@ RUN apt-get update --yes && \
     # - `run-one` - a wrapper script that runs no more
     #   than one unique instance of some command with a unique set of arguments,
     #   we use `run-one-constantly` to support the `RESTARTABLE` option
-    npm \
     run-one && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# USER ${NB_UID}
+USER ${NB_UID}
 
 # Install JupyterHub, JupyterLab, NBClassic and Jupyter Notebook
 # Generate a Jupyter Server config
@@ -193,20 +192,18 @@ RUN apt-get update --yes && \
 # Do all this in a single RUN command to avoid duplicating all of the
 # files across image layers when the permissions change
 WORKDIR /tmp
-RUN pip install --no-cache-dir \
+RUN mamba install --yes \
     'jupyterhub' \
     'jupyterlab' \
     'nbclassic' \
-    'notebook' && \
+    'notebook' npm && \
     jupyter server --generate-config && \
+    mamba clean --all -f -y && \
     npm cache clean --force && \
     jupyter lab clean && \
     rm -rf "/home/${NB_USER}/.cache/yarn" && \
     fix-permissions "${CONDA_DIR}" && \
     fix-permissions "/home/${NB_USER}"
-# mamba clean --all -f -y && \
-
-USER ${NB_UID}
 
 ENV JUPYTER_PORT=8888
 EXPOSE $JUPYTER_PORT
@@ -282,7 +279,7 @@ RUN update-alternatives --install /usr/bin/nano nano /bin/nano-tiny 10
 USER ${NB_UID}
 
 # Add an R mimetype option to specify how the plot returns from R to the browser
-# COPY --from=nb --chown=${NB_UID}:${NB_GID} /opt/conda/lib/R/etc/Rprofile.site /opt/conda/lib/R/etc/Rprofile.site
+COPY --from=nb --chown=${NB_UID}:${NB_GID} /opt/conda/lib/R/etc/Rprofile.site /opt/conda/lib/R/etc/Rprofile.site
 
 # Add setup scripts that may be used by downstream images or inherited images
 COPY --from=nb /opt/setup-scripts/ /opt/setup-scripts/
@@ -292,10 +289,11 @@ COPY --from=nb /opt/setup-scripts/ /opt/setup-scripts/
 # itwinai-rucio                                                                                 #
 #################################################################################################
 
-USER root
+USER $NB_UID
 
 # jupyterhub must be < 2
-RUN pip install --no-cache-dir \
+RUN conda install -y -n base mamba \
+    && mamba install -y -c conda-forge python-gfal2 \
     nodejs \
     jupyterlab"<4" \
     notebook"<7" \
@@ -309,7 +307,8 @@ RUN pip install --no-cache-dir \
     PyJWT \
     ipywidgets \
     asyncssh \
-    peewee 
+    peewee \
+    && conda clean --all -f -y
 
 USER root
 
@@ -320,8 +319,8 @@ RUN apt-get update && apt-get install -y \
 
 RUN apt update -y \
     && apt install -y curl voms-clients-java software-properties-common \
-    # && rm /opt/conda/bin/voms-proxy-init \
-    # && ln -s /usr/bin/voms-proxy-init /opt/conda/bin/voms-proxy-init \
+    && rm /opt/conda/bin/voms-proxy-init \
+    && ln -s /usr/bin/voms-proxy-init /opt/conda/bin/voms-proxy-init \
     && apt clean -y \
     && rm -rf /var/lib/apt/lists/*
 
@@ -395,8 +394,8 @@ RUN mkdir -p /opt/rucio/etc \
 #RUN chown -R $NB_UID /etc/ipython
 ENV JUPYTER_ENABLE_LAB=yes
 
-# USER $NB_UID
-# WORKDIR $HOME
+USER $NB_UID
+WORKDIR $HOME
 
 # Install rucio-jupyterlab with jlab v=3
 RUN pip install --no-cache-dir --upgrade pip \
@@ -408,7 +407,7 @@ RUN pip install --no-cache-dir --upgrade pip \
 RUN pip install --no-cache-dir \
     'numpy<2' \
     packaging \
-    # torch==2.4.* torchvision torchaudio --index-url https://download.pytorch.org/whl/cu124 \
+    torch==2.4.* torchvision torchaudio --index-url https://download.pytorch.org/whl/cu124 \
     wheel
 ENV HOROVOD_WITH_PYTORCH=1 \
     HOROVOD_WITHOUT_TENSORFLOW=1 \
@@ -434,7 +433,7 @@ RUN pip install --no-cache-dir py-cpuinfo \
     "prov4ml[linux]@git+https://github.com/matbun/ProvML" \
     ray ray[tune]
 # Core itwinai lib
-WORKDIR /opt/itwinai
+WORKDIR $HOME/itwinai
 # COPY env-files/torch/jupyter/install_itwinai_torch.sh ./
 COPY pyproject.toml ./
 COPY src ./
@@ -445,11 +444,9 @@ ARG REQUIREMENTS=env-files/torch/jupyter/requirements.txt
 COPY ${REQUIREMENTS} ./
 RUN pip install --no-cache-dir -r $(basename ${REQUIREMENTS})
 
-USER $NB_UID
 WORKDIR $HOME
 
 CMD ["setup.sh", "start-notebook.sh"]
-
 
 ###################################################################################################
 # OTHER
