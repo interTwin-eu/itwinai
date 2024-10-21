@@ -68,7 +68,7 @@ class TorchModelLoader(ModelLoader):
                 tracking_uri=mlflow.get_tracking_uri()
             )
             model = torch.load(ckpt_path)
-            return model.eval()
+            return model
 
         raise ValueError(
             'Unrecognized model URI: model may not be there! '
@@ -104,7 +104,6 @@ class TorchPredictor(Predictor):
             self.config = TrainingConfiguration(**config)
         else:
             self.config = config
-        self.model = self.model.eval()
         self.strategy = strategy
         self.logger = logger
         self.checkpoints_location = checkpoints_location
@@ -266,7 +265,6 @@ class TorchPredictor(Predictor):
                 **kwargs
             )
 
-    @abc.abstractmethod
     def transform_predictions(self, batch: Batch) -> Batch:
         """
         Post-process the predictions of the torch model (e.g., apply
