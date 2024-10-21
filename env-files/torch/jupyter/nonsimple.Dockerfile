@@ -1,15 +1,7 @@
-ARG NGC_TAG=24.09-py3
+FROM jupyter/scipy-notebook:python-3.10.11 AS nb
+# FROM quay.io/jupyter/pytorch-notebook:x86_64-cuda12-python-3.11
 
-
-# FROM jupyter/scipy-notebook:python-3.10.11 as nb
-FROM quay.io/jupyter/pytorch-notebook:x86_64-cuda12-python-3.11 AS nb
-
-
-# 23.09-py3: https://docs.nvidia.com/deeplearning/frameworks/pytorch-release-notes/rel-23-09.html
-# 24.04-py3: https://docs.nvidia.com/deeplearning/frameworks/pytorch-release-notes/rel-24-04.html
-
-FROM nvcr.io/nvidia/pytorch:${NGC_TAG}
-
+FROM nvcr.io/nvidia/pytorch:24.09-py3 AS nvidia
 
 #################################################################################################
 # docker-stacks-foundation:                                                                     #
@@ -62,19 +54,19 @@ ENV CONDA_DIR=/opt/conda \
     LC_ALL=C.UTF-8 \
     LANG=C.UTF-8 \
     LANGUAGE=C.UTF-8
-# ENV PATH="${CONDA_DIR}/bin:${PATH}" \
-ENV HOME="/home/${NB_USER}"
+ENV PATH="${CONDA_DIR}/bin:${PATH}" \
+    HOME="/home/${NB_USER}"
 
 # Copy a script that we will use to correct permissions after running certain commands
 COPY --from=nb /usr/local/bin/fix-permissions /usr/local/bin/fix-permissions
 RUN chmod a+rx /usr/local/bin/fix-permissions
 
-# # Enable prompt color in the skeleton .bashrc before creating the default NB_USER
-# # hadolint ignore=SC2016
-# RUN sed -i 's/^#force_color_prompt=yes/force_color_prompt=yes/' /etc/skel/.bashrc && \
-#     # More information in: https://github.com/jupyter/docker-stacks/pull/2047
-#     # and docs: https://docs.conda.io/projects/conda/en/latest/dev-guide/deep-dives/activation.html
-#     echo 'eval "$(conda shell.bash hook)"' >> /etc/skel/.bashrc
+# Enable prompt color in the skeleton .bashrc before creating the default NB_USER
+# hadolint ignore=SC2016
+RUN sed -i 's/^#force_color_prompt=yes/force_color_prompt=yes/' /etc/skel/.bashrc && \
+    # More information in: https://github.com/jupyter/docker-stacks/pull/2047
+    # and docs: https://docs.conda.io/projects/conda/en/latest/dev-guide/deep-dives/activation.html
+    echo 'eval "$(conda shell.bash hook)"' >> /etc/skel/.bashrc
 
 # Delete existing user with UID="${NB_UID}" if it exists
 # hadolint ignore=SC2046
@@ -113,39 +105,39 @@ RUN mkdir "/home/${NB_USER}/work" && \
 # Correct permissions
 # Do all this in a single RUN command to avoid duplicating all of the
 # files across image layers when the permissions change
-# COPY --from=nb --chown="${NB_UID}:${NB_GID}" "${CONDA_DIR}/.condarc" "${CONDA_DIR}/.condarc"
+COPY --from=nb --chown="${NB_UID}:${NB_GID}" "${CONDA_DIR}/.condarc" "${CONDA_DIR}/.condarc"
 WORKDIR /tmp
-# RUN set -x && \
-#     arch=$(uname -m) && \
-#     if [ "${arch}" = "x86_64" ]; then \
-#     # Should be simpler, see <https://github.com/mamba-org/mamba/issues/1437>
-#     arch="64"; \
-#     fi && \
-#     # https://mamba.readthedocs.io/en/latest/installation/micromamba-installation.html#linux-and-macos
-#     wget --progress=dot:giga -O - \
-#     "https://micro.mamba.pm/api/micromamba/linux-${arch}/latest" | tar -xvj bin/micromamba && \
-#     PYTHON_SPECIFIER="python=${PYTHON_VERSION}" && \
-#     if [[ "${PYTHON_VERSION}" == "default" ]]; then PYTHON_SPECIFIER="python"; fi && \
-#     # Install the packages
-#     ./bin/micromamba install \
-#     --root-prefix="${CONDA_DIR}" \
-#     --prefix="${CONDA_DIR}" \
-#     --yes \
-#     'jupyter_core' \
-#     # excluding mamba 2.X due to several breaking changes
-#     # https://github.com/jupyter/docker-stacks/pull/2147
-#     'mamba<2.0.0' \
-#     "${PYTHON_SPECIFIER}" && \
-#     rm -rf /tmp/bin/ && \
-#     # Pin major.minor version of python
-#     # https://conda.io/projects/conda/en/latest/user-guide/tasks/manage-pkgs.html#preventing-packages-from-updating-pinning
-#     mamba list --full-name 'python' | awk 'END{sub("[^.]*$", "*", $2); print $1 " " $2}' >> "${CONDA_DIR}/conda-meta/pinned" && \
-#     mamba clean --all -f -y && \
-#     fix-permissions "${CONDA_DIR}" && \
-#     fix-permissions "/home/${NB_USER}"
+RUN set -x && \
+    arch=$(uname -m) && \
+    if [ "${arch}" = "x86_64" ]; then \
+    # Should be simpler, see <https://github.com/mamba-org/mamba/issues/1437>
+    arch="64"; \
+    fi && \
+    # https://mamba.readthedocs.io/en/latest/installation/micromamba-installation.html#linux-and-macos
+    wget --progress=dot:giga -O - \
+    "https://micro.mamba.pm/api/micromamba/linux-${arch}/latest" | tar -xvj bin/micromamba && \
+    PYTHON_SPECIFIER="python=${PYTHON_VERSION}" && \
+    if [[ "${PYTHON_VERSION}" == "default" ]]; then PYTHON_SPECIFIER="python"; fi && \
+    # Install the packages
+    ./bin/micromamba install \
+    --root-prefix="${CONDA_DIR}" \
+    --prefix="${CONDA_DIR}" \
+    --yes \
+    'jupyter_core' \
+    # excluding mamba 2.X due to several breaking changes
+    # https://github.com/jupyter/docker-stacks/pull/2147
+    'mamba<2.0.0' \
+    "${PYTHON_SPECIFIER}" && \
+    rm -rf /tmp/bin/ && \
+    # Pin major.minor version of python
+    # https://conda.io/projects/conda/en/latest/user-guide/tasks/manage-pkgs.html#preventing-packages-from-updating-pinning
+    mamba list --full-name 'python' | awk 'END{sub("[^.]*$", "*", $2); print $1 " " $2}' >> "${CONDA_DIR}/conda-meta/pinned" && \
+    mamba clean --all -f -y && \
+    fix-permissions "${CONDA_DIR}" && \
+    fix-permissions "/home/${NB_USER}"
 
 # Copy local files as late as possible to avoid cache busting
-COPY --from=nb /usr/local/bin/run-hooks.sh /usr/local/bin/run-hooks.sh
+#COPY --from=nb /usr/local/bin/run-hooks.sh /usr/local/bin/run-hooks.sh
 COPY --from=nb /usr/local/bin/start.sh /usr/local/bin/start.sh
 
 # Configure container entrypoint
@@ -157,7 +149,7 @@ USER root
 RUN mkdir /usr/local/bin/start-notebook.d && \
     mkdir /usr/local/bin/before-notebook.d
 
-# COPY --from=nb /usr/local/bin/before-notebook.d/10activate-conda-env.sh /usr/local/bin/before-notebook.d/10activate-conda-env.sh
+#COPY --from=nb /usr/local/bin/before-notebook.d/10activate-conda-env.sh /usr/local/bin/before-notebook.d/10activate-conda-env.sh
 
 # Switch back to jovyan to avoid accidental container runs as root
 USER ${NB_UID}
@@ -187,11 +179,11 @@ RUN apt-get update --yes && \
     # - `run-one` - a wrapper script that runs no more
     #   than one unique instance of some command with a unique set of arguments,
     #   we use `run-one-constantly` to support the `RESTARTABLE` option
-    npm \
-    run-one && \
+    run-one \
+    npm && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# USER ${NB_UID}
+USER ${NB_UID}
 
 # Install JupyterHub, JupyterLab, NBClassic and Jupyter Notebook
 # Generate a Jupyter Server config
@@ -200,31 +192,29 @@ RUN apt-get update --yes && \
 # Do all this in a single RUN command to avoid duplicating all of the
 # files across image layers when the permissions change
 WORKDIR /tmp
-RUN pip install --no-cache-dir \
+RUN mamba install --yes \
     'jupyterhub' \
     'jupyterlab' \
     'nbclassic' \
     'notebook' && \
     jupyter server --generate-config && \
+    mamba clean --all -f -y && \
     npm cache clean --force && \
     jupyter lab clean && \
     rm -rf "/home/${NB_USER}/.cache/yarn" && \
     fix-permissions "${CONDA_DIR}" && \
     fix-permissions "/home/${NB_USER}"
-# mamba clean --all -f -y && \
-
-USER ${NB_UID}
 
 ENV JUPYTER_PORT=8888
 EXPOSE $JUPYTER_PORT
 
 # Configure container startup
-CMD ["start-notebook.py"]
+#CMD ["start-notebook.py"]
 
 # Copy local files as late as possible to avoid cache busting
-COPY --from=nb /usr/local/bin/start-notebook.py /usr/local/bin/start-notebook.py 
+#COPY --from=nb /usr/local/bin/start-notebook.py /usr/local/bin/start-notebook.py
 COPY --from=nb /usr/local/bin/start-notebook.sh /usr/local/bin/start-notebook.sh
-COPY --from=nb /usr/local/bin/start-singleuser.py /usr/local/bin/start-singleuser.py
+#COPY --from=nb /usr/local/bin/start-singleuser.py /usr/local/bin/start-singleuser.py
 COPY --from=nb /usr/local/bin/start-singleuser.sh /usr/local/bin/start-singleuser.sh
 COPY --from=nb /etc/jupyter/jupyter_server_config.py /etc/jupyter/jupyter_server_config.py
 COPY --from=nb /etc/jupyter/docker_healthcheck.py /etc/jupyter/docker_healthcheck.py
@@ -289,34 +279,63 @@ RUN update-alternatives --install /usr/bin/nano nano /bin/nano-tiny 10
 USER ${NB_UID}
 
 # Add an R mimetype option to specify how the plot returns from R to the browser
-# COPY --from=nb --chown=${NB_UID}:${NB_GID} /opt/conda/lib/R/etc/Rprofile.site /opt/conda/lib/R/etc/Rprofile.site
+COPY --from=nb --chown=${NB_UID}:${NB_GID} /opt/conda/lib/R/etc/Rprofile.site /opt/conda/lib/R/etc/Rprofile.site
 
 # Add setup scripts that may be used by downstream images or inherited images
-COPY --from=nb /opt/setup-scripts/ /opt/setup-scripts/
+#COPY --from=nb /opt/setup-scripts/ /opt/setup-scripts/
 
 
-#################################################################################################
-# itwinai-rucio                                                                                 #
-#################################################################################################
 
-USER root
+
+
+
+
+#####################
+# custom and fixes  #
+#####################
+
+USER $NB_UID
 
 # jupyterhub must be < 2
-RUN pip install --no-cache-dir \
+RUN conda install -y -n base mamba \
+    && mamba install -y -c conda-forge python-gfal2 \
     nodejs \
-    jupyterlab"<4" \
-    notebook"<7" \
-    jupyterhub==1.5.0 \
+    #jupyterlab"<4" \
+    #notebook"<7" \
+    #jupyterhub"<2" \
     jsonschema \
-    jupyterlab_server \
-    jupyter_server \
+    #jupyterlab_server \
+    #jupyter_server"<2" \
     traitlets \
     nbformat \
     ipykernel \
     PyJWT \
     ipywidgets \
     asyncssh \
-    peewee 
+    peewee \
+    jupyter_client==8.2.0 \
+    jupyter_core==5.3.0 \
+    jupyter_events==0.6.3 \
+    jupyter-lsp==2.1.0 \
+    jupyter_server==1.24.0 \
+    jupyter_server_fileid==0.9.2 \
+    jupyter-server-mathjax==0.2.6 \
+    jupyter_server_terminals==0.4.4 \
+    jupyter_server_ydoc==0.8.0 \
+    jupyter_telemetry==0.1.0 \
+    jupyter_ydoc==0.2.4 \
+    jupyterhub==1.5.0 \
+    jupyterlab==3.6.8 \
+    jupyterlab-git==0.41.0 \
+    jupyterlab_pygments==0.2.2 \
+    jupyterlab_server==2.22.1 \
+    jupyterlab_widgets==3.0.7 \
+    notebook==6.5.4 \
+    notebook-shim==0.2.3 \
+    ipython==8.13.2 \
+    ipython_genutils==0.2.0 \
+    && conda clean --all -f -y
+
 
 USER root
 
@@ -327,8 +346,8 @@ RUN apt-get update && apt-get install -y \
 
 RUN apt update -y \
     && apt install -y curl voms-clients-java software-properties-common \
-    # && rm /opt/conda/bin/voms-proxy-init \
-    # && ln -s /usr/bin/voms-proxy-init /opt/conda/bin/voms-proxy-init \
+    && rm /opt/conda/bin/voms-proxy-init \
+    && ln -s /usr/bin/voms-proxy-init /opt/conda/bin/voms-proxy-init \
     && apt clean -y \
     && rm -rf /var/lib/apt/lists/*
 
@@ -347,7 +366,7 @@ RUN mkdir -p /etc/vomses \
     && wget https://indigo-iam.github.io/escape-docs/voms-config/voms-escape.cloud.cnaf.infn.it.lsc -O /etc/grid-security/vomsdir/escape/voms-escape.cloud.cnaf.infn.it.lsc
 
 # Setup merged CERN CA file on Ubuntu based images.
-# This file is contained in the `CERN-bundle.pem` file downloaded using 
+# This file is contained in the `CERN-bundle.pem` file downloaded using
 RUN mkdir /certs \
     && touch /certs/rucio_ca.pem \
     && curl -fsSL 'https://cafiles.cern.ch/cafiles/certificates/CERN%20Root%20Certification%20Authority%202.crt' | openssl x509 -inform DER -out /tmp/cernrootca2.crt \
@@ -359,7 +378,7 @@ RUN mkdir /certs \
     && rm /tmp/*.crt \
     && update-ca-certificates
 
-# # Install trust anchors 
+# # Install trust anchors
 # RUN curl https://ca.cern.ch/cafiles/certificates/CERN%20Root%20Certification%20Authority%202.crt -o /etc/pki/ca-trust/source/anchors/1.crt &&\
 #     curl https://ca.cern.ch/cafiles/certificates/CERN%20Grid%20Certification%20Authority.crt -o /etc/pki/ca-trust/source/anchors/2.crt &&\
 #     curl https://ca.cern.ch/cafiles/certificates/CERN%20Grid%20Certification%20Authority\(1\).crt -o /etc/pki/ca-trust/source/anchors/3.crt &&\
@@ -390,10 +409,10 @@ RUN fix-permissions /usr/local/bin/setup.sh \
 RUN mkdir -p /opt/rucio/etc \
     #    && touch /opt/rucio/etc/rucio.cfg \
     && fix-permissions /opt/rucio/etc \
-    && chown -R ${NB_UID}:${NB_GID} /opt/rucio/etc 
+    && chown -R ${NB_UID}:${NB_GID} /opt/rucio/etc
 
-#    && /usr/local/bin/setup.sh 
-#RUN chown -R $NB_UID $HOME/.jupyter/jupyter_notebook_config.json 
+#    && /usr/local/bin/setup.sh
+#RUN chown -R $NB_UID $HOME/.jupyter/jupyter_notebook_config.json
 #    && chown -R $NB_UID /etc/jupyter/jupyter_notebook_config.py
 
 
@@ -402,99 +421,15 @@ RUN mkdir -p /opt/rucio/etc \
 #RUN chown -R $NB_UID /etc/ipython
 ENV JUPYTER_ENABLE_LAB=yes
 
+# Fix jupyter server extensions
+RUN rm -rf /usr/local/share/jupyter/labextensions/* 
+# && mamba install -y -c conda-forge "ipympl>=0.9.3"
+USER $NB_UID
+WORKDIR $HOME
+COPY env.txt ./
+RUN mamba install -y --file env.txt
+
 # USER $NB_UID
 # WORKDIR $HOME
 
-# Install rucio-jupyterlab with jlab v=3
-RUN pip install --no-cache-dir --upgrade pip \
-    && pip install --no-cache-dir rucio-jupyterlab==0.10.0 \
-    && jupyter serverextension enable --py rucio_jupyterlab --sys-prefix 
-
-# itwinai
-# https://stackoverflow.com/a/56748289
-ARG NGC_TAG
-
-USER root
-WORKDIR /opt/itwinai
-
-# https://github.com/mpi4py/mpi4py/pull/431
-RUN env SETUPTOOLS_USE_DISTUTILS=local python -m pip install --no-cache-dir mpi4py
-
-# Install itwinai
-COPY pyproject.toml ./
-COPY src ./
-COPY env-files/torch/jupyter/install_itwinai_deps_jlab.sh ./
-RUN bash install_itwinai_deps_jlab.sh ${NGC_TAG}
-
-########################################
-
-### itwinai ###
-# # Dependencies
-# RUN pip install --no-cache-dir \
-#     'numpy<2' \
-#     packaging \
-#     # torch==2.4.* torchvision torchaudio --index-url https://download.pytorch.org/whl/cu124 \
-#     wheel
-# ENV HOROVOD_WITH_PYTORCH=1 \
-#     HOROVOD_WITHOUT_TENSORFLOW=1 \
-#     HOROVOD_WITHOUT_MXNET=1 \
-#     LDSHARED="$CC -shared" \
-#     # -fopnmp needed in this case: https://stackoverflow.com/a/40428527
-#     # LDFLAGS="${LDFLAGS} -fopenmp" \
-#     CMAKE_CXX_STANDARD=17 \
-#     HOROVOD_MPI_THREADS_DISABLE=1 \
-#     HOROVOD_CPU_OPERATIONS=MPI \
-#     HOROVOD_GPU_ALLREDUCE=NCCL \
-#     HOROVOD_NCCL_LINK=SHARED \
-#     HOROVOD_NCCL_HOME=$EBROOTNCCL \
-#     DS_BUILD_UTILS=1 \
-#     DS_BUILD_AIO=1 \
-#     DS_BUILD_FUSED_ADAM=1 \
-#     DS_BUILD_FUSED_LAMB=1 \
-#     DS_BUILD_TRANSFORMER=1 \
-#     DS_BUILD_STOCHASTIC_TRANSFORMER=1 \
-#     DS_BUILD_TRANSFORMER_INFERENCE=1
-# RUN pip install --no-cache-dir py-cpuinfo \
-#     && pip install --no-cache-dir \
-#     deepspeed \
-#     git+https://github.com/horovod/horovod.git \
-#     "prov4ml[linux]@git+https://github.com/matbun/ProvML" \
-#     ray ray[tune]
-# # Core itwinai lib
-# WORKDIR /opt/itwinai
-# # COPY env-files/torch/jupyter/install_itwinai_torch.sh ./
-# COPY pyproject.toml ./
-# COPY src ./
-# RUN pip install --no-cache-dir ".[torch,dev]" && itwinai sanity-check --torch
-# # RUN bash install_itwinai_torch.sh && rm install_itwinai_torch.sh 
-# # Additional pip deps
-# ARG REQUIREMENTS=env-files/torch/jupyter/requirements.txt
-# COPY ${REQUIREMENTS} ./
-# RUN pip install --no-cache-dir -r $(basename ${REQUIREMENTS})
-
-
-# Outro
-USER $NB_UID
-WORKDIR $HOME
-
 CMD ["setup.sh", "start-notebook.sh"]
-
-
-###################################################################################################
-# OTHER
-###################################################################################################
-
-# RUN pip install     nodejs \
-#     jupyterlab"<4" \
-#     notebook"<7" \
-#     jupyterhub"<2" \
-#     jsonschema \
-#     jupyterlab_server \
-#     jupyter_server \
-#     traitlets \
-#     nbformat \
-#     ipykernel \
-#     PyJWT \
-#     ipywidgets \
-#     asyncssh \
-#     peewee 
