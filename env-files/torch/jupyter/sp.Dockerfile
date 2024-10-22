@@ -132,11 +132,12 @@ WORKDIR /tmp/cuda
 # - https://docs.nvidia.com/deeplearning/cudnn/latest/installation/linux.html#installing-cudnn-on-linux
 # NCCL: 
 # - https://docs.nvidia.com/deeplearning/nccl/install-guide/index.html#debian
+# *NOTE* to correctly install Apex below, CUDA toolkit version must match with the torch CUDA backend version
 RUN wget -O cuda-keyring.deb https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/cuda-keyring_1.1-1_all.deb \
     && dpkg -i cuda-keyring.deb \
     && apt-get update && apt-get install -y \
     # CUDA toolkit metapackage (does not include the Nvidia driver)
-    cuda-toolkit-12-6 \
+    cuda-toolkit-12-4 \
     # cuDNN
     cudnn-cuda-12 \
     # NCCL
@@ -164,7 +165,26 @@ RUN wget -O openmpi-$OPENMPI_VERSION.tar.gz $OPENMPI_URL && tar xzf openmpi-$OPE
 RUN rm -rf /tmp/*
 
 USER $NB_UID
-# Dependencies
+
+# Torch and smaller deps
+RUN pip install --no-cache-dir \
+    'numpy<2' \
+    packaging \
+    py-cpuinfo \
+    torch==2.4.* torchvision torchaudio --index-url https://download.pytorch.org/whl/cu124 \
+    wheel
+
+# Apex: https://github.com/NVIDIA/apex
+# (needed for DeepSpeed *_FUSED optinal build options)
+# Note: it will take more than an hour to build
+RUN cd /tmp && git clone https://github.com/NVIDIA/apex && cd apex \
+    && pip install -v --disable-pip-version-check --no-cache-dir --no-build-isolation --config-settings "--build-option=--cpp_ext" --config-settings "--build-option=--cuda_ext" ./ \
+    && rm -rf /tmp/apex
+# Transformer engine: https://docs.nvidia.com/deeplearning/transformer-engine/user-guide/index.html
+# (needed for DeepSpeed *TRANSFORMER* optinal build options)
+RUN pip install --no-cache-dir transformer_engine[pytorch]
+
+# DeepSpeed, Horovod and other deps
 ENV HOROVOD_WITH_PYTORCH=1 \
     HOROVOD_WITHOUT_TENSORFLOW=1 \
     HOROVOD_WITHOUT_MXNET=1 \
@@ -173,21 +193,32 @@ ENV HOROVOD_WITH_PYTORCH=1 \
     HOROVOD_CPU_OPERATIONS=MPI \
     HOROVOD_GPU_ALLREDUCE=NCCL \
     HOROVOD_NCCL_LINK=SHARED \
-    # HOROVOD_NCCL_HOME=$EBROOTNCCL \
     # DeepSpeed
     DS_BUILD_UTILS=1 \
-    DS_BUILD_AIO=1
+    DS_BUILD_AIO=1 \
+    DS_BUILD_FUSED_ADAM=1 \
+    DS_BUILD_FUSED_LAMB=1 \
+    DS_BUILD_TRANSFORMER=1 \
+    DS_BUILD_STOCHASTIC_TRANSFORMER=1 \
+    DS_BUILD_TRANSFORMER_INFERENCE=1
 RUN pip install --no-cache-dir \
-    'numpy<2' \
-    packaging \
-    py-cpuinfo \
-    torch==2.4.* torchvision torchaudio --index-url https://download.pytorch.org/whl/cu124 \
-    wheel \
-    && pip install --no-cache-dir \
     deepspeed \
     git+https://github.com/horovod/horovod.git \
     "prov4ml[linux]@git+https://github.com/matbun/ProvML" \
     ray ray[tune]
+# RUN pip install --no-cache-dir \
+#     'numpy<2' \
+#     packaging \
+#     py-cpuinfo \
+#     torch==2.4.* torchvision torchaudio --index-url https://download.pytorch.org/whl/cu124 \
+#     wheel \
+#     && pip install --no-cache-dir \
+#     deepspeed \
+#     git+https://github.com/horovod/horovod.git \
+#     "prov4ml[linux]@git+https://github.com/matbun/ProvML" \
+#     ray ray[tune]
+# To test that Horovod was succesfully built with NCCL run: horovodrun --check-build
+
 # Core itwinai lib
 WORKDIR $HOME/itwinai
 # COPY env-files/torch/jupyter/install_itwinai_torch.sh ./
