@@ -3,7 +3,7 @@
 # Job configuration
 #SBATCH --job-name=ray_tune_hpo    
 #SBATCH --account=intertwin       
-#SBATCH --time 01:00:00
+#SBATCH --time 02:30:00
 
 # Resources allocation
 #SBATCH --cpus-per-task=24
@@ -88,7 +88,7 @@ echo All Ray workers started.
 # Run the Python script using Ray
 echo 'Starting HPO.'
 
-python hpo.py --num_samples 8 --max_iterations 2 --ngpus $num_gpus --ncpus $num_cpus
+python hpo.py --num_samples 4 --max_iterations 2 --ngpus $num_gpus --ncpus $num_cpus --pipeline_name rnn_training_pipeline # NOTE: conv_training_pipeline has not been tested
 
 # Shutdown Ray after completion
 ray stop
