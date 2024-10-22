@@ -213,6 +213,7 @@ class RNNDistributedTrainer(TorchTrainer):
             self.lr_scheduler.step(avg_val_loss)
             loss_history["train"].append(train_loss)
             loss_history["val"].append(avg_val_loss)
+
             self.log(
                 item=train_loss.item(),
                 identifier="train_loss_per_epoch",
@@ -495,6 +496,12 @@ class ConvRNNDistributedTrainer(TorchTrainer):
             if avg_val_loss < best_loss:
                 best_loss = avg_val_loss
                 # self.model.load_state_dict(best_model_weights)
+
+            # Report training metrics of last epoch to Ray
+            train.report(
+                {"loss": avg_val_loss.item(),
+                 "train_loss": train_loss.item()}
+            )
 
         return loss_history, metric_history
 
