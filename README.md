@@ -324,6 +324,47 @@ For instance, to run the test suite on your laptop user:
 ```bash
 make test
 ```
+## Working with Docker containers
+
+This section is intended for the developers of itwinai and outlines the practices
+used to manage container images through GitHub Container Registry (GHCR).
+
+### Terminology Recap
+
+Our container images follow the convention:
+
+```text
+ghcr.io/intertwin-eu/IMAGE_NAME:TAG
+```
+
+For example, in `ghcr.io/intertwin-eu/itwinai:0.2.2-torch2.6-jammy`:
+- `IMAGE_NAME` is `itwinai`
+- `TAG` is `0.2.2-torch2.6-jammy`
+
+The `TAG` follows the convention:
+
+```text
+X.Y.Z-[torch|tf]x.y-distro
+```
+
+Where:
+- `X.Y.Z` is the **itwinai version**
+- `x.y` is the **version of the ML framework** (e.g., PyTorch or TensorFlow)
+- `distro` is the OS distro in the container (e.g., Ubuntu Jammy)
+
+### Image Names and Their Purpose
+
+We use different image names to group similar images under the same namespace:
+
+- **`itwinai`**: Production images. These should be well-maintained and orderly.
+- **`itwinai-dev`**: Development images. Tags can vary, and may include random
+hashes.
+- **`itwinai-cvmfs`**: Images that need to be made available through CVMFS.
+
+> [!WARNING]
+> It is very important to keep the number of tags for `itwinai-cvmfs` as low
+> as possible. Tags should only be created under this namespace when strictly
+> necessary. Otherwise, this could cause issues for the converter.
 
 <!--
 ### Micromamba installation (deprecated)
