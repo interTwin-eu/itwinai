@@ -35,12 +35,13 @@ from itwinai.torch.distributed import (
 from itwinai.loggers import Logger
 from itwinai.torch.config import TrainingConfiguration
 
-import model
+from ray import train as train_ray
+import src.model as model
 from torch.utils.data import DataLoader
 from torchvision.utils import make_grid
-from engine import train, validate
-from utils import save_reconstructed_images, save_loss_plot, save_ex
-from initialization import beta, criterion, pixel_wise_criterion
+from src.engine import train, validate
+from src.utils import save_reconstructed_images, save_loss_plot, save_ex
+from src.initialization import beta, criterion, pixel_wise_criterion
 
 class XTClimTrainer(TorchTrainer):
     def __init__(
@@ -244,6 +245,12 @@ class XTClimTrainer(TorchTrainer):
 
         print(f"Train Loss: {train_epoch_loss:.4f}")
         print(f"Val Loss: {valid_epoch_loss:.4f}")
+
+        # Report training metrics of last epoch to Ray
+        train_ray.report(
+            {"loss": train_epoch_loss,
+             "valid_loss": valid_epoch_loss}
+        )
 
         save_loss_plot(train_loss, valid_loss, season)
         # save the loss evolutions

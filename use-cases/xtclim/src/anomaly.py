@@ -9,10 +9,10 @@ from itwinai.loggers import Logger
 from itwinai.components import monitor_exec
 from itwinai.torch.config import TrainingConfiguration
 
-import model as NNmodel
+import src.model as NNmodel
 from torch.utils.data import DataLoader
-from engine import evaluate
-from initialization import beta, criterion, n_avg, pixel_wise_criterion
+from src.engine import evaluate
+from src.initialization import beta, criterion, n_avg, pixel_wise_criterion
 
 class XTClimPredictor(TorchPredictor):
     def __init__(

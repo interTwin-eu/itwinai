@@ -38,15 +38,15 @@ pipeline:
                        init_args:
                          experiment_name: XTClim (Cerfacs)
                          log_freq: epoch
-                         # - class_path: itwinai.loggers.WandBLogger
-                         #  init_args:
-                         #  log_freq: epoch
+                     - class_path: itwinai.loggers.WandBLogger
+                       init_args:
+                         log_freq: epoch
          evaluation-step:
            class_path: src.anomaly.XTClimPredictor
            init_args:
-               evaluation: ${evaluation}
-               batch_size: ${batch_size}
-               strategy: ${strategy}
+             evaluation: ${evaluation}
+             batch_size: ${batch_size}
+             strategy: ${strategy}
                # model_uri and season are dynamically imported
                logger:
                    class_path: itwinai.loggers.LoggersCollection
