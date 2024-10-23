@@ -324,6 +324,7 @@ For instance, to run the test suite on your laptop user:
 ```bash
 make test
 ```
+
 ## Working with Docker containers
 
 This section is intended for the developers of itwinai and outlines the practices
@@ -338,6 +339,7 @@ ghcr.io/intertwin-eu/IMAGE_NAME:TAG
 ```
 
 For example, in `ghcr.io/intertwin-eu/itwinai:0.2.2-torch2.6-jammy`:
+
 - `IMAGE_NAME` is `itwinai`
 - `TAG` is `0.2.2-torch2.6-jammy`
 
@@ -348,6 +350,7 @@ X.Y.Z-[torch|tf]x.y-distro
 ```
 
 Where:
+
 - `X.Y.Z` is the **itwinai version**
 - `x.y` is the **version of the ML framework** (e.g., PyTorch or TensorFlow)
 - `distro` is the OS distro in the container (e.g., Ubuntu Jammy)
