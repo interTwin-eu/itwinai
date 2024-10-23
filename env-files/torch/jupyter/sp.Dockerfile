@@ -123,32 +123,6 @@ RUN pip install --no-cache-dir --upgrade pip \
 
 USER root
 
-WORKDIR /tmp/cuda
-# CUDA Toolkit:
-# - https://developer.nvidia.com/cuda-downloads
-# - Installation guide: https://docs.nvidia.com/cuda/cuda-quick-start-guide/index.html#ubuntu
-# - cuda-toolkit metapackage: https://docs.nvidia.com/cuda/cuda-installation-guide-linux/#meta-packages
-# cuDNN:
-# - https://docs.nvidia.com/deeplearning/cudnn/latest/installation/linux.html#installing-cudnn-on-linux
-# NCCL: 
-# - https://docs.nvidia.com/deeplearning/nccl/install-guide/index.html#debian
-# *NOTE* to correctly install Apex below, CUDA toolkit version must match with the torch CUDA backend version
-RUN wget -O cuda-keyring.deb https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/cuda-keyring_1.1-1_all.deb \
-    && dpkg -i cuda-keyring.deb \
-    && apt-get update && apt-get install -y \
-    # CUDA toolkit metapackage (does not include the Nvidia driver)
-    cuda-toolkit-12-4 \
-    # cuDNN
-    cudnn-cuda-12 \
-    # NCCL
-    libnccl2 \
-    libnccl-dev \
-    # Nvidia driver, as explained here: https://developer.nvidia.com/cuda-downloads
-    nvidia-open \
-    && apt-get clean -y && rm -rf /var/lib/apt/lists/*
-ENV PATH=/usr/local/cuda-12.6/bin${PATH:+:${PATH}}\
-    LD_LIBRARY_PATH=/usr/local/cuda-12.6/lib64${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}
-
 # OpenMPI
 WORKDIR /tmp/ompi
 ENV OPENMPI_VERSION=5.0.5 \
@@ -160,6 +134,36 @@ ENV LD_LIBRARY_PATH="${OPENMPI_DIR}/lib:${LD_LIBRARY_PATH}"
 ENV MANPATH=${OPENMPI_DIR}/share/man:${MANPATH}
 RUN wget -O openmpi-$OPENMPI_VERSION.tar.gz $OPENMPI_URL && tar xzf openmpi-$OPENMPI_VERSION.tar.gz \
     && cd openmpi-$OPENMPI_VERSION && ./configure --prefix=$OPENMPI_DIR && make install
+
+# Nvidia software
+WORKDIR /tmp/cuda
+# CUDA Toolkit:
+# - https://developer.nvidia.com/cuda-downloads
+# - Installation guide: https://docs.nvidia.com/cuda/cuda-quick-start-guide/index.html#ubuntu
+# - cuda-toolkit metapackage: https://docs.nvidia.com/cuda/cuda-installation-guide-linux/#meta-packages
+# cuDNN:
+# - https://docs.nvidia.com/deeplearning/cudnn/latest/installation/linux.html#installing-cudnn-on-linux
+# NCCL: 
+# - https://docs.nvidia.com/deeplearning/nccl/install-guide/index.html#debian
+# *NOTE* to correctly install Apex below, CUDA toolkit version must match with the torch CUDA backend version
+ENV CUDA_VERSION=12.4 \
+    CUDA_TOOLKIT_VERSION=12-4 \
+    CUDA_MAJOR_VERSION=12
+RUN wget -O cuda-keyring.deb https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/cuda-keyring_1.1-1_all.deb \
+    && dpkg -i cuda-keyring.deb \
+    && apt-get update && apt-get install -y \
+    # CUDA toolkit metapackage (does not include the Nvidia driver)
+    cuda-toolkit-${CUDA_TOOLKIT_VERSION} \
+    # cuDNN
+    cudnn-cuda-${CUDA_MAJOR_VERSION} \
+    # NCCL
+    libnccl2 \
+    libnccl-dev \
+    # Nvidia driver, as explained here: https://developer.nvidia.com/cuda-downloads
+    nvidia-open \
+    && apt-get clean -y && rm -rf /var/lib/apt/lists/*
+ENV PATH=/usr/local/cuda-${CUDA_VERSION}/bin${PATH:+:${PATH}}\
+    LD_LIBRARY_PATH=/usr/local/cuda-${CUDA_VERSION}/lib64${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}
 
 # Cleanup
 RUN rm -rf /tmp/*
