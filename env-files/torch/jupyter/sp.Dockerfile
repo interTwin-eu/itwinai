@@ -186,6 +186,7 @@ RUN cd /tmp && git clone https://github.com/NVIDIA/apex && cd apex \
     && rm -rf /tmp/apex
 # Transformer engine: https://docs.nvidia.com/deeplearning/transformer-engine/user-guide/index.html
 # (needed for DeepSpeed *TRANSFORMER* optinal build options)
+# Note: it will take about half an hour to build
 RUN pip install --no-cache-dir transformer_engine[pytorch]
 
 # DeepSpeed, Horovod and other deps
