@@ -1,6 +1,6 @@
 from tqdm import tqdm
 import torch
-from initialization import pixel_wise_criterion
+from src.initialization import pixel_wise_criterion
 
 def final_loss(bce_loss, mu, logvar, beta=0.1):
     """
