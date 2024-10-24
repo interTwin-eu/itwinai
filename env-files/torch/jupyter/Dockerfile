@@ -34,7 +34,7 @@ RUN conda install -y -n base mamba \
 
 USER root
 
-RUN apt-get update -y && apt-get install --no-install-recommends -y \
+RUN apt-get update -y && apt-get install -y \
     build-essential \
     cmake \
     curl \
@@ -137,7 +137,7 @@ ENV OPENMPI_DIR=/opt/openmpi-${OPENMPI_VERSION}
 ENV PATH="${OPENMPI_DIR}/bin:${PATH}" 
 ENV LD_LIBRARY_PATH="${OPENMPI_DIR}/lib:${LD_LIBRARY_PATH}" 
 ENV MANPATH=${OPENMPI_DIR}/share/man:${MANPATH}
-RUN wget -O -q openmpi-$OPENMPI_VERSION.tar.gz $OPENMPI_URL && tar xzf openmpi-$OPENMPI_VERSION.tar.gz \
+RUN wget -q -O openmpi-$OPENMPI_VERSION.tar.gz $OPENMPI_URL && tar xzf openmpi-$OPENMPI_VERSION.tar.gz \
     && cd openmpi-$OPENMPI_VERSION && ./configure --prefix=$OPENMPI_DIR && make install
 
 # Nvidia software
