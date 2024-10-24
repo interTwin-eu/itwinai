@@ -228,7 +228,10 @@ RUN pip install --no-cache-dir \
 WORKDIR "$HOME/itwinai"
 COPY pyproject.toml ./
 COPY src ./
-RUN pip install --no-cache-dir ".[torch,dev]" && itwinai sanity-check --torch
+RUN pip install --no-cache-dir ".[torch,dev]" \
+    && itwinai sanity-check --torch \
+    --optional-deps deepspeed \
+    --optional-deps horovod
 
 # Additional pip deps
 ARG REQUIREMENTS=env-files/torch/requirements/requirements.txt
