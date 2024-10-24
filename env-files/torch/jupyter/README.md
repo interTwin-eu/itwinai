@@ -26,5 +26,5 @@ For instance:
 
 ```bash
 docker build -t <IMG>:<TAG> -f env-files/torch/jupyter/Dockerfile \
-    --build-arg REQUIREMENTS=env-files/torch/jupyter/cmcc-requirements.txt .
+    --build-arg REQUIREMENTS=env-files/torch/requirements/cmcc-requirements.txt .
 ```

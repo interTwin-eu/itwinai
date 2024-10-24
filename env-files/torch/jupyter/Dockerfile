@@ -3,6 +3,10 @@
 
 FROM jupyter/scipy-notebook:python-3.10.11
 # FROM quay.io/jupyter/pytorch-notebook:x86_64-cuda12-python-3.11
+LABEL org.opencontainers.image.source = "https://github.com/interTwin-eu/itwinai"
+LABEL org.opencontainers.image.description = "itwinai image with torch dependencies, CUDA drivers, and Rucio client for jupyterlab singleuser server enabled for interLink offloading"
+LABEL org.opencontainers.image.licenses = MIT
+LABEL maintainer = "Matteo Bunino - matteo.bunino@cern.ch, VRE Team @ CERN 23/24 - E. Garcia, G. Guerrieri"
 
 USER $NB_UID
 
@@ -27,17 +31,15 @@ RUN conda install -y -n base mamba \
 
 USER root
 
-RUN apt-get update && apt-get install -y \
+RUN apt-get update -y && apt-get install -y \
     build-essential \
     cmake \
-    && rm -rf /var/lib/apt/lists/*
-
-RUN apt update -y \
-    && apt install -y curl voms-clients-java software-properties-common \
+    curl \
+    software-properties-common \
+    voms-clients-java \
     && rm /opt/conda/bin/voms-proxy-init \
     && ln -s /usr/bin/voms-proxy-init /opt/conda/bin/voms-proxy-init \
-    && apt clean -y \
-    && rm -rf /var/lib/apt/lists/*
+    && apt clean -y && rm -rf /var/lib/apt/lists/*
 
 
 # ESCAPE grid-security and VOMS setup
@@ -117,31 +119,110 @@ RUN pip install --no-cache-dir --upgrade pip \
     && pip install --no-cache-dir rucio-jupyterlab==0.10.0 \
     && jupyter serverextension enable --py rucio_jupyterlab --sys-prefix 
 
-### itwinai ###
-# Dependencies
-ENV HOROVOD_WITH_PYTORCH=1 \
-    HOROVOD_WITHOUT_TENSORFLOW=1 \
-    HOROVOD_WITHOUT_MXNET=1
+#############################
+###        itwinai        ###
+#############################
+
+USER root
+
+# OpenMPI
+WORKDIR /tmp/ompi
+ENV OPENMPI_VERSION=5.0.5 \
+    OPENMPI_MINOR=5.0 
+ENV OPENMPI_URL="https://download.open-mpi.org/release/open-mpi/v${OPENMPI_MINOR}/openmpi-${OPENMPI_VERSION}.tar.gz" 
+ENV OPENMPI_DIR=/opt/openmpi-${OPENMPI_VERSION} 
+ENV PATH="${OPENMPI_DIR}/bin:${PATH}" 
+ENV LD_LIBRARY_PATH="${OPENMPI_DIR}/lib:${LD_LIBRARY_PATH}" 
+ENV MANPATH=${OPENMPI_DIR}/share/man:${MANPATH}
+RUN wget -O openmpi-$OPENMPI_VERSION.tar.gz $OPENMPI_URL && tar xzf openmpi-$OPENMPI_VERSION.tar.gz \
+    && cd openmpi-$OPENMPI_VERSION && ./configure --prefix=$OPENMPI_DIR && make install
+
+# Nvidia software
+WORKDIR /tmp/cuda
+# CUDA Toolkit:
+# - https://developer.nvidia.com/cuda-downloads
+# - Installation guide: https://docs.nvidia.com/cuda/cuda-quick-start-guide/index.html#ubuntu
+# - cuda-toolkit metapackage: https://docs.nvidia.com/cuda/cuda-installation-guide-linux/#meta-packages
+# cuDNN:
+# - https://docs.nvidia.com/deeplearning/cudnn/latest/installation/linux.html#installing-cudnn-on-linux
+# NCCL: 
+# - https://docs.nvidia.com/deeplearning/nccl/install-guide/index.html#debian
+# *NOTE* to correctly install Apex below, CUDA toolkit version must match with the torch CUDA backend version
+ENV CUDA_VERSION=12.4 \
+    CUDA_TOOLKIT_VERSION=12-4 \
+    CUDA_MAJOR_VERSION=12
+RUN wget -O cuda-keyring.deb https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/cuda-keyring_1.1-1_all.deb \
+    && dpkg -i cuda-keyring.deb \
+    && apt-get update && apt-get install -y \
+    # CUDA toolkit metapackage (does not include the Nvidia driver)
+    cuda-toolkit-${CUDA_TOOLKIT_VERSION} \
+    # cuDNN
+    cudnn-cuda-${CUDA_MAJOR_VERSION} \
+    # NCCL
+    libnccl2 \
+    libnccl-dev \
+    # Nvidia driver, as explained here: https://developer.nvidia.com/cuda-downloads
+    nvidia-open \
+    && apt-get clean -y && rm -rf /var/lib/apt/lists/*
+ENV PATH=/usr/local/cuda-${CUDA_VERSION}/bin${PATH:+:${PATH}}\
+    LD_LIBRARY_PATH=/usr/local/cuda-${CUDA_VERSION}/lib64${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}
+
+# Cleanup
+RUN rm -rf /tmp/*
+
+USER $NB_UID
+
+# Torch and smaller deps
 RUN pip install --no-cache-dir \
     'numpy<2' \
     packaging \
     py-cpuinfo \
     torch==2.4.* torchvision torchaudio --index-url https://download.pytorch.org/whl/cu124 \
-    wheel \
-    && pip install --no-cache-dir \
+    wheel
+
+# Apex: https://github.com/NVIDIA/apex
+# (needed for DeepSpeed *_FUSED optinal build options)
+# Note: it will take more than an hour to build
+RUN cd /tmp && git clone https://github.com/NVIDIA/apex && cd apex \
+    && pip install -v --disable-pip-version-check --no-cache-dir --no-build-isolation --config-settings "--build-option=--cpp_ext" --config-settings "--build-option=--cuda_ext" ./ \
+    && rm -rf /tmp/apex
+# Transformer engine: https://docs.nvidia.com/deeplearning/transformer-engine/user-guide/index.html
+# (needed for DeepSpeed *TRANSFORMER* optinal build options)
+# Note: it will take about half an hour to build
+RUN pip install --no-cache-dir transformer_engine[pytorch]
+
+# DeepSpeed, Horovod and other deps
+ENV HOROVOD_WITH_PYTORCH=1 \
+    HOROVOD_WITHOUT_TENSORFLOW=1 \
+    HOROVOD_WITHOUT_MXNET=1 \
+    CMAKE_CXX_STANDARD=17 \
+    HOROVOD_MPI_THREADS_DISABLE=1 \
+    HOROVOD_CPU_OPERATIONS=MPI \
+    HOROVOD_GPU_ALLREDUCE=NCCL \
+    HOROVOD_NCCL_LINK=SHARED \
+    # DeepSpeed
+    DS_BUILD_UTILS=1 \
+    DS_BUILD_AIO=1 \
+    DS_BUILD_FUSED_ADAM=1 \
+    DS_BUILD_FUSED_LAMB=1 \
+    DS_BUILD_TRANSFORMER=1 \
+    DS_BUILD_STOCHASTIC_TRANSFORMER=1 \
+    DS_BUILD_TRANSFORMER_INFERENCE=1
+RUN pip install --no-cache-dir \
     deepspeed \
     git+https://github.com/horovod/horovod.git \
     "prov4ml[linux]@git+https://github.com/matbun/ProvML" \
     ray ray[tune]
+
+
 # Core itwinai lib
 WORKDIR $HOME/itwinai
-# COPY env-files/torch/jupyter/install_itwinai_torch.sh ./
 COPY pyproject.toml ./
 COPY src ./
 RUN pip install --no-cache-dir ".[torch,dev]" && itwinai sanity-check --torch
-# RUN bash install_itwinai_torch.sh && rm install_itwinai_torch.sh 
+
 # Additional pip deps
-ARG REQUIREMENTS=env-files/torch/jupyter/requirements.txt
+ARG REQUIREMENTS=env-files/torch/requirements/requirements.txt
 COPY ${REQUIREMENTS} ./
 RUN pip install --no-cache-dir -r $(basename ${REQUIREMENTS})
 

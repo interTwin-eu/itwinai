@@ -6,10 +6,10 @@ ARG IMG_TAG=24.08-tf2-py3
 
 FROM nvcr.io/nvidia/tensorflow:${IMG_TAG}
 
-LABEL org.opencontainers.image.source=https://github.com/interTwin-eu/itwinai
-LABEL org.opencontainers.image.description="Base itwinai image with tensorflow dependencies and CUDA drivers"
-LABEL org.opencontainers.image.licenses=MIT
-LABEL maintainer="Matteo Bunino - matteo.bunino@cern.ch"
+LABEL org.opencontainers.image.source = "https://github.com/interTwin-eu/itwinai"
+LABEL org.opencontainers.image.description = "Base itwinai image with tensorflow dependencies and CUDA drivers"
+LABEL org.opencontainers.image.licenses = MIT
+LABEL maintainer = "Matteo Bunino - matteo.bunino@cern.ch"
 
 WORKDIR /app
 
@@ -18,6 +18,11 @@ COPY pyproject.toml ./
 COPY src ./
 COPY env-files/tensorflow/create_container_env.sh ./
 RUN bash create_container_env.sh
+
+# Additional pip deps
+ARG REQUIREMENTS=env-files/torch/requirements/requirements.txt
+COPY ${REQUIREMENTS} ./
+RUN pip install --no-cache-dir -r $(basename ${REQUIREMENTS})
 
 # Create non-root user
 RUN groupadd -g 10001 jarvis \
