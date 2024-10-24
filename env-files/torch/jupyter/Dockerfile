@@ -34,7 +34,7 @@ RUN conda install -y -n base mamba \
 
 USER root
 
-RUN apt-get update -y && apt-get install -y \
+RUN apt-get update -y && apt-get install --no-install-recommends -y \
     build-essential \
     cmake \
     curl \
@@ -43,7 +43,6 @@ RUN apt-get update -y && apt-get install -y \
     && rm /opt/conda/bin/voms-proxy-init \
     && ln -s /usr/bin/voms-proxy-init /opt/conda/bin/voms-proxy-init \
     && apt-get clean -y && rm -rf /var/lib/apt/lists/*
-
 
 
 # ESCAPE grid-security and VOMS setup
