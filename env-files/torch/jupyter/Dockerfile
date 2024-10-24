@@ -176,7 +176,9 @@ RUN rm -rf /tmp/*
 USER $NB_UID
 
 # Torch and smaller deps
-RUN pip install --no-cache-dir \
+RUN pip install --no-cache-dir --upgrade pip \
+    && env SETUPTOOLS_USE_DISTUTILS=local python -m pip install --no-cache-dir mpi4py \
+    && pip install pip install --no-cache-dir \
     'numpy<2' \
     packaging \
     py-cpuinfo \
@@ -223,7 +225,10 @@ RUN pip install --no-cache-dir \
 WORKDIR "$HOME/itwinai"
 COPY pyproject.toml ./
 COPY src ./
-RUN pip install --no-cache-dir ".[torch,dev]" && itwinai sanity-check --torch
+RUN pip install --no-cache-dir ".[torch,dev]" \
+    && itwinai sanity-check --torch \
+    --optional-deps deepspeed \
+    --optional-deps horovod
 
 # Additional pip deps
 ARG REQUIREMENTS=env-files/torch/requirements/requirements.txt

@@ -3,8 +3,8 @@
 import subprocess
 import pytest
 
-
-@pytest.mark.slurm
+@pytest.mark.skip(reason="Decorator is not really used atm.")
+@pytest.mark.hpc
 def test_distributed_decorator(torch_env):
     """Test function decorator. Needs torchrun cmd."""
     cmd = (f"{torch_env}/bin/torchrun "
@@ -14,8 +14,8 @@ def test_distributed_decorator(torch_env):
     subprocess.run(cmd.split(), check=True)
 
 
-@pytest.mark.skip(reason="TorchTrainer not implemented yet")
-@pytest.mark.slurm
+
+@pytest.mark.hpc
 def test_distributed_trainer(torch_env):
     """Test vanilla torch distributed trainer. Needs torchrun cmd."""
     cmd = (f"{torch_env}/bin/torchrun "
