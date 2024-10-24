@@ -46,7 +46,7 @@ pip3 install --no-cache-dir  --upgrade pip
 # get wheel -- setuptools extension
 pip3 install --no-cache-dir wheel
 
-# install TF 
+# install TF
 if [ -f "${cDir}/$ENV_NAME/bin/tensorboard" ]; then
   echo 'TF already installed'
   echo
