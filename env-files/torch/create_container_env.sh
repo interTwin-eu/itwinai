@@ -71,6 +71,9 @@ if [[ "$1" == "23.09-py3" || "$1" == "24.09-py3" ]]; then
         torch==$CONTAINER_TORCH_VERSION \
         || exit 1
 
+    # Run installation sanity check
+    itwinai sanity-check --torch || exit 1
+
 else
     echo "ERROR: unrecognized tag."
     exit 2
