@@ -11,6 +11,9 @@ LABEL org.opencontainers.image.description="Base itwinai image with torch depend
 LABEL org.opencontainers.image.licenses=MIT
 LABEL maintainer="Matteo Bunino - matteo.bunino@cern.ch"
 
+# Fix: https://github.com/hadolint/hadolint/wiki/DL4006
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+
 WORKDIR /app
 
 # https://github.com/mpi4py/mpi4py/pull/431
@@ -35,8 +38,8 @@ ENV HOROVOD_WITH_PYTORCH=1 \
     DS_BUILD_STOCHASTIC_TRANSFORMER=1 \
     DS_BUILD_TRANSFORMER_INFERENCE=1
 # Torch: reuse the global torch in the container
-RUN export CONTAINER_TORCH_VERSION=$(python -c 'import torch;print(torch.__version__)') \
-    && pip install --no-cache-dir torch==$CONTAINER_TORCH_VERSION \
+RUN CONTAINER_TORCH_VERSION="$(python -c 'import torch;print(torch.__version__)')" \
+    && pip install --no-cache-dir torch=="$CONTAINER_TORCH_VERSION" \
     deepspeed==0.15.* \
     git+https://github.com/horovod/horovod.git@3a31d93 \
     "prov4ml[linux]@git+https://github.com/matbun/ProvML@6faafd4" \
@@ -49,8 +52,8 @@ RUN export CONTAINER_TORCH_VERSION=$(python -c 'import torch;print(torch.__versi
 COPY pyproject.toml ./
 COPY src ./
 # Torch: reuse the global torch in the container
-RUN export CONTAINER_TORCH_VERSION=$(python -c 'import torch;print(torch.__version__)') \
-    && pip install --no-cache-dir torch==$CONTAINER_TORCH_VERSION \
+RUN CONTAINER_TORCH_VERSION="$(python -c 'import torch;print(torch.__version__)')" \
+    && pip install --no-cache-dir torch=="$CONTAINER_TORCH_VERSION" \
     .[torch] \
     && itwinai sanity-check --torch \
     --optional-deps deepspeed \

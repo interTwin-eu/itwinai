@@ -154,7 +154,7 @@ WORKDIR /tmp/cuda
 ENV CUDA_VERSION=12.4 \
     CUDA_TOOLKIT_VERSION=12-4 \
     CUDA_MAJOR_VERSION=12
-RUN wget -O cuda-keyring.deb https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/cuda-keyring_1.1-1_all.deb \
+RUN wget -q -O cuda-keyring.deb https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/cuda-keyring_1.1-1_all.deb \
     && dpkg -i cuda-keyring.deb \
     && apt-get update && apt-get install -y \
     # CUDA toolkit metapackage (does not include the Nvidia driver)
@@ -176,9 +176,12 @@ RUN rm -rf /tmp/*
 USER $NB_UID
 
 # Torch and smaller deps
-RUN pip install --no-cache-dir --upgrade pip \
-    && env SETUPTOOLS_USE_DISTUTILS=local python -m pip install --no-cache-dir mpi4py \
-    && pip install pip install --no-cache-dir \
+RUN pip install --upgrade pip \
+    # https://github.com/mpi4py/mpi4py/pull/431
+    && SETUPTOOLS_USE_DISTUTILS=local python -m pip install --no-cache-dir mpi4py \
+    && unset SETUPTOOLS_USE_DISTUTILS \
+    # Install torch
+    && pip install --no-cache-dir \
     'numpy<2' \
     packaging \
     py-cpuinfo \
@@ -225,10 +228,7 @@ RUN pip install --no-cache-dir \
 WORKDIR "$HOME/itwinai"
 COPY pyproject.toml ./
 COPY src ./
-RUN pip install --no-cache-dir ".[torch,dev]" \
-    && itwinai sanity-check --torch \
-    --optional-deps deepspeed \
-    --optional-deps horovod
+RUN pip install --no-cache-dir ".[torch,dev]" && itwinai sanity-check --torch
 
 # Additional pip deps
 ARG REQUIREMENTS=env-files/torch/requirements/requirements.txt

@@ -3,6 +3,7 @@
 import subprocess
 import pytest
 
+
 @pytest.mark.skip(reason="Decorator is not really used atm.")
 @pytest.mark.hpc
 def test_distributed_decorator(torch_env):
@@ -12,7 +13,6 @@ def test_distributed_decorator(torch_env):
            "--rdzv_backend=c10d --rdzv_endpoint=localhost:29400 "
            "tests/torch/distribtued_decorator.py")
     subprocess.run(cmd.split(), check=True)
-
 
 
 @pytest.mark.hpc
