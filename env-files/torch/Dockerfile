@@ -6,10 +6,10 @@ ARG IMG_TAG=24.05-py3
 
 FROM nvcr.io/nvidia/pytorch:${IMG_TAG}
 
-LABEL org.opencontainers.image.source = "https://github.com/interTwin-eu/itwinai"
-LABEL org.opencontainers.image.description = "Base itwinai image with torch dependencies and CUDA drivers"
-LABEL org.opencontainers.image.licenses = MIT
-LABEL maintainer = "Matteo Bunino - matteo.bunino@cern.ch"
+LABEL org.opencontainers.image.source="https://github.com/interTwin-eu/itwinai"
+LABEL org.opencontainers.image.description="Base itwinai image with torch dependencies and CUDA drivers"
+LABEL org.opencontainers.image.licenses=MIT
+LABEL maintainer="Matteo Bunino - matteo.bunino@cern.ch"
 
 # https://stackoverflow.com/a/56748289
 ARG IMG_TAG

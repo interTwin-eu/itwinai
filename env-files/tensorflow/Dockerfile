@@ -6,10 +6,10 @@ ARG IMG_TAG=24.08-tf2-py3
 
 FROM nvcr.io/nvidia/tensorflow:${IMG_TAG}
 
-LABEL org.opencontainers.image.source = "https://github.com/interTwin-eu/itwinai"
-LABEL org.opencontainers.image.description = "Base itwinai image with tensorflow dependencies and CUDA drivers"
-LABEL org.opencontainers.image.licenses = MIT
-LABEL maintainer = "Matteo Bunino - matteo.bunino@cern.ch"
+LABEL org.opencontainers.image.source="https://github.com/interTwin-eu/itwinai"
+LABEL org.opencontainers.image.description="Base itwinai image with tensorflow dependencies and CUDA drivers"
+LABEL org.opencontainers.image.licenses=MIT
+LABEL maintainer="Matteo Bunino - matteo.bunino@cern.ch"
 
 WORKDIR /app
 
