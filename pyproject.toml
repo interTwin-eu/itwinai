@@ -83,10 +83,7 @@ itwinai = "itwinai.cli:app"
 [tool.pytest.ini_options]
 markers = [
     "integration: integration tests (deselect with '-m \"not integration\"')",
-    "hpc: needs SLURM and HPC resources (multiple GPUs/nodes). (deselect with '-m \"not hpc\"')",
-    "torch_dist: runs with torch DDP distributed strategy. (deselect with '-m \"not torch_dist\"')",
-    "deepspeed_dist: runs with torch DeepSpeed distributed strategy. (deselect with '-m \"not deepspeed_dist\"')",
-    "horovod_dist: runs with torch Horovod distributed strategy. (deselect with '-m \"not horovod_dist\"')",
+    "hpc: needs SLURM and HPC resources (multiple GPUs/nodes). (deselect with '-m \"not slurm\"')",
     "functional: functional tests. (deselect with '-m \"not functional\"')",
     "memory_heavy: high memory footprint. (deselect with '-m \"not heavy_memory\"')",
 ]

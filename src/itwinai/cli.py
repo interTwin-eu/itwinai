@@ -291,6 +291,9 @@ def sanity_check(
         sanity_check_tensorflow()
     else:
         sanity_check_slim()
+        
+    if optional_deps is not None:
+        run_sanity_check(optional_deps)
 
     if optional_deps is not None:
         run_sanity_check(optional_deps)
