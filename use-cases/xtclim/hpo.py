@@ -15,10 +15,6 @@ from itwinai.parser import ConfigParser
 sys.path.append(os.path.join(os.path.dirname(__file__), 'src'))
 sys.path.append(os.path.join(os.path.dirname(__file__), 'preprocessing'))
 
-def read_config(file_path):
-    with open(file_path, 'r') as f:
-        config = yaml.safe_load(f)
-    return config
 
 def run_trial(config: Dict, data: Dict):
     """Execute a single trial using the given configuration (config).
@@ -33,27 +29,27 @@ def run_trial(config: Dict, data: Dict):
         data (dict): A dictionary containing a "pipeline_path" field, which points to the yaml
             file containing the pipeline definition
     """
-    config = read_config('pipeline.yaml')
-    seasons_list = config['seasons']
+    with open('pipeline.yaml', 'r') as f:
+        yaml_config = yaml.safe_load(f)
+
+    # Override keys of hyperparameters to be tuned from Ray config
+    yaml_config['batch_size'] = config['batch_size']
+    yaml_config['lr'] = config['lr']
+
+    # Set loggers to None as Ray logs the runs
+    yaml_config['pipeline']['init_args']['steps']['training-step']['init_args']['logger'] = None
+    yaml_config['pipeline']['init_args']['steps']['evaluation-step']['init_args']['logger'] = None
+
+    seasons_list = yaml_config['seasons']
     for season in seasons_list:
-        config['pipeline']['init_args']['steps']['training-step']['init_args']['seasons'] = season
+        yaml_config['pipeline']['init_args']['steps']['training-step']['init_args']['seasons'] = season
         model_uri = f"outputs/cvae_model_{season}1d_1memb.pth"
-        config['pipeline']['init_args']['steps']['evaluation-step']['init_args']['model_uri'] = model_uri
-        config['pipeline']['init_args']['steps']['evaluation-step']['init_args']['seasons'] = season
+        yaml_config['pipeline']['init_args']['steps']['evaluation-step']['init_args']['model_uri'] = model_uri
+        yaml_config['pipeline']['init_args']['steps']['evaluation-step']['init_args']['seasons'] = season
         parser = ConfigParser(
-            config=config,
-            override_keys={
-                # Set hyperparameters controlled by ray
-                'batch_size': config['batch_size'],
-                'lr': config['lr'],
-                # Override logger field, because performance is logged by ray
-                #'training_pipeline.init_args.steps.2.init_args.logger': None
-            }
+            config=yaml_config,
         )
-        my_pipeline = parser.parse_pipeline(
-            pipeline_nested_key=data["pipeline_name"],
-            verbose=False
-        )
+        my_pipeline = parser.parse_pipeline()
         print(f"Running pipeline for season: {season}")
         my_pipeline.execute()
 
@@ -93,7 +89,7 @@ def run_hpo(args):
         )
 
         # Determine GPU and CPU utilization per trial
-        # We are allocating all available ressources per node evenly across trials
+        # We are allocating all available resources per node evenly across trials
         ngpus_per_trial = max(1, args.ngpus // args.num_samples)
         ncpus_per_trial = max(1, args.ncpus // args.num_samples)
 
