@@ -26,9 +26,9 @@ def write_jupyterlab_config():
     except Exception:
         config_json = {}
 
-# Looking to the rucio-jupyterlab configuration; 
+# Looking to the rucio-jupyterlab configuration;
 # https://github.com/rucio/jupyterlab-extension/blob/master/rucio_jupyterlab/config/schema.py#L101
-#  either ("destination_rse", "rse_mount_path") either ("rucio_ca_cert") are required env 
+#  either ("destination_rse", "rse_mount_path") either ("rucio_ca_cert") are required env
 # vars, even if they are defined in the jhub manifest.
 # Adding 'rucio_base_url' too - from debugging experience
 
@@ -49,7 +49,7 @@ def write_jupyterlab_config():
     #     "rse_mount_path": os.getenv('RUCIO_RSE_MOUNT_PATH', 'DEFAULT rse mount path'),
     #     "replication_rule_lifetime_days": int(os.getenv(
         # 'RUCIO_REPLICATION_RULE_LIFETIME_DAYS')) if os.getenv(
-            # 'RUCIO_REPLICATION_RULE_LIFETIME_DAYS') else None,
+        # 'RUCIO_REPLICATION_RULE_LIFETIME_DAYS') else None,
     #     "path_begins_at": int(os.getenv('RUCIO_PATH_BEGINS_AT', '0')),
     #     "mode": os.getenv('RUCIO_MODE', 'replica'),
     #     "wildcard_enabled": os.getenv('RUCIO_WILDCARD_ENABLED', '0') == '1',
@@ -90,7 +90,7 @@ def write_jupyterlab_config():
                        v in instance_config.items() if v is not None}
     config_json['RucioConfig'] = {
         'instances': [instance_config],
-        "default_instance": os.getenv('RUCIO_DEFAULT_INSTANCE', 
+        "default_instance": os.getenv('RUCIO_DEFAULT_INSTANCE',
                                       'rucio-intertwin-testbed.desy.de'),
         "default_auth_type": os.getenv('RUCIO_DEFAULT_AUTH_TYPE', 'oidc'),
     }
@@ -107,9 +107,9 @@ def write_rucio_config():
     rucio_config = configparser.ConfigParser()
 
     client_config = {
-        'rucio_host': os.getenv('RUCIO_BASE_URL', 
+        'rucio_host': os.getenv('RUCIO_BASE_URL',
                                 'https://rucio-intertwin-testbed.desy.de'),
-        'auth_host': os.getenv('RUCIO_AUTH_URL', 
+        'auth_host': os.getenv('RUCIO_AUTH_URL',
                                'https://rucio-intertwin-testbed-auth.desy.de'),
         'ca_cert': os.getenv('RUCIO_CA_CERT', '/certs/rucio_ca.pem'),
         'auth_type': os.getenv('RUCIO_AUTH_TYPE', 'oidc'),  # 'x509' or 'oidc'
