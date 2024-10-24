@@ -211,18 +211,6 @@ RUN pip install --no-cache-dir \
     git+https://github.com/horovod/horovod.git \
     "prov4ml[linux]@git+https://github.com/matbun/ProvML" \
     ray ray[tune]
-# RUN pip install --no-cache-dir \
-#     'numpy<2' \
-#     packaging \
-#     py-cpuinfo \
-#     torch==2.4.* torchvision torchaudio --index-url https://download.pytorch.org/whl/cu124 \
-#     wheel \
-#     && pip install --no-cache-dir \
-#     deepspeed \
-#     git+https://github.com/horovod/horovod.git \
-#     "prov4ml[linux]@git+https://github.com/matbun/ProvML" \
-#     ray ray[tune]
-# To test that Horovod was succesfully built with NCCL run: horovodrun --check-build
 
 # Core itwinai lib
 WORKDIR $HOME/itwinai
