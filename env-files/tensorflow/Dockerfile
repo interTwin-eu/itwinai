@@ -16,11 +16,16 @@ LABEL maintainer="Matteo Bunino - matteo.bunino@cern.ch"
 
 WORKDIR /app
 
+RUN pip install --no-cache-dir --upgrade pip \
+    && pip install --no-cache-dir \
+    tf_keras==2.16.* \
+    "prov4ml[linux]@git+https://github.com/matbun/ProvML@6faafd4" 
+
 # Install itwinai
-COPY pyproject.toml pyproject.toml
-COPY src src
-RUN pip install --no-cache-dir . \
-    && itwinai sanity-check --tensorflow --optional-deps ray
+COPY pyproject.toml ./
+COPY src ./
+RUN pip install . \
+    && itwinai sanity-check --tensorflow
 
 # Additional pip deps
 ARG REQUIREMENTS=env-files/torch/requirements/requirements.txt
