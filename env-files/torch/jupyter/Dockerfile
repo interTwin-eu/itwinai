@@ -219,8 +219,8 @@ ENV HOROVOD_WITH_PYTORCH=1 \
     DS_BUILD_TRANSFORMER_INFERENCE=1
 RUN pip install --no-cache-dir \
     deepspeed \
-    git+https://github.com/horovod/horovod.git \
-    "prov4ml[linux]@git+https://github.com/matbun/ProvML" \
+    git+https://github.com/horovod/horovod.git@3a31d93 \
+    "prov4ml[linux]@git+https://github.com/matbun/ProvML@6faafd4" \
     ray ray[tune]
 
 
@@ -235,8 +235,8 @@ RUN pip install --no-cache-dir ".[torch,dev]" \
 
 # Additional pip deps
 ARG REQUIREMENTS=env-files/torch/requirements/requirements.txt
-COPY ${REQUIREMENTS} ./
-RUN pip install --no-cache-dir -r $(basename "${REQUIREMENTS}")
+COPY "${REQUIREMENTS}" additional-requirements.txt
+RUN pip install --no-cache-dir -r additional-requirements.txt
 
 WORKDIR $HOME
 
