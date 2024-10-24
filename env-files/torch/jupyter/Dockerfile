@@ -8,6 +8,9 @@ LABEL org.opencontainers.image.description="itwinai image with torch dependencie
 LABEL org.opencontainers.image.licenses=MIT
 LABEL maintainer="Matteo Bunino - matteo.bunino@cern.ch, VRE Team @ CERN 23/24 - E. Garcia, G. Guerrieri"
 
+# Fix: https://github.com/hadolint/hadolint/wiki/DL4006
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+
 USER $NB_UID
 
 # jupyterhub must be < 2
@@ -31,7 +34,7 @@ RUN conda install -y -n base mamba \
 
 USER root
 
-RUN apt-get update -y && apt-get install -y \
+RUN apt-get update -y && apt-get install --no-install-recommends -y \
     build-essential \
     cmake \
     curl \
@@ -39,21 +42,21 @@ RUN apt-get update -y && apt-get install -y \
     voms-clients-java \
     && rm /opt/conda/bin/voms-proxy-init \
     && ln -s /usr/bin/voms-proxy-init /opt/conda/bin/voms-proxy-init \
-    && apt clean -y && rm -rf /var/lib/apt/lists/*
+    && apt-get clean -y && rm -rf /var/lib/apt/lists/*
 
 
 # ESCAPE grid-security and VOMS setup
 RUN wget -q -O - https://dist.eugridpma.info/distribution/igtf/current/GPG-KEY-EUGridPMA-RPM-3 | apt-key add -
 
-RUN apt update \
+RUN apt-get update \
     && add-apt-repository 'deb http://repository.egi.eu/sw/production/cas/1/current egi-igtf core' \
-    && apt -y install ca-policy-egi-core \
+    && apt-get -y install ca-policy-egi-core \
     && rm -rf /var/lib/apt/lists/*
 
 RUN mkdir -p /etc/vomses \
-    && wget https://indigo-iam.github.io/escape-docs/voms-config/voms-escape.cloud.cnaf.infn.it.vomses -O /etc/vomses/voms-escape.cloud.cnaf.infn.it.vomses \
+    && wget -q https://indigo-iam.github.io/escape-docs/voms-config/voms-escape.cloud.cnaf.infn.it.vomses -O /etc/vomses/voms-escape.cloud.cnaf.infn.it.vomses \
     && mkdir -p /etc/grid-security/vomsdir/escape \
-    && wget https://indigo-iam.github.io/escape-docs/voms-config/voms-escape.cloud.cnaf.infn.it.lsc -O /etc/grid-security/vomsdir/escape/voms-escape.cloud.cnaf.infn.it.lsc
+    && wget -q https://indigo-iam.github.io/escape-docs/voms-config/voms-escape.cloud.cnaf.infn.it.lsc -O /etc/grid-security/vomsdir/escape/voms-escape.cloud.cnaf.infn.it.lsc
 
 # Setup merged CERN CA file on Ubuntu based images.
 # This file is contained in the `CERN-bundle.pem` file downloaded using 
@@ -134,7 +137,7 @@ ENV OPENMPI_DIR=/opt/openmpi-${OPENMPI_VERSION}
 ENV PATH="${OPENMPI_DIR}/bin:${PATH}" 
 ENV LD_LIBRARY_PATH="${OPENMPI_DIR}/lib:${LD_LIBRARY_PATH}" 
 ENV MANPATH=${OPENMPI_DIR}/share/man:${MANPATH}
-RUN wget -O openmpi-$OPENMPI_VERSION.tar.gz $OPENMPI_URL && tar xzf openmpi-$OPENMPI_VERSION.tar.gz \
+RUN wget -O -q openmpi-$OPENMPI_VERSION.tar.gz $OPENMPI_URL && tar xzf openmpi-$OPENMPI_VERSION.tar.gz \
     && cd openmpi-$OPENMPI_VERSION && ./configure --prefix=$OPENMPI_DIR && make install
 
 # Nvidia software
@@ -183,7 +186,8 @@ RUN pip install --no-cache-dir \
 # Apex: https://github.com/NVIDIA/apex
 # (needed for DeepSpeed *_FUSED optinal build options)
 # Note: it will take more than an hour to build
-RUN cd /tmp && git clone https://github.com/NVIDIA/apex && cd apex \
+WORKDIR /tmp
+RUN git clone https://github.com/NVIDIA/apex && cd apex \
     && pip install -v --disable-pip-version-check --no-cache-dir --no-build-isolation --config-settings "--build-option=--cpp_ext" --config-settings "--build-option=--cuda_ext" ./ \
     && rm -rf /tmp/apex
 # Transformer engine: https://docs.nvidia.com/deeplearning/transformer-engine/user-guide/index.html
@@ -216,7 +220,7 @@ RUN pip install --no-cache-dir \
 
 
 # Core itwinai lib
-WORKDIR $HOME/itwinai
+WORKDIR "$HOME/itwinai"
 COPY pyproject.toml ./
 COPY src ./
 RUN pip install --no-cache-dir ".[torch,dev]" && itwinai sanity-check --torch
@@ -224,7 +228,7 @@ RUN pip install --no-cache-dir ".[torch,dev]" && itwinai sanity-check --torch
 # Additional pip deps
 ARG REQUIREMENTS=env-files/torch/requirements/requirements.txt
 COPY ${REQUIREMENTS} ./
-RUN pip install --no-cache-dir -r $(basename ${REQUIREMENTS})
+RUN pip install --no-cache-dir -r $(basename "${REQUIREMENTS}")
 
 WORKDIR $HOME
 
