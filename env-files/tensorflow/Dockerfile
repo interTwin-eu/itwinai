@@ -22,7 +22,7 @@ RUN bash create_container_env.sh
 # Additional pip deps
 ARG REQUIREMENTS=env-files/torch/requirements/requirements.txt
 COPY ${REQUIREMENTS} ./
-RUN pip install --no-cache-dir -r $(basename ${REQUIREMENTS})
+RUN pip install --no-cache-dir -r $(basename "${REQUIREMENTS}")
 
 # Create non-root user
 RUN groupadd -g 10001 jarvis \
