@@ -3,10 +3,10 @@
 
 FROM jupyter/scipy-notebook:python-3.10.11
 # FROM quay.io/jupyter/pytorch-notebook:x86_64-cuda12-python-3.11
-LABEL org.opencontainers.image.source = "https://github.com/interTwin-eu/itwinai"
-LABEL org.opencontainers.image.description = "itwinai image with torch dependencies, CUDA drivers, and Rucio client for jupyterlab singleuser server enabled for interLink offloading"
-LABEL org.opencontainers.image.licenses = MIT
-LABEL maintainer = "Matteo Bunino - matteo.bunino@cern.ch, VRE Team @ CERN 23/24 - E. Garcia, G. Guerrieri"
+LABEL org.opencontainers.image.source="https://github.com/interTwin-eu/itwinai"
+LABEL org.opencontainers.image.description="itwinai image with torch dependencies, CUDA drivers, and Rucio client for jupyterlab singleuser server enabled for interLink offloading"
+LABEL org.opencontainers.image.licenses=MIT
+LABEL maintainer="Matteo Bunino - matteo.bunino@cern.ch, VRE Team @ CERN 23/24 - E. Garcia, G. Guerrieri"
 
 USER $NB_UID
 
