@@ -158,17 +158,17 @@ class TorchTrainer(Trainer, LogMixin):
     def _detect_strategy(self, strategy: str) -> TorchDistributedStrategy:
         if strategy is None or not distributed_resources_available():
             print("WARNING: falling back to non-distributed strategy.")
-            dist_str = NonDistributedStrategy()
+            strategy_obj = NonDistributedStrategy()
         elif strategy == 'ddp':
-            dist_str = TorchDDPStrategy(backend='nccl')
+            strategy_obj = TorchDDPStrategy(backend='nccl')
         elif strategy == 'horovod':
-            dist_str = HorovodStrategy()
+            strategy_obj = HorovodStrategy()
         elif strategy == 'deepspeed':
-            dist_str = DeepSpeedStrategy(backend='nccl')
+            strategy_obj = DeepSpeedStrategy(backend='nccl')
         else:
             raise NotImplementedError(
                 f"Strategy '{strategy}' is not recognized/implemented.")
-        return dist_str
+        return strategy_obj
 
     def _init_distributed_strategy(self) -> None:
         if not self.strategy.is_initialized:
@@ -527,13 +527,12 @@ class TorchTrainer(Trainer, LogMixin):
                 # Checkpointing current best model
                 worker_val_losses = self.strategy.gather(val_loss, dst_rank=0)
                 if self.strategy.is_main_worker:
-                    avg_loss = torch.mean(
-                        torch.stack(worker_val_losses)
-                    ).detach().cpu()
-                    if avg_loss < best_loss:
+                    avg_loss = torch.mean(torch.stack(worker_val_losses)).detach().cpu()
+                    if avg_loss < best_loss and self.checkpoint_every is not None:
                         ckpt_name = "best_model.pth"
                         self.save_checkpoint(
-                            name=ckpt_name, epoch=epoch, loss=avg_loss)
+                            name=ckpt_name, epoch=epoch, loss=avg_loss
+                        )
                         best_loss = avg_loss
 
             if self.test_every and epoch_n % self.test_every == 0:

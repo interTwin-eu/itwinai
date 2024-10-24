@@ -529,7 +529,7 @@ class TorchDDPStrategy(TorchDistributedStrategy):
 
         dist.gather_object(obj, dst=dst_rank)
 
-    def gather(self, tensor: torch.Tensor, dst_rank: int = 0) -> Optional[List]:
+    def gather(self, tensor: torch.Tensor, dst_rank: int = 0, non_blocking=False) -> Optional[List]:
         # https://pytorch.org/docs/stable/distributed.html#collective-functions
         if not self.is_initialized:
             raise UninitializedStrategyError(
@@ -543,12 +543,16 @@ class TorchDDPStrategy(TorchDistributedStrategy):
 
         res = [torch.zeros_like(tensor, device=self.device())
                for _ in range(self.global_world_size())]
-        
 
         dist.gather(tensor, gather_list=res, dst=dst_rank)
 
         # Moving everything to the CPU before returning
-        res = [val.cpu() for val in res]
+
+
+        print(f"[RANK {self.local_rank()}] Before res")
+        res = [val.to("cpu", non_blocking=non_blocking) for val in res]
+        print(f"[RANK {self.local_rank()}] after res")
+
         return res
 
 
