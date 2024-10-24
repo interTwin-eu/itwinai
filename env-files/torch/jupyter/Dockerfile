@@ -34,7 +34,7 @@ RUN conda install -y -n base mamba \
 
 USER root
 
-RUN apt-get update -y && apt-get install --no-install-recommends -y \
+RUN apt-get update -y && apt-get install -y \
     build-essential \
     cmake \
     curl \
