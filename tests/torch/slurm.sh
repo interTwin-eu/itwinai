@@ -80,11 +80,6 @@ if [ "$DIST_MODE" == "ddp" ] ; then
   echo "DDP training: $TRAINING_CMD"
 
   srun --cpu-bind=none --ntasks-per-node=1 \
-    singularity exec --nv itwinai_torch.sif /bin/bash -c 'echo'
-
-  # bash -c 'torchrun \
-
-  srun --cpu-bind=none --ntasks-per-node=1 \
     singularity exec --nv itwinai_torch.sif /bin/bash -c "torchrun \
     --log_dir='logs_torchrun' \
     --nnodes=$SLURM_NNODES \
@@ -98,32 +93,14 @@ if [ "$DIST_MODE" == "ddp" ] ; then
     --redirects=\$(((SLURM_NODEID)) && echo "3" || echo "1:3,2:3,3:3") \
     $TRAINING_CMD"
 
-elif [ "$DIST_MODE" == "deepspeed" ] ; then
-  echo "DEEPSPEED training: $TRAINING_CMD"
-  srun --cpu-bind=none --ntasks-per-node=1 \
-    bash -c "torchrun \
-    --log_dir='logs_torchrun' \
-    --nnodes=$SLURM_NNODES \
-    --nproc_per_node=$SLURM_GPUS_PER_NODE \
-    --rdzv_id=$SLURM_JOB_ID \
-    --rdzv_conf=is_host=\$(((SLURM_NODEID)) && echo 0 || echo 1) \
-    --rdzv_backend=c10d \
-    --rdzv_endpoint='$(scontrol show hostnames "$SLURM_JOB_NODELIST" | head -n 1)'i:29500 \
-    $TRAINING_CMD --deepspeed"
-
-  # # Run with deepspeed launcher: set --ntasks-per-node=1
-  # # https://www.deepspeed.ai/getting-started/#multi-node-environment-variables
-  # export NCCL_IB_DISABLE=1
-  # export NCCL_SOCKET_IFNAME=eth0
-  # nodelist=$(scontrol show hostname $SLURM_NODELIST)
-  # echo "$nodelist" | sed -e 's/$/ slots=4/' > .hostfile
-  # # Requires passwordless SSH access among compute node
-  # srun --cpu-bind=none deepspeed --hostfile=.hostfile $TRAINING_CMD --deepspeed
-  # rm .hostfile
 elif [ "$DIST_MODE" == "horovod" ] ; then
+  # echo "Horovod is not currently supported in conjuction with containers"
+  # exit 2
+
   echo "HOROVOD training: $TRAINING_CMD"
   srun --cpu-bind=none --ntasks-per-node=$SLURM_GPUS_PER_NODE --cpus-per-task=$SLURM_CPUS_PER_GPU \
-    python -u $TRAINING_CMD
+    singularity run --nv itwinai_torch.sif \
+    /bin/bash -c "$TRAINING_CMD"
 else
   >&2 echo "ERROR: unrecognized \$DIST_MODE env variable"
   exit 1

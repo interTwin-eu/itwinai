@@ -1,10 +1,14 @@
 import pytest
 
+import os
 from torch import nn
 import torch.nn.functional as F
 from torchvision import transforms, datasets
 
 from itwinai.torch.trainer import TorchTrainer
+import logging
+
+MNIST_PATH = "mnist_dataset"
 
 
 class Net(nn.Module):
@@ -27,21 +31,36 @@ class Net(nn.Module):
         return F.log_softmax(x, dim=0)
 
 
-@pytest.mark.hpc
-def test_distributed_trainer():
+@pytest.fixture(scope='module')
+def mnist_datasets():
+    """Parse MNIST datasets."""
+    if not os.environ.get('MNIST_PATH'):
+        logging.warning("MNIST dataset not found locally. I have to download it!")
+
+    dataset_path = os.environ.get('MNIST_PATH', MNIST_PATH)
     train_set = datasets.MNIST(
-        '/p/project1/intertwin/smalldata/mnist', train=True, download=False,
+        dataset_path,
+        train=True,
+        download=True,
         transform=transforms.Compose([
             transforms.ToTensor(),
             transforms.Normalize((0.1307,), (0.3081,))
         ]))
     val_set = datasets.MNIST(
-        '/p/project1/intertwin/smalldata/mnist', train=False, download=False,
+        dataset_path,
+        train=False,
+        download=False,
         transform=transforms.Compose([
             transforms.ToTensor(),
             transforms.Normalize((0.1307,), (0.3081,))
         ]))
-    
+    return train_set, val_set
+
+
+@pytest.mark.hpc
+@pytest.mark.torchrun
+def test_distributed_trainer_ddp_mnist(mnist_datasets):
+    """Test TorchTrainer on MNIST with DDP strategy."""
     training_config = dict(
         optimizer='sgd',
         loss='nllloss'
@@ -53,4 +72,43 @@ def test_distributed_trainer():
         strategy='ddp',
         checkpoint_every=1
     )
+    train_set, val_set = mnist_datasets
+    trainer.execute(train_set, val_set)
+
+
+@pytest.mark.hpc
+@pytest.mark.torchrun
+def test_distributed_trainer_deepspeed_mnist(mnist_datasets):
+    """Test TorchTrainer on MNIST with DeepSpeed strategy."""
+    training_config = dict(
+        optimizer='sgd',
+        loss='nllloss'
+    )
+    trainer = TorchTrainer(
+        model=Net(),
+        config=training_config,
+        epochs=2,
+        strategy='deepspeed',
+        checkpoint_every=1
+    )
+    train_set, val_set = mnist_datasets
+    trainer.execute(train_set, val_set)
+
+
+@pytest.mark.hpc
+@pytest.mark.mpirun
+def test_distributed_trainer_horovod_mnist(mnist_datasets):
+    """Test TorchTrainer on MNIST with Horovod strategy."""
+    training_config = dict(
+        optimizer='sgd',
+        loss='nllloss'
+    )
+    trainer = TorchTrainer(
+        model=Net(),
+        config=training_config,
+        epochs=2,
+        strategy='horovod',
+        checkpoint_every=1
+    )
+    train_set, val_set = mnist_datasets
     trainer.execute(train_set, val_set)
