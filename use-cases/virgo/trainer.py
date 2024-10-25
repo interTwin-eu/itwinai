@@ -14,10 +14,14 @@ from tqdm import tqdm
 
 from itwinai.loggers import EpochTimeTracker, Logger
 from itwinai.torch.config import TrainingConfiguration
-from itwinai.torch.distributed import DeepSpeedStrategy, RayDeepSpeedStrategy, RayDDPStrategy
-from itwinai.torch.trainer import TorchTrainer, RayTorchTrainer
+from itwinai.torch.distributed import (
+    DeepSpeedStrategy,
+    RayDDPStrategy,
+    RayDeepSpeedStrategy,
+)
 from itwinai.torch.monitoring.monitoring import measure_gpu_utilization
 from itwinai.torch.profiling.profiler import profile_torch_trainer
+from itwinai.torch.trainer import RayTorchTrainer, TorchTrainer
 
 
 class VirgoTrainingConfiguration(TrainingConfiguration):
