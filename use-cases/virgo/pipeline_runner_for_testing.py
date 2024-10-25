@@ -6,7 +6,7 @@ if __name__ == "__main__":
         config="config_raytrainer.yaml"
     )
     my_pipeline = parser.parse_pipeline(
-        pipeline_nested_key="training_pipeline",
+        pipeline_nested_key="training_pipeline_small",
         verbose=False
     )
     my_pipeline.execute()

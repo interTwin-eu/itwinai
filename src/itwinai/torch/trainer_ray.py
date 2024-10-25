@@ -159,6 +159,7 @@ class RayTorchTrainer(Trainer):
     ) -> Tuple[Dataset, Dataset, Dataset, Any]:
         """
         """
+
         train_with_data = tune.with_parameters(
             self.train,
             data=[train_dataset, validation_dataset, test_dataset]
@@ -177,19 +178,7 @@ class RayTorchTrainer(Trainer):
             tune_config=self.tune_config
         )
 
-        print(self.logger)
-
-        # if self.logger is not None:
-        #     self.logger.create_logger_context(rank=self.strategy.global_rank())
-        #     print(f"Worker rank set: {self.logger.worker_rank}")
-        #     # hparams = self.config.model_dump()
-        #     # hparams['distributed_strategy'] = self.strategy.__class__.__name__
-        #     # self.logger.save_hyperparameters(hparams)
-
         result_grid = tuner.fit()
-
-        # if self.logger:
-        #     self.logger.destroy_logger_context()
 
         return train_dataset, validation_dataset, test_dataset, result_grid
 
@@ -333,6 +322,17 @@ class RayTorchTrainer(Trainer):
                 checkpoint = train.Checkpoint.from_directory(temp_checkpoint_dir)
 
         train.report(tuning_metrics, checkpoint=checkpoint)
+
+    def initialize_logger(self, hyperparams: Optional[Dict], rank):
+        print(f"Logger initializing with rank {rank}")
+
+        if self.logger:
+            self.logger.create_logger_context(rank=rank)
+
+            if hyperparams:
+                self.logger.save_hyperparameters(hyperparams)
+            else:
+                print("INFO: Not logging any hyperparameters.")
 
     def log(
         self,

@@ -12,6 +12,8 @@ from src.model import Decoder, Decoder_2d_deep, GeneratorResNet, UNet
 from src.utils import init_weights
 from torch.utils.data import Dataset, TensorDataset
 from tqdm import tqdm
+from ray.tune import Trainable
+
 
 from itwinai.loggers import EpochTimeTracker
 from itwinai.torch.config import TrainingConfiguration
@@ -163,21 +165,8 @@ class NoiseGeneratorTrainer(RayTorchTrainer):
             test_dataset=data[2]
         )
 
-        if self.strategy.is_main_worker:
-            mlflow.set_tracking_uri(self.training_config["tracking_uri"])
-            mlflow.set_experiment(experiment_name=self.training_config["experiment_name"])
-
-            mlflow.start_run()
-
-            mlflow.log_params({
-                "learning_rate": self.training_config["learning_rate"],
-                "batch_size": self.training_config["batch_size"]
-            })
-
-        # if self.logger is not None:
-        #     print(self.strategy.global_rank())
-        #     self.logger.create_logger_context(rank=self.strategy.global_rank())
-        #     print(f"Worker rank set: {self.logger.worker_rank}")
+        self.initialize_logger(
+            hyperparams=config, rank=self.strategy.global_rank())
 
         if self.strategy.is_main_worker:
             print('TIMER: broadcast:', timer()-st, 's')
@@ -336,11 +325,6 @@ class NoiseGeneratorTrainer(RayTorchTrainer):
             # #return (loss_plot, val_loss_plot,
 
             # #acc_plot, val_acc_plot ,acc_plot, val_acc_plot)
-
-                mlflow.log_metrics({
-                    "train_loss": loss_plot[-1],
-                    "val_loss": val_loss_plot[-1],
-                }, step=epoch)
 
             metrics = {
                 "loss": val_loss_plot[-1]

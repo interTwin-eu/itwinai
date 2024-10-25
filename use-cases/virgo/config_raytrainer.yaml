@@ -54,10 +54,15 @@ training_pipeline:
               tracking_uri: mllogs/mlflow
               experiment_name: Virgo-HPO-Experiment
           strategy: ${strategy}
-          # logger:
-          #   class_path: itwinai.loggers.ConsoleLogger
-          #   init_args:
-          #     log_freq: 1
+          logger:
+            class_path: itwinai.loggers.LoggersCollection
+            init_args:
+              loggers:
+                - class_path: itwinai.loggers.MLFlowLogger
+                  init_args:
+                    experiment_name: MNIST Ray HPO Experiment
+                    log_freq: batch 
+
                 
           
           
@@ -112,8 +117,11 @@ training_pipeline_small:
               tracking_uri: mllogs/mlflow
               experiment_name: Virgo-HPO-Experiment
           strategy: ${strategy}
-          # logger:
-          #   class_path: itwinai.loggers.ConsoleLogger
-          #   init_args:
-          #     log_freq: 1
-            
+          logger:
+            class_path: itwinai.loggers.LoggersCollection
+            init_args:
+              loggers:
+                - class_path: itwinai.loggers.MLFlowLogger
+                  init_args:
+                    experiment_name: Virgo Ray HPO Experiment
+                    log_freq: batch 
