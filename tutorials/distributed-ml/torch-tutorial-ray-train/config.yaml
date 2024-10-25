@@ -1,0 +1,50 @@
+
+training_pipeline:
+  class_path: itwinai.pipeline.Pipeline
+  init_args:
+    steps:
+      - class_path: data.MNISTDataGetter
+        init_args:
+          data_root: ./
+      - class_path: data.MNISTDataSplitter
+        init_args:
+          train_proportion: 1
+      - class_path: train.MyRayTrainer
+        init_args:
+          config: 
+            scaling_config:
+                num_workers: 2
+                use_gpu: true
+                resources_per_worker:
+                  CPU: 11
+                  GPU: 1
+            tune_config:
+              num_samples: 2
+              scheduler:
+                name: asha
+                max_t: 10
+                grace_period: 5
+                reduction_factor: 4
+                brackets: 1
+            run_config:
+              storage_path: ray_checkpoints
+              name: Virgo-HPO-Experiment
+            train_loop_config:
+              batch_size: 
+                type: choice
+                options: [32, 64, 128]
+              learning_rate:
+                type: uniform
+                min: 1e-5
+                max: 1e-3
+              epochs: 2
+          strategy: ddp
+          logger:
+            class_path: itwinai.loggers.LoggersCollection
+            init_args:
+              loggers:
+                - class_path: itwinai.loggers.MLFlowLogger
+                  init_args:
+                    experiment_name: MNIST Ray HPO Experiment
+                    log_freq: batch 
+

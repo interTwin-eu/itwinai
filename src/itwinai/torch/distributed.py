@@ -1,11 +1,17 @@
 import abc
 import os
-from typing import Any, Iterable, List, Literal, Optional, Tuple, Union
+from typing import (Any, Callable, Iterable, List, Literal, Optional, Tuple,
+                    Union)
 
+import deepspeed
+import horovod.torch as hvd
+import ray
+import ray.train
 import torch
 import torch.distributed as dist
 import torch.nn as nn
 import torch.optim as optim
+from torch.nn.modules import Module
 from torch.optim.lr_scheduler import _LRScheduler as LRScheduler
 from torch.optim.optimizer import Optimizer
 from torch.utils.data import DataLoader, Dataset, DistributedSampler, Sampler
@@ -1030,3 +1036,176 @@ class NonDistributedStrategy(TorchDistributedStrategy):
             list[Any]: input object wrapped in a list.
         """
         return [tensor]
+
+
+class RayDDPStrategy(TorchDistributedStrategy):
+    def __init__(self) -> None:
+        # TODO: Maybe add a backend variable here
+        self.is_initialized = True
+
+    def init(self) -> None:
+        pass
+
+    def global_world_size(self) -> int:
+        return ray.train.get_context().get_world_size()
+
+    def local_world_size(self) -> int:
+        return ray.train.get_context().get_local_world_size()
+
+    def global_rank(self) -> int:
+        return ray.train.get_context().get_world_rank()
+
+    def local_rank(self) -> int:
+        return ray.train.get_context().get_local_rank()
+
+    def distributed(
+        self,
+        model: nn.Module,
+        optimizer: Optimizer,
+        lr_scheduler: Optional[LRScheduler] = None
+    ) -> Tuple[Module | Optimizer | LRScheduler | None]:
+
+        model = ray.train.torch.prepare_model(model)
+
+        return model, optimizer, lr_scheduler
+
+    # TODO: Could this be cleaned up a bit?
+    def create_dataloader(
+        self,
+        dataset: Dataset[T_co],
+        batch_size: Optional[int] = 1,
+        shuffle: Optional[bool] = None,
+        sampler: Union[Sampler, Iterable, None] = None,
+        batch_sampler: Union[Sampler[List], Iterable[List], None] = None,
+        num_workers: int = 0,
+        collate_fn: Optional[_collate_fn_t] = None,
+        pin_memory: bool = False, drop_last: bool = False,
+        timeout: float = 0,
+        worker_init_fn: Optional[_worker_init_fn_t] = None,
+        multiprocessing_context=None,
+        generator=None,
+        *, prefetch_factor: Optional[int] = None,
+        persistent_workers: bool = False,
+        pin_memory_device: str = ""
+    ):
+        dataloader = DataLoader(
+            dataset=dataset,
+            batch_size=batch_size,
+            sampler=sampler,
+            shuffle=shuffle,
+            num_workers=num_workers,
+            collate_fn=collate_fn,
+            pin_memory=pin_memory,
+            drop_last=drop_last,
+            timeout=timeout,
+            worker_init_fn=worker_init_fn,
+            multiprocessing_context=multiprocessing_context,
+            generator=generator,
+            prefetch_factor=prefetch_factor,
+            persistent_workers=persistent_workers,
+            pin_memory_device=pin_memory_device
+        )
+
+        return ray.train.torch.prepare_data_loader(dataloader)
+
+    def clean_up(self) -> None:
+        pass
+
+    def allgather_obj(self, obj: Any) -> List[Any]:
+        pass
+
+    def gather_obj(self, obj: Any, dst_rank: int = 0) -> List[Any]:
+        pass
+
+    def gather(self, tensor: torch.Tensor, dst_rank: int = 0) -> List | None:
+        pass
+
+
+# Doesn't work yet!
+class RayDeepSpeedStrategy(TorchDistributedStrategy):
+    def __init__(
+        self,
+        backend: Literal['nccl', 'gloo', 'mpi']
+    ) -> None:
+        # Set local rank
+        # ompi_lrank = os.environ.get('OMPI_COMM_WORLD_LOCAL_RANK')
+        # os.environ['OMPI_COMM_WORLD_LOCAL_RANK'] = os.environ.get(
+        #    'LOCAL_RANK', ompi_lrank)
+
+        deepspeed.init_distributed(dist_backend=backend)
+
+        self.set_device()
+
+        super().__init__()
+
+    def init(self) -> None:
+        pass
+
+    def global_world_size(self) -> int:
+        return dist.get_world_size()
+
+    def local_world_size(self) -> int:
+        return torch.cuda.device_count()
+
+    def global_rank(self) -> int:
+        return dist.get_rank()
+
+    def local_rank(self) -> int:
+        dist.get_rank() % torch.cuda.device_count()
+
+    def distributed(
+        self,
+        model: Module,
+        optimizer: Optimizer,
+        lr_scheduler: Optional[LRScheduler] = None,
+        model_parameters: Optional[Any] = None,
+        **init_kwargs
+    ) -> Tuple[Module | Optimizer | LRScheduler | None]:
+
+        distrib_model, optimizer, _, lr_scheduler = deepspeed.initialize(
+            model=model,
+            model_parameters=model_parameters,
+            optimizer=optimizer,
+            lr_scheduler=lr_scheduler,
+            **init_kwargs
+        )
+        return distrib_model, optimizer, lr_scheduler
+
+    def create_dataloader(
+        self,
+        dataset: Dataset,
+        batch_size: Optional[int] = 1,
+        shuffle: Optional[bool] = None,
+        sampler: Union[Sampler, Iterable, None] = None,
+        collate_fn: Optional[Callable[[List], Any]] = None
+    ):
+        if sampler is None:
+            sampler = DistributedSampler(
+                dataset, num_replicas=self.global_world_size(),
+                rank=self.global_rank(),
+                shuffle=shuffle
+            )
+        elif not isinstance(sampler, DistributedSampler):
+            raise RuntimeError(
+                "User-provided sampler must implement DistributedSampler."
+            )
+
+        return DataLoader(
+            dataset=dataset,
+            batch_size=batch_size,
+            shuffle=shuffle,
+            collate_fn=collate_fn,
+            sampler=sampler
+        )
+
+    def clean_up(self) -> None:
+        pass
+
+    def allgather_obj(self, obj: Any) -> List[Any]:
+        pass
+
+    def gather_obj(self, obj: Any, dst_rank: int = 0) -> List[Any]:
+        pass
+
+    def gather(self, tensor: torch.Tensor, dst_rank: int = 0) -> List | None:
+        pass

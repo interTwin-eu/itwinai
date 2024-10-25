@@ -23,7 +23,7 @@ training_pipeline:
             generator: simple #unet
             batch_size: ${batch_size}
             optim_lr: ${learning_rate}
-            loss: l1
+            loss: L1
             save_best: true
             shuffle_train: true
           num_epochs: ${epochs}
@@ -64,7 +64,7 @@ training_pipeline_small:
             generator: simple #unet
             batch_size: ${batch_size}
             optim_lr: ${learning_rate}
-            loss: l1
+            loss: L1
             save_best: true
             shuffle_train: true
         num_epochs: ${epochs}
@@ -76,9 +76,9 @@ training_pipeline_small:
           class_path: itwinai.loggers.LoggersCollection
           init_args:
             loggers:
-              - class_path: itwinai.loggers.ConsoleLogger
-                init_args:
-                  log_freq: 1
+              # - class_path: itwinai.loggers.ConsoleLogger
+              #   init_args:
+              #     log_freq: 1
               - class_path: itwinai.loggers.MLFlowLogger
                 init_args:
                   experiment_name: Noise simulator (Virgo)
