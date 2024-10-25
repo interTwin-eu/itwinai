@@ -7,7 +7,7 @@
 
 # Resources allocation
 #SBATCH --cpus-per-task=24
-#SBATCH --nodes=1
+#SBATCH --nodes=2
 #SBATCH --ntasks-per-node=1
 #SBATCH --gpus-per-node=4
 #SBATCH --exclusive
