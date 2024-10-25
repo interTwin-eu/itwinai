@@ -307,7 +307,7 @@ class RayTorchTrainer(Trainer):
 
         return train_loop_config
 
-    # TODO: Maybe I could make this more general
+    # TODO: Can I also log the checkpoint?
     def checkpoint_and_report(self, epoch, tuning_metrics, checkpointing_data=None):
         with tempfile.TemporaryDirectory() as temp_checkpoint_dir:
             checkpoint = None
@@ -333,6 +333,10 @@ class RayTorchTrainer(Trainer):
                 self.logger.save_hyperparameters(hyperparams)
             else:
                 print("INFO: Not logging any hyperparameters.")
+
+    def close_logger(self):
+        if self.logger:
+            self.logger.destroy_logger_context()
 
     def log(
         self,

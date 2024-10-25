@@ -7,7 +7,7 @@
 
 # Resources allocation
 #SBATCH --cpus-per-task=24
-#SBATCH --nodes=2
+#SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1
 #SBATCH --gpus-per-node=4
 #SBATCH --exclusive
@@ -89,7 +89,7 @@ echo All Ray workers started.
 echo 'Starting HPO.'
 
 #python pipeline_runner_for_testing.py
-$PYTHON_VENV/bin/itwinai exec-pipeline --config config_raytrainer.yaml --pipe-key training_pipeline_small
+$PYTHON_VENV/bin/itwinai exec-pipeline --config config.yaml --pipe-key ray_training_pipeline_small
 
 #python hpo.py --num_samples 4 --max_iterations 2 --ngpus $num_gpus --ncpus $num_cpus --pipeline_name training_pipeline
 
