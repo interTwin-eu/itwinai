@@ -8,10 +8,15 @@ import deepspeed
 import horovod.torch as hvd
 import ray
 import ray.train
+import deepspeed
+import horovod.torch as hvd
+import ray
+import ray.train
 import torch
 import torch.distributed as dist
 import torch.nn as nn
 import torch.optim as optim
+from torch.nn.modules import Module
 from torch.nn.modules import Module
 from torch.optim.lr_scheduler import _LRScheduler as LRScheduler
 from torch.optim.optimizer import Optimizer

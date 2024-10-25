@@ -76,9 +76,9 @@ training_pipeline_small:
           class_path: itwinai.loggers.LoggersCollection
           init_args:
             loggers:
-              - class_path: itwinai.loggers.ConsoleLogger
-                init_args:
-                  log_freq: 1
+              # - class_path: itwinai.loggers.ConsoleLogger
+              #   init_args:
+              #     log_freq: 1
               - class_path: itwinai.loggers.MLFlowLogger
                 init_args:
                   experiment_name: Noise simulator (Virgo)
