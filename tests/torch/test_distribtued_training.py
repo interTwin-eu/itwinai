@@ -14,7 +14,7 @@ def test_distributed_decorator(torch_env):
            "tests/torch/distribtued_decorator.py")
     subprocess.run(cmd.split(), check=True)
 
-
+@pytest.mark.skip(reason="avoid nested torchrun")
 @pytest.mark.hpc
 def test_distributed_trainer(torch_env):
     """Test vanilla torch distributed trainer. Needs torchrun cmd."""

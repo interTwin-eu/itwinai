@@ -346,7 +346,7 @@ For example, in `ghcr.io/intertwin-eu/itwinai:0.2.2-torch2.6-jammy`:
 The `TAG` follows the convention:
 
 ```text
-X.Y.Z-[torch|tf]x.y-distro
+[jlab-]X.Y.Z-(torch|tf)x.y-distro
 ```
 
 Where:
@@ -354,6 +354,7 @@ Where:
 - `X.Y.Z` is the **itwinai version**
 - `x.y` is the **version of the ML framework** (e.g., PyTorch or TensorFlow)
 - `distro` is the OS distro in the container (e.g., Ubuntu Jammy)
+- `jlab-` is prepended to the tag of images including JupyterLab
 
 ### Image Names and Their Purpose
 
