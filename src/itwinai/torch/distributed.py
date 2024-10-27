@@ -42,6 +42,21 @@ def check_initialized(method: Callable) -> Callable:
     return wrapper
 
 
+def check_initialized(method: Callable) -> Callable:
+    """Decorator for strategy methods to check whether the strategy
+    was correctly initialized before calling the method."""
+
+    @functools.wraps(method)
+    def wrapper(self: TorchDistributedStrategy, *args, **kwargs):
+        if not self.is_initialized:
+            raise UninitializedStrategyError((
+                f"{self.__class__.__name__} has not been initialized. "
+                "Use the init method."))
+        return method(self, *args, **kwargs)
+
+    return wrapper
+
+
 class TorchDistributedStrategy(DistributedStrategy):
     """Abstract class to define the distributed backend methods for
     PyTorch models.
@@ -417,6 +432,7 @@ class TorchDDPStrategy(TorchDistributedStrategy):
         **kwargs,
     ) -> Tuple[nn.Module, Optimizer, Optional[LRScheduler]]:
         """Setup model, optimizer and scheduler for distributed."""
+
         if torch.cuda.is_available():
             # device = self.dist_lrank()
             model = model.to(self.device())
@@ -864,10 +880,8 @@ class HorovodStrategy(TorchDistributedStrategy):
             Optional[List[Any]]: list of objects gathered from all workers
             or ``None`` on non-destination ranks.
         """
-        result = self.allgather_obj(obj)
         if self.global_rank() == dst_rank:
-            # Return only if on rank == dst_rank
-            return result
+            return self.allgather_obj(obj)
 
     @check_initialized
     def gather(self, tensor: torch.Tensor, dst_rank: int = 0) -> Optional[List[torch.Tensor]]:
@@ -884,10 +898,9 @@ class HorovodStrategy(TorchDistributedStrategy):
             Optional[List[torch.Tensor]]: list of tensors gathered from all workers
             or ``None`` on non-destination ranks.
         """
-        result = self.allgather_obj(tensor)
         if self.global_rank() == dst_rank:
-            # Return only if on rank == dst_rank
             # Moving all the tensors to CPU before returning
+            result = self.allgather_obj(tensor)
             return [val.cpu() for val in result]
 
 
