@@ -47,7 +47,7 @@ def check_initialized(method: Callable) -> Callable:
     was correctly initialized before calling the method."""
 
     @functools.wraps(method)
-    def wrapper(self: TorchDistributedStrategy, *args, **kwargs):
+    def wrapper(self: 'TorchDistributedStrategy', *args, **kwargs):
         if not self.is_initialized:
             raise UninitializedStrategyError((
                 f"{self.__class__.__name__} has not been initialized. "
@@ -305,7 +305,7 @@ class TorchDistributedStrategy(DistributedStrategy):
             https://pytorch.org/docs/stable/data.html#multi-process-data-loading
         .. _Dataset Types:
             https://pytorch.org/docs/stable/data.html#dataset-types
-        """
+    """
 
         if batch_sampler is not None:
             print("WARNING: batch_sampler is ignored by TorchDistributedStrategy")
