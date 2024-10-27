@@ -45,6 +45,21 @@ def check_initialized(method: Callable) -> Callable:
     return wrapper
 
 
+def check_initialized(method: Callable) -> Callable:
+    """Decorator for strategy methods to check whether the strategy
+    was correctly initialized before calling the method."""
+
+    @functools.wraps(method)
+    def wrapper(self: TorchDistributedStrategy, *args, **kwargs):
+        if not self.is_initialized:
+            raise UninitializedStrategyError((
+                f"{self.__class__.__name__} has not been initialized. "
+                "Use the init method."))
+        return method(self, *args, **kwargs)
+
+    return wrapper
+
+
 class TorchDistributedStrategy(DistributedStrategy):
     """Abstract class to define the distributed backend methods for
     PyTorch models.
