@@ -21,28 +21,26 @@ def test_strategy(strategy: TorchDistributedStrategy):
     nnodes = strategy.global_world_size() // strategy.local_world_size()
 
     # Gather local ranks
+    lranks = strategy.gather_obj(lrank, dst_rank=0)
     if strategy.is_main_worker:
-        lranks = strategy.gather_obj(lrank, dst_rank=0)
+        assert len(lranks) == strategy.global_world_size()
+        assert sum(lranks) == sum(range(strategy.local_world_size())) * nnodes
     else:
-        strategy.gather_obj(lrank, dst_rank=0)
-    assert len(lranks) == strategy.global_world_size()
-    assert sum(lranks) == sum(range(strategy.local_world_size())) * nnodes
+        assert lranks is None
 
     # Gather global ranks
+    granks = strategy.gather_obj(grank, dst_rank=0)
     if strategy.is_main_worker:
-        granks = strategy.gather_obj(grank, dst_rank=0)
+        assert len(granks) == strategy.global_world_size()
+        assert sum(granks) == sum(range(strategy.global_world_size()))
     else:
-        strategy.gather_obj(grank, dst_rank=0)
-    assert len(granks) == strategy.global_world_size()
-    assert sum(granks) == sum(range(strategy.global_world_size()))
+        assert granks is None
 
-    # # Gather tensor from CPU
-    # my_tensor = torch.ones(10) * strategy.global_rank()
-    # if strategy.is_main_worker:
-    #     tensors = strategy.gather(my_tensor, dst_rank=0)
-    # else:
-    #     strategy.gather(my_tensor, dst_rank=0)
-    # assert torch.stack(tensors).sum() == sum(range(strategy.global_world_size())) * 10
+    # Gather tensor from CPU
+    my_tensor = torch.ones(10) * strategy.global_rank()
+    tensors = strategy.gather(my_tensor, dst_rank=0)
+    if strategy.is_main_worker:
+        assert torch.stack(tensors).sum() == sum(range(strategy.global_world_size())) * 10
 
     # TODO: test model and optim distribution
 
