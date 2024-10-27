@@ -31,7 +31,7 @@ def check_initialized(method: Callable) -> Callable:
     was correctly initialized before calling the method."""
 
     @functools.wraps(method)
-    def wrapper(self: TorchDistributedStrategy, *args, **kwargs):
+    def wrapper(self: 'TorchDistributedStrategy', *args, **kwargs):
         if not self.is_initialized:
             raise UninitializedStrategyError((
                 f"{self.__class__.__name__} has not been initialized. "
@@ -57,16 +57,13 @@ class TorchDistributedStrategy(DistributedStrategy):
     name: str
 
     @property
+    @check_initialized
     def is_main_worker(self) -> bool:
         """Checks if local worker has global rank equal to zero.
 
         Returns:
             bool: True if main worker.
         """
-        if not self.is_initialized:
-            raise UninitializedStrategyError(
-                "Strategy has not been initialized. Use the init method."
-            )
         return self.global_rank() == 0
 
     @abc.abstractmethod
@@ -117,16 +114,13 @@ class TorchDistributedStrategy(DistributedStrategy):
             int: local rank.
         """
 
+    @check_initialized
     def device(self) -> str:
         """Device used by local worker.
 
         Returns:
             str: torch device in the form 'cuda:N'.
         """
-        if not self.is_initialized:
-            raise UninitializedStrategyError(
-                "Strategy has not been initialized. Use the init method."
-            )
         return f"cuda:{self.local_rank()}"
 
     def set_device(self):
@@ -135,6 +129,7 @@ class TorchDistributedStrategy(DistributedStrategy):
         # Needed by torch.distributed.gather_object
         torch.cuda.set_device(self.local_rank())
 
+    @check_initialized
     def create_dataloader(
         self,
         dataset: Dataset[T_co],
@@ -294,11 +289,7 @@ class TorchDistributedStrategy(DistributedStrategy):
             https://pytorch.org/docs/stable/data.html#multi-process-data-loading
         .. _Dataset Types:
             https://pytorch.org/docs/stable/data.html#dataset-types
-        """
-        if not self.is_initialized:
-            raise UninitializedStrategyError(
-                "Strategy has not been initialized. Use the init method."
-            )
+    """
 
         if batch_sampler is not None:
             print("WARNING: batch_sampler is ignored by TorchDistributedStrategy")
@@ -915,20 +906,18 @@ class NonDistributedStrategy(TorchDistributedStrategy):
             self.set_device()
         self.is_initialized = True
 
+    @check_initialized
     def device(self) -> str:
         """Device used by local worker.
 
         Returns:
             str: cpu device if CUDA is not available.
         """
-        if not self.is_initialized:
-            raise UninitializedStrategyError(
-                "Strategy has not been initialized. Use the init method."
-            )
         if torch.cuda.is_available():
             return super().device()
         return "cpu"
 
+    @check_initialized
     def distributed(
         self,
         model: nn.Module,
@@ -937,10 +926,6 @@ class NonDistributedStrategy(TorchDistributedStrategy):
         **kwargs,
     ) -> Tuple[nn.Module, Optimizer, Optional[LRScheduler]]:
         """Do nothing and return model, optimizer and scheduler."""
-        if not self.is_initialized:
-            raise UninitializedStrategyError(
-                "Strategy has not been initialized. Use the init method."
-            )
         if torch.cuda.is_available():
             model = model.cuda()
         return model, optimizer, lr_scheduler

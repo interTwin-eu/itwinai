@@ -59,8 +59,8 @@ environment for PyTorch:
 
     ```bash
     ml --force purge
-    ml Python CMake/3.24.3-GCCcore-11.3.0 mpi4py OpenMPI CUDA/11.7
-    ml GCCcore/11.3.0 NCCL/2.12.12-GCCcore-11.3.0-CUDA-11.7.0 cuDNN
+    ml Python CMake/3.24.3-GCCcore-11.3.0 mpi4py OpenMPI CUDA/12.3
+    ml GCCcore/11.3.0 NCCL cuDNN/8.9.7.29-CUDA-12.3.0 UCX-CUDA/1.15.0-GCCcore-13.2.0-CUDA-12.3.0
     ```
 
 ##### TensorFlow environment
@@ -80,8 +80,8 @@ environment for TensorFlow:
 
     ```bash
     ml --force purge
-    ml Python CMake/3.24.3-GCCcore-11.3.0 mpi4py OpenMPI CUDA/11.7
-    ml GCCcore/11.3.0 NCCL/2.12.12-GCCcore-11.3.0-CUDA-11.7.0 cuDNN
+    ml Python CMake/3.24.3-GCCcore-11.3.0 mpi4py OpenMPI CUDA/12.3
+    ml GCCcore/11.3.0 NCCL cuDNN/8.9.7.29-CUDA-12.3.0 UCX-CUDA/1.15.0-GCCcore-13.2.0-CUDA-12.3.0
     ```
 
 ### Install itwinai for users
@@ -227,8 +227,8 @@ Commands to be executed before activating the python virtual environment:
 
     ```bash
     ml --force purge
-    ml Python CMake/3.24.3-GCCcore-11.3.0 mpi4py OpenMPI CUDA/11.7
-    ml GCCcore/11.3.0 NCCL/2.12.12-GCCcore-11.3.0-CUDA-11.7.0 cuDNN
+    ml Python CMake/3.24.3-GCCcore-11.3.0 mpi4py OpenMPI CUDA/12.3
+    ml GCCcore/11.3.0 NCCL cuDNN/8.9.7.29-CUDA-12.3.0 UCX-CUDA/1.15.0-GCCcore-13.2.0-CUDA-12.3.0
     ```
 
 - When not on an HPC: do nothing.
@@ -261,8 +261,8 @@ Commands to be executed before activating the python virtual environment:
 
     ```bash
     ml --force purge
-    ml Python CMake/3.24.3-GCCcore-11.3.0 mpi4py OpenMPI CUDA/11.7
-    ml GCCcore/11.3.0 NCCL/2.12.12-GCCcore-11.3.0-CUDA-11.7.0 cuDNN
+    ml Python CMake/3.24.3-GCCcore-11.3.0 mpi4py OpenMPI CUDA/12.3
+    ml GCCcore/11.3.0 NCCL cuDNN/8.9.7.29-CUDA-12.3.0 UCX-CUDA/1.15.0-GCCcore-13.2.0-CUDA-12.3.0
     ```
 
 - When not on an HPC: do nothing.
