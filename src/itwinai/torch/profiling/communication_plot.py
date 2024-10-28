@@ -85,7 +85,7 @@ def create_stacked_plot(
     fig, ax = plt.subplots()
 
     # Creating an offset to "center" around zero
-    static_offset = len(strategy_labels) / 2 - 0.5
+    static_offset = (len(strategy_labels) - 1) / 2 
     for strategy_idx in range(len(strategy_labels)):
         dynamic_bar_offset = strategy_idx - static_offset
 
