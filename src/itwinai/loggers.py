@@ -480,6 +480,9 @@ class MLFlowLogger(Logger):
         self.run_description = run_description
         self.run_name = run_name
 
+        if self.tracking_uri is None and os.environ.get('MLFLOW_TRACKING_URI'):
+            self.tracking_uri = os.environ.get('MLFLOW_TRACKING_URI')
+
         if self.tracking_uri is None:
             # Default MLFLow tracking URI
             saved_abs_path = os.path.abspath(self.savedir)
