@@ -141,12 +141,14 @@ def sanity_check(
 
 @app.command()
 def scalability_report(
-    pattern_str: Annotated[
+    pattern: Annotated[
         str, typer.Option(help="Python pattern matching names of CSVs in sub-folders.")
     ],
-    log_dir: str,
+    log_dir: Annotated[ 
+        str, typer.Option(help="Directory location for the data files to read") 
+    ],
     plot_title: Annotated[Optional[str], typer.Option(help=("Plot name."))] = None,
-    skip_id: Annotated[Optional[int], typer.Option(help=("Skip epoch ID."))] = None,
+    # skip_id: Annotated[Optional[int], typer.Option(help=("Skip epoch ID."))] = None,
     archive: Annotated[
         Optional[str],
         typer.Option(help=("Archive name to backup the data, without extension.")),
@@ -163,35 +165,13 @@ def scalability_report(
 
     """
     # TODO: add max depth and path different from CWD
-    import glob
-    import os
-    import re
-    import shutil
 
-    import matplotlib
-    import matplotlib.pyplot as plt
-    import numpy as np
-    import pandas as pd
-
-    pattern = re.compile(pattern_str)
-    csv_files = []
+    from itwinai.scalability import read_scalability_files, archive_data, create_relative_plot, create_absolute_plot
     log_dir_path = Path(log_dir)
-    
-    for entry in log_dir_path.iterdir():
-        pass
 
-
-    for root, _, files in os.walk(os.getcwd()):
-        for file in files:
-            if not pattern.match(file):
-                continue
-            fpath = os.path.join(root, file)
-            csv_files.append(fpath)
-            df = pd.read_csv(fpath)
-            if skip_id is not None:
-                df = df.drop(df[df.epoch_id == skip_id].index)
-            combined_df = pd.concat([combined_df, df])
-    combined_df = pd.DataFrame(csv_files)
+    combined_df, csv_files = read_scalability_files(
+        pattern=pattern, log_dir=log_dir_path
+    ) 
     print("Merged CSV:")
     print(combined_df)
 
@@ -204,109 +184,12 @@ def scalability_report(
     print("\nAvg over name and nodes:")
     print(avg_times.rename(columns=dict(time="avg(time)")))
 
-    fig, sp_up_ax = plt.subplots(1, 1, figsize=(6, 4))
-    if plot_title is not None:
-        fig.suptitle(plot_title)
-
-    sp_up_ax.set_yscale("log")
-    sp_up_ax.set_xscale("log")
-
-    markers = iter("ov^s*dXpD.+12348")
-
-    series_names = sorted(set(avg_times.name.values))
-    for name in series_names:
-        df = avg_times[avg_times.name == name].drop(columns="name")
-
-        # Debug
-        # compute_time = [3791., 1884., 1011., 598.]
-        # nodes = [1, 2, 4, 8]
-        # d = {'nodes': nodes, 'time': compute_time}
-        # df = pd.DataFrame(data=d)
-
-        df["NGPUs"] = df["nodes"] * 4
-        # speedup
-        df["Speedup - ideal"] = df["nodes"].astype(float)
-        df["Speedup"] = df["time"].iloc[0] / df["time"]
-        df["Nworkers"] = 1
-
-        # efficiency
-        df["Threadscaled Sim. Time / s"] = df["time"] * df["nodes"] * df["Nworkers"]
-        df["Efficiency"] = (
-            df["Threadscaled Sim. Time / s"].iloc[0] / df["Threadscaled Sim. Time / s"]
-        )
-
-        sp_up_ax.plot(
-            df["NGPUs"].values,
-            df["Speedup"].values,
-            marker=next(markers),
-            lw=1.0,
-            label=name,
-            alpha=0.7,
-        )
-
-    sp_up_ax.plot(
-        df["NGPUs"].values,
-        df["Speedup - ideal"].values,
-        ls="dashed",
-        lw=1.0,
-        c="k",
-        label="ideal",
-    )
-    sp_up_ax.legend(ncol=1)
-
-    sp_up_ax.set_xticks(df["NGPUs"].values)
-    sp_up_ax.get_xaxis().set_major_formatter(matplotlib.ticker.ScalarFormatter())
-
-    sp_up_ax.set_ylabel("Speedup")
-    sp_up_ax.set_xlabel("NGPUs (4 per node)")
-    sp_up_ax.grid()
-
-    # Sort legend
-    handles, labels = sp_up_ax.get_legend_handles_labels()
-    order = np.argsort(labels)
-    plt.legend([handles[idx] for idx in order], [labels[idx] for idx in order])
-
     plot_png = f"scaling_plot_{plot_title}.png"
-    plt.tight_layout()
-    plt.savefig(plot_png, bbox_inches="tight", format="png", dpi=300)
-    print("Saved scaling plot to: ", plot_png)
+    create_absolute_plot(avg_times)
+    create_relative_plot(plot_title, avg_times)
 
     if archive is not None:
-        if "/" in archive:
-            raise ValueError(
-                f"Archive name must NOT contain a path. Received: '{archive}'"
-            )
-        if "." in archive:
-            raise ValueError(
-                f"Archive name must NOT contain an extension. Received: '{archive}'"
-            )
-        if os.path.isdir(archive):
-            raise ValueError(f"Folder '{archive}' already exists. Change archive name.")
-        os.makedirs(archive)
-        for csvfile in csv_files:
-            shutil.copyfile(csvfile, os.path.join(archive, os.path.basename(csvfile)))
-        shutil.copyfile(plot_png, os.path.join(archive, plot_png))
-        avg_times.to_csv(os.path.join(archive, "avg_times.csv"), index=False)
-        print("Archived AVG epoch times CSV")
-
-        # Copy SLURM logs: *.err *.out files
-        if os.path.exists("logs_slurm"):
-            print("Archived SLURM logs")
-            shutil.copytree("logs_slurm", os.path.join(archive, "logs_slurm"))
-        # Copy other SLURM logs
-        for ext in ["*.out", "*.err"]:
-            for file in glob.glob(ext):
-                shutil.copyfile(file, os.path.join(archive, file))
-
-        # Create archive
-        archive_name = shutil.make_archive(
-            base_name=archive,  # archive file name
-            format="gztar",
-            # root_dir='.',
-            base_dir=archive,  # folder path inside archive
-        )
-        shutil.rmtree(archive)
-        print("Archived logs and plot at: ", archive_name)
+        archive_data(archive, csv_files, plot_png, avg_times)
 
 
 @app.command()
