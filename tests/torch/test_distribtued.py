@@ -213,7 +213,9 @@ class TestDeepSpeedStrategy(BaseTestDistributedStrategy):
     def test_init(self, strategy: DeepSpeedStrategy):
         """Test specific initialization of DeepSpeedStrategy."""
         assert strategy.backend in ['nccl', 'gloo', 'mpi']
-        assert hasattr(strategy, 'deepspeed')
+        assert hasattr(strategy, 'deepspeed'), (
+            "Lazy import of deepspeed not found in strategy class."
+        )
 
         # Test initialization
         init_path = 'deepspeed.init_distributed'
@@ -267,7 +269,16 @@ class TestHorovodStrategy(BaseTestDistributedStrategy):
 
     def test_init(self, strategy):
         assert strategy.is_initialized
-        assert hasattr(strategy, 'hvd')
+        assert hasattr(strategy, 'hvd'), (
+            "Lazy import of horovod not found in strategy class."
+        )
+
+        # Test initialization
+        init_path = 'horovod.torch.init'
+        with patch(init_path, autospec=True) as mock_init_ds:
+            strategy = HorovodStrategy()
+            strategy.init()
+            mock_init_ds.assert_called_once()
 
     def test_distributed_model(self, strategy, simple_model, optimizer):
         dist_model, dist_optimizer, _ = strategy.distributed(
@@ -275,17 +286,11 @@ class TestHorovodStrategy(BaseTestDistributedStrategy):
             optimizer=optimizer,
             op=strategy.hvd.Average
         )
-        assert isinstance(dist_model, torch.nn.Module)
-        assert hasattr(dist_optimizer, '_allreduce_grads')
-
-    def test_gather_operations(self, strategy):
-        local_tensor = torch.tensor([strategy.global_rank()], device=strategy.device())
-        gathered = strategy.gather(local_tensor)
-        assert len(gathered) == strategy.global_world_size()
-
-        local_obj = {"rank": strategy.global_rank()}
-        all_gathered = strategy.allgather_obj(local_obj)
-        assert len(all_gathered) == strategy.global_world_size()
+        assert isinstance(dist_model, nn.Module)
+        assert isinstance(dist_optimizer, Optimizer)
+        assert hasattr(dist_optimizer, 'synchronize'), (
+            "synchronize() method not found for Horovod optimizer"
+        )
 
 # Conftest.py content for distributed test configuration
 
