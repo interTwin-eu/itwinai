@@ -29,8 +29,7 @@ def read_energy_df(pattern_str: str, log_dir: Path) -> pd.DataFrame:
     # Load and concatenate dataframes
     dataframes = []
     for entry in log_dir.iterdir():
-        match = pattern.search(str(entry))
-        if not match:
+        if not pattern.search(str(entry)): 
             continue
         print(f"Loading data from file: '{entry}' when creating energy DataFrame")
         df = pd.read_csv(entry)
