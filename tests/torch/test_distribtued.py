@@ -201,7 +201,8 @@ class TestTorchDDPStrategy(BaseTestDistributedStrategy):
 
 
 @pytest.mark.hpc
-@pytest.mark.torchrun  # @pytest.mark.mpirun
+@pytest.mark.torchrun
+@pytest.mark.mpirun
 class TestDeepSpeedStrategy(BaseTestDistributedStrategy):
     @pytest.fixture(scope='module')
     def strategy(self) -> Generator[DeepSpeedStrategy, None, None]:
