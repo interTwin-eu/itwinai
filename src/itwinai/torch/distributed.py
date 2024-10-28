@@ -880,8 +880,10 @@ class HorovodStrategy(TorchDistributedStrategy):
             Optional[List[Any]]: list of objects gathered from all workers
             or ``None`` on non-destination ranks.
         """
+        result = self.allgather_obj(obj)
         if self.global_rank() == dst_rank:
-            return self.allgather_obj(obj)
+            # Return only if on rank == dst_rank
+            return result
 
     @check_initialized
     def gather(self, tensor: torch.Tensor, dst_rank: int = 0) -> Optional[List[torch.Tensor]]:
@@ -898,9 +900,10 @@ class HorovodStrategy(TorchDistributedStrategy):
             Optional[List[torch.Tensor]]: list of tensors gathered from all workers
             or ``None`` on non-destination ranks.
         """
+        result = self.allgather_obj(tensor)
         if self.global_rank() == dst_rank:
+            # Return only if on rank == dst_rank
             # Moving all the tensors to CPU before returning
-            result = self.allgather_obj(tensor)
             return [val.cpu() for val in result]
 
 
