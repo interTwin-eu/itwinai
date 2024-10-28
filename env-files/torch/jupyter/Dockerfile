@@ -128,6 +128,17 @@ RUN pip install --no-cache-dir --upgrade pip \
 
 USER root
 
+RUN apt-get update && apt-get install -y \
+    # Needed (at least) by horovod wheel builder
+    build-essential \
+    # Needed (at least) by horovod wheel builder
+    cmake \
+    # Needed by OpenMPI for efficient compression at startup
+    zlib1g \
+    # Needed by OpenMPI for efficient compression at startup
+    zlib1g-dev \
+    && apt-get clean -y && rm -rf /var/lib/apt/lists/*
+
 # OpenMPI
 WORKDIR /tmp/ompi
 ENV OPENMPI_VERSION=5.0.5 \
