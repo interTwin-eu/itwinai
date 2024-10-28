@@ -482,11 +482,13 @@ class MLFlowLogger(Logger):
         self.run_description = run_description
         self.run_name = run_name
 
-        self.tracking_uri = (
-            self.tracking_uri
-            or os.environ.get('MLFLOW_TRACKING_URI')
-            or pathlib.Path(os.path.abspath(self.savedir)).as_uri()
-        )
+        if self.tracking_uri is None and os.environ.get('MLFLOW_TRACKING_URI'):
+            self.tracking_uri = os.environ.get('MLFLOW_TRACKING_URI')
+
+        if self.tracking_uri is None:
+            # Default MLFLow tracking URI
+            saved_abs_path = os.path.abspath(self.savedir)
+            self.tracking_uri = pathlib.Path(saved_abs_path).as_uri()
 
     def create_logger_context(self, rank: Optional[int] = None) -> mlflow.ActiveRun:
         """
