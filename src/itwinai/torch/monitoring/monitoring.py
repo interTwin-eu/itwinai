@@ -1,20 +1,20 @@
 import functools
 import time
 from multiprocessing import Manager, Process
-from typing import Callable, Any, List, Dict
 from pathlib import Path
+from typing import Any, Callable, Dict, List
 
 import pandas as pd
 import pynvml
 import torch
-from itwinai.torch.distributed import (
-    TorchDDPStrategy,
-    NonDistributedStrategy,
-    HorovodStrategy,
-    DeepSpeedStrategy,
-)
 from pynvml import nvmlDeviceGetHandleByIndex, nvmlInit
 
+from itwinai.torch.distributed import (
+    DeepSpeedStrategy,
+    HorovodStrategy,
+    NonDistributedStrategy,
+    TorchDDPStrategy,
+)
 from itwinai.torch.trainer import TorchTrainer
 
 logging_columns = [

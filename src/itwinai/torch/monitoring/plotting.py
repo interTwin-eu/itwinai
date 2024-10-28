@@ -1,27 +1,27 @@
 import re
-import matplotlib
-import matplotlib.pyplot as plt
-import pandas as pd
-import numpy as np
-import seaborn as sns
-
 from pathlib import Path
 from typing import Tuple
-from matplotlib.figure import Figure
-from matplotlib.axes import Axes
 
+import matplotlib
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+import seaborn as sns
+from matplotlib.axes import Axes
+from matplotlib.figure import Figure
 from scipy.constants import hour as SECONDS_IN_HOUR
 
 matplotlib.use("Agg")
 
-def read_energy_df(pattern_str: str, log_dir: Path) -> pd.DataFrame: 
-    """Read files matching the given regex pattern from directory and converting them 
-    into a Pandas DataFrame. Expects that the existence of ``log_dir`` is handled 
-    before calling this function. 
 
-    Args: 
-        pattern_str: The regex string used to match files. 
-        log_dir: The directory to search for files in. 
+def read_energy_df(pattern_str: str, log_dir: Path) -> pd.DataFrame:
+    """Read files matching the given regex pattern from directory and converting them
+    into a Pandas DataFrame. Expects that the existence of ``log_dir`` is handled
+    before calling this function.
+
+    Args:
+        pattern_str: The regex string used to match files.
+        log_dir: The directory to search for files in.
 
     """
     pattern = re.compile(pattern_str)
@@ -36,22 +36,25 @@ def read_energy_df(pattern_str: str, log_dir: Path) -> pd.DataFrame:
         df = pd.read_csv(entry)
         dataframes.append(df)
 
-    if len(dataframes) == 0: 
+    if len(dataframes) == 0:
         raise ValueError(
-            f"No files matched pattern, '{pattern_str}', in log_dir, " \
+            f"No files matched pattern, '{pattern_str}', in log_dir, "
             f"{log_dir.resolve()}!"
         )
-    
+
     return pd.concat(dataframes)
 
-def calculate_aggregated_energy_expenditure(gpu_utilization_df: pd.DataFrame) -> pd.DataFrame: 
-    """Calculates the total energy expenditure in Watt hours for each strategy and 
-    number of GPUs. Expects that the existence of the appropriate DataFrame columns is 
-    handled before calling this function. 
 
-    Returns: 
-        pd.DataFrame: A DataFrame containing the total expenditure in Watt hours for 
-            each strategy and number of GPUs, with the columns ``strategy``, 
+def calculate_aggregated_energy_expenditure(
+    gpu_utilization_df: pd.DataFrame,
+) -> pd.DataFrame:
+    """Calculates the total energy expenditure in Watt hours for each strategy and
+    number of GPUs. Expects that the existence of the appropriate DataFrame columns is
+    handled before calling this function.
+
+    Returns:
+        pd.DataFrame: A DataFrame containing the total expenditure in Watt hours for
+            each strategy and number of GPUs, with the columns ``strategy``,
             ``num_global_gpus`` and ``total_energy_wh``.
     """
     energy_data = []
@@ -59,10 +62,10 @@ def calculate_aggregated_energy_expenditure(gpu_utilization_df: pd.DataFrame) ->
     grouped_df = gpu_utilization_df.groupby(["strategy", "num_global_gpus"])
     for (strategy, num_gpus), group in grouped_df:
 
-        if len(group["probing_interval"].unique()) != 1: 
+        if len(group["probing_interval"].unique()) != 1:
             raise ValueError(
-                f"probing_interval must have the same value for each strategy and " \
-                f"number of GPUs, but was heterogeneous for strategy: {strategy} " \
+                f"probing_interval must have the same value for each strategy and "
+                f"number of GPUs, but was heterogeneous for strategy: {strategy} "
                 f"and number of GPUs: {num_gpus}."
             )
 
@@ -77,9 +80,10 @@ def calculate_aggregated_energy_expenditure(gpu_utilization_df: pd.DataFrame) ->
         )
     return pd.DataFrame(energy_data)
 
+
 def gpu_energy_plot(gpu_utilization_df: pd.DataFrame) -> Tuple[Figure, Axes]:
-    """Makes an energy bar plot of the GPU utilization dataframe, showing the total 
-    energy expenditure for each strategy and number of GPUs in Watt hours. 
+    """Makes an energy bar plot of the GPU utilization dataframe, showing the total
+    energy expenditure for each strategy and number of GPUs in Watt hours.
     """
     required_columns = {"strategy", "power", "num_global_gpus", "probing_interval"}
     if not required_columns.issubset(set(gpu_utilization_df.columns)):

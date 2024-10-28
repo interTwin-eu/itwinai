@@ -18,14 +18,15 @@ from typing_extensions import Annotated
 
 app = typer.Typer(pretty_exceptions_enable=False)
 
+
 @app.command()
 def generate_gpu_energy_plot(
     log_dir: str = "utilization_logs",
     pattern_str: str = r"dataframe_(?:\w+)_(?:\d+)\.csv$",
     output_file: str = "plots/gpu_energy_plot.png",
 ) -> None:
-    """Generate a GPU energy plot showing the expenditure for each combination of 
-    strategy and number of GPUs in Watt hours. 
+    """Generate a GPU energy plot showing the expenditure for each combination of
+    strategy and number of GPUs in Watt hours.
 
     Args:
         log_dir: The directory where the csv logs are stored. Defaults to
@@ -37,13 +38,16 @@ def generate_gpu_energy_plot(
 
     """
     import matplotlib.pyplot as plt
-    from itwinai.torch.monitoring.plotting import read_energy_df, gpu_energy_plot
+
+    from itwinai.torch.monitoring.plotting import gpu_energy_plot, read_energy_df
 
     log_dir_path = Path(log_dir)
-    if not log_dir_path.exists(): 
-        raise ValueError(f"The provided log_dir, '{log_dir_path.resolve()}', does not exist.")
+    if not log_dir_path.exists():
+        raise ValueError(
+            f"The provided log_dir, '{log_dir_path.resolve()}', does not exist."
+        )
 
-    gpu_utilization_df = read_energy_df(pattern_str=pattern_str, log_dir = log_dir_path)
+    gpu_utilization_df = read_energy_df(pattern_str=pattern_str, log_dir=log_dir_path)
     gpu_energy_plot(gpu_utilization_df=gpu_utilization_df)
 
     output_path = Path(output_file)
@@ -53,7 +57,6 @@ def generate_gpu_energy_plot(
     print(f"\nSaved GPU energy plot at '{output_path.resolve()}'.")
 
 
-
 @app.command()
 def generate_communication_plot(
     log_dir: str = "profiling_logs",
@@ -61,7 +64,7 @@ def generate_communication_plot(
     output_file: str = "plots/comm_plot.png",
 ) -> None:
     """Generate stacked plot showing computation vs. communication fraction. Stores it
-    to output_file. 
+    to output_file.
 
     Args:
         log_dir: The directory where the csv logs are stored. Defaults to
