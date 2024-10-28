@@ -548,8 +548,7 @@ class TorchDDPStrategy(TorchDistributedStrategy):
         dist.gather(tensor, gather_list=res, dst=dst_rank)
 
         # Moving everything to the CPU before returning
-        res = [val.cpu() for val in res]
-        return res
+        return [val.cpu() for val in res]
 
 
 class DeepSpeedStrategy(TorchDistributedStrategy):
