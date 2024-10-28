@@ -38,7 +38,6 @@ def generate_gpu_energy_plot(
 
     """
     import matplotlib.pyplot as plt
-
     from itwinai.torch.monitoring.plotting import gpu_energy_plot, read_energy_df
 
     log_dir_path = Path(log_dir)
@@ -142,9 +141,10 @@ def sanity_check(
 
 @app.command()
 def scalability_report(
-    pattern: Annotated[
+    pattern_str: Annotated[
         str, typer.Option(help="Python pattern matching names of CSVs in sub-folders.")
     ],
+    log_dir: str,
     plot_title: Annotated[Optional[str], typer.Option(help=("Plot name."))] = None,
     skip_id: Annotated[Optional[int], typer.Option(help=("Skip epoch ID."))] = None,
     archive: Annotated[
@@ -173,18 +173,25 @@ def scalability_report(
     import numpy as np
     import pandas as pd
 
-    regex = re.compile(r"{}".format(pattern))
-    combined_df = pd.DataFrame()
+    pattern = re.compile(pattern_str)
     csv_files = []
+    log_dir_path = Path(log_dir)
+    
+    for entry in log_dir_path.iterdir():
+        pass
+
+
     for root, _, files in os.walk(os.getcwd()):
         for file in files:
-            if regex.match(file):
-                fpath = os.path.join(root, file)
-                csv_files.append(fpath)
-                df = pd.read_csv(fpath)
-                if skip_id is not None:
-                    df = df.drop(df[df.epoch_id == skip_id].index)
-                combined_df = pd.concat([combined_df, df])
+            if not pattern.match(file):
+                continue
+            fpath = os.path.join(root, file)
+            csv_files.append(fpath)
+            df = pd.read_csv(fpath)
+            if skip_id is not None:
+                df = df.drop(df[df.epoch_id == skip_id].index)
+            combined_df = pd.concat([combined_df, df])
+    combined_df = pd.DataFrame(csv_files)
     print("Merged CSV:")
     print(combined_df)
 
@@ -197,7 +204,6 @@ def scalability_report(
     print("\nAvg over name and nodes:")
     print(avg_times.rename(columns=dict(time="avg(time)")))
 
-    # fig, (sp_up_ax, eff_ax) = plt.subplots(1, 2, figsize=(12, 4))
     fig, sp_up_ax = plt.subplots(1, 1, figsize=(6, 4))
     if plot_title is not None:
         fig.suptitle(plot_title)
