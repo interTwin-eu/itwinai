@@ -114,23 +114,12 @@ def measure_gpu_utilization(method: Callable) -> Callable:
         warmup_time = 5
 
         strategy = self.strategy
-        strategy.init()
-
-        if isinstance(strategy, NonDistributedStrategy):
-            strategy_name = "non-dist"
-        elif isinstance(strategy, TorchDDPStrategy):
-            strategy_name = "ddp"
-        elif isinstance(strategy, DeepSpeedStrategy):
-            strategy_name = "deepspeed"
-        elif isinstance(strategy, HorovodStrategy):
-            strategy_name = "horovod"
-        else:
-            strategy_name = "unk"
+        strategy_name = strategy.name
 
         local_rank = strategy.local_rank()
         global_rank = strategy.global_rank()
         num_global_gpus = strategy.global_world_size()
-        num_local_gpus = torch.cuda.device_count()
+        num_local_gpus = strategy.local_world_size()
         node_idx = global_rank // num_local_gpus
 
         output_path = Path(
@@ -185,7 +174,6 @@ def measure_gpu_utilization(method: Callable) -> Callable:
         if strategy.is_main_worker:
             write_logs_to_file(global_utilization_log, output_path)
 
-        strategy.clean_up()
         return result
 
     return measured_method
