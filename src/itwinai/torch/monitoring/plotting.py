@@ -1,6 +1,6 @@
 from pathlib import Path
-from re import Pattern, Match, compile
-from typing import Tuple, Optional, Union, List
+from re import Match, Pattern, compile
+from typing import Optional, Tuple, Union, List
 
 import matplotlib
 import matplotlib.pyplot as plt
@@ -141,6 +141,7 @@ def gpu_energy_plot(gpu_utilization_df: pd.DataFrame) -> Tuple[Figure, Axes]:
 
 def backup_data(file_paths: List): 
     pass
+<<<<<<< HEAD
 
 
 
@@ -152,3 +153,5 @@ def backup_data(file_paths: List):
 
 
 
+=======
+>>>>>>> ad2ab84 (begin implementation of backup)
