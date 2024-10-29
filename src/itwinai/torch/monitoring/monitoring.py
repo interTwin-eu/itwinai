@@ -99,7 +99,7 @@ def measure_gpu_utilization(method: Callable) -> Callable:
 
         log_df = pd.concat(dataframes)
         log_df.to_csv(output_path, index=False)
-        print(f"Writing DataFrame to '{output_path}'.")
+        print(f"Writing GPU energy dataframe to '{output_path}'.")
 
     @functools.wraps(method)
     def measured_method(self: TorchTrainer, *args, **kwargs) -> Any:
@@ -114,6 +114,7 @@ def measure_gpu_utilization(method: Callable) -> Callable:
         num_global_gpus = strategy.global_world_size()
         num_local_gpus = strategy.local_world_size()
         node_idx = global_rank // num_local_gpus
+
 
         output_path = Path(
             f"scalability_metrics/gpu_energy_data_{strategy_name}_{num_global_gpus}.csv"
@@ -165,6 +166,10 @@ def measure_gpu_utilization(method: Callable) -> Callable:
 
         global_utilization_log = strategy.gather_obj(local_utilization_log, dst_rank=0)
         if strategy.is_main_worker:
+            output_dir = Path("scalability_metrics/gpu_energy_data")
+            output_dir.mkdir(exist_ok=True, parents=True)
+            output_path = output_dir / f"{strategy_name}_{num_global_gpus}.csv"
+
             write_logs_to_file(global_utilization_log, output_path)
 
         return result

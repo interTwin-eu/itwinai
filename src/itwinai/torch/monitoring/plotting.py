@@ -1,6 +1,6 @@
-import re
 from pathlib import Path
-from typing import Tuple, List
+from typing import Tuple, Optional, Union, List
+from re import Pattern, Match, compile
 
 import matplotlib
 import matplotlib.pyplot as plt
@@ -14,32 +14,46 @@ from scipy.constants import hour as SECONDS_IN_HOUR
 matplotlib.use("Agg")
 
 
-def read_energy_df(pattern_str: str, log_dir: Path) -> pd.DataFrame:
+def read_energy_df(pattern: Optional[str], log_dir: Path) -> pd.DataFrame:
     """Read files matching the given regex pattern from directory and converting them
-    into a Pandas DataFrame. Expects that the existence of ``log_dir`` is handled
-    before calling this function.
+    into a Pandas DataFrame. If pattern is None, we assume a match on all files.
+    Expects that the existence of ``log_dir`` is handled before calling this function.
 
     Args:
-        pattern_str: The regex string used to match files.
+        pattern: The regex string used to match files.
         log_dir: The directory to search for files in.
 
+    Raises:
+        ValueError: If no matching files are found in the given logging directory.
     """
-    pattern = re.compile(pattern_str)
+
+    pattern_re: Optional[Pattern] = None
+    if pattern is not None: 
+        pattern_re = compile(pattern)
 
     # Load and concatenate dataframes
     dataframes = []
     for entry in log_dir.iterdir():
-        if not pattern.search(str(entry)):
+        match: Union[bool, Match] = True
+        if pattern_re is not None: 
+            match = pattern_re.search(str(entry))
+
+        if not match:
             continue
+
         print(f"Loading data from file: '{entry}' when creating energy DataFrame")
         df = pd.read_csv(entry)
         dataframes.append(df)
 
     if len(dataframes) == 0:
-        raise ValueError(
-            f"No files matched pattern, '{pattern_str}', in log_dir, "
-            f"{log_dir.resolve()}!"
-        )
+        if pattern is None: 
+            error_message = f"Unable to find any files in {log_dir.resolve()}!"
+        else: 
+            error_message = (
+                f"No files matched pattern, '{pattern}', in log_dir, " \
+                f"{log_dir.resolve()}!"
+            )
+        raise ValueError(error_message)
 
     return pd.concat(dataframes)
 
