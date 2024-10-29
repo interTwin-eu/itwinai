@@ -21,8 +21,8 @@ app = typer.Typer(pretty_exceptions_enable=False)
 
 @app.command()
 def generate_gpu_energy_plot(
-    log_dir: str = "utilization_logs",
-    pattern_str: str = r"dataframe_(?:\w+)_(?:\d+)\.csv$",
+    log_dir: str = "scalability_metrics",
+    pattern_str: str = r"^gpu_energy_data.*\.csv$",
     output_file: str = "plots/gpu_energy_plot.png",
 ) -> None:
     """Generate a GPU energy plot showing the expenditure for each combination of
@@ -38,7 +38,6 @@ def generate_gpu_energy_plot(
 
     """
     import matplotlib.pyplot as plt
-
     from itwinai.torch.monitoring.plotting import gpu_energy_plot, read_energy_df
 
     log_dir_path = Path(log_dir)

@@ -116,7 +116,7 @@ def measure_gpu_utilization(method: Callable) -> Callable:
         node_idx = global_rank // num_local_gpus
 
         output_path = Path(
-            f"utilization_logs/dataframe_{strategy_name}_{num_global_gpus}.csv"
+            f"scalability_metrics/gpu_energy_data_{strategy_name}_{num_global_gpus}.csv"
         )
         output_path.parent.mkdir(exist_ok=True, parents=True)
 
