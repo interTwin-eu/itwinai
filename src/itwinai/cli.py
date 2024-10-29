@@ -25,7 +25,7 @@ def generate_gpu_energy_plot(
     pattern: str = r"gpu_energy_data.*\.csv$",
     output_file: str = "plots/gpu_energy_plot.png",
     do_backup: bool = True,
-    backup_dir: Optional[str] = "scalability_backups/",
+    backup_dir: str = "scalability_backups/",
     experiment_name: Optional[str] = None,
     run_name: Optional[str] = None,
 ) -> None:
@@ -41,8 +41,13 @@ def generate_gpu_energy_plot(
             make it None. In this case, it will match all files in the given folder.
         output_file: The path to where the resulting plot should be saved. Defaults to
             ``plots/gpu_energy_plot.png``.
+        do_backup: Whether to backup the data used for making the plot or not. 
         backup_dir: The path to where the data used to produce the plot should be
             saved.
+        experiment_name: The name of the experiment to be used when creating a backup
+            of the data used for the plot. 
+        run_name: The name of the run to be used when creating a backup of the data
+            used for the plot. 
 
     """
     import uuid
@@ -71,10 +76,10 @@ def generate_gpu_energy_plot(
         return
 
     if experiment_name is None:
-        random_id = uuid4()
+        random_id = str(uuid.uuid4())
         experiment_name = "exp_" + random_id[:6]
     if run_name is None:
-        random_id = uuid4()
+        random_id = str(uuid.uuid4())
         run_name = "run_" + random_id[:6]
 
     backup_path = Path(backup_dir) / experiment_name / run_name / "gpu_energy.csv"
