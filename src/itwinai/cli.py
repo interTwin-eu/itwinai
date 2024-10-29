@@ -21,8 +21,8 @@ app = typer.Typer(pretty_exceptions_enable=False)
 
 @app.command()
 def generate_gpu_energy_plot(
-    log_dir: str = "utilization_logs",
-    pattern_str: str = r"dataframe_(?:\w+)_(?:\d+)\.csv$",
+    log_dir: str = "scalability_metrics",
+    pattern_str: str = r"^gpu_energy_data.*\.csv$",
     output_file: str = "plots/gpu_energy_plot.png",
     do_backup: bool = True,
     backup_dir: str = "scalability_backups/",
