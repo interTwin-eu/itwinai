@@ -7,12 +7,67 @@ message: >-
   If you use this software, please cite it using the
   metadata from this file.
 type: software
+
+# The oder reflects the contributions to the repository to date
+# Also including supervisors who attended the meetings
 authors:
   - given-names: Matteo
     family-names: Bunino
     email: matteo.bunino@cern.ch
     affiliation: CERN
     orcid: 'https://orcid.org/0009-0008-5100-9300'
+  - given-names: Rakesh
+    family-names: Sarma
+    email: r.sarma@fz-juelich.de
+    affiliation: FZ Jülich 
+  - given-names: Kalliopi
+    family-names: Tsolaki
+    email: kalliopi.tsolaki@cern.ch
+    affiliation: CERN
+  - given-names: Killian
+    family-names: Verder
+    email: killian.verder@cern.ch
+    affiliation: CERN
+  - given-names: Henry
+    family-names: Mutegeki
+    email: henry.mutegeki@cern.ch
+    affiliation: CERN
+  - given-names: Roman
+    family-names: Machacek
+    email: roman.machacek@cern.ch
+    affiliation: CERN
+  - given-names: Jarl Sondre
+    family-names: Saether
+    email: jarl.sondre.saether@cern.ch
+  - given-names: Anna Elisa
+    family-names: Lappe
+    email: anna.elisa.lappe@cern.ch
+    affiliation: CERN
+    affiliation: CERN
+  - given-names: Alexander
+    family-names: Zoechbauer
+    email: alexander.zoechbauer@cern.ch
+    affiliation: CERN
+  - given-names: Mario
+    family-names: Ruettgers
+    email: m.ruettgers@fz-juelich.de
+    affiliation: FZ Jülich
+  - given-names: Ilaria
+    family-names: Luise
+    email: ilaria.luise@cern.ch
+    affiliation: CERN
+  - given-names: Eric
+    family-names: Wulff
+    email: eric.wulff@cern.ch
+    affiliation: CERN
+  - given-names: Maria
+    family-names: Girone
+    email: maria.girone@cern.ch
+    affiliation: CERN
+  - given-names: Andreas
+    family-names: Lintermann
+    email: a.lintermann@fz-juelich.de
+    affiliation: FZ Jülich
 repository-code: 'https://github.com/interTwin-eu/itwinai'
 url: 'https://itwinai.readthedocs.io/'
 abstract: AI on cloud and HPC made simple for science

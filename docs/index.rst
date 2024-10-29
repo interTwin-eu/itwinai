@@ -20,8 +20,9 @@ Moreover, the toolkit is designed with extensibility in mind, allowing third-par
 plugins, enhancing the flexibility and adaptability of the platform.
 
 ``itwinai`` is primarily developed by `Matteo Bunino <matteo.bunino@cern.ch>`_ from `CERN <https://home.cern/>`_, in
-collaboration with the `interTwin <https://www.intertwin.eu/>`_
-project, which aims to advance the use of digital twins in scientific research.
+collaboration with FZ Jülich and the `interTwin <https://www.intertwin.eu/>`_
+project (`Full list of contributors <https://github.com/interTwin-eu/itwinai/graphs/contributors>`_), which aims to
+advance the use of digital twins in scientific research.
 
 
 How to Read the Docs
