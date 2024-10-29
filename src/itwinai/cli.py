@@ -53,7 +53,8 @@ def generate_gpu_energy_plot(
     import uuid
     import matplotlib.pyplot as plt
 
-    from itwinai.torch.monitoring.plotting import gpu_energy_plot, read_energy_df
+    from itwinai.torch.monitoring.plotting import gpu_energy_plot
+    from itwinai.scalability import convert_matching_files_to_dataframe
 
     log_dir_path = Path(log_dir)
     if not log_dir_path.exists():
@@ -64,7 +65,9 @@ def generate_gpu_energy_plot(
     if pattern.lower() == "none":
         pattern = None
 
-    gpu_utilization_df = read_energy_df(pattern=pattern, log_dir=log_dir_path)
+    gpu_utilization_df = convert_matching_files_to_dataframe(
+        pattern=pattern, log_dir=log_dir_path
+    )
     gpu_energy_plot(gpu_utilization_df=gpu_utilization_df)
 
     output_path = Path(output_file)
@@ -122,10 +125,10 @@ def generate_communication_plot(
     import matplotlib.pyplot as plt
 
     from itwinai.torch.profiling.communication_plot import (
-        create_combined_comm_overhead_df,
         create_stacked_plot,
         get_comp_fraction_full_array,
     )
+    from itwinai.scalability import convert_matching_files_to_dataframe
 
     log_dir_path = Path(log_dir)
     if not log_dir_path.exists():
@@ -136,7 +139,16 @@ def generate_communication_plot(
     if pattern.lower() == "none":
         pattern = None
 
-    communication_df = create_combined_comm_overhead_df(log_dir=log_dir_path, pattern=pattern)
+    expected_columns = {
+        "strategy",
+        "num_gpus",
+        "global_rank",
+        "name",
+        "self_cuda_time_total",
+    }
+    communication_df = convert_matching_files_to_dataframe(
+        log_dir=log_dir_path, pattern=pattern, expected_columns=expected_columns
+    )
     values = get_comp_fraction_full_array(communication_df, print_table=True)
 
     strategies = sorted(communication_df["strategy"].unique())
@@ -171,6 +183,66 @@ def generate_communication_plot(
 
 
 @app.command()
+def generate_scalability_plot(
+    pattern: Annotated[
+        str, typer.Option(help="Python pattern matching names of CSVs in sub-folders.")
+    ],
+    log_dir: Annotated[
+        str, typer.Option(help="Directory location for the data files to read")
+    ],
+    plot_title: Annotated[Optional[str], typer.Option(help=("Plot name."))] = None,
+    archive: Annotated[
+        Optional[str],
+        typer.Option(help=("Archive name to backup the data, without extension.")),
+    ] = None,
+):
+    """
+    Generate scalability report merging all CSVs containing epoch time
+    records in sub-folders.
+
+    Example:
+
+    >>> itwinai scalability-report --pattern="^epoch.+\\.csv$" --skip-id 0 \\
+    >>>     --plot-title "Some title" --archive archive_name
+
+    """
+    # TODO: add max depth and path different from CWD
+
+    from itwinai.scalability import (
+        read_scalability_files,
+        archive_data,
+        create_relative_plot,
+        create_absolute_plot,
+    )
+
+    log_dir_path = Path(log_dir)
+    if pattern.lower() == None: 
+        pattern = None
+
+    combined_df, csv_files = read_scalability_files(
+        pattern=pattern, log_dir=log_dir_path
+    )
+    print("Merged CSV:")
+    print(combined_df)
+
+    avg_time_df = (
+        combined_df.drop(columns="epoch_id")
+        .groupby(["name", "nodes"])
+        .mean()
+        .reset_index()
+    )
+    print("\nAvg over name and nodes:")
+    print(avg_time_df.rename(columns=dict(time="avg(time)")))
+
+    plot_png = f"scaling_plot_{plot_title}.png"
+    create_absolute_plot(avg_time_df)
+    create_relative_plot(plot_title, avg_time_df)
+
+    if archive is not None:
+        archive_data(archive, csv_files, plot_png, avg_time_df)
+
+
+@app.command()
 def sanity_check(
     torch: Annotated[
         Optional[bool], typer.Option(help=("Check also itwinai.torch modules."))
@@ -201,63 +273,6 @@ def sanity_check(
         sanity_check_slim()
 
 
-@app.command()
-def scalability_report(
-    pattern: Annotated[
-        str, typer.Option(help="Python pattern matching names of CSVs in sub-folders.")
-    ],
-    log_dir: Annotated[
-        str, typer.Option(help="Directory location for the data files to read")
-    ],
-    plot_title: Annotated[Optional[str], typer.Option(help=("Plot name."))] = None,
-    # skip_id: Annotated[Optional[int], typer.Option(help=("Skip epoch ID."))] = None,
-    archive: Annotated[
-        Optional[str],
-        typer.Option(help=("Archive name to backup the data, without extension.")),
-    ] = None,
-):
-    """
-    Generate scalability report merging all CSVs containing epoch time
-    records in sub-folders.
-
-    Example:
-
-    >>> itwinai scalability-report --pattern="^epoch.+\\.csv$" --skip-id 0 \\
-    >>>     --plot-title "Some title" --archive archive_name
-
-    """
-    # TODO: add max depth and path different from CWD
-
-    from itwinai.scalability import (
-        read_scalability_files,
-        archive_data,
-        create_relative_plot,
-        create_absolute_plot,
-    )
-
-    log_dir_path = Path(log_dir)
-
-    combined_df, csv_files = read_scalability_files(
-        pattern=pattern, log_dir=log_dir_path
-    )
-    print("Merged CSV:")
-    print(combined_df)
-
-    avg_times = (
-        combined_df.drop(columns="epoch_id")
-        .groupby(["name", "nodes"])
-        .mean()
-        .reset_index()
-    )
-    print("\nAvg over name and nodes:")
-    print(avg_times.rename(columns=dict(time="avg(time)")))
-
-    plot_png = f"scaling_plot_{plot_title}.png"
-    create_absolute_plot(avg_times)
-    create_relative_plot(plot_title, avg_times)
-
-    if archive is not None:
-        archive_data(archive, csv_files, plot_png, avg_times)
 
 
 @app.command()

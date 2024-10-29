@@ -1,6 +1,4 @@
-from pathlib import Path
-from re import Match, Pattern, compile
-from typing import Any, List, Optional, Tuple, Union
+from typing import Any, List, Tuple
 
 import matplotlib
 import matplotlib.pyplot as plt
@@ -9,12 +7,11 @@ import pandas as pd
 import seaborn as sns
 from matplotlib.patches import Patch
 
+# from itwinai.scalability import convert_matching_files_to_dataframe
+
 # Doing this because otherwise I get an error about X11 Forwarding which I believe
 # is due to the server trying to pass the image to the client computer
 matplotlib.use("Agg")
-
-# import logging
-# from logging import Logger as PythonLogger
 
 
 def calculate_comp_and_comm_time(df: pd.DataFrame) -> Tuple[float, float]:
@@ -140,60 +137,6 @@ def create_stacked_plot(
     fig.subplots_adjust(bottom=0.25)
     fig.subplots_adjust(top=0.85)
     return fig, ax
-
-
-def create_combined_comm_overhead_df(
-    log_dir: Path, pattern: Optional[str]
-) -> pd.DataFrame:
-    """Reads and combines all files in a folder that matches the given regex pattern
-    into a single DataFrame. The files must be formatted as csv files. If pattern is
-    None, we assume a match on all files.
-
-    Raises:
-        ValueError: If not all expected columns are found in the stored DataFrame.
-        ValueError: If no matching files are found in the given logging directory.
-    """
-    re_pattern: Optional[Pattern] = None
-    if pattern is not None:
-        re_pattern = compile(pattern)
-
-    dataframes = []
-    expected_columns = {
-        "strategy",
-        "num_gpus",
-        "global_rank",
-        "name",
-        "self_cuda_time_total",
-    }
-    for entry in log_dir.iterdir():
-        match: Union[bool, Match] = True
-        if re_pattern is not None:
-            match = re_pattern.search(str(entry))
-
-        if not match:
-            continue
-
-        df = pd.read_csv(entry)
-        if not expected_columns.issubset(df.columns):
-            missing_columns = expected_columns - set(df.columns)
-            raise ValueError(
-                f"Invalid data format! File at '{str(entry)}' doesn't contain all"
-                f" necessary columns. \nMissing columns: {missing_columns}"
-            )
-
-        dataframes.append(df)
-
-    if len(dataframes) == 0:
-        if pattern is None:
-            error_message = f"Unable to find any files in {log_dir.resolve()}!"
-        else:
-            error_message = (
-                f"No files matched pattern, '{pattern}', in log_dir, "
-                f"{log_dir.resolve()}!"
-            )
-        raise ValueError(error_message)
-
-    return pd.concat(dataframes)
 
 
 def get_comp_fraction_full_array(
