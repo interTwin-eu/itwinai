@@ -115,6 +115,7 @@ def measure_gpu_utilization(method: Callable) -> Callable:
         num_local_gpus = strategy.local_world_size()
         node_idx = global_rank // num_local_gpus
 
+
         output_path = Path(
             f"scalability_metrics/gpu_energy_data_{strategy_name}_{num_global_gpus}.csv"
         )
