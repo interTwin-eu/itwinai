@@ -84,6 +84,7 @@ def generate_gpu_energy_plot(
         run_name = "run_" + random_id[:6]
 
     backup_path = Path(backup_dir) / experiment_name / run_name / "gpu_energy.csv"
+    backup_path.parent.mkdir(parents=True, exist_ok=True)
     gpu_utilization_df.to_csv(backup_path, index=False)
     print(f"Storing backup file at '{backup_path.resolve()}'.")
 
@@ -93,6 +94,10 @@ def generate_communication_plot(
     log_dir: str = "scalability_metrics/communication_data",
     pattern: str = r"(.+)_(\d+)_(\d+)\.csv$",
     output_file: str = "plots/communication_plot.png",
+    do_backup: bool = True,
+    backup_dir: str = "scalability_backups/",
+    experiment_name: Optional[str] = None,
+    run_name: Optional[str] = None,
 ) -> None:
     """Generate stacked plot showing computation vs. communication fraction. Stores it
     to output_file.
@@ -105,7 +110,15 @@ def generate_communication_plot(
             make it None. In this case, it will match all files in the given folder.
         output_file: The path to where the resulting plot should be saved. Defaults to
             ``plots/comm_plot.png``.
+        do_backup: Whether to backup the data used for making the plot or not. 
+        backup_dir: The path to where the data used to produce the plot should be
+            saved.
+        experiment_name: The name of the experiment to be used when creating a backup
+            of the data used for the plot. 
+        run_name: The name of the run to be used when creating a backup of the data
+            used for the plot. 
     """
+    import uuid
     import matplotlib.pyplot as plt
 
     from itwinai.torch.profiling.communication_plot import (
@@ -117,20 +130,17 @@ def generate_communication_plot(
     log_dir_path = Path(log_dir)
     if not log_dir_path.exists():
         raise ValueError(
-            f"The directory '{log_dir_path.resolve()}' does not exist, so could not"
-            f"extract profiling logs. Make sure you are running this command in the "
-            f"same directory as the logging dir or are passing a sufficient relative"
-            f"path."
+            f"The provided directory, '{log_dir_path.resolve()}', does not exist."
         )
 
     if pattern.lower() == "none":
         pattern = None
 
-    df = create_combined_comm_overhead_df(log_dir=log_dir_path, pattern=pattern)
-    values = get_comp_fraction_full_array(df, print_table=True)
+    communication_df = create_combined_comm_overhead_df(log_dir=log_dir_path, pattern=pattern)
+    values = get_comp_fraction_full_array(communication_df, print_table=True)
 
-    strategies = sorted(df["strategy"].unique())
-    gpu_numbers = sorted(df["num_gpus"].unique(), key=lambda x: int(x))
+    strategies = sorted(communication_df["strategy"].unique())
+    gpu_numbers = sorted(communication_df["num_gpus"].unique(), key=lambda x: int(x))
 
     fig, _ = create_stacked_plot(values, strategies, gpu_numbers)
 
@@ -143,6 +153,21 @@ def generate_communication_plot(
 
     plt.savefig(output_path)
     print(f"\nSaved computation vs. communication plot at '{output_path.resolve()}'.")
+
+    if not do_backup:
+        return
+
+    if experiment_name is None:
+        random_id = str(uuid.uuid4())
+        experiment_name = "exp_" + random_id[:6]
+    if run_name is None:
+        random_id = str(uuid.uuid4())
+        run_name = "run_" + random_id[:6]
+
+    backup_path = Path(backup_dir) / experiment_name / run_name / "communication_plot.csv"
+    backup_path.parent.mkdir(parents=True, exist_ok=True)
+    communication_df.to_csv(backup_path, index=False)
+    print(f"Storing backup file at '{backup_path.resolve()}'.")
 
 
 @app.command()
