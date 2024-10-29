@@ -24,10 +24,13 @@ def generate_gpu_energy_plot(
     log_dir: str = "scalability_metrics/gpu_energy_data",
     pattern: str = r"gpu_energy_data.*\.csv$",
     output_file: str = "plots/gpu_energy_plot.png",
-    backup_dir: Optional[str] = "backup/"
+    do_backup: bool = True,
+    backup_dir: Optional[str] = "scalability_backups/",
+    experiment_name: Optional[str] = None,
+    run_name: Optional[str] = None,
 ) -> None:
     """Generate a GPU energy plot showing the expenditure for each combination of
-    strategy and number of GPUs in Watt hours. Backs up the data used to create the 
+    strategy and number of GPUs in Watt hours. Backs up the data used to create the
     plot if ``backup_dir`` is not None
 
     Args:
@@ -38,10 +41,11 @@ def generate_gpu_energy_plot(
             make it None. In this case, it will match all files in the given folder.
         output_file: The path to where the resulting plot should be saved. Defaults to
             ``plots/gpu_energy_plot.png``.
-        backup_dir: The path to where the data used to produce the plot should be 
-            saved. 
+        backup_dir: The path to where the data used to produce the plot should be
+            saved.
 
     """
+    import uuid
     import matplotlib.pyplot as plt
     from itwinai.torch.monitoring.plotting import gpu_energy_plot, read_energy_df
 
@@ -62,6 +66,20 @@ def generate_gpu_energy_plot(
 
     plt.savefig(output_path)
     print(f"\nSaved GPU energy plot at '{output_path.resolve()}'.")
+
+    if not do_backup:
+        return
+
+    if experiment_name is None:
+        random_id = uuid4()
+        experiment_name = "exp_" + random_id[:6]
+    if run_name is None:
+        random_id = uuid4()
+        run_name = "run_" + random_id[:6]
+
+    backup_path = Path(backup_dir) / experiment_name / run_name / "gpu_energy.csv"
+    gpu_utilization_df.to_csv(backup_path, index=False)
+    print(f"Storing backup file at '{backup_path.resolve()}'.")
 
 
 @app.command()
@@ -157,8 +175,8 @@ def scalability_report(
     pattern: Annotated[
         str, typer.Option(help="Python pattern matching names of CSVs in sub-folders.")
     ],
-    log_dir: Annotated[ 
-        str, typer.Option(help="Directory location for the data files to read") 
+    log_dir: Annotated[
+        str, typer.Option(help="Directory location for the data files to read")
     ],
     plot_title: Annotated[Optional[str], typer.Option(help=("Plot name."))] = None,
     # skip_id: Annotated[Optional[int], typer.Option(help=("Skip epoch ID."))] = None,
@@ -179,12 +197,18 @@ def scalability_report(
     """
     # TODO: add max depth and path different from CWD
 
-    from itwinai.scalability import read_scalability_files, archive_data, create_relative_plot, create_absolute_plot
+    from itwinai.scalability import (
+        read_scalability_files,
+        archive_data,
+        create_relative_plot,
+        create_absolute_plot,
+    )
+
     log_dir_path = Path(log_dir)
 
     combined_df, csv_files = read_scalability_files(
         pattern=pattern, log_dir=log_dir_path
-    ) 
+    )
     print("Merged CSV:")
     print(combined_df)
 
