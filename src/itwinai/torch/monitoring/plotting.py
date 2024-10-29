@@ -1,6 +1,6 @@
 import re
 from pathlib import Path
-from typing import Tuple
+from typing import Tuple, List
 
 import matplotlib
 import matplotlib.pyplot as plt
@@ -124,3 +124,6 @@ def gpu_energy_plot(gpu_utilization_df: pd.DataFrame) -> Tuple[Figure, Axes]:
     ax.legend(title="Strategy")
 
     return fig, ax
+
+def backup_data(file_paths: List): 
+    pass
