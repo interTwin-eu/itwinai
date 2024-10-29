@@ -1,19 +1,17 @@
 import glob
 import os
-import re
 import shutil
-import itertools
-import seaborn as sns
+from itertools import cycle
+from pathlib import Path
+from re import Match, Pattern, compile
+from typing import List, Optional, Tuple, Union
 
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+import seaborn as sns
 
-from pathlib import Path
-from typing import Optional, Union
-from re import compile, Pattern, Match
-from itertools import cycle
 
 def convert_matching_files_to_dataframe(
     log_dir: Path, pattern: Optional[str], expected_columns: Optional[set] = None
@@ -30,7 +28,7 @@ def convert_matching_files_to_dataframe(
     if pattern is not None:
         re_pattern = compile(pattern)
 
-    if expected_columns is None: 
+    if expected_columns is None:
         expected_columns = set()
 
     dataframes = []
@@ -64,14 +62,28 @@ def convert_matching_files_to_dataframe(
 
     return pd.concat(dataframes)
 
-def read_scalability_files(pattern: str, log_dir: Path): 
+
+def read_scalability_files(
+    pattern: Optional[str], log_dir: Path
+) -> Tuple[pd.DataFrame, List]:
+    """Iterates over the given ``log_dir`` and collects all files that match the given
+    ``pattern``. If the given pattern is None, it will collect all files in the given
+    directory.
+
+    Returns:
+        pd.DataFrame: A dataframe containing all the data from the .csv files.
+        List: A list containing all the paths of all the files that were used to
+            create the combined dataframe. Mainly used to be able to archive files
+            in the future.
+
+    """
     all_matching_files = []
     dataframes = []
     re_pattern: Optional[Pattern] = None
     if pattern is not None:
         re_pattern = compile(pattern)
 
-    for entry in log_dir.iterdir(): 
+    for entry in log_dir.iterdir():
         match: Union[bool, Match] = True
         if re_pattern is not None:
             match = re_pattern.search(str(entry))
@@ -82,118 +94,105 @@ def read_scalability_files(pattern: str, log_dir: Path):
         all_matching_files.append(entry.resolve())
         df = pd.read_csv(entry)
         dataframes.append(df)
-    
+
     combined_df = pd.concat(dataframes)
     return combined_df, all_matching_files
 
-def create_absolute_plot(avg_times): 
+
+def create_absolute_plot(avg_epoch_time_df: pd.DataFrame) -> None:
+    """Creates a plot showing the absolute training times for the different
+    distributed strategies and different number of GPUs.
+    """
     sns.set_theme()
-    # Create a figure and axis
     fig, ax = plt.subplots()
-    
-    # Use built-in matplotlib color cycle and marker styles
-    colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
-    markers = ['o', 's', '^', 'D', 'v', '<', '>', 'p', '*', 'h', '+', 'x']
-    color_marker_combinations = itertools.cycle(zip(colors, markers))
-    
-    # Plot each unique name with its own color and marker combination
-    unique_names = avg_times['name'].unique()
+
+    marker_cycle = cycle("ov^s*dXpD.+12348")
+
+    unique_names = avg_epoch_time_df["name"].unique()
     for name in unique_names:
-        color, marker = next(color_marker_combinations)
-        data = avg_times[avg_times['name'] == name]
-        
-        ax.plot(data['nodes'], data['time'], 
-                marker=marker, color=color, label=name, linestyle='-', markersize=6)
+        # color, marker = next(color_marker_combinations)
+        marker = next(marker_cycle)
+        data = avg_epoch_time_df[avg_epoch_time_df["name"] == name]
+
+        ax.plot(
+            data["nodes"],
+            data["time"],
+            marker=marker,
+            label=name,
+            linestyle="-",
+            markersize=6,
+        )
 
     # Labeling the axes and setting the title
     ax.set_xlabel("Number of Nodes")
     ax.set_ylabel("Average Time")
     ax.set_title("Average Time vs Number of Nodes")
-    
+
     # Show legend and grid
     ax.legend(title="Method")
     ax.grid(True)
-    
+
     # Save the plot as an image
-    output_name ="scaling_plot_avg_times.png" 
-    plt.savefig("scaling_plot_avg_times.png")
-    print(f"Saving absolute plot to '{output_name}'.")
+    output_path = Path("absolute_scalability_plot.png")
+    plt.savefig(output_path)
+    print(f"Saving absolute plot to '{output_path.resolve()}'.")
     sns.reset_orig()
 
 
-def create_relative_plot(plot_title: str, avg_epoch_time_df: pd.DataFrame):
+def create_relative_plot(avg_epoch_time_df: pd.DataFrame, gpus_per_node: int = 4):
     sns.set_theme()
-    fig, speedup_axis = plt.subplots(1, 1, figsize=(6, 4))
-    if plot_title is not None:
-        fig.suptitle(plot_title)
 
-    speedup_axis.set_yscale("log")
-    speedup_axis.set_xscale("log")
+    fig, ax = plt.subplots(figsize=(6, 4))
+    # fig.suptitle(plot_title)
+
+    ax.set_yscale("log")
+    ax.set_xscale("log")
 
     marker_cycle = cycle("ov^s*dXpD.+12348")
+    avg_epoch_time_df["num_gpus"] = avg_epoch_time_df["nodes"] * gpus_per_node
+    avg_epoch_time_df["ideal_speedup"] = avg_epoch_time_df["nodes"].astype(float)
 
-    strategy_names = sorted(set(avg_epoch_time_df.name.values))
+    # Plotting the speedup for each strategy
+    strategy_names = sorted(avg_epoch_time_df["name"].unique())
     for strategy in strategy_names:
-        strategy_data = avg_epoch_time_df[avg_epoch_time_df.name == strategy].drop(columns="name")
+        strategy_data = avg_epoch_time_df[avg_epoch_time_df.name == strategy]
 
-        # Derived columns
-        strategy_data["num_gpus"] = strategy_data["nodes"] * 4
-        strategy_data["ideal_speedup"] = strategy_data["nodes"].astype(float)
         base_time = strategy_data["time"].iloc[0]
+        speedup = base_time / strategy_data["time"]
+        num_gpus = strategy_data["num_gpus"]
 
-        strategy_data["speedup"] = base_time / strategy_data["time"]
-        strategy_data["n_workers"] = 1
-
-        # Efficiency calculations
-        strategy_data["scaled_sim_time_s"] = strategy_data["time"] * strategy_data["nodes"] * strategy_data["n_workers"]
-        base_scaled_time = strategy_data["scaled_sim_time_s"].iloc[0]
-        strategy_data["efficiency"] = base_scaled_time / strategy_data["scaled_sim_time_s"]
-
-        speedup_axis.plot(
-            strategy_data["num_gpus"].values,
-            strategy_data["speedup"].values,
-            marker=next(marker_cycle),
-            lw=1.0,
-            label=strategy,
-            alpha=0.7,
-        )
+        marker = next(marker_cycle)
+        ax.plot(num_gpus, speedup, marker=marker, lw=1.0, label=strategy, alpha=0.7)
 
     # Plotting the ideal line
-    speedup_axis.plot(
-        avg_epoch_time_df["num_gpus"].values,
-        avg_epoch_time_df["ideal_speedup"].values,
-        ls="dashed",
-        lw=1.0,
-        c="k",
-        label="ideal",
-    )
-    speedup_axis.legend(ncol=1)
+    num_gpus = np.array(avg_epoch_time_df["num_gpus"].unique())
+    ideal_speedup = np.array(avg_epoch_time_df["ideal_speedup"].unique())
+    ax.plot(num_gpus, ideal_speedup, ls="dashed", lw=1.0, c="k", label="ideal")
 
-    speedup_axis.set_xticks(strategy_data["num_gpus"].values)
-    speedup_axis.get_xaxis().set_major_formatter(matplotlib.ticker.ScalarFormatter())
-
-    speedup_axis.set_ylabel("Speedup")
-    speedup_axis.set_xlabel("Number of GPUs (4 per node)")
-    speedup_axis.grid()
+    ax.legend(ncol=1)
+    ax.set_xticks(num_gpus)
+    ax.get_xaxis().set_major_formatter(matplotlib.ticker.ScalarFormatter())
+    ax.set_ylabel("Speedup")
+    ax.set_xlabel("Number of GPUs (4 per node)")
+    ax.grid(True)
 
     # Sorted legend
-    handles, labels = speedup_axis.get_legend_handles_labels()
+    handles, labels = ax.get_legend_handles_labels()
     sorted_handles_labels = sorted(zip(handles, labels), key=lambda x: x[1])
     sorted_handles, sorted_labels = zip(*sorted_handles_labels)
     plt.legend(sorted_handles, sorted_labels)
 
-    # Save path and save
-    plot_path = Path(f"scaling_plot_{plot_title}.png")
+    plot_path = Path(f"relative_scalability_plot.png")
     plt.tight_layout()
     plt.savefig(plot_path, bbox_inches="tight", format="png", dpi=300)
-    print("Saved scaling plot to:", plot_path)
+    print(f"Saving relative plot to '{plot_path.resolve()}'.")
+
     sns.reset_orig()
 
-def archive_data(archive, csv_files, plot_path, avg_times): 
+
+def archive_data(archive, csv_files, plot_path, avg_times):
     if "/" in archive:
-        raise ValueError(
-            f"Archive name must NOT contain a path. Received: '{archive}'"
-        )
+        raise ValueError(f"Archive name must NOT contain a path. Received: '{archive}'")
     if "." in archive:
         raise ValueError(
             f"Archive name must NOT contain an extension. Received: '{archive}'"

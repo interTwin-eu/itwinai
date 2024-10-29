@@ -25,7 +25,7 @@ def generate_gpu_energy_plot(
     pattern: str = r"gpu_energy_data.*\.csv$",
     output_file: str = "plots/gpu_energy_plot.png",
     do_backup: bool = True,
-    backup_dir: str = "scalability_backups/",
+    backup_dir: str = "backup_scalability_metrics/",
     experiment_name: Optional[str] = None,
     run_name: Optional[str] = None,
 ) -> None:
@@ -41,20 +41,21 @@ def generate_gpu_energy_plot(
             make it None. In this case, it will match all files in the given folder.
         output_file: The path to where the resulting plot should be saved. Defaults to
             ``plots/gpu_energy_plot.png``.
-        do_backup: Whether to backup the data used for making the plot or not. 
+        do_backup: Whether to backup the data used for making the plot or not.
         backup_dir: The path to where the data used to produce the plot should be
             saved.
         experiment_name: The name of the experiment to be used when creating a backup
-            of the data used for the plot. 
+            of the data used for the plot.
         run_name: The name of the run to be used when creating a backup of the data
-            used for the plot. 
+            used for the plot.
 
     """
     import uuid
+
     import matplotlib.pyplot as plt
 
-    from itwinai.torch.monitoring.plotting import gpu_energy_plot
     from itwinai.scalability import convert_matching_files_to_dataframe
+    from itwinai.torch.monitoring.plotting import gpu_energy_plot
 
     log_dir_path = Path(log_dir)
     if not log_dir_path.exists():
@@ -98,7 +99,7 @@ def generate_communication_plot(
     pattern: str = r"(.+)_(\d+)_(\d+)\.csv$",
     output_file: str = "plots/communication_plot.png",
     do_backup: bool = True,
-    backup_dir: str = "scalability_backups/",
+    backup_dir: str = "backup_scalability_metrics/",
     experiment_name: Optional[str] = None,
     run_name: Optional[str] = None,
 ) -> None:
@@ -113,22 +114,23 @@ def generate_communication_plot(
             make it None. In this case, it will match all files in the given folder.
         output_file: The path to where the resulting plot should be saved. Defaults to
             ``plots/comm_plot.png``.
-        do_backup: Whether to backup the data used for making the plot or not. 
+        do_backup: Whether to backup the data used for making the plot or not.
         backup_dir: The path to where the data used to produce the plot should be
             saved.
         experiment_name: The name of the experiment to be used when creating a backup
-            of the data used for the plot. 
+            of the data used for the plot.
         run_name: The name of the run to be used when creating a backup of the data
-            used for the plot. 
+            used for the plot.
     """
     import uuid
+
     import matplotlib.pyplot as plt
 
+    from itwinai.scalability import convert_matching_files_to_dataframe
     from itwinai.torch.profiling.communication_plot import (
         create_stacked_plot,
         get_comp_fraction_full_array,
     )
-    from itwinai.scalability import convert_matching_files_to_dataframe
 
     log_dir_path = Path(log_dir)
     if not log_dir_path.exists():
@@ -176,7 +178,9 @@ def generate_communication_plot(
         random_id = str(uuid.uuid4())
         run_name = "run_" + random_id[:6]
 
-    backup_path = Path(backup_dir) / experiment_name / run_name / "communication_plot.csv"
+    backup_path = (
+        Path(backup_dir) / experiment_name / run_name / "communication_plot.csv"
+    )
     backup_path.parent.mkdir(parents=True, exist_ok=True)
     communication_df.to_csv(backup_path, index=False)
     print(f"Storing backup file at '{backup_path.resolve()}'.")
@@ -190,7 +194,9 @@ def generate_scalability_plot(
     log_dir: Annotated[
         str, typer.Option(help="Directory location for the data files to read")
     ],
-    plot_title: Annotated[Optional[str], typer.Option(help=("Plot name."))] = None,
+    plot_title: Annotated[
+        Optional[str], typer.Option(help=("Plot name."))
+    ] = "scalability_plot",
     archive: Annotated[
         Optional[str],
         typer.Option(help=("Archive name to backup the data, without extension.")),
@@ -209,14 +215,14 @@ def generate_scalability_plot(
     # TODO: add max depth and path different from CWD
 
     from itwinai.scalability import (
-        read_scalability_files,
         archive_data,
-        create_relative_plot,
         create_absolute_plot,
+        create_relative_plot,
+        read_scalability_files,
     )
 
     log_dir_path = Path(log_dir)
-    if pattern.lower() == None: 
+    if pattern.lower() == "none":
         pattern = None
 
     combined_df, csv_files = read_scalability_files(
@@ -236,7 +242,7 @@ def generate_scalability_plot(
 
     plot_png = f"scaling_plot_{plot_title}.png"
     create_absolute_plot(avg_time_df)
-    create_relative_plot(plot_title, avg_time_df)
+    create_relative_plot(avg_time_df)
 
     if archive is not None:
         archive_data(archive, csv_files, plot_png, avg_time_df)
@@ -271,8 +277,6 @@ def sanity_check(
         sanity_check_tensorflow()
     else:
         sanity_check_slim()
-
-
 
 
 @app.command()
