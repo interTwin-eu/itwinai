@@ -138,3 +138,6 @@ def gpu_energy_plot(gpu_utilization_df: pd.DataFrame) -> Tuple[Figure, Axes]:
     ax.legend(title="Strategy")
 
     return fig, ax
+
+def backup_data(file_paths: List): 
+    pass

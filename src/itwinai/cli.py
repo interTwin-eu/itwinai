@@ -24,9 +24,11 @@ def generate_gpu_energy_plot(
     log_dir: str = "scalability_metrics/gpu_energy_data",
     pattern: str = r"gpu_energy_data.*\.csv$",
     output_file: str = "plots/gpu_energy_plot.png",
+    backup_dir: Optional[str] = "backup/"
 ) -> None:
     """Generate a GPU energy plot showing the expenditure for each combination of
-    strategy and number of GPUs in Watt hours.
+    strategy and number of GPUs in Watt hours. Backs up the data used to create the 
+    plot if ``backup_dir`` is not None
 
     Args:
         log_dir: The directory where the csv logs are stored. Defaults to
@@ -36,6 +38,8 @@ def generate_gpu_energy_plot(
             make it None. In this case, it will match all files in the given folder.
         output_file: The path to where the resulting plot should be saved. Defaults to
             ``plots/gpu_energy_plot.png``.
+        backup_dir: The path to where the data used to produce the plot should be 
+            saved. 
 
     """
     import matplotlib.pyplot as plt
