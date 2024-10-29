@@ -99,7 +99,7 @@ def measure_gpu_utilization(method: Callable) -> Callable:
 
         log_df = pd.concat(dataframes)
         log_df.to_csv(output_path, index=False)
-        print(f"Writing GPU energy dataframe to '{output_path}'.")
+        print(f"Writing GPU energy dataframe to '{output_path.resolve()}'.")
 
     @functools.wraps(method)
     def measured_method(self: TorchTrainer, *args, **kwargs) -> Any:
