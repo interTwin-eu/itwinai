@@ -1,6 +1,4 @@
-from pathlib import Path
-from re import Match, Pattern, compile
-from typing import Optional, Tuple, Union, List
+from typing import Tuple, List
 
 import matplotlib
 import matplotlib.pyplot as plt
@@ -12,50 +10,6 @@ from matplotlib.figure import Figure
 from scipy.constants import hour as SECONDS_IN_HOUR
 
 matplotlib.use("Agg")
-
-
-def read_energy_df(pattern: Optional[str], log_dir: Path) -> pd.DataFrame:
-    """Read files matching the given regex pattern from directory and converting them
-    into a Pandas DataFrame. If pattern is None, we assume a match on all files.
-    Expects that the existence of ``log_dir`` is handled before calling this function.
-
-    Args:
-        pattern: The regex string used to match files.
-        log_dir: The directory to search for files in.
-
-    Raises:
-        ValueError: If no matching files are found in the given logging directory.
-    """
-
-    pattern_re: Optional[Pattern] = None
-    if pattern is not None:
-        pattern_re = compile(pattern)
-
-    # Load and concatenate dataframes
-    dataframes = []
-    for entry in log_dir.iterdir():
-        match: Union[bool, Match] = True
-        if pattern_re is not None:
-            match = pattern_re.search(str(entry))
-
-        if not match:
-            continue
-
-        print(f"Loading data from file: '{entry}' when creating energy DataFrame")
-        df = pd.read_csv(entry)
-        dataframes.append(df)
-
-    if len(dataframes) == 0:
-        if pattern is None:
-            error_message = f"Unable to find any files in {log_dir.resolve()}!"
-        else:
-            error_message = (
-                f"No files matched pattern, '{pattern}', in log_dir, "
-                f"{log_dir.resolve()}!"
-            )
-        raise ValueError(error_message)
-
-    return pd.concat(dataframes)
 
 
 def calculate_aggregated_energy_expenditure(
