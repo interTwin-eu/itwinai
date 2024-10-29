@@ -37,7 +37,7 @@ def generate_gpu_energy_plot(
         log_dir: The directory where the csv logs are stored. Defaults to
             ``utilization_logs``.
         pattern: A regex pattern to recognize the file names in the 'log_dir' folder.
-            Defaults to ``dataframe_(?:\\w+)_(?:\\d+)\\.csv$``. Set it to 'None' to 
+            Defaults to ``dataframe_(?:\\w+)_(?:\\d+)\\.csv$``. Set it to 'None' to
             make it None. In this case, it will match all files in the given folder.
         output_file: The path to where the resulting plot should be saved. Defaults to
             ``plots/gpu_energy_plot.png``.
@@ -61,7 +61,7 @@ def generate_gpu_energy_plot(
             f"The provided log_dir, '{log_dir_path.resolve()}', does not exist."
         )
 
-    if pattern.lower() == "none": 
+    if pattern.lower() == "none":
         pattern = None
 
     gpu_utilization_df = read_energy_df(pattern=pattern, log_dir=log_dir_path)
@@ -101,8 +101,8 @@ def generate_communication_plot(
         log_dir: The directory where the csv logs are stored. Defaults to
             ``profiling_logs``.
         pattern: A regex pattern to recognize the file names in the 'log_dir' folder.
-            Defaults to ``profile_(\\w+)_(\\d+)_(\\d+)\\.csv$``. Set it to 'None' to 
-            make it None. In this case, it will match all files in the given folder. 
+            Defaults to ``profile_(\\w+)_(\\d+)_(\\d+)\\.csv$``. Set it to 'None' to
+            make it None. In this case, it will match all files in the given folder.
         output_file: The path to where the resulting plot should be saved. Defaults to
             ``plots/comm_plot.png``.
     """
@@ -123,7 +123,7 @@ def generate_communication_plot(
             f"path."
         )
 
-    if pattern.lower() == "none": 
+    if pattern.lower() == "none":
         pattern = None
 
     df = create_combined_comm_overhead_df(log_dir=log_dir_path, pattern=pattern)

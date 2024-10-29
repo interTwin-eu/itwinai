@@ -1,6 +1,6 @@
 from pathlib import Path
-from re import Pattern, compile, Match
-from typing import Any, List, Tuple, Optional, Union
+from re import Match, Pattern, compile
+from typing import Any, List, Optional, Tuple, Union
 
 import matplotlib
 import matplotlib.pyplot as plt
@@ -142,17 +142,19 @@ def create_stacked_plot(
     return fig, ax
 
 
-def create_combined_comm_overhead_df(log_dir: Path, pattern: Optional[str]) -> pd.DataFrame:
+def create_combined_comm_overhead_df(
+    log_dir: Path, pattern: Optional[str]
+) -> pd.DataFrame:
     """Reads and combines all files in a folder that matches the given regex pattern
-    into a single DataFrame. The files must be formatted as csv files. If pattern is 
-    None, we assume a match on all files. 
+    into a single DataFrame. The files must be formatted as csv files. If pattern is
+    None, we assume a match on all files.
 
     Raises:
         ValueError: If not all expected columns are found in the stored DataFrame.
         ValueError: If no matching files are found in the given logging directory.
     """
     re_pattern: Optional[Pattern] = None
-    if pattern is not None: 
+    if pattern is not None:
         re_pattern = compile(pattern)
 
     dataframes = []
@@ -165,7 +167,7 @@ def create_combined_comm_overhead_df(log_dir: Path, pattern: Optional[str]) -> p
     }
     for entry in log_dir.iterdir():
         match: Union[bool, Match] = True
-        if re_pattern is not None: 
+        if re_pattern is not None:
             match = re_pattern.search(str(entry))
 
         if not match:
@@ -182,11 +184,11 @@ def create_combined_comm_overhead_df(log_dir: Path, pattern: Optional[str]) -> p
         dataframes.append(df)
 
     if len(dataframes) == 0:
-        if pattern is None: 
+        if pattern is None:
             error_message = f"Unable to find any files in {log_dir.resolve()}!"
-        else: 
+        else:
             error_message = (
-                f"No files matched pattern, '{pattern}', in log_dir, " \
+                f"No files matched pattern, '{pattern}', in log_dir, "
                 f"{log_dir.resolve()}!"
             )
         raise ValueError(error_message)
