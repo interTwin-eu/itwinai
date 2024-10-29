@@ -38,6 +38,7 @@ def generate_gpu_energy_plot(
 
     """
     import matplotlib.pyplot as plt
+
     from itwinai.torch.monitoring.plotting import gpu_energy_plot, read_energy_df
 
     log_dir_path = Path(log_dir)
