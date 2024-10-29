@@ -6,15 +6,8 @@ from typing import Any, Callable, Dict, List
 
 import pandas as pd
 import pynvml
-import torch
 from pynvml import nvmlDeviceGetHandleByIndex, nvmlInit
 
-from itwinai.torch.distributed import (
-    DeepSpeedStrategy,
-    HorovodStrategy,
-    NonDistributedStrategy,
-    TorchDDPStrategy,
-)
 from itwinai.torch.trainer import TorchTrainer
 
 logging_columns = [
