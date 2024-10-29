@@ -127,3 +127,14 @@ def gpu_energy_plot(gpu_utilization_df: pd.DataFrame) -> Tuple[Figure, Axes]:
 
 def backup_data(file_paths: List): 
     pass
+
+
+
+
+
+
+
+
+
+
+
