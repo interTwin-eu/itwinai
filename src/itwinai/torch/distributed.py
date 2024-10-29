@@ -37,6 +37,9 @@ class TorchDistributedStrategy(DistributedStrategy):
     #: Defaults to False.
     is_initialized: bool = False
 
+    # Provides the name of the strategy for logging purposes etc. 
+    name: str
+
     @property
     def is_main_worker(self) -> bool:
         """Checks if local worker has global rank equal to zero.
@@ -381,6 +384,7 @@ class TorchDDPStrategy(TorchDistributedStrategy):
     def __init__(self, backend: Literal["nccl", "gloo", "mpi"]) -> None:
         super().__init__()
         self.backend = backend
+        self.name = "torch-ddp"
 
     def init(self) -> None:
         """Initializes the distributed process group and the distributed
@@ -595,6 +599,7 @@ class DeepSpeedStrategy(TorchDistributedStrategy):
     def __init__(self, backend: Literal["nccl", "gloo", "mpi"]) -> None:
         super().__init__()
         self.backend = backend
+        self.name = "deepspeed"
 
     def init(self) -> None:
         """Initializes the distributed process group and the distributed
@@ -778,6 +783,10 @@ class DeepSpeedStrategy(TorchDistributedStrategy):
 
 class HorovodStrategy(TorchDistributedStrategy):
     """Horovod distributed strategy class."""
+
+    def __init__(self): 
+        super().__init__()
+        self.name = "horovod"
 
     def init(self) -> None:
         """Initializes the Horovod distributed backend.
@@ -964,6 +973,10 @@ class NonDistributedStrategy(TorchDistributedStrategy):
     #: Defaults to False.
     is_distributed: bool = True
     is_distributed: bool = False
+
+    def __init__(self): 
+        super().__init__()
+        self.name = "non-distributed"
 
     def init(self) -> None:
         """If CUDA is available set CUDA device, and do nothing more.

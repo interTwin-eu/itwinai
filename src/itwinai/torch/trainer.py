@@ -375,7 +375,7 @@ class TorchTrainer(Trainer, LogMixin):
 
         if self.logger:
             self.logger.destroy_logger_context()
-        # self.strategy.clean_up()
+        self.strategy.clean_up()
         return train_dataset, validation_dataset, test_dataset, self.model
 
     def _set_epoch_dataloaders(self, epoch: int):

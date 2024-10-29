@@ -94,7 +94,7 @@ class RNNDistributedTrainer(TorchTrainer):
 
     @suppress_workers_print
     # @profile_torch_trainer
-    @measure_gpu_utilization
+    # @measure_gpu_utilization
     def execute(
         self,
         train_dataset: Dataset,
@@ -148,6 +148,7 @@ class RNNDistributedTrainer(TorchTrainer):
             self.train_loader.sampler.set_epoch(epoch)
             self.val_loader.sampler.set_epoch(epoch)
 
+    @measure_gpu_utilization
     def train(self):
         """Override version of hython to support distributed strategy."""
         # Tracking epoch times for scaling test
