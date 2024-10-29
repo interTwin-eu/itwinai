@@ -37,7 +37,7 @@ class TorchDistributedStrategy(DistributedStrategy):
     #: Defaults to False.
     is_initialized: bool = False
 
-    # Provides the name of the strategy for logging purposes etc. 
+    # Provides the name of the strategy for logging purposes etc.
     name: str
 
     @property
@@ -784,7 +784,7 @@ class DeepSpeedStrategy(TorchDistributedStrategy):
 class HorovodStrategy(TorchDistributedStrategy):
     """Horovod distributed strategy class."""
 
-    def __init__(self): 
+    def __init__(self):
         super().__init__()
         self.name = "horovod"
 
@@ -974,7 +974,7 @@ class NonDistributedStrategy(TorchDistributedStrategy):
     is_distributed: bool = True
     is_distributed: bool = False
 
-    def __init__(self): 
+    def __init__(self):
         super().__init__()
         self.name = "non-distributed"
 
