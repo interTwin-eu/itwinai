@@ -1,6 +1,6 @@
 from pathlib import Path
-from typing import Tuple, Optional, Union
-from re import Pattern, Match, compile
+from re import Match, Pattern, compile
+from typing import Optional, Tuple, Union
 
 import matplotlib
 import matplotlib.pyplot as plt
@@ -28,14 +28,14 @@ def read_energy_df(pattern: Optional[str], log_dir: Path) -> pd.DataFrame:
     """
 
     pattern_re: Optional[Pattern] = None
-    if pattern is not None: 
+    if pattern is not None:
         pattern_re = compile(pattern)
 
     # Load and concatenate dataframes
     dataframes = []
     for entry in log_dir.iterdir():
         match: Union[bool, Match] = True
-        if pattern_re is not None: 
+        if pattern_re is not None:
             match = pattern_re.search(str(entry))
 
         if not match:
@@ -46,11 +46,11 @@ def read_energy_df(pattern: Optional[str], log_dir: Path) -> pd.DataFrame:
         dataframes.append(df)
 
     if len(dataframes) == 0:
-        if pattern is None: 
+        if pattern is None:
             error_message = f"Unable to find any files in {log_dir.resolve()}!"
-        else: 
+        else:
             error_message = (
-                f"No files matched pattern, '{pattern}', in log_dir, " \
+                f"No files matched pattern, '{pattern}', in log_dir, "
                 f"{log_dir.resolve()}!"
             )
         raise ValueError(error_message)
