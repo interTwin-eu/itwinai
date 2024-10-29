@@ -9,7 +9,7 @@
 #SBATCH --mail-type=ALL
 #SBATCH --output=job.out
 #SBATCH --error=job.err
-#SBATCH --time=01:00:00
+#SBATCH --time=00:10:00
 
 # Resources allocation
 #SBATCH --partition=gpu
@@ -146,7 +146,7 @@ elif [ "$DIST_MODE" == "horovod" ] ; then
 
   # It works as well and suppresses output
   srun --cpu-bind=none --ntasks-per-node=$SLURM_GPUS_PER_NODE --cpus-per-task=$SLURM_CPUS_PER_GPU --ntasks=$(($SLURM_GPUS_PER_NODE * $SLURM_NNODES)) \
-    bash -c 'if [ $SLURM_PROCID  -ne 0 ]; then exec > /dev/null 2>&1; fi; exec python -m pytest -vs -m mpirun test_distribtued.py'
+    bash -c 'if [ $SLURM_PROCID  -ne 0 ]; then exec > /dev/null 2>&1; fi; exec python -m $TRAINING_CMD'
   
 
   # # Other

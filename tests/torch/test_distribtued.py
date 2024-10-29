@@ -2,8 +2,6 @@
 
 from torch.optim import SGD
 from torch.nn import Linear
-import os
-import subprocess
 import pytest
 import torch
 from itwinai.torch.distributed import (
@@ -17,7 +15,7 @@ from itwinai.torch.type import UninitializedStrategyError, DistributedStrategyEr
 from torch.utils.data import Dataset, DataLoader, DistributedSampler
 import torch.nn as nn
 from torch.optim import Optimizer
-from typing import Any, Generator
+from typing import Any
 
 
 class DummyDataset(Dataset):
@@ -167,11 +165,8 @@ class BaseTestDistributedStrategy:
 @pytest.mark.torchrun
 class TestTorchDDPStrategy(BaseTestDistributedStrategy):
     @pytest.fixture(scope='module')
-    def strategy(self) -> Generator[TorchDDPStrategy, None, None]:
-        strategy = TorchDDPStrategy(backend='nccl' if torch.cuda.is_available() else 'gloo')
-        strategy.init()
-        yield strategy
-        strategy.clean_up()
+    def strategy(self, ddp_strategy) -> TorchDDPStrategy:
+        return ddp_strategy
 
     def test_init(self, strategy: TorchDDPStrategy):
         """Test specific initialization of TorchDDPStrategy."""
@@ -205,11 +200,8 @@ class TestTorchDDPStrategy(BaseTestDistributedStrategy):
 @pytest.mark.mpirun
 class TestDeepSpeedStrategy(BaseTestDistributedStrategy):
     @pytest.fixture(scope='module')
-    def strategy(self) -> Generator[DeepSpeedStrategy, None, None]:
-        strategy = DeepSpeedStrategy(backend='nccl' if torch.cuda.is_available() else 'gloo')
-        strategy.init()
-        yield strategy
-        strategy.clean_up()
+    def strategy(self, deepspeed_strategy) -> DeepSpeedStrategy:
+        return deepspeed_strategy
 
     def test_init(self, strategy: DeepSpeedStrategy):
         """Test specific initialization of DeepSpeedStrategy."""
@@ -257,16 +249,12 @@ class TestDeepSpeedStrategy(BaseTestDistributedStrategy):
         assert isinstance(dist_optimizer, Optimizer)
 
 
-# @pytest.mark.skip(reason="under development")
 @pytest.mark.hpc
 @pytest.mark.mpirun
 class TestHorovodStrategy(BaseTestDistributedStrategy):
     @pytest.fixture(scope='module')
-    def strategy(self) -> Generator[HorovodStrategy, None, None]:
-        strategy = HorovodStrategy()
-        strategy.init()
-        yield strategy
-        strategy.clean_up()
+    def strategy(self, horovod_strategy) -> HorovodStrategy:
+        return horovod_strategy
 
     def test_init(self, strategy):
         assert strategy.is_initialized

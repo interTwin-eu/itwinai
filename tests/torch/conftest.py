@@ -1,13 +1,11 @@
-from typing import Generator
-
 import pytest
 import torch
-
+from typing import Generator
 from itwinai.torch.distributed import (
-    DeepSpeedStrategy,
-    HorovodStrategy,
-    TorchDDPStrategy,
     TorchDistributedStrategy,
+    TorchDDPStrategy,
+    DeepSpeedStrategy,
+    HorovodStrategy
 )
 
 
