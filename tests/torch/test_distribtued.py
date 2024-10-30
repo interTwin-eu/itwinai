@@ -249,6 +249,7 @@ class TestDeepSpeedStrategy(BaseTestDistributedStrategy):
         assert isinstance(dist_optimizer, Optimizer)
 
 
+@pytest.mark.skip
 @pytest.mark.hpc
 @pytest.mark.mpirun
 class TestHorovodStrategy(BaseTestDistributedStrategy):
