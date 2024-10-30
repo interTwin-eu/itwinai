@@ -10,6 +10,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import lightning as pl
 import numpy as np
+import pickle
 
 from itwinai.loggers import Logger as BaseItwinaiLogger
 
@@ -336,6 +337,7 @@ class ThreeDGAN(pl.LightningModule):
         self.index = 0
         self.train_history = defaultdict(list)
         self.test_history = defaultdict(list)
+        self.pklfile = "/p/project1/intertwin/tsolaki1/DetectorSim-3DGAN/Lightning3DGAN/history/3dgan_history_30ep.pkl"
         # self.pklfile = checkpoint_path
         # checkpoint_dir = os.path.dirname(checkpoint_path)
         # os.makedirs(checkpoint_dir, exist_ok=True)
@@ -678,6 +680,7 @@ class ThreeDGAN(pl.LightningModule):
         # return avg_disc_loss + avg_generator_loss
 
     def on_train_epoch_end(self):
+        epoch_num = self.current_epoch
 
         if not self.provenance_verbose:
             # Log provenance only at the end of an epoch
@@ -689,6 +692,9 @@ class ThreeDGAN(pl.LightningModule):
 
         self.train_history["generator"].append(generator_train_loss)
         self.train_history["discriminator"].append(discriminator_train_loss)
+
+        torch.save(self.generator.state_dict(), f"/p/scratch/intertwin/datasets/cern/weights/generator_weights_epoch_{epoch_num}.pth")
+        torch.save(self.discriminator.state_dict(), f"/p/scratch/intertwin/datasets/cern/weights/discriminator_weights_epoch_{epoch_num}.pth")
 
         print("-" * 65)
         ROW_FMT = (
@@ -728,9 +734,9 @@ class ThreeDGAN(pl.LightningModule):
                 context='training'
             )
 
-        # with open(self.pklfile, "wb") as f:
-        #     pickle.dump({"train": self.train_history,
-        #                 "test": self.test_history}, f)
+        with open(self.pklfile, "wb") as f:
+            pickle.dump({"train": self.train_history,
+                        "test": self.test_history}, f)
 
         # pickle.dump({"train": self.train_history}, open(self.pklfile, "wb"))
         print("train-loss:" + str(self.train_history["generator"][-1][0]))
@@ -808,6 +814,40 @@ class ThreeDGAN(pl.LightningModule):
                 batch_idx=batch_idx,
                 context='validation'
             )
+            self.itwinai_logger.log(
+                item=gen_eval_loss[0],
+                identifier="val_generator_loss_bce",
+                kind='metric',
+                step=self.global_step,
+                batch_idx=batch_idx,
+                context='validation'
+            )
+            self.itwinai_logger.log(
+                item=gen_eval_loss[1],
+                identifier="val_generator_loss_mean1",
+                kind='metric',
+                step=self.global_step,
+                batch_idx=batch_idx,
+                context='validation'
+            )
+            self.itwinai_logger.log(
+                item=gen_eval_loss[2],
+                identifier="val_generator_loss_mae",
+                kind='metric',
+                step=self.global_step,
+                batch_idx=batch_idx,
+                context='validation'
+            )
+            self.itwinai_logger.log(
+                item=gen_eval_loss[3],
+                identifier="val_generator_loss_mean2",
+                kind='metric',
+                step=self.global_step,
+                batch_idx=batch_idx,
+                context='validation'
+            )
+            #self.itwinai_logger.log(item=self.generator, identifier='best_model', kind='best_model')
+
             # Log provenance information
             if self.provenance_verbose:
                 # Log provenance at every validation step
@@ -879,6 +919,7 @@ class ThreeDGAN(pl.LightningModule):
                 context=context)
 
     def on_validation_epoch_end(self):
+        epoch_num = self.current_epoch
 
         if not self.provenance_verbose:
             # Log provenance only at the end of an epoch
@@ -902,11 +943,48 @@ class ThreeDGAN(pl.LightningModule):
               *self.test_history["discriminator"][-1]))
 
         # # save loss dict to pkl file
-        # with open(self.pklfile, "wb") as f:
-        #     pickle.dump({"train": self.train_history,
-        #                 "test": self.test_history}, f)
+        with open(self.pklfile, "wb") as f:
+            pickle.dump({"train": self.train_history,
+                        "test": self.test_history}, f)
         # pickle.dump({"test": self.test_history}, open(self.pklfile, "wb"))
         # print("train-loss:" + str(self.train_history["generator"][-1][0]))
+
+        # Initialize best_val_loss if it doesn't exist
+        if not hasattr(self, 'best_val_loss'):
+            self.best_val_loss = float('inf')  # Starting with a very high value
+
+        # Compute current validation loss (first element in generator_test_loss represents total loss)
+        current_val_loss = self.test_history["generator"][-1][0]
+
+        # Check if current validation loss is better than the best so far
+        if current_val_loss < self.best_val_loss:
+            self.best_val_loss = current_val_loss  # Updates best validation loss
+
+            torch.save(self.generator.state_dict(), os.path.join(
+            self.checkpoints_dir, f"best_generator_weights_epoch_{epoch_num}.pth"))
+            torch.save(self.generator.state_dict(), f"/p/scratch/intertwin/datasets/cern/validation_weights/best_generator_weights_epoch_{epoch_num}.pth")
+
+            # Save the best generator model
+            if self.itwinai_logger:
+                # self.itwinai_logger.log(
+                #     item=self.generator, 
+                #     identifier='best_model', 
+                #     kind='artifact',
+                #     step=self.current_epoch
+                # )
+                self.itwinai_logger.log(
+                    item=os.path.join(self.checkpoints_dir,
+                                    f"best_generator_weights_epoch_{epoch_num}.pth"),
+                    identifier='best_generator_weights', #+ str(self.current_epoch),
+                    kind='artifact',
+                    step=self.current_epoch,
+                    context='validation'
+                )
+            print(f"New best generator validation loss: {self.best_val_loss:.4f}. Saving best model.")
+
+        else:
+            print(f"Validation loss did not improve for generator: {current_val_loss:.4f} (Best: {self.best_val_loss:.4f}).")
+
 
     def predict_step(
         self,

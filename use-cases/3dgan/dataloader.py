@@ -8,7 +8,7 @@ from torch.utils.data import DataLoader, Dataset
 import lightning as pl
 import glob
 import h5py
-import gdown
+#import gdown
 
 from itwinai.components import DataGetter, monitor_exec
 from itwinai.loggers import Logger as BaseItwinaiLogger

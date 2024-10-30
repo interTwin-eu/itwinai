@@ -9,7 +9,7 @@
 #SBATCH --mail-type=ALL
 #SBATCH --output=job.out
 #SBATCH --error=job.err
-#SBATCH --time=00:30:00
+#SBATCH --time=30:00:00
 
 # configure node and process count on the CM
 #SBATCH --partition=batch
@@ -35,12 +35,19 @@ source ~/.bashrc
 # Activate the environment
 source ../../envAI_hdfml/bin/activate
 
-GAN_DATASET="exp_data" #"/p/scratch/intertwin/datasets/cern/"
+GAN_DATASET="/p/scratch/intertwin/datasets/cern/" #"/p/scratch/intertwin/datasets/cern/" exp_data
+#CHECKPOINT="/p/scratch/intertwin/datasets/cern/validation_weights/best_generator_weights_epoch_21.pth"
 
 # launch training
 TRAINING_CMD="$(which itwinai) exec-pipeline --config config.yaml --pipe-key training_pipeline \
                 -o num_nodes=$SLURM_NNODES \
                 -o dataset_location=$GAN_DATASET "
+
+# # launch inference
+# INFERENCE_CMD="$(which itwinai) exec-pipeline --config config.yaml --pipe-key inference_pipeline \
+#                 -o num_nodes=$SLURM_NNODES \
+#                 -o dataset_location=$GAN_DATASET \
+#                 -o model_checkpoint=$CHECKPOINT"
 
 srun --cpu-bind=none --ntasks-per-node=1 \
     bash -c "torchrun \
@@ -51,4 +58,4 @@ srun --cpu-bind=none --ntasks-per-node=1 \
     --rdzv_conf=is_host=\$(((SLURM_NODEID)) && echo 0 || echo 1) \
     --rdzv_backend=c10d \
     --rdzv_endpoint='$(scontrol show hostnames "$SLURM_JOB_NODELIST" | head -n 1)'i:29500 \
-    $TRAINING_CMD "
+    $TRAINING_CMD"

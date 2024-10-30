@@ -20,6 +20,7 @@ from itwinai.utils import load_yaml
 #     teardown_lightning_mlflow
 # )
 from itwinai.loggers import Logger, _EmptyLogger
+from collections import OrderedDict
 
 
 from model import ThreeDGAN
@@ -92,6 +93,33 @@ class Lightning3DGANTrainer(Trainer):
                 yaml.dump(self.conf, outfile, default_flow_style=False)
             logger.log(local_yaml_path, 'lightning-config', kind='artifact')
 
+class ThreeDGANModelLoader(TorchModelLoader):
+    """Loads a torch lightning model from somewhere.
+
+    Args:
+        model_uri (str): Can be a path on local filesystem
+            or an mlflow 'locator' in the form:
+            'mlflow+MLFLOW_TRACKING_URI+RUN_ID+ARTIFACT_PATH'
+    """
+    def __init__(self, model_uri: str):
+        super().__init__(model_uri)
+        self.model_uri = model_uri
+
+    def __call__(self) -> pl.LightningModule:
+        """Loads model from model URI with weights only, if supported."""
+
+        # Check if torch.load supports weights_only argument
+        try:
+            state_dict = torch.load(self.model_uri, weights_only=True) #weights_only=True
+        except TypeError:
+            # If weights_only is not supported, load the state_dict normally
+            state_dict = torch.load(self.model_uri)
+        #print(type(state_dict))
+        # Instantiate the model and load the state dictionary
+        model = ThreeDGAN()
+        model.generator.load_state_dict(state_dict)
+        model.eval()
+        return model
 
 class LightningModelLoader(TorchModelLoader):
     """Loads a torch lightning model from somewhere.
