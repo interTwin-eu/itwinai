@@ -141,8 +141,8 @@ def create_absolute_plot(avg_epoch_time_df: pd.DataFrame) -> None:
 
 def create_relative_plot(avg_epoch_time_df: pd.DataFrame, gpus_per_node: int = 4):
     """Creates a plot showing the relative training times for the different
-    distributed strategies and different number of GPUs. In particular, it shows the 
-    speedup when adding more GPUs, compared to the baseline of using a single node. 
+    distributed strategies and different number of GPUs. In particular, it shows the
+    speedup when adding more GPUs, compared to the baseline of using a single node.
     """
     sns.set_theme()
 
@@ -186,7 +186,7 @@ def create_relative_plot(avg_epoch_time_df: pd.DataFrame, gpus_per_node: int = 4
     sorted_handles, sorted_labels = zip(*sorted_handles_labels)
     plt.legend(sorted_handles, sorted_labels)
 
-    plot_path = Path(f"relative_scalability_plot.png")
+    plot_path = Path("relative_scalability_plot.png")
     plt.tight_layout()
     plt.savefig(plot_path, bbox_inches="tight", format="png", dpi=300)
     print(f"Saving relative plot to '{plot_path.resolve()}'.")

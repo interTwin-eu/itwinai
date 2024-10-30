@@ -55,7 +55,6 @@ A logger allows to save objects of different kinds:
     https://docs.wandb.ai/ref/python/watch
 """
 
-import csv
 import os
 import pathlib
 import pickle
@@ -68,7 +67,6 @@ import mlflow
 import pandas as pd
 import prov4ml
 import wandb
-from deepspeed.runtime.zero.utils import isinstance_namedtuple
 from typing_extensions import override
 
 BASE_EXP_NAME: str = "default_experiment"
