@@ -114,7 +114,9 @@ class TorchTrainer(Trainer, LogMixin):
         metrics: Optional[Dict[str, Metric]] = None,
         checkpoints_location: str = "checkpoints",
         checkpoint_every: Optional[int] = None,
-        name: Optional[str] = None
+        name: Optional[str] = None,
+        profiling_wait_epochs: int = 1,
+        profiling_warmup_epochs: int = 2
     ) -> None:
         super().__init__(name)
         self.save_parameters(**self.locals2params(locals()))
@@ -137,6 +139,8 @@ class TorchTrainer(Trainer, LogMixin):
         os.makedirs(self.checkpoints_location, exist_ok=True)
         self.checkpoint_every = checkpoint_every
         self.profiler = None
+        self.profiling_wait_epochs = profiling_wait_epochs
+        self.profiling_warmup_epochs = profiling_warmup_epochs
 
     @property
     def strategy(self) -> TorchDistributedStrategy:
