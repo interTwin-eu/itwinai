@@ -54,8 +54,8 @@ def generate_gpu_data_plots(
 
     from itwinai.scalability import convert_matching_files_to_dataframe
     from itwinai.torch.monitoring.plotting import (
-        calculate_total_energy_expenditure,
         calculate_average_gpu_utilization,
+        calculate_total_energy_expenditure,
         gpu_bar_plot,
     )
 
