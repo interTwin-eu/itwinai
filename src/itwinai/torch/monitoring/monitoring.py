@@ -83,7 +83,6 @@ def probe_gpu_utilization_loop(
             log_dict["probing_interval"].append(probing_interval)
 
         sample_idx += 1
-
         time.sleep(probing_interval)
 
 
