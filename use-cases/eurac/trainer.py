@@ -155,10 +155,7 @@ class RNNDistributedTrainer(TorchTrainer):
         # Tracking epoch times for scaling test
         if self.strategy.is_main_worker:
             num_nodes = int(os.environ.get("SLURM_NNODES", "unk"))
-            # series_name = os.environ.get("DIST_MODE", "unk") + "-torch"
-            # series_name = self.strategy.name
-            # file_name = f"epochtime_{series_name}_{num_nodes}N.csv"
-            epoch_time_output_dir = Path("scalability_metrics/epoch-time")
+            epoch_time_output_dir = Path("scalability-metrics/epoch-time")
             epoch_time_file_name = f"epochtime_{self.strategy.name}_{num_nodes}N.csv"
             epoch_time_output_path = epoch_time_output_dir / epoch_time_file_name 
 

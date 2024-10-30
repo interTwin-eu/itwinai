@@ -21,11 +21,11 @@ app = typer.Typer(pretty_exceptions_enable=False)
 
 @app.command()
 def generate_gpu_data_plots(
-    log_dir: str = "scalability_metrics/gpu_energy_data",
+    log_dir: str = "scalability-metrics/gpu_energy_data",
     pattern: str = r"gpu_energy_data.*\.csv$",
     plot_dir: str = "plots/",
     do_backup: bool = False,
-    backup_dir: str = "backup_scalability_metrics/",
+    backup_dir: str = "backup-scalability-metrics/",
     experiment_name: Optional[str] = None,
     run_name: Optional[str] = None,
 ) -> None:
@@ -117,11 +117,11 @@ def generate_gpu_data_plots(
 
 @app.command()
 def generate_communication_plot(
-    log_dir: str = "scalability_metrics/communication_data",
+    log_dir: str = "scalability-metrics/communication-data",
     pattern: str = r"(.+)_(\d+)_(\d+)\.csv$",
     output_file: str = "plots/communication_plot.png",
     do_backup: bool = True,
-    backup_dir: str = "backup_scalability_metrics/",
+    backup_dir: str = "backup-scalability-metrics/",
     experiment_name: Optional[str] = None,
     run_name: Optional[str] = None,
 ) -> None:
