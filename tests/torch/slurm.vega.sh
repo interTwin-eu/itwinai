@@ -13,7 +13,7 @@
 
 # Resources allocation
 #SBATCH --partition=gpu
-#SBATCH --nodes=2
+#SBATCH --nodes=1
 #SBATCH --gpus-per-node=4
 #SBATCH --cpus-per-gpu=4
 #SBATCH --ntasks-per-node=1
@@ -34,7 +34,7 @@ echo "DEBUG: SLURMD_NODENAME: $SLURMD_NODENAME"
 echo "DEBUG: CUDA_VISIBLE_DEVICES: $CUDA_VISIBLE_DEVICES"
 
 ml --force purge
-ml Python CMake/3.24.3-GCCcore-11.3.0 mpi4py OpenMPI CUDA/12.3
+ml Python CMake/3.24.3-GCCcore-11.3.0 mpi4py OpenMPI/4.1.5-GCC-12.3.0 CUDA/12.3
 ml GCCcore/11.3.0 NCCL cuDNN/8.9.7.29-CUDA-12.3.0
 ml UCX-CUDA/1.15.0-GCCcore-13.2.0-CUDA-12.3.0
 
@@ -77,9 +77,10 @@ srun --cpu-bind=none --ntasks-per-node=1 bash -c 'echo -e "NODE hostname: $(host
 if [ "$DIST_MODE" == "ddp" ] ; then
   echo "DDP training: $TRAINING_CMD"
 
-# singularity exec --nv itwinai_torch.sif /bin/bash -c "torchrun \
+  # singularity exec --nv $CONTAINER_PATH /bin/bash -c "torchrun \
+  # bash -c "torchrun \
   srun --cpu-bind=none --ntasks-per-node=1 \
-    bash -c "torchrun \
+    singularity exec --nv $CONTAINER_PATH /bin/bash -c "torchrun \
     --log_dir='logs_torchrun' \
     --nnodes=$SLURM_NNODES \
     --nproc_per_node=$SLURM_GPUS_PER_NODE \
@@ -127,6 +128,11 @@ elif [ "$DIST_MODE" == "horovod" ] ; then
   echo "SLURM_CPUS_PER_GPU: $SLURM_CPUS_PER_GPU"
   echo
 
+  # https://doc.vega.izum.si/mpi/#multi-node-jobs
+  export UCX_TLS=self,sm,rc,ud
+  export OMPI_MCA_PML="ucx"
+  export OMPI_MCA_osc="ucx"
+
 
   # # This fails because it does not find enough slots
   # horovodrun -H $HOSTFILE -np $TOTAL_PROCESSES \
@@ -138,20 +144,119 @@ elif [ "$DIST_MODE" == "horovod" ] ; then
   
   # # It works and allows to suppress output from workers having rank != 0
   # mpirun -H $HOSTFILE -np $TOTAL_PROCESSES --oversubscribe \
-  #   bash -c 'if [ $OMPI_COMM_WORLD_RANK -ne 0 ]; then exec > /dev/null 2>&1; fi; exec python -m pytest -vs -m mpirun test_distribtued.py'
+  #   bash -c 'if [ $OMPI_COMM_WORLD_RANK -ne 0 ]; then exec > /dev/null 2>&1; fi; exec python -m pytest -vs -m mpirun '
   
   # # It works as well
   # srun --cpu-bind=none --ntasks-per-node=$SLURM_GPUS_PER_NODE --cpus-per-task=$SLURM_CPUS_PER_GPU --ntasks=$(($SLURM_GPUS_PER_NODE * $SLURM_NNODES)) \
   #   python -m pytest -vs -m mpirun test_distribtued.py
 
-  # It works as well and suppresses output
-  srun --cpu-bind=none --ntasks-per-node=$SLURM_GPUS_PER_NODE --cpus-per-task=$SLURM_CPUS_PER_GPU --ntasks=$(($SLURM_GPUS_PER_NODE * $SLURM_NNODES)) \
-    bash -c 'if [ $SLURM_PROCID  -ne 0 ]; then exec > /dev/null 2>&1; fi; exec python -m $TRAINING_CMD'
+  # # It works as well and suppresses output
+  # srun --cpu-bind=none --ntasks-per-node=$SLURM_GPUS_PER_NODE --cpus-per-task=$SLURM_CPUS_PER_GPU --ntasks=$(($SLURM_GPUS_PER_NODE * $SLURM_NNODES)) \
+  #   bash -c 'if [ $SLURM_PROCID  -ne 0 ]; then exec > /dev/null 2>&1; fi; exec python -m $TRAINING_CMD'
+
+  # echo "Test MPI setup on mpibench using SRUN (no container)"
+  # >&2 echo "Test MPI setup on mpibench using SRUN"
+  # srun --mpi=pmix_v3 --cpu-bind=none --ntasks-per-node=$SLURM_GPUS_PER_NODE --cpus-per-task=$SLURM_CPUS_PER_GPU --ntasks=$(($SLURM_GPUS_PER_NODE * $SLURM_NNODES)) \
+  #   ./mpibench
+
+
+  #   >&2 echo "Test MPI setup on mpibench using MPIRUN (no container)"
+  #  echo "Test MPI setup on mpibench using MPIRUN"
+  # mpirun -H $HOSTFILE -np $TOTAL_PROCESSES --oversubscribe -mca pml ucx -mca btl ^uct,tcp,openib,vader --bind-to core \
+  #   ./mpibench
+
+  #############################################
+  # Container
+
+  # # TODO: try to remove this block from the web...
+  # export OMPI_MCA_btl="^openib"
+  # export OMPI_MCA_orte_keep_fqdn_hostnames="true"
+
+  OMPI_CONTAINER="$(singularity exec ${CONTAINER_PATH} /bin/bash -c 'ompi_info' | grep Prefix | awk '{ print $2 }')"
+  OMPI_HOST="$(ompi_info | grep Prefix | awk '{ print $2 }')"
+
+  # echo "Test container setup on mpibench using SRUN"
+  # >&2 echo "Test container setup on mpibench using SRUN"
+  # srun --mpi=pmix_v3 --cpu-bind=none --ntasks-per-node=$SLURM_GPUS_PER_NODE --cpus-per-task=$SLURM_CPUS_PER_GPU --ntasks=$(($SLURM_GPUS_PER_NODE * $SLURM_NNODES)) \
+  #   singularity exec --nv \
+  #   $CONTAINER_PATH ./mpibench
+
+  # # NOTE: this is causing PMIx errors: "PMIX ERROR: ERROR in file gds_ds12_lock_pthread.c at line 168"
+  # >&2 echo "Test container setup on mpibench mounting host libs inside the container using SRUN"
+  # echo "Test container setup on mpibench mounting host libs inside the container using SRUN"
+  # srun --mpi=pmix_v3 --cpu-bind=none --ntasks-per-node=$SLURM_GPUS_PER_NODE --cpus-per-task=$SLURM_CPUS_PER_GPU --ntasks=$(($SLURM_GPUS_PER_NODE * $SLURM_NNODES)) \
+  #   singularity exec --nv \
+  #   --bind "${OMPI_HOST}":"${OMPI_CONTAINER}" \
+  #   $CONTAINER_PATH ./mpibench
+
+  # # NOTE: this may cause PMIx problems as above
+  # echo "Run itwinai's pytest with SRUN"
+  # >&2 echo "Run itwinai's pytest with SRUN"
+  # # pmix_v3: https://doc.vega.izum.si/mpi/#multi-node-jobs
+  # srun --mpi=pmix_v3 --cpu-bind=none --ntasks-per-node=$SLURM_GPUS_PER_NODE --cpus-per-task=$SLURM_CPUS_PER_GPU --ntasks=$(($SLURM_GPUS_PER_NODE * $SLURM_NNODES)) \
+  #   singularity exec --nv \
+  #   --bind "${OMPI_HOST}":"${OMPI_CONTAINER}" \
+  #   $CONTAINER_PATH /bin/bash -c \
+  #   'if [ $SLURM_PROCID  -ne 0 ]; then exec > /dev/null 2>&1; fi; exec python -m $TRAINING_CMD'
+
+
+  ######
+  # mpirun container
+
+  # >&2 echo "Test container setup on mpibench using MPIRUN"
+  #  echo "Test container setup on mpibench using MPIRUN"
+  # mpirun -H $HOSTFILE -np $TOTAL_PROCESSES --oversubscribe -mca pml ucx -mca btl ^uct,tcp,openib,vader --bind-to core \
+  #   singularity exec --nv \
+  #   $CONTAINER_PATH ./mpibench
+
+  # >&2 echo "Test container setup on mpibench mounting host libs inside the container using MPIRUN"
+  #  echo "Test container setup on mpibench mounting host libs inside the container using MPIRUN"
+  # mpirun -H $HOSTFILE -np $TOTAL_PROCESSES --oversubscribe -mca pml ucx -mca btl ^uct,tcp,openib,vader --bind-to core \
+  #   singularity exec --nv \
+  #   --bind "${OMPI_HOST}":"${OMPI_CONTAINER}" \
+  #   $CONTAINER_PATH ./mpibench
+
+  echo
+  echo "PATH: $PATH"
+  echo "LD_LIBRARY_PATH: $LD_LIBRARY_PATH"
+  echo
+
+  echo "Run itwinai's pytest with MPIRUN (no mount)"
+  >&2 echo "Run itwinai's pytest with MPIRUN"
+  
+  unset PYTHONPATH # Avoid propagating PYTHONPATH to the singularity container, as it breaks the import of packages
+  
+  mpirun -H $HOSTFILE -np $TOTAL_PROCESSES --oversubscribe -mca pml ucx -mca btl ^uct,tcp,openib,vader --bind-to core  \
+    -x HOROVOD_LOG_LEVEL=DEBUG -x HOROVOD_CYCLE_TIME=0.1  \
+    singularity exec --nv --hostname $(hostname)  \
+    $CONTAINER_PATH /bin/bash -c \
+    'echo "Rank: $OMPI_COMM_WORLD_RANK, lrank: $OMPI_COMM_WORLD_LOCAL_RANK, Size: $OMPI_COMM_WORLD_SIZE" &&  \
+    if [ $OMPI_COMM_WORLD_RANK  -ne 0 ]; then exec > /dev/null 2>&1; fi; exec python -m $TRAINING_CMD'
+
+
+  # # This hangs forever on gather ops
+  # echo "Run itwinai's pytest with MPIRUN"
+  # >&2 echo "Run itwinai's pytest with MPIRUN"
+  # mpirun -H $HOSTFILE -np $TOTAL_PROCESSES --oversubscribe -mca pml ucx -mca btl ^uct,tcp,openib,vader --bind-to core  \
+  #   singularity exec --nv \
+  #   --bind "${OMPI_HOST}":"${OMPI_CONTAINER}" \
+  #   $CONTAINER_PATH /bin/bash -c \
+  #   'if [ $OMPI_COMM_WORLD_RANK  -ne 0 ]; then exec > /dev/null 2>&1; fi; exec python -m $TRAINING_CMD'
+
+  
+  
+  ################################ LOGIN NODE ################################
+  exit
+
+  mpirun -np 1 singularity exec --nv --hostname $(hostname) \
+    $CONTAINER_PATH /bin/bash -c \
+    'echo "Rank: $OMPI_COMM_WORLD_RANK, lrank: $OMPI_COMM_WORLD_LOCAL_RANK, Size: $OMPI_COMM_WORLD_SIZE" && unset PYTHONPATH && \
+    if [ $OMPI_COMM_WORLD_RANK  -ne 0 ]; then exec > /dev/null 2>&1; fi; exec python -m pytest -m mpirun'
   
 
   # # Other
   # srun --cpu-bind=none --ntasks-per-node=$SLURM_GPUS_PER_NODE --cpus-per-task=$SLURM_CPUS_PER_GPU \
-  #   singularity run --nv itwinai_torch.sif \
+  #   singularity run --nv $CONTAINER_PATH \
   #   /bin/bash -c "$TRAINING_CMD"
 
 else
