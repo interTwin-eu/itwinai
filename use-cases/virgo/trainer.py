@@ -184,8 +184,8 @@ class NoiseGeneratorTrainer(TorchTrainer):
             nnod = os.environ.get('SLURM_NNODES', 'unk')
             s_name = f"{os.environ.get('DIST_MODE', 'unk')}-torch"
             epoch_time_tracker = EpochTimeTracker(
-                series_name=s_name,
-                csv_file=f"epochtime_{s_name}_{nnod}N.csv"
+                strategy_name=s_name,
+                save_path=f"epochtime_{s_name}_{nnod}N.csv"
             )
         loss_plot = []
         val_loss_plot = []

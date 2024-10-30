@@ -264,8 +264,8 @@ def main():
         print('--------------------------------------------------------')
         nnod = os.environ.get('SLURM_NNODES', 'unk')
         epoch_time_tracker = EpochTimeTracker(
-            series_name="horovod-bl",
-            csv_file=f"epochtime_horovod-bl_{nnod}N.csv"
+            strategy_name="horovod-bl",
+            save_path=f"epochtime_horovod-bl_{nnod}N.csv"
         )
 
     et = timer()

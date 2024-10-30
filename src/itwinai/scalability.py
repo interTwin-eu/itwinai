@@ -140,6 +140,10 @@ def create_absolute_plot(avg_epoch_time_df: pd.DataFrame) -> None:
 
 
 def create_relative_plot(avg_epoch_time_df: pd.DataFrame, gpus_per_node: int = 4):
+    """Creates a plot showing the relative training times for the different
+    distributed strategies and different number of GPUs. In particular, it shows the 
+    speedup when adding more GPUs, compared to the baseline of using a single node. 
+    """
     sns.set_theme()
 
     fig, ax = plt.subplots(figsize=(6, 4))

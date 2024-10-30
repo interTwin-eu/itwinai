@@ -208,8 +208,9 @@ def main():
         print('--------------------------------------------------------')
         nnod = os.environ.get('SLURM_NNODES', 'unk')
         epoch_time_tracker = EpochTimeTracker(
-            series_name="ddp-bl",
-            csv_file=f"epochtime_ddp-bl_{nnod}N.csv"
+            strategy_name="ddp-bl",
+            save_path=f"epochtime_ddp-bl_{nnod}N.csv",
+            num_nodes=int(nnod)
         )
 
     et = timer()
