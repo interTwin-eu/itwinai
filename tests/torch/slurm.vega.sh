@@ -50,27 +50,11 @@ if [ "$SLURM_CPUS_PER_GPU" -gt 0 ] ; then
   export OMP_NUM_THREADS=$SLURM_CPUS_PER_GPU
 fi
 
-# Env vairables check
-if [ -z "$DIST_MODE" ]; then 
-  >&2 echo "ERROR: env variable DIST_MODE is not set. Allowed values are 'horovod', 'ddp' or 'deepspeed'"
-  exit 1
-fi
-if [ -z "$RUN_NAME" ]; then 
-  >&2 echo "WARNING: env variable RUN_NAME is not set. It's a way to identify some specific run of an experiment."
-  RUN_NAME=$DIST_MODE
-fi
-if [ -z "$COMMAND" ]; then 
-  >&2 echo "ERROR: env variable COMMAND is not set. It's the python command to execute."
-  exit 1
-fi
-if [ -z "$CONTAINER_PATH" ]; then 
-  >&2 echo "WARNING: env variable CONTAINER_PATH is not set. It's the path to a singularity container."
-  exit 1
-fi
-
 # Launch distributed job in container with torchrun
 torchrun_launcher ()
 {
+  # Avoid propagating PYTHONPATH to the singularity container, as it breaks the import of packages inside the container
+  # https://docs.sylabs.io/guides/4.1/user-guide/environment_and_metadata.html#environment-from-the-host
   unset PYTHONPATH
 
   # --no-python is needed when running commands which are not python scripts (e.g., pytest, itwinai)
@@ -134,6 +118,7 @@ mpirun_launcher ()
   # # If you want to explicitly mount host OpenMPI in container use --bind "${OMPI_HOST}":"${OMPI_CONTAINER}"  
 
   # Avoid propagating PYTHONPATH to the singularity container, as it breaks the import of packages inside the container
+  # https://docs.sylabs.io/guides/4.1/user-guide/environment_and_metadata.html#environment-from-the-host
   unset PYTHONPATH
 
   # https://doc.vega.izum.si/mpi/#multi-node-jobs
@@ -149,6 +134,7 @@ mpirun_launcher ()
 srun_launcher ()
 {
   # Avoid propagating PYTHONPATH to the singularity container, as it breaks the import of packages inside the container
+  # https://docs.sylabs.io/guides/4.1/user-guide/environment_and_metadata.html#environment-from-the-host
   unset PYTHONPATH
   
   srun --mpi=pmix_v3 --cpu-bind=none --ntasks-per-node=$SLURM_GPUS_PER_NODE --cpus-per-task=$SLURM_CPUS_PER_GPU --ntasks=$(($SLURM_GPUS_PER_NODE * $SLURM_NNODES)) \
@@ -164,6 +150,37 @@ decho ()
   echo "$@"
   >&2 echo "$@"
 }
+
+
+######################   Initial checks   ######################
+
+# Env vairables check
+if [ -z "$DIST_MODE" ]; then 
+  >&2 echo "ERROR: env variable DIST_MODE is not set. Allowed values are 'horovod', 'ddp' or 'deepspeed'"
+  exit 1
+fi
+if [ -z "$RUN_NAME" ]; then 
+  >&2 echo "WARNING: env variable RUN_NAME is not set. It's a way to identify some specific run of an experiment."
+  RUN_NAME=$DIST_MODE
+fi
+if [ -z "$COMMAND" ]; then 
+  >&2 echo "ERROR: env variable COMMAND is not set. It's the python command to execute."
+  exit 1
+fi
+if [ -z "$CONTAINER_PATH" ]; then 
+  >&2 echo "WARNING: env variable CONTAINER_PATH is not set. It's the path to a singularity container."
+  exit 1
+fi
+
+# OpenMPI version
+HOST_OMPI_V="$(ompi_info --parsable | grep ompi:version:full: |  cut -d':' -f4 | cut -d'.' -f1,2)"
+CONTAINER_OMPI_V="$(singularity exec $CONTAINER_PATH ompi_info --parsable | grep ompi:version:full: |  cut -d':' -f4 | cut -d'.' -f1,2)"
+
+if [ "$HOST_OMPI_V" != "$CONTAINER_OMPI_V" ]; then
+  >&2 echo "ERROR: Host OpenMPI minor version ($HOST_OMPI_V) does not match with container's OpenMPI minor version ($CONTAINER_OMPI_V). This may cause problems." 
+  exit 1
+fi
+echo -e "\nHost and container's OpenMPI minor versions match: ($HOST_OMPI_V) - ($CONTAINER_OMPI_V)\n" 
 
 # Get GPUs info per node
 srun --cpu-bind=none --ntasks-per-node=1 bash -c 'echo -e "NODE hostname: $(hostname)\n$(nvidia-smi)\n\n"'
