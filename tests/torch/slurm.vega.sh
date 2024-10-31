@@ -59,26 +59,23 @@ if [ -z "$RUN_NAME" ]; then
   >&2 echo "WARNING: env variable RUN_NAME is not set. It's a way to identify some specific run of an experiment."
   RUN_NAME=$DIST_MODE
 fi
-if [ -z "$TRAINING_CMD" ]; then 
-  >&2 echo "ERROR: env variable TRAINING_CMD is not set. It's the python command to execute."
+if [ -z "$COMMAND" ]; then 
+  >&2 echo "ERROR: env variable COMMAND is not set. It's the python command to execute."
   exit 1
 fi
-if [ -z "$PYTHON_VENV" ]; then 
-  >&2 echo "WARNING: env variable PYTHON_VENV is not set. It's the path to a python virtual environment."
-else
-  # Activate Python virtual env
-  source $PYTHON_VENV/bin/activate
+if [ -z "$CONTAINER_PATH" ]; then 
+  >&2 echo "WARNING: env variable CONTAINER_PATH is not set. It's the path to a singularity container."
+  exit 1
 fi
 
-# Get GPUs info per node
-srun --cpu-bind=none --ntasks-per-node=1 bash -c 'echo -e "NODE hostname: $(hostname)\n$(nvidia-smi)\n\n"'
+# Launch distributed job in container with torchrun
+torchrun_launcher ()
+{
+  unset PYTHONPATH
 
-# Launch training
-if [ "$DIST_MODE" == "ddp" ] ; then
-  echo "DDP training: $TRAINING_CMD"
-
-  # singularity exec --nv $CONTAINER_PATH /bin/bash -c "torchrun \
-  # bash -c "torchrun \
+  # --no-python is needed when running commands which are not python scripts (e.g., pytest, itwinai)
+  # --redirects=\$(((SLURM_NODEID)) && echo "3" || echo "1:3,2:3,3:3"): redirect stdout and stderr to 
+  # torchrun logs dir for workers having rank !=0 
   srun --cpu-bind=none --ntasks-per-node=1 \
     singularity exec --nv $CONTAINER_PATH /bin/bash -c "torchrun \
     --log_dir='logs_torchrun' \
@@ -91,84 +88,16 @@ if [ "$DIST_MODE" == "ddp" ] ; then
     --rdzv_endpoint=$(scontrol show hostnames "$SLURM_JOB_NODELIST" | head -n 1):29500 \
     --no-python \
     --redirects=\$(((SLURM_NODEID)) && echo "3" || echo "1:3,2:3,3:3") \
-    $TRAINING_CMD"
+    ${1}"
+}
 
-elif [ "$DIST_MODE" == "deepspeed" ] ; then
-
-  # Test deepspeed with torchrun
-  srun --cpu-bind=none --ntasks-per-node=1 \
-    singularity exec --nv $CONTAINER_PATH /bin/bash -c "torchrun \
-    --log_dir='logs_torchrun' \
-    --nnodes=$SLURM_NNODES \
-    --nproc_per_node=$SLURM_GPUS_PER_NODE \
-    --node-rank=$SLURM_NODEID \
-    --rdzv_id=$SLURM_JOB_ID \
-    --rdzv_conf=is_host=\$(((SLURM_NODEID)) && echo 0 || echo 1) \
-    --rdzv_backend=c10d \
-    --rdzv_endpoint=$(scontrol show hostnames "$SLURM_JOB_NODELIST" | head -n 1):29500 \
-    --no-python \
-    --redirects=\$(((SLURM_NODEID)) && echo "3" || echo "1:3,2:3,3:3") \
-    $TRAINING_CMD"
-
-  # # Test deepspeed with MPIRUN
-  # # Get the node list from Slurm
-  # NODELIST=$(scontrol show hostnames "$SLURM_NODELIST")
-  # SLOTS_PER_NODE=${SLURM_GPUS_PER_NODE:-1}
-
-  # # Create the string for horovodrun format, e.g., "node1:4,node2:4,..."
-  # HOSTFILE=""
-  # for NODE in $NODELIST; do
-  #     if [ -z "$HOSTFILE" ]; then
-  #         # First node, no comma
-  #         HOSTFILE="$NODE:$SLOTS_PER_NODE"
-  #     else
-  #         # Subsequent nodes, prepend comma
-  #         HOSTFILE="$HOSTFILE,$NODE:$SLOTS_PER_NODE"
-  #     fi
-  # done
-
-  # # Display the generated hostfile (optional)
-  # echo "Generated host string: $HOSTFILE"
-
-  # # Calculate the total number of processes (GPUs in this case)
-  # TOTAL_PROCESSES=$(($SLURM_GPUS_PER_NODE * $SLURM_NNODES))
-
-  # # Calculate the total number of processes (GPUs in this case)
-  # echo "SLURM_GPUS_PER_NODE: $SLURM_GPUS_PER_NODE"
-  # echo "SLURM_NNODES: $SLURM_NNODES"
-  # echo "TOTAL_MPI_PROCESSES: $TOTAL_PROCESSES"
-  # echo "SLURM_CPUS_PER_GPU: $SLURM_CPUS_PER_GPU"
-  # echo
-
+# Launch distribtued job in container with mpirun
+mpirun_launcher ()
+{
   # https://doc.vega.izum.si/mpi/#multi-node-jobs
   export UCX_TLS=self,sm,rc,ud
   export OMPI_MCA_PML="ucx"
   export OMPI_MCA_osc="ucx"
-
-  # echo "Run itwinai's pytest with MPIRUN (no mount)"
-  # >&2 echo "Run itwinai's pytest with MPIRUN"
-  
-  # unset PYTHONPATH # Avoid propagating PYTHONPATH to the singularity container, as it breaks the import of packages inside the container
-  #   #  --bind "${OMPI_HOST}":"${OMPI_CONTAINER}" \
-  # mpirun -H $HOSTFILE -np $TOTAL_PROCESSES --oversubscribe -mca pml ucx -mca btl ^uct,tcp,openib,vader --bind-to core  \
-  #   singularity exec --nv  \
-  #   $CONTAINER_PATH /bin/bash -c \
-  #   'echo "Rank: $OMPI_COMM_WORLD_RANK, lrank: $OMPI_COMM_WORLD_LOCAL_RANK, Size: $OMPI_COMM_WORLD_SIZE" &&  \
-  #   if [ $OMPI_COMM_WORLD_RANK  -ne 0 ]; then exec > /dev/null 2>&1; fi; exec python -m $TRAINING_CMD'
-
-  echo "Run itwinai's pytest with SRUN (no mount)"
-  >&2 echo "Run itwinai's pytest with SRUN"
-  unset PYTHONPATH # Avoid propagating PYTHONPATH to the singularity container, as it breaks the import of packages inside the container
-  srun --mpi=pmix_v3 --cpu-bind=none --ntasks-per-node=$SLURM_GPUS_PER_NODE --cpus-per-task=$SLURM_CPUS_PER_GPU --ntasks=$(($SLURM_GPUS_PER_NODE * $SLURM_NNODES)) \
-    singularity exec --nv \
-    $CONTAINER_PATH /bin/bash -c \
-    'if [ $SLURM_PROCID  -ne 0 ]; then exec > /dev/null 2>&1; fi; exec python -m $TRAINING_CMD'
-
-elif [ "$DIST_MODE" == "horovod" ] ; then
-  # echo "Horovod is not currently supported in conjuction with containers"
-  # exit 2
-
-  echo "HOROVOD training: $TRAINING_CMD"
 
   # Get the node list from Slurm
   NODELIST=$(scontrol show hostnames "$SLURM_NODELIST")
@@ -199,175 +128,77 @@ elif [ "$DIST_MODE" == "horovod" ] ; then
   echo "SLURM_CPUS_PER_GPU: $SLURM_CPUS_PER_GPU"
   echo
 
+  # # Get OpenMPI installation prefixes (locally and in container)
+  # OMPI_CONTAINER="$(singularity exec ${CONTAINER_PATH} /bin/bash -c 'ompi_info' | grep Prefix | awk '{ print $2 }')"
+  # OMPI_HOST="$(ompi_info | grep Prefix | awk '{ print $2 }')"
+  # # If you want to explicitly mount host OpenMPI in container use --bind "${OMPI_HOST}":"${OMPI_CONTAINER}"  
+
+  # Avoid propagating PYTHONPATH to the singularity container, as it breaks the import of packages inside the container
+  unset PYTHONPATH
+
   # https://doc.vega.izum.si/mpi/#multi-node-jobs
-  export UCX_TLS=self,sm,rc,ud
-  export OMPI_MCA_PML="ucx"
-  export OMPI_MCA_osc="ucx"
+  # "if [ $OMPI_COMM_WORLD_RANK  -ne 0 ]; then exec > /dev/null 2>&1; fi; exec" redirects stdout and stderr of ranks != 0
+  mpirun -H "${HOSTFILE}" -np $TOTAL_PROCESSES --oversubscribe -mca pml ucx -mca btl ^uct,tcp,openib,vader --bind-to core  \
+    singularity exec --nv  \
+    "${CONTAINER_PATH}" /bin/bash -c \
+    'echo "Rank: $OMPI_COMM_WORLD_RANK, lrank: $OMPI_COMM_WORLD_LOCAL_RANK, Size: $OMPI_COMM_WORLD_SIZE" &&  \
+    if [ $OMPI_COMM_WORLD_RANK  -ne 0 ]; then exec > /dev/null 2>&1; fi; exec '"${1}"
+}
 
-
-  # # This fails because it does not find enough slots
-  # horovodrun -H $HOSTFILE -np $TOTAL_PROCESSES \
-  #   python -m pytest -vs -m mpirun test_distribtued.py
-
-  # # It works
-  # mpirun -H $HOSTFILE -np $TOTAL_PROCESSES --oversubscribe \
-  #   python -m pytest -vs -m mpirun test_distribtued.py
+# Launch distribtued job in container with srun
+srun_launcher ()
+{
+  # Avoid propagating PYTHONPATH to the singularity container, as it breaks the import of packages inside the container
+  unset PYTHONPATH
   
-  # # It works and allows to suppress output from workers having rank != 0
-  # mpirun -H $HOSTFILE -np $TOTAL_PROCESSES --oversubscribe \
-  #   bash -c 'if [ $OMPI_COMM_WORLD_RANK -ne 0 ]; then exec > /dev/null 2>&1; fi; exec python -m pytest -vs -m mpirun '
-  
-  # # It works as well
-  # srun --cpu-bind=none --ntasks-per-node=$SLURM_GPUS_PER_NODE --cpus-per-task=$SLURM_CPUS_PER_GPU --ntasks=$(($SLURM_GPUS_PER_NODE * $SLURM_NNODES)) \
-  #   python -m pytest -vs -m mpirun test_distribtued.py
-
-  # # It works as well and suppresses output
-  # srun --cpu-bind=none --ntasks-per-node=$SLURM_GPUS_PER_NODE --cpus-per-task=$SLURM_CPUS_PER_GPU --ntasks=$(($SLURM_GPUS_PER_NODE * $SLURM_NNODES)) \
-  #   bash -c 'if [ $SLURM_PROCID  -ne 0 ]; then exec > /dev/null 2>&1; fi; exec python -m $TRAINING_CMD'
-
-  # echo "Test MPI setup on mpibench using SRUN (no container)"
-  # >&2 echo "Test MPI setup on mpibench using SRUN"
-  # srun --mpi=pmix_v3 --cpu-bind=none --ntasks-per-node=$SLURM_GPUS_PER_NODE --cpus-per-task=$SLURM_CPUS_PER_GPU --ntasks=$(($SLURM_GPUS_PER_NODE * $SLURM_NNODES)) \
-  #   ./mpibench
-
-
-  #   >&2 echo "Test MPI setup on mpibench using MPIRUN (no container)"
-  #  echo "Test MPI setup on mpibench using MPIRUN"
-  # mpirun -H $HOSTFILE -np $TOTAL_PROCESSES --oversubscribe -mca pml ucx -mca btl ^uct,tcp,openib,vader --bind-to core \
-  #   ./mpibench
-
-  #############################################
-  # Container
-
-  # # TODO: try to remove this block from the web...
-  # export OMPI_MCA_btl="^openib"
-  # export OMPI_MCA_orte_keep_fqdn_hostnames="true"
-
-  OMPI_CONTAINER="$(singularity exec ${CONTAINER_PATH} /bin/bash -c 'ompi_info' | grep Prefix | awk '{ print $2 }')"
-  OMPI_HOST="$(ompi_info | grep Prefix | awk '{ print $2 }')"
-
-  # echo "Test container setup on mpibench using SRUN"
-  # >&2 echo "Test container setup on mpibench using SRUN"
-  # srun --mpi=pmix_v3 --cpu-bind=none --ntasks-per-node=$SLURM_GPUS_PER_NODE --cpus-per-task=$SLURM_CPUS_PER_GPU --ntasks=$(($SLURM_GPUS_PER_NODE * $SLURM_NNODES)) \
-  #   singularity exec --nv \
-  #   $CONTAINER_PATH ./mpibench
-
-  # # NOTE: this is causing PMIx errors: "PMIX ERROR: ERROR in file gds_ds12_lock_pthread.c at line 168"
-  # >&2 echo "Test container setup on mpibench mounting host libs inside the container using SRUN"
-  # echo "Test container setup on mpibench mounting host libs inside the container using SRUN"
-  # srun --mpi=pmix_v3 --cpu-bind=none --ntasks-per-node=$SLURM_GPUS_PER_NODE --cpus-per-task=$SLURM_CPUS_PER_GPU --ntasks=$(($SLURM_GPUS_PER_NODE * $SLURM_NNODES)) \
-  #   singularity exec --nv \
-  #   --bind "${OMPI_HOST}":"${OMPI_CONTAINER}" \
-  #   $CONTAINER_PATH ./mpibench
-
-  # # NOTE: this may cause PMIx problems as above
-  # echo "Run itwinai's pytest with SRUN"
-  # >&2 echo "Run itwinai's pytest with SRUN"
-  # # pmix_v3: https://doc.vega.izum.si/mpi/#multi-node-jobs
-  # srun --mpi=pmix_v3 --cpu-bind=none --ntasks-per-node=$SLURM_GPUS_PER_NODE --cpus-per-task=$SLURM_CPUS_PER_GPU --ntasks=$(($SLURM_GPUS_PER_NODE * $SLURM_NNODES)) \
-  #   singularity exec --nv \
-  #   --bind "${OMPI_HOST}":"${OMPI_CONTAINER}" \
-  #   $CONTAINER_PATH /bin/bash -c \
-  #   'if [ $SLURM_PROCID  -ne 0 ]; then exec > /dev/null 2>&1; fi; exec python -m $TRAINING_CMD'
-
-
-  ######
-  # mpirun container
-
-  # >&2 echo "Test container setup on mpibench using MPIRUN"
-  #  echo "Test container setup on mpibench using MPIRUN"
-  # mpirun -H $HOSTFILE -np $TOTAL_PROCESSES --oversubscribe -mca pml ucx -mca btl ^uct,tcp,openib,vader --bind-to core \
-  #   singularity exec --nv \
-  #   $CONTAINER_PATH ./mpibench
-
-  # >&2 echo "Test container setup on mpibench mounting host libs inside the container using MPIRUN"
-  #  echo "Test container setup on mpibench mounting host libs inside the container using MPIRUN"
-  # mpirun -H $HOSTFILE -np $TOTAL_PROCESSES --oversubscribe -mca pml ucx -mca btl ^uct,tcp,openib,vader --bind-to core \
-  #   singularity exec --nv \
-  #   --bind "${OMPI_HOST}":"${OMPI_CONTAINER}" \
-  #   $CONTAINER_PATH ./mpibench
-
-  echo
-  echo "PATH: $PATH"
-  echo "LD_LIBRARY_PATH: $LD_LIBRARY_PATH"
-  echo
-
-  # # This is working for deepspeed in a container with mpirun (single node)
-  # echo "Run itwinai's pytest with MPIRUN (no mount)"
-  # >&2 echo "Run itwinai's pytest with MPIRUN"
-  
-  # unset PYTHONPATH # Avoid propagating PYTHONPATH to the singularity container, as it breaks the import of packages
-  
-  # mpirun -H $HOSTFILE -np $TOTAL_PROCESSES --oversubscribe -mca pml ucx -mca btl ^uct,tcp,openib,vader --bind-to core  \
-  #   -x HOROVOD_LOG_LEVEL=DEBUG -x HOROVOD_CYCLE_TIME=0.1  \
-  #   singularity exec --nv  \
-  #   $CONTAINER_PATH /bin/bash -c \
-  #   'echo "Rank: $OMPI_COMM_WORLD_RANK, lrank: $OMPI_COMM_WORLD_LOCAL_RANK, Size: $OMPI_COMM_WORLD_SIZE" &&  \
-  #   if [ $OMPI_COMM_WORLD_RANK  -ne 0 ]; then exec > /dev/null 2>&1; fi; exec python -m $TRAINING_CMD'
-
-
-  # # This is working for deepspeed in a container with mpirun (single and multi node)
-  # echo "Run itwinai's pytest with MPIRUN (no mount)"
-  # >&2 echo "Run itwinai's pytest with MPIRUN"
-  
-  # unset PYTHONPATH # Avoid propagating PYTHONPATH to the singularity container, as it breaks the import of packages
-  #   #  --bind "${OMPI_HOST}":"${OMPI_CONTAINER}" \
-  # mpirun -H $HOSTFILE -np $TOTAL_PROCESSES --oversubscribe -mca pml ucx -mca btl ^uct,tcp,openib,vader --bind-to core  \
-  #   -x HOROVOD_LOG_LEVEL=DEBUG -x HOROVOD_CYCLE_TIME=0.1  \
-  #   singularity exec --nv  \
-  #   $CONTAINER_PATH /bin/bash -c \
-  #   'echo "Rank: $OMPI_COMM_WORLD_RANK, lrank: $OMPI_COMM_WORLD_LOCAL_RANK, Size: $OMPI_COMM_WORLD_SIZE" &&  \
-  #   if [ $OMPI_COMM_WORLD_RANK  -ne 0 ]; then exec > /dev/null 2>&1; fi; exec python -m $TRAINING_CMD'
-
-
-  # ##########################################################
-  # # This is working for deepspeed in a container with mpirun (single and multi node)
-  # # This also works for horovod on single and multi node
-  # echo "Run itwinai's pytest with MPIRUN (no mount)"
-  # >&2 echo "Run itwinai's pytest with MPIRUN"
-  
-  # unset PYTHONPATH # Avoid propagating PYTHONPATH to the singularity container, as it breaks the import of packages inside the container
-  #   #  --bind "${OMPI_HOST}":"${OMPI_CONTAINER}" \
-  # mpirun -H $HOSTFILE -np $TOTAL_PROCESSES --oversubscribe -mca pml ucx -mca btl ^uct,tcp,openib,vader --bind-to core  \
-  #   -x HOROVOD_LOG_LEVEL=DEBUG -x HOROVOD_CYCLE_TIME=0.1  \
-  #   singularity exec --nv  \
-  #   $CONTAINER_PATH /bin/bash -c \
-  #   'echo "Rank: $OMPI_COMM_WORLD_RANK, lrank: $OMPI_COMM_WORLD_LOCAL_RANK, Size: $OMPI_COMM_WORLD_SIZE" &&  \
-  #   if [ $OMPI_COMM_WORLD_RANK  -ne 0 ]; then exec > /dev/null 2>&1; fi; exec python -m $TRAINING_CMD'
-  # #####################################################################
-
-  echo "Run itwinai's pytest with SRUN (no mount)"
-  >&2 echo "Run itwinai's pytest with SRUN"
-  unset PYTHONPATH # Avoid propagating PYTHONPATH to the singularity container, as it breaks the import of packages inside the container
   srun --mpi=pmix_v3 --cpu-bind=none --ntasks-per-node=$SLURM_GPUS_PER_NODE --cpus-per-task=$SLURM_CPUS_PER_GPU --ntasks=$(($SLURM_GPUS_PER_NODE * $SLURM_NNODES)) \
     singularity exec --nv \
     $CONTAINER_PATH /bin/bash -c \
-    'if [ $SLURM_PROCID  -ne 0 ]; then exec > /dev/null 2>&1; fi; exec python -m $TRAINING_CMD'
+    'echo "Rank: $SLURM_PROCID" && \
+    if [ $SLURM_PROCID  -ne 0 ]; then exec > /dev/null 2>&1; fi; exec '"${1}"
+}
 
-  # # This hangs forever on gather ops
-  # echo "Run itwinai's pytest with MPIRUN"
-  # >&2 echo "Run itwinai's pytest with MPIRUN"
-  # mpirun -H $HOSTFILE -np $TOTAL_PROCESSES --oversubscribe -mca pml ucx -mca btl ^uct,tcp,openib,vader --bind-to core  \
-  #   singularity exec --nv \
-  #   --bind "${OMPI_HOST}":"${OMPI_CONTAINER}" \
-  #   $CONTAINER_PATH /bin/bash -c \
-  #   'if [ $OMPI_COMM_WORLD_RANK  -ne 0 ]; then exec > /dev/null 2>&1; fi; exec python -m $TRAINING_CMD'
+# Dual echo on both stdout and stderr
+decho ()
+{
+  echo "$@"
+  >&2 echo "$@"
+}
 
-  
-  
-  ################################ LOGIN NODE ################################
-  exit
+# Get GPUs info per node
+srun --cpu-bind=none --ntasks-per-node=1 bash -c 'echo -e "NODE hostname: $(hostname)\n$(nvidia-smi)\n\n"'
 
-  mpirun -np 1 singularity exec --nv --hostname $(hostname) \
-    $CONTAINER_PATH /bin/bash -c \
-    'echo "Rank: $OMPI_COMM_WORLD_RANK, lrank: $OMPI_COMM_WORLD_LOCAL_RANK, Size: $OMPI_COMM_WORLD_SIZE" && unset PYTHONPATH && \
-    if [ $OMPI_COMM_WORLD_RANK  -ne 0 ]; then exec > /dev/null 2>&1; fi; exec python -m pytest -m mpirun'
-  
+# Print env variables
+echo "RUN_NAME: $RUN_NAME"
+echo "DIST_MODE: $DIST_MODE"
+echo "CONTAINER_PATH: $CONTAINER_PATH"
+echo "COMMAND: $COMMAND"
 
-  # # Other
-  # srun --cpu-bind=none --ntasks-per-node=$SLURM_GPUS_PER_NODE --cpus-per-task=$SLURM_CPUS_PER_GPU \
-  #   singularity run --nv $CONTAINER_PATH \
-  #   /bin/bash -c "$TRAINING_CMD"
+######################   Execute command   ######################
+
+if [ "${DIST_MODE}" == "ddp" ] ; then
+
+  decho -e "\nLaunching DDP strategy with torchrun"
+  torchrun_launcher "${COMMAND}"
+
+elif [ "${DIST_MODE}" == "deepspeed" ] ; then
+
+  decho -e "\nLaunching DeepSpeed strategy with torchrun"
+  torchrun_launcher "${COMMAND}"
+
+  decho -e "\nLaunching DeepSpeed strategy with mpirun"
+  mpirun_launcher "python -m ${COMMAND}"
+
+  decho -e "\nLaunching DeepSpeed strategy with srun"
+  srun_launcher "python -m ${COMMAND}"
+
+elif [ "${DIST_MODE}" == "horovod" ] ; then
+
+  decho -e "\nLaunching Horovod strategy with mpirun"
+  mpirun_launcher "python -m ${COMMAND}"
+
+  decho -e "\nLaunching Horovod strategy with srun"
+  srun_launcher "python -m ${COMMAND}"
 
 else
   >&2 echo "ERROR: unrecognized \$DIST_MODE env variable"
