@@ -162,7 +162,7 @@ class BaseTestDistributedStrategy:
 
 
 @pytest.mark.hpc
-@pytest.mark.torchrun
+@pytest.mark.torch_dist
 class TestTorchDDPStrategy(BaseTestDistributedStrategy):
     @pytest.fixture(scope='module')
     def strategy(self, ddp_strategy) -> TorchDDPStrategy:
@@ -196,8 +196,7 @@ class TestTorchDDPStrategy(BaseTestDistributedStrategy):
 
 
 @pytest.mark.hpc
-@pytest.mark.torchrun
-@pytest.mark.mpirun
+@pytest.mark.deepspeed_dist
 class TestDeepSpeedStrategy(BaseTestDistributedStrategy):
     @pytest.fixture(scope='module')
     def strategy(self, deepspeed_strategy) -> DeepSpeedStrategy:
@@ -249,9 +248,8 @@ class TestDeepSpeedStrategy(BaseTestDistributedStrategy):
         assert isinstance(dist_optimizer, Optimizer)
 
 
-@pytest.mark.skip
 @pytest.mark.hpc
-@pytest.mark.mpirun
+@pytest.mark.horovod_dist
 class TestHorovodStrategy(BaseTestDistributedStrategy):
     @pytest.fixture(scope='module')
     def strategy(self, horovod_strategy) -> HorovodStrategy:
