@@ -1,12 +1,12 @@
-import pytest
-
+import logging
 import os
-from torch import nn
+
+import pytest
 import torch.nn.functional as F
-from torchvision import transforms, datasets
+from torch import nn
+from torchvision import datasets, transforms
 
 from itwinai.torch.trainer import TorchTrainer
-import logging
 
 MNIST_PATH = "mnist_dataset"
 

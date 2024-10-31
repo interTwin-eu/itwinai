@@ -1,6 +1,7 @@
 import pytest
-from itwinai.torch.config import TrainingConfiguration
 from pydantic import ValidationError
+
+from itwinai.torch.config import TrainingConfiguration
 
 
 def test_values_parsing():
