@@ -395,8 +395,10 @@ class TorchDDPStrategy(TorchDistributedStrategy):
             DistributedStrategyError: when trying to initialize a strategy
                 which is already initialized.
         """
-        if not distributed_resources_available():
-            raise RuntimeError("Trying to run distributed on insufficient resources.")
+        force_dist_env = int(os.environ.get('ITWINAI_FORCE_DIST', '0'))
+        if not distributed_resources_available() and not force_dist_env:
+            raise RuntimeError(
+                "Trying to run distributed on insufficient resources.")
         if self.is_initialized:
             raise DistributedStrategyError("Strategy was already initialized")
         dist.init_process_group(backend=self.backend)
@@ -563,8 +565,10 @@ class DeepSpeedStrategy(TorchDistributedStrategy):
         import deepspeed
 
         self.deepspeed = deepspeed
-        if not distributed_resources_available():
-            raise RuntimeError("Trying to run distributed on insufficient resources.")
+        force_dist_env = int(os.environ.get('ITWINAI_FORCE_DIST', '0'))
+        if not distributed_resources_available() and not force_dist_env:
+            raise RuntimeError(
+                "Trying to run distributed on insufficient resources.")
 
         if self.is_initialized:
             raise DistributedStrategyError("Strategy was already initialized")
@@ -732,8 +736,10 @@ class HorovodStrategy(TorchDistributedStrategy):
             DistributedStrategyError: when trying to initialize a strategy
                 already initialized.
         """
-        if not distributed_resources_available():
-            raise RuntimeError("Trying to run distributed on insufficient resources.")
+        force_dist_env = int(os.environ.get('ITWINAI_FORCE_DIST', '0'))
+        if not distributed_resources_available() and not force_dist_env:
+            raise RuntimeError(
+                "Trying to run distributed on insufficient resources.")
         if self.is_initialized:
             raise DistributedStrategyError("Strategy was already initialized")
 
