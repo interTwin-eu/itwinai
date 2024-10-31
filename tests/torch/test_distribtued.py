@@ -1,21 +1,22 @@
 """Test distributed training strategies."""
 
-from torch.optim import SGD
-from torch.nn import Linear
+from typing import Any
+from unittest.mock import patch
+
 import pytest
 import torch
-from itwinai.torch.distributed import (
-    TorchDistributedStrategy,
-    TorchDDPStrategy,
-    DeepSpeedStrategy,
-    HorovodStrategy
-)
-from unittest.mock import patch
-from itwinai.torch.type import UninitializedStrategyError, DistributedStrategyError
-from torch.utils.data import Dataset, DataLoader, DistributedSampler
 import torch.nn as nn
-from torch.optim import Optimizer
-from typing import Any
+from torch.nn import Linear
+from torch.optim import SGD, Optimizer
+from torch.utils.data import DataLoader, Dataset, DistributedSampler
+
+from itwinai.torch.distributed import (
+    DeepSpeedStrategy,
+    HorovodStrategy,
+    TorchDDPStrategy,
+    TorchDistributedStrategy,
+)
+from itwinai.torch.type import DistributedStrategyError, UninitializedStrategyError
 
 
 class DummyDataset(Dataset):
