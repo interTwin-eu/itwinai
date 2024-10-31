@@ -13,7 +13,7 @@
 
 # Resources allocation
 #SBATCH --partition=gpu
-#SBATCH --nodes=1
+#SBATCH --nodes=2
 #SBATCH --gpus-per-node=4
 #SBATCH --cpus-per-gpu=4
 #SBATCH --ntasks-per-node=1
