@@ -58,7 +58,7 @@ def mnist_datasets():
 
 
 @pytest.mark.hpc
-@pytest.mark.torchrun
+@pytest.mark.torch_dist
 def test_distributed_trainer_ddp_mnist(mnist_datasets, ddp_strategy):
     """Test TorchTrainer on MNIST with DDP strategy."""
     training_config = dict(
@@ -80,8 +80,7 @@ def test_distributed_trainer_ddp_mnist(mnist_datasets, ddp_strategy):
 
 
 @pytest.mark.hpc
-@pytest.mark.torchrun
-@pytest.mark.mpirun
+@pytest.mark.deepspeed_dist
 def test_distributed_trainer_deepspeed_mnist(mnist_datasets, deepspeed_strategy):
     """Test TorchTrainer on MNIST with DeepSpeed strategy."""
     training_config = dict(
@@ -103,7 +102,7 @@ def test_distributed_trainer_deepspeed_mnist(mnist_datasets, deepspeed_strategy)
 
 
 @pytest.mark.hpc
-@pytest.mark.mpirun
+@pytest.mark.horovod_dist
 def test_distributed_trainer_horovod_mnist(mnist_datasets, horovod_strategy):
     """Test TorchTrainer on MNIST with Horovod strategy."""
     training_config = dict(
