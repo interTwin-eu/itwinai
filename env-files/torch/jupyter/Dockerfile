@@ -141,8 +141,8 @@ RUN apt-get update && apt-get install -y \
 
 # OpenMPI
 WORKDIR /tmp/ompi
-ENV OPENMPI_VERSION=5.0.5 \
-    OPENMPI_MINOR=5.0 
+ENV OPENMPI_VERSION=4.1.6 \
+    OPENMPI_MINOR=4.1 
 ENV OPENMPI_URL="https://download.open-mpi.org/release/open-mpi/v${OPENMPI_MINOR}/openmpi-${OPENMPI_VERSION}.tar.gz" 
 ENV OPENMPI_DIR=/opt/openmpi-${OPENMPI_VERSION} 
 ENV PATH="${OPENMPI_DIR}/bin:${PATH}" 
