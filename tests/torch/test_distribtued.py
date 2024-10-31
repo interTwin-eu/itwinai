@@ -10,7 +10,7 @@ from itwinai.torch.distributed import (
     DeepSpeedStrategy,
     HorovodStrategy
 )
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 from itwinai.torch.type import UninitializedStrategyError, DistributedStrategyError
 from torch.utils.data import Dataset, DataLoader, DistributedSampler
 import torch.nn as nn
@@ -279,25 +279,3 @@ class TestHorovodStrategy(BaseTestDistributedStrategy):
         assert hasattr(dist_optimizer, 'synchronize'), (
             "synchronize() method not found for Horovod optimizer"
         )
-
-# Conftest.py content for distributed test configuration
-
-
-# @pytest.fixture(autouse=True)
-# def cuda_available():
-#     if not torch.cuda.is_available():
-#         pytest.skip("CUDA not available")
-
-
-# def pytest_configure(config):
-#     config.addinivalue_line(
-#         "markers", "distributed: mark test to run only in distributed environment"
-#     )
-
-
-# def pytest_collection_modifyitems(config, items):
-#     if "WORLD_SIZE" not in os.environ or os.environ["WORLD_SIZE"] == "1":
-#         skip_distributed = pytest.mark.skip(reason="need distributed environment to run")
-#         for item in items:
-#             if "distributed" in item.keywords:
-#                 item.add_marker(skip_distributed)
