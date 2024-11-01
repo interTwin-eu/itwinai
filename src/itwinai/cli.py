@@ -60,8 +60,8 @@ def generate_gpu_data_plots(
     """
 
     from itwinai.scalability import (
-        convert_matching_files_to_dataframe,
         backup_scalability_metrics,
+        convert_matching_files_to_dataframe,
     )
     from itwinai.torch.monitoring.plotting import (
         calculate_average_gpu_utilization,
@@ -151,8 +151,8 @@ def generate_communication_plot(
     """
 
     from itwinai.scalability import (
-        convert_matching_files_to_dataframe,
         backup_scalability_metrics,
+        convert_matching_files_to_dataframe,
     )
     from itwinai.torch.profiling.communication_plot import (
         communication_overhead_stacked_bar_plot,
@@ -218,12 +218,11 @@ def generate_scalability_plot(
     the data that was used as a backup file if do_backup is provided.
     """
 
-    from itwinai.scalability import (
-        # archive_data,
+    from itwinai.scalability import (  # archive_data,
+        backup_scalability_metrics,
+        convert_matching_files_to_dataframe,
         create_absolute_plot,
         create_relative_plot,
-        convert_matching_files_to_dataframe,
-        backup_scalability_metrics,
     )
 
     log_dir_path = Path(log_dir)
