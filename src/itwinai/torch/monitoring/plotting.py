@@ -1,3 +1,12 @@
+# --------------------------------------------------------------------------------------
+# Part of the interTwin Project: https://www.intertwin.eu/
+# 
+# Created by: Jarl Sondre Sæther 
+# 
+# Credits: 
+# - Jarl Sondre Sæther <jarl.sondre.saether@cern.ch> - CERN Openlab 
+# --------------------------------------------------------------------------------------
+
 from typing import Tuple
 
 import matplotlib
@@ -128,6 +137,10 @@ def gpu_bar_plot(
     ax.set_xticks(x)
     ax.set_xticklabels(unique_gpu_counts)
     ax.legend(title="Strategy")
+
+    figure_width = int(1.5 * len(unique_gpu_counts))
+    fig.set_figheight(6)
+    fig.set_figwidth(figure_width)
 
     sns.reset_orig()
 

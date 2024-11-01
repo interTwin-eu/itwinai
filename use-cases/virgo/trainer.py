@@ -16,6 +16,8 @@ from itwinai.loggers import EpochTimeTracker, Logger
 from itwinai.torch.config import TrainingConfiguration
 from itwinai.torch.distributed import DeepSpeedStrategy
 from itwinai.torch.trainer import TorchTrainer
+from itwinai.torch.monitoring.monitoring import measure_gpu_utilization
+from itwinai.torch.profiling.profiler import profile_torch_trainer
 
 
 class VirgoTrainingConfiguration(TrainingConfiguration):
@@ -168,6 +170,8 @@ class NoiseGeneratorTrainer(TorchTrainer):
 
         return torch.cat(batch)
 
+    @profile_torch_trainer
+    @measure_gpu_utilization
     def train(self):
         # Start the timer for profiling
         st = timer()

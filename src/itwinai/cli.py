@@ -21,8 +21,8 @@ app = typer.Typer(pretty_exceptions_enable=False)
 
 @app.command()
 def generate_gpu_data_plots(
-    log_dir: str = "scalability-metrics/gpu_energy_data",
-    pattern: str = r"gpu_energy_data.*\.csv$",
+    log_dir: str = "scalability-metrics/gpu-energy-data",
+    pattern: str = r".*\.csv$",
     plot_dir: str = "plots/",
     do_backup: bool = False,
     backup_dir: str = "backup-scalability-metrics/",
@@ -210,12 +210,8 @@ def generate_communication_plot(
 
 @app.command()
 def generate_scalability_plot(
-    pattern: Annotated[
-        str, typer.Option(help="Python pattern matching names of CSVs in sub-folders.")
-    ],
-    log_dir: Annotated[
-        str, typer.Option(help="Directory location for the data files to read")
-    ],
+    pattern: str = "None",
+    log_dir: str = "scalability-metrics/epoch-time",
     plot_title: Annotated[
         Optional[str], typer.Option(help=("Plot name."))
     ] = "scalability_plot",
@@ -223,6 +219,7 @@ def generate_scalability_plot(
         Optional[str],
         typer.Option(help=("Archive name to backup the data, without extension.")),
     ] = None,
+
 ):
     """
     Generate scalability report merging all CSVs containing epoch time

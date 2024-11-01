@@ -1,3 +1,13 @@
+# --------------------------------------------------------------------------------------
+# Part of the interTwin Project: https://www.intertwin.eu/
+# 
+# Created by: Jarl Sondre Sæther 
+# 
+# Credits: 
+# - Jarl Sondre Sæther <jarl.sondre.saether@cern.ch> - CERN Openlab 
+# - Matteo Bunino <matteo.bunino@cern.ch> - CERN Openlab
+# --------------------------------------------------------------------------------------
+
 import glob
 import os
 import shutil
@@ -133,7 +143,7 @@ def create_absolute_plot(avg_epoch_time_df: pd.DataFrame) -> None:
     ax.grid(True)
 
     # Save the plot as an image
-    output_path = Path("absolute_scalability_plot.png")
+    output_path = Path("plots/absolute_scalability_plot.png")
     plt.savefig(output_path)
     print(f"Saving absolute plot to '{output_path.resolve()}'.")
     sns.reset_orig()
@@ -154,7 +164,7 @@ def create_relative_plot(avg_epoch_time_df: pd.DataFrame, gpus_per_node: int = 4
 
     marker_cycle = cycle("ov^s*dXpD.+12348")
     avg_epoch_time_df["num_gpus"] = avg_epoch_time_df["nodes"] * gpus_per_node
-    avg_epoch_time_df["ideal_speedup"] = avg_epoch_time_df["nodes"].astype(float)
+    avg_epoch_time_df["linear_speedup"] = avg_epoch_time_df["nodes"].astype(float)
 
     # Plotting the speedup for each strategy
     strategy_names = sorted(avg_epoch_time_df["name"].unique())
@@ -168,10 +178,10 @@ def create_relative_plot(avg_epoch_time_df: pd.DataFrame, gpus_per_node: int = 4
         marker = next(marker_cycle)
         ax.plot(num_gpus, speedup, marker=marker, lw=1.0, label=strategy, alpha=0.7)
 
-    # Plotting the ideal line
+    # Plotting the linear line
     num_gpus = np.array(avg_epoch_time_df["num_gpus"].unique())
-    ideal_speedup = np.array(avg_epoch_time_df["ideal_speedup"].unique())
-    ax.plot(num_gpus, ideal_speedup, ls="dashed", lw=1.0, c="k", label="ideal")
+    linear_speedup = np.array(avg_epoch_time_df["linear_speedup"].unique())
+    ax.plot(num_gpus, linear_speedup, ls="dashed", lw=1.0, c="k", label="linear speedup")
 
     ax.legend(ncol=1)
     ax.set_xticks(num_gpus)
@@ -186,7 +196,7 @@ def create_relative_plot(avg_epoch_time_df: pd.DataFrame, gpus_per_node: int = 4
     sorted_handles, sorted_labels = zip(*sorted_handles_labels)
     plt.legend(sorted_handles, sorted_labels)
 
-    plot_path = Path("relative_scalability_plot.png")
+    plot_path = Path("plots/relative_scalability_plot.png")
     plt.tight_layout()
     plt.savefig(plot_path, bbox_inches="tight", format="png", dpi=300)
     print(f"Saving relative plot to '{plot_path.resolve()}'.")
