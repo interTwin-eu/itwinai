@@ -58,9 +58,11 @@ def generate_gpu_data_plots(
             used for the plot.
 
     """
-    import uuid
 
-    from itwinai.scalability import convert_matching_files_to_dataframe
+    from itwinai.scalability import (
+        convert_matching_files_to_dataframe,
+        backup_scalability_metrics,
+    )
     from itwinai.torch.monitoring.plotting import (
         calculate_average_gpu_utilization,
         calculate_total_energy_expenditure,
@@ -109,17 +111,13 @@ def generate_gpu_data_plots(
     if not do_backup:
         return
 
-    if experiment_name is None:
-        random_id = str(uuid.uuid4())
-        experiment_name = "exp_" + random_id[:6]
-    if run_name is None:
-        random_id = str(uuid.uuid4())
-        run_name = "run_" + random_id[:6]
-
-    backup_path = Path(backup_dir) / experiment_name / run_name / "gpu_data.csv"
-    backup_path.parent.mkdir(parents=True, exist_ok=True)
-    gpu_data_df.to_csv(backup_path, index=False)
-    print(f"Storing backup file at '{backup_path.resolve()}'.")
+    backup_scalability_metrics(
+        experiment_name=experiment_name,
+        run_name=run_name,
+        backup_dir=backup_dir,
+        metric_df=gpu_data_df,
+        filename="gpu_data.csv",
+    )
 
 
 @app.command()
@@ -127,7 +125,7 @@ def generate_communication_plot(
     log_dir: str = "scalability-metrics/communication-data",
     pattern: str = r"(.+)_(\d+)_(\d+)\.csv$",
     output_file: str = "plots/communication_plot.png",
-    do_backup: bool = True,
+    do_backup: bool = False,
     backup_dir: str = "backup-scalability-metrics/",
     experiment_name: Optional[str] = None,
     run_name: Optional[str] = None,
@@ -151,11 +149,11 @@ def generate_communication_plot(
         run_name: The name of the run to be used when creating a backup of the data
             used for the plot.
     """
-    import uuid
 
-    import matplotlib.pyplot as plt
-
-    from itwinai.scalability import convert_matching_files_to_dataframe
+    from itwinai.scalability import (
+        convert_matching_files_to_dataframe,
+        backup_scalability_metrics,
+    )
     from itwinai.torch.profiling.communication_plot import (
         communication_overhead_stacked_bar_plot,
         get_comp_fraction_full_array,
@@ -187,71 +185,54 @@ def generate_communication_plot(
 
     fig, _ = communication_overhead_stacked_bar_plot(values, strategies, gpu_numbers)
 
-    # TODO: set these dynamically?
-    fig.set_figwidth(8)
-    fig.set_figheight(6)
-
     output_path = Path(output_file)
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
-    plt.savefig(output_path)
+    fig.savefig(output_path)
     print(f"\nSaved computation vs. communication plot at '{output_path.resolve()}'.")
 
     if not do_backup:
         return
 
-    if experiment_name is None:
-        random_id = str(uuid.uuid4())
-        experiment_name = "exp_" + random_id[:6]
-    if run_name is None:
-        random_id = str(uuid.uuid4())
-        run_name = "run_" + random_id[:6]
-
-    backup_path = (
-        Path(backup_dir) / experiment_name / run_name / "communication_plot.csv"
+    backup_scalability_metrics(
+        experiment_name=experiment_name,
+        run_name=run_name,
+        backup_dir=backup_dir,
+        metric_df=communication_df,
+        filename="communication_data.csv",
     )
-    backup_path.parent.mkdir(parents=True, exist_ok=True)
-    communication_df.to_csv(backup_path, index=False)
-    print(f"Storing backup file at '{backup_path.resolve()}'.")
 
 
 @app.command()
 def generate_scalability_plot(
     pattern: str = "None",
     log_dir: str = "scalability-metrics/epoch-time",
-    plot_title: Annotated[
-        Optional[str], typer.Option(help=("Plot name."))
-    ] = "scalability_plot",
-    archive: Annotated[
-        Optional[str],
-        typer.Option(help=("Archive name to backup the data, without extension.")),
-    ] = None,
-):
+    do_backup: bool = False,
+    backup_dir: str = "backup-scalability-metrics/",
+    experiment_name: Optional[str] = None,
+    run_name: Optional[str] = None,
+) -> None:
+    """Creates two scalability plots from measured wall-clock times of an experiment
+    run and saves them to file. Uses pattern to filter out files if given, otherwise
+    it will try to use all files it finds in the given log directory. Will store all
+    the data that was used as a backup file if do_backup is provided.
     """
-    Generate scalability report merging all CSVs containing epoch time
-    records in sub-folders.
-
-    Example:
-
-    >>> itwinai scalability-report --pattern="^epoch.+\\.csv$" --skip-id 0 \\
-    >>>     --plot-title "Some title" --archive archive_name
-
-    """
-    # TODO: add max depth and path different from CWD
 
     from itwinai.scalability import (
-        archive_data,
+        # archive_data,
         create_absolute_plot,
         create_relative_plot,
-        read_scalability_files,
+        convert_matching_files_to_dataframe,
+        backup_scalability_metrics,
     )
 
     log_dir_path = Path(log_dir)
     if pattern.lower() == "none":
         pattern = None
 
-    combined_df, csv_files = read_scalability_files(
-        pattern=pattern, log_dir=log_dir_path
+    expected_columns = {"name", "nodes", "epoch_id", "time"}
+    combined_df = convert_matching_files_to_dataframe(
+        log_dir=log_dir_path, pattern=pattern, expected_columns=expected_columns
     )
     print("Merged CSV:")
     print(combined_df)
@@ -265,12 +246,19 @@ def generate_scalability_plot(
     print("\nAvg over name and nodes:")
     print(avg_time_df.rename(columns=dict(time="avg(time)")))
 
-    plot_png = f"scaling_plot_{plot_title}.png"
     create_absolute_plot(avg_time_df)
     create_relative_plot(avg_time_df)
 
-    if archive is not None:
-        archive_data(archive, csv_files, plot_png, avg_time_df)
+    if not do_backup:
+        return
+
+    backup_scalability_metrics(
+        experiment_name=experiment_name,
+        run_name=run_name,
+        backup_dir=backup_dir,
+        metric_df=combined_df,
+        filename="epoch_time.csv",
+    )
 
 
 @app.command()

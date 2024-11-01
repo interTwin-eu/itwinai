@@ -134,7 +134,7 @@ def communication_overhead_stacked_bar_plot(
 
     # Dynamically adjusting the width of the figure
     figure_width = int(1.5 * len(gpu_numbers))
-    fig.set_figheight(6)
+    fig.set_figheight(5)
     fig.set_figwidth(figure_width)
 
     sns.reset_orig()

@@ -8,13 +8,11 @@
 # - Matteo Bunino <matteo.bunino@cern.ch> - CERN
 # --------------------------------------------------------------------------------------
 
-import glob
-import os
-import shutil
+import uuid
 from itertools import cycle
 from pathlib import Path
 from re import Match, Pattern, compile
-from typing import List, Optional, Tuple, Union
+from typing import Optional, Union
 
 import matplotlib
 import matplotlib.pyplot as plt
@@ -71,42 +69,6 @@ def convert_matching_files_to_dataframe(
         raise ValueError(error_message)
 
     return pd.concat(dataframes)
-
-
-def read_scalability_files(
-    pattern: Optional[str], log_dir: Path
-) -> Tuple[pd.DataFrame, List]:
-    """Iterates over the given ``log_dir`` and collects all files that match the given
-    ``pattern``. If the given pattern is None, it will collect all files in the given
-    directory.
-
-    Returns:
-        pd.DataFrame: A dataframe containing all the data from the .csv files.
-        List: A list containing all the paths of all the files that were used to
-            create the combined dataframe. Mainly used to be able to archive files
-            in the future.
-
-    """
-    all_matching_files = []
-    dataframes = []
-    re_pattern: Optional[Pattern] = None
-    if pattern is not None:
-        re_pattern = compile(pattern)
-
-    for entry in log_dir.iterdir():
-        match: Union[bool, Match] = True
-        if re_pattern is not None:
-            match = re_pattern.search(str(entry))
-
-        if not match:
-            continue
-
-        all_matching_files.append(entry.resolve())
-        df = pd.read_csv(entry)
-        dataframes.append(df)
-
-    combined_df = pd.concat(dataframes)
-    return combined_df, all_matching_files
 
 
 def create_absolute_plot(avg_epoch_time_df: pd.DataFrame) -> None:
@@ -209,37 +171,25 @@ def create_relative_plot(avg_epoch_time_df: pd.DataFrame, gpus_per_node: int = 4
     sns.reset_orig()
 
 
-def archive_data(archive, csv_files, plot_path, avg_times):
-    if "/" in archive:
-        raise ValueError(f"Archive name must NOT contain a path. Received: '{archive}'")
-    if "." in archive:
-        raise ValueError(
-            f"Archive name must NOT contain an extension. Received: '{archive}'"
-        )
-    if os.path.isdir(archive):
-        raise ValueError(f"Folder '{archive}' already exists. Change archive name.")
-    os.makedirs(archive)
-    for csvfile in csv_files:
-        shutil.copyfile(csvfile, os.path.join(archive, os.path.basename(csvfile)))
-    shutil.copyfile(plot_path, os.path.join(archive, plot_path))
-    avg_times.to_csv(os.path.join(archive, "avg_times.csv"), index=False)
-    print("Archived AVG epoch times CSV")
+def backup_scalability_metrics(
+    metric_df: pd.DataFrame,
+    experiment_name: Optional[str],
+    run_name: Optional[str],
+    backup_dir: str,
+    filename: str,
+) -> None:
+    """Stores the data in the given dataframe as a .csv file in its own folder for the
+    experiment name and its own subfolder for the run_name. If these are not provided,
+    then they will be generated randomly using uuid4.
+    """
+    if experiment_name is None:
+        random_id = str(uuid.uuid4())
+        experiment_name = "exp_" + random_id[:6]
+    if run_name is None:
+        random_id = str(uuid.uuid4())
+        run_name = "run_" + random_id[:6]
 
-    # Copy SLURM logs: *.err *.out files
-    if os.path.exists("logs_slurm"):
-        print("Archived SLURM logs")
-        shutil.copytree("logs_slurm", os.path.join(archive, "logs_slurm"))
-    # Copy other SLURM logs
-    for ext in ["*.out", "*.err"]:
-        for file in glob.glob(ext):
-            shutil.copyfile(file, os.path.join(archive, file))
-
-    # Create archive
-    archive_name = shutil.make_archive(
-        base_name=archive,  # archive file name
-        format="gztar",
-        # root_dir='.',
-        base_dir=archive,  # folder path inside archive
-    )
-    shutil.rmtree(archive)
-    print("Archived logs and plot at: ", archive_name)
+    backup_path = Path(backup_dir) / experiment_name / run_name / filename
+    backup_path.parent.mkdir(parents=True, exist_ok=True)
+    metric_df.to_csv(backup_path, index=False)
+    print(f"Storing backup file at '{backup_path.resolve()}'.")
