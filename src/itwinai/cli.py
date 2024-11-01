@@ -6,17 +6,17 @@
 # Credits:
 # - Matteo Bunino <matteo.bunino@cern.ch> - CERN
 # - Jarl Sondre Sæther <jarl.sondre.saether@cern.ch> - CERN
-# 
+#
 # --------------------------------------------------------------------------------------
-# Command-line interface for the itwinai Python library. 
-# Example: 
-# 
+# Command-line interface for the itwinai Python library.
+# Example:
+#
 # >>> itwinai --help
-# 
+#
 # --------------------------------------------------------------------------------------
-# 
-# NOTE: import libraries in the command's function, not here, as having them here will 
-# slow down the CLI commands significantly. 
+#
+# NOTE: import libraries in the command's function, not here, as having them here will
+# slow down the CLI commands significantly.
 
 from pathlib import Path
 from typing import List, Optional
@@ -226,7 +226,6 @@ def generate_scalability_plot(
         Optional[str],
         typer.Option(help=("Archive name to backup the data, without extension.")),
     ] = None,
-
 ):
     """
     Generate scalability report merging all CSVs containing epoch time
