@@ -157,7 +157,7 @@ def generate_communication_plot(
 
     from itwinai.scalability import convert_matching_files_to_dataframe
     from itwinai.torch.profiling.communication_plot import (
-        create_stacked_plot,
+        communication_overhead_stacked_bar_plot,
         get_comp_fraction_full_array,
     )
 
@@ -185,7 +185,7 @@ def generate_communication_plot(
     strategies = sorted(communication_df["strategy"].unique())
     gpu_numbers = sorted(communication_df["num_gpus"].unique(), key=lambda x: int(x))
 
-    fig, _ = create_stacked_plot(values, strategies, gpu_numbers)
+    fig, _ = communication_overhead_stacked_bar_plot(values, strategies, gpu_numbers)
 
     # TODO: set these dynamically?
     fig.set_figwidth(8)

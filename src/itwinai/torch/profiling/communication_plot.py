@@ -64,7 +64,7 @@ def calculate_comp_and_comm_time(df: pd.DataFrame) -> Tuple[float, float]:
     return comp_time, comm_time
 
 
-def create_stacked_plot(
+def communication_overhead_stacked_bar_plot(
     values: np.ndarray, strategy_labels: List, gpu_numbers: List
 ) -> Tuple[Any, Any]:
     """Creates a stacked plot showing values from 0 to 1, where the given value
@@ -145,10 +145,9 @@ def create_stacked_plot(
 def get_comp_fraction_full_array(
     df: pd.DataFrame, print_table: bool = False
 ) -> np.ndarray:
-    """Creates a MxN NumPy array where M is the number of strategies
-    and N is the number of GPU configurations. The strategies are sorted
-    alphabetically and the GPU configurations are sorted in ascending number
-    of GPUs.
+    """Creates a MxN NumPy array where M is the number of strategies and N is the
+    number of GPU configurations. The strategies are sorted alphabetically and the GPU
+    configurations are sorted in ascending number of GPUs.
     """
     unique_num_gpus = sorted(df["num_gpus"].unique(), key=lambda x: int(x))
     unique_strategies = sorted(df["strategy"].unique())
@@ -165,8 +164,7 @@ def get_comp_fraction_full_array(
 
             row_string = f"{strategy:>12} | {num_gpus:>10}"
 
-            # Allows asymmetric testing, i.e. not testing all num gpus and all
-            # strategies together
+            # Allows some strategies or num GPUs to not be included
             if len(filtered_df) == 0:
                 comp_time, comm_time = np.NaN, np.NaN
                 strategy_values.append(np.NaN)
