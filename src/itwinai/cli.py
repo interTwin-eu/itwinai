@@ -3,7 +3,7 @@
 #
 # Created by: Matteo Bunino
 #
-# Credits:
+# Credit:
 # - Matteo Bunino <matteo.bunino@cern.ch> - CERN
 # - Jarl Sondre Sæther <jarl.sondre.saether@cern.ch> - CERN
 #
