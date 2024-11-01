@@ -78,13 +78,13 @@ def create_stacked_plot(
             the GPU numbers in 'gpu_numbers' sorted numerically in ascending order.
     """
     sns.set_theme()
+    color_map = plt.get_cmap("tab10")
+    hatch_patterns = ["//", r"\\"]
 
     strategy_labels = sorted(strategy_labels)
     gpu_numbers = sorted(gpu_numbers, key=lambda x: int(x))
 
     width = 1 / (len(strategy_labels) + 1)
-    comp_color = "lightblue"
-    comm_color = "lightgreen"
     complements = 1 - values
 
     x = np.arange(len(gpu_numbers))
@@ -95,56 +95,50 @@ def create_stacked_plot(
     for strategy_idx in range(len(strategy_labels)):
         dynamic_bar_offset = strategy_idx - static_offset
 
+        color = color_map(strategy_idx % 10)
+        hatch = hatch_patterns[strategy_idx % 2]
+
         ax.bar(
             x=x + dynamic_bar_offset * width,
             height=values[strategy_idx],
             width=width,
-            color=comp_color,
+            color=color,
+            label=strategy_labels[strategy_idx],
+            edgecolor="gray",
+            linewidth=0.6,
         )
         ax.bar(
             x=x + dynamic_bar_offset * width,
             height=complements[strategy_idx],
             width=width,
             bottom=values[strategy_idx],
-            color=comm_color,
+            facecolor="none",
+            edgecolor="gray",
+            alpha=0.8,
+            linewidth=0.6,
+            hatch=hatch,
         )
 
-        # Positioning the labels under the stacks
-        for gpu_idx in range(len(gpu_numbers)):
-            if np.isnan(values[strategy_idx, gpu_idx]):
-                continue
-            dynamic_label_offset = strategy_idx - static_offset
-            ax.text(
-                x=x[gpu_idx] + dynamic_label_offset * width,
-                y=-0.1,
-                s=strategy_labels[strategy_idx],
-                ha="center",
-                va="top",
-                fontsize=10,
-                rotation=60,
-            )
-
     ax.set_ylabel("Computation fraction")
+    ax.set_xlabel("Number of GPUs")
     ax.set_title("Computation vs Communication Time by Method")
     ax.set_xticks(x)
     ax.set_xticklabels(gpu_numbers)
-    ax.set_ylim(0, 1)
+    ax.set_ylim(0, 1.1)
 
-    # Setting the appropriate colors since the legend is manual
-    legend_elements = [
-        Patch(facecolor=comm_color, label="Communication"),
-        Patch(facecolor=comp_color, label="Computation"),
-    ]
-
-    # Positioning the legend outside of the plot to not obstruct it
-    ax.legend(
-        handles=legend_elements,
-        loc="upper left",
-        bbox_to_anchor=(0.80, 1.22),
-        borderaxespad=0.0,
+    # Adding communication time to the legend
+    hatch_patch = Patch(
+        facecolor="none", edgecolor="gray", hatch="//", label="Communication"
     )
-    fig.subplots_adjust(bottom=0.25)
-    fig.subplots_adjust(top=0.85)
+    ax.legend(handles=ax.get_legend_handles_labels()[0] + [hatch_patch])
+
+    # Dynamically adjusting the width of the figure
+    figure_width = int(1.5 * len(gpu_numbers))
+    fig.set_figheight(6)
+    fig.set_figwidth(figure_width)
+
+    sns.reset_orig()
+
     return fig, ax
 
 

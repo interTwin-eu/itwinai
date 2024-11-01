@@ -34,9 +34,9 @@ def profile_torch_trainer(method: Callable) -> Callable:
                 {
                     "name": event.key,
                     "node_id": event.node_id,
-                    "self_cpu_time_total": event.self_cpu_time_total,
-                    "cpu_time_total": event.cpu_time_total,
-                    "cpu_time_total_str": event.cpu_time_total_str,
+                    # "self_cpu_time_total": event.self_cpu_time_total,
+                    # "cpu_time_total": event.cpu_time_total,
+                    # "cpu_time_total_str": event.cpu_time_total_str,
                     "self_cuda_time_total": event.self_cuda_time_total,
                     "cuda_time_total": event.cuda_time_total,
                     "cuda_time_total_str": event.cuda_time_total_str,
@@ -92,8 +92,8 @@ def profile_torch_trainer(method: Callable) -> Callable:
         )
 
         profiler = profile(
-            activities=[ProfilerActivity.CUDA, ProfilerActivity.CPU],
-            with_modules=True,
+            activities=[ProfilerActivity.CUDA],  # , ProfilerActivity.CPU],
+            # with_modules=True,
             schedule=schedule(
                 wait=wait_epochs,
                 warmup=warmup_epochs,
