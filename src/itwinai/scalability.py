@@ -1,11 +1,11 @@
 # --------------------------------------------------------------------------------------
 # Part of the interTwin Project: https://www.intertwin.eu/
-# 
-# Created by: Jarl Sondre Sæther 
-# 
-# Credits: 
-# - Jarl Sondre Sæther <jarl.sondre.saether@cern.ch> - CERN Openlab 
-# - Matteo Bunino <matteo.bunino@cern.ch> - CERN Openlab
+#
+# Created by: Jarl Sondre Sæther
+#
+# Credits:
+# - Jarl Sondre Sæther <jarl.sondre.saether@cern.ch> - CERN
+# - Matteo Bunino <matteo.bunino@cern.ch> - CERN
 # --------------------------------------------------------------------------------------
 
 import glob
@@ -118,6 +118,7 @@ def create_absolute_plot(avg_epoch_time_df: pd.DataFrame) -> None:
 
     marker_cycle = cycle("ov^s*dXpD.+12348")
 
+    unique_nodes = list(avg_epoch_time_df["nodes"].unique())
     unique_names = avg_epoch_time_df["name"].unique()
     for name in unique_names:
         # color, marker = next(color_marker_combinations)
@@ -133,16 +134,18 @@ def create_absolute_plot(avg_epoch_time_df: pd.DataFrame) -> None:
             markersize=6,
         )
 
-    # Labeling the axes and setting the title
+    ax.set_yscale("log")
+    ax.set_xscale("log")
+
+    ax.set_xticks(unique_nodes)
+
     ax.set_xlabel("Number of Nodes")
-    ax.set_ylabel("Average Time")
+    ax.set_ylabel("Average Time (s)")
     ax.set_title("Average Time vs Number of Nodes")
 
-    # Show legend and grid
     ax.legend(title="Method")
     ax.grid(True)
 
-    # Save the plot as an image
     output_path = Path("plots/absolute_scalability_plot.png")
     plt.savefig(output_path)
     print(f"Saving absolute plot to '{output_path.resolve()}'.")
@@ -181,7 +184,9 @@ def create_relative_plot(avg_epoch_time_df: pd.DataFrame, gpus_per_node: int = 4
     # Plotting the linear line
     num_gpus = np.array(avg_epoch_time_df["num_gpus"].unique())
     linear_speedup = np.array(avg_epoch_time_df["linear_speedup"].unique())
-    ax.plot(num_gpus, linear_speedup, ls="dashed", lw=1.0, c="k", label="linear speedup")
+    ax.plot(
+        num_gpus, linear_speedup, ls="dashed", lw=1.0, c="k", label="linear speedup"
+    )
 
     ax.legend(ncol=1)
     ax.set_xticks(num_gpus)

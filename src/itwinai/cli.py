@@ -1,14 +1,22 @@
-"""
-Command line interface for out Python application.
-You can call commands from the command line.
-Example
-
->>> $ itwinai --help
-
-"""
-
-# NOTE: import libs in the command"s function, not here.
-# Otherwise this will slow the whole CLI.
+# --------------------------------------------------------------------------------------
+# Part of the interTwin Project: https://www.intertwin.eu/
+#
+# Created by: Matteo Bunino
+#
+# Credits:
+# - Matteo Bunino <matteo.bunino@cern.ch> - CERN
+# - Jarl Sondre Sæther <jarl.sondre.saether@cern.ch> - CERN
+# 
+# --------------------------------------------------------------------------------------
+# Command-line interface for the itwinai Python library. 
+# Example: 
+# 
+# >>> itwinai --help
+# 
+# --------------------------------------------------------------------------------------
+# 
+# NOTE: import libraries in the command's function, not here, as having them here will 
+# slow down the CLI commands significantly. 
 
 from pathlib import Path
 from typing import List, Optional
@@ -80,7 +88,6 @@ def generate_gpu_data_plots(
     energy_plot_path = plot_dir_path / "gpu_energy_plot.png"
     utilization_plot_path = plot_dir_path / "utilization_plot.png"
 
-    # Plotting and saving figures to file
     energy_fig, _ = gpu_bar_plot(
         data_df=energy_df,
         plot_title="Energy Consumption by Strategy and Number of GPUs",

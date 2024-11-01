@@ -1,10 +1,10 @@
 # --------------------------------------------------------------------------------------
 # Part of the interTwin Project: https://www.intertwin.eu/
-# 
-# Created by: Jarl Sondre Sæther 
-# 
-# Credits: 
-# - Jarl Sondre Sæther <jarl.sondre.saether@cern.ch> - CERN Openlab 
+#
+# Created by: Jarl Sondre Sæther
+#
+# Credits:
+# - Jarl Sondre Sæther <jarl.sondre.saether@cern.ch> - CERN
 # --------------------------------------------------------------------------------------
 
 from typing import Tuple
