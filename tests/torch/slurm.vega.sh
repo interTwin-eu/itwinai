@@ -121,13 +121,17 @@ mpirun_launcher ()
   # https://docs.sylabs.io/guides/4.1/user-guide/environment_and_metadata.html#environment-from-the-host
   unset PYTHONPATH
 
+  # Create mpirun logs folder
+  mkdir -p "logs_mpirun/$SLURM_JOB_ID"
+
   # https://doc.vega.izum.si/mpi/#multi-node-jobs
-  # "if [ $OMPI_COMM_WORLD_RANK  -ne 0 ]; then exec > /dev/null 2>&1; fi; exec" redirects stdout and stderr of ranks != 0
-  mpirun -H "${HOSTFILE}" -np $TOTAL_PROCESSES --oversubscribe -mca pml ucx -mca btl ^uct,tcp,openib,vader --bind-to core  \
+  # "if [ $OMPI_COMM_WORLD_RANK  -ne 0 ]; then exec > "logs_mpirun/$SLURM_JOB_ID/rank.$OMPI_COMM_WORLD_RANK" 2>&1; fi; exec" redirects stdout and stderr of ranks != 0
+  # Logs of the main woker (rank == 0) will be incorportated into the standard SLURM out and err files
+  mpirun -H "${HOSTFILE}" -np $TOTAL_PROCESSES --oversubscribe -mca pml ucx -mca btl ^uct,tcp,openib,vader --bind-to core \
     singularity exec --nv  \
     "${CONTAINER_PATH}" /bin/bash -c \
-    'echo "Rank: $OMPI_COMM_WORLD_RANK, lrank: $OMPI_COMM_WORLD_LOCAL_RANK, Size: $OMPI_COMM_WORLD_SIZE" &&  \
-    if [ $OMPI_COMM_WORLD_RANK  -ne 0 ]; then exec > /dev/null 2>&1; fi; exec '"${1}"
+    'echo "Rank: $OMPI_COMM_WORLD_RANK, lrank: $OMPI_COMM_WORLD_LOCAL_RANK, Size: $OMPI_COMM_WORLD_SIZE, LD_LIBRARY_PATH=$LD_LIBRARY_PATH" &&  \
+    if [ $OMPI_COMM_WORLD_RANK  -ne 0 ]; then exec > "logs_mpirun/$SLURM_JOB_ID/rank.$OMPI_COMM_WORLD_RANK" 2>&1; fi; exec '"${1}"
 }
 
 # Launch distribtued job in container with srun
@@ -136,12 +140,22 @@ srun_launcher ()
   # Avoid propagating PYTHONPATH to the singularity container, as it breaks the import of packages inside the container
   # https://docs.sylabs.io/guides/4.1/user-guide/environment_and_metadata.html#environment-from-the-host
   unset PYTHONPATH
+
+  # Create mpirun logs folder
+  mkdir -p "logs_srun/$SLURM_JOB_ID"
+
+  # # Get OpenMPI installation prefixes (locally and in container)
+  # OMPI_CONTAINER="$(singularity exec ${CONTAINER_PATH} /bin/bash -c 'ompi_info' | grep Prefix | awk '{ print $2 }')"
+  # OMPI_HOST="$(ompi_info | grep Prefix | awk '{ print $2 }')"
+  # # If you want to explicitly mount host OpenMPI in container use --bind "${OMPI_HOST}":"${OMPI_CONTAINER}"  
   
+  # "if [ $SLURM_PROCID  -ne 0 ]; then exec > "logs_srun/$SLURM_JOB_ID/rank.$SLURM_PROCID" 2>&1; fi; exec" redirects stdout and stderr of ranks != 0
+  # Logs of the main woker (rank == 0) will be incorportated into the standard SLURM out and err files
   srun --mpi=pmix_v3 --cpu-bind=none --ntasks-per-node=$SLURM_GPUS_PER_NODE --cpus-per-task=$SLURM_CPUS_PER_GPU --ntasks=$(($SLURM_GPUS_PER_NODE * $SLURM_NNODES)) \
     singularity exec --nv \
-    $CONTAINER_PATH /bin/bash -c \
-    'echo "Rank: $SLURM_PROCID" && \
-    if [ $SLURM_PROCID  -ne 0 ]; then exec > /dev/null 2>&1; fi; exec '"${1}"
+    "${CONTAINER_PATH}" /bin/bash -c \
+    'echo "Rank: $SLURM_PROCID, LD_LIBRARY_PATH=$LD_LIBRARY_PATH" && \
+    if [ $SLURM_PROCID  -ne 0 ]; then exec > "logs_srun/$SLURM_JOB_ID/rank.$SLURM_PROCID" 2>&1; fi; exec '"${1}"
 }
 
 # Dual echo on both stdout and stderr
