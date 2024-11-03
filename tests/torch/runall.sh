@@ -6,7 +6,7 @@ PYTHON_VENV="../../.venv-pytorch"
 # Clear SLURM logs (*.out and *.err files)
 rm -rf logs_slurm
 mkdir logs_slurm
-rm -rf logs_torchrun
+rm -rf logs_torchrun logs_mpirun logs_srun
 
 export MNIST_PATH="/ceph/hpc/data/st2301-itwin-users/mbunino/mnist" #"/p/project1/intertwin/smalldata/mnist"
 
@@ -14,7 +14,9 @@ export MNIST_PATH="/ceph/hpc/data/st2301-itwin-users/mbunino/mnist" #"/p/project
 # - itwinai_torch.sif: cmcc jlab container (OMPI v5)
 # - itwinai_torch2.sif: itwinai 0.2.2.dev torch2.4 (OMPI v4.1)
 # - itwinai_torch3.sif: itwinai 0.2.2.dev2 torch2.4 - force distributed (OMPI v4.1)
-export CONTAINER_PATH="itwinai_torch3.sif"
+# - itwinai_torch4.sif: cmcc jlab container (OMPI v4.1)
+# - /ceph/hpc/data/st2301-itwin-users/mbunino/jlab_simple_reconstructed_nv_itwinai.sif: jlab container recostructed from simple (OMPI v4.1)
+export CONTAINER_PATH="/ceph/hpc/data/st2301-itwin-users/mbunino/jlab_simple_reconstructed_nv_itwinai.sif"
 
 # Disable pytest ANSI coloring
 export NO_COLOR=1
