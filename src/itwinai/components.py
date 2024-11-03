@@ -82,12 +82,14 @@ Example:
 >>> python my_train.py --config training_pipe.yaml --lr 0.002
 """
 
-
 from __future__ import annotations
 
 import functools
 import time
 from abc import ABC, abstractmethod
+
+# import logging
+# from logging import Logger as PythonLogger
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 from .serialization import ModelLoader, Serializable
@@ -113,6 +115,7 @@ def monitor_exec(method: Callable) -> Callable:
         msg = f"'{self.name}' executed in {self.exec_t:.3f}s"
         self._printout(msg)
         return result
+
     return wrapper
 
 
@@ -127,7 +130,8 @@ class BaseComponent(ABC, Serializable):
         Args:
             name (Optional[str], optional): unique identifier for a step.
                 Defaults to None.
-        """
+    """
+
     _name: str = None
     #: Dictionary storing constructor arguments. Needed to serialize the
     #: class to dictionary. Set by ``self.save_parameters()`` method.
@@ -144,11 +148,8 @@ class BaseComponent(ABC, Serializable):
 
     @property
     def name(self) -> str:
-        """Name of current component. Defaults to ``self.__class__.__name__``.
-        """
-        return (
-            self._name if self._name is not None else self.__class__.__name__
-        )
+        """Name of current component. Defaults to ``self.__class__.__name__``."""
+        return self._name if self._name is not None else self.__class__.__name__
 
     @name.setter
     def name(self, name: str) -> None:
@@ -157,7 +158,7 @@ class BaseComponent(ABC, Serializable):
     @abstractmethod
     @monitor_exec
     def execute(self, *args, **kwargs) -> Any:
-        """"Execute some operations."""
+        """Execute some operations."""
 
     # def setup_console(self):
     #     """Setup Python logging"""
@@ -186,9 +187,9 @@ class BaseComponent(ABC, Serializable):
     @staticmethod
     def _printout(msg: str):
         msg = f"# {msg} #"
-        print("#"*len(msg))
+        print("#" * len(msg))
         print(msg)
-        print("#"*len(msg))
+        print("#" * len(msg))
 
 
 class DataGetter(BaseComponent):
@@ -213,7 +214,7 @@ class DataProcessor(BaseComponent):
         self,
         train_dataset: MLDataset,
         validation_dataset: MLDataset,
-        test_dataset: MLDataset
+        test_dataset: MLDataset,
     ) -> Tuple[MLDataset, MLDataset, MLDataset]:
         """Trains a machine learning model.
 
@@ -230,6 +231,7 @@ class DataProcessor(BaseComponent):
 
 class DataSplitter(BaseComponent):
     """Splits a dataset into train, validation, and test splits."""
+
     _train_proportion: Union[int, float]
     _validation_proportion: Union[int, float]
     _test_proportion: Union[int, float]
@@ -239,7 +241,7 @@ class DataSplitter(BaseComponent):
         train_proportion: Union[int, float],
         validation_proportion: Union[int, float],
         test_proportion: Union[int, float],
-        name: Optional[str] = None
+        name: Optional[str] = None,
     ) -> None:
         super().__init__(name)
         self.save_parameters(**self.locals2params(locals()))
@@ -291,10 +293,7 @@ class DataSplitter(BaseComponent):
 
     @abstractmethod
     @monitor_exec
-    def execute(
-        self,
-        dataset: MLDataset
-    ) -> Tuple[MLDataset, MLDataset, MLDataset]:
+    def execute(self, dataset: MLDataset) -> Tuple[MLDataset, MLDataset, MLDataset]:
         """Splits a dataset into train, validation and test splits.
 
         Args:
@@ -315,7 +314,7 @@ class Trainer(BaseComponent):
         self,
         train_dataset: MLDataset,
         validation_dataset: MLDataset,
-        test_dataset: MLDataset
+        test_dataset: MLDataset,
     ) -> Tuple[MLDataset, MLDataset, MLDataset, MLModel]:
         """Trains a machine learning model.
 
@@ -348,9 +347,7 @@ class Predictor(BaseComponent):
     @abstractmethod
     @monitor_exec
     def execute(
-        self,
-        predict_dataset: MLDataset,
-        model: Optional[MLModel] = None
+        self, predict_dataset: MLDataset, model: Optional[MLModel] = None
     ) -> MLDataset:
         """Applies a machine learning model on a dataset of samples.
 
@@ -433,26 +430,29 @@ class Adapter(BaseComponent):
         """
         result = []
         for itm in self.policy:
-            if isinstance(itm, str) and itm.startswith(self.INPUT_PREFIX):
-                arg_idx = int(itm[len(self.INPUT_PREFIX):])
-                if arg_idx >= len(args):
-                    max_idx = max(map(
-                        lambda itm: int(itm[len(self.INPUT_PREFIX):]),
+            if not (isinstance(itm, str) and itm.startswith(self.INPUT_PREFIX)):
+                result.append(itm)
+                continue
+
+            arg_idx = int(itm[len(self.INPUT_PREFIX) :])
+            if arg_idx >= len(args):
+                max_idx = max(
+                    map(
+                        lambda itm: int(itm[len(self.INPUT_PREFIX) :]),
                         filter(
                             lambda el: (
-                                isinstance(el, str)
-                                and el.startswith(self.INPUT_PREFIX)
+                                isinstance(el, str) and el.startswith(self.INPUT_PREFIX)
                             ),
-                            self.policy
-                        )))
-                    raise IndexError(
-                        f"The args received as input by '{self.name}' "
-                        "are not consistent with the given adapter policy "
-                        "because input args are too few! "
-                        f"Input args are {len(args)} but the policy foresees "
-                        f"at least {max_idx+1} items."
+                            self.policy,
+                        ),
                     )
-                result.append(args[arg_idx])
-            else:
-                result.append(itm)
+                )
+                raise IndexError(
+                    f"The args received as input by '{self.name}' "
+                    "are not consistent with the given adapter policy "
+                    "because input args are too few! "
+                    f"Input args are {len(args)} but the policy foresees "
+                    f"at least {max_idx+1} items."
+                )
+            result.append(args[arg_idx])
         return tuple(result)
