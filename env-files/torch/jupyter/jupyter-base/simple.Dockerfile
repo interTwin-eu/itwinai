@@ -59,7 +59,7 @@ ENV PATH="${CONDA_DIR}/bin:${PATH}" \
     HOME="/home/${NB_USER}"
 
 # Copy a script that we will use to correct permissions after running certain commands
-COPY env-files/torch/jupyter/jupyter-base/fix-permissions /usr/local/bin/fix-permissions
+COPY fix-permissions /usr/local/bin/fix-permissions
 RUN chmod a+rx /usr/local/bin/fix-permissions
 
 # Enable prompt color in the skeleton .bashrc before creating the default NB_USER
@@ -99,7 +99,7 @@ RUN mkdir "/home/${NB_USER}/work" && \
 # Correct permissions
 # Do all this in a single RUN command to avoid duplicating all of the
 # files across image layers when the permissions change
-COPY --chown="${NB_UID}:${NB_GID}" env-files/torch/jupyter/jupyter-base/initial-condarc "${CONDA_DIR}/.condarc"
+COPY --chown="${NB_UID}:${NB_GID}" initial-condarc "${CONDA_DIR}/.condarc"
 WORKDIR /tmp
 RUN set -x && \
     arch=$(uname -m) && \
@@ -136,7 +136,7 @@ ENTRYPOINT ["tini", "-g", "--"]
 CMD ["start.sh"]
 
 # Copy local files as late as possible to avoid cache busting
-COPY env-files/torch/jupyter/jupyter-base/start.sh /usr/local/bin/
+COPY start.sh /usr/local/bin/
 
 # Switch back to jovyan to avoid accidental container runs as root
 USER ${NB_UID}
@@ -203,9 +203,9 @@ EXPOSE $JUPYTER_PORT
 CMD ["start-notebook.sh"]
 
 # Copy local files as late as possible to avoid cache busting
-COPY env-files/torch/jupyter/jupyter-base/start-notebook.sh env-files/torch/jupyter/jupyter-base/start-singleuser.sh /usr/local/bin/
+COPY start-notebook.sh start-singleuser.sh /usr/local/bin/
 # Currently need to have both jupyter_notebook_config and jupyter_server_config to support classic and lab
-COPY env-files/torch/jupyter/jupyter-base/jupyter_server_config.py env-files/torch/jupyter/jupyter-base/docker_healthcheck.py /etc/jupyter/
+COPY jupyter_server_config.py docker_healthcheck.py /etc/jupyter/
 
 # Fix permissions on /etc/jupyter as root
 USER root
@@ -269,7 +269,7 @@ RUN update-alternatives --install /usr/bin/nano nano /bin/nano-tiny 10
 USER ${NB_UID}
 
 # Add R mimetype option to specify how the plot returns from R to the browser
-COPY --chown=${NB_UID}:${NB_GID} env-files/torch/jupyter/jupyter-base/Rprofile.site /opt/conda/lib/R/etc/
+COPY --chown=${NB_UID}:${NB_GID} Rprofile.site /opt/conda/lib/R/etc/
 
 
 ###################################################
@@ -431,18 +431,18 @@ RUN mkdir /certs \
 #     update-ca-trust
 
 # Add async ssh script
-COPY env-files/torch/jupyter/jupyter-base/asyncssh_config.py /opt/ssh/jupyterhub-singleuser
+COPY asyncssh_config.py /opt/ssh/jupyterhub-singleuser
 RUN fix-permissions /opt/ssh/jupyterhub-singleuser \
     && chown -R $NB_UID /opt/ssh/jupyterhub-singleuser \
     && chmod +x /opt/ssh/jupyterhub-singleuser
 
 # Setup extension Rucio instance config
-COPY env-files/torch/jupyter/jupyter-base/configure.py /opt/setup-rucio-jupyterlab/configure.py
+COPY configure.py /opt/setup-rucio-jupyterlab/configure.py
 RUN fix-permissions /opt/setup-rucio-jupyterlab/configure.py \
     && chown -R $NB_UID /opt/setup-rucio-jupyterlab/configure.py \
     && chmod +x /opt/setup-rucio-jupyterlab/configure.py
 
-COPY env-files/torch/jupyter/jupyter-base/setup.sh /usr/local/bin/setup.sh
+COPY setup.sh /usr/local/bin/setup.sh
 RUN fix-permissions /usr/local/bin/setup.sh \
     && sed -i -e 's/\r$/\n/' /usr/local/bin/setup.sh \
     && chmod +x /usr/local/bin/setup.sh
@@ -463,146 +463,6 @@ RUN mkdir -p /opt/rucio/etc \
 ENV JUPYTER_ENABLE_LAB=yes
 
 USER $NB_UID
-WORKDIR $HOME
-
-# CMD ["setup.sh", "start-notebook.sh"]
-
-###################################################
-# Adapted CUDA itwinai ############################
-###################################################
-
-# Install rucio-jupyterlab with jlab v=3
-RUN pip install --no-cache-dir --upgrade pip \
-    && pip install --no-cache-dir rucio-jupyterlab==0.10.0 \
-    && jupyter serverextension enable --py rucio_jupyterlab --sys-prefix 
-
-#############################
-###        itwinai        ###
-#############################
-
-# USER root
-
-# RUN apt-get update && apt-get install -y \
-#     # Needed (at least) by horovod wheel builder
-#     build-essential \
-#     # Needed (at least) by horovod wheel builder
-#     cmake \
-#     # Needed by OpenMPI for efficient compression at startup
-#     zlib1g \
-#     # Needed by OpenMPI for efficient compression at startup
-#     zlib1g-dev \
-#     && apt-get clean -y && rm -rf /var/lib/apt/lists/*
-
-# # OpenMPI
-# WORKDIR /tmp/ompi
-# ENV OPENMPI_VERSION=4.1.6 \
-#     OPENMPI_MINOR=4.1 
-# ENV OPENMPI_URL="https://download.open-mpi.org/release/open-mpi/v${OPENMPI_MINOR}/openmpi-${OPENMPI_VERSION}.tar.gz" 
-# ENV OPENMPI_DIR=/opt/openmpi-${OPENMPI_VERSION} 
-# ENV PATH="${OPENMPI_DIR}/bin:${PATH}" 
-# ENV LD_LIBRARY_PATH="${OPENMPI_DIR}/lib:${LD_LIBRARY_PATH}" 
-# ENV MANPATH=${OPENMPI_DIR}/share/man:${MANPATH}
-# RUN wget -q -O openmpi-$OPENMPI_VERSION.tar.gz $OPENMPI_URL && tar xzf openmpi-$OPENMPI_VERSION.tar.gz \
-#     && cd openmpi-$OPENMPI_VERSION && ./configure --prefix=$OPENMPI_DIR && make install
-
-# # Nvidia software
-# WORKDIR /tmp/cuda
-# # CUDA Toolkit:
-# # - https://developer.nvidia.com/cuda-downloads
-# # - Installation guide: https://docs.nvidia.com/cuda/cuda-quick-start-guide/index.html#ubuntu
-# # - cuda-toolkit metapackage: https://docs.nvidia.com/cuda/cuda-installation-guide-linux/#meta-packages
-# # cuDNN:
-# # - https://docs.nvidia.com/deeplearning/cudnn/latest/installation/linux.html#installing-cudnn-on-linux
-# # NCCL: 
-# # - https://docs.nvidia.com/deeplearning/nccl/install-guide/index.html#debian
-# # *NOTE* to correctly install Apex below, CUDA toolkit version must match with the torch CUDA backend version
-# ENV CUDA_VERSION=12.4 \
-#     CUDA_TOOLKIT_VERSION=12-4 \
-#     CUDA_MAJOR_VERSION=12
-# RUN wget -q -O cuda-keyring.deb https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/cuda-keyring_1.1-1_all.deb \
-#     && dpkg -i cuda-keyring.deb \
-#     && apt-get update && apt-get install -y \
-#     # CUDA toolkit metapackage (does not include the Nvidia driver)
-#     cuda-toolkit-${CUDA_TOOLKIT_VERSION} \
-#     # cuDNN
-#     cudnn-cuda-${CUDA_MAJOR_VERSION} \
-#     # NCCL
-#     libnccl2 \
-#     libnccl-dev \
-#     # Nvidia driver, as explained here: https://developer.nvidia.com/cuda-downloads
-#     nvidia-open \
-#     && apt-get clean -y && rm -rf /var/lib/apt/lists/*
-# ENV PATH=/usr/local/cuda-${CUDA_VERSION}/bin${PATH:+:${PATH}}\
-#     LD_LIBRARY_PATH=/usr/local/cuda-${CUDA_VERSION}/lib64${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}
-
-# # Cleanup
-# RUN rm -rf /tmp/*
-
-# USER $NB_UID
-
-# Torch and smaller deps
-RUN pip install --upgrade pip \
-    # https://github.com/mpi4py/mpi4py/pull/431
-    && SETUPTOOLS_USE_DISTUTILS=local python -m pip install --no-cache-dir mpi4py \
-    && unset SETUPTOOLS_USE_DISTUTILS \
-    # Install torch
-    && pip install --no-cache-dir \
-    'numpy<2' \
-    packaging \
-    py-cpuinfo \
-    torch==2.4.* torchvision torchaudio --index-url https://download.pytorch.org/whl/cu124 \
-    wheel
-
-# Apex: https://github.com/NVIDIA/apex
-# (needed for DeepSpeed *_FUSED optinal build options)
-# Note: it will take more than an hour to build
-WORKDIR /tmp
-RUN git clone https://github.com/NVIDIA/apex && cd apex \
-    && pip install -v --disable-pip-version-check --no-cache-dir --no-build-isolation --config-settings "--build-option=--cpp_ext" --config-settings "--build-option=--cuda_ext" ./ \
-    && rm -rf /tmp/apex
-# Transformer engine: https://docs.nvidia.com/deeplearning/transformer-engine/user-guide/index.html
-# (needed for DeepSpeed *TRANSFORMER* optinal build options)
-# Note: it will take about half an hour to build
-RUN pip install --no-cache-dir transformer_engine[pytorch]
-
-# DeepSpeed, Horovod and other deps
-ENV HOROVOD_WITH_PYTORCH=1 \
-    HOROVOD_WITHOUT_TENSORFLOW=1 \
-    HOROVOD_WITHOUT_MXNET=1 \
-    CMAKE_CXX_STANDARD=17 \
-    HOROVOD_MPI_THREADS_DISABLE=1 \
-    HOROVOD_CPU_OPERATIONS=MPI \
-    HOROVOD_GPU_ALLREDUCE=NCCL \
-    HOROVOD_NCCL_LINK=SHARED \
-    # DeepSpeed
-    DS_BUILD_UTILS=1 \
-    DS_BUILD_AIO=1 \
-    DS_BUILD_FUSED_ADAM=1 \
-    DS_BUILD_FUSED_LAMB=1 \
-    DS_BUILD_TRANSFORMER=1 \
-    DS_BUILD_STOCHASTIC_TRANSFORMER=1 \
-    DS_BUILD_TRANSFORMER_INFERENCE=1
-RUN pip install --no-cache-dir \
-    deepspeed \
-    git+https://github.com/horovod/horovod.git@3a31d93 \
-    "prov4ml[linux]@git+https://github.com/matbun/ProvML@6faafd4" \
-    ray ray[tune]
-
-
-# Core itwinai lib
-WORKDIR "$HOME/itwinai"
-COPY pyproject.toml ./
-COPY src ./
-RUN pip install --no-cache-dir ".[torch,dev]" \
-    && itwinai sanity-check --torch \
-    --optional-deps deepspeed \
-    --optional-deps horovod
-
-# # Additional pip deps
-# ARG REQUIREMENTS=env-files/torch/requirements/requirements.txt
-# COPY "${REQUIREMENTS}" additional-requirements.txt
-# RUN pip install --no-cache-dir -r additional-requirements.txt
-
 WORKDIR $HOME
 
 CMD ["setup.sh", "start-notebook.sh"]
