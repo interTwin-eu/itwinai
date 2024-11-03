@@ -598,10 +598,10 @@ RUN pip install --no-cache-dir ".[torch,dev]" \
     --optional-deps deepspeed \
     --optional-deps horovod
 
-# # Additional pip deps
-# ARG REQUIREMENTS=env-files/torch/requirements/requirements.txt
-# COPY "${REQUIREMENTS}" additional-requirements.txt
-# RUN pip install --no-cache-dir -r additional-requirements.txt
+# Additional pip deps
+ARG REQUIREMENTS=env-files/torch/requirements/requirements.txt
+COPY "${REQUIREMENTS}" additional-requirements.txt
+RUN pip install --no-cache-dir -r additional-requirements.txt
 
 WORKDIR $HOME
 
