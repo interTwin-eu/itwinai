@@ -431,18 +431,18 @@ RUN mkdir /certs \
 #     update-ca-trust
 
 # Add async ssh script
-COPY env-files/torch/jupyter/jupyter-base/asyncssh_config.py /opt/ssh/jupyterhub-singleuser
+COPY env-files/torch/jupyter/asyncssh_config.py /opt/ssh/jupyterhub-singleuser
 RUN fix-permissions /opt/ssh/jupyterhub-singleuser \
     && chown -R $NB_UID /opt/ssh/jupyterhub-singleuser \
     && chmod +x /opt/ssh/jupyterhub-singleuser
 
 # Setup extension Rucio instance config
-COPY env-files/torch/jupyter/jupyter-base/configure.py /opt/setup-rucio-jupyterlab/configure.py
+COPY env-files/torch/jupyter/configure.py /opt/setup-rucio-jupyterlab/configure.py
 RUN fix-permissions /opt/setup-rucio-jupyterlab/configure.py \
     && chown -R $NB_UID /opt/setup-rucio-jupyterlab/configure.py \
     && chmod +x /opt/setup-rucio-jupyterlab/configure.py
 
-COPY env-files/torch/jupyter/jupyter-base/setup.sh /usr/local/bin/setup.sh
+COPY env-files/torch/jupyter/setup.sh /usr/local/bin/setup.sh
 RUN fix-permissions /usr/local/bin/setup.sh \
     && sed -i -e 's/\r$/\n/' /usr/local/bin/setup.sh \
     && chmod +x /usr/local/bin/setup.sh
@@ -593,6 +593,7 @@ RUN pip install --no-cache-dir \
 WORKDIR "$HOME/itwinai"
 COPY pyproject.toml ./
 COPY src ./
+COPY tests ./
 RUN pip install --no-cache-dir ".[torch,dev]" \
     && itwinai sanity-check --torch \
     --optional-deps deepspeed \
