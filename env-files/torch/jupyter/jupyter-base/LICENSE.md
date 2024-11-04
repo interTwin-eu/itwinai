@@ -1,6 +1,6 @@
 # Licensing terms
 
-The files in this folder are copied entirely or adapted from [this repository
+The files in this directory are copied entirely or adapted from [this repository
 at this specific commit ID](https://github.com/jupyter/docker-stacks/tree/4d70cf8da953fafd3be2fb77dce4aa9a01f76e58).
 
 For this reason, these files are redistributed under their original license, which is reported below.
