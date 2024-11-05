@@ -4,7 +4,6 @@ import os
 import sys
 from typing import Any, Callable, Dict, List, Literal, Optional, Tuple, Union
 
-import horovod.torch as hvd
 import lightning as L
 import matplotlib.pyplot as plt
 import numpy as np
@@ -226,6 +225,31 @@ class TorchTrainer(Trainer, LogMixin):
                 "create_model_loss_optimizer method for more flexibility."
             )
 
+    def get_default_distributed_kwargs(self) -> Dict: 
+        """Gives the default kwargs for the trainer's strategy's distributed() method."""
+
+        if isinstance(self.strategy, DeepSpeedStrategy):
+            # Batch size definition is not optional for DeepSpeedStrategy!
+            distribute_kwargs = dict(
+                config_params=dict(
+                    train_micro_batch_size_per_gpu=self.config.batch_size
+                )
+            )
+        elif isinstance(self.strategy, HorovodStrategy):
+            import horovod as hvd
+            distribute_kwargs = dict(
+                compression=(
+                    hvd.Compression.fp16 if self.config.fp16_allreduce
+                    else hvd.Compression.none
+                ),
+                op=hvd.Adasum if self.config.use_adasum else hvd.Average,
+                gradient_predivide_factor=self.config.gradient_predivide_factor
+            )
+        else:
+            distribute_kwargs = {}
+
+        return distribute_kwargs
+
     def create_model_loss_optimizer(self) -> None:
         """
         Instantiate a torch model, loss, optimizer, and LR scheduler using the
@@ -252,26 +276,7 @@ class TorchTrainer(Trainer, LogMixin):
         self._loss_from_config()
 
         # IMPORTANT: model, optimizer, and scheduler need to be distributed
-
-        # First, define strategy-wise optional configurations
-        if isinstance(self.strategy, DeepSpeedStrategy):
-            # Batch size definition is not optional for DeepSpeedStrategy!
-            distribute_kwargs = dict(
-                config_params=dict(
-                    train_micro_batch_size_per_gpu=self.config.batch_size
-                )
-            )
-        elif isinstance(self.strategy, HorovodStrategy):
-            distribute_kwargs = dict(
-                compression=(
-                    hvd.Compression.fp16 if self.config.fp16_allreduce
-                    else hvd.Compression.none
-                ),
-                op=hvd.Adasum if self.config.use_adasum else hvd.Average,
-                gradient_predivide_factor=self.config.gradient_predivide_factor
-            )
-        else:
-            distribute_kwargs = {}
+        distribute_kwargs = self.get_default_distributed_kwargs()
 
         # Distributed model, optimizer, and scheduler
         (
