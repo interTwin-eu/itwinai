@@ -225,7 +225,7 @@ class TorchTrainer(Trainer, LogMixin):
                 "create_model_loss_optimizer method for more flexibility."
             )
 
-    def get_default_distributed_kwargs(self) -> Dict: 
+    def get_default_distributed_kwargs(self) -> Dict:
         """Gives the default kwargs for the trainer's strategy's distributed() method."""
 
         if isinstance(self.strategy, DeepSpeedStrategy):
