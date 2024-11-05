@@ -5,6 +5,7 @@
 #
 # Credit:
 # - Jarl Sondre Sæther <jarl.sondre.saether@cern.ch> - CERN
+# - Matteo Bunino <matteo.bunino@cern.ch> - CERN
 # --------------------------------------------------------------------------------------
 
 from typing import Tuple
