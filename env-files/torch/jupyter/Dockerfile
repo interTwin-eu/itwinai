@@ -252,6 +252,9 @@ ARG REQUIREMENTS=env-files/torch/requirements/requirements.txt
 COPY "${REQUIREMENTS}" additional-requirements.txt
 RUN pip install --no-cache-dir -r additional-requirements.txt
 
+# Add tests
+COPY tests tests
+
 WORKDIR $HOME
 
 CMD ["setup.sh", "start-notebook.sh"]

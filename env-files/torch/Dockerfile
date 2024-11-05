@@ -63,7 +63,7 @@ COPY src src
 # Torch: reuse the global torch in the container
 RUN CONTAINER_TORCH_VERSION="$(python -c 'import torch;print(torch.__version__)')" \
     && pip install --no-cache-dir torch=="$CONTAINER_TORCH_VERSION" \
-    .[torch] \
+    .[torch,dev] \
     && itwinai sanity-check --torch \
     --optional-deps deepspeed \
     --optional-deps horovod \
@@ -73,3 +73,6 @@ RUN CONTAINER_TORCH_VERSION="$(python -c 'import torch;print(torch.__version__)'
 ARG REQUIREMENTS=env-files/torch/requirements/requirements.txt
 COPY "${REQUIREMENTS}" additional-requirements.txt
 RUN pip install --no-cache-dir -r additional-requirements.txt
+
+# Add tests
+COPY tests tests
