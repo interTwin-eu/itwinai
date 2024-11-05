@@ -21,7 +21,8 @@ if appropriate. All modules should have a short description.
 # For example, to import from src/main/main.py:
 # >>> from .main import Itwinai as Itwinai
 
-from typing import Annotated
+from typing import Annotated, Optional, Self
+import dataclasses
 
 import dagger
 from dagger import dag, function, object_type, Doc
@@ -30,7 +31,7 @@ from dagger import dag, function, object_type, Doc
 @object_type
 class Itwinai:
 
-    # torch_container: dagger.Container = None
+    torch_container: Optional[dagger.Container] = dataclasses.field(default=None, init=False)
 
     @function
     def build_torch(
@@ -43,25 +44,16 @@ class Itwinai:
             str,
             Doc("location of Dockerfile"),
         ],
-    ) -> dagger.Container:
+    ) -> Self:
         """Build itwinai torch container image from existing Dockerfile"""
-        return (
+        self.torch_container = (
             dag.container()
             .build(context=context, dockerfile=dockerfile)
         )
+        return self
 
     @function
-    async def test_torch(
-        self,
-        context: Annotated[
-            dagger.Directory,
-            Doc("location of source directory"),
-        ],
-        dockerfile: Annotated[
-            str,
-            Doc("location of Dockerfile"),
-        ],
-    ) -> str:
+    async def test_torch(self) -> str:
         """Test itwinai torch container image with pytest on non-HPC environments."""
         test_cmd = [
             "pytest",
@@ -71,24 +63,7 @@ class Itwinai:
             "tests"
         ]
         return await (
-            self.build_torch(context=context, dockerfile=dockerfile)
+            self.torch_container
             .with_exec(test_cmd)
-            .stdout()
-        )
-
-    @function
-    def container_echo(self, string_arg: str) -> dagger.Container:
-        """Returns a container that echoes whatever string argument is provided"""
-        return dag.container().from_("alpine:latest").with_exec(["echo", string_arg])
-
-    @function
-    async def grep_dir(self, directory_arg: dagger.Directory, pattern: str) -> str:
-        """Returns lines that match a pattern in the files of the provided Directory"""
-        return await (
-            dag.container()
-            .from_("alpine:latest")
-            .with_mounted_directory("/mnt", directory_arg)
-            .with_workdir("/mnt")
-            .with_exec(["grep", "-R", pattern, "."])
             .stdout()
         )
