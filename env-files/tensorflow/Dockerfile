@@ -27,8 +27,8 @@ RUN pip install --no-cache-dir --upgrade pip \
     "prov4ml[linux]@git+https://github.com/matbun/ProvML@new-main" 
 
 # Install itwinai
-COPY pyproject.toml ./
-COPY src ./
+COPY pyproject.toml pyproject.toml
+COPY src src
 RUN pip install . \
     && itwinai sanity-check --tensorflow
 
@@ -36,6 +36,9 @@ RUN pip install . \
 ARG REQUIREMENTS=env-files/torch/requirements/requirements.txt
 COPY "${REQUIREMENTS}" additional-requirements.txt
 RUN pip install --no-cache-dir -r additional-requirements.txt
+
+# Add tests
+COPY tests tests
 
 # ENTRYPOINT [ "/bin/sh" ]
 # CMD [  ]

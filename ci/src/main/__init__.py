@@ -30,21 +30,50 @@ from dagger import dag, function, object_type, Doc
 @object_type
 class Itwinai:
 
+    # torch_container: dagger.Container = None
+
     @function
     def build_torch(
         self,
-        src: Annotated[
+        context: Annotated[
             dagger.Directory,
-            Doc("location of directory containing Dockerfile"),
+            Doc("location of source directory"),
+        ],
+        dockerfile: Annotated[
+            str,
+            Doc("location of Dockerfile"),
         ],
     ) -> dagger.Container:
-        """Build image from existing Dockerfile"""
+        """Build itwinai torch container image from existing Dockerfile"""
         return (
             dag.container()
-            .with_directory("/src", src)
-            .with_workdir("/src")
-            .directory("/src")
-            .docker_build()
+            .build(context=context, dockerfile=dockerfile)
+        )
+
+    @function
+    async def test_torch(
+        self,
+        context: Annotated[
+            dagger.Directory,
+            Doc("location of source directory"),
+        ],
+        dockerfile: Annotated[
+            str,
+            Doc("location of Dockerfile"),
+        ],
+    ) -> str:
+        """Test itwinai torch container image with pytest on non-HPC environments."""
+        test_cmd = [
+            "pytest",
+            "-v",
+            "-m",
+            "not hpc",
+            "tests"
+        ]
+        return await (
+            self.build_torch(context=context, dockerfile=dockerfile)
+            .with_exec(test_cmd)
+            .stdout()
         )
 
     @function

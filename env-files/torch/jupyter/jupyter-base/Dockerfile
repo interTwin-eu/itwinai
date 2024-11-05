@@ -593,9 +593,8 @@ RUN pip install --no-cache-dir \
 
 # Core itwinai lib
 WORKDIR "$HOME/itwinai"
-COPY pyproject.toml ./
-COPY src ./
-COPY tests ./
+COPY pyproject.toml pyproject.toml
+COPY src src
 RUN pip install --no-cache-dir ".[torch,dev]" \
     && itwinai sanity-check --torch \
     --optional-deps deepspeed \
@@ -605,6 +604,10 @@ RUN pip install --no-cache-dir ".[torch,dev]" \
 ARG REQUIREMENTS=env-files/torch/requirements/requirements.txt
 COPY "${REQUIREMENTS}" additional-requirements.txt
 RUN pip install --no-cache-dir -r additional-requirements.txt
+
+# Add tests
+COPY tests tests
+
 
 WORKDIR $HOME
 
