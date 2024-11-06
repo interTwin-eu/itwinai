@@ -23,6 +23,7 @@ if appropriate. All modules should have a short description.
 
 from typing import Annotated, Optional, Self
 import dataclasses
+import random
 
 import dagger
 from dagger import dag, function, object_type, Doc
@@ -31,10 +32,10 @@ from dagger import dag, function, object_type, Doc
 @object_type
 class Itwinai:
 
-    torch_container: Optional[dagger.Container] = dataclasses.field(default=None, init=False)
+    container: Optional[dagger.Container] = dataclasses.field(default=None, init=False)
 
     @function
-    def build_torch(
+    def build_container(
         self,
         context: Annotated[
             dagger.Directory,
@@ -45,25 +46,40 @@ class Itwinai:
             Doc("location of Dockerfile"),
         ],
     ) -> Self:
-        """Build itwinai torch container image from existing Dockerfile"""
-        self.torch_container = (
+        """Build itwinai container image from existing Dockerfile"""
+        self.container = (
             dag.container()
             .build(context=context, dockerfile=dockerfile)
         )
         return self
 
     @function
-    async def test_torch(self) -> str:
-        """Test itwinai torch container image with pytest on non-HPC environments."""
+    async def test_local(self) -> str:
+        """Test itwinai container image with pytest on non-HPC environments."""
         test_cmd = [
             "pytest",
             "-v",
             "-m",
-            "not hpc",
+            "not hpc and not functional",
             "tests"
         ]
         return await (
-            self.torch_container
+            self.container
             .with_exec(test_cmd)
             .stdout()
         )
+
+    @function
+    async def publish(
+        self,
+        registry: str = "ghcr.io/intertwin-eu",
+        name: str = "itwinai-dev",
+        tag: Optional[str] = None
+    ) -> str:
+        """Push container to registry"""
+        tag = tag if tag else random.randrange(10 ** 8)
+
+        # Test locally
+        await self.test_local()
+
+        return await self.container.publish(f"{registry}/{name}:{tag}")
