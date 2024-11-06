@@ -487,6 +487,8 @@ RUN pip install --no-cache-dir --upgrade pip \
 #     build-essential \
 #     # Needed (at least) by horovod wheel builder
 #     cmake \
+#     # Needed by Prov4ML/yProvML to generate provenance graph
+#     dot2tex \
 #     # Needed by OpenMPI for efficient compression at startup
 #     zlib1g \
 #     # Needed by OpenMPI for efficient compression at startup
@@ -585,7 +587,7 @@ ENV HOROVOD_WITH_PYTORCH=1 \
 RUN pip install --no-cache-dir \
     deepspeed \
     git+https://github.com/horovod/horovod.git@3a31d93 \
-    "prov4ml[linux]@git+https://github.com/matbun/ProvML@6faafd4" \
+    "prov4ml[linux]@git+https://github.com/matbun/ProvML@new-main" \
     ray ray[tune]
 
 
