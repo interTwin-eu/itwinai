@@ -14,8 +14,8 @@ jobs:
       #   run: |
       #       rm -rf /opt/hostedtoolcache &&
       #       curl -fsSL https://raw.githubusercontent.com/apache/flink/02d30ace69dc18555a5085eccf70ee884e73a16e/tools/azure-pipelines/free_disk_space.sh | bash
-      # - name: Maximize build disk space
-      #   uses: easimon/maximize-build-space@v10
+      - name: Maximize build disk space
+        uses: easimon/maximize-build-space@v10
       #   with:
       #     remove-dotnet: true
       #     remove-android: true
@@ -23,16 +23,9 @@ jobs:
       #     remove-codeql: true
       - name: Checkout
         uses: actions/checkout@v4
-      - name: Maximize build disk space
-        uses: easimon/maximize-build-space@v10
-        # with:
-        #   remove-dotnet: true
-        #   remove-android: true
-        #   remove-haskell: true
-        #   remove-codeql: true
       - name: Get Repo Owner
         id: get_repo_owner
-        run: echo ::set-output name=repo_owner::$(echo ${{ github.repository_owner }} | tr '[:upper:]' '[:lower:]')
+        run: echo name=repo_owner::$(echo ${{ github.repository_owner }} | tr '[:upper:]' '[:lower:]') >> $GITHUB_OUTPUT
       - name: Log in to registry
         run: echo "${{ secrets.DOCKER_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
       - name: Integration Test
