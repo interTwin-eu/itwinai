@@ -33,6 +33,10 @@ from dagger import dag, function, object_type, Doc
 class Itwinai:
 
     container: Optional[dagger.Container] = dataclasses.field(default=None, init=False)
+    
+    # Note: since build_container returns self, when executing only it through dagger call
+    # (e.g., dagger call build-container [args]), dagger will actually execute all the
+    # methods in this class in order
 
     @function
     def build_container(
