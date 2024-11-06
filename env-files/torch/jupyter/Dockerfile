@@ -233,7 +233,7 @@ ENV HOROVOD_WITH_PYTORCH=1 \
 RUN pip install --no-cache-dir \
     deepspeed==0.15.* \
     git+https://github.com/horovod/horovod.git@3a31d93 \
-    "prov4ml[linux]@git+https://github.com/matbun/ProvML@new-main" \
+    "prov4ml[linux]@git+https://github.com/matbun/ProvML@e99bddba047a1a04ca0387e87cad1ed96d5ab2c5" \
     ray ray[tune]
 
 
