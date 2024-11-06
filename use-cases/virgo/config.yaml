@@ -13,10 +13,12 @@ training_pipeline:
     steps:
       - class_path: data.TimeSeriesDatasetSplitter
         init_args:
-          train_proportion: 0.9
-          validation_proportion: 0.1
-          rnd_seed: 42
-          root_folder: ${root_folder}
+          # train_proportion: 0.9
+          # validation_proportion: 0.1
+          # rnd_seed: 42
+          # file: ${root_folder}
+          # chunk_size: 500
+          # hdf5_dataset_name: virgo_dataset
       - class_path: trainer.NoiseGeneratorTrainer
         init_args:
           config:

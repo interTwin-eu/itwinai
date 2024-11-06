@@ -251,7 +251,7 @@ class TimeSeriesDatasetSplitter(DataSplitter):
             Tuple[Dataset, Dataset, Dataset]: Training, validation, and test datasets.
         """
 
-        whole_dataset = SyntheticTimeSeriesDataset(root_folder=self.root_folder)
+        whole_dataset = SyntheticTimeSeriesDataset2(file="virgo_data.hdf5", chunk_size=500, hdf5_dataset_name="virgo_dataset")
 
         # Split file paths into train, validation, and test sets
         generator = torch.Generator().manual_seed(self.rnd_seed)
