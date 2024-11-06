@@ -10,15 +10,15 @@ jobs:
     name: build
     runs-on: ubuntu-latest
     steps:
-      - name: Maximize build disk space
-        uses: easimon/maximize-build-space@v10
-        with:
-          root-reserve-mb: 50000 # Reserve 30 GBs for docker cache on / location
-          overprovision-lvm: true
-          remove-dotnet: true
-          remove-android: true
-          remove-haskell: true
-          remove-codeql: true
+      # - name: Maximize build disk space
+      #   uses: easimon/maximize-build-space@v10
+      #   with:
+      #     root-reserve-mb: 25000 # Reserve ~25 GBs for docker cache on / location
+      #     overprovision-lvm: true
+      #     remove-dotnet: true
+      #     remove-android: true
+      #     remove-haskell: true
+      #     remove-codeql: true
       - name: Checkout
         uses: actions/checkout@v4
       - name: Get Repo Owner
@@ -32,10 +32,10 @@ jobs:
           password: ${{ secrets.DOCKER_TOKEN }}
       # - name: Log in to registry
       #   run: echo "${{ secrets.DOCKER_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-      # - name: Delete huge unnecessary tools folder and large packages
-      #   run: |
-      #       rm -rf /opt/hostedtoolcache &&
-      #       curl -fsSL https://raw.githubusercontent.com/apache/flink/02d30ace69dc18555a5085eccf70ee884e73a16e/tools/azure-pipelines/free_disk_space.sh | bash
+      - name: Delete huge unnecessary tools folder and large packages
+        run: |
+            rm -rf /opt/hostedtoolcache &&
+            curl -fsSL https://raw.githubusercontent.com/apache/flink/02d30ace69dc18555a5085eccf70ee884e73a16e/tools/azure-pipelines/free_disk_space.sh | bash
       - name: Integration Test
         uses: dagger/dagger-for-github@v6
         with:
