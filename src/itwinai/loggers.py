@@ -50,6 +50,8 @@ A logger allows to save objects of different kinds:
        by :class:`~itwinai.loggers.Prov4MLLogger`.
    * - ``execution_time``
      - Execution time, used by :class:`~itwinai.loggers.Prov4MLLogger`.
+   * - ``prov_documents``
+     - Provenance documents, used by :class:`~itwinai.loggers.Prov4MLLogger`.
 
 .. _More info:
     https://docs.wandb.ai/ref/python/watch
@@ -1136,6 +1138,17 @@ class Prov4MLLogger(Logger):
                 prov4ml.log_dataset(dataset=item, label=identifier)
             else:
                 prov4ml.log_param(key=identifier, value=item)
+        elif kind == "prov_documents":
+            prov_docs = prov4ml.log_provenance_documents(
+                create_graph=True,
+                create_svg=True
+            )
+
+            # Upload to MLFlow
+            if mlflow.active_run() is not None:
+                for f in prov_docs:
+                    if f:
+                        mlflow.log_artifact(f)
 
 
 class EpochTimeTracker:
