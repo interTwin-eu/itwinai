@@ -16,6 +16,11 @@ SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
 WORKDIR /app
 
+RUN apt-get update && apt-get install -y \
+    # Needed by Prov4ML/yProvML to generate provenance graph
+    dot2tex \
+    && apt-get clean -y && rm -rf /var/lib/apt/lists/*
+
 # https://github.com/mpi4py/mpi4py/pull/431
 RUN pip install --no-cache-dir --upgrade pip \
     && env SETUPTOOLS_USE_DISTUTILS=local python -m pip install --no-cache-dir mpi4py
@@ -42,7 +47,7 @@ RUN CONTAINER_TORCH_VERSION="$(python -c 'import torch;print(torch.__version__)'
     && pip install --no-cache-dir torch=="$CONTAINER_TORCH_VERSION" \
     deepspeed==0.15.* \
     git+https://github.com/horovod/horovod.git@3a31d93 \
-    "prov4ml[linux]@git+https://github.com/matbun/ProvML@6faafd4" \
+    "prov4ml[linux]@git+https://github.com/matbun/ProvML@new-main" \
     # fix .triton/autotune/Fp16Matmul_2d_kernel.pickle bug
     && pver="$(python --version 2>&1 | awk '{print $2}' | cut -f1-2 -d.)" \
     && line=$(cat -n "/usr/local/lib/python${pver}/dist-packages/deepspeed/ops/transformer/inference/triton/matmul_ext.py" | grep os.rename | awk '{print $1}' | head -n 1) \

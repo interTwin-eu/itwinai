@@ -16,10 +16,15 @@ LABEL maintainer="Matteo Bunino - matteo.bunino@cern.ch"
 
 WORKDIR /app
 
+RUN apt-get update && apt-get install -y \
+    # Needed by Prov4ML/yProvML to generate provenance graph
+    dot2tex \
+    && apt-get clean -y && rm -rf /var/lib/apt/lists/*
+
 RUN pip install --no-cache-dir --upgrade pip \
     && pip install --no-cache-dir \
     tf_keras==2.16.* \
-    "prov4ml[linux]@git+https://github.com/matbun/ProvML@6faafd4" 
+    "prov4ml[linux]@git+https://github.com/matbun/ProvML@new-main" 
 
 # Install itwinai
 COPY pyproject.toml ./
