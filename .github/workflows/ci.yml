@@ -2,7 +2,7 @@ name: integration-tests
 
 on:
   push:
-    #branches: [main,next,next2next]
+    branches: [main]
   pull_request:
 
 jobs:
@@ -14,7 +14,6 @@ jobs:
       #   uses: easimon/maximize-build-space@v10
       #   with:
       #     root-reserve-mb: 25000 # Reserve ~25 GBs for docker cache on / location
-      #     overprovision-lvm: true
       #     remove-dotnet: true
       #     remove-android: true
       #     remove-haskell: true
@@ -30,8 +29,6 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.DOCKER_TOKEN }}
-      # - name: Log in to registry
-      #   run: echo "${{ secrets.DOCKER_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
       - name: Delete huge unnecessary tools folder and large packages
         run: |
             rm -rf /opt/hostedtoolcache &&
