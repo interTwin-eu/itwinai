@@ -180,11 +180,18 @@ if __name__ == "__main__":
         type=int,
         help="How often to save to file while generating. Also saves when finished. ",
     )
+    parser.add_argument(
+        "--save-location",
+        type=str,
+        help="Location to save the resulting HDF5 file.",
+        default="virgo_data.hdf5",
+    )
 
     args = parser.parse_args()
 
     start = time()
     generate_pkl_dataset(
+        output_file=args.save_location,
         num_datapoints=args.num_datapoints,
         duration=16,
         sample_rate=500,
