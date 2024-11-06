@@ -231,7 +231,7 @@ ENV HOROVOD_WITH_PYTORCH=1 \
     DS_BUILD_STOCHASTIC_TRANSFORMER=1 \
     DS_BUILD_TRANSFORMER_INFERENCE=1
 RUN pip install --no-cache-dir \
-    deepspeed \
+    deepspeed==0.15.* \
     git+https://github.com/horovod/horovod.git@3a31d93 \
     "prov4ml[linux]@git+https://github.com/matbun/ProvML@new-main" \
     ray ray[tune]
