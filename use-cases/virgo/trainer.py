@@ -16,6 +16,7 @@ from itwinai.loggers import EpochTimeTracker, Logger
 from itwinai.torch.config import TrainingConfiguration
 from itwinai.torch.distributed import DeepSpeedStrategy, RayDeepSpeedStrategy, RayDDPStrategy
 from itwinai.torch.trainer import TorchTrainer, RayTorchTrainer
+from deepspeed.accelerator import get_accelerator
 
 
 class VirgoTrainingConfiguration(TrainingConfiguration):
@@ -397,10 +398,25 @@ class RayNoiseGeneratorTrainer(RayTorchTrainer):
         self.optimizer = torch.optim.Adam(
             self.model.parameters(), lr=self.training_config["learning_rate"])
 
+        # First, define strategy-wise optional configurations
+        if isinstance(self.strategy, RayDeepSpeedStrategy):
+            # Batch size definition is not optional for DeepSpeedStrategy!
+            distribute_kwargs = dict(
+                config_params=dict(
+                    train_micro_batch_size_per_gpu=self.training_config["batch_size"]
+                )
+            )
+        else:
+            distribute_kwargs = {}
+
+        print(os.environ["LOCAL_RANK"],
+              os.environ["OMPI_COMM_WORLD_LOCAL_RANK"], os.environ["RANK"])
+
         # Distributed model, optimizer, and scheduler
         self.model, self.optimizer, _ = self.strategy.distributed(
             self.model,
-            self.optimizer
+            self.optimizer,
+            **distribute_kwargs
         )
 
     def create_dataloaders(
@@ -463,6 +479,9 @@ class RayNoiseGeneratorTrainer(RayTorchTrainer):
         return torch.cat(batch)
 
     def train(self, config, data):
+
+        self.strategy.init()
+
         # Start the timer for profiling
         st = timer()
 
@@ -470,9 +489,26 @@ class RayNoiseGeneratorTrainer(RayTorchTrainer):
 
         self.create_model_loss_optimizer()
 
-        if isinstance(self.strategy, RayDeepSpeedStrategy):
-            # Move model to the correct device
-            self.model.to(self.strategy.device())
+        # if isinstance(self.strategy, RayDeepSpeedStrategy):
+        #     print(os.environ)
+        #     # device = get_accelerator().device_name(self.model.local_rank)
+
+        #     # Move model to the correct device
+        #     self.strategy.set_device()
+
+        #     print(self.strategy.device())
+
+        #     # device = torch.cuda.set_device(self.strategy.local_rank())
+
+        #     # print(f"Device: {device}")
+        #     # print(f"Device: {self.strategy.device()}")
+
+        #     # print("Moving model and loss to the right device...")
+        #     # self.model = self.model.to(device)
+        #     # self.loss = self.loss.to(device)
+        #     # self.model = self.model.to(self.strategy.device())
+        #     # self.loss = self.loss.to(self.strategy.device())
+        #     # print("Success!")
 
         self.create_dataloaders(
             train_dataset=data[0],

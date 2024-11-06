@@ -100,13 +100,13 @@ ray_training_pipeline:
         init_args:
           config:
             scaling_config:
-                num_workers: 2
+                num_workers: 4
                 use_gpu: true
                 resources_per_worker:
                   CPU: 5
                   GPU: 1
-            tune_config:
-              num_samples: 2
+            # tune_config:
+            #   num_samples: 2
               # scheduler:
               #   name: asha
               #   max_t: 10
@@ -117,13 +117,13 @@ ray_training_pipeline:
               storage_path: ray_checkpoints
               name: Virgo-HPO-Experiment
             train_loop_config:
-              batch_size: 
-                type: choice
-                options: [32, 64, 128]
-              learning_rate:
-                type: uniform
-                min: 1e-5
-                max: 1e-3
+              batch_size: 64
+                # type: choice
+                # options: [32, 64, 128]
+              learning_rate: 0.0005
+                # type: uniform
+                # min: 1e-5
+                # max: 1e-3
               epochs: 2
               generator: simple #unet
               loss: L1
@@ -163,31 +163,31 @@ ray_training_pipeline_small:
         init_args:
           config:
             scaling_config:
-                num_workers: 2
+                num_workers: 4
                 use_gpu: true
                 resources_per_worker:
                   CPU: 5
                   GPU: 1
-            tune_config:
-              num_samples: 4
-              scheduler:
-                name: asha
-                max_t: 10
-                grace_period: 5
-                reduction_factor: 4
-                brackets: 1
+            # tune_config:
+            #   num_samples: 2
+              # scheduler:
+              #   name: asha
+              #   max_t: 10
+              #   grace_period: 5
+              #   reduction_factor: 4
+              #   brackets: 1
             run_config:
               storage_path: ray_checkpoints
               name: Virgo-HPO-Experiment
             train_loop_config:
-              batch_size: 
-                type: choice
-                options: [32, 64, 128]
-              learning_rate:
-                type: uniform
-                min: 1e-5
-                max: 1e-3
-              epochs: 10
+              batch_size: 64
+                # type: choice
+                # options: [32, 64, 128]
+              learning_rate: 0.0005
+                # type: uniform
+                # min: 1e-5
+                # max: 1e-3
+              epochs: 2
               generator: simple #unet
               loss: L1
               save_best: false

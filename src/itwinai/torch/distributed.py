@@ -16,7 +16,7 @@ from torch.optim.lr_scheduler import _LRScheduler as LRScheduler
 from torch.optim.optimizer import Optimizer
 from torch.utils.data import DataLoader, Dataset, DistributedSampler, Sampler
 from torch.utils.data.dataloader import T_co, _collate_fn_t, _worker_init_fn_t
-
+from deepspeed.accelerator import get_accelerator
 from ..distributed import DistributedStrategy
 from .type import DistributedStrategyError, UninitializedStrategyError
 
@@ -290,7 +290,8 @@ class TorchDistributedStrategy(DistributedStrategy):
         if self.is_distributed:
             if sampler is None:
                 sampler = DistributedSampler(
-                    dataset, num_replicas=self.global_world_size(),
+                    dataset,
+                    num_replicas=self.global_world_size(),
                     rank=self.global_rank(),
                     shuffle=shuffle
                 )
@@ -596,7 +597,6 @@ class DeepSpeedStrategy(TorchDistributedStrategy):
         os.environ['OMPI_COMM_WORLD_LOCAL_RANK'] = os.environ.get(
             'LOCAL_RANK', ompi_lrank
         )
-
         # https://deepspeed.readthedocs.io/en/latest/initialize.html#training-initialization
         self.deepspeed.init_distributed(dist_backend=self.backend)
         self.is_initialized = True
@@ -1127,19 +1127,64 @@ class RayDeepSpeedStrategy(TorchDistributedStrategy):
         self,
         backend: Literal['nccl', 'gloo', 'mpi']
     ) -> None:
-        # Set local rank
+
+        # os.environ['RANK'] = os.environ.get('SLURM_PROCID')
+        # os.environ['WORLD_SIZE'] = os.environ.get('SLURM_NTASKS')
+        # os.environ['LOCAL_RANK'] = os.environ.get('SLURM_LOCALID')
+
+        # print("Environment variables: ")
+        # print(os.environ.get('MASTER_ADDR'))
+        # print(os.environ.get('MASTER_PORT'))
+        # print(os.environ['RANK'])
+        # print(os.environ['WORLD_SIZE'])
+        # print(os.environ['LOCAL_RANK'])
+
+        # print(os.environ)
+
+        # deepspeed.init_distributed()
+
+        # if not distributed_resources_available():
+        #     raise RuntimeError(
+        #         "Trying to run distributed on insufficient resources.")
+
+        # https://github.com/Lightning-AI/pytorch-lightning/issues/13567
         # ompi_lrank = os.environ.get('OMPI_COMM_WORLD_LOCAL_RANK')
         # os.environ['OMPI_COMM_WORLD_LOCAL_RANK'] = os.environ.get(
-        #    'LOCAL_RANK', ompi_lrank)
+        #     'LOCAL_RANK', ompi_lrank
+        # )
+        # https://deepspeed.readthedocs.io/en/latest/initialize.html#training-initialization
+        # print(backend)
 
-        deepspeed.init_distributed(dist_backend=backend)
+        # print("Trying to initialize strategy...")
+        # deepspeed.init_distributed(dist_backend=backend)
+        self.is_initialized = True
+        # print("Successfully initialized strategy!")
 
-        self.set_device()
+        # self.set_device()
 
         super().__init__()
 
     def init(self) -> None:
-        pass
+
+        # if not distributed_resources_available():
+        #     raise RuntimeError(
+        #         "Trying to run distributed on insufficient resources.")
+
+        # https://github.com/Lightning-AI/pytorch-lightning/issues/13567
+        # This block of code should be removed as some point
+        if os.environ.get('LOCAL_RANK'):
+            os.environ['OMPI_COMM_WORLD_LOCAL_RANK'] = os.environ.get('LOCAL_RANK')
+
+        # https://deepspeed.readthedocs.io/en/latest/initialize.html#training-initialization
+        # print(backend)
+        deepspeed.init_distributed()
+        # print("Trying to initialize strategy...")
+        # deepspeed.init_distributed(dist_backend=backend)
+        self.is_initialized = True
+        # print("Successfully initialized strategy!")
+
+        print(os.environ)
+        self.set_device()
 
     def global_world_size(self) -> int:
         return dist.get_world_size()
@@ -1151,7 +1196,7 @@ class RayDeepSpeedStrategy(TorchDistributedStrategy):
         return dist.get_rank()
 
     def local_rank(self) -> int:
-        dist.get_rank() % torch.cuda.device_count()
+        return dist.get_rank() % torch.cuda.device_count()
 
     def distributed(
         self,
@@ -1162,11 +1207,16 @@ class RayDeepSpeedStrategy(TorchDistributedStrategy):
         **init_kwargs
     ) -> Tuple[Module | Optimizer | LRScheduler | None]:
 
+        master_port = os.environ.get('MASTER_PORT')
+
         distrib_model, optimizer, _, lr_scheduler = deepspeed.initialize(
             model=model,
             model_parameters=model_parameters,
             optimizer=optimizer,
             lr_scheduler=lr_scheduler,
+            distributed_port=master_port,
+
+            dist_init_required=True,
             **init_kwargs
         )
         return distrib_model, optimizer, lr_scheduler
@@ -1177,11 +1227,18 @@ class RayDeepSpeedStrategy(TorchDistributedStrategy):
         batch_size: Optional[int] = 1,
         shuffle: Optional[bool] = None,
         sampler: Union[Sampler, Iterable, None] = None,
+        batch_sampler: Union[Sampler[List], Iterable[List], None] = None,
         collate_fn: Optional[Callable[[List], Any]] = None
     ):
+        if batch_sampler is not None:
+            print(
+                "WARNING: batch_sampler is ignored by TorchDistributedStrategy"
+            )
+
         if sampler is None:
             sampler = DistributedSampler(
-                dataset, num_replicas=self.global_world_size(),
+                dataset,
+                num_replicas=self.global_world_size(),
                 rank=self.global_rank(),
                 shuffle=shuffle
             )

@@ -1304,14 +1304,12 @@ class RayTorchTrainer(Trainer):
             logger: Optional[Logger] = None
     ) -> None:
         super().__init__(name=name)
-        print("Getting at least to the init function!")
-        self.logger = logger
-        print(strategy)
-        self.strategy = self._initialize_strategy(strategy)
 
-        self._set_configs(config=config)
+        self.logger = logger
 
         self._initialize_ray()
+        self.strategy = self._initialize_strategy(strategy)
+        self._set_configs(config=config)
 
     @property
     def device(self) -> str:
@@ -1323,7 +1321,7 @@ class RayTorchTrainer(Trainer):
         self.config = deep_update(DEFAULT_CONFIG, config)
 
         self._set_scaling_config()
-        self._set_tune_config()
+        # self._set_tune_config()
         self._set_run_config()
         self._set_train_loop_config()
 
@@ -1336,10 +1334,15 @@ class RayTorchTrainer(Trainer):
                 raise EnvironmentError(
                     "Ray initialization requires 'ip_head' and 'head_node_ip' to be set.")
 
+            # if not ray.is_initialized():
+            #     ray.init(
+            #         address=ip_head,
+            #         _node_ip_address=head_node_ip
+            #     )
+
             if not ray.is_initialized():
                 ray.init(
-                    address=ip_head,
-                    _node_ip_address=head_node_ip
+                    address="auto"
                 )
 
         except Exception as e:
@@ -1412,19 +1415,22 @@ class RayTorchTrainer(Trainer):
         )
         trainer = ray.train.torch.TorchTrainer(
             train_with_data,
+            train_loop_config=self.train_loop_config,
             scaling_config=self.scaling_config,
             run_config=self.run_config
         )
-        param_space = {
-            "train_loop_config": self.train_loop_config
-        }
-        tuner = tune.Tuner(
-            trainer,
-            param_space=param_space,
-            tune_config=self.tune_config
-        )
+        # param_space = {
+        #     "train_loop_config": self.train_loop_config
+        # }
+        # tuner = tune.Tuner(
+        #     trainer,
+        #     param_space=param_space,
+        #     tune_config=self.tune_config
+        # )
 
-        result_grid = tuner.fit()
+        # result_grid = tuner.fit()
+
+        result_grid = trainer.fit()
 
         return train_dataset, validation_dataset, test_dataset, result_grid
 
