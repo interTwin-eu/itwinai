@@ -22,6 +22,7 @@ from itwinai.torch.distributed import (
 from itwinai.torch.monitoring.monitoring import measure_gpu_utilization
 from itwinai.torch.profiling.profiler import profile_torch_trainer
 from itwinai.torch.trainer import RayTorchTrainer, TorchTrainer
+from deepspeed.accelerator import get_accelerator
 
 
 class VirgoTrainingConfiguration(TrainingConfiguration):
