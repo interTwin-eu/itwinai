@@ -16,11 +16,12 @@ jobs:
       #       curl -fsSL https://raw.githubusercontent.com/apache/flink/02d30ace69dc18555a5085eccf70ee884e73a16e/tools/azure-pipelines/free_disk_space.sh | bash
       - name: Maximize build disk space
         uses: easimon/maximize-build-space@v10
-      #   with:
-      #     remove-dotnet: true
-      #     remove-android: true
-      #     remove-haskell: true
-      #     remove-codeql: true
+        with:
+          root-reserve-mb: 30720 # Reserve 30 GBs for docker cache on / location
+          remove-dotnet: true
+          remove-android: true
+          remove-haskell: true
+          remove-codeql: true
       - name: Checkout
         uses: actions/checkout@v4
       - name: Get Repo Owner
