@@ -25,11 +25,11 @@ jobs:
         uses: actions/checkout@v4
       - name: Maximize build disk space
         uses: easimon/maximize-build-space@v10
-        with:
-          remove-dotnet: true
-          remove-android: true
-          remove-haskell: true
-          remove-codeql: true
+        # with:
+        #   remove-dotnet: true
+        #   remove-android: true
+        #   remove-haskell: true
+        #   remove-codeql: true
       - name: Get Repo Owner
         id: get_repo_owner
         run: echo ::set-output name=repo_owner::$(echo ${{ github.repository_owner }} | tr '[:upper:]' '[:lower:]')
