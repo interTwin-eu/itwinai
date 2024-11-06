@@ -272,8 +272,7 @@ def generate_cut_image_dataset(df, channels, num_processes=20, square_size=128):
         # Use map to pass multiple arguments to process_image
         results = list(pool.starmap(process_image, args))
 
-    df = pd.concat(results, ignore_index=True)
-    return df
+    return pd.concat(results, ignore_index=True)
 
 
 def show_dataset(df, size, num_plots=10):
