@@ -12,7 +12,7 @@ from tqdm import tqdm
 # sys.path.append(str(Path("..").resolve()))
 sys.path.append(str(Path.cwd().resolve()))
 
-from src.dataset import generate_cut_image_dataset
+from src.dataset import generate_cut_image_dataset, process_image
 
 def append_to_hdf5_dataset(
     file_path: Path,
@@ -134,11 +134,11 @@ def generate_hdf5_dataset(
         df_ts = pd.DataFrame(dictionary)
 
         # Convert timeseries dataset into q-plot
-        df = generate_cut_image_dataset(
-            df_ts,
-            list(df_ts.columns),
-            num_processes=num_processes,
-            square_size=square_size,
+        df = process_image(
+            row=df_ts.iloc[0],
+            channels=list(df_ts.columns),
+            row_idx=None,
+            square_size=square_size
         )
 
         datapoints.append(df)
@@ -182,6 +182,7 @@ if __name__ == "__main__":
         "--save-frequency",
         type=int,
         help="How often to save to file while generating. Also saves when finished. ",
+        default=5
     )
     parser.add_argument(
         "--save-location",
