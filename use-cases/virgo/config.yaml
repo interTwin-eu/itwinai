@@ -1,10 +1,8 @@
-root_folder: /p/scratch/intertwin/datasets/virgo
 hdf5_file_location: /p/project1/intertwin/saether1/itwinai/use-cases/virgo/data/virgo_data.hdf5
 hdf5_dataset_name: virgo_dataset
-chunk_size: 5
 data_root: ./data
 epochs: 10
-batch_size: 3
+batch_size: 10 # equivalent to chunk size 
 learning_rate: 0.0001
 strategy: ddp
 checkpoint_path: checkpoints/epoch_{}.pth
@@ -19,15 +17,14 @@ training_pipeline:
           train_proportion: 0.9
           validation_proportion: 0.1
           rnd_seed: 42
-          root_folder: ${root_folder}
           hdf5_file_location: ${hdf5_file_location}
-          chunk_size: ${chunk_size}
+          chunk_size: ${batch_size}
           hdf5_dataset_name: ${hdf5_dataset_name}
       - class_path: trainer.NoiseGeneratorTrainer
         init_args:
           config:
             generator: simple #unet
-            batch_size: ${batch_size}
+            batch_size: 1
             optim_lr: ${learning_rate}
             loss: l1
             save_best: true

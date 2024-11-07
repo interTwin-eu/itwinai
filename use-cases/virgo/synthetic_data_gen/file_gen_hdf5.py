@@ -14,7 +14,6 @@ sys.path.append(str(Path.cwd().resolve()))
 
 from src.dataset import generate_cut_image_dataset
 
-
 def append_to_hdf5_dataset(
     file_path: Path,
     dataset_name: str,
@@ -36,7 +35,7 @@ def append_to_hdf5_dataset(
         dset[-array.shape[0] :] = array
 
 
-def generate_pkl_dataset(
+def generate_hdf5_dataset(
     output_file: str = "virgo_data.hdf5",
     dataset_name: str = "virgo_dataset",
     num_datapoints=5,
@@ -48,6 +47,7 @@ def generate_pkl_dataset(
     num_processes=4,
     square_size=64,
     datapoints_per_file=10,
+    seed=None
 ) -> None:
     """Generate a folder with num_files pickle files containing synthetic gravitational waves data.
 
@@ -64,12 +64,15 @@ def generate_pkl_dataset(
         square_size (int): Size in pixels of qplot image (default is 500 samples per second).
         datapoints_per_file (int): number of independent datapoints per pickle file.
     """
+    if seed is not None: 
+        np.random.seed(seed)
 
     datapoints = []
 
     # Creating empty HDF5 file
     datapoint_shape = (num_aux_channels + 1, square_size, square_size)
     output_file_path = Path(output_file)
+    output_file_path.parent.mkdir(parents=True, exist_ok=True)
     print(f"Creating/overwriting file: '{output_file_path.resolve()}'.")
     with h5py.File(output_file_path, "w") as f:
         dataset = f.create_dataset(
@@ -85,7 +88,6 @@ def generate_pkl_dataset(
 
     for f in tqdm(range(num_datapoints)):
         times = np.linspace(0, duration, duration * sample_rate)
-
         # Initialise the main data as a list of zeros
         main_data = np.zeros(len(times))
         dictionary_aux = {}
@@ -188,10 +190,16 @@ if __name__ == "__main__":
         default="virgo_data.hdf5",
     )
 
+    parser.add_argument(
+        "--seed", 
+        type=int,
+        help="Seed for random number generator"
+    )
+
     args = parser.parse_args()
 
     start = time()
-    generate_pkl_dataset(
+    generate_hdf5_dataset(
         output_file=args.save_location,
         num_datapoints=args.num_datapoints,
         duration=16,
@@ -201,7 +209,10 @@ if __name__ == "__main__":
         noise_amplitude=0.5,
         datapoints_per_file=args.save_frequency,
         num_processes=1,
+        seed=args.seed
     )
     end = time()
     total_time = end - start
     print(f"Generation took {total_time:.2f} seconds!")
+
+
