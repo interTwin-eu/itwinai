@@ -142,39 +142,38 @@ def communication_overhead_stacked_bar_plot(
     return fig, ax
 
 
->>>>>> > d538510(Gpu monitoring(  # 237))
 def get_comp_fraction_full_array(
-    df: pd.DataFrame, print_table: bool=False
+    df: pd.DataFrame, print_table: bool = False
 ) -> np.ndarray:
     """Creates a MxN NumPy array where M is the number of strategies and N is the
     number of GPU configurations. The strategies are sorted alphabetically and the GPU
     configurations are sorted in ascending number of GPUs.
     """
-    unique_num_gpus=sorted(df["num_gpus"].unique(), key=lambda x: int(x))
-    unique_strategies=sorted(df["strategy"].unique())
-    values=[]
+    unique_num_gpus = sorted(df["num_gpus"].unique(), key=lambda x: int(x))
+    unique_strategies = sorted(df["strategy"].unique())
+    values = []
 
-    table_string=""
+    table_string = ""
 
     for strategy in unique_strategies:
-        strategy_values=[]
+        strategy_values = []
         for num_gpus in unique_num_gpus:
-            filtered_df=df[
+            filtered_df = df[
                 (df["strategy"] == strategy) & (df["num_gpus"] == num_gpus)
             ]
 
-            row_string=f"{strategy:>12} | {num_gpus:>10}"
+            row_string = f"{strategy:>12} | {num_gpus:>10}"
 
             # Allows some strategies or num GPUs to not be included
             if len(filtered_df) == 0:
-                comp_time, comm_time=np.NaN, np.NaN
+                comp_time, comm_time = np.NaN, np.NaN
                 strategy_values.append(np.NaN)
 
                 row_string += f" | {'(NO DATA)':>15}"
             else:
-                comp_time, comm_time=calculate_comp_and_comm_time(df=filtered_df)
+                comp_time, comm_time = calculate_comp_and_comm_time(df=filtered_df)
                 # Avoid division-by-zero errors (1e-10)
-                comp_fraction=comp_time / (comp_time + comm_time + 1e-10)
+                comp_fraction = comp_time / (comp_time + comm_time + 1e-10)
                 strategy_values.append(comp_fraction)
 
                 row_string += f" | {comp_time:>8.2f}s"
