@@ -2,7 +2,7 @@ name: integration-tests
 
 on:
   push:
-    branches: [main]
+    # branches: [main]
   pull_request:
 
 jobs:
@@ -38,6 +38,7 @@ jobs:
         with:
           workdir: ci
           verb: call
-          args: build-container --context=.. --dockerfile=../env-files/torch/Dockerfile publish
+          # args: build-container --context=.. --dockerfile=../env-files/torch/Dockerfile publish
+          args: build-container --context=.. --dockerfile=../env-files/torch/Dockerfile test-remote --kubeconfig-str "${{ secrets.KUBECONFIG_INFN }}"
           cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
           version: "latest"
