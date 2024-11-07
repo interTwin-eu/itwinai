@@ -1,29 +1,27 @@
 """
 Scaling test of Horovod on Imagenet using Resnet.
 """
-from typing import Optional
 import argparse
 import os
 import sys
-from timeit import default_timer as timer
 import time
+from timeit import default_timer as timer
+from typing import Optional
 
+import horovod.torch as hvd
 import torch
+
 # import torch.multiprocessing as mp
 import torch.nn.functional as F
 import torch.optim as optim
+import torchvision
 from torch.utils.data import DataLoader
 from torch.utils.data.distributed import DistributedSampler
-import horovod.torch as hvd
-import torchvision
-
-from itwinai.parser import ArgumentParser as ItAIArgumentParser
-from itwinai.loggers import EpochTimeTracker
-from itwinai.torch.reproducibility import (
-    seed_worker, set_seed
-)
-
 from utils import imagenet_dataset
+
+from itwinai.loggers import EpochTimeTracker
+from itwinai.parser import ArgumentParser as ItAIArgumentParser
+from itwinai.torch.reproducibility import seed_worker, set_seed
 
 
 def parse_params():
@@ -264,8 +262,8 @@ def main():
         print('--------------------------------------------------------')
         nnod = os.environ.get('SLURM_NNODES', 'unk')
         epoch_time_tracker = EpochTimeTracker(
-            series_name="horovod-bl",
-            csv_file=f"epochtime_horovod-bl_{nnod}N.csv"
+            strategy_name="horovod-bl",
+            save_path=f"epochtime_horovod-bl_{nnod}N.csv"
         )
 
     et = timer()
