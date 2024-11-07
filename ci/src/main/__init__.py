@@ -102,6 +102,10 @@ class Itwinai:
         gpus_per_node = 4 
         pre_exec_cmd = (
             "export CONTAINER_PATH=itwinai_dist_test.sif "
+            # Some garbage to try to get away from tests...
+            "&& cd /tmp && mkdir -p 1234567-itwinai && cd 1234567-itwinai "
+            
+            
             f"&& singularity pull --force $CONTAINER_PATH docker://{self.full_name} "
             "&& singularity exec $CONTAINER_PATH cat /app/tests/torch/slurm.vega.sh > slurm.vega.sh "
             # Activate env on Vega
@@ -113,7 +117,7 @@ class Itwinai:
             "&& export NO_COLOR=1 "
             "&& export DIST_MODE=ddp "
             "&& export RUN_NAME=ddp-itwinai "
-            "&& export COMMAND='pytest -v -m torch_dist' "
+            "&& export COMMAND='pytest -v -m torch_dist /app/tests' "
             # Quick fix
             f"&& export SLURM_GPUS_PER_NODE={gpus_per_node} "
             # Launch code in SLURM job

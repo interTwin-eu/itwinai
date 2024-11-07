@@ -18,6 +18,8 @@ ENV DEBIAN_FRONTEND=noninteractive
 
 WORKDIR /app
 
+ENV DEBIAN_FRONTEND=noninteractive
+
 RUN apt-get update && apt-get install -y \
     # Needed by Prov4ML/yProvML to generate provenance graph
     dot2tex \
