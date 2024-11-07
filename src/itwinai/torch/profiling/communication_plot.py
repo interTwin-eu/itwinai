@@ -1,6 +1,6 @@
 from pathlib import Path
-from re import Pattern, compile
-from typing import Any, List, Tuple
+from re import Match, Pattern, compile
+from typing import Any, List, Optional, Tuple, Union
 
 import matplotlib
 import matplotlib.pyplot as plt
@@ -85,7 +85,7 @@ def create_stacked_plot(
     fig, ax = plt.subplots()
 
     # Creating an offset to "center" around zero
-    static_offset = len(strategy_labels) / 2 - 0.5
+    static_offset = (len(strategy_labels) - 1) / 2
     for strategy_idx in range(len(strategy_labels)):
         dynamic_bar_offset = strategy_idx - static_offset
 
@@ -142,15 +142,21 @@ def create_stacked_plot(
     return fig, ax
 
 
-def create_combined_comm_overhead_df(logs_dir: Path, pattern: str) -> pd.DataFrame:
+def create_combined_comm_overhead_df(
+    log_dir: Path, pattern: Optional[str]
+) -> pd.DataFrame:
     """Reads and combines all files in a folder that matches the given regex pattern
-    into a single DataFrame. The files must be formatted as csv files.
+    into a single DataFrame. The files must be formatted as csv files. If pattern is
+    None, we assume a match on all files.
 
     Raises:
         ValueError: If not all expected columns are found in the stored DataFrame.
         ValueError: If no matching files are found in the given logging directory.
     """
-    re_pattern: Pattern = compile(pattern)
+    re_pattern: Optional[Pattern] = None
+    if pattern is not None:
+        re_pattern = compile(pattern)
+
     dataframes = []
     expected_columns = {
         "strategy",
@@ -159,8 +165,11 @@ def create_combined_comm_overhead_df(logs_dir: Path, pattern: str) -> pd.DataFra
         "name",
         "self_cuda_time_total",
     }
-    for entry in logs_dir.iterdir():
-        match = re_pattern.search(str(entry))
+    for entry in log_dir.iterdir():
+        match: Union[bool, Match] = True
+        if re_pattern is not None:
+            match = re_pattern.search(str(entry))
+
         if not match:
             continue
 
@@ -168,15 +177,22 @@ def create_combined_comm_overhead_df(logs_dir: Path, pattern: str) -> pd.DataFra
         if not expected_columns.issubset(df.columns):
             missing_columns = expected_columns - set(df.columns)
             raise ValueError(
-                f"Invalid data format! File at '{match.string}' doesn't contain all"
+                f"Invalid data format! File at '{str(entry)}' doesn't contain all"
                 f" necessary columns. \nMissing columns: {missing_columns}"
             )
 
         dataframes.append(df)
+
     if len(dataframes) == 0:
-        raise ValueError(
-            f"No matching files found in '{logs_dir.resolve()}' for pattern '{pattern}'"
-        )
+        if pattern is None:
+            error_message = f"Unable to find any files in {log_dir.resolve()}!"
+        else:
+            error_message = (
+                f"No files matched pattern, '{pattern}', in log_dir, "
+                f"{log_dir.resolve()}!"
+            )
+        raise ValueError(error_message)
+
     return pd.concat(dataframes)
 
 
