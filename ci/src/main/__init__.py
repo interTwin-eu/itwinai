@@ -90,8 +90,7 @@ class Itwinai:
         return await self.container.publish(self.full_name)
     
     @function
-    def test_remote(self)->str:
-    # def test_remote(self, kubeconfig_str: str)->str:
+    def test_remote(self, kubeconfig_str: str)->str:
         from .k8s import create_pod_manifest, submit_job
     
         # created pod manifest
@@ -117,7 +116,7 @@ class Itwinai:
         )
 
         if status not in ["Succeeded", "Completed"]:
-            raise RuntimeError("Pod failed!")
+            raise RuntimeError(f"Pod did not complete successfully! Status: {status}")
         
         return f"Pod finished with status: {status}"
         
