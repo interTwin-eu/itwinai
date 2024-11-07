@@ -67,17 +67,18 @@ class TimeSeriesDatasetGenerator(DataGetter):
         return df
 
 
-class SyntheticTimeSeriesDataset2(Dataset):
+class SyntheticTimeSeriesDatasetHDF5(Dataset):
     def __init__(
-        self, file: str, chunk_size: int = 500, hdf5_dataset_name: str = "virgo_dataset"
+        self, hdf5_file_location: str, chunk_size: int = 500, hdf5_dataset_name: str = "virgo_dataset"
     ):
         """Initialize the DataFrameDataset class.
 
         Args:
-            root_folder (str): Location of the pickled DataFrames.
+            hdf5_file_location: Location of the HDF5 file containing the dataset
+            chunk_size: How many rows of data points each sample should contain
+            hdf5_dataset_name: The name of the Dataset object of the HDF5 file
         """
-        print(f"Running the SyntheticTimeSeriesDataset2!")
-        file_path = Path(file)
+        file_path = Path(hdf5_file_location)
         if not file_path.exists():
             raise ValueError(
                 f"Given file location, {file_path.resolve()} does not exist. "
@@ -132,97 +133,12 @@ class SyntheticTimeSeriesDataset2(Dataset):
         return normalize_(data)
 
 
-class SyntheticTimeSeriesDataset(Dataset):
-    def __init__(
-        self,
-        root_folder: Optional[str] = None,
-    ):
-        """Initialize the DataFrameDataset class.
-
-        Args:
-            root_folder (str): Location of the pickled DataFrames.
-        """
-
-        # Ensure the root folder exists
-        if not os.path.isdir(root_folder):
-            raise FileNotFoundError(f"Root folder '{root_folder}' not found.")
-
-        # Find all file paths in root folder
-        self.file_paths = [
-            os.path.join(dirpath, f)
-            for dirpath, dirs, files in os.walk(root_folder)
-            for f in files
-            if f.endswith(".pkl")
-        ]
-
-    def __len__(self):
-        """Return the total number of files in the dataset."""
-        return len(self.file_paths)
-
-    def __getitem__(self, idx):
-        """Retrieve a data sample by index, convert to tensor, and normalize.
-
-        Args:
-            idx (int): Index of the file to retrieve.
-
-        Returns:
-            torch.Tensor: Concatenated and normalized data tensor
-            of main and auxiliary channels.
-        """
-        # Load a single dataframe from the file
-        dataframe = pd.read_pickle(self.file_paths[idx])
-
-        # Convert all data in the DataFrame to torch tensors
-        df = dataframe.map(lambda x: torch.tensor(x))
-
-        # Divide Image dataset in main and aux channels.
-        main_channel = list(df.columns)[0]
-        aux_channels = list(df.columns)[1:]
-
-        # Ensure that there are at least 3 auxiliary channels
-        if len(aux_channels) < 3:
-            print(f"Item with the index {idx} only has {len(aux_channels)} channels!")
-            return None
-
-        # Extract the main channel and auxiliary channels
-        df_aux_all_2d = pd.DataFrame(df[aux_channels])
-        df_main_all_2d = pd.DataFrame(df[main_channel])
-
-        # Stack the main and auxiliary channels into 2D tensors
-        signal_data_train_2d = torch.stack(
-            [
-                torch.stack([df_main_all_2d[main_channel].iloc[i]])
-                for i in range(df_main_all_2d.shape[0])
-            ]
-        )
-
-        aux_data_train_2d = torch.stack(
-            [
-                torch.stack(
-                    [
-                        df_aux_all_2d.iloc[i, 0],
-                        df_aux_all_2d.iloc[i, 1],
-                        df_aux_all_2d.iloc[i, 2],
-                    ]
-                )
-                for i in range(df_aux_all_2d.shape[0])
-            ]
-        )
-
-        # Concatenate the main and auxiliary channel tensors
-        data_tensor = torch.cat([signal_data_train_2d, aux_data_train_2d], dim=1)
-
-        # Normalize and return the concatenated tensor
-        return normalize_(data_tensor)
-
-
 class TimeSeriesDatasetSplitter(DataSplitter):
     def __init__(
         self,
         train_proportion: int | float,
         validation_proportion: int | float = 0.0,
         test_proportion: int | float = 0.0,
-        root_folder: Optional[str] = None,
         rnd_seed: Optional[int] = None,
         name: Optional[str] = None,
         hdf5_file_location: str = "data/virgo_data.hdf5",
@@ -242,7 +158,6 @@ class TimeSeriesDatasetSplitter(DataSplitter):
         super().__init__(train_proportion, validation_proportion, test_proportion, name)
         self.save_parameters(**self.locals2params(locals()))
         self.rnd_seed = rnd_seed
-        self.root_folder = root_folder
         self.hdf5_file_location = hdf5_file_location
         self.hdf5_dataset_name = hdf5_dataset_name
         self.chunk_size = chunk_size
@@ -258,8 +173,8 @@ class TimeSeriesDatasetSplitter(DataSplitter):
             Tuple[Dataset, Dataset, Dataset]: Training, validation, and test datasets.
         """
 
-        whole_dataset = SyntheticTimeSeriesDataset2(
-            file=self.hdf5_file_location, 
+        whole_dataset = SyntheticTimeSeriesDatasetHDF5(
+            hdf5_file_location=self.hdf5_file_location, 
             chunk_size=self.chunk_size,
             hdf5_dataset_name=self.hdf5_dataset_name
         )
