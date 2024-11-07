@@ -7,7 +7,6 @@ import pandas as pd
 import h5py
 from gwpy.timeseries import TimeSeries
 from time import time
-from scipy.signal import square
 from tqdm import tqdm
 
 # sys.path.append(str(Path("..").resolve()))
