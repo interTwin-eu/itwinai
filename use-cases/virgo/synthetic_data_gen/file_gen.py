@@ -7,6 +7,7 @@ import pandas as pd
 import h5py
 from gwpy.timeseries import TimeSeries
 from time import time
+from tqdm import tqdm
 
 # sys.path.append(str(Path("..").resolve()))
 sys.path.append(str(Path.cwd().resolve()))
@@ -69,6 +70,7 @@ def generate_pkl_dataset(
     # Creating empty HDF5 file
     datapoint_shape = (num_aux_channels + 1, square_size, square_size)
     output_file_path = Path(output_file)
+    print(f"Creating/overwriting file: '{output_file_path.resolve()}'.")
     with h5py.File(output_file_path, "w") as f:
         dataset = f.create_dataset(
             dataset_name,
@@ -81,7 +83,7 @@ def generate_pkl_dataset(
         )
         dataset.attrs["main_channel_idx"] = 0
 
-    for f in range(num_datapoints):
+    for f in tqdm(range(num_datapoints)):
         times = np.linspace(0, duration, duration * sample_rate)
 
         # Initialise the main data as a list of zeros
@@ -138,7 +140,6 @@ def generate_pkl_dataset(
         )
 
         datapoints.append(df)
-        print(f"len(datapoints): {len(datapoints)}")
         if len(datapoints) % datapoints_per_file == 0:
             # Converting to numpy array
             df_concat = pd.concat(datapoints)
@@ -198,7 +199,7 @@ if __name__ == "__main__":
         num_aux_channels=3,
         num_waves_range=(10, 15),
         noise_amplitude=0.5,
-        datapoints_per_file=5,
+        datapoints_per_file=args.save_frequency,
         num_processes=1,
     )
     end = time()

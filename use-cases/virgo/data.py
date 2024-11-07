@@ -76,6 +76,7 @@ class SyntheticTimeSeriesDataset2(Dataset):
         Args:
             root_folder (str): Location of the pickled DataFrames.
         """
+        print(f"Running the SyntheticTimeSeriesDataset2!")
         file_path = Path(file)
         if not file_path.exists():
             raise ValueError(
@@ -224,6 +225,9 @@ class TimeSeriesDatasetSplitter(DataSplitter):
         root_folder: Optional[str] = None,
         rnd_seed: Optional[int] = None,
         name: Optional[str] = None,
+        hdf5_file_location: str = "data/virgo_data.hdf5",
+        hdf5_dataset_name: str = "virgo_dataset", 
+        chunk_size: int = 500
     ) -> None:
         """Initialize the splitter for time-series datasets.
 
@@ -239,6 +243,9 @@ class TimeSeriesDatasetSplitter(DataSplitter):
         self.save_parameters(**self.locals2params(locals()))
         self.rnd_seed = rnd_seed
         self.root_folder = root_folder
+        self.hdf5_file_location = hdf5_file_location
+        self.hdf5_dataset_name = hdf5_dataset_name
+        self.chunk_size = chunk_size
 
     @monitor_exec
     def execute(self) -> Tuple[Dataset, Dataset, Dataset]:
@@ -251,7 +258,11 @@ class TimeSeriesDatasetSplitter(DataSplitter):
             Tuple[Dataset, Dataset, Dataset]: Training, validation, and test datasets.
         """
 
-        whole_dataset = SyntheticTimeSeriesDataset(root_folder=self.root_folder)
+        whole_dataset = SyntheticTimeSeriesDataset2(
+            file=self.hdf5_file_location, 
+            chunk_size=self.chunk_size,
+            hdf5_dataset_name=self.hdf5_dataset_name
+        )
 
         # Split file paths into train, validation, and test sets
         generator = torch.Generator().manual_seed(self.rnd_seed)

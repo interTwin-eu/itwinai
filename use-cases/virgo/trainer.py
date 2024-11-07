@@ -22,8 +22,8 @@ class VirgoTrainingConfiguration(TrainingConfiguration):
     """Virgo TrainingConfiguration"""
     #: Whether to save best model on validation dataset. Defaults to True.
     save_best: bool = True
-    #: Loss function. Defaults to "L1".
-    loss: Literal["L1", "L2"] = "L1",
+    #: Loss function. Defaults to "l1".
+    loss: Literal["l1", "l2"] = "l1",
     #: Generator to train. Defaults to "unet".
     generator: Literal["simple", "deep", "resnet", "unet"] = "unet"
 

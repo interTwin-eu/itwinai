@@ -15,7 +15,7 @@ else
 fi
 
 # Python virtual environment (no conda/micromamba)
-CMD="--nodes=$N --time=$T --account=intertwin --partition=batch slurm.sh"
+CMD="--nodes=$N --time=$T --account=intertwin --partition=develbooster slurm.sh"
 PYTHON_VENV="../../envAI_hdfml"
 
 echo "Distributing training over $N nodes. Timeout set to: $T"

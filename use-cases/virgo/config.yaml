@@ -1,6 +1,9 @@
 root_folder: /p/scratch/intertwin/datasets/virgo
+hdf5_file_location: /p/project1/intertwin/saether1/itwinai/use-cases/virgo/data/virgo_data.hdf5
+hdf5_dataset_name: virgo_dataset
+chunk_size: 5
 data_root: ./data
-epochs: 2
+epochs: 10
 batch_size: 3
 learning_rate: 0.0001
 strategy: ddp
@@ -17,6 +20,9 @@ training_pipeline:
           validation_proportion: 0.1
           rnd_seed: 42
           root_folder: ${root_folder}
+          hdf5_file_location: ${hdf5_file_location}
+          chunk_size: ${chunk_size}
+          hdf5_dataset_name: ${hdf5_dataset_name}
       - class_path: trainer.NoiseGeneratorTrainer
         init_args:
           config:
