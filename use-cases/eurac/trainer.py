@@ -28,6 +28,7 @@ from itwinai.torch.distributed import (
 from itwinai.torch.trainer import TorchTrainer
 from itwinai.torch.type import Metric
 from itwinai.torch.profiling.profiler import profile_torch_trainer
+from itwinai.torch.monitoring.monitoring import measure_gpu_utilization
 
 
 class RNNDistributedTrainer(TorchTrainer):
@@ -92,7 +93,8 @@ class RNNDistributedTrainer(TorchTrainer):
         self.save_parameters(**self.locals2params(locals()))
 
     @suppress_workers_print
-    @profile_torch_trainer
+    # @profile_torch_trainer
+    # @measure_gpu_utilization
     def execute(
         self,
         train_dataset: Dataset,
@@ -146,6 +148,8 @@ class RNNDistributedTrainer(TorchTrainer):
             self.train_loader.sampler.set_epoch(epoch)
             self.val_loader.sampler.set_epoch(epoch)
 
+    @profile_torch_trainer
+    @measure_gpu_utilization
     def train(self):
         """Override version of hython to support distributed strategy."""
         # Tracking epoch times for scaling test

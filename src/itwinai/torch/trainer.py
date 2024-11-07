@@ -7,7 +7,6 @@ from abc import abstractmethod
 from pathlib import Path
 from typing import Any, Callable, Dict, Iterable, List, Literal, Optional, Tuple, Union
 
-import horovod.torch as hvd
 import lightning as L
 import matplotlib.pyplot as plt
 import numpy as np
@@ -127,7 +126,9 @@ class TorchTrainer(Trainer, LogMixin):
         metrics: Optional[Dict[str, Metric]] = None,
         checkpoints_location: str = "checkpoints",
         checkpoint_every: Optional[int] = None,
-        name: Optional[str] = None
+        name: Optional[str] = None,
+        profiling_wait_epochs: int = 1,
+        profiling_warmup_epochs: int = 2
     ) -> None:
         super().__init__(name)
         self.save_parameters(**self.locals2params(locals()))
@@ -150,6 +151,8 @@ class TorchTrainer(Trainer, LogMixin):
         os.makedirs(self.checkpoints_location, exist_ok=True)
         self.checkpoint_every = checkpoint_every
         self.profiler = None
+        self.profiling_wait_epochs = profiling_wait_epochs
+        self.profiling_warmup_epochs = profiling_warmup_epochs
 
     @property
     def strategy(self) -> TorchDistributedStrategy:
@@ -171,17 +174,17 @@ class TorchTrainer(Trainer, LogMixin):
     def _detect_strategy(self, strategy: str) -> TorchDistributedStrategy:
         if strategy is None or not distributed_resources_available():
             print("WARNING: falling back to non-distributed strategy.")
-            dist_str = NonDistributedStrategy()
+            strategy_obj = NonDistributedStrategy()
         elif strategy == 'ddp':
-            dist_str = TorchDDPStrategy(backend='nccl')
+            strategy_obj = TorchDDPStrategy(backend='nccl')
         elif strategy == 'horovod':
-            dist_str = HorovodStrategy()
+            strategy_obj = HorovodStrategy()
         elif strategy == 'deepspeed':
-            dist_str = DeepSpeedStrategy(backend='nccl')
+            strategy_obj = DeepSpeedStrategy(backend='nccl')
         else:
             raise NotImplementedError(
                 f"Strategy '{strategy}' is not recognized/implemented.")
-        return dist_str
+        return strategy_obj
 
     def _init_distributed_strategy(self) -> None:
         if not self.strategy.is_initialized:
@@ -235,6 +238,31 @@ class TorchTrainer(Trainer, LogMixin):
                 "create_model_loss_optimizer method for more flexibility."
             )
 
+    def get_default_distributed_kwargs(self) -> Dict:
+        """Gives the default kwargs for the trainer's strategy's distributed() method."""
+
+        if isinstance(self.strategy, DeepSpeedStrategy):
+            # Batch size definition is not optional for DeepSpeedStrategy!
+            distribute_kwargs = dict(
+                config_params=dict(
+                    train_micro_batch_size_per_gpu=self.config.batch_size
+                )
+            )
+        elif isinstance(self.strategy, HorovodStrategy):
+            import horovod as hvd
+            distribute_kwargs = dict(
+                compression=(
+                    hvd.Compression.fp16 if self.config.fp16_allreduce
+                    else hvd.Compression.none
+                ),
+                op=hvd.Adasum if self.config.use_adasum else hvd.Average,
+                gradient_predivide_factor=self.config.gradient_predivide_factor
+            )
+        else:
+            distribute_kwargs = {}
+
+        return distribute_kwargs
+
     def create_model_loss_optimizer(self) -> None:
         """
         Instantiate a torch model, loss, optimizer, and LR scheduler using the
@@ -261,26 +289,7 @@ class TorchTrainer(Trainer, LogMixin):
         self._loss_from_config()
 
         # IMPORTANT: model, optimizer, and scheduler need to be distributed
-
-        # First, define strategy-wise optional configurations
-        if isinstance(self.strategy, DeepSpeedStrategy):
-            # Batch size definition is not optional for DeepSpeedStrategy!
-            distribute_kwargs = dict(
-                config_params=dict(
-                    train_micro_batch_size_per_gpu=self.config.batch_size
-                )
-            )
-        elif isinstance(self.strategy, HorovodStrategy):
-            distribute_kwargs = dict(
-                compression=(
-                    hvd.Compression.fp16 if self.config.fp16_allreduce
-                    else hvd.Compression.none
-                ),
-                op=hvd.Adasum if self.config.use_adasum else hvd.Average,
-                gradient_predivide_factor=self.config.gradient_predivide_factor
-            )
-        else:
-            distribute_kwargs = {}
+        distribute_kwargs = self.get_default_distributed_kwargs()
 
         # Distributed model, optimizer, and scheduler
         (
@@ -388,7 +397,7 @@ class TorchTrainer(Trainer, LogMixin):
 
         if self.logger:
             self.logger.destroy_logger_context()
-        # self.strategy.clean_up()
+        self.strategy.clean_up()
         return train_dataset, validation_dataset, test_dataset, self.model
 
     def _set_epoch_dataloaders(self, epoch: int):
@@ -540,13 +549,12 @@ class TorchTrainer(Trainer, LogMixin):
                 # Checkpointing current best model
                 worker_val_losses = self.strategy.gather(val_loss, dst_rank=0)
                 if self.strategy.is_main_worker:
-                    avg_loss = torch.mean(
-                        torch.stack(worker_val_losses)
-                    ).detach().cpu()
-                    if avg_loss < best_loss:
+                    avg_loss = torch.mean(torch.stack(worker_val_losses)).detach().cpu()
+                    if avg_loss < best_loss and self.checkpoint_every is not None:
                         ckpt_name = "best_model.pth"
                         self.save_checkpoint(
-                            name=ckpt_name, epoch=epoch, loss=avg_loss)
+                            name=ckpt_name, epoch=epoch, loss=avg_loss
+                        )
                         best_loss = avg_loss
 
             if self.test_every and epoch_n % self.test_every == 0:
