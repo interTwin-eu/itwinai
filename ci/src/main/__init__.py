@@ -99,6 +99,7 @@ class Itwinai:
         # pre_exec_cmd = (
         #     "ls /pippo"
         # )
+        gpus_per_node = 4 
         pre_exec_cmd = (
             "export CONTAINER_PATH=itwinai_dist_test.sif "
             f"&& singularity pull --force $CONTAINER_PATH docker://{self.full_name} "
@@ -113,11 +114,13 @@ class Itwinai:
             "&& export DIST_MODE=ddp "
             "&& export RUN_NAME=ddp-itwinai "
             "&& export COMMAND='pytest -v -m torch_dist' "
+            # Quick fix
+            f"&& export SLURM_GPUS_PER_NODE={gpus_per_node} "
             # Launch code in SLURM job
             "&& source slurm.vega.sh "
         )
         annotations = {
-            "slurm-job.vk.io/flags": "-p gpu --gres=gpu:4 --ntasks-per-node=1 --nodes=1 --time=00:10:00",
+            "slurm-job.vk.io/flags": f"-p gpu --gres=gpu:{gpus_per_node} --ntasks-per-node=1 --nodes=1 --time=00:10:00",
             "slurm-job.vk.io/pre-exec": f" {pre_exec_cmd} || export SINGULARITYENV_PRE_EXEC_RETURN_CODE=1"
         }
         image_path = "/ceph/hpc/data/st2301-itwin-users/cern/hello-world-image.sif"
