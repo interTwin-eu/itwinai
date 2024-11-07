@@ -7,12 +7,14 @@ import pandas as pd
 import h5py
 from gwpy.timeseries import TimeSeries
 from time import time
+from scipy.signal import square
 from tqdm import tqdm
 
 # sys.path.append(str(Path("..").resolve()))
 sys.path.append(str(Path.cwd().resolve()))
 
 from src.dataset import generate_cut_image_dataset, process_image
+
 
 def append_to_hdf5_dataset(
     file_path: Path,
@@ -47,7 +49,7 @@ def generate_hdf5_dataset(
     num_processes=4,
     square_size=64,
     datapoints_per_file=10,
-    seed=None
+    seed=None,
 ) -> None:
     """Generate a folder with num_files pickle files containing synthetic gravitational waves data.
 
@@ -64,7 +66,7 @@ def generate_hdf5_dataset(
         square_size (int): Size in pixels of qplot image (default is 500 samples per second).
         datapoints_per_file (int): number of independent datapoints per pickle file.
     """
-    if seed is not None: 
+    if seed is not None:
         np.random.seed(seed)
 
     datapoints = []
@@ -133,18 +135,16 @@ def generate_hdf5_dataset(
         # turn dictionary into dataframe
         df_ts = pd.DataFrame(dictionary)
 
-        # Convert timeseries dataset into q-plot
-        df = process_image(
-            row=df_ts.iloc[0],
-            channels=list(df_ts.columns),
-            row_idx=None,
-            square_size=square_size
-        )
-
-        datapoints.append(df)
+        datapoints.append(df_ts)
         if len(datapoints) % datapoints_per_file == 0:
             # Converting to numpy array
             df_concat = pd.concat(datapoints)
+            df_concat = generate_cut_image_dataset(
+                df=df_concat,
+                channels=list(df_ts.columns),
+                num_processes=num_processes,
+                square_size=square_size,
+            )
             value_array = df_concat.to_numpy()
             value_array = np.stack(
                 [np.stack(row) for row in value_array], dtype=np.float32
@@ -161,6 +161,12 @@ def generate_hdf5_dataset(
     # Adding any remaining datapoints
     if len(datapoints) > 0:
         df_concat = pd.concat(datapoints)
+        df_concat = generate_cut_image_dataset(
+            df=df_concat,
+            channels=list(df_concat.columns),
+            num_processes=num_processes,
+            square_size=square_size,
+        )
         value_array = df_concat.to_numpy()
         value_array = np.stack([np.stack(row) for row in value_array], dtype=np.float32)
         append_to_hdf5_dataset(
@@ -182,7 +188,7 @@ if __name__ == "__main__":
         "--save-frequency",
         type=int,
         help="How often to save to file while generating. Also saves when finished. ",
-        default=5
+        default=5,
     )
     parser.add_argument(
         "--save-location",
@@ -191,11 +197,7 @@ if __name__ == "__main__":
         default="virgo_data.hdf5",
     )
 
-    parser.add_argument(
-        "--seed", 
-        type=int,
-        help="Seed for random number generator"
-    )
+    parser.add_argument("--seed", type=int, help="Seed for random number generator")
 
     args = parser.parse_args()
 
@@ -209,11 +211,9 @@ if __name__ == "__main__":
         num_waves_range=(10, 15),
         noise_amplitude=0.5,
         datapoints_per_file=args.save_frequency,
-        num_processes=1,
-        seed=args.seed
+        num_processes=5,
+        seed=args.seed,
     )
     end = time()
     total_time = end - start
     print(f"Generation took {total_time:.2f} seconds!")
-
-
