@@ -33,6 +33,7 @@ from dagger import dag, function, object_type, Doc
 class Itwinai:
 
     container: Optional[dagger.Container] = dataclasses.field(default=None, init=False)
+    full_name: Optional[str] = dataclasses.field(default=None, init=False)
     
     # Note: since build_container returns self, when executing only it through dagger call
     # (e.g., dagger call build-container [args]), dagger will actually execute all the
@@ -85,5 +86,39 @@ class Itwinai:
 
         # Test locally
         await self.test_local()
+        self.full_name = f"{registry}/{name}:{tag}"
+        return await self.container.publish(self.full_name)
+    
+    @function
+    def test_remote(self)->str:
+    # def test_remote(self, kubeconfig_str: str)->str:
+        from .k8s import create_pod_manifest, submit_job
+    
+        # created pod manifest
+        annotations = {
+            "slurm-job.vk.io/flags": "-p gpu --gres=gpu:1 --ntasks-per-node=1 --nodes=1 --time=00:10:00",
+            "slurm-job.vk.io/pre-exec": "ls /pippo || export SINGULARITYENV_PRE_EXEC_RETURN_CODE=1"
+        }
+        image_path = "/ceph/hpc/data/st2301-itwin-users/cern/hello-world-image.sif"
+        cmd_args = [
+            "sleep 10 && exit $PRE_EXEC_RETURN_CODE"
+            ]
+        pod_manifest = create_pod_manifest(
+            annotations=annotations,
+            image_path=image_path,
+            cmd_args=cmd_args
+        )
+        
+        # submit pod
+        status = submit_job(
+            kubeconfig_str=kubeconfig_str,
+            pod_manifest=pod_manifest,
+            verbose=True
+        )
 
-        return await self.container.publish(f"{registry}/{name}:{tag}")
+        if status not in ["Succeeded", "Completed"]:
+            raise RuntimeError("Pod failed!")
+        
+        return f"Pod finished with status: {status}"
+        
+    
