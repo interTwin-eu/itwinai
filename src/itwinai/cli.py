@@ -260,7 +260,7 @@ def generate_scalability_plot(
     )
 
 
-@app.command()
+@ app.command()
 def sanity_check(
     torch: Annotated[
         Optional[bool], typer.Option(help=("Check also itwinai.torch modules."))
@@ -380,7 +380,7 @@ def exec_pipeline(
     pipeline.execute()
 
 
-@app.command()
+@ app.command()
 def mlflow_ui(
     path: str = typer.Option("ml-logs/", help="Path to logs storage."),
     port: int = typer.Option(5000, help="Port on which the MLFlow UI is listening."),
@@ -391,7 +391,7 @@ def mlflow_ui(
     subprocess.run(f"mlflow ui --backend-store-uri {path} --port {port}".split())
 
 
-@app.command()
+@ app.command()
 def mlflow_server(
     path: str = typer.Option("ml-logs/", help="Path to logs storage."),
     port: int = typer.Option(5000, help="Port on which the server is listening."),
@@ -402,7 +402,7 @@ def mlflow_server(
     subprocess.run(f"mlflow server --backend-store-uri {path} --port {port}".split())
 
 
-@app.command()
+@ app.command()
 def kill_mlflow_server(
     port: int = typer.Option(5000, help="Port on which the server is listening."),
 ):

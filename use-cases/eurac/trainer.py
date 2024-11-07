@@ -157,11 +157,11 @@ class RNNDistributedTrainer(TorchTrainer):
             num_nodes = int(os.environ.get("SLURM_NNODES", "unk"))
             epoch_time_output_dir = Path("scalability-metrics/epoch-time")
             epoch_time_file_name = f"epochtime_{self.strategy.name}_{num_nodes}N.csv"
-            epoch_time_output_path = epoch_time_output_dir / epoch_time_file_name 
+            epoch_time_output_path = epoch_time_output_dir / epoch_time_file_name
 
             epoch_time_tracker = EpochTimeTracker(
                 strategy_name=self.strategy.name,
-                save_path=epoch_time_output_path, 
+                save_path=epoch_time_output_path,
                 num_nodes=num_nodes
             )
 

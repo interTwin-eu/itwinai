@@ -6,7 +6,7 @@ tmp_stats: /p/scratch/intertwin/datasets/eurac/stats
 
 experiment: "drought use case lstm"
 run_name: "alps_test"
-epochs: 5
+epochs: 3
 random_seed: 1010
 lr: 0.001
 batch_size: 256

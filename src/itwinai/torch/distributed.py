@@ -78,11 +78,11 @@ class TorchDistributedStrategy(DistributedStrategy):
         """
         return self.global_rank() == 0
 
-    @abc.abstractmethod
+    @ abc.abstractmethod
     def init(self) -> None:
         """Initializes the chosen distributed backend"""
 
-    @abc.abstractmethod
+    @ abc.abstractmethod
     def distributed(
         self,
         model: nn.Module,
@@ -91,7 +91,7 @@ class TorchDistributedStrategy(DistributedStrategy):
     ) -> Tuple[nn.Module, Optimizer, Optional[LRScheduler]]:
         """Setup model, optimizer and scheduler for distributed."""
 
-    @abc.abstractmethod
+    @ abc.abstractmethod
     def global_world_size(self) -> int:
         """Returns the total number of processes (global world size).
 
@@ -99,7 +99,7 @@ class TorchDistributedStrategy(DistributedStrategy):
             int: global world size.
         """
 
-    @abc.abstractmethod
+    @ abc.abstractmethod
     def local_world_size(self) -> int:
         """Returns the number of local workers available on a node
         (local world size).
@@ -109,7 +109,7 @@ class TorchDistributedStrategy(DistributedStrategy):
             int: local world size.
         """
 
-    @abc.abstractmethod
+    @ abc.abstractmethod
     def global_rank(self) -> int:
         """Returns the global rank of the current process.
         Rank ranges from 0 to world_size.
@@ -118,7 +118,7 @@ class TorchDistributedStrategy(DistributedStrategy):
             int: global rank.
         """
 
-    @abc.abstractmethod
+    @ abc.abstractmethod
     def local_rank(self) -> int:
         """Returns the local rank of the current process.
 
@@ -336,11 +336,11 @@ class TorchDistributedStrategy(DistributedStrategy):
             pin_memory_device=pin_memory_device,
         )
 
-    @abc.abstractmethod
+    @ abc.abstractmethod
     def clean_up(self) -> None:
         """Cleans up resources allocated by distributed strategy."""
 
-    @abc.abstractmethod
+    @ abc.abstractmethod
     def allgather_obj(self, obj: Any) -> List[Any]:
         """All-gathers any object from the whole group in a list
         (to all workers).
@@ -352,7 +352,7 @@ class TorchDistributedStrategy(DistributedStrategy):
             List[Any]: list of objects gathered from all workers.
         """
 
-    @abc.abstractmethod
+    @ abc.abstractmethod
     def gather_obj(self, obj: Any, dst_rank: int = 0) -> List[Any]:
         """Gathers any object from the whole group in a list
         (to all workers).
@@ -366,7 +366,7 @@ class TorchDistributedStrategy(DistributedStrategy):
             List[Any]: list of objects gathered from all workers.
         """
 
-    @abc.abstractmethod
+    @ abc.abstractmethod
     def gather(self, tensor: torch.Tensor, dst_rank: int = 0) -> Optional[List]:
         """Gathers any object from the whole group in a list
         (to all workers).
@@ -907,6 +907,10 @@ class NonDistributedStrategy(TorchDistributedStrategy):
     #: Defaults to False.
     is_distributed: bool = True
     is_distributed: bool = False
+
+    def __init__(self):
+        super().__init__()
+        self.name = "non-distributed"
 
     def __init__(self):
         super().__init__()
