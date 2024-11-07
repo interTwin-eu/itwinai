@@ -90,13 +90,35 @@ class Itwinai:
         return await self.container.publish(self.full_name)
     
     @function
-    def test_remote(self, kubeconfig_str: str)->str:
+    async def test_remote(self, kubeconfig_str: str)->str:
         from .k8s import create_pod_manifest, submit_job
+        
+        await self.publish()
     
         # created pod manifest
+        # pre_exec_cmd = (
+        #     "ls /pippo"
+        # )
+        pre_exec_cmd = (
+            "export CONTAINER_PATH=itwinai_dist_test.sif "
+            f"singularity pull --force $CONTAINER_PATH docker://{self.full_name} "
+            "&& singularity exec $CONTAINER_PATH cat /app/tests/torch/slurm.vega.sh > slurm.vega.sh "
+            # Activate env on Vega
+            "&& . /etc/bashrc "
+            "&& source /ceph/hpc/software/cvmfs_env.sh "
+            "&& module use /usr/share/Modules/modulefiles "
+            # Env variables necessary for tests
+            "&& export MNIST_PATH=/ceph/hpc/data/st2301-itwin-users/mbunino/mnist "
+            "&& export NO_COLOR=1 "
+            "&& export DIST_MODE=ddp "
+            "&& export RUN_NAME=ddp-itwinai "
+            "&& export COMMAND=pytest -v -m torch_dist "
+            # Launch code in SLURM job
+            "&& source slurm.vega.sh "
+        )
         annotations = {
-            "slurm-job.vk.io/flags": "-p gpu --gres=gpu:1 --ntasks-per-node=1 --nodes=1 --time=00:10:00",
-            "slurm-job.vk.io/pre-exec": "ls /pippo || export SINGULARITYENV_PRE_EXEC_RETURN_CODE=1"
+            "slurm-job.vk.io/flags": "-p gpu --gres=gpu:4 --ntasks-per-node=1 --nodes=1 --time=00:10:00",
+            "slurm-job.vk.io/pre-exec": f" {pre_exec_cmd} || export SINGULARITYENV_PRE_EXEC_RETURN_CODE=1"
         }
         image_path = "/ceph/hpc/data/st2301-itwin-users/cern/hello-world-image.sif"
         cmd_args = [
@@ -119,5 +141,3 @@ class Itwinai:
             raise RuntimeError(f"Pod did not complete successfully! Status: {status}")
         
         return f"Pod finished with status: {status}"
-        
-    
