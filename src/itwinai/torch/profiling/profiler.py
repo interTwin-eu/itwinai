@@ -1,4 +1,12 @@
-from __future__ import annotations
+# --------------------------------------------------------------------------------------
+# Part of the interTwin Project: https://www.intertwin.eu/
+#
+# Created by: Jarl Sondre Sæther
+#
+# Credit:
+# - Jarl Sondre Sæther <jarl.sondre.saether@cern.ch> - CERN
+# - Matteo Bunino <matteo.bunino@cern.ch> - CERN
+# --------------------------------------------------------------------------------------
 
 import functools
 from pathlib import Path
@@ -27,9 +35,9 @@ def profile_torch_trainer(method: Callable) -> Callable:
                 {
                     "name": event.key,
                     "node_id": event.node_id,
-                    "self_cpu_time_total": event.self_cpu_time_total,
-                    "cpu_time_total": event.cpu_time_total,
-                    "cpu_time_total_str": event.cpu_time_total_str,
+                    # "self_cpu_time_total": event.self_cpu_time_total,
+                    # "cpu_time_total": event.cpu_time_total,
+                    # "cpu_time_total_str": event.cpu_time_total_str,
                     "self_cuda_time_total": event.self_cuda_time_total,
                     "cuda_time_total": event.cuda_time_total,
                     "cuda_time_total_str": event.cuda_time_total_str,
@@ -85,8 +93,8 @@ def profile_torch_trainer(method: Callable) -> Callable:
         )
 
         profiler = profile(
-            activities=[ProfilerActivity.CUDA, ProfilerActivity.CPU],
-            with_modules=True,
+            activities=[ProfilerActivity.CUDA],  # , ProfilerActivity.CPU],
+            # with_modules=True,
             schedule=schedule(
                 wait=wait_epochs,
                 warmup=warmup_epochs,
@@ -114,7 +122,7 @@ def profile_torch_trainer(method: Callable) -> Callable:
         profiling_dataframe["num_gpus"] = num_gpus_global
         profiling_dataframe["global_rank"] = global_rank
 
-        profiling_log_dir = Path("scalability_metrics/communication_data")
+        profiling_log_dir = Path("scalability-metrics/communication-data")
         profiling_log_dir.mkdir(parents=True, exist_ok=True)
 
         filename = f"{strategy_name}_{num_gpus_global}_{global_rank}.csv"
