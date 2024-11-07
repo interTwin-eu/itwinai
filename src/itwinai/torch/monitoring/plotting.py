@@ -61,7 +61,6 @@ def calculate_total_energy_expenditure(gpu_data_df: pd.DataFrame) -> pd.DataFram
             each strategy and number of GPUs, with the columns ``strategy``,
             ``num_global_gpus`` and ``total_energy_wh``.
     """
-
     required_columns = {"strategy", "power", "num_global_gpus", "probing_interval"}
     if not required_columns.issubset(set(gpu_data_df.columns)):
         missing_columns = set(required_columns) - set(gpu_data_df.columns)
