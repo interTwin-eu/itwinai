@@ -101,7 +101,7 @@ class Itwinai:
         # )
         pre_exec_cmd = (
             "export CONTAINER_PATH=itwinai_dist_test.sif "
-            f"singularity pull --force $CONTAINER_PATH docker://{self.full_name} "
+            f"&& singularity pull --force $CONTAINER_PATH docker://{self.full_name} "
             "&& singularity exec $CONTAINER_PATH cat /app/tests/torch/slurm.vega.sh > slurm.vega.sh "
             # Activate env on Vega
             "&& . /etc/bashrc "
@@ -112,7 +112,7 @@ class Itwinai:
             "&& export NO_COLOR=1 "
             "&& export DIST_MODE=ddp "
             "&& export RUN_NAME=ddp-itwinai "
-            "&& export COMMAND=pytest -v -m torch_dist "
+            "&& export COMMAND='pytest -v -m torch_dist' "
             # Launch code in SLURM job
             "&& source slurm.vega.sh "
         )
