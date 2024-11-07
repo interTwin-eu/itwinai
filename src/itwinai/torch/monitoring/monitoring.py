@@ -1,3 +1,13 @@
+# --------------------------------------------------------------------------------------
+# Part of the interTwin Project: https://www.intertwin.eu/
+#
+# Created by: Jarl Sondre Sæther
+#
+# Credit:
+# - Jarl Sondre Sæther <jarl.sondre.saether@cern.ch> - CERN
+# - Matteo Bunino <matteo.bunino@cern.ch> - CERN
+# --------------------------------------------------------------------------------------
+
 import functools
 import time
 from multiprocessing import Manager, Process
@@ -83,7 +93,6 @@ def probe_gpu_utilization_loop(
             log_dict["probing_interval"].append(probing_interval)
 
         sample_idx += 1
-
         time.sleep(probing_interval)
 
 
@@ -99,7 +108,7 @@ def measure_gpu_utilization(method: Callable) -> Callable:
 
         log_df = pd.concat(dataframes)
         log_df.to_csv(output_path, index=False)
-        print(f"Writing GPU energy dataframe to '{output_path}'.")
+        print(f"Writing GPU energy dataframe to '{output_path.resolve()}'.")
 
     @functools.wraps(method)
     def measured_method(self: TorchTrainer, *args, **kwargs) -> Any:
@@ -114,11 +123,6 @@ def measure_gpu_utilization(method: Callable) -> Callable:
         num_global_gpus = strategy.global_world_size()
         num_local_gpus = strategy.local_world_size()
         node_idx = global_rank // num_local_gpus
-
-        output_path = Path(
-            f"scalability_metrics/gpu_energy_data_{strategy_name}_{num_global_gpus}.csv"
-        )
-        output_path.parent.mkdir(exist_ok=True, parents=True)
 
         gpu_monitor_process = None
         manager = None
@@ -165,7 +169,7 @@ def measure_gpu_utilization(method: Callable) -> Callable:
 
         global_utilization_log = strategy.gather_obj(local_utilization_log, dst_rank=0)
         if strategy.is_main_worker:
-            output_dir = Path("scalability_metrics/gpu_energy_data")
+            output_dir = Path("scalability-metrics/gpu-energy-data")
             output_dir.mkdir(exist_ok=True, parents=True)
             output_path = output_dir / f"{strategy_name}_{num_global_gpus}.csv"
 
