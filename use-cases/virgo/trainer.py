@@ -16,19 +16,17 @@ from itwinai.loggers import EpochTimeTracker, Logger
 from itwinai.torch.config import TrainingConfiguration
 from itwinai.torch.distributed import DeepSpeedStrategy
 from itwinai.torch.trainer import TorchTrainer
-from itwinai.torch.monitoring.monitoring import measure_gpu_utilization
-from itwinai.torch.profiling.profiler import profile_torch_trainer
 
+from pathlib import Path
 
 class VirgoTrainingConfiguration(TrainingConfiguration):
     """Virgo TrainingConfiguration"""
-
     #: Whether to save best model on validation dataset. Defaults to True.
     save_best: bool = True
     #: Loss function. Defaults to "l1".
     loss: Literal["l1", "l2"] = "l1",
     #: Generator to train. Defaults to "unet".
-    generator: Literal["simple", "deep", "resnet", "unet"] = "unet"
+    generator: Literal["simple", "deep", "resnet", "unet"] = "unet" 
 
 
 class NoiseGeneratorTrainer(TorchTrainer):
@@ -171,8 +169,6 @@ class NoiseGeneratorTrainer(TorchTrainer):
 
         return torch.cat(batch)
 
-    @profile_torch_trainer
-    @measure_gpu_utilization
     def train(self):
         # Start the timer for profiling
         st = timer()
@@ -186,11 +182,18 @@ class NoiseGeneratorTrainer(TorchTrainer):
             print('TIMER: broadcast:', timer()-st, 's')
             print('\nDEBUG: start training')
             print('--------------------------------------------------------')
-            nnod = os.environ.get('SLURM_NNODES', 'unk')
-            s_name = f"{os.environ.get('DIST_MODE', 'unk')}-torch"
+            # nnod = os.environ.get('SLURM_NNODES', 'unk')
+            # s_name = f"{os.environ.get('DIST_MODE', 'unk')}-torch"
+            # save_path
+
+            num_nodes = int(os.environ.get("SLURM_NNODES", "unk"))
+            epoch_time_output_dir = Path("scalability-metrics/epoch-time")
+            epoch_time_file_name = f"epochtime_{self.strategy.name}_{num_nodes}N.csv"
+            epoch_time_output_path = epoch_time_output_dir / epoch_time_file_name 
             epoch_time_tracker = EpochTimeTracker(
-                strategy_name=s_name,
-                save_path=f"epochtime_{s_name}_{nnod}N.csv"
+                strategy_name=self.strategy.name,
+                save_path=epoch_time_output_path, 
+                num_nodes = num_nodes
             )
         loss_plot = []
         val_loss_plot = []
