@@ -51,7 +51,7 @@ def test_lightning_log_hyperparams(lightning_loggers):
     itwinai_logger_mock.save_hyperparameters.assert_called_once_with(dict_params)
 
 
-def test_lightning_after_save_checkpoint_1(lightning_loggers):
+def test_lightning_after_save_checkpoint(lightning_loggers):
     """Test after_save_checkpoint method in PyTorchLightningLogger."""
     itwinai_logger_mock, lightning_logger = lightning_loggers
 
@@ -63,13 +63,13 @@ def test_lightning_after_save_checkpoint_1(lightning_loggers):
     # Scenario 1:
     lightning_logger._log_model = "all"
     lightning_logger.after_save_checkpoint(checkpoint_callback)
-    assert lightning_logger._checkpoint_callback == None
+    assert lightning_logger._checkpoint_callback is None
 
     # Scenario 2: Should checkpoint
     lightning_logger._log_model = True
     checkpoint_callback.save_top_k = -1
     lightning_logger.after_save_checkpoint(checkpoint_callback)
-    assert lightning_logger._checkpoint_callback == None
+    assert lightning_logger._checkpoint_callback is None
 
     # Scenario 3:
     lightning_logger._log_model = False
