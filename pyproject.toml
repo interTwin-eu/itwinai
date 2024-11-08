@@ -95,3 +95,6 @@ markers = [
 [tool.isort]
 profile = "black"
 known_first_party = ["itwinai"]
+
+[tool.ruff.lint]
+select = ["I"]
