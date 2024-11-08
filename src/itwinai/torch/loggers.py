@@ -44,8 +44,8 @@ class PyTorchLightningLogger(LightningLogger):
 
         Args:
             itwinai_logger (Logger): An instance of itwinai Logger.
-            log_model (Union[Literal["all"], bool], optional): 
-                Specifies which checkpoints to log. 
+            log_model (Union[Literal["all"], bool], optional):
+                Specifies which checkpoints to log.
                 If "all", logs all checkpoints; if True, logs the best k checkpoints according
                 to the specifications given as `save_top_k` in the Lightning ModelCheckpoint;
                 if False, does not log checkpoints.
@@ -116,7 +116,7 @@ class PyTorchLightningLogger(LightningLogger):
             metrics: Dict[str, float],
             step: Optional[int] = None
     ) -> None:
-        """Lightning Logger function. 
+        """Lightning Logger function.
         Logs the given metrics and is usually called by the Lightning Trainer.
 
         Args:
