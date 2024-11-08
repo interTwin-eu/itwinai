@@ -1,16 +1,18 @@
-import pytest
 import shutil
+from unittest.mock import MagicMock, patch
+
 import numpy as np
-from unittest.mock import patch, MagicMock
+import pytest
 
 from itwinai.loggers import (
     ConsoleLogger,
-    MLFlowLogger,
-    WandBLogger,
-    TensorBoardLogger,
     LoggersCollection,
-    Prov4MLLogger
+    MLFlowLogger,
+    Prov4MLLogger,
+    TensorBoardLogger,
+    WandBLogger,
 )
+
 # from prov4ml.provenance.context import Context
 
 
@@ -170,7 +172,6 @@ def test_loggers_collection_log(loggers_collection):
             {'test_metric': 0.5}, commit=True)
 
         loggers_collection.destroy_logger_context()
-
 
 # @patch('prov4ml.start_run')
 # def test_create_logger_context(mock_start_run, prov4ml_logger):
