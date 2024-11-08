@@ -1,8 +1,17 @@
+# --------------------------------------------------------------------------------------
+# Part of the interTwin Project: https://www.intertwin.eu/
+#
+# Created by: Jarl Sondre Sæther
+#
+# Credit:
+# - Jarl Sondre Sæther <jarl.sondre.saether@cern.ch> - CERN
+# --------------------------------------------------------------------------------------
+
 import argparse
-import re
 import h5py
 import numpy as np
 from pathlib import Path
+
 
 def append_to_hdf5_dataset(
     file_path: Path,
@@ -24,7 +33,8 @@ def append_to_hdf5_dataset(
         dset.resize(dset.shape[0] + array.shape[0], axis=0)
         dset[-array.shape[0] :] = array
 
-def main(): 
+
+def main():
     parser = argparse.ArgumentParser(description="Virgo Dataset Generation")
     parser.add_argument(
         "--dir", type=str, help="Directory containing the HDF5 files to concatenate"
@@ -59,24 +69,23 @@ def main():
         )
         dataset.attrs["main_channel_idx"] = 0
 
-    entries = []
-    # NOTE: This will not necessarily iterate in same order as the suffices of the 
+    # NOTE: This will not necessarily iterate in same order as the suffices of the
     # file names
     for entry in dir.iterdir():
         if not entry.suffix == ".hdf5":
             continue
 
         print(f"Reading entry: {entry}")
-        with h5py.File(entry, "r") as f: 
+        with h5py.File(entry, "r") as f:
             data = f[dataset_name][:]
 
         append_to_hdf5_dataset(
-            file_path=save_location, 
+            file_path=save_location,
             dataset_name=dataset_name,
             array=data,
-            expected_datapoint_shape=datapoint_shape
+            expected_datapoint_shape=datapoint_shape,
         )
 
 
-if __name__ == "__main__": 
+if __name__ == "__main__":
     main()

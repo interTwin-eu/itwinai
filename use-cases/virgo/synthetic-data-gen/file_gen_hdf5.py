@@ -1,3 +1,13 @@
+# --------------------------------------------------------------------------------------
+# Part of the interTwin Project: https://www.intertwin.eu/
+#
+# Created by: Jarl Sondre Sæther
+#
+# Credit:
+# - Jarl Sondre Sæther <jarl.sondre.saether@cern.ch> - CERN
+# - Unknown
+# --------------------------------------------------------------------------------------
+
 import argparse
 import sys
 from pathlib import Path
@@ -12,7 +22,7 @@ from tqdm import tqdm
 # sys.path.append(str(Path("..").resolve()))
 sys.path.append(str(Path.cwd().resolve()))
 
-from src.dataset import generate_cut_image_dataset, process_image
+from src.dataset import generate_cut_image_dataset 
 
 
 def append_to_hdf5_dataset(
