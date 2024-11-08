@@ -1,3 +1,14 @@
+# --------------------------------------------------------------------------------------
+# Part of the interTwin Project: https://www.intertwin.eu/
+#
+# Created by: Matteo Bunino
+#
+# Credit:
+# - Matteo Bunino <matteo.bunino@cern.ch> - CERN
+# - Anna Elisa Lappe <anna.elisa.lappe@cern.ch> - CERN
+# - Jarl Sondre Sæther <jarl.sondre.saether@cern.ch> - CERN
+# --------------------------------------------------------------------------------------
+
 import os
 from pathlib import Path
 from typing import Optional, Tuple

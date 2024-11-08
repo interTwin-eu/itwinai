@@ -1,5 +1,12 @@
-from pathlib import Path
-from re import Pattern, compile
+# --------------------------------------------------------------------------------------
+# Part of the interTwin Project: https://www.intertwin.eu/
+#
+# Created by: Jarl Sondre Sæther
+#
+# Credit:
+# - Jarl Sondre Sæther <jarl.sondre.saether@cern.ch> - CERN
+# --------------------------------------------------------------------------------------
+
 from typing import Any, List, Tuple
 
 import matplotlib
@@ -9,12 +16,11 @@ import pandas as pd
 import seaborn as sns
 from matplotlib.patches import Patch
 
+# from itwinai.scalability import convert_matching_files_to_dataframe
+
 # Doing this because otherwise I get an error about X11 Forwarding which I believe
 # is due to the server trying to pass the image to the client computer
 matplotlib.use("Agg")
-
-# import logging
-# from logging import Logger as PythonLogger
 
 
 def calculate_comp_and_comm_time(df: pd.DataFrame) -> Tuple[float, float]:
@@ -58,7 +64,7 @@ def calculate_comp_and_comm_time(df: pd.DataFrame) -> Tuple[float, float]:
     return comp_time, comm_time
 
 
-def create_stacked_plot(
+def communication_overhead_stacked_bar_plot(
     values: np.ndarray, strategy_labels: List, gpu_numbers: List
 ) -> Tuple[Any, Any]:
     """Creates a stacked plot showing values from 0 to 1, where the given value
@@ -72,121 +78,76 @@ def create_stacked_plot(
             the GPU numbers in 'gpu_numbers' sorted numerically in ascending order.
     """
     sns.set_theme()
+    color_map = plt.get_cmap("tab10")
+    hatch_patterns = ["//", r"\\"]
 
     strategy_labels = sorted(strategy_labels)
     gpu_numbers = sorted(gpu_numbers, key=lambda x: int(x))
 
     width = 1 / (len(strategy_labels) + 1)
-    comp_color = "lightblue"
-    comm_color = "lightgreen"
     complements = 1 - values
 
     x = np.arange(len(gpu_numbers))
     fig, ax = plt.subplots()
 
     # Creating an offset to "center" around zero
-    static_offset = len(strategy_labels) / 2 - 0.5
+    static_offset = (len(strategy_labels) - 1) / 2
     for strategy_idx in range(len(strategy_labels)):
         dynamic_bar_offset = strategy_idx - static_offset
+
+        color = color_map(strategy_idx % 10)
+        hatch = hatch_patterns[strategy_idx % 2]
 
         ax.bar(
             x=x + dynamic_bar_offset * width,
             height=values[strategy_idx],
             width=width,
-            color=comp_color,
+            color=color,
+            label=strategy_labels[strategy_idx],
+            edgecolor="gray",
+            linewidth=0.6,
         )
         ax.bar(
             x=x + dynamic_bar_offset * width,
             height=complements[strategy_idx],
             width=width,
             bottom=values[strategy_idx],
-            color=comm_color,
+            facecolor="none",
+            edgecolor="gray",
+            alpha=0.8,
+            linewidth=0.6,
+            hatch=hatch,
         )
 
-        # Positioning the labels under the stacks
-        for gpu_idx in range(len(gpu_numbers)):
-            if np.isnan(values[strategy_idx, gpu_idx]):
-                continue
-            dynamic_label_offset = strategy_idx - static_offset
-            ax.text(
-                x=x[gpu_idx] + dynamic_label_offset * width,
-                y=-0.1,
-                s=strategy_labels[strategy_idx],
-                ha="center",
-                va="top",
-                fontsize=10,
-                rotation=60,
-            )
-
     ax.set_ylabel("Computation fraction")
+    ax.set_xlabel("Number of GPUs")
     ax.set_title("Computation vs Communication Time by Method")
     ax.set_xticks(x)
     ax.set_xticklabels(gpu_numbers)
-    ax.set_ylim(0, 1)
+    ax.set_ylim(0, 1.1)
 
-    # Setting the appropriate colors since the legend is manual
-    legend_elements = [
-        Patch(facecolor=comm_color, label="Communication"),
-        Patch(facecolor=comp_color, label="Computation"),
-    ]
-
-    # Positioning the legend outside of the plot to not obstruct it
-    ax.legend(
-        handles=legend_elements,
-        loc="upper left",
-        bbox_to_anchor=(0.80, 1.22),
-        borderaxespad=0.0,
+    # Adding communication time to the legend
+    hatch_patch = Patch(
+        facecolor="none", edgecolor="gray", hatch="//", label="Communication"
     )
-    fig.subplots_adjust(bottom=0.25)
-    fig.subplots_adjust(top=0.85)
+    ax.legend(handles=ax.get_legend_handles_labels()[0] + [hatch_patch])
+
+    # Dynamically adjusting the width of the figure
+    figure_width = int(1.5 * len(gpu_numbers))
+    fig.set_figheight(5)
+    fig.set_figwidth(figure_width)
+
+    sns.reset_orig()
+
     return fig, ax
-
-
-def create_combined_comm_overhead_df(logs_dir: Path, pattern: str) -> pd.DataFrame:
-    """Reads and combines all files in a folder that matches the given regex pattern
-    into a single DataFrame. The files must be formatted as csv files.
-
-    Raises:
-        ValueError: If not all expected columns are found in the stored DataFrame.
-        ValueError: If no matching files are found in the given logging directory.
-    """
-    re_pattern: Pattern = compile(pattern)
-    dataframes = []
-    expected_columns = {
-        "strategy",
-        "num_gpus",
-        "global_rank",
-        "name",
-        "self_cuda_time_total",
-    }
-    for entry in logs_dir.iterdir():
-        match = re_pattern.search(str(entry))
-        if not match:
-            continue
-
-        df = pd.read_csv(entry)
-        if not expected_columns.issubset(df.columns):
-            missing_columns = expected_columns - set(df.columns)
-            raise ValueError(
-                f"Invalid data format! File at '{match.string}' doesn't contain all"
-                f" necessary columns. \nMissing columns: {missing_columns}"
-            )
-
-        dataframes.append(df)
-    if len(dataframes) == 0:
-        raise ValueError(
-            f"No matching files found in '{logs_dir.resolve()}' for pattern '{pattern}'"
-        )
-    return pd.concat(dataframes)
 
 
 def get_comp_fraction_full_array(
     df: pd.DataFrame, print_table: bool = False
 ) -> np.ndarray:
-    """Creates a MxN NumPy array where M is the number of strategies
-    and N is the number of GPU configurations. The strategies are sorted
-    alphabetically and the GPU configurations are sorted in ascending number
-    of GPUs.
+    """Creates a MxN NumPy array where M is the number of strategies and N is the
+    number of GPU configurations. The strategies are sorted alphabetically and the GPU
+    configurations are sorted in ascending number of GPUs.
     """
     unique_num_gpus = sorted(df["num_gpus"].unique(), key=lambda x: int(x))
     unique_strategies = sorted(df["strategy"].unique())
@@ -203,8 +164,7 @@ def get_comp_fraction_full_array(
 
             row_string = f"{strategy:>12} | {num_gpus:>10}"
 
-            # Allows asymmetric testing, i.e. not testing all num gpus and all
-            # strategies together
+            # Allows some strategies or num GPUs to not be included
             if len(filtered_df) == 0:
                 comp_time, comm_time = np.NaN, np.NaN
                 strategy_values.append(np.NaN)

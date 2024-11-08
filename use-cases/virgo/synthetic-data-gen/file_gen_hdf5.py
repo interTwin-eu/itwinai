@@ -1,3 +1,13 @@
+# --------------------------------------------------------------------------------------
+# Part of the interTwin Project: https://www.intertwin.eu/
+#
+# Created by: Jarl Sondre Sæther
+#
+# Credit:
+# - Jarl Sondre Sæther <jarl.sondre.saether@cern.ch> - CERN
+# - Unknown
+# --------------------------------------------------------------------------------------
+
 import argparse
 import sys
 from pathlib import Path
