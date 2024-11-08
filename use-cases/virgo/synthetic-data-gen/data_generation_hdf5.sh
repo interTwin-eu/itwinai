@@ -1,13 +1,14 @@
 #!/bin/bash
 
 #SBATCH --account=intertwin
-#SBATCH --output=array_job.out
-#SBATCH --error=array_job.err
-#SBATCH --time=01:00:00
+#SBATCH --output=array-job/job_%a.out
+#SBATCH --error=array-job/job_%a.err
+#SBATCH --time=00:07:00
 #SBATCH --mem-per-cpu=1G
 #SBATCH --partition=develbooster
-#SBATCH --array=1-250
+#SBATCH --array=1-75
 #SBATCH --job-name=generate_virgo_data
+#SBATCH --cpus-per-task=26
 
 # Load required modules
 ml Stages/2024 GCC OpenMPI CUDA/12 MPI-settings/CUDA Python HDF5 PnetCDF libaio mpi4py
@@ -18,7 +19,9 @@ source ../../envAI_hdfml/bin/activate
 # Folder in which the datasets will be stored
 target_file="/p/scratch/intertwin/datasets/virgo_hdf5/virgo_data_${SLURM_ARRAY_TASK_ID}.hdf5"
 
-srun python synthetic_data_gen/file_gen_hdf5.py \
-  --num-datapoints 3000 \
-  --save-frequency 20 \
+python synthetic-data-gen/file_gen_hdf5.py \
+  --num-datapoints 10000 \
+  --num-processes 25 \
+  --save-frequency 1000 \
   --save-location "$target_file"
+

@@ -66,8 +66,12 @@ def generate_hdf5_dataset(
         square_size (int): Size in pixels of qplot image (default is 500 samples per second).
         datapoints_per_file (int): number of independent datapoints per pickle file.
     """
-    if seed is not None:
-        np.random.seed(seed)
+    if seed is None:
+        # Since we can't retrieve the seed from numpy, we set it so that we can 
+        # store it in the dataset. More information: 
+        # https://stackoverflow.com/questions/32172054/how-can-i-retrieve-the-current-seed-of-numpys-random-number-generator
+        seed = np.random.randint(0, 2**32, dtype=np.uint64)
+    np.random.seed(seed)
 
     datapoints = []
 
@@ -87,6 +91,7 @@ def generate_hdf5_dataset(
             "Synthetic time series data for the Virgo use case"
         )
         dataset.attrs["main_channel_idx"] = 0
+        dataset.attrs["seed"] = str(seed)
 
     for f in tqdm(range(num_datapoints)):
         times = np.linspace(0, duration, duration * sample_rate)
@@ -188,7 +193,13 @@ if __name__ == "__main__":
         "--save-frequency",
         type=int,
         help="How often to save to file while generating. Also saves when finished. ",
-        default=5,
+        default=100,
+    )
+    parser.add_argument(
+        "--num-processes",
+        type=int,
+        help="How many processes to use when generating data",
+        default=1,
     )
     parser.add_argument(
         "--save-location",
@@ -211,7 +222,7 @@ if __name__ == "__main__":
         num_waves_range=(10, 15),
         noise_amplitude=0.5,
         datapoints_per_file=args.save_frequency,
-        num_processes=5,
+        num_processes=args.num_processes,
         seed=args.seed,
     )
     end = time()
