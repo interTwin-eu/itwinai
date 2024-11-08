@@ -10,7 +10,6 @@
 
 import argparse
 import sys
-from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -23,6 +22,8 @@ from tqdm import tqdm
 sys.path.append(str(Path.cwd().resolve()))
 
 from src.dataset import generate_cut_image_dataset
+
+from pathlib import Path
 
 
 def append_to_hdf5_dataset(
