@@ -31,7 +31,7 @@ class PyTorchLightningLogger(LightningLogger):
     This adapter forwards logging calls from PyTorch Lightning to the
     itwinai Logger instance, using the itwinai Logger's `log` method.
     It supports the lightning logging of metrics, hyperparameters, and checkpoints.
-    Additionally, any function calls can be forwarded to the itwinai logger instance 
+    Additionally, any function calls can be forwarded to the itwinai logger instance
     though the `experiment` property of this Adapter.
     """
 
