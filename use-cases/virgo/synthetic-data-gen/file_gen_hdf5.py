@@ -7,13 +7,12 @@ import pandas as pd
 import h5py
 from gwpy.timeseries import TimeSeries
 from time import time
-from scipy.signal import square
 from tqdm import tqdm
 
 # sys.path.append(str(Path("..").resolve()))
 sys.path.append(str(Path.cwd().resolve()))
 
-from src.dataset import generate_cut_image_dataset, process_image
+from src.dataset import generate_cut_image_dataset
 
 
 def append_to_hdf5_dataset(

@@ -20,6 +20,7 @@ from itwinai.torch.trainer import TorchTrainer
 
 class VirgoTrainingConfiguration(TrainingConfiguration):
     """Virgo TrainingConfiguration"""
+
     #: Whether to save best model on validation dataset. Defaults to True.
     save_best: bool = True
     #: Loss function. Defaults to "l1".

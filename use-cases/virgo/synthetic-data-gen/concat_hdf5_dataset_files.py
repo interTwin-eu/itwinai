@@ -1,5 +1,4 @@
 import argparse
-import re
 import h5py
 import numpy as np
 from pathlib import Path
@@ -18,7 +17,7 @@ def append_to_hdf5_dataset(
             f"Should have been (x, {expected_shape_str})."
         )
 
-    print(f"Appending to file: '{str(file_path.resolve())}'.")
+    # print(f"Appending to file: '{str(file_path.resolve())}'.")
     with h5py.File(file_path, "a") as f:
         dset = f[dataset_name]
         dset.resize(dset.shape[0] + array.shape[0], axis=0)
@@ -59,16 +58,13 @@ def main():
         )
         dataset.attrs["main_channel_idx"] = 0
 
-    entries = []
     # NOTE: This will not necessarily iterate in same order as the suffices of the 
     # file names
-    for entry in dir.iterdir():
-        if not entry.suffix == ".hdf5":
-            continue
-
-        print(f"Reading entry: {entry}")
+    files = [entry for entry in dir.iterdir() if entry.suffix == ".hdf5" and entry.stem != "virgo_data"]
+    for entry in files:
         with h5py.File(entry, "r") as f: 
             data = f[dataset_name][:]
+        print(f"Adding {len(data)} rows from entry: {entry}")
 
         append_to_hdf5_dataset(
             file_path=save_location, 

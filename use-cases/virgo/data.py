@@ -105,6 +105,7 @@ class SyntheticTimeSeriesDatasetHDF5(Dataset):
                 f"remainder will be truncated. "
             )
         self.length = self.num_datapoints // self.chunk_size
+        print(f"self.length: {self.length}")
 
     def __len__(self):
         """Return the total number of files in the dataset."""
