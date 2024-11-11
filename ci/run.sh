@@ -4,6 +4,10 @@
 dagger call \
     build-container --context=.. --dockerfile=../env-files/torch/Dockerfile \
     test-local
+# Build container with additional requirements
+dagger call \
+    build-container --context=.. --dockerfile=../env-files/torch/Dockerfile --additional-requirements env-files/torch/requirements/cmcc-requirements.txt \
+    test-local
 
 # Build and publish
 dagger call \
