@@ -14,18 +14,12 @@ from tqdm import tqdm
 from itwinai.loggers import EpochTimeTracker, Logger
 from itwinai.torch.config import TrainingConfiguration
 from itwinai.torch.distributed import DeepSpeedStrategy
-from itwinai.torch.monitoring.monitoring import measure_gpu_utilization
-from itwinai.torch.profiling.profiler import profile_torch_trainer
 from itwinai.torch.trainer import TorchTrainer
 from src.model import Decoder, Decoder_2d_deep, GeneratorResNet, UNet
 from src.utils import init_weights
 
 
-
-
-
-
-class VirgoTrainingConfiguration(TrainingConfiguration):  
+class VirgoTrainingConfiguration(TrainingConfiguration):
     """Virgo TrainingConfiguration"""
 
     #: Whether to save best model on validation dataset. Defaults to True.
@@ -52,7 +46,7 @@ class NoiseGeneratorTrainer(TorchTrainer):
     ) -> None:
         super().__init__(
             epochs=num_epochs,
-            config=config,  
+            config=config,
             strategy=strategy,
             logger=logger,
             random_seed=random_seed,
@@ -180,7 +174,7 @@ class NoiseGeneratorTrainer(TorchTrainer):
     # @measure_gpu_utilization
     def train(self):
         # Start the timer for profiling
-        # 
+        #
         st = timer()
         # uncomment all lines relative to accuracy if you want to measure
         # IOU between generated and real spectrograms.

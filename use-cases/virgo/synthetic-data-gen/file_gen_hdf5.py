@@ -10,23 +10,23 @@
 
 import argparse
 import sys
+from time import time
 
+import h5py
 import numpy as np
 import pandas as pd
-import h5py
 from gwpy.timeseries import TimeSeries
-from time import time
 from tqdm import tqdm
 
 # sys.path.append(str(Path("..").resolve()))
 sys.path.append(str(Path.cwd().resolve()))
 
-from src.dataset import generate_cut_image_dataset
-
 from pathlib import Path
 
+from src.dataset import generate_cut_image_dataset
 
-def append_to_hdf5_dataset( 
+
+def append_to_hdf5_dataset(
     file_path: Path,
     dataset_name: str,
     array: np.ndarray,
@@ -48,9 +48,9 @@ def append_to_hdf5_dataset(
 
     print(f"Appending to file: '{str(file_path.resolve())}'.")
     with h5py.File(file_path, "a") as f:
-        dset=f[dataset_name]  
-        dset.resize(dset.shape[0] + array.shape[0], axis=0)  
-        dset[-array.shape[0] :] = array  
+        dset=f[dataset_name]
+        dset.resize(dset.shape[0] + array.shape[0], axis=0)
+        dset[-array.shape[0] :] = array
 
 
 
@@ -87,8 +87,8 @@ def generate_hdf5_dataset(
         datapoints_per_file (int): number of independent datapoints per pickle file.
     """
     if seed is None:
-        # Since we can't retrieve the seed from numpy, we set it so that we can 
-        # store it in the dataset. More information: 
+        # Since we can't retrieve the seed from numpy, we set it so that we can
+        # store it in the dataset. More information:
         # https://stackoverflow.com/questions/32172054/how-can-i-retrieve-the-current-seed-of-numpys-random-number-generator
         seed = np.random.randint(0, 2**32, dtype=np.uint64)
     np.random.seed(seed)

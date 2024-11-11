@@ -8,9 +8,10 @@
 # --------------------------------------------------------------------------------------
 
 import argparse
+from pathlib import Path
+
 import h5py
 import numpy as np
-from pathlib import Path
 
 
 def append_to_hdf5_dataset(
@@ -69,11 +70,11 @@ def main():
         )
         dataset.attrs["main_channel_idx"] = 0
 
-    # NOTE: This will not necessarily iterate in same order as the suffices of the 
+    # NOTE: This will not necessarily iterate in same order as the suffices of the
     # file names
     files = [entry for entry in dir.iterdir() if entry.suffix == ".hdf5" and entry.stem != "virgo_data"]
     for entry in files:
-        with h5py.File(entry, "r") as f: 
+        with h5py.File(entry, "r") as f:
             data = f[dataset_name][:]
         print(f"Adding {len(data)} rows from entry: {entry}")
 

@@ -11,22 +11,22 @@
 
 import os
 from pathlib import Path
+from typing import Optional, Tuple
 
 import h5py
 import pandas as pd
 import torch
-from typing import Optional, Tuple
-from sklearn.model_selection import train_test_split  
+from sklearn.model_selection import train_test_split
+from torch.utils.data import Dataset, TensorDataset, random_split
+
+from itwinai.components import DataGetter, DataProcessor, DataSplitter, monitor_exec
 from src.dataset import (
     generate_cut_image_dataset,
     generate_dataset_aux_channels,
     generate_dataset_main_channel,
     normalize_,
 )
-from torch.utils.data import Dataset, TensorDataset, random_split
 
-from itwinai.components import DataGetter, DataProcessor, DataSplitter, monitor_exec
- 
 
 class TimeSeriesDatasetGenerator(DataGetter):
     def __init__(self, data_root: str = "data", name: Optional[str] = None) -> None:
@@ -78,11 +78,14 @@ class TimeSeriesDatasetGenerator(DataGetter):
         return df
 
 
-class SyntheticTimeSeriesDatasetHDF5(Dataset):  
+class SyntheticTimeSeriesDatasetHDF5(Dataset):
     def __init__(
-        self, hdf5_file_location: str, chunk_size: int = 500, hdf5_dataset_name: str = "virgo_dataset"  
+        self,
+        hdf5_file_location: str,
+        chunk_size: int = 500,
+        hdf5_dataset_name: str = "virgo_dataset",
     ):
-        """Initialize the DataFrameDataset class.  
+        """Initialize the DataFrameDataset class.
 
         Args:
             hdf5_file_location: Location of the HDF5 file containing the dataset
@@ -91,9 +94,7 @@ class SyntheticTimeSeriesDatasetHDF5(Dataset):
         """
         file_path = Path(hdf5_file_location)
         if not file_path.exists():
-            raise ValueError(
-                f"Given file location, {file_path.resolve()} does not exist. "
-            )
+            raise ValueError(f"Given file location, {file_path.resolve()} does not exist. ")
         self.hdf5_dataset_name = hdf5_dataset_name
         self.file_path = file_path
         self.chunk_size = chunk_size
@@ -132,9 +133,7 @@ class SyntheticTimeSeriesDatasetHDF5(Dataset):
             torch.Tensor: Normalized tensor for specific idx
         """
         if idx >= len(self):
-            raise ValueError(
-                f"Index {idx} out of bounds for dataset with length {len(self)}!"
-            )
+            raise ValueError(f"Index {idx} out of bounds for dataset with length {len(self)}!")
 
         offset = idx * self.chunk_size
         with h5py.File(self.file_path, "r") as f:
@@ -154,8 +153,8 @@ class TimeSeriesDatasetSplitter(DataSplitter):
         rnd_seed: Optional[int] = None,
         name: Optional[str] = None,
         hdf5_file_location: str = "data/virgo_data.hdf5",
-        hdf5_dataset_name: str = "virgo_dataset", 
-        chunk_size: int = 500
+        hdf5_dataset_name: str = "virgo_dataset",
+        chunk_size: int = 500,
     ) -> None:
         """Initialize the splitter for time-series datasets.
 
@@ -186,9 +185,9 @@ class TimeSeriesDatasetSplitter(DataSplitter):
         """
 
         whole_dataset = SyntheticTimeSeriesDatasetHDF5(
-            hdf5_file_location=self.hdf5_file_location, 
+            hdf5_file_location=self.hdf5_file_location,
             chunk_size=self.chunk_size,
-            hdf5_dataset_name=self.hdf5_dataset_name
+            hdf5_dataset_name=self.hdf5_dataset_name,
         )
 
         # Split file paths into train, validation, and test sets
@@ -355,16 +354,11 @@ class TimeSeriesProcessorSmall(DataProcessor):
 
         # whole dataset
         signal_data_test_2d = torch.stack(
-            [
-                torch.stack([y_test_2d[main_channel].iloc[i]])
-                for i in range(y_test_2d.shape[0])
-            ]
+            [torch.stack([y_test_2d[main_channel].iloc[i]]) for i in range(y_test_2d.shape[0])]
         )
         aux_data_test_2d = torch.stack(
             [
-                torch.stack(
-                    [X_test_2d.iloc[i, 0], X_test_2d.iloc[i, 1], X_test_2d.iloc[i, 2]]
-                )
+                torch.stack([X_test_2d.iloc[i, 0], X_test_2d.iloc[i, 1], X_test_2d.iloc[i, 2]])
                 for i in range(X_test_2d.shape[0])
             ]
         )
