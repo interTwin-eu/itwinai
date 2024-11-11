@@ -62,15 +62,18 @@ class ItwinaiLogger(LightningLogger):
     @property
     def name(self) -> Optional[str]:
         """Return the experiment name."""
+        self.experiment.name
 
     @property
     def version(self) -> Optional[Union[int, str]]:
         """Return the experiment version."""
+        self.experiment.version
 
     @property
     @override
     @rank_zero_only
     def save_dir(self) -> Optional[str]:
+        """Return the directory where the logs are stored."""
         return self.experiment.savedir
 
     @property
@@ -189,7 +192,7 @@ class ItwinaiLogger(LightningLogger):
             aliases = ["latest"]
             if path == checkpoint_callback.best_model_path:
                 aliases.append("best")
-                
+
             artifact_path = Path(path).stem
 
             # Log the checkpoint

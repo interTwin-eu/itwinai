@@ -4,7 +4,7 @@ import os
 import sys
 from typing import Any, Callable, Dict, List, Literal, Optional, Tuple, Union
 
-import horovod.torch as hvd
+#import horovod.torch as hvd
 import lightning as L
 import matplotlib.pyplot as plt
 import numpy as np
