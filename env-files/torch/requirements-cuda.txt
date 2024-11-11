@@ -1,2 +1,4 @@
-numpy<2.0.0
-torch==2.4
+
+torch==2.4.* 
+torchvision 
+torchaudio 

@@ -42,24 +42,16 @@ dependencies = [
     # "prov4ml@git+https://github.com/HPCI-Lab/ProvML@main", # Prov4ML
     # "prov4ml@git+https://github.com/matbun/ProvML@main",
     "pandas",
-    "seaborn"
+    "seaborn",
+    "deepspeed", 
+    "py-cpuinfo",
+    "numpy<2.0.0",
 ]
 
 # dynamic = ["version", "description"]
 
 [project.optional-dependencies]
-
-# Torch should be already installed, but it is specified here to
-# prevent itwinai dependencies from cheing its version.
 torch = ["lightning==2.*", "torchmetrics"]
-# torch-cpu = [
-#     "torch==2.1.*",
-#     "torchvision",
-#     "torchaudio",
-#     "lightning",
-#     "torchmetrics",
-#     "deepspeed",
-# ]
 dev = [
     "pytest>=7.4.2",
     "pytest-mock>=3.11.1",
@@ -69,6 +61,21 @@ dev = [
     "isort",
     "tensorflow==2.16.*",  # needed by tests on tensorboard
 ]
+linux = []
+macos = [
+    "torch==2.4.*",
+    "torchvision",
+    "torchaudio",
+    "py-cpuinfo",
+]
+cuda = [
+    # "torch==2.4.* @ https://download.pytorch.org/whl/cu121",
+    # "torchvision @ https://download.pytorch.org/whl/cu121",
+    # "torchaudio @ https://download.pytorch.org/whl/cu121",
+  "py-cpuinfo",
+  "horovod"
+]
+
 
 [project.urls]
 Homepage = "https://www.intertwin.eu/"
@@ -96,3 +103,6 @@ markers = [
 [tool.isort]
 profile = "black"
 known_first_party = ["itwinai"]
+
+# [[tool.uv.index]]
+# url = "https://download.pytorch.org/whl/cpu"
