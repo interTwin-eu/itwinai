@@ -53,7 +53,7 @@ training_pipeline:
               limit_val_batches: null
               log_every_n_steps: null
               logger:
-                class_path: itwinai.torch.loggers.PyTorchLightningLogger
+                class_path: itwinai.torch.loggers.ItwinaiLogger
                 init_args:
                   log_model: all
                   itwinai_logger:

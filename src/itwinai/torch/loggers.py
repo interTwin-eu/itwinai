@@ -5,6 +5,7 @@
 #
 # Credit:
 # - Anna Lappe <anna.elisa.lappe@cern.ch> - CERN
+# - Matteo Bunino <matteo.bunino@cern.ch> - CERN
 # -------------------------------------------------------------------------------------
 
 import os
@@ -22,10 +23,10 @@ from lightning.pytorch.utilities import rank_zero_only
 from torch import Tensor
 from typing_extensions import override
 
-from itwinai.loggers import Logger
+from itwinai.loggers import Logger as ItwinaiBaseLogger
 
 
-class PyTorchLightningLogger(LightningLogger):
+class ItwinaiLogger(LightningLogger):
     """Adapter between PyTorch Lightning logger and itwinai logger.
 
     This adapter forwards logging calls from PyTorch Lightning to the
@@ -37,8 +38,8 @@ class PyTorchLightningLogger(LightningLogger):
 
     def __init__(
         self,
-        itwinai_logger: Logger,
-        log_model: Union[Literal["all"], bool] = False
+        itwinai_logger: ItwinaiBaseLogger,
+        log_model: Union[Literal["all"], bool] = False,
     ):
         """Initializes the adapter with an itwinai logger instance.
 
@@ -74,7 +75,7 @@ class PyTorchLightningLogger(LightningLogger):
 
     @property
     @rank_zero_experiment
-    def experiment(self) -> Logger:
+    def experiment(self) -> ItwinaiBaseLogger:
         """Lightning Logger function.
         Initializes and returns the itwinai Logger context for experiment tracking.
 
@@ -82,7 +83,7 @@ class PyTorchLightningLogger(LightningLogger):
             Logger: The itwinai logger instance.
         """
         if not self._initialized:
-            # With the rank_zero_decorator the rank will always be 0
+            # With the rank_zero_experiment decorators the rank will always be 0
             self.itwinai_logger.create_logger_context(rank=0)
             self._initialized = True
 
@@ -90,15 +91,14 @@ class PyTorchLightningLogger(LightningLogger):
 
     @override
     @rank_zero_only
-    def finalize(
-        self,
-        status: str
-    ) -> None:
+    def finalize(self, status: str) -> None:
         """Lightning Logger function.
         Logs any remaining checkpoints and closes the logger context.
 
         Args:
-            status (str): Status of the training (e.g., 'completed', 'failed').
+            status (str): Describes the status of the training (e.g., 'completed', 'failed').
+            The status is not needed for this function but part of the parent classes' (LightningLogger)
+            finalize functions signature, and therefore must be propagated here.
         """
         if not self._initialized:
             return
@@ -112,9 +112,7 @@ class PyTorchLightningLogger(LightningLogger):
     @override
     @rank_zero_only
     def log_metrics(
-            self,
-            metrics: Dict[str, float],
-            step: Optional[int] = None
+        self, metrics: Dict[str, float], step: Optional[int] = None
     ) -> None:
         """Lightning Logger function.
         Logs the given metrics and is usually called by the Lightning Trainer.
@@ -122,22 +120,14 @@ class PyTorchLightningLogger(LightningLogger):
         Args:
             metrics (Dict[str, float]): Dictionary of metrics to log.
             step (Optional[int], optional): Training step associated with the metrics.
-            Defaults to None.
+                Defaults to None.
         """
         for key, value in metrics.items():
-            self.experiment.log(
-                item=value,
-                identifier=key,
-                kind='metric',
-                step=step
-            )
+            self.experiment.log(item=value, identifier=key, kind="metric", step=step)
 
     @override
     @rank_zero_only
-    def log_hyperparams(
-            self,
-            params: Union[Dict[str, Any], Namespace]
-    ) -> None:
+    def log_hyperparams(self, params: Union[Dict[str, Any], Namespace]) -> None:
         """Lightning Logger function. Logs hyperparameters for the experiment.
 
         Args:
@@ -149,10 +139,7 @@ class PyTorchLightningLogger(LightningLogger):
         self.experiment.save_hyperparameters(params)
 
     @override
-    def after_save_checkpoint(
-        self,
-        checkpoint_callback: ModelCheckpoint
-    ) -> None:
+    def after_save_checkpoint(self, checkpoint_callback: ModelCheckpoint) -> None:
         """Lightning Logger function. Handles checkpoint saving to the logger after
         the ModelCheckpoint Callback of the Lightning Trainer is called.
         The checkpoints are logged as artifacts.
@@ -167,10 +154,7 @@ class PyTorchLightningLogger(LightningLogger):
         elif self._log_model is True:
             self._checkpoint_callback = checkpoint_callback
 
-    def _scan_and_log_checkpoints(
-        self,
-        checkpoint_callback: ModelCheckpoint
-    ) -> None:
+    def _scan_and_log_checkpoints(self, checkpoint_callback: ModelCheckpoint) -> None:
         """Scans and logs checkpoints as artifacts in the experiment.
 
         This function retrieves new checkpoints, logs them as artifacts, and saves
@@ -184,10 +168,10 @@ class PyTorchLightningLogger(LightningLogger):
         checkpoints = _scan_checkpoints(checkpoint_callback, self._logged_model_time)
 
         # Log iteratively all new checkpoints
-        for t, p, s, tag in checkpoints:
+        for time, path, score, _ in checkpoints:
             metadata = {
-                "score": s.item() if isinstance(s, Tensor) else s,
-                "original_filename": Path(p).name,
+                "score": score.item() if isinstance(score, Tensor) else score,
+                "original_filename": Path(path).name,
                 checkpoint_callback.__class__.__name__: {
                     k: getattr(checkpoint_callback, k)
                     for k in [
@@ -202,23 +186,17 @@ class PyTorchLightningLogger(LightningLogger):
                     if hasattr(checkpoint_callback, k)
                 },
             }
-            if p == checkpoint_callback.best_model_path:
-                aliases = ["latest", "best"]
-            else:
-                aliases = ["latest"]
-            artifact_path = Path(p).stem
+            aliases = ["latest"]
+            if path == checkpoint_callback.best_model_path:
+                aliases.append("best")
+                
+            artifact_path = Path(path).stem
 
             # Log the checkpoint
-            self.experiment.log(
-                item=p,
-                identifier=artifact_path,
-                kind='artifact'
-            )
+            self.experiment.log(item=path, identifier=artifact_path, kind="artifact")
 
             with tempfile.TemporaryDirectory(
-                prefix="test",
-                suffix="test",
-                dir=os.getcwd()
+                prefix="test", suffix="test", dir=os.getcwd()
             ) as tmp_dir:
                 # Log the metadata
                 with open(f"{tmp_dir}/metadata.yaml", "w") as tmp_file_metadata:
@@ -230,9 +208,7 @@ class PyTorchLightningLogger(LightningLogger):
 
                 # Log the metadata and aliases
                 self.experiment.log(
-                    item=tmp_dir,
-                    identifier=artifact_path,
-                    kind='artifact'
+                    item=tmp_dir, identifier=artifact_path, kind="artifact"
                 )
 
-            self._logged_model_time[p] = t
+            self._logged_model_time[path] = time
