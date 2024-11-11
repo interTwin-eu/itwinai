@@ -42,9 +42,7 @@ class TimeSeriesDatasetGenerator(DataGetter):
             pd.DataFrame: dataset of Q-plot images.
         """
         df_aux_ts = generate_dataset_aux_channels( 1000, 3, duration=16, sample_rate=500, num_waves_range=(20, 25), noise_amplitude=0.6)
-        df_main_ts = generate_dataset_main_channel(
-            df_aux_ts, weights=None, noise_amplitude=0.1
-        )
+        df_main_ts = generate_dataset_main_channel( df_aux_ts, weights=None, noise_amplitude=0.1)
 
         # save datasets
         save_name_main = 'TimeSeries_dataset_synthetic_main.pkl'
