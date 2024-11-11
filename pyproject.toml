@@ -46,6 +46,9 @@ dependencies = [
     "deepspeed", 
     "py-cpuinfo",
     "numpy<2.0.0",
+    "torch==2.4.*",
+    "torchvision",
+    "torchaudio",
 ]
 
 # dynamic = ["version", "description"]
@@ -61,21 +64,6 @@ dev = [
     "isort",
     "tensorflow==2.16.*",  # needed by tests on tensorboard
 ]
-linux = []
-macos = [
-    "torch==2.4.*",
-    "torchvision",
-    "torchaudio",
-    "py-cpuinfo",
-]
-cuda = [
-    # "torch==2.4.* @ https://download.pytorch.org/whl/cu121",
-    # "torchvision @ https://download.pytorch.org/whl/cu121",
-    # "torchaudio @ https://download.pytorch.org/whl/cu121",
-  "py-cpuinfo",
-  "horovod"
-]
-
 
 [project.urls]
 Homepage = "https://www.intertwin.eu/"
@@ -103,6 +91,3 @@ markers = [
 [tool.isort]
 profile = "black"
 known_first_party = ["itwinai"]
-
-# [[tool.uv.index]]
-# url = "https://download.pytorch.org/whl/cpu"
