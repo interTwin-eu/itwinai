@@ -90,11 +90,12 @@ class Itwinai:
         # TODO: use annotated for args
     ) -> str:
         """Push container to registry"""
-        import datetime
+        from datetime import datetime
         tag = tag if tag else random.randrange(10 ** 8)
         self.full_name = f"{registry}/{name}:{tag}"
         return await (
             self.container
+            # Invalidate cache to ensure that the container is always pushed
             .with_env_variable("CACHE", datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f"))
             .publish(self.full_name)
         )
