@@ -64,21 +64,6 @@ macos = [
 linux = [
     "prov4ml[linux]@git+https://github.com/matbun/ProvML"
 ]
-linux = []
-macos = [
-    "torch==2.4.*",
-    "torchvision",
-    "torchaudio",
-    "py-cpuinfo",
-]
-cuda = [
-    # "torch==2.4.* @ https://download.pytorch.org/whl/cu121",
-    # "torchvision @ https://download.pytorch.org/whl/cu121",
-    # "torchaudio @ https://download.pytorch.org/whl/cu121",
-  "py-cpuinfo",
-  "horovod"
-]
-
 
 [project.urls]
 Homepage = "https://www.intertwin.eu/"
