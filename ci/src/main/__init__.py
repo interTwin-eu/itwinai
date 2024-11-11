@@ -24,10 +24,9 @@ if appropriate. All modules should have a short description.
 from typing import Annotated, Optional, Self
 import dataclasses
 import random
-import os 
 
 import dagger
-from dagger import dag, function, object_type, Doc
+from dagger import dag, function, object_type, Doc, BuildArg
 
 
 @object_type
@@ -51,17 +50,34 @@ class Itwinai:
             str,
             Doc("location of Dockerfile"),
         ],
-        # TODO: pass build args as well
+        additional_requirements: Annotated[
+            Optional[str],
+            Doc("Path to pip requirements file, e.g., for use case requirements")
+        ] = None
     ) -> Self:
         """Build itwinai container image from existing Dockerfile"""
+        # context = (
+        #     dag.container()
+        #     .with_directory("/src", context)
+        #     .with_workdir("/src")
+        #     .with_file("/src/additional_requirements.txt", additional_requirements)
+        #     .directory("/src")
+        # )
+        build_args = []
+        if additional_requirements:
+            build_args = [BuildArg(name='REQUIREMENTS', value=additional_requirements)]
         self.container = (
             dag.container()
-            .build(context=context, dockerfile=dockerfile)
+            .build(
+                context=context, 
+                dockerfile=dockerfile,
+                build_args=build_args,
+            )
         )
         return self
     
     @function
-    def terminal(self)->dagger.Container:
+    def terminal(self) -> dagger.Container:
         return self.container.terminal()
         
 
@@ -84,10 +100,18 @@ class Itwinai:
     @function
     async def publish(
         self,
-        registry: str = "ghcr.io/intertwin-eu",
-        name: str = "itwinai-dev",
-        tag: Optional[str] = None
-        # TODO: use annotated for args
+        registry: Annotated[
+            str,
+            Doc("The registry URL where the container will be published"),
+        ] = "ghcr.io/intertwin-eu",
+        name: Annotated[
+            str,
+            Doc("The name of the container image"),
+        ] = "itwinai-dev",
+        tag: Annotated[
+            Optional[str],
+            Doc("Optional tag for the container image; defaults to random int if not provided"),
+        ] = None
     ) -> str:
         """Push container to registry"""
         from datetime import datetime
@@ -110,16 +134,10 @@ class Itwinai:
     )->str:
         from .k8s import create_pod_manifest, submit_job
             
-        # created pod manifest
-        # pre_exec_cmd = (
-        #     "ls /pippo"
-        # )
+        # create pod manifest
         gpus_per_node = 4 
         pre_exec_cmd = (
-            "export CONTAINER_PATH=itwinai_dist_test.sif "
-            # # Some garbage to try to get away from tests...
-            # "&& cd /tmp && mkdir -p 1234567-itwinai && cd 1234567-itwinai "
-            
+            "export CONTAINER_PATH=itwinai_dist_test.sif "            
             f"&& singularity pull --force $CONTAINER_PATH docker://{self.full_name} "
             "&& singularity exec $CONTAINER_PATH cat /app/tests/torch/slurm.vega.sh > slurm.vega.sh "
             # Activate env on Vega
@@ -148,7 +166,8 @@ class Itwinai:
         pod_manifest = create_pod_manifest(
             annotations=annotations,
             image_path=image_path,
-            cmd_args=cmd_args
+            cmd_args=cmd_args,
+            name="ci-test-itwinai-hpc"
         )
         
         # submit pod
@@ -171,7 +190,14 @@ class Itwinai:
             dagger.Secret, 
             Doc("Kubeconfig for k8s cluster with interLink's VK")
         ],
-        production: bool = False
+        production: Annotated[
+            bool,
+            Doc("Whether to push the final image to the production image name or not")
+        ] = False,
+        tag_template: Annotated[
+            Optional[str],
+            Doc("Custom image tag pattern. Base template is '${itwinai_version}-torch${torch_version}-${ubuntu_codename}'")
+        ] = None
         )->None:
         # TODO: adapt to support also TF
         """Pipeline to test container and push it, including both local
@@ -213,7 +239,16 @@ class Itwinai:
                 ])
             .stdout()
         )).strip()
-        tag = f"{itwinai_version}-torch{torch_version}-{ubuntu_codename}"
+        
+        if not tag_template:
+            tag_template = "${itwinai_version}-torch${torch_version}-${ubuntu_codename}"
+        
+        from string import Template
+        tag = Template(tag).substitute(
+            itwinai_version=itwinai_version,
+            torch_version=torch_version,
+            ubuntu_codename=ubuntu_codename
+        )
         image = "itwinai" if production else "itwinai-dev"
         await self.publish(name=image, tag=tag)
         
