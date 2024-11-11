@@ -209,6 +209,7 @@ def submit_job(kubeconfig_str:str, pod_manifest:Dict, verbose:bool=False)->Optio
     # Create the pod in the specified namespace
     create_pod(v1, namespace, pod_manifest)
     status = None
+    logs = None
     try:
         # Check the pod status
         status = check_pod_status(v1, namespace, pod_name)
@@ -223,6 +224,10 @@ def submit_job(kubeconfig_str:str, pod_manifest:Dict, verbose:bool=False)->Optio
             if verbose:
                 print(f"Pod status: {status}")
                 print(f"Pod logs:\n{logs}")
+        if verbose:
+            print("="*100)
     finally:
+        print(f"Pod status: {status}")
+        print(f"Pod logs:\n{logs}")
         delete_pod(v1, namespace, pod_name)
     return status

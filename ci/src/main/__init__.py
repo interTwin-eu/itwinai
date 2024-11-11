@@ -24,6 +24,7 @@ if appropriate. All modules should have a short description.
 from typing import Annotated, Optional, Self
 import dataclasses
 import random
+import os 
 
 import dagger
 from dagger import dag, function, object_type, Doc
@@ -50,6 +51,7 @@ class Itwinai:
             str,
             Doc("location of Dockerfile"),
         ],
+        # TODO: pass build args as well
     ) -> Self:
         """Build itwinai container image from existing Dockerfile"""
         self.container = (
@@ -57,6 +59,11 @@ class Itwinai:
             .build(context=context, dockerfile=dockerfile)
         )
         return self
+    
+    @function
+    def terminal(self)->dagger.Container:
+        return self.container.terminal()
+        
 
     @function
     async def test_local(self) -> str:
@@ -80,21 +87,23 @@ class Itwinai:
         registry: str = "ghcr.io/intertwin-eu",
         name: str = "itwinai-dev",
         tag: Optional[str] = None
+        # TODO: use annotated for args
     ) -> str:
         """Push container to registry"""
         tag = tag if tag else random.randrange(10 ** 8)
-
-        # Test locally
-        await self.test_local()
         self.full_name = f"{registry}/{name}:{tag}"
         return await self.container.publish(self.full_name)
     
     @function
-    async def test_remote(self, kubeconfig_str: str)->str:
+    async def test_hpc(
+        self,
+        kubeconfig_str: Annotated[
+            dagger.Secret, 
+            Doc("Kubeconfig for k8s cluster with interLink's VK")
+        ]
+    )->str:
         from .k8s import create_pod_manifest, submit_job
-        
-        await self.publish()
-    
+            
         # created pod manifest
         # pre_exec_cmd = (
         #     "ls /pippo"
@@ -102,9 +111,8 @@ class Itwinai:
         gpus_per_node = 4 
         pre_exec_cmd = (
             "export CONTAINER_PATH=itwinai_dist_test.sif "
-            # Some garbage to try to get away from tests...
-            "&& cd /tmp && mkdir -p 1234567-itwinai && cd 1234567-itwinai "
-            
+            # # Some garbage to try to get away from tests...
+            # "&& cd /tmp && mkdir -p 1234567-itwinai && cd 1234567-itwinai "
             
             f"&& singularity pull --force $CONTAINER_PATH docker://{self.full_name} "
             "&& singularity exec $CONTAINER_PATH cat /app/tests/torch/slurm.vega.sh > slurm.vega.sh "
@@ -138,13 +146,71 @@ class Itwinai:
         )
         
         # submit pod
+        kubeconfig_str=await kubeconfig_str.plaintext()
         status = submit_job(
             kubeconfig_str=kubeconfig_str,
             pod_manifest=pod_manifest,
-            verbose=True
+            verbose=False
         )
 
         if status not in ["Succeeded", "Completed"]:
             raise RuntimeError(f"Pod did not complete successfully! Status: {status}")
         
         return f"Pod finished with status: {status}"
+
+    @function
+    async def test_n_publish(
+        self,
+        kubeconfig_str: Annotated[
+            dagger.Secret, 
+            Doc("Kubeconfig for k8s cluster with interLink's VK")
+        ],
+        production: bool = False
+        )->None:
+        # TODO: use annotated for args
+        # TODO: adapt to support also TF
+        """Pipeline to test container and push it, including both local
+        tests and tests on HPC via interLink.
+
+        Args:
+            production (bool, optional): whether to push the final image
+                to the production image name or not. Defaults to False.
+        """
+        
+        # Test locally
+        await self.test_local()
+        
+        # Publish to registry with random hash
+        await self.publish()
+        
+        # Test on HPC with 
+        # await self.test_hpc(kubeconfig_str=kubeconfig_str)
+        
+        # Publish to registry with final hash
+        itwinai_version = (await (
+            self.container
+            .with_exec([
+                "bash", "-c", 'pip list | grep -w "itwinai" | head -n 1 | tr -s " " | cut -d " " -f2 '
+                ])
+            .stdout()
+        )).strip()
+        torch_version = (await (
+            self.container
+            .with_exec([
+                "bash", "-c", 'pip list | grep -w "torch[^-]" | head -n 1 | tr -s " " | cut -d " " -f2 | cut -f1,2 -d .'
+                ])
+            .stdout()
+        )).strip()
+        ubuntu_codename = (await (
+            self.container
+            .with_exec([
+                "bash", "-c", 'cat /etc/*-release | grep -w DISTRIB_CODENAME | head -n 1 | cut -d = -f2'
+                ])
+            .stdout()
+        )).strip()
+        tag = f"{itwinai_version}-torch{torch_version}-{ubuntu_codename}"
+        image = "itwinai" if production else "itwinai-dev"
+        await self.publish(name=image, tag=tag)
+        
+        
+        

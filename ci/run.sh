@@ -1,14 +1,21 @@
-# Example of running dagger pipeline of build and local test for torch container
+# Example of running dagger pipelines
+
+# Build and run local tests (no HPC required)
 dagger call \
     build-container --context=.. --dockerfile=../env-files/torch/Dockerfile \
     test-local
 
-# Build, test local, and publish
+# Build and publish
 dagger call \
     build-container --context=.. --dockerfile=../env-files/torch/Dockerfile \
     publish
 
-# Build, test local, publish, and test remote
+# Pipeline method: build, test local, push, test remote, and push (publish)
 dagger call \
     build-container --context=.. --dockerfile=../env-files/torch/Dockerfile \
-    test-remote --kubeconfig-str "$KUBECONFIG_STR"
+    test-n-publish --kubeconfig-str=env:KUBECONFIG_STR
+
+# Open teminal in newly created container
+dagger call \
+    build-container --context=.. --dockerfile=../env-files/torch/Dockerfile \
+    terminal
