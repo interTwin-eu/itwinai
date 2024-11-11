@@ -26,7 +26,7 @@ from src.dataset import generate_cut_image_dataset
 from pathlib import Path
 
 
-def append_to_hdf5_dataset(
+def append_to_hdf5_dataset( 
     file_path: Path,
     dataset_name: str,
     array: np.ndarray,
