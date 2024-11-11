@@ -15,6 +15,10 @@ dagger call \
     build-container --context=.. --dockerfile=../env-files/torch/Dockerfile \
     test-n-publish --kubeconfig-str=env:KUBECONFIG_STR
 
+dagger call \
+    build-container --context=.. --dockerfile=../env-files/torch/Dockerfile \
+    test-n-publish --kubeconfig-str="$KUBECONFIG_STR"
+
 # Open teminal in newly created container
 dagger call \
     build-container --context=.. --dockerfile=../env-files/torch/Dockerfile \
