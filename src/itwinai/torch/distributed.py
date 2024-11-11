@@ -1,6 +1,8 @@
 import abc
 import os
 from typing import Any, Iterable, List, Literal, Optional, Tuple, Union
+from torch.utils.data.dataloader import T_co, _collate_fn_t, _worker_init_fn_t
+from torch.utils.data.dataloader import T_co, _collate_fn_t, _worker_init_fn_t
 
 import torch
 import torch.distributed as dist
@@ -15,14 +17,25 @@ from ..distributed import DistributedStrategy
 from .type import DistributedStrategyError, UninitializedStrategyError
 
 
-def distributed_resources_available() -> bool:
+
+
+from torch.optim.optimizer import Optimizer
+
+
+
+
+
+
+
+
+def distributed_resources_available() -> bool  :
     """Check if the current execution environment
     has (enough) GPUs available to allow for distributed ML.
 
     Returns:
-        bool: env can support distributed ML.
+        bool: env can support distributed ML. 
     """
-    return torch.cuda.is_available() and torch.cuda.device_count() > 1
+    return torch.cuda.is_available()    and torch.cuda.device_count() > 1
 
 
 class TorchDistributedStrategy(DistributedStrategy):
@@ -40,7 +53,7 @@ class TorchDistributedStrategy(DistributedStrategy):
     # Provides the name of the strategy for logging purposes etc.
     name: str
 
-    @property
+     @property
     def is_main_worker(self) -> bool:
         """Checks if local worker has global rank equal to zero.
 
