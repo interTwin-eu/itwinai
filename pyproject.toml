@@ -93,9 +93,20 @@ markers = [
     "memory_heavy: high memory footprint. (deselect with '-m \"not heavy_memory\"')",
 ]
 
-[tool.isort]
-profile = "black"
-known_first_party = ["itwinai"]
+# [tool.isort]
+# profile = "black"
+# known_first_party = ["itwinai"]
+
+# Ruff configuration: https://docs.astral.sh/ruff/configuration/
+[tool.ruff]
+line-length = 95
 
 [tool.ruff.lint]
-select = ["I", "E", "F", "W"]
+select = ["E", "F", "I"]
+ignore = ["E203"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"
