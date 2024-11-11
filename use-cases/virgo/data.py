@@ -15,10 +15,10 @@ from torch.utils.data import Dataset, TensorDataset, random_split
 from itwinai.components import DataGetter, DataProcessor, DataSplitter, monitor_exec
 
 
-class TimeSeriesDatasetGenerator(DataGetter):
+class TimeSeriesDatasetGenerator(DataGetter): 
     def __init__(
         self,
-        data_root: str = "data",
+        data_root: str="data",
         name: Optional[str] = None
     ) -> None:
         """Initialize the TimeSeriesDatasetGenerator class.
