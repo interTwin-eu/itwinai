@@ -21,7 +21,11 @@ from src.model import Decoder, Decoder_2d_deep, GeneratorResNet, UNet
 from src.utils import init_weights
 
 
-class VirgoTrainingConfiguration(TrainingConfiguration):
+
+
+
+
+class VirgoTrainingConfiguration(TrainingConfiguration):  
     """Virgo TrainingConfiguration"""
 
     #: Whether to save best model on validation dataset. Defaults to True.
@@ -32,10 +36,12 @@ class VirgoTrainingConfiguration(TrainingConfiguration):
     generator: Literal["simple", "deep", "resnet", "unet"] = "unet"
 
 
+
+
+
 class NoiseGeneratorTrainer(TorchTrainer):
     def __init__(
-        self,
-        num_epochs: int = 2,
+        self, num_epochs: int=2,
         config: Union[Dict, TrainingConfiguration] | None = None,
         strategy: Optional[Literal["ddp", "deepspeed", "horovod"]] = "ddp",
         checkpoint_path: str = "checkpoints/epoch_{}.pth",
@@ -46,7 +52,7 @@ class NoiseGeneratorTrainer(TorchTrainer):
     ) -> None:
         super().__init__(
             epochs=num_epochs,
-            config=config,
+            config=config,  
             strategy=strategy,
             logger=logger,
             random_seed=random_seed,
