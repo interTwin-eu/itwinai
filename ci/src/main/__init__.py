@@ -90,9 +90,14 @@ class Itwinai:
         # TODO: use annotated for args
     ) -> str:
         """Push container to registry"""
+        import datetime
         tag = tag if tag else random.randrange(10 ** 8)
         self.full_name = f"{registry}/{name}:{tag}"
-        return await self.container.publish(self.full_name)
+        return await (
+            self.container
+            .with_env_variable("CACHE", datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f"))
+            .publish(self.full_name)
+        )
     
     @function
     async def test_hpc(
