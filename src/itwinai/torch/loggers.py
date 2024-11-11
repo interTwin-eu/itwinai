@@ -59,12 +59,12 @@ class PyTorchLightningLogger(LightningLogger):
         self._initialized = False
 
     @property
-    def name(self):
-        pass
+    def name(self) -> Optional[str]:
+        """Return the experiment name."""
 
     @property
-    def version(self):
-        pass
+    def version(self) -> Optional[Union[int, str]]:
+        """Return the experiment version."""
 
     @property
     @override
