@@ -9,7 +9,7 @@ else
     N=$1
 fi
 if [ -z "$2" ] ; then
-    T="00:30:00"
+    T="00:05:00"
 else
     T=$2
 fi

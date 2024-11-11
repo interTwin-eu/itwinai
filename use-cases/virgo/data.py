@@ -11,12 +11,12 @@
 
 import os
 from pathlib import Path
-from typing import Optional, Tuple
 
 import h5py
 import pandas as pd
 import torch
-from sklearn.model_selection import train_test_split
+from typing import Optional, Tuple
+from sklearn.model_selection import train_test_split  
 from src.dataset import (
     generate_cut_image_dataset,
     generate_dataset_aux_channels,
@@ -26,7 +26,7 @@ from src.dataset import (
 from torch.utils.data import Dataset, TensorDataset, random_split
 
 from itwinai.components import DataGetter, DataProcessor, DataSplitter, monitor_exec
-
+ 
 
 class TimeSeriesDatasetGenerator(DataGetter):
     def __init__(self, data_root: str = "data", name: Optional[str] = None) -> None:
@@ -78,11 +78,11 @@ class TimeSeriesDatasetGenerator(DataGetter):
         return df
 
 
-class SyntheticTimeSeriesDatasetHDF5(Dataset):
+class SyntheticTimeSeriesDatasetHDF5(Dataset):  
     def __init__(
-        self, hdf5_file_location: str, chunk_size: int = 500, hdf5_dataset_name: str = "virgo_dataset"
+        self, hdf5_file_location: str, chunk_size: int = 500, hdf5_dataset_name: str = "virgo_dataset"  
     ):
-        """Initialize the DataFrameDataset class.
+        """Initialize the DataFrameDataset class.  
 
         Args:
             hdf5_file_location: Location of the HDF5 file containing the dataset
