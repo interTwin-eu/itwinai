@@ -173,7 +173,6 @@ class Itwinai:
         ],
         production: bool = False
         )->None:
-        # TODO: use annotated for args
         # TODO: adapt to support also TF
         """Pipeline to test container and push it, including both local
         tests and tests on HPC via interLink.
@@ -190,7 +189,7 @@ class Itwinai:
         await self.publish()
         
         # Test on HPC with 
-        # await self.test_hpc(kubeconfig_str=kubeconfig_str)
+        await self.test_hpc(kubeconfig_str=kubeconfig_str)
         
         # Publish to registry with final hash
         itwinai_version = (await (
