@@ -1,0 +1,5 @@
+torch==2.4.* 
+torchvision 
+torchaudio 
+py-cpuinfo
+prov4ml[apple]@git+https://github.com/matbun/ProvML ; sys_platform == 'darwin'
