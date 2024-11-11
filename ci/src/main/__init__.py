@@ -244,7 +244,7 @@ class Itwinai:
             tag_template = "${itwinai_version}-torch${torch_version}-${ubuntu_codename}"
         
         from string import Template
-        tag = Template(tag).substitute(
+        tag = Template(tag_template).substitute(
             itwinai_version=itwinai_version,
             torch_version=torch_version,
             ubuntu_codename=ubuntu_codename
