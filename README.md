@@ -153,6 +153,13 @@ you already have `uv` installed on your system. An example:
 uv pip install . --no-cache-dir --extra-index-url https://download.pytorch.org/whl/cu121
 ```
 
+This does not install `Horovod`, however, as it requires a specialized 
+[script](env-files/torch/install-horovod.sh). If you do not require Cuda, then you 
+can install `Horovod` with the last part of the aforementioned script, i.e.:
+```
+pip install --no-cache-dir --no-build-isolation git+https://github.com/horovod/horovod.git
+```
+
 > [!NOTE]
 > It is possible to not use `--no-cache-dir` on a local computer, but on HPC systems we
 > recommend using it in order to not fill up your `.cache` directory.
