@@ -41,7 +41,7 @@ jobs:
           workdir: ci
           verb: call
           # args: build-container --context=.. --dockerfile=../env-files/torch/Dockerfile publish
-          args: build-container --context=.. --dockerfile=../env-files/torch/Dockerfile test-n-publish --kubeconfig-str=env:KUBECONFIG_STR
+          args: build-container --context=.. --dockerfile=../env-files/torch/Dockerfile test-n-publish --kubeconfig=env:KUBECONFIG_STR
           cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
           version: "latest"
         env:

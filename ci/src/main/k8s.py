@@ -1,22 +1,24 @@
-from typing import Dict, Optional, List
+import copy
+import logging
+import time
+from typing import Dict, List, Optional
+
 import yaml
 from kubernetes import client, config
 from kubernetes.client.rest import ApiException
-import time
-import logging
-
-import copy
 
 # Template with default values
 POD_TEMPLATE = {
     "apiVersion": "v1",
     "kind": "Pod",
     "metadata": {
-        "name": "test-il",
+        "name": "pod-template",
         "namespace": "default",
         "annotations": {
-            "slurm-job.vk.io/flags": "-p gpu --gres=gpu:1 --ntasks-per-node=1 --nodes=1 --time=00:10:00",
-            "slurm-job.vk.io/pre-exec": "ls -la"
+            "slurm-job.vk.io/flags": (
+                "-p gpu --gres=gpu:1 --ntasks-per-node=1 --nodes=1 --time=00:10:00"
+            ),
+            "slurm-job.vk.io/pre-exec": "ls -la",
         },
     },
     "spec": {
@@ -28,40 +30,29 @@ POD_TEMPLATE = {
                 "args": ["sleep $(( 60 * 1 ))"],
                 "imagePullPolicy": "Always",
                 "resources": {
-                    "limits": {
-                        "cpu": "48",
-                        "memory": "150Gi"
-                    },
-                    "requests": {
-                        "cpu": "4",
-                        "memory": "20Gi"
-                    }
-                }
+                    "limits": {"cpu": "48", "memory": "150Gi"},
+                    "requests": {"cpu": "4", "memory": "20Gi"},
+                },
             }
         ],
         "restartPolicy": "Always",
-        "nodeSelector": {
-            "kubernetes.io/hostname": "vega-new-vk"
-        },
+        "nodeSelector": {"kubernetes.io/hostname": "vega-new-vk"},
         "tolerations": [
-            {
-                "key": "virtual-node.interlink/no-schedule",
-                "operator": "Exists"
-            },
+            {"key": "virtual-node.interlink/no-schedule", "operator": "Exists"},
             {
                 "effect": "NoExecute",
                 "key": "node.kubernetes.io/not-ready",
                 "operator": "Exists",
-                "tolerationSeconds": 300
+                "tolerationSeconds": 300,
             },
             {
                 "effect": "NoExecute",
                 "key": "node.kubernetes.io/unreachable",
                 "operator": "Exists",
-                "tolerationSeconds": 300
-            }
-        ]
-    }
+                "tolerationSeconds": 300,
+            },
+        ],
+    },
 }
 
 
@@ -71,7 +62,7 @@ def create_pod_manifest(
     container_name: str = None,
     image_path: str = None,
     cmd_args: List[str] = None,
-    resources: Dict = None
+    resources: Dict = None,
 ):
     """
     Creates a pod manifest with optional parameters to override default values
@@ -124,79 +115,66 @@ def load_pod_manifest_from_yaml(file_path: str) -> Dict:
     """
     Load a pod manifest from a YAML file.
     """
-    with open(file_path, 'r') as f:
+    with open(file_path, "r") as f:
         pod_manifest = yaml.safe_load(f)
     return pod_manifest
 
 
-def create_pod(
-    api_instance: client.CoreV1Api,
-    namespace: str,
-    pod_manifest: Dict
-):
+def create_pod(api_instance: client.CoreV1Api, namespace: str, pod_manifest: Dict):
     try:
         api_response = api_instance.create_namespaced_pod(
-            namespace=namespace, body=pod_manifest)
+            namespace=namespace, body=pod_manifest
+        )
         print(f"Pod created. Status: {api_response.status.phase}")
     except ApiException as e:
         print(f"Exception when creating pod: {e}")
 
 
-def check_pod_status(
-    api_instance: client.CoreV1Api,
-    namespace: str,
-    pod_name: str
-):
+def check_pod_status(api_instance: client.CoreV1Api, namespace: str, pod_name: str):
     try:
-        pod = api_instance.read_namespaced_pod(
-            name=pod_name, namespace=namespace)
+        pod = api_instance.read_namespaced_pod(name=pod_name, namespace=namespace)
         return pod.status.phase
     except ApiException as e:
         print(f"Exception when checking pod status: {e}")
         return None
 
 
-def get_pod_logs_insecure(
-    api_instance: client.CoreV1Api,
-    namespace: str,
-    pod_name: str
-):
+def get_pod_logs_insecure(api_instance: client.CoreV1Api, namespace: str, pod_name: str):
     """
     Fetch logs for the specified pod with insecure TLS settings.
     """
     try:
         log_response = api_instance.read_namespaced_pod_log(
-            name=pod_name,
-            namespace=namespace,
-            insecure_skip_tls_verify_backend=True
+            name=pod_name, namespace=namespace, insecure_skip_tls_verify_backend=True
         )
         return log_response
     except ApiException as e:
         print(f"Exception when retrieving pod logs: {e}")
         return None
-    
-def delete_pod(api_instance: client.CoreV1Api, namespace: str, pod_name: str):
-        """
-        Delete a pod by its name in a specified namespace.
-        """
-        try:
-            api_response = api_instance.delete_namespaced_pod(
-                name=pod_name, namespace=namespace)
-            print(f"Pod '{pod_name}' deleted. Status: {api_response.status}")
-        except ApiException as e:
-            print(f"Exception when deleting pod: {e}")
-    
 
-def submit_job(kubeconfig_str:str, pod_manifest:Dict, verbose:bool=False)->Optional[str]:
-    
+
+def delete_pod(api_instance: client.CoreV1Api, namespace: str, pod_name: str):
+    """
+    Delete a pod by its name in a specified namespace.
+    """
+    try:
+        api_response = api_instance.delete_namespaced_pod(name=pod_name, namespace=namespace)
+        print(f"Pod '{pod_name}' deleted. Status: {api_response.status}")
+    except ApiException as e:
+        print(f"Exception when deleting pod: {e}")
+
+
+def submit_job(
+    kubeconfig_str: str, pod_manifest: Dict, verbose: bool = False
+) -> Optional[str]:
     load_kube_config_from_string(kubeconfig_str)
 
     # Initialize the CoreV1Api for managing pods
     v1 = client.CoreV1Api()
-    
+
     namespace = "default"
-    pod_name = pod_manifest['metadata']['name']
-    
+    pod_name = pod_manifest["metadata"]["name"]
+
     # Kill existing pod, if present
     status = check_pod_status(v1, namespace, pod_name)
     if status:
@@ -214,6 +192,8 @@ def submit_job(kubeconfig_str:str, pod_manifest:Dict, verbose:bool=False)->Optio
         # Check the pod status
         status = check_pod_status(v1, namespace, pod_name)
         print(f"Pod status: {status}")
+        print("=" * 100)
+        print("Waiting for pod completion...")
 
         # Get pod logs with insecure TLS settings if the pod has completed its
         # initialization
@@ -224,9 +204,8 @@ def submit_job(kubeconfig_str:str, pod_manifest:Dict, verbose:bool=False)->Optio
             if verbose:
                 print(f"Pod status: {status}")
                 print(f"Pod logs:\n{logs}")
-        if verbose:
-            print("="*100)
     finally:
+        print("=" * 100)
         print(f"Pod status: {status}")
         print(f"Pod logs:\n{logs}")
         delete_pod(v1, namespace, pod_name)
