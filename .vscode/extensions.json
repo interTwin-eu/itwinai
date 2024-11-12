@@ -7,10 +7,9 @@
         "davidanson.vscode-markdownlint",
         "ms-python.vscode-pylance",
         "ms-python.python",
-        "ms-python.autopep8",
         "bierner.markdown-mermaid",
         "github.vscode-github-actions",
         "tamasfe.even-better-toml",
-        "ms-python.isort"
+        "charliermarsh.ruff"
     ]
 }
