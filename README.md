@@ -131,6 +131,32 @@ git clone [--recurse-submodules] git@github.com:interTwin-eu/itwinai.git
 You can create the
 Python virtual environments using our predefined Makefile targets.
 
+#### Installation with pip or uv
+You can install the environment using the Cuda wheel, CPU wheel or no wheel at all.
+For MacOS, you would e.g. use no wheel. For cuda:
+```
+pip install . --no-cache-dir --extra-index-url https://download.pytorch.org/whl/cu121
+```
+For CPU:
+```
+pip install . --no-cache-dir --extra-index-url https://download.pytorch.org/whl/cpu
+```
+With no wheel (e.g. MacOS):
+```
+pip install . --no-cache-dir
+```
+
+If you want to use `uv`, which will significantly speed up the installation, you can
+prepend `uv` to the `pip` command and it will work in the same way. This assumes that
+you already have `uv` installed on your system. An example:
+```
+uv pip install . --no-cache-dir --extra-index-url https://download.pytorch.org/whl/cu121
+```
+
+> [!NOTE]
+> It is possible to not use `--no-cache-dir` on a local computer, but on HPC systems we
+> recommend using it in order to not fill up your `.cache` directory.
+
 #### PyTorch (+ Lightning) virtual environment
 
 Makefile targets for environment installation:
