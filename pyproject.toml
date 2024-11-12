@@ -64,6 +64,12 @@ macos = [
 linux = [
     "prov4ml[linux]@git+https://github.com/matbun/ProvML"
 ]
+macos = [
+    "prov4ml[apple]@git+https://github.com/matbun/ProvML"
+]
+linux = [
+    "prov4ml[linux]@git+https://github.com/matbun/ProvML"
+]
 
 [project.urls]
 Homepage = "https://www.intertwin.eu/"
