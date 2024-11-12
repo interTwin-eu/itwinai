@@ -14,7 +14,7 @@
 ml Stages/2024 GCC OpenMPI CUDA/12 MPI-settings/CUDA Python HDF5 PnetCDF libaio mpi4py
 
 # Activate Python virtual environment
-source ../../envAI_hdfml/bin/activate
+source ../../envAI_juwels/bin/activate
 
 # Folder in which the datasets will be stored
 target_file="/p/scratch/intertwin/datasets/virgo_hdf5/virgo_data_${SLURM_ARRAY_TASK_ID}.hdf5"

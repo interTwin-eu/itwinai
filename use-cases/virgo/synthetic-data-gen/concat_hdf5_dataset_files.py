@@ -72,7 +72,10 @@ def main():
 
     # NOTE: This will not necessarily iterate in same order as the suffices of the
     # file names
-    files = [entry for entry in dir.iterdir() if entry.suffix == ".hdf5" and entry.stem != "virgo_data"]
+    files = [
+        entry for entry in dir.iterdir()
+        if (entry.suffix == ".hdf5" and entry.stem != "virgo_data")
+    ]
     for entry in files:
         with h5py.File(entry, "r") as f:
             data = f[dataset_name][:]

@@ -10,6 +10,7 @@
 
 import argparse
 import sys
+from pathlib import Path
 from time import time
 
 import h5py
@@ -17,13 +18,6 @@ import numpy as np
 import pandas as pd
 from gwpy.timeseries import TimeSeries
 from tqdm import tqdm
-
-# sys.path.append(str(Path("..").resolve()))
-sys.path.append(str(Path.cwd().resolve()))
-
-from pathlib import Path
-
-from src.dataset import generate_cut_image_dataset
 
 
 def append_to_hdf5_dataset(
@@ -40,21 +34,11 @@ def append_to_hdf5_dataset(
             f"Should have been (x, {expected_shape_str})."
         )
 
-
-
-
-
-
-
     print(f"Appending to file: '{str(file_path.resolve())}'.")
     with h5py.File(file_path, "a") as f:
         dset=f[dataset_name]
         dset.resize(dset.shape[0] + array.shape[0], axis=0)
         dset[-array.shape[0] :] = array
-
-
-
-
 
 
 def generate_hdf5_dataset(
@@ -71,21 +55,31 @@ def generate_hdf5_dataset(
     datapoints_per_file=10,
     seed=None,
 ) -> None:
-    """Generate a folder with num_files pickle files containing synthetic gravitational waves data.
+    """Generate a folder with num_files pickle files containing synthetic gravitational
+    waves data.
 
     Args:
         folder_name (string): the path and name where the files will be stored
         num_files (int): Number of files which will be created.
-        duration (float): Duration of the time series data in seconds (default is 6 seconds).
-        num_aux_channels (int): Number of auxiliary channels, containing the data from the auxiliary sensors in the detector which do not go into the strain.
-        sample_rate (int): Sampling rate of the time series data in samples per second (default is 500 samples per second).
-        num_waves_range (tuple): Range for the random number of sine waves to be generated for each time series.
-                                   Format: (min_num_waves, max_num_waves) (default is (10, 15)).
-        noise_amplitude (float): Amplitude of the smooth random noise added to the time series data (default is 0.1).
+        duration (float): Duration of the time series data in seconds (default is 6
+            seconds).
+        num_aux_channels (int): Number of auxiliary channels, containing the data from
+            the auxiliary sensors in the detector which do not go into the strain.
+        sample_rate (int): Sampling rate of the time series data in samples per second
+            (default is 500 samples per second).
+        num_waves_range (tuple): Range for the random number of sine waves to be
+            generated for each time series. Format: (min_num_waves, max_num_waves)
+            (default is (10, 15)).
+        noise_amplitude (float): Amplitude of the smooth random noise added to the
+            time series data (default is 0.1).
         num_processes (int): Number of cores for multiprocess (default 20)
-        square_size (int): Size in pixels of qplot image (default is 500 samples per second).
+        square_size (int): Size in pixels of qplot image (default is 500 samples per
+            second).
         datapoints_per_file (int): number of independent datapoints per pickle file.
     """
+    sys.path.append(str(Path.cwd().resolve()))
+    from src.dataset import generate_cut_image_dataset
+
     if seed is None:
         # Since we can't retrieve the seed from numpy, we set it so that we can
         # store it in the dataset. More information:
