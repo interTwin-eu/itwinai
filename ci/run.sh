@@ -10,12 +10,12 @@ dagger call \
     test-local
 
 # Build and publish
-dagger call \
+dagger call --commit-id="$(git rev-parse --verify HEAD)" \
     build-container --context=.. --dockerfile=../env-files/torch/Dockerfile \
     publish
 
 # Pipeline method: build, test local, push, test remote, and push (publish)
-dagger call \
+dagger call --commit-id="$(git rev-parse --verify HEAD)" \
     build-container --context=.. --dockerfile=../env-files/torch/Dockerfile \
     test-n-publish --kubeconfig=env:KUBECONFIG_STR --stage=DEV --framework=TORCH
 

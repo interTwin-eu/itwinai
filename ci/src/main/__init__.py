@@ -34,6 +34,7 @@ from .literals import MLFramework, Stage
 
 @object_type
 class Itwinai:
+    commit_id: Annotated[Optional[str], Doc("Git commit hash of HEAD")] = None
     container: Optional[dagger.Container] = dataclasses.field(default=None, init=False)
     full_name: Optional[str] = dataclasses.field(default=None, init=False)
 
@@ -106,6 +107,7 @@ class Itwinai:
         """Push container to registry"""
         from datetime import datetime
 
+        tag = tag if tag else self.commit_id
         tag = tag if tag else random.randrange(10**8)
         self.full_name = f"{registry}/{name}:{tag}"
         return await (

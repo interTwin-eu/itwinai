@@ -53,7 +53,7 @@ jobs:
           VALIDATE_PYTHON_PYINK: false
           VALIDATE_JSON_PRETTIER: false
           VALIDATE_CSS_PRETTIER: false
-          # VALIDATE_DOCKERFILE_HADOLINT: true
+          # VALIDATE_DOCKERFILE_HADOLINT: false
 
           # Only check new or edited files
           VALIDATE_ALL_CODEBASE: false
