@@ -40,7 +40,7 @@ jobs:
         with:
           workdir: ci
           verb: call
-          args: |
+          args: >
             --commit-id="$(git rev-parse --verify HEAD)"
             build-container --context=.. --dockerfile=../env-files/torch/Dockerfile
             test-n-publish --kubeconfig=env:KUBECONFIG_STR
