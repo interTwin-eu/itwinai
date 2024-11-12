@@ -127,17 +127,11 @@ else
     export HOROVOD_GPU_ALLREDUCE=NCCL
     export HOROVOD_NCCL_LINK=SHARED
     export HOROVOD_NCCL_HOME=$EBROOTNCCL
-
-    # Host language vars
-    export HOROVOD_WITH_PYTORCH=1
-    export HOROVOD_WITHOUT_TENSORFLOW=1
-    export HOROVOD_WITHOUT_MXNET=1
-  else
-    # CPU only installation
-    export HOROVOD_WITH_PYTORCH=1
-    export HOROVOD_WITHOUT_TENSORFLOW=1
-    export HOROVOD_WITHOUT_MXNET=1
   fi
+  # Host language vars
+  export HOROVOD_WITH_PYTORCH=1
+  export HOROVOD_WITHOUT_TENSORFLOW=1
+  export HOROVOD_WITHOUT_MXNET=1
     
 #   # need to modify for torch 2.1.0 
 #   git clone --recurse-submodules https://github.com/horovod/horovod.git
