@@ -42,6 +42,7 @@ dependencies = [
     # "prov4ml@git+https://github.com/HPCI-Lab/ProvML@main", # Prov4ML
     # "prov4ml@git+https://github.com/matbun/ProvML@main",
     "pandas",
+    "seaborn"
 ]
 
 # dynamic = ["version", "description"]

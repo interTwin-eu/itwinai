@@ -1,28 +1,25 @@
 """
 Scaling test of Microsoft Deepspeed on Imagenet using Resnet.
 """
-from typing import Optional
 import argparse
-import sys
 import os
-from timeit import default_timer as timer
+import sys
 import time
-import deepspeed
+from timeit import default_timer as timer
+from typing import Optional
 
+import deepspeed
 import torch
 import torch.distributed as dist
 import torch.nn.functional as F
+import torchvision
 from torch.utils.data import DataLoader
 from torch.utils.data.distributed import DistributedSampler
-import torchvision
-
-from itwinai.parser import ArgumentParser as ItAIArgumentParser
-from itwinai.loggers import EpochTimeTracker
-from itwinai.torch.reproducibility import (
-    seed_worker, set_seed
-)
-
 from utils import imagenet_dataset
+
+from itwinai.loggers import EpochTimeTracker
+from itwinai.parser import ArgumentParser as ItAIArgumentParser
+from itwinai.torch.reproducibility import seed_worker, set_seed
 
 
 def parse_params():
@@ -222,8 +219,9 @@ def main():
         print('--------------------------------------------------------')
         nnod = os.environ.get('SLURM_NNODES', 'unk')
         epoch_time_tracker = EpochTimeTracker(
-            series_name="deepspeed-bl",
-            csv_file=f"epochtime_deepspeed-bl_{nnod}N.csv"
+            strategy_name="deepspeed-bl",
+            save_path=f"epochtime_deepspeed-bl_{nnod}N.csv",
+            num_nodes=int(nnod)
         )
 
     et = timer()

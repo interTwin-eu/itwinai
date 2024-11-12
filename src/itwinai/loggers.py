@@ -55,15 +55,16 @@ A logger allows to save objects of different kinds:
     https://docs.wandb.ai/ref/python/watch
 """
 
-import csv
 import os
 import pathlib
 import pickle
 from abc import ABC, abstractmethod
 from contextlib import contextmanager
+from pathlib import Path
 from typing import Any, Dict, List, Literal, Optional, Tuple, Union
 
 import mlflow
+import pandas as pd
 import prov4ml
 import wandb
 from typing_extensions import override
@@ -139,6 +140,7 @@ class Logger(LogMixin):
         log_on_workers: Union[int, List[int]] = 0,
         experiment_id: Optional[str] = None,
         run_id: Optional[Union[int, str]] = None,
+
     ) -> None:
         self.savedir = savedir
         self.log_freq = log_freq
@@ -292,8 +294,8 @@ class _EmptyLogger(Logger):
     def __init__(
         self,
         savedir: str = "mllogs",
-        log_freq: Union[int, Literal["epoch", "batch"]] = "epoch",
-        log_on_workers: Union[int, List[int]] = 0,
+        log_freq: int | Literal["epoch"] | Literal["batch"] = "epoch",
+        log_on_workers: int | List[int] = 0,
     ) -> None:
         super().__init__(savedir, log_freq, log_on_workers)
 
@@ -344,7 +346,9 @@ class ConsoleLogger(Logger):
         log_on_workers: Union[int, List[int]] = 0,
     ) -> None:
         savedir = os.path.join(savedir, "simple-logger")
-        super().__init__(savedir, log_freq, log_on_workers)
+        super().__init__(
+            savedir=savedir, log_freq=log_freq, log_on_workers=log_on_workers
+        )
 
     def create_logger_context(self, rank: Optional[int] = None):
         """
@@ -1169,49 +1173,29 @@ class Prov4MLLogger(Logger):
 
 
 class EpochTimeTracker:
-    """Profiler for epoch execution time used to support scaling tests.
-    It uses CSV files to store, for each epoch, the ``name`` of the
-    experiment, the number of compute ``nodes`` used, the ``epoch_id``,
-    and the execution ``time`` in seconds.
+    """Tracker for epoch execution time during training."""
 
-    Args:
-        series_name (str): name of the experiment/job.
-        csv_file (str): path to CSV file to store experiments times.
-    """
-
-    def __init__(self, series_name: str, csv_file: str) -> None:
-        self.series_name = series_name
-        self._data = []
-        self.csv_file = csv_file
-        with open(csv_file, "w") as csvfile:
-            csvwriter = csv.writer(csvfile)
-            csvwriter.writerow(["name", "nodes", "epoch_id", "time"])
+    def __init__(
+        self, strategy_name: str, save_path: Union[Path, str], num_nodes: int
+    ) -> None:
+        if isinstance(save_path, str):
+            save_path = Path(save_path)
+        self.save_path: Path = save_path
+        self.strategy_name = strategy_name
+        self.num_nodes = num_nodes
+        self.data = {"epoch_id": [], "time": []}
 
     def add_epoch_time(self, epoch_idx: int, time: float) -> None:
-        """Add row to the current experiment's CSV file in append mode.
+        """Add epoch time to data."""
+        self.data["epoch_id"].append(epoch_idx)
+        self.data["time"].append(time)
 
-        Args:
-            epoch_idx (int): epoch order idx.
-            time (float): epoch execution time (seconds).
-        """
-        n_nodes = os.environ.get("SLURM_NNODES", -1)
-        fields = (self.series_name, n_nodes, epoch_idx, time)
-        self._data.append(fields)
-        with open(self.csv_file, "a") as csvfile:
-            csvwriter = csv.writer(csvfile)
-            csvwriter.writerow(fields)
+    def save(self) -> None:
+        """Save data to a new CSV file."""
+        df = pd.DataFrame(self.data)
+        df["name"] = self.strategy_name
+        df["nodes"] = self.num_nodes
 
-    def save(self, csv_file: Optional[str] = None) -> None:
-        """Save data to a new CSV file.
-
-        Args:
-            csv_file (Optional[str], optional): path to the CSV file.
-                If not given, uses the one given in the constructor.
-                Defaults to None.
-        """
-        if not csv_file:
-            csv_file = self.csv_file
-        with open(csv_file, "w") as csvfile:
-            csvwriter = csv.writer(csvfile)
-            csvwriter.writerow(["name", "nodes", "epoch_id", "time"])
-            csvwriter.writerows(self._data)
+        self.save_path.parent.mkdir(parents=True, exist_ok=True)
+        df.to_csv(self.save_path, index=False)
+        print(f"Saving EpochTimeTracking data to '{self.save_path.resolve()}'.")

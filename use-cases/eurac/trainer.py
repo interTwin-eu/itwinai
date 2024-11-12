@@ -1,6 +1,6 @@
 import os
 from pathlib import Path
-from timeit import default_timer as timer
+from timeit import default_timer
 from typing import Dict, Literal, Optional, Union, Any, Tuple
 
 import pandas as pd
@@ -28,6 +28,7 @@ from itwinai.torch.distributed import (
 from itwinai.torch.trainer import TorchTrainer
 from itwinai.torch.type import Metric
 from itwinai.torch.profiling.profiler import profile_torch_trainer
+from itwinai.torch.monitoring.monitoring import measure_gpu_utilization
 
 
 class RNNDistributedTrainer(TorchTrainer):
@@ -92,7 +93,8 @@ class RNNDistributedTrainer(TorchTrainer):
         self.save_parameters(**self.locals2params(locals()))
 
     @suppress_workers_print
-    @profile_torch_trainer
+    # @profile_torch_trainer
+    # @measure_gpu_utilization
     def execute(
         self,
         train_dataset: Dataset,
@@ -146,17 +148,23 @@ class RNNDistributedTrainer(TorchTrainer):
             self.train_loader.sampler.set_epoch(epoch)
             self.val_loader.sampler.set_epoch(epoch)
 
+    @profile_torch_trainer
+    @measure_gpu_utilization
     def train(self):
         """Override version of hython to support distributed strategy."""
         # Tracking epoch times for scaling test
         if self.strategy.is_main_worker:
-            num_nodes = os.environ.get("SLURM_NNODES", "unk")
-            series_name = os.environ.get("DIST_MODE", "unk") + "-torch"
-            file_name = f"epochtime_{series_name}_{num_nodes}N.csv"
-            file_path = Path("logs_epoch") / file_name
+            num_nodes = int(os.environ.get("SLURM_NNODES", "unk"))
+            epoch_time_output_dir = Path("scalability-metrics/epoch-time")
+            epoch_time_file_name = f"epochtime_{self.strategy.name}_{num_nodes}N.csv"
+            epoch_time_output_path = epoch_time_output_dir / epoch_time_file_name 
+
             epoch_time_tracker = EpochTimeTracker(
-                series_name=series_name, csv_file=file_path
+                strategy_name=self.strategy.name,
+                save_path=epoch_time_output_path, 
+                num_nodes=num_nodes
             )
+
         trainer = RNNTrainer(
             RNNTrainParams(
                 experiment=self.config.experiment,
@@ -178,7 +186,7 @@ class RNNDistributedTrainer(TorchTrainer):
 
         best_loss = float("inf")
         for epoch in tqdm(range(self.epochs)):
-            epoch_start_time = timer()
+            epoch_start_time = default_timer()
             self.set_epoch(epoch)
             self.model.train()
 
@@ -245,12 +253,11 @@ class RNNDistributedTrainer(TorchTrainer):
                 best_loss = avg_val_loss
                 best_model = self.model.state_dict()
 
-            epoch_end_time = timer()
-            epoch_time_tracker.add_epoch_time(
-                epoch - 1, epoch_end_time - epoch_start_time
-            )
+            epoch_time = default_timer() - epoch_start_time
+            epoch_time_tracker.add_epoch_time(epoch + 1, epoch_time)
 
         if self.strategy.is_main_worker:
+            epoch_time_tracker.save()
             self.model.load_state_dict(best_model)
             self.log(
                 item=self.model,
