@@ -62,12 +62,12 @@ class ItwinaiLogger(LightningLogger):
     @property
     def name(self) -> Optional[str]:
         """Return the experiment name."""
-        self.experiment.name
+        self.experiment.experiment_id
 
     @property
     def version(self) -> Optional[Union[int, str]]:
         """Return the experiment version."""
-        self.experiment.version
+        self.experiment.run_id
 
     @property
     @override
@@ -189,9 +189,11 @@ class ItwinaiLogger(LightningLogger):
                     if hasattr(checkpoint_callback, k)
                 },
             }
-            aliases = ["latest"]
-            if path == checkpoint_callback.best_model_path:
-                aliases.append("best")
+            aliases = (
+                ["latest", "best"]
+                if path == checkpoint_callback.best_model_path
+                else ["latest"]
+            )
 
             artifact_path = Path(path).stem
 
@@ -201,15 +203,15 @@ class ItwinaiLogger(LightningLogger):
             with tempfile.TemporaryDirectory(
                 prefix="test", suffix="test", dir=os.getcwd()
             ) as tmp_dir:
-                # Log the metadata
+                # Save the metadata
                 with open(f"{tmp_dir}/metadata.yaml", "w") as tmp_file_metadata:
                     yaml.dump(metadata, tmp_file_metadata, default_flow_style=False)
 
-                # Log the aliases
+                # Save the aliases
                 with open(f"{tmp_dir}/aliases.txt", "w") as tmp_file_aliases:
                     tmp_file_aliases.write(str(aliases))
 
-                # Log the metadata and aliases
+                # Log metadata and aliases
                 self.experiment.log(
                     item=tmp_dir, identifier=artifact_path, kind="artifact"
                 )

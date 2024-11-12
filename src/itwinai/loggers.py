@@ -137,24 +137,24 @@ class Logger(LogMixin):
         savedir: str = "mllogs",
         log_freq: Union[int, Literal["epoch", "batch"]] = "epoch",
         log_on_workers: Union[int, List[int]] = 0,
-        name: Optional[str] = BASE_EXP_NAME,
-        version: Optional[Union[int, str]] = None
+        experiment_id: Optional[str] = None,
+        run_id: Optional[Union[int, str]] = None,
     ) -> None:
         self.savedir = savedir
         self.log_freq = log_freq
         self.log_on_workers = log_on_workers
-        self._name = name
-        self._version = version
+        self._experiment_id = experiment_id
+        self._run_id = run_id
 
     @property
-    def name(self) -> Optional[str]:
+    def experiment_id(self) -> Optional[str]:
         """Return the experiment name."""
-        return self._name
+        return self._experiment_id
 
     @property
-    def version(self) -> Optional[Union[int, str]]:
+    def run_id(self) -> Optional[Union[int, str]]:
         """Return the experiment version."""
-        return self._version
+        return self._run_id
 
     @property
     def log_freq(self) -> Union[int, Literal["epoch", "batch"]]:
@@ -293,11 +293,9 @@ class _EmptyLogger(Logger):
         self,
         savedir: str = "mllogs",
         log_freq: Union[int, Literal["epoch", "batch"]] = "epoch",
-        log_on_workers: Union[int, List[int]] = 0
+        log_on_workers: Union[int, List[int]] = 0,
     ) -> None:
-        super().__init__(
-            savedir, log_freq, log_on_workers
-        )
+        super().__init__(savedir, log_freq, log_on_workers)
 
     def create_logger_context(self, rank: Optional[int] = None):
         pass
@@ -343,13 +341,10 @@ class ConsoleLogger(Logger):
         self,
         savedir: str = "mllogs",
         log_freq: Union[int, Literal["epoch", "batch"]] = "epoch",
-        log_on_workers: Union[int, List[int]] = 0
-
+        log_on_workers: Union[int, List[int]] = 0,
     ) -> None:
         savedir = os.path.join(savedir, "simple-logger")
-        super().__init__(
-            savedir, log_freq, log_on_workers
-        )
+        super().__init__(savedir, log_freq, log_on_workers)
 
     def create_logger_context(self, rank: Optional[int] = None):
         """
@@ -364,13 +359,18 @@ class ConsoleLogger(Logger):
         if not self.should_log():
             return
 
-        os.makedirs(self.savedir, exist_ok=True)
-        run_dirs = sorted([int(dir) for dir in os.listdir(self.savedir)])
-        if len(run_dirs) == 0:
-            self.run_id = 0
+        # os.makedirs(self.savedir, exist_ok=True)
+        if os.path.isdir(self.savedir):
+            numeric_dirs = [
+                int(name)
+                for name in os.listdir(self.savedir)
+                if os.path.isdir(os.path.join(self.savedir, name)) and name.isdigit()
+            ]
+            self._experiment_id = max(numeric_dirs) + 1
         else:
-            self.run_id = int(run_dirs[-1]) + 1
-        self.run_path = os.path.join(self.savedir, str(self.run_id))
+            self._experiment_id = 0
+
+        self.run_path = os.path.join(self.savedir, str(self.experiment_id))
         os.makedirs(self.run_path, exist_ok=True)
 
     def destroy_logger_context(self):
@@ -414,25 +414,40 @@ class ConsoleLogger(Logger):
             return
 
         if kind == "artifact":
-            if isinstance(item, str) and os.path.isfile(item):
-                import shutil
+            import shutil
 
-                identifier = os.path.join(self.run_path, identifier)
-                if len(os.path.dirname(identifier)) > 0:
-                    os.makedirs(os.path.dirname(identifier), exist_ok=True)
-                print(f"ConsoleLogger: Serializing to {identifier}...")
-                shutil.copyfile(item, identifier)
+            artifact_dir = os.path.join(self.run_path, "artifacts", identifier)
+            os.makedirs(artifact_dir, exist_ok=True)
+
+            if os.path.isfile(item):
+                target_path = os.path.join(artifact_dir, identifier)
+                shutil.copyfile(item, target_path)
+
+            elif os.path.isdir(item):
+                numeric_dirs = [
+                    int(name)
+                    for name in os.listdir(self.savedir)
+                    if os.path.isdir(os.path.join(self.savedir, name))
+                    and name.isdigit()
+                ]
+                child_id = max(numeric_dirs) + 1
+                target_path = os.path.join(
+                    artifact_dir, f"{self.experiment_id}.{child_id}"
+                )
+                shutil.copytree(item, target_path, dirs_exist_ok=True)
             else:
-                identifier = os.path.join(os.path.basename(self.run_path), identifier)
-                print(f"ConsoleLogger: Serializing to {identifier}...")
-                self.serialize(item, identifier)
+                print(f"INFO: The ConsoleLogger expects an artifact to be either a path \
+                      or a directory. Received instead an item of type {type(item)}. \
+                        The item will be ignored and not logged.")
+
         elif kind == "torch":
-            identifier = os.path.join(self.run_path, identifier)
-            print(f"ConsoleLogger: Saving to {identifier}...")
             import torch
 
-            torch.save(item, identifier)
-        else:
+            target_path = os.path.join(self.run_path, identifier)
+            torch.save(item, target_path)
+            print(f"INFO: ConsoleLogger saved to {target_path}...")
+
+        elif kind == "metric":
             print(f"ConsoleLogger: {identifier} = {item}")
 
 
@@ -530,9 +545,8 @@ class MLFlowLogger(Logger):
             self.active_run: mlflow.ActiveRun = mlflow.start_run(
                 description=self.run_description, run_name=self.run_name
             )
-        print("Trying to set experiment name and version...")
-        self._version = self.active_run.info.run_id
-        self._name = self.active_run.info.experiment_id
+        self._run_id = self.active_run.info.run_id
+        self._experiment_id = self.active_run.info.experiment_id
 
         return self.active_run
 
@@ -587,6 +601,7 @@ class MLFlowLogger(Logger):
         if kind == "artifact":
             if not isinstance(item, str):
                 # Save the object locally and then log it
+                ## Warning TODO
                 name = os.path.basename(identifier)
                 save_path = os.path.join(self.savedir, ".trash", name)
                 os.makedirs(os.path.dirname(save_path), exist_ok=True)
@@ -678,7 +693,7 @@ class WandBLogger(Logger):
     ) -> None:
         savedir = os.path.join(savedir, "wandb")
         super().__init__(
-            savedir=savedir, log_freq=log_freq, log_on_workers=log_on_workers, name=project_name
+            savedir=savedir, log_freq=log_freq, log_on_workers=log_on_workers
         )
 
     def create_logger_context(self, rank: Optional[int] = None) -> None:
@@ -698,7 +713,7 @@ class WandBLogger(Logger):
         self.active_run = wandb.init(
             dir=os.path.abspath(self.savedir), project=self._name
         )
-        self._version = self.active_run.id
+        self._run_id = self.active_run.id
 
     def destroy_logger_context(self):
         """Destroy logger."""
@@ -1034,7 +1049,6 @@ class Prov4MLLogger(Logger):
             savedir=provenance_save_dir,
             log_freq=log_freq,
             log_on_workers=log_on_workers,
-            name=experiment_name
         )
         self.prov_user_namespace = prov_user_namespace
         self.provenance_save_dir = provenance_save_dir
