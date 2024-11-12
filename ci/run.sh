@@ -1,3 +1,4 @@
+#!/bin/bash
 # Example of running dagger pipelines
 
 # Build and run local tests (no HPC required)
