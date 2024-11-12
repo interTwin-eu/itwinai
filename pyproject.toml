@@ -65,17 +65,6 @@ linux = [
     "prov4ml[linux]@git+https://github.com/matbun/ProvML"
 ]
 
-# If we ever wanna put the docs requirements in this file instead 
-# Would let us do 'pip install ".[torch,docs,linux]"' instead of the multiple 
-# requirements files
-# docs = [ 
-#   "sphinx-rtd-theme==2.0.0",
-#   "nbsphinx==0.9.4", 
-#   "myst-parser==2.0.0",
-#   "IPython",
-#   "tensorflow==2.16.*",
-# ]
-
 [project.urls]
 Homepage = "https://www.intertwin.eu/"
 Documentation = "https://itwinai.readthedocs.io/"
