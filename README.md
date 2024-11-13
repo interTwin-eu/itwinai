@@ -133,34 +133,39 @@ Python virtual environments using our predefined Makefile targets.
 
 #### Installation with pip or uv
 You can install the environment using the Cuda wheel, CPU wheel or no wheel at all.
-For MacOS, you would e.g. use no wheel. For cuda:
-```
+For macOS, you would e.g. use no wheel. For cuda:
+
+```bash
 pip install -e . --no-cache-dir --extra-index-url https://download.pytorch.org/whl/cu121
 ```
 For CPU:
-```
+
+```bash
 pip install -e . --no-cache-dir --extra-index-url https://download.pytorch.org/whl/cpu
 ```
 With no wheel (e.g. MacOS):
-```
+
+```bash
 pip install -e . --no-cache-dir
 ```
 
 > [!NOTE]
-> We use `-e` here because we are in development mode and thus want any changes to 
-> immediately be applied to our venv. 
+> We use `-e` here because we are in development mode and thus want any changes to
+> immediately be applied to our venv.
 
 If you want to use `uv`, which will significantly speed up the installation, you can
 prepend `uv` to the `pip` command and it will work in the same way. This assumes that
 you already have `uv` installed on your system. An example:
-```
+
+```bash
 uv pip install . --no-cache-dir --extra-index-url https://download.pytorch.org/whl/cu121
 ```
 
 This does not install `Horovod`, however, as it requires a specialized 
-[script](env-files/torch/install-horovod.sh). If you do not require Cuda, then you 
+[script](env-files/torch/install-horovod-deepspeed-cuda.sh). If you do not require Cuda, then you 
 can install `Horovod` with the last part of the aforementioned script, i.e.:
-```
+
+```bash
 pip install --no-cache-dir --no-build-isolation git+https://github.com/horovod/horovod.git
 ```
 
