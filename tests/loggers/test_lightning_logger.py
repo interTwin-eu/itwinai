@@ -8,24 +8,15 @@
 # - Matteo Bunino <matteo.bunino@cern.ch> - CERN
 # -------------------------------------------------------------------------------------
 
-import tempfile
 from argparse import Namespace
 from pathlib import Path
-from unittest.mock import MagicMock, patch, ANY, call
+from unittest.mock import ANY, MagicMock, call, patch
+
 import pytest
-from itwinai.torch.loggers import ItwinaiLogger as PyTorchLightningLogger
-from itwinai.loggers import (
-    Logger,
-    ConsoleLogger,
-    LoggersCollection,
-    MLFlowLogger,
-    Prov4MLLogger,
-    TensorBoardLogger,
-    WandBLogger,
-)
 from lightning.pytorch.callbacks.model_checkpoint import ModelCheckpoint
-import lightning.pytorch.loggers.utilities as lightning_utilities_module
+
 from itwinai.loggers import Logger
+from itwinai.torch.loggers import ItwinaiLogger as PyTorchLightningLogger
 
 
 def test_mock_experiment_log(lightning_mock_loggers):

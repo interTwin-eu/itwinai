@@ -1,12 +1,11 @@
 import shutil
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
-import numpy as np
 import pytest
 
 from itwinai.loggers import (
-    Logger,
     ConsoleLogger,
+    Logger,
     LoggersCollection,
     MLFlowLogger,
     Prov4MLLogger,
@@ -14,7 +13,6 @@ from itwinai.loggers import (
     WandBLogger,
 )
 from itwinai.torch.loggers import ItwinaiLogger as PyTorchLightningLogger
-# from prov4ml.provenance.context import Context
 
 
 @pytest.fixture(scope="function")
