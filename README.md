@@ -150,8 +150,7 @@ git clone [--recurse-submodules] git@github.com:interTwin-eu/itwinai.git
 
 ### Install itwinai environment
 
-You can create the
-Python virtual environments using our predefined Makefile targets.
+You can create the Python virtual environments using our predefined Makefile targets.
 
 #### Installation with pip or uv
 
@@ -203,6 +202,17 @@ pip install --no-cache-dir --no-build-isolation deepspeed
 > [!NOTE]
 > It is possible to not use `--no-cache-dir` on a local computer, but on HPC systems we
 > recommend using it in order to not fill up your `.cache` directory.
+
+##### Installation using `uv.lock`
+The `uv.lock` file provides more information about the exact versions of the libraries
+that are used and thus could be better to install from. If you have `uv` installed,
+all you need to do is `uv sync` and it will match your `.venv` directory. If you have
+installed new packages and wish to update the `uv.lock` file, you can do so with
+`uv lock`.
+
+> [!WARNING]
+> Even if you have a venv activated while running `uv sync`, the packages will not
+> be installed there unless the venv's directory is called exactly `.venv`.
 
 #### PyTorch (+ Lightning) virtual environment
 
