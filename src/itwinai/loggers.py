@@ -599,12 +599,10 @@ class MLFlowLogger(Logger):
             return
 
         if kind == "metric":
-            # if isinstance(item, list) and isinstance(identifier, list):
             mlflow.log_metric(key=identifier, value=item, step=step)
         if kind == "artifact":
             if not isinstance(item, str):
                 # Save the object locally and then log it
-                ## Warning TODO
                 name = os.path.basename(identifier)
                 save_path = os.path.join(self.savedir, ".trash", name)
                 os.makedirs(os.path.dirname(save_path), exist_ok=True)

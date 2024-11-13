@@ -100,7 +100,8 @@ class ItwinaiLogger(LightningLogger):
 
         Args:
             status (str): Describes the status of the training (e.g., 'completed', 'failed').
-            The status is not needed for this function but part of the parent classes' (LightningLogger)
+            The status is not needed for this function but part of the parent classes'
+                (LightningLogger)
             finalize functions signature, and therefore must be propagated here.
         """
         if not self._initialized:

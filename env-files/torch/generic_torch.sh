@@ -81,101 +81,101 @@ else
   fi
 fi
 
-# # install deepspeed
-# if [ -f "${cDir}/$ENV_NAME/bin/deepspeed" ]; then
-#   echo 'DeepSpeed already installed'
-# else
-# 	if [ -z "$NO_CUDA" ]; then
-#   	export DS_BUILD_CCL_COMM=1
-# 		export DS_BUILD_UTILS=1
-# 		export DS_BUILD_AIO=1
-# 		export DS_BUILD_FUSED_ADAM=1
-# 		export DS_BUILD_FUSED_LAMB=1
-# 		export DS_BUILD_TRANSFORMER=1
-# 		export DS_BUILD_STOCHASTIC_TRANSFORMER=1
-# 		export DS_BUILD_TRANSFORMER_INFERENCE=1
-# 	fi
-# 	pip install --no-cache-dir py-cpuinfo || exit 1
-# 	pip install --no-cache-dir deepspeed || exit 1
+# install deepspeed
+if [ -f "${cDir}/$ENV_NAME/bin/deepspeed" ]; then
+  echo 'DeepSpeed already installed'
+else
+	if [ -z "$NO_CUDA" ]; then
+  	export DS_BUILD_CCL_COMM=1
+		export DS_BUILD_UTILS=1
+		export DS_BUILD_AIO=1
+		export DS_BUILD_FUSED_ADAM=1
+		export DS_BUILD_FUSED_LAMB=1
+		export DS_BUILD_TRANSFORMER=1
+		export DS_BUILD_STOCHASTIC_TRANSFORMER=1
+		export DS_BUILD_TRANSFORMER_INFERENCE=1
+	fi
+	pip install --no-cache-dir py-cpuinfo || exit 1
+	pip install --no-cache-dir deepspeed || exit 1
 
-# 	# fix .triton/autotune/Fp16Matmul_2d_kernel.pickle bug
-# 	line=$(cat -n $ENV_NAME/lib/python${pver}/site-packages/deepspeed/ops/transformer/inference/triton/matmul_ext.py | grep os.rename | awk '{print $1}' | head -n 1)
+	# fix .triton/autotune/Fp16Matmul_2d_kernel.pickle bug
+	line=$(cat -n $ENV_NAME/lib/python${pver}/site-packages/deepspeed/ops/transformer/inference/triton/matmul_ext.py | grep os.rename | awk '{print $1}' | head -n 1)
 
-# 	# 'sed' is implemented differently on MacOS than on Linux (https://stackoverflow.com/questions/4247068/sed-command-with-i-option-failing-on-mac-but-works-on-linux)
-# 	if [[ "$OSTYPE" =~ ^darwin ]] ; then
-# 		sed -i '' "${line}s|^|#|" $ENV_NAME/lib/python${pver}/site-packages/deepspeed/ops/transformer/inference/triton/matmul_ext.py || exit 1
-# 	else
-# 	  sed -i "${line}s|^|#|" $ENV_NAME/lib/python${pver}/site-packages/deepspeed/ops/transformer/inference/triton/matmul_ext.py || exit 1
-# 	fi
-# fi
+	# 'sed' is implemented differently on MacOS than on Linux (https://stackoverflow.com/questions/4247068/sed-command-with-i-option-failing-on-mac-but-works-on-linux)
+	if [[ "$OSTYPE" =~ ^darwin ]] ; then
+		sed -i '' "${line}s|^|#|" $ENV_NAME/lib/python${pver}/site-packages/deepspeed/ops/transformer/inference/triton/matmul_ext.py || exit 1
+	else
+	  sed -i "${line}s|^|#|" $ENV_NAME/lib/python${pver}/site-packages/deepspeed/ops/transformer/inference/triton/matmul_ext.py || exit 1
+	fi
+fi
 
-# # install horovod
-# if [ -f "${cDir}/$ENV_NAME/bin/horovodrun" ]; then
-#   echo 'Horovod already installed'
-# else
+# install horovod
+if [ -f "${cDir}/$ENV_NAME/bin/horovodrun" ]; then
+  echo 'Horovod already installed'
+else
 
-#   if [ -z "$NO_CUDA" ]; then
-#     # compiler vars
-#     export LDSHARED="$CC -shared" &&
-#     export CMAKE_CXX_STANDARD=17 
+  if [ -z "$NO_CUDA" ]; then
+    # compiler vars
+    export LDSHARED="$CC -shared" &&
+    export CMAKE_CXX_STANDARD=17 
 
-#     # CPU vars
-#     export HOROVOD_MPI_THREADS_DISABLE=1
-#     export HOROVOD_CPU_OPERATIONS=MPI
+    # CPU vars
+    export HOROVOD_MPI_THREADS_DISABLE=1
+    export HOROVOD_CPU_OPERATIONS=MPI
 
-#     # GPU vars
-#     export HOROVOD_GPU_ALLREDUCE=NCCL
-#     export HOROVOD_NCCL_LINK=SHARED
-#     export HOROVOD_NCCL_HOME=$EBROOTNCCL
+    # GPU vars
+    export HOROVOD_GPU_ALLREDUCE=NCCL
+    export HOROVOD_NCCL_LINK=SHARED
+    export HOROVOD_NCCL_HOME=$EBROOTNCCL
 
-#     # Host language vars
-#     export HOROVOD_WITH_PYTORCH=1
-#     export HOROVOD_WITHOUT_TENSORFLOW=1
-#     export HOROVOD_WITHOUT_MXNET=1
-#   else
-#     # CPU only installation
-#     export HOROVOD_WITH_PYTORCH=1
-#     export HOROVOD_WITHOUT_TENSORFLOW=1
-#     export HOROVOD_WITHOUT_MXNET=1
-#   fi
+    # Host language vars
+    export HOROVOD_WITH_PYTORCH=1
+    export HOROVOD_WITHOUT_TENSORFLOW=1
+    export HOROVOD_WITHOUT_MXNET=1
+  else
+    # CPU only installation
+    export HOROVOD_WITH_PYTORCH=1
+    export HOROVOD_WITHOUT_TENSORFLOW=1
+    export HOROVOD_WITHOUT_MXNET=1
+  fi
     
-# #   # need to modify for torch 2.1.0 
-# #   git clone --recurse-submodules https://github.com/horovod/horovod.git
-# #   line=$(cat -n horovod/CMakeLists.txt | grep CMAKE_CXX_STANDARD | awk '{print $1}' | head -n 1)
-# #   var='set(CMAKE_CXX_STANDARD 17)'
-# #   sed -i "${line}s|.*|$var|" horovod/CMakeLists.txt
-# #   line=$(cat -n horovod/horovod/torch/CMakeLists.txt | grep CMAKE_CXX_STANDARD | awk '{print $1}' | head -n 1)
-# #   var='    set(CMAKE_CXX_STANDARD 17)'
-# #   sed -i "${line}s|.*|$var|" horovod/horovod/torch/CMakeLists.txt
+#   # need to modify for torch 2.1.0 
+#   git clone --recurse-submodules https://github.com/horovod/horovod.git
+#   line=$(cat -n horovod/CMakeLists.txt | grep CMAKE_CXX_STANDARD | awk '{print $1}' | head -n 1)
+#   var='set(CMAKE_CXX_STANDARD 17)'
+#   sed -i "${line}s|.*|$var|" horovod/CMakeLists.txt
+#   line=$(cat -n horovod/horovod/torch/CMakeLists.txt | grep CMAKE_CXX_STANDARD | awk '{print $1}' | head -n 1)
+#   var='    set(CMAKE_CXX_STANDARD 17)'
+#   sed -i "${line}s|.*|$var|" horovod/horovod/torch/CMakeLists.txt
 
-# #   # create tar!
-# #   rm -rf horovod.tar.gz
-# #   tar czf horovod.tar.gz horovod
+#   # create tar!
+#   rm -rf horovod.tar.gz
+#   tar czf horovod.tar.gz horovod
   
-# #   # install
-# #   pip install --no-cache-dir horovod.tar.gz
-# #   rm -rf horovod horovod.tar.gz
+#   # install
+#   pip install --no-cache-dir horovod.tar.gz
+#   rm -rf horovod horovod.tar.gz
 
-#   # Cleaner Horovod installation
-# 	# https://github.com/horovod/horovod/pull/3998
-#   # Assume that Horovod env vars are already in the current env!
-#   pip install --no-cache-dir git+https://github.com/horovod/horovod.git || exit 1
-#   # pip install --no-cache-dir git+https://github.com/thomas-bouvier/horovod.git@compile-cpp17 || exit 1
+  # Cleaner Horovod installation
+	# https://github.com/horovod/horovod/pull/3998
+  # Assume that Horovod env vars are already in the current env!
+  pip install --no-cache-dir git+https://github.com/horovod/horovod.git || exit 1
+  # pip install --no-cache-dir git+https://github.com/thomas-bouvier/horovod.git@compile-cpp17 || exit 1
+fi
+
+# get required libraries in reqs.txt
+# if [ -f "${cDir}/$ENV_NAME/lib/python${pver}/site-packages/torchnlp/_third_party/weighted_random_sampler.py" ]; then
+   # echo 'required libs already exist'
+# else
+#   pip install -r Scripts/reqs.txt --no-cache-dir
+
+  # fix int bug: modify l.4 of /torchnlp/_third_party/weighted_random_sampler.py
+  # var='int_classes = int'
+  # sed -i .backup_file "4s|.*|$var|" \
+    # ${cDir}/$ENV_NAME/lib/python${pver}/site-packages/torchnlp/_third_party/weighted_random_sampler.py || exit 1
+  # Deleting unnecessary backup file
+  # rm ${cDir}/$ENV_NAME/lib/python${pver}/site-packages/torchnlp/_third_party/weighted_random_sampler.py.backup_file
 # fi
-
-# # get required libraries in reqs.txt
-# # if [ -f "${cDir}/$ENV_NAME/lib/python${pver}/site-packages/torchnlp/_third_party/weighted_random_sampler.py" ]; then
-#    # echo 'required libs already exist'
-# # else
-# #   pip install -r Scripts/reqs.txt --no-cache-dir
-
-#   # fix int bug: modify l.4 of /torchnlp/_third_party/weighted_random_sampler.py
-#   # var='int_classes = int'
-#   # sed -i .backup_file "4s|.*|$var|" \
-#     # ${cDir}/$ENV_NAME/lib/python${pver}/site-packages/torchnlp/_third_party/weighted_random_sampler.py || exit 1
-#   # Deleting unnecessary backup file
-#   # rm ${cDir}/$ENV_NAME/lib/python${pver}/site-packages/torchnlp/_third_party/weighted_random_sampler.py.backup_file
-# # fi
 
 # Install Pov4ML
 if [[ "$OSTYPE" =~ ^darwin ]] ; then
