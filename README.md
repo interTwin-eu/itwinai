@@ -16,6 +16,16 @@ See the latest version of our docs [here](https://itwinai.readthedocs.io/).
 
 If you are a **developer**, please refer to the [developers installation guide](#installation-for-developers).
 
+## Table of contents
+1. [User Installation](#user-installation)
+    1. [Python virtual environment](#python-virtual-environment)
+        1. [Laptop or GPU node](#laptop-or-gpu-node)
+        2. [HPC environment](#hpc-environment)
+            1. [PyTorch environment](#pytorch-environment)
+            2. [Tensorflow environment](#tensorflow-environment)
+    2. [Install itwinai for users](#install-itwinai-for-users)
+2. [Installation for developers](#installation-for-developers)
+
 ## User installation
 
 Requirements:
