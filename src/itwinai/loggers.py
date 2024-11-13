@@ -140,7 +140,6 @@ class Logger(LogMixin):
         log_on_workers: Union[int, List[int]] = 0,
         experiment_id: Optional[str] = None,
         run_id: Optional[Union[int, str]] = None,
-
     ) -> None:
         self.savedir = savedir
         self.log_freq = log_freq
@@ -699,6 +698,7 @@ class WandBLogger(Logger):
         super().__init__(
             savedir=savedir, log_freq=log_freq, log_on_workers=log_on_workers
         )
+        self.project_name = project_name
 
     def create_logger_context(self, rank: Optional[int] = None) -> None:
         """
@@ -715,9 +715,8 @@ class WandBLogger(Logger):
 
         os.makedirs(os.path.join(self.savedir, "wandb"), exist_ok=True)
         self.active_run = wandb.init(
-            dir=os.path.abspath(self.savedir), project=self._name
+            dir=os.path.abspath(self.savedir), project=self.project_name
         )
-        self._run_id = self.active_run.id
 
     def destroy_logger_context(self):
         """Destroy logger."""
@@ -1055,6 +1054,7 @@ class Prov4MLLogger(Logger):
             log_on_workers=log_on_workers,
         )
         self.prov_user_namespace = prov_user_namespace
+        self.experiment_name = experiment_name
         self.provenance_save_dir = provenance_save_dir
         self.save_after_n_logs = save_after_n_logs
         self.create_graph = create_graph
@@ -1076,7 +1076,7 @@ class Prov4MLLogger(Logger):
 
         prov4ml.start_run(
             prov_user_namespace=self.prov_user_namespace,
-            experiment_name=self.name,
+            experiment_name=self.experiment_name,
             provenance_save_dir=self.provenance_save_dir,
             save_after_n_logs=self.save_after_n_logs,
             # This class will control which workers can log
