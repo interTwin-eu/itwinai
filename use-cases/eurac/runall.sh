@@ -18,7 +18,7 @@ if [ -z "$DEBUG" ]; then
 	DEBUG=false
 fi
 if [ -z "$PYTHON_VENV" ]; then 
-	PYTHON_VENV="../../envAI_hdfml"
+	PYTHON_VENV="../../.venv/"
 fi
 
 submit_job () {

@@ -10,7 +10,7 @@
 #SBATCH --time=01:00:00
 
 # Resources allocation
-#SBATCH --partition=batch
+#SBATCH --partition=develbooster
 #SBATCH --nodes=1
 #SBATCH --gpus-per-node=4
 #SBATCH --cpus-per-gpu=4

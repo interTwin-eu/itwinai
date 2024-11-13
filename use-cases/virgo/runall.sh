@@ -16,7 +16,7 @@ fi
 
 # Python virtual environment (no conda/micromamba)
 CMD="--nodes=$N --time=$T --account=intertwin --partition=develbooster slurm.sh"
-PYTHON_VENV="../../envAI_juwels/"
+PYTHON_VENV="../../.venv/"
 
 echo "Distributing training over $N nodes. Timeout set to: $T"
 # Clear SLURM logs (*.out and *.err files)

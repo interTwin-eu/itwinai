@@ -4,6 +4,7 @@ from pathlib import Path
 from timeit import default_timer as timer
 from typing import Dict, Literal, Optional, Union
 
+from itwinai.torch.profiling.profiler import profile_torch_trainer
 import numpy as np
 import torch
 import torch.nn as nn
@@ -166,7 +167,7 @@ class NoiseGeneratorTrainer(TorchTrainer):
 
         return torch.cat(batch)
 
-    # @profile_torch_trainer
+    @profile_torch_trainer
     # @measure_gpu_utilization
     def train(self):
         # Start the timer for profiling
