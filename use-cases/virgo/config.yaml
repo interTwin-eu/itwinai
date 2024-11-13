@@ -1,7 +1,7 @@
 hdf5_file_location: /p/scratch/intertwin/datasets/virgo_hdf5/virgo_data.hdf5
 hdf5_dataset_name: virgo_dataset
 data_root: ./data
-epochs: 5
+epochs: 10
 batch_size: 2000 # equivalent to chunk size 
 learning_rate: 0.0001
 strategy: ddp
@@ -45,8 +45,8 @@ training_pipeline:
                   init_args:
                     experiment_name: Noise simulator (Virgo)
                     log_freq: batch 
-       
-          
+
+
 # To use a small dataset that is generated within the pipeline
 training_pipeline_small:
   class_path: itwinai.pipeline.Pipeline

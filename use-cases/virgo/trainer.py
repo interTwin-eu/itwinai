@@ -14,8 +14,6 @@ from tqdm import tqdm
 from itwinai.loggers import EpochTimeTracker, Logger
 from itwinai.torch.config import TrainingConfiguration
 from itwinai.torch.distributed import DeepSpeedStrategy
-from itwinai.torch.monitoring.monitoring import measure_gpu_utilization
-from itwinai.torch.profiling.profiler import profile_torch_trainer
 from itwinai.torch.trainer import TorchTrainer
 from src.model import Decoder, Decoder_2d_deep, GeneratorResNet, UNet
 from src.utils import init_weights
@@ -30,10 +28,6 @@ class VirgoTrainingConfiguration(TrainingConfiguration):
     loss: Literal["l1", "l2"] = ("l1",)
     #: Generator to train. Defaults to "unet".
     generator: Literal["simple", "deep", "resnet", "unet"] = "unet"
-
-
-
-
 
 class NoiseGeneratorTrainer(TorchTrainer):
     def __init__(
@@ -172,8 +166,8 @@ class NoiseGeneratorTrainer(TorchTrainer):
 
         return torch.cat(batch)
 
-    @profile_torch_trainer
-    @measure_gpu_utilization
+    # @profile_torch_trainer
+    # @measure_gpu_utilization
     def train(self):
         # Start the timer for profiling
         #

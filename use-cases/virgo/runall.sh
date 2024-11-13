@@ -9,14 +9,14 @@ else
     N=$1
 fi
 if [ -z "$2" ] ; then
-    T="00:05:00"
+    T="00:20:00"
 else
     T=$2
 fi
 
 # Python virtual environment (no conda/micromamba)
 CMD="--nodes=$N --time=$T --account=intertwin --partition=develbooster slurm.sh"
-PYTHON_VENV="../../envAI_hdfml"
+PYTHON_VENV="../../envAI_juwels/"
 
 echo "Distributing training over $N nodes. Timeout set to: $T"
 # Clear SLURM logs (*.out and *.err files)
