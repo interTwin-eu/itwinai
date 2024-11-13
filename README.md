@@ -135,16 +135,20 @@ Python virtual environments using our predefined Makefile targets.
 You can install the environment using the Cuda wheel, CPU wheel or no wheel at all.
 For MacOS, you would e.g. use no wheel. For cuda:
 ```
-pip install . --no-cache-dir --extra-index-url https://download.pytorch.org/whl/cu121
+pip install -e . --no-cache-dir --extra-index-url https://download.pytorch.org/whl/cu121
 ```
 For CPU:
 ```
-pip install . --no-cache-dir --extra-index-url https://download.pytorch.org/whl/cpu
+pip install -e . --no-cache-dir --extra-index-url https://download.pytorch.org/whl/cpu
 ```
 With no wheel (e.g. MacOS):
 ```
-pip install . --no-cache-dir
+pip install -e . --no-cache-dir
 ```
+
+> [!NOTE]
+> We use `-e` here because we are in development mode and thus want any changes to 
+> immediately be applied to our venv. 
 
 If you want to use `uv`, which will significantly speed up the installation, you can
 prepend `uv` to the `pip` command and it will work in the same way. This assumes that
