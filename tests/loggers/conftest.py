@@ -81,7 +81,3 @@ def lightning_mock_loggers():
     lightning_logger = PyTorchLightningLogger(itwinai_logger=itwinai_logger_mock)
 
     return itwinai_logger_mock, lightning_logger
-
-
-# def side_effect_scan_checkpoint():
-#     return [(1, "path/to/checkpoint_1.ckp", 100, "placeholder"), (2, "path/to/checkpoint_2.ckp", 101, "placeholder")]

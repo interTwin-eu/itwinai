@@ -135,8 +135,9 @@ def test_log_metrics_and_hyperparams(itwinai_logger, request):
     lightning_logger = PyTorchLightningLogger(itwinai_logger=itwinai_logger_instance)
 
     with patch.object(itwinai_logger_instance, "create_logger_context"), patch.object(
-        itwinai_logger_instance, "log"
-    ):
+        itwinai_logger_instance, "log"), patch.object(
+            itwinai_logger_instance, "save_hyperparameters"
+        ):
         lightning_logger.log_metrics({"loss": 0.2, "accuracy": 0.99})
         expected_calls = [
             call(item=0.2, identifier="loss", kind="metric", step=None),
