@@ -159,7 +159,7 @@ pip install -e ".[dev,macos]" --no-cache-dir
 
 > [!NOTE]
 > We use `-e` here because we are in development mode and thus want any changes we make
-> to immediately be applied to our venv without having to reinstall. 
+> to immediately be applied to our venv without having to reinstall.
 
 If you want to use `uv`, which will significantly speed up the installation, you can
 prepend `uv` to the `pip` command and it will work in the same way. This assumes that
