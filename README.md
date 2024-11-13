@@ -27,6 +27,7 @@ If you are a **developer**, please refer to the [developers installation guide](
   - [Clone the itwinai repository](#clone-the-itwinai-repository)
   - [Install itwinai environment](#install-itwinai-environment)
     - [Installation with pip or uv](#installation-with-pip-or-uv)
+      - [Installation using `uv.lock`](#installation-using-uvlock)
     - [PyTorch (+ Lightning) virtual environment](#pytorch--lightning-virtual-environment)
     - [TensorFlow virtual environment](#tensorflow-virtual-environment)
   - [Activate itwinai environment on HPC](#activate-itwinai-environment-on-hpc)
