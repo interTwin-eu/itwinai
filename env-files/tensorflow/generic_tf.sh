@@ -88,9 +88,9 @@ pip3 install --no-cache-dir  tf_keras==2.16.*
 
 # Install Pov4ML
 if [[ "$OSTYPE" =~ ^darwin ]] ; then
-  pip install "prov4ml[apple]@git+https://github.com/matbun/ProvML@6faafd4" || exit 1
+  pip install "prov4ml[apple,nvidia]@git+https://github.com/matbun/ProvML@new-main" || exit 1
 else
-  pip install "prov4ml[linux]@git+https://github.com/matbun/ProvML@6faafd4" || exit 1
+  pip install "prov4ml[linux,nvidia]@git+https://github.com/matbun/ProvML@new-main" || exit 1
 fi
 
 # Install itwinai: MUST be last line of the script for the user installation script to work!

@@ -24,11 +24,11 @@ RUN apt-get update && apt-get install -y \
 RUN pip install --no-cache-dir --upgrade pip \
     && pip install --no-cache-dir \
     tf_keras==2.16.* \
-    "prov4ml[linux]@git+https://github.com/matbun/ProvML@new-main" 
+    "prov4ml[linux,nvidia]@git+https://github.com/matbun/ProvML@new-main" 
 
 # Install itwinai
-COPY pyproject.toml ./
-COPY src ./
+COPY pyproject.toml pyproject.toml
+COPY src src
 RUN pip install --no-cache-dir . \
     && itwinai sanity-check --tensorflow
 
