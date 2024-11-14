@@ -58,9 +58,16 @@ def mnist_datasets():
 
 
 @pytest.mark.hpc
-@pytest.mark.torch_dist
-def test_distributed_trainer_ddp_mnist(mnist_datasets, ddp_strategy):
-    """Test TorchTrainer on MNIST with DDP strategy."""
+@pytest.mark.parametrize(
+    'strategy_name,strategy_fixture',
+    [
+        pytest.param('ddp', 'ddp_strategy', marks=pytest.mark.torch_dist),
+        pytest.param('deepspeed', 'deepspeed_strategy', marks=pytest.mark.deepspeed_dist),
+        pytest.param('horovod', 'horovod_strategy', marks=pytest.mark.horovod_dist)
+    ]
+)
+def test_distributed_trainer_mnist(mnist_datasets, request, strategy_name, strategy_fixture):
+    """Test TorchTrainer on MNIST with different distributed strategies."""
     training_config = dict(
         optimizer='sgd',
         loss='nllloss'
@@ -69,55 +76,12 @@ def test_distributed_trainer_ddp_mnist(mnist_datasets, ddp_strategy):
         model=Net(),
         config=training_config,
         epochs=2,
-        strategy='ddp',
+        strategy=strategy_name,
         checkpoint_every=1
     )
-    # Patch strategy with already initialized one to avoid re-initialization
-    trainer.strategy = ddp_strategy
 
-    train_set, val_set = mnist_datasets
-    trainer.execute(train_set, val_set)
-
-
-@pytest.mark.hpc
-@pytest.mark.deepspeed_dist
-def test_distributed_trainer_deepspeed_mnist(mnist_datasets, deepspeed_strategy):
-    """Test TorchTrainer on MNIST with DeepSpeed strategy."""
-    training_config = dict(
-        optimizer='sgd',
-        loss='nllloss'
-    )
-    trainer = TorchTrainer(
-        model=Net(),
-        config=training_config,
-        epochs=2,
-        strategy='deepspeed',
-        checkpoint_every=1
-    )
-    # Patch strategy with already initialized one to avoid re-initialization
-    trainer.strategy = deepspeed_strategy
-
-    train_set, val_set = mnist_datasets
-    trainer.execute(train_set, val_set)
-
-
-@pytest.mark.hpc
-@pytest.mark.horovod_dist
-def test_distributed_trainer_horovod_mnist(mnist_datasets, horovod_strategy):
-    """Test TorchTrainer on MNIST with Horovod strategy."""
-    training_config = dict(
-        optimizer='sgd',
-        loss='nllloss'
-    )
-    trainer = TorchTrainer(
-        model=Net(),
-        config=training_config,
-        epochs=2,
-        strategy='horovod',
-        checkpoint_every=1
-    )
-    # Patch strategy with already initialized one to avoid re-initialization
-    trainer.strategy = horovod_strategy
+    strategy_instance = request.getfixturevalue(strategy_fixture)
+    trainer.strategy = strategy_instance  # Patch the strategy with the fixture instance
 
     train_set, val_set = mnist_datasets
     trainer.execute(train_set, val_set)
