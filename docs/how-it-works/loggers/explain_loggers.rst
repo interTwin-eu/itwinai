@@ -302,6 +302,46 @@ integer.
     that the chosen logging framework supports multiprocessing**, adapting it accordingly
     if not.
 
+
+Pytorch Lightning Logger
++++++++++++++++++++++++++++
+In addition to the itwinai loggers, itwinai provides a way for users to integrate itwinai
+logging functionalities within PyTorch Lightning workflows. Designed to work as a direct
+substitute for the PyTorch Lightning logger, the :class:`~itwinai.loggerstorch..ItwinaiLogger`
+wraps any existing itwinai logger (e.g., MLFlow or Prov4ML logger) and adapts it to the 
+PyTorch Lightning interface. By implementing the same methods as the PyTorch Lightning logger, 
+the :class:`~itwinai.loggerstorch..ItwinaiLogger` allows users to replace the default logger
+in their existing code with this wrapper while maintaining compatibility with PyTorch 
+Lightning's logging operations, including integration with the ModelCheckpoint callback. 
+
+.. admonition:: Example of Pytorch Lightning Trainer using ItwinaiLogger
+
+    In this example, we see how we can instantiate the 
+    :class:`~itwinai.loggerstorch..ItwinaiLogger` with an itwinai logger instance of our choice
+    and pass it to a Pytorch Lightning Trainer to use just as any other Lightning Logger.
+
+    .. code-block:: python
+
+        import pytorch_lightning as pl
+        from my_models import MyModel
+        from itwinai.loggers import Prov4ML
+        from itwinai.torch.loggers import ItwinaiLogger
+        
+        my_model = MyModel()
+
+        my_prov_logger = Prov4ML()
+        my_lightning_logger = ItwinaiLogger(itwinai_logger=my_prov_logger)
+        
+        trainer = pl.Trainer(logger=my_itwinai_logger)
+        trainer.fit(model)
+
+This illustrates the basic structure of instantiating the
+:class:`~itwinai.loggerstorch..ItwinaiLogger` and passing it to a
+Pytorch Lightning trainer instance. 
+A more detailed example of the use of the :class:`~itwinai.loggerstorch..ItwinaiLogger`
+in an itwinai Pytorch Lightning training pipeline on the MNIST dataset can be found in 
+:doc:`Pytorch Lightning <../../use-cases/mnist_doc>``
+
 Further references
 -------------------
 
