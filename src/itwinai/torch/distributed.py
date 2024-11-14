@@ -403,7 +403,9 @@ class TorchDDPStrategy(TorchDistributedStrategy):
                 which is already initialized.
         """
         if not distributed_resources_available():
-            raise RuntimeError("Trying to run distributed on insufficient resources.")
+            raise RuntimeError(
+                "Trying to run distributed on insufficient resources."
+            )
         if self.is_initialized:
             raise DistributedStrategyError("Strategy was already initialized")
         dist.init_process_group(backend=self.backend)
@@ -570,14 +572,20 @@ class DeepSpeedStrategy(TorchDistributedStrategy):
 
         self.deepspeed = deepspeed
         if not distributed_resources_available():
-            raise RuntimeError("Trying to run distributed on insufficient resources.")
+            raise RuntimeError(
+                "Trying to run distributed on insufficient resources."
+            )
 
         if self.is_initialized:
             raise DistributedStrategyError("Strategy was already initialized")
 
         # https://github.com/Lightning-AI/pytorch-lightning/issues/13567
-        ompi_lrank = os.environ.get("OMPI_COMM_WORLD_LOCAL_RANK")
-        os.environ["OMPI_COMM_WORLD_LOCAL_RANK"] = os.environ.get("LOCAL_RANK", ompi_lrank)
+        # This block of code should be removed as some point
+        if os.environ.get('LOCAL_RANK'):
+            os.environ['OMPI_COMM_WORLD_LOCAL_RANK'] = os.environ.get(
+                'LOCAL_RANK'
+            )
+
         # https://deepspeed.readthedocs.io/en/latest/initialize.html#training-initialization
         self.deepspeed.init_distributed(dist_backend=self.backend)
         self.is_initialized = True
@@ -735,7 +743,9 @@ class HorovodStrategy(TorchDistributedStrategy):
                 already initialized.
         """
         if not distributed_resources_available():
-            raise RuntimeError("Trying to run distributed on insufficient resources.")
+            raise RuntimeError(
+                "Trying to run distributed on insufficient resources."
+            )
         if self.is_initialized:
             raise DistributedStrategyError("Strategy was already initialized")
 
