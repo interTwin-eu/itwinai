@@ -518,7 +518,7 @@ class MLFlowLogger(Logger):
 
         self.tracking_uri = (
             self.tracking_uri
-            or os.environ.get('MLFLOW_TRACKING_URI')
+            or os.environ.get("MLFLOW_TRACKING_URI")
             or pathlib.Path(os.path.abspath(self.savedir)).as_uri()
         )
 
@@ -1170,8 +1170,7 @@ class Prov4MLLogger(Logger):
                 prov4ml.log_param(key=identifier, value=item)
         elif kind == "prov_documents":
             prov_docs = prov4ml.log_provenance_documents(
-                create_graph=True,
-                create_svg=True
+                create_graph=True, create_svg=True
             )
 
             # Upload to MLFlow
