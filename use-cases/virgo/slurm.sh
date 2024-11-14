@@ -111,6 +111,7 @@ elif [ "$DIST_MODE" == "deepspeed" ] ; then
 elif [ "$DIST_MODE" == "horovod" ] ; then
   echo "HOROVOD training: $TRAINING_CMD"
   srun --cpu-bind=none --ntasks-per-node=$SLURM_GPUS_PER_NODE --cpus-per-task=$SLURM_CPUS_PER_GPU \
+	  --ntasks=$(($SLURM_GPUS_PER_NODE * $SLURM_NNODES)) \
     $TRAINING_CMD
 else
   >&2 echo "ERROR: unrecognized \$DIST_MODE env variable"

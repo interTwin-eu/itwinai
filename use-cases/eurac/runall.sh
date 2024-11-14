@@ -24,7 +24,7 @@ fi
 submit_job () {
     local mode=$1
     sbatch --export=ALL,DIST_MODE="$mode",RUN_NAME="$mode",TIME="$TIME",DEBUG="$DEBUG",PYTHON_VENV=$PYTHON_VENV \
-        --job-name="$mode" \
+        --job-name="eurac-$mode" \
         --output="logs_slurm/job-$mode-n$NUM_NODES.out" \
         --error="logs_slurm/job-$mode-n$NUM_NODES.err" \
         --nodes="$NUM_NODES" \
@@ -35,5 +35,5 @@ submit_job () {
 
 echo "Running distributed training on $NUM_NODES nodes with $NUM_GPUS GPUs per node"
 submit_job "ddp"
-submit_job "deepspeed"
-submit_job "horovod"
+# submit_job "deepspeed"
+# submit_job "horovod"

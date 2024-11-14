@@ -35,12 +35,9 @@ def profile_torch_trainer(method: Callable) -> Callable:
                 {
                     "name": event.key,
                     "node_id": event.node_id,
-                    # "self_cpu_time_total": event.self_cpu_time_total,
-                    # "cpu_time_total": event.cpu_time_total,
-                    # "cpu_time_total_str": event.cpu_time_total_str,
-                    "self_cuda_time_total": event.self_cuda_time_total,
-                    "cuda_time_total": event.cuda_time_total,
-                    "cuda_time_total_str": event.cuda_time_total_str,
+                    "self_cuda_time_total": event.self_device_time_total,
+                    "cuda_time_total": event.device_time_total,
+                    "cuda_time_total_str": event.device_time_total_str,
                     "calls": event.count,
                 }
             )
@@ -91,32 +88,25 @@ def profile_torch_trainer(method: Callable) -> Callable:
             wait_epochs=self.profiling_wait_epochs,
             warmup_epochs=self.profiling_warmup_epochs,
         )
-
-        profiler = profile(
-            activities=[ProfilerActivity.CUDA],  # , ProfilerActivity.CPU],
-            # with_modules=True,
+        with profile(
+            activities=[ProfilerActivity.CUDA],
             schedule=schedule(
                 wait=wait_epochs,
                 warmup=warmup_epochs,
                 active=active_epochs,
             ),
-        )
-        profiler.start()
-
-        self.profiler = profiler
-        try:
+        ) as profiler: 
             result = method(self, *args, **kwargs)
-        finally:
-            profiler.stop()
 
-        strategy = self.strategy
-        strategy_name = strategy.name
+            strategy = self.strategy
+            strategy_name = strategy.name
 
-        global_rank = strategy.global_rank()
-        num_gpus_global = strategy.global_world_size()
+            global_rank = strategy.global_rank()
+            num_gpus_global = strategy.global_world_size()
 
-        # Extracting and storing the profiling data
-        key_averages = profiler.key_averages()
+            # Extracting and storing the profiling data
+            key_averages = profiler.key_averages()
+
         profiling_dataframe = gather_profiling_data(key_averages=key_averages)
         profiling_dataframe["strategy"] = strategy_name
         profiling_dataframe["num_gpus"] = num_gpus_global

@@ -1,7 +1,7 @@
 hdf5_file_location: /p/scratch/intertwin/datasets/virgo_hdf5/virgo_data.hdf5
 hdf5_dataset_name: virgo_dataset
 data_root: ./data
-epochs: 10
+epochs: 5
 batch_size: 2000 # equivalent to chunk size 
 learning_rate: 0.0001
 strategy: ddp
@@ -34,6 +34,8 @@ training_pipeline:
           checkpoint_path: ${checkpoint_path}
           random_seed: 17
           validation_every: 0
+          profiling_wait_epochs: 0
+          profiling_warmup_epochs: 0
           logger:
             class_path: itwinai.loggers.LoggersCollection
             init_args:

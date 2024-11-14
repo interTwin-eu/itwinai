@@ -93,7 +93,7 @@ class RNNDistributedTrainer(TorchTrainer):
         self.save_parameters(**self.locals2params(locals()))
 
     @suppress_workers_print
-    # @profile_torch_trainer
+    @profile_torch_trainer
     # @measure_gpu_utilization
     def execute(
         self,

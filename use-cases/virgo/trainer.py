@@ -40,6 +40,7 @@ class NoiseGeneratorTrainer(TorchTrainer):
         random_seed: Optional[int] = None,
         name: str | None = None,
         validation_every: int = 0,
+        **kwargs,
     ) -> None:
         super().__init__(
             epochs=num_epochs,
@@ -49,6 +50,7 @@ class NoiseGeneratorTrainer(TorchTrainer):
             random_seed=random_seed,
             name=name,
             validation_every=validation_every,
+            **kwargs,
         )
         self.save_parameters(**self.locals2params(locals()))
         # Global training configuration
