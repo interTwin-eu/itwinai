@@ -289,7 +289,7 @@ class TorchDistributedStrategy(DistributedStrategy):
             https://pytorch.org/docs/stable/data.html#multi-process-data-loading
         .. _Dataset Types:
             https://pytorch.org/docs/stable/data.html#dataset-types
-    """
+        """
 
         if batch_sampler is not None:
             print("WARNING: batch_sampler is ignored by TorchDistributedStrategy")
@@ -416,7 +416,6 @@ class TorchDDPStrategy(TorchDistributedStrategy):
         **kwargs,
     ) -> Tuple[nn.Module, Optimizer, Optional[LRScheduler]]:
         """Setup model, optimizer and scheduler for distributed."""
-
         if torch.cuda.is_available():
             # device = self.dist_lrank()
             model = model.to(self.device())
