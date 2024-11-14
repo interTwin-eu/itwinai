@@ -16,6 +16,10 @@ See the latest version of our docs [here](https://itwinai.readthedocs.io/).
 
 If you are a **developer**, please refer to the [developers installation guide](#installation-for-developers).
 
+<!-- 
+
+## Table of contents
+
 - [User installation](#user-installation)
   - [Python virtual environment](#python-virtual-environment)
     - [Laptop or GPU node](#laptop-or-gpu-node)
@@ -37,6 +41,7 @@ If you are a **developer**, please refer to the [developers installation guide](
 - [Working with Docker containers](#working-with-docker-containers)
   - [Terminology Recap](#terminology-recap)
   - [Image Names and Their Purpose](#image-names-and-their-purpose)
+-->
 
 ## User installation
 
