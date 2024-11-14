@@ -30,42 +30,38 @@ classifiers = [
 ]
 
 dependencies = [
-    "wandb",
-    "mlflow",
-    "jsonargparse[signatures]",
-    "pyyaml",
-    "omegaconf",
     "rich>=13.5.3",
     "typer>=0.9.0",
-    "wheel",
-    "pydantic",
-    "packaging",
-    # "prov4ml@git+https://github.com/HPCI-Lab/ProvML@main", # Prov4ML
-    # "prov4ml@git+https://github.com/matbun/ProvML@main",
-    "pandas",
-    "seaborn",
-    "deepspeed", 
-    # "setuptools",
-    # "horovod", 
-    "py-cpuinfo",
     "numpy<2.0.0",
-    "torch==2.4.*",
-    "torchvision",
-    "torchaudio",
+    "wandb>=0.18.7",
+    "mlflow>=2.17.2",
+    "wheel>=0.45.0",
+    "seaborn>=0.13.2",
+    "py-cpuinfo>=9.0.0",
+    "packaging>=24.2",
+    "pydantic>=2.9.2",
+    "pyyaml>=6.0.2",
+    "omegaconf>=2.3.0",
+    "jsonargparse[signatures]>=4.34.0",
+    "matplotlib>=3.9.2",
 ]
 
-# dynamic = ["version", "description"]
-
 [project.optional-dependencies]
-torch = ["lightning==2.*", "torchmetrics"]
+torch = [
+  "torch==2.4.*",
+  "lightning==2.*",
+  "torchmetrics>=1.6.0",
+  "torchvision>=0.19.1",
+  "torchaudio>=2.4.1",
+]
 dev = [
     "pytest>=7.4.2",
     "pytest-mock>=3.11.1",
     "pytest-cov>=4.1.0",
-    "ipykernel",
-    "ipython",
-    "isort",
-    "tensorflow==2.16.*",  # needed by tests on tensorboard
+    "tensorflow==2.16.*", # needed by tests on tensorboard
+    "ipykernel>=6.29.5",
+    "ipython>=8.29.0",
+    "isort>=5.13.2",
 ]
 macos = [
     "prov4ml[apple]@git+https://github.com/matbun/ProvML"
@@ -100,3 +96,5 @@ markers = [
 [tool.isort]
 profile = "black"
 known_first_party = ["itwinai"]
+
+
