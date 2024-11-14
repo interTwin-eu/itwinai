@@ -1,0 +1,6 @@
+failure-threshold: warning
+ignored:
+  - DL3008 # Pin versions in apt get install.
+  - DL3013 # Pin versions in pip. TODO: remove.
+  - DL4001 # Either use Wget or Curl but not both
+  - DL3003 # Use WORKDIR to switch to a directory

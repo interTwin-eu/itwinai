@@ -1,9 +1,9 @@
-import yaml
 import pytest
+import yaml
 
 from itwinai.components import BaseComponent
 from itwinai.parser import ConfigParser, add_replace_field
-from itwinai.tests import FakeTrainer, FakePreproc, FakeSaver
+from itwinai.tests import FakePreproc, FakeSaver, FakeTrainer
 
 
 def test_add_replace_field():

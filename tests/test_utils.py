@@ -2,7 +2,7 @@
 Tests for itwinai.utils module.
 """
 
-from itwinai.utils import flatten_dict, SignatureInspector
+from itwinai.utils import SignatureInspector, flatten_dict
 
 
 def test_flatten_dict():

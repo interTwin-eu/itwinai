@@ -269,11 +269,13 @@ def sanity_check(
         Optional[bool], typer.Option(help=("Check also itwinai.tensorflow modules."))
     ] = False,
     all: Annotated[Optional[bool], typer.Option(help=("Check all modules."))] = False,
+    optional_deps: List[str] = typer.Option(None, help="List of optional dependencies."),
 ):
     """Run sanity checks on the installation of itwinai and its dependencies by trying
     to import itwinai modules. By default, only itwinai core modules (neither torch, nor
     tensorflow) are tested."""
     from itwinai.tests.sanity_check import (
+        run_sanity_check,
         sanity_check_all,
         sanity_check_slim,
         sanity_check_tensorflow,
@@ -289,6 +291,9 @@ def sanity_check(
         sanity_check_tensorflow()
     else:
         sanity_check_slim()
+
+    if optional_deps is not None:
+        run_sanity_check(optional_deps)
 
 
 @app.command()

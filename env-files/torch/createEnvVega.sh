@@ -19,6 +19,7 @@ ml GCCcore/11.3.0
 #ml NCCL/2.12.12-GCCcore-11.3.0-CUDA-11.7.0
 ml NCCL
 ml cuDNN/8.9.7.29-CUDA-12.3.0
+ml UCX-CUDA/1.15.0-GCCcore-13.2.0-CUDA-12.3.0
 
 # You should have CUDA 12.3 now
 

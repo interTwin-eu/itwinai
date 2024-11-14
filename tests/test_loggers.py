@@ -1,16 +1,18 @@
-import pytest
 import shutil
+from unittest.mock import MagicMock, patch
+
 import numpy as np
-from unittest.mock import patch, MagicMock
+import pytest
 
 from itwinai.loggers import (
     ConsoleLogger,
-    MLFlowLogger,
-    WandBLogger,
-    TensorBoardLogger,
     LoggersCollection,
-    Prov4MLLogger
+    MLFlowLogger,
+    Prov4MLLogger,
+    TensorBoardLogger,
+    WandBLogger,
 )
+
 # from prov4ml.provenance.context import Context
 
 
