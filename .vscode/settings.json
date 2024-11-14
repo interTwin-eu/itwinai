@@ -65,5 +65,6 @@
     "python.testing.pytestEnabled": true,
     "python.analysis.extraPaths": [
         "./src/itwinai"
-    ]
+    ],
+    "makefile.configureOnOpen": false
 }

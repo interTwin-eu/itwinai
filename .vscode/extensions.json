@@ -8,8 +8,8 @@
         "ms-python.vscode-pylance",
         "ms-python.python",
         "bierner.markdown-mermaid",
-        "github.vscode-github-actions",
         "tamasfe.even-better-toml",
-        "charliermarsh.ruff"
+        "charliermarsh.ruff",
+        "github.vscode-github-actions"
     ]
 }
