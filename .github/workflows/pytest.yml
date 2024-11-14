@@ -34,5 +34,5 @@ jobs:
       # Default environment names are ".venv-pytorch" and ".venv-tf"
       - name: Run pytest for workflows
         shell: bash -l {0}
-        run: .venv-pytorch/bin/pytest -v ./tests/ -m "not slurm"
+        run: .venv-pytorch/bin/pytest -v ./tests/ -m "not hpc"
 

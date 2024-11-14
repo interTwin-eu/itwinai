@@ -6,24 +6,39 @@ ARG IMG_TAG=24.08-tf2-py3
 
 FROM nvcr.io/nvidia/tensorflow:${IMG_TAG}
 
-WORKDIR /usr/src/app
+# Fix: https://github.com/hadolint/hadolint/wiki/DL4006
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
-# Install itwinai
-COPY pyproject.toml ./
-COPY src ./
-COPY env-files/tensorflow/create_container_env.sh ./
-RUN bash create_container_env.sh
-
-# Create non-root user
-RUN groupadd -g 10001 jovyan \
-    && useradd -m -u 10000 -g jovyan jovyan \
-    && chown -R jovyan:jovyan /usr/src/app
-USER jovyan:jovyan
-
-# ENTRYPOINT [ "/bin/sh" ]
-# CMD [  ]
-
-LABEL org.opencontainers.image.source=https://github.com/interTwin-eu/itwinai
+LABEL org.opencontainers.image.source="https://github.com/interTwin-eu/itwinai"
 LABEL org.opencontainers.image.description="Base itwinai image with tensorflow dependencies and CUDA drivers"
 LABEL org.opencontainers.image.licenses=MIT
 LABEL maintainer="Matteo Bunino - matteo.bunino@cern.ch"
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+WORKDIR /app
+
+RUN apt-get update && apt-get install -y \
+    # Needed by Prov4ML/yProvML to generate provenance graph
+    dot2tex \
+    && apt-get clean -y && rm -rf /var/lib/apt/lists/*
+
+RUN pip install --no-cache-dir --upgrade pip \
+    && pip install --no-cache-dir \
+    tf_keras==2.16.* \
+    "prov4ml[nvidia]@git+https://github.com/matbun/ProvML@new-main" \
+    ray[tune]
+
+# Install itwinai
+COPY pyproject.toml pyproject.toml
+COPY src src
+RUN pip install --no-cache-dir . \
+    && itwinai sanity-check --tensorflow --optional-deps ray
+
+# Additional pip deps
+ARG REQUIREMENTS=env-files/torch/requirements/requirements.txt
+COPY "${REQUIREMENTS}" additional-requirements.txt
+RUN pip install --no-cache-dir -r additional-requirements.txt
+
+# ENTRYPOINT [ "/bin/sh" ]
+# CMD [  ]
