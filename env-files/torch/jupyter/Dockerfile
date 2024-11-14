@@ -192,7 +192,7 @@ RUN rm -rf /tmp/*
 USER $NB_UID
 
 # Torch and smaller deps
-RUN pip install --upgrade pip \
+RUN pip install --no-cache-dir --upgrade pip \
     # https://github.com/mpi4py/mpi4py/pull/431
     && SETUPTOOLS_USE_DISTUTILS=local python -m pip install --no-cache-dir mpi4py \
     && unset SETUPTOOLS_USE_DISTUTILS \
@@ -236,22 +236,23 @@ ENV HOROVOD_WITH_PYTORCH=1 \
 RUN pip install --no-cache-dir \
     deepspeed==0.15.* \
     git+https://github.com/horovod/horovod.git@3a31d93 \
-    "prov4ml[linux,nvidia]@git+https://github.com/matbun/ProvML@e99bddba047a1a04ca0387e87cad1ed96d5ab2c5" \
-    ray ray[tune]
+    "prov4ml[nvidia]@git+https://github.com/matbun/ProvML@e99bddba047a1a04ca0387e87cad1ed96d5ab2c5" \
+    ray[tune]
 
 
 # Core itwinai lib
 WORKDIR "$HOME/itwinai"
-COPY pyproject.toml pyproject.toml
-COPY src src
+COPY --chown=${NB_UID} pyproject.toml pyproject.toml
+COPY --chown=${NB_UID} src src
 RUN pip install --no-cache-dir ".[torch,dev]" \
     && itwinai sanity-check --torch \
     --optional-deps deepspeed \
-    --optional-deps horovod
+    --optional-deps horovod \
+    --optional-deps ray
 
 # Additional pip deps
 ARG REQUIREMENTS=env-files/torch/requirements/requirements.txt
-COPY "${REQUIREMENTS}" additional-requirements.txt
+COPY --chown=${NB_UID} "${REQUIREMENTS}" additional-requirements.txt
 RUN pip install --no-cache-dir -r additional-requirements.txt
 
 # Add tests
