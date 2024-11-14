@@ -37,7 +37,6 @@ If you are a **developer**, please refer to the [developers installation guide](
 - [Working with Docker containers](#working-with-docker-containers)
   - [Terminology Recap](#terminology-recap)
   - [Image Names and Their Purpose](#image-names-and-their-purpose)
-  - [Micromamba installation (deprecated)](#micromamba-installation-deprecated)
 
 ## User installation
 
