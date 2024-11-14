@@ -14,7 +14,11 @@ readme = "README.md"
 requires-python = ">=3.10"
 license = { file = "LICENSE" }
 keywords = ["ml", "ai", "hpc"]
-maintainers = [{ name = "Matteo Bunino", email = "matteo.bunino@cern.ch" }]
+maintainers = [
+    { name = "Matteo Bunino", email = "matteo.bunino@cern.ch" },
+    { name = "Jarl Sondre Sæther", email = "jarl.sondre.saether@cern.ch" },
+    { name = "Anna Lappe", email = "anna.elisa.lappe@cern.ch" },
+]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Programming Language :: Python",
