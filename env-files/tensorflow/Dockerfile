@@ -31,6 +31,9 @@ RUN pip install --no-cache-dir --upgrade pip \
     "prov4ml[nvidia]@git+https://github.com/matbun/ProvML@new-main" \
     ray[tune]
 
+# Inprove robustness: avoid silent override by Singularity/Apptainer
+ENV PYTHONPATH=""
+
 # Install itwinai
 COPY pyproject.toml pyproject.toml
 COPY src src
