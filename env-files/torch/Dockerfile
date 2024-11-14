@@ -14,6 +14,8 @@ LABEL maintainer="Matteo Bunino - matteo.bunino@cern.ch"
 # Fix: https://github.com/hadolint/hadolint/wiki/DL4006
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
+ENV DEBIAN_FRONTEND=noninteractive
+
 WORKDIR /app
 
 RUN apt-get update && apt-get install -y \
@@ -64,7 +66,8 @@ RUN CONTAINER_TORCH_VERSION="$(python -c 'import torch;print(torch.__version__)'
     .[torch] \
     && itwinai sanity-check --torch \
     --optional-deps deepspeed \
-    --optional-deps horovod
+    --optional-deps horovod \
+    --optional-deps ray
 
 # Additional pip deps
 ARG REQUIREMENTS=env-files/torch/requirements/requirements.txt

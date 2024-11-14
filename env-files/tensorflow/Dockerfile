@@ -14,6 +14,8 @@ LABEL org.opencontainers.image.description="Base itwinai image with tensorflow d
 LABEL org.opencontainers.image.licenses=MIT
 LABEL maintainer="Matteo Bunino - matteo.bunino@cern.ch"
 
+ENV DEBIAN_FRONTEND=noninteractive
+
 WORKDIR /app
 
 RUN apt-get update && apt-get install -y \
@@ -31,7 +33,7 @@ RUN pip install --no-cache-dir --upgrade pip \
 COPY pyproject.toml pyproject.toml
 COPY src src
 RUN pip install --no-cache-dir . \
-    && itwinai sanity-check --tensorflow
+    && itwinai sanity-check --tensorflow --optional-deps ray
 
 # Additional pip deps
 ARG REQUIREMENTS=env-files/torch/requirements/requirements.txt

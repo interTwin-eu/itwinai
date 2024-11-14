@@ -244,7 +244,8 @@ COPY src src
 RUN pip install --no-cache-dir ".[torch,dev]" \
     && itwinai sanity-check --torch \
     --optional-deps deepspeed \
-    --optional-deps horovod
+    --optional-deps horovod \
+    --optional-deps ray
 
 # Additional pip deps
 ARG REQUIREMENTS=env-files/torch/requirements/requirements.txt
