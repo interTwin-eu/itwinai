@@ -16,33 +16,6 @@ See the latest version of our docs [here](https://itwinai.readthedocs.io/).
 
 If you are a **developer**, please refer to the [developers installation guide](#installation-for-developers).
 
-<!-- 
-
-## Table of contents
-
-- [User installation](#user-installation)
-  - [Python virtual environment](#python-virtual-environment)
-    - [Laptop or GPU node](#laptop-or-gpu-node)
-    - [HPC environment](#hpc-environment)
-      - [PyTorch environment](#pytorch-environment)
-      - [TensorFlow environment](#tensorflow-environment)
-  - [Install itwinai for users](#install-itwinai-for-users)
-- [Installation for developers](#installation-for-developers)
-  - [Clone the itwinai repository](#clone-the-itwinai-repository)
-  - [Install itwinai environment](#install-itwinai-environment)
-    - [Installation with pip or uv](#installation-with-pip-or-uv)
-      - [Installation using `uv.lock`](#installation-using-uvlock)
-    - [PyTorch (+ Lightning) virtual environment](#pytorch--lightning-virtual-environment)
-    - [TensorFlow virtual environment](#tensorflow-virtual-environment)
-  - [Activate itwinai environment on HPC](#activate-itwinai-environment-on-hpc)
-    - [Load modules before PyTorch virtual environment](#load-modules-before-pytorch-virtual-environment)
-    - [Load modules before TensorFlow virtual environment](#load-modules-before-tensorflow-virtual-environment)
-  - [Test with `pytest`](#test-with-pytest)
-- [Working with Docker containers](#working-with-docker-containers)
-  - [Terminology Recap](#terminology-recap)
-  - [Image Names and Their Purpose](#image-names-and-their-purpose)
--->
-
 ## User installation
 
 Requirements:
