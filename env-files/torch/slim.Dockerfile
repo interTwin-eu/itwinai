@@ -25,11 +25,12 @@ ENV HOROVOD_WITH_PYTORCH=1 \
     # DS_BUILD_CCL_COMM=1 \
     DS_BUILD_UTILS=1 \
     DS_BUILD_AIO=1 \
-    DS_BUILD_FUSED_ADAM=1 \
-    DS_BUILD_FUSED_LAMB=1 \
-    DS_BUILD_TRANSFORMER=1 \
-    DS_BUILD_STOCHASTIC_TRANSFORMER=1 \
-    DS_BUILD_TRANSFORMER_INFERENCE=1
+    # Disable some DeepSpeed OPS since apex and transformers are not installed in the current venv
+    DS_BUILD_FUSED_ADAM=0 \
+    DS_BUILD_FUSED_LAMB=0 \
+    DS_BUILD_TRANSFORMER=0 \
+    DS_BUILD_STOCHASTIC_TRANSFORMER=0 \
+    DS_BUILD_TRANSFORMER_INFERENCE=0
 
 # User /usr/local/bin/python3.10 explicitly to force /opt/venv/bin/python to point to python3.10. Needed to link
 # /usr/local/bin/python3.10 (in the app image) to /usr/bin/python3.10 (in the builder image)
@@ -38,26 +39,29 @@ RUN /usr/bin/python3.10 -m venv /opt/venv \
     && pip install --no-cache-dir --extra-index-url https://download.pytorch.org/whl/cu124 \
     "torch==2.4.*" \
     torchvision \
-    torchaudio
+    torchaudio \
+    # Needed to install horovod
+    wheel
 
-# Rust compiler
-RUN curl --proto '=https' --tlsv1.2 https://sh.rustup.rs -sSf | sh -s -- -y
+# TODO: check that the correct pytorch version is preserved
 
-# Disable some DeepSpeed OPS as apex and transformers are not installed in the current venv
-ENV DS_BUILD_FUSED_ADAM=0 \
-    DS_BUILD_FUSED_LAMB=0 \
-    DS_BUILD_TRANSFORMER=0 \
-    DS_BUILD_STOCHASTIC_TRANSFORMER=0 \
-    DS_BUILD_TRANSFORMER_INFERENCE=0
+# RUN pip install --no-cache-dir \
+#     "deepspeed==0.15.*" \
+#     "torch==2.4.*"
 
-RUN pip install --no-cache-dir --global-option="-j8" --global-option="build_ext" \
-    "deepspeed==0.15.*" \
-    "torch==2.4.*"
-RUN pip install --no-cache-dir --global-option="-j8" \
-    "horovod[pytorch]@git+https://github.com/horovod/horovod.git@3a31d93" \
+# RUN pip install --no-cache-dir wheel
+# RUN pip install --no-cache-dir --no-build-isolation \
+#     "horovod[pytorch]@git+https://github.com/horovod/horovod.git@3a31d93"
+# RUN pip install --no-cache-dir \
+#     "prov4ml[nvidia]@git+https://github.com/matbun/ProvML@new-main" \
+#     ray[tune] 
+
+RUN CONTAINER_TORCH_VERSION="$(python -c 'import torch;print(torch.__version__)')" \
+    && pip install --no-cache-dir torch=="$CONTAINER_TORCH_VERSION" \
+    deepspeed==0.15.* \
+    git+https://github.com/horovod/horovod.git@3a31d93 \
     "prov4ml[nvidia]@git+https://github.com/matbun/ProvML@new-main" \
-    ray[tune] \
-    "torch==2.4.*"
+    ray[tune] 
 
 COPY src src
 COPY pyproject.toml pyproject.toml
