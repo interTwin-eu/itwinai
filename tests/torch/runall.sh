@@ -1,8 +1,17 @@
 #!/bin/bash
 
+# --------------------------------------------------------------------------------------
+# Part of the interTwin Project: https://www.intertwin.eu/
+#
+# Created by: Matteo Bunino
+#
+# Credit:
+# - Matteo Bunino <matteo.bunino@cern.ch> - CERN
+# --------------------------------------------------------------------------------------
+
 # DISCLAIMER: 
 # this script is here to support the development, so it may not be maintained and it may be a bit "rough".
-# do not mind it too much.
+# Do not mind it too much.
 
 # Python virtual environment
 PYTHON_VENV="../../.venv-pytorch"
