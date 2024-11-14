@@ -340,7 +340,7 @@ This illustrates the basic structure of instantiating the
 Pytorch Lightning trainer instance. 
 A more detailed example of the use of the :class:`~itwinai.loggerstorch..ItwinaiLogger`
 in an itwinai Pytorch Lightning training pipeline on the MNIST dataset can be found in 
-:doc:`Pytorch Lightning <../../use-cases/mnist_doc>``
+:doc:`Pytorch Lightning <../../use-cases/mnist_doc>`
 
 Further references
 -------------------
