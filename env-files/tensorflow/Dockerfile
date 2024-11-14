@@ -28,6 +28,9 @@ RUN pip install --no-cache-dir --upgrade pip \
     tf_keras==2.16.* \
     "prov4ml[linux,nvidia]@git+https://github.com/matbun/ProvML@new-main" 
 
+# Inprove robustness: avoid silent override by Singularity/Apptainer
+ENV PYTHONPATH=""
+
 # Install itwinai
 COPY pyproject.toml pyproject.toml
 COPY src src

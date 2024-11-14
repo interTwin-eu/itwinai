@@ -23,6 +23,9 @@ RUN apt-get update && apt-get install -y \
     dot2tex \
     && apt-get clean -y && rm -rf /var/lib/apt/lists/*
 
+# Inprove robustness: avoid silent override by Singularity/Apptainer
+ENV PYTHONPATH=""
+
 # https://github.com/mpi4py/mpi4py/pull/431
 RUN pip install --no-cache-dir --upgrade pip \
     && env SETUPTOOLS_USE_DISTUTILS=local python -m pip install --no-cache-dir mpi4py

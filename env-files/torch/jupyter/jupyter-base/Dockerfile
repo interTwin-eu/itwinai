@@ -480,6 +480,9 @@ RUN pip install --no-cache-dir --upgrade pip \
 ###        itwinai        ###
 #############################
 
+# Inprove robustness: avoid silent override by Singularity/Apptainer
+ENV PYTHONPATH=""
+
 # USER root
 
 # RUN apt-get update && apt-get install -y \
