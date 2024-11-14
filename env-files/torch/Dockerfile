@@ -35,6 +35,7 @@ ENV HOROVOD_WITH_PYTORCH=1 \
     HOROVOD_GPU_ALLREDUCE=NCCL \
     HOROVOD_NCCL_LINK=SHARED \
     # DeepSpeed
+    # DS_BUILD_CCL_COMM=1 \
     DS_BUILD_UTILS=1 \
     DS_BUILD_AIO=1 \
     DS_BUILD_FUSED_ADAM=1 \
@@ -47,7 +48,8 @@ RUN CONTAINER_TORCH_VERSION="$(python -c 'import torch;print(torch.__version__)'
     && pip install --no-cache-dir torch=="$CONTAINER_TORCH_VERSION" \
     deepspeed==0.15.* \
     git+https://github.com/horovod/horovod.git@3a31d93 \
-    "prov4ml[linux,nvidia]@git+https://github.com/matbun/ProvML@new-main" \
+    "prov4ml[nvidia]@git+https://github.com/matbun/ProvML@new-main" \
+    ray[tune] \
     # fix .triton/autotune/Fp16Matmul_2d_kernel.pickle bug
     && pver="$(python --version 2>&1 | awk '{print $2}' | cut -f1-2 -d.)" \
     && line=$(cat -n "/usr/local/lib/python${pver}/dist-packages/deepspeed/ops/transformer/inference/triton/matmul_ext.py" | grep os.rename | awk '{print $1}' | head -n 1) \

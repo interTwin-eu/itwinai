@@ -77,7 +77,7 @@ else
   if [[ "$OSTYPE" =~ ^darwin ]] ; then
     echo 'Installation issues: Skipping Ray installation for MacOS'
   else
-    pip install --no-cache-dir ray ray[tune] || exit 1
+    pip install --no-cache-dir ray[tune] || exit 1
   fi
 fi
 
@@ -159,7 +159,7 @@ fi
 if [[ "$OSTYPE" =~ ^darwin ]] ; then
   pip install --no-cache-dir "prov4ml[apple,nvidia]@git+https://github.com/matbun/ProvML@new-main" || exit 1
 else
-  pip install --no-cache-dir "prov4ml[linux,nvidia]@git+https://github.com/matbun/ProvML@new-main" || exit 1
+  pip install --no-cache-dir "prov4ml[nvidia]@git+https://github.com/matbun/ProvML@new-main" || exit 1
 fi
 
 # Install itwinai: MUST be last line of the script for the user installation script to work!
