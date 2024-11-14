@@ -1,11 +1,14 @@
 import pytest
 
-from itwinai.components import Trainer, Adapter
+from itwinai.components import Adapter, Trainer
 from itwinai.pipeline import Pipeline
-from itwinai.tests import (
-    FakeGetterExec, FakeSplitterExec, FakeTrainerExec, FakeSaverExec
-)
 from itwinai.serialization import SerializationError
+from itwinai.tests import (
+    FakeGetterExec,
+    FakeSaverExec,
+    FakeSplitterExec,
+    FakeTrainerExec,
+)
 
 
 def test_serializable():

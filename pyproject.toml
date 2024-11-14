@@ -8,21 +8,16 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "itwinai"
-version = "0.2.2"
+version = "0.2.3"
 description = "AI and ML workflows module for scientific digital twins."
 readme = "README.md"
 requires-python = ">=3.10"
 license = { file = "LICENSE" }
 keywords = ["ml", "ai", "hpc"]
-authors = [
-    { name = "Matteo Bunino", email = "matteo.bunino@cern.ch" },
-    { name = "Rakesh Sarma", email = "r.sarma@fz-juelich.de" },
-]
 maintainers = [
     { name = "Matteo Bunino", email = "matteo.bunino@cern.ch" },
-    { name = "Rakesh Sarma", email = "r.sarma@fz-juelich.de" },
-    { name = "Mario Ruettgers", email = "m.ruettgers@fz-juelich.de" },
-    { name = "Kalliopi Tsolaki", email = "kalliopi.tsolaki@cern.ch" },
+    { name = "Jarl Sondre Sæther", email = "jarl.sondre.saether@cern.ch" },
+    { name = "Anna Lappe", email = "anna.elisa.lappe@cern.ch" },
 ]
 classifiers = [
     "Development Status :: 4 - Beta",
@@ -88,7 +83,10 @@ itwinai = "itwinai.cli:app"
 [tool.pytest.ini_options]
 markers = [
     "integration: integration tests (deselect with '-m \"not integration\"')",
-    "slurm: needs SLURM and HPC resources (multiple GPUs/nodes). (deselect with '-m \"not slurm\"')",
+    "hpc: needs SLURM and HPC resources (multiple GPUs/nodes). (deselect with '-m \"not hpc\"')",
+    "torch_dist: runs with torch DDP distributed strategy. (deselect with '-m \"not torch_dist\"')",
+    "deepspeed_dist: runs with torch DeepSpeed distributed strategy. (deselect with '-m \"not deepspeed_dist\"')",
+    "horovod_dist: runs with torch Horovod distributed strategy. (deselect with '-m \"not horovod_dist\"')",
     "functional: functional tests. (deselect with '-m \"not functional\"')",
     "memory_heavy: high memory footprint. (deselect with '-m \"not heavy_memory\"')",
 ]

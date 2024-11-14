@@ -1,10 +1,13 @@
-import yaml
 import pytest
+import yaml
 
-from itwinai.pipeline import Pipeline
 from itwinai.parser import ConfigParser
+from itwinai.pipeline import Pipeline
 from itwinai.tests import (
-    FakeGetterExec, FakeSplitterExec, FakeTrainerExec, FakeSaverExec
+    FakeGetterExec,
+    FakeSaverExec,
+    FakeSplitterExec,
+    FakeTrainerExec,
 )
 
 
