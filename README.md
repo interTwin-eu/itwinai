@@ -205,11 +205,12 @@ pip install --no-cache-dir --no-build-isolation deepspeed
 > recommend using it in order to not fill up your `.cache` directory.
 
 ##### Installation using `uv.lock`
-The `uv.lock` file provides more information about the exact versions of the libraries
+
+The `uv.lock` file provides more precise information about the versions of the libraries
 that are used and thus could be better to install from. If you have `uv` installed,
-all you need to do is `uv sync` and it will match your `.venv` directory. If you have
-installed new packages and wish to update the `uv.lock` file, you can do so with
-`uv lock`.
+all you need to do is `uv sync` and it will make your `.venv` directory match the
+spec in the `uv.lock` file. If you want to add new packages to the `uv.lock` file, you
+can do so with the `uv lock` command.
 
 > [!WARNING]
 > Even if you have a venv activated while running `uv sync`, the packages will not
