@@ -189,7 +189,7 @@ RUN rm -rf /tmp/*
 USER $NB_UID
 
 # Torch and smaller deps
-RUN pip install --upgrade pip \
+RUN pip install --no-cache-dir --upgrade pip \
     # https://github.com/mpi4py/mpi4py/pull/431
     && SETUPTOOLS_USE_DISTUTILS=local python -m pip install --no-cache-dir mpi4py \
     && unset SETUPTOOLS_USE_DISTUTILS \

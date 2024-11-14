@@ -29,7 +29,7 @@ RUN pip install --no-cache-dir --upgrade pip \
 # Install itwinai
 COPY pyproject.toml ./
 COPY src ./
-RUN pip install . \
+RUN pip install --no-cache-dir . \
     && itwinai sanity-check --tensorflow
 
 # Additional pip deps
