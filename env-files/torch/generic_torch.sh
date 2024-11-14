@@ -77,7 +77,7 @@ else
   if [[ "$OSTYPE" =~ ^darwin ]] ; then
     echo 'Installation issues: Skipping Ray installation for MacOS'
   else
-    pip install --no-cache-dir ray ray[tune] || exit 1
+    pip install --no-cache-dir ray[tune] || exit 1
   fi
 fi
 
@@ -96,7 +96,7 @@ else
 		export DS_BUILD_TRANSFORMER_INFERENCE=1
 	fi
 	pip install --no-cache-dir py-cpuinfo || exit 1
-	pip install --no-cache-dir deepspeed || exit 1
+	pip install --no-cache-dir deepspeed==0.15.* || exit 1
 
 	# fix .triton/autotune/Fp16Matmul_2d_kernel.pickle bug
 	line=$(cat -n $ENV_NAME/lib/python${pver}/site-packages/deepspeed/ops/transformer/inference/triton/matmul_ext.py | grep os.rename | awk '{print $1}' | head -n 1)
@@ -173,9 +173,9 @@ fi
 
 # Install Pov4ML
 if [[ "$OSTYPE" =~ ^darwin ]] ; then
-  pip install --no-cache-dir "prov4ml[apple]@git+https://github.com/matbun/ProvML" || exit 1
+  pip install --no-cache-dir "prov4ml[apple,nvidia]@git+https://github.com/matbun/ProvML@new-main" || exit 1
 else
-  pip install --no-cache-dir "prov4ml[linux]@git+https://github.com/matbun/ProvML" || exit 1
+  pip install --no-cache-dir "prov4ml[nvidia]@git+https://github.com/matbun/ProvML@new-main" || exit 1
 fi
 
 # Install itwinai: MUST be last line of the script for the user installation script to work!

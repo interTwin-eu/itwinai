@@ -59,8 +59,8 @@ environment for PyTorch:
 
     ```bash
     ml --force purge
-    ml Python CMake/3.24.3-GCCcore-11.3.0 mpi4py OpenMPI CUDA/11.7
-    ml GCCcore/11.3.0 NCCL/2.12.12-GCCcore-11.3.0-CUDA-11.7.0 cuDNN
+    ml Python CMake/3.24.3-GCCcore-11.3.0 mpi4py OpenMPI CUDA/12.3
+    ml GCCcore/11.3.0 NCCL cuDNN/8.9.7.29-CUDA-12.3.0 UCX-CUDA/1.15.0-GCCcore-13.2.0-CUDA-12.3.0
     ```
 
 ##### TensorFlow environment
@@ -80,8 +80,8 @@ environment for TensorFlow:
 
     ```bash
     ml --force purge
-    ml Python CMake/3.24.3-GCCcore-11.3.0 mpi4py OpenMPI CUDA/11.7
-    ml GCCcore/11.3.0 NCCL/2.12.12-GCCcore-11.3.0-CUDA-11.7.0 cuDNN
+    ml Python CMake/3.24.3-GCCcore-11.3.0 mpi4py OpenMPI CUDA/12.3
+    ml GCCcore/11.3.0 NCCL cuDNN/8.9.7.29-CUDA-12.3.0 UCX-CUDA/1.15.0-GCCcore-13.2.0-CUDA-12.3.0
     ```
 
 ### Install itwinai for users
@@ -289,8 +289,8 @@ Commands to be executed before activating the python virtual environment:
 
     ```bash
     ml --force purge
-    ml Python CMake/3.24.3-GCCcore-11.3.0 mpi4py OpenMPI CUDA/11.7
-    ml GCCcore/11.3.0 NCCL/2.12.12-GCCcore-11.3.0-CUDA-11.7.0 cuDNN
+    ml Python CMake/3.24.3-GCCcore-11.3.0 mpi4py OpenMPI CUDA/12.3
+    ml GCCcore/11.3.0 NCCL cuDNN/8.9.7.29-CUDA-12.3.0 UCX-CUDA/1.15.0-GCCcore-13.2.0-CUDA-12.3.0
     ```
 
 - When not on an HPC: do nothing.
@@ -323,8 +323,8 @@ Commands to be executed before activating the python virtual environment:
 
     ```bash
     ml --force purge
-    ml Python CMake/3.24.3-GCCcore-11.3.0 mpi4py OpenMPI CUDA/11.7
-    ml GCCcore/11.3.0 NCCL/2.12.12-GCCcore-11.3.0-CUDA-11.7.0 cuDNN
+    ml Python CMake/3.24.3-GCCcore-11.3.0 mpi4py OpenMPI CUDA/12.3
+    ml GCCcore/11.3.0 NCCL cuDNN/8.9.7.29-CUDA-12.3.0 UCX-CUDA/1.15.0-GCCcore-13.2.0-CUDA-12.3.0
     ```
 
 - When not on an HPC: do nothing.
@@ -408,14 +408,16 @@ For example, in `ghcr.io/intertwin-eu/itwinai:0.2.2-torch2.6-jammy`:
 The `TAG` follows the convention:
 
 ```text
-X.Y.Z-[torch|tf]x.y-distro
+[jlab-]X.Y.Z-(torch|tf)x.y-distro
 ```
 
 Where:
 
 - `X.Y.Z` is the **itwinai version**
+- `(torch|tf)` is an exclusive OR between "torch" and "tf". You can pick one or the other, but not both.
 - `x.y` is the **version of the ML framework** (e.g., PyTorch or TensorFlow)
 - `distro` is the OS distro in the container (e.g., Ubuntu Jammy)
+- `jlab-` is prepended to the tag of images including JupyterLab
 
 ### Image Names and Their Purpose
 
@@ -424,42 +426,10 @@ We use different image names to group similar images under the same namespace:
 - **`itwinai`**: Production images. These should be well-maintained and orderly.
 - **`itwinai-dev`**: Development images. Tags can vary, and may include random
 hashes.
-- **`itwinai-cvmfs`**: Images that need to be made available through CVMFS.
+- **`itwinai-cvmfs`**: Images that need to be made available through CVMFS via
+[Unpacker](https://gitlab.cern.ch/unpacked/sync).
 
 > [!WARNING]
 > It is very important to keep the number of tags for `itwinai-cvmfs` as low
 > as possible. Tags should only be created under this namespace when strictly
-> necessary. Otherwise, this could cause issues for the converter.
-
-<!--
-### Micromamba installation (deprecated)
-
-To manage Conda environments we use micromamba, a light weight version of conda.
-
-It is suggested to refer to the
-[Manual installation guide](https://mamba.readthedocs.io/en/latest/installation/micromamba-installation.html#manual-installation).
-
-Consider that Micromamba can eat a lot of space when building environments because packages are cached on
-the local filesystem after being downloaded. To clear cache you can use `micromamba clean -a`.
-Micromamba data are kept under the `$HOME` location. However, in some systems, `$HOME` has a limited storage
-space and it would be cleverer to install Micromamba in another location with more storage space.
-Thus by changing the `$MAMBA_ROOT_PREFIX` variable. See a complete installation example for Linux below, where the
-default `$MAMBA_ROOT_PREFIX` is overridden:
-
-```bash
-cd $HOME
-
-# Download micromamba (This command is for Linux Intel (x86_64) systems. Find the right one for your system!)
-curl -Ls https://micro.mamba.pm/api/micromamba/linux-64/latest | tar -xvj bin/micromamba
-
-# Install micromamba in a custom directory
-MAMBA_ROOT_PREFIX='my-mamba-root'
-./bin/micromamba shell init $MAMBA_ROOT_PREFIX
-
-# To invoke micromamba from Makefile, you need to add explicitly to $PATH
-echo 'PATH="$(dirname $MAMBA_EXE):$PATH"' >> ~/.bashrc
-```
-
-**Reference**: [Micromamba installation guide](https://mamba.readthedocs.io/en/latest/installation/micromamba-installation.html).
-
--->
+> necessary. Otherwise, this could cause issues for the Unpacker.
