@@ -1,5 +1,9 @@
 #!/bin/bash
 
+# DISCLAIMER: 
+# this script is here to support the development, so it may not be maintained and it may be a bit "rough".
+# do not mind it too much.
+
 # Python virtual environment
 PYTHON_VENV="../../.venv-pytorch"
 
@@ -8,6 +12,7 @@ rm -rf logs_slurm
 mkdir logs_slurm
 rm -rf logs_torchrun logs_mpirun logs_srun
 
+# Adapt with a path reachable by you
 export MNIST_PATH="/ceph/hpc/data/st2301-itwin-users/mbunino/mnist" #"/p/project1/intertwin/smalldata/mnist"
 
 # Containers

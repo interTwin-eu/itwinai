@@ -482,16 +482,11 @@ class MLFlowLogger(Logger):
         self.run_description = run_description
         self.run_name = run_name
 
-        if self.tracking_uri is None and os.environ.get('MLFLOW_TRACKING_URI'):
-            self.tracking_uri = os.environ.get('MLFLOW_TRACKING_URI')
-
-        if self.tracking_uri is None:
-            # Default MLFLow tracking URI
-            saved_abs_path = os.path.abspath(self.savedir)
-            self.tracking_uri = pathlib.Path(saved_abs_path).as_uri()
-
-        # TODO: for pytorch lightning:
-        # mlflow.pytorch.autolog()
+        self.tracking_uri = (
+            self.tracking_uri
+            or os.environ.get('MLFLOW_TRACKING_URI')
+            or pathlib.Path(os.path.abspath(self.savedir)).as_uri()
+        )
 
     def create_logger_context(self, rank: Optional[int] = None) -> mlflow.ActiveRun:
         """
@@ -519,6 +514,10 @@ class MLFlowLogger(Logger):
             self.active_run: mlflow.ActiveRun = mlflow.start_run(
                 description=self.run_description, run_name=self.run_name
             )
+
+        # TODO: for pytorch lightning:
+        # mlflow.pytorch.autolog()
+
         return self.active_run
 
     def destroy_logger_context(self):

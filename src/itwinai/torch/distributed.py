@@ -23,7 +23,8 @@ def distributed_resources_available() -> bool:
     Returns:
         bool: env can support distributed ML.
     """
-    return torch.cuda.is_available() and torch.cuda.device_count() > 1
+    force_dist_env = int(os.environ.get('ITWINAI_FORCE_DIST', '0'))
+    return force_dist_env or torch.cuda.is_available() and torch.cuda.device_count() > 1
 
 
 def check_initialized(method: Callable) -> Callable:
@@ -395,10 +396,10 @@ class TorchDDPStrategy(TorchDistributedStrategy):
             DistributedStrategyError: when trying to initialize a strategy
                 which is already initialized.
         """
-        force_dist_env = int(os.environ.get('ITWINAI_FORCE_DIST', '0'))
-        if not distributed_resources_available() and not force_dist_env:
+        if not distributed_resources_available():
             raise RuntimeError(
-                "Trying to run distributed on insufficient resources.")
+                "Trying to run distributed on insufficient resources."
+            )
         if self.is_initialized:
             raise DistributedStrategyError("Strategy was already initialized")
         dist.init_process_group(backend=self.backend)
@@ -564,10 +565,10 @@ class DeepSpeedStrategy(TorchDistributedStrategy):
         import deepspeed
 
         self.deepspeed = deepspeed
-        force_dist_env = int(os.environ.get('ITWINAI_FORCE_DIST', '0'))
-        if not distributed_resources_available() and not force_dist_env:
+        if not distributed_resources_available():
             raise RuntimeError(
-                "Trying to run distributed on insufficient resources.")
+                "Trying to run distributed on insufficient resources."
+            )
 
         if self.is_initialized:
             raise DistributedStrategyError("Strategy was already initialized")
@@ -735,10 +736,10 @@ class HorovodStrategy(TorchDistributedStrategy):
             DistributedStrategyError: when trying to initialize a strategy
                 already initialized.
         """
-        force_dist_env = int(os.environ.get('ITWINAI_FORCE_DIST', '0'))
-        if not distributed_resources_available() and not force_dist_env:
+        if not distributed_resources_available():
             raise RuntimeError(
-                "Trying to run distributed on insufficient resources.")
+                "Trying to run distributed on insufficient resources."
+            )
         if self.is_initialized:
             raise DistributedStrategyError("Strategy was already initialized")
 
