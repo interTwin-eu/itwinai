@@ -1,3 +1,12 @@
+# --------------------------------------------------------------------------------------
+# Part of the interTwin Project: https://www.intertwin.eu/
+#
+# Created by: Anna Elisa Lappe
+#
+# Credit:
+# - Matteo Bunino <matteo.bunino@cern.ch> - CERN
+# -------------------------------------------------------------------------------------
+
 from unittest.mock import MagicMock, patch
 
 import numpy as np
