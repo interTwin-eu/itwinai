@@ -4,6 +4,7 @@ FROM nvcr.io/nvidia/pytorch:24.05-py3 AS build
 
 RUN apt-get update && apt-get install -y \
     build-essential \
+    # cargo \
     curl \
     python3.10-venv
 
@@ -37,11 +38,22 @@ RUN /usr/bin/python3.10 -m venv /opt/venv \
     && pip install --no-cache-dir --extra-index-url https://download.pytorch.org/whl/cu124 \
     "torch==2.4.*" \
     torchvision \
-    torchaudio 
-RUN pip install --no-cache-dir --global-option="build_ext" --global-option="-j24" --no-build-isolation \
+    torchaudio
+
+# Rust compiler
+RUN curl --proto '=https' --tlsv1.2 https://sh.rustup.rs -sSf | sh -s -- -y
+
+# Disable some DeepSpeed OPS as apex and transformers are not installed in the current venv
+ENV DS_BUILD_FUSED_ADAM=0 \
+    DS_BUILD_FUSED_LAMB=0 \
+    DS_BUILD_TRANSFORMER=0 \
+    DS_BUILD_STOCHASTIC_TRANSFORMER=0 \
+    DS_BUILD_TRANSFORMER_INFERENCE=0
+
+RUN pip install --no-cache-dir --global-option="-j8" --global-option="build_ext" \
     "deepspeed==0.15.*" \
     "torch==2.4.*"
-RUN pip install --no-cache-dir --global-option="-j24" \
+RUN pip install --no-cache-dir --global-option="-j8" \
     "horovod[pytorch]@git+https://github.com/horovod/horovod.git@3a31d93" \
     "prov4ml[nvidia]@git+https://github.com/matbun/ProvML@new-main" \
     ray[tune] \
