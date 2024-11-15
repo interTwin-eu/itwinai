@@ -4,6 +4,7 @@ from pathlib import Path
 from timeit import default_timer as timer
 from typing import Dict, Literal, Optional, Union
 
+from build.lib.itwinai.distributed import suppress_workers_print
 from itwinai.torch.profiling.profiler import profile_torch_trainer
 import numpy as np
 import torch
@@ -30,9 +31,11 @@ class VirgoTrainingConfiguration(TrainingConfiguration):
     #: Generator to train. Defaults to "unet".
     generator: Literal["simple", "deep", "resnet", "unet"] = "unet"
 
+
 class NoiseGeneratorTrainer(TorchTrainer):
     def __init__(
-        self, num_epochs: int=2,
+        self,
+        num_epochs: int = 2,
         config: Union[Dict, TrainingConfiguration] | None = None,
         strategy: Optional[Literal["ddp", "deepspeed", "horovod"]] = "ddp",
         checkpoint_path: str = "checkpoints/epoch_{}.pth",
@@ -168,6 +171,15 @@ class NoiseGeneratorTrainer(TorchTrainer):
         batch = [x for x in batch if x is not None]
 
         return torch.cat(batch)
+
+    @suppress_workers_print
+    def execute(
+        self,
+        train_dataset: Dataset,
+        validation_dataset: Optional[Dataset] = None,
+        test_dataset: Optional[Dataset] = None,
+    ) -> Tuple[Dataset, Dataset, Dataset, Any]:
+        return super().execute(train_dataset, validation_dataset, test_dataset)
 
     @profile_torch_trainer
     # @measure_gpu_utilization
