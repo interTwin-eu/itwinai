@@ -370,6 +370,10 @@ class TorchDistributedStrategy(DistributedStrategy):
                 worker, otherwise return None.
         """
 
+    @abc.abstractmethod
+    def barrier(self) -> None:
+        """Synchronize processes by stopping all until they reach this point. """
+
 
 class TorchDDPStrategy(TorchDistributedStrategy):
     """PyTorch ``DistributedDataParallel`` distributed strategy class.
@@ -533,6 +537,10 @@ class TorchDDPStrategy(TorchDistributedStrategy):
 
         # Moving everything to the CPU before returning
         return [val.cpu() for val in res]
+
+    @check_initialized
+    def barrier(self) -> None: 
+        dist.barrier()
 
 
 class DeepSpeedStrategy(TorchDistributedStrategy):
@@ -720,6 +728,10 @@ class DeepSpeedStrategy(TorchDistributedStrategy):
         # Moving all the tensors to CPU before returning
         return [val.cpu() for val in res]
 
+    @check_initialized
+    def barrier(self) -> None: 
+        dist.barrier()
+
 
 class HorovodStrategy(TorchDistributedStrategy):
     """Horovod distributed strategy class."""
@@ -889,6 +901,10 @@ class HorovodStrategy(TorchDistributedStrategy):
             # Return only if on rank == dst_rank
             # Moving all the tensors to CPU before returning
             return [val.cpu() for val in result]
+
+    @check_initialized
+    def barrier(self) -> None: 
+        self.hvd.barrier()
 
 
 class NonDistributedStrategy(TorchDistributedStrategy):

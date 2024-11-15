@@ -106,6 +106,7 @@ def profile_torch_trainer(method: Callable) -> Callable:
 
             # Extracting and storing the profiling data
             key_averages = profiler.key_averages()
+            strategy.barrier()
 
         profiling_dataframe = gather_profiling_data(key_averages=key_averages)
         profiling_dataframe["strategy"] = strategy_name
