@@ -19,14 +19,15 @@ cd itwinai-docs
 
 # The first time, you may need to install some Linux packages (assuming Ubuntu system here)
 sudo apt update && sudo apt install libmysqlclient-dev
+sudo apt install pandoc
 sudo apt install python3-sphinx
 
 # Create a python virtual environment and install itwinai and its dependencies
 python3 -m venv .venv-docs
 source .venv-docs/bin/activate
-pip install -r docs/pre-requirements.txt
-pip install -r docs/requirements.txt
-pip install sphinx-rtd-theme
+# pip install -r docs/pre-requirements.txt
+pip install ".[torch,docs,linux]"
+# pip install sphinx-rtd-theme
 
 # Move to the docs folder and build them using Sphinx
 cd docs
