@@ -1,12 +1,10 @@
 # https://jupyter-docker-stacks.readthedocs.io/en/latest/using/selecting.html#jupyter-pytorch-notebook
 # https://github.com/jupyter/docker-stacks/wiki
 
-FROM jupyter/scipy-notebook:python-3.10.11
+ARG BASE_IMG_NAME=jupyter/scipy-notebook:python-3.10.11
+
+FROM ${BASE_IMG_NAME}
 # FROM quay.io/jupyter/pytorch-notebook:x86_64-cuda12-python-3.11
-LABEL org.opencontainers.image.source="https://github.com/interTwin-eu/itwinai"
-LABEL org.opencontainers.image.description="itwinai image with torch dependencies, CUDA drivers, and Rucio client for jupyterlab singleuser server enabled for interLink offloading"
-LABEL org.opencontainers.image.licenses=MIT
-LABEL maintainer="Matteo Bunino - matteo.bunino@cern.ch, VRE Team @ CERN 23/24 - E. Garcia, G. Guerrieri"
 
 # Fix: https://github.com/hadolint/hadolint/wiki/DL4006
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
@@ -263,3 +261,27 @@ COPY tests tests
 WORKDIR $HOME
 
 CMD ["setup.sh", "start-notebook.sh"]
+
+
+# Labels
+ARG CREATION_DATE
+ARG COMMIT_HASH
+ARG ITWINAI_VERSION
+ARG IMAGE_FULL_NAME
+ARG BASE_IMG_DIGEST
+
+# https://github.com/opencontainers/image-spec/blob/main/annotations.md#pre-defined-annotation-keys
+LABEL org.opencontainers.image.created=${CREATION_DATE}
+LABEL org.opencontainers.image.authors="Matteo Bunino - matteo.bunino@cern.ch, VRE Team @ CERN 23/24 - E. Garcia, G. Guerrieri"
+LABEL org.opencontainers.image.url="https://github.com/interTwin-eu/itwinai"
+LABEL org.opencontainers.image.documentation="https://itwinai.readthedocs.io/"
+LABEL org.opencontainers.image.source="https://github.com/interTwin-eu/itwinai"
+LABEL org.opencontainers.image.version=${ITWINAI_VERSION}
+LABEL org.opencontainers.image.revision=${COMMIT_HASH}
+LABEL org.opencontainers.image.vendor="CERN - European Organization for Nuclear Research"
+LABEL org.opencontainers.image.licenses="MIT"
+LABEL org.opencontainers.image.ref.name=${IMAGE_FULL_NAME}
+LABEL org.opencontainers.image.title="itwinai"
+LABEL org.opencontainers.image.description="itwinai image with torch dependencies, CUDA drivers, and Rucio client for jupyterlab singleuser server enabled for interLink offloading"
+LABEL org.opencontainers.image.base.digest=${BASE_IMG_DIGEST}
+LABEL org.opencontainers.image.base.name=${BASE_IMG_NAME}
