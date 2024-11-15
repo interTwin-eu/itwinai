@@ -5,6 +5,7 @@ ARG BASE_IMG_NAME=nvcr.io/nvidia/pytorch:24.05-py3
 # 24.04-py3: https://docs.nvidia.com/deeplearning/frameworks/pytorch-release-notes/rel-24-04.html
 
 FROM ${BASE_IMG_NAME}
+ARG BASE_IMG_NAME
 
 # Fix: https://github.com/hadolint/hadolint/wiki/DL4006
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]

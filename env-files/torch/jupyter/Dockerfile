@@ -1,10 +1,11 @@
 # https://jupyter-docker-stacks.readthedocs.io/en/latest/using/selecting.html#jupyter-pytorch-notebook
 # https://github.com/jupyter/docker-stacks/wiki
 
+# FROM quay.io/jupyter/pytorch-notebook:x86_64-cuda12-python-3.11
 ARG BASE_IMG_NAME=jupyter/scipy-notebook:python-3.10.11
 
 FROM ${BASE_IMG_NAME}
-# FROM quay.io/jupyter/pytorch-notebook:x86_64-cuda12-python-3.11
+ARG BASE_IMG_NAME
 
 # Fix: https://github.com/hadolint/hadolint/wiki/DL4006
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]

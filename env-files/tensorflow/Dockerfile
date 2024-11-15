@@ -5,6 +5,7 @@ ARG BASE_IMG_NAME=nvcr.io/nvidia/tensorflow:24.08-tf2-py3
 # 24.08-tf2-py3: https://docs.nvidia.com/deeplearning/frameworks/pytorch-release-notes/rel-24-08.html
 
 FROM  ${BASE_IMG_NAME}
+ARG BASE_IMG_NAME
 
 # Fix: https://github.com/hadolint/hadolint/wiki/DL4006
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]

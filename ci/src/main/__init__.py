@@ -277,7 +277,7 @@ class Itwinai:
         await self.publish()
 
         # Test on HPC with
-        # await self.test_hpc(kubeconfig=kubeconfig)
+        await self.test_hpc(kubeconfig=kubeconfig)
 
         # Publish to registry with final hash
         itwinai_version = (
