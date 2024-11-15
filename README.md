@@ -128,72 +128,96 @@ git clone [--recurse-submodules] git@github.com:interTwin-eu/itwinai.git
 
 ### Install itwinai environment
 
-You can create the Python virtual environments using our predefined Makefile targets.
+In this project, we are using `uv` as a project-wide package manager. Therefore, if
+you are a developer, you should see the [uv tutorial](/uv-tutorial.md) after reading
+the following `pip` tutorial.
 
-#### Installation with pip or uv
+#### Installation using pip
 
-You can install the environment using the Cuda wheel, CPU wheel or no wheel at all.
-For macOS, you would e.g. use no wheel. This can be done by adding
-`--extra-index-url https://download.pytorch.org/whl/<wheel>` at the end of your
-`pip install` statement. For example, if you want to download using the cuda wheel
-you would do the following:
+##### Creating a venv
 
-```bash
-pip install -e . --no-cache-dir --extra-index-url https://download.pytorch.org/whl/cu121
-```
-
-If you want to use the CPU wheel instead, you would do the following:
+You can install the `itwinai` environment for development using `pip`. First, however,
+you would want to make a Python venv if you haven't already. Make sure you have
+Python installed (on HPC you have to load it with `module load Python`), and then you
+can create a venv with the following command:
 
 ```bash
-pip install -e . --no-cache-dir --extra-index-url https://download.pytorch.org/whl/cpu
+python -m venv <name-of-venv>
 ```
 
-If you use linux or macOS, make sure to add this to your installation with extras.
-For example, if you want to install for macOS as a developer, you would want to add
-the `dev` extra and the `macos` extra as follows:
+For example, if I wanted to create a venv in the directory `.venv` (which is useful if
+you use e.g. `uv`), then I would do:
 
 ```bash
-pip install -e ".[dev,macos]" --no-cache-dir
+python -m venv .venv
 ```
 
-> [!NOTE]
-> We use `-e` here because we are in development mode and thus want any changes we make
-> to immediately be applied to our venv without having to reinstall.
-
-If you want to use `uv`, which will significantly speed up the installation, you can
-prepend `uv` to the `pip` command and it will work in the same way. This assumes that
-you already have `uv` installed on your system. An example:
+After this you can activate your venv using the following command:
 
 ```bash
-uv pip install -e . --no-cache-dir --extra-index-url https://download.pytorch.org/whl/cu121
+source .venv/bin/activate
 ```
 
-This does not install `Horovod` and `DeepSpeed`, however, as they require a specialized
-[script](env-files/torch/install-horovod-deepspeed-cuda.sh). If you do not require
-Cuda, then you can install them using `pip` as follows:
+Now anything you pip install will be installed in your venv and if you run any python
+commands they will use the version from your venv.
+
+##### Installation of packages
+
+We provide some _extras_ that can be activated depending on which platform you are
+using.
+
+- `macos` or `linux` depending on which OS you use. Changes the version of `prov4ML`.
+- `dev` for development purposes. Includes libraries for testing and tensorboard etc.
+- `torch` for installation with PyTorch.
+
+If you want to install PyTorch using CUDA then you also have to add an
+`--extra-index-url` to the CUDA version that you want. Since you are developing the
+library, you also want to enable the editable flag, `-e`, so that you don't have to
+reinstall everything every time you make a change. If you are on HPC, then you will
+usually want to add the `--no-cache-dir` flag to avoid filling up your `~/.cache`
+directory, as you can very easily reach your disk quota otherwise. An example of a
+complete command for installing as a developer on HPC with CUDA thus becomes:
+
+```bash
+pip install -e .[torch,dev,linux] \
+    --no-cache-dir \
+    --extra-index-url https://download.pytorch.org/whl/cu121
+```
+
+If you wanted to install this locally on macOS (i.e. without CUDA) with PyTorch, you
+would do the following instead:
+
+```bash
+pip install -e .[torch,dev,macos]
+```
+
+<!-- You can create the Python virtual environments using our predefined Makefile targets. -->
+
+#### Horovod and DeepSpeed
+
+The above does not install `Horovod` and `DeepSpeed`, however, as they require a
+specialized [script](env-files/torch/install-horovod-deepspeed-cuda.sh). If you do not
+require CUDA, then you can install them using `pip` as follows:
 
 ```bash
 pip install --no-cache-dir --no-build-isolation git+https://github.com/horovod/horovod.git
 pip install --no-cache-dir --no-build-isolation deepspeed
 ```
 
-> [!NOTE]
-> It is possible to not use `--no-cache-dir` on a local computer, but on HPC systems we
-> recommend using it in order to not fill up your `.cache` directory.
+<!-- Going to want to write more about this later -->
+<!-- #### Installation using `uv.lock` -->
+<!---->
+<!-- The `uv.lock` file provides more precise information about the versions of the libraries -->
+<!-- that are used and thus could be better to install from. If you have `uv` installed, -->
+<!-- all you need to do is `uv sync` and it will make your `.venv` directory match the -->
+<!-- spec in the `uv.lock` file. If you want to add new packages to the `uv.lock` file, you -->
+<!-- can do so with the `uv lock` command. -->
+<!---->
+<!-- > [!WARNING] -->
+<!-- > Even if you have a venv activated while running `uv sync`, the packages will not -->
+<!-- > be installed there unless the venv's directory is called exactly `.venv`. -->
 
-##### Installation using `uv.lock`
-
-The `uv.lock` file provides more precise information about the versions of the libraries
-that are used and thus could be better to install from. If you have `uv` installed,
-all you need to do is `uv sync` and it will make your `.venv` directory match the
-spec in the `uv.lock` file. If you want to add new packages to the `uv.lock` file, you
-can do so with the `uv lock` command.
-
-> [!WARNING]
-> Even if you have a venv activated while running `uv sync`, the packages will not
-> be installed there unless the venv's directory is called exactly `.venv`.
-
-#### PyTorch (+ Lightning) virtual environment
+#### PyTorch (+ Lightning) virtual environment with makefiles
 
 Makefile targets for environment installation:
 
