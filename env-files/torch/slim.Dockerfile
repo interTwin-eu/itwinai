@@ -43,19 +43,6 @@ RUN /usr/bin/python3.10 -m venv /opt/venv \
     # Needed to install horovod
     wheel
 
-# TODO: check that the correct pytorch version is preserved
-
-# RUN pip install --no-cache-dir \
-#     "deepspeed==0.15.*" \
-#     "torch==2.4.*"
-
-# RUN pip install --no-cache-dir wheel
-# RUN pip install --no-cache-dir --no-build-isolation \
-#     "horovod[pytorch]@git+https://github.com/horovod/horovod.git@3a31d93"
-# RUN pip install --no-cache-dir \
-#     "prov4ml[nvidia]@git+https://github.com/matbun/ProvML@new-main" \
-#     ray[tune] 
-
 RUN CONTAINER_TORCH_VERSION="$(python -c 'import torch;print(torch.__version__)')" \
     && pip install --no-cache-dir torch=="$CONTAINER_TORCH_VERSION" \
     deepspeed==0.15.* \
