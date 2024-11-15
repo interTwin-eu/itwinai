@@ -18,15 +18,13 @@ ENV DEBIAN_FRONTEND=noninteractive
 
 WORKDIR /app
 
-ENV DEBIAN_FRONTEND=noninteractive
-
 RUN apt-get update && apt-get install -y \
     # Needed by Prov4ML/yProvML to generate provenance graph
     dot2tex \
     && apt-get clean -y && rm -rf /var/lib/apt/lists/*
 
-# Inprove robustness: avoid silent override by Singularity/Apptainer
-ENV PYTHONPATH=""
+# # Improve robustness: avoid silent override by Singularity/Apptainer
+# ENV PYTHONPATH=""
 
 # https://github.com/mpi4py/mpi4py/pull/431
 RUN pip install --no-cache-dir --upgrade pip \

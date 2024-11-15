@@ -24,3 +24,15 @@ dagger call --commit-id="$(git rev-parse --verify HEAD)" \
 dagger call \
     build-container --context=.. --dockerfile=../env-files/torch/Dockerfile \
     terminal
+
+
+############## SLIM ###############
+# Build container with additional requirements
+dagger call --commit-id="$(git rev-parse --verify HEAD)"  \
+    build-container --context=.. --dockerfile=../env-files/torch/slim.Dockerfile \
+    test-local
+
+dagger call --commit-id="$(git rev-parse --verify HEAD)_slim" \
+    build-container --context=.. --dockerfile=../env-files/torch/slim.Dockerfile \
+    test-n-publish --kubeconfig=env:KUBECONFIG_STR --stage=DEV --framework=TORCH \
+    --tag-template='${itwinai_version}-slim-torch${framework_version}-${ubuntu_codename}'

@@ -248,8 +248,7 @@ class Itwinai:
         if framework == MLFramework.TORCH:
             tag_template = (
                 tag_template
-                if tag_template
-                else ("${itwinai_version}-torch${framework_version}-${ubuntu_codename}")
+                or "${itwinai_version}-torch${framework_version}-${ubuntu_codename}"
             )
             framework_version = (
                 await self.container.with_exec(
@@ -265,9 +264,7 @@ class Itwinai:
             ).strip()
         elif framework == MLFramework.TENSORFLOW:
             tag_template = (
-                tag_template
-                if tag_template
-                else ("${itwinai_version}-tf${framework_version}-${ubuntu_codename}")
+                tag_template or "${itwinai_version}-tf${framework_version}-${ubuntu_codename}"
             )
             framework_version = (
                 await self.container.with_exec(
