@@ -197,15 +197,12 @@ class ItwinaiLogger(LightningLogger):
 
             artifact_path = Path(path).stem
 
-            print(f"Path: {path}")
-            print(f"Identifier: {artifact_path}")
             # Log the checkpoint
             self.experiment.log(item=path, identifier=artifact_path, kind="artifact")
 
             with tempfile.TemporaryDirectory(
                 prefix="test", suffix="test", dir=os.getcwd()
             ) as tmp_dir:
-                print(f"temp_dir: {tmp_dir}")
                 # Save the metadata
                 with open(f"{tmp_dir}/metadata.yaml", "w") as tmp_file_metadata:
                     yaml.dump(metadata, tmp_file_metadata, default_flow_style=False)
