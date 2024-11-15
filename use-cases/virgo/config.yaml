@@ -1,7 +1,8 @@
-root_folder: /p/scratch/intertwin/datasets/virgo
+hdf5_file_location: /p/scratch/intertwin/datasets/virgo_hdf5/virgo_data.hdf5
+hdf5_dataset_name: virgo_dataset
 data_root: ./data
-epochs: 2
-batch_size: 3
+epochs: 5
+batch_size: 2000 # equivalent to chunk size 
 learning_rate: 0.0001
 strategy: ddp
 checkpoint_path: checkpoints/epoch_{}.pth
@@ -16,12 +17,14 @@ training_pipeline:
           train_proportion: 0.9
           validation_proportion: 0.1
           rnd_seed: 42
-          root_folder: ${root_folder}
+          hdf5_file_location: ${hdf5_file_location}
+          chunk_size: ${batch_size}
+          hdf5_dataset_name: ${hdf5_dataset_name}
       - class_path: trainer.NoiseGeneratorTrainer
         init_args:
           config:
             generator: simple #unet
-            batch_size: ${batch_size}
+            batch_size: 1
             optim_lr: ${learning_rate}
             loss: l1
             save_best: true
@@ -31,6 +34,8 @@ training_pipeline:
           checkpoint_path: ${checkpoint_path}
           random_seed: 17
           validation_every: 0
+          profiling_wait_epochs: 0
+          profiling_warmup_epochs: 0
           logger:
             class_path: itwinai.loggers.LoggersCollection
             init_args:
@@ -42,8 +47,8 @@ training_pipeline:
                   init_args:
                     experiment_name: Noise simulator (Virgo)
                     log_freq: batch 
-       
-          
+
+
 # To use a small dataset that is generated within the pipeline
 training_pipeline_small:
   class_path: itwinai.pipeline.Pipeline
