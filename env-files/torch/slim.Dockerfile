@@ -50,6 +50,7 @@ RUN CONTAINER_TORCH_VERSION="$(python -c 'import torch;print(torch.__version__)'
     "prov4ml[nvidia]@git+https://github.com/matbun/ProvML@new-main" \
     ray[tune] 
 
+WORKDIR /app
 COPY src src
 COPY pyproject.toml pyproject.toml
 
@@ -71,7 +72,19 @@ RUN ln -s /usr/local/bin/python3.10 /usr/bin/python3.10
 # https://pythonspeed.com/articles/multi-stage-docker-python/
 ENV PATH="/opt/venv/bin:$PATH"
 
+# # Singularity may change the $PATH, hence this env var may increase the chances that the venv
+# # is actually recognised
+# ENV VIRTUAL_ENV=/opt/venv
+
+# # Setting PYTHONPATH may prevent singularity from overriding it and potentially breaking the
+# # container. However, still needs to be clarified whether this is the best way to go
+# ENV PYTHONPATH=""
+
 RUN itwinai sanity-check --torch \
     --optional-deps deepspeed \
     --optional-deps horovod \
     --optional-deps ray
+
+WORKDIR /app
+COPY pyproject.toml pyproject.toml
+COPY tests tests
