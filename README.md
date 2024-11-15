@@ -128,14 +128,18 @@ git clone [--recurse-submodules] git@github.com:interTwin-eu/itwinai.git
 
 ### Install itwinai environment
 
+In this project, we are using `uv` as a project-wide package manager. Therefore, if
+you are a developer, you should see the [uv tutorial](/uv-tutorial.md) after reading
+the following `pip` tutorial.
+
 #### Installation using pip
 
 ##### Creating a venv
 
-You can install the `itwinai` environment for development using `pip`. First, however, 
-you would want to make a Python venv if you haven't already. Make sure you have 
-Python installed (on HPC you have to load it with `module load Python`), and then you 
-can create a venv with the following command: 
+You can install the `itwinai` environment for development using `pip`. First, however,
+you would want to make a Python venv if you haven't already. Make sure you have
+Python installed (on HPC you have to load it with `module load Python`), and then you
+can create a venv with the following command:
 
 ```bash
 python -m venv <name-of-venv>
@@ -148,31 +152,31 @@ you use e.g. `uv`), then I would do:
 python -m venv .venv
 ```
 
-After this you can activate your venv using the following command: 
+After this you can activate your venv using the following command:
 
 ```bash
 source .venv/bin/activate
 ```
 
 Now anything you pip install will be installed in your venv and if you run any python
-commands they will use the version from your venv. 
+commands they will use the version from your venv.
 
 ##### Installation of packages
 
-We provide some __extras__ that can be activated depending on which platform you are 
-using. 
+We provide some __extras__ that can be activated depending on which platform you are
+using.
 
 - `macos` or `linux` depending on which OS you use. Changes the version of `prov4ML`.
-- `dev` for development purposes. Includes libraries for testing and tensorboard etc. 
-- `torch` for installation with PyTorch. 
+- `dev` for development purposes. Includes libraries for testing and tensorboard etc.
+- `torch` for installation with PyTorch.
 
-If you want to install PyTorch using CUDA then you also have to add an 
-`--extra-index-url` to the CUDA version that you want. Since you are developing the 
-library, you also want to enable the editable flag, `-e`, so that you don't have to 
-reinstall everything every time you make a change. If you are on HPC, then you will 
-usually want to add the `--no-cache-dir` flag to avoid filling up your `~/.cache` 
-directory, as you can very easily reach your disk quota otherwise. An example of a 
-complete command for installing as a developer on HPC with CUDA thus becomes: 
+If you want to install PyTorch using CUDA then you also have to add an
+`--extra-index-url` to the CUDA version that you want. Since you are developing the
+library, you also want to enable the editable flag, `-e`, so that you don't have to
+reinstall everything every time you make a change. If you are on HPC, then you will
+usually want to add the `--no-cache-dir` flag to avoid filling up your `~/.cache`
+directory, as you can very easily reach your disk quota otherwise. An example of a
+complete command for installing as a developer on HPC with CUDA thus becomes:
 
 ```bash
 pip install -e .[torch,dev,linux] \
@@ -180,8 +184,8 @@ pip install -e .[torch,dev,linux] \
     --extra-index-url https://download.pytorch.org/whl/cu121
 ```
 
-If you wanted to install this locally on macOS (i.e. without CUDA) with PyTorch, you 
-would do the following instead: 
+If you wanted to install this locally on macOS (i.e. without CUDA) with PyTorch, you
+would do the following instead:
 
 ```bash
 pip install -e .[torch,dev,macos]
@@ -190,8 +194,8 @@ pip install -e .[torch,dev,macos]
 <!-- You can create the Python virtual environments using our predefined Makefile targets. -->
 
 #### Horovod and DeepSpeed
-The above does not install `Horovod` and `DeepSpeed`, however, as they require a 
-specialized [script](env-files/torch/install-horovod-deepspeed-cuda.sh). If you do not 
+The above does not install `Horovod` and `DeepSpeed`, however, as they require a
+specialized [script](env-files/torch/install-horovod-deepspeed-cuda.sh). If you do not
 require CUDA, then you can install them using `pip` as follows:
 
 ```bash
