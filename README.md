@@ -163,7 +163,7 @@ commands they will use the version from your venv.
 
 ##### Installation of packages
 
-We provide some __extras__ that can be activated depending on which platform you are
+We provide some _extras_ that can be activated depending on which platform you are
 using.
 
 - `macos` or `linux` depending on which OS you use. Changes the version of `prov4ML`.
@@ -194,6 +194,7 @@ pip install -e .[torch,dev,macos]
 <!-- You can create the Python virtual environments using our predefined Makefile targets. -->
 
 #### Horovod and DeepSpeed
+
 The above does not install `Horovod` and `DeepSpeed`, however, as they require a
 specialized [script](env-files/torch/install-horovod-deepspeed-cuda.sh). If you do not
 require CUDA, then you can install them using `pip` as follows:

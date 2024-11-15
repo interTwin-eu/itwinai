@@ -1,7 +1,8 @@
 # Tutorial for using the uv package manager
+
 [uv](https://docs.astral.sh/uv/) is a Python package manager meant to act as a drop-in
 replacement for `pip` (and many more tools). In this project, we use it to manage our
-packages, similar to how `poetry` works. This is done using a lock file called
+packages, similar to how `poetry` works. This is done using a lockfile called
 `uv.lock`.
 
 ## uv as a drop-in replacement for pip
@@ -20,6 +21,7 @@ bit annoying, especially with an existing venv, so we recommend using a
 [symlink](https://en.wikipedia.org/wiki/Symbolic_link).
 
 ### Symlinking .venv
+
 To create a symlink between your venv and the `.venv` directory, you can use the
 following command:
 
