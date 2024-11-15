@@ -1,10 +1,10 @@
 # Read The Docs documentation page
 
-The docs can be built either locally on your system, or remotely on JSC. 
+The docs can be built either locally on your system or remotely on JSC. 
 
 ## Build docs locally
 
-To build the docs locally and visualize them in your browser, without relying on external
+To build the docs locally and visualize them in your browser without relying on external
 services (e.g., Read The Docs cloud), use the following commands:
 
 ```bash
@@ -42,7 +42,7 @@ explained above. However, the environment setup must be slightly adapted to use
 some modules provided on the HPC system.
 
 To manage the docs, you can simply use the Makefile target
-belows.
+below.
 
 From the repository's root, create the docs virtual environment:
 
@@ -50,8 +50,7 @@ From the repository's root, create the docs virtual environment:
 make docs-env-jsc
 ```
 
-Once the environment is ready, build the docs
-and serve them on localhost:
+Once the environment is ready, build the docs and serve them on localhost:
 
 ```bash
 make docs-jsc
