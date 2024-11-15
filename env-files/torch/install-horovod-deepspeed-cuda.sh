@@ -33,7 +33,7 @@ export HOROVOD_WITH_PYTORCH=1
 export HOROVOD_WITHOUT_TENSORFLOW=1
 export HOROVOD_WITHOUT_MXNET=1
 
-uv pip install --no-cache-dir --no-build-isolation git+https://github.com/horovod/horovod.git
+uv pip install --no-cache-dir horovod[pytorch]
 
 # DeepSpeed variables
 export DS_BUILD_CCL_COMM=1
