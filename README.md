@@ -129,7 +129,7 @@ git clone [--recurse-submodules] git@github.com:interTwin-eu/itwinai.git
 ### Install itwinai environment
 
 In this project, we are using `uv` as a project-wide package manager. Therefore, if
-you are a developer, you should see the [uv tutorial](/uv-tutorial.md) after reading
+you are a developer, you should see the [uv tutorial](./uv-tutorial.md) after reading
 the following `pip` tutorial.
 
 #### Installation using pip
