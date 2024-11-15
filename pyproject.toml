@@ -55,7 +55,7 @@ dev = [
   "pytest-cov>=4.1.0",
   "tensorflow==2.16.*", # needed by tests on tensorboard
   "ipykernel>=6.29.5",
-  "ipython>=8.29.0",
+  "ipython",
   "isort>=5.13.2",
 ]
 macos = [

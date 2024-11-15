@@ -14,9 +14,21 @@
 
 ml --force purge
 ml Stages/2024 GCC OpenMPI CUDA/12 cuDNN MPI-settings/CUDA
-ml Python CMake HDF5 PnetCDF libaio mpi4py git Clang
+ml Python/3.11.3 CMake HDF5 PnetCDF libaio mpi4py git Clang
 
 source .venv/bin/activate
+
+# DeepSpeed variables
+export DS_BUILD_CCL_COMM=1
+export DS_BUILD_UTILS=1
+export DS_BUILD_AIO=1
+export DS_BUILD_FUSED_ADAM=1
+export DS_BUILD_FUSED_LAMB=1
+export DS_BUILD_TRANSFORMER=1
+export DS_BUILD_STOCHASTIC_TRANSFORMER=1
+export DS_BUILD_TRANSFORMER_INFERENCE=1
+
+pip install --no-cache-dir --no-build-isolation "deepspeed==0.15.*"
 
 # Horovod variables
 export LDSHARED="$CC -shared" &&
@@ -33,16 +45,4 @@ export HOROVOD_WITH_PYTORCH=1
 export HOROVOD_WITHOUT_TENSORFLOW=1
 export HOROVOD_WITHOUT_MXNET=1
 
-uv pip install --no-cache-dir horovod[pytorch]
-
-# DeepSpeed variables
-export DS_BUILD_CCL_COMM=1
-export DS_BUILD_UTILS=1
-export DS_BUILD_AIO=1
-export DS_BUILD_FUSED_ADAM=1
-export DS_BUILD_FUSED_LAMB=1
-export DS_BUILD_TRANSFORMER=1
-export DS_BUILD_STOCHASTIC_TRANSFORMER=1
-export DS_BUILD_TRANSFORMER_INFERENCE=1
-
-uv pip install --no-cache-dir --no-build-isolation deepspeed
+pip install --no-cache-dir 'horovod[pytorch] @ git+https://github.com/horovod/horovod'
