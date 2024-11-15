@@ -155,7 +155,8 @@ class Itwinai:
                 "--ntasks-per-node=1 --nodes=1 --time=00:10:00"
             ),
             "slurm-job.vk.io/pre-exec": (
-                f" $({pre_exec_cmd}) || export SINGULARITYENV_PRE_EXEC_RETURN_CODE=1"
+                "trap 'export SINGULARITYENV_PRE_EXEC_RETURN_CODE=1' ERR && "
+                f"(set -e && {pre_exec_cmd}) ; trap - ERR"
             ),
         }
         image_path = "/ceph/hpc/data/st2301-itwin-users/cern/hello-world-image.sif"
