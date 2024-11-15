@@ -1,6 +1,6 @@
 # Read The Docs documentation page
 
-The docs can be built either locally on your system or remotely on JSC. 
+The docs can be built either locally on your system or remotely on JSC.
 
 ## Build docs locally
 
