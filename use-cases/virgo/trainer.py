@@ -4,6 +4,7 @@ from pathlib import Path
 from timeit import default_timer as timer
 from typing import Dict, Literal, Optional, Union
 
+from itwinai.torch.profiling.profiler import profile_torch_trainer
 import numpy as np
 import torch
 import torch.nn as nn
@@ -33,8 +34,7 @@ class VirgoTrainingConfiguration(TrainingConfiguration):
 
 class NoiseGeneratorTrainer(TorchTrainer):
     def __init__(
-        self,
-        num_epochs: int = 2,
+        self, num_epochs: int = 2,
         config: Union[Dict, TrainingConfiguration] | None = None,
         strategy: Optional[Literal["ddp", "deepspeed", "horovod"]] = "ddp",
         checkpoint_path: str = "checkpoints/epoch_{}.pth",
@@ -91,7 +91,9 @@ class NoiseGeneratorTrainer(TorchTrainer):
             raise ValueError("Unrecognized loss type! Got", loss)
 
         # Optimizer
-        self.optimizer = torch.optim.Adam(self.model.parameters(), lr=self.config.optim_lr)
+        self.optimizer = torch.optim.Adam(
+            self.model.parameters(), lr=self.config.optim_lr
+        )
 
         # IMPORTANT: model, optimizer, and scheduler need to be distributed
 
