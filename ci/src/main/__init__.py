@@ -22,6 +22,7 @@ if appropriate. All modules should have a short description.
 # >>> from .main import Itwinai as Itwinai
 
 import dataclasses
+import datetime
 import random
 from string import Template
 from typing import Annotated, Optional, Self
@@ -32,9 +33,33 @@ from dagger import BuildArg, Doc, dag, function, object_type
 from .literals import MLFramework, Stage
 
 
+def get_codename(release_info: str) -> str:
+    """
+    Extracts the codename (VERSION_CODENAME or os_version) from release information.
+
+    Args:
+        release_info (str): The string containing the output of /etc/*-release.
+
+    Returns:
+        str: The extracted codename (e.g., "jammy" or "bookworm").
+    """
+    # Create a dictionary from the release info
+    release_dict = {}
+    for line in release_info.splitlines():
+        if "=" in line:
+            key, value = line.split("=", 1)
+            release_dict[key.strip()] = value.strip().strip('"')
+
+    # Attempt to extract the codename
+    return release_dict.get("VERSION_CODENAME", release_dict.get("os_version", "Unknown"))
+
+
 @object_type
 class Itwinai:
-    commit_id: Annotated[Optional[str], Doc("Git commit hash of HEAD")] = None
+    unique_id: Annotated[
+        Optional[str],
+        Doc("Unique ID to identify the image from tag. Could be the git commit hash of HEAD"),
+    ] = None
     container: Optional[dagger.Container] = dataclasses.field(default=None, init=False)
     full_name: Optional[str] = dataclasses.field(default=None, init=False)
 
@@ -43,7 +68,7 @@ class Itwinai:
     # methods in this class in order
 
     @function
-    def build_container(
+    async def build_container(
         self,
         context: Annotated[
             dagger.Directory,
@@ -53,9 +78,9 @@ class Itwinai:
             str,
             Doc("location of Dockerfile"),
         ],
-        additional_requirements: Annotated[
+        build_args: Annotated[
             Optional[str],
-            Doc("Path to pip requirements file, e.g., for use case requirements"),
+            Doc("Comma-separated build args"),
         ] = None,
     ) -> Self:
         """Build itwinai container image from existing Dockerfile"""
@@ -66,14 +91,41 @@ class Itwinai:
         #     .with_file("/src/additional_requirements.txt", additional_requirements)
         #     .directory("/src")
         # )
-        build_args = []
-        if additional_requirements:
-            build_args = [BuildArg(name="REQUIREMENTS", value=additional_requirements)]
-        self.container = dag.container().build(
-            context=context,
-            dockerfile=dockerfile,
-            build_args=build_args,
+        if build_args:
+            build_args = [
+                BuildArg(name=arg_couple.split("=")[0], value=arg_couple.split("=")[1])
+                for arg_couple in build_args.split(",")
+            ]
+
+        self.container = (
+            dag.container()
+            .build(
+                context=context,
+                dockerfile=dockerfile,
+                build_args=build_args,
+            )
+            .with_label(
+                name="org.opencontainers.image.created",
+                value=datetime.datetime.now(datetime.timezone.utc).isoformat(),
+            )
         )
+
+        # Get itwinai version
+        itwinai_version = (
+            await self.container.with_exec(
+                [
+                    "bash",
+                    "-c",
+                    'pip list | grep -w "itwinai" | head -n 1 | tr -s " " | cut -d " " -f2 ',
+                ]
+            ).stdout()
+        ).strip()
+
+        self.container = self.container.with_label(
+            name="org.opencontainers.image.version",
+            value=itwinai_version,
+        )
+
         return self
 
     @function
@@ -107,15 +159,16 @@ class Itwinai:
         """Push container to registry"""
         from datetime import datetime
 
-        tag = tag if tag else self.commit_id
-        tag = tag if tag else random.randrange(10**8)
+        tag = tag or self.unique_id or random.randrange(10**8)
         self.full_name = f"{registry}/{name}:{tag}"
         return await (
-            self.container
+            self.container.with_label(
+                name="org.opencontainers.image.ref.name",
+                value=self.full_name,
+            )
             # Invalidate cache to ensure that the container is always pushed
-            .with_env_variable(
-                "CACHE", datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")
-            ).publish(self.full_name)
+            .with_env_variable("CACHE", datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f"))
+            .publish(self.full_name)
         )
 
     @function
@@ -193,7 +246,7 @@ class Itwinai:
             Optional[str],
             Doc(
                 "Custom image tag pattern. Example: "
-                "'${itwinai_version}-torch${torch_version}-${ubuntu_codename}'"
+                "'${itwinai_version}-torch${torch_version}-${os_version}'"
             ),
         ] = None,
         framework: Annotated[
@@ -224,7 +277,7 @@ class Itwinai:
         await self.publish()
 
         # Test on HPC with
-        await self.test_hpc(kubeconfig=kubeconfig)
+        # await self.test_hpc(kubeconfig=kubeconfig)
 
         # Publish to registry with final hash
         itwinai_version = (
@@ -236,20 +289,20 @@ class Itwinai:
                 ]
             ).stdout()
         ).strip()
-        ubuntu_codename = (
+        os_info = (
             await self.container.with_exec(
                 [
                     "bash",
                     "-c",
-                    "cat /etc/*-release | grep -w DISTRIB_CODENAME | head -n 1 | cut -d = -f2",
+                    "cat /etc/*-release",
                 ]
             ).stdout()
         ).strip()
+        os_version = get_codename(os_info)
 
         if framework == MLFramework.TORCH:
             tag_template = (
-                tag_template
-                or "${itwinai_version}-torch${framework_version}-${ubuntu_codename}"
+                tag_template or "${itwinai_version}-torch${framework_version}-${os_version}"
             )
             framework_version = (
                 await self.container.with_exec(
@@ -265,7 +318,7 @@ class Itwinai:
             ).strip()
         elif framework == MLFramework.TENSORFLOW:
             tag_template = (
-                tag_template or "${itwinai_version}-tf${framework_version}-${ubuntu_codename}"
+                tag_template or "${itwinai_version}-tf${framework_version}-${os_version}"
             )
             framework_version = (
                 await self.container.with_exec(
@@ -284,6 +337,6 @@ class Itwinai:
         tag = Template(tag_template).substitute(
             itwinai_version=itwinai_version,
             framework_version=framework_version,
-            ubuntu_codename=ubuntu_codename,
+            os_version=os_version,
         )
         await self.publish(name=image, tag=tag)

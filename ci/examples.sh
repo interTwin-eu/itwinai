@@ -7,16 +7,17 @@ dagger call \
     test-local
 # Build container with additional requirements
 dagger call \
-    build-container --context=.. --dockerfile=../env-files/torch/Dockerfile --additional-requirements env-files/torch/requirements/cmcc-requirements.txt \
+    build-container --context=.. --dockerfile=../env-files/torch/Dockerfile \
+        --build-args="REQUIREMENTS=env-files/torch/requirements/cmcc-requirements.txt" \
     test-local
 
 # Build and publish
-dagger call --commit-id="$(git rev-parse --verify HEAD)" \
+dagger call --unique-id="$(git rev-parse --verify HEAD)" \
     build-container --context=.. --dockerfile=../env-files/torch/Dockerfile \
     publish
 
 # Pipeline method: build, test local, push, test remote, and push (publish)
-dagger call --commit-id="$(git rev-parse --verify HEAD)" \
+dagger call --unique-id="$(git rev-parse --verify HEAD)" \
     build-container --context=.. --dockerfile=../env-files/torch/Dockerfile \
     test-n-publish --kubeconfig=env:KUBECONFIG_STR --stage=DEV --framework=TORCH
 
@@ -28,11 +29,15 @@ dagger call \
 
 ############## SLIM ###############
 # Build container with additional requirements
-dagger call --commit-id="$(git rev-parse --verify HEAD)"  \
+dagger call --unique-id="$(git rev-parse --verify HEAD)"  \
     build-container --context=.. --dockerfile=../env-files/torch/slim.Dockerfile \
     test-local
 
-dagger call --commit-id="$(git rev-parse --verify HEAD)_slim" \
+export COMMIT_HASH=$(git rev-parse --verify HEAD)
+export BASE_IMG_NAME="python:3.10-slim"
+export BASE_IMG_DIGEST="$(docker pull $BASE_IMG_NAME > /dev/null 2>&1 && docker inspect $BASE_IMG_NAME --format='{{index .RepoDigests 0}}' | awk -F'@' '{print $2}')"
+dagger call --unique-id="${COMMIT_HASH}_torch_slim" \
     build-container --context=.. --dockerfile=../env-files/torch/slim.Dockerfile \
+        --build-args="COMMIT_HASH=$COMMIT_HASH,BASE_IMG_NAME=$BASE_IMG_NAME,BASE_IMG_DIGEST=$BASE_IMG_DIGEST" \
     test-n-publish --kubeconfig=env:KUBECONFIG_STR --stage=DEV --framework=TORCH \
-    --tag-template='${itwinai_version}-slim-torch${framework_version}-${ubuntu_codename}'
+    --tag-template='${itwinai_version}-slim-torch${framework_version}-${os_version}'

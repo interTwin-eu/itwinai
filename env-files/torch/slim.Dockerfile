@@ -1,10 +1,11 @@
 # Dockerfile for slim itwinai image. MPI, CUDA and other need to be mounted from the host machine.
 
+ARG BASE_IMG_NAME=python:3.10-slim
+
 FROM nvcr.io/nvidia/pytorch:24.05-py3 AS build
 
 RUN apt-get update && apt-get install -y \
     build-essential \
-    # cargo \
     curl \
     python3.10-venv
 
@@ -61,7 +62,9 @@ RUN pip install --no-cache-dir .[torch,dev] \
     --optional-deps ray
 
 # App image
-FROM python:3.10-slim
+FROM ${BASE_IMG_NAME}
+ARG BASE_IMG_NAME
+
 COPY --from=build /opt/venv /opt/venv
 
 # Link /usr/local/bin/python3.10 (in the app image) to /usr/bin/python3.10 (in the builder image)
@@ -88,3 +91,26 @@ RUN itwinai sanity-check --torch \
 WORKDIR /app
 COPY pyproject.toml pyproject.toml
 COPY tests tests
+
+# Labels
+ARG CREATION_DATE
+ARG COMMIT_HASH
+ARG ITWINAI_VERSION
+ARG IMAGE_FULL_NAME
+ARG BASE_IMG_DIGEST
+
+# https://github.com/opencontainers/image-spec/blob/main/annotations.md#pre-defined-annotation-keys
+LABEL org.opencontainers.image.created=${CREATION_DATE}
+LABEL org.opencontainers.image.authors="Matteo Bunino - matteo.bunino@cern.ch"
+LABEL org.opencontainers.image.url="https://github.com/interTwin-eu/itwinai"
+LABEL org.opencontainers.image.documentation="https://itwinai.readthedocs.io/"
+LABEL org.opencontainers.image.source="https://github.com/interTwin-eu/itwinai"
+LABEL org.opencontainers.image.version=${ITWINAI_VERSION}
+LABEL org.opencontainers.image.revision=${COMMIT_HASH}
+LABEL org.opencontainers.image.vendor="CERN - European Organization for Nuclear Research"
+LABEL org.opencontainers.image.licenses="MIT"
+LABEL org.opencontainers.image.ref.name=${IMAGE_FULL_NAME}
+LABEL org.opencontainers.image.title="itwinai"
+LABEL org.opencontainers.image.description="Lightweight base itwinai image with torch dependencies without CUDA drivers"
+LABEL org.opencontainers.image.base.digest=${BASE_IMG_DIGEST}
+LABEL org.opencontainers.image.base.name=${BASE_IMG_NAME}
