@@ -56,16 +56,35 @@ def get_codename(release_info: str) -> str:
 
 @object_type
 class Itwinai:
-    unique_id: Annotated[
+    name: Annotated[
         Optional[str],
-        Doc("Unique ID to identify the image from tag. Could be the git commit hash of HEAD"),
+        Doc(
+            "Unique name to identify the image from tag. Could be the git commit hash of HEAD"
+        ),
     ] = None
-    container: Optional[dagger.Container] = dataclasses.field(default=None, init=False)
-    full_name: Optional[str] = dataclasses.field(default=None, init=False)
+    container: Annotated[Optional[dagger.Container], Doc("Container instance")] = (
+        dataclasses.field(default=None, init=False)
+    )
+    full_name: Annotated[
+        Optional[str],
+        Doc("Full image name. Example: ghcr.io/intertwin-eu/itwinai-dev:0.2.3-torch2.4-jammy"),
+    ] = dataclasses.field(default=None, init=False)
+    _unique_id: Optional[str] = dataclasses.field(default=None, init=False)
 
     # Note: since build_container returns self, when executing only it through dagger call
     # (e.g., dagger call build-container [args]), dagger will actually execute all the
     # methods in this class in order
+
+    @function
+    def get_name(self) -> str:
+        return f"{self.name} - {self.unique_id}"
+
+    @property
+    def unique_id(self) -> str:
+        """Unique ID of the container. Falls back to random integer."""
+        if self._unique_id is None:
+            self._unique_id = self.name or str(random.randrange(10**8))
+        return self._unique_id
 
     @function
     async def build_container(
@@ -159,7 +178,7 @@ class Itwinai:
         """Push container to registry"""
         from datetime import datetime
 
-        tag = tag or self.unique_id or random.randrange(10**8)
+        tag = tag or self.unique_id
         self.full_name = f"{registry}/{name}:{tag}"
         return await (
             self.container.with_label(
@@ -218,7 +237,7 @@ class Itwinai:
             annotations=annotations,
             image_path=image_path,
             cmd_args=cmd_args,
-            name="ci-test-itwinai-hpc",
+            name=f"ci-test-itwinai-hpc-{self.unique_id}",
         )
 
         # Submit pod
