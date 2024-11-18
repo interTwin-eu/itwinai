@@ -371,3 +371,25 @@ hashes.
 > It is very important to keep the number of tags for `itwinai-cvmfs` as low
 > as possible. Tags should only be created under this namespace when strictly
 > necessary. Otherwise, this could cause issues for the Unpacker.
+
+### Building a new container
+
+Our docker manifests support labels to record provenance information, which can be lately
+accessed by `docker inspect IMAGE_NAME:TAG`.
+
+A full example below:
+
+```bash
+export BASE_IMG_NAME="what goes after the last FROM"
+export IMAGE_FULL_NAME="IMAGE_NAME:TAG"
+docker build \
+    -t "$IMAGE_FULL_NAME" \
+    -f path/to/Dockerfile \
+    --build-arg COMMIT_HASH="$(git rev-parse --verify HEAD)" \
+    --build-arg BASE_IMG_NAME="$BASE_IMG_NAME" \
+    --build-arg BASE_IMG_DIGEST="$(docker pull "$BASE_IMG_NAME" > /dev/null 2>&1 && docker inspect "$BASE_IMG_NAME" --format='{{index .RepoDigests 0}}' | awk -F'@' '{print $2}')" \
+    --build-arg ITWINAI_VERSION="$(grep -Po '(?<=^version = ")[^"]*' pyproject.toml)" \
+    --build-arg CREATION_DATE="$(date +"%Y-%m-%dT%H:%M:%S%:z")" \
+    --build-arg IMAGE_FULL_NAME=$IMAGE_FULL_NAME \ 
+    .
+```
