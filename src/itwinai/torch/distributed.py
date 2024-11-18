@@ -23,7 +23,7 @@ def distributed_resources_available() -> bool:
     Returns:
         bool: env can support distributed ML.
     """
-    force_dist_env = int(os.environ.get('ITWINAI_FORCE_DIST', '0'))
+    force_dist_env = int(os.environ.get("ITWINAI_FORCE_DIST", "0"))
     return force_dist_env or torch.cuda.is_available() and torch.cuda.device_count() > 1
 
 
@@ -32,11 +32,14 @@ def check_initialized(method: Callable) -> Callable:
     was correctly initialized before calling the method."""
 
     @functools.wraps(method)
-    def wrapper(self: 'TorchDistributedStrategy', *args, **kwargs):
+    def wrapper(self: "TorchDistributedStrategy", *args, **kwargs):
         if not self.is_initialized:
-            raise UninitializedStrategyError((
-                f"{self.__class__.__name__} has not been initialized. "
-                "Use the init method."))
+            raise UninitializedStrategyError(
+                (
+                    f"{self.__class__.__name__} has not been initialized. "
+                    "Use the init method."
+                )
+            )
         return method(self, *args, **kwargs)
 
     return wrapper
@@ -397,9 +400,7 @@ class TorchDDPStrategy(TorchDistributedStrategy):
                 which is already initialized.
         """
         if not distributed_resources_available():
-            raise RuntimeError(
-                "Trying to run distributed on insufficient resources."
-            )
+            raise RuntimeError("Trying to run distributed on insufficient resources.")
         if self.is_initialized:
             raise DistributedStrategyError("Strategy was already initialized")
         dist.init_process_group(backend=self.backend)
@@ -566,19 +567,15 @@ class DeepSpeedStrategy(TorchDistributedStrategy):
 
         self.deepspeed = deepspeed
         if not distributed_resources_available():
-            raise RuntimeError(
-                "Trying to run distributed on insufficient resources."
-            )
+            raise RuntimeError("Trying to run distributed on insufficient resources.")
 
         if self.is_initialized:
             raise DistributedStrategyError("Strategy was already initialized")
 
         # https://github.com/Lightning-AI/pytorch-lightning/issues/13567
         # This block of code should be removed as some point
-        if os.environ.get('LOCAL_RANK'):
-            os.environ['OMPI_COMM_WORLD_LOCAL_RANK'] = os.environ.get(
-                'LOCAL_RANK'
-            )
+        if os.environ.get("LOCAL_RANK"):
+            os.environ["OMPI_COMM_WORLD_LOCAL_RANK"] = os.environ.get("LOCAL_RANK")
 
         # https://deepspeed.readthedocs.io/en/latest/initialize.html#training-initialization
         self.deepspeed.init_distributed(dist_backend=self.backend)
@@ -689,7 +686,9 @@ class DeepSpeedStrategy(TorchDistributedStrategy):
         dist.gather_object(obj, dst=dst_rank)
 
     @check_initialized
-    def gather(self, tensor: torch.Tensor, dst_rank: int = 0) -> Optional[List[torch.Tensor]]:
+    def gather(
+        self, tensor: torch.Tensor, dst_rank: int = 0
+    ) -> Optional[List[torch.Tensor]]:
         """Gathers a tensor from the whole group in a list
         (to all workers).
 
@@ -737,9 +736,7 @@ class HorovodStrategy(TorchDistributedStrategy):
                 already initialized.
         """
         if not distributed_resources_available():
-            raise RuntimeError(
-                "Trying to run distributed on insufficient resources."
-            )
+            raise RuntimeError("Trying to run distributed on insufficient resources.")
         if self.is_initialized:
             raise DistributedStrategyError("Strategy was already initialized")
 
@@ -870,7 +867,9 @@ class HorovodStrategy(TorchDistributedStrategy):
             return result
 
     @check_initialized
-    def gather(self, tensor: torch.Tensor, dst_rank: int = 0) -> Optional[List[torch.Tensor]]:
+    def gather(
+        self, tensor: torch.Tensor, dst_rank: int = 0
+    ) -> Optional[List[torch.Tensor]]:
         """Gathers a tensor from the whole group in a list
         (to all workers). Under the hood it relies on allgather as gather is
         not supported by Horovod.
