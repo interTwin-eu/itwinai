@@ -1,5 +1,6 @@
 import copy
 import logging
+import re
 import time
 from typing import Dict, List, Optional
 
@@ -54,6 +55,25 @@ POD_TEMPLATE = {
         ],
     },
 }
+
+
+def validate_pod_name(name: str) -> None:
+    """
+    Validates if a given string matches the Kubernetes pod naming convention.
+
+    Args:
+        name (str): The pod name to validate.
+
+    Raises:
+        ValueError: If the name does not match the required pattern.
+    """
+    pattern = r"[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*"
+    if not re.fullmatch(pattern, name):
+        raise ValueError(
+            f"The name '{name}' is invalid for a Kubernetes pod. "
+            "Pod names must match the pattern: "
+            "'[a-z0-9]([-a-z0-9]*[a-z0-9])?(\\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*'"
+        )
 
 
 def create_pod_manifest(

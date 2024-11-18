@@ -197,7 +197,7 @@ class Itwinai:
             dagger.Secret, Doc("Kubeconfig for k8s cluster with interLink's VK")
         ],
     ) -> str:
-        from .k8s import create_pod_manifest, submit_job
+        from .k8s import create_pod_manifest, submit_job, validate_pod_name
 
         # Create pod manifest
         gpus_per_node = 4
@@ -233,11 +233,13 @@ class Itwinai:
         }
         image_path = "/ceph/hpc/data/st2301-itwin-users/cern/hello-world-image.sif"
         cmd_args = ["sleep 10 && exit $PRE_EXEC_RETURN_CODE"]
+        pod_name = f"ci-test-itwinai-hpc-{self.unique_id}"
+        validate_pod_name(pod_name)
         pod_manifest = create_pod_manifest(
             annotations=annotations,
             image_path=image_path,
             cmd_args=cmd_args,
-            name=f"ci-test-itwinai-hpc-{self.unique_id}",
+            name=pod_name,
         )
 
         # Submit pod
