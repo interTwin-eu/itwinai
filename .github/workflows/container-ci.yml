@@ -52,7 +52,8 @@ jobs:
         run: |
           echo "COMMIT_HASH=$(git rev-parse --verify HEAD)" >> "$GITHUB_ENV"
           echo "BASE_IMG_NAME=nvcr.io/nvidia/pytorch:24.05-py3" >> "$GITHUB_ENV"
-
+          BASE_IMG_DIGEST=$(docker pull nvcr.io/nvidia/pytorch:24.05-py3 > /dev/null 2>&1 && docker inspect nvcr.io/nvidia/pytorch:24.05-py3 --format='{{index .RepoDigests 0}}' | awk -F'@' '{print $2}')
+          echo "BASE_IMG_DIGEST=$BASE_IMG_DIGEST" >> "$GITHUB_ENV"
 
       - name: Integration Test
         uses: dagger/dagger-for-github@v6
