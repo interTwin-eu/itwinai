@@ -64,7 +64,7 @@ jobs:
           args: >-
             --name="${{ env.COMMIT_HASH }}-torch" 
             build-container --context=.. --dockerfile=../env-files/torch/Dockerfile 
-                --build-args="COMMIT_HASH=${{ env.COMMIT_HASH }},BASE_IMG_NAME=${{ env.BASE_IMG_NAME }},BASE_IMG_DIGEST=${{ env.BASE_IMG_DIGEST }}"
+            --build-args="COMMIT_HASH=${{ env.COMMIT_HASH }},BASE_IMG_NAME=${{ env.BASE_IMG_NAME }},BASE_IMG_DIGEST=${{ env.BASE_IMG_DIGEST }}"
             test-n-publish --kubeconfig=env:KUBECONFIG_STR --stage=DEV --framework=TORCH
             --tag-template='${{ env.COMMIT_HASH }}-torch${framework_version}-${os_version}'
           cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
