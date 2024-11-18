@@ -387,7 +387,7 @@ docker build \
     -f path/to/Dockerfile \
     --build-arg COMMIT_HASH="$(git rev-parse --verify HEAD)" \
     --build-arg BASE_IMG_NAME="$BASE_IMG_NAME" \
-    --build-arg BASE_IMG_DIGEST="$(docker pull "$BASE_IMG_NAME" > /dev/null 2>&1 && docker inspect "$BASE_IMG_NAME" --format='{{index .RepoDigests 0}}' | awk -F'@' '{print $2}')" \
+    --build-arg BASE_IMG_DIGEST="$(docker pull "$BASE_IMG_NAME" > /dev/null 2>&1 && docker inspect "$BASE_IMG_NAME" --format='{{index .RepoDigests 0}}')" \
     --build-arg ITWINAI_VERSION="$(grep -Po '(?<=^version = ")[^"]*' pyproject.toml)" \
     --build-arg CREATION_DATE="$(date +"%Y-%m-%dT%H:%M:%S%:z")" \
     --build-arg IMAGE_FULL_NAME=$IMAGE_FULL_NAME \ 
