@@ -38,6 +38,7 @@ dagger call --name="$(git rev-parse --verify HEAD)"  \
     build-container --context=.. --dockerfile=../env-files/torch/slim.Dockerfile \
     test-local
 
+# Test on HPC and publish
 export COMMIT_HASH=$(git rev-parse --verify HEAD)
 export BASE_IMG_NAME="python:3.10-slim"
 export BASE_IMG_DIGEST="$(docker pull $BASE_IMG_NAME > /dev/null 2>&1 && docker inspect $BASE_IMG_NAME --format='{{index .RepoDigests 0}}' | awk -F'@' '{print $2}')"
@@ -46,3 +47,11 @@ dagger call --name="${COMMIT_HASH}-torch-slim" \
         --build-args="COMMIT_HASH=$COMMIT_HASH,BASE_IMG_NAME=$BASE_IMG_NAME,BASE_IMG_DIGEST=$BASE_IMG_DIGEST" \
     test-n-publish --kubeconfig=env:KUBECONFIG_STR --stage=DEV --framework=TORCH \
     --tag-template='${itwinai_version}-slim-torch${framework_version}-${os_version}'
+
+
+# Convert to singularity
+dagger call --name="${COMMIT_HASH}-torch-slim" \
+    build-container --context=.. --dockerfile=../env-files/torch/slim.Dockerfile \
+    
+    
+dagger call singularity --container "python:3.12" --output-dir "$PWD" --socket /var/run/docker.sock

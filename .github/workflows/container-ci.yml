@@ -13,8 +13,8 @@ jobs:
       - name: Maximize build disk space
         uses: easimon/maximize-build-space@v10
         with:
-          # Reserve ~35 GBs for docker cache on / location
-          root-reserve-mb: 55000
+          # Reserve space on root for docker cache
+          root-reserve-mb: 35000
           overprovision-lvm: true
           swap-size-mb: 1024
           remove-dotnet: true

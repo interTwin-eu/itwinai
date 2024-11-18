@@ -201,6 +201,7 @@ class Itwinai:
 
         # Create pod manifest
         gpus_per_node = 4
+        # cpus_per_gpu = 4
         jobscript = "/app/tests/torch/slurm.vega.sh"
         pre_exec_cmd = (
             "export CONTAINER_PATH=itwinai_dist_test.sif "
@@ -210,15 +211,27 @@ class Itwinai:
             "&& . /etc/bashrc "
             "&& source /ceph/hpc/software/cvmfs_env.sh "
             "&& module use /usr/share/Modules/modulefiles "
+            # Quick fix
+            f"&& export SLURM_GPUS_PER_NODE={gpus_per_node} "
+            # f"&& export SLURM_CPUS_PER_GPU={cpus_per_gpu} "
             # Env variables necessary for tests
             "&& export MNIST_PATH=/ceph/hpc/data/st2301-itwin-users/mbunino/mnist "
             "&& export NO_COLOR=1 "
+            # Launch code in SLURM job
+            # DDP
             "&& export DIST_MODE=ddp "
             "&& export RUN_NAME=ddp-itwinai "
             "&& export COMMAND='pytest -v -m torch_dist /app/tests' "
-            # Quick fix
-            f"&& export SLURM_GPUS_PER_NODE={gpus_per_node} "
-            # Launch code in SLURM job
+            "&& source slurm.vega.sh "
+            # DeepSpeed
+            "&& export DIST_MODE=deepspeed "
+            "&& export RUN_NAME=ds-itwinai "
+            "&& export COMMAND='pytest -v -m deepspeed_dist /app/tests' "
+            "&& source slurm.vega.sh "
+            # Horovod
+            "&& export DIST_MODE=horovod "
+            "&& export RUN_NAME=horovod-itwinai "
+            "&& export COMMAND='pytest -v -m horovod_dist /app/tests' "
             "&& source slurm.vega.sh "
         )
         annotations = {
@@ -361,3 +374,24 @@ class Itwinai:
             os_version=os_version,
         )
         await self.publish(name=image, tag=tag)
+
+    @function
+    async def singularity(
+        self, container: str, output_dir: dagger.Directory, socket: dagger.Socket
+    ) -> str:
+        return await (
+            dag.container()
+            .from_("quay.io/singularity/docker2singularity")
+            .with_mounted_directory(path="/output", source=output_dir)
+            .with_unix_socket(path="/var/run/docker.sock", source=socket)
+            # insecure_root_capabilities=True in with_exec is equivalent to --privileged
+            .with_exec(
+                [
+                    "bash",
+                    "-c",
+                    f"/docker2singularity.sh --name /output/container.sif {container}",
+                ],
+                insecure_root_capabilities=True,
+            )
+            .stdout()
+        )

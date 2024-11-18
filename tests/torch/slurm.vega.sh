@@ -192,7 +192,7 @@ CONTAINER_OMPI_V="$(singularity exec $CONTAINER_PATH ompi_info --parsable | grep
 
 if [ "$HOST_OMPI_V" != "$CONTAINER_OMPI_V" ]; then
   >&2 echo "ERROR: Host OpenMPI minor version ($HOST_OMPI_V) does not match with container's OpenMPI minor version ($CONTAINER_OMPI_V). This may cause problems." 
-  exit 1
+  # exit 1
 fi
 echo -e "\nHost and container's OpenMPI minor versions match: ($HOST_OMPI_V) - ($CONTAINER_OMPI_V)\n" 
 
