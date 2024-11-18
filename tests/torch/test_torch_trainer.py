@@ -5,6 +5,7 @@ import pytest
 import torch.nn.functional as F
 from torch import nn
 from torchvision import datasets, transforms
+from unittest.mock import patch, MagicMock
 
 from itwinai.torch.trainer import TorchTrainer
 
@@ -84,4 +85,12 @@ def test_distributed_trainer_mnist(mnist_datasets, request, strategy_name, strat
     trainer.strategy = strategy_instance  # Patch the strategy with the fixture instance
 
     train_set, val_set = mnist_datasets
-    trainer.execute(train_set, val_set)
+
+    # Mock strategy cleanup
+    with patch.object(
+            trainer.strategy, "clean_up", new=MagicMock(name="clean_up")
+            ) as mock_cleanup:
+        trainer.execute(train_set, val_set)
+
+        # Check that the torch trainer is cleaning up the strategy
+        mock_cleanup.assert_called_once()
