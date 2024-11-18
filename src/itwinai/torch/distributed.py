@@ -539,7 +539,7 @@ class TorchDDPStrategy(TorchDistributedStrategy):
         return [val.cpu() for val in res]
 
     @check_initialized
-    def barrier(self) -> None: 
+    def barrier(self) -> None:
         dist.barrier()
 
 
@@ -729,7 +729,7 @@ class DeepSpeedStrategy(TorchDistributedStrategy):
         return [val.cpu() for val in res]
 
     @check_initialized
-    def barrier(self) -> None: 
+    def barrier(self) -> None:
         dist.barrier()
 
 
@@ -903,7 +903,7 @@ class HorovodStrategy(TorchDistributedStrategy):
             return [val.cpu() for val in result]
 
     @check_initialized
-    def barrier(self) -> None: 
+    def barrier(self) -> None:
         self.hvd.barrier()
 
 
