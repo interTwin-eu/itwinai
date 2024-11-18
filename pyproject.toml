@@ -43,18 +43,13 @@ dependencies = [
 # dynamic = ["version", "description"]
 
 [project.optional-dependencies]
-
-# Torch should be already installed, but it is specified here to
-# prevent itwinai dependencies from cheing its version.
-torch = ["lightning==2.*", "torchmetrics"]
-# torch-cpu = [
-#     "torch==2.1.*",
-#     "torchvision",
-#     "torchaudio",
-#     "lightning",
-#     "torchmetrics",
-#     "deepspeed",
-# ]
+torch = [
+  "torch==2.4.*",
+  "lightning==2.*",
+  "torchmetrics>=1.6.0",
+  "torchvision>=0.19.1",
+  "torchaudio>=2.4.1",
+]
 dev = [
     "pytest>=7.4.2",
     "pytest-mock>=3.11.1",
@@ -63,6 +58,19 @@ dev = [
     "ipython",
     "isort",
     "tensorflow==2.16.*",  # needed by tests on tensorboard
+]
+docs = [ 
+  "sphinx-rtd-theme==2.0.0",
+  "nbsphinx==0.9.4", 
+  "myst-parser==2.0.0",
+  "IPython",
+  "tensorflow==2.16.*",
+]
+macos = [
+    "prov4ml[apple]@git+https://github.com/matbun/ProvML"
+]
+linux = [
+    "prov4ml[linux]@git+https://github.com/matbun/ProvML"
 ]
 
 [project.urls]
