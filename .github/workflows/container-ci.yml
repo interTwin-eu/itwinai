@@ -10,16 +10,16 @@ jobs:
     name: build
     runs-on: ubuntu-latest
     steps:
-      # - name: Maximize build disk space
-      #   uses: easimon/maximize-build-space@v10
-      #   with:
-      #     # Reserve ~35 GBs for docker cache on / location
-      #     root-reserve-mb: 35000
-      #     swap-size-mb: 1024
-      #     remove-dotnet: true
-      #     remove-android: true
-      #     remove-haskell: true
-      #     remove-codeql: true
+      - name: Maximize build disk space
+        uses: easimon/maximize-build-space@v10
+        with:
+          # Reserve ~40 GBs for docker cache on / location
+          root-reserve-mb: 40000
+          swap-size-mb: 1024
+          remove-dotnet: true
+          remove-android: true
+          remove-haskell: true
+          remove-codeql: true
       - name: Checkout
         uses: actions/checkout@v4
       - name: Get Repo Owner
@@ -49,6 +49,7 @@ jobs:
       #   env:
       #     KUBECONFIG_STR: ${{ secrets.KUBECONFIG_INFN }}
       - name: Prepare Environment Variables
+        # Be careful that the BASE_IMG_NAME is used two times to compute BASE_IMG_DIGEST
         run: |
           echo "COMMIT_HASH=$(git rev-parse --verify HEAD)" >> "$GITHUB_ENV"
           echo "BASE_IMG_NAME=nvcr.io/nvidia/pytorch:24.05-py3" >> "$GITHUB_ENV"
