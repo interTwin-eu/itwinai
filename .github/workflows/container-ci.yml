@@ -55,6 +55,7 @@ jobs:
           echo "BASE_IMG_NAME=$BASE_IMG_NAME" >> "$GITHUB_ENV"
           BASE_IMG_DIGEST=$(docker pull $BASE_IMG_NAME > /dev/null 2>&1 && docker inspect $BASE_IMG_NAME --format='{{index .RepoDigests 0}}' | awk -F'@' '{print $2}')
           echo "BASE_IMG_DIGEST=$BASE_IMG_DIGEST" >> "$GITHUB_ENV"
+          docker system prune -a
 
       - name: Integration Test
         uses: dagger/dagger-for-github@v6
