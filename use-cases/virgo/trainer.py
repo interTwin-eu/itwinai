@@ -2,9 +2,9 @@ import os
 import time
 from pathlib import Path
 from timeit import default_timer as timer
-from typing import Dict, Literal, Optional, Union
+from typing import Dict, Literal, Optional, Union, Tuple, Any
 
-from build.lib.itwinai.distributed import suppress_workers_print
+from itwinai.distributed import suppress_workers_print
 from itwinai.torch.profiling.profiler import profile_torch_trainer
 import numpy as np
 import torch
