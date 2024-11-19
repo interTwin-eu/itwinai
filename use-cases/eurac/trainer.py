@@ -1,7 +1,7 @@
 import os
 from pathlib import Path
 from timeit import default_timer
-from typing import Dict, Literal, Optional, Union, Any, Tuple
+from typing import Any, Dict, Literal, Optional, Tuple, Union
 
 import pandas as pd
 import torch
@@ -25,10 +25,9 @@ from itwinai.torch.distributed import (
     NonDistributedStrategy,
     TorchDDPStrategy,
 )
+from itwinai.torch.profiling.profiler import profile_torch_trainer
 from itwinai.torch.trainer import TorchTrainer
 from itwinai.torch.type import Metric
-from itwinai.torch.profiling.profiler import profile_torch_trainer
-from itwinai.torch.monitoring.monitoring import measure_gpu_utilization
 
 
 class RNNDistributedTrainer(TorchTrainer):
@@ -155,11 +154,11 @@ class RNNDistributedTrainer(TorchTrainer):
             num_nodes = int(os.environ.get("SLURM_NNODES", "unk"))
             epoch_time_output_dir = Path("scalability-metrics/epoch-time")
             epoch_time_file_name = f"epochtime_{self.strategy.name}_{num_nodes}N.csv"
-            epoch_time_output_path = epoch_time_output_dir / epoch_time_file_name 
+            epoch_time_output_path = epoch_time_output_dir / epoch_time_file_name
 
             epoch_time_tracker = EpochTimeTracker(
                 strategy_name=self.strategy.name,
-                save_path=epoch_time_output_path, 
+                save_path=epoch_time_output_path,
                 num_nodes=num_nodes
             )
 
