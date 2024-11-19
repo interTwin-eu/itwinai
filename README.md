@@ -204,19 +204,6 @@ pip install --no-cache-dir --no-build-isolation git+https://github.com/horovod/h
 pip install --no-cache-dir --no-build-isolation deepspeed
 ```
 
-<!-- Going to want to write more about this later -->
-<!-- #### Installation using `uv.lock` -->
-<!---->
-<!-- The `uv.lock` file provides more precise information about the versions of the libraries -->
-<!-- that are used and thus could be better to install from. If you have `uv` installed, -->
-<!-- all you need to do is `uv sync` and it will make your `.venv` directory match the -->
-<!-- spec in the `uv.lock` file. If you want to add new packages to the `uv.lock` file, you -->
-<!-- can do so with the `uv lock` command. -->
-<!---->
-<!-- > [!WARNING] -->
-<!-- > Even if you have a venv activated while running `uv sync`, the packages will not -->
-<!-- > be installed there unless the venv's directory is called exactly `.venv`. -->
-
 #### PyTorch (+ Lightning) virtual environment with makefiles
 
 Makefile targets for environment installation:
