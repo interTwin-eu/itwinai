@@ -246,8 +246,9 @@ class Itwinai:
         )
         annotations = {
             "slurm-job.vk.io/flags": (
+                # --cpus-per-gpu fails on Vega through interLink
                 f"-p gpu --gres=gpu:{gpus_per_node} --gpus-per-node={gpus_per_node} "
-                "--cpus-per-gpu=4 --ntasks-per-node=1 --nodes=1 --time=00:10:00"
+                "--ntasks-per-node=1 --nodes=1 --time=00:10:00"
             ),
             "slurm-job.vk.io/pre-exec": (
                 "trap 'export SINGULARITYENV_PRE_EXEC_RETURN_CODE=1' ERR && "
