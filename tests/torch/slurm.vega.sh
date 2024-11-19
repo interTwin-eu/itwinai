@@ -24,7 +24,7 @@
 #SBATCH --partition=gpu
 #SBATCH --nodes=2
 #SBATCH --gpus-per-node=4
-#SBATCH --cpus-per-gpu=4
+#SBATCH --cpus-per-task=16
 #SBATCH --ntasks-per-node=1
 # SBATCH --mem-per-gpu=10G
 #SBATCH --exclusive

@@ -244,12 +244,17 @@ class Itwinai:
             "&& export COMMAND='pytest -v -m horovod_dist /app/tests' "
             "&& source slurm.vega.sh "
         )
+        # Request memory and CPUs
+        resources = {
+            "limits": {"cpu": 48, "memory": "150Gi"},
+            "requests": {"cpu": cpus_per_gpu * gpus_per_node, "memory": "20Gi"},
+        }
         annotations = {
             "slurm-job.vk.io/flags": (
                 # --cpus-per-gpu fails on Vega through interLink
                 f"-p gpu --gres=gpu:{gpus_per_node} --gpus-per-node={gpus_per_node} "
                 f"--ntasks-per-node=1 --nodes=1 --cpus-per-task={cpus_per_gpu*gpus_per_node} "
-                "--time=00:10:00"
+                "--time=00:30:00"
             ),
             "slurm-job.vk.io/pre-exec": (
                 "trap 'export SINGULARITYENV_PRE_EXEC_RETURN_CODE=1' ERR && "
@@ -265,6 +270,7 @@ class Itwinai:
             image_path=image_path,
             cmd_args=cmd_args,
             name=pod_name,
+            resources=resources,
         )
 
         # Submit pod
