@@ -38,6 +38,11 @@ ln -s envAI_juwels .venv
 
 ### Installing from uv.lock
 
+> [!Warning]
+> If `uv` creates your venv for you, the venv will not contain `pip`. However, you need
+> to have `pip` installed to be able to run the installation scripts for `Horovod` and
+> `DeepSpeed`, so we have included `pip` in the dependencies in `pyproject.toml`.
+
 To install from the `uv.lock` file into the `.venv` venv, you can do the following:
 
 ```bash

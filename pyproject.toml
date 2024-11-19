@@ -39,6 +39,7 @@ dependencies = [
     "omegaconf>=2.3.0",
     "jsonargparse[signatures]>=4.34.0",
     "matplotlib>=3.9.2",
+    "pip>=24.3.1",
 ]
 
 [project.optional-dependencies]
