@@ -51,7 +51,22 @@ can be added with the `--extra` flag as follows:
 uv sync --extra torch --extra macos
 ```
 
-These will usually correspond to the optional dependencies in the `pyproject.toml`.
+These will usually correspond to the optional dependencies in the `pyproject.toml`. In
+particular, if you are a developer you would use one of the following two commands. If
+you are on HPC with cuda, you would use:
+
+```bash
+uv sync --extra torch --extra dev --extra linux \
+    --no-cache \
+    --index https://download.pytorch.org/whl/cu121
+```
+
+If you are developing on your local computer with macOS, then you would use:
+
+```bash
+uv sync --extra torch --extra dev --extra macos
+```
+
 
 ### Updating the uv.lock file
 
