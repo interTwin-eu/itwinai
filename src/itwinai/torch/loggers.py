@@ -126,8 +126,10 @@ class ItwinaiLogger(LightningLogger):
             step (Optional[int], optional): Training step associated with the metrics.
                 Defaults to None.
         """
-        for key, value in metrics.items():
-            self.experiment.log(item=value, identifier=key, kind="metric", step=step)
+        for identifier, item in metrics.items():
+            self.experiment.log(
+                item=item, identifier=identifier, kind="metric", step=step
+            )
 
     @override
     @rank_zero_only
