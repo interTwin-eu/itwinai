@@ -70,14 +70,13 @@ class Itwinai:
         Doc("Full image name. Example: ghcr.io/intertwin-eu/itwinai-dev:0.2.3-torch2.4-jammy"),
     ] = dataclasses.field(default=None, init=False)
     _unique_id: Optional[str] = dataclasses.field(default=None, init=False)
+    sif: Annotated[Optional[dagger.File], Doc("SIF file")] = dataclasses.field(
+        default=None, init=False
+    )
 
     # Note: since build_container returns self, when executing only it through dagger call
     # (e.g., dagger call build-container [args]), dagger will actually execute all the
     # methods in this class in order
-
-    @function
-    def get_name(self) -> str:
-        return f"{self.name} - {self.unique_id}"
 
     @property
     def unique_id(self) -> str:
@@ -149,6 +148,7 @@ class Itwinai:
 
     @function
     def terminal(self) -> dagger.Container:
+        """Open terminal into container"""
         return self.container.terminal()
 
     @function
@@ -197,6 +197,7 @@ class Itwinai:
             dagger.Secret, Doc("Kubeconfig for k8s cluster with interLink's VK")
         ],
     ) -> str:
+        """Test container on remote HPC using interLink"""
         from .k8s import create_pod_manifest, submit_job, validate_pod_name
 
         # Create pod manifest
@@ -376,22 +377,35 @@ class Itwinai:
         await self.publish(name=image, tag=tag)
 
     @function
-    async def singularity(
-        self, container: str, output_dir: dagger.Directory, socket: dagger.Socket
-    ) -> str:
-        return await (
+    async def singularity(self, src_container: str) -> dagger.File:
+        """Convert Docker to Singulartiy/Apptainer"""
+        # https://hpc-docs.cubi.bihealth.org/how-to/software/apptainer/#option-2-converting-docker-images
+        singularity_conv = (
             dag.container()
             .from_("quay.io/singularity/docker2singularity")
-            .with_mounted_directory(path="/output", source=output_dir)
-            .with_unix_socket(path="/var/run/docker.sock", source=socket)
-            # insecure_root_capabilities=True in with_exec is equivalent to --privileged
+            # This part is only if you want to use the builtin conversion script which depends
+            # on the host Docker runtime
+            # .with_unix_socket(path="/var/run/docker.sock", source=socket)
+            # # insecure_root_capabilities=True in with_exec is equivalent to --privileged
+            # .with_exec(
+            #     [
+            #         "bash",
+            #         "-c",
+            #         f"/docker2singularity.sh --name /output/container.sif {container}",
+            #     ],
+            #     insecure_root_capabilities=True,
+            # )
             .with_exec(
                 [
                     "bash",
                     "-c",
-                    f"/docker2singularity.sh --name /output/container.sif {container}",
-                ],
-                insecure_root_capabilities=True,
+                    f"singularity pull container.sif docker://{src_container}",
+                ]
             )
-            .stdout()
+            .terminal()
         )
+        # Calling export on self.sif from here will not work because export must be called
+        # from the CLI
+        # .export(path=(Path(output_dir) / "container.sif").resolve().as_posix())
+        self.sif = singularity_conv.file("container.sif")
+        return self.sif

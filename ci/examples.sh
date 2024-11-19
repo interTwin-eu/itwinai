@@ -52,6 +52,5 @@ dagger call --name="${COMMIT_HASH}-torch-slim" \
 # Convert to singularity
 dagger call --name="${COMMIT_HASH}-torch-slim" \
     build-container --context=.. --dockerfile=../env-files/torch/slim.Dockerfile \
-    
-    
-dagger call singularity --container "python:3.12" --output-dir "$PWD" --socket /var/run/docker.sock
+    singularity --src-container "python:3.12" \
+    export --path my_container.sif
