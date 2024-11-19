@@ -2,8 +2,9 @@ import os
 import time
 from pathlib import Path
 from timeit import default_timer as timer
-from typing import Dict, Literal, Optional, Union
+from typing import Dict, Literal, Optional, Union, Tuple, Any
 
+from itwinai.distributed import suppress_workers_print
 from itwinai.torch.profiling.profiler import profile_torch_trainer
 import numpy as np
 import torch
@@ -168,6 +169,15 @@ class NoiseGeneratorTrainer(TorchTrainer):
         batch = [x for x in batch if x is not None]
 
         return torch.cat(batch)
+
+    @suppress_workers_print
+    def execute(
+        self,
+        train_dataset: Dataset,
+        validation_dataset: Optional[Dataset] = None,
+        test_dataset: Optional[Dataset] = None,
+    ) -> Tuple[Dataset, Dataset, Dataset, Any]:
+        return super().execute(train_dataset, validation_dataset, test_dataset)
 
     @profile_torch_trainer
     # @measure_gpu_utilization

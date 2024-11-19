@@ -1,14 +1,1 @@
-sphinx-rtd-theme==2.0.0
-nbsphinx==0.9.4
-myst-parser==2.0.0
-
-# git+https://github.com/thomas-bouvier/horovod.git@compile-cpp17
-# deepspeed
-IPython
-# local path to itwinai module, assuming that pip install -r docs/requirements.txt is run form the repository root
-# If needed, you can add optional dependencies, like: ".[dev]"
-
-prov4ml[linux]@git+https://github.com/matbun/ProvML@main
-
-.[torch]
-# NOTE: You also need 'pandoc', which on mac is just 'brew install pandoc'
+.[torch,docs,linux]
