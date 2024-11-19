@@ -78,3 +78,15 @@ Below you can find the integration of the Virgo use case with ``itwinai`` framew
 
    virgo_doc
 
+
+Drought Early Warning in the Alps | EURAC use case
+===========================================================================
+
+Below you can find the integration of the EURAC use case with the ``itwinai`` 
+framework. 
+
+.. toctree::
+   :maxdepth: 1
+
+   virgo_doc
+
