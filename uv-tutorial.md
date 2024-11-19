@@ -72,18 +72,17 @@ If you are developing on your local computer with macOS, then you would use:
 uv sync --extra torch --extra dev --extra macos
 ```
 
-
 ### Updating the uv.lock file
 
 To update the project's `uv.lock` file with the dependencies of the project, you can
-use the command: 
+use the command:
 
 ```bash
 uv lock
 ```
 
 This will create a `uv.lock` file if it doesn't already exist, using the dependencies
-from the `pyproject.toml`. 
+from the `pyproject.toml`.
 
 ## Adding new packages to the project
 

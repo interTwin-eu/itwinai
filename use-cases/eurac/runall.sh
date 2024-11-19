@@ -35,5 +35,5 @@ submit_job () {
 
 echo "Running distributed training on $NUM_NODES nodes with $NUM_GPUS GPUs per node"
 submit_job "ddp"
-# submit_job "deepspeed"
-# submit_job "horovod"
+submit_job "deepspeed"
+submit_job "horovod"
