@@ -33,7 +33,8 @@ class VirgoTrainingConfiguration(TrainingConfiguration):
 
 class NoiseGeneratorTrainer(TorchTrainer):
     def __init__(
-        self, num_epochs: int=2,
+        self, 
+        num_epochs: int = 2,
         config: Union[Dict, TrainingConfiguration] | None = None,
         strategy: Optional[Literal["ddp", "deepspeed", "horovod"]] = "ddp",
         checkpoint_path: str = "checkpoints/epoch_{}.pth",
