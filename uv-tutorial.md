@@ -53,6 +53,18 @@ uv sync --extra torch --extra macos
 
 These will usually correspond to the optional dependencies in the `pyproject.toml`.
 
+### Updating the uv.lock file
+
+To update the project's `uv.lock` file with the dependencies of the project, you can
+use the command: 
+
+```bash
+uv lock
+```
+
+This will create a `uv.lock` file if it doesn't already exist, using the dependencies
+from the `pyproject.toml`. 
+
 ## Adding new packages to the project
 
 To add a new package to the project (i.e. to the `pyproject.toml` file) with `uv`, you
