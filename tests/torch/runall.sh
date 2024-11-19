@@ -30,7 +30,7 @@ export MNIST_PATH="/ceph/hpc/data/st2301-itwin-users/mbunino/mnist" #"/p/project
 # - itwinai_torch3.sif: itwinai 0.2.2.dev2 torch2.4 - force distributed (OMPI v4.1)
 # - itwinai_torch4.sif: cmcc jlab container (OMPI v4.1)
 # - /ceph/hpc/data/st2301-itwin-users/mbunino/jlab_simple_reconstructed_nv_itwinai.sif: jlab container recostructed from simple (OMPI v4.1)
-export CONTAINER_PATH="/ceph/hpc/data/st2301-itwin-users/mbunino/jlab_simple_reconstructed_nv_itwinai.sif"
+export CONTAINER_PATH="container1.sif"
 
 # Disable pytest ANSI coloring
 export NO_COLOR=1

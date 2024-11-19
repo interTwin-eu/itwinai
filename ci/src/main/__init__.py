@@ -213,7 +213,7 @@ class Itwinai:
             "&& source /ceph/hpc/software/cvmfs_env.sh "
             "&& module use /usr/share/Modules/modulefiles "
             # Quick fix
-            f"&& export SLURM_GPUS_PER_NODE={gpus_per_node} "
+            # f"&& export SLURM_GPUS_PER_NODE={gpus_per_node} "
             # f"&& export SLURM_CPUS_PER_GPU={cpus_per_gpu} "
             # Env variables necessary for tests
             "&& export MNIST_PATH=/ceph/hpc/data/st2301-itwin-users/mbunino/mnist "
@@ -237,8 +237,8 @@ class Itwinai:
         )
         annotations = {
             "slurm-job.vk.io/flags": (
-                f"-p gpu --gres=gpu:{gpus_per_node} "
-                "--ntasks-per-node=1 --nodes=1 --time=00:10:00"
+                f"-p gpu --gres=gpu:{gpus_per_node} --gpus-per-node={gpus_per_node} "
+                "--cpus-per-gpu=4 --ntasks-per-node=1 --nodes=1 --time=00:10:00"
             ),
             "slurm-job.vk.io/pre-exec": (
                 "trap 'export SINGULARITYENV_PRE_EXEC_RETURN_CODE=1' ERR && "

@@ -19,9 +19,6 @@ RUN apt-get update && apt-get install -y \
     dot2tex \
     && apt-get clean -y && rm -rf /var/lib/apt/lists/*
 
-# # Improve robustness: avoid silent override by Singularity/Apptainer
-# ENV PYTHONPATH=""
-
 # https://github.com/mpi4py/mpi4py/pull/431
 RUN pip install --no-cache-dir --upgrade pip \
     && env SETUPTOOLS_USE_DISTUTILS=local python -m pip install --no-cache-dir mpi4py
@@ -73,6 +70,12 @@ RUN CONTAINER_TORCH_VERSION="$(python -c 'import torch;print(torch.__version__)'
 ARG REQUIREMENTS=env-files/torch/requirements/requirements.txt
 COPY "${REQUIREMENTS}" additional-requirements.txt
 RUN pip install --no-cache-dir -r additional-requirements.txt
+
+# Env vars for robustness
+ENV PYTHONNOUSERSITE=1 \
+    # Prevent silent override of PYTHONPATH by Singularity/Apptainer
+    PYTHONPATH="" \
+    SSL_CERT_FILE="/etc/ssl/certs/ca-certificates.crt"
 
 # Add tests
 COPY tests tests

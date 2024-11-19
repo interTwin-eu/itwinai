@@ -79,9 +79,11 @@ ENV PATH="/opt/venv/bin:$PATH"
 # # is actually recognised
 # ENV VIRTUAL_ENV=/opt/venv
 
-# # Setting PYTHONPATH may prevent singularity from overriding it and potentially breaking the
-# # container. However, still needs to be clarified whether this is the best way to go
-# ENV PYTHONPATH=""
+# Env vars for robustness
+ENV PYTHONNOUSERSITE=1 \
+    # Prevent silent override of PYTHONPATH by Singularity/Apptainer
+    PYTHONPATH="" \
+    SSL_CERT_FILE="/etc/ssl/certs/ca-certificates.crt"
 
 RUN itwinai sanity-check --torch \
     --optional-deps deepspeed \

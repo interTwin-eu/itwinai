@@ -19,8 +19,6 @@
 #SBATCH --ntasks-per-node=1
 # SBATCH --mem-per-gpu=10G
 #SBATCH --exclusive
-
-# gres options have to be disabled for deepv
 #SBATCH --gres=gpu:4
 
 echo "DEBUG: SLURM_SUBMIT_DIR: $SLURM_SUBMIT_DIR"
@@ -34,7 +32,8 @@ echo "DEBUG: SLURMD_NODENAME: $SLURMD_NODENAME"
 echo "DEBUG: CUDA_VISIBLE_DEVICES: $CUDA_VISIBLE_DEVICES"
 
 ml --force purge
-ml Python CMake/3.24.3-GCCcore-11.3.0 mpi4py OpenMPI/4.1.5-GCC-12.3.0 CUDA/12.3
+# ml Python CMake/3.24.3-GCCcore-11.3.0 mpi4py OpenMPI/4.1.5-GCC-12.3.0 CUDA/12.3
+ml Python CMake/3.24.3-GCCcore-11.3.0 OpenMPI/4.1.5-GCC-12.3.0 CUDA/12.3
 ml GCCcore/11.3.0 NCCL cuDNN/8.9.7.29-CUDA-12.3.0
 ml UCX-CUDA/1.15.0-GCCcore-13.2.0-CUDA-12.3.0
 
@@ -42,6 +41,7 @@ ml UCX-CUDA/1.15.0-GCCcore-13.2.0-CUDA-12.3.0
 module unload OpenSSL
 
 source ~/.bashrc
+# source ../../.venv-pytorch/bin/activate
 
 # Setup env for distributed ML
 export CUDA_VISIBLE_DEVICES="0,1,2,3"
