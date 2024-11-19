@@ -160,7 +160,9 @@ srun_launcher ()
   
   # "if [ $SLURM_PROCID  -ne 0 ]; then exec > "logs_srun/$SLURM_JOB_ID/rank.$SLURM_PROCID" 2>&1; fi; exec" redirects stdout and stderr of ranks != 0
   # Logs of the main woker (rank == 0) will be incorportated into the standard SLURM out and err files
-  srun --mpi=pmix_v3 --cpu-bind=none --ntasks-per-node=$SLURM_GPUS_PER_NODE --ntasks=$(($SLURM_GPUS_PER_NODE * $SLURM_NNODES)) \
+  srun --mpi=pmix_v3 --cpu-bind=none --ntasks-per-node=$SLURM_GPUS_PER_NODE \
+    --cpus-per-task=$(($SLURM_CPUS_PER_TASK / $SLURM_GPUS_PER_NODE)) \
+    --ntasks=$(($SLURM_GPUS_PER_NODE * $SLURM_NNODES)) \
     singularity exec --nv \
     "${CONTAINER_PATH}" /bin/bash -c \
     'echo "Rank: $SLURM_PROCID, LD_LIBRARY_PATH=$LD_LIBRARY_PATH" && \

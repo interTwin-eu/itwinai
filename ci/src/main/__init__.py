@@ -211,7 +211,7 @@ class Itwinai:
 
         # Create pod manifest
         gpus_per_node = 4
-        # cpus_per_gpu = 4
+        cpus_per_gpu = 4
         jobscript = "/app/tests/torch/slurm.vega.sh"
         pre_exec_cmd = (
             "export CONTAINER_PATH=itwinai_dist_test.sif "
@@ -248,7 +248,8 @@ class Itwinai:
             "slurm-job.vk.io/flags": (
                 # --cpus-per-gpu fails on Vega through interLink
                 f"-p gpu --gres=gpu:{gpus_per_node} --gpus-per-node={gpus_per_node} "
-                "--ntasks-per-node=1 --nodes=1 --time=00:10:00"
+                f"--ntasks-per-node=1 --nodes=1 --cpus-per-task={cpus_per_gpu*gpus_per_node} "
+                "--time=00:10:00"
             ),
             "slurm-job.vk.io/pre-exec": (
                 "trap 'export SINGULARITYENV_PRE_EXEC_RETURN_CODE=1' ERR && "

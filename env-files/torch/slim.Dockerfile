@@ -46,6 +46,8 @@ ENV HOROVOD_WITH_PYTORCH=1 \
 # /usr/local/bin/python3.10 (in the app image) to /usr/bin/python3.10 (in the builder image)
 RUN /usr/bin/python3.10 -m venv /opt/venv \
     && pip install --no-cache-dir --upgrade pip \
+    # https://github.com/mpi4py/mpi4py/pull/431
+    && env SETUPTOOLS_USE_DISTUTILS=local python -m pip install --no-cache-dir mpi4py \
     && pip install --no-cache-dir --extra-index-url https://download.pytorch.org/whl/cu124 \
     "torch==2.4.*" \
     torchvision \
