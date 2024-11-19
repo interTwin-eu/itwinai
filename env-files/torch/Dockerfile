@@ -1,3 +1,12 @@
+# --------------------------------------------------------------------------------------
+# Part of the interTwin Project: https://www.intertwin.eu/
+#
+# Created by: Matteo Bunino
+#
+# Credit:
+# - Matteo Bunino <matteo.bunino@cern.ch> - CERN
+# --------------------------------------------------------------------------------------
+
 ARG BASE_IMG_NAME=nvcr.io/nvidia/pytorch:24.05-py3 
 # ARG IMG_TAG=23.09-py3
 

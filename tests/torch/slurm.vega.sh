@@ -1,5 +1,14 @@
 #!/bin/bash
 
+# --------------------------------------------------------------------------------------
+# Part of the interTwin Project: https://www.intertwin.eu/
+#
+# Created by: Matteo Bunino
+#
+# Credit:
+# - Matteo Bunino <matteo.bunino@cern.ch> - CERN
+# --------------------------------------------------------------------------------------
+
 # SLURM jobscript for Vega systems
 
 # Job configuration

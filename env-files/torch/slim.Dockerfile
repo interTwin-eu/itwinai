@@ -1,3 +1,12 @@
+# --------------------------------------------------------------------------------------
+# Part of the interTwin Project: https://www.intertwin.eu/
+#
+# Created by: Matteo Bunino
+#
+# Credit:
+# - Matteo Bunino <matteo.bunino@cern.ch> - CERN
+# --------------------------------------------------------------------------------------
+
 # Dockerfile for slim itwinai image. MPI, CUDA and other need to be mounted from the host machine.
 
 ARG BASE_IMG_NAME=python:3.10-slim

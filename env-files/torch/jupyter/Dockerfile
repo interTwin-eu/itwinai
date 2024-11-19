@@ -1,3 +1,13 @@
+# --------------------------------------------------------------------------------------
+# Part of the interTwin Project: https://www.intertwin.eu/
+#
+# Created by: Matteo Bunino
+#
+# Credit:
+# - Matteo Bunino <matteo.bunino@cern.ch> - CERN
+# - VRE Team @ CERN 23/24 - E. Garcia, G. Guerrieri
+# --------------------------------------------------------------------------------------
+
 # https://jupyter-docker-stacks.readthedocs.io/en/latest/using/selecting.html#jupyter-pytorch-notebook
 # https://github.com/jupyter/docker-stacks/wiki
 

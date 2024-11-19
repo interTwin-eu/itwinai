@@ -1,5 +1,15 @@
 #!/bin/bash
-# Example of running dagger pipelines
+
+# --------------------------------------------------------------------------------------
+# Part of the interTwin Project: https://www.intertwin.eu/
+#
+# Created by: Matteo Bunino
+#
+# Credit:
+# - Matteo Bunino <matteo.bunino@cern.ch> - CERN
+# --------------------------------------------------------------------------------------
+
+# Example of running dagger pipelines -- this script is mostly a scratchpad
 
 # Build and run local tests (no HPC required)
 dagger call \
