@@ -32,7 +32,7 @@ python ddp_trainer.py -c config/base.yaml -c config/ddp.yaml --log-int 42
 ## Run a single training
 
 Training runs are meant to be submitted via SLURM, from a unified job script file:
-`slurm.sh`.You can select the distributed training algorithm and provide the command 
+`slurm.sh`.You can select the distributed training algorithm and provide the command
 to execute setting SLURM environment variables using the `--export` option:
 
 ```bash
