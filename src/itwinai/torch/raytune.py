@@ -1,9 +1,5 @@
-from ray.tune.schedulers import (
-    AsyncHyperBandScheduler,
-    HyperBandForBOHB,
-    HyperBandScheduler,
-    PopulationBasedTraining,
-)
+from ray.tune.schedulers import (AsyncHyperBandScheduler, HyperBandForBOHB,
+                                 HyperBandScheduler, PopulationBasedTraining)
 from ray.tune.schedulers.pb2 import PB2  # Population Based Bandits
 from ray.tune.search.bayesopt import BayesOptSearch
 from ray.tune.search.bohb import TuneBOHB
@@ -21,10 +17,15 @@ def get_raytune_search_alg(tune_config, seeds=False):
 
     if (scheduler == "pbt") or (scheduler == "pb2"):
         if search_alg is not None:
-            print("INFO: Using schedule '{}' is not compatible with Ray Tune search algorithms."
-                  .format(scheduler))
-            print("INFO: Using the Ray Tune '{}' scheduler without search algorithm"
-                  .format(scheduler))
+            print(
+                "INFO: Using schedule '{}' \
+                    is not compatible with Ray Tune search algorithms.".format(scheduler)
+            )
+            print(
+                "INFO: Using the Ray Tune '{}' scheduler without search algorithm".format(
+                    scheduler
+                )
+            )
         return None
 
     if (scheduler == "bohb") or (scheduler == "BOHB"):

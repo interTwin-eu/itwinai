@@ -3,7 +3,8 @@
 # Job configuration
 #SBATCH --job-name=ray_tune_hpo    
 #SBATCH --account=intertwin       
-#SBATCH --time 00:30:00
+#SBATCH --time=00:30:00
+#SBATCH --partition=develbooster
 
 # Resources allocation
 #SBATCH --cpus-per-task=24
@@ -22,7 +23,7 @@ ml Stages/2024 GCC/12.3.0 OpenMPI CUDA/12 MPI-settings/CUDA
 ml Python/3.11 HDF5 PnetCDF libaio mpi4py CMake cuDNN/8.9.5.29-CUDA-12
 
 # Set and activate virtual environment
-PYTHON_VENV="../../envAI_hdfml"
+PYTHON_VENV="../../envAI_juwels"
 source $PYTHON_VENV/bin/activate
 
 # make sure CUDA devices are visible
@@ -47,7 +48,8 @@ nodes_array=($nodes)
 head_node=${nodes_array[0]}
 port=7639       # This port will be used by Ray to communicate with worker nodes.
 
-# This is so that the ray.init() command called from the hpo.py script knows which ports to connect to
+# This is so that the ray.init() command called from the hpo.py script knows
+# which ports to connect to
 export ip_head="$head_node"i:"$port"
 export head_node_ip="$head_node"i
 
@@ -70,7 +72,7 @@ echo HEAD node started.
 
 # Start Ray worker nodes
 # These nodes will connect to the head node and become part of the Ray cluster.
-worker_num=$((SLURM_JOB_NUM_NODES - 1))    # Total number of worker nodes (excluding the head node).
+worker_num=$((SLURM_JOB_NUM_NODES - 1))    # Total number of worker nodes (excl the head node)
 for ((i = 1; i <= worker_num; i++)); do
     node_i=${nodes_array[$i]}   # Get the current worker node hostname.
     echo "Starting WORKER $i at $node_i"
@@ -81,7 +83,7 @@ for ((i = 1; i <= worker_num; i++)); do
         ray start --address "$head_node"i:"$port" --redis-password='5241580000000000' \
         --num-cpus "$num_cpus" --num-gpus "$num_gpus" --block &
     
-    sleep 5 # Wait for a few seconds before starting the next worker to prevent race conditions.
+    sleep 5 # Wait before starting the next worker to prevent race conditions.
 done
 echo All Ray workers started.
 
@@ -92,7 +94,7 @@ echo All Ray workers started.
 echo 'Starting HPO.'
 
 #python pipeline_runner_for_testing.py
-$PYTHON_VENV/bin/itwinai exec-pipeline --config config.yaml --pipe-key ray_training_pipeline_small
+$PYTHON_VENV/bin/itwinai exec-pipeline --config config.yaml --pipe-key ray_training_pipeline
 
 #python hpo.py --num_samples 4 --max_iterations 2 --ngpus $num_gpus --ncpus $num_cpus --pipeline_name training_pipeline
 

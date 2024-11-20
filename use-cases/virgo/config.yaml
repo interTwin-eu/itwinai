@@ -2,7 +2,8 @@ hdf5_file_location: /p/scratch/intertwin/datasets/virgo_hdf5/virgo_data.hdf5
 hdf5_dataset_name: virgo_dataset
 data_root: ./data
 epochs: 5
-batch_size: 2000 # equivalent to chunk size 
+chunk_size: 1000 # equivalent to chunk size 
+batch_size: 64
 learning_rate: 0.0001
 strategy: deepspeed
 checkpoint_path: checkpoints/epoch_{}.pth
@@ -18,7 +19,7 @@ training_pipeline:
           validation_proportion: 0.1
           rnd_seed: 42
           hdf5_file_location: ${hdf5_file_location}
-          chunk_size: ${batch_size}
+          chunk_size: ${chunk_size}
           hdf5_dataset_name: ${hdf5_dataset_name}
       - class_path: trainer.NoiseGeneratorTrainer
         init_args:
@@ -100,7 +101,9 @@ ray_training_pipeline:
           train_proportion: 0.9
           validation_proportion: 0.1
           rnd_seed: 42
-          root_folder: ${root_folder}
+          hdf5_file_location: ${hdf5_file_location}
+          chunk_size: ${chunk_size}
+          hdf5_dataset_name: ${hdf5_dataset_name}
       - class_path: trainer.RayNoiseGeneratorTrainer
         init_args:
           config:
@@ -110,25 +113,25 @@ ray_training_pipeline:
                 resources_per_worker:
                   CPU: 5
                   GPU: 1
-            # tune_config:
-            #   num_samples: 2
-              # scheduler:
-              #   name: asha
-              #   max_t: 10
-              #   grace_period: 5
-              #   reduction_factor: 4
-              #   brackets: 1
+            tune_config:
+              num_samples: 2
+              scheduler:
+                name: asha
+                max_t: 10
+                grace_period: 5
+                reduction_factor: 4
+                brackets: 1
             run_config:
               storage_path: ray_checkpoints
               name: Virgo-HPO-Experiment
             train_loop_config:
-              batch_size: 64
-                # type: choice
-                # options: [32, 64, 128]
-              learning_rate: 0.0005
-                # type: uniform
-                # min: 1e-5
-                # max: 1e-3
+              batch_size:
+                type: choice
+                options: [1, 2, 4]
+              learning_rate:
+                type: uniform
+                min: 1e-5
+                max: 1e-3
               epochs: 2
               generator: simple #unet
               loss: L1
@@ -168,31 +171,31 @@ ray_training_pipeline_small:
         init_args:
           config:
             scaling_config:
-                num_workers: 4
+                num_workers: 2
                 use_gpu: true
                 resources_per_worker:
                   CPU: 5
                   GPU: 1
-            # tune_config:
-            #   num_samples: 2
-              # scheduler:
-              #   name: asha
-              #   max_t: 10
-              #   grace_period: 5
-              #   reduction_factor: 4
-              #   brackets: 1
+            tune_config:
+              num_samples: 2
+              scheduler:
+                name: asha
+                max_t: 10
+                grace_period: 5
+                reduction_factor: 4
+                brackets: 1
             run_config:
               storage_path: ray_checkpoints
               name: Virgo-HPO-Experiment
             train_loop_config:
-              batch_size: 64
-                # type: choice
-                # options: [32, 64, 128]
-              learning_rate: 0.0005
-                # type: uniform
-                # min: 1e-5
-                # max: 1e-3
-              epochs: 2
+              batch_size:
+                type: choice
+                options: [32, 64, 128]
+              learning_rate:
+                type: uniform
+                min: 1e-5
+                max: 1e-3
+              epochs: 20
               generator: simple #unet
               loss: L1
               save_best: false

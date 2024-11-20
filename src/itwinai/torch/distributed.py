@@ -5,11 +5,6 @@ from typing import (Any, Callable, Iterable, List, Literal, Optional, Tuple,
                     Union)
 
 import deepspeed
-import horovod.torch as hvd
-import ray
-import ray.train
-import deepspeed
-import horovod.torch as hvd
 import ray
 import ray.train
 import torch
@@ -17,12 +12,11 @@ import torch.distributed as dist
 import torch.nn as nn
 import torch.optim as optim
 from torch.nn.modules import Module
-from torch.nn.modules import Module
 from torch.optim.lr_scheduler import _LRScheduler as LRScheduler
 from torch.optim.optimizer import Optimizer
 from torch.utils.data import DataLoader, Dataset, DistributedSampler, Sampler
 from torch.utils.data.dataloader import T_co, _collate_fn_t, _worker_init_fn_t
-from deepspeed.accelerator import get_accelerator
+
 from ..distributed import DistributedStrategy
 from .type import DistributedStrategyError, UninitializedStrategyError
 
@@ -34,7 +28,7 @@ def distributed_resources_available() -> bool:
     Returns:
         bool: env can support distributed ML.
     """
-    force_dist_env = int(os.environ.get('ITWINAI_FORCE_DIST', '0'))
+    force_dist_env = int(os.environ.get("ITWINAI_FORCE_DIST", "0"))
     return force_dist_env or torch.cuda.is_available() and torch.cuda.device_count() > 1
 
 
@@ -43,11 +37,14 @@ def check_initialized(method: Callable) -> Callable:
     was correctly initialized before calling the method."""
 
     @functools.wraps(method)
-    def wrapper(self: 'TorchDistributedStrategy', *args, **kwargs):
+    def wrapper(self: "TorchDistributedStrategy", *args, **kwargs):
         if not self.is_initialized:
-            raise UninitializedStrategyError((
-                f"{self.__class__.__name__} has not been initialized. "
-                "Use the init method."))
+            raise UninitializedStrategyError(
+                (
+                    f"{self.__class__.__name__} has not been initialized. "
+                    "Use the init method."
+                )
+            )
         return method(self, *args, **kwargs)
 
     return wrapper
@@ -78,11 +75,11 @@ class TorchDistributedStrategy(DistributedStrategy):
         """
         return self.global_rank() == 0
 
-    @ abc.abstractmethod
+    @abc.abstractmethod
     def init(self) -> None:
         """Initializes the chosen distributed backend"""
 
-    @ abc.abstractmethod
+    @abc.abstractmethod
     def distributed(
         self,
         model: nn.Module,
@@ -91,7 +88,7 @@ class TorchDistributedStrategy(DistributedStrategy):
     ) -> Tuple[nn.Module, Optimizer, Optional[LRScheduler]]:
         """Setup model, optimizer and scheduler for distributed."""
 
-    @ abc.abstractmethod
+    @abc.abstractmethod
     def global_world_size(self) -> int:
         """Returns the total number of processes (global world size).
 
@@ -99,7 +96,7 @@ class TorchDistributedStrategy(DistributedStrategy):
             int: global world size.
         """
 
-    @ abc.abstractmethod
+    @abc.abstractmethod
     def local_world_size(self) -> int:
         """Returns the number of local workers available on a node
         (local world size).
@@ -109,7 +106,7 @@ class TorchDistributedStrategy(DistributedStrategy):
             int: local world size.
         """
 
-    @ abc.abstractmethod
+    @abc.abstractmethod
     def global_rank(self) -> int:
         """Returns the global rank of the current process.
         Rank ranges from 0 to world_size.
@@ -118,7 +115,7 @@ class TorchDistributedStrategy(DistributedStrategy):
             int: global rank.
         """
 
-    @ abc.abstractmethod
+    @abc.abstractmethod
     def local_rank(self) -> int:
         """Returns the local rank of the current process.
 
@@ -315,9 +312,7 @@ class TorchDistributedStrategy(DistributedStrategy):
                     shuffle=shuffle,
                 )
             elif not isinstance(sampler, DistributedSampler):
-                raise RuntimeError(
-                    "User-provided sampler must implement DistributedSampler."
-                )
+                raise RuntimeError("User-provided sampler must implement DistributedSampler.")
         # shuffle and batch_sampler must be unset
         return DataLoader(
             dataset=dataset,
@@ -336,11 +331,11 @@ class TorchDistributedStrategy(DistributedStrategy):
             pin_memory_device=pin_memory_device,
         )
 
-    @ abc.abstractmethod
+    @abc.abstractmethod
     def clean_up(self) -> None:
         """Cleans up resources allocated by distributed strategy."""
 
-    @ abc.abstractmethod
+    @abc.abstractmethod
     def allgather_obj(self, obj: Any) -> List[Any]:
         """All-gathers any object from the whole group in a list
         (to all workers).
@@ -352,7 +347,7 @@ class TorchDistributedStrategy(DistributedStrategy):
             List[Any]: list of objects gathered from all workers.
         """
 
-    @ abc.abstractmethod
+    @abc.abstractmethod
     def gather_obj(self, obj: Any, dst_rank: int = 0) -> List[Any]:
         """Gathers any object from the whole group in a list
         (to all workers).
@@ -366,7 +361,7 @@ class TorchDistributedStrategy(DistributedStrategy):
             List[Any]: list of objects gathered from all workers.
         """
 
-    @ abc.abstractmethod
+    @abc.abstractmethod
     def gather(self, tensor: torch.Tensor, dst_rank: int = 0) -> Optional[List]:
         """Gathers any object from the whole group in a list
         (to all workers).
@@ -408,9 +403,7 @@ class TorchDDPStrategy(TorchDistributedStrategy):
                 which is already initialized.
         """
         if not distributed_resources_available():
-            raise RuntimeError(
-                "Trying to run distributed on insufficient resources."
-            )
+            raise RuntimeError("Trying to run distributed on insufficient resources.")
         if self.is_initialized:
             raise DistributedStrategyError("Strategy was already initialized")
         dist.init_process_group(backend=self.backend)
@@ -577,18 +570,14 @@ class DeepSpeedStrategy(TorchDistributedStrategy):
 
         self.deepspeed = deepspeed
         if not distributed_resources_available():
-            raise RuntimeError(
-                "Trying to run distributed on insufficient resources."
-            )
+            raise RuntimeError("Trying to run distributed on insufficient resources.")
 
         if self.is_initialized:
             raise DistributedStrategyError("Strategy was already initialized")
 
         # https://github.com/Lightning-AI/pytorch-lightning/issues/13567
         ompi_lrank = os.environ.get("OMPI_COMM_WORLD_LOCAL_RANK")
-        os.environ["OMPI_COMM_WORLD_LOCAL_RANK"] = os.environ.get(
-            "LOCAL_RANK", ompi_lrank
-        )
+        os.environ["OMPI_COMM_WORLD_LOCAL_RANK"] = os.environ.get("LOCAL_RANK", ompi_lrank)
         # https://deepspeed.readthedocs.io/en/latest/initialize.html#training-initialization
         self.deepspeed.init_distributed(dist_backend=self.backend)
         self.is_initialized = True
@@ -746,9 +735,7 @@ class HorovodStrategy(TorchDistributedStrategy):
                 already initialized.
         """
         if not distributed_resources_available():
-            raise RuntimeError(
-                "Trying to run distributed on insufficient resources."
-            )
+            raise RuntimeError("Trying to run distributed on insufficient resources.")
         if self.is_initialized:
             raise DistributedStrategyError("Strategy was already initialized")
 
@@ -912,10 +899,6 @@ class NonDistributedStrategy(TorchDistributedStrategy):
         super().__init__()
         self.name = "non-distributed"
 
-    def __init__(self):
-        super().__init__()
-        self.name = "non-distributed"
-
     def init(self) -> None:
         """If CUDA is available set CUDA device, and do nothing more.
 
@@ -1026,38 +1009,60 @@ class NonDistributedStrategy(TorchDistributedStrategy):
         return [tensor]
 
 
-class RayDDPStrategy(TorchDistributedStrategy):
+class RayDistributedStrategy(TorchDistributedStrategy):
+    def _initialize_ray(self) -> None:
+        try:
+            ip_head = os.environ.get("ip_head")
+            head_node_ip = os.environ.get("head_node_ip")
+
+            if not ip_head or not head_node_ip:
+                raise EnvironmentError(
+                    "Ray initialization requires 'ip_head' and 'head_node_ip' to be set."
+                )
+
+            if not ray.is_initialized():
+                ray.init(address="auto")
+                print("Ray initialized!")
+
+        except Exception as e:
+            raise RuntimeError(f"Error initializing Ray: {str(e)}")
+
+
+class RayDDPStrategy(RayDistributedStrategy):
     def __init__(self) -> None:
-        # TODO: Maybe add a backend variable here
-        self.is_initialized = True
+        super()._initialize_ray()
 
     def init(self) -> None:
-        pass
+        self.is_initialized = True
 
+    @check_initialized
     def global_world_size(self) -> int:
         return ray.train.get_context().get_world_size()
 
+    @check_initialized
     def local_world_size(self) -> int:
         return ray.train.get_context().get_local_world_size()
 
+    @check_initialized
     def global_rank(self) -> int:
         return ray.train.get_context().get_world_rank()
 
+    @check_initialized
     def local_rank(self) -> int:
         return ray.train.get_context().get_local_rank()
 
+    @check_initialized
     def distributed(
         self,
         model: nn.Module,
         optimizer: Optimizer,
-        lr_scheduler: Optional[LRScheduler] = None
+        lr_scheduler: Optional[LRScheduler] = None,
     ) -> Tuple[Module | Optimizer | LRScheduler | None]:
-
         model = ray.train.torch.prepare_model(model)
 
         return model, optimizer, lr_scheduler
 
-    # TODO: Could this be cleaned up a bit?
+    @check_initialized
     def create_dataloader(
         self,
         dataset: Dataset[T_co],
@@ -1067,16 +1072,18 @@ class RayDDPStrategy(TorchDistributedStrategy):
         batch_sampler: Union[Sampler[List], Iterable[List], None] = None,
         num_workers: int = 0,
         collate_fn: Optional[_collate_fn_t] = None,
-        pin_memory: bool = False, drop_last: bool = False,
+        pin_memory: bool = False,
+        drop_last: bool = False,
         timeout: float = 0,
         worker_init_fn: Optional[_worker_init_fn_t] = None,
         multiprocessing_context=None,
         generator=None,
-        *, prefetch_factor: Optional[int] = None,
+        *,
+        prefetch_factor: Optional[int] = None,
         persistent_workers: bool = False,
-        pin_memory_device: str = ""
+        pin_memory_device: str = "",
     ):
-        dataloader = DataLoader(
+        dataloader = super().create_dataloader(
             dataset=dataset,
             batch_size=batch_size,
             sampler=sampler,
@@ -1091,7 +1098,7 @@ class RayDDPStrategy(TorchDistributedStrategy):
             generator=generator,
             prefetch_factor=prefetch_factor,
             persistent_workers=persistent_workers,
-            pin_memory_device=pin_memory_device
+            pin_memory_device=pin_memory_device,
         )
 
         return ray.train.torch.prepare_data_loader(dataloader)
@@ -1109,93 +1116,48 @@ class RayDDPStrategy(TorchDistributedStrategy):
         pass
 
 
-# Doesn't work yet!
-class RayDeepSpeedStrategy(TorchDistributedStrategy):
-    def __init__(
-        self,
-        backend: Literal['nccl', 'gloo', 'mpi']
-    ) -> None:
-
-        # os.environ['RANK'] = os.environ.get('SLURM_PROCID')
-        # os.environ['WORLD_SIZE'] = os.environ.get('SLURM_NTASKS')
-        # os.environ['LOCAL_RANK'] = os.environ.get('SLURM_LOCALID')
-
-        # print("Environment variables: ")
-        # print(os.environ.get('MASTER_ADDR'))
-        # print(os.environ.get('MASTER_PORT'))
-        # print(os.environ['RANK'])
-        # print(os.environ['WORLD_SIZE'])
-        # print(os.environ['LOCAL_RANK'])
-
-        # print(os.environ)
-
-        # deepspeed.init_distributed()
-
-        # if not distributed_resources_available():
-        #     raise RuntimeError(
-        #         "Trying to run distributed on insufficient resources.")
-
-        # https://github.com/Lightning-AI/pytorch-lightning/issues/13567
-        # ompi_lrank = os.environ.get('OMPI_COMM_WORLD_LOCAL_RANK')
-        # os.environ['OMPI_COMM_WORLD_LOCAL_RANK'] = os.environ.get(
-        #     'LOCAL_RANK', ompi_lrank
-        # )
-        # https://deepspeed.readthedocs.io/en/latest/initialize.html#training-initialization
-        # print(backend)
-
-        # print("Trying to initialize strategy...")
-        # deepspeed.init_distributed(dist_backend=backend)
-        self.is_initialized = True
-        # print("Successfully initialized strategy!")
-
-        # self.set_device()
-
-        super().__init__()
+class RayDeepSpeedStrategy(RayDistributedStrategy):
+    def __init__(self) -> None:
+        super()._initialize_ray()
 
     def init(self) -> None:
-
-        # if not distributed_resources_available():
-        #     raise RuntimeError(
-        #         "Trying to run distributed on insufficient resources.")
-
-        # https://github.com/Lightning-AI/pytorch-lightning/issues/13567
         # This block of code should be removed as some point
-        if os.environ.get('LOCAL_RANK'):
-            os.environ['OMPI_COMM_WORLD_LOCAL_RANK'] = os.environ.get('LOCAL_RANK')
+        if os.environ.get("LOCAL_RANK"):
+            os.environ["OMPI_COMM_WORLD_LOCAL_RANK"] = os.environ.get("LOCAL_RANK")
 
-        # https://deepspeed.readthedocs.io/en/latest/initialize.html#training-initialization
-        # print(backend)
         deepspeed.init_distributed()
-        # print("Trying to initialize strategy...")
-        # deepspeed.init_distributed(dist_backend=backend)
-        self.is_initialized = True
-        # print("Successfully initialized strategy!")
 
-        print(os.environ)
+        print("Deepspeed initialized")
+        self.is_initialized = True
+
         self.set_device()
 
+    @check_initialized
     def global_world_size(self) -> int:
         return dist.get_world_size()
 
+    @check_initialized
     def local_world_size(self) -> int:
         return torch.cuda.device_count()
 
+    @check_initialized
     def global_rank(self) -> int:
         return dist.get_rank()
 
+    @check_initialized
     def local_rank(self) -> int:
         return dist.get_rank() % torch.cuda.device_count()
 
+    @check_initialized
     def distributed(
         self,
         model: Module,
         optimizer: Optimizer,
         lr_scheduler: Optional[LRScheduler] = None,
         model_parameters: Optional[Any] = None,
-        **init_kwargs
+        **init_kwargs,
     ) -> Tuple[Module | Optimizer | LRScheduler | None]:
-
-        master_port = os.environ.get('MASTER_PORT')
+        master_port = os.environ.get("MASTER_PORT")
 
         distrib_model, optimizer, _, lr_scheduler = deepspeed.initialize(
             model=model,
@@ -1203,45 +1165,10 @@ class RayDeepSpeedStrategy(TorchDistributedStrategy):
             optimizer=optimizer,
             lr_scheduler=lr_scheduler,
             distributed_port=master_port,
-
             dist_init_required=True,
-            **init_kwargs
+            **init_kwargs,
         )
         return distrib_model, optimizer, lr_scheduler
-
-    def create_dataloader(
-        self,
-        dataset: Dataset,
-        batch_size: Optional[int] = 1,
-        shuffle: Optional[bool] = None,
-        sampler: Union[Sampler, Iterable, None] = None,
-        batch_sampler: Union[Sampler[List], Iterable[List], None] = None,
-        collate_fn: Optional[Callable[[List], Any]] = None
-    ):
-        if batch_sampler is not None:
-            print(
-                "WARNING: batch_sampler is ignored by TorchDistributedStrategy"
-            )
-
-        if sampler is None:
-            sampler = DistributedSampler(
-                dataset,
-                num_replicas=self.global_world_size(),
-                rank=self.global_rank(),
-                shuffle=shuffle
-            )
-        elif not isinstance(sampler, DistributedSampler):
-            raise RuntimeError(
-                "User-provided sampler must implement DistributedSampler."
-            )
-
-        return DataLoader(
-            dataset=dataset,
-            batch_size=batch_size,
-            shuffle=shuffle,
-            collate_fn=collate_fn,
-            sampler=sampler
-        )
 
     def clean_up(self) -> None:
         pass
