@@ -1,8 +1,7 @@
 import abc
 import functools
 import os
-from typing import (Any, Callable, Iterable, List, Literal, Optional, Tuple,
-                    Union)
+from typing import Any, Callable, Iterable, List, Literal, Optional, Tuple, Union
 
 import deepspeed
 import ray
