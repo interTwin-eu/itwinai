@@ -8,12 +8,12 @@ command:
 """
 
 import torch
-from torch import nn
 import torch.nn.functional as F
-from torch.utils.data import DataLoader
-from torchvision import transforms, datasets
 import torch.optim as optim
+from torch import nn
 from torch.optim.lr_scheduler import StepLR
+from torch.utils.data import DataLoader
+from torchvision import datasets, transforms
 
 from itwinai.torch.trainer import distributed
 
