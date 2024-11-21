@@ -1,3 +1,14 @@
+# --------------------------------------------------------------------------------------
+# Part of the interTwin Project: https://www.intertwin.eu/
+#
+# Created by: Matteo Bunino
+#
+# Credit:
+# - Matteo Bunino <matteo.bunino@cern.ch> - CERN
+# - Jarl Sondre Sæther <jarl.sondre.saether@cern.ch> - CERN
+# - Henry Mutegeki <henry.mutegeki@cern.ch> - CERN
+# --------------------------------------------------------------------------------------
+
 import abc
 import functools
 import os
