@@ -18,12 +18,12 @@ from torch.utils.data.distributed import DistributedSampler
 from utils import imagenet_dataset
 
 from itwinai.loggers import EpochTimeTracker
-from itwinai.parser import ArgumentParser as ItAIArgumentParser
+from itwinai.parser import ArgumentParser as ItwinaiArgParser
 from itwinai.torch.reproducibility import seed_worker, set_seed
 
 
 def parse_params():
-    parser = ItAIArgumentParser(description='PyTorch Imagenet scaling test')
+    parser = ItwinaiArgParser(description='PyTorch Imagenet scaling test')
 
     # Data and logging
     parser.add_argument('--data-dir', default='./',

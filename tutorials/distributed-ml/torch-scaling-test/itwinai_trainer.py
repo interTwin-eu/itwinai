@@ -20,7 +20,7 @@ from torch.utils.data.distributed import DistributedSampler
 from utils import imagenet_dataset
 
 from itwinai.loggers import EpochTimeTracker
-from itwinai.parser import ArgumentParser as ItAIArgumentParser
+from itwinai.parser import ArgumentParser as ItwinaiArgParser
 from itwinai.torch.distributed import (
     DeepSpeedStrategy,
     HorovodStrategy,
@@ -37,7 +37,7 @@ def parse_params() -> argparse.Namespace:
 
     >>> train.py --strategy ddp --config base-config.yaml --config foo.yaml
     """
-    parser = ItAIArgumentParser(description='PyTorch Imagenet Example')
+    parser = ItwinaiArgParser(description='PyTorch Imagenet Example')
 
     # Distributed ML strategy
     parser.add_argument(

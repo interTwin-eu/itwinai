@@ -17,66 +17,10 @@ import torch.optim as optim
 import torchvision
 from torch.utils.data import DataLoader
 from torch.utils.data.distributed import DistributedSampler
-from utils import imagenet_dataset
+from utils import imagenet_dataset, parse_params
 
 from itwinai.loggers import EpochTimeTracker
-from itwinai.parser import ArgumentParser as ItAIArgumentParser
 from itwinai.torch.reproducibility import seed_worker, set_seed
-
-
-def parse_params():
-    parser = ItAIArgumentParser(description='PyTorch Imagenet Example')
-
-    # Data and logging
-    parser.add_argument('--data-dir', default='./',
-                        help=('location of the training dataset in the '
-                              'local filesystem'))
-    parser.add_argument('--log-int', type=int, default=100,
-                        help=('#batches to wait before logging training '
-                              'status. Disabled if < 0.'))
-    parser.add_argument('--verbose',
-                        action=argparse.BooleanOptionalAction,
-                        help='Print parsed arguments')
-    parser.add_argument('--nworker', type=int, default=0,
-                        help=('number of workers in DataLoader '
-                              '(default: 0 - only main)'))
-    parser.add_argument('--prefetch', type=int, default=2,
-                        help='prefetch data in DataLoader (default: 2)')
-
-    # Model
-    parser.add_argument('--batch-size', type=int, default=64,
-                        help='input batch size for training (default: 64)')
-    parser.add_argument('--epochs', type=int, default=10,
-                        help='number of epochs to train (default: 10)')
-    parser.add_argument('--lr', type=float, default=0.01,
-                        help='learning rate (default: 0.01)')
-    parser.add_argument('--momentum', type=float, default=0.5,
-                        help='SGD momentum (default: 0.5)')
-    parser.add_argument('--shuff', action='store_true', default=False,
-                        help='shuffle dataset (default: False)')
-
-    # Reproducibility
-    parser.add_argument('--rnd-seed', type=Optional[int], default=None,
-                        help='seed integer for reproducibility (default: 0)')
-
-    # Distributed ML
-    parser.add_argument('--no-cuda', action='store_true', default=False,
-                        help='disables CUDA training')
-    parser.add_argument('--fp16-allreduce', action='store_true', default=False,
-                        help='use fp16 compression during allreduce')
-    parser.add_argument('--use-adasum', action='store_true', default=False,
-                        help='use adasum algorithm to do reduction')
-    parser.add_argument('--gradient-predivide-factor', type=float, default=1.0,
-                        help=('apply gradient pre-divide factor in optimizer '
-                              '(default: 1.0)'))
-
-    args = parser.parse_args()
-    if args.verbose:
-        args_list = [f"{key}: {val}" for key, val in args.items()]
-        print("PARSED ARGS:\n", '\n'.join(args_list))
-
-    return args
-
 
 def train(
         model, optimizer, train_sampler, train_loader,
@@ -88,8 +32,6 @@ def train(
     if grank == 0:
         print("\n")
     for batch_idx, (data, target) in enumerate(train_loader):
-        # if hvd.local_rank() == 0 and hvd.rank() == 0:
-        #     print(f"BS == DATA: {data.shape}, TARGET: {target.shape}")
         t = timer()
         if use_cuda:
             data, target = data.cuda(), target.cuda()
