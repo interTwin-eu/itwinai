@@ -260,6 +260,63 @@ def generate_scalability_plot(
     )
 
 
+@app.command()
+def generate_scalability_plot(
+    pattern: str = "None",
+    log_dir: str = "scalability-metrics/epoch-time",
+    do_backup: bool = False,
+    backup_dir: str = "backup-scalability-metrics/",
+    experiment_name: Optional[str] = None,
+    run_name: Optional[str] = None,
+) -> None:
+    """Creates two scalability plots from measured wall-clock times of an experiment
+    run and saves them to file. Uses pattern to filter out files if given, otherwise
+    it will try to use all files it finds in the given log directory. Will store all
+    the data that was used as a backup file if do_backup is provided.
+    """
+
+    from itwinai.scalability import (  # archive_data,
+        backup_scalability_metrics,
+        convert_matching_files_to_dataframe,
+        create_absolute_plot,
+        create_relative_plot,
+    )
+
+    log_dir_path = Path(log_dir)
+    if pattern.lower() == "none":
+        pattern = None
+
+    expected_columns = {"name", "nodes", "epoch_id", "time"}
+    combined_df = convert_matching_files_to_dataframe(
+        log_dir=log_dir_path, pattern=pattern, expected_columns=expected_columns
+    )
+    print("Merged CSV:")
+    print(combined_df)
+
+    avg_time_df = (
+        combined_df.drop(columns="epoch_id")
+        .groupby(["name", "nodes"])
+        .mean()
+        .reset_index()
+    )
+    print("\nAvg over name and nodes:")
+    print(avg_time_df.rename(columns=dict(time="avg(time)")))
+
+    create_absolute_plot(avg_time_df)
+    create_relative_plot(avg_time_df)
+
+    if not do_backup:
+        return
+
+    backup_scalability_metrics(
+        experiment_name=experiment_name,
+        run_name=run_name,
+        backup_dir=backup_dir,
+        metric_df=combined_df,
+        filename="epoch_time.csv",
+    )
+
+
 @ app.command()
 def sanity_check(
     torch: Annotated[
