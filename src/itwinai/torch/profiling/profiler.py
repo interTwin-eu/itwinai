@@ -96,6 +96,7 @@ def profile_torch_trainer(method: Callable) -> Callable:
                 active=active_epochs,
             ),
         ) as profiler:
+            self.profiler = profiler
             result = method(self, *args, **kwargs)
 
         strategy = self.strategy
