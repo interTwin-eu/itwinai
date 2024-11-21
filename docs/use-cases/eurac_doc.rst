@@ -1,42 +1,11 @@
 
 EURAC
 =====
+You can find the relevant code for the EURAC use case in the 
+`use case's folder on Github <https://github.com/interTwin-eu/itwinai/tree/main/use-cases/eurac>`_,
+or by consulting the use case's README: 
+
+
 .. include:: ../../use-cases/eurac/README.md
    :parser: myst_parser.sphinx_
    :start-line: 2
-
-..
-..
-.. config.yaml
-.. +++++++++++
-.. .. literalinclude:: ../../use-cases/virgo/config.yaml
-..    :language: yaml
-..
-..
-.. data.py
-.. +++++++
-..
-.. .. literalinclude:: ../../use-cases/virgo/data.py
-..    :language: python
-..
-..
-.. runall.sh
-.. +++++++++
-..
-.. .. literalinclude:: ../../use-cases/virgo/runall.sh
-..    :language: bash
-..
-..
-.. slurm.sh
-.. ++++++++
-..
-.. .. literalinclude:: ../../use-cases/virgo/slurm.sh
-..    :language: bash
-..
-..
-.. trainer.py
-.. ++++++++++
-.. .. literalinclude:: ../../use-cases/virgo/trainer.py
-..    :language: python
-..
-..
