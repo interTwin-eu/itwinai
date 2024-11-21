@@ -210,8 +210,13 @@ RUN pip install --no-cache-dir --upgrade pip \
     'numpy<2' \
     packaging \
     py-cpuinfo \
-    torch==2.4.* torchvision torchaudio --index-url https://download.pytorch.org/whl/cu124 \
     wheel
+
+# Install itwinai with torch
+WORKDIR "$HOME/itwinai"
+COPY --chown=${NB_UID} pyproject.toml pyproject.toml
+COPY --chown=${NB_UID} src src
+RUN pip install --no-cache-dir .[torch,nvidia,dev] --extra-index-url https://download.pytorch.org/whl/cu124
 
 # Apex: https://github.com/NVIDIA/apex
 # (needed for DeepSpeed *_FUSED optinal build options)
@@ -225,7 +230,9 @@ RUN git clone https://github.com/NVIDIA/apex && cd apex \
 # Note: it will take about half an hour to build
 RUN pip install --no-cache-dir transformer_engine[pytorch]
 
-# DeepSpeed, Horovod and other deps
+WORKDIR "$HOME/itwinai"
+
+# Install DeepSpeed, Horovod and Ray
 ENV HOROVOD_WITH_PYTORCH=1 \
     HOROVOD_WITHOUT_TENSORFLOW=1 \
     HOROVOD_WITHOUT_MXNET=1 \
@@ -247,16 +254,10 @@ ENV HOROVOD_WITH_PYTORCH=1 \
 RUN pip install --no-cache-dir \
     deepspeed==0.15.* \
     git+https://github.com/horovod/horovod.git@3a31d93 \
-    "prov4ml[nvidia]@git+https://github.com/matbun/ProvML@e99bddba047a1a04ca0387e87cad1ed96d5ab2c5" \
     ray[tune]
 
-
-# Core itwinai lib
-WORKDIR "$HOME/itwinai"
-COPY --chown=${NB_UID} pyproject.toml pyproject.toml
-COPY --chown=${NB_UID} src src
-RUN pip install --no-cache-dir ".[torch,dev]" \
-    && itwinai sanity-check --torch \
+# Installation sanity check
+RUN itwinai sanity-check --torch \
     --optional-deps deepspeed \
     --optional-deps horovod \
     --optional-deps ray

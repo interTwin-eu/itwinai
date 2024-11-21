@@ -59,7 +59,7 @@ environment for PyTorch:
 
     ```bash
     ml --force purge
-    ml Python CMake/3.24.3-GCCcore-11.3.0 mpi4py OpenMPI CUDA/12.3
+    ml Python/3.11.5-GCCcore-13.2.0 CMake/3.24.3-GCCcore-11.3.0 mpi4py OpenMPI CUDA/12.3
     ml GCCcore/11.3.0 NCCL cuDNN/8.9.7.29-CUDA-12.3.0 UCX-CUDA/1.15.0-GCCcore-13.2.0-CUDA-12.3.0
     ```
 
@@ -80,7 +80,7 @@ environment for TensorFlow:
 
     ```bash
     ml --force purge
-    ml Python CMake/3.24.3-GCCcore-11.3.0 mpi4py OpenMPI CUDA/12.3
+    ml Python/3.11.5-GCCcore-13.2.0 CMake/3.24.3-GCCcore-11.3.0 mpi4py OpenMPI CUDA/12.3
     ml GCCcore/11.3.0 NCCL cuDNN/8.9.7.29-CUDA-12.3.0 UCX-CUDA/1.15.0-GCCcore-13.2.0-CUDA-12.3.0
     ```
 
@@ -227,7 +227,7 @@ Commands to be executed before activating the python virtual environment:
 
     ```bash
     ml --force purge
-    ml Python CMake/3.24.3-GCCcore-11.3.0 mpi4py OpenMPI CUDA/12.3
+    ml Python/3.11.5-GCCcore-13.2.0 CMake/3.24.3-GCCcore-11.3.0 mpi4py OpenMPI CUDA/12.3
     ml GCCcore/11.3.0 NCCL cuDNN/8.9.7.29-CUDA-12.3.0 UCX-CUDA/1.15.0-GCCcore-13.2.0-CUDA-12.3.0
     ```
 
@@ -261,7 +261,7 @@ Commands to be executed before activating the python virtual environment:
 
     ```bash
     ml --force purge
-    ml Python CMake/3.24.3-GCCcore-11.3.0 mpi4py OpenMPI CUDA/12.3
+    ml Python/3.11.5-GCCcore-13.2.0 CMake/3.24.3-GCCcore-11.3.0 mpi4py OpenMPI CUDA/12.3
     ml GCCcore/11.3.0 NCCL cuDNN/8.9.7.29-CUDA-12.3.0 UCX-CUDA/1.15.0-GCCcore-13.2.0-CUDA-12.3.0
     ```
 

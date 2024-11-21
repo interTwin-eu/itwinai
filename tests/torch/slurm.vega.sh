@@ -42,7 +42,7 @@ echo "DEBUG: CUDA_VISIBLE_DEVICES: $CUDA_VISIBLE_DEVICES"
 
 ml --force purge
 # ml Python CMake/3.24.3-GCCcore-11.3.0 mpi4py OpenMPI/4.1.5-GCC-12.3.0 CUDA/12.3
-ml Python CMake/3.24.3-GCCcore-11.3.0 OpenMPI/4.1.5-GCC-12.3.0 CUDA/12.3
+ml Python/3.11.5-GCCcore-13.2.0 CMake/3.24.3-GCCcore-11.3.0 OpenMPI/4.1.5-GCC-12.3.0 CUDA/12.3
 ml GCCcore/11.3.0 NCCL cuDNN/8.9.7.29-CUDA-12.3.0
 ml UCX-CUDA/1.15.0-GCCcore-13.2.0-CUDA-12.3.0
 

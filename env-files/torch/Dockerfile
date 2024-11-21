@@ -32,7 +32,12 @@ RUN apt-get update && apt-get install -y \
 RUN pip install --no-cache-dir --upgrade pip \
     && env SETUPTOOLS_USE_DISTUTILS=local python -m pip install --no-cache-dir mpi4py
 
-# DeepSpeed, Horovod and other deps
+# Install itwinai with torch
+COPY pyproject.toml pyproject.toml
+COPY src src
+RUN pip install --no-cache-dir .[torch,nvidia,dev] --extra-index-url https://download.pytorch.org/whl/cu124
+
+# Install DeepSpeed, Horovod and Ray
 ENV HOROVOD_WITH_PYTORCH=1 \
     HOROVOD_WITHOUT_TENSORFLOW=1 \
     HOROVOD_WITHOUT_MXNET=1 \
@@ -56,21 +61,14 @@ RUN CONTAINER_TORCH_VERSION="$(python -c 'import torch;print(torch.__version__)'
     && pip install --no-cache-dir torch=="$CONTAINER_TORCH_VERSION" \
     deepspeed==0.15.* \
     git+https://github.com/horovod/horovod.git@3a31d93 \
-    "prov4ml[nvidia]@git+https://github.com/matbun/ProvML@new-main" \
     ray[tune] \
     # fix .triton/autotune/Fp16Matmul_2d_kernel.pickle bug
     && pver="$(python --version 2>&1 | awk '{print $2}' | cut -f1-2 -d.)" \
     && line=$(cat -n "/usr/local/lib/python${pver}/dist-packages/deepspeed/ops/transformer/inference/triton/matmul_ext.py" | grep os.rename | awk '{print $1}' | head -n 1) \
     && sed -i "${line}s|^|#|" "/usr/local/lib/python${pver}/dist-packages/deepspeed/ops/transformer/inference/triton/matmul_ext.py"
 
-# Install itwinai
-COPY pyproject.toml pyproject.toml
-COPY src src
-# Torch: reuse the global torch in the container
-RUN CONTAINER_TORCH_VERSION="$(python -c 'import torch;print(torch.__version__)')" \
-    && pip install --no-cache-dir torch=="$CONTAINER_TORCH_VERSION" \
-    .[torch,dev] \
-    && itwinai sanity-check --torch \
+# Installation sanity check
+RUN itwinai sanity-check --torch \
     --optional-deps deepspeed \
     --optional-deps horovod \
     --optional-deps ray
