@@ -4,3 +4,4 @@ ignored:
   - DL3013 # Pin versions in pip. TODO: remove.
   - DL4001 # Either use Wget or Curl but not both
   - DL3003 # Use WORKDIR to switch to a directory
+  - DL3006 # Always tag the version of an image explicitly: https://github.com/hadolint/hadolint/issues/339
