@@ -81,6 +81,23 @@ COPY --from=build /opt/venv /opt/venv
 # Link /usr/local/bin/python3.10 (in the app image) to /usr/bin/python3.10 (in the builder image)
 RUN ln -s /usr/local/bin/python3.10 /usr/bin/python3.10
 
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    wget \
+    && apt-get clean -y && rm -rf /var/lib/apt/lists/*
+
+# OpenMPI
+WORKDIR /tmp/ompi
+ENV OPENMPI_VERSION=4.1.6 \
+    OPENMPI_MINOR=4.1 
+ENV OPENMPI_URL="https://download.open-mpi.org/release/open-mpi/v${OPENMPI_MINOR}/openmpi-${OPENMPI_VERSION}.tar.gz" 
+ENV OPENMPI_DIR=/opt/openmpi-${OPENMPI_VERSION} 
+ENV PATH="${OPENMPI_DIR}/bin:${PATH}" 
+ENV LD_LIBRARY_PATH="${OPENMPI_DIR}/lib:${LD_LIBRARY_PATH}" 
+ENV MANPATH=${OPENMPI_DIR}/share/man:${MANPATH}
+RUN wget -q -O openmpi-$OPENMPI_VERSION.tar.gz $OPENMPI_URL && tar xzf openmpi-$OPENMPI_VERSION.tar.gz \
+    && cd openmpi-$OPENMPI_VERSION && ./configure --prefix=$OPENMPI_DIR && make install
+
 # Activate the virtualenv in the container
 # See here for more information:
 # https://pythonspeed.com/articles/multi-stage-docker-python/
