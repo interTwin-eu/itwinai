@@ -71,17 +71,13 @@ def generate_gpu_data_plots(
 
     log_dir_path = Path(log_dir)
     if not log_dir_path.exists():
-        raise ValueError(
-            f"The provided log_dir, '{log_dir_path.resolve()}', does not exist."
-        )
+        raise ValueError(f"The provided log_dir, '{log_dir_path.resolve()}', does not exist.")
 
     plot_dir_path = Path(plot_dir)
     if pattern.lower() == "none":
         pattern = None
 
-    gpu_data_df = convert_matching_files_to_dataframe(
-        pattern=pattern, log_dir=log_dir_path
-    )
+    gpu_data_df = convert_matching_files_to_dataframe(pattern=pattern, log_dir=log_dir_path)
 
     energy_df = calculate_total_energy_expenditure(gpu_data_df=gpu_data_df)
     utilization_df = calculate_average_gpu_utilization(gpu_data_df=gpu_data_df)
@@ -237,10 +233,7 @@ def generate_scalability_plot(
     print(combined_df)
 
     avg_time_df = (
-        combined_df.drop(columns="epoch_id")
-        .groupby(["name", "nodes"])
-        .mean()
-        .reset_index()
+        combined_df.drop(columns="epoch_id").groupby(["name", "nodes"]).mean().reset_index()
     )
     print("\nAvg over name and nodes:")
     print(avg_time_df.rename(columns=dict(time="avg(time)")))
@@ -258,99 +251,6 @@ def generate_scalability_plot(
         metric_df=combined_df,
         filename="epoch_time.csv",
     )
-
-
-@app.command()
-def generate_scalability_plot(
-    pattern: str = "None",
-    log_dir: str = "scalability-metrics/epoch-time",
-    do_backup: bool = False,
-    backup_dir: str = "backup-scalability-metrics/",
-    experiment_name: Optional[str] = None,
-    run_name: Optional[str] = None,
-) -> None:
-    """Creates two scalability plots from measured wall-clock times of an experiment
-    run and saves them to file. Uses pattern to filter out files if given, otherwise
-    it will try to use all files it finds in the given log directory. Will store all
-    the data that was used as a backup file if do_backup is provided.
-    """
-
-    from itwinai.scalability import (  # archive_data,
-        backup_scalability_metrics,
-        convert_matching_files_to_dataframe,
-        create_absolute_plot,
-        create_relative_plot,
-    )
-
-    log_dir_path = Path(log_dir)
-    if pattern.lower() == "none":
-        pattern = None
-
-    expected_columns = {"name", "nodes", "epoch_id", "time"}
-    combined_df = convert_matching_files_to_dataframe(
-        log_dir=log_dir_path, pattern=pattern, expected_columns=expected_columns
-    )
-    print("Merged CSV:")
-    print(combined_df)
-
-    avg_time_df = (
-        combined_df.drop(columns="epoch_id")
-        .groupby(["name", "nodes"])
-        .mean()
-        .reset_index()
-    )
-    print("\nAvg over name and nodes:")
-    print(avg_time_df.rename(columns=dict(time="avg(time)")))
-
-    create_absolute_plot(avg_time_df)
-    create_relative_plot(avg_time_df)
-
-    if not do_backup:
-        return
-
-    backup_scalability_metrics(
-        experiment_name=experiment_name,
-        run_name=run_name,
-        backup_dir=backup_dir,
-        metric_df=combined_df,
-        filename="epoch_time.csv",
-    )
-
-
-@ app.command()
-def sanity_check(
-    torch: Annotated[
-        Optional[bool], typer.Option(help=("Check also itwinai.torch modules."))
-    ] = False,
-    tensorflow: Annotated[
-        Optional[bool], typer.Option(help=("Check also itwinai.tensorflow modules."))
-    ] = False,
-    all: Annotated[Optional[bool], typer.Option(help=("Check all modules."))] = False,
-    optional_deps: List[str] = typer.Option(None, help="List of optional dependencies."),
-):
-    """Run sanity checks on the installation of itwinai and its dependencies by trying
-    to import itwinai modules. By default, only itwinai core modules (neither torch, nor
-    tensorflow) are tested."""
-    from itwinai.tests.sanity_check import (
-        run_sanity_check,
-        sanity_check_all,
-        sanity_check_slim,
-        sanity_check_tensorflow,
-        sanity_check_torch,
-    )
-
-    all = (torch and tensorflow) or all
-    if all:
-        sanity_check_all()
-    elif torch:
-        sanity_check_torch()
-    elif tensorflow:
-        sanity_check_tensorflow()
-    else:
-        sanity_check_slim()
-
-    if optional_deps is not None:
-        run_sanity_check(optional_deps)
 
 
 @app.command()
@@ -363,8 +263,7 @@ def exec_pipeline(
         str,
         typer.Option(
             help=(
-                "Key in the configuration file identifying "
-                "the pipeline object to execute."
+                "Key in the configuration file identifying " "the pipeline object to execute."
             )
         ),
     ] = "pipeline",
@@ -415,8 +314,7 @@ def exec_pipeline(
 
     overrides_list = overrides_list if overrides_list is not None else []
     overrides = {
-        k: v
-        for k, v in map(lambda x: (x.split("=")[0], x.split("=")[1]), overrides_list)
+        k: v for k, v in map(lambda x: (x.split("=")[0], x.split("=")[1]), overrides_list)
     }
     parser = ConfigParser(config=config, override_keys=overrides)
     if print_config:
@@ -437,7 +335,7 @@ def exec_pipeline(
     pipeline.execute()
 
 
-@ app.command()
+@app.command()
 def mlflow_ui(
     path: str = typer.Option("ml-logs/", help="Path to logs storage."),
     port: int = typer.Option(5000, help="Port on which the MLFlow UI is listening."),
@@ -448,7 +346,7 @@ def mlflow_ui(
     subprocess.run(f"mlflow ui --backend-store-uri {path} --port {port}".split())
 
 
-@ app.command()
+@app.command()
 def mlflow_server(
     path: str = typer.Option("ml-logs/", help="Path to logs storage."),
     port: int = typer.Option(5000, help="Port on which the server is listening."),
@@ -459,7 +357,7 @@ def mlflow_server(
     subprocess.run(f"mlflow server --backend-store-uri {path} --port {port}".split())
 
 
-@ app.command()
+@app.command()
 def kill_mlflow_server(
     port: int = typer.Option(5000, help="Port on which the server is listening."),
 ):

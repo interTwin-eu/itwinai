@@ -1,5 +1,9 @@
-from ray.tune.schedulers import (AsyncHyperBandScheduler, HyperBandForBOHB,
-                                 HyperBandScheduler, PopulationBasedTraining)
+from ray.tune.schedulers import (
+    AsyncHyperBandScheduler,
+    HyperBandForBOHB,
+    HyperBandScheduler,
+    PopulationBasedTraining,
+)
 from ray.tune.schedulers.pb2 import PB2  # Population Based Bandits
 from ray.tune.search.bayesopt import BayesOptSearch
 from ray.tune.search.bohb import TuneBOHB
