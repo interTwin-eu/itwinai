@@ -11,7 +11,7 @@ name: Container CI
 
 on:
   push:
-    # branches: [main]
+    branches: [main]
   # pull_request:
 
 jobs:

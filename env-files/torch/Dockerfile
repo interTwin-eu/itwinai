@@ -58,6 +58,7 @@ ENV HOROVOD_WITH_PYTORCH=1 \
     DS_BUILD_TRANSFORMER_INFERENCE=1
 # Torch: reuse the global torch in the container
 RUN CONTAINER_TORCH_VERSION="$(python -c 'import torch;print(torch.__version__)')" \
+    && echo "CONTAINER_TORCH_VERSION: $CONTAINER_TORCH_VERSION" \
     && pip install --no-cache-dir torch=="$CONTAINER_TORCH_VERSION" \
     deepspeed==0.15.* \
     git+https://github.com/horovod/horovod.git@3a31d93 \
