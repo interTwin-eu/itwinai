@@ -2,6 +2,7 @@ import abc
 import functools
 import os
 from typing import Any, Callable, Iterable, List, Literal, Optional, Tuple, Union
+
 import ray
 import ray.train
 import torch
@@ -1118,6 +1119,8 @@ class RayDeepSpeedStrategy(RayDistributedStrategy):
     def __init__(self) -> None:
         import deepspeed
 
+        self.deepspeed = deepspeed
+
         super()._initialize_ray()
 
     def init(self) -> None:
@@ -1125,7 +1128,7 @@ class RayDeepSpeedStrategy(RayDistributedStrategy):
         if os.environ.get("LOCAL_RANK"):
             os.environ["OMPI_COMM_WORLD_LOCAL_RANK"] = os.environ.get("LOCAL_RANK")
 
-        deepspeed.init_distributed()
+        self.deepspeed.init_distributed()
 
         print("Deepspeed initialized")
         self.is_initialized = True
@@ -1159,7 +1162,7 @@ class RayDeepSpeedStrategy(RayDistributedStrategy):
     ) -> Tuple[Module | Optimizer | LRScheduler | None]:
         master_port = os.environ.get("MASTER_PORT")
 
-        distrib_model, optimizer, _, lr_scheduler = deepspeed.initialize(
+        distrib_model, optimizer, _, lr_scheduler = self.deepspeed.initialize(
             model=model,
             model_parameters=model_parameters,
             optimizer=optimizer,

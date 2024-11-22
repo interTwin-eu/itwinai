@@ -2,10 +2,8 @@ import os
 import time
 from pathlib import Path
 from timeit import default_timer as timer
-from typing import Dict, Literal, Optional, Union, Tuple, Any
+from typing import Any, Dict, Literal, Optional, Tuple, Union
 
-from itwinai.distributed import suppress_workers_print
-from itwinai.torch.profiling.profiler import profile_torch_trainer
 import numpy as np
 import torch
 import torch.nn as nn
@@ -13,9 +11,10 @@ from ray import train
 from torch.utils.data import Dataset, TensorDataset
 from tqdm import tqdm
 
+from itwinai.distributed import suppress_workers_print
 from itwinai.loggers import EpochTimeTracker, Logger
 from itwinai.torch.config import TrainingConfiguration
-from itwinai.torch.distributed import DeepSpeedStrategy, RayDeepSpeedStrategy, RayDDPStrategy
+from itwinai.torch.distributed import DeepSpeedStrategy, RayDDPStrategy, RayDeepSpeedStrategy
 from itwinai.torch.profiling.profiler import profile_torch_trainer
 from itwinai.torch.trainer import RayTorchTrainer, TorchTrainer
 from src.model import Decoder, Decoder_2d_deep, GeneratorResNet, UNet
