@@ -2,8 +2,6 @@ import abc
 import functools
 import os
 from typing import Any, Callable, Iterable, List, Literal, Optional, Tuple, Union
-
-import deepspeed
 import ray
 import ray.train
 import torch
@@ -688,9 +686,7 @@ class DeepSpeedStrategy(TorchDistributedStrategy):
         dist.gather_object(obj, dst=dst_rank)
 
     @check_initialized
-    def gather(
-        self, tensor: torch.Tensor, dst_rank: int = 0
-    ) -> Optional[List[torch.Tensor]]:
+    def gather(self, tensor: torch.Tensor, dst_rank: int = 0) -> Optional[List[torch.Tensor]]:
         """Gathers a tensor from the whole group in a list
         (to all workers).
 
@@ -869,9 +865,7 @@ class HorovodStrategy(TorchDistributedStrategy):
             return result
 
     @check_initialized
-    def gather(
-        self, tensor: torch.Tensor, dst_rank: int = 0
-    ) -> Optional[List[torch.Tensor]]:
+    def gather(self, tensor: torch.Tensor, dst_rank: int = 0) -> Optional[List[torch.Tensor]]:
         """Gathers a tensor from the whole group in a list
         (to all workers). Under the hood it relies on allgather as gather is
         not supported by Horovod.
@@ -1016,21 +1010,20 @@ class NonDistributedStrategy(TorchDistributedStrategy):
 
 class RayDistributedStrategy(TorchDistributedStrategy):
     def _initialize_ray(self) -> None:
-        try:
-            ip_head = os.environ.get("ip_head")
-            head_node_ip = os.environ.get("head_node_ip")
+        if not ray.is_initialized():
+            try:
+                ip_head = os.environ.get("ip_head")
+                head_node_ip = os.environ.get("head_node_ip")
 
-            if not ip_head or not head_node_ip:
-                raise EnvironmentError(
-                    "Ray initialization requires 'ip_head' and 'head_node_ip' to be set."
-                )
+                if not ip_head or not head_node_ip:
+                    raise EnvironmentError(
+                        "Ray initialization requires 'ip_head' and 'head_node_ip' to be set."
+                    )
 
-            if not ray.is_initialized():
-                ray.init(address="auto")
-                print("Ray initialized!")
+            except Exception as e:
+                raise RuntimeError(f"Error initializing Ray: {str(e)}")
 
-        except Exception as e:
-            raise RuntimeError(f"Error initializing Ray: {str(e)}")
+            ray.init(address="auto")
 
 
 class RayDDPStrategy(RayDistributedStrategy):
@@ -1062,7 +1055,7 @@ class RayDDPStrategy(RayDistributedStrategy):
         model: nn.Module,
         optimizer: Optimizer,
         lr_scheduler: Optional[LRScheduler] = None,
-    ) -> Tuple[Module | Optimizer | LRScheduler | None]:
+    ) -> Tuple[Module, Optimizer, LRScheduler | None]:
         model = ray.train.torch.prepare_model(model)
 
         return model, optimizer, lr_scheduler
@@ -1123,6 +1116,8 @@ class RayDDPStrategy(RayDistributedStrategy):
 
 class RayDeepSpeedStrategy(RayDistributedStrategy):
     def __init__(self) -> None:
+        import deepspeed
+
         super()._initialize_ray()
 
     def init(self) -> None:

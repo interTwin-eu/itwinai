@@ -5,7 +5,7 @@ epochs: 5
 chunk_size: 1000 # equivalent to chunk size 
 batch_size: 64
 learning_rate: 0.0001
-strategy: deepspeed
+strategy: ddp
 checkpoint_path: checkpoints/epoch_{}.pth
 
 # To use the entire synthetic dataset that is generated prior to running the pipeline
@@ -27,7 +27,7 @@ training_pipeline:
             generator: simple #unet
             batch_size: 1
             optim_lr: ${learning_rate}
-            loss: L1
+            loss: l1
             save_best: true
             shuffle_train: true
           num_epochs: ${epochs}
@@ -70,7 +70,7 @@ training_pipeline_small:
             generator: simple #unet
             batch_size: ${batch_size}
             optim_lr: ${learning_rate}
-            loss: L1
+            loss: l1
             save_best: true
             shuffle_train: true
         num_epochs: ${epochs}
@@ -134,7 +134,7 @@ ray_training_pipeline:
                 max: 1e-3
               epochs: 2
               generator: simple #unet
-              loss: L1
+              loss: l1
               save_best: false
               shuffle_train: true
               random_seed: 17
@@ -197,7 +197,7 @@ ray_training_pipeline_small:
                 max: 1e-3
               epochs: 20
               generator: simple #unet
-              loss: L1
+              loss: l1
               save_best: false
               shuffle_train: true
               random_seed: 17

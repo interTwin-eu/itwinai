@@ -68,34 +68,32 @@ class NoiseGeneratorTrainer(TorchTrainer):
     def create_model_loss_optimizer(self) -> None:
         # Select generator
         generator = self.config.generator.lower()
+        scaling = 0.02
         if generator == "simple":
             self.model = Decoder(3, norm=False)
-            init_weights(self.model, "normal", scaling=0.02)
         elif generator == "deep":
             self.model = Decoder_2d_deep(3)
-            init_weights(self.model, "normal", scaling=0.02)
         elif generator == "resnet":
             self.model = GeneratorResNet(3, 12, 1)
-            init_weights(self.model, "normal", scaling=0.01)
+            scaling = 0.01
         elif generator == "unet":
             self.model = UNet(input_channels=3, output_channels=1, norm=False)
-            init_weights(self.model, "normal", scaling=0.02)
         else:
             raise ValueError("Unrecognized generator type! Got", generator)
 
+        init_weights(self.model, "normal", scaling=scaling)
+
         # Select loss
         loss = self.config.loss.upper()
-        if loss == "L1":
+        if loss == "l1":
             self.loss = nn.L1Loss()
-        elif loss == "L2":
+        elif loss == "l2":
             self.loss = nn.MSELoss()
         else:
             raise ValueError("Unrecognized loss type! Got", loss)
 
         # Optimizer
-        self.optimizer = torch.optim.Adam(
-            self.model.parameters(), lr=self.config.optim_lr
-        )
+        self.optimizer = torch.optim.Adam(self.model.parameters(), lr=self.config.optim_lr)
 
         # IMPORTANT: model, optimizer, and scheduler need to be distributed
 
@@ -387,26 +385,26 @@ class RayNoiseGeneratorTrainer(RayTorchTrainer):
     def create_model_loss_optimizer(self) -> None:
         # Select generator
         generator = self.training_config["generator"]
+        scaling = 0.02
         if generator == "simple":
             self.model = Decoder(3, norm=False)
-            init_weights(self.model, "normal", scaling=0.02)
         elif generator == "deep":
             self.model = Decoder_2d_deep(3)
-            init_weights(self.model, "normal", scaling=0.02)
         elif generator == "resnet":
             self.model = GeneratorResNet(3, 12, 1)
-            init_weights(self.model, "normal", scaling=0.01)
+            scaling = 0.01
         elif generator == "unet":
             self.model = UNet(input_channels=3, output_channels=1, norm=False)
-            init_weights(self.model, "normal", scaling=0.02)
         else:
             raise ValueError("Unrecognized generator type! Got", generator)
 
+        init_weights(self.model, "normal", scaling=scaling)
+
         # Select loss
         loss = self.training_config["loss"]
-        if loss == "L1":
+        if loss == "l1":
             self.loss = nn.L1Loss()
-        elif loss == "L2":
+        elif loss == "l2":
             self.loss = nn.MSELoss()
         else:
             raise ValueError("Unrecognized loss type! Got", loss)
@@ -447,44 +445,43 @@ class RayNoiseGeneratorTrainer(RayTorchTrainer):
                 validation_dataset=validation_dataset,
                 test_dataset=test_dataset,
             )
-        else:
-            # If we are using a custom dataset for the large dataset,
-            # we need to overwrite the collate_fn function
-            self.train_dataloader = self.strategy.create_dataloader(
-                dataset=train_dataset,
+
+        # If we are using a custom dataset for the large dataset,
+        # we need to overwrite the collate_fn function
+        self.train_dataloader = self.strategy.create_dataloader(
+            dataset=train_dataset,
+            batch_size=self.training_config["batch_size"],
+            num_workers=self.training_config["num_workers_dataloader"],
+            pin_memory=self.training_config["pin_gpu_memory"],
+            # generator=self.torch_rng,
+            shuffle=self.training_config["shuffle_train"],
+            collate_fn=self.custom_collate,
+        )
+        if validation_dataset is not None:
+            self.validation_dataloader = self.strategy.create_dataloader(
+                dataset=validation_dataset,
                 batch_size=self.training_config["batch_size"],
                 num_workers=self.training_config["num_workers_dataloader"],
                 pin_memory=self.training_config["pin_gpu_memory"],
                 # generator=self.torch_rng,
-                shuffle=self.training_config["shuffle_train"],
+                shuffle=self.training_config["shuffle_validation"],
                 collate_fn=self.custom_collate,
             )
-            if validation_dataset is not None:
-                self.validation_dataloader = self.strategy.create_dataloader(
-                    dataset=validation_dataset,
-                    batch_size=self.training_config["batch_size"],
-                    num_workers=self.training_config["num_workers_dataloader"],
-                    pin_memory=self.training_config["pin_gpu_memory"],
-                    # generator=self.torch_rng,
-                    shuffle=self.training_config["shuffle_validation"],
-                    collate_fn=self.custom_collate,
-                )
-            if test_dataset is not None:
-                self.test_dataloader = self.strategy.create_dataloader(
-                    dataset=test_dataset,
-                    batch_size=self.training_config["batch_size"],
-                    num_workers=self.training_config["num_workers_dataloader"],
-                    pin_memory=self.training_config["pin_gpu_memory"],
-                    # generator=self.torch_rng,
-                    shuffle=self.training_config["shuffle_test"],
-                    collate_fn=self.custom_collate,
-                )
+        if test_dataset is not None:
+            self.test_dataloader = self.strategy.create_dataloader(
+                dataset=test_dataset,
+                batch_size=self.training_config["batch_size"],
+                num_workers=self.training_config["num_workers_dataloader"],
+                pin_memory=self.training_config["pin_gpu_memory"],
+                # generator=self.torch_rng,
+                shuffle=self.training_config["shuffle_test"],
+                collate_fn=self.custom_collate,
+            )
 
     def custom_collate(self, batch):
-        """
-        Custom collate function to concatenate input tensors along their first dimension.
-        """
-        # Some batches contain None values, if any files from the dataset did not match the criteria
+        """Custom collate function to concatenate input tensors along their first dimension."""
+        # Some batches contain None values,
+        # if any files from the dataset did not match the criteria
         # (i.e. three auxilliary channels)
         batch = [x for x in batch if x is not None]
 
