@@ -64,3 +64,12 @@ trainer.py
    :undoc-members:
    :show-inheritance:
    :member-order: bysource
+
+
+loggers.py
+++++++++++
+.. automodule:: itwinai.torch.loggers
+   :members:
+   :undoc-members:
+   :show-inheritance:
+   :member-order: bysource
