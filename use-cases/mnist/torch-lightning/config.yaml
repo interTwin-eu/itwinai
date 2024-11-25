@@ -53,10 +53,13 @@ training_pipeline:
               limit_val_batches: null
               log_every_n_steps: null
               logger:
-                class_path: itwinai.loggers.PyTorchLightningAdapter
+                class_path: itwinai.torch.loggers.ItwinaiLogger
                 init_args:
+                  log_model: all
                   itwinai_logger:
-                    class_path: itwinai.loggers.MlFlowLogger
+                    class_path: itwinai.loggers.MLFlowLogger
+                    init_args:
+                      savedir: mllogs
               max_epochs: 5
               max_steps: -1
               max_time: null

@@ -3,16 +3,14 @@
 # general configuration of the job
 #SBATCH --job-name=PrototypeTest
 #SBATCH --account=intertwin
-#SBATCH --mail-user=
-#SBATCH --mail-type=ALL
-#SBATCH --output=job.out
-#SBATCH --error=job.err
+#SBATCH -o logs_slurm/job-2.out
+#SBATCH -e logs_slurm/job-2.err
 #SBATCH --time=00:30:00
 
 # configure node and process count on the CM
-#SBATCH --partition=batch
+#SBATCH --partition=develbooster
 #SBATCH --nodes=1
-#SBATCH --ntasks-per-node=1
+#SBATCH --ntasks-per-node=4
 #SBATCH --cpus-per-task=4
 #SBATCH --gpus-per-node=4
 
@@ -23,12 +21,13 @@
 
 # load modules
 ml --force purge
-ml Stages/2023 StdEnv/2023 NVHPC/23.1 OpenMPI/4.1.4 cuDNN/8.6.0.163-CUDA-11.7 Python/3.10.4 HDF5 libaio/0.3.112 GCC/11.3.0
+ml Stages/2024 GCC OpenMPI CUDA/12 cuDNN 
+ml Python CMake HDF5 PnetCDF libaio
 
-# shellcheck source=/dev/null
-source ~/.bashrc
+# activate environment
+source ../../../envAI_juwels/bin/activate
 
 # ON LOGIN NODE download datasets:
 # ../../../.venv-pytorch/bin/itwinai exec-pipeline --config config.yaml --pipe-key training_pipeline --steps dataloading_step
-source ../../../.venv-pytorch/bin/activate
-srun itwinai exec-pipeline --config config.yaml --pipe-key training_pipeline 
+
+srun itwinai exec-pipeline --config config.yaml --pipe-key training_pipeline --steps 1:
