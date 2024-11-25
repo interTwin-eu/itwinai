@@ -1,5 +1,7 @@
 # itwinai ArgumentParser
 
+**Author(s)**: Matteo Bunino
+
 itwinai provides a wrapper of jsonarparse's ArgumentParser which supports
 configuration files by default.
 

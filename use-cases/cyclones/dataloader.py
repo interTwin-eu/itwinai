@@ -1,27 +1,36 @@
-from typing import List, Dict, Optional
+# --------------------------------------------------------------------------------------
+# Part of the interTwin Project: https://www.intertwin.eu/
+#
+# Created by: Roman Machacek
+#
+# Credit:
+# - Roman Machacek <roman.machacek@cern.ch> - CERN
+# - Matteo Bunino <matteo.bunino@cern.ch> - CERN
+# --------------------------------------------------------------------------------------
+
 from os import listdir
-from os.path import join, exists
+from os.path import exists, join
+from typing import Dict, List, Optional
 
 import gdown
 import numpy as np
 
 from itwinai.components import DataGetter, monitor_exec
-
 from src.macros import (
-    PatchType,
-    LabelNoCyclone,
     AugmentationType,
+    LabelNoCyclone,
+    PatchType,
 )
-from src.tfrecords.functions import read_tfrecord_as_tensor
 from src.scaling import save_tf_minmax
 from src.tfrecords.dataset import eFlowsTFRecordDataset
+from src.tfrecords.functions import read_tfrecord_as_tensor
 from src.transform import (
     coo_left_right,
-    coo_up_down,
     coo_rot180,
+    coo_up_down,
     msk_left_right,
-    msk_up_down,
     msk_rot180,
+    msk_up_down,
 )
 
 
@@ -41,7 +50,7 @@ class CyclonesDataGetter(DataGetter):
         global_config: Dict,
         shuffle_buffer: Optional[int] = None,
         dataset_root: str = "tmp_data",
-        tfrecords_dir: str = "trainval"
+        tfrecords_dir: str = "trainval",
     ):
         super().__init__()
         self.save_parameters(**self.locals2params(locals()))
@@ -62,10 +71,7 @@ class CyclonesDataGetter(DataGetter):
             experiment["DRV_VARS_1"],
             experiment["COO_VARS_1"],
         )
-        self.msk_var = (
-            None if experiment["MSK_VAR_1"] == "None"
-            else experiment["MSK_VAR_!"]
-        )
+        self.msk_var = None if experiment["MSK_VAR_1"] == "None" else experiment["MSK_VAR_!"]
         self.channels = [len(self.drv_vars), len(self.coo_vars)]
 
         # Shuffle
@@ -101,15 +107,15 @@ class CyclonesDataGetter(DataGetter):
         # Download data
         if not exists(self.dataset_root):
             gdown.download_folder(
-                url=self.dataset_url, quiet=False,
+                url=self.dataset_url,
+                quiet=False,
                 # verify=False,
-                output=self.dataset_root
+                output=self.dataset_root,
             )
 
         # Scalar fields
         self.root_dir = root_dir
-        self.tfrecords_path = join(self.dataset_root,
-                                   self.tfrecords_dir)
+        self.tfrecords_path = join(self.dataset_root, self.tfrecords_dir)
         self.scaler_file = join(config["scaler_dir"], "minmax.tfrecord")
 
         # get records filenames
@@ -117,8 +123,7 @@ class CyclonesDataGetter(DataGetter):
             [
                 join(self.tfrecords_path, f)
                 for f in listdir(self.tfrecords_path)
-                if f.endswith(".tfrecord") and f.startswith(
-                    PatchType.CYCLONE.value)
+                if f.endswith(".tfrecord") and f.startswith(PatchType.CYCLONE.value)
             ]
         )
         if self.patch_type == PatchType.NEAREST.value:
@@ -126,8 +131,7 @@ class CyclonesDataGetter(DataGetter):
                 [
                     join(self.tfrecords_path, f)
                     for f in listdir(self.tfrecords_path)
-                    if f.endswith(".tfrecord") and f.startswith(
-                        PatchType.NEAREST.value)
+                    if f.endswith(".tfrecord") and f.startswith(PatchType.NEAREST.value)
                 ]
             )
         elif self.patch_type == PatchType.ALLADJACENT.value:
@@ -135,24 +139,22 @@ class CyclonesDataGetter(DataGetter):
                 [
                     join(self.tfrecords_path, f)
                     for f in listdir(self.tfrecords_path)
-                    if f.endswith(".tfrecord")
-                    and f.startswith(PatchType.ALLADJACENT.value)
+                    if f.endswith(".tfrecord") and f.startswith(PatchType.ALLADJACENT.value)
                 ]
             )
         self.random_files = sorted(
             [
                 join(self.tfrecords_path, f)
                 for f in listdir(self.tfrecords_path)
-                if f.endswith(".tfrecord") and f.startswith(
-                    PatchType.RANDOM.value)
+                if f.endswith(".tfrecord") and f.startswith(PatchType.RANDOM.value)
             ]
         )
 
     def split_files(self, files, ratio):
         n = len(files)
         return (
-            files[0: int(ratio[0] * n)],
-            files[int(ratio[0] * n): int((ratio[0] + ratio[1]) * n)],
+            files[0 : int(ratio[0] * n)],
+            files[int(ratio[0] * n) : int((ratio[0] + ratio[1]) * n)],
         )
 
     @monitor_exec
@@ -161,9 +163,7 @@ class CyclonesDataGetter(DataGetter):
         train_c_fs, valid_c_fs = self.split_files(
             files=self.cyclone_files, ratio=self.split_ratio
         )
-        train_a_fs, valid_a_fs = self.split_files(
-            files=self.adj_files, ratio=self.split_ratio
-        )
+        train_a_fs, valid_a_fs = self.split_files(files=self.adj_files, ratio=self.split_ratio)
         train_r_fs, valid_r_fs = self.split_files(
             files=self.random_files, ratio=self.split_ratio
         )

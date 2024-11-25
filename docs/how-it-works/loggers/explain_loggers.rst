@@ -1,6 +1,8 @@
 Tracking ML workflows
 =========================
 
+**Author(s)**: Matteo Bunino (CERN), Killian Verder (CERN)
+
 One key aspect of understanding the intricacies of your ML experiment lies in
 the descriptive data around hyper-parameters, metrics, and model checkpoints.
 This information allows us to compare different models and reproduce previous

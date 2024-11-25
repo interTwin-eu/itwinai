@@ -1,13 +1,22 @@
-from typing import Dict
+# --------------------------------------------------------------------------------------
+# Part of the interTwin Project: https://www.intertwin.eu/
+#
+# Created by: Matteo Bunino
+#
+# Credit:
+# - Matteo Bunino <matteo.bunino@cern.ch> - CERN
+# --------------------------------------------------------------------------------------
+
 import os
-import shutil
 import pickle
 import random
+import shutil
+from typing import Dict
 
-import torch
-from torch import Tensor
 import matplotlib.pyplot as plt
 import numpy as np
+import torch
+from torch import Tensor
 
 from itwinai.components import Saver, monitor_exec
 
@@ -16,9 +25,7 @@ class ParticleImagesSaver(Saver):
     """Saves generated particle trajectories to disk."""
 
     def __init__(
-        self,
-        save_dir: str = '3dgan-generated',
-        aggregate_predictions: bool = False
+        self, save_dir: str = "3dgan-generated", aggregate_predictions: bool = False
     ) -> None:
         self.save_parameters(**self.locals2params(locals()))
         super().__init__()
@@ -39,7 +46,7 @@ class ParticleImagesSaver(Saver):
             for name, res in generated_images.items():
                 sparse_generated_images[name] = res.to_sparse()
             del generated_images
-            with open(self._random_file(), 'wb') as fp:
+            with open(self._random_file(), "wb") as fp:
                 pickle.dump(sparse_generated_images, fp)
         else:
             if os.path.exists(self.save_dir):
@@ -48,10 +55,10 @@ class ParticleImagesSaver(Saver):
             # Save as torch tensor and jpg image
             for img_id, img in generated_images.items():
                 img_path = os.path.join(self.save_dir, img_id)
-                torch.save(img, img_path + '.pth')
-                self._save_image(img, img_id, img_path + '.jpg')
+                torch.save(img, img_path + ".pth")
+                self._save_image(img, img_id, img_path + ".jpg")
 
-    def _random_file(self, extension: str = 'pkl') -> str:
+    def _random_file(self, extension: str = "pkl") -> str:
         fname = "%032x.%s" % (random.getrandbits(128), extension)
         fpath = os.path.join(self.save_dir, fname)
         while os.path.exists(fpath):
@@ -60,11 +67,7 @@ class ParticleImagesSaver(Saver):
         return fpath
 
     def _save_image(
-        self,
-        img: Tensor,
-        img_idx: str,
-        img_path: str,
-        center: bool = True
+        self, img: Tensor, img_idx: str, img_path: str, center: bool = True
     ) -> None:
         """Converts a 3D tensor to a 3D scatter plot and saves it
         to disk as jpg image.
@@ -108,14 +111,14 @@ class ParticleImagesSaver(Saver):
         # 0-1 scaling
         values = (values - values.min()) / (values.max() - values.min())
         fig = plt.figure()
-        ax = fig.add_subplot(projection='3d')
+        ax = fig.add_subplot(projection="3d")
         ax.scatter(x_coords, y_coords, z_coords, alpha=values)
-        ax.set_xlabel('X')
-        ax.set_ylabel('Y')
-        ax.set_zlabel('Z')
+        ax.set_xlabel("X")
+        ax.set_ylabel("Y")
+        ax.set_zlabel("Z")
 
         # Extract energy and angle from idx
-        en, ang = img_idx.split('&')
+        en, ang = img_idx.split("&")
         en = en[7:]
         ang = ang[6:]
         ax.set_title(f"Energy: {en} - Angle: {ang}")
