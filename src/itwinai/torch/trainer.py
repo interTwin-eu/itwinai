@@ -236,7 +236,7 @@ class TorchTrainer(Trainer, LogMixin):
                 )
             )
         elif isinstance(self.strategy, HorovodStrategy):
-            import horovod as hvd
+            import horovod.torch as hvd
             distribute_kwargs = dict(
                 compression=(
                     hvd.Compression.fp16 if self.config.fp16_allreduce
