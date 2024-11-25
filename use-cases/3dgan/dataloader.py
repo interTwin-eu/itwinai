@@ -186,6 +186,8 @@ class ParticlesDataModule(pl.LightningDataModule):
     def setup(self, stage: str = None):
         # make assignments here (val/train/test split)
         # called on every process in DDP
+        print(f"Dataset path: {self.datapath}")
+        print(f"Train proportion: {self.train_proportion}")
 
         if stage == 'fit' or stage is None:
             self.dataset = ParticlesDataset(
@@ -197,6 +199,8 @@ class ParticlesDataModule(pl.LightningDataModule):
             self.train_dataset, self.val_dataset = \
                 torch.utils.data.random_split(
                     self.dataset, [split_point, dataset_length - split_point])
+            print(f"Training dataset size: {len(self.train_dataset)}")
+            print(f"Validation dataset size: {len(self.val_dataset)}")
 
         if stage == 'predict':
             # TODO: inference dataset should be different in that it

@@ -1,8 +1,8 @@
 # Main configurations
-dataset_location: /p/scratch/intertwin/datasets/cern/
+dataset_location: /p/scratch/intertwin/datasets/cern/sample/
 dataset_url: https://drive.google.com/drive/folders/1ooUIfkhpokvwh4-7qPxX084N7-LgqnIL # https://drive.google.com/drive/folders/1uPpz0tquokepptIfJenTzGpiENfo2xRX
 hw_accelerators: auto
-distributed_strategy: ddp_find_unused_parameters_true #ddp_find_unused_parameters_true #deepspeed auto horovod
+distributed_strategy: ddp #ddp_find_unused_parameters_true #deepspeed auto horovod
 devices: auto #[0]
 checkpoints_path: checkpoints
 logs_dir: ml_logs
@@ -11,12 +11,12 @@ batch_size: 32
 train_dataset_proportion: 0.9
 num_workers_dataloader: 4
 max_epochs: 16
-max_dataset_size: 100 #null
+max_dataset_size: null
 random_seed: 4231162351
 inference_results_location: 3dgan-generated-data/
 inference_model_uri: /p/scratch/intertwin/datasets/cern/validation_weights/best_generator_weights_epoch_21.pth
 aggregate_predictions: false
-num_nodes: 2
+num_nodes: 1
 provenance_verbose: true
 
 # Dataloading step is common and can be reused
@@ -48,7 +48,7 @@ training_pipeline:
                   init_args:
                     experiment_name: 3DGAN_test1
                     log_freq: batch
-                    #rank_zero_only: true  # Add this to restrict logging to rank 0
+                    rank_zero_only: true  # Add this to restrict logging to rank 0
           #       # - class_path: itwinai.loggers.Prov4MLLogger
           #       #   init_args:
           #       #     provenance_save_dir: mllogs/prov_logs

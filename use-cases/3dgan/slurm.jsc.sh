@@ -35,15 +35,15 @@ source ~/.bashrc
 # Activate the environment
 source ../../envAI_juwels/bin/activate
 
-GAN_DATASET="/p/scratch/intertwin/datasets/cern/" #"/p/scratch/intertwin/datasets/cern/" exp_data
+GAN_DATASET="/p/scratch/intertwin/datasets/cern/sample/" #"/p/scratch/intertwin/datasets/cern/" exp_data
 CHECKPOINT_DIR="checkpoints_test"
 TOTAL_EPOCHS=16
 NUM_EPOCHS_PER_JOB=8
 
-# Function to submit the next job with dependency
-submit_next_job() {
-    sbatch --dependency=afterok:$1 $0
-}
+# # Function to submit the next job with dependency
+# submit_next_job() {
+#     sbatch --dependency=afterok:$1 $0
+# }
 
 # launch training
 TRAINING_CMD="$(which itwinai) exec-pipeline --config config.yaml --pipe-key training_pipeline \
@@ -69,7 +69,7 @@ srun --cpu-bind=none --ntasks-per-node=1 \
     --rdzv_endpoint='$(scontrol show hostnames "$SLURM_JOB_NODELIST" | head -n 1)'i:29500 \
     $TRAINING_CMD"
 
-# If training completes, submit the next job
-if [ $? -eq 0 ]; then
-    submit_next_job $SLURM_JOB_ID
-fi
+# # If training completes, submit the next job
+# if [ $? -eq 0 ]; then
+#     submit_next_job $SLURM_JOB_ID
+# fi
