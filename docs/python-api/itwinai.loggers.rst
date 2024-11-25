@@ -1,5 +1,5 @@
 itwinai.loggers
------------------
+================
 
 .. automodule:: itwinai.loggers
    :members:
