@@ -1,9 +1,10 @@
 # --------------------------------------------------------------------------------------
 # Part of the interTwin Project: https://www.intertwin.eu/
 #
-# Created by: Matteo Bunino
+# Created by: Roman Machacek
 #
 # Credit:
+# - Roman Machacek <roman.machacek@cern.ch> - CERN
 # - Matteo Bunino <matteo.bunino@cern.ch> - CERN
 # --------------------------------------------------------------------------------------
 
