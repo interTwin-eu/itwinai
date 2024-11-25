@@ -71,8 +71,8 @@ def test_serializable():
         init_args=dict(data_uri=dict(foo=12, bar="123", hl=3.14), name=None),
     )
 
-    # Non serializable obj
-    class NonSerializable: ...
+    class NonSerializable:
+        """Non-serializable object"""
 
     comp = FakeGetterExec(data_uri=NonSerializable())
     with pytest.raises(SerializationError) as exc_info:
