@@ -41,9 +41,9 @@ training_pipeline:
             class_path: itwinai.loggers.LoggersCollection
             init_args:
               loggers: 
-                - class_path: itwinai.loggers.ConsoleLogger
-                  init_args:
-                    log_freq: 100
+                # - class_path: itwinai.loggers.ConsoleLogger
+                #   init_args:
+                #     log_freq: 100
                 - class_path: itwinai.loggers.MLFlowLogger
                   init_args:
                     experiment_name: 3DGAN_test1
