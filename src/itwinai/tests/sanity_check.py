@@ -34,6 +34,7 @@ torch_modules = [
     'itwinai.torch.reproducibility',
     'itwinai.torch.trainer',
     'itwinai.torch.type',
+    'itwinai.torch.loggers'
 ]
 
 tensorflow_modules = [

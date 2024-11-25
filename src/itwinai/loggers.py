@@ -1,3 +1,13 @@
+# --------------------------------------------------------------------------------------
+# Part of the interTwin Project: https://www.intertwin.eu/
+#
+# Created by: Matteo Bunino
+#
+# Credit:
+# - Matteo Bunino <matteo.bunino@cern.ch> - CERN
+# - Anna Lappe <anna.elisa.lappe@cern.ch> - CERN
+# -------------------------------------------------------------------------------------
+
 """
 ``itwinai`` wrappers for well-known ML loggers.
 
@@ -58,7 +68,6 @@ A logger allows to save objects of different kinds:
 """
 
 import os
-import pathlib
 import pickle
 from abc import ABC, abstractmethod
 from contextlib import contextmanager
@@ -140,10 +149,24 @@ class Logger(LogMixin):
         savedir: str = "mllogs",
         log_freq: Union[int, Literal["epoch", "batch"]] = "epoch",
         log_on_workers: Union[int, List[int]] = 0,
+        experiment_id: Optional[str] = None,
+        run_id: Optional[Union[int, str]] = None,
     ) -> None:
         self.savedir = savedir
         self.log_freq = log_freq
         self.log_on_workers = log_on_workers
+        self._experiment_id = experiment_id
+        self._run_id = run_id
+
+    @property
+    def experiment_id(self) -> Optional[str]:
+        """Return the experiment name."""
+        return self._experiment_id
+
+    @property
+    def run_id(self) -> Optional[Union[int, str]]:
+        """Return the experiment version."""
+        return self._run_id
 
     @property
     def log_freq(self) -> Union[int, Literal["epoch", "batch"]]:
@@ -332,7 +355,7 @@ class ConsoleLogger(Logger):
         log_freq: Union[int, Literal["epoch", "batch"]] = "epoch",
         log_on_workers: Union[int, List[int]] = 0,
     ) -> None:
-        savedir = os.path.join(savedir, "simple-logger")
+        savedir = savedir = Path(savedir) / "simple-logger"
         super().__init__(
             savedir=savedir, log_freq=log_freq, log_on_workers=log_on_workers
         )
@@ -350,14 +373,18 @@ class ConsoleLogger(Logger):
         if not self.should_log():
             return
 
-        os.makedirs(self.savedir, exist_ok=True)
-        run_dirs = sorted([int(dir) for dir in os.listdir(self.savedir)])
-        if len(run_dirs) == 0:
-            self.run_id = 0
+        if self.savedir.is_dir():
+            numeric_dirs = [
+                int(exp_dir.name)
+                for exp_dir in self.savedir.iterdir()
+                if exp_dir.is_dir() and exp_dir.name.isdigit()
+            ]
+            self._experiment_id = max(numeric_dirs) + 1
         else:
-            self.run_id = int(run_dirs[-1]) + 1
-        self.run_path = os.path.join(self.savedir, str(self.run_id))
-        os.makedirs(self.run_path, exist_ok=True)
+            self._experiment_id = 0
+
+        self.run_path = self.savedir / str(self.experiment_id)
+        self.run_path.mkdir(exist_ok=True, parents=True)
 
     def destroy_logger_context(self):
         """Destroy logger. Do nothing."""
@@ -400,25 +427,38 @@ class ConsoleLogger(Logger):
             return
 
         if kind == "artifact":
-            if isinstance(item, str) and os.path.isfile(item):
-                import shutil
+            import shutil
 
-                identifier = os.path.join(self.run_path, identifier)
-                if len(os.path.dirname(identifier)) > 0:
-                    os.makedirs(os.path.dirname(identifier), exist_ok=True)
-                print(f"ConsoleLogger: Serializing to {identifier}...")
-                shutil.copyfile(item, identifier)
+            artifact_dir = self.run_path / "artifacts" / identifier
+            artifact_dir.mkdir(exist_ok=True, parents=True)
+
+            item_path = Path(item)
+            if item_path.is_file():
+                target_path = artifact_dir / identifier
+                shutil.copyfile(item, target_path)
+
+            elif item_path.is_dir():
+                numeric_dirs = [
+                    int(exp_dir.name)
+                    for exp_dir in artifact_dir.iterdir()
+                    if exp_dir.is_dir() and exp_dir.name.isdigit()
+                ]
+                child_id = max(numeric_dirs) + 1
+                target_path = artifact_dir / f"{self._experiment_id}.{child_id}"
+                shutil.copytree(item, target_path, dirs_exist_ok=True)
             else:
-                identifier = os.path.join(os.path.basename(self.run_path), identifier)
-                print(f"ConsoleLogger: Serializing to {identifier}...")
-                self.serialize(item, identifier)
+                print(f"INFO: The ConsoleLogger expects an artifact to be either a path \
+                      or a directory. Received instead an item of type {type(item)}. \
+                        The item will be ignored and not logged.")
+
         elif kind == "torch":
-            identifier = os.path.join(self.run_path, identifier)
-            print(f"ConsoleLogger: Saving to {identifier}...")
             import torch
 
-            torch.save(item, identifier)
-        else:
+            target_path = self.run_path / identifier
+            torch.save(item, target_path)
+            print(f"INFO: ConsoleLogger saved to {target_path}...")
+
+        elif kind == "metric":
             print(f"ConsoleLogger: {identifier} = {item}")
 
 
@@ -477,15 +517,15 @@ class MLFlowLogger(Logger):
         super().__init__(
             savedir=savedir, log_freq=log_freq, log_on_workers=log_on_workers
         )
-        self.experiment_name = experiment_name
         self.tracking_uri = tracking_uri
         self.run_description = run_description
         self.run_name = run_name
+        self.experiment_name = experiment_name
 
         self.tracking_uri = (
             self.tracking_uri
-            or os.environ.get('MLFLOW_TRACKING_URI')
-            or pathlib.Path(os.path.abspath(self.savedir)).as_uri()
+            or os.environ.get("MLFLOW_TRACKING_URI")
+            or self.savedir.resolve().as_uri()
         )
 
     def create_logger_context(self, rank: Optional[int] = None) -> mlflow.ActiveRun:
@@ -514,9 +554,8 @@ class MLFlowLogger(Logger):
             self.active_run: mlflow.ActiveRun = mlflow.start_run(
                 description=self.run_description, run_name=self.run_name
             )
-
-        # TODO: for pytorch lightning:
-        # mlflow.pytorch.autolog()
+        self._run_id = self.active_run.info.run_id
+        self._experiment_id = self.active_run.info.experiment_id
 
         return self.active_run
 
@@ -566,14 +605,13 @@ class MLFlowLogger(Logger):
             return
 
         if kind == "metric":
-            # if isinstance(item, list) and isinstance(identifier, list):
             mlflow.log_metric(key=identifier, value=item, step=step)
         if kind == "artifact":
             if not isinstance(item, str):
                 # Save the object locally and then log it
                 name = os.path.basename(identifier)
-                save_path = os.path.join(self.savedir, ".trash", name)
-                os.makedirs(os.path.dirname(save_path), exist_ok=True)
+                save_path = Path(self.savedir) / ".trash" / name
+                save_path.mkdir(os.path.dirname(save_path), exist_ok=True)
                 item = self.serialize(item, save_path)
             mlflow.log_artifact(local_path=item, artifact_path=identifier)
         if kind == "model":
@@ -600,8 +638,8 @@ class MLFlowLogger(Logger):
 
             # Save the object locally and then log it
             name = os.path.basename(identifier)
-            save_path = os.path.join(self.savedir, ".trash", name)
-            os.makedirs(os.path.dirname(save_path), exist_ok=True)
+            save_path = Path(self.savedir) / ".trash" / name
+            save_path.mkdir(os.path.dirname(save_path), exist_ok=True)
             torch.save(item, save_path)
             # Log into mlflow
             mlflow.log_artifact(local_path=save_path, artifact_path=identifier)
@@ -1019,9 +1057,8 @@ class Prov4MLLogger(Logger):
             log_freq=log_freq,
             log_on_workers=log_on_workers,
         )
-        self.name = experiment_name
-        self.version = None
         self.prov_user_namespace = prov_user_namespace
+        self.experiment_name = experiment_name
         self.provenance_save_dir = provenance_save_dir
         self.save_after_n_logs = save_after_n_logs
         self.create_graph = create_graph
@@ -1043,7 +1080,7 @@ class Prov4MLLogger(Logger):
 
         prov4ml.start_run(
             prov_user_namespace=self.prov_user_namespace,
-            experiment_name=self.name,
+            experiment_name=self.experiment_name,
             provenance_save_dir=self.provenance_save_dir,
             save_after_n_logs=self.save_after_n_logs,
             # This class will control which workers can log
@@ -1139,8 +1176,7 @@ class Prov4MLLogger(Logger):
                 prov4ml.log_param(key=identifier, value=item)
         elif kind == "prov_documents":
             prov_docs = prov4ml.log_provenance_documents(
-                create_graph=True,
-                create_svg=True
+                create_graph=True, create_svg=True
             )
 
             # Upload to MLFlow
@@ -1158,7 +1194,6 @@ class EpochTimeTracker:
     ) -> None:
         if isinstance(save_path, str):
             save_path = Path(save_path)
-
         self.save_path: Path = save_path
         self.strategy_name = strategy_name
         self.num_nodes = num_nodes
