@@ -37,7 +37,6 @@ source ../../envAI_juwels/bin/activate
 
 GAN_DATASET="/p/scratch/intertwin/datasets/cern/" #"/p/scratch/intertwin/datasets/cern/" exp_data
 CHECKPOINT_DIR="checkpoints_test"
-TOTAL_EPOCHS=16
 NUM_EPOCHS_PER_JOB=8
 
 # Function to submit the next job with dependency
