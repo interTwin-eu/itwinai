@@ -1,6 +1,8 @@
 Defining machine learning workflows
 ====================================
 
+**Author(s)**: Matteo Bunino (CERN),  Killian Verder (CERN)
+
 Pipeline for sequential workflows
 ---------------------------------
 

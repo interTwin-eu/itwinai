@@ -1,6 +1,17 @@
+# --------------------------------------------------------------------------------------
+# Part of the interTwin Project: https://www.intertwin.eu/
+#
+# Created by: Matteo Bunino
+#
+# Credit:
+# - Matteo Bunino <matteo.bunino@cern.ch> - CERN
+# --------------------------------------------------------------------------------------
+
+
 from typing import Tuple
-import tensorflow.keras as keras
+
 import tensorflow as tf
+import tensorflow.keras as keras
 
 from itwinai.components import DataGetter, DataProcessor, monitor_exec
 
@@ -29,7 +40,8 @@ class MNISTDataPreproc(DataProcessor):
     ) -> Tuple:
         options = tf.data.Options()
         options.experimental_distribute.auto_shard_policy = (
-            tf.data.experimental.AutoShardPolicy.DATA)
+            tf.data.experimental.AutoShardPolicy.DATA
+        )
         preprocessed = []
         for dataset in datasets:
             x, y = dataset

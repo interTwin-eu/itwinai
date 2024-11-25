@@ -1,6 +1,8 @@
 Submitting jobs to SLURM on HPC
 ====================================
 
+**Author(s)**: Matteo Bunino (CERN)
+
 Here you can find a minimal set of resources to use SLURM job scheduler on an HPC cluster.
 
 What is SLURM? See this quickstart: https://slurm.schedmd.com/quickstart.html

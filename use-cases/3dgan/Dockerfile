@@ -1,5 +1,13 @@
+# --------------------------------------------------------------------------------------
+# Part of the interTwin Project: https://www.intertwin.eu/
+#
+# Created by: Matteo Bunino
+#
+# Credit:
+# - Matteo Bunino <matteo.bunino@cern.ch> - CERN
+# --------------------------------------------------------------------------------------
+
 FROM nvcr.io/nvidia/pytorch:23.09-py3
-# FROM python:3.11
 
 WORKDIR /usr/src/app
 
@@ -14,12 +22,6 @@ RUN pip install --upgrade pip \
 COPY use-cases/3dgan/requirements.txt ./
 COPY use-cases/3dgan/* ./
 RUN pip install --no-cache-dir -r requirements.txt
-
-# Create non-root user
-RUN groupadd -g 10001 jovyan \
-    && useradd -m -u 10000 -g jovyan jovyan \
-    && chown -R jovyan:jovyan /usr/src/app
-USER jovyan:jovyan
 
 # ENTRYPOINT [ "itwinai", "exec-pipeline" ]
 # CMD [ "--config", "pipeline.yaml" ]
