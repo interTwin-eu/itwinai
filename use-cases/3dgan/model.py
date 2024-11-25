@@ -330,6 +330,20 @@ class ThreeDGAN(pl.LightningModule):
         self.generator = Generator(self.latent_size)
         self.discriminator = Discriminator(self.power)
 
+        # Load checkpoint if path is provided
+        if checkpoints_dir:
+            generator_path = os.path.join(checkpoints_dir, "generator_weights.pth")
+            discriminator_path = os.path.join(checkpoints_dir, "discriminator_weights.pth")
+
+            if os.path.exists(generator_path) and os.path.exists(discriminator_path):
+                print(f"Loading generator checkpoint from {generator_path}")
+                self.generator.load_state_dict(torch.load(generator_path))
+
+                print(f"Loading discriminator checkpoint from {discriminator_path}")
+                self.discriminator.load_state_dict(torch.load(discriminator_path))
+            else:
+                print("No checkpoint found. Starting training from scratch.")
+
         self.epoch_gen_loss = []
         self.epoch_disc_loss = []
         self.disc_epoch_test_loss = []
@@ -337,7 +351,7 @@ class ThreeDGAN(pl.LightningModule):
         self.index = 0
         self.train_history = defaultdict(list)
         self.test_history = defaultdict(list)
-        self.pklfile = "/p/project1/intertwin/tsolaki1/DetectorSim-3DGAN/Lightning3DGAN/history/3dgan_history_30ep.pkl"
+        self.pklfile = "/p/project1/intertwin/tsolaki1/DetectorSim-3DGAN/Lightning3DGAN/history/3dgan_history_130ep.pkl"
         # self.pklfile = checkpoint_path
         # checkpoint_dir = os.path.dirname(checkpoint_path)
         # os.makedirs(checkpoint_dir, exist_ok=True)
@@ -693,8 +707,8 @@ class ThreeDGAN(pl.LightningModule):
         self.train_history["generator"].append(generator_train_loss)
         self.train_history["discriminator"].append(discriminator_train_loss)
 
-        torch.save(self.generator.state_dict(), f"/p/scratch/intertwin/datasets/cern/weights/generator_weights_epoch_{epoch_num}.pth")
-        torch.save(self.discriminator.state_dict(), f"/p/scratch/intertwin/datasets/cern/weights/discriminator_weights_epoch_{epoch_num}.pth")
+        torch.save(self.generator.state_dict(), f"/p/scratch/intertwin/datasets/cern/weights_130ep_train/generator_weights_epoch_{epoch_num}.pth")
+        torch.save(self.discriminator.state_dict(), f"/p/scratch/intertwin/datasets/cern/weights_130ep_train/discriminator_weights_epoch_{epoch_num}.pth")
 
         print("-" * 65)
         ROW_FMT = (
@@ -962,7 +976,7 @@ class ThreeDGAN(pl.LightningModule):
 
             torch.save(self.generator.state_dict(), os.path.join(
             self.checkpoints_dir, f"best_generator_weights_epoch_{epoch_num}.pth"))
-            torch.save(self.generator.state_dict(), f"/p/scratch/intertwin/datasets/cern/validation_weights/best_generator_weights_epoch_{epoch_num}.pth")
+            torch.save(self.generator.state_dict(), f"/p/scratch/intertwin/datasets/cern/val_weights_130ep/best_generator_weights_epoch_{epoch_num}.pth")
 
             # Save the best generator model
             if self.itwinai_logger:
