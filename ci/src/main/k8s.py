@@ -67,8 +67,7 @@ POD_TEMPLATE = {
 
 
 def validate_pod_name(name: str) -> None:
-    """
-    Validates if a given string matches the Kubernetes pod naming convention.
+    """Validates if a given string matches the Kubernetes pod naming convention.
 
     Args:
         name (str): The pod name to validate.
@@ -93,8 +92,7 @@ def create_pod_manifest(
     cmd_args: List[str] = None,
     resources: Dict = None,
 ):
-    """
-    Creates a pod manifest with optional parameters to override default values
+    """Creates a pod manifest with optional parameters to override default values
     for pod configuration.
 
     Args:
@@ -141,9 +139,7 @@ def load_kube_config_from_string(kubeconfig_str: str):
 
 
 def load_pod_manifest_from_yaml(file_path: str) -> Dict:
-    """
-    Load a pod manifest from a YAML file.
-    """
+    """Load a pod manifest from a YAML file."""
     with open(file_path, "r") as f:
         pod_manifest = yaml.safe_load(f)
     return pod_manifest
@@ -169,9 +165,7 @@ def check_pod_status(api_instance: client.CoreV1Api, namespace: str, pod_name: s
 
 
 def get_pod_logs_insecure(api_instance: client.CoreV1Api, namespace: str, pod_name: str):
-    """
-    Fetch logs for the specified pod with insecure TLS settings.
-    """
+    """Fetch logs for the specified pod with insecure TLS settings."""
     try:
         log_response = api_instance.read_namespaced_pod_log(
             name=pod_name, namespace=namespace, insecure_skip_tls_verify_backend=True
@@ -183,9 +177,7 @@ def get_pod_logs_insecure(api_instance: client.CoreV1Api, namespace: str, pod_na
 
 
 def delete_pod(api_instance: client.CoreV1Api, namespace: str, pod_name: str):
-    """
-    Delete a pod by its name in a specified namespace.
-    """
+    """Delete a pod by its name in a specified namespace."""
     try:
         api_response = api_instance.delete_namespaced_pod(name=pod_name, namespace=namespace)
         print(f"Pod '{pod_name}' deleted. Status: {api_response.status}")
@@ -196,6 +188,16 @@ def delete_pod(api_instance: client.CoreV1Api, namespace: str, pod_name: str):
 def submit_job(
     kubeconfig_str: str, pod_manifest: Dict, verbose: bool = False
 ) -> Optional[str]:
+    """Submit a pod to some kubernetes cluster.
+
+    Args:
+        kubeconfig_str (str): kubeconfig for kubernetes in string format.
+        pod_manifest (Dict): manifest of the pod.
+        verbose (bool, optional): whether to print pod logs every second. Defaults to False.
+
+    Returns:
+        Optional[str]: final pod status.
+    """
     load_kube_config_from_string(kubeconfig_str)
 
     # Initialize the CoreV1Api for managing pods
