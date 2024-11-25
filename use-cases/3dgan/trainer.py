@@ -64,6 +64,8 @@ class Lightning3DGANTrainer(Trainer):
         )
         sys.argv = old_argv
 
+        print(f"GLOBAL RANK: {cli.trainer.global_rank}")
+
         with self.itwinai_logger.start_logging(rank=cli.trainer.global_rank):
             # Set the logger into the LightningTrainer
             cli.trainer.itwinai_logger = self.itwinai_logger
