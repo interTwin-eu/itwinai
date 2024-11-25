@@ -1,12 +1,19 @@
+# --------------------------------------------------------------------------------------
+# Part of the interTwin Project: https://www.intertwin.eu/
+#
+# Created by: Matteo Bunino
+#
+# Credit:
+# - Matteo Bunino <matteo.bunino@cern.ch> - CERN
+# --------------------------------------------------------------------------------------
+
 [project]
 name = "main"
 version = "0.1.0"
 requires-python = ">=3.12"
-dependencies = [
-    "dagger-io",
-    "kubernetes>=31.0.0",
-    "ruff>=0.7.3",
-]
+dependencies = ["dagger-io", "kubernetes>=31.0.0", "ruff>=0.7.3"]
+maintainers = [{ name = "Matteo Bunino", email = "matteo.bunino@cern.ch" }]
+authors = [{ name = "Matteo Bunino", email = "matteo.bunino@cern.ch" }]
 
 [tool.uv.sources]
 dagger-io = { path = "sdk", editable = true }

@@ -1,3 +1,12 @@
+# --------------------------------------------------------------------------------------
+# Part of the interTwin Project: https://www.intertwin.eu/
+#
+# Created by: Matteo Bunino
+#
+# Credit:
+# - Matteo Bunino <matteo.bunino@cern.ch> - CERN
+# - Anna Lappe <anna.elisa.lappe@cern.ch> - CERN
+# --------------------------------------------------------------------------------------
 
 import importlib
 from typing import List
@@ -5,46 +14,46 @@ from typing import List
 from .exceptions import SanityCheckError
 
 core_modules = [
-    'itwinai',
-    'itwinai.cli',
-    'itwinai.components',
-    'itwinai.distributed',
-    'itwinai.loggers',
-    'itwinai.parser',
-    'itwinai.pipeline',
-    'itwinai.serialization',
-    'itwinai.type',
-    'itwinai.utils',
-    'itwinai.tests',
-    'itwinai.tests.dummy_components',
-    'itwinai.tests.exceptions',
-    'itwinai.tests.sanity_check',
-    'itwinai.plugins'
+    "itwinai",
+    "itwinai.cli",
+    "itwinai.components",
+    "itwinai.distributed",
+    "itwinai.loggers",
+    "itwinai.parser",
+    "itwinai.pipeline",
+    "itwinai.serialization",
+    "itwinai.type",
+    "itwinai.utils",
+    "itwinai.tests",
+    "itwinai.tests.dummy_components",
+    "itwinai.tests.exceptions",
+    "itwinai.tests.sanity_check",
+    "itwinai.plugins",
 ]
 
 torch_modules = [
-    'itwinai.torch',
-    'itwinai.torch.data',
-    'itwinai.torch.models',
-    'itwinai.torch.models.mnist',
-    'itwinai.torch.config',
-    'itwinai.torch.distributed',
-    'itwinai.torch.inference',
-    'itwinai.torch.mlflow',
-    'itwinai.torch.reproducibility',
-    'itwinai.torch.trainer',
-    'itwinai.torch.type',
-    'itwinai.torch.loggers'
+    "itwinai.torch",
+    "itwinai.torch.data",
+    "itwinai.torch.models",
+    "itwinai.torch.models.mnist",
+    "itwinai.torch.config",
+    "itwinai.torch.distributed",
+    "itwinai.torch.inference",
+    "itwinai.torch.mlflow",
+    "itwinai.torch.reproducibility",
+    "itwinai.torch.trainer",
+    "itwinai.torch.type",
+    "itwinai.torch.loggers",
 ]
 
 tensorflow_modules = [
-    'itwinai.tensorflow',
-    'itwinai.tensorflow.data',
-    'itwinai.tensorflow.models',
-    'itwinai.tensorflow.models.mnist',
-    'itwinai.tensorflow.distributed',
-    'itwinai.tensorflow.trainer',
-    'itwinai.tensorflow.utils',
+    "itwinai.tensorflow",
+    "itwinai.tensorflow.data",
+    "itwinai.tensorflow.models",
+    "itwinai.tensorflow.models.mnist",
+    "itwinai.tensorflow.distributed",
+    "itwinai.tensorflow.trainer",
+    "itwinai.tensorflow.utils",
 ]
 
 
@@ -73,8 +82,7 @@ def run_sanity_check(modules: List[str]):
             err_msg += f"Module: {module}, Error: {error}\n"
 
         raise SanityCheckError(
-            "Not all itwinai modules could be successfully imported!\n"
-            + err_msg
+            "Not all itwinai modules could be successfully imported!\n" + err_msg
         )
     else:
         print("\nAll modules imported successfully!")
@@ -91,15 +99,15 @@ def sanity_check_slim():
 def sanity_check_torch():
     """Run sanity check on the installation of itwinai
     for a torch environment."""
-    run_sanity_check(modules=core_modules+torch_modules)
+    run_sanity_check(modules=core_modules + torch_modules)
 
 
 def sanity_check_tensorflow():
     """Run sanity check on the installation of itwinai
     for a tensorflow environment."""
-    run_sanity_check(modules=core_modules+tensorflow_modules)
+    run_sanity_check(modules=core_modules + tensorflow_modules)
 
 
 def sanity_check_all():
     """Run all sanity checks."""
-    run_sanity_check(modules=core_modules+torch_modules+tensorflow_modules)
+    run_sanity_check(modules=core_modules + torch_modules + tensorflow_modules)

@@ -272,9 +272,7 @@ class Logger(LogMixin):
             self.worker_rank is None
             or (
                 isinstance(self.log_on_workers, int)
-                and (
-                    self.log_on_workers == -1 or self.log_on_workers == self.worker_rank
-                )
+                and (self.log_on_workers == -1 or self.log_on_workers == self.worker_rank)
             )
             or (
                 isinstance(self.log_on_workers, list)
@@ -356,9 +354,7 @@ class ConsoleLogger(Logger):
         log_on_workers: Union[int, List[int]] = 0,
     ) -> None:
         savedir = savedir = Path(savedir) / "simple-logger"
-        super().__init__(
-            savedir=savedir, log_freq=log_freq, log_on_workers=log_on_workers
-        )
+        super().__init__(savedir=savedir, log_freq=log_freq, log_on_workers=log_on_workers)
 
     def create_logger_context(self, rank: Optional[int] = None):
         """
@@ -514,9 +510,7 @@ class MLFlowLogger(Logger):
         log_on_workers: Union[int, List[int]] = 0,
     ):
         savedir = os.path.join(savedir, "mlflow")
-        super().__init__(
-            savedir=savedir, log_freq=log_freq, log_on_workers=log_on_workers
-        )
+        super().__init__(savedir=savedir, log_freq=log_freq, log_on_workers=log_on_workers)
         self.tracking_uri = tracking_uri
         self.run_description = run_description
         self.run_name = run_name
@@ -630,9 +624,7 @@ class MLFlowLogger(Logger):
             if isinstance(item, mlflow.data.Dataset):
                 mlflow.log_input(item)
             else:
-                print(
-                    "WARNING: unrecognized dataset type. " "Must be an MLFlow dataset"
-                )
+                print("WARNING: unrecognized dataset type. " "Must be an MLFlow dataset")
         if kind == "torch":
             import torch
 
@@ -699,9 +691,7 @@ class WandBLogger(Logger):
         log_on_workers: Union[int, List[int]] = 0,
     ) -> None:
         savedir = os.path.join(savedir, "wandb")
-        super().__init__(
-            savedir=savedir, log_freq=log_freq, log_on_workers=log_on_workers
-        )
+        super().__init__(savedir=savedir, log_freq=log_freq, log_on_workers=log_on_workers)
         self.project_name = project_name
 
     def create_logger_context(self, rank: Optional[int] = None) -> None:
@@ -809,9 +799,7 @@ class TensorBoardLogger(Logger):
         log_on_workers: Union[int, List[int]] = 0,
     ) -> None:
         savedir = os.path.join(savedir, "tensorboard")
-        super().__init__(
-            savedir=savedir, log_freq=log_freq, log_on_workers=log_on_workers
-        )
+        super().__init__(savedir=savedir, log_freq=log_freq, log_on_workers=log_on_workers)
         self.framework = framework
         if framework.lower() == "tensorflow":
             import tensorflow as tf
@@ -1153,9 +1141,7 @@ class Prov4MLLogger(Logger):
         elif kind == "carbon":
             prov4ml.log_carbon_metrics(context=context, step=step)
         elif kind == "execution_time":
-            prov4ml.log_current_execution_time(
-                label=identifier, context=context, step=step
-            )
+            prov4ml.log_current_execution_time(label=identifier, context=context, step=step)
         elif kind == "model":
             prov4ml.save_model_version(
                 model=item, model_name=identifier, context=context, step=step
@@ -1175,9 +1161,7 @@ class Prov4MLLogger(Logger):
             else:
                 prov4ml.log_param(key=identifier, value=item)
         elif kind == "prov_documents":
-            prov_docs = prov4ml.log_provenance_documents(
-                create_graph=True, create_svg=True
-            )
+            prov_docs = prov4ml.log_provenance_documents(create_graph=True, create_svg=True)
 
             # Upload to MLFlow
             if mlflow.active_run() is not None:

@@ -63,8 +63,7 @@ def convert_matching_files_to_dataframe(
             error_message = f"Unable to find any files in {log_dir.resolve()}!"
         else:
             error_message = (
-                f"No files matched pattern, '{pattern}', in log_dir, "
-                f"{log_dir.resolve()}!"
+                f"No files matched pattern, '{pattern}', in log_dir, " f"{log_dir.resolve()}!"
             )
         raise ValueError(error_message)
 
@@ -146,9 +145,7 @@ def create_relative_plot(avg_epoch_time_df: pd.DataFrame, gpus_per_node: int = 4
     # Plotting the linear line
     num_gpus = np.array(avg_epoch_time_df["num_gpus"].unique())
     linear_speedup = np.array(avg_epoch_time_df["linear_speedup"].unique())
-    ax.plot(
-        num_gpus, linear_speedup, ls="dashed", lw=1.0, c="k", label="linear speedup"
-    )
+    ax.plot(num_gpus, linear_speedup, ls="dashed", lw=1.0, c="k", label="linear speedup")
 
     ax.legend(ncol=1)
     ax.set_xticks(num_gpus)

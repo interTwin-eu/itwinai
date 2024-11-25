@@ -1,3 +1,14 @@
+# --------------------------------------------------------------------------------------
+# Part of the interTwin Project: https://www.intertwin.eu/
+#
+# Created by: Kalliopi Tsolaki
+#
+# Credit:
+# - Kalliopi Tsolaki <kalliopi.tsolaki@cren.ch> - CERN
+# - Matteo Bunino <matteo.bunino@cern.ch> - CERN
+# - Killian Verder <killian.verder@cern.ch> - CERN
+# --------------------------------------------------------------------------------------
+
 # Configuration file for the Sphinx documentation builder.
 #
 # For the full list of built-in configuration values, see the documentation:
@@ -10,34 +21,39 @@ import os
 import subprocess
 import sys
 
-exclude_patterns = 'requirements.txt'
+exclude_patterns = "requirements.txt"
 
-sys.path.insert(0, os.path.abspath('../tutorials/ml-workflows/'))
-sys.path.insert(0, os.path.abspath('../src'))
-sys.path.insert(0, os.path.abspath('../images'))
+sys.path.insert(0, os.path.abspath("../tutorials/ml-workflows/"))
+sys.path.insert(0, os.path.abspath("../src"))
+sys.path.insert(0, os.path.abspath("../images"))
 
-project = 'itwinai'
-copyright = ('2024, Matteo Bunino on behalf of CERN')
-author = 'Matteo Bunino'
-version = '0.2'  # short version
-release = '0.2.2'  # full version
+project = "itwinai"
+copyright = "2024, Matteo Bunino on behalf of CERN"
+author = "Matteo Bunino"
+version = "0.2"  # short version
+release = "0.2.2"  # full version
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
 
-extensions = ['sphinx.ext.autodoc', 'sphinx.ext.doctest',
-              'sphinx.ext.viewcode', 'myst_parser', 'nbsphinx',
-              'sphinx.ext.napoleon']
+extensions = [
+    "sphinx.ext.autodoc",
+    "sphinx.ext.doctest",
+    "sphinx.ext.viewcode",
+    "myst_parser",
+    "nbsphinx",
+    "sphinx.ext.napoleon",
+]
 
 source_suffix = {
-    '.rst': 'restructuredtext',
-    '.txt': 'markdown',
-    '.md': 'markdown'  # ,
+    ".rst": "restructuredtext",
+    ".txt": "markdown",
+    ".md": "markdown",  # ,
     # '.ipynb': 'nbsphinx'
 }
 
-templates_path = ['_templates']
-exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
+templates_path = ["_templates"]
+exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 
 autodoc_mock_imports = ["mlflow"]
 
@@ -50,30 +66,26 @@ numfig = True
 
 def get_git_tag():
     try:
-        return subprocess.check_output(
-            ['git', 'describe', '--tags', '--abbrev=0']
-        ).decode('utf-8').strip()
+        return (
+            subprocess.check_output(["git", "describe", "--tags", "--abbrev=0"])
+            .decode("utf-8")
+            .strip()
+        )
     except subprocess.CalledProcessError:
-        return 'unknown'
+        return "unknown"
 
 
 # Set the version to the latest tag
 version = get_git_tag()
 release = version
 
-html_theme = 'sphinx_rtd_theme'  # 'alabaster'
-html_static_path = ['_static']
+html_theme = "sphinx_rtd_theme"  # 'alabaster'
+html_static_path = ["_static"]
 
 html_logo = "../docs/images/icon-itwinai-orange-white-subtitle.png"
-html_theme_options = {
-    'logo_only': True,
-    'style_nav_header_background': 'black'
-}
+html_theme_options = {"logo_only": True, "style_nav_header_background": "black"}
 
-html_context = {
-    'display_version': True,
-    'release': release
-}
+html_context = {"display_version": True, "release": release}
 
 html_footer = """
 <div class="custom-footer">
@@ -82,7 +94,7 @@ html_footer = """
 """
 
 html_sidebars = {
-    '**': [
+    "**": [
         html_footer  # Adds the custom footer with version information
     ]
 }
