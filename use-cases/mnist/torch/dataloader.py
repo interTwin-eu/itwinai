@@ -1,12 +1,22 @@
+# --------------------------------------------------------------------------------------
+# Part of the interTwin Project: https://www.intertwin.eu/
+#
+# Created by: Matteo Bunino
+#
+# Credit:
+# - Matteo Bunino <matteo.bunino@cern.ch> - CERN
+# --------------------------------------------------------------------------------------
+
+
 """Dataloader for Torch-based MNIST use case."""
 
-from typing import Optional, Tuple, Callable, Any
 import os
 import shutil
+from typing import Any, Callable, Optional, Tuple
 
 from PIL import Image
 from torch.utils.data import Dataset
-from torchvision import transforms, datasets
+from torchvision import datasets, transforms
 
 from itwinai.components import DataGetter, monitor_exec
 
@@ -14,7 +24,10 @@ from itwinai.components import DataGetter, monitor_exec
 class MNISTDataModuleTorch(DataGetter):
     """Download MNIST dataset for torch."""
 
-    def __init__(self, save_path: str = '.tmp/',) -> None:
+    def __init__(
+        self,
+        save_path: str = ".tmp/",
+    ) -> None:
         super().__init__()
         self.save_parameters(**self.locals2params(locals()))
         self.save_path = save_path
@@ -22,17 +35,21 @@ class MNISTDataModuleTorch(DataGetter):
     @monitor_exec
     def execute(self) -> Tuple[Dataset, Dataset]:
         train_dataset = datasets.MNIST(
-            self.save_path, train=True, download=True,
-            transform=transforms.Compose([
-                transforms.ToTensor(),
-                transforms.Normalize((0.1307,), (0.3081,))
-            ]))
+            self.save_path,
+            train=True,
+            download=True,
+            transform=transforms.Compose(
+                [transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))]
+            ),
+        )
         validation_dataset = datasets.MNIST(
-            self.save_path, train=False, download=True,
-            transform=transforms.Compose([
-                transforms.ToTensor(),
-                transforms.Normalize((0.1307,), (0.3081,))
-            ]))
+            self.save_path,
+            train=False,
+            download=True,
+            transform=transforms.Compose(
+                [transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))]
+            ),
+        )
         print("Train and validation datasets loaded.")
         return train_dataset, validation_dataset, None
 
@@ -41,10 +58,7 @@ class InferenceMNIST(Dataset):
     """Loads a set of MNIST images from a folder of JPG files."""
 
     def __init__(
-        self,
-        root: str,
-        transform: Optional[Callable] = None,
-        supported_format: str = '.jpg'
+        self, root: str, transform: Optional[Callable] = None, supported_format: str = ".jpg"
     ) -> None:
         self.root = root
         self.transform = transform
@@ -80,10 +94,7 @@ class InferenceMNIST(Dataset):
         return img_id, img
 
     @staticmethod
-    def generate_jpg_sample(
-        root: str,
-        max_items: int = 100
-    ):
+    def generate_jpg_sample(root: str, max_items: int = 100):
         """Generate a sample dataset of JPG images starting from
             LeCun's test dataset.
 
@@ -96,11 +107,11 @@ class InferenceMNIST(Dataset):
             shutil.rmtree(root)
         os.makedirs(root)
 
-        test_data = datasets.MNIST(root='.tmp', train=False, download=True)
+        test_data = datasets.MNIST(root=".tmp", train=False, download=True)
         for idx, (img, _) in enumerate(test_data):
             if idx >= max_items:
                 break
-            savepath = os.path.join(root, f'digit_{idx}.jpg')
+            savepath = os.path.join(root, f"digit_{idx}.jpg")
             img.save(savepath)
 
 
@@ -114,7 +125,7 @@ class MNISTPredictLoader(DataGetter):
     def execute(self) -> Dataset:
         return InferenceMNIST(
             root=self.test_data_path,
-            transform=transforms.Compose([
-                transforms.ToTensor(),
-                transforms.Normalize((0.1307,), (0.3081,))
-            ]))
+            transform=transforms.Compose(
+                [transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))]
+            ),
+        )

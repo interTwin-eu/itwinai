@@ -1,10 +1,19 @@
-"""
-Utilities for itwinai package.
-"""
-from typing import Dict, Type, Callable, Tuple, Hashable
-import sys
+# --------------------------------------------------------------------------------------
+# Part of the interTwin Project: https://www.intertwin.eu/
+#
+# Created by: Matteo Bunino
+#
+# Credit:
+# - Matteo Bunino <matteo.bunino@cern.ch> - CERN
+# --------------------------------------------------------------------------------------
+
+"""Utilities for itwinai package."""
+
 import inspect
+import sys
 from collections.abc import MutableMapping
+from typing import Callable, Dict, Hashable, Tuple, Type
+
 import yaml
 
 
@@ -62,9 +71,7 @@ def dynamically_import_class(name: str) -> Type:
     return klass
 
 
-def flatten_dict(
-    d: MutableMapping, parent_key: str = "", sep: str = "."
-) -> MutableMapping:
+def flatten_dict(d: MutableMapping, parent_key: str = "", sep: str = ".") -> MutableMapping:
     """Flatten dictionary
 
     Args:
@@ -103,28 +110,27 @@ class SignatureInspector:
     @property
     def has_varargs(self) -> bool:
         """Checks if the function has ``*args`` parameter."""
-        return any(map(
-            lambda p: p[1].kind == p[1].VAR_POSITIONAL,
-            self.func_params
-        ))
+        return any(map(lambda p: p[1].kind == p[1].VAR_POSITIONAL, self.func_params))
 
     @property
     def has_kwargs(self) -> bool:
         """Checks if the function has ``**kwargs`` parameter."""
-        return any(map(
-            lambda p: p[1].kind == p[1].VAR_KEYWORD,
-            self.func_params
-        ))
+        return any(map(lambda p: p[1].kind == p[1].VAR_KEYWORD, self.func_params))
 
     @property
     def required_params(self) -> Tuple[str]:
         """Names of required parameters. Class method's 'self' is skipped."""
-        required_params = list(filter(
-            lambda p: (p[0] != 'self' and p[1].default == inspect._empty
-                       and p[1].kind != p[1].VAR_POSITIONAL
-                       and p[1].kind != p[1].VAR_KEYWORD),
-            self.func_params
-        ))
+        required_params = list(
+            filter(
+                lambda p: (
+                    p[0] != "self"
+                    and p[1].default == inspect._empty
+                    and p[1].kind != p[1].VAR_POSITIONAL
+                    and p[1].kind != p[1].VAR_KEYWORD
+                ),
+                self.func_params,
+            )
+        )
         return tuple(map(lambda p: p[0], required_params))
 
     @property
@@ -156,26 +162,19 @@ def str_to_slice(interval: str) -> slice:
         slice: parsed slice.
     """
     import re
+
     # TODO: add support for slices starting with empty index
     # e.g., :20:3
     if not re.match(r"\d+(:\d+)?(:\d+)?", interval):
-        raise ValueError(
-            f"Received invalid interval for slice: '{interval}'"
-        )
+        raise ValueError(f"Received invalid interval for slice: '{interval}'")
     if ":" in interval:
-        return slice(*map(
-            lambda x: int(x.strip()) if x.strip() else None,
-            interval.split(':')
-        ))
+        return slice(
+            *map(lambda x: int(x.strip()) if x.strip() else None, interval.split(":"))
+        )
     return int(interval)
 
 
-def clear_key(
-        my_dict: Dict,
-        dict_name: str,
-        key: Hashable,
-        complain: bool = True
-) -> Dict:
+def clear_key(my_dict: Dict, dict_name: str, key: Hashable, complain: bool = True) -> Dict:
     """Remove key from dictionary if present and complain.
 
     Args:
@@ -185,9 +184,6 @@ def clear_key(
     """
     if key in my_dict:
         if complain:
-            print(
-                f"Field '{key}' should not be present "
-                f"in dictionary '{dict_name}'"
-            )
+            print(f"Field '{key}' should not be present " f"in dictionary '{dict_name}'")
         del my_dict[key]
     return my_dict

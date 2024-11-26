@@ -1,3 +1,13 @@
+# --------------------------------------------------------------------------------------
+# Part of the interTwin Project: https://www.intertwin.eu/
+#
+# Created by: CMCC
+#
+# Credit:
+# - CMCC
+# --------------------------------------------------------------------------------------
+
+
 import tensorflow as tf
 
 
@@ -109,24 +119,16 @@ def custom_VGG_V1(patch_size, channels, activation, regularizer):
 
     model.add(tf.keras.layers.Flatten())
     model.add(
-        tf.keras.layers.Dense(
-            units=512, activation=activation, kernel_regularizer=regularizer
-        )
+        tf.keras.layers.Dense(units=512, activation=activation, kernel_regularizer=regularizer)
     )
     model.add(
-        tf.keras.layers.Dense(
-            units=256, activation=activation, kernel_regularizer=regularizer
-        )
+        tf.keras.layers.Dense(units=256, activation=activation, kernel_regularizer=regularizer)
     )
     model.add(
-        tf.keras.layers.Dense(
-            units=128, activation=activation, kernel_regularizer=regularizer
-        )
+        tf.keras.layers.Dense(units=128, activation=activation, kernel_regularizer=regularizer)
     )
     model.add(
-        tf.keras.layers.Dense(
-            units=64, activation=activation, kernel_regularizer=regularizer
-        )
+        tf.keras.layers.Dense(units=64, activation=activation, kernel_regularizer=regularizer)
     )
     model.add(tf.keras.layers.Dense(channels[1]))
 
@@ -136,9 +138,7 @@ def custom_VGG_V1(patch_size, channels, activation, regularizer):
 def custom_VGG_V2(patch_size, channels, activation, regularizer):
     model = tf.keras.Sequential()
 
-    model.add(
-        tf.keras.layers.Input(shape=(patch_size, patch_size, channels[0]))
-    )
+    model.add(tf.keras.layers.Input(shape=(patch_size, patch_size, channels[0])))
 
     model.add(
         tf.keras.layers.Conv2D(
@@ -303,19 +303,13 @@ def custom_VGG_V2(patch_size, channels, activation, regularizer):
         )
     )
     model.add(
-        tf.keras.layers.Dense(
-            units=512, activation=activation, kernel_regularizer=regularizer
-        )
+        tf.keras.layers.Dense(units=512, activation=activation, kernel_regularizer=regularizer)
     )
     model.add(
-        tf.keras.layers.Dense(
-            units=256, activation=activation, kernel_regularizer=regularizer
-        )
+        tf.keras.layers.Dense(units=256, activation=activation, kernel_regularizer=regularizer)
     )
     model.add(
-        tf.keras.layers.Dense(
-            units=128, activation=activation, kernel_regularizer=regularizer
-        )
+        tf.keras.layers.Dense(units=128, activation=activation, kernel_regularizer=regularizer)
     )
 
     model.add(tf.keras.layers.Dense(channels[1]))
@@ -326,8 +320,7 @@ def custom_VGG_V2(patch_size, channels, activation, regularizer):
 def custom_VGG_V3(patch_size, channels, activation, regularizer):
     model = tf.keras.Sequential()
 
-    model.add(tf.keras.layers.Input(
-        shape=(patch_size, patch_size, channels[0])))
+    model.add(tf.keras.layers.Input(shape=(patch_size, patch_size, channels[0])))
 
     model.add(
         tf.keras.layers.Conv2D(
@@ -493,19 +486,13 @@ def custom_VGG_V3(patch_size, channels, activation, regularizer):
         )
     )
     model.add(
-        tf.keras.layers.Dense(
-            units=512, activation=activation, kernel_regularizer=regularizer
-        )
+        tf.keras.layers.Dense(units=512, activation=activation, kernel_regularizer=regularizer)
     )
     model.add(
-        tf.keras.layers.Dense(
-            units=512, activation=activation, kernel_regularizer=regularizer
-        )
+        tf.keras.layers.Dense(units=512, activation=activation, kernel_regularizer=regularizer)
     )
     model.add(
-        tf.keras.layers.Dense(
-            units=256, activation=activation, kernel_regularizer=regularizer
-        )
+        tf.keras.layers.Dense(units=256, activation=activation, kernel_regularizer=regularizer)
     )
 
     model.add(tf.keras.layers.Dense(channels[1]))
@@ -587,8 +574,7 @@ def ModelV5(patch_size, channels, last_activation, kernel_size=3):
     initializer = tf.random_normal_initializer(0.0, 0.02)
 
     # input layer
-    inputs = tf.keras.layers.Input(shape=(patch_size, patch_size,
-channels[0]))
+    inputs = tf.keras.layers.Input(shape=(patch_size, patch_size, channels[0]))
 
     conv_blocks = [
         ConvBlock(
@@ -651,22 +637,13 @@ channels[0]))
         x = block(x)
 
     x = tf.keras.layers.Flatten()(x)
-    x = tf.keras.layers.Dense(
-        units=1024, activation="relu", kernel_initializer=initializer
-    )(x)
-    x = tf.keras.layers.Dense(
-        units=512, activation="relu", kernel_initializer=initializer
-    )(x)
-    x = tf.keras.layers.Dense(
-        units=256, activation="relu", kernel_initializer=initializer
-    )(x)
-    x = tf.keras.layers.Dense(
-        units=128, activation="relu", kernel_initializer=initializer
-    )(x)
+    x = tf.keras.layers.Dense(units=1024, activation="relu", kernel_initializer=initializer)(x)
+    x = tf.keras.layers.Dense(units=512, activation="relu", kernel_initializer=initializer)(x)
+    x = tf.keras.layers.Dense(units=256, activation="relu", kernel_initializer=initializer)(x)
+    x = tf.keras.layers.Dense(units=128, activation="relu", kernel_initializer=initializer)(x)
 
     outputs = tf.keras.layers.Dense(
-        channels[1], activation=last_activation,
-kernel_initializer=initializer
+        channels[1], activation=last_activation, kernel_initializer=initializer
     )(x)
 
     return tf.keras.Model(inputs=inputs, outputs=outputs, name="model_V5")

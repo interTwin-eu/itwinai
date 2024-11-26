@@ -1,3 +1,12 @@
+# --------------------------------------------------------------------------------------
+# Part of the interTwin Project: https://www.intertwin.eu/
+#
+# Created by: Matteo Bunino
+#
+# Credit:
+# - Matteo Bunino <matteo.bunino@cern.ch> - CERN
+# --------------------------------------------------------------------------------------
+
 # Data and logging
 data_dir: /p/scratch/intertwin/datasets/imagenet/ILSVRC2012/train/ # tmp_data/
 log_int: 10

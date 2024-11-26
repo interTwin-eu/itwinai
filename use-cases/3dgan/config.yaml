@@ -1,3 +1,13 @@
+# --------------------------------------------------------------------------------------
+# Part of the interTwin Project: https://www.intertwin.eu/
+#
+# Created by: Matteo Bunino
+#
+# Credit:
+# - Matteo Bunino <matteo.bunino@cern.ch> - CERN
+# - Kalliopi Tsolaki <kalliopi.tsolaki@cern.ch> - CERN
+# --------------------------------------------------------------------------------------
+
 # Main configurations
 dataset_location: /p/scratch/intertwin/datasets/cern/sample/
 dataset_url: https://drive.google.com/drive/folders/1ooUIfkhpokvwh4-7qPxX084N7-LgqnIL # https://drive.google.com/drive/folders/1uPpz0tquokepptIfJenTzGpiENfo2xRX

@@ -34,21 +34,20 @@ dependencies = [
     "typer>=0.9.0",
     "wheel",
     "pydantic",
-    # "prov4ml@git+https://github.com/HPCI-Lab/ProvML@main", # Prov4ML
-    # "prov4ml@git+https://github.com/matbun/ProvML@main",
+    "prov4ml@git+https://github.com/matbun/ProvML@new-main",
     "pandas",
-    "seaborn"
+    "seaborn",
 ]
 
 # dynamic = ["version", "description"]
 
 [project.optional-dependencies]
 torch = [
-  "torch==2.4.*",
-  "lightning==2.*",
-  "torchmetrics>=1.6.0",
-  "torchvision>=0.19.1",
-  "torchaudio>=2.4.1",
+    "torch==2.4.*",
+    "lightning==2.*",
+    "torchmetrics>=1.6.0",
+    "torchvision>=0.19.1",
+    "torchaudio>=2.4.1",
 ]
 dev = [
     "pytest>=7.4.2",
@@ -59,19 +58,16 @@ dev = [
     "isort",
     "tensorflow==2.16.*",  # needed by tests on tensorboard
 ]
-docs = [ 
-  "sphinx-rtd-theme==2.0.0",
-  "nbsphinx==0.9.4", 
-  "myst-parser==2.0.0",
-  "IPython",
-  "tensorflow==2.16.*",
+docs = [
+    "sphinx-rtd-theme==2.0.0",
+    "nbsphinx==0.9.4",
+    "myst-parser==2.0.0",
+    "IPython",
+    "tensorflow==2.16.*",
 ]
-macos = [
-    "prov4ml[apple]@git+https://github.com/matbun/ProvML"
-]
-linux = [
-    "prov4ml[linux]@git+https://github.com/matbun/ProvML"
-]
+macos = ["prov4ml[apple]@git+https://github.com/matbun/ProvML@new-main"]
+nvidia = ["prov4ml[nvidia]@git+https://github.com/matbun/ProvML@new-main"]
+amd = ["prov4ml[amd]@git+https://github.com/matbun/ProvML@new-main"]
 
 [project.urls]
 Homepage = "https://www.intertwin.eu/"

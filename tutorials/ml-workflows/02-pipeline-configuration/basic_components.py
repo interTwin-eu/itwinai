@@ -1,16 +1,21 @@
-"""
-Here we show how to implement component interfaces in a simple way.
-"""
-from typing import List, Optional, Tuple, Any
-from itwinai.components import (
-    DataGetter, DataSplitter, Trainer, Saver, monitor_exec
-)
+# --------------------------------------------------------------------------------------
+# Part of the interTwin Project: https://www.intertwin.eu/
+#
+# Created by: Matteo Bunino
+#
+# Credit:
+# - Matteo Bunino <matteo.bunino@cern.ch> - CERN
+# --------------------------------------------------------------------------------------
 
+"""Here we show how to implement component interfaces in a simple way.
 
-"""
 New components are defined as classes inheriting from the BaseComponent class
 or an already defined component.
 """
+
+from typing import Any, List, Optional, Tuple
+
+from itwinai.components import DataGetter, DataSplitter, Saver, Trainer, monitor_exec
 
 
 class MyDataGetter(DataGetter):
@@ -31,10 +36,7 @@ class MyDataGetter(DataGetter):
 
 class MyDatasetSplitter(DataSplitter):
     @monitor_exec
-    def execute(
-        self,
-        dataset: List[int]
-    ) -> Tuple[List[int], List[int], List[int]]:
+    def execute(self, dataset: List[int]) -> Tuple[List[int], List[int], List[int]]:
         """Splits a list dataset into train, validation and test datasets.
 
         Args:
@@ -44,11 +46,11 @@ class MyDatasetSplitter(DataSplitter):
             Tuple[List[int], List[int], List[int]]: train, validation, and
             test datasets respectively.
         """
-        train_n = int(len(dataset)*self.train_proportion)
-        valid_n = int(len(dataset)*self.validation_proportion)
+        train_n = int(len(dataset) * self.train_proportion)
+        valid_n = int(len(dataset) * self.validation_proportion)
         train_set = dataset[:train_n]
-        vaild_set = dataset[train_n:train_n+valid_n]
-        test_set = dataset[train_n+valid_n:]
+        vaild_set = dataset[train_n : train_n + valid_n]
+        test_set = dataset[train_n + valid_n :]
         return train_set, vaild_set, test_set
 
 
@@ -59,10 +61,7 @@ class MyTrainer(Trainer):
 
     @monitor_exec
     def execute(
-        self,
-        train_set: List[int],
-        vaild_set: List[int],
-        test_set: List[int]
+        self, train_set: List[int], vaild_set: List[int], test_set: List[int]
     ) -> Tuple[List[int], List[int], List[int], str]:
         """Dummy ML trainer mocking a ML training algorithm.
 

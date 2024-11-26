@@ -1,3 +1,13 @@
+# --------------------------------------------------------------------------------------
+# Part of the interTwin Project: https://www.intertwin.eu/
+#
+# Created by: Roman Machacek
+#
+# Credit:
+# - Roman Machacek <roman.machacek@cern.ch> - CERN
+# - Matteo Bunino <matteo.bunino@cern.ch> - CERN
+# --------------------------------------------------------------------------------------
+
 # General config
 verbose: auto
 micro_batch_size: 17

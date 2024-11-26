@@ -1,5 +1,7 @@
 # Tutorial on itwinai TorchTrainer for MNIST use case
 
+**Author(s)**: Matteo Bunino (CERN)
+
 The code is adapted from [this example](https://github.com/pytorch/examples/blob/main/mnist/main.py).
 
 ## Run the script

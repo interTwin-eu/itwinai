@@ -1,46 +1,57 @@
-"""
-Show how to use DDP, Horovod and DeepSpeed strategies interchangeably
+# --------------------------------------------------------------------------------------
+# Part of the interTwin Project: https://www.intertwin.eu/
+#
+# Created by: Matteo Bunino
+#
+# Credit:
+# - Matteo Bunino <matteo.bunino@cern.ch> - CERN
+# --------------------------------------------------------------------------------------
+
+"""Show how to use DDP, Horovod and DeepSpeed strategies interchangeably
 with an extremely simple neural network.
 """
-from typing import Dict
+
 import argparse
 import time
+from typing import Dict
 
+import horovod.torch as hvd
 import torch
 from torch import nn
 from torch.utils.data import Dataset
 
-import horovod.torch as hvd
-
 from itwinai.torch.distributed import (
-    distributed_resources_available,
-    TorchDistributedStrategy,
-    TorchDDPStrategy,
-    HorovodStrategy,
     DeepSpeedStrategy,
-    NonDistributedStrategy
+    HorovodStrategy,
+    NonDistributedStrategy,
+    TorchDDPStrategy,
+    TorchDistributedStrategy,
+    distributed_resources_available,
 )
 
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--strategy", "-s", type=str,
-        choices=['ddp', 'horovod', 'deepspeed'],
-        default='ddp'
+        "--strategy", "-s", type=str, choices=["ddp", "horovod", "deepspeed"], default="ddp"
     )
+    parser.add_argument("--shuffle_dataloader", action=argparse.BooleanOptionalAction)
     parser.add_argument(
-        "--shuffle_dataloader",
-        action=argparse.BooleanOptionalAction
+        "--batch-size",
+        type=int,
+        default=10,
+        help="input batch size for training (default: 10)",
     )
-    parser.add_argument(
-        '--batch-size', type=int, default=10,
-        help='input batch size for training (default: 10)')
 
     # DeepSpeed: needs to be removed
     import deepspeed
-    parser.add_argument('--local_rank', type=int, default=-1,
-                        help='local rank passed from distributed launcher')
+
+    parser.add_argument(
+        "--local_rank",
+        type=int,
+        default=-1,
+        help="local rank passed from distributed launcher",
+    )
     parser = deepspeed.add_config_arguments(parser)
     args = parser.parse_args()
     return args
@@ -63,9 +74,7 @@ class UniformRndDataset(Dataset):
 
 
 def training_fn(
-        args: argparse.Namespace,
-        strategy: TorchDistributedStrategy,
-        distribute_kwargs: Dict
+    args: argparse.Namespace, strategy: TorchDistributedStrategy, distribute_kwargs: Dict
 ) -> int:
     """Dummy training function."""
     strategy.init()
@@ -83,10 +92,7 @@ def training_fn(
     train_set = UniformRndDataset(x_size=3, y_size=4)
     # Distributed dataloader
     train_loader = strategy.create_dataloader(
-        train_set,
-        batch_size=args.batch_size,
-        num_workers=1,
-        shuffle=True
+        train_set, batch_size=args.batch_size, num_workers=1, shuffle=True
     )
 
     # Device allocated for this worker
@@ -96,7 +102,7 @@ def training_fn(
         # IMPORTANT: set current epoch ID in distributed sampler
         train_loader.sampler.set_epoch(epoch)
 
-        for (x, y) in train_loader:
+        for x, y in train_loader:
             # print(f"tensor to cuda:{device}")
             x = x.to(device)
             y = y.to(device)
@@ -125,7 +131,6 @@ def training_fn(
 
 
 if __name__ == "__main__":
-
     args = parse_args()
 
     # Instantiate Strategy
@@ -133,23 +138,20 @@ if __name__ == "__main__":
         print("WARNING: falling back to non-distributed strategy.")
         strategy = NonDistributedStrategy()
         distribute_kwargs = {}
-    elif args.strategy == 'ddp':
-        strategy = TorchDDPStrategy(backend='nccl')
+    elif args.strategy == "ddp":
+        strategy = TorchDDPStrategy(backend="nccl")
         distribute_kwargs = {}
-    elif args.strategy == 'horovod':
+    elif args.strategy == "horovod":
         strategy = HorovodStrategy()
         distribute_kwargs = dict(
-            compression=hvd.Compression.none,
-            op=hvd.Average,
-            gradient_predivide_factor=1.0
+            compression=hvd.Compression.none, op=hvd.Average, gradient_predivide_factor=1.0
         )
-    elif args.strategy == 'deepspeed':
-        strategy = DeepSpeedStrategy(backend='nccl')
+    elif args.strategy == "deepspeed":
+        strategy = DeepSpeedStrategy(backend="nccl")
         distribute_kwargs = dict(
             config_params=dict(train_micro_batch_size_per_gpu=args.batch_size)
         )
     else:
-        raise NotImplementedError(
-            f"Strategy {args.strategy} is not recognized/implemented.")
+        raise NotImplementedError(f"Strategy {args.strategy} is not recognized/implemented.")
     # Launch distributed training
     training_fn(args, strategy, distribute_kwargs)

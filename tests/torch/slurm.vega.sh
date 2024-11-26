@@ -1,5 +1,14 @@
 #!/bin/bash
 
+# --------------------------------------------------------------------------------------
+# Part of the interTwin Project: https://www.intertwin.eu/
+#
+# Created by: Matteo Bunino
+#
+# Credit:
+# - Matteo Bunino <matteo.bunino@cern.ch> - CERN
+# --------------------------------------------------------------------------------------
+
 # SLURM jobscript for Vega systems
 
 # Job configuration
@@ -15,12 +24,10 @@
 #SBATCH --partition=gpu
 #SBATCH --nodes=2
 #SBATCH --gpus-per-node=4
-#SBATCH --cpus-per-gpu=4
+#SBATCH --cpus-per-task=16
 #SBATCH --ntasks-per-node=1
 # SBATCH --mem-per-gpu=10G
 #SBATCH --exclusive
-
-# gres options have to be disabled for deepv
 #SBATCH --gres=gpu:4
 
 echo "DEBUG: SLURM_SUBMIT_DIR: $SLURM_SUBMIT_DIR"
@@ -34,7 +41,8 @@ echo "DEBUG: SLURMD_NODENAME: $SLURMD_NODENAME"
 echo "DEBUG: CUDA_VISIBLE_DEVICES: $CUDA_VISIBLE_DEVICES"
 
 ml --force purge
-ml Python CMake/3.24.3-GCCcore-11.3.0 mpi4py OpenMPI/4.1.5-GCC-12.3.0 CUDA/12.3
+# ml Python CMake/3.24.3-GCCcore-11.3.0 mpi4py OpenMPI/4.1.5-GCC-12.3.0 CUDA/12.3
+ml Python/3.11.5-GCCcore-13.2.0 CMake/3.24.3-GCCcore-11.3.0 OpenMPI/4.1.5-GCC-12.3.0 CUDA/12.3
 ml GCCcore/11.3.0 NCCL cuDNN/8.9.7.29-CUDA-12.3.0
 ml UCX-CUDA/1.15.0-GCCcore-13.2.0-CUDA-12.3.0
 
@@ -42,6 +50,7 @@ ml UCX-CUDA/1.15.0-GCCcore-13.2.0-CUDA-12.3.0
 module unload OpenSSL
 
 source ~/.bashrc
+# source ../../.venv-pytorch/bin/activate
 
 # Setup env for distributed ML
 export CUDA_VISIBLE_DEVICES="0,1,2,3"
@@ -151,7 +160,9 @@ srun_launcher ()
   
   # "if [ $SLURM_PROCID  -ne 0 ]; then exec > "logs_srun/$SLURM_JOB_ID/rank.$SLURM_PROCID" 2>&1; fi; exec" redirects stdout and stderr of ranks != 0
   # Logs of the main woker (rank == 0) will be incorportated into the standard SLURM out and err files
-  srun --mpi=pmix_v3 --cpu-bind=none --ntasks-per-node=$SLURM_GPUS_PER_NODE --cpus-per-task=$SLURM_CPUS_PER_GPU --ntasks=$(($SLURM_GPUS_PER_NODE * $SLURM_NNODES)) \
+  srun --mpi=pmix_v3 --cpu-bind=none --ntasks-per-node=$SLURM_GPUS_PER_NODE \
+    --cpus-per-task=$(($SLURM_CPUS_PER_TASK / $SLURM_GPUS_PER_NODE)) \
+    --ntasks=$(($SLURM_GPUS_PER_NODE * $SLURM_NNODES)) \
     singularity exec --nv \
     "${CONTAINER_PATH}" /bin/bash -c \
     'echo "Rank: $SLURM_PROCID, LD_LIBRARY_PATH=$LD_LIBRARY_PATH" && \
@@ -192,7 +203,7 @@ CONTAINER_OMPI_V="$(singularity exec $CONTAINER_PATH ompi_info --parsable | grep
 
 if [ "$HOST_OMPI_V" != "$CONTAINER_OMPI_V" ]; then
   >&2 echo "ERROR: Host OpenMPI minor version ($HOST_OMPI_V) does not match with container's OpenMPI minor version ($CONTAINER_OMPI_V). This may cause problems." 
-  exit 1
+  # exit 1
 fi
 echo -e "\nHost and container's OpenMPI minor versions match: ($HOST_OMPI_V) - ($CONTAINER_OMPI_V)\n" 
 

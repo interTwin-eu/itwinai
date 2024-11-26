@@ -1,7 +1,13 @@
-"""
-This module provides the tools to support reproducible execution of
-torch scripts.
-"""
+# --------------------------------------------------------------------------------------
+# Part of the interTwin Project: https://www.intertwin.eu/
+#
+# Created by: Matteo Bunino
+#
+# Credit:
+# - Matteo Bunino <matteo.bunino@cern.ch> - CERN
+# --------------------------------------------------------------------------------------
+
+"""This module provides the tools to support reproducible execution of torch scripts."""
 
 import random
 from typing import Optional
@@ -17,10 +23,7 @@ def seed_worker(worker_id):
     random.seed(worker_seed)
 
 
-def set_seed(
-    rnd_seed: Optional[int],
-    deterministic_cudnn: bool = True
-) -> torch.Generator:
+def set_seed(rnd_seed: Optional[int], deterministic_cudnn: bool = True) -> torch.Generator:
     """Set torch random seed and return a PRNG object.
 
     Args:

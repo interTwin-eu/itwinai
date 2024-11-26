@@ -1,26 +1,34 @@
+# --------------------------------------------------------------------------------------
+# Part of the interTwin Project: https://www.intertwin.eu/
+#
+# Created by: Kalliopi Tsolaki
+#
+# Credit:
+# - Matteo Bunino <matteo.bunino@cern.ch> - CERN
+# - Kalliopi Tsolaki <kalliopi.tsolaki@cern.ch> - CERN
+# --------------------------------------------------------------------------------------
+
 import os
 import sys
-from typing import Union, Dict, Optional, Any
 import tempfile
-import yaml
+from typing import Any, Dict, Optional, Union
 
-import torch
-from torch import Tensor
 import lightning as pl
-from lightning.pytorch.cli import LightningCLI
+import torch
+import yaml
+from dataloader import ParticlesDataModule
 from lightning.pytorch import Trainer as LightningTrainer
+from lightning.pytorch.cli import LightningCLI
+from model import ThreeDGAN
+from torch import Tensor
 
-from itwinai.components import Trainer, Predictor, monitor_exec
-from itwinai.serialization import ModelLoader
-from itwinai.torch.inference import TorchModelLoader
-from itwinai.torch.type import Batch
-from itwinai.utils import load_yaml
+from itwinai.components import Predictor, Trainer, monitor_exec
+
 # from itwinai.torch.mlflow import (
 #     init_lightning_mlflow,
 #     teardown_lightning_mlflow
 # )
 from itwinai.loggers import Logger, _EmptyLogger
-from collections import OrderedDict
 
 
 from model import ThreeDGAN
@@ -28,27 +36,20 @@ from dataloader import ParticlesDataModule
 
 
 class Lightning3DGANTrainer(Trainer):
-    def __init__(
-        self,
-        config: Union[Dict, str],
-        itwinai_logger: Optional[Logger] = None
-    ):
+    def __init__(self, config: Union[Dict, str], itwinai_logger: Optional[Logger] = None):
         self.save_parameters(**self.locals2params(locals()))
         super().__init__()
         if isinstance(config, str) and os.path.isfile(config):
             # Load from YAML
             config = load_yaml(config)
         self.conf = config
-        self.itwinai_logger = (
-            itwinai_logger if itwinai_logger else _EmptyLogger()
-        )
+        self.itwinai_logger = itwinai_logger if itwinai_logger else _EmptyLogger()
 
     @monitor_exec
     def execute(self) -> Any:
-
         # Parse lightning configuration
         old_argv = sys.argv
-        sys.argv = ['some_script_placeholder.py']
+        sys.argv = ["some_script_placeholder.py"]
         cli = LightningCLI(
             args=self.conf,
             model_class=ThreeDGAN,
@@ -75,22 +76,18 @@ class Lightning3DGANTrainer(Trainer):
 
             self._log_config(self.itwinai_logger)
             self.itwinai_logger.log(
-                cli.trainer.train_dataloader,
-                "train_dataloader",
-                kind='torch'
+                cli.trainer.train_dataloader, "train_dataloader", kind="torch"
             )
             self.itwinai_logger.log(
-                cli.trainer.val_dataloaders,
-                "val_dataloader",
-                kind='torch'
+                cli.trainer.val_dataloaders, "val_dataloader", kind="torch"
             )
 
     def _log_config(self, logger: Logger):
-        with tempfile.TemporaryDirectory(dir='/tmp') as tmp_dir:
-            local_yaml_path = os.path.join(tmp_dir, 'pl-conf.yaml')
-            with open(local_yaml_path, 'w') as outfile:
+        with tempfile.TemporaryDirectory(dir="/tmp") as tmp_dir:
+            local_yaml_path = os.path.join(tmp_dir, "pl-conf.yaml")
+            with open(local_yaml_path, "w") as outfile:
                 yaml.dump(self.conf, outfile, default_flow_style=False)
-            logger.log(local_yaml_path, 'lightning-config', kind='artifact')
+            logger.log(local_yaml_path, "lightning-config", kind="artifact")
 
 class ThreeDGANModelLoader(TorchModelLoader):
     """Loads a torch lightning model from somewhere.
@@ -130,7 +127,7 @@ class LightningModelLoader(TorchModelLoader):
     """
 
     def __call__(self) -> pl.LightningModule:
-        """"Loads model from model URI.
+        """ "Loads model from model URI.
 
         Raises:
             ValueError: if the model URI is not recognized
@@ -149,12 +146,11 @@ class LightningModelLoader(TorchModelLoader):
 
 
 class Lightning3DGANPredictor(Predictor):
-
     def __init__(
         self,
         model: Union[ModelLoader, pl.LightningModule],
         config: Union[Dict, str],
-        name: Optional[str] = None
+        name: Optional[str] = None,
     ):
         self.save_parameters(**self.locals2params(locals()))
         super().__init__(model, name)
@@ -167,10 +163,10 @@ class Lightning3DGANPredictor(Predictor):
     def execute(
         self,
         datamodule: Optional[pl.LightningDataModule] = None,
-        model: Optional[pl.LightningModule] = None
+        model: Optional[pl.LightningModule] = None,
     ) -> Dict[str, Tensor]:
         old_argv = sys.argv
-        sys.argv = ['some_script_placeholder.py']
+        sys.argv = ["some_script_placeholder.py"]
         cli = LightningCLI(
             args=self.conf,
             model_class=ThreeDGAN,
@@ -194,16 +190,11 @@ class Lightning3DGANPredictor(Predictor):
         predictions = cli.trainer.predict(model, datamodule=datamodule)
 
         # Transpose predictions into images, energies and angles
-        images = torch.cat(list(map(
-            lambda pred: self.transform_predictions(
-                pred['images']), predictions
-        )))
-        energies = torch.cat(list(map(
-            lambda pred: pred['energies'], predictions
-        )))
-        angles = torch.cat(list(map(
-            lambda pred: pred['angles'], predictions
-        )))
+        images = torch.cat(
+            list(map(lambda pred: self.transform_predictions(pred["images"]), predictions))
+        )
+        energies = torch.cat(list(map(lambda pred: pred["energies"], predictions)))
+        angles = torch.cat(list(map(lambda pred: pred["angles"], predictions)))
 
         predictions_dict = dict()
         for img, en, ang in zip(images, energies, angles):

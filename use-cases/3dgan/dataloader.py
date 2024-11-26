@@ -1,9 +1,23 @@
-from typing import Optional
-import os
-from lightning.pytorch.utilities.types import EVAL_DATALOADERS
+# --------------------------------------------------------------------------------------
+# Part of the interTwin Project: https://www.intertwin.eu/
+#
+# Created by: Kalliopi Tsolaki
+#
+# Credit:
+# - Kalliopi Tsolaki <kalliopi.tsolaki@cern.ch> - CERN
+# - Matteo Bunino <matteo.bunino@cern.ch> - CERN
+# --------------------------------------------------------------------------------------
 
+import glob
+import os
+from typing import Optional
+
+import gdown
+import h5py
+import lightning as pl
 import numpy as np
 import torch
+from lightning.pytorch.utilities.types import EVAL_DATALOADERS
 from torch.utils.data import DataLoader, Dataset
 import lightning as pl
 import glob
@@ -31,11 +45,11 @@ class Lightning3DGANDownloader(DataGetter):
         # Download data
         if not os.path.exists(self.data_path):
             if self.data_url is None:
-                print("WARNING! Data URL is None. "
-                      "Skipping dataset downloading")
+                print("WARNING! Data URL is None. " "Skipping dataset downloading")
 
             gdown.download_folder(
-                url=self.data_url, quiet=False,
+                url=self.data_url,
+                quiet=False,
                 output=self.data_path,
                 # verify=False
             )
@@ -53,14 +67,16 @@ class ParticlesDataset(Dataset):
         return len(self.data["X"])
 
     def __getitem__(self, idx):
-        return {"X": self.data["X"][idx], "Y": self.data["Y"][idx],
-                "ang": self.data["ang"][idx], "ecal": self.data["ecal"][idx]}
+        return {
+            "X": self.data["X"][idx],
+            "Y": self.data["Y"][idx],
+            "ang": self.data["ang"][idx],
+            "ecal": self.data["ecal"][idx],
+        }
 
     def fetch_data(self) -> None:
-
         print("Searching in :", self.datapath)
-        files = sorted(glob.glob(os.path.join(
-            self.datapath, '**/*.h5'), recursive=True))
+        files = sorted(glob.glob(os.path.join(self.datapath, "**/*.h5"), recursive=True))
         print("Found {} files. ".format(len(files)))
         if len(files) == 0:
             raise RuntimeError(f"No H5 files found at '{self.datapath}'!")
@@ -78,7 +94,7 @@ class ParticlesDataset(Dataset):
         # return result
 
         for datafile in files:
-            f = h5py.File(datafile, 'r')
+            f = h5py.File(datafile, "r")
             dataset = self.GetDataAngleParallel(f)
             for field, vals_array in dataset.items():
                 if self.data.get(field) is not None:
@@ -86,15 +102,14 @@ class ParticlesDataset(Dataset):
                     new_shape = list(self.data[field].shape)
                     new_shape[0] += len(vals_array)
                     self.data[field].resize(new_shape)
-                    self.data[field][-len(vals_array):] = vals_array
+                    self.data[field][-len(vals_array) :] = vals_array
                 else:
                     self.data[field] = vals_array
 
             # Stop loading data, if self.max_samples reached
-            if (self.max_samples is not None
-                    and len(self.data[field]) >= self.max_samples):
+            if self.max_samples is not None and len(self.data[field]) >= self.max_samples:
                 for field, vals_array in self.data.items():
-                    self.data[field] = vals_array[:self.max_samples]
+                    self.data[field] = vals_array[: self.max_samples]
                 break
 
     def GetDataAngleParallel(
@@ -106,7 +121,7 @@ class ParticlesDataset(Dataset):
         angscale=1,
         angtype="theta",
         thresh=1e-4,
-        daxis=-1
+        daxis=-1,
     ):
         """Preprocess function for the dataset
 
@@ -159,12 +174,12 @@ class ParticlesDataset(Dataset):
 
 class ParticlesDataModule(pl.LightningDataModule):
     def __init__(
-            self,
-            datapath: str,
-            batch_size: int,
-            num_workers: int = 4,
-            max_samples: Optional[int] = None,
-            train_proportion: float = 0.9
+        self,
+        datapath: str,
+        batch_size: int,
+        num_workers: int = 4,
+        max_samples: Optional[int] = None,
+        train_proportion: float = 0.9,
     ) -> None:
         super().__init__()
         self.batch_size = batch_size
@@ -178,8 +193,7 @@ class ParticlesDataModule(pl.LightningDataModule):
         try:
             itwinai_logger = self.trainer.itwinai_logger
         except AttributeError:
-            print("WARNING: itwinai_logger attribute not set "
-                  f"in {self.__class__.__name__}")
+            print("WARNING: itwinai_logger attribute not set " f"in {self.__class__.__name__}")
             itwinai_logger = None
         return itwinai_logger
 
@@ -189,41 +203,49 @@ class ParticlesDataModule(pl.LightningDataModule):
         print(f"Dataset path: {self.datapath}")
         print(f"Train proportion: {self.train_proportion}")
 
-        if stage == 'fit' or stage is None:
-            self.dataset = ParticlesDataset(
-                self.datapath,
-                max_samples=self.max_samples
-            )
+        if stage == "fit" or stage is None:
+            self.dataset = ParticlesDataset(self.datapath, max_samples=self.max_samples)
             dataset_length = len(self.dataset)
             split_point = int(dataset_length * self.train_proportion)
-            self.train_dataset, self.val_dataset = \
-                torch.utils.data.random_split(
-                    self.dataset, [split_point, dataset_length - split_point])
+            self.train_dataset, self.val_dataset = torch.utils.data.random_split(
+                self.dataset, [split_point, dataset_length - split_point]
+            )
             print(f"Training dataset size: {len(self.train_dataset)}")
             print(f"Validation dataset size: {len(self.val_dataset)}")
 
-        if stage == 'predict':
+        if stage == "predict":
             # TODO: inference dataset should be different in that it
             # does not contain images!
             self.predict_dataset = ParticlesDataset(
-                self.datapath,
-                max_samples=self.max_samples
+                self.datapath, max_samples=self.max_samples
             )
 
         # if stage == 'test' or stage is None:
-            # self.test_dataset = MyDataset(self.data_dir, train=False)
+        # self.test_dataset = MyDataset(self.data_dir, train=False)
 
     def train_dataloader(self):
-        return DataLoader(self.train_dataset, num_workers=self.num_workers,
-                          batch_size=self.batch_size, drop_last=True)
+        return DataLoader(
+            self.train_dataset,
+            num_workers=self.num_workers,
+            batch_size=self.batch_size,
+            drop_last=True,
+        )
 
     def val_dataloader(self):
-        return DataLoader(self.val_dataset, num_workers=self.num_workers,
-                          batch_size=self.batch_size, drop_last=True)
+        return DataLoader(
+            self.val_dataset,
+            num_workers=self.num_workers,
+            batch_size=self.batch_size,
+            drop_last=True,
+        )
 
     def predict_dataloader(self) -> EVAL_DATALOADERS:
-        return DataLoader(self.predict_dataset, num_workers=self.num_workers,
-                          batch_size=self.batch_size, drop_last=True)
+        return DataLoader(
+            self.predict_dataset,
+            num_workers=self.num_workers,
+            batch_size=self.batch_size,
+            drop_last=True,
+        )
 
     # def test_dataloader(self):
-        # return DataLoader(self.test_dataset, batch_size=self.batch_size)
+    # return DataLoader(self.test_dataset, batch_size=self.batch_size)

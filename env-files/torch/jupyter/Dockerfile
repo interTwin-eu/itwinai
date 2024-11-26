@@ -1,12 +1,21 @@
+# --------------------------------------------------------------------------------------
+# Part of the interTwin Project: https://www.intertwin.eu/
+#
+# Created by: Matteo Bunino
+#
+# Credit:
+# - Matteo Bunino <matteo.bunino@cern.ch> - CERN
+# - VRE Team @ CERN 23/24 - E. Garcia, G. Guerrieri
+# --------------------------------------------------------------------------------------
+
 # https://jupyter-docker-stacks.readthedocs.io/en/latest/using/selecting.html#jupyter-pytorch-notebook
 # https://github.com/jupyter/docker-stacks/wiki
 
-FROM jupyter/scipy-notebook:python-3.10.11
 # FROM quay.io/jupyter/pytorch-notebook:x86_64-cuda12-python-3.11
-LABEL org.opencontainers.image.source="https://github.com/interTwin-eu/itwinai"
-LABEL org.opencontainers.image.description="itwinai image with torch dependencies, CUDA drivers, and Rucio client for jupyterlab singleuser server enabled for interLink offloading"
-LABEL org.opencontainers.image.licenses=MIT
-LABEL maintainer="Matteo Bunino - matteo.bunino@cern.ch, VRE Team @ CERN 23/24 - E. Garcia, G. Guerrieri"
+ARG BASE_IMG_NAME=jupyter/scipy-notebook:python-3.10.11
+
+FROM ${BASE_IMG_NAME}
+ARG BASE_IMG_NAME
 
 # Fix: https://github.com/hadolint/hadolint/wiki/DL4006
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
@@ -126,6 +135,9 @@ RUN pip install --no-cache-dir --upgrade pip \
 ###        itwinai        ###
 #############################
 
+# Inprove robustness: avoid silent override by Singularity/Apptainer
+ENV PYTHONPATH=""
+
 USER root
 
 RUN apt-get update && apt-get install -y \
@@ -198,8 +210,13 @@ RUN pip install --no-cache-dir --upgrade pip \
     'numpy<2' \
     packaging \
     py-cpuinfo \
-    torch==2.4.* torchvision torchaudio --index-url https://download.pytorch.org/whl/cu124 \
     wheel
+
+# Install itwinai with torch
+WORKDIR "$HOME/itwinai"
+COPY --chown=${NB_UID} pyproject.toml pyproject.toml
+COPY --chown=${NB_UID} src src
+RUN pip install --no-cache-dir .[torch,nvidia,dev] --extra-index-url https://download.pytorch.org/whl/cu124
 
 # Apex: https://github.com/NVIDIA/apex
 # (needed for DeepSpeed *_FUSED optinal build options)
@@ -213,7 +230,9 @@ RUN git clone https://github.com/NVIDIA/apex && cd apex \
 # Note: it will take about half an hour to build
 RUN pip install --no-cache-dir transformer_engine[pytorch]
 
-# DeepSpeed, Horovod and other deps
+WORKDIR "$HOME/itwinai"
+
+# Install DeepSpeed, Horovod and Ray
 ENV HOROVOD_WITH_PYTORCH=1 \
     HOROVOD_WITHOUT_TENSORFLOW=1 \
     HOROVOD_WITHOUT_MXNET=1 \
@@ -223,6 +242,8 @@ ENV HOROVOD_WITH_PYTORCH=1 \
     HOROVOD_GPU_ALLREDUCE=NCCL \
     HOROVOD_NCCL_LINK=SHARED \
     # DeepSpeed
+    # This is disabled as it needs OneCCL
+    # DS_BUILD_CCL_COMM=1 \
     DS_BUILD_UTILS=1 \
     DS_BUILD_AIO=1 \
     DS_BUILD_FUSED_ADAM=1 \
@@ -233,25 +254,46 @@ ENV HOROVOD_WITH_PYTORCH=1 \
 RUN pip install --no-cache-dir \
     deepspeed==0.15.* \
     git+https://github.com/horovod/horovod.git@3a31d93 \
-    "prov4ml[nvidia]@git+https://github.com/matbun/ProvML@e99bddba047a1a04ca0387e87cad1ed96d5ab2c5" \
     ray[tune]
 
-
-# Core itwinai lib
-WORKDIR "$HOME/itwinai"
-COPY pyproject.toml pyproject.toml
-COPY src src
-RUN pip install --no-cache-dir ".[torch,dev]" \
-    && itwinai sanity-check --torch \
+# Installation sanity check
+RUN itwinai sanity-check --torch \
     --optional-deps deepspeed \
     --optional-deps horovod \
     --optional-deps ray
 
 # Additional pip deps
 ARG REQUIREMENTS=env-files/torch/requirements/requirements.txt
-COPY "${REQUIREMENTS}" additional-requirements.txt
+COPY --chown=${NB_UID} "${REQUIREMENTS}" additional-requirements.txt
 RUN pip install --no-cache-dir -r additional-requirements.txt
+
+# Add tests
+COPY tests tests
 
 WORKDIR $HOME
 
 CMD ["setup.sh", "start-notebook.sh"]
+
+
+# Labels
+ARG CREATION_DATE
+ARG COMMIT_HASH
+ARG ITWINAI_VERSION
+ARG IMAGE_FULL_NAME
+ARG BASE_IMG_DIGEST
+
+# https://github.com/opencontainers/image-spec/blob/main/annotations.md#pre-defined-annotation-keys
+LABEL org.opencontainers.image.created=${CREATION_DATE}
+LABEL org.opencontainers.image.authors="Matteo Bunino - matteo.bunino@cern.ch, VRE Team @ CERN 23/24 - E. Garcia, G. Guerrieri"
+LABEL org.opencontainers.image.url="https://github.com/interTwin-eu/itwinai"
+LABEL org.opencontainers.image.documentation="https://itwinai.readthedocs.io/"
+LABEL org.opencontainers.image.source="https://github.com/interTwin-eu/itwinai"
+LABEL org.opencontainers.image.version=${ITWINAI_VERSION}
+LABEL org.opencontainers.image.revision=${COMMIT_HASH}
+LABEL org.opencontainers.image.vendor="CERN - European Organization for Nuclear Research"
+LABEL org.opencontainers.image.licenses="MIT"
+LABEL org.opencontainers.image.ref.name=${IMAGE_FULL_NAME}
+LABEL org.opencontainers.image.title="itwinai"
+LABEL org.opencontainers.image.description="itwinai image with torch dependencies, CUDA drivers, and Rucio client for jupyterlab singleuser server enabled for interLink offloading"
+LABEL org.opencontainers.image.base.digest=${BASE_IMG_DIGEST}
+LABEL org.opencontainers.image.base.name=${BASE_IMG_NAME}
