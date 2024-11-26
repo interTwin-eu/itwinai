@@ -9,7 +9,6 @@ import torch
 import torch.distributed as dist
 import torch.nn as nn
 import torch.optim as optim
-from torch.nn.modules import Module
 from torch.optim.lr_scheduler import _LRScheduler as LRScheduler
 from torch.optim.optimizer import Optimizer
 from torch.utils.data import DataLoader, Dataset, DistributedSampler, Sampler
@@ -46,6 +45,28 @@ def check_initialized(method: Callable) -> Callable:
         return method(self, *args, **kwargs)
 
     return wrapper
+
+
+def _initialize_ray() -> None:
+    """This method is used by the RayDDPStrategy and RayDeepSpeedStrategy to initialize
+    the Ray backend if it is not already initialized.
+
+        Raises:
+            EnvironmentError: If required environment variables `IP_HEAD` or `HEAD_NODE_IP`
+                are not set. These should be set from the slurm script where the ray cluster
+                is launched.
+    """
+    if not ray.is_initialized():
+        IP_HEAD = os.environ.get("IP_HEAD")
+        HEAD_NODE_IP = os.environ.get("HEAD_NODE_IP")
+
+        if not IP_HEAD or not HEAD_NODE_IP:
+            raise EnvironmentError(
+                "Ray initialization requires env variables 'IP_HEAD' and \
+                    'HEAD_NODE_IP' to be set."
+            )
+
+        ray.init(address="auto")
 
 
 class TorchDistributedStrategy(DistributedStrategy):
@@ -1009,27 +1030,11 @@ class NonDistributedStrategy(TorchDistributedStrategy):
         return [tensor]
 
 
-class RayDistributedStrategy(TorchDistributedStrategy):
-    def _initialize_ray(self) -> None:
-        if not ray.is_initialized():
-            try:
-                ip_head = os.environ.get("ip_head")
-                head_node_ip = os.environ.get("head_node_ip")
+class RayDDPStrategy(TorchDistributedStrategy):
+    """A distributed data-parallel (DDP) strategy using Ray Train for PyTorch training."""
 
-                if not ip_head or not head_node_ip:
-                    raise EnvironmentError(
-                        "Ray initialization requires 'ip_head' and 'head_node_ip' to be set."
-                    )
-
-            except Exception as e:
-                raise RuntimeError(f"Error initializing Ray: {str(e)}")
-
-            ray.init(address="auto")
-
-
-class RayDDPStrategy(RayDistributedStrategy):
     def __init__(self) -> None:
-        super()._initialize_ray()
+        _initialize_ray()
 
     def init(self) -> None:
         self.is_initialized = True
@@ -1056,7 +1061,7 @@ class RayDDPStrategy(RayDistributedStrategy):
         model: nn.Module,
         optimizer: Optimizer,
         lr_scheduler: Optional[LRScheduler] = None,
-    ) -> Tuple[Module, Optimizer, LRScheduler | None]:
+    ) -> Tuple[nn.Module, Optimizer, LRScheduler | None]:
         model = ray.train.torch.prepare_model(model)
 
         return model, optimizer, lr_scheduler
@@ -1115,72 +1120,13 @@ class RayDDPStrategy(RayDistributedStrategy):
         pass
 
 
-class RayDeepSpeedStrategy(RayDistributedStrategy):
-    def __init__(self) -> None:
-        import deepspeed
+class RayDeepSpeedStrategy(DeepSpeedStrategy):
+    """A distributed strategy using Ray and DeepSpeed for PyTorch training.
 
-        self.deepspeed = deepspeed
+    Args:
+        backend (Literal["nccl", "gloo", "mpi"]): The backend for distributed communication.
+    """
 
-        super()._initialize_ray()
-
-    def init(self) -> None:
-        # This block of code should be removed as some point
-        if os.environ.get("LOCAL_RANK"):
-            os.environ["OMPI_COMM_WORLD_LOCAL_RANK"] = os.environ.get("LOCAL_RANK")
-
-        self.deepspeed.init_distributed()
-
-        print("Deepspeed initialized")
-        self.is_initialized = True
-
-        self.set_device()
-
-    @check_initialized
-    def global_world_size(self) -> int:
-        return dist.get_world_size()
-
-    @check_initialized
-    def local_world_size(self) -> int:
-        return torch.cuda.device_count()
-
-    @check_initialized
-    def global_rank(self) -> int:
-        return dist.get_rank()
-
-    @check_initialized
-    def local_rank(self) -> int:
-        return dist.get_rank() % torch.cuda.device_count()
-
-    @check_initialized
-    def distributed(
-        self,
-        model: Module,
-        optimizer: Optimizer,
-        lr_scheduler: Optional[LRScheduler] = None,
-        model_parameters: Optional[Any] = None,
-        **init_kwargs,
-    ) -> Tuple[Module | Optimizer | LRScheduler | None]:
-        master_port = os.environ.get("MASTER_PORT")
-
-        distrib_model, optimizer, _, lr_scheduler = self.deepspeed.initialize(
-            model=model,
-            model_parameters=model_parameters,
-            optimizer=optimizer,
-            lr_scheduler=lr_scheduler,
-            distributed_port=master_port,
-            dist_init_required=True,
-            **init_kwargs,
-        )
-        return distrib_model, optimizer, lr_scheduler
-
-    def clean_up(self) -> None:
-        pass
-
-    def allgather_obj(self, obj: Any) -> List[Any]:
-        pass
-
-    def gather_obj(self, obj: Any, dst_rank: int = 0) -> List[Any]:
-        pass
-
-    def gather(self, tensor: torch.Tensor, dst_rank: int = 0) -> List | None:
-        pass
+    def __init__(self, backend: Literal["nccl", "gloo", "mpi"]) -> None:
+        _initialize_ray()
+        super.__init__(backend=backend)

@@ -50,10 +50,10 @@ port=7639       # This port will be used by Ray to communicate with worker nodes
 
 # This is so that the ray.init() command called from the hpo.py script knows
 # which ports to connect to
-export ip_head="$head_node"i:"$port"
-export head_node_ip="$head_node"i
+export IP_HEAD="$head_node"i:"$port"
+export HEAD_NODE_IP="$head_node"i
 
-export MASTER_ADDR=$head_node_ip
+export MASTER_ADDR=$HEAD_NODE_IP
 export MASTER_PORT=$port
 
 echo "Starting HEAD at $head_node"
