@@ -375,7 +375,7 @@ class RayNoiseGeneratorTrainer(RayTorchTrainer):
     def __init__(
         self,
         config: Dict,
-        strategy: Optional[Literal["ddp", "deepspeed", "horovod"]] = "ddp",
+        strategy: Optional[Literal["ddp", "deepspeed"]] = "ddp",
         name: Optional[str] = None,
         logger: Optional[Logger] = None,
     ) -> None:
