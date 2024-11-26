@@ -60,7 +60,7 @@ jobs:
           docker system prune -af
 
       - name: Integration Test
-        uses: dagger/dagger-for-github@v6
+        uses: dagger/dagger-for-github@v7
         with:
           workdir: ci
           verb: call
