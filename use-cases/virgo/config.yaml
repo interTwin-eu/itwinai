@@ -147,7 +147,7 @@ ray_training_pipeline:
               loggers:
                 - class_path: itwinai.loggers.MLFlowLogger
                   init_args:
-                    experiment_name: MNIST Ray HPO Experiment
+                    experiment_name: Virgo Ray HPO Experiment
                     log_freq: batch 
 
                 
