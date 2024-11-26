@@ -1,5 +1,7 @@
 # 3DGAN use case
 
+**Integration author(s)**: Kalliopi Tsolaki (CERN), Matteo Bunino (CERN)
+
 First of all, from the repository root, create a torch environment
 following the [installation instructions](https://itwinai.readthedocs.io/latest/getting-started/getting_started_with_itwinai.html).
 
@@ -18,11 +20,13 @@ pip install -r requirements.txt
 
 ## Training
 
-Make sure to be in the `use-cases/3dgan` folder. Before you can start training, you have 
+Make sure to be in the `use-cases/3dgan` folder. Before you can start training, you have
 to download the data using the dataloading script:
+
 ```bash
 itwinai exec-pipeline --config config.yaml --pipe-key training_pipeline --steps dataloading_step
 ```
+
 Now you can launch training using `itwinai` and the provided training configuration `config.yaml`:
 
 ```bash

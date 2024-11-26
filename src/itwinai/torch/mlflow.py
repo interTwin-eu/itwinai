@@ -1,3 +1,12 @@
+# --------------------------------------------------------------------------------------
+# Part of the interTwin Project: https://www.intertwin.eu/
+#
+# Created by: Matteo Bunino
+#
+# Credit:
+# - Matteo Bunino <matteo.bunino@cern.ch> - CERN
+# --------------------------------------------------------------------------------------
+
 import os
 from typing import Dict, Optional
 
@@ -16,29 +25,29 @@ def _get_mlflow_logger_conf(pl_config: Dict) -> Optional[Dict]:
         Optional[Dict]: if present, MLFLowLogger constructor arguments
         (under 'init_args' key).
     """
-    if not pl_config['trainer'].get('logger'):
+    if not pl_config["trainer"].get("logger"):
         return None
-    if isinstance(pl_config['trainer']['logger'], list):
+    if isinstance(pl_config["trainer"]["logger"], list):
         # If multiple loggers are provided
-        for logger_conf in pl_config['trainer']['logger']:
-            if logger_conf['class_path'].endswith('MLFlowLogger'):
-                return logger_conf['init_args']
-    elif pl_config['trainer']['logger']['class_path'].endswith('MLFlowLogger'):
-        return pl_config['trainer']['logger']['init_args']
+        for logger_conf in pl_config["trainer"]["logger"]:
+            if logger_conf["class_path"].endswith("MLFlowLogger"):
+                return logger_conf["init_args"]
+    elif pl_config["trainer"]["logger"]["class_path"].endswith("MLFlowLogger"):
+        return pl_config["trainer"]["logger"]["init_args"]
 
 
 def _mlflow_log_pl_config(pl_config: Dict, local_yaml_path: str) -> None:
     os.makedirs(os.path.dirname(local_yaml_path), exist_ok=True)
-    with open(local_yaml_path, 'w') as outfile:
+    with open(local_yaml_path, "w") as outfile:
         yaml.dump(pl_config, outfile, default_flow_style=False)
     mlflow.log_artifact(local_yaml_path)
 
 
 def init_lightning_mlflow(
     pl_config: Dict,
-    default_experiment_name: str = 'Default',
-    tmp_dir: str = '.tmp',
-    **autolog_kwargs
+    default_experiment_name: str = "Default",
+    tmp_dir: str = ".tmp",
+    **autolog_kwargs,
 ) -> None:
     """Initialize mlflow for pytorch lightning, also setting up
     auto-logging (mlflow.pytorch.autolog(...)). Creates a new mlflow
@@ -55,12 +64,12 @@ def init_lightning_mlflow(
     if not mlflow_conf:
         return
 
-    tracking_uri = mlflow_conf.get('tracking_uri')
+    tracking_uri = mlflow_conf.get("tracking_uri")
     if not tracking_uri:
-        save_path = mlflow_conf.get('save_dir')
+        save_path = mlflow_conf.get("save_dir")
         tracking_uri = "file://" + os.path.abspath(save_path)
 
-    experiment_name = mlflow_conf.get('experiment_name')
+    experiment_name = mlflow_conf.get("experiment_name")
     if not experiment_name:
         experiment_name = default_experiment_name
 
@@ -70,10 +79,10 @@ def init_lightning_mlflow(
     run = mlflow.start_run()
     print(f"MLFlow's artifacts URI: {run.info.artifact_uri}")
 
-    mlflow_conf['experiment_name'] = experiment_name
-    mlflow_conf['run_id'] = mlflow.active_run().info.run_id
+    mlflow_conf["experiment_name"] = experiment_name
+    mlflow_conf["run_id"] = mlflow.active_run().info.run_id
 
-    _mlflow_log_pl_config(pl_config, os.path.join(tmp_dir, 'pl_config.yml'))
+    _mlflow_log_pl_config(pl_config, os.path.join(tmp_dir, "pl_config.yml"))
 
 
 def teardown_lightning_mlflow() -> None:

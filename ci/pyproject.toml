@@ -1,0 +1,38 @@
+# --------------------------------------------------------------------------------------
+# Part of the interTwin Project: https://www.intertwin.eu/
+#
+# Created by: Matteo Bunino
+#
+# Credit:
+# - Matteo Bunino <matteo.bunino@cern.ch> - CERN
+# --------------------------------------------------------------------------------------
+
+[project]
+name = "main"
+version = "0.1.0"
+maintainers = [{ name = "Matteo Bunino", email = "matteo.bunino@cern.ch" }]
+authors = [{ name = "Matteo Bunino", email = "matteo.bunino@cern.ch" }]
+requires-python = ">=3.12"
+dependencies = ["dagger-io", "kubernetes>=31.0.0", "ruff>=0.7.3"]
+
+[tool.uv.sources]
+dagger-io = { path = "sdk", editable = true }
+
+[build-system]
+requires = ["hatchling==1.25.0"]
+build-backend = "hatchling.build"
+
+# Ruff configuration: https://docs.astral.sh/ruff/configuration/
+[tool.ruff]
+line-length = 95
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "W"]
+ignore = ["E203"]
+fixable = ["ALL"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"

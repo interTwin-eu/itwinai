@@ -1,5 +1,7 @@
 # EURAC use case
 
+**Integration authors**: Jarl Sondre Saether (CERN), Henry Mutegeki (CERN), Iacopo Ferrario (EURAC), Matteo Bunino (CERN)
+
 ## Installation
 
 First, make sure to install itwinai from this branch!

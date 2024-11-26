@@ -1,5 +1,7 @@
 # Tutorial on itwinai TorchTrainer adapted for the distributed GAN using MNIST dataset
 
+**Author(s)**: Henry Mutegeki (CERN), Matteo Bunino (CERN), Jarl Sondre Sæther (CERN)
+
 The code is adapted from
 [this example](https://github.com/pytorch/examples/blob/main/mnist/main.py)
 and a simple non-distributed GAN model can be found in a file named `simpleGAN.py`

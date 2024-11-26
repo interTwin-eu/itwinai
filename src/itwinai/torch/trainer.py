@@ -1,3 +1,16 @@
+# --------------------------------------------------------------------------------------
+# Part of the interTwin Project: https://www.intertwin.eu/
+#
+# Created by: Matteo Bunino
+#
+# Credit:
+# - Matteo Bunino <matteo.bunino@cern.ch> - CERN
+# - Anna Lappe <anna.elisa.lappe@cern.ch> - CERN
+# - Jarl Sondre Sæther <jarl.sondre.saether@cern.ch> - CERN
+# - Henry Mutegeki <henry.mutegeki@cern.ch> - CERN
+# --------------------------------------------------------------------------------------
+
+
 """Provides training logic for PyTorch models via Trainer classes."""
 
 import os
@@ -245,7 +258,7 @@ class TorchTrainer(Trainer, LogMixin):
                 config_params=dict(train_micro_batch_size_per_gpu=self.config.batch_size)
             )
         elif isinstance(self.strategy, HorovodStrategy):
-            import horovod as hvd
+            import horovod.torch as hvd
 
             distribute_kwargs = dict(
                 compression=(

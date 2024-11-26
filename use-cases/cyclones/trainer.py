@@ -1,23 +1,25 @@
-from typing import Dict, Any, Optional, Union
-import logging
-from os.path import join, exists
+# --------------------------------------------------------------------------------------
+# Part of the interTwin Project: https://www.intertwin.eu/
+#
+# Created by: Roman Machacek
+#
+# Credit:
+# - Roman Machacek <roman.machacek@cern.ch> - CERN
+# - Matteo Bunino <matteo.bunino@cern.ch> - CERN
+# --------------------------------------------------------------------------------------
 
+import logging
+from os.path import exists, join
+from typing import Any, Dict, Optional, Union
 
 import tensorflow as tf
 import tensorflow.keras as keras
 
-from itwinai.tensorflow.distributed import get_strategy
-from itwinai.tensorflow.trainer import TensorflowTrainer
 from itwinai.components import monitor_exec
-
-from src.utils import get_network_config, load_model
+from itwinai.tensorflow.trainer import TensorflowTrainer
 from src.callbacks import ProcessBenchmark
-from src.macros import (
-    Network,
-    Losses,
-    RegularizationStrength,
-    Activation
-)
+from src.macros import Activation, Losses, Network, RegularizationStrength
+from src.utils import get_network_config, load_model
 
 
 class CyclonesTrainer(TensorflowTrainer):
@@ -37,13 +39,13 @@ class CyclonesTrainer(TensorflowTrainer):
         kernel_size: Optional[int] = None,
         model_backup: Optional[str] = None,
         rnd_seed: Optional[int] = None,
-        verbose: Union[str, int] = 'auto'
+        verbose: Union[str, int] = "auto",
     ):
         super().__init__(
             epochs=epochs,
             micro_batch_size=micro_batch_size,
             rnd_seed=rnd_seed,
-            verbose=verbose
+            verbose=verbose,
         )
         self.save_parameters(**self.locals2params(locals()))
         self.global_config = global_config
@@ -51,9 +53,7 @@ class CyclonesTrainer(TensorflowTrainer):
         self.network = network.value
         self.activation = activation.value
         self.kernel_size = kernel_size
-        self.regularization_strength, self.regularizer = (
-            regularization_strength.value
-        )
+        self.regularization_strength, self.regularizer = regularization_strength.value
 
         # Loss name and learning rate
         self.loss_name, self.loss = loss.value
@@ -73,14 +73,12 @@ class CyclonesTrainer(TensorflowTrainer):
         # Each batch is further split among the workers
         dist_train_dataset = self.strategy.experimental_distribute_dataset(
             train_dataset.batch(
-                self.macro_batch_size, drop_remainder=True,
-                num_parallel_calls=tf.data.AUTOTUNE
+                self.macro_batch_size, drop_remainder=True, num_parallel_calls=tf.data.AUTOTUNE
             )
         )
         dist_valid_dataset = self.strategy.experimental_distribute_dataset(
             valid_dataset.batch(
-                self.macro_batch_size, drop_remainder=True,
-                num_parallel_calls=tf.data.AUTOTUNE
+                self.macro_batch_size, drop_remainder=True, num_parallel_calls=tf.data.AUTOTUNE
             )
         )
 
@@ -98,13 +96,11 @@ class CyclonesTrainer(TensorflowTrainer):
                 logging.debug("New model created")
             else:
                 model = load_model(model_fpath=self.best_model_name)
-                logging.debug(
-                    f"Model loaded from backup at {self.best_model_name}")
+                logging.debug(f"Model loaded from backup at {self.best_model_name}")
 
             optimizer = keras.optimizers.Adam(learning_rate=self.learning_rate)
             metrics = [keras.metrics.MeanAbsoluteError(name="mae")]
-            model.compile(loss=self.loss_name,
-                          optimizer=optimizer, metrics=metrics)
+            model.compile(loss=self.loss_name, optimizer=optimizer, metrics=metrics)
         logging.debug("Model compiled")
 
         # Print model summary to check if model's architecture is correct
@@ -142,8 +138,7 @@ class CyclonesTrainer(TensorflowTrainer):
 
         # files and csvs definition
         CHECKPOINTS_FILEPATH = join(CHECKPOINTS_DIR, "model_{epoch:02d}.keras")
-        LOSS_METRICS_HISTORY_CSV = join(
-            self.run_dir, "loss_metrics_history.csv")
+        LOSS_METRICS_HISTORY_CSV = join(self.run_dir, "loss_metrics_history.csv")
         BENCHMARK_HISTORY_CSV = join(self.run_dir, "benchmark_history.csv")
 
         self.callbacks = [

@@ -1,3 +1,12 @@
+# --------------------------------------------------------------------------------------
+# Part of the interTwin Project: https://www.intertwin.eu/
+#
+# Created by: Matteo Bunino
+#
+# Credit:
+# - Matteo Bunino <matteo.bunino@cern.ch> - CERN
+# --------------------------------------------------------------------------------------
+
 """
 Test @distributed function decorator. To run this script, use the following
 command:
@@ -19,7 +28,6 @@ from itwinai.torch.trainer import distributed
 
 
 class Net(nn.Module):
-
     def __init__(self):
         super(Net, self).__init__()
         self.conv1 = nn.Conv2d(1, 10, kernel_size=5)
@@ -48,9 +56,15 @@ def train(model, device, train_loader, optimizer, epoch):
         loss.backward()
         optimizer.step()
         if batch_idx % 100 == 0:
-            print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
-                epoch, batch_idx * len(data), len(train_loader.dataset),
-                100. * batch_idx / len(train_loader), loss.item()))
+            print(
+                "Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}".format(
+                    epoch,
+                    batch_idx * len(data),
+                    len(train_loader.dataset),
+                    100.0 * batch_idx / len(train_loader),
+                    loss.item(),
+                )
+            )
 
 
 def test(model, device, test_loader):
@@ -62,7 +76,7 @@ def test(model, device, test_loader):
             data, target = data.to(device), target.to(device)
             output = model(data)
             # sum up batch loss
-            test_loss += F.nll_loss(output, target, reduction='sum').item()
+            test_loss += F.nll_loss(output, target, reduction="sum").item()
             # get the index of the max log-probability
             pred = output.argmax(dim=1, keepdim=True)
             correct += pred.eq(target.view_as(pred)).sum().item()
@@ -70,15 +84,18 @@ def test(model, device, test_loader):
     test_loss /= len(test_loader.dataset)
 
     print(
-        '\nTest set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(
-            test_loss, correct, len(test_loader.dataset),
-            100. * correct / len(test_loader.dataset)))
+        "\nTest set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n".format(
+            test_loss,
+            correct,
+            len(test_loader.dataset),
+            100.0 * correct / len(test_loader.dataset),
+        )
+    )
 
 
 @distributed
 def train_func(
-        model, train_dataloader, validation_dataloader, device,
-        optimizer, scheduler, epochs=10
+    model, train_dataloader, validation_dataloader, device, optimizer, scheduler, epochs=10
 ):
     for epoch in range(1, epochs + 1):
         train(model, device, train_dataloader, optimizer, epoch)
@@ -86,20 +103,23 @@ def train_func(
         scheduler.step()
 
 
-if __name__ == '__main__':
-
+if __name__ == "__main__":
     train_set = datasets.MNIST(
-        '.tmp/', train=True, download=True,
-        transform=transforms.Compose([
-            transforms.ToTensor(),
-            transforms.Normalize((0.1307,), (0.3081,))
-        ]))
+        ".tmp/",
+        train=True,
+        download=True,
+        transform=transforms.Compose(
+            [transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))]
+        ),
+    )
     val_set = datasets.MNIST(
-        '.tmp/', train=False, download=True,
-        transform=transforms.Compose([
-            transforms.ToTensor(),
-            transforms.Normalize((0.1307,), (0.3081,))
-        ]))
+        ".tmp/",
+        train=False,
+        download=True,
+        transform=transforms.Compose(
+            [transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))]
+        ),
+    )
     model = Net()
     train_dataloader = DataLoader(train_set, batch_size=32, pin_memory=True)
     validation_dataloader = DataLoader(val_set, batch_size=32, pin_memory=True)
@@ -107,5 +127,12 @@ if __name__ == '__main__':
     scheduler = StepLR(optimizer, step_size=1, gamma=0.9)
 
     # Train distributed
-    train_func(model, train_dataloader, validation_dataloader, 'cuda',
-               optimizer, scheduler=scheduler, epochs=1)
+    train_func(
+        model,
+        train_dataloader,
+        validation_dataloader,
+        "cuda",
+        optimizer,
+        scheduler=scheduler,
+        epochs=1,
+    )
