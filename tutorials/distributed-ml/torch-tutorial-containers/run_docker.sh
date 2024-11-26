@@ -1,5 +1,14 @@
 #!/bin/bash
 
+# --------------------------------------------------------------------------------------
+# Part of the interTwin Project: https://www.intertwin.eu/
+#
+# Created by: Matteo Bunino
+#
+# Credit:
+# - Matteo Bunino <matteo.bunino@cern.ch> - CERN
+# --------------------------------------------------------------------------------------
+
 CMD="itwinai exec-pipeline --config config.yaml --pipe-key training_pipeline"
 
 # Run command in the itwinai torch Docker container

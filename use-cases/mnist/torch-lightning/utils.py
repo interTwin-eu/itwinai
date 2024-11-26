@@ -1,11 +1,19 @@
-"""
-Utilities for itwinai package.
-"""
-import os
-import yaml
+# --------------------------------------------------------------------------------------
+# Part of the interTwin Project: https://www.intertwin.eu/
+#
+# Created by: Matteo Bunino
+#
+# Credit:
+# - Matteo Bunino <matteo.bunino@cern.ch> - CERN
+# --------------------------------------------------------------------------------------
 
+"""Utilities for itwinai package."""
+
+import os
 from collections.abc import MutableMapping
 from typing import Dict
+
+import yaml
 from omegaconf import OmegaConf
 from omegaconf.dictconfig import DictConfig
 
@@ -84,9 +92,7 @@ def dynamically_import_class(name: str):
     return klass
 
 
-def flatten_dict(
-    d: MutableMapping, parent_key: str = "", sep: str = "."
-) -> MutableMapping:
+def flatten_dict(d: MutableMapping, parent_key: str = "", sep: str = ".") -> MutableMapping:
     """Flatten dictionary
 
     Args:

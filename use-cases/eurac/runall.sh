@@ -1,5 +1,14 @@
 #!/bin/bash
-# 
+
+# --------------------------------------------------------------------------------------
+# Part of the interTwin Project: https://www.intertwin.eu/
+#
+# Created by: Jarl Sondre Sæther
+#
+# Credit:
+# - Jarl Sondre Sæther <jarl.sondre.saether@cern.ch> - CERN
+# --------------------------------------------------------------------------------------
+ 
 # Script for running all the distributed trainings with a certain number of 
 # GPUs on a certain number of compute nodes. Can be run as a stand-alone script or 
 # from another script. Change the values of the script either by changing the default 

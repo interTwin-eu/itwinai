@@ -1,3 +1,13 @@
+# --------------------------------------------------------------------------------------
+# Part of the interTwin Project: https://www.intertwin.eu/
+#
+# Created by: Henry Mutegeki
+#
+# Credit:
+# - Henry Mutegeki <henry.mutegeki@cern.ch> - CERN
+# - Matteo Bunino <matteo.bunino@cern.ch> - CERN
+# --------------------------------------------------------------------------------------
+
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
@@ -10,7 +20,7 @@ import torchvision.datasets as dset
 import torchvision.transforms as transforms
 import torchvision.utils as vutils
 
-DATA_PATH = '../data'
+DATA_PATH = "../data"
 BATCH_SIZE = 128
 IMAGE_CHANNEL = 1
 Z_DIM = 100
@@ -35,23 +45,25 @@ if CUDA:
 cudnn.benchmark = True
 
 # Data preprocessing
-dataset = dset.MNIST(root=DATA_PATH, download=False,
-                     transform=transforms.Compose([
-                         transforms.Resize(X_DIM),
-                         transforms.ToTensor(),
-                         transforms.Normalize((0.5,), (0.5,))
-                     ]))
+dataset = dset.MNIST(
+    root=DATA_PATH,
+    download=False,
+    transform=transforms.Compose(
+        [transforms.Resize(X_DIM), transforms.ToTensor(), transforms.Normalize((0.5,), (0.5,))]
+    ),
+)
 
 # Dataloader
-dataloader = torch.utils.data.DataLoader(dataset, batch_size=BATCH_SIZE,
-                                         shuffle=True, num_workers=2)
+dataloader = torch.utils.data.DataLoader(
+    dataset, batch_size=BATCH_SIZE, shuffle=True, num_workers=2
+)
 
 
 def weights_init(m):
     classname = m.__class__.__name__
-    if classname.find('Conv') != -1:
+    if classname.find("Conv") != -1:
         m.weight.data.normal_(0.0, 0.02)
-    elif classname.find('BatchNorm') != -1:
+    elif classname.find("BatchNorm") != -1:
         m.weight.data.normal_(1.0, 0.02)
         m.bias.data.fill_(0)
 
@@ -78,7 +90,7 @@ class Generator(nn.Module):
             nn.ReLU(True),
             # output layer
             nn.ConvTranspose2d(G_HIDDEN, IMAGE_CHANNEL, 4, 2, 1, bias=False),
-            nn.Tanh()
+            nn.Tanh(),
         )
 
     def forward(self, input):
@@ -106,7 +118,7 @@ class Discriminator(nn.Module):
             nn.LeakyReLU(0.2, inplace=True),
             # output layer
             nn.Conv2d(D_HIDDEN * 8, 1, 4, 1, 0, bias=False),
-            nn.Sigmoid()
+            nn.Sigmoid(),
         )
 
     def forward(self, input):
@@ -137,22 +149,19 @@ optimizerG = optim.Adam(netG.parameters(), lr=lr, betas=(0.5, 0.999))
 
 
 # Training Loop
-def train_GAN_model(EPOCH_NUM, netD, netG, optimizerG,
-                    optimizerD, dataloader, criterion):
+def train_GAN_model(EPOCH_NUM, netD, netG, optimizerG, optimizerD, dataloader, criterion):
     img_list = []
     G_losses = []
     D_losses = []
     iters = 0
     for epoch in range(EPOCH_NUM):
         for i, data in enumerate(dataloader, 0):
-
             # (1) Update the discriminator with real data
             netD.zero_grad()
             # Format batch
             real_cpu = data[0].to(device)
             b_size = real_cpu.size(0)
-            label = torch.full((b_size,), REAL_LABEL,
-                               dtype=torch.float, device=device)
+            label = torch.full((b_size,), REAL_LABEL, dtype=torch.float, device=device)
             # Forward pass real batch through D
             output = netD(real_cpu).view(-1)
             # Calculate loss on all-real batch
@@ -196,23 +205,33 @@ def train_GAN_model(EPOCH_NUM, netD, netG, optimizerG,
 
             # Output training stats
             if i % 50 == 0:
-                print((
-                    '[ % d/%d][%d/%d]\tLoss_D: % .4f\tLoss_G:'
-                    ' % .4f\tD(x): % .4f\tD(G(z)): % .4f / %.4f')
-                    % (epoch, EPOCH_NUM, i, len(dataloader),
-                       errD.item(), errG.item(), D_x, D_G_z1, D_G_z2))
+                print(
+                    (
+                        "[ % d/%d][%d/%d]\tLoss_D: % .4f\tLoss_G:"
+                        " % .4f\tD(x): % .4f\tD(G(z)): % .4f / %.4f"
+                    )
+                    % (
+                        epoch,
+                        EPOCH_NUM,
+                        i,
+                        len(dataloader),
+                        errD.item(),
+                        errG.item(),
+                        D_x,
+                        D_G_z1,
+                        D_G_z2,
+                    )
+                )
 
             # Save Losses for plotting later
             G_losses.append(errG.item())
             D_losses.append(errD.item())
 
             # Check how the generator is doing
-            if (iters % 500 == 0) or ((epoch == EPOCH_NUM-1) and
-                                      (i == len(dataloader)-1)):
+            if (iters % 500 == 0) or ((epoch == EPOCH_NUM - 1) and (i == len(dataloader) - 1)):
                 with torch.no_grad():
                     fake = netG(viz_noise).detach().cpu()
-                img_list.append(vutils.make_grid(
-                    fake, padding=2, normalize=True))
+                img_list.append(vutils.make_grid(fake, padding=2, normalize=True))
 
             iters += 1
 
@@ -232,8 +251,12 @@ def train_GAN_model(EPOCH_NUM, netD, netG, optimizerG,
     plt.subplot(1, 2, 1)
     plt.axis("off")
     plt.title("Real Images")
-    plt.imshow(np.transpose(vutils.make_grid(real_batch[0].to(device)[
-        :64], padding=5, normalize=True).cpu(), (1, 2, 0)))
+    plt.imshow(
+        np.transpose(
+            vutils.make_grid(real_batch[0].to(device)[:64], padding=5, normalize=True).cpu(),
+            (1, 2, 0),
+        )
+    )
     # plt.savefig('simpleGANreal_image.png')
     # Plot the fake images from the last epoch
     plt.subplot(1, 2, 2)
@@ -244,5 +267,4 @@ def train_GAN_model(EPOCH_NUM, netD, netG, optimizerG,
     # plt.savefig('simpleGANfake_image.png')
 
 
-train_GAN_model(EPOCH_NUM, netD, netG, optimizerG,
-                optimizerD, dataloader, criterion)
+train_GAN_model(EPOCH_NUM, netD, netG, optimizerG, optimizerD, dataloader, criterion)

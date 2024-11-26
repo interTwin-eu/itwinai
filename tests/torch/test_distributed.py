@@ -1,3 +1,12 @@
+# --------------------------------------------------------------------------------------
+# Part of the interTwin Project: https://www.intertwin.eu/
+#
+# Created by: Matteo Bunino
+#
+# Credit:
+# - Matteo Bunino <matteo.bunino@cern.ch> - CERN
+# --------------------------------------------------------------------------------------
+
 """Test distributed training strategies."""
 
 from typing import Any
@@ -33,7 +42,7 @@ class DummyDataset(Dataset):
 
 
 class BaseTestDistributedStrategy:
-    @pytest.fixture(scope='module')
+    @pytest.fixture(scope="module")
     def strategy(self):
         """To be overridden by subclasses with the specific strategy."""
         raise NotImplementedError
@@ -61,10 +70,7 @@ class BaseTestDistributedStrategy:
         assert strategy.local_rank() >= 0
 
     def test_init_exceptions(
-        self,
-        strategy: TorchDistributedStrategy,
-        simple_model: nn.Module,
-        optimizer: Any
+        self, strategy: TorchDistributedStrategy, simple_model: nn.Module, optimizer: Any
     ):
         """Check that the init method cannot be called twice and that the other methods raise
         and exception if called when the strategy is not initialized."""
@@ -124,8 +130,7 @@ class BaseTestDistributedStrategy:
         my_tensor = torch.ones(10) * strategy.global_rank()
         tensors = strategy.gather(my_tensor, dst_rank=0)
         if strategy.is_main_worker:
-            assert torch.stack(tensors).sum() == sum(
-                range(strategy.global_world_size())) * 10
+            assert torch.stack(tensors).sum() == sum(range(strategy.global_world_size())) * 10
         else:
             assert tensors is None
 
@@ -165,85 +170,74 @@ class BaseTestDistributedStrategy:
 @pytest.mark.hpc
 @pytest.mark.torch_dist
 class TestTorchDDPStrategy(BaseTestDistributedStrategy):
-    @pytest.fixture(scope='module')
+    @pytest.fixture(scope="module")
     def strategy(self, ddp_strategy) -> TorchDDPStrategy:
         return ddp_strategy
 
     def test_init(self, strategy: TorchDDPStrategy):
         """Test specific initialization of TorchDDPStrategy."""
-        assert strategy.backend in ['nccl', 'gloo']
+        assert strategy.backend in ["nccl", "gloo"]
 
         # Test initialization
-        init_path = 'torch.distributed.init_process_group'
+        init_path = "torch.distributed.init_process_group"
         with patch(init_path, autospec=True) as mock_init_torch:
             strategy = TorchDDPStrategy(
-                backend='nccl' if torch.cuda.is_available() else 'gloo'
+                backend="nccl" if torch.cuda.is_available() else "gloo"
             )
             strategy.init()
             mock_init_torch.assert_called_once()
 
     def test_distributed_model(
-        self,
-        strategy: TorchDDPStrategy,
-        simple_model: nn.Module,
-        optimizer: Optimizer
+        self, strategy: TorchDDPStrategy, simple_model: nn.Module, optimizer: Optimizer
     ):
         """Test NN model distribution."""
         from torch.nn.parallel import DistributedDataParallel
+
         dist_model, dist_optimizer, _ = strategy.distributed(simple_model, optimizer)
         assert isinstance(dist_model, DistributedDataParallel)
-        assert hasattr(dist_model, 'module') or isinstance(dist_model, nn.Module)
+        assert hasattr(dist_model, "module") or isinstance(dist_model, nn.Module)
         assert isinstance(dist_optimizer, Optimizer)
 
 
 @pytest.mark.hpc
 @pytest.mark.deepspeed_dist
 class TestDeepSpeedStrategy(BaseTestDistributedStrategy):
-    @pytest.fixture(scope='module')
+    @pytest.fixture(scope="module")
     def strategy(self, deepspeed_strategy) -> DeepSpeedStrategy:
         return deepspeed_strategy
 
     def test_init(self, strategy: DeepSpeedStrategy):
         """Test specific initialization of DeepSpeedStrategy."""
-        assert strategy.backend in ['nccl', 'gloo', 'mpi']
-        assert hasattr(strategy, 'deepspeed'), (
-            "Lazy import of deepspeed not found in strategy class."
-        )
+        assert strategy.backend in ["nccl", "gloo", "mpi"]
+        assert hasattr(
+            strategy, "deepspeed"
+        ), "Lazy import of deepspeed not found in strategy class."
 
         # Test initialization
-        init_path = 'deepspeed.init_distributed'
+        init_path = "deepspeed.init_distributed"
         with patch(init_path, autospec=True) as mock_init_ds:
             strategy = DeepSpeedStrategy(
-                backend='nccl' if torch.cuda.is_available() else 'gloo'
+                backend="nccl" if torch.cuda.is_available() else "gloo"
             )
             strategy.init()
             mock_init_ds.assert_called_once()
 
     def test_distributed_model(
-        self,
-        strategy: DeepSpeedStrategy,
-        simple_model: nn.Module,
-        optimizer: Optimizer
+        self, strategy: DeepSpeedStrategy, simple_model: nn.Module, optimizer: Optimizer
     ):
         """Test NN model distribution."""
         from deepspeed.runtime.engine import DeepSpeedEngine
+
         ds_config = {
             "train_batch_size": 16,
             "fp16": {"enabled": False},
-            "optimizer": {
-                "type": "SGD",
-                "params": {
-                    "lr": 0.001
-                }
-            }
+            "optimizer": {"type": "SGD", "params": {"lr": 0.001}},
         }
 
         dist_model, dist_optimizer, _ = strategy.distributed(
-            simple_model,
-            optimizer=optimizer,
-            config=ds_config
+            simple_model, optimizer=optimizer, config=ds_config
         )
-        assert hasattr(dist_model, 'module')
+        assert hasattr(dist_model, "module")
         assert isinstance(dist_model, DeepSpeedEngine)
         assert dist_optimizer is not None
         assert isinstance(dist_optimizer, Optimizer)
@@ -252,18 +246,16 @@ class TestDeepSpeedStrategy(BaseTestDistributedStrategy):
 @pytest.mark.hpc
 @pytest.mark.horovod_dist
 class TestHorovodStrategy(BaseTestDistributedStrategy):
-    @pytest.fixture(scope='module')
+    @pytest.fixture(scope="module")
     def strategy(self, horovod_strategy) -> HorovodStrategy:
         return horovod_strategy
 
     def test_init(self, strategy):
         assert strategy.is_initialized
-        assert hasattr(strategy, 'hvd'), (
-            "Lazy import of horovod not found in strategy class."
-        )
+        assert hasattr(strategy, "hvd"), "Lazy import of horovod not found in strategy class."
 
         # Test initialization
-        init_path = 'horovod.torch.init'
+        init_path = "horovod.torch.init"
         with patch(init_path, autospec=True) as mock_init_ds:
             strategy = HorovodStrategy()
             strategy.init()
@@ -271,12 +263,10 @@ class TestHorovodStrategy(BaseTestDistributedStrategy):
 
     def test_distributed_model(self, strategy, simple_model, optimizer):
         dist_model, dist_optimizer, _ = strategy.distributed(
-            simple_model,
-            optimizer=optimizer,
-            op=strategy.hvd.Average
+            simple_model, optimizer=optimizer, op=strategy.hvd.Average
         )
         assert isinstance(dist_model, nn.Module)
         assert isinstance(dist_optimizer, Optimizer)
-        assert hasattr(dist_optimizer, 'synchronize'), (
-            "synchronize() method not found for Horovod optimizer"
-        )
+        assert hasattr(
+            dist_optimizer, "synchronize"
+        ), "synchronize() method not found for Horovod optimizer"
