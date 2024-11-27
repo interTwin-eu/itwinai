@@ -1,4 +1,4 @@
-ray_training_pipeline:
+hpo_training_pipeline:
   class_path: itwinai.pipeline.Pipeline
   init_args:
     steps:
@@ -7,6 +7,7 @@ ray_training_pipeline:
         init_args: 
           train_proportion: 0.9
           validation_proportion: 0.1
+          test_proportion: 0.0
       - class_path: trainer.MyRayTorchTrainer
         init_args:
           config:
@@ -33,15 +34,15 @@ ray_training_pipeline:
                 grace_period: 10
                 reduction_factor: 4
                 brackets: 1
-              search_alg:
-                name: bayes
-                metric: loss
-                mode: min
-                n_random_steps: 5
+              # search_alg:
+              #   name: bayes
+              #   metric: loss
+              #   mode: min
+              #   n_random_steps: 5
             run_config:
               storage_path: ray_checkpoints
               name: Virgo-HPO-Experiment
-          strategy: ddp
+          strategy: deepspeed
           logger:
             class_path: itwinai.loggers.LoggersCollection
             init_args:

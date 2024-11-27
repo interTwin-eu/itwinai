@@ -52,16 +52,16 @@ class FashionMNISTGetter(DataGetter):
                 [transforms.ToTensor(), transforms.Normalize((0.5,), (0.5,))]
             ),
         )
-        test_dataset = datasets.FashionMNIST(
-            data_dir,
-            train=False,
-            download=False,
-            transform=transforms.Compose(
-                [transforms.ToTensor(), transforms.Normalize((0.5,), (0.5,))]
-            ),
-        )
+        # test_dataset = datasets.FashionMNIST(
+        #     data_dir,
+        #     train=False,
+        #     download=False,
+        #     transform=transforms.Compose(
+        #         [transforms.ToTensor(), transforms.Normalize((0.5,), (0.5,))]
+        #     ),
+        # )
         print("Loading complete!")
-        return train_dataset, test_dataset
+        return train_dataset
 
 
 class FashionMNISTSplitter(DataSplitter):
@@ -101,5 +101,5 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     if args.download_only:
-        download_fashion_mnist(args.data_dir)
+        download_fashion_mnist()
         sys.exit()

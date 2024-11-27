@@ -1140,4 +1140,4 @@ class RayDeepSpeedStrategy(DeepSpeedStrategy):
 
     def __init__(self, backend: Literal["nccl", "gloo", "mpi"]) -> None:
         _initialize_ray()
-        super.__init__(backend=backend)
+        super().__init__(backend=backend)

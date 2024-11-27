@@ -1304,7 +1304,7 @@ class RayTorchTrainer(Trainer):
         if strategy == "ddp":
             self.strategy = RayDDPStrategy()
         elif strategy == "deepspeed":
-            self.strategy = RayDeepSpeedStrategy()
+            self.strategy = RayDeepSpeedStrategy(backend="nccl")
         else:
             raise ValueError(f"Unsupported strategy: {strategy}")
 
