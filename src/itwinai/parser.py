@@ -27,6 +27,12 @@ from .pipeline import Pipeline
 from .utils import load_yaml
 
 
+class _ArgumentParser(JAPArgumentParser):
+    def error(self, message: str, ex: Optional[Exception] = None) -> None:
+        """Patch error method to re-raise exception instead of exiting exection"""
+        raise ex
+
+
 def add_replace_field(config: Dict, key_chain: str, value: Any) -> None:
     """Replace or add (if not present) a field in a dictionary, following a
     path of dot-separated keys. Adding is not supported for list items.
@@ -61,9 +67,16 @@ def add_replace_field(config: Dict, key_chain: str, value: Any) -> None:
     sub_config[k] = value
 
 
+def get_root_cause(exception: Exception) -> Exception:
+    """Recursively extract the first exception in the exception chain."""
+    root = exception
+    while root.__cause__ is not None:  # Traverse the exception chain
+        root = root.__cause__
+    return root
+
+
 class ConfigParser:
-    """
-    Parses a pipeline from a configuration file.
+    """Parses a pipeline from a configuration file.
     It also provides functionalities for dynamic override
     of fields by means of nested key notation.
 
@@ -150,7 +163,7 @@ class ConfigParser:
         Returns:
             Pipeline: instantiated pipeline.
         """
-        pipe_parser = JAPArgumentParser()
+        pipe_parser = _ArgumentParser()
         pipe_parser.add_subclass_arguments(Pipeline, "pipeline")
 
         pipe_dict = self.config
@@ -163,9 +176,13 @@ class ConfigParser:
             print("Assembled pipeline:")
             print(json.dumps(pipe_dict, indent=4))
 
-        # Parse pipeline dict once merged with steps
-        conf = pipe_parser.parse_object(pipe_dict)
-        pipe = pipe_parser.instantiate_classes(conf)
+        try:
+            # Parse pipeline dict once merged with steps
+            conf = pipe_parser.parse_object(pipe_dict)
+            pipe = pipe_parser.instantiate_classes(conf)
+        except Exception as exc:
+            exc = get_root_cause(exc)
+            raise exc
         self.pipeline = pipe["pipeline"]
         return self.pipeline
 
@@ -187,10 +204,15 @@ class ConfigParser:
 
         # Wrap config under "step" field and parse it
         step_dict_config = {"step": step_dict_config}
-        step_parser = JAPArgumentParser()
+        step_parser = _ArgumentParser()
         step_parser.add_subclass_arguments(BaseComponent, "step")
-        parsed_namespace = step_parser.parse_object(step_dict_config)
-        return step_parser.instantiate_classes(parsed_namespace)["step"]
+        try:
+            parsed_namespace = step_parser.parse_object(step_dict_config)
+            step = step_parser.instantiate_classes(parsed_namespace)["step"]
+        except Exception as exc:
+            exc = get_root_cause(exc)
+            raise exc
+        return step
 
 
 class ArgumentParser(JAPArgumentParser):
