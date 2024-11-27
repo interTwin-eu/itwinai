@@ -458,24 +458,6 @@ class ConsoleLogger(Logger):
             print(f"ConsoleLogger: {identifier} = {item}")
 
 
-def root():
-    raise ValueError("ROOT")
-
-
-def middle():
-    try:
-        root()
-    except Exception:
-        raise ValueError("MIDDLE")
-
-
-def outer():
-    try:
-        middle()
-    except Exception:
-        raise ValueError("OUTER")
-
-
 class MLFlowLogger(Logger):
     """Abstraction around MLFlow logger.
 
