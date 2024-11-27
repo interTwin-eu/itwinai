@@ -29,7 +29,7 @@ from .utils import load_yaml
 
 class _ArgumentParser(JAPArgumentParser):
     def error(self, message: str, ex: Optional[Exception] = None) -> None:
-        """Patch error method to re-raise exception instead of exiting exection"""
+        """Patch error method to re-raise exception instead of exiting execution."""
         raise ex
 
 
