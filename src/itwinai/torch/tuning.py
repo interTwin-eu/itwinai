@@ -10,7 +10,24 @@ from ray.tune.search.bohb import TuneBOHB
 from ray.tune.search.hyperopt import HyperOptSearch
 
 
-def get_raytune_search_alg(tune_config, seeds=False):
+def get_raytune_search_alg(
+    tune_config, seeds=False
+) -> TuneBOHB | BayesOptSearch | HyperOptSearch | None:
+    """Get the appropriate Ray Tune search algorithm based on the provided configuration.
+
+    Args:
+        tune_config (Dict): Configuration dictionary specifying the search algorithm,
+            metric, mode, and, depending on the search algorithm, other parameters.
+        seeds (bool, optional): Whether to use a fixed seed for reproducibility for some
+            search algorithms that take a seed. Defaults to False.
+
+    Returns:
+        An instance of the chosen Ray Tune search algorithm or None if no search algorithm is
+            used or if the search algorithm does not match any of the supported options.
+
+    Notes:
+        - `TuneBOHB` is automatically chosen for BOHB scheduling.
+    """
     if "scheduler" in tune_config:
         scheduler = tune_config["scheduler"]["name"]
     else:
@@ -67,7 +84,25 @@ def get_raytune_search_alg(tune_config, seeds=False):
         return None
 
 
-def get_raytune_schedule(tune_config):
+def get_raytune_schedule(
+    tune_config,
+) -> (
+    AsyncHyperBandScheduler
+    | HyperBandScheduler
+    | HyperBandForBOHB
+    | PopulationBasedTraining
+    | PB2
+    | None
+):
+    """Get the appropriate Ray Tune scheduler based on the provided configuration.
+
+    Args:
+        tune_config (Dict): Configuration dictionary specifying the scheduler type,
+            metric, mode, and, depending on the scheduler, other parameters.
+    Returns:
+        An instance of the chosen Ray Tune scheduler or None if no scheduler is used
+            or if the scheduler does not match any of the supported options.
+    """
     scheduler = tune_config["scheduler"]["name"]
     metric = tune_config["metric"]
     mode = tune_config["mode"]

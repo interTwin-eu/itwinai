@@ -39,7 +39,7 @@ from torch.optim.optimizer import Optimizer
 from torch.utils.data import DataLoader, Dataset, Sampler
 from torch.utils.data.distributed import DistributedSampler
 
-from itwinai.torch.raytune import get_raytune_schedule, get_raytune_search_alg
+from itwinai.torch.tuning import get_raytune_schedule, get_raytune_search_alg
 
 # Imports from this repository
 from ..components import Trainer, monitor_exec
@@ -172,7 +172,7 @@ class TorchTrainer(Trainer, LogMixin):
         return self._strategy
 
     @strategy.setter
-    def strategy(self, strategy: Union[str, TorchDistributedStrategy]) -> None:
+    def strategy(self, strategy: str | TorchDistributedStrategy) -> None:
         if isinstance(strategy, TorchDistributedStrategy):
             self._strategy = strategy
         else:
@@ -1233,7 +1233,7 @@ def distributed(func):
     return dist_train
 
 
-DEFAULT_CONFIG = {
+DEFAULT_RAY_CONFIG = {
     "scaling_config": {
         "num_workers": 4,  # Default to 4 workers
         "use_gpu": True,
@@ -1304,12 +1304,13 @@ class RayTorchTrainer(Trainer):
         if strategy == "ddp":
             self.strategy = RayDDPStrategy()
         elif strategy == "deepspeed":
-            self.strategy = RayDeepSpeedStrategy()
+            self.strategy = RayDeepSpeedStrategy(backend="nccl")
         else:
             raise ValueError(f"Unsupported strategy: {strategy}")
 
     def _set_configs(self, config: Dict):
-        self.config = deep_update(DEFAULT_CONFIG, config)
+        # TODO: Think about how to implement the config more nicely
+        self.config = deep_update(DEFAULT_RAY_CONFIG, config)
         self._set_scaling_config()
         self._set_tune_config()
         self._set_run_config()
@@ -1477,8 +1478,8 @@ class RayTorchTrainer(Trainer):
             self.train_loop_config = self._set_searchspace(train_loop_config)
         else:
             print(
-                "INFO: No training_loop_config detected. \
-                  No parameters are being tuned or passed to the training function."
+                "INFO: No training_loop_config detected. "
+                "No parameters are being tuned or passed to the training function."
             )
             self.train_loop_config = {}
 

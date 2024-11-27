@@ -63,18 +63,18 @@ def _initialize_ray() -> None:
     the Ray backend if it is not already initialized.
 
         Raises:
-            EnvironmentError: If required environment variables `IP_HEAD` or `HEAD_NODE_IP`
-                are not set. These should be set from the slurm script where the ray cluster
-                is launched.
+            EnvironmentError: If required environment variables `HEAD_NODE_PORT` or
+                `HEAD_NODE_IP` are not set.
+                These should be set from the slurm script where the ray cluster is launched.
     """
     if not ray.is_initialized():
-        IP_HEAD = os.environ.get("IP_HEAD")
+        HEAD_NODE_PORT = os.environ.get("HEAD_NODE_PORT")
         HEAD_NODE_IP = os.environ.get("HEAD_NODE_IP")
 
-        if not IP_HEAD or not HEAD_NODE_IP:
+        if not HEAD_NODE_PORT or not HEAD_NODE_IP:
             raise EnvironmentError(
-                "Ray initialization requires env variables 'IP_HEAD' and \
-                    'HEAD_NODE_IP' to be set."
+                "Ray initialization requires env variables 'HEAD_NODE_PORT' and "
+                "'HEAD_NODE_IP' to be set."
             )
 
         ray.init(address="auto")
@@ -1041,7 +1041,7 @@ class NonDistributedStrategy(TorchDistributedStrategy):
         return [tensor]
 
 
-class RayDDPStrategy(TorchDistributedStrategy):
+class RayDDPStrategy(TorchDDPStrategy):
     """A distributed data-parallel (DDP) strategy using Ray Train for PyTorch training."""
 
     def __init__(self) -> None:
@@ -1118,18 +1118,6 @@ class RayDDPStrategy(TorchDistributedStrategy):
 
         return ray.train.torch.prepare_data_loader(dataloader)
 
-    def clean_up(self) -> None:
-        pass
-
-    def allgather_obj(self, obj: Any) -> List[Any]:
-        pass
-
-    def gather_obj(self, obj: Any, dst_rank: int = 0) -> List[Any]:
-        pass
-
-    def gather(self, tensor: torch.Tensor, dst_rank: int = 0) -> List | None:
-        pass
-
 
 class RayDeepSpeedStrategy(DeepSpeedStrategy):
     """A distributed strategy using Ray and DeepSpeed for PyTorch training.
@@ -1140,4 +1128,4 @@ class RayDeepSpeedStrategy(DeepSpeedStrategy):
 
     def __init__(self, backend: Literal["nccl", "gloo", "mpi"]) -> None:
         _initialize_ray()
-        super.__init__(backend=backend)
+        super().__init__(backend=backend)

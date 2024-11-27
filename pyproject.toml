@@ -37,7 +37,7 @@ dependencies = [
     "prov4ml@git+https://github.com/matbun/ProvML@new-main",
     "pandas",
     "seaborn",
-    "ray[default, train, tune]",
+    "ray[default,train,tune]",
 ]
 
 # dynamic = ["version", "description"]
