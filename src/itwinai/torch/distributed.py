@@ -7,6 +7,7 @@
 # - Matteo Bunino <matteo.bunino@cern.ch> - CERN
 # - Jarl Sondre Sæther <jarl.sondre.saether@cern.ch> - CERN
 # - Henry Mutegeki <henry.mutegeki@cern.ch> - CERN
+# - Anna Lappe <anna.elisa.lappe@cern.ch> - CERN
 # --------------------------------------------------------------------------------------
 
 import abc

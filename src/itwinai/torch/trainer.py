@@ -1253,15 +1253,10 @@ DEFAULT_RAY_CONFIG = {
         "learning_rate": 1e-3,
         "batch_size": 32,
         "epochs": 10,
-        "shuffle_train": False,
-        "shuffle_validation": False,
-        "shuffle_test": False,
-        "pin_gpu_memory": False,
         "optimizer": "adam",
         "loss": "cross_entropy",
         "optim_momentum": 0.9,
         "optim_weight_decay": 0,
-        "num_workers_dataloader": 4,
         "random_seed": 21,
     },
 }
@@ -1290,6 +1285,7 @@ class RayTorchTrainer(Trainer):
         self.logger = logger
         self._set_strategy_and_init_ray(strategy)
         self._set_configs(config=config)
+        self.torch_rng = set_seed(self.train_loop_config["random_seed"])
 
     def _set_strategy_and_init_ray(self, strategy: str):
         """Set the distributed training strategy. This will initialize the ray backend.
@@ -1330,6 +1326,8 @@ class RayTorchTrainer(Trainer):
         validation_dataset: Dataset | None = None,
         test_dataset: Dataset | None = None,
         batch_size: int = 1,
+        num_workers_dataloader: int = 4,
+        pin_memory: bool = False,
         shuffle_train: bool | None = False,
         shuffle_test: bool | None = False,
         shuffle_validation: bool | None = False,
@@ -1357,6 +1355,9 @@ class RayTorchTrainer(Trainer):
         self.train_dataloader = self.strategy.create_dataloader(
             dataset=train_dataset,
             batch_size=batch_size,
+            num_workers=num_workers_dataloader,
+            pin_memory=pin_memory,
+            generator=self.torch_rng,
             shuffle=shuffle_train,
             sampler=sampler,
             collate_fn=collate_fn,
@@ -1365,6 +1366,9 @@ class RayTorchTrainer(Trainer):
             self.validation_dataloader = self.strategy.create_dataloader(
                 dataset=validation_dataset,
                 batch_size=batch_size,
+                num_workers=num_workers_dataloader,
+                pin_memory=pin_memory,
+                generator=self.torch_rng,
                 shuffle=shuffle_validation,
                 sampler=sampler,
                 collate_fn=collate_fn,
@@ -1375,6 +1379,9 @@ class RayTorchTrainer(Trainer):
             self.test_dataloader = self.strategy.create_dataloader(
                 dataset=test_dataset,
                 batch_size=batch_size,
+                num_workers=num_workers_dataloader,
+                pin_memory=pin_memory,
+                generator=self.torch_rng,
                 shuffle=shuffle_test,
                 sampler=sampler,
                 collate_fn=collate_fn,

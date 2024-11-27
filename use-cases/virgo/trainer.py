@@ -441,54 +441,6 @@ class RayNoiseGeneratorTrainer(RayTorchTrainer):
             self.model, self.optimizer, **distribute_kwargs
         )
 
-    def create_dataloaders(
-        self,
-        train_dataset: Dataset,
-        validation_dataset: Dataset | None = None,
-        test_dataset: Dataset | None = None,
-    ) -> None:
-        """Override the create_dataloaders function to use the custom_collate function."""
-        # This is the case if a small dataset is used in-memory
-        # - we can use the default collate_fn function
-        if isinstance(train_dataset, TensorDataset):
-            return super().create_dataloaders(
-                train_dataset=train_dataset,
-                validation_dataset=validation_dataset,
-                test_dataset=test_dataset,
-            )
-
-        # If we are using a custom dataset for the large dataset,
-        # we need to overwrite the collate_fn function
-        self.train_dataloader = self.strategy.create_dataloader(
-            dataset=train_dataset,
-            batch_size=self.training_config["batch_size"],
-            num_workers=self.training_config["num_workers_dataloader"],
-            pin_memory=self.training_config["pin_gpu_memory"],
-            # generator=self.torch_rng,
-            shuffle=self.training_config["shuffle_train"],
-            collate_fn=self.custom_collate,
-        )
-        if validation_dataset is not None:
-            self.validation_dataloader = self.strategy.create_dataloader(
-                dataset=validation_dataset,
-                batch_size=self.training_config["batch_size"],
-                num_workers=self.training_config["num_workers_dataloader"],
-                pin_memory=self.training_config["pin_gpu_memory"],
-                # generator=self.torch_rng,
-                shuffle=self.training_config["shuffle_validation"],
-                collate_fn=self.custom_collate,
-            )
-        if test_dataset is not None:
-            self.test_dataloader = self.strategy.create_dataloader(
-                dataset=test_dataset,
-                batch_size=self.training_config["batch_size"],
-                num_workers=self.training_config["num_workers_dataloader"],
-                pin_memory=self.training_config["pin_gpu_memory"],
-                # generator=self.torch_rng,
-                shuffle=self.training_config["shuffle_test"],
-                collate_fn=self.custom_collate,
-            )
-
     def custom_collate(self, batch):
         """Custom collate function to concatenate input tensors along their first dimension."""
         # Some batches contain None values,
@@ -511,7 +463,10 @@ class RayNoiseGeneratorTrainer(RayTorchTrainer):
         self.create_model_loss_optimizer()
 
         self.create_dataloaders(
-            train_dataset=data[0], validation_dataset=data[1], test_dataset=data[2]
+            train_dataset=data[0],
+            validation_dataset=data[1],
+            test_dataset=data[2],
+            collate_fn=self.custom_collate,
         )
 
         self.initialize_logger(hyperparams=config, rank=self.strategy.global_rank())
