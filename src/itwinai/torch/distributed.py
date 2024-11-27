@@ -1098,7 +1098,7 @@ class RayDDPStrategy(TorchDDPStrategy):
         persistent_workers: bool = False,
         pin_memory_device: str = "",
     ):
-        dataloader = super().create_dataloader(
+        dataloader = DataLoader(
             dataset=dataset,
             batch_size=batch_size,
             sampler=sampler,
