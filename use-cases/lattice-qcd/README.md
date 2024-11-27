@@ -176,7 +176,7 @@ additionally a `startscript.sh` file is provided. This can be launched by:
 ```sbatch startscript.sh```. The version includes integration of loggers and 
 profiling tools provided by itwinai. 
 In order to install the environment, please follow the instructions provided 
-[in the main README](../README.md#environment-setup), and activate it. 
+[in the main README](../../README.md#environment-setup), and activate it. 
 After that the use-case required packages, such as `normflow` should be installed.
 
 | Created by Javad Komijani in 2021 \
