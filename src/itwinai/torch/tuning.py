@@ -53,8 +53,6 @@ def get_raytune_search_alg(
         else:
             seed = None
         return TuneBOHB(
-            metric=metric,
-            mode=mode,
             seed=seed,
         )
 
