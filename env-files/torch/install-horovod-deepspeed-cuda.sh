@@ -1,3 +1,5 @@
+#!/bin/bash
+
 # DeepSpeed variables
 export DS_BUILD_CCL_COMM=1
 export DS_BUILD_UTILS=1

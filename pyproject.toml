@@ -52,11 +52,19 @@ torch = [
     "torchvision>=0.19.1",
     "torchaudio>=2.4.1",
 ]
+tf = [
+  "tensorflow==2.16.*",
+  "tf_keras==2.16.*"
+]
+tf-cuda = [
+  "tensorflow[and-cuda]==2.16.*",
+  "tf_keras==2.16.*"
+]
+
 dev = [
   "pytest>=7.4.2",
   "pytest-mock>=3.11.1",
   "pytest-cov>=4.1.0",
-  "tensorflow==2.16.*", # needed by tests on tensorboard
   "ipykernel>=6.29.5",
   "ipython",
   "isort>=5.13.2",
@@ -70,7 +78,7 @@ docs = [
 ]
 macos = ["prov4ml[apple]@git+https://github.com/matbun/ProvML@new-main"]
 nvidia = ["prov4ml[nvidia]@git+https://github.com/matbun/ProvML@new-main"]
-amd = ["prov4ml[amd]@git+https://github.com/matbun/ProvML@new-main"]
+# amd = ["prov4ml[amd]@git+https://github.com/matbun/ProvML@new-main"]
 
 [project.urls]
 Homepage = "https://www.intertwin.eu/"
@@ -98,9 +106,14 @@ markers = [
     "memory_heavy: high memory footprint. (deselect with '-m \"not heavy_memory\"')",
 ]
 
-# [tool.isort]
-# profile = "black"
-# known_first_party = ["itwinai"]
+[tool.uv]
+# This is how you can force uv to accept conflicting extras
+conflicts = [
+  [
+    { extra = "tf-cuda" },
+    { extra = "torch" },
+  ],
+]
 
 # Ruff configuration: https://docs.astral.sh/ruff/configuration/
 [tool.ruff]

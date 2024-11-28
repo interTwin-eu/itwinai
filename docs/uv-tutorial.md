@@ -63,7 +63,7 @@ particular, if you are a developer you would use one of the following two comman
 you are on HPC with cuda, you would use:
 
 ```bash
-uv sync --extra torch --extra dev \
+uv sync --extra torch --extra dev --extra tf \
     --no-cache \
     --index https://download.pytorch.org/whl/cu121
 ```
@@ -71,7 +71,7 @@ uv sync --extra torch --extra dev \
 If you are developing on your local computer with macOS, then you would use:
 
 ```bash
-uv sync --extra torch --extra dev --extra macos
+uv sync --extra torch --extra tf --extra dev --extra macos
 ```
 
 ### Updating the uv.lock file
@@ -97,4 +97,4 @@ uv add <package>
 
 > [!Warning]
 > This will add the package to your `.venv` venv, so make sure to have symlinked to
-> this directory if you haven't already. 
+> this directory if you haven't already.
