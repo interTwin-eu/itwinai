@@ -60,12 +60,6 @@ dev = [
   "ipython",
   "isort>=5.13.2",
 ]
-macos = [
-    "prov4ml[apple]@git+https://github.com/matbun/ProvML"
-]
-linux = [
-    "prov4ml[linux]@git+https://github.com/matbun/ProvML"
-]
 docs = [
     "sphinx-rtd-theme==2.0.0",
     "nbsphinx==0.9.4",
