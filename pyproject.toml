@@ -66,6 +66,14 @@ docs = [
     "IPython",
     "tensorflow==2.16.*",
 ]
+hpo = [
+    "bayesian-optimization==2.0.0",
+    "hyperopt==0.2.7",
+    "ConfigSpace==1.2.1",
+    "hpbandster==0.7.4",
+    "scipy==1.14.1",
+    "GPy==1.13.2"
+]
 macos = ["prov4ml[apple]@git+https://github.com/matbun/ProvML@new-main"]
 nvidia = ["prov4ml[nvidia]@git+https://github.com/matbun/ProvML@new-main"]
 amd = ["prov4ml[amd]@git+https://github.com/matbun/ProvML@new-main"]

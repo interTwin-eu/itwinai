@@ -28,16 +28,14 @@ def get_raytune_search_alg(
     Notes:
         - `TuneBOHB` is automatically chosen for BOHB scheduling.
     """
-    if "scheduler" in tune_config:
-        scheduler = tune_config["scheduler"]["name"]
-    else:
-        scheduler = None
+    scheduler = tune_config.get("scheduler", {}).get("name")
+
     search_alg = tune_config["search_alg"]["name"]
-    metric = tune_config["metric"]
-    mode = tune_config["mode"]
 
     if (scheduler == "pbt") or (scheduler == "pb2"):
-        if search_alg is not None:
+        if search_alg is None:
+            return None
+        else:
             print(
                 "INFO: Using schedule '{}' \
                     is not compatible with Ray Tune search algorithms.".format(scheduler)
@@ -47,7 +45,6 @@ def get_raytune_search_alg(
                     scheduler
                 )
             )
-        return None
 
     if (scheduler == "bohb") or (scheduler == "BOHB"):
         print("INFO: Using TuneBOHB search algorithm since it is required for BOHB shedule")
@@ -65,8 +62,6 @@ def get_raytune_search_alg(
     if search_alg == "bayes":
         print("INFO: Using BayesOptSearch")
         return BayesOptSearch(
-            metric=metric,
-            mode=mode,
             random_search_steps=tune_config["search_alg"]["n_random_steps"],
         )
 
@@ -74,8 +69,6 @@ def get_raytune_search_alg(
     if search_alg == "hyperopt":
         print("INFO: Using HyperOptSearch")
         return HyperOptSearch(
-            metric=metric,
-            mode=mode,
             n_initial_points=tune_config["search_alg"]["n_random_steps"],
             # points_to_evaluate=,
         )
@@ -104,13 +97,9 @@ def get_raytune_schedule(
             or if the scheduler does not match any of the supported options.
     """
     scheduler = tune_config["scheduler"]["name"]
-    metric = tune_config["metric"]
-    mode = tune_config["mode"]
 
     if scheduler == "asha":
         return AsyncHyperBandScheduler(
-            metric=metric,
-            mode=mode,
             time_attr="training_iteration",
             max_t=tune_config["scheduler"]["max_t"],
             grace_period=tune_config["scheduler"]["grace_period"],
@@ -119,8 +108,6 @@ def get_raytune_schedule(
         )
     elif scheduler == "hyperband":
         return HyperBandScheduler(
-            metric=metric,
-            mode=mode,
             time_attr="training_iteration",
             max_t=tune_config["scheduler"]["max_t"],
             reduction_factor=tune_config["scheduler"]["reduction_factor"],
@@ -128,16 +115,12 @@ def get_raytune_schedule(
     # requires pip install hpbandster ConfigSpace
     elif (scheduler == "bohb") or (scheduler == "BOHB"):
         return HyperBandForBOHB(
-            metric=metric,
-            mode=mode,
             time_attr="training_iteration",
             max_t=tune_config["scheduler"]["max_t"],
             reduction_factor=tune_config["scheduler"]["reduction_factor"],
         )
     elif (scheduler == "pbt") or (scheduler == "PBT"):
         return PopulationBasedTraining(
-            metric=metric,
-            mode=mode,
             time_attr="training_iteration",
             perturbation_interval=tune_config["scheduler"]["perturbation_interval"],
             hyperparam_mutations=tune_config["scheduler"]["hyperparam_mutations"],
@@ -146,8 +129,6 @@ def get_raytune_schedule(
     # requires pip install GPy sklearn
     elif (scheduler == "pb2") or (scheduler == "PB2"):
         return PB2(
-            metric=metric,
-            mode=mode,
             time_attr="training_iteration",
             perturbation_interval=tune_config["scheduler"]["perturbation_interval"],
             hyperparam_bounds=tune_config["scheduler"]["hyperparam_bounds"],

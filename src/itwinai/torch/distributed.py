@@ -68,17 +68,19 @@ def _initialize_ray() -> None:
                 `HEAD_NODE_IP` are not set.
                 These should be set from the slurm script where the ray cluster is launched.
     """
-    if not ray.is_initialized():
-        HEAD_NODE_PORT = os.environ.get("HEAD_NODE_PORT")
-        HEAD_NODE_IP = os.environ.get("HEAD_NODE_IP")
+    if ray.is_initialized():
+        return
 
-        if not HEAD_NODE_PORT or not HEAD_NODE_IP:
-            raise EnvironmentError(
-                "Ray initialization requires env variables 'HEAD_NODE_PORT' and "
-                "'HEAD_NODE_IP' to be set."
-            )
+    HEAD_NODE_PORT = os.environ.get("HEAD_NODE_PORT")
+    HEAD_NODE_IP = os.environ.get("HEAD_NODE_IP")
 
-        ray.init(address="auto")
+    if not HEAD_NODE_PORT or not HEAD_NODE_IP:
+        raise EnvironmentError(
+            "Ray initialization requires env variables 'HEAD_NODE_PORT' and "
+            "'HEAD_NODE_IP' to be set."
+        )
+
+    ray.init(address="auto")
 
 
 class TorchDistributedStrategy(DistributedStrategy):
