@@ -18,7 +18,9 @@ If you wish to use the `uv sync` and/or `uv lock` commands, which is how you use
 to manage all your project packages, then note that these commands will only work
 with the directory called `.venv` in the project directory. Sometimes, this can be a
 bit annoying, especially with an existing venv, so we recommend using a
-[symlink](https://en.wikipedia.org/wiki/Symbolic_link).
+[symlink](https://en.wikipedia.org/wiki/Symbolic_link). If you need to have multiple
+venvs that you want to switch between, you can update the symlink to whichever of them
+you want to use at the moment. For SLURM scripts, you can hardcode them if need be.
 
 ### Symlinking .venv
 
@@ -61,7 +63,7 @@ particular, if you are a developer you would use one of the following two comman
 you are on HPC with cuda, you would use:
 
 ```bash
-uv sync --extra torch --extra dev --extra linux \
+uv sync --extra torch --extra dev \
     --no-cache \
     --index https://download.pytorch.org/whl/cu121
 ```
@@ -93,6 +95,6 @@ can use the following command:
 uv add <package>
 ```
 
-> [!NOTE]
+> [!Warning]
 > This will add the package to your `.venv` venv, so make sure to have symlinked to
-> this directory if you haven't already.
+> this directory if you haven't already. 
