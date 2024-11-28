@@ -1577,12 +1577,12 @@ class RayTorchTrainer(Trainer):
     def initialize_logger(self, hyperparams: Optional[Dict], rank):
         if not self.logger:
             return
-        else:
-            self.logger.create_logger_context(rank=rank)
-            print(f"Logger initialized with rank {rank}")
 
-            if hyperparams:
-                self.logger.save_hyperparameters(hyperparams)
+        self.logger.create_logger_context(rank=rank)
+        print(f"Logger initialized with rank {rank}")
+
+        if hyperparams:
+            self.logger.save_hyperparameters(hyperparams)
 
     def close_logger(self):
         if self.logger:
@@ -1621,6 +1621,6 @@ class RayTorchTrainer(Trainer):
             )
         else:
             print(
-                "INFO: The log method was called, but no logger was configured for this \
-                Trainer."
+                "INFO: The log method was called, but no logger was configured for this "
+                "Trainer."
             )
