@@ -707,7 +707,10 @@ class WandBLogger(Logger):
         if not self.should_log():
             return
 
-        (self.savedir / "wandb").mkdir(exist_ok=True)
+        (self.savedir / "wandb").mkdir(
+            exist_ok=True,
+            parents=True,
+        )
         self.active_run = wandb.init(dir=self.savedir.resolve(), project=self.project_name)
 
     def destroy_logger_context(self):
@@ -803,7 +806,7 @@ class TensorBoardLogger(Logger):
             import tensorflow as tf
 
             self.tf = tf
-            self.writer = tf.summary.create_file_writer(savedir)
+            self.writer = tf.summary.create_file_writer(savedir.resolve().as_posix())
         elif framework.lower() == "pytorch":
             from torch.utils.tensorboard import SummaryWriter
 
