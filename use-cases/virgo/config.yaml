@@ -119,7 +119,7 @@ ray_training_pipeline:
         init_args:
           config:
             scaling_config:
-                num_workers: 4
+                num_workers: 2
                 use_gpu: true
                 resources_per_worker:
                   CPU: 5

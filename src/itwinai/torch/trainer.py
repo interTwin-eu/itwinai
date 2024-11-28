@@ -39,7 +39,7 @@ from torch.optim.optimizer import Optimizer
 from torch.utils.data import DataLoader, Dataset, Sampler
 from torch.utils.data.distributed import DistributedSampler
 
-from itwinai.torch.raytune import get_raytune_schedule, get_raytune_search_alg
+from itwinai.torch.tuning import get_raytune_schedule, get_raytune_search_alg
 
 # Imports from this repository
 from ..components import Trainer, monitor_exec
@@ -172,7 +172,7 @@ class TorchTrainer(Trainer, LogMixin):
         return self._strategy
 
     @strategy.setter
-    def strategy(self, strategy: Union[str, TorchDistributedStrategy]) -> None:
+    def strategy(self, strategy: str | TorchDistributedStrategy) -> None:
         if isinstance(strategy, TorchDistributedStrategy):
             self._strategy = strategy
         else:
@@ -1233,7 +1233,7 @@ def distributed(func):
     return dist_train
 
 
-DEFAULT_CONFIG = {
+DEFAULT_RAY_CONFIG = {
     "scaling_config": {
         "num_workers": 4,  # Default to 4 workers
         "use_gpu": True,
@@ -1253,15 +1253,10 @@ DEFAULT_CONFIG = {
         "learning_rate": 1e-3,
         "batch_size": 32,
         "epochs": 10,
-        "shuffle_train": False,
-        "shuffle_validation": False,
-        "shuffle_test": False,
-        "pin_gpu_memory": False,
         "optimizer": "adam",
         "loss": "cross_entropy",
         "optim_momentum": 0.9,
         "optim_weight_decay": 0,
-        "num_workers_dataloader": 4,
         "random_seed": 21,
     },
 }
@@ -1290,6 +1285,7 @@ class RayTorchTrainer(Trainer):
         self.logger = logger
         self._set_strategy_and_init_ray(strategy)
         self._set_configs(config=config)
+        self.torch_rng = set_seed(self.train_loop_config["random_seed"])
 
     def _set_strategy_and_init_ray(self, strategy: str):
         """Set the distributed training strategy. This will initialize the ray backend.
@@ -1309,7 +1305,8 @@ class RayTorchTrainer(Trainer):
             raise ValueError(f"Unsupported strategy: {strategy}")
 
     def _set_configs(self, config: Dict):
-        self.config = deep_update(DEFAULT_CONFIG, config)
+        # TODO: Think about how to implement the config more nicely
+        self.config = deep_update(DEFAULT_RAY_CONFIG, config)
         self._set_scaling_config()
         self._set_tune_config()
         self._set_run_config()
@@ -1329,6 +1326,8 @@ class RayTorchTrainer(Trainer):
         validation_dataset: Dataset | None = None,
         test_dataset: Dataset | None = None,
         batch_size: int = 1,
+        num_workers_dataloader: int = 4,
+        pin_memory: bool = False,
         shuffle_train: bool | None = False,
         shuffle_test: bool | None = False,
         shuffle_validation: bool | None = False,
@@ -1356,6 +1355,9 @@ class RayTorchTrainer(Trainer):
         self.train_dataloader = self.strategy.create_dataloader(
             dataset=train_dataset,
             batch_size=batch_size,
+            num_workers=num_workers_dataloader,
+            pin_memory=pin_memory,
+            generator=self.torch_rng,
             shuffle=shuffle_train,
             sampler=sampler,
             collate_fn=collate_fn,
@@ -1364,6 +1366,9 @@ class RayTorchTrainer(Trainer):
             self.validation_dataloader = self.strategy.create_dataloader(
                 dataset=validation_dataset,
                 batch_size=batch_size,
+                num_workers=num_workers_dataloader,
+                pin_memory=pin_memory,
+                generator=self.torch_rng,
                 shuffle=shuffle_validation,
                 sampler=sampler,
                 collate_fn=collate_fn,
@@ -1374,6 +1379,9 @@ class RayTorchTrainer(Trainer):
             self.test_dataloader = self.strategy.create_dataloader(
                 dataset=test_dataset,
                 batch_size=batch_size,
+                num_workers=num_workers_dataloader,
+                pin_memory=pin_memory,
+                generator=self.torch_rng,
                 shuffle=shuffle_test,
                 sampler=sampler,
                 collate_fn=collate_fn,
@@ -1477,8 +1485,8 @@ class RayTorchTrainer(Trainer):
             self.train_loop_config = self._set_searchspace(train_loop_config)
         else:
             print(
-                "INFO: No training_loop_config detected. \
-                  No parameters are being tuned or passed to the training function."
+                "INFO: No training_loop_config detected. "
+                "No parameters are being tuned or passed to the training function."
             )
             self.train_loop_config = {}
 
