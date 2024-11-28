@@ -55,6 +55,7 @@ contains thoroughly tested features aligned with the toolkit's most recent relea
 
    getting-started/getting_started_with_itwinai
    getting-started/slurm
+   getting-started/plugins
 
 .. toctree::
    :maxdepth: 2
