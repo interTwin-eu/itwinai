@@ -113,7 +113,7 @@ class Logger(LogMixin):
     """Base class for logger
 
     Args:
-        savedir (Path, optional): filesystem location where logs are stored.
+        savedir (Union[Path, str], optional): filesystem location where logs are stored.
             Defaults to 'mllogs'.
         log_freq (Union[int, Literal['epoch', 'batch']], optional):
             how often should the logger fulfill calls to the `log()`
@@ -136,7 +136,7 @@ class Logger(LogMixin):
     """
 
     #: Location on filesystem where to store data.
-    savedir: Optional[Path] = None
+    savedir: Path
     #: Supported logging 'kind's.
     supported_kinds: Tuple[str]
     #: Current worker global rank
@@ -146,13 +146,13 @@ class Logger(LogMixin):
 
     def __init__(
         self,
-        savedir: Path = "mllogs",
+        savedir: Path | str = "mllogs",
         log_freq: Union[int, Literal["epoch", "batch"]] = "epoch",
         log_on_workers: Union[int, List[int]] = 0,
         experiment_id: Optional[str] = None,
         run_id: Optional[Union[int, str]] = None,
     ) -> None:
-        self.savedir = savedir
+        self.savedir = Path(savedir)
         self.log_freq = log_freq
         self.log_on_workers = log_on_workers
         self._experiment_id = experiment_id
@@ -240,7 +240,7 @@ class Logger(LogMixin):
         Returns:
             str: local path of the serialized object to be logged.
         """
-        itm_path = Path(self.savedir) / str(identifier)
+        itm_path = self.savedir / str(identifier)
         with open(itm_path, "wb") as itm_file:
             pickle.dump(obj, itm_file)
 
@@ -301,7 +301,7 @@ class _EmptyLogger(Logger):
 
     def __init__(
         self,
-        savedir: Path = "mllogs",
+        savedir: Path | str = "mllogs",
         log_freq: int | Literal["epoch"] | Literal["batch"] = "epoch",
         log_on_workers: int | List[int] = 0,
     ) -> None:
@@ -332,7 +332,7 @@ class ConsoleLogger(Logger):
     """Simplified logger.
 
     Args:
-        savedir (Path, optional): where to store artifacts.
+        savedir (Union[Path, str], optional): where to store artifacts.
             Defaults to 'mllogs'.
         log_freq (Union[int, Literal['epoch', 'batch']], optional):
             determines whether the logger should fulfill or ignore
@@ -349,7 +349,7 @@ class ConsoleLogger(Logger):
 
     def __init__(
         self,
-        savedir: Path = "mllogs",
+        savedir: Path | str = "mllogs",
         log_freq: Union[int, Literal["epoch", "batch"]] = "epoch",
         log_on_workers: Union[int, List[int]] = 0,
     ) -> None:
@@ -462,7 +462,7 @@ class MLFlowLogger(Logger):
     """Abstraction around MLFlow logger.
 
     Args:
-        savedir (Path, optional): path on local filesystem where logs are
+        savedir (Union[Path, str], optional): path on local filesystem where logs are
             stored. Defaults to 'mllogs'.
         experiment_name (str, optional): experiment name. Defaults to
             ``itwinai.loggers.BASE_EXP_NAME``.
@@ -501,7 +501,7 @@ class MLFlowLogger(Logger):
 
     def __init__(
         self,
-        savedir: Path = "mllogs",
+        savedir: Path | str = "mllogs",
         experiment_name: str = BASE_EXP_NAME,
         tracking_uri: Optional[str] = None,
         run_description: Optional[str] = None,
@@ -598,13 +598,32 @@ class MLFlowLogger(Logger):
         if not self.should_log(batch_idx=batch_idx):
             return
 
+        # match (kind, item):
+        #     case ("metric", _):
+        #         mlflow.log_metric(key=identifier, value=item, step=step)
+        #     case ("artifact", str()):
+        #         # Save the object locally and then log it
+        #         name = os.path.basename(identifier)
+        #         save_path = self.savedir / ".trash" / str(name)
+        #         save_path.mkdir(os.path.dirname(save_path), exist_ok=True)
+        #         item = self.serialize(item, save_path)
+        #     case ("artifact", _):
+        #         mlflow.log_artifact(local_path=item, artifact_path=identifier)
+        #     case ("model", _):
+        #         import torch
+
+        #         if isinstance(item, torch.nn.Module):
+        #             mlflow.pytorch.log_model(item, identifier)
+        #         else:
+        #             print("WARNING: unrecognized model type")
+
         if kind == "metric":
             mlflow.log_metric(key=identifier, value=item, step=step)
         if kind == "artifact":
             if not isinstance(item, str):
                 # Save the object locally and then log it
                 name = os.path.basename(identifier)
-                save_path = Path(self.savedir) / ".trash" / str(name)
+                save_path = self.savedir / ".trash" / str(name)
                 save_path.mkdir(os.path.dirname(save_path), exist_ok=True)
                 item = self.serialize(item, save_path)
             mlflow.log_artifact(local_path=item, artifact_path=identifier)
@@ -630,7 +649,7 @@ class MLFlowLogger(Logger):
 
             # Save the object locally and then log it
             name = os.path.basename(identifier)
-            save_path = Path(self.savedir) / ".trash" / str(name)
+            save_path = self.savedir / ".trash" / str(name)
             save_path.mkdir(os.path.dirname(save_path), exist_ok=True)
             torch.save(item, save_path)
             # Log into mlflow
@@ -655,7 +674,7 @@ class WandBLogger(Logger):
     """Abstraction around WandB logger.
 
     Args:
-        savedir (Path, optional): location on local filesystem where logs
+        savedir (Union[Path, str], optional): location on local filesystem where logs
             are stored. Defaults to 'mllogs'.
         project_name (str, optional): experiment name. Defaults to
             ``itwinai.loggers.BASE_EXP_NAME``.
@@ -685,7 +704,7 @@ class WandBLogger(Logger):
 
     def __init__(
         self,
-        savedir: Path = "mllogs",
+        savedir: Path | str = "mllogs",
         project_name: str = BASE_EXP_NAME,
         log_freq: Union[int, Literal["epoch", "batch"]] = "epoch",
         log_on_workers: Union[int, List[int]] = 0,
@@ -707,7 +726,7 @@ class WandBLogger(Logger):
         if not self.should_log():
             return
 
-        os.makedirs(self.savedir / "wandb", exist_ok=True)
+        (self.savedir / "wandb").mkdir(exist_ok=True)
         self.active_run = wandb.init(dir=self.savedir.resolve(), project=self.project_name)
 
     def destroy_logger_context(self):
@@ -765,7 +784,7 @@ class TensorBoardLogger(Logger):
     TensorFlow.
 
     Args:
-        savedir (Path, optional): location on local filesystem where logs
+        savedir (Union[Path, str], optional): location on local filesystem where logs
             are stored. Defaults to 'mllogs'.
         log_freq (Union[int, Literal['epoch', 'batch']], optional):
             determines whether the logger should fulfill or ignore
@@ -791,7 +810,7 @@ class TensorBoardLogger(Logger):
 
     def __init__(
         self,
-        savedir: Path = "mllogs",
+        savedir: Path | str = "mllogs",
         log_freq: Union[int, Literal["epoch", "batch"]] = "epoch",
         framework: Literal["tensorflow", "pytorch"] = "pytorch",
         log_on_workers: Union[int, List[int]] = 0,
