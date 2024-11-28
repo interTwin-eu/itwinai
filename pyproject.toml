@@ -41,7 +41,8 @@ dependencies = [
     "matplotlib>=3.9.2",
     "pip>=24.3.1",
     "prov4ml@git+https://github.com/matbun/ProvML@new-main",
-    "ray"
+    "ray",
+    "prov",
 ]
 
 [project.optional-dependencies]
