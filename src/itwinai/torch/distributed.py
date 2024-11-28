@@ -71,15 +71,6 @@ def _initialize_ray() -> None:
     if ray.is_initialized():
         return
 
-    HEAD_NODE_PORT = os.environ.get("HEAD_NODE_PORT")
-    HEAD_NODE_IP = os.environ.get("HEAD_NODE_IP")
-
-    if not HEAD_NODE_PORT or not HEAD_NODE_IP:
-        raise EnvironmentError(
-            "Ray initialization requires env variables 'HEAD_NODE_PORT' and "
-            "'HEAD_NODE_IP' to be set."
-        )
-
     ray.init(address="auto")
 
 
