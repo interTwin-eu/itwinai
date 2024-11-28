@@ -35,6 +35,16 @@ class TrainingConfiguration(Configuration):
     >>> from rich import print
     >>> print(cfg)             # pretty-print of configuration
 
+    .. warning::
+
+        Don't reinvent parameters that already exist in the training coniguration, if possible.
+        Instead, use the name of the parameters in the training configuration when possible to
+        avoid inconsistencies. For instance, the training configuration defines the learning
+        rate as ``optim_lr``, so if you redefine it as ``lr`` by doing
+        ``TrainingConfiguration(lr=0.005)`` in the configuration you will now have both
+        ``optim_lr`` (created by default) and ``lr`` (created by you). This may create
+        confusion and potentially (and silently) break the logic in your code.
+
     """
 
     #: Batch size. In a distributed environment it is usually the
