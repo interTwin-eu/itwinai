@@ -166,7 +166,8 @@ commands they will use the version from your venv.
 We provide some _extras_ that can be activated depending on which platform you are
 using.
 
-- `macos` or `linux` depending on which OS you use. Changes the version of `prov4ML`.
+- `macos`, `amd` or `nvidia` depending on which platform you use. Changes the version 
+of `prov4ML`.
 - `dev` for development purposes. Includes libraries for testing and tensorboard etc.
 - `torch` for installation with PyTorch.
 
@@ -179,7 +180,7 @@ directory, as you can very easily reach your disk quota otherwise. An example of
 complete command for installing as a developer on HPC with CUDA thus becomes:
 
 ```bash
-pip install -e .[torch,dev,linux] \
+pip install -e .[torch,dev,nvidia] \
     --no-cache-dir \
     --extra-index-url https://download.pytorch.org/whl/cu121
 ```
