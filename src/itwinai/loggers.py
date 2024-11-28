@@ -598,25 +598,6 @@ class MLFlowLogger(Logger):
         if not self.should_log(batch_idx=batch_idx):
             return
 
-        # match (kind, item):
-        #     case ("metric", _):
-        #         mlflow.log_metric(key=identifier, value=item, step=step)
-        #     case ("artifact", str()):
-        #         # Save the object locally and then log it
-        #         name = os.path.basename(identifier)
-        #         save_path = self.savedir / ".trash" / str(name)
-        #         save_path.mkdir(os.path.dirname(save_path), exist_ok=True)
-        #         item = self.serialize(item, save_path)
-        #     case ("artifact", _):
-        #         mlflow.log_artifact(local_path=item, artifact_path=identifier)
-        #     case ("model", _):
-        #         import torch
-
-        #         if isinstance(item, torch.nn.Module):
-        #             mlflow.pytorch.log_model(item, identifier)
-        #         else:
-        #             print("WARNING: unrecognized model type")
-
         if kind == "metric":
             mlflow.log_metric(key=identifier, value=item, step=step)
         if kind == "artifact":
