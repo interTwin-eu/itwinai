@@ -9,7 +9,7 @@ fi
 # Load modules
 # NOTE: REFLECT THEM IN THE MAIN README! 
 ml --force purge
-ml Python 
+ml Python/3.11.5-GCCcore-13.2.0 
 ml CMake/3.24.3-GCCcore-11.3.0
 ml mpi4py
 ml OpenMPI

@@ -1,5 +1,7 @@
 # Using itwinai container to run training on MNIST
 
+**Author(s)**: Matteo Bunino (CERN)
+
 In this tutorial we show how to use containers to run machine learning workflows with itwinai.
 
 Container images are pulled from the GHCR associated with our GH repository and are Docker

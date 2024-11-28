@@ -1,5 +1,7 @@
 # Torch Lightning example on MNIST dataset
 
+**Integration author(s)**: Matteo Bunino (CERN)
+
 ## Training
 
 ```bash

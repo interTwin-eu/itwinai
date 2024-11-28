@@ -1,3 +1,15 @@
+# --------------------------------------------------------------------------------------
+# Part of the interTwin Project: https://www.intertwin.eu/
+#
+# Created by: Matteo Bunino
+#
+# Credit:
+# - Jarl Sondre Sæther <jarl.sondre.saether@cern.ch> - CERN
+# - Anna Lappe <anna.elisa.lappe@cern.ch> - CERN
+# - Matteo Bunino <matteo.bunino@cern.ch> - CERN
+# --------------------------------------------------------------------------------------
+
+
 import os
 import time
 from pathlib import Path
@@ -165,8 +177,8 @@ class NoiseGeneratorTrainer(TorchTrainer):
         """
         Custom collate function to concatenate input tensors along their first dimension.
         """
-        # Some batches contain None values, if any files from the dataset did not match the criteria
-        # (i.e. three auxilliary channels)
+        # Some batches contain None values, if any files from the dataset did not match the
+        # criteria (i.e. three auxilliary channels)
         batch = [x for x in batch if x is not None]
 
         return torch.cat(batch)

@@ -1,5 +1,7 @@
 # Scaling tests for PyTorch of ResNet152 on Imagenet
 
+**Author(s)**: Matteo Bunino (CERN)
+
 ## Introduction
 
 This tutorial contains six training configurations: three baselines plus the itwinai

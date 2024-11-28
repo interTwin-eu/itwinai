@@ -1,5 +1,13 @@
-"""
-This module provides the base classes to define modular and reproducible ML
+# --------------------------------------------------------------------------------------
+# Part of the interTwin Project: https://www.intertwin.eu/
+#
+# Created by: Matteo Bunino
+#
+# Credit:
+# - Matteo Bunino <matteo.bunino@cern.ch> - CERN
+# --------------------------------------------------------------------------------------
+
+"""This module provides the base classes to define modular and reproducible ML
 workflows. The base component classes provide a template to follow for
 extending existing components or creating new ones.
 
