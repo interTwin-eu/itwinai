@@ -180,7 +180,7 @@ directory, as you can very easily reach your disk quota otherwise. An example of
 complete command for installing as a developer on HPC with CUDA thus becomes:
 
 ```bash
-pip install -e ".[torch,dev,nvidia]" \
+pip install -e ".[torch,dev,nvidia,tf]" \
     --no-cache-dir \
     --extra-index-url https://download.pytorch.org/whl/cu121
 ```
@@ -189,7 +189,7 @@ If you wanted to install this locally on macOS (i.e. without CUDA) with PyTorch,
 would do the following instead:
 
 ```bash
-pip install -e ".[torch,dev,macos]"
+pip install -e ".[torch,dev,macos,tf]"
 ```
 
 <!-- You can create the Python virtual environments using our predefined Makefile targets. -->
