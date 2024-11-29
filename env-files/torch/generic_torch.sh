@@ -163,4 +163,4 @@ else
 fi
 
 # Install itwinai: MUST be last line of the script for the user installation script to work!
-pip install --no-cache-dir -e .[torch,dev] || exit 1
+pip install --no-cache-dir -e .[torch,dev,ray] || exit 1

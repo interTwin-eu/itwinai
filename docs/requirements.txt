@@ -1,1 +1,1 @@
-.[torch,docs]
+.[torch,ray,docs]

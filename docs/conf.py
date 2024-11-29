@@ -40,6 +40,7 @@ extensions = [
     "sphinx.ext.autodoc",
     "sphinx.ext.doctest",
     "sphinx.ext.viewcode",
+    "sphinx_tabs.tabs",
     "myst_parser",
     "nbsphinx",
     "sphinx.ext.napoleon",

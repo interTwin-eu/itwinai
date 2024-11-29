@@ -37,7 +37,6 @@ dependencies = [
     "prov4ml@git+https://github.com/matbun/ProvML@new-main",
     "pandas",
     "seaborn",
-    "ray[default,train,tune]",
 ]
 
 # dynamic = ["version", "description"]
@@ -49,6 +48,9 @@ torch = [
     "torchmetrics>=1.6.0",
     "torchvision>=0.19.1",
     "torchaudio>=2.4.1",
+]
+ray = [
+    "ray[default,train,tune]",
 ]
 dev = [
     "pytest>=7.4.2",
@@ -65,6 +67,7 @@ docs = [
     "myst-parser==2.0.0",
     "IPython",
     "tensorflow==2.16.*",
+    "sphinx-tabs",
 ]
 macos = ["prov4ml[apple]@git+https://github.com/matbun/ProvML@new-main"]
 nvidia = ["prov4ml[nvidia]@git+https://github.com/matbun/ProvML@new-main"]
