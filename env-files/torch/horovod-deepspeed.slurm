@@ -17,4 +17,4 @@ ml Stages/2024 GCC OpenMPI CUDA/12 cuDNN MPI-settings/CUDA
 ml Python/3.11.3 CMake HDF5 PnetCDF libaio mpi4py git Clang
 
 source .venv/bin/activate
-bash install-horovod-deepspeed-cuda.sh
+source env-files/torch/install-horovod-deepspeed-cuda.sh
