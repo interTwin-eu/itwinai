@@ -44,7 +44,10 @@ tf-env-vega: env-files/tensorflow/createEnvVegaTF.sh env-files/tensorflow/generi
 
 
 test:
-	PYTORCH_ENABLE_MPS_FALLBACK=1 .venv/bin/pytest -v tests/
+	.venv/bin/pytest -v tests/
+	
+test-local:
+	PYTORCH_ENABLE_MPS_FALLBACK=1 .venv/bin/pytest -v tests/ -m "not hpc"
 
 test-jsc: tests/run_on_jsc.sh
 	bash tests/run_on_jsc.sh
