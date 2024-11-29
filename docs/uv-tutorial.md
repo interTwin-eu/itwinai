@@ -63,7 +63,7 @@ particular, if you are a developer you would use one of the following two comman
 you are on HPC with cuda, you would use:
 
 ```bash
-uv sync --extra torch --extra dev --extra tf \
+uv sync --extra dev --extra nvidia --extra torch --extra tf \
     --no-cache \
     --index https://download.pytorch.org/whl/cu121
 ```

@@ -33,8 +33,8 @@ dependencies = [
     "wheel>=0.45.0",
     "seaborn>=0.13.2",
     "py-cpuinfo>=9.0.0",
-    "packaging>=24.2",
-    "pydantic>=2.9.2",
+    "packaging",
+    "pydantic",
     "pyyaml>=6.0.2",
     "omegaconf>=2.3.0",
     "jsonargparse[signatures]>=4.34.0",
@@ -49,9 +49,9 @@ dependencies = [
 torch = [
     "torch==2.4.*",
     "lightning==2.*",
-    "torchmetrics>=1.6.0",
-    "torchvision>=0.19.1",
-    "torchaudio>=2.4.1",
+    "torchmetrics",
+    "torchvision",
+    "torchaudio",
 ]
 tf = [
   "tensorflow==2.16.*",

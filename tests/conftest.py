@@ -21,13 +21,8 @@ def torch_env() -> str:
 
     Returns absolute path to torch virtual environment.
     """
-    env_path = Path(os.environ.get("TORCH_ENV", "./.venv"))
+    env_path = Path(os.environ.get("TORCH_ENV", "./.venv-pytorch"))
     return str(env_path.resolve())
-    # if os.environ.get("TORCH_ENV") is None:
-    #     env_p = "./.venv"
-    # else:
-    #     env_p = str(os.environ.get("TORCH_ENV"))
-    # return os.path.abspath(env_p)
 
 
 @pytest.fixture
@@ -38,10 +33,5 @@ def tf_env() -> str:
 
     Returns absolute path to torch virtual environment.
     """
-    env_path = Path(os.environ.get("TF_ENV", "./.venv"))
+    env_path = Path(os.environ.get("TF_ENV", "./.venv-tf"))
     return str(env_path.resolve())
-    # if os.environ.get("TF_ENV") is None:
-    #     env_p = "./.venv"
-    # else:
-    #     env_p = str(os.environ.get("TF_ENV"))
-    # return os.path.abspath(env_p)
