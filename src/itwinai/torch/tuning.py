@@ -30,7 +30,7 @@ def get_raytune_search_alg(
     """
     scheduler = tune_config.get("scheduler", {}).get("name")
 
-    search_alg = tune_config["search_alg"]["name"]
+    search_alg = tune_config.get("search_alg", {}).get("name")
 
     if (scheduler == "pbt") or (scheduler == "pb2"):
         if search_alg is None:
@@ -94,7 +94,7 @@ def get_raytune_schedule(
         An instance of the chosen Ray Tune scheduler or None if no scheduler is used
             or if the scheduler does not match any of the supported options.
     """
-    scheduler = tune_config["scheduler"]["name"]
+    scheduler = tune_config.get("scheduler", {}).get("name")
 
     if scheduler == "asha":
         return AsyncHyperBandScheduler(

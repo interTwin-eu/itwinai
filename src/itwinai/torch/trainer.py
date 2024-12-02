@@ -16,7 +16,6 @@
 import os
 import sys
 import tempfile
-from abc import abstractmethod
 from pathlib import Path
 from typing import Any, Callable, Dict, Iterable, List, Literal, Optional, Tuple, Union
 
@@ -1443,10 +1442,8 @@ class RayTorchTrainer(Trainer):
         metric = tune_config.get("metric", "loss")
         mode = tune_config.get("mode", "min")
 
-        search_alg = (
-            get_raytune_search_alg(tune_config) if "search_alg" in tune_config else None
-        )
-        scheduler = get_raytune_schedule(tune_config) if "scheduler" in tune_config else None
+        search_alg = get_raytune_search_alg(tune_config)
+        scheduler = get_raytune_schedule(tune_config)
 
         # Only set metric and mode if search_alg and scheduler aren't defined
         self.tune_config = tune.TuneConfig(
