@@ -11,7 +11,7 @@ export DS_BUILD_STOCHASTIC_TRANSFORMER=1
 export DS_BUILD_TRANSFORMER_INFERENCE=1
 
 # We do --no-cache-dir because the .cache dir eats our HPC quota :(
-pip install --no-cache-dir --no-build-isolation "deepspeed==0.15.*"
+pip install --no-cache-dir --no-build-isolation "deepspeed==0.15.*" || exit 1
 
 # Horovod variables
 export LDSHARED="$CC -shared" &&
@@ -28,4 +28,6 @@ export HOROVOD_WITH_PYTORCH=1
 export HOROVOD_WITHOUT_TENSORFLOW=1
 export HOROVOD_WITHOUT_MXNET=1
 
-pip install --no-cache-dir 'horovod[pytorch] @ git+https://github.com/horovod/horovod'
+pip install --no-cache-dir 'horovod[pytorch] @ git+https://github.com/horovod/horovod' || exit 1
+
+echo "Finished Horovod and DeepSpeed installation script!"
