@@ -72,6 +72,8 @@ def _initialize_ray() -> None:
         return
 
     ray.init(address="auto")
+    print(f"Nodes in the cluster: {ray.nodes()}")
+    print(f"Available cluster resources: {ray.available_resources()}")
 
 
 class TorchDistributedStrategy(DistributedStrategy):

@@ -48,10 +48,6 @@ nodes_array=($nodes)
 head_node=${nodes_array[0]}
 port=7639       # This port will be used by Ray to communicate with worker nodes.
 
-ip_head="$head_node"i:"$port"
-export ip_head
-echo "IP Head: $ip_head"
-
 echo "Starting HEAD at $head_node"
 # Start Ray on the head node.
 # The `--head` option specifies that this node will be the head of the Ray cluster.

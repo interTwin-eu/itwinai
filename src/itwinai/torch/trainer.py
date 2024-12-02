@@ -1388,10 +1388,6 @@ class RayTorchTrainer(Trainer):
         else:
             self.test_dataloader = None
 
-    @abstractmethod
-    def train(config, data=None):
-        pass
-
     @monitor_exec
     def execute(
         self,
