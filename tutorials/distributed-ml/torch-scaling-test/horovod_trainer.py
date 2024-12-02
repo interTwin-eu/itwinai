@@ -9,17 +9,13 @@
 
 """Scaling test of Horovod on Imagenet using Resnet."""
 
-import argparse
 import os
 import sys
 import time
 from timeit import default_timer as timer
-from typing import Optional
 
 import horovod.torch as hvd
 import torch
-
-# import torch.multiprocessing as mp
 import torch.nn.functional as F
 import torch.optim as optim
 import torchvision

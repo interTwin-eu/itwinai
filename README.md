@@ -129,11 +129,7 @@ git clone [--recurse-submodules] git@github.com:interTwin-eu/itwinai.git
 ### Install itwinai environment
 
 In this project, we are using `uv` as a project-wide package manager. Therefore, if
-<<<<<<< HEAD
-you are a developer, you should see the [uv tutorial](./uv-tutorial.md) after reading
-=======
 you are a developer, you should see the [uv tutorial](/docs/uv-tutorial.md) after reading
->>>>>>> main
 the following `pip` tutorial.
 
 #### Installation using pip
@@ -170,12 +166,8 @@ commands they will use the version from your venv.
 We provide some _extras_ that can be activated depending on which platform you are
 using.
 
-<<<<<<< HEAD
-- `macos` or `linux` depending on which OS you use. Changes the version of `prov4ML`.
-=======
 - `macos`, `amd` or `nvidia` depending on which platform you use. Changes the version
 of `prov4ML`.
->>>>>>> main
 - `dev` for development purposes. Includes libraries for testing and tensorboard etc.
 - `torch` for installation with PyTorch.
 
@@ -188,11 +180,7 @@ directory, as you can very easily reach your disk quota otherwise. An example of
 complete command for installing as a developer on HPC with CUDA thus becomes:
 
 ```bash
-<<<<<<< HEAD
-pip install -e .[torch,dev,linux] \
-=======
 pip install -e ".[torch,dev,nvidia,tf]" \
->>>>>>> main
     --no-cache-dir \
     --extra-index-url https://download.pytorch.org/whl/cu121
 ```
@@ -201,11 +189,7 @@ If you wanted to install this locally on macOS (i.e. without CUDA) with PyTorch,
 would do the following instead:
 
 ```bash
-<<<<<<< HEAD
-pip install -e .[torch,dev,macos]
-=======
 pip install -e ".[torch,dev,macos,tf]"
->>>>>>> main
 ```
 
 <!-- You can create the Python virtual environments using our predefined Makefile targets. -->

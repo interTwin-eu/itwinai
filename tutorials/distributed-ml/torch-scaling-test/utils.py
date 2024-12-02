@@ -8,13 +8,15 @@
 # - Jarl Sondre Sæther <jarl.sondre.saether@cern.ch> - CERN
 # --------------------------------------------------------------------------------------
 import argparse
+
 import torch.nn as nn
-from itwinai.parser import ArgumentParser as ItwinaiArgParser
-from torchvision import datasets, transforms
 import torch.nn.functional as F
-from torch.utils.data import DataLoader, Subset
-from torch.optim.optimizer import Optimizer
 from torch import device
+from torch.optim.optimizer import Optimizer
+from torch.utils.data import DataLoader, Subset
+from torchvision import datasets, transforms
+
+from itwinai.parser import ArgumentParser as ItwinaiArgParser
 
 
 def imagenet_dataset(data_root: str):

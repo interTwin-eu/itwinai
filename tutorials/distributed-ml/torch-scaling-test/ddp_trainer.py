@@ -11,7 +11,6 @@
 
 """Scaling test of torch Distributed Data Parallel on Imagenet using Resnet."""
 
-import argparse
 import os
 import sys
 from timeit import default_timer as timer
@@ -22,7 +21,7 @@ import torch.nn as nn
 import torchvision
 from torch.utils.data import DataLoader
 from torch.utils.data.distributed import DistributedSampler
-from utils import imagenet_dataset, train_epoch, parse_params
+from utils import imagenet_dataset, parse_params, train_epoch
 
 from itwinai.loggers import EpochTimeTracker
 from itwinai.torch.reproducibility import seed_worker, set_seed

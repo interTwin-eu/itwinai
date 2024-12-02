@@ -3,7 +3,7 @@
 # --------------------------------------------------------------------------------------
 # Part of the interTwin Project: https://www.intertwin.eu/
 #
-# Created by: Jarl Sondre Sæther
+# Created by: Matteo Bunino
 #
 # Credit:
 # - Jarl Sondre Sæther <jarl.sondre.saether@cern.ch> - CERN
