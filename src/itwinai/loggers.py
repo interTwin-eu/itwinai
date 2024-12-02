@@ -146,7 +146,7 @@ class Logger(LogMixin):
 
     def __init__(
         self,
-        savedir: Path | str = "mllogs",
+        savedir: Union[Path, str] = "mllogs",
         log_freq: Union[int, Literal["epoch", "batch"]] = "epoch",
         log_on_workers: Union[int, List[int]] = 0,
         experiment_id: Optional[str] = None,
@@ -209,8 +209,7 @@ class Logger(LogMixin):
 
     @abstractmethod
     def create_logger_context(self, rank: Optional[int] = None) -> Any:
-        """
-        Initializes the logger context.
+        """Initializes the logger context.
 
         Args:
             rank (Optional[int]): global rank of current process,
@@ -301,7 +300,7 @@ class _EmptyLogger(Logger):
 
     def __init__(
         self,
-        savedir: Path | str = "mllogs",
+        savedir: Union[Path, str] = "mllogs",
         log_freq: int | Literal["epoch"] | Literal["batch"] = "epoch",
         log_on_workers: int | List[int] = 0,
     ) -> None:
@@ -349,16 +348,15 @@ class ConsoleLogger(Logger):
 
     def __init__(
         self,
-        savedir: Path | str = "mllogs",
+        savedir: Union[Path, str] = "mllogs",
         log_freq: Union[int, Literal["epoch", "batch"]] = "epoch",
         log_on_workers: Union[int, List[int]] = 0,
     ) -> None:
-        savedir = Path(savedir) / "simple-logger"
-        super().__init__(savedir=savedir, log_freq=log_freq, log_on_workers=log_on_workers)
+        cl_savedir = Path(savedir) / "simple-logger"
+        super().__init__(savedir=cl_savedir, log_freq=log_freq, log_on_workers=log_on_workers)
 
     def create_logger_context(self, rank: Optional[int] = None):
-        """
-        Initializes the logger context.
+        """Initializes the logger context.
 
         Args:
             rank (Optional[int]): global rank of current process,
@@ -501,7 +499,7 @@ class MLFlowLogger(Logger):
 
     def __init__(
         self,
-        savedir: Path | str = "mllogs",
+        savedir: Union[Path, str] = "mllogs",
         experiment_name: str = BASE_EXP_NAME,
         tracking_uri: Optional[str] = None,
         run_description: Optional[str] = None,
@@ -509,8 +507,8 @@ class MLFlowLogger(Logger):
         log_freq: Union[int, Literal["epoch", "batch"]] = "epoch",
         log_on_workers: Union[int, List[int]] = 0,
     ):
-        savedir = Path(savedir) / "mlflow"
-        super().__init__(savedir=savedir, log_freq=log_freq, log_on_workers=log_on_workers)
+        mfl_savedir = Path(savedir) / "mlflow"
+        super().__init__(savedir=mfl_savedir, log_freq=log_freq, log_on_workers=log_on_workers)
         self.tracking_uri = tracking_uri
         self.run_description = run_description
         self.run_name = run_name
@@ -523,8 +521,7 @@ class MLFlowLogger(Logger):
         )
 
     def create_logger_context(self, rank: Optional[int] = None) -> mlflow.ActiveRun:
-        """
-        Initializes the logger context. Start MLFLow run.
+        """Initializes the logger context. Start MLFLow run.
 
         Args:
             rank (Optional[int]): global rank of current process,
@@ -685,18 +682,17 @@ class WandBLogger(Logger):
 
     def __init__(
         self,
-        savedir: Path | str = "mllogs",
+        savedir: Union[Path, str] = "mllogs",
         project_name: str = BASE_EXP_NAME,
         log_freq: Union[int, Literal["epoch", "batch"]] = "epoch",
         log_on_workers: Union[int, List[int]] = 0,
     ) -> None:
-        savedir = Path(savedir) / "wandb"
-        super().__init__(savedir=savedir, log_freq=log_freq, log_on_workers=log_on_workers)
+        wbl_savedir = Path(savedir) / "wandb"
+        super().__init__(savedir=wbl_savedir, log_freq=log_freq, log_on_workers=log_on_workers)
         self.project_name = project_name
 
     def create_logger_context(self, rank: Optional[int] = None) -> None:
-        """
-        Initializes the logger context. Init WandB run.
+        """Initializes the logger context. Init WandB run.
 
         Args:
             rank (Optional[int]): global rank of current process,
@@ -794,29 +790,28 @@ class TensorBoardLogger(Logger):
 
     def __init__(
         self,
-        savedir: Path | str = "mllogs",
+        savedir: Union[Path, str] = "mllogs",
         log_freq: Union[int, Literal["epoch", "batch"]] = "epoch",
         framework: Literal["tensorflow", "pytorch"] = "pytorch",
         log_on_workers: Union[int, List[int]] = 0,
     ) -> None:
-        savedir = Path(savedir) / "tensorboard"
-        super().__init__(savedir=savedir, log_freq=log_freq, log_on_workers=log_on_workers)
+        tbl_savedir = Path(savedir) / "tensorboard"
+        super().__init__(savedir=tbl_savedir, log_freq=log_freq, log_on_workers=log_on_workers)
         self.framework = framework
         if framework.lower() == "tensorflow":
             import tensorflow as tf
 
             self.tf = tf
-            self.writer = tf.summary.create_file_writer(savedir.resolve().as_posix())
+            self.writer = tf.summary.create_file_writer(tbl_savedir.resolve().as_posix())
         elif framework.lower() == "pytorch":
             from torch.utils.tensorboard import SummaryWriter
 
-            self.writer = SummaryWriter(savedir)
+            self.writer = SummaryWriter(tbl_savedir.resolve().as_posix())
         else:
             raise ValueError("Framework must be either 'tensorflow' or 'pytorch'")
 
     def create_logger_context(self, rank: Optional[int] = None) -> None:
-        """
-        Initializes the logger context. Init Tensorboard run.
+        """Initializes the logger context. Init Tensorboard run.
 
         Args:
             rank (Optional[int]): global rank of current process,
@@ -965,8 +960,7 @@ class LoggersCollection(Logger):
             )
 
     def create_logger_context(self, rank: Optional[int] = None) -> Any:
-        """
-        Initializes all loggers.
+        """Initializes all loggers.
 
         Args:
             rank (Optional[int]): global rank of current process,
@@ -999,7 +993,7 @@ class Prov4MLLogger(Logger):
             files will be uploaded. Defaults to "www.example.org".
         experiment_name (str, optional): experiment name.
             Defaults to "experiment_name".
-        provenance_save_dir (Path, optional): path where to store provenance
+        provenance_save_dir (Union[Path, str], optional): path where to store provenance
             files and logs. Defaults to "prov".
         save_after_n_logs (Optional[int], optional): how often to save
             logs to disk from main memory. Defaults to 100.
@@ -1034,7 +1028,7 @@ class Prov4MLLogger(Logger):
         self,
         prov_user_namespace: str = "www.example.org",
         experiment_name: str = "experiment_name",
-        provenance_save_dir: Path = "mllogs/prov_logs",
+        provenance_save_dir: Union[Path, str] = "mllogs/prov_logs",
         save_after_n_logs: Optional[int] = 100,
         create_graph: Optional[bool] = True,
         create_svg: Optional[bool] = True,
@@ -1055,8 +1049,7 @@ class Prov4MLLogger(Logger):
 
     @override
     def create_logger_context(self, rank: Optional[int] = None):
-        """
-        Initializes the logger context.
+        """Initializes the logger context.
 
         Args:
             rank (Optional[int]): global rank of current process,
