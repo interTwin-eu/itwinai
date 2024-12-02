@@ -1,9 +1,19 @@
-from typing import Dict, Any, Union
+# --------------------------------------------------------------------------------------
+# Part of the interTwin Project: https://www.intertwin.eu/
+#
+# Created by: Matteo Bunino
+#
+# Credit:
+# - Matteo Bunino <matteo.bunino@cern.ch> - CERN
+# --------------------------------------------------------------------------------------
+
 import abc
-import json
-import yaml
-from pathlib import Path
 import inspect
+import json
+from pathlib import Path
+from typing import Any, Dict, Union
+
+import yaml
 
 from .type import MLModel
 from .utils import SignatureInspector
@@ -20,13 +30,13 @@ def is_jsonable(x):
 def fullname(o):
     klass = o.__class__
     module = klass.__module__
-    if module == 'builtins':
+    if module == "builtins":
         return klass.__qualname__  # avoid outputs like 'builtins.str'
-    return module + '.' + klass.__qualname__
+    return module + "." + klass.__qualname__
 
 
 class SerializationError(Exception):
-    ...
+    """Serialization error"""
 
 
 class Serializable:
@@ -60,7 +70,7 @@ class Serializable:
             Dict: cleaned ``locals()``.
         """
         if pop_self:
-            locals.pop('self', None)
+            locals.pop("self", None)
         return locals
 
     def update_parameters(self, **kwargs) -> None:
@@ -121,7 +131,8 @@ class Serializable:
         init_params = inspect.signature(self.__init__).parameters.items()
         init_par_nam = map(lambda x: x[0], init_params)
         return {
-            par_name: self.parameters[par_name] for par_name in init_par_nam
+            par_name: self.parameters[par_name]
+            for par_name in init_par_nam
             if self.parameters.get(par_name, inspect._empty) != inspect._empty
         }
 
@@ -129,10 +140,7 @@ class Serializable:
         if isinstance(item, (tuple, list, set)):
             return [self._recursive_serialization(x, item_name) for x in item]
         elif isinstance(item, dict):
-            return {
-                k: self._recursive_serialization(v, item_name)
-                for k, v in item.items()
-            }
+            return {k: self._recursive_serialization(v, item_name) for k, v in item.items()}
         elif is_jsonable(item):
             return item
         elif isinstance(item, Serializable):

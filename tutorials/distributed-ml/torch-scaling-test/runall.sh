@@ -1,4 +1,14 @@
 #!/bin/bash
+
+# --------------------------------------------------------------------------------------
+# Part of the interTwin Project: https://www.intertwin.eu/
+#
+# Created by: Matteo Bunino
+#
+# Credit:
+# - Matteo Bunino <matteo.bunino@cern.ch> - CERN
+# --------------------------------------------------------------------------------------
+
 # Run all versions of distributed ML version
 
 # This syntax means: "1" for first argument with "2" as a default value etc.

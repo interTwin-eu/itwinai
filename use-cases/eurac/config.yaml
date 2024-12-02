@@ -1,3 +1,15 @@
+# --------------------------------------------------------------------------------------
+# Part of the interTwin Project: https://www.intertwin.eu/
+#
+# Created by: Matteo Bunino
+#
+# Credit:
+# - Jarl Sondre Sæther <jarl.sondre.saether@cern.ch> - CERN
+# - Henry Mutegeki <henry.mutegeki@cern.ch> - CERN
+# - Iacopo Ferrario <iacopofederico.ferrario@eurac.edu> - EURAC
+# - Matteo Bunino <matteo.bunino@cern.ch> - CERN
+# --------------------------------------------------------------------------------------
+
 # General configuration
 rnn_surrogate_input: /p/scratch/intertwin/datasets/eurac/input/adg1km_eobs_preprocessed.zarr
 conv_surrogate_input: /p/scratch/intertwin/datasets/eurac/input/adg1km_eobs_original.zarr

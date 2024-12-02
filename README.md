@@ -59,7 +59,7 @@ environment for PyTorch:
 
     ```bash
     ml --force purge
-    ml Python CMake/3.24.3-GCCcore-11.3.0 mpi4py OpenMPI CUDA/12.3
+    ml Python/3.11.5-GCCcore-13.2.0 CMake/3.24.3-GCCcore-11.3.0 mpi4py OpenMPI CUDA/12.3
     ml GCCcore/11.3.0 NCCL cuDNN/8.9.7.29-CUDA-12.3.0 UCX-CUDA/1.15.0-GCCcore-13.2.0-CUDA-12.3.0
     ```
 
@@ -80,7 +80,7 @@ environment for TensorFlow:
 
     ```bash
     ml --force purge
-    ml Python CMake/3.24.3-GCCcore-11.3.0 mpi4py OpenMPI CUDA/12.3
+    ml Python/3.11.5-GCCcore-13.2.0 CMake/3.24.3-GCCcore-11.3.0 mpi4py OpenMPI CUDA/12.3
     ml GCCcore/11.3.0 NCCL cuDNN/8.9.7.29-CUDA-12.3.0 UCX-CUDA/1.15.0-GCCcore-13.2.0-CUDA-12.3.0
     ```
 
@@ -129,7 +129,11 @@ git clone [--recurse-submodules] git@github.com:interTwin-eu/itwinai.git
 ### Install itwinai environment
 
 In this project, we are using `uv` as a project-wide package manager. Therefore, if
+<<<<<<< HEAD
 you are a developer, you should see the [uv tutorial](./uv-tutorial.md) after reading
+=======
+you are a developer, you should see the [uv tutorial](/docs/uv-tutorial.md) after reading
+>>>>>>> main
 the following `pip` tutorial.
 
 #### Installation using pip
@@ -166,7 +170,12 @@ commands they will use the version from your venv.
 We provide some _extras_ that can be activated depending on which platform you are
 using.
 
+<<<<<<< HEAD
 - `macos` or `linux` depending on which OS you use. Changes the version of `prov4ML`.
+=======
+- `macos`, `amd` or `nvidia` depending on which platform you use. Changes the version
+of `prov4ML`.
+>>>>>>> main
 - `dev` for development purposes. Includes libraries for testing and tensorboard etc.
 - `torch` for installation with PyTorch.
 
@@ -179,7 +188,11 @@ directory, as you can very easily reach your disk quota otherwise. An example of
 complete command for installing as a developer on HPC with CUDA thus becomes:
 
 ```bash
+<<<<<<< HEAD
 pip install -e .[torch,dev,linux] \
+=======
+pip install -e ".[torch,dev,nvidia,tf]" \
+>>>>>>> main
     --no-cache-dir \
     --extra-index-url https://download.pytorch.org/whl/cu121
 ```
@@ -188,7 +201,11 @@ If you wanted to install this locally on macOS (i.e. without CUDA) with PyTorch,
 would do the following instead:
 
 ```bash
+<<<<<<< HEAD
 pip install -e .[torch,dev,macos]
+=======
+pip install -e ".[torch,dev,macos,tf]"
+>>>>>>> main
 ```
 
 <!-- You can create the Python virtual environments using our predefined Makefile targets. -->
@@ -300,7 +317,7 @@ Commands to be executed before activating the python virtual environment:
 
     ```bash
     ml --force purge
-    ml Python CMake/3.24.3-GCCcore-11.3.0 mpi4py OpenMPI CUDA/12.3
+    ml Python/3.11.5-GCCcore-13.2.0 CMake/3.24.3-GCCcore-11.3.0 mpi4py OpenMPI CUDA/12.3
     ml GCCcore/11.3.0 NCCL cuDNN/8.9.7.29-CUDA-12.3.0 UCX-CUDA/1.15.0-GCCcore-13.2.0-CUDA-12.3.0
     ```
 
@@ -334,7 +351,7 @@ Commands to be executed before activating the python virtual environment:
 
     ```bash
     ml --force purge
-    ml Python CMake/3.24.3-GCCcore-11.3.0 mpi4py OpenMPI CUDA/12.3
+    ml Python/3.11.5-GCCcore-13.2.0 CMake/3.24.3-GCCcore-11.3.0 mpi4py OpenMPI CUDA/12.3
     ml GCCcore/11.3.0 NCCL cuDNN/8.9.7.29-CUDA-12.3.0 UCX-CUDA/1.15.0-GCCcore-13.2.0-CUDA-12.3.0
     ```
 
@@ -444,3 +461,25 @@ hashes.
 > It is very important to keep the number of tags for `itwinai-cvmfs` as low
 > as possible. Tags should only be created under this namespace when strictly
 > necessary. Otherwise, this could cause issues for the Unpacker.
+
+### Building a new container
+
+Our docker manifests support labels to record provenance information, which can be lately
+accessed by `docker inspect IMAGE_NAME:TAG`.
+
+A full example below:
+
+```bash
+export BASE_IMG_NAME="what goes after the last FROM"
+export IMAGE_FULL_NAME="IMAGE_NAME:TAG"
+docker build \
+    -t "$IMAGE_FULL_NAME" \
+    -f path/to/Dockerfile \
+    --build-arg COMMIT_HASH="$(git rev-parse --verify HEAD)" \
+    --build-arg BASE_IMG_NAME="$BASE_IMG_NAME" \
+    --build-arg BASE_IMG_DIGEST="$(docker pull "$BASE_IMG_NAME" > /dev/null 2>&1 && docker inspect "$BASE_IMG_NAME" --format='{{index .RepoDigests 0}}')" \
+    --build-arg ITWINAI_VERSION="$(grep -Po '(?<=^version = ")[^"]*' pyproject.toml)" \
+    --build-arg CREATION_DATE="$(date +"%Y-%m-%dT%H:%M:%S%:z")" \
+    --build-arg IMAGE_FULL_NAME=$IMAGE_FULL_NAME \ 
+    .
+```

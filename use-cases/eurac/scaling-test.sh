@@ -1,5 +1,14 @@
 #!/bin/bash
+
+# --------------------------------------------------------------------------------------
+# Part of the interTwin Project: https://www.intertwin.eu/
 #
+# Created by: Jarl Sondre Sæther
+#
+# Credit:
+# - Jarl Sondre Sæther <jarl.sondre.saether@cern.ch> - CERN
+# --------------------------------------------------------------------------------------
+
 # Script for performing a scalability test. Runs distributed training with a different
 # number of nodes with the same number of GPUs. 
 

@@ -1,4 +1,14 @@
 #!/bin/bash
+
+# --------------------------------------------------------------------------------------
+# Part of the interTwin Project: https://www.intertwin.eu/
+#
+# Created by: Matteo Bunino
+#
+# Credit:
+# - Matteo Bunino <matteo.bunino@cern.ch> - CERN
+# --------------------------------------------------------------------------------------
+
 # Run all versions of distributed ML version
 # $1 (Optional[int]): number of nodes. Default: 2
 # $2 (Optional[str]): timeout. Default: "00:30:00"

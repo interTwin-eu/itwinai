@@ -8,6 +8,10 @@
 # - Jarl Sondre Sæther <jarl.sondre.saether@cern.ch> - CERN
 # --------------------------------------------------------------------------------------
 
+
+"""Scaling test of torch Distributed Data Parallel on Imagenet using Resnet."""
+
+import argparse
 import os
 import sys
 from timeit import default_timer as timer

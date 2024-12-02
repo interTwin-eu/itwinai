@@ -1,3 +1,15 @@
+# --------------------------------------------------------------------------------------
+# Part of the interTwin Project: https://www.intertwin.eu/
+#
+# Created by: Matteo Bunino
+#
+# Credit:
+# - Jarl Sondre Sæther <jarl.sondre.saether@cern.ch> - CERN
+# - Henry Mutegeki <henry.mutegeki@cern.ch> - CERN
+# - Iacopo Ferrario <iacopofederico.ferrario@eurac.edu> - EURAC
+# - Matteo Bunino <matteo.bunino@cern.ch> - CERN
+# --------------------------------------------------------------------------------------
+
 import os
 from pathlib import Path
 from timeit import default_timer
@@ -96,7 +108,7 @@ class RNNDistributedTrainer(TorchTrainer):
         self,
         train_dataset: Dataset,
         validation_dataset: Optional[Dataset] = None,
-        test_dataset: Optional[Dataset] = None
+        test_dataset: Optional[Dataset] = None,
     ) -> Tuple[Dataset, Dataset, Dataset, Any]:
         return super().execute(train_dataset, validation_dataset, test_dataset)
 
@@ -106,7 +118,7 @@ class RNNDistributedTrainer(TorchTrainer):
             self.optimizer,
             mode="min",
             factor=self.config.lr_reduction_factor,
-            patience=self.config.lr_reduction_patience
+            patience=self.config.lr_reduction_patience,
         )
 
         target_weights = {
@@ -119,16 +131,12 @@ class RNNDistributedTrainer(TorchTrainer):
         if isinstance(self.strategy, DeepSpeedStrategy):
             # Batch size definition is not optional for DeepSpeedStrategy!
             distribute_kwargs = {
-                "config_params": {
-                    "train_micro_batch_size_per_gpu": self.config.batch_size
-                }
+                "config_params": {"train_micro_batch_size_per_gpu": self.config.batch_size}
             }
         elif isinstance(self.strategy, TorchDDPStrategy):
             if "find_unused_parameters" not in self.config.model_fields:
                 self.config.find_unused_parameters = False
-            distribute_kwargs = {
-                "find_unused_parameters": self.config.find_unused_parameters
-            }
+            distribute_kwargs = {"find_unused_parameters": self.config.find_unused_parameters}
 
         self.model, self.optimizer, _ = self.strategy.distributed(
             model=self.model,
@@ -177,9 +185,7 @@ class RNNDistributedTrainer(TorchTrainer):
         device = self.strategy.device()
         loss_history = {"train": [], "val": []}
         metric_history = {f"train_{target}": [] for target in trainer.P.target_names}
-        metric_history.update(
-            {f"val_{target}": [] for target in trainer.P.target_names}
-        )
+        metric_history.update({f"val_{target}": [] for target in trainer.P.target_names})
 
         best_loss = float("inf")
         for epoch in tqdm(range(self.epochs)):
@@ -256,17 +262,10 @@ class RNNDistributedTrainer(TorchTrainer):
         if self.strategy.is_main_worker:
             epoch_time_tracker.save()
             self.model.load_state_dict(best_model)
-            self.log(
-                item=self.model,
-                identifier='LSTM',
-                kind='model'
-            )
+            self.log(item=self.model, identifier="LSTM", kind="model")
 
             # Report training metrics of last epoch to Ray
-            train.report(
-                {"loss": avg_val_loss.item(),
-                 "train_loss": train_loss.item()}
-            )
+            train.report({"loss": avg_val_loss.item(), "train_loss": train_loss.item()})
 
         return loss_history, metric_history
 
@@ -387,7 +386,7 @@ class ConvRNNDistributedTrainer(TorchTrainer):
             self.optimizer,
             mode="min",
             factor=self.config.lr_reduction_factor,
-            patience=self.config.lr_reduction_patience
+            patience=self.config.lr_reduction_patience,
         )
 
         target_weights = {
@@ -399,9 +398,7 @@ class ConvRNNDistributedTrainer(TorchTrainer):
         if isinstance(self.strategy, DeepSpeedStrategy):
             # Batch size definition is not optional for DeepSpeedStrategy!
             distribute_kwargs = dict(
-                config_params=dict(
-                    train_micro_batch_size_per_gpu=self.config.batch_size
-                )
+                config_params=dict(train_micro_batch_size_per_gpu=self.config.batch_size)
             )
         else:
             distribute_kwargs = {}  # dict(find_unused_parameters=True)
@@ -429,9 +426,7 @@ class ConvRNNDistributedTrainer(TorchTrainer):
         device = self.strategy.device()
         loss_history = {"train": [], "val": []}
         metric_history = {f"train_{target}": [] for target in trainer.P.target_names}
-        metric_history.update(
-            {f"val_{target}": [] for target in trainer.P.target_names}
-        )
+        metric_history.update({f"val_{target}": [] for target in trainer.P.target_names})
 
         best_loss = float("inf")
         for epoch in tqdm(range(self.epochs)):
@@ -502,10 +497,7 @@ class ConvRNNDistributedTrainer(TorchTrainer):
                 # self.model.load_state_dict(best_model_weights)
 
             # Report training metrics of last epoch to Ray
-            train.report(
-                {"loss": avg_val_loss.item(),
-                 "train_loss": train_loss.item()}
-            )
+            train.report({"loss": avg_val_loss.item(), "train_loss": train_loss.item()})
 
         return loss_history, metric_history
 
@@ -513,17 +505,13 @@ class ConvRNNDistributedTrainer(TorchTrainer):
         train_sampler_builder = SamplerBuilder(
             train_dataset,
             sampling="random",
-            processing=(
-                "multi-gpu" if self.config.distributed else "single-gpu"
-            ),
+            processing=("multi-gpu" if self.config.distributed else "single-gpu"),
         )
 
         val_sampler_builder = SamplerBuilder(
             validation_dataset,
             sampling="sequential",
-            processing=(
-                "multi-gpu" if self.config.distributed else "single-gpu"
-            ),
+            processing=("multi-gpu" if self.config.distributed else "single-gpu"),
         )
 
         train_sampler = train_sampler_builder.get_sampler()

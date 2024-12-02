@@ -1,1 +1,1 @@
-.[torch,docs,linux]
+.[torch,docs]

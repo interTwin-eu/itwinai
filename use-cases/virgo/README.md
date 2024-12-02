@@ -1,5 +1,7 @@
 # Noise Simulation for Gravitational Waves Detector (Virgo)
 
+**Integration author(s)**: Anna Lappe (CERN), Jarl Sondre Sæther (CERN), Matteo Bunino (CERN)
+
 This repository contains code for simulating noise in the Virgo gravitational wave detector. The code is adapted from
 [this notebook](https://github.com/interTwin-eu/DT-Virgo-notebooks/blob/main/WP_4_4/interTwin_wp_4.4_synthetic_data.ipynb)
 available on the Virgo use case's [repository](https://github.com/interTwin-eu/DT-Virgo-notebooks).
@@ -29,7 +31,8 @@ To run the entire pipeline, including dataset generation, use the following comm
 itwinai exec-pipeline --config config.yaml --pipe-key training_pipeline_small
 ```
 
-If you’ve already generated the dataset in a previous run, you can skip the dataset generation step by executing the following command:
+If you've already generated the dataset in a previous run, you can skip the dataset generation step by executing the
+following command:
 
 ```bash
 itwinai exec-pipeline --config config.yaml --pipe-key training_pipeline_small --steps 1:
@@ -39,8 +42,10 @@ This will load the dataset from memory and proceed with the training steps.
 
 ### Large Dataset Pipeline
 
-The large dataset pipeline is designed to handle massive datasets that are stored on disk. To generate this data, this project includes another SLURM job script,
-`synthetic_data_gen/data_generation.sh`, which generates a synthetic dataset for the Virgo gravitational wave detector use case.
+The large dataset pipeline is designed to handle massive datasets that are stored on disk.
+To generate this data, this project includes another SLURM job script,
+`synthetic_data_gen/data_generation.sh`, which generates a synthetic dataset for the
+Virgo gravitational wave detector use case.
 
 The synthetic data is generated using a Python script, `file_gen.py`, which creates multiple files
 containing simulated data. Each file is a pickled pandas dataframe containing `datapoints_per_file`
@@ -98,7 +103,7 @@ mlflow ui --backend-store-uri mllogs/mlflow > /dev/null 2>&1 &
 ## Running scaling tests
 
 Scaling tests provide information about how well the different distributed strategies scale.
-We have integrated them into this use case and you can run them using the scaling-test.sh script.´:
+We have integrated them into this use case and you can run them using the scaling-test.sh script:
 
 ```bash
 bash scaling-test.sh

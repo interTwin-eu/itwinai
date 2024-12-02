@@ -30,14 +30,14 @@ export MNIST_PATH="/ceph/hpc/data/st2301-itwin-users/mbunino/mnist" #"/p/project
 # - itwinai_torch3.sif: itwinai 0.2.2.dev2 torch2.4 - force distributed (OMPI v4.1)
 # - itwinai_torch4.sif: cmcc jlab container (OMPI v4.1)
 # - /ceph/hpc/data/st2301-itwin-users/mbunino/jlab_simple_reconstructed_nv_itwinai.sif: jlab container recostructed from simple (OMPI v4.1)
-export CONTAINER_PATH="/ceph/hpc/data/st2301-itwin-users/mbunino/jlab_simple_reconstructed_nv_itwinai.sif"
+export CONTAINER_PATH="container1.sif"
 
 # Disable pytest ANSI coloring
 export NO_COLOR=1
 
 export DIST_MODE="ddp"
 export RUN_NAME="ddp-itwinai"
-export COMMAND='pytest -v -m torch_dist'
+export COMMAND='pytest -v -m torch_dist /app/tests'
 sbatch  \
     --job-name="$RUN_NAME-n$N" \
     --output="logs_slurm/job-$RUN_NAME-n$N.out" \
@@ -46,7 +46,7 @@ sbatch  \
 
 export DIST_MODE="deepspeed"
 export RUN_NAME="ds-itwinai"
-export COMMAND='pytest -v -m deepspeed_dist'
+export COMMAND='pytest -v -m deepspeed_dist /app/tests'
 sbatch  \
     --job-name="$RUN_NAME-n$N" \
     --output="logs_slurm/job-$RUN_NAME-n$N.out" \
@@ -55,7 +55,7 @@ sbatch  \
 
 export DIST_MODE="horovod"
 export RUN_NAME="horovod-itwinai"
-export COMMAND="pytest -v -m horovod_dist"
+export COMMAND="pytest -v -m horovod_dist /app/tests"
 sbatch \
     --job-name="$RUN_NAME-n$N" \
     --output="logs_slurm/job-$RUN_NAME-n$N.out" \
