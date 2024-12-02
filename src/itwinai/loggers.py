@@ -600,7 +600,7 @@ class MLFlowLogger(Logger):
 
         if kind == "metric":
             mlflow.log_metric(key=identifier, value=item, step=step)
-        if kind == "artifact":
+        elif kind == "artifact":
             if not isinstance(item, str):
                 # Save the object locally and then log it
                 name = os.path.basename(identifier)
@@ -608,14 +608,14 @@ class MLFlowLogger(Logger):
                 save_path.mkdir(os.path.dirname(save_path), exist_ok=True)
                 item = self.serialize(item, save_path)
             mlflow.log_artifact(local_path=item, artifact_path=identifier)
-        if kind == "model":
+        elif kind == "model":
             import torch
 
             if isinstance(item, torch.nn.Module):
                 mlflow.pytorch.log_model(item, identifier)
             else:
                 print("WARNING: unrecognized model type")
-        if kind == "dataset":
+        elif kind == "dataset":
             # Log mlflow dataset
             # https://mlflow.org/docs/latest/python_api/mlflow.html#mlflow.log_input
             # It may be needed to convert item into a mlflow dataset, e.g.:
@@ -625,7 +625,7 @@ class MLFlowLogger(Logger):
                 mlflow.log_input(item)
             else:
                 print("WARNING: unrecognized dataset type. " "Must be an MLFlow dataset")
-        if kind == "torch":
+        elif kind == "torch":
             import torch
 
             # Save the object locally and then log it
@@ -635,19 +635,19 @@ class MLFlowLogger(Logger):
             torch.save(item, save_path)
             # Log into mlflow
             mlflow.log_artifact(local_path=save_path, artifact_path=identifier)
-        if kind == "dict":
+        elif kind == "dict":
             mlflow.log_dict(dictionary=item, artifact_file=identifier)
-        if kind == "figure":
+        elif kind == "figure":
             mlflow.log_figure(
                 artifact_file=identifier,
                 figure=item,
                 save_kwargs=kwargs.get("save_kwargs"),
             )
-        if kind == "image":
+        elif kind == "image":
             mlflow.log_image(artifact_file=identifier, image=item)
-        if kind == "param":
+        elif kind == "param":
             mlflow.log_param(key=identifier, value=item)
-        if kind == "text":
+        elif kind == "text":
             mlflow.log_text(artifact_file=identifier, text=item)
 
 
