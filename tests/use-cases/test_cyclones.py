@@ -43,12 +43,11 @@ def test_cyclones_train_tf(tf_env, install_requirements):
     """
     # TODO: create a small sample dataset for tests only
     install_requirements(CYCLONES_PATH, tf_env)
-    if os.environ.get("CMCCC_DATASET"):
-        dataset_path = os.environ.get("CMCCC_DATASET")
-    else:
-        dataset_path = "./data/tmp_data"
-    pipe = os.path.join(os.path.abspath(CYCLONES_PATH), "pipeline.yaml")
-    train = os.path.join(os.path.abspath(CYCLONES_PATH), "train.py")
-    cmd = f"{tf_env}/bin/python {train} " f"-p {pipe} --data_path {dataset_path}"
+
+    dataset_path = os.environ.get("CMCCC_DATASET", "./data/tmp_data")
+    pipe = CYCLONES_PATH / "pipeline.yaml"
+    train = CYCLONES_PATH / "train.py"
+
+    cmd = f"{tf_env}/bin/python {train.resolve()} " f"-p {pipe.resolve()} --data_path {dataset_path}"
     with tempfile.TemporaryDirectory() as tmpdirname:
         subprocess.run(cmd.split(), check=True, cwd=tmpdirname)

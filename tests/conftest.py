@@ -8,6 +8,7 @@
 # --------------------------------------------------------------------------------------
 
 import os
+from pathlib import Path
 
 import pytest
 
@@ -20,11 +21,8 @@ def torch_env() -> str:
 
     Returns absolute path to torch virtual environment.
     """
-    if os.environ.get("TORCH_ENV") is None:
-        env_p = "./.venv-pytorch"
-    else:
-        env_p = str(os.environ.get("TORCH_ENV"))
-    return os.path.abspath(env_p)
+    env_path = Path(os.environ.get("TORCH_ENV", "./.venv-pytorch"))
+    return str(env_path.resolve())
 
 
 @pytest.fixture
@@ -35,8 +33,5 @@ def tf_env() -> str:
 
     Returns absolute path to torch virtual environment.
     """
-    if os.environ.get("TF_ENV") is None:
-        env_p = "./.venv-tf"
-    else:
-        env_p = str(os.environ.get("TF_ENV"))
-    return os.path.abspath(env_p)
+    env_path = Path(os.environ.get("TF_ENV", "./.venv-tf"))
+    return str(env_path.resolve())
