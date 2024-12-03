@@ -16,8 +16,6 @@ import pandas as pd
 import seaborn as sns
 from matplotlib.patches import Patch
 
-# from itwinai.scalability import convert_matching_files_to_dataframe
-
 # Doing this because otherwise I get an error about X11 Forwarding which I believe
 # is due to the server trying to pass the image to the client computer
 matplotlib.use("Agg")
@@ -40,9 +38,15 @@ def calculate_comp_and_comm_time(df: pd.DataFrame) -> Tuple[float, float]:
             f"\nMissing columns: {missing_columns}"
         )
 
-    nccl_comm_pattern = (
-        r"ncclKernel_(?:AllReduce|Broadcast|Reduce|AllGather|ReduceScatter|SendRecv)"
-    )
+    comm_types = [
+        "AllReduce",
+        "Broadcast",
+        "Reduce",
+        "AllGather",
+        "Gather",
+        "ReduceScatter",
+    ]
+    nccl_comm_pattern = rf"(?:{'|'.join(comm_types)})"
     cuda_stream_pattern = r"cudaStream(?:WaitEvent|Synchronize)"
 
     # Any operation that is a part of PyTorch's ATen library is considered a computation
