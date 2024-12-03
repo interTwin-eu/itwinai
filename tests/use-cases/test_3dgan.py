@@ -38,10 +38,7 @@ def test_3dgan_train(torch_env, install_requirements):
     downloading it again.
     """
     install_requirements(CERN_PATH, torch_env)
-    if os.environ.get("CERN_DATASET"):
-        dataset_path = os.environ.get("CERN_DATASET")
-    else:
-        dataset_path = DEFAULT_DATASET_PATH
+    dataset_path = os.environ.get("CERN_DATASET", DEFAULT_DATASET_PATH)
     conf = (CERN_PATH / "config.yaml").resolve()
     cmd = (
         f"{torch_env}/bin/itwinai exec-pipeline "
@@ -72,10 +69,7 @@ def test_3dgan_inference(
     install_requirements(CERN_PATH, torch_env)
 
     # Test inference
-    if os.environ.get("CERN_DATASET"):
-        dataset_path = os.environ.get("CERN_DATASET")
-    else:
-        dataset_path = DEFAULT_DATASET_PATH
+    dataset_path = os.environ.get("CERN_DATASET", DEFAULT_DATASET_PATH)
 
     conf = (CERN_PATH / "config.yaml").resolve()
     exec = (CERN_PATH / "create_inference_sample.py").resolve()
