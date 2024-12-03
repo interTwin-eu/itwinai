@@ -5,12 +5,21 @@
 #
 # Credit:
 # - Matteo Bunino <matteo.bunino@cern.ch> - CERN
+# - Jarl Sondre Sæther <jarl.sondre.saether@cern.ch> - CERN
 # --------------------------------------------------------------------------------------
+import argparse
 
+import torch.nn as nn
+import torch.nn.functional as F
+from torch import device
+from torch.optim.optimizer import Optimizer
+from torch.utils.data import DataLoader, Subset
 from torchvision import datasets, transforms
 
+from itwinai.parser import ArgumentParser as ItwinaiArgParser
 
-def imagenet_dataset(data_root: str):
+
+def imagenet_dataset(data_root: str, subset_size: int | None = None):
     """Create a torch dataset object for Imagenet."""
     transform = transforms.Compose(
         [
@@ -25,4 +34,115 @@ def imagenet_dataset(data_root: str):
         ]
     )
     imagenet = datasets.ImageFolder(root=data_root, transform=transform)
-    return imagenet
+
+    if subset_size is None: 
+        # We do this because we always want to return an instance of a subset, to make
+        # everything as consistent as possible
+        subset_size = len(imagenet)
+    if subset_size > len(imagenet): 
+        raise ValueError("Limit higher than the total length of the dataset")
+
+    return Subset(imagenet, range(subset_size))
+
+
+def train_epoch(
+    model: nn.Module,
+    device: device,
+    train_loader: DataLoader,
+    optimizer: Optimizer,
+):
+    """Train a pytorch model for a single epoch with the given arguments."""
+
+    total_loss = 0
+    model.train()
+
+    for data, target in train_loader:
+        data, target = data.to(device), target.to(device)
+
+        optimizer.zero_grad()
+        output = model(data)
+        loss = F.nll_loss(output, target)
+        loss.backward()
+        optimizer.step()
+        total_loss += loss.item()
+
+    return total_loss
+
+
+def parse_params():
+    parser = ItwinaiArgParser(description="PyTorch Imagenet scaling test")
+
+    parser.add_argument(
+        "--data-dir",
+        default="./",
+        help=("location of the training dataset in the " "local filesystem"),
+    )
+    parser.add_argument(
+        "--log-int",
+        type=int,
+        default=10,
+        help="log interval per training. Disabled if < 0.",
+    )
+    parser.add_argument(
+        "--verbose",
+        action=argparse.BooleanOptionalAction,
+        help="Print parsed arguments",
+    )
+    parser.add_argument(
+        "--nworker",
+        type=int,
+        default=0,
+        help=("number of workers in DataLoader " "(default: 0 - only main)"),
+    )
+    parser.add_argument(
+        "--prefetch",
+        type=int,
+        default=2,
+        help="prefetch data in DataLoader (default: 2)",
+    )
+    parser.add_argument(
+        "--batch-size",
+        type=int,
+        default=64,
+        help="input batch size for training (default: 64)",
+    )
+    parser.add_argument(
+        "--epochs", type=int, default=10, help="number of epochs to train (default: 10)"
+    )
+    parser.add_argument(
+        "--lr", type=float, default=0.01, help="learning rate (default: 0.01)"
+    )
+    parser.add_argument(
+        "--momentum",
+        type=float,
+        default=0.5,
+        help="momentum in SGD optimizer (default: 0.5)",
+    )
+    parser.add_argument(
+        "--shuff",
+        action="store_true",
+        default=False,
+        help="shuffle dataset (default: False)",
+    )
+    parser.add_argument(
+        "--rnd-seed",
+        type=int,
+        default=None,
+        help="seed integer for reproducibility (default: 0)",
+    )
+    parser.add_argument(
+        "--backend",
+        type=str,
+        default="nccl",
+        help="backend for parallelisation (default: nccl)",
+    )
+    parser.add_argument(
+        "--no-cuda", action="store_true", default=False, help="disables GPGPUs"
+    )
+
+    args = parser.parse_args()
+
+    if args.verbose:
+        args_list = [f"{key}: {val}" for key, val in args.items()]
+        print("PARSED ARGS:\n", "\n".join(args_list))
+    return args

@@ -25,7 +25,7 @@ import torch.nn.functional as F
 from torch.utils.data import Dataset
 from torchvision import datasets, transforms
 
-from itwinai.parser import ArgumentParser as ItAIArgumentParser
+from itwinai.parser import ArgumentParser as ItwinaiArgParser
 from itwinai.torch.distributed import (
     DeepSpeedStrategy,
     HorovodStrategy,
@@ -44,7 +44,7 @@ def parse_params() -> argparse.Namespace:
 
     >>> train.py --strategy ddp --config config.yaml
     """
-    parser = ItAIArgumentParser(description="PyTorch MNIST Example")
+    parser = ItwinaiArgParser(description='PyTorch MNIST Example')
 
     # Distributed ML strategy
     parser.add_argument(
