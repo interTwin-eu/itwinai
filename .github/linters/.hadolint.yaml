@@ -1,0 +1,16 @@
+# --------------------------------------------------------------------------------------
+# Part of the interTwin Project: https://www.intertwin.eu/
+#
+# Created by: Matteo Bunino
+#
+# Credit:
+# - Matteo Bunino <matteo.bunino@cern.ch> - CERN
+# --------------------------------------------------------------------------------------
+
+failure-threshold: warning
+ignored:
+  - DL3008 # Pin versions in apt get install.
+  - DL3013 # Pin versions in pip. TODO: remove.
+  - DL4001 # Either use Wget or Curl but not both
+  - DL3003 # Use WORKDIR to switch to a directory
+  - DL3006 # Always tag the version of an image explicitly: https://github.com/hadolint/hadolint/issues/339

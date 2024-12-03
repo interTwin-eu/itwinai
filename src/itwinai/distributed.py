@@ -1,3 +1,12 @@
+# --------------------------------------------------------------------------------------
+# Part of the interTwin Project: https://www.intertwin.eu/
+#
+# Created by: Matteo Bunino
+#
+# Credit:
+# - Matteo Bunino <matteo.bunino@cern.ch> - CERN
+# --------------------------------------------------------------------------------------
+
 import abc
 import builtins as __builtin__
 import functools
@@ -13,6 +22,7 @@ class DistributedStrategy(abc.ABC):
 
 class ClusterEnvironment(BaseModel):
     """Stores information about distributed environment."""
+
     #: Global rank of current worker, in a distributed environment.
     #: ``global_rank==0`` identifies the main worker.
     #: Defaults to 0.
@@ -32,27 +42,29 @@ def detect_distributed_environment() -> ClusterEnvironment:
     """Detects distributed environment, extracting information like
     global ans local ranks, and world size.
     """
-    if os.getenv('TORCHELASTIC_RUN_ID') is not None:
+    if os.getenv("TORCHELASTIC_RUN_ID") is not None:
         # Torch elastic environment
         # https://pytorch.org/docs/stable/elastic/run.html#environment-variables
         return ClusterEnvironment(
-            global_rank=os.getenv('RANK'),
-            local_rank=os.getenv('LOCAL_RANK'),
-            local_world_size=os.getenv('LOCAL_WORLD_SIZE'),
-            global_world_size=os.getenv('WORLD_SIZE')
+            global_rank=os.getenv("RANK"),
+            local_rank=os.getenv("LOCAL_RANK"),
+            local_world_size=os.getenv("LOCAL_WORLD_SIZE"),
+            global_world_size=os.getenv("WORLD_SIZE"),
         )
-    elif os.getenv('OMPI_COMM_WORLD_SIZE') is not None:
+    elif os.getenv("OMPI_COMM_WORLD_SIZE") is not None:
         # Open MPI environment
         # https://docs.open-mpi.org/en/v5.0.x/tuning-apps/environment-var.html
         return ClusterEnvironment(
-            global_rank=os.getenv('OMPI_COMM_WORLD_RANK'),
-            local_rank=os.getenv('OMPI_COMM_WORLD_LOCAL_RANK'),
-            local_world_size=os.getenv('OMPI_COMM_WORLD_LOCAL_SIZE'),
-            global_world_size=os.getenv('OMPI_COMM_WORLD_SIZE')
+            global_rank=os.getenv("OMPI_COMM_WORLD_RANK"),
+            local_rank=os.getenv("OMPI_COMM_WORLD_LOCAL_RANK"),
+            local_world_size=os.getenv("OMPI_COMM_WORLD_LOCAL_SIZE"),
+            global_world_size=os.getenv("OMPI_COMM_WORLD_SIZE"),
         )
-    elif os.getenv('SLURM_JOB_ID') is not None:
-        print("WARNING: detected SLURM environment, but "
-              "unable to determine ranks and world sizes!")
+    elif os.getenv("SLURM_JOB_ID") is not None:
+        print(
+            "WARNING: detected SLURM environment, but "
+            "unable to determine ranks and world sizes!"
+        )
         return ClusterEnvironment()
     else:
         return ClusterEnvironment()
@@ -77,7 +89,7 @@ def distributed_patch_print(is_main: bool) -> Callable:
         the main one, unless the print is called with
         ``force=True`` argument.
         """
-        force = kwself.pop('force', False)
+        force = kwself.pop("force", False)
         if is_main or force:
             builtin_print(*args, **kwself)
 
@@ -85,11 +97,11 @@ def distributed_patch_print(is_main: bool) -> Callable:
 
 
 def suppress_workers_print(func: Callable) -> Callable:
-    """
-    Decorator to suppress ``print()`` calls in workers having global rank
+    """Decorator to suppress ``print()`` calls in workers having global rank
     different from 0. To force printing on all workers you need to use
     ``print(..., force=True)``.
     """
+
     @functools.wraps(func)
     def wrapper(*args, **kwargs) -> Any:
         # Disable print in workers different from the main one,
@@ -107,4 +119,5 @@ def suppress_workers_print(func: Callable) -> Callable:
         # Reset print to builtin
         __builtin__.print = previous_print_backup
         return result
+
     return wrapper

@@ -1,18 +1,29 @@
-"""Base TensorFlow trainer module."""
-from typing import Dict, Any, Optional, List, Union, Tuple
+# --------------------------------------------------------------------------------------
+# Part of the interTwin Project: https://www.intertwin.eu/
+#
+# Created by: Matteo Bunino
+#
+# Credit:
+# - Matteo Bunino <matteo.bunino@cern.ch> - CERN
+# --------------------------------------------------------------------------------------
 
-from jsonargparse import ArgumentParser
-import tensorflow as tf
-from tensorflow.data import Dataset
-from keras.callbacks import Callback
+"""Base TensorFlow trainer module."""
+
+from typing import Any, Dict, List, Optional, Tuple, Union
+
 import keras
+import tensorflow as tf
+from jsonargparse import ArgumentParser
+from keras.callbacks import Callback
+from tensorflow.data import Dataset
+
+from itwinai.tensorflow.distributed import get_strategy
 
 from ..components import Trainer, monitor_exec
-from itwinai.tensorflow.distributed import get_strategy
 
 
 def _import_class(name):
-    components = name.split('.')
+    components = name.split(".")
     mod = __import__(components[0])
     for comp in components[1:]:
         mod = getattr(mod, comp)
@@ -20,13 +31,12 @@ def _import_class(name):
 
 
 def _instance_from_dict(obj_dict: Dict, fail_untyped: bool = True) -> Any:
-    if isinstance(obj_dict, dict) and obj_dict.get('class_path') is not None:
+    if isinstance(obj_dict, dict) and obj_dict.get("class_path") is not None:
         # obj_dict is a dictionary with a structure compliant with
         # jsonargparse
         obj_class = _import_class(obj_dict["class_path"])
         parser = ArgumentParser()
-        parser.add_subclass_arguments(
-            obj_class, "object", fail_untyped=fail_untyped)
+        parser.add_subclass_arguments(obj_class, "object", fail_untyped=fail_untyped)
         obj_dict = {"object": obj_dict}
         return parser.instantiate_classes(obj_dict).object
 
@@ -40,23 +50,23 @@ def _instance_from_dict(obj_dict: Dict, fail_untyped: bool = True) -> Any:
 class TensorflowTrainer(Trainer):
     """Trains a Keras model.
 
-        Args:
-            epochs (int): number of training epochs.
-            micro_batch_size (int): per-worker batch size. Equals macro batch
-                size when not running distributed.
-            shuffle_buffer (Optional[int], optional): if given, shuffles
-                dataset using a buffer of given size. See
-                ``tf.data.Dataset.shuffle``. Defaults to None.
-            callbacks (Optional[List], optional): list fo Keras callbacks.
-                Can be a list of dictionary configurations. Defaults to None.
-            model_config (Optional[Dict], optional): model configuration. If
-                given, a model is instantiated from this configuration.
-                Defaults to None.
-            model_compile_config (Optional[Dict], optional): configuration for
-                ``keras.Model.compile``. Defaults to None.
-            rnd_seed (Optional[int], optional): random seed. Defaults to None.
-            verbose (Union[str, int], optional): verbosity level for
-                ``keras.Model.fit``. Defaults to 'auto'.
+    Args:
+        epochs (int): number of training epochs.
+        micro_batch_size (int): per-worker batch size. Equals macro batch
+            size when not running distributed.
+        shuffle_buffer (Optional[int], optional): if given, shuffles
+            dataset using a buffer of given size. See
+            ``tf.data.Dataset.shuffle``. Defaults to None.
+        callbacks (Optional[List], optional): list fo Keras callbacks.
+            Can be a list of dictionary configurations. Defaults to None.
+        model_config (Optional[Dict], optional): model configuration. If
+            given, a model is instantiated from this configuration.
+            Defaults to None.
+        model_compile_config (Optional[Dict], optional): configuration for
+            ``keras.Model.compile``. Defaults to None.
+        rnd_seed (Optional[int], optional): random seed. Defaults to None.
+        verbose (Union[str, int], optional): verbosity level for
+            ``keras.Model.fit``. Defaults to 'auto'.
     """
 
     #: TensorFlow distributed strategy.
@@ -86,7 +96,7 @@ class TensorflowTrainer(Trainer):
         model_config: Optional[Dict] = None,
         model_compile_config: Optional[Dict] = None,
         rnd_seed: Optional[int] = None,
-        verbose: Union[str, int] = 'auto'
+        verbose: Union[str, int] = "auto",
     ):
         super().__init__()
         self.save_parameters(**self.locals2params(locals()))
@@ -102,18 +112,14 @@ class TensorflowTrainer(Trainer):
 
         # Distributed strategy
         self.strategy, self.num_workers = get_strategy()
-        print(
-            f"Distributed strategy is working with: {self.num_workers} devices"
-        )
+        print(f"Distributed strategy is working with: {self.num_workers} devices")
         self.macro_batch_size = self.micro_batch_size * self.num_workers
 
         # Compile model from configuration, if given
         if model_config is not None and model_compile_config is not None:
             with self.strategy.scope():
                 self.model: tf.keras.Model = _instance_from_dict(model_config)
-                model_compile_config = self.instantiate_compile_conf(
-                    model_compile_config
-                )
+                model_compile_config = self.instantiate_compile_conf(model_compile_config)
                 self.model.compile(**model_compile_config)
         else:
             print(
@@ -142,9 +148,7 @@ class TensorflowTrainer(Trainer):
         return final_conf
 
     @staticmethod
-    def instantiate_callbacks(
-        callbacks: List[Union[Dict, Callback]]
-    ) -> List[Callback]:
+    def instantiate_callbacks(callbacks: List[Union[Dict, Callback]]) -> List[Callback]:
         """Instantiate Keras callbacks from dictionaries.
 
         Args:
@@ -168,7 +172,7 @@ class TensorflowTrainer(Trainer):
         self,
         train_dataset: Dataset,
         validation_dataset: Dataset,
-        test_dataset: Optional[Dataset] = None
+        test_dataset: Optional[Dataset] = None,
     ) -> Tuple[Dataset, Dataset, Dataset, keras.Model]:
         """Run training. Users should override this method.
 
@@ -193,34 +197,26 @@ class TensorflowTrainer(Trainer):
 
         # Shuffle dataset
         if self.shuffle_buffer:
-            train_ds = train_dataset.shuffle(
-                self.shuffle_buffer, seed=self.rnd_seed)
-            valid_ds = validation_dataset.shuffle(
-                self.shuffle_buffer, seed=self.rnd_seed)
+            train_ds = train_dataset.shuffle(self.shuffle_buffer, seed=self.rnd_seed)
+            valid_ds = validation_dataset.shuffle(self.shuffle_buffer, seed=self.rnd_seed)
         else:
             train_ds = train_dataset
             valid_ds = validation_dataset
 
         # Set batch size to the dataset and repeat
         train_ds = train_ds.batch(
-            self.macro_batch_size, drop_remainder=True,
-            num_parallel_calls=tf.data.AUTOTUNE
+            self.macro_batch_size, drop_remainder=True, num_parallel_calls=tf.data.AUTOTUNE
         ).repeat(self.epochs)
         valid_ds = valid_ds.batch(
-            self.macro_batch_size, drop_remainder=True,
-            num_parallel_calls=tf.data.AUTOTUNE
+            self.macro_batch_size, drop_remainder=True, num_parallel_calls=tf.data.AUTOTUNE
         ).repeat(self.epochs)
 
         print(f"len(train_ds): {len(train_ds)}")
         print(f"len(valid_ds): {len(valid_ds)}")
 
         # Distribute datasets among strategy's replica
-        dist_train_dataset = self.strategy.experimental_distribute_dataset(
-            train_ds
-        )
-        dist_valid_dataset = self.strategy.experimental_distribute_dataset(
-            valid_ds
-        )
+        dist_train_dataset = self.strategy.experimental_distribute_dataset(train_ds)
+        dist_valid_dataset = self.strategy.experimental_distribute_dataset(valid_ds)
 
         print(f"len(dist_train_dataset): {len(train_ds)}")
         print(f"len(dist_train_dataset): {len(valid_ds)}")
@@ -254,7 +250,7 @@ class TensorflowTrainer(Trainer):
             validation_steps=validation_steps,
             epochs=self.epochs,
             callbacks=self.callbacks,
-            verbose=self.verbose
+            verbose=self.verbose,
         )
         print("Training completed")
         return train_dataset, validation_dataset, test_dataset, self.model

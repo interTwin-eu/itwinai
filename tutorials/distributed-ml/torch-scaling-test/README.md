@@ -1,5 +1,7 @@
 # Scaling tests for PyTorch of ResNet152 on Imagenet
 
+**Author(s)**: Matteo Bunino (CERN)
+
 ## Introduction
 
 This tutorial contains six training configurations: three baselines plus the itwinai
@@ -32,9 +34,8 @@ python ddp_trainer.py -c config/base.yaml -c config/ddp.yaml --log-int 42
 ## Run a single training
 
 Training runs are meant to be submitted via SLURM, from a unified job script file:
-`slurm.sh`.
-You can select the distributed training algorithm and provide the command to execute
-setting SLURM environment variables using the `--export` option:
+`slurm.sh`. You can select the distributed training algorithm and provide the command
+to execute setting SLURM environment variables using the `--export` option:
 
 ```bash
 # Launch a distributed training setup with Torch DDP

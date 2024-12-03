@@ -1,3 +1,12 @@
+# --------------------------------------------------------------------------------------
+# Part of the interTwin Project: https://www.intertwin.eu/
+#
+# Created by: Matteo Bunino
+#
+# Credit:
+# - Matteo Bunino <matteo.bunino@cern.ch> - CERN
+# --------------------------------------------------------------------------------------
+
 import lightning as L
 import torch
 import torch.nn as nn
@@ -5,8 +14,7 @@ from torch.nn import functional as F
 
 
 class MNISTModel(L.LightningModule):
-    """
-    Simple PL model for MNIST.
+    """Simple PL model for MNIST.
     Adapted from
     https://lightning.ai/docs/pytorch/stable/notebooks/lightning_examples/mnist-hello-world.html
     """

@@ -1,5 +1,8 @@
 Distributed Data Parallelism
 ----------------------------------
+
+**Author(s)**: Killian Verder (CERN),  Matteo Bunino (CERN)
+
 Deep neural networks (DNN) are often extremely large and are trained on massive amounts of data, more than most computers have memory for.
 Even smaller DNNs can take days to train. 
 Distributed Data Parallel (DDP) addresses these two issues, long training times and limited memory, by using multiple machines to host and train both model and data.

@@ -1,3 +1,13 @@
+# --------------------------------------------------------------------------------------
+# Part of the interTwin Project: https://www.intertwin.eu/
+#
+# Created by: Roman Machacek
+#
+# Credit:
+# - Roman Machacek <roman.machacek@cern.ch> - CERN
+# - Matteo Bunino <matteo.bunino@cern.ch> - CERN
+# --------------------------------------------------------------------------------------
+
 """
 Training pipeline. To run this script, use the following commands.
 
@@ -39,8 +49,7 @@ def dynamic_config(args) -> Dict:
     FORMATTED_DATETIME = str(datetime.now().strftime("%Y-%m-%d_%H-%M-%S"))
     MODEL_BACKUP_DIR = join(args.root_dir, "models/")
     EXPERIMENTS_DIR = join(args.root_dir, "experiments")
-    RUN_DIR = join(EXPERIMENTS_DIR, args.run_name +
-                   "_" + FORMATTED_DATETIME)
+    RUN_DIR = join(EXPERIMENTS_DIR, args.run_name + "_" + FORMATTED_DATETIME)
     SCALER_DIR = join(RUN_DIR, "scalers")
     TENSORBOARD_DIR = join(RUN_DIR, "tensorboard")
     CHECKPOINTS_DIR = join(RUN_DIR, "checkpoints")
@@ -83,19 +92,24 @@ def dynamic_config(args) -> Dict:
 if __name__ == "__main__":
     parser = ArgumentParser()
     parser.add_argument(
-        "-p", "--pipeline", type=str, required=True,
-        help='Configuration file to the pipeline to execute.'
+        "-p",
+        "--pipeline",
+        type=str,
+        required=True,
+        help="Configuration file to the pipeline to execute.",
     )
-    parser.add_argument("-r", "--root_dir", type=str, default='./data')
-    parser.add_argument("--data_path", type=str,
-                        default='./data/data_path')
+    parser.add_argument("-r", "--root_dir", type=str, default="./data")
+    parser.add_argument("--data_path", type=str, default="./data/data_path")
     parser.add_argument("-n", "--run_name", default="noname", type=str)
     parser.add_argument(
-        '-d', '--download-only',
+        "-d",
+        "--download-only",
         action=argparse.BooleanOptionalAction,
         default=False,
-        help=('Whether to download only the dataset and exit execution '
-              '(suggested on login nodes of HPC systems)')
+        help=(
+            "Whether to download only the dataset and exit execution "
+            "(suggested on login nodes of HPC systems)"
+        ),
     )
 
     args = parser.parse_args()
@@ -104,17 +118,12 @@ if __name__ == "__main__":
     # Create parser for the pipeline
     pipe_parser = ConfigParser(
         config=args.pipeline,
-        override_keys={
-            "dataset_root": args.data_path,
-            "global_config": global_config
-        }
+        override_keys={"dataset_root": args.data_path, "global_config": global_config},
     )
-    pipeline = pipe_parser.parse_pipeline(
-        pipeline_nested_key='training_pipeline'
-    )
+    pipeline = pipe_parser.parse_pipeline(pipeline_nested_key="training_pipeline")
 
     if args.download_only:
-        print('Downloading datasets and exiting...')
+        print("Downloading datasets and exiting...")
         pipeline = pipeline[:1]
 
     pipeline.execute()

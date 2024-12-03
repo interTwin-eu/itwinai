@@ -1,5 +1,16 @@
-import keras
+# --------------------------------------------------------------------------------------
+# Part of the interTwin Project: https://www.intertwin.eu/
+#
+# Created by: Matteo Bunino
+#
+# Credit:
+# - Matteo Bunino <matteo.bunino@cern.ch> - CERN
+# --------------------------------------------------------------------------------------
+
+
 import json
+
+import keras
 
 
 def model_to_json(model: keras.Model, filepath: str):

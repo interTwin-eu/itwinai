@@ -1,75 +1,102 @@
-"""
-Scaling test of torch Distributed Data Parallel on Imagenet using Resnet.
-"""
-from typing import Optional
+# --------------------------------------------------------------------------------------
+# Part of the interTwin Project: https://www.intertwin.eu/
+#
+# Created by: Matteo Bunino
+#
+# Credit:
+# - Matteo Bunino <matteo.bunino@cern.ch> - CERN
+# --------------------------------------------------------------------------------------
+
+"""Scaling test of torch Distributed Data Parallel on Imagenet using Resnet."""
+
 import argparse
-import sys
 import os
-from timeit import default_timer as timer
+import sys
 import time
+from timeit import default_timer as timer
+from typing import Optional
 
 import torch
 import torch.distributed as dist
 import torch.nn as nn
 import torch.nn.functional as F
+import torchvision
 from torch.utils.data import DataLoader
 from torch.utils.data.distributed import DistributedSampler
-import torchvision
-
-from itwinai.parser import ArgumentParser as ItAIArgumentParser
-from itwinai.loggers import EpochTimeTracker
-from itwinai.torch.reproducibility import (
-    seed_worker, set_seed
-)
-
 from utils import imagenet_dataset
+
+from itwinai.loggers import EpochTimeTracker
+from itwinai.parser import ArgumentParser as ItAIArgumentParser
+from itwinai.torch.reproducibility import seed_worker, set_seed
 
 
 def parse_params():
-    parser = ItAIArgumentParser(description='PyTorch Imagenet scaling test')
+    parser = ItAIArgumentParser(description="PyTorch Imagenet scaling test")
 
     # Data and logging
-    parser.add_argument('--data-dir', default='./',
-                        help=('location of the training dataset in the '
-                              'local filesystem'))
-    parser.add_argument('--log-int', type=int, default=10,
-                        help='log interval per training. Disabled if < 0.')
-    parser.add_argument('--verbose',
-                        action=argparse.BooleanOptionalAction,
-                        help='Print parsed arguments')
-    parser.add_argument('--nworker', type=int, default=0,
-                        help=('number of workers in DataLoader '
-                              '(default: 0 - only main)'))
-    parser.add_argument('--prefetch', type=int, default=2,
-                        help='prefetch data in DataLoader (default: 2)')
+    parser.add_argument(
+        "--data-dir",
+        default="./",
+        help=("location of the training dataset in the " "local filesystem"),
+    )
+    parser.add_argument(
+        "--log-int", type=int, default=10, help="log interval per training. Disabled if < 0."
+    )
+    parser.add_argument(
+        "--verbose", action=argparse.BooleanOptionalAction, help="Print parsed arguments"
+    )
+    parser.add_argument(
+        "--nworker",
+        type=int,
+        default=0,
+        help=("number of workers in DataLoader " "(default: 0 - only main)"),
+    )
+    parser.add_argument(
+        "--prefetch", type=int, default=2, help="prefetch data in DataLoader (default: 2)"
+    )
 
     # Model
-    parser.add_argument('--batch-size', type=int, default=64,
-                        help='input batch size for training (default: 64)')
-    parser.add_argument('--epochs', type=int, default=10,
-                        help='number of epochs to train (default: 10)')
-    parser.add_argument('--lr', type=float, default=0.01,
-                        help='learning rate (default: 0.01)')
-    parser.add_argument('--momentum', type=float, default=0.5,
-                        help='momentum in SGD optimizer (default: 0.5)')
-    parser.add_argument('--shuff', action='store_true', default=False,
-                        help='shuffle dataset (default: False)')
+    parser.add_argument(
+        "--batch-size",
+        type=int,
+        default=64,
+        help="input batch size for training (default: 64)",
+    )
+    parser.add_argument(
+        "--epochs", type=int, default=10, help="number of epochs to train (default: 10)"
+    )
+    parser.add_argument("--lr", type=float, default=0.01, help="learning rate (default: 0.01)")
+    parser.add_argument(
+        "--momentum", type=float, default=0.5, help="momentum in SGD optimizer (default: 0.5)"
+    )
+    parser.add_argument(
+        "--shuff", action="store_true", default=False, help="shuffle dataset (default: False)"
+    )
 
     # Reproducibility
-    parser.add_argument('--rnd-seed', type=Optional[int], default=None,
-                        help='seed integer for reproducibility (default: 0)')
+    parser.add_argument(
+        "--rnd-seed",
+        type=Optional[int],
+        default=None,
+        help="seed integer for reproducibility (default: 0)",
+    )
 
     # Distributed ML
-    parser.add_argument('--backend', type=str, default='nccl',
-                        help='backend for parrallelisation (default: nccl)')
-    parser.add_argument('--no-cuda', action='store_true', default=False,
-                        help='disables GPGPUs')
+    parser.add_argument(
+        "--backend",
+        type=str,
+        default="nccl",
+        help="backend for parrallelisation (default: nccl)",
+    )
+    parser.add_argument(
+        "--no-cuda", action="store_true", default=False, help="disables GPGPUs"
+    )
 
     args = parser.parse_args()
 
     if args.verbose:
         args_list = [f"{key}: {val}" for key, val in args.items()]
-        print("PARSED ARGS:\n", '\n'.join(args_list))
+        print("PARSED ARGS:\n", "\n".join(args_list))
     return args
 
 
@@ -91,14 +118,15 @@ def train(model, device, train_loader, optimizer, epoch, grank, gwsize, args):
         optimizer.step()
         if grank == 0 and args.log_int > 0 and batch_idx % args.log_int == 0:
             print(
-                f'Train epoch: {epoch} [{batch_idx * len(data)}/'
-                f'{len(train_loader.dataset) / gwsize} '
-                f'({100.0 * batch_idx / len(train_loader):.0f}%)]\t\tLoss: '
-                f'{loss.item():.6f}')
+                f"Train epoch: {epoch} [{batch_idx * len(data)}/"
+                f"{len(train_loader.dataset) / gwsize} "
+                f"({100.0 * batch_idx / len(train_loader):.0f}%)]\t\tLoss: "
+                f"{loss.item():.6f}"
+            )
         t_list.append(timer() - t)
         loss_acc += loss.item()
     if grank == 0:
-        print('TIMER: train time', sum(t_list) / len(t_list), 's')
+        print("TIMER: train time", sum(t_list) / len(t_list), "s")
     return loss_acc
 
 
@@ -129,9 +157,9 @@ def main():
     if is_distributed:
         # get job rank info - rank==0 master gpu
         lwsize = torch.cuda.device_count()  # local world size - per run
-        gwsize = dist.get_world_size()      # global world size - per run
-        grank = dist.get_rank()             # global rank - assign per run
-        lrank = dist.get_rank() % lwsize    # local rank - assign per node
+        gwsize = dist.get_world_size()  # global world size - per run
+        grank = dist.get_rank()  # global rank - assign per run
+        lrank = dist.get_rank() % lwsize  # local rank - assign per node
     else:
         # Use a single worker (either on GPU or CPU)
         lwsize = 1
@@ -140,24 +168,24 @@ def main():
         lrank = 0
 
     if grank == 0:
-        print('TIMER: initialise:', timer()-st, 's')
-        print('DEBUG: local ranks:', lwsize, '/ global ranks:', gwsize)
-        print('DEBUG: sys.version:', sys.version)
-        print('DEBUG: args.data_dir:', args.data_dir)
-        print('DEBUG: args.log_int:', args.log_int)
-        print('DEBUG: args.nworker:', args.nworker)
-        print('DEBUG: args.prefetch:', args.prefetch)
-        print('DEBUG: args.batch_size:', args.batch_size)
-        print('DEBUG: args.epochs:', args.epochs)
-        print('DEBUG: args.lr:', args.lr)
-        print('DEBUG: args.momentum:', args.momentum)
-        print('DEBUG: args.shuff:', args.shuff)
-        print('DEBUG: args.rnd_seed:', args.rnd_seed)
-        print('DEBUG: args.backend:', args.backend)
-        print('DEBUG: args.no_cuda:', args.no_cuda, '\n')
+        print("TIMER: initialise:", timer() - st, "s")
+        print("DEBUG: local ranks:", lwsize, "/ global ranks:", gwsize)
+        print("DEBUG: sys.version:", sys.version)
+        print("DEBUG: args.data_dir:", args.data_dir)
+        print("DEBUG: args.log_int:", args.log_int)
+        print("DEBUG: args.nworker:", args.nworker)
+        print("DEBUG: args.prefetch:", args.prefetch)
+        print("DEBUG: args.batch_size:", args.batch_size)
+        print("DEBUG: args.epochs:", args.epochs)
+        print("DEBUG: args.lr:", args.lr)
+        print("DEBUG: args.momentum:", args.momentum)
+        print("DEBUG: args.shuff:", args.shuff)
+        print("DEBUG: args.rnd_seed:", args.rnd_seed)
+        print("DEBUG: args.backend:", args.backend)
+        print("DEBUG: args.no_cuda:", args.no_cuda, "\n")
 
     # Encapsulate the model on the GPU assigned to the current process
-    device = torch.device('cuda' if use_cuda else 'cpu', lrank)
+    device = torch.device("cuda" if use_cuda else "cpu", lrank)
     if use_cuda:
         torch.cuda.set_device(lrank)
 
@@ -171,20 +199,26 @@ def main():
         # the current distributed group.
         train_sampler = DistributedSampler(
             train_dataset,  # num_replicas=gwsize, rank=grank,
-            shuffle=(args.shuff and args.rnd_seed is None)
+            shuffle=(args.shuff and args.rnd_seed is None),
         )
 
         train_loader = DataLoader(
-            train_dataset, batch_size=args.batch_size,
-            sampler=train_sampler, num_workers=args.nworker, pin_memory=True,
+            train_dataset,
+            batch_size=args.batch_size,
+            sampler=train_sampler,
+            num_workers=args.nworker,
+            pin_memory=True,
             persistent_workers=(args.nworker > 1),
-            prefetch_factor=args.prefetch, generator=torch_prng,
-            worker_init_fn=seed_worker
+            prefetch_factor=args.prefetch,
+            generator=torch_prng,
+            worker_init_fn=seed_worker,
         )
     else:
         train_loader = DataLoader(
-            train_dataset, batch_size=args.batch_size, generator=torch_prng,
-            worker_init_fn=seed_worker
+            train_dataset,
+            batch_size=args.batch_size,
+            generator=torch_prng,
+            worker_init_fn=seed_worker,
         )
 
     # Create CNN model
@@ -193,23 +227,22 @@ def main():
     # Distribute model to workers
     if is_distributed:
         model = nn.parallel.DistributedDataParallel(
-            model,
-            device_ids=[device],
-            output_device=device)
+            model, device_ids=[device], output_device=device
+        )
 
     # Optimizer
-    optimizer = torch.optim.SGD(
-        model.parameters(), lr=args.lr, momentum=args.momentum)
+    optimizer = torch.optim.SGD(model.parameters(), lr=args.lr, momentum=args.momentum)
 
     # Start training loop
     if grank == 0:
-        print('TIMER: broadcast:', timer()-st, 's')
-        print('\nDEBUG: start training')
-        print('--------------------------------------------------------')
-        nnod = os.environ.get('SLURM_NNODES', 'unk')
+        print("TIMER: broadcast:", timer() - st, "s")
+        print("\nDEBUG: start training")
+        print("--------------------------------------------------------")
+        nnod = os.environ.get("SLURM_NNODES", "unk")
         epoch_time_tracker = EpochTimeTracker(
-            series_name="ddp-bl",
-            csv_file=f"epochtime_ddp-bl_{nnod}N.csv"
+            strategy_name="ddp-bl",
+            save_path=f"epochtime_ddp-bl_{nnod}N.csv",
+            num_nodes=int(nnod),
         )
 
     et = timer()
@@ -222,41 +255,44 @@ def main():
             train_sampler.set_epoch(epoch)
 
         # Training
-        train(model, device, train_loader,
-              optimizer, epoch, grank, gwsize, args)
+        train(model, device, train_loader, optimizer, epoch, grank, gwsize, args)
         # Save first epoch timer
         if epoch == start_epoch:
-            first_ep_t = timer()-lt
+            first_ep_t = timer() - lt
 
         # Final epoch
         if epoch + 1 == args.epochs:
             train_loader.last_epoch = True
 
         if grank == 0:
-            print('TIMER: epoch time:', timer() - lt, 's')
-            epoch_time_tracker.add_epoch_time(epoch-1, timer() - lt)
+            print("TIMER: epoch time:", timer() - lt, "s")
+            epoch_time_tracker.add_epoch_time(epoch - 1, timer() - lt)
 
     if is_distributed:
         dist.barrier()
 
     if grank == 0:
-        print('\n--------------------------------------------------------')
-        print('DEBUG: training results:\n')
-        print('TIMER: first epoch time:', first_ep_t, ' s')
-        print('TIMER: last epoch time:', timer() - lt, ' s')
-        print('TIMER: average epoch time:', (timer() - et)/args.epochs, ' s')
-        print('TIMER: total epoch time:', timer() - et, ' s')
+        print("\n--------------------------------------------------------")
+        print("DEBUG: training results:\n")
+        print("TIMER: first epoch time:", first_ep_t, " s")
+        print("TIMER: last epoch time:", timer() - lt, " s")
+        print("TIMER: average epoch time:", (timer() - et) / args.epochs, " s")
+        print("TIMER: total epoch time:", timer() - et, " s")
         if epoch > 1:
-            print('TIMER: total epoch-1 time:',
-                  timer() - et - first_ep_t, ' s')
-            print('TIMER: average epoch-1 time:',
-                  (timer() - et - first_ep_t) / (args.epochs - 1), ' s')
+            print("TIMER: total epoch-1 time:", timer() - et - first_ep_t, " s")
+            print(
+                "TIMER: average epoch-1 time:",
+                (timer() - et - first_ep_t) / (args.epochs - 1),
+                " s",
+            )
         if use_cuda:
-            print('DEBUG: memory req:',
-                  int(torch.cuda.memory_reserved(lrank) / 1024 / 1024), 'MB')
-            print('DEBUG: memory summary:\n\n',
-                  torch.cuda.memory_summary(0))
-        print(f'TIMER: final time: {timer() - st} s\n')
+            print(
+                "DEBUG: memory req:",
+                int(torch.cuda.memory_reserved(lrank) / 1024 / 1024),
+                "MB",
+            )
+            print("DEBUG: memory summary:\n\n", torch.cuda.memory_summary(0))
+        print(f"TIMER: final time: {timer() - st} s\n")
 
     time.sleep(1)
     print(f"<Global rank: {grank}> - TRAINING FINISHED")

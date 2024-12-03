@@ -1,10 +1,22 @@
+# --------------------------------------------------------------------------------------
+# Part of the interTwin Project: https://www.intertwin.eu/
+#
+# Created by: Matteo Bunino
+#
+# Credit:
+# - Matteo Bunino <matteo.bunino@cern.ch> - CERN
+# - Anna Lappe <anna.elisa.lappe@cern.ch> - CERN
+# - Jarl Sondre Sæther <jarl.sondre.saether@cern.ch> - CERN
+# - Henry Mutegeki <henry.mutegeki@cern.ch> - CERN
+# --------------------------------------------------------------------------------------
+
+
 """Provides training logic for PyTorch models via Trainer classes."""
 
 import os
 import sys
 from typing import Any, Callable, Dict, List, Literal, Optional, Tuple, Union
 
-import horovod.torch as hvd
 import lightning as L
 import matplotlib.pyplot as plt
 import numpy as np
@@ -65,6 +77,7 @@ class TorchTrainer(Trainer, LogMixin):
             ``checkpoint_every`` epochs. Disabled if None. Defaults to None.
         name (Optional[str], optional): trainer custom name. Defaults to None.
     """
+
     # TODO:
     #   - extract BaseTorchTrainer and extend it creating a set of trainer
     #     templates (e.g.. GAN, Classifier, Transformer) allowing scientists
@@ -106,7 +119,7 @@ class TorchTrainer(Trainer, LogMixin):
         config: Union[Dict, TrainingConfiguration],
         epochs: int,
         model: Optional[Union[nn.Module, str]] = None,
-        strategy: Optional[Literal["ddp", "deepspeed", "horovod"]] = 'ddp',
+        strategy: Optional[Literal["ddp", "deepspeed", "horovod"]] = "ddp",
         validation_every: Optional[int] = 1,
         test_every: Optional[int] = None,
         random_seed: Optional[int] = None,
@@ -114,7 +127,9 @@ class TorchTrainer(Trainer, LogMixin):
         metrics: Optional[Dict[str, Metric]] = None,
         checkpoints_location: str = "checkpoints",
         checkpoint_every: Optional[int] = None,
-        name: Optional[str] = None
+        name: Optional[str] = None,
+        profiling_wait_epochs: int = 1,
+        profiling_warmup_epochs: int = 2,
     ) -> None:
         super().__init__(name)
         self.save_parameters(**self.locals2params(locals()))
@@ -137,6 +152,8 @@ class TorchTrainer(Trainer, LogMixin):
         os.makedirs(self.checkpoints_location, exist_ok=True)
         self.checkpoint_every = checkpoint_every
         self.profiler = None
+        self.profiling_wait_epochs = profiling_wait_epochs
+        self.profiling_warmup_epochs = profiling_warmup_epochs
 
     @property
     def strategy(self) -> TorchDistributedStrategy:
@@ -158,48 +175,47 @@ class TorchTrainer(Trainer, LogMixin):
     def _detect_strategy(self, strategy: str) -> TorchDistributedStrategy:
         if strategy is None or not distributed_resources_available():
             print("WARNING: falling back to non-distributed strategy.")
-            dist_str = NonDistributedStrategy()
-        elif strategy == 'ddp':
-            dist_str = TorchDDPStrategy(backend='nccl')
-        elif strategy == 'horovod':
-            dist_str = HorovodStrategy()
-        elif strategy == 'deepspeed':
-            dist_str = DeepSpeedStrategy(backend='nccl')
+            strategy_obj = NonDistributedStrategy()
+        elif strategy == "ddp":
+            strategy_obj = TorchDDPStrategy(backend="nccl")
+        elif strategy == "horovod":
+            strategy_obj = HorovodStrategy()
+        elif strategy == "deepspeed":
+            strategy_obj = DeepSpeedStrategy(backend="nccl")
         else:
-            raise NotImplementedError(
-                f"Strategy '{strategy}' is not recognized/implemented.")
-        return dist_str
+            raise NotImplementedError(f"Strategy '{strategy}' is not recognized/implemented.")
+        return strategy_obj
 
     def _init_distributed_strategy(self) -> None:
         if not self.strategy.is_initialized:
             self.strategy.init()
 
     def _optimizer_from_config(self) -> None:
-        if self.config.optimizer == 'adadelta':
+        if self.config.optimizer == "adadelta":
             self.optimizer = optim.Adadelta(
                 self.model.parameters(),
                 lr=self.config.optim_lr,
-                weight_decay=self.config.optim_weight_decay
+                weight_decay=self.config.optim_weight_decay,
             )
-        elif self.config.optimizer == 'adam':
+        elif self.config.optimizer == "adam":
             self.optimizer = optim.Adam(
                 self.model.parameters(),
                 lr=self.config.optim_lr,
-                weight_decay=self.config.optim_weight_decay
+                weight_decay=self.config.optim_weight_decay,
             )
-        elif self.config.optimizer == 'rmsprop':
+        elif self.config.optimizer == "rmsprop":
             self.optimizer = optim.RMSprop(
                 self.model.parameters(),
                 lr=self.config.optim_lr,
                 weight_decay=self.config.optim_weight_decay,
-                momentum=self.config.optim_momentum
+                momentum=self.config.optim_momentum,
             )
-        elif self.config.optimizer == 'sgd':
+        elif self.config.optimizer == "sgd":
             self.optimizer = optim.SGD(
                 self.model.parameters(),
                 lr=self.config.optim_lr,
                 weight_decay=self.config.optim_weight_decay,
-                momentum=self.config.optim_momentum
+                momentum=self.config.optim_momentum,
             )
         else:
             raise ValueError(
@@ -209,11 +225,11 @@ class TorchTrainer(Trainer, LogMixin):
             )
 
     def _loss_from_config(self) -> None:
-        if self.config.loss == 'nllloss':
+        if self.config.loss == "nllloss":
             self.loss = nn.functional.nll_loss
-        elif self.config.loss == 'cross_entropy':
+        elif self.config.loss == "cross_entropy":
             self.loss = nn.functional.cross_entropy
-        elif self.config.loss == 'mse':
+        elif self.config.loss == "mse":
             self.loss = nn.functional.mse_loss
         else:
             raise ValueError(
@@ -221,6 +237,31 @@ class TorchTrainer(Trainer, LogMixin):
                 "supported values and consider overriding "
                 "create_model_loss_optimizer method for more flexibility."
             )
+
+    def get_default_distributed_kwargs(self) -> Dict:
+        """Gives the default kwargs for the trainer's strategy's distributed() method."""
+
+        if isinstance(self.strategy, DeepSpeedStrategy):
+            # Batch size definition is not optional for DeepSpeedStrategy!
+            distribute_kwargs = dict(
+                config_params=dict(train_micro_batch_size_per_gpu=self.config.batch_size)
+            )
+        elif isinstance(self.strategy, HorovodStrategy):
+            import horovod.torch as hvd
+
+            distribute_kwargs = dict(
+                compression=(
+                    hvd.Compression.fp16
+                    if self.config.fp16_allreduce
+                    else hvd.Compression.none
+                ),
+                op=hvd.Adasum if self.config.use_adasum else hvd.Average,
+                gradient_predivide_factor=self.config.gradient_predivide_factor,
+            )
+        else:
+            distribute_kwargs = {}
+
+        return distribute_kwargs
 
     def create_model_loss_optimizer(self) -> None:
         """
@@ -248,33 +289,10 @@ class TorchTrainer(Trainer, LogMixin):
         self._loss_from_config()
 
         # IMPORTANT: model, optimizer, and scheduler need to be distributed
-
-        # First, define strategy-wise optional configurations
-        if isinstance(self.strategy, DeepSpeedStrategy):
-            # Batch size definition is not optional for DeepSpeedStrategy!
-            distribute_kwargs = dict(
-                config_params=dict(
-                    train_micro_batch_size_per_gpu=self.config.batch_size
-                )
-            )
-        elif isinstance(self.strategy, HorovodStrategy):
-            distribute_kwargs = dict(
-                compression=(
-                    hvd.Compression.fp16 if self.config.fp16_allreduce
-                    else hvd.Compression.none
-                ),
-                op=hvd.Adasum if self.config.use_adasum else hvd.Average,
-                gradient_predivide_factor=self.config.gradient_predivide_factor
-            )
-        else:
-            distribute_kwargs = {}
+        distribute_kwargs = self.get_default_distributed_kwargs()
 
         # Distributed model, optimizer, and scheduler
-        (
-            self.model,
-            self.optimizer,
-            self.lr_scheduler
-        ) = self.strategy.distributed(
+        (self.model, self.optimizer, self.lr_scheduler) = self.strategy.distributed(
             self.model, self.optimizer, self.lr_scheduler, **distribute_kwargs
         )
 
@@ -282,7 +300,7 @@ class TorchTrainer(Trainer, LogMixin):
         self,
         train_dataset: Dataset,
         validation_dataset: Optional[Dataset] = None,
-        test_dataset: Optional[Dataset] = None
+        test_dataset: Optional[Dataset] = None,
     ) -> None:
         """
         Create train, validation and test dataloaders using the
@@ -307,7 +325,7 @@ class TorchTrainer(Trainer, LogMixin):
             num_workers=self.config.num_workers_dataloader,
             pin_memory=self.config.pin_gpu_memory,
             generator=self.torch_rng,
-            shuffle=self.config.shuffle_train
+            shuffle=self.config.shuffle_train,
         )
         if validation_dataset is not None:
             self.validation_dataloader = self.strategy.create_dataloader(
@@ -316,7 +334,7 @@ class TorchTrainer(Trainer, LogMixin):
                 num_workers=self.config.num_workers_dataloader,
                 pin_memory=self.config.pin_gpu_memory,
                 generator=self.torch_rng,
-                shuffle=self.config.shuffle_validation
+                shuffle=self.config.shuffle_validation,
             )
         if test_dataset is not None:
             self.test_dataloader = self.strategy.create_dataloader(
@@ -325,7 +343,7 @@ class TorchTrainer(Trainer, LogMixin):
                 num_workers=self.config.num_workers_dataloader,
                 pin_memory=self.config.pin_gpu_memory,
                 generator=self.torch_rng,
-                shuffle=self.config.shuffle_test
+                shuffle=self.config.shuffle_test,
             )
 
     def _setup_metrics(self):
@@ -338,7 +356,7 @@ class TorchTrainer(Trainer, LogMixin):
         self,
         train_dataset: Dataset,
         validation_dataset: Optional[Dataset] = None,
-        test_dataset: Optional[Dataset] = None
+        test_dataset: Optional[Dataset] = None,
     ) -> Tuple[Dataset, Dataset, Dataset, Any]:
         """Prepares distributed environment and data structures
         for the actual training.
@@ -361,21 +379,21 @@ class TorchTrainer(Trainer, LogMixin):
         self.create_dataloaders(
             train_dataset=train_dataset,
             validation_dataset=validation_dataset,
-            test_dataset=test_dataset
+            test_dataset=test_dataset,
         )
         self.create_model_loss_optimizer()
 
         if self.logger:
             self.logger.create_logger_context(rank=self.strategy.global_rank())
             hparams = self.config.model_dump()
-            hparams['distributed_strategy'] = self.strategy.__class__.__name__
+            hparams["distributed_strategy"] = self.strategy.__class__.__name__
             self.logger.save_hyperparameters(hparams)
 
         self.train()
 
         if self.logger:
             self.logger.destroy_logger_context()
-        # self.strategy.clean_up()
+        self.strategy.clean_up()
         return train_dataset, validation_dataset, test_dataset, self.model
 
     def _set_epoch_dataloaders(self, epoch: int):
@@ -403,10 +421,10 @@ class TorchTrainer(Trainer, LogMixin):
         self,
         item: Union[Any, List[Any]],
         identifier: Union[str, List[str]],
-        kind: str = 'metric',
+        kind: str = "metric",
         step: Optional[int] = None,
         batch_idx: Optional[int] = None,
-        **kwargs
+        **kwargs,
     ) -> None:
         """Log ``item`` with ``identifier`` name of ``kind`` type at ``step``
         time step.
@@ -428,11 +446,11 @@ class TorchTrainer(Trainer, LogMixin):
                 kind=kind,
                 step=step,
                 batch_idx=batch_idx,
-                **kwargs
+                **kwargs,
             )
 
     def save_checkpoint(
-            self, name: str, epoch: int, loss: Optional[torch.Tensor] = None
+        self, name: str, epoch: int, loss: Optional[torch.Tensor] = None
     ) -> None:
         """Save training checkpoint.
 
@@ -446,14 +464,14 @@ class TorchTrainer(Trainer, LogMixin):
             loss=loss,
             optimizer=self.optimizer.state_dict(),
             model=self.model.state_dict(),
-            lr_scheduler=self.lr_scheduler
+            lr_scheduler=self.lr_scheduler,
         )
         ckpt_path = os.path.join(self.checkpoints_location, name)
         torch.save(state, ckpt_path)
         print(f"Saved '{name}' checkpoint at {ckpt_path}")
 
         # Save checkpoint to logger
-        self.log(ckpt_path, name, kind='artifact')
+        self.log(ckpt_path, name, kind="artifact")
 
     def load_checkpoint(self, name: str) -> None:
         """Load state from a checkpoint.
@@ -464,9 +482,9 @@ class TorchTrainer(Trainer, LogMixin):
         """
         ckpt_path = os.path.join(self.checkpoints_location, name)
         state = torch.load(ckpt_path, map_location=self.device)
-        self.model.load_state_dict(state['model'])
-        self.optimizer.load_state_dict(state['optimizer'])
-        self.lr_scheduler = state['lr_scheduler']
+        self.model.load_state_dict(state["model"])
+        self.optimizer.load_state_dict(state["optimizer"])
+        self.lr_scheduler = state["lr_scheduler"]
 
     def compute_metrics(
         self,
@@ -474,7 +492,7 @@ class TorchTrainer(Trainer, LogMixin):
         pred: Batch,
         logger_step: int,
         batch_idx: Optional[int],
-        stage: str = 'train'
+        stage: str = "train",
     ) -> Dict[str, Any]:
         """Compute and log metrics.
 
@@ -495,10 +513,10 @@ class TorchTrainer(Trainer, LogMixin):
             m_val = metric(pred, true).detach().cpu().numpy()
             self.log(
                 item=m_val,
-                identifier=f'{stage}_{m_name}',
-                kind='metric',
+                identifier=f"{stage}_{m_name}",
+                kind="metric",
                 step=logger_step,
-                batch_idx=batch_idx
+                batch_idx=batch_idx,
             )
             m_values[m_name] = m_val
         return m_values
@@ -516,7 +534,7 @@ class TorchTrainer(Trainer, LogMixin):
             Tuple[Dataset, Dataset, Dataset, Any]: training dataset,
             validation dataset, test dataset, trained model.
         """
-        best_loss = float('inf')
+        best_loss = float("inf")
         for epoch in range(self.epochs):
             epoch_n = epoch + 1
             self.set_epoch(epoch)
@@ -527,21 +545,21 @@ class TorchTrainer(Trainer, LogMixin):
                 # Checkpointing current best model
                 worker_val_losses = self.strategy.gather(val_loss, dst_rank=0)
                 if self.strategy.is_main_worker:
-                    avg_loss = torch.mean(
-                        torch.stack(worker_val_losses)
-                    ).detach().cpu()
-                    if avg_loss < best_loss:
+                    avg_loss = torch.mean(torch.stack(worker_val_losses)).detach().cpu()
+                    if avg_loss < best_loss and self.checkpoint_every is not None:
                         ckpt_name = "best_model.pth"
-                        self.save_checkpoint(
-                            name=ckpt_name, epoch=epoch, loss=avg_loss)
+                        self.save_checkpoint(name=ckpt_name, epoch=epoch, loss=avg_loss)
                         best_loss = avg_loss
 
             if self.test_every and epoch_n % self.test_every == 0:
                 self.test_epoch(epoch)
 
             # Periodic checkpointing
-            if (self.strategy.is_main_worker and self.checkpoint_every
-                    and epoch_n % self.checkpoint_every == 0):
+            if (
+                self.strategy.is_main_worker
+                and self.checkpoint_every
+                and epoch_n % self.checkpoint_every == 0
+            ):
                 ckpt_name = f"epoch_{epoch}.pth"
                 self.save_checkpoint(name=ckpt_name, epoch=epoch)
 
@@ -559,10 +577,7 @@ class TorchTrainer(Trainer, LogMixin):
         train_losses = []
         train_metrics = []
         for batch_idx, train_batch in enumerate(self.train_dataloader):
-            loss, metrics = self.train_step(
-                batch=train_batch,
-                batch_idx=batch_idx
-            )
+            loss, metrics = self.train_step(batch=train_batch, batch_idx=batch_idx)
             train_losses.append(loss)
             train_metrics.append(metrics)
 
@@ -573,8 +588,8 @@ class TorchTrainer(Trainer, LogMixin):
         avg_loss = torch.mean(torch.stack(train_losses))
         self.log(
             item=avg_loss.item(),
-            identifier='train_loss_epoch',
-            kind='metric',
+            identifier="train_loss_epoch",
+            kind="metric",
             step=self.train_glob_step,
         )
         # Aggregate and log metrics
@@ -582,18 +597,14 @@ class TorchTrainer(Trainer, LogMixin):
         for m_name, m_val in avg_metrics.items():
             self.log(
                 item=m_val,
-                identifier='train_' + m_name + '_epoch',
-                kind='metric',
+                identifier="train_" + m_name + "_epoch",
+                kind="metric",
                 step=self.train_glob_step,
             )
 
         return avg_loss.item()
 
-    def train_step(
-        self,
-        batch: Batch,
-        batch_idx: int
-    ) -> Tuple[torch.Tensor, Dict[str, Any]]:
+    def train_step(self, batch: Batch, batch_idx: int) -> Tuple[torch.Tensor, Dict[str, Any]]:
         """Perform a single optimization step using a batch sampled from the
         training dataset.
 
@@ -617,17 +628,17 @@ class TorchTrainer(Trainer, LogMixin):
         # Log metrics
         self.log(
             item=loss.item(),
-            identifier='train_loss',
-            kind='metric',
+            identifier="train_loss",
+            kind="metric",
             step=self.train_glob_step,
-            batch_idx=batch_idx
+            batch_idx=batch_idx,
         )
         metrics: Dict[str, Any] = self.compute_metrics(
             true=y,
             pred=pred_y,
             logger_step=self.train_glob_step,
             batch_idx=batch_idx,
-            stage='train'
+            stage="train",
         )
         return loss, metrics
 
@@ -649,10 +660,7 @@ class TorchTrainer(Trainer, LogMixin):
         validation_losses = []
         validation_metrics = []
         for batch_idx, val_batch in enumerate(self.validation_dataloader):
-            loss, metrics = self.validation_step(
-                batch=val_batch,
-                batch_idx=batch_idx
-            )
+            loss, metrics = self.validation_step(batch=val_batch, batch_idx=batch_idx)
             validation_losses.append(loss)
             validation_metrics.append(metrics)
 
@@ -663,8 +671,8 @@ class TorchTrainer(Trainer, LogMixin):
         avg_loss = torch.mean(torch.stack(validation_losses))
         self.log(
             item=avg_loss.item(),
-            identifier='validation_loss_epoch',
-            kind='metric',
+            identifier="validation_loss_epoch",
+            kind="metric",
             step=self.validation_glob_step,
         )
         # Aggregate and log metrics
@@ -672,17 +680,15 @@ class TorchTrainer(Trainer, LogMixin):
         for m_name, m_val in avg_metrics.items():
             self.log(
                 item=m_val,
-                identifier='validation_' + m_name + '_epoch',
-                kind='metric',
+                identifier="validation_" + m_name + "_epoch",
+                kind="metric",
                 step=self.validation_glob_step,
             )
 
         return avg_loss
 
     def validation_step(
-        self,
-        batch: Batch,
-        batch_idx: int
+        self, batch: Batch, batch_idx: int
     ) -> Tuple[torch.Tensor, Dict[str, Any]]:
         """Perform a single optimization step using a batch sampled from the
         validation dataset.
@@ -702,17 +708,17 @@ class TorchTrainer(Trainer, LogMixin):
             loss: torch.Tensor = self.loss(pred_y, y)
         self.log(
             item=loss.item(),
-            identifier='validation_loss',
-            kind='metric',
+            identifier="validation_loss",
+            kind="metric",
             step=self.validation_glob_step,
-            batch_idx=batch_idx
+            batch_idx=batch_idx,
         )
         metrics: Dict[str, Any] = self.compute_metrics(
             true=y,
             pred=pred_y,
             logger_step=self.validation_glob_step,
             batch_idx=batch_idx,
-            stage='validation'
+            stage="validation",
         )
         return loss, metrics
 
@@ -728,11 +734,7 @@ class TorchTrainer(Trainer, LogMixin):
         """
         raise NotImplementedError()
 
-    def test_step(
-        self,
-        batch: Batch,
-        batch_idx: int
-    ) -> Tuple[torch.Tensor, Dict[str, Any]]:
+    def test_step(self, batch: Batch, batch_idx: int) -> Tuple[torch.Tensor, Dict[str, Any]]:
         """Perform a single predictions step using a batch sampled from the
         test dataset.
 
@@ -776,20 +778,22 @@ class GANTrainer(TorchTrainer):
     """
 
     def __init__(
-            self,
-            config: Union[Dict, TrainingConfiguration],
-            epochs: int,
-            discriminator: nn.Module,
-            generator: nn.Module,
-            strategy: Literal["ddp", "deepspeed"] = 'ddp',
-            validation_every: Optional[int] = 1,
-            test_every: Optional[int] = None,
-            random_seed: Optional[int] = None,
-            logger: Optional[Logger] = None,
-            metrics: Optional[Dict[str, Metric]] = None,
-            checkpoints_location: str = "checkpoints",
-            checkpoint_every: Optional[int] = None,
-            name: Optional[str] = None, **kwargs) -> None:
+        self,
+        config: Union[Dict, TrainingConfiguration],
+        epochs: int,
+        discriminator: nn.Module,
+        generator: nn.Module,
+        strategy: Literal["ddp", "deepspeed"] = "ddp",
+        validation_every: Optional[int] = 1,
+        test_every: Optional[int] = None,
+        random_seed: Optional[int] = None,
+        logger: Optional[Logger] = None,
+        metrics: Optional[Dict[str, Metric]] = None,
+        checkpoints_location: str = "checkpoints",
+        checkpoint_every: Optional[int] = None,
+        name: Optional[str] = None,
+        **kwargs,
+    ) -> None:
         super().__init__(
             config=config,
             epochs=epochs,
@@ -803,42 +807,40 @@ class GANTrainer(TorchTrainer):
             checkpoints_location=checkpoints_location,
             checkpoint_every=checkpoint_every,
             name=name,
-            **kwargs)
+            **kwargs,
+        )
         self.save_parameters(**self.locals2params(locals()))
         self.discriminator = discriminator
         self.generator = generator
 
     def create_model_loss_optimizer(self) -> None:
         self.optimizerD = optim.Adam(
-            self.discriminator.parameters(), lr=self.config.lr,
-            betas=(0.5, 0.999)
+            self.discriminator.parameters(), lr=self.config.lr, betas=(0.5, 0.999)
         )
         self.optimizerG = optim.Adam(
-            self.generator.parameters(), lr=self.config.lr,
-            betas=(0.5, 0.999))
+            self.generator.parameters(), lr=self.config.lr, betas=(0.5, 0.999)
+        )
         self.criterion = nn.BCELoss()
 
         # https://stackoverflow.com/a/67437077
-        self.discriminator = torch.nn.SyncBatchNorm.convert_sync_batchnorm(
-            self.discriminator)
-        self.generator = torch.nn.SyncBatchNorm.convert_sync_batchnorm(
-            self.generator)
+        self.discriminator = torch.nn.SyncBatchNorm.convert_sync_batchnorm(self.discriminator)
+        self.generator = torch.nn.SyncBatchNorm.convert_sync_batchnorm(self.generator)
 
         # First, define strategy-wise optional configurations
         if isinstance(self.strategy, DeepSpeedStrategy):
             # Batch size definition is not optional for DeepSpeedStrategy!
             distribute_kwargs = dict(
-                config_params=dict(
-                    train_micro_batch_size_per_gpu=self.config.batch_size
-                )
+                config_params=dict(train_micro_batch_size_per_gpu=self.config.batch_size)
             )
         else:
             distribute_kwargs = {}
         # Distribute discriminator and its optimizer
         self.discriminator, self.optimizerD, _ = self.strategy.distributed(
-            self.discriminator, self.optimizerD, **distribute_kwargs)
+            self.discriminator, self.optimizerD, **distribute_kwargs
+        )
         self.generator, self.optimizerG, _ = self.strategy.distributed(
-            self.generator, self.optimizerG, **distribute_kwargs)
+            self.generator, self.optimizerG, **distribute_kwargs
+        )
 
     def train_epoch(self, epoch: int):
         self.discriminator.train()
@@ -847,8 +849,7 @@ class GANTrainer(TorchTrainer):
         disc_train_losses = []
         disc_train_accuracy = []
         for batch_idx, (real_images, _) in enumerate(self.train_dataloader):
-            lossG, lossD, accuracy_disc = self.train_step(
-                real_images, batch_idx)
+            lossG, lossD, accuracy_disc = self.train_step(real_images, batch_idx)
             gen_train_losses.append(lossG)
             disc_train_losses.append(lossD)
             disc_train_accuracy.append(accuracy_disc)
@@ -858,23 +859,23 @@ class GANTrainer(TorchTrainer):
         avg_disc_accuracy = torch.mean(torch.stack(disc_train_accuracy))
         self.log(
             item=avg_disc_accuracy.item(),
-            identifier='disc_train_accuracy_per_epoch',
-            kind='metric',
+            identifier="disc_train_accuracy_per_epoch",
+            kind="metric",
             step=epoch,
         )
         avg_gen_loss = torch.mean(torch.stack(gen_train_losses))
         self.log(
             item=avg_gen_loss.item(),
-            identifier='gen_train_loss_per_epoch',
-            kind='metric',
+            identifier="gen_train_loss_per_epoch",
+            kind="metric",
             step=epoch,
         )
 
         avg_disc_loss = torch.mean(torch.stack(disc_train_losses))
         self.log(
             item=avg_disc_loss.item(),
-            identifier='disc_train_loss_per_epoch',
-            kind='metric',
+            identifier="disc_train_loss_per_epoch",
+            kind="metric",
             step=epoch,
         )
 
@@ -887,10 +888,10 @@ class GANTrainer(TorchTrainer):
         disc_validation_accuracy = []
         self.discriminator.eval()
         self.generator.eval()
-        for batch_idx, (real_images, _) in enumerate(
-                self.validation_dataloader):
-            loss_gen, accuracy_gen, loss_disc, accuracy_disc = (
-                self.validation_step(real_images, batch_idx))
+        for batch_idx, (real_images, _) in enumerate(self.validation_dataloader):
+            loss_gen, accuracy_gen, loss_disc, accuracy_disc = self.validation_step(
+                real_images, batch_idx
+            )
             gen_validation_losses.append(loss_gen)
             gen_validation_accuracy.append(accuracy_gen)
             disc_validation_losses.append(loss_disc)
@@ -898,36 +899,32 @@ class GANTrainer(TorchTrainer):
             self.validation_glob_step += 1
 
         # Aggregate and log metrics
-        disc_validation_loss = torch.mean(torch.stack(
-            disc_validation_losses))
+        disc_validation_loss = torch.mean(torch.stack(disc_validation_losses))
         self.log(
             item=disc_validation_loss.item(),
-            identifier='disc_valid_loss_per_epoch',
-            kind='metric',
+            identifier="disc_valid_loss_per_epoch",
+            kind="metric",
             step=epoch,
         )
-        disc_validation_accuracy = torch.mean(torch.stack(
-            disc_validation_accuracy))
+        disc_validation_accuracy = torch.mean(torch.stack(disc_validation_accuracy))
         self.log(
             item=disc_validation_accuracy.item(),
-            identifier='disc_valid_accuracy_epoch',
-            kind='metric',
+            identifier="disc_valid_accuracy_epoch",
+            kind="metric",
             step=epoch,
         )
-        gen_validation_loss = torch.mean(torch.stack(
-            gen_validation_losses))
+        gen_validation_loss = torch.mean(torch.stack(gen_validation_losses))
         self.log(
             item=gen_validation_loss.item(),
-            identifier='gen_valid_loss_per_epoch',
-            kind='metric',
+            identifier="gen_valid_loss_per_epoch",
+            kind="metric",
             step=epoch,
         )
-        gen_validation_accuracy = torch.mean(torch.stack(
-            gen_validation_accuracy))
+        gen_validation_accuracy = torch.mean(torch.stack(gen_validation_accuracy))
         self.log(
             item=gen_validation_accuracy.item(),
-            identifier='gen_valid_accuracy_epoch',
-            kind='metric',
+            identifier="gen_valid_accuracy_epoch",
+            kind="metric",
             step=epoch,
         )
 
@@ -936,32 +933,28 @@ class GANTrainer(TorchTrainer):
     def train_step(self, real_images, batch_idx):
         real_images = real_images.to(self.device)
         batch_size = real_images.size(0)
-        real_labels = torch.ones(
-            (batch_size,),
-            dtype=torch.float, device=self.device)
-        fake_labels = torch.zeros(
-            (batch_size,),
-            dtype=torch.float, device=self.device)
+        real_labels = torch.ones((batch_size,), dtype=torch.float, device=self.device)
+        fake_labels = torch.zeros((batch_size,), dtype=torch.float, device=self.device)
 
         # Train Discriminator with real images
         output_real = self.discriminator(real_images)
         lossD_real = self.criterion(output_real, real_labels)
         # Generate fake images and train Discriminator
-        noise = torch.randn(
-            batch_size, self.config.z_dim, 1, 1, device=self.device)
+        noise = torch.randn(batch_size, self.config.z_dim, 1, 1, device=self.device)
 
         fake_images = self.generator(noise)
         output_fake = self.discriminator(fake_images.detach())
         lossD_fake = self.criterion(output_fake, fake_labels)
 
-        lossD = (lossD_real+lossD_fake)/2
+        lossD = (lossD_real + lossD_fake) / 2
 
         self.optimizerD.zero_grad()
         lossD.backward()
         self.optimizerD.step()
 
-        accuracy = ((output_real > 0.5).float() == real_labels).float().mean(
-        ) + ((output_fake < 0.5).float() == fake_labels).float().mean()
+        accuracy = ((output_real > 0.5).float() == real_labels).float().mean() + (
+            (output_fake < 0.5).float() == fake_labels
+        ).float().mean()
         accuracy_disc = accuracy.mean()
 
         # Train Generator
@@ -972,24 +965,24 @@ class GANTrainer(TorchTrainer):
         self.optimizerG.step()
         self.log(
             item=accuracy_disc,
-            identifier='disc_train_accuracy_per_batch',
-            kind='metric',
+            identifier="disc_train_accuracy_per_batch",
+            kind="metric",
             step=self.train_glob_step,
-            batch_idx=batch_idx
+            batch_idx=batch_idx,
         )
         self.log(
             item=lossG,
-            identifier='gen_train_loss_per_batch',
-            kind='metric',
+            identifier="gen_train_loss_per_batch",
+            kind="metric",
             step=self.train_glob_step,
-            batch_idx=batch_idx
+            batch_idx=batch_idx,
         )
         self.log(
             item=lossD,
-            identifier='disc_train_loss_per_batch',
-            kind='metric',
+            identifier="disc_train_loss_per_batch",
+            kind="metric",
             step=self.train_glob_step,
-            batch_idx=batch_idx
+            batch_idx=batch_idx,
         )
 
         return lossG, lossD, accuracy_disc
@@ -997,18 +990,15 @@ class GANTrainer(TorchTrainer):
     def validation_step(self, real_images, batch_idx):
         real_images = real_images.to(self.device)
         batch_size = real_images.size(0)
-        real_labels = torch.ones((batch_size,),
-                                 dtype=torch.float, device=self.device)
-        fake_labels = torch.zeros((batch_size,),
-                                  dtype=torch.float, device=self.device)
+        real_labels = torch.ones((batch_size,), dtype=torch.float, device=self.device)
+        fake_labels = torch.zeros((batch_size,), dtype=torch.float, device=self.device)
 
         # Validate with real images
         output_real = self.discriminator(real_images)
         loss_real = self.criterion(output_real, real_labels)
 
         # Generate and validate fake images
-        noise = torch.randn(
-            batch_size, self.config.z_dim, 1, 1, device=self.device)
+        noise = torch.randn(batch_size, self.config.z_dim, 1, 1, device=self.device)
 
         with torch.no_grad():
             fake_images = self.generator(noise)
@@ -1017,43 +1007,43 @@ class GANTrainer(TorchTrainer):
 
         # Generator's attempt to fool the discriminator
         loss_gen = self.criterion(output_fake, real_labels)
-        accuracy_gen = (
-            (output_fake > 0.5).float() == real_labels).float().mean()
+        accuracy_gen = ((output_fake > 0.5).float() == real_labels).float().mean()
 
         # Calculate total discriminator loss and accuracy
         d_total_loss = (loss_real + loss_fake) / 2
-        accuracy = ((output_real > 0.5).float() == real_labels).float().mean(
-        ) + ((output_fake < 0.5).float() == fake_labels).float().mean()
-        d_accuracy = accuracy.item()/2
+        accuracy = ((output_real > 0.5).float() == real_labels).float().mean() + (
+            (output_fake < 0.5).float() == fake_labels
+        ).float().mean()
+        d_accuracy = accuracy.item() / 2
 
         self.log(
             item=loss_gen.item(),
-            identifier='gen_valid_loss_per_batch',
-            kind='metric',
+            identifier="gen_valid_loss_per_batch",
+            kind="metric",
             step=self.validation_glob_step,
-            batch_idx=batch_idx
+            batch_idx=batch_idx,
         )
         self.log(
             item=accuracy_gen.item(),
-            identifier='gen_valid_accuracy_per_batch',
-            kind='metric',
+            identifier="gen_valid_accuracy_per_batch",
+            kind="metric",
             step=self.validation_glob_step,
-            batch_idx=batch_idx
+            batch_idx=batch_idx,
         )
 
         self.log(
             item=d_total_loss.item(),
-            identifier='disc_valid_loss_per_batch',
-            kind='metric',
+            identifier="disc_valid_loss_per_batch",
+            kind="metric",
             step=self.validation_glob_step,
-            batch_idx=batch_idx
+            batch_idx=batch_idx,
         )
         self.log(
             item=d_accuracy,
-            identifier='disc_valid_accuracy_per_batch',
-            kind='metric',
+            identifier="disc_valid_accuracy_per_batch",
+            kind="metric",
             step=self.validation_glob_step,
-            batch_idx=batch_idx
+            batch_idx=batch_idx,
         )
         return loss_gen, accuracy_gen
 
@@ -1064,14 +1054,13 @@ class GANTrainer(TorchTrainer):
 
         checkpoint_path = os.path.join(self.checkpoints_location, f"{name}")
         checkpoint = {
-            'epoch': epoch,
-            'loss': loss.item() if loss is not None else None,
-            'discriminator_state_dict': self.discriminator.state_dict(),
-            'generator_state_dict': self.generator.state_dict(),
-            'optimizerD_state_dict': self.optimizerD.state_dict(),
-            'optimizerG_state_dict': self.optimizerG.state_dict(),
-            'lr_scheduler': self.lr_scheduler.state_dict() if
-            self.lr_scheduler else None
+            "epoch": epoch,
+            "loss": loss.item() if loss is not None else None,
+            "discriminator_state_dict": self.discriminator.state_dict(),
+            "generator_state_dict": self.generator.state_dict(),
+            "optimizerD_state_dict": self.optimizerD.state_dict(),
+            "optimizerG_state_dict": self.optimizerG.state_dict(),
+            "lr_scheduler": self.lr_scheduler.state_dict() if self.lr_scheduler else None,
         }
 
         torch.save(checkpoint, checkpoint_path)
@@ -1081,15 +1070,14 @@ class GANTrainer(TorchTrainer):
         """Load models and optimizers from checkpoint."""
         checkpoint = torch.load(checkpoint_path)
 
-        self.discriminator.load_state_dict(
-            checkpoint['discriminator_state_dict'])
-        self.generator.load_state_dict(checkpoint['generator_state_dict'])
-        self.optimizerD.load_state_dict(checkpoint['optimizerD_state_dict'])
-        self.optimizerG.load_state_dict(checkpoint['optimizerG_state_dict'])
+        self.discriminator.load_state_dict(checkpoint["discriminator_state_dict"])
+        self.generator.load_state_dict(checkpoint["generator_state_dict"])
+        self.optimizerD.load_state_dict(checkpoint["optimizerD_state_dict"])
+        self.optimizerG.load_state_dict(checkpoint["optimizerG_state_dict"])
 
-        if 'lr_scheduler' in checkpoint:
-            if checkpoint['lr_scheduler'] is not None:
-                self.lr_scheduler.load_state_dict(checkpoint['lr_scheduler'])
+        if "lr_scheduler" in checkpoint:
+            if checkpoint["lr_scheduler"] is not None:
+                self.lr_scheduler.load_state_dict(checkpoint["lr_scheduler"])
 
         print(f"Checkpoint loaded from {checkpoint_path}")
 
@@ -1103,16 +1091,15 @@ class GANTrainer(TorchTrainer):
         self.generator.eval()
         noise = torch.randn(64, self.config.z_dim, 1, 1, device=self.device)
         fake_images = self.generator(noise)
-        fake_images_grid = torchvision.utils.make_grid(
-            fake_images, normalize=True)
+        fake_images_grid = torchvision.utils.make_grid(fake_images, normalize=True)
         fig, ax = plt.subplots(figsize=(8, 8))
         ax.set_axis_off()
-        ax.set_title(f'Fake images for epoch {epoch}')
+        ax.set_title(f"Fake images for epoch {epoch}")
         ax.imshow(np.transpose(fake_images_grid.cpu().numpy(), (1, 2, 0)))
         self.log(
             item=fig,
-            identifier=f'fake_images_epoch_{epoch}.png',
-            kind='figure',
+            identifier=f"fake_images_epoch_{epoch}.png",
+            kind="figure",
             step=epoch,
         )
 
@@ -1120,21 +1107,17 @@ class GANTrainer(TorchTrainer):
 class TorchLightningTrainer(Trainer):
     """Generic trainer for torch Lightning workflows.
 
-        Args:
-            config (Union[Dict, str]): `Lightning configuration`_
-                which can be the path to a file or a Python dictionary.
-            mlflow_saved_model (str, optional): name of the model created in
-                MLFlow. Defaults to 'my_model'.
+    Args:
+        config (Union[Dict, str]): `Lightning configuration`_
+            which can be the path to a file or a Python dictionary.
+        mlflow_saved_model (str, optional): name of the model created in
+            MLFlow. Defaults to 'my_model'.
 
-        .. _Lightning configuration:
-            https://pytorch-lightning.readthedocs.io/en/1.6.5/common/lightning_cli.html
-        """
+    .. _Lightning configuration:
+        https://pytorch-lightning.readthedocs.io/en/1.6.5/common/lightning_cli.html
+    """
 
-    def __init__(
-        self,
-        config: Union[Dict, str],
-        mlflow_saved_model: str = 'my_model'
-    ):
+    def __init__(self, config: Union[Dict, str], mlflow_saved_model: str = "my_model"):
         self.save_parameters(**self.locals2params(locals()))
         super().__init__()
         if isinstance(config, str) and os.path.isfile(config):
@@ -1146,12 +1129,10 @@ class TorchLightningTrainer(Trainer):
     @monitor_exec
     def execute(self) -> Any:
         init_lightning_mlflow(
-            self.conf,
-            tmp_dir='/tmp',
-            registered_model_name=self.mlflow_saved_model
+            self.conf, tmp_dir="/tmp", registered_model_name=self.mlflow_saved_model
         )
         old_argv = sys.argv
-        sys.argv = ['some_script_placeholder.py']
+        sys.argv = ["some_script_placeholder.py"]
         cli = LightningCLI(
             args=self.conf,
             model_class=L.LightningModule,
@@ -1172,10 +1153,7 @@ class TorchLightningTrainer(Trainer):
 def _distributed_dataloader(dataloader: DataLoader, gwsize, grank):
     """Makes a Dataloader distributed."""
     sampler = DistributedSampler(
-        dataloader.dataset,
-        num_replicas=gwsize,
-        rank=grank,
-        shuffle=True
+        dataloader.dataset, num_replicas=gwsize, rank=grank, shuffle=True
     )
     # Recreate dataloader, with updated sampler
     return DataLoader(
@@ -1192,7 +1170,7 @@ def _distributed_dataloader(dataloader: DataLoader, gwsize, grank):
         generator=dataloader.generator,
         prefetch_factor=dataloader.prefetch_factor,
         persistent_workers=dataloader.persistent_workers,
-        pin_memory_device=dataloader.pin_memory_device
+        pin_memory_device=dataloader.pin_memory_device,
     )
 
 
@@ -1204,42 +1182,41 @@ def distributed(func):
     Additional args or kwargs are allowed consistently with the signature
     of the decorated function.
     """
+
     def dist_train(
-            model, train_dataloader, validation_dataloader=None, device='cpu',
-            *args, **kwargs
+        model, train_dataloader, validation_dataloader=None, device="cpu", *args, **kwargs
     ):
         if torch.cuda.is_available():
-            dist.init_process_group(backend='nccl')
+            dist.init_process_group(backend="nccl")
 
         if torch.cuda.is_available():
             lwsize = torch.cuda.device_count()  # local world size - per node
-            gwsize = dist.get_world_size()     # global world size - per run
-            grank = dist.get_rank()            # global rank - assign per run
-            lrank = dist.get_rank() % lwsize   # local rank - assign per node
+            gwsize = dist.get_world_size()  # global world size - per run
+            grank = dist.get_rank()  # global rank - assign per run
+            lrank = dist.get_rank() % lwsize  # local rank - assign per node
         else:
             gwsize = 1
             grank = 0
             lrank = 0
 
-        device = torch.device(
-            'cuda' if torch.cuda.is_available() else 'cpu', lrank)
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu", lrank)
         if torch.cuda.is_available():
             torch.cuda.set_device(lrank)
 
         model = model.to(device)
         model = DDP(model, device_ids=[device], output_device=device)
 
-        train_dataloader = _distributed_dataloader(
-            train_dataloader, gwsize, grank)
+        train_dataloader = _distributed_dataloader(train_dataloader, gwsize, grank)
         if validation_dataloader is not None:
             validation_dataloader = _distributed_dataloader(
-                validation_dataloader, gwsize, grank)
+                validation_dataloader, gwsize, grank
+            )
 
         try:
-            func(model, train_dataloader, validation_dataloader, device,
-                 *args, **kwargs)
+            func(model, train_dataloader, validation_dataloader, device, *args, **kwargs)
         finally:
             if torch.cuda.is_available():
                 dist.barrier()
                 dist.destroy_process_group()
+
     return dist_train

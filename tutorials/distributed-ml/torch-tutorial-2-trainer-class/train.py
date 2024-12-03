@@ -1,18 +1,25 @@
-"""
-Adapted from: https://github.com/pytorch/examples/blob/main/mnist/main.py
-"""
+# --------------------------------------------------------------------------------------
+# Part of the interTwin Project: https://www.intertwin.eu/
+#
+# Created by: Matteo Bunino
+#
+# Credit:
+# - Matteo Bunino <matteo.bunino@cern.ch> - CERN
+# --------------------------------------------------------------------------------------
+
+"""Adapted from: https://github.com/pytorch/examples/blob/main/mnist/main.py"""
 
 import argparse
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torchvision import datasets, transforms
 import torchmetrics
+from torchvision import datasets, transforms
 
-from itwinai.torch.trainer import TorchTrainer
-from itwinai.torch.config import TrainingConfiguration
 from itwinai.loggers import MLFlowLogger
+from itwinai.torch.config import TrainingConfiguration
+from itwinai.torch.trainer import TorchTrainer
 
 
 class Net(nn.Module):
@@ -42,31 +49,35 @@ class Net(nn.Module):
 
 def main():
     # Training settings
-    parser = argparse.ArgumentParser(description='PyTorch MNIST Example')
-    parser.add_argument('--batch-size', type=int, default=64,
-                        help='input batch size for training (default: 64)')
-    parser.add_argument('--epochs', type=int, default=14,
-                        help='number of epochs to train (default: 14)')
-    parser.add_argument('--strategy', type=str, default='ddp',
-                        help='distributed strategy (default=ddp)')
-    parser.add_argument('--lr', type=float, default=1.0,
-                        help='learning rate (default: 1.0)')
-    parser.add_argument('--seed', type=int, default=1,
-                        help='random seed (default: 1)')
+    parser = argparse.ArgumentParser(description="PyTorch MNIST Example")
     parser.add_argument(
-        '--ckpt-interval', type=int, default=10,
-        help='how many batches to wait before logging training status')
+        "--batch-size",
+        type=int,
+        default=64,
+        help="input batch size for training (default: 64)",
+    )
+    parser.add_argument(
+        "--epochs", type=int, default=14, help="number of epochs to train (default: 14)"
+    )
+    parser.add_argument(
+        "--strategy", type=str, default="ddp", help="distributed strategy (default=ddp)"
+    )
+    parser.add_argument("--lr", type=float, default=1.0, help="learning rate (default: 1.0)")
+    parser.add_argument("--seed", type=int, default=1, help="random seed (default: 1)")
+    parser.add_argument(
+        "--ckpt-interval",
+        type=int,
+        default=10,
+        help="how many batches to wait before logging training status",
+    )
     args = parser.parse_args()
 
     # Dataset creation
-    transform = transforms.Compose([
-        transforms.ToTensor(),
-        transforms.Normalize((0.1307,), (0.3081,))
-    ])
-    train_dataset = datasets.MNIST('../data', train=True, download=True,
-                                   transform=transform)
-    validation_dataset = datasets.MNIST('../data', train=False,
-                                        transform=transform)
+    transform = transforms.Compose(
+        [transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))]
+    )
+    train_dataset = datasets.MNIST("../data", train=True, download=True, transform=transform)
+    validation_dataset = datasets.MNIST("../data", train=False, transform=transform)
 
     # Neural network to train
     model = Net()
@@ -74,15 +85,15 @@ def main():
     training_config = TrainingConfiguration(
         batch_size=args.batch_size,
         optim_lr=args.lr,
-        optimizer='adadelta',
-        loss='cross_entropy'
+        optimizer="adadelta",
+        loss="cross_entropy",
     )
 
-    logger = MLFlowLogger(experiment_name='mnist-tutorial', log_freq=10)
+    logger = MLFlowLogger(experiment_name="mnist-tutorial", log_freq=10)
 
     metrics = {
-        'accuracy': torchmetrics.Accuracy(task='multiclass', num_classes=10),
-        'precision': torchmetrics.Precision(task='multiclass', num_classes=10)
+        "accuracy": torchmetrics.Accuracy(task="multiclass", num_classes=10),
+        "precision": torchmetrics.Precision(task="multiclass", num_classes=10),
     }
 
     trainer = TorchTrainer(
@@ -93,13 +104,12 @@ def main():
         strategy=args.strategy,
         epochs=args.epochs,
         random_seed=args.seed,
-        checkpoint_every=args.ckpt_interval
+        checkpoint_every=args.ckpt_interval,
     )
 
     # Launch training
-    _, _, _, trained_model = trainer.execute(
-        train_dataset, validation_dataset, None)
+    _, _, _, trained_model = trainer.execute(train_dataset, validation_dataset, None)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
