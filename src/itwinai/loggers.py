@@ -239,7 +239,7 @@ class Logger(LogMixin):
         Returns:
             str: local path of the serialized object to be logged.
         """
-        itm_path = self.savedir / str(identifier)
+        itm_path = self.savedir / identifier
         with open(itm_path, "wb") as itm_file:
             pickle.dump(obj, itm_file)
 
