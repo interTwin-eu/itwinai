@@ -1,3 +1,12 @@
+# --------------------------------------------------------------------------------------
+# Part of the interTwin Project: https://www.intertwin.eu/
+#
+# Created by: Jarl Sondre Sæther
+#
+# Credit:
+# - Jarl Sondre Sæther <jarl.sondre.saether@cern.ch> - CERN
+# --------------------------------------------------------------------------------------
+
 from create_slurm import (
     get_srun_command,
     remove_indentation_from_multiline_string,

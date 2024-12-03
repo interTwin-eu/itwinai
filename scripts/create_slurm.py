@@ -1,3 +1,12 @@
+# --------------------------------------------------------------------------------------
+# Part of the interTwin Project: https://www.intertwin.eu/
+#
+# Created by: Jarl Sondre Sæther
+#
+# Credit:
+# - Jarl Sondre Sæther <jarl.sondre.saether@cern.ch> - CERN
+# --------------------------------------------------------------------------------------
+
 def remove_indentation_from_multiline_string(multiline_string: str) -> str:
     """Removes the indentation from the start of each line in a multi-line string. The
     main purpose of this function is allowing you to define multi-line strings that
