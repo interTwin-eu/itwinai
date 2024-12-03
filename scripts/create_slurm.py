@@ -26,7 +26,7 @@ def get_srun_command(
     """
     elif distributed_strategy == "horovod":
         main_command = rf"""
-	    export CUDA_VISIBLE_DEVICES="0,1,2,3"
+        export CUDA_VISIBLE_DEVICES="0,1,2,3"
         srun --cpu-bind=none \
             --ntasks-per-node=$SLURM_GPUS_PER_NODE \
             --cpus-per-task=$SLURM_CPUS_PER_GPU \
@@ -58,25 +58,25 @@ def slurm_template(
 ) -> str:
     template = f"""
         #!/bin/bash
-        
+
         # Job configuration
-        #SBATCH --job-name={job_name}    
-        #SBATCH --account={account}       
+        #SBATCH --job-name={job_name}
+        #SBATCH --account={account}
         #SBATCH --partition={partition}
         #SBATCH --time={time}
-        
+
         #SBATCH --output={std_out}
         #SBATCH --error={err_out}
-        
+
         # Resources allocation
         #SBATCH --nodes={num_nodes}
         #SBATCH --ntasks-per-node={num_tasks_per_node}
         #SBATCH --gpus-per-node={gpus_per_node}
         #SBATCH --cpus-per-gpu={cpus_per_gpu}
         #SBATCH --exclusive
-        
+
         {setup_command}
-        
+
         {main_command}"""
     # Removing indentation
     main_command = main_command.strip()

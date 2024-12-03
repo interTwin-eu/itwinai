@@ -1,7 +1,7 @@
 from create_slurm import (
-    slurm_template,
     get_srun_command,
     remove_indentation_from_multiline_string,
+    slurm_template,
 )
 
 
@@ -11,8 +11,21 @@ def get_eurac_setup_command(venv: str, cpus_per_gpu: int):
     else:
         omp_num_threads = "1"
 
+    hpc_modules = [
+        "Stages/2024",
+        "GCC",
+        "OpenMPI",
+        "CUDA/12",
+        "MPI-settings/CUDA",
+        "Python/3.11.3",
+        "HDF5",
+        "PnetCDF",
+        "libaio",
+        "mpi4py",
+    ]
+
     setup_command = rf"""
-        ml Stages/2024 GCC OpenMPI CUDA/12 MPI-settings/CUDA Python/3.11.3 HDF5 PnetCDF libaio mpi4py
+        ml {' '.join(hpc_modules)}
         source {venv}/bin/activate
         export OMP_NUM_THREADS={omp_num_threads}
     """
@@ -28,7 +41,7 @@ def get_eurac_training_command(
     $(which itwinai) exec-pipeline \
         --config {config_file} \
         --pipe-key {pipe_key} \
-        -o strategy={distributed_strategy} 
+        -o strategy={distributed_strategy}
     """
     training_command = training_command.strip()
     return remove_indentation_from_multiline_string(training_command)
@@ -54,7 +67,7 @@ def main():
 
     dist_strats = ["ddp", "deepspeed", "horovod"]
 
-    for distributed_strategy in dist_strats: 
+    for distributed_strategy in dist_strats:
         training_command = get_eurac_training_command(
             config_file=config_file,
             pipe_key=pipe_key,
@@ -78,9 +91,9 @@ def main():
             setup_command=setup_command,
             main_command=main_command,
         )
-        print("#"*20)
+        print("#" * 20)
         print(template)
-        print("#"*20)
+        print("#" * 20)
 
 
 if __name__ == "__main__":
