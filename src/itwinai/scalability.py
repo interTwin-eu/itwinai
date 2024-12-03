@@ -108,6 +108,7 @@ def create_absolute_plot(avg_epoch_time_df: pd.DataFrame) -> None:
     ax.grid(True)
 
     output_path = Path("plots/absolute_scalability_plot.png")
+    output_path.parent.mkdir(parents=True, exist_ok=True)
     plt.savefig(output_path)
     print(f"Saving absolute plot to '{output_path.resolve()}'.")
     sns.reset_orig()
