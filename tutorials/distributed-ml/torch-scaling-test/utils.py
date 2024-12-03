@@ -19,7 +19,7 @@ from torchvision import datasets, transforms
 from itwinai.parser import ArgumentParser as ItwinaiArgParser
 
 
-def imagenet_dataset(data_root: str):
+def imagenet_dataset(data_root: str, subset_size: int | None = None):
     """Create a torch dataset object for Imagenet."""
     transform = transforms.Compose(
         [
@@ -34,9 +34,15 @@ def imagenet_dataset(data_root: str):
         ]
     )
     imagenet = datasets.ImageFolder(root=data_root, transform=transform)
-    limit = 2000
-    imagenet = Subset(imagenet, range(limit))
-    return imagenet
+
+    if subset_size is None: 
+        # We do this because we always want to return an instance of a subset, to make
+        # everything as consistent as possible
+        subset_size = len(imagenet)
+    if subset_size > len(imagenet): 
+        raise ValueError("Limit higher than the total length of the dataset")
+
+    return Subset(imagenet, range(subset_size))
 
 
 def train_epoch(

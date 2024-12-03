@@ -29,11 +29,9 @@ from itwinai.torch.reproducibility import seed_worker, set_seed
 
 def main():
     args = parse_params()
+    subset_size = 5000
     use_cuda = not args.no_cuda and torch.cuda.is_available()
-    is_distributed = False
-
-    if use_cuda and torch.cuda.device_count() > 0:
-        is_distributed = True
+    is_distributed = use_cuda and torch.cuda.device_count() > 0
 
     if is_distributed:
         # Initializing the distribution backend
@@ -54,7 +52,7 @@ def main():
         torch.cuda.set_device(local_rank)
 
     # Dataset
-    train_dataset = imagenet_dataset(args.data_dir)
+    train_dataset = imagenet_dataset(args.data_dir, subset_size=subset_size)
 
     if is_distributed:
         # Distributed training requires a distributed sampler to split the data
@@ -109,10 +107,7 @@ def main():
             train_sampler.set_epoch(epoch_idx)
 
         train_epoch(
-            model=model,
-            device=device,
-            train_loader=train_loader,
-            optimizer=optimizer,
+            model=model, device=device, train_loader=train_loader, optimizer=optimizer
         )
 
         if global_rank == 0:

@@ -6,6 +6,7 @@
 # Created by: Matteo Bunino
 #
 # Credit:
+# - Jarl Sondre Sæther <jarl.sondre.saether@cern.ch> - CERN
 # - Matteo Bunino <matteo.bunino@cern.ch> - CERN
 # --------------------------------------------------------------------------------------
 
@@ -50,8 +51,8 @@ submit_job() {
 
 # Submit jobs explicitly
 submit_job "ddp" "ddp-bl-imagenet" "ddp_trainer.py -c config/base.yaml -c config/ddp.yaml"
-submit_job "deepspeed" "deepspeed-bl-imagenet" "deepspeed_trainer.py -c config/base.yaml -c config/deepspeed.yaml"
-submit_job "horovod" "horovod-bl-imagenet" "horovod_trainer.py -c config/base.yaml -c config/horovod.yaml"
-submit_job "ddp" "ddp-itwinai-imagenet" "itwinai_trainer.py -c config/base.yaml -c config/ddp.yaml -s ddp"
-submit_job "deepspeed" "deepspeed-itwinai-imagenet" "itwinai_trainer.py -c config/base.yaml -c config/deepspeed.yaml -s deepspeed"
-submit_job "horovod" "horovod-itwinai-imagenet" "itwinai_trainer.py -c config/base.yaml -c config/horovod.yaml -s horovod"
+# submit_job "deepspeed" "deepspeed-bl-imagenet" "deepspeed_trainer.py -c config/base.yaml -c config/deepspeed.yaml"
+# submit_job "horovod" "horovod-bl-imagenet" "horovod_trainer.py -c config/base.yaml -c config/horovod.yaml"
+# submit_job "ddp" "ddp-itwinai-imagenet" "itwinai_trainer.py -c config/base.yaml -c config/ddp.yaml -s ddp"
+# submit_job "deepspeed" "deepspeed-itwinai-imagenet" "itwinai_trainer.py -c config/base.yaml -c config/deepspeed.yaml -s deepspeed"
+# submit_job "horovod" "horovod-itwinai-imagenet" "itwinai_trainer.py -c config/base.yaml -c config/horovod.yaml -s horovod"
