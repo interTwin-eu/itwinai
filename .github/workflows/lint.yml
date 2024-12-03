@@ -58,6 +58,6 @@ jobs:
           VALIDATE_ALL_CODEBASE: false
           # Fail on errors
           DISABLE_ERRORS: false
-          # Skip linting of docs
-          FILTER_REGEX_EXCLUDE: .*docs/index.md|.*docs/docs/.*|.*ISSUE_TEMPLATE/.*|use-cases/.*|experimental/.*
-          BASH_SEVERITY: error
+          # Skip linting of some locations
+          FILTER_REGEX_EXCLUDE: .*ISSUE_TEMPLATE/.*|use-cases/.*
+          BASH_SEVERITY: warning
