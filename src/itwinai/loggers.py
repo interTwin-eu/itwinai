@@ -668,7 +668,7 @@ class WandBLogger(Logger):
             if List[int], log on workers which rank is in the list.
             Defaults to 0 (the global rank of the main worker).
         offline_mode (str, optional): Use this option if working on compute
-            node without internet access. Saves logs locally. 
+            node without internet access. Saves logs locally.
             Defaults to 'False'.
     """
 
