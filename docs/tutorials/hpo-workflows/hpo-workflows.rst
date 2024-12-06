@@ -3,9 +3,13 @@
 Hyperparameter Optimization with RayTorchTrainer on MNIST
 =========================================================
 
-This tutorial provides a step-by-step guide to using the ``RayTorchTrainer`` class for running a hyperparameter optimization (HPO) study. To illustrate the process, we will work with the FashionMNIST dataset.
+This tutorial provides a step-by-step guide to using the ``RayTorchTrainer`` class for running 
+a hyperparameter optimization (HPO) study. 
+To illustrate the process, we will work with the FashionMNIST dataset.
 
-The code we write here will closely resemble what you would implement using the itwinai ``TorchTrainer``, with minor modifications required to make it compatible with the Ray framework. By the end of this tutorial, you will:
+The code we write here will closely resemble what you would implement using the itwinai 
+``TorchTrainer``, with minor modifications required to make it compatible with the Ray framework. 
+By the end of this tutorial, you will:
 
 *   Understand how the ``RayTorchTrainer`` functions.
 *   Know how to create a configuration file to define your HPO study.
@@ -17,8 +21,13 @@ You can find the full code for this tutorial [here](coming...).
 Setting up the Trainer
 -----------------------
 
-Let’s start by defining our trainer class. Its structure will closely mirror that of the ``TorchTrainer``, but with a few key adjustments to integrate seamlessly with the Ray backend. 
-The most notable change is that we move certain initialization steps into the ``train()`` function. This ensures compatibility with Ray, which executes the ``train()`` function for each trial independently.
+Let’s start by defining our trainer class. Its structure will closely mirror that of 
+the ``TorchTrainer``, but with a few key adjustments to integrate seamlessly with the Ray backend. 
+The most notable change is that we move certain initialization steps into the ``train()`` function. 
+Ray executes the ``train()`` function for each trial independently,
+which means that the trials are completetely agnostic of one another. This means that
+the distributed strategy and thus the model, optimizer, logger, etc., can only be instantiated
+within the ``train()`` function.
 For more details on this, see :ref:`HPO introduction<docs/how-it-works/hpo/explain-hpo>`
 
 In this tutorial, we will tune two hyperparameters, the batch size and the learning rate.
@@ -65,11 +74,8 @@ Code Comparison: RayTorchTrainer vs TorchTrainer
                     self.loss = CrossEntropyLoss()
 
                 def train(self, config, data):
-                    self.training_config = config
 
-                    # Because of the way the ray cluster is set up,
-                    # the initialisation of the strategy and logger, as well as the creation of the
-                    # model, loss, optimizer and dataloader are done from within the train() function
+                    self.training_config = config
                     self.strategy.init()
                     self.initialize_logger(
                         hyperparams=self.training_config, rank=self.strategy.global_rank()
@@ -87,9 +93,11 @@ Code Comparison: RayTorchTrainer vs TorchTrainer
                         val_losses = []
 
                         for images, labels in self.train_dataloader:
+
                             if isinstance(self.strategy, RayDeepSpeedStrategy):
                                 device = self.strategy.device()
                                 images, labels = images.to(device), labels.to(device)
+
                             outputs = self.model(images)
                             train_loss = self.loss(outputs, labels)
                             self.optimizer.zero_grad()
@@ -98,9 +106,11 @@ Code Comparison: RayTorchTrainer vs TorchTrainer
                             train_losses.append(train_loss.detach().cpu().numpy())
 
                         for images, labels in self.validation_dataloader:
+
                             if isinstance(self.strategy, RayDeepSpeedStrategy):
                                 device = self.strategy.device()
                                 images, labels = images.to(device), labels.to(device)
+
                             with torch.no_grad():
                                 outputs = self.model(images)
                                 val_loss = self.loss(outputs, labels)
@@ -119,10 +129,11 @@ Code Comparison: RayTorchTrainer vs TorchTrainer
                         )
 
 
+
     .. tab:: TorchTrainer
 
         .. code-block:: python
-            # TODO
+
             class MyTrainer(TorchTrainer):
                 def __init__(
                     self,
@@ -153,18 +164,8 @@ Code Comparison: RayTorchTrainer vs TorchTrainer
                     self.loss = CrossEntropyLoss()
 
                 def train(self, config, data):
-                    # self.training_config = config
-
-                    # self.strategy.init()
-                    # self.initialize_logger(hyperparams=config, rank=self.strategy.global_rank())
-                    # self.create_model_loss_optimizer()
-                    # self.create_dataloaders(
-                    #     train_dataset=data[0],
-                    #     validation_dataset=data[1],
-                    #     test_dataset=data[2]
-                    # )
-
-                    for epoch in range(self.training_config["epochs"]):
+                    
+                    for epoch in range(self.config.epochs):
                         if self.strategy.global_world_size() > 1:
                             self.set_epoch(epoch)
 
@@ -172,24 +173,26 @@ Code Comparison: RayTorchTrainer vs TorchTrainer
                         val_losses = []
 
                         for images, labels in enumerate(self.train_dataloader):
-                            # if isinstance(self.strategy, RayDeepspeedStrategy):
+                            
                             device = self.strategy.device()
                             images, labels = images.to(device), labels.to(device)
+
                             outputs = self.model(images)
                             train_loss = self.loss(outputs, labels)
                             self.optimizer.zero_grad()
                             train_loss.backward()
                             self.optimizer.step()
-                            train_losses.append(train_loss)
+                            train_losses.append(train_loss.detach().cpu().numpy())
 
                         for images, labels in enumerate(self.validation_dataloader):
-                            # if isinstance(self.strategy, RayDeepspeedStrategy):
+
                             device = self.strategy.device()
                             images, labels = images.to(device), labels.to(device)
+
                             with torch.no_grad():
                                 outputs = self.model(images)
                                 val_loss = self.loss(outputs, labels)
-                            val_losses.append(val_loss)
+                            val_losses.append(val_loss.detach().cpu().numpy())
 
                         self.log(np.mean(train_losses), "train_loss", kind="metric", step=epoch)
                         self.log(np.mean(val_losses), "val_loss", kind="metric", step=epoch)
@@ -209,7 +212,10 @@ Code Comparison: RayTorchTrainer vs TorchTrainer
 
 Configuring our Training
 -------------------------
-The next step is to define a configuration file for our HPO pipeline. Once again, this configuration will look very similar to any other itwinai pipeline configuration, but we will add some HPO-specific parameters to define our search space, search algorithm and scheduling algorithm. 
+Amazing! Now that we have our Trainer set up, the next step is to define a configuration file 
+for our HPO pipeline. Once again, this configuration will look very similar to any other 
+itwinai pipeline configuration, but we will add some HPO-specific parameters to define our 
+search space, search algorithm and scheduling algorithm. 
 
 
 Code Comparison: HPO Config vs TorchTrainer Config
@@ -237,33 +243,33 @@ Code Comparison: HPO Config vs TorchTrainer Config
                             num_workers: 4
                             use_gpu: true
                             resources_per_worker:
-                            CPU: 5
-                            GPU: 1
+                                CPU: 5
+                                GPU: 1
                         train_loop_config:
-                        batch_size:
-                            type: choice
-                            options: [32, 64, 128]
-                        learning_rate:
-                            type: uniform
-                            min: 1e-5
-                            max: 1e-3
-                        epochs: 20
+                            batch_size:
+                                type: choice
+                                options: [32, 64, 128]
+                            learning_rate:
+                                type: uniform
+                                min: 1e-5
+                                max: 1e-3
+                            epochs: 20
                         tune_config:
-                        num_samples: 2
-                        scheduler:
-                            name: asha
-                            max_t: 20
-                            grace_period: 10
-                            reduction_factor: 4
-                            brackets: 1
-                        search_alg:
-                            name: bayes
-                            metric: loss
-                            mode: min
-                            n_random_steps: 5
+                            num_samples: 2
+                            scheduler:
+                                name: asha
+                                max_t: 20
+                                grace_period: 10
+                                reduction_factor: 4
+                                brackets: 1
+                            search_alg:
+                                name: bayes
+                                metric: loss
+                                mode: min
+                                n_random_steps: 5
                         run_config:
-                        storage_path: ray_checkpoints
-                        name: Virgo-HPO-Experiment
+                            storage_path: ray_checkpoints
+                            name: Virgo-HPO-Experiment
                     strategy: ddp
                     logger:
                         class_path: itwinai.loggers.LoggersCollection
@@ -304,16 +310,18 @@ Code Comparison: HPO Config vs TorchTrainer Config
 
 Okay, let's break down the arguments to our ``MyRayTorchTrainer`` class. 
 
-*   The ``scaling_config`` argument defines how we distribute resources between our trials. To learn more about the options for setting resources, please refer to the `ray train documentation <https://docs.ray.io/en/latest/train/user-guides/using-gpus.html>`_ on this topic.
+*   The ``scaling_config`` argument defines how we distribute resources between our trials. To learn more about the options for setting resources, please refer to the `ray train documentation <https://docs.ray.io/en/latest/train/user-guides/using-gpus.html>`_ on this topic. It is important that you ensure that you have allocated suffiecient resources on your cluster to be able to execute at least one trial. This means that if your conifguration demands four GPUs and 32 CPUs per trial under ``resources_per_worker``, you should make sure that you have allocated at least this many GPUs and CPUs four your job.
 *   In the ``train_loop_config`` we define which hyperparameters we want to tune, as well as any additional parameters that we want to pass to our ``train()`` function. For the tunable parameters we have to specify the type and define their domain. For more information on which parameter types are possible and how to define their domains, have a look at `this page <https://docs.ray.io/en/latest/tune/api/search_space.html>`_, and learn how to define their domains according to the ``RayTorchTrainer``'s specifications `here <https://github.com/interTwin-eu/itwinai/blob/ray-torchtrainer-integration/src/itwinai/torch/trainer.py#L1472>`_.
-*   In the ``tune_config`` we configure which search algorithm and scheduler to use to search the hyperparameter space and sample new configurations. All search algorithms and schedulers supported by ray tune are also supported by us. You can refer to the ray documentation to learn more about the supported `search algorithms <https://docs.ray.io/en/latest/tune/api/suggestion.html#tune-search-al_>`_ and `schedulers <https://docs.ray.io/en/latest/tune/api/schedulers.html>`_.
+*   In the ``tune_config`` we configure which search algorithm and scheduler to use to search the hyperparameter space and sample new configurations. Almost all search algorithms and schedulers supported by ray tune are also supported by us. You can refer to the ray documentation to learn more about the supported `search algorithms <https://docs.ray.io/en/latest/tune/api/suggestion.html#tune-search-al_>`_ and `schedulers <https://docs.ray.io/en/latest/tune/api/schedulers.html>`_. In the ``num_samples`` argument you specify how many trials you wish to run. Ray will queue trials if they cannot all be executed at once.
 *   The ``run_config`` defines a path that is used for checkpointing. This is mandatory to set if you want to distribute individual trials across more than one node, because ray uses this as a shared directory to coordinate and share data generated on each of the nodes.
 
 
 Running our Code
 ----------------
 
-Great! So we have created our custom trainer inheriting from the ``RayTorchTrainer``, and we have defined our pipeline in a configuration file. Now, all that is left to do is launch our training:
+Great! So we have created our custom trainer inheriting from the ``RayTorchTrainer``, and we 
+have defined our pipeline in a configuration file. 
+Now, all that is left to do is launch our training:
 
 .. code-block:: bash
 

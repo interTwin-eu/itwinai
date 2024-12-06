@@ -26,9 +26,6 @@ ml Python/3.11 HDF5 PnetCDF libaio mpi4py CMake cuDNN/8.9.5.29-CUDA-12
 PYTHON_VENV="../../envAI_juwels"
 source $PYTHON_VENV/bin/activate
 
-# Install any required packages for the search algorithms or schedulers
-pip install bayesian-optimization
-
 # make sure CUDA devices are visible
 export CUDA_VISIBLE_DEVICES="0,1,2,3"
 
@@ -50,14 +47,6 @@ nodes_array=($nodes)
 # The head node will act as the central manager (head) of the Ray cluster.
 head_node=${nodes_array[0]}
 port=7639       # This port will be used by Ray to communicate with worker nodes.
-
-# This is so that the ray.init() command called from the hpo.py script knows
-# which ports to connect to
-export IP_HEAD="$head_node"i:"$port"
-export HEAD_NODE_IP="$head_node"i
-
-export MASTER_ADDR=$HEAD_NODE_IP
-export MASTER_PORT=$port
 
 echo "Starting HEAD at $head_node"
 # Start Ray on the head node.
@@ -91,7 +80,6 @@ done
 echo All Ray workers started.
 
 ##############################################################################################
-
 
 # Run the Python script using Ray
 echo 'Starting HPO.'
