@@ -1,4 +1,4 @@
-.. _hpo:
+.. _explain_hpo:
 
 Hyperparameter Optimization
 ============================
@@ -34,9 +34,8 @@ Common approaches include:
 
 *    Grid Search: Exhaustive search over all combinations of hyperparameter values.
 *    Random Search: Randomly samples combinations from the search space.
-*    Bayesian Optimization: Uses a probabilistic model to predict promising configurations.
-*    Evolutionary Algorithms: Use search algorithms based on evolutionary concepts to evolve 
-hyperparameter configurations, e.g. genetic programming.
+*    Bayesian Optimization: Uses a probabilistic surrogate model to learn the shape of the search space and predict promising configurations.
+*    Evolutionary Algorithms: Use search algorithms based on evolutionary concepts to evolve hyperparameter configurations, e.g. genetic programming.
 
 **Schedulers** manage the allocation of computational resources across multiple hyperparameter 
 configurations. They help prioritize promising configurations and terminate less effective 
@@ -52,7 +51,7 @@ Common metrics include accuracy, F1 score, and mean squared error.
 The choice of metric depends on the task and its goals.
 
 A **trial** is the evaluation of one set of hyperparameters. Depending on whether you are 
-using a scheduler, this could be one pass over the entire training, so as many epochs as you 
+using a scheduler, this could be the entire training run, so as many epochs as you 
 have specified, or it could be terminated early and thus run for fewer epochs.
 
 
@@ -62,26 +61,24 @@ HPO can significantly enhance a model's predictive accuracy and generalization t
 by finding the best hyperparameter settings.
 However, there are some drawbacks, especially with regards to computational cost and resource 
 management. Especially distributed HPO requires careful planning of computational resources 
-to avoid bottlenecks or excessive costs. You should consider that if you allocate two nodes 
-for your training, but you want to run four different trials, 
-your training would run four times as long as it would if you picked a set of hyperparameters 
-yourself and trained it only once (unless you use a scheduler to elimate some trials early).
+to avoid bottlenecks or excessive costs. You should consider that if you want to run four different trials, 
+and you run them on the same amount of resources as you normally would for only one set of hyperparameters, your training would run four times as long (unless you use a scheduler to elimate some trials early).
 
 Because of this, we want to design our HPO training wisely, so that we avoid unneseccary 
-computational cost. These are some things that might help you when you are getting started with HPO:
+computational cost. These are some things that might help you when you are getting started with HPO.
 
 HPO is beneficial when:
 
-*    Model performance is sensitive to hyperparameter settings.
-*    You have access to sufficient computational resources.
-*    Good hyperparameter settings are difficult to determine manually.
+*    model performance is sensitive to hyperparameter settings.
+*    you have access to sufficient computational resources.
+*    good hyperparameter settings are difficult to determine manually.
 
-To make sure you get the most out of your HPO training, the are some considerations you might want to make:
+To make sure you get the most out of your HPO training, the are some considerations you might want to make are to
 
-*    Define the Search Space Wisely: Narrow the search space to plausible ranges to improve efficiency.
-*    Choose Appropriate Metrics: Use metrics aligned with your task's goals.
-*    Resource Allocation: Balance the computational cost with the expected performance gains.
-*    Interpret Results Carefully: Ensure that the improvements are meaningful and not due to overfitting.
+*    define the search space wisely: Narrow the search space to plausible ranges to improve efficiency.
+*    choose appropriate metrics: Use metrics aligned with your task's goals.
+*    allocate your resources strategically: Balance the computational cost with the expected performance gains.
+*    interpret your results carefully: Ensure that the improvements are meaningful and not due to overfitting.
 
 
 Hyperparameter Optimization in itwinai
@@ -100,8 +97,7 @@ We use an open-source framework called Ray to facilitate distributed HPO. Ray pr
 components used in itwinai:
 
 *    **Ray Train**: A module for distributed model training.
-*    **Ray Tune**: A framework for hyperparameter optimization, supporting a variety of search 
-    algorithms and schedulers.
+*    **Ray Tune**: A framework for hyperparameter optimization, supporting a variety of search algorithms and schedulers.
 
 Ray uses its own cluster architecture to distribute training. A ray cluster consists of a group 
 of nodes that work together to execute distributed tasks. Each node can contribute computational 
@@ -113,16 +109,14 @@ How a Ray Cluster Operates:
 #.     **Task Scheduling**: Ray automatically schedules trials across nodes based on available resources.
 #.     **Shared State**: Nodes share data such as checkpoints and trial results via a central storage path.
 
-We launch a ray cluster using a dedicated slurm job script. You may refer to 
-:ref:`this script<tutorials/hpo-workflows/slurm_hpo.sh>`. It should be suitable for almost any 
-time you wish to run an itwinai pipeline with ray, 
-the only thing you may have to change is the ``#SBATCH`` directives to set the proper resource requirements. 
+We launch a ray cluster using a dedicated slurm job script. You may refer to `this script <https://github.com/interTwin-eu/itwinai/blob/main/tutorials/hpo-workflows/slurm_hpo.sh>`_ It should be suitable for almost any 
+time you wish to run an itwinai pipeline with Ray, the only thing you may have to change is the ``#SBATCH`` directives to set the proper resource requirements. 
 Also refer to the `ray documentation <https://docs.ray.io/en/latest/cluster/vms/user-guides/community/slurm.html>`_ 
 on this topic, if you want to learn more about how to launch a ray cluster with slurm.
 
 
 How Distributed Training Works with the RayTorchTrainer
-----------------------------------------------------
+--------------------------------------------------------
 
 The ``RayTorchTrainer`` combines components from **Ray Train** and **Ray Tune**, enabling 
 distributed HPO to run within your pipeline while maintaining compatibility with other itwinai features. 
@@ -136,11 +130,9 @@ The key features of this trainer are:
 
 In the ``TorchTrainer``, initialization tasks (e.g., model creation, logger setup) are done 
 outside of the ``train()`` function. However, in the ``RayTorchTrainer``, this logic must be 
-moved inside ``train()`` because:
-
-#.    Ray executes only the ``train()`` function for each trial independently, so allocation of trial resources is done only once ``train()`` is called
-#.    Distribution frameworks, such as DDP or DeepSpeed, are agnostic of the other trials, so they should be initialized only once the trial resources are allocated
+moved inside ``train()`` because Ray executes only the ``train()`` function for each trial independently, so allocation of trial resources is done only once ``train()`` is called.
+Furthermore distribution frameworks, such as DDP or DeepSpeed, are agnostic of the other trials, so they should be initialized only once the trial resources are allocated.
 
 For a hands-on tutorial for how to change your existing itwinai pipeline code to additionally 
 run HPO, or how to set up an HPO integration with itwinai from scratch, have a look at the 
-:ref:`HPO tutorial<tutorials/hpo-workflows/slurm_hpo.sh>`.
+:doc:`HPO tutorial <../../tutorials/hpo-workflows/hpo-workflows>`.

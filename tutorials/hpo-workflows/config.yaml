@@ -12,10 +12,10 @@ hpo_training_pipeline:
         init_args:
           config:
             scaling_config:
-                num_workers: 4
+                num_workers: 2
                 use_gpu: true
                 resources_per_worker:
-                  CPU: 5
+                  CPU: 6
                   GPU: 1
             train_loop_config:
               batch_size:
@@ -25,13 +25,13 @@ hpo_training_pipeline:
                 type: uniform
                 min: 1e-5
                 max: 1e-3
-              epochs: 20
+              epochs: 10
             tune_config:
-              num_samples: 2
+              num_samples: 4
               scheduler:
                 name: asha
-                max_t: 20
-                grace_period: 10
+                max_t: 10
+                grace_period: 5
                 reduction_factor: 4
                 brackets: 1
               # search_alg:

@@ -7,7 +7,7 @@
 #SBATCH --partition=develbooster
 
 # Resources allocation
-#SBATCH --cpus-per-task=24
+#SBATCH --cpus-per-task=32
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1
 #SBATCH --gpus-per-node=4

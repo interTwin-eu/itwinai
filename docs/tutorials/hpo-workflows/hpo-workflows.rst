@@ -4,7 +4,7 @@ Hyperparameter Optimization with RayTorchTrainer on MNIST
 =========================================================
 
 This tutorial provides a step-by-step guide to using the ``RayTorchTrainer`` class for running 
-a hyperparameter optimization (HPO) study. 
+a hyperparameter optimization (HPO) study. We assume that you are familiar with the ``TorchTrainer`` class, and the itwinai training pipeline. If you are not, you might want to go through the tutorials on these first.
 To illustrate the process, we will work with the FashionMNIST dataset.
 
 The code we write here will closely resemble what you would implement using the itwinai 
@@ -15,7 +15,7 @@ By the end of this tutorial, you will:
 *   Know how to create a configuration file to define your HPO study.
 *   Understand the steps required to define and run an HPO study with the itwinai training pipeline.
 
-You can find the full code for this tutorial [here](coming...).
+You can find the full code for this tutorial `on Github <https://github.com/interTwin-eu/itwinai/blob/main/tutorials/hpo-workflows>`_.
 
 
 Setting up the Trainer
@@ -28,7 +28,7 @@ Ray executes the ``train()`` function for each trial independently,
 which means that the trials are completetely agnostic of one another. This means that
 the distributed strategy and thus the model, optimizer, logger, etc., can only be instantiated
 within the ``train()`` function.
-For more details on this, see :ref:`HPO introduction<docs/how-it-works/hpo/explain-hpo>`
+For more details on this, see the :doc:`HPO introduction <../../how-it-works/hpo/explain-hpo>`.
 
 In this tutorial, we will tune two hyperparameters, the batch size and the learning rate.
 Our model will be a ResNet18, and we will train it on the FashionMNIST dataset.
@@ -75,6 +75,7 @@ Code Comparison: RayTorchTrainer vs TorchTrainer
 
                 def train(self, config, data):
 
+                    ################## This is unique to the RayTorchTrainer #####################
                     self.training_config = config
                     self.strategy.init()
                     self.initialize_logger(
@@ -84,6 +85,7 @@ Code Comparison: RayTorchTrainer vs TorchTrainer
                     self.create_dataloaders(
                         train_dataset=data[0], validation_dataset=data[1], test_dataset=data[2]
                     )
+                    ###############################################################################
 
                     for epoch in range(self.training_config["epochs"]):
                         if self.strategy.global_world_size() > 1:
@@ -93,10 +95,11 @@ Code Comparison: RayTorchTrainer vs TorchTrainer
                         val_losses = []
 
                         for images, labels in self.train_dataloader:
-
+                            ############### This is unique to the RayTorchTrainer ##################
                             if isinstance(self.strategy, RayDeepSpeedStrategy):
                                 device = self.strategy.device()
                                 images, labels = images.to(device), labels.to(device)
+                            ########################################################################
 
                             outputs = self.model(images)
                             train_loss = self.loss(outputs, labels)
@@ -106,10 +109,11 @@ Code Comparison: RayTorchTrainer vs TorchTrainer
                             train_losses.append(train_loss.detach().cpu().numpy())
 
                         for images, labels in self.validation_dataloader:
-
+                            ############### This is unique to the RayTorchTrainer ##################
                             if isinstance(self.strategy, RayDeepSpeedStrategy):
                                 device = self.strategy.device()
                                 images, labels = images.to(device), labels.to(device)
+                            ########################################################################
 
                             with torch.no_grad():
                                 outputs = self.model(images)
@@ -123,11 +127,12 @@ Code Comparison: RayTorchTrainer vs TorchTrainer
                             "loss": train_loss,
                             "val_loss": val_loss,
                         }
+                        ############### This is unique to the RayTorchTrainer ##################
                         metrics = {"loss": val_loss.item()}
                         self.checkpoint_and_report(
                             epoch, tuning_metrics=metrics, checkpointing_data=checkpoint
                         )
-
+                        ########################################################################
 
 
     .. tab:: TorchTrainer
@@ -310,10 +315,10 @@ Code Comparison: HPO Config vs TorchTrainer Config
 
 Okay, let's break down the arguments to our ``MyRayTorchTrainer`` class. 
 
-*   The ``scaling_config`` argument defines how we distribute resources between our trials. To learn more about the options for setting resources, please refer to the `ray train documentation <https://docs.ray.io/en/latest/train/user-guides/using-gpus.html>`_ on this topic. It is important that you ensure that you have allocated suffiecient resources on your cluster to be able to execute at least one trial. This means that if your conifguration demands four GPUs and 32 CPUs per trial under ``resources_per_worker``, you should make sure that you have allocated at least this many GPUs and CPUs four your job.
-*   In the ``train_loop_config`` we define which hyperparameters we want to tune, as well as any additional parameters that we want to pass to our ``train()`` function. For the tunable parameters we have to specify the type and define their domain. For more information on which parameter types are possible and how to define their domains, have a look at `this page <https://docs.ray.io/en/latest/tune/api/search_space.html>`_, and learn how to define their domains according to the ``RayTorchTrainer``'s specifications `here <https://github.com/interTwin-eu/itwinai/blob/ray-torchtrainer-integration/src/itwinai/torch/trainer.py#L1472>`_.
-*   In the ``tune_config`` we configure which search algorithm and scheduler to use to search the hyperparameter space and sample new configurations. Almost all search algorithms and schedulers supported by ray tune are also supported by us. You can refer to the ray documentation to learn more about the supported `search algorithms <https://docs.ray.io/en/latest/tune/api/suggestion.html#tune-search-al_>`_ and `schedulers <https://docs.ray.io/en/latest/tune/api/schedulers.html>`_. In the ``num_samples`` argument you specify how many trials you wish to run. Ray will queue trials if they cannot all be executed at once.
-*   The ``run_config`` defines a path that is used for checkpointing. This is mandatory to set if you want to distribute individual trials across more than one node, because ray uses this as a shared directory to coordinate and share data generated on each of the nodes.
+*   The ``scaling_config`` argument defines how we distribute resources between our trials. To learn more about the options for setting resources, please refer to the `ray train documentation <https://docs.ray.io/en/latest/train/user-guides/using-gpus.html>`_ on this topic. It is important that you ensure that you have allocated suffiecient resources on your cluster to be able to execute at least one trial. This means that if your configuration demands 4 GPUs and 32 CPUs per trial under ``resources_per_worker``, you should make sure that you have allocated at least this many GPUs and CPUs for your job.
+*   In the ``train_loop_config`` we define which hyperparameters we want to tune, as well as any additional parameters that we want to pass to our ``train()`` function. For the tunable parameters we have to specify the type and define their domain. For more information on which parameter types are possible and how to define their domains, have a look at `this page <https://docs.ray.io/en/latest/tune/api/search_space.html>`_, and learn how to define their domains according to the ``RayTorchTrainer``'s specifications `here <https://github.com/interTwin-eu/itwinai/blob/main/src/itwinai/torch/trainer.py>`_.
+*   In the ``tune_config`` we configure which search algorithm and scheduler to use to search the hyperparameter space and sample new configurations. Almost all search algorithms and schedulers supported by ray tune are also supported by us. You can refer to the ray documentation to learn more about the supported `search algorithms <https://docs.ray.io/en/latest/tune/api/suggestion.html#tune-search-al_>`_ and `schedulers <https://docs.ray.io/en/latest/tune/api/schedulers.html>`_. In the ``num_samples`` argument you can specify how many trials you wish to run, the default is one. Ray will queue trials if they cannot all be executed at once.
+*   The ``run_config`` defines a path that is used for checkpointing. This is mandatory to set if you want to distribute any one trial across more than one node, because ray uses this as a shared directory to coordinate and share data generated on each of the nodes.
 
 
 Running our Code
