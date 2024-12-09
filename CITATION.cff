@@ -19,7 +19,15 @@ authors:
   - given-names: Rakesh
     family-names: Sarma
     email: r.sarma@fz-juelich.de
-    affiliation: FZ Jülich 
+    affiliation: FZ Jülich
+  - given-names: Jarl Sondre
+    family-names: Sæther
+    email: jarl.sondre.saether@cern.ch
+    affiliation: CERN
+  - given-names: Anna Elisa
+    family-names: Lappe
+    email: anna.elisa.lappe@cern.ch
+    affiliation: CERN
   - given-names: Kalliopi
     family-names: Tsolaki
     email: kalliopi.tsolaki@cern.ch
@@ -35,14 +43,6 @@ authors:
   - given-names: Roman
     family-names: Machacek
     email: roman.machacek@cern.ch
-    affiliation: CERN
-  - given-names: Jarl Sondre
-    family-names: Sæther
-    email: jarl.sondre.saether@cern.ch
-    affiliation: CERN
-  - given-names: Anna Elisa
-    family-names: Lappe
-    email: anna.elisa.lappe@cern.ch
     affiliation: CERN
   - given-names: Alexander
     family-names: Zoechbauer
