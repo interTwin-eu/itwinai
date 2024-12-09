@@ -664,6 +664,9 @@ class WandBLogger(Logger):
             workers; if int log on worker with rank equal to log_on_workers;
             if List[int], log on workers which rank is in the list.
             Defaults to 0 (the global rank of the main worker).
+        offline_mode (str, optional): Use this option if working on compute
+            node without internet access. Saves logs locally.
+            Defaults to 'False'. 
     """
 
     # TODO: add support for artifacts logging
@@ -686,10 +689,12 @@ class WandBLogger(Logger):
         project_name: str = BASE_EXP_NAME,
         log_freq: Union[int, Literal["epoch", "batch"]] = "epoch",
         log_on_workers: Union[int, List[int]] = 0,
+        offline_mode: bool = False,
     ) -> None:
         wbl_savedir = Path(savedir) / "wandb"
         super().__init__(savedir=wbl_savedir, log_freq=log_freq, log_on_workers=log_on_workers)
         self.project_name = project_name
+        self.offline_mode = offline_mode
 
     def create_logger_context(self, rank: Optional[int] = None) -> None:
         """Initializes the logger context. Init WandB run.
@@ -707,7 +712,11 @@ class WandBLogger(Logger):
             exist_ok=True,
             parents=True,
         )
-        self.active_run = wandb.init(dir=self.savedir.resolve(), project=self.project_name)
+        self.active_run = wandb.init(
+           dir=self.savedir.resolve(), 
+           project=self.project_name,
+           mode="offline" if self.offline_mode else "online",
+        )
 
     def destroy_logger_context(self):
         """Destroy logger."""
