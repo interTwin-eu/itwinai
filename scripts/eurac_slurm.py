@@ -7,6 +7,7 @@
 # - Jarl Sondre Sæther <jarl.sondre.saether@cern.ch> - CERN
 # --------------------------------------------------------------------------------------
 
+from pathlib import Path
 from create_slurm import remove_indentation_from_multiline_string, SlurmScript
 from slurm_constants import JUWELS_HPC_MODULES
 from typing import Literal
@@ -30,7 +31,7 @@ class EuracSlurmScript(SlurmScript):
         python_venv: str = ".venv",
         debug: bool = False,
         config_file: str = "config.yaml",
-        pipe_key: str = "rnn_training_pipeline"
+        pipe_key: str = "rnn_training_pipeline",
     ):
         super().__init__(
             job_name,
@@ -74,14 +75,11 @@ def main():
     gpus_per_node = 4
     cpus_per_gpu = 4
 
-    # Other settings
-    distributed_strategy = "horovod"
-
     # EURAC specific settings
     config_file = "config.yaml"
     pipe_key = "rnn_training_pipeline"
 
-    dist_strats = ["ddp", "deepspeed", "horovod"]
+    dist_strats = ["ddp"] #, "deepspeed", "horovod"]
     for distributed_strategy in dist_strats:
         slurm_script = EuracSlurmScript(
             job_name=job_name,
@@ -97,13 +95,15 @@ def main():
             distributed_strategy=distributed_strategy,
             debug=True,
             config_file=config_file,
-            pipe_key=pipe_key
+            pipe_key=pipe_key,
         )
 
-        template = slurm_script.get_slurm_script()
-        print("\n\n\n\n")
-        print(template)
-        print("\n\n\n\n")
+        file_path = Path(f"slurm_scripts/{distributed_strategy}-test.sh")
+        file_path.parent.mkdir(exist_ok=True, parents=True)
+        # slurm_script.run_slurm_script(file_path=file_path, retain_file=)
+        script = slurm_script.get_slurm_script()
+        with open("my_script.sh", "w") as f: 
+            f.write(script)
 
 
 if __name__ == "__main__":

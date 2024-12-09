@@ -7,8 +7,9 @@
 # - Jarl Sondre Sæther <jarl.sondre.saether@cern.ch> - CERN
 # --------------------------------------------------------------------------------------
 
-from typing import Literal
+import subprocess
 from slurm_constants import JUWELS_HPC_MODULES
+from pathlib import Path
 
 
 def remove_indentation_from_multiline_string(multiline_string: str) -> str:
@@ -20,6 +21,8 @@ def remove_indentation_from_multiline_string(multiline_string: str) -> str:
 
 
 class SlurmScript:
+    # TODO: This name doesn't really make sense IMO, and it causes some confusion
+    # when calling the function, so it should be changed eventually
 
     def __init__(
         self,
@@ -74,7 +77,7 @@ class SlurmScript:
                 --rdzv_conf=is_host=\$(((SLURM_NODEID)) && echo 0 || echo 1) \
                 --rdzv_backend=c10d \
                 --rdzv_endpoint='$(scontrol show hostnames "$SLURM_JOB_NODELIST" | head -n 1)':29500 \
-                {self.get_training_command()}
+                {self.get_training_command()}"
         """
         else:
             num_tasks = self.gpus_per_node * self.num_nodes
@@ -134,7 +137,7 @@ class SlurmScript:
         if main_command is None:
             main_command = self.get_srun_command()
 
-        template = f"""
+        template = rf"""
             #!/bin/bash
 
             # Job configuration
@@ -158,8 +161,32 @@ class SlurmScript:
             {main_command}"""
 
         # Removing superfluous indentation
-        main_command = main_command.strip()
+        template = template.strip()
         return remove_indentation_from_multiline_string(template)
+
+    def run_slurm_script(
+        self,
+        setup_command: str | None = None,
+        main_command: str | None = None,
+        file_path: Path = Path("script.slurm"),
+        retain_file: bool = True,
+    ) -> None:
+        script = self.get_slurm_script(
+            setup_command=setup_command, main_command=main_command
+        )
+        if file_path.exists():
+            raise ValueError(
+                f"File '{file_path.resolve()}' already exists! Give a different path "
+                f"or delete the file first!"
+            )
+
+        with open(file_path, "w") as f:
+            f.write(script)
+
+        subprocess.run(["sbatch", str(file_path.resolve())])
+
+        if not retain_file:
+            file_path.unlink()
 
 
 def main():
