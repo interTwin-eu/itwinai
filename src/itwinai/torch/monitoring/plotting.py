@@ -107,6 +107,7 @@ def gpu_bar_plot(
         raise ValueError(
             f"DataFrame is missing the following columns: {missing_columns}"
         )
+
     sns.set_theme()
 
     strategies = data_df["strategy"].unique()
@@ -138,9 +139,9 @@ def gpu_bar_plot(
     ax.set_xticklabels(unique_gpu_counts)
     ax.legend(title="Strategy")
 
-    figure_width = int(1.5 * len(unique_gpu_counts))
-    fig.set_figheight(6)
+    figure_width = max(int(2 * len(unique_gpu_counts)), 8)
     fig.set_figwidth(figure_width)
+    fig.set_figheight(figure_width * 0.8)
 
     sns.reset_orig()
 

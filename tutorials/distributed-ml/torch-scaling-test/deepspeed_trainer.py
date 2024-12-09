@@ -19,19 +19,18 @@ from typing import Optional
 import deepspeed
 import torch
 import torch.distributed as dist
-import torch.nn.functional as F
 import torchvision
 from torch.utils.data import DataLoader
 from torch.utils.data.distributed import DistributedSampler
-from utils import imagenet_dataset
+from utils import imagenet_dataset, parse_params, train_epoch
 
 from itwinai.loggers import EpochTimeTracker
-from itwinai.parser import ArgumentParser as ItAIArgumentParser
+from itwinai.parser import ArgumentParser as ItwinaiArgParser
 from itwinai.torch.reproducibility import seed_worker, set_seed
 
 
 def parse_params():
-    parser = ItAIArgumentParser(description="PyTorch Imagenet scaling test")
+    parser = ItwinaiArgParser(description="PyTorch Imagenet scaling test")
 
     # Data and logging
     parser.add_argument(
@@ -40,10 +39,15 @@ def parse_params():
         help=("location of the training dataset in the " "local filesystem"),
     )
     parser.add_argument(
-        "--log-int", type=int, default=10, help="log interval per training. Disabled if < 0."
+        "--log-int",
+        type=int,
+        default=10,
+        help="log interval per training. Disabled if < 0.",
     )
     parser.add_argument(
-        "--verbose", action=argparse.BooleanOptionalAction, help="Print parsed arguments"
+        "--verbose",
+        action=argparse.BooleanOptionalAction,
+        help="Print parsed arguments",
     )
     parser.add_argument(
         "--nworker",
@@ -52,7 +56,10 @@ def parse_params():
         help=("number of workers in DataLoader " "(default: 0 - only main)"),
     )
     parser.add_argument(
-        "--prefetch", type=int, default=2, help="prefetch data in DataLoader (default: 2)"
+        "--prefetch",
+        type=int,
+        default=2,
+        help="prefetch data in DataLoader (default: 2)",
     )
 
     # Model
@@ -71,13 +78,23 @@ def parse_params():
         help="number of epochs to train (default: 10)",
     )
     parser.add_argument(
-        "--lr", type=float, default=0.01, metavar="LR", help="learning rate (default: 0.01)"
+        "--lr",
+        type=float,
+        default=0.01,
+        metavar="LR",
+        help="learning rate (default: 0.01)",
     )
     parser.add_argument(
-        "--momentum", type=float, default=0.5, help="momentum in SGD optimizer (default: 0.5)"
+        "--momentum",
+        type=float,
+        default=0.5,
+        help="momentum in SGD optimizer (default: 0.5)",
     )
     parser.add_argument(
-        "--shuff", action="store_true", default=False, help="shuffle dataset (default: False)"
+        "--shuff",
+        action="store_true",
+        default=False,
+        help="shuffle dataset (default: False)",
     )
 
     # Reproducibility
@@ -114,36 +131,6 @@ def parse_params():
         print("PARSED ARGS:\n", "\n".join(args_list))
 
     return args
-
-
-def train(args, model, train_loader, optimizer, epoch, grank, gwsize):
-    device = model.local_rank
-    t_list = []
-    loss_acc = 0
-    if grank == 0:
-        print("\n")
-    for batch_idx, (data, target) in enumerate(train_loader):
-        # if grank == 0:
-        #     print(f"BS == DATA: {data.shape}, TARGET: {target.shape}")
-        t = timer()
-        data, target = data.to(device), target.to(device)
-        optimizer.zero_grad()
-        output = model(data)
-        loss = F.nll_loss(output, target)
-        loss.backward()
-        optimizer.step()
-        if args.log_int > 0 and batch_idx % args.log_int == 0 and grank == 0:
-            print(
-                f"Train epoch: {epoch} [{batch_idx * len(data)}/"
-                f"{len(train_loader.dataset) / gwsize} "
-                f"({100.0 * batch_idx * len(data) / len(train_loader):.0f}%)]"
-                f"\t\tLoss: {loss.item():.6f}"
-            )
-        t_list.append(timer() - t)
-        loss_acc += loss.item()
-    if grank == 0:
-        print("TIMER: train time", sum(t_list) / len(t_list), "s")
-    return loss_acc
 
 
 def main():
@@ -245,7 +232,10 @@ def main():
     # 3) Distributed data loader
     deepspeed_config = {
         "train_micro_batch_size_per_gpu": args.batch_size,  # redundant
-        "optimizer": {"type": "SGD", "params": {"lr": args.lr, "momentum": args.momentum}},
+        "optimizer": {
+            "type": "SGD",
+            "params": {"lr": args.lr, "momentum": args.momentum},
+        },
         "fp16": {"enabled": False},
         "zero_optimization": False,
     }
@@ -279,7 +269,9 @@ def main():
             train_sampler.set_epoch(epoch)
 
         # Training
-        train(args, distrib_model, train_loader, optimizer, epoch, grank, gwsize)
+        train_epoch(
+            model=distrib_model, device=device, train_loader=train_loader, optimizer=optimizer
+        )
 
         # Save first epoch timer
         if epoch == start_epoch:

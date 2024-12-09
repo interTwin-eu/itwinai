@@ -89,13 +89,15 @@ def profile_torch_trainer(method: Callable) -> Callable:
             warmup_epochs=self.profiling_warmup_epochs,
         )
         with profile(
-            activities=[ProfilerActivity.CUDA],
+            activities=[ProfilerActivity.CUDA, ProfilerActivity.CPU],
             schedule=schedule(
                 wait=wait_epochs,
                 warmup=warmup_epochs,
                 active=active_epochs,
             ),
+            with_modules=True
         ) as profiler:
+            self.profiler = profiler
             result = method(self, *args, **kwargs)
 
         strategy = self.strategy
