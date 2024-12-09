@@ -9,10 +9,9 @@
 
 from pathlib import Path
 
-from itwinai.torch.config import TrainingConfiguration
-from itwinai.slurm.create_slurm import SlurmScript, remove_indentation_from_multiline_string
+from itwinai.slurm.create_slurm import SlurmScriptBuilder, remove_indentation_from_multiline_string
 
-class EuracSlurmScript(SlurmScript):
+class EuracSlurmScriptBuilder(SlurmScriptBuilder):
 
     def __init__(
         self,

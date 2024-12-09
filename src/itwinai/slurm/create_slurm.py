@@ -21,9 +21,7 @@ def remove_indentation_from_multiline_string(multiline_string: str) -> str:
     return "\n".join([line.lstrip() for line in multiline_string.split("\n")])
 
 
-class SlurmScript:
-    # TODO: This name doesn't really make sense IMO, and it causes some confusion
-    # when calling the function, so it should be changed eventually
+class SlurmScriptBuilder:
 
     def __init__(
         self,
@@ -210,7 +208,7 @@ def main():
     # Other settings
     distributed_strategy = "horovod"
 
-    slurm_script = SlurmScript(
+    slurm_script = SlurmScriptBuilder(
         job_name=job_name,
         account=account,
         time=time,
