@@ -3,12 +3,12 @@
 # Job configuration
 #SBATCH --job-name=ray_tune_hpo    
 #SBATCH --account=intertwin       
-#SBATCH --time=00:30:00
+#SBATCH --time=00:10:00
 #SBATCH --partition=develbooster
 
 # Resources allocation
 #SBATCH --cpus-per-task=32
-#SBATCH --nodes=1
+#SBATCH --nodes=2
 #SBATCH --ntasks-per-node=1
 #SBATCH --gpus-per-node=4
 #SBATCH --exclusive
@@ -42,7 +42,7 @@ export RAY_USAGE_STATS_DISABLE=1
 
 # Get the node names
 nodes=$(scontrol show hostnames "$SLURM_JOB_NODELIST")
-nodes_array=($nodes)
+mapfile -t nodes_array <<< "$nodes"
 
 # The head node will act as the central manager (head) of the Ray cluster.
 head_node=${nodes_array[0]}
