@@ -8,9 +8,8 @@
 # --------------------------------------------------------------------------------------
 
 from pathlib import Path
-from create_slurm import remove_indentation_from_multiline_string, SlurmScript
-from slurm_constants import JUWELS_HPC_MODULES
-from typing import Literal
+
+from create_slurm import SlurmScript, remove_indentation_from_multiline_string
 
 
 class EuracSlurmScript(SlurmScript):
@@ -79,7 +78,7 @@ def main():
     config_file = "config.yaml"
     pipe_key = "rnn_training_pipeline"
 
-    dist_strats = ["ddp"] #, "deepspeed", "horovod"]
+    dist_strats = ["ddp"]  # , "deepspeed", "horovod"]
     for distributed_strategy in dist_strats:
         slurm_script = EuracSlurmScript(
             job_name=job_name,
@@ -102,7 +101,7 @@ def main():
         file_path.parent.mkdir(exist_ok=True, parents=True)
         # slurm_script.run_slurm_script(file_path=file_path, retain_file=)
         script = slurm_script.get_slurm_script()
-        with open("my_script.sh", "w") as f: 
+        with open("my_script.sh", "w") as f:
             f.write(script)
 
 

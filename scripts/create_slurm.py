@@ -8,8 +8,9 @@
 # --------------------------------------------------------------------------------------
 
 import subprocess
-from slurm_constants import JUWELS_HPC_MODULES
 from pathlib import Path
+
+from slurm_constants import JUWELS_HPC_MODULES
 
 
 def remove_indentation_from_multiline_string(multiline_string: str) -> str:
@@ -67,6 +68,10 @@ class SlurmScript:
         torch_log_dir: str = "logs_torchrun",
     ):
         if self.distributed_strategy in ["ddp", "deepspeed"]:
+            rdzv_endpoint = (
+                '\'$(scontrol show hostnames "$SLURM_JOB_NODELIST"'
+                " | head -n 1)':29500"
+            )
             main_command = rf"""
             srun --cpu-bind=none --ntasks-per-node=1 \
             bash -c "torchrun \
@@ -76,7 +81,7 @@ class SlurmScript:
                 --rdzv_id=$SLURM_JOB_ID \
                 --rdzv_conf=is_host=\$(((SLURM_NODEID)) && echo 0 || echo 1) \
                 --rdzv_backend=c10d \
-                --rdzv_endpoint='$(scontrol show hostnames "$SLURM_JOB_NODELIST" | head -n 1)':29500 \
+                --rdzv_endpoint={rdzv_endpoint} \
                 {self.get_training_command()}"
         """
         else:
