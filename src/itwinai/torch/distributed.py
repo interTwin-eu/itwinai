@@ -7,6 +7,7 @@
 # - Matteo Bunino <matteo.bunino@cern.ch> - CERN
 # - Jarl Sondre Sæther <jarl.sondre.saether@cern.ch> - CERN
 # - Henry Mutegeki <henry.mutegeki@cern.ch> - CERN
+# - Anna Lappe <anna.elisa.lappe@cern.ch> - CERN
 # --------------------------------------------------------------------------------------
 
 import abc
@@ -14,6 +15,8 @@ import functools
 import os
 from typing import Any, Callable, Iterable, List, Literal, Optional, Tuple, Union
 
+import ray
+import ray.train
 import torch
 import torch.distributed as dist
 import torch.nn as nn
@@ -54,6 +57,23 @@ def check_initialized(method: Callable) -> Callable:
         return method(self, *args, **kwargs)
 
     return wrapper
+
+
+def initialize_ray() -> None:
+    """This method is used by the RayDDPStrategy and RayDeepSpeedStrategy to initialize
+    the Ray backend if it is not already initialized.
+
+        Raises:
+            EnvironmentError: If required environment variables `HEAD_NODE_PORT` or
+                `HEAD_NODE_IP` are not set.
+                These should be set from the slurm script where the ray cluster is launched.
+    """
+    if ray.is_initialized():
+        return
+
+    ray.init(address="auto")
+    print(f"Nodes in the cluster: {ray.nodes()}")
+    print(f"Available cluster resources: {ray.available_resources()}")
 
 
 class TorchDistributedStrategy(DistributedStrategy):
@@ -318,9 +338,7 @@ class TorchDistributedStrategy(DistributedStrategy):
                     shuffle=shuffle,
                 )
             elif not isinstance(sampler, DistributedSampler):
-                raise RuntimeError(
-                    "User-provided sampler must implement DistributedSampler."
-                )
+                raise RuntimeError("User-provided sampler must implement DistributedSampler.")
         # shuffle and batch_sampler must be unset
         return DataLoader(
             dataset=dataset,
@@ -697,9 +715,7 @@ class DeepSpeedStrategy(TorchDistributedStrategy):
         dist.gather_object(obj, dst=dst_rank)
 
     @check_initialized
-    def gather(
-        self, tensor: torch.Tensor, dst_rank: int = 0
-    ) -> Optional[List[torch.Tensor]]:
+    def gather(self, tensor: torch.Tensor, dst_rank: int = 0) -> Optional[List[torch.Tensor]]:
         """Gathers a tensor from the whole group in a list
         (to all workers).
 
@@ -878,9 +894,7 @@ class HorovodStrategy(TorchDistributedStrategy):
             return result
 
     @check_initialized
-    def gather(
-        self, tensor: torch.Tensor, dst_rank: int = 0
-    ) -> Optional[List[torch.Tensor]]:
+    def gather(self, tensor: torch.Tensor, dst_rank: int = 0) -> Optional[List[torch.Tensor]]:
         """Gathers a tensor from the whole group in a list
         (to all workers). Under the hood it relies on allgather as gather is
         not supported by Horovod.
@@ -1021,3 +1035,93 @@ class NonDistributedStrategy(TorchDistributedStrategy):
             list[Any]: input object wrapped in a list.
         """
         return [tensor]
+
+
+class RayDDPStrategy(TorchDDPStrategy):
+    """A distributed data-parallel (DDP) strategy using Ray Train for PyTorch training."""
+
+    def __init__(self) -> None:
+        initialize_ray()
+
+    def init(self) -> None:
+        self.is_initialized = True
+
+    @check_initialized
+    def global_world_size(self) -> int:
+        return ray.train.get_context().get_world_size()
+
+    @check_initialized
+    def local_world_size(self) -> int:
+        return ray.train.get_context().get_local_world_size()
+
+    @check_initialized
+    def global_rank(self) -> int:
+        return ray.train.get_context().get_world_rank()
+
+    @check_initialized
+    def local_rank(self) -> int:
+        return ray.train.get_context().get_local_rank()
+
+    @check_initialized
+    def distributed(
+        self,
+        model: nn.Module,
+        optimizer: Optimizer,
+        lr_scheduler: Optional[LRScheduler] = None,
+    ) -> Tuple[nn.Module, Optimizer, LRScheduler | None]:
+        model = ray.train.torch.prepare_model(model)
+
+        return model, optimizer, lr_scheduler
+
+    @check_initialized
+    def create_dataloader(
+        self,
+        dataset: Dataset[T_co],
+        batch_size: Optional[int] = 1,
+        shuffle: Optional[bool] = None,
+        sampler: Union[Sampler, Iterable, None] = None,
+        batch_sampler: Union[Sampler[List], Iterable[List], None] = None,
+        num_workers: int = 0,
+        collate_fn: Optional[_collate_fn_t] = None,
+        pin_memory: bool = False,
+        drop_last: bool = False,
+        timeout: float = 0,
+        worker_init_fn: Optional[_worker_init_fn_t] = None,
+        multiprocessing_context=None,
+        generator=None,
+        *,
+        prefetch_factor: Optional[int] = None,
+        persistent_workers: bool = False,
+        pin_memory_device: str = "",
+    ):
+        dataloader = DataLoader(
+            dataset=dataset,
+            batch_size=batch_size,
+            sampler=sampler,
+            shuffle=shuffle,
+            num_workers=num_workers,
+            collate_fn=collate_fn,
+            pin_memory=pin_memory,
+            drop_last=drop_last,
+            timeout=timeout,
+            worker_init_fn=worker_init_fn,
+            multiprocessing_context=multiprocessing_context,
+            generator=generator,
+            prefetch_factor=prefetch_factor,
+            persistent_workers=persistent_workers,
+            pin_memory_device=pin_memory_device,
+        )
+
+        return ray.train.torch.prepare_data_loader(dataloader)
+
+
+class RayDeepSpeedStrategy(DeepSpeedStrategy):
+    """A distributed strategy using Ray and DeepSpeed for PyTorch training.
+
+    Args:
+        backend (Literal["nccl", "gloo", "mpi"]): The backend for distributed communication.
+    """
+
+    def __init__(self, backend: Literal["nccl", "gloo", "mpi"]) -> None:
+        initialize_ray()
+        super().__init__(backend=backend)

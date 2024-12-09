@@ -15,22 +15,30 @@
 
 import os
 import sys
-from typing import Any, Callable, Dict, List, Literal, Optional, Tuple, Union
+import tempfile
+from pathlib import Path
+from typing import Any, Callable, Dict, Iterable, List, Literal, Optional, Tuple, Union
 
 import lightning as L
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+import ray.train as train
+import ray.train.torch
+import ray.tune as tune
 import torch
 import torch.distributed as dist
 import torch.nn as nn
 import torch.optim as optim
 import torchvision
 from lightning.pytorch.cli import LightningCLI
+from pydantic.utils import deep_update
 from torch.nn.parallel import DistributedDataParallel as DDP
 from torch.optim.optimizer import Optimizer
-from torch.utils.data import DataLoader, Dataset
+from torch.utils.data import DataLoader, Dataset, Sampler
 from torch.utils.data.distributed import DistributedSampler
+
+from itwinai.torch.tuning import get_raytune_schedule, get_raytune_search_alg
 
 # Imports from this repository
 from ..components import Trainer, monitor_exec
@@ -41,6 +49,8 @@ from .distributed import (
     DeepSpeedStrategy,
     HorovodStrategy,
     NonDistributedStrategy,
+    RayDDPStrategy,
+    RayDeepSpeedStrategy,
     TorchDDPStrategy,
     TorchDistributedStrategy,
     distributed_resources_available,
@@ -48,6 +58,34 @@ from .distributed import (
 from .mlflow import init_lightning_mlflow, teardown_lightning_mlflow
 from .reproducibility import seed_worker, set_seed
 from .type import Batch, LrScheduler, Metric
+
+DEFAULT_RAY_CONFIG = {
+    "scaling_config": {
+        "num_workers": 4,  # Default to 4 workers
+        "use_gpu": True,
+        "resources_per_worker": {"CPU": 5, "GPU": 1},
+    },
+    "tune_config": {
+        "num_samples": 1,  # Number of trials to run, increase for more thorough tuning
+        "metric": "loss",
+        "mode": "min",
+    },
+    "run_config": {
+        "checkpoint_at_end": True,  # Save checkpoint at the end of each trial
+        "checkpoint_freq": 10,  # Save checkpoint every 10 iterations
+        "storage_path": "ray_results",  # Directory to save results, logs, and checkpoints
+    },
+    "train_loop_config": {
+        "learning_rate": 1e-3,
+        "batch_size": 32,
+        "epochs": 10,
+        "optimizer": "adam",
+        "loss": "cross_entropy",
+        "optim_momentum": 0.9,
+        "optim_weight_decay": 0,
+        "random_seed": 21,
+    },
+}
 
 
 class TorchTrainer(Trainer, LogMixin):
@@ -161,7 +199,7 @@ class TorchTrainer(Trainer, LogMixin):
         return self._strategy
 
     @strategy.setter
-    def strategy(self, strategy: Union[str, TorchDistributedStrategy]) -> None:
+    def strategy(self, strategy: str | TorchDistributedStrategy) -> None:
         if isinstance(strategy, TorchDistributedStrategy):
             self._strategy = strategy
         else:
@@ -1220,3 +1258,362 @@ def distributed(func):
                 dist.destroy_process_group()
 
     return dist_train
+
+
+class RayTorchTrainer(Trainer):
+    """A trainer class for distributed training and hyperparameter optimization
+    using Ray Train/ Tune and PyTorch.
+
+    Args:
+        config (Dict): A dictionary of configuration settings for the trainer.
+        strategy (Optional[Literal["ddp", "deepspeed"]]):
+            The distributed training strategy to use. Defaults to "ddp".
+        name (Optional[str]): Optional name for the trainer instance. Defaults to None.
+        logger (Optional[Logger]): Optional logger instance. Defaults to None.
+    """
+
+    def __init__(
+        self,
+        config: Dict,
+        strategy: Optional[Literal["ddp", "deepspeed"]] = "ddp",
+        name: Optional[str] = None,
+        logger: Optional[Logger] = None,
+    ) -> None:
+        super().__init__(name=name)
+        self.logger = logger
+        self._set_strategy_and_init_ray(strategy)
+        self._set_configs(config=config)
+        self.torch_rng = set_seed(self.train_loop_config["random_seed"])
+
+    def _set_strategy_and_init_ray(self, strategy: str):
+        """Set the distributed training strategy. This will initialize the ray backend.
+
+        Args:
+            strategy (str): The strategy to use for distributed training.
+                Must be one of ["ddp", "deepspeed"].
+
+        Raises:
+            ValueError: If an unsupported strategy is provided.
+        """
+        if strategy == "ddp":
+            self.strategy = RayDDPStrategy()
+        elif strategy == "deepspeed":
+            self.strategy = RayDeepSpeedStrategy(backend="nccl")
+        else:
+            raise ValueError(f"Unsupported strategy: {strategy}")
+
+    def _set_configs(self, config: Dict):
+        # TODO: Think about how to implement the config more nicely
+        self.config = deep_update(DEFAULT_RAY_CONFIG, config)
+        self._set_scaling_config()
+        self._set_tune_config()
+        self._set_run_config()
+        self._set_train_loop_config()
+
+    @property
+    def device(self) -> str:
+        """Get the current device from distributed strategy.
+        Returns:
+            str: Device string (e.g., "cuda:0").
+        """
+        return self.strategy.device()
+
+    def create_dataloaders(
+        self,
+        train_dataset: Dataset,
+        validation_dataset: Dataset | None = None,
+        test_dataset: Dataset | None = None,
+        batch_size: int = 1,
+        num_workers_dataloader: int = 4,
+        pin_memory: bool = False,
+        shuffle_train: bool | None = False,
+        shuffle_test: bool | None = False,
+        shuffle_validation: bool | None = False,
+        sampler: Union[Sampler, Iterable, None] = None,
+        collate_fn: Callable[[List], Any] | None = None,
+    ) -> None:
+        """Create data loaders for training, validation, and testing.
+
+        Args:
+            train_dataset (Dataset): The training dataset.
+            validation_dataset (Dataset, optional): The validation dataset. Defaults to None.
+            test_dataset (Dataset, optional): The test dataset. Defaults to None.
+            batch_size (int, optional): Batch size for data loaders. Defaults to 1.
+            shuffle_train (bool, optional): Whether to shuffle the training dataset.
+                Defaults to False.
+            shuffle_test (bool, optional): Whether to shuffle the test dataset.
+                Defaults to False.
+            shuffle_validation (bool, optional): Whether to shuffle the validation dataset.
+                Defaults to False.
+            sampler (Union[Sampler, Iterable, None], optional): Sampler for the datasets.
+                Defaults to None.
+            collate_fn (Callable[[List], Any], optional):
+                Function to collate data samples into batches. Defaults to None.
+        """
+        self.train_dataloader = self.strategy.create_dataloader(
+            dataset=train_dataset,
+            batch_size=batch_size,
+            num_workers=num_workers_dataloader,
+            pin_memory=pin_memory,
+            generator=self.torch_rng,
+            shuffle=shuffle_train,
+            sampler=sampler,
+            collate_fn=collate_fn,
+        )
+        if validation_dataset is not None:
+            self.validation_dataloader = self.strategy.create_dataloader(
+                dataset=validation_dataset,
+                batch_size=batch_size,
+                num_workers=num_workers_dataloader,
+                pin_memory=pin_memory,
+                generator=self.torch_rng,
+                shuffle=shuffle_validation,
+                sampler=sampler,
+                collate_fn=collate_fn,
+            )
+        else:
+            self.validation_dataloader = None
+        if test_dataset is not None:
+            self.test_dataloader = self.strategy.create_dataloader(
+                dataset=test_dataset,
+                batch_size=batch_size,
+                num_workers=num_workers_dataloader,
+                pin_memory=pin_memory,
+                generator=self.torch_rng,
+                shuffle=shuffle_test,
+                sampler=sampler,
+                collate_fn=collate_fn,
+            )
+        else:
+            self.test_dataloader = None
+
+    @monitor_exec
+    def execute(
+        self,
+        train_dataset: Dataset,
+        validation_dataset: Optional[Dataset] = None,
+        test_dataset: Optional[Dataset] = None,
+    ) -> Tuple[Dataset, Dataset, Dataset, Any]:
+        """Execute the training pipeline with the given datasets.
+
+        Args:
+            train_dataset (Dataset): Training dataset.
+            validation_dataset (Optional[Dataset], optional): Validation dataset.
+                Defaults to None.
+            test_dataset (Optional[Dataset], optional): Test dataset. Defaults to None.
+
+        Returns:
+            Tuple[Dataset, Dataset, Dataset, Any]:
+                A tuple containing the datasets and the training result grid.
+        """
+        train_with_data = tune.with_parameters(
+            self.train, data=[train_dataset, validation_dataset, test_dataset]
+        )
+        trainer = ray.train.torch.TorchTrainer(
+            train_with_data,
+            train_loop_config=self.train_loop_config,
+            scaling_config=self.scaling_config,
+            run_config=self.run_config,
+        )
+        param_space = {"train_loop_config": self.train_loop_config}
+        tuner = tune.Tuner(trainer, param_space=param_space, tune_config=self.tune_config)
+
+        result_grid = tuner.fit()
+
+        return train_dataset, validation_dataset, test_dataset, result_grid
+
+    def set_epoch(self, epoch: int) -> None:
+        self.train_dataloader.sampler.set_epoch(epoch)
+        if self.validation_dataloader is not None:
+            self.validation_dataloader.sampler.set_epoch(epoch)
+        if self.test_dataloader is not None:
+            self.test_dataloader.sampler.set_epoch(epoch)
+
+    def _set_tune_config(self):
+        tune_config = self.config["tune_config"]
+
+        if not tune_config:
+            print(
+                "INFO: Empty Tune Config configured. Using the default configuration with "
+                "a single trial."
+            )
+
+        num_samples = tune_config.get("num_samples", 1)
+        metric = tune_config.get("metric", "loss")
+        mode = tune_config.get("mode", "min")
+
+        search_alg = get_raytune_search_alg(tune_config)
+        scheduler = get_raytune_schedule(tune_config)
+
+        # Only set metric and mode if search_alg and scheduler aren't defined
+        self.tune_config = tune.TuneConfig(
+            num_samples=num_samples,
+            metric=metric,
+            mode=mode,
+            search_alg=search_alg,
+            scheduler=scheduler,
+        )
+
+    def _set_scaling_config(self):
+        scaling_config = self.config["scaling_config"]
+
+        if not scaling_config:
+            print("INFO: Empty Scaling Config configured. Running trials non-distributed.")
+            self.scaling_config = None
+            return
+
+        self.scaling_config = ray.train.ScalingConfig(**self.config["scaling_config"])
+
+    def _set_run_config(self):
+        run_config = self.config["run_config"]
+
+        if not run_config:
+            print("INFO: Empty RunConfig provided. Assuming local or single-node execution.")
+            self.run_config = None
+            return
+
+        storage_path = Path(run_config.get("storage_path"))
+        if not storage_path:
+            print("INFO: Empty storage path provided. Using default path 'ray_checkpoints'")
+            storage_path = Path("ray_checkpoints")
+
+        self.run_config = ray.train.RunConfig(storage_path=Path.absolute(storage_path))
+
+    def _set_train_loop_config(self):
+        train_loop_config = self.config["train_loop_config"]
+
+        if train_loop_config:
+            self.train_loop_config = self._set_searchspace(train_loop_config)
+        else:
+            print(
+                "INFO: No training_loop_config detected. "
+                "No parameters are being tuned or passed to the training function."
+            )
+
+    def _set_searchspace(self, train_loop_dict: Dict):
+        train_loop_config = {}
+
+        for name, values in train_loop_dict.items():
+            if not isinstance(values, dict):
+                # Constant parameters can be added as-is
+                train_loop_config[name] = values
+                continue
+
+            param_type = values.get("type")
+
+            if param_type == "choice":
+                train_loop_config[name] = tune.choice(values["options"])
+
+            elif param_type == "uniform":
+                train_loop_config[name] = tune.uniform(
+                    float(values["min"]), float(values["max"])
+                )
+
+            elif param_type == "quniform":
+                train_loop_config[name] = tune.quniform(
+                    values["min"], values["max"], values["q"]
+                )
+
+            elif param_type == "loguniform":
+                train_loop_config[name] = tune.loguniform(values["min"], values["max"])
+
+            elif param_type == "qloguniform":
+                train_loop_config[name] = tune.qloguniform(
+                    values["min"], values["max"], values["q"]
+                )
+
+            elif param_type == "randint":
+                train_loop_config[name] = tune.randint(values["min"], values["max"])
+
+            elif param_type == "qrandint":
+                train_loop_config[name] = tune.qrandint(
+                    values["min"], values["max"], values["q"]
+                )
+
+            elif param_type == "lograndint":
+                train_loop_config[name] = tune.lograndint(values["min"], values["max"])
+
+            elif param_type == "qlograndint":
+                train_loop_config[name] = tune.qlograndint(
+                    values["min"], values["max"], values["q"]
+                )
+
+            elif param_type == "randn":
+                train_loop_config[name] = tune.randn(values["mean"], values["stddev"])
+
+            elif param_type == "qrandn":
+                train_loop_config[name] = tune.qrandn(
+                    values["mean"], values["stddev"], values["q"]
+                )
+
+            elif param_type == "grid_search":
+                train_loop_config[name] = tune.grid_search(values["options"])
+
+            else:
+                raise ValueError(f"Unsupported search space type: {param_type}")
+
+        return train_loop_config
+
+    # TODO: Can I also log the checkpoint?
+    def checkpoint_and_report(self, epoch, tuning_metrics, checkpointing_data=None):
+        with tempfile.TemporaryDirectory() as temp_checkpoint_dir:
+            checkpoint = None
+
+            should_checkpoint = epoch % self.config.get("checkpoint_freq", 1)
+
+            if checkpointing_data and should_checkpoint:
+                torch.save(checkpointing_data, os.path.join(temp_checkpoint_dir, str(epoch)))
+                checkpoint = train.Checkpoint.from_directory(temp_checkpoint_dir)
+
+        train.report(tuning_metrics, checkpoint=checkpoint)
+
+    def initialize_logger(self, hyperparams: Optional[Dict], rank):
+        if not self.logger:
+            return
+
+        self.logger.create_logger_context(rank=rank)
+        print(f"Logger initialized with rank {rank}")
+
+        if hyperparams:
+            self.logger.save_hyperparameters(hyperparams)
+
+    def close_logger(self):
+        if self.logger:
+            self.logger.destroy_logger_context()
+
+    def log(
+        self,
+        item: Union[Any, List[Any]],
+        identifier: Union[str, List[str]],
+        kind: str = "metric",
+        step: Optional[int] = None,
+        batch_idx: Optional[int] = None,
+        **kwargs,
+    ) -> None:
+        """Log ``item`` with ``identifier`` name of ``kind`` type at ``step``
+        time step.
+
+        Args:
+            item (Union[Any, List[Any]]): element to be logged (e.g., metric).
+            identifier (Union[str, List[str]]): unique identifier for the
+                element to log(e.g., name of a metric).
+            kind (str, optional): type of the item to be logged. Must be one
+                among the list of self.supported_types. Defaults to 'metric'.
+            step (Optional[int], optional): logging step. Defaults to None.
+            batch_idx (Optional[int], optional): DataLoader batch counter
+                (i.e., batch idx), if available. Defaults to None.
+        """
+        if self.logger:
+            self.logger.log(
+                item=item,
+                identifier=identifier,
+                kind=kind,
+                step=step,
+                batch_idx=batch_idx,
+                **kwargs,
+            )
+        else:
+            print(
+                "INFO: The log method was called, but no logger was configured for this "
+                "Trainer."
+            )

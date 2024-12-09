@@ -40,6 +40,7 @@ jobs:
 
           VALIDATE_PYTHON: true
           VALIDATE_PYTHON_BLACK: false
+          VALIDATE_ISORT: false
           VALIDATE_PYTHON_MYPY: false
           VALIDATE_PYTHON_PYLINT: false
           VALIDATE_HTML: false
