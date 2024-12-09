@@ -10,7 +10,7 @@
 import subprocess
 from pathlib import Path
 
-from slurm_constants import JUWELS_HPC_MODULES
+from itwinai.slurm.slurm_constants import JUWELS_HPC_MODULES
 
 
 def remove_indentation_from_multiline_string(multiline_string: str) -> str:
