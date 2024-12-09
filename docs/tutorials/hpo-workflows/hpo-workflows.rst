@@ -3,6 +3,8 @@
 Hyperparameter Optimization with RayTorchTrainer on MNIST
 =========================================================
 
+**Author(s)**: Anna Lappe (CERN)
+
 This tutorial provides a step-by-step guide to using the ``RayTorchTrainer`` class for running 
 a hyperparameter optimization (HPO) study. We assume that you are familiar with the ``TorchTrainer`` class, and the itwinai training pipeline. If you are not, you might want to go through the tutorials on these first.
 To illustrate the process, we will work with the FashionMNIST dataset.

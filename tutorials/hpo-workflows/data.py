@@ -12,11 +12,9 @@ data_dir = Path("data")
 
 
 def download_fashion_mnist() -> None:
-    """
-    Download the FashionMNIST dataset using torchvision.
-    """
+    """Download the FashionMNIST dataset using torchvision."""
     print("Downloading FashionMNIST dataset...")
-    _ = datasets.FashionMNIST(
+    datasets.FashionMNIST(
         data_dir,
         train=True,
         download=True,
@@ -24,7 +22,7 @@ def download_fashion_mnist() -> None:
             [transforms.ToTensor(), transforms.Normalize((0.5,), (0.5,))]
         ),
     )
-    _ = datasets.FashionMNIST(
+    datasets.FashionMNIST(
         data_dir,
         train=False,
         download=True,
@@ -40,9 +38,7 @@ class FashionMNISTGetter(DataGetter):
         super().__init__()
 
     def execute(self) -> Tuple[Dataset, Dataset]:
-        """
-        Load the FashionMNIST dataset from the specified directory.
-        """
+        """Load the FashionMNIST dataset from the specified directory."""
         print("Loading FashionMNIST dataset...")
         train_dataset = datasets.FashionMNIST(
             data_dir,
@@ -52,14 +48,6 @@ class FashionMNISTGetter(DataGetter):
                 [transforms.ToTensor(), transforms.Normalize((0.5,), (0.5,))]
             ),
         )
-        # test_dataset = datasets.FashionMNIST(
-        #     data_dir,
-        #     train=False,
-        #     download=False,
-        #     transform=transforms.Compose(
-        #         [transforms.ToTensor(), transforms.Normalize((0.5,), (0.5,))]
-        #     ),
-        # )
         print("Loading complete!")
         return train_dataset
 
@@ -75,9 +63,7 @@ class FashionMNISTSplitter(DataSplitter):
         super().__init__(train_proportion, validation_proportion, test_proportion, name)
 
     def execute(self, dataset: Dataset) -> Tuple[Dataset, Dataset, Dataset]:
-        """
-        Split the dataset into train, validation, and test sets.
-        """
+        """Split the dataset into train, validation, and test sets."""
         print("Splitting dataset...")
         total_size = len(dataset)
         train_size = int(self.train_proportion * total_size)

@@ -3,6 +3,8 @@
 Hyperparameter Optimization
 ============================
 
+**Author(s)**: Anna Lappe (CERN)
+
 Hyperparameter optimization (HPO) is a core technique for improving machine learning model 
 performance. This page introduces the concepts behind HPO, covering key elements like 
 hyperparameters, search algorithms, schedulers, and more. 
@@ -76,9 +78,8 @@ HPO is beneficial when:
 To make sure you get the most out of your HPO training, the are some considerations you might want to make are to
 
 *    define the search space wisely: Narrow the search space to plausible ranges to improve efficiency.
-*    choose appropriate metrics: Use metrics aligned with your task's goals.
-*    allocate your resources strategically: Balance the computational cost with the expected performance gains.
-*    interpret your results carefully: Ensure that the improvements are meaningful and not due to overfitting.
+*    choose appropriate metrics: Use metrics aligned with your task's goals. With some search algorithms it is also possible to do multi-objective optimization, e.g. if you want to track both accuracy and L1 loss - just make sure that the metric that you track conforms with your search algorithm.
+*    allocate your resources strategically: Balance the computational cost with the expected performance gains. This is what the scheduler is for, and it is generally always a good idea to use one, unless you expect your objective function to be extremely heterogenous, i.e. that the performance of a hyperparameter configuration on the first (for example) ten epochs is not a good indicator for its future performance at all. You might also have experience in training your model and want to account for additional behaviors  - for this there are additional parameters you may set, such as a grace period (a minimum number of iterations a configuration is allowed to run).
 
 
 Hyperparameter Optimization in itwinai
@@ -106,8 +107,8 @@ resources, and Ray schedules and manages these resources.
 How a Ray Cluster Operates:
 
 #.    **Node Roles**: A cluster includes a head node (orchestrator) and worker nodes (executors). 
-#.     **Task Scheduling**: Ray automatically schedules trials across nodes based on available resources.
-#.     **Shared State**: Nodes share data such as checkpoints and trial results via a central storage path.
+#.    **Task Scheduling**: Ray automatically schedules trials across nodes based on available resources.
+#.    **Shared State**: Nodes share data such as checkpoints and trial results via a central storage path.
 
 We launch a ray cluster using a dedicated slurm job script. You may refer to `this script <https://github.com/interTwin-eu/itwinai/blob/main/tutorials/hpo-workflows/slurm_hpo.sh>`_ It should be suitable for almost any 
 time you wish to run an itwinai pipeline with Ray, the only thing you may have to change is the ``#SBATCH`` directives to set the proper resource requirements. 
