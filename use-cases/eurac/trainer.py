@@ -37,7 +37,6 @@ from itwinai.torch.distributed import (
     NonDistributedStrategy,
     TorchDDPStrategy,
 )
-from itwinai.torch.monitoring.monitoring import measure_gpu_utilization
 from itwinai.torch.profiling.profiler import profile_torch_trainer
 from itwinai.torch.trainer import TorchTrainer
 from itwinai.torch.type import Metric

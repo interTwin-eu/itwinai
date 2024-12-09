@@ -59,10 +59,8 @@ def test_mnist_train_torch(torch_env, install_requirements):
     """
     install_requirements(TORCH_PATH, torch_env)
 
-    if os.environ.get("MNIST_DATASET"):
-        dataset_path = os.environ.get("MNIST_DATASET")
-    else:
-        dataset_path = DEFAULT_MNIST_DATASET
+    dataset_path = os.environ.get("MNIST_DATASET", DEFAULT_MNIST_DATASET)
+
     conf = (TORCH_PATH / "config.yaml").resolve()
     cmd = (
         f"{torch_env}/bin/itwinai exec-pipeline "
@@ -108,10 +106,7 @@ def test_mnist_train_torch_lightning(torch_env, install_requirements):
     """
     install_requirements(LIGHTNING_PATH, torch_env)
 
-    if os.environ.get("MNIST_DATASET"):
-        dataset_path = os.environ.get("MNIST_DATASET")
-    else:
-        dataset_path = DEFAULT_MNIST_DATASET
+    dataset_path = os.environ.get("MNIST_DATASET", DEFAULT_MNIST_DATASET)
     conf = (LIGHTNING_PATH / "config.yaml").resolve()
     cmd = (
         f"{torch_env}/bin/itwinai exec-pipeline "
@@ -128,7 +123,7 @@ def test_mnist_train_tf(tf_env, install_requirements):
     Test MNIST tensorflow trainer by running it end-to-end.
     """
     install_requirements(TF_PATH, tf_env)
-    conf = os.path.join(os.path.abspath(TF_PATH), "pipeline.yaml")
-    cmd = f"{tf_env}/bin/itwinai exec-pipeline " f"--config {conf} --pipe-key pipeline"
+    conf = TF_PATH / "pipeline.yaml"
+    cmd = f"{tf_env}/bin/itwinai exec-pipeline " f"--config {conf.resolve()} --pipe-key pipeline"
     with tempfile.TemporaryDirectory() as temp_dir:
         subprocess.run(cmd.split(), check=True, cwd=temp_dir)

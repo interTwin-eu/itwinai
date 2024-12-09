@@ -16,7 +16,6 @@
 import os
 import sys
 import tempfile
-from abc import abstractmethod
 from pathlib import Path
 from typing import Any, Callable, Dict, Iterable, List, Literal, Optional, Tuple, Union
 
@@ -59,6 +58,34 @@ from .distributed import (
 from .mlflow import init_lightning_mlflow, teardown_lightning_mlflow
 from .reproducibility import seed_worker, set_seed
 from .type import Batch, LrScheduler, Metric
+
+DEFAULT_RAY_CONFIG = {
+    "scaling_config": {
+        "num_workers": 4,  # Default to 4 workers
+        "use_gpu": True,
+        "resources_per_worker": {"CPU": 5, "GPU": 1},
+    },
+    "tune_config": {
+        "num_samples": 1,  # Number of trials to run, increase for more thorough tuning
+        "metric": "loss",
+        "mode": "min",
+    },
+    "run_config": {
+        "checkpoint_at_end": True,  # Save checkpoint at the end of each trial
+        "checkpoint_freq": 10,  # Save checkpoint every 10 iterations
+        "storage_path": "ray_results",  # Directory to save results, logs, and checkpoints
+    },
+    "train_loop_config": {
+        "learning_rate": 1e-3,
+        "batch_size": 32,
+        "epochs": 10,
+        "optimizer": "adam",
+        "loss": "cross_entropy",
+        "optim_momentum": 0.9,
+        "optim_weight_decay": 0,
+        "random_seed": 21,
+    },
+}
 
 
 class TorchTrainer(Trainer, LogMixin):
@@ -1233,35 +1260,6 @@ def distributed(func):
     return dist_train
 
 
-DEFAULT_RAY_CONFIG = {
-    "scaling_config": {
-        "num_workers": 4,  # Default to 4 workers
-        "use_gpu": True,
-        "resources_per_worker": {"CPU": 5, "GPU": 1},
-    },
-    "tune_config": {
-        "num_samples": 1,  # Number of trials to run, increase for more thorough tuning
-        "metric": "loss",
-        "mode": "min",
-    },
-    "run_config": {
-        "checkpoint_at_end": True,  # Save checkpoint at the end of each trial
-        "checkpoint_freq": 10,  # Save checkpoint every 10 iterations
-        "storage_path": "ray_results",  # Directory to save results, logs, and checkpoints
-    },
-    "train_loop_config": {
-        "learning_rate": 1e-3,
-        "batch_size": 32,
-        "epochs": 10,
-        "optimizer": "adam",
-        "loss": "cross_entropy",
-        "optim_momentum": 0.9,
-        "optim_weight_decay": 0,
-        "random_seed": 21,
-    },
-}
-
-
 class RayTorchTrainer(Trainer):
     """A trainer class for distributed training and hyperparameter optimization
     using Ray Train/ Tune and PyTorch.
@@ -1389,10 +1387,6 @@ class RayTorchTrainer(Trainer):
         else:
             self.test_dataloader = None
 
-    @abstractmethod
-    def train(config, data=None):
-        pass
-
     @monitor_exec
     def execute(
         self,
@@ -1436,51 +1430,58 @@ class RayTorchTrainer(Trainer):
             self.test_dataloader.sampler.set_epoch(epoch)
 
     def _set_tune_config(self):
-        tune_config = self.config.get("tune_config")
-        if tune_config:
-            num_samples = tune_config.get("num_samples", 10)
-            metric = tune_config.get("metric", "loss")
-            mode = tune_config.get("mode", "min")
+        tune_config = self.config["tune_config"]
 
-            search_alg = (
-                get_raytune_search_alg(tune_config) if "search_alg" in tune_config else None
-            )
-            scheduler = (
-                get_raytune_schedule(tune_config) if "scheduler" in tune_config else None
+        if not tune_config:
+            print(
+                "INFO: Empty Tune Config configured. Using the default configuration with "
+                "a single trial."
             )
 
-            # Only set metric and mode if search_alg and scheduler aren't defined
-            self.tune_config = tune.TuneConfig(
-                num_samples=num_samples,
-                metric=metric if not search_alg and not scheduler else None,
-                mode=mode if not search_alg and not scheduler else None,
-                search_alg=search_alg,
-                scheduler=scheduler,
-            )
-        else:
-            print("INFO: No Tune Config configured.")
-            self.tune_config = None
+        num_samples = tune_config.get("num_samples", 1)
+        metric = tune_config.get("metric", "loss")
+        mode = tune_config.get("mode", "min")
+
+        search_alg = get_raytune_search_alg(tune_config)
+        scheduler = get_raytune_schedule(tune_config)
+
+        # Only set metric and mode if search_alg and scheduler aren't defined
+        self.tune_config = tune.TuneConfig(
+            num_samples=num_samples,
+            metric=metric,
+            mode=mode,
+            search_alg=search_alg,
+            scheduler=scheduler,
+        )
 
     def _set_scaling_config(self):
-        scaling_config = self.config.get("scaling_config")
-        if scaling_config:
-            self.scaling_config = ray.train.ScalingConfig(**scaling_config)
-        else:
-            print("INFO: No Scaling Config configured.")
+        scaling_config = self.config["scaling_config"]
+
+        if not scaling_config:
+            print("INFO: Empty Scaling Config configured. Running trials non-distributed.")
             self.scaling_config = None
+            return
+
+        self.scaling_config = ray.train.ScalingConfig(**self.config["scaling_config"])
 
     def _set_run_config(self):
-        run_config = self.config.get("run_config")
-        if run_config:
-            storage_path = Path(run_config.get("storage_path"))
-            if storage_path:
-                self.run_config = ray.train.RunConfig(storage_path=Path.absolute(storage_path))
-        else:
-            print("INFO: No RunConfig provided. Assuming local or single-node execution.")
+        run_config = self.config["run_config"]
+
+        if not run_config:
+            print("INFO: Empty RunConfig provided. Assuming local or single-node execution.")
             self.run_config = None
+            return
+
+        storage_path = Path(run_config.get("storage_path"))
+        if not storage_path:
+            print("INFO: Empty storage path provided. Using default path 'ray_checkpoints'")
+            storage_path = Path("ray_checkpoints")
+
+        self.run_config = ray.train.RunConfig(storage_path=Path.absolute(storage_path))
 
     def _set_train_loop_config(self):
-        train_loop_config = self.config.get("train_loop_config")
+        train_loop_config = self.config["train_loop_config"]
+
         if train_loop_config:
             self.train_loop_config = self._set_searchspace(train_loop_config)
         else:
@@ -1488,7 +1489,6 @@ class RayTorchTrainer(Trainer):
                 "INFO: No training_loop_config detected. "
                 "No parameters are being tuned or passed to the training function."
             )
-            self.train_loop_config = {}
 
     def _set_searchspace(self, train_loop_dict: Dict):
         train_loop_config = {}
@@ -1568,15 +1568,14 @@ class RayTorchTrainer(Trainer):
         train.report(tuning_metrics, checkpoint=checkpoint)
 
     def initialize_logger(self, hyperparams: Optional[Dict], rank):
-        print(f"Logger initializing with rank {rank}")
+        if not self.logger:
+            return
 
-        if self.logger:
-            self.logger.create_logger_context(rank=rank)
+        self.logger.create_logger_context(rank=rank)
+        print(f"Logger initialized with rank {rank}")
 
-            if hyperparams:
-                self.logger.save_hyperparameters(hyperparams)
-            else:
-                print("INFO: Not logging any hyperparameters.")
+        if hyperparams:
+            self.logger.save_hyperparameters(hyperparams)
 
     def close_logger(self):
         if self.logger:
@@ -1615,6 +1614,6 @@ class RayTorchTrainer(Trainer):
             )
         else:
             print(
-                "INFO: The log method was called, but no logger was configured for this \
-                Trainer."
+                "INFO: The log method was called, but no logger was configured for this "
+                "Trainer."
             )

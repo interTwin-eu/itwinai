@@ -22,7 +22,7 @@ build:
   apt_packages:
     - gcc-11
     - g++-11
-    - cmake
+    # - cmake
     - pandoc
 
 # Build documentation in the "docs/" directory with Sphinx

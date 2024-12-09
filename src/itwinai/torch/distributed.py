@@ -68,17 +68,12 @@ def _initialize_ray() -> None:
                 `HEAD_NODE_IP` are not set.
                 These should be set from the slurm script where the ray cluster is launched.
     """
-    if not ray.is_initialized():
-        HEAD_NODE_PORT = os.environ.get("HEAD_NODE_PORT")
-        HEAD_NODE_IP = os.environ.get("HEAD_NODE_IP")
+    if ray.is_initialized():
+        return
 
-        if not HEAD_NODE_PORT or not HEAD_NODE_IP:
-            raise EnvironmentError(
-                "Ray initialization requires env variables 'HEAD_NODE_PORT' and "
-                "'HEAD_NODE_IP' to be set."
-            )
-
-        ray.init(address="auto")
+    ray.init(address="auto")
+    print(f"Nodes in the cluster: {ray.nodes()}")
+    print(f"Available cluster resources: {ray.available_resources()}")
 
 
 class TorchDistributedStrategy(DistributedStrategy):
@@ -343,7 +338,9 @@ class TorchDistributedStrategy(DistributedStrategy):
                     shuffle=shuffle,
                 )
             elif not isinstance(sampler, DistributedSampler):
-                raise RuntimeError("User-provided sampler must implement DistributedSampler.")
+                raise RuntimeError(
+                    "User-provided sampler must implement DistributedSampler."
+                )
         # shuffle and batch_sampler must be unset
         return DataLoader(
             dataset=dataset,
@@ -720,7 +717,9 @@ class DeepSpeedStrategy(TorchDistributedStrategy):
         dist.gather_object(obj, dst=dst_rank)
 
     @check_initialized
-    def gather(self, tensor: torch.Tensor, dst_rank: int = 0) -> Optional[List[torch.Tensor]]:
+    def gather(
+        self, tensor: torch.Tensor, dst_rank: int = 0
+    ) -> Optional[List[torch.Tensor]]:
         """Gathers a tensor from the whole group in a list
         (to all workers).
 
@@ -899,7 +898,9 @@ class HorovodStrategy(TorchDistributedStrategy):
             return result
 
     @check_initialized
-    def gather(self, tensor: torch.Tensor, dst_rank: int = 0) -> Optional[List[torch.Tensor]]:
+    def gather(
+        self, tensor: torch.Tensor, dst_rank: int = 0
+    ) -> Optional[List[torch.Tensor]]:
         """Gathers a tensor from the whole group in a list
         (to all workers). Under the hood it relies on allgather as gather is
         not supported by Horovod.

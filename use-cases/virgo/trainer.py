@@ -57,9 +57,10 @@ class NoiseGeneratorTrainer(TorchTrainer):
         validation_every: int = 0,
         **kwargs,
     ) -> None:
+        config = {}
         super().__init__(
             epochs=num_epochs,
-            config={},
+            config=config,
             strategy=strategy,
             logger=logger,
             random_seed=random_seed,
