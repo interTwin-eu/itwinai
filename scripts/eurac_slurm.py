@@ -7,59 +7,65 @@
 # - Jarl Sondre Sæther <jarl.sondre.saether@cern.ch> - CERN
 # --------------------------------------------------------------------------------------
 
-from create_slurm import (
-    get_srun_command,
-    remove_indentation_from_multiline_string,
-    slurm_template,
-)
+from create_slurm import remove_indentation_from_multiline_string, SlurmScript
+from slurm_constants import JUWELS_HPC_MODULES
+from typing import Literal
 
 
-def get_eurac_setup_command(venv: str, cpus_per_gpu: int):
-    if cpus_per_gpu > 0:
-        omp_num_threads = "$SLURM_CPUS_PER_GPU"
-    else:
-        omp_num_threads = "1"
+class EuracSlurmScript(SlurmScript):
 
-    hpc_modules = [
-        "Stages/2024",
-        "GCC",
-        "OpenMPI",
-        "CUDA/12",
-        "MPI-settings/CUDA",
-        "Python/3.11.3",
-        "HDF5",
-        "PnetCDF",
-        "libaio",
-        "mpi4py",
-    ]
+    def __init__(
+        self,
+        job_name: str,
+        account: str,
+        time: str,
+        partition: str,
+        std_out: str,
+        err_out: str,
+        num_nodes: int,
+        num_tasks_per_node: int,
+        gpus_per_node: int,
+        cpus_per_gpu: int,
+        distributed_strategy: str,
+        python_venv: str = ".venv",
+        debug: bool = False,
+        config_file: str = "config.yaml",
+        pipe_key: str = "rnn_training_pipeline"
+    ):
+        super().__init__(
+            job_name,
+            account,
+            time,
+            partition,
+            std_out,
+            err_out,
+            num_nodes,
+            num_tasks_per_node,
+            gpus_per_node,
+            cpus_per_gpu,
+            distributed_strategy,
+            python_venv,
+            debug,
+        )
+        self.config_file = config_file
+        self.pipe_key = pipe_key
 
-    setup_command = rf"""
-        ml {' '.join(hpc_modules)}
-        source {venv}/bin/activate
-        export OMP_NUM_THREADS={omp_num_threads}
-    """
-
-    setup_command = setup_command.strip()
-    return remove_indentation_from_multiline_string(setup_command)
-
-
-def get_eurac_training_command(
-    config_file: str, pipe_key: str, distributed_strategy: str
-):
-    training_command = rf"""
-    $(which itwinai) exec-pipeline \
-        --config {config_file} \
-        --pipe-key {pipe_key} \
-        -o strategy={distributed_strategy}
-    """
-    training_command = training_command.strip()
-    return remove_indentation_from_multiline_string(training_command)
+    def get_training_command(self):
+        training_command = rf"""
+        $(which itwinai) exec-pipeline \
+            --config {self.config_file} \
+            --pipe-key {self.pipe_key} \
+            -o strategy={self.distributed_strategy}
+        """
+        training_command = training_command.strip()
+        return remove_indentation_from_multiline_string(training_command)
 
 
 def main():
+    # SLURM specific settings
     job_name = "my_test_job"
     account = "intertwin"
-    time = "01:00:00"
+    time = "00:01:00"
     partition = "develbooster"
     std_out = "job.out"
     err_out = "job.err"
@@ -68,25 +74,16 @@ def main():
     gpus_per_node = 4
     cpus_per_gpu = 4
 
-    distributed_strategy = "ddp"
-    venv = ".venv"
+    # Other settings
+    distributed_strategy = "horovod"
 
+    # EURAC specific settings
     config_file = "config.yaml"
     pipe_key = "rnn_training_pipeline"
 
     dist_strats = ["ddp", "deepspeed", "horovod"]
-
     for distributed_strategy in dist_strats:
-        training_command = get_eurac_training_command(
-            config_file=config_file,
-            pipe_key=pipe_key,
-            distributed_strategy=distributed_strategy,
-        )
-        main_command = get_srun_command(
-            distributed_strategy=distributed_strategy, training_command=training_command
-        )
-        setup_command = get_eurac_setup_command(venv=venv, cpus_per_gpu=cpus_per_gpu)
-        template = slurm_template(
+        slurm_script = EuracSlurmScript(
             job_name=job_name,
             account=account,
             time=time,
@@ -97,12 +94,16 @@ def main():
             num_tasks_per_node=num_tasks_per_node,
             gpus_per_node=gpus_per_node,
             cpus_per_gpu=cpus_per_gpu,
-            setup_command=setup_command,
-            main_command=main_command,
+            distributed_strategy=distributed_strategy,
+            debug=True,
+            config_file=config_file,
+            pipe_key=pipe_key
         )
-        print("#" * 20)
+
+        template = slurm_script.get_slurm_script()
+        print("\n\n\n\n")
         print(template)
-        print("#" * 20)
+        print("\n\n\n\n")
 
 
 if __name__ == "__main__":
