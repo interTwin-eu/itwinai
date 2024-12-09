@@ -19,6 +19,9 @@ pl-training.yml
 *.tar
 *.sif
 
+# Tutorial files
+tutorials/hpo-workflows/data/
+
 # Use cases files
 MNIST
 3dgan-generated-data/
