@@ -666,7 +666,7 @@ class WandBLogger(Logger):
             Defaults to 0 (the global rank of the main worker).
         offline_mode (str, optional): Use this option if working on compute
             node without internet access. Saves logs locally.
-            Defaults to 'False'. 
+            Defaults to 'False'.
     """
 
     # TODO: add support for artifacts logging
@@ -713,7 +713,7 @@ class WandBLogger(Logger):
             parents=True,
         )
         self.active_run = wandb.init(
-           dir=self.savedir.resolve(), 
+           dir=self.savedir.resolve(),
            project=self.project_name,
            mode="offline" if self.offline_mode else "online",
         )
