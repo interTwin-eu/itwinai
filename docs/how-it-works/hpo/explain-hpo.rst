@@ -64,7 +64,7 @@ by finding the best hyperparameter settings.
 However, there are some drawbacks, especially with regards to computational cost and resource 
 management. Especially distributed HPO requires careful planning of computational resources 
 to avoid bottlenecks or excessive costs. You should consider that if you want to run four different trials, 
-and you run them on the same amount of resources as you normally would for only one set of hyperparameters, your training would run four times as long (unless you use a scheduler to elimate some trials early).
+and you run them on the same amount of resources as you normally would, your training would run four times as long.
 
 Because of this, we want to design our HPO training wisely, so that we avoid unneseccary 
 computational cost. These are some things that might help you when you are getting started with HPO.
