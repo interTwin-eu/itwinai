@@ -111,20 +111,25 @@ bash scaling-test.sh
 
 To generate the plots, refer to the [Scaling-Test Tutorial](https://github.com/interTwin-eu/itwinai/tree/main/tutorials/distributed-ml/torch-scaling-test#analyze-results).
 
-## Running HPO for Virgo Non-distributed
+## Running HPO for Virgo on JSC
 
-Hyperparameter optimization (HPO) is integrated into the pipeline using Ray Tune.
+Hyperparameter optimization (HPO) is integrated into the pipeline using Ray Tune and Ray Train.
 This allows you to run multiple trials and fine-tune model parameters efficiently.
-HPO is configured to run multiple trials in parallel, but run those trials each in a non-distributed way.
-
-To launch an HPO experiment, run
+HPO is configured to run multiple trials in parallel. There is two methods to run HPO.
+Both methods are launched with
 
 ```bash
 sbatch slurm_ray.sh
 ```
 
-This script sets up a Ray cluster and runs `hpo.py` for hyperparameter tuning.
-You may change CLI variables for `hpo.py` to change parameters,
-such as the number of trials you want to run, to change the stopping criteria for the trials or to set a
-different metric on which ray will evaluate trial results.
-By default, trials monitor validation loss, and results are plotted once all trials are completed.
+This script sets up a Ray cluster and runs the script for hyperparameter tuning.
+Chnage the run command in `slurm.sh` to run the script you want. You have two options:
+
+1. You can run non-distributed HPO by using the command
+`python hpo.py --num_samples 4 --max_iterations 2 --ngpus $num_gpus --ncpus $num_cpus --pipeline_name training_pipeline`
+at the end of the slurm script.
+2. You can run distributed HPO by using the command
+`$PYTHON_VENV/bin/itwinai exec-pipeline --config config.yaml --pipe-key ray_training_pipeline`
+at the end of the slurm script.
+
+Please refer to the itwinai documentation for more guides and tutorials on these two HPO methods.
