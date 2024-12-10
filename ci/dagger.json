@@ -1,6 +1,6 @@
 {
   "name": "itwinai",
+  "engineVersion": "v0.14.0",
   "sdk": "python",
-  "source": ".",
-  "engineVersion": "v0.13.6"
+  "source": "."
 }
