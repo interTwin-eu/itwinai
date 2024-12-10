@@ -70,7 +70,6 @@ def get_raytune_search_alg(
             n_initial_points=tune_config["search_alg"]["n_random_steps"],
             # points_to_evaluate=,
         )
-
     print("INFO: Not using any Ray Tune search algorithm")
     return None
 

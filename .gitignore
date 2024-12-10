@@ -2,7 +2,7 @@
 *_logs
 logs_*
 TODO
-/data
+data/
 nohup*
 tmp*
 .tmp*
