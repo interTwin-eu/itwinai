@@ -517,7 +517,7 @@ class MLFlowLogger(Logger):
         self.tracking_uri = (
             self.tracking_uri
             or os.environ.get("MLFLOW_TRACKING_URI")
-            or self.savedir.resolve().as_uri()
+            or Path(self.savedir).resolve().as_uri()
         )
 
     def create_logger_context(self, rank: Optional[int] = None) -> mlflow.ActiveRun:
