@@ -59,7 +59,7 @@ def check_initialized(method: Callable) -> Callable:
     return wrapper
 
 
-def _initialize_ray() -> None:
+def initialize_ray() -> None:
     """This method is used by the RayDDPStrategy and RayDeepSpeedStrategy to initialize
     the Ray backend if it is not already initialized.
 
@@ -338,9 +338,7 @@ class TorchDistributedStrategy(DistributedStrategy):
                     shuffle=shuffle,
                 )
             elif not isinstance(sampler, DistributedSampler):
-                raise RuntimeError(
-                    "User-provided sampler must implement DistributedSampler."
-                )
+                raise RuntimeError("User-provided sampler must implement DistributedSampler.")
         # shuffle and batch_sampler must be unset
         return DataLoader(
             dataset=dataset,
@@ -717,9 +715,7 @@ class DeepSpeedStrategy(TorchDistributedStrategy):
         dist.gather_object(obj, dst=dst_rank)
 
     @check_initialized
-    def gather(
-        self, tensor: torch.Tensor, dst_rank: int = 0
-    ) -> Optional[List[torch.Tensor]]:
+    def gather(self, tensor: torch.Tensor, dst_rank: int = 0) -> Optional[List[torch.Tensor]]:
         """Gathers a tensor from the whole group in a list
         (to all workers).
 
@@ -898,9 +894,7 @@ class HorovodStrategy(TorchDistributedStrategy):
             return result
 
     @check_initialized
-    def gather(
-        self, tensor: torch.Tensor, dst_rank: int = 0
-    ) -> Optional[List[torch.Tensor]]:
+    def gather(self, tensor: torch.Tensor, dst_rank: int = 0) -> Optional[List[torch.Tensor]]:
         """Gathers a tensor from the whole group in a list
         (to all workers). Under the hood it relies on allgather as gather is
         not supported by Horovod.
@@ -1047,7 +1041,7 @@ class RayDDPStrategy(TorchDDPStrategy):
     """A distributed data-parallel (DDP) strategy using Ray Train for PyTorch training."""
 
     def __init__(self) -> None:
-        _initialize_ray()
+        initialize_ray()
 
     def init(self) -> None:
         self.is_initialized = True
@@ -1129,5 +1123,5 @@ class RayDeepSpeedStrategy(DeepSpeedStrategy):
     """
 
     def __init__(self, backend: Literal["nccl", "gloo", "mpi"]) -> None:
-        _initialize_ray()
+        initialize_ray()
         super().__init__(backend=backend)
