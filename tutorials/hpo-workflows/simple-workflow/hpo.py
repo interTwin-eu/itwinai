@@ -11,14 +11,14 @@
 import argparse
 from typing import Dict
 
-import torch
-from itwinai.pipeline import Pipeline
 import ray
-from ray import train, tune
+import torch
 from data import FashionMNISTGetter, FashionMNISTSplitter
+from ray import train, tune
 from trainer import MyTrainer
 
 from itwinai.parser import ConfigParser
+from itwinai.pipeline import Pipeline
 
 
 def run_trial(config: Dict, data: Dict):
@@ -40,17 +40,13 @@ def run_trial(config: Dict, data: Dict):
     Example:
         >>> my_pipeline = Pipeline(
         >>>    [
-        >>>        TimeSeriesDatasetSplitter(
-        >>>            train_proportion=0.9,
-        >>>            root_folder="/p/scratch/intertwin/datasets/virgo"
+        >>>        FashionMNISTGetter(),
+        >>>        FashionMNISTSplitter(train_proportion=0.9, validation_proportion=0.1),
+        >>>        MyTrainer(
+        >>>             config=config,
+        >>>             epochs=10,
+        >>>             strategy="ddp",
         >>>        ),
-        >>>        NoiseGeneratorTrainer(
-        >>>            config=config,
-        >>>            num_epochs=4,
-        >>>            strategy=None,
-        >>>            checkpoint_path='checkpoints/checkpoint_epoch_{}.pth',
-        >>>            validation_every=20
-        >>>        )
         >>>    ]
         >>> )
 
@@ -60,34 +56,34 @@ def run_trial(config: Dict, data: Dict):
     Note: Passing a seed to TimeSeriesDatasetSplitter and NoiseGeneratorTrainer will make runs
     uniform across trials, reducing the variablility to only the hyperparameter settings
     """
-    my_pipeline = Pipeline(
-        [
-            FashionMNISTGetter(),
-            FashionMNISTSplitter(train_proportion=0.9, validation_proportion=0.1),
-            MyTrainer(
-                config=config,
-                num_epochs=10,
-                strategy="ddp",
-            ),
-        ]
-    )
-
-    my_pipeline.execute()
-
-    # pipeline_name = data["pipeline_name"]
-    # parser = ConfigParser(
-    #     config="config.yaml",
-    #     override_keys={
-    #         # Set hyperparameters controlled by ray
-    #         "batch_size": config["batch_size"],
-    #         "optim_lr": config["lr"],
-    #         # Override logger field, because performance is logged by ray
-    #         f"{pipeline_name}.init_args.steps.1.init_args.logger": None,
-    #     },
+    # my_pipeline = Pipeline(
+    #     [
+    #         FashionMNISTGetter(),
+    #         FashionMNISTSplitter(train_proportion=0.9, validation_proportion=0.1),
+    #         MyTrainer(
+    #             config=config,
+    #             epochs=10,
+    #             strategy="ddp",
+    #         ),
+    #     ]
     # )
-    # my_pipeline = parser.parse_pipeline(pipeline_nested_key=pipeline_name, verbose=False)
 
     # my_pipeline.execute()
+
+    pipeline_name = data["pipeline_name"]
+    parser = ConfigParser(
+        config="config.yaml",
+        override_keys={
+            # Set hyperparameters controlled by ray
+            "batch_size": config["batch_size"],
+            "optim_lr": config["optim_lr"],
+            # Override logger field, because performance is logged by ray
+            # f"{pipeline_name}.init_args.steps.1.init_args.logger": None,
+        },
+    )
+    my_pipeline = parser.parse_pipeline(pipeline_nested_key=pipeline_name, verbose=False)
+
+    my_pipeline.execute()
 
 
 def run_hpo(args):
@@ -104,7 +100,7 @@ def run_hpo(args):
         # Define the search space for hyperparameters
         search_space = {
             "batch_size": tune.choice([3, 4, 5, 6]),
-            "learning_rate": tune.uniform(1e-5, 1e-3),
+            "optim_lr": tune.uniform(1e-5, 1e-3),
         }
 
         tune_config = tune.TuneConfig(

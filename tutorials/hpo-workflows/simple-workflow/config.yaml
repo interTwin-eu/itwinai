@@ -13,15 +13,15 @@ training_pipeline:
       - class_path: trainer.MyTrainer
         init_args:
           config:
-            learning_rate: ${learning_rate}    # This will be overridden by the Ray Tuner
+            optim_lr: ${learning_rate}    # This will be overridden by the Ray Tuner
             batch_size: ${batch_size}  # This will be overridden by the Ray Tuner
           strategy: ddp
           epochs: 10
-        #   logger:
-        #     class_path: itwinai.loggers.LoggersCollection
-        #     init_args:
-        #       loggers:
-        #         - class_path: itwinai.loggers.MLFlowLogger
-        #           init_args:
-        #             experiment_name: Simple HPO MNIST Experiment
-        #             log_freq: batch
+          logger:
+            class_path: itwinai.loggers.LoggersCollection
+            init_args:
+              loggers:
+                - class_path: itwinai.loggers.MLFlowLogger
+                  init_args:
+                    experiment_name: Simple HPO MNIST Experiment
+                    log_freq: batch

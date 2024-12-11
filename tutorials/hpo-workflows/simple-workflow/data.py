@@ -11,26 +11,26 @@ from itwinai.components import DataGetter, DataSplitter
 data_dir = Path("data")
 
 
-# def download_fashion_mnist() -> None:
-#     """Download the FashionMNIST dataset using torchvision."""
-#     print("Downloading FashionMNIST dataset...")
-#     datasets.FashionMNIST(
-#         data_dir,
-#         train=True,
-#         download=True,
-#         transform=transforms.Compose(
-#             [transforms.ToTensor(), transforms.Normalize((0.5,), (0.5,))]
-#         ),
-#     )
-#     datasets.FashionMNIST(
-#         data_dir,
-#         train=False,
-#         download=True,
-#         transform=transforms.Compose(
-#             [transforms.ToTensor(), transforms.Normalize((0.5,), (0.5,))]
-#         ),
-#     )
-#     print("Download complete!")
+def download_fashion_mnist() -> None:
+    """Download the FashionMNIST dataset using torchvision."""
+    print("Downloading FashionMNIST dataset...")
+    datasets.FashionMNIST(
+        data_dir,
+        train=True,
+        download=True,
+        transform=transforms.Compose(
+            [transforms.ToTensor(), transforms.Normalize((0.5,), (0.5,))]
+        ),
+    )
+    datasets.FashionMNIST(
+        data_dir,
+        train=False,
+        download=True,
+        transform=transforms.Compose(
+            [transforms.ToTensor(), transforms.Normalize((0.5,), (0.5,))]
+        ),
+    )
+    print("Download complete!")
 
 
 class FashionMNISTGetter(DataGetter):
