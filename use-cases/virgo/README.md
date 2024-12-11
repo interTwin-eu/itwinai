@@ -114,8 +114,8 @@ Chnage the run command in `slurm.sh` to run the script you want. You have two op
 
 1. You can run non-distributed HPO by using the command
 `python hpo.py --num_samples 4 --max_iterations 2 --ngpus $num_gpus --ncpus $num_cpus --pipeline_name training_pipeline`
-at the end of the slurm script.
-2. You can run distributed HPO by using the command
+at the end of the slurm script. Change the argument ``num_samples`` to run a different number of trials, and change ``max_iterations`` to set a higher or lower stopping criteria.
+3. You can run distributed HPO by using the command
 `$PYTHON_VENV/bin/itwinai exec-pipeline --config config.yaml --pipe-key ray_training_pipeline`
 at the end of the slurm script.
 
