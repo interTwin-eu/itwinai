@@ -14,6 +14,7 @@ from typing import List
 from itwinai.slurm.slurm_constants import JUWELS_HPC_MODULES
 from itwinai.slurm.utils import remove_indentation_from_multiline_string
 
+
 class SlurmScriptBuilder:
 
     def __init__(
