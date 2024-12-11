@@ -31,7 +31,6 @@ The **search space** defines the range of values each hyperparameter can take. I
 discrete values (e.g., [32, 64, 128]) or continuous ranges (e.g., learning rate from 1e-5 to 1e-1).
 
 **Search algorithms** explore the hyperparameter search space to identify the best configuration. 
-
 Common approaches include:
 
 *    Grid Search: Exhaustive search over all combinations of hyperparameter values.
@@ -42,7 +41,6 @@ Common approaches include:
 **Schedulers** manage the allocation of computational resources across multiple hyperparameter 
 configurations. They help prioritize promising configurations and terminate less effective 
 ones early to save resources. 
-
 Examples include:
 
 *    ASHA (Asynchronous Successive Halving Algorithm): Allocates resources by successively discarding the lowest-performing hyperparameter combinations.
@@ -59,6 +57,7 @@ have specified, or it could be terminated early and thus run for fewer epochs.
 
 When to Use HPO and Key Considerations
 ---------------------------------------
+
 HPO can significantly enhance a model's predictive accuracy and generalization to unseen data 
 by finding the best hyperparameter settings.
 However, there are some drawbacks, especially with regards to computational cost and resource 
@@ -83,16 +82,19 @@ To make sure you get the most out of your HPO training, the are some considerati
 
 
 Hyperparameter Optimization in itwinai
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+---------------------------------------
 
 Now that we know the key concepts behind HPO, we can explore how these are implemented in itwinai. 
-We'll introduce distributed HPO, describe the architecture and operation of the ``RayTorchTrainer``,
-and see that with the itwinai HPO integration, you can start optimising the hyperparameters of your 
-models with very minimal changes to your existing itwinai pipeline.
-
+itwinai provides two ways of adding HPO to your machine learning training. If you already have an itwinai trainer and pipeline set up, then the first and simpler approach
+is to simply wrap them in two custom functions to run multiple trials. 
+The second method uses the itwinai ``RayTorchTrainer``, an alternative to the ``TorchTrainer``
+that has HPO functionalities already built-in.
+In the next section we'll introduce distributed HPO, and discover how we can easily start optimizing hyperparameters 
+in our exisiting itwinai pipeline with just a few lines of code. We will then describe the 
+architecture and operation of the ``RayTorchTrainer`` and talk about what to consider when choosing the best HPO integration for you.
 
 Ray Overview
--------------
+^^^^^^^^^^^^^
 
 We use an open-source framework called Ray to facilitate distributed HPO. Ray provides two key 
 components used in itwinai:
@@ -110,17 +112,49 @@ How a Ray Cluster Operates:
 #.    **Task Scheduling**: Ray automatically schedules trials across nodes based on available resources.
 #.    **Shared State**: Nodes share data such as checkpoints and trial results via a central storage path.
 
-We launch a ray cluster using a dedicated slurm job script. You may refer to `this script <https://github.com/interTwin-eu/itwinai/blob/main/tutorials/hpo-workflows/slurm_hpo.sh>`_ It should be suitable for almost any 
-time you wish to run an itwinai pipeline with Ray, the only thing you may have to change is the ``#SBATCH`` directives to set the proper resource requirements. 
+We launch a ray cluster using a dedicated slurm job script. You may refer to `this script <https://github.com/interTwin-eu/itwinai/blob/main/tutorials/hpo-workflows/slurm_hpo.sh>`_.
+It should be suitable for almost any 
+time you wish to run an itwinai pipeline with Ray, the only thing you may have to change is the ``#SBATCH`` directives to set the proper resource requirements.
+We use this script to launch both of our HPO integrations, changing only the final command, depending on which script we want to execute once our ray cluster is set up.
 Also refer to the `ray documentation <https://docs.ray.io/en/latest/cluster/vms/user-guides/community/slurm.html>`_ 
 on this topic, if you want to learn more about how to launch a ray cluster with slurm.
 
 
-How Distributed Training Works with the RayTorchTrainer
---------------------------------------------------------
+How to Run Your Pipeline with Ray Tune
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+The easiest way to start running HPO with itwinai is to use our template to wrap a 
+pipeline in a simple function to pass it to a Ray Tune ``Tuner``. This method is suitable for users who want a quick, lightweight setup -
+if you already have an itwinai trainer and pipeline, setting up this integration should not take you
+much more than ten minutes. This method uses only Ray Tune for trial distribution and hyperparameter sampling, 
+and does not distribute the trials themselves. 
+If you are new to HPO or working with a relatively small model and dataset, it is recommended that you start with this integration. 
+Advanced users with distributed training requirements can skip ahead to the `distributed method`_.
 
-The ``RayTorchTrainer`` combines components from **Ray Train** and **Ray Tune**, enabling 
-distributed HPO to run within your pipeline while maintaining compatibility with other itwinai features. 
+**How It Works**
+
+You can set up this integration by wrapping your existing itwinai trainer and pipeline in a function
+that Ray Tune can call for each trial. 
+Here's a summary:
+
+#.   **Define the search space**: Specify the hyperparameters and their possible values or ranges.
+#.   **Wrap the pipeline in a trial function**: Use the provided ``run_trial`` function as a template to adapt to your pipeline.
+#.   **Set up the tuner**: Configure the ray tune ``Tuner`` to manage trials, allocate resources, and evaluate results.
+
+Refer to the
+:doc:`tutorial <../../tutorials/hpo-workflows/hpo-basic-integration>` on getting started with hyperparameter optimization in itwinai
+for the quick-start integration.
+The following section explains the more advanced distributed integration for users with multi-node 
+setups and higher computational requirements.
+
+
+.. _distributed method:
+
+How to Run Distributed HPO with the RayTorchTrainer
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The ``RayTorchTrainer`` combines components from **Ray Train** and **Ray Tune**, providing a more advanced approach leveraging them together
+for fully distributed HPO. This method is suitable for larger-scale experiments requiring 
+optimized resource utilization across multiple nodes in a cluster.
 Because it implements the same interface as the itwinai ``TorchTrainer``, you can easily
 replace the itwinai ``TorchTrainer`` with the ``RayTorchTrainer`` in your pipeline with only a few modifications. 
 The key features of this trainer are:
@@ -136,4 +170,4 @@ Furthermore distribution frameworks, such as DDP or DeepSpeed, are agnostic of t
 
 For a hands-on tutorial for how to change your existing itwinai pipeline code to additionally 
 run HPO, or how to set up an HPO integration with itwinai from scratch, have a look at the 
-:doc:`HPO tutorial <../../tutorials/hpo-workflows/hpo-workflows>`.
+:doc:`distributed HPO tutorial <../../tutorials/hpo-workflows/hpo-torchtrainer-integration>`.

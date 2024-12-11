@@ -9,7 +9,6 @@
 # --------------------------------------------------------------------------------------
 
 import argparse
-import os
 from typing import Dict
 
 import matplotlib.pyplot as plt
@@ -85,10 +84,7 @@ def run_hpo(args):
     """
     if not args.load_old_results:
         # Initialize Ray with cluster configuration from environment variables
-        ray.init(
-            address=os.environ["ip_head"],
-            _node_ip_address=os.environ["head_node_ip"],
-        )
+        ray.init(address="auto")
 
         # Define the search space for hyperparameters
         search_space = {
