@@ -38,7 +38,9 @@ def get_raytune_search_alg(
         else:
             print(
                 "INFO: Using schedule '{}' \
-                    is not compatible with Ray Tune search algorithms.".format(scheduler)
+                    is not compatible with Ray Tune search algorithms.".format(
+                    scheduler
+                )
             )
             print(
                 "INFO: Using the Ray Tune '{}' scheduler without search algorithm".format(
@@ -47,7 +49,9 @@ def get_raytune_search_alg(
             )
 
     if (scheduler == "bohb") or (scheduler == "BOHB"):
-        print("INFO: Using TuneBOHB search algorithm since it is required for BOHB shedule")
+        print(
+            "INFO: Using TuneBOHB search algorithm since it is required for BOHB shedule"
+        )
         if seeds:
             seed = 1234
         else:
@@ -70,9 +74,9 @@ def get_raytune_search_alg(
             n_initial_points=tune_config["search_alg"]["n_random_steps"],
             # points_to_evaluate=,
         )
-    else:
-        print("INFO: Not using any Ray Tune search algorithm")
-        return None
+
+    print("INFO: Not using any Ray Tune search algorithm")
+    return None
 
 
 def get_raytune_schedule(

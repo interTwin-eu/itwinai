@@ -8,6 +8,7 @@
 # - Jarl Sondre Sæther <jarl.sondre.saether@cern.ch> - CERN
 # - Henry Mutegeki <henry.mutegeki@cern.ch> - CERN
 # - Anna Lappe <anna.elisa.lappe@cern.ch> - CERN
+# - Anna Lappe <anna.elisa.lappe@cern.ch> - CERN
 # --------------------------------------------------------------------------------------
 
 import abc
@@ -15,6 +16,8 @@ import functools
 import os
 from typing import Any, Callable, Iterable, List, Literal, Optional, Tuple, Union
 
+import ray
+import ray.train
 import ray
 import ray.train
 import torch
@@ -59,7 +62,7 @@ def check_initialized(method: Callable) -> Callable:
     return wrapper
 
 
-def _initialize_ray() -> None:
+def initialize_ray() -> None:
     """This method is used by the RayDDPStrategy and RayDeepSpeedStrategy to initialize
     the Ray backend if it is not already initialized.
 
@@ -1047,7 +1050,7 @@ class RayDDPStrategy(TorchDDPStrategy):
     """A distributed data-parallel (DDP) strategy using Ray Train for PyTorch training."""
 
     def __init__(self) -> None:
-        _initialize_ray()
+        initialize_ray()
 
     def init(self) -> None:
         self.is_initialized = True
@@ -1129,5 +1132,5 @@ class RayDeepSpeedStrategy(DeepSpeedStrategy):
     """
 
     def __init__(self, backend: Literal["nccl", "gloo", "mpi"]) -> None:
-        _initialize_ray()
+        initialize_ray()
         super().__init__(backend=backend)
