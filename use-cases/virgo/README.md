@@ -21,9 +21,10 @@ This repository offers two main approaches for training based on the dataset siz
 
 ### Small Dataset Pipeline
 
-This pipeline allows you to generate a small synthetic dataset on-the-fly as part of the training process.
-It's suited for quick tests and debugging where the entire workflow stays self-contained in memory.
-The dataset generation step can also be skipped for subsequent runs.
+This pipeline allows you to generate a small synthetic dataset on-the-fly as part of
+the training process. It's suited for quick tests and debugging where the entire
+workflow stays self-contained in memory. The dataset generation step can also be
+skipped for subsequent runs.
 
 To run the entire pipeline, including dataset generation, use the following command:
 
@@ -31,8 +32,8 @@ To run the entire pipeline, including dataset generation, use the following comm
 itwinai exec-pipeline --config config.yaml --pipe-key training_pipeline_small
 ```
 
-If you've already generated the dataset in a previous run, you can skip the dataset generation step by executing the
-following command:
+If you've already generated the dataset in a previous run, you can skip the dataset
+generation step by executing the following command:
 
 ```bash
 itwinai exec-pipeline --config config.yaml --pipe-key training_pipeline_small --steps 1:
@@ -42,39 +43,23 @@ This will load the dataset from memory and proceed with the training steps.
 
 ### Large Dataset Pipeline
 
-The large dataset pipeline is designed to handle massive datasets that are stored on disk.
-To generate this data, this project includes another SLURM job script,
-`synthetic_data_gen/data_generation.sh`, which generates a synthetic dataset for the
-Virgo gravitational wave detector use case.
+The large dataset pipeline is designed to handle massive datasets that are stored on
+disk. To generate this data, this project includes another SLURM job script,
+`synthetic-data-gen/data_generation_hdf5.sh`, which generates a synthetic dataset for
+the Virgo gravitational wave detector use case.
 
-The synthetic data is generated using a Python script, `file_gen.py`, which creates multiple files
-containing simulated data. Each file is a pickled pandas dataframe containing `datapoints_per_file`
-datapoints (defaults to 500), each
-one representing a set of time series for main and strain detector channels.
+The synthetic data is generated using a Python script, `file_gen_hdf5.py`, which
+creates multiple HDF5 files containing simulated data. We generate multiple files as
+this allows us to create them in parallel, saving us some time. To do this, we use
+SLURM [job arrays](https://slurm.schedmd.com/job_array.html). After generating the
+files, they are concatenated into a single, large file using
+`concat_hdf5_dataset_files.py`.
 
-If you need to generate a new dataset, you can run the SLURM script with the following command:
-
-```bash
-sbatch synthetic_data_gen/data_generation.sh
-```
-
-The script will generate multiple data files and store them in separate folders, which are
-created in the `target_folder_name` directory.
-
-The generated pickle files are organized in a set of nested folders to avoid creating too many
-files in the same folder. To generate such folders and its files we use SLURM
-[job arrays](https://slurm.schedmd.com/job_array.html).
-Each SLURM array job will create its own folder and populate it with the synthetic data files.
-The number of files created in each folder can be customized by setting the `NUM_FILES` environment
-variable before submitting the job.
-For example, to generate 50 files per array job, you can run:
+To generate a new dataset, you can run the SLURM script with the following command:
 
 ```bash
-export NUM_FILES=50
-sbatch synthetic_data_gen/data_generation.sh
+sbatch synthetic_data_gen/data_generation_hdf5.sh
 ```
-
-If you do not specify `NUM_FILES`, the script will default to creating 100 files per folder.
 
 Once the dataset is generated, you can proceed with training:
 
@@ -82,16 +67,18 @@ Once the dataset is generated, you can proceed with training:
 itwinai exec-pipeline --config config.yaml --pipe-key training_pipeline
 ```
 
-You can also run the training in a distributed manner using all strategies by running runall.sh:
+You can also run the training in a distributed manner using all strategies by running
+`runall.sh`:
 
 ```bash
 bash runall.sh
 ```
 
-Change the `$TRAINING_CMD` variable in `runall.sh` to reflect the pipeline you wish to run, as explained above.
-This will launch jobs for all the strategies and log their outputs into the logs_slurm folder.
+Change the `$TRAINING_CMD` variable in `runall.sh` to reflect the pipeline you wish to
+run, as explained above. This will launch jobs for all the strategies and log their
+outputs into the logs_slurm folder.
 
-When using MLFLow logger, you can visualize the logs in from the MLFlow UI:
+When using the MLFLow logger, you can visualize the logs in from the MLFlow UI:
 
 ```bash
 mlflow ui --backend-store-uri mllogs/mlflow
