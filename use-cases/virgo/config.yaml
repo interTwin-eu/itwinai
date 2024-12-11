@@ -75,31 +75,33 @@ training_pipeline_small:
           validation_proportion: 0.1
           rnd_seed: 42
       - class_path: data.TimeSeriesProcessorSmall          
+        init_args:
+          name: Virgo Small Dataset
       - class_path: trainer.NoiseGeneratorTrainer
         init_args:
-        config:
+          config:
             generator: simple #unet
-            batch_size: ${batch_size}
+            batch_size: 1
             optim_lr: ${learning_rate}
             loss: l1
             save_best: true
             shuffle_train: true
-        num_epochs: ${epochs}
-        strategy: ${strategy}
-        checkpoint_path: ${checkpoint_path}
-        random_seed: 17
-        validation_every: 0
-        logger:
-          class_path: itwinai.loggers.LoggersCollection
-          init_args:
-            loggers:
-              - class_path: itwinai.loggers.ConsoleLogger
-                init_args:
-                  log_freq: 1
-              - class_path: itwinai.loggers.MLFlowLogger
-                init_args:
-                  experiment_name: Noise simulator (Virgo)
-                  log_freq: batch 
+          num_epochs: ${epochs}
+          strategy: ${strategy}
+          checkpoint_path: ${checkpoint_path}
+          random_seed: 17
+          validation_every: 0
+          logger:
+            class_path: itwinai.loggers.LoggersCollection
+            init_args:
+              loggers:
+                - class_path: itwinai.loggers.ConsoleLogger
+                  init_args:
+                    log_freq: 1
+                - class_path: itwinai.loggers.MLFlowLogger
+                  init_args:
+                    experiment_name: Noise simulator (Virgo)
+                    log_freq: batch 
       
 
 # To use the entire synthetic dataset that is generated prior to running the pipeline
