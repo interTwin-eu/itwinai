@@ -170,7 +170,7 @@ Code Comparison: RayTorchTrainer vs TorchTrainer
                     )
                     self.loss = CrossEntropyLoss()
 
-                def train(self, config, data):
+                def train(self):
                     
                     for epoch in range(self.config.epochs):
                         if self.strategy.global_world_size() > 1:

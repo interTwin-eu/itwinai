@@ -11,26 +11,26 @@ from itwinai.components import DataGetter, DataSplitter
 data_dir = Path("data")
 
 
-def download_fashion_mnist() -> None:
-    """Download the FashionMNIST dataset using torchvision."""
-    print("Downloading FashionMNIST dataset...")
-    datasets.FashionMNIST(
-        data_dir,
-        train=True,
-        download=True,
-        transform=transforms.Compose(
-            [transforms.ToTensor(), transforms.Normalize((0.5,), (0.5,))]
-        ),
-    )
-    datasets.FashionMNIST(
-        data_dir,
-        train=False,
-        download=True,
-        transform=transforms.Compose(
-            [transforms.ToTensor(), transforms.Normalize((0.5,), (0.5,))]
-        ),
-    )
-    print("Download complete!")
+# def download_fashion_mnist() -> None:
+#     """Download the FashionMNIST dataset using torchvision."""
+#     print("Downloading FashionMNIST dataset...")
+#     datasets.FashionMNIST(
+#         data_dir,
+#         train=True,
+#         download=True,
+#         transform=transforms.Compose(
+#             [transforms.ToTensor(), transforms.Normalize((0.5,), (0.5,))]
+#         ),
+#     )
+#     datasets.FashionMNIST(
+#         data_dir,
+#         train=False,
+#         download=True,
+#         transform=transforms.Compose(
+#             [transforms.ToTensor(), transforms.Normalize((0.5,), (0.5,))]
+#         ),
+#     )
+#     print("Download complete!")
 
 
 class FashionMNISTGetter(DataGetter):
@@ -38,12 +38,13 @@ class FashionMNISTGetter(DataGetter):
         super().__init__()
 
     def execute(self) -> Tuple[Dataset, Dataset]:
-        """Load the FashionMNIST dataset from the specified directory."""
+        """Load the FashionMNIST dataset from the specified directory. If it not available,
+        download and return it."""
         print("Loading FashionMNIST dataset...")
         train_dataset = datasets.FashionMNIST(
             data_dir,
             train=True,
-            download=False,
+            download=True,
             transform=transforms.Compose(
                 [transforms.ToTensor(), transforms.Normalize((0.5,), (0.5,))]
             ),
@@ -57,7 +58,7 @@ class FashionMNISTSplitter(DataSplitter):
         self,
         train_proportion: float,
         validation_proportion: float,
-        test_proportion: float,
+        test_proportion: float = 0.0,
         name: str | None = None,
     ) -> None:
         super().__init__(train_proportion, validation_proportion, test_proportion, name)

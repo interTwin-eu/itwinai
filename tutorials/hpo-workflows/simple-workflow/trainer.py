@@ -17,13 +17,16 @@ from itwinai.torch.trainer import TorchTrainer
 class MyTrainer(TorchTrainer):
     def __init__(
         self,
-        config: Dict | TrainingConfiguration | None = None,
+        epochs: int,
+        config: Dict | TrainingConfiguration,
         strategy: Literal["ddp", "deepspeed", "horovod"] = "ddp",
         name: str | None = None,
         logger: Logger | None = None,
     ) -> None:
         self.config = config
-        super().__init__(config=config, strategy=strategy, name=name, logger=logger)
+        super().__init__(
+            config=config, epochs=epochs, strategy=strategy, name=name, logger=logger
+        )
 
     def create_model_loss_optimizer(self):
         model = resnet18(num_classes=10)
@@ -43,7 +46,7 @@ class MyTrainer(TorchTrainer):
         )
         self.loss = CrossEntropyLoss()
 
-    def train(self, config, data):
+    def train(self):
         for epoch in range(self.config.epochs):
             if self.strategy.global_world_size() > 1:
                 self.set_epoch(epoch)
