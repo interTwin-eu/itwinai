@@ -9,17 +9,10 @@
 
 import subprocess
 from pathlib import Path
+from typing import List
 
 from itwinai.slurm.slurm_constants import JUWELS_HPC_MODULES
-
-
-def remove_indentation_from_multiline_string(multiline_string: str) -> str:
-    """Removes the indentation from the start of each line in a multi-line string. The
-    main purpose of this function is allowing you to define multi-line strings that
-    don't touch the left margin of the editor, thus increasing readability.
-    """
-    return "\n".join([line.lstrip() for line in multiline_string.split("\n")])
-
+from itwinai.slurm.utils import remove_indentation_from_multiline_string
 
 class SlurmScriptBuilder:
 
@@ -38,6 +31,7 @@ class SlurmScriptBuilder:
         distributed_strategy: str,
         python_venv: str = ".venv",
         debug: bool = False,
+        file_folder: Path = Path("slurm_scripts"),
     ):
         self.job_name = job_name
         self.account = account
@@ -52,6 +46,7 @@ class SlurmScriptBuilder:
         self.distributed_strategy = distributed_strategy
         self.python_venv = python_venv
         self.debug = debug
+        self.file_folder = file_folder
 
         if self.cpus_per_gpu > 0:
             self.omp_num_threads = self.cpus_per_gpu
@@ -61,10 +56,7 @@ class SlurmScriptBuilder:
     def get_training_command(self) -> str:
         return "python main.py"
 
-    def get_srun_command(
-        self,
-        torch_log_dir: str = "logs_torchrun",
-    ):
+    def get_srun_command(self, torch_log_dir: str = "logs_torchrun"):
         if self.distributed_strategy in ["ddp", "deepspeed"]:
             rdzv_endpoint = (
                 '\'$(scontrol show hostnames "$SLURM_JOB_NODELIST"'
@@ -171,9 +163,15 @@ class SlurmScriptBuilder:
         self,
         setup_command: str | None = None,
         main_command: str | None = None,
-        file_path: Path = Path("script.slurm"),
+        file_path: Path | None = None,
         retain_file: bool = True,
     ) -> None:
+        if file_path is None:
+            file_name = (
+                f"{self.distributed_strategy}"
+                f"-{self.num_nodes}x{self.gpus_per_node}.sh"
+            )
+            file_path = self.file_folder / file_name
         script = self.get_slurm_script(
             setup_command=setup_command, main_command=main_command
         )
@@ -183,6 +181,7 @@ class SlurmScriptBuilder:
                 f"or delete the file first!"
             )
 
+        file_path.parent.mkdir(exist_ok=True, parents=True)
         with open(file_path, "w") as f:
             f.write(script)
 
@@ -190,6 +189,42 @@ class SlurmScriptBuilder:
 
         if not retain_file:
             file_path.unlink()
+
+    def run_slurm_script_all_strategies(
+        self,
+        setup_command: str | None = None,
+        main_command: str | None = None,
+        file_folder: Path = Path("slurm_scripts"),
+        retain_file: bool = True,
+        strategies: List[str] = ["ddp", "horovod", "deepspeed"],
+    ):
+        self.file_folder = file_folder
+        for strategy in strategies:
+            self.distributed_strategy = strategy
+            self.run_slurm_script(
+                setup_command=setup_command,
+                main_command=main_command,
+                retain_file=retain_file,
+            )
+
+    def run_scaling_test(
+        self,
+        setup_command: str | None = None,
+        main_command: str | None = None,
+        file_folder: Path = Path("slurm_scripts"),
+        retain_file: bool = True,
+        strategies: List[str] = ["ddp", "horovod", "deepspeed"],
+        num_nodes_list: List[int] = [1, 2, 4, 8],
+    ):
+        for num_nodes in num_nodes_list:
+            self.num_nodes = num_nodes
+            self.run_slurm_script_all_strategies(
+                setup_command=setup_command,
+                main_command=main_command,
+                file_folder=file_folder,
+                retain_file=retain_file,
+                strategies=strategies,
+            )
 
 
 def main():
@@ -207,6 +242,7 @@ def main():
 
     # Other settings
     distributed_strategy = "horovod"
+    debug = True
 
     slurm_script = SlurmScriptBuilder(
         job_name=job_name,
@@ -220,7 +256,7 @@ def main():
         gpus_per_node=gpus_per_node,
         cpus_per_gpu=cpus_per_gpu,
         distributed_strategy=distributed_strategy,
-        debug=True,
+        debug=debug,
     )
 
     template = slurm_script.get_slurm_script()
