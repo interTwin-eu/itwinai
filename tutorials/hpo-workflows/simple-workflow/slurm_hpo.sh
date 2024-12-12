@@ -3,12 +3,12 @@
 # Job configuration
 #SBATCH --job-name=ray_tune_hpo    
 #SBATCH --account=intertwin       
-#SBATCH --time=00:30:00
+#SBATCH --time=01:00:00
 #SBATCH --partition=develbooster
 
 # Resources allocation
 #SBATCH --cpus-per-task=24
-#SBATCH --nodes=2
+#SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1
 #SBATCH --gpus-per-node=4
 #SBATCH --exclusive
@@ -23,7 +23,7 @@ ml Stages/2024 GCC/12.3.0 OpenMPI CUDA/12 MPI-settings/CUDA
 ml Python/3.11 HDF5 PnetCDF libaio mpi4py CMake cuDNN/8.9.5.29-CUDA-12
 
 # Set and activate virtual environment
-PYTHON_VENV="../../envAI_juwels"
+PYTHON_VENV="../../../envAI_juwels"
 source $PYTHON_VENV/bin/activate
 
 # make sure CUDA devices are visible
@@ -85,10 +85,7 @@ echo All Ray workers started.
 # Run the Python script using Ray
 echo 'Starting HPO.'
 
-#python pipeline_runner_for_testing.py
-$PYTHON_VENV/bin/itwinai exec-pipeline --config config.yaml --pipe-key ray_training_pipeline
-
-#python hpo.py --num_samples 4 --max_iterations 2 --ngpus $num_gpus --ncpus $num_cpus --pipeline_name training_pipeline
+python hpo.py --num_samples 4 --max_iterations 10 --ngpus $num_gpus --ncpus $num_cpus
 
 # Shutdown Ray after completion
 ray stop
