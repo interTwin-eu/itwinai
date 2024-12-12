@@ -7,8 +7,9 @@
 # - Jarl Sondre Sæther <jarl.sondre.saether@cern.ch> - CERN
 # --------------------------------------------------------------------------------------
 
-from typing import List
 from pathlib import Path
+from typing import List
+
 from itwinai.slurm.slurm_script_builder import (
     SlurmScriptBuilder,
     remove_indentation_from_multiline_string,
@@ -136,9 +137,13 @@ def main():
 
     mode = args.mode
     if mode == "single":
-        script_builder.process_slurm_script(retain_file=retain_file, run_script=run_script)
+        script_builder.process_slurm_script(
+            retain_file=retain_file, run_script=run_script
+        )
     elif mode == "runall":
-        script_builder.run_slurm_script_all_strategies(retain_file=retain_file, run_script=run_script)
+        script_builder.run_slurm_script_all_strategies(
+            retain_file=retain_file, run_script=run_script
+        )
     elif mode == "scaling-test":
         script_builder.run_scaling_test(retain_file=retain_file, run_script=run_script)
     else:

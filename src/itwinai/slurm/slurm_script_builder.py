@@ -47,19 +47,19 @@ class SlurmScriptBuilder:
         self.debug = debug
         self.file_folder = file_folder
 
-        if job_name is None: 
+        if job_name is None:
             self.job_name = self.generate_identifier()
-        else: 
+        else:
             self.job_name = job_name
 
-        if std_out is None: 
+        if std_out is None:
             self.std_out = f"slurm_jobs/{self.generate_identifier()}.out"
-        else: 
+        else:
             self.std_out = std_out
 
-        if err_out is None: 
+        if err_out is None:
             self.err_out = f"slurm_jobs/{self.generate_identifier()}.err"
-        else: 
+        else:
             self.err_out = std_out
 
         if self.cpus_per_gpu > 0:
@@ -67,7 +67,7 @@ class SlurmScriptBuilder:
         else:
             self.omp_num_threads = 1
 
-    def generate_identifier(self) -> str: 
+    def generate_identifier(self) -> str:
         return f"{self.distributed_strategy}-{self.num_nodes}x{self.gpus_per_node}"
 
 
