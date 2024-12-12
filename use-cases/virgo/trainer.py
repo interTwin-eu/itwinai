@@ -391,12 +391,15 @@ class RayNoiseGeneratorTrainer(RayTorchTrainer):
         strategy: Optional[Literal["ddp", "deepspeed"]] = "ddp",
         name: Optional[str] = None,
         logger: Optional[Logger] = None,
+        random_seed: int = 1234,
     ) -> None:
-        super().__init__(config=config, strategy=strategy, name=name, logger=logger)
+        super().__init__(
+            config=config, strategy=strategy, name=name, logger=logger, random_seed=random_seed
+        )
 
     def create_model_loss_optimizer(self) -> None:
         # Select generator
-        generator = self.training_config["generator"]
+        generator = self.training_config.generator
         scaling = 0.02
         if generator == "simple":
             self.model = Decoder(3, norm=False)
@@ -413,7 +416,7 @@ class RayNoiseGeneratorTrainer(RayTorchTrainer):
         init_weights(self.model, "normal", scaling=scaling)
 
         # Select loss
-        loss = self.training_config["loss"]
+        loss = self.training_config.loss
         if loss == "l1":
             self.loss = nn.L1Loss()
         elif loss == "l2":
@@ -422,17 +425,16 @@ class RayNoiseGeneratorTrainer(RayTorchTrainer):
             raise ValueError("Unrecognized loss type! Got", loss)
 
         # Optimizer
+        print(type(self.training_config.optim_lr), self.training_config.optim_lr)
         self.optimizer = torch.optim.Adam(
-            self.model.parameters(), lr=self.training_config["learning_rate"]
+            self.model.parameters(), lr=self.training_config.optim_lr
         )
 
         # First, define strategy-wise optional configurations
         if isinstance(self.strategy, RayDeepSpeedStrategy):
             # Batch size definition is not optional for DeepSpeedStrategy!
             distribute_kwargs = dict(
-                config_params=dict(
-                    train_micro_batch_size_per_gpu=self.training_config["batch_size"]
-                )
+                config_params=dict(train_micro_batch_size_per_gpu=self.config.batch_size)
             )
         else:
             distribute_kwargs = {}
@@ -459,7 +461,7 @@ class RayNoiseGeneratorTrainer(RayTorchTrainer):
         # Start the timer for profiling
         st = timer()
 
-        self.training_config = config
+        self.training_config = TrainingConfiguration(**config)
 
         self.create_model_loss_optimizer()
 
@@ -483,7 +485,7 @@ class RayNoiseGeneratorTrainer(RayTorchTrainer):
         val_acc_plot = []
         best_val_loss = float("inf")
 
-        for epoch in tqdm(range(self.training_config["epochs"])):
+        for epoch in tqdm(range(self.training_config.num_epochs)):
             # lt = timer()
 
             if self.strategy.global_world_size() > 1:
