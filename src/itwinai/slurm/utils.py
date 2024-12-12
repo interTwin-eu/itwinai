@@ -34,6 +34,8 @@ def get_slurm_script_parser() -> ArgumentParser:
     # Default other arguments
     default_mode = "single"
     default_distributed_strategy = "ddp"
+    default_retain_file = False
+    default_run_script = False
 
     parser = ArgumentParser()
     parser.add_argument(
@@ -114,6 +116,16 @@ def get_slurm_script_parser() -> ArgumentParser:
         type=bool,
         default=False,
         help="Whether to include debugging information or not",
+    )
+    parser.add_argument(
+        "--no-retain-file",
+        action="store_true",
+        help="Whether to retain the file after processing the script.",
+    )
+    parser.add_argument(
+        "--no-run-script",
+        action="store_true",
+        help="Whether to run the file when processing the script.",
     )
 
     return parser

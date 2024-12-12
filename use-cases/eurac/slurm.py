@@ -101,7 +101,7 @@ def main():
 
     mode = args.mode
     if mode == "single":
-        script_builder.run_slurm_script()
+        script_builder.process_slurm_script()
     elif mode == "runall":
         script_builder.run_slurm_script_all_strategies()
     elif mode == "scaling-test":

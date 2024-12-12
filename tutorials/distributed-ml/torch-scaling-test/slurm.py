@@ -64,6 +64,7 @@ class TutorialSlurmScriptBuilder(SlurmScriptBuilder):
         main_command: str | None = None,
         file_folder: Path = Path("slurm_scripts"),
         retain_file: bool = True,
+        run_script: bool = True,
         strategies: List[str] = ["ddp", "horovod", "deepspeed"],
     ):
         strategies = ["ddp", "deepspeed", "horovod"]
@@ -83,10 +84,11 @@ class TutorialSlurmScriptBuilder(SlurmScriptBuilder):
                     f"-{self.num_nodes}x{self.gpus_per_node}.sh"
                 )
                 file_path = file_folder / file_name
-                self.run_slurm_script(
+                self.process_slurm_script(
                     setup_command=None,
                     main_command=None,
                     retain_file=retain_file,
+                    run_script=run_script,
                     file_path=file_path,
                 )
 
@@ -96,11 +98,13 @@ def main():
     # Customizing the parser to this specific use case before retrieving the args
     parser.add_argument(
         "--itwinai-trainer",
-        type=bool,
-        default=False,
+        action="store_true",
         help="Whether to use the itwinai trainer or not.",
     )
     args = parser.parse_args()
+
+    retain_file = not args.no_retain_file
+    run_script = not args.no_run_script
 
     # Setting the training command for the single run
     if args.itwinai_trainer:
@@ -132,11 +136,11 @@ def main():
 
     mode = args.mode
     if mode == "single":
-        script_builder.run_slurm_script()
+        script_builder.process_slurm_script(retain_file=retain_file, run_script=run_script)
     elif mode == "runall":
-        script_builder.run_slurm_script_all_strategies()
+        script_builder.run_slurm_script_all_strategies(retain_file=retain_file, run_script=run_script)
     elif mode == "scaling-test":
-        script_builder.run_scaling_test()
+        script_builder.run_scaling_test(retain_file=retain_file, run_script=run_script)
     else:
         # This shouldn't really ever happen, but checking just in case
         raise ValueError(

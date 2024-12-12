@@ -14,6 +14,7 @@ from typing import List
 from itwinai.slurm.slurm_constants import JUWELS_HPC_MODULES
 from itwinai.slurm.utils import remove_indentation_from_multiline_string
 
+
 class SlurmScriptBuilder:
 
     def __init__(
@@ -159,22 +160,29 @@ class SlurmScriptBuilder:
         template = template.strip()
         return remove_indentation_from_multiline_string(template)
 
-    def run_slurm_script(
+    def process_slurm_script(
         self,
         setup_command: str | None = None,
         main_command: str | None = None,
         file_path: Path | None = None,
         retain_file: bool = True,
+        run_script: bool = True,
     ) -> None:
+        script = self.get_slurm_script(
+            setup_command=setup_command, main_command=main_command
+        )
+        if not run_script and not retain_file:
+            print(script)
+            return
+
+
         if file_path is None:
             file_name = (
                 f"{self.distributed_strategy}"
                 f"-{self.num_nodes}x{self.gpus_per_node}.sh"
             )
             file_path = self.file_folder / file_name
-        script = self.get_slurm_script(
-            setup_command=setup_command, main_command=main_command
-        )
+
         if file_path.exists():
             raise ValueError(
                 f"File '{file_path.resolve()}' already exists! Give a different path "
@@ -185,7 +193,8 @@ class SlurmScriptBuilder:
         with open(file_path, "w") as f:
             f.write(script)
 
-        # subprocess.run(["sbatch", str(file_path.resolve())])
+        if run_script:
+            subprocess.run(["sbatch", str(file_path.resolve())])
 
         if not retain_file:
             file_path.unlink()
@@ -196,15 +205,17 @@ class SlurmScriptBuilder:
         main_command: str | None = None,
         file_folder: Path = Path("slurm_scripts"),
         retain_file: bool = True,
+        run_script: bool = True,
         strategies: List[str] = ["ddp", "horovod", "deepspeed"],
     ):
         self.file_folder = file_folder
         for strategy in strategies:
             self.distributed_strategy = strategy
-            self.run_slurm_script(
+            self.process_slurm_script(
                 setup_command=setup_command,
                 main_command=main_command,
                 retain_file=retain_file,
+                run_script=run_script
             )
 
     def run_scaling_test(
@@ -213,6 +224,7 @@ class SlurmScriptBuilder:
         main_command: str | None = None,
         file_folder: Path = Path("slurm_scripts"),
         retain_file: bool = True,
+        run_script: bool = True,
         strategies: List[str] = ["ddp", "horovod", "deepspeed"],
         num_nodes_list: List[int] = [1, 2, 4, 8],
     ):
@@ -223,6 +235,7 @@ class SlurmScriptBuilder:
                 main_command=main_command,
                 file_folder=file_folder,
                 retain_file=retain_file,
+                run_script=run_script,
                 strategies=strategies,
             )
 
