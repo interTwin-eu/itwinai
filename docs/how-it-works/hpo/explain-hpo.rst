@@ -123,7 +123,7 @@ How to Run Your Pipeline with Ray Tune
 The easiest way to start running HPO with itwinai is to use our template to wrap a 
 pipeline in a simple function to pass it to a Ray Tune ``Tuner``. This method is suitable for users who want a quick, lightweight setup -
 if you already have an itwinai trainer and pipeline, setting up this integration should not take you
-much more than ten minutes. This method uses only Ray Tune for trial distribution and hyperparameter sampling, 
+much more than a few minutes. This method uses only Ray Tune for trial distribution and hyperparameter sampling, 
 and does not distribute the trials themselves. 
 If you are new to HPO or working with a relatively small model and dataset, it is recommended that you start with this integration. 
 Advanced users with distributed training requirements can skip ahead to the `distributed method`_.
