@@ -50,7 +50,7 @@ Here you can find a collection of tutorials for various complexity ML workflows.
  
 
 Hyperparameter Optimization Workflows
-==============
+======================================
 
 This tutorial provides an overview of Hyperparameter Optimization (HPO) workflows.
 
