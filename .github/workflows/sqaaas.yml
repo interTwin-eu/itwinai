@@ -7,8 +7,8 @@ name: SQAaaS
 on:
   push:
     branches: [main]
-  # pull_request:
-  #   branches: [main, dev]
+  pull_request:
+    branches: [main, dev]
 
 jobs:
   sqaaas_job:
