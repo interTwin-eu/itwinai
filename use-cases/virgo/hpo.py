@@ -65,8 +65,6 @@ def run_trial(config: Dict, data: Dict):
             # Set hyperparameters controlled by ray
             "batch_size": config["batch_size"],
             "learning_rate": config["lr"],
-            # Override logger field, because performance is logged by ray
-            f"{pipeline_name}.init_args.steps.1.init_args.logger": None,
         },
     )
     my_pipeline = parser.parse_pipeline(pipeline_nested_key=pipeline_name, verbose=False)

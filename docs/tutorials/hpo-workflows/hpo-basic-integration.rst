@@ -62,9 +62,7 @@ when sent to workers. Avoid including large objects like datasets here.
             override_keys={
                 # Set hyperparameters controlled by ray
                 "batch_size": config["batch_size"],
-                "optim_lr": config["optim_lr"],
-                # Override logger field, because performance is logged by ray
-                # f"{pipeline_name}.init_args.steps.1.init_args.logger": None,
+                "optim_lr": config["optim_lr"]
             },
         )
         my_pipeline = parser.parse_pipeline(

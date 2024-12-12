@@ -58,13 +58,9 @@ def run_trial(config: Dict, data: Dict):
             # Set hyperparameters controlled by ray
             "batch_size": config["batch_size"],
             "optim_lr": config["optim_lr"],
-            # Override logger field, because performance is logged by ray
-            # f"{pipeline_name}.init_args.steps.1.init_args.logger": None,
         },
     )
-    my_pipeline = parser.parse_pipeline(
-        pipeline_nested_key=pipeline_name, verbose=False
-    )
+    my_pipeline = parser.parse_pipeline(pipeline_nested_key=pipeline_name, verbose=False)
 
     my_pipeline.execute()
 
@@ -104,9 +100,7 @@ def run_hpo(args):
 
         # Set resource allocation for each trial (number of GPUs and/or number of CPUs)
         resources_per_trial = {"gpu": ngpus_per_trial, "cpu": ncpus_per_trial}
-        run_with_resources = tune.with_resources(
-            run_trial, resources=resources_per_trial
-        )
+        run_with_resources = tune.with_resources(run_trial, resources=resources_per_trial)
 
         data = {"pipeline_name": args.pipeline_name}
         trainable_with_parameters = tune.with_parameters(run_with_resources, data=data)
@@ -139,9 +133,7 @@ def run_hpo(args):
 # Main entry point for script execution
 if __name__ == "__main__":
     # Parse command-line arguments
-    parser = argparse.ArgumentParser(
-        description="Hyperparameter Optimization with Ray Tune"
-    )
+    parser = argparse.ArgumentParser(description="Hyperparameter Optimization with Ray Tune")
     parser.add_argument(
         "--load_old_results",
         type=bool,
@@ -164,14 +156,10 @@ if __name__ == "__main__":
         Set this only if load_old_results is set to True. \
         Defaults to ~/ray_results/Eurac-Ray-Experiment",
     )
-    parser.add_argument(
-        "--num_samples", type=int, default=10, help="Number of trials to run"
-    )
+    parser.add_argument("--num_samples", type=int, default=10, help="Number of trials to run")
     parser.add_argument("--ngpus", type=int, help="Number of GPUs available on node.")
     parser.add_argument("--ncpus", type=int, help="Number of CPUs available on node.")
-    parser.add_argument(
-        "--metric", type=str, default="loss", help="Metric to optimise."
-    )
+    parser.add_argument("--metric", type=str, default="loss", help="Metric to optimise.")
     parser.add_argument(
         "--max_iterations", type=int, default="20", help="Maximum iterations per trial"
     )
