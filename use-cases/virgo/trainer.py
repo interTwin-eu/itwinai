@@ -39,7 +39,7 @@ class VirgoTrainingConfiguration(TrainingConfiguration):
     #: Whether to save best model on validation dataset. Defaults to True.
     save_best: bool = True
     #: Loss function. Defaults to "l1".
-    loss: Literal["l1", "l2"] = ("l1",)
+    loss: Literal["l1", "l2"] = "l1"
     #: Generator to train. Defaults to "unet".
     generator: Literal["simple", "deep", "resnet", "unet"] = "unet"
 
@@ -95,8 +95,7 @@ class NoiseGeneratorTrainer(TorchTrainer):
 
         init_weights(self.model, "normal", scaling=scaling)
 
-        # Select loss
-        loss = self.config.loss.upper()
+        loss = self.config.loss.lower()
         if loss == "l1":
             self.loss = nn.L1Loss()
         elif loss == "l2":
@@ -210,7 +209,7 @@ class NoiseGeneratorTrainer(TorchTrainer):
             # s_name = f"{os.environ.get('DIST_MODE', 'unk')}-torch"
             # save_path
 
-            num_nodes = int(os.environ.get("SLURM_NNODES", "unk"))
+            num_nodes = int(os.environ.get("SLURM_NNODES", 1))
             epoch_time_output_dir = Path("scalability-metrics/epoch-time")
             epoch_time_file_name = f"epochtime_{self.strategy.name}_{num_nodes}N.csv"
             epoch_time_output_path = epoch_time_output_dir / epoch_time_file_name
