@@ -81,7 +81,7 @@ training_pipeline_small:
         init_args:
           config:
             generator: simple #unet
-            batch_size: 1
+            batch_size: ${batch_size}
             optim_lr: ${learning_rate}
             loss: l1
             save_best: true
