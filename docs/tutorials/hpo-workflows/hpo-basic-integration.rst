@@ -57,18 +57,19 @@ when sent to workers. Avoid including large objects like datasets here.
 
     def run_trial(config: Dict, data: Dict):
         pipeline_name = data["pipeline_name"]
-
         parser = ConfigParser(
             config="config.yaml",
             override_keys={
                 # Set hyperparameters controlled by ray
                 "batch_size": config["batch_size"],
-                "learning_rate": config["lr"],
+                "optim_lr": config["optim_lr"],
                 # Override logger field, because performance is logged by ray
-                f"{pipeline_name}.init_args.steps.1.init_args.logger": None,
+                # f"{pipeline_name}.init_args.steps.1.init_args.logger": None,
             },
         )
-        my_pipeline = parser.parse_pipeline(pipeline_nested_key=pipeline_name, verbose=False)
+        my_pipeline = parser.parse_pipeline(
+            pipeline_nested_key=pipeline_name, verbose=False
+        )
 
         my_pipeline.execute()
 
@@ -93,9 +94,9 @@ Specify the range of hyperparameters to explore. In our example:
 .. code-block:: python
 
     search_space = {
-        "batch_size": tune.choice([3, 4, 5, 6]),
-        "lr": tune.uniform(1e-5, 1e-3),
-    }
+            "batch_size": tune.choice([3, 4, 5, 6]),
+            "optim_lr": tune.uniform(1e-5, 1e-3),
+        }
 
 **Adaptation**: 
 
@@ -197,7 +198,7 @@ For this, we add the following to report metrics at the end of each training ite
             ...
 
             # Report training metrics of last epoch to Ray
-            train.report({"loss": my_val_loss})
+            train.report({"loss": epoch_val_loss})
 
 It is important that this metric is the same that you specify when setting up your Tune Config, as described in `Step 3`_.
 

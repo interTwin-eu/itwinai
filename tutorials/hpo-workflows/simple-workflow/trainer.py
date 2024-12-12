@@ -35,7 +35,9 @@ class MyTrainer(TorchTrainer):
         # First, define strategy-wise optional configurations
         if isinstance(self.strategy, DeepSpeedStrategy):
             distribute_kwargs = dict(
-                config_params=dict(train_micro_batch_size_per_gpu=self.config.batch_size)
+                config_params=dict(
+                    train_micro_batch_size_per_gpu=self.config.batch_size
+                )
             )
         else:
             distribute_kwargs = {}
@@ -73,8 +75,11 @@ class MyTrainer(TorchTrainer):
                     val_loss = self.loss(outputs, labels)
                 val_losses.append(val_loss.detach().cpu().numpy())
 
-            self.log(np.mean(train_losses), "train_loss", kind="metric", step=epoch)
-            self.log(np.mean(val_losses), "val_loss", kind="metric", step=epoch)
+            epoch_val_loss = np.mean(val_losses)
+            epoch_train_loss = np.mean(train_losses)
+
+            self.log(epoch_train_loss, "train_loss", kind="metric", step=epoch)
+            self.log(epoch_val_loss, "val_loss", kind="metric", step=epoch)
 
             # Report training metrics of last epoch to Ray
-            train.report({"loss": np.mean(val_losses)})
+            train.report({"loss": epoch_val_loss})

@@ -16,7 +16,7 @@ training_pipeline:
             optim_lr: ${learning_rate}    # This will be overridden by the Ray Tuner
             batch_size: ${batch_size}  # This will be overridden by the Ray Tuner
           strategy: ddp
-          epochs: 10
+          epochs: 5
           logger:
             class_path: itwinai.loggers.LoggersCollection
             init_args:

@@ -42,7 +42,7 @@ export RAY_USAGE_STATS_DISABLE=1
 
 # Get the node names
 nodes=$(scontrol show hostnames "$SLURM_JOB_NODELIST")
-mapfile -t nodes_array <<< "$nodes"
+nodes_array=($nodes)
 
 # The head node will act as the central manager (head) of the Ray cluster.
 head_node=${nodes_array[0]}

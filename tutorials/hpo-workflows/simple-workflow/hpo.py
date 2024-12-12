@@ -13,12 +13,9 @@ from typing import Dict
 
 import ray
 import torch
-from data import FashionMNISTGetter, FashionMNISTSplitter
 from ray import train, tune
-from trainer import MyTrainer
 
 from itwinai.parser import ConfigParser
-from itwinai.pipeline import Pipeline
 
 
 def run_trial(config: Dict, data: Dict):
@@ -52,23 +49,7 @@ def run_trial(config: Dict, data: Dict):
 
         >>> my_pipeline.execute()
         ```
-
-    Note: Passing a seed to TimeSeriesDatasetSplitter and NoiseGeneratorTrainer will make runs
-    uniform across trials, reducing the variablility to only the hyperparameter settings
     """
-    # my_pipeline = Pipeline(
-    #     [
-    #         FashionMNISTGetter(),
-    #         FashionMNISTSplitter(train_proportion=0.9, validation_proportion=0.1),
-    #         MyTrainer(
-    #             config=config,
-    #             epochs=10,
-    #             strategy="ddp",
-    #         ),
-    #     ]
-    # )
-
-    # my_pipeline.execute()
 
     pipeline_name = data["pipeline_name"]
     parser = ConfigParser(
@@ -81,7 +62,9 @@ def run_trial(config: Dict, data: Dict):
             # f"{pipeline_name}.init_args.steps.1.init_args.logger": None,
         },
     )
-    my_pipeline = parser.parse_pipeline(pipeline_nested_key=pipeline_name, verbose=False)
+    my_pipeline = parser.parse_pipeline(
+        pipeline_nested_key=pipeline_name, verbose=False
+    )
 
     my_pipeline.execute()
 
@@ -110,7 +93,8 @@ def run_hpo(args):
         )
 
         run_config = train.RunConfig(
-            name="Virgo-Ray-Basic-Experiment", stop={"training_iteration": args.max_iterations}
+            name="Virgo-Ray-Basic-Experiment",
+            stop={"training_iteration": args.max_iterations},
         )
 
         # Determine GPU and CPU utilization per trial
@@ -120,7 +104,9 @@ def run_hpo(args):
 
         # Set resource allocation for each trial (number of GPUs and/or number of CPUs)
         resources_per_trial = {"gpu": ngpus_per_trial, "cpu": ncpus_per_trial}
-        run_with_resources = tune.with_resources(run_trial, resources=resources_per_trial)
+        run_with_resources = tune.with_resources(
+            run_trial, resources=resources_per_trial
+        )
 
         data = {"pipeline_name": args.pipeline_name}
         trainable_with_parameters = tune.with_parameters(run_with_resources, data=data)
@@ -144,57 +130,18 @@ def run_hpo(args):
         restored_tuner = tune.Tuner.restore(args.experiment_path, trainable=run_trial)
         result_grid = restored_tuner.get_results()
 
-    # # Display experiment statistics
-    # print(f"Number of errored trials: {result_grid.num_errors}")
-    # print(f"Number of terminated trials: {result_grid.num_terminated}")
-    # print(f"Ray Tune experiment path: {result_grid.experiment_path}")
-
-    # # Get the best result based on the last 10 iterations' average
-    # best_result = result_grid.get_best_result(
-    #     scope="last-10-avg", metric=args.metric, mode="min"
-    # )
-    # print(f"Best result: {best_result}")
-
-    # # Print a dataframe with all trial results
-    # result_df = result_grid.get_dataframe()
-    # print(f"All results dataframe: {result_df}")
-    # print(f"All result columns: {result_df.columns}")
-
-    # # Plot the results for all trials
-    # plot_results(result_grid, metric=args.metric, filename="ray-loss-plot.png")
-    # plot_results(result_grid, metric="train_loss", filename="ray-train_loss-plot.png")
-
-
-# def plot_results(result_grid, metric="loss", filename="plot.png"):
-#     """Plot the results for all trials and save the plot to a file.
-
-#     Args:
-#     - result_grid: Results from Ray Tune trials.
-#     - metric: The metric to plot (e.g., 'loss').
-#     - filename: Name of the file to save the plot.
-#     """
-#     ax = None
-#     for result in result_grid:
-#         label = f"lr={result.config['lr']:.6f}, batch size={result.config['batch_size']}"
-#         if ax is None:
-#             ax = result.metrics_dataframe.plot("training_iteration", metric, label=label)
-#         else:
-#             result.metrics_dataframe.plot("training_iteration", metric, ax=ax, label=label)
-
-#     ax.set_title(f"{metric.capitalize()} vs. Training Iteration for All Trials")
-#     ax.set_ylabel(metric.capitalize())
-
-#     # Save the plot to a file
-#     plt.savefig(filename)
-
-#     # Show the plot
-#     plt.show()
+    # Print a dataframe with all trial results
+    result_df = result_grid.get_dataframe()
+    print(f"All results dataframe: {result_df}")
+    print(f"All result columns: {result_df.columns}")
 
 
 # Main entry point for script execution
 if __name__ == "__main__":
     # Parse command-line arguments
-    parser = argparse.ArgumentParser(description="Hyperparameter Optimization with Ray Tune")
+    parser = argparse.ArgumentParser(
+        description="Hyperparameter Optimization with Ray Tune"
+    )
     parser.add_argument(
         "--load_old_results",
         type=bool,
@@ -217,10 +164,14 @@ if __name__ == "__main__":
         Set this only if load_old_results is set to True. \
         Defaults to ~/ray_results/Eurac-Ray-Experiment",
     )
-    parser.add_argument("--num_samples", type=int, default=10, help="Number of trials to run")
+    parser.add_argument(
+        "--num_samples", type=int, default=10, help="Number of trials to run"
+    )
     parser.add_argument("--ngpus", type=int, help="Number of GPUs available on node.")
     parser.add_argument("--ncpus", type=int, help="Number of CPUs available on node.")
-    parser.add_argument("--metric", type=str, default="loss", help="Metric to optimise.")
+    parser.add_argument(
+        "--metric", type=str, default="loss", help="Metric to optimise."
+    )
     parser.add_argument(
         "--max_iterations", type=int, default="20", help="Maximum iterations per trial"
     )
