@@ -85,10 +85,8 @@ Hyperparameter Optimization in itwinai
 ---------------------------------------
 
 Now that we know the key concepts behind HPO, we can explore how these are implemented in itwinai. 
-itwinai provides two ways of adding HPO to your machine learning training. If you already have an itwinai trainer and pipeline set up, then the first and simpler approach
-is to simply wrap them in two custom functions to run multiple trials. 
-The second method uses the itwinai ``RayTorchTrainer``, an alternative to the ``TorchTrainer``
-that has HPO functionalities already built-in.
+itwinai provides two ways of adding HPO to your machine learning training. If you already have an itwinai trainer and pipeline set up, then the first and easier approach is to use our simple template function to wrap the assembling and executing of your pipeline. This function is called for each trial - so the pipeline stays almost exactly as-is, we just add hyperparameters to tune and we are ready to go.
+The second method uses the itwinai ``RayTorchTrainer``, an alternative to the ``TorchTrainer``. This trainer has HPO functionalities already built-in, which means no extra scripts, just replace the trainer in your pipeline and run it as you normally would with any itwinai pipeline.
 In the next section we'll introduce distributed HPO, and discover how we can easily start optimizing hyperparameters 
 in our exisiting itwinai pipeline with just a few lines of code. We will then describe the 
 architecture and operation of the ``RayTorchTrainer`` and talk about what to consider when choosing the best HPO integration for you.
