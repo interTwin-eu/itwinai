@@ -43,13 +43,30 @@ def main():
     if torch.cuda.is_available():
         # Initialize distributed backend
         dist.init_process_group(backend="nccl")
-        # Get world size to generate unique seeds
-        world_size = dist.get_world_size()
-        seeds_torch = [torch.randint(2**32 - 1, (1,)).item() for _ in range(world_size)]
+
+        lwsize = torch.cuda.device_count()
+        gwsize = dist.get_world_size()
+        grank = dist.get_rank()
+        lrank = dist.get_rank()%lwsize
+
+        device = torch.device('cuda' if torch.cuda.is_available() else 'cpu',lrank)
+        torch.cuda.set_device(lrank)
+
+        if dist.get_rank() == 0:
+            seeds_torch = [torch.randint(2**32 - 1, (1,)).item() for _ in range(gwsize)]
+            print(f"Generated seeds for workers: {seeds_torch}")
+        else:
+            seeds_torch = [None] * gwsize
+
+        dist.broadcast_object_list(seeds_torch, src=0)
+        print(f"Rank {dist.get_rank()} received seeds: {seeds_torch}")
+
         # Create and set up model
         model = make_model()
-        # Get rank for seeds
-        grank = dist.get_rank()
+
+        # Log the seed for the current worker
+        print(f"Worker {grank} seed: {seeds_torch[grank]}")
+
         # Set seed for current rank
         model.device_handler.set_seed(seeds_torch[grank])
         # Set up model for DDP
