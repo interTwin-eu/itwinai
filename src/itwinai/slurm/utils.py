@@ -20,12 +20,12 @@ def remove_indentation_from_multiline_string(multiline_string: str) -> str:
 
 def get_slurm_script_parser() -> ArgumentParser:
     # Default SLURM arguments
-    default_job_name = "my_test_job"
     default_account = "intertwin"
     default_time = "00:01:00"
     default_partition = "develbooster"
-    default_std_out = "job.out"
-    default_err_out = "job.err"
+    default_job_name = None
+    default_std_out = None
+    default_err_out = None
     default_num_nodes = 1
     default_num_tasks_per_node = 1
     default_gpus_per_node = 4
@@ -34,8 +34,6 @@ def get_slurm_script_parser() -> ArgumentParser:
     # Default other arguments
     default_mode = "single"
     default_distributed_strategy = "ddp"
-    default_retain_file = False
-    default_run_script = False
 
     parser = ArgumentParser()
     parser.add_argument(

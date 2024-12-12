@@ -19,40 +19,57 @@ class SlurmScriptBuilder:
 
     def __init__(
         self,
-        job_name: str,
         account: str,
         time: str,
         partition: str,
-        std_out: str,
-        err_out: str,
         num_nodes: int,
         num_tasks_per_node: int,
         gpus_per_node: int,
         cpus_per_gpu: int,
         distributed_strategy: str,
+        job_name: str | None = None,
+        std_out: str | None = None,
+        err_out: str | None = None,
         python_venv: str = ".venv",
         debug: bool = False,
         file_folder: Path = Path("slurm_scripts"),
     ):
-        self.job_name = job_name
         self.account = account
         self.time = time
         self.partition = partition
-        self.std_out = std_out
-        self.err_out = err_out
         self.num_nodes = num_nodes
         self.num_tasks_per_node = num_tasks_per_node
         self.gpus_per_node = gpus_per_node
         self.cpus_per_gpu = cpus_per_gpu
         self.distributed_strategy = distributed_strategy
+
         self.python_venv = python_venv
         self.debug = debug
         self.file_folder = file_folder
+
+        if job_name is None: 
+            self.job_name = self.generate_identifier()
+        else: 
+            self.job_name = job_name
+
+        if std_out is None: 
+            self.std_out = f"slurm_jobs/{self.generate_identifier()}.out"
+        else: 
+            self.std_out = std_out
+
+        if err_out is None: 
+            self.err_out = f"slurm_jobs/{self.generate_identifier()}.err"
+        else: 
+            self.err_out = std_out
 
         if self.cpus_per_gpu > 0:
             self.omp_num_threads = self.cpus_per_gpu
         else:
             self.omp_num_threads = 1
+
+    def generate_identifier(self) -> str: 
+        return f"{self.distributed_strategy}-{self.num_nodes}x{self.gpus_per_node}"
+
 
     def get_training_command(self) -> str:
         return "python main.py"
@@ -175,13 +192,8 @@ class SlurmScriptBuilder:
             print(script)
             return
 
-
         if file_path is None:
-            file_name = (
-                f"{self.distributed_strategy}"
-                f"-{self.num_nodes}x{self.gpus_per_node}.sh"
-            )
-            file_path = self.file_folder / file_name
+            file_path = self.file_folder / self.generate_identifier()
 
         if file_path.exists():
             raise ValueError(
