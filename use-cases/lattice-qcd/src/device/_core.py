@@ -36,6 +36,7 @@ class ModelDeviceHandler:
     def set_seed(self, seed):
         self.seed = seed
         torch.manual_seed(self.seed)
+        print(f"Seed set for rank {self.rank}: {self.seed}")
 
     def to(self, *args, **kwargs):
         self._model.net_.to(*args, **kwargs)
