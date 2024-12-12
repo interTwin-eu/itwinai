@@ -35,19 +35,19 @@ class EuracSlurmScriptBuilder(SlurmScriptBuilder):
         pipe_key: str = "rnn_training_pipeline",
     ):
         super().__init__(
-            job_name,
-            account,
-            time,
-            partition,
-            std_out,
-            err_out,
-            num_nodes,
-            num_tasks_per_node,
-            gpus_per_node,
-            cpus_per_gpu,
-            distributed_strategy,
-            python_venv,
-            debug,
+            account=account,
+            time=time,
+            partition=partition,
+            num_nodes=num_nodes,
+            num_tasks_per_node=num_tasks_per_node,
+            gpus_per_node=gpus_per_node,
+            cpus_per_gpu=cpus_per_gpu,
+            job_name=job_name,
+            std_out=std_out,
+            err_out=err_out,
+            python_venv=python_venv,
+            distributed_strategy=distributed_strategy,
+            debug=debug,
         )
         self.config_file = config_file
         self.pipe_key = pipe_key
@@ -64,7 +64,6 @@ class EuracSlurmScriptBuilder(SlurmScriptBuilder):
 
 
 def main():
-    # TODO: Update parser to not contain EURAC stuff and then change it here instead
     parser = get_slurm_script_parser()
     default_config_file = "config.yaml"
     default_pipe_key = "rnn_training_pipeline"
@@ -81,6 +80,9 @@ def main():
         help="Which pipe key to use for running the pipeline.",
     )
     args = parser.parse_args()
+
+    retain_file = not args.no_retain_file
+    run_script = not args.no_run_script
 
     script_builder = EuracSlurmScriptBuilder(
         job_name=args.job_name,
@@ -101,11 +103,15 @@ def main():
 
     mode = args.mode
     if mode == "single":
-        script_builder.process_slurm_script()
+        script_builder.process_slurm_script(
+            retain_file=retain_file, run_script=run_script
+        )
     elif mode == "runall":
-        script_builder.run_slurm_script_all_strategies()
+        script_builder.run_slurm_script_all_strategies(
+            retain_file=retain_file, run_script=run_script
+        )
     elif mode == "scaling-test":
-        script_builder.run_scaling_test()
+        script_builder.run_scaling_test(retain_file=retain_file, run_script=run_script)
     else:
         # This shouldn't really ever happen, but checking just in case
         raise ValueError(

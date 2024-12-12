@@ -21,7 +21,7 @@ def remove_indentation_from_multiline_string(multiline_string: str) -> str:
 def get_slurm_script_parser() -> ArgumentParser:
     # Default SLURM arguments
     default_account = "intertwin"
-    default_time = "00:01:00"
+    default_time = "00:30:00"
     default_partition = "develbooster"
     default_job_name = None
     default_std_out = None
