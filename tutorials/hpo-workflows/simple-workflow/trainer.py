@@ -1,3 +1,13 @@
+# --------------------------------------------------------------------------------------
+# Part of the interTwin Project: https://www.intertwin.eu/
+#
+# Created by: Anna Lappe
+#
+# Credit:
+# - Anna Lappe <anna.elisa.lappe@cern.ch> - CERN
+# - Matteo Bunino <matteo.bunino@cern.ch> - CERN
+# --------------------------------------------------------------------------------------
+
 from typing import Dict, Literal
 
 import numpy as np
@@ -35,9 +45,7 @@ class MyTrainer(TorchTrainer):
         # First, define strategy-wise optional configurations
         if isinstance(self.strategy, DeepSpeedStrategy):
             distribute_kwargs = dict(
-                config_params=dict(
-                    train_micro_batch_size_per_gpu=self.config.batch_size
-                )
+                config_params=dict(train_micro_batch_size_per_gpu=self.config.batch_size)
             )
         else:
             distribute_kwargs = {}

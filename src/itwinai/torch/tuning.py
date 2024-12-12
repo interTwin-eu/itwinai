@@ -38,9 +38,7 @@ def get_raytune_search_alg(
         else:
             print(
                 "INFO: Using schedule '{}' \
-                    is not compatible with Ray Tune search algorithms.".format(
-                    scheduler
-                )
+                    is not compatible with Ray Tune search algorithms.".format(scheduler)
             )
             print(
                 "INFO: Using the Ray Tune '{}' scheduler without search algorithm".format(
@@ -49,9 +47,7 @@ def get_raytune_search_alg(
             )
 
     if (scheduler == "bohb") or (scheduler == "BOHB"):
-        print(
-            "INFO: Using TuneBOHB search algorithm since it is required for BOHB shedule"
-        )
+        print("INFO: Using TuneBOHB search algorithm since it is required for BOHB shedule")
         if seeds:
             seed = 1234
         else:

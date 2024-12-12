@@ -1,3 +1,13 @@
+# --------------------------------------------------------------------------------------
+# Part of the interTwin Project: https://www.intertwin.eu/
+#
+# Created by: Anna Lappe
+#
+# Credit:
+# - Anna Lappe <anna.elisa.lappe@cern.ch> - CERN
+# - Matteo Bunino <matteo.bunino@cern.ch> - CERN
+# --------------------------------------------------------------------------------------
+
 import argparse
 import sys
 from pathlib import Path
