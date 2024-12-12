@@ -14,7 +14,6 @@ from typing import List
 from itwinai.slurm.slurm_constants import JUWELS_HPC_MODULES
 from itwinai.slurm.utils import remove_indentation_from_multiline_string
 
-
 class SlurmScriptBuilder:
 
     def __init__(
@@ -186,7 +185,7 @@ class SlurmScriptBuilder:
         with open(file_path, "w") as f:
             f.write(script)
 
-        subprocess.run(["sbatch", str(file_path.resolve())])
+        # subprocess.run(["sbatch", str(file_path.resolve())])
 
         if not retain_file:
             file_path.unlink()

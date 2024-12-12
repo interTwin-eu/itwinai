@@ -7,7 +7,7 @@
 # - Jarl Sondre Sæther <jarl.sondre.saether@cern.ch> - CERN
 # --------------------------------------------------------------------------------------
 
-from itwinai.slurm.create_slurm import (
+from itwinai.slurm.slurm_script_builder import (
     SlurmScriptBuilder,
     remove_indentation_from_multiline_string,
 )
@@ -64,6 +64,7 @@ class EuracSlurmScriptBuilder(SlurmScriptBuilder):
 
 
 def main():
+    # TODO: Update parser to not contain EURAC stuff and then change it here instead
     parser = get_parser()
     args = parser.parse_args()
 
