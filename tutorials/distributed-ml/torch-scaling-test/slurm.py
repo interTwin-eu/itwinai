@@ -13,7 +13,7 @@ from itwinai.slurm.slurm_script_builder import (
     SlurmScriptBuilder,
     remove_indentation_from_multiline_string,
 )
-from itwinai.slurm.utils import get_parser
+from itwinai.slurm.utils import get_slurm_script_parser
 
 
 class TutorialSlurmScriptBuilder(SlurmScriptBuilder):
@@ -92,7 +92,7 @@ class TutorialSlurmScriptBuilder(SlurmScriptBuilder):
 
 
 def main():
-    parser = get_parser()
+    parser = get_slurm_script_parser()
     # Customizing the parser to this specific use case before retrieving the args
     parser.add_argument(
         "--itwinai-trainer",
@@ -102,6 +102,7 @@ def main():
     )
     args = parser.parse_args()
 
+    # Setting the training command for the single run
     if args.itwinai_trainer:
         training_command = (
             f"itwinai_trainer.py -c config/base.yaml "
@@ -128,10 +129,6 @@ def main():
         debug=args.debug,
         training_command=training_command,
     )
-    # WIP: Change training command etc. so that this replaces runall.sh
-
-    # TODO: Maybe overwrite the 'run_slurm_script_all_strategies' method to handle the
-    # different scenarious in the runall.sh file?
 
     mode = args.mode
     if mode == "single":

@@ -11,7 +11,7 @@ from itwinai.slurm.slurm_script_builder import (
     SlurmScriptBuilder,
     remove_indentation_from_multiline_string,
 )
-from itwinai.slurm.utils import get_parser
+from itwinai.slurm.utils import get_slurm_script_parser
 
 
 class EuracSlurmScriptBuilder(SlurmScriptBuilder):
@@ -65,7 +65,21 @@ class EuracSlurmScriptBuilder(SlurmScriptBuilder):
 
 def main():
     # TODO: Update parser to not contain EURAC stuff and then change it here instead
-    parser = get_parser()
+    parser = get_slurm_script_parser()
+    default_config_file = "config.yaml"
+    default_pipe_key = "rnn_training_pipeline"
+    parser.add_argument(
+        "--config-file",
+        type=str,
+        default=default_config_file,
+        help="Which config file to use for training.",
+    )
+    parser.add_argument(
+        "--pipe-key",
+        type=str,
+        default=default_pipe_key,
+        help="Which pipe key to use for running the pipeline.",
+    )
     args = parser.parse_args()
 
     script_builder = EuracSlurmScriptBuilder(

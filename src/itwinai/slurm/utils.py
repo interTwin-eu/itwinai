@@ -18,7 +18,7 @@ def remove_indentation_from_multiline_string(multiline_string: str) -> str:
     return "\n".join([line.lstrip() for line in multiline_string.split("\n")])
 
 
-def get_parser() -> ArgumentParser:
+def get_slurm_script_parser() -> ArgumentParser:
     # Default SLURM arguments
     default_job_name = "my_test_job"
     default_account = "intertwin"
@@ -33,8 +33,6 @@ def get_parser() -> ArgumentParser:
 
     # Default other arguments
     default_mode = "single"
-    default_config_file = "config.yaml"
-    default_pipe_key = "rnn_training_pipeline"
     default_distributed_strategy = "ddp"
 
     parser = ArgumentParser()
@@ -104,18 +102,6 @@ def get_parser() -> ArgumentParser:
         choices=["scaling-test", "runall", "single"],
         default=default_mode,
         help="Which mode to run, e.g. scaling test, all strategies, or a single run.",
-    )
-    parser.add_argument(
-        "--config-file",
-        type=str,
-        default=default_config_file,
-        help="Which config file to use for training.",
-    )
-    parser.add_argument(
-        "--pipe-key",
-        type=str,
-        default=default_pipe_key,
-        help="Which pipe key to use for running the pipeline.",
     )
     parser.add_argument(
         "--dist-strat",
