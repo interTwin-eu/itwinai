@@ -7,6 +7,8 @@
 # - Anna Lappe <anna.elisa.lappe@cern.ch> - CERN
 # --------------------------------------------------------------------------------------
 
+from typing import Dict
+
 from ray.tune.schedulers import (
     AsyncHyperBandScheduler,
     HyperBandForBOHB,
@@ -25,7 +27,7 @@ from ray.tune.search.zoopt import ZOOptSearch
 
 
 def get_raytune_search_alg(
-    tune_config,
+    tune_config: Dict,
 ) -> (
     TuneBOHB
     | BayesOptSearch
@@ -103,7 +105,7 @@ def get_raytune_search_alg(
 
 
 def get_raytune_scheduler(
-    tune_config,
+    tune_config: Dict,
 ) -> (
     AsyncHyperBandScheduler
     | HyperBandScheduler

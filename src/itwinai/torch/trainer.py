@@ -1257,7 +1257,7 @@ class RayTorchTrainer(Trainer):
         self._set_configs(config=config)
         self.torch_rng = set_seed(random_seed)
 
-    def _set_strategy_and_init_ray(self, strategy: str):
+    def _set_strategy_and_init_ray(self, strategy: str) -> None:
         """Set the distributed training strategy. This will initialize the ray backend.
 
         Args:
@@ -1274,7 +1274,7 @@ class RayTorchTrainer(Trainer):
         else:
             raise ValueError(f"Unsupported strategy: {strategy}")
 
-    def _set_configs(self, config: Dict):
+    def _set_configs(self, config: Dict) -> None:
         self.config = config
         self._set_scaling_config()
         self._set_tune_config()
@@ -1362,8 +1362,8 @@ class RayTorchTrainer(Trainer):
     def execute(
         self,
         train_dataset: Dataset,
-        validation_dataset: Optional[Dataset] = None,
-        test_dataset: Optional[Dataset] = None,
+        validation_dataset: Dataset | None = None,
+        test_dataset: Dataset | None = None,
     ) -> Tuple[Dataset, Dataset, Dataset, Any]:
         """Execute the training pipeline with the given datasets.
 
@@ -1400,7 +1400,7 @@ class RayTorchTrainer(Trainer):
         if self.test_dataloader is not None:
             self.test_dataloader.sampler.set_epoch(epoch)
 
-    def _set_tune_config(self):
+    def _set_tune_config(self) -> None:
         tune_config = self.config.get("tune_config", {})
 
         if not tune_config:
@@ -1431,7 +1431,7 @@ class RayTorchTrainer(Trainer):
                 "https://docs.ray.io/en/latest/tune/api/doc/ray.tune.TuneConfig.html."
             )
 
-    def _set_scaling_config(self):
+    def _set_scaling_config(self) -> None:
         scaling_config = self.config.get("scaling_config", {})
 
         if not scaling_config:
@@ -1447,7 +1447,7 @@ class RayTorchTrainer(Trainer):
                 "https://docs.ray.io/en/latest/train/api/doc/ray.train.ScalingConfig.html"
             )
 
-    def _set_run_config(self):
+    def _set_run_config(self) -> None:
         run_config = self.config.get("run_config", {})
 
         if not run_config:
@@ -1471,7 +1471,7 @@ class RayTorchTrainer(Trainer):
                 "https://docs.ray.io/en/latest/train/api/doc/ray.train.RunConfig.html"
             )
 
-    def _set_train_loop_config(self):
+    def _set_train_loop_config(self) -> None:
         train_loop_config = self.config.get("train_loop_config", {})
 
         if train_loop_config:
