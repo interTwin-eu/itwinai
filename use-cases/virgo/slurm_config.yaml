@@ -1,8 +1,8 @@
 # If you use this with in the runall or scaling mode, keep in mind that the strategies
 # will change, as well as the number of nodes. 
 
-mode: runall # "single", "runall" or "scaling-test" - defaults to "single"
-dist_strat: horovod # "ddp", "deepspeed" or "horovod"
+mode: single # "single", "runall" or "scaling-test" - defaults to "single"
+dist_strat: deepspeed # "ddp", "deepspeed" or "horovod"
 
 account: intertwin
 time: 00:11:11
@@ -14,7 +14,7 @@ partition: develbooster
 # the config and avoid overriding it in the CLI.
 std_out: slurm_jobs/${dist_strat}.out
 err_out: slurm_jobs/${dist_strat}.err
-job_name: eurac-${dist_strat}-job
+job_name: virgo-${dist_strat}-job
 
 num_nodes: 1
 num_tasks_per_node: 1
@@ -22,4 +22,4 @@ gpus_per_node: 4
 cpus_per_gpu: 4
 
 python_venv: .venv
-pipe_key: rnn_training_pipeline
+pipe_key: training_pipeline
