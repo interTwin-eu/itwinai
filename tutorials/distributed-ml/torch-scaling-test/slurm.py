@@ -14,7 +14,7 @@ from itwinai.slurm.slurm_script_builder import (
     SlurmScriptBuilder,
     remove_indentation_from_multiline_string,
 )
-from itwinai.slurm.utils import get_slurm_script_parser
+from itwinai.slurm.utils import get_slurm_job_parser
 
 
 class TutorialSlurmScriptBuilder(SlurmScriptBuilder):
@@ -65,7 +65,7 @@ class TutorialSlurmScriptBuilder(SlurmScriptBuilder):
         main_command: str | None = None,
         file_folder: Path = Path("slurm_scripts"),
         retain_file: bool = True,
-        run_script: bool = True,
+        submit_job: bool = True,
         strategies: List[str] = ["ddp", "horovod", "deepspeed"],
     ):
         strategies = ["ddp", "deepspeed", "horovod"]
@@ -89,13 +89,13 @@ class TutorialSlurmScriptBuilder(SlurmScriptBuilder):
                     setup_command=None,
                     main_command=None,
                     retain_file=retain_file,
-                    run_script=run_script,
+                    submit_slurm_job=submit_job,
                     file_path=file_path,
                 )
 
 
 def main():
-    parser = get_slurm_script_parser()
+    parser = get_slurm_job_parser()
     # Customizing the parser to this specific use case before retrieving the args
     parser.add_argument(
         "--itwinai-trainer",
@@ -105,7 +105,7 @@ def main():
     args = parser.parse_args()
 
     retain_file = not args.no_retain_file
-    run_script = not args.no_run_script
+    submit_job = not args.no_submit_job
 
     # Setting the training command for the single run
     if args.itwinai_trainer:
@@ -138,14 +138,14 @@ def main():
     mode = args.mode
     if mode == "single":
         script_builder.process_slurm_script(
-            retain_file=retain_file, run_script=run_script
+            retain_file=retain_file, submit_slurm_job=submit_job
         )
     elif mode == "runall":
         script_builder.run_slurm_script_all_strategies(
-            retain_file=retain_file, run_script=run_script
+            retain_file=retain_file, submit_job=submit_job
         )
     elif mode == "scaling-test":
-        script_builder.run_scaling_test(retain_file=retain_file, run_script=run_script)
+        script_builder.run_scaling_test(retain_file=retain_file, run_script=submit_job)
     else:
         # This shouldn't really ever happen, but checking just in case
         raise ValueError(

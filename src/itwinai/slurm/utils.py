@@ -155,9 +155,9 @@ def get_slurm_job_parser() -> ArgumentParser:
         help="Whether to retain the file after processing the script.",
     )
     parser.add_argument(
-        "--no-run-script",
+        "--no-submit-job",
         action="store_true",
-        help="Whether to run the file when processing the script.",
+        help="Whether to submit the job when processing the script.",
     )
 
     return parser

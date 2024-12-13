@@ -70,20 +70,20 @@ def main():
         config_file=args.config_file,
     )
 
-    run_script = not args.no_run_script
+    submit_job = not args.no_submit_job
     retain_file = not args.no_retain_file
 
     mode = args.mode
     if mode == "single":
         script_builder.process_slurm_script(
-            run_script=run_script, retain_file=retain_file
+            submit_slurm_job=submit_job, retain_file=retain_file
         )
     elif mode == "runall":
         script_builder.run_slurm_script_all_strategies(
-            run_script=run_script, retain_file=retain_file
+            run_script=submit_job, retain_file=retain_file
         )
     elif mode == "scaling-test":
-        script_builder.run_scaling_test(run_script=run_script, retain_file=retain_file)
+        script_builder.run_scaling_test(run_script=submit_job, retain_file=retain_file)
     else:
         # This shouldn't really ever happen, but checking just in case
         raise ValueError(
