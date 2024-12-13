@@ -24,7 +24,19 @@ from ray.tune.search.optuna import OptunaSearch
 from ray.tune.search.zoopt import ZOOptSearch
 
 
-def get_raytune_search_alg(tune_config):
+def get_raytune_search_alg(
+    tune_config,
+) -> (
+    TuneBOHB
+    | BayesOptSearch
+    | HyperOptSearch
+    | AxSearch
+    | HEBOSearch
+    | NevergradSearch
+    | OptunaSearch
+    | ZOOptSearch
+    | None
+):
     """Get the appropriate Ray Tune search algorithm based on the provided configuration.
 
     Args:
@@ -50,7 +62,8 @@ def get_raytune_search_alg(tune_config):
 
         case "bohb":
             print(
-                "INFO: Using TuneBOHB search algorithm since it is required for BOHB scheduler."
+                "INFO: Using TuneBOHB search algorithm since it is required for BOHB "
+                "scheduler."
             )
             return TuneBOHB()
 
@@ -89,7 +102,16 @@ def get_raytune_search_alg(tune_config):
         )
 
 
-def get_raytune_scheduler(tune_config):
+def get_raytune_scheduler(
+    tune_config,
+) -> (
+    AsyncHyperBandScheduler
+    | HyperBandScheduler
+    | HyperBandForBOHB
+    | PopulationBasedTraining
+    | PB2
+    | None
+):
     """Get the appropriate Ray Tune scheduler based on the provided configuration.
 
     Args:

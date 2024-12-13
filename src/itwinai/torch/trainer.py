@@ -1454,7 +1454,14 @@ class RayTorchTrainer(Trainer):
             print("WARNING: No RunConfig provided. Assuming local or single-node execution.")
 
         try:
-            storage_path = Path(run_config.pop("storage_path", "ray_checkpoints")).resolve()
+            storage_path = Path(run_config.pop("storage_path")).resolve()
+
+            if not storage_path:
+                print(
+                    "INFO: Empty storage path provided. Using default path 'ray_checkpoints'"
+                )
+                storage_path = Path("ray_checkpoints").resolve()
+
             self.run_config = ray.train.RunConfig(**run_config, storage_path=storage_path)
         except AttributeError:
             print(
@@ -1483,7 +1490,8 @@ class RayTorchTrainer(Trainer):
             except AttributeError:
                 print(
                     f"{param} could not be set. Check that this parameter type is "
-                    "supported by Ray Tune or the itwinai TrainingConfiguration."
+                    "supported by Ray Tune at "
+                    "https://docs.ray.io/en/latest/tune/api/search_space.html"
                 )
         else:
             print(
