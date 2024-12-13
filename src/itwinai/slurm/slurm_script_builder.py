@@ -207,6 +207,8 @@ class SlurmScriptBuilder:
             print("#" * 30)
             return
 
+        if self.slurm_script_configuration.job_name is None:
+            self.slurm_script_configuration.job_name = self.generate_identifier()
         if file_path is None:
             file_path = self.file_folder / (self.generate_identifier() + ".sh")
 
@@ -257,6 +259,7 @@ class SlurmScriptBuilder:
         self.file_folder = file_folder
         for strategy in strategies:
             self.distributed_strategy = strategy
+            self.slurm_script_configuration.job_name = self.generate_identifier()
             self.process_slurm_script(
                 retain_file=retain_file, submit_slurm_job=submit_slurm_job
             )

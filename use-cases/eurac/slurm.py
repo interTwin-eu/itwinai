@@ -80,10 +80,12 @@ def main():
         )
     elif mode == "runall":
         script_builder.run_slurm_script_all_strategies(
-            run_script=submit_job, retain_file=retain_file
+            submit_slurm_job=submit_job, retain_file=retain_file
         )
     elif mode == "scaling-test":
-        script_builder.run_scaling_test(run_script=submit_job, retain_file=retain_file)
+        script_builder.run_scaling_test(
+            submit_slurm_job=submit_job, retain_file=retain_file
+        )
     else:
         # This shouldn't really ever happen, but checking just in case
         raise ValueError(
