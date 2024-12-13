@@ -9,25 +9,17 @@
 
 from itwinai.slurm.slurm_script_builder import (
     SlurmScriptBuilder,
+    SlurmScriptConfiguration,
     remove_indentation_from_multiline_string,
 )
-from itwinai.slurm.utils import get_slurm_script_parser
+from itwinai.slurm.utils import get_slurm_job_parser
 
 
 class EuracSlurmScriptBuilder(SlurmScriptBuilder):
 
     def __init__(
         self,
-        job_name: str,
-        account: str,
-        time: str,
-        partition: str,
-        std_out: str,
-        err_out: str,
-        num_nodes: int,
-        num_tasks_per_node: int,
-        gpus_per_node: int,
-        cpus_per_gpu: int,
+        slurm_script_configuration: SlurmScriptConfiguration,
         distributed_strategy: str,
         python_venv: str = ".venv",
         debug: bool = False,
@@ -35,18 +27,9 @@ class EuracSlurmScriptBuilder(SlurmScriptBuilder):
         pipe_key: str = "rnn_training_pipeline",
     ):
         super().__init__(
-            account=account,
-            time=time,
-            partition=partition,
-            num_nodes=num_nodes,
-            num_tasks_per_node=num_tasks_per_node,
-            gpus_per_node=gpus_per_node,
-            cpus_per_gpu=cpus_per_gpu,
-            job_name=job_name,
-            std_out=std_out,
-            err_out=err_out,
-            python_venv=python_venv,
+            slurm_script_configuration=slurm_script_configuration,
             distributed_strategy=distributed_strategy,
+            python_venv=python_venv,
             debug=debug,
         )
         self.config_file = config_file
@@ -64,27 +47,9 @@ class EuracSlurmScriptBuilder(SlurmScriptBuilder):
 
 
 def main():
-    parser = get_slurm_script_parser()
-    default_config_file = "config.yaml"
-    default_pipe_key = "rnn_training_pipeline"
-    parser.add_argument(
-        "--config-file",
-        type=str,
-        default=default_config_file,
-        help="Which config file to use for training.",
-    )
-    parser.add_argument(
-        "--pipe-key",
-        type=str,
-        default=default_pipe_key,
-        help="Which pipe key to use for running the pipeline.",
-    )
+    parser = get_slurm_job_parser()
     args = parser.parse_args()
-
-    retain_file = not args.no_retain_file
-    run_script = not args.no_run_script
-
-    script_builder = EuracSlurmScriptBuilder(
+    slurm_script_configuration = SlurmScriptConfiguration(
         job_name=args.job_name,
         account=args.account,
         time=args.time,
@@ -95,23 +60,30 @@ def main():
         num_tasks_per_node=args.num_tasks_per_node,
         gpus_per_node=args.gpus_per_node,
         cpus_per_gpu=args.cpus_per_gpu,
+    )
+
+    script_builder = EuracSlurmScriptBuilder(
+        slurm_script_configuration=slurm_script_configuration,
         distributed_strategy=args.dist_strat,
         debug=args.debug,
         pipe_key=args.pipe_key,
         config_file=args.config_file,
     )
 
+    run_script = not args.no_run_script
+    retain_file = not args.no_retain_file
+
     mode = args.mode
     if mode == "single":
         script_builder.process_slurm_script(
-            retain_file=retain_file, run_script=run_script
+            run_script=run_script, retain_file=retain_file
         )
     elif mode == "runall":
         script_builder.run_slurm_script_all_strategies(
-            retain_file=retain_file, run_script=run_script
+            run_script=run_script, retain_file=retain_file
         )
     elif mode == "scaling-test":
-        script_builder.run_scaling_test(retain_file=retain_file, run_script=run_script)
+        script_builder.run_scaling_test(run_script=run_script, retain_file=retain_file)
     else:
         # This shouldn't really ever happen, but checking just in case
         raise ValueError(

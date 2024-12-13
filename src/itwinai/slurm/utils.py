@@ -7,7 +7,7 @@
 # - Jarl Sondre Sæther <jarl.sondre.saether@cern.ch> - CERN
 # --------------------------------------------------------------------------------------
 
-from argparse import ArgumentParser
+from itwinai.parser import ArgumentParser
 
 
 def remove_indentation_from_multiline_string(multiline_string: str) -> str:
@@ -18,8 +18,8 @@ def remove_indentation_from_multiline_string(multiline_string: str) -> str:
     return "\n".join([line.lstrip() for line in multiline_string.split("\n")])
 
 
-def get_slurm_script_parser() -> ArgumentParser:
-    # Default SLURM arguments
+def get_slurm_job_parser() -> ArgumentParser:
+    # Default arguments for the SLURM script configuration
     default_account = "intertwin"
     default_time = "00:30:00"
     default_partition = "develbooster"
@@ -34,8 +34,14 @@ def get_slurm_script_parser() -> ArgumentParser:
     # Default other arguments
     default_mode = "single"
     default_distributed_strategy = "ddp"
+    default_config_file = "config.yaml"
+    default_pipe_key = "rnn_training_pipeline"
+    default_training_command = None
+    default_python_venv = ".venv"
 
-    parser = ArgumentParser()
+    parser = ArgumentParser(parser_mode="omegaconf")
+
+    # Arguments specific to the SLURM script configuration
     parser.add_argument(
         "--job_name",
         type=str,
@@ -74,29 +80,44 @@ def get_slurm_script_parser() -> ArgumentParser:
     )
     parser.add_argument(
         "--num-nodes",
-        type=str,
+        type=int,
         default=default_num_nodes,
         help="The number of nodes that the SLURM job is going to run on.",
     )
     parser.add_argument(
         "--num-tasks-per-node",
-        type=str,
+        type=int,
         default=default_num_tasks_per_node,
         help="The number of tasks per node.",
     )
     parser.add_argument(
         "--gpus-per-node",
-        type=str,
+        type=int,
         default=default_gpus_per_node,
         help="The requested number of GPUs per node.",
     )
     parser.add_argument(
         "--cpus-per-gpu",
-        type=str,
+        type=int,
         default=default_cpus_per_gpu,
         help="The requested number of CPUs per node.",
     )
 
+    # Arguments specific to the itwinai pipeline
+    parser.add_argument(
+        "--config-file",
+        type=str,
+        default=default_config_file,
+        help="Which config file to use for training.",
+    )
+    parser.add_argument(
+        "--pipe-key",
+        type=str,
+        default=default_pipe_key,
+        help="Which pipe key to use for running the pipeline.",
+    )
+
+    # Arguments specific to the SLURM Builder
     parser.add_argument(
         "--mode",
         choices=["scaling-test", "runall", "single"],
@@ -110,9 +131,22 @@ def get_slurm_script_parser() -> ArgumentParser:
         help="Which distributed strategy to use.",
     )
     parser.add_argument(
+        "--training-cmd",
+        type=str,
+        default=default_training_command,
+        help="The training command to use for the python script.",
+    )
+    parser.add_argument(
+        "--python-venv",
+        type=str,
+        default=default_python_venv,
+        help="Which python venv to use for running the command.",
+    )
+
+    # Boolean arguments where you only need to include the flag and not an actual value
+    parser.add_argument(
         "--debug",
-        type=bool,
-        default=False,
+        action="store_true",
         help="Whether to include debugging information or not",
     )
     parser.add_argument(

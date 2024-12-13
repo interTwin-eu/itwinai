@@ -11,59 +11,62 @@ import subprocess
 from pathlib import Path
 from typing import List
 
-from itwinai.slurm.slurm_constants import JUWELS_HPC_MODULES
-from itwinai.slurm.utils import remove_indentation_from_multiline_string
+from pydantic import BaseModel, Field
+
+from itwinai.slurm.slurm_constants import JUWELS_HPC_MODULES, slurm_template
+from itwinai.slurm.utils import (
+    get_slurm_job_parser,
+    remove_indentation_from_multiline_string,
+)
+
+
+class SlurmScriptConfiguration(BaseModel):
+    # Settings for the SLURM configuration
+    job_name: str | None = Field(default=None)
+    account: str
+    partition: str
+    time: str
+
+    std_out: Path | None = Field(default=None)
+    err_out: Path | None = Field(default=None)
+
+    num_nodes: int
+    num_tasks_per_node: int
+    gpus_per_node: int
+    cpus_per_gpu: int
+
+    # Tyipcally used to set up the environment before executing the command,
+    # e.g. "ml Python", "source .venv/bin/activate" etc.
+    pre_exec_command: str | None = Field(default=None)
+
+    # Command to execute, typically an 'srun' command
+    exec_command: str | None = Field(default=None)
+
+    def format_script(self) -> str:
+        return slurm_template.format_map(self.model_dump())
 
 
 class SlurmScriptBuilder:
 
     def __init__(
         self,
-        account: str,
-        time: str,
-        partition: str,
-        num_nodes: int,
-        num_tasks_per_node: int,
-        gpus_per_node: int,
-        cpus_per_gpu: int,
+        slurm_script_configuration: SlurmScriptConfiguration,
         distributed_strategy: str,
-        job_name: str | None = None,
-        std_out: str | None = None,
-        err_out: str | None = None,
+        training_command: str | None = None,
         python_venv: str = ".venv",
         debug: bool = False,
         file_folder: Path = Path("slurm_scripts"),
     ):
-        self.account = account
-        self.time = time
-        self.partition = partition
-        self.num_nodes = num_nodes
-        self.num_tasks_per_node = num_tasks_per_node
-        self.gpus_per_node = gpus_per_node
-        self.cpus_per_gpu = cpus_per_gpu
+        self.slurm_script_configuration = slurm_script_configuration
         self.distributed_strategy = distributed_strategy
+        self.training_command = training_command
 
         self.python_venv = python_venv
         self.debug = debug
         self.file_folder = file_folder
 
-        if job_name is None:
-            self.job_name = self.generate_identifier()
-        else:
-            self.job_name = job_name
-
-        if std_out is None:
-            self.std_out = Path(f"slurm_jobs/{self.generate_identifier()}.out")
-        else:
-            self.std_out = Path(std_out)
-
-        if err_out is None:
-            self.err_out = Path(f"slurm_jobs/{self.generate_identifier()}.err")
-        else:
-            self.err_out = Path(err_out)
-
-        if self.cpus_per_gpu > 0:
-            self.omp_num_threads = self.cpus_per_gpu
+        if self.slurm_script_configuration.cpus_per_gpu > 0:
+            self.omp_num_threads = self.slurm_script_configuration.cpus_per_gpu
         else:
             self.omp_num_threads = 1
 
@@ -73,10 +76,29 @@ class SlurmScriptBuilder:
         self.err_out = Path(f"slurm_jobs/{self.generate_identifier()}.err")
 
     def generate_identifier(self) -> str:
-        return f"{self.distributed_strategy}-{self.num_nodes}x{self.gpus_per_node}"
+        num_nodes = self.slurm_script_configuration.num_nodes
+        gpus_per_node = self.slurm_script_configuration.gpus_per_node
+        return f"{self.distributed_strategy}-{num_nodes}x{gpus_per_node}"
 
     def get_training_command(self) -> str:
+        if self.training_command is not None:
+            return self.training_command
+
+        # add an exception
         return "python main.py"
+
+    def get_pre_exec_command(self):
+        pre_exec_command = rf"""
+            ml {" ".join(JUWELS_HPC_MODULES)}
+            source {self.python_venv}/bin/activate
+            export OMP_NUM_THREADS={self.omp_num_threads}
+        """
+
+        if self.debug:
+            pre_exec_command += "\n" + self.get_debug_command()
+
+        pre_exec_command = pre_exec_command.strip()
+        return remove_indentation_from_multiline_string(pre_exec_command)
 
     def get_srun_command(self, torch_log_dir: str = "logs_torchrun"):
         if self.distributed_strategy in ["ddp", "deepspeed"]:
@@ -97,10 +119,12 @@ class SlurmScriptBuilder:
                 {self.get_training_command()}"
         """
         else:
-            num_tasks = self.gpus_per_node * self.num_nodes
+            gpus_per_node = self.slurm_script_configuration.gpus_per_node
+            num_nodes = self.slurm_script_configuration.num_nodes
+            num_tasks = gpus_per_node * num_nodes
 
             # E.g. "0,1,2,3" with 4 GPUs per node
-            cuda_visible_devices = ",".join(str(i) for i in range(self.gpus_per_node))
+            cuda_visible_devices = ",".join(str(i) for i in range(gpus_per_node))
 
             main_command = rf"""
             export CUDA_VISIBLE_DEVICES="{cuda_visible_devices}"
@@ -133,67 +157,23 @@ class SlurmScriptBuilder:
         debug_print_command = debug_print_command.strip()
         return remove_indentation_from_multiline_string(debug_print_command)
 
-    def get_setup_command(self):
-        setup_command = rf"""
-            ml {" ".join(JUWELS_HPC_MODULES)}
-            source {self.python_venv}/bin/activate
-            export OMP_NUM_THREADS={self.omp_num_threads}
-        """
-
-        if self.debug:
-            setup_command += "\n" + self.get_debug_command()
-
-        setup_command = setup_command.strip()
-        return remove_indentation_from_multiline_string(setup_command)
-
-    def get_slurm_script(
-        self, setup_command: str | None = None, main_command: str | None = None
-    ):
-        if setup_command is None:
-            setup_command = self.get_setup_command()
-        if main_command is None:
-            main_command = self.get_srun_command()
-
-        template = rf"""
-            #!/bin/bash
-
-            # Job configuration
-            #SBATCH --job-name={self.job_name}
-            #SBATCH --account={self.account}
-            #SBATCH --partition={self.partition}
-            #SBATCH --time={self.time}
-
-            #SBATCH --output={self.std_out}
-            #SBATCH --error={self.err_out}
-
-            # Resources allocation
-            #SBATCH --nodes={self.num_nodes}
-            #SBATCH --ntasks-per-node={self.num_tasks_per_node}
-            #SBATCH --gpus-per-node={self.gpus_per_node}
-            #SBATCH --cpus-per-gpu={self.cpus_per_gpu}
-            #SBATCH --exclusive
-
-            {setup_command}
-
-            {main_command}"""
-
-        # Removing superfluous indentation
-        template = template.strip()
-        return remove_indentation_from_multiline_string(template)
-
     def process_slurm_script(
         self,
-        setup_command: str | None = None,
-        main_command: str | None = None,
         file_path: Path | None = None,
         retain_file: bool = True,
         run_script: bool = True,
     ) -> None:
-        script = self.get_slurm_script(
-            setup_command=setup_command, main_command=main_command
-        )
+        # set pre-exec command
+        self.slurm_script_configuration.pre_exec_command = self.get_pre_exec_command()
+
+        # set exec command
+        self.slurm_script_configuration.exec_command = self.get_srun_command()
+
+        script = self.slurm_script_configuration.format_script()
         if not run_script and not retain_file:
+            print("#" * 30)
             print(script)
+            print("#" * 30)
             return
 
         if file_path is None:
@@ -219,8 +199,6 @@ class SlurmScriptBuilder:
 
     def run_slurm_script_all_strategies(
         self,
-        setup_command: str | None = None,
-        main_command: str | None = None,
         file_folder: Path = Path("slurm_scripts"),
         retain_file: bool = True,
         run_script: bool = True,
@@ -229,18 +207,10 @@ class SlurmScriptBuilder:
         self.file_folder = file_folder
         for strategy in strategies:
             self.distributed_strategy = strategy
-            self.update_autogenerated_fields()
-            self.process_slurm_script(
-                setup_command=setup_command,
-                main_command=main_command,
-                retain_file=retain_file,
-                run_script=run_script,
-            )
+            self.process_slurm_script(retain_file=retain_file, run_script=run_script)
 
     def run_scaling_test(
         self,
-        setup_command: str | None = None,
-        main_command: str | None = None,
         file_folder: Path = Path("slurm_scripts"),
         retain_file: bool = True,
         run_script: bool = True,
@@ -248,10 +218,8 @@ class SlurmScriptBuilder:
         num_nodes_list: List[int] = [1, 2, 4, 8],
     ):
         for num_nodes in num_nodes_list:
-            self.num_nodes = num_nodes
+            self.slurm_script_configuration.num_nodes = num_nodes
             self.run_slurm_script_all_strategies(
-                setup_command=setup_command,
-                main_command=main_command,
                 file_folder=file_folder,
                 retain_file=retain_file,
                 run_script=run_script,
@@ -260,39 +228,35 @@ class SlurmScriptBuilder:
 
 
 def main():
-    # SLURM specific settings
-    job_name = "my_test_job"
-    account = "intertwin"
-    time = "00:01:00"
-    partition = "develbooster"
-    std_out = "job.out"
-    err_out = "job.err"
-    num_nodes = 1
-    num_tasks_per_node = 1
-    gpus_per_node = 4
-    cpus_per_gpu = 4
+    parser = get_slurm_job_parser()
+    args = parser.parse_args()
 
-    # Other settings
-    distributed_strategy = "horovod"
-    debug = True
-
-    slurm_script = SlurmScriptBuilder(
-        job_name=job_name,
-        account=account,
-        time=time,
-        partition=partition,
-        std_out=std_out,
-        err_out=err_out,
-        num_nodes=num_nodes,
-        num_tasks_per_node=num_tasks_per_node,
-        gpus_per_node=gpus_per_node,
-        cpus_per_gpu=cpus_per_gpu,
-        distributed_strategy=distributed_strategy,
-        debug=debug,
+    slurm_script_configuration = SlurmScriptConfiguration(
+        job_name=args.job_name,
+        account=args.account,
+        time=args.time,
+        partition=args.partition,
+        std_out=args.std_out,
+        err_out=args.err_out,
+        num_nodes=args.num_nodes,
+        num_tasks_per_node=args.num_tasks_per_node,
+        gpus_per_node=args.gpus_per_node,
+        cpus_per_gpu=args.cpus_per_gpu,
     )
 
-    template = slurm_script.get_slurm_script()
-    print(template)
+    run_script = not args.no_run_script
+    retain_file = not args.no_retain_file
+
+    slurm_script_builder = SlurmScriptBuilder(
+        slurm_script_configuration=slurm_script_configuration,
+        distributed_strategy=args.dist_strat,
+        debug=args.debug,
+        training_command=args.training_cmd
+    )
+
+    slurm_script_builder.process_slurm_script(
+        retain_file=retain_file, run_script=run_script
+    )
 
 
 if __name__ == "__main__":
