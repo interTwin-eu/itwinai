@@ -95,13 +95,14 @@ def get_raytune_search_alg(
                     "INFO: No search algorithm detected. Using Ray Tune BasicVariantGenerator."
                 )
                 return None
-    except AttributeError:
+    except AttributeError as e:
         print(
             "Invalid search algorithm configuration passed. Please make sure that the search "
             "algorithm you are using has the correct attributes. You can read more about the "
             "different search algorithms supported by Ray Tune at "
-            "https://docs.ray.io/en/latest/tune/api/suggestion.html."
+            "https://docs.ray.io/en/latest/tune/api/suggestion.html. "
         )
+        print(e)
 
 
 def get_raytune_scheduler(
@@ -145,10 +146,11 @@ def get_raytune_scheduler(
                     "INFO: No search algorithm detected. Using default Ray Tune FIFOScheduler."
                 )
                 return None
-    except AttributeError:
+    except AttributeError as e:
         print(
             "Invalid scheduler configuration passed. Please make sure that the scheduler "
             "you are using has the correct attributes. You can read more about the "
             "different schedulers supported by Ray Tune at "
             "https://docs.ray.io/en/latest/tune/api/schedulers.html."
         )
+        print(e)

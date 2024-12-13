@@ -1423,13 +1423,14 @@ class RayTorchTrainer(Trainer):
                 metric=metric,
                 mode=mode,
             )
-        except AttributeError:
+        except AttributeError as e:
             print(
                 "Could not set Tune Config. Please ensure that you have passed the "
                 "correct arguments for it. You can find more information for which "
                 "arguments to set at "
                 "https://docs.ray.io/en/latest/tune/api/doc/ray.tune.TuneConfig.html."
             )
+            print(e)
 
     def _set_scaling_config(self) -> None:
         scaling_config = self.config.get("scaling_config", {})
@@ -1439,13 +1440,14 @@ class RayTorchTrainer(Trainer):
 
         try:
             self.scaling_config = ray.train.ScalingConfig(**scaling_config)
-        except AttributeError:
+        except AttributeError as e:
             print(
                 "Could not set Scaling Config. Please ensure that you have passed the "
                 "correct arguments for it. You can find more information for which "
                 "arguments to set at "
                 "https://docs.ray.io/en/latest/train/api/doc/ray.train.ScalingConfig.html"
             )
+            print(e)
 
     def _set_run_config(self) -> None:
         run_config = self.config.get("run_config", {})
@@ -1463,13 +1465,14 @@ class RayTorchTrainer(Trainer):
                 storage_path = Path("ray_checkpoints").resolve()
 
             self.run_config = ray.train.RunConfig(**run_config, storage_path=storage_path)
-        except AttributeError:
+        except AttributeError as e:
             print(
                 "Could not set Run Config. Please ensure that you have passed the "
                 "correct arguments for it. You can find more information for which "
                 "arguments to set at "
                 "https://docs.ray.io/en/latest/train/api/doc/ray.train.RunConfig.html"
             )
+            print(e)
 
     def _set_train_loop_config(self) -> None:
         train_loop_config = self.config.get("train_loop_config", {})
@@ -1487,12 +1490,13 @@ class RayTorchTrainer(Trainer):
                         param = getattr(tune, param_type)(**param)
                         train_loop_config[name] = param
 
-            except AttributeError:
+            except AttributeError as e:
                 print(
                     f"{param} could not be set. Check that this parameter type is "
                     "supported by Ray Tune at "
                     "https://docs.ray.io/en/latest/tune/api/search_space.html"
                 )
+                print(e)
         else:
             print(
                 "WARNING: No training_loop_config detected. "
