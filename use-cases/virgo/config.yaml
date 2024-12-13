@@ -140,20 +140,18 @@ ray_training_pipeline:
             train_loop_config:
               batch_size:
                 type: choice
-                options: [1, 2, 4]
-              learning_rate:
+                categories: [1, 2, 4]
+              optim_lr:
                 type: uniform
-                min: 1e-5
-                max: 1e-3
-              epochs: 5
+                lower: 1e-5
+                upper: 1e-3
+              num_epochs: 5
               generator: simple #unet
               loss: l1
               save_best: false
               shuffle_train: true
-              random_seed: 17
-              tracking_uri: mllogs/mlflow
-              experiment_name: Virgo-HPO-Experiment
           strategy: ${strategy}
+          random_seed: 17
           logger:
             class_path: itwinai.loggers.LoggersCollection
             init_args:
