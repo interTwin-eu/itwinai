@@ -1468,18 +1468,23 @@ class RayTorchTrainer(Trainer):
         train_loop_config = self.config.get("train_loop_config", {})
 
         if train_loop_config:
-            for name, param in train_loop_config.items():
-                try:
+            try:
+                for name, param in train_loop_config.items():
                     if isinstance(param, dict):
+                        # Convert specific keys to float if necessary
+                        for key in ["lower", "upper", "mean", "std"]:
+                            if key in param:
+                                param[key] = float(param[key])
+
                         param_type = param.pop("type")
-                        # Dynamically call corresponding tune method
                         param = getattr(tune, param_type)(**param)
                         train_loop_config[name] = param
-                except AttributeError:
-                    raise ValueError(
-                        f"{param} could not be set. Check that this parameter type is "
-                        "supported by Ray Tune or the itwinai TrainingConfiguration."
-                    )
+
+            except AttributeError:
+                print(
+                    f"{param} could not be set. Check that this parameter type is "
+                    "supported by Ray Tune or the itwinai TrainingConfiguration."
+                )
         else:
             print(
                 "WARNING: No training_loop_config detected. "
