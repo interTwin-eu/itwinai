@@ -379,7 +379,7 @@ class NoiseGeneratorTrainer(TorchTrainer):
                 epoch_time_tracker.add_epoch_time(epoch - 1, timer() - lt)
 
             # Report training metrics of last epoch to Ray
-            train.report({"loss": np.mean(val_loss), "train_loss": np.mean(epoch_loss)})
+            train.report({"loss": np.mean(val_loss)})
 
         return loss_plot, val_loss_plot, acc_plot, val_acc_plot
 
@@ -461,7 +461,7 @@ class RayNoiseGeneratorTrainer(RayTorchTrainer):
         # Start the timer for profiling
         st = timer()
 
-        self.training_config = TrainingConfiguration(**config)
+        self.training_config = VirgoTrainingConfiguration(**config)
 
         self.create_model_loss_optimizer()
 

@@ -1,3 +1,12 @@
+# --------------------------------------------------------------------------------------
+# Part of the interTwin Project: https://www.intertwin.eu/
+#
+# Created by: Anna Lappe
+#
+# Credit:
+# - Anna Lappe <anna.elisa.lappe@cern.ch> - CERN
+# --------------------------------------------------------------------------------------
+
 from ray.tune.schedulers import (
     AsyncHyperBandScheduler,
     HyperBandForBOHB,
