@@ -1475,35 +1475,36 @@ class RayTorchTrainer(Trainer):
             print(e)
 
     def _set_train_loop_config(self) -> None:
-        train_loop_config = self.config.get("train_loop_config", {})
+        self.train_loop_config = self.config.get("train_loop_config", {})
 
-        if train_loop_config:
-            try:
-                for name, param in train_loop_config.items():
-                    if isinstance(param, dict):
-                        # Convert specific keys to float if necessary
-                        for key in ["lower", "upper", "mean", "std"]:
-                            if key in param:
-                                param[key] = float(param[key])
-
-                        param_type = param.pop("type")
-                        param = getattr(tune, param_type)(**param)
-                        train_loop_config[name] = param
-
-            except AttributeError as e:
-                print(
-                    f"{param} could not be set. Check that this parameter type is "
-                    "supported by Ray Tune at "
-                    "https://docs.ray.io/en/latest/tune/api/search_space.html"
-                )
-                print(e)
-        else:
+        if not self.train_loop_config:
             print(
                 "WARNING: No training_loop_config detected. "
                 "If you want to tune any hyperparameters, make sure to define them here."
             )
+            return
 
-        self.train_loop_config = train_loop_config
+        try:
+            for name, param in self.train_loop_config.items():
+                if not isinstance(param, dict):
+                    continue
+
+                # Convert specific keys to float if necessary
+                for key in ["lower", "upper", "mean", "std"]:
+                    if key in param:
+                        param[key] = float(param[key])
+
+                param_type = param.pop("type")
+                param = getattr(tune, param_type)(**param)
+                self.train_loop_config[name] = param
+
+        except AttributeError as e:
+            print(
+                f"{param} could not be set. Check that this parameter type is "
+                "supported by Ray Tune at "
+                "https://docs.ray.io/en/latest/tune/api/search_space.html"
+            )
+            print(e)
 
     # TODO: Can I also log the checkpoint?
     def checkpoint_and_report(self, epoch, tuning_metrics, checkpointing_data=None):
