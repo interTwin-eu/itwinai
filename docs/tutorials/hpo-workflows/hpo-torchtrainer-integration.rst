@@ -1,4 +1,4 @@
-.. _hpo_workflows:
+.. _hpo_torchtrainer_workflow:
 
 Hyperparameter Optimization with RayTorchTrainer on MNIST
 =========================================================
@@ -17,7 +17,7 @@ By the end of this tutorial, you will:
 *   Know how to create a configuration file to define your HPO study.
 *   Understand the steps required to define and run an HPO study with the itwinai training pipeline.
 
-You can find the full code for this tutorial `on Github <https://github.com/interTwin-eu/itwinai/blob/main/tutorials/hpo-workflows>`_.
+You can find the full code for this tutorial `on Github <https://github.com/interTwin-eu/itwinai/blob/main/tutorials/hpo-workflows/distributed-workflow>`_.
 
 
 Setting up the Trainer
@@ -170,7 +170,7 @@ Code Comparison: RayTorchTrainer vs TorchTrainer
                     )
                     self.loss = CrossEntropyLoss()
 
-                def train(self, config, data):
+                def train(self):
                     
                     for epoch in range(self.config.epochs):
                         if self.strategy.global_world_size() > 1:
@@ -332,5 +332,5 @@ Now, all that is left to do is launch our training:
 
 .. code-block:: bash
 
-    cd tutorials/hpo-workflows
+    cd tutorials/hpo-workflows/distributed-workflow
     sbatch slurm_hpo.sh
