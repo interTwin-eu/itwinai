@@ -1,5 +1,7 @@
 # If you use this with in the runall or scaling mode, keep in mind that the strategies
 # will change, as well as the number of nodes. 
+#
+# Default arguments can be seen in src/itwinai/slurm/utils.py
 
 mode: single # "single", "runall" or "scaling-test" - defaults to "single"
 dist_strat: horovod # "ddp", "deepspeed" or "horovod"

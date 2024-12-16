@@ -259,7 +259,14 @@ class SlurmScriptBuilder:
         self.file_folder = file_folder
         for strategy in strategies:
             self.distributed_strategy = strategy
+
+            # Overriding job_name, std_out and err_out
             self.slurm_script_configuration.job_name = self.generate_identifier()
+            std_out_path = Path("slurm_jobs") / (self.generate_identifier() + ".out")
+            err_out_path = Path("slurm_jobs") / (self.generate_identifier() + ".err")
+            self.slurm_script_configuration.std_out = std_out_path
+            self.slurm_script_configuration.err_out = err_out_path
+
             self.process_slurm_script(
                 retain_file=retain_file, submit_slurm_job=submit_slurm_job
             )
