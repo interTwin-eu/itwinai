@@ -7,8 +7,6 @@
 # - Jarl Sondre Sæther <jarl.sondre.saether@cern.ch> - CERN
 # --------------------------------------------------------------------------------------
 
-from pathlib import Path
-from typing import List
 
 from itwinai.slurm.slurm_script_builder import (
     SlurmScriptBuilder,
@@ -38,9 +36,9 @@ class TutorialSlurmScriptBuilder(SlurmScriptBuilder):
         self.use_itwinai_trainer = use_itwinai_trainer
 
     def generate_identifier(self) -> str:
-        if self.use_itwinai_trainer: 
+        if self.use_itwinai_trainer:
             prepend = "itwinai-"
-        else: 
+        else:
             prepend = "baseline-"
         return prepend + super().generate_identifier()
 
