@@ -9,12 +9,10 @@
 
 """Scaling test of Microsoft Deepspeed on Imagenet using Resnet."""
 
-import argparse
 import os
 import sys
 import time
 from timeit import default_timer as timer
-from typing import Optional
 
 import deepspeed
 import torch
@@ -22,120 +20,17 @@ import torch.distributed as dist
 import torchvision
 from torch.utils.data import DataLoader
 from torch.utils.data.distributed import DistributedSampler
-from utils import imagenet_dataset, parse_params, train_epoch
+from utils import imagenet_dataset, get_parser, train_epoch
 
 from itwinai.loggers import EpochTimeTracker
-from itwinai.parser import ArgumentParser as ItwinaiArgParser
 from itwinai.torch.reproducibility import seed_worker, set_seed
-
-
-def parse_params():
-    parser = ItwinaiArgParser(description="PyTorch Imagenet scaling test")
-
-    # Data and logging
-    parser.add_argument(
-        "--data-dir",
-        default="./",
-        help=("location of the training dataset in the " "local filesystem"),
-    )
-    parser.add_argument(
-        "--log-int",
-        type=int,
-        default=10,
-        help="log interval per training. Disabled if < 0.",
-    )
-    parser.add_argument(
-        "--verbose",
-        action=argparse.BooleanOptionalAction,
-        help="Print parsed arguments",
-    )
-    parser.add_argument(
-        "--nworker",
-        type=int,
-        default=0,
-        help=("number of workers in DataLoader " "(default: 0 - only main)"),
-    )
-    parser.add_argument(
-        "--prefetch",
-        type=int,
-        default=2,
-        help="prefetch data in DataLoader (default: 2)",
-    )
-
-    # Model
-    parser.add_argument(
-        "--batch-size",
-        type=int,
-        default=64,
-        metavar="N",
-        help="input batch size for training (default: 64)",
-    )
-    parser.add_argument(
-        "--epochs",
-        type=int,
-        default=10,
-        metavar="N",
-        help="number of epochs to train (default: 10)",
-    )
-    parser.add_argument(
-        "--lr",
-        type=float,
-        default=0.01,
-        metavar="LR",
-        help="learning rate (default: 0.01)",
-    )
-    parser.add_argument(
-        "--momentum",
-        type=float,
-        default=0.5,
-        help="momentum in SGD optimizer (default: 0.5)",
-    )
-    parser.add_argument(
-        "--shuff",
-        action="store_true",
-        default=False,
-        help="shuffle dataset (default: False)",
-    )
-
-    # Reproducibility
-    parser.add_argument(
-        "--rnd-seed",
-        type=Optional[int],
-        default=None,
-        help="seed integer for reproducibility (default: 0)",
-    )
-
-    # Distributed ML
-    parser.add_argument(
-        "--backend",
-        type=str,
-        default="nccl",
-        metavar="N",
-        help="backend for parallelization (default: nccl)",
-    )
-    parser.add_argument(
-        "--no-cuda", action="store_true", default=False, help="disables GPGPUs"
-    )
-    parser.add_argument(
-        "--local_rank",
-        type=int,
-        default=-1,
-        help="local rank passed from distributed launcher",
-    )
-
-    # parse to deepspeed
-    parser = deepspeed.add_config_arguments(parser)
-    args = parser.parse_args()
-    if args.verbose:
-        args_list = [f"{key}: {val}" for key, val in args.items()]
-        print("PARSED ARGS:\n", "\n".join(args_list))
-
-    return args
 
 
 def main():
     # Parse CLI args
-    args = parse_params()
+    parser = get_parser()
+    parser = deepspeed.add_config_arguments(parser)
+    args = parser.parse_args()
 
     # Check resources availability
     use_cuda = not args.no_cuda and torch.cuda.is_available()
@@ -149,43 +44,21 @@ def main():
     # Start the timer for profiling
     st = timer()
 
-    # Initializes the distributed backend
-    if is_distributed:
-        deepspeed.init_distributed(dist_backend=args.backend)
-
     # Set random seed for reproducibility
     torch_prng = set_seed(args.rnd_seed, deterministic_cudnn=False)
 
     if is_distributed:
+
+        deepspeed.init_distributed(dist_backend=args.backend)
         # Get job rank info - rank==0 master gpu
-        gwsize = dist.get_world_size()  # global world size - per run
         lwsize = torch.cuda.device_count()  # local world size - per node
         grank = dist.get_rank()  # global rank - assign per run
         lrank = dist.get_rank() % lwsize  # local rank - assign per node
     else:
         # Use a single worker (either on GPU or CPU)
         lwsize = 1
-        gwsize = 1
         grank = 0
         lrank = 0
-
-    if grank == 0:
-        print("TIMER: initialise:", timer() - st, "s")
-        print("DEBUG: local ranks:", lwsize, "/ global ranks:", gwsize)
-        print("DEBUG: sys.version:", sys.version)
-        print("DEBUG: args.data_dir:", args.data_dir)
-        print("DEBUG: args.log_int:", args.log_int)
-        print("DEBUG: args.nworker:", args.nworker)
-        print("DEBUG: args.prefetch:", args.prefetch)
-        print("DEBUG: args.batch_size:", args.batch_size)
-        print("DEBUG: args.epochs:", args.epochs)
-        print("DEBUG: args.lr:", args.lr)
-        print("DEBUG: args.momentum:", args.momentum)
-        print("DEBUG: args.shuff:", args.shuff)
-        print("DEBUG: args.rnd_seed:", args.rnd_seed)
-        print("DEBUG: args.backend:", args.backend)
-        print("DEBUG: args.local_rank:", args.local_rank)
-        print("DEBUG: args.no_cuda:", args.no_cuda, "\n")
 
     # Encapsulate the model on the GPU assigned to the current process
     if use_cuda:

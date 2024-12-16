@@ -69,7 +69,7 @@ def train_epoch(
     return total_loss
 
 
-def parse_params():
+def get_parser() -> ItwinaiArgParser:
     parser = ItwinaiArgParser(description="PyTorch Imagenet scaling test")
 
     parser.add_argument(
@@ -82,11 +82,6 @@ def parse_params():
         type=int,
         default=10,
         help="log interval per training. Disabled if < 0.",
-    )
-    parser.add_argument(
-        "--verbose",
-        action=argparse.BooleanOptionalAction,
-        help="Print parsed arguments",
     )
     parser.add_argument(
         "--nworker",
@@ -139,10 +134,4 @@ def parse_params():
     parser.add_argument(
         "--no-cuda", action="store_true", default=False, help="disables GPGPUs"
     )
-
-    args = parser.parse_args()
-
-    if args.verbose:
-        args_list = [f"{key}: {val}" for key, val in args.items()]
-        print("PARSED ARGS:\n", "\n".join(args_list))
-    return args
+    return parser

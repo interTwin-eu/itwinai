@@ -21,46 +21,45 @@ import torch.nn as nn
 import torchvision
 from torch.utils.data import DataLoader
 from torch.utils.data.distributed import DistributedSampler
-from utils import imagenet_dataset, parse_params, train_epoch
+from utils import imagenet_dataset, get_parser, train_epoch
 
 from itwinai.loggers import EpochTimeTracker
 from itwinai.torch.reproducibility import seed_worker, set_seed
 
 
 def main():
-    args = parse_params()
+    parser = get_parser()
+    args = parser.parse_args()
+
     subset_size = 5000
     use_cuda = not args.no_cuda and torch.cuda.is_available()
     is_distributed = use_cuda and torch.cuda.device_count() > 0
+    torch_seed = set_seed(args.rnd_seed, deterministic_cudnn=False)
 
-    if is_distributed:
+    train_dataset = imagenet_dataset(args.data_dir, subset_size=subset_size)
+    if not is_distributed:
+        local_world_size = 1
+        global_rank = 0
+        local_rank = 0
+
+        train_loader = DataLoader(
+            train_dataset,
+            batch_size=args.batch_size,
+            generator=torch_seed,
+            worker_init_fn=seed_worker,
+        )
+    else:
         # Initializing the distribution backend
         dist.init_process_group(backend=args.backend)
 
         local_world_size = torch.cuda.device_count()
         global_rank = dist.get_rank()
         local_rank = dist.get_rank() % local_world_size
-    else:
-        local_world_size = 1
-        global_rank = 0
-        local_rank = 0
 
-    # Set random seed for reproducibility
-    torch_seed = set_seed(args.rnd_seed, deterministic_cudnn=False)
-    device = torch.device("cuda" if use_cuda else "cpu", local_rank)
-    if use_cuda:
-        torch.cuda.set_device(local_rank)
-
-    # Dataset
-    train_dataset = imagenet_dataset(args.data_dir, subset_size=subset_size)
-
-    if is_distributed:
-        # Distributed training requires a distributed sampler to split the data
-        # between the workers
+        # Creating dataset and dataloader
         shuffle: bool = args.shuff and args.rnd_seed is None
         pin_memory = True
         persistent_workers = args.nworker > 1
-
         train_sampler = DistributedSampler(train_dataset, shuffle=shuffle)
         train_loader = DataLoader(
             train_dataset,
@@ -73,14 +72,8 @@ def main():
             generator=torch_seed,
             worker_init_fn=seed_worker,
         )
-    else:
-        train_loader = DataLoader(
-            train_dataset,
-            batch_size=args.batch_size,
-            generator=torch_seed,
-            worker_init_fn=seed_worker,
-        )
 
+    device = torch.device(f"cuda:{local_rank}" if use_cuda else "cpu", local_rank)
     model = torchvision.models.resnet152().to(device)
 
     # Distributing the model to the workers
@@ -127,4 +120,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-    sys.exit()

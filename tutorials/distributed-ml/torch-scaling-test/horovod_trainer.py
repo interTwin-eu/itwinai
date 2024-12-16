@@ -11,8 +11,6 @@
 """Scaling test of Horovod on Imagenet using Resnet."""
 
 import os
-import sys
-import time
 from timeit import default_timer as timer
 
 import horovod.torch as hvd
@@ -21,7 +19,7 @@ import torch.optim as optim
 import torchvision
 from torch.utils.data import DataLoader
 from torch.utils.data.distributed import DistributedSampler
-from utils import imagenet_dataset, parse_params, train_epoch
+from utils import imagenet_dataset, get_parser, train_epoch
 
 from itwinai.loggers import EpochTimeTracker
 from itwinai.torch.reproducibility import seed_worker, set_seed
@@ -29,7 +27,8 @@ from itwinai.torch.reproducibility import seed_worker, set_seed
 
 def main():
     # Parse CLI args
-    args = parse_params()
+    parser = get_parser()
+    args = parser.parse_args()
 
     # Check resources availability
     use_cuda = not args.no_cuda and torch.cuda.is_available()
@@ -37,6 +36,7 @@ def main():
     torch_seed = set_seed(args.rnd_seed, deterministic_cudnn=False)
     train_dataset = imagenet_dataset(args.data_dir)
 
+    # Setting variables
     if not is_distributed:
         # Use a single worker (either on GPU or CPU)
         local_rank = 0
@@ -75,7 +75,7 @@ def main():
             train_dataset,
             num_replicas=global_world_size,
             rank=global_rank,
-            shuffle=shuffle
+            shuffle=shuffle,
         )
         train_loader = DataLoader(
             train_dataset,
@@ -117,7 +117,7 @@ def main():
         )
 
     if global_rank == 0:
-        num_nodes = os.environ.get("SLURM_NNODES", "unk")
+        num_nodes = os.environ.get("SLURM_NNODES", "1")
         epoch_time_tracker = EpochTimeTracker(
             strategy_name="horovod-bl",
             save_path=f"epochtime_horovod-bl_{num_nodes}N.csv",
@@ -127,6 +127,7 @@ def main():
     start_time = timer()
     for epoch_idx in range(args.epochs):
         epoch_start_time = timer()
+
         if is_distributed:
             train_sampler.set_epoch(epoch_idx)
 
@@ -147,10 +148,6 @@ def main():
         total_time = timer() - start_time
         print(f"Training finished - took {total_time:.2f}s")
 
-    time.sleep(1)
-    print(f"<Hvd rank: {hvd.rank()}> - TRAINING FINISHED")
-
 
 if __name__ == "__main__":
     main()
-    sys.exit()
