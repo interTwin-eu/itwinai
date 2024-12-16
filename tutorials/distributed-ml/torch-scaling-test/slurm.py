@@ -12,7 +12,7 @@ from typing import List
 
 from itwinai.slurm.slurm_script_builder import (
     SlurmScriptBuilder,
-    remove_indentation_from_multiline_string,
+    SlurmScriptConfiguration,
 )
 from itwinai.slurm.utils import get_slurm_job_parser
 
@@ -21,77 +21,44 @@ class TutorialSlurmScriptBuilder(SlurmScriptBuilder):
 
     def __init__(
         self,
-        account: str,
-        time: str,
-        partition: str,
-        num_nodes: int,
-        num_tasks_per_node: int,
-        gpus_per_node: int,
-        cpus_per_gpu: int,
+        slurm_script_configuration: SlurmScriptConfiguration,
         distributed_strategy: str,
-        job_name: str | None = None,
-        std_out: str | None = None,
-        err_out: str | None = None,
+        training_command: str | None = None,
         python_venv: str = ".venv",
         debug: bool = False,
-        training_command: str | None = None,
+        use_itwinai_trainer: bool = False,
     ):
         super().__init__(
-            account=account,
-            time=time,
-            partition=partition,
-            num_nodes=num_nodes,
-            num_tasks_per_node=num_tasks_per_node,
-            gpus_per_node=gpus_per_node,
-            cpus_per_gpu=cpus_per_gpu,
-            job_name=job_name,
-            std_out=std_out,
-            err_out=err_out,
-            python_venv=python_venv,
+            slurm_script_configuration=slurm_script_configuration,
             distributed_strategy=distributed_strategy,
+            training_command=training_command,
+            python_venv=python_venv,
             debug=debug,
         )
-        self.training_command = training_command
+        self.use_itwinai_trainer = use_itwinai_trainer
+
+    def generate_identifier(self) -> str:
+        if self.use_itwinai_trainer: 
+            prepend = "itwinai-"
+        else: 
+            prepend = "baseline-"
+        return prepend + super().generate_identifier()
 
     def get_training_command(self):
-        if self.training_command is None:
-            raise ValueError("self.training_command cannot be None!")
-        training_command = self.training_command.strip()
-        return remove_indentation_from_multiline_string(training_command)
+        if self.training_command is not None:
+            return self.training_command
 
-    def run_slurm_script_all_strategies(
-        self,
-        setup_command: str | None = None,
-        main_command: str | None = None,
-        file_folder: Path = Path("slurm_scripts"),
-        retain_file: bool = True,
-        submit_job: bool = True,
-        strategies: List[str] = ["ddp", "horovod", "deepspeed"],
-    ):
-        strategies = ["ddp", "deepspeed", "horovod"]
-        trainer_commands = {
-            "itwinai": "itwinai_trainer.py -c config/base.yaml -c config/{0}.yaml -s {0}",
-            "baseline": "{0}_trainer.py -c config/base.yaml -c config/{0}.yaml",
-        }
-
-        for trainer_type, command_template in trainer_commands.items():
-            for strategy in strategies:
-                # Insert the strategy into the command template
-                self.training_command = command_template.format(strategy)
-                self.distributed_strategy = strategy
-
-                file_name = (
-                    f"{trainer_type}-{self.distributed_strategy}"
-                    f"-{self.num_nodes}x{self.gpus_per_node}.sh"
-                )
-                file_path = file_folder / file_name
-                self.process_slurm_script(
-                    setup_command=None,
-                    main_command=None,
-                    retain_file=retain_file,
-                    submit_slurm_job=submit_job,
-                    file_path=file_path,
-                )
+        if self.use_itwinai_trainer:
+            training_command = (
+                "itwinai_trainer.py -c config/base.yaml "
+                f"-c config/{self.distributed_strategy}.yaml -s {self.distributed_strategy}"
+            )
+        else:
+            training_command = (
+                f"{self.distributed_strategy}_trainer.py -c config/base.yaml "
+                f"-c config/{self.distributed_strategy}.yaml"
+            )
+        return training_command
 
 
 def main():
@@ -103,6 +70,18 @@ def main():
         help="Whether to use the itwinai trainer or not.",
     )
     args = parser.parse_args()
+    slurm_script_configuration = SlurmScriptConfiguration(
+        job_name=args.job_name,
+        account=args.account,
+        time=args.time,
+        partition=args.partition,
+        std_out=args.std_out,
+        err_out=args.err_out,
+        num_nodes=args.num_nodes,
+        num_tasks_per_node=args.num_tasks_per_node,
+        gpus_per_node=args.gpus_per_node,
+        cpus_per_gpu=args.cpus_per_gpu,
+    )
 
     retain_file = not args.no_retain_file
     submit_job = not args.no_submit_job
@@ -120,19 +99,11 @@ def main():
         )
 
     script_builder = TutorialSlurmScriptBuilder(
-        job_name=args.job_name,
-        account=args.account,
-        time=args.time,
-        partition=args.partition,
-        std_out=args.std_out,
-        err_out=args.err_out,
-        num_nodes=args.num_nodes,
-        num_tasks_per_node=args.num_tasks_per_node,
-        gpus_per_node=args.gpus_per_node,
-        cpus_per_gpu=args.cpus_per_gpu,
+        slurm_script_configuration=slurm_script_configuration,
         distributed_strategy=args.dist_strat,
         debug=args.debug,
         training_command=training_command,
+        use_itwinai_trainer=args.itwinai_trainer,
     )
 
     mode = args.mode
@@ -141,11 +112,21 @@ def main():
             retain_file=retain_file, submit_slurm_job=submit_job
         )
     elif mode == "runall":
+        # Running all strategies with and without the itwinai trainer
+        script_builder.training_command = None
+        script_builder.use_itwinai_trainer = False
         script_builder.run_slurm_script_all_strategies(
-            retain_file=retain_file, submit_job=submit_job
+            retain_file=retain_file, submit_slurm_job=submit_job
+        )
+
+        script_builder.use_itwinai_trainer = True
+        script_builder.run_slurm_script_all_strategies(
+            retain_file=retain_file, submit_slurm_job=submit_job
         )
     elif mode == "scaling-test":
-        script_builder.run_scaling_test(retain_file=retain_file, run_script=submit_job)
+        script_builder.run_scaling_test(
+            retain_file=retain_file, submit_slurm_job=submit_job
+        )
     else:
         # This shouldn't really ever happen, but checking just in case
         raise ValueError(

@@ -199,6 +199,29 @@ class SlurmScriptBuilder:
         self.slurm_script_configuration.pre_exec_command = self.get_pre_exec_command()
         self.slurm_script_configuration.exec_command = self.get_srun_command()
 
+        # Setting some default fields
+        if self.slurm_script_configuration.job_name is None:
+            self.slurm_script_configuration.job_name = self.generate_identifier()
+
+        if self.slurm_script_configuration.std_out is None:
+            std_out_path = Path("slurm_jobs") / (
+                self.generate_identifier() + ".out"
+            )
+            self.slurm_script_configuration.std_out = std_out_path
+        if self.slurm_script_configuration.err_out is None:
+            err_out_path = Path("slurm_jobs") / (
+                self.generate_identifier() + ".err"
+            )
+            self.slurm_script_configuration.err_out = err_out_path
+
+        # Making sure the std out and err out folders exist
+        self.slurm_script_configuration.std_out.parent.mkdir(
+            exist_ok=True, parents=True
+        )
+        self.slurm_script_configuration.err_out.parent.mkdir(
+            exist_ok=True, parents=True
+        )
+
         # Generate the script using the given configuration
         script = self.slurm_script_configuration.format_script()
         if not submit_slurm_job and not retain_file:
@@ -207,8 +230,6 @@ class SlurmScriptBuilder:
             print("#" * 30)
             return
 
-        if self.slurm_script_configuration.job_name is None:
-            self.slurm_script_configuration.job_name = self.generate_identifier()
         if file_path is None:
             file_path = self.file_folder / (self.generate_identifier() + ".sh")
 
@@ -223,24 +244,6 @@ class SlurmScriptBuilder:
             f.write(script)
 
         if submit_slurm_job:
-            if self.slurm_script_configuration.std_out is None:
-                std_out_path = Path("slurm_jobs") / (
-                    self.generate_identifier() + ".out"
-                )
-                self.slurm_script_configuration.std_out = std_out_path
-            if self.slurm_script_configuration.err_out is None:
-                err_out_path = Path("slurm_jobs") / (
-                    self.generate_identifier() + ".err"
-                )
-                self.slurm_script_configuration.err_out = err_out_path
-
-            # Making sure the std out and err out folders exist
-            self.slurm_script_configuration.std_out.parent.mkdir(
-                exist_ok=True, parents=True
-            )
-            self.slurm_script_configuration.err_out.parent.mkdir(
-                exist_ok=True, parents=True
-            )
             subprocess.run(["sbatch", str(file_path.resolve())])
 
         if not retain_file:
