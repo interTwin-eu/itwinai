@@ -41,7 +41,7 @@ dependencies = [
     "matplotlib>=3.9.2",
     "pip>=24.3.1",
     "prov4ml@git+https://github.com/matbun/ProvML@new-main",
-    "ray",
+    "ray[default,train,tune]",
     "prov",
 ]
 
@@ -76,7 +76,17 @@ docs = [
     "myst-parser==2.0.0",
     "IPython",
     "tensorflow==2.16.*",
+    "sphinx-tabs",
 ]
+hpo = [
+    "bayesian-optimization==2.0.*",
+    "hyperopt==0.2.*",
+    "ConfigSpace==1.2.*",
+    "hpbandster==0.7.*",
+    "scipy==1.14.*",
+    "GPy==1.13.*"
+]
+
 macos = ["prov4ml[apple]@git+https://github.com/matbun/ProvML@new-main"]
 nvidia = ["prov4ml[nvidia]@git+https://github.com/matbun/ProvML@new-main"]
 # amd = ["prov4ml[amd]@git+https://github.com/matbun/ProvML@new-main"]

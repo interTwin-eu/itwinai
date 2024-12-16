@@ -40,6 +40,7 @@ jobs:
 
           VALIDATE_PYTHON: true
           VALIDATE_PYTHON_BLACK: false
+          VALIDATE_ISORT: false
           VALIDATE_PYTHON_MYPY: false
           VALIDATE_PYTHON_PYLINT: false
           VALIDATE_HTML: false
@@ -58,6 +59,6 @@ jobs:
           VALIDATE_ALL_CODEBASE: false
           # Fail on errors
           DISABLE_ERRORS: false
-          # Skip linting of docs
-          FILTER_REGEX_EXCLUDE: .*docs/index.md|.*docs/docs/.*|.*ISSUE_TEMPLATE/.*|use-cases/.*|experimental/.*
-          BASH_SEVERITY: error
+          # Skip linting of some locations
+          FILTER_REGEX_EXCLUDE: .*ISSUE_TEMPLATE/.*|use-cases/.*
+          BASH_SEVERITY: warning

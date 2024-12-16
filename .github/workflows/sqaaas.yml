@@ -23,7 +23,7 @@ jobs:
           commands: |
             make torch-env-cpu
             make tensorflow-env-cpu
-            .venv-pytorch/bin/pytest -v ./tests/ -m "not slurm and not memory_heavy"
+            .venv-pytorch/bin/pytest -v ./tests/ -m "not hpc and not memory_heavy"
           container: eoscsynergy/sqaaas-micromamba:1.5.3-1-rc.8
       - name: Print out payload
         run: cat workflow_validation_step.json
