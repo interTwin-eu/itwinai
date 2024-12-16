@@ -1,4 +1,14 @@
-slurm_template = r"""#!/bin/bash
+# --------------------------------------------------------------------------------------
+# Part of the interTwin Project: https://www.intertwin.eu/
+#
+# Created by: Jarl Sondre Sæther
+#
+# Credit:
+# - Jarl Sondre Sæther <jarl.sondre.saether@cern.ch> - CERN
+# - Matteo Bunino <matteo.bunino@cern.ch> - CERN
+# --------------------------------------------------------------------------------------
+
+SLURM_TEMPLATE = r"""#!/bin/bash
 
 # Job configuration
 #SBATCH --job-name={job_name}

@@ -14,11 +14,8 @@ from typing import List
 
 from pydantic import BaseModel, Field
 
-from itwinai.slurm.slurm_constants import JUWELS_HPC_MODULES, slurm_template
-from itwinai.slurm.utils import (
-    get_slurm_job_parser,
-    remove_indentation_from_multiline_string,
-)
+from itwinai.slurm.slurm_constants import JUWELS_HPC_MODULES, SLURM_TEMPLATE
+from itwinai.slurm.utils import remove_indentation_from_multiline_string
 
 
 class SlurmScriptConfiguration(BaseModel):
@@ -56,7 +53,7 @@ class SlurmScriptConfiguration(BaseModel):
         Returns:
             str: A string containing the SLURM script.
         """
-        return slurm_template.format_map(self.model_dump())
+        return SLURM_TEMPLATE.format_map(self.model_dump())
 
 
 class SlurmScriptBuilder:
@@ -204,14 +201,10 @@ class SlurmScriptBuilder:
             self.slurm_script_configuration.job_name = self.generate_identifier()
 
         if self.slurm_script_configuration.std_out is None:
-            std_out_path = Path("slurm_jobs") / (
-                self.generate_identifier() + ".out"
-            )
+            std_out_path = Path("slurm_jobs") / (self.generate_identifier() + ".out")
             self.slurm_script_configuration.std_out = std_out_path
         if self.slurm_script_configuration.err_out is None:
-            err_out_path = Path("slurm_jobs") / (
-                self.generate_identifier() + ".err"
-            )
+            err_out_path = Path("slurm_jobs") / (self.generate_identifier() + ".err")
             self.slurm_script_configuration.err_out = err_out_path
 
         # Making sure the std out and err out folders exist
@@ -293,39 +286,3 @@ class SlurmScriptBuilder:
                 submit_slurm_job=submit_slurm_job,
                 strategies=strategies,
             )
-
-
-def main():
-    parser = get_slurm_job_parser()
-    args = parser.parse_args()
-
-    slurm_script_configuration = SlurmScriptConfiguration(
-        job_name=args.job_name,
-        account=args.account,
-        time=args.time,
-        partition=args.partition,
-        std_out=args.std_out,
-        err_out=args.err_out,
-        num_nodes=args.num_nodes,
-        num_tasks_per_node=args.num_tasks_per_node,
-        gpus_per_node=args.gpus_per_node,
-        cpus_per_gpu=args.cpus_per_gpu,
-    )
-
-    submit_slurm_job = not args.no_submit_slurm_job
-    retain_file = not args.no_retain_file
-
-    slurm_script_builder = SlurmScriptBuilder(
-        slurm_script_configuration=slurm_script_configuration,
-        distributed_strategy=args.dist_strat,
-        debug=args.debug,
-        training_command=args.training_cmd,
-    )
-
-    slurm_script_builder.process_slurm_script(
-        retain_file=retain_file, submit_slurm_job=submit_slurm_job
-    )
-
-
-if __name__ == "__main__":
-    main()
