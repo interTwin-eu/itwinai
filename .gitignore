@@ -18,6 +18,7 @@ pl-training.yml
 0
 *.tar
 *.sif
+*slurm_scripts/
 
 # Use cases files
 MNIST

@@ -1181,6 +1181,7 @@ class EpochTimeTracker:
     ) -> None:
         if isinstance(save_path, str):
             save_path = Path(save_path)
+
         self.save_path: Path = save_path
         self.strategy_name = strategy_name
         self.num_nodes = num_nodes
