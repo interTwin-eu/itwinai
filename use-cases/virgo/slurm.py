@@ -55,6 +55,7 @@ class VirgoSlurmScriptBuilder(SlurmScriptBuilder):
 def main():
     parser = get_slurm_job_parser()
     args = parser.parse_args()
+
     slurm_script_configuration = SlurmScriptConfiguration(
         job_name=args.job_name,
         account=args.account,
