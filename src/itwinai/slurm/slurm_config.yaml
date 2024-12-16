@@ -1,5 +1,5 @@
-job_name: my_ddp_job_hehe
-account: jarlinator
+job_name: my_slurm_job
+account: intertwin
 dist_strat: horovod
 time: 00:11:11
 

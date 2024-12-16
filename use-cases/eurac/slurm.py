@@ -21,6 +21,7 @@ class EuracSlurmScriptBuilder(SlurmScriptBuilder):
         self,
         slurm_script_configuration: SlurmScriptConfiguration,
         distributed_strategy: str,
+        training_command: str | None = None,
         python_venv: str = ".venv",
         debug: bool = False,
         config_file: str = "config.yaml",
@@ -29,6 +30,7 @@ class EuracSlurmScriptBuilder(SlurmScriptBuilder):
         super().__init__(
             slurm_script_configuration=slurm_script_configuration,
             distributed_strategy=distributed_strategy,
+            training_command=training_command,
             python_venv=python_venv,
             debug=debug,
         )
@@ -36,6 +38,9 @@ class EuracSlurmScriptBuilder(SlurmScriptBuilder):
         self.pipe_key = pipe_key
 
     def get_training_command(self):
+        if self.training_command is not None: 
+            return self.training_command
+
         training_command = rf"""
         $(which itwinai) exec-pipeline \
             --config {self.config_file} \
@@ -65,6 +70,7 @@ def main():
     script_builder = EuracSlurmScriptBuilder(
         slurm_script_configuration=slurm_script_configuration,
         distributed_strategy=args.dist_strat,
+        training_command=args.training_cmd,
         debug=args.debug,
         pipe_key=args.pipe_key,
         config_file=args.config_file,

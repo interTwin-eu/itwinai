@@ -2,7 +2,7 @@
 # will change, as well as the number of nodes. 
 
 mode: single # "single", "runall" or "scaling-test" - defaults to "single"
-dist_strat: deepspeed # "ddp", "deepspeed" or "horovod"
+dist_strat: ddp # "ddp", "deepspeed" or "horovod"
 
 account: intertwin
 time: 00:11:11
@@ -15,6 +15,7 @@ partition: develbooster
 std_out: slurm_jobs/${dist_strat}.out
 err_out: slurm_jobs/${dist_strat}.err
 job_name: virgo-${dist_strat}-job
+##################################
 
 num_nodes: 1
 num_tasks_per_node: 1
@@ -22,4 +23,14 @@ gpus_per_node: 4
 cpus_per_gpu: 4
 
 python_venv: .venv
-pipe_key: training_pipeline
+
+pipe_key: rnn_training_pipeline
+config_file: config.yaml
+
+# If you want to manually override the training command, comment in the following:
+# training_cmd: | 
+#   $(which itwinai) exec-pipeline \
+#   --config ${config_file} \
+#   --pipe-key ${pipe_key} \
+#   -o strategy=${dist_strat} \
+#   -o checkpoint_path=checkpoints_ddp/epoch_{}.pth

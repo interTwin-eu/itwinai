@@ -1,7 +1,7 @@
 # If you use this with in the runall or scaling mode, keep in mind that the strategies
 # will change, as well as the number of nodes. 
 
-mode: runall # "single", "runall" or "scaling-test" - defaults to "single"
+mode: single # "single", "runall" or "scaling-test" - defaults to "single"
 dist_strat: horovod # "ddp", "deepspeed" or "horovod"
 
 account: intertwin
@@ -23,3 +23,11 @@ cpus_per_gpu: 4
 
 python_venv: .venv
 pipe_key: rnn_training_pipeline
+config_file: config.yaml
+
+# If you want to manually override the training command, comment in the following:
+# training_cmd: | 
+#   $(which itwinai) exec-pipeline \
+#   --config ${config_file} \
+#   --pipe-key ${pipe_key} \
+#   -o strategy=${dist_strat} \
