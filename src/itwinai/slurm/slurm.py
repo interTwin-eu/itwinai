@@ -8,8 +8,8 @@
 # --------------------------------------------------------------------------------------
 
 from itwinai.slurm.slurm_script_builder import (
-    SlurmScriptConfiguration,
     SlurmScriptBuilder,
+    SlurmScriptConfiguration,
 )
 from itwinai.slurm.utils import get_slurm_job_parser
 
