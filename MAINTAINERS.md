@@ -5,7 +5,7 @@
 - Matteo Bunino - CERN - matteo.bunino\<at\>cern.ch
 - Jarl Sondre Saether - CERN - jarl.sondre.saether\<at\>cern.ch
 - Anna Elisa Lappe - CERN - anna.elisa.lappe\<at\>cern.ch
-- Rakesh Sarma - FZJ - r.sarma@fz-juelich.de
+- Rakesh Sarma - FZJ - r.sarma\<at\>fz-juelich.de
 
 ## Contributors
 
@@ -14,4 +14,4 @@
 - Henry Mutegeki - CERN - henry.mutegeki\<at\>cern.ch
 - Roman Machacek - CERN - roman.machacek\<at\>cern.ch
 - Alexander Zoechbauer - CERN - alexander.zoechbauer\<at\>cern.ch
-- Mario Ruettgers - FZJ - m.ruettgers@fz-juelich.de
+- Mario Ruettgers - FZJ - m.ruettgers\<at\>fz-juelich.de
