@@ -15,3 +15,5 @@
 - Roman Machacek - CERN - roman.machacek\<at\>cern.ch
 - Alexander Zoechbauer - CERN - alexander.zoechbauer\<at\>cern.ch
 - Mario Ruettgers - FZJ - m.ruettgers\<at\>fz-juelich.de
+
+[All contributors](https://github.com/interTwin-eu/T6.5-AI-and-ML/graphs/contributors)
