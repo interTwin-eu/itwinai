@@ -12,7 +12,6 @@
 """Scaling test of torch Distributed Data Parallel on Imagenet using Resnet."""
 
 import os
-import sys
 from timeit import default_timer as timer
 
 import torch
@@ -31,7 +30,7 @@ def main():
     parser = get_parser()
     args = parser.parse_args()
 
-    subset_size = 5000
+    subset_size = 5000 # limit number of examples from imagenet
     use_cuda = not args.no_cuda and torch.cuda.is_available()
     is_distributed = use_cuda and torch.cuda.device_count() > 0
     torch_seed = set_seed(args.rnd_seed, deterministic_cudnn=False)
