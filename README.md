@@ -6,7 +6,7 @@
 
 ![itwinai Logo](./docs/images/icon-itwinai-orange-black-subtitle.png)
 
-`itwinai` is a powerful Python toolkit designed to help scientists and researchers streamline AI and machine learning
+`itwinai` is a Python toolkit designed to help scientists and researchers streamline AI and machine learning
 workflows, specifically for digital twin applications. It provides easy-to-use tools for distributed training,
 hyper-parameter optimization on HPC systems, and integrated ML logging, reducing engineering overhead and accelerating
 research. Developed primarily by CERN, in collaboration with Forschungszentrum Jülich (FZJ), `itwinai` supports modular
