@@ -147,7 +147,8 @@ class RNNDistributedTrainer(TorchTrainer):
         )
 
     def set_epoch(self, epoch: int):
-        if self.profiler is not None:
+        if self.profiler is not None and epoch > 0:
+            # We don't want to start stepping until after the first epoch
             self.profiler.step()
 
         if self.strategy.is_distributed:

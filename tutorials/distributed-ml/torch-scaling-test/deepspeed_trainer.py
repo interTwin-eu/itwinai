@@ -12,17 +12,18 @@
 import os
 from timeit import default_timer as timer
 
-
 import deepspeed
 import torch
 import torch.distributed as dist
 import torchvision
-from torch.utils.data import DataLoader
+
+# from torch.utils.data import DataLoader
 from torch.utils.data.distributed import DistributedSampler
-from utils import imagenet_dataset, get_parser, train_epoch
+from utils import get_parser, imagenet_dataset, train_epoch
 
 from itwinai.loggers import EpochTimeTracker
-from itwinai.torch.reproducibility import set_seed
+
+# from itwinai.torch.reproducibility import set_seed
 
 
 def main():
@@ -32,20 +33,19 @@ def main():
     args = parser.parse_args()
 
     # Check resources availability
-    subset_size = 5000 # limit number of examples from imagenet
+    subset_size = 5000  # limit number of examples from imagenet
     use_cuda = not args.no_cuda and torch.cuda.is_available()
     is_distributed = use_cuda and torch.cuda.device_count() > 0
-    torch_prng = set_seed(args.rnd_seed, deterministic_cudnn=False)
+    # torch_prng = set_seed(args.rnd_seed, deterministic_cudnn=False)
 
-    st = timer()
 
     train_dataset = imagenet_dataset(args.data_dir, subset_size=subset_size)
     if is_distributed:
         deepspeed.init_distributed(dist_backend=args.backend)
 
-        local_world_size = torch.cuda.device_count() 
+        local_world_size = torch.cuda.device_count()
         global_rank = dist.get_rank()
-        local_rank = dist.get_rank() % local_world_size 
+        local_rank = dist.get_rank() % local_world_size
 
         shuffle = args.shuff and args.rnd_seed is None
         # pin_memory=True
@@ -114,16 +114,19 @@ def main():
         )
 
     start_epoch = 1
-    for epoch in range(start_epoch, args.epochs + 1):
+    for epoch_idx in range(start_epoch, args.epochs + 1):
         epoch_start_time = timer()
         if is_distributed:
             # Inform the sampler that a new epoch started: shuffle
             # may be needed
-            train_sampler.set_epoch(epoch)
+            train_sampler.set_epoch(epoch_idx)
 
         # Training
         train_epoch(
-            model=distrib_model, device=device, train_loader=deepspeed_train_loader, optimizer=optimizer
+            model=distrib_model,
+            device=device,
+            train_loader=deepspeed_train_loader,
+            optimizer=optimizer,
         )
 
         if global_rank == 0:
@@ -133,7 +136,6 @@ def main():
 
     if is_distributed:
         dist.barrier()
-
 
     # Clean-up
     if is_distributed:

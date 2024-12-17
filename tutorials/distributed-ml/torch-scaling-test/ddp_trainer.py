@@ -20,7 +20,7 @@ import torch.nn as nn
 import torchvision
 from torch.utils.data import DataLoader
 from torch.utils.data.distributed import DistributedSampler
-from utils import imagenet_dataset, get_parser, train_epoch
+from utils import get_parser, imagenet_dataset, train_epoch
 
 from itwinai.loggers import EpochTimeTracker
 from itwinai.torch.reproducibility import seed_worker, set_seed

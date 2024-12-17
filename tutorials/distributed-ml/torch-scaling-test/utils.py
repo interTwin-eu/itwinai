@@ -7,8 +7,6 @@
 # - Matteo Bunino <matteo.bunino@cern.ch> - CERN
 # - Jarl Sondre Sæther <jarl.sondre.saether@cern.ch> - CERN
 # --------------------------------------------------------------------------------------
-import argparse
-
 import torch.nn as nn
 import torch.nn.functional as F
 from torch import device
@@ -35,11 +33,11 @@ def imagenet_dataset(data_root: str, subset_size: int | None = None):
     )
     imagenet = datasets.ImageFolder(root=data_root, transform=transform)
 
-    if subset_size is None: 
+    if subset_size is None:
         # We do this because we always want to return an instance of a subset, to make
         # everything as consistent as possible
         subset_size = len(imagenet)
-    if subset_size > len(imagenet): 
+    if subset_size > len(imagenet):
         raise ValueError("Limit higher than the total length of the dataset")
 
     return Subset(imagenet, range(subset_size))
