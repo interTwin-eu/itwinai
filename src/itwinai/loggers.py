@@ -517,7 +517,7 @@ class MLFlowLogger(Logger):
         self.tracking_uri = (
             self.tracking_uri
             or os.environ.get("MLFLOW_TRACKING_URI")
-            or self.savedir.resolve().as_uri()
+            or Path(self.savedir).resolve().as_uri()
         )
 
     def create_logger_context(self, rank: Optional[int] = None) -> mlflow.ActiveRun:
@@ -1181,6 +1181,7 @@ class EpochTimeTracker:
     ) -> None:
         if isinstance(save_path, str):
             save_path = Path(save_path)
+
         self.save_path: Path = save_path
         self.strategy_name = strategy_name
         self.num_nodes = num_nodes

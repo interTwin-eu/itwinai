@@ -11,7 +11,6 @@
 import argparse
 from typing import Dict
 
-import matplotlib.pyplot as plt
 import ray
 import torch
 from ray import train, tune
@@ -38,38 +37,31 @@ def run_trial(config: Dict, data: Dict):
     Example:
         >>> my_pipeline = Pipeline(
         >>>    [
-        >>>        TimeSeriesDatasetSplitter(
-        >>>            train_proportion=0.9,
-        >>>            root_folder="/p/scratch/intertwin/datasets/virgo"
+        >>>        FashionMNISTGetter(),
+        >>>        FashionMNISTSplitter(train_proportion=0.9, validation_proportion=0.1),
+        >>>        MyTrainer(
+        >>>             config=config,
+        >>>             epochs=10,
+        >>>             strategy="ddp",
         >>>        ),
-        >>>        NoiseGeneratorTrainer(
-        >>>            config=config,
-        >>>            num_epochs=4,
-        >>>            strategy=None,
-        >>>            checkpoint_path='checkpoints/checkpoint_epoch_{}.pth',
-        >>>            validation_every=20
-        >>>        )
         >>>    ]
         >>> )
 
         >>> my_pipeline.execute()
         ```
-
-    Note: Passing a seed to TimeSeriesDatasetSplitter and NoiseGeneratorTrainer will make runs
-    uniform across trials, reducing the variablility to only the hyperparameter settings
     """
+
     pipeline_name = data["pipeline_name"]
     parser = ConfigParser(
         config="config.yaml",
         override_keys={
             # Set hyperparameters controlled by ray
             "batch_size": config["batch_size"],
-            "learning_rate": config["lr"],
+            "optim_lr": config["optim_lr"],
         },
     )
     my_pipeline = parser.parse_pipeline(pipeline_nested_key=pipeline_name, verbose=False)
 
-    # Skip the first step of the pipeline (data generation)
     my_pipeline.execute()
 
 
@@ -87,7 +79,7 @@ def run_hpo(args):
         # Define the search space for hyperparameters
         search_space = {
             "batch_size": tune.choice([3, 4, 5, 6]),
-            "lr": tune.uniform(1e-5, 1e-3),
+            "optim_lr": tune.uniform(1e-5, 1e-3),
         }
 
         tune_config = tune.TuneConfig(
@@ -97,7 +89,8 @@ def run_hpo(args):
         )
 
         run_config = train.RunConfig(
-            name="Virgo-Ray-Experiment", stop={"training_iteration": args.max_iterations}
+            name="Virgo-Ray-Basic-Experiment",
+            stop={"training_iteration": args.max_iterations},
         )
 
         # Determine GPU and CPU utilization per trial
@@ -131,51 +124,10 @@ def run_hpo(args):
         restored_tuner = tune.Tuner.restore(args.experiment_path, trainable=run_trial)
         result_grid = restored_tuner.get_results()
 
-    # Display experiment statistics
-    print(f"Number of errored trials: {result_grid.num_errors}")
-    print(f"Number of terminated trials: {result_grid.num_terminated}")
-    print(f"Ray Tune experiment path: {result_grid.experiment_path}")
-
-    # Get the best result based on the last 10 iterations' average
-    best_result = result_grid.get_best_result(
-        scope="last-10-avg", metric=args.metric, mode="min"
-    )
-    print(f"Best result: {best_result}")
-
     # Print a dataframe with all trial results
     result_df = result_grid.get_dataframe()
     print(f"All results dataframe: {result_df}")
     print(f"All result columns: {result_df.columns}")
-
-    # Plot the results for all trials
-    plot_results(result_grid, metric=args.metric, filename="ray-loss-plot.png")
-    plot_results(result_grid, metric="train_loss", filename="ray-train_loss-plot.png")
-
-
-def plot_results(result_grid, metric="loss", filename="plot.png"):
-    """Plot the results for all trials and save the plot to a file.
-
-    Args:
-    - result_grid: Results from Ray Tune trials.
-    - metric: The metric to plot (e.g., 'loss').
-    - filename: Name of the file to save the plot.
-    """
-    ax = None
-    for result in result_grid:
-        label = f"lr={result.config['lr']:.6f}, batch size={result.config['batch_size']}"
-        if ax is None:
-            ax = result.metrics_dataframe.plot("training_iteration", metric, label=label)
-        else:
-            result.metrics_dataframe.plot("training_iteration", metric, ax=ax, label=label)
-
-    ax.set_title(f"{metric.capitalize()} vs. Training Iteration for All Trials")
-    ax.set_ylabel(metric.capitalize())
-
-    # Save the plot to a file
-    plt.savefig(filename)
-
-    # Show the plot
-    plt.show()
 
 
 # Main entry point for script execution

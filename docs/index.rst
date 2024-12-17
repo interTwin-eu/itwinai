@@ -65,6 +65,7 @@ contains thoroughly tested features aligned with the toolkit's most recent relea
    how-it-works/training/training
    how-it-works/loggers/explain_loggers
    how-it-works/workflows/explain_workflows
+   how-it-works/hpo/explain-hpo
 
 .. toctree::
    :maxdepth: 2

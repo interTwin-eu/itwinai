@@ -3,11 +3,11 @@
 # Job configuration
 #SBATCH --job-name=ray_tune_hpo    
 #SBATCH --account=intertwin       
-#SBATCH --time=00:30:00
+#SBATCH --time=00:10:00
 #SBATCH --partition=develbooster
 
 # Resources allocation
-#SBATCH --cpus-per-task=24
+#SBATCH --cpus-per-task=32
 #SBATCH --nodes=2
 #SBATCH --ntasks-per-node=1
 #SBATCH --gpus-per-node=4
@@ -81,14 +81,11 @@ echo All Ray workers started.
 
 ##############################################################################################
 
-
 # Run the Python script using Ray
 echo 'Starting HPO.'
 
-#python pipeline_runner_for_testing.py
-$PYTHON_VENV/bin/itwinai exec-pipeline --config config.yaml --pipe-key ray_training_pipeline
-
-#python hpo.py --num_samples 4 --max_iterations 2 --ngpus $num_gpus --ncpus $num_cpus --pipeline_name training_pipeline
+# Run pipeline
+$PYTHON_VENV/bin/itwinai exec-pipeline --config config.yaml --pipe-key hpo_training_pipeline
 
 # Shutdown Ray after completion
 ray stop
