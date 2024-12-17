@@ -24,7 +24,7 @@ As the primary contributor, CERN will retain administrative rights to the reposi
 except in cases where CERN is unable to maintain it.
 
 The library also benefits from contributions by members of the interTwin collaboration. 
-For a complete list of contributors, visit the [GitHub contributors page](https://github.com/interTwin-eu/itwinai/graphs/contributors).
+For a complete list of contributors, visit the `GitHub contributors page <https://github.com/interTwin-eu/itwinai/graphs/contributors>`_.
 
 
 How to Read the Docs
