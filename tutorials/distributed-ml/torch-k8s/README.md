@@ -24,7 +24,7 @@ Before continuing further, take some time to familiarize with how a
 [PyTorchJob](https://www.kubeflow.org/docs/components/training/reference/distributed-training/#distributed-training-for-pytorch)
 works. Instuitively:
 
-1. The PyTorchJob sets up the correct envirnment variables that will be picked up by `torchrun`
+1. The PyTorchJob sets up the correct envirnment variables that will be picked up by `torchrun`.
 1. Your Python script should be executed prepending `torchrun` to it in the pod manifest.
 The `torchrun` CLI will make sure that the correct number of worker processes (i.e., replicas of your Python process)
 per pod is spawned. Example:
@@ -38,6 +38,10 @@ per pod is spawned. Example:
         - "torchrun"
         - "/app/main.py"
     ```
+
+The number of workers per pod is set by the
+[`nProcPerNode`](https://github.com/kubeflow/training-operator/blob/69094e16309382d929606f8c5ce9a9d8c00308b1/pkg/apis/kubeflow.org/v1/pytorch_types.go#L95)
+field in the PyTorchJob manifest, which is mapped to `torchrun`'s `--nproc-per-node`.
 
 Now, create a PyTorchJob:
 
