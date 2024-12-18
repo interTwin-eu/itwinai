@@ -30,7 +30,7 @@ def main():
     parser = get_parser()
     args = parser.parse_args()
 
-    subset_size = 5000 # limit number of examples from imagenet
+    subset_size = 5000  # limit number of examples from imagenet
     use_cuda = not args.no_cuda and torch.cuda.is_available()
     is_distributed = use_cuda and torch.cuda.device_count() > 0
     torch_seed = set_seed(args.rnd_seed, deterministic_cudnn=False)
@@ -72,7 +72,7 @@ def main():
             worker_init_fn=seed_worker,
         )
 
-    device = torch.device(f"cuda:{local_rank}" if use_cuda else "cpu", local_rank)
+    device = torch.device(f"cuda:{local_rank}" if use_cuda else "cpu")
     model = torchvision.models.resnet152().to(device)
 
     # Distributing the model to the workers

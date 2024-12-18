@@ -46,11 +46,15 @@ def parse_params() -> argparse.Namespace:
 
     >>> train.py --strategy ddp --config base-config.yaml --config foo.yaml
     """
-    parser = ItwinaiArgParser(description='PyTorch Imagenet Example')
+    parser = ItwinaiArgParser(description="PyTorch Imagenet Example")
 
     # Distributed ML strategy
     parser.add_argument(
-        "--strategy", "-s", type=str, choices=["ddp", "horovod", "deepspeed"], default="ddp"
+        "--strategy",
+        "-s",
+        type=str,
+        choices=["ddp", "horovod", "deepspeed"],
+        default="ddp",
     )
 
     # Data and logging
@@ -59,9 +63,13 @@ def parse_params() -> argparse.Namespace:
         default="./",
         help=("location of the training dataset in the local " "filesystem"),
     )
-    parser.add_argument("--log-int", type=int, default=10, help="log interval per training")
     parser.add_argument(
-        "--verbose", action=argparse.BooleanOptionalAction, help="Print parsed arguments"
+        "--log-int", type=int, default=10, help="log interval per training"
+    )
+    parser.add_argument(
+        "--verbose",
+        action=argparse.BooleanOptionalAction,
+        help="Print parsed arguments",
     )
     parser.add_argument(
         "--nworker",
@@ -70,7 +78,10 @@ def parse_params() -> argparse.Namespace:
         help=("number of workers in DataLoader (default: 0 -" " only main)"),
     )
     parser.add_argument(
-        "--prefetch", type=int, default=2, help="prefetch data in DataLoader (default: 2)"
+        "--prefetch",
+        type=int,
+        default=2,
+        help="prefetch data in DataLoader (default: 2)",
     )
 
     # Model
@@ -83,12 +94,20 @@ def parse_params() -> argparse.Namespace:
     parser.add_argument(
         "--epochs", type=int, default=10, help="number of epochs to train (default: 10)"
     )
-    parser.add_argument("--lr", type=float, default=0.01, help="learning rate (default: 0.01)")
     parser.add_argument(
-        "--momentum", type=float, default=0.5, help="momentum in SGD optimizer (default: 0.5)"
+        "--lr", type=float, default=0.01, help="learning rate (default: 0.01)"
     )
     parser.add_argument(
-        "--shuff", action="store_true", default=False, help="shuffle dataset (default: False)"
+        "--momentum",
+        type=float,
+        default=0.5,
+        help="momentum in SGD optimizer (default: 0.5)",
+    )
+    parser.add_argument(
+        "--shuff",
+        action="store_true",
+        default=False,
+        help="shuffle dataset (default: False)",
     )
 
     # Reproducibility
@@ -148,7 +167,13 @@ def parse_params() -> argparse.Namespace:
 
 
 def train(
-    model, device, train_loader, optimizer, epoch, strategy: TorchDistributedStrategy, args
+    model,
+    device,
+    train_loader,
+    optimizer,
+    epoch,
+    strategy: TorchDistributedStrategy,
+    args,
 ):
     """
     Training function, representing an epoch.
@@ -167,7 +192,11 @@ def train(
         loss = F.nll_loss(output, target)
         loss.backward()
         optimizer.step()
-        if strategy.is_main_worker and args.log_int > 0 and batch_idx % args.log_int == 0:
+        if (
+            strategy.is_main_worker
+            and args.log_int > 0
+            and batch_idx % args.log_int == 0
+        ):
             print(
                 f"Train epoch: {epoch} "
                 f"[{batch_idx * len(data)}/{len(train_loader.dataset)/gwsize} "
@@ -207,7 +236,9 @@ def main():
             config_params=dict(train_micro_batch_size_per_gpu=args.batch_size)
         )
     else:
-        raise NotImplementedError(f"Strategy {args.strategy} is not recognized/implemented.")
+        raise NotImplementedError(
+            f"Strategy {args.strategy} is not recognized/implemented."
+        )
     strategy.init()
 
     # Check resources availability
@@ -309,10 +340,12 @@ def main():
         print("TIMER: broadcast:", timer() - st, "s")
         print("\nDEBUG: start training")
         print("--------------------------------------------------------")
-        nnod = os.environ.get("SLURM_NNODES", "unk")
+        nnod = os.environ.get("SLURM_NNODES", "1")
         s_name = f"{args.strategy}-it"
         epoch_time_tracker = EpochTimeTracker(
-            strategy_name=s_name, save_path=f"epochtime_{s_name}_{nnod}N.csv"
+            strategy_name=s_name,
+            save_path=f"epochtime_{s_name}_{nnod}N.csv",
+            num_nodes=int(nnod),
         )
 
     et = timer()

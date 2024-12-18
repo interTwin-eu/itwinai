@@ -89,7 +89,7 @@ def main():
             worker_init_fn=seed_worker,
         )
 
-    device = torch.device(f"cuda:{local_rank}" if use_cuda else "cpu", local_rank)
+    device = torch.device(f"cuda:{local_rank}" if use_cuda else "cpu")
 
     # Create CNN model
     model = torchvision.models.resnet152()

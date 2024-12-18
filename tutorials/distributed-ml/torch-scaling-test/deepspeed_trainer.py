@@ -38,7 +38,6 @@ def main():
     is_distributed = use_cuda and torch.cuda.device_count() > 0
     # torch_prng = set_seed(args.rnd_seed, deterministic_cudnn=False)
 
-
     train_dataset = imagenet_dataset(args.data_dir, subset_size=subset_size)
     if is_distributed:
         deepspeed.init_distributed(dist_backend=args.backend)
@@ -78,10 +77,10 @@ def main():
         #     worker_init_fn=seed_worker,
         # )
 
-    device = torch.device(f"cuda:{local_rank}" if use_cuda else "cpu", local_rank)
+    device = torch.device(f"cuda:{local_rank}" if use_cuda else "cpu")
 
     # Create CNN model
-    model = torchvision.models.resnet152().to(device)
+    model = torchvision.models.resnet152()
 
     # Initialize DeepSpeed and get:
     # 1) Distributed model
