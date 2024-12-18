@@ -12,9 +12,9 @@ spec:
         spec:
           containers:
             - name: pytorch
-              image: registry.cern.ch/itwinai/dist-ml/itwinai-slim:0.0.5
+              image: registry.cern.ch/itwinai/dist-ml/itwinai-slim:0.0.7
               command:
-                - "python"
+                - "torchrun"
                 - "/app/main.py"
     Worker:
       replicas: 1
@@ -23,7 +23,7 @@ spec:
         spec:
           containers:
             - name: pytorch
-              image: registry.cern.ch/itwinai/dist-ml/itwinai-slim:0.0.5
+              image: registry.cern.ch/itwinai/dist-ml/itwinai-slim:0.0.7
               command:
-                - "python"
+                - "torchrun"
                 - "/app/main.py"
