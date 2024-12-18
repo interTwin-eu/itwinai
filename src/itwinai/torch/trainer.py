@@ -422,7 +422,8 @@ class TorchTrainer(Trainer, LogMixin):
         Args:
             epoch (int): epoch number, from 0 to ``epochs-1``.
         """
-        if self.profiler is not None:
+        if self.profiler is not None and epoch > 0:
+            # We don't want to start stepping until after the first epoch
             self.profiler.step()
         self._set_epoch_dataloaders(epoch)
 
