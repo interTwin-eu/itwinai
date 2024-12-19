@@ -17,7 +17,6 @@ import os
 import sys
 import tempfile
 from pathlib import Path
-from tqdm import tqdm
 from typing import Any, Callable, Dict, Iterable, List, Literal, Optional, Tuple, Union
 
 import lightning as L
@@ -37,6 +36,7 @@ from torch.nn.parallel import DistributedDataParallel as DDP
 from torch.optim.optimizer import Optimizer
 from torch.utils.data import DataLoader, Dataset, Sampler
 from torch.utils.data.distributed import DistributedSampler
+from tqdm import tqdm
 
 from itwinai.torch.tuning import get_raytune_scheduler, get_raytune_search_alg
 
