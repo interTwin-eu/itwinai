@@ -1,4 +1,4 @@
-atmorep[complete] @ git+https://github.com/clessig/atmorep
+atmorep @ git+https://github.com/clessig/atmorep@develop
 click
 requests
 platformdirs
