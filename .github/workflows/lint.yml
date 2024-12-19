@@ -54,6 +54,7 @@ jobs:
           VALIDATE_PYTHON_PYINK: false
           VALIDATE_JSON_PRETTIER: false
           VALIDATE_CSS_PRETTIER: false
+          VALIDATE_KUBERNETES_KUBECONFORM: false
 
           # Only check new or edited files
           VALIDATE_ALL_CODEBASE: false
