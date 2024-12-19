@@ -11,6 +11,7 @@ import abc
 import builtins as __builtin__
 import functools
 import os
+import sys
 from typing import Any, Callable
 
 from pydantic import BaseModel
@@ -119,5 +120,37 @@ def suppress_workers_print(func: Callable) -> Callable:
         # Reset print to builtin
         __builtin__.print = previous_print_backup
         return result
+
+    return wrapper
+
+
+def suppress_workers_output(func):
+    """Decorator to suppress ``stadout`` and ``stderr`` in workers having global rank
+    different from 0.
+    """
+
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        # Save the original stdout and stderr
+        original_stdout = sys.stdout
+        original_stderr = sys.stderr
+
+        # Get global rank
+        dist_grank = detect_distributed_environment().global_rank
+        try:
+            if dist_grank == 0:
+                # If on main worker
+                return func(*args, **kwargs)
+
+            # If not on main worker, redirect stdout and stderr to devnull
+            with open(os.devnull, "w") as devnull:
+                sys.stdout = devnull
+                sys.stderr = devnull
+                # Execute the wrapped function
+                return func(*args, **kwargs)
+        finally:
+            # Restore original stdout and stderr
+            sys.stdout = original_stdout
+            sys.stderr = original_stderr
 
     return wrapper

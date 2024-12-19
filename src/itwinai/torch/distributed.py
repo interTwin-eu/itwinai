@@ -154,15 +154,18 @@ class TorchDistributedStrategy(DistributedStrategy):
         """Device used by local worker.
 
         Returns:
-            str: torch device in the form 'cuda:N'.
+            str: torch device in the form 'device:N' (e.g., 'cuda:0', 'cpu').
         """
-        return f"cuda:{self.local_rank()}"
+        if torch.cuda.is_available():
+            return f"cuda:{self.local_rank()}"
+        return "cpu"
 
     def set_device(self):
         """Set local device."""
-        torch.cuda.device(self.local_rank())
-        # Needed by torch.distributed.gather_object
-        torch.cuda.set_device(self.local_rank())
+        if torch.cuda.is_available():
+            torch.cuda.device(self.local_rank())
+            # Needed by torch.distributed.gather_object
+            torch.cuda.set_device(self.local_rank())
 
     @check_initialized
     def create_dataloader(
@@ -448,12 +451,18 @@ class TorchDDPStrategy(TorchDistributedStrategy):
     ) -> Tuple[nn.Module, Optimizer, Optional[LRScheduler]]:
         """Setup model, optimizer and scheduler for distributed."""
         if torch.cuda.is_available():
-            # device = self.dist_lrank()
+            # If GPUs are available
             model = model.to(self.device())
             dist_model = torch.nn.parallel.DistributedDataParallel(
                 model,
                 device_ids=[self.device()],
                 output_device=self.device(),
+                find_unused_parameters=find_unused_parameters,
+            )
+        elif distributed_resources_available():
+            # If GPUs are not available, but running distributed ML on CPUs
+            dist_model = torch.nn.parallel.DistributedDataParallel(
+                model,
                 find_unused_parameters=find_unused_parameters,
             )
         else:
@@ -477,8 +486,18 @@ class TorchDDPStrategy(TorchDistributedStrategy):
 
         Returns:
             int: local world size.
+
+        Raises:
+            RuntimeError: when the local world size cannot be retrieved.
         """
-        return torch.cuda.device_count()
+        if torch.cuda.is_available():
+            return torch.cuda.device_count()
+        if os.environ.get("LOCAL_WORLD_SIZE"):
+            return int(os.environ["LOCAL_WORLD_SIZE"])
+        raise RuntimeError(
+            "Unable to retrieve the local world size. It seems that you are neither running "
+            "with GPUs, nor I could find LOCAL_WORLD_SIZE variable in the environment."
+        )
 
     @check_initialized
     def global_rank(self) -> int:
@@ -497,12 +516,12 @@ class TorchDDPStrategy(TorchDistributedStrategy):
         Returns:
             int: local rank.
         """
-        return dist.get_rank() % torch.cuda.device_count()
+        return dist.get_rank() % self.local_world_size()
 
     @check_initialized
     def clean_up(self) -> None:
         """Destroys the current process group."""
-        if torch.cuda.is_available():
+        if distributed_resources_available():
             dist.barrier()
             dist.destroy_process_group()
 
@@ -649,8 +668,18 @@ class DeepSpeedStrategy(TorchDistributedStrategy):
 
         Returns:
             int: local world size.
+
+        Raises:
+            RuntimeError: when the local world size cannot be retrieved.
         """
-        return torch.cuda.device_count()
+        if torch.cuda.is_available():
+            return torch.cuda.device_count()
+        if os.environ.get("LOCAL_WORLD_SIZE"):
+            return int(os.environ["LOCAL_WORLD_SIZE"])
+        raise RuntimeError(
+            "Unable to retrieve the local world size. It seems that you are neither running "
+            "with GPUs, nor I could find LOCAL_WORLD_SIZE variable in the environment."
+        )
 
     @check_initialized
     def global_rank(self) -> int:
@@ -669,7 +698,7 @@ class DeepSpeedStrategy(TorchDistributedStrategy):
         Returns:
             int: local rank.
         """
-        return dist.get_rank() % torch.cuda.device_count()
+        return dist.get_rank() % self.local_world_size()
 
     @check_initialized
     def clean_up(self) -> None:
@@ -936,20 +965,8 @@ class NonDistributedStrategy(TorchDistributedStrategy):
         """
         if self.is_initialized:
             raise DistributedStrategyError("Strategy was already initialized")
-        if torch.cuda.is_available():
-            self.set_device()
+        self.set_device()
         self.is_initialized = True
-
-    @check_initialized
-    def device(self) -> str:
-        """Device used by local worker.
-
-        Returns:
-            str: cpu device if CUDA is not available.
-        """
-        if torch.cuda.is_available():
-            return super().device()
-        return "cpu"
 
     @check_initialized
     def distributed(

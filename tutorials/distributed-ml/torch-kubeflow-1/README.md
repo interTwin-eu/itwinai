@@ -1,4 +1,16 @@
-# Distributed ML on Kubernetes
+# Distributed ML on Kubernetes with Kubeflow
+
+**Author(s)**: Matteo Bunino (CERN)
+
+In this tutorial we see how to run distributed machine learning (ML) on Kubernetes using
+Kubeflow's [training operator](https://www.kubeflow.org/docs/components/training/overview/)
+for PyTorch and itwinai's `TorchTrainer`.
+
+In this guide we will show you how to launch jobs only by using `kubectl` and pod manifests.
+Therefore, you won't need much more than being able to access a kubernetes cluster with few
+nodes. We won't cover Python SDK, which can be found in
+[this nice tutorial](https://www.kubeflow.org/docs/components/training/getting-started/#getting-started-with-pytorchjob)
+from Kubeflow.
 
 ## Kybeflow's Training Operator
 
@@ -64,3 +76,18 @@ kubectl logs torchrun-cpu-worker-0 -n kubeflow
 # To delete all existing pytorchjobs
 kubectl delete --all pytorchjobs -n kubeflow
 ```
+
+To delete the deployment of the training operator:
+
+```bash
+kubectl delete deployment training-operator -n kubeflow
+```
+
+## Distributed training on CPU
+
+To get familiar with distrubuted ML with Kubeflow and itwinai you don't need access to
+a Kubernets cluster with GPU nodes.
+
+The PyTorchJob manifest for this can be found in `cpu.yaml`.
+Remeber to first create a Docker container using the provided `Dockerfile`, push it to your
+preferred containers registry, and update the manifest file with the correct name of the image.
