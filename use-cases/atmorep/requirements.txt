@@ -1,0 +1,13 @@
+atmorep[complete] @ git+https://github.com/clessig/atmorep
+click
+requests
+platformdirs
+six
+psutil
+pandas
+dask
+xarray
+cfgrib
+mlflow
+ray
+importlib_resources
