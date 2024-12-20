@@ -91,3 +91,28 @@ a Kubernets cluster with GPU nodes.
 The PyTorchJob manifest for this can be found in `cpu.yaml`.
 Remeber to first create a Docker container using the provided `Dockerfile`, push it to your
 preferred containers registry, and update the manifest file with the correct name of the image.
+
+## Persisitent Volume Claim
+
+```bash
+export USER_NAMESPACE=kubeflow # replace it with your namespace
+kubectl config set-context --current --namespace=$USER_NAMESPACE
+
+export storageClassName=k8s-storage-policy # replace it with your environment storageclass
+
+cat << EOF | kubectl apply -n kubeflow -f -
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: data
+  labels:
+    app: data
+spec:
+  accessModes:
+  - ReadWriteMany
+  resources:
+    requests:
+      storage: 10Gi
+EOF
+
+```
