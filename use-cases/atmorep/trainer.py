@@ -39,71 +39,8 @@ from itwinai.torch.distributed import (
 from itwinai.torch.trainer import TorchTrainer
 from typing import Dict, Literal, Optional, Tuple, Union
 from itwinai.torch.type import Metric
-import json
 
-#from atmorep_training_configuration import AtmoRepTrainingConfiguration
-
-class AtmoRepTrainingConfiguration(TrainingConfiguration):
-    """AtmoRep TrainingConfiguration"""
-
-################################################
-   
-    def get_self_dict(self):
-        return self.__dict__
-
-################################################
-
-    def write_json( self, wandb) :
-
-        if not hasattr( wandb.run, 'id') :
-            return
-
-        json_str = json.dumps(self.get_self_dict() )
-
-        # save in directory with model files
-        dirname = Path( self.path_results, 'models/id{}'.format( wandb.run.id))
-        if not os.path.exists(dirname):
-            os.makedirs( dirname)
-        fname =Path(self.path_results,'models/id{}/model_id{}.json'.format(wandb.run.id,wandb.run.id))
-        with open(fname, 'w') as f :
-            f.write( json_str)
-
-        # also save in results directory
-        dirname = Path( self.path_results,'id{}'.format( wandb.run.id))
-        if not os.path.exists(dirname):
-            os.makedirs( dirname)
-        fname = Path( dirname, 'model_id{}.json'.format( wandb.run.id))
-        with open(fname, 'w') as f :
-            f.write( json_str)
-
-
-################################################
-
-    def load_json(self, wandb_id) :
-        if '/' in wandb_id :   # assumed to be full path instead of just id
-            fname = wandb_id
-        else :
-            fname = Path( self.path_models, 'id{}/model_id{}.json'.format( wandb_id, wandb_id))
-        try :
-            with open(fname, 'r') as f :
-                json_str = f.readlines() 
-        except (OSError, IOError) as e:
-            # try path used for logging training results and checkpoints
-            try :
-                fname = Path( self.path_results, '/models/id{}/model_id{}.json'.format(wandb_id,wandb_id))
-                with open(fname, 'r') as f :
-                    json_str = f.readlines()
-            except (OSError, IOError) as e:
-                print( f'Could not find fname due to {e}. Aborting.')
-                quit()
-
-        self.__dict__ = json.loads( json_str[0])
-
-        # fix for backward compatibility
-        if not hasattr( self, 'model_id') :
-            self.model_id = self.wandb_id
-
-        return self
+from atmorep_training_configuration import AtmoRepTrainingConfiguration
 
 ###################################################
 
@@ -141,11 +78,15 @@ class AtmoRepTrainer(TorchTrainer):
             **kwargs,
         )
         self.save_parameters(**self.locals2params(locals()))
-       
+
         # Global training configuration
         if isinstance(config, dict):
             config = AtmoRepTrainingConfiguration(**config)
             self.config = config
+
+        if self.config.load_model != None:
+            model_id = self.config.load_model[0]
+            self.config = self.config.load_json(model_id).add_backward_compatibility()
 
         cf = self.config
         torch.backends.cuda.matmul.allow_tf32 = True 
@@ -180,8 +121,8 @@ class AtmoRepTrainer(TorchTrainer):
         self.device_out = devices[-1]
         
         cf.num_accs_per_task = len(devices)   # number of GPUs / accelerators per task
-        cf.with_ddp = (type(self.strategy) == DeepSpeedStrategy)
-        par_rank, par_size = setup_ddp( cf.with_ddp)
+        cf.with_ddp = (isinstance(self.strategy, TorchDDPStrategy))
+        par_rank, par_size = setup_ddp( cf.with_ddp )
         cf.par_rank = par_rank
         cf.par_size = par_size
 
@@ -193,7 +134,7 @@ class AtmoRepTrainer(TorchTrainer):
         if not self.rng_seed :
             self.rng_seed = int(torch.randint( 100000000, (1,)))
         # TODO: generate only rngs that are needed
-        ll = len(cf.fields) * 8 #len(cf.vertical_levels)
+        ll = len(cf.fields) *  (max([len(f[2]) for f in cf.fields])+1)
         if cf.BERT_fields_synced :
             self.rngs = [np.random.default_rng(self.rng_seed) for _ in range(ll)]
         else :
@@ -210,8 +151,12 @@ class AtmoRepTrainer(TorchTrainer):
         #TODO: add support for pre-trained runs
         self.create_model_loss_optimizer()
 
-        # self.create_dataloaders()
-        self.run()
+        if cf.mode == "train":
+            self.run()
+        elif cf.mode == "evaluate":
+            self.validate()
+        else:
+            KeyError("mode not supported. Please chose \'train\' or \'validate\'.")
 
     ###################################################
 
@@ -324,7 +269,7 @@ class AtmoRepTrainer(TorchTrainer):
    
     def load( self) :
         cf = self.config
-        model_id, epoch = cf.continue_training
+        model_id, epoch = cf.load_model
         trainer = self.create(load_embeds=False)
         trainer.model.net = trainer.model.net.load( model_id, self.devices, cf, epoch)
         # TODO: pass the properly to model / net
@@ -356,7 +301,7 @@ class AtmoRepTrainer(TorchTrainer):
 
         #create model
         #TO-DO: fix load
-        if(cf.continue_training == None):
+        if(cf.load_model == None):
             self.create()
         else:
             self.load()
@@ -407,7 +352,7 @@ class AtmoRepTrainer(TorchTrainer):
     def run(self):
     
         cf = self.config 
-        epoch = 0 if(cf.continue_training == None) else cf.continue_training[1]+1
+        epoch = 0 if(cf.load_model == None) else cf.load_model[1]+1
         test_loss = np.array( [1.0]) 
         learn_rates = self.get_learn_rates()
 
@@ -551,17 +496,16 @@ class AtmoRepTrainer(TorchTrainer):
         del batch_data, loss, loss_total, mse_loss_total, grad_loss_total, std_dev_total
 
     ###################################################
-    def validate( self, epoch, BERT_test_strategy = 'BERT'):
+    def validate( self, epoch = 0, BERT_test_strategy = None):
 
         cf = self.config
-        BERT_strategy_train = cf.BERT_strategy
-        cf.BERT_strategy = BERT_test_strategy
+        if BERT_test_strategy != None:
+            BERT_strategy_train = cf.BERT_strategy
+            cf.BERT_strategy = BERT_test_strategy 
         self.model.mode( NetMode.test)
         total_loss = 0.
         total_losses = torch.zeros( len(self.fields_prediction_idx) )
         test_len = 0
-
-        self.mode_test = True
         
         # run test set evaluation
         with torch.no_grad() : 
@@ -582,8 +526,6 @@ class AtmoRepTrainer(TorchTrainer):
                 for pred, idx in zip( preds, self.fields_prediction_idx) :
             
                     target = self.targets[idx]
-                    # hook for custom test loss
-                    self.test_loss( pred, target)
                     # base line loss
                     cur_loss = self.MSELoss( pred[0], target = target ).cpu().item()
 
@@ -629,8 +571,8 @@ class AtmoRepTrainer(TorchTrainer):
         batch_data = []
         torch.cuda.empty_cache()
 
-        cf.BERT_strategy = BERT_strategy_train
-        self.mode_test = False
+        if BERT_test_strategy != None:
+            cf.BERT_strategy = BERT_strategy_train
         
         return total_loss
 
