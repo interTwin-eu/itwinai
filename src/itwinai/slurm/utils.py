@@ -43,12 +43,6 @@ def get_slurm_job_parser() -> ArgumentParser:
 
     # Arguments specific to the SLURM script configuration
     parser.add_argument(
-        "--job_name",
-        type=str,
-        default=default_job_name,
-        help="The name of the SLURM job",
-    )
-    parser.add_argument(
         "--job-name",
         type=str,
         default=default_job_name,

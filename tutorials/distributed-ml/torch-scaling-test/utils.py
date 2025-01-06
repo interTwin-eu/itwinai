@@ -132,4 +132,22 @@ def get_parser() -> ItwinaiArgParser:
     parser.add_argument(
         "--no-cuda", action="store_true", default=False, help="disables GPGPUs"
     )
+    parser.add_argument(
+        "--fp16-allreduce",
+        action="store_true",
+        default=False,
+        help="use fp16 compression during allreduce",
+    )
+    parser.add_argument(
+        "--use-adasum",
+        action="store_true",
+        default=False,
+        help="use adasum algorithm to do reduction",
+    )
+    parser.add_argument(
+        "--gradient-predivide-factor",
+        type=float,
+        default=1.0,
+        help=("apply gradient pre-divide factor in optimizer " "(default: 1.0)"),
+    )
     return parser

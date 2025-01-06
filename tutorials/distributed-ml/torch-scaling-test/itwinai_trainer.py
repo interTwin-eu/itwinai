@@ -175,9 +175,7 @@ def train(
     strategy: TorchDistributedStrategy,
     args,
 ):
-    """
-    Training function, representing an epoch.
-    """
+    """Training function, representing an epoch. """
     model.train()
     t_list = []
     loss_acc = 0

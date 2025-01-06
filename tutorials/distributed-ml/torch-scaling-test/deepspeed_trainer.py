@@ -17,13 +17,13 @@ import torch
 import torch.distributed as dist
 import torchvision
 
-# from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader
 from torch.utils.data.distributed import DistributedSampler
 from utils import get_parser, imagenet_dataset, train_epoch
 
 from itwinai.loggers import EpochTimeTracker
 
-# from itwinai.torch.reproducibility import set_seed
+from itwinai.torch.reproducibility import set_seed, seed_worker
 
 
 def main():
@@ -36,56 +36,50 @@ def main():
     subset_size = 5000  # limit number of examples from imagenet
     use_cuda = not args.no_cuda and torch.cuda.is_available()
     is_distributed = use_cuda and torch.cuda.device_count() > 0
-    # torch_prng = set_seed(args.rnd_seed, deterministic_cudnn=False)
+    torch_prng = set_seed(args.rnd_seed, deterministic_cudnn=False)
+
+    shuffle = args.shuff and args.rnd_seed is None
+    persistent_workers = args.nworker > 1
 
     train_dataset = imagenet_dataset(args.data_dir, subset_size=subset_size)
+    train_sampler = None
+
     if is_distributed:
         deepspeed.init_distributed(dist_backend=args.backend)
 
         local_world_size = torch.cuda.device_count()
         global_rank = dist.get_rank()
         local_rank = dist.get_rank() % local_world_size
+        pin_memory = True
+        train_sampler = DistributedSampler(train_dataset, shuffle=shuffle)
 
-        shuffle = args.shuff and args.rnd_seed is None
-        # pin_memory=True
-        # persistent_workers = args.nworker > 1
-
-        train_sampler = DistributedSampler(
-            train_dataset,
-            shuffle=shuffle,
-        )
-        # train_loader = DataLoader(
-        #     train_dataset,
-        #     batch_size=args.batch_size,
-        #     sampler=train_sampler,
-        #     num_workers=args.nworker,
-        #     pin_memory=pin_memory,
-        #     persistent_workers=persistent_workers,
-        #     prefetch_factor=args.prefetch,
-        #     generator=torch_prng,
-        #     worker_init_fn=seed_worker,
-        # )
+        # To fix problems with deepspeed OpenMPI rank conflicting with local rank
+        os.environ["OMPI_COMM_WORLD_LOCAL_RANK"] = os.environ.get("LOCAL_RANK", "")
     else:
         # Use a single worker (either on GPU or CPU)
         local_world_size = 1
         global_rank = 0
         local_rank = 0
-        # train_loader = DataLoader(
-        #     train_dataset,
-        #     batch_size=args.batch_size,
-        #     generator=torch_prng,
-        #     worker_init_fn=seed_worker,
-        # )
+        pin_memory = False
 
+    train_loader = DataLoader(
+        train_dataset,
+        batch_size=args.batch_size,
+        sampler=train_sampler,
+        num_workers=args.nworker,
+        pin_memory=pin_memory,
+        persistent_workers=persistent_workers,
+        prefetch_factor=args.prefetch,
+        generator=torch_prng,
+        worker_init_fn=seed_worker,
+    )
     device = torch.device(f"cuda:{local_rank}" if use_cuda else "cpu")
 
     # Create CNN model
     model = torchvision.models.resnet152()
+    model = model.to(device)
 
-    # Initialize DeepSpeed and get:
-    # 1) Distributed model
-    # 2) DeepSpeed optimizer
-    # 3) Distributed data loader
+    # Initializing deepspeed distributed strategy
     deepspeed_config = {
         "train_micro_batch_size_per_gpu": args.batch_size,  # redundant
         "optimizer": {
@@ -95,11 +89,10 @@ def main():
         "fp16": {"enabled": False},
         "zero_optimization": False,
     }
-    distrib_model, optimizer, deepspeed_train_loader, _ = deepspeed.initialize(
+    distrib_model, optimizer, _, _ = deepspeed.initialize(
         args=args,
         model=model,
         model_parameters=model.parameters(),
-        training_data=train_dataset,
         config_params=deepspeed_config,
     )
 
@@ -116,22 +109,20 @@ def main():
     for epoch_idx in range(start_epoch, args.epochs + 1):
         epoch_start_time = timer()
         if is_distributed:
-            # Inform the sampler that a new epoch started: shuffle
-            # may be needed
             train_sampler.set_epoch(epoch_idx)
 
         # Training
         train_epoch(
             model=distrib_model,
             device=device,
-            train_loader=deepspeed_train_loader,
+            train_loader=train_loader,
             optimizer=optimizer,
         )
 
         if global_rank == 0:
             epoch_elapsed_time = timer() - epoch_start_time
             epoch_time_tracker.add_epoch_time(epoch_idx, epoch_elapsed_time)
-            print(f"[{epoch_idx+1}/{args.epochs+1}] - time: {epoch_elapsed_time:.2f}s")
+            print(f"[{epoch_idx}/{args.epochs}] - time: {epoch_elapsed_time:.2f}s")
 
     if is_distributed:
         dist.barrier()

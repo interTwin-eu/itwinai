@@ -27,17 +27,22 @@ from itwinai.torch.reproducibility import seed_worker, set_seed
 
 def main():
     # Parse CLI args
+    print(f"Parsing arguments...")
     parser = get_parser()
     args = parser.parse_args()
+    print(f"Finished parsing!")
 
     # Check resources availability
+    print(f"Setting some variables")
     use_cuda = not args.no_cuda and torch.cuda.is_available()
     is_distributed = use_cuda and torch.cuda.device_count() > 0
     torch_seed = set_seed(args.rnd_seed, deterministic_cudnn=False)
     train_dataset = imagenet_dataset(args.data_dir)
+    print(f"Finished setting the variables")
 
     # Setting variables
     if not is_distributed:
+        print(f"Not running distributed!")
         # Use a single worker (either on GPU or CPU)
         local_rank = 0
         global_rank = 0
@@ -51,7 +56,10 @@ def main():
         )
 
     else:
+        print(f"Running distributed!")
+        print(f"Running hvd.init()")
         hvd.init()
+        print(f"Finished hvd.init()")
 
         local_rank = hvd.local_rank()
         global_rank = hvd.rank()

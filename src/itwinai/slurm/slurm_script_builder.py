@@ -172,6 +172,8 @@ class SlurmScriptBuilder:
         echo ""
         echo "### Other Variables ###"
         echo "Distributed Strategy: {self.distributed_strategy}"
+        echo "Current working directory: $(pwd)"
+        echo "Which python: $(which python)"
         """
         debug_print_command = debug_print_command.strip()
         return remove_indentation_from_multiline_string(debug_print_command)
@@ -218,9 +220,9 @@ class SlurmScriptBuilder:
         # Generate the script using the given configuration
         script = self.slurm_script_configuration.format_script()
         if not submit_slurm_job and not retain_file:
-            print("#" * 30)
+            print("#" * 20, "SLURM Script Preview", "#"*20)
             print(script)
-            print("#" * 30)
+            print("#" * 62)
             return
 
         if file_path is None:

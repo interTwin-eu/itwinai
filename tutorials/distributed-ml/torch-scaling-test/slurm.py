@@ -56,6 +56,9 @@ class TutorialSlurmScriptBuilder(SlurmScriptBuilder):
                 f"{self.distributed_strategy}_trainer.py -c config/base.yaml "
                 f"-c config/{self.distributed_strategy}.yaml"
             )
+        
+        if self.distributed_strategy == "horovod": 
+            training_command = "python " + training_command
         return training_command
 
 
@@ -95,15 +98,20 @@ def main():
             f"{args.dist_strat}_trainer.py -c config/base.yaml "
             f"-c config/{args.dist_strat}.yaml"
         )
+    if args.dist_strat == "horovod":
+        training_command = "python " + training_command
 
+    # Buildign the script
     script_builder = TutorialSlurmScriptBuilder(
         slurm_script_configuration=slurm_script_configuration,
         distributed_strategy=args.dist_strat,
         debug=args.debug,
         training_command=training_command,
+        python_venv=args.python_venv,
         use_itwinai_trainer=args.itwinai_trainer,
     )
 
+    # Processing the script depending on the given mode
     mode = args.mode
     if mode == "single":
         script_builder.process_slurm_script(
