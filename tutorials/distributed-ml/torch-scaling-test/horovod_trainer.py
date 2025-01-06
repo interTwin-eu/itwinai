@@ -27,39 +27,24 @@ from itwinai.torch.reproducibility import seed_worker, set_seed
 
 def main():
     # Parse CLI args
-    print(f"Parsing arguments...")
     parser = get_parser()
     args = parser.parse_args()
-    print(f"Finished parsing!")
 
     # Check resources availability
-    print(f"Setting some variables")
+    subset_size = 5000  # limit number of examples from imagenet
     use_cuda = not args.no_cuda and torch.cuda.is_available()
     is_distributed = use_cuda and torch.cuda.device_count() > 0
     torch_seed = set_seed(args.rnd_seed, deterministic_cudnn=False)
-    train_dataset = imagenet_dataset(args.data_dir)
-    print(f"Finished setting the variables")
+
+    shuffle = args.shuff and args.rnd_seed is None
+    persistent_workers = args.nworker > 1
+
+    train_dataset = imagenet_dataset(args.data_dir, subset_size=subset_size)
+    train_sampler = None
 
     # Setting variables
-    if not is_distributed:
-        print(f"Not running distributed!")
-        # Use a single worker (either on GPU or CPU)
-        local_rank = 0
-        global_rank = 0
-        global_world_size = 1
-
-        train_loader = DataLoader(
-            train_dataset,
-            batch_size=args.batch_size,
-            generator=torch_seed,
-            worker_init_fn=seed_worker,
-        )
-
-    else:
-        print(f"Running distributed!")
-        print(f"Running hvd.init()")
+    if is_distributed:
         hvd.init()
-        print(f"Finished hvd.init()")
 
         local_rank = hvd.local_rank()
         global_rank = hvd.rank()
@@ -74,10 +59,7 @@ def main():
 
         # Scale learning rate by lr_scaler
         args.lr *= lr_scaler
-
-        shuffle: bool = args.shuff and args.rnd_seed is None
         pin_memory = True
-        persistent_workers = args.nworker > 1
 
         train_sampler = DistributedSampler(
             train_dataset,
@@ -85,17 +67,24 @@ def main():
             rank=global_rank,
             shuffle=shuffle,
         )
-        train_loader = DataLoader(
-            train_dataset,
-            batch_size=args.batch_size,
-            sampler=train_sampler,
-            num_workers=args.nworker,
-            pin_memory=pin_memory,
-            persistent_workers=persistent_workers,
-            prefetch_factor=args.prefetch,
-            generator=torch_seed,
-            worker_init_fn=seed_worker,
-        )
+    else:
+        # Use a single worker (either on GPU or CPU)
+        local_rank = 0
+        global_rank = 0
+        global_world_size = 1
+        pin_memory = False
+
+    train_loader = DataLoader(
+        train_dataset,
+        batch_size=args.batch_size,
+        sampler=train_sampler,
+        num_workers=args.nworker,
+        pin_memory=pin_memory,
+        persistent_workers=persistent_workers,
+        prefetch_factor=args.prefetch,
+        generator=torch_seed,
+        worker_init_fn=seed_worker,
+    )
 
     device = torch.device(f"cuda:{local_rank}" if use_cuda else "cpu")
 
@@ -125,7 +114,7 @@ def main():
         )
 
     if global_rank == 0:
-        num_nodes = os.environ.get("SLURM_NNODES", "1")
+        num_nodes = os.environ.get("SLURM_NNODES", 1)
         epoch_time_tracker = EpochTimeTracker(
             strategy_name="horovod-bl",
             save_path=f"epochtime_horovod-bl_{num_nodes}N.csv",
@@ -133,7 +122,7 @@ def main():
         )
 
     start_time = timer()
-    for epoch_idx in range(args.epochs):
+    for epoch_idx in range(1, args.epochs + 1):
         epoch_start_time = timer()
 
         if is_distributed:
@@ -150,7 +139,7 @@ def main():
         if global_rank == 0:
             epoch_elapsed_time = timer() - epoch_start_time
             epoch_time_tracker.add_epoch_time(epoch_idx, epoch_elapsed_time)
-            print(f"[{epoch_idx+1}/{args.epochs+1}] - time: {epoch_elapsed_time:.2f}s")
+            print(f"[{epoch_idx}/{args.epochs}] - time: {epoch_elapsed_time:.2f}s")
 
     if global_rank == 0:
         total_time = timer() - start_time

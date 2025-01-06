@@ -34,20 +34,13 @@ def main():
     use_cuda = not args.no_cuda and torch.cuda.is_available()
     is_distributed = use_cuda and torch.cuda.device_count() > 0
     torch_seed = set_seed(args.rnd_seed, deterministic_cudnn=False)
+    shuffle: bool = args.shuff and args.rnd_seed is None
+    persistent_workers = args.nworker > 1
 
     train_dataset = imagenet_dataset(args.data_dir, subset_size=subset_size)
-    if not is_distributed:
-        local_world_size = 1
-        global_rank = 0
-        local_rank = 0
+    train_sampler = None
 
-        train_loader = DataLoader(
-            train_dataset,
-            batch_size=args.batch_size,
-            generator=torch_seed,
-            worker_init_fn=seed_worker,
-        )
-    else:
+    if is_distributed:
         # Initializing the distribution backend
         dist.init_process_group(backend=args.backend)
 
@@ -56,24 +49,29 @@ def main():
         local_rank = dist.get_rank() % local_world_size
 
         # Creating dataset and dataloader
-        shuffle: bool = args.shuff and args.rnd_seed is None
         pin_memory = True
-        persistent_workers = args.nworker > 1
         train_sampler = DistributedSampler(train_dataset, shuffle=shuffle)
-        train_loader = DataLoader(
-            train_dataset,
-            batch_size=args.batch_size,
-            sampler=train_sampler,
-            num_workers=args.nworker,
-            pin_memory=pin_memory,
-            persistent_workers=persistent_workers,
-            prefetch_factor=args.prefetch,
-            generator=torch_seed,
-            worker_init_fn=seed_worker,
-        )
+    else:
+        local_world_size = 1
+        global_rank = 0
+        local_rank = 0
+        pin_memory = False
 
+    train_loader = DataLoader(
+        train_dataset,
+        batch_size=args.batch_size,
+        sampler=train_sampler,
+        num_workers=args.nworker,
+        pin_memory=pin_memory,
+        persistent_workers=persistent_workers,
+        prefetch_factor=args.prefetch,
+        generator=torch_seed,
+        worker_init_fn=seed_worker,
+    )
     device = torch.device(f"cuda:{local_rank}" if use_cuda else "cpu")
-    model = torchvision.models.resnet152().to(device)
+
+    model = torchvision.models.resnet152()
+    model.to(device)
 
     # Distributing the model to the workers
     if is_distributed:
@@ -84,7 +82,7 @@ def main():
     optimizer = torch.optim.SGD(model.parameters(), lr=args.lr, momentum=args.momentum)
 
     if global_rank == 0:
-        num_nodes = os.environ.get("SLURM_NNODES", "1")
+        num_nodes = os.environ.get("SLURM_NNODES", 1)
         epoch_time_tracker = EpochTimeTracker(
             strategy_name="ddp-bl",
             save_path=f"epochtime_ddp-bl_{num_nodes}N.csv",
@@ -92,7 +90,7 @@ def main():
         )
 
     start_time = timer()
-    for epoch_idx in range(args.epochs):
+    for epoch_idx in range(1, args.epochs + 1):
         epoch_start_time = timer()
 
         if is_distributed:
@@ -105,7 +103,7 @@ def main():
         if global_rank == 0:
             epoch_elapsed_time = timer() - epoch_start_time
             epoch_time_tracker.add_epoch_time(epoch_idx, epoch_elapsed_time)
-            print(f"[{epoch_idx+1}/{args.epochs+1}] - time: {epoch_elapsed_time:.2f}s")
+            print(f"[{epoch_idx}/{args.epochs}] - time: {epoch_elapsed_time:.2f}s")
 
     if global_rank == 0:
         total_time = timer() - start_time

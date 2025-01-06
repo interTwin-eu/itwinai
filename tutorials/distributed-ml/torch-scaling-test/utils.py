@@ -25,7 +25,9 @@ def imagenet_dataset(data_root: str, subset_size: int | None = None):
             transforms.RandomHorizontalFlip(),
             transforms.RandomVerticalFlip(),
             transforms.RandomRotation(degrees=45),
-            transforms.ColorJitter(brightness=0.5, contrast=0.5, saturation=0.5, hue=0.5),
+            transforms.ColorJitter(
+                brightness=0.5, contrast=0.5, saturation=0.5, hue=0.5
+            ),
             transforms.CenterCrop(224),
             transforms.ToTensor(),
             transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
@@ -56,7 +58,6 @@ def train_epoch(
 
     for data, target in train_loader:
         data, target = data.to(device), target.to(device)
-
         optimizer.zero_grad()
         output = model(data)
         loss = F.nll_loss(output, target)
