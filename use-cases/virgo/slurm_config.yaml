@@ -15,8 +15,8 @@ partition: develbooster
 # if you override the dist_strat in the CLI, then these will already have evaluated
 # and thus might not correspond. Thus, we suggest you only change the dist_strat in
 # the config and avoid overriding it in the CLI.
-std_out: slurm_jobs/${dist_strat}.out
-err_out: slurm_jobs/${dist_strat}.err
+std_out: slurm_job_logs/${dist_strat}.out
+err_out: slurm_job_logs/${dist_strat}.err
 job_name: virgo-${dist_strat}-job
 ##################################
 

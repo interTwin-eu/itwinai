@@ -3,8 +3,8 @@ account: intertwin
 dist_strat: horovod
 time: 00:11:11
 
-std_out: slurm_jobs/job.out
-err_out: slurm_jobs/err.out
+std_out: slurm_job_Logs/job.out
+err_out: slurm_job_Logs/err.out
 
 num_nodes: 1
 num_tasks_per_node: 1
