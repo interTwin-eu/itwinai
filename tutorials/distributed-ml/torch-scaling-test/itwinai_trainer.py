@@ -175,15 +175,11 @@ def train(
     strategy: TorchDistributedStrategy,
     args,
 ):
-    """Training function, representing an epoch. """
+    """Training function, representing an epoch."""
     model.train()
-    t_list = []
     loss_acc = 0
     gwsize = strategy.global_world_size()
-    if strategy.is_main_worker:
-        print("\n")
     for batch_idx, (data, target) in enumerate(train_loader):
-        t = timer()
         data, target = data.to(device), target.to(device)
         optimizer.zero_grad()
         output = model(data)
@@ -201,10 +197,7 @@ def train(
                 f"({100.0 * batch_idx / len(train_loader):.0f}%)]\t\t"
                 f"Loss: {loss.item():.6f}"
             )
-        t_list.append(timer() - t)
         loss_acc += loss.item()
-    if strategy.is_main_worker:
-        print("TIMER: train time", sum(t_list) / len(t_list), "s")
     return loss_acc
 
 
@@ -239,17 +232,13 @@ def main():
         )
     strategy.init()
 
-    # Check resources availability
+    # Check resource availability
     use_cuda = not args.no_cuda and torch.cuda.is_available()
-    is_distributed = False
-    if use_cuda and torch.cuda.device_count() > 0:
-        is_distributed = True
+    is_distributed = use_cuda and torch.cuda.device_count() > 0
 
-    # Limit # of CPU threads to be used per worker
-    # torch.set_num_threads(1)
-
-    # Start the timer for profiling
-    st = timer()
+    # Dataset
+    subset_size = 5000
+    train_dataset = imagenet_dataset(args.data_dir, subset_size=subset_size)
 
     # Set random seed for reproducibility
     torch_prng = set_seed(args.rnd_seed, deterministic_cudnn=False)
@@ -257,49 +246,23 @@ def main():
     # Get job rank info - rank==0 master gpu
     if is_distributed:
         # local world size - per node
-        lwsize = strategy.local_world_size()  # local world size - per run
-        gwsize = strategy.global_world_size()  # global world size - per run
-        grank = strategy.global_rank()  # global rank - assign per run
-        lrank = strategy.local_rank()  # local rank - assign per node
+        global_world_size = strategy.global_world_size()
+        global_rank = strategy.global_rank()
     else:
         # Use a single worker (either on GPU or CPU)
-        lwsize = 1
-        gwsize = 1
-        grank = 0
-        lrank = 0
-
-    if strategy.is_main_worker:
-        print("TIMER: initialise:", timer() - st, "s")
-        print("DEBUG: local ranks:", lwsize, "/ global ranks:", gwsize)
-        print("DEBUG: sys.version:", sys.version)
-        print("DEBUG: args.data_dir:", args.data_dir)
-        print("DEBUG: args.log_int:", args.log_int)
-        print("DEBUG: args.nworker:", args.nworker)
-        print("DEBUG: args.prefetch:", args.prefetch)
-        print("DEBUG: args.batch_size:", args.batch_size)
-        print("DEBUG: args.epochs:", args.epochs)
-        print("DEBUG: args.lr:", args.lr)
-        print("DEBUG: args.momentum:", args.momentum)
-        print("DEBUG: args.shuff:", args.shuff)
-        print("DEBUG: args.rnd_seed:", args.rnd_seed)
-        print("DEBUG: args.backend:", args.backend)
-        print("DEBUG: args.no_cuda:", args.no_cuda, "\n")
+        global_world_size = 1
+        global_rank = 0
 
     # Encapsulate the model on the GPU assigned to the current process
     device = torch.device(strategy.device() if use_cuda else "cpu")
-    if use_cuda:
-        torch.cuda.set_device(lrank)
-
-    # Dataset
-    train_dataset = imagenet_dataset(args.data_dir)
 
     if is_distributed:
         # Distributed sampler restricts data loading to a subset of the dataset
         # exclusive to the current process.
         train_sampler = DistributedSampler(
             train_dataset,
-            num_replicas=gwsize,
-            rank=grank,
+            num_replicas=global_world_size,
+            rank=global_rank,
             shuffle=(args.shuff and args.rnd_seed is None),
         )
 
@@ -324,86 +287,50 @@ def main():
 
     # Create CNN model: resnet 50, resnet101, resnet152
     model = torchvision.models.resnet152()
+    model.to(device)
 
     # Optimizer
     optimizer = torch.optim.SGD(model.parameters(), lr=args.lr, momentum=args.momentum)
 
     if is_distributed:
-        distrib_model, optimizer, _ = strategy.distributed(
+        model, optimizer, _ = strategy.distributed(
             model, optimizer, lr_scheduler=None, **distribute_kwargs
         )
 
-    # Start training loop
     if strategy.is_main_worker:
-        print("TIMER: broadcast:", timer() - st, "s")
-        print("\nDEBUG: start training")
-        print("--------------------------------------------------------")
-        nnod = os.environ.get("SLURM_NNODES", "1")
-        s_name = f"{args.strategy}-it"
+        num_nodes = os.environ.get("SLURM_NNODES", 1)
+        strategy_name = f"{args.strategy}-it"
         epoch_time_tracker = EpochTimeTracker(
-            strategy_name=s_name,
-            save_path=f"epochtime_{s_name}_{nnod}N.csv",
-            num_nodes=int(nnod),
+            strategy_name=strategy_name,
+            save_path=f"epochtime_{strategy_name}_{num_nodes}N.csv",
+            num_nodes=int(num_nodes),
         )
 
-    et = timer()
-    start_epoch = 1
-    for epoch in range(start_epoch, args.epochs + 1):
-        lt = timer()
+    start_time = timer()
+    for epoch_idx in range(1, args.epochs + 1):
+        epoch_start_time = timer()
         if is_distributed:
-            # Inform the sampler that a new epoch started: shuffle
-            # may be needed
-            train_sampler.set_epoch(epoch)
+            train_sampler.set_epoch(epoch_idx)
 
         # Training
         train(
-            model=distrib_model,
+            model=model,
             device=device,
             train_loader=train_loader,
             optimizer=optimizer,
-            epoch=epoch,
+            epoch=epoch_idx,
             strategy=strategy,
             args=args,
         )
 
-        # Save first epoch timer
-        if epoch == start_epoch:
-            first_ep_t = timer() - lt
-
-        # Final epoch
-        if epoch + 1 == args.epochs:
-            train_loader.last_epoch = True
-
         if strategy.is_main_worker:
-            print("TIMER: epoch time:", timer() - lt, "s")
-            epoch_time_tracker.add_epoch_time(epoch - 1, timer() - lt)
+            epoch_elapsed_time = timer() - epoch_start_time
+            epoch_time_tracker.add_epoch_time(epoch_idx, epoch_elapsed_time)
+            print(f"[{epoch_idx}/{args.epochs}] - time: {epoch_elapsed_time:.2f}s")
 
-    if strategy.is_main_worker:
-        print("\n--------------------------------------------------------")
-        print("DEBUG: training results:\n")
-        print("TIMER: first epoch time:", first_ep_t, " s")
-        print("TIMER: last epoch time:", timer() - lt, " s")
-        print("TIMER: average epoch time:", (timer() - et) / args.epochs, " s")
-        print("TIMER: total epoch time:", timer() - et, " s")
-        if epoch > 1:
-            print("TIMER: total epoch-1 time:", timer() - et - first_ep_t, " s")
-            print(
-                "TIMER: average epoch-1 time:",
-                (timer() - et - first_ep_t) / (args.epochs - 1),
-                " s",
-            )
-        if use_cuda:
-            print(
-                "DEBUG: memory req:",
-                int(torch.cuda.memory_reserved(lrank) / 1024 / 1024),
-                "MB",
-            )
-            print("DEBUG: memory summary:\n\n", torch.cuda.memory_summary(0))
-
-        print(f"TIMER: final time: {timer()-st} s\n")
-
-    time.sleep(1)
-    print(f"<Global rank: {strategy.global_rank()}> - TRAINING FINISHED")
+    if global_rank == 0:
+        total_time = timer() - start_time
+        print(f"Training finished - took {total_time:.2f}s")
 
     # Clean-up
     if is_distributed:
