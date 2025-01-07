@@ -2,19 +2,19 @@
 
 **Author(s)**: Matteo Bunino (CERN)
 
-This tutorial demonstrates running distributed machine learning (ML) on Kubernetes using  
-Kubeflow's [training operator](https://www.kubeflow.org/docs/components/training/overview/)  
-for PyTorch and itwinai's `TorchTrainer`.  
+This tutorial demonstrates running distributed machine learning (ML) on Kubernetes using
+Kubeflow's [training operator](https://www.kubeflow.org/docs/components/training/overview/)
+for PyTorch and itwinai's `TorchTrainer`.
 
-We will only use `kubectl` and pod manifests to launch jobs, requiring minimal setup beyond  
-access to a Kubernetes cluster with a few nodes. The Python SDK is beyond this guide's scope,  
+We will only use `kubectl` and pod manifests to launch jobs, requiring minimal setup beyond
+access to a Kubernetes cluster with a few nodes. The Python SDK is beyond this guide's scope,
 but you can explore Kubeflow's
 [getting started tutorial](https://www.kubeflow.org/docs/components/training/getting-started/#getting-started-with-pytorchjob)
 for more details.
 
 ## Installing Kubeflow's Training Operator
 
-First, install the [training operator](https://www.kubeflow.org/docs/components/training/installation/).  
+First, install the [training operator](https://www.kubeflow.org/docs/components/training/installation/).
 You do not need the Python SDK for this tutorial.
 
 Example for `v1.8.1`:
@@ -93,26 +93,26 @@ kubectl delete deployment training-operator -n kubeflow
 
 ## Distributed Training on CPU
 
-To get started with distributed ML using Kubeflow and itwinai, a GPU cluster is not required.  
-The PyTorchJob manifest for CPU-based training is defined in `cpu.yaml`. First, build and  
-push a Docker container using the provided `Dockerfile`, then update the manifest with  
+To get started with distributed ML using Kubeflow and itwinai, a GPU cluster is not required.
+The PyTorchJob manifest for CPU-based training is defined in `cpu.yaml`. First, build and
+push a Docker container using the provided `Dockerfile`, then update the manifest with
 your container's image name.
 
-The manifest sets `nProcPerNode: "2"`, which specifies two worker processes per pod.  
-You can adjust this for different levels of parallelism, corresponding to the  
+The manifest sets `nProcPerNode: "2"`, which specifies two worker processes per pod.
+You can adjust this for different levels of parallelism, corresponding to the
 [`--nproc-per-node`](https://pytorch.org/docs/stable/elastic/run.html#usage) flag of `torchrun`.
 
 There are two levels of parallelism:
 
-- **Pod-level parallelism**: Controlled by the number of `replicas` in the PyTorchJob.  
+- **Pod-level parallelism**: Controlled by the number of `replicas` in the PyTorchJob.
 - **Process-level parallelism**: Controlled by `nProcPerNode` for multiple subprocesses per pod.
 
-Using `nProcPerNode > 1` allows two levels of parallelism. Each pod runs on a different node,  
-spawning as many processes as hardware accelerators (like GPUs). Parallelism is:  
+Using `nProcPerNode > 1` allows two levels of parallelism. Each pod runs on a different node,
+spawning as many processes as hardware accelerators (like GPUs). Parallelism is:
 `nProcPerNode * TOTAL_PODS`.
 
-Alternatively, setting `nProcPerNode: "1"` uses pod replicas to control parallelism,  
-with one pod per distributed ML worker. However, this may be less efficient (e.g., when  
+Alternatively, setting `nProcPerNode: "1"` uses pod replicas to control parallelism,
+with one pod per distributed ML worker. However, this may be less efficient (e.g., when
 using persistent storage).
 
 ## Distributed Training on GPU
