@@ -157,4 +157,7 @@ def get_parser() -> ItwinaiArgParser:
         default=1.0,
         help=("apply gradient pre-divide factor in optimizer " "(default: 1.0)"),
     )
+    parser.add_argument(
+        "--strategy", "-s", type=str, choices=["ddp", "horovod", "deepspeed"], default="ddp"
+    )
     return parser

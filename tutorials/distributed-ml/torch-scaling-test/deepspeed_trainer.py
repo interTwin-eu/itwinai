@@ -5,12 +5,14 @@
 #
 # Credit:
 # - Matteo Bunino <matteo.bunino@cern.ch> - CERN
+# - Jarl Sondre Sæther <jarl.sondre.saether@cern.ch> - CERN
 # --------------------------------------------------------------------------------------
 
 """Scaling test of Microsoft Deepspeed on Imagenet using Resnet."""
 
 import os
 from timeit import default_timer as timer
+from pathlib import Path
 
 import deepspeed
 import torch
@@ -98,12 +100,15 @@ def main():
     # Start training loop
     if global_rank == 0:
         num_nodes = os.environ.get("SLURM_NNODES", "1")
+        save_dir = Path("scalability-metrics")
+        save_path = save_dir / f"epochtime_deepspeed-bl_{num_nodes}N.csv"
         epoch_time_tracker = EpochTimeTracker(
             strategy_name="deepspeed-bl",
-            save_path=f"epochtime_deepspeed-bl_{num_nodes}N.csv",
+            save_path=save_path,
             num_nodes=int(num_nodes),
         )
 
+    start_time = timer()
     start_epoch = 1
     for epoch_idx in range(start_epoch, args.epochs + 1):
         epoch_start_time = timer()
@@ -123,11 +128,14 @@ def main():
             epoch_time_tracker.add_epoch_time(epoch_idx, epoch_elapsed_time)
             print(f"[{epoch_idx}/{args.epochs}] - time: {epoch_elapsed_time:.2f}s")
 
-    if is_distributed:
-        dist.barrier()
+    if global_rank == 0:
+        total_time = timer() - start_time
+        print(f"Training finished - took {total_time:.2f}s")
+        epoch_time_tracker.save()
 
     # Clean-up
     if is_distributed:
+        dist.barrier()
         deepspeed.sys.exit()
 
 

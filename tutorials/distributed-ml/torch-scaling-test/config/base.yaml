@@ -12,7 +12,7 @@ data_dir: /p/scratch/intertwin/datasets/imagenet/ILSVRC2012/train/ # tmp_data/
 
 # Subset size can be an int or None. Cannot be larger than the length of the dataset. 
 # If you wish to set it to "None", you must use "null" as that is what yaml expects
-subset_size: null 
+subset_size: 5000 
 log_int: 10
 
 # verbose: True

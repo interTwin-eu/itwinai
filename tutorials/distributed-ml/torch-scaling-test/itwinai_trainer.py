@@ -5,6 +5,7 @@
 #
 # Credit:
 # - Matteo Bunino <matteo.bunino@cern.ch> - CERN
+# - Jarl Sondre Sæther <jarl.sondre.saether@cern.ch> - CERN
 # --------------------------------------------------------------------------------------
 
 """Show how to use DDP, Horovod and DeepSpeed strategies interchangeably
@@ -16,7 +17,7 @@ to use checkpoints.
 import os
 import sys
 from timeit import default_timer as timer
-# from typing import Optional
+from pathlib import Path
 
 # import deepspeed
 import horovod.torch as hvd
@@ -137,9 +138,11 @@ def main():
     if strategy.is_main_worker:
         num_nodes = os.environ.get("SLURM_NNODES", 1)
         strategy_name = f"{args.strategy}-it"
+        save_dir = Path("scalability-metrics")
+        save_path = save_dir / f"epochtime_{strategy_name}_{num_nodes}N.csv"
         epoch_time_tracker = EpochTimeTracker(
             strategy_name=strategy_name,
-            save_path=f"epochtime_{strategy_name}_{num_nodes}N.csv",
+            save_path=save_path,
             num_nodes=int(num_nodes),
         )
 
@@ -165,6 +168,7 @@ def main():
     if global_rank == 0:
         total_time = timer() - start_time
         print(f"Training finished - took {total_time:.2f}s")
+        epoch_time_tracker.save()
 
     # Clean-up
     if is_distributed:

@@ -12,6 +12,7 @@
 
 import os
 from timeit import default_timer as timer
+from pathlib import Path
 
 import horovod.torch as hvd
 import torch
@@ -114,9 +115,11 @@ def main():
 
     if global_rank == 0:
         num_nodes = os.environ.get("SLURM_NNODES", 1)
+        save_dir = Path("scalability-metrics")
+        save_path = save_dir / f"epochtime_horovod-bl_{num_nodes}N.csv"
         epoch_time_tracker = EpochTimeTracker(
             strategy_name="horovod-bl",
-            save_path=f"epochtime_horovod-bl_{num_nodes}N.csv",
+            save_path=save_path,
             num_nodes=int(num_nodes),
         )
 
@@ -143,6 +146,7 @@ def main():
     if global_rank == 0:
         total_time = timer() - start_time
         print(f"Training finished - took {total_time:.2f}s")
+        epoch_time_tracker.save()
 
 
 if __name__ == "__main__":

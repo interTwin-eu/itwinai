@@ -9,11 +9,11 @@ gpus_per_node: 4
 cpus_per_gpu: 4
 
 mode: single # "single", "runall" or "scaling-test" - defaults to "single"
-dist_strat: horovod # "ddp", "deepspeed" or "horovod"
+dist_strat: ddp # "ddp", "deepspeed" or "horovod"
 itwinai_trainer: false
 
 account: intertwin
-time: 00:10:00
+time: 00:15:00
 partition: develbooster
 
 # Keep in mind that these will be overwritten if "mode" is not "single", and that
