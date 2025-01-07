@@ -67,7 +67,7 @@ kubectl create -n kubeflow -f job-manifest.yaml
 ```
 
 When creating a PyTorchJob, the Worker pods will wait for the Master to be created
-first. To manage both Master and Worker pods you can use:
+first. To manage both Master and Worker pods use:
 
 ```bash
 # Inspect some pods
@@ -99,7 +99,7 @@ push a Docker container using the provided `Dockerfile`, then update the manifes
 your container's image name.
 
 The manifest sets `nProcPerNode: "2"`, which specifies two worker processes per pod.
-You can adjust this for different levels of parallelism, corresponding to the
+Adjust this for different levels of parallelism, corresponding to the
 [`--nproc-per-node`](https://pytorch.org/docs/stable/elastic/run.html#usage) flag of `torchrun`.
 
 There are two levels of parallelism:
