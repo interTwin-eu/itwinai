@@ -117,7 +117,7 @@ using persistent storage).
 
 ## Distributed Training on GPU
 
-> [!INFO]
+> [!NOTE]
 > This part has not been extensively tested and is still under development.
 
 To access GPU nodes, add the following request to the containers spec
