@@ -2,7 +2,7 @@
 
 **Author(s)**: Matteo Bunino (CERN)
 
-This tutorial is ideal for running distributed machine learning on Kubernetes when an HPC cluster managed
+This tutorial shows how to run distributed machine learning on Kubernetes when an HPC cluster managed
 by SLURM is unavailable. It provides a flexible solution for both on-premises and cloud-based Kubernetes
 deployments, including access to GPU nodes for scalable, high-performance training workloads.
 It demonstrates running distributed machine learning (ML) on Kubernetes using
