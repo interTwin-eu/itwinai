@@ -36,6 +36,7 @@ def main():
     torch_seed = set_seed(args.rnd_seed, deterministic_cudnn=False)
     shuffle: bool = args.shuff and args.rnd_seed is None
     persistent_workers = args.nworker > 1
+    epoch_time_save_dir = Path(args.epoch_time_directory)
 
     train_dataset = imagenet_dataset(args.data_dir, subset_size=args.subset_size)
     train_sampler = None
@@ -83,8 +84,7 @@ def main():
 
     if global_rank == 0:
         num_nodes = os.environ.get("SLURM_NNODES", 1)
-        save_dir = Path("scalability-metrics")
-        save_path = save_dir / f"epochtime_ddp-bl_{num_nodes}N.csv"
+        save_path = epoch_time_save_dir / f"epochtime_ddp-bl_{num_nodes}.csv"
         epoch_time_tracker = EpochTimeTracker(
             strategy_name="ddp-bl",
             save_path=save_path,

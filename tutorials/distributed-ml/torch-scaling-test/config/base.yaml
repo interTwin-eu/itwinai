@@ -9,6 +9,7 @@
 
 # Data and logging
 data_dir: /p/scratch/intertwin/datasets/imagenet/ILSVRC2012/train/ # tmp_data/
+epoch_time_directory: scalability-metrics/epoch-time
 
 # Subset size can be an int or None. Cannot be larger than the length of the dataset. 
 # If you wish to set it to "None", you must use "null" as that is what yaml expects

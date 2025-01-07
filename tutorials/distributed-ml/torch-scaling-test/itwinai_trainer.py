@@ -74,6 +74,7 @@ def main():
     # Check resource availability
     use_cuda = not args.no_cuda and torch.cuda.is_available()
     is_distributed = use_cuda and torch.cuda.device_count() > 0
+    epoch_time_save_dir = Path(args.epoch_time_directory)
 
     # Dataset
     train_dataset = imagenet_dataset(args.data_dir, subset_size=args.subset_size)
@@ -138,8 +139,7 @@ def main():
     if strategy.is_main_worker:
         num_nodes = os.environ.get("SLURM_NNODES", 1)
         strategy_name = f"{args.strategy}-it"
-        save_dir = Path("scalability-metrics")
-        save_path = save_dir / f"epochtime_{strategy_name}_{num_nodes}N.csv"
+        save_path = epoch_time_save_dir / f"epochtime_{strategy_name}_{num_nodes}.csv"
         epoch_time_tracker = EpochTimeTracker(
             strategy_name=strategy_name,
             save_path=save_path,

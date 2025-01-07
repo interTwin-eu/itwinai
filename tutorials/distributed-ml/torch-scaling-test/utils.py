@@ -132,7 +132,7 @@ def get_parser() -> ItwinaiArgParser:
     )
     parser.add_argument(
         "--subset-size",
-        type=int|None,
+        type=int | None,
         default=None,
         help="How big of a subset of ImageNet to use during training.",
     )
@@ -155,9 +155,19 @@ def get_parser() -> ItwinaiArgParser:
         "--gradient-predivide-factor",
         type=float,
         default=1.0,
-        help=("apply gradient pre-divide factor in optimizer " "(default: 1.0)"),
+        help="apply gradient pre-divide factor in optimizer " "(default: 1.0)",
     )
     parser.add_argument(
-        "--strategy", "-s", type=str, choices=["ddp", "horovod", "deepspeed"], default="ddp"
+        "--strategy",
+        "-s",
+        type=str,
+        choices=["ddp", "horovod", "deepspeed"],
+        default="ddp",
+    )
+    parser.add_argument(
+        "--epoch-time-directory",
+        type=str,
+        default="scalability-metrics/epoch-time",
+        help="Where to store the epoch time metrics used in the scalability report",
     )
     return parser
