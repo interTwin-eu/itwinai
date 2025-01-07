@@ -30,14 +30,13 @@ def main():
     parser = get_parser()
     args = parser.parse_args()
 
-    subset_size = 5000  # limit number of examples from imagenet
     use_cuda = not args.no_cuda and torch.cuda.is_available()
     is_distributed = use_cuda and torch.cuda.device_count() > 0
     torch_seed = set_seed(args.rnd_seed, deterministic_cudnn=False)
     shuffle: bool = args.shuff and args.rnd_seed is None
     persistent_workers = args.nworker > 1
 
-    train_dataset = imagenet_dataset(args.data_dir, subset_size=subset_size)
+    train_dataset = imagenet_dataset(args.data_dir, subset_size=args.subset_size)
     train_sampler = None
 
     if is_distributed:

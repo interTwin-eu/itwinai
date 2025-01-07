@@ -31,7 +31,6 @@ def main():
     args = parser.parse_args()
 
     # Check resources availability
-    subset_size = 5000  # limit number of examples from imagenet
     use_cuda = not args.no_cuda and torch.cuda.is_available()
     is_distributed = use_cuda and torch.cuda.device_count() > 0
     torch_seed = set_seed(args.rnd_seed, deterministic_cudnn=False)
@@ -39,7 +38,7 @@ def main():
     shuffle = args.shuff and args.rnd_seed is None
     persistent_workers = args.nworker > 1
 
-    train_dataset = imagenet_dataset(args.data_dir, subset_size=subset_size)
+    train_dataset = imagenet_dataset(args.data_dir, subset_size=args.subset_size)
     train_sampler = None
 
     # Setting variables

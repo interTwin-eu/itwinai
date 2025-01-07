@@ -12,197 +12,36 @@ with a large neural network trained on Imagenet dataset, showing how
 to use checkpoints.
 """
 
-import argparse
+# import argparse
 import os
 import sys
 from timeit import default_timer as timer
-from typing import Optional
+# from typing import Optional
 
-import deepspeed
+# import deepspeed
 import horovod.torch as hvd
 import torch
-import torch.nn.functional as F
+# import torch.nn.functional as F
 import torchvision
 from torch.utils.data import DataLoader
 from torch.utils.data.distributed import DistributedSampler
-from utils import imagenet_dataset
+from utils import imagenet_dataset, get_parser, train_epoch
 
 from itwinai.loggers import EpochTimeTracker
-from itwinai.parser import ArgumentParser as ItwinaiArgParser
+# from itwinai.parser import ArgumentParser as ItwinaiArgParser
 from itwinai.torch.distributed import (
     DeepSpeedStrategy,
     HorovodStrategy,
     TorchDDPStrategy,
-    TorchDistributedStrategy,
+    # TorchDistributedStrategy,
 )
 from itwinai.torch.reproducibility import seed_worker, set_seed
 
 
-def parse_params() -> argparse.Namespace:
-    """
-    Parse CLI args, which can also be loaded from a configuration file
-    using the --config flag:
-
-    >>> train.py --strategy ddp --config base-config.yaml --config foo.yaml
-    """
-    parser = ItwinaiArgParser(description="PyTorch Imagenet Example")
-
-    # Distributed ML strategy
-    parser.add_argument(
-        "--strategy",
-        "-s",
-        type=str,
-        choices=["ddp", "horovod", "deepspeed"],
-        default="ddp",
-    )
-
-    # Data and logging
-    parser.add_argument(
-        "--data-dir",
-        default="./",
-        help=("location of the training dataset in the local " "filesystem"),
-    )
-    parser.add_argument(
-        "--log-int", type=int, default=10, help="log interval per training"
-    )
-    parser.add_argument(
-        "--verbose",
-        action=argparse.BooleanOptionalAction,
-        help="Print parsed arguments",
-    )
-    parser.add_argument(
-        "--nworker",
-        type=int,
-        default=0,
-        help=("number of workers in DataLoader (default: 0 -" " only main)"),
-    )
-    parser.add_argument(
-        "--prefetch",
-        type=int,
-        default=2,
-        help="prefetch data in DataLoader (default: 2)",
-    )
-
-    # Model
-    parser.add_argument(
-        "--batch-size",
-        type=int,
-        default=64,
-        help="input batch size for training (default: 64)",
-    )
-    parser.add_argument(
-        "--epochs", type=int, default=10, help="number of epochs to train (default: 10)"
-    )
-    parser.add_argument(
-        "--lr", type=float, default=0.01, help="learning rate (default: 0.01)"
-    )
-    parser.add_argument(
-        "--momentum",
-        type=float,
-        default=0.5,
-        help="momentum in SGD optimizer (default: 0.5)",
-    )
-    parser.add_argument(
-        "--shuff",
-        action="store_true",
-        default=False,
-        help="shuffle dataset (default: False)",
-    )
-
-    # Reproducibility
-    parser.add_argument(
-        "--rnd-seed",
-        type=Optional[int],
-        default=None,
-        help="seed integer for reproducibility (default: 0)",
-    )
-
-    # Distributed ML
-    parser.add_argument(
-        "--backend",
-        type=str,
-        default="nccl",
-        help="backend for parrallelisation (default: nccl)",
-    )
-    parser.add_argument(
-        "--no-cuda", action="store_true", default=False, help="disables GPGPUs"
-    )
-    parser.add_argument(
-        "--local_rank",
-        type=int,
-        default=-1,
-        help="local rank passed from distributed launcher",
-    )
-
-    # Horovod
-    parser.add_argument(
-        "--fp16-allreduce",
-        action="store_true",
-        default=False,
-        help="use fp16 compression during allreduce",
-    )
-    parser.add_argument(
-        "--use-adasum",
-        action="store_true",
-        default=False,
-        help="use adasum algorithm to do reduction",
-    )
-    parser.add_argument(
-        "--gradient-predivide-factor",
-        type=float,
-        default=1.0,
-        help=("apply gradient pre-divide factor in optimizer " "(default: 1.0)"),
-    )
-
-    # DeepSpeed
-    parser = deepspeed.add_config_arguments(parser)
-    args = parser.parse_args()
-
-    if args.verbose:
-        args_list = [f"{key}: {val}" for key, val in args.items()]
-        print("PARSED ARGS:\n", "\n".join(args_list))
-
-    return args
-
-
-def train(
-    model,
-    device,
-    train_loader,
-    optimizer,
-    epoch,
-    strategy: TorchDistributedStrategy,
-    args,
-):
-    """Training function, representing an epoch."""
-    model.train()
-    loss_acc = 0
-    gwsize = strategy.global_world_size()
-    for batch_idx, (data, target) in enumerate(train_loader):
-        data, target = data.to(device), target.to(device)
-        optimizer.zero_grad()
-        output = model(data)
-        loss = F.nll_loss(output, target)
-        loss.backward()
-        optimizer.step()
-        if (
-            strategy.is_main_worker
-            and args.log_int > 0
-            and batch_idx % args.log_int == 0
-        ):
-            print(
-                f"Train epoch: {epoch} "
-                f"[{batch_idx * len(data)}/{len(train_loader.dataset)/gwsize} "
-                f"({100.0 * batch_idx / len(train_loader):.0f}%)]\t\t"
-                f"Loss: {loss.item():.6f}"
-            )
-        loss_acc += loss.item()
-    return loss_acc
-
-
 def main():
     # Parse CLI args
-    args = parse_params()
+    parser = get_parser()
+    args = parser.parse_args()
 
     # Instantiate Strategy
     if args.strategy == "ddp":
@@ -236,8 +75,7 @@ def main():
     is_distributed = use_cuda and torch.cuda.device_count() > 0
 
     # Dataset
-    subset_size = 5000
-    train_dataset = imagenet_dataset(args.data_dir, subset_size=subset_size)
+    train_dataset = imagenet_dataset(args.data_dir, subset_size=args.subset_size)
 
     # Set random seed for reproducibility
     torch_prng = set_seed(args.rnd_seed, deterministic_cudnn=False)
@@ -312,14 +150,11 @@ def main():
             train_sampler.set_epoch(epoch_idx)
 
         # Training
-        train(
+        train_epoch(
             model=model,
             device=device,
             train_loader=train_loader,
             optimizer=optimizer,
-            epoch=epoch_idx,
-            strategy=strategy,
-            args=args,
         )
 
         if strategy.is_main_worker:

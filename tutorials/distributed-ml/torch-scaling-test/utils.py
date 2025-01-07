@@ -131,6 +131,12 @@ def get_parser() -> ItwinaiArgParser:
         help="backend for parallelisation (default: nccl)",
     )
     parser.add_argument(
+        "--subset-size",
+        type=int|None,
+        default=None,
+        help="How big of a subset of ImageNet to use during training.",
+    )
+    parser.add_argument(
         "--no-cuda", action="store_true", default=False, help="disables GPGPUs"
     )
     parser.add_argument(
