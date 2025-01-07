@@ -8,6 +8,8 @@
 # --------------------------------------------------------------------------------------
 
 from itwinai.parser import ArgumentParser
+from jsonargparse import ArgumentError
+from typing import List
 
 
 def remove_indentation_from_multiline_string(multiline_string: str) -> str:
@@ -16,6 +18,31 @@ def remove_indentation_from_multiline_string(multiline_string: str) -> str:
     don't touch the left margin of the editor, thus increasing readability.
     """
     return "\n".join([line.lstrip() for line in multiline_string.split("\n")])
+
+
+def scalability_nodes_list(value: str | List[int]) -> List[int]:
+    """Checks that the value it receives conforms to the comma-separated integer
+    constraint and returns the parsed list if successful.
+
+    Returns:
+        The list of integers that was parsed.
+
+    Raises:
+        ValueError: If unable to parse the integers e.g. due to formatting errors.
+    """
+
+    if isinstance(value, list):
+        if not all([isinstance(x, int) for x in value]):
+            raise ValueError(f"Provided list, '{value}', contains non-integer values.")
+        else:
+            return value
+
+    try:
+        return [int(n) for n in value.split(",")]
+    except ValueError:
+        raise ValueError(
+            f"Invalid input: '{value}', must be formatted as comma-separated integers."
+        )
 
 
 def get_slurm_job_parser() -> ArgumentParser:
@@ -38,6 +65,7 @@ def get_slurm_job_parser() -> ArgumentParser:
     default_pipe_key = "rnn_training_pipeline"
     default_training_command = None
     default_python_venv = ".venv"
+    default_scalability_nodes = "1,2,4,8"
 
     parser = ArgumentParser(parser_mode="omegaconf")
 
@@ -135,6 +163,12 @@ def get_slurm_job_parser() -> ArgumentParser:
         type=str,
         default=default_python_venv,
         help="Which python venv to use for running the command.",
+    )
+    parser.add_argument(
+        "--scalability-nodes",
+        type=scalability_nodes_list,
+        default=default_scalability_nodes,
+        help="A comma-separated list of node numbers to use for the scalability test.",
     )
 
     # Boolean arguments where you only need to include the flag and not an actual value

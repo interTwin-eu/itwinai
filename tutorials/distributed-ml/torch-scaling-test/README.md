@@ -1,94 +1,109 @@
 # Scaling tests for PyTorch of ResNet152 on Imagenet
 
-**Author(s)**: Matteo Bunino (CERN)
+**Author(s)**: Matteo Bunino (CERN), Jarl Sondre Sæther (CERN)
 
 ## Introduction
 
-This tutorial contains six training configurations: three baselines plus the itwinai
-trainer, which allows to switch from DDP, Horovod, and DeepSpeed in a simplified way.
+This tutorial will show you an example of running a scalability test using the metrics
+provided by the `itwinai` library. It will also show how `itwinai`'s distributed
+strategies simplify the code for distributed training, and that the computational
+overhead of using these strategies is negligible (if not non-existent).
 
-The training scripts are:
+The tutorial uses the following three strategies for distributed machine learning: 
+- PyTorch Distributed Data Parallel (DDP)
+- Horovod
+- Microsoft DeepSpeed
 
-- `ddp_trainer.py`: baseline of distributed training with vanilla torch DDP
-- `deepspeed_trainer.py`: baseline of distributed training with vanilla Microsoft DeepSpeed
-- `horovod_trainer.py`: baseline of distributed training with vanilla Horovod
-- `itwinai_trainer.py`: provides the same functionalities as all the above,
-using the unified itwinai's distributed training interface.
+Each strategy is implemented both as a stand-alone implementation and as a part of the
+`itwinai_trainer.py` script, the latter of which using the `itwinai` distributed
+strategies. One particularly noticable difference is how we are able to use a single
+file for all the different strategies when using `itwinai`. 
 
-Configuration files are stored into `config/` folder. `base.yaml` provides the
-configuration common to all training experiments, whereas `ddp.yaml`, `deepspeed.yaml`,
-and `horovod.yaml` provide framework-specific configuration.
-Thanks to `itwinai.parser.ArgumentParser`, the CLI arguments can be parsed from a list of
-configuration files, while also allowing for online override.
+### Dataset
+TODO
+
+### Scalability Metrics
+TODO
+
+### Configuration and argument parsing
+
+Configuration files are stored in the `config/` folder: 
+- `base.yaml` provides the configuration common to all training experiments.
+- `ddp.yaml` provides the configuration specific to DDP.
+- `horovod.yaml` provides the configuration specific to Horovod.
+- `deepspeed.yaml` provides the configuration specific to DeepSpeed.
+
+Thanks to the `itwinai.parser.ArgumentParser`, the arguments can be parsed both from 
+the CLI itself as well as from an arbitrary number of configuration files.
+Additionally, fields in the configuration files can be overridden in the CLI as needed. 
 Example:
 
 ```bash
 # Rather than requiring a LONG list of inline configuration params...
 python ddp_trainer.py --data-dir some/dir --log-int 10 --verbose --nworker 4 ...
 
-# ...itwinai's ArgumentParser allows to load them from a set of configuration files
-# with inline override, if needed
+# ...itwinai's ArgumentParser allows using a set of configuration files, with inline
+# override if needed
 python ddp_trainer.py -c config/base.yaml -c config/ddp.yaml --log-int 42
 ```
 
 ## Run a single training
 
-Training runs are meant to be submitted via SLURM, from a unified job script file:
-`slurm.sh`. You can select the distributed training algorithm and provide the command
-to execute setting SLURM environment variables using the `--export` option:
+Training runs should be submitted using SLURM. To do this, you can use the provided
+`slurm.py` file, which leverages the `itwinai.slurm.SlurmScriptBuilder` for automatic
+SLURM script generation. The builder uses the `slurm_config.yaml` file for parameters,
+meaning that you don't have to add all your SLURM parameters inline. If you have
+specified the parameters to your liking (e.g. how many GPUs to use, how long the
+training should last etc.), you can run the SLURM script with the following command:
 
 ```bash
-# Launch a distributed training setup with Torch DDP
-export DIST_MODE="ddp"
-export RUN_NAME="ddp-bl-imagenent"
-export TRAINING_CMD="ddp_trainer.py -c config/base.yaml -c config/ddp.yaml"
-export PYTHON_VENV="../../../envAI_hdfml"
-export N=2 # Number of nodes
-sbatch --export=ALL,DIST_MODE="$DIST_MODE",RUN_NAME="$RUN_NAME",TRAINING_CMD="$TRAINING_CMD",PYTHON_VENV="$PYTHON_VENV" \
-    --job-name="$RUN_NAME-n$N" \
-    --output="logs_slurm/job-$RUN_NAME-n$N.out" \
-    --error="logs_slurm/job-$RUN_NAME-n$N.err" \
-    --nodes=$N slurm.sh
+python slurm.py -c slurm_config.yaml
 ```
 
-## Run all training configurations
-
-To run all training configurations you can use the `runall.sh` script, which provides
-further insight how different training configurations can be launched using the same
-SLURM job script.
+Running this command will submit the job and store the script to file. If you don't
+want the job to be submitted immediately, you could add `--no-submit-job`, allowing you
+to inspect the saved file before running it. If you don't want to store the script for
+later use, then you can add `--no-retain-file`. If you add both of these, the builder
+will simply print the resulting script without running or saving it, allowing you to
+quickly tinker with it before running it. An example of the full command with both
+of these options looks like this: 
 
 ```bash
-bash runall.sh
+python slurm.py -c slurm_config.yaml --no-retain-file --no-submit-job
 ```
 
-And check the newly created jobs in the SLURM queue:
+If you want to override any of the fields from the configuration file, you can add the
+argument inline after, like this: 
 
 ```bash
-squeue -u YOUR_USERNAME
+python slurm.py -c slurm_config.yaml --no-retain-file --no-submit-job --job-name my_job
 ```
 
-Each execution will generate a `.csv` file recording the time that each training epoch
-took to complete. Below you can learn more on how to analyze these files to produce report.
+Here, we overrode the `job-name` field with the value `my_job`. 
 
-## Launch scaling test
+## Run all the distributed strategies
 
-Similarly to `runall.sh`, there is another script which is meant to launch a scalability
-analysis experiment. This will launch all the training configuration for different number
-of node allocations. By default it will run the same distributed trainings on 1, 2, 4, and
-8 nodes. Each independent execution will generate a separate `.csv` file which can be
-analyzed later to produce a scalability report.
-
-Launch the scaling test:
+To run all the distributed strategies, e.g. `DDP`, `Horovod` and `DeepSpeed`, you can
+use the `mode` argument with the `runall` option like so:
 
 ```bash
-bash scaling-test.sh
+python slurm.py --mode runall
 ```
 
-And check the newly created jobs in the SLURM queue:
+It is also possible to add a configuration file, but keep in mind that the `runall`
+mode will override certain fields like the distributed strategy etc. Similar to before,
+you can also print the scripts before choosing to run them. An example of running all
+the distributed strategies with a configuration file where you print the scripts first
+can be seen here: 
 
 ```bash
-squeue -u YOUR_USERNAME
+python slurm.py -c slurm_config.yaml --no-retain-file --no-submit-job --mode runall
 ```
+
+## Run scaling test
+
+If you wish to run a scaling test, you can set the `mode` to `scaling-test`. This will
+launch all the distributed strategies with different number of nodes. 
 
 ## Analyze results
 

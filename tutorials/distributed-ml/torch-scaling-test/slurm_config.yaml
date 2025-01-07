@@ -24,6 +24,9 @@ std_out: slurm_job_logs/${dist_strat}-${num_nodes}x${gpus_per_node}.out
 err_out: slurm_job_logs/${dist_strat}-${num_nodes}x${gpus_per_node}.err
 job_name: tutorial-${dist_strat}-job
 
+# The different number of nodes to use for the scalability testing
+scalability_nodes: "1, 2, 3"
+
 python_venv: ../../../.venv
 
 # If you want to manually override the training command, comment in the following:

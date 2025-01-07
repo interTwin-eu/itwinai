@@ -15,7 +15,6 @@ to use checkpoints.
 import argparse
 import os
 import sys
-import time
 from timeit import default_timer as timer
 from typing import Optional
 
