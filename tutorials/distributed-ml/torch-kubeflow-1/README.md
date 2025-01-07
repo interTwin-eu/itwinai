@@ -15,7 +15,7 @@ for more details.
 ## Installing Kubeflow's Training Operator
 
 First, install the [training operator](https://www.kubeflow.org/docs/components/training/installation/).
-Python SDK are not needed for this tutorial.
+Python SDK is not needed for this tutorial.
 
 Example for `v1.8.1`:
 
@@ -74,7 +74,7 @@ first. To manage both Master and Worker pods use:
 kubectl describe pod torchrun-cpu-worker-0 -n kubeflow
 kubectl describe pod torchrun-cpu-master-0 -n kubeflow
 
-# Get the logs from the commands run the pods
+# Get the logs from the pods
 kubectl logs torchrun-cpu-master-0 -n kubeflow
 kubectl logs torchrun-cpu-worker-0 -n kubeflow
 ```
