@@ -20,14 +20,12 @@ from timeit import default_timer as timer
 
 import horovod.torch as hvd
 import torch
-
 import torchvision
 from torch.utils.data import DataLoader
 from torch.utils.data.distributed import DistributedSampler
 from utils import get_parser, imagenet_dataset, train_epoch
 
 from itwinai.loggers import EpochTimeTracker
-
 from itwinai.torch.distributed import (
     DeepSpeedStrategy,
     HorovodStrategy,
