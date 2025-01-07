@@ -2,7 +2,10 @@
 
 **Author(s)**: Matteo Bunino (CERN)
 
-This tutorial demonstrates running distributed machine learning (ML) on Kubernetes using
+This tutorial is ideal for running distributed machine learning on Kubernetes when an HPC cluster managed
+by SLURM is unavailable. It provides a flexible solution for both on-premises and cloud-based Kubernetes
+deployments, including access to GPU nodes for scalable, high-performance training workloads.
+It demonstrates running distributed machine learning (ML) on Kubernetes using
 Kubeflow's [training operator](https://www.kubeflow.org/docs/components/training/overview/)
 for PyTorch and itwinai's `TorchTrainer`.
 
@@ -36,14 +39,14 @@ NAME                                 READY   STATUS    RESTARTS   AGE
 training-operator-6f4d5d95f8-spfgx   1/1     Running   0          11d
 ```
 
-Before proceeding, familiarize yourself with
+Before proceeding, familiarize yourself with how
 [PyTorchJob](https://www.kubeflow.org/docs/components/training/reference/distributed-training/#distributed-training-for-pytorch)
 works. In brief:
 
 1. The PyTorchJob sets environment variables for `torchrun`.
 1. The Python script should be invoked using `torchrun` in the pod manifest.
 The `torchrun` CLI will make sure that the correct number of worker processes (i.e., replicas of your Python process)
-per pod is spawned. Example:
+per pod are spawned. Example:
 
     ```yaml
     containers:
