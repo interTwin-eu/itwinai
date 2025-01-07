@@ -71,17 +71,13 @@ def generate_gpu_data_plots(
 
     log_dir_path = Path(log_dir)
     if not log_dir_path.exists():
-        raise ValueError(
-            f"The provided log_dir, '{log_dir_path.resolve()}', does not exist."
-        )
+        raise ValueError(f"The provided log_dir, '{log_dir_path.resolve()}', does not exist.")
 
     plot_dir_path = Path(plot_dir)
     if pattern.lower() == "none":
         pattern = None
 
-    gpu_data_df = convert_matching_files_to_dataframe(
-        pattern=pattern, log_dir=log_dir_path
-    )
+    gpu_data_df = convert_matching_files_to_dataframe(pattern=pattern, log_dir=log_dir_path)
 
     energy_df = calculate_total_energy_expenditure(gpu_data_df=gpu_data_df)
     utilization_df = calculate_average_gpu_utilization(gpu_data_df=gpu_data_df)
@@ -237,10 +233,7 @@ def generate_scalability_plot(
     print(combined_df)
 
     avg_time_df = (
-        combined_df.drop(columns="epoch_id")
-        .groupby(["name", "nodes"])
-        .mean()
-        .reset_index()
+        combined_df.drop(columns="epoch_id").groupby(["name", "nodes"]).mean().reset_index()
     )
     print("\nAvg over name and nodes:")
     print(avg_time_df.rename(columns=dict(time="avg(time)")))
@@ -269,9 +262,7 @@ def sanity_check(
         Optional[bool], typer.Option(help=("Check also itwinai.tensorflow modules."))
     ] = False,
     all: Annotated[Optional[bool], typer.Option(help=("Check all modules."))] = False,
-    optional_deps: List[str] = typer.Option(
-        None, help="List of optional dependencies."
-    ),
+    optional_deps: List[str] = typer.Option(None, help="List of optional dependencies."),
 ):
     """Run sanity checks on the installation of itwinai and its dependencies by trying
     to import itwinai modules. By default, only itwinai core modules (neither torch, nor
@@ -307,10 +298,7 @@ def exec_pipeline(
     pipe_key: Annotated[
         str,
         typer.Option(
-            help=(
-                "Key in the configuration file identifying "
-                "the pipeline object to execute."
-            )
+            help=("Key in the configuration file identifying the pipeline object to execute.")
         ),
     ] = "pipeline",
     steps: Annotated[
@@ -350,7 +338,7 @@ def exec_pipeline(
     import re
     import sys
 
-    from .utils import str_to_slice
+    from omegaconf.errors import ConfigAttributeError
 
     sys.path.append(os.path.dirname(config))
     sys.path.append(os.getcwd())
@@ -360,27 +348,25 @@ def exec_pipeline(
 
     overrides_list = overrides_list if overrides_list is not None else []
     overrides = {
-        k: v
-        for k, v in map(lambda x: (x.split("=")[0], x.split("=")[1]), overrides_list)
+        k: v for k, v in map(lambda x: (x.split("=")[0], x.split("=")[1]), overrides_list)
     }
-    parser = ConfigParser(config=config, override_keys=overrides)
-    if print_config:
-        import json
+    parser = ConfigParser(config=config)
+    pipeline = parser.parse_pipeline(
+        pipeline_nested_key=pipe_key,
+        override_keys=overrides,
+        steps=steps,
+        verbose=print_config,
+    )
 
-        print()
-        print("#=" * 15 + " Used configuration " + "#=" * 15)
-        print(json.dumps(parser.config, indent=2))
-        print("#=" * 50)
-        print()
-
-    pipeline = parser.parse_pipeline(pipeline_nested_key=pipe_key)
-    if steps:
-        if not re.match(r"\d+(:\d+)?(:\d+)?", steps):
-            print(f"Looking for step name '{steps}'")
-        else:
-            steps = str_to_slice(steps)
-        pipeline = pipeline[steps]
-    pipeline.execute()
+    try:
+        pipeline.execute()
+    except ConfigAttributeError as e:
+        e.add_note(
+            "Failed to execute pipeline because some arguments passed to your instantiated "
+            "classes were not correct. Did you perhaps not define the classes in your "
+            "configuration file correctly?"
+        )
+        raise e
 
 
 @app.command()

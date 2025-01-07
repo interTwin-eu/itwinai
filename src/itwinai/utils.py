@@ -148,32 +148,6 @@ class SignatureInspector:
         return len(self.func_params)
 
 
-def str_to_slice(interval: str) -> slice:
-    """Transform string interval to Python slice.
-    Example: "1:17:3" -> slice(1,17,3)
-
-    Args:
-        interval (str): interval to parse.
-
-    Raises:
-        ValueError: when interval is invalid.
-
-    Returns:
-        slice: parsed slice.
-    """
-    import re
-
-    # TODO: add support for slices starting with empty index
-    # e.g., :20:3
-    if not re.match(r"\d+(:\d+)?(:\d+)?", interval):
-        raise ValueError(f"Received invalid interval for slice: '{interval}'")
-    if ":" in interval:
-        return slice(
-            *map(lambda x: int(x.strip()) if x.strip() else None, interval.split(":"))
-        )
-    return int(interval)
-
-
 def clear_key(my_dict: Dict, dict_name: str, key: Hashable, complain: bool = True) -> Dict:
     """Remove key from dictionary if present and complain.
 

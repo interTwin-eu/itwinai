@@ -11,68 +11,15 @@
 execution, and dynamic override of fields.
 """
 
-import json
-import logging
-import os
+import ast
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Type, Union
+from typing import Dict, Union
 
-from jsonargparse import ActionConfigFile
-from jsonargparse import ArgumentParser as JAPArgumentParser
-from jsonargparse._formatters import DefaultHelpFormatter
+from hydra.utils import instantiate
 from omegaconf import OmegaConf
 
 from .components import BaseComponent
 from .pipeline import Pipeline
-from .utils import load_yaml
-
-
-class _ArgumentParser(JAPArgumentParser):
-    def error(self, message: str, ex: Optional[Exception] = None) -> None:
-        """Patch error method to re-raise exception instead of exiting execution."""
-        raise ex
-
-
-def add_replace_field(config: Dict, key_chain: str, value: Any) -> None:
-    """Replace or add (if not present) a field in a dictionary, following a
-    path of dot-separated keys. Adding is not supported for list items.
-    Inplace operation.
-
-    Args:
-        config (Dict): dictionary to be modified.
-        key_chain (str): path of nested (dot-separated) keys to specify the
-            location
-            of the new value (e.g., 'foo.bar.line' adds/overwrites the value
-            located at config['foo']['bar']['line']).
-        value (Any): the value to insert.
-    """
-    sub_config = config
-    for idx, k in enumerate(key_chain.split(".")):
-        if idx >= len(key_chain.split(".")) - 1:
-            # Last key reached
-            break
-
-        if isinstance(sub_config, (list, tuple)):
-            k = int(k)
-            next_elem = sub_config[k]
-        else:
-            next_elem = sub_config.get(k)
-
-        if not isinstance(next_elem, (dict, list, tuple)):
-            sub_config[k] = dict()
-
-        sub_config = sub_config[k]
-    if isinstance(sub_config, (list, tuple)):
-        k = int(k)
-    sub_config[k] = value
-
-
-def get_root_cause(exception: Exception) -> Exception:
-    """Recursively extract the first exception in the exception chain."""
-    root = exception
-    while root.__cause__ is not None:  # Traverse the exception chain
-        root = root.__cause__
-    return root
 
 
 class ConfigParser:
@@ -121,37 +68,65 @@ class ConfigParser:
 
     """
 
-    #: Configuration to parse.
-    config: Dict
-    #: Pipeline object instantiated from the configuration file.
+    #: Path to the yaml file containing the configuration to parse.
+    config: str | Path
+    #: A dictionary containing which keys to override in the configuration.
     pipeline: Pipeline
 
     def __init__(
-        self, config: Union[str, Dict], override_keys: Optional[Dict[str, Any]] = None
+        self,
+        config: str | Path,
     ) -> None:
         self.config = config
-        self.override_keys = override_keys
-        if isinstance(self.config, (str, Path)):
-            self.config = load_yaml(self.config)
-        self._dynamic_override_keys()
-        self._omegaconf_interpolate()
-
-    def _dynamic_override_keys(self):
-        if self.override_keys is not None:
-            for key_chain, value in self.override_keys.items():
-                add_replace_field(self.config, key_chain, value)
-
-    def _omegaconf_interpolate(self) -> None:
-        """Performs variable interpolation with OmegaConf on internal
-        configuration file.
-        """
-        conf = OmegaConf.create(self.config)
-        self.config = OmegaConf.to_container(conf, resolve=True)
 
     def parse_pipeline(
-        self, pipeline_nested_key: str = "pipeline", verbose: bool = False
+        self,
+        pipeline_nested_key: str = "pipeline",
+        override_keys: Dict | None = None,
     ) -> Pipeline:
-        """Merges steps into pipeline and parses it.
+        import yaml  # for error handling
+
+        # Load config from yaml
+        try:
+            raw_conf = OmegaConf.load(self.config)
+        except yaml.scanner.ScannerError as e:
+            e.add_note(
+                f"Failed to load config from {self.config}! You might want to check "
+                "the structure of your yaml file."
+            )
+            raise e
+
+        if pipeline_nested_key not in raw_conf:
+            raise ValueError(f"Pipeline key {pipeline_nested_key} not found.")
+
+        # Override keys
+        for override_key, override_value in override_keys.items():
+            # if override_key not in raw_conf[pipeline_nested_key]:
+            #     raise KeyError(
+            #         f"Tried to override non-existing key {override_key}. Please make sure "
+            #         "to only overwrite keys that are defined in your selected "
+            #         f"pipeline: {pipeline_nested_key}."
+            #     )
+            inferred_type = ast.literal_eval(override_value)
+            OmegaConf.update(raw_conf, override_key, inferred_type)
+
+            print(
+                f"Successfully overrode key {override_key}."
+                f"It now has the value {inferred_type} of type {type(inferred_type)}."
+            )
+
+        conf = raw_conf[pipeline_nested_key]
+
+        return conf
+
+    def build_pipeline(
+        self,
+        pipeline_nested_key: str = "pipeline",
+        override_keys: Dict | None = None,
+        steps: str | None = None,
+        verbose: bool = False,
+    ) -> Pipeline:
+        """Parses the pipeline and instantiated all classes defined within it.
 
         Args:
             pipeline_nested_key (str, optional): nested key in the
@@ -163,136 +138,64 @@ class ConfigParser:
         Returns:
             Pipeline: instantiated pipeline.
         """
-        pipe_parser = _ArgumentParser()
-        pipe_parser.add_subclass_arguments(Pipeline, "pipeline")
+        conf = self.parse_pipeline(pipeline_nested_key, override_keys)
 
-        pipe_dict = self.config
-        for key in pipeline_nested_key.split("."):
-            pipe_dict = pipe_dict[key]
-        # pipe_dict = self.config[pipeline_nested_key]
-        pipe_dict = {"pipeline": pipe_dict}
+        if steps:
+            conf.steps = self._get_selected_steps(steps, conf.steps)
+
+        # Resolve interpolated parameters
+        OmegaConf.resolve(conf)
 
         if verbose:
             print("Assembled pipeline:")
-            print(json.dumps(pipe_dict, indent=4))
+            print(OmegaConf.to_yaml(conf))
 
-        try:
-            # Parse pipeline dict once merged with steps
-            conf = pipe_parser.parse_object(pipe_dict)
-            pipe = pipe_parser.instantiate_classes(conf)
-        except Exception as exc:
-            exc = get_root_cause(exc)
-            raise exc
-        self.pipeline = pipe["pipeline"]
-        return self.pipeline
+        pipeline = instantiate(conf)
 
-    def parse_step(
+        return pipeline
+
+    def build_step(
         self,
         step_idx: Union[str, int],
         pipeline_nested_key: str = "pipeline",
+        override_keys: Dict | None = None,
         verbose: bool = False,
     ) -> BaseComponent:
-        pipeline_dict = self.config
-        for key in pipeline_nested_key.split("."):
-            pipeline_dict = pipeline_dict[key]
+        conf = self.parse_pipeline(pipeline_nested_key, override_keys)
 
-        step_dict_config = pipeline_dict["init_args"]["steps"][step_idx]
+        conf = conf.steps[step_idx]
+
+        # Resolve interpolated parameters
+        OmegaConf.resolve(conf)
 
         if verbose:
-            print(f"STEP '{step_idx}' CONFIG:")
-            print(json.dumps(step_dict_config, indent=4))
+            print(f"Assembled step {step_idx} from {pipeline_nested_key}:")
+            print(OmegaConf.to_yaml(conf))
 
-        # Wrap config under "step" field and parse it
-        step_dict_config = {"step": step_dict_config}
-        step_parser = _ArgumentParser()
-        step_parser.add_subclass_arguments(BaseComponent, "step")
-        try:
-            parsed_namespace = step_parser.parse_object(step_dict_config)
-            step = step_parser.instantiate_classes(parsed_namespace)["step"]
-        except Exception as exc:
-            exc = get_root_cause(exc)
-            raise exc
+        step = instantiate(conf)
+
         return step
 
+    def _get_selected_steps(self, steps: str, conf_steps: list):
+        # If steps is given as a slice
+        if ":" in steps:
+            try:
+                slice_obj = slice(*[int(x) if x else None for x in steps.split(":")])
+                return conf_steps[slice_obj]
+            except ValueError:
+                raise ValueError(f"Invalid slice notation: {steps}")
 
-class ArgumentParser(JAPArgumentParser):
-    """Wrapper of ``jsonargparse.ArgumentParser``.
-    Initializer for ArgumentParser instance. It can parse arguments from
-    a series of configuration files. Example:
+        # If steps is given as a single index
+        elif steps.isdigit():
+            index = int(steps)
+            if 0 <= index < len(conf_steps):
+                return [conf_steps[index]]
+            else:
+                raise IndexError(f"Step index out of range: {index}")
 
-    >>> python main.py --config base-conf.yaml --config other-conf.yaml \\
-    >>> --param OVERRIDE_VAL
-
-    All the arguments from the initializer of `argparse.ArgumentParser
-    <https://docs.python.org/3/library/argparse.html#argparse.ArgumentParser>`_
-    are supported. Additionally it accepts:
-
-    Args:
-        env_prefix (Union[bool, str], optional): Prefix for environment
-            variables. ``True`` to derive from ``prog``.. Defaults to True.
-        formatter_class (Type[DefaultHelpFormatter], optional): Class for
-            printing help messages. Defaults to DefaultHelpFormatter.
-        exit_on_error (bool, optional): Defaults to True.
-        logger (Union[bool, str, dict, logging.Logger], optional):
-            Configures the logger, see :class:`.LoggerProperty`.
-            Defaults to False.
-        version (Optional[str], optional): Program version which will be
-            printed by the --version argument. Defaults to None.
-        print_config (Optional[str], optional): Add this as argument to
-            print config, set None to disable.
-            Defaults to "--print_config".
-        parser_mode (str, optional): Mode for parsing config files:
-            ``'yaml'``, ``'jsonnet'`` or ones added via
-            :func:`.set_loader`.. Defaults to "yaml".
-        dump_header (Optional[List[str]], optional): Header to include
-            as comment when dumping a config object. Defaults to None.
-        default_config_files
-            (Optional[List[Union[str, os.PathLike]]], optional):
-            Default config file locations, e.g.
-            :code:`['~/.config/myapp/*.yaml']`. Defaults to None.
-        default_env (bool, optional): Set the default value on whether
-            to parse environment variables. Defaults to False.
-        default_meta (bool, optional): Set the default value on whether
-            to include metadata in config objects. Defaults to True.
-    """
-
-    def __init__(
-        self,
-        *args,
-        env_prefix: Union[bool, str] = True,
-        formatter_class: Type[DefaultHelpFormatter] = DefaultHelpFormatter,
-        exit_on_error: bool = True,
-        logger: Union[bool, str, dict, logging.Logger] = False,
-        version: Optional[str] = None,
-        print_config: Optional[str] = "--print_config",
-        parser_mode: str = "yaml",
-        dump_header: Optional[List[str]] = None,
-        default_config_files: Optional[List[Union[str, os.PathLike]]] = None,
-        default_env: bool = False,
-        default_meta: bool = True,
-        **kwargs,
-    ) -> None:
-        super().__init__(
-            *args,
-            env_prefix=env_prefix,
-            formatter_class=formatter_class,
-            exit_on_error=exit_on_error,
-            logger=logger,
-            version=version,
-            print_config=print_config,
-            parser_mode=parser_mode,
-            dump_header=dump_header,
-            default_config_files=default_config_files,
-            default_env=default_env,
-            default_meta=default_meta,
-            **kwargs,
-        )
-        self.add_argument(
-            "-c",
-            "--config",
-            action=ActionConfigFile,
-            help="Path to a configuration file in json or yaml format.",
-        )
-
-
-# type: ignore
+        # If steps is given as a name
+        else:
+            selected_steps = [step for step in conf_steps if step.get("_target_") == steps]
+            if not selected_steps:
+                raise ValueError(f"No steps found with name: {steps}")
+            return selected_steps
