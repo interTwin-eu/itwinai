@@ -11,21 +11,19 @@
 """Scaling test of Microsoft Deepspeed on Imagenet using Resnet."""
 
 import os
-from timeit import default_timer as timer
 from pathlib import Path
+from timeit import default_timer as timer
 
 import deepspeed
 import torch
 import torch.distributed as dist
 import torchvision
-
 from torch.utils.data import DataLoader
 from torch.utils.data.distributed import DistributedSampler
 from utils import get_parser, imagenet_dataset, train_epoch
 
 from itwinai.loggers import EpochTimeTracker
-
-from itwinai.torch.reproducibility import set_seed, seed_worker
+from itwinai.torch.reproducibility import seed_worker, set_seed
 
 
 def main():

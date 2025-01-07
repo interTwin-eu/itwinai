@@ -16,19 +16,21 @@ to use checkpoints.
 # import argparse
 import os
 import sys
-from timeit import default_timer as timer
 from pathlib import Path
+from timeit import default_timer as timer
 
 # import deepspeed
 import horovod.torch as hvd
 import torch
+
 # import torch.nn.functional as F
 import torchvision
 from torch.utils.data import DataLoader
 from torch.utils.data.distributed import DistributedSampler
-from utils import imagenet_dataset, get_parser, train_epoch
+from utils import get_parser, imagenet_dataset, train_epoch
 
 from itwinai.loggers import EpochTimeTracker
+
 # from itwinai.parser import ArgumentParser as ItwinaiArgParser
 from itwinai.torch.distributed import (
     DeepSpeedStrategy,

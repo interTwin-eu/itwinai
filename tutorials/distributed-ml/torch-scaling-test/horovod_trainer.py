@@ -11,8 +11,8 @@
 """Scaling test of Horovod on Imagenet using Resnet."""
 
 import os
-from timeit import default_timer as timer
 from pathlib import Path
+from timeit import default_timer as timer
 
 import horovod.torch as hvd
 import torch

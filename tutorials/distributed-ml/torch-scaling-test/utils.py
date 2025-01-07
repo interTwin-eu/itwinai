@@ -7,6 +7,8 @@
 # - Matteo Bunino <matteo.bunino@cern.ch> - CERN
 # - Jarl Sondre Sæther <jarl.sondre.saether@cern.ch> - CERN
 # --------------------------------------------------------------------------------------
+from typing import Union
+
 import torch.nn as nn
 import torch.nn.functional as F
 from torch import device
@@ -132,7 +134,7 @@ def get_parser() -> ItwinaiArgParser:
     )
     parser.add_argument(
         "--subset-size",
-        type=int | None,
+        type=Union[int, None],
         default=None,
         help="How big of a subset of ImageNet to use during training.",
     )

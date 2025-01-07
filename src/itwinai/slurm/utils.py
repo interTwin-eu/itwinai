@@ -7,9 +7,9 @@
 # - Jarl Sondre Sæther <jarl.sondre.saether@cern.ch> - CERN
 # --------------------------------------------------------------------------------------
 
-from itwinai.parser import ArgumentParser
-from jsonargparse import ArgumentError
 from typing import List
+
+from itwinai.parser import ArgumentParser
 
 
 def remove_indentation_from_multiline_string(multiline_string: str) -> str:

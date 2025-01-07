@@ -9,8 +9,8 @@ provided by the `itwinai` library. It will also show how `itwinai`'s distributed
 strategies simplify the code for distributed training, and that the computational
 overhead of these strategies is negligible, or even non-existent.
 
+The tutorial uses the following three strategies for distributed machine learning:
 
-The tutorial uses the following three strategies for distributed machine learning: 
 - PyTorch Distributed Data Parallel (DDP)
 - Horovod
 - Microsoft DeepSpeed
@@ -18,33 +18,36 @@ The tutorial uses the following three strategies for distributed machine learnin
 Each strategy is implemented both as a stand-alone implementation and as a part of the
 `itwinai_trainer.py` script, the latter of which using the `itwinai` distributed
 strategies. One particularly noticeable difference is how we are able to use a single
-file for all the different strategies when using `itwinai`. 
+file for all the different strategies when using `itwinai`.
 
 ### Dataset
+
 This tutorial uses the ImageNet dataset to test the scalability of the different
 strategies. The ImageNet dataset is very large and computationally demanding, taking a
 long time to complete. Therefore, if you wish to only perform a quick test, you can
 set the `subset_size` parameter in the `config/base.yaml` configuration file to only
-train on a subset of the data. Through trial and error, we found that setting the 
+train on a subset of the data. Through trial and error, we found that setting the
 subset size to around 5000 works well for quick experimentation.
 
 ### Scalability Metrics
+
 The `itwinai` library offers multiple scalability metrics, but some of these require
 the itwinai trainer, which is not used in this tutorial, and are therefore unavailable.
 We do have functionality of logging the relative and absolute time, however, and it is
-these metrics that are included. 
+these metrics that are included.
 
 ### Configuration and argument parsing
 
-Configuration files are stored in the `config/` folder: 
+Configuration files are stored in the `config/` folder:
+
 - `base.yaml` provides the configuration common to all training experiments.
 - `ddp.yaml` provides the configuration specific to DDP.
 - `horovod.yaml` provides the configuration specific to Horovod.
 - `deepspeed.yaml` provides the configuration specific to DeepSpeed.
 
-Thanks to the `itwinai.parser.ArgumentParser`, the arguments can be parsed both from 
+Thanks to the `itwinai.parser.ArgumentParser`, the arguments can be parsed both from
 the CLI itself as well as from an arbitrary number of configuration files.
-Additionally, fields in the configuration files can be overridden in the CLI as needed. 
+Additionally, fields in the configuration files can be overridden in the CLI as needed.
 Example:
 
 ```bash
@@ -75,20 +78,20 @@ to inspect the saved file before running it. If you don't want to store the scri
 later use, then you can add `--no-retain-file`. If you add both of these, the builder
 will simply print the resulting script without running or saving it, allowing you to
 quickly tinker with it before running it. An example of the full command with both
-of these options looks like this: 
+of these options looks like this:
 
 ```bash
 python slurm.py -c slurm_config.yaml --no-retain-file --no-submit-job
 ```
 
 If you want to override any of the fields from the configuration file, you can add the
-argument inline after, like this: 
+argument inline after, like this:
 
 ```bash
 python slurm.py -c slurm_config.yaml --no-retain-file --no-submit-job --job-name my_job
 ```
 
-Here, we overrode the `job-name` field with the value `my_job`. 
+Here, we overrode the `job-name` field with the value `my_job`.
 
 ## Run all the distributed strategies
 
@@ -103,7 +106,7 @@ It is also possible to add a configuration file, but keep in mind that the `runa
 mode will override certain fields like the distributed strategy etc. Similar to before,
 you can also print the scripts before choosing to run them. An example of running all
 the distributed strategies with a configuration file where you print the scripts first
-can be seen here: 
+can be seen here:
 
 ```bash
 python slurm.py -c slurm_config.yaml --no-retain-file --no-submit-job --mode runall
@@ -113,7 +116,7 @@ python slurm.py -c slurm_config.yaml --no-retain-file --no-submit-job --mode run
 
 If you wish to run a scaling test, you can set the `mode` to `scaling-test`. This will
 launch all the distributed strategies with different number of nodes. An example of
-this is
+this can be seen here:
 
 ```bash
 python slurm.py -c slurm_config.yaml --no-retain-file --no-submit-job --mode scaling-test
