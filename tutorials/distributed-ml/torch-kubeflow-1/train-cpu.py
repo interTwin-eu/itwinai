@@ -59,6 +59,12 @@ def main():
         help="input batch size for training (default: 64)",
     )
     parser.add_argument(
+        "--subset",
+        type=int,
+        default=1000,
+        help="maximum size for both training and validation datasets.",
+    )
+    parser.add_argument(
         "--epochs", type=int, default=14, help="number of epochs to train (default: 14)"
     )
     parser.add_argument(
@@ -108,12 +114,10 @@ def main():
         open("DATASET_READY", "w")
     else:
         import time
-
-        while True:
+        while not os.path.exists("DATASET_READY"):
+            # Wait for the dataset to be downloaded
             time.sleep(1)
-            if os.path.exists("DATASET_READY"):
-                print("Found dataset")
-                break
+          
         # Dataset creation
         train_dataset = datasets.MNIST("data", train=True, download=False, transform=transform)
         validation_dataset = datasets.MNIST(
@@ -121,8 +125,8 @@ def main():
         )
 
     # Subset dataset
-    train_dataset = Subset(train_dataset, range(1000))
-    validation_dataset = Subset(validation_dataset, range(1000))
+    train_dataset = Subset(train_dataset, range(args.subset))
+    validation_dataset = Subset(validation_dataset, range(args.subset))
 
     # Neural network to train
     model = Net()
