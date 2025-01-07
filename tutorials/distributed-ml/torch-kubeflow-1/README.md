@@ -15,7 +15,7 @@ for more details.
 ## Installing Kubeflow's Training Operator
 
 First, install the [training operator](https://www.kubeflow.org/docs/components/training/installation/).
-You do not need the Python SDK for this tutorial.
+Python SDK are not needed for this tutorial.
 
 Example for `v1.8.1`:
 
