@@ -32,7 +32,7 @@ class ConfigParser:
     BaseComponent object. It also provides functionalities for dynamic override of fields.
 
     Args:
-        config (Union[str, Dict]): path to YAML configuration file.
+        config (Union[str, Path]): path to YAML configuration file.
 
     Example:
     >>> # pipeline.yaml file
