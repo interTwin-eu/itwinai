@@ -114,10 +114,11 @@ def main():
         open("DATASET_READY", "w")
     else:
         import time
+
         while not os.path.exists("DATASET_READY"):
             # Wait for the dataset to be downloaded
             time.sleep(1)
-          
+
         # Dataset creation
         train_dataset = datasets.MNIST("data", train=True, download=False, transform=transform)
         validation_dataset = datasets.MNIST(

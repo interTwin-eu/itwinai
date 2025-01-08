@@ -494,9 +494,9 @@ class TorchDDPStrategy(TorchDistributedStrategy):
             return torch.cuda.device_count()
         if "LOCAL_WORLD_SIZE" not in os.environ:
             raise RuntimeError(
-            "Could not retrieve local world size as CUDA is unavailable and there is "
-            "no 'LOCAL_WORLD_SIZE' environment variable."
-        )
+                "Could not retrieve local world size as CUDA is unavailable and there is "
+                "no 'LOCAL_WORLD_SIZE' environment variable."
+            )
         return int(os.environ["LOCAL_WORLD_SIZE"])
 
     @check_initialized
@@ -676,9 +676,9 @@ class DeepSpeedStrategy(TorchDistributedStrategy):
             return torch.cuda.device_count()
         if "LOCAL_WORLD_SIZE" not in os.environ:
             raise RuntimeError(
-            "Could not retrieve local world size as CUDA is unavailable and there is "
-            "no 'LOCAL_WORLD_SIZE' environment variable."
-        )
+                "Could not retrieve local world size as CUDA is unavailable and there is "
+                "no 'LOCAL_WORLD_SIZE' environment variable."
+            )
         return int(os.environ["LOCAL_WORLD_SIZE"])
 
     @check_initialized
