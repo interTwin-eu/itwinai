@@ -97,7 +97,7 @@ ray_training_pipeline:
   _target_: itwinai.pipeline.Pipeline
   steps:
     - _target_: data.TimeSeriesDatasetSplitter
-      train_proportion: 0.1
+      train_proportion: 0.9
       validation_proportion: ${validation_proportion}
       rnd_seed: ${rnd_seed}
       hdf5_file_location: ${hdf5_file_location}
