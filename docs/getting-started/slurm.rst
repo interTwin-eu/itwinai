@@ -67,16 +67,16 @@ Once resources are available, the command will return a ``JOBID``. Use it to jum
 
 Remember to load the correct environment modules before activating the python virtual environment.
 
-Alternatively, if you don't need to open a terminal on the compute node allocated with the
-``salloc`` command shown above, you can simply run a command in the allocated node(s) by prepending
-``srun`` to your command. Example:
+Alternatively, if you don’t need to open an interactive shell on the compute node allocated
+with the ``salloc`` command,
+you can directly run a command on the allocated node(s) by prefixing your command with ``srun``.
+This approach ensures that your command is executed on the compute node rather than on the login node.
 
-.. code-block:: bash
+Example:
+
+.. code-block:: bash  
 
    srun YOUR_COMMAND
-
-In this case, ``srun`` will make sure that the command is executed on the compute node rather
-than on the login node, on which you have a terminal open.
 
 Environment variables
 ---------------------
