@@ -43,7 +43,7 @@ def test_serialization_pipe_list():
     """Test dict serialization of pipeline defined as list of BaseComponent objects."""
     config = yaml.safe_load(pytest.PIPE_LIST_YAML)
     parser = ConfigParser(config=config)
-    pipe = parser.parse_pipeline(pipeline_nested_key="my-list-pipeline")
+    pipe = parser.build_from_config(pipeline_nested_key="my-list-pipeline")
 
     dict_pipe = pipe.to_dict()
     del dict_pipe["init_args"]["name"]
@@ -55,7 +55,7 @@ def test_serialization_pipe_dict():
     """Test dict serialization of pipeline defined as dict of BaseComponent objects."""
     config = yaml.safe_load(pytest.PIPE_DICT_YAML)
     parser = ConfigParser(config=config)
-    pipe = parser.parse_pipeline(pipeline_nested_key="my-dict-pipeline")
+    pipe = parser.build_from_config(pipeline_nested_key="my-dict-pipeline")
 
     dict_pipe = pipe.to_dict()
     del dict_pipe["init_args"]["name"]

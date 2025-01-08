@@ -35,16 +35,16 @@ def run_trial(config: Dict, data: Dict):
     """
     parser = ConfigParser(
         config="config.yaml",
+    )
+    my_pipeline = parser.build_from_config(
         override_keys={
             # Set hyperparameters controlled by ray
             "batch_size": config["batch_size"],
-            "learning_rate": config["lr"],
+            "optim_lr": config["optim_lr"],
         },
+        pipeline_nested_key=data["pipeline_name"],
+        verbose=False,
     )
-    my_pipeline = parser.parse_pipeline(
-        pipeline_nested_key=data["pipeline_name"], verbose=False
-    )
-
     my_pipeline.execute()
 
 

@@ -66,7 +66,7 @@ def test_parse_list_pipeline():
     """
     config = yaml.safe_load(pytest.PIPE_LIST_YAML)
     parser = ConfigParser(config=config)
-    pipe = parser.parse_pipeline(pipeline_nested_key="my-list-pipeline")
+    pipe = parser.build_from_config(pipeline_nested_key="my-list-pipeline")
 
     assert isinstance(pipe.steps, list)
     for step in pipe.steps:
@@ -79,7 +79,7 @@ def test_parse_dict_pipeline():
     """
     config = yaml.safe_load(pytest.PIPE_DICT_YAML)
     parser = ConfigParser(config=config)
-    pipe = parser.parse_pipeline(pipeline_nested_key="my-dict-pipeline")
+    pipe = parser.build_from_config(pipeline_nested_key="my-dict-pipeline")
 
     assert isinstance(pipe.steps, dict)
     for step in pipe.steps.values():
@@ -91,14 +91,14 @@ def test_parse_non_existing_pipeline():
     config = yaml.safe_load(pytest.PIPE_DICT_YAML)
     parser = ConfigParser(config=config)
     with pytest.raises(KeyError):
-        _ = parser.parse_pipeline(pipeline_nested_key="non-existing-pipeline")
+        _ = parser.build_from_config(pipeline_nested_key="non-existing-pipeline")
 
 
 def test_parse_nested_pipeline():
     """Parse a pipeline from config file, where the pipeline key is nested."""
     config = yaml.safe_load(pytest.NESTED_PIPELINE)
     parser = ConfigParser(config=config)
-    _ = parser.parse_pipeline(pipeline_nested_key="some.field.nst-pipeline")
+    _ = parser.build_from_config(pipeline_nested_key="some.field.nst-pipeline")
 
 
 def test_dynamic_override_parser_pipeline_dict():
@@ -108,8 +108,10 @@ def test_dynamic_override_parser_pipeline_dict():
     config = yaml.safe_load(pytest.PIPE_DICT_YAML)
 
     override_keys = {"my-dict-pipeline.init_args.steps.preproc-step.init_args.max_items": 33}
-    parser = ConfigParser(config=config, override_keys=override_keys)
-    pipe = parser.parse_pipeline(pipeline_nested_key="my-dict-pipeline")
+    parser = ConfigParser(config=config)
+    pipe = parser.build_from_config(
+        pipeline_nested_key="my-dict-pipeline", override_keys=override_keys
+    )
     assert pipe.steps["preproc-step"].max_items == 33
 
 
@@ -120,8 +122,10 @@ def test_dynamic_override_parser_pipeline_list():
     config = yaml.safe_load(pytest.PIPE_LIST_YAML)
 
     override_keys = {"my-list-pipeline.init_args.steps.0.init_args.max_items": 42}
-    parser = ConfigParser(config=config, override_keys=override_keys)
-    pipe = parser.parse_pipeline(pipeline_nested_key="my-list-pipeline")
+    parser = ConfigParser(config=config)
+    pipe = parser.build_from_config(
+        pipeline_nested_key="my-list-pipeline", override_keys=override_keys
+    )
     assert pipe.steps[0].max_items == 42
 
 

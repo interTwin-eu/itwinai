@@ -67,7 +67,7 @@ def run_trial(config: Dict, data: Dict):
             "learning_rate": config["lr"],
         },
     )
-    my_pipeline = parser.parse_pipeline(pipeline_nested_key=pipeline_name, verbose=False)
+    my_pipeline = parser.build_from_config(pipeline_nested_key=pipeline_name, verbose=False)
 
     # Skip the first step of the pipeline (data generation)
     my_pipeline.execute()

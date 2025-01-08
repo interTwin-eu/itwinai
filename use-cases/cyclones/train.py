@@ -118,12 +118,16 @@ if __name__ == "__main__":
     # Create parser for the pipeline
     pipe_parser = ConfigParser(
         config=args.pipeline,
-        override_keys={"dataset_root": args.data_path, "global_config": global_config},
     )
-    pipeline = pipe_parser.parse_pipeline(pipeline_nested_key="training_pipeline")
-
+    steps = None
     if args.download_only:
         print("Downloading datasets and exiting...")
-        pipeline = pipeline[:1]
+        steps = ":1"
+
+    pipeline = pipe_parser.build_from_config(
+        override_keys={"dataset_root": args.data_path, "global_config": global_config},
+        pipeline_nested_key="training_pipeline",
+        steps=steps,
+    )
 
     pipeline.execute()

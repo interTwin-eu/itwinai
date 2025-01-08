@@ -335,7 +335,6 @@ def exec_pipeline(
     # Add working directory to python path so that the interpreter is able
     # to find the local python files imported from the pipeline file
     import os
-    import re
     import sys
 
     from omegaconf.errors import ConfigAttributeError
@@ -351,7 +350,7 @@ def exec_pipeline(
         k: v for k, v in map(lambda x: (x.split("=")[0], x.split("=")[1]), overrides_list)
     }
     parser = ConfigParser(config=config)
-    pipeline = parser.parse_pipeline(
+    pipeline = parser.build_from_config(
         pipeline_nested_key=pipe_key,
         override_keys=overrides,
         steps=steps,
