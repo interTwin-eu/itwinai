@@ -89,8 +89,6 @@ class Serializable:
 
         return init_args
 
-        return dict(class_path=class_path, init_args=init_args)
-
     def _validate_parameters(self) -> None:
         if self.parameters is None:
             raise SerializationError(
