@@ -5,214 +5,217 @@
 #
 # Credit:
 # - Matteo Bunino <matteo.bunino@cern.ch> - CERN
+# - Anna Lappe <anna.elisa.lappe@cern.ch
 # --------------------------------------------------------------------------------------
 
 """Provide functionalities to manage configuration files, including parsing,
 execution, and dynamic override of fields.
 """
 
-import json
+import ast
 import logging
 import os
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Type, Union
+from typing import Dict, List, Literal, Optional, Type, Union
 
+from hydra.utils import instantiate
 from jsonargparse import ActionConfigFile
 from jsonargparse import ArgumentParser as JAPArgumentParser
 from jsonargparse._formatters import DefaultHelpFormatter
-from omegaconf import OmegaConf
+from omegaconf import OmegaConf, dictconfig
 
-from .components import BaseComponent
 from .pipeline import Pipeline
-from .utils import load_yaml
-
-
-class _ArgumentParser(JAPArgumentParser):
-    def error(self, message: str, ex: Optional[Exception] = None) -> None:
-        """Patch error method to re-raise exception instead of exiting execution."""
-        raise ex
-
-
-def add_replace_field(config: Dict, key_chain: str, value: Any) -> None:
-    """Replace or add (if not present) a field in a dictionary, following a
-    path of dot-separated keys. Adding is not supported for list items.
-    Inplace operation.
-
-    Args:
-        config (Dict): dictionary to be modified.
-        key_chain (str): path of nested (dot-separated) keys to specify the
-            location
-            of the new value (e.g., 'foo.bar.line' adds/overwrites the value
-            located at config['foo']['bar']['line']).
-        value (Any): the value to insert.
-    """
-    sub_config = config
-    for idx, k in enumerate(key_chain.split(".")):
-        if idx >= len(key_chain.split(".")) - 1:
-            # Last key reached
-            break
-
-        if isinstance(sub_config, (list, tuple)):
-            k = int(k)
-            next_elem = sub_config[k]
-        else:
-            next_elem = sub_config.get(k)
-
-        if not isinstance(next_elem, (dict, list, tuple)):
-            sub_config[k] = dict()
-
-        sub_config = sub_config[k]
-    if isinstance(sub_config, (list, tuple)):
-        k = int(k)
-    sub_config[k] = value
-
-
-def get_root_cause(exception: Exception) -> Exception:
-    """Recursively extract the first exception in the exception chain."""
-    root = exception
-    while root.__cause__ is not None:  # Traverse the exception chain
-        root = root.__cause__
-    return root
 
 
 class ConfigParser:
-    """Parses a pipeline from a configuration file.
-    It also provides functionalities for dynamic override
-    of fields by means of nested key notation.
+    """Parses a pipeline from a configuration file and creates an instantiated pipeline or
+    BaseComponent object. It also provides functionalities for dynamic override of fields.
 
     Args:
-        config (Union[str, Dict]): path to YAML configuration file
-            or dict storing a configuration.
-        override_keys (Optional[Dict[str, Any]], optional): dict mapping
-            nested keys to the value to override. Defaults to None.
+        config (Union[str, Path]): path to YAML configuration file.
 
     Example:
-
-
     >>> # pipeline.yaml file
-    >>> pipeline:
-    >>>   class_path: itwinai.pipeline.Pipeline
-    >>>   init_args:
-    >>>     steps:
-    >>>       - class_path: dataloader.MNISTDataModuleTorch
-    >>>         init_args:
-    >>>           save_path: .tmp/
     >>>
-    >>>       - class_path: itwinai.torch.trainer.TorchTrainer
-    >>>         init_args:
-    >>>           model:
-    >>>             class_path: model.Net
+    >>> save_path=.tmp/
+    >>> pipeline:
+    >>>   _target_: itwinai.pipeline.Pipeline
+    >>>   steps:
+    >>>     - _target_: dataloader.MNISTDataModuleTorch
+    >>>       save_path: {$save_path}
+    >>>
+    >>>     - _target_: itwinai.torch.trainer.TorchTrainer
+    >>>       model:
+    >>>         _target_: model.Net
     >>>
     >>> from itwinai.parser import ConfigParser
     >>>
-    >>> parser = ConfigParser(
-    >>>     config='pipeline.yaml',
+    >>> parser = ConfigParser(config='pipeline.yaml')
+    >>> pipeline = parser.build_from_config(
     >>>     override_keys={
-    >>>         'pipeline.init_args.steps.0.init_args.save_path': /save/path
+    >>>         'save_path': /save/path
     >>>     }
     >>> )
-    >>> pipeline = parser.parse_pipeline()
     >>> print(pipeline)
     >>> print(pipeline.steps)
     >>>
-    >>> dataloader = parser.parse_step(0)
+    >>> dataloader = parser.build_from_config(
+    >>>     type="step",
+            override_keys={
+    >>>         'save_path': /save/path
+    >>>     },
+    >>>     step_idx=0
+    >>> )
     >>> print(dataloader)
     >>> print(dataloader.save_path)
-
     """
 
-    #: Configuration to parse.
-    config: Dict
-    #: Pipeline object instantiated from the configuration file.
-    pipeline: Pipeline
+    #: Path to the yaml file containing the configuration to parse.
+    config: str | Path
 
     def __init__(
-        self, config: Union[str, Dict], override_keys: Optional[Dict[str, Any]] = None
+        self,
+        config: str | Path,
     ) -> None:
         self.config = config
-        self.override_keys = override_keys
-        if isinstance(self.config, (str, Path)):
-            self.config = load_yaml(self.config)
-        self._dynamic_override_keys()
-        self._omegaconf_interpolate()
 
-    def _dynamic_override_keys(self):
-        if self.override_keys is not None:
-            for key_chain, value in self.override_keys.items():
-                add_replace_field(self.config, key_chain, value)
-
-    def _omegaconf_interpolate(self) -> None:
-        """Performs variable interpolation with OmegaConf on internal
-        configuration file.
-        """
-        conf = OmegaConf.create(self.config)
-        self.config = OmegaConf.to_container(conf, resolve=True)
-
-    def parse_pipeline(
-        self, pipeline_nested_key: str = "pipeline", verbose: bool = False
+    def build_from_config(
+        self,
+        type: Literal["pipeline", "step"] = "pipeline",
+        pipeline_nested_key: str = "pipeline",
+        override_keys: Dict | None = None,
+        steps: str | None = None,
+        step_idx: Union[str, int] | None = None,
+        verbose: bool = False,
     ) -> Pipeline:
-        """Merges steps into pipeline and parses it.
+        """Parses the pipeline and instantiated all classes defined within it.
 
         Args:
-            pipeline_nested_key (str, optional): nested key in the
-                configuration file identifying the pipeline object.
+            type (Literal["pipeline", "step"]): The type of object to build. If set to "step",
+                only the object(s) defined by the step given by 'step_idx' is built.
                 Defaults to "pipeline".
+            pipeline_nested_key (str, optional): Nested key in the configuration file
+                identifying the pipeline object. Defaults to "pipeline".
+            override_keys ([Dict[str, Any]], optional): A dict mapping
+                nested keys to the value to override. Defaults to None.
+            steps (str, optional): If building a pipeline, allows you to select which step(s)
+                to include in the pipeline. Accepted values are indices,
+                python slices (e.g., 0:3 or 2:10:100), and string names of steps.
+                Defaults to None.
+            step_idx (Union[str, int], optional): If building only a step, used to identify
+                which one. Must be set if 'type' is set to 'step'. Defaults to None.
             verbose (bool): if True, prints the assembled pipeline
                 to console formatted as JSON.
 
         Returns:
-            Pipeline: instantiated pipeline.
+            Pipeline | BaseComponent: instantiated pipeline or component.
         """
-        pipe_parser = _ArgumentParser()
-        pipe_parser.add_subclass_arguments(Pipeline, "pipeline")
+        conf = self.parse_pipeline(pipeline_nested_key, override_keys)
 
-        pipe_dict = self.config
-        for key in pipeline_nested_key.split("."):
-            pipe_dict = pipe_dict[key]
-        # pipe_dict = self.config[pipeline_nested_key]
-        pipe_dict = {"pipeline": pipe_dict}
+        # Select steps
+        if type == "pipeline":
+            if steps:
+                conf.steps = self._get_selected_steps(steps, conf.steps)
+        else:
+            conf = conf.steps[step_idx]
+
+        # Resolve interpolated parameters
+        OmegaConf.resolve(conf)
 
         if verbose:
-            print("Assembled pipeline:")
-            print(json.dumps(pipe_dict, indent=4))
+            print(f"Assembled {type} from {pipeline_nested_key}:")
+            print(OmegaConf.to_yaml(conf))
 
-        try:
-            # Parse pipeline dict once merged with steps
-            conf = pipe_parser.parse_object(pipe_dict)
-            pipe = pipe_parser.instantiate_classes(conf)
-        except Exception as exc:
-            exc = get_root_cause(exc)
-            raise exc
-        self.pipeline = pipe["pipeline"]
-        return self.pipeline
+        return instantiate(conf)
 
-    def parse_step(
+    def parse_pipeline(
         self,
-        step_idx: Union[str, int],
         pipeline_nested_key: str = "pipeline",
-        verbose: bool = False,
-    ) -> BaseComponent:
-        pipeline_dict = self.config
-        for key in pipeline_nested_key.split("."):
-            pipeline_dict = pipeline_dict[key]
+        override_keys: Dict | None = None,
+    ) -> dictconfig.DictConfig:
+        """Parses the pipeline from a yaml file into an OmegaConf DictConfig.
 
-        step_dict_config = pipeline_dict["init_args"]["steps"][step_idx]
+        Args:
+            pipeline_nested_key (str, optional): Nested key in the configuration file
+                identifying the pipeline object. Defaults to "pipeline".
+            override_keys (Dict | None, optional): A dict mapping
+                nested keys to the value to override. Defaults to None.
 
-        if verbose:
-            print(f"STEP '{step_idx}' CONFIG:")
-            print(json.dumps(step_dict_config, indent=4))
+        Raises:
+            e: Failed to load config from yaml. Most likely due to a badly structured
+                configuration.
+            ValueError: pipeline_nested_key not present in configuration file.
 
-        # Wrap config under "step" field and parse it
-        step_dict_config = {"step": step_dict_config}
-        step_parser = _ArgumentParser()
-        step_parser.add_subclass_arguments(BaseComponent, "step")
+        Returns:
+            dictconfig.DictConfig: The parsed configuration.
+        """
+        import yaml  # for error handling
+
+        # Load config from yaml
         try:
-            parsed_namespace = step_parser.parse_object(step_dict_config)
-            step = step_parser.instantiate_classes(parsed_namespace)["step"]
-        except Exception as exc:
-            exc = get_root_cause(exc)
-            raise exc
-        return step
+            raw_conf = OmegaConf.load(self.config)
+        except yaml.scanner.ScannerError as e:
+            e.add_note(
+                f"Failed to load config from {self.config}! You might want to check "
+                "the structure of your yaml file."
+            )
+            raise e
+
+        if pipeline_nested_key not in raw_conf:
+            raise ValueError(f"Pipeline key {pipeline_nested_key} not found.")
+
+        # Override keys
+        for override_key, override_value in override_keys.items():
+            inferred_type = ast.literal_eval(override_value)
+            OmegaConf.update(raw_conf, override_key, inferred_type)
+
+            print(
+                f"Successfully overrode key {override_key}."
+                f"It now has the value {inferred_type} of type {type(inferred_type)}."
+            )
+
+        conf = raw_conf[pipeline_nested_key]
+
+        return conf
+
+    def _get_selected_steps(self, steps: str, conf_steps: list):
+        """Selects the steps of the pipeline to be executed.
+
+        Args:
+            steps (str): Selects the steps of the pipeline. Accepted values are indices,
+                python slices (e.g., 0:3 or 2:10:100), and string names of steps.
+            conf_steps (list): A list of all the steps in the pipeline configuration.
+
+        Raises:
+            ValueError: Invalid slice notation
+            IndexError: Index out of range
+            ValueError: Invalid step name given
+
+        Returns:
+            list: The steps selected from the pipeline.
+        """
+        # If steps is given as a slice
+        if ":" in steps:
+            try:
+                slice_obj = slice(*[int(x) if x else None for x in steps.split(":")])
+                return conf_steps[slice_obj]
+            except ValueError:
+                raise ValueError(f"Invalid slice notation: {steps}")
+
+        # If steps is given as a single index
+        elif steps.isdigit():
+            index = int(steps)
+            if 0 <= index < len(conf_steps):
+                return [conf_steps[index]]
+            else:
+                raise IndexError(f"Step index out of range: {index}")
+
+        # If steps is given as a name
+        else:
+            selected_steps = [step for step in conf_steps if step.get("_target_") == steps]
+            if not selected_steps:
+                raise ValueError(f"No steps found with name: {steps}")
+            return selected_steps
 
 
 class ArgumentParser(JAPArgumentParser):
@@ -293,6 +296,3 @@ class ArgumentParser(JAPArgumentParser):
             action=ActionConfigFile,
             help="Path to a configuration file in json or yaml format.",
         )
-
-
-# type: ignore
