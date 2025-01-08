@@ -11,53 +11,8 @@ import pytest
 import yaml
 
 from itwinai.components import BaseComponent
-from itwinai.parser import ConfigParser, add_replace_field
+from itwinai.parser import ConfigParser
 from itwinai.tests import FakePreproc, FakeSaver, FakeTrainer
-
-
-def test_add_replace_field():
-    conf = {}
-    add_replace_field(conf, "some.key.chain", 123)
-    target1 = dict(some=dict(key=dict(chain=123)))
-    assert conf == target1
-
-    add_replace_field(conf, "some.key.chain", 222)
-    target2 = dict(some=dict(key=dict(chain=222)))
-    assert conf == target2
-
-    add_replace_field(conf, "some.key.field", 333)
-    target3 = dict(some=dict(key=dict(chain=222, field=333)))
-    assert conf == target3
-
-    conf["some"]["list"] = [1, 2, 3]
-    add_replace_field(conf, "some.list.0", 3)
-    target4 = dict(some=dict(key=dict(chain=222, field=333), list=[3, 2, 3]))
-    assert conf == target4
-
-    add_replace_field(conf, "some.list.0.some.el", 7)
-    target5 = dict(
-        some=dict(key=dict(chain=222, field=333), list=[dict(some=dict(el=7)), 2, 3])
-    )
-    assert conf == target5
-
-    conf2 = dict(first=dict(list1=[[0, 1], [2, 3]], el=0))
-    add_replace_field(conf2, "first.list1.1.0", 77)
-    target6 = dict(first=dict(list1=[[0, 1], [77, 3]], el=0))
-    assert conf2 == target6
-
-    conf3 = dict(first=dict(list1=[[0, dict(nst=("el", dict(ciao="ciao")))], [2, 3]], el=0))
-    add_replace_field(conf3, "first.list1.0.1.nst.1.ciao", "hello")
-    target7 = dict(first=dict(list1=[[0, dict(nst=("el", dict(ciao="hello")))], [2, 3]], el=0))
-    assert conf3 == target7
-
-    add_replace_field(conf3, "first.list1.0.1.nst.1.ciao.I.am.john", True)
-    target8 = dict(
-        first=dict(
-            list1=[[0, dict(nst=("el", dict(ciao=dict(I=dict(am=dict(john=True))))))], [2, 3]],
-            el=0,
-        )
-    )
-    assert conf3 == target8
 
 
 def test_parse_list_pipeline():
