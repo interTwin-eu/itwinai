@@ -10,13 +10,12 @@ along with support for MCMC sampling and device management.
 import torch
 import time
 import os
-from pathlib import Path
 from typing import Any, Optional
 
 import numpy as np
 
 from .mcmc import MCMCSampler, BlockedMCMCSampler
-from .lib.combo import estimate_logz, fmt_val_err
+from .lib.combo import estimate_logz
 from .device import ModelDeviceHandler
 
 from itwinai.torch.trainer import TorchTrainer
@@ -359,7 +358,7 @@ class Fitter(TorchTrainer):
         torch.save(snapshot, snapshot_new_path)
         print(f"Epoch {epochs_run} | Model Snapshot saved at {snapshot_new_path}")
 
-    @profile_torch_trainer
+    # @profile_torch_trainer
     def _train(self, n_epochs: int, batch_size: int, save_every: int):
 
         T1 = time.time()

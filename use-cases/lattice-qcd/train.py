@@ -1,35 +1,28 @@
 import torch
 import torch.distributed as dist
-from torch.nn.parallel import DistributedDataParallel as DDP
-import os
 import sys
+import time
+from torchsummary import summary
+
 from normflow import Model
 from normflow.nn import DistConvertor_
 from normflow.action import ScalarPhi4Action
 from normflow.prior import NormalPrior
 
-from itwinai.loggers import ConsoleLogger, MLFlowLogger, LoggersCollection
+# from itwinai.loggers import MLFlowLogger
 
 def make_model():
     net_ = DistConvertor_(10, symmetric=True)
     prior = NormalPrior(shape=(1,))
     action = ScalarPhi4Action(kappa=0, m_sq=-1.2, lambd=0.5)
 
-    mlflow_logger = MLFlowLogger(
-        experiment_name="Lattice QCD",
-        log_freq="batch"
-    )
-
-    mlflow_logger.worker_rank = 0
-
-    model = Model(net_=net_, prior=prior, action=action, logger=mlflow_logger)
-
+    model = Model(net_=net_, prior=prior, action=action)
     return model
 
 def fit_func(
         model,
-        n_epochs=100,
-        batch_size=128,
+        n_epochs=5000,
+        batch_size=1024,
         hyperparam={'fused': True},
     ):
     """Training function to fit model."""
@@ -49,7 +42,11 @@ def main():
         grank = dist.get_rank()
         lrank = dist.get_rank()%lwsize
 
-        device = torch.device('cuda' if torch.cuda.is_available() else 'cpu',lrank)
+        start_time: float | None = None
+        if grank == 0: 
+            start_time = time.time()
+
+        # device = torch.device('cuda' if torch.cuda.is_available() else 'cpu',lrank)
         torch.cuda.set_device(lrank)
 
         if dist.get_rank() == 0:
@@ -64,6 +61,9 @@ def main():
         # Create and set up model
         model = make_model()
 
+        # if grank == 0: 
+        #     summary(model.net_, (10,))
+
         # Log the seed for the current worker
         print(f"Worker {grank} seed: {seeds_torch[grank]}")
 
@@ -73,6 +73,13 @@ def main():
         model.device_handler.ddp_wrapper()
         # Train model
         fit_func(model)
+
+        if grank == 0: 
+            assert start_time is not None
+            end_time = time.time()
+            total_time = end_time - start_time
+            print(f"Total training time: {total_time:.2f} seconds.")
+
         # Destroy distributed process group
         dist.destroy_process_group()
     else:
