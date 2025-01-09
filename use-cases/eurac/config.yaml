@@ -69,8 +69,8 @@ rnn_training_pipeline:
           strategy: ${strategy}
           epochs: ${epochs}
           random_seed: ${random_seed}
-          profiling_wait_epochs: 0
-          profiling_warmup_epochs: 0
+          profiling_wait_epochs: 1
+          profiling_warmup_epochs: 1
           logger:
             class_path: itwinai.loggers.LoggersCollection
             init_args:
