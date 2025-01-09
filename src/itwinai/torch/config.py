@@ -44,7 +44,6 @@ class TrainingConfiguration(Configuration):
         ``TrainingConfiguration(lr=0.005)`` in the configuration you will now have both
         ``optim_lr`` (created by default) and ``lr`` (created by you). This may create
         confusion and potentially (and silently) break the logic in your code.
-
     """
 
     #: Batch size. In a distributed environment it is usually the
@@ -89,3 +88,7 @@ class TrainingConfiguration(Configuration):
     #: gradients before adding them up.
     #: Defaults to 1.0.
     gradient_predivide_factor: float = 1.0
+    #: Torch distributed
+    #: `backend <https://pytorch.org/docs/stable/distributed.html#backends>`_.
+    #: Defaults to ``nccl``.
+    dist_backend: Literal["nccl", "gloo", "mpi"] = "nccl"
