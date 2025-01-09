@@ -245,7 +245,7 @@ class Fitter(TorchTrainer):
         self.hyperparam = dict(lr=0.001, weight_decay=0.01)
         self.checkpoint_dict = dict(
             display=False,
-            print_stride=10,
+            print_stride=500,
             print_batch_size=1024,
             snapshot_path=None,
             epochs_run=0
@@ -360,7 +360,6 @@ class Fitter(TorchTrainer):
 
     # @profile_torch_trainer
     def _train(self, n_epochs: int, batch_size: int, save_every: int):
-
         T1 = time.time()
         for epoch in range(1, n_epochs+1):
             if self.profiler is not None:

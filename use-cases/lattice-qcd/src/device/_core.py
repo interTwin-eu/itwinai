@@ -1,6 +1,7 @@
 # Copyright (c) 2023 Javad Komijani, Elias Nyholm
 
 import torch
+from torch.cuda import is_available
 import torch.distributed as dist
 import numpy as np
 import os
@@ -27,12 +28,18 @@ class DDP(torch.nn.parallel.DistributedDataParallel):
 class ModelDeviceHandler:
     def __init__(self, model):
         self._model = model
-        self.nranks = dist.get_world_size()
-        self.rank = dist.get_rank()
-        self.local_rank = dist.get_rank()%torch.cuda.device_count()
+        if torch.cuda.is_available(): 
+            self.nranks = dist.get_world_size()
+            self.rank = dist.get_rank()
+            self.local_rank = dist.get_rank()%torch.cuda.device_count()
 
-        self.seed = None
+            self.seed = None
+        else: 
+            self.nranks = 1
+            self.rank = 0
+            self.local_rank = 0
 
+            self.seed = None
     def set_seed(self, seed):
         self.seed = seed
         torch.manual_seed(self.seed)

@@ -22,7 +22,7 @@ def make_model():
 def fit_func(
         model,
         n_epochs=5000,
-        batch_size=1024,
+        batch_size=1024*4,
         hyperparam={'fused': True},
     ):
     """Training function to fit model."""
