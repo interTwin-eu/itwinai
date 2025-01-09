@@ -26,7 +26,7 @@ training_pipeline:
     steps:
       - class_path: data.TimeSeriesDatasetSplitter
         init_args:
-          # train_proportion: 0.0
+          train_proportion: 0.0
           validation_proportion: 0.1
           rnd_seed: 42
           hdf5_file_location: ${hdf5_file_location}
@@ -48,17 +48,17 @@ training_pipeline:
           validation_every: 0
           profiling_wait_epochs: 0
           profiling_warmup_epochs: 0
-          # logger:
-          #   class_path: itwinai.loggers.LoggersCollection
-          #   init_args:
-          #     loggers:
-          #       - class_path: itwinai.loggers.ConsoleLogger
-          #         init_args:
-          #           log_freq: 1
-          #       - class_path: itwinai.loggers.MLFlowLogger
-          #         init_args:
-          #           experiment_name: Noise simulator (Virgo)
-          #           log_freq: batch 
+          logger:
+            class_path: itwinai.loggers.LoggersCollection
+            init_args:
+              loggers:
+                - class_path: itwinai.loggers.ConsoleLogger
+                  init_args:
+                    log_freq: 1
+                - class_path: itwinai.loggers.MLFlowLogger
+                  init_args:
+                    experiment_name: Noise simulator (Virgo)
+                    log_freq: batch 
 
 
 # To use a small dataset that is generated within the pipeline
