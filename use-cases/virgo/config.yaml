@@ -26,7 +26,7 @@ training_pipeline:
     steps:
       - class_path: data.TimeSeriesDatasetSplitter
         init_args:
-          train_proportion: 0.0
+          train_proportion: 0.9
           validation_proportion: 0.1
           rnd_seed: 42
           hdf5_file_location: ${hdf5_file_location}
