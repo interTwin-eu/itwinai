@@ -1177,7 +1177,7 @@ class EpochTimeTracker:
     """Tracker for epoch execution time during training."""
 
     def __init__(
-        self, strategy_name: str, save_path: Union[Path, str], num_nodes: int
+        self, strategy_name: str, save_path: Path | str, num_nodes: int
     ) -> None:
         if isinstance(save_path, str):
             save_path = Path(save_path)

@@ -71,6 +71,7 @@ def main():
         slurm_script_configuration=slurm_script_configuration,
         distributed_strategy=args.dist_strat,
         training_command=args.training_cmd,
+        python_venv=args.python_venv,
         debug=args.debug,
         pipe_key=args.pipe_key,
         config_file=args.config_file,

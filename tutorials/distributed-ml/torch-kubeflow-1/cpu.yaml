@@ -1,0 +1,58 @@
+# --------------------------------------------------------------------------------------
+# Part of the interTwin Project: https://www.intertwin.eu/
+#
+# Created by: Matteo Bunino
+#
+# Credit:
+# - Matteo Bunino <matteo.bunino@cern.ch> - CERN
+# --------------------------------------------------------------------------------------
+
+apiVersion: "kubeflow.org/v1"
+kind: PyTorchJob
+metadata:
+  name: torchrun-cpu
+spec:
+  # This property assumes that each pod runs on a separate node,
+  # and is propagated to torchrun as its --nproc-per-node argument
+  nprocPerNode: "2"
+  pytorchReplicaSpecs:
+    Master:
+      # Usually only one Master pod is used 
+      replicas: 1
+      restartPolicy: OnFailure
+      template:
+        spec:
+          containers:
+            - name: pytorch
+              image: registry.cern.ch/itwinai/dist-ml/itwinai-slim:0.0.10
+              command:
+                - "torchrun"
+                - "/app/train-cpu.py"
+                - "--force-dist"
+              resources:
+                # Requests help to implicitly make sure that each pod is running
+                # in a separate node.
+                requests:
+                  cpu: 1500m
+                limits:
+                  cpu: 1500m
+                  memory: 2500Mi
+    Worker:
+      # The number of worker pods 
+      replicas: 1
+      restartPolicy: OnFailure
+      template:
+        spec:
+          containers:
+            - name: pytorch
+              image: registry.cern.ch/itwinai/dist-ml/itwinai-slim:0.0.10
+              command:
+                - "torchrun"
+                - "/app/train-cpu.py"
+                - "--force-dist"
+              resources:
+                requests:
+                  cpu: 1500m
+                limits:
+                  cpu: 1500m
+                  memory: 2500Mi

@@ -16,8 +16,6 @@ import pandas as pd
 import seaborn as sns
 from matplotlib.patches import Patch
 
-# from itwinai.scalability import convert_matching_files_to_dataframe
-
 # Doing this because otherwise I get an error about X11 Forwarding which I believe
 # is due to the server trying to pass the image to the client computer
 matplotlib.use("Agg")
@@ -40,9 +38,15 @@ def calculate_comp_and_comm_time(df: pd.DataFrame) -> Tuple[float, float]:
             f"\nMissing columns: {missing_columns}"
         )
 
-    nccl_comm_pattern = (
-        r"ncclKernel_(?:AllReduce|Broadcast|Reduce|AllGather|ReduceScatter|SendRecv)"
-    )
+    comm_types = [
+        "AllReduce",
+        "Broadcast",
+        "Reduce",
+        "AllGather",
+        "Gather",
+        "ReduceScatter",
+    ]
+    nccl_comm_pattern = rf"(?:{'|'.join(comm_types)})"
     cuda_stream_pattern = r"cudaStream(?:WaitEvent|Synchronize)"
 
     # Any operation that is a part of PyTorch's ATen library is considered a computation
@@ -133,10 +137,11 @@ def communication_overhead_stacked_bar_plot(
     ax.legend(handles=ax.get_legend_handles_labels()[0] + [hatch_patch])
 
     # Dynamically adjusting the width of the figure
-    figure_width = int(1.5 * len(gpu_numbers))
-    fig.set_figheight(5)
+    figure_width = max(int(2 * len(gpu_numbers)), 8)
     fig.set_figwidth(figure_width)
+    fig.set_figheight(figure_width * 0.8)
 
+    # Resetting so that seaborn's theme doesn't affect other plots
     sns.reset_orig()
 
     return fig, ax

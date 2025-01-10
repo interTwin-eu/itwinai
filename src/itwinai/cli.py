@@ -372,6 +372,7 @@ def exec_pipeline(
         print(json.dumps(parser.config, indent=2))
         print("#=" * 50)
         print()
+
     pipeline = parser.parse_pipeline(pipeline_nested_key=pipe_key)
     if steps:
         if not re.match(r"\d+(:\d+)?(:\d+)?", steps):

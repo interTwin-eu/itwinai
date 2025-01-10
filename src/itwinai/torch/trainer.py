@@ -36,6 +36,7 @@ from torch.nn.parallel import DistributedDataParallel as DDP
 from torch.optim.optimizer import Optimizer
 from torch.utils.data import DataLoader, Dataset, Sampler
 from torch.utils.data.distributed import DistributedSampler
+from tqdm import tqdm
 
 from itwinai.torch.tuning import get_raytune_scheduler, get_raytune_search_alg
 
@@ -84,7 +85,12 @@ class TorchTrainer(Trainer, LogMixin):
             Defaults to "checkpoints".
         checkpoint_every (Optional[int]): save a checkpoint every
             ``checkpoint_every`` epochs. Disabled if None. Defaults to None.
+        disable_tqdm (bool): whether to disable tqdm progress bar(s).
         name (Optional[str], optional): trainer custom name. Defaults to None.
+        profiling_wait_epochs (int): how many epochs to wait before starting
+            the profiler.
+        profiling_warmup_epochs (int): length of the profiler warmup phase in terms of
+            number of epochs.
     """
 
     # TODO:
@@ -136,6 +142,7 @@ class TorchTrainer(Trainer, LogMixin):
         metrics: Optional[Dict[str, Metric]] = None,
         checkpoints_location: str = "checkpoints",
         checkpoint_every: Optional[int] = None,
+        disable_tqdm: bool = False,
         name: Optional[str] = None,
         profiling_wait_epochs: int = 1,
         profiling_warmup_epochs: int = 2,
@@ -160,6 +167,7 @@ class TorchTrainer(Trainer, LogMixin):
         self.checkpoints_location = checkpoints_location
         os.makedirs(self.checkpoints_location, exist_ok=True)
         self.checkpoint_every = checkpoint_every
+        self.disable_tqdm = disable_tqdm
         self.profiler = None
         self.profiling_wait_epochs = profiling_wait_epochs
         self.profiling_warmup_epochs = profiling_warmup_epochs
@@ -186,11 +194,11 @@ class TorchTrainer(Trainer, LogMixin):
             print("WARNING: falling back to non-distributed strategy.")
             strategy_obj = NonDistributedStrategy()
         elif strategy == "ddp":
-            strategy_obj = TorchDDPStrategy(backend="nccl")
+            strategy_obj = TorchDDPStrategy(backend=self.config.dist_backend)
         elif strategy == "horovod":
             strategy_obj = HorovodStrategy()
         elif strategy == "deepspeed":
-            strategy_obj = DeepSpeedStrategy(backend="nccl")
+            strategy_obj = DeepSpeedStrategy(backend=self.config.dist_backend)
         else:
             raise NotImplementedError(f"Strategy '{strategy}' is not recognized/implemented.")
         return strategy_obj
@@ -422,7 +430,8 @@ class TorchTrainer(Trainer, LogMixin):
         Args:
             epoch (int): epoch number, from 0 to ``epochs-1``.
         """
-        if self.profiler is not None:
+        if self.profiler is not None and epoch > 0:
+            # We don't want to start stepping until after the first epoch
             self.profiler.step()
         self._set_epoch_dataloaders(epoch)
 
@@ -477,7 +486,7 @@ class TorchTrainer(Trainer, LogMixin):
         )
         ckpt_path = os.path.join(self.checkpoints_location, name)
         torch.save(state, ckpt_path)
-        print(f"Saved '{name}' checkpoint at {ckpt_path}")
+        # print(f"Saved '{name}' checkpoint at {ckpt_path}")
 
         # Save checkpoint to logger
         self.log(ckpt_path, name, kind="artifact")
@@ -544,7 +553,16 @@ class TorchTrainer(Trainer, LogMixin):
             validation dataset, test dataset, trained model.
         """
         best_loss = float("inf")
-        for epoch in range(self.epochs):
+
+        progress_bar = tqdm(
+            range(self.epochs),
+            desc="Epochs",
+            disable=self.disable_tqdm or not self.strategy.is_main_worker,
+        )
+
+        for epoch in progress_bar:
+            progress_bar.set_description(f"Epoch {epoch + 1}/{self.epochs}")
+
             epoch_n = epoch + 1
             self.set_epoch(epoch)
             self.train_epoch(epoch)
@@ -585,7 +603,16 @@ class TorchTrainer(Trainer, LogMixin):
         self.model.train()
         train_losses = []
         train_metrics = []
-        for batch_idx, train_batch in enumerate(self.train_dataloader):
+
+        progress_bar = tqdm(
+            enumerate(self.train_dataloader),
+            total=len(self.train_dataloader) // self.strategy.global_world_size(),
+            desc="Train batches",
+            disable=self.disable_tqdm or not self.strategy.is_main_worker,
+            leave=False,  # Set this to true to see how many batches were used
+        )
+
+        for batch_idx, train_batch in progress_bar:
             loss, metrics = self.train_step(batch=train_batch, batch_idx=batch_idx)
             train_losses.append(loss)
             train_metrics.append(metrics)
@@ -665,10 +692,18 @@ class TorchTrainer(Trainer, LogMixin):
         if self.validation_dataloader is None:
             return
 
+        progress_bar = tqdm(
+            enumerate(self.validation_dataloader),
+            total=len(self.validation_dataloader) // self.strategy.global_world_size(),
+            desc="Validation batches",
+            disable=self.disable_tqdm or not self.strategy.is_main_worker,
+            leave=False,  # Set this to true to see how many batches were used
+        )
+
         self.model.eval()
         validation_losses = []
         validation_metrics = []
-        for batch_idx, val_batch in enumerate(self.validation_dataloader):
+        for batch_idx, val_batch in progress_bar:
             loss, metrics = self.validation_step(batch=val_batch, batch_idx=batch_idx)
             validation_losses.append(loss)
             validation_metrics.append(metrics)
