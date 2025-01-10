@@ -605,6 +605,7 @@ class TorchTrainer(Trainer, LogMixin):
         for batch_idx, train_batch in progress_bar:
             loss, metrics = self.train_step(batch=train_batch, batch_idx=batch_idx)
             train_loss_sum += loss
+            batch_counter += 1
             for name, val in metrics.items():
                 train_metrics_sum[name] += val
 
@@ -697,6 +698,7 @@ class TorchTrainer(Trainer, LogMixin):
         for batch_idx, val_batch in progress_bar:
             loss, metrics = self.validation_step(batch=val_batch, batch_idx=batch_idx)
             validation_loss_sum += loss
+            batch_counter += 1
             for name, val in metrics.items():
                 validation_metrics_sum[name] += val
 
