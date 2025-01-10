@@ -40,11 +40,9 @@ def main():
         lwsize = torch.cuda.device_count()
         gwsize = dist.get_world_size()
         grank = dist.get_rank()
-        lrank = dist.get_rank()%lwsize
+        lrank = dist.get_rank() % lwsize
 
         start_time: float | None = None
-        if grank == 0: 
-            start_time = time.time()
 
         # device = torch.device('cuda' if torch.cuda.is_available() else 'cpu',lrank)
         torch.cuda.set_device(lrank)
@@ -58,11 +56,7 @@ def main():
         dist.broadcast_object_list(seeds_torch, src=0)
         print(f"Rank {dist.get_rank()} received seeds: {seeds_torch}")
 
-        # Create and set up model
         model = make_model()
-
-        # if grank == 0: 
-        #     summary(model.net_, (10,))
 
         # Log the seed for the current worker
         print(f"Worker {grank} seed: {seeds_torch[grank]}")
@@ -71,6 +65,10 @@ def main():
         model.device_handler.set_seed(seeds_torch[grank])
         # Set up model for DDP
         model.device_handler.ddp_wrapper()
+
+        if grank == 0: 
+            start_time = time.time()
+
         # Train model
         fit_func(model)
 

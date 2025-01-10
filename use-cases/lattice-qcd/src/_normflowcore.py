@@ -361,13 +361,22 @@ class Fitter(TorchTrainer):
     # @profile_torch_trainer
     def _train(self, n_epochs: int, batch_size: int, save_every: int):
         T1 = time.time()
+        epoch_print_interval = 500
         for epoch in range(1, n_epochs+1):
+            epoch_start_time = time.time()
             if self.profiler is not None:
                 self.profiler.step()
             loss, logqp = self.step(batch_size)
             self.checkpoint(epoch, loss, save_every)
             if self.scheduler is not None:
                 self.scheduler.step()
+            if self.strategy.global_rank == 0 and epoch == epoch_print_interval: 
+                epoch_end_time = time.time()
+                epoch_total_time = epoch_end_time - epoch_start_time
+                print(
+                    f"{epoch_print_interval} epochs took {epoch_total_time:.2f} seconds."
+                )
+
         T2 = time.time()
         if n_epochs > 0 and self._model.device_handler.rank == 0:
             print(f"({loss.device}) Time = {T2 - T1:.3g} sec.")
