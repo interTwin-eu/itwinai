@@ -16,31 +16,21 @@
 import os
 import sys
 import tempfile
+from collections import defaultdict
 from pathlib import Path
 from typing import Any, Callable, Dict, Iterable, List, Literal, Optional, Tuple, Union
 
-import lightning as L
-import matplotlib.pyplot as plt
-import numpy as np
-import pandas as pd
-import ray.train as train
-import ray.train.torch
-import ray.tune as tune
 import torch
 import torch.distributed as dist
 import torch.nn as nn
 import torch.optim as optim
 import torchvision
-from lightning.pytorch.cli import LightningCLI
 from torch.nn.parallel import DistributedDataParallel as DDP
 from torch.optim.optimizer import Optimizer
 from torch.utils.data import DataLoader, Dataset, Sampler
 from torch.utils.data.distributed import DistributedSampler
 from tqdm import tqdm
 
-from itwinai.torch.tuning import get_raytune_scheduler, get_raytune_search_alg
-
-# Imports from this repository
 from ..components import Trainer, monitor_exec
 from ..loggers import Logger, LogMixin
 from ..utils import load_yaml
@@ -55,7 +45,6 @@ from .distributed import (
     TorchDistributedStrategy,
     distributed_resources_available,
 )
-from .mlflow import init_lightning_mlflow, teardown_lightning_mlflow
 from .reproducibility import seed_worker, set_seed
 from .type import Batch, LrScheduler, Metric
 
@@ -601,8 +590,9 @@ class TorchTrainer(Trainer, LogMixin):
             Loss: average training loss for the current epoch.
         """
         self.model.train()
-        train_losses = []
-        train_metrics = []
+        train_loss_sum = 0.0
+        train_metrics_sum = defaultdict(float)
+        batch_counter = 0
 
         progress_bar = tqdm(
             enumerate(self.train_dataloader),
@@ -614,31 +604,31 @@ class TorchTrainer(Trainer, LogMixin):
 
         for batch_idx, train_batch in progress_bar:
             loss, metrics = self.train_step(batch=train_batch, batch_idx=batch_idx)
-            train_losses.append(loss)
-            train_metrics.append(metrics)
+            train_loss_sum += loss
+            for name, val in metrics.items():
+                train_metrics_sum[name] += val
 
             # Important: update counter
             self.train_glob_step += 1
 
         # Aggregate and log losses
-        avg_loss = torch.mean(torch.stack(train_losses))
+        avg_loss = train_loss_sum.item() / batch_counter
         self.log(
-            item=avg_loss.item(),
+            item=avg_loss,
             identifier="train_loss_epoch",
             kind="metric",
             step=self.train_glob_step,
         )
         # Aggregate and log metrics
-        avg_metrics = pd.DataFrame(train_metrics).mean().to_dict()
-        for m_name, m_val in avg_metrics.items():
+        for m_name, m_val in train_metrics_sum.items():
             self.log(
-                item=m_val,
+                item=m_val / batch_counter,
                 identifier="train_" + m_name + "_epoch",
                 kind="metric",
                 step=self.train_glob_step,
             )
 
-        return avg_loss.item()
+        return avg_loss
 
     def train_step(self, batch: Batch, batch_idx: int) -> Tuple[torch.Tensor, Dict[str, Any]]:
         """Perform a single optimization step using a batch sampled from the
@@ -701,29 +691,30 @@ class TorchTrainer(Trainer, LogMixin):
         )
 
         self.model.eval()
-        validation_losses = []
-        validation_metrics = []
+        validation_loss_sum = 0.0
+        validation_metrics_sum = defaultdict(float)
+        batch_counter = 0
         for batch_idx, val_batch in progress_bar:
             loss, metrics = self.validation_step(batch=val_batch, batch_idx=batch_idx)
-            validation_losses.append(loss)
-            validation_metrics.append(metrics)
+            validation_loss_sum += loss
+            for name, val in metrics.items():
+                validation_metrics_sum[name] += val
 
             # Important: update counter
             self.validation_glob_step += 1
 
         # Aggregate and log losses
-        avg_loss = torch.mean(torch.stack(validation_losses))
+        avg_loss = validation_loss_sum.item() / batch_counter
         self.log(
-            item=avg_loss.item(),
+            item=avg_loss,
             identifier="validation_loss_epoch",
             kind="metric",
             step=self.validation_glob_step,
         )
         # Aggregate and log metrics
-        avg_metrics = pd.DataFrame(validation_metrics).mean().to_dict()
-        for m_name, m_val in avg_metrics.items():
+        for m_name, m_val in validation_metrics_sum.items():
             self.log(
-                item=m_val,
+                item=m_val / batch_counter,
                 identifier="validation_" + m_name + "_epoch",
                 kind="metric",
                 step=self.validation_glob_step,
@@ -1132,6 +1123,9 @@ class GANTrainer(TorchTrainer):
          Args:
             epoch (int): epoch number, from 0 to ``epochs-1``.
         """
+        import matplotlib.pyplot as plt
+        import numpy as np
+
         self.generator.eval()
         noise = torch.randn(64, self.config.z_dim, 1, 1, device=self.device)
         fake_images = self.generator(noise)
@@ -1172,6 +1166,11 @@ class TorchLightningTrainer(Trainer):
 
     @monitor_exec
     def execute(self) -> Any:
+        import lightning as L
+        from lightning.pytorch.cli import LightningCLI
+
+        from .mlflow import init_lightning_mlflow, teardown_lightning_mlflow
+
         init_lightning_mlflow(
             self.conf, tmp_dir="/tmp", registered_model_name=self.mlflow_saved_model
         )
@@ -1291,6 +1290,12 @@ class RayTorchTrainer(Trainer):
         self._set_strategy_and_init_ray(strategy)
         self._set_configs(config=config)
         self.torch_rng = set_seed(random_seed)
+
+        import ray.train
+        import ray.tune
+
+        self.ray_train = ray.train
+        self.ray_tune = ray.tune
 
     def _set_strategy_and_init_ray(self, strategy: str) -> None:
         """Set the distributed training strategy. This will initialize the ray backend.
@@ -1412,7 +1417,9 @@ class RayTorchTrainer(Trainer):
             Tuple[Dataset, Dataset, Dataset, Any]:
                 A tuple containing the datasets and the training result grid.
         """
-        train_with_data = tune.with_parameters(
+        import ray.train.torch
+
+        train_with_data = self.ray_tune.with_parameters(
             self.train, data=[train_dataset, validation_dataset, test_dataset]
         )
         trainer = ray.train.torch.TorchTrainer(
@@ -1422,7 +1429,9 @@ class RayTorchTrainer(Trainer):
             run_config=self.run_config,
         )
         param_space = {"train_loop_config": self.train_loop_config}
-        tuner = tune.Tuner(trainer, param_space=param_space, tune_config=self.tune_config)
+        tuner = self.ray_tune.Tuner(
+            trainer, param_space=param_space, tune_config=self.tune_config
+        )
 
         result_grid = tuner.fit()
 
@@ -1436,6 +1445,8 @@ class RayTorchTrainer(Trainer):
             self.test_dataloader.sampler.set_epoch(epoch)
 
     def _set_tune_config(self) -> None:
+        from .tuning import get_raytune_scheduler, get_raytune_search_alg
+
         tune_config = self.config.get("tune_config", {})
 
         if not tune_config:
@@ -1451,7 +1462,7 @@ class RayTorchTrainer(Trainer):
         mode = tune_config.get("mode", "min")
 
         try:
-            self.tune_config = tune.TuneConfig(
+            self.tune_config = self.ray_tune.TuneConfig(
                 **tune_config,
                 search_alg=search_alg,
                 scheduler=scheduler,
@@ -1474,7 +1485,7 @@ class RayTorchTrainer(Trainer):
             print("WARNING: No Scaling Config configured. Running trials non-distributed.")
 
         try:
-            self.scaling_config = ray.train.ScalingConfig(**scaling_config)
+            self.scaling_config = self.ray_train.ScalingConfig(**scaling_config)
         except AttributeError as e:
             print(
                 "Could not set Scaling Config. Please ensure that you have passed the "
@@ -1499,7 +1510,7 @@ class RayTorchTrainer(Trainer):
                 )
                 storage_path = Path("ray_checkpoints").resolve()
 
-            self.run_config = ray.train.RunConfig(**run_config, storage_path=storage_path)
+            self.run_config = self.ray_train.RunConfig(**run_config, storage_path=storage_path)
         except AttributeError as e:
             print(
                 "Could not set Run Config. Please ensure that you have passed the "
@@ -1530,7 +1541,7 @@ class RayTorchTrainer(Trainer):
                         param[key] = float(param[key])
 
                 param_type = param.pop("type")
-                param = getattr(tune, param_type)(**param)
+                param = getattr(self.ray_tune, param_type)(**param)
                 self.train_loop_config[name] = param
 
         except AttributeError as e:
@@ -1550,9 +1561,9 @@ class RayTorchTrainer(Trainer):
 
             if checkpointing_data and should_checkpoint:
                 torch.save(checkpointing_data, os.path.join(temp_checkpoint_dir, str(epoch)))
-                checkpoint = train.Checkpoint.from_directory(temp_checkpoint_dir)
+                checkpoint = self.ray_train.Checkpoint.from_directory(temp_checkpoint_dir)
 
-        train.report(tuning_metrics, checkpoint=checkpoint)
+        self.ray_train.report(tuning_metrics, checkpoint=checkpoint)
 
     def initialize_logger(self, hyperparams: Optional[Dict], rank):
         if not self.logger:

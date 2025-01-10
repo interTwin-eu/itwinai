@@ -39,9 +39,11 @@ def test_wandb_logger_log(wandb_logger):
 def test_tensorboard_logger_log_tf(tensorboard_logger_tf):
     import tensorflow as tf
 
-    with patch("tensorflow.summary.scalar") as mock_scalar, patch(
-        "tensorflow.summary.image"
-    ) as mock_image, patch("tensorflow.summary.text") as mock_text:
+    with (
+        patch("tensorflow.summary.scalar") as mock_scalar,
+        patch("tensorflow.summary.image") as mock_image,
+        patch("tensorflow.summary.text") as mock_text,
+    ):
         tensorboard_logger_tf.create_logger_context()
 
         # Log a scalar
@@ -65,13 +67,11 @@ def test_tensorboard_logger_log_torch(tensorboard_logger_torch):
     import torch
 
     step = 1
-    with patch(
-        "torch.utils.tensorboard.SummaryWriter.add_scalar"
-    ) as mock_scalar, patch(
-        "torch.utils.tensorboard.SummaryWriter.add_image"
-    ) as mock_image, patch(
-        "torch.utils.tensorboard.SummaryWriter.add_text"
-    ) as mock_text:
+    with (
+        patch("torch.utils.tensorboard.SummaryWriter.add_scalar") as mock_scalar,
+        patch("torch.utils.tensorboard.SummaryWriter.add_image") as mock_image,
+        patch("torch.utils.tensorboard.SummaryWriter.add_text") as mock_text,
+    ):
         tensorboard_logger_torch.create_logger_context()
 
         # Log a scalar
@@ -91,11 +91,12 @@ def test_tensorboard_logger_log_torch(tensorboard_logger_torch):
 
 
 def test_loggers_collection_log(loggers_collection):
-    with patch("builtins.print") as mocked_print, patch(
-        "mlflow.log_metric"
-    ) as mock_log_metric, patch("wandb.init") as mock_wandb_init, patch(
-        "wandb.log"
-    ) as mock_wandb_log:  # , \
+    with (
+        patch("builtins.print") as mocked_print,
+        patch("mlflow.log_metric") as mock_log_metric,
+        patch("wandb.init") as mock_wandb_init,
+        patch("wandb.log") as mock_wandb_log,
+    ):  # , \
         # patch('shutil.copyfile') as mock_shutil_copyfile, \
         # patch('pickle.dump') as mock_pickle_dump, \
         # patch('torch.save') as mock_torch_save:
