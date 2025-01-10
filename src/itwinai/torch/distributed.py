@@ -1132,7 +1132,7 @@ class RayDDPStrategy(TorchDDPStrategy):
             pin_memory_device=pin_memory_device,
         )
 
-        return ray.train.torch.prepare_data_loader(dataloader)
+        return self.ray_train.torch.prepare_data_loader(dataloader)
 
 
 class RayDeepSpeedStrategy(DeepSpeedStrategy):
