@@ -669,7 +669,7 @@ class TorchTrainer(Trainer, LogMixin):
         )
         return loss, metrics
 
-    def validation_epoch(self, epoch: int) -> Optional[torch.Tensor]:
+    def validation_epoch(self, epoch: int) -> torch.Tensor:
         """Perform a complete sweep over the validation dataset, completing an
         epoch of validation.
 
