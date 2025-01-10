@@ -613,9 +613,9 @@ class TorchTrainer(Trainer, LogMixin):
             self.train_glob_step += 1
 
         # Aggregate and log losses
-        avg_loss = train_loss_sum.item() / batch_counter
+        avg_loss = train_loss_sum / batch_counter
         self.log(
-            item=avg_loss,
+            item=avg_loss.item(),
             identifier="train_loss_epoch",
             kind="metric",
             step=self.train_glob_step,
@@ -706,9 +706,9 @@ class TorchTrainer(Trainer, LogMixin):
             self.validation_glob_step += 1
 
         # Aggregate and log losses
-        avg_loss = validation_loss_sum.item() / batch_counter
+        avg_loss = validation_loss_sum / batch_counter
         self.log(
-            item=avg_loss,
+            item=avg_loss.item(),
             identifier="validation_loss_epoch",
             kind="metric",
             step=self.validation_glob_step,
