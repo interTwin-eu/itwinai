@@ -86,8 +86,7 @@ environment for TensorFlow:
 
 ### Install itwinai for users
 
-Install itwinai and its dependencies using the
-following command, and follow the instructions:
+Install itwinai and its dependencies.
 
 ```bash
 # First, load the required environment modules, if on an HPC
@@ -212,8 +211,7 @@ pip install -e ".[torch,dev,tf]" \
 If you want to use Prov4ML logger, you need to install it explicitly since it is only
 available on GitHub. Please refer to the
 [users installation](#install-itwinai-for-users)
-to know more on how to install
-Prov4ML.
+to know more on how to install Prov4ML.
 
 <!-- You can create the Python virtual environments using our predefined Makefile targets. -->
 
