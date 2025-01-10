@@ -13,8 +13,8 @@ from normflow.prior import NormalPrior
 
 def make_model():
     net_ = DistConvertor_(10, symmetric=True)
-    prior = NormalPrior(shape=(1,))
-    action = ScalarPhi4Action(kappa=0, m_sq=-1.2, lambd=0.5)
+    prior = NormalPrior(shape=(10,))
+    action = ScalarPhi4Action(kappa=0.5, m_sq=-1.2, lambd=0.5)
 
     model = Model(net_=net_, prior=prior, action=action)
     return model
@@ -22,7 +22,7 @@ def make_model():
 def fit_func(
         model,
         n_epochs=5000,
-        batch_size=1024*4,
+        batch_size=1024,
         hyperparam={'fused': True},
     ):
     """Training function to fit model."""
