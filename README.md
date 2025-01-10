@@ -130,7 +130,7 @@ curl -fsSL https://github.com/interTwin-eu/itwinai/raw/main/env-files/torch/inst
 ```
 
 > [!WARNING]  
-> itwinai depends on Horovod, which requires `CMake>=1.13` and
+> Horovod requires `CMake>=1.13` and
 > [other packages](https://horovod.readthedocs.io/en/latest/install_include.html#requirements).
 > Make sure to have them installed in your environment before proceeding.
 
@@ -208,8 +208,15 @@ pip install -e ".[torch,dev,tf]" \
     --extra-index-url https://download.pytorch.org/whl/cu121
 ```
 
-If you want to use Prov4ML logger, you need to install it explicitly since it is only
-available on GitHub. Please refer to the
+If you wanted to install this locally on **macOS** (i.e. without CUDA) with PyTorch, you
+would do the following instead:
+
+```bash
+pip install -e ".[torch,dev,tf]"
+```
+
+If you want to use [Prov4ML](https://github.com/HPCI-Lab/yProvML) logger, you need to install
+it explicitly since it is only available on GitHub. Please refer to the
 [users installation](#install-itwinai-for-users)
 to know more on how to install Prov4ML.
 
