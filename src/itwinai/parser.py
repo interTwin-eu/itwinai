@@ -22,7 +22,7 @@ from hydra.utils import instantiate
 from jsonargparse import ActionConfigFile
 from jsonargparse import ArgumentParser as JAPArgumentParser
 from jsonargparse._formatters import DefaultHelpFormatter
-from omegaconf import OmegaConf, dictconfig
+from omegaconf import OmegaConf, dictconfig, errors, listconfig
 
 from .pipeline import Pipeline
 
@@ -81,29 +81,23 @@ class ConfigParser:
 
     def build_from_config(
         self,
-        type: Literal["pipeline", "step"] = "pipeline",
         pipeline_nested_key: str = "pipeline",
-        override_keys: Dict | None = None,
-        steps: str | None = None,
-        step_idx: Union[str, int] | None = None,
+        override_keys: Dict = {},
+        steps: List[str] | List[int] | None = None,
         verbose: bool = False,
     ) -> Pipeline:
         """Parses the pipeline and instantiated all classes defined within it.
 
         Args:
-            type (Literal["pipeline", "step"]): The type of object to build. If set to "step",
-                only the object(s) defined by the step given by 'step_idx' is built.
-                Defaults to "pipeline".
             pipeline_nested_key (str, optional): Nested key in the configuration file
                 identifying the pipeline object. Defaults to "pipeline".
-            override_keys ([Dict[str, Any]], optional): A dict mapping
-                nested keys to the value to override. Defaults to None.
-            steps (str, optional): If building a pipeline, allows you to select which step(s)
-                to include in the pipeline. Accepted values are indices,
-                python slices (e.g., 0:3 or 2:10:100), and string names of steps.
+            override_keys ([Dict[str, Any]]): A dict mapping
+                nested keys to the value to override. Defaults to {}.
+            steps ((list(str) | list(int)), optional): If building a pipeline, allows you to
+                select which step(s) to include in the pipeline. Accepted values are lists
+                of indices for config files where the steps are defined as lists, or lists of
+                names of steps, if they are defined in the configuration as a dict.
                 Defaults to None.
-            step_idx (Union[str, int], optional): If building only a step, used to identify
-                which one. Must be set if 'type' is set to 'step'. Defaults to None.
             verbose (bool): if True, prints the assembled pipeline
                 to console formatted as JSON.
 
@@ -113,11 +107,8 @@ class ConfigParser:
         conf = self.parse_pipeline(pipeline_nested_key, override_keys)
 
         # Select steps
-        if type == "pipeline":
-            if steps:
-                conf.steps = self._get_selected_steps(steps, conf.steps)
-        else:
-            conf = conf.steps[step_idx]
+        if steps:
+            conf = self._select_steps(conf, steps)
 
         # Resolve interpolated parameters
         OmegaConf.resolve(conf)
@@ -131,15 +122,15 @@ class ConfigParser:
     def parse_pipeline(
         self,
         pipeline_nested_key: str = "pipeline",
-        override_keys: Dict | None = None,
+        override_keys: Dict = {},
     ) -> dictconfig.DictConfig:
         """Parses the pipeline from a yaml file into an OmegaConf DictConfig.
 
         Args:
             pipeline_nested_key (str, optional): Nested key in the configuration file
                 identifying the pipeline object. Defaults to "pipeline".
-            override_keys (Dict | None, optional): A dict mapping
-                nested keys to the value to override. Defaults to None.
+            override_keys (Dict): A dict mapping
+                nested keys to the value to override. Defaults to {}.
 
         Raises:
             e: Failed to load config from yaml. Most likely due to a badly structured
@@ -161,9 +152,6 @@ class ConfigParser:
             )
             raise e
 
-        if pipeline_nested_key not in raw_conf:
-            raise ValueError(f"Pipeline key {pipeline_nested_key} not found.")
-
         # Override keys
         for override_key, override_value in override_keys.items():
             inferred_type = ast.literal_eval(override_value)
@@ -173,49 +161,36 @@ class ConfigParser:
                 f"Successfully overrode key {override_key}."
                 f"It now has the value {inferred_type} of type {type(inferred_type)}."
             )
-
-        conf = raw_conf[pipeline_nested_key]
+        try:
+            conf = OmegaConf.select(raw_conf, pipeline_nested_key, throw_on_missing=True)
+        except Exception as e:
+            e.add_note(f"Could not find pipeline key {pipeline_nested_key} in config.")
+            raise e
 
         return conf
 
-    def _get_selected_steps(self, steps: str, conf_steps: list):
-        """Selects the steps of the pipeline to be executed.
+    def _select_steps(
+        self, conf: listconfig.Listconfig | dictconfig.DictConfig, steps: List[int] | List[str]
+    ):
+        """Selects the steps given from the configuration object.
+        If only one step is selected, returns a configuration with only that step. Otherwise
+        returns a pipeline with all the selected steps as a list.
 
         Args:
-            steps (str): Selects the steps of the pipeline. Accepted values are indices,
-                python slices (e.g., 0:3 or 2:10:100), and string names of steps.
-            conf_steps (list): A list of all the steps in the pipeline configuration.
-
-        Raises:
-            ValueError: Invalid slice notation
-            IndexError: Index out of range
-            ValueError: Invalid step name given
+            conf (listconfig.Listconfig | dictconfig.DictConfig):
+                The configuration of the pipeline
+            steps (List[int] | List[str]): The list of steps
 
         Returns:
-            list: The steps selected from the pipeline.
+            listconfig.Listconfig | dictconfig.DictConfig: The updated configuration
         """
-        # If steps is given as a slice
-        if ":" in steps:
-            try:
-                slice_obj = slice(*[int(x) if x else None for x in steps.split(":")])
-                return conf_steps[slice_obj]
-            except ValueError:
-                raise ValueError(f"Invalid slice notation: {steps}")
+        if len(steps) == 1:
+            return OmegaConf.create(conf.steps[steps[0]])
 
-        # If steps is given as a single index
-        elif steps.isdigit():
-            index = int(steps)
-            if 0 <= index < len(conf_steps):
-                return [conf_steps[index]]
-            else:
-                raise IndexError(f"Step index out of range: {index}")
+        selected_steps = [conf.steps[step] for step in steps]
+        OmegaConf.update(conf, conf.steps, selected_steps)
 
-        # If steps is given as a name
-        else:
-            selected_steps = [step for step in conf_steps if step.get("_target_") == steps]
-            if not selected_steps:
-                raise ValueError(f"No steps found with name: {steps}")
-            return selected_steps
+        return conf
 
 
 class ArgumentParser(JAPArgumentParser):
