@@ -216,7 +216,7 @@ RUN pip install --no-cache-dir --upgrade pip \
 WORKDIR "$HOME/itwinai"
 COPY --chown=${NB_UID} pyproject.toml pyproject.toml
 COPY --chown=${NB_UID} src src
-RUN pip install --no-cache-dir .[torch,nvidia,dev] --extra-index-url https://download.pytorch.org/whl/cu124
+RUN pip install --no-cache-dir .[torch,prov4ml-nvidia,dev] --extra-index-url https://download.pytorch.org/whl/cu124
 
 # Apex: https://github.com/NVIDIA/apex
 # (needed for DeepSpeed *_FUSED optinal build options)

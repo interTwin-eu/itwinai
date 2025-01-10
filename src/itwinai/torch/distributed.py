@@ -15,8 +15,6 @@ import functools
 import os
 from typing import Any, Callable, Iterable, List, Literal, Optional, Tuple, Union
 
-import ray
-import ray.train
 import torch
 import torch.distributed as dist
 import torch.nn as nn
@@ -68,6 +66,8 @@ def initialize_ray() -> None:
                 `HEAD_NODE_IP` are not set.
                 These should be set from the slurm script where the ray cluster is launched.
     """
+    import ray
+
     if ray.is_initialized():
         return
 
@@ -1059,25 +1059,28 @@ class RayDDPStrategy(TorchDDPStrategy):
 
     def __init__(self) -> None:
         initialize_ray()
+        import ray.train
+
+        self.ray_train = ray.train
 
     def init(self) -> None:
         self.is_initialized = True
 
     @check_initialized
     def global_world_size(self) -> int:
-        return ray.train.get_context().get_world_size()
+        return self.ray_train.get_context().get_world_size()
 
     @check_initialized
     def local_world_size(self) -> int:
-        return ray.train.get_context().get_local_world_size()
+        return self.ray_train.get_context().get_local_world_size()
 
     @check_initialized
     def global_rank(self) -> int:
-        return ray.train.get_context().get_world_rank()
+        return self.ray_train.get_context().get_world_rank()
 
     @check_initialized
     def local_rank(self) -> int:
-        return ray.train.get_context().get_local_rank()
+        return self.ray_train.get_context().get_local_rank()
 
     @check_initialized
     def distributed(
@@ -1086,7 +1089,7 @@ class RayDDPStrategy(TorchDDPStrategy):
         optimizer: Optimizer,
         lr_scheduler: Optional[LRScheduler] = None,
     ) -> Tuple[nn.Module, Optimizer, LRScheduler | None]:
-        model = ray.train.torch.prepare_model(model)
+        model = self.ray_train.torch.prepare_model(model)
 
         return model, optimizer, lr_scheduler
 
@@ -1129,7 +1132,7 @@ class RayDDPStrategy(TorchDDPStrategy):
             pin_memory_device=pin_memory_device,
         )
 
-        return ray.train.torch.prepare_data_loader(dataloader)
+        return self.ray_train.torch.prepare_data_loader(dataloader)
 
 
 class RayDeepSpeedStrategy(DeepSpeedStrategy):
