@@ -35,7 +35,7 @@ RUN pip install --no-cache-dir --upgrade pip \
 # Install itwinai with torch
 COPY pyproject.toml pyproject.toml
 COPY src src
-RUN pip install --no-cache-dir .[torch,tf,prov4ml-nvidia,dev] --extra-index-url https://download.pytorch.org/whl/cu124
+RUN pip install --no-cache-dir .[torch,tf,dev] --extra-index-url https://download.pytorch.org/whl/cu124
 
 # Install DeepSpeed, Horovod and Ray
 ENV HOROVOD_WITH_PYTORCH=1 \

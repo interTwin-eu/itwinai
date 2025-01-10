@@ -25,4 +25,10 @@ else
 fi
 
 source $ENV_NAME/bin/activate
-pip install --no-cache-dir -e ".[dev,prov4ml-nvidia,tf]"
+
+if [ -z "$NO_CUDA" ]; then
+  TF_EXTRA="tf"
+else
+  TF_EXTRA="tf-cuda"
+fi
+pip install --no-cache-dir -e ".[$TF_EXTRA,dev]"

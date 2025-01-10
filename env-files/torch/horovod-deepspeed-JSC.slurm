@@ -1,5 +1,7 @@
 #!/bin/bash
 
+# Installation for JSC
+
 # Job configuration
 #SBATCH --job-name=setup_venv
 #SBATCH --account=intertwin

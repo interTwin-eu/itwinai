@@ -78,11 +78,12 @@ hpo = [
   "hpbandster>=0.7.0",
   "gpy>=1.13.2",
 ]
-prov4ml = ["prov4ml@git+https://github.com/matbun/ProvML@new-main"]
-prov4ml-macos = ["prov4ml[apple]@git+https://github.com/matbun/ProvML@new-main"]
-prov4ml-nvidia = [
-  "prov4ml[nvidia]@git+https://github.com/matbun/ProvML@new-main",
-]
+# Git dependencies are not supported by PyPI and will prevent pushing new versions to it.
+# prov4ml = ["prov4ml@git+https://github.com/matbun/ProvML@new-main"]
+# prov4ml-macos = ["prov4ml[apple]@git+https://github.com/matbun/ProvML@new-main"]
+# prov4ml-nvidia = [
+#   "prov4ml[nvidia]@git+https://github.com/matbun/ProvML@new-main",
+# ]
 # prov4ml-amd = ["prov4ml[amd]@git+https://github.com/matbun/ProvML@new-main"]
 
 [project.urls]
