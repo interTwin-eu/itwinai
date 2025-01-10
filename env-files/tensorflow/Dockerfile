@@ -41,7 +41,7 @@ ENV PYTHONPATH=""
 # Install itwinai
 COPY pyproject.toml pyproject.toml
 COPY src src
-RUN pip install --no-cache-dir .[nvidia] \
+RUN pip install --no-cache-dir .[prov4ml-nvidia] \
     && itwinai sanity-check --tensorflow --optional-deps ray
 
 # Additional pip deps

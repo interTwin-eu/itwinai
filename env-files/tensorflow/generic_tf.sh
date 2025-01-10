@@ -25,4 +25,4 @@ else
 fi
 
 source $ENV_NAME/bin/activate
-pip install --no-cache-dir -e ".[dev,nvidia,tf]"
+pip install --no-cache-dir -e ".[dev,prov4ml-nvidia,tf]"

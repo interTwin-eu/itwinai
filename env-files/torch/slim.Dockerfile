@@ -56,7 +56,7 @@ RUN /usr/bin/python3.10 -m venv /opt/venv \
 WORKDIR /app
 COPY pyproject.toml pyproject.toml
 COPY src src
-RUN pip install --no-cache-dir .[torch,nvidia,dev] --extra-index-url https://download.pytorch.org/whl/cu124
+RUN pip install --no-cache-dir .[torch,prov4ml-nvidia,dev] --extra-index-url https://download.pytorch.org/whl/cu124
 
 # Install DeepSpeed, Horovod and Ray
 RUN CONTAINER_TORCH_VERSION="$(python -c 'import torch;print(torch.__version__)')" \
