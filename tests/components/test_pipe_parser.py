@@ -45,15 +45,22 @@ def test_add_replace_field():
     target6 = dict(first=dict(list1=[[0, 1], [77, 3]], el=0))
     assert conf2 == target6
 
-    conf3 = dict(first=dict(list1=[[0, dict(nst=("el", dict(ciao="ciao")))], [2, 3]], el=0))
+    conf3 = dict(
+        first=dict(list1=[[0, dict(nst=("el", dict(ciao="ciao")))], [2, 3]], el=0)
+    )
     add_replace_field(conf3, "first.list1.0.1.nst.1.ciao", "hello")
-    target7 = dict(first=dict(list1=[[0, dict(nst=("el", dict(ciao="hello")))], [2, 3]], el=0))
+    target7 = dict(
+        first=dict(list1=[[0, dict(nst=("el", dict(ciao="hello")))], [2, 3]], el=0)
+    )
     assert conf3 == target7
 
     add_replace_field(conf3, "first.list1.0.1.nst.1.ciao.I.am.john", True)
     target8 = dict(
         first=dict(
-            list1=[[0, dict(nst=("el", dict(ciao=dict(I=dict(am=dict(john=True))))))], [2, 3]],
+            list1=[
+                [0, dict(nst=("el", dict(ciao=dict(I=dict(am=dict(john=True))))))],
+                [2, 3],
+            ],
             el=0,
         )
     )
@@ -107,7 +114,9 @@ def test_dynamic_override_parser_pipeline_dict():
     """
     config = yaml.safe_load(pytest.PIPE_DICT_YAML)
 
-    override_keys = {"my-dict-pipeline.init_args.steps.preproc-step.init_args.max_items": 33}
+    override_keys = {
+        "my-dict-pipeline.init_args.steps.preproc-step.init_args.max_items": 33
+    }
     parser = ConfigParser(config=config, override_keys=override_keys)
     pipe = parser.parse_pipeline(pipeline_nested_key="my-dict-pipeline")
     assert pipe.steps["preproc-step"].max_items == 33
@@ -139,7 +148,9 @@ def test_parse_step_list_pipeline():
     with pytest.raises(IndexError):
         _ = parser.parse_step(step_idx=12, pipeline_nested_key="my-list-pipeline")
     with pytest.raises(TypeError):
-        _ = parser.parse_step(step_idx="my-step-name", pipeline_nested_key="my-list-pipeline")
+        _ = parser.parse_step(
+            step_idx="my-step-name", pipeline_nested_key="my-list-pipeline"
+        )
 
 
 def test_parse_step_dict_pipeline():
@@ -148,13 +159,17 @@ def test_parse_step_dict_pipeline():
     """
     config = yaml.safe_load(pytest.PIPE_DICT_YAML)
     parser = ConfigParser(config=config)
-    step = parser.parse_step(step_idx="preproc-step", pipeline_nested_key="my-dict-pipeline")
+    step = parser.parse_step(
+        step_idx="preproc-step", pipeline_nested_key="my-dict-pipeline"
+    )
 
     assert isinstance(step, BaseComponent)
     assert isinstance(step, FakePreproc)
 
     with pytest.raises(KeyError):
-        _ = parser.parse_step(step_idx="unk-step", pipeline_nested_key="my-dict-pipeline")
+        _ = parser.parse_step(
+            step_idx="unk-step", pipeline_nested_key="my-dict-pipeline"
+        )
     with pytest.raises(KeyError):
         _ = parser.parse_step(step_idx=0, pipeline_nested_key="my-dict-pipeline")
 

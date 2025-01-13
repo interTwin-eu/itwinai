@@ -20,7 +20,7 @@ import pandas as pd
 n_memb = 1
 
 # define relevant scenarios
-#scenarios = ["126", "245", "370", "585"]
+# scenarios = ["126", "245", "370", "585"]
 scenarios = ["245", "585"]
 
 # Load preprocessed "daily temperature images" and time series

@@ -94,7 +94,9 @@ class SyntheticTimeSeriesDatasetHDF5(Dataset):
         """
         file_path = Path(hdf5_file_location)
         if not file_path.exists():
-            raise ValueError(f"Given file location, {file_path.resolve()} does not exist. ")
+            raise ValueError(
+                f"Given file location, {file_path.resolve()} does not exist. "
+            )
         self.hdf5_dataset_name = hdf5_dataset_name
         self.file_path = file_path
         self.chunk_size = chunk_size
@@ -133,7 +135,9 @@ class SyntheticTimeSeriesDatasetHDF5(Dataset):
             torch.Tensor: Normalized tensor for specific idx
         """
         if idx >= len(self):
-            raise ValueError(f"Index {idx} out of bounds for dataset with length {len(self)}!")
+            raise ValueError(
+                f"Index {idx} out of bounds for dataset with length {len(self)}!"
+            )
 
         offset = idx * self.chunk_size
         with h5py.File(self.file_path, "r") as f:
@@ -354,11 +358,16 @@ class TimeSeriesProcessorSmall(DataProcessor):
 
         # whole dataset
         signal_data_test_2d = torch.stack(
-            [torch.stack([y_test_2d[main_channel].iloc[i]]) for i in range(y_test_2d.shape[0])]
+            [
+                torch.stack([y_test_2d[main_channel].iloc[i]])
+                for i in range(y_test_2d.shape[0])
+            ]
         )
         aux_data_test_2d = torch.stack(
             [
-                torch.stack([X_test_2d.iloc[i, 0], X_test_2d.iloc[i, 1], X_test_2d.iloc[i, 2]])
+                torch.stack(
+                    [X_test_2d.iloc[i, 0], X_test_2d.iloc[i, 1], X_test_2d.iloc[i, 2]]
+                )
                 for i in range(X_test_2d.shape[0])
             ]
         )

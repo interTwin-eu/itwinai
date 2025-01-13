@@ -159,14 +159,18 @@ class GANTrainer(TorchTrainer):
         self.criterion = nn.BCELoss()
 
         # https://stackoverflow.com/a/67437077
-        self.discriminator = torch.nn.SyncBatchNorm.convert_sync_batchnorm(self.discriminator)
+        self.discriminator = torch.nn.SyncBatchNorm.convert_sync_batchnorm(
+            self.discriminator
+        )
         self.generator = torch.nn.SyncBatchNorm.convert_sync_batchnorm(self.generator)
 
         # First, define strategy-wise optional configurations
         if isinstance(self.strategy, DeepSpeedStrategy):
             # Batch size definition is not optional for DeepSpeedStrategy!
             distribute_kwargs = dict(
-                config_params=dict(train_micro_batch_size_per_gpu=self.config.batch_size)
+                config_params=dict(
+                    train_micro_batch_size_per_gpu=self.config.batch_size
+                )
             )
         else:
             distribute_kwargs = {}
@@ -398,7 +402,9 @@ class GANTrainer(TorchTrainer):
             "generator_state_dict": self.generator.state_dict(),
             "optimizerD_state_dict": self.optimizerD.state_dict(),
             "optimizerG_state_dict": self.optimizerG.state_dict(),
-            "lr_scheduler": (self.lr_scheduler.state_dict() if self.lr_scheduler else None),
+            "lr_scheduler": (
+                self.lr_scheduler.state_dict() if self.lr_scheduler else None
+            ),
         }
 
         torch.save(checkpoint, checkpoint_path)
@@ -472,7 +478,9 @@ def main():
         ]
     )
 
-    train_dataset = datasets.MNIST("../data", train=True, download=True, transform=transform)
+    train_dataset = datasets.MNIST(
+        "../data", train=True, download=True, transform=transform
+    )
     validation_dataset = datasets.MNIST("../data", train=False, transform=transform)
 
     def weights_init(m):

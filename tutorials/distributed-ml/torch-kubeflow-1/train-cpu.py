@@ -68,9 +68,14 @@ def main():
         "--epochs", type=int, default=14, help="number of epochs to train (default: 14)"
     )
     parser.add_argument(
-        "--strategy", type=str, default="ddp", help="distributed strategy (default: ddp)"
+        "--strategy",
+        type=str,
+        default="ddp",
+        help="distributed strategy (default: ddp)",
     )
-    parser.add_argument("--lr", type=float, default=1.0, help="learning rate (default: 1.0)")
+    parser.add_argument(
+        "--lr", type=float, default=1.0, help="learning rate (default: 1.0)"
+    )
     parser.add_argument("--seed", type=int, default=1, help="random seed (default: 1)")
     parser.add_argument(
         "--ckpt-interval",
@@ -120,7 +125,9 @@ def main():
             time.sleep(1)
 
         # Dataset creation
-        train_dataset = datasets.MNIST("data", train=True, download=False, transform=transform)
+        train_dataset = datasets.MNIST(
+            "data", train=True, download=False, transform=transform
+        )
         validation_dataset = datasets.MNIST(
             "data", train=False, download=False, transform=transform
         )

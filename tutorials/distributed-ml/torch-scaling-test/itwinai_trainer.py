@@ -64,7 +64,7 @@ def main():
         raise NotImplementedError(
             f"Strategy {args.strategy} is not recognized/implemented."
         )
-    strategy.init()
+    strategy.initialize_distributed_strategy()
 
     # Check resource availability
     use_cuda = not args.no_cuda and torch.cuda.is_available()

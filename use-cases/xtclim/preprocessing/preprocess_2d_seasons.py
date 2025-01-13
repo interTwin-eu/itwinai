@@ -15,11 +15,9 @@ import pandas as pd
 
 from itwinai.components import DataGetter, monitor_exec
 
+
 class SplitPreprocessedData(DataGetter):
-    def __init__(
-            self,
-            scenario: str
-    ):
+    def __init__(self, scenario: str):
         super().__init__()
         self.scenario = scenario
 
@@ -108,7 +106,7 @@ class SplitPreprocessedData(DataGetter):
         n_memb = 1
 
         # define relevant scenarios
-        #scenarios = ["126", "245", "370", "585"]
+        # scenarios = ["126", "245", "370", "585"]
         scenarios = [self.scenario]
         # Load preprocessed "daily temperature images" and time series
 
@@ -116,7 +114,6 @@ class SplitPreprocessedData(DataGetter):
         test_images = np.load("input/preprocessed_2d_test_data_allssp.npy")
         train_time = pd.read_csv("input/dates_train_data.csv")
         test_time = pd.read_csv("input/dates_test_data.csv")
-
 
         ##### 3. Apply to Train and Test Datasets
         train_season_images, train_season_time = self.season_split(
@@ -127,11 +124,12 @@ class SplitPreprocessedData(DataGetter):
             test_images, test_time, "test", n_memb
         )
 
-
         ##### 4. Apply to Projection Datasets
 
         for scenario in scenarios:
-            proj_images = np.load(f"input/preprocessed_2d_proj{scenario}_data_allssp.npy")
+            proj_images = np.load(
+                f"input/preprocessed_2d_proj{scenario}_data_allssp.npy"
+            )
             proj_time = pd.read_csv("input/dates_proj_data.csv")
 
             proj_season_images, proj_season_time = self.season_split(

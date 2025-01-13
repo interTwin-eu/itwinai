@@ -23,7 +23,9 @@ def seed_worker(worker_id):
     random.seed(worker_seed)
 
 
-def set_seed(rnd_seed: Optional[int], deterministic_cudnn: bool = True) -> torch.Generator:
+def set_seed(
+    rnd_seed: Optional[int], deterministic_cudnn: bool = True
+) -> torch.Generator:
     """Set torch random seed and return a PRNG object.
 
     Args:

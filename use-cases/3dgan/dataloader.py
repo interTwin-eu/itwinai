@@ -72,7 +72,9 @@ class ParticlesDataset(Dataset):
 
     def fetch_data(self) -> None:
         print("Searching in :", self.datapath)
-        files = sorted(glob.glob(os.path.join(self.datapath, "**/*.h5"), recursive=True))
+        files = sorted(
+            glob.glob(os.path.join(self.datapath, "**/*.h5"), recursive=True)
+        )
         print("Found {} files. ".format(len(files)))
         if len(files) == 0:
             raise RuntimeError(f"No H5 files found at '{self.datapath}'!")
@@ -103,7 +105,10 @@ class ParticlesDataset(Dataset):
                     self.data[field] = vals_array
 
             # Stop loading data, if self.max_samples reached
-            if self.max_samples is not None and len(self.data[field]) >= self.max_samples:
+            if (
+                self.max_samples is not None
+                and len(self.data[field]) >= self.max_samples
+            ):
                 for field, vals_array in self.data.items():
                     self.data[field] = vals_array[: self.max_samples]
                 break
@@ -189,7 +194,10 @@ class ParticlesDataModule(pl.LightningDataModule):
         try:
             itwinai_logger = self.trainer.itwinai_logger
         except AttributeError:
-            print("WARNING: itwinai_logger attribute not set " f"in {self.__class__.__name__}")
+            print(
+                "WARNING: itwinai_logger attribute not set "
+                f"in {self.__class__.__name__}"
+            )
             itwinai_logger = None
         return itwinai_logger
 

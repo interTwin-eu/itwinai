@@ -119,7 +119,9 @@ class TensorflowTrainer(Trainer):
         if model_config is not None and model_compile_config is not None:
             with self.strategy.scope():
                 self.model: tf.keras.Model = _instance_from_dict(model_config)
-                model_compile_config = self.instantiate_compile_conf(model_compile_config)
+                model_compile_config = self.instantiate_compile_conf(
+                    model_compile_config
+                )
                 self.model.compile(**model_compile_config)
         else:
             print(
@@ -198,17 +200,23 @@ class TensorflowTrainer(Trainer):
         # Shuffle dataset
         if self.shuffle_buffer:
             train_ds = train_dataset.shuffle(self.shuffle_buffer, seed=self.rnd_seed)
-            valid_ds = validation_dataset.shuffle(self.shuffle_buffer, seed=self.rnd_seed)
+            valid_ds = validation_dataset.shuffle(
+                self.shuffle_buffer, seed=self.rnd_seed
+            )
         else:
             train_ds = train_dataset
             valid_ds = validation_dataset
 
         # Set batch size to the dataset and repeat
         train_ds = train_ds.batch(
-            self.macro_batch_size, drop_remainder=True, num_parallel_calls=tf.data.AUTOTUNE
+            self.macro_batch_size,
+            drop_remainder=True,
+            num_parallel_calls=tf.data.AUTOTUNE,
         ).repeat(self.epochs)
         valid_ds = valid_ds.batch(
-            self.macro_batch_size, drop_remainder=True, num_parallel_calls=tf.data.AUTOTUNE
+            self.macro_batch_size,
+            drop_remainder=True,
+            num_parallel_calls=tf.data.AUTOTUNE,
         ).repeat(self.epochs)
 
         print(f"len(train_ds): {len(train_ds)}")

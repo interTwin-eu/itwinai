@@ -49,7 +49,11 @@ dataset = dset.MNIST(
     root=DATA_PATH,
     download=False,
     transform=transforms.Compose(
-        [transforms.Resize(X_DIM), transforms.ToTensor(), transforms.Normalize((0.5,), (0.5,))]
+        [
+            transforms.Resize(X_DIM),
+            transforms.ToTensor(),
+            transforms.Normalize((0.5,), (0.5,)),
+        ]
     ),
 )
 
@@ -149,7 +153,9 @@ optimizerG = optim.Adam(netG.parameters(), lr=lr, betas=(0.5, 0.999))
 
 
 # Training Loop
-def train_GAN_model(EPOCH_NUM, netD, netG, optimizerG, optimizerD, dataloader, criterion):
+def train_GAN_model(
+    EPOCH_NUM, netD, netG, optimizerG, optimizerD, dataloader, criterion
+):
     img_list = []
     G_losses = []
     D_losses = []
@@ -228,7 +234,9 @@ def train_GAN_model(EPOCH_NUM, netD, netG, optimizerG, optimizerD, dataloader, c
             D_losses.append(errD.item())
 
             # Check how the generator is doing
-            if (iters % 500 == 0) or ((epoch == EPOCH_NUM - 1) and (i == len(dataloader) - 1)):
+            if (iters % 500 == 0) or (
+                (epoch == EPOCH_NUM - 1) and (i == len(dataloader) - 1)
+            ):
                 with torch.no_grad():
                     fake = netG(viz_noise).detach().cpu()
                 img_list.append(vutils.make_grid(fake, padding=2, normalize=True))
@@ -253,7 +261,9 @@ def train_GAN_model(EPOCH_NUM, netD, netG, optimizerG, optimizerD, dataloader, c
     plt.title("Real Images")
     plt.imshow(
         np.transpose(
-            vutils.make_grid(real_batch[0].to(device)[:64], padding=5, normalize=True).cpu(),
+            vutils.make_grid(
+                real_batch[0].to(device)[:64], padding=5, normalize=True
+            ).cpu(),
             (1, 2, 0),
         )
     )

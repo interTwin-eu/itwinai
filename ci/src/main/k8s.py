@@ -164,7 +164,9 @@ def check_pod_status(api_instance: client.CoreV1Api, namespace: str, pod_name: s
         return None
 
 
-def get_pod_logs_insecure(api_instance: client.CoreV1Api, namespace: str, pod_name: str):
+def get_pod_logs_insecure(
+    api_instance: client.CoreV1Api, namespace: str, pod_name: str
+):
     """Fetch logs for the specified pod with insecure TLS settings."""
     try:
         log_response = api_instance.read_namespaced_pod_log(
@@ -179,7 +181,9 @@ def get_pod_logs_insecure(api_instance: client.CoreV1Api, namespace: str, pod_na
 def delete_pod(api_instance: client.CoreV1Api, namespace: str, pod_name: str):
     """Delete a pod by its name in a specified namespace."""
     try:
-        api_response = api_instance.delete_namespaced_pod(name=pod_name, namespace=namespace)
+        api_response = api_instance.delete_namespaced_pod(
+            name=pod_name, namespace=namespace
+        )
         print(f"Pod '{pod_name}' deleted. Status: {api_response.status}")
     except ApiException as e:
         print(f"Exception when deleting pod: {e}")
@@ -209,7 +213,9 @@ def submit_job(
     # Kill existing pod, if present
     status = check_pod_status(v1, namespace, pod_name)
     if status:
-        logging.warning(f"Pod {pod_name} already existed... Deleting it before continuing.")
+        logging.warning(
+            f"Pod {pod_name} already existed... Deleting it before continuing."
+        )
         delete_pod(v1, namespace, pod_name)
         while status is not None:
             time.sleep(1)

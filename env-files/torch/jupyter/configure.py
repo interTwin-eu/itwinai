@@ -11,13 +11,13 @@ import os
 
 
 def write_jupyterlab_config():
-    HOME = os.getenv('HOME', '/ceph/hpc/home/ciangottinid')
+    HOME = os.getenv("HOME", "/ceph/hpc/home/ciangottinid")
 
-    file_path = HOME + '/.jupyter/jupyter_notebook_config.json'
+    file_path = HOME + "/.jupyter/jupyter_notebook_config.json"
     if not os.path.isfile(file_path):
-        os.makedirs(HOME + '/.jupyter/', exist_ok=True)
+        os.makedirs(HOME + "/.jupyter/", exist_ok=True)
     else:
-        config_file = open(file_path, 'r')
+        config_file = open(file_path, "r")
         config_payload = config_file.read()
         config_file.close()
 
@@ -26,11 +26,11 @@ def write_jupyterlab_config():
     except Exception:
         config_json = {}
 
-# Looking to the rucio-jupyterlab configuration;
-# https://github.com/rucio/jupyterlab-extension/blob/master/rucio_jupyterlab/config/schema.py#L101
-#  either ("destination_rse", "rse_mount_path") either ("rucio_ca_cert") are required env
-# vars, even if they are defined in the jhub manifest.
-# Adding 'rucio_base_url' too - from debugging experience
+    # Looking to the rucio-jupyterlab configuration;
+    # https://github.com/rucio/jupyterlab-extension/blob/master/rucio_jupyterlab/config/schema.py#L101
+    #  either ("destination_rse", "rse_mount_path") either ("rucio_ca_cert") are required env
+    # vars, even if they are defined in the jhub manifest.
+    # Adding 'rucio_base_url' too - from debugging experience
 
     # instance_config = {
     #     "name": os.getenv('RUCIO_NAME', 'default'),
@@ -48,8 +48,8 @@ def write_jupyterlab_config():
     #     "destination_rse": os.getenv('RUCIO_DESTINATION_RSE', 'DEFAULT rse destination'),
     #     "rse_mount_path": os.getenv('RUCIO_RSE_MOUNT_PATH', 'DEFAULT rse mount path'),
     #     "replication_rule_lifetime_days": int(os.getenv(
-        # 'RUCIO_REPLICATION_RULE_LIFETIME_DAYS')) if os.getenv(
-        # 'RUCIO_REPLICATION_RULE_LIFETIME_DAYS') else None,
+    # 'RUCIO_REPLICATION_RULE_LIFETIME_DAYS')) if os.getenv(
+    # 'RUCIO_REPLICATION_RULE_LIFETIME_DAYS') else None,
     #     "path_begins_at": int(os.getenv('RUCIO_PATH_BEGINS_AT', '0')),
     #     "mode": os.getenv('RUCIO_MODE', 'replica'),
     #     "wildcard_enabled": os.getenv('RUCIO_WILDCARD_ENABLED', '0') == '1',
@@ -75,29 +75,29 @@ def write_jupyterlab_config():
         "rucio_auth_url": "https://rucio-intertwin-testbed-auth.desy.de",
         "rucio_ca_cert": "/opt/conda/lib/python3.9/site-packages/certifi/cacert.pem",
         "site_name": "VEGA",
-        "voms_enabled": os.getenv('RUCIO_VOMS_ENABLED', '0') == '1',
+        "voms_enabled": os.getenv("RUCIO_VOMS_ENABLED", "0") == "1",
         "destination_rse": "VEGA-DCACHE",
         "rse_mount_path": "/dcache/sling.si/projects/intertwin",
         "path_begins_at": 4,
         "mode": "replica",
         # "mode": "download",
-        "wildcard_enabled": os.getenv('RUCIO_WILDCARD_ENABLED', '0') == '0',
+        "wildcard_enabled": os.getenv("RUCIO_WILDCARD_ENABLED", "0") == "0",
         "oidc_auth": "env",
-        "oidc_env_name": "RUCIO_ACCESS_TOKEN"
+        "oidc_env_name": "RUCIO_ACCESS_TOKEN",
     }
 
-    instance_config = {k: v for k,
-                       v in instance_config.items() if v is not None}
-    config_json['RucioConfig'] = {
-        'instances': [instance_config],
-        "default_instance": os.getenv('RUCIO_DEFAULT_INSTANCE',
-                                      'rucio-intertwin-testbed.desy.de'),
-        "default_auth_type": os.getenv('RUCIO_DEFAULT_AUTH_TYPE', 'oidc'),
+    instance_config = {k: v for k, v in instance_config.items() if v is not None}
+    config_json["RucioConfig"] = {
+        "instances": [instance_config],
+        "default_instance": os.getenv(
+            "RUCIO_DEFAULT_INSTANCE", "rucio-intertwin-testbed.desy.de"
+        ),
+        "default_auth_type": os.getenv("RUCIO_DEFAULT_AUTH_TYPE", "oidc"),
     }
 
     # up to here
 
-    config_file = open(file_path, 'w')
+    config_file = open(file_path, "w")
     config_file.write(json.dumps(config_json, indent=2))
     config_file.close()
 
@@ -107,32 +107,34 @@ def write_rucio_config():
     rucio_config = configparser.ConfigParser()
 
     client_config = {
-        'rucio_host': os.getenv('RUCIO_BASE_URL',
-                                'https://rucio-intertwin-testbed.desy.de'),
-        'auth_host': os.getenv('RUCIO_AUTH_URL',
-                               'https://rucio-intertwin-testbed-auth.desy.de'),
-        'ca_cert': os.getenv('RUCIO_CA_CERT', '/certs/rucio_ca.pem'),
-        'auth_type': os.getenv('RUCIO_AUTH_TYPE', 'oidc'),  # 'x509' or 'oidc'
+        "rucio_host": os.getenv(
+            "RUCIO_BASE_URL", "https://rucio-intertwin-testbed.desy.de"
+        ),
+        "auth_host": os.getenv(
+            "RUCIO_AUTH_URL", "https://rucio-intertwin-testbed-auth.desy.de"
+        ),
+        "ca_cert": os.getenv("RUCIO_CA_CERT", "/certs/rucio_ca.pem"),
+        "auth_type": os.getenv("RUCIO_AUTH_TYPE", "oidc"),  # 'x509' or 'oidc'
         # This is the RUCIO account name, need to be mapped from idp
-        'account': os.getenv('RUCIO_ACCOUNT', '$RUCIO_ACCOUNT'),
-        'oidc_polling': 'true',
-        'oidc_scope': 'openid profile offline_access eduperson_entitlement',
+        "account": os.getenv("RUCIO_ACCOUNT", "$RUCIO_ACCOUNT"),
+        "oidc_polling": "true",
+        "oidc_scope": "openid profile offline_access eduperson_entitlement",
         # 'username': os.getenv('RUCIO_USERNAME', ''),
         # 'password': os.getenv('RUCIO_PASSWORD', ''),
-        'auth_token_file_path': '/tmp/rucio_oauth.token',
-        'request_retries': 3,
-        'protocol_stat_retries': 6
+        "auth_token_file_path": "/tmp/rucio_oauth.token",
+        "request_retries": 3,
+        "protocol_stat_retries": 6,
     }
     client_config = dict((k, v) for k, v in client_config.items() if v)
-    rucio_config['client'] = client_config
+    rucio_config["client"] = client_config
 
-    if not os.path.isfile('/opt/rucio/etc/rucio.cfg'):
-        os.makedirs('/opt/rucio/etc/', exist_ok=True)
+    if not os.path.isfile("/opt/rucio/etc/rucio.cfg"):
+        os.makedirs("/opt/rucio/etc/", exist_ok=True)
 
-    with open('/opt/rucio/etc/rucio.cfg', 'w') as f:
+    with open("/opt/rucio/etc/rucio.cfg", "w") as f:
         rucio_config.write(f)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     write_jupyterlab_config()
     # write_rucio_config()

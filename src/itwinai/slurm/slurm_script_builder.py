@@ -203,10 +203,14 @@ class SlurmScriptBuilder:
             self.slurm_script_configuration.job_name = self.generate_identifier()
 
         if self.slurm_script_configuration.std_out is None:
-            std_out_path = Path("slurm_job_logs") / (self.generate_identifier() + ".out")
+            std_out_path = Path("slurm_job_logs") / (
+                self.generate_identifier() + ".out"
+            )
             self.slurm_script_configuration.std_out = std_out_path
         if self.slurm_script_configuration.err_out is None:
-            err_out_path = Path("slurm_job_logs") / (self.generate_identifier() + ".err")
+            err_out_path = Path("slurm_job_logs") / (
+                self.generate_identifier() + ".err"
+            )
             self.slurm_script_configuration.err_out = err_out_path
 
         # Making sure the std out and err out folders exist
@@ -220,7 +224,7 @@ class SlurmScriptBuilder:
         # Generate the script using the given configuration
         script = self.slurm_script_configuration.format_script()
         if not submit_slurm_job and not retain_file:
-            print("#" * 20, "SLURM Script Preview", "#"*20)
+            print("#" * 20, "SLURM Script Preview", "#" * 20)
             print(script)
             print("#" * 62)
             return
@@ -260,8 +264,12 @@ class SlurmScriptBuilder:
 
             # Overriding job_name, std_out and err_out
             self.slurm_script_configuration.job_name = self.generate_identifier()
-            std_out_path = Path("slurm_job_logs") / (self.generate_identifier() + ".out")
-            err_out_path = Path("slurm_job_logs") / (self.generate_identifier() + ".err")
+            std_out_path = Path("slurm_job_logs") / (
+                self.generate_identifier() + ".out"
+            )
+            err_out_path = Path("slurm_job_logs") / (
+                self.generate_identifier() + ".err"
+            )
             self.slurm_script_configuration.std_out = std_out_path
             self.slurm_script_configuration.err_out = err_out_path
 

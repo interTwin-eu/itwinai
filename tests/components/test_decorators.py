@@ -64,7 +64,9 @@ def test_suppress_workers_print_decorator():
     """Test suppress_workers_print decorator behavior."""
     with (
         patch("builtins.print", autospec=True) as mock_print,
-        patch("itwinai.distributed.detect_distributed_environment", autospec=True) as mock_env,
+        patch(
+            "itwinai.distributed.detect_distributed_environment", autospec=True
+        ) as mock_env,
         patch(
             "itwinai.distributed.distributed_patch_print", autospec=True
         ) as mock_patch_print,
@@ -98,7 +100,9 @@ def test_suppress_workers_print_component():
     execute method."""
     with (
         patch("builtins.print", autospec=True) as mock_print,
-        patch("itwinai.distributed.detect_distributed_environment", autospec=True) as mock_env,
+        patch(
+            "itwinai.distributed.detect_distributed_environment", autospec=True
+        ) as mock_env,
         patch(
             "itwinai.distributed.distributed_patch_print", autospec=True
         ) as mock_patch_print,
@@ -149,7 +153,9 @@ def test_monitor_exec_decorator(mock_component):
         assert result == "Execution result"
 
         # Check that the start and end messages were logged
-        mock_component._printout.assert_any_call("Starting execution of 'TestComponent'...")
+        mock_component._printout.assert_any_call(
+            "Starting execution of 'TestComponent'..."
+        )
         mock_component._printout.assert_any_call("'TestComponent' executed in 5.000s")
 
         # Ensure the cleanup method was called
@@ -165,7 +171,9 @@ def test_combined_decorators_on_fake_component(mock_fake_component):
 
     with (
         patch("builtins.print", autospec=True) as mock_print,
-        patch("itwinai.distributed.detect_distributed_environment", autospec=True) as mock_env,
+        patch(
+            "itwinai.distributed.detect_distributed_environment", autospec=True
+        ) as mock_env,
         patch(
             "itwinai.distributed.distributed_patch_print", autospec=True
         ) as mock_patch_print,

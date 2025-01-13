@@ -71,11 +71,15 @@ def mnist_datasets():
     "strategy_name,strategy_fixture",
     [
         pytest.param("ddp", "ddp_strategy", marks=pytest.mark.torch_dist),
-        pytest.param("deepspeed", "deepspeed_strategy", marks=pytest.mark.deepspeed_dist),
+        pytest.param(
+            "deepspeed", "deepspeed_strategy", marks=pytest.mark.deepspeed_dist
+        ),
         pytest.param("horovod", "horovod_strategy", marks=pytest.mark.horovod_dist),
     ],
 )
-def test_distributed_trainer_mnist(mnist_datasets, request, strategy_name, strategy_fixture):
+def test_distributed_trainer_mnist(
+    mnist_datasets, request, strategy_name, strategy_fixture
+):
     """Test TorchTrainer on MNIST with different distributed strategies."""
     training_config = dict(optimizer="sgd", loss="nllloss")
     trainer = TorchTrainer(

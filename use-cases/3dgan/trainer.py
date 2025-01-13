@@ -36,7 +36,9 @@ from itwinai.utils import load_yaml
 
 
 class Lightning3DGANTrainer(Trainer):
-    def __init__(self, config: Union[Dict, str], itwinai_logger: Optional[Logger] = None):
+    def __init__(
+        self, config: Union[Dict, str], itwinai_logger: Optional[Logger] = None
+    ):
         self.save_parameters(**self.locals2params(locals()))
         super().__init__()
         if isinstance(config, str) and os.path.isfile(config):
@@ -162,7 +164,11 @@ class Lightning3DGANPredictor(Predictor):
 
         # Transpose predictions into images, energies and angles
         images = torch.cat(
-            list(map(lambda pred: self.transform_predictions(pred["images"]), predictions))
+            list(
+                map(
+                    lambda pred: self.transform_predictions(pred["images"]), predictions
+                )
+            )
         )
         energies = torch.cat(list(map(lambda pred: pred["energies"], predictions)))
         angles = torch.cat(list(map(lambda pred: pred["angles"], predictions)))

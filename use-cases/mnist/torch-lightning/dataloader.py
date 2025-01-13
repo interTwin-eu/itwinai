@@ -57,7 +57,10 @@ class MNISTDataModule(L.LightningDataModule):
     def setup(self, stage=None):
         if stage == "fit":
             mnist_full = MNIST(
-                self.data_path, train=True, download=self.download, transform=self.transform
+                self.data_path,
+                train=True,
+                download=self.download,
+                transform=self.transform,
             )
             n_train_samples = int(self.train_prop * len(mnist_full))
             n_val_samples = len(mnist_full) - n_train_samples
@@ -67,12 +70,18 @@ class MNISTDataModule(L.LightningDataModule):
 
         if stage == "test":
             self.mnist_test = MNIST(
-                self.data_path, train=False, download=self.download, transform=self.transform
+                self.data_path,
+                train=False,
+                download=self.download,
+                transform=self.transform,
             )
 
         if stage == "predict":
             self.mnist_predict = MNIST(
-                self.data_path, train=False, download=self.download, transform=self.transform
+                self.data_path,
+                train=False,
+                download=self.download,
+                transform=self.transform,
             )
 
     def train_dataloader(self):

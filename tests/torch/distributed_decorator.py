@@ -95,7 +95,13 @@ def test(model, device, test_loader):
 
 @distributed
 def train_func(
-    model, train_dataloader, validation_dataloader, device, optimizer, scheduler, epochs=10
+    model,
+    train_dataloader,
+    validation_dataloader,
+    device,
+    optimizer,
+    scheduler,
+    epochs=10,
 ):
     for epoch in range(1, epochs + 1):
         train(model, device, train_dataloader, optimizer, epoch)

@@ -94,8 +94,4 @@ html_footer = """
 </div>
 """
 
-html_sidebars = {
-    "**": [
-        html_footer  # Adds the custom footer with version information
-    ]
-}
+html_sidebars = {"**": [html_footer]}  # Adds the custom footer with version information

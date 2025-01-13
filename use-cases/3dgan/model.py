@@ -31,37 +31,53 @@ class Generator(nn.Module):
         self.latent_dim = latent_dim
 
         self.l1 = nn.Linear(self.latent_dim, 5184)
-        self.up1 = nn.Upsample(scale_factor=(6, 6, 6), mode="trilinear", align_corners=False)
-        self.conv1 = nn.Conv3d(in_channels=8, out_channels=8, kernel_size=(6, 6, 8), padding=0)
+        self.up1 = nn.Upsample(
+            scale_factor=(6, 6, 6), mode="trilinear", align_corners=False
+        )
+        self.conv1 = nn.Conv3d(
+            in_channels=8, out_channels=8, kernel_size=(6, 6, 8), padding=0
+        )
         nn.init.kaiming_uniform_(self.conv1.weight)
         # num_features is the number of channels (see doc)
         self.bn1 = nn.BatchNorm3d(num_features=8, eps=1e-6)
         self.pad1 = nn.ConstantPad3d((1, 1, 2, 2, 2, 2), 0)
 
-        self.conv2 = nn.Conv3d(in_channels=8, out_channels=6, kernel_size=(4, 4, 6), padding=0)
+        self.conv2 = nn.Conv3d(
+            in_channels=8, out_channels=6, kernel_size=(4, 4, 6), padding=0
+        )
         nn.init.kaiming_uniform_(self.conv2.weight)
         self.bn2 = nn.BatchNorm3d(num_features=6, eps=1e-6)
         self.pad2 = nn.ConstantPad3d((1, 1, 2, 2, 2, 2), 0)
 
-        self.conv3 = nn.Conv3d(in_channels=6, out_channels=6, kernel_size=(4, 4, 6), padding=0)
+        self.conv3 = nn.Conv3d(
+            in_channels=6, out_channels=6, kernel_size=(4, 4, 6), padding=0
+        )
         nn.init.kaiming_uniform_(self.conv3.weight)
         self.bn3 = nn.BatchNorm3d(num_features=6, eps=1e-6)
         self.pad3 = nn.ConstantPad3d((1, 1, 2, 2, 2, 2), 0)
 
-        self.conv4 = nn.Conv3d(in_channels=6, out_channels=6, kernel_size=(4, 4, 6), padding=0)
+        self.conv4 = nn.Conv3d(
+            in_channels=6, out_channels=6, kernel_size=(4, 4, 6), padding=0
+        )
         nn.init.kaiming_uniform_(self.conv4.weight)
         self.bn4 = nn.BatchNorm3d(num_features=6, eps=1e-6)
         self.pad4 = nn.ConstantPad3d((0, 0, 1, 1, 1, 1), 0)
 
-        self.conv5 = nn.Conv3d(in_channels=6, out_channels=6, kernel_size=(3, 3, 5), padding=0)
+        self.conv5 = nn.Conv3d(
+            in_channels=6, out_channels=6, kernel_size=(3, 3, 5), padding=0
+        )
         nn.init.kaiming_uniform_(self.conv5.weight)
         self.bn5 = nn.BatchNorm3d(num_features=6, eps=1e-6)
         self.pad5 = nn.ConstantPad3d((0, 0, 1, 1, 1, 1), 0)
 
-        self.conv6 = nn.Conv3d(in_channels=6, out_channels=6, kernel_size=(3, 3, 3), padding=0)
+        self.conv6 = nn.Conv3d(
+            in_channels=6, out_channels=6, kernel_size=(3, 3, 3), padding=0
+        )
         nn.init.kaiming_uniform_(self.conv6.weight)
 
-        self.conv7 = nn.Conv3d(in_channels=6, out_channels=1, kernel_size=(2, 2, 2), padding=0)
+        self.conv7 = nn.Conv3d(
+            in_channels=6, out_channels=1, kernel_size=(2, 2, 2), padding=0
+        )
         nn.init.xavier_normal_(self.conv7.weight)
 
     def forward(self, z):
@@ -121,11 +137,15 @@ class Discriminator(nn.Module):
         self.drop2 = nn.Dropout(0.2)
         self.pad2 = nn.ConstantPad3d((1, 1, 0, 0, 0, 0), 0)
 
-        self.conv3 = nn.Conv3d(in_channels=8, out_channels=8, kernel_size=(5, 6, 6), padding=0)
+        self.conv3 = nn.Conv3d(
+            in_channels=8, out_channels=8, kernel_size=(5, 6, 6), padding=0
+        )
         self.bn2 = nn.BatchNorm3d(num_features=8, eps=1e-6)
         self.drop3 = nn.Dropout(0.2)
 
-        self.conv4 = nn.Conv3d(in_channels=8, out_channels=8, kernel_size=(5, 6, 6), padding=0)
+        self.conv4 = nn.Conv3d(
+            in_channels=8, out_channels=8, kernel_size=(5, 6, 6), padding=0
+        )
         self.bn3 = nn.BatchNorm3d(num_features=8, eps=1e-6)
         self.drop4 = nn.Dropout(0.2)
 
@@ -153,14 +173,18 @@ class Discriminator(nn.Module):
         sumtot = torch.sum(image, dim=(1, 2, 3))  # sum of events
 
         # get 1. where event sum is 0 and 0 elsewhere
-        amask = torch.where(sumtot == 0.0, torch.ones_like(sumtot), torch.zeros_like(sumtot))
+        amask = torch.where(
+            sumtot == 0.0, torch.ones_like(sumtot), torch.zeros_like(sumtot)
+        )
         # masked_events = torch.sum(amask)  # counting zero sum events
 
         # ref denotes barycenter as that is our reference point
         x_ref = torch.sum(
             torch.sum(image, dim=(2, 3))
             * (
-                torch.arange(x_shape, device=image.device, dtype=torch.float32).unsqueeze(0)
+                torch.arange(
+                    x_shape, device=image.device, dtype=torch.float32
+                ).unsqueeze(0)
                 + 0.5
             ),
             dim=1,
@@ -168,7 +192,9 @@ class Discriminator(nn.Module):
         y_ref = torch.sum(
             torch.sum(image, dim=(1, 3))
             * (
-                torch.arange(y_shape, device=image.device, dtype=torch.float32).unsqueeze(0)
+                torch.arange(
+                    y_shape, device=image.device, dtype=torch.float32
+                ).unsqueeze(0)
                 + 0.5
             ),
             dim=1,
@@ -176,7 +202,9 @@ class Discriminator(nn.Module):
         z_ref = torch.sum(
             torch.sum(image, dim=(1, 2))
             * (
-                torch.arange(z_shape, device=image.device, dtype=torch.float32).unsqueeze(0)
+                torch.arange(
+                    z_shape, device=image.device, dtype=torch.float32
+                ).unsqueeze(0)
                 + 0.5
             ),
             dim=1,
@@ -327,7 +355,10 @@ class ThreeDGAN(pl.LightningModule):
         try:
             itwinai_logger = self.trainer.itwinai_logger
         except AttributeError:
-            print("WARNING: itwinai_logger attribute not set " f"in {self.__class__.__name__}")
+            print(
+                "WARNING: itwinai_logger attribute not set "
+                f"in {self.__class__.__name__}"
+            )
             itwinai_logger = None
         return itwinai_logger
 
@@ -429,7 +460,9 @@ class ThreeDGAN(pl.LightningModule):
 
         predictions = self.discriminator(image_batch)
         # print("calculating real_batch_loss...")
-        real_batch_loss = self.compute_global_loss(labels, predictions, self.loss_weights)
+        real_batch_loss = self.compute_global_loss(
+            labels, predictions, self.loss_weights
+        )
         if self.itwinai_logger:
             self.itwinai_logger.log(
                 item=sum(real_batch_loss),
@@ -461,7 +494,9 @@ class ThreeDGAN(pl.LightningModule):
 
         predictions = self.discriminator(generated_images)
 
-        fake_batch_loss = self.compute_global_loss(labels, predictions, self.loss_weights)
+        fake_batch_loss = self.compute_global_loss(
+            labels, predictions, self.loss_weights
+        )
         # self.log("fake_batch_loss", sum(fake_batch_loss),
         #          prog_bar=True, on_step=True, on_epoch=True, sync_dist=True)
 
@@ -618,7 +653,9 @@ class ThreeDGAN(pl.LightningModule):
                     context="training",
                 )
                 self.itwinai_logger.log(
-                    item=os.path.join(self.checkpoints_dir, "discriminator_weights.pth"),
+                    item=os.path.join(
+                        self.checkpoints_dir, "discriminator_weights.pth"
+                    ),
                     identifier="final_discriminator_weights",
                     kind="artifact",
                     context="training",
@@ -637,14 +674,18 @@ class ThreeDGAN(pl.LightningModule):
         gen_losses_total_loss = np.sum(gen_losses[0])
         new_gen_losses = [gen_losses_total_loss]
         for i_weights in range(len(gen_losses[0])):
-            new_gen_losses.append(gen_losses[0][i_weights] / self.loss_weights[i_weights])
+            new_gen_losses.append(
+                gen_losses[0][i_weights] / self.loss_weights[i_weights]
+            )
         gen_losses[0] = new_gen_losses
 
         gen_losses[1] = [el.cpu().detach().numpy() for el in gen_losses[1]]
         gen_losses_total_loss = np.sum(gen_losses[1])
         new_gen_losses = [gen_losses_total_loss]
         for i_weights in range(len(gen_losses[1])):
-            new_gen_losses.append(gen_losses[1][i_weights] / self.loss_weights[i_weights])
+            new_gen_losses.append(
+                gen_losses[1][i_weights] / self.loss_weights[i_weights]
+            )
         gen_losses[1] = new_gen_losses
 
         generator_loss = [(a + b) / 2 for a, b in zip(*gen_losses)]
@@ -680,10 +721,14 @@ class ThreeDGAN(pl.LightningModule):
         self.train_history["discriminator"].append(discriminator_train_loss)
 
         print("-" * 65)
-        ROW_FMT = "{0:<20s} | {1:<4.2f} | {2:<10.2f} | " "{3:<10.2f}| {4:<10.2f} | {5:<10.2f}"
+        ROW_FMT = (
+            "{0:<20s} | {1:<4.2f} | {2:<10.2f} | " "{3:<10.2f}| {4:<10.2f} | {5:<10.2f}"
+        )
         print(ROW_FMT.format("generator (train)", *self.train_history["generator"][-1]))
         print(
-            ROW_FMT.format("discriminator (train)", *self.train_history["discriminator"][-1])
+            ROW_FMT.format(
+                "discriminator (train)", *self.train_history["discriminator"][-1]
+            )
         )
 
         torch.save(
@@ -710,7 +755,8 @@ class ThreeDGAN(pl.LightningModule):
             )
             self.itwinai_logger.log(
                 item=os.path.join(self.checkpoints_dir, "discriminator_weights.pth"),
-                identifier="ckpts/discriminator_weights_epoch_" + str(self.current_epoch),
+                identifier="ckpts/discriminator_weights_epoch_"
+                + str(self.current_epoch),
                 kind="artifact",
                 context="training",
             )
@@ -825,14 +871,18 @@ class ThreeDGAN(pl.LightningModule):
         disc_eval_loss_total_loss = np.sum(disc_eval_loss)
         new_disc_eval_loss = [disc_eval_loss_total_loss]
         for i_weights in range(len(disc_eval_loss)):
-            new_disc_eval_loss.append(disc_eval_loss[i_weights] / self.loss_weights[i_weights])
+            new_disc_eval_loss.append(
+                disc_eval_loss[i_weights] / self.loss_weights[i_weights]
+            )
         disc_eval_loss = new_disc_eval_loss
 
         gen_eval_loss = [el.cpu().detach().numpy() for el in gen_test_loss]
         gen_eval_loss_total_loss = np.sum(gen_eval_loss)
         new_gen_eval_loss = [gen_eval_loss_total_loss]
         for i_weights in range(len(gen_eval_loss)):
-            new_gen_eval_loss.append(gen_eval_loss[i_weights] / self.loss_weights[i_weights])
+            new_gen_eval_loss.append(
+                gen_eval_loss[i_weights] / self.loss_weights[i_weights]
+            )
         gen_eval_loss = new_gen_eval_loss
 
         self.index += 1
@@ -892,9 +942,15 @@ class ThreeDGAN(pl.LightningModule):
         self.test_history["discriminator"].append(discriminator_test_loss)
 
         print("-" * 65)
-        ROW_FMT = "{0:<20s} | {1:<4.2f} | {2:<10.2f} | " "{3:<10.2f}| {4:<10.2f} | {5:<10.2f}"
+        ROW_FMT = (
+            "{0:<20s} | {1:<4.2f} | {2:<10.2f} | " "{3:<10.2f}| {4:<10.2f} | {5:<10.2f}"
+        )
         print(ROW_FMT.format("generator (test)", *self.test_history["generator"][-1]))
-        print(ROW_FMT.format("discriminator (test)", *self.test_history["discriminator"][-1]))
+        print(
+            ROW_FMT.format(
+                "discriminator (test)", *self.test_history["discriminator"][-1]
+            )
+        )
 
         # # save loss dict to pkl file
         # with open(self.pklfile, "wb") as f:
@@ -926,18 +982,26 @@ class ThreeDGAN(pl.LightningModule):
         # print(f"Generator input: {generator_ip.shape}")
         generated_images = self.generator(generator_ip)
         # print(f"Generated batch size {generated_images.shape}")
-        return {"images": generated_images, "energies": energy_batch, "angles": ang_batch}
+        return {
+            "images": generated_images,
+            "energies": energy_batch,
+            "angles": ang_batch,
+        }
 
     def configure_optimizers(self):
         lr = self.lr
 
-        optimizer_discriminator = torch.optim.RMSprop(self.discriminator.parameters(), lr)
+        optimizer_discriminator = torch.optim.RMSprop(
+            self.discriminator.parameters(), lr
+        )
         optimizer_generator = torch.optim.RMSprop(self.generator.parameters(), lr)
 
         if self.itwinai_logger:
             self.itwinai_logger.log(
                 optimizer_discriminator, "optimizer_discriminator", kind="torch"
             )
-            self.itwinai_logger.log(optimizer_generator, "optimizer_generator", kind="torch")
+            self.itwinai_logger.log(
+                optimizer_generator, "optimizer_generator", kind="torch"
+            )
 
         return [optimizer_discriminator, optimizer_generator], []

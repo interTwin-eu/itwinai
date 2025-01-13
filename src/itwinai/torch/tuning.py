@@ -59,7 +59,9 @@ def get_raytune_search_alg(
                 f"INFO: Using scheduler {scheduler_name} "
                 "is not compatible with Ray Tune search algorithms."
             )
-            print(f"Using the Ray Tune {scheduler_name} scheduler without search algorithm")
+            print(
+                f"Using the Ray Tune {scheduler_name} scheduler without search algorithm"
+            )
             return None
 
         case "bohb":

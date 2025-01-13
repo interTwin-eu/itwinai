@@ -31,7 +31,9 @@ class TorchMNISTLabelSaver(Saver):
         self.save_dir = save_dir
         self.predictions_file = predictions_file
         self.class_labels = (
-            class_labels if class_labels is not None else [f"Digit {i}" for i in range(10)]
+            class_labels
+            if class_labels is not None
+            else [f"Digit {i}" for i in range(10)]
         )
 
     @monitor_exec

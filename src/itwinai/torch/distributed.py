@@ -102,7 +102,7 @@ class TorchDistributedStrategy(DistributedStrategy):
         return self.global_rank() == 0
 
     @abc.abstractmethod
-    def init(self) -> None:
+    def initialize_distributed_strategy(self) -> None:
         """Initializes the chosen distributed backend"""
 
     @abc.abstractmethod
@@ -341,7 +341,9 @@ class TorchDistributedStrategy(DistributedStrategy):
                     shuffle=shuffle,
                 )
             elif not isinstance(sampler, DistributedSampler):
-                raise RuntimeError("User-provided sampler must implement DistributedSampler.")
+                raise RuntimeError(
+                    "User-provided sampler must implement DistributedSampler."
+                )
         # shuffle and batch_sampler must be unset
         return DataLoader(
             dataset=dataset,
@@ -422,7 +424,7 @@ class TorchDDPStrategy(TorchDistributedStrategy):
         self.backend = backend
         self.name = "torch-ddp"
 
-    def init(self) -> None:
+    def initialize_distributed_strategy(self) -> None:
         """Initializes the distributed process group and the distributed
         package.
 
@@ -602,7 +604,7 @@ class DeepSpeedStrategy(TorchDistributedStrategy):
         self.backend = backend
         self.name = "deepspeed"
 
-    def init(self) -> None:
+    def initialize_distributed_strategy(self) -> None:
         """Initializes the distributed process group and the distributed
         package.
 
@@ -744,7 +746,9 @@ class DeepSpeedStrategy(TorchDistributedStrategy):
         dist.gather_object(obj, dst=dst_rank)
 
     @check_initialized
-    def gather(self, tensor: torch.Tensor, dst_rank: int = 0) -> Optional[List[torch.Tensor]]:
+    def gather(
+        self, tensor: torch.Tensor, dst_rank: int = 0
+    ) -> Optional[List[torch.Tensor]]:
         """Gathers a tensor from the whole group in a list
         (to all workers).
 
@@ -783,7 +787,7 @@ class HorovodStrategy(TorchDistributedStrategy):
         super().__init__()
         self.name = "horovod"
 
-    def init(self) -> None:
+    def initialize_distributed_strategy(self) -> None:
         """Initializes the Horovod distributed backend.
 
         Raises:
@@ -923,7 +927,9 @@ class HorovodStrategy(TorchDistributedStrategy):
             return result
 
     @check_initialized
-    def gather(self, tensor: torch.Tensor, dst_rank: int = 0) -> Optional[List[torch.Tensor]]:
+    def gather(
+        self, tensor: torch.Tensor, dst_rank: int = 0
+    ) -> Optional[List[torch.Tensor]]:
         """Gathers a tensor from the whole group in a list
         (to all workers). Under the hood it relies on allgather as gather is
         not supported by Horovod.
@@ -956,7 +962,7 @@ class NonDistributedStrategy(TorchDistributedStrategy):
         super().__init__()
         self.name = "non-distributed"
 
-    def init(self) -> None:
+    def initialize_distributed_strategy(self) -> None:
         """If CUDA is available set CUDA device, and do nothing more.
 
         Raises:
@@ -1063,7 +1069,7 @@ class RayDDPStrategy(TorchDDPStrategy):
 
         self.ray_train = ray.train
 
-    def init(self) -> None:
+    def initialize_distributed_strategy(self) -> None:
         self.is_initialized = True
 
     @check_initialized

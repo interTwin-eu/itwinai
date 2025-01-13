@@ -115,7 +115,9 @@ class ItwinaiLogger(LightningLogger):
 
     @override
     @rank_zero_only
-    def log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None) -> None:
+    def log_metrics(
+        self, metrics: Dict[str, float], step: Optional[int] = None
+    ) -> None:
         """Lightning Logger function.
         Logs the given metrics and is usually called by the Lightning Trainer.
 
@@ -125,7 +127,9 @@ class ItwinaiLogger(LightningLogger):
                 Defaults to None.
         """
         for identifier, item in metrics.items():
-            self.experiment.log(item=item, identifier=identifier, kind="metric", step=step)
+            self.experiment.log(
+                item=item, identifier=identifier, kind="metric", step=step
+            )
 
     @override
     @rank_zero_only
@@ -210,6 +214,8 @@ class ItwinaiLogger(LightningLogger):
                     tmp_file_aliases.write(str(aliases))
 
                 # Log metadata and aliases
-                self.experiment.log(item=tmp_dir, identifier=artifact_path, kind="artifact")
+                self.experiment.log(
+                    item=tmp_dir, identifier=artifact_path, kind="artifact"
+                )
 
             self._logged_model_time[path] = time

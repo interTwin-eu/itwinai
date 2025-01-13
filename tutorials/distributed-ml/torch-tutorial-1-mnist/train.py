@@ -59,7 +59,7 @@ def parse_params() -> argparse.Namespace:
     parser.add_argument(
         "--data-dir",
         default="./",
-        help=("location of the training dataset in the local " "filesystem"),
+        help=("location of the training dataset in the local filesystem"),
     )
     parser.add_argument(
         "--log-int", type=int, default=10, help="log interval per training"
@@ -96,7 +96,7 @@ def parse_params() -> argparse.Namespace:
         "--nworker",
         type=int,
         default=0,
-        help=("number of workers in DataLoader (default: 0 -" " only main)"),
+        help=("number of workers in DataLoader (default: 0 - only main)"),
     )
     parser.add_argument(
         "--prefetch",
@@ -164,7 +164,7 @@ def parse_params() -> argparse.Namespace:
         "--gradient-predivide-factor",
         type=float,
         default=1.0,
-        help=("apply gradient pre-divide factor in optimizer " "(default: 1.0)"),
+        help=("apply gradient pre-divide factor in optimizer (default: 1.0)"),
     )
 
     # DeepSpeed
@@ -261,8 +261,7 @@ def test(model, test_loader, strategy: TorchDistributedStrategy):
     if strategy.is_main_worker:
         dl_size = len(test_loader.dataset) // strategy.global_world_size()
         print(
-            f"Test set: average loss: {test_loss:.4f}\t"
-            f"accurate samples: {correct}/{dl_size}"
+            f"Test set: average loss: {test_loss:.4f}\taccurate samples: {correct}/{dl_size}"
         )
     acc_test = 100.0 * correct * strategy.global_world_size() / len(test_loader.dataset)
     return acc_test
@@ -367,7 +366,7 @@ if __name__ == "__main__":
         )
 
     # Initialize strategy
-    strategy.init()
+    strategy.initialize_distributed_strategy()
 
     # Start the timer for profiling
     st = timer()
@@ -499,7 +498,7 @@ if __name__ == "__main__":
             )
             print("DEBUG: memory summary:\n\n", torch.cuda.memory_summary(0))
 
-        print(f"TIMER: final time: {timer()-st} s\n")
+        print(f"TIMER: final time: {timer() - st} s\n")
 
     time.sleep(1)
     print(f"<Global rank: {strategy.global_rank()}> - TRAINING FINISHED")

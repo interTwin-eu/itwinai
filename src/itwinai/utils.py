@@ -71,7 +71,9 @@ def dynamically_import_class(name: str) -> Type:
     return klass
 
 
-def flatten_dict(d: MutableMapping, parent_key: str = "", sep: str = ".") -> MutableMapping:
+def flatten_dict(
+    d: MutableMapping, parent_key: str = "", sep: str = "."
+) -> MutableMapping:
     """Flatten dictionary
 
     Args:
@@ -174,7 +176,9 @@ def str_to_slice(interval: str) -> slice:
     return int(interval)
 
 
-def clear_key(my_dict: Dict, dict_name: str, key: Hashable, complain: bool = True) -> Dict:
+def clear_key(
+    my_dict: Dict, dict_name: str, key: Hashable, complain: bool = True
+) -> Dict:
     """Remove key from dictionary if present and complain.
 
     Args:
@@ -184,6 +188,8 @@ def clear_key(my_dict: Dict, dict_name: str, key: Hashable, complain: bool = Tru
     """
     if key in my_dict:
         if complain:
-            print(f"Field '{key}' should not be present " f"in dictionary '{dict_name}'")
+            print(
+                f"Field '{key}' should not be present " f"in dictionary '{dict_name}'"
+            )
         del my_dict[key]
     return my_dict

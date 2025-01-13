@@ -148,7 +148,9 @@ def test_log_metrics_and_hyperparams(itwinai_logger, request):
 
         dict_params = {"learning_rate": 0.001, "batch_size": 32}
         lightning_logger.log_hyperparams(params=dict_params)
-        itwinai_logger_instance.save_hyperparameters.assert_called_once_with(dict_params)
+        itwinai_logger_instance.save_hyperparameters.assert_called_once_with(
+            dict_params
+        )
 
 
 @pytest.mark.parametrize(

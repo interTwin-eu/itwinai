@@ -18,17 +18,16 @@ import pandas as pd
 
 from itwinai.components import DataGetter, monitor_exec
 
+
 class PreprocessData(DataGetter):
-    def __init__(
-            self,
-            scenario: str,
-            dataset_root: str
-    ):
+    def __init__(self, scenario: str, dataset_root: str):
         super().__init__()
         self.scenario = scenario
         self.dataset_root = dataset_root
 
-    def xr_to_ndarray(self, xr_dset: xr.Dataset, sq_coords: dict) -> (np.ndarray, np.array, str):
+    def xr_to_ndarray(
+        self, xr_dset: xr.Dataset, sq_coords: dict
+    ) -> (np.ndarray, np.array, str):
         """
         Converts an xarray dataset it to a cropped square ndarray,
         after ajusting the longitudes from [0,360] to [-180,180].
@@ -89,7 +88,9 @@ class PreprocessData(DataGetter):
 
         return land_prop, lat_list, lon_list
 
-    def get_extrema(self, histo_dataset: np.ndarray, proj_dataset: np.ndarray) -> np.array:
+    def get_extrema(
+        self, histo_dataset: np.ndarray, proj_dataset: np.ndarray
+    ) -> np.array:
         """
         Computes global extrema over past and future data.
 
@@ -146,7 +147,8 @@ class PreprocessData(DataGetter):
         year: year where the data is to be split
         """
         split_index = np.where(
-            time_list == cftime.DatetimeNoLeap(year, 1, 1, 0, 0, 0, 0, has_year_zero=True)
+            time_list
+            == cftime.DatetimeNoLeap(year, 1, 1, 0, 0, 0, 0, has_year_zero=True)
         )[0][0]
         train_data = nd_dset[:split_index]
         test_data = nd_dset[split_index:]
@@ -232,7 +234,6 @@ class PreprocessData(DataGetter):
         temp_histo_nd, time_list = self.xr_to_ndarray(temp_histo, sq32_west_europe)
         temp_proj_nd, time_proj = self.xr_to_ndarray(temp_proj, sq32_west_europe)
 
-
         # Compute the variable extrema over history and projections
         # temp_extrema = get_extrema(temp_histo_nd, temp_proj_nd)
 
@@ -258,7 +259,6 @@ class PreprocessData(DataGetter):
         total_test = self.ndarray_to_2d(test_temp, land_prop)
         total_proj = self.ndarray_to_2d(temp_proj_norm, land_prop)
 
-
         ##### 7. Save Results
 
         # Save train and test data sets
@@ -271,15 +271,14 @@ class PreprocessData(DataGetter):
         np.save(f"input/preprocessed_2d_proj{scenario}_data_allssp.npy", total_proj)
         pd.DataFrame(time_proj).to_csv("input/dates_proj_data.csv")
 
-
         ##### 8. Preprocessing for All Scenarios
 
         # This part is to be run as a complement to 6. and 7.
 
         # Here you can remove the scenario you already run in 6. and 7.
-        #scenarios = ["126", "245", "370", "585"]
-        #TODO: Discuss with Anne/Christian
-        #scenarios = ["245", "585"]
+        # scenarios = ["126", "245", "370", "585"]
+        # TODO: Discuss with Anne/Christian
+        # scenarios = ["245", "585"]
         scenarios = [self.scenario]
 
         for scenario in scenarios:

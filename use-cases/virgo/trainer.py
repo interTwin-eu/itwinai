@@ -26,7 +26,11 @@ from tqdm import tqdm
 from itwinai.distributed import suppress_workers_print
 from itwinai.loggers import EpochTimeTracker, Logger
 from itwinai.torch.config import TrainingConfiguration
-from itwinai.torch.distributed import DeepSpeedStrategy, RayDDPStrategy, RayDeepSpeedStrategy
+from itwinai.torch.distributed import (
+    DeepSpeedStrategy,
+    RayDDPStrategy,
+    RayDeepSpeedStrategy,
+)
 from itwinai.torch.profiling.profiler import profile_torch_trainer
 from itwinai.torch.monitoring.monitoring import measure_gpu_utilization
 from itwinai.torch.trainer import RayTorchTrainer, TorchTrainer
@@ -105,7 +109,9 @@ class NoiseGeneratorTrainer(TorchTrainer):
             raise ValueError("Unrecognized loss type! Got", loss)
 
         # Optimizer
-        self.optimizer = torch.optim.Adam(self.model.parameters(), lr=self.config.optim_lr)
+        self.optimizer = torch.optim.Adam(
+            self.model.parameters(), lr=self.config.optim_lr
+        )
 
         # IMPORTANT: model, optimizer, and scheduler need to be distributed
 
@@ -113,7 +119,9 @@ class NoiseGeneratorTrainer(TorchTrainer):
         if isinstance(self.strategy, DeepSpeedStrategy):
             # Batch size definition is not optional for DeepSpeedStrategy!
             distribute_kwargs = dict(
-                config_params=dict(train_micro_batch_size_per_gpu=self.config.batch_size)
+                config_params=dict(
+                    train_micro_batch_size_per_gpu=self.config.batch_size
+                )
             )
         else:
             distribute_kwargs = {}
@@ -364,7 +372,9 @@ class NoiseGeneratorTrainer(TorchTrainer):
 
                         # update best model
                         best_val_loss = val_loss_plot[-1]
-                        best_checkpoint_filename = self.checkpoints_location.format("best")
+                        best_checkpoint_filename = self.checkpoints_location.format(
+                            "best"
+                        )
                         torch.save(checkpoint, best_checkpoint_filename)
                         # itwinai - log checkpoint as artifact
                         self.log(
@@ -394,7 +404,11 @@ class RayNoiseGeneratorTrainer(RayTorchTrainer):
         random_seed: int = 1234,
     ) -> None:
         super().__init__(
-            config=config, strategy=strategy, name=name, logger=logger, random_seed=random_seed
+            config=config,
+            strategy=strategy,
+            name=name,
+            logger=logger,
+            random_seed=random_seed,
         )
 
     def create_model_loss_optimizer(self) -> None:
@@ -434,7 +448,9 @@ class RayNoiseGeneratorTrainer(RayTorchTrainer):
         if isinstance(self.strategy, RayDeepSpeedStrategy):
             # Batch size definition is not optional for DeepSpeedStrategy!
             distribute_kwargs = dict(
-                config_params=dict(train_micro_batch_size_per_gpu=self.config.batch_size)
+                config_params=dict(
+                    train_micro_batch_size_per_gpu=self.config.batch_size
+                )
             )
         else:
             distribute_kwargs = {}
@@ -456,7 +472,7 @@ class RayNoiseGeneratorTrainer(RayTorchTrainer):
     def train(self, config, data):
         # Because of the way the ray cluster is set up, the strategy must be initialized within
         # the training function
-        self.strategy.init()
+        self.strategy.initialize_distributed_strategy()
 
         # Start the timer for profiling
         st = timer()
@@ -594,7 +610,10 @@ class RayNoiseGeneratorTrainer(RayTorchTrainer):
             if self.strategy.is_main_worker:
                 # save checkpoint only if it is better than
                 # the previous ones
-                if self.training_config["save_best"] and val_loss_plot[-1] < best_val_loss:
+                if (
+                    self.training_config["save_best"]
+                    and val_loss_plot[-1] < best_val_loss
+                ):
                     # create checkpoint
                     checkpoint = {
                         "epoch": epoch,

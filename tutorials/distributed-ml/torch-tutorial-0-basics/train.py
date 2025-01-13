@@ -33,7 +33,11 @@ from itwinai.torch.distributed import (
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--strategy", "-s", type=str, choices=["ddp", "horovod", "deepspeed"], default="ddp"
+        "--strategy",
+        "-s",
+        type=str,
+        choices=["ddp", "horovod", "deepspeed"],
+        default="ddp",
     )
     parser.add_argument("--shuffle_dataloader", action=argparse.BooleanOptionalAction)
     parser.add_argument(
@@ -74,10 +78,12 @@ class UniformRndDataset(Dataset):
 
 
 def training_fn(
-    args: argparse.Namespace, strategy: TorchDistributedStrategy, distribute_kwargs: Dict
+    args: argparse.Namespace,
+    strategy: TorchDistributedStrategy,
+    distribute_kwargs: Dict,
 ) -> int:
     """Dummy training function."""
-    strategy.init()
+    strategy.initialize_distributed_strategy()
 
     # Local model
     model = nn.Linear(3, 4)
@@ -144,7 +150,9 @@ if __name__ == "__main__":
     elif args.strategy == "horovod":
         strategy = HorovodStrategy()
         distribute_kwargs = dict(
-            compression=hvd.Compression.none, op=hvd.Average, gradient_predivide_factor=1.0
+            compression=hvd.Compression.none,
+            op=hvd.Average,
+            gradient_predivide_factor=1.0,
         )
     elif args.strategy == "deepspeed":
         strategy = DeepSpeedStrategy(backend="nccl")
@@ -152,6 +160,8 @@ if __name__ == "__main__":
             config_params=dict(train_micro_batch_size_per_gpu=args.batch_size)
         )
     else:
-        raise NotImplementedError(f"Strategy {args.strategy} is not recognized/implemented.")
+        raise NotImplementedError(
+            f"Strategy {args.strategy} is not recognized/implemented."
+        )
     # Launch distributed training
     training_fn(args, strategy, distribute_kwargs)

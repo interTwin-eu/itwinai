@@ -132,12 +132,16 @@ class RNNDistributedTrainer(TorchTrainer):
         if isinstance(self.strategy, DeepSpeedStrategy):
             # Batch size definition is not optional for DeepSpeedStrategy!
             distribute_kwargs = {
-                "config_params": {"train_micro_batch_size_per_gpu": self.config.batch_size}
+                "config_params": {
+                    "train_micro_batch_size_per_gpu": self.config.batch_size
+                }
             }
         elif isinstance(self.strategy, TorchDDPStrategy):
             if "find_unused_parameters" not in self.config.model_fields:
                 self.config.find_unused_parameters = False
-            distribute_kwargs = {"find_unused_parameters": self.config.find_unused_parameters}
+            distribute_kwargs = {
+                "find_unused_parameters": self.config.find_unused_parameters
+            }
 
         self.model, self.optimizer, _ = self.strategy.distributed(
             model=self.model,
@@ -169,7 +173,7 @@ class RNNDistributedTrainer(TorchTrainer):
             epoch_time_tracker = EpochTimeTracker(
                 strategy_name=self.strategy.name,
                 save_path=epoch_time_output_path,
-                num_nodes=num_nodes
+                num_nodes=num_nodes,
             )
 
         trainer = RNNTrainer(
@@ -187,7 +191,9 @@ class RNNDistributedTrainer(TorchTrainer):
         device = self.strategy.device()
         loss_history = {"train": [], "val": []}
         metric_history = {f"train_{target}": [] for target in trainer.P.target_names}
-        metric_history.update({f"val_{target}": [] for target in trainer.P.target_names})
+        metric_history.update(
+            {f"val_{target}": [] for target in trainer.P.target_names}
+        )
 
         best_loss = float("inf")
         for epoch in tqdm(range(self.epochs)):
@@ -400,7 +406,9 @@ class ConvRNNDistributedTrainer(TorchTrainer):
         if isinstance(self.strategy, DeepSpeedStrategy):
             # Batch size definition is not optional for DeepSpeedStrategy!
             distribute_kwargs = dict(
-                config_params=dict(train_micro_batch_size_per_gpu=self.config.batch_size)
+                config_params=dict(
+                    train_micro_batch_size_per_gpu=self.config.batch_size
+                )
             )
         else:
             distribute_kwargs = {}  # dict(find_unused_parameters=True)
@@ -428,7 +436,9 @@ class ConvRNNDistributedTrainer(TorchTrainer):
         device = self.strategy.device()
         loss_history = {"train": [], "val": []}
         metric_history = {f"train_{target}": [] for target in trainer.P.target_names}
-        metric_history.update({f"val_{target}": [] for target in trainer.P.target_names})
+        metric_history.update(
+            {f"val_{target}": [] for target in trainer.P.target_names}
+        )
 
         best_loss = float("inf")
         for epoch in tqdm(range(self.epochs)):

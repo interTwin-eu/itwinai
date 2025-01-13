@@ -27,13 +27,9 @@ from engine import train, validate
 from utils import save_reconstructed_images, save_loss_plot, save_ex
 from initialization import device, beta, criterion
 
+
 class TorchTrainer(Trainer):
-    def __init__(
-            self,
-            epochs: int,
-            batch_size: int,
-            lr: float
-    ):
+    def __init__(self, epochs: int, batch_size: int, lr: float):
         super().__init__()
         self.epochs = epochs
         self.batch_size = batch_size
@@ -49,10 +45,10 @@ class TorchTrainer(Trainer):
         n_memb = 1
 
         # initialize learning parameters
-        #lr0 = 0.001
-        #batch_size = 64
-        #epochs = 100
-        #early stopping parameters
+        # lr0 = 0.001
+        # batch_size = 64
+        # epochs = 100
+        # early stopping parameters
         stop_delta = 0.01  # under 1% improvement consider the model starts converging
         patience = 15  # wait for a few epochs to be sure before actually stopping
         early_count = 0  # count when validation loss < stop_delta
@@ -71,7 +67,10 @@ class TorchTrainer(Trainer):
             )
             n_train = len(train_data)
             trainset = [
-                (torch.from_numpy(np.reshape(train_data[i], (2, 32, 32))), train_time["0"][i])
+                (
+                    torch.from_numpy(np.reshape(train_data[i], (2, 32, 32))),
+                    train_time["0"][i],
+                )
                 for i in range(n_train)
             ]
             # load train set, shuffle it, and create batches
@@ -79,10 +78,15 @@ class TorchTrainer(Trainer):
 
             # load validation set and validation data
             test_time = pd.read_csv(f"input/dates_test_{season}data_{n_memb}memb.csv")
-            test_data = np.load(f"input/preprocessed_1d_test_{season}data_{n_memb}memb.npy")
+            test_data = np.load(
+                f"input/preprocessed_1d_test_{season}data_{n_memb}memb.npy"
+            )
             n_test = len(test_data)
             testset = [
-                (torch.from_numpy(np.reshape(test_data[i], (2, 32, 32))), test_time["0"][i])
+                (
+                    torch.from_numpy(np.reshape(test_data[i], (2, 32, 32))),
+                    test_time["0"][i],
+                )
                 for i in range(n_test)
             ]
             testloader = DataLoader(testset, batch_size=self.batch_size, shuffle=False)
@@ -99,7 +103,13 @@ class TorchTrainer(Trainer):
 
                 # train the model
                 train_epoch_loss = train(
-                    cvae_model, trainloader, trainset, device, optimizer, criterion, beta
+                    cvae_model,
+                    trainloader,
+                    trainset,
+                    device,
+                    optimizer,
+                    criterion,
+                    beta,
                 )
 
                 # evaluate the model on the test set
@@ -112,42 +122,41 @@ class TorchTrainer(Trainer):
                 valid_loss.append(valid_epoch_loss)
 
         # save the reconstructed images from the validation loop
-        #save_reconstructed_images(recon_images, epoch+1, season)
+        # save_reconstructed_images(recon_images, epoch+1, season)
 
         # convert the reconstructed images to PyTorch image grid format
         image_grid = make_grid(recon_images.detach().cpu())
         grid_images.append(image_grid)
         # save one example of reconstructed image before and after training
 
-        #if epoch == 0 or epoch == self.epochs-1:
+        # if epoch == 0 or epoch == self.epochs-1:
         #    save_ex(recon_images[0], epoch, season)
 
         # decreasing learning rate
         if (epoch + 1) % 20 == 0:
             lr = lr / 5
 
-#-------
-
+        # -------
 
         # early stopping to avoid overfitting
-#        if (
-#            epoch > 1
-#            and (old_valid_loss - valid_epoch_loss) / old_valid_loss < stop_delta
-#        ):
-            # if the marginal improvement in validation loss is too small
-#            early_count += 1
+        #        if (
+        #            epoch > 1
+        #            and (old_valid_loss - valid_epoch_loss) / old_valid_loss < stop_delta
+        #        ):
+        # if the marginal improvement in validation loss is too small
+        #            early_count += 1
 
-        #if early_count > patience:
-                # if too small improvement for a few epochs in a row, stop learning
+        # if early_count > patience:
+        # if too small improvement for a few epochs in a row, stop learning
         #        save_ex(recon_images[0], epoch, season)
-                #break
+        # break
 
-#        else:
-            # if the condition is not verified anymore, reset the count
-#            early_count = 0
-#        old_valid_loss = valid_epoch_loss
+        #        else:
+        # if the condition is not verified anymore, reset the count
+        #            early_count = 0
+        #        old_valid_loss = valid_epoch_loss
 
-#---------------
+        # ---------------
 
         # save best model
         if valid_epoch_loss < min_valid_epoch_loss:

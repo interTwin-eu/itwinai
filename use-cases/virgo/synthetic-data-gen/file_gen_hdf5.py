@@ -36,7 +36,7 @@ def append_to_hdf5_dataset(
 
     print(f"Appending to file: '{str(file_path.resolve())}'.")
     with h5py.File(file_path, "a") as f:
-        dset=f[dataset_name]
+        dset = f[dataset_name]
         dset.resize(dset.shape[0] + array.shape[0], axis=0)
         dset[-array.shape[0] :] = array
 

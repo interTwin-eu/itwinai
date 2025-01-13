@@ -60,7 +60,9 @@ def get_codename(release_info: str) -> str:
             release_dict[key.strip()] = value.strip().strip('"')
 
     # Attempt to extract the codename
-    return release_dict.get("VERSION_CODENAME", release_dict.get("os_version", "Unknown"))
+    return release_dict.get(
+        "VERSION_CODENAME", release_dict.get("os_version", "Unknown")
+    )
 
 
 @object_type
@@ -76,7 +78,9 @@ class Itwinai:
     )
     full_name: Annotated[
         Optional[str],
-        Doc("Full image name. Example: ghcr.io/intertwin-eu/itwinai-dev:0.2.3-torch2.4-jammy"),
+        Doc(
+            "Full image name. Example: ghcr.io/intertwin-eu/itwinai-dev:0.2.3-torch2.4-jammy"
+        ),
     ] = dataclasses.field(default=None, init=False)
     _unique_id: Optional[str] = dataclasses.field(default=None, init=False)
     sif: Annotated[Optional[dagger.File], Doc("SIF file")] = dataclasses.field(
@@ -189,14 +193,17 @@ class Itwinai:
 
         tag = tag or self.unique_id
         self.full_name = f"{registry}/{name}:{tag}"
-        return await (
-            self.container.with_label(
-                name="org.opencontainers.image.ref.name",
-                value=self.full_name,
+        return (
+            await (
+                self.container.with_label(
+                    name="org.opencontainers.image.ref.name",
+                    value=self.full_name,
+                )
+                # Invalidate cache to ensure that the container is always pushed
+                .with_env_variable(
+                    "CACHE", datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")
+                ).publish(self.full_name)
             )
-            # Invalidate cache to ensure that the container is always pushed
-            .with_env_variable("CACHE", datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f"))
-            .publish(self.full_name)
         )
 
     @function
@@ -354,7 +361,8 @@ class Itwinai:
 
         if framework == MLFramework.TORCH:
             tag_template = (
-                tag_template or "${itwinai_version}-torch${framework_version}-${os_version}"
+                tag_template
+                or "${itwinai_version}-torch${framework_version}-${os_version}"
             )
             framework_version = (
                 await self.container.with_exec(
@@ -370,7 +378,8 @@ class Itwinai:
             ).strip()
         elif framework == MLFramework.TENSORFLOW:
             tag_template = (
-                tag_template or "${itwinai_version}-tf${framework_version}-${os_version}"
+                tag_template
+                or "${itwinai_version}-tf${framework_version}-${os_version}"
             )
             framework_version = (
                 await self.container.with_exec(

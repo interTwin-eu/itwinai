@@ -140,7 +140,9 @@ class Serializable:
         if isinstance(item, (tuple, list, set)):
             return [self._recursive_serialization(x, item_name) for x in item]
         elif isinstance(item, dict):
-            return {k: self._recursive_serialization(v, item_name) for k, v in item.items()}
+            return {
+                k: self._recursive_serialization(v, item_name) for k, v in item.items()
+            }
         elif is_jsonable(item):
             return item
         elif isinstance(item, Serializable):

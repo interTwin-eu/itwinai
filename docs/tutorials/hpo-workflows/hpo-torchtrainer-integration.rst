@@ -79,7 +79,8 @@ Code Comparison: RayTorchTrainer vs TorchTrainer
 
                     ################## This is unique to the RayTorchTrainer #####################
                     self.training_config = config
-                    self.strategy.init()
+                    self.strategy.initialize_distributed_strategy()
+
                     self.initialize_logger(
                         hyperparams=self.training_config, rank=self.strategy.global_rank()
                     )

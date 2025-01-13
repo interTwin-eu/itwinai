@@ -38,7 +38,9 @@ class RNNDatasetGetterAndSplitter(DataSplitter):
         self.static_names = static_names
         self.target_names = target_names
         self.mask_names = mask_names
-        self.train_temporal_range = slice(train_temporal_range[0], train_temporal_range[1])
+        self.train_temporal_range = slice(
+            train_temporal_range[0], train_temporal_range[1]
+        )
         self.test_temporal_range = slice(test_temporal_range[0], test_temporal_range[1])
 
     @monitor_exec
@@ -163,7 +165,9 @@ class ConvRNNDatasetGetterAndSplitter(DataSplitter):
         self.static_names = static_names
         self.target_names = target_names
         self.mask_names = mask_names
-        self.train_temporal_range = slice(train_temporal_range[0], train_temporal_range[1])
+        self.train_temporal_range = slice(
+            train_temporal_range[0], train_temporal_range[1]
+        )
         self.test_temporal_range = slice(test_temporal_range[0], test_temporal_range[1])
 
     @monitor_exec

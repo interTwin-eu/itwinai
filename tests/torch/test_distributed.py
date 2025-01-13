@@ -70,13 +70,16 @@ class BaseTestDistributedStrategy:
         assert strategy.local_rank() >= 0
 
     def test_init_exceptions(
-        self, strategy: TorchDistributedStrategy, simple_model: nn.Module, optimizer: Any
+        self,
+        strategy: TorchDistributedStrategy,
+        simple_model: nn.Module,
+        optimizer: Any,
     ):
         """Check that the init method cannot be called twice and that the other methods raise
         and exception if called when the strategy is not initialized."""
         # Test re-initialization
         with pytest.raises(DistributedStrategyError) as init_exc:
-            strategy.init()
+            strategy.initialize_distributed_strategy()
             assert "already initialized" in init_exc.value
 
         # Test initialized flag
@@ -130,7 +133,10 @@ class BaseTestDistributedStrategy:
         my_tensor = torch.ones(10) * strategy.global_rank()
         tensors = strategy.gather(my_tensor, dst_rank=0)
         if strategy.is_main_worker:
-            assert torch.stack(tensors).sum() == sum(range(strategy.global_world_size())) * 10
+            assert (
+                torch.stack(tensors).sum()
+                == sum(range(strategy.global_world_size())) * 10
+            )
         else:
             assert tensors is None
 
@@ -174,7 +180,7 @@ class TestTorchDDPStrategy(BaseTestDistributedStrategy):
     def strategy(self, ddp_strategy) -> TorchDDPStrategy:
         return ddp_strategy
 
-    def test_init(self, strategy: TorchDDPStrategy):
+    def test_initialize_distributed_strategy(self, strategy: TorchDDPStrategy):
         """Test specific initialization of TorchDDPStrategy."""
         assert strategy.backend in ["nccl", "gloo"]
 
@@ -184,7 +190,7 @@ class TestTorchDDPStrategy(BaseTestDistributedStrategy):
             strategy = TorchDDPStrategy(
                 backend="nccl" if torch.cuda.is_available() else "gloo"
             )
-            strategy.init()
+            strategy.initialize_distributed_strategy()
             mock_init_torch.assert_called_once()
 
     def test_distributed_model(
@@ -206,7 +212,7 @@ class TestDeepSpeedStrategy(BaseTestDistributedStrategy):
     def strategy(self, deepspeed_strategy) -> DeepSpeedStrategy:
         return deepspeed_strategy
 
-    def test_init(self, strategy: DeepSpeedStrategy):
+    def test_initialize_distributed_strategy(self, strategy: DeepSpeedStrategy):
         """Test specific initialization of DeepSpeedStrategy."""
         assert strategy.backend in ["nccl", "gloo", "mpi"]
         assert hasattr(
@@ -219,7 +225,7 @@ class TestDeepSpeedStrategy(BaseTestDistributedStrategy):
             strategy = DeepSpeedStrategy(
                 backend="nccl" if torch.cuda.is_available() else "gloo"
             )
-            strategy.init()
+            strategy.initialize_distributed_strategy()
             mock_init_ds.assert_called_once()
 
     def test_distributed_model(
@@ -250,15 +256,17 @@ class TestHorovodStrategy(BaseTestDistributedStrategy):
     def strategy(self, horovod_strategy) -> HorovodStrategy:
         return horovod_strategy
 
-    def test_init(self, strategy):
+    def test_initialize_distributed_strategy(self, strategy):
         assert strategy.is_initialized
-        assert hasattr(strategy, "hvd"), "Lazy import of horovod not found in strategy class."
+        assert hasattr(
+            strategy, "hvd"
+        ), "Lazy import of horovod not found in strategy class."
 
         # Test initialization
         init_path = "horovod.torch.init"
         with patch(init_path, autospec=True) as mock_init_ds:
             strategy = HorovodStrategy()
-            strategy.init()
+            strategy.initialize_distributed_strategy()
             mock_init_ds.assert_called_once()
 
     def test_distributed_model(self, strategy, simple_model, optimizer):

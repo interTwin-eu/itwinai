@@ -189,12 +189,14 @@ class TorchTrainer(Trainer, LogMixin):
         elif strategy == "deepspeed":
             strategy_obj = DeepSpeedStrategy(backend=self.config.dist_backend)
         else:
-            raise NotImplementedError(f"Strategy '{strategy}' is not recognized/implemented.")
+            raise NotImplementedError(
+                f"Strategy '{strategy}' is not recognized/implemented."
+            )
         return strategy_obj
 
     def _init_distributed_strategy(self) -> None:
         if not self.strategy.is_initialized:
-            self.strategy.init()
+            self.strategy.initialize_distributed_strategy()
 
     def _optimizer_from_config(self) -> None:
         if self.config.optimizer == "adadelta":
@@ -250,7 +252,9 @@ class TorchTrainer(Trainer, LogMixin):
         if isinstance(self.strategy, DeepSpeedStrategy):
             # Batch size definition is not optional for DeepSpeedStrategy!
             distribute_kwargs = dict(
-                config_params=dict(train_micro_batch_size_per_gpu=self.config.batch_size)
+                config_params=dict(
+                    train_micro_batch_size_per_gpu=self.config.batch_size
+                )
             )
         elif isinstance(self.strategy, HorovodStrategy):
             import horovod.torch as hvd
@@ -631,7 +635,9 @@ class TorchTrainer(Trainer, LogMixin):
 
         return avg_loss
 
-    def train_step(self, batch: Batch, batch_idx: int) -> Tuple[torch.Tensor, Dict[str, Any]]:
+    def train_step(
+        self, batch: Batch, batch_idx: int
+    ) -> Tuple[torch.Tensor, Dict[str, Any]]:
         """Perform a single optimization step using a batch sampled from the
         training dataset.
 
@@ -771,7 +777,9 @@ class TorchTrainer(Trainer, LogMixin):
         """
         raise NotImplementedError()
 
-    def test_step(self, batch: Batch, batch_idx: int) -> Tuple[torch.Tensor, Dict[str, Any]]:
+    def test_step(
+        self, batch: Batch, batch_idx: int
+    ) -> Tuple[torch.Tensor, Dict[str, Any]]:
         """Perform a single predictions step using a batch sampled from the
         test dataset.
 
@@ -860,14 +868,18 @@ class GANTrainer(TorchTrainer):
         self.criterion = nn.BCELoss()
 
         # https://stackoverflow.com/a/67437077
-        self.discriminator = torch.nn.SyncBatchNorm.convert_sync_batchnorm(self.discriminator)
+        self.discriminator = torch.nn.SyncBatchNorm.convert_sync_batchnorm(
+            self.discriminator
+        )
         self.generator = torch.nn.SyncBatchNorm.convert_sync_batchnorm(self.generator)
 
         # First, define strategy-wise optional configurations
         if isinstance(self.strategy, DeepSpeedStrategy):
             # Batch size definition is not optional for DeepSpeedStrategy!
             distribute_kwargs = dict(
-                config_params=dict(train_micro_batch_size_per_gpu=self.config.batch_size)
+                config_params=dict(
+                    train_micro_batch_size_per_gpu=self.config.batch_size
+                )
             )
         else:
             distribute_kwargs = {}
@@ -1097,7 +1109,9 @@ class GANTrainer(TorchTrainer):
             "generator_state_dict": self.generator.state_dict(),
             "optimizerD_state_dict": self.optimizerD.state_dict(),
             "optimizerG_state_dict": self.optimizerG.state_dict(),
-            "lr_scheduler": self.lr_scheduler.state_dict() if self.lr_scheduler else None,
+            "lr_scheduler": (
+                self.lr_scheduler.state_dict() if self.lr_scheduler else None
+            ),
         }
 
         torch.save(checkpoint, checkpoint_path)
@@ -1229,7 +1243,12 @@ def distributed(func):
     """
 
     def dist_train(
-        model, train_dataloader, validation_dataloader=None, device="cpu", *args, **kwargs
+        model,
+        train_dataloader,
+        validation_dataloader=None,
+        device="cpu",
+        *args,
+        **kwargs,
     ):
         if torch.cuda.is_available():
             dist.init_process_group(backend="nccl")
@@ -1258,7 +1277,9 @@ def distributed(func):
             )
 
         try:
-            func(model, train_dataloader, validation_dataloader, device, *args, **kwargs)
+            func(
+                model, train_dataloader, validation_dataloader, device, *args, **kwargs
+            )
         finally:
             if torch.cuda.is_available():
                 dist.barrier()
@@ -1484,7 +1505,9 @@ class RayTorchTrainer(Trainer):
         scaling_config = self.config.get("scaling_config", {})
 
         if not scaling_config:
-            print("WARNING: No Scaling Config configured. Running trials non-distributed.")
+            print(
+                "WARNING: No Scaling Config configured. Running trials non-distributed."
+            )
 
         try:
             self.scaling_config = self.ray_train.ScalingConfig(**scaling_config)
@@ -1501,7 +1524,9 @@ class RayTorchTrainer(Trainer):
         run_config = self.config.get("run_config", {})
 
         if not run_config:
-            print("WARNING: No RunConfig provided. Assuming local or single-node execution.")
+            print(
+                "WARNING: No RunConfig provided. Assuming local or single-node execution."
+            )
 
         try:
             storage_path = Path(run_config.pop("storage_path")).resolve()
@@ -1512,7 +1537,9 @@ class RayTorchTrainer(Trainer):
                 )
                 storage_path = Path("ray_checkpoints").resolve()
 
-            self.run_config = self.ray_train.RunConfig(**run_config, storage_path=storage_path)
+            self.run_config = self.ray_train.RunConfig(
+                **run_config, storage_path=storage_path
+            )
         except AttributeError as e:
             print(
                 "Could not set Run Config. Please ensure that you have passed the "
@@ -1562,8 +1589,12 @@ class RayTorchTrainer(Trainer):
             should_checkpoint = epoch % self.config.get("checkpoint_freq", 1)
 
             if checkpointing_data and should_checkpoint:
-                torch.save(checkpointing_data, os.path.join(temp_checkpoint_dir, str(epoch)))
-                checkpoint = self.ray_train.Checkpoint.from_directory(temp_checkpoint_dir)
+                torch.save(
+                    checkpointing_data, os.path.join(temp_checkpoint_dir, str(epoch))
+                )
+                checkpoint = self.ray_train.Checkpoint.from_directory(
+                    temp_checkpoint_dir
+                )
 
         self.ray_train.report(tuning_metrics, checkpoint=checkpoint)
 

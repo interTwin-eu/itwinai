@@ -124,6 +124,9 @@ def test_mnist_train_tf(tf_env, install_requirements):
     """
     install_requirements(TF_PATH, tf_env)
     conf = TF_PATH / "pipeline.yaml"
-    cmd = f"{tf_env}/bin/itwinai exec-pipeline " f"--config {conf.resolve()} --pipe-key pipeline"
+    cmd = (
+        f"{tf_env}/bin/itwinai exec-pipeline "
+        f"--config {conf.resolve()} --pipe-key pipeline"
+    )
     with tempfile.TemporaryDirectory() as temp_dir:
         subprocess.run(cmd.split(), check=True, cwd=temp_dir)

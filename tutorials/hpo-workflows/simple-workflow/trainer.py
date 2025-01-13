@@ -45,7 +45,9 @@ class MyTrainer(TorchTrainer):
         # First, define strategy-wise optional configurations
         if isinstance(self.strategy, DeepSpeedStrategy):
             distribute_kwargs = dict(
-                config_params=dict(train_micro_batch_size_per_gpu=self.config.batch_size)
+                config_params=dict(
+                    train_micro_batch_size_per_gpu=self.config.batch_size
+                )
             )
         else:
             distribute_kwargs = {}

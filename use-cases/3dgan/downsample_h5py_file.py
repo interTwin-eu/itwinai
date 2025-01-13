@@ -21,7 +21,9 @@ with h5py.File(IN_FILENAME, "r") as input_file:
             print(input_file[key])
             shape = list(input_file[key].shape)
             shape[0] = MAXITEMS
-            outfile.create_dataset_like(name=key, other=input_file[key], shape=tuple(shape))
+            outfile.create_dataset_like(
+                name=key, other=input_file[key], shape=tuple(shape)
+            )
             print(outfile[key])
             outfile[key][...] = input_file[key][:MAXITEMS]
 

@@ -28,17 +28,19 @@ class ProcessBenchmark(tf.keras.callbacks.Callback):
 
         self.filename = filename
         # create time history dataframe
-        self.benchmark_df = pd.DataFrame(columns=[
-            'time',
-            'start_cpu_percent',
-            'end_cpu_percent',
-            'start_mem_rss',
-            'end_mem_rss',
-            'start_mem_vms',
-            'end_mem_vms',
-            'start_mem_uss',
-            'end_mem_uss',
-        ])
+        self.benchmark_df = pd.DataFrame(
+            columns=[
+                "time",
+                "start_cpu_percent",
+                "end_cpu_percent",
+                "start_mem_rss",
+                "end_mem_rss",
+                "start_mem_vms",
+                "end_mem_vms",
+                "start_mem_uss",
+                "end_mem_uss",
+            ]
+        )
         # save the dataframe to csv file
         self.benchmark_df.to_csv(self.filename)
 
@@ -46,17 +48,17 @@ class ProcessBenchmark(tf.keras.callbacks.Callback):
         self.epoch_time = -time.time()
         self.start_cpu_percent = self.process.cpu_percent()
         mem_info = self.process.memory_full_info()
-        self.start_mem_rss = mem_info[0] / float(2 ** 20)
-        self.start_mem_vms = mem_info[1] / float(2 ** 20)
-        self.start_mem_uss = mem_info[3] / float(2 ** 20)
+        self.start_mem_rss = mem_info[0] / float(2**20)
+        self.start_mem_vms = mem_info[1] / float(2**20)
+        self.start_mem_uss = mem_info[3] / float(2**20)
 
     def on_epoch_end(self, batch, logs={}):
         self.epoch_time += time.time()
         self.end_cpu_percent = self.process.cpu_percent()
         mem_info = self.process.memory_full_info()
-        self.end_mem_rss = mem_info[0] / float(2 ** 20)
-        self.end_mem_vms = mem_info[1] / float(2 ** 20)
-        self.end_mem_uss = mem_info[3] / float(2 ** 20)
+        self.end_mem_rss = mem_info[0] / float(2**20)
+        self.end_mem_vms = mem_info[1] / float(2**20)
+        self.end_mem_uss = mem_info[3] / float(2**20)
 
         self.benchmark_df.loc[len(self.benchmark_df.index)] = [
             self.epoch_time,

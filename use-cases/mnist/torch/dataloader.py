@@ -58,7 +58,10 @@ class InferenceMNIST(Dataset):
     """Loads a set of MNIST images from a folder of JPG files."""
 
     def __init__(
-        self, root: str, transform: Optional[Callable] = None, supported_format: str = ".jpg"
+        self,
+        root: str,
+        transform: Optional[Callable] = None,
+        supported_format: str = ".jpg",
     ) -> None:
         self.root = root
         self.transform = transform

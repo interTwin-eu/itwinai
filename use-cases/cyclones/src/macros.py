@@ -11,19 +11,23 @@ REDUCTION = tf.keras.losses.Reduction.NONE
 #  # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 # TUTTE LE VARIABILI DISPONIBILI
-ALL_DRIVER_VARS = ['fg10', 'i10fg', 'msl', 'sst', 't_500', 't_300', 'vo_850']
-ALL_COORDINATE_VARS = ['real_cyclone',
-                       'rounded_cyclone', 'global_cyclone', 'patch_cyclone']
-CYCLONE_VAR = 'patch_cyclone'
-MASK_VAR = 'cyclone_mask'
+ALL_DRIVER_VARS = ["fg10", "i10fg", "msl", "sst", "t_500", "t_300", "vo_850"]
+ALL_COORDINATE_VARS = [
+    "real_cyclone",
+    "rounded_cyclone",
+    "global_cyclone",
+    "patch_cyclone",
+]
+CYCLONE_VAR = "patch_cyclone"
+MASK_VAR = "cyclone_mask"
 
 # ESPERIMENTI TIPO 1
 # variabili per la prima parte degli esperimenti (regressione per trovare
 # coordinate row-col intra-patch)
 EXPERIMENT_1 = {
-    'DRV_VARS_1': ['fg10', 'msl', 't_500', 't_300'],
-    'COO_VARS_1': ['patch_cyclone'],
-    'MSK_VAR_1': None
+    "DRV_VARS_1": ["fg10", "msl", "t_500", "t_300"],
+    "COO_VARS_1": ["patch_cyclone"],
+    "MSK_VAR_1": None,
 }
 
 # dataset parameters
@@ -40,63 +44,75 @@ TRAINVAL_YEARS = [2000, 2001, 2002]  # for test purposes
 #                                                                      #
 #  # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
+
 # descrive il tipo di patch che bisogna prendere
 class PatchType(Enum):
-    ALLADJACENT = 'alladjacent'
-    CYCLONE = 'cyclone'
-    NEAREST = 'nearest'
-    RANDOM = 'random'
-    NOCYCLONE = 'nocyclone'
+    ALLADJACENT = "alladjacent"
+    CYCLONE = "cyclone"
+    NEAREST = "nearest"
+    RANDOM = "random"
+    NOCYCLONE = "nocyclone"
+
 
 # descrive il tipo di augmentation che deve essere effettuata
 
 
 class AugmentationType(Enum):
-    ALL_PATCHES = 'all_patches'
-    ONLY_TCS = 'only_tcs'
+    ALL_PATCHES = "all_patches"
+    ONLY_TCS = "only_tcs"
+
 
 # descrive il nome del modello di rete neurale da utilizzare
 
 
 class Network(Enum):
-    VGG_V1 = 'vgg_v1'       # map-to-coord
-    VGG_V2 = 'vgg_v2'       # map-to-coord
-    VGG_V3 = 'vgg_v3'       # map-to-coord
-    MODEL_V5 = 'model_v5'   # map-to-coord
+    VGG_V1 = "vgg_v1"  # map-to-coord
+    VGG_V2 = "vgg_v2"  # map-to-coord
+    VGG_V3 = "vgg_v3"  # map-to-coord
+    MODEL_V5 = "model_v5"  # map-to-coord
+
 
 # ritorna nome della loss utilizzata in fase di training
 
 
 class Losses(Enum):
     # Mean Absolute Error
-    MAE = ('mae', 'mae')
+    MAE = ("mae", "mae")
     # Mean Squared Error
-    MSE = ('mse', 'mse')
+    MSE = ("mse", "mse")
     # No specified loss
-    NONE = ('none', None)
+    NONE = ("none", None)
+
 
 # descrive la forza della regolarizzazione
 
 
 class RegularizationStrength(Enum):
-    WEAK = ('weak', tf.keras.regularizers.l1_l2(
-        l1=0.0, l2=0.0001))  # l1=0 - l2=0.0001
-    MEDIUM = ('medium', tf.keras.regularizers.l1_l2(
-        l1=0.0001, l2=0.0001))  # l1=0.0001 - l2=0.0001
-    STRONG = ('strong', tf.keras.regularizers.l1_l2(
-        l1=0.001, l2=0.001))  # l1=0.001 - l2=0.001
-    VERY_STRONG = ('very_strong', tf.keras.regularizers.l1_l2(
-        l1=0.01, l2=0.01))  # l1=0.01 - l2=0.01
-    NONE = ('none', None)   # no regularization
+    WEAK = ("weak", tf.keras.regularizers.l1_l2(l1=0.0, l2=0.0001))  # l1=0 - l2=0.0001
+    MEDIUM = (
+        "medium",
+        tf.keras.regularizers.l1_l2(l1=0.0001, l2=0.0001),
+    )  # l1=0.0001 - l2=0.0001
+    STRONG = (
+        "strong",
+        tf.keras.regularizers.l1_l2(l1=0.001, l2=0.001),
+    )  # l1=0.001 - l2=0.001
+    VERY_STRONG = (
+        "very_strong",
+        tf.keras.regularizers.l1_l2(l1=0.01, l2=0.01),
+    )  # l1=0.01 - l2=0.01
+    NONE = ("none", None)  # no regularization
+
 
 # descrive l'attivazione dell'ultimo layer del modello
 
 
 class Activation(Enum):
-    RELU = 'relu'
-    LINEAR = 'linear'
-    SIGMOID = 'sigmoid'
-    TANH = 'tanh'
+    RELU = "relu"
+    LINEAR = "linear"
+    SIGMOID = "sigmoid"
+    TANH = "tanh"
+
 
 # label assegnata ad un ciclone assente
 

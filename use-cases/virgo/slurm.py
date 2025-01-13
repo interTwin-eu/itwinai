@@ -38,7 +38,7 @@ class VirgoSlurmScriptBuilder(SlurmScriptBuilder):
         self.pipe_key = pipe_key
 
     def get_training_command(self):
-        if self.training_command is not None: 
+        if self.training_command is not None:
             return self.training_command
 
         training_command = rf"""

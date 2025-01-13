@@ -57,7 +57,7 @@ class MyRayTorchTrainer(RayTorchTrainer):
         # Because of the way the ray cluster is set up,
         # the initialisation of the strategy and logger, as well as the creation of the
         # model, loss, optimizer and dataloader are done from within the train() function
-        self.strategy.init()
+        self.strategy.initialize_distributed_strategy()
         self.initialize_logger(
             hyperparams=self.training_config, rank=self.strategy.global_rank()
         )

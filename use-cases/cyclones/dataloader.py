@@ -71,7 +71,9 @@ class CyclonesDataGetter(DataGetter):
             experiment["DRV_VARS_1"],
             experiment["COO_VARS_1"],
         )
-        self.msk_var = None if experiment["MSK_VAR_1"] == "None" else experiment["MSK_VAR_!"]
+        self.msk_var = (
+            None if experiment["MSK_VAR_1"] == "None" else experiment["MSK_VAR_!"]
+        )
         self.channels = [len(self.drv_vars), len(self.coo_vars)]
 
         # Shuffle
@@ -139,7 +141,8 @@ class CyclonesDataGetter(DataGetter):
                 [
                     join(self.tfrecords_path, f)
                     for f in listdir(self.tfrecords_path)
-                    if f.endswith(".tfrecord") and f.startswith(PatchType.ALLADJACENT.value)
+                    if f.endswith(".tfrecord")
+                    and f.startswith(PatchType.ALLADJACENT.value)
                 ]
             )
         self.random_files = sorted(
@@ -163,7 +166,9 @@ class CyclonesDataGetter(DataGetter):
         train_c_fs, valid_c_fs = self.split_files(
             files=self.cyclone_files, ratio=self.split_ratio
         )
-        train_a_fs, valid_a_fs = self.split_files(files=self.adj_files, ratio=self.split_ratio)
+        train_a_fs, valid_a_fs = self.split_files(
+            files=self.adj_files, ratio=self.split_ratio
+        )
         train_r_fs, valid_r_fs = self.split_files(
             files=self.random_files, ratio=self.split_ratio
         )

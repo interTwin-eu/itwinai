@@ -92,7 +92,9 @@ def dynamically_import_class(name: str):
     return klass
 
 
-def flatten_dict(d: MutableMapping, parent_key: str = "", sep: str = ".") -> MutableMapping:
+def flatten_dict(
+    d: MutableMapping, parent_key: str = "", sep: str = "."
+) -> MutableMapping:
     """Flatten dictionary
 
     Args:

@@ -73,12 +73,16 @@ class CyclonesTrainer(TensorflowTrainer):
         # Each batch is further split among the workers
         dist_train_dataset = self.strategy.experimental_distribute_dataset(
             train_dataset.batch(
-                self.macro_batch_size, drop_remainder=True, num_parallel_calls=tf.data.AUTOTUNE
+                self.macro_batch_size,
+                drop_remainder=True,
+                num_parallel_calls=tf.data.AUTOTUNE,
             )
         )
         dist_valid_dataset = self.strategy.experimental_distribute_dataset(
             valid_dataset.batch(
-                self.macro_batch_size, drop_remainder=True, num_parallel_calls=tf.data.AUTOTUNE
+                self.macro_batch_size,
+                drop_remainder=True,
+                num_parallel_calls=tf.data.AUTOTUNE,
             )
         )
 

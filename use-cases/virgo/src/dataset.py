@@ -13,7 +13,6 @@ the dataset after creating it once and loading it at the beginning of
 Process Data that to save time.
 """
 
-
 import multiprocessing
 
 import matplotlib.pyplot as plt
@@ -24,8 +23,12 @@ from gwpy.timeseries import TimeSeries
 
 
 def generate_dataset_aux_channels(
-        rows, columns, duration=10, sample_rate=500,
-        num_waves_range=(10, 15), noise_amplitude=0.1
+    rows,
+    columns,
+    duration=10,
+    sample_rate=500,
+    num_waves_range=(10, 15),
+    noise_amplitude=0.1,
 ):
     """Generate a Pandas DataFrame with randomly generated smooth sine wave time
     series with added smooth random noise.
@@ -69,19 +72,18 @@ def generate_dataset_aux_channels(
                 # frequency, phase)
                 amplitude = np.random.uniform(0.5, 2.0)
                 frequency = np.random.uniform(0.5, 5.0)
-                phase = np.random.uniform(0, 2*np.pi)
+                phase = np.random.uniform(0, 2 * np.pi)
 
                 # Generate the sine wave and add it to the wave_data
-                wave_data += amplitude * \
-                    np.sin(2 * np.pi * frequency * times + phase)
+                wave_data += amplitude * np.sin(2 * np.pi * frequency * times + phase)
 
             # Add smooth random noise to the wave data
             smooth_noise = np.random.normal(0, noise_amplitude, len(times))
             wave_data += smooth_noise
 
             # Create a TimeSeries object from the wave data
-            ts = TimeSeries(wave_data, t0=0, dt=1/sample_rate)
-            df_dict[f'Aux_{col+1}'] = [ts]
+            ts = TimeSeries(wave_data, t0=0, dt=1 / sample_rate)
+            df_dict[f"Aux_{col+1}"] = [ts]
 
         # Create a DataFrame with the TimeSeries
         df_row = pd.DataFrame(df_dict)
@@ -132,12 +134,10 @@ def generate_dataset_main_channel(input_df, weights=None, noise_amplitude=0.1):
         linear_combination += np.random.normal(0, noise_amplitude)
 
         # Append the result to the list
-        linear_combination_data.append(
-            [TimeSeries(linear_combination, dt=dt, t0=0)])
+        linear_combination_data.append([TimeSeries(linear_combination, dt=dt, t0=0)])
 
     # Create a DataFrame with the linear combination data
-    linear_combination_df = pd.DataFrame(
-        linear_combination_data, columns=['Main'])
+    linear_combination_df = pd.DataFrame(linear_combination_data, columns=["Main"])
 
     return linear_combination_df
 
@@ -246,8 +246,7 @@ def process_image(row, row_idx, channels, square_size):
 
         # Convert the spectrogram to a NumPy array
         qplot_array = qplot.value
-        qplot_array_cut = cut_image(
-            qplot_array, index_freq, index_time, square_size)
+        qplot_array_cut = cut_image(qplot_array, index_freq, index_time, square_size)
         df_row[channel] = [qplot_array_cut]
 
     return df_row
@@ -290,7 +289,7 @@ def show_dataset(df, size, num_plots=10):
     """
 
     ch_list = list(df.columns)
-    fig, axes = plt.subplots(2*num_plots, 2, figsize=(18, 12*num_plots))
+    fig, axes = plt.subplots(2 * num_plots, 2, figsize=(18, 12 * num_plots))
     for j in range(num_plots):
 
         qplt_r = np.flipud(df.iloc[j, 0].T)
@@ -302,59 +301,66 @@ def show_dataset(df, size, num_plots=10):
         # fig, axes = plt.subplots(2, 3, figsize=(18, 12))
 
         # Plot for Real
-        im_r = axes[2*j, 0].imshow(
-            qplt_r, aspect='auto',
-            extent=[0, size, 0, size], vmin=0, vmax=25)
-        axes[2*j, 0].set_title(ch_list[0])
-        axes[2*j, 0].set_xlabel('Time')
-        axes[2*j, 0].set_ylabel('Frequency')
-        fig.colorbar(im_r, ax=axes[2*j, 0])  # Add colorbar for Real
+        im_r = axes[2 * j, 0].imshow(
+            qplt_r, aspect="auto", extent=[0, size, 0, size], vmin=0, vmax=25
+        )
+        axes[2 * j, 0].set_title(ch_list[0])
+        axes[2 * j, 0].set_xlabel("Time")
+        axes[2 * j, 0].set_ylabel("Frequency")
+        fig.colorbar(im_r, ax=axes[2 * j, 0])  # Add colorbar for Real
 
         # Plot for aux
-        im_g = axes[2*j, 1].imshow(
-            qplt_aux1, aspect='auto',
-            extent=[0, size, 0, size], vmin=0, vmax=25)
-        axes[2*j, 1].set_title(ch_list[1])
-        axes[2*j, 1].set_xlabel('Time')
-        axes[2*j, 1].set_ylabel('Frequency')
-        fig.colorbar(im_g, ax=axes[2*j, 1])  # Add colorbar for Generated
+        im_g = axes[2 * j, 1].imshow(
+            qplt_aux1, aspect="auto", extent=[0, size, 0, size], vmin=0, vmax=25
+        )
+        axes[2 * j, 1].set_title(ch_list[1])
+        axes[2 * j, 1].set_xlabel("Time")
+        axes[2 * j, 1].set_ylabel("Frequency")
+        fig.colorbar(im_g, ax=axes[2 * j, 1])  # Add colorbar for Generated
         #
-        im_g = axes[2*j+1, 0].imshow(
-            qplt_aux2, aspect='auto',
-            extent=[0, size, 0, size], vmin=0, vmax=25)
-        axes[2*j+1, 0].set_title(ch_list[2])
-        axes[2*j+1, 0].set_xlabel('Time')
-        axes[2*j+1, 0].set_ylabel('Frequency')
-        fig.colorbar(im_g, ax=axes[2*j+1, 0])  # Add colorbar for Generated
+        im_g = axes[2 * j + 1, 0].imshow(
+            qplt_aux2, aspect="auto", extent=[0, size, 0, size], vmin=0, vmax=25
+        )
+        axes[2 * j + 1, 0].set_title(ch_list[2])
+        axes[2 * j + 1, 0].set_xlabel("Time")
+        axes[2 * j + 1, 0].set_ylabel("Frequency")
+        fig.colorbar(im_g, ax=axes[2 * j + 1, 0])  # Add colorbar for Generated
         #
-        im_g = axes[2*j+1, 1].imshow(
-            qplt_aux3, aspect='auto',
-            extent=[0, size, 0, size], vmin=0, vmax=25)
-        axes[2*j+1, 1].set_title(ch_list[3])
-        axes[2*j+1, 1].set_xlabel('Time')
-        axes[2*j+1, 1].set_ylabel('Frequency')
-        fig.colorbar(im_g, ax=axes[2*j+1, 1])  # Add colorbar for Generated
+        im_g = axes[2 * j + 1, 1].imshow(
+            qplt_aux3, aspect="auto", extent=[0, size, 0, size], vmin=0, vmax=25
+        )
+        axes[2 * j + 1, 1].set_title(ch_list[3])
+        axes[2 * j + 1, 1].set_xlabel("Time")
+        axes[2 * j + 1, 1].set_ylabel("Frequency")
+        fig.colorbar(im_g, ax=axes[2 * j + 1, 1])  # Add colorbar for Generated
 
         # Get the bounding boxes of the axes including text decorations
         r = fig.canvas.get_renderer()
 
-        def get_bbox(ax): return ax.get_tightbbox(
-            r).transformed(fig.transFigure.inverted())
-        bboxes = np.array(list(map(get_bbox, axes.flat)),
-                          mtrans.Bbox).reshape(axes.shape)
+        def get_bbox(ax):
+            return ax.get_tightbbox(r).transformed(fig.transFigure.inverted())
+
+        bboxes = np.array(list(map(get_bbox, axes.flat)), mtrans.Bbox).reshape(
+            axes.shape
+        )
 
         # Get the minimum and maximum extent, get the coordinate half-way
         # between those
-        ymax = np.array(list(map(lambda b: b.y1, bboxes.flat))
-                        ).reshape(axes.shape).max(axis=1)
-        ymin = np.array(list(map(lambda b: b.y0, bboxes.flat))
-                        ).reshape(axes.shape).min(axis=1)
+        ymax = (
+            np.array(list(map(lambda b: b.y1, bboxes.flat)))
+            .reshape(axes.shape)
+            .max(axis=1)
+        )
+        ymin = (
+            np.array(list(map(lambda b: b.y0, bboxes.flat)))
+            .reshape(axes.shape)
+            .min(axis=1)
+        )
         ys = np.c_[ymax[1:], ymin[:-1]].mean(axis=1)
 
         # Draw a horizontal lines at those coordinates
         for y in ys[1::2]:
-            line = plt.Line2D(
-                [0, 1], [y, y], transform=fig.transFigure, color="black")
+            line = plt.Line2D([0, 1], [y, y], transform=fig.transFigure, color="black")
             fig.add_artist(line)
 
     # plt.savefig('very high loss qplots.png')
@@ -372,10 +378,10 @@ def normalize_(data, chan=4):
     - data (torch.tensor) : normalized dataset
     """
     # Compute the maximum value for each channel across all 900 tensors
-    max_vals = data.view(data.shape[0], data.shape[1], -1).max(0)[0].max(
-        1)[0]
-    print("Maximum values for each channel across all tensors:",
-          max_vals, max_vals.shape)
+    max_vals = data.view(data.shape[0], data.shape[1], -1).max(0)[0].max(1)[0]
+    print(
+        "Maximum values for each channel across all tensors:", max_vals, max_vals.shape
+    )
     # Divide each element by the maximum value of its channel
     data /= max_vals.view(1, chan, 1, 1)
     return data

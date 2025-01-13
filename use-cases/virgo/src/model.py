@@ -33,23 +33,23 @@ class Decoder(nn.Module):
         super(Decoder, self).__init__()
 
         self.conv1 = nn.Conv2d(
-            in_channels, 32, kernel_size=kernel_size, stride=1,
-            padding=kernel_size // 2)
+            in_channels, 32, kernel_size=kernel_size, stride=1, padding=kernel_size // 2
+        )
         self.relu1 = nn.LeakyReLU(0.2, inplace=True)
 
         self.conv2 = nn.Conv2d(
-            32, 64, kernel_size=kernel_size, stride=1,
-            padding=kernel_size // 2)
+            32, 64, kernel_size=kernel_size, stride=1, padding=kernel_size // 2
+        )
         self.relu2 = nn.LeakyReLU(0.2, inplace=True)
 
         self.conv3 = nn.Conv2d(
-            64, 64, kernel_size=kernel_size, stride=1,
-            padding=kernel_size // 2)
+            64, 64, kernel_size=kernel_size, stride=1, padding=kernel_size // 2
+        )
         self.relu3 = nn.LeakyReLU(0.2, inplace=True)
 
         self.conv4 = nn.Conv2d(
-            64, 1, kernel_size=kernel_size, stride=1,
-            padding=kernel_size // 2)
+            64, 1, kernel_size=kernel_size, stride=1, padding=kernel_size // 2
+        )
 
         if norm:
             self.activation = torch.nn.Sigmoid()
@@ -102,23 +102,23 @@ class Decoder_2d_deep(nn.Module):
         super(Decoder_2d_deep, self).__init__()
 
         self.conv1 = nn.Conv2d(
-            in_channels, 64, kernel_size=kernel_size, stride=1,
-            padding=kernel_size // 2)
+            in_channels, 64, kernel_size=kernel_size, stride=1, padding=kernel_size // 2
+        )
         self.relu1 = nn.LeakyReLU(0.3, inplace=True)
 
         self.conv2 = nn.Conv2d(
-            64, 128, kernel_size=kernel_size, stride=1,
-            padding=kernel_size // 2)
+            64, 128, kernel_size=kernel_size, stride=1, padding=kernel_size // 2
+        )
         self.relu2 = nn.LeakyReLU(0.3, inplace=True)
 
         self.conv3 = nn.Conv2d(
-            128, 256, kernel_size=kernel_size, stride=1,
-            padding=kernel_size // 2)
+            128, 256, kernel_size=kernel_size, stride=1, padding=kernel_size // 2
+        )
         self.relu3 = nn.LeakyReLU(0.3, inplace=True)
 
         self.conv4 = nn.Conv2d(
-            256, 1, kernel_size=kernel_size, stride=1,
-            padding=kernel_size // 2)
+            256, 1, kernel_size=kernel_size, stride=1, padding=kernel_size // 2
+        )
         if norm:
             self.activation = torch.nn.Sigmoid()
         else:
@@ -177,7 +177,7 @@ class ResidualBlock(nn.Module):
             nn.ReLU(inplace=True),  # ReLU activation function
             nn.ReflectionPad2d(1),
             nn.Conv2d(in_features, in_features, 3),
-            nn.InstanceNorm2d(in_features)
+            nn.InstanceNorm2d(in_features),
         )
 
     def forward(self, x):
@@ -203,9 +203,7 @@ class GeneratorResNet(nn.Module):
         - output_shape (int): Number of output features/channels.
     """
 
-    def __init__(
-            self, input_shape, num_residual_block, output_shape, norm=False
-    ):
+    def __init__(self, input_shape, num_residual_block, output_shape, norm=False):
         super(GeneratorResNet, self).__init__()
 
         channels = input_shape
@@ -221,7 +219,7 @@ class GeneratorResNet(nn.Module):
             nn.ReflectionPad2d(channels),
             nn.Conv2d(channels, out_features, 7),
             nn.InstanceNorm2d(out_features),
-            nn.ReLU(inplace=True)
+            nn.ReLU(inplace=True),
         ]
         in_features = out_features
 
@@ -231,7 +229,7 @@ class GeneratorResNet(nn.Module):
             model += [
                 nn.Conv2d(in_features, out_features, 3, stride=2, padding=1),
                 nn.InstanceNorm2d(out_features),
-                nn.ReLU(inplace=True)
+                nn.ReLU(inplace=True),
             ]
             in_features = out_features
 
@@ -245,15 +243,16 @@ class GeneratorResNet(nn.Module):
             model += [
                 nn.Upsample(scale_factor=2),  # Upsampling layer
                 nn.Conv2d(in_features, out_features, 3, stride=1, padding=1),
-                nn.ReLU(inplace=True)
+                nn.ReLU(inplace=True),
             ]
             in_features = out_features
 
         # Output Layer
-        model += [nn.ReflectionPad2d(target_channels),
-                  nn.Conv2d(out_features, target_channels, 3),
-                  self.final_activation  # Sigmoid activation function
-                  ]
+        model += [
+            nn.ReflectionPad2d(target_channels),
+            nn.Conv2d(out_features, target_channels, 3),
+            self.final_activation,  # Sigmoid activation function
+        ]
 
         # Unpacking
         self.model = nn.Sequential(*model)
@@ -286,10 +285,8 @@ class Conv2dBlock(nn.Module):
 
     def __init__(self, in_channels, out_channels, kernel_size=3):
         super(Conv2dBlock, self).__init__()
-        self.conv1 = nn.Conv2d(in_channels, out_channels,
-                               kernel_size, padding=1)
-        self.conv2 = nn.Conv2d(
-            out_channels, out_channels, kernel_size, padding=1)
+        self.conv1 = nn.Conv2d(in_channels, out_channels, kernel_size, padding=1)
+        self.conv2 = nn.Conv2d(out_channels, out_channels, kernel_size, padding=1)
         self.activation = nn.ReLU()
 
     def forward(self, x):
@@ -320,8 +317,7 @@ class EncoderBlock(nn.Module):
         - dropout (float): Dropout rate (default is 0.3).
     """
 
-    def __init__(self, in_channels, out_channels, pool_size=(2, 2),
-                 dropout=0.3):
+    def __init__(self, in_channels, out_channels, pool_size=(2, 2), dropout=0.3):
         super(EncoderBlock, self).__init__()
         self.conv_block = Conv2dBlock(in_channels, out_channels)
         self.maxpool = nn.MaxPool2d(pool_size)
@@ -411,12 +407,16 @@ class DecoderBlock(nn.Module):
         - dropout (float): Dropout rate (default is 0.3).
     """
 
-    def __init__(self, in_channels, out_channels, kernel_size=3, stride=2,
-                 dropout=0.3):
+    def __init__(self, in_channels, out_channels, kernel_size=3, stride=2, dropout=0.3):
         super(DecoderBlock, self).__init__()
         self.deconv = nn.ConvTranspose2d(
-            in_channels, out_channels, kernel_size, stride=stride, padding=1,
-            output_padding=1)
+            in_channels,
+            out_channels,
+            kernel_size,
+            stride=stride,
+            padding=1,
+            output_padding=1,
+        )
         self.dropout = nn.Dropout2d(dropout)
         self.conv_block = Conv2dBlock(out_channels * 2, out_channels)
 

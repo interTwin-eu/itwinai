@@ -272,7 +272,9 @@ class Logger(LogMixin):
             self.worker_rank is None
             or (
                 isinstance(self.log_on_workers, int)
-                and (self.log_on_workers == -1 or self.log_on_workers == self.worker_rank)
+                and (
+                    self.log_on_workers == -1 or self.log_on_workers == self.worker_rank
+                )
             )
             or (
                 isinstance(self.log_on_workers, list)
@@ -320,7 +322,9 @@ class ConsoleLogger(Logger):
         log_on_workers: Union[int, List[int]] = 0,
     ) -> None:
         cl_savedir = Path(savedir) / "simple-logger"
-        super().__init__(savedir=cl_savedir, log_freq=log_freq, log_on_workers=log_on_workers)
+        super().__init__(
+            savedir=cl_savedir, log_freq=log_freq, log_on_workers=log_on_workers
+        )
 
     def create_logger_context(self, rank: Optional[int] = None):
         """Initializes the logger context.
@@ -477,7 +481,9 @@ class MLFlowLogger(Logger):
         log_on_workers: Union[int, List[int]] = 0,
     ):
         mfl_savedir = Path(savedir) / "mlflow"
-        super().__init__(savedir=mfl_savedir, log_freq=log_freq, log_on_workers=log_on_workers)
+        super().__init__(
+            savedir=mfl_savedir, log_freq=log_freq, log_on_workers=log_on_workers
+        )
         self.tracking_uri = tracking_uri
         self.run_description = run_description
         self.run_name = run_name
@@ -593,7 +599,9 @@ class MLFlowLogger(Logger):
             if isinstance(item, self.mlflow.data.Dataset):
                 self.mlflow.log_input(item)
             else:
-                print("WARNING: unrecognized dataset type. " "Must be an MLFlow dataset")
+                print(
+                    "WARNING: unrecognized dataset type. " "Must be an MLFlow dataset"
+                )
         elif kind == "torch":
             import torch
 
@@ -664,7 +672,9 @@ class WandBLogger(Logger):
         offline_mode: bool = False,
     ) -> None:
         wbl_savedir = Path(savedir) / "wandb"
-        super().__init__(savedir=wbl_savedir, log_freq=log_freq, log_on_workers=log_on_workers)
+        super().__init__(
+            savedir=wbl_savedir, log_freq=log_freq, log_on_workers=log_on_workers
+        )
         self.project_name = project_name
         self.offline_mode = offline_mode
 
@@ -781,13 +791,17 @@ class TensorBoardLogger(Logger):
         log_on_workers: Union[int, List[int]] = 0,
     ) -> None:
         tbl_savedir = Path(savedir) / "tensorboard"
-        super().__init__(savedir=tbl_savedir, log_freq=log_freq, log_on_workers=log_on_workers)
+        super().__init__(
+            savedir=tbl_savedir, log_freq=log_freq, log_on_workers=log_on_workers
+        )
         self.framework = framework
         if framework.lower() == "tensorflow":
             import tensorflow as tf
 
             self.tf = tf
-            self.writer = tf.summary.create_file_writer(tbl_savedir.resolve().as_posix())
+            self.writer = tf.summary.create_file_writer(
+                tbl_savedir.resolve().as_posix()
+            )
         elif framework.lower() == "pytorch":
             from torch.utils.tensorboard import SummaryWriter
 
@@ -1108,7 +1122,9 @@ class Prov4MLLogger(Logger):
             return
 
         if kind == "metric":
-            self.prov4ml.log_metric(key=identifier, value=item, context=context, step=step)
+            self.prov4ml.log_metric(
+                key=identifier, value=item, context=context, step=step
+            )
         elif kind == "flops_pb":
             model, batch = item
             self.prov4ml.log_flops_per_batch(
@@ -1160,7 +1176,9 @@ class Prov4MLLogger(Logger):
 class EpochTimeTracker:
     """Tracker for epoch execution time during training."""
 
-    def __init__(self, strategy_name: str, save_path: Path | str, num_nodes: int) -> None:
+    def __init__(
+        self, strategy_name: str, save_path: Path | str, num_nodes: int
+    ) -> None:
         if isinstance(save_path, str):
             save_path = Path(save_path)
 
