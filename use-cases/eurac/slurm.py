@@ -38,7 +38,7 @@ class EuracSlurmScriptBuilder(SlurmScriptBuilder):
         self.pipe_key = pipe_key
 
     def get_training_command(self):
-        if self.training_command is not None: 
+        if self.training_command is not None:
             return self.training_command
 
         training_command = rf"""
@@ -91,7 +91,9 @@ def main():
         )
     elif mode == "scaling-test":
         script_builder.run_scaling_test(
-            submit_slurm_job=submit_job, retain_file=retain_file
+            submit_slurm_job=submit_job,
+            retain_file=retain_file,
+            num_nodes_list=args.scalability_nodes,
         )
     else:
         # This shouldn't really ever happen, but checking just in case

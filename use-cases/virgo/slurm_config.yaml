@@ -6,9 +6,8 @@
 mode: runall # "single", "runall" or "scaling-test" - defaults to "single"
 dist_strat: ddp # "ddp", "deepspeed" or "horovod"
 
-
 account: intertwin
-time: 00:11:11
+time: 01:15:00
 partition: develbooster
 
 # Keep in mind that these will be overwritten if "mode" is not "single", and that
@@ -26,9 +25,11 @@ gpus_per_node: 4
 cpus_per_gpu: 4
 
 python_venv: .venv
-
 pipe_key: training_pipeline
 config_file: config.yaml
+
+# The different number of nodes to use for the scalability testing
+scalability_nodes: "1, 2, 4"
 
 # If you want to manually override the training command, comment in the following:
 # training_cmd: | 
