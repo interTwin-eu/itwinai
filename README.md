@@ -86,8 +86,7 @@ environment for TensorFlow:
 
 ### Install itwinai for users
 
-Install itwinai and its dependencies using the
-following command, and follow the instructions:
+Install itwinai and its dependencies.
 
 ```bash
 # First, load the required environment modules, if on an HPC
@@ -95,17 +94,43 @@ following command, and follow the instructions:
 # Second, create a python virtual environment and activate it
 $ python -m venv ENV_NAME
 $ source ENV_NAME/bin/activate
-
-# Install itwinai inside the environment
-(ENV_NAME) $ export ML_FRAMEWORK="pytorch" # or "tensorflow"
-(ENV_NAME) $ curl -fsSL https://github.com/interTwin-eu/itwinai/raw/main/env-files/itwinai-installer.sh | bash
 ```
 
-The `ML_FRAMEWORK` environment variable controls whether you are installing
-itwinai for PyTorch or TensorFlow.
+Install itwinai with support for PyTorch using:
+
+```bash
+pip install itwinai[torch]
+```
+
+or with TensorFlow support using:
+
+```bash
+pip install itwinai[tf]
+
+# Alternatively, if you have access to GPUs
+pip install itwinai[tf-cuda]
+```
+
+If you want to use Prov4ML logger, you need to install it explicitly since it is only
+available on GitHub:
+
+```bash
+# For systems with Nvidia GPUs
+pip install "prov4ml[nvidia]@git+https://github.com/matbun/ProvML@new-main"
+
+# For MacOs
+pip install "prov4ml[apple]@git+https://github.com/matbun/ProvML@new-main"
+```
+
+If you also want to install Horovod and Microsoft DeepSpeed for distributed ML with PyTorch,
+install them *after* itwinai. You can use this command:
+
+```bash
+curl -fsSL https://github.com/interTwin-eu/itwinai/raw/main/env-files/torch/install-horovod-deepspeed-cuda.sh | bash
+```
 
 > [!WARNING]  
-> itwinai depends on Horovod, which requires `CMake>=1.13` and
+> Horovod requires `CMake>=1.13` and
 > [other packages](https://horovod.readthedocs.io/en/latest/install_include.html#requirements).
 > Make sure to have them installed in your environment before proceeding.
 
@@ -163,11 +188,9 @@ commands they will use the version from your venv.
 
 ##### Installation of packages
 
-We provide some _extras_ that can be activated depending on which platform you are
+We provide some *extras* that can be activated depending on which platform you are
 using.
 
-- `macos`, `amd` or `nvidia` depending on which platform you use. Changes the version
-of `prov4ML`.
 - `dev` for development purposes. Includes libraries for testing and tensorboard etc.
 - `torch` for installation with PyTorch.
 
@@ -180,17 +203,22 @@ directory, as you can very easily reach your disk quota otherwise. An example of
 complete command for installing as a developer on HPC with CUDA thus becomes:
 
 ```bash
-pip install -e ".[torch,dev,nvidia,tf]" \
+pip install -e ".[torch,dev,tf]" \
     --no-cache-dir \
     --extra-index-url https://download.pytorch.org/whl/cu121
 ```
 
-If you wanted to install this locally on macOS (i.e. without CUDA) with PyTorch, you
+If you wanted to install this locally on **macOS** (i.e. without CUDA) with PyTorch, you
 would do the following instead:
 
 ```bash
-pip install -e ".[torch,dev,macos,tf]"
+pip install -e ".[torch,dev,tf]"
 ```
+
+If you want to use [Prov4ML](https://github.com/HPCI-Lab/yProvML) logger, you need to install
+it explicitly since it is only available on GitHub. Please refer to the
+[users installation](#install-itwinai-for-users)
+to know more on how to install Prov4ML.
 
 <!-- You can create the Python virtual environments using our predefined Makefile targets. -->
 

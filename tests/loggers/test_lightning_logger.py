@@ -134,10 +134,11 @@ def test_log_metrics_and_hyperparams(itwinai_logger, request):
     itwinai_logger_instance = request.getfixturevalue(itwinai_logger)
     lightning_logger = PyTorchLightningLogger(itwinai_logger=itwinai_logger_instance)
 
-    with patch.object(itwinai_logger_instance, "create_logger_context"), \
-            patch.object(itwinai_logger_instance, "log"), \
-            patch.object(itwinai_logger_instance, "save_hyperparameters"):
-
+    with (
+        patch.object(itwinai_logger_instance, "create_logger_context"),
+        patch.object(itwinai_logger_instance, "log"),
+        patch.object(itwinai_logger_instance, "save_hyperparameters"),
+    ):
         lightning_logger.log_metrics({"loss": 0.2, "accuracy": 0.99})
         expected_calls = [
             call(item=0.2, identifier="loss", kind="metric", step=None),
@@ -147,9 +148,7 @@ def test_log_metrics_and_hyperparams(itwinai_logger, request):
 
         dict_params = {"learning_rate": 0.001, "batch_size": 32}
         lightning_logger.log_hyperparams(params=dict_params)
-        itwinai_logger_instance.save_hyperparameters.assert_called_once_with(
-            dict_params
-        )
+        itwinai_logger_instance.save_hyperparameters.assert_called_once_with(dict_params)
 
 
 @pytest.mark.parametrize(
@@ -171,14 +170,16 @@ def test_save_after_checkpoint(itwinai_logger, request):
     checkpoint_callback = MagicMock(spec=ModelCheckpoint)
     checkpoint_callback.best_model_path = Path("/path/to/checkpoint_1.ckpt")
 
-    with patch.object(itwinai_logger_instance, "create_logger_context"), \
-            patch.object(itwinai_logger_instance, "log"), \
-            patch(
-                "itwinai.torch.loggers._scan_checkpoints",
-                return_value=[
-                    (1, "path/to/checkpoint_1.ckpt", 100, "_"),
-                    (2, "path/to/checkpoint_2.ckpt", 101, "_"),
-                ],
+    with (
+        patch.object(itwinai_logger_instance, "create_logger_context"),
+        patch.object(itwinai_logger_instance, "log"),
+        patch(
+            "itwinai.torch.loggers._scan_checkpoints",
+            return_value=[
+                (1, "path/to/checkpoint_1.ckpt", 100, "_"),
+                (2, "path/to/checkpoint_2.ckpt", 101, "_"),
+            ],
+        ),
     ):
         lightning_logger.after_save_checkpoint(checkpoint_callback)
         assert lightning_logger._checkpoint_callback is None

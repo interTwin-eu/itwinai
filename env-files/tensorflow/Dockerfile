@@ -41,7 +41,7 @@ ENV PYTHONPATH=""
 # Install itwinai
 COPY pyproject.toml pyproject.toml
 COPY src src
-RUN pip install --no-cache-dir .[nvidia] \
+RUN pip install --no-cache-dir .[tf-cuda] \
     && itwinai sanity-check --tensorflow --optional-deps ray
 
 # Additional pip deps
