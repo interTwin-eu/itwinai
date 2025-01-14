@@ -14,7 +14,7 @@ import os
 import time
 from pathlib import Path
 from timeit import default_timer as timer
-from typing import Any, Dict, Literal, Optional, Tuple, Union
+from typing import Any, Dict, Literal, Optional, Tuple
 
 import numpy as np
 import torch
@@ -49,16 +49,15 @@ class NoiseGeneratorTrainer(TorchTrainer):
     def __init__(
         self,
         num_epochs: int = 2,
-        config: Union[Dict, TrainingConfiguration] | None = None,
-        strategy: Optional[Literal["ddp", "deepspeed", "horovod"]] = "ddp",
+        config: Dict | TrainingConfiguration | None = None,
+        strategy: Literal["ddp", "deepspeed", "horovod"] | None = "ddp",
         checkpoint_path: str = "checkpoints/epoch_{}.pth",
-        logger: Optional[Logger] = None,
-        random_seed: Optional[int] = None,
+        logger: Logger | None = None,
+        random_seed: int | None = None,
         name: str | None = None,
         validation_every: int = 0,
         **kwargs,
     ) -> None:
-        config = {}
         super().__init__(
             epochs=num_epochs,
             config=config,
@@ -71,6 +70,7 @@ class NoiseGeneratorTrainer(TorchTrainer):
         )
         self.save_parameters(**self.locals2params(locals()))
         # Global training configuration
+        
         if isinstance(config, dict):
             config = VirgoTrainingConfiguration(**config)
         self.config = config
@@ -80,6 +80,7 @@ class NoiseGeneratorTrainer(TorchTrainer):
 
     def create_model_loss_optimizer(self) -> None:
         # Select generator
+
         generator = self.config.generator.lower()
         scaling = 0.02
         if generator == "simple":

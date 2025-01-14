@@ -23,7 +23,7 @@ num_tasks_per_node: 1
 gpus_per_node: 4
 cpus_per_gpu: 4
 
-python_venv: .venv
+python_venv: ../../.venv
 pipe_key: rnn_training_pipeline
 config_file: config.yaml
 
