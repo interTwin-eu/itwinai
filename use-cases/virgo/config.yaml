@@ -1,7 +1,8 @@
+# General configuration
 root_folder: /p/scratch/intertwin/datasets/virgo
 data_root: ./data
 epochs: 2
-batch_size: 3
+batch_size: 20
 learning_rate: 0.0001
 strategy: ddp
 checkpoint_path: checkpoints/epoch_{}.pth
@@ -17,6 +18,7 @@ training_pipeline:
           validation_proportion: 0.1
           rnd_seed: 42
           root_folder: ${root_folder}
+      - class_path: data.TimeSeriesProcessor
       - class_path: trainer.NoiseGeneratorTrainer
         init_args:
           config:
@@ -31,13 +33,14 @@ training_pipeline:
           checkpoint_path: ${checkpoint_path}
           random_seed: 17
           validation_every: 0
+          learning_rate: ${learning_rate}
           logger:
             class_path: itwinai.loggers.LoggersCollection
             init_args:
               loggers:
                 - class_path: itwinai.loggers.ConsoleLogger
                   init_args:
-                    log_freq: 1
+                    log_freq: 2
                 - class_path: itwinai.loggers.MLFlowLogger
                   init_args:
                     experiment_name: Noise simulator (Virgo)

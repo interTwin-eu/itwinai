@@ -96,30 +96,38 @@ mlflow ui --backend-store-uri mllogs/mlflow > /dev/null 2>&1 &
 ```
 
 ## Running scaling tests
+Scaling tests have been integrated into the eurac usecase to provide timing of experiments run and ths show the power of distributed model training and itwinai. Refer to the following files `runall.sh , scaling-test.sh, torch_dist_final_scaling.py`.
 
-Scaling tests provide information about how well the different distributed strategies scale.
-We have integrated them into this use case and you can run them using the scaling-test.sh script.´:
+Launch the scaling test:
 
 ```bash
 bash scaling-test.sh
 ```
 
-To generate the plots, refer to the [Scaling-Test Tutorial](https://github.com/interTwin-eu/itwinai/tree/main/tutorials/distributed-ml/torch-scaling-test#analyze-results).
-
-## Running HPO for Virgo Non-distributed
-
-Hyperparameter optimization (HPO) is integrated into the pipeline using Ray Tune.
-This allows you to run multiple trials and fine-tune model parameters efficiently.
-HPO is configured to run multiple trials in parallel, but run those trials each in a non-distributed way.
-
-To launch an HPO experiment, run
+Generate plots for the outputs of the scaling tests
+Once all jobs have completed, you can automatically generate scalability report
+using itwinai's CLI:
 
 ```bash
-sbatch slurm_ray.sh
+# First, activate you Python virtual environment
+
+# For more info run
+itwinai scalability-report --help
+
+# Generate a scalability report
+itwinai scalability-report --pattern="^epoch.+\.csv$" \
+    --plot-title "Virgo usecase scaling" --archive virgo_scaling
+```
+ /p/project1/intertwin/<user-name>/itwinai/use-cases/eurac
+
+## Running HPO for EURAC Non-distributed
+
+HPO has been implemented using Ray tuner to run in a non distributed environment. Refer to `train_hpo.py` file which was adapted from `train.py`. The current HPO parameters include learning rate(lr) and batch_size. 
+
+Launch the hpo expirement:
+
+```bash
+sbatch startscript_hpo.sh
 ```
 
-This script sets up a Ray cluster and runs `hpo.py` for hyperparameter tuning.
-You may change CLI variables for `hpo.py` to change parameters,
-such as the number of trials you want to run, to change the stopping criteria for the trials or to set a
-different metric on which ray will evaluate trial results.
-By default, trials monitor validation loss, and results are plotted once all trials are completed.
+Visualize the HPO results by running `python visualize_hpo.py`. Adjust the `main_dir = '/p/home/jusers/<username>/hdfml/ray_results/<specific run folder name>'` accordingly based on the run folder name, the results path can be got from your slurm output file at the top.

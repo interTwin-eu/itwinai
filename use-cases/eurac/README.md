@@ -3,68 +3,102 @@
 ## Installation
 
 First, make sure to install itwinai from this branch!
-Use the [developer installation instructions](https://github.com/interTwin-eu/itwinai/#installation-for-developers).
+Use the [developer installation instructions](https://github.com/interTwin-eu/itwinai/tree/usecase_eurac?tab=readme-ov-file#installation-for-developers).
 
-Then install the dependencies specific to this use case by first entering the
-folder and then installing the dependencies with pip:
+Then:
 
 ```bash
-cd use-cases/eurac
 pip install -r requirements.txt
+```
+
+## Interactive session on SLURM
+
+Allocate 4 GPUs on a compute node and run distributed algorithms:
+see "[Distributed training on a single node (interactive)](https://github.com/interTwin-eu/itwinai/tree/main/tutorials/distributed-ml/torch-tutorial-0-basics#distributed-training-on-a-single-node-interactive)."
+
+```bash
+
+salloc --partition=batch --nodes=1 --account=intertwin  --gres=gpu:4 --time=1:59:00
+
+srun --jobid XXXX --overlap --pty /bin/bash
+
+ml --force purge
+
+ml Stages/2024 GCC OpenMPI CUDA/12 MPI-settings/CUDA Python HDF5 PnetCDF libaio mpi4py
+
+source ../../../hython-dev/bin/activate
+
+torchrun --standalone --nnodes=1 --nproc-per-node=gpu dist-train.py
+
 ```
 
 ## Training
 
-You can run the RNN pipeline with the following command:
+You can run the whole pipeline in one shot, including dataset generation, or you can
+execute it from the second step (after the synthetic dataset have been generated).
 
 ```bash
-itwinai exec-pipeline --config config.yaml --pipe-key rnn_training_pipeline
+itwinai exec-pipeline --config config.yaml --pipe-key training_pipeline
+
+# Run from the second step (use python-like slicing syntax).
+# In this case, the dataset is loaded from "data/Image_dataset_synthetic_64x64.pkl"
+itwinai exec-pipeline --config config.yaml --pipe-key training_pipeline --steps 1:
 ```
 
-If you want to use the Conv pipeline instead, you can replace `rnn_training_pipeline`
-with `conv_training_pipeline`.
+Launch distributed training with SLURM using the dedicated `run.sh` job script:
 
-### Distributed runs
-
-You can run the training in a distributed manner using all strategies by running
-`runall.sh`. This will launch jobs for all the strategies and log their outputs into the
-`logs_slurm` folder. You can pass arguments by prepending environment variables. E.g. if
-you want to turn debug-mode on, you pass `DEBUG=false` as follows:
+Train LSTM
 
 ```bash
-DEBUG=false ./runall.sh
+# Distributed training with torch DistributedDataParallel
+./run.sh config.yaml
 ```
 
-The same can be done with any other variables you might want to change. You can see
-all the variables in `runall.sh`.
+Train ConvLSTM
+
+```bash
+# Distributed training with torch DistributedDataParallel
+./run.sh config_conv.yaml
+```
 
 ## Running scaling tests
+Scaling tests have been integrated into the eurac usecase to provide timing of experiments run and ths show the power of distributed model training and itwinai. Refer to the following files `runall.sh , scaling-test.sh, torch_dist_final_scaling.py`.
 
-Scaling tests provide information about how well the different
-distributed strategies scale. We have integrated them into this use case
-and you can run them using the `scaling-test.sh` script.
+Launch the scaling test:
 
-To generate the plots, refer to the
-[Scaling-Test Tutorial](https://github.com/interTwin-eu/itwinai/tree/main/tutorials/distributed-ml/torch-scaling-test#analyze-results).
+```bash
+bash scaling-test.sh
+```
+
+Generate plots for the outputs of the scaling tests
+Once all jobs have completed, you can automatically generate scalability report
+using itwinai's CLI:
+
+```bash
+# First, activate you Python virtual environment
+
+# For more info run
+itwinai scalability-report --help
+
+# Generate a scalability report
+itwinai scalability-report --pattern="^epoch.+\.csv$" \
+    --plot-title "Eurac usecase scaling" --archive eurac_scaling
+```
+
 
 ## Running HPO for EURAC Non-distributed
 
-Hyperparameter optimization (HPO) is integrated into the pipeline using Ray Tune.
-This allows you to run multiple trials and fine-tune model parameters efficiently.
-HPO is configured to run multiple trials in parallel, but run those trials each in a non-distributed way.
+HPO has been implemented using Ray tuner to run in a non distributed environment. Refer to `train_hpo.py` file which was adapted from `train.py`. The current HPO parameters include learning rate(lr) and batch_size. 
 
-To launch an HPO experiment, run
+Launch the hpo expirement:
 
 ```bash
-sbatch slurm_ray.sh
+sbatch startscript_hpo.sh
 ```
 
-This script sets up a Ray cluster and runs `hpo.py` for hyperparameter tuning.
-You may change CLI variables for `hpo.py` to change parameters,
-such as the number of trials you want to run, to change the stopping criteria for the trials or to set a different metric on which ray will evaluate trial results.
-By default, trials monitor validation loss, and results are plotted once all trials are completed.
+Visualize the HPO results by running `python visualize_hpo.py`. Adjust the `main_dir = '/p/home/jusers/<username>/hdfml/ray_results/<specific run folder name>'` accordingly based on the run folder name, the results path can be got from your slurm output file at the top.
 
-## Exporting a local MLFlow run to the EGI cloud MLFlow remote tracking server
+## Exporting a local mlflow run to the on EGI cloud mlflow remote tracking server
 
 Install [mlflow-export-import](https://github.com/mlflow/mlflow-export-import)
 
@@ -75,9 +109,8 @@ export MLFLOW_TRACKING_PASSWORD='YOUR_PWD'
 export MLFLOW_TRACKING_URI='https://mlflow.intertwin.fedcloud.eu/'
 ```
 
-Assuming the working directory is the EURAC use case, export the run-id from the
-local mlflow logs directory. This will also export all the associated artifacts
-(including models and model weights)
+Assuming the working directory is the eurac usecase, export the run-id from the local mlflow logs directory. This will also export all the associated artifacts (included models and model weights)
+
 
 ```bash
 copy-run --run-id 27a81c42c2cb40dfb7505032f1ac1ef5 --experiment-name "drought use case lstm" --src-mlflow-uri mllogs/mlflow --dst-mlflow-uri https://mlflow.intertwin.fedcloud.eu/
@@ -102,5 +135,5 @@ loaded_model = mlflow.pyfunc.load_model(logged_model)
 
 ```
 
-> [!WARNING] While the model is loading an error occurs **RuntimeError: Default process group has not been initialized, please make sure to call init_process_group.**
-> Possible reasons due to package version mismatch <https://github.com/mlflow/mlflow/issues/4903>.
+> :warning: While the model is loading an error occurs **RuntimeError: Default process group has not been initialized, please make sure to call init_process_group.**
+> Possible reasons due to package version mismatch https://github.com/mlflow/mlflow/issues/4903.

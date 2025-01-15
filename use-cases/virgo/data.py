@@ -10,10 +10,8 @@ from src.dataset import (
     generate_dataset_main_channel,
     normalize_,
 )
-from torch.utils.data import Dataset, TensorDataset, random_split
-
-from itwinai.components import DataGetter, DataProcessor, DataSplitter, monitor_exec
-
+from torch.utils.data import DataLoader, Dataset
+import numpy as np
 
 class TimeSeriesDatasetGenerator(DataGetter):
     def __init__(
@@ -64,6 +62,24 @@ class TimeSeriesDatasetGenerator(DataGetter):
         save_name = 'Image_dataset_synthetic_64x64.pkl'
         df.to_pickle(os.path.join(self.data_root, save_name))
         return df
+
+class DataFrameDataset(Dataset):
+    def __init__(self, root_folder):
+        self.file_paths = []
+        self.file_paths = [os.path.join(dirpath, f)
+                           for dirpath, dirs, files in os.walk(root_folder)
+                           for f in files if f.endswith('.pkl')]
+        print(self.file_paths)
+    def __len__(self):
+        return len(self.file_paths)
+    
+    def __getitem__(self, idx):
+        dataframe = pd.read_pickle(self.file_paths[idx])
+        return dataframe
+    
+def custom_collate(batch):
+    # Combine all dataframes in the batch into a single dataframe
+    return pd.concat(batch, ignore_index=True)
 
 
 class SyntheticTimeSeriesDataset(Dataset):
@@ -142,9 +158,10 @@ class TimeSeriesDatasetSplitter(DataSplitter):
         train_proportion: int | float,
         validation_proportion: int | float = 0.0,
         test_proportion: int | float = 0.0,
-        root_folder: Optional[str] = None,
-        rnd_seed: Optional[int] = None,
-        name: Optional[str] = None
+        rnd_seed: int | None = None,
+        # images_dataset: str = "TimeSeries_dataset_synthetic_main.pkl",
+        root_folder: str | None = None,
+        name: str | None = None
     ) -> None:
         """Initialize the splitter for time-series datasets.
 
@@ -221,14 +238,18 @@ class TimeSeriesDatasetSplitterSmall(DataSplitter):
         self.save_parameters(**self.locals2params(locals()))
         self.validation_proportion = 1-train_proportion
         self.rnd_seed = rnd_seed
-        self.images_dataset = images_dataset
+        self.name = name
+        # self.images_dataset = images_dataset
+        self.root_folder = root_folder
+        self.loader = DataLoader(
+            DataFrameDataset(root_folder),
+            batch_size=300,
+            collate_fn=custom_collate
+                )
 
-    def get_or_load(self, dataset: Optional[pd.DataFrame] = None):
-        """If the dataset is not given, load it from disk."""
-        if dataset is None:
-            print("WARNING: loading time series dataset from disk.")
-            return pd.read_pickle(self.images_dataset)
-        return dataset
+    def get_or_load(self):
+        for combined_df in self.loader:
+            return combined_df
 
     @monitor_exec
     def execute(
@@ -243,17 +264,11 @@ class TimeSeriesDatasetSplitterSmall(DataSplitter):
         Returns:
             Tuple: tuple of train, validation and test splits. Test is None.
         """
-        dataset = self.get_or_load(dataset)
+        dataset = self.get_or_load()
+        df = dataset.applymap(lambda x: torch.tensor(x))
 
-        # Convert data to torch
-        df = dataset.map(lambda x: torch.tensor(x))
-
-        # Divide Image dataset in main and aux channels. Note that df
-        # generated in the section Generate Synthetic Dataset will always have
-        # the main channel as its first column
         main_channel = list(df.columns)[0]
         aux_channels = list(df.columns)[1:]
-
         df_aux_all_2d = pd.DataFrame(df[aux_channels])
         df_main_all_2d = pd.DataFrame(df[main_channel])
         X_train_2d, X_test_2d, y_train_2d, y_test_2d = train_test_split(

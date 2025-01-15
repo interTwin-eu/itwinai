@@ -9,7 +9,6 @@ import torch.nn as nn
 from ray import train
 from src.model import Decoder, Decoder_2d_deep, GeneratorResNet, UNet
 from src.utils import init_weights
-from torch.utils.data import Dataset, TensorDataset
 from tqdm import tqdm
 
 from itwinai.loggers import EpochTimeTracker, Logger
@@ -18,23 +17,15 @@ from itwinai.torch.distributed import DeepSpeedStrategy
 from itwinai.torch.trainer import TorchTrainer
 
 
-class VirgoTrainingConfiguration(TrainingConfiguration):
-    """Virgo TrainingConfiguration"""
-    #: Whether to save best model on validation dataset. Defaults to True.
-    save_best: bool = True
-    #: Loss function. Defaults to "L1".
-    loss: Literal["L1", "L2"] = "L1",
-    #: Generator to train. Defaults to "unet".
-    generator: Literal["simple", "deep", "resnet", "unet"] = "unet"
-
-
 class NoiseGeneratorTrainer(TorchTrainer):
 
     def __init__(
         self,
         num_epochs: int = 2,
         config: Union[Dict, TrainingConfiguration] | None = None,
-        strategy: Optional[Literal["ddp", "deepspeed", "horovod"]] = 'ddp',
+        generator: Literal["simple", "deep", "resnet", "unet"] = "unet",
+        loss: Literal["L1", "L2"] = "L1",
+        strategy: Literal["ddp", "deepspeed", "horovod"] | None = 'ddp',
         checkpoint_path: str = "checkpoints/epoch_{}.pth",
         logger: Optional[Logger] = None,
         random_seed: Optional[int] = None,
@@ -43,7 +34,7 @@ class NoiseGeneratorTrainer(TorchTrainer):
     ) -> None:
         super().__init__(
             epochs=num_epochs,
-            config={},
+            config=config,
             strategy=strategy,
             logger=logger,
             random_seed=random_seed,
@@ -51,6 +42,13 @@ class NoiseGeneratorTrainer(TorchTrainer):
             validation_every=validation_every
         )
         self.save_parameters(**self.locals2params(locals()))
+        self.num_epochs = num_epochs
+        self.batch_size = batch_size
+        self.learning_rate = learning_rate
+        self._generator = generator
+        self._loss = loss
+        self.checkpoints_location = checkpoint_path
+        os.makedirs(os.path.dirname(checkpoint_path), exist_ok=True)
         # Global training configuration
         if isinstance(config, dict):
             config = VirgoTrainingConfiguration(**config)
@@ -203,9 +201,6 @@ class NoiseGeneratorTrainer(TorchTrainer):
             # epoch_acc = []
             for i, batch in enumerate(self.train_dataloader):
                 t = timer()
-                # The TensorDataset returns batches as lists of length 1
-                if isinstance(batch, list):
-                    batch = batch[0]
                 # batch= transform(batch)
                 target = batch[:, 0].unsqueeze(1).to(self.device)
                 # print(f'TARGET ON DEVICE: {target.get_device()}')
@@ -341,9 +336,7 @@ class NoiseGeneratorTrainer(TorchTrainer):
                 epoch_time_tracker.add_epoch_time(epoch-1, timer()-lt)
 
             # Report training metrics of last epoch to Ray
-            train.report(
-                {"loss": np.mean(val_loss),
-                 "train_loss": np.mean(epoch_loss)}
-            )
+            train.report({"loss": np.mean(val_loss),
+                          "train_loss": np.mean(epoch_loss)})
 
         return loss_plot, val_loss_plot, acc_plot, val_acc_plot

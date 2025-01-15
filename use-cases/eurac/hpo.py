@@ -1,7 +1,6 @@
 import argparse
 import os
 from pathlib import Path
-from typing import Dict
 
 import matplotlib.pyplot as plt
 import ray
@@ -10,24 +9,50 @@ from ray import train, tune
 
 from itwinai.parser import ConfigParser
 
+# Global variable for data root directory - this is the synthetic Virgo test data,
+# which can generally be used so that new data does not need to be generated for every run
+DATA_ROOT = "/p/scratch/intertwin/datasets/virgo/test_data"
 
-def run_trial(config: Dict, data: Dict):
-    """Execute a single trial using the given configuration (config).
+
+def run_trial(config):
+    """
+    Execute a single trial using the given configuration (config).
     This runs a full training pipeline - you can also specify a pipeline as a dictionary, 
-    e.g. if you only want to run certain parts without changing your config.yaml file 
-    (see below).
+    e.g. if you only want to run certain parts without changing your config.yaml file (see below).
 
     Args:
-        config (dict): A dictionary containing hyperparameters, such as:
-            - 'batch_size' (int): The size of the batch for training.
-            - 'lr' (float): The learning rate for the optimizer.
-        data (dict): A dictionary containing a "pipeline_path" field, which points to the yaml 
-            file containing the pipeline definition
+    - config: Dictionary with hyperparameters (e.g., 'batch_size', 'lr').
+
+    Example to run with a manual pipeline:
+
+    my_pipeline = Pipeline(
+        [
+            TimeSeriesDatasetSplitter(
+                train_proportion=0.9,
+                root_folder="/p/scratch/intertwin/datasets/virgo"
+            ),
+            TimeSeriesProcessor(),
+            NoiseGeneratorTrainer(
+                config=config,
+                num_epochs=4,
+                strategy=None,
+                checkpoint_path='checkpoints/checkpoint_epoch_{}.pth',
+                validation_every=20
+            )
+        ]
+    )
     """
+
+    # Passing a seed to TimeSeriesDatasetSplitter and NoiseGeneratorTrainer
+    # will make runs uniform across trials
+    # (reducing the variablility to the hyperparameter settings)
+
+    # Note: Comment out the TimeSeriesDatasetGenerator class and the
+    # WandBLogger in the config.yaml file to make it run on hdfml and pre-generated dataset
     parser = ConfigParser(
-        config="config.yaml",
+        config=Path('config.yaml'),
         override_keys={
-            # Set hyperparameters controlled by ray
+            # Set HPOs controlled by ray
             'batch_size': config['batch_size'],
             'learning_rate': config['lr'],
             # Override logger field, because performance is logged by ray
@@ -35,7 +60,7 @@ def run_trial(config: Dict, data: Dict):
         }
     )
     my_pipeline = parser.parse_pipeline(
-        pipeline_nested_key=data["pipeline_name"],
+        pipeline_nested_key='training_pipeline',
         verbose=False
     )
 
@@ -43,7 +68,8 @@ def run_trial(config: Dict, data: Dict):
 
 
 def run_hpo(args):
-    """Run hyperparameter optimization using Ray Tune.
+    """
+    Run hyperparameter optimization using Ray Tune.
     Either starts a new optimization run or resumes from previous results.
 
     Args:
@@ -67,6 +93,8 @@ def run_hpo(args):
         tune_config = tune.TuneConfig(
             metric=args.metric,  # Metric to optimize (loss by default)
             mode="min",  # Minimize the loss
+            search_alg=args.search_alg,
+            scheduler=args.scheduler,
             num_samples=args.num_samples  # Number of trials to run
         )
 
@@ -76,29 +104,15 @@ def run_hpo(args):
             stop={"training_iteration": args.max_iterations}
         )
 
-        # Determine GPU and CPU utilization per trial
-        # We are allocating all available ressources per node evenly across trials
-        ngpus_per_trial = max(1, args.ngpus // args.num_samples)
-        ncpus_per_trial = max(1, args.ncpus // args.num_samples)
+        # Set resource allocation for each trial (number of GPUs and/or number of CPUs)
+        resources_per_trial = {"gpu": args.ngpus}
 
-        # Set up Ray Tune Tuner with resources and parameters
-        resources_per_trial = {"gpu": ngpus_per_trial, "cpu": ncpus_per_trial}
-        trainable_with_resources = tune.with_resources(
-            run_trial,
-            resources=resources_per_trial
-        )
-
-        data = {"pipeline_name": args.pipeline_name}
-        trainable_with_parameters = tune.with_parameters(
-            trainable_with_resources,
-            data=data
-        )
-
+        # Set up Ray Tune Tuner
         tuner = tune.Tuner(
-            trainable_with_parameters,
+            tune.with_resources(run_trial, resources=resources_per_trial),
             tune_config=tune_config,
             run_config=run_config,
-            param_space=search_space
+            param_space=search_space  # Search space defined above
         )
 
         # Run the hyperparameter optimization and get results
@@ -134,20 +148,14 @@ def run_hpo(args):
     print(f"All result columns: {result_df.columns}")
 
     # Plot the results for all trials
-    plot_results(
-        result_grid,
-        metric=args.metric,
-        filename="ray-loss-plot.png"
-    )
-    plot_results(
-        result_grid,
-        metric="train_loss",
-        filename="ray-train_loss-plot.png"
-    )
+    plot_results(result_grid, metric=args.metric, filename="ray-loss-plot.png")
+    plot_results(result_grid, metric="train_loss",
+                 filename="ray-train_loss-plot.png")
 
 
 def plot_results(result_grid, metric="loss", filename="plot.png"):
-    """Plot the results for all trials and save the plot to a file.
+    """
+    Plot the results for all trials and save the plot to a file.
 
     Args:
     - result_grid: Results from Ray Tune trials.
@@ -159,18 +167,16 @@ def plot_results(result_grid, metric="loss", filename="plot.png"):
         label = f"lr={result.config['lr']:.6f}, batch size={result.config['batch_size']}"
         if ax is None:
             ax = result.metrics_dataframe.plot(
-                "training_iteration", metric, label=label
-            )
+                "training_iteration", metric, label=label)
         else:
             result.metrics_dataframe.plot(
-                "training_iteration", metric, ax=ax, label=label
-            )
+                "training_iteration", metric, ax=ax, label=label)
 
     ax.set_title(
-        f"{metric.capitalize()} vs. Training Iteration for All Trials"
-    )
+        f"{metric.capitalize()} vs. Training Iteration for All Trials")
     ax.set_ylabel(metric.capitalize())
 
+    # Save the plot to a file
     plt.savefig(filename)
 
     # Show the plot
@@ -182,57 +188,35 @@ if __name__ == "__main__":
 
     # Parse command-line arguments
     parser = argparse.ArgumentParser(
-        description='Hyperparameter Optimization with Ray Tune'
-    )
+        description='Hyperparameter Optimization with Ray Tune')
     parser.add_argument(
-        '--load_old_results',
-        type=bool,
+        '--load_old_results', type=bool,
         default=False,
-        help='Set this to true if you want to load results from an older ray run.'
-    )
+        help='Set this to true if you want to load results from an older ray run.')
     parser.add_argument(
-        '--pipeline_name',
-        type=str,
-        default='training_pipeline',
-        help='Name of the training pipeline to be used. \
-            This pipeline has to be defined in a file called "config.yaml". \
-            Defaults to "training_pipeline"'
-    )
-    parser.add_argument(
-        '--experiment_path',
-        type=str,
-        default='~/ray_results/Eurac-Ray-Experiment',
+        '--experiment_path', type=str,
+        default='~/ray_results/Virgo-Ray-Experiment',
         help='Directory where the results of the previous run are stored. \
         Set this only if load_old_results is set to True. \
-        Defaults to ~/ray_results/Eurac-Ray-Experiment'
-    )
+        Defaults to ~/ray_results/Virgo-Ray-Experiment')
     parser.add_argument(
-        '--num_samples',
-        type=int,
-        default=10, help='Number of trials to run'
-    )
+        '--num_samples', type=int,
+        default=10, help='Number of trials to run')
     parser.add_argument(
-        '--ngpus',
-        type=int,
-        help='Number of GPUs available on node.'
-    )
+        '--ngpus', type=int, default=1,
+        help='Number of GPUs per trial')
     parser.add_argument(
-        '--ncpus',
-        type=int,
-        help='Number of CPUs available on node.'
-    )
+        '--metric', type=str, default='loss',
+        help='Metric to optimise.')
     parser.add_argument(
-        '--metric',
-        type=str,
-        default='loss',
-        help='Metric to optimise.'
-    )
+        '--scheduler', type=str, default=None,
+        choices=['ASHA', 'FIFO'], help='Scheduler to use for tuning')
     parser.add_argument(
-        '--max_iterations',
-        type=int,
-        default='20',
-        help='Maximum iterations per trial'
-    )
+        '--search_alg', type=str, default=None,
+        choices=['BayesOpt', 'HyperOpt'], help='Optimizer to use for tuning')
+    parser.add_argument(
+        '--max_iterations', type=int,
+        default='20', help='Maximum iterations per trial')
 
     args = parser.parse_args()  # Parse the command-line arguments
 
