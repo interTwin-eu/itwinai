@@ -202,7 +202,7 @@ class NoiseGeneratorTrainer(TorchTrainer):
         # Note that it significantly slows down the whole process
         # it also might not work as the function has not been fully
         # implemented yet
-
+        epoch_time_tracker: EpochTimeTracker | None = None
         if self.strategy.is_main_worker:
             print("TIMER: broadcast:", timer() - st, "s")
             print("\nDEBUG: start training")
@@ -377,10 +377,15 @@ class NoiseGeneratorTrainer(TorchTrainer):
             # acc_plot, val_acc_plot ,acc_plot, val_acc_plot)
             if self.strategy.is_main_worker:
                 print("TIMER: epoch time:", timer() - lt, "s")
+                assert epoch_time_tracker is not None
                 epoch_time_tracker.add_epoch_time(epoch - 1, timer() - lt)
 
             # Report training metrics of last epoch to Ray
             train.report({"loss": np.mean(val_loss)})
+
+        if self.strategy.is_main_worker:
+            assert epoch_time_tracker is not None
+            epoch_time_tracker.save()
 
         return loss_plot, val_loss_plot, acc_plot, val_acc_plot
 
