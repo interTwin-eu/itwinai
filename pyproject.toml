@@ -110,6 +110,7 @@ markers = [
   "horovod_dist: runs with torch Horovod distributed strategy. (deselect with '-m \"not horovod_dist\"')",
   "functional: functional tests. (deselect with '-m \"not functional\"')",
   "memory_heavy: high memory footprint. (deselect with '-m \"not heavy_memory\"')",
+  "prov4ml_logger: uses prov4ml. (deselect with '-m \"not prov4ml_logger\"')",
 ]
 
 
