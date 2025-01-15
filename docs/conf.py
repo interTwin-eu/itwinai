@@ -60,7 +60,7 @@ exclude_patterns = [
     "README.md",
     "uv-tutorial.md",
 ]
-suppress_warnings = ["myst.xref_missing"]
+suppress_warnings = ["myst.xref_missing", "myst.header"]
 
 autodoc_mock_imports = ["mlflow"]
 
