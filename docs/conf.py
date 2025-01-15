@@ -64,7 +64,6 @@ suppress_warnings = ["myst.xref_missing", "myst.header"]
 
 autodoc_mock_imports = ["mlflow"]
 
-myst_code_block_lexer = "bash"
 
 # Enable numref
 numfig = True
