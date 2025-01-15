@@ -1,5 +1,5 @@
-Distributed Data Parallelism
-----------------------------------
+Explanation of Distributed Data Parallelism
+-------------------------------------------
 
 **Author(s)**: Killian Verder (CERN),  Matteo Bunino (CERN)
 
@@ -8,7 +8,7 @@ Even smaller DNNs can take days to train.
 Distributed Data Parallel (DDP) addresses these two issues, long training times and limited memory, by using multiple machines to host and train both model and data.
 
 Data parallelism is an easy way for a developer to vastly reduce training times.
-Rather than using single-node parallelism, Distributed Data Parallelism (DDP) scales to multiple machines. 
+Rather than using single-node parallelism, Distributed Data Parallelism scales to multiple machines. 
 This scaling maximises parallelisation of your model and drastically reduces training times.
 
 Another benefit of DDP is removal of single-machine memory constraints. Since a dataset or model can be stored across several machines,

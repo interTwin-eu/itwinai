@@ -1,3 +1,4 @@
+:orphan: 
 
 EURAC Use Case
 ==============
@@ -14,14 +15,14 @@ Scalability Metrics
 Here are some examples of the scalability metrics for this use case: 
 
 Average Epoch Time Comparison
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 This plot shows a comparison between the average time per epochs for each strategy
 and number of nodes. 
 
 .. image:: ../../use-cases/eurac/scalability-plots/absolute_scalability_plot.png
 
 Relative Epoch Time Speedup
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
 This plot shows a comparison between the speedup between the different number of nodes
 for each strategy. The speedup is calculated using the lowest number of nodes as a
 baseline.
@@ -38,7 +39,7 @@ normalized so that the values are between 0 and 1.0.
 .. image:: ../../use-cases/eurac/scalability-plots/communication_plot.png
 
 GPU Utilization
-~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~
 This plot shows how high the GPU utilization is for each strategy and number of nodes,
 as a percentage from 0 to 100. This is the defined as how much of the time is spent
 in computation mode vs not, and does not directly correlate to FLOPs. 

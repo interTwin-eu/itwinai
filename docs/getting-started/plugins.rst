@@ -1,2 +1,5 @@
-.. include:: ../../tutorials/plugins/README.md
-   :parser: myst_parser.sphinx_
+Plugins
+=======
+
+.. .. include:: ../../tutorials/plugins/README.md
+..    :parser: myst_parser.sphinx_
