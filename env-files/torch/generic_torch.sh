@@ -26,6 +26,6 @@ fi
 
 # Activate the venv and then install itwinai as editable
 source $ENV_NAME/bin/activate
-pip install -e ".[torch,tf,dev,nvidia]" \
+pip install -e ".[torch,tf,dev]" \
     --no-cache-dir \
     --extra-index-url https://download.pytorch.org/whl/cu121

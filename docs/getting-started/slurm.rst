@@ -65,7 +65,18 @@ Once resources are available, the command will return a ``JOBID``. Use it to jum
    # Check that you are in the compute node and you have 4 GPUs
    nvidia-smi
 
-Eventually, remember to load the correct environment modules before activating the python virtual environment.
+Remember to load the correct environment modules before activating the python virtual environment.
+
+Alternatively, if you don’t need to open an interactive shell on the compute node allocated
+with the ``salloc`` command,
+you can directly run a command on the allocated node(s) by prefixing your command with ``srun``.
+This approach ensures that your command is executed on the compute node rather than on the login node.
+
+Example:
+
+.. code-block:: bash  
+
+   srun YOUR_COMMAND
 
 Environment variables
 ---------------------
