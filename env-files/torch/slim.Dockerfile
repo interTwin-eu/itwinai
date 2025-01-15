@@ -63,7 +63,8 @@ RUN CONTAINER_TORCH_VERSION="$(python -c 'import torch;print(torch.__version__)'
     && pip install --no-cache-dir torch=="$CONTAINER_TORCH_VERSION" \
     deepspeed==0.15.* \
     git+https://github.com/horovod/horovod.git@3a31d93 \
-    ray[tune] 
+    ray[tune] \
+    "prov4ml[nvidia]@git+https://github.com/matbun/ProvML@new-main"
 
 
 # Installation sanity check
