@@ -1,29 +1,39 @@
-"""
-Provide functionalities to manage configuration files, including parsing,
+# --------------------------------------------------------------------------------------
+# Part of the interTwin Project: https://www.intertwin.eu/
+#
+# Created by: Matteo Bunino
+#
+# Credit:
+# - Matteo Bunino <matteo.bunino@cern.ch> - CERN
+# --------------------------------------------------------------------------------------
+
+"""Provide functionalities to manage configuration files, including parsing,
 execution, and dynamic override of fields.
 """
 
+import json
 import logging
 import os
-from typing import Dict, Any, List, Type, Union, Optional
-from jsonargparse import ArgumentParser as JAPArgumentParser
-from jsonargparse import ActionConfigFile
-from jsonargparse._formatters import DefaultHelpFormatter
-
-import json
-from omegaconf import OmegaConf
 from pathlib import Path
+from typing import Any, Dict, List, Optional, Type, Union
+
+from jsonargparse import ActionConfigFile
+from jsonargparse import ArgumentParser as JAPArgumentParser
+from jsonargparse._formatters import DefaultHelpFormatter
+from omegaconf import OmegaConf
 
 from .components import BaseComponent
 from .pipeline import Pipeline
 from .utils import load_yaml
 
 
-def add_replace_field(
-    config: Dict,
-    key_chain: str,
-    value: Any
-) -> None:
+class _ArgumentParser(JAPArgumentParser):
+    def error(self, message: str, ex: Optional[Exception] = None) -> None:
+        """Patch error method to re-raise exception instead of exiting execution."""
+        raise ex
+
+
+def add_replace_field(config: Dict, key_chain: str, value: Any) -> None:
     """Replace or add (if not present) a field in a dictionary, following a
     path of dot-separated keys. Adding is not supported for list items.
     Inplace operation.
@@ -37,8 +47,8 @@ def add_replace_field(
         value (Any): the value to insert.
     """
     sub_config = config
-    for idx, k in enumerate(key_chain.split('.')):
-        if idx >= len(key_chain.split('.')) - 1:
+    for idx, k in enumerate(key_chain.split(".")):
+        if idx >= len(key_chain.split(".")) - 1:
             # Last key reached
             break
 
@@ -57,9 +67,16 @@ def add_replace_field(
     sub_config[k] = value
 
 
+def get_root_cause(exception: Exception) -> Exception:
+    """Recursively extract the first exception in the exception chain."""
+    root = exception
+    while root.__cause__ is not None:  # Traverse the exception chain
+        root = root.__cause__
+    return root
+
+
 class ConfigParser:
-    """
-    Parses a pipeline from a configuration file.
+    """Parses a pipeline from a configuration file.
     It also provides functionalities for dynamic override
     of fields by means of nested key notation.
 
@@ -110,9 +127,7 @@ class ConfigParser:
     pipeline: Pipeline
 
     def __init__(
-        self,
-        config: Union[str, Dict],
-        override_keys: Optional[Dict[str, Any]] = None
+        self, config: Union[str, Dict], override_keys: Optional[Dict[str, Any]] = None
     ) -> None:
         self.config = config
         self.override_keys = override_keys
@@ -134,9 +149,7 @@ class ConfigParser:
         self.config = OmegaConf.to_container(conf, resolve=True)
 
     def parse_pipeline(
-        self,
-        pipeline_nested_key: str = "pipeline",
-        verbose: bool = False
+        self, pipeline_nested_key: str = "pipeline", verbose: bool = False
     ) -> Pipeline:
         """Merges steps into pipeline and parses it.
 
@@ -150,11 +163,11 @@ class ConfigParser:
         Returns:
             Pipeline: instantiated pipeline.
         """
-        pipe_parser = JAPArgumentParser()
+        pipe_parser = _ArgumentParser()
         pipe_parser.add_subclass_arguments(Pipeline, "pipeline")
 
         pipe_dict = self.config
-        for key in pipeline_nested_key.split('.'):
+        for key in pipeline_nested_key.split("."):
             pipe_dict = pipe_dict[key]
         # pipe_dict = self.config[pipeline_nested_key]
         pipe_dict = {"pipeline": pipe_dict}
@@ -163,9 +176,13 @@ class ConfigParser:
             print("Assembled pipeline:")
             print(json.dumps(pipe_dict, indent=4))
 
-        # Parse pipeline dict once merged with steps
-        conf = pipe_parser.parse_object(pipe_dict)
-        pipe = pipe_parser.instantiate_classes(conf)
+        try:
+            # Parse pipeline dict once merged with steps
+            conf = pipe_parser.parse_object(pipe_dict)
+            pipe = pipe_parser.instantiate_classes(conf)
+        except Exception as exc:
+            exc = get_root_cause(exc)
+            raise exc
         self.pipeline = pipe["pipeline"]
         return self.pipeline
 
@@ -173,24 +190,29 @@ class ConfigParser:
         self,
         step_idx: Union[str, int],
         pipeline_nested_key: str = "pipeline",
-        verbose: bool = False
+        verbose: bool = False,
     ) -> BaseComponent:
         pipeline_dict = self.config
-        for key in pipeline_nested_key.split('.'):
+        for key in pipeline_nested_key.split("."):
             pipeline_dict = pipeline_dict[key]
 
-        step_dict_config = pipeline_dict['init_args']['steps'][step_idx]
+        step_dict_config = pipeline_dict["init_args"]["steps"][step_idx]
 
         if verbose:
             print(f"STEP '{step_idx}' CONFIG:")
             print(json.dumps(step_dict_config, indent=4))
 
         # Wrap config under "step" field and parse it
-        step_dict_config = {'step': step_dict_config}
-        step_parser = JAPArgumentParser()
+        step_dict_config = {"step": step_dict_config}
+        step_parser = _ArgumentParser()
         step_parser.add_subclass_arguments(BaseComponent, "step")
-        parsed_namespace = step_parser.parse_object(step_dict_config)
-        return step_parser.instantiate_classes(parsed_namespace)["step"]
+        try:
+            parsed_namespace = step_parser.parse_object(step_dict_config)
+            step = step_parser.instantiate_classes(parsed_namespace)["step"]
+        except Exception as exc:
+            exc = get_root_cause(exc)
+            raise exc
+        return step
 
 
 class ArgumentParser(JAPArgumentParser):
@@ -251,15 +273,26 @@ class ArgumentParser(JAPArgumentParser):
         **kwargs,
     ) -> None:
         super().__init__(
-            *args, env_prefix=env_prefix, formatter_class=formatter_class,
-            exit_on_error=exit_on_error, logger=logger, version=version,
-            print_config=print_config, parser_mode=parser_mode,
-            dump_header=dump_header, default_config_files=default_config_files,
+            *args,
+            env_prefix=env_prefix,
+            formatter_class=formatter_class,
+            exit_on_error=exit_on_error,
+            logger=logger,
+            version=version,
+            print_config=print_config,
+            parser_mode=parser_mode,
+            dump_header=dump_header,
+            default_config_files=default_config_files,
             default_env=default_env,
-            default_meta=default_meta, **kwargs)
-        self.add_argument(
-            "-c", "--config", action=ActionConfigFile,
-            help="Path to a configuration file in json or yaml format."
+            default_meta=default_meta,
+            **kwargs,
         )
+        self.add_argument(
+            "-c",
+            "--config",
+            action=ActionConfigFile,
+            help="Path to a configuration file in json or yaml format.",
+        )
+
 
 # type: ignore

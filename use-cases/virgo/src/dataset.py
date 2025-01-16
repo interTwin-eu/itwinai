@@ -267,13 +267,13 @@ def generate_cut_image_dataset(df, channels, num_processes=20, square_size=128):
         DataFrame: Pandas DataFrame containing the q_transform np.array data.
     """
 
+    # NOTE: When len(df) == 1, this slows down the code considerably...
     args = [(df.iloc[row], row, channels, square_size) for row in range(df.shape[0])]
     with multiprocessing.Pool(processes=num_processes) as pool:
         # Use map to pass multiple arguments to process_image
         results = list(pool.starmap(process_image, args))
 
-    df = pd.concat(results, ignore_index=True)
-    return df
+    return pd.concat(results, ignore_index=True)
 
 
 def show_dataset(df, size, num_plots=10):

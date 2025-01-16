@@ -10,7 +10,7 @@
 #SBATCH --time=00:59:00
 
 # Resources allocation
-#SBATCH --partition=batch
+#SBATCH --partition=develbooster
 #SBATCH --nodes=1
 #SBATCH --gpus-per-node=4
 #SBATCH --cpus-per-gpu=4
@@ -100,6 +100,7 @@ if [ "$DIST_MODE" == "horovod" ] ; then
 	srun --cpu-bind=none \
 	--ntasks-per-node=$SLURM_GPUS_PER_NODE \
 	--cpus-per-task=$SLURM_CPUS_PER_GPU \
+	--ntasks=$(($SLURM_GPUS_PER_NODE * $SLURM_NNODES)) \
 	$TRAINING_CMD
 else # E.g. for 'deepspeed' or 'ddp'
   srun --cpu-bind=none --ntasks-per-node=1 \

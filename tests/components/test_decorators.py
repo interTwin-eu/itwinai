@@ -1,3 +1,12 @@
+# --------------------------------------------------------------------------------------
+# Part of the interTwin Project: https://www.intertwin.eu/
+#
+# Created by: Matteo Bunino
+#
+# Credit:
+# - Matteo Bunino <matteo.bunino@cern.ch> - CERN
+# --------------------------------------------------------------------------------------
+
 from unittest.mock import MagicMock, call, patch
 
 import pytest
@@ -9,7 +18,7 @@ from itwinai.distributed import suppress_workers_print
 class SilentComponent(BaseComponent):
     """Fake component class to test the decorator meant to suppress print()."""
 
-    def __init__(self, max_items: int, name: str = 'SilentComponent') -> None:
+    def __init__(self, max_items: int, name: str = "SilentComponent") -> None:
         super().__init__(name)
         self.save_parameters(max_items=max_items, name=name)
         self.max_items = max_items
@@ -23,7 +32,7 @@ class SilentComponent(BaseComponent):
 class FakeComponent(BaseComponent):
     """Fake component class to test the use of two decorators at the same time."""
 
-    def __init__(self, max_items: int, name: str = 'FakeComponent') -> None:
+    def __init__(self, max_items: int, name: str = "FakeComponent") -> None:
         super().__init__(name)
         self.save_parameters(max_items=max_items, name=name)
         self.max_items = max_items
@@ -53,12 +62,13 @@ def mock_fake_component():
 
 def test_suppress_workers_print_decorator():
     """Test suppress_workers_print decorator behavior."""
-    with patch('builtins.print', autospec=True) as mock_print, \
-            patch('itwinai.distributed.detect_distributed_environment',
-                  autospec=True) as mock_env, \
-            patch('itwinai.distributed.distributed_patch_print',
-                  autospec=True) as mock_patch_print:
-
+    with (
+        patch("builtins.print", autospec=True) as mock_print,
+        patch("itwinai.distributed.detect_distributed_environment", autospec=True) as mock_env,
+        patch(
+            "itwinai.distributed.distributed_patch_print", autospec=True
+        ) as mock_patch_print,
+    ):
         # Mock environment: global rank different from 0 (non-main worker)
         mock_env.return_value.global_rank = 1
         mock_patch_print.return_value = lambda *args, **kwargs: None  # Suppress print
@@ -86,12 +96,13 @@ def test_suppress_workers_print_decorator():
 def test_suppress_workers_print_component():
     """Test suppress_workers_print decorator behavioron SilentComponent's
     execute method."""
-    with patch('builtins.print', autospec=True) as mock_print, \
-            patch('itwinai.distributed.detect_distributed_environment',
-                  autospec=True) as mock_env, \
-            patch('itwinai.distributed.distributed_patch_print',
-                  autospec=True) as mock_patch_print:
-
+    with (
+        patch("builtins.print", autospec=True) as mock_print,
+        patch("itwinai.distributed.detect_distributed_environment", autospec=True) as mock_env,
+        patch(
+            "itwinai.distributed.distributed_patch_print", autospec=True
+        ) as mock_patch_print,
+    ):
         # Initialize the SilentComponent instance
         silent_component = SilentComponent(max_items=10)
 
@@ -125,7 +136,7 @@ def test_suppress_workers_print_component():
 
 def test_monitor_exec_decorator(mock_component):
     """Test monitor_exec decorator behavior."""
-    with patch('time.time') as mock_time:
+    with patch("time.time") as mock_time:
         mock_time.side_effect = [100.0, 105.0]  # Simulate 5 seconds execution time
 
         @monitor_exec
@@ -138,8 +149,7 @@ def test_monitor_exec_decorator(mock_component):
         assert result == "Execution result"
 
         # Check that the start and end messages were logged
-        mock_component._printout.assert_any_call(
-            "Starting execution of 'TestComponent'...")
+        mock_component._printout.assert_any_call("Starting execution of 'TestComponent'...")
         mock_component._printout.assert_any_call("'TestComponent' executed in 5.000s")
 
         # Ensure the cleanup method was called
@@ -153,13 +163,14 @@ def test_combined_decorators_on_fake_component(mock_fake_component):
     """Test the combination of suppress_workers_print and monitor_exec decorators
     on FakeComponent."""
 
-    with patch('builtins.print', autospec=True) as mock_print, \
-            patch('itwinai.distributed.detect_distributed_environment',
-                  autospec=True) as mock_env, \
-            patch('itwinai.distributed.distributed_patch_print',
-                  autospec=True) as mock_patch_print, \
-            patch('time.time', autospec=True) as mock_time:
-
+    with (
+        patch("builtins.print", autospec=True) as mock_print,
+        patch("itwinai.distributed.detect_distributed_environment", autospec=True) as mock_env,
+        patch(
+            "itwinai.distributed.distributed_patch_print", autospec=True
+        ) as mock_patch_print,
+        patch("time.time", autospec=True) as mock_time,
+    ):
         # Simulate time progression for execution timing
         mock_time.side_effect = [100.0, 105.0]  # Simulate a 5-second execution time
 
@@ -189,15 +200,17 @@ def test_combined_decorators_on_fake_component(mock_fake_component):
         assert result == "fake component result"
 
         # Ensure the print statement was not suppressed for the main worker
-        mock_print.assert_has_calls([
-            call('############################################'),
-            call("# Starting execution of 'FakeComponent'... #"),
-            call('############################################'),
-            call('Executing FakeComponent'),
-            call('######################################'),
-            call("# 'FakeComponent' executed in 5.000s #"),
-            call('######################################')
-        ])
+        mock_print.assert_has_calls(
+            [
+                call("############################################"),
+                call("# Starting execution of 'FakeComponent'... #"),
+                call("############################################"),
+                call("Executing FakeComponent"),
+                call("######################################"),
+                call("# 'FakeComponent' executed in 5.000s #"),
+                call("######################################"),
+            ]
+        )
 
         assert mock_fake_component.exec_t == 5.0
         mock_fake_component.cleanup.assert_called_once()

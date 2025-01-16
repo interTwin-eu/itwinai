@@ -8,4 +8,4 @@ In this section, we will run you through the installation and give some instruct
 
 .. include:: ../../README.md
    :parser: myst_parser.sphinx_
-   :start-line: 9
+   :start-line: 16

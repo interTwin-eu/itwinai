@@ -1,5 +1,15 @@
-itwinai PyTorch Modules
-=======================
+itwinai.torch
+=============
+
+
+config.py
+++++++++++++++++++
+.. automodule:: itwinai.torch.config
+   :members:
+   :undoc-members:
+   :show-inheritance:
+   :member-order: bysource
+
 
 distributed.py
 ++++++++++++++
@@ -18,28 +28,17 @@ inference.py
    :show-inheritance:
    :member-order: bysource
 
-
+loggers.py
+++++++++++
+.. automodule:: itwinai.torch.loggers
+   :members:
+   :undoc-members:
+   :show-inheritance:
+   :member-order: bysource
+   
 mlflow.py
 +++++++++
 .. automodule:: itwinai.torch.mlflow
-   :members:
-   :undoc-members:
-   :show-inheritance:
-   :member-order: bysource
-
-
-trainer.py
-++++++++++
-.. automodule:: itwinai.torch.trainer
-   :members:
-   :undoc-members:
-   :show-inheritance:
-   :member-order: bysource
-
-
-type.py
-++++++++
-.. automodule:: itwinai.torch.type
    :members:
    :undoc-members:
    :show-inheritance:
@@ -55,9 +54,9 @@ reproducibility.py
    :member-order: bysource
 
 
-config.py
-++++++++++++++++++
-.. automodule:: itwinai.torch.config
+type.py
+++++++++
+.. automodule:: itwinai.torch.type
    :members:
    :undoc-members:
    :show-inheritance:
@@ -65,6 +64,10 @@ config.py
 
 
 
-
-   
-
+trainer.py
+++++++++++
+.. automodule:: itwinai.torch.trainer
+   :members:
+   :undoc-members:
+   :show-inheritance:
+   :member-order: bysource

@@ -4,10 +4,15 @@
 [![GitHub Super-Linter](https://github.com/interTwin-eu/T6.5-AI-and-ML/actions/workflows/check-links.yml/badge.svg)](https://github.com/marketplace/actions/markdown-link-check)
  [![SQAaaS source code](https://github.com/EOSC-synergy/itwinai.assess.sqaaas/raw/main/.badge/status_shields.svg)](https://sqaaas.eosc-synergy.eu/#/full-assessment/report/https://raw.githubusercontent.com/eosc-synergy/itwinai.assess.sqaaas/main/.report/assessment_output.json)
 
- ![itwinai Logo](./docs/images/icon-itwinai-orange-black-subtitle.png)
+![itwinai Logo](./docs/images/icon-itwinai-orange-black-subtitle.png)
 
-See the latest version of our [docs](https://itwinai.readthedocs.io/)
-for a quick overview of this platform for advanced AI/ML workflows in digital twin applications.
+`itwinai` is a powerful Python toolkit designed to help scientists and researchers streamline AI and machine learning
+workflows, specifically for digital twin applications. It provides easy-to-use tools for distributed training,
+hyper-parameter optimization on HPC systems, and integrated ML logging, reducing engineering overhead and accelerating
+research. Developed primarily by CERN, `itwinai` supports modular and reusable ML workflows, with
+the flexibility to be extended through third-party plugins, empowering AI-driven scientific research in digital twins.
+
+See the latest version of our docs [here](https://itwinai.readthedocs.io/).
 
 If you are a **developer**, please refer to the [developers installation guide](#installation-for-developers).
 
@@ -54,8 +59,8 @@ environment for PyTorch:
 
     ```bash
     ml --force purge
-    ml Python CMake/3.24.3-GCCcore-11.3.0 mpi4py OpenMPI CUDA/11.7
-    ml GCCcore/11.3.0 NCCL/2.12.12-GCCcore-11.3.0-CUDA-11.7.0 cuDNN
+    ml Python/3.11.5-GCCcore-13.2.0 CMake/3.24.3-GCCcore-11.3.0 mpi4py OpenMPI CUDA/12.3
+    ml GCCcore/11.3.0 NCCL cuDNN/8.9.7.29-CUDA-12.3.0 UCX-CUDA/1.15.0-GCCcore-13.2.0-CUDA-12.3.0
     ```
 
 ##### TensorFlow environment
@@ -75,14 +80,13 @@ environment for TensorFlow:
 
     ```bash
     ml --force purge
-    ml Python CMake/3.24.3-GCCcore-11.3.0 mpi4py OpenMPI CUDA/11.7
-    ml GCCcore/11.3.0 NCCL/2.12.12-GCCcore-11.3.0-CUDA-11.7.0 cuDNN
+    ml Python/3.11.5-GCCcore-13.2.0 CMake/3.24.3-GCCcore-11.3.0 mpi4py OpenMPI CUDA/12.3
+    ml GCCcore/11.3.0 NCCL cuDNN/8.9.7.29-CUDA-12.3.0 UCX-CUDA/1.15.0-GCCcore-13.2.0-CUDA-12.3.0
     ```
 
 ### Install itwinai for users
 
-Install itwinai and its dependencies using the
-following command, and follow the instructions:
+Install itwinai and its dependencies.
 
 ```bash
 # First, load the required environment modules, if on an HPC
@@ -90,17 +94,43 @@ following command, and follow the instructions:
 # Second, create a python virtual environment and activate it
 $ python -m venv ENV_NAME
 $ source ENV_NAME/bin/activate
-
-# Install itwinai inside the environment
-(ENV_NAME) $ export ML_FRAMEWORK="pytorch" # or "tensorflow"
-(ENV_NAME) $ curl -fsSL https://github.com/interTwin-eu/itwinai/raw/main/env-files/itwinai-installer.sh | bash
 ```
 
-The `ML_FRAMEWORK` environment variable controls whether you are installing
-itwinai for PyTorch or TensorFlow.
+Install itwinai with support for PyTorch using:
+
+```bash
+pip install itwinai[torch]
+```
+
+or with TensorFlow support using:
+
+```bash
+pip install itwinai[tf]
+
+# Alternatively, if you have access to GPUs
+pip install itwinai[tf-cuda]
+```
+
+If you want to use Prov4ML logger, you need to install it explicitly since it is only
+available on GitHub:
+
+```bash
+# For systems with Nvidia GPUs
+pip install "prov4ml[nvidia]@git+https://github.com/matbun/ProvML@new-main"
+
+# For MacOs
+pip install "prov4ml[apple]@git+https://github.com/matbun/ProvML@new-main"
+```
+
+If you also want to install Horovod and Microsoft DeepSpeed for distributed ML with PyTorch,
+install them *after* itwinai. You can use this command:
+
+```bash
+curl -fsSL https://github.com/interTwin-eu/itwinai/raw/main/env-files/torch/install-horovod-deepspeed-cuda.sh | bash
+```
 
 > [!WARNING]  
-> itwinai depends on Horovod, which requires `CMake>=1.13` and
+> Horovod requires `CMake>=1.13` and
 > [other packages](https://horovod.readthedocs.io/en/latest/install_include.html#requirements).
 > Make sure to have them installed in your environment before proceeding.
 
@@ -123,10 +153,87 @@ git clone [--recurse-submodules] git@github.com:interTwin-eu/itwinai.git
 
 ### Install itwinai environment
 
-You can create the
-Python virtual environments using our predefined Makefile targets.
+In this project, we are using `uv` as a project-wide package manager. Therefore, if
+you are a developer, you should see the [uv tutorial](/docs/uv-tutorial.md) after reading
+the following `pip` tutorial.
 
-#### PyTorch (+ Lightning) virtual environment
+#### Installation using pip
+
+##### Creating a venv
+
+You can install the `itwinai` environment for development using `pip`. First, however,
+you would want to make a Python venv if you haven't already. Make sure you have
+Python installed (on HPC you have to load it with `module load Python`), and then you
+can create a venv with the following command:
+
+```bash
+python -m venv <name-of-venv>
+```
+
+For example, if I wanted to create a venv in the directory `.venv` (which is useful if
+you use e.g. `uv`), then I would do:
+
+```bash
+python -m venv .venv
+```
+
+After this you can activate your venv using the following command:
+
+```bash
+source .venv/bin/activate
+```
+
+Now anything you pip install will be installed in your venv and if you run any python
+commands they will use the version from your venv.
+
+##### Installation of packages
+
+We provide some *extras* that can be activated depending on which platform you are
+using.
+
+- `dev` for development purposes. Includes libraries for testing and tensorboard etc.
+- `torch` for installation with PyTorch.
+
+If you want to install PyTorch using CUDA then you also have to add an
+`--extra-index-url` to the CUDA version that you want. Since you are developing the
+library, you also want to enable the editable flag, `-e`, so that you don't have to
+reinstall everything every time you make a change. If you are on HPC, then you will
+usually want to add the `--no-cache-dir` flag to avoid filling up your `~/.cache`
+directory, as you can very easily reach your disk quota otherwise. An example of a
+complete command for installing as a developer on HPC with CUDA thus becomes:
+
+```bash
+pip install -e ".[torch,dev,tf]" \
+    --no-cache-dir \
+    --extra-index-url https://download.pytorch.org/whl/cu121
+```
+
+If you wanted to install this locally on **macOS** (i.e. without CUDA) with PyTorch, you
+would do the following instead:
+
+```bash
+pip install -e ".[torch,dev,tf]"
+```
+
+If you want to use [Prov4ML](https://github.com/HPCI-Lab/yProvML) logger, you need to install
+it explicitly since it is only available on GitHub. Please refer to the
+[users installation](#install-itwinai-for-users)
+to know more on how to install Prov4ML.
+
+<!-- You can create the Python virtual environments using our predefined Makefile targets. -->
+
+#### Horovod and DeepSpeed
+
+The above does not install `Horovod` and `DeepSpeed`, however, as they require a
+specialized [script](env-files/torch/install-horovod-deepspeed-cuda.sh). If you do not
+require CUDA, then you can install them using `pip` as follows:
+
+```bash
+pip install --no-cache-dir --no-build-isolation git+https://github.com/horovod/horovod.git
+pip install --no-cache-dir --no-build-isolation deepspeed
+```
+
+#### PyTorch (+ Lightning) virtual environment with makefiles
 
 Makefile targets for environment installation:
 
@@ -222,8 +329,8 @@ Commands to be executed before activating the python virtual environment:
 
     ```bash
     ml --force purge
-    ml Python CMake/3.24.3-GCCcore-11.3.0 mpi4py OpenMPI CUDA/11.7
-    ml GCCcore/11.3.0 NCCL/2.12.12-GCCcore-11.3.0-CUDA-11.7.0 cuDNN
+    ml Python/3.11.5-GCCcore-13.2.0 CMake/3.24.3-GCCcore-11.3.0 mpi4py OpenMPI CUDA/12.3
+    ml GCCcore/11.3.0 NCCL cuDNN/8.9.7.29-CUDA-12.3.0 UCX-CUDA/1.15.0-GCCcore-13.2.0-CUDA-12.3.0
     ```
 
 - When not on an HPC: do nothing.
@@ -256,8 +363,8 @@ Commands to be executed before activating the python virtual environment:
 
     ```bash
     ml --force purge
-    ml Python CMake/3.24.3-GCCcore-11.3.0 mpi4py OpenMPI CUDA/11.7
-    ml GCCcore/11.3.0 NCCL/2.12.12-GCCcore-11.3.0-CUDA-11.7.0 cuDNN
+    ml Python/3.11.5-GCCcore-13.2.0 CMake/3.24.3-GCCcore-11.3.0 mpi4py OpenMPI CUDA/12.3
+    ml GCCcore/11.3.0 NCCL cuDNN/8.9.7.29-CUDA-12.3.0 UCX-CUDA/1.15.0-GCCcore-13.2.0-CUDA-12.3.0
     ```
 
 - When not on an HPC: do nothing.
@@ -320,35 +427,71 @@ For instance, to run the test suite on your laptop user:
 make test
 ```
 
-<!--
-### Micromamba installation (deprecated)
+## Working with Docker containers
 
-To manage Conda environments we use micromamba, a light weight version of conda.
+This section is intended for the developers of itwinai and outlines the practices
+used to manage container images through GitHub Container Registry (GHCR).
 
-It is suggested to refer to the
-[Manual installation guide](https://mamba.readthedocs.io/en/latest/installation/micromamba-installation.html#manual-installation).
+### Terminology Recap
 
-Consider that Micromamba can eat a lot of space when building environments because packages are cached on
-the local filesystem after being downloaded. To clear cache you can use `micromamba clean -a`.
-Micromamba data are kept under the `$HOME` location. However, in some systems, `$HOME` has a limited storage
-space and it would be cleverer to install Micromamba in another location with more storage space.
-Thus by changing the `$MAMBA_ROOT_PREFIX` variable. See a complete installation example for Linux below, where the
-default `$MAMBA_ROOT_PREFIX` is overridden:
+Our container images follow the convention:
 
-```bash
-cd $HOME
-
-# Download micromamba (This command is for Linux Intel (x86_64) systems. Find the right one for your system!)
-curl -Ls https://micro.mamba.pm/api/micromamba/linux-64/latest | tar -xvj bin/micromamba
-
-# Install micromamba in a custom directory
-MAMBA_ROOT_PREFIX='my-mamba-root'
-./bin/micromamba shell init $MAMBA_ROOT_PREFIX
-
-# To invoke micromamba from Makefile, you need to add explicitly to $PATH
-echo 'PATH="$(dirname $MAMBA_EXE):$PATH"' >> ~/.bashrc
+```text
+ghcr.io/intertwin-eu/IMAGE_NAME:TAG
 ```
 
-**Reference**: [Micromamba installation guide](https://mamba.readthedocs.io/en/latest/installation/micromamba-installation.html).
+For example, in `ghcr.io/intertwin-eu/itwinai:0.2.2-torch2.6-jammy`:
 
--->
+- `IMAGE_NAME` is `itwinai`
+- `TAG` is `0.2.2-torch2.6-jammy`
+
+The `TAG` follows the convention:
+
+```text
+[jlab-]X.Y.Z-(torch|tf)x.y-distro
+```
+
+Where:
+
+- `X.Y.Z` is the **itwinai version**
+- `(torch|tf)` is an exclusive OR between "torch" and "tf". You can pick one or the other, but not both.
+- `x.y` is the **version of the ML framework** (e.g., PyTorch or TensorFlow)
+- `distro` is the OS distro in the container (e.g., Ubuntu Jammy)
+- `jlab-` is prepended to the tag of images including JupyterLab
+
+### Image Names and Their Purpose
+
+We use different image names to group similar images under the same namespace:
+
+- **`itwinai`**: Production images. These should be well-maintained and orderly.
+- **`itwinai-dev`**: Development images. Tags can vary, and may include random
+hashes.
+- **`itwinai-cvmfs`**: Images that need to be made available through CVMFS via
+[Unpacker](https://gitlab.cern.ch/unpacked/sync).
+
+> [!WARNING]
+> It is very important to keep the number of tags for `itwinai-cvmfs` as low
+> as possible. Tags should only be created under this namespace when strictly
+> necessary. Otherwise, this could cause issues for the Unpacker.
+
+### Building a new container
+
+Our docker manifests support labels to record provenance information, which can be lately
+accessed by `docker inspect IMAGE_NAME:TAG`.
+
+A full example below:
+
+```bash
+export BASE_IMG_NAME="what goes after the last FROM"
+export IMAGE_FULL_NAME="IMAGE_NAME:TAG"
+docker build \
+    -t "$IMAGE_FULL_NAME" \
+    -f path/to/Dockerfile \
+    --build-arg COMMIT_HASH="$(git rev-parse --verify HEAD)" \
+    --build-arg BASE_IMG_NAME="$BASE_IMG_NAME" \
+    --build-arg BASE_IMG_DIGEST="$(docker pull "$BASE_IMG_NAME" > /dev/null 2>&1 && docker inspect "$BASE_IMG_NAME" --format='{{index .RepoDigests 0}}')" \
+    --build-arg ITWINAI_VERSION="$(grep -Po '(?<=^version = ")[^"]*' pyproject.toml)" \
+    --build-arg CREATION_DATE="$(date +"%Y-%m-%dT%H:%M:%S%:z")" \
+    --build-arg IMAGE_FULL_NAME=$IMAGE_FULL_NAME \ 
+    .
+```

@@ -12,9 +12,8 @@ This section is split in three parts:
     generator to use in training and inference
 """
 
-import torch.nn as nn
 import torch
-
+import torch.nn as nn
 
 # SHALLOW DECODER
 

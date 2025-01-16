@@ -1,5 +1,7 @@
 # Tropical cyclone detection
 
+**Integration author(s)**: Matteo Bunino (CERN), Roman Machacek (CERN), Mario Ruettgers (JSC)
+
 The code is adapted from the CMCC use case's
 [repository](https://github.com/CMCC-Foundation/ml-tropical-cyclones-detection).
 

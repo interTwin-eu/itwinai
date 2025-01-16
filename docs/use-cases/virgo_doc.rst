@@ -9,44 +9,12 @@ To know more on the interTwin Virgo Noise detector use case and its DT, please v
 `D4.2 <https://zenodo.org/records/10417138>`_, 
 `D7.2 <https://zenodo.org/records/10417161>`_ and `D7.4 <https://zenodo.org/records/10224277>`_.
 
-Installation
-++++++++++++
+You can find the relevant code in the
+`use case's folder on Github <https://github.com/interTwin-eu/itwinai/tree/main/use-cases/virgo>`_,
+or by consulting the use case's README: 
+
 
 .. include:: ../../use-cases/virgo/README.md
    :parser: myst_parser.sphinx_
    :start-line: 6
-
-
-config.yaml
-+++++++++++
-.. literalinclude:: ../../use-cases/virgo/config.yaml
-   :language: yaml
-
-
-data.py
-+++++++
-
-.. literalinclude:: ../../use-cases/virgo/data.py
-   :language: python
-
-
-runall.sh
-+++++++++
-
-.. literalinclude:: ../../use-cases/virgo/runall.sh
-   :language: bash
-
-
-slurm.sh
-++++++++
-
-.. literalinclude:: ../../use-cases/virgo/slurm.sh
-   :language: bash
-
-
-trainer.py
-++++++++++
-.. literalinclude:: ../../use-cases/virgo/trainer.py
-   :language: python
-
 

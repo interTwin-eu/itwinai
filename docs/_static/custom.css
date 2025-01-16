@@ -1,0 +1,5 @@
+/* Custom CSS for resizing the Sphinx logo */
+.logo img {
+    width: 150px;  /* Adjust the width as needed */
+    height: auto;  /* Maintain the aspect ratio */
+}

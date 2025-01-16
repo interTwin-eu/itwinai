@@ -1,8 +1,20 @@
-# General configuration
-root_folder: /p/scratch/intertwin/datasets/virgo
+# --------------------------------------------------------------------------------------
+# Part of the interTwin Project: https://www.intertwin.eu/
+#
+# Created by: Matteo Bunino
+#
+# Credit:
+# - Anna Lappe <anna.elisa.lappe@cern.ch> - CERN
+# - Jarl Sondre Sæther <jarl.sondre.saether@cern.ch> - CERN
+# - Matteo Bunino <matteo.bunino@cern.ch> - CERN
+# --------------------------------------------------------------------------------------
+
+hdf5_file_location: /p/scratch/intertwin/datasets/virgo_hdf5/virgo_data.hdf5
+hdf5_dataset_name: virgo_dataset
 data_root: ./data
-epochs: 2
-batch_size: 20
+epochs: 5
+chunk_size: 1000 # equivalent to chunk size 
+batch_size: 64
 learning_rate: 0.0001
 strategy: ddp
 checkpoint_path: checkpoints/epoch_{}.pth
@@ -17,8 +29,54 @@ training_pipeline:
           train_proportion: 0.9
           validation_proportion: 0.1
           rnd_seed: 42
-          root_folder: ${root_folder}
-      - class_path: data.TimeSeriesProcessor
+          hdf5_file_location: ${hdf5_file_location}
+          chunk_size: ${chunk_size}
+          hdf5_dataset_name: ${hdf5_dataset_name}
+      - class_path: trainer.NoiseGeneratorTrainer
+        init_args:
+          config:
+            generator: simple #unet
+            batch_size: 1
+            optim_lr: ${learning_rate}
+            loss: l1
+            save_best: true
+            shuffle_train: true
+          num_epochs: ${epochs}
+          strategy: ${strategy}
+          checkpoint_path: ${checkpoint_path}
+          random_seed: 17
+          validation_every: 0
+          profiling_wait_epochs: 0
+          profiling_warmup_epochs: 0
+          logger:
+            class_path: itwinai.loggers.LoggersCollection
+            init_args:
+              loggers:
+                - class_path: itwinai.loggers.ConsoleLogger
+                  init_args:
+                    log_freq: 1
+                - class_path: itwinai.loggers.MLFlowLogger
+                  init_args:
+                    experiment_name: Noise simulator (Virgo)
+                    log_freq: batch 
+
+
+# To use a small dataset that is generated within the pipeline
+training_pipeline_small:
+  class_path: itwinai.pipeline.Pipeline
+  init_args:
+    steps:
+      - class_path: data.TimeSeriesDatasetGenerator
+        init_args:
+          data_root: ${data_root}
+      - class_path: data.TimeSeriesDatasetSplitterSmall
+        init_args:
+          train_proportion: 0.9
+          validation_proportion: 0.1
+          rnd_seed: 42
+      - class_path: data.TimeSeriesProcessorSmall          
+        init_args:
+          name: Virgo Small Dataset
       - class_path: trainer.NoiseGeneratorTrainer
         init_args:
           config:
@@ -45,10 +103,70 @@ training_pipeline:
                   init_args:
                     experiment_name: Noise simulator (Virgo)
                     log_freq: batch 
-       
+      
+
+# To use the entire synthetic dataset that is generated prior to running the pipeline
+ray_training_pipeline:
+  class_path: itwinai.pipeline.Pipeline
+  init_args:
+    steps:
+      - class_path: data.TimeSeriesDatasetSplitter
+        init_args:
+          train_proportion: 0.9
+          validation_proportion: 0.1
+          rnd_seed: 42
+          hdf5_file_location: ${hdf5_file_location}
+          chunk_size: ${chunk_size}
+          hdf5_dataset_name: ${hdf5_dataset_name}
+      - class_path: trainer.RayNoiseGeneratorTrainer
+        init_args:
+          config:
+            scaling_config:
+                num_workers: 2
+                use_gpu: true
+                resources_per_worker:
+                  CPU: 5
+                  GPU: 1
+            tune_config:
+              num_samples: 2
+              scheduler:
+                name: asha
+                max_t: 5
+                grace_period: 2
+                reduction_factor: 6
+                brackets: 1
+            run_config:
+              storage_path: ray_checkpoints
+              name: Virgo-HPO-Experiment
+            train_loop_config:
+              batch_size:
+                type: choice
+                categories: [1, 2, 4]
+              optim_lr:
+                type: uniform
+                lower: 1e-5
+                upper: 1e-3
+              num_epochs: 5
+              generator: simple #unet
+              loss: l1
+              save_best: false
+              shuffle_train: true
+          strategy: ${strategy}
+          random_seed: 17
+          logger:
+            class_path: itwinai.loggers.LoggersCollection
+            init_args:
+              loggers:
+                - class_path: itwinai.loggers.MLFlowLogger
+                  init_args:
+                    experiment_name: Virgo Ray HPO Experiment
+                    log_freq: batch 
+
+                
+          
           
 # To use a small dataset that is generated within the pipeline
-training_pipeline_small:
+ray_training_pipeline_small:
   class_path: itwinai.pipeline.Pipeline
   init_args:
     steps:
@@ -61,29 +179,48 @@ training_pipeline_small:
           validation_proportion: 0.1
           rnd_seed: 42
       - class_path: data.TimeSeriesProcessorSmall          
-      - class_path: trainer.NoiseGeneratorTrainer
+      - class_path: trainer.RayNoiseGeneratorTrainer
         init_args:
-        config:
-            generator: simple #unet
-            batch_size: ${batch_size}
-            optim_lr: ${learning_rate}
-            loss: l1
-            save_best: true
-            shuffle_train: true
-        num_epochs: ${epochs}
-        strategy: ${strategy}
-        checkpoint_path: ${checkpoint_path}
-        random_seed: 17
-        validation_every: 0
-        logger:
-          class_path: itwinai.loggers.LoggersCollection
-          init_args:
-            loggers:
-              - class_path: itwinai.loggers.ConsoleLogger
-                init_args:
-                  log_freq: 1
-              - class_path: itwinai.loggers.MLFlowLogger
-                init_args:
-                  experiment_name: Noise simulator (Virgo)
-                  log_freq: batch 
-      
+          config:
+            scaling_config:
+                num_workers: 2
+                use_gpu: true
+                resources_per_worker:
+                  CPU: 5
+                  GPU: 1
+            tune_config:
+              num_samples: 2
+              scheduler:
+                name: asha
+                max_t: 10
+                grace_period: 5
+                reduction_factor: 4
+                brackets: 1
+            run_config:
+              storage_path: ray_checkpoints
+              name: Virgo-HPO-Experiment
+            train_loop_config:
+              batch_size:
+                type: choice
+                options: [32, 64, 128]
+              learning_rate:
+                type: uniform
+                min: 1e-5
+                max: 1e-3
+              epochs: 20
+              generator: simple #unet
+              loss: l1
+              save_best: false
+              shuffle_train: true
+              random_seed: 17
+              tracking_uri: mllogs/mlflow
+              experiment_name: Virgo-HPO-Experiment
+          strategy: ${strategy}
+          logger:
+            class_path: itwinai.loggers.LoggersCollection
+            init_args:
+              loggers:
+                - class_path: itwinai.loggers.MLFlowLogger
+                  init_args:
+                    experiment_name: Virgo Ray HPO Experiment
+                    log_freq: batch 

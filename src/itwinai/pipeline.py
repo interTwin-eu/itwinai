@@ -1,9 +1,19 @@
-"""
-This module provides the functionalities to execute workflows defined in
+# --------------------------------------------------------------------------------------
+# Part of the interTwin Project: https://www.intertwin.eu/
+#
+# Created by: Matteo Bunino
+#
+# Credit:
+# - Matteo Bunino <matteo.bunino@cern.ch> - CERN
+# --------------------------------------------------------------------------------------
+
+"""This module provides the functionalities to execute workflows defined in
 in form of pipelines.
 """
+
 from __future__ import annotations
-from typing import Iterable, Dict, Any, Tuple, Union, Optional
+
+from typing import Any, Dict, Iterable, Optional, Tuple, Union
 
 from .components import BaseComponent, monitor_exec
 from .utils import SignatureInspector
@@ -19,7 +29,7 @@ class Pipeline(BaseComponent):
     def __init__(
         self,
         steps: Union[Dict[str, BaseComponent], Iterable[BaseComponent]],
-        name: Optional[str] = None
+        name: Optional[str] = None,
     ):
         super().__init__(name=name)
         self.save_parameters(steps=steps, name=name)
@@ -33,16 +43,13 @@ class Pipeline(BaseComponent):
             else:
                 steps = self.steps
             # Second, perform slicing
-            s = steps[subscript.start:subscript.stop: subscript.step]
+            s = steps[subscript.start : subscript.stop : subscript.step]
             # Third, reconstruct dict, if it is a dict
             if isinstance(self.steps, dict):
                 s = dict(s)
             # Fourth, return sliced sub-pipeline, preserving its
             # initial structure
-            sliced = self.__class__(
-                steps=s,
-                name=self.name
-            )
+            sliced = self.__class__(steps=s, name=self.name)
             return sliced
         else:
             return self.steps[subscript]
@@ -52,7 +59,7 @@ class Pipeline(BaseComponent):
 
     @monitor_exec
     def execute(self, *args) -> Any:
-        """"Execute components sequentially."""
+        """ "Execute components sequentially."""
         if isinstance(self.steps, dict):
             steps = list(self.steps.values())
         else:
@@ -94,8 +101,10 @@ class Pipeline(BaseComponent):
                 f"{inspector.min_params_num}, with names: "
                 f"{inspector.required_params}."
             )
-        if (inspector.max_params_num != inspector.INFTY
-                and len(input_args) > inspector.max_params_num):
+        if (
+            inspector.max_params_num != inspector.INFTY
+            and len(input_args) > inspector.max_params_num
+        ):
             raise TypeError(
                 f"Component '{component.name}' received too many "
                 f"input arguments: {input_args}. Expected at most "

@@ -1,0 +1,21 @@
+job_name: my_slurm_job
+account: intertwin
+dist_strat: horovod
+time: 00:11:11
+
+std_out: slurm_job_logs/job.out
+err_out: slurm_job_logs/err.out
+
+num_nodes: 1
+num_tasks_per_node: 1
+gpus_per_node: 4
+cpus_per_gpu: 4
+
+python_venv: .venv
+
+# Make sure the below strategy matches the one above
+training_cmd: | 
+  $(which itwinai) exec-pipeline \
+  --config config.yaml \
+  --pipe-key rnn_training_pipeline \
+  -o strategy=${dist_strat}

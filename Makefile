@@ -11,7 +11,7 @@ torch-env-cpu: env-files/torch/generic_torch.sh
 	env ENV_NAME=.venv-pytorch \
 		NO_CUDA=1 \
 		bash -c 'bash env-files/torch/generic_torch.sh'
-	.venv-pytorch/bin/horovodrun --check-build 
+	# .venv-pytorch/bin/horovodrun --check-build 
 
 # Install TensorFlow env (GPU support)
 tensorflow-env: env-files/tensorflow/generic_tf.sh
@@ -44,7 +44,10 @@ tf-env-vega: env-files/tensorflow/createEnvVegaTF.sh env-files/tensorflow/generi
 
 
 test:
-	PYTORCH_ENABLE_MPS_FALLBACK=1 .venv-pytorch/bin/pytest -v tests/ -m "not slurm"
+	.venv/bin/pytest -v tests/
+	
+test-local:
+	PYTORCH_ENABLE_MPS_FALLBACK=1 .venv/bin/pytest -v tests/ -m "not hpc"
 
 test-jsc: tests/run_on_jsc.sh
 	bash tests/run_on_jsc.sh

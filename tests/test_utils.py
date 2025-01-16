@@ -1,14 +1,19 @@
-"""
-Tests for itwinai.utils module.
-"""
+# --------------------------------------------------------------------------------------
+# Part of the interTwin Project: https://www.intertwin.eu/
+#
+# Created by: Matteo Bunino
+#
+# Credit:
+# - Matteo Bunino <matteo.bunino@cern.ch> - CERN
+# --------------------------------------------------------------------------------------
 
-from itwinai.utils import flatten_dict, SignatureInspector
+"""Tests for itwinai.utils module."""
+
+from itwinai.utils import SignatureInspector, flatten_dict
 
 
 def test_flatten_dict():
-    """
-    Test flatten dict function.
-    """
+    """Test flatten dict function."""
     dict1 = dict(a=1, b=dict(b1=2, b2=3))
 
     flattened = flatten_dict(dict1)
@@ -20,8 +25,8 @@ def test_flatten_dict():
 
 def test_signature_inspector():
     """Test SignatureInspector class."""
-    def f():
-        ...
+
+    def f(): ...
 
     inspector = SignatureInspector(f)
     assert not inspector.has_varargs
@@ -30,8 +35,7 @@ def test_signature_inspector():
     assert inspector.min_params_num == 0
     assert inspector.max_params_num == 0
 
-    def f(*args):
-        ...
+    def f(*args): ...
 
     inspector = SignatureInspector(f)
     assert inspector.has_varargs
@@ -40,8 +44,7 @@ def test_signature_inspector():
     assert inspector.min_params_num == 0
     assert inspector.max_params_num == SignatureInspector.INFTY
 
-    def f(foo, *args):
-        ...
+    def f(foo, *args): ...
 
     inspector = SignatureInspector(f)
     assert inspector.has_varargs
@@ -50,8 +53,7 @@ def test_signature_inspector():
     assert inspector.min_params_num == 1
     assert inspector.max_params_num == SignatureInspector.INFTY
 
-    def f(foo, bar=123):
-        ...
+    def f(foo, bar=123): ...
 
     inspector = SignatureInspector(f)
     assert not inspector.has_varargs
@@ -60,8 +62,7 @@ def test_signature_inspector():
     assert inspector.min_params_num == 1
     assert inspector.max_params_num == 2
 
-    def f(foo, *args, bar=123):
-        ...
+    def f(foo, *args, bar=123): ...
 
     inspector = SignatureInspector(f)
     assert inspector.has_varargs
@@ -70,8 +71,7 @@ def test_signature_inspector():
     assert inspector.min_params_num == 1
     assert inspector.max_params_num == SignatureInspector.INFTY
 
-    def f(*args, **kwargs):
-        ...
+    def f(*args, **kwargs): ...
 
     inspector = SignatureInspector(f)
     assert inspector.has_varargs
@@ -80,8 +80,8 @@ def test_signature_inspector():
     assert inspector.min_params_num == 0
     assert inspector.max_params_num == SignatureInspector.INFTY
 
-    def f(foo, /, bar, *arg, **kwargs):
-        ...
+    def f(foo, /, bar, *arg, **kwargs): ...
+
     inspector = SignatureInspector(f)
     assert inspector.has_varargs
     assert inspector.has_kwargs
@@ -89,8 +89,8 @@ def test_signature_inspector():
     assert inspector.min_params_num == 2
     assert inspector.max_params_num == SignatureInspector.INFTY
 
-    def f(foo, /, bar, *, hello, **kwargs):
-        ...
+    def f(foo, /, bar, *, hello, **kwargs): ...
+
     inspector = SignatureInspector(f)
     assert not inspector.has_varargs
     assert inspector.has_kwargs

@@ -1,3 +1,13 @@
+# --------------------------------------------------------------------------------------
+# Part of the interTwin Project: https://www.intertwin.eu/
+#
+# Created by: Matteo Bunino
+#
+# Credit:
+# - Matteo Bunino <matteo.bunino@cern.ch> - CERN
+# - Anna Lappe <anna.elisa.lappe@cern.ch> - CERN
+# --------------------------------------------------------------------------------------
+
 # General config
 dataset_root: .tmp/
 
@@ -52,7 +62,14 @@ training_pipeline:
               limit_train_batches: null
               limit_val_batches: null
               log_every_n_steps: null
-              logger: null
+              logger:
+                class_path: itwinai.torch.loggers.ItwinaiLogger
+                init_args:
+                  log_model: all
+                  itwinai_logger:
+                    class_path: itwinai.loggers.MLFlowLogger
+                    init_args:
+                      savedir: mllogs
               max_epochs: 5
               max_steps: -1
               max_time: null

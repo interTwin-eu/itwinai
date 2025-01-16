@@ -8,66 +8,83 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "itwinai"
-version = "0.2.2"
+version = "0.2.3"
 description = "AI and ML workflows module for scientific digital twins."
 readme = "README.md"
 requires-python = ">=3.10"
 license = { file = "LICENSE" }
 keywords = ["ml", "ai", "hpc"]
-authors = [
-    { name = "Matteo Bunino", email = "matteo.bunino@cern.ch" },
-    { name = "Rakesh Sarma", email = "r.sarma@fz-juelich.de" },
-]
 maintainers = [
-    { name = "Matteo Bunino", email = "matteo.bunino@cern.ch" },
-    { name = "Rakesh Sarma", email = "r.sarma@fz-juelich.de" },
-    { name = "Mario Ruettgers", email = "m.ruettgers@fz-juelich.de" },
-    { name = "Kalliopi Tsolaki", email = "kalliopi.tsolaki@cern.ch" },
+  { name = "Matteo Bunino", email = "matteo.bunino@cern.ch" },
+  { name = "Jarl Sondre Sæther", email = "jarl.sondre.saether@cern.ch" },
+  { name = "Anna Lappe", email = "anna.elisa.lappe@cern.ch" },
 ]
 classifiers = [
-    "Development Status :: 4 - Beta",
-    "Programming Language :: Python",
+  "Development Status :: 4 - Beta",
+  "Programming Language :: Python",
 ]
 
 dependencies = [
-    "wandb",
-    "mlflow",
-    "jsonargparse[signatures]",
-    "pyyaml",
-    "omegaconf",
-    "rich>=13.5.3",
-    "typer>=0.9.0",
-    "wheel",
-    "pydantic",
-    # "prov4ml@git+https://github.com/HPCI-Lab/ProvML@main", # Prov4ML
-    # "prov4ml@git+https://github.com/matbun/ProvML@main",
-    "pandas",
+  "rich>=13.5.3",
+  "typer>=0.9.0",
+  "numpy<2.0.0",
+  "wandb>=0.18.7",
+  "mlflow>=2.17.2",
+  "wheel>=0.45.0",
+  "seaborn>=0.13.2",
+  "py-cpuinfo>=9.0.0",
+  "packaging>=24.2",
+  "pydantic>=2.10.2",
+  "pyyaml>=6.0.2",
+  "omegaconf>=2.3.0",
+  "jsonargparse[signatures]>=4.34.0",
+  "matplotlib>=3.9.2",
+  "pip>=24.3.1",
+  "ray[default,train,tune]>=2.39.0",
+  "tensorboard>=2.16.2",
 ]
-
-# dynamic = ["version", "description"]
 
 [project.optional-dependencies]
-
-# Torch should be already installed, but it is specified here to
-# prevent itwinai dependencies from cheing its version.
-torch = ["lightning==2.*", "torchmetrics"]
-# torch-cpu = [
-#     "torch==2.1.*",
-#     "torchvision",
-#     "torchaudio",
-#     "lightning",
-#     "torchmetrics",
-#     "deepspeed",
-# ]
-dev = [
-    "pytest>=7.4.2",
-    "pytest-mock>=3.11.1",
-    "pytest-cov>=4.1.0",
-    "ipykernel",
-    "ipython",
-    "isort",
-    "tensorflow==2.16.*",  # needed by tests on tensorboard
+torch = [
+  "torch==2.4.*",
+  "lightning>=2",
+  "torchmetrics>=1.6.0",
+  "torchvision>=0.16.2",
+  "torchaudio>=2.4.0",
 ]
+tf = ["tensorflow==2.16.*", "tf_keras==2.16.*"]
+tf-cuda = ["tensorflow[and-cuda]==2.16.*", "tf_keras==2.16.*"]
+
+dev = [
+  "pytest>=7.4.2",
+  "pytest-mock>=3.11.1",
+  "pytest-cov>=4.1.0",
+  "ipykernel>=6.29.5",
+  "ipython>=8.30.0",
+  "ruff>=0.8.3",
+]
+docs = [
+  "sphinx-rtd-theme>=2.0.0",
+  "nbsphinx>=0.9.4",
+  "myst-parser>=2.0.0",
+  "IPython>=8.30.0",
+  "tensorflow==2.16.*",
+  "sphinx-tabs>=3.4.7",
+]
+hpo = [
+  "bayesian-optimization>=2.0.0",
+  "hyperopt>=0.2.0",
+  "ConfigSpace>=1.2.0",
+  "hpbandster>=0.7.0",
+  "gpy>=1.13.2",
+]
+# Git dependencies are not supported by PyPI and will prevent pushing new versions to it.
+# prov4ml = ["prov4ml@git+https://github.com/matbun/ProvML@new-main"]
+# prov4ml-macos = ["prov4ml[apple]@git+https://github.com/matbun/ProvML@new-main"]
+# prov4ml-nvidia = [
+#   "prov4ml[nvidia]@git+https://github.com/matbun/ProvML@new-main",
+# ]
+# prov4ml-amd = ["prov4ml[amd]@git+https://github.com/matbun/ProvML@new-main"]
 
 [project.urls]
 Homepage = "https://www.intertwin.eu/"
@@ -86,12 +103,44 @@ itwinai = "itwinai.cli:app"
 
 [tool.pytest.ini_options]
 markers = [
-    "integration: integration tests (deselect with '-m \"not integration\"')",
-    "slurm: needs SLURM and HPC resources (multiple GPUs/nodes). (deselect with '-m \"not slurm\"')",
-    "functional: functional tests. (deselect with '-m \"not functional\"')",
-    "memory_heavy: high memory footprint. (deselect with '-m \"not heavy_memory\"')",
+  "integration: integration tests (deselect with '-m \"not integration\"')",
+  "hpc: needs SLURM and HPC resources (multiple GPUs/nodes). (deselect with '-m \"not hpc\"')",
+  "torch_dist: runs with torch DDP distributed strategy. (deselect with '-m \"not torch_dist\"')",
+  "deepspeed_dist: runs with torch DeepSpeed distributed strategy. (deselect with '-m \"not deepspeed_dist\"')",
+  "horovod_dist: runs with torch Horovod distributed strategy. (deselect with '-m \"not horovod_dist\"')",
+  "functional: functional tests. (deselect with '-m \"not functional\"')",
+  "memory_heavy: high memory footprint. (deselect with '-m \"not heavy_memory\"')",
 ]
 
-[tool.isort]
-profile = "black"
-known_first_party = ["itwinai"]
+
+[tool.uv]
+# This is how you can force uv to accept conflicting extras
+conflicts = [[{ extra = "tf-cuda" }, { extra = "torch" }]]
+
+# Use PyTorch with CUDA for anything that is not macos
+[tool.uv.sources]
+torch = [{ index = "pytorch-cu121", marker = "platform_system != 'Darwin'" }]
+torchvision = [
+  { index = "pytorch-cu121", marker = "platform_system != 'Darwin'" },
+]
+
+# Specific index for pytorch
+[[tool.uv.index]]
+name = "pytorch-cu121"
+url = "https://download.pytorch.org/whl/cu121"
+explicit = true
+
+# Ruff configuration: https://docs.astral.sh/ruff/configuration/
+[tool.ruff]
+line-length = 95
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "W"]
+ignore = ["E203"]
+fixable = ["ALL"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"

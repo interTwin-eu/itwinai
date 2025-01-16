@@ -1,0 +1,39 @@
+# If you use this with in the runall or scaling mode, keep in mind that the strategies
+# will change, as well as the number of nodes. 
+#
+# Default arguments can be seen in src/itwinai/slurm/utils.py
+
+mode: runall # "single", "runall" or "scaling-test" - defaults to "single"
+dist_strat: ddp # "ddp", "deepspeed" or "horovod"
+
+
+account: intertwin
+time: 00:11:11
+partition: develbooster
+
+# Keep in mind that these will be overwritten if "mode" is not "single", and that
+# if you override the dist_strat in the CLI, then these will already have evaluated
+# and thus might not correspond. Thus, we suggest you only change the dist_strat in
+# the config and avoid overriding it in the CLI.
+std_out: slurm_job_logs/${dist_strat}.out
+err_out: slurm_job_logs/${dist_strat}.err
+job_name: virgo-${dist_strat}-job
+##################################
+
+num_nodes: 2
+num_tasks_per_node: 1
+gpus_per_node: 4
+cpus_per_gpu: 4
+
+python_venv: .venv
+
+pipe_key: training_pipeline
+config_file: config.yaml
+
+# If you want to manually override the training command, comment in the following:
+# training_cmd: | 
+#   $(which itwinai) exec-pipeline \
+#   --config ${config_file} \
+#   --pipe-key ${pipe_key} \
+#   -o strategy=${dist_strat} \
+#   -o checkpoint_path=checkpoints_ddp/epoch_{}.pth

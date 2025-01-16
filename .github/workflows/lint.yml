@@ -35,11 +35,12 @@ jobs:
           DEFAULT_BRANCH: main
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           MARKDOWN_CONFIG_FILE: .markdownlint.json
-          PYTHON_FLAKE8_CONFIG_FILE: .flake8
           JSCPD_CONFIG_FILE: .jscpd.json
-          PYTHON_ISORT_CONFIG_FILE: .isort.cfg
+          PYTHON_RUFF_CONFIG_FILE: .ruff.toml
 
+          VALIDATE_PYTHON: true
           VALIDATE_PYTHON_BLACK: false
+          VALIDATE_ISORT: false
           VALIDATE_PYTHON_MYPY: false
           VALIDATE_PYTHON_PYLINT: false
           VALIDATE_HTML: false
@@ -52,11 +53,13 @@ jobs:
           VALIDATE_YAML_PRETTIER: false
           VALIDATE_PYTHON_PYINK: false
           VALIDATE_JSON_PRETTIER: false
+          VALIDATE_CSS_PRETTIER: false
+          VALIDATE_KUBERNETES_KUBECONFORM: false
 
           # Only check new or edited files
           VALIDATE_ALL_CODEBASE: false
           # Fail on errors
           DISABLE_ERRORS: false
-          # Skip linting of docs
-          FILTER_REGEX_EXCLUDE: .*docs/index.md|.*docs/docs/.*|.*ISSUE_TEMPLATE/.*|use-cases/.*|experimental/.*
-          BASH_SEVERITY: error
+          # Skip linting of some locations
+          FILTER_REGEX_EXCLUDE: .*ISSUE_TEMPLATE/.*|use-cases/.*
+          BASH_SEVERITY: warning

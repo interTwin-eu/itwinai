@@ -1,3 +1,12 @@
+# --------------------------------------------------------------------------------------
+# Part of the interTwin Project: https://www.intertwin.eu/
+#
+# Created by: Matteo Bunino
+#
+# Credit:
+# - Matteo Bunino <matteo.bunino@cern.ch> - CERN
+# --------------------------------------------------------------------------------------
+
 """Default configuration"""
 
 from typing import Literal
@@ -5,7 +14,7 @@ from typing import Literal
 from pydantic import BaseModel
 
 
-class Configuration(BaseModel, extra='allow'):
+class Configuration(BaseModel, extra="allow"):
     """Base configuration class."""
 
     def __getitem__(self, idx):
@@ -26,7 +35,17 @@ class TrainingConfiguration(Configuration):
     >>> from rich import print
     >>> print(cfg)             # pretty-print of configuration
 
+    .. warning::
+
+        Don't reinvent parameters that already exist in the training coniguration, if possible.
+        Instead, use the name of the parameters in the training configuration when possible to
+        avoid inconsistencies. For instance, the training configuration defines the learning
+        rate as ``optim_lr``, so if you redefine it as ``lr`` by doing
+        ``TrainingConfiguration(lr=0.005)`` in the configuration you will now have both
+        ``optim_lr`` (created by default) and ``lr`` (created by you). This may create
+        confusion and potentially (and silently) break the logic in your code.
     """
+
     #: Batch size. In a distributed environment it is usually the
     #: per-worker batch size. Defaults to 32.
     batch_size: int = 32
@@ -47,21 +66,15 @@ class TrainingConfiguration(Configuration):
     #: Defaults to 4.
     num_workers_dataloader: int = 4
     #: Loss function. Defaults to 'cross_entropy'
-    loss: Literal[
-        'mse',
-        'nllloss',
-        'cross_entropy',
-        'l1',
-        'l2'
-    ] = 'cross_entropy'
+    loss: Literal["mse", "nllloss", "cross_entropy", "l1", "l2"] = "cross_entropy"
     #: Name of the optimizer to use. Defaults to 'adam'.
-    optimizer: Literal['adadelta', 'adam', 'rmsprop', 'sgd'] = 'adam'
+    optimizer: Literal["adadelta", "adam", "rmsprop", "sgd"] = "adam"
     #: Learning rate used by the optimizer. Defaults to 1e-3.
     optim_lr: float = 1e-3
     #: Momentum used by some optimizers (e.g., SGD). Defaults to 0.9.
-    optim_momentum: float = .9
+    optim_momentum: float = 0.9
     #: Weight decay parameter for the optimizer. Defaults to 0.
-    optim_weight_decay: float = .0
+    optim_weight_decay: float = 0.0
     #: Parameter of Horovod's ``DistributedOptimizer``: uses float16
     #: operations in the allreduce
     #: distributed gradients aggregation. Better performances at
@@ -75,3 +88,7 @@ class TrainingConfiguration(Configuration):
     #: gradients before adding them up.
     #: Defaults to 1.0.
     gradient_predivide_factor: float = 1.0
+    #: Torch distributed
+    #: `backend <https://pytorch.org/docs/stable/distributed.html#backends>`_.
+    #: Defaults to ``nccl``.
+    dist_backend: Literal["nccl", "gloo", "mpi"] = "nccl"
