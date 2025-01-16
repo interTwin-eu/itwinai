@@ -76,6 +76,8 @@ RUN itwinai sanity-check --torch \
     --optional-deps deepspeed \
     # Horovod for distributed ML
     --optional-deps horovod \
+    # Prov4ML provenance logger
+    --optional-deps prov4ml \
     # Ray for disrtibuted ML and hyperparameter-tuning
     --optional-deps ray
 
@@ -92,6 +94,8 @@ ENV PYTHONNOUSERSITE=1 \
 
 # Add tests
 COPY tests tests
+# Add Dockerfile
+COPY env-files/torch/Dockerfile Dockerfile
 
 
 # Labels

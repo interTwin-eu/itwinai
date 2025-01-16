@@ -143,7 +143,13 @@ USER root
 RUN apt-get update && apt-get install -y \
     # Needed by Prov4ML/yProvML to generate provenance graph
     dot2tex \
+    # mpi4py system-wide -- also installs mpirun
+    python3-mpi4py \
     && apt-get clean -y && rm -rf /var/lib/apt/lists/*
+
+# Install MPI4py also in the conda env
+RUN mamba install -y -c conda-forge mpi4py openmpi \
+    && mamba clean --all -f -y
 
 USER $NB_UID
 

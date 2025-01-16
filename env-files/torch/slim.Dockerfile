@@ -86,7 +86,7 @@ RUN apt-get update && apt-get install -y \
     wget \
     && apt-get clean -y && rm -rf /var/lib/apt/lists/*
 
-# OpenMPI
+# OpenMPI: consider installing mpi4py binary for linux instead
 WORKDIR /tmp/ompi
 ENV OPENMPI_VERSION=4.1.6 \
     OPENMPI_MINOR=4.1 
@@ -116,11 +116,14 @@ ENV PYTHONNOUSERSITE=1 \
 RUN itwinai sanity-check --torch \
     --optional-deps deepspeed \
     --optional-deps horovod \
+    --optional-deps prov4ml \
     --optional-deps ray
 
 WORKDIR /app
 COPY pyproject.toml pyproject.toml
 COPY tests tests
+# Add Dockerfile
+COPY env-files/torch/slim.Dockerfile Dockerfile
 
 # Labels
 ARG CREATION_DATE

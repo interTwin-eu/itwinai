@@ -206,14 +206,14 @@ RUN rm -rf /tmp/*
 
 USER $NB_UID
 
-# RUN pip install --no-cache-dir --upgrade pip \
-#     # https://github.com/mpi4py/mpi4py/pull/431
-#     && SETUPTOOLS_USE_DISTUTILS=local python -m pip install --no-cache-dir mpi4py \
-#     && unset SETUPTOOLS_USE_DISTUTILS \
-#     && pip install --no-cache-dir \
-#     packaging \
-#     py-cpuinfo \
-#     wheel
+RUN pip install --no-cache-dir --upgrade pip \
+    # https://github.com/mpi4py/mpi4py/pull/431
+    && SETUPTOOLS_USE_DISTUTILS=local python -m pip install --no-cache-dir mpi4py \
+    && unset SETUPTOOLS_USE_DISTUTILS \
+    && pip install --no-cache-dir \
+    packaging \
+    py-cpuinfo \
+    wheel
 
 # Install itwinai with torch
 WORKDIR "$HOME/itwinai"
