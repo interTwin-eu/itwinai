@@ -135,132 +135,145 @@ RUN pip install --no-cache-dir --upgrade pip \
 ###        itwinai        ###
 #############################
 
-# Inprove robustness: avoid silent override by Singularity/Apptainer
+# Improve robustness: avoid silent override by Singularity/Apptainer
 ENV PYTHONPATH=""
 
 USER root
 
 RUN apt-get update && apt-get install -y \
-    # Needed (at least) by horovod wheel builder
-    build-essential \
-    # Needed (at least) by horovod wheel builder
-    cmake \
     # Needed by Prov4ML/yProvML to generate provenance graph
     dot2tex \
-    # Needed by OpenMPI for efficient compression at startup
-    zlib1g \
-    # Needed by OpenMPI for efficient compression at startup
-    zlib1g-dev \
     && apt-get clean -y && rm -rf /var/lib/apt/lists/*
 
-# OpenMPI
-WORKDIR /tmp/ompi
-ENV OPENMPI_VERSION=4.1.6 \
-    OPENMPI_MINOR=4.1 
-ENV OPENMPI_URL="https://download.open-mpi.org/release/open-mpi/v${OPENMPI_MINOR}/openmpi-${OPENMPI_VERSION}.tar.gz" 
-ENV OPENMPI_DIR=/opt/openmpi-${OPENMPI_VERSION} 
-ENV PATH="${OPENMPI_DIR}/bin:${PATH}" 
-ENV LD_LIBRARY_PATH="${OPENMPI_DIR}/lib:${LD_LIBRARY_PATH}" 
-ENV MANPATH=${OPENMPI_DIR}/share/man:${MANPATH}
-RUN wget -q -O openmpi-$OPENMPI_VERSION.tar.gz $OPENMPI_URL && tar xzf openmpi-$OPENMPI_VERSION.tar.gz \
-    && cd openmpi-$OPENMPI_VERSION && ./configure --prefix=$OPENMPI_DIR && make install
+# OpenMPI and its dependencies are needed to build and operate Horovod.
+# Uncomment the code below to install them.
 
-# Nvidia software
-WORKDIR /tmp/cuda
-# CUDA Toolkit:
-# - https://developer.nvidia.com/cuda-downloads
-# - Installation guide: https://docs.nvidia.com/cuda/cuda-quick-start-guide/index.html#ubuntu
-# - cuda-toolkit metapackage: https://docs.nvidia.com/cuda/cuda-installation-guide-linux/#meta-packages
-# cuDNN:
-# - https://docs.nvidia.com/deeplearning/cudnn/latest/installation/linux.html#installing-cudnn-on-linux
-# NCCL: 
-# - https://docs.nvidia.com/deeplearning/nccl/install-guide/index.html#debian
-# *NOTE* to correctly install Apex below, CUDA toolkit version must match with the torch CUDA backend version
-ENV CUDA_VERSION=12.4 \
-    CUDA_TOOLKIT_VERSION=12-4 \
-    CUDA_MAJOR_VERSION=12
-RUN wget -q -O cuda-keyring.deb https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/cuda-keyring_1.1-1_all.deb \
-    && dpkg -i cuda-keyring.deb \
-    && apt-get update && apt-get install -y \
-    # CUDA toolkit metapackage (does not include the Nvidia driver)
-    cuda-toolkit-${CUDA_TOOLKIT_VERSION} \
-    # cuDNN
-    cudnn-cuda-${CUDA_MAJOR_VERSION} \
-    # NCCL
-    libnccl2 \
-    libnccl-dev \
-    # Nvidia driver, as explained here: https://developer.nvidia.com/cuda-downloads
-    nvidia-open \
-    && apt-get clean -y && rm -rf /var/lib/apt/lists/*
-ENV PATH=/usr/local/cuda-${CUDA_VERSION}/bin${PATH:+:${PATH}}\
-    LD_LIBRARY_PATH=/usr/local/cuda-${CUDA_VERSION}/lib64${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}
+# RUN apt-get update && apt-get install -y \
+#     # Needed (at least) by horovod wheel builder
+#     build-essential \
+#     # Needed (at least) by horovod wheel builder
+#     cmake \
+#     # Needed by Prov4ML/yProvML to generate provenance graph
+#     dot2tex \
+#     # Needed by OpenMPI for efficient compression at startup
+#     zlib1g \
+#     # Needed by OpenMPI for efficient compression at startup
+#     zlib1g-dev \
+#     && apt-get clean -y && rm -rf /var/lib/apt/lists/*
 
-# Cleanup
-RUN rm -rf /tmp/*
+# # OpenMPI
+# WORKDIR /tmp/ompi
+# ENV OPENMPI_VERSION=4.1.6 \
+#     OPENMPI_MINOR=4.1 
+# ENV OPENMPI_URL="https://download.open-mpi.org/release/open-mpi/v${OPENMPI_MINOR}/openmpi-${OPENMPI_VERSION}.tar.gz" 
+# ENV OPENMPI_DIR=/opt/openmpi-${OPENMPI_VERSION} 
+# ENV PATH="${OPENMPI_DIR}/bin:${PATH}" 
+# ENV LD_LIBRARY_PATH="${OPENMPI_DIR}/lib:${LD_LIBRARY_PATH}" 
+# ENV MANPATH=${OPENMPI_DIR}/share/man:${MANPATH}
+# RUN wget -q -O openmpi-$OPENMPI_VERSION.tar.gz $OPENMPI_URL && tar xzf openmpi-$OPENMPI_VERSION.tar.gz \
+#     && cd openmpi-$OPENMPI_VERSION && ./configure --prefix=$OPENMPI_DIR && make install
+
+# Nvidia libraries are needed only when building software that depends on them (e.g., Horovod
+# and DeepSpeed). PyTorch, if installed from the right index, is pre-built with Nvidia.
+
+# # Nvidia software
+# WORKDIR /tmp/cuda
+# # CUDA Toolkit:
+# # - https://developer.nvidia.com/cuda-downloads
+# # - Installation guide: https://docs.nvidia.com/cuda/cuda-quick-start-guide/index.html#ubuntu
+# # - cuda-toolkit metapackage: https://docs.nvidia.com/cuda/cuda-installation-guide-linux/#meta-packages
+# # cuDNN:
+# # - https://docs.nvidia.com/deeplearning/cudnn/latest/installation/linux.html#installing-cudnn-on-linux
+# # NCCL: 
+# # - https://docs.nvidia.com/deeplearning/nccl/install-guide/index.html#debian
+# # *NOTE* to correctly install Apex below, CUDA toolkit version must match with the torch CUDA backend version
+# ENV CUDA_VERSION=12.4 \
+#     CUDA_TOOLKIT_VERSION=12-4 \
+#     CUDA_MAJOR_VERSION=12
+# RUN wget -q -O cuda-keyring.deb https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/cuda-keyring_1.1-1_all.deb \
+#     && dpkg -i cuda-keyring.deb \
+#     && apt-get update && apt-get install -y \
+#     # CUDA toolkit metapackage (does not include the Nvidia driver)
+#     cuda-toolkit-${CUDA_TOOLKIT_VERSION} \
+#     # cuDNN
+#     cudnn-cuda-${CUDA_MAJOR_VERSION} \
+#     # NCCL
+#     libnccl2 \
+#     libnccl-dev \
+#     # Nvidia driver, as explained here: https://developer.nvidia.com/cuda-downloads
+#     nvidia-open \
+#     && apt-get clean -y && rm -rf /var/lib/apt/lists/*
+# ENV PATH=/usr/local/cuda-${CUDA_VERSION}/bin${PATH:+:${PATH}}\
+#     LD_LIBRARY_PATH=/usr/local/cuda-${CUDA_VERSION}/lib64${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}
+
+# # Cleanup
+# RUN rm -rf /tmp/*
 
 USER $NB_UID
 
-# Torch and smaller deps
-RUN pip install --no-cache-dir --upgrade pip \
-    # https://github.com/mpi4py/mpi4py/pull/431
-    && SETUPTOOLS_USE_DISTUTILS=local python -m pip install --no-cache-dir mpi4py \
-    && unset SETUPTOOLS_USE_DISTUTILS \
-    # Install torch
-    && pip install --no-cache-dir \
-    'numpy<2' \
-    packaging \
-    py-cpuinfo \
-    wheel
+# RUN pip install --no-cache-dir --upgrade pip \
+#     # https://github.com/mpi4py/mpi4py/pull/431
+#     && SETUPTOOLS_USE_DISTUTILS=local python -m pip install --no-cache-dir mpi4py \
+#     && unset SETUPTOOLS_USE_DISTUTILS \
+#     && pip install --no-cache-dir \
+#     packaging \
+#     py-cpuinfo \
+#     wheel
 
 # Install itwinai with torch
 WORKDIR "$HOME/itwinai"
 COPY --chown=${NB_UID} pyproject.toml pyproject.toml
 COPY --chown=${NB_UID} src src
-RUN pip install --no-cache-dir .[torch,tf,dev] --extra-index-url https://download.pytorch.org/whl/cu124
 
-# Apex: https://github.com/NVIDIA/apex
-# (needed for DeepSpeed *_FUSED optinal build options)
-# Note: it will take more than an hour to build
-WORKDIR /tmp
-RUN git clone https://github.com/NVIDIA/apex && cd apex \
-    && pip install -v --disable-pip-version-check --no-cache-dir --no-build-isolation --config-settings "--build-option=--cpp_ext" --config-settings "--build-option=--cuda_ext" ./ \
-    && rm -rf /tmp/apex
-# Transformer engine: https://docs.nvidia.com/deeplearning/transformer-engine/user-guide/index.html
-# (needed for DeepSpeed *TRANSFORMER* optinal build options)
-# Note: it will take about half an hour to build
-RUN pip install --no-cache-dir transformer_engine[pytorch]
+# DO NOT install dev extras as they may change some versions of ipython and ipykernel
+RUN pip install --no-cache-dir .[torch,tf] --extra-index-url https://download.pytorch.org/whl/cu124
+
+# Horovod and DeepSpeed installation can be avoided in a jupyter container as it will most
+# likely used for simple interactive development. To install them, uncomment the lines below.
+
+# # Apex: https://github.com/NVIDIA/apex
+# # (needed for DeepSpeed *_FUSED optinal build options)
+# # Note: it will take more than an hour to build
+# WORKDIR /tmp
+# RUN git clone https://github.com/NVIDIA/apex && cd apex \
+#     && pip install -v --disable-pip-version-check --no-cache-dir --no-build-isolation --config-settings "--build-option=--cpp_ext" --config-settings "--build-option=--cuda_ext" ./ \
+#     && rm -rf /tmp/apex
+# # Transformer engine: https://docs.nvidia.com/deeplearning/transformer-engine/user-guide/index.html
+# # (needed for DeepSpeed *TRANSFORMER* optinal build options)
+# # Note: it will take about half an hour to build
+# RUN pip install --no-cache-dir transformer_engine[pytorch]
 
 WORKDIR "$HOME/itwinai"
 
-# Install DeepSpeed, Horovod and Ray
-ENV HOROVOD_WITH_PYTORCH=1 \
-    HOROVOD_WITHOUT_TENSORFLOW=1 \
-    HOROVOD_WITHOUT_MXNET=1 \
-    CMAKE_CXX_STANDARD=17 \
-    HOROVOD_MPI_THREADS_DISABLE=1 \
-    HOROVOD_CPU_OPERATIONS=MPI \
-    HOROVOD_GPU_ALLREDUCE=NCCL \
-    HOROVOD_NCCL_LINK=SHARED \
-    # DeepSpeed
-    # This is disabled as it needs OneCCL
-    # DS_BUILD_CCL_COMM=1 \
-    DS_BUILD_UTILS=1 \
-    DS_BUILD_AIO=1 \
-    DS_BUILD_FUSED_ADAM=1 \
-    DS_BUILD_FUSED_LAMB=1 \
-    DS_BUILD_TRANSFORMER=1 \
-    DS_BUILD_STOCHASTIC_TRANSFORMER=1 \
-    DS_BUILD_TRANSFORMER_INFERENCE=1
+# # Install DeepSpeed, Horovod and Ray
+# ENV HOROVOD_WITH_PYTORCH=1 \
+#     HOROVOD_WITHOUT_TENSORFLOW=1 \
+#     HOROVOD_WITHOUT_MXNET=1 \
+#     CMAKE_CXX_STANDARD=17 \
+#     HOROVOD_MPI_THREADS_DISABLE=1 \
+#     HOROVOD_CPU_OPERATIONS=MPI \
+#     HOROVOD_GPU_ALLREDUCE=NCCL \
+#     HOROVOD_NCCL_LINK=SHARED \
+#     # DeepSpeed
+#     # This is disabled as it needs OneCCL
+#     # DS_BUILD_CCL_COMM=1 \
+#     DS_BUILD_UTILS=1 \
+#     DS_BUILD_AIO=1 \
+#     DS_BUILD_FUSED_ADAM=1 \
+#     DS_BUILD_FUSED_LAMB=1 \
+#     DS_BUILD_TRANSFORMER=1 \
+#     DS_BUILD_STOCHASTIC_TRANSFORMER=1 \
+#     DS_BUILD_TRANSFORMER_INFERENCE=1
 RUN pip install --no-cache-dir \
-    deepspeed==0.15.* \
-    git+https://github.com/horovod/horovod.git@3a31d93 \
-    ray[tune] \
-    "prov4ml[nvidia]@git+https://github.com/matbun/ProvML@new-main"
+    # deepspeed==0.15.* \
+    # git+https://github.com/horovod/horovod.git@3a31d93 \
+    "prov4ml[nvidia]@git+https://github.com/matbun/ProvML@new-main" \
+    pytest
 
 # Installation sanity check
 RUN itwinai sanity-check --torch \
-    --optional-deps deepspeed \
-    --optional-deps horovod \
+    # --optional-deps deepspeed \
+    # --optional-deps horovod \
     --optional-deps ray
 
 # Additional pip deps
@@ -272,6 +285,8 @@ RUN pip install --no-cache-dir -r additional-requirements.txt
 WORKDIR /app
 COPY pyproject.toml pyproject.toml
 COPY tests tests
+# Add Dockerfile
+COPY env-files/torch/jupyter/Dockerfile Dockerfile
 
 WORKDIR $HOME
 
