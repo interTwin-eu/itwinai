@@ -65,7 +65,7 @@ dagger call --name="${COMMIT_HASH}-torch-slim" \
     singularity --src-container "python:3.12" \
     export --path my_container.sif
 
-############## JUPYTER ###############
+############## JUPYTER (SLIM) ###############
 
 # Build and test locally
 export COMMIT_HASH=$(git rev-parse --verify HEAD)
