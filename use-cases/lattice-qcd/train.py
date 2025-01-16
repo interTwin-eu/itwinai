@@ -22,7 +22,7 @@ def make_model():
 def main():
     hyperparams = {"fused": True}
     n_epochs = 5000
-    batch_size = 1024
+    batch_size = 32768
 
     if torch.cuda.is_available():
         # Initialize distributed backend
@@ -32,6 +32,8 @@ def main():
         gwsize = dist.get_world_size()
         grank = dist.get_rank()
         lrank = dist.get_rank() % lwsize
+
+        batch_size = (batch_size / gwsize)
 
         start_time: float | None = None
 

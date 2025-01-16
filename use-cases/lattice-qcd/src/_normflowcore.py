@@ -388,6 +388,10 @@ class Fitter(TorchTrainer):
         action = self._model.action
 
         x, logr = prior.sample_(batch_size)
+
+        print(x.shape)
+        assert False
+
         y, logJ = net_(x)
         logq = logr - logJ
         logp = -action(y)
