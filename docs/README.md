@@ -8,7 +8,8 @@ To build the docs locally and visualize them in your browser without relying on 
 services (e.g., Read The Docs cloud), follow these steps:
 
 ### Step 0 - Clone the Repository
-If you haven't already cloned the repo, you can do it like this:
+
+If you haven't already cloned the repository, you can do it like this:
 
 ```bash
 git clone --recurse-submodules https://github.com/interTwin-eu/itwinai.git itwinai-docs
@@ -19,6 +20,7 @@ Notice the `--recurse-submodules` flag here, which makes sure that any `git subm
 are also installed. 
 
 ### Step 1 - Install Linux Packages
+
 You might need to install some Linux packages. With an Ubuntu system, you can use the
 following commands:
 
@@ -29,6 +31,7 @@ sudo apt install python3-sphinx
 ```
 
 ### Step 2 - Create a Virtual Environment and Install itwinai
+
 We first build a virtual environment and then install `itwinai` with the `docs` and
 `torch` extras. If you didn't clone the repository recursively, then you also have to
 update submodules. All of this is done with the following commands:
@@ -46,6 +49,7 @@ pip install ".[torch,docs]"
 ```
 
 ### Step 3 - Build the docs and start a server
+
 Now you can go into the right directory, clean any old build files and then build
 the docs. Finally, you can start a server to look at the docs. This can all be done
 as follows:
