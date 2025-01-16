@@ -42,6 +42,7 @@ ENV HOROVOD_WITH_PYTORCH=1 \
     DS_BUILD_STOCHASTIC_TRANSFORMER=0 \
     DS_BUILD_TRANSFORMER_INFERENCE=0
 
+# TODO: replace mpi4py build with install of linux binary "python3-mpi4py"
 # User /usr/local/bin/python3.10 explicitly to force /opt/venv/bin/python to point to python3.10. Needed to link
 # /usr/local/bin/python3.10 (in the app image) to /usr/bin/python3.10 (in the builder image)
 RUN /usr/bin/python3.10 -m venv /opt/venv \
@@ -86,6 +87,7 @@ RUN apt-get update && apt-get install -y \
     wget \
     && apt-get clean -y && rm -rf /var/lib/apt/lists/*
 
+# TODO: consider installing OpenMPI through libopenmpi-dev and python3-mpi4py instead
 # OpenMPI: consider installing mpi4py binary for linux instead
 WORKDIR /tmp/ompi
 ENV OPENMPI_VERSION=4.1.6 \

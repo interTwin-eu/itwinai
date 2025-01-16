@@ -28,6 +28,7 @@ RUN apt-get update && apt-get install -y \
     dot2tex \
     && apt-get clean -y && rm -rf /var/lib/apt/lists/*
 
+# TODO: replace mpi4py build with install of linux binary "python3-mpi4py"
 # https://github.com/mpi4py/mpi4py/pull/431
 RUN pip install --no-cache-dir --upgrade pip \
     && env SETUPTOOLS_USE_DISTUTILS=local python -m pip install --no-cache-dir mpi4py
