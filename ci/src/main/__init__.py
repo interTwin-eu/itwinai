@@ -304,6 +304,9 @@ class Itwinai:
         framework: Annotated[
             MLFramework, Doc("ML framework in container")
         ] = MLFramework.TORCH,
+        skip_hpc: Annotated[
+            bool, Doc("Skip tests on remote HPC")
+        ] = False,
     ) -> None:
         """Pipeline to test container and push it, including both local
         tests and tests on HPC via interLink.
@@ -324,13 +327,12 @@ class Itwinai:
 
         # Test locally
         await self.test_local()
-
-        # TODO: uncomment once interlink cluster is back online
-        # # Publish to registry with random hash
-        # await self.publish()
-
-        # Test on HPC with
-        # await self.test_hpc(kubeconfig=kubeconfig)
+        
+        if not skip_hpc:
+            # Publish to registry with random hash
+            await self.publish()
+            # Test on HPC with
+            await self.test_hpc(kubeconfig=kubeconfig)
 
         # Publish to registry with final hash
         itwinai_version = (

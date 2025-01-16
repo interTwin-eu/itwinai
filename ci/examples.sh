@@ -29,7 +29,7 @@ dagger call --name="$(git rev-parse --verify HEAD)" \
 # Pipeline method: build, test local, push, test remote, and push (publish)
 export COMMIT_HASH=$(git rev-parse --verify HEAD)
 export BASE_IMG_NAME="nvcr.io/nvidia/pytorch:24.05-py3"
-export BASE_IMG_DIGEST="$(docker pull $BASE_IMG_NAME > /dev/null 2>&1 && docker inspect $BASE_IMG_NAME --format='{{index .RepoDigests 0}}' | awk -F'@' '{print $2}')"
+export BASE_IMG_DIGEST="$(echo "$BASE_IMG_NAME" | cut -d ':' -f 1)@$(docker buildx imagetools inspect $BASE_IMG_NAME | grep "Digest:" | head -n 1 | awk '{print $2}')"
 dagger call --name="${COMMIT_HASH}-torch" \
     build-container --context=.. --dockerfile=../env-files/torch/Dockerfile \
         --build-args="COMMIT_HASH=$COMMIT_HASH,BASE_IMG_NAME=$BASE_IMG_NAME,BASE_IMG_DIGEST=$BASE_IMG_DIGEST" \
@@ -51,7 +51,7 @@ dagger call --name="$(git rev-parse --verify HEAD)"  \
 # Test on HPC and publish
 export COMMIT_HASH=$(git rev-parse --verify HEAD)
 export BASE_IMG_NAME="python:3.10-slim"
-export BASE_IMG_DIGEST="$(docker pull $BASE_IMG_NAME > /dev/null 2>&1 && docker inspect $BASE_IMG_NAME --format='{{index .RepoDigests 0}}' | awk -F'@' '{print $2}')"
+export BASE_IMG_DIGEST="$(echo "$BASE_IMG_NAME" | cut -d ':' -f 1)@$(docker buildx imagetools inspect $BASE_IMG_NAME | grep "Digest:" | head -n 1 | awk '{print $2}')"
 dagger call --name="${COMMIT_HASH}-torch-slim" \
     build-container --context=.. --dockerfile=../env-files/torch/slim.Dockerfile \
         --build-args="COMMIT_HASH=$COMMIT_HASH,BASE_IMG_NAME=$BASE_IMG_NAME,BASE_IMG_DIGEST=$BASE_IMG_DIGEST" \
@@ -70,8 +70,8 @@ dagger call --name="${COMMIT_HASH}-torch-slim" \
 # Build and test locally
 export COMMIT_HASH=$(git rev-parse --verify HEAD)
 export BASE_IMG_NAME="jupyter/scipy-notebook:python-3.10.11"
-export BASE_IMG_DIGEST="$(docker pull $BASE_IMG_NAME > /dev/null 2>&1 && docker inspect $BASE_IMG_NAME --format='{{index .RepoDigests 0}}' | awk -F'@' '{print $2}')"
-dagger call --name="${COMMIT_HASH}-torch-jupyter-slim" \
+export BASE_IMG_DIGEST="$(echo "$BASE_IMG_NAME" | cut -d ':' -f 1)@$(docker buildx imagetools inspect $BASE_IMG_NAME | grep "Digest:" | head -n 1 | awk '{print $2}')"
+dagger call --name="${COMMIT_HASH}-torch-jlab-slim" \
     build-container --context=.. --dockerfile=../env-files/torch/jupyter/slim.Dockerfile \
         --build-args="COMMIT_HASH=$COMMIT_HASH,BASE_IMG_NAME=$BASE_IMG_NAME,BASE_IMG_DIGEST=$BASE_IMG_DIGEST" \
     test-local
@@ -79,19 +79,20 @@ dagger call --name="${COMMIT_HASH}-torch-jupyter-slim" \
 # Build and publish
 export COMMIT_HASH=$(git rev-parse --verify HEAD)
 export BASE_IMG_NAME="jupyter/scipy-notebook:python-3.10.11"
-export BASE_IMG_DIGEST="$(docker pull $BASE_IMG_NAME > /dev/null 2>&1 && docker inspect $BASE_IMG_NAME --format='{{index .RepoDigests 0}}' | awk -F'@' '{print $2}')"
-dagger call --name="${COMMIT_HASH}-torch-jupyter-slim" \
+export BASE_IMG_DIGEST="$(echo "$BASE_IMG_NAME" | cut -d ':' -f 1)@$(docker buildx imagetools inspect $BASE_IMG_NAME | grep "Digest:" | head -n 1 | awk '{print $2}')"
+dagger call --name="${COMMIT_HASH}-torch-jlab-slim" \
     build-container --context=.. --dockerfile=../env-files/torch/jupyter/slim.Dockerfile \
         --build-args="COMMIT_HASH=$COMMIT_HASH,BASE_IMG_NAME=$BASE_IMG_NAME,BASE_IMG_DIGEST=$BASE_IMG_DIGEST" \
-    publish
+    test-n-publish --kubeconfig=env:KUBECONFIG_STR --stage=DEV --framework=TORCH \
+    --tag-template='jlab-slim-${itwinai_version}-torch${framework_version}-${os_version}'
 
 ############## JUPYTER ###############
 
 # Build and test locally
 export COMMIT_HASH=$(git rev-parse --verify HEAD)
 export BASE_IMG_NAME="jupyter/scipy-notebook:python-3.10.11"
-export BASE_IMG_DIGEST="$(docker pull $BASE_IMG_NAME > /dev/null 2>&1 && docker inspect $BASE_IMG_NAME --format='{{index .RepoDigests 0}}' | awk -F'@' '{print $2}')"
-dagger call --name="${COMMIT_HASH}-torch-jupyter" \
+export BASE_IMG_DIGEST="$(echo "$BASE_IMG_NAME" | cut -d ':' -f 1)@$(docker buildx imagetools inspect $BASE_IMG_NAME | grep "Digest:" | head -n 1 | awk '{print $2}')"
+dagger call --name="${COMMIT_HASH}-torch-jlab" \
     build-container --context=.. --dockerfile=../env-files/torch/jupyter/Dockerfile \
         --build-args="COMMIT_HASH=$COMMIT_HASH,BASE_IMG_NAME=$BASE_IMG_NAME,BASE_IMG_DIGEST=$BASE_IMG_DIGEST" \
     test-local

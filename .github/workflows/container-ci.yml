@@ -12,7 +12,7 @@ name: Container CI
 on:
   push:
     branches: [main]
-  # pull_request:
+  pull_request:
 
 jobs:
   build:
@@ -50,26 +50,94 @@ jobs:
             rm -rf /opt/hostedtoolcache &&
             curl -fsSL https://raw.githubusercontent.com/apache/flink/02d30ace69dc18555a5085eccf70ee884e73a16e/tools/azure-pipelines/free_disk_space.sh | bash
 
-      - name: Prepare Environment Variables
+      - name: itwinai torch - Prepare Environment Variables
         run: |
           echo "COMMIT_HASH=$(git rev-parse --verify HEAD)" >> "$GITHUB_ENV"
           BASE_IMG_NAME=nvcr.io/nvidia/pytorch:24.05-py3
           echo "BASE_IMG_NAME=$BASE_IMG_NAME" >> "$GITHUB_ENV"
-          BASE_IMG_DIGEST=$(docker pull $BASE_IMG_NAME > /dev/null 2>&1 && docker inspect $BASE_IMG_NAME --format='{{index .RepoDigests 0}}')
+          BASE_IMG_DIGEST=$(echo "$BASE_IMG_NAME" | cut -d ':' -f 1)@$(docker buildx imagetools inspect $BASE_IMG_NAME | grep "Digest:" | head -n 1 | awk '{print $2}')
           echo "BASE_IMG_DIGEST=$BASE_IMG_DIGEST" >> "$GITHUB_ENV"
           docker system prune -af
 
-      - name: Integration Test
+      - name: itwinai torch - Integration Test
         uses: dagger/dagger-for-github@v7
         with:
           workdir: ci
           verb: call
           args: >-
             --name="${{ env.COMMIT_HASH }}-torch" 
-            build-container --context=.. --dockerfile=../env-files/torch/Dockerfile 
+            build-container
+            --context=..
+            --dockerfile=../env-files/torch/Dockerfile
             --build-args="COMMIT_HASH=${{ env.COMMIT_HASH }},BASE_IMG_NAME=${{ env.BASE_IMG_NAME }},BASE_IMG_DIGEST=${{ env.BASE_IMG_DIGEST }}"
-            test-n-publish --kubeconfig=env:KUBECONFIG_STR --stage=DEV --framework=TORCH
+            test-n-publish
+            --kubeconfig=env:KUBECONFIG_STR
+            --stage=DEV
+            --framework=TORCH
             --tag-template='${itwinai_version}-torch${framework_version}-${os_version}'
+            --skip-hpc
+          cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
+          version: "latest"
+        env:
+          KUBECONFIG_STR: ${{ secrets.KUBECONFIG_INFN }}
+
+      - name: itwinai torch slim - Prepare Environment Variables
+        run: |
+          echo "COMMIT_HASH=$(git rev-parse --verify HEAD)" >> "$GITHUB_ENV"
+          BASE_IMG_NAME=python:3.10-slim
+          echo "BASE_IMG_NAME=$BASE_IMG_NAME" >> "$GITHUB_ENV"
+          BASE_IMG_DIGEST=$(echo "$BASE_IMG_NAME" | cut -d ':' -f 1)@$(docker buildx imagetools inspect $BASE_IMG_NAME | grep "Digest:" | head -n 1 | awk '{print $2}')
+          echo "BASE_IMG_DIGEST=$BASE_IMG_DIGEST" >> "$GITHUB_ENV"
+          docker system prune -af
+
+      - name: itwinai torch slim - Integration Test
+        uses: dagger/dagger-for-github@v7
+        with:
+          workdir: ci
+          verb: call
+          args: >-
+            --name="${{ env.COMMIT_HASH }}-torch-slim" 
+            build-container
+            --context=..
+            --dockerfile=../env-files/torch/slim.Dockerfile
+            --build-args="COMMIT_HASH=${{ env.COMMIT_HASH }},BASE_IMG_NAME=${{ env.BASE_IMG_NAME }},BASE_IMG_DIGEST=${{ env.BASE_IMG_DIGEST }}"
+            test-n-publish
+            --kubeconfig=env:KUBECONFIG_STR
+            --stage=DEV
+            --framework=TORCH
+            --tag-template='${itwinai_version}-slim-torch${framework_version}-${os_version}'
+            --skip-hpc
+          cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
+          version: "latest"
+        env:
+          KUBECONFIG_STR: ${{ secrets.KUBECONFIG_INFN }}
+      
+      - name: itwinai jupyterlab slim - Prepare Environment Variables
+        run: |
+          echo "COMMIT_HASH=$(git rev-parse --verify HEAD)" >> "$GITHUB_ENV"
+          BASE_IMG_NAME=jupyter/scipy-notebook:python-3.10.11
+          echo "BASE_IMG_NAME=$BASE_IMG_NAME" >> "$GITHUB_ENV"
+          BASE_IMG_DIGEST=$(echo "$BASE_IMG_NAME" | cut -d ':' -f 1)@$(docker buildx imagetools inspect $BASE_IMG_NAME | grep "Digest:" | head -n 1 | awk '{print $2}')
+          echo "BASE_IMG_DIGEST=$BASE_IMG_DIGEST" >> "$GITHUB_ENV"
+          docker system prune -af
+
+      - name: itwinai jupyterlab slim - Integration Test
+        uses: dagger/dagger-for-github@v7
+        with:
+          workdir: ci
+          verb: call
+          args: >-
+            --name="jhub-slim-${{ env.COMMIT_HASH }}-torch" 
+            build-container
+            --context=..
+            --dockerfile=../env-files/torch/jupyter/slim.Dockerfile
+            --build-args="COMMIT_HASH=${{ env.COMMIT_HASH }},BASE_IMG_NAME=${{ env.BASE_IMG_NAME }},BASE_IMG_DIGEST=${{ env.BASE_IMG_DIGEST }}"
+            test-n-publish
+            --kubeconfig=env:KUBECONFIG_STR
+            --stage=DEV
+            --framework=TORCH
+            --tag-template='jhub-slim-${itwinai_version}-torch${framework_version}-${os_version}'
+            --skip-hpc
           cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
           version: "latest"
         env:
