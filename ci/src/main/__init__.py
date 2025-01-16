@@ -163,7 +163,7 @@ class Itwinai:
     @function
     async def test_local(self) -> str:
         """Test itwinai container image with pytest on non-HPC environments."""
-        test_cmd = ["pytest", "-v", "-m", "not hpc and not functional", "tests"]
+        test_cmd = ["pytest", "-v", "-m", "not hpc and not functional", "/app/tests"]
         return await self.container.with_exec(test_cmd).stdout()
 
     @function
@@ -253,7 +253,7 @@ class Itwinai:
             "slurm-job.vk.io/flags": (
                 # --cpus-per-gpu fails on Vega through interLink
                 f"-p gpu --gres=gpu:{gpus_per_node} --gpus-per-node={gpus_per_node} "
-                f"--ntasks-per-node=1 --nodes=1 --cpus-per-task={cpus_per_gpu*gpus_per_node} "
+                f"--ntasks-per-node=1 --nodes=1 --cpus-per-task={cpus_per_gpu * gpus_per_node} "
                 "--time=00:30:00"
             ),
             "slurm-job.vk.io/pre-exec": (
