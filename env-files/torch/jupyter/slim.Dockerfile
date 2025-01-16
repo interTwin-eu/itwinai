@@ -199,6 +199,6 @@ LABEL org.opencontainers.image.vendor="CERN - European Organization for Nuclear 
 LABEL org.opencontainers.image.licenses="MIT"
 LABEL org.opencontainers.image.ref.name=${IMAGE_FULL_NAME}
 LABEL org.opencontainers.image.title="itwinai"
-LABEL org.opencontainers.image.description="slim itwinai image with torch dependencies, CUDA drivers, and Rucio client for jupyterlab singleuser server enabled for interLink offloading"
+LABEL org.opencontainers.image.description="slim itwinai image with torch dependencies, and Rucio client for jupyterlab singleuser server enabled for interLink offloading"
 LABEL org.opencontainers.image.base.digest=${BASE_IMG_DIGEST}
 LABEL org.opencontainers.image.base.name=${BASE_IMG_NAME}
