@@ -17,7 +17,7 @@ cd itwinai-docs
 ```
 
 Notice the `--recurse-submodules` flag here, which makes sure that any `git submodules`
-are also installed. 
+are also installed.
 
 ### Step 1 - Install Linux Packages
 
