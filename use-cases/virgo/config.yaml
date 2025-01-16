@@ -12,9 +12,9 @@
 hdf5_file_location: /p/scratch/intertwin/datasets/virgo_hdf5/virgo_data.hdf5
 hdf5_dataset_name: virgo_dataset
 data_root: ./data
-epochs: 5
+epochs: 10
 chunk_size: 1000 # equivalent to chunk size 
-batch_size: 64
+batch_size: 64 # Note: not used for "training_pipeline"
 learning_rate: 0.0001
 strategy: ddp
 checkpoint_path: checkpoints/epoch_{}.pth
@@ -36,7 +36,7 @@ training_pipeline:
         init_args:
           config:
             generator: simple #unet
-            batch_size: 1
+            batch_size: 1 # Set to one because "chunk_size" implicitly decides this
             optim_lr: ${learning_rate}
             loss: l1
             save_best: true
