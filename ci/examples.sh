@@ -71,8 +71,8 @@ dagger call --name="${COMMIT_HASH}-torch-slim" \
 export COMMIT_HASH=$(git rev-parse --verify HEAD)
 export BASE_IMG_NAME="jupyter/scipy-notebook:python-3.10.11"
 export BASE_IMG_DIGEST="$(docker pull $BASE_IMG_NAME > /dev/null 2>&1 && docker inspect $BASE_IMG_NAME --format='{{index .RepoDigests 0}}' | awk -F'@' '{print $2}')"
-dagger call --name="${COMMIT_HASH}-torch-jupyter" \
-    build-container --context=.. --dockerfile=../env-files/torch/jupyter/Dockerfile \
+dagger call --name="${COMMIT_HASH}-torch-jupyter-slim" \
+    build-container --context=.. --dockerfile=../env-files/torch/jupyter/slim.Dockerfile \
         --build-args="COMMIT_HASH=$COMMIT_HASH,BASE_IMG_NAME=$BASE_IMG_NAME,BASE_IMG_DIGEST=$BASE_IMG_DIGEST" \
     test-local
 
@@ -80,7 +80,7 @@ dagger call --name="${COMMIT_HASH}-torch-jupyter" \
 export COMMIT_HASH=$(git rev-parse --verify HEAD)
 export BASE_IMG_NAME="jupyter/scipy-notebook:python-3.10.11"
 export BASE_IMG_DIGEST="$(docker pull $BASE_IMG_NAME > /dev/null 2>&1 && docker inspect $BASE_IMG_NAME --format='{{index .RepoDigests 0}}' | awk -F'@' '{print $2}')"
-dagger call --name="${COMMIT_HASH}-torch-jupyter" \
-    build-container --context=.. --dockerfile=../env-files/torch/jupyter/Dockerfile \
+dagger call --name="${COMMIT_HASH}-torch-jupyter-slim" \
+    build-container --context=.. --dockerfile=../env-files/torch/jupyter/slim.Dockerfile \
         --build-args="COMMIT_HASH=$COMMIT_HASH,BASE_IMG_NAME=$BASE_IMG_NAME,BASE_IMG_DIGEST=$BASE_IMG_DIGEST" \
     publish
