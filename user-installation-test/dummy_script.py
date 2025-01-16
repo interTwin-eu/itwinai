@@ -1,1 +1,2 @@
-impport itwinai
+def main():
+    pass
