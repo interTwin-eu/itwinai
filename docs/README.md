@@ -23,7 +23,7 @@ source .venv-docs/bin/activate
 
 # Choose the appropriate command for your OS here
 # pip install ".[torch,docs,macos]" 
-pip install ".[torch,docs,linux]"
+pip install ".[torch,docs]"
 
 # Move to the docs folder and build them using Sphinx
 cd docs
