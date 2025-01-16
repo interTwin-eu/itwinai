@@ -325,11 +325,12 @@ class Itwinai:
         # Test locally
         await self.test_local()
 
-        # Publish to registry with random hash
-        await self.publish()
+        # TODO: uncomment once interlink cluster is back online
+        # # Publish to registry with random hash
+        # await self.publish()
 
         # Test on HPC with
-        await self.test_hpc(kubeconfig=kubeconfig)
+        # await self.test_hpc(kubeconfig=kubeconfig)
 
         # Publish to registry with final hash
         itwinai_version = (
