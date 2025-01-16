@@ -34,8 +34,6 @@ jobs:
       # Default environment names are ".venv-pytorch" and ".venv-tf"
       - name: Run pytest for workflows
         shell: bash -l {0}
-        run: |
-          .venv-pytorch/bin/pip install prov4ml@git+https://github.com/matbun/ProvML@new-main &&
-          .venv-pytorch/bin/pytest -v ./tests/ -m "not hpc"
+        run: .venv-pytorch/bin/pytest -v ./tests/ -m "not hpc"
 
 
