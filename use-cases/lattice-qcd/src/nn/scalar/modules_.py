@@ -282,6 +282,8 @@ class SplineNet_(SplineNet, Module_):
     """
 
     def forward(self, x, log0=0):
+        # print(f"Input shape: {x.shape}")
+        # assert False
         spline = self.make_spline()
         if len(self.spline_shape) > 0:
             fx, g = spline(x, grad=True)  # g is gradient of the spline @ x
