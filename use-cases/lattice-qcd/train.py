@@ -19,20 +19,11 @@ def make_model():
     model = Model(net_=net_, prior=prior, action=action)
     return model
 
-def fit_func(
-        model,
-        n_epochs=5000,
-        batch_size=1024,
-        hyperparam={'fused': True},
-    ):
-    """Training function to fit model."""
-    model.fit(
-        n_epochs=n_epochs,
-        batch_size=batch_size,
-        hyperparam=hyperparam,
-    )
-
 def main():
+    hyperparams = {"fused": True}
+    n_epochs = 5000
+    batch_size = 1024
+
     if torch.cuda.is_available():
         # Initialize distributed backend
         dist.init_process_group(backend="nccl")
@@ -69,8 +60,11 @@ def main():
         if grank == 0: 
             start_time = time.time()
 
-        # Train model
-        fit_func(model)
+        model.fit(
+            n_epochs=n_epochs,
+            batch_size=batch_size,
+            hyperparam=hyperparams,
+        )
 
         if grank == 0: 
             assert start_time is not None
@@ -81,10 +75,12 @@ def main():
         # Destroy distributed process group
         dist.destroy_process_group()
     else:
-        # Create and set up model
         model = make_model()
-        # Train model
-        fit_func(model)
+        model.fit(
+            n_epochs=n_epochs,
+            batch_size=batch_size,
+            hyperparam=hyperparams,
+        )
 
 if __name__ == "__main__":
     main()
