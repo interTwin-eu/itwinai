@@ -48,3 +48,6 @@ jobs:
           flavour-name: ${{ matrix.config.flavour-name }}
           tag-template: ${{ matrix.config.tag-template }}
           skip-hpc: ${{ matrix.config.skip-hpc }}
+          docker-token: ${{ secrets.DOCKER_TOKEN }}
+          dagger-cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }} 
+          kubeconfig-str: ${{ secrets.KUBECONFIG_INFN }}

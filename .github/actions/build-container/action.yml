@@ -20,6 +20,16 @@ inputs:
   skip-hpc:
     description: "Flag to skip HPC-related tests"
     required: false
+  docker-token:
+    description: "Docker secret auth token"
+    required: true
+  kubeconfig-str:
+    description: "Kubeconfig secret"
+    required: true
+  dagger-cloud-token:
+    description: "Dagger cloud secret token"
+    required: true
+  
 
 runs:
   using: "composite"
@@ -40,12 +50,14 @@ runs:
       uses: actions/checkout@v4
 
     - name: Delete unnecessary tools and packages
+      shell: bash
       run: |
         rm -rf /opt/hostedtoolcache &&
         curl -fsSL https://raw.githubusercontent.com/apache/flink/02d30ace69dc18555a5085eccf70ee884e73a16e/tools/azure-pipelines/free_disk_space.sh | bash
 
     - name: Get Repo Owner
       id: get_repo_owner
+      shell: bash
       run: echo "name=repo_owner::$(echo ${{ github.repository_owner }} | tr '[:upper:]' '[:lower:]')" >> "$GITHUB_OUTPUT"
 
     - name: Login to GitHub Container Registry
@@ -53,9 +65,10 @@ runs:
       with:
         registry: ghcr.io
         username: ${{ github.actor }}
-        password: ${{ secrets.DOCKER_TOKEN }}
+        password: ${{ input.docker-token }}
 
     - name: Prepare Environment Variables
+      shell: bash
       run: |
         echo "COMMIT_HASH=$(git rev-parse --verify HEAD)" >> "$GITHUB_ENV"
         BASE_IMG_DIGEST=$(echo "${{ inputs.base-img-name }}" | cut -d ':' -f 1)@$(docker buildx imagetools inspect ${{ inputs.base-img-name }} | grep "Digest:" | head -n 1 | awk '{print $2}')
@@ -79,5 +92,7 @@ runs:
           --framework=TORCH
           --tag-template=${{ inputs.tag-template }}
           ${{ inputs.skip-hpc && '--skip-hpc' || '' }}
-        cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
+        cloud-token: ${{ input.dagger-cloud-token }}
         version: "latest"
+      env:
+          KUBECONFIG_STR: ${{ input.kubeconfig-str }}
