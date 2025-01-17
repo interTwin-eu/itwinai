@@ -36,8 +36,8 @@ jobs:
             skip-hpc: true
           - base-img-name: "jupyter/scipy-notebook:python-3.10.11"
             dockerfile: "../env-files/torch/jupyter/slim.Dockerfile"
-            flavour-name: "jhub-slim"
-            tag-template: "jhub-slim-@{itwinai_version}-torch@{framework_version}-@{os_version}"
+            flavour-name: "jlab-slim"
+            tag-template: "jlab-slim-@{itwinai_version}-torch@{framework_version}-@{os_version}"
             skip-hpc: true
 
     steps:

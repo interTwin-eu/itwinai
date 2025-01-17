@@ -8,7 +8,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "itwinai"
-version = "0.2.3"
+version = "0.2.4"
 description = "AI and ML workflows module for scientific digital twins."
 readme = "README.md"
 requires-python = ">=3.10"

@@ -16,6 +16,8 @@ FROM nvcr.io/nvidia/pytorch:24.05-py3 AS build
 RUN apt-get update && apt-get install -y \
     build-essential \
     curl \
+    libopenmpi-dev \
+    python3-mpi4py \
     python3.10-venv
 
 ENV VIRTUAL_ENV=/opt/venv \
@@ -42,22 +44,27 @@ ENV HOROVOD_WITH_PYTORCH=1 \
     DS_BUILD_STOCHASTIC_TRANSFORMER=0 \
     DS_BUILD_TRANSFORMER_INFERENCE=0
 
-# TODO: replace mpi4py build with install of linux binary "python3-mpi4py"
-# User /usr/local/bin/python3.10 explicitly to force /opt/venv/bin/python to point to python3.10. Needed to link
-# /usr/local/bin/python3.10 (in the app image) to /usr/bin/python3.10 (in the builder image)
+# # TODO: replace mpi4py build with install of linux binary "python3-mpi4py"
+# # User /usr/local/bin/python3.10 explicitly to force /opt/venv/bin/python to point to python3.10. Needed to link
+# # /usr/local/bin/python3.10 (in the app image) to /usr/bin/python3.10 (in the builder image)
+# RUN /usr/bin/python3.10 -m venv /opt/venv \
+#     && pip install --no-cache-dir --upgrade pip \
+#     # https://github.com/mpi4py/mpi4py/pull/431
+#     && env SETUPTOOLS_USE_DISTUTILS=local python -m pip install --no-cache-dir mpi4py \
+#     && pip install --no-cache-dir \
+#     # Needed to install horovod
+#     wheel
+
 RUN /usr/bin/python3.10 -m venv /opt/venv \
     && pip install --no-cache-dir --upgrade pip \
-    # https://github.com/mpi4py/mpi4py/pull/431
-    && env SETUPTOOLS_USE_DISTUTILS=local python -m pip install --no-cache-dir mpi4py \
-    && pip install --no-cache-dir \
     # Needed to install horovod
-    wheel
+    && pip install --no-cache-dir wheel
 
 # Install itwinai with torch
 WORKDIR /app
 COPY pyproject.toml pyproject.toml
 COPY src src
-RUN pip install --no-cache-dir .[torch,dev] --extra-index-url https://download.pytorch.org/whl/cu124
+RUN pip install --no-cache-dir .[torch,tf,dev] --extra-index-url https://download.pytorch.org/whl/cu124
 
 # Install DeepSpeed, Horovod and Ray
 RUN CONTAINER_TORCH_VERSION="$(python -c 'import torch;print(torch.__version__)')" \
@@ -71,6 +78,7 @@ RUN CONTAINER_TORCH_VERSION="$(python -c 'import torch;print(torch.__version__)'
 RUN itwinai sanity-check --torch \
     --optional-deps deepspeed \
     --optional-deps horovod \
+    --optional-deps prov4ml \
     --optional-deps ray
 
 # App image
@@ -84,21 +92,26 @@ RUN ln -s /usr/local/bin/python3.10 /usr/bin/python3.10
 
 RUN apt-get update && apt-get install -y \
     build-essential \
-    wget \
+    # OpenMPI dev library needed to build Horovod
+    libopenmpi-dev \
+    # mpi4py, which may be needed and also installs mpirun
+    python3-mpi4py \
+    # # Needed to pull OpenMPI
+    # wget \
     && apt-get clean -y && rm -rf /var/lib/apt/lists/*
 
-# TODO: consider installing OpenMPI through libopenmpi-dev and python3-mpi4py instead
-# OpenMPI: consider installing mpi4py binary for linux instead
-WORKDIR /tmp/ompi
-ENV OPENMPI_VERSION=4.1.6 \
-    OPENMPI_MINOR=4.1 
-ENV OPENMPI_URL="https://download.open-mpi.org/release/open-mpi/v${OPENMPI_MINOR}/openmpi-${OPENMPI_VERSION}.tar.gz" 
-ENV OPENMPI_DIR=/opt/openmpi-${OPENMPI_VERSION} 
-ENV PATH="${OPENMPI_DIR}/bin:${PATH}" 
-ENV LD_LIBRARY_PATH="${OPENMPI_DIR}/lib:${LD_LIBRARY_PATH}" 
-ENV MANPATH=${OPENMPI_DIR}/share/man:${MANPATH}
-RUN wget -q -O openmpi-$OPENMPI_VERSION.tar.gz $OPENMPI_URL && tar xzf openmpi-$OPENMPI_VERSION.tar.gz \
-    && cd openmpi-$OPENMPI_VERSION && ./configure --prefix=$OPENMPI_DIR && make install
+# # TODO: consider installing OpenMPI through libopenmpi-dev and python3-mpi4py instead
+# # OpenMPI: consider installing mpi4py binary for linux instead
+# WORKDIR /tmp/ompi
+# ENV OPENMPI_VERSION=4.1.6 \
+#     OPENMPI_MINOR=4.1 
+# ENV OPENMPI_URL="https://download.open-mpi.org/release/open-mpi/v${OPENMPI_MINOR}/openmpi-${OPENMPI_VERSION}.tar.gz" 
+# ENV OPENMPI_DIR=/opt/openmpi-${OPENMPI_VERSION} 
+# ENV PATH="${OPENMPI_DIR}/bin:${PATH}" 
+# ENV LD_LIBRARY_PATH="${OPENMPI_DIR}/lib:${LD_LIBRARY_PATH}" 
+# ENV MANPATH=${OPENMPI_DIR}/share/man:${MANPATH}
+# RUN wget -q -O openmpi-$OPENMPI_VERSION.tar.gz $OPENMPI_URL && tar xzf openmpi-$OPENMPI_VERSION.tar.gz \
+#     && cd openmpi-$OPENMPI_VERSION && ./configure --prefix=$OPENMPI_DIR && make install
 
 # Activate the virtualenv in the container
 # See here for more information:
