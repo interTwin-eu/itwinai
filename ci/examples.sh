@@ -99,10 +99,3 @@ dagger call --name="${COMMIT_HASH}-torch-jlab" \
         --build-args="COMMIT_HASH=$COMMIT_HASH,BASE_IMG_NAME=$BASE_IMG_NAME,BASE_IMG_DIGEST=$BASE_IMG_DIGEST" \
     test-local
 
-############################
-export COMMIT_HASH=$(git rev-parse --verify HEAD)
-export BASE_IMG_NAME="python:3.10-slim"
-export BASE_IMG_DIGEST="$(echo "$BASE_IMG_NAME" | cut -d ':' -f 1)@$(docker buildx imagetools inspect $BASE_IMG_NAME | grep "Digest:" | head -n 1 | awk '{print $2}')"
-dagger call --name="${COMMIT_HASH}-torch-slim" \
-    build-container --context=.. --dockerfile=../env-files/torch/slim2.Dockerfile \
-    test-local
