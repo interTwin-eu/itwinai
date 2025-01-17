@@ -60,6 +60,8 @@ exclude_patterns = [
     ".DS_Store",
     "requirements.txt",
     "README.md",
+    "testing-with-pytest.md",
+    "working-with-containers.md",
 ]
 suppress_warnings = ["myst.xref_missing", "myst.header"]
 
