@@ -13,13 +13,13 @@ ARG BASE_IMG_NAME=python:3.10-slim
 
 FROM nvcr.io/nvidia/pytorch:24.05-py3 AS build
 
-# RUN apt-get update && apt-get install -y --no-install-recommends \
-#     build-essential \
-#     curl \
-#     libopenmpi-dev \
-#     python3-mpi4py \
-#     python3.10-venv \
-#     && apt-get clean -y && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    # build-essential \
+    # curl \
+    # libopenmpi-dev \
+    # python3-mpi4py \
+    python3.10-venv \
+    && apt-get clean -y && rm -rf /var/lib/apt/lists/*
 
 ENV VIRTUAL_ENV=/opt/venv \
     PATH="/opt/venv/bin:$PATH"
