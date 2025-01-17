@@ -1,0 +1,180 @@
+# General configuration
+experiment_name: "itwinai"
+experiment_run: "vwc_actevap"
+
+work_dir: /mnt/CEPH_PROJECTS/InterTwin/hython_model_run
+
+train_temporal_range: ["2016-01-01", "2018-12-31"]
+valid_temporal_range: ["2019-01-01", "2020-12-31"]
+test_temporal_range: ["2019-01-01", "2020-12-31"]
+
+seed: 10 
+
+device: "cuda:0"
+
+# === Model ===
+
+model: cudalstm
+
+hidden_size: 136
+
+dropout: 0.4
+
+# === Training ===
+
+hython_trainer: rnntrainer
+
+distributed: False
+
+loss_fn:
+  _target_: hython.losses.RMSELoss
+    
+metric_fn:
+  _target_: hython.metrics.MSEMetric
+
+optimizer: adam
+
+lr_scheduler:
+  mode: min
+  factor: 0.5
+  patience: 10
+
+seq_length: 120
+
+learning_rate: 0.001
+
+batch: 256
+
+epochs: 30
+
+gradient_clip: null
+
+target_weights: even # null, even, or dict
+
+# > Donwsampling < 
+
+# spatial downsampling
+train_downsampler: #None
+  _target_: hython.sampler.downsampler.RegularIntervalDownsampler
+  intervals: [3,3]
+  origin: [0,0]
+
+valid_downsampler: #None
+  _target_: hython.sampler.downsampler.RegularIntervalDownsampler
+  intervals: [3,3]
+  origin: [1,1]
+
+# temporal downsampling
+temporal_downsampling: True
+temporal_subset: [200, 150]
+
+
+# === Data ===
+
+dataset: Wflow1d
+
+data_dir: /mnt/CEPH_PROJECTS/InterTwin/hydrologic_data/surrogate_input
+
+data_file: adg1km_eobs_preprocessed.zarr
+
+static_categorical_inputs:
+   - wflow_landuse
+   - wflow_soil
+
+static_inputs:
+  - thetaS
+  - thetaR
+  - KsatVer
+  - c
+  - f
+
+dynamic_inputs:
+  - precip
+  - pet
+  - temp
+  
+target_variables:
+  - vwc
+
+mask_variables:
+  - mask_missing
+  - mask_lake
+
+# Scaling
+
+scaling_variant: minmax
+
+
+# == Pipeline == 
+
+rnn_training_pipeline:
+  class_path: itwinai.pipeline.Pipeline
+  init_args:
+    steps:
+      - class_path: data.RNNDatasetGetterAndPreprocessor
+        init_args:
+          surrogate_input: ${data_dir}/${data_file}
+          dynamic_inputs: ${dynamic_inputs}
+          static_inputs: ${static_inputs}
+          target_variables: ${target_variables}
+          mask_variables: ${mask_variables}
+          train_temporal_range: ${train_temporal_range}
+          valid_temporal_range: ${valid_temporal_range}
+          dataset: ${dataset}
+          scaling_variant: ${scaling_variant}
+          experiment_name: ${experiment_name}
+          experiment_run: ${experiment_run}
+          work_dir: ${work_dir}
+          data_dir: ${data_dir}
+          data_file: ${data_file}
+          train_downsampler: ${train_downsampler}
+          valid_downsampler: ${valid_downsampler}
+      - class_path: trainer.RNNDistributedTrainer
+        init_args:
+          model: ${model}
+          config:
+            experiment: ${experiment_name}/${experiment_run}
+            experiment_name: ${experiment_name}
+            experiment_run: ${experiment_run}
+            work_dir: ${work_dir}
+            batch_size: ${batch}
+            learning_rate: ${learning_rate}
+            num_workers_dataloader: 1
+            hython_trainer: ${hython_trainer}
+            temporal_downsampling: ${temporal_downsampling}
+            temporal_subset: ${temporal_subset}
+            seq_length: ${seq_length}
+            target_variables: ${target_variables}
+            distributed: ${distributed}
+            dynamic_inputs: ${dynamic_inputs}
+            static_inputs: ${static_inputs}
+
+            optimizer: ${optimizer}
+            lr_scheduler: ${lr_scheduler}
+            target_weights: ${target_weights}
+
+            # model config
+            hidden_size: ${hidden_size}
+            dropout: ${dropout}
+
+            loss_fn: ${loss_fn}
+            metric_fn: ${metric_fn}
+
+            gradient_clip: ${gradient_clip}
+
+          strategy: sequential
+          epochs: ${epochs}
+          random_seed: ${seed}
+          logger:
+            class_path: itwinai.loggers.LoggersCollection
+            init_args:
+              loggers:
+                - class_path: itwinai.loggers.ConsoleLogger
+                  init_args:
+                    log_freq: 1
+                # - class_path: itwinai.loggers.MLFlowLogger
+                #   init_args:
+                #     experiment_name: ${experiment_name}
+                #     run_name: ${experiment_run}
+                #     log_freq: batch
+                #     savedir: /home/iferrario/dev/hython/hython/itwinai/mllogs
