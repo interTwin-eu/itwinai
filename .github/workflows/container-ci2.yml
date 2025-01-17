@@ -19,6 +19,8 @@ jobs:
     strategy:
       matrix:
         config:
+          # Note: in the tag template we replace '$' with '@' as otherwise the GH action will
+          # try to interpolate the values, breaking the template  
           - base-img-name: "nvcr.io/nvidia/pytorch:24.05-py3"
             dockerfile: "../env-files/torch/Dockerfile"
             flavour-name: "torch"
@@ -27,12 +29,12 @@ jobs:
           - base-img-name: "python:3.10-slim"
             dockerfile: "../env-files/torch/slim.Dockerfile"
             flavour-name: "torch-slim"
-            tag-template: "$[itwinai_version]-slim-torch$[framework_version]-$[os_version]"
+            tag-template: "@{itwinai_version}-slim-torch@{framework_version}-@{os_version}"
             skip-hpc: true
           - base-img-name: "jupyter/scipy-notebook:python-3.10.11"
             dockerfile: "../env-files/torch/jupyter/slim.Dockerfile"
             flavour-name: "jhub-slim"
-            tag-template: "jhub-slim-${itwinai_version}-torch${framework_version}-${os_version}"
+            tag-template: "jhub-slim-@{itwinai_version}-torch@{framework_version}-@{os_version}"
             skip-hpc: true
 
     steps:
