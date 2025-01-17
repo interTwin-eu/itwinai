@@ -388,9 +388,8 @@ class Itwinai:
                     ]
                 ).stdout()
             ).strip()
-        # In GH actions ${...} is interpolated, so we replace curly with square
-        tag_template = tag_template.replace("[", "{").replace("]", "}")
-        tag = Template(tag_template).substitute(
+        # In GH actions ${...} is interpolated, so we replace $ with @
+        tag = Template(tag_template.replace("@", "$")).substitute(
             itwinai_version=itwinai_version,
             framework_version=framework_version,
             os_version=os_version,

@@ -22,7 +22,7 @@ jobs:
           - base-img-name: "nvcr.io/nvidia/pytorch:24.05-py3"
             dockerfile: "../env-files/torch/Dockerfile"
             flavour-name: "torch"
-            tag-template: "$${itwinai_version}-torch$${framework_version}-$${os_version}"
+            tag-template: "@{itwinai_version}-torch@{framework_version}-@{os_version}"
             skip-hpc: true
           - base-img-name: "python:3.10-slim"
             dockerfile: "../env-files/torch/slim.Dockerfile"
