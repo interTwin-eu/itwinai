@@ -29,7 +29,7 @@ or the
 depending on whether you are a user or developer
 
 For information about how to use containers or how to test with pytest, you can look
-at the following documents: 
+at the following documents:
 
 - [Working with containers](/docs/working-with-containers.md)
 - [Testing with pytest](/docs/testing-with-pytest.md)
