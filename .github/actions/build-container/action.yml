@@ -1,0 +1,91 @@
+# --------------------------------------------------------------------------------------
+# Part of the interTwin Project: https://www.intertwin.eu/
+#
+# Created by: Matteo Bunino
+#
+# Credit:
+# - Matteo Bunino <matteo.bunino@cern.ch> - CERN
+# --------------------------------------------------------------------------------------
+
+name: "Build and Test Container"
+description: "Builds, tests, and optimizes disk space for a container image"
+inputs:
+  base-img-name:
+    description: "Base image name"
+    required: true
+  dockerfile:
+    description: "Path to the Dockerfile"
+    required: true
+  flavour-name:
+    description: "Name of the container favlour, such as 'torch', 'torch-slim', and 'jhub-slim'"
+    required: true
+  tag-template:
+    description: "Tag template for the image"
+    required: true
+  stage:
+    description: "Stage indicating where to push the final image, such as DEV, PRODUCTION, and CVMFS"
+    required: false
+    default: "DEV"
+  skip-hpc:
+    description: "Flag to skip HPC-related tests"
+    required: false
+runs:
+  using: "composite"
+  steps:
+    - name: Maximize Disk Space
+      uses: easimon/maximize-build-space@v10
+      with:
+        # Reserve space on root for docker/dagger cache
+        root-reserve-mb: 35000
+        overprovision-lvm: true
+        swap-size-mb: 1024
+        remove-dotnet: true
+        remove-android: true
+        remove-haskell: true
+        remove-codeql: true
+
+    - name: Delete unnecessary tools and packages
+      run: |
+        rm -rf /opt/hostedtoolcache &&
+        curl -fsSL https://raw.githubusercontent.com/apache/flink/02d30ace69dc18555a5085eccf70ee884e73a16e/tools/azure-pipelines/free_disk_space.sh | bash
+
+    - name: Checkout
+        uses: actions/checkout@v4
+
+    - name: Get Repo Owner
+      id: get_repo_owner
+      run: echo "name=repo_owner::$(echo ${{ github.repository_owner }} | tr '[:upper:]' '[:lower:]')" >> "$GITHUB_OUTPUT"
+
+    - name: Login to GitHub Container Registry
+      uses: docker/login-action@v3
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ secrets.DOCKER_TOKEN }}
+
+    - name: Prepare Environment Variables
+      run: |
+        echo "COMMIT_HASH=$(git rev-parse --verify HEAD)" >> "$GITHUB_ENV"
+        BASE_IMG_DIGEST=$(echo "${{ inputs.base-img-name }}" | cut -d ':' -f 1)@$(docker buildx imagetools inspect ${{ inputs.base-img-name }} | grep "Digest:" | head -n 1 | awk '{print $2}')
+        echo "BASE_IMG_DIGEST=$BASE_IMG_DIGEST" >> "$GITHUB_ENV"
+        docker system prune -af
+
+    - name: Run Integration Test
+      uses: dagger/dagger-for-github@v7
+      with:
+        workdir: ci
+        verb: call
+        args: >-
+          --name="${{ env.COMMIT_HASH }}-${{ inputs.flavour-name }}"
+          build-container
+          --context=..
+          --dockerfile=${{ inputs.dockerfile }}
+          --build-args="COMMIT_HASH=${{ env.COMMIT_HASH }},BASE_IMG_NAME=${{ inputs.base-img-name }},BASE_IMG_DIGEST=${{ env.BASE_IMG_DIGEST }}"
+          test-n-publish
+          --kubeconfig=env:KUBECONFIG_STR
+          --stage=${{ inputs.stage }}
+          --framework=TORCH
+          --tag-template=${{ inputs.tag-template }}
+          ${{ inputs.skip-hpc && '--skip-hpc' || '' }}
+        cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
+        version: "latest"
