@@ -14,6 +14,10 @@ the flexibility to be extended through third-party plugins, empowering AI-driven
 
 See the latest version of our docs [here](https://itwinai.readthedocs.io/).
 
+> [!WARNING]
+> Branch protection rules are applied to all branches which names
+> match this regex: `[dm][ea][vi]*` . When creating new branches,
+
 ## Installation
 
 For instructions on how to install `itwinai`, please refer to the 
@@ -22,13 +26,10 @@ or the
 [developer installation guide](https://itwinai.readthedocs.io/installation/developer_installation.html),
 depending on whether you are a user or developer
 
-> [!WARNING]
-> Branch protection rules are applied to all branches which names
-> match this regex: `[dm][ea][vi]*` . When creating new branches,
-
 
 ### Docker installation
-To  build a Docker image for the pytorch version (need to adapt `TAG`):
+
+To build a Docker image for the pytorch version (need to adapt `TAG`):
 
 ```bash
 # Local
