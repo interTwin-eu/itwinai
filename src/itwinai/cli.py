@@ -26,7 +26,7 @@ from typing import List, Optional
 import hydra
 import typer
 from hydra.utils import instantiate
-from omegaconf import DictConfig, OmegaConf, errors
+from omegaconf import OmegaConf, errors
 from typing_extensions import Annotated
 
 from itwinai.utils import make_config_paths_absolute

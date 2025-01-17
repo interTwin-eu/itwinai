@@ -10,10 +10,11 @@
 """Utilities for itwinai package."""
 
 import inspect
+import os
 import sys
 from collections.abc import MutableMapping
 from typing import Callable, Dict, Hashable, Tuple, Type
-import os
+
 import yaml
 
 
