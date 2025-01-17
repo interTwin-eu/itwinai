@@ -13,6 +13,9 @@ name: Container CI 2
 on:
   push:
 
+  release:
+    types: [created]
+
 jobs:
   integration-test:
     runs-on: ubuntu-latest
@@ -52,3 +55,4 @@ jobs:
           docker-token: ${{ secrets.DOCKER_TOKEN }}
           dagger-cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }} 
           kubeconfig-str: ${{ secrets.KUBECONFIG_INFN }}
+          stage: ${{ github.event_name == 'release' && github.event.action == 'created' && 'PRODUCTION' || 'DEV' }}
