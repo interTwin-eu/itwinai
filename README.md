@@ -14,130 +14,20 @@ the flexibility to be extended through third-party plugins, empowering AI-driven
 
 See the latest version of our docs [here](https://itwinai.readthedocs.io/).
 
-If you are a **developer**, please refer to the [developers installation guide](#installation-for-developers).
+## Installation
 
-## Installation for developers
-
-If you are contributing to this repository, please continue below for
-more advanced instructions.
+For instructions on how to install `itwinai`, please refer to the 
+[user installation guide](https://itwinai.readthedocs.io/installation/user_installation.html)
+or the 
+[developer installation guide](https://itwinai.readthedocs.io/installation/developer_installation.html),
+depending on whether you are a user or developer
 
 > [!WARNING]
 > Branch protection rules are applied to all branches which names
 > match this regex: `[dm][ea][vi]*` . When creating new branches,
 
-### Clone the itwinai repository
 
-```bash
-git clone [--recurse-submodules] git@github.com:interTwin-eu/itwinai.git
-```
-
-### Install itwinai environment
-
-In this project, we are using `uv` as a project-wide package manager. Therefore, if
-you are a developer, you should see the [uv tutorial](/docs/uv-tutorial.md) after reading
-the following `pip` tutorial.
-
-#### Installation using pip
-
-##### Creating a venv
-
-You can install the `itwinai` environment for development using `pip`. First, however,
-you would want to make a Python venv if you haven't already. Make sure you have
-Python installed (on HPC you have to load it with `module load Python`), and then you
-can create a venv with the following command:
-
-```bash
-python -m venv <name-of-venv>
-```
-
-For example, if I wanted to create a venv in the directory `.venv` (which is useful if
-you use e.g. `uv`), then I would do:
-
-```bash
-python -m venv .venv
-```
-
-After this you can activate your venv using the following command:
-
-```bash
-source .venv/bin/activate
-```
-
-Now anything you pip install will be installed in your venv and if you run any python
-commands they will use the version from your venv.
-
-##### Installation of packages
-
-We provide some *extras* that can be activated depending on which platform you are
-using.
-
-- `dev` for development purposes. Includes libraries for testing and tensorboard etc.
-- `torch` for installation with PyTorch.
-
-If you want to install PyTorch using CUDA then you also have to add an
-`--extra-index-url` to the CUDA version that you want. Since you are developing the
-library, you also want to enable the editable flag, `-e`, so that you don't have to
-reinstall everything every time you make a change. If you are on HPC, then you will
-usually want to add the `--no-cache-dir` flag to avoid filling up your `~/.cache`
-directory, as you can very easily reach your disk quota otherwise. An example of a
-complete command for installing as a developer on HPC with CUDA thus becomes:
-
-```bash
-pip install -e ".[torch,dev,tf]" \
-    --no-cache-dir \
-    --extra-index-url https://download.pytorch.org/whl/cu121
-```
-
-If you wanted to install this locally on **macOS** (i.e. without CUDA) with PyTorch, you
-would do the following instead:
-
-```bash
-pip install -e ".[torch,dev,tf]"
-```
-
-If you want to use [Prov4ML](https://github.com/HPCI-Lab/yProvML) logger, you need to install
-it explicitly since it is only available on GitHub. Please refer to the
-[users installation](#install-itwinai-for-users)
-to know more on how to install Prov4ML.
-
-<!-- You can create the Python virtual environments using our predefined Makefile targets. -->
-
-#### Horovod and DeepSpeed
-
-The above does not install `Horovod` and `DeepSpeed`, however, as they require a
-specialized [script](env-files/torch/install-horovod-deepspeed-cuda.sh). If you do not
-require CUDA, then you can install them using `pip` as follows:
-
-```bash
-pip install --no-cache-dir --no-build-isolation git+https://github.com/horovod/horovod.git
-pip install --no-cache-dir --no-build-isolation deepspeed
-```
-
-#### PyTorch (+ Lightning) virtual environment with makefiles
-
-Makefile targets for environment installation:
-
-- Juelich Supercomputer (JSC): `torch-gpu-jsc`
-- Vega supercomputer: `torch-env-vega`
-- In any other cases, when CUDA is available: `torch-env`
-- In any other cases, when CUDA **NOT** is available (CPU-only installation): `torch-env-cpu`
-
-For instance, on a laptop with a CUDA-compatible GPU you can use:
-
-```bash
-make torch-env 
-```
-
-When not on an HPC system, you can activate the python environment directly with:
-
-```bash
-source .venv-pytorch/bin/activate
-```
-
-Otherwise, if you are on an HPC system, please refer to
-[this section](#activate-itwinai-environment-on-hpc)
-explaining how to load the required environment modules before the python environment.
-
+### Docker installation
 To  build a Docker image for the pytorch version (need to adapt `TAG`):
 
 ```bash
@@ -149,32 +39,8 @@ docker buildx build -t ghcr.io/intertwin-eu/itwinai:TAG -f env-files/torch/Docke
 docker push ghcr.io/intertwin-eu/itwinai:TAG
 ```
 
-#### TensorFlow virtual environment
 
-Makefile targets for environment installation:
-
-- Juelich Supercomputer (JSC): `tf-gpu-jsc`
-- Vega supercomputer: `tf-env-vega`
-- In any other case, when CUDA is available: `tensorflow-env`
-- In any other case, when CUDA **NOT** is available (CPU-only installation): `tensorflow-env-cpu`
-
-For instance, on a laptop with a CUDA-compatible GPU you can use:
-
-```bash
-make tensorflow-env
-```
-
-When not on an HPC system, you can activate the python environment directly with:
-
-```bash
-source .venv-tf/bin/activate
-```
-
-Otherwise, if you are on an HPC system, please refer to
-[this section](#activate-itwinai-environment-on-hpc)
-explaining how to load the required environment modules before the python environment.
-
-To  build a Docker image for the tensorflow version (need to adapt `TAG`):
+To  build a Docker image for the TensorFlow version (need to adapt `TAG`):
 
 ```bash
 # Local
@@ -183,82 +49,6 @@ docker buildx build -t itwinai:TAG -f env-files/tensorflow/Dockerfile .
 # Ghcr.io
 docker buildx build -t ghcr.io/intertwin-eu/itwinai:TAG -f env-files/tensorflow/Dockerfile .
 docker push ghcr.io/intertwin-eu/itwinai:TAG
-```
-
-### Activate itwinai environment on HPC
-
-Usually, HPC systems organize their software in modules which need to be imported by the users
-every time they open a new shell, **before** activating a Python virtual environment.
-
-Below you can find some examples on how to load the correct environment modules on the HPC
-systems we are currently working with.
-
-#### Load modules before PyTorch virtual environment
-
-Commands to be executed before activating the python virtual environment:
-
-- Juelich Supercomputer (JSC):
-
-    ```bash
-    ml --force purge
-    ml Stages/2024 GCC OpenMPI CUDA/12 cuDNN MPI-settings/CUDA
-    ml Python CMake HDF5 PnetCDF libaio mpi4py
-    ```
-
-- Vega supercomputer:
-
-    ```bash
-    ml --force purge
-    ml Python/3.11.5-GCCcore-13.2.0 CMake/3.24.3-GCCcore-11.3.0 mpi4py OpenMPI CUDA/12.3
-    ml GCCcore/11.3.0 NCCL cuDNN/8.9.7.29-CUDA-12.3.0 UCX-CUDA/1.15.0-GCCcore-13.2.0-CUDA-12.3.0
-    ```
-
-- When not on an HPC: do nothing.
-
-For instance, on JSC you can activate the PyTorch virtual environment in this way:
-
-```bash
-# Load environment modules
-ml --force purge
-ml Stages/2024 GCC OpenMPI CUDA/12 cuDNN MPI-settings/CUDA
-ml Python CMake HDF5 PnetCDF libaio mpi4py
-
-# Activate virtual env
-source envAI_hdfml/bin/activate
-```
-
-#### Load modules before TensorFlow virtual environment
-
-Commands to be executed before activating the python virtual environment:
-
-- Juelich Supercomputer (JSC):
-
-    ```bash
-    ml --force purge
-    ml Stages/2024 GCC/12.3.0 OpenMPI CUDA/12 MPI-settings/CUDA
-    ml Python/3.11 HDF5 PnetCDF libaio mpi4py CMake cuDNN/8.9.5.29-CUDA-12
-    ```
-
-- Vega supercomputer:
-
-    ```bash
-    ml --force purge
-    ml Python/3.11.5-GCCcore-13.2.0 CMake/3.24.3-GCCcore-11.3.0 mpi4py OpenMPI CUDA/12.3
-    ml GCCcore/11.3.0 NCCL cuDNN/8.9.7.29-CUDA-12.3.0 UCX-CUDA/1.15.0-GCCcore-13.2.0-CUDA-12.3.0
-    ```
-
-- When not on an HPC: do nothing.
-
-For instance, on JSC you can activate the TensorFlow virtual environment in this way:
-
-```bash
-# Load environment modules
-ml --force purge
-ml Stages/2024 GCC/12.3.0 OpenMPI CUDA/12 MPI-settings/CUDA
-ml Python/3.11 HDF5 PnetCDF libaio mpi4py CMake cuDNN/8.9.5.29-CUDA-12
-
-# Activate virtual env
-source envAItf_hdfml/bin/activate
 ```
 
 ### Test with `pytest`

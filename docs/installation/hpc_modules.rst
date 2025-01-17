@@ -4,7 +4,7 @@ environments. If you are unsure which modules to load for your application, cont
 your system administrator or refer to your HPC system's documentation for specific
 guidance.
 
-For Juelich Supercomputer (JSC) and Vega Supercomputer, here are the modules you
+For Juelich Supercomputer (JSC) and Vega Supercomputer, these are the modules you
 should load, depending on whether you want ``PyTorch`` or ``TensorFlow`` support:
 
 .. tab-set::

@@ -7,35 +7,7 @@ users.
 
 Requirements: Linux or macOS environment. Windows is not supported. 
 
-Creating a Virtual Environment
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-While not mandatory, creating a virtual environment is highly recommended to isolate
-dependencies and prevent conflicts with other Python projects.
-
-.. warning::
-
-    On high-performance computing (HPC) systems, you must load the appropriate modules
-    before activating your virtual environment to ensure compatibility with system
-    libraries. See the dropdown below for detailed instructions:
-
-    .. dropdown:: HPC Systems
-
-       .. include:: ./hpc_modules.rst
-
-
-If you don't already have a virtual environment, you can create one with the following
-command:
-
-.. code-block:: bash 
-
-   python -m venv <name-of-venv>
-
-Remember to replace ``<name-of-venv>`` with the name you want for your virtual
-environment. Now, you can start your virtual environment with the following command: 
-
-.. code-block:: bash 
-
-   source <name-of-venv>/bin/activate
+.. include:: ./creating_venv.rst
 
 
 Installing the ``itwinai`` library
@@ -94,18 +66,5 @@ TensorFlow by using extras:
 
        pip install "prov4ml[apple]@git+https://github.com/matbun/ProvML@new-main"
 
-Installing Horovod and Microsoft DeepSpeed
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-If you also want to install Horovod and Microsoft DeepSpeed for distributed ML with
-PyTorch, then make sure to install them **after** ``itwinai``. You can do this with the
-following command:
-
-.. code-block:: bash
-
-    curl -fsSL https://github.com/interTwin-eu/itwinai/raw/main/env-files/torch/install-horovod-deepspeed-cuda.sh | bash
-
-.. warning::
-   
-   Horovod requires ``CMake>=1.13`` and 
-   `other packages <https://horovod.readthedocs.io/en/latest/install_include.html#requirements>`_
-   Make sure to have them installed in your environment before proceeding.
+.. The explanation for installing horovod and DS is the same for developers and users
+.. include:: ./horovod_deepspeed_installation.rst

@@ -63,13 +63,13 @@ particular, if you are a developer you would use one of the following two comman
 you are on HPC with cuda, you would use:
 
 ```bash
-uv sync --no-cache --extra dev --extra nvidia --extra torch --extra tf 
+uv sync --no-cache --extra dev --extra torch --extra tf 
 ```
 
-If you are developing on your local computer with macOS, then you would use:
+If you are developing on your local computer, then you would use:
 
 ```bash
-uv sync --extra torch --extra tf --extra dev --extra macos
+uv sync --extra torch --extra tf --extra dev
 ```
 
 ### Updating the uv.lock file
