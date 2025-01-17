@@ -60,7 +60,6 @@ exclude_patterns = [
     ".DS_Store",
     "requirements.txt",
     "README.md",
-    "uv-tutorial.md",
 ]
 suppress_warnings = ["myst.xref_missing", "myst.header"]
 

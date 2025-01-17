@@ -1,4 +1,4 @@
-User Installation (for non-developers)
+User Installation (for Non-Developers)
 ======================================
 **Author(s)**: Jarl Sondre Sæther (CERN)
 
@@ -10,7 +10,7 @@ Requirements: Linux or macOS environment. Windows is not supported.
 .. include:: ./creating_venv.rst
 
 
-Installing the ``itwinai`` library
+Installing the ``itwinai`` Library
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 You can choose if you want to install ``itwinai`` with support for either PyTorch or
 TensorFlow by using extras:

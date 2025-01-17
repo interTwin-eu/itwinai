@@ -55,6 +55,7 @@ contains thoroughly tested features aligned with the toolkit's most recent relea
 
    installation/user_installation
    installation/developer_installation
+   installation/uv_tutorial
    
 .. toctree::
    :maxdepth: 2
@@ -64,7 +65,6 @@ contains thoroughly tested features aligned with the toolkit's most recent relea
    getting-started/getting_started_with_itwinai
    getting-started/slurm
    getting-started/plugins
-   getting-started/uv-tutorial.md
 
 .. toctree::
    :maxdepth: 2

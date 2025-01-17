@@ -18,13 +18,13 @@ do both with the following command:
 .. The explanation for creating a venv is the same for developers and users
 .. include:: ./creating_venv.rst
 
-Installing the ``itwinai`` library as a developer
+Installing the ``itwinai`` Library as a Developer
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 In this project, we use ``uv`` as a project-wide package manager. Therefore, we suggest
-that you skim through the :doc:`uv tutorial </getting-started/uv-tutorial>` before
+that you skim through the :doc:`uv tutorial </installation/uv_tutorial>` before
 continuing this tutorial.
 
-Optional dependencies (extras)
+Optional Dependencies (extras)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 The ``itwinai`` library has numerous optional dependencies that can be activated when
 installing with ``pip`` through extras: 
@@ -39,7 +39,7 @@ installing with ``pip`` through extras:
 You can at any point in time find (or update) the optional dependencies in the
 ``pyproject.toml`` file in the root of the repository. 
 
-Installing the library itself
+Installing the Library Itself
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 As a developer, you will also install the library using ``pip`` (or ``uv pip`` if you
 wish), but the main difference is that you need to install it as *editable* using the
