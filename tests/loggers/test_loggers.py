@@ -7,10 +7,10 @@
 # - Matteo Bunino <matteo.bunino@cern.ch> - CERN
 # -------------------------------------------------------------------------------------
 
-import pytest
 from unittest.mock import MagicMock, patch
 
 import numpy as np
+import pytest
 
 
 def test_console_logger_log(console_logger):
@@ -35,6 +35,7 @@ def test_wandb_logger_log(wandb_logger):
         wandb_logger.create_logger_context()
         wandb_logger.log(0.5, "test_metric", kind="metric")
         mock_log.assert_called_once_with({"test_metric": 0.5}, commit=True)
+
 
 @pytest.mark.tensorflow
 def test_tensorboard_logger_log_tf(tensorboard_logger_tf):
