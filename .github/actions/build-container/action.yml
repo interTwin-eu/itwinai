@@ -65,7 +65,7 @@ runs:
       with:
         registry: ghcr.io
         username: ${{ github.actor }}
-        password: ${{ input.docker-token }}
+        password: ${{ inputs.docker-token }}
 
     - name: Prepare Environment Variables
       shell: bash
@@ -92,7 +92,7 @@ runs:
           --framework=TORCH
           --tag-template=${{ inputs.tag-template }}
           ${{ inputs.skip-hpc && '--skip-hpc' || '' }}
-        cloud-token: ${{ input.dagger-cloud-token }}
+        cloud-token: ${{ inputs.dagger-cloud-token }}
         version: "latest"
       env:
-          KUBECONFIG_STR: ${{ input.kubeconfig-str }}
+          KUBECONFIG_STR: ${{ inputs.kubeconfig-str }}
