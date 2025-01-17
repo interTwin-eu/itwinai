@@ -20,12 +20,11 @@ See the latest version of our docs [here](https://itwinai.readthedocs.io/).
 
 ## Installation
 
-For instructions on how to install `itwinai`, please refer to the 
+For instructions on how to install `itwinai`, please refer to the
 [user installation guide](https://itwinai.readthedocs.io/installation/user_installation.html)
-or the 
+or the
 [developer installation guide](https://itwinai.readthedocs.io/installation/developer_installation.html),
 depending on whether you are a user or developer
-
 
 ### Docker installation
 
@@ -39,7 +38,6 @@ docker buildx build -t itwinai:TAG -f env-files/torch/Dockerfile .
 docker buildx build -t ghcr.io/intertwin-eu/itwinai:TAG -f env-files/torch/Dockerfile .
 docker push ghcr.io/intertwin-eu/itwinai:TAG
 ```
-
 
 To  build a Docker image for the TensorFlow version (need to adapt `TAG`):
 
