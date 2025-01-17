@@ -44,13 +44,13 @@ runs:
         remove-haskell: true
         remove-codeql: true
 
+    - name: Checkout
+        uses: actions/checkout@v4
+
     - name: Delete unnecessary tools and packages
       run: |
         rm -rf /opt/hostedtoolcache &&
         curl -fsSL https://raw.githubusercontent.com/apache/flink/02d30ace69dc18555a5085eccf70ee884e73a16e/tools/azure-pipelines/free_disk_space.sh | bash
-
-    - name: Checkout
-        uses: actions/checkout@v4
 
     - name: Get Repo Owner
       id: get_repo_owner
