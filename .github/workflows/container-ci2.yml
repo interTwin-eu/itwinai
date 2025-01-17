@@ -40,14 +40,20 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
+      - name: Prepare Environment Variables
+        shell: bash
+        run: |
+          echo "COMMIT_HASH=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
+
       - name: Build and Test with Custom Action
         uses: ./.github/actions/build-container
         with:
           base-img-name: ${{ matrix.config.base-img-name }}
           dockerfile: ${{ matrix.config.dockerfile }}
           flavour-name: ${{ matrix.config.flavour-name }}
-          tag-template: ${{ matrix.config.tag-template }}
+          tag-template: "${{ matrix.config.tag-template }}"
           skip-hpc: ${{ matrix.config.skip-hpc }}
           docker-token: ${{ secrets.DOCKER_TOKEN }}
           dagger-cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }} 
           kubeconfig-str: ${{ secrets.KUBECONFIG_INFN }}
+          commit-hash: ${{ env.COMMIT_HASH }}

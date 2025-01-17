@@ -29,7 +29,10 @@ inputs:
   dagger-cloud-token:
     description: "Dagger cloud secret token"
     required: true
-  
+  commit-hash:
+    description: "commit hash"
+    required: false
+    default: "unk-commit-hash"
 
 runs:
   using: "composite"
@@ -70,7 +73,7 @@ runs:
     - name: Prepare Environment Variables
       shell: bash
       run: |
-        echo "COMMIT_HASH=$(git rev-parse --verify HEAD)" >> "$GITHUB_ENV"
+        echo "COMMIT_HASH=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
         BASE_IMG_DIGEST=$(echo "${{ inputs.base-img-name }}" | cut -d ':' -f 1)@$(docker buildx imagetools inspect ${{ inputs.base-img-name }} | grep "Digest:" | head -n 1 | awk '{print $2}')
         echo "BASE_IMG_DIGEST=$BASE_IMG_DIGEST" >> "$GITHUB_ENV"
         docker system prune -af
@@ -81,11 +84,11 @@ runs:
         workdir: ci
         verb: call
         args: >-
-          --name="${{ env.COMMIT_HASH }}-${{ inputs.flavour-name }}"
+          --name="${{ inputs.commit-hash }}-${{ inputs.flavour-name }}"
           build-container
           --context=..
           --dockerfile=${{ inputs.dockerfile }}
-          --build-args="COMMIT_HASH=${{ env.COMMIT_HASH }},BASE_IMG_NAME=${{ inputs.base-img-name }},BASE_IMG_DIGEST=${{ env.BASE_IMG_DIGEST }}"
+          --build-args="COMMIT_HASH=${{ inputs.commit-hash }},BASE_IMG_NAME=${{ inputs.base-img-name }},BASE_IMG_DIGEST=${{ env.BASE_IMG_DIGEST }}"
           test-n-publish
           --kubeconfig=env:KUBECONFIG_STR
           --stage=${{ inputs.stage }}
