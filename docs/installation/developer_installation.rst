@@ -1,6 +1,5 @@
 Developer Installation
 ======================
-**Author(s)**: Jarl Sondre Sæther (CERN)
 
 This guide provides step-by-step instructions for installing the ``itwinai`` library for
 developers. 
