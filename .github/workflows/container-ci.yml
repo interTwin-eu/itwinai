@@ -7,7 +7,7 @@
 # - Matteo Bunino <matteo.bunino@cern.ch> - CERN
 # --------------------------------------------------------------------------------------
 
-name: Container CI 2
+name: Container CI
 
 # If triggered not on push, but on PR, the commit hash is a bit weird
 on:
