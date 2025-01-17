@@ -84,11 +84,11 @@ runs:
         workdir: ci
         verb: call
         args: >-
-          --name="${{ inputs.commit-hash }}-${{ inputs.flavour-name }}"
+          --name="${{ env.COMMIT_HASH }}-${{ inputs.flavour-name }}"
           build-container
           --context=..
           --dockerfile=${{ inputs.dockerfile }}
-          --build-args="COMMIT_HASH=${{ inputs.commit-hash }},BASE_IMG_NAME=${{ inputs.base-img-name }},BASE_IMG_DIGEST=${{ env.BASE_IMG_DIGEST }}"
+          --build-args="COMMIT_HASH=${{ env.COMMIT_HASH }},BASE_IMG_NAME=${{ inputs.base-img-name }},BASE_IMG_DIGEST=${{ env.BASE_IMG_DIGEST }}"
           test-n-publish
           --kubeconfig=env:KUBECONFIG_STR
           --stage=${{ inputs.stage }}
