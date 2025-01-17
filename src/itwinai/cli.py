@@ -308,6 +308,8 @@ def exec_pipeline():
 
     # Remove 'exec_pipeline' command from CLI args
     sys.argv = sys.argv[1:]
+    # Overwrite hydra default logging behavior
+    sys.argv.append("hydra.output_subdir=null")
 
     # Add current working directory to the module search path
     # so hydra will find the objects defined in the config (usually paths relative to config)
@@ -324,6 +326,8 @@ def _run_with_hydra(cfg):
     """Hydra entry function. Parses a configuration file containing a pipeline definition, and
     instantiates and executes the resulting pipeline object.
     Filters steps if `pipe_steps` is provided, otherwise executes the entire pipeline."""
+
+    # cfg.hydra.run.dir = None
 
     pipe_steps = OmegaConf.select(cfg, "pipe_steps", default=None)
     pipe_key = OmegaConf.select(cfg, "pipe_key", default="training_pipeline")
