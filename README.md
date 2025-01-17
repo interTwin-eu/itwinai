@@ -16,124 +16,6 @@ See the latest version of our docs [here](https://itwinai.readthedocs.io/).
 
 If you are a **developer**, please refer to the [developers installation guide](#installation-for-developers).
 
-## User installation
-
-Requirements:
-
-- Linux or macOS environment. Windows was never tested.
-
-### Python virtual environment
-
-Depending on your environment, there are different ways to
-select a specific python version.
-
-#### Laptop or GPU node
-
-If you are working on a laptop
-or on a simple on-prem setup, you could consider using
-[pyenv](https://github.com/pyenv/pyenv). See the
-[installation instructions](https://github.com/pyenv/pyenv?tab=readme-ov-file#installation). If you are using pyenv,
-make sure to read [this](https://github.com/pyenv/pyenv/wiki#suggested-build-environment).
-
-#### HPC environment
-
-In HPC systems it is more popular to load dependencies using
-Environment Modules or Lmod. If you don't know what modules to load,
-contact the system administrator
-to learn how to select the proper modules.
-
-##### PyTorch environment
-
-Commands to execute every time **before** installing or activating the python virtual
-environment for PyTorch:
-
-- Juelich Supercomputer (JSC):
-
-    ```bash
-    ml --force purge
-    ml Stages/2024 GCC OpenMPI CUDA/12 cuDNN MPI-settings/CUDA
-    ml Python CMake HDF5 PnetCDF libaio mpi4py
-    ```
-
-- Vega supercomputer:
-
-    ```bash
-    ml --force purge
-    ml Python/3.11.5-GCCcore-13.2.0 CMake/3.24.3-GCCcore-11.3.0 mpi4py OpenMPI CUDA/12.3
-    ml GCCcore/11.3.0 NCCL cuDNN/8.9.7.29-CUDA-12.3.0 UCX-CUDA/1.15.0-GCCcore-13.2.0-CUDA-12.3.0
-    ```
-
-##### TensorFlow environment
-
-Commands to execute every time **before** installing or activating the python virtual
-environment for TensorFlow:
-
-- Juelich Supercomputer (JSC):
-
-    ```bash
-    ml --force purge
-    ml Stages/2024 GCC/12.3.0 OpenMPI CUDA/12 MPI-settings/CUDA
-    ml Python/3.11 HDF5 PnetCDF libaio mpi4py CMake cuDNN/8.9.5.29-CUDA-12
-    ```
-
-- Vega supercomputer:
-
-    ```bash
-    ml --force purge
-    ml Python/3.11.5-GCCcore-13.2.0 CMake/3.24.3-GCCcore-11.3.0 mpi4py OpenMPI CUDA/12.3
-    ml GCCcore/11.3.0 NCCL cuDNN/8.9.7.29-CUDA-12.3.0 UCX-CUDA/1.15.0-GCCcore-13.2.0-CUDA-12.3.0
-    ```
-
-### Install itwinai for users
-
-Install itwinai and its dependencies.
-
-```bash
-# First, load the required environment modules, if on an HPC
-
-# Second, create a python virtual environment and activate it
-$ python -m venv ENV_NAME
-$ source ENV_NAME/bin/activate
-```
-
-Install itwinai with support for PyTorch using:
-
-```bash
-pip install itwinai[torch]
-```
-
-or with TensorFlow support using:
-
-```bash
-pip install itwinai[tf]
-
-# Alternatively, if you have access to GPUs
-pip install itwinai[tf-cuda]
-```
-
-If you want to use Prov4ML logger, you need to install it explicitly since it is only
-available on GitHub:
-
-```bash
-# For systems with Nvidia GPUs
-pip install "prov4ml[nvidia]@git+https://github.com/matbun/ProvML@new-main"
-
-# For MacOs
-pip install "prov4ml[apple]@git+https://github.com/matbun/ProvML@new-main"
-```
-
-If you also want to install Horovod and Microsoft DeepSpeed for distributed ML with PyTorch,
-install them *after* itwinai. You can use this command:
-
-```bash
-curl -fsSL https://github.com/interTwin-eu/itwinai/raw/main/env-files/torch/install-horovod-deepspeed-cuda.sh | bash
-```
-
-> [!WARNING]  
-> Horovod requires `CMake>=1.13` and
-> [other packages](https://horovod.readthedocs.io/en/latest/install_include.html#requirements).
-> Make sure to have them installed in your environment before proceeding.
-
 ## Installation for developers
 
 If you are contributing to this repository, please continue below for
@@ -142,8 +24,6 @@ more advanced instructions.
 > [!WARNING]
 > Branch protection rules are applied to all branches which names
 > match this regex: `[dm][ea][vi]*` . When creating new branches,
-> please avoid using names that match that regex, otherwise branch
-> protection rules will block direct pushes to that branch.
 
 ### Clone the itwinai repository
 

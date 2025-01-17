@@ -42,6 +42,8 @@ extensions = [
     "myst_parser",
     "nbsphinx",
     "sphinx.ext.napoleon",
+    "sphinx_copybutton",
+    "sphinx_design",
 ]
 
 source_suffix = {

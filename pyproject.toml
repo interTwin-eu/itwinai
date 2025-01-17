@@ -54,7 +54,6 @@ torch = [
 ]
 tf = ["tensorflow==2.16.*", "tf_keras==2.16.*"]
 tf-cuda = ["tensorflow[and-cuda]==2.16.*", "tf_keras==2.16.*"]
-
 dev = [
   "pytest>=7.4.2",
   "pytest-mock>=3.11.1",
@@ -70,6 +69,8 @@ docs = [
   "IPython>=8.30.0",
   "tensorflow==2.16.*",
   "sphinx-tabs>=3.4.7",
+  "sphinx-copybutton>=0.5.2",
+  "sphinx-design>=0.6.1",
 ]
 hpo = [
   "bayesian-optimization>=2.0.0",
