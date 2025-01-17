@@ -17,6 +17,8 @@ See the latest version of our docs [here](https://itwinai.readthedocs.io/).
 > [!WARNING]
 > Branch protection rules are applied to all branches which names
 > match this regex: `[dm][ea][vi]*` . When creating new branches,
+> please avoid using names that match that regex, otherwise branch
+> protection rules will block direct pushes to that branch.
 
 ## Installation
 
