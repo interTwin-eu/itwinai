@@ -1,9 +1,9 @@
-## Working with Docker containers
+# Working with Docker containers
 
 This section is intended for the developers of itwinai and outlines the practices
 used to manage container images through GitHub Container Registry (GHCR).
 
-### Terminology Recap
+## Terminology Recap
 
 Our container images follow the convention:
 
@@ -30,7 +30,7 @@ Where:
 - `distro` is the OS distro in the container (e.g., Ubuntu Jammy)
 - `jlab-` is prepended to the tag of images including JupyterLab
 
-### Image Names and Their Purpose
+## Image Names and Their Purpose
 
 We use different image names to group similar images under the same namespace:
 
@@ -45,7 +45,7 @@ hashes.
 > as possible. Tags should only be created under this namespace when strictly
 > necessary. Otherwise, this could cause issues for the Unpacker.
 
-### Building a new container
+## Building a new container
 
 Our docker manifests support labels to record provenance information, which can be lately
 accessed by `docker inspect IMAGE_NAME:TAG`.
@@ -67,7 +67,7 @@ docker build \
     .
 ```
 
-### Docker installation
+## Docker installation
 
 To build a Docker image for the pytorch version (need to adapt `TAG`):
 
