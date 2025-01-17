@@ -72,8 +72,6 @@ RUN CONTAINER_TORCH_VERSION="$(python -c 'import torch;print(torch.__version__)'
 
 # Installation sanity check
 RUN itwinai sanity-check --torch \
-    # Needed by TensorBoard logger
-    --optional-deps tensorflow \
     # Microsoft DeepSpeed for distributed ML
     --optional-deps deepspeed \
     # Horovod for distributed ML
