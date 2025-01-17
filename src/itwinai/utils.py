@@ -13,7 +13,7 @@ import inspect
 import sys
 from collections.abc import MutableMapping
 from typing import Callable, Dict, Hashable, Tuple, Type
-
+import os
 import yaml
 
 
@@ -158,6 +158,26 @@ def clear_key(my_dict: Dict, dict_name: str, key: Hashable, complain: bool = Tru
     """
     if key in my_dict:
         if complain:
-            print(f"Field '{key}' should not be present " f"in dictionary '{dict_name}'")
+            print(f"Field '{key}' should not be present in dictionary '{dict_name}'")
         del my_dict[key]
     return my_dict
+
+
+def make_config_paths_absolute(args):
+    """Process CLI arguments to make paths specified for `--config-path` or `-cp` absolute.
+    Returns the modified arguments list."""
+    updated_args = args.copy()
+    for i, arg in enumerate(updated_args):
+        if arg.startswith("--config-path=") or arg.startswith("-cp="):
+            prefix, path = arg.split("=", 1)
+            abs_path = os.path.abspath(path)
+            updated_args[i] = f"{prefix}={abs_path}"
+            sys.path.append(abs_path)
+            break
+        elif arg in {"--config-path", "-cp"}:
+            # Handle the case where the path is in the next argument
+            abs_path = os.path.abspath(updated_args[i + 1])
+            updated_args[i + 1] = abs_path
+            sys.path.append(abs_path)
+            break
+    return updated_args

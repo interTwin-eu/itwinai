@@ -18,11 +18,18 @@
 # NOTE: import libraries in the command's function, not here, as having them here will
 # slow down the CLI commands significantly.
 
+import os
+import sys
 from pathlib import Path
 from typing import List, Optional
 
+import hydra
 import typer
+from hydra.utils import instantiate
+from omegaconf import DictConfig, OmegaConf, errors
 from typing_extensions import Annotated
+
+from itwinai.utils import make_config_paths_absolute
 
 app = typer.Typer(pretty_exceptions_enable=False)
 
@@ -289,83 +296,55 @@ def sanity_check(
         run_sanity_check(optional_deps)
 
 
-@app.command()
-def exec_pipeline(
-    config: Annotated[
-        Path,
-        typer.Option(help="Path to the configuration file of the pipeline to execute."),
-    ],
-    pipe_key: Annotated[
-        str,
-        typer.Option(
-            help=("Key in the configuration file identifying the pipeline object to execute.")
-        ),
-    ] = "pipeline",
-    steps: Annotated[
-        Optional[str],
-        typer.Option(
-            help=(
-                "Run only some steps of the pipeline. Accepted values are "
-                "indices, python slices (e.g., 0:3 or 2:10:100), and "
-                "string names of steps."
-            )
-        ),
-    ] = None,
-    print_config: Annotated[
-        bool, typer.Option(help=("Print config to be executed after overrides."))
-    ] = False,
-    overrides_list: Annotated[
-        Optional[List[str]],
-        typer.Option(
-            "--override",
-            "-o",
-            help=(
-                "Nested key to dynamically override elements in the "
-                "configuration file with the "
-                "corresponding new value, joined by '='. It is also possible "
-                "to index elements in lists using their list index. "
-                "Example: [...] "
-                "-o pipeline.init_args.trainer.init_args.lr=0.001 "
-                "-o pipeline.my_list.2.batch_size=64 "
-            ),
-        ),
-    ] = None,
-):
+def remove_from_argv(n_args: int):
+    assert n_args >= 1
+    assert n_args < len(sys.argv)
+    sys.argv = [sys.argv[0]] + sys.argv[n_args + 1 :]
+
+
+@app.command(context_settings={"allow_extra_args": True, "ignore_unknown_options": True})
+def exec_pipeline():
     """Execute a pipeline from configuration file. Allows dynamic override of fields."""
-    # Add working directory to python path so that the interpreter is able
-    # to find the local python files imported from the pipeline file
-    import os
-    import sys
 
-    from omegaconf.errors import ConfigAttributeError
+    # Remove 'exec_pipeline' command from CLI args
+    sys.argv = sys.argv[1:]
 
-    sys.path.append(os.path.dirname(config))
+    # Add current working directory to the module search path
+    # so hydra will find the objects defined in the config (usually paths relative to config)
     sys.path.append(os.getcwd())
 
-    # Parse and execute pipeline
-    from itwinai.parser import ConfigParser
+    # Process CLI arguments to handle paths
+    sys.argv = make_config_paths_absolute(sys.argv)
 
-    overrides_list = overrides_list if overrides_list is not None else []
-    overrides = {
-        k: v for k, v in map(lambda x: (x.split("=")[0], x.split("=")[1]), overrides_list)
-    }
-    parser = ConfigParser(config=config)
-    pipeline = parser.build_from_config(
-        pipeline_nested_key=pipe_key,
-        override_keys=overrides,
-        steps=steps,
-        verbose=print_config,
-    )
+    _run_with_hydra()
+
+
+@hydra.main(version_base=None, config_path=os.getcwd(), config_name="config")
+def _run_with_hydra(cfg):
+    """Hydra entry function. Parses a configuration file containing a pipeline definition, and
+    instantiates and executes the resulting pipeline object.
+    Filters steps if `pipe_steps` is provided, otherwise executes the entire pipeline."""
+
+    pipe_steps = OmegaConf.select(cfg, "pipe_steps", default=None)
+    pipe_key = OmegaConf.select(cfg, "pipe_key", default="training_pipeline")
 
     try:
-        pipeline.execute()
-    except ConfigAttributeError as e:
+        cfg = OmegaConf.select(cfg, pipe_key, throw_on_missing=True)
+    except errors.MissingMandatoryValue as e:
         e.add_note(
-            "Failed to execute pipeline because some arguments passed to your instantiated "
-            "classes were not correct. Did you perhaps not define the classes in your "
-            "configuration file correctly?"
+            f"Could not find pipeline key {pipe_key}. Make sure that you provide the full "
+            "dotpath to your pipeline key."
         )
-        raise e
+
+    if pipe_steps:
+        cfg.steps = [cfg.steps[step] for step in pipe_steps]
+        print(f"Successfully selected steps {pipe_steps}")
+    else:
+        print("No steps selected. Executing the whole pipeline.")
+
+    # Instantiate and execute the pipeline
+    pipeline = instantiate(cfg)
+    pipeline.execute()
 
 
 @app.command()
@@ -403,4 +382,5 @@ def kill_mlflow_server(
 
 
 if __name__ == "__main__":
-    app()
+    # app()
+    _run_with_hydra()
