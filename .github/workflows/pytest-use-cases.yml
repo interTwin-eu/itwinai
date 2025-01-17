@@ -1,13 +1,13 @@
 ---
-name: Unit and integration tests
+name: Testing use cases with pytest
 
 on:
   pull_request:
     branches: [main, dev]
 
 jobs:
-  test-itwinai:
-    name: Test itwinai with pytest
+  test-use-cases:
+    name: Testing use cases with pytest
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -34,6 +34,6 @@ jobs:
       # Default environment names are ".venv-pytorch" and ".venv-tf"
       - name: Run pytest for workflows
         shell: bash -l {0}
-        run: .venv-pytorch/bin/pytest -v -n logical ./tests/ -m "not hpc"
+        run: .venv-pytorch/bin/pytest -v -n logical ./tests/use-cases -m "not hpc"
 
 
