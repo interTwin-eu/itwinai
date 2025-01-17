@@ -11,8 +11,6 @@ name: Container CI 2
 
 on:
   push:
-    branches: [main]
-  pull_request:
 
 jobs:
   integration-test:
@@ -23,7 +21,7 @@ jobs:
           - base-img-name: "nvcr.io/nvidia/pytorch:24.05-py3"
             dockerfile: "../env-files/torch/Dockerfile"
             flavour-name: "torch"
-            tag-template: "${itwinai_version}-torch${framework_version}-${os_version}"
+            tag-template: "\${itwinai_version}-torch${{framework_version}}-$${os_version}"
             skip-hpc: true
           - base-img-name: "python:3.10-slim"
             dockerfile: "../env-files/torch/slim.Dockerfile"
@@ -51,7 +49,7 @@ jobs:
           base-img-name: ${{ matrix.config.base-img-name }}
           dockerfile: ${{ matrix.config.dockerfile }}
           flavour-name: ${{ matrix.config.flavour-name }}
-          tag-template: "${{ matrix.config.tag-template }}"
+          tag-template: ${{ matrix.config.tag-template }}
           skip-hpc: ${{ matrix.config.skip-hpc }}
           docker-token: ${{ secrets.DOCKER_TOKEN }}
           dagger-cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }} 
