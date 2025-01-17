@@ -1,12 +1,3 @@
-# --------------------------------------------------------------------------------------
-# Part of the interTwin Project: https://www.intertwin.eu/
-#
-# Created by: Matteo Bunino
-#
-# Credit:
-# - Matteo Bunino <matteo.bunino@cern.ch> - CERN
-# --------------------------------------------------------------------------------------
-
 name: "Build and Test Container"
 description: "Builds, tests, and optimizes disk space for a container image"
 inputs:
@@ -17,7 +8,7 @@ inputs:
     description: "Path to the Dockerfile"
     required: true
   flavour-name:
-    description: "Name of the container favlour, such as 'torch', 'torch-slim', and 'jhub-slim'"
+    description: "Name of the container flavour, such as 'torch', 'torch-slim', and 'jhub-slim'"
     required: true
   tag-template:
     description: "Tag template for the image"
@@ -29,6 +20,7 @@ inputs:
   skip-hpc:
     description: "Flag to skip HPC-related tests"
     required: false
+
 runs:
   using: "composite"
   steps:
@@ -45,7 +37,7 @@ runs:
         remove-codeql: true
 
     - name: Checkout
-        uses: actions/checkout@v4
+      uses: actions/checkout@v4
 
     - name: Delete unnecessary tools and packages
       run: |
