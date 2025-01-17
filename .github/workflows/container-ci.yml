@@ -9,10 +9,12 @@
 
 name: Container CI
 
-# If triggered not on push, but on PR, the commit hash is a bit weird
 on:
   push:
     # branches: [main]
+
+  # If not triggered on push, but on PR, the commit hash is a bit weird
+  # pull_request:
 
   release:
     types: [created]

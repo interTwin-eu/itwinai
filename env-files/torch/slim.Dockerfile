@@ -13,12 +13,13 @@ ARG BASE_IMG_NAME=python:3.10-slim
 
 FROM nvcr.io/nvidia/pytorch:24.05-py3 AS build
 
-RUN apt-get update && apt-get install -y \
+RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     curl \
     libopenmpi-dev \
     python3-mpi4py \
-    python3.10-venv
+    python3.10-venv \
+    && apt-get clean -y && rm -rf /var/lib/apt/lists/*
 
 ENV VIRTUAL_ENV=/opt/venv \
     PATH="/opt/venv/bin:$PATH"
@@ -56,23 +57,23 @@ ENV HOROVOD_WITH_PYTORCH=1 \
 #     wheel
 
 RUN /usr/bin/python3.10 -m venv /opt/venv \
-    && pip install --no-cache-dir --upgrade pip \
-    # Needed to install horovod
-    && pip install --no-cache-dir wheel
+    # wheel needed to install horovod
+    && pip install --no-cache-dir --upgrade pip wheel 
 
 # Install itwinai with torch
 WORKDIR /app
 COPY pyproject.toml pyproject.toml
 COPY src src
-RUN pip install --no-cache-dir .[torch,tf,dev] --extra-index-url https://download.pytorch.org/whl/cu124
+RUN pip install --no-cache-dir .[torch] --extra-index-url https://download.pytorch.org/whl/cu124
 
 # Install DeepSpeed, Horovod and Ray
 RUN CONTAINER_TORCH_VERSION="$(python -c 'import torch;print(torch.__version__)')" \
     && pip install --no-cache-dir torch=="$CONTAINER_TORCH_VERSION" \
     deepspeed==0.15.* \
     git+https://github.com/horovod/horovod.git@3a31d93 \
-    "prov4ml[nvidia]@git+https://github.com/matbun/ProvML@new-main"
-
+    "prov4ml[nvidia]@git+https://github.com/matbun/ProvML@new-main" \
+    tensorboard \
+    pytest
 
 # Installation sanity check
 RUN itwinai sanity-check --torch \
@@ -90,7 +91,7 @@ COPY --from=build /opt/venv /opt/venv
 # Link /usr/local/bin/python3.10 (in the app image) to /usr/bin/python3.10 (in the builder image)
 RUN ln -s /usr/local/bin/python3.10 /usr/bin/python3.10
 
-RUN apt-get update && apt-get install -y \
+RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     # OpenMPI dev library needed to build Horovod
     libopenmpi-dev \
@@ -121,9 +122,8 @@ ENV PATH="/opt/venv/bin:$PATH"
 # # Singularity may change the $PATH, hence this env var may increase the chances that the venv
 # # is actually recognised
 # ENV VIRTUAL_ENV=/opt/venv
-
-# Env vars for robustness
-ENV PYTHONNOUSERSITE=1 \
+ENV PATH="/opt/venv/bin:$PATH" \
+    PYTHONNOUSERSITE=1 \
     # Prevent silent override of PYTHONPATH by Singularity/Apptainer
     PYTHONPATH="" \
     SSL_CERT_FILE="/etc/ssl/certs/ca-certificates.crt"
