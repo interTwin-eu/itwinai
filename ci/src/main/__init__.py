@@ -163,7 +163,11 @@ class Itwinai:
     @function
     async def test_local(self) -> str:
         """Test itwinai container image with pytest on non-HPC environments."""
-        test_cmd = ["pytest", "-v", "-m", "not hpc and not functional", "/app/tests"]
+        test_cmd = [
+            "pytest", "-v", 
+            "-m", "not hpc and not functional and not tensorflow", 
+            "/app/tests"
+        ]
         return await self.container.with_exec(test_cmd).stdout()
 
     @function

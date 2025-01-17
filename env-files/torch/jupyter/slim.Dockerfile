@@ -140,7 +140,7 @@ ENV PYTHONPATH=""
 
 USER root
 
-RUN apt-get update && apt-get install -y \
+RUN apt-get update && apt-get install -y --no-install-recommends \
     # Needed by Prov4ML/yProvML to generate provenance graph
     dot2tex \
     # mpi4py system-wide -- also installs mpirun
@@ -159,7 +159,7 @@ COPY --chown=${NB_UID} pyproject.toml pyproject.toml
 COPY --chown=${NB_UID} src src
 
 # DO NOT install dev extras as they may change some versions of ipython and ipykernel
-RUN pip install --no-cache-dir .[torch,tf] --extra-index-url https://download.pytorch.org/whl/cu124
+RUN pip install --no-cache-dir .[torch] --extra-index-url https://download.pytorch.org/whl/cu124
 RUN pip install --no-cache-dir \
     "prov4ml[nvidia]@git+https://github.com/matbun/ProvML@new-main" \
     pytest

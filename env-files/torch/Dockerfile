@@ -36,7 +36,7 @@ RUN pip install --no-cache-dir --upgrade pip \
 # Install itwinai with torch
 COPY pyproject.toml pyproject.toml
 COPY src src
-RUN pip install --no-cache-dir .[torch,tf,dev] --extra-index-url https://download.pytorch.org/whl/cu124
+RUN pip install --no-cache-dir .[torch] --extra-index-url https://download.pytorch.org/whl/cu124
 
 # Install DeepSpeed, Horovod and Ray
 ENV HOROVOD_WITH_PYTORCH=1 \
@@ -64,6 +64,7 @@ RUN CONTAINER_TORCH_VERSION="$(python -c 'import torch;print(torch.__version__)'
     deepspeed==0.15.* \
     git+https://github.com/horovod/horovod.git@3a31d93 \
     "prov4ml[nvidia]@git+https://github.com/matbun/ProvML@new-main" \
+    pytest \
     # fix .triton/autotune/Fp16Matmul_2d_kernel.pickle bug
     && pver="$(python --version 2>&1 | awk '{print $2}' | cut -f1-2 -d.)" \
     && line=$(cat -n "/usr/local/lib/python${pver}/dist-packages/deepspeed/ops/transformer/inference/triton/matmul_ext.py" | grep os.rename | awk '{print $1}' | head -n 1) \

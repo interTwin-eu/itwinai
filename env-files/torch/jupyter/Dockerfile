@@ -220,7 +220,7 @@ COPY --chown=${NB_UID} pyproject.toml pyproject.toml
 COPY --chown=${NB_UID} src src
 
 # DO NOT install dev extras as they may change some versions of ipython and ipykernel
-RUN pip install --no-cache-dir .[torch,tf] --extra-index-url https://download.pytorch.org/whl/cu124
+RUN pip install --no-cache-dir .[torch] --extra-index-url https://download.pytorch.org/whl/cu124
 
 # The installation of Apex and Transformers Engine can be avoided in a jupyter container as it will most
 # likely used for simple interactive development. To install them, uncomment the lines below and

@@ -72,7 +72,6 @@ RUN CONTAINER_TORCH_VERSION="$(python -c 'import torch;print(torch.__version__)'
     deepspeed==0.15.* \
     git+https://github.com/horovod/horovod.git@3a31d93 \
     "prov4ml[nvidia]@git+https://github.com/matbun/ProvML@new-main" \
-    tensorboard \
     pytest
 
 # Installation sanity check
