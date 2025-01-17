@@ -51,7 +51,7 @@ contains thoroughly tested features aligned with the toolkit's most recent relea
 .. toctree::
    :maxdepth: 2
    :hidden:
-   :caption: 💡 Installation
+   :caption: ⚙️  Installation
 
    installation/user_installation
    installation/developer_installation
