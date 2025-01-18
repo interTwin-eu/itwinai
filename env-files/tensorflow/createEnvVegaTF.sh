@@ -1,6 +1,15 @@
 #!/bin/bash
 # -*- coding: utf-8 -*-
 
+# --------------------------------------------------------------------------------------
+# Part of the interTwin Project: https://www.intertwin.eu/
+#
+# Created by: Matteo Bunino
+#
+# Credit:
+# - Matteo Bunino <matteo.bunino@cern.ch> - CERN
+# --------------------------------------------------------------------------------------
+
 if [ ! -f "env-files/tensorflow/generic_tf.sh" ]; then
   echo "ERROR: env-files/tensorflow/generic_tf.sh not found!"
   exit 1

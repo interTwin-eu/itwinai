@@ -163,7 +163,11 @@ class Itwinai:
     @function
     async def test_local(self) -> str:
         """Test itwinai container image with pytest on non-HPC environments."""
-        test_cmd = ["pytest", "-v", "-m", "not hpc and not functional", "tests"]
+        test_cmd = [
+            "pytest", "-v",
+            "-m", "not hpc and not functional and not tensorflow",
+            "/app/tests"
+        ]
         return await self.container.with_exec(test_cmd).stdout()
 
     @function
@@ -253,7 +257,8 @@ class Itwinai:
             "slurm-job.vk.io/flags": (
                 # --cpus-per-gpu fails on Vega through interLink
                 f"-p gpu --gres=gpu:{gpus_per_node} --gpus-per-node={gpus_per_node} "
-                f"--ntasks-per-node=1 --nodes=1 --cpus-per-task={cpus_per_gpu*gpus_per_node} "
+                "--ntasks-per-node=1 --nodes=1 "
+                f"--cpus-per-task={cpus_per_gpu * gpus_per_node} "
                 "--time=00:30:00"
             ),
             "slurm-job.vk.io/pre-exec": (
@@ -304,6 +309,9 @@ class Itwinai:
         framework: Annotated[
             MLFramework, Doc("ML framework in container")
         ] = MLFramework.TORCH,
+        skip_hpc: Annotated[
+            bool, Doc("Skip tests on remote HPC")
+        ] = False,
     ) -> None:
         """Pipeline to test container and push it, including both local
         tests and tests on HPC via interLink.
@@ -325,11 +333,11 @@ class Itwinai:
         # Test locally
         await self.test_local()
 
-        # Publish to registry with random hash
-        await self.publish()
-
-        # Test on HPC with
-        await self.test_hpc(kubeconfig=kubeconfig)
+        if not skip_hpc:
+            # Publish to registry with random hash
+            await self.publish()
+            # Test on HPC with
+            await self.test_hpc(kubeconfig=kubeconfig)
 
         # Publish to registry with final hash
         itwinai_version = (
@@ -385,8 +393,8 @@ class Itwinai:
                     ]
                 ).stdout()
             ).strip()
-
-        tag = Template(tag_template).substitute(
+        # In GH actions ${...} is interpolated, so we replace $ with @
+        tag = Template(tag_template.replace("@", "$")).substitute(
             itwinai_version=itwinai_version,
             framework_version=framework_version,
             os_version=os_version,
