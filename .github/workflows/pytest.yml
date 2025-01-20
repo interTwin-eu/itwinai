@@ -1,5 +1,5 @@
 ---
-name: Testing torch with pytest
+name: Testing with pytest
 
 on:
   pull_request:
@@ -7,7 +7,7 @@ on:
 
 jobs:
   test-torch:
-    name: Testing torch with pytest
+    name: Testing with pytest
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -20,10 +20,6 @@ jobs:
         shell: bash -l {0}
         run: make tensorflow-env-cpu
       
-      # NOTE, to change the name in which tests are run, set custom TORCH_ENV and TF_ENV env variables.
-      # Default environment names are ".venv-pytorch" and ".venv-tf"
       - name: Run pytest for workflows
         shell: bash -l {0}
         run: .venv-pytorch/bin/pytest -v -n logical ./tests/ -m "not hpc"
-
-
