@@ -27,9 +27,17 @@ fi
 # Activate the venv and then install itwinai as editable
 source $ENV_NAME/bin/activate
 pip install uv
-uv pip install -e ".[torch,tf,dev]" \
+
+if [ -z "$NO_CUDA" ]; then
+  # Install with CUDA support
+  uv pip install -e ".[torch,dev]" \
     --no-cache-dir \
     --extra-index-url https://download.pytorch.org/whl/cu121
+else
+  # Install without CUDA support
+  uv pip install -e ".[torch,dev]" 
+fi
+
 
 # Install Prov4ML
 if [[ "$(uname)" == "Darwin" ]]; then
