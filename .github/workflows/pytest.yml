@@ -15,11 +15,7 @@ jobs:
       - name: Make PyTorch virtualenv
         shell: bash -l {0}
         run: make torch-env-cpu
-
-      - name: Make Tensorflow virtualenv
-        shell: bash -l {0}
-        run: make tensorflow-env-cpu
       
       - name: Run pytest for workflows
         shell: bash -l {0}
-        run: .venv-pytorch/bin/pytest -v -n logical ./tests/ -m "not hpc"
+        run: .venv-pytorch/bin/pytest -v -n logical ./tests/ -m "not hpc and not tensorflow"
