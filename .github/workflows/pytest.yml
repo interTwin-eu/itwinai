@@ -19,6 +19,11 @@ jobs:
       - name: Make PyTorch virtualenv
         shell: bash -l {0}
         run: make torch-env-cpu
+      
+      # Comment this back in to also build tensorflow env
+      # - name: Make Tensorflow virtualenv
+      #   shell: bash -l {0}
+      #   run: make tensorflow-env-cpu
 
       - name: Run pytest for workflows
         shell: bash -l {0}
