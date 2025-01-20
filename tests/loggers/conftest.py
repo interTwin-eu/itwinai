@@ -8,9 +8,9 @@
 # - Anna Lappe <anna.elisa.lappe@cern.ch> - CERN
 # -------------------------------------------------------------------------------------
 
+import shutil
 import tempfile
 from pathlib import Path
-import shutil
 from unittest.mock import MagicMock
 
 import pytest
