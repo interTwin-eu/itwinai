@@ -47,19 +47,28 @@ def generate_scalability_report(
         )
 
     # Find the relevant folders
-    # TODO: Consider storing these names in consts 
+    # TODO: Consider storing these names in consts
     gpu_data_dir = log_dir_path / "gpu-energy-data"
     communication_data_dir = log_dir_path / "communication-data"
     epoch_time_dir = log_dir_path / "epoch-time"
 
-    # epoch time data
+    # Read the epoch time data from the given directory
     epoch_time_expected_columns = {"name", "nodes", "epoch_id", "time"}
-    read_epoch_time_data(epoch_time_dir, expected_columns=epoch_time_expected_columns)
-    
+    epoch_time_df = read_epoch_time_data(
+        epoch_time_dir, expected_columns=epoch_time_expected_columns
+    )
 
+    # Calculate the average time per epoch for each strategy and number of nodes
+    avg_epoch_time_df = (
+        epoch_time_df.groupby(["name", "nodes"])
+        .agg(avg_epoch_time=("time", "mean"))
+        .reset_index()
+    )
 
-
-
+    # Print the resulting table
+    formatters = {"avg_epoch_time": "{:.2f}s".format}
+    epoch_time_table = avg_epoch_time_df.to_string(index=False, formatters=formatters)
+    print(epoch_time_table)
 
 
 @app.command()

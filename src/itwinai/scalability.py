@@ -116,7 +116,7 @@ def read_epoch_time_data(
 #     return pd.concat(dataframes)
 
 
-def create_absolute_plot(avg_epoch_time_df: pd.DataFrame) -> None:
+def create_absolute_plot(avg_epoch_time_df: pd.DataFrame, plot_dir: str | Path) -> None:
     """Creates a plot showing the absolute training times for the different
     distributed strategies and different number of GPUs.
     """
@@ -147,13 +147,15 @@ def create_absolute_plot(avg_epoch_time_df: pd.DataFrame) -> None:
     ax.set_xticks(unique_nodes)
 
     ax.set_xlabel("Number of Nodes")
-    ax.set_ylabel("Average Time (s)")
-    ax.set_title("Average Time vs Number of Nodes")
+    ax.set_ylabel("Average Epoch Time (s)")
+    ax.set_title("Average Epoch Time vs Number of Nodes")
 
     ax.legend(title="Method")
     ax.grid(True)
 
-    output_path = Path("plots/absolute_scalability_plot.png")
+    if isinstance(plot_dir, str):
+        plot_dir = Path(plot_dir)
+    output_path = plot_dir / "absolute_scalability_plot.png"
     output_path.parent.mkdir(parents=True, exist_ok=True)
     plt.tight_layout()
     plt.savefig(output_path)
