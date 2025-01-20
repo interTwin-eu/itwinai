@@ -8,6 +8,8 @@
 # - Anna Lappe <anna.elisa.lappe@cern.ch> - CERN
 # -------------------------------------------------------------------------------------
 
+import tempfile
+from pathlib import Path
 import shutil
 from unittest.mock import MagicMock
 
@@ -33,13 +35,12 @@ def console_logger():
 
 @pytest.fixture(scope="module")
 def mlflow_logger():
-    yield MLFlowLogger(
-        savedir="/tmp/mlflow/test_mllogs",
-        experiment_name="test_experiment",
-        tracking_uri="file:///tmp/mlruns",
-    )
-    shutil.rmtree("/tmp/mlflow/test_mllogs", ignore_errors=True)
-    shutil.rmtree("/tmp/mlruns", ignore_errors=True)
+    with tempfile.TemporaryDirectory() as temp_dir:
+        save_dir = Path(temp_dir) / "mlflow/test_mllogs"
+        yield MLFlowLogger(
+            savedir=save_dir,
+            experiment_name="test_experiment",
+        )
 
 
 @pytest.fixture(scope="module")
