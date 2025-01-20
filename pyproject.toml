@@ -8,7 +8,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "itwinai"
-version = "0.2.3"
+version = "0.2.4"
 description = "AI and ML workflows module for scientific digital twins."
 readme = "README.md"
 requires-python = ">=3.10"
@@ -111,6 +111,7 @@ markers = [
   "horovod_dist: runs with torch Horovod distributed strategy. (deselect with '-m \"not horovod_dist\"')",
   "functional: functional tests. (deselect with '-m \"not functional\"')",
   "memory_heavy: high memory footprint. (deselect with '-m \"not heavy_memory\"')",
+  "tensorflow: tests depending on tensorflow. (deselect with '-m \"not tensorflow\"')",
 ]
 
 
