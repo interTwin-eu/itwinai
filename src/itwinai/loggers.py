@@ -593,7 +593,7 @@ class MLFlowLogger(Logger):
             if isinstance(item, self.mlflow.data.Dataset):
                 self.mlflow.log_input(item)
             else:
-                print("WARNING: unrecognized dataset type. " "Must be an MLFlow dataset")
+                print("WARNING: unrecognized dataset type. Must be an MLFlow dataset")
         elif kind == "torch":
             import torch
 
@@ -1032,9 +1032,11 @@ class Prov4MLLogger(Logger):
         self.create_graph = create_graph
         self.create_svg = create_svg
 
+        import mlflow
         import prov4ml
 
         self.prov4ml = prov4ml
+        self.mlflow = mlflow
 
     @override
     def create_logger_context(self, rank: Optional[int] = None):
@@ -1076,7 +1078,7 @@ class Prov4MLLogger(Logger):
 
         # Save hyperparams
         for param_name, val in params.items():
-            self.prov4ml.log_param(param_name, val)
+            self.prov4ml.log_param(key=param_name, value=val)
 
     @override
     def log(
@@ -1112,12 +1114,12 @@ class Prov4MLLogger(Logger):
         elif kind == "flops_pb":
             model, batch = item
             self.prov4ml.log_flops_per_batch(
-                identifier, model=model, batch=batch, context=context, step=step
+                label=identifier, model=model, batch=batch, context=context, step=step
             )
         elif kind == "flops_pe":
             model, dataset = item
             self.prov4ml.log_flops_per_epoch(
-                identifier, model=model, dataset=dataset, context=context, step=step
+                label=identifier, model=model, dataset=dataset, context=context, step=step
             )
         elif kind == "system":
             self.prov4ml.log_system_metrics(context=context, step=step)
