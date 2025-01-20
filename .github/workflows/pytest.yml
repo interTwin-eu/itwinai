@@ -1,4 +1,3 @@
----
 name: Testing with pytest
 
 on:
@@ -12,10 +11,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Set up Python 3.11.9
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.11.9
+
       - name: Make PyTorch virtualenv
         shell: bash -l {0}
         run: make torch-env-cpu
-      
+
       - name: Run pytest for workflows
         shell: bash -l {0}
         run: .venv-pytorch/bin/pytest -v -n logical ./tests/ -m "not hpc and not tensorflow"
