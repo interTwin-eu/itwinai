@@ -1032,8 +1032,8 @@ class Prov4MLLogger(Logger):
         self.create_graph = create_graph
         self.create_svg = create_svg
 
-        import prov4ml
         import mlflow
+        import prov4ml
 
         self.prov4ml = prov4ml
         self.mlflow = mlflow
