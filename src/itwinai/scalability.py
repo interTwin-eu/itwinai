@@ -12,7 +12,7 @@ import uuid
 from itertools import cycle
 from pathlib import Path
 from re import Match, Pattern, compile
-from typing import Optional, Union
+from typing import Optional, Union, Set
 
 import matplotlib
 import matplotlib.pyplot as plt
@@ -21,53 +21,99 @@ import pandas as pd
 import seaborn as sns
 
 
-def convert_matching_files_to_dataframe(
-    log_dir: Path, pattern: Optional[str], expected_columns: Optional[set] = None
-) -> pd.DataFrame:
-    """Reads and combines all files in a folder that matches the given regex pattern
-    into a single DataFrame. The files must be formatted as csv files. If pattern is
-    None, we assume a match on all files.
-
-    Raises:
-        ValueError: If not all expected columns are found in the stored DataFrame.
-        ValueError: If no matching files are found in the given logging directory.
+def check_contains_columns(
+    df: pd.DataFrame, expected_columns: Set, file_path: Path
+) -> None:
+    """Check is the given DataFrame contains all the expected columns and raises a
+    ValueError if not.
     """
-    re_pattern: Optional[Pattern] = None
-    if pattern is not None:
-        re_pattern = compile(pattern)
+    if not expected_columns.issubset(df.columns):
+        missing_columns = expected_columns - set(df.columns)
+        raise ValueError(
+            f"Invalid data format! DataFrame at '{file_path.resolve}' is missing"
+            f" some necessary columns. \nMissing columns: {missing_columns}"
+        )
 
-    if expected_columns is None:
-        expected_columns = set()
+
+def read_epoch_time_data(
+    epoch_time_dir: Path | str, expected_columns: Set
+) -> pd.DataFrame:
+    if isinstance(epoch_time_dir, str):
+        epoch_time_dir = Path(epoch_time_dir)
+
+    file_paths = list(epoch_time_dir.iterdir())
+
+    # Checking that all files end with .csv
+    if len([f for f in file_paths if f.suffix != ".csv"]) > 0:
+        raise ValueError(
+            f"Directory '{epoch_time_dir.resolve()} contains files with suffix different "
+            f"from .csv!"
+        )
+
+    if len(file_paths) == 0:
+        raise ValueError(
+            f"Found no .csv files in directory: '{epoch_time_dir.resolve()}'"
+        )
 
     dataframes = []
-    for entry in log_dir.iterdir():
-        match: Union[bool, Match] = True
-        if re_pattern is not None:
-            match = re_pattern.search(str(entry))
-
-        if not match:
-            continue
-
-        df = pd.read_csv(entry)
-        if not expected_columns.issubset(df.columns):
-            missing_columns = expected_columns - set(df.columns)
-            raise ValueError(
-                f"Invalid data format! File at '{str(entry)}' doesn't contain all"
-                f" necessary columns. \nMissing columns: {missing_columns}"
-            )
-
+    for file_path in file_paths:
+        df = pd.read_csv(file_path)
+        check_contains_columns(
+            df=df, expected_columns=expected_columns, file_path=file_path
+        )
         dataframes.append(df)
 
-    if len(dataframes) == 0:
-        if pattern is None:
-            error_message = f"Unable to find any files in {log_dir.resolve()}!"
-        else:
-            error_message = (
-                f"No files matched pattern, '{pattern}', in log_dir, " f"{log_dir.resolve()}!"
-            )
-        raise ValueError(error_message)
-
     return pd.concat(dataframes)
+
+
+# def convert_matching_files_to_dataframe(
+#     log_dir: Path, pattern: Optional[str], expected_columns: Optional[set] = None
+# ) -> pd.DataFrame:
+#     """Reads and combines all files in a folder that matches the given regex pattern
+#     into a single DataFrame. The files must be formatted as csv files. If pattern is
+#     None, we assume a match on all files.
+#
+#     Raises:
+#         ValueError: If not all expected columns are found in the stored DataFrame.
+#         ValueError: If no matching files are found in the given logging directory.
+#     """
+#     re_pattern: Optional[Pattern] = None
+#     if pattern is not None:
+#         re_pattern = compile(pattern)
+#
+#     if expected_columns is None:
+#         expected_columns = set()
+#
+#     dataframes = []
+#     for entry in log_dir.iterdir():
+#         match: Union[bool, Match] = True
+#         if re_pattern is not None:
+#             match = re_pattern.search(str(entry))
+#
+#         if not match:
+#             continue
+#
+#         df = pd.read_csv(entry)
+#         if not expected_columns.issubset(df.columns):
+#             missing_columns = expected_columns - set(df.columns)
+#             raise ValueError(
+#                 f"Invalid data format! File at '{str(entry)}' doesn't contain all"
+#                 f" necessary columns. \nMissing columns: {missing_columns}"
+#             )
+#
+#         dataframes.append(df)
+#
+#     if len(dataframes) == 0:
+#         if pattern is None:
+#             error_message = f"Unable to find any files in {log_dir.resolve()}!"
+#         else:
+#             error_message = (
+#                 f"No files matched pattern, '{pattern}', in log_dir, "
+#                 f"{log_dir.resolve()}!"
+#             )
+#         raise ValueError(error_message)
+#
+#     return pd.concat(dataframes)
 
 
 def create_absolute_plot(avg_epoch_time_df: pd.DataFrame) -> None:
@@ -147,7 +193,9 @@ def create_relative_plot(avg_epoch_time_df: pd.DataFrame, gpus_per_node: int = 4
     # Plotting the linear line
     num_gpus = np.array(avg_epoch_time_df["num_gpus"].unique())
     linear_speedup = np.array(avg_epoch_time_df["linear_speedup"].unique())
-    ax.plot(num_gpus, linear_speedup, ls="dashed", lw=1.0, c="k", label="linear speedup")
+    ax.plot(
+        num_gpus, linear_speedup, ls="dashed", lw=1.0, c="k", label="linear speedup"
+    )
 
     ax.legend(ncol=1)
     ax.set_xticks(num_gpus)

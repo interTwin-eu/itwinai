@@ -24,7 +24,42 @@ from typing import List, Optional
 import typer
 from typing_extensions import Annotated
 
+from itwinai.scalability import read_epoch_time_data
+
 app = typer.Typer(pretty_exceptions_enable=False)
+
+
+@app.command()
+def generate_scalability_report(
+    log_dir: str = "scalability-metrics",
+    plot_dir: str = "plots",
+    do_backup: bool = False,
+    backup_dir: str = "backup-scalability-metrics/",
+    experiment_name: str | None = None,
+    run_name: str | None = None,
+):
+    # TODO: imports
+
+    log_dir_path = Path(log_dir)
+    if not log_dir_path.exists():
+        raise ValueError(
+            f"The provided log_dir, '{log_dir_path.resolve()}', does not exist."
+        )
+
+    # Find the relevant folders
+    # TODO: Consider storing these names in consts 
+    gpu_data_dir = log_dir_path / "gpu-energy-data"
+    communication_data_dir = log_dir_path / "communication-data"
+    epoch_time_dir = log_dir_path / "epoch-time"
+
+    # epoch time data
+    epoch_time_expected_columns = {"name", "nodes", "epoch_id", "time"}
+    read_epoch_time_data(epoch_time_dir, expected_columns=epoch_time_expected_columns)
+    
+
+
+
+
 
 
 @app.command()
