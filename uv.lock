@@ -1436,7 +1436,7 @@ wheels = [
 
 [[package]]
 name = "itwinai"
-version = "0.2.3"
+version = "0.2.4"
 source = { editable = "." }
 dependencies = [
     { name = "jsonargparse", extra = ["signatures"], marker = "platform_system != 'Windows' or sys_platform != 'linux' or (extra == 'extra-7-itwinai-tf-cuda' and extra == 'extra-7-itwinai-torch')" },
