@@ -61,6 +61,8 @@ dev = [
   "ipykernel>=6.29.5",
   "ipython>=8.30.0",
   "ruff>=0.8.3",
+  "psutil>=6.1.0",
+  "pytest-xdist>=3.6.1",
 ]
 docs = [
   "sphinx-rtd-theme>=2.0.0",

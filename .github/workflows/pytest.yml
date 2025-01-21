@@ -1,39 +1,34 @@
----
-name: Unit and integration tests
+name: Testing with pytest
 
 on:
   pull_request:
     branches: [main, dev]
 
 jobs:
-  test-itwinai:
-    name: Test itwinai with pytest
+  test-torch:
+    name: Testing with pytest
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install compilers for Horovod
-        run: |
-          sudo apt-get update &&
-          sudo apt-get install -y gcc-11 g++-11 &&
-          sudo apt-get install -y cmake &&
-          sudo apt-get install openmpi-bin  openmpi-common openmpi-doc libopenmpi-dev &&
-          gcc --version &&
-          cmake --version &&
-          mpirun --version
-        
+      - name: Set up Python 3.11.9
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.11.9
+
       - name: Make PyTorch virtualenv
         shell: bash -l {0}
         run: make torch-env-cpu
-
-      - name: Make Tensorflow virtualenv
-        shell: bash -l {0}
-        run: make tensorflow-env-cpu
       
-      # NOTE, to change the name in which tests are run, set custom TORCH_ENV and TF_ENV env variables.
-      # Default environment names are ".venv-pytorch" and ".venv-tf"
+      # Comment this back in to also build tensorflow env
+      # - name: Make Tensorflow virtualenv
+      #   shell: bash -l {0}
+      #   run: make tensorflow-env-cpu
+
+      # NOTE, to change the name of the env in which tests are run, set custom TORCH_ENV
+      # and TF_ENV env variables. Default environment names are ".venv-pytorch" and 
+      # ".venv-tf"
+
       - name: Run pytest for workflows
         shell: bash -l {0}
-        run: .venv-pytorch/bin/pytest -v ./tests/ -m "not hpc"
-
-
+        run: .venv-pytorch/bin/pytest -v -n logical ./tests/ -m "not hpc and not tensorflow"
