@@ -2,6 +2,7 @@ from pathlib import Path
 
 from itwinai.scalability_report.plot import create_relative_plot, create_absolute_plot
 from itwinai.scalability_report.data import read_scalability_metrics_from_csv
+from itwinai.scalability_report.utils import calculate_total_energy_expenditure, calculate_average_gpu_utilization
 
 
 def epoch_time_report(epoch_time_dir: Path | str, plot_dir: str | Path) -> None:
@@ -43,4 +44,8 @@ def gpu_data_report(gpu_data_dir: Path | str):
         "strategy",
         "probing_interval",
     }
-    gpu_data_df = read_scalability_metrics_from_csv(data_dir=gpu_data_dir, expected_columns=gpu_data_expected_columns)
+    gpu_data_df = read_scalability_metrics_from_csv(
+        data_dir=gpu_data_dir, expected_columns=gpu_data_expected_columns
+    )
+    energy_df = calculate_total_energy_expenditure(gpu_data_df=gpu_data_df)
+    utilization_df = calculate_average_gpu_utilization(gpu_data_df=gpu_data_df)
