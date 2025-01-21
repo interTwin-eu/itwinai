@@ -7,20 +7,26 @@ from scipy.constants import hour as SECONDS_IN_HOUR
 
 
 def check_contains_columns(
-    df: pd.DataFrame, expected_columns: Set, file_path: Path
+    df: pd.DataFrame, expected_columns: Set, file_path: Path | None = None
 ) -> None:
     """Check is the given DataFrame contains all the expected columns and raises a
     ValueError if not.
     """
     if not expected_columns.issubset(df.columns):
         missing_columns = expected_columns - set(df.columns)
-        raise ValueError(
-            f"Invalid data format! DataFrame at '{file_path.resolve}' is missing"
-            f" some necessary columns. \nMissing columns: {missing_columns}"
-        )
+        if file_path is not None:
+            raise ValueError(
+                f"Invalid data format! DataFrame at '{file_path.resolve}' is missing"
+                f" some necessary columns. \nMissing columns: {missing_columns}."
+            )
+        else: 
+            raise ValueError(
+                f"Invalid data format for given DataFrame. \nMissing columns:"
+                f"{missing_columns}."
+            )
 
 
-def calculate_average_gpu_utilization(gpu_data_df: pd.DataFrame) -> pd.DataFrame:
+def calculate_average_gpu_utilization(gpu_data_df: pd.DataFrame, expected_columns: Set) -> pd.DataFrame:
     """Calculates the average GPU utilization for each strategy and
     number of GPUs.
 
@@ -28,13 +34,11 @@ def calculate_average_gpu_utilization(gpu_data_df: pd.DataFrame) -> pd.DataFrame
         pd.DataFrame: A DataFrame containing the average gpu utilization for
             each strategy and number of GPUs, with the columns ``strategy``,
             ``num_global_gpus`` and ``utilization``.
+
+    Raises: 
+        ValueError: If the given DataFrame does not contain the expected columns
     """
-    required_columns = {"strategy", "utilization", "num_global_gpus"}
-    if not required_columns.issubset(set(gpu_data_df.columns)):
-        missing_columns = set(required_columns) - set(gpu_data_df.columns)
-        raise ValueError(
-            f"DataFrame is missing the following columns: {missing_columns}"
-        )
+    check_contains_columns(df=gpu_data_df, expected_columns=expected_columns)
 
     utilization_data = []
     grouped_df = gpu_data_df.groupby(["strategy", "num_global_gpus"])
@@ -49,7 +53,7 @@ def calculate_average_gpu_utilization(gpu_data_df: pd.DataFrame) -> pd.DataFrame
     return pd.DataFrame(utilization_data)
 
 
-def calculate_total_energy_expenditure(gpu_data_df: pd.DataFrame) -> pd.DataFrame:
+def calculate_total_energy_expenditure(gpu_data_df: pd.DataFrame, expected_columns: Set) -> pd.DataFrame:
     """Calculates the total energy expenditure in Watt hours for each strategy and
     number of GPUs. Expects that the existence of the appropriate DataFrame columns is
     handled before calling this function.
@@ -58,13 +62,13 @@ def calculate_total_energy_expenditure(gpu_data_df: pd.DataFrame) -> pd.DataFram
         pd.DataFrame: A DataFrame containing the total expenditure in Watt hours for
             each strategy and number of GPUs, with the columns ``strategy``,
             ``num_global_gpus`` and ``total_energy_wh``.
+    Raises: 
+        ValueError: If the given DataFrame does not contain the expected columns.
+        ValueError: If the probing intervals are heterogeneous for any set of strategy
+            and number of nodes.
     """
-    required_columns = {"strategy", "power", "num_global_gpus", "probing_interval"}
-    if not required_columns.issubset(set(gpu_data_df.columns)):
-        missing_columns = set(required_columns) - set(gpu_data_df.columns)
-        raise ValueError(
-            f"DataFrame is missing the following columns: {missing_columns}"
-        )
+    check_contains_columns(df=gpu_data_df, expected_columns=expected_columns)
+
     energy_data = []
     grouped_df = gpu_data_df.groupby(["strategy", "num_global_gpus"])
     for (strategy, num_gpus), group in grouped_df:
