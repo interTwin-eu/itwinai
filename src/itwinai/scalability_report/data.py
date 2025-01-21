@@ -17,24 +17,24 @@ import pandas as pd
 from itwinai.scalability_report.utils import check_contains_columns
 
 
-def read_epoch_time_data(
-    epoch_time_dir: Path | str, expected_columns: Set
+def read_scalability_metrics_from_csv(
+    data_dir: Path | str, expected_columns: Set
 ) -> pd.DataFrame:
-    if isinstance(epoch_time_dir, str):
-        epoch_time_dir = Path(epoch_time_dir)
+    if isinstance(data_dir, str):
+        data_dir = Path(data_dir)
 
-    file_paths = list(epoch_time_dir.iterdir())
+    file_paths = list(data_dir.iterdir())
 
     # Checking that all files end with .csv
     if len([f for f in file_paths if f.suffix != ".csv"]) > 0:
         raise ValueError(
-            f"Directory '{epoch_time_dir.resolve()} contains files with suffix different "
+            f"Directory '{data_dir.resolve()} contains files with suffix different "
             f"from .csv!"
         )
 
     if len(file_paths) == 0:
         raise ValueError(
-            f"Found no .csv files in directory: '{epoch_time_dir.resolve()}'"
+            f"Found no .csv files in directory: '{data_dir.resolve()}'"
         )
 
     dataframes = []
