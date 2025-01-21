@@ -25,8 +25,8 @@ jobs:
       #   shell: bash -l {0}
       #   run: make tensorflow-env-cpu
 
-      # NOTE, to change the name in which tests are run, set custom TORCH_ENV and
-      # TF_ENV env variables. Default environment names are ".venv-pytorch" and 
+      # NOTE, to change the name of the env in which tests are run, set custom TORCH_ENV
+      # and TF_ENV env variables. Default environment names are ".venv-pytorch" and 
       # ".venv-tf"
 
       - name: Run pytest for workflows
