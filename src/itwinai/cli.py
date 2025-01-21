@@ -24,7 +24,6 @@ from typing import List, Optional
 import typer
 from typing_extensions import Annotated
 
-from itwinai.scalability import read_epoch_time_data
 
 app = typer.Typer(pretty_exceptions_enable=False)
 
@@ -39,6 +38,7 @@ def generate_scalability_report(
     run_name: str | None = None,
 ):
     # TODO: imports
+    from itwinai.scalability_report.reports import epoch_time_report
 
     log_dir_path = Path(log_dir)
     if not log_dir_path.exists():
@@ -52,23 +52,15 @@ def generate_scalability_report(
     communication_data_dir = log_dir_path / "communication-data"
     epoch_time_dir = log_dir_path / "epoch-time"
 
-    # Read the epoch time data from the given directory
-    epoch_time_expected_columns = {"name", "nodes", "epoch_id", "time"}
-    epoch_time_df = read_epoch_time_data(
-        epoch_time_dir, expected_columns=epoch_time_expected_columns
-    )
+    if epoch_time_dir.exists():
+        epoch_time_report(epoch_time_dir=epoch_time_dir, plot_dir=plot_dir)
+    else: 
+        print(
+            f"No report was created for epoch time as '{epoch_time_dir.resolve()}' does "
+            f"not exist."
+        )
 
-    # Calculate the average time per epoch for each strategy and number of nodes
-    avg_epoch_time_df = (
-        epoch_time_df.groupby(["name", "nodes"])
-        .agg(avg_epoch_time=("time", "mean"))
-        .reset_index()
-    )
 
-    # Print the resulting table
-    formatters = {"avg_epoch_time": "{:.2f}s".format}
-    epoch_time_table = avg_epoch_time_df.to_string(index=False, formatters=formatters)
-    print(epoch_time_table)
 
 
 @app.command()
