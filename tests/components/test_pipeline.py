@@ -7,10 +7,12 @@
 # - Matteo Bunino <matteo.bunino@cern.ch> - CERN
 # --------------------------------------------------------------------------------------
 
-import pytest
-import yaml
+import sys
+from unittest.mock import patch
 
-from itwinai.parser import ConfigParser
+import pytest
+
+from itwinai.cli import exec_pipeline
 from itwinai.pipeline import Pipeline
 from itwinai.tests import (
     FakeGetterExec,
@@ -18,6 +20,7 @@ from itwinai.tests import (
     FakeSplitterExec,
     FakeTrainerExec,
 )
+from itwinai.tests.dummy_components import FakePreproc, FakeTrainer
 
 
 def test_slice_into_sub_pipelines():
@@ -39,28 +42,50 @@ def test_slice_into_sub_pipelines():
     assert len(sub_pipe2) == 2
 
 
-def test_serialization_pipe_list():
-    """Test dict serialization of pipeline defined as list of BaseComponent objects."""
-    config = yaml.safe_load(pytest.PIPE_LIST_YAML)
-    parser = ConfigParser(config=config)
-    pipe = parser.build_from_config(pipeline_nested_key="my-list-pipeline")
+@pytest.mark.parametrize(
+    "pipeline",
+    [
+        Pipeline(
+            steps=[
+                FakePreproc(max_items=33, name="my-preproc"),
+                FakeTrainer(lr=0.001, batch_size=64, name="my-trainer"),
+            ]
+        ),
+        Pipeline(
+            steps={
+                "preproc": FakePreproc(max_items=33, name="my-preproc"),
+                "trainer": FakeTrainer(lr=0.001, batch_size=64, name="my-trainer"),
+            }
+        ),
+    ],
+)
+def test_serialization_to_yaml(pipeline, tmp_path, monkeypatch):
+    """Test serialization of pipeline to yaml."""
+    yaml_path = tmp_path / "pipe.yaml"
+    pipeline.to_yaml(file_path=yaml_path, nested_key="my_pipeline")
 
-    dict_pipe = pipe.to_dict()
-    del dict_pipe["init_args"]["name"]
-    dict_pipe = {"my-list-pipeline": dict_pipe}
-    assert dict_pipe == config
+    with pytest.raises(SystemExit):
+        with (
+            patch(
+                "itwinai.tests.dummy_components.FakePreproc.__init__", return_value=None
+            ) as mock_preproc_init,
+            patch(
+                "itwinai.tests.dummy_components.FakeTrainer.__init__", return_value=None
+            ) as mock_trainer_init,
+        ):
+            args = [
+                "exec_pipeline",
+                f"--config-path={tmp_path}",
+                "pipe_key=my_pipeline",
+            ]
+            monkeypatch.setattr(sys, "argv", args)
 
+            exec_pipeline()
 
-def test_serialization_pipe_dict():
-    """Test dict serialization of pipeline defined as dict of BaseComponent objects."""
-    config = yaml.safe_load(pytest.PIPE_DICT_YAML)
-    parser = ConfigParser(config=config)
-    pipe = parser.build_from_config(pipeline_nested_key="my-dict-pipeline")
-
-    dict_pipe = pipe.to_dict()
-    del dict_pipe["init_args"]["name"]
-    dict_pipe = {"my-dict-pipeline": dict_pipe}
-    assert dict_pipe == config
+            mock_preproc_init.assert_called_once_with(max_items=33, name="my-preproc")
+            mock_trainer_init.assert_called_once_with(
+                lr=0.001, batch_size=64, name="my-trainer"
+            )
 
 
 def test_arguments_mismatch():

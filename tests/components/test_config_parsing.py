@@ -7,16 +7,15 @@
 # - Matteo Bunino <matteo.bunino@cern.ch> - CERN
 # --------------------------------------------------------------------------------------
 
-import os
 import sys
 from unittest.mock import patch
-
-import pytest
 import yaml
-from hydra import compose, initialize
+import pytest
+
+# from hydra import compose, initialize
 from omegaconf import errors
 
-from itwinai.cli import exec_pipeline_with_compose, exec_pipeline
+from itwinai.cli import exec_pipeline  # , exec_pipeline_with_compose
 
 
 @pytest.fixture
