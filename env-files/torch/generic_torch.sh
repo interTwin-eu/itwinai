@@ -35,7 +35,7 @@ if [ -z "$NO_CUDA" ]; then
     --extra-index-url https://download.pytorch.org/whl/cu121
 else
   # Install without CUDA support
-  uv pip install -e --no-cache-dir ".[torch,dev]" 
+  uv pip install -e ".[torch,dev]" --no-cache-dir
 fi
 
 
