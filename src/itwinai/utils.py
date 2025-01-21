@@ -182,3 +182,11 @@ def make_config_paths_absolute(args):
             sys.path.append(abs_path)
             break
     return updated_args
+
+
+def get_root_cause(exception: Exception) -> Exception:
+    """Recursively extract the first exception in the exception chain."""
+    root = exception
+    while root.__cause__ is not None:  # Traverse the exception chain
+        root = root.__cause__
+    return root

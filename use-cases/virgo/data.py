@@ -171,7 +171,6 @@ class TimeSeriesDatasetSplitter(DataSplitter):
         self.hdf5_file_location = hdf5_file_location
         self.hdf5_dataset_name = hdf5_dataset_name
         self.chunk_size = chunk_size
-        # raise AttributeError("Test Error!")
 
     @monitor_exec
     def execute(self) -> Tuple[Dataset, Dataset, Dataset]:
@@ -183,7 +182,6 @@ class TimeSeriesDatasetSplitter(DataSplitter):
         Returns:
             Tuple[Dataset, Dataset, Dataset]: Training, validation, and test datasets.
         """
-        # raise AttributeError("Test Error in execute!")
         whole_dataset = SyntheticTimeSeriesDatasetHDF5(
             hdf5_file_location=self.hdf5_file_location,
             chunk_size=self.chunk_size,

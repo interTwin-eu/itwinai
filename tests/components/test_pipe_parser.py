@@ -7,12 +7,14 @@
 # - Matteo Bunino <matteo.bunino@cern.ch> - CERN
 # --------------------------------------------------------------------------------------
 
+import sys
+from unittest.mock import patch
+
 import pytest
 import yaml
-import omegaconf
-from itwinai.components import BaseComponent
-from itwinai.parser import ConfigParser
-from itwinai.tests import FakePreproc, FakeSaver, FakeTrainer
+from omegaconf import errors
+
+from itwinai.cli import exec_pipeline
 
 
 @pytest.fixture
@@ -21,10 +23,10 @@ def temp_yaml_files(tmp_path):
     Returns a dictionary with their respective file paths.
     """
     yaml_data = {
-        "PIPE_LIST_YAML": pytest.PIPE_LIST_YAML,
-        "PIPE_DICT_YAML": pytest.PIPE_DICT_YAML,
-        "NESTED_PIPELINE": pytest.NESTED_PIPELINE,
-        "INTERPOLATED_VALUES_PIPELINE": pytest.INTERPOLATED_VALUES_PIPELINE,
+        "my-list-pipeline": pytest.PIPE_LIST_YAML,
+        "my-dict-pipeline": pytest.PIPE_DICT_YAML,
+        "some.field.my-nested-pipeline": pytest.NESTED_PIPELINE,
+        "my-interpolation-pipeline": pytest.INTERPOLATED_VALUES_PIPELINE,
     }
 
     file_paths = {}
@@ -38,136 +40,147 @@ def temp_yaml_files(tmp_path):
     return file_paths
 
 
-def test_parse_pipeline(temp_yaml_files):
-    """Parse a pipeline from config file,
-    where the pipeline is define as a list of components.
-    """
-    parser = ConfigParser(config=temp_yaml_files["PIPE_LIST_YAML"])
-    pipe = parser.build_from_config(pipeline_nested_key="my-list-pipeline")
+def test_instantiate_and_execute_pipeline(temp_yaml_files, monkeypatch):
+    """Test that exec_pipeline correctly instantiates and executes all components of
+    the pipeline."""
+    with pytest.raises(SystemExit):
+        with (
+            patch(
+                "itwinai.tests.dummy_components.FakePreproc.__init__", return_value=None
+            ) as mock_preproc_init,
+            patch(
+                "itwinai.tests.dummy_components.FakePreproc.execute", return_value=None
+            ) as mock_preproc_exec,
+            patch(
+                "itwinai.tests.dummy_components.FakeTrainer.__init__", return_value=None
+            ) as mock_trainer_init,
+            patch(
+                "itwinai.tests.dummy_components.FakeTrainer.execute", return_value=None
+            ) as mock_trainer_exec,
+        ):
+            for pipe_key, path in temp_yaml_files.items():
+                args = ["exec_pipeline", f"--config-path={path}", f"pipe_key={pipe_key}"]
+                monkeypatch.setattr(sys, "argv", args)
 
-    assert isinstance(pipe.steps, omegaconf.listconfig.ListConfig)
-    for step in pipe.steps:
-        assert isinstance(step, BaseComponent)
+                exec_pipeline()
 
+                mock_preproc_init.assert_called_once_with(max_items=33, name="my-preproc")
+                mock_preproc_exec.assert_called_once()
 
-def test_parse_dict_pipeline(temp_yaml_files):
-    """Parse a pipeline from config file,
-    where the pipeline is define as a dict of components.
-    """
-    parser = ConfigParser(config=temp_yaml_files["PIPE_DICT_YAML"])
-    pipe = parser.build_from_config(pipeline_nested_key="my-dict-pipeline")
-
-    assert isinstance(pipe.steps, omegaconf.dictconfig.DictConfig)
-    for step in pipe.steps.values():
-        assert isinstance(step, BaseComponent)
-
-
-def test_parse_non_existing_pipeline(temp_yaml_files):
-    """Parse a pipeline from config file, where the pipeline key is wrong."""
-
-    parser = ConfigParser(config=temp_yaml_files["PIPE_DICT_YAML"])
-    with pytest.raises(ValueError):
-        _ = parser.build_from_config(pipeline_nested_key="non-existing-pipeline")
-
-
-def test_parse_nested_pipeline(temp_yaml_files):
-    """Parse a pipeline from config file, where the pipeline key is nested."""
-    parser = ConfigParser(config=temp_yaml_files["NESTED_PIPELINE"])
-    pipe = parser.build_from_config(pipeline_nested_key="some.field.my-nested-pipeline")
-
-    assert isinstance(pipe.steps, omegaconf.listconfig.ListConfig)
-    for step in pipe.steps:
-        assert isinstance(step, BaseComponent)
+                mock_trainer_init.assert_called_once_with(
+                    lr=0.001, batch_size=32, name="my-trainer"
+                )
+                mock_trainer_exec.assert_called_once()
 
 
-def test_parse_interpolation_pipeline(temp_yaml_files):
-    """Parse a pipeline from config file, where the pipeline is define as a list of components
-    and some values have to be resolved through variable interpolation.
-    """
-    parser = ConfigParser(config=temp_yaml_files["INTERPOLATED_VALUES_PIPELINE"])
-    pipe = parser.build_from_config(pipeline_nested_key="my-interpolation-pipeline")
+def test_step_selection(temp_yaml_files, monkeypatch):
+    """Test that exec_pipeline can correctly select steps via cli arguments and instantiate
+    and execute only the selected steps from the pipeline."""
+    with pytest.raises(SystemExit):
+        with (
+            patch(
+                "itwinai.tests.dummy_components.FakePreproc.__init__", return_value=None
+            ) as mock_preproc_init,
+            patch(
+                "itwinai.tests.dummy_components.FakePreproc.execute", return_value=None
+            ) as mock_preproc_exec,
+            patch(
+                "itwinai.tests.dummy_components.FakeTrainer.__init__", return_value=None
+            ) as mock_trainer_init,
+            patch(
+                "itwinai.tests.dummy_components.FakeTrainer.execute", return_value=None
+            ) as mock_trainer_exec,
+        ):
+            for pipe_key, path in temp_yaml_files.items():
+                args = [
+                    "exec_pipeline",
+                    f"--config-path={path}",
+                    f"pipe_key={pipe_key}",
+                    "+pipe_steps=[1]",
+                ]
+                monkeypatch.setattr(sys, "argv", args)
 
-    assert pipe.steps[0].max_items == 33
-    assert pipe.steps[1].name == "my-trainer"
+                exec_pipeline()
 
+                mock_preproc_init.assert_called_once_with(max_items=33, name="my-preproc")
+                mock_preproc_exec.assert_called_once()
 
-def test_dynamic_override_parser_pipeline_dict(temp_yaml_files):
-    """Parse a pipeline from config file, and verify that dynamic override works
-    in a pipeline composed of a dict of components.
-    """
-    override_keys = {"my-dict-pipeline.steps.preproc-step.max_items": "100"}
-
-    parser = ConfigParser(config=temp_yaml_files["PIPE_DICT_YAML"])
-    pipe = parser.build_from_config(
-        pipeline_nested_key="my-dict-pipeline", override_keys=override_keys
-    )
-    assert pipe.steps["preproc-step"].max_items == 100
-
-
-def test_dynamic_override_parser_pipeline_list(temp_yaml_files):
-    """Parse a pipeline from config file, and verify that dynamic override works
-    in a pipeline composed of a list of components.
-    """
-    override_keys = {"my-list-pipeline.steps.0.max_items": "100"}
-
-    parser = ConfigParser(config=temp_yaml_files["PIPE_LIST_YAML"])
-    pipe = parser.build_from_config(
-        pipeline_nested_key="my-list-pipeline", override_keys=override_keys
-    )
-    assert pipe.steps[0].max_items == 100
-
-
-def test_parse_step_list_pipeline(temp_yaml_files):
-    """Parse a pipeline step from config file,
-    where the pipeline is define as a list of components.
-    """
-    parser = ConfigParser(config=temp_yaml_files["PIPE_LIST_YAML"])
-    step = parser.build_from_config(steps=[1], pipeline_nested_key="my-list-pipeline")
-
-    assert isinstance(step, BaseComponent)
-    assert isinstance(step, FakeTrainer)
-
-    with pytest.raises(IndexError):
-        _ = parser.build_from_config(steps=[12], pipeline_nested_key="my-list-pipeline")
-    with pytest.raises(omegaconf.errors.KeyValidationError):
-        _ = parser.build_from_config(
-            steps=["my-step-name"],
-            pipeline_nested_key="my-list-pipeline",
-        )
+                mock_trainer_init.assert_not_called()
+                mock_trainer_exec.assert_not_called()
 
 
-def test_parse_step_dict_pipeline(temp_yaml_files):
-    """Parse a pipeline step from config file,
-    where the pipeline is define as a dict of components.
-    """
-    parser = ConfigParser(config=temp_yaml_files["PIPE_DICT_YAML"])
-    step = parser.build_from_config(
-        steps=["preproc-step"],
-        pipeline_nested_key="my-dict-pipeline",
-    )
+def test_dynamic_override_interpolation_list_pipeline(temp_yaml_files, monkeypatch):
+    """Test that exec_pipeline can correctly set keys via cli override and instantiate
+    and execute the steps with the updated arguments. This tests the list pipeline with
+    interpolation keys."""
+    with pytest.raises(SystemExit):
+        with patch(
+            "itwinai.tests.dummy_components.FakeTrainer.__init__", return_value=None
+        ) as mock_trainer_init:
+            args = [
+                f"--config-path={temp_yaml_files['my-interpolation-pipeline']}",
+                "pipe_key=my-interpolation-pipeline",
+                "lr=0.005",
+                "my-interpolation-pipeline.steps.1.batch_size=64",
+            ]
+            args = [
+                "exec_pipeline",
+                f"--config-path={temp_yaml_files['my-interpolation-pipeline']}",
+                "pipe_key=my-interpolation-pipeline",
+                "lr=0.005",
+                "my-interpolation-pipeline.steps.1.batch_size=64",
+            ]
+            monkeypatch.setattr(sys, "argv", args)
+            exec_pipeline()
 
-    assert isinstance(step, BaseComponent)
-    assert isinstance(step, FakePreproc)
-
-    with pytest.raises(KeyError):
-        _ = parser.build_from_config(
-            steps=["unk-step"], pipeline_nested_key="my-dict-pipeline"
-        )
-    with pytest.raises(KeyError):
-        _ = parser.build_from_config(steps=[1], pipeline_nested_key="my-dict-pipeline")
+            mock_trainer_init.assert_called_once_with(
+                lr=0.005, batch_size=64, name="my-trainer"
+            )
 
 
-def test_parse_step_nested_pipeline(temp_yaml_files):
-    """Parse a pipeline step from config file,
-    where the pipeline is nested under some field.
-    """
-    parser = ConfigParser(config=temp_yaml_files["NESTED_PIPELINE"])
-    step = parser.build_from_config(
-        steps=[2], pipeline_nested_key="some.field.my-nested-pipeline"
-    )
+def test_dynamic_override_cli_dict_pipeline(temp_yaml_files, monkeypatch):
+    """Test that exec_pipeline can correctly set keys via cli override and instantiate
+    and execute the steps with the updated arguments. This tests the dictionary pipeline."""
+    with pytest.raises(SystemExit):
+        with patch(
+            "itwinai.tests.dummy_components.FakePreproc.__init__", return_value=None
+        ) as mock_preproc_init:
+            args = [
+                "exec_pipeline",
+                f"--config-path={temp_yaml_files['my-dict-pipeline']}",
+                "pipe_key=my-dict-pipeline",
+                "my-dict-pipeline.steps.preproc-step.name=new-preproc",
+            ]
+            monkeypatch.setattr(sys, "argv", args)
+            exec_pipeline()
 
-    assert isinstance(step, BaseComponent)
-    assert isinstance(step, FakeSaver)
+            mock_preproc_init.assert_called_once_with(max_items=33, name="new-preproc")
 
-    # with pytest.raises(KeyError):
-    #     _ = parser.build_from_config(steps=[-1], pipeline_nested_key="my-pipeline")
+
+def test_invalid_step_selection(temp_yaml_files, monkeypatch):
+    """Test that a call to exec_pipeline throws a 'ConfigKeyError' error if it is called
+    with an invalid step to select."""
+    args = [
+        f"--config-path={temp_yaml_files['my-dict-pipeline']}",
+        "pipe_key=my-dict-pipeline",
+        "+pipe_steps=[non-existent-step]",
+    ]
+    monkeypatch.setattr(sys, "argv", args)
+
+    with pytest.raises(SystemExit):
+        with pytest.raises(errors.ConfigKeyError):
+            exec_pipeline()
+
+
+def test_invalid_pipeline_key(temp_yaml_files, monkeypatch):
+    """Test that a call to exec_pipeline throws a 'MissingMandatoryValue' error if it is called
+    with an invalid pipeline key to select"""
+    args = [
+        f"--config-path={temp_yaml_files['my-dict-pipeline']}",
+        "pipe_key=non-existent-pipeline",
+    ]
+    monkeypatch.setattr(sys, "argv", args)
+
+    with pytest.raises(SystemExit):
+        with pytest.raises(errors.MissingMandatoryValue):
+            exec_pipeline()

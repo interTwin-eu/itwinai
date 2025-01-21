@@ -29,7 +29,7 @@ from hydra.utils import instantiate
 from omegaconf import OmegaConf, errors
 from typing_extensions import Annotated
 
-from itwinai.utils import make_config_paths_absolute
+from itwinai.utils import get_root_cause, make_config_paths_absolute
 
 app = typer.Typer(pretty_exceptions_enable=False)
 
@@ -327,8 +327,6 @@ def _run_with_hydra(cfg):
     instantiates and executes the resulting pipeline object.
     Filters steps if `pipe_steps` is provided, otherwise executes the entire pipeline."""
 
-    # cfg.hydra.run.dir = None
-
     pipe_steps = OmegaConf.select(cfg, "pipe_steps", default=None)
     pipe_key = OmegaConf.select(cfg, "pipe_key", default="training_pipeline")
 
@@ -339,16 +337,29 @@ def _run_with_hydra(cfg):
             f"Could not find pipeline key {pipe_key}. Make sure that you provide the full "
             "dotpath to your pipeline key."
         )
+        raise e
 
     if pipe_steps:
-        cfg.steps = [cfg.steps[step] for step in pipe_steps]
-        print(f"Successfully selected steps {pipe_steps}")
+        try:
+            cfg.steps = [cfg.steps[step] for step in pipe_steps]
+            print(f"Successfully selected steps {pipe_steps}")
+        except errors.ConfigKeyError as e:
+            e.add_note(
+                "Could not find all selected steps. Please ensure that all steps exist "
+                "and that you provided to the dotpath to them. "
+                f"Steps provided: {pipe_steps}."
+            )
+            raise e
     else:
         print("No steps selected. Executing the whole pipeline.")
 
     # Instantiate and execute the pipeline
-    pipeline = instantiate(cfg)
-    pipeline.execute()
+    try:
+        pipeline = instantiate(cfg)
+        pipeline.execute()
+    except Exception as e:
+        root = get_root_cause(e)
+        raise root
 
 
 @app.command()
@@ -386,5 +397,4 @@ def kill_mlflow_server(
 
 
 if __name__ == "__main__":
-    # app()
-    _run_with_hydra()
+    app()
