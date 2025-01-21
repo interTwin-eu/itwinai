@@ -13,9 +13,10 @@ from typing import Dict
 
 import ray
 import torch
+from hydra import compose, initialize
 from ray import train, tune
 
-from itwinai.parser import ConfigParser
+from itwinai.cli import exec_pipeline_with_compose
 
 
 def run_trial(config: Dict, data: Dict):
@@ -51,21 +52,18 @@ def run_trial(config: Dict, data: Dict):
         ```
     """
 
-    pipeline_name = data["pipeline_name"]
-    parser = ConfigParser(
-        config="config.yaml",
-    )
-    my_pipeline = parser.build_from_config(
-        override_keys={
-            # Set hyperparameters controlled by ray
-            "batch_size": config["batch_size"],
-            "optim_lr": config["optim_lr"],
-        },
-        pipeline_nested_key=pipeline_name,
-        verbose=False,
-    )
+    pipe_key = data["pipeline_name"]
 
-    my_pipeline.execute()
+    with initialize():
+        cfg = compose(
+            "config.yaml",
+            overrides=[
+                f"batch_size={config['batch_size']}",
+                f"optim_lr={config['optim_lr']}",
+                f"+pipe_key={pipe_key}",
+            ],
+        )
+        exec_pipeline_with_compose(cfg)
 
 
 def run_hpo(args):

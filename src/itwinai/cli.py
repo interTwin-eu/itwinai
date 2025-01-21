@@ -318,11 +318,11 @@ def exec_pipeline():
     # Process CLI arguments to handle paths
     sys.argv = make_config_paths_absolute(sys.argv)
 
-    _run_with_hydra()
+    exec_pipeline_with_compose()
 
 
 @hydra.main(version_base=None, config_path=os.getcwd(), config_name="config")
-def _run_with_hydra(cfg):
+def exec_pipeline_with_compose(cfg):
     """Hydra entry function. Parses a configuration file containing a pipeline definition, and
     instantiates and executes the resulting pipeline object.
     Filters steps if `pipe_steps` is provided, otherwise executes the entire pipeline."""

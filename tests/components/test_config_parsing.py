@@ -7,14 +7,16 @@
 # - Matteo Bunino <matteo.bunino@cern.ch> - CERN
 # --------------------------------------------------------------------------------------
 
+import os
 import sys
 from unittest.mock import patch
 
 import pytest
 import yaml
+from hydra import compose, initialize
 from omegaconf import errors
 
-from itwinai.cli import exec_pipeline
+from itwinai.cli import exec_pipeline_with_compose, exec_pipeline
 
 
 @pytest.fixture
@@ -184,3 +186,39 @@ def test_invalid_pipeline_key(temp_yaml_files, monkeypatch):
     with pytest.raises(SystemExit):
         with pytest.raises(errors.MissingMandatoryValue):
             exec_pipeline()
+
+
+# def test_call_from_code(temp_yaml_files):
+#     with pytest.raises(SystemExit):
+#         with (
+#             patch(
+#                 "itwinai.tests.dummy_components.FakePreproc.__init__", return_value=None
+#             ) as mock_preproc_init,
+#             patch(
+#                 "itwinai.tests.dummy_components.FakePreproc.execute", return_value=None
+#             ) as mock_preproc_exec,
+#             patch(
+#                 "itwinai.tests.dummy_components.FakeTrainer.__init__", return_value=None
+#             ) as mock_trainer_init,
+#             patch(
+#                 "itwinai.tests.dummy_components.FakeTrainer.execute", return_value=None
+#             ) as mock_trainer_exec,
+#         ):
+#             absolute_path_to_config = temp_yaml_files["my-dict-pipeline"]
+#             relative_path_to_config = os.path.relpath(absolute_path_to_config, os.getcwd())
+#             with initialize(config_path=absolute_path_to_config):
+#                 cfg = compose(
+#                     overrides=[
+#                         "pipe_key=my-dict-pipeline",
+#                         "my-dict-pipeline.steps.preproc-step.name=new-preproc",
+#                     ],
+#                 )
+#                 exec_pipeline_with_compose(cfg)
+
+#                 mock_preproc_init.assert_called_once_with(max_items=33, name="new-preproc")
+#                 mock_preproc_exec.assert_called_once()
+
+#                 mock_trainer_init.assert_called_once_with(
+#                     lr=0.001, batch_size=32, name="my-trainer"
+#                 )
+#                 mock_trainer_exec.assert_called_once()
