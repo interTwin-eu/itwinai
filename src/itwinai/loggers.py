@@ -75,8 +75,6 @@ from contextlib import contextmanager
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Callable, Dict, List, Literal, Optional, Tuple, Union
 
-from typing_extensions import override
-
 if TYPE_CHECKING:
     import mlflow
 
@@ -113,7 +111,7 @@ class LogMixin(ABC):
 
 
 def check_initialized(method: Callable) -> Callable:
-    """Decorator for strategy methods to check whether the logger
+    """Decorator for logger methods to check whether the logger
     was correctly initialized before calling the method."""
 
     @functools.wraps(method)
@@ -122,9 +120,27 @@ def check_initialized(method: Callable) -> Callable:
             raise RuntimeError(
                 (
                     f"{self.__class__.__name__} has not been initialized. "
-                    "Use either the start_logging context or the create_logger_context method."
+                    "Use either the ``start_logging`` context or the "
+                    "``create_logger_context`` method."
                 )
             )
+        return method(self, *args, **kwargs)
+
+    return wrapper
+
+
+def check_not_initialized(method: Callable) -> Callable:
+    """Decorator for ``create_logger_context`` method to prevent double initialization of
+    a logger."""
+
+    @functools.wraps(method)
+    def wrapper(self: "Logger", *args, **kwargs):
+        if self.is_initialized:
+            logging.warning(
+                f"Trying to initialize {self.__class__.__name__} twice.. "
+                "Skipping initialization."
+            )
+            return
         return method(self, *args, **kwargs)
 
     return wrapper
@@ -182,13 +198,11 @@ class Logger(LogMixin):
         self._run_id = run_id
 
     @property
-    @check_initialized
     def experiment_id(self) -> Optional[str]:
         """Return the experiment name."""
         return self._experiment_id
 
     @property
-    @check_initialized
     def run_id(self) -> Optional[Union[int, str]]:
         """Return the experiment version."""
         return self._run_id
@@ -215,8 +229,8 @@ class Logger(LogMixin):
         """Start logging context.
 
         Args:
-            rank (Optional[int]): global rank of current process,
-                used in distributed environments. Defaults to None.
+            rank (int): global rank of current process,
+                used in distributed environments. Defaults to 0.
 
         Example:
 
@@ -237,8 +251,8 @@ class Logger(LogMixin):
         """Initializes the logger context.
 
         Args:
-            rank (Optional[int]): global rank of current process,
-                used in distributed environments. Defaults to None.
+            rank (int): global rank of current process,
+                used in distributed environments. Defaults to 0.
         """
 
     @abstractmethod
@@ -343,12 +357,13 @@ class ConsoleLogger(Logger):
         cl_savedir = Path(savedir) / "simple-logger"
         super().__init__(savedir=cl_savedir, log_freq=log_freq, log_on_workers=log_on_workers)
 
+    @check_not_initialized
     def create_logger_context(self, rank: int = 0):
         """Initializes the logger context.
 
         Args:
-            rank (Optional[int]): global rank of current process,
-                used in distributed environments. Defaults to None.
+            rank (int): global rank of current process,
+                used in distributed environments. Defaults to 0.
         """
         self.worker_rank = rank
 
@@ -520,12 +535,13 @@ class MLFlowLogger(Logger):
 
         self.mlflow = mlflow
 
+    @check_not_initialized
     def create_logger_context(self, rank: int = 0) -> "mlflow.ActiveRun":
         """Initializes the logger context. Start MLFLow run.
 
         Args:
-            rank (Optional[int]): global rank of current process,
-                used in distributed environments. Defaults to None.
+            rank (int): global rank of current process,
+                used in distributed environments. Defaults to 0.
 
         Returns:
             mlflow.ActiveRun: active MLFlow run.
@@ -707,12 +723,13 @@ class WandBLogger(Logger):
 
         self.wandb = wandb
 
+    @check_not_initialized
     def create_logger_context(self, rank: int = 0) -> None:
         """Initializes the logger context. Init WandB run.
 
         Args:
-            rank (Optional[int]): global rank of current process,
-                used in distributed environments. Defaults to None.
+            rank (int): global rank of current process,
+                used in distributed environments. Defaults to 0.
         """
         self.worker_rank = rank
 
@@ -836,12 +853,13 @@ class TensorBoardLogger(Logger):
         else:
             raise ValueError("Framework must be either 'tensorflow' or 'pytorch'")
 
+    @check_not_initialized
     def create_logger_context(self, rank: int = 0) -> None:
         """Initializes the logger context. Init Tensorboard run.
 
         Args:
-            rank (Optional[int]): global rank of current process,
-                used in distributed environments. Defaults to None.
+            rank (int): global rank of current process,
+                used in distributed environments. Defaults to 0.
         """
         self.worker_rank = rank
 
@@ -993,12 +1011,13 @@ class LoggersCollection(Logger):
                 **kwargs,
             )
 
+    @check_not_initialized
     def create_logger_context(self, rank: int = 0) -> Any:
         """Initializes all loggers.
 
         Args:
-            rank (Optional[int]): global rank of current process,
-                used in distributed environments. Defaults to None.
+            rank (int): global rank of current process,
+                used in distributed environments. Defaults to 0.
         """
         for logger in self.loggers:
             logger.create_logger_context(rank=rank)
@@ -1091,13 +1110,13 @@ class Prov4MLLogger(Logger):
         self.prov4ml = prov4ml
         self.mlflow = mlflow
 
-    @override
+    @check_not_initialized
     def create_logger_context(self, rank: int = 0):
         """Initializes the logger context.
 
         Args:
-            rank (Optional[int]): global rank of current process,
-                used in distributed environments. Defaults to None.
+            rank (int): global rank of current process,
+                used in distributed environments. Defaults to 0.
         """
         self.worker_rank = rank
 
