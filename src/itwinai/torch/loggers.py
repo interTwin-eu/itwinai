@@ -57,8 +57,6 @@ class ItwinaiLogger(LightningLogger):
         self._logged_model_time = {}
         self._checkpoint_callback = None
 
-        self._initialized = False
-
     @property
     def name(self) -> Optional[str]:
         """Return the experiment name."""
@@ -85,10 +83,9 @@ class ItwinaiLogger(LightningLogger):
         Returns:
             Logger: The itwinai logger instance.
         """
-        if not self._initialized:
+        if not self.itwinai_logger.is_initialized:
             # With the rank_zero_experiment decorators the rank will always be 0
             self.itwinai_logger.create_logger_context(rank=0)
-            self._initialized = True
 
         return self.itwinai_logger
 
@@ -104,7 +101,7 @@ class ItwinaiLogger(LightningLogger):
                 (LightningLogger)
             finalize functions signature, and therefore must be propagated here.
         """
-        if not self._initialized:
+        if not self.itwinai_logger.is_initialized:
             return
 
         # Log checkpoints if the last checkpoint was saved but not logged
