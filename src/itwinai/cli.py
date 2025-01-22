@@ -45,6 +45,8 @@ def generate_scalability_report(
         raise ValueError(
             f"The provided log_dir, '{log_dir_path.resolve()}', does not exist."
         )
+    plot_dir_path = Path(plot_dir)
+    plot_dir_path.mkdir(exist_ok=True, parents=True)
 
     # Find the relevant folders
     # TODO: Consider storing these names in consts
@@ -53,7 +55,7 @@ def generate_scalability_report(
     epoch_time_dir = log_dir_path / "epoch-time"
 
     if epoch_time_dir.exists():
-        epoch_time_report(epoch_time_dir=epoch_time_dir, plot_dir=plot_dir)
+        epoch_time_report(epoch_time_dir=epoch_time_dir, plot_dir=plot_dir_path)
     else: 
         print(
             f"No report was created for epoch time as '{epoch_time_dir.resolve()}' does "

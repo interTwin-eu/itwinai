@@ -1,5 +1,4 @@
 from itertools import cycle
-from pathlib import Path
 from typing import Any, List, Tuple
 
 import matplotlib
@@ -10,73 +9,92 @@ import seaborn as sns
 from matplotlib.axes import Axes
 from matplotlib.figure import Figure
 from matplotlib.patches import Patch
-from matplotlib.ticker import ScalarFormatter
+from matplotlib.ticker import ScalarFormatter, NullLocator
 
 # Doing this because otherwise I get an error about X11 Forwarding which I believe
 # is due to the server trying to pass the image to the client computer
 matplotlib.use("Agg")
 
+marker_cycle = cycle("ov^s*dXpD.+12348")
 
-def create_absolute_plot(avg_epoch_time_df: pd.DataFrame, plot_dir: str | Path) -> None:
+def calculate_plot_dimensions(num_datapoints: int) -> Tuple[int, int]: 
+    """Calculates the height and width of a plot, given a number of datapoints. 
+
+    Returns: 
+        int: The calculated height
+        int: The calculated width
+    """
+
+    # Note: These calculations are somewhat arbitrary, so this is open to suggestions
+    width = max(int(2 * num_datapoints), 8)
+    height = min(int(width * 0.8), 10)
+    return height, width
+
+
+def absolute_avg_epoch_time_plot(
+    avg_epoch_time_df: pd.DataFrame,
+) -> Tuple[Figure, Axes]:
     """Creates a plot showing the absolute training times for the different
     distributed strategies and different number of GPUs.
     """
     sns.set_theme()
     fig, ax = plt.subplots()
 
-    marker_cycle = cycle("ov^s*dXpD.+12348")
-
     unique_nodes = list(avg_epoch_time_df["nodes"].unique())
     unique_names = avg_epoch_time_df["name"].unique()
     for name in unique_names:
-        # color, marker = next(color_marker_combinations)
-        marker = next(marker_cycle)
         data = avg_epoch_time_df[avg_epoch_time_df["name"] == name]
 
+        marker = next(marker_cycle)
         ax.plot(
             data["nodes"],
-            data["time"],
+            data["avg_epoch_time"],
             marker=marker,
             label=name,
             linestyle="-",
             markersize=6,
         )
 
+    # The log scale must be set before changing the ticks
     ax.set_yscale("log")
     ax.set_xscale("log")
 
+    # Calculating upper and lower bounds to get the appropriate top and bottom ticks
+    upper_bound = 10 ** int(np.ceil(np.log10(avg_epoch_time_df["avg_epoch_time"].max())))
+    lower_bound = 10 ** int(np.floor(np.log10(avg_epoch_time_df["avg_epoch_time"].min())))
+    ax.set_ylim(lower_bound, upper_bound)
+
+    # Remove minor ticks on x-axis and format new ticks
+    ax.xaxis.set_minor_locator(NullLocator())
+    ax.xaxis.set_major_formatter(ScalarFormatter())
     ax.set_xticks(unique_nodes)
 
     ax.set_xlabel("Number of Nodes")
     ax.set_ylabel("Average Epoch Time (s)")
     ax.set_title("Average Epoch Time vs Number of Nodes")
-
     ax.legend(title="Method")
-    ax.grid(True)
 
-    if isinstance(plot_dir, str):
-        plot_dir = Path(plot_dir)
-    output_path = plot_dir / "absolute_scalability_plot.png"
-    output_path.parent.mkdir(parents=True, exist_ok=True)
+    num_datapoints = len(unique_nodes)
+    figure_height, figure_width = calculate_plot_dimensions(num_datapoints=num_datapoints)
+    fig.set_figheight(figure_height)
+    fig.set_figwidth(figure_width)
+
     plt.tight_layout()
-    plt.savefig(output_path)
-    print(f"Saving absolute plot to '{output_path.resolve()}'.")
     sns.reset_orig()
 
+    return fig, ax
 
-def create_relative_plot(
-    avg_epoch_time_df: pd.DataFrame, plot_dir: str | Path, gpus_per_node: int = 4
-):
+
+def relative_epoch_time_speedup_plot(
+    avg_epoch_time_df: pd.DataFrame, gpus_per_node: int = 4
+) -> Tuple[Figure, Axes]:
     """Creates a plot showing the relative training times for the different
     distributed strategies and different number of GPUs. In particular, it shows the
     speedup when adding more GPUs, compared to the baseline of using a single node.
     """
     sns.set_theme()
-
     fig, ax = plt.subplots(figsize=(6, 4))
-    # fig.suptitle(plot_title)
 
-    marker_cycle = cycle("ov^s*dXpD.+12348")
     avg_epoch_time_df["num_gpus"] = avg_epoch_time_df["nodes"] * gpus_per_node
     avg_epoch_time_df["linear_speedup"] = avg_epoch_time_df["nodes"].astype(float)
 
@@ -85,8 +103,8 @@ def create_relative_plot(
     for strategy in strategy_names:
         strategy_data = avg_epoch_time_df[avg_epoch_time_df.name == strategy]
 
-        base_time = strategy_data["time"].iloc[0]
-        speedup = base_time / strategy_data["time"]
+        base_time = strategy_data["avg_epoch_time"].iloc[0]
+        speedup = base_time / strategy_data["avg_epoch_time"]
         num_gpus = strategy_data["num_gpus"]
 
         marker = next(marker_cycle)
@@ -99,28 +117,33 @@ def create_relative_plot(
         num_gpus, linear_speedup, ls="dashed", lw=1.0, c="k", label="linear speedup"
     )
 
-    ax.legend(ncol=1)
+    # The log scale must be set before changing the ticks
+    ax.set_yscale("log", base=2)
+    ax.set_xscale("log", base=2)
+
+    # Making the numbers on the y-axis scalars instead of exponents
+    ax.yaxis.set_major_formatter(ScalarFormatter())
+
+    # Remove minor ticks on x-axis and format new ticks
+    ax.xaxis.set_minor_locator(NullLocator())
+    ax.xaxis.set_major_formatter(ScalarFormatter())
+    ax.set_xticks(num_gpus)
+
+    ax.set_xlabel(f"Number of GPUs ({gpus_per_node} per node)")
+    ax.set_ylabel("Speedup")
     ax.set_xticks(num_gpus)
     ax.get_xaxis().set_major_formatter(ScalarFormatter())
-    ax.set_ylabel("Speedup")
-    ax.set_xlabel(f"Number of GPUs ({gpus_per_node} per node)")
-    ax.grid(True)
+    ax.legend(ncol=1)
 
-    ax.set_yscale("log")
-    ax.set_xscale("log")
+    num_datapoints = len(num_gpus)
+    figure_height, figure_width = calculate_plot_dimensions(num_datapoints=num_datapoints)
+    fig.set_figheight(figure_height)
+    fig.set_figwidth(figure_width)
 
-    # Sorted legend
-    handles, labels = ax.get_legend_handles_labels()
-    sorted_handles_labels = sorted(zip(handles, labels), key=lambda x: x[1])
-    sorted_handles, sorted_labels = zip(*sorted_handles_labels)
-    plt.legend(sorted_handles, sorted_labels)
-
-    plot_path = Path(plot_dir) / "relative_scalability_plot.png"
     plt.tight_layout()
-    plt.savefig(plot_path, bbox_inches="tight", format="png", dpi=300)
-    print(f"Saving relative plot to '{plot_path.resolve()}'.")
-
     sns.reset_orig()
+
+    return fig, ax
 
 
 def gpu_bar_plot(
@@ -134,13 +157,6 @@ def gpu_bar_plot(
         y_label: The label for the y-axis.
         main_column: The column to use for the height of the bar plot.
     """
-    required_columns = {"strategy", "num_global_gpus", main_column}
-    if not required_columns.issubset(set(data_df.columns)):
-        missing_columns = set(required_columns) - set(data_df.columns)
-        raise ValueError(
-            f"DataFrame is missing the following columns: {missing_columns}"
-        )
-
     sns.set_theme()
 
     strategies = data_df["strategy"].unique()
