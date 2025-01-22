@@ -128,51 +128,27 @@ def calculate_comp_and_comm_time(df: pd.DataFrame) -> Tuple[float, float]:
     return comp_time, comm_time
 
 
-def get_comp_fraction_full_array(
-    df: pd.DataFrame, print_table: bool = False
-) -> np.ndarray:
-    """Creates a MxN NumPy array where M is the number of strategies and N is the
-    number of GPU configurations. The strategies are sorted alphabetically and the GPU
-    configurations are sorted in ascending number of GPUs.
+def get_computation_fraction_data(df: pd.DataFrame) -> pd.DataFrame:
+    """Generates a DataFrame containing computation fractions for each combination of
+    strategy and GPU configuration. The computation fraction is calculated as the ratio
+    of computation time to the total time (computation + communication).
     """
+    # Sort and create cartesian product of unique strategies and GPU counts
     unique_num_gpus = sorted(df["num_gpus"].unique(), key=lambda x: int(x))
     unique_strategies = sorted(df["strategy"].unique())
-    values = []
+    index = pd.MultiIndex.from_product(
+        [unique_strategies, unique_num_gpus], names=["strategy", "num_gpus"]
+    )
 
-    table_string = ""
+    # Group by strategy and number of GPUs, calculate computation fraction
+    def compute_fraction(group):
+        comp_time, comm_time = calculate_comp_and_comm_time(df=group)
+        return comp_time / (comp_time + comm_time + 1e-10)
 
-    for strategy in unique_strategies:
-        strategy_values = []
-        for num_gpus in unique_num_gpus:
-            filtered_df = df[
-                (df["strategy"] == strategy) & (df["num_gpus"] == num_gpus)
-            ]
+    grouped = df.groupby(["strategy", "num_gpus"]).apply(compute_fraction)
 
-            row_string = f"{strategy:>12} | {num_gpus:>10}"
-
-            # Allows some strategies or num GPUs to not be included
-            if len(filtered_df) == 0:
-                comp_time, comm_time = np.NaN, np.NaN
-                strategy_values.append(np.NaN)
-
-                row_string += f" | {'(NO DATA)':>15}"
-            else:
-                comp_time, comm_time = calculate_comp_and_comm_time(df=filtered_df)
-                # Avoid division-by-zero errors (1e-10)
-                comp_fraction = comp_time / (comp_time + comm_time + 1e-10)
-                strategy_values.append(comp_fraction)
-
-                row_string += f" | {comp_time:>8.2f}s"
-                row_string += f" | {comm_time:>8.2f}s"
-
-            table_string += row_string + "\n"
-        values.append(strategy_values)
-
-    if print_table:
-        print(f"{'-'*50}")
-        print(f"{'Strategy':>12} | {'Num. GPUs':>10} | {'Comp.':>9} | {'Comm.':>8}")
-        print(f"{'-'*50}")
-        print(table_string)
-        print(f"{'-'*50}")
-
-    return np.array(values)
+    # Reindex to fill in missing combinations with NaN
+    result_df = pd.DataFrame(grouped.reindex(index))
+    result_df = result_df.reset_index()
+    result_df.columns = ["strategy", "num_gpus", "computation_fraction"]
+    return result_df

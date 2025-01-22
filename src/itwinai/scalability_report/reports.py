@@ -4,12 +4,13 @@ from itwinai.scalability_report.plot import (
     relative_epoch_time_speedup_plot,
     absolute_avg_epoch_time_plot,
     gpu_bar_plot,
+    computation_fraction_bar_plot
 )
 from itwinai.scalability_report.data import read_scalability_metrics_from_csv
-from itwinai.scalability_report.utils import calculate_gpu_statistics
+from itwinai.scalability_report.utils import calculate_gpu_statistics, get_computation_fraction_data
 
 
-def epoch_time_report(epoch_time_dir: Path | str, plot_dir: str | Path) -> None:
+def epoch_time_report(epoch_time_dir: Path | str, plot_dir: Path | str) -> None:
     """TODO: docstring"""
     if isinstance(epoch_time_dir, str):
         epoch_time_dir = Path(epoch_time_dir)
@@ -29,7 +30,7 @@ def epoch_time_report(epoch_time_dir: Path | str, plot_dir: str | Path) -> None:
     )
 
     # Print the resulting table
-    formatters = {"avg_epoch_time": "{:.2f}s".format}
+    formatters = {"avg_epoch_time": "{:.2f} s".format}
     epoch_time_table = avg_epoch_time_df.to_string(index=False, formatters=formatters)
     print(epoch_time_table)
 
@@ -52,7 +53,8 @@ def epoch_time_report(epoch_time_dir: Path | str, plot_dir: str | Path) -> None:
     )
 
 
-def gpu_data_report(gpu_data_dir: Path | str, plot_dir: str | Path) -> None:
+def gpu_data_report(gpu_data_dir: Path | str, plot_dir: Path | str) -> None:
+    # TODO: docstring
     if isinstance(plot_dir, str):
         plot_dir = Path(plot_dir)
     gpu_data_expected_columns = {
@@ -71,7 +73,14 @@ def gpu_data_report(gpu_data_dir: Path | str, plot_dir: str | Path) -> None:
     gpu_data_statistics_df = calculate_gpu_statistics(
         gpu_data_df=gpu_data_df, expected_columns=gpu_data_expected_columns
     )
-    print(gpu_data_statistics_df.to_string())
+    formatters = {
+        "total_energy_wh": "{:.2f} Wh".format,
+        "utilization": "{:.2f} %".format,
+    }
+    gpu_data_table = gpu_data_statistics_df.to_string(
+        index=False, formatters=formatters
+    )
+    print(gpu_data_table)
 
     energy_plot_path = plot_dir / "gpu_energy_plot.png"
     utilization_plot_path = plot_dir / "utilization_plot.png"
@@ -91,3 +100,33 @@ def gpu_data_report(gpu_data_dir: Path | str, plot_dir: str | Path) -> None:
     utilization_fig.savefig(utilization_plot_path)
     print(f"Saved GPU energy plot at '{energy_plot_path.resolve()}'.")
     print(f"Saved utilization plot at '{utilization_plot_path.resolve()}'.")
+
+
+def communication_data_report(
+    communication_data_dir: Path | str, plot_dir: Path | str
+) -> None:
+    # TODO: Docstring
+    if isinstance(plot_dir, str):
+        plot_dir = Path(plot_dir)
+
+    communication_data_expected_columns = {
+        "strategy",
+        "num_gpus",
+        "global_rank",
+        "name",
+        "self_cuda_time_total",
+    }
+    communication_data_df = read_scalability_metrics_from_csv(
+        data_dir=communication_data_dir,
+        expected_columns=communication_data_expected_columns,
+    )
+    computation_fraction_df = get_computation_fraction_data(communication_data_df)
+
+    formatters = {"computation_fraction": lambda x: "{:.2f} %".format(x * 100)}
+    communication_data_table = computation_fraction_df.to_string(index=False, formatters=formatters)
+    print(communication_data_table)
+
+    computation_fraction_plot_path = plot_dir / "computation_fraction_plot.png"
+    computation_fraction_fig, _ = computation_fraction_bar_plot(computation_fraction_df)
+    computation_fraction_fig.savefig(computation_fraction_plot_path)
+    print(f"Saved computation fraction plot at '{computation_fraction_plot_path.resolve()}'.")

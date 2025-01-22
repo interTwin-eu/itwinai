@@ -37,8 +37,11 @@ def generate_scalability_report(
     experiment_name: str | None = None,
     run_name: str | None = None,
 ):
-    # TODO: imports
-    from itwinai.scalability_report.reports import epoch_time_report, gpu_data_report
+    from itwinai.scalability_report.reports import (
+        epoch_time_report,
+        gpu_data_report,
+        communication_data_report,
+    )
 
     log_dir_path = Path(log_dir)
     if not log_dir_path.exists():
@@ -50,29 +53,36 @@ def generate_scalability_report(
 
     # Find the relevant folders
     # TODO: Consider storing these names in consts
-    epoch_time_dir = log_dir_path / "epoch-time"
-    gpu_data_dir = log_dir_path / "gpu-energy-data"
-    communication_data_dir = log_dir_path / "communication-data"
 
-    if epoch_time_dir.exists():
-        print("#"*5,"Generating Epoch Time Report", "#"*5)
-        epoch_time_report(epoch_time_dir=epoch_time_dir, plot_dir=plot_dir_path)
-        print()
-    else:
-        print(
-            f"No report was created for epoch time as '{epoch_time_dir.resolve()}' does "
-            f"not exist."
-        )
+    report_dirs = {
+        "Epoch Time": {
+            "dir": log_dir_path / "epoch-time",
+            "func": epoch_time_report,
+        },
+        "GPU Data": {
+            "dir": log_dir_path / "gpu-energy-data",
+            "func": gpu_data_report,
+        },
+        "Communication Data": {
+            "dir": log_dir_path / "communication-data",
+            "func": communication_data_report,
+        },
+    }
 
-    if gpu_data_dir.exists():
-        print("#"*5,"Generating GPU Data Report", "#"*5)
-        gpu_data_report(gpu_data_dir=gpu_data_dir, plot_dir=plot_dir_path)
-        print()
-    else: 
-        print(
-            f"No report was created for GPU data as '{gpu_data_dir.resolve()}' does "
-            f"not exist."
-        )
+
+    for report_name, details in report_dirs.items():
+        report_dir = details["dir"]
+        report_func = details["func"]
+
+        if report_dir.exists():
+            print("#" * 8, f"{report_name} Report", "#" * 8)
+            report_func(report_dir, plot_dir=plot_dir_path)
+            print()
+        else:
+            print(
+                f"No report was created for {report_name} as '{report_dir.resolve()}' does "
+                f"not exist."
+            )
 
 
 @app.command()
