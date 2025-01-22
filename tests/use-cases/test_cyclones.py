@@ -29,13 +29,6 @@ def test_structure_cyclones(check_folder_structure):
     check_folder_structure(CYCLONES_PATH)
 
 
-pipeline = pipe_parser.build_from_config(
-    override_keys={"dataset_root": args.data_path, "global_config": global_config},
-    pipeline_nested_key="training_pipeline",
-    steps=steps,
-)
-
-
 @pytest.mark.skip("deprecated")
 @pytest.mark.functional
 @pytest.mark.memory_heavy
