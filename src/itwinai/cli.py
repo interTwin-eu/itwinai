@@ -38,7 +38,7 @@ def generate_scalability_report(
     run_name: str | None = None,
 ):
     # TODO: imports
-    from itwinai.scalability_report.reports import epoch_time_report
+    from itwinai.scalability_report.reports import epoch_time_report, gpu_data_report
 
     log_dir_path = Path(log_dir)
     if not log_dir_path.exists():
@@ -50,19 +50,29 @@ def generate_scalability_report(
 
     # Find the relevant folders
     # TODO: Consider storing these names in consts
+    epoch_time_dir = log_dir_path / "epoch-time"
     gpu_data_dir = log_dir_path / "gpu-energy-data"
     communication_data_dir = log_dir_path / "communication-data"
-    epoch_time_dir = log_dir_path / "epoch-time"
 
     if epoch_time_dir.exists():
+        print("#"*5,"Generating Epoch Time Report", "#"*5)
         epoch_time_report(epoch_time_dir=epoch_time_dir, plot_dir=plot_dir_path)
-    else: 
+        print()
+    else:
         print(
             f"No report was created for epoch time as '{epoch_time_dir.resolve()}' does "
             f"not exist."
         )
 
-
+    if gpu_data_dir.exists():
+        print("#"*5,"Generating GPU Data Report", "#"*5)
+        gpu_data_report(gpu_data_dir=gpu_data_dir, plot_dir=plot_dir_path)
+        print()
+    else: 
+        print(
+            f"No report was created for GPU data as '{gpu_data_dir.resolve()}' does "
+            f"not exist."
+        )
 
 
 @app.command()

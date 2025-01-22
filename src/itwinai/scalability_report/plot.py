@@ -27,7 +27,7 @@ def calculate_plot_dimensions(num_datapoints: int) -> Tuple[int, int]:
 
     # Note: These calculations are somewhat arbitrary, so this is open to suggestions
     width = max(int(2 * num_datapoints), 8)
-    height = min(int(width * 0.8), 10)
+    height = min(int(width * 0.8), 6)
     return height, width
 
 
@@ -181,16 +181,17 @@ def gpu_bar_plot(
             label=strategy,
         )
 
-    ax.set_xlabel("Num GPUs")
+    ax.set_xlabel("Number of GPUs")
     ax.set_ylabel(y_label)
     ax.set_title(plot_title)
     ax.set_xticks(x)
     ax.set_xticklabels(unique_gpu_counts)
     ax.legend(title="Strategy")
 
-    figure_width = max(int(2 * len(unique_gpu_counts)), 8)
+    num_datapoints = len(unique_gpu_counts)
+    figure_height, figure_width = calculate_plot_dimensions(num_datapoints=num_datapoints)
+    fig.set_figheight(figure_height)
     fig.set_figwidth(figure_width)
-    fig.set_figheight(figure_width * 0.8)
 
     sns.reset_orig()
 

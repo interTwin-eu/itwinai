@@ -1,11 +1,12 @@
 from pathlib import Path
 
-from itwinai.scalability_report.plot import relative_epoch_time_speedup_plot, absolute_avg_epoch_time_plot
-from itwinai.scalability_report.data import read_scalability_metrics_from_csv
-from itwinai.scalability_report.utils import (
-    calculate_total_energy_expenditure,
-    calculate_average_gpu_utilization,
+from itwinai.scalability_report.plot import (
+    relative_epoch_time_speedup_plot,
+    absolute_avg_epoch_time_plot,
+    gpu_bar_plot,
 )
+from itwinai.scalability_report.data import read_scalability_metrics_from_csv
+from itwinai.scalability_report.utils import calculate_gpu_statistics
 
 
 def epoch_time_report(epoch_time_dir: Path | str, plot_dir: str | Path) -> None:
@@ -34,16 +35,26 @@ def epoch_time_report(epoch_time_dir: Path | str, plot_dir: str | Path) -> None:
 
     # Create and save the figures
     absolute_fig, _ = absolute_avg_epoch_time_plot(avg_epoch_time_df=avg_epoch_time_df)
-    relative_fig, _ = relative_epoch_time_speedup_plot(avg_epoch_time_df=avg_epoch_time_df)
+    relative_fig, _ = relative_epoch_time_speedup_plot(
+        avg_epoch_time_df=avg_epoch_time_df
+    )
 
     absolute_avg_time_plot_path = plot_dir / "absolute_epoch_time.png"
     relative_speedup_plot_path = plot_dir / "relative_epoch_time_speedup.png"
 
     absolute_fig.savefig(absolute_avg_time_plot_path)
     relative_fig.savefig(relative_speedup_plot_path)
+    print(
+        f"Saved absolute average time plot at '{absolute_avg_time_plot_path.resolve()}'."
+    )
+    print(
+        f"Saved relative average time plot at '{relative_speedup_plot_path.resolve()}'."
+    )
 
 
-def gpu_data_report(gpu_data_dir: Path | str):
+def gpu_data_report(gpu_data_dir: Path | str, plot_dir: str | Path) -> None:
+    if isinstance(plot_dir, str):
+        plot_dir = Path(plot_dir)
     gpu_data_expected_columns = {
         "sample_idx",
         "utilization",
@@ -57,9 +68,26 @@ def gpu_data_report(gpu_data_dir: Path | str):
     gpu_data_df = read_scalability_metrics_from_csv(
         data_dir=gpu_data_dir, expected_columns=gpu_data_expected_columns
     )
-    energy_df = calculate_total_energy_expenditure(
+    gpu_data_statistics_df = calculate_gpu_statistics(
         gpu_data_df=gpu_data_df, expected_columns=gpu_data_expected_columns
     )
-    utilization_df = calculate_average_gpu_utilization(
-        gpu_data_df=gpu_data_df, expected_columns=gpu_data_expected_columns
+    print(gpu_data_statistics_df.to_string())
+
+    energy_plot_path = plot_dir / "gpu_energy_plot.png"
+    utilization_plot_path = plot_dir / "utilization_plot.png"
+    energy_fig, _ = gpu_bar_plot(
+        data_df=gpu_data_statistics_df,
+        plot_title="Energy Consumption by Strategy and Number of GPUs",
+        y_label="Energy Consumption (Wh)",
+        main_column="total_energy_wh",
     )
+    utilization_fig, _ = gpu_bar_plot(
+        data_df=gpu_data_statistics_df,
+        plot_title="GPU Utilization by Strategy and Number of GPUs",
+        y_label="GPU Utilization (%)",
+        main_column="utilization",
+    )
+    energy_fig.savefig(energy_plot_path)
+    utilization_fig.savefig(utilization_plot_path)
+    print(f"Saved GPU energy plot at '{energy_plot_path.resolve()}'.")
+    print(f"Saved utilization plot at '{utilization_plot_path.resolve()}'.")
