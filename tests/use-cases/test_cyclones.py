@@ -29,6 +29,13 @@ def test_structure_cyclones(check_folder_structure):
     check_folder_structure(CYCLONES_PATH)
 
 
+pipeline = pipe_parser.build_from_config(
+    override_keys={"dataset_root": args.data_path, "global_config": global_config},
+    pipeline_nested_key="training_pipeline",
+    steps=steps,
+)
+
+
 @pytest.mark.skip("deprecated")
 @pytest.mark.functional
 @pytest.mark.memory_heavy
@@ -45,9 +52,13 @@ def test_cyclones_train_tf(tf_env, install_requirements):
     install_requirements(CYCLONES_PATH, tf_env)
 
     dataset_path = os.environ.get("CMCCC_DATASET", "./data/tmp_data")
-    pipe = CYCLONES_PATH / "pipeline.yaml"
-    train = CYCLONES_PATH / "train.py"
+    pipe = CYCLONES_PATH.resolve()
 
-    cmd = f"{tf_env}/bin/python {train.resolve()} " f"-p {pipe.resolve()} --data_path {dataset_path}"
+    cmd = (
+        f"{tf_env}/bin/itwinai exec-pipeline "
+        f"--config_path {pipe} "
+        "--config_name pipeline"
+        f"data_path {dataset_path}"
+    )
     with tempfile.TemporaryDirectory() as tmpdirname:
         subprocess.run(cmd.split(), check=True, cwd=tmpdirname)
