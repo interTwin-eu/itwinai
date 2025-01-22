@@ -16,7 +16,6 @@ from itwinai.slurm.utils import get_slurm_job_parser
 
 
 class VirgoSlurmScriptBuilder(SlurmScriptBuilder):
-
     def __init__(
         self,
         slurm_script_configuration: SlurmScriptConfiguration,
@@ -24,7 +23,8 @@ class VirgoSlurmScriptBuilder(SlurmScriptBuilder):
         training_command: None | str = None,
         python_venv: str = ".venv",
         debug: bool = False,
-        config_file: str = "config.yaml",
+        config_name: str = "config",
+        config_path: str = ".",
         pipe_key: str = "rnn_training_pipeline",
     ):
         super().__init__(
@@ -34,19 +34,21 @@ class VirgoSlurmScriptBuilder(SlurmScriptBuilder):
             python_venv=python_venv,
             debug=debug,
         )
-        self.config_file = config_file
+        self.config_path = config_path
+        self.config_name = config_name
         self.pipe_key = pipe_key
 
     def get_training_command(self):
-        if self.training_command is not None: 
+        if self.training_command is not None:
             return self.training_command
 
         training_command = rf"""
         $(which itwinai) exec-pipeline \
-            --config {self.config_file} \
-            --pipe-key {self.pipe_key} \
-            -o strategy={self.distributed_strategy} \
-            -o checkpoint_path=checkpoints_ddp/epoch_{{}}.pth
+            --config_path {self.config_path} \
+            --config_name {self.config_name} \
+            +pipe-key {self.pipe_key} \
+            strategy={self.distributed_strategy} \
+            checkpoint_path=checkpoints_ddp/epoch_{{}}.pth
         """
         training_command = training_command.strip()
         return remove_indentation_from_multiline_string(training_command)
@@ -76,7 +78,8 @@ def main():
         python_venv=args.python_venv,
         debug=args.debug,
         pipe_key=args.pipe_key,
-        config_file=args.config_file,
+        config_name=args.config_name,
+        config_path=args.config_path,
     )
 
     submit_job = not args.no_submit_job
@@ -93,7 +96,8 @@ def main():
         )
     elif mode == "scaling-test":
         script_builder.run_scaling_test(
-            submit_slurm_job=submit_job, retain_file=retain_file,
+            submit_slurm_job=submit_job,
+            retain_file=retain_file,
             num_nodes_list=args.scalability_nodes,
         )
     else:
