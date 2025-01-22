@@ -368,6 +368,7 @@ class ConsoleLogger(Logger):
         self.worker_rank = rank
 
         if not self.should_log():
+            self.is_initialized = True
             return
 
         logging.info(f"Initializing {self.__class__.__name__} on rank {rank}")
@@ -526,6 +527,8 @@ class MLFlowLogger(Logger):
         self.run_name = run_name
         self.experiment_name = experiment_name
 
+        mfl_savedir.mkdir(parents=True, exist_ok=True)
+
         self.tracking_uri = (
             self.tracking_uri
             or os.environ.get("MLFLOW_TRACKING_URI")
@@ -549,6 +552,7 @@ class MLFlowLogger(Logger):
         self.worker_rank = rank
 
         if not self.should_log():
+            self.is_initialized = True
             return
 
         logging.info(f"Initializing {self.__class__.__name__} on rank {rank}")
@@ -734,6 +738,7 @@ class WandBLogger(Logger):
         self.worker_rank = rank
 
         if not self.should_log():
+            self.is_initialized = True
             return
 
         logging.info(f"Initializing {self.__class__.__name__} on rank {rank}")
@@ -864,6 +869,7 @@ class TensorBoardLogger(Logger):
         self.worker_rank = rank
 
         if not self.should_log():
+            self.is_initialized = True
             return
 
         logging.info(f"Initializing {self.__class__.__name__} on rank {rank}")
@@ -1121,6 +1127,7 @@ class Prov4MLLogger(Logger):
         self.worker_rank = rank
 
         if not self.should_log():
+            self.is_initialized = True
             return
 
         logging.info(f"Initializing {self.__class__.__name__} on rank {rank}")

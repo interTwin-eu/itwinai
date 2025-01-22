@@ -33,7 +33,7 @@ def console_logger():
         yield ConsoleLogger(savedir=save_dir, log_freq=1)
 
 
-@pytest.fixture
+@pytest.fixture(scope="module")
 def mlflow_logger():
     with tempfile.TemporaryDirectory() as temp_dir:
         save_dir = Path(temp_dir) / "mlflow/test_mllogs"
@@ -92,6 +92,9 @@ def loggers_collection(
 def lightning_mock_loggers():
     """Setup a generic PyTorchLightningLogger with mock loggers for testing."""
     itwinai_logger_mock = MagicMock(spec=Logger)
+    # Setting default attributes as per class definition
+    itwinai_logger_mock.is_initialized = False
+    itwinai_logger_mock.worker_rank = 0
     lightning_logger = PyTorchLightningLogger(itwinai_logger=itwinai_logger_mock)
 
     return itwinai_logger_mock, lightning_logger
