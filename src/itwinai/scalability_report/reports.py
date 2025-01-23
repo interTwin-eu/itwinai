@@ -4,13 +4,23 @@ from itwinai.scalability_report.plot import (
     relative_epoch_time_speedup_plot,
     absolute_avg_epoch_time_plot,
     gpu_bar_plot,
-    computation_fraction_bar_plot
+    computation_fraction_bar_plot,
 )
-from itwinai.scalability_report.data import read_scalability_metrics_from_csv
-from itwinai.scalability_report.utils import calculate_gpu_statistics, get_computation_fraction_data
+from itwinai.scalability_report.data import (
+    read_scalability_metrics_from_csv
+)
+from itwinai.scalability_report.utils import (
+    calculate_gpu_statistics,
+    get_computation_fraction_data,
+)
 
 
-def epoch_time_report(epoch_time_dir: Path | str, plot_dir: Path | str) -> None:
+def epoch_time_report(
+    epoch_time_dir: Path | str,
+    plot_dir: Path | str,
+    backup_dir: Path,
+    do_backup: bool = False,
+) -> None:
     """TODO: docstring"""
     if isinstance(epoch_time_dir, str):
         epoch_time_dir = Path(epoch_time_dir)
@@ -52,8 +62,19 @@ def epoch_time_report(epoch_time_dir: Path | str, plot_dir: Path | str) -> None:
         f"Saved relative average time plot at '{relative_speedup_plot_path.resolve()}'."
     )
 
+    if not do_backup:
+        return
 
-def gpu_data_report(gpu_data_dir: Path | str, plot_dir: Path | str) -> None:
+    backup_dir.mkdir(exist_ok=True, parents=True)
+    backup_path = backup_dir / "epoch_time_data.csv"
+    epoch_time_df.to_csv(backup_path)
+    print(f"Storing backup file at '{backup_path.resolve()}'.")
+
+
+def gpu_data_report(
+    gpu_data_dir: Path | str,
+    plot_dir: Path | str, backup_dir: Path, do_backup: bool = False
+) -> None:
     # TODO: docstring
     if isinstance(plot_dir, str):
         plot_dir = Path(plot_dir)
@@ -101,9 +122,17 @@ def gpu_data_report(gpu_data_dir: Path | str, plot_dir: Path | str) -> None:
     print(f"Saved GPU energy plot at '{energy_plot_path.resolve()}'.")
     print(f"Saved utilization plot at '{utilization_plot_path.resolve()}'.")
 
+    if not do_backup:
+        return
+
+    backup_dir.mkdir(exist_ok=True, parents=True)
+    backup_path = backup_dir / "gpu_data.csv"
+    gpu_data_df.to_csv(backup_path)
+    print(f"Storing backup file at '{backup_path.resolve()}'.")
+
 
 def communication_data_report(
-    communication_data_dir: Path | str, plot_dir: Path | str
+    communication_data_dir: Path | str, plot_dir: Path | str, backup_dir: Path, do_backup: bool = False
 ) -> None:
     # TODO: Docstring
     if isinstance(plot_dir, str):
@@ -123,10 +152,22 @@ def communication_data_report(
     computation_fraction_df = get_computation_fraction_data(communication_data_df)
 
     formatters = {"computation_fraction": lambda x: "{:.2f} %".format(x * 100)}
-    communication_data_table = computation_fraction_df.to_string(index=False, formatters=formatters)
+    communication_data_table = computation_fraction_df.to_string(
+        index=False, formatters=formatters
+    )
     print(communication_data_table)
 
     computation_fraction_plot_path = plot_dir / "computation_fraction_plot.png"
     computation_fraction_fig, _ = computation_fraction_bar_plot(computation_fraction_df)
     computation_fraction_fig.savefig(computation_fraction_plot_path)
-    print(f"Saved computation fraction plot at '{computation_fraction_plot_path.resolve()}'.")
+    print(
+        f"Saved computation fraction plot at '{computation_fraction_plot_path.resolve()}'."
+    )
+
+    if not do_backup:
+        return
+
+    backup_dir.mkdir(exist_ok=True, parents=True)
+    backup_path = backup_dir / "communication_data.csv"
+    communication_data_df.to_csv(backup_path)
+    print(f"Storing backup file at '{backup_path.resolve()}'.")

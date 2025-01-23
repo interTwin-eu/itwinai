@@ -10,7 +10,7 @@
 
 import uuid
 from pathlib import Path
-from typing import Set
+from typing import Set, Dict
 
 import pandas as pd
 
@@ -33,9 +33,7 @@ def read_scalability_metrics_from_csv(
         )
 
     if len(file_paths) == 0:
-        raise ValueError(
-            f"Found no .csv files in directory: '{data_dir.resolve()}'"
-        )
+        raise ValueError(f"Found no .csv files in directory: '{data_dir.resolve()}'")
 
     dataframes = []
     for file_path in file_paths:
@@ -47,26 +45,3 @@ def read_scalability_metrics_from_csv(
 
     return pd.concat(dataframes)
 
-
-def backup_scalability_metrics(
-    metric_df: pd.DataFrame,
-    experiment_name: str | None,
-    run_name: str | None,
-    backup_dir: str,
-    filename: str,
-) -> None:
-    """Stores the data in the given dataframe as a .csv file in its own folder for the
-    experiment name and its own subfolder for the run_name. If these are not provided,
-    then they will be generated randomly using uuid4.
-    """
-    if experiment_name is None:
-        random_id = str(uuid.uuid4())
-        experiment_name = "exp_" + random_id[:6]
-    if run_name is None:
-        random_id = str(uuid.uuid4())
-        run_name = "run_" + random_id[:6]
-
-    backup_path = Path(backup_dir) / experiment_name / run_name / filename
-    backup_path.parent.mkdir(parents=True, exist_ok=True)
-    metric_df.to_csv(backup_path, index=False)
-    print(f"Storing backup file at '{backup_path.resolve()}'.")
