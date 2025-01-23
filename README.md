@@ -23,9 +23,9 @@ See the latest version of our docs [here](https://itwinai.readthedocs.io/).
 ## Installation
 
 For instructions on how to install `itwinai`, please refer to the
-[user installation guide](https://itwinai.readthedocs.io/installation/user_installation.html)
+[user installation guide](https://itwinai.readthedocs.io/latest/installation/user_installation.html)
 or the
-[developer installation guide](https://itwinai.readthedocs.io/installation/developer_installation.html),
+[developer installation guide](https://itwinai.readthedocs.io/latest/installation/developer_installation.html),
 depending on whether you are a user or developer
 
 For information about how to use containers or how to test with pytest, you can look
