@@ -1,5 +1,5 @@
 from itertools import cycle
-from typing import Any, List, Tuple
+from typing import Tuple
 
 import matplotlib
 import matplotlib.pyplot as plt
@@ -64,7 +64,7 @@ def absolute_avg_epoch_time_plot(
 
         marker = next(marker_cycle)
         ax.plot(
-            data["nodes"]*gpus_per_node,
+            data["nodes"] * gpus_per_node,
             data["avg_epoch_time"],
             marker=marker,
             label=name,
@@ -166,7 +166,7 @@ def relative_epoch_time_speedup_plot(
     ax.xaxis.set_major_formatter(ScalarFormatter())
     ax.set_xticks(num_gpus)
 
-    ax.set_xlabel(f"Number of GPUs")
+    ax.set_xlabel("Number of GPUs")
     ax.set_ylabel("Speedup")
     ax.set_xticks(num_gpus)
     ax.set_title("Relative Speedup of Average Epoch Time vs Number of GPUs")
@@ -192,7 +192,7 @@ def gpu_bar_plot(
 
     Args:
         data_df (pd.DataFrame): A DataFrame containing the data to plot. Must include the
-            columns "strategy", "num_global_gpus", and the column specified in 
+            columns "strategy", "num_global_gpus", and the column specified in
             `main_column`.
         plot_title (str): The title of the plot.
         y_label (str): The label for the y-axis.
@@ -229,7 +229,7 @@ def gpu_bar_plot(
             height=strategy_data[main_column],
             width=bar_width,
             label=strategy,
-            color=color
+            color=color,
         )
 
     ax.set_xlabel("Number of GPUs")
@@ -249,6 +249,7 @@ def gpu_bar_plot(
     sns.reset_orig()
 
     return fig, ax
+
 
 def computation_fraction_bar_plot(
     communication_data_df: pd.DataFrame,

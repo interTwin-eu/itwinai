@@ -97,8 +97,8 @@ def gpu_data_report(
 
     Args:
         gpu_data_dir (Path | str): Path to the directory containing CSV files with GPU
-            data. The files must include the columns "sample_idx", "utilization", 
-            "power", "local_rank", "node_idx", "num_global_gpus", "strategy", and 
+            data. The files must include the columns "sample_idx", "utilization",
+            "power", "local_rank", "node_idx", "num_global_gpus", "strategy", and
             "probing_interval".
         plot_dir (Path | str): Path to the directory where the generated plots will
             be saved.
