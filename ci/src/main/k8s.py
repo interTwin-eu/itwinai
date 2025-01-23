@@ -241,3 +241,33 @@ def submit_job(
         print(f"Pod logs:\n{logs}")
         delete_pod(v1, namespace, pod_name)
     return status
+
+
+def list_pods(kubeconfig_path: str, namespace: str = 'default') -> str:
+    """
+    Connects to a Kubernetes cluster using the provided kubeconfig file and lists the pods.
+
+    Args:
+        kubeconfig_path (str): Path to the kubeconfig file.
+        namespace (str): The namespace to list the pods from. Default is 'default'.
+
+    Returns:
+        None: Prints the pods in the namespace.
+    """
+    # Load the kubeconfig file
+    config.load_kube_config(config_file=kubeconfig_path)
+
+    # Create a Kubernetes API client
+    v1 = client.CoreV1Api()
+    
+    report = []
+
+    try:
+        # List all the pods in the specified namespace
+        report.append(f"Listing pods in namespace '{namespace}':")
+        pods = v1.list_namespaced_pod(namespace)
+        for pod in pods.items:
+            report.append(f"- {pod.metadata.name}")
+    except Exception as e:
+        report.append(f"Error occurred: {e}")
+    return "\n".join(report)
