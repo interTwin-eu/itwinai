@@ -1,6 +1,18 @@
 {
   "name": "itwinai",
-  "engineVersion": "v0.14.0",
+  "engineVersion": "v0.15.2",
   "sdk": "python",
+  "dependencies": [
+    {
+      "name": "interlink",
+      "source": "github.com/dciangot/daggerverse/interlink@12a5c6d97bfbe9ec99afefa9f0f59aeabfdc555a",
+      "pin": "12a5c6d97bfbe9ec99afefa9f0f59aeabfdc555a"
+    },
+    {
+      "name": "k3s",
+      "source": "github.com/marcosnils/daggerverse/k3s@k3s/v0.1.7",
+      "pin": "833ec36632b2457862f6e3bf1f7107ad65e3e515"
+    }
+  ],
   "source": "."
 }
