@@ -39,14 +39,14 @@ def test_3dgan_train(torch_env, install_requirements):
     """
     install_requirements(CERN_PATH, torch_env)
     dataset_path = os.environ.get("CERN_DATASET", DEFAULT_DATASET_PATH)
-    conf = (CERN_PATH / "config.yaml").resolve()
+    conf = CERN_PATH.resolve()
     cmd = (
         f"{torch_env}/bin/itwinai exec-pipeline "
-        f"--config {conf} --pipe-key training_pipeline "
-        f"-o dataset_location={dataset_path} "
-        "-o hw_accelerators=auto "
-        "-o distributed_strategy=auto "
-        "-o mlflow_tracking_uri=ml_logs/mlflow"
+        f"--config_path {conf} "
+        f"dataset_location={dataset_path} "
+        "hw_accelerators=auto "
+        "distributed_strategy=auto "
+        "mlflow_tracking_uri=ml_logs/mlflow"
     )
 
     with tempfile.TemporaryDirectory() as temp_dir:
@@ -71,18 +71,18 @@ def test_3dgan_inference(
     # Test inference
     dataset_path = os.environ.get("CERN_DATASET", DEFAULT_DATASET_PATH)
 
-    conf = (CERN_PATH / "config.yaml").resolve()
+    conf = CERN_PATH.resolve()
     exec = (CERN_PATH / "create_inference_sample.py").resolve()
 
     run_inference_cmd = (
         f"{torch_env}/bin/itwinai exec-pipeline "
-        f"--config {conf} --pipe-key inference_pipeline "
-        f"-o dataset_location={dataset_path} "
-        f"-o inference_model_uri={CKPT_NAME} "
-        "-o hw_accelerators=auto "
-        "-o distributed_strategy=auto "
-        "-o logs_dir=ml_logs/mlflow_logs "
-        "-o inference_results_location=3dgan-generated-data "
+        f"--config_path {conf} +pipe_key inference_pipeline "
+        f"dataset_location={dataset_path} "
+        f"inference_model_uri={CKPT_NAME} "
+        "hw_accelerators=auto "
+        "distributed_strategy=auto "
+        "logs_dir=ml_logs/mlflow_logs "
+        "inference_results_location=3dgan-generated-data "
     )
 
     with tempfile.TemporaryDirectory() as temp_dir:

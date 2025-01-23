@@ -28,53 +28,44 @@ class_labels: null
 
 # Workflows configuration
 training_pipeline:
-  class_path: itwinai.pipeline.Pipeline
-  init_args:
-    steps:
-      dataloading_step:
-        class_path: dataloader.MNISTDataModuleTorch
-        init_args:
-          save_path: ${dataset_root}
+  _target_: itwinai.pipeline.Pipeline
+  steps:
+    dataloading_step:
+      _target_: dataloader.MNISTDataModuleTorch
+      save_path: ${dataset_root}
 
       training_step:
-        class_path: itwinai.torch.trainer.TorchTrainer
-        init_args:
-          config:
-            batch_size: ${batch_size}
-            num_workers: ${num_workers_dataloader}
-            pin_memory: ${pin_memory}
-            lr: ${lr}
-            momentum: ${momentum}
-            fp16_allreduce: ${fp16_allreduce}
-            use_adasum: ${use_adasum}
-            gradient_predivide_factor: ${gradient_predivide_factor}
+        _target_: itwinai.torch.trainer.TorchTrainer
+        config:
+          batch_size: ${batch_size}
+          num_workers: ${num_workers_dataloader}
+          pin_memory: ${pin_memory}
+          lr: ${lr}
+          momentum: ${momentum}
+          fp16_allreduce: ${fp16_allreduce}
+          use_adasum: ${use_adasum}
+          gradient_predivide_factor: ${gradient_predivide_factor}
 
           model:
-            class_path: model.Net
+            _target_: model.Net
           epochs: ${epochs}
           metrics:
             accuracy:
-              class_path: torchmetrics.classification.MulticlassAccuracy
-              init_args:
-                num_classes: ${num_classes}
+              _target_: torchmetrics.classification.MulticlassAccuracy
+              num_classes: ${num_classes}
             precision:
-              class_path: torchmetrics.classification.MulticlassPrecision
-              init_args:
-                num_classes: ${num_classes}
+              _target_: torchmetrics.classification.MulticlassPrecision
+              num_classes: ${num_classes}
             recall:
-              class_path: torchmetrics.classification.MulticlassRecall
-              init_args:
-                num_classes: ${num_classes}
+              _target_: torchmetrics.classification.MulticlassRecall
+              num_classes: ${num_classes}
           logger:
-            class_path: itwinai.loggers.LoggersCollection
-            init_args:
-              loggers:
-                - class_path: itwinai.loggers.ConsoleLogger
-                  init_args:
-                    log_freq: 10000
-                - class_path: itwinai.loggers.MLFlowLogger
-                  init_args:
-                    experiment_name: MNIST classifier
-                    log_freq: batch 
-          strategy: ${strategy}
-          # checkpoint_every: 1
+            _target_: itwinai.loggers.LoggersCollection
+            loggers:
+              - _target_: itwinai.loggers.ConsoleLogger
+                log_freq: 10000
+              - _target_: itwinai.loggers.MLFlowLogger
+                experiment_name: MNIST classifier
+                log_freq: batch 
+        strategy: ${strategy}
+        # checkpoint_every: 1

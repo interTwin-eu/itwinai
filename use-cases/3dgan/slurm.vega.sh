@@ -48,9 +48,8 @@ source ../../.venv-pytorch/bin/activate
 GAN_DATASET="exp_data" #"/ceph/hpc/data/st2301-itwin-users/egarciagarcia"
 
 # launch training
-TRAINING_CMD="$(which itwinai) exec-pipeline --config config.yaml --pipe-key training_pipeline \
-                -o num_nodes=$SLURM_NNODES \
-                -o dataset_location=$GAN_DATASET "
+TRAINING_CMD="$(which itwinai) exec-pipeline num_nodes=$SLURM_NNODES \
+    dataset_location=$GAN_DATASET "
 
 srun --cpu-bind=none --ntasks-per-node=1 \
     bash -c "torchrun \

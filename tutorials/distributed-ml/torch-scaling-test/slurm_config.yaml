@@ -32,6 +32,6 @@ python_venv: ../../../.venv
 # If you want to manually override the training command, comment in the following:
 # training_cmd: | 
 #   $(which itwinai) exec-pipeline \
-#   --config ${config_file} \
-#   --pipe-key ${pipe_key} \
-#   -o strategy=${dist_strat} \
+#   --config_path ${config_file} \
+#   +pipe_key ${pipe_key} \
+#   strategy=${dist_strat} \

@@ -18,11 +18,18 @@
 # NOTE: import libraries in the command's function, not here, as having them here will
 # slow down the CLI commands significantly.
 
+import os
+import sys
 from pathlib import Path
 from typing import List, Optional
 
+import hydra
 import typer
+from hydra.utils import instantiate
+from omegaconf import OmegaConf, errors
 from typing_extensions import Annotated
+
+from itwinai.utils import get_root_cause, make_config_paths_absolute
 
 app = typer.Typer(pretty_exceptions_enable=False)
 
@@ -71,17 +78,13 @@ def generate_gpu_data_plots(
 
     log_dir_path = Path(log_dir)
     if not log_dir_path.exists():
-        raise ValueError(
-            f"The provided log_dir, '{log_dir_path.resolve()}', does not exist."
-        )
+        raise ValueError(f"The provided log_dir, '{log_dir_path.resolve()}', does not exist.")
 
     plot_dir_path = Path(plot_dir)
     if pattern.lower() == "none":
         pattern = None
 
-    gpu_data_df = convert_matching_files_to_dataframe(
-        pattern=pattern, log_dir=log_dir_path
-    )
+    gpu_data_df = convert_matching_files_to_dataframe(pattern=pattern, log_dir=log_dir_path)
 
     energy_df = calculate_total_energy_expenditure(gpu_data_df=gpu_data_df)
     utilization_df = calculate_average_gpu_utilization(gpu_data_df=gpu_data_df)
@@ -237,10 +240,7 @@ def generate_scalability_plot(
     print(combined_df)
 
     avg_time_df = (
-        combined_df.drop(columns="epoch_id")
-        .groupby(["name", "nodes"])
-        .mean()
-        .reset_index()
+        combined_df.drop(columns="epoch_id").groupby(["name", "nodes"]).mean().reset_index()
     )
     print("\nAvg over name and nodes:")
     print(avg_time_df.rename(columns=dict(time="avg(time)")))
@@ -269,9 +269,7 @@ def sanity_check(
         Optional[bool], typer.Option(help=("Check also itwinai.tensorflow modules."))
     ] = False,
     all: Annotated[Optional[bool], typer.Option(help=("Check all modules."))] = False,
-    optional_deps: List[str] = typer.Option(
-        None, help="List of optional dependencies."
-    ),
+    optional_deps: List[str] = typer.Option(None, help="List of optional dependencies."),
 ):
     """Run sanity checks on the installation of itwinai and its dependencies by trying
     to import itwinai modules. By default, only itwinai core modules (neither torch, nor
@@ -298,89 +296,70 @@ def sanity_check(
         run_sanity_check(optional_deps)
 
 
-@app.command()
-def exec_pipeline(
-    config: Annotated[
-        Path,
-        typer.Option(help="Path to the configuration file of the pipeline to execute."),
-    ],
-    pipe_key: Annotated[
-        str,
-        typer.Option(
-            help=(
-                "Key in the configuration file identifying "
-                "the pipeline object to execute."
-            )
-        ),
-    ] = "pipeline",
-    steps: Annotated[
-        Optional[str],
-        typer.Option(
-            help=(
-                "Run only some steps of the pipeline. Accepted values are "
-                "indices, python slices (e.g., 0:3 or 2:10:100), and "
-                "string names of steps."
-            )
-        ),
-    ] = None,
-    print_config: Annotated[
-        bool, typer.Option(help=("Print config to be executed after overrides."))
-    ] = False,
-    overrides_list: Annotated[
-        Optional[List[str]],
-        typer.Option(
-            "--override",
-            "-o",
-            help=(
-                "Nested key to dynamically override elements in the "
-                "configuration file with the "
-                "corresponding new value, joined by '='. It is also possible "
-                "to index elements in lists using their list index. "
-                "Example: [...] "
-                "-o pipeline.init_args.trainer.init_args.lr=0.001 "
-                "-o pipeline.my_list.2.batch_size=64 "
-            ),
-        ),
-    ] = None,
-):
+def remove_from_argv(n_args: int):
+    assert n_args >= 1
+    assert n_args < len(sys.argv)
+    sys.argv = [sys.argv[0]] + sys.argv[n_args + 1 :]
+
+
+@app.command(context_settings={"allow_extra_args": True, "ignore_unknown_options": True})
+def exec_pipeline():
     """Execute a pipeline from configuration file. Allows dynamic override of fields."""
-    # Add working directory to python path so that the interpreter is able
-    # to find the local python files imported from the pipeline file
-    import os
-    import re
-    import sys
 
-    from .utils import str_to_slice
+    # Remove 'exec_pipeline' command from CLI args
+    sys.argv = sys.argv[1:]
+    # Overwrite hydra default logging behavior
+    sys.argv.append("hydra.output_subdir=null")
 
-    sys.path.append(os.path.dirname(config))
+    # Add current working directory to the module search path
+    # so hydra will find the objects defined in the config (usually paths relative to config)
     sys.path.append(os.getcwd())
 
-    # Parse and execute pipeline
-    from itwinai.parser import ConfigParser
+    # Process CLI arguments to handle paths
+    sys.argv = make_config_paths_absolute(sys.argv)
 
-    overrides_list = overrides_list if overrides_list is not None else []
-    overrides = {
-        k: v
-        for k, v in map(lambda x: (x.split("=")[0], x.split("=")[1]), overrides_list)
-    }
-    parser = ConfigParser(config=config, override_keys=overrides)
-    if print_config:
-        import json
+    exec_pipeline_with_compose()
 
-        print()
-        print("#=" * 15 + " Used configuration " + "#=" * 15)
-        print(json.dumps(parser.config, indent=2))
-        print("#=" * 50)
-        print()
 
-    pipeline = parser.parse_pipeline(pipeline_nested_key=pipe_key)
-    if steps:
-        if not re.match(r"\d+(:\d+)?(:\d+)?", steps):
-            print(f"Looking for step name '{steps}'")
-        else:
-            steps = str_to_slice(steps)
-        pipeline = pipeline[steps]
-    pipeline.execute()
+@hydra.main(version_base=None, config_path=os.getcwd(), config_name="config")
+def exec_pipeline_with_compose(cfg):
+    """Hydra entry function. Parses a configuration file containing a pipeline definition, and
+    instantiates and executes the resulting pipeline object.
+    Filters steps if `pipe_steps` is provided, otherwise executes the entire pipeline."""
+
+    pipe_steps = OmegaConf.select(cfg, "pipe_steps", default=None)
+    pipe_key = OmegaConf.select(cfg, "pipe_key", default="training_pipeline")
+
+    try:
+        cfg = OmegaConf.select(cfg, pipe_key, throw_on_missing=True)
+    except errors.MissingMandatoryValue as e:
+        e.add_note(
+            f"Could not find pipeline key {pipe_key}. Make sure that you provide the full "
+            "dotpath to your pipeline key."
+        )
+        raise e
+
+    if pipe_steps:
+        try:
+            cfg.steps = [cfg.steps[step] for step in pipe_steps]
+            print(f"Successfully selected steps {pipe_steps}")
+        except errors.ConfigKeyError as e:
+            e.add_note(
+                "Could not find all selected steps. Please ensure that all steps exist "
+                "and that you provided to the dotpath to them. "
+                f"Steps provided: {pipe_steps}."
+            )
+            raise e
+    else:
+        print("No steps selected. Executing the whole pipeline.")
+
+    # Instantiate and execute the pipeline
+    try:
+        pipeline = instantiate(cfg)
+        pipeline.execute()
+    except Exception as e:
+        root = get_root_cause(e)
+        raise root
 
 
 @app.command()

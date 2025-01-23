@@ -28,7 +28,7 @@ source ../../.venv-pytorch/bin/activate
 # Launch experiments
 
 # 1 worker: no SLURM needed
-itwinai exec-pipeline --config config.yaml --pipe-key training_pipeline 1> slurm_logs/1_worker.out 2> slurm_logs/1_worker.err
+itwinai exec-pipeline 1> slurm_logs/1_worker.out 2> slurm_logs/1_worker.err
 
 # 4, 8, 16... workers
 sbatch --wait --nodes=1 --output=slurm_logs/4_worker.out --error=slurm_logs/4_worker.err $SLURM_SCRIPT

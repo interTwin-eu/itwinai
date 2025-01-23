@@ -14,9 +14,10 @@ from typing import Dict
 import matplotlib.pyplot as plt
 import ray
 import torch
+from hydra import compose, initialize
 from ray import train, tune
 
-from itwinai.parser import ConfigParser
+from itwinai.cli import exec_pipeline_with_compose
 
 
 def run_trial(config: Dict, data: Dict):
@@ -58,19 +59,19 @@ def run_trial(config: Dict, data: Dict):
     Note: Passing a seed to TimeSeriesDatasetSplitter and NoiseGeneratorTrainer will make runs
     uniform across trials, reducing the variablility to only the hyperparameter settings
     """
-    pipeline_name = data["pipeline_name"]
-    parser = ConfigParser(
-        config="config.yaml",
-        override_keys={
-            # Set hyperparameters controlled by ray
-            "batch_size": config["batch_size"],
-            "learning_rate": config["lr"],
-        },
-    )
-    my_pipeline = parser.parse_pipeline(pipeline_nested_key=pipeline_name, verbose=False)
 
-    # Skip the first step of the pipeline (data generation)
-    my_pipeline.execute()
+    pipe_key = data["pipeline_name"]
+
+    with initialize():
+        cfg = compose(
+            "config.yaml",
+            overrides=[
+                f"batch_size={config['batch_size']}",
+                f"optim_lr={config['optim_lr']}",
+                f"+pipe_key={pipe_key}",
+            ],
+        )
+        exec_pipeline_with_compose(cfg)
 
 
 def run_hpo(args):

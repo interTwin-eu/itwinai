@@ -34,6 +34,6 @@ source ~/.bashrc
 export TF_USE_LEGACY_KERAS=1
 
 # ON LOGIN NODE download datasets:
-# ../../../.venv-tf/bin/itwinai exec-pipeline --config pipeline.yaml --pipe-key pipeline --steps 0
+# ../../../.venv-tf/bin/itwinai exec-pipeline --config_name pipeline +pipe_key pipeline +pipe_steps=[0]
 source ../../../envAItf_hdfml/bin/activate
-srun itwinai exec-pipeline --config pipeline.yaml --pipe-key pipeline -o verbose=2
+srun itwinai exec-pipeline --config_name pipeline +pipe_key pipeline verbose=2

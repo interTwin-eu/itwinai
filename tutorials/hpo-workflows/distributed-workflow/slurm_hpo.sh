@@ -85,7 +85,7 @@ echo All Ray workers started.
 echo 'Starting HPO.'
 
 # Run pipeline
-$PYTHON_VENV/bin/itwinai exec-pipeline --config config.yaml --pipe-key hpo_training_pipeline
+$PYTHON_VENV/bin/itwinai exec-pipeline +pipe_key hpo_training_pipeline
 
 # Shutdown Ray after completion
 ray stop
