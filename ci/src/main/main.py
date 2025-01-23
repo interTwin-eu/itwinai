@@ -149,39 +149,44 @@ class Itwinai:
     #         .stdout()
     #     )
     #     # return await c.stdout()
-        
-    
 
     @function
     async def il(self, values: dagger.File) -> str:
-        
-        pod_str = """apiVersion: apps/v1
-kind: Deployment
+        pod_str = """apiVersion: v1
+kind: Pod
 metadata:
-  name: example-deployment
+  name: my-pod
+  labels:
+    app: my-app
 spec:
-  replicas: 2
-  selector:
-    matchLabels:
-      app: example
-  template:
-    metadata:
-      labels:
-        app: example
-    spec:
-      containers:
-      - name: nginx
-        image: nginx:1.23.4
-        ports:
-        - containerPort: 80"""
-        
-        return await self.submit_pod_interlink(pod_str=pod_str, values=values)
-    
+  containers:
+  - name: my-container
+    image: nginx:1.21
+    ports:
+    - containerPort: 80"""
+
+        await self.submit_pod_interlink(pod_str=pod_str, values=values)
+        return await self.get_pod_status_interlink(name="my-pod", values=values)
+
     async def submit_pod_interlink(self, pod_str: str, values: dagger.File) -> str:
         interlink = self.interlink_cluster(values)
         cmd = ["kubectl", "apply", "-f", "-"]
         return await interlink.with_exec(cmd, stdin=pod_str).stdout()
-    
+
+    async def get_pod_status_interlink(self, name: str, values: dagger.File) -> str:
+        interlink = self.interlink_cluster(values)
+        cmd = [
+            "kubectl",
+            "get",
+            "pod",
+            f"{name}",
+            "-n",
+            "default",
+            "-o",
+            "jsonpath='{.status.phase}'",
+        ]
+        return await interlink.with_exec(cmd).stdout()
+
     @function
     async def get_interlink_status(self, values: dagger.File) -> str:
         """Get status of K3S cluster with interLink deployment."""
@@ -189,7 +194,6 @@ spec:
         pods = await interlink.with_exec("kubectl get pods".split()).stdout()
         nodes = await interlink.with_exec("kubectl get nodes".split()).stdout()
         return f"Nodes:\n{nodes}\n\nPods:\n{pods}"
-        
 
     # @function
     # async def config(self, values: dagger.File) -> dagger.File:
@@ -241,15 +245,15 @@ spec:
     #     # Save the config in the local host (inside dagger engine)
     #     await k3s.config(local=True).export("my_config.yaml")
     #     assert os.path.exists("my_config.yaml")
-        
+
     #     from kubernetes import client, config
-        
+
     #     # Load the kubeconfig file
     #     config.load_kube_config(config_file="my_config.yaml")
 
     #     # Create a Kubernetes API client
     #     v1 = client.CoreV1Api()
-        
+
     #     report = []
 
     #     try:
@@ -261,8 +265,6 @@ spec:
     #     except Exception as e:
     #         report.append(f"Error occurred: {e}")
     #     return "\n".join(report)
-            
-        
 
     # @function
     # async def interlink_service_a(self, values: dagger.File) -> str:
@@ -270,7 +272,7 @@ spec:
     #     server = k3s.server()
 
     #     await server.start()
-        
+
     #     return await (
     #         dag.container()
     #         .from_("alpine/helm")
@@ -287,35 +289,31 @@ spec:
     #         )
     #         .stdout()
     #     )
-        
-        
-        
 
-        # return k3s.config()
+    # return k3s.config()
 
-        # server
-        # (
-        #     dag.container()
-        #     .from_("alpine/helm")
-        #     .with_exec(["apk", "add", "kubectl"])
-        #     .with_mounted_file("/.kube/config", k3s.config())
-        #     .with_mounted_file("/values.yaml", values)
-        #     .with_env_variable("KUBECONFIG", "/.kube/config")
-        #     .with_exec(
-        #         [
-        #             "helm",
-        #             "install",
-        #             "--wait",
-        #             "--debug",
-        #             "my-node",
-        #             "oci://ghcr.io/intertwin-eu/interlink-helm-chart/interlink",
-        #             "--values",
-        #             "/values.yaml",
-        #         ]
-        #     )
-        # )
-        # return server
-        
+    # server
+    # (
+    #     dag.container()
+    #     .from_("alpine/helm")
+    #     .with_exec(["apk", "add", "kubectl"])
+    #     .with_mounted_file("/.kube/config", k3s.config())
+    #     .with_mounted_file("/values.yaml", values)
+    #     .with_env_variable("KUBECONFIG", "/.kube/config")
+    #     .with_exec(
+    #         [
+    #             "helm",
+    #             "install",
+    #             "--wait",
+    #             "--debug",
+    #             "my-node",
+    #             "oci://ghcr.io/intertwin-eu/interlink-helm-chart/interlink",
+    #             "--values",
+    #             "/values.yaml",
+    #         ]
+    #     )
+    # )
+    # return server
 
     @function
     def terminal(self) -> dagger.Container:
@@ -443,15 +441,22 @@ spec:
         )
 
         # Submit pod
-        kubeconfig_str = await kubeconfig.plaintext()
-        status = submit_job(
-            kubeconfig_str=kubeconfig_str, pod_manifest=pod_manifest, verbose=False
-        )
 
-        if status not in ["Succeeded", "Completed"]:
-            raise RuntimeError(f"Pod did not complete successfully! Status: {status}")
+        # kubeconfig_str = await kubeconfig.plaintext()
+        # status = submit_job(
+        #     kubeconfig_str=kubeconfig_str, pod_manifest=pod_manifest, verbose=False
+        # )
 
-        return f"Pod finished with status: {status}"
+        # if status not in ["Succeeded", "Completed"]:
+        #     raise RuntimeError(f"Pod did not complete successfully! Status: {status}")
+
+        # return f"Pod finished with status: {status}"
+
+        import yaml
+
+        pod_manifest_str = yaml.dump(pod_manifest)
+        self.submit_pod_interlink(pod_str=pod_manifest_str, values=...)
+        # Wait for completion...?
 
     @function
     async def test_n_publish(

@@ -243,7 +243,7 @@ def submit_job(
     return status
 
 
-def list_pods(kubeconfig_path: str, namespace: str = 'default') -> str:
+def list_pods(kubeconfig_path: str, namespace: str = "default") -> str:
     """
     Connects to a Kubernetes cluster using the provided kubeconfig file and lists the pods.
 
@@ -259,7 +259,7 @@ def list_pods(kubeconfig_path: str, namespace: str = 'default') -> str:
 
     # Create a Kubernetes API client
     v1 = client.CoreV1Api()
-    
+
     report = []
 
     try:
