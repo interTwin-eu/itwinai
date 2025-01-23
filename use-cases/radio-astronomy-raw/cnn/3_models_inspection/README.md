@@ -1,0 +1,3 @@
+# Model Inspection
+
+This part will allow you to evaluate the trained models. You will only be able to do this after you succesfully trained a series of models in the previous section. To run the notebooks please as a **first step move the trained .keras files** which should now be in a subdirectory in the [checkpoints](../2_training/data/checkpoints/) folder to the [models](models) directory. Then we recommend to start with the examples in [accuracy](accuracy). 

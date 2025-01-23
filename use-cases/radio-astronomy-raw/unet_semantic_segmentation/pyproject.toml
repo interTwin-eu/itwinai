@@ -1,0 +1,13 @@
+[project]
+name = "pulsarrfi_nn"
+version = "0.1"
+authors = [
+  { name="Tanumoy Saha", email="tanumoy.saha@HTW-Berlin.de" },
+]
+
+[build-system]
+requires = [
+   "setuptools",
+   "wheel"
+]
+build-backend = "setuptools.build_meta"
