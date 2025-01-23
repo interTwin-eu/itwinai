@@ -9,7 +9,7 @@ import seaborn as sns
 from matplotlib.axes import Axes
 from matplotlib.figure import Figure
 from matplotlib.patches import Patch
-from matplotlib.ticker import ScalarFormatter, NullLocator
+from matplotlib.ticker import NullLocator, ScalarFormatter
 
 # Doing this because otherwise I get an error about X11 Forwarding which I believe
 # is due to the server trying to pass the image to the client computer
@@ -17,10 +17,11 @@ matplotlib.use("Agg")
 
 marker_cycle = cycle("ov^s*dXpD.+12348")
 
-def calculate_plot_dimensions(num_datapoints: int) -> Tuple[int, int]: 
-    """Calculates the height and width of a plot, given a number of datapoints. 
 
-    Returns: 
+def calculate_plot_dimensions(num_datapoints: int) -> Tuple[int, int]:
+    """Calculates the height and width of a plot, given a number of datapoints.
+
+    Returns:
         int: The calculated height
         int: The calculated width
     """
@@ -60,8 +61,12 @@ def absolute_avg_epoch_time_plot(
     ax.set_xscale("log")
 
     # Calculating upper and lower bounds to get the appropriate top and bottom ticks
-    upper_bound = 10 ** int(np.ceil(np.log10(avg_epoch_time_df["avg_epoch_time"].max())))
-    lower_bound = 10 ** int(np.floor(np.log10(avg_epoch_time_df["avg_epoch_time"].min())))
+    upper_bound = 10 ** int(
+        np.ceil(np.log10(avg_epoch_time_df["avg_epoch_time"].max()))
+    )
+    lower_bound = 10 ** int(
+        np.floor(np.log10(avg_epoch_time_df["avg_epoch_time"].min()))
+    )
     ax.set_ylim(lower_bound, upper_bound)
 
     # Remove minor ticks on x-axis and format new ticks
@@ -75,7 +80,9 @@ def absolute_avg_epoch_time_plot(
     ax.legend(title="Method")
 
     num_datapoints = len(unique_nodes)
-    figure_height, figure_width = calculate_plot_dimensions(num_datapoints=num_datapoints)
+    figure_height, figure_width = calculate_plot_dimensions(
+        num_datapoints=num_datapoints
+    )
     fig.set_figheight(figure_height)
     fig.set_figwidth(figure_width)
 
@@ -136,7 +143,9 @@ def relative_epoch_time_speedup_plot(
     ax.legend(ncol=1)
 
     num_datapoints = len(num_gpus)
-    figure_height, figure_width = calculate_plot_dimensions(num_datapoints=num_datapoints)
+    figure_height, figure_width = calculate_plot_dimensions(
+        num_datapoints=num_datapoints
+    )
     fig.set_figheight(figure_height)
     fig.set_figwidth(figure_width)
 
@@ -189,7 +198,9 @@ def gpu_bar_plot(
     ax.legend(title="Strategy")
 
     num_datapoints = len(unique_gpu_counts)
-    figure_height, figure_width = calculate_plot_dimensions(num_datapoints=num_datapoints)
+    figure_height, figure_width = calculate_plot_dimensions(
+        num_datapoints=num_datapoints
+    )
     fig.set_figheight(figure_height)
     fig.set_figwidth(figure_width)
 
@@ -276,7 +287,10 @@ def communication_overhead_stacked_bar_plot(
 
     return fig, ax
 
-def computation_fraction_bar_plot(communication_data_df: pd.DataFrame) -> Tuple[Figure, Axes]:
+
+def computation_fraction_bar_plot(
+    communication_data_df: pd.DataFrame,
+) -> Tuple[Figure, Axes]:
     """Creates a stacked plot showing values from 0 to 1, where the given value
     will be placed on the bottom and the complement will be placed on top for
     each value in 'values'. Returns the figure and the axis so that the caller can
@@ -354,4 +368,3 @@ def computation_fraction_bar_plot(communication_data_df: pd.DataFrame) -> Tuple[
     sns.reset_orig()
 
     return fig, ax
-

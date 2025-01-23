@@ -8,9 +8,8 @@
 # - Matteo Bunino <matteo.bunino@cern.ch> - CERN
 # --------------------------------------------------------------------------------------
 
-import uuid
 from pathlib import Path
-from typing import Set, Dict
+from typing import Set
 
 import pandas as pd
 
@@ -44,4 +43,3 @@ def read_scalability_metrics_from_csv(
         dataframes.append(df)
 
     return pd.concat(dataframes)
-

@@ -1,13 +1,11 @@
 from pathlib import Path
 
+from itwinai.scalability_report.data import read_scalability_metrics_from_csv
 from itwinai.scalability_report.plot import (
-    relative_epoch_time_speedup_plot,
     absolute_avg_epoch_time_plot,
-    gpu_bar_plot,
     computation_fraction_bar_plot,
-)
-from itwinai.scalability_report.data import (
-    read_scalability_metrics_from_csv
+    gpu_bar_plot,
+    relative_epoch_time_speedup_plot,
 )
 from itwinai.scalability_report.utils import (
     calculate_gpu_statistics,
@@ -73,7 +71,9 @@ def epoch_time_report(
 
 def gpu_data_report(
     gpu_data_dir: Path | str,
-    plot_dir: Path | str, backup_dir: Path, do_backup: bool = False
+    plot_dir: Path | str,
+    backup_dir: Path,
+    do_backup: bool = False,
 ) -> None:
     # TODO: docstring
     if isinstance(plot_dir, str):
@@ -132,7 +132,10 @@ def gpu_data_report(
 
 
 def communication_data_report(
-    communication_data_dir: Path | str, plot_dir: Path | str, backup_dir: Path, do_backup: bool = False
+    communication_data_dir: Path | str,
+    plot_dir: Path | str,
+    backup_dir: Path,
+    do_backup: bool = False,
 ) -> None:
     # TODO: Docstring
     if isinstance(plot_dir, str):

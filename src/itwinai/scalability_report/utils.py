@@ -1,7 +1,6 @@
 from pathlib import Path
 from typing import Set, Tuple
 
-import numpy as np
 import pandas as pd
 from scipy.constants import hour as SECONDS_IN_HOUR
 
