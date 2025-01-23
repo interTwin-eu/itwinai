@@ -7,10 +7,49 @@
 # - Matteo Bunino <matteo.bunino@cern.ch> - CERN
 # -------------------------------------------------------------------------------------
 
+import logging
 from unittest.mock import MagicMock, patch
 
 import numpy as np
 import pytest
+
+
+@pytest.mark.parametrize(
+    "itwinai_logger",
+    [
+        "console_logger",
+        "mlflow_logger",
+        "wandb_logger",
+        "tensorboard_logger_torch",
+        "prov4ml_logger",
+        "loggers_collection",
+    ],
+)
+def test_logger_initialization(itwinai_logger, request, caplog):
+    itwinai_logger = request.getfixturevalue(itwinai_logger)
+    # Never initialized
+    with pytest.raises(RuntimeError) as exc_info:
+        itwinai_logger.log(identifier="num", item=123, kind="metric")
+    assert "has not been initialized" in str(exc_info.value)
+    with pytest.raises(RuntimeError) as exc_info:
+        itwinai_logger.save_hyperparameters(dict(a=1, b=2))
+    assert "has not been initialized" in str(exc_info.value)
+    with pytest.raises(RuntimeError) as exc_info:
+        itwinai_logger.destroy_logger_context()
+    assert "has not been initialized" in str(exc_info.value)
+
+    itwinai_logger.create_logger_context()
+
+    # Double initialization
+    caplog.clear()
+    with caplog.at_level(logging.WARNING):
+        itwinai_logger.create_logger_context()
+        assert len(caplog.records) == 1
+        assert caplog.records[0].levelname == "WARNING"
+        assert (
+            f"Trying to initialize {itwinai_logger.__class__.__name__} twice.. "
+            "Skipping initialization."
+        ) in caplog.text
 
 
 def test_console_logger_log(console_logger):

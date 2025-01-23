@@ -68,6 +68,7 @@ def test_create_logger_context_should_not_log(logger_instance):
 
 def test_save_hyperparameters(logger_instance):
     logger_instance.should_log = MagicMock(return_value=True)
+    logger_instance.create_logger_context(rank=1)
     params = {"learning_rate": 0.01, "batch_size": 32}
     with patch("prov4ml.log_param") as log_param:
         logger_instance.save_hyperparameters(params)
@@ -77,6 +78,7 @@ def test_save_hyperparameters(logger_instance):
 
 def test_log_metric(logger_instance):
     logger_instance.should_log = MagicMock(return_value=True)
+    logger_instance.create_logger_context(rank=1)
 
     with patch("prov4ml.log_metric") as log_metric:
         logger_instance.log(item=0.95, identifier="accuracy", kind="metric", step=1)
@@ -88,6 +90,7 @@ def test_log_metric(logger_instance):
 
 def test_log_flops_per_batch(logger_instance):
     logger_instance.should_log = MagicMock(return_value=True)
+    logger_instance.create_logger_context(rank=1)
 
     model_mock, batch_mock = MagicMock(), MagicMock()
     with patch("prov4ml.log_flops_per_batch") as log_flops_pb:
@@ -106,6 +109,7 @@ def test_log_flops_per_batch(logger_instance):
 
 def test_log_flops_per_epoch(logger_instance):
     logger_instance.should_log = MagicMock(return_value=True)
+    logger_instance.create_logger_context(rank=1)
 
     model_mock, dataset_mock = MagicMock(), MagicMock()
     with patch("prov4ml.log_flops_per_epoch") as log_flops_pe:
@@ -124,6 +128,7 @@ def test_log_flops_per_epoch(logger_instance):
 
 def test_log_system(logger_instance):
     logger_instance.should_log = MagicMock(return_value=True)
+    logger_instance.create_logger_context(rank=1)
 
     with patch("prov4ml.log_system_metrics") as log_system:
         logger_instance.log(item=None, identifier=None, kind="system", step=1)
@@ -133,6 +138,7 @@ def test_log_system(logger_instance):
 
 def test_log_carbon(logger_instance):
     logger_instance.should_log = MagicMock(return_value=True)
+    logger_instance.create_logger_context(rank=1)
 
     with patch("prov4ml.log_carbon_metrics") as log_carbon:
         logger_instance.log(item=None, identifier=None, kind="carbon", step=1)
@@ -142,6 +148,7 @@ def test_log_carbon(logger_instance):
 
 def test_log_execution_time(logger_instance):
     logger_instance.should_log = MagicMock(return_value=True)
+    logger_instance.create_logger_context(rank=1)
 
     with patch("prov4ml.log_current_execution_time") as log_exec_time:
         logger_instance.log(
@@ -155,6 +162,7 @@ def test_log_execution_time(logger_instance):
 
 def test_log_model(logger_instance):
     logger_instance.should_log = MagicMock(return_value=True)
+    logger_instance.create_logger_context(rank=1)
 
     model_mock = MagicMock()
     with patch("prov4ml.save_model_version") as log_model:
@@ -167,6 +175,7 @@ def test_log_model(logger_instance):
 
 def test_log_best_model(logger_instance):
     logger_instance.should_log = MagicMock(return_value=True)
+    logger_instance.create_logger_context(rank=1)
 
     model_mock = MagicMock()
     with patch("prov4ml.log_model") as log_best_model:
@@ -184,6 +193,7 @@ def test_log_best_model(logger_instance):
 
 def test_log_prov_documents(logger_instance, mlflow_run):
     logger_instance.should_log = MagicMock(return_value=True)
+    logger_instance.create_logger_context(rank=1)
 
     with patch("prov4ml.log_provenance_documents") as log_prov_documents:
         log_prov_documents.return_value = ["doc1", "doc2"]
