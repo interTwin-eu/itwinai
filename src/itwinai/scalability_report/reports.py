@@ -19,7 +19,22 @@ def epoch_time_report(
     backup_dir: Path,
     do_backup: bool = False,
 ) -> None:
-    """TODO: docstring"""
+    """Generates reports and plots for epoch training times across distributed training
+    strategies, including a log-log plot of absolute average epoch times against the
+    number of GPUs and a log-log plot of relative speedup as more GPUs are added. The
+    function optionally creates backups of the data.
+
+    Args:
+        epoch_time_dir (Path | str): Path to the directory containing CSV files with
+            epoch time metrics. The files must include the columns "name", "nodes",
+            "epoch_id", and "time".
+        plot_dir (Path | str): Path to the directory where the generated plots will
+            be saved.
+        backup_dir (Path): Path to the directory where backups of the data will be stored
+            if `do_backup` is True.
+        do_backup (bool): Whether to create a backup of the epoch time data in the
+            `backup_dir`. Defaults to False.
+    """
     if isinstance(epoch_time_dir, str):
         epoch_time_dir = Path(epoch_time_dir)
     if isinstance(plot_dir, str):
@@ -75,7 +90,23 @@ def gpu_data_report(
     backup_dir: Path,
     do_backup: bool = False,
 ) -> None:
-    # TODO: docstring
+    """Generates reports and plots for GPU energy consumption and utilization across
+    distributed training strategies. Includes bar plots for energy consumption and GPU
+    utilization by strategy and number of GPUs. The function optionally creates backups
+    of the data.
+
+    Args:
+        gpu_data_dir (Path | str): Path to the directory containing CSV files with GPU
+            data. The files must include the columns "sample_idx", "utilization", 
+            "power", "local_rank", "node_idx", "num_global_gpus", "strategy", and 
+            "probing_interval".
+        plot_dir (Path | str): Path to the directory where the generated plots will
+            be saved.
+        backup_dir (Path): Path to the directory where backups of the data will be stored
+            if `do_backup` is True.
+        do_backup (bool): Whether to create a backup of the GPU data in the `backup_dir`.
+            Defaults to False.
+    """
     if isinstance(plot_dir, str):
         plot_dir = Path(plot_dir)
     gpu_data_expected_columns = {
@@ -137,7 +168,22 @@ def communication_data_report(
     backup_dir: Path,
     do_backup: bool = False,
 ) -> None:
-    # TODO: Docstring
+    """Generates reports and plots for communication and computation fractions across
+    distributed training strategies. Includes a bar plot showing the fraction of time
+    spent on computation vs communication for each strategy and GPU count. The function
+    optionally creates backups of the data.
+
+    Args:
+        communication_data_dir (Path | str): Path to the directory containing CSV files
+            with communication data. The files must include the columns "strategy",
+            "num_gpus", "global_rank", "name", and "self_cuda_time_total".
+        plot_dir (Path | str): Path to the directory where the generated plot will
+            be saved.
+        backup_dir (Path): Path to the directory where backups of the data will be stored
+            if `do_backup` is True.
+        do_backup (bool): Whether to create a backup of the communication data in the
+            `backup_dir`. Defaults to False.
+    """
     if isinstance(plot_dir, str):
         plot_dir = Path(plot_dir)
 

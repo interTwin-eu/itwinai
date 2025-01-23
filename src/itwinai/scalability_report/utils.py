@@ -8,8 +8,9 @@ from scipy.constants import hour as SECONDS_IN_HOUR
 def check_contains_columns(
     df: pd.DataFrame, expected_columns: Set, file_path: Path | None = None
 ) -> None:
-    """Check is the given DataFrame contains all the expected columns and raises a
-    ValueError if not.
+    """Validates that the given DataFrame contains all the expected columns. Raises a
+    ValueError if any columns are missing, including the file path in the error message
+    if provided.
     """
     if not expected_columns.issubset(df.columns):
         missing_columns = expected_columns - set(df.columns)
@@ -81,22 +82,15 @@ def calculate_gpu_statistics(
 
 
 def calculate_comp_and_comm_time(df: pd.DataFrame) -> Tuple[float, float]:
-    """Calculates the time spent computing and time spent communicating and returns a
-    tuple of these numbers in seconds. Assumes that you are running with an NCCL
-    backend.
+    """Calculates the time spent on computation and communication in seconds from the
+    given DataFrame, assuming an NCCL backend.
 
     Raises:
-        ValueError: If not all expected columns ('name', 'self_cuda_time_total') are
-            found in the given DataFrame.
+        ValueError: If the DataFrame is missing the required columns 'name' or
+        'self_cuda_time_total'.
     """
     expected_columns = {"name", "self_cuda_time_total"}
-    if not expected_columns.issubset(df.columns):
-        missing_columns = expected_columns - set(df.columns)
-        raise ValueError(
-            f"Invalid data format! DataFrame does not contain the necessary columns."
-            f"\nMissing columns: {missing_columns}"
-        )
-
+    check_contains_columns(df=df, expected_columns=expected_columns)
     comm_types = [
         "AllReduce",
         "Broadcast",
@@ -128,9 +122,9 @@ def calculate_comp_and_comm_time(df: pd.DataFrame) -> Tuple[float, float]:
 
 
 def get_computation_fraction_data(df: pd.DataFrame) -> pd.DataFrame:
-    """Generates a DataFrame containing computation fractions for each combination of
-    strategy and GPU configuration. The computation fraction is calculated as the ratio
-    of computation time to the total time (computation + communication).
+    """Calculates the computation fraction for each strategy and GPU configuration,
+    returning a DataFrame with the results. The computation fraction is defined as the
+    ratio of computation time to the total time (computation + communication).
     """
     # Sort and create cartesian product of unique strategies and GPU counts
     unique_num_gpus = sorted(df["num_gpus"].unique(), key=lambda x: int(x))

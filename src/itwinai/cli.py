@@ -36,6 +36,31 @@ def generate_scalability_report(
     backup_root_dir: str = "backup-scalability-metrics/",
     experiment_name: str | None = None,
 ):
+    """Generates scalability reports for epoch time, GPU data, and communication data 
+    based on log files in the specified directory. Optionally, backups of the reports 
+    can be created.
+
+    This command processes log files stored in specific subdirectories under the given 
+    `log_dir`. It generates plots and metrics for scalability analysis and saves them 
+    in the `plot_dir`. If backups are enabled, the generated reports will also be 
+    copied to a backup directory under `backup_root_dir`.
+
+    Args:
+        log_dir (str): Path to the directory containing log files for scalability metrics. 
+            Defaults to "scalability-metrics".
+        plot_dir (str): Path to the directory where plots and reports will be saved. 
+            Defaults to "plots".
+        do_backup (bool): Whether to create a backup of the generated reports. 
+            Defaults to False.
+        backup_root_dir (str): Root directory where backups will be saved if `do_backup` 
+            is True. Defaults to "backup-scalability-metrics/".
+        experiment_name (str | None): Name of the experiment for identifying backups. 
+            If None, a unique name is generated. Defaults to None.
+
+    Raises:
+        ValueError: If the provided `log_dir` does not exist.
+
+    """
     import uuid
     from itwinai.scalability_report.reports import (
         epoch_time_report,

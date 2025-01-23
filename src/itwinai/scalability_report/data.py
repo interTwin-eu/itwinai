@@ -19,6 +19,23 @@ from itwinai.scalability_report.utils import check_contains_columns
 def read_scalability_metrics_from_csv(
     data_dir: Path | str, expected_columns: Set
 ) -> pd.DataFrame:
+    """Reads and validates scalability metric CSV files from a directory and combines
+    them into a single DataFrame.
+
+    Args:
+        data_dir (Path | str): Path to the directory containing the CSV files. All files
+            in the directory must have a .csv extension.
+        expected_columns (Set): A set of column names expected to be present in each CSV
+            file.
+
+    Returns:
+        pd.DataFrame: A DataFrame containing the concatenated data from all valid CSV
+        files in the directory.
+
+    Raises:
+        ValueError: If the directory contains non-CSV files, if no .csv files are found,
+        or if any file is missing the expected columns.
+    """
     if isinstance(data_dir, str):
         data_dir = Path(data_dir)
 
