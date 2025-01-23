@@ -81,12 +81,11 @@ def main():
     else:
         model = make_model(prior_size=prior_size)
         summary(model.net_[1], input_shape=input_shape)
+        print("npar: ")
+        print(model.net_.npar)
+        print("npar2: ")
+        print(model.net_.npar2)
 
-        # model.fit(
-        #     n_epochs=n_epochs,
-        #     batch_size=batch_size,
-        #     hyperparam=hyperparams,
-        # )
 
 if __name__ == "__main__":
     main()

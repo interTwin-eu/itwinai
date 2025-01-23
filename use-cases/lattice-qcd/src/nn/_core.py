@@ -129,6 +129,10 @@ class ModuleList_(torch.nn.ModuleList):
     def npar(self):
         return sum([np.prod(p.shape) for p in super().parameters()])
 
+    @property
+    def npar2(self):
+        return sum([p.numel() for p in self.parameters()])
+
     def to(self, *args, **kwargs):
         for net_ in self:
             net_.to(*args, **kwargs)

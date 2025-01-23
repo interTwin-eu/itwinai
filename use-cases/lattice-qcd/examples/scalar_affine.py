@@ -1,4 +1,3 @@
-
 from normflow import np, torch, Model
 from normflow import backward_sanitychecker
 from normflow.prior import NormalPrior
@@ -8,27 +7,37 @@ from normflow.nn import ModuleList_, Identity_, DistConvertor_, AffineCoupling_
 from normflow.nn import FFTNet_, MeanFieldNet_, PSDBlock_
 from normflow.nn import ConvAct
 
+from torchinfo import summary
 import os
 
+
 # =============================================================================
-def main(kappa=0.67, m_sq=-4*0.67, lambd=0.5, n_epochs=1000, batch_size=128,
-        lat_shape=(8, 8), nranks=1, **net_kwargs
-        ):
-
+def main(
+    kappa=0.67,
+    m_sq=-4 * 0.67,
+    lambd=0.5,
+    n_epochs=3000,
+    batch_size=128,
+    lat_shape=(8, 8),
+    nranks=1,
+    **net_kwargs,
+):
     action = ScalarPhi4Action(kappa=kappa, m_sq=m_sq, lambd=lambd)
-
     prior = NormalPrior(shape=lat_shape)
-
     net_ = assemble_net(lat_shape=lat_shape, **net_kwargs)
-
     model = Model(net_=net_, prior=prior, action=action)
+
+    input_shape = (batch_size, *lat_shape)
+    summary(model.net_, input_shape=input_shape)
 
     print("number of model parameters =", model.net_.npar)
 
-    model.net_.setup_groups(groups =
-            [{'ind': [0, 1, 3], 'hyper': dict(weight_decay=1e-4)},
-             {'ind': [2], 'hyper': dict(weight_decay=1e-2)}]
-            )
+    model.net_.setup_groups(
+        groups=[
+            {"ind": [0, 1, 3], "hyper": dict(weight_decay=1e-4)},
+            {"ind": [2], "hyper": dict(weight_decay=1e-2)},
+        ]
+    )
     print(f"nranks is {nranks}")
     if nranks > 1:
         hyperparam = dict(fused=True)
@@ -36,16 +45,18 @@ def main(kappa=0.67, m_sq=-4*0.67, lambd=0.5, n_epochs=1000, batch_size=128,
         hyperparam = dict()
 
     snaps_dir = "../torch-snapshots"
-    snaps_name= "T4_scalar_affine.E200.tar"   # if exists resume from here <name>.epoch.tar
+    snaps_name = (
+        "T4_scalar_affine.E200.tar"  # if exists resume from here <name>.epoch.tar
+    )
     snaps_path = os.path.join(snaps_dir, snaps_name)
-    #snaps_path = None      # set to None if you don't want to save any snapshots
+    snaps_path = None      # set to None if you don't want to save any snapshots
     fit_kwargs = dict(
-            n_epochs=n_epochs,
-            save_every=200,
-            batch_size=batch_size // nranks,
-            hyperparam=hyperparam,
-            checkpoint_dict=dict(print_stride=100, snapshot_path=snaps_path)
-            )
+        n_epochs=n_epochs,
+        save_every=200,
+        batch_size=batch_size // nranks,
+        hyperparam=hyperparam,
+        checkpoint_dict=dict(print_stride=100, snapshot_path=snaps_path),
+    )
 
     if nranks > 1:
         model.device_handler.spawnprocesses(fit_func, nranks, **fit_kwargs)
@@ -61,12 +72,22 @@ def fit_func(model, **fit_kwargs):
 
 
 # =============================================================================
-def assemble_net(*, lat_shape,
-        n_layers=4, hidden_sizes=[8, 8], zee2sym=True, acts=None,
-        knots0_len=10, knots1_len=10, knots2_len=50, knots4_len=50
-        ):
+def assemble_net(
+    *,
+    lat_shape,
+    n_layers=4,
+    hidden_sizes=[8, 8],
+    zee2sym=True,
+    acts=None,
+    knots0_len=10,
+    knots1_len=10,
+    knots2_len=50,
+    knots4_len=50,
+):
 
-    mfdict = dict(knots_len=knots0_len, symmetric=zee2sym, final_scale=True, smooth=True)
+    mfdict = dict(
+        knots_len=knots0_len, symmetric=zee2sym, final_scale=True, smooth=True
+    )
 
     fftdict = dict(knots_len=knots1_len, ignore_zeromode=True)
 
@@ -78,45 +99,39 @@ def assemble_net(*, lat_shape,
 
     # 2. include (possible) activation
     if knots2_len > 1:
-        nets_list.append(
-                DistConvertor_(knots2_len, symmetric=zee2sym, smooth=True)
-                    )
+        nets_list.append(DistConvertor_(knots2_len, symmetric=zee2sym, smooth=True))
 
     # 3. Add (possible) affine blocks
     if acts is None:
-       tag = 'tanh' if zee2sym else 'leaky_relu'
-       acts = (*[tag]*len(hidden_sizes), None)
+        tag = "tanh" if zee2sym else "leaky_relu"
+        acts = (*[tag] * len(hidden_sizes), None)
 
     conv_dict = dict(
-            in_channels=1,
-            out_channels=2,
-            hidden_sizes=hidden_sizes,
-            kernel_size=3,
-            padding_mode='circular',
-            conv_dim=len(lat_shape),
-            acts=acts,
-            bias=not zee2sym
-            )
+        in_channels=1,
+        out_channels=2,
+        hidden_sizes=hidden_sizes,
+        kernel_size=3,
+        padding_mode="circular",
+        conv_dim=len(lat_shape),
+        acts=acts,
+        bias=not zee2sym,
+    )
     mask = EvenOddMask(shape=lat_shape)
     nets_list.append(
-            AffineCoupling_(
-                    [ConvAct(**conv_dict) for _ in range(n_layers)],
-                    mask=mask
-            )
+        AffineCoupling_([ConvAct(**conv_dict) for _ in range(n_layers)], mask=mask)
     )
 
     # 4. include (possible) activation
     if knots4_len > 1:
-        nets_list.append(
-                DistConvertor_(knots4_len, symmetric=zee2sym, smooth=True)
-                    )
+        nets_list.append(DistConvertor_(knots4_len, symmetric=zee2sym, smooth=True))
 
     return ModuleList_(nets_list)
 
 
 # =============================================================================
-if __name__ == '__main__':
+if __name__ == "__main__":
     from argparse import ArgumentParser
+
     parser = ArgumentParser()
     add = parser.add_argument
 
@@ -144,4 +159,3 @@ if __name__ == '__main__':
             args[key] = eval(args[key])
 
     main(**args)
-
