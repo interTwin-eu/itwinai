@@ -45,6 +45,11 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+radio-astronomy = [
+  "numpyencoder",
+  "scikit-image>=0.25.0",
+]
+
 torch = [
   "torch==2.4.*",
   "lightning>=2",
