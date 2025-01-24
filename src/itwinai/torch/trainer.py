@@ -1288,16 +1288,16 @@ class RayTorchTrainer(Trainer):
         random_seed: int = 1234,
     ) -> None:
         super().__init__(name=name)
-        self.logger = logger
-        self._set_strategy_and_init_ray(strategy)
-        self._set_configs(config=config)
-        self.torch_rng = set_seed(random_seed)
-
         import ray.train
         import ray.tune
 
         self.ray_train = ray.train
         self.ray_tune = ray.tune
+
+        self.logger = logger
+        self._set_strategy_and_init_ray(strategy)
+        self._set_configs(config=config)
+        self.torch_rng = set_seed(random_seed)
 
     def _set_strategy_and_init_ray(self, strategy: str) -> None:
         """Set the distributed training strategy. This will initialize the ray backend.
