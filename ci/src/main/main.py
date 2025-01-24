@@ -12,12 +12,14 @@ import datetime
 import random
 from string import Template
 from typing import Annotated, Optional, Self
-import os
+import yaml
 
 import dagger
 from dagger import BuildArg, Doc, dag, function, object_type
 
 from .literals import MLFramework, Stage
+from .interlink import InterLinkService
+from .k8s import K8sClient, create_pod_manifest
 
 
 def get_codename(release_info: str) -> str:
@@ -60,13 +62,10 @@ class Itwinai:
     sif: Annotated[Optional[dagger.File], Doc("SIF file")] = dataclasses.field(
         default=None, init=False
     )
-    _interlink: Annotated[Optional[dagger.Container], Doc("interLink cluster")] = (
-        dataclasses.field(default=None, init=False)
-    )
 
     # Note: since build_container returns self, when executing only it through dagger call
     # (e.g., dagger call build-container [args]), dagger will actually execute all the
-    # methods in this class in order
+    # methods in this class in order (?)
 
     @property
     def unique_id(self) -> str:
@@ -136,19 +135,142 @@ class Itwinai:
 
         return self
 
-    # @function
-    # async def abc(self) -> str:
-    #     with open("pod.yaml", "w") as pod:
-    #         pod.writelines("foo bar top john".split())
+    @function
+    async def interlink_service(
+        self, values: dagger.File, name: str = "unk", wait: int = 60
+    ) -> dagger.Service:
+        """Create and return an interLink service (k3s service). Can be used in the CLI
+        with "<service> up". Example:
 
-    #     return await (
-    #         dag.container()
-    #         .from_("busybox")
-    #         .with_mounted_directory("/pods", dag.directory().directory("."))
-    #         .with_exec("ls -la /pods".split())
-    #         .stdout()
-    #     )
-    #     # return await c.stdout()
+        >>> dagger call interlink-service --values tmp.yaml up
+        """
+        interlink_svc = InterLinkService(values=values, name=name, wait=wait)
+        svc = await interlink_svc.start()
+        # print(await interlink_svc.kubeconfig.contents())
+        return svc
+
+    @function
+    async def interlink_client(
+        self, values: dagger.File, name: str = "unk", wait: int = 60
+    ) -> dagger.Container:
+        """Create an interLink service (k3s service) and return the container of the k8s
+        client, which can be chanined in the CLI, e.g., with a terminal. Example:
+
+        >>> dagger call interlink-client --values tmp.yaml teminal
+        """
+        interlink_svc = InterLinkService(values=values, name=name, wait=wait)
+        await interlink_svc.start()
+        k8s_client = K8sClient(kubeconfig=interlink_svc.kubeconfig)
+        return k8s_client.container()
+
+    @function
+    async def pipeline(self, values: dagger.File, name: str = "unk") -> str:
+        interlink_svc = InterLinkService(values=values, name=name, wait=60)
+        async with interlink_svc.start_serving():
+            k8s_client = K8sClient(kubeconfig=interlink_svc.kubeconfig)
+            # await k8s_client.container().terminal()
+
+            pod_str = """apiVersion: v1
+kind: Pod
+metadata:
+  name: short-lived-pod
+spec:
+  containers:
+  - name: short-lived-container
+    image: busybox
+    command: ["sleep", "10", "&&", "exit", "2"]
+  restartPolicy: Never
+"""
+            stdout = []
+            stdout.append(await k8s_client.status())
+            stdout.append(await k8s_client.submit_pod(pod_str))
+            # await k8s_client.container().terminal()
+            status, logs = await k8s_client.wait_pod("short-lived-pod", timeout=1)
+            stdout.extend([status, logs])
+
+        return "\n\n".join(stdout)
+
+        # interlink_srv: dagger.Service = dag.interlink(name).interlink_cluster(values)
+        # await interlink_srv.start()
+
+        # kubeconfig: dagger.File = dag.interlink(name).cluster_config(local=False)
+
+        # client = (
+        #     dag.container()
+        #     .from_("alpine/helm")
+        #     .with_exec(["apk", "add", "kubectl"])
+        #     .with_mounted_file("/.kube/config", kubeconfig)
+        #     .with_env_variable("KUBECONFIG", "/.kube/config")
+        # )
+
+        # pods = await client.with_exec("kubectl get pods".split()).stdout()
+        # nodes = await client.with_exec("kubectl get nodes".split()).stdout()
+        # return f"Nodes:\n{nodes}\n\nPods:\n{pods}"
+
+        # Pass kubeconfig to alpine/kubectl
+
+        # Close service
+        # interlink_srv.stop()
+
+    @function
+    async def interlink_status(self, values: dagger.File) -> str:
+        """Get status of K3S cluster with interLink deployment."""
+        return await self.interlink(values).status()
+
+    @function
+    def interlink_container(self, values: dagger.File) -> dagger.Container:
+        """Return interlink container -- good for chaining in the cli (e.g., open terminal)"""
+        return self.interlink(values).container()
+
+    @function
+    async def il_test(self, values: dagger.File, name: str = "unk") -> str:
+        """Test container on remote HPC using interLink"""
+        # Create pod manifest
+        gpus_per_node = 1
+        cpus_per_gpu = 1
+
+        # Request memory and CPUs
+        resources = {
+            "limits": {"cpu": 48, "memory": "150Gi"},
+            "requests": {"cpu": cpus_per_gpu * gpus_per_node, "memory": "20Gi"},
+        }
+        annotations = {
+            "slurm-job.vk.io/flags": (
+                # --cpus-per-gpu fails on Vega through interLink
+                f"-p gpu --gres=gpu:{gpus_per_node} --gpus-per-node={gpus_per_node} "
+                "--ntasks-per-node=1 --nodes=1 "
+                f"--cpus-per-task={cpus_per_gpu * gpus_per_node} "
+                "--time=00:30:00"
+            )
+        }
+        image_path = "/ceph/hpc/data/st2301-itwin-users/cern/hello-world-image.sif"
+        cmd_args = ["sleep 10 && ls -la"]
+        pod_name = f"ci-test-itwinai-hpc-{self.unique_id}"
+
+        # Launch interLink service
+        interlink_svc = InterLinkService(values=values, name=name, wait=60)
+        async with interlink_svc.start_serving():
+            k8s_client = K8sClient(kubeconfig=interlink_svc.kubeconfig)
+            # await k8s_client.container().terminal()
+
+            pod_manifest = create_pod_manifest(
+                annotations=annotations,
+                image_path=image_path,
+                cmd_args=cmd_args,
+                name=pod_name,
+                resources=resources,
+                target_node=interlink_svc.vk_name,
+            )
+            pod_manifest_str = yaml.dump(pod_manifest)
+
+            stdout = []
+            stdout.append(await k8s_client.status())
+            stdout.append(await k8s_client.submit_pod(pod_manifest_str))
+            # await k8s_client.container().terminal()
+            status, logs = await k8s_client.wait_pod(name=pod_name, timeout=3000)
+            stdout.extend([status, logs])
+
+        return "\n\n".join(stdout)
 
     @function
     async def il(self, values: dagger.File) -> str:
@@ -165,155 +287,14 @@ spec:
     ports:
     - containerPort: 80"""
 
-        await self.submit_pod_interlink(pod_str=pod_str, values=values)
-        return await self.get_pod_status_interlink(name="my-pod", values=values)
-
-    async def submit_pod_interlink(self, pod_str: str, values: dagger.File) -> str:
-        interlink = self.interlink_cluster(values)
-        cmd = ["kubectl", "apply", "-f", "-"]
-        return await interlink.with_exec(cmd, stdin=pod_str).stdout()
-
-    async def get_pod_status_interlink(self, name: str, values: dagger.File) -> str:
-        interlink = self.interlink_cluster(values)
-        cmd = [
-            "kubectl",
-            "get",
-            "pod",
-            f"{name}",
-            "-n",
-            "default",
-            "-o",
-            "jsonpath='{.status.phase}'",
-        ]
-        return await interlink.with_exec(cmd).stdout()
-
-    @function
-    async def get_interlink_status(self, values: dagger.File) -> str:
-        """Get status of K3S cluster with interLink deployment."""
-        interlink = self.interlink_cluster(values)
-        pods = await interlink.with_exec("kubectl get pods".split()).stdout()
-        nodes = await interlink.with_exec("kubectl get nodes".split()).stdout()
-        return f"Nodes:\n{nodes}\n\nPods:\n{pods}"
+        await self.interlink(values).submit_pod(pod_str)
+        return await self.interlink(values).get_pod_status("my-pod")
 
     # @function
-    # async def config(self, values: dagger.File) -> dagger.File:
+    # def interlink_cluster(self, values: dagger.File) -> dagger.Container:
     #     if not self._interlink:
-    #         self._interlink = self.interlink_cluster(values=values)
-    #     return self._interlink.config(local=True)
-
-    @function
-    def interlink_cluster(self, values: dagger.File) -> dagger.Container:
-        if not self._interlink:
-            self._interlink = dag.interlink().interlink_cluster(values)
-        return self._interlink
-
-    # @function
-    # async def _interlink_cluster(self, values: dagger.File) -> dagger.Container:
-    #     k3s = dag.k3_s("test")
-    #     server = k3s.server()
-
-    #     await server.start()
-
-    #     return (
-    #         dag.container()
-    #         .from_("alpine/helm")
-    #         .with_exec(["apk", "add", "kubectl"])
-    #         .with_mounted_file("/.kube/config", k3s.config())
-    #         .with_mounted_file("/values.yaml", values)
-    #         .with_env_variable("KUBECONFIG", "/.kube/config")
-    #         .with_exec(
-    #             [
-    #                 "helm",
-    #                 "install",
-    #                 "--wait",
-    #                 "--debug",
-    #                 "my-node",
-    #                 "oci://ghcr.io/intertwin-eu/interlink-helm-chart/interlink",
-    #                 "--values",
-    #                 "/values.yaml",
-    #             ]
-    #         )
-    #     )
-
-    # @function
-    # async def interlink_service(self, values: dagger.File) -> str:
-    #     k3s = dag.k3_s("test")
-    #     server = k3s.server()
-
-    #     await server.start()
-
-    #     # Save the config in the local host (inside dagger engine)
-    #     await k3s.config(local=True).export("my_config.yaml")
-    #     assert os.path.exists("my_config.yaml")
-
-    #     from kubernetes import client, config
-
-    #     # Load the kubeconfig file
-    #     config.load_kube_config(config_file="my_config.yaml")
-
-    #     # Create a Kubernetes API client
-    #     v1 = client.CoreV1Api()
-
-    #     report = []
-
-    #     try:
-    #         # List all the pods in the specified namespace
-    #         report.append(f"Listing pods:")
-    #         pods = v1.list_pod_for_all_namespaces(watch=False)
-    #         for pod in pods.items:
-    #             report.append(f"- {pod.metadata.name}")
-    #     except Exception as e:
-    #         report.append(f"Error occurred: {e}")
-    #     return "\n".join(report)
-
-    # @function
-    # async def interlink_service_a(self, values: dagger.File) -> str:
-    #     k3s = dag.k3_s("test")
-    #     server = k3s.server()
-
-    #     await server.start()
-
-    #     return await (
-    #         dag.container()
-    #         .from_("alpine/helm")
-    #         .with_exec(["apk", "add", "kubectl"])
-    #         .with_mounted_file("/.kube/config", k3s.config())
-    #         .with_mounted_file("/values.yaml", values)
-    #         .with_env_variable("KUBECONFIG", "/.kube/config")
-    #         .with_exec(
-    #             [
-    #                 "kubectl",
-    #                 "get",
-    #                 "pods"
-    #             ]
-    #         )
-    #         .stdout()
-    #     )
-
-    # return k3s.config()
-
-    # server
-    # (
-    #     dag.container()
-    #     .from_("alpine/helm")
-    #     .with_exec(["apk", "add", "kubectl"])
-    #     .with_mounted_file("/.kube/config", k3s.config())
-    #     .with_mounted_file("/values.yaml", values)
-    #     .with_env_variable("KUBECONFIG", "/.kube/config")
-    #     .with_exec(
-    #         [
-    #             "helm",
-    #             "install",
-    #             "--wait",
-    #             "--debug",
-    #             "my-node",
-    #             "oci://ghcr.io/intertwin-eu/interlink-helm-chart/interlink",
-    #             "--values",
-    #             "/values.yaml",
-    #         ]
-    #     )
-    # )
-    # return server
+    #         self._interlink = dag.interlink().interlink_cluster(values)
+    #     return self._interlink
 
     @function
     def terminal(self) -> dagger.Container:
@@ -366,14 +347,8 @@ spec:
         )
 
     @function
-    async def test_hpc(
-        self,
-        kubeconfig: Annotated[
-            dagger.Secret, Doc("Kubeconfig for k8s cluster with interLink's VK")
-        ],
-    ) -> str:
+    async def test_hpc(self, values: dagger.File, name: str = "unk") -> str:
         """Test container on remote HPC using interLink"""
-        from .k8s import create_pod_manifest, submit_job, validate_pod_name
 
         # Create pod manifest
         gpus_per_node = 4
@@ -431,14 +406,33 @@ spec:
         image_path = "/ceph/hpc/data/st2301-itwin-users/cern/hello-world-image.sif"
         cmd_args = ["sleep 10 && exit $PRE_EXEC_RETURN_CODE"]
         pod_name = f"ci-test-itwinai-hpc-{self.unique_id}"
-        validate_pod_name(pod_name)
-        pod_manifest = create_pod_manifest(
-            annotations=annotations,
-            image_path=image_path,
-            cmd_args=cmd_args,
-            name=pod_name,
-            resources=resources,
-        )
+
+        # Launch interLink service
+        interlink_svc = InterLinkService(values=values, name=name, wait=60)
+        async with interlink_svc.start_serving():
+            k8s_client = K8sClient(kubeconfig=interlink_svc.kubeconfig)
+            # await k8s_client.container().terminal()
+
+            pod_manifest = create_pod_manifest(
+                annotations=annotations,
+                image_path=image_path,
+                cmd_args=cmd_args,
+                name=pod_name,
+                resources=resources,
+                target_node=interlink_svc.vk_name,
+            )
+            pod_manifest_str = yaml.dump(pod_manifest)
+
+            stdout = []
+            stdout.append(await k8s_client.submit_pod(pod_manifest_str))
+            # await k8s_client.container().terminal()
+            status, logs = await k8s_client.wait_pod(name=pod_name, timeout=3000)
+            stdout.extend([status, logs])
+
+        if status not in ["Succeeded", "Completed"]:
+            raise RuntimeError(f"Pod did not complete successfully! Status: {status}\n{stdout}")
+
+        return f"Pod finished with status: {status}\n{stdout}"
 
         # Submit pod
 
@@ -452,18 +446,16 @@ spec:
 
         # return f"Pod finished with status: {status}"
 
-        import yaml
+        # import yaml
 
-        pod_manifest_str = yaml.dump(pod_manifest)
-        self.submit_pod_interlink(pod_str=pod_manifest_str, values=...)
-        # Wait for completion...?
+        # pod_manifest_str = yaml.dump(pod_manifest)
+        # self.submit_pod_interlink(pod_str=pod_manifest_str, values=...)
+        # # Wait for completion...?
 
     @function
     async def test_n_publish(
         self,
-        kubeconfig: Annotated[
-            dagger.Secret, Doc("Kubeconfig for k8s cluster with interLink's VK")
-        ],
+        values: dagger.File,
         stage: Annotated[
             Stage,
             Doc("Whether to push the final image to the production image name or not"),
@@ -504,7 +496,7 @@ spec:
             # Publish to registry with random hash
             await self.publish()
             # Test on HPC with
-            await self.test_hpc(kubeconfig=kubeconfig)
+            await self.test_hpc(values=values)
 
         # Publish to registry with final hash
         itwinai_version = (

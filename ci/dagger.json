@@ -5,8 +5,8 @@
   "dependencies": [
     {
       "name": "interlink",
-      "source": "github.com/dciangot/daggerverse/interlink@12a5c6d97bfbe9ec99afefa9f0f59aeabfdc555a",
-      "pin": "12a5c6d97bfbe9ec99afefa9f0f59aeabfdc555a"
+      "source": "github.com/dciangot/daggerverse/interlink@4563fc0863f11bb0ddd4b4165dcbd11074701bee",
+      "pin": "4563fc0863f11bb0ddd4b4165dcbd11074701bee"
     },
     {
       "name": "k3s",
