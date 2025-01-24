@@ -99,3 +99,11 @@ dagger call --name="${COMMIT_HASH}-torch-jlab" \
         --build-args="COMMIT_HASH=$COMMIT_HASH,BASE_IMG_NAME=$BASE_IMG_NAME,BASE_IMG_DIGEST=$BASE_IMG_DIGEST" \
     test-local
 
+
+############## interLink ###############
+
+# Access the k8s cluster with interLink VK from terminal
+dagger call interlink-client --values tmp.yaml teminal
+
+# Start service in terminal
+dagger call interlink-service --values tmp.yaml up

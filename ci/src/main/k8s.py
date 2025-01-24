@@ -8,11 +8,15 @@
 # --------------------------------------------------------------------------------------
 
 import copy
+from datetime import datetime
+import time
 import logging
 import re
 import time
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 
+import dagger
+from dagger import dag
 import yaml
 from kubernetes import client, config
 from kubernetes.client.rest import ApiException
@@ -91,6 +95,7 @@ def create_pod_manifest(
     image_path: str = None,
     cmd_args: List[str] = None,
     resources: Dict = None,
+    target_node: str = None,
 ):
     """Creates a pod manifest with optional parameters to override default values
     for pod configuration.
@@ -105,6 +110,7 @@ def create_pod_manifest(
             (spec.containers[0].args).
         resources (Dict, optional): Resource requests and limits for the container
             (spec.containers[0].resources).
+        target_node (str): target node of the node selector.
 
     Returns:
         Dict: A dictionary representing the pod manifest.
@@ -115,6 +121,7 @@ def create_pod_manifest(
 
     # Set metadata fields
     if name:
+        validate_pod_name(name)
         pod_manifest["metadata"]["name"] = name
     if annotations:
         pod_manifest["metadata"]["annotations"].update(annotations)
@@ -129,6 +136,9 @@ def create_pod_manifest(
         container["args"] = cmd_args
     if resources:
         container["resources"] = resources
+
+    if target_node:
+        pod_manifest["spec"]["nodeSelector"]["kubernetes.io/hostname"] = target_node
 
     return pod_manifest
 
@@ -271,3 +281,138 @@ def list_pods(kubeconfig_path: str, namespace: str = "default") -> str:
     except Exception as e:
         report.append(f"Error occurred: {e}")
     return "\n".join(report)
+
+
+class K8sClient:
+    """Kubernetes client providing kubectl to interact with a k8s cluster described
+    by some configuration.
+
+    Args:
+        kubeconfig (dagger.File): kubeconfig of target cluster.
+    """
+
+    kubeconfig: dagger.File
+    _k8s_client: dagger.Container = None
+
+    def __init__(self, kubeconfig: dagger.File):
+        self.kubeconfig = kubeconfig
+
+    def container(self) -> dagger.Container:
+        """Get or create a new k8s client container.
+
+        Returns:
+            dagger.Container: container of k8s client.
+        """
+        if not self._k8s_client:
+            self._k8s_client = (
+                dag.container()
+                .from_("alpine/helm")
+                .with_exec(["apk", "add", "kubectl"])
+                .with_mounted_file("/.kube/config", self.kubeconfig)
+                .with_env_variable("KUBECONFIG", "/.kube/config")
+            )
+
+        return self._k8s_client
+
+    async def status(self) -> str:
+        """Get k8s cluster status, including nodes and pods under default namespace.
+
+        Returns:
+            str: cluster status summary.
+        """
+        pods = await self.container().with_exec("kubectl get pods".split()).stdout()
+        nodes = await self.container().with_exec("kubectl get nodes".split()).stdout()
+        return f"Nodes:\n{nodes}\n\nPods:\n{pods}"
+
+    async def submit_pod(self, manifest: str) -> str:
+        """Submit pod to k8s cluster
+
+        Args:
+            manifest (str): pod manifest serialized as string.
+
+        Returns:
+            str: the result of sumission.
+        """
+        cmd = ["kubectl", "apply", "-f", "-"]
+        return await self.container().with_exec(cmd, stdin=manifest).stdout()
+
+    async def get_pod_status(self, name: str) -> str:
+        """Get pod status: Pending, Running, Succeeded, Failed, Unknown.
+
+        Args:
+            name (str): pod name.
+
+        Returns:
+            str: pod status in that moment.
+        """
+        cmd = [
+            "kubectl",
+            "get",
+            "pod",
+            f"{name}",
+            "-n",
+            "default",
+            "-o",
+            "jsonpath='{.status.phase}'",
+        ]
+        status = (
+            await self.container()
+            # Invalidate cache
+            .with_env_variable("CACHE", datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f"))
+            .with_exec(cmd)
+            .stdout()
+        )
+        print(status)
+        return status.strip("'")
+
+    async def get_pod_logs(self, name: str) -> str:
+        """Get pod logs.
+
+        Args:
+            name (str): pod name.
+
+        Returns:
+            str: pod logs in that moment.
+        """
+        cmd = [
+            "kubectl",
+            "logs",
+            "--insecure-skip-tls-verify-backend",
+            f"{name}",
+            "-n",
+            "default",
+        ]
+        logs = (
+            await self.container()
+            # Invalidate cache
+            .with_env_variable("CACHE", datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f"))
+            .with_exec(cmd)
+            .stdout()
+        )
+        print(logs)
+        return logs
+
+    async def wait_pod(self, name: str, timeout: int = 300) -> Tuple[str, str]:
+        """Wait for pod termination (Succeeded, Failed) or timeout.
+
+        Args:
+            name (str): pod name.
+            timeout (int, optional): timeout in seconds. Defaults to 300.
+
+        Returns:
+            Tuple[str, str]: last pod status and logs detected.
+        """
+        cnt = 0
+        time_unit = 3
+        timeout = int(timeout / time_unit)
+        # Allow at most about 60 seconds of unk status
+        unk_timeout = int(60 / time_unit)
+        while True:
+            status = await self.get_pod_status(name=name)
+            logs = await self.get_pod_logs(name=name)
+            if status in ["Succeeded", "Failed"]:
+                return status, logs
+            cnt += 1
+            if cnt > timeout or status == "Unknown" and cnt > unk_timeout:
+                return f"Pod timed out with status: {status}", logs
+            time.sleep(time_unit)
