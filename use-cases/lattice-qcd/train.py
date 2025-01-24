@@ -32,11 +32,9 @@ def main():
     local_rank = model.device_handler.local_rank
     global_rank = model.device_handler.rank
     global_world_size = model.device_handler.nranks
-    batch_size = int((batch_size / global_world_size))
 
     if torch.cuda.is_available():
         # Initialize distributed backend
-        dist.init_process_group(backend="nccl")
         torch.cuda.set_device(local_rank)
 
         if global_rank == 0:
@@ -52,6 +50,7 @@ def main():
         model.device_handler.set_seed(seeds_torch[global_rank])
         model.device_handler.ddp_wrapper()
 
+    batch_size = int((batch_size / global_world_size))
     start_time: float | None = None
     if global_rank == 0: 
         start_time = time.time()

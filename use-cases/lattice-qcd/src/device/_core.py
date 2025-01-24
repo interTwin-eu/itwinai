@@ -29,6 +29,7 @@ class ModelDeviceHandler:
     def __init__(self, model):
         self._model = model
         if torch.cuda.is_available(): 
+            dist.init_process_group(backend="nccl")
             self.nranks = dist.get_world_size()
             self.rank = dist.get_rank()
             self.local_rank = dist.get_rank()%torch.cuda.device_count()
