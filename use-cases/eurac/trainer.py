@@ -1,9 +1,9 @@
 import os
 from pathlib import Path
-from timeit import default_timer as timer
+
 from typing import Dict, Literal, Optional, Union, Any, Tuple
 from tqdm.auto import tqdm
-import copy
+
 from torch.utils.data import Dataset
 import torch
 import torch.nn as nn
