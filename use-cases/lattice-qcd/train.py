@@ -12,10 +12,9 @@ from examples.scalar_affine import assemble_net
 # from itwinai.loggers import MLFlowLogger
 
 def make_model(lat_shape):
-    # net_ = DistConvertor_(10, symmetric=True)
     net_ = assemble_net(lat_shape=lat_shape)
     prior = NormalPrior(shape=lat_shape)
-    action = ScalarPhi4Action(kappa=0.67, m_sq=0.67*4, lambd=0.5)
+    action = ScalarPhi4Action(kappa=0.67, m_sq=-0.67*4, lambd=0.5)
 
     model = Model(net_=net_, prior=prior, action=action)
     return model
@@ -23,7 +22,7 @@ def make_model(lat_shape):
 def main():
     hyperparams = {"fused": True}
     n_epochs = 1000
-    batch_size = 1024*4
+    batch_size = 1024
     lat_shape=(8, 8)
 
     input_shape = (batch_size, *lat_shape)
@@ -55,6 +54,7 @@ def main():
         print(f"Rank {dist.get_rank()} received seeds: {seeds_torch}")
 
         model = make_model(lat_shape)
+        summary(model.net_, input_shape=input_shape)
 
         # Log the seed for the current worker
         print(f"Worker {grank} seed: {seeds_torch[grank]}")
@@ -82,8 +82,14 @@ def main():
         # Destroy distributed process group
         dist.destroy_process_group()
     else:
-        model = make_model(prior_size=prior_size)
-        summary(model.net_[1], input_shape=input_shape)
+        model = make_model(lat_shape=lat_shape)
+        summary(model.net_, input_shape=input_shape)
+
+        model.fit(
+            n_epochs=n_epochs,
+            batch_size=batch_size,
+            hyperparam=hyperparams,
+        )
 
 
 if __name__ == "__main__":
