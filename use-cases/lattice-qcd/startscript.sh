@@ -9,8 +9,8 @@
 
 # Node and process configuration
 #SBATCH --partition=develbooster
-#SBATCH --nodes=2
-#SBATCH --gpus-per-node=4
+#SBATCH --nodes=1
+#SBATCH --gpus-per-node=1
 #SBATCH --ntasks-per-node=1
 #SBATCH --threads-per-core=1
 #SBATCH --cpus-per-task=32
