@@ -1,4 +1,5 @@
 import torch
+from torch.cuda import is_available
 import torch.distributed as dist
 import time
 from torchinfo import summary
@@ -25,71 +26,53 @@ def main():
     batch_size = 1024
     lat_shape=(8, 8)
 
-    input_shape = (batch_size, *lat_shape)
+    model = make_model(lat_shape)
+    summary(model.net_, input_shape=lat_shape)
+
+    local_rank = model.device_handler.local_rank
+    global_rank = model.device_handler.rank
+    global_world_size = model.device_handler.nranks
+    batch_size = int((batch_size / global_world_size))
 
     if torch.cuda.is_available():
         # Initialize distributed backend
         dist.init_process_group(backend="nccl")
+        torch.cuda.set_device(local_rank)
 
-        lwsize = torch.cuda.device_count()
-        gwsize = dist.get_world_size()
-        grank = dist.get_rank()
-        lrank = dist.get_rank() % lwsize
-
-        batch_size = int((batch_size / gwsize))
-        input_shape = (batch_size, *lat_shape)
-
-        start_time: float | None = None
-
-        # device = torch.device('cuda' if torch.cuda.is_available() else 'cpu',lrank)
-        torch.cuda.set_device(lrank)
-
-        if dist.get_rank() == 0:
-            seeds_torch = [torch.randint(2**32 - 1, (1,)).item() for _ in range(gwsize)]
+        if global_rank == 0:
+            seeds_torch = [torch.randint(2**32 - 1, (1,)).item() for _ in range(global_world_size)]
             print(f"Generated seeds for workers: {seeds_torch}")
         else:
-            seeds_torch = [None] * gwsize
+            seeds_torch = [None] * global_world_size
 
         dist.broadcast_object_list(seeds_torch, src=0)
         print(f"Rank {dist.get_rank()} received seeds: {seeds_torch}")
+        print(f"Worker {global_rank} seed: {seeds_torch[global_rank]}")
 
-        model = make_model(lat_shape)
-        summary(model.net_, input_shape=input_shape)
-
-        # Log the seed for the current worker
-        print(f"Worker {grank} seed: {seeds_torch[grank]}")
-
-        # Set seed for current rank
-        model.device_handler.set_seed(seeds_torch[grank])
-        # Set up model for DDP
+        model.device_handler.set_seed(seeds_torch[global_rank])
         model.device_handler.ddp_wrapper()
 
-        if grank == 0: 
-            start_time = time.time()
+    start_time: float | None = None
+    if global_rank == 0: 
+        start_time = time.time()
 
-        model.fit(
-            n_epochs=n_epochs,
-            batch_size=batch_size,
-            hyperparam=hyperparams,
-        )
+    model.fit(
+        n_epochs=n_epochs,
+        batch_size=batch_size,
+        hyperparam=hyperparams,
+    )
 
-        if grank == 0: 
-            assert start_time is not None
-            end_time = time.time()
-            total_time = end_time - start_time
-            print(f"Total training time: {total_time:.2f} seconds.")
+    if global_rank == 0: 
+        assert start_time is not None
+        end_time = time.time()
+        total_time = end_time - start_time
+        print(f"Total training time: {total_time:.2f} seconds.")
 
-        # Destroy distributed process group
-        dist.destroy_process_group()
-    else:
-        model = make_model(lat_shape=lat_shape)
-        summary(model.net_, input_shape=input_shape)
+    if not torch.cuda.is_available():
+        return
 
-        model.fit(
-            n_epochs=n_epochs,
-            batch_size=batch_size,
-            hyperparam=hyperparams,
-        )
+    # Destroy distributed process group
+    dist.destroy_process_group()
 
 
 if __name__ == "__main__":
