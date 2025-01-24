@@ -23,6 +23,7 @@ from itwinai.torch.distributed import TorchDDPStrategy
 from itwinai.loggers import Logger
 from itwinai.torch.profiling.profiler import profile_torch_trainer
 
+
 # =============================================================================
 class Model:
     """
@@ -213,61 +214,64 @@ class Posterior:
 class Strategy(TorchDDPStrategy):
     def __init__(self, model):
         self._model = model
+
     def global_rank(self):
         return self._model.device_handler.rank
+
     def global_world_size(self):
         return self._model.device_handler.nranks
+
     @property
     def name(self):
         return "DDPStrategy"
 
+
 class Fitter(TorchTrainer):
     """A class for training a given model."""
+
     profiler: Optional[Any]
-    def __init__(self,
-            model: Model,
-            config=None,
-            epochs=1000,
-            logger: Optional[Logger] = None,
-            profiling_wait_epochs: int = 1,
-            profiling_warmup_epochs: int = 2
-        ):
-        super().__init__(
-                config=config,
-                epochs=epochs,
-                logger=logger
-        )
+
+    def __init__(
+        self,
+        model: Model,
+        config=None,
+        epochs=1000,
+        logger: Optional[Logger] = None,
+        profiling_wait_epochs: int = 1,
+        profiling_warmup_epochs: int = 2,
+    ):
+        super().__init__(config=config, epochs=epochs, logger=logger)
         self._model = model
         self.train_batch_size = 1
         self.train_history = dict(
-                loss=[], logqp=[], logz=[], ess=[], rho=[], accept_rate=[]
-                )
+            loss=[], logqp=[], logz=[], ess=[], rho=[], accept_rate=[]
+        )
         self.hyperparam = dict(lr=0.001, weight_decay=0.01)
         self.checkpoint_dict = dict(
             display=False,
             print_stride=500,
             print_batch_size=1024,
             snapshot_path=None,
-            epochs_run=0
-            )
+            epochs_run=0,
+        )
         self.strategy = Strategy(model)
         self.profiler = None
         self.profiling_wait_epochs = profiling_wait_epochs
         self.profiling_warmup_epochs = profiling_warmup_epochs
 
-    def __call__(self,
-            n_epochs=1000,
-            save_every=None,
-            batch_size=64,
-            optimizer_class=torch.optim.AdamW,
-            scheduler=None,
-            loss_fn=None,
-            hyperparam={},
-            checkpoint_dict={},
-            profiling_wait_epochs=1,
-            profiling_warmup_epochs=1
-            ):
-
+    def __call__(
+        self,
+        n_epochs=1000,
+        save_every=None,
+        batch_size=64,
+        optimizer_class=torch.optim.AdamW,
+        scheduler=None,
+        loss_fn=None,
+        hyperparam={},
+        checkpoint_dict={},
+        profiling_wait_epochs=1,
+        profiling_warmup_epochs=1,
+    ):
         """Fit the model; i.e. train the model.
 
         Parameters
@@ -301,7 +305,7 @@ class Fitter(TorchTrainer):
         self.hyperparam.update(hyperparam)
         self.checkpoint_dict.update(checkpoint_dict)
 
-        snapshot_path = self.checkpoint_dict['snapshot_path']
+        snapshot_path = self.checkpoint_dict["snapshot_path"]
 
         if save_every is None:
             save_every = n_epochs
@@ -316,7 +320,7 @@ class Fitter(TorchTrainer):
         self.loss_fn = Fitter.calc_kl_mean if loss_fn is None else loss_fn
 
         net_ = self._model.net_
-        if '_groups' in net_.__dict__.keys():
+        if "_groups" in net_.__dict__.keys():
             parameters = net_.grouped_parameters()
         else:
             parameters = net_.parameters()
@@ -331,7 +335,7 @@ class Fitter(TorchTrainer):
             self._train(n_epochs, batch_size, save_every)
 
     def _load_snapshot(self):
-        snapshot_path = self.checkpoint_dict['snapshot_path']
+        snapshot_path = self.checkpoint_dict["snapshot_path"]
         if torch.cuda.is_available():
             gpu_id = self._model.device_handler.rank
             # gpu_id = int(os.environ["LOCAL_RANK"]) might be needed for torchrun ??
@@ -342,19 +346,24 @@ class Fitter(TorchTrainer):
             print("CPU: Attempting to load saved model")
         snapshot = torch.load(snapshot_path, map_location=loc)
         self._model.net_.load_state_dict(snapshot["MODEL_STATE"])
-        self.checkpoint_dict['epochs_run'] = snapshot['EPOCHS_RUN']
-        print(f"Snapshot found: {snapshot_path}\nResuming training via Saved Snapshot at Epoch {snapshot['EPOCHS_RUN']}")
+        self.checkpoint_dict["epochs_run"] = snapshot["EPOCHS_RUN"]
+        print(
+            f"Snapshot found: {snapshot_path}\nResuming training via Saved Snapshot at Epoch {snapshot['EPOCHS_RUN']}"
+        )
 
     def _save_snapshot(self, epoch):
         """Save snapshot of training for analysis and/or to continue training
         at a later date.
         """
-        snapshot_path = self.checkpoint_dict['snapshot_path']
-        epochs_run = epoch + self.checkpoint_dict['epochs_run']
-        snapshot_new_path = snapshot_path.rsplit('.',2)[0] + ".E" + str(epochs_run) + ".tar"
+        snapshot_path = self.checkpoint_dict["snapshot_path"]
+        epochs_run = epoch + self.checkpoint_dict["epochs_run"]
+        snapshot_new_path = (
+            snapshot_path.rsplit(".", 2)[0] + ".E" + str(epochs_run) + ".tar"
+        )
         snapshot = {
-                    "MODEL_STATE": self._model.net_.state_dict(),
-                     "EPOCHS_RUN": epochs_run }
+            "MODEL_STATE": self._model.net_.state_dict(),
+            "EPOCHS_RUN": epochs_run,
+        }
         torch.save(snapshot, snapshot_new_path)
         print(f"Epoch {epochs_run} | Model Snapshot saved at {snapshot_new_path}")
 
@@ -362,7 +371,7 @@ class Fitter(TorchTrainer):
     def _train(self, n_epochs: int, batch_size: int, save_every: int):
         T1 = time.time()
         epoch_print_interval = 500
-        for epoch in range(1, n_epochs+1):
+        for epoch in range(1, n_epochs + 1):
             epoch_start_time = time.time()
             if self.profiler is not None:
                 self.profiler.step()
@@ -370,7 +379,7 @@ class Fitter(TorchTrainer):
             self.checkpoint(epoch, loss, save_every)
             if self.scheduler is not None:
                 self.scheduler.step()
-            if self.strategy.global_rank == 0 and epoch == epoch_print_interval: 
+            if self.strategy.global_rank == 0 and epoch == epoch_print_interval:
                 epoch_end_time = time.time()
                 epoch_total_time = epoch_end_time - epoch_start_time
                 print(
@@ -404,13 +413,13 @@ class Fitter(TorchTrainer):
     def checkpoint(self, epoch, loss, save_every):
 
         rank = self._model.device_handler.rank
-        print_stride = self.checkpoint_dict['print_stride']
-        print_batch_size = self.checkpoint_dict['print_batch_size']
-        snapshot_path = self.checkpoint_dict['snapshot_path']
+        print_stride = self.checkpoint_dict["print_stride"]
+        print_batch_size = self.checkpoint_dict["print_batch_size"]
+        snapshot_path = self.checkpoint_dict["snapshot_path"]
 
         # Always save loss on rank 0
         if rank == 0:
-            self.train_history['loss'].append(loss.item())
+            self.train_history["loss"].append(loss.item())
             # Save model as well
             if snapshot_path is not None and (epoch % save_every == 0):
                 self._save_snapshot(epoch)
@@ -459,8 +468,9 @@ class Fitter(TorchTrainer):
     def calc_ess(logq, logp):
         """Rerturn effective sample size (ESS)."""
         logqp = logq - logp
-        log_ess = 2*torch.logsumexp(-logqp, dim=0) \
-                - torch.logsumexp(-2*logqp, dim=0)
+        log_ess = 2 * torch.logsumexp(-logqp, dim=0) - torch.logsumexp(
+            -2 * logqp, dim=0
+        )
         ess = torch.exp(log_ess) / len(logqp)  # normalized
         return ess
 
@@ -468,47 +478,50 @@ class Fitter(TorchTrainer):
     def calc_minus_logess(logq, logp):
         """Return logarithm of inverse of effective sample size."""
         logqp = logq - logp
-        log_ess = 2*torch.logsumexp(-logqp, dim=0) \
-                - torch.logsumexp(-2*logqp, dim=0)
-        return - log_ess + np.log(len(logqp))  # normalized
+        log_ess = 2 * torch.logsumexp(-logqp, dim=0) - torch.logsumexp(
+            -2 * logqp, dim=0
+        )
+        return -log_ess + np.log(len(logqp))  # normalized
 
     @torch.no_grad()
     def _append_to_train_history(self, logq, logp):
         logqp = logq - logp
-        logz = estimate_logz(logqp, method='jackknife')  # returns (mean, std)
+        logz = estimate_logz(logqp, method="jackknife")  # returns (mean, std)
         accept_rate = self._model.mcmc.estimate_accept_rate(logqp)
         ess = self.calc_ess(logqp, 0)
         rho = self.calc_corrcoef(logq, logp)
         logqp = (logqp.mean().item(), logqp.std().item())
-        self.train_history['logqp'].append(logqp)
-        self.train_history['logz'].append(logz)
-        self.train_history['ess'].append(ess)
-        self.train_history['rho'].append(rho)
-        self.train_history['accept_rate'].append(accept_rate)
+        self.train_history["logqp"].append(logqp)
+        self.train_history["logz"].append(logz)
+        self.train_history["ess"].append(ess)
+        self.train_history["rho"].append(rho)
+        self.train_history["accept_rate"].append(accept_rate)
 
     def print_fit_status(self, epoch, loss=None):
         mydict = self.train_history
         if loss is None:
-            loss = mydict['loss'][-1]
+            loss = mydict["loss"][-1]
         else:
             pass  # the printed loss can be different from mydict['loss'][-1]
-        logqp_mean, logqp_std = mydict['logqp'][-1]
-        logz_mean, logz_std = mydict['logz'][-1]
-        accept_rate_mean, accept_rate_std = mydict['accept_rate'][-1]
+        logqp_mean, logqp_std = mydict["logqp"][-1]
+        logz_mean, logz_std = mydict["logz"][-1]
+        accept_rate_mean, accept_rate_std = mydict["accept_rate"][-1]
         # We now incorporate the effect of estimated log(z) to mean of log(q/p)
         adjusted_logqp_mean = logqp_mean + logz_mean
-        ess = mydict['ess'][-1]
-        rho = mydict['rho'][-1]
+        ess = mydict["ess"][-1]
+        rho = mydict["rho"][-1]
 
         if epoch == 1:
             print(f"\n>>> Training progress ({ess.device}) <<<\n")
-            print("Note: log(q/p) is estimated with normalized p; " \
-                  + "mean & error are obtained from samples in a batch\n")
+            print(
+                "Note: log(q/p) is estimated with normalized p; "
+                + "mean & error are obtained from samples in a batch\n"
+            )
 
-        epoch += self.checkpoint_dict['epochs_run']
+        epoch += self.checkpoint_dict["epochs_run"]
         str1 = f"Epoch: {epoch} | loss: {loss:.4f} | ess: {ess:.4f}"
         print(str1)
-        self.log(loss.detach().cpu().numpy(),'epoch_loss',kind='metric')
+        self.log(loss.detach().cpu().numpy(), "epoch_loss", kind="metric")
 
 
 # =============================================================================
