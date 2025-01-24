@@ -34,6 +34,7 @@ from tqdm import tqdm
 from ..components import Trainer, monitor_exec
 from ..loggers import Logger, LogMixin
 from ..utils import load_yaml
+from itwinai.torch.analyzer import TrainingAnalyzer
 from .config import TrainingConfiguration
 from .distributed import (
     DeepSpeedStrategy,
@@ -160,6 +161,10 @@ class TorchTrainer(Trainer, LogMixin):
         self.profiler = None
         self.profiling_wait_epochs = profiling_wait_epochs
         self.profiling_warmup_epochs = profiling_warmup_epochs
+
+        analysis_output_file = "stats.txt"
+        self.analyzer = TrainingAnalyzer(output_file=analysis_output_file)
+
 
     @property
     def strategy(self) -> TorchDistributedStrategy:
@@ -395,7 +400,9 @@ class TorchTrainer(Trainer, LogMixin):
             hparams["distributed_strategy"] = self.strategy.__class__.__name__
             self.logger.save_hyperparameters(hparams)
 
+        self.analyzer.start_analysis()
         self.train()
+        self.analyzer.stop_analysis()
 
         if self.logger:
             self.logger.destroy_logger_context()
