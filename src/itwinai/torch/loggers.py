@@ -52,6 +52,7 @@ class ItwinaiLogger(LightningLogger):
                 to the specifications given as `save_top_k` in the Lightning ModelCheckpoint;
                 if False, does not log checkpoints.
             skip_finalize (bool): if True, do not finalize the logger in the finalize method.
+                This is useful when you also want to use the logger outside of lightning.
                 Defaults to False.
         """
         self.itwinai_logger = itwinai_logger
