@@ -35,7 +35,7 @@ export BASE_IMG_DIGEST="$(echo "$BASE_IMG_NAME" | cut -d ':' -f 1)@$(docker buil
 dagger call --name="${COMMIT_HASH}-torch" \
     build-container --context=.. --dockerfile=../env-files/torch/Dockerfile \
         --build-args="COMMIT_HASH=$COMMIT_HASH,BASE_IMG_NAME=$BASE_IMG_NAME,BASE_IMG_DIGEST=$BASE_IMG_DIGEST" \
-    test-n-publish --values=env:INTERLINK_VALUES --stage=DEV --framework=TORCH \
+    test-n-publish --values=file:tmp.yaml --stage=DEV --framework=TORCH \
     --tag-template='${itwinai_version}-torch${framework_version}-${os_version}'
 
 # Open teminal in newly created container
@@ -103,9 +103,10 @@ dagger call --name="${COMMIT_HASH}-torch-jlab" \
 ############## interLink ###############
 
 # Access the k8s cluster with interLink VK from terminal
-dagger call interlink-client --values tmp.yaml teminal
+dagger call interlink --values=file:tmp.yaml client terminal
 
 # Start service in terminal
-dagger call interlink-service --values tmp.yaml up
+dagger call interlink --values=file:tmp.yaml start-service up
 
+# Test interlink offloading mechanism with some toy pods
 dagger call interlink --values=file:tmp.yaml test-offloading

@@ -73,7 +73,15 @@ class Itwinai:
             ),
         ] = 60,
     ) -> InterLinkService:
+        """Get interLink service."""
         return InterLinkService(values=values, name=name, wait=wait)
+
+    @function
+    def kube_client(
+        self, kubeconfig: Annotated[dagger.File, Doc("kubeconfig for k3s cluster")]
+    ) -> K8sClient:
+        """Get k8s client."""
+        return K8sClient(kubeconfig=kubeconfig)
 
     @function
     async def debug_ignore(
