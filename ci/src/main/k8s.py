@@ -8,16 +8,15 @@
 # --------------------------------------------------------------------------------------
 
 import copy
-from datetime import datetime
-import time
 import logging
 import re
 import time
+from datetime import datetime
 from typing import Dict, List, Optional, Tuple
 
 import dagger
-from dagger import dag
 import yaml
+from dagger import dag
 from kubernetes import client, config
 from kubernetes.client.rest import ApiException
 
@@ -355,14 +354,13 @@ class K8sClient:
             "-o",
             "jsonpath='{.status.phase}'",
         ]
-        status = (
-            await self.container()
+        status = await (
+            self.container()
             # Invalidate cache
             .with_env_variable("CACHE", datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f"))
             .with_exec(cmd)
             .stdout()
         )
-        print(status)
         return status.strip("'")
 
     async def get_pod_logs(self, name: str) -> str:
@@ -382,37 +380,69 @@ class K8sClient:
             "-n",
             "default",
         ]
-        logs = (
-            await self.container()
+        logs = await (
+            self.container()
             # Invalidate cache
             .with_env_variable("CACHE", datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f"))
             .with_exec(cmd)
             .stdout()
         )
-        print(logs)
         return logs
 
-    async def wait_pod(self, name: str, timeout: int = 300) -> Tuple[str, str]:
+    async def delete_pod(self, name: str) -> str:
+        """Delete pod.
+
+        Args:
+            name (str): pod name.
+
+        Returns:
+            str: result message of ``kubectl delete pod``.
+        """
+        cmd = [
+            "kubectl",
+            "delete",
+            "pod",
+            f"{name}",
+            "-n",
+            "default",
+            "--grace-period=0",
+            "--force",
+        ]
+        msg = await (
+            self.container()
+            # Invalidate cache
+            .with_env_variable("CACHE", datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f"))
+            .with_exec(cmd)
+            .stdout()
+        )
+        return msg
+
+    async def wait_pod(
+        self, name: str, timeout: int = 300, poll_interval: int = 5
+    ) -> Tuple[str, str]:
         """Wait for pod termination (Succeeded, Failed) or timeout.
 
         Args:
             name (str): pod name.
             timeout (int, optional): timeout in seconds. Defaults to 300.
+            poll_interval (int, optional): how often to check the pod status.
+                Defaults to 5 seconds.
 
         Returns:
             Tuple[str, str]: last pod status and logs detected.
         """
         cnt = 0
-        time_unit = 3
-        timeout = int(timeout / time_unit)
+        timeout = max(int(timeout / poll_interval), 1)
         # Allow at most about 60 seconds of unk status
-        unk_timeout = int(60 / time_unit)
+        unk_timeout = max(int(60 / poll_interval), 1)
         while True:
             status = await self.get_pod_status(name=name)
             logs = await self.get_pod_logs(name=name)
             if status in ["Succeeded", "Failed"]:
+                await self.delete_pod(name=name)
                 return status, logs
             cnt += 1
             if cnt > timeout or status == "Unknown" and cnt > unk_timeout:
+                await self.delete_pod(name=name)
                 return f"Pod timed out with status: {status}", logs
-            time.sleep(time_unit)
+            time.sleep(poll_interval)
