@@ -8,15 +8,16 @@
 # --------------------------------------------------------------------------------------
 
 import copy
+import dataclasses
 import logging
 import re
 import time
 from datetime import datetime
-from typing import Dict, List, Optional, Tuple
+from typing import Annotated, Dict, List, Optional
 
 import dagger
 import yaml
-from dagger import dag
+from dagger import Doc, dag, function, object_type
 from kubernetes import client, config
 from kubernetes.client.rest import ApiException
 
@@ -282,6 +283,7 @@ def list_pods(kubeconfig_path: str, namespace: str = "default") -> str:
     return "\n".join(report)
 
 
+@object_type
 class K8sClient:
     """Kubernetes client providing kubectl to interact with a k8s cluster described
     by some configuration.
@@ -290,12 +292,10 @@ class K8sClient:
         kubeconfig (dagger.File): kubeconfig of target cluster.
     """
 
-    kubeconfig: dagger.File
-    _k8s_client: dagger.Container = None
+    kubeconfig: Annotated[dagger.File | None, Doc("kubeconfig for k3s cluster")] = None
+    _k8s_client: dagger.Container | None = dataclasses.field(init=False, default=None)
 
-    def __init__(self, kubeconfig: dagger.File):
-        self.kubeconfig = kubeconfig
-
+    @function
     def container(self) -> dagger.Container:
         """Get or create a new k8s client container.
 
@@ -313,6 +313,7 @@ class K8sClient:
 
         return self._k8s_client
 
+    @function
     async def status(self) -> str:
         """Get k8s cluster status, including nodes and pods under default namespace.
 
@@ -323,6 +324,7 @@ class K8sClient:
         nodes = await self.container().with_exec("kubectl get nodes".split()).stdout()
         return f"Nodes:\n{nodes}\n\nPods:\n{pods}"
 
+    @function
     async def submit_pod(self, manifest: str) -> str:
         """Submit pod to k8s cluster
 
@@ -335,6 +337,7 @@ class K8sClient:
         cmd = ["kubectl", "apply", "-f", "-"]
         return await self.container().with_exec(cmd, stdin=manifest).stdout()
 
+    @function
     async def get_pod_status(self, name: str) -> str:
         """Get pod status: Pending, Running, Succeeded, Failed, Unknown.
 
@@ -363,6 +366,7 @@ class K8sClient:
         )
         return status.strip("'")
 
+    @function
     async def get_pod_logs(self, name: str) -> str:
         """Get pod logs.
 
@@ -389,6 +393,7 @@ class K8sClient:
         )
         return logs
 
+    @function
     async def delete_pod(self, name: str) -> str:
         """Delete pod.
 
@@ -417,9 +422,10 @@ class K8sClient:
         )
         return msg
 
+    @function
     async def wait_pod(
         self, name: str, timeout: int = 300, poll_interval: int = 5
-    ) -> Tuple[str, str]:
+    ) -> tuple[str, str]:
         """Wait for pod termination (Succeeded, Failed) or timeout.
 
         Args:
