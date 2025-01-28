@@ -73,28 +73,31 @@ class InterLinkService:
         return k8s_client.container()
 
     @function
-    async def test_offloading(self) -> str:
+    async def test_offloading(
+        self,
+        partition: Annotated[
+            str, Doc("HPC partition on which to test the offloading")
+        ] = "dev",
+    ) -> str:
         """Test container offloading mechanism on remote HPC using interLink by runnign simple
         tests."""
-        # Create pod manifest
-        gpus_per_node = 1
-        cpus_per_gpu = 1
 
         # Request memory and CPUs
+        n_cpus = 4
         resources = {
-            "limits": {"cpu": 48, "memory": "150Gi"},
-            "requests": {"cpu": cpus_per_gpu * gpus_per_node, "memory": "20Gi"},
+            "limits": {"cpu": 8, "memory": "16Gi"},
+            "requests": {"cpu": n_cpus, "memory": "10Gi"},
         }
         annotations = {
             "slurm-job.vk.io/flags": (
-                # --cpus-per-gpu fails on Vega through interLink
                 # Use the dev partition for these simple tests
-                f"-p dev --gres=gpu:{gpus_per_node} --gpus-per-node={gpus_per_node} "
-                "--ntasks-per-node=1 --nodes=1 "
-                f"--cpus-per-task={cpus_per_gpu * gpus_per_node} "
-                "--time=00:15:00"
+                f"-p {partition} --ntasks-per-node=1 --nodes=1 "
+                f"--cpus-per-task={n_cpus} --time=00:15:00"
             )
         }
+        if partition == "gpu":
+            # Add requests for GPU as well, otherwise the request may hang forever
+            annotations["slurm-job.vk.io/flags"] += " --gres=gpu:1 --gpus-per-node=1"
         image_path = "/ceph/hpc/data/st2301-itwin-users/cern/hello-world-image.sif"
         pod_name = "interlink-test-offloading"
 
