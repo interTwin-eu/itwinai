@@ -6,6 +6,7 @@
 requires = ["setuptools", "setuptools-scm", "wheel"]
 build-backend = "setuptools.build_meta"
 
+
 [project]
 name = "itwinai"
 version = "0.2.4"
@@ -45,9 +46,15 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+# dependencies that are not included by dev or torch
+# but needed for radio-astronomy.
 radio-astronomy = [
-  "numpyencoder",
-  "scikit-image>=0.25.0",
+  "pulsardt==0.2",
+  "tqdm>=4.65.0",
+  "numpyencoder>=0.3.0",
+  "pyquaternion>=0.9.9",
+  "scikit-image>=0.22.0",
+  "pyqt6>=6.0",
 ]
 
 torch = [
@@ -129,14 +136,18 @@ conflicts = [[{ extra = "tf-cuda" }, { extra = "torch" }]]
 # Use PyTorch with CUDA for anything that is not macos
 [tool.uv.sources]
 torch = [{ index = "pytorch-cu121", marker = "platform_system != 'Darwin'" }]
-torchvision = [
-  { index = "pytorch-cu121", marker = "platform_system != 'Darwin'" },
-]
+torchvision = [{ index = "pytorch-cu121", marker = "platform_system != 'Darwin'" }]
+pulsardt = [{ index = "pulsar-dt"}]
 
 # Specific index for pytorch
 [[tool.uv.index]]
 name = "pytorch-cu121"
 url = "https://download.pytorch.org/whl/cu121"
+explicit = true
+
+[[tool.uv.index]]
+name = "pulsar-dt"
+url = "https://gitlab.com/api/v4/projects/59840702/packages/pypi/simple"
 explicit = true
 
 # Ruff configuration: https://docs.astral.sh/ruff/configuration/
