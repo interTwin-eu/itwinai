@@ -57,7 +57,7 @@ export BASE_IMG_DIGEST="$(echo "$BASE_IMG_NAME" | cut -d ':' -f 1)@$(docker buil
 dagger call --name="${COMMIT_HASH}-torch-slim" \
     build-container --context=.. --dockerfile=../env-files/torch/slim.Dockerfile \
         --build-args="COMMIT_HASH=$COMMIT_HASH,BASE_IMG_NAME=$BASE_IMG_NAME,BASE_IMG_DIGEST=$BASE_IMG_DIGEST" \
-    test-n-publish --kubeconfig=env:KUBECONFIG_STR --stage=DEV --framework=TORCH \
+    test-n-publish --values=file:tmp.yaml --stage=DEV --framework=TORCH \
     --tag-template='${itwinai_version}-slim-torch${framework_version}-${os_version}'
 
 
@@ -85,7 +85,7 @@ export BASE_IMG_DIGEST="$(echo "$BASE_IMG_NAME" | cut -d ':' -f 1)@$(docker buil
 dagger call --name="${COMMIT_HASH}-torch-jlab-slim" \
     build-container --context=.. --dockerfile=../env-files/torch/jupyter/slim.Dockerfile \
         --build-args="COMMIT_HASH=$COMMIT_HASH,BASE_IMG_NAME=$BASE_IMG_NAME,BASE_IMG_DIGEST=$BASE_IMG_DIGEST" \
-    test-n-publish --kubeconfig=env:KUBECONFIG_STR --stage=DEV --framework=TORCH \
+    test-n-publish --values=file:tmp.yaml --stage=DEV --framework=TORCH \
     --tag-template='jlab-slim-${itwinai_version}-torch${framework_version}-${os_version}'
 
 ############## JUPYTER ###############
