@@ -27,7 +27,7 @@
 #SBATCH --cpus-per-task=16
 #SBATCH --ntasks-per-node=1
 # SBATCH --mem-per-gpu=10G
-#SBATCH --exclusive
+# SBATCH --exclusive
 #SBATCH --gres=gpu:4
 
 echo "DEBUG: SLURM_SUBMIT_DIR: $SLURM_SUBMIT_DIR"
@@ -53,7 +53,7 @@ source ~/.bashrc
 # source ../../.venv-pytorch/bin/activate
 
 # Setup env for distributed ML
-export CUDA_VISIBLE_DEVICES="0,1,2,3"
+export CUDA_VISIBLE_DEVICES=$(seq -s, 0 $((SLURM_GPUS_PER_NODE - 1)))
 export OMP_NUM_THREADS=1
 if [ "$SLURM_CPUS_PER_GPU" -gt 0 ] ; then
   export OMP_NUM_THREADS=$SLURM_CPUS_PER_GPU

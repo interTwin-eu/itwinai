@@ -11,6 +11,7 @@ import abc
 import builtins as __builtin__
 import functools
 import os
+import subprocess
 import sys
 from typing import Any, Callable
 
@@ -39,6 +40,25 @@ class ClusterEnvironment(BaseModel):
     local_world_size: int = 1
 
 
+def detect_ray_cluster() -> bool:
+    try:
+        # Run the `ray status` command. It should be less overhead than ray.init()
+        result = subprocess.run(
+            ["ray", "status"],
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        # Check if the output indicates a running cluster
+        return "No cluster running" not in result.stdout
+    except subprocess.CalledProcessError:
+        # If the command fails, the cluster is not running
+        return False
+    except FileNotFoundError:
+        # If `ray` command is not found, Ray is not installed
+        return False
+
+
 def detect_distributed_environment() -> ClusterEnvironment:
     """Detects distributed environment, extracting information like
     global ans local ranks, and world size.
@@ -61,12 +81,35 @@ def detect_distributed_environment() -> ClusterEnvironment:
             local_world_size=os.getenv("OMPI_COMM_WORLD_LOCAL_SIZE"),
             global_world_size=os.getenv("OMPI_COMM_WORLD_SIZE"),
         )
+    elif detect_ray_cluster():
+        import ray
+
+        ray.init(address="auto")
+        try:
+            # Determine the local rank and local world size
+            current_node = ray.util.get_node_ip_address()
+            all_nodes = [node["NodeManagerAddress"] for node in ray.nodes()]
+
+            # Filter tasks on the same node
+            local_world_size = all_nodes.count(current_node)
+            local_rank = all_nodes[: all_nodes.index(current_node) + 1].count(current_node) - 1
+            cluster = ClusterEnvironment(
+                global_rank=ray.get_runtime_context().get_node_id(),
+                local_rank=local_rank,
+                local_world_size=local_world_size,
+                global_world_size=len(ray.nodes()),
+            )
+        finally:
+            ray.shutdown()
+        return cluster
     elif os.getenv("SLURM_JOB_ID") is not None:
-        print(
-            "WARNING: detected SLURM environment, but "
-            "unable to determine ranks and world sizes!"
+        # https://hpcc.umd.edu/hpcc/help/slurmenv.html
+        return ClusterEnvironment(
+            global_rank=os.getenv("SLURM_PROCID"),
+            local_rank=os.getenv("SLURM_LOCALID"),
+            local_world_size=os.getenv("SLURM_NTASKS_PER_NODE", 1),
+            global_world_size=os.getenv("SLURM_NTASKS"),
         )
-        return ClusterEnvironment()
     else:
         return ClusterEnvironment()
 

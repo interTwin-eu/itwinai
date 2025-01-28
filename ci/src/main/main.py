@@ -107,7 +107,7 @@ class Itwinai:
             Doc("location of Dockerfile"),
         ],
         build_args: Annotated[
-            Optional[str],
+            Optional[list[str]],
             Doc("Comma-separated build args"),
         ] = None,
     ) -> Self:
@@ -115,7 +115,7 @@ class Itwinai:
         if build_args:
             build_args = [
                 BuildArg(name=arg_couple.split("=")[0], value=arg_couple.split("=")[1])
-                for arg_couple in build_args.split(",")
+                for arg_couple in build_args
             ]
 
         self.container = (
@@ -210,8 +210,9 @@ class Itwinai:
         """Test container on remote HPC using interLink"""
 
         # Create pod manifest
-        gpus_per_node = 4
+        gpus_per_node = 1
         cpus_per_gpu = 4
+        num_nodes = 2
         jobscript = "/app/tests/torch/slurm.vega.sh"
         pre_exec_cmd = (
             "export CONTAINER_PATH=itwinai_dist_test.sif "
@@ -253,7 +254,7 @@ class Itwinai:
             "slurm-job.vk.io/flags": (
                 # --cpus-per-gpu fails on Vega through interLink
                 f"-p gpu --gres=gpu:{gpus_per_node} --gpus-per-node={gpus_per_node} "
-                "--ntasks-per-node=1 --nodes=1 "
+                f"--ntasks-per-node=1 --nodes={num_nodes} "
                 f"--cpus-per-task={cpus_per_gpu * gpus_per_node} "
                 "--time=00:30:00"
             ),
@@ -286,13 +287,15 @@ class Itwinai:
             stdout.append(await k8s_client.submit_pod(pod_manifest_str))
             # await k8s_client.container().terminal()
             status, logs = await k8s_client.wait_pod(
-                name=pod_name, timeout=3000, poll_interval=30
+                name=pod_name, timeout=30000, poll_interval=30
             )
             stdout.extend([status, logs])
 
         if status not in ["Succeeded", "Completed"]:
             raise RuntimeError(
-                f"Pod did not complete successfully! Status: {status}\n{stdout}"
+                f"Pod did not complete successfully! Status: {status}\n"
+                f"{"#"*100}\nJOB LOGS:\n\n"
+                f"{"\n".join(stdout)}"
             )
 
         return f"Pod finished with status: {status}\n{stdout}"
