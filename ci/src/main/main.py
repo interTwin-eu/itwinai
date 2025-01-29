@@ -310,11 +310,13 @@ class Itwinai:
             stdout.extend([status, logs])
 
         if status not in ["Succeeded", "Completed"]:
-            raise RuntimeError(
+            message = (
                 f"Pod did not complete successfully! Status: {status}\n"
                 f"{"#"*100}\nJOB LOGS:\n\n"
                 f"{"\n".join(stdout)}"
             )
+            print(message)
+            raise RuntimeError(message)
 
         return f"Pod finished with status: {status}\n{stdout}"
 
