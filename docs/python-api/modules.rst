@@ -16,3 +16,4 @@ itwinai
    itwinai.torch.modules
    itwinai.type
    itwinai.utils
+   itwinai.scalability_report.modules

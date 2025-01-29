@@ -29,11 +29,35 @@ app = typer.Typer(pretty_exceptions_enable=False)
 
 @app.command()
 def generate_scalability_report(
-    log_dir: str = "scalability-metrics",
-    plot_dir: str = "plots",
-    do_backup: bool = False,
-    backup_root_dir: str = "backup-scalability-metrics/",
-    experiment_name: str | None = None,
+    log_dir: Annotated[
+        str,
+        typer.Option(
+            help=("Which directory to search for the scalability metrics in.")
+        ),
+    ] = "scalability-metrics",
+    plot_dir: Annotated[
+        str, typer.Option(help=("Which directory to save the resulting plots in."))
+    ] = "plots",
+    do_backup: Annotated[
+        bool,
+        typer.Option(
+            help=(
+                "Whether to store a backup of the scalability metrics that were used to make the report."
+            )
+        ),
+    ] = False,
+    backup_root_dir: Annotated[
+        str, typer.Option(help=("Which directory to store the backup files in."))
+    ] = "backup-scalability-metrics/",
+    experiment_name: Annotated[
+        str | None,
+        typer.Option(
+            help=(
+                "What to name the experiment in the backup directory."
+                " Will be automatically generated if left as None."
+            )
+        ),
+    ] = None,
 ):
     """Generates scalability reports for epoch time, GPU data, and communication data
     based on log files in the specified directory. Optionally, backups of the reports
@@ -43,22 +67,6 @@ def generate_scalability_report(
     `log_dir`. It generates plots and metrics for scalability analysis and saves them
     in the `plot_dir`. If backups are enabled, the generated reports will also be
     copied to a backup directory under `backup_root_dir`.
-
-    Args:
-        log_dir (str): Path to the directory containing log files for scalability metrics.
-            Defaults to "scalability-metrics".
-        plot_dir (str): Path to the directory where plots and reports will be saved.
-            Defaults to "plots".
-        do_backup (bool): Whether to create a backup of the generated reports.
-            Defaults to False.
-        backup_root_dir (str): Root directory where backups will be saved if `do_backup`
-            is True. Defaults to "backup-scalability-metrics/".
-        experiment_name (str | None): Name of the experiment for identifying backups.
-            If None, a unique name is generated. Defaults to None.
-
-    Raises:
-        ValueError: If the provided `log_dir` does not exist.
-
     """
     import uuid
 
