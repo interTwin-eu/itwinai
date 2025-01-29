@@ -42,7 +42,8 @@ def generate_scalability_report(
         bool,
         typer.Option(
             help=(
-                "Whether to store a backup of the scalability metrics that were used to make the report."
+                "Whether to store a backup of the scalability metrics that were used"
+                " to make the report or not."
             )
         ),
     ] = False,
