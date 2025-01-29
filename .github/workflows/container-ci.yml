@@ -31,7 +31,7 @@ jobs:
             dockerfile: "../env-files/torch/Dockerfile"
             flavour-name: "torch"
             tag-template: "@{itwinai_version}-torch@{framework_version}-@{os_version}"
-            skip-hpc: true
+            skip-hpc: false
           - base-img-name: "python:3.10-slim"
             dockerfile: "../env-files/torch/slim.Dockerfile"
             flavour-name: "torch-slim"
