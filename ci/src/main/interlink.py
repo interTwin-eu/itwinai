@@ -1,16 +1,27 @@
+# --------------------------------------------------------------------------------------
+# Part of the interTwin Project: https://www.intertwin.eu/
+#
+# Created by: Matteo Bunino
+#
+# Credit:
+# - Matteo Bunino <matteo.bunino@cern.ch> - CERN
+# --------------------------------------------------------------------------------------
+
 import contextlib
 import dataclasses
+import time
+from datetime import datetime
 from typing import Annotated
 
 import dagger
 import yaml
 from dagger import Doc, dag, function, object_type
 
-from .k8s import K8sClient, create_pod_manifest
+from .k8s import create_pod_manifest
 
 
 @object_type
-class InterLinkService:
+class InterLink:
     """Wrapper for interLink service, usefult to communciate with the interLink VK."""
 
     values: Annotated[dagger.Secret, Doc("interLink installer configuration")]
@@ -21,56 +32,103 @@ class InterLinkService:
         int,
         Doc("Sleep time (seconds) needed to wait for the VK to appear in the k3s cluster."),
     ] = 60
+    vk_name: Annotated[
+        str | None,
+        Doc("Name of the interLink VK. Automatically detected from 'values' if not given"),
+    ] = None
+    kubernetes: Annotated[
+        dagger.Service | None,
+        Doc(
+            "Endpoint to exsisting k3s service to attach to. "
+            "Example (from the CLI): tcp://localhost:1997"
+        ),
+    ] = None
 
-    kubeconfig: Annotated[dagger.File | None, Doc("kubeconfig for k3s cluster")] = (
-        dataclasses.field(init=False, default=None)
-    )
     _service: dagger.Service | None = dataclasses.field(init=False, default=None)
-    vk_name: str | None = dataclasses.field(init=False, default=None)
+
+    @function
+    async def cluster_config(
+        self,
+        local: Annotated[bool, Doc("Whether to access the cluster from localhost.")] = False,
+    ) -> dagger.File:
+        """Returns the config file for the k3s cluster."""
+        k3s = dag.k3_s(self.name)
+
+        return k3s.config(local=local)
+
+    @function
+    async def interlink_cluster(self) -> dagger.Service:
+        """Get interLink VK deployed on a k3s cluster. Returns k3s server as a service.
+
+        This is the first method you want to call from this class to setup the k3s cluster
+        and deploy the VK if it does not exist yet. However, if an existing service is
+        available, it will reuse it.
+        """
+
+        if not self.vk_name:
+            values_dict = yaml.safe_load(await self.values.plaintext())
+            self.vk_name = values_dict["nodeName"]
+
+        if self.kubernetes:
+            self._service = self.kubernetes
+
+        if self._service:
+            # Service was already initialized
+            return self._service
+
+        k3s = dag.k3_s(self.name)
+        server = k3s.server()
+
+        self._service = await server.start()
+
+        # Deploy interLink VK in the k3s cluster
+        await (
+            dag.container()
+            .from_("alpine/helm")
+            .with_exec(["apk", "add", "kubectl"])
+            .with_mounted_file("/.kube/config", k3s.config())
+            .with_mounted_secret("/values.yaml", self.values)
+            .with_env_variable("KUBECONFIG", "/.kube/config")
+            .with_exec(
+                [
+                    "helm",
+                    "install",
+                    "--debug",
+                    "my-node",
+                    "oci://ghcr.io/intertwin-eu/interlink-helm-chart/interlink",
+                    "--values",
+                    "/values.yaml",
+                ]
+            )
+            # Wait for the VK to appear as a node
+            .with_exec(
+                [
+                    "sleep",
+                    f"{self.wait}",
+                ]
+            )
+            .stdout()
+        )
+
+        await k3s.kubectl("wait --for=condition=Ready nodes --all --timeout=300s").stdout()
+
+        return self._service
 
     @contextlib.asynccontextmanager
     async def start_serving(self) -> dagger.Service:
         """Start and stop interLink service."""
-        yield await self.start_service()
-        await self.stop_service()
+        yield await self.interlink_cluster()
+        await self.teardown()
 
     @function
-    async def start_service(self) -> dagger.Service:
-        """Create and return an interLink service (k3s service). Can be used in the CLI
-        with "<service> up". Example:
-
-        >>> dagger call interlink --values=file:tmp.yaml start-service up
-        """
-        # Get VK name
-        values_dict = yaml.safe_load(await self.values.plaintext())
-        self.vk_name = values_dict["nodeName"]
-
-        # Start service
-        self._service: dagger.Service = dag.interlink(name=self.name).interlink_cluster(
-            values=self.values, wait=self.wait
-        )
-        self.kubeconfig = dag.interlink(name=self.name).cluster_config(local=False)
-        return await self._service.start()
-
-    @function
-    async def stop_service(self) -> dagger.Service:
-        """Stop the interLink service based on k3s.
+    async def teardown(self) -> None:
+        """Stop the k3s service on which interLink VK is running.
 
         Returns:
             dagger.Service: k3s service.
         """
-        return await self._service.stop()
-
-    @function
-    async def client(self) -> dagger.Container:
-        """Create an interLink service (k3s service) and return the container of the k8s
-        client, which can be chanined in the CLI, e.g., with a terminal. Example:
-
-        >>> dagger call interlink --values=file:tmp.yaml client teminal
-        """
-        await self.start_service()
-        k8s_client = K8sClient(kubeconfig=self.kubeconfig)
-        return k8s_client.container()
+        await self._service.stop()
+        self._service = None
 
     @function
     async def test_offloading(
@@ -103,10 +161,10 @@ class InterLinkService:
 
         # Launch interLink service
         async with self.start_serving():
-            k8s_client = K8sClient(kubeconfig=self.kubeconfig)
+            assert self.vk_name is not None, "vk_name is none!"
 
             stdout = []
-            stdout.append(await k8s_client.status())
+            stdout.append(await self.status())
 
             # Test #1: test successful pod
             stdout.append("### Test succesful pod ###")
@@ -121,11 +179,9 @@ class InterLinkService:
             )
             pod_manifest_str = yaml.dump(pod_manifest)
 
-            stdout.append(await k8s_client.submit_pod(pod_manifest_str))
+            stdout.append(await self.submit_pod(pod_manifest_str))
             # await k8s_client.container().terminal()
-            status, logs = await k8s_client.wait_pod(
-                name=full_name, timeout=300, poll_interval=5
-            )
+            status, logs = await self.wait_pod(name=full_name, timeout=300, poll_interval=5)
             assert (
                 status == "Succeeded"
             ), f"Pod did not complete successfully as expected. Got status: {status}"
@@ -144,11 +200,9 @@ class InterLinkService:
             )
             pod_manifest_str = yaml.dump(pod_manifest)
 
-            stdout.append(await k8s_client.submit_pod(pod_manifest_str))
+            stdout.append(await self.submit_pod(pod_manifest_str))
             # await k8s_client.container().terminal()
-            status, logs = await k8s_client.wait_pod(
-                name=full_name, timeout=300, poll_interval=5
-            )
+            status, logs = await self.wait_pod(name=full_name, timeout=300, poll_interval=5)
             assert status == "Failed", f"Pod did not fail as expected. Got status: {status}"
             stdout.extend([status, logs])
 
@@ -165,11 +219,9 @@ class InterLinkService:
             )
             pod_manifest_str = yaml.dump(pod_manifest)
 
-            stdout.append(await k8s_client.submit_pod(pod_manifest_str))
+            stdout.append(await self.submit_pod(pod_manifest_str))
             # await k8s_client.container().terminal()
-            status, logs = await k8s_client.wait_pod(
-                name=full_name, timeout=3, poll_interval=1
-            )
+            status, logs = await self.wait_pod(name=full_name, timeout=3, poll_interval=1)
             assert status in (
                 "Pod timed out with status: Pending",
                 "Pod timed out with status: Running",
@@ -177,3 +229,110 @@ class InterLinkService:
             stdout.extend([status, logs])
 
         return "\n\n".join(stdout)
+
+    @function
+    async def client(self) -> dagger.Container:
+        """Returns a client for the k3s cluster. If the cluster does not exist,
+        it will create it.
+
+        >>> dagger call interlink --values=file:tmp.yaml client teminal
+        """
+        await self.interlink_cluster()
+        return dag.k3_s(name=self.name).container()
+
+    async def _run_cmd(self, cmd: list[str], stdin: str | None = None) -> str:
+        container = await self.client()
+        return await (
+            container
+            # Invalidate cache
+            .with_env_variable("CACHE", datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f"))
+            .with_exec(cmd, stdin=stdin)
+            .stdout()
+        )
+
+    @function
+    async def status(self) -> str:
+        """Get k8s cluster status, including nodes and pods under default namespace."""
+        pods = await self._run_cmd("kubectl get pods".split())
+        nodes = await self._run_cmd("kubectl get nodes".split())
+        return f"Nodes:\n{nodes}\n\nPods:\n{pods}"
+
+    @function
+    async def submit_pod(
+        self, manifest: Annotated[str, Doc("pod manifest serialized as string.")]
+    ) -> str:
+        """Submit pod to k8s cluster. Returns the result of submission."""
+        cmd = ["kubectl", "apply", "-f", "-"]
+        return await self._run_cmd(cmd, stdin=manifest)
+
+    @function
+    async def get_pod_status(self, name: Annotated[str, Doc("pod name")]) -> str:
+        """Get pod status: Pending, Running, Succeeded, Failed, Unknown.
+        Returns the pod status in that moment.
+        """
+        cmd = [
+            "kubectl",
+            "get",
+            "pod",
+            f"{name}",
+            "-n",
+            "default",
+            "-o",
+            "jsonpath='{.status.phase}'",
+        ]
+        status = await self._run_cmd(cmd)
+        return status.strip("'")
+
+    @function
+    async def get_pod_logs(self, name: Annotated[str, Doc("pod name")]) -> str:
+        """Get pod logs."""
+        cmd = [
+            "kubectl",
+            "logs",
+            "--insecure-skip-tls-verify-backend",
+            f"{name}",
+            "-n",
+            "default",
+        ]
+        return await self._run_cmd(cmd)
+
+    @function
+    async def delete_pod(self, name: Annotated[str, Doc("pod name")]) -> str:
+        """Delete pod. Returns the result of ``kubectl delete pod``."""
+        cmd = [
+            "kubectl",
+            "delete",
+            "pod",
+            f"{name}",
+            "-n",
+            "default",
+            "--grace-period=0",
+            "--force",
+        ]
+        return await self._run_cmd(cmd)
+
+    @function
+    async def wait_pod(
+        self,
+        name: Annotated[str, Doc("pod name")],
+        timeout: Annotated[int, Doc("timeout in seconds")] = 300,
+        poll_interval: Annotated[int, Doc("how often to check the pod status")] = 5,
+    ) -> tuple[str, str]:
+        """Wait for pod termination (Succeeded, Failed) or timeout.
+        Returns last pod status and logs detected.
+        """
+        cnt = 0
+        timeout = max(int(timeout / poll_interval), 1)
+        # Allow at most about 60 seconds of unk status
+        unk_timeout = max(int(60 / poll_interval), 1)
+        while True:
+            status = await self.get_pod_status(name=name)
+            logs = await self.get_pod_logs(name=name)
+            if status in ["Succeeded", "Failed"]:
+                await self.delete_pod(name=name)
+                return status, logs
+            cnt += 1
+            if cnt > timeout or status == "Unknown" and cnt > unk_timeout:
+                await self.delete_pod(name=name)
+                return f"Pod timed out with status: {status}", logs
+            time.sleep(poll_interval)

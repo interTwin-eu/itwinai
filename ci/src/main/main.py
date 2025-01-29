@@ -17,8 +17,8 @@ import dagger
 import yaml
 from dagger import BuildArg, Doc, Ignore, dag, function, object_type
 
-from .interlink import InterLinkService
-from .k8s import K8sClient, create_pod_manifest
+from .interlink import InterLink
+from .k8s import create_pod_manifest
 from .literals import MLFramework, Stage
 from .utils import get_codename
 
@@ -72,16 +72,22 @@ class Itwinai:
                 "Sleep time (seconds) needed to wait for the VK to appear in the k3s cluster."
             ),
         ] = 60,
-    ) -> InterLinkService:
+        vk_name: Annotated[
+            str | None,
+            Doc("Name of the interLink VK. Automatically detected from values if not given"),
+        ] = None,
+        kubernetes: Annotated[
+            dagger.Service | None,
+            Doc(
+                "Endpoint to exsisting k3s service to attach to. "
+                "Example (from the CLI): tcp://localhost:1997"
+            ),
+        ] = None,
+    ) -> InterLink:
         """Get interLink service."""
-        return InterLinkService(values=values, name=name, wait=wait)
-
-    @function
-    def kube_client(
-        self, kubeconfig: Annotated[dagger.File, Doc("kubeconfig for k3s cluster")]
-    ) -> K8sClient:
-        """Get k8s client."""
-        return K8sClient(kubeconfig=kubeconfig)
+        return InterLink(
+            values=values, name=name, wait=wait, vk_name=vk_name, kubernetes=kubernetes
+        )
 
     @function
     async def debug_ignore(
@@ -206,6 +212,19 @@ class Itwinai:
         name: Annotated[
             str, Doc("Name of the k3s cluster in which the interLink VK is deployed")
         ] = "interlink",
+        wait: Annotated[
+            int,
+            Doc(
+                "Sleep time (seconds) needed to wait for the VK to appear in the k3s cluster."
+            ),
+        ] = 60,
+        kubernetes: Annotated[
+            dagger.Service | None,
+            Doc(
+                "Endpoint to exsisting k3s service to attach to. "
+                "Example (from the CLI): tcp://localhost:1997"
+            ),
+        ] = None,
     ) -> str:
         """Test container on remote HPC using interLink"""
 
@@ -268,11 +287,10 @@ class Itwinai:
         pod_name = f"ci-test-itwinai-hpc-{self.unique_id}"
 
         # Launch interLink service
-        interlink_svc = InterLinkService(values=values, name=name, wait=60)
+        interlink_svc = self.interlink(
+            values=values, name=name, wait=wait, kubernetes=kubernetes
+        )
         async with interlink_svc.start_serving():
-            k8s_client = K8sClient(kubeconfig=interlink_svc.kubeconfig)
-            # await k8s_client.container().terminal()
-
             pod_manifest = create_pod_manifest(
                 annotations=annotations,
                 image_path=image_path,
@@ -284,9 +302,9 @@ class Itwinai:
             pod_manifest_str = yaml.dump(pod_manifest)
 
             stdout = []
-            stdout.append(await k8s_client.submit_pod(pod_manifest_str))
+            stdout.append(await interlink_svc.submit_pod(pod_manifest_str))
             # await k8s_client.container().terminal()
-            status, logs = await k8s_client.wait_pod(
+            status, logs = await interlink_svc.wait_pod(
                 name=pod_name, timeout=30000, poll_interval=30
             )
             stdout.extend([status, logs])
@@ -319,6 +337,16 @@ class Itwinai:
             MLFramework, Doc("ML framework in container")
         ] = MLFramework.TORCH,
         skip_hpc: Annotated[bool, Doc("Skip tests on remote HPC")] = False,
+        kubernetes: Annotated[
+            dagger.Service | None,
+            Doc(
+                "Endpoint to exsisting k3s service to attach to. "
+                "Example (from the CLI): tcp://localhost:1997"
+            ),
+        ] = None,
+        interlink_cluster_name: Annotated[
+            str, Doc("Name of the k3s cluster in which the interLink VK is deployed")
+        ] = "interlink-cluster",
     ) -> None:
         """Pipeline to test container and push it, including both local
         tests and tests on HPC via interLink.
@@ -344,7 +372,9 @@ class Itwinai:
             # Publish to registry with random hash
             await self.publish()
             # Test on HPC with
-            await self.test_hpc(values=values)
+            await self.test_hpc(
+                values=values, kubernetes=kubernetes, name=interlink_cluster_name
+            )
 
         # Publish to registry with final hash
         itwinai_version = (

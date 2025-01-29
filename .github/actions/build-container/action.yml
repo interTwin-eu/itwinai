@@ -32,8 +32,8 @@ inputs:
   docker-token:
     description: "Docker secret auth token"
     required: true
-  kubeconfig-str:
-    description: "Kubeconfig secret"
+  interlink-values:
+    description: "Interlink VK configuration file (secret)"
     required: true
   dagger-cloud-token:
     description: "Dagger cloud secret token"
@@ -99,7 +99,7 @@ runs:
           --dockerfile=${{ inputs.dockerfile }}
           --build-args="COMMIT_HASH=${{ env.COMMIT_HASH }},BASE_IMG_NAME=${{ inputs.base-img-name }},BASE_IMG_DIGEST=${{ env.BASE_IMG_DIGEST }}"
           test-n-publish
-          --kubeconfig=env:KUBECONFIG_STR
+          --values=env:INTERLINK_VALUES
           --stage=${{ inputs.stage }}
           --framework=TORCH
           --tag-template=${{ inputs.tag-template }}
@@ -107,4 +107,4 @@ runs:
         cloud-token: ${{ inputs.dagger-cloud-token }}
         version: "latest"
       env:
-          KUBECONFIG_STR: ${{ inputs.kubeconfig-str }}
+          INTERLINK_VALUES: ${{ inputs.interlink-values }}
