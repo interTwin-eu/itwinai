@@ -1,4 +1,7 @@
-from itwinai.torch.analyzer import TrainingAnalyzer
+# from itwinai.torch.analyzer import TrainingAnalyzer
+# from scalene import scalene_profiler
+# import scalene
+from pyinstrument import Profiler
 
 def fib(n):
     if n == 0 or n == 1:
@@ -7,11 +10,11 @@ def fib(n):
 
 
 def main():
-    output_file = "stats.txt"
-    analyzer = TrainingAnalyzer(output_file=output_file)
-    analyzer.start_analysis()
-    fib(30)
-    analyzer.stop_analysis()
+    profiler = Profiler()
+    profiler.start()
+    fib(35)
+    profiler.stop()
+    profiler.print(show_all=True)
 
 if __name__ == "__main__":
     main()
