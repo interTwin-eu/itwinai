@@ -14,7 +14,8 @@ def main():
     profiler.start()
     fib(35)
     profiler.stop()
-    profiler.print(show_all=True)
+    # profiler.print(show_all=True, flat=True)
+    profiler.open_in_browser()
 
 if __name__ == "__main__":
     main()
