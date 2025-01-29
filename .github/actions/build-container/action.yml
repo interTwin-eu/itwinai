@@ -47,17 +47,17 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - name: Maximize Disk Space
-      uses: easimon/maximize-build-space@v10
-      with:
-        # Reserve space on root for docker/dagger cache
-        root-reserve-mb: 35000
-        overprovision-lvm: true
-        swap-size-mb: 1024
-        remove-dotnet: true
-        remove-android: true
-        remove-haskell: true
-        remove-codeql: true
+    # - name: Maximize Disk Space
+    #   uses: easimon/maximize-build-space@v10
+    #   with:
+    #     # Reserve space on root for docker/dagger cache
+    #     root-reserve-mb: 35000
+    #     overprovision-lvm: true
+    #     swap-size-mb: 1024
+    #     remove-dotnet: true
+    #     remove-android: true
+    #     remove-haskell: true
+    #     remove-codeql: true
 
     - name: Checkout
       uses: actions/checkout@v4
@@ -65,7 +65,7 @@ runs:
     - name: Check Inputs
       shell: bash
       run: |
-        echo skip hpc flag: ${{ inputs.skip-hpc && '--skip-hpc' || '' }} && echo &&
+        echo skip hpc flag: $([[ "${{ inputs.skip-hpc }}" == "true" ]] && echo '--skip-hpc' || echo '') && echo &&
         echo base-img-name: ${{ inputs.base-img-name }}
 
 
