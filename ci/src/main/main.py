@@ -9,7 +9,7 @@
 
 import dataclasses
 import datetime
-import random
+import uuid
 from string import Template
 from typing import Annotated, Self
 
@@ -37,32 +37,47 @@ ignore_list = [
 class Itwinai:
     """CI/CD for container images of itwinai."""
 
-    name: Annotated[
-        str | None,
-        Doc(
-            "Unique name to identify the image from tag. Could be the git commit hash of HEAD"
-        ),
-    ] = None
-    _container: Annotated[dagger.Container | None, Doc("Container instance")] = (
-        dataclasses.field(default=None, init=False)
-    )
-    full_name: Annotated[
-        str | None,
-        Doc("Full image name. Example: ghcr.io/intertwin-eu/itwinai-dev:0.2.3-torch2.4-jammy"),
-    ] = dataclasses.field(default=None, init=False)
-    _unique_id: str | None = dataclasses.field(default=None, init=False)
-    sif: Annotated[dagger.File | None, Doc("SIF file")] = dataclasses.field(
-        default=None, init=False
-    )
+    docker_registry: str
+    singularity_registry: str
+    name: str
+    tag: str | None
+    container: dagger.Container | None
 
+    _unique_id: str | None = dataclasses.field(default=None, init=False)
     _logs: list[str] = dataclasses.field(default_factory=list, init=False)
 
-    @property
-    def unique_id(self) -> str:
-        """Unique ID of the container. Falls back to random integer."""
-        if self._unique_id is None:
-            self._unique_id = self.name or str(random.randrange(10**8))
-        return self._unique_id
+    @classmethod
+    def create(
+        cls,
+        docker_registry: Annotated[
+            str,
+            Doc("The Docker registry base URL where the container will be published"),
+        ] = "ghcr.io/intertwin-eu",
+        singularity_registry: Annotated[
+            str,
+            Doc("The Docker registry base URL where the container will be published"),
+        ] = "registry.egi.eu/dev.intertwin.eu",
+        name: Annotated[
+            str,
+            Doc("The name of the container image"),
+        ] = "itwinai-dev",
+        tag: Annotated[
+            str | None,
+            Doc("Tag for the container image. Defaults to random uuid if not provided"),
+        ] = None,
+        container: Annotated[
+            dagger.Container | None,
+            Doc("Optional container image to use as itwinai container"),
+        ] = None,
+    ):
+        tag = tag or str(uuid.uuid4())
+        return cls(
+            singularity_registry=singularity_registry,
+            docker_registry=docker_registry,
+            name=name,
+            tag=tag,
+            container=container,
+        )
 
     @function
     def logs(self) -> str:
@@ -97,7 +112,7 @@ class Itwinai:
                 for arg_couple in build_args
             ]
 
-        self._container = (
+        self.container = (
             dag.container()
             .build(
                 context=context,
@@ -112,7 +127,7 @@ class Itwinai:
 
         # Get itwinai version
         itwinai_version = (
-            await self._container.with_exec(
+            await self.container.with_exec(
                 [
                     "bash",
                     "-c",
@@ -122,7 +137,7 @@ class Itwinai:
         ).strip()
         self._logs.append(f"INFO: Built container for itwinai v{itwinai_version}")
 
-        self._container = self._container.with_label(
+        self.container = self.container.with_label(
             name="org.opencontainers.image.version",
             value=itwinai_version,
         )
@@ -130,98 +145,38 @@ class Itwinai:
         return self
 
     @function
-    async def debug_ignore(
-        self,
-        source: Annotated[
-            dagger.Directory,
-            Ignore(ignore_list),
-        ],
-    ) -> list[str]:
-        """List all files after filtering by Dagger ignore."""
-        return await source.glob(pattern="**/*")
-
-    @function
-    def container(self) -> dagger.Container:
-        """Get the container previously built.
-        Raises error if the container does not exist.
-        """
-        if not self._container:
-            raise RuntimeError(
-                "Container not found! You need to chain this function "
-                "to another that created an itwinai container"
-            )
-        return self._container
-
-    @function
-    def with_container(
-        self,
-        address: Annotated[
-            str,
-            Doc("Container image to use as itwinai container"),
-        ],
-    ) -> Self:
-        """Returns itself with an eisting itwinai container.
-        Useful to skip the container build if a container already exists in some registry.
-        """
-        self._logs.append(f"INFO: Loading itwinai container from {address}")
-        self._container = dag.container().from_(address=address)
-        return self
-
-    @function
     async def test_local(self) -> Self:
         """Test itwinai container image with pytest on non-HPC environments."""
-        tests_result = await (
-            self.container()
-            .with_exec(
-                [
-                    "pytest",
-                    "-v",
-                    "-m",
-                    "not hpc and not functional and not tensorflow",
-                    "/app/tests",
-                ]
-            )
-            .stdout()
-        )
+        tests_result = await self.container.with_exec(
+            [
+                "pytest",
+                "-v",
+                "-m",
+                "not hpc and not functional and not tensorflow",
+                "/app/tests",
+            ]
+        ).stdout()
         self._logs.append("INFO: Results of local tests:")
         self._logs.append(tests_result)
         return self
 
     @function
-    async def publish(
-        self,
-        registry: Annotated[
-            str,
-            Doc("The registry URL where the container will be published"),
-        ] = "ghcr.io/intertwin-eu",
-        name: Annotated[
-            str,
-            Doc("The name of the container image"),
-        ] = "itwinai-dev",
-        tag: Annotated[
-            str | None,
-            Doc(
-                "Optional tag for the container image; defaults to random int if not provided"
-            ),
-        ] = None,
-    ) -> Self:
+    async def publish(self) -> Self:
         """Push container to registry"""
 
-        tag = tag or self.unique_id
-        self.full_name = f"{registry}/{name}:{tag}"
+        uri = f"{self.docker_registry}/{self.name}:{self.tag}"
         outcome = await (
-            self.container()
-            .with_label(
+            self.container.with_label(
                 name="org.opencontainers.image.ref.name",
-                value=self.full_name,
+                value=uri,
             )
             # Invalidate cache to ensure that the container is always pushed
             .with_env_variable(
                 "CACHE", datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")
             )
-            .publish(self.full_name)
+            .publish(address=uri)
         )
-        self._logs.append(f"INFO: results of publishing to {self.full_name}")
+        self._logs.append(f"INFO: results of publishing to {uri}")
         self._logs.append(outcome)
         return self
 
@@ -279,13 +234,16 @@ class Itwinai:
             str | None,
             Doc(
                 "Container image to test on HPC. If given, it will override any itwinai "
-                "container previously created by other functions in the chain"
+                "container previously created by other functions in the chain. Example: "
+                "docker://ghcr.io/intertwin-eu/itwinai:latest"
             ),
         ] = None,
     ) -> Self:
-        """Test container on remote HPC using interLink"""
+        """Test container on remote HPC using interLink. Note that the container image must
+        already exist in some publicly accessible containers registry.
+        """
 
-        image = image or self.full_name
+        image = image or f"docker://{self.docker_registry}/{self.name}:{self.tag}"
 
         if not image:
             raise RuntimeError(
@@ -302,7 +260,7 @@ class Itwinai:
         jobscript = "/app/tests/torch/slurm.vega.sh"
         pre_exec_cmd = (
             "export CONTAINER_PATH=itwinai_dist_test.sif "
-            f"&& singularity pull --force $CONTAINER_PATH docker://{image} "
+            f"&& singularity pull --force $CONTAINER_PATH {image} "
             f"&& singularity exec $CONTAINER_PATH cat {jobscript} > slurm.vega.sh "
             # Activate env on Vega
             "&& . /etc/bashrc "
@@ -353,7 +311,7 @@ class Itwinai:
         }
         image_path = "/ceph/hpc/data/st2301-itwin-users/cern/hello-world-image.sif"
         cmd_args = ["sleep 10 && exit $PRE_EXEC_RETURN_CODE"]
-        pod_name = f"ci-test-itwinai-hpc-{self.unique_id}"
+        pod_name = f"ci-test-itwinai-hpc-{self.name}-{self.tag}"
 
         # Launch interLink service
         interlink_svc = self.interlink(
@@ -421,6 +379,12 @@ class Itwinai:
         interlink_cluster_name: Annotated[
             str, Doc("Name of the k3s cluster in which the interLink VK is deployed")
         ] = "interlink-cluster",
+        password: Annotated[
+            dagger.Secret | None, Doc("Password for Singularity registry")
+        ] = None,
+        username: Annotated[
+            dagger.Secret | None, Doc("Username for Singularity registry")
+        ] = None,
     ) -> str:
         """End-to-end pipeline to test a container and push it, including both local
         tests and tests on HPC via interLink.
@@ -439,37 +403,50 @@ class Itwinai:
         await self.test_local()
 
         if not skip_hpc:
+            # # Publish to registry with random hash
+            # await self.publish()
+            # # Test on HPC with
+            # await self.test_hpc(
+            #     values=values, kubernetes=kubernetes, name=interlink_cluster_name
+            # )
+
+            # Using singularity...
+
+            assert username is not None, "Missing username for Singularity registry"
+            assert password is not None, "Missing password for Singularity registry"
             # Publish to registry with random hash
-            await self.publish()
+            uri = f"oras://{self.singularity_registry}/{self.name}:{str(uuid.uuid4())}"
+            await self.publish_singularity(uri=uri, username=username, password=password)
+
             # Test on HPC with
             await self.test_hpc(
-                values=values, kubernetes=kubernetes, name=interlink_cluster_name
+                values=values, kubernetes=kubernetes, name=interlink_cluster_name, image=uri
             )
+
+            # Publish to registry with final URI
+            uri = f"oras://{self.singularity_registry}/{self.name}:{self.tag}"
+            await self.publish_singularity(uri=uri, username=username, password=password)
         else:
             self._logs.append("INFO: skipping tests on HPC")
 
         # Publish to registry with final hash
         itwinai_version = (
-            await self.container()
-            .with_exec(
+            await self.container.with_exec(
                 [
                     "bash",
                     "-c",
                     'pip list | grep -w "itwinai" | head -n 1 | tr -s " " | cut -d " " -f2 ',
                 ]
-            )
-            .stdout()
+            ).stdout()
         ).strip()
         os_info = (
-            await self.container()
-            .with_exec(
+            await self.container.with_exec(
                 [
                     "bash",
                     "-c",
                     "cat /etc/*-release",
                 ]
-            )
-            .stdout()
+            ).stdout()
         ).strip()
         os_version = get_codename(os_info)
 
@@ -478,8 +455,7 @@ class Itwinai:
                 tag_template or "${itwinai_version}-torch${framework_version}-${os_version}"
             )
             framework_version = (
-                await self.container()
-                .with_exec(
+                await self.container.with_exec(
                     [
                         "bash",
                         "-c",
@@ -488,16 +464,14 @@ class Itwinai:
                             '| cut -d " " -f2 | cut -f1,2 -d .'
                         ),
                     ]
-                )
-                .stdout()
+                ).stdout()
             ).strip()
         elif framework == MLFramework.TENSORFLOW:
             tag_template = (
                 tag_template or "${itwinai_version}-tf${framework_version}-${os_version}"
             )
             framework_version = (
-                await self.container()
-                .with_exec(
+                await self.container.with_exec(
                     [
                         "bash",
                         "-c",
@@ -507,8 +481,7 @@ class Itwinai:
                             '| cut -d " " -f2 | cut -f1,2 -d .'
                         ),
                     ]
-                )
-                .stdout()
+                ).stdout()
             ).strip()
         # In GH actions ${...} is interpolated, so we replace $ with @
         tag = Template(tag_template.replace("@", "$")).substitute(
@@ -517,7 +490,9 @@ class Itwinai:
             os_version=os_version,
         )
         self._logs.append(f"INFO: Preparing final image name {image}:{tag}")
-        await self.publish(name=image, tag=tag)
+        self.image = image
+        self.tag = tag
+        await self.publish()
 
         return self.logs()
 
@@ -525,36 +500,26 @@ class Itwinai:
     def singularity(
         self,
         base_image: Annotated[
-            str, Doc("Base Singularity image")
-        ] = "quay.io/singularity/docker2singularity",
+            dagger.Container, Doc("Base Singularity image")
+        ] = dag.container().from_("quay.io/singularity/docker2singularity"),
+        docker: Annotated[
+            dagger.Container | None,
+            Doc(
+                "Docker container to convert to Singularity. "
+                "If given it overrides the current itwinai container."
+            ),
+        ] = None,
     ) -> Singularity:
-        return Singularity(base_image=base_image)
-
-    @function
-    def to_singularity(
-        self,
-        base_image: Annotated[
-            str, Doc("Base Singularity image")
-        ] = "quay.io/singularity/docker2singularity",
-    ) -> dagger.Container:
-        """Convert itwinai container to a Singularity image and return a container with the
-        produced image in it.
-        """
-        singularity = self.singularity(base_image=base_image)
-        return singularity.container().with_file(
-            "container.sif", singularity.export(self.container())
-        )
+        return Singularity(base_image=base_image, docker=docker or self.container)
 
     @function
     async def publish_singularity(
         self,
-        password: Annotated[dagger.Secret, Doc("Password for registry")],
-        username: Annotated[dagger.Secret, Doc("Username for registry")],
+        password: Annotated[dagger.Secret, Doc("Password for Singularity registry")],
+        username: Annotated[dagger.Secret, Doc("Username for Singularity registry")],
         uri: Annotated[
             str,
             Doc("Target URI for the image"),
         ],
     ) -> str:
-        return await self.singularity().publish(
-            container=self.container(), password=password, username=username, uri=uri
-        )
+        return await self.singularity().publish(password=password, username=username, uri=uri)

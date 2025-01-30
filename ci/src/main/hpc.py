@@ -8,37 +8,39 @@ from dagger import Doc, dag, function, object_type
 class Singularity:
     """Manage Singularity images."""
 
-    base_image: Annotated[str, Doc("Base singularity image")] = (
-        "quay.io/singularity/docker2singularity"
+    base_image: Annotated[dagger.Container, Doc("Base singularity image")] = (
+        dag.container().from_("quay.io/singularity/docker2singularity")
     )
+    docker: Annotated[
+        dagger.Container | None, Doc("Docker container to convert to Singularity")
+    ] = None
 
     @function
-    def container(
+    def client(
         self,
     ) -> dagger.Container:
-        """Return a container with Singularity."""
-        return dag.container().from_(self.base_image)
+        """Return base image container with Singularity."""
+        return self.base_image
 
     @function
-    def export(
-        self,
-        container: Annotated[dagger.Container, Doc("Export docker container to singularity")],
-    ) -> dagger.File:
+    def convert(self) -> dagger.File:
         """Export Docker container to a Singularity file."""
-        # Credits: https://github.com/shykes/x/blob/main/singularity/main.go
         return (
-            self.container()
-            .with_file("img.tar", container.as_tarball())
+            self.base_image.with_file("img.tar", self.docker.as_tarball())
             .with_exec(["singularity", "build", "img.sif", "oci-archive://img.tar"])
             .file("img.sif")
         )
 
     @function
+    def container(self) -> dagger.Container:
+        """Export Docker container to a Singularity file and return a container
+        containing the generated SIF.
+        """
+        return self.client().with_file("container.sif", self.convert())
+
+    @function
     async def publish(
         self,
-        container: Annotated[
-            dagger.Container, Doc("Docker container to convert and publish as SIF")
-        ],
         password: Annotated[dagger.Secret, Doc("Password for registry")],
         username: Annotated[dagger.Secret, Doc("Username for registry")],
         uri: Annotated[
@@ -49,8 +51,7 @@ class Singularity:
         """Export container and publish it to some registry."""
         print(f"The Singularity image will be published at: {uri}")
         return await (
-            self.container()
-            .with_file("container.sif", self.export(container=container))
+            self.base_image.with_file("container.sif", self.convert())
             .with_secret_variable(name="SINGULARITY_DOCKER_USERNAME", secret=username)
             .with_secret_variable(name="SINGULARITY_DOCKER_PASSWORD", secret=password)
             .with_exec(

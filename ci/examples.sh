@@ -60,21 +60,44 @@ dagger call \
     build-container ... \
     test-n-publish ...
 
-# Youc an also do all the above, but starting from an exisiting itwinai container from
+# You can also do all the above, but starting from an exisiting itwinai container from
 # some registry. This way you don't have to build it from scratch.
 # You can reuse all the functions shown above.
 
 # Open a teminal in an existing itwinai container image
 dagger call \
-    with-container --address ghcr.io/intertwin-eu/itiwnai:latest \
+        --container ghcr.io/intertwin-eu/itiwnai:latest \
     container \
     terminal
 
 # Test on HPC an existing itwinai container image
 dagger call \
-    with-container --address ghcr.io/intertwin-eu/itiwnai:latest \
+        --container ghcr.io/intertwin-eu/itiwnai:latest \
     test-hpc ... \
     logs
+
+# The Singularity type allows to convert a container to a SIF
+
+# Get terminal in container with only singularity inside
+dagger call singularity client terminal
+
+# Convert Docker container to SIF and export it to the local filesystem
+dagger call singularity --container ghcr.io/intertwin-eu/itiwnai:latest \
+    convert export --path my_container.sif
+
+# Convert and publish the resulting SIF to some registry
+dagger call singularity --container ghcr.io/intertwin-eu/itiwnai:latest \
+    publish --username ... --password ... --uri oras://registry.cern.ch/itwinai/dev/busybox:latest
+
+# Remove a specific tag from a registry
+dagger call singularity \
+    remove --username ... \
+            --password ... \
+            --registry ... \
+            --project ... \
+            --name ... \
+            --tag ...
+
 
 ############## TORCH ###############
 
@@ -101,11 +124,14 @@ export COMMIT_HASH=$(git rev-parse --verify HEAD)
 export BASE_IMG_NAME="nvcr.io/nvidia/pytorch:24.05-py3"
 export BASE_IMG_DIGEST="$(echo "$BASE_IMG_NAME" | cut -d ':' -f 1)@$(docker buildx imagetools inspect $BASE_IMG_NAME | grep "Digest:" | head -n 1 | awk '{print $2}')"
 export KUBERNETES="--kubernetes tcp://localhost:6443" # Set this to empty string to avoid using k8s endpoint
-dagger call --name="${COMMIT_HASH}-torch" \
+dagger call \
+        --singularity-registry registry.cern.ch/itwinai \
     build-container --context=.. --dockerfile=../env-files/torch/Dockerfile \
         --build-args="COMMIT_HASH=$COMMIT_HASH,BASE_IMG_NAME=$BASE_IMG_NAME,BASE_IMG_DIGEST=$BASE_IMG_DIGEST" \
-    test-n-publish --values=file:tmp.yaml --stage=DEV --framework=TORCH $KUBERNETES \
-    --tag-template='${itwinai_version}-torch${framework_version}-${os_version}'
+    test-n-publish --values=file:tmp.yaml --stage=DEV --framework=TORCH  \
+        --tag-template='${itwinai_version}-torch${framework_version}-${os_version}' \
+        --password env:SING_PWD --username env:SING_USER
+
 
 # Open teminal in newly created container
 dagger call \
