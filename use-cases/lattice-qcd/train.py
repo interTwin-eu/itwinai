@@ -1,8 +1,8 @@
 import torch
-from torch.cuda import is_available
 import torch.distributed as dist
 import time
 from torchinfo import summary
+from pyinstrument import Profiler
 
 from normflow import Model
 from normflow.nn import DistConvertor_
@@ -22,9 +22,9 @@ def make_model(lat_shape):
 
 def main():
     hyperparams = {"fused": True}
-    n_epochs = 1000
+    n_epochs = 100
     batch_size = 1024
-    lat_shape=(8, 8)
+    lat_shape=(2, 2)
 
     model = make_model(lat_shape)
     summary(model.net_, input_shape=lat_shape)
@@ -55,11 +55,15 @@ def main():
     if global_rank == 0: 
         start_time = time.time()
 
+    profiler = Profiler()
+    profiler.start()
     model.fit(
         n_epochs=n_epochs,
         batch_size=batch_size,
         hyperparam=hyperparams,
     )
+    profiler.stop()
+    profiler.print(show_all=True)
 
     if global_rank == 0: 
         assert start_time is not None
@@ -72,6 +76,7 @@ def main():
 
     # Destroy distributed process group
     dist.destroy_process_group()
+
 
 
 if __name__ == "__main__":
