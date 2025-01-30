@@ -47,8 +47,15 @@ hython_trainer: rnntrainer
 loss_fn:
   _target_: hython.losses.RMSELoss
     
+# metric_fn:
+#   _target_: hython.metrics.MSEMetric
+
 metric_fn:
-  _target_: hython.metrics.MSEMetric
+  _target_: hython.metrics.MetricCollection
+  metrics:
+    - _target_: hython.metrics.MSEMetric
+    #- _target_: hython.metrics.KGEMetric
+    - _target_: hython.metrics.NSEMetric
 
 optimizer: adam
 
