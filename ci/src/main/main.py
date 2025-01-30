@@ -41,7 +41,7 @@ class Itwinai:
     singularity_registry: str
     name: str
     tag: str | None
-    container: dagger.Container | None
+    container: dagger.Container | None = dagger.field(default=None)
 
     _unique_id: str | None = dataclasses.field(default=None, init=False)
     _logs: list[str] = dataclasses.field(default_factory=list, init=False)
