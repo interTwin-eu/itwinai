@@ -10,10 +10,10 @@ itwinai
    itwinai.loggers
    itwinai.parser
    itwinai.pipeline
+   itwinai.scalability_report.modules
    itwinai.serialization
    itwinai.tests.modules
    itwinai.tf.modules
    itwinai.torch.modules
    itwinai.type
    itwinai.utils
-   itwinai.scalability_report.modules
