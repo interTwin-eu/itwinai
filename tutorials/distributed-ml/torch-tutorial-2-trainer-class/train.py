@@ -62,7 +62,9 @@ def main():
     parser.add_argument(
         "--strategy", type=str, default="ddp", help="distributed strategy (default=ddp)"
     )
-    parser.add_argument("--lr", type=float, default=1.0, help="learning rate (default: 1.0)")
+    parser.add_argument(
+        "--lr", type=float, default=1.0, help="learning rate (default: 1.0)"
+    )
     parser.add_argument("--seed", type=int, default=1, help="random seed (default: 1)")
     parser.add_argument(
         "--ckpt-interval",
@@ -76,7 +78,9 @@ def main():
     transform = transforms.Compose(
         [transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))]
     )
-    train_dataset = datasets.MNIST("../data", train=True, download=True, transform=transform)
+    train_dataset = datasets.MNIST(
+        "../data", train=True, download=True, transform=transform
+    )
     validation_dataset = datasets.MNIST("../data", train=False, transform=transform)
 
     # Neural network to train
