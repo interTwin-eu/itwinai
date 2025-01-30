@@ -146,9 +146,11 @@ class RNNDistributedTrainer(TorchTrainer):
                 head_kwargs= self.config.model_head_kwargs if self.config.model_head_kwargs is not None else {}
             )
 
+            model_pt = Path(self.config.work_dir) / self.config.model_head_dir / self.config.model_head_file
+
             surrogate.load_state_dict(
                 torch.load(
-                    f"{self.config.work_dir}/{self.config.model_head_dir}/{self.config.model_head_file}"
+                   model_pt
                 )
             )
 
@@ -209,7 +211,7 @@ class RNNDistributedTrainer(TorchTrainer):
 
         # Tracking epoch times for scaling test
         if self.strategy.is_main_worker:
-            num_nodes = int(os.environ.get("SLURM_NNODES", "unk"))
+            num_nodes = os.environ.get("SLURM_NNODES", "unk")
             series_name = os.environ.get("DIST_MODE", "unk") + "-torch"
             epoch_time_output_dir = Path("scalability-metrics/epoch-time")
             epoch_time_file_name = f"epochtime_{self.strategy.name}_{num_nodes}N.csv"
@@ -278,12 +280,10 @@ class RNNDistributedTrainer(TorchTrainer):
             metric_history_ = {}
             for period in metric_history:
                 for target in metric_history[period]:
-                    for key, value in target.items():
-                        l = []
-                        k = key.lower().split("metric")[0]
-                        n = period + "_" + k
-                        l.append(value)
-                        metric_history_[n] = l
+                    for imetric, metric_value in target.items():
+                        metric_key = imetric.lower().split("metric")[0]
+                        new_metric_key = period + "_" + metric_key
+                        metric_history_[new_metric_key] = [metric_value]
 
             avg_metrics = pd.DataFrame(metric_history_).mean().to_dict()
             for m_name, m_val in avg_metrics.items():
