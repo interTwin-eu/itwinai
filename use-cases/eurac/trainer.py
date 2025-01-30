@@ -1,39 +1,32 @@
 import os
 from pathlib import Path
+from timeit import default_timer
+from typing import Any, Dict, Literal, Optional, Tuple, Union
 
-from typing import Dict, Literal, Optional, Union, Any, Tuple
-from tqdm.auto import tqdm
-
-from torch.utils.data import Dataset
+import pandas as pd
 import torch
 import torch.nn as nn
-import pandas as pd
-
-from timeit import default_timer
-
-from hython.sampler import SamplerBuilder
-from hython.trainer import RNNTrainer, CalTrainer
+from hydra.utils import instantiate
 from hython.models import get_model as get_hython_model
+from hython.sampler import SamplerBuilder
+from hython.trainer import CalTrainer, RNNTrainer
+from omegaconf import OmegaConf
+from ray import train
+from torch.utils.data import Dataset
+from tqdm.auto import tqdm
 
+from itwinai.distributed import suppress_workers_print
+from itwinai.loggers import EpochTimeTracker, Logger
+from itwinai.torch.config import TrainingConfiguration
 from itwinai.torch.distributed import (
     DeepSpeedStrategy,
     HorovodStrategy,
     NonDistributedStrategy,
     TorchDDPStrategy,
 )
-
-from ray import train
-
-from itwinai.distributed import suppress_workers_print
-from itwinai.loggers import EpochTimeTracker, Logger
-from itwinai.torch.config import TrainingConfiguration
+from itwinai.torch.monitoring.monitoring import measure_gpu_utilization
 from itwinai.torch.trainer import TorchTrainer
 from itwinai.torch.type import Metric
-
-from itwinai.torch.monitoring.monitoring import measure_gpu_utilization
-
-from omegaconf import OmegaConf
-from hydra.utils import instantiate
 
 
 class RNNDistributedTrainer(TorchTrainer):
@@ -130,7 +123,7 @@ class RNNDistributedTrainer(TorchTrainer):
                 dropout=self.config.dropout,
                 head_layer=self.config.model_head_layer,
                 head_activation=self.config.model_head_activation,
-                head_kwargs= self.config.model_head_kwargs if self.config.model_head_kwargs is not None else {}   
+                head_kwargs= self.config.model_head_kwargs if self.config.model_head_kwargs is not None else {}
             )
             self.hython_trainer = RNNTrainer(self.config)
 
@@ -204,7 +197,7 @@ class RNNDistributedTrainer(TorchTrainer):
         if self.strategy.is_distributed:
             self.train_loader.sampler.set_epoch(epoch)
             self.val_loader.sampler.set_epoch(epoch)
-    
+
     @measure_gpu_utilization
     def train(self):
         """Override train_val version of hython to support distributed strategy."""
@@ -307,7 +300,7 @@ class RNNDistributedTrainer(TorchTrainer):
             self.model.load_state_dict(best_model)
             self.log(item=self.model, identifier="LSTM", kind="model")
 
-            
+
 
             # Report training metrics of last epoch to Ray
             train.report({"loss": avg_val_loss.item(), "train_loss": train_loss.item()})

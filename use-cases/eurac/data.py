@@ -1,14 +1,13 @@
-from typing import Optional, Tuple, Any, List, Dict
-import xarray as xr
-from itwinai.components import DataSplitter, monitor_exec
+from copy import deepcopy
+from typing import Dict, List, Tuple
+
+from hydra.utils import instantiate
 from hython.datasets import get_dataset
 from hython.datasets.wflow_sbm import Wflow1d
 from hython.scaler import Scaler
-
 from omegaconf import OmegaConf
-from hydra.utils import instantiate
 
-from copy import deepcopy
+from itwinai.components import DataSplitter, monitor_exec
 
 
 class RNNDatasetGetterAndPreprocessor(DataSplitter):
@@ -39,7 +38,7 @@ class RNNDatasetGetterAndPreprocessor(DataSplitter):
         seq_length: int | None = None,
         # == training ==
     ) -> None:
-        
+
         if train_temporal_range is None:
             train_temporal_range = ["", ""]
         if valid_temporal_range is None:
