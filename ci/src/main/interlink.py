@@ -82,6 +82,9 @@ class InterLink:
         self._service = await server.start()
 
         # Deploy interLink VK in the k3s cluster
+        # TODO: here I could have additional deployments in the cluster, e.g., a jupyterhub
+        # deployment and they should be activated or not using simple bool args from this
+        # function. Example interlink-cluster --jupyterhub
         await (
             dag.container()
             .from_("alpine/helm")
@@ -325,14 +328,17 @@ class InterLink:
         timeout = max(int(timeout / poll_interval), 1)
         # Allow at most about 60 seconds of unk status
         unk_timeout = max(int(60 / poll_interval), 1)
-        while True:
-            status = await self.get_pod_status(name=name)
-            logs = await self.get_pod_logs(name=name)
-            if status in ["Succeeded", "Failed"]:
-                await self.delete_pod(name=name)
-                return status, logs
-            cnt += 1
-            if cnt > timeout or status == "Unknown" and cnt > unk_timeout:
-                await self.delete_pod(name=name)
-                return f"Pod timed out with status: {status}", logs
-            time.sleep(poll_interval)
+        try:
+            while True:
+                status = await self.get_pod_status(name=name)
+                logs = await self.get_pod_logs(name=name)
+                if status in ["Succeeded", "Failed"]:
+                    break
+                cnt += 1
+                if cnt > timeout or status == "Unknown" and cnt > unk_timeout:
+                    status = f"Pod timed out with status: {status}"
+                    break
+                time.sleep(poll_interval)
+        finally:
+            await self.delete_pod(name=name)
+        return status, logs

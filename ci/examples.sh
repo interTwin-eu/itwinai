@@ -13,20 +13,88 @@
 
 # Example of running dagger pipelines -- this script is mostly a scratchpad
 
+############## EXAMPLE OF WORKFLOWS ###############
+
+# IMPORTANT: when chaining steps that retrun Self, the chain is not really executed because
+# if lazy initialization if the steps. A workaround is appending the `logs` fuction at the
+# end of the pipeline, which prints the logs and "forces" the pipeline to be executed
+# step-by-step.
+
+# Build a container and open a terminal in it
+dagger call \
+    build-container ... \
+    container \
+    terminal
+
+# Build a container, test it "locally" (non-HPC), and see the logs
+dagger call \
+    build-container ... \
+    test-local \
+    logs
+
+# Build a container, publish it to some containers registry, and see the logs
+dagger call \
+    build-container ... \
+    publish ... \
+    logs
+
+# Build a container, test it, publish it to some containers registry, and see the logs
+dagger call \
+    build-container ... \
+    test-local \
+    publish ... \
+    logs
+
+# Build a container, test it, publish it to some containers registry, test it on HPC,
+# publish it again with another name... and see the whole logs
+dagger call \
+    build-container ... \
+    test-local \
+    publish ... \
+    test-hpc ... \
+    publish ... \
+    logs
+
+# Or more simply, run existing end-to-end pipeline
+dagger call \
+    build-container ... \
+    test-n-publish ...
+
+# Youc an also do all the above, but starting from an exisiting itwinai container from
+# some registry. This way you don't have to build it from scratch.
+# You can reuse all the functions shown above.
+
+# Open a teminal in an existing itwinai container image
+dagger call \
+    with-container --address ghcr.io/intertwin-eu/itiwnai:latest \
+    container \
+    terminal
+
+# Test on HPC an existing itwinai container image
+dagger call \
+    with-container --address ghcr.io/intertwin-eu/itiwnai:latest \
+    test-hpc ... \
+    logs
+
+############## TORCH ###############
+
 # Build and run local tests (no HPC required)
 dagger call \
     build-container --context=.. --dockerfile=../env-files/torch/Dockerfile \
-    test-local
+    test-local \
+    logs
 # Build container with additional requirements
 dagger call \
     build-container --context=.. --dockerfile=../env-files/torch/Dockerfile \
         --build-args="REQUIREMENTS=env-files/torch/requirements/cmcc-requirements.txt" \
-    test-local
+    test-local \
+    logs
 
 # Build and publish
 dagger call --name="$(git rev-parse --verify HEAD)" \
     build-container --context=.. --dockerfile=../env-files/torch/Dockerfile \
-    publish
+    publish \
+    logs
 
 # Pipeline method: build, test local, push, test remote, and push (publish)
 export COMMIT_HASH=$(git rev-parse --verify HEAD)
@@ -42,14 +110,16 @@ dagger call --name="${COMMIT_HASH}-torch" \
 # Open teminal in newly created container
 dagger call \
     build-container --context=.. --dockerfile=../env-files/torch/Dockerfile \
+    container \
     terminal
 
 
-############## SLIM ###############
+############## TORCH SLIM ###############
 # Build container
 dagger call --name="$(git rev-parse --verify HEAD)"  \
     build-container --context=.. --dockerfile=../env-files/torch/slim.Dockerfile \
-    test-local
+    test-local \
+    logs
 
 # Test on HPC and publish
 export COMMIT_HASH=$(git rev-parse --verify HEAD)
@@ -78,7 +148,8 @@ export BASE_IMG_DIGEST="$(echo "$BASE_IMG_NAME" | cut -d ':' -f 1)@$(docker buil
 dagger call --name="${COMMIT_HASH}-torch-jlab-slim" \
     build-container --context=.. --dockerfile=../env-files/torch/jupyter/slim.Dockerfile \
         --build-args="COMMIT_HASH=$COMMIT_HASH,BASE_IMG_NAME=$BASE_IMG_NAME,BASE_IMG_DIGEST=$BASE_IMG_DIGEST" \
-    test-local
+    test-local \
+    logs
 
 # Build and publish
 export COMMIT_HASH=$(git rev-parse --verify HEAD)
@@ -100,7 +171,8 @@ export BASE_IMG_DIGEST=$(echo "$BASE_IMG_NAME" | cut -d ':' -f 1)@$(docker build
 dagger call --name="${COMMIT_HASH}-torch-jlab" \
     build-container --context=.. --dockerfile=../env-files/torch/jupyter/Dockerfile \
         --build-args="COMMIT_HASH=$COMMIT_HASH,BASE_IMG_NAME=$BASE_IMG_NAME,BASE_IMG_DIGEST=$BASE_IMG_DIGEST" \
-    test-local
+    test-local \
+    logs
 
 
 ############## interLink ###############

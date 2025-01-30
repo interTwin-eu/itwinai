@@ -55,7 +55,7 @@ source ~/.bashrc
 # Setup env for distributed ML
 export CUDA_VISIBLE_DEVICES=$(seq -s, 0 $((SLURM_GPUS_PER_NODE - 1)))
 export OMP_NUM_THREADS=1
-if [ "$SLURM_CPUS_PER_GPU" -gt 0 ] ; then
+if [ $SLURM_CPUS_PER_GPU -gt 0 ] ; then
   export OMP_NUM_THREADS=$SLURM_CPUS_PER_GPU
 fi
 
