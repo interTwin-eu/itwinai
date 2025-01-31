@@ -37,11 +37,12 @@ We use different image names to group similar images under the same namespace:
 - **`itwinai`**: Production images. These should be well-maintained and orderly.
 - **`itwinai-dev`**: Development images. Tags can vary, and may include random
 hashes.
-- **`itwinai-cvmfs`**: Images that need to be made available through CVMFS via
+
+Images matching `itwinai:*-latest` will be made available through CVMFS via
 [Unpacker](https://gitlab.cern.ch/unpacked/sync).
 
 > [!WARNING]
-> It is very important to keep the number of tags for `itwinai-cvmfs` as low
+> It is very important to keep the number of images matching `itwinai:*-latest` as low
 > as possible. Tags should only be created under this namespace when strictly
 > necessary. Otherwise, this could cause issues for the Unpacker.
 
