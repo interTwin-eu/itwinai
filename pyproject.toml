@@ -8,7 +8,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "itwinai"
-version = "0.2.3"
+version = "0.2.4"
 description = "AI and ML workflows module for scientific digital twins."
 readme = "README.md"
 requires-python = ">=3.10"
@@ -54,7 +54,6 @@ torch = [
 ]
 tf = ["tensorflow==2.16.*", "tf_keras==2.16.*"]
 tf-cuda = ["tensorflow[and-cuda]==2.16.*", "tf_keras==2.16.*"]
-
 dev = [
   "pytest>=7.4.2",
   "pytest-mock>=3.11.1",
@@ -62,6 +61,8 @@ dev = [
   "ipykernel>=6.29.5",
   "ipython>=8.30.0",
   "ruff>=0.8.3",
+  "psutil>=6.1.0",
+  "pytest-xdist>=3.6.1",
 ]
 docs = [
   "sphinx-rtd-theme>=2.0.0",
@@ -70,6 +71,8 @@ docs = [
   "IPython>=8.30.0",
   "tensorflow==2.16.*",
   "sphinx-tabs>=3.4.7",
+  "sphinx-copybutton>=0.5.2",
+  "sphinx-design>=0.6.1",
 ]
 hpo = [
   "bayesian-optimization>=2.0.0",
@@ -110,6 +113,7 @@ markers = [
   "horovod_dist: runs with torch Horovod distributed strategy. (deselect with '-m \"not horovod_dist\"')",
   "functional: functional tests. (deselect with '-m \"not functional\"')",
   "memory_heavy: high memory footprint. (deselect with '-m \"not heavy_memory\"')",
+  "tensorflow: tests depending on tensorflow. (deselect with '-m \"not tensorflow\"')",
 ]
 
 

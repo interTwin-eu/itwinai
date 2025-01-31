@@ -1,3 +1,5 @@
+:orphan:
+
 Tropical Cyclones Detection
 ===========================
 

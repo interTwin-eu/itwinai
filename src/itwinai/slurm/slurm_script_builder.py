@@ -12,7 +12,7 @@ import subprocess
 from pathlib import Path
 from typing import List
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 from itwinai.slurm.slurm_constants import JUWELS_HPC_MODULES, SLURM_TEMPLATE
 from itwinai.slurm.utils import remove_indentation_from_multiline_string
@@ -26,13 +26,13 @@ class SlurmScriptConfiguration(BaseModel):
     """
 
     # Settings for the SLURM configuration
-    job_name: str | None = Field(default=None)
+    job_name: str | None = None
     account: str
     partition: str
     time: str
 
-    std_out: Path | None = Field(default=None)
-    err_out: Path | None = Field(default=None)
+    std_out: Path | None = None
+    err_out: Path | None = None
 
     num_nodes: int
     num_tasks_per_node: int
@@ -41,10 +41,10 @@ class SlurmScriptConfiguration(BaseModel):
 
     # Tyipcally used to set up the environment before executing the command,
     # e.g. "ml Python", "source .venv/bin/activate" etc.
-    pre_exec_command: str | None = Field(default=None)
+    pre_exec_command: str | None = None
 
     # Command to execute, typically an 'srun' command
-    exec_command: str | None = Field(default=None)
+    exec_command: str | None = None
 
     def format_script(self) -> str:
         """Uses the provided configuration parameters and formats a SLURM script with

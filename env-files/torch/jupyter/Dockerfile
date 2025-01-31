@@ -135,10 +135,13 @@ RUN pip install --no-cache-dir --upgrade pip \
 ###        itwinai        ###
 #############################
 
-# Inprove robustness: avoid silent override by Singularity/Apptainer
+# Improve robustness: avoid silent override by Singularity/Apptainer
 ENV PYTHONPATH=""
 
 USER root
+
+# OpenMPI and its dependencies are needed to build and operate Horovod.
+# Uncomment the code below to install them.
 
 RUN apt-get update && apt-get install -y \
     # Needed (at least) by horovod wheel builder
@@ -147,23 +150,30 @@ RUN apt-get update && apt-get install -y \
     cmake \
     # Needed by Prov4ML/yProvML to generate provenance graph
     dot2tex \
+    # OpenMPI libs needed to build Horovod
+    libopenmpi-dev \
+    # mpi4py system-wide -- also installs mpirun
+    python3-mpi4py \
     # Needed by OpenMPI for efficient compression at startup
     zlib1g \
     # Needed by OpenMPI for efficient compression at startup
     zlib1g-dev \
     && apt-get clean -y && rm -rf /var/lib/apt/lists/*
 
-# OpenMPI
-WORKDIR /tmp/ompi
-ENV OPENMPI_VERSION=4.1.6 \
-    OPENMPI_MINOR=4.1 
-ENV OPENMPI_URL="https://download.open-mpi.org/release/open-mpi/v${OPENMPI_MINOR}/openmpi-${OPENMPI_VERSION}.tar.gz" 
-ENV OPENMPI_DIR=/opt/openmpi-${OPENMPI_VERSION} 
-ENV PATH="${OPENMPI_DIR}/bin:${PATH}" 
-ENV LD_LIBRARY_PATH="${OPENMPI_DIR}/lib:${LD_LIBRARY_PATH}" 
-ENV MANPATH=${OPENMPI_DIR}/share/man:${MANPATH}
-RUN wget -q -O openmpi-$OPENMPI_VERSION.tar.gz $OPENMPI_URL && tar xzf openmpi-$OPENMPI_VERSION.tar.gz \
-    && cd openmpi-$OPENMPI_VERSION && ./configure --prefix=$OPENMPI_DIR && make install
+# # OpenMPI
+# WORKDIR /tmp/ompi
+# ENV OPENMPI_VERSION=4.1.6 \
+#     OPENMPI_MINOR=4.1 
+# ENV OPENMPI_URL="https://download.open-mpi.org/release/open-mpi/v${OPENMPI_MINOR}/openmpi-${OPENMPI_VERSION}.tar.gz" 
+# ENV OPENMPI_DIR=/opt/openmpi-${OPENMPI_VERSION} 
+# ENV PATH="${OPENMPI_DIR}/bin:${PATH}" 
+# ENV LD_LIBRARY_PATH="${OPENMPI_DIR}/lib:${LD_LIBRARY_PATH}" 
+# ENV MANPATH=${OPENMPI_DIR}/share/man:${MANPATH}
+# RUN wget -q -O openmpi-$OPENMPI_VERSION.tar.gz $OPENMPI_URL && tar xzf openmpi-$OPENMPI_VERSION.tar.gz \
+#     && cd openmpi-$OPENMPI_VERSION && ./configure --prefix=$OPENMPI_DIR && make install
+
+# Nvidia libraries are needed only when building software that depends on them (e.g., Horovod
+# and DeepSpeed). PyTorch, if installed from the right index, is pre-built with Nvidia.
 
 # Nvidia software
 WORKDIR /tmp/cuda
@@ -200,35 +210,33 @@ RUN rm -rf /tmp/*
 
 USER $NB_UID
 
-# Torch and smaller deps
-RUN pip install --no-cache-dir --upgrade pip \
-    # https://github.com/mpi4py/mpi4py/pull/431
-    && SETUPTOOLS_USE_DISTUTILS=local python -m pip install --no-cache-dir mpi4py \
-    && unset SETUPTOOLS_USE_DISTUTILS \
-    # Install torch
-    && pip install --no-cache-dir \
-    'numpy<2' \
-    packaging \
-    py-cpuinfo \
-    wheel
+# Install MPI4py also in the conda env
+RUN mamba install -y -c conda-forge mpi4py openmpi \
+    && mamba clean --all -f -y
 
 # Install itwinai with torch
 WORKDIR "$HOME/itwinai"
 COPY --chown=${NB_UID} pyproject.toml pyproject.toml
 COPY --chown=${NB_UID} src src
-RUN pip install --no-cache-dir .[torch,dev] --extra-index-url https://download.pytorch.org/whl/cu124
 
-# Apex: https://github.com/NVIDIA/apex
-# (needed for DeepSpeed *_FUSED optinal build options)
-# Note: it will take more than an hour to build
-WORKDIR /tmp
-RUN git clone https://github.com/NVIDIA/apex && cd apex \
-    && pip install -v --disable-pip-version-check --no-cache-dir --no-build-isolation --config-settings "--build-option=--cpp_ext" --config-settings "--build-option=--cuda_ext" ./ \
-    && rm -rf /tmp/apex
-# Transformer engine: https://docs.nvidia.com/deeplearning/transformer-engine/user-guide/index.html
-# (needed for DeepSpeed *TRANSFORMER* optinal build options)
-# Note: it will take about half an hour to build
-RUN pip install --no-cache-dir transformer_engine[pytorch]
+# DO NOT install dev extras as they may change some versions of ipython and ipykernel
+RUN pip install --no-cache-dir .[torch] --extra-index-url https://download.pytorch.org/whl/cu124
+
+# The installation of Apex and Transformers Engine can be avoided in a jupyter container as it will most
+# likely used for simple interactive development. To install them, uncomment the lines below and
+# activate the *_FUSED build options for DeepSpeed.
+
+# # Apex: https://github.com/NVIDIA/apex
+# # (needed for DeepSpeed *_FUSED optinal build options)
+# # Note: it will take more than an hour to build
+# WORKDIR /tmp
+# RUN git clone https://github.com/NVIDIA/apex && cd apex \
+#     && pip install -v --disable-pip-version-check --no-cache-dir --no-build-isolation --config-settings "--build-option=--cpp_ext" --config-settings "--build-option=--cuda_ext" ./ \
+#     && rm -rf /tmp/apex
+# # Transformer engine: https://docs.nvidia.com/deeplearning/transformer-engine/user-guide/index.html
+# # (needed for DeepSpeed *TRANSFORMER* optinal build options)
+# # Note: it will take about half an hour to build
+# RUN pip install --no-cache-dir transformer_engine[pytorch]
 
 WORKDIR "$HOME/itwinai"
 
@@ -246,20 +254,22 @@ ENV HOROVOD_WITH_PYTORCH=1 \
     # DS_BUILD_CCL_COMM=1 \
     DS_BUILD_UTILS=1 \
     DS_BUILD_AIO=1 \
-    DS_BUILD_FUSED_ADAM=1 \
-    DS_BUILD_FUSED_LAMB=1 \
-    DS_BUILD_TRANSFORMER=1 \
+    # DS_BUILD_FUSED_ADAM=1 \
+    # DS_BUILD_FUSED_LAMB=1 \
+    # DS_BUILD_TRANSFORMER=1 \
     DS_BUILD_STOCHASTIC_TRANSFORMER=1 \
     DS_BUILD_TRANSFORMER_INFERENCE=1
 RUN pip install --no-cache-dir \
     deepspeed==0.15.* \
     git+https://github.com/horovod/horovod.git@3a31d93 \
-    ray[tune]
+    "prov4ml[nvidia]@git+https://github.com/matbun/ProvML@new-main" \
+    pytest
 
 # Installation sanity check
 RUN itwinai sanity-check --torch \
     --optional-deps deepspeed \
     --optional-deps horovod \
+    --optional-deps prov4ml \
     --optional-deps ray
 
 # Additional pip deps
@@ -268,7 +278,11 @@ COPY --chown=${NB_UID} "${REQUIREMENTS}" additional-requirements.txt
 RUN pip install --no-cache-dir -r additional-requirements.txt
 
 # Add tests
+WORKDIR /app
+COPY pyproject.toml pyproject.toml
 COPY tests tests
+# Add Dockerfile
+COPY env-files/torch/jupyter/Dockerfile Dockerfile
 
 WORKDIR $HOME
 

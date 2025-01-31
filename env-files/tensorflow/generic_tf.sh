@@ -32,3 +32,11 @@ else
   TF_EXTRA="tf-cuda"
 fi
 pip install --no-cache-dir -e ".[$TF_EXTRA,dev]"
+
+# Install Prov4ML
+if [[ "$(uname)" == "Darwin" ]]; then
+  pip install --no-cache-dir "prov4ml[apple]@git+https://github.com/matbun/ProvML@new-main"
+else
+  # Assuming Nvidia GPUs are available
+  pip install --no-cache-dir "prov4ml[nvidia]@git+https://github.com/matbun/ProvML@new-main"
+fi
