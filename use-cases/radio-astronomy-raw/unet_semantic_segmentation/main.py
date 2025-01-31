@@ -43,10 +43,10 @@ signal_maker_engine = DelayGraph()
 label_reader_engine = LabelReader()
 
 image_tag='train_v0_*_payload_detected.json' #: '*' in the name is the index place holder of a image in the image set
-image_directory='../../../digitwinpulsar/params/payloads/'
+image_directory='syn_data/payloads/'
 
 mask_tag = 'train_v0_*_payload_flux.json'
-mask_directory='../../../digitwinpulsar/params/payloads/'
+mask_directory='syn_data/payloads/'
 
 store_trained_model_image2mask_at = './syn_data/model/trained_UNet_test_v0.pt'
 image2mask_network_trainer = TrainImageToMaskNetworkModel(
@@ -116,28 +116,28 @@ ppl2f = PipelineImageToFilterToCCtoLabels(image_to_mask_network=UNet(),
                                 min_cc_size_threshold=5)
 
 
-image_directory_npy ='./test_data_example/joint_dataset_8_classes_real_remix_128x128.npy' 
-label_directory_npy ='./test_data_example/joint_dataset_8_classes_real_remix_labels.npy' 
-data = np.load(file=image_directory_npy,mmap_mode='r')
-data_label = np.load(file=label_directory_npy,mmap_mode='r')
-offset = 0
-size_of_set = 500
-data_subset = data[offset+1:offset+size_of_set,:,:]
-data_label_subset = data_label[offset+1:offset+size_of_set]
+# image_directory_npy ='./test_data_example/joint_dataset_8_classes_real_remix_128x128.npy' 
+# label_directory_npy ='./test_data_example/joint_dataset_8_classes_real_remix_labels.npy' 
+# data = np.load(file=image_directory_npy,mmap_mode='r')
+# data_label = np.load(file=label_directory_npy,mmap_mode='r')
+# offset = 0
+# size_of_set = 500
+# data_subset = data[offset+1:offset+size_of_set,:,:]
+# data_label_subset = data_label[offset+1:offset+size_of_set]
 
-while(True):
-    ppl1f.test_on_real_data_from_npy_files(image_data_set=data_subset,image_label_set=data_label_subset,plot_details=True,plot_randomly=True,batch_size=2)
-    continue_loop = not(input('[y/n] to quit: ')=='y')    
-    plt.show()
-    if continue_loop==False:
-        break
-    plt.close()
-    ppl2f.test_on_real_data_from_npy_files(image_data_set=data_subset,image_label_set=data_label_subset,plot_randomly=True,batch_size=2)    
-    continue_loop = not(input('[y/n] to quit: ')=='y')
-    plt.show()
-    if continue_loop==False:
-        break
-    plt.close()
+# while(True):
+#     ppl1f.test_on_real_data_from_npy_files(image_data_set=data_subset,image_label_set=data_label_subset,plot_details=True,plot_randomly=True,batch_size=2)
+#     continue_loop = not(input('[y/n] to quit: ')=='y')    
+#     plt.show()
+#     if continue_loop==False:
+#         break
+#     plt.close()
+#     ppl2f.test_on_real_data_from_npy_files(image_data_set=data_subset,image_label_set=data_label_subset,plot_randomly=True,batch_size=2)    
+#     continue_loop = not(input('[y/n] to quit: ')=='y')
+#     plt.show()
+#     if continue_loop==False:
+#         break
+#     plt.close()
 
     
     
