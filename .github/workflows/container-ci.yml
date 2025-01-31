@@ -58,4 +58,7 @@ jobs:
           docker-token: ${{ secrets.DOCKER_TOKEN }}
           dagger-cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }} 
           interlink-values: ${{ secrets.INTERLINK_VALUES }}
-          release: ${{ github.event_name == 'release' && github.event.action == 'created' && 'true' || 'false' }}
+          singularity-password: ${{ secrets.SINGULARITY_PWD }}
+          singularity-username: ${{ secrets.SINGULARITY_USR }}
+          release: "true"
+          # release: ${{ github.event_name == 'release' && github.event.action == 'created' && 'true' || 'false' }}

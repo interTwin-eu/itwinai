@@ -142,6 +142,25 @@ dagger call \
         --build-args="COMMIT_HASH=$COMMIT_HASH,BASE_IMG_NAME=$BASE_IMG_NAME,BASE_IMG_DIGEST=$BASE_IMG_DIGEST" \
     dev-pipeline
 
+# Release pipeline
+export COMMIT_HASH=$(git rev-parse --verify HEAD)
+export BASE_IMG_NAME="nvcr.io/nvidia/pytorch:24.05-py3"
+export BASE_IMG_DIGEST="$(echo "$BASE_IMG_NAME" | cut -d ':' -f 1)@$(docker buildx imagetools inspect $BASE_IMG_NAME | grep "Digest:" | head -n 1 | awk '{print $2}')"
+export KUBERNETES="--kubernetes tcp://localhost:6443" # Set this to empty string to avoid using k8s endpoint
+dagger call \
+        --tag "${COMMIT_HASH}-torch" \
+        --name itwinai \
+        --docker-registry ghcr.io/intertwin-eu \
+        --singularity-registry registry.egi.eu/dev.intertwin.eu \
+    build-container --context=.. --dockerfile=../env-files/torch/Dockerfile \
+        --build-args="COMMIT_HASH=$COMMIT_HASH,BASE_IMG_NAME=$BASE_IMG_NAME,BASE_IMG_DIGEST=$BASE_IMG_DIGEST" \
+    release-pipeline --values=file:tmp.yaml --framework=TORCH  \
+        --tag-template='${itwinai_version}-torch${framework_version}-${os_version}' \
+        --password env:SING_PWD --username env:SING_USER $KUBERNETES
+
+
+
+
 # Open teminal in newly created container
 dagger call \
     build-container --context=.. --dockerfile=../env-files/torch/Dockerfile \
