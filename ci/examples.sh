@@ -149,7 +149,8 @@ export BASE_IMG_DIGEST="$(echo "$BASE_IMG_NAME" | cut -d ':' -f 1)@$(docker buil
 export KUBERNETES="--kubernetes tcp://localhost:6443" # Set this to empty string to avoid using k8s endpoint
 dagger call \
         --tag "${COMMIT_HASH}-torch" \
-        --name itwinai \
+        --nickname torch \
+        --image itwinai \
         --docker-registry ghcr.io/intertwin-eu \
         --singularity-registry registry.egi.eu/dev.intertwin.eu \
     build-container --context=.. --dockerfile=../env-files/torch/Dockerfile \

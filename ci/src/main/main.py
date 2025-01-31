@@ -71,7 +71,7 @@ class Itwinai:
                 "A simple name to indicate the flavor of the image. Used to generate the "
                 "corresponding 'latest' tag"
             ),
-        ] = "itwinai",
+        ] = "torch",
         tag: Annotated[
             str | None,
             Doc("Tag for the container image. Defaults to random uuid if not provided"),
