@@ -25,11 +25,11 @@ inputs:
   release:
     description: "true if triggered during a release, false otherwise"
     required: false
-    default: "false"
+    default: "true"
   skip-hpc:
     description: "Flag to skip HPC-related tests"
     required: false
-    default: false
+    default: "false"
   docker-token:
     description: "Docker secret auth token"
     required: true
