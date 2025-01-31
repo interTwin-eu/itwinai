@@ -140,7 +140,7 @@ mask_variables:
 # Scaling
 
 scaling_variant: minmax
-
+scaling_use_cached: True
 
 # == Pipeline == 
 
@@ -159,6 +159,7 @@ training_pipeline:
           dataset: ${dataset}
           data_source: ${data_source}
           scaling_variant: ${scaling_variant}
+          scaling_use_cached: ${scaling_use_cached}
           experiment_name: ${experiment_name}
           experiment_run: ${experiment_run}
           work_dir: ${work_dir}

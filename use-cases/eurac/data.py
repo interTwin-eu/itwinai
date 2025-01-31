@@ -20,6 +20,7 @@ class RNNDatasetGetterAndPreprocessor(DataSplitter):
         experiment_run: str,
         data_source: dict,
         work_dir: str,
+        scaling_use_cached: bool | None = None,
         dynamic_inputs: List[str] | None = None,
         static_inputs: List[str] | None = None,
         target_variables: List[str] | None = None,
@@ -52,7 +53,7 @@ class RNNDatasetGetterAndPreprocessor(DataSplitter):
 
     @monitor_exec
     def execute(self) -> Tuple[Wflow1d, Wflow1d, None]:
-        scaler = Scaler(self.cfg)
+        scaler = Scaler(self.cfg, self.cfg.scaling_use_cached)
 
         train_dataset = get_dataset(self.cfg.dataset)(self.cfg, scaler, True, "train")
 
