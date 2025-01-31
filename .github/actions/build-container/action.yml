@@ -117,7 +117,7 @@ runs:
           --nickname ${{ inputs.nickname }}
           --docker-registry ghcr.io/intertwin-eu
           --singularity-registry registry.egi.eu/dev.intertwin.eu
-          --name itwinai-dev
+          --image itwinai-dev
           build-container
           --context ..
           --dockerfile ${{ inputs.dockerfile }}
@@ -145,7 +145,7 @@ runs:
         args: >-
           --tag "${{ env.COMMIT_HASH }}-${{ inputs.nickname }}"
           --nickname ${{ inputs.nickname }}
-          --name itwinai
+          --image itwinai
           --docker-registry ghcr.io/intertwin-eu
           --singularity-registry registry.egi.eu/dev.intertwin.eu
           build-container
