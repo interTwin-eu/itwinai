@@ -10,6 +10,10 @@
 name: "Build and Test Container"
 description: "Builds, tests, and optimizes disk space for a container image"
 inputs:
+  free-disk-space:
+    description: "Whether to free disk space before running the workflows"
+    required: false
+    default: "true"
   base-img-name:
     description: "Base image name"
     required: true
@@ -60,6 +64,7 @@ runs:
   using: "composite"
   steps:
     - name: Maximize Disk Space
+      if: inputs.free-disk-space == 'true'
       uses: easimon/maximize-build-space@v10
       with:
         # Reserve space on root for docker/dagger cache
@@ -81,6 +86,7 @@ runs:
         echo skip hpc flag: $([[ "${{ inputs.skip-hpc }}" == "true" ]] && echo '--skip-hpc' || echo '')
 
     - name: Delete unnecessary tools and packages
+      if: inputs.free-disk-space == 'true'
       shell: bash
       run: |
         rm -rf /opt/hostedtoolcache &&

@@ -110,6 +110,8 @@ RUN /usr/bin/python3.10 -m venv /opt/venv \
     && pip install --no-cache-dir .[torch] --extra-index-url https://download.pytorch.org/whl/cu124 \
     "prov4ml[nvidia]@git+https://github.com/matbun/ProvML@new-main" \
     pytest \
+    pytest-xdist \
+    psutil \
     wheel
 
 # Install DeepSpeed, Horovod and Ray

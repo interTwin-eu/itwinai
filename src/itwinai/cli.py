@@ -31,9 +31,7 @@ app = typer.Typer(pretty_exceptions_enable=False)
 def generate_scalability_report(
     log_dir: Annotated[
         str,
-        typer.Option(
-            help=("Which directory to search for the scalability metrics in.")
-        ),
+        typer.Option(help=("Which directory to search for the scalability metrics in.")),
     ] = "scalability-metrics",
     plot_dir: Annotated[
         str, typer.Option(help=("Which directory to save the resulting plots in."))
@@ -51,7 +49,7 @@ def generate_scalability_report(
         str, typer.Option(help=("Which directory to store the backup files in."))
     ] = "backup-scalability-metrics/",
     experiment_name: Annotated[
-        str | None,
+        Optional[str],
         typer.Option(
             help=(
                 "What to name the experiment in the backup directory."
@@ -79,9 +77,7 @@ def generate_scalability_report(
 
     log_dir_path = Path(log_dir)
     if not log_dir_path.exists():
-        raise ValueError(
-            f"The provided log_dir, '{log_dir_path.resolve()}', does not exist."
-        )
+        raise ValueError(f"The provided log_dir, '{log_dir_path.resolve()}', does not exist.")
     plot_dir_path = Path(plot_dir)
     plot_dir_path.mkdir(exist_ok=True, parents=True)
 
@@ -134,9 +130,7 @@ def sanity_check(
         Optional[bool], typer.Option(help=("Check also itwinai.tensorflow modules."))
     ] = False,
     all: Annotated[Optional[bool], typer.Option(help=("Check all modules."))] = False,
-    optional_deps: List[str] = typer.Option(
-        None, help="List of optional dependencies."
-    ),
+    optional_deps: List[str] = typer.Option(None, help="List of optional dependencies."),
 ):
     """Run sanity checks on the installation of itwinai and its dependencies by trying
     to import itwinai modules. By default, only itwinai core modules (neither torch, nor
@@ -173,8 +167,7 @@ def exec_pipeline(
         str,
         typer.Option(
             help=(
-                "Key in the configuration file identifying "
-                "the pipeline object to execute."
+                "Key in the configuration file identifying " "the pipeline object to execute."
             )
         ),
     ] = "pipeline",
@@ -225,8 +218,7 @@ def exec_pipeline(
 
     overrides_list = overrides_list if overrides_list is not None else []
     overrides = {
-        k: v
-        for k, v in map(lambda x: (x.split("=")[0], x.split("=")[1]), overrides_list)
+        k: v for k, v in map(lambda x: (x.split("=")[0], x.split("=")[1]), overrides_list)
     }
     parser = ConfigParser(config=config, override_keys=overrides)
     if print_config:
