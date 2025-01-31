@@ -125,7 +125,7 @@ export BASE_IMG_NAME="nvcr.io/nvidia/pytorch:24.05-py3"
 export BASE_IMG_DIGEST="$(echo "$BASE_IMG_NAME" | cut -d ':' -f 1)@$(docker buildx imagetools inspect $BASE_IMG_NAME | grep "Digest:" | head -n 1 | awk '{print $2}')"
 export KUBERNETES="--kubernetes tcp://localhost:6443" # Set this to empty string to avoid using k8s endpoint
 dagger call \
-        --singularity-registry registry.cern.ch/itwinai \
+        --singularity-registry registry.egi.eu/dev.intertwin.eu \
     build-container --context=.. --dockerfile=../env-files/torch/Dockerfile \
         --build-args="COMMIT_HASH=$COMMIT_HASH,BASE_IMG_NAME=$BASE_IMG_NAME,BASE_IMG_DIGEST=$BASE_IMG_DIGEST" \
     test-n-publish --values=file:tmp.yaml --stage=DEV --framework=TORCH  \
