@@ -133,6 +133,15 @@ dagger call \
         --password env:SING_PWD --username env:SING_USER
 
 
+# Development pipeline
+export COMMIT_HASH=$(git rev-parse --verify HEAD)
+export BASE_IMG_NAME="nvcr.io/nvidia/pytorch:24.05-py3"
+export BASE_IMG_DIGEST="$(echo "$BASE_IMG_NAME" | cut -d ':' -f 1)@$(docker buildx imagetools inspect $BASE_IMG_NAME | grep "Digest:" | head -n 1 | awk '{print $2}')"
+dagger call \
+    build-container --context=.. --dockerfile=../env-files/torch/Dockerfile \
+        --build-args="COMMIT_HASH=$COMMIT_HASH,BASE_IMG_NAME=$BASE_IMG_NAME,BASE_IMG_DIGEST=$BASE_IMG_DIGEST" \
+    dev-pipeline
+
 # Open teminal in newly created container
 dagger call \
     build-container --context=.. --dockerfile=../env-files/torch/Dockerfile \

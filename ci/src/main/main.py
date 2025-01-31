@@ -251,7 +251,7 @@ class Itwinai:
                 "another that will create and publish a container, or give an image "
                 "as argument."
             )
-        self._logs.append(f"INFO: testing on hpc image {image}")
+        self._logs.append(f"INFO: testing on HPC image {image}")
 
         # Create pod manifest
         gpus_per_node = 1
@@ -362,7 +362,7 @@ class Itwinai:
             str | None,
             Doc(
                 "Custom image tag pattern. Example: "
-                "'${itwinai_version}-torch${torch_version}-${os_version}'"
+                "'${itwinai_version}-torch${framework_version}-${os_version}'"
             ),
         ] = None,
         framework: Annotated[
@@ -495,6 +495,158 @@ class Itwinai:
         await self.publish()
 
         return self.logs()
+
+    @function
+    async def dev_pipeline(
+        self,
+        tag_template: Annotated[
+            str,
+            Doc("Custom image tag pattern."),
+        ] = "${itwinai_version}-torch${framework_version}-${os_version}",
+        framework: Annotated[
+            MLFramework, Doc("ML framework in container")
+        ] = MLFramework.TORCH,
+    ) -> str:
+        """CI pipeline for pre-release containers. Tests are only local."""
+
+        # Test locally
+        await self.test_local()
+
+        # Publish to Docker registry with "final" tag
+        tag = await self._evaluate_tag_template(tag_template=tag_template, framework=framework)
+        self.tag = tag
+        await self.publish()
+
+        return self.logs()
+
+    @function
+    async def release_pipeline(
+        self,
+        values: Annotated[dagger.Secret, Doc("interLink installer configuration")],
+        tag_template: Annotated[
+            str | None,
+            Doc(
+                "Custom image tag pattern. Example: "
+                "'${itwinai_version}-torch${framework_version}-${os_version}'"
+            ),
+        ] = None,
+        framework: Annotated[
+            MLFramework, Doc("ML framework in container")
+        ] = MLFramework.TORCH,
+        skip_hpc: Annotated[bool, Doc("Skip tests on remote HPC")] = False,
+        kubernetes: Annotated[
+            dagger.Service | None,
+            Doc(
+                "Endpoint to exsisting k3s service to attach to. "
+                "Example (from the CLI): tcp://localhost:1997"
+            ),
+        ] = None,
+        interlink_cluster_name: Annotated[
+            str, Doc("Name of the k3s cluster in which the interLink VK is deployed")
+        ] = "interlink-cluster",
+        password: Annotated[
+            dagger.Secret | None, Doc("Password for Singularity registry")
+        ] = None,
+        username: Annotated[
+            dagger.Secret | None, Doc("Username for Singularity registry")
+        ] = None,
+    ) -> str:
+        """CI pipeline for release containers. Test on HPC and generate Singularity images."""
+
+        # Test locally
+        await self.test_local()
+
+        if not skip_hpc:
+            assert username is not None, "Missing username for Singularity registry"
+            assert password is not None, "Missing password for Singularity registry"
+            # Publish to registry with random hash
+            uri = f"oras://{self.singularity_registry}/{self.name}:{self.tag}"
+            await self.publish_singularity(uri=uri, username=username, password=password)
+
+            # Test on HPC with
+            await self.test_hpc(
+                values=values, kubernetes=kubernetes, name=interlink_cluster_name, image=uri
+            )
+
+        else:
+            self._logs.append("INFO: skipping tests on HPC")
+
+        # Publish to registry with "final" tag
+        final_tag = self._evaluate_tag_template(tag_template=tag_template, framework=framework)
+        for tag in [final_tag, "latest"]:
+            self.tag = tag
+            await self.publish()
+            if not skip_hpc:
+                # Publish to registry with final URI
+                uri = f"oras://{self.singularity_registry}/{self.name}:{self.tag}"
+                await self.publish_singularity(uri=uri, username=username, password=password)
+
+        return self.logs()
+
+    async def _evaluate_tag_template(self, tag_template: str, framework: MLFramework) -> str:
+        """Interpolate the fields in the tag template with values computed from the
+        container.
+        """
+        itwinai_version = (
+            await self.container.with_exec(
+                [
+                    "bash",
+                    "-c",
+                    'pip list | grep -w "itwinai" | head -n 1 | tr -s " " | cut -d " " -f2 ',
+                ]
+            ).stdout()
+        ).strip()
+        os_info = (
+            await self.container.with_exec(
+                [
+                    "bash",
+                    "-c",
+                    "cat /etc/*-release",
+                ]
+            ).stdout()
+        ).strip()
+        os_version = get_codename(os_info)
+
+        if framework == MLFramework.TORCH:
+            tag_template = (
+                tag_template or "${itwinai_version}-torch${framework_version}-${os_version}"
+            )
+            framework_version = (
+                await self.container.with_exec(
+                    [
+                        "bash",
+                        "-c",
+                        (
+                            'pip list | grep -w "torch[^-]" | head -n 1 | tr -s " " '
+                            '| cut -d " " -f2 | cut -f1,2 -d .'
+                        ),
+                    ]
+                ).stdout()
+            ).strip()
+        elif framework == MLFramework.TENSORFLOW:
+            tag_template = (
+                tag_template or "${itwinai_version}-tf${framework_version}-${os_version}"
+            )
+            framework_version = (
+                await self.container.with_exec(
+                    [
+                        "bash",
+                        "-c",
+                        (
+                            # TODO: check this command
+                            'pip list | grep -w "tensorflow[^-]" | head -n 1 | tr -s " " '
+                            '| cut -d " " -f2 | cut -f1,2 -d .'
+                        ),
+                    ]
+                ).stdout()
+            ).strip()
+
+        # In GH actions ${...} is interpolated, so we replace $ with @
+        return Template(tag_template.replace("@", "$")).substitute(
+            itwinai_version=itwinai_version,
+            framework_version=framework_version,
+            os_version=os_version,
+        )
 
     @function
     def singularity(
