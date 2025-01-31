@@ -22,10 +22,10 @@ inputs:
   tag-template:
     description: "Tag template for the image"
     required: true
-  stage:
-    description: "Stage indicating where to push the final image, such as DEV, PRODUCTION, and CVMFS"
+  release:
+    description: "true if triggered during a release, false otherwise"
     required: false
-    default: "DEV"
+    default: "false"
   skip-hpc:
     description: "Flag to skip HPC-related tests"
     required: false
@@ -61,57 +61,67 @@ runs:
 
     - name: Checkout
       uses: actions/checkout@v4
-
-    - name: Check Inputs
+    
+    - name: Development stage pipeline
+      if: inputs.release == 'false'
       shell: bash
-      run: |
-        echo &&
-        echo skip hpc flag: $([[ "${{ inputs.skip-hpc }}" == "true" ]] && echo '--skip-hpc' || echo '')
+      run: echo "I am a development pipeline" && df -h
 
-    - name: Delete unnecessary tools and packages
+    - name: Release stage pipeline
+      if: inputs.release == 'true'
       shell: bash
-      run: |
-        rm -rf /opt/hostedtoolcache &&
-        curl -fsSL https://raw.githubusercontent.com/apache/flink/02d30ace69dc18555a5085eccf70ee884e73a16e/tools/azure-pipelines/free_disk_space.sh | bash
+      run: echo "I am a release pipeline" && df -h
 
-    - name: Get Repo Owner
-      id: get_repo_owner
-      shell: bash
-      run: echo "name=repo_owner::$(echo ${{ github.repository_owner }} | tr '[:upper:]' '[:lower:]')" >> "$GITHUB_OUTPUT"
+    # - name: Check Inputs
+    #   shell: bash
+    #   run: |
+    #     echo &&
+    #     echo skip hpc flag: $([[ "${{ inputs.skip-hpc }}" == "true" ]] && echo '--skip-hpc' || echo '')
 
-    - name: Login to GitHub Container Registry
-      uses: docker/login-action@v3
-      with:
-        registry: ghcr.io
-        username: ${{ github.actor }}
-        password: ${{ inputs.docker-token }}
+    # - name: Delete unnecessary tools and packages
+    #   shell: bash
+    #   run: |
+    #     rm -rf /opt/hostedtoolcache &&
+    #     curl -fsSL https://raw.githubusercontent.com/apache/flink/02d30ace69dc18555a5085eccf70ee884e73a16e/tools/azure-pipelines/free_disk_space.sh | bash
 
-    - name: Prepare Environment Variables
-      shell: bash
-      run: |
-        echo "COMMIT_HASH=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
-        BASE_IMG_DIGEST=$(echo "${{ inputs.base-img-name }}" | cut -d ':' -f 1)@$(docker buildx imagetools inspect ${{ inputs.base-img-name }} | grep "Digest:" | head -n 1 | awk '{print $2}')
-        echo "BASE_IMG_DIGEST=$BASE_IMG_DIGEST" >> "$GITHUB_ENV"
-        docker system prune -af
+    # - name: Get Repo Owner
+    #   id: get_repo_owner
+    #   shell: bash
+    #   run: echo "name=repo_owner::$(echo ${{ github.repository_owner }} | tr '[:upper:]' '[:lower:]')" >> "$GITHUB_OUTPUT"
 
-    - name: Run Integration Test
-      uses: dagger/dagger-for-github@v7
-      with:
-        workdir: ci
-        verb: call
-        args: >-
-          --name="${{ env.COMMIT_HASH }}-${{ inputs.flavour-name }}"
-          build-container
-          --context=..
-          --dockerfile=${{ inputs.dockerfile }}
-          --build-args="COMMIT_HASH=${{ env.COMMIT_HASH }},BASE_IMG_NAME=${{ inputs.base-img-name }},BASE_IMG_DIGEST=${{ env.BASE_IMG_DIGEST }}"
-          test-n-publish
-          --values=env:INTERLINK_VALUES
-          --stage=${{ inputs.stage }}
-          --framework=TORCH
-          --tag-template=${{ inputs.tag-template }}
-          $([[ "${{ inputs.skip-hpc }}" == "true" ]] && echo '--skip-hpc' || echo '')
-        cloud-token: ${{ inputs.dagger-cloud-token }}
-        version: "latest"
-      env:
-          INTERLINK_VALUES: ${{ inputs.interlink-values }}
+    # - name: Login to GitHub Container Registry
+    #   uses: docker/login-action@v3
+    #   with:
+    #     registry: ghcr.io
+    #     username: ${{ github.actor }}
+    #     password: ${{ inputs.docker-token }}
+
+    # - name: Prepare Environment Variables
+    #   shell: bash
+    #   run: |
+    #     echo "COMMIT_HASH=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
+    #     BASE_IMG_DIGEST=$(echo "${{ inputs.base-img-name }}" | cut -d ':' -f 1)@$(docker buildx imagetools inspect ${{ inputs.base-img-name }} | grep "Digest:" | head -n 1 | awk '{print $2}')
+    #     echo "BASE_IMG_DIGEST=$BASE_IMG_DIGEST" >> "$GITHUB_ENV"
+    #     docker system prune -af
+
+    # - name: Run Integration Test
+    #   uses: dagger/dagger-for-github@v7
+    #   with:
+    #     workdir: ci
+    #     verb: call
+    #     args: >-
+    #       --name="${{ env.COMMIT_HASH }}-${{ inputs.flavour-name }}"
+    #       build-container
+    #       --context=..
+    #       --dockerfile=${{ inputs.dockerfile }}
+    #       --build-args="COMMIT_HASH=${{ env.COMMIT_HASH }},BASE_IMG_NAME=${{ inputs.base-img-name }},BASE_IMG_DIGEST=${{ env.BASE_IMG_DIGEST }}"
+    #       test-n-publish
+    #       --values=env:INTERLINK_VALUES
+    #       --stage=${{ inputs.stage }}
+    #       --framework=TORCH
+    #       --tag-template=${{ inputs.tag-template }}
+    #       $([[ "${{ inputs.skip-hpc }}" == "true" ]] && echo '--skip-hpc' || echo '')
+    #     cloud-token: ${{ inputs.dagger-cloud-token }}
+    #     version: "latest"
+    #   env:
+    #       INTERLINK_VALUES: ${{ inputs.interlink-values }}

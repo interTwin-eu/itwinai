@@ -302,7 +302,7 @@ class Itwinai:
                 f"--gpus-per-node={gpus_per_node} "
                 f"--ntasks-per-node=1 --nodes={num_nodes} "
                 f"--cpus-per-task={cpus_per_gpu * gpus_per_node} "
-                "--time=00:30:00"
+                "--time=00:30:00 --exclude gn42"
             ),
             "slurm-job.vk.io/pre-exec": (
                 "trap 'export SINGULARITYENV_PRE_EXEC_RETURN_CODE=1' ERR && "
@@ -415,7 +415,7 @@ class Itwinai:
             assert username is not None, "Missing username for Singularity registry"
             assert password is not None, "Missing password for Singularity registry"
             # Publish to registry with random hash
-            uri = f"oras://{self.singularity_registry}/{self.name}:{str(uuid.uuid4())}"
+            uri = f"oras://{self.singularity_registry}/{self.name}:{self.tag}"
             await self.publish_singularity(uri=uri, username=username, password=password)
 
             # Test on HPC with
@@ -510,6 +510,7 @@ class Itwinai:
             ),
         ] = None,
     ) -> Singularity:
+        """Access Singularity module."""
         return Singularity(base_image=base_image, docker=docker or self.container)
 
     @function
@@ -521,5 +522,11 @@ class Itwinai:
             str,
             Doc("Target URI for the image"),
         ],
-    ) -> str:
-        return await self.singularity().publish(password=password, username=username, uri=uri)
+    ) -> Self:
+        """Convert itwinai container to Singularity and push it to some registry."""
+        self._logs.append(f"INFO: the Singularity image will be published at: {uri}")
+        stdout = await self.singularity(docker=self.container).publish(
+            password=password, username=username, uri=uri
+        )
+        self._logs.append(stdout)
+        return self
