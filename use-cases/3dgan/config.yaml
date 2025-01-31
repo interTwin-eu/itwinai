@@ -9,22 +9,22 @@
 # --------------------------------------------------------------------------------------
 
 # Main configurations
-dataset_location: /p/scratch/intertwin/datasets/cern/sample/
+dataset_location: /p/scratch/intertwin/datasets/cern #2_500_fullEnergy #/p/scratch/intertwin/datasets/cern/
 dataset_url: https://drive.google.com/drive/folders/1ooUIfkhpokvwh4-7qPxX084N7-LgqnIL # https://drive.google.com/drive/folders/1uPpz0tquokepptIfJenTzGpiENfo2xRX
 hw_accelerators: auto
-distributed_strategy: ddp #ddp_find_unused_parameters_true #deepspeed auto horovod
+distributed_strategy: ddp_find_unused_parameters_true #auto #ddp_find_unused_parameters_true #deepspeed auto horovod
 devices: auto #[0]
 checkpoints_path: checkpoints
 logs_dir: ml_logs
 mlflow_tracking_uri: mlruns # https://131.154.99.166.myip.cloud.infn.it
-batch_size: 32
+batch_size: 256
 train_dataset_proportion: 0.9
 num_workers_dataloader: 4
-max_epochs: 16
+max_epochs: 205 #190 #175 #160 #145 #140 #130 #60 #130 #96 #56
 max_dataset_size: null
 random_seed: 4231162351
 inference_results_location: 3dgan-generated-data/
-inference_model_uri: /p/scratch/intertwin/datasets/cern/validation_weights/best_generator_weights_epoch_21.pth
+inference_model_uri: /p/scratch/intertwin/datasets/cern/val_weights_130ep/best_generator_weights_epoch_100.pth
 aggregate_predictions: false
 num_nodes: 1
 provenance_verbose: true
@@ -56,9 +56,9 @@ training_pipeline:
                 #     log_freq: 100
                 - class_path: itwinai.loggers.MLFlowLogger
                   init_args:
-                    experiment_name: 3DGAN_test1
+                    experiment_name: 3DGAN_Updated_extraEpochs
                     log_freq: batch
-                    rank_zero_only: true  # Add this to restrict logging to rank 0
+                    #rank_zero_only: true  # Add this to restrict logging to rank 0
           #       # - class_path: itwinai.loggers.Prov4MLLogger
           #       #   init_args:
           #       #     provenance_save_dir: mllogs/prov_logs
@@ -78,10 +78,10 @@ training_pipeline:
               barebones: false
               benchmark: null
               # callbacks:
-              #   - class_path: lightning.pytorch.callbacks.early_stopping.EarlyStopping
-              #     init_args:
-              #       monitor: val_generator_loss
-              #       patience: 2
+              # #   - class_path: lightning.pytorch.callbacks.early_stopping.EarlyStopping
+              # #     init_args:
+              # #       monitor: val_generator_loss
+              # #       patience: 2
               #   - class_path: lightning.pytorch.callbacks.lr_monitor.LearningRateMonitor
               #     init_args:
               #       logging_interval: step

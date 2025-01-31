@@ -28,11 +28,11 @@ from itwinai.components import Predictor, Trainer, monitor_exec
 #     init_lightning_mlflow,
 #     teardown_lightning_mlflow
 # )
-from itwinai.loggers import EmptyLogger, Logger
-
-
-from model import ThreeDGAN
-from dataloader import ParticlesDataModule
+from itwinai.loggers import Logger, _EmptyLogger
+from itwinai.serialization import ModelLoader
+from itwinai.torch.inference import TorchModelLoader
+from itwinai.torch.type import Batch
+from itwinai.utils import load_yaml
 
 
 class Lightning3DGANTrainer(Trainer):
@@ -71,8 +71,12 @@ class Lightning3DGANTrainer(Trainer):
             # Set the logger into the LightningTrainer
             cli.trainer.itwinai_logger = self.itwinai_logger
 
+            ckpt_path = "checkpoints/epoch=189-step=144120.ckpt"
+            if ckpt_path:
+                print(f"Resuming training from checkpoint: {ckpt_path}")
+
             # Start training
-            cli.trainer.fit(cli.model, datamodule=cli.datamodule)
+            cli.trainer.fit(cli.model, datamodule=cli.datamodule, ckpt_path=ckpt_path) #ckpt_path=ckpt_path
 
             self._log_config(self.itwinai_logger)
             self.itwinai_logger.log(

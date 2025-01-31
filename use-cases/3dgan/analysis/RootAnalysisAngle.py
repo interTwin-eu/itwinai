@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 ## This script loads weights into architectures for generator and discriminator. Different Physics quantities are then calculated and plotted for a 100-200 GeV events from LCD variable angle dataset##
 
-from utils.GANutils import perform_calculations_angle, perform_calculations_multi   # to calculate different Physics quantities
+from utils.GANutils import perform_calculations_angle, perform_calculations_multi, generate_pt   # to calculate different Physics quantities
 import utils.GANutils as gan
 from utils.RootPlotsGAN import get_plots_angle, get_plots_multi         # to make plots with ROOT
 import os
@@ -13,6 +13,7 @@ import sys
 import argparse
 import torch
 from torch.autograd import profiler
+from pl_3dgan_models_v1 import *
 #from memory_profiler import profile
 if os.environ.get('HOSTNAME') == 'tlab-gpu-oldeeptector.cern.ch': # Here a check for host can be used        
     tlab = True
@@ -61,7 +62,9 @@ def main():
    mono= params.mono
    labels = params.labels if isinstance(params.labels, list) else [params.labels]
    gweights= params.gweights if isinstance(params.gweights, list) else [params.gweights]
+   #gweights= params.gweights 
    dweights= params.dweights if isinstance(params.dweights, list) else [params.dweights]
+   #dweights= params.dweights 
    xscales= params.xscales 
    ascales= params.ascales 
    yscale= params.yscale
@@ -69,6 +72,10 @@ def main():
    thresh = params.thresh
    dformat = params.dformat
    ang = params.ang
+
+   device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+   print(f'Using device: {device}')
+
    
    #Architecture 
    if ang:
@@ -85,11 +92,12 @@ def main():
        ascales = 1
        
      if datapath=='reduced':
-       datapath = "/eos/user/k/ktsolaki/data/*.h5" #"/storage/group/gpu/bigdata/gkhattak/*Measured3ThetaEscan/*.h5"  # Data path 100-200 GeV
+       datapath = "/eos/user/k/ktsolaki/data/3dgan_100_200_data/*.h5"   #"/storage/group/gpu/bigdata/gkhattak/*Measured3ThetaEscan/*.h5"  # Data path 100-200 GeV
        events_per_file = 5000
        energies = [0, 110, 150, 190]
      elif datapath=='full':
-       datapath = "/storage/group/gpu/bigdata/LCDLargeWindow/LCDLargeWindow/varangle/*scan/*scan_RandomAngle_*.h5" # culture plate
+       #datapath = "/storage/group/gpu/bigdata/LCDLargeWindow/LCDLargeWindow/varangle/*scan/*scan_RandomAngle_*.h5" # culture plate
+       datapath = "/eos/user/k/ktsolaki/data/2_500_fullEnergy_data/*scan_RandomAngle_*.h5"
        events_per_file = 10000
        energies = [0, 50, 100, 200, 250, 300, 400, 500]
        #energies =[0, 160, 200, 250, 290]
@@ -119,19 +127,36 @@ def main():
    xscales = xscales if isinstance(xscales, list) else [xscales]*len(gweights)
    ascales = ascales if isinstance(ascales, list) else [ascales]*len(gweights)
    xpowers = xpowers if isinstance(xpowers, list) else [xpowers]*len(gweights)
+  #  if not isinstance(xpowers, list):
+  #   # If xpowers isn't already a list, replicate it len(gweights) times
+  #   xpowers = [xpowers] * len(gweights)
+
+  #  # If there is exactly one generator weight, make xpowers a float
+  #  if len(xpowers) == 1:
+  #   xpowers = xpowers[0]
    angles = [62, 90, 118]
    flags =[test, save_data, read_data, save_gen, read_gen, save_disc, read_disc]
 
    if ang:
     #  d = discriminator(xpowers[0], dformat=dformat)
     #  g = generator(latent, dformat=dformat)
-     device = torch.device("cuda:1" if torch.cuda.is_available() else "cpu")
-     torch.cuda.empty_cache()
+     g = Generator(latent)
+     g.to(device)
+     g.eval()
+     # Load PyTorch weights from .pth (or .pt)
+     print(f"Loading PyTorch weights from {gweights}")
+     weights_file = gweights[0]  # Grab the first element
+     state_dict = torch.load(weights_file, map_location=device)
+     g.load_state_dict(state_dict)
 
-     with profiler.profile(profile_memory=True, record_shapes=True) as prof:
-      g = Generator(latent).to(device)
-      d = Discriminator(xpowers).to(device)
-     print(prof.key_averages().table(sort_by="self_cpu_memory_usage", row_limit=10))
+     d = Discriminator(xpowers[0])
+     d.to(device)
+     d.eval()
+     # Load PyTorch weights from .pth (or .pt)
+     print(f"Loading PyTorch disc weights from {dweights}")
+     dweights_file = dweights[0]  # Grab the first element
+     state_dict = torch.load(dweights_file, map_location=device)
+     d.load_state_dict(state_dict)
    
      var= perform_calculations_angle(g, d, gweights, dweights, energies, angles, 
                 datapath, sortdir, gendir, discdir, nbEvents, binevents, moments, xscales, xpowers,
@@ -144,8 +169,8 @@ def main():
                len(gweights), ifpdf=ifpdf, grid=grid, stest=stest, angloss=angloss, 
                 addloss=addloss, cell=cell, corr=corr, leg=leg, statbox=statbox, mono=mono)
    else:
-     d = discriminator( dformat=dformat)
-     g = generator(latent,  dformat=dformat)
+    #  d = discriminator( dformat=dformat)
+    #  g = generator(latent,  dformat=dformat)
      var= perform_calculations_multi(g, d, gweights, dweights, energies, datapath, sortdir, gendir, discdir, num_data=nbEvents
          , num_events=binevents, m=moments, scales=xscales, thresh=thresh, flags=flags, latent=latent, particle=particle, dformat=dformat)
      get_plots_multi(var, labels, plotdir, energies, moments, len(gweights), cell=cell, corr=corr,
@@ -167,7 +192,7 @@ def get_parser():
     # defaults apply at caltech
     parser = argparse.ArgumentParser(description='3D GAN Params' )
     parser.add_argument('--latentsize', action='store', type=int, help='size of random N(0, 1) latent space to sample')    #parser.add_argument('--model', action='store', default=AngleArch3dgan, help='size of random N(0, 1) latent space to sample')
-    parser.add_argument('--datapath', action='store', type=str, default='reduced', help='HDF5 files to train from.')
+    parser.add_argument('--datapath', action='store', type=str, default='full', help='HDF5 files to train from.')
     parser.add_argument('--particle', action='store', type=str, default='Ele', help='Type of particle.')
     parser.add_argument('--angtype', action='store', type=str, default='mtheta', help='Angle used.')
     parser.add_argument('--outdir', action='store', type=str, default='/eos/user/k/ktsolaki/misc/3dgan_pytorch/root_analysis_plots/', help='Directory to store the analysis plots.')
@@ -178,7 +203,7 @@ def get_parser():
     parser.add_argument('--eventsperfile', action='store', type=int, default=5000, help='Number of events in a file')
     parser.add_argument('--binevents', action='store', type=int, default=50, help='Number of events in each bin')
     parser.add_argument('--moments', action='store', type=int, default=3, help='Number of moments to compare')
-    parser.add_argument('--addloss', action='store', type=int, default=1, help='If using bin count loss')
+    parser.add_argument('--addloss', action='store', type=int, default=0, help='If using bin count loss')
     parser.add_argument('--angloss', action='store', type=int, default=1, help='Number of loss terms related to angle')
     parser.add_argument('--concat', action='store', type=int, default=2, help='Modes related to combining conditions with latent 0)not cancatenated.. 1)concatenate angle...3) concatenate energy and angle')
     parser.add_argument('--cell', action='store', type=int, default=0, help='Whether to plot cell energies..0)Not plotted...1)Only for bin with uniform spectrum.....2)For all energy bins')

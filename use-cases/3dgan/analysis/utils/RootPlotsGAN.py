@@ -2143,8 +2143,11 @@ def PlotEvent(event, energy, theta, out_file, n, opt="", unit='degrees', label="
 
 def PlotEvent2(aevent, gevent, energy, theta, out_file, n, opt="", unit='degrees', label="", logz=0, ifC=0):
    x = aevent.shape[0]
+   print("aevent shape x:", x)
    y = aevent.shape[1]
+   print("aevent shape y:", y)
    z = aevent.shape[2]
+   print("aevent shape z:", z)
    if x==25:
      canvas = ROOT.TCanvas("canvas" ,"GAN Hist" ,200 ,10 ,800 ,400)
    else:
@@ -2189,14 +2192,43 @@ def PlotEvent2(aevent, gevent, energy, theta, out_file, n, opt="", unit='degrees
    hz2.SetStats(0)
 
    ROOT.gStyle.SetPalette(1)
-   aevent = np.expand_dims(aevent, axis=0)
-   my.FillHist2D_wt(hx1, np.sum(aevent, axis=1))
-   my.FillHist2D_wt(hy1, np.sum(aevent, axis=2))
-   my.FillHist2D_wt(hz1, np.sum(aevent, axis=3))
-   gevent = np.expand_dims(gevent, axis=0)
-   my.FillHist2D_wt(hx2, np.sum(gevent, axis=1))
-   my.FillHist2D_wt(hy2, np.sum(gevent, axis=2))
-   my.FillHist2D_wt(hz2, np.sum(gevent, axis=3))
+   #aevent = np.expand_dims(aevent, axis=-1)
+   #print("aevent shape (after expand):", aevent.shape)
+   
+   hx1_array = np.sum(aevent, axis=0).squeeze()  # Shape should be (51, 25)
+   hy1_array = np.sum(aevent, axis=1).squeeze()  # Shape should be (51, 25)
+   hz1_array = np.sum(aevent, axis=2).squeeze()  # Shape should be (51, 51)
+
+   print("np.sum(aevent, axis=0) shape before fillhist:", hx1_array.shape)
+   print("np.sum(aevent, axis=1) shape before fillhist:", hy1_array.shape)
+   print("np.sum(aevent, axis=2) shape before fillhist:", hz1_array.shape)
+
+   my.FillHist2D_wt(hx1, hx1_array)
+   my.FillHist2D_wt(hy1, hy1_array)
+   my.FillHist2D_wt(hz1, hz1_array)
+
+
+   # my.FillHist2D_wt(hx1, np.sum(aevent, axis=0))
+   # my.FillHist2D_wt(hy1, np.sum(aevent, axis=1))
+   # my.FillHist2D_wt(hz1, np.sum(aevent, axis=2))
+   #gevent = np.expand_dims(gevent, axis=-1)
+   #print("gevent shape (after expand):", gevent.shape)
+
+   hx2_array = np.sum(gevent, axis=0).squeeze()  # Shape should be (51, 25)
+   hy2_array = np.sum(gevent, axis=1).squeeze()  # Shape should be (51, 25)
+   hz2_array = np.sum(gevent, axis=2).squeeze()  # Shape should be (51, 51)
+   
+   print("np.sum(gevent, axis=0) shape before fillhist:", hx2_array.shape)
+   print("np.sum(gevent, axis=1) shape before fillhist:", hy2_array.shape)
+   print("np.sum(gevent, axis=2) shape before fillhist:", hz2_array.shape)
+
+   my.FillHist2D_wt(hx2, hx2_array)
+   my.FillHist2D_wt(hy2, hy2_array)
+   my.FillHist2D_wt(hz2, hz2_array)
+
+   # my.FillHist2D_wt(hx2, np.sum(gevent, axis=0))
+   # my.FillHist2D_wt(hy2, np.sum(gevent, axis=1))
+   # my.FillHist2D_wt(hz2, np.sum(gevent, axis=2))
    Min = 1e-4
    Max = 1e-1
    graphPad.cd(1)

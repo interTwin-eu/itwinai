@@ -38,27 +38,27 @@ class Generator(nn.Module):
         self.conv1 = nn.Conv3d(in_channels=8, out_channels=8, kernel_size=(6, 6, 8), padding=0)
         nn.init.kaiming_uniform_(self.conv1.weight)
         # num_features is the number of channels (see doc)
-        self.bn1 = nn.BatchNorm3d(num_features=8, eps=1e-6)
+        self.bn1 = nn.BatchNorm3d(num_features=8, eps=1e-6, momentum=0.99)
         self.pad1 = nn.ConstantPad3d((1, 1, 2, 2, 2, 2), 0)
 
         self.conv2 = nn.Conv3d(in_channels=8, out_channels=6, kernel_size=(4, 4, 6), padding=0)
         nn.init.kaiming_uniform_(self.conv2.weight)
-        self.bn2 = nn.BatchNorm3d(num_features=6, eps=1e-6)
+        self.bn2 = nn.BatchNorm3d(num_features=6, eps=1e-6, momentum=0.99)
         self.pad2 = nn.ConstantPad3d((1, 1, 2, 2, 2, 2), 0)
 
         self.conv3 = nn.Conv3d(in_channels=6, out_channels=6, kernel_size=(4, 4, 6), padding=0)
         nn.init.kaiming_uniform_(self.conv3.weight)
-        self.bn3 = nn.BatchNorm3d(num_features=6, eps=1e-6)
+        self.bn3 = nn.BatchNorm3d(num_features=6, eps=1e-6, momentum=0.99)
         self.pad3 = nn.ConstantPad3d((1, 1, 2, 2, 2, 2), 0)
 
         self.conv4 = nn.Conv3d(in_channels=6, out_channels=6, kernel_size=(4, 4, 6), padding=0)
         nn.init.kaiming_uniform_(self.conv4.weight)
-        self.bn4 = nn.BatchNorm3d(num_features=6, eps=1e-6)
+        self.bn4 = nn.BatchNorm3d(num_features=6, eps=1e-6, momentum=0.99)
         self.pad4 = nn.ConstantPad3d((0, 0, 1, 1, 1, 1), 0)
 
         self.conv5 = nn.Conv3d(in_channels=6, out_channels=6, kernel_size=(3, 3, 5), padding=0)
         nn.init.kaiming_uniform_(self.conv5.weight)
-        self.bn5 = nn.BatchNorm3d(num_features=6, eps=1e-6)
+        self.bn5 = nn.BatchNorm3d(num_features=6, eps=1e-6, momentum=0.99)
         self.pad5 = nn.ConstantPad3d((0, 0, 1, 1, 1, 1), 0)
 
         self.conv6 = nn.Conv3d(in_channels=6, out_channels=6, kernel_size=(3, 3, 3), padding=0)
@@ -112,7 +112,7 @@ class Discriminator(nn.Module):
         self.power = power
 
         self.conv1 = nn.Conv3d(
-            in_channels=1, out_channels=16, kernel_size=(5, 6, 6), padding=(2, 3, 3)
+            in_channels=1, out_channels=16, kernel_size=(5, 6, 6), padding="same" #(2, 3, 3)
         )
         self.drop1 = nn.Dropout(0.2)
         self.pad1 = nn.ConstantPad3d((1, 1, 0, 0, 0, 0), 0)
@@ -120,16 +120,16 @@ class Discriminator(nn.Module):
         self.conv2 = nn.Conv3d(
             in_channels=16, out_channels=8, kernel_size=(5, 6, 6), padding=0
         )
-        self.bn1 = nn.BatchNorm3d(num_features=8, eps=1e-6)
+        self.bn1 = nn.BatchNorm3d(num_features=8, eps=1e-6, momentum=0.99)
         self.drop2 = nn.Dropout(0.2)
         self.pad2 = nn.ConstantPad3d((1, 1, 0, 0, 0, 0), 0)
 
         self.conv3 = nn.Conv3d(in_channels=8, out_channels=8, kernel_size=(5, 6, 6), padding=0)
-        self.bn2 = nn.BatchNorm3d(num_features=8, eps=1e-6)
+        self.bn2 = nn.BatchNorm3d(num_features=8, eps=1e-6, momentum=0.99)
         self.drop3 = nn.Dropout(0.2)
 
         self.conv4 = nn.Conv3d(in_channels=8, out_channels=8, kernel_size=(5, 6, 6), padding=0)
-        self.bn3 = nn.BatchNorm3d(num_features=8, eps=1e-6)
+        self.bn3 = nn.BatchNorm3d(num_features=8, eps=1e-6, momentum=0.99)
         self.drop4 = nn.Dropout(0.2)
 
         self.avgpool = nn.AvgPool3d((2, 2, 2))
@@ -314,20 +314,6 @@ class ThreeDGAN(pl.LightningModule):
         self.generator = Generator(self.latent_size)
         self.discriminator = Discriminator(self.power)
 
-        # Load checkpoint if path is provided
-        if checkpoints_dir:
-            generator_path = os.path.join(checkpoints_dir, "generator_weights.pth")
-            discriminator_path = os.path.join(checkpoints_dir, "discriminator_weights.pth")
-
-            if os.path.exists(generator_path) and os.path.exists(discriminator_path):
-                print(f"Loading generator checkpoint from {generator_path}")
-                self.generator.load_state_dict(torch.load(generator_path))
-
-                print(f"Loading discriminator checkpoint from {discriminator_path}")
-                self.discriminator.load_state_dict(torch.load(discriminator_path))
-            else:
-                print("No checkpoint found. Starting training from scratch.")
-
         self.epoch_gen_loss = []
         self.epoch_disc_loss = []
         self.disc_epoch_test_loss = []
@@ -335,7 +321,7 @@ class ThreeDGAN(pl.LightningModule):
         self.index = 0
         self.train_history = defaultdict(list)
         self.test_history = defaultdict(list)
-        self.pklfile = "/p/project1/intertwin/tsolaki1/DetectorSim-3DGAN/Lightning3DGAN/history/3dgan_history_130ep.pkl"
+        self.pklfile = "/p/project1/intertwin/tsolaki1/DetectorSim-3DGAN/Lightning3DGAN/history/3dganUpdated_history_205ep.pkl"
         # self.pklfile = checkpoint_path
         # checkpoint_dir = os.path.dirname(checkpoint_path)
         # os.makedirs(checkpoint_dir, exist_ok=True)
@@ -376,7 +362,7 @@ class ThreeDGAN(pl.LightningModule):
 
     def compute_global_loss(self, labels, predictions, loss_weights=(3, 0.1, 25, 0.1)):
         # Can be initialized outside
-        binary_crossentropy_object = nn.BCEWithLogitsLoss(reduction="none")
+        binary_crossentropy_object = nn.BCELoss(reduction='none')
         # there is no equivalent in pytorch for
         # tf.keras.losses.MeanAbsolutePercentageError --> using the
         # custom "mean_absolute_percentage_error" above!
@@ -438,6 +424,7 @@ class ThreeDGAN(pl.LightningModule):
         generator_ip = torch.cat(
             (energy_batch.view(-1, 1), ang_batch.view(-1, 1), noise), dim=1
         )
+        generator_ip = generator_ip.float()
         generated_images = self.generator(generator_ip)
 
         # Train discriminator first on real batch
@@ -517,6 +504,7 @@ class ThreeDGAN(pl.LightningModule):
             generator_ip = torch.cat(
                 (energy_batch.view(-1, 1), ang_batch.view(-1, 1), noise), dim=1
             )
+            generator_ip = generator_ip.float()
 
             generated_images = self.generator(generator_ip)
             predictions = self.discriminator(generated_images)
@@ -618,8 +606,8 @@ class ThreeDGAN(pl.LightningModule):
         # if ecal sum has 100% loss(generating empty events) then end
         # the training
         if fake_batch_loss[3] == 100.0 and self.index > 10:
-            # print("Empty image with Ecal loss equal to 100.0 "
-            #       f"for {self.index} batch")
+            print("Empty image with Ecal loss equal to 100.0 "
+                  f"for {self.index} batch")
             torch.save(
                 self.generator.state_dict(),
                 os.path.join(self.checkpoints_dir, "generator_weights.pth"),
@@ -699,8 +687,8 @@ class ThreeDGAN(pl.LightningModule):
         self.train_history["generator"].append(generator_train_loss)
         self.train_history["discriminator"].append(discriminator_train_loss)
 
-        torch.save(self.generator.state_dict(), f"/p/scratch/intertwin/datasets/cern/weights_130ep_train/generator_weights_epoch_{epoch_num}.pth")
-        torch.save(self.discriminator.state_dict(), f"/p/scratch/intertwin/datasets/cern/weights_130ep_train/discriminator_weights_epoch_{epoch_num}.pth")
+        torch.save(self.generator.state_dict(), f"/p/scratch/intertwin/datasets/cern/weights_UpdatedModel_FineTuning/generator_weights_epoch_{epoch_num}.pth")
+        torch.save(self.discriminator.state_dict(), f"/p/scratch/intertwin/datasets/cern/weights_UpdatedModel_FineTuning/discriminator_weights_epoch_{epoch_num}.pth")
 
         print("-" * 65)
         ROW_FMT = "{0:<20s} | {1:<4.2f} | {2:<10.2f} | " "{3:<10.2f}| {4:<10.2f} | {5:<10.2f}"
@@ -770,6 +758,7 @@ class ThreeDGAN(pl.LightningModule):
         generator_ip = torch.cat(
             (energy_batch.view(-1, 1), ang_batch.view(-1, 1), noise), dim=1
         )
+        generator_ip = generator_ip.float()
         generated_images = self.generator(generator_ip)
 
         # concatenate to fake and real batches
@@ -975,7 +964,7 @@ class ThreeDGAN(pl.LightningModule):
 
             torch.save(self.generator.state_dict(), os.path.join(
             self.checkpoints_dir, f"best_generator_weights_epoch_{epoch_num}.pth"))
-            torch.save(self.generator.state_dict(), f"/p/scratch/intertwin/datasets/cern/val_weights_130ep/best_generator_weights_epoch_{epoch_num}.pth")
+            torch.save(self.generator.state_dict(), f"/p/scratch/intertwin/datasets/cern/val_weights_UpdatedModel_FineTuning/best_generator_weights_epoch_{epoch_num}.pth")
 
             # Save the best generator model
             if self.itwinai_logger:
@@ -1019,6 +1008,7 @@ class ThreeDGAN(pl.LightningModule):
         generator_ip = torch.cat(
             [energy_batch.view(-1, 1), ang_batch.view(-1, 1), noise], dim=1
         )
+        generator_ip = generator_ip.float()
         # print(f"Generator input: {generator_ip.shape}")
         generated_images = self.generator(generator_ip)
         # print(f"Generated batch size {generated_images.shape}")
@@ -1027,8 +1017,8 @@ class ThreeDGAN(pl.LightningModule):
     def configure_optimizers(self):
         lr = self.lr
 
-        optimizer_discriminator = torch.optim.RMSprop(self.discriminator.parameters(), lr)
-        optimizer_generator = torch.optim.RMSprop(self.generator.parameters(), lr)
+        optimizer_discriminator = torch.optim.RMSprop(self.discriminator.parameters(), lr, alpha=0.9, eps=1e-07)
+        optimizer_generator = torch.optim.RMSprop(self.generator.parameters(), lr, alpha=0.9, eps=1e-07)
 
         if self.itwinai_logger:
             self.itwinai_logger.log(

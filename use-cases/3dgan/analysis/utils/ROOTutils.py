@@ -94,19 +94,44 @@ def fill_hist_wt(hist, weight):
 
 #2D weighted histogram        
 def FillHist2D_wt(hist, array):
-   array= np.squeeze(array, axis=0)
-   dim1 = array.shape[0]
-   dim2 = array.shape[1]
-   dim3 = array.shape[2]
+   # array= np.squeeze(array, axis=-1)
+   # # print(f"Array shape before squeeze: {array.shape}")
+    
+   # #  # Check if axis 0 has size 1 before attempting to squeeze
+   # # if array.shape[0] == 1:
+   # #    array = np.squeeze(array, axis=0)
+   # # else:
+   # #    print(f"No need to squeeze array with shape {array.shape}.")
+    
+   # print(f"Array shape after squeeze: {array.shape}")
+
+   # dim1 = array.shape[0]
+   # dim2 = array.shape[1]
+   # dim3 = array.shape[2]
+   # bin1 = np.arange(dim1)
+   # bin2 = np.arange(dim2)
+   # bin3 = np.arange(dim3)
+   # count = 0
+   # for j in bin2:
+   #    for k in bin3:
+   #       for i in bin1:
+   #          hist.Fill(j, k, array[i, j, k])
+   #          count+=1
+
+   array = np.squeeze(array)  # Ensure we remove extra dimensions
+   print(f"Array shape before filling histogram: {array.shape}")
+
+   if len(array.shape) != 2:
+      raise ValueError(f"ERROR: Expected a 2D array but got shape {array.shape}")
+
+   dim1, dim2 = array.shape  # Ensure it's (X, Y)
+
    bin1 = np.arange(dim1)
    bin2 = np.arange(dim2)
-   bin3 = np.arange(dim3)
-   count = 0
+
    for j in bin2:
-      for k in bin3:
-         for i in bin1:
-            hist.Fill(j, k, array[i, j, k])
-            count+=1
+      for i in bin1:
+         hist.Fill(i, j, array[i, j])  # Fill histogram correctly
                                                                             
 #Hits above a threshold
 def get_hits(events, thresh=0.0002):

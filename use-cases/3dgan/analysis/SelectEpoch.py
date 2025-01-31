@@ -86,7 +86,7 @@ def main():
       #  if tlab:
       #    datapath = '/gkhattak/data/*Measured3ThetaEscan/*.h5'
       #  else:
-       datapath = "/p/scratch/intertwin/datasets/cern/*.h5"  # Data path for 100-200 GeV must be changed here
+       datapath = "/eos/user/k/ktsolaki/data/3dgan_data/*.h5"  # Data path for 100-200 GeV must be changed here /storage/group/gpu/bigdata/gkhattak/*Measured3ThetaEscan/*.h5
        events_per_file = 5000
        energies = [0, 110, 150, 190]
      else:
@@ -112,7 +112,7 @@ def main():
      events_per_file = 10000
      energies =[0, 100, 200, 300, 400]
 
-   device = torch.device("cuda:0" if torch.cuda.is_available() else 'cpu')
+   device = torch.device("cuda:1" if torch.cuda.is_available() else 'cpu')
    print(f'Using device: {device}')
 
   #  genpaths =[]
@@ -194,7 +194,7 @@ def get_parser():
     parser.add_argument('--angtype', action='store', type=str, default='mtheta', help='Angle used.')
     parser.add_argument('--outdir', action='store', type=str, default='results/best_epoch_gan_training/', help='Directory to store the analysis plots.')
     parser.add_argument('--sortdir', action='store', type=str, default='SortedData', help='Directory to store sorted data.')
-    parser.add_argument('--nbEvents', action='store', type=int, default=5000, help='Max limit for events used for Testing')
+    parser.add_argument('--nbEvents', action='store', type=int, default=20000, help='Max limit for events used for Testing')
     parser.add_argument('--eventsperfile', action='store', type=int, default=5000, help='Number of events in a file')
     parser.add_argument('--binevents', action='store', type=int, default=10000, help='Number of events in each bin')
     parser.add_argument('--start', action='store', type=int, default=0, help='plot beginning from epoch')

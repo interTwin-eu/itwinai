@@ -544,7 +544,7 @@ def get_gen(energy, gendir):
 
 # generate images
 def generate(g, index, cond, latent=256, concat=1, batch_size=50):
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    device = torch.device("cuda:1" if torch.cuda.is_available() else "cpu")
 
     energy_labels=np.expand_dims(cond[0], axis=1)
     if len(cond)> 1: # that means we also have angle
@@ -575,16 +575,131 @@ def generate(g, index, cond, latent=256, concat=1, batch_size=50):
 
     return generated_images
 
+def generate_pt(g, index, cond, latent=256, concat=1, batch_size=50):
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    energy_labels=np.expand_dims(cond[0], axis=1)
+    if len(cond)> 1: # that means we also have angle
+      angle_labels = cond[1]
+      angle_labels = angle_labels.astype(np.float32)
+      if concat==1:
+        noise = np.random.normal(0, 1, (index, latent-1)).astype(np.float32)  
+        noise = energy_labels * noise
+        gen_in = np.concatenate((angle_labels.reshape(-1, 1), noise), axis=1).astype(np.float32)
+      elif concat==2:
+        noise = np.random.normal(0, 1, (index, latent-2)).astype(np.float32)
+        gen_in = np.concatenate((energy_labels, angle_labels.reshape(-1, 1), noise), axis=1).astype(np.float32)
+      else:  
+        noise = np.random.normal(0, 1, (index, 2, latent)).astype(np.float32)
+        angle_labels=np.expand_dims(angle_labels, axis=1)
+        gen_in = np.concatenate((energy_labels, angle_labels), axis=1)
+        gen_in = np.expand_dims(gen_in, axis=2)
+        gen_in = gen_in * noise
+    else:
+      noise = np.random.normal(0, 1, (index, latent)).astype(np.float32)
+      #energy_labels=np.expand_dims(energy_labels, axis=1)
+      gen_in = energy_labels * noise
+
+    g.eval()
+    out_batches = []
+    for start_idx in range(0, index, batch_size):
+        end_idx = min(start_idx + batch_size, index)
+        batch_gen_in = gen_in[start_idx:end_idx]  # shape => (this_batch, ?)
+
+        # Convert to torch tensor
+        batch_t = torch.from_numpy(batch_gen_in).float().to(device)
+
+        # No gradient needed
+        with torch.no_grad():
+            out_t = g(batch_t)  # forward pass
+            # e.g. out_t shape => (this_batch, C, D, H, W) or something similar
+
+        # Convert from channels first to channels last, Convert back to numpy
+        out_np = out_t.permute(0, 2, 3, 4, 1).cpu().numpy()
+        out_batches.append(out_np)
+
+    # Concatenate all batches
+    generated_images = np.concatenate(out_batches, axis=0)
+
+    # generated_images = g.predict(gen_in, verbose=False, batch_size=batch_size)
+    return generated_images
+
 # discriminator predict
 def discriminate(d, images):
     #disc_out = d.predict(images, verbose=False, batch_size=50)
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    device = torch.device("cuda:1" if torch.cuda.is_available() else "cpu")
     disc_out_tensor = torch.tensor(disc_out).float().to(device)
     with torch.no_grad():  # Temporarily set all the requires_grad flags to false
         discriminated_images = d(disc_out_tensor)
     disc_out_np = discriminated_images.cpu().numpy()
 
     return disc_out
+
+def discriminate_pt(d, images, batch_size=32):
+    """
+    Runs inference (discrimination) on a batch of images using a PyTorch model 'd'.
+
+    Parameters
+    ----------
+    d : torch.nn.Module
+        A PyTorch discriminator model.
+    images : np.ndarray
+        NumPy array of shape (batch_size, channels, height, width, ...) representing your input.
+
+    Returns
+    -------
+    disc_out_np : np.ndarray
+        Discriminator output as a NumPy array.
+    """
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    d.to(device)
+    d.eval()
+
+    # Convert the NumPy array to a torch.Tensor
+    # 1. Transpose the input from (N, D, H, W, C) -> (N, C, D, H, W)
+    images_ch_first = np.transpose(images, (0, 4, 1, 2, 3))
+    full_tensor = torch.from_numpy(images_ch_first).float()
+
+    fake_list, aux_list, ang_list, ecal_list = [], [], [], []
+
+    # 3) No gradient updates for inference
+    with torch.no_grad():
+        # 4) Loop over mini-batches
+        for start in range(0, full_tensor.size(0), batch_size):
+            end = min(start + batch_size, full_tensor.size(0))
+            # Slice the current batch and move to GPU
+            batch = full_tensor[start:end].to(device)
+
+            # Forward pass
+            out_fake, out_aux, out_ang, out_ecal = d(batch)
+
+            fake_list.append(out_fake.cpu())
+            aux_list.append(out_aux.cpu())
+            ang_list.append(out_ang.cpu())
+            ecal_list.append(out_ecal.cpu())
+
+    # Now we can cat each list of Tensors individually
+    fake_tensor = torch.cat(fake_list, dim=0)
+    aux_tensor  = torch.cat(aux_list,  dim=0)
+    ang_tensor  = torch.cat(ang_list,  dim=0)
+    ecal_tensor = torch.cat(ecal_list, dim=0)
+
+    # Convert to NumPy as needed
+    disc_out_fake = fake_tensor.numpy()
+    disc_out_aux  = aux_tensor.numpy()
+    disc_out_ang  = ang_tensor.numpy()
+    disc_out_ecal = ecal_tensor.numpy()
+
+    return disc_out_fake, disc_out_aux, disc_out_ang, disc_out_ecal
+    # disc_in_tensor = torch.from_numpy(images_ch_first).float().to(device)
+
+    # # Disable gradient calculation (inference mode)
+    # with torch.no_grad():
+    #     disc_out_tensor = d(disc_in_tensor)
+
+    # # Bring the output back to CPU as a NumPy array
+    # disc_out_np = disc_out_tensor.cpu().numpy()
+
+    # return disc_out_np
 
 # find location of maximum depositions
 def get_max(images):
@@ -814,7 +929,7 @@ def perform_calculations_angle(g, d, gweights, dweights, energies, angles, datap
              #g.load_weights(gen_weights)
              load_pytorch_weights(g, gen_weights)
              start = time.time()
-             var["events_gan" + str(energy)]['n_'+ str(i)] = generate(g, var["index" + str(energy)], [var["energy" + str(energy)]/100, (var["angle"+ str(energy)]) * ascale], latent, concat)
+             var["events_gan" + str(energy)]['n_'+ str(i)] = generate_pt(g, var["index" + str(energy)], [var["energy" + str(energy)]/100, (var["angle"+ str(energy)]) * ascale], latent, concat)
              var["events_gan" + str(energy)]['n_'+ str(i)] = post(var["events_gan" + str(energy)]['n_'+ str(i)], scale, power)
              var["events_gan" + str(energy)]['n_'+ str(i)][var["events_gan" + str(energy)]['n_'+ str(i)]< thresh * dscale] = 0
 
@@ -844,8 +959,8 @@ def perform_calculations_angle(g, d, gweights, dweights, energies, angles, datap
              #d.load_weights(disc_weights)
              load_pytorch_weights(d, disc_weights)
              start = time.time()
-             disc_out_act = discriminate(d, pre(dscale * var["events_act" + str(energy)], scale, power))
-             disc_out_gan =discriminate(d, var["events_gan" + str(energy)]['n_'+ str(i)])
+             disc_out_act = discriminate_pt(d, pre(dscale * var["events_act" + str(energy)], scale, power), batch_size=32)
+             disc_out_gan =discriminate_pt(d, var["events_gan" + str(energy)]['n_'+ str(i)], batch_size=32)
              var["isreal_act" + str(energy)]['n_'+ str(i)]= np.array(disc_out_act[0])
              var["isreal_gan" + str(energy)]['n_'+ str(i)]= np.array(disc_out_gan[0])
              var["aux_act" + str(energy)]['n_'+ str(i)] = np.array(disc_out_act[1])
@@ -920,7 +1035,7 @@ def perform_calculations_angle(g, d, gweights, dweights, energies, angles, datap
 
       for energy in energies:
          print ("{}\t{}\t{:.4f}\t\t{}\t\t\t{:.2f}\t\t{:.4f}\t\t{:.4f}\t\t{:.4f}".format(energy, var["index" +str(energy)], np.amax(var["events_gan" + str(energy)]['n_'+ str(i)]), np.mean(var["max_pos_gan" + str(energy)]['n_'+ str(i)], axis=0), np.mean(var["events_gan" + str(energy)]['n_'+ str(i)]), np.mean(var["momentX_gan"+ str(energy)]['n_'+ str(i)][:, 1]), np.mean(var["momentY_gan"+ str(energy)]['n_'+ str(i)][:, 1]), np.mean(var["momentZ_gan"+ str(energy)]['n_'+ str(i)][:, 1])))
-    return vartbe
+    return var
 
 def perform_calculations_multi(g, d, gweights, dweights, energies, datapath, sortdir, gendirs, discdirs, num_data, num_events, m, scales, thresh, flags, latent, events_per_file=10000, particle='Ele', dformat='channels_last'):
     sortedpath = os.path.join(sortdir, 'events_*.h5')
@@ -1007,7 +1122,7 @@ def perform_calculations_multi(g, d, gweights, dweights, energies, datapath, sor
           else:
              g.load_weights(gen_weights)
              start = time.time()
-             var["events_gan" + str(energy)]['n_'+ str(i)] = generate(g, var["index" + str(energy)], [var["energy" + str(energy)]/100], latent)
+             var["events_gan" + str(energy)]['n_'+ str(i)] = generate_pt(g, var["index" + str(energy)], [var["energy" + str(energy)]/100], latent)
              var["events_gan" + str(energy)]['n_'+ str(i)] = np.squeeze(var["events_gan" + str(energy)]['n_'+ str(i)])
              if save_gen:
                 save_generated(var["events_gan" + str(energy)]['n_'+ str(i)], var["energy" + str(energy)], energy, gendir)
@@ -1025,7 +1140,7 @@ def perform_calculations_multi(g, d, gweights, dweights, energies, datapath, sor
              else:
                var["events_act" + str(energy)] = np.expand_dims(var["events_act" + str(energy)], axis=1)
                var["events_gan" + str(energy)]['n_'+ str(i)] = np.expand_dims(var["events_gan" + str(energy)]['n_'+ str(i)], axis=1)
-             discout= discriminate(d, var["events_act" + str(energy)] * scale)
+             discout= discriminate_pt(d, var["events_act" + str(energy)] * scale, batch_size=32)
              print(len(discout))
              var["isreal_act" + str(energy)]['n_'+ str(i)], var["aux_act" + str(energy)]['n_'+ str(i)], var["ecal_act"+ str(energy)]['n_'+ str(i)]= discriminate(d, var["events_act" + str(energy)] * scale)
              var["isreal_gan" + str(energy)]['n_'+ str(i)], var["aux_gan" + str(energy)]['n_'+ str(i)], var["ecal_gan"+ str(energy)]['n_'+ str(i)]= discriminate(d, var["events_gan" + str(energy)]['n_'+ str(i)] )

@@ -97,6 +97,8 @@ class ParticlesDataset(Dataset):
             f = h5py.File(datafile, "r")
             dataset = self.GetDataAngleParallel(f)
             for field, vals_array in dataset.items():
+                # Cast to float32 the full energy data (if using restricted energy data comment out the following line)
+                vals_array = vals_array.astype(np.float32)
                 if self.data.get(field) is not None:
                     # Resize to include the new array
                     new_shape = list(self.data[field].shape)
@@ -200,20 +202,19 @@ class ParticlesDataModule(pl.LightningDataModule):
     def setup(self, stage: str = None):
         # make assignments here (val/train/test split)
         # called on every process in DDP
-        print(f"Dataset path: {self.datapath}")
-        print(f"Train proportion: {self.train_proportion}")
+        # print(f"Dataset path: {self.datapath}")
+        # print(f"Train proportion: {self.train_proportion}")
 
         if stage == "fit" or stage is None:
             self.dataset = ParticlesDataset(self.datapath, max_samples=self.max_samples)
             dataset_length = len(self.dataset)
             split_point = int(dataset_length * self.train_proportion)
-            self.train_dataset, self.val_dataset = torch.utils.data.random_split(
-                self.dataset, [split_point, dataset_length - split_point]
-            )
-            print(f"Training dataset size: {len(self.train_dataset)}")
-            print(f"Validation dataset size: {len(self.val_dataset)}")
-
-        if stage == "predict":
+            self.train_dataset, self.val_dataset = \
+                torch.utils.data.random_split(
+                    self.dataset, [split_point, dataset_length - split_point])
+            # print(f"Training dataset size: {len(self.train_dataset)}")
+            # print(f"Validation dataset size: {len(self.val_dataset)}")
+        if stage == 'predict':
             # TODO: inference dataset should be different in that it
             # does not contain images!
             self.predict_dataset = ParticlesDataset(
@@ -228,6 +229,7 @@ class ParticlesDataModule(pl.LightningDataModule):
             self.train_dataset,
             num_workers=self.num_workers,
             batch_size=self.batch_size,
+            shuffle=True,
             drop_last=True,
         )
 

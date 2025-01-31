@@ -9,7 +9,7 @@
 #SBATCH --mail-type=ALL
 #SBATCH --output=job.out
 #SBATCH --error=job.err
-#SBATCH --time=02:00:00
+#SBATCH --time=24:00:00
 
 # configure node and process count on the CM
 #SBATCH --partition=booster
@@ -35,9 +35,9 @@ source ~/.bashrc
 # Activate the environment
 source ../../envAI_juwels/bin/activate
 
-GAN_DATASET="/p/scratch/intertwin/datasets/cern/sample/" #"/p/scratch/intertwin/datasets/cern/" exp_data
-CHECKPOINT_DIR="checkpoints_test"
-NUM_EPOCHS_PER_JOB=8
+GAN_DATASET="/p/scratch/intertwin/datasets/cern" # 2_500_fullEnergy "/p/scratch/intertwin/datasets/cern/" exp_data
+CHECKPOINT_DIR="checkpoints"
+NUM_EPOCHS_PER_JOB=205
 
 # # Function to submit the next job with dependency
 # submit_next_job() {
@@ -59,7 +59,6 @@ TRAINING_CMD="$(which itwinai) exec-pipeline --config config.yaml --pipe-key tra
 
 srun --cpu-bind=none --ntasks-per-node=1 \
     bash -c "torchrun \
-    --log_dir='logs_torchrun' \
     --nnodes=$SLURM_NNODES \
     --nproc_per_node=$SLURM_GPUS_PER_NODE \
     --rdzv_id=$SLURM_JOB_ID \
