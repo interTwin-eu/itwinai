@@ -16,7 +16,7 @@ inputs:
   dockerfile:
     description: "Path to the Dockerfile"
     required: true
-  flavour-name:
+  nickname:
     description: "Name of the container flavour, such as 'torch', 'torch-slim', and 'jhub-slim'"
     required: true
   tag-template:
@@ -28,6 +28,10 @@ inputs:
     default: "true"
   skip-hpc:
     description: "Skip HPC-related tests (in release pipeline)"
+    required: false
+    default: "false"
+  skip-singularity:
+    description: "Avoid publishing Singularity image"
     required: false
     default: "false"
   docker-token:
@@ -110,7 +114,9 @@ runs:
         workdir: ci
         verb: call
         args: >-
+          --nickname ${{ inputs.nickname }}
           --docker-registry ghcr.io/intertwin-eu
+          --singularity-registry registry.egi.eu/dev.intertwin.eu
           --name itwinai-dev
           build-container
           --context ..
@@ -119,10 +125,15 @@ runs:
           dev-pipeline
           --tag-template ${{ inputs.tag-template }}
           --framework TORCH
+          --password env:SINGULARITY_PWD
+          --username env:SINGULARITY_USR
+          $([[ "${{ inputs.skip-singularity }}" == "true" ]] && echo '--skip-singularity' || echo '')
         cloud-token: ${{ inputs.dagger-cloud-token }}
         version: "latest"
       env:
           INTERLINK_VALUES: ${{ inputs.interlink-values }}
+          SINGULARITY_PWD: ${{ inputs.singularity-password }}
+          SINGULARITY_USR: ${{ inputs.singularity-username }}
     
     # This pipeline runs exclusively upon release
     - name: Run Integration Test (release pipeline)
@@ -132,7 +143,8 @@ runs:
         workdir: ci
         verb: call
         args: >-
-          --tag "${{ env.COMMIT_HASH }}-${{ inputs.flavour-name }}"
+          --tag "${{ env.COMMIT_HASH }}-${{ inputs.nickname }}"
+          --nickname ${{ inputs.nickname }}
           --name itwinai
           --docker-registry ghcr.io/intertwin-eu
           --singularity-registry registry.egi.eu/dev.intertwin.eu
@@ -141,12 +153,13 @@ runs:
           --dockerfile ${{ inputs.dockerfile }}
           --build-args "COMMIT_HASH=${{ env.COMMIT_HASH }},BASE_IMG_NAME=${{ inputs.base-img-name }},BASE_IMG_DIGEST=${{ env.BASE_IMG_DIGEST }}"
           release-pipeline
-          --values=env:INTERLINK_VALUES
-          --framework=TORCH
-          --tag-template=${{ inputs.tag-template }}
+          --values env:INTERLINK_VALUES
+          --framework TORCH
+          --tag-template ${{ inputs.tag-template }}
           --password env:SINGULARITY_PWD
           --username env:SINGULARITY_USR
           $([[ "${{ inputs.skip-hpc }}" == "true" ]] && echo '--skip-hpc' || echo '')
+          $([[ "${{ inputs.skip-singularity }}" == "true" ]] && echo '--skip-singularity' || echo '')
         cloud-token: ${{ inputs.dagger-cloud-token }}
         version: "latest"
       env:

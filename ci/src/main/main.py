@@ -39,9 +39,10 @@ class Itwinai:
 
     docker_registry: str
     singularity_registry: str
-    name: str
+    image: str
     tag: str | None
     container: dagger.Container | None = dagger.field(default=None)
+    nickname: str
 
     _unique_id: str | None = dataclasses.field(default=None, init=False)
     _logs: list[str] = dataclasses.field(default_factory=list, init=False)
@@ -55,12 +56,22 @@ class Itwinai:
         ] = "ghcr.io/intertwin-eu",
         singularity_registry: Annotated[
             str,
-            Doc("The Docker registry base URL where the container will be published"),
+            Doc(
+                "Harbor registry namespace (i.e., 'registry/project') where to publish the "
+                "Singularity images"
+            ),
         ] = "registry.egi.eu/dev.intertwin.eu",
-        name: Annotated[
+        image: Annotated[
             str,
             Doc("The name of the container image"),
         ] = "itwinai-dev",
+        nickname: Annotated[
+            str,
+            Doc(
+                "A simple name to indicate the flavor of the image. Used to generate the "
+                "corresponding 'latest' tag"
+            ),
+        ] = "itwinai",
         tag: Annotated[
             str | None,
             Doc("Tag for the container image. Defaults to random uuid if not provided"),
@@ -74,9 +85,10 @@ class Itwinai:
         return cls(
             singularity_registry=singularity_registry,
             docker_registry=docker_registry,
-            name=name,
+            image=image,
             tag=tag,
             container=container,
+            nickname=nickname,
         )
 
     @function
@@ -170,7 +182,7 @@ class Itwinai:
     ) -> Self:
         """Push container to registry"""
 
-        uri = uri or f"{self.docker_registry}/{self.name}:{self.tag}"
+        uri = uri or f"{self.docker_registry}/{self.image}:{self.tag}"
         outcome = await (
             self.container.with_label(
                 name="org.opencontainers.image.ref.name",
@@ -249,7 +261,7 @@ class Itwinai:
         already exist in some publicly accessible containers registry.
         """
 
-        image = image or f"docker://{self.docker_registry}/{self.name}:{self.tag}"
+        image = image or f"docker://{self.docker_registry}/{self.image}:{self.tag}"
 
         if not image:
             raise RuntimeError(
@@ -317,7 +329,7 @@ class Itwinai:
         }
         image_path = "/ceph/hpc/data/st2301-itwin-users/cern/hello-world-image.sif"
         cmd_args = ["sleep 10 && exit $PRE_EXEC_RETURN_CODE"]
-        pod_name = f"ci-test-itwinai-hpc-{self.name}-{self.tag}"
+        pod_name = f"ci-test-itwinai-hpc-{self.image}-{self.tag}"
 
         # Launch interLink service
         interlink_svc = self.interlink(
@@ -392,8 +404,8 @@ class Itwinai:
             dagger.Secret | None, Doc("Username for Singularity registry")
         ] = None,
     ) -> str:
-        """DEPRECATED. End-to-end pipeline to test a container and push it, including both local
-        tests and tests on HPC via interLink.
+        """DEPRECATED. End-to-end pipeline to test a container and push it, including both
+        local tests and tests on HPC via interLink.
         """
 
         if stage == stage.DEV:
@@ -421,7 +433,7 @@ class Itwinai:
             assert username is not None, "Missing username for Singularity registry"
             assert password is not None, "Missing password for Singularity registry"
             # Publish to registry with random hash
-            uri = f"oras://{self.singularity_registry}/{self.name}:{self.tag}"
+            uri = f"oras://{self.singularity_registry}/{self.image}:{self.tag}"
             await self.publish_singularity(uri=uri, username=username, password=password)
 
             # Test on HPC with
@@ -430,7 +442,7 @@ class Itwinai:
             )
 
             # Publish to registry with final URI
-            uri = f"oras://{self.singularity_registry}/{self.name}:{self.tag}"
+            uri = f"oras://{self.singularity_registry}/{self.image}:{self.tag}"
             await self.publish_singularity(uri=uri, username=username, password=password)
         else:
             self._logs.append("INFO: skipping tests on HPC")
@@ -512,6 +524,13 @@ class Itwinai:
         framework: Annotated[
             MLFramework, Doc("ML framework in container")
         ] = MLFramework.TORCH,
+        skip_singularity: Annotated[bool, Doc("Avoid publishing a Singularity image")] = False,
+        password: Annotated[
+            dagger.Secret | None, Doc("Password for Singularity registry")
+        ] = None,
+        username: Annotated[
+            dagger.Secret | None, Doc("Username for Singularity registry")
+        ] = None,
     ) -> str:
         """CI pipeline for pre-release containers. Tests are only local."""
 
@@ -520,7 +539,17 @@ class Itwinai:
 
         # Publish to Docker registry with "final" tag
         tag = await self._evaluate_tag_template(tag_template=tag_template, framework=framework)
-        await self.publish(uri=f"{self.docker_registry}/{self.name}:{tag}")
+        await self.publish(uri=f"{self.docker_registry}/{self.image}:{tag}")
+
+        if not skip_singularity:
+            assert username is not None, "Missing username for Singularity registry"
+            assert password is not None, "Missing password for Singularity registry"
+            # Publish to Singularity registry
+            await self.publish_singularity(
+                uri=f"oras://{self.singularity_registry}/{self.image}:{tag}",
+                username=username,
+                password=password,
+            )
 
         return self.logs()
 
@@ -539,6 +568,7 @@ class Itwinai:
             MLFramework, Doc("ML framework in container")
         ] = MLFramework.TORCH,
         skip_hpc: Annotated[bool, Doc("Skip tests on remote HPC")] = False,
+        skip_singularity: Annotated[bool, Doc("Avoid publishing a Singularity image")] = False,
         kubernetes: Annotated[
             dagger.Service | None,
             Doc(
@@ -565,7 +595,7 @@ class Itwinai:
             assert username is not None, "Missing username for Singularity registry"
             assert password is not None, "Missing password for Singularity registry"
             # Publish to registry with random hash
-            uri = f"oras://{self.singularity_registry}/{self.name}:{self.tag}"
+            uri = f"oras://{self.singularity_registry}/{self.image}:{self.tag}"
             await self.publish_singularity(uri=uri, username=username, password=password)
 
             # Test on HPC with
@@ -576,15 +606,19 @@ class Itwinai:
         else:
             self._logs.append("INFO: skipping tests on HPC")
 
-        # Publish to registry with "final" tag
-        final_tag = self._evaluate_tag_template(tag_template=tag_template, framework=framework)
-        for tag in [final_tag, "latest"]:
+        # Publish to registry with "final" and latest tag
+        final_tag = await self._evaluate_tag_template(
+            tag_template=tag_template, framework=framework
+        )
+        for tag in [final_tag, f"{self.nickname}-latest"]:
             # Publish to Docker registry
-            self.publish(uri=f"{self.docker_registry}/{self.name}:{tag}")
-            if not skip_hpc:
+            self.publish(uri=f"{self.docker_registry}/{self.image}:{tag}")
+            if not skip_singularity:
+                assert username is not None, "Missing username for Singularity registry"
+                assert password is not None, "Missing password for Singularity registry"
                 # Publish to Singularity registry
                 await self.publish_singularity(
-                    uri=f"oras://{self.singularity_registry}/{self.name}:{tag}",
+                    uri=f"oras://{self.singularity_registry}/{self.image}:{tag}",
                     username=username,
                     password=password,
                 )
@@ -684,7 +718,7 @@ class Itwinai:
         ] = None,
     ) -> Self:
         """Convert itwinai container to Singularity and push it to some registry."""
-        uri = uri or f"oras://{self.singularity_registry}/{self.name}:{self.tag}"
+        uri = uri or f"oras://{self.singularity_registry}/{self.image}:{self.tag}"
         self._logs.append(f"INFO: the Singularity image will be published at: {uri}")
         stdout = await self.singularity(docker=self.container).publish(
             password=password, username=username, uri=uri
