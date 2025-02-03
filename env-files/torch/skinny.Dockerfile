@@ -13,6 +13,10 @@ ARG BASE_IMG_NAME=python:3.10-slim
 FROM ${BASE_IMG_NAME}
 ARG BASE_IMG_NAME
 
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    git \
+    && apt-get clean -y && rm -rf /var/lib/apt/lists/*
+
 
 # Install itwinai with torch
 WORKDIR /app
