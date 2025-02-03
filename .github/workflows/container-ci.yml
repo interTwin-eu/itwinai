@@ -32,7 +32,7 @@ jobs:
             nickname: "torch"
             tag-template: "@{itwinai_version}-torch@{framework_version}-@{os_version}"
             skip-hpc: false
-            skip-singularity: true
+            skip-singularity: false
           # - base-img-name: "python:3.10-slim"
           #   dockerfile: "../env-files/torch/slim.Dockerfile"
           #   nickname: "torch-slim"
