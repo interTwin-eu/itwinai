@@ -136,7 +136,7 @@ ARG BASE_IMG_NAME
 COPY --from=build /opt/venv /opt/venv
 
 # Link /usr/local/bin/python3.10 (in the app image) to /usr/bin/python3.10 (in the builder image)
-# RUN ln -s /usr/local/bin/python3.10 /usr/bin/python3.10
+RUN ln -s /usr/local/bin/python3.10 /usr/bin/python3.10
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
