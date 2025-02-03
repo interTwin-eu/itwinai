@@ -72,7 +72,8 @@ runs:
       uses: easimon/maximize-build-space@v10
       with:
         # Reserve space on root for docker/dagger cache
-        root-reserve-mb: 35000
+        build-mount-path: /docker
+        root-reserve-mb: 1024
         overprovision-lvm: true
         swap-size-mb: 1024
         remove-dotnet: true
