@@ -31,7 +31,7 @@ RUN itwinai sanity-check --torch \
     --optional-deps ray
 
 COPY tests tests
-COPY env-files/torch/slim.Dockerfile Dockerfile
+COPY env-files/torch/skinny.Dockerfile Dockerfile
 
 # Labels
 ARG CREATION_DATE
