@@ -168,7 +168,7 @@ class Itwinai:
                 "/app/tests",
             ]
         ).stdout()
-        self._logs.append("INFO: Results of local tests:")
+        self._logs.append("INFO: running pytest for 'local' tests:")
         self._logs.append(tests_result)
         return self
 
@@ -194,7 +194,7 @@ class Itwinai:
             )
             .publish(address=uri)
         )
-        self._logs.append(f"INFO: results of publishing to {uri}")
+        self._logs.append(f"INFO: publishing Docker image to {uri}")
         self._logs.append(outcome)
         return self
 
@@ -719,7 +719,7 @@ class Itwinai:
     ) -> Self:
         """Convert itwinai container to Singularity and push it to some registry."""
         uri = uri or f"oras://{self.singularity_registry}/{self.image}:{self.tag}"
-        self._logs.append(f"INFO: the Singularity image will be published at: {uri}")
+        self._logs.append(f"INFO: the Singularity image will be published to: {uri}")
         stdout = await self.singularity(docker=self.container).publish(
             password=password, username=username, uri=uri
         )

@@ -91,8 +91,8 @@ runs:
         sudo ln -s /docker/docker /var/lib/docker &&
         sudo systemctl restart docker
 
-    # - name: Setup tmate session
-    #   uses: mxschmitt/action-tmate@v3
+    - name: Setup tmate session
+      uses: mxschmitt/action-tmate@v3
 
     - name: Check Inputs
       shell: bash
@@ -189,3 +189,7 @@ runs:
           INTERLINK_VALUES: ${{ inputs.interlink-values }}
           SINGULARITY_PWD: ${{ inputs.singularity-password }}
           SINGULARITY_USR: ${{ inputs.singularity-username }}
+
+    - name: Setup tmate session
+      if: ${{ failure() }}
+      uses: mxschmitt/action-tmate@v3
