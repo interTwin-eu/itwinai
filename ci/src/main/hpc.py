@@ -74,6 +74,10 @@ class Singularity:
             .stdout()
         )
 
+    # @function
+    # def tar(self, docker: dagger.Container) -> dagger.Container:
+    #     return self.base_image.with_file("img.tar", docker.as_tarball())
+
     @function
     async def remove(
         self,

@@ -191,7 +191,3 @@ runs:
           INTERLINK_VALUES: ${{ inputs.interlink-values }}
           SINGULARITY_PWD: ${{ inputs.singularity-password }}
           SINGULARITY_USR: ${{ inputs.singularity-username }}
-
-    - name: Setup tmate session
-      if: ${{ failure() }}
-      uses: mxschmitt/action-tmate@v3

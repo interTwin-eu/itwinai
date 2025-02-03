@@ -9,5 +9,8 @@
       "pin": "833ec36632b2457862f6e3bf1f7107ad65e3e515"
     }
   ],
-  "source": "."
+  "source": ".",
+  "gc": {
+    "maxUsedSpace": "30GB"
+  }
 }

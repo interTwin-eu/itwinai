@@ -28,7 +28,7 @@ jobs:
           # Note: in the tag template we replace '$' with '@' as otherwise the GH action will
           # try to interpolate the values, breaking the template  
           - base-img-name: "nvcr.io/nvidia/pytorch:24.05-py3"
-            dockerfile: "../env-files/torch/Dockerfile"
+            dockerfile: "../env-files/torch/slim.Dockerfile"
             nickname: "torch"
             tag-template: "@{itwinai_version}-torch@{framework_version}-@{os_version}"
             skip-hpc: false
