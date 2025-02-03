@@ -27,18 +27,24 @@ jobs:
         config:
           # Note: in the tag template we replace '$' with '@' as otherwise the GH action will
           # try to interpolate the values, breaking the template  
-          - base-img-name: "nvcr.io/nvidia/pytorch:24.05-py3"
+          # - base-img-name: "nvcr.io/nvidia/pytorch:24.05-py3"
+          #   dockerfile: "../env-files/torch/Dockerfile"
+          #   nickname: "torch"
+          #   tag-template: "@{itwinai_version}-torch@{framework_version}-@{os_version}"
+          #   skip-hpc: false
+          #   skip-singularity: false
+          - base-img-name: "python:3.10-slim"
             dockerfile: "../env-files/torch/skinny.Dockerfile"
-            nickname: "torch"
-            tag-template: "@{itwinai_version}-torch@{framework_version}-@{os_version}"
+            nickname: "torch-skinny"
+            tag-template: "@{itwinai_version}-skinny-torch@{framework_version}-@{os_version}"
             skip-hpc: false
             skip-singularity: false
-          # - base-img-name: "python:3.10-slim"
-          #   dockerfile: "../env-files/torch/slim.Dockerfile"
-          #   nickname: "torch-slim"
-          #   tag-template: "@{itwinai_version}-slim-torch@{framework_version}-@{os_version}"
-          #   skip-hpc: true
-          #   skip-singularity: true
+          - base-img-name: "python:3.10-slim"
+            dockerfile: "../env-files/torch/slim.Dockerfile"
+            nickname: "torch-slim"
+            tag-template: "@{itwinai_version}-slim-torch@{framework_version}-@{os_version}"
+            skip-hpc: false
+            skip-singularity: false
           # - base-img-name: "jupyter/scipy-notebook:python-3.10.11"
           #   dockerfile: "../env-files/torch/jupyter/slim.Dockerfile"
           #   nickname: "jlab-slim"
