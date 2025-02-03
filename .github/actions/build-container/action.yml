@@ -73,9 +73,9 @@ runs:
       with:
         # Reserve space on root for docker/dagger cache
         build-mount-path: /docker
-        root-reserve-mb: 1024
-        overprovision-lvm: true
-        swap-size-mb: 1024
+        root-reserve-mb: 2048
+        overprovision-lvm: false
+        swap-size-mb: 4096
         remove-dotnet: true
         remove-android: true
         remove-haskell: true
@@ -102,12 +102,12 @@ runs:
         echo &&
         echo skip hpc flag: $([[ "${{ inputs.skip-hpc }}" == "true" ]] && echo '--skip-hpc' || echo '')
 
-    # - name: Delete unnecessary tools and packages
-    #   if: inputs.free-disk-space == 'true'
-    #   shell: bash
-    #   run: |
-    #     rm -rf /opt/hostedtoolcache &&
-    #     curl -fsSL https://raw.githubusercontent.com/apache/flink/02d30ace69dc18555a5085eccf70ee884e73a16e/tools/azure-pipelines/free_disk_space.sh | bash
+    - name: Delete unnecessary tools and packages
+      if: inputs.free-disk-space == 'true'
+      shell: bash
+      run: |
+        rm -rf /opt/hostedtoolcache &&
+        curl -fsSL https://raw.githubusercontent.com/apache/flink/02d30ace69dc18555a5085eccf70ee884e73a16e/tools/azure-pipelines/free_disk_space.sh | bash
     # - name: Setup tmate session
     #   uses: mxschmitt/action-tmate@v3
 
