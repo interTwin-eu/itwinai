@@ -176,6 +176,36 @@ dagger call --name="$(git rev-parse --verify HEAD)"  \
     test-local \
     logs
 
+
+export BASE_IMG_NAME="python:3.10-slim"
+dagger call \
+    --nickname torch-slim \
+    --image itwinai-dev \
+    --docker-registry ghcr.io/intertwin-eu \
+    --singularity-registry registry.egi.eu/dev.intertwin.eu \
+    build-container \
+    --context .. \
+    --dockerfile ../env-files/torch/slim.Dockerfile \
+    --build-args ="COMMIT_HASH=$COMMIT_HASH,BASE_IMG_NAME=$BASE_IMG_NAME,BASE_IMG_DIGEST=$BASE_IMG_DIGEST" \
+    container \
+    terminal
+
+
+dagger call \
+    --nickname torch-skinny \
+    --image itwinai-dev \
+    --docker-registry ghcr.io/intertwin-eu \
+    --singularity-registry registry.egi.eu/dev.intertwin.eu \
+    --container ubuntu \
+    release-pipeline \
+    --values file:tmp.yaml \
+    --framework TORCH \
+    --tag-template '${itwinai_version}-slim-torch${framework_version}-${os_version}' \
+    --password env:SING_PWD \
+    --username env:SING_USER \
+    --skip-hpc
+
+
 # Test on HPC and publish
 export COMMIT_HASH=$(git rev-parse --verify HEAD)
 export BASE_IMG_NAME="python:3.10-slim"

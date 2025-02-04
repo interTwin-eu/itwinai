@@ -592,11 +592,17 @@ class Itwinai:
         await self.test_local()
 
         if not skip_hpc:
-            assert username is not None, "Missing username for Singularity registry"
-            assert password is not None, "Missing password for Singularity registry"
-            # Publish to registry with random hash
-            uri = f"oras://{self.singularity_registry}/{self.image}:{self.tag}"
-            await self.publish_singularity(uri=uri, username=username, password=password)
+            if skip_singularity:
+                # The Docker image will be automatically converted to Singularity on HPC
+                # before running the tests
+                uri = f"docker://{self.singularity_registry}/itwinai-dev:{self.tag}"
+                await self.publish(usri=uri)
+            else:
+                assert username is not None, "Missing username for Singularity registry"
+                assert password is not None, "Missing password for Singularity registry"
+                # Publish to registry with random hash
+                uri = f"oras://{self.singularity_registry}/itwinai-dev:{self.tag}"
+                await self.publish_singularity(uri=uri, username=username, password=password)
 
             # Test on HPC with
             await self.test_hpc(
@@ -612,7 +618,7 @@ class Itwinai:
         )
         for tag in [final_tag, f"{self.nickname}-latest"]:
             # Publish to Docker registry
-            self.publish(uri=f"{self.docker_registry}/{self.image}:{tag}")
+            await self.publish(uri=f"{self.docker_registry}/{self.image}:{tag}")
             if not skip_singularity:
                 assert username is not None, "Missing username for Singularity registry"
                 assert password is not None, "Missing password for Singularity registry"
