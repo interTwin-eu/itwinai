@@ -355,10 +355,11 @@ def exec_pipeline_with_compose(cfg):
 
     # Instantiate and execute the pipeline
     try:
-        pipeline = instantiate(cfg)
+        pipeline = instantiate(cfg, _convert_="all")
         pipeline.execute()
     except Exception as e:
         root = get_root_cause(e)
+        raise e
         raise root
 
 
