@@ -30,7 +30,7 @@ Please follow the documentation to install the itwinai environment.
 After that, install the required libraries within the itwinai environment with:
 
 ```bash
-pip install -r Requirements.txt
+pip install -r requirements.txt
 ```
 
 ## How to launch pipeline locally
@@ -51,7 +51,7 @@ These steps should be followed to export the environment variables required by t
 
 ```bash
 # Distributed training with torch DistributedDataParallel
-PYTHON_VENV="../../envAI_hdfml"
+PYTHON_VENV=".venv"
 DIST_MODE="ddp"
 RUN_NAME="ddp-cerfacs"
 sbatch --export=ALL,DIST_MODE="$DIST_MODE",RUN_NAME="$RUN_NAME",PYTHON_VENV="$PYTHON_VENV" \

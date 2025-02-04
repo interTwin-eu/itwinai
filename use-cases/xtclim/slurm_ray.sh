@@ -10,7 +10,7 @@
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1
 #SBATCH --gpus-per-node=4
-#SBATCH --partition=batch
+#SBATCH --partition=develbooster
 #SBATCH --exclusive
 
 # Output and error logs
@@ -21,7 +21,7 @@
 ml Stages/2024 GCC OpenMPI CUDA/12 MPI-settings/CUDA Python HDF5 PnetCDF libaio mpi4py
 
 # Set and activate virtual environment
-PYTHON_VENV="envAI_hdfml"
+PYTHON_VENV="itwinai/envAI_juwels"
 source $PYTHON_VENV/bin/activate
 
 # make sure CUDA devices are visible
@@ -73,9 +73,16 @@ for ((i = 1; i <= worker_num; i++)); do
 
     # Use srun to start Ray on the worker node and connect it to the head node.
     # The `--address` option tells the worker node where to find the head node.
-    srun --nodes=1 --ntasks=1 -w "$node_i" \
-        ray start --address "$head_node"i:"$port" --redis-password='5241580000000000' \
-        --num-cpus "$num_cpus" --num-gpus "$num_gpus" --block &
+    srun \
+    --nodes=1 \
+    --ntasks=1 \
+    -w "$node_i" \
+    ray start \
+    --address "$head_node":"$port" \
+    --redis-password='5241580000000000' \
+    --num-cpus "$num_cpus" \
+    --num-gpus "$num_gpus" \
+    --block &
 
     sleep 5 # Wait for a few seconds before starting the next worker to prevent race conditions.
 done

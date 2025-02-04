@@ -3,14 +3,16 @@ import os
 import sys
 from pathlib import Path
 from typing import Dict
-import yaml
+#import yaml
 
 import matplotlib.pyplot as plt
 import ray
 import torch
 from ray import train, tune
+from ray.tune import ResultGrid
 
 from itwinai.parser import ConfigParser
+from itwinai.utils import load_yaml
 
 sys.path.append(os.path.join(os.path.dirname(__file__), 'src'))
 sys.path.append(os.path.join(os.path.dirname(__file__), 'preprocessing'))
@@ -29,25 +31,23 @@ def run_trial(config: Dict, data: Dict):
         data (dict): A dictionary containing a "pipeline_path" field, which points to the yaml
             file containing the pipeline definition
     """
-    with open('pipeline.yaml', 'r') as f:
-        yaml_config = yaml.safe_load(f)
-
-    # Override keys of hyperparameters to be tuned from Ray config
-    yaml_config['batch_size'] = config['batch_size']
-    yaml_config['lr'] = config['lr']
-
-    # Set loggers to None as Ray logs the runs
-    yaml_config['pipeline']['init_args']['steps']['training-step']['init_args']['logger'] = None
-    yaml_config['pipeline']['init_args']['steps']['evaluation-step']['init_args']['logger'] = None
+    yaml_config = load_yaml('pipeline.yaml')
 
     seasons_list = yaml_config['seasons']
     for season in seasons_list:
-        yaml_config['pipeline']['init_args']['steps']['training-step']['init_args']['seasons'] = season
         model_uri = f"outputs/cvae_model_{season}1d_1memb.pth"
-        yaml_config['pipeline']['init_args']['steps']['evaluation-step']['init_args']['model_uri'] = model_uri
-        yaml_config['pipeline']['init_args']['steps']['evaluation-step']['init_args']['seasons'] = season
+        override_dict = {
+            'season': season,
+            'model_uri': model_uri,
+            'pipeline.init_args.steps.training-step.init_args.logger': None,
+            'pipeline.init_args.steps.evaluation-step.init_args.logger': None,
+            'batch_size': config['batch_size'],
+            'lr': config['lr']
+        }
+
         parser = ConfigParser(
             config=yaml_config,
+            override_keys=override_dict
         )
         my_pipeline = parser.parse_pipeline()
         print(f"Running pipeline for season: {season}")
@@ -59,7 +59,7 @@ def run_hpo(args):
     Either starts a new optimization run or resumes from previous results.
 
     Args:
-    - args: Command-line arguments parsed by argparse.
+        args: Command-line arguments parsed by argparse.
     """
     if not args.load_old_results:
 
@@ -158,13 +158,13 @@ def run_hpo(args):
     )
 
 
-def plot_results(result_grid, metric="loss", filename="plot.png"):
+def plot_results(result_grid: ResultGrid, metric: str ="loss", filename: str ="plot.png"):
     """Plot the results for all trials and save the plot to a file.
 
     Args:
-    - result_grid: Results from Ray Tune trials.
-    - metric: The metric to plot (e.g., 'loss').
-    - filename: Name of the file to save the plot.
+        result_grid (ResultGrid): Results from Ray Tune trials.
+        metric (str): The metric to plot (e.g., 'loss').
+        filename (str): Name of the file to save the plot.
     """
     ax = None
     for result in result_grid:
@@ -247,13 +247,5 @@ if __name__ == "__main__":
     )
 
     args = parser.parse_args()  # Parse the command-line arguments
-
-    # Check for available GPU
-    if torch.cuda.is_available():
-        device = 'cuda'
-        print(f"Using GPU: {torch.cuda.get_device_name(torch.cuda.current_device())}")
-    else:
-        device = 'cpu'
-        print("Using CPU")
 
     run_hpo(args)

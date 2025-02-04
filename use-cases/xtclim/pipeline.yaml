@@ -5,8 +5,11 @@ batch_size: 10
 lr: 0.001
 scenario: '245'
 strategy: ddp
-seasons: ['winter_', 'spring_', 'summer_', 'autumn_']
+seasons: ['winter_']
+  # , 'spring_', 'summer_', 'autumn_']
 evaluation: 'past'
+season: 'unk'
+model_uri: 'unk'
 
 # Workflows
 pipeline:
@@ -27,33 +30,37 @@ pipeline:
            init_args:
                epochs: ${epochs}
                batch_size: ${batch_size}
-               lr: ${lr}
+               optim_lr: ${lr}
                strategy: ${strategy}
+               seasons: ${season}
                # season is dynamically imported
-               logger:
-                 class_path: itwinai.loggers.LoggersCollection
-                 init_args:
-                   loggers:
-                     - class_path: itwinai.loggers.MLFlowLogger
-                       init_args:
-                         experiment_name: XTClim (Cerfacs)
-                         log_freq: epoch
-                     - class_path: itwinai.loggers.WandBLogger
-                       init_args:
-                         log_freq: epoch
+               #logger:
+               #  class_path: itwinai.loggers.LoggersCollection
+               #  init_args:
+               #    loggers:
+               #      - class_path: itwinai.loggers.MLFlowLogger
+               #        init_args:
+               #          experiment_name: XTClim (Cerfacs)
+               #          log_freq: epoch
+               #      - class_path: itwinai.loggers.WandBLogger
+               #        init_args:
+               #          log_freq: epoch
          evaluation-step:
            class_path: src.anomaly.XTClimPredictor
            init_args:
-             evaluation: ${evaluation}
-             batch_size: ${batch_size}
-             strategy: ${strategy}
-               # model_uri and season are dynamically imported
-               logger:
-                   class_path: itwinai.loggers.LoggersCollection
-                   init_args:
-                       loggers:
-                           - class_path: itwinai.loggers.MLFlowLogger
-                             init_args:
-                                 experiment_name: XTClim (Cerfacs)
-                                 log_freq: epoch
+               evaluation: ${evaluation}
+               batch_size: ${batch_size}
+               strategy: ${strategy}
+               seasons: ${season}
+               model_uri: ${model_uri}
+                 #model_class: "src.model.ConvVAE"
+             # model_uri and season are dynamically imported
+               #logger:
+               #    class_path: itwinai.loggers.LoggersCollection
+               #    init_args:
+               #        loggers:
+               #            - class_path: itwinai.loggers.MLFlowLogger
+               #              init_args:
+               #                  experiment_name: XTClim (Cerfacs)
+               #                  log_freq: epoch
 

@@ -19,6 +19,7 @@ import torch
 import torch.optim as optim
 import numpy as np
 import pandas as pd
+from pathlib import Path
 import sys
 import os
 
@@ -48,7 +49,7 @@ class XTClimTrainer(TorchTrainer):
             self,
             epochs: int,
             batch_size: int,
-            lr: float,
+            optim_lr: float,
             seasons: Literal["winter_", "spring_", "summer_", "autumn_"] = 'winter_',
             strategy: Literal["ddp", "deepspeed", "horovod"] = 'ddp',
             save_best: bool = True,
@@ -65,35 +66,39 @@ class XTClimTrainer(TorchTrainer):
         # Global training configuration
         self.config = TrainingConfiguration(
             batch_size = batch_size,
-            lr = lr,
+            optim_lr = optim_lr,
             save_best=save_best,
             n_memb = 1, # number of members used in training the network
             stop_delta = 0.01,  # under 1% improvement consider the model starts converging
             patience = 15,  # wait for a few epochs to be sure before actually stopping
             early_count = 0,  # count when validation loss < stop_delta
-            old_valid_loss = 0  # keep track of validation loss at t-1
+            old_valid_loss = 1e-15,  # keep track of validation loss at t-1
+            lr_decay_interval = 20, # number of epochs to decay learning rate
+            lr_decay_rate = 5
         )
 
     def final_loss(self, bce_loss, mu, logvar, beta=0.1):
-        """
-        Adds up reconstruction loss (BCELoss) and Kullback-Leibler divergence.
+        """Adds up reconstruction loss (BCELoss) and Kullback-Leibler divergence.
         KL-Divergence = 0.5 * sum(1 + log(sigma^2) - mu^2 - sigma^2)
 
         Args:
-            - bce_loss (torch.Tensor): recontruction loss
-            - mu (torch.Tensor): the mean from the latent vector
-            - logvar (torch.Tensor): log variance from the latent vector
-            - beta (torch.Tensor): weight over the KL-Divergence
+            bce_loss (torch.Tensor): recontruction loss
+            mu (torch.Tensor): the mean from the latent vector
+            logvar (torch.Tensor): log variance from the latent vector
+            beta (torch.Tensor): weight over the KL-Divergence
 
         Returns:
-            - total loss (torch.Tensor)
+            total loss (torch.Tensor)
         """
-        BCE = bce_loss
         KLD = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())
-        return BCE + beta*KLD
+        return bce_loss + beta*KLD
 
     @monitor_exec
     def execute(self):
+
+        # Define the base directory for input and output data
+        input_dir = Path("input")
+        output_dir = Path("outputs")
 
         # pick the season to study among:
         season = self.seasons
@@ -102,7 +107,7 @@ class XTClimTrainer(TorchTrainer):
         self._init_distributed_strategy()
         # initialize the model
         cvae_model = model.ConvVAE()
-        optimizer = optim.Adam(cvae_model.parameters(), lr=self.config.lr)
+        optimizer = optim.Adam(cvae_model.parameters(), lr=self.config.optim_lr)
 
         # First, define strategy-wise optional configurations
         if isinstance(self.strategy, DeepSpeedStrategy):
@@ -121,9 +126,11 @@ class XTClimTrainer(TorchTrainer):
         )
 
         # load training set and train data
-        train_time = pd.read_csv(f"input/dates_train_{season}data_{self.config.n_memb}memb.csv")
+        train_time = pd.read_csv(
+            input_dir / f"dates_train_{season}data_{self.config.n_memb}memb.csv"
+        )
         train_data = np.load(
-            f"input/preprocessed_1d_train_{season}data_{self.config.n_memb}memb.npy"
+            input_dir / f"preprocessed_1d_train_{season}data_{self.config.n_memb}memb.npy"
         )
         n_train = len(train_data)
         trainset = [
@@ -131,19 +138,25 @@ class XTClimTrainer(TorchTrainer):
             for i in range(n_train)
         ]
         # load train set, shuffle it, and create batches
-        trainloader = self.strategy.create_dataloader(trainset, batch_size=self.config.batch_size,
-                shuffle=True, pin_memory=True)
+        trainloader = self.strategy.create_dataloader(
+            trainset, batch_size=self.config.batch_size, shuffle=True, pin_memory=True
+        )
 
         # load validation set and validation data
-        test_time = pd.read_csv(f"input/dates_test_{season}data_{self.config.n_memb}memb.csv")
-        test_data = np.load(f"input/preprocessed_1d_test_{season}data_{self.config.n_memb}memb.npy")
+        test_time = pd.read_csv(
+            input_dir / f"dates_test_{season}data_{self.config.n_memb}memb.csv"
+        )
+        test_data = np.load(
+            input_dir / f"preprocessed_1d_test_{season}data_{self.config.n_memb}memb.npy"
+        )
         n_test = len(test_data)
         testset = [
             (torch.from_numpy(np.reshape(test_data[i], (2, 32, 32))), test_time["0"][i])
             for i in range(n_test)
         ]
-        testloader = self.strategy.create_dataloader(testset, batch_size=self.config.batch_size,
-                shuffle=False, pin_memory=True)
+        testloader = self.strategy.create_dataloader(
+            testset, batch_size=self.config.batch_size, shuffle=False, pin_memory=True
+        )
 
         if self.strategy.is_main_worker and self.logger:
             self.logger.create_logger_context()
@@ -175,14 +188,8 @@ class XTClimTrainer(TorchTrainer):
                 cvae_model, testloader, testset, self.device, criterion, beta
             )
 
-            self.log(train_epoch_loss,
-                    'epoch_train_loss',
-                    kind='metric'
-                    )
-            self.log(valid_epoch_loss,
-                    'epoch_valid_loss',
-                    kind='metric'
-                    )
+            self.log(train_epoch_loss, 'epoch_train_loss', kind='metric')
+            self.log(valid_epoch_loss, 'epoch_valid_loss', kind='metric')
 
             # keep track of the losses
             train_loss.append(train_epoch_loss)
@@ -200,21 +207,21 @@ class XTClimTrainer(TorchTrainer):
             #    save_ex(recon_images[0], epoch, season)
 
             # decreasing learning rate
-            if (epoch + 1) % 20 == 0:
-                self.config.lr = self.config.lr / 5
+            if (epoch + 1) % self.config.lr_decay_interval == 0:
+                self.config.optim_lr = self.config.optim_lr / self.config.lr_decay_rate
 
             # early stopping to avoid overfitting
-            if (
-                epoch > 1
-                and (self.config.old_valid_loss - valid_epoch_loss) / self.config.old_valid_loss < self.config.stop_delta
-            ):
+            min_epochs = epoch > 1
+            improve_below_threshold = (
+                (self.config.old_valid_loss - valid_epoch_loss) / self.config.old_valid_loss
+            ) < self.config.stop_delta
+            if min_epochs and improve_below_threshold:
                 # if the marginal improvement in validation loss is too small
                 self.config.early_count += 1
                 if self.config.early_count > self.config.patience:
                 # if too small improvement for a few epochs in a row, stop learning
                     save_ex(recon_images[0], epoch, season)
                     break
-
             else:
                 # if the condition is not verified anymore, reset the count
                 self.config.early_count = 0
@@ -236,29 +243,29 @@ class XTClimTrainer(TorchTrainer):
                     }
                     # save checkpoint only if it is better than
                     # the previous ones
-                    checkpoint_filename = f"outputs/cvae_model_{season}1d_{self.config.n_memb}memb.pth"
+                    checkpoint_filename = output_dir / f"cvae_model_{season}1d_{self.config.n_memb}memb.pth"
                     torch.save(checkpoint, checkpoint_filename)
                     # itwinai - log checkpoint as artifact
-                    self.log(checkpoint_filename,
-                            os.path.basename(checkpoint_filename),
-                            kind='artifact')
+                    self.log(checkpoint_filename, Path(checkpoint_filename).name, kind='artifact')
 
         print(f"Train Loss: {train_epoch_loss:.4f}")
         print(f"Val Loss: {valid_epoch_loss:.4f}")
 
         # Report training metrics of last epoch to Ray
         train_ray.report(
-            {"loss": train_epoch_loss,
-             "valid_loss": valid_epoch_loss}
+            {
+                "loss": train_epoch_loss,
+                "valid_loss": valid_epoch_loss
+            }
         )
 
         save_loss_plot(train_loss, valid_loss, season)
         # save the loss evolutions
         pd.DataFrame(train_loss).to_csv(
-            f"outputs/train_loss_indiv_{season}1d_{self.config.n_memb}memb.csv"
+            output_dir / f"train_loss_indiv_{season}1d_{self.config.n_memb}memb.csv"
         )
         pd.DataFrame(valid_loss).to_csv(
-            f"outputs/test_loss_indiv_{season}1d_{self.config.n_memb}memb.csv"
+            output_dir / f"test_loss_indiv_{season}1d_{self.config.n_memb}memb.csv"
         )
 
         # Clean-up

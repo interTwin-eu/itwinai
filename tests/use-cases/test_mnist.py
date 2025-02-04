@@ -87,8 +87,10 @@ def test_mnist_inference_torch(torch_env, install_requirements):
     )
     with tempfile.TemporaryDirectory() as temp_dir:
         # Create fake inference dataset and checkpoint
-        generate_model_cmd = (f"{torch_env}/bin/python {exec} "
-                f"--root {temp_dir}")
+        generate_model_cmd = (
+                f"{torch_env}/bin/python {exec} "
+                f"--root {temp_dir}"
+        )
         subprocess.run(generate_model_cmd.split(), check=True, cwd=temp_dir)
 
         # Running inference

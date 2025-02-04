@@ -9,7 +9,7 @@ matplotlib
 numpy
 pandas
 tqdm
-urllib3==1.26.13
+urllib3==1.26.*
 xarray
 netCDF4
 h5netcdf

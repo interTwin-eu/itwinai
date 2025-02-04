@@ -37,7 +37,17 @@ class TorchModelLoader(ModelLoader):
         model_uri (str): Can be a path on local filesystem
             or an mlflow 'locator' in the form:
             'mlflow+MLFLOW_TRACKING_URI+RUN_ID+ARTIFACT_PATH'
+        model_class (torch.nn.Module): The class of the
+            neural network to run the inference.
     """
+
+    def __init__(self, model_uri: str,
+            model_class: nn.Module | None = None,
+            strategy: Optional[TorchDistributedStrategy] = None
+        ):
+        self.model_uri = model_uri
+        self.model_class = model_class
+        self.strategy = strategy
 
     def __call__(self) -> nn.Module:
         """Loads model from model URI.
@@ -49,11 +59,16 @@ class TorchModelLoader(ModelLoader):
         Returns:
             nn.Module: torch neural network.
         """
+        if self.strategy and self.strategy.is_initialized:
+            device = self.strategy.device()
+        else:
+            device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
         if os.path.exists(self.model_uri):
             # Model is on local filesystem.
-            device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-            model = torch.load(self.model_uri, map_location=device)
-            return model
+            checkpoint = torch.load(self.model_uri, map_location=device)
+            model = self._load_model_from_checkpoint(checkpoint)
+            return model.eval()
 
         if self.model_uri.startswith('mlflow+'):
             # Model is on an MLFLow server
@@ -77,13 +92,20 @@ class TorchModelLoader(ModelLoader):
                 dst_path="tmp/",
                 tracking_uri=mlflow.get_tracking_uri(),
             )
-            model = torch.load(ckpt_path)
-            return model
+            checkpoint = torch.load(ckpt_path, map_location=device)
+            model = self._load_model_from_checkpoint(checkpoint)
+            return model.eval()
 
         raise ValueError(
             "Unrecognized model URI: model may not be there! "
             f"Received model URI: {self.model_uri}"
         )
+
+    def _load_model_from_checkpoint(self, checkpoint: dict) -> nn.Module:
+
+        model = self.model_class()
+        model.load_state_dict(checkpoint['model_state_dict'], strict=False)
+        return model
 
 
 class TorchPredictor(Predictor):
@@ -147,7 +169,8 @@ class TorchPredictor(Predictor):
             dist_str = DeepSpeedStrategy(backend='nccl')
         else:
             raise NotImplementedError(
-                f"Strategy '{strategy}' is not recognized/implemented.")
+                f"Strategy '{strategy}' is not recognized/implemented."
+            )
         return dist_str
 
     def _init_distributed_strategy(self) -> None:
@@ -155,25 +178,22 @@ class TorchPredictor(Predictor):
             self.strategy.init()
 
     def distribute_model(self) -> None:
-        """
-        Distribute the torch model with the chosen strategy.
-        """
+        """Distribute the torch model with the chosen strategy."""
         if self.model is None:
             raise ValueError(
-                "self.model is None! Mandatory constructor argument "
+                "self.model is None! Please ensure it is set before calling this method."
             )
         distribute_kwargs = {}
         # Distributed model
         self.model, _, _ = self.strategy.distributed(
-            self.model, None, None, **distribute_kwargs
+            model=self.model, optimizer=None, lr_scheduler=None, **distribute_kwargs
         )
 
     def create_dataloaders(
         self,
         inference_dataset: Dataset
     ) -> None:
-        """
-        Create inference dataloader.
+        """Create inference dataloader.
 
         Args:
             inference_dataset (Dataset): inference dataset object.
@@ -188,11 +208,31 @@ class TorchPredictor(Predictor):
             shuffle=self.config.shuffle_test
         )
 
+    def predict(self) -> Dict[str, Any]:
+        """Predicts or runs inference on a trained ML model.
+
+        Returns:
+            Dict[str, Any]: maps each item ID to the corresponding predicted values.
+        """
+        all_predictions = dict()
+        for samples_ids, samples in self.inference_dataloader:
+            with torch.no_grad():
+                pred = self.model(samples.to(self.device))
+            pred = self.transform_predictions(pred)
+            for idx, pre in zip(samples_ids, pred):
+                # For each item in the batch
+                if pre.numel() == 1:
+                    pre = pre.item()
+                else:
+                    pre = pre.to_dense().tolist()
+                all_predictions[idx] = pre
+        return all_predictions
+
     @monitor_exec
     def execute(
         self,
         inference_dataset: Dataset,
-        model: nn.Module = None,
+        model: nn.Module | None = None,
     ) -> Dict[str, Any]:
         """Applies a torch model to a dataset for inference.
 
@@ -211,9 +251,7 @@ class TorchPredictor(Predictor):
             # Overrides existing "internal" model
             self.model = model
 
-        self.create_dataloaders(
-            inference_dataset=inference_dataset
-        )
+        self.create_dataloaders(inference_dataset=inference_dataset)
 
         self.distribute_model()
 
@@ -223,18 +261,7 @@ class TorchPredictor(Predictor):
             hparams['distributed_strategy'] = self.strategy.__class__.__name__
             self.logger.save_hyperparameters(hparams)
 
-        all_predictions = dict()
-        for ids, (samples_ids, samples) in enumerate(self.inference_dataloader):
-            with torch.no_grad():
-                pred = self.model(samples.to(self.device))
-            pred = self.transform_predictions(pred)
-            for idx, pre in zip(samples_ids, pred):
-                # For each item in the batch
-                if pre.numel() == 1:
-                    pre = pre.item()
-                else:
-                    pre = pre.to_dense().tolist()
-                all_predictions[idx] = pre
+        all_predictions = self.predict()
 
         if self.logger:
             self.logger.destroy_logger_context()
@@ -245,11 +272,11 @@ class TorchPredictor(Predictor):
 
     def log(
         self,
-        item: Union[Any, List[Any]],
-        identifier: Union[str, List[str]],
+        item: Any | list[Any],
+        identifier: str | list[str],
         kind: str = 'metric',
-        step: Optional[int] = None,
-        batch_idx: Optional[int] = None,
+        step: int | None = None,
+        batch_idx: int | None = None,
         **kwargs
     ) -> None:
         """Log ``item`` with ``identifier`` name of ``kind`` type at ``step``
@@ -276,10 +303,8 @@ class TorchPredictor(Predictor):
             )
 
     def transform_predictions(self, batch: Batch) -> Batch:
-        """
-        Post-process the predictions of the torch model (e.g., apply
-        threshold in case of multi-label classifier).
-        """
+        """Post-process the predictions of the torch model (e.g., apply
+        threshold in case of multi-label classifier)."""
 
 
 class MulticlassTorchPredictor(TorchPredictor):
