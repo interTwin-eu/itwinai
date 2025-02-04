@@ -58,12 +58,14 @@ the MNIST dataset, which can be seen on Github
 This can be run locally using 
 
 .. code-block:: bash
+
   python train.py
 
 or in a distributed manner as explained in the section above. If you wish to analyze
 the resulting MLFlow logs, you can use the following command: 
 
 .. code-block:: bash
+
    itwinai mlflow-ui --path mllogs/mlflow
 
 .. note:: 
