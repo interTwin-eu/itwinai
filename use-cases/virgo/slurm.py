@@ -44,8 +44,8 @@ class VirgoSlurmScriptBuilder(SlurmScriptBuilder):
 
         training_command = rf"""
         $(which itwinai) exec-pipeline \
-            --config_path {self.config_path} \
-            --config_name {self.config_name} \
+            --config-path {self.config_path} \
+            --config-name {self.config_name} \
             +pipe-key {self.pipe_key} \
             strategy={self.distributed_strategy} \
             checkpoint_path=checkpoints_ddp/epoch_{{}}.pth

@@ -36,8 +36,8 @@ scalability_nodes: "1, 2, 4"
 # If you want to manually override the training command, comment in the following:
 # training_cmd: | 
 #   $(which itwinai) exec-pipeline \
-#   --config_path ${config_file} \
-#   --config_name ${config_name}
+#   --config-path ${config_file} \
+#   --config-name ${config_name}
 #   +pipe_key ${pipe_key} \
 #   strategy=${dist_strat} \
 #   checkpoint_path=checkpoints_ddp/epoch_{}.pth
