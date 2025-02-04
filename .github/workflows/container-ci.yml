@@ -37,7 +37,7 @@ jobs:
             dockerfile: "../env-files/torch/skinny.Dockerfile"
             nickname: "torch-skinny"
             tag-template: "@{itwinai_version}-skinny-torch@{framework_version}-@{os_version}"
-            skip-hpc: false
+            skip-hpc: true
             skip-singularity: false
           - base-img-name: "python:3.10-slim"
             dockerfile: "../env-files/torch/slim.Dockerfile"
