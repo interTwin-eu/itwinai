@@ -33,11 +33,13 @@ jobs:
           #   nickname: "torch"
           #   tag-template: "@{itwinai_version}-torch@{framework_version}-@{os_version}"
           #   skip-hpc: false
-          #   skip-singularity: false
+          #   # Conversion to Singularity is skipped on GH actions as it would take too much space
+          #   skip-singularity: true
           - base-img-name: "python:3.10-slim"
             dockerfile: "../env-files/torch/skinny.Dockerfile"
             nickname: "torch-skinny"
             tag-template: "@{itwinai_version}-skinny-torch@{framework_version}-@{os_version}"
+            # Tests on HPC are skipped as this image is not really meant to run on HPC
             skip-hpc: true
             skip-singularity: false
           - base-img-name: "python:3.10-slim"
