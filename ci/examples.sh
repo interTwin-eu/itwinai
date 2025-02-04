@@ -187,8 +187,13 @@ dagger call \
     --context .. \
     --dockerfile ../env-files/torch/slim.Dockerfile \
     --build-args ="COMMIT_HASH=$COMMIT_HASH,BASE_IMG_NAME=$BASE_IMG_NAME,BASE_IMG_DIGEST=$BASE_IMG_DIGEST" \
-    container \
-    terminal
+    release-pipeline \
+    --values file:tmp.yaml \
+    --framework TORCH \
+    --tag-template '${itwinai_version}-slim-torch${framework_version}-${os_version}' \
+    --password env:SING_PWD \
+    --username env:SING_USER \
+    --kubernetes tcp://localhost:6443
 
 
 dagger call \
@@ -203,7 +208,7 @@ dagger call \
     --tag-template '${itwinai_version}-slim-torch${framework_version}-${os_version}' \
     --password env:SING_PWD \
     --username env:SING_USER \
-    --skip-hpc
+    --skip-singularity
 
 
 # Test on HPC and publish

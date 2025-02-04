@@ -120,53 +120,51 @@ RUN /usr/bin/python3.10 -m venv /opt/venv \
 RUN CONTAINER_TORCH_VERSION="$(python -c 'import torch;print(torch.__version__)')" \
     && pip install --no-cache-dir torch=="$CONTAINER_TORCH_VERSION" \
     deepspeed==0.15.* \
-    git+https://github.com/horovod/horovod.git@3a31d93 
-# "prov4ml[nvidia]@git+https://github.com/matbun/ProvML@new-main" \
-# pytest
+    git+https://github.com/horovod/horovod.git@3a31d93
 
-# Installation sanity check
-RUN itwinai sanity-check --torch \
-    --optional-deps deepspeed \
-    --optional-deps horovod \
-    --optional-deps prov4ml \
-    --optional-deps ray
+# # Installation sanity check
+# RUN itwinai sanity-check --torch \
+#     --optional-deps deepspeed \
+#     --optional-deps horovod \
+#     --optional-deps prov4ml \
+#     --optional-deps ray
 
-# App image
-FROM ${BASE_IMG_NAME}
-ARG BASE_IMG_NAME
+# # App image
+# FROM ${BASE_IMG_NAME}
+# ARG BASE_IMG_NAME
 
-COPY --from=build /opt/venv /opt/venv
+# COPY --from=build /opt/venv /opt/venv
 
-# Link /usr/local/bin/python3.10 (in the app image) to /usr/bin/python3.10 (in the builder image)
-RUN ln -s /usr/local/bin/python3.10 /usr/bin/python3.10
+# # Link /usr/local/bin/python3.10 (in the app image) to /usr/bin/python3.10 (in the builder image)
+# RUN ln -s /usr/local/bin/python3.10 /usr/bin/python3.10
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    build-essential \
-    # OpenMPI dev library needed to build Horovod
-    libopenmpi-dev \
-    # mpi4py, which may be needed and also installs mpirun
-    python3-mpi4py \
-    # # Needed to pull OpenMPI
-    # wget \
-    && apt-get clean -y && rm -rf /var/lib/apt/lists/*
+# RUN apt-get update && apt-get install -y --no-install-recommends \
+#     build-essential \
+#     # OpenMPI dev library needed to build Horovod
+#     libopenmpi-dev \
+#     # mpi4py, which may be needed and also installs mpirun
+#     python3-mpi4py \
+#     # # Needed to pull OpenMPI
+#     # wget \
+#     && apt-get clean -y && rm -rf /var/lib/apt/lists/*
 
-# # TODO: consider installing OpenMPI through libopenmpi-dev and python3-mpi4py instead
-# # OpenMPI: consider installing mpi4py binary for linux instead
-# WORKDIR /tmp/ompi
-# ENV OPENMPI_VERSION=4.1.6 \
-#     OPENMPI_MINOR=4.1 
-# ENV OPENMPI_URL="https://download.open-mpi.org/release/open-mpi/v${OPENMPI_MINOR}/openmpi-${OPENMPI_VERSION}.tar.gz" 
-# ENV OPENMPI_DIR=/opt/openmpi-${OPENMPI_VERSION} 
-# ENV PATH="${OPENMPI_DIR}/bin:${PATH}" 
-# ENV LD_LIBRARY_PATH="${OPENMPI_DIR}/lib:${LD_LIBRARY_PATH}" 
-# ENV MANPATH=${OPENMPI_DIR}/share/man:${MANPATH}
-# RUN wget -q -O openmpi-$OPENMPI_VERSION.tar.gz $OPENMPI_URL && tar xzf openmpi-$OPENMPI_VERSION.tar.gz \
-#     && cd openmpi-$OPENMPI_VERSION && ./configure --prefix=$OPENMPI_DIR && make install
+# # # TODO: consider installing OpenMPI through libopenmpi-dev and python3-mpi4py instead
+# # # OpenMPI: consider installing mpi4py binary for linux instead
+# # WORKDIR /tmp/ompi
+# # ENV OPENMPI_VERSION=4.1.6 \
+# #     OPENMPI_MINOR=4.1 
+# # ENV OPENMPI_URL="https://download.open-mpi.org/release/open-mpi/v${OPENMPI_MINOR}/openmpi-${OPENMPI_VERSION}.tar.gz" 
+# # ENV OPENMPI_DIR=/opt/openmpi-${OPENMPI_VERSION} 
+# # ENV PATH="${OPENMPI_DIR}/bin:${PATH}" 
+# # ENV LD_LIBRARY_PATH="${OPENMPI_DIR}/lib:${LD_LIBRARY_PATH}" 
+# # ENV MANPATH=${OPENMPI_DIR}/share/man:${MANPATH}
+# # RUN wget -q -O openmpi-$OPENMPI_VERSION.tar.gz $OPENMPI_URL && tar xzf openmpi-$OPENMPI_VERSION.tar.gz \
+# #     && cd openmpi-$OPENMPI_VERSION && ./configure --prefix=$OPENMPI_DIR && make install
 
-# Activate the virtualenv in the container
-# See here for more information:
-# https://pythonspeed.com/articles/multi-stage-docker-python/
-ENV PATH="/opt/venv/bin:$PATH"
+# # Activate the virtualenv in the container
+# # See here for more information:
+# # https://pythonspeed.com/articles/multi-stage-docker-python/
+# ENV PATH="/opt/venv/bin:$PATH"
 
 # # Singularity may change the $PATH, hence this env var may increase the chances that the venv
 # # is actually recognised
