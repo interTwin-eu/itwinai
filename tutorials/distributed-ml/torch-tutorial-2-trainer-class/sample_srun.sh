@@ -1,3 +1,12 @@
+# --------------------------------------------------------------------------------------
+# Part of the interTwin Project: https://www.intertwin.eu/
+#
+# Created by: Jarl Sondre Sæther
+#
+# Credit:
+# - Jarl Sondre Sæther <jarl.sondre.saether@cern.ch> - CERN
+# --------------------------------------------------------------------------------------
+
 """This file contains the sample bash code that was used in the interTwin presentation
 held on Feb. 18. It is meant to illustrate how to combine srun and torchrun to launch
 processes in parallel that can communicate and thus facilitate distributed ML. 

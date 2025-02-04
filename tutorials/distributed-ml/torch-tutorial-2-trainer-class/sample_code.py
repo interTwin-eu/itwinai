@@ -1,11 +1,29 @@
+# --------------------------------------------------------------------------------------
+# Part of the interTwin Project: https://www.intertwin.eu/
+#
+# Created by: Jarl Sondre Sæther
+#
+# Credit:
+# - Jarl Sondre Sæther <jarl.sondre.saether@cern.ch> - CERN
+# --------------------------------------------------------------------------------------
+
 """This file contains the sample code that was used for the snippets in the interTwin
 presentation held on Feb. 18. These code snippets are meant as outlines for how to use
-itwinai to simplify distributed ML. 
+itwinai to simplify distributed ML.
 """
 
+from itwinai.torch.distributed import TorchDDPStrategy
+from itwinai.torch.trainer import TorchTrainer
+
+
+# Included for the sake of linting
+def train(model):
+    pass
+
+
+##############################################################################
 # Using itwinai's Strategy but not the TorchTrainer
 ##############################################################################
-from itwinai.torch.distributed import TorchDDPStrategy
 
 # Create and initialize strategy
 strategy = TorchDDPStrategy(backend="nccl")
@@ -31,9 +49,9 @@ strategy.clean_up()
 ##############################################################################
 
 
+##############################################################################
 # Using itwinai's TorchTrainer (which uses Strategy internally)
 ##############################################################################
-from itwinai.torch.trainer import TorchTrainer
 
 # Create dataset as usual
 train_dataset = ...

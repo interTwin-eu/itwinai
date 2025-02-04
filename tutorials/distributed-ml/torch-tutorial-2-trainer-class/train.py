@@ -5,6 +5,7 @@
 #
 # Credit:
 # - Matteo Bunino <matteo.bunino@cern.ch> - CERN
+# - Jarl Sondre Sæther <jarl.sondre.saether@cern.ch> - CERN
 # --------------------------------------------------------------------------------------
 
 """Adapted from: https://github.com/pytorch/examples/blob/main/mnist/main.py"""
@@ -20,6 +21,7 @@ from torchvision import datasets, transforms
 from itwinai.loggers import MLFlowLogger
 from itwinai.torch.config import TrainingConfiguration
 from itwinai.torch.trainer import TorchTrainer
+
 
 # Step 1: setup your neural network architecture
 class Net(nn.Module):
