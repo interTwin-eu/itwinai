@@ -1,3 +1,8 @@
+"""This file contains the sample bash code that was used in the interTwin presentation
+held on Feb. 18. It is meant to illustrate how to combine srun and torchrun to launch
+processes in parallel that can communicate and thus facilitate distributed ML. 
+"""
+
 srun --cpu-bind=none --ntasks-per-node=1 \
     bash -c "torchrun \
     --nnodes=2 \
