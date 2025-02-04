@@ -73,5 +73,4 @@ jobs:
           interlink-values: ${{ secrets.INTERLINK_VALUES }}
           singularity-password: ${{ secrets.SINGULARITY_PWD }}
           singularity-username: ${{ secrets.SINGULARITY_USR }}
-          release: "true"
-          # release: ${{ github.event_name == 'release' && github.event.action == 'created' && 'true' || 'false' }}
+          release: ${{ github.event_name == 'release' && github.event.action == 'created' && 'true' || 'false' }}
