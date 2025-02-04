@@ -18,6 +18,7 @@ pl-training.yml
 0
 *.tar
 *.sif
+.DS_Store
 
 # Use cases files
 MNIST
