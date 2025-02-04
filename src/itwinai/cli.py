@@ -309,7 +309,8 @@ def exec_pipeline():
     # Remove 'exec_pipeline' command from CLI args
     sys.argv = sys.argv[1:]
     # Overwrite hydra default logging behavior
-    sys.argv.append("hydra.output_subdir=null")
+    if "--cfg" not in sys.argv and "-c" not in sys.argv:
+        sys.argv.append("hydra.output_subdir=null")
 
     # Add current working directory to the module search path
     # so hydra will find the objects defined in the config (usually paths relative to config)

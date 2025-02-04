@@ -40,25 +40,26 @@ training_pipeline:
   _target_: itwinai.pipeline.Pipeline
   steps:
     dataloading_step: ${dataloading_step}
+
     training_step:
       _target_: trainer.Lightning3DGANTrainer
+      # NOTE: before pushing to the repo, disable logging to prevent slowing down unit tests
+      # logger:
+      #   _target_: itwinai.loggers.LoggersCollection
+      #   loggers:
+      #     # - _target_: itwinai.loggers.ConsoleLogger
+      #     #   log_freq: 100
+      #     # - _target_: itwinai.loggers.MLFlowLogger
+      #     #   experiment_name: 3DGAN
+      #     #   log_freq: batch
+      #     - _target_: itwinai.loggers.Prov4MLLogger
+      #       provenance_save_dir: mllogs/prov_logs
+      #       experiment_name: 3DGAN
+      #       log_freq: batch
+      #       log_on_workers: -1
+      #     # - _target_: itwinai.loggers.WandBLogger
+      #     #   log_freq: batch
       config:
-        # NOTE: before pushing to the repo, disable logging to prevent slowing down unit tests
-        # logger:
-        #   _target_: itwinai.loggers.LoggersCollection
-        #   loggers:
-        #     # - _target_: itwinai.loggers.ConsoleLogger
-        #     #   log_freq: 100
-        #     # - _target_: itwinai.loggers.MLFlowLogger
-        #     #   experiment_name: 3DGAN
-        #     #   log_freq: batch
-        #     - _target_: itwinai.loggers.Prov4MLLogger
-        #       provenance_save_dir: mllogs/prov_logs
-        #       experiment_name: 3DGAN
-        #       log_freq: batch
-        #       log_on_workers: -1
-        #     # - _target_: itwinai.loggers.WandBLogger
-        #     #   log_freq: batch
         seed_everything: ${random_seed}
         trainer:
           accelerator: ${hw_accelerators}
@@ -138,11 +139,13 @@ inference_pipeline:
   _target_: itwinai.pipeline.Pipeline
   steps:
     dataloading_step: ${dataloading_step}
+
     inference_step:
       _target_: trainer.Lightning3DGANPredictor
       model:
         _target_: trainer.LightningModelLoader
         model_uri: ${inference_model_uri}
+
       config:
         seed_everything: ${random_seed}
         trainer:
@@ -167,13 +170,13 @@ inference_pipeline:
           limit_train_batches: null
           limit_val_batches: null
           log_every_n_steps: 2
-          # logger:
+          logger:
           #   - _target_: lightning.pytorch.loggers.CSVLogger
           #     save_dir: ml_logs/csv_logs
-          _target_: lightning.pytorch.loggers.MLFlowLogger
-          experiment_name: 3DGAN
-          save_dir: ${logs_dir}
-          log_model: all
+            _target_: lightning.pytorch.loggers.MLFlowLogger
+            experiment_name: 3DGAN
+            save_dir: ${logs_dir}
+            log_model: all
           max_epochs: ${max_epochs}
           max_steps: 20
           max_time: null
@@ -188,6 +191,7 @@ inference_pipeline:
           sync_batchnorm: false
           use_distributed_sampler: true
           val_check_interval: null
+
         model:
           _target_: model.ThreeDGAN
           latent_size: 256
@@ -195,12 +199,14 @@ inference_pipeline:
           power: 0.85
           lr: 0.001
           checkpoints_dir: ${checkpoints_path}
+
         data:
           _target_: dataloader.ParticlesDataModule
           datapath: ${dataset_location}
           batch_size: ${batch_size}
           num_workers: ${num_workers_dataloader}
           max_samples: ${max_dataset_size}
+
     saver_step:
       _target_: saver.ParticleImagesSaver
       save_dir: ${inference_results_location}

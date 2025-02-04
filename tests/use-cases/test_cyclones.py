@@ -49,8 +49,8 @@ def test_cyclones_train_tf(tf_env, install_requirements):
 
     cmd = (
         f"{tf_env}/bin/itwinai exec-pipeline "
-        f"--config_path {pipe} "
-        "--config_name pipeline"
+        f"--config-path {pipe} "
+        "--config-name pipeline"
         f"data_path {dataset_path}"
     )
     with tempfile.TemporaryDirectory() as tmpdirname:

@@ -42,7 +42,7 @@ def test_3dgan_train(torch_env, install_requirements):
     conf = CERN_PATH.resolve()
     cmd = (
         f"{torch_env}/bin/itwinai exec-pipeline "
-        f"--config_path {conf} "
+        f"--config-path {conf} "
         f"dataset_location={dataset_path} "
         "hw_accelerators=auto "
         "distributed_strategy=auto "
@@ -76,7 +76,7 @@ def test_3dgan_inference(
 
     run_inference_cmd = (
         f"{torch_env}/bin/itwinai exec-pipeline "
-        f"--config_path {conf} +pipe_key inference_pipeline "
+        f"--config-path {conf} +pipe_key=inference_pipeline "
         f"dataset_location={dataset_path} "
         f"inference_model_uri={CKPT_NAME} "
         "hw_accelerators=auto "
