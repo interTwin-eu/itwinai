@@ -100,6 +100,10 @@ def profile_torch_trainer(method: Callable) -> Callable:
             self.profiler = profiler
             result = method(self, *args, **kwargs)
 
+        # TEMPORARY: 
+        self.profiler.export_chrome_trace("my_trace.json")
+        ############
+
         strategy = self.strategy
         strategy_name = strategy.name
 
