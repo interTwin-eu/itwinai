@@ -67,19 +67,21 @@ A logger allows to save objects of different kinds:
     https://docs.wandb.ai/ref/python/watch
 """
 
+import functools
+import logging
 import os
 from abc import ABC, abstractmethod
 from contextlib import contextmanager
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Dict, List, Literal, Optional, Tuple, Union
-
-from typing_extensions import override
+from typing import TYPE_CHECKING, Any, Callable, Dict, List, Literal, Optional, Tuple, Union
 
 if TYPE_CHECKING:
     import mlflow
 
 
 BASE_EXP_NAME: str = "default_experiment"
+
+logging.basicConfig(level=logging.INFO)
 
 
 class LogMixin(ABC):
@@ -106,6 +108,42 @@ class LogMixin(ABC):
             batch_idx (Optional[int], optional): DataLoader batch counter
                 (i.e., batch idx), if available. Defaults to None.
         """
+
+
+def check_initialized(method: Callable) -> Callable:
+    """Decorator for logger methods to check whether the logger
+    was correctly initialized before calling the method."""
+
+    @functools.wraps(method)
+    def wrapper(self: "Logger", *args, **kwargs):
+        if not self.is_initialized:
+            raise RuntimeError(
+                (
+                    f"{self.__class__.__name__} has not been initialized. "
+                    "Use either the ``start_logging`` context or the "
+                    "``create_logger_context`` method."
+                )
+            )
+        return method(self, *args, **kwargs)
+
+    return wrapper
+
+
+def check_not_initialized(method: Callable) -> Callable:
+    """Decorator for ``create_logger_context`` method to prevent double initialization of
+    a logger."""
+
+    @functools.wraps(method)
+    def wrapper(self: "Logger", *args, **kwargs):
+        if self.is_initialized:
+            logging.warning(
+                f"Trying to initialize {self.__class__.__name__} twice.. "
+                "Skipping initialization."
+            )
+            return
+        return method(self, *args, **kwargs)
+
+    return wrapper
 
 
 class Logger(LogMixin):
@@ -139,7 +177,9 @@ class Logger(LogMixin):
     #: Supported logging 'kind's.
     supported_kinds: Tuple[str]
     #: Current worker global rank
-    worker_rank: int
+    worker_rank: int = 0
+    #: Flag to check whether the logger was correctly initialized
+    is_initialized: bool = False
 
     _log_freq: Union[int, Literal["epoch", "batch"]]
 
@@ -185,12 +225,12 @@ class Logger(LogMixin):
             )
 
     @contextmanager
-    def start_logging(self, rank: Optional[int] = None):
+    def start_logging(self, rank: int = 0):
         """Start logging context.
 
         Args:
-            rank (Optional[int]): global rank of current process,
-                used in distributed environments. Defaults to None.
+            rank (int): global rank of current process,
+                used in distributed environments. Defaults to 0.
 
         Example:
 
@@ -207,12 +247,12 @@ class Logger(LogMixin):
             self.destroy_logger_context()
 
     @abstractmethod
-    def create_logger_context(self, rank: Optional[int] = None) -> Any:
+    def create_logger_context(self, rank: int = 0) -> Any:
         """Initializes the logger context.
 
         Args:
-            rank (Optional[int]): global rank of current process,
-                used in distributed environments. Defaults to None.
+            rank (int): global rank of current process,
+                used in distributed environments. Defaults to 0.
         """
 
     @abstractmethod
@@ -269,15 +309,10 @@ class Logger(LogMixin):
         """
         # Check worker's global rank
         worker_ok = (
-            self.worker_rank is None
-            or (
-                isinstance(self.log_on_workers, int)
-                and (self.log_on_workers == -1 or self.log_on_workers == self.worker_rank)
-            )
-            or (
-                isinstance(self.log_on_workers, list)
-                and self.worker_rank in self.log_on_workers
-            )
+            isinstance(self.log_on_workers, int)
+            and (self.log_on_workers == -1 or self.log_on_workers == self.worker_rank)
+        ) or (
+            isinstance(self.log_on_workers, list) and self.worker_rank in self.log_on_workers
         )
         if not worker_ok:
             return False
@@ -322,17 +357,21 @@ class ConsoleLogger(Logger):
         cl_savedir = Path(savedir) / "simple-logger"
         super().__init__(savedir=cl_savedir, log_freq=log_freq, log_on_workers=log_on_workers)
 
-    def create_logger_context(self, rank: Optional[int] = None):
+    @check_not_initialized
+    def create_logger_context(self, rank: int = 0):
         """Initializes the logger context.
 
         Args:
-            rank (Optional[int]): global rank of current process,
-                used in distributed environments. Defaults to None.
+            rank (int): global rank of current process,
+                used in distributed environments. Defaults to 0.
         """
         self.worker_rank = rank
 
         if not self.should_log():
+            self.is_initialized = True
             return
+
+        logging.info(f"Initializing {self.__class__.__name__} on rank {rank}")
 
         if self.savedir.is_dir():
             numeric_dirs = [
@@ -347,9 +386,13 @@ class ConsoleLogger(Logger):
         self.run_path = self.savedir / str(self.experiment_id)
         self.run_path.mkdir(exist_ok=True, parents=True)
 
+        self.is_initialized = True
+
+    @check_initialized
     def destroy_logger_context(self):
         """Destroy logger. Do nothing."""
 
+    @check_initialized
     def save_hyperparameters(self, params: Dict[str, Any]) -> None:
         """Save hyperparameters. Do nothing.
 
@@ -359,8 +402,9 @@ class ConsoleLogger(Logger):
         if not self.should_log():
             return
 
-        # Save hyperparams
+        # TODO: save hyperparams
 
+    @check_initialized
     def log(
         self,
         item: Union[Any, List[Any]],
@@ -483,6 +527,8 @@ class MLFlowLogger(Logger):
         self.run_name = run_name
         self.experiment_name = experiment_name
 
+        mfl_savedir.mkdir(parents=True, exist_ok=True)
+
         self.tracking_uri = (
             self.tracking_uri
             or os.environ.get("MLFLOW_TRACKING_URI")
@@ -492,12 +538,13 @@ class MLFlowLogger(Logger):
 
         self.mlflow = mlflow
 
-    def create_logger_context(self, rank: Optional[int] = None) -> "mlflow.ActiveRun":
+    @check_not_initialized
+    def create_logger_context(self, rank: int = 0) -> "mlflow.ActiveRun":
         """Initializes the logger context. Start MLFLow run.
 
         Args:
-            rank (Optional[int]): global rank of current process,
-                used in distributed environments. Defaults to None.
+            rank (int): global rank of current process,
+                used in distributed environments. Defaults to 0.
 
         Returns:
             mlflow.ActiveRun: active MLFlow run.
@@ -505,7 +552,10 @@ class MLFlowLogger(Logger):
         self.worker_rank = rank
 
         if not self.should_log():
+            self.is_initialized = True
             return
+
+        logging.info(f"Initializing {self.__class__.__name__} on rank {rank}")
 
         active_run = self.mlflow.active_run()
         if active_run:
@@ -520,8 +570,11 @@ class MLFlowLogger(Logger):
         self._run_id = self.active_run.info.run_id
         self._experiment_id = self.active_run.info.experiment_id
 
+        self.is_initialized = True
+
         return self.active_run
 
+    @check_initialized
     def destroy_logger_context(self):
         """Destroy logger. End current MLFlow run."""
         if not self.should_log():
@@ -529,6 +582,7 @@ class MLFlowLogger(Logger):
 
         self.mlflow.end_run()
 
+    @check_initialized
     def save_hyperparameters(self, params: Dict[str, Any]) -> None:
         """Save hyperparameters as MLFlow parameters.
 
@@ -541,6 +595,7 @@ class MLFlowLogger(Logger):
         for param_name, val in params.items():
             self.log(item=val, identifier=param_name, step=0, kind="param")
 
+    @check_initialized
     def log(
         self,
         item: Union[Any, List[Any]],
@@ -672,17 +727,21 @@ class WandBLogger(Logger):
 
         self.wandb = wandb
 
-    def create_logger_context(self, rank: Optional[int] = None) -> None:
+    @check_not_initialized
+    def create_logger_context(self, rank: int = 0) -> None:
         """Initializes the logger context. Init WandB run.
 
         Args:
-            rank (Optional[int]): global rank of current process,
-                used in distributed environments. Defaults to None.
+            rank (int): global rank of current process,
+                used in distributed environments. Defaults to 0.
         """
         self.worker_rank = rank
 
         if not self.should_log():
+            self.is_initialized = True
             return
+
+        logging.info(f"Initializing {self.__class__.__name__} on rank {rank}")
 
         (self.savedir / "wandb").mkdir(
             exist_ok=True,
@@ -693,12 +752,15 @@ class WandBLogger(Logger):
             project=self.project_name,
             mode="offline" if self.offline_mode else "online",
         )
+        self.is_initialized = True
 
+    @check_initialized
     def destroy_logger_context(self):
         """Destroy logger."""
         if not self.should_log():
             return
 
+    @check_initialized
     def save_hyperparameters(self, params: Dict[str, Any]) -> None:
         """Save hyperparameters.
 
@@ -710,6 +772,7 @@ class WandBLogger(Logger):
 
         self.wandb.config.update(params)
 
+    @check_initialized
     def log(
         self,
         item: Union[Any, List[Any]],
@@ -795,21 +858,28 @@ class TensorBoardLogger(Logger):
         else:
             raise ValueError("Framework must be either 'tensorflow' or 'pytorch'")
 
-    def create_logger_context(self, rank: Optional[int] = None) -> None:
+    @check_not_initialized
+    def create_logger_context(self, rank: int = 0) -> None:
         """Initializes the logger context. Init Tensorboard run.
 
         Args:
-            rank (Optional[int]): global rank of current process,
-                used in distributed environments. Defaults to None.
+            rank (int): global rank of current process,
+                used in distributed environments. Defaults to 0.
         """
         self.worker_rank = rank
 
         if not self.should_log():
+            self.is_initialized = True
             return
+
+        logging.info(f"Initializing {self.__class__.__name__} on rank {rank}")
 
         if self.framework == "tensorflow":
             self.writer.set_as_default()
 
+        self.is_initialized = True
+
+    @check_initialized
     def destroy_logger_context(self):
         """Destroy logger. Close SummaryWriter."""
         if not self.should_log():
@@ -817,6 +887,7 @@ class TensorBoardLogger(Logger):
 
         self.writer.close()
 
+    @check_initialized
     def save_hyperparameters(self, params: Dict[str, Any]) -> None:
         """Save hyperparameters.
 
@@ -835,6 +906,7 @@ class TensorBoardLogger(Logger):
         elif self.framework == "pytorch":
             self.writer.add_hparams(params, {})
 
+    @check_initialized
     def log(
         self,
         item: Union[Any, List[Any]],
@@ -911,6 +983,7 @@ class LoggersCollection(Logger):
         """
         return True
 
+    @check_initialized
     def log(
         self,
         item: Union[Any, List[Any]],
@@ -944,21 +1017,26 @@ class LoggersCollection(Logger):
                 **kwargs,
             )
 
-    def create_logger_context(self, rank: Optional[int] = None) -> Any:
+    @check_not_initialized
+    def create_logger_context(self, rank: int = 0) -> Any:
         """Initializes all loggers.
 
         Args:
-            rank (Optional[int]): global rank of current process,
-                used in distributed environments. Defaults to None.
+            rank (int): global rank of current process,
+                used in distributed environments. Defaults to 0.
         """
         for logger in self.loggers:
             logger.create_logger_context(rank=rank)
 
+        self.is_initialized = True
+
+    @check_initialized
     def destroy_logger_context(self):
         """Destroy all loggers."""
         for logger in self.loggers:
             logger.destroy_logger_context()
 
+    @check_initialized
     def save_hyperparameters(self, params: Dict[str, Any]) -> None:
         """Save hyperparameters for all loggers.
 
@@ -1038,18 +1116,21 @@ class Prov4MLLogger(Logger):
         self.prov4ml = prov4ml
         self.mlflow = mlflow
 
-    @override
-    def create_logger_context(self, rank: Optional[int] = None):
+    @check_not_initialized
+    def create_logger_context(self, rank: int = 0):
         """Initializes the logger context.
 
         Args:
-            rank (Optional[int]): global rank of current process,
-                used in distributed environments. Defaults to None.
+            rank (int): global rank of current process,
+                used in distributed environments. Defaults to 0.
         """
         self.worker_rank = rank
 
         if not self.should_log():
+            self.is_initialized = True
             return
+
+        logging.info(f"Initializing {self.__class__.__name__} on rank {rank}")
 
         self.prov4ml.start_run(
             prov_user_namespace=self.prov_user_namespace,
@@ -1060,18 +1141,17 @@ class Prov4MLLogger(Logger):
             collect_all_processes=True,
             rank=rank,
         )
+        self.is_initialized = True
 
-    @override
+    @check_initialized
     def destroy_logger_context(self):
-        """
-        Destroys the logger context.
-        """
+        """Destroys the logger context."""
         if not self.should_log():
             return
 
         self.prov4ml.end_run(create_graph=self.create_graph, create_svg=self.create_svg)
 
-    @override
+    @check_initialized
     def save_hyperparameters(self, params: Dict[str, Any]) -> None:
         if not self.should_log():
             return
@@ -1080,7 +1160,7 @@ class Prov4MLLogger(Logger):
         for param_name, val in params.items():
             self.prov4ml.log_param(key=param_name, value=val)
 
-    @override
+    @check_initialized
     def log(
         self,
         item: Union[Any, List[Any]],
@@ -1202,7 +1282,7 @@ class EmptyLogger(Logger):
     ) -> None:
         super().__init__(savedir, log_freq, log_on_workers)
 
-    def create_logger_context(self, rank: Optional[int] = None):
+    def create_logger_context(self, rank: int = 0):
         pass
 
     def destroy_logger_context(self):

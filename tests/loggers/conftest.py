@@ -26,7 +26,7 @@ from itwinai.loggers import (
 from itwinai.torch.loggers import ItwinaiLogger as PyTorchLightningLogger
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture
 def console_logger():
     with tempfile.TemporaryDirectory() as temp_dir:
         save_dir = Path(temp_dir) / "console/test_mllogs"
@@ -43,33 +43,33 @@ def mlflow_logger():
         )
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture
 def wandb_logger():
     with tempfile.TemporaryDirectory() as temp_dir:
         save_dir = Path(temp_dir) / "wandb/test_mllogs"
-        yield WandBLogger(savedir=save_dir, project_name="test_project")
+        yield WandBLogger(savedir=save_dir, project_name="test_project", offline_mode=True)
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture
 def tensorboard_logger_tf():
     with tempfile.TemporaryDirectory() as temp_dir:
         save_dir = Path(temp_dir) / "tf_tb/test_mllogs"
         yield TensorBoardLogger(savedir=save_dir, framework="tensorflow")
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture
 def tensorboard_logger_torch():
     with tempfile.TemporaryDirectory() as temp_dir:
         save_dir = Path(temp_dir) / "torch_tb/test_mllogs"
         yield TensorBoardLogger(savedir=save_dir, framework="pytorch")
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture
 def prov4ml_logger():
     return Prov4MLLogger()
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture
 def loggers_collection(
     console_logger,
     mlflow_logger,
@@ -92,6 +92,9 @@ def loggers_collection(
 def lightning_mock_loggers():
     """Setup a generic PyTorchLightningLogger with mock loggers for testing."""
     itwinai_logger_mock = MagicMock(spec=Logger)
+    # Setting default attributes as per class definition
+    itwinai_logger_mock.is_initialized = False
+    itwinai_logger_mock.worker_rank = 0
     lightning_logger = PyTorchLightningLogger(itwinai_logger=itwinai_logger_mock)
 
     return itwinai_logger_mock, lightning_logger

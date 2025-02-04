@@ -6,11 +6,12 @@
 
 ![itwinai Logo](./docs/images/icon-itwinai-orange-black-subtitle.png)
 
-`itwinai` is a powerful Python toolkit designed to help scientists and researchers streamline AI and machine learning
+`itwinai` is a Python toolkit designed to help scientists and researchers streamline AI and machine learning
 workflows, specifically for digital twin applications. It provides easy-to-use tools for distributed training,
 hyper-parameter optimization on HPC systems, and integrated ML logging, reducing engineering overhead and accelerating
-research. Developed primarily by CERN, `itwinai` supports modular and reusable ML workflows, with
-the flexibility to be extended through third-party plugins, empowering AI-driven scientific research in digital twins.
+research. Developed primarily by CERN, in collaboration with Forschungszentrum Jülich (FZJ), `itwinai` supports modular
+and reusable ML workflows, with the flexibility to be extended through third-party plugins, empowering AI-driven scientific
+research in digital twins.
 
 See the latest version of our docs [here](https://itwinai.readthedocs.io/).
 
@@ -23,9 +24,9 @@ See the latest version of our docs [here](https://itwinai.readthedocs.io/).
 ## Installation
 
 For instructions on how to install `itwinai`, please refer to the
-[user installation guide](https://itwinai.readthedocs.io/installation/user_installation.html)
+[user installation guide](https://itwinai.readthedocs.io/latest/installation/user_installation.html)
 or the
-[developer installation guide](https://itwinai.readthedocs.io/installation/developer_installation.html),
+[developer installation guide](https://itwinai.readthedocs.io/latest/installation/developer_installation.html),
 depending on whether you are a user or developer
 
 For information about how to use containers or how to test with pytest, you can look
