@@ -1,4 +1,4 @@
-#!bin/bash
+#!/bin/bash
 
 # --------------------------------------------------------------------------------------
 # Part of the interTwin Project: https://www.intertwin.eu/
