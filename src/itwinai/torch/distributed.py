@@ -24,7 +24,7 @@ from torch.optim.optimizer import Optimizer
 from torch.utils.data import DataLoader, Dataset, DistributedSampler, Sampler
 from torch.utils.data.dataloader import T_co, _collate_fn_t, _worker_init_fn_t
 
-from ..distributed import DistributedStrategy
+from ..distributed import DistributedStrategy, detect_distributed_environment
 from .type import DistributedStrategyError, UninitializedStrategyError
 
 
@@ -35,8 +35,10 @@ def distributed_resources_available() -> bool:
     Returns:
         bool: env can support distributed ML.
     """
-    force_dist_env = int(os.environ.get("ITWINAI_FORCE_DIST", "0"))
-    return force_dist_env or torch.cuda.is_available() and torch.cuda.device_count() > 1
+    if int(os.environ.get("ITWINAI_FORCE_DIST", "0")):
+        return True
+    cluster = detect_distributed_environment()
+    return cluster.global_world_size > 1
 
 
 def check_initialized(method: Callable) -> Callable:
