@@ -9,6 +9,8 @@
 # - Matteo Bunino <matteo.bunino@cern.ch> - CERN
 # --------------------------------------------------------------------------------------
 
+# shellcheck disable=all
+
 # SLURM jobscript for Vega systems
 
 # Job configuration
