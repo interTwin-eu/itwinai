@@ -38,7 +38,7 @@ def install_requirements() -> Callable:
     def _install_reqs(root: str, env_prefix: str):
         req_path = os.path.join(root, "requirements.txt")
         if os.path.isfile(req_path):
-            cmd = f"{env_prefix}/bin/pip install -r {req_path}"
+            cmd = f"{env_prefix}/bin/pip install --no-cache-dir -r {req_path}"
             subprocess.run(cmd.split(), check=True)
 
     return _install_reqs

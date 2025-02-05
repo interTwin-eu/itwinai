@@ -3,7 +3,7 @@ How to run a use case
 
 Each use case comes with their own tutorial on how to run it. Before running them,
 however, you should set up a Python virtual environment. Refer to the
-:doc:`getting started section <../getting-started/getting_started_with_itwinai.rst`
+:doc:`getting started section <../getting-started/getting_started_with_itwinai>`
 for more information on how to do this.
 
 After installing and activating the virtual environment, you will want to install the

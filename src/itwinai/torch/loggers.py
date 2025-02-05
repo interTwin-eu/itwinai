@@ -40,6 +40,7 @@ class ItwinaiLogger(LightningLogger):
         self,
         itwinai_logger: ItwinaiBaseLogger,
         log_model: Union[Literal["all"], bool] = False,
+        skip_finalize: bool = False,
     ):
         """Initializes the adapter with an itwinai logger instance.
 
@@ -50,14 +51,15 @@ class ItwinaiLogger(LightningLogger):
                 If "all", logs all checkpoints; if True, logs the best k checkpoints according
                 to the specifications given as `save_top_k` in the Lightning ModelCheckpoint;
                 if False, does not log checkpoints.
+            skip_finalize (bool): if True, do not finalize the logger in the finalize method.
+                This is useful when you also want to use the logger outside of lightning.
+                Defaults to False.
         """
         self.itwinai_logger = itwinai_logger
-
         self._log_model = log_model
+        self._skip_finalize = skip_finalize
         self._logged_model_time = {}
         self._checkpoint_callback = None
-
-        self._initialized = False
 
     @property
     def name(self) -> Optional[str]:
@@ -85,10 +87,9 @@ class ItwinaiLogger(LightningLogger):
         Returns:
             Logger: The itwinai logger instance.
         """
-        if not self._initialized:
+        if not self.itwinai_logger.is_initialized:
             # With the rank_zero_experiment decorators the rank will always be 0
             self.itwinai_logger.create_logger_context(rank=0)
-            self._initialized = True
 
         return self.itwinai_logger
 
@@ -104,7 +105,7 @@ class ItwinaiLogger(LightningLogger):
                 (LightningLogger)
             finalize functions signature, and therefore must be propagated here.
         """
-        if not self._initialized:
+        if not self.itwinai_logger.is_initialized or self._skip_finalize:
             return
 
         # Log checkpoints if the last checkpoint was saved but not logged

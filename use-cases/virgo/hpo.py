@@ -9,7 +9,6 @@
 # --------------------------------------------------------------------------------------
 
 import argparse
-import os
 from typing import Dict
 
 import matplotlib.pyplot as plt
@@ -59,19 +58,16 @@ def run_trial(config: Dict, data: Dict):
     Note: Passing a seed to TimeSeriesDatasetSplitter and NoiseGeneratorTrainer will make runs
     uniform across trials, reducing the variablility to only the hyperparameter settings
     """
+    pipeline_name = data["pipeline_name"]
     parser = ConfigParser(
         config="config.yaml",
         override_keys={
             # Set hyperparameters controlled by ray
             "batch_size": config["batch_size"],
             "learning_rate": config["lr"],
-            # Override logger field, because performance is logged by ray
-            "training_pipeline.init_args.steps.1.init_args.logger": None,
         },
     )
-    my_pipeline = parser.parse_pipeline(
-        pipeline_nested_key=data["pipeline_name"], verbose=False
-    )
+    my_pipeline = parser.parse_pipeline(pipeline_nested_key=pipeline_name, verbose=False)
 
     # Skip the first step of the pipeline (data generation)
     my_pipeline.execute()
@@ -86,10 +82,7 @@ def run_hpo(args):
     """
     if not args.load_old_results:
         # Initialize Ray with cluster configuration from environment variables
-        ray.init(
-            address=os.environ["ip_head"],
-            _node_ip_address=os.environ["head_node_ip"],
-        )
+        ray.init(address="auto")
 
         # Define the search space for hyperparameters
         search_space = {

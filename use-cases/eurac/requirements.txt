@@ -1,7 +1,6 @@
-hython[complete] @ git+https://github.com/interTwin-eu/hython.git@itwinai
+hython[complete] @ git+https://github.com/interTwin-eu/hython.git@main
 scikit-learn
 tqdm
 cf_xarray
 requests
 aiohttp
-ray

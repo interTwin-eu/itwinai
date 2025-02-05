@@ -2,7 +2,7 @@
 *_logs
 logs_*
 TODO
-/data
+data/
 nohup*
 tmp*
 .tmp*
@@ -19,6 +19,7 @@ pl-training.yml
 *.tar
 *.sif
 .DS_Store
+*slurm_scripts/
 
 # Use cases files
 MNIST

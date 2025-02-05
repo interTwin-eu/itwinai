@@ -1,20 +1,23 @@
-Distributed Data Parallelism
-----------------------------------
+Explanation of Distributed Data Parallelism
+-------------------------------------------
 
 **Author(s)**: Killian Verder (CERN),  Matteo Bunino (CERN)
 
-Deep neural networks (DNN) are often extremely large and are trained on massive amounts of data, more than most computers have memory for.
-Even smaller DNNs can take days to train. 
-Distributed Data Parallel (DDP) addresses these two issues, long training times and limited memory, by using multiple machines to host and train both model and data.
+Deep neural networks (DNN) are often extremely large and are trained on massive amounts
+of data, more than most computers have memory for. Even smaller DNNs can take days to
+train. Distributed Data Parallel (DDP) addresses these two issues, long training times
+and limited memory, by using multiple machines to host and train both model and data.
 
-Data parallelism is an easy way for a developer to vastly reduce training times.
-Rather than using single-node parallelism, Distributed Data Parallelism (DDP) scales to multiple machines. 
-This scaling maximises parallelisation of your model and drastically reduces training times.
+Data parallelism is an easy way for a developer to vastly reduce training times. Rather
+than using single-node parallelism, DDP scales to multiple machines. This scaling
+maximises parallelisation of your model and drastically reduces training times.
 
-Another benefit of DDP is removal of single-machine memory constraints. Since a dataset or model can be stored across several machines,
-it becomes possible to analyse much larger datasets or models.
+Another benefit of DDP is removal of single-machine memory constraints. Since a dataset
+or model can be stored across several machines, it becomes possible to analyse much
+larger datasets or models.
 
-Below is a list of resources expanding on theoretical aspects and practical implementations of DDP:
+Below is a list of resources expanding on theoretical aspects and practical
+implementations of DDP:
 
 * Introduction to DP: https://siboehm.com/articles/22/data-parallel-training
 

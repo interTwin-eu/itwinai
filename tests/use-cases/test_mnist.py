@@ -120,6 +120,7 @@ def test_mnist_train_torch_lightning(torch_env, install_requirements):
         subprocess.run(cmd.split(), check=True, cwd=temp_dir)
 
 
+@pytest.mark.tensorflow
 @pytest.mark.functional
 def test_mnist_train_tf(tf_env, install_requirements):
     """

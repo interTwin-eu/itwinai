@@ -7,9 +7,49 @@
 # - Matteo Bunino <matteo.bunino@cern.ch> - CERN
 # -------------------------------------------------------------------------------------
 
+import logging
 from unittest.mock import MagicMock, patch
 
 import numpy as np
+import pytest
+
+
+@pytest.mark.parametrize(
+    "itwinai_logger",
+    [
+        "console_logger",
+        "mlflow_logger",
+        "wandb_logger",
+        "tensorboard_logger_torch",
+        "prov4ml_logger",
+        "loggers_collection",
+    ],
+)
+def test_logger_initialization(itwinai_logger, request, caplog):
+    itwinai_logger = request.getfixturevalue(itwinai_logger)
+    # Never initialized
+    with pytest.raises(RuntimeError) as exc_info:
+        itwinai_logger.log(identifier="num", item=123, kind="metric")
+    assert "has not been initialized" in str(exc_info.value)
+    with pytest.raises(RuntimeError) as exc_info:
+        itwinai_logger.save_hyperparameters(dict(a=1, b=2))
+    assert "has not been initialized" in str(exc_info.value)
+    with pytest.raises(RuntimeError) as exc_info:
+        itwinai_logger.destroy_logger_context()
+    assert "has not been initialized" in str(exc_info.value)
+
+    itwinai_logger.create_logger_context()
+
+    # Double initialization
+    caplog.clear()
+    with caplog.at_level(logging.WARNING):
+        itwinai_logger.create_logger_context()
+        assert len(caplog.records) == 1
+        assert caplog.records[0].levelname == "WARNING"
+        assert (
+            f"Trying to initialize {itwinai_logger.__class__.__name__} twice.. "
+            "Skipping initialization."
+        ) in caplog.text
 
 
 def test_console_logger_log(console_logger):
@@ -36,12 +76,15 @@ def test_wandb_logger_log(wandb_logger):
         mock_log.assert_called_once_with({"test_metric": 0.5}, commit=True)
 
 
+@pytest.mark.tensorflow
 def test_tensorboard_logger_log_tf(tensorboard_logger_tf):
     import tensorflow as tf
 
-    with patch("tensorflow.summary.scalar") as mock_scalar, patch(
-        "tensorflow.summary.image"
-    ) as mock_image, patch("tensorflow.summary.text") as mock_text:
+    with (
+        patch("tensorflow.summary.scalar") as mock_scalar,
+        patch("tensorflow.summary.image") as mock_image,
+        patch("tensorflow.summary.text") as mock_text,
+    ):
         tensorboard_logger_tf.create_logger_context()
 
         # Log a scalar
@@ -65,13 +108,11 @@ def test_tensorboard_logger_log_torch(tensorboard_logger_torch):
     import torch
 
     step = 1
-    with patch(
-        "torch.utils.tensorboard.SummaryWriter.add_scalar"
-    ) as mock_scalar, patch(
-        "torch.utils.tensorboard.SummaryWriter.add_image"
-    ) as mock_image, patch(
-        "torch.utils.tensorboard.SummaryWriter.add_text"
-    ) as mock_text:
+    with (
+        patch("torch.utils.tensorboard.SummaryWriter.add_scalar") as mock_scalar,
+        patch("torch.utils.tensorboard.SummaryWriter.add_image") as mock_image,
+        patch("torch.utils.tensorboard.SummaryWriter.add_text") as mock_text,
+    ):
         tensorboard_logger_torch.create_logger_context()
 
         # Log a scalar
@@ -91,11 +132,12 @@ def test_tensorboard_logger_log_torch(tensorboard_logger_torch):
 
 
 def test_loggers_collection_log(loggers_collection):
-    with patch("builtins.print") as mocked_print, patch(
-        "mlflow.log_metric"
-    ) as mock_log_metric, patch("wandb.init") as mock_wandb_init, patch(
-        "wandb.log"
-    ) as mock_wandb_log:  # , \
+    with (
+        patch("builtins.print") as mocked_print,
+        patch("mlflow.log_metric") as mock_log_metric,
+        patch("wandb.init") as mock_wandb_init,
+        patch("wandb.log") as mock_wandb_log,
+    ):  # , \
         # patch('shutil.copyfile') as mock_shutil_copyfile, \
         # patch('pickle.dump') as mock_pickle_dump, \
         # patch('torch.save') as mock_torch_save:
@@ -110,43 +152,3 @@ def test_loggers_collection_log(loggers_collection):
         mock_wandb_log.assert_called_once_with({"test_metric": 0.5}, commit=True)
 
         loggers_collection.destroy_logger_context()
-
-
-# @patch('prov4ml.start_run')
-# def test_create_logger_context(mock_start_run, prov4ml_logger):
-#     prov4ml_logger.create_logger_context()
-#     mock_start_run.assert_called_once_with(
-#         prov_user_namespace="www.example.org",
-#         experiment_name="experiment_name",
-#         provenance_save_dir="prov",
-#         save_after_n_logs=100,
-#         collect_all_processes=False
-#     )
-
-
-# @patch('prov4ml.end_run')
-# def test_destroy_logger_context(mock_end_run, prov4ml_logger):
-#     prov4ml_logger.destroy_logger_context()
-#     mock_end_run.assert_called_once_with(create_graph=True, create_svg=True)
-
-
-# @patch('prov4ml.log_metric')
-# def test_log_metric(mock_log_metric, prov4ml_logger):
-#     item = 1.0
-#     identifier = "test_metric"
-#     context = MagicMock(spec=Context)
-#     prov4ml_logger.log(
-#         item, identifier, kind='metric', step=0, context=context)
-#     mock_log_metric.assert_called_once_with(identifier, item, context, step=0)
-
-
-# @patch('prov4ml.log_flops_per_batch')
-# def test_log_flops_per_batch(mock_log_flops_per_batch, prov4ml_logger):
-#     item = (MagicMock(), MagicMock())
-#     identifier = "test_flops"
-#     context = MagicMock(spec=Context)
-#     prov4ml_logger.log(
-#         item, identifier, kind='flops_pb', step=0,
-#         context=context)
-#     mock_log_flops_per_batch.assert_called_once_with(
-#         identifier, model=item[0], batch=item[1], context=context, step=0)

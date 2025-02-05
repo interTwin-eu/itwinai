@@ -21,17 +21,15 @@ import os
 import subprocess
 import sys
 
-exclude_patterns = "requirements.txt"
-
 sys.path.insert(0, os.path.abspath("../tutorials/ml-workflows/"))
 sys.path.insert(0, os.path.abspath("../src"))
 sys.path.insert(0, os.path.abspath("../images"))
 
-project = "itwinai"
-copyright = "2024, Matteo Bunino on behalf of CERN"
-author = "Matteo Bunino"
-version = "0.2"  # short version
-release = "0.2.2"  # full version
+project = 'itwinai'
+copyright = '2024, interTwin collaboration'
+# author = 'Matteo Bunino'
+# version = '0.2'  # short version
+# release = '0.2.2'  # full version
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
@@ -40,9 +38,12 @@ extensions = [
     "sphinx.ext.autodoc",
     "sphinx.ext.doctest",
     "sphinx.ext.viewcode",
+    "sphinx_tabs.tabs",
     "myst_parser",
     "nbsphinx",
     "sphinx.ext.napoleon",
+    "sphinx_copybutton",
+    "sphinx_design",
 ]
 
 source_suffix = {
@@ -53,9 +54,19 @@ source_suffix = {
 }
 
 templates_path = ["_templates"]
-exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
+exclude_patterns = [
+    "_build",
+    "Thumbs.db",
+    ".DS_Store",
+    "requirements.txt",
+    "README.md",
+    "testing-with-pytest.md",
+    "working-with-containers.md",
+]
+suppress_warnings = ["myst.xref_missing", "myst.header"]
 
 autodoc_mock_imports = ["mlflow"]
+
 
 # Enable numref
 numfig = True
@@ -93,8 +104,4 @@ html_footer = """
 </div>
 """
 
-html_sidebars = {
-    "**": [
-        html_footer  # Adds the custom footer with version information
-    ]
-}
+html_sidebars = {"**": [html_footer]}  # Adds the custom footer with version information

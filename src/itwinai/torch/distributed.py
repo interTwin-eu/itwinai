@@ -8,6 +8,7 @@
 # - Rakesh Sarma <r.sarma@fz-juelich.de> - FZJ
 # - Jarl Sondre Sæther <jarl.sondre.saether@cern.ch> - CERN
 # - Henry Mutegeki <henry.mutegeki@cern.ch> - CERN
+# - Anna Lappe <anna.elisa.lappe@cern.ch> - CERN
 # --------------------------------------------------------------------------------------
 
 import abc
@@ -55,6 +56,25 @@ def check_initialized(method: Callable) -> Callable:
         return method(self, *args, **kwargs)
 
     return wrapper
+
+
+def initialize_ray() -> None:
+    """This method is used by the RayDDPStrategy and RayDeepSpeedStrategy to initialize
+    the Ray backend if it is not already initialized.
+
+        Raises:
+            EnvironmentError: If required environment variables `HEAD_NODE_PORT` or
+                `HEAD_NODE_IP` are not set.
+                These should be set from the slurm script where the ray cluster is launched.
+    """
+    import ray
+
+    if ray.is_initialized():
+        return
+
+    ray.init(address="auto")
+    print(f"Nodes in the cluster: {ray.nodes()}")
+    print(f"Available cluster resources: {ray.available_resources()}")
 
 
 class TorchDistributedStrategy(DistributedStrategy):
@@ -135,15 +155,18 @@ class TorchDistributedStrategy(DistributedStrategy):
         """Device used by local worker.
 
         Returns:
-            str: torch device in the form 'cuda:N'.
+            str: torch device in the form 'device:N' (e.g., 'cuda:0', 'cpu').
         """
-        return f"cuda:{self.local_rank()}"
+        if torch.cuda.is_available():
+            return f"cuda:{self.local_rank()}"
+        return "cpu"
 
     def set_device(self):
         """Set local device."""
-        torch.cuda.device(self.local_rank())
-        # Needed by torch.distributed.gather_object
-        torch.cuda.set_device(self.local_rank())
+        if torch.cuda.is_available():
+            torch.cuda.device(self.local_rank())
+            # Needed by torch.distributed.gather_object
+            torch.cuda.set_device(self.local_rank())
 
     @check_initialized
     def create_dataloader(
@@ -319,9 +342,7 @@ class TorchDistributedStrategy(DistributedStrategy):
                     shuffle=shuffle,
                 )
             elif not isinstance(sampler, DistributedSampler):
-                raise RuntimeError(
-                    "User-provided sampler must implement DistributedSampler."
-                )
+                raise RuntimeError("User-provided sampler must implement DistributedSampler.")
         # shuffle and batch_sampler must be unset
         return DataLoader(
             dataset=dataset,
@@ -431,12 +452,18 @@ class TorchDDPStrategy(TorchDistributedStrategy):
     ) -> Tuple[nn.Module, Optimizer, Optional[LRScheduler]]:
         """Setup model, optimizer and scheduler for distributed."""
         if torch.cuda.is_available():
-            # device = self.dist_lrank()
+            # If GPUs are available
             model = model.to(self.device())
             dist_model = torch.nn.parallel.DistributedDataParallel(
                 model,
                 device_ids=[self.device()],
                 output_device=self.device(),
+                find_unused_parameters=find_unused_parameters,
+            )
+        elif distributed_resources_available():
+            # If GPUs are not available, but running distributed ML on CPUs
+            dist_model = torch.nn.parallel.DistributedDataParallel(
+                model,
                 find_unused_parameters=find_unused_parameters,
             )
         else:
@@ -460,8 +487,18 @@ class TorchDDPStrategy(TorchDistributedStrategy):
 
         Returns:
             int: local world size.
+
+        Raises:
+            RuntimeError: when the local world size cannot be retrieved.
         """
-        return torch.cuda.device_count()
+        if torch.cuda.is_available():
+            return torch.cuda.device_count()
+        if "LOCAL_WORLD_SIZE" not in os.environ:
+            raise RuntimeError(
+                "Could not retrieve local world size as CUDA is unavailable and there is "
+                "no 'LOCAL_WORLD_SIZE' environment variable."
+            )
+        return int(os.environ["LOCAL_WORLD_SIZE"])
 
     @check_initialized
     def global_rank(self) -> int:
@@ -480,12 +517,12 @@ class TorchDDPStrategy(TorchDistributedStrategy):
         Returns:
             int: local rank.
         """
-        return dist.get_rank() % torch.cuda.device_count()
+        return dist.get_rank() % self.local_world_size()
 
     @check_initialized
     def clean_up(self) -> None:
         """Destroys the current process group."""
-        if torch.cuda.is_available():
+        if distributed_resources_available():
             dist.barrier()
             dist.destroy_process_group()
 
@@ -632,8 +669,18 @@ class DeepSpeedStrategy(TorchDistributedStrategy):
 
         Returns:
             int: local world size.
+
+        Raises:
+            RuntimeError: when the local world size cannot be retrieved.
         """
-        return torch.cuda.device_count()
+        if torch.cuda.is_available():
+            return torch.cuda.device_count()
+        if "LOCAL_WORLD_SIZE" not in os.environ:
+            raise RuntimeError(
+                "Could not retrieve local world size as CUDA is unavailable and there is "
+                "no 'LOCAL_WORLD_SIZE' environment variable."
+            )
+        return int(os.environ["LOCAL_WORLD_SIZE"])
 
     @check_initialized
     def global_rank(self) -> int:
@@ -652,7 +699,7 @@ class DeepSpeedStrategy(TorchDistributedStrategy):
         Returns:
             int: local rank.
         """
-        return dist.get_rank() % torch.cuda.device_count()
+        return dist.get_rank() % self.local_world_size()
 
     @check_initialized
     def clean_up(self) -> None:
@@ -698,9 +745,7 @@ class DeepSpeedStrategy(TorchDistributedStrategy):
         dist.gather_object(obj, dst=dst_rank)
 
     @check_initialized
-    def gather(
-        self, tensor: torch.Tensor, dst_rank: int = 0
-    ) -> Optional[List[torch.Tensor]]:
+    def gather(self, tensor: torch.Tensor, dst_rank: int = 0) -> Optional[List[torch.Tensor]]:
         """Gathers a tensor from the whole group in a list
         (to all workers).
 
@@ -879,9 +924,7 @@ class HorovodStrategy(TorchDistributedStrategy):
             return result
 
     @check_initialized
-    def gather(
-        self, tensor: torch.Tensor, dst_rank: int = 0
-    ) -> Optional[List[torch.Tensor]]:
+    def gather(self, tensor: torch.Tensor, dst_rank: int = 0) -> Optional[List[torch.Tensor]]:
         """Gathers a tensor from the whole group in a list
         (to all workers). Under the hood it relies on allgather as gather is
         not supported by Horovod.
@@ -923,20 +966,8 @@ class NonDistributedStrategy(TorchDistributedStrategy):
         """
         if self.is_initialized:
             raise DistributedStrategyError("Strategy was already initialized")
-        if torch.cuda.is_available():
-            self.set_device()
+        self.set_device()
         self.is_initialized = True
-
-    @check_initialized
-    def device(self) -> str:
-        """Device used by local worker.
-
-        Returns:
-            str: cpu device if CUDA is not available.
-        """
-        if torch.cuda.is_available():
-            return super().device()
-        return "cpu"
 
     @check_initialized
     def distributed(
@@ -1022,3 +1053,96 @@ class NonDistributedStrategy(TorchDistributedStrategy):
             list[Any]: input object wrapped in a list.
         """
         return [tensor]
+
+
+class RayDDPStrategy(TorchDDPStrategy):
+    """A distributed data-parallel (DDP) strategy using Ray Train for PyTorch training."""
+
+    def __init__(self) -> None:
+        initialize_ray()
+        import ray.train
+
+        self.ray_train = ray.train
+
+    def init(self) -> None:
+        self.is_initialized = True
+
+    @check_initialized
+    def global_world_size(self) -> int:
+        return self.ray_train.get_context().get_world_size()
+
+    @check_initialized
+    def local_world_size(self) -> int:
+        return self.ray_train.get_context().get_local_world_size()
+
+    @check_initialized
+    def global_rank(self) -> int:
+        return self.ray_train.get_context().get_world_rank()
+
+    @check_initialized
+    def local_rank(self) -> int:
+        return self.ray_train.get_context().get_local_rank()
+
+    @check_initialized
+    def distributed(
+        self,
+        model: nn.Module,
+        optimizer: Optimizer,
+        lr_scheduler: Optional[LRScheduler] = None,
+    ) -> Tuple[nn.Module, Optimizer, LRScheduler | None]:
+        model = self.ray_train.torch.prepare_model(model)
+
+        return model, optimizer, lr_scheduler
+
+    @check_initialized
+    def create_dataloader(
+        self,
+        dataset: Dataset[T_co],
+        batch_size: Optional[int] = 1,
+        shuffle: Optional[bool] = None,
+        sampler: Union[Sampler, Iterable, None] = None,
+        batch_sampler: Union[Sampler[List], Iterable[List], None] = None,
+        num_workers: int = 0,
+        collate_fn: Optional[_collate_fn_t] = None,
+        pin_memory: bool = False,
+        drop_last: bool = False,
+        timeout: float = 0,
+        worker_init_fn: Optional[_worker_init_fn_t] = None,
+        multiprocessing_context=None,
+        generator=None,
+        *,
+        prefetch_factor: Optional[int] = None,
+        persistent_workers: bool = False,
+        pin_memory_device: str = "",
+    ):
+        dataloader = DataLoader(
+            dataset=dataset,
+            batch_size=batch_size,
+            sampler=sampler,
+            shuffle=shuffle,
+            num_workers=num_workers,
+            collate_fn=collate_fn,
+            pin_memory=pin_memory,
+            drop_last=drop_last,
+            timeout=timeout,
+            worker_init_fn=worker_init_fn,
+            multiprocessing_context=multiprocessing_context,
+            generator=generator,
+            prefetch_factor=prefetch_factor,
+            persistent_workers=persistent_workers,
+            pin_memory_device=pin_memory_device,
+        )
+
+        return self.ray_train.torch.prepare_data_loader(dataloader)
+
+
+class RayDeepSpeedStrategy(DeepSpeedStrategy):
+    """A distributed strategy using Ray and DeepSpeed for PyTorch training.
+
+    Args:
+        backend (Literal["nccl", "gloo", "mpi"]): The backend for distributed communication.
+    """
+
+    def __init__(self, backend: Literal["nccl", "gloo", "mpi"]) -> None:
+        initialize_ray()
+        super().__init__(backend=backend)
