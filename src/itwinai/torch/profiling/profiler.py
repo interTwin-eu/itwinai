@@ -76,7 +76,7 @@ def profile_torch_trainer(method: Callable) -> Callable:
                 f", warmup epochs: {warmup_epochs}"
             )
         print(
-            f"Warning: adjusted the given wait and warmup epochs for the profiler - "
+            f"Warning: adjusted the given wait and warmup epochs for the profiler — "
             f"wait epochs: {wait_epochs}, warmup epochs: {warmup_epochs}."
         )
         return active_epochs, wait_epochs, warmup_epochs
@@ -99,10 +99,6 @@ def profile_torch_trainer(method: Callable) -> Callable:
         ) as profiler:
             self.profiler = profiler
             result = method(self, *args, **kwargs)
-
-        # TEMPORARY: 
-        self.profiler.export_chrome_trace("my_trace.json")
-        ############
 
         strategy = self.strategy
         strategy_name = strategy.name
