@@ -11,7 +11,7 @@ name: Container CI
 
 on:
   push:
-    # branches: [main]
+    branches: [main]
 
   # If not triggered on push, but on PR, the commit hash is a bit weird
   # pull_request:
