@@ -45,7 +45,7 @@ class TorchModelLoader(ModelLoader):
             self,
             model_uri: str,
             model_class: nn.Module | None = None,
-            strategy: Optional[TorchDistributedStrategy] = None
+            strategy: TorchDistributedStrategy | None = None
     ):
         self.model_uri = model_uri
         self.model_class = model_class
@@ -105,8 +105,12 @@ class TorchModelLoader(ModelLoader):
 
     def _load_model_from_checkpoint(self, checkpoint: dict) -> nn.Module:
 
-        model = self.model_class()
-        model.load_state_dict(checkpoint['model_state_dict'], strict=False)
+        if self.model_class:
+            model = self.model_class()
+            model.load_state_dict(checkpoint['model_state_dict'], strict=False)
+        else:
+            model = checkpoint
+
         return model
 
 
