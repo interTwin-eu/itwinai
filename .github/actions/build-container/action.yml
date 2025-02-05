@@ -81,7 +81,8 @@ runs:
     - name: Checkout
       uses: actions/checkout@v4
     
-    - name: Move Docker
+    - name: Move Docker directory
+      if: inputs.free-disk-space == 'true'
       shell: bash
       run: |
         sudo mv /var/lib/docker /docker/ &&

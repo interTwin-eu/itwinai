@@ -58,7 +58,7 @@ dagger call \
 # Or more simply, run existing end-to-end pipeline
 dagger call \
     build-container ... \
-    test-n-publish ...
+    release-pipeline ...
 
 # You can also do all the above, but starting from an exisiting itwinai container from
 # some registry. This way you don't have to build it from scratch.
@@ -128,7 +128,7 @@ dagger call \
         --singularity-registry registry.egi.eu/dev.intertwin.eu \
     build-container --context=.. --dockerfile=../env-files/torch/Dockerfile \
         --build-args="COMMIT_HASH=$COMMIT_HASH,BASE_IMG_NAME=$BASE_IMG_NAME,BASE_IMG_DIGEST=$BASE_IMG_DIGEST" \
-    test-n-publish --values=file:tmp.yaml --stage=DEV --framework=TORCH  \
+    release-pipeline --values=file:tmp.yaml --framework=TORCH  \
         --tag-template='${itwinai_version}-torch${framework_version}-${os_version}' \
         --password env:SING_PWD --username env:SING_USER
 
@@ -219,7 +219,7 @@ export KUBERNETES="--kubernetes tcp://localhost:6443" # Set this to empty string
 dagger call --name="${COMMIT_HASH}-torch-slim" \
     build-container --context=.. --dockerfile=../env-files/torch/slim.Dockerfile \
         --build-args="COMMIT_HASH=$COMMIT_HASH,BASE_IMG_NAME=$BASE_IMG_NAME,BASE_IMG_DIGEST=$BASE_IMG_DIGEST" \
-    test-n-publish --values=file:tmp.yaml --stage=DEV --framework=TORCH $KUBERNETES \
+    release-pipeline --values=file:tmp.yaml --framework=TORCH $KUBERNETES \
     --tag-template='${itwinai_version}-slim-torch${framework_version}-${os_version}'
 
 
@@ -249,7 +249,7 @@ export KUBERNETES="--kubernetes tcp://localhost:6443" # Set this to empty string
 dagger call --name="${COMMIT_HASH}-torch-jlab-slim" \
     build-container --context=.. --dockerfile=../env-files/torch/jupyter/slim.Dockerfile \
         --build-args="COMMIT_HASH=$COMMIT_HASH,BASE_IMG_NAME=$BASE_IMG_NAME,BASE_IMG_DIGEST=$BASE_IMG_DIGEST" \
-    test-n-publish --values=file:tmp.yaml --stage=DEV --framework=TORCH $KUBERNETES \
+    release-pipeline --values=file:tmp.yaml --framework=TORCH $KUBERNETES \
     --tag-template='jlab-slim-${itwinai_version}-torch${framework_version}-${os_version}'
 
 ############## JUPYTER ###############
