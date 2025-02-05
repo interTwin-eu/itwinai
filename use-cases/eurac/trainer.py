@@ -155,11 +155,14 @@ class RNNDistributedTrainer(TorchTrainer):
             self.train_loader.sampler.set_epoch(epoch)
             self.val_loader.sampler.set_epoch(epoch)
 
-    @profile_torch_trainer
+    # @profile_torch_trainer
     # @measure_gpu_utilization
     def train(self):
         """Override version of hython to support distributed strategy."""
         # Tracking epoch times for scaling test
+        import yappi
+        yappi.start()
+
         if self.strategy.is_main_worker:
             num_nodes = int(os.environ.get("SLURM_NNODES", "unk"))
             epoch_time_output_dir = Path("scalability-metrics/epoch-time")
@@ -269,6 +272,9 @@ class RNNDistributedTrainer(TorchTrainer):
             # Report training metrics of last epoch to Ray
             train.report({"loss": avg_val_loss.item(), "train_loss": train_loss.item()})
 
+        yappi.stop()
+        pstats = yappi.convert2pstats(yappi.get_func_stats())
+        pstats.dump_stats(f"{self.strategy.global_rank}_stats.pstat")
         return loss_history, metric_history
 
     def create_dataloaders(self, train_dataset, validation_dataset, test_dataset):

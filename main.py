@@ -1,6 +1,3 @@
-# from itwinai.torch.analyzer import TrainingAnalyzer
-# from scalene import scalene_profiler
-# import scalene
 import yappi
 from itwinai.torch.trainer import TorchTrainer
 
@@ -19,21 +16,9 @@ def main():
     yappi.stop()
     stats = yappi.get_func_stats()
 
-    # for elem in stats:
-    #     print(f"elem.name: {elem.name}")
-    #     print(f"elem.ncall: {elem.ncall}")
-    #     print(f"elem.ttot: {elem.ttot}")
-    #     print(f"elem.module: {elem.module}")
-    #     print(f"elem.lineno: {elem.lineno}")
-    #     print(f"elem.builtin: {elem.builtin}")
-    #     print(f"elem.ctx_name: {elem.ctx_name}")
-    #     print()
+    pstats = yappi.convert2pstats(stats)
+    pstats.dump_stats(filename="my_stats.pstat")
 
-    stats.save(path="my_stats.pstats", type="pstat")
-
-    # profiler.stop()
-    # profiler.print(show_all=True, flat=True)
-    # profiler.open_in_browser()
 
 if __name__ == "__main__":
     main()
