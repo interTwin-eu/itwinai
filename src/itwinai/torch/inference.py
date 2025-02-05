@@ -9,7 +9,7 @@
 # --------------------------------------------------------------------------------------
 
 import os
-from typing import Any, Dict, List, Literal, Optional, Union
+from typing import Any, Dict, Literal, Optional, Union
 
 import torch
 from torch import nn
@@ -41,10 +41,12 @@ class TorchModelLoader(ModelLoader):
             neural network to run the inference.
     """
 
-    def __init__(self, model_uri: str,
+    def __init__(
+            self,
+            model_uri: str,
             model_class: nn.Module | None = None,
             strategy: Optional[TorchDistributedStrategy] = None
-        ):
+    ):
         self.model_uri = model_uri
         self.model_class = model_class
         self.strategy = strategy
