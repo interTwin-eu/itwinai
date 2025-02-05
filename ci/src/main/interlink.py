@@ -104,12 +104,7 @@ class InterLink:
                 ]
             )
             # Wait for the VK to appear as a node
-            .with_exec(
-                [
-                    "sleep",
-                    f"{self.wait}",
-                ]
-            )
+            .with_exec(["sleep", f"{self.wait}"])
             .stdout()
         )
 
@@ -140,7 +135,7 @@ class InterLink:
             str, Doc("HPC partition on which to test the offloading")
         ] = "dev",
     ) -> str:
-        """Test container offloading mechanism on remote HPC using interLink by runnign simple
+        """Test container offloading mechanism on remote HPC using interLink by running simple
         tests."""
 
         # Request memory and CPUs
@@ -324,7 +319,7 @@ class InterLink:
         """Wait for pod termination (Succeeded, Failed) or timeout.
         Returns last pod status and logs detected.
         """
-        cnt = 0
+        counter = 0
         timeout = max(int(timeout / poll_interval), 1)
         # Allow at most about 60 seconds of unk status
         unk_timeout = max(int(60 / poll_interval), 1)
@@ -334,8 +329,8 @@ class InterLink:
                 logs = await self.get_pod_logs(name=name)
                 if status in ["Succeeded", "Failed"]:
                     break
-                cnt += 1
-                if cnt > timeout or status == "Unknown" and cnt > unk_timeout:
+                counter += 1
+                if counter > timeout or status == "Unknown" and counter > unk_timeout:
                     status = f"Pod timed out with status: {status}"
                     break
                 time.sleep(poll_interval)

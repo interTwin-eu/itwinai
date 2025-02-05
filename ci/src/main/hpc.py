@@ -25,9 +25,7 @@ class Singularity:
     ] = None
 
     @function
-    def client(
-        self,
-    ) -> dagger.Container:
+    def client(self) -> dagger.Container:
         """Return base image container with Singularity."""
         return self.base_image
 
@@ -52,10 +50,7 @@ class Singularity:
         self,
         password: Annotated[dagger.Secret, Doc("Password for registry")],
         username: Annotated[dagger.Secret, Doc("Username for registry")],
-        uri: Annotated[
-            str,
-            Doc("Target URI for the image"),
-        ],
+        uri: Annotated[str, Doc("Target URI for the image")],
     ) -> str:
         """Export container and publish it to some registry."""
         print(f"The Singularity image will be published at: {uri}")
@@ -63,14 +58,7 @@ class Singularity:
             self.base_image.with_file("container.sif", self.convert())
             .with_secret_variable(name="SINGULARITY_DOCKER_USERNAME", secret=username)
             .with_secret_variable(name="SINGULARITY_DOCKER_PASSWORD", secret=password)
-            .with_exec(
-                [
-                    "singularity",
-                    "push",
-                    "container.sif",
-                    f"{uri}",
-                ]
-            )
+            .with_exec(["singularity", "push", "container.sif", f"{uri}"])
             .stdout()
         )
 

@@ -42,7 +42,7 @@ inputs:
     description: "Docker secret auth token"
     required: true
   interlink-values:
-    description: "Interlink VK configuration file (secret)"
+    description: "Interlink virtual kubelet (VK) configuration file (secret)"
     required: true
   dagger-cloud-token:
     description: "Dagger cloud secret token"

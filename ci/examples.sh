@@ -16,7 +16,7 @@
 ############## EXAMPLE OF WORKFLOWS ###############
 
 # IMPORTANT: when chaining steps that retrun Self, the chain is not really executed because
-# if lazy initialization if the steps. A workaround is appending the `logs` fuction at the
+# of lazy initialization of the steps. A workaround is appending the `logs` fuction at the
 # end of the pipeline, which prints the logs and "forces" the pipeline to be executed
 # step-by-step.
 

@@ -79,13 +79,13 @@ def validate_pod_name(name: str) -> None:
 
 
 def create_pod_manifest(
-    name: str = None,
-    annotations: Dict = None,
-    container_name: str = None,
-    image_path: str = None,
-    cmd_args: List[str] = None,
-    resources: Dict = None,
-    target_node: str = None,
+    name: str | None = None,
+    annotations: Dict | None = None,
+    container_name: str | None = None,
+    image_path: str | None = None,
+    cmd_args: List[str] | None = None,
+    resources: Dict | None = None,
+    target_node: str | None = None,
 ):
     """Creates a pod manifest with optional parameters to override default values
     for pod configuration.

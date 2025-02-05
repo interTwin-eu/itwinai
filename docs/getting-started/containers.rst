@@ -34,7 +34,7 @@ Docker images are hosted on GitHub Container Registry (GHCR) under two repositor
 - **Release Images**: ``ghcr.io/intertwin-eu/itwinai``
 - **Development Images**: ``ghcr.io/intertwin-eu/itwinai-dev``
 
-  - Includes images built from pushes to the ``main`` branch and during development
+  - Includes images built from pushes to the ``main`` branch.
 
 To use these containers as a base for your application, reference them in your ``Dockerfile``
 with the ``FROM`` directive.
@@ -88,6 +88,9 @@ This example assumes that:
 - The application dependencies are listed in ``requirements.txt``
 - The application code (including ``main.py``) is copied into the container
 - The application is executed by running ``python main.py``
+
+If you want to create a JupyterLab container you can replace
+``ghcr.io/intertwin-eu/itwinai:jlab-slim-latest`` in the ``FROM`` clause above.
 
 By using ``itwinai`` container images, users can focus on their application logic while
 leveraging a pre-configured environment optimized for HPC and deep learning workflows.

@@ -166,9 +166,7 @@ def exec_pipeline(
     pipe_key: Annotated[
         str,
         typer.Option(
-            help=(
-                "Key in the configuration file identifying " "the pipeline object to execute."
-            )
+            help=("Key in the configuration file identifying the pipeline object to execute.")
         ),
     ] = "pipeline",
     steps: Annotated[

@@ -96,9 +96,7 @@ class Itwinai:
         """Print the logs generted so far. Useful to terminate a chain of steps
         returning Self, preventing lazy execution of it.
         """
-        if not len(self._logs):
-            return "There are no logs to show"
-        return "\n\n".join(self._logs)
+        return "\n\n".join(self._logs) or "There are no logs to show"
 
     @function
     async def build_container(
@@ -262,13 +260,6 @@ class Itwinai:
         """
 
         image = image or f"docker://{self.docker_registry}/{self.image}:{self.tag}"
-
-        if not image:
-            raise RuntimeError(
-                "Undefined container image. Either chain this function to "
-                "another that will create and publish a container, or give an image "
-                "as argument."
-            )
         self._logs.append(f"INFO: testing on HPC image {image}")
 
         # Create pod manifest
@@ -388,6 +379,10 @@ class Itwinai:
     ) -> str:
         """CI pipeline for pre-release containers. Tests are only local."""
 
+        if not skip_singularity:
+            assert username is not None, "Missing username for Singularity registry"
+            assert password is not None, "Missing password for Singularity registry"
+
         # Test locally
         await self.test_local()
 
@@ -396,8 +391,6 @@ class Itwinai:
         await self.publish(uri=f"{self.docker_registry}/{self.image}:{tag}")
 
         if not skip_singularity:
-            assert username is not None, "Missing username for Singularity registry"
-            assert password is not None, "Missing password for Singularity registry"
             # Publish to Singularity registry
             await self.publish_singularity(
                 uri=f"oras://{self.singularity_registry}/{self.image}:{tag}",
@@ -442,6 +435,10 @@ class Itwinai:
     ) -> str:
         """CI pipeline for release containers. Test on HPC and generate Singularity images."""
 
+        if not skip_singularity:
+            assert username is not None, "Missing username for Singularity registry"
+            assert password is not None, "Missing password for Singularity registry"
+
         # Test locally
         await self.test_local()
 
@@ -452,8 +449,6 @@ class Itwinai:
                 uri = f"docker://{self.singularity_registry}/itwinai-dev:{self.tag}"
                 await self.publish(usri=uri)
             else:
-                assert username is not None, "Missing username for Singularity registry"
-                assert password is not None, "Missing password for Singularity registry"
                 # Publish to registry with random hash
                 uri = f"oras://{self.singularity_registry}/itwinai-dev:{self.tag}"
                 await self.publish_singularity(uri=uri, username=username, password=password)
@@ -474,8 +469,6 @@ class Itwinai:
             # Publish to Docker registry
             await self.publish(uri=f"{self.docker_registry}/{self.image}:{tag}")
             if not skip_singularity:
-                assert username is not None, "Missing username for Singularity registry"
-                assert password is not None, "Missing password for Singularity registry"
                 # Publish to Singularity registry
                 await self.publish_singularity(
                     uri=f"oras://{self.singularity_registry}/{self.image}:{tag}",

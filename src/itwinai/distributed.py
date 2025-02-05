@@ -40,7 +40,7 @@ class ClusterEnvironment(BaseModel):
     local_world_size: int = 1
 
 
-def detect_ray_cluster() -> bool:
+def ray_cluster_is_running() -> bool:
     try:
         # Run the `ray status` command. It should be less overhead than ray.init()
         result = subprocess.run(
@@ -81,7 +81,7 @@ def detect_distributed_environment() -> ClusterEnvironment:
             local_world_size=os.getenv("OMPI_COMM_WORLD_LOCAL_SIZE"),
             global_world_size=os.getenv("OMPI_COMM_WORLD_SIZE"),
         )
-    elif detect_ray_cluster():
+    elif ray_cluster_is_running():
         import ray
 
         ray.init(address="auto")
