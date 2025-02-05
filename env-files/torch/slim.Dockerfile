@@ -142,6 +142,7 @@ RUN ln -s /usr/local/bin/python3.10 /usr/bin/python3.10
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
+    git \
     # OpenMPI dev library needed to build Horovod
     libopenmpi-dev \
     # mpi4py, which may be needed and also installs mpirun
