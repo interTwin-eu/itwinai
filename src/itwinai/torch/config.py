@@ -13,8 +13,6 @@ from typing import Literal
 
 from pydantic import BaseModel
 
-# TEMPORARY
-
 class Configuration(BaseModel, extra="allow"):
     """Base configuration class."""
 

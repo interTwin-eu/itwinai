@@ -17,6 +17,7 @@ from pathlib import Path
 
 import pytest
 
+CERN_PATH = "jarl"
 CERN_PATH = Path("use-cases", "3dgan")
 CKPT_NAME = "3dgan-inference.pth"
 DEFAULT_DATASET_PATH = "exp_data"
