@@ -1,0 +1,60 @@
+downloaded_hdf5_location: calochallenge_data/
+dataset_type: "dataset_1_pions"
+
+dataloading_step:
+  class_path: data.CaloChallengeDownloader
+  init_args:
+    data_path: ${downloaded_hdf5_location}
+    dataset_type: ${dataset_type}
+
+training_pipeline:
+  class_path: itwinai.pipeline.Pipeline
+  init_args:
+    steps:
+      dataloading_step:
+        class_path: data.CalochallengeDataSplitter
+        init_args:
+          data_path: ${downloaded_hdf5_location}
+          dataset_type: ${dataset_type}
+          eps: 1.0e-10
+          u0up_cut: 3.5 
+          u0low_cut: 0.0 
+          dep_cut: 600
+          width_noise: 5.0e-6 
+          fixed_noise: False
+          noise: False
+          validation_proportion: 0.01
+          rnd_seed: 1
+
+      training_step:
+        class_path: trainer.CaloChallengeTrainer
+        init_args:
+          config:
+            bayesian: False
+            internal_size: 256
+            alpha: 1.0e-8
+            alpha_logit: 1.0e-6
+            log_cond: True
+            use_norm: False
+            sub_layers: [linear, linear, linear, linear]
+            coupling_type: rational_quadratic
+            use_extra_dims: True
+            n_blocks: 12
+            norm: True
+            permute_soft: False
+            bounds_init: 18
+            layers_per_block: 4
+            num_bins: 10
+            dropout: 0.0
+            layer_norm: nn.BatchNorm1d
+            layer_act: nn.SiLU
+            prior_prec: 5000
+            std_init: -15.0
+            batch_size: 512
+            eps: 1.0e-10
+
+            max_lr: 1.e-5
+            optim_lr: 1.e-6
+          num_epochs: 5
+          
+          
