@@ -56,7 +56,7 @@ def generate_scalability_report(
         str, typer.Option(help=("Which directory to store the backup files in."))
     ] = "backup-scalability-metrics/",
     experiment_name: Annotated[
-        str | None,
+        Optional[str],
         typer.Option(
             help=(
                 "What to name the experiment in the backup directory."
@@ -164,6 +164,7 @@ def sanity_check(
         run_sanity_check(optional_deps)
 
 
+
 def remove_from_argv(n_args: int):
     assert n_args >= 1
     assert n_args < len(sys.argv)
@@ -186,6 +187,7 @@ def exec_pipeline():
 
     # Process CLI arguments to handle paths
     sys.argv = make_config_paths_absolute(sys.argv)
+
 
     exec_pipeline_with_compose()
 
@@ -236,11 +238,15 @@ def exec_pipeline_with_compose(cfg):
 def mlflow_ui(
     path: str = typer.Option("ml-logs/", help="Path to logs storage."),
     port: int = typer.Option(5000, help="Port on which the MLFlow UI is listening."),
+    host: str = typer.Option(
+        "127.0.0.1",
+        help="Which host to use. Switch to '0.0.0.0' to e.g. allow for port-forwarding.",
+    ),
 ):
     """Visualize Mlflow logs."""
     import subprocess
 
-    subprocess.run(f"mlflow ui --backend-store-uri {path} --port {port}".split())
+    subprocess.run(f"mlflow ui --backend-store-uri {path} --port {port} --host {host}".split())
 
 
 @app.command()
