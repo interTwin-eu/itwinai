@@ -5,6 +5,7 @@
 #
 # Credit:
 # - Matteo Bunino <matteo.bunino@cern.ch> - CERN
+# - Jarl Sondre Sæther <jarl.sondre.saether@cern.ch> - CERN
 # --------------------------------------------------------------------------------------
 
 """Adapted from: https://github.com/pytorch/examples/blob/main/mnist/main.py"""
@@ -22,6 +23,7 @@ from itwinai.torch.config import TrainingConfiguration
 from itwinai.torch.trainer import TorchTrainer
 
 
+# Step 1: setup your neural network architecture
 class Net(nn.Module):
     def __init__(self):
         super(Net, self).__init__()
@@ -48,7 +50,7 @@ class Net(nn.Module):
 
 
 def main():
-    # Training settings
+    # Step 2 (optional): Parse your arguments from the command line
     parser = argparse.ArgumentParser(description="PyTorch MNIST Example")
     parser.add_argument(
         "--batch-size",
@@ -62,7 +64,9 @@ def main():
     parser.add_argument(
         "--strategy", type=str, default="ddp", help="distributed strategy (default=ddp)"
     )
-    parser.add_argument("--lr", type=float, default=1.0, help="learning rate (default: 1.0)")
+    parser.add_argument(
+        "--lr", type=float, default=1.0, help="learning rate (default: 1.0)"
+    )
     parser.add_argument("--seed", type=int, default=1, help="random seed (default: 1)")
     parser.add_argument(
         "--ckpt-interval",
@@ -72,14 +76,16 @@ def main():
     )
     args = parser.parse_args()
 
-    # Dataset creation
+    # Step 3: Create your datasets
     transform = transforms.Compose(
         [transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))]
     )
-    train_dataset = datasets.MNIST("../data", train=True, download=True, transform=transform)
+    train_dataset = datasets.MNIST(
+        "../data", train=True, download=True, transform=transform
+    )
     validation_dataset = datasets.MNIST("../data", train=False, transform=transform)
 
-    # Neural network to train
+    # Step 4: Configure your model and your training configuration
     model = Net()
 
     training_config = TrainingConfiguration(
@@ -89,6 +95,7 @@ def main():
         loss="cross_entropy",
     )
 
+    # Step 5 (optional): Configure a logger and some metrics
     logger = MLFlowLogger(experiment_name="mnist-tutorial", log_freq=10)
 
     metrics = {
@@ -96,6 +103,7 @@ def main():
         "precision": torchmetrics.Precision(task="multiclass", num_classes=10),
     }
 
+    # Step 6: Create your Trainer
     trainer = TorchTrainer(
         config=training_config,
         model=model,
@@ -107,7 +115,7 @@ def main():
         checkpoint_every=args.ckpt_interval,
     )
 
-    # Launch training
+    # Step 7: Launch your training
     _, _, _, trained_model = trainer.execute(train_dataset, validation_dataset, None)
 
 

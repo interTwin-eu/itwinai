@@ -31,7 +31,7 @@ def main():
         cpus_per_gpu=args.cpus_per_gpu,
     )
 
-    submit_slurm_job = not args.no_submit_slurm_job
+    submit_slurm_job = not args.no_submit_job
     retain_file = not args.no_retain_file
 
     slurm_script_builder = SlurmScriptBuilder(
