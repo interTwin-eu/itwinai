@@ -45,6 +45,8 @@ class Lightning3DGANTrainer(Trainer):
         self.conf = config
         self.itwinai_logger = itwinai_logger if itwinai_logger else EmptyLogger()
 
+        print(f"self.conf: {self.conf}")
+
     @monitor_exec
     def execute(self) -> Any:
         # Parse lightning configuration
@@ -85,6 +87,20 @@ class Lightning3DGANTrainer(Trainer):
             local_yaml_path = os.path.join(tmp_dir, "pl-conf.yaml")
             with open(local_yaml_path, "w") as outfile:
                 print(f"Config: {self.conf}")
+                
+                try:
+                    model_dict = {"model": self.conf["model"]}
+                    yaml.dump(model_dict, outfile, default_flow_style=False)
+                except Exception as e:
+                    print("Yaml dump model failed")
+                    print(e)
+                try:
+                    data_dict = {"data": self.conf["data"]}
+                    yaml.dump(data_dict, outfile, default_flow_style=False)
+                except Exception as e:
+                    print("Yaml dump data failed")
+                    print(e)
+
                 yaml.dump(self.conf, outfile, default_flow_style=False)
             logger.log(local_yaml_path, "lightning-config", kind="artifact")
 

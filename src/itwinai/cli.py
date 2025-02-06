@@ -225,13 +225,15 @@ def exec_pipeline_with_compose(cfg):
         print("No steps selected. Executing the whole pipeline.")
 
     # Instantiate and execute the pipeline
-    try:
-        pipeline = instantiate(cfg, _convert_="all")
-        pipeline.execute()
-    except Exception as e:
-        root = get_root_cause(e)
-        raise e
-        raise root
+    pipeline = instantiate(cfg, _convert_="all")
+    pipeline.execute()
+    # try:
+    #     pipeline = instantiate(cfg, _convert_="all")
+    #     pipeline.execute()
+    # except Exception as e:
+    #     root = get_root_cause(e)
+    #     # raise e
+    #     raise root
 
 
 @app.command()
