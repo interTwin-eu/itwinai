@@ -106,10 +106,14 @@ WORKDIR /app
 COPY pyproject.toml pyproject.toml
 COPY src src
 RUN /usr/bin/python3.10 -m venv /opt/venv \
-    && pip install --no-cache-dir --upgrade pip \
+    && pip install --no-cache-dir --upgrade pip wheel \
+    # Needed to run deepspeed (and Horovod?) with MPI backend
+    && pip install --no-cache-dir mpi4py \
     && pip install --no-cache-dir .[torch] --extra-index-url https://download.pytorch.org/whl/cu124 \
     "prov4ml[nvidia]@git+https://github.com/matbun/ProvML@new-main" \
     pytest \
+    pytest-xdist \
+    psutil \
     wheel
 
 # Install DeepSpeed, Horovod and Ray
@@ -138,6 +142,7 @@ RUN ln -s /usr/local/bin/python3.10 /usr/bin/python3.10
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
+    git \
     # OpenMPI dev library needed to build Horovod
     libopenmpi-dev \
     # mpi4py, which may be needed and also installs mpirun

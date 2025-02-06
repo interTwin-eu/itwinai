@@ -27,21 +27,33 @@ jobs:
         config:
           # Note: in the tag template we replace '$' with '@' as otherwise the GH action will
           # try to interpolate the values, breaking the template  
-          - base-img-name: "nvcr.io/nvidia/pytorch:24.05-py3"
-            dockerfile: "../env-files/torch/Dockerfile"
-            flavour-name: "torch"
-            tag-template: "@{itwinai_version}-torch@{framework_version}-@{os_version}"
+          
+          # - base-img-name: "nvcr.io/nvidia/pytorch:24.05-py3"
+          #   dockerfile: "../env-files/torch/Dockerfile"
+          #   nickname: "torch"
+          #   tag-template: "@{itwinai_version}-torch@{framework_version}-@{os_version}"
+          #   skip-hpc: false
+          #   # Conversion to Singularity is skipped on GH actions as it would take too much space
+          #   skip-singularity: true
+          - base-img-name: "python:3.10-slim"
+            dockerfile: "../env-files/torch/skinny.Dockerfile"
+            nickname: "torch-skinny"
+            tag-template: "@{itwinai_version}-skinny-torch@{framework_version}-@{os_version}"
+            # Tests on HPC are skipped as this image is not really meant to run on HPC
             skip-hpc: true
+            skip-singularity: false
           - base-img-name: "python:3.10-slim"
             dockerfile: "../env-files/torch/slim.Dockerfile"
-            flavour-name: "torch-slim"
+            nickname: "torch-slim"
             tag-template: "@{itwinai_version}-slim-torch@{framework_version}-@{os_version}"
-            skip-hpc: true
+            skip-hpc: false
+            skip-singularity: false
           - base-img-name: "jupyter/scipy-notebook:python-3.10.11"
             dockerfile: "../env-files/torch/jupyter/slim.Dockerfile"
-            flavour-name: "jlab-slim"
+            nickname: "jlab-slim"
             tag-template: "jlab-slim-@{itwinai_version}-torch@{framework_version}-@{os_version}"
             skip-hpc: true
+            skip-singularity: false
 
     steps:
       - name: Checkout Code
@@ -52,10 +64,13 @@ jobs:
         with:
           base-img-name: ${{ matrix.config.base-img-name }}
           dockerfile: ${{ matrix.config.dockerfile }}
-          flavour-name: ${{ matrix.config.flavour-name }}
+          nickname: ${{ matrix.config.nickname }}
           tag-template: ${{ matrix.config.tag-template }}
           skip-hpc: ${{ matrix.config.skip-hpc }}
+          skip-singularity: ${{ matrix.config.skip-singularity }}
           docker-token: ${{ secrets.DOCKER_TOKEN }}
           dagger-cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }} 
-          kubeconfig-str: ${{ secrets.KUBECONFIG_INFN }}
-          stage: ${{ github.event_name == 'release' && github.event.action == 'created' && 'PRODUCTION' || 'DEV' }}
+          interlink-values: ${{ secrets.INTERLINK_VALUES }}
+          singularity-password: ${{ secrets.SINGULARITY_PWD }}
+          singularity-username: ${{ secrets.SINGULARITY_USR }}
+          release: ${{ github.event_name == 'release' && github.event.action == 'created' && 'true' || 'false' }}
