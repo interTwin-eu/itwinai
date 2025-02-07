@@ -15,19 +15,29 @@ ARG BASE_IMG_NAME
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     git \
+    curl \
     && apt-get clean -y && rm -rf /var/lib/apt/lists/*
 
+# Install UV package manager
+RUN curl -LsSf https://astral.sh/uv/install.sh | sh
+# Add UV on the path
+ENV PATH="/root/.local/bin:$PATH"
 
 # Install itwinai with torch
 WORKDIR /app
 COPY pyproject.toml pyproject.toml
 COPY src src
-RUN pip install --no-cache-dir --upgrade pip \
-    && pip install --no-cache-dir .[torch] --extra-index-url https://download.pytorch.org/whl/cu124 \
+RUN uv venv && \
+    uv pip install --no-cache-dir --upgrade pip \
+    && uv pip install --no-cache-dir \
+    .[torch] \
     "prov4ml[nvidia]@git+https://github.com/matbun/ProvML@new-main" \
     pytest \
     pytest-xdist \
     psutil
+# Make uv venv the default python env
+ENV VIRTUAL_ENV=/app/.venv \
+    PATH="/app/.venv/bin:$PATH"
 
 # Installation sanity check
 RUN itwinai sanity-check --torch \
@@ -41,7 +51,7 @@ COPY tests tests
 COPY use-cases use-cases
 # This is needed to override the default venv path used by functional
 # tests for torch-based use cases (under ./use-cases)
-ENV TORCH_ENV="/usr/local"
+ENV TORCH_ENV="/app/.venv"
 
 # Labels
 ARG CREATION_DATE
