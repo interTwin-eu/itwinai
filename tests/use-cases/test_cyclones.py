@@ -45,13 +45,11 @@ def test_cyclones_train_tf(tf_env, install_requirements):
     install_requirements(CYCLONES_PATH, tf_env)
 
     dataset_path = os.environ.get("CMCCC_DATASET", "./data/tmp_data")
-    pipe = CYCLONES_PATH.resolve()
+    pipe = CYCLONES_PATH / "pipeline.yaml"
+    train = CYCLONES_PATH / "train.py"
 
     cmd = (
-        f"{tf_env}/bin/itwinai exec-pipeline "
-        f"--config-path {pipe} "
-        "--config-name pipeline"
-        f"data_path {dataset_path}"
+        f"{tf_env}/bin/python {train.resolve()} -p {pipe.resolve()} --data_path {dataset_path}"
     )
     with tempfile.TemporaryDirectory() as tmpdirname:
         subprocess.run(cmd.split(), check=True, cwd=tmpdirname)

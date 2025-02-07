@@ -31,4 +31,4 @@ jobs:
 
       - name: Run pytest for workflows
         shell: bash -l {0}
-        run: .venv-pytorch/bin/pytest -vv -s -n logical ./tests -m "not hpc and not tensorflow"
+        run: .venv-pytorch/bin/pytest -vv -n logical ./tests/ -m "not hpc and not tensorflow"

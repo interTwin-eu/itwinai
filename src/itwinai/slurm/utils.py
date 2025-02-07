@@ -127,13 +127,13 @@ def get_slurm_job_parser() -> ArgumentParser:
 
     # Arguments specific to the itwinai pipeline
     parser.add_argument(
-        "--config_path",
+        "--config-path",
         type=str,
         default=default_config_file,
         help="The path to the directory containing the config file to use for training.",
     )
     parser.add_argument(
-        "--config_name",
+        "--config-name",
         type=str,
         default=default_config_file,
         help="The name of the config file to use for training.",
