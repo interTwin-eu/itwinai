@@ -120,20 +120,22 @@ training_pipeline:
           use_distributed_sampler: true
           val_check_interval: null
         model:
-          _target_: model.ThreeDGAN
-          latent_size: 256
-          loss_weights: [3, 0.1, 25, 0.1]
-          power: 0.85
-          lr: 0.001
-          checkpoints_dir: ${checkpoints_path}
-          provenance_verbose: ${provenance_verbose}
+          class_path: model.ThreeDGAN
+          init_args:
+            latent_size: 256
+            loss_weights: [3, 0.1, 25, 0.1]
+            power: 0.85
+            lr: 0.001
+            checkpoints_dir: ${checkpoints_path}
+            provenance_verbose: ${provenance_verbose}
         data:
-          _target_: dataloader.ParticlesDataModule
-          datapath: ${dataset_location}
-          batch_size: ${batch_size}
-          num_workers: ${num_workers_dataloader}
-          max_samples: ${max_dataset_size}
-          train_proportion: ${train_dataset_proportion}
+          class_path: dataloader.ParticlesDataModule
+          init_args:
+            datapath: ${dataset_location}
+            batch_size: ${batch_size}
+            num_workers: ${num_workers_dataloader}
+            max_samples: ${max_dataset_size}
+            train_proportion: ${train_dataset_proportion}
 
 inference_pipeline:
   _target_: itwinai.pipeline.Pipeline
@@ -193,19 +195,20 @@ inference_pipeline:
           val_check_interval: null
 
         model:
-          _target_: model.ThreeDGAN
-          latent_size: 256
-          loss_weights: [3, 0.1, 25, 0.1]
-          power: 0.85
-          lr: 0.001
-          checkpoints_dir: ${checkpoints_path}
-
+          class_path: model.ThreeDGAN
+          init_args:
+            latent_size: 256
+            loss_weights: [3, 0.1, 25, 0.1]
+            power: 0.85
+            lr: 0.001
+            checkpoints_dir: ${checkpoints_path}
         data:
-          _target_: dataloader.ParticlesDataModule
-          datapath: ${dataset_location}
-          batch_size: ${batch_size}
-          num_workers: ${num_workers_dataloader}
-          max_samples: ${max_dataset_size}
+          class_path: dataloader.ParticlesDataModule
+          init_args:
+            datapath: ${dataset_location}
+            batch_size: ${batch_size}
+            num_workers: ${num_workers_dataloader}
+            max_samples: ${max_dataset_size}
 
     saver_step:
       _target_: saver.ParticleImagesSaver
