@@ -187,7 +187,9 @@ def exec_pipeline_with_compose(cfg):
     (under config_path), which contains a pipeline definition, and passes it to this function
     as an omegaconf.DictConfig object (called cfg). This function then instantiates and
     executes the resulting pipeline object.
-    Filters steps if `pipe_steps` is provided, otherwise executes the entire pipeline."""
+    Filters steps if `pipe_steps` is provided, otherwise executes the entire pipeline.
+    For more information on hydra.main, please see
+    https://hydra.cc/docs/tutorials/basic/your_first_app/simple_cli/."""
 
     pipe_steps = OmegaConf.select(cfg, "pipe_steps", default=None)
     pipe_key = OmegaConf.select(cfg, "pipe_key", default="training_pipeline")
