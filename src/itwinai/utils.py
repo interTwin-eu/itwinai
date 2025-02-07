@@ -13,7 +13,7 @@ import inspect
 import os
 import sys
 from collections.abc import MutableMapping
-from typing import Callable, Dict, Hashable, Tuple, Type
+from typing import Callable, Dict, Hashable, Tuple, Type, List
 
 import yaml
 
@@ -164,9 +164,17 @@ def clear_key(my_dict: Dict, dict_name: str, key: Hashable, complain: bool = Tru
     return my_dict
 
 
-def make_config_paths_absolute(args):
+def make_config_paths_absolute(args: List[str]):
     """Process CLI arguments to make paths specified for `--config-path` or `-cp` absolute.
-    Returns the modified arguments list."""
+    Returns the modified arguments list.
+
+    Args:
+        args (List[str]): a list of system arguments
+
+    Returns:
+        List(str): the updated list of system arguments, where all the config path argument is
+            absolute.
+    """
     updated_args = args.copy()
     for i, arg in enumerate(updated_args):
         if arg.startswith("--config-path=") or arg.startswith("-cp="):

@@ -84,7 +84,6 @@ class Serializable:
         init_args = dict()
         for par_name, par in self._saved_constructor_parameters().items():
             init_args[par_name] = self._recursive_serialization(par, par_name)
-
         init_args["_target_"] = class_path
 
         return init_args

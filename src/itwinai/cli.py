@@ -169,11 +169,7 @@ def sanity_check(
 def exec_pipeline():
     """Execute a pipeline from configuration file. Allows dynamic override of fields."""
 
-    # Remove the 'exec-pipeline' command from the CLI args
-    del sys.argv[0]
-    # Overwrite hydra default logging behavior
-    if "--cfg" not in sys.argv and "-c" not in sys.argv:
-        sys.argv.append("hydra.output_subdir=null")
+    sys.argv.remove("exec-pipeline")
 
     # Add current working directory to the module search path
     # so hydra will find the objects defined in the config (usually paths relative to config)
@@ -187,8 +183,10 @@ def exec_pipeline():
 
 @hydra.main(version_base=None, config_path=os.getcwd(), config_name="config")
 def exec_pipeline_with_compose(cfg):
-    """Hydra entry function. Parses a configuration file containing a pipeline definition, and
-    instantiates and executes the resulting pipeline object.
+    """Hydra entry function. The hydra.main decorator parses a configuration file
+    (under config_path), which contains a pipeline definition, and passes it to this function
+    as an omegaconf.DictConfig object (called cfg). This function then instantiates and
+    executes the resulting pipeline object.
     Filters steps if `pipe_steps` is provided, otherwise executes the entire pipeline."""
 
     pipe_steps = OmegaConf.select(cfg, "pipe_steps", default=None)
@@ -222,9 +220,7 @@ def exec_pipeline_with_compose(cfg):
         pipeline = instantiate(cfg, _convert_="all")
         pipeline.execute()
     except Exception as e:
-        root = get_root_cause(e)
         raise e
-        raise root
 
 
 @app.command()
