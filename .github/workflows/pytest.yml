@@ -25,6 +25,13 @@ jobs:
           remove-codeql: true
       
       - uses: actions/checkout@v4
+
+      - name: Move Docker directory
+        shell: bash
+        run: |
+          sudo mv /var/lib/docker /docker/ &&
+          sudo ln -s /docker/docker /var/lib/docker &&
+          sudo systemctl restart docker
       
       # Run tests with pytest in a container
       - name: Run Integration Test (development pipeline)
