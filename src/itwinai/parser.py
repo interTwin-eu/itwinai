@@ -5,7 +5,6 @@
 #
 # Credit:
 # - Matteo Bunino <matteo.bunino@cern.ch> - CERN
-# - Anna Lappe <anna.elisa.lappe@cern.ch
 # --------------------------------------------------------------------------------------
 
 """Provide functionalities to manage configuration files, including parsing,

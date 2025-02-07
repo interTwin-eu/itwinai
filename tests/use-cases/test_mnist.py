@@ -6,6 +6,7 @@
 # Credit:
 # - Matteo Bunino <matteo.bunino@cern.ch> - CERN
 # - Jarl Sondre Sæther <jarl.sondre.saether@cern.ch> - CERN
+# - Anna Lappe <anna.elisa.lappe@cern.ch> - CERN
 # --------------------------------------------------------------------------------------
 
 """Tests for MNIST use case.
