@@ -13,7 +13,7 @@ import inspect
 import os
 import sys
 from collections.abc import MutableMapping
-from typing import Callable, Dict, Hashable, Tuple, Type, List
+from typing import Callable, Dict, Hashable, List, Tuple, Type
 
 import yaml
 
