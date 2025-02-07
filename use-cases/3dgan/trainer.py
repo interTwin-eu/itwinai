@@ -84,8 +84,6 @@ class Lightning3DGANTrainer(Trainer):
         with tempfile.TemporaryDirectory(dir="/tmp") as tmp_dir:
             local_yaml_path = os.path.join(tmp_dir, "pl-conf.yaml")
             with open(local_yaml_path, "w") as outfile:
-                print(f"Config: {self.conf}")
-                print(f"Type of config: {type(self.conf)}")
                 yaml.dump(self.conf, outfile, default_flow_style=False)
             logger.log(local_yaml_path, "lightning-config", kind="artifact")
 

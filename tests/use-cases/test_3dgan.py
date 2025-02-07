@@ -18,7 +18,7 @@ from pathlib import Path
 
 import pytest
 
-CERN_PATH = Path("use-cases", "3dgan")
+CERN_PATH = Path("use-cases", "3dgan").resolve()
 CKPT_NAME = "3dgan-inference.pth"
 DEFAULT_DATASET_PATH = "exp_data"
 
@@ -40,10 +40,9 @@ def test_3dgan_train(torch_env, install_requirements):
     """
     install_requirements(CERN_PATH, torch_env)
     dataset_path = os.environ.get("CERN_DATASET", DEFAULT_DATASET_PATH)
-    conf = CERN_PATH.resolve()
     cmd = (
         f"{torch_env}/bin/itwinai exec-pipeline "
-        f"--config-path {conf} "
+        f"--config-path {CERN_PATH} "
         f"dataset_location={dataset_path} "
         "hw_accelerators=auto "
         "distributed_strategy=auto "
@@ -72,12 +71,11 @@ def test_3dgan_inference(
     # Test inference
     dataset_path = os.environ.get("CERN_DATASET", DEFAULT_DATASET_PATH)
 
-    conf = CERN_PATH.resolve()
-    exec = (CERN_PATH / "create_inference_sample.py").resolve()
+    exec = CERN_PATH / "create_inference_sample.py"
 
     run_inference_cmd = (
         f"{torch_env}/bin/itwinai exec-pipeline "
-        f"--config-path {conf} +pipe_key=inference_pipeline "
+        f"--config-path {CERN_PATH} +pipe_key=inference_pipeline "
         f"dataset_location={dataset_path} "
         f"inference_model_uri={CKPT_NAME} "
         "hw_accelerators=auto "

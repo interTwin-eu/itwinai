@@ -33,7 +33,7 @@ if [ -z "$RUN_NAME" ]; then
 fi
 if [ -z "$CONFIG_PATH" ]; then 
   CONFIG_PATH=.
-  >&2 echo "WARNING: env variable CONFIG_FILE is not set. Defaulting to $CONFIG_FILE."
+  >&2 echo "WARNING: env variable CONFIG_PATH is not set. Defaulting to $CONFIG_PATH."
 fi
 if [ -z "$CONFIG_NAME" ]; then 
   CONFIG_FILE=config

@@ -22,7 +22,7 @@ from pathlib import Path
 
 import pytest
 
-MNIST_FOLDER = Path("use-cases", "mnist")
+MNIST_FOLDER = Path("use-cases", "mnist").resolve()
 TORCH_PATH = MNIST_FOLDER / "torch"
 LIGHTNING_PATH = MNIST_FOLDER / "torch-lightning"
 TF_PATH = MNIST_FOLDER / "tensorflow"
@@ -62,10 +62,9 @@ def test_mnist_train_torch(torch_env, install_requirements):
 
     dataset_path = os.environ.get("MNIST_DATASET", DEFAULT_MNIST_DATASET)
 
-    conf = TORCH_PATH.resolve()
     cmd = (
         f"{torch_env}/bin/itwinai exec-pipeline "
-        f"--config-path {conf} "
+        f"--config-path {TORCH_PATH} "
         f"dataset_root={dataset_path} "
     )
     with tempfile.TemporaryDirectory() as temp_dir:
@@ -79,10 +78,9 @@ def test_mnist_inference_torch(torch_env, install_requirements):
     """
     install_requirements(TORCH_PATH, torch_env)
 
-    conf = TORCH_PATH.resolve()
-    exec = (TORCH_PATH / "create_inference_sample.py").resolve()
+    exec = TORCH_PATH / "create_inference_sample.py"
 
-    run_inference_cmd = f"{torch_env}/bin/itwinai exec-pipeline --config-path {conf} \
+    run_inference_cmd = f"{torch_env}/bin/itwinai exec-pipeline --config-path {TORCH_PATH} \
         +pipe_key=inference_pipeline"
     with tempfile.TemporaryDirectory() as temp_dir:
         # Create fake inference dataset and checkpoint
@@ -106,10 +104,9 @@ def test_mnist_train_torch_lightning(torch_env, install_requirements):
     install_requirements(LIGHTNING_PATH, torch_env)
 
     dataset_path = os.environ.get("MNIST_DATASET", DEFAULT_MNIST_DATASET)
-    conf = LIGHTNING_PATH.resolve()
     cmd = (
         f"{torch_env}/bin/itwinai exec-pipeline "
-        f"--config-path {conf} "
+        f"--config-path {LIGHTNING_PATH} "
         f"dataset_root={dataset_path} "
     )
     with tempfile.TemporaryDirectory() as temp_dir:
@@ -123,9 +120,8 @@ def test_mnist_train_tf(tf_env, install_requirements):
     Test MNIST tensorflow trainer by running it end-to-end.
     """
     install_requirements(TF_PATH, tf_env)
-    conf_path = TF_PATH.resolve()
     conf_name = "pipeline"
-    cmd = f"{tf_env}/bin/itwinai exec-pipeline --config-path {conf_path} \
+    cmd = f"{tf_env}/bin/itwinai exec-pipeline --config-path {TF_PATH} \
         --config-name {conf_name} +pipe_key=pipeline"
     with tempfile.TemporaryDirectory() as temp_dir:
         subprocess.run(cmd.split(), check=True, cwd=temp_dir)
