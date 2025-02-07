@@ -15,6 +15,8 @@
 experiment_name: "itwinai"
 experiment_run: "vwc_actevap"
 
+work_dir: /p/scratch/intertwin/datasets/eurac/model
+
 experiment: "drought use case lstm"
 run_name: "alps_test"
 epochs: 5
@@ -28,7 +30,7 @@ test_temporal_range: ["2019-01-01", "2020-12-31"]
 
 seed: 10 
 
-device: "cuda:0"
+device: "cuda"
 
 # === Model ===
 
@@ -227,4 +229,5 @@ training_pipeline:
                 #     run_name: ${experiment_run}
                 #     log_freq: batch
                 #     savedir: /p/project1/intertwin/ferrario1/itwinai/use-cases/eurac/mllogs
+
 
