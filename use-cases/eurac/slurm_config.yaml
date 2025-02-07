@@ -36,5 +36,5 @@ scalability_nodes: "1, 2, 4"
 #   $(which itwinai) exec-pipeline \
 #   --config-path ${config_file} \
 #   --config-name ${config_name}
-#   +pipe_key ${pipe_key} \
+#   +pipe_key=${pipe_key} \
 #   strategy=${dist_strat} \

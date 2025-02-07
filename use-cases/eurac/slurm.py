@@ -46,7 +46,7 @@ class EuracSlurmScriptBuilder(SlurmScriptBuilder):
         $(which itwinai) exec-pipeline \
             --config-path {self.config_path} \
             --config-name {self.config_name} \
-            +pipe-key {self.pipe_key} \
+            +pipe-key={self.pipe_key} \
             strategy={self.distributed_strategy} \
         """
         training_command = training_command.strip()

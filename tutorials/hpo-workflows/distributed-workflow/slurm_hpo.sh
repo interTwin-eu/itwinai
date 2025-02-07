@@ -23,7 +23,7 @@ ml Stages/2024 GCC/12.3.0 OpenMPI CUDA/12 MPI-settings/CUDA
 ml Python/3.11 HDF5 PnetCDF libaio mpi4py CMake cuDNN/8.9.5.29-CUDA-12
 
 # Set and activate virtual environment
-PYTHON_VENV="../../envAI_juwels"
+PYTHON_VENV="../../../envAI_juwels"
 source $PYTHON_VENV/bin/activate
 
 # make sure CUDA devices are visible
@@ -85,7 +85,7 @@ echo All Ray workers started.
 echo 'Starting HPO.'
 
 # Run pipeline
-$PYTHON_VENV/bin/itwinai exec-pipeline +pipe_key hpo_training_pipeline
+$PYTHON_VENV/bin/itwinai exec-pipeline +pipe_key=hpo_training_pipeline
 
 # Shutdown Ray after completion
 ray stop

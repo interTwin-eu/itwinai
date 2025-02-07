@@ -17,11 +17,11 @@ hpo_training_pipeline:
         train_loop_config:
           batch_size:
             type: choice
-            options: [32, 64, 128]
+            categories: [32, 64, 128]
           learning_rate:
             type: uniform
-            min: 1e-5
-            max: 1e-3
+            lower: 1e-5
+            upper: 1e-3
           epochs: 10
         tune_config:
           num_samples: 4

@@ -169,7 +169,8 @@ def sanity_check(
 def exec_pipeline():
     """Execute a pipeline from configuration file. Allows dynamic override of fields."""
 
-    sys.argv.remove("exec-pipeline")
+    # Remove the 'exec-pipeline' command from the CLI args
+    del sys.argv[0]
     # Overwrite hydra default logging behavior
     if "--cfg" not in sys.argv and "-c" not in sys.argv:
         sys.argv.append("hydra.output_subdir=null")
