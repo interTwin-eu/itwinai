@@ -56,11 +56,13 @@ training_pipeline:
           limit_val_batches: null
           log_every_n_steps: null
           logger:
-            _target_: itwinai.torch.loggers.ItwinaiLogger
-            log_model: all
-            itwinai_logger:
-              _target_: itwinai.loggers.MLFlowLogger
-              savedir: mllogs
+            class_path: itwinai.torch.loggers.ItwinaiLogger
+            init_args:
+              log_model: all
+              itwinai_logger:
+                class_path: itwinai.loggers.MLFlowLogger
+                init_args:
+                  savedir: mllogs
           max_epochs: 5
           max_steps: -1
           max_time: null
@@ -97,6 +99,6 @@ training_pipeline:
 
         # Torch LR scheduler configuration
         lr_scheduler:
-          class:path: torch.optim.lr_scheduler.ExponentialLR
+          class_path: torch.optim.lr_scheduler.ExponentialLR
           init_args:
             gamma: 0.1
