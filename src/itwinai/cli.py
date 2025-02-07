@@ -6,6 +6,7 @@
 # Credit:
 # - Matteo Bunino <matteo.bunino@cern.ch> - CERN
 # - Jarl Sondre Sæther <jarl.sondre.saether@cern.ch> - CERN
+# - Anna Lappe <anna.elisa.lappe@cern.ch> - CERN
 #
 # --------------------------------------------------------------------------------------
 # Command-line interface for the itwinai Python library.
@@ -18,11 +19,18 @@
 # NOTE: import libraries in the command's function, not here, as having them here will
 # slow down the CLI commands significantly.
 
+import os
+import sys
 from pathlib import Path
 from typing import List, Optional
 
+import hydra
 import typer
+from hydra.utils import instantiate
+from omegaconf import OmegaConf, errors
 from typing_extensions import Annotated
+
+from itwinai.utils import make_config_paths_absolute
 
 app = typer.Typer(pretty_exceptions_enable=False)
 
@@ -157,84 +165,60 @@ def sanity_check(
         run_sanity_check(optional_deps)
 
 
-@app.command()
-def exec_pipeline(
-    config: Annotated[
-        Path,
-        typer.Option(help="Path to the configuration file of the pipeline to execute."),
-    ],
-    pipe_key: Annotated[
-        str,
-        typer.Option(
-            help=("Key in the configuration file identifying the pipeline object to execute.")
-        ),
-    ] = "pipeline",
-    steps: Annotated[
-        Optional[str],
-        typer.Option(
-            help=(
-                "Run only some steps of the pipeline. Accepted values are "
-                "indices, python slices (e.g., 0:3 or 2:10:100), and "
-                "string names of steps."
-            )
-        ),
-    ] = None,
-    print_config: Annotated[
-        bool, typer.Option(help=("Print config to be executed after overrides."))
-    ] = False,
-    overrides_list: Annotated[
-        Optional[List[str]],
-        typer.Option(
-            "--override",
-            "-o",
-            help=(
-                "Nested key to dynamically override elements in the "
-                "configuration file with the "
-                "corresponding new value, joined by '='. It is also possible "
-                "to index elements in lists using their list index. "
-                "Example: [...] "
-                "-o pipeline.init_args.trainer.init_args.lr=0.001 "
-                "-o pipeline.my_list.2.batch_size=64 "
-            ),
-        ),
-    ] = None,
-):
+@app.command(context_settings={"allow_extra_args": True, "ignore_unknown_options": True})
+def exec_pipeline():
     """Execute a pipeline from configuration file. Allows dynamic override of fields."""
-    # Add working directory to python path so that the interpreter is able
-    # to find the local python files imported from the pipeline file
-    import os
-    import re
-    import sys
 
-    from .utils import str_to_slice
+    del sys.argv[0]
 
-    sys.path.append(os.path.dirname(config))
+    # Add current working directory to the module search path
+    # so hydra will find the objects defined in the config (usually paths relative to config)
     sys.path.append(os.getcwd())
 
-    # Parse and execute pipeline
-    from itwinai.parser import ConfigParser
+    # Process CLI arguments to handle paths
+    sys.argv = make_config_paths_absolute(sys.argv)
 
-    overrides_list = overrides_list if overrides_list is not None else []
-    overrides = {
-        k: v for k, v in map(lambda x: (x.split("=")[0], x.split("=")[1]), overrides_list)
-    }
-    parser = ConfigParser(config=config, override_keys=overrides)
-    if print_config:
-        import json
+    exec_pipeline_with_compose()
 
-        print()
-        print("#=" * 15 + " Used configuration " + "#=" * 15)
-        print(json.dumps(parser.config, indent=2))
-        print("#=" * 50)
-        print()
 
-    pipeline = parser.parse_pipeline(pipeline_nested_key=pipe_key)
-    if steps:
-        if not re.match(r"\d+(:\d+)?(:\d+)?", steps):
-            print(f"Looking for step name '{steps}'")
-        else:
-            steps = str_to_slice(steps)
-        pipeline = pipeline[steps]
+@hydra.main(version_base=None, config_path=os.getcwd(), config_name="config")
+def exec_pipeline_with_compose(cfg):
+    """Hydra entry function. The hydra.main decorator parses a configuration file
+    (under config_path), which contains a pipeline definition, and passes it to this function
+    as an omegaconf.DictConfig object (called cfg). This function then instantiates and
+    executes the resulting pipeline object.
+    Filters steps if `pipe_steps` is provided, otherwise executes the entire pipeline.
+    For more information on hydra.main, please see
+    https://hydra.cc/docs/tutorials/basic/your_first_app/simple_cli/."""
+
+    pipe_steps = OmegaConf.select(cfg, "pipe_steps", default=None)
+    pipe_key = OmegaConf.select(cfg, "pipe_key", default="training_pipeline")
+
+    try:
+        cfg = OmegaConf.select(cfg, pipe_key, throw_on_missing=True)
+    except errors.MissingMandatoryValue as e:
+        e.add_note(
+            f"Could not find pipeline key {pipe_key}. Make sure that you provide the full "
+            "dotpath to your pipeline key."
+        )
+        raise e
+
+    if pipe_steps:
+        try:
+            cfg.steps = [cfg.steps[step] for step in pipe_steps]
+            print(f"Successfully selected steps {pipe_steps}")
+        except errors.ConfigKeyError as e:
+            e.add_note(
+                "Could not find all selected steps. Please ensure that all steps exist "
+                "and that you provided to the dotpath to them. "
+                f"Steps provided: {pipe_steps}."
+            )
+            raise e
+    else:
+        print("No steps selected. Executing the whole pipeline.")
+
+    # Instantiate and execute the pipeline
+    pipeline = instantiate(cfg, _convert_="all")
     pipeline.execute()
 
 

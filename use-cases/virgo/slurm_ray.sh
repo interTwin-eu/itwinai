@@ -86,7 +86,7 @@ echo All Ray workers started.
 echo 'Starting HPO.'
 
 #python pipeline_runner_for_testing.py
-$PYTHON_VENV/bin/itwinai exec-pipeline --config config.yaml --pipe-key ray_training_pipeline
+$PYTHON_VENV/bin/itwinai exec-pipeline +pipe_key=ray_training_pipeline
 
 #python hpo.py --num_samples 4 --max_iterations 2 --ngpus $num_gpus --ncpus $num_cpus --pipeline_name training_pipeline
 
