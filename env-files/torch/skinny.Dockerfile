@@ -34,8 +34,14 @@ RUN itwinai sanity-check --torch \
     --optional-deps prov4ml \
     --optional-deps ray
 
-COPY tests tests
 COPY env-files/torch/skinny.Dockerfile Dockerfile
+COPY tests tests
+
+# This is here because the sknny container could be used to run PR tests
+COPY use-cases use-cases
+# This is needed to override the default venv path used by functional
+# tests for torch-based use cases (under ./use-cases)
+ENV TORCH_ENV="/usr/local"
 
 # Labels
 ARG CREATION_DATE
