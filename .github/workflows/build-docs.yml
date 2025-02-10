@@ -1,7 +1,7 @@
 name: Build Docs with Sphinx
 
 on:
-  pull_request:
+  # pull_request:
 
 jobs:
   build-docs:

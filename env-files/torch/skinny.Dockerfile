@@ -13,13 +13,15 @@ ARG BASE_IMG_NAME=python:3.10-slim
 FROM ${BASE_IMG_NAME}
 ARG BASE_IMG_NAME
 
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+
 RUN apt-get update && apt-get install -y --no-install-recommends \
     git \
     curl \
     && apt-get clean -y && rm -rf /var/lib/apt/lists/*
 
 # Install UV package manager
-RUN set -o pipefail && curl -LsSf https://astral.sh/uv/install.sh | sh
+RUN curl -LsSf https://astral.sh/uv/install.sh | sh
 # Add UV on the path
 ENV PATH="/root/.local/bin:$PATH"
 
