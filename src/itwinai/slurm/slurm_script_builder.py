@@ -15,7 +15,7 @@ from typing import List
 from pydantic import BaseModel
 
 from itwinai.slurm.slurm_constants import JUWELS_HPC_MODULES, SLURM_TEMPLATE
-from itwinai.slurm.utils import remove_indentation_from_multiline_string
+from itwinai.slurm.utils import remove_indentation_from_multiline_string, get_slurm_job_parser
 
 
 class SlurmScriptConfiguration(BaseModel):
@@ -288,3 +288,45 @@ class SlurmScriptBuilder:
                 submit_slurm_job=submit_slurm_job,
                 strategies=strategies,
             )
+
+def generate_default_slurm_script() -> None:
+    """Generates and optionally submits a default SLURM script.
+
+    This function creates a SLURM script using the `SlurmScriptBuilder`, based on
+    command-line arguments parsed from `get_slurm_job_parser()`. It sets up a 
+    basic SLURM configuration with common parameters like job name, account, 
+    requested resources, and execution commands. 
+
+    If `--no-submit-job` is provided, the script will not be submitted via `sbatch`.
+    If `--no-retain-file` is provided, the generated SLURM script will be deleted 
+    after execution.
+    """
+    parser = get_slurm_job_parser()
+    args = parser.parse_args()
+
+    slurm_script_configuration = SlurmScriptConfiguration(
+        job_name=args.job_name,
+        account=args.account,
+        time=args.time,
+        partition=args.partition,
+        std_out=args.std_out,
+        err_out=args.err_out,
+        num_nodes=args.num_nodes,
+        num_tasks_per_node=args.num_tasks_per_node,
+        gpus_per_node=args.gpus_per_node,
+        cpus_per_gpu=args.cpus_per_gpu,
+    )
+
+    submit_slurm_job = not args.no_submit_job
+    retain_file = not args.no_retain_file
+
+    slurm_script_builder = SlurmScriptBuilder(
+        slurm_script_configuration=slurm_script_configuration,
+        distributed_strategy=args.dist_strat,
+        debug=args.debug,
+        training_command=args.training_cmd,
+    )
+
+    slurm_script_builder.process_slurm_script(
+        retain_file=retain_file, submit_slurm_job=submit_slurm_job
+    )
