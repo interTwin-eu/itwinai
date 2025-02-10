@@ -11,11 +11,15 @@
 import subprocess
 from pathlib import Path
 from typing import List
+from tempfile import TemporaryDirectory
 
 from pydantic import BaseModel
 
 from itwinai.slurm.slurm_constants import JUWELS_HPC_MODULES, SLURM_TEMPLATE
-from itwinai.slurm.utils import remove_indentation_from_multiline_string, get_slurm_job_parser
+from itwinai.slurm.utils import (
+    remove_indentation_from_multiline_string,
+    get_slurm_job_parser,
+)
 
 
 class SlurmScriptConfiguration(BaseModel):
@@ -195,18 +199,19 @@ class SlurmScriptBuilder:
             retain_file: Whether to keep or delete the file after finishing processing.
             submit_slurm_job: Whether to submit the script as a SLURM job.
         """
+        job_identifier = self.generate_identifier()
         self.slurm_script_configuration.pre_exec_command = self.get_pre_exec_command()
         self.slurm_script_configuration.exec_command = self.get_srun_command()
 
         # Setting some default fields
         if self.slurm_script_configuration.job_name is None:
-            self.slurm_script_configuration.job_name = self.generate_identifier()
+            self.slurm_script_configuration.job_name = job_identifier
 
         if self.slurm_script_configuration.std_out is None:
-            std_out_path = Path("slurm_job_logs") / (self.generate_identifier() + ".out")
+            std_out_path = Path("slurm_job_logs") / f"{job_identifier}.out"
             self.slurm_script_configuration.std_out = std_out_path
         if self.slurm_script_configuration.err_out is None:
-            err_out_path = Path("slurm_job_logs") / (self.generate_identifier() + ".err")
+            err_out_path = Path("slurm_job_logs") / f"{job_identifier}.err"
             self.slurm_script_configuration.err_out = err_out_path
 
         # Making sure the std out and err out folders exist
@@ -220,29 +225,35 @@ class SlurmScriptBuilder:
         # Generate the script using the given configuration
         script = self.slurm_script_configuration.format_script()
         if not submit_slurm_job and not retain_file:
-            print("#" * 20, "SLURM Script Preview", "#"*20)
+            upper_banner_str = f"{'#'*20} SLURM Script Preview {'#'*20}"
+            print(upper_banner_str)
             print(script)
-            print("#" * 62)
+            print("#" * len(upper_banner_str))
             return
 
-        if file_path is None:
-            file_path = self.file_folder / (self.generate_identifier() + ".sh")
+        temp_dir = None
+        if retain_file:
+            file_path = file_path or self.file_folder / f"{job_identifier}.sh"
+            if file_path.exists():
+                raise ValueError(
+                    f"File '{file_path.resolve()}' already exists! Give a different path "
+                    f"or delete the file first."
+                )
 
-        if file_path.exists():
-            raise ValueError(
-                f"File '{file_path.resolve()}' already exists! Give a different path "
-                f"or delete the file first!"
-            )
+            self.file_folder.mkdir(exist_ok=True, parents=True)
+            print(f"Storing SLURM script at '{file_path.resolve()}'.")
+        else:
+            temp_dir = TemporaryDirectory()
+            file_path = Path(temp_dir.name) / f"{job_identifier}.sh"
 
-        file_path.parent.mkdir(exist_ok=True, parents=True)
         with open(file_path, "w") as f:
             f.write(script)
 
         if submit_slurm_job:
             subprocess.run(["sbatch", str(file_path.resolve())])
 
-        if not retain_file:
-            file_path.unlink()
+        if temp_dir:
+            temp_dir.cleanup()
 
     def run_slurm_script_all_strategies(
         self,
@@ -260,8 +271,12 @@ class SlurmScriptBuilder:
 
             # Overriding job_name, std_out and err_out
             self.slurm_script_configuration.job_name = self.generate_identifier()
-            std_out_path = Path("slurm_job_logs") / (self.generate_identifier() + ".out")
-            err_out_path = Path("slurm_job_logs") / (self.generate_identifier() + ".err")
+            std_out_path = Path("slurm_job_logs") / (
+                self.generate_identifier() + ".out"
+            )
+            err_out_path = Path("slurm_job_logs") / (
+                self.generate_identifier() + ".err"
+            )
             self.slurm_script_configuration.std_out = std_out_path
             self.slurm_script_configuration.err_out = err_out_path
 
@@ -289,16 +304,17 @@ class SlurmScriptBuilder:
                 strategies=strategies,
             )
 
+
 def generate_default_slurm_script() -> None:
     """Generates and optionally submits a default SLURM script.
 
     This function creates a SLURM script using the `SlurmScriptBuilder`, based on
-    command-line arguments parsed from `get_slurm_job_parser()`. It sets up a 
-    basic SLURM configuration with common parameters like job name, account, 
-    requested resources, and execution commands. 
+    command-line arguments parsed from `get_slurm_job_parser()`. It sets up a
+    basic SLURM configuration with common parameters like job name, account,
+    requested resources, and execution commands.
 
     If `--no-submit-job` is provided, the script will not be submitted via `sbatch`.
-    If `--no-retain-file` is provided, the generated SLURM script will be deleted 
+    If `--no-retain-file` is provided, the generated SLURM script will be deleted
     after execution.
     """
     parser = get_slurm_job_parser()
