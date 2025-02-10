@@ -11,7 +11,7 @@
 ARG BASE_IMG_NAME=python:3.10-slim
 
 FROM ${BASE_IMG_NAME}
-ARG BASE_IMG_NAME
+ARG BASE_IMG_NAME 
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
