@@ -260,16 +260,15 @@ def exec_pipeline(
         ),
     ] = None,
 ):
-    # TODO: improve this docstring
     """Execute a pipeline from configuration file using Hydra CLI. Allows dynamic override
-    of fields.
+    of fields which can be appended as a list of overrides (e.g., batch_size=32).
     By default, it will expect a configuration file called "config.yaml" in the
     current working directory. To override the default behavior set --config-name and
     --config-path.
     By default, this command will execute the whole pipeline under "training_pipeline"
     field in the configuration file. To execute a different pipeline you can override this
     by passing "+pipe_key=your_pipeline" in the list of overrides, and to execute only a
-    subset of the steps, you can pass "+pipe_steps=[0,1,2]"
+    subset of the steps, you can pass "+pipe_steps=[0,1]".
     """
 
     del sys.argv[0]
