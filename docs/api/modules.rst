@@ -1,10 +1,9 @@
-itwinai 
-=======
+Python SDK 
+==========
 
 .. toctree::
    :maxdepth: 4
 
-   itwinai.cli
    itwinai.components
    itwinai.distributed
    itwinai.loggers

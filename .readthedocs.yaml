@@ -25,6 +25,10 @@ build:
     # - cmake
     - pandoc
 
+  jobs:
+    pre_build:
+      - typer itwinai.cli  utils docs --output docs/api/cli.md
+
 # Build documentation in the "docs/" directory with Sphinx
 sphinx:
   configuration: docs/conf.py
