@@ -191,7 +191,8 @@ class SlurmScriptBuilder:
         """Will generate and process a SLURM script according to specifications. Will
         run the script if ``submit_slurm_job`` is set to True, will store the SLURM script file
         if ``save_script`` is set to True. If both are false, it will simply print the
-        script to the console without any further processing.
+        script to the console without any further processing. Also creates the
+        needed directories for the stderr and stdout for the script. 
 
         Args:
             file_path: Where to store the file before processing the script. Also the location
@@ -235,7 +236,7 @@ class SlurmScriptBuilder:
         if save_script:
             file_path = file_path or self.file_folder / f"{job_identifier}.sh"
             if file_path.exists():
-                raise ValueError(
+                raise FileExistsError(
                     f"File '{file_path.resolve()}' already exists! Give a different path "
                     f"or delete the file first."
                 )
