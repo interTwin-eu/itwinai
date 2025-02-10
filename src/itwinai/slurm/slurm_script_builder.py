@@ -185,18 +185,18 @@ class SlurmScriptBuilder:
     def process_slurm_script(
         self,
         file_path: Path | None = None,
-        retain_file: bool = True,
+        save_script: bool = True,
         submit_slurm_job: bool = True,
     ) -> None:
         """Will generate and process a SLURM script according to specifications. Will
         run the script if ``submit_slurm_job`` is set to True, will store the SLURM script file
-        if ``retain_file`` is set to True. If both are false, it will simply print the
+        if ``save_script`` is set to True. If both are false, it will simply print the
         script to the console without any further processing.
 
         Args:
             file_path: Where to store the file before processing the script. Also the location
-                it will remain if ``retain_file`` is set to True.
-            retain_file: Whether to keep or delete the file after finishing processing.
+                it will remain if ``save_script`` is set to True.
+            save_script: Whether to keep or delete the file after finishing processing.
             submit_slurm_job: Whether to submit the script as a SLURM job.
         """
         job_identifier = self.generate_identifier()
@@ -224,7 +224,7 @@ class SlurmScriptBuilder:
 
         # Generate the script using the given configuration
         script = self.slurm_script_configuration.format_script()
-        if not submit_slurm_job and not retain_file:
+        if not submit_slurm_job and not save_script:
             upper_banner_str = f"{'#'*20} SLURM Script Preview {'#'*20}"
             print(upper_banner_str)
             print(script)
@@ -232,7 +232,7 @@ class SlurmScriptBuilder:
             return
 
         temp_dir = None
-        if retain_file:
+        if save_script:
             file_path = file_path or self.file_folder / f"{job_identifier}.sh"
             if file_path.exists():
                 raise ValueError(
@@ -258,7 +258,7 @@ class SlurmScriptBuilder:
     def run_slurm_script_all_strategies(
         self,
         file_folder: Path = Path("slurm_scripts"),
-        retain_file: bool = True,
+        save_script: bool = True,
         submit_slurm_job: bool = True,
         strategies: List[str] = ["ddp", "horovod", "deepspeed"],
     ):
@@ -281,13 +281,13 @@ class SlurmScriptBuilder:
             self.slurm_script_configuration.err_out = err_out_path
 
             self.process_slurm_script(
-                retain_file=retain_file, submit_slurm_job=submit_slurm_job
+                save_script=save_script, submit_slurm_job=submit_slurm_job
             )
 
     def run_scaling_test(
         self,
         file_folder: Path = Path("slurm_scripts"),
-        retain_file: bool = True,
+        save_script: bool = True,
         submit_slurm_job: bool = True,
         strategies: List[str] = ["ddp", "horovod", "deepspeed"],
         num_nodes_list: List[int] = [1, 2, 4, 8],
@@ -299,7 +299,7 @@ class SlurmScriptBuilder:
             self.slurm_script_configuration.num_nodes = num_nodes
             self.run_slurm_script_all_strategies(
                 file_folder=file_folder,
-                retain_file=retain_file,
+                save_script=save_script,
                 submit_slurm_job=submit_slurm_job,
                 strategies=strategies,
             )
@@ -314,7 +314,7 @@ def generate_default_slurm_script() -> None:
     requested resources, and execution commands.
 
     If `--no-submit-job` is provided, the script will not be submitted via `sbatch`.
-    If `--no-retain-file` is provided, the generated SLURM script will be deleted
+    If `--no-save-script` is provided, the generated SLURM script will be deleted
     after execution.
     """
     parser = get_slurm_job_parser()
@@ -334,7 +334,7 @@ def generate_default_slurm_script() -> None:
     )
 
     submit_slurm_job = not args.no_submit_job
-    retain_file = not args.no_retain_file
+    save_script = not args.no_save_script
 
     slurm_script_builder = SlurmScriptBuilder(
         slurm_script_configuration=slurm_script_configuration,
@@ -344,5 +344,5 @@ def generate_default_slurm_script() -> None:
     )
 
     slurm_script_builder.process_slurm_script(
-        retain_file=retain_file, submit_slurm_job=submit_slurm_job
+        save_script=save_script, submit_slurm_job=submit_slurm_job
     )

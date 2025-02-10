@@ -81,21 +81,21 @@ def main():
     )
 
     submit_job = not args.no_submit_job
-    retain_file = not args.no_retain_file
+    save_script = not args.no_save_script
 
     mode = args.mode
     if mode == "single":
         script_builder.process_slurm_script(
-            submit_slurm_job=submit_job, retain_file=retain_file
+            submit_slurm_job=submit_job, save_script=save_script
         )
     elif mode == "runall":
         script_builder.run_slurm_script_all_strategies(
-            submit_slurm_job=submit_job, retain_file=retain_file
+            submit_slurm_job=submit_job, save_script=save_script
         )
     elif mode == "scaling-test":
         script_builder.run_scaling_test(
             submit_slurm_job=submit_job,
-            retain_file=retain_file,
+            save_script=save_script,
             num_nodes_list=args.scalability_nodes,
         )
     else:
