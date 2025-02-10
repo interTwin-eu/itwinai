@@ -334,9 +334,6 @@ def generate_default_slurm_script() -> None:
         cpus_per_gpu=args.cpus_per_gpu,
     )
 
-    submit_slurm_job = not args.no_submit_job
-    save_script = not args.no_save_script
-
     slurm_script_builder = SlurmScriptBuilder(
         slurm_script_configuration=slurm_script_configuration,
         distributed_strategy=args.dist_strat,
@@ -344,6 +341,21 @@ def generate_default_slurm_script() -> None:
         training_command=args.training_cmd,
     )
 
-    slurm_script_builder.process_slurm_script(
-        save_script=save_script, submit_slurm_job=submit_slurm_job
-    )
+    submit_job = not args.no_submit_job
+    save_script = not args.no_save_script
+
+    mode = args.mode
+    if mode == "single":
+        slurm_script_builder.process_slurm_script(
+            submit_slurm_job=submit_job, save_script=save_script
+        )
+    elif mode == "runall":
+        slurm_script_builder.run_slurm_script_all_strategies(
+            submit_slurm_job=submit_job, save_script=save_script
+        )
+    elif mode == "scaling-test":
+        slurm_script_builder.run_scaling_test(
+            submit_slurm_job=submit_job,
+            save_script=save_script,
+            num_nodes_list=args.scalability_nodes,
+        )

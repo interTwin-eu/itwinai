@@ -25,16 +25,17 @@ cpus_per_gpu: 4
 
 python_venv: ../../.venv
 pipe_key: rnn_training_pipeline
-config-path: .
-config-name: config
+config_path: .
+config_name: config
 
 # The different number of nodes to use for the scalability testing
 scalability_nodes: "1, 2, 4"
 
 # If you want to manually override the training command, comment in the following:
-# training_cmd: | 
-#   $(which itwinai) exec-pipeline \
-#   --config-path ${config_file} \
-#   --config-name ${config_name}
-#   +pipe_key=${pipe_key} \
-#   strategy=${dist_strat} \
+training_cmd: | 
+  $(which itwinai) exec-pipeline \
+  --config-path ${config_path} \
+  --config-name ${config_name}
+  +pipe_key=${pipe_key} \
+  strategy=${dist_strat}
+
