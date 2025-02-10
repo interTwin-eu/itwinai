@@ -19,7 +19,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && apt-get clean -y && rm -rf /var/lib/apt/lists/*
 
 # Install UV package manager
-RUN curl -LsSf https://astral.sh/uv/install.sh | sh
+RUN set -o pipefail && curl -LsSf https://astral.sh/uv/install.sh | sh
 # Add UV on the path
 ENV PATH="/root/.local/bin:$PATH"
 
