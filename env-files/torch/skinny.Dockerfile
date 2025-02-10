@@ -27,14 +27,20 @@ ENV PATH="/root/.local/bin:$PATH"
 WORKDIR /app
 COPY pyproject.toml pyproject.toml
 COPY src src
-RUN uv venv && \
-    uv pip install --no-cache-dir --upgrade pip \
+RUN uv venv \
+    && uv pip install --no-cache-dir --upgrade pip \
     && uv pip install --no-cache-dir \
+    # Select from which index to install torch
+    --extra-index-url https://download.pytorch.org/whl/cu124 \
+    # This is needed by UV to trust all indexes:
+    --index-strategy unsafe-best-match \
+    # Install packages:
     .[torch] \
     "prov4ml[nvidia]@git+https://github.com/matbun/ProvML@new-main" \
     pytest \
     pytest-xdist \
     psutil
+
 # Make uv venv the default python env
 ENV VIRTUAL_ENV=/app/.venv \
     PATH="/app/.venv/bin:$PATH"

@@ -255,7 +255,7 @@ def exec_pipeline(
         typer.Argument(
             help=(
                 "Any key=value arguments to override config values "
-                "(use dots for.nested=overrides)"
+                "(use dots for.nested=overrides), using the Hydra syntax."
             ),
         ),
     ] = None,

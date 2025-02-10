@@ -93,6 +93,11 @@ contains thoroughly tested features aligned with the toolkit's most recent relea
    :caption: 📚 Scientific Use Cases
 
    use-cases/use_cases
+   use-cases/eurac_doc
+   use-cases/virgo_doc
+   use-cases/3dgan_doc
+   use-cases/cyclones_doc
+   use-cases/mnist_doc
 
 .. toctree::
    :maxdepth: 2
