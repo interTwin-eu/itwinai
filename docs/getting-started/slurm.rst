@@ -83,15 +83,103 @@ Environment variables
 
 Before running a job, SLURM will set some environment variables in the job environment.
 
-See here a table of them: https://www.glue.umd.edu/hpcc/help/slurmenv.html
+You can see a table of them here: https://www.glue.umd.edu/hpcc/help/slurmenv.html
 
 Job arrays
 ----------
 
 Job arrays allow to conveniently submit a collection of similar and independent jobs.
 
-To know more, see this: https://slurm.schedmd.com/job_array.html
+For more information on job arrays, see the following documentation:
+https://slurm.schedmd.com/job_array.html
 
 Job array example: https://guiesbibtic.upf.edu/recerca/hpc/array-jobs
 
 .. _job script: #job-scripts-for-batch-jobs
+
+itwinai SLURM Script Builder
+----------------------------
+
+``itwinai`` includes a SLURM script builder to simplify the management of SLURM scripts.
+It provides a default method for generating and submitting simple scripts, but also
+allows you to customize and launch multiple jobs with different configurations in a single
+command.
+
+Generating SLURM Script
++++++++++++++++++++++++
+
+To generate and submit a SLURM script, you can use the following command:
+
+.. code-block:: bash
+
+   itwinai generate-slurm
+
+This will use the default variables for everything, and will save the script for
+reproducibility. You can override variables by setting flags. For example, to set
+the job name to ``my_test_job``, you can do the following:
+
+.. code-block:: bash
+
+   itwinai generate-slurm --job-name my_test_job
+
+For a full list of options, add the ``--help`` or equivalently ``-h`` flag:
+
+.. code-block:: bash
+
+   itwinai generate-slurm --help
+
+Preview SLURM Scripts
++++++++++++++++++++++
+
+A common workflow is to preview the SLURM script before saving or submitting it. This
+can be done by adding ``--no-submit-job`` and ``--no-save-script`` as follows:
+
+.. code-block:: bash
+
+   itwinai generate-slurm --no-submit-job --no-save-script
+
+This will print the script in the console for inspection without saving the script or
+submitting the job. These arguments provide a quick way to verify that your script is
+configured correctly. 
+
+SLURM Configuration File
+++++++++++++++++++++++++
+
+The ``itwinai`` SLURM Script builder allows you to store your SLURM variables in a
+configuration file, letting you easily manage the different parameters without the noise
+of the ``SBATCH`` syntax. You can add a configuration file using ``--config`` or ``-c``.
+This configuration file uses ``yaml`` syntax. The following is an example of a SLURM
+configuration file: 
+
+.. code-block:: yaml
+
+    account: intertwin
+    time: 01:00:00
+    partition: develbooster
+
+    dist_strat: ddp # "ddp", "deepspeed" or "horovod"
+
+    std_out: slurm_job_logs/${dist_strat}.out
+    err_out: slurm_job_logs/${dist_strat}.err
+    job_name: ${dist_strat}-job
+
+    num_nodes: 1
+    num_tasks_per_node: 1
+    gpus_per_node: 4
+    cpus_per_gpu: 4
+
+    training_cmd: "train.py"
+
+If this file is called ``slurm_config.yaml``, then you could specify it as follows:
+
+.. code-block:: bash
+
+   itwinai generate-slurm -c slurm_config.yaml
+
+You can override arguments from the configuration file in the CLI if you pass them
+after the config file. For example, if you want to use everything from the configuration
+file but want a different job name without changing the config, you can do the following:
+
+.. code-block:: bash
+
+   itwinai generate-slurm -c slurm_config.yaml --job-name different_job_name
