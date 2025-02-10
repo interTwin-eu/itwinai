@@ -26,8 +26,6 @@ from typing import List, Optional
 
 import hydra
 import typer
-from hydra.utils import instantiate
-from omegaconf import OmegaConf, errors
 from typing_extensions import Annotated
 
 from itwinai.utils import make_config_paths_absolute
@@ -166,8 +164,103 @@ def sanity_check(
 
 
 @app.command(context_settings={"allow_extra_args": True, "ignore_unknown_options": True})
-def exec_pipeline():
-    """Execute a pipeline from configuration file. Allows dynamic override of fields."""
+def exec_pipeline(
+    # NOTE: The arguments below are not actually needed in this function, but they are here
+    # to replicate Hydra's help page in Typer, making it easier for the users to use it.
+    hydra_help: Annotated[bool, typer.Option(help="Show Hydra's help page")] = False,
+    version: Annotated[bool, typer.Option(help="Show Hydra's version and exit")] = False,
+    cfg: Annotated[
+        str, typer.Option("--cfg", "-c", help="Show config instead of running [job|hydra|all]")
+    ] = "",
+    resolve: Annotated[
+        bool,
+        typer.Option(
+            help="Used in conjunction with --cfg, resolve "
+            "config interpolations before printing."
+        ),
+    ] = False,
+    package: Annotated[
+        str,
+        typer.Option("--package", "-p", help="Config package to show"),
+    ] = "",
+    run: Annotated[
+        str,
+        typer.Option("--run", "-r", help="Run a job"),
+    ] = "",
+    multirun: Annotated[
+        str,
+        typer.Option(
+            "--multirun",
+            "-m",
+            help="Run multiple jobs with the configured launcher and sweeper",
+        ),
+    ] = "",
+    shell_completion: Annotated[
+        str,
+        typer.Option(
+            "--shell-completion",
+            "-sc",
+            help="Install or Uninstall shell completion",
+        ),
+    ] = "",
+    config_path: Annotated[
+        str,
+        typer.Option(
+            "--config-path",
+            "-cp",
+            help=(
+                "Overrides the config_path specified in hydra.main(). "
+                "The config_path is absolute or relative to the Python file "
+                "declaring @hydra.main()"
+            ),
+        ),
+    ] = "",
+    config_name: Annotated[
+        str,
+        typer.Option(
+            "--config-name",
+            "-cn",
+            help="Overrides the config_name specified in hydra.main()",
+        ),
+    ] = "",
+    config_dir: Annotated[
+        str,
+        typer.Option(
+            "--config-dir",
+            "-cd",
+            help="Adds an additional config dir to the config search path",
+        ),
+    ] = "",
+    experimental_rerun: Annotated[
+        str,
+        typer.Option(
+            "--experimental-rerun",
+            help="Rerun a job from a previous config pickle",
+        ),
+    ] = "",
+    info: Annotated[
+        str,
+        typer.Option(
+            "--info",
+            "-i",
+            help="Print Hydra information "
+            "[all|config|defaults|defaults-tree|plugins|searchpath]",
+        ),
+    ] = "",
+    overrides: Annotated[
+        Optional[List[str]],
+        typer.Argument(
+            help=(
+                "Any key=value arguments to override config values "
+                "(use dots for.nested=overrides)"
+            ),
+        ),
+    ] = None,
+):
+    # TODO: improve this docstring
+    """Execute a pipeline from configuration file using Hydra CLI. Allows dynamic override
+    of fields.
+    """
 
     del sys.argv[0]
 
@@ -190,6 +283,9 @@ def exec_pipeline_with_compose(cfg):
     Filters steps if `pipe_steps` is provided, otherwise executes the entire pipeline.
     For more information on hydra.main, please see
     https://hydra.cc/docs/tutorials/basic/your_first_app/simple_cli/."""
+
+    from hydra.utils import instantiate
+    from omegaconf import OmegaConf, errors
 
     pipe_steps = OmegaConf.select(cfg, "pipe_steps", default=None)
     pipe_key = OmegaConf.select(cfg, "pipe_key", default="training_pipeline")
