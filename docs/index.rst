@@ -97,9 +97,10 @@ contains thoroughly tested features aligned with the toolkit's most recent relea
 .. toctree::
    :maxdepth: 2
    :hidden:
-   :caption: ⚡ Python API reference
+   :caption: ⚡ API reference
 
-   python-api/modules
+   api/cli_reference
+   api/modules
 
 .. toctree::
    :maxdepth: 2

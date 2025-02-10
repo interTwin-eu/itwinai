@@ -36,6 +36,11 @@ jobs:
           pip install ".[torch,docs]"
 
       # Step 4: Build the Sphinx documentation
+      - name: Generate itwinai CLI reference
+        run: |
+          source .venv-docs/bin/activate
+          typer itwinai.cli  utils docs --output docs/api/cli.md
+
       - name: Build docs
         run: |
           source .venv-docs/bin/activate
