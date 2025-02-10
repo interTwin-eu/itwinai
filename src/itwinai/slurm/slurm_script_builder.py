@@ -10,15 +10,15 @@
 
 import subprocess
 from pathlib import Path
-from typing import List
 from tempfile import TemporaryDirectory
+from typing import List
 
 from pydantic import BaseModel
 
 from itwinai.slurm.slurm_constants import JUWELS_HPC_MODULES, SLURM_TEMPLATE
 from itwinai.slurm.utils import (
-    remove_indentation_from_multiline_string,
     get_slurm_job_parser,
+    remove_indentation_from_multiline_string,
 )
 
 
@@ -192,7 +192,7 @@ class SlurmScriptBuilder:
         run the script if ``submit_slurm_job`` is set to True, will store the SLURM script file
         if ``save_script`` is set to True. If both are false, it will simply print the
         script to the console without any further processing. Also creates the
-        needed directories for the stderr and stdout for the script. 
+        needed directories for the stderr and stdout for the script.
 
         Args:
             file_path: Where to store the file before processing the script. Also the location
