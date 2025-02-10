@@ -209,9 +209,10 @@ def exec_pipeline(
             "--config-path",
             "-cp",
             help=(
+                # NOTE: this docstring changed from Hydra's help page.
                 "Overrides the config_path specified in hydra.main(). "
-                "The config_path is absolute or relative to the Python file "
-                "declaring @hydra.main()"
+                "The config_path is absolute, or relative to the current workign directory. "
+                "Defaults to the current working directory."
             ),
         ),
     ] = "",
@@ -222,7 +223,7 @@ def exec_pipeline(
             "-cn",
             help="Overrides the config_name specified in hydra.main()",
         ),
-    ] = "",
+    ] = "config",
     config_dir: Annotated[
         str,
         typer.Option(
@@ -243,8 +244,10 @@ def exec_pipeline(
         typer.Option(
             "--info",
             "-i",
-            help="Print Hydra information "
-            "[all|config|defaults|defaults-tree|plugins|searchpath]",
+            help=(
+                "Print Hydra information "
+                "[all|config|defaults|defaults-tree|plugins|searchpath]"
+            ),
         ),
     ] = "",
     overrides: Annotated[
@@ -260,6 +263,13 @@ def exec_pipeline(
     # TODO: improve this docstring
     """Execute a pipeline from configuration file using Hydra CLI. Allows dynamic override
     of fields.
+    By default, it will expect a configuration file called "config.yaml" in the
+    current working directory. To override the default behavior set --config-name and
+    --config-path.
+    By default, this command will execute the whole pipeline under "training_pipeline"
+    field in the configuration file. To execute a different pipeline you can override this
+    by passing "+pipe_key=your_pipeline" in the list of overrides, and to execute only a
+    subset of the steps, you can pass "+pipe_steps=[0,1,2]"
     """
 
     del sys.argv[0]
