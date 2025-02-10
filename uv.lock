@@ -1524,6 +1524,7 @@ dependencies = [
     { name = "pip", marker = "(platform_system != 'Windows' and sys_platform == 'darwin') or (platform_system != 'Windows' and sys_platform == 'linux') or (sys_platform != 'darwin' and sys_platform != 'linux') or (sys_platform == 'darwin' and extra == 'extra-7-itwinai-tf-cuda' and extra == 'extra-7-itwinai-torch') or (sys_platform == 'linux' and extra == 'extra-7-itwinai-tf-cuda' and extra == 'extra-7-itwinai-torch')" },
     { name = "py-cpuinfo", marker = "(platform_system != 'Windows' and sys_platform == 'darwin') or (platform_system != 'Windows' and sys_platform == 'linux') or (sys_platform != 'darwin' and sys_platform != 'linux') or (sys_platform == 'darwin' and extra == 'extra-7-itwinai-tf-cuda' and extra == 'extra-7-itwinai-torch') or (sys_platform == 'linux' and extra == 'extra-7-itwinai-tf-cuda' and extra == 'extra-7-itwinai-torch')" },
     { name = "pydantic", marker = "(platform_system != 'Windows' and sys_platform == 'darwin') or (platform_system != 'Windows' and sys_platform == 'linux') or (sys_platform != 'darwin' and sys_platform != 'linux') or (sys_platform == 'darwin' and extra == 'extra-7-itwinai-tf-cuda' and extra == 'extra-7-itwinai-torch') or (sys_platform == 'linux' and extra == 'extra-7-itwinai-tf-cuda' and extra == 'extra-7-itwinai-torch')" },
+    { name = "pynvml", marker = "(platform_system != 'Windows' and sys_platform == 'darwin') or (platform_system != 'Windows' and sys_platform == 'linux') or (sys_platform != 'darwin' and sys_platform != 'linux') or (sys_platform == 'darwin' and extra == 'extra-7-itwinai-tf-cuda' and extra == 'extra-7-itwinai-torch') or (sys_platform == 'linux' and extra == 'extra-7-itwinai-tf-cuda' and extra == 'extra-7-itwinai-torch')" },
     { name = "pyyaml", marker = "(platform_system != 'Windows' and sys_platform == 'darwin') or (platform_system != 'Windows' and sys_platform == 'linux') or (sys_platform != 'darwin' and sys_platform != 'linux') or (sys_platform == 'darwin' and extra == 'extra-7-itwinai-tf-cuda' and extra == 'extra-7-itwinai-torch') or (sys_platform == 'linux' and extra == 'extra-7-itwinai-tf-cuda' and extra == 'extra-7-itwinai-torch')" },
     { name = "ray", extra = ["default", "train", "tune"], marker = "(platform_system != 'Windows' and sys_platform == 'darwin') or (platform_system != 'Windows' and sys_platform == 'linux') or (sys_platform != 'darwin' and sys_platform != 'linux') or (sys_platform == 'darwin' and extra == 'extra-7-itwinai-tf-cuda' and extra == 'extra-7-itwinai-torch') or (sys_platform == 'linux' and extra == 'extra-7-itwinai-tf-cuda' and extra == 'extra-7-itwinai-torch')" },
     { name = "rich", marker = "(platform_system != 'Windows' and sys_platform == 'darwin') or (platform_system != 'Windows' and sys_platform == 'linux') or (sys_platform != 'darwin' and sys_platform != 'linux') or (sys_platform == 'darwin' and extra == 'extra-7-itwinai-tf-cuda' and extra == 'extra-7-itwinai-torch') or (sys_platform == 'linux' and extra == 'extra-7-itwinai-tf-cuda' and extra == 'extra-7-itwinai-torch')" },
@@ -1605,6 +1606,7 @@ requires-dist = [
     { name = "psutil", marker = "extra == 'dev'", specifier = ">=6.1.0" },
     { name = "py-cpuinfo", specifier = ">=9.0.0" },
     { name = "pydantic", specifier = ">=2.10.2" },
+    { name = "pynvml", specifier = ">=12.0.0" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=7.4.2" },
     { name = "pytest-cov", marker = "extra == 'dev'", specifier = ">=4.1.0" },
     { name = "pytest-mock", marker = "extra == 'dev'", specifier = ">=3.11.1" },
@@ -3199,6 +3201,15 @@ wheels = [
 ]
 
 [[package]]
+name = "nvidia-ml-py"
+version = "12.570.86"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/ad/6e/7b0c9b88c7d520fb8639024a1a3b6dd1db03bf2c17ae85040c8758d2eb6f/nvidia_ml_py-12.570.86.tar.gz", hash = "sha256:0508d4a0c7b6d015cf574530b95a62ed4fc89da3b8b47e1aefe6777db170ec8b", size = 43147 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/d8/a8/ec37169be4e2b7063b9076ed3fe0661e87335fbca665eed3f48c415cb234/nvidia_ml_py-12.570.86-py3-none-any.whl", hash = "sha256:58907de35a845abd13dcb227f18298f3b5dd94a72d04c9e594e77711e95c0b51", size = 44442 },
+]
+
+[[package]]
 name = "nvidia-nccl-cu12"
 version = "2.19.3"
 source = { registry = "https://pypi.org/simple" }
@@ -3988,6 +3999,18 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/7c/2d/c3338d48ea6cc0feb8446d8e6937e1408088a72a39937982cc6111d17f84/pygments-2.19.1.tar.gz", hash = "sha256:61c16d2a8576dc0649d9f39e089b5f02bcd27fba10d8fb4dcc28173f7a45151f", size = 4968581 }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/8a/0b/9fcc47d19c48b59121088dd6da2488a49d5f72dacf8262e2790a1d2c7d15/pygments-2.19.1-py3-none-any.whl", hash = "sha256:9ea1544ad55cecf4b8242fab6dd35a93bbce657034b0611ee383099054ab6d8c", size = 1225293 },
+]
+
+[[package]]
+name = "pynvml"
+version = "12.0.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "nvidia-ml-py", marker = "(platform_system != 'Windows' and sys_platform == 'darwin') or (platform_system != 'Windows' and sys_platform == 'linux') or (sys_platform != 'darwin' and sys_platform != 'linux') or (sys_platform == 'darwin' and extra == 'extra-7-itwinai-tf-cuda' and extra == 'extra-7-itwinai-torch') or (sys_platform == 'linux' and extra == 'extra-7-itwinai-tf-cuda' and extra == 'extra-7-itwinai-torch')" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/26/6f/6b5880ed0239e85b9a39aed103b65b2ef81425beef9f45e5c035bf008330/pynvml-12.0.0.tar.gz", hash = "sha256:299ce2451a6a17e6822d6faee750103e25b415f06f59abb8db65d30f794166f5", size = 33636 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/ed/df/f7cf07a65a96dd11d71f346f9c2863accdd4784da83af7181b067d556cbc/pynvml-12.0.0-py3-none-any.whl", hash = "sha256:fdff84b62a27dbe98e08e1a647eb77342bef1aebe0878bcd15e99a83fcbecb9e", size = 26560 },
 ]
 
 [[package]]
