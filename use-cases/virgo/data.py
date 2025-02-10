@@ -12,6 +12,7 @@
 import os
 from pathlib import Path
 from typing import Optional, Tuple
+from time import sleep
 
 import h5py
 import pandas as pd
@@ -95,6 +96,7 @@ class SyntheticTimeSeriesDatasetHDF5(Dataset):
         file_path = Path(hdf5_file_location)
         if not file_path.exists():
             raise ValueError(f"Given file location, {file_path.resolve()} does not exist. ")
+
         self.hdf5_dataset_name = hdf5_dataset_name
         self.file_path = file_path
         self.chunk_size = chunk_size
@@ -120,7 +122,7 @@ class SyntheticTimeSeriesDatasetHDF5(Dataset):
 
     def __len__(self):
         """Return the total number of files in the dataset."""
-        return self.length
+        return 10
 
     def __getitem__(self, idx) -> torch.Tensor:
         """Retrieve a data sample by index and normalize.
@@ -128,9 +130,11 @@ class SyntheticTimeSeriesDatasetHDF5(Dataset):
         Args:
             idx (int): Index of the file to retrieve.
 
+
         Returns:
             torch.Tensor: Normalized tensor for specific idx
         """
+        from time import time
         if idx >= len(self):
             raise ValueError(f"Index {idx} out of bounds for dataset with length {len(self)}!")
 
@@ -138,6 +142,15 @@ class SyntheticTimeSeriesDatasetHDF5(Dataset):
         with h5py.File(self.file_path, "r") as f:
             dataset = f[self.hdf5_dataset_name]
             data = dataset[offset : offset + self.chunk_size]
+
+        start = time()
+        # Slow code
+        x = 0.0
+        for i in range(10**7):
+            x += i * 0.0001
+        ###
+        end = time()
+        print(f"slow code took {end-start:.2f} seconds!")
 
         data = torch.tensor(data, dtype=torch.float32)
         return normalize_(data)
@@ -196,7 +209,7 @@ class TimeSeriesDatasetSplitter(DataSplitter):
             [self.train_proportion, self.validation_proportion, self.test_proportion],
             generator=generator,
         )
-        print(f"Shape of item: {train_dataset.__getitem__(idx=5).shape}")
+        # print(f"Shape of item: {train_dataset.__getitem__(idx=5).shape}")
         return train_dataset, validation_dataset, test_dataset
 
 

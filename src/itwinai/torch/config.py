@@ -64,7 +64,7 @@ class TrainingConfiguration(Configuration):
     pin_gpu_memory: bool = False
     #: Number of parallel workers used by torch ``DataLoader``.
     #: Defaults to 4.
-    num_workers_dataloader: int = 4
+    num_workers_dataloader: int = 1
     #: Loss function. Defaults to 'cross_entropy'
     loss: Literal["mse", "nllloss", "cross_entropy", "l1", "l2"] = "cross_entropy"
     #: Name of the optimizer to use. Defaults to 'adam'.

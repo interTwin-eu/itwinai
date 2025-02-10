@@ -191,8 +191,8 @@ class NoiseGeneratorTrainer(TorchTrainer):
     ) -> Tuple[Dataset, Dataset, Dataset, Any]:
         return super().execute(train_dataset, validation_dataset, test_dataset)
 
-    @profile_torch_trainer
-    @measure_gpu_utilization
+    # @profile_torch_trainer
+    # @measure_gpu_utilization
     def train(self):
         # Start the timer for profiling
         #
@@ -264,8 +264,8 @@ class NoiseGeneratorTrainer(TorchTrainer):
                 )
                 # acc=accuracy(generated.detach().cpu().numpy(),target.detach().cpu().numpy(),20)
                 # epoch_acc.append(acc)
-            if self.strategy.is_main_worker:
-                print("TIMER: train time", sum(t_list) / len(t_list), "s")
+            # if self.strategy.is_main_worker:
+            #     print("TIMER: train time", sum(t_list) / len(t_list), "s")
             val_loss = []
             # val_acc = []
             for i, batch in enumerate(self.validation_dataloader):

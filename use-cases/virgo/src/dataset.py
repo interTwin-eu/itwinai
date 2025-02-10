@@ -121,7 +121,7 @@ def generate_dataset_main_channel(input_df, weights=None, noise_amplitude=0.1):
     if weights is None:
         # randomly generate weights in range [0.5,1.5]
         weights = np.random.rand(len(list(input_df.columns))) + 0.5
-    print(weights)
+    # print(weights)
     # Iterate over rows of the input DataFrame
     for index, row in input_df.iterrows():
 
@@ -374,8 +374,8 @@ def normalize_(data, chan=4):
     # Compute the maximum value for each channel across all 900 tensors
     max_vals = data.view(data.shape[0], data.shape[1], -1).max(0)[0].max(
         1)[0]
-    print("Maximum values for each channel across all tensors:",
-          max_vals, max_vals.shape)
+    # print("Maximum values for each channel across all tensors:",
+    #       max_vals, max_vals.shape)
     # Divide each element by the maximum value of its channel
     data /= max_vals.view(1, chan, 1, 1)
     return data

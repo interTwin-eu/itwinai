@@ -14,6 +14,8 @@ This section is split in three parts:
 
 import torch
 import torch.nn as nn
+from time import sleep
+
 
 # SHALLOW DECODER
 
@@ -69,6 +71,13 @@ class Decoder(nn.Module):
         x = self.relu1(self.conv1(x))
         x = self.relu2(self.conv2(x))
         x = self.relu3(self.conv3(x))
+
+        # Slow code
+        # y = 0.0
+        # for i in range(2*10**7):
+        #     y += i * 0.0001
+        ###
+
         x = self.conv4(x)
         x = self.activation(x)
         return x
