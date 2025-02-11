@@ -28,13 +28,16 @@ Example Configuration File
     training_pipeline:
       _target_: itwinai.pipeline.Pipeline
       steps:
-        - _target_: basic_components.MyDataGetter
+        my-getter:
+          _target_: basic_components.MyDataGetter
           data_size: 200
-        - _target_: basic_components.MyDatasetSplitter
+        my-splitter:
+          _target_: basic_components.MyDatasetSplitter
           train_proportion: 0.5
           validation_proportion: 0.25
           test_proportion: 0.25
-        - _target_: basic_components.MyTrainer
+        my-trainer: 
+          _target_: basic_components.MyTrainer
 
 itwinai uses `Hydra <https://hydra.cc>`_ to parse configuration files and instantiate 
 pipelines dynamically. There are two ways you can use your configuration file to run a pipeline: 
@@ -65,7 +68,7 @@ If your configuration file has a different name (not ``config.yaml``), you may s
 
     itwinai exec-pipeline --config-path path/to/dir --config-name my-config-file
 
-2. Setting a Pipeline Key (``+pipe_key``)
+2. Selecting a pipeline by name (``+pipe_key``)
 -----------------------------------------
 
 A configuration file can contain multiple pipelines. The default key that the parser will look 
@@ -79,25 +82,25 @@ specify which pipeline to execute:
 3. Selecting Steps to Run (``+pipe_steps``)
 -------------------------------------------
 
-If you only want to run specific steps of the pipeline, use ``pipe_steps``:
+If you only want to run a subset of specific steps of the pipeline, use ``pipe_steps``:
 
 .. code-block:: bash
 
-    itwinai exec-pipeline +pipe_steps=[data_loader,trainer]
+    itwinai exec-pipeline +pipe_steps=[my-splitter, my-trainer]
 
-This will execute only the ``data_loading`` and ``training`` steps of the pipeline. You can also 
+This will execute only the ``MyDatasetSplitter`` and ``MyTrainer`` steps of the pipeline. You can also 
 give ``pipe_steps`` as a list of indices, if your configuration file defines your steps in list format.
 
-4. Overwriting Values
+4. Dynamically overriding configuration fields
 ----------------------
 
 You can override any parameter in the configuration file directly from the command line:
 
 .. code-block:: bash
 
-    itwinai exec-pipeline +trainer.batch_size=64
+    itwinai exec-pipeline +my-getter.data_size=500
 
-This modifies the ``batch_size`` parameter inside the pipeline configuration.
+This modifies the ``data_size`` parameter inside the pipeline configuration.
 
 Advanced Functionality with Hydra
 =================================
@@ -108,13 +111,15 @@ refer to the `Hydra documentation <https://hydra.cc/docs/advanced/hydra-command-
 
 .. note::
 
-    If your pipeline execution fails and you need detailed error messages, set the following environment 
-    variable before running the pipeline:
+    If your pipeline execution fails and you need detailed error messages, 
+    we recomment that you set the following environment variable before running the pipeline:
 
     .. code-block:: bash
 
         export HYDRA_FULL_ERROR=1
 
+    This will give you more verbose error messages including the full stack trace given by Hydra.
+    
     If you do not want the variable to persist, i.e. you only want to run your command with the
     the detailed error message once, you can also run it such that the environment variable 
     ``HYDRA_FULL_ERROR`` will not persist and reset after your command has been executed:
@@ -124,7 +129,7 @@ refer to the `Hydra documentation <https://hydra.cc/docs/advanced/hydra-command-
         HYDRA_FULL_ERROR=1 itwinai exec-pipeline
 
 
-Parsing Pipelines from Code
+Parsing Pipelines from Python
 ===========================
 
 In some cases, you may want to parse and execute a pipeline from a configuration file from within 
