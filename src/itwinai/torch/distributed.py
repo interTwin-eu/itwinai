@@ -1087,7 +1087,7 @@ class RayDDPStrategy(TorchDDPStrategy):
         model: nn.Module,
         optimizer: Optimizer,
         lr_scheduler: Optional[LRScheduler] = None,
-    ) -> Tuple[nn.Module, Optimizer, Optional[LRScheduler]]:
+    ) -> Tuple[nn.Module, Optimizer, LRScheduler | None]:
         model = self.ray_train.torch.prepare_model(model)
 
         return model, optimizer, lr_scheduler

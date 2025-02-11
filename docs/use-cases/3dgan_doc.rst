@@ -10,8 +10,8 @@ This section covers the CERN use case that utilizes the `torch-lightning` framew
 for training and evaluation. Following you can find instructions to execute CERN use 
 case and its integral scripts:
 
-Integration in itwinai
-----------------------
+Integration with itwinai
+------------------------
 
 .. include:: ../../use-cases/3dgan/README.md
    :parser: myst_parser.sphinx_
