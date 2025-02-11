@@ -20,10 +20,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     && apt-get clean -y && rm -rf /var/lib/apt/lists/*
 
-# Install UV package manager
-RUN curl -LsSf https://astral.sh/uv/install.sh | sh
-# Add UV on the path
-ENV PATH="/root/.local/bin:$PATH"
+# Install UV package manager and upgrade pip
+RUN pip install --no-cache-dir --upgrade pip uv
 
 # Install itwinai with torch
 WORKDIR /app
