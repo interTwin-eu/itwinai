@@ -36,7 +36,7 @@ Example Configuration File
           test_proportion: 0.25
         - _target_: basic_components.MyTrainer
 
-itwinai leverages `Hydra <https://hydra.cc>`_ to parse configuration files and instantiate 
+itwinai uses `Hydra <https://hydra.cc>`_ to parse configuration files and instantiate 
 pipelines dynamically. There are two ways you can use your configuration file to run a pipeline: 
 from the command-line interface (CLI) or from within your code.
 
@@ -65,7 +65,7 @@ If your configuration file has a different name (not ``config.yaml``), you may s
 
     itwinai exec-pipeline --config-path path/to/dir --config-name my-config-file
 
-2. Setting a Pipeline Key (``pipe_key``)
+2. Setting a Pipeline Key (``+pipe_key``)
 -----------------------------------------
 
 A configuration file can contain multiple pipelines. The default key that the parser will look 
@@ -76,7 +76,7 @@ specify which pipeline to execute:
 
     itwinai exec-pipeline +pipe_key=another_training_pipeline
 
-3. Selecting Steps to Run (``pipe_steps``)
+3. Selecting Steps to Run (``+pipe_steps``)
 -------------------------------------------
 
 If you only want to run specific steps of the pipeline, use ``pipe_steps``:
@@ -106,7 +106,7 @@ Since this implementation is based on **Hydra**, you can use all of Hydra’s co
 such as for multi-run execution, merging configuration files, and debugging. For more details, 
 refer to the `Hydra documentation <https://hydra.cc/docs/advanced/hydra-command-line-flags/>`_.
 
-.. warning::
+.. note::
 
     If your pipeline execution fails and you need detailed error messages, set the following environment 
     variable before running the pipeline:
@@ -114,6 +114,15 @@ refer to the `Hydra documentation <https://hydra.cc/docs/advanced/hydra-command-
     .. code-block:: bash
 
         export HYDRA_FULL_ERROR=1
+
+    If you do not want the variable to persist, i.e. you only want to run your command with the
+    the detailed error message once, you can also run it such that the environment variable 
+    ``HYDRA_FULL_ERROR`` will not persist and reset after your command has been executed:
+
+    .. code-block:: bash
+
+        HYDRA_FULL_ERROR=1 itwinai exec-pipeline
+
 
 Parsing Pipelines from Code
 ===========================
