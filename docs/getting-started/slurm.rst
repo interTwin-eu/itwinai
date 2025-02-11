@@ -152,8 +152,8 @@ This configuration file uses ``yaml`` syntax. The following is an example of a S
 configuration file: 
 
 .. code-block:: yaml
-   :caption: slurm_config.yaml
-   :name: the_slurm_config.yaml
+   :caption: ``slurm_config.yaml``
+   :name: Example SLURM Config
 
     account: intertwin
     time: 01:00:00
