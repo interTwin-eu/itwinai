@@ -95,11 +95,16 @@ class SlurmScriptBuilder:
         return f"{self.distributed_strategy}-{num_nodes}x{gpus_per_node}"
 
     def get_training_command(self) -> str:
-        if self.training_command is None:
-            raise ValueError(
-                "self.training_command cannot be None in an instance of the parent class."
-            )
-        return self.training_command
+        if self.training_command:
+            return self.training_command
+
+        default_command = rf"""
+            $(which itwinai) exec-pipeline \
+            strategy={self.distributed_strategy} \
+            checkpoints_location=checkpoints_{self.distributed_strategy}
+        """
+        default_command = default_command.strip()
+        return remove_indentation_from_multiline_string(default_command)
 
     def get_pre_exec_command(self) -> str:
         """Generates a pre-execution command for the SLURM script. This will load the
@@ -338,6 +343,7 @@ def generate_default_slurm_script() -> None:
         slurm_script_configuration=slurm_script_configuration,
         distributed_strategy=args.dist_strat,
         debug=args.debug,
+        python_venv=args.python_venv,
         training_command=args.training_cmd,
     )
 
