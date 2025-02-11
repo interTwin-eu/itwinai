@@ -62,15 +62,7 @@ exclude_patterns = [
 ]
 
 
-autodoc_mock_imports = [
-    # "mlflow",
-    # "tensorflow",
-    # "keras",
-    # "torch",
-    # "torchvision",
-    # "lightning",
-    # "tqdm",
-]
+autodoc_mock_imports = ["tensorflow", "keras"]
 suppress_warnings = ["myst.xref_missing", "myst.header"]
 
 # Enable numref
