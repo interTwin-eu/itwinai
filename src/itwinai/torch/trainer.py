@@ -18,8 +18,7 @@ import sys
 import tempfile
 from collections import defaultdict
 from pathlib import Path
-from typing import Any, Callable, Dict, Iterable, List, Literal, Optional, Tuple, Union
-
+from typing import Any, Callable, Dict, Iterable, List, Literal, Optional, Tuple
 import torch
 import torch.distributed as dist
 import torch.nn as nn
@@ -87,26 +86,26 @@ class TorchTrainer(Trainer, LogMixin):
     #     templates (e.g.. GAN, Classifier, Transformer) allowing scientists
     #     to reuse ML algos.
 
-    _strategy: TorchDistributedStrategy = None
+    _strategy: TorchDistributedStrategy | None = None
 
     #: PyTorch ``DataLoader`` for training dataset.
-    train_dataloader: DataLoader = None
+    train_dataloader: DataLoader | None = None
     #: PyTorch ``DataLoader`` for validation dataset.
-    validation_dataloader: DataLoader = None
+    validation_dataloader: DataLoader | None = None
     #: PyTorch ``DataLoader`` for test dataset.
-    test_dataloader: DataLoader = None
+    test_dataloader: DataLoader | None = None
     #: PyTorch model to train.
-    model: nn.Module = None
+    model: nn.Module | None = None
     #: Loss criterion.
-    loss: Callable = None
+    loss: Callable | None = None
     #: Optimizer.
-    optimizer: Optimizer = None
+    optimizer: Optimizer | None = None
     #: Learning rate scheduler.
-    lr_scheduler: LrScheduler = None
+    lr_scheduler: LrScheduler | None = None
     #: PyTorch random number generator (PRNG).
-    torch_rng: torch.Generator = None
+    torch_rng: torch.Generator | None = None
     #: itwinai ``itwinai.Logger``
-    logger: Logger = None
+    logger: Logger | None = None
     #: Total number training batches used so far, across all epochs.
     train_glob_step: int = 0
     #: Total number validation batches used so far, across all epochs.
