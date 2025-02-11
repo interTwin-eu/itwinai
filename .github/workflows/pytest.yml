@@ -1,8 +1,6 @@
 name: Testing with pytest
 
 on:
-  # TODO: remove line below
-  push:
   pull_request:
     branches: [main, dev]
 
