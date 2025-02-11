@@ -65,18 +65,18 @@ are exploited in both the steps.
 With MLFLow logger, the logs can be visualized in the MLFlow UI:
 
 ```bash
-mlflow ui --backend-store-uri mllogs/mlflow
+itwinai mlflow-ui --path mllogs/mlflow --port 5000 --host 127.0.0.1
 
 # In background
-mlflow ui --backend-store-uri mllogs/mlflow > /dev/null 2>&1 &
+itwinai mlflow-ui --path mllogs/mlflow --port 5000 --host 127.0.0.1 &
 ```
 
 ### Hyperparameter Optimization (HPO)
 
 The repository also provides functionality to perform HPO with Ray. With HPO, 
 multiple trials with different hyperparameter configurations are run in a distributed 
-infrastructure, typically in an HPC environment. This allows finding the optimal 
-configurations which provides the minimal/maximal loss for the investigated network.
+infrastructure, typically in an HPC environment. This allows searching for optimal 
+configurations that provide the minimal/maximal loss for the investigated network.
 The `hpo.py` file contains the implementation, which launches the `pipeline.yaml` pipeline.
 To launch an HPO experiment, simply run:
 ```bash

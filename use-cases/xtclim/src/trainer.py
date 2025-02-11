@@ -53,7 +53,7 @@ class XTClimTrainer(TorchTrainer):
             seasons: Literal["winter_", "spring_", "summer_", "autumn_"] = 'winter_',
             strategy: Literal["ddp", "deepspeed", "horovod"] = 'ddp',
             save_best: bool = True,
-            logger: Optional[Logger] = None
+            logger: Logger | None = None
     ):
         super().__init__(
             epochs=epochs,
@@ -77,7 +77,13 @@ class XTClimTrainer(TorchTrainer):
             lr_decay_rate = 5
         )
 
-    def final_loss(self, bce_loss, mu, logvar, beta=0.1):
+    def final_loss(
+        self,
+        bce_loss: torch.Tensor,
+        mu: torch.Tensor,
+        logvar: torch.Tensor,
+        beta: float = 0.1
+    ) -> torch.Tensor:
         """Adds up reconstruction loss (BCELoss) and Kullback-Leibler divergence.
         KL-Divergence = 0.5 * sum(1 + log(sigma^2) - mu^2 - sigma^2)
 

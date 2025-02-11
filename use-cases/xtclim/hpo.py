@@ -54,7 +54,7 @@ def run_trial(config: Dict, data: Dict):
         my_pipeline.execute()
 
 
-def run_hpo(args):
+def run_hpo(args: argparse.Namespace) -> None:
     """Run hyperparameter optimization using Ray Tune.
     Either starts a new optimization run or resumes from previous results.
 
@@ -158,7 +158,7 @@ def run_hpo(args):
     )
 
 
-def plot_results(result_grid: ResultGrid, metric: str ="loss", filename: str ="plot.png"):
+def plot_results(result_grid: ResultGrid, metric: str = "loss", filename: str = "plot.png"):
     """Plot the results for all trials and save the plot to a file.
 
     Args:
@@ -166,24 +166,16 @@ def plot_results(result_grid: ResultGrid, metric: str ="loss", filename: str ="p
         metric (str): The metric to plot (e.g., 'loss').
         filename (str): Name of the file to save the plot.
     """
-    ax = None
+    fig, ax = plt.subplots()
+
     for result in result_grid:
         label = f"lr={result.config['lr']:.6f}, batch size={result.config['batch_size']}"
-        if ax is None:
-            ax = result.metrics_dataframe.plot(
-                "training_iteration", metric, label=label
-            )
-        else:
-            result.metrics_dataframe.plot(
-                "training_iteration", metric, ax=ax, label=label
-            )
+        result.metrics_dataframe.plot("training_iteration", metric, ax=ax, label=label)
 
-    ax.set_title(
-        f"{metric.capitalize()} vs. Training Iteration for All Trials"
-    )
+    ax.set_title(f"{metric.capitalize()} vs. Training Iteration for All Trials")
     ax.set_ylabel(metric.capitalize())
 
-    plt.savefig(filename)
+    fig.savefig(filename)
 
     # Show the plot
     plt.show()

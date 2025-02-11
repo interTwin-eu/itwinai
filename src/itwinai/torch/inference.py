@@ -6,10 +6,11 @@
 # Credit:
 # - Matteo Bunino <matteo.bunino@cern.ch> - CERN
 # - Rakesh Sarma <r.sarma@fz-juelich.de> - FZJ
+# - Jarl Sondre Sæther <jarl.sondre.saether@cern.ch> - CERN
 # --------------------------------------------------------------------------------------
 
 import os
-from typing import Any, Dict, Literal, Optional, Union
+from typing import Any, Dict, List, Literal, Optional, Union
 
 import torch
 from torch import nn
@@ -103,7 +104,7 @@ class TorchModelLoader(ModelLoader):
             f"Received model URI: {self.model_uri}"
         )
 
-    def _load_model_from_checkpoint(self, checkpoint: dict) -> nn.Module:
+    def _load_model_from_checkpoint(self, checkpoint: Dict[str, Any]) -> nn.Module:
 
         if self.model_class:
             model = self.model_class()
@@ -129,12 +130,12 @@ class TorchPredictor(Predictor):
 
     def __init__(
         self,
-        config: Union[Dict, TrainingConfiguration],
-        model: Union[nn.Module, ModelLoader],
+        config: Dict | TrainingConfiguration,
+        model: nn.Module | ModelLoader,
         strategy: Literal["ddp", "deepspeed", "horovod"] = 'ddp',
-        logger: Optional[Logger] = None,
+        logger: Logger | None = None,
         checkpoints_location: str = "checkpoints",
-        name: str = None
+        name: str | None = None
     ) -> None:
         super().__init__(model=model, name=name)
         self.save_parameters(**self.locals2params(locals()))
@@ -152,7 +153,7 @@ class TorchPredictor(Predictor):
         return self._strategy
 
     @strategy.setter
-    def strategy(self, strategy: Union[str, TorchDistributedStrategy]) -> None:
+    def strategy(self, strategy: str | TorchDistributedStrategy) -> None:
         if isinstance(strategy, TorchDistributedStrategy):
             self._strategy = strategy
         else:
@@ -223,15 +224,15 @@ class TorchPredictor(Predictor):
         all_predictions = dict()
         for samples_ids, samples in self.inference_dataloader:
             with torch.no_grad():
-                pred = self.model(samples.to(self.device))
-            pred = self.transform_predictions(pred)
-            for idx, pre in zip(samples_ids, pred):
+                pred_batch = self.model(samples.to(self.device))
+            pred_batch = self.transform_predictions(pred_batch)
+            for idx, pred in zip(samples_ids, pred_batch):
                 # For each item in the batch
-                if pre.numel() == 1:
-                    pre = pre.item()
+                if pred.numel() == 1:
+                    pred = pred.item()
                 else:
-                    pre = pre.to_dense().tolist()
-                all_predictions[idx] = pre
+                    pred = pred.to_dense().tolist()
+                all_predictions[idx] = pred
         return all_predictions
 
     @monitor_exec
@@ -278,8 +279,8 @@ class TorchPredictor(Predictor):
 
     def log(
         self,
-        item: Any | list[Any],
-        identifier: str | list[str],
+        item: Any | List[Any],
+        identifier: str | List[str],
         kind: str = 'metric',
         step: int | None = None,
         batch_idx: int | None = None,
@@ -292,10 +293,10 @@ class TorchPredictor(Predictor):
             item (Union[Any, List[Any]]): element to be logged (e.g., metric).
             identifier (Union[str, List[str]]): unique identifier for the
                 element to log(e.g., name of a metric).
-            kind (str, optional): type of the item to be logged. Must be one
+            kind (str): Type of the item to be logged. Must be one
                 among the list of self.supported_types. Defaults to 'metric'.
-            step (Optional[int], optional): logging step. Defaults to None.
-            batch_idx (Optional[int], optional): DataLoader batch counter
+            step (int | None): logging step. Defaults to None.
+            batch_idx (int | None): DataLoader batch counter
                 (i.e., batch idx), if available. Defaults to None.
         """
         if self.logger:
