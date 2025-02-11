@@ -65,6 +65,8 @@ RUN CONTAINER_TORCH_VERSION="$(python -c 'import torch;print(torch.__version__)'
     git+https://github.com/horovod/horovod.git@3a31d93 \
     "prov4ml[nvidia]@git+https://github.com/matbun/ProvML@new-main" \
     pytest \
+    pytest-xdist \
+    psutil \
     # fix .triton/autotune/Fp16Matmul_2d_kernel.pickle bug
     && pver="$(python --version 2>&1 | awk '{print $2}' | cut -f1-2 -d.)" \
     && line=$(cat -n "/usr/local/lib/python${pver}/dist-packages/deepspeed/ops/transformer/inference/triton/matmul_ext.py" | grep os.rename | awk '{print $1}' | head -n 1) \

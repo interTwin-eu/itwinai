@@ -1,13 +1,14 @@
 """
 Train file to launch pipeline
 """
+
 import os
 import sys
 from itwinai.parser import ConfigParser
 from itwinai.utils import load_yaml
 
-sys.path.append(os.path.join(os.path.dirname(__file__), 'src'))
-sys.path.append(os.path.join(os.path.dirname(__file__), 'preprocessing'))
+sys.path.append(os.path.join(os.path.dirname(__file__), "src"))
+sys.path.append(os.path.join(os.path.dirname(__file__), "preprocessing"))
 
 
 if __name__ == "__main__":
@@ -29,4 +30,3 @@ if __name__ == "__main__":
 
         print(f"Running pipeline for season: {season}")
         pipeline.execute()
-
