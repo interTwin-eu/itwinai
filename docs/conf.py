@@ -25,8 +25,8 @@ sys.path.insert(0, os.path.abspath("../tutorials/ml-workflows/"))
 sys.path.insert(0, os.path.abspath("../src"))
 sys.path.insert(0, os.path.abspath("../images"))
 
-project = 'itwinai'
-copyright = '2024, interTwin collaboration'
+project = "itwinai"
+copyright = "2024, interTwin collaboration"
 # author = 'Matteo Bunino'
 # version = '0.2'  # short version
 # release = '0.2.2'  # full version
@@ -63,10 +63,9 @@ exclude_patterns = [
     "testing-with-pytest.md",
     "working-with-containers.md",
 ]
-suppress_warnings = ["myst.xref_missing", "myst.header"]
+suppress_warnings = ["myst.xref_missing", "myst.header", "autodoc.mock_imports"]
 
-autodoc_mock_imports = ["mlflow"]
-
+autodoc_mock_imports = ["mlflow", "tensorflow", "torch", "itwinai"]
 
 # Enable numref
 numfig = True
