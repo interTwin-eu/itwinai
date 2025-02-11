@@ -67,8 +67,8 @@ def test_mnist_train_torch(torch_env, install_requirements):
         f"--config-path {TORCH_PATH} "
         f"dataset_root={dataset_path} "
     )
-    with tempfile.TemporaryDirectory() as temp_dir:
-        subprocess.run(cmd.split(), check=True, cwd=temp_dir)
+    with tempfile.TemporaryDirectory() as tmp_path:
+        subprocess.run(cmd.split(), check=True, cwd=tmp_path)
 
 
 @pytest.mark.functional
@@ -82,13 +82,13 @@ def test_mnist_inference_torch(torch_env, install_requirements):
 
     run_inference_cmd = f"{torch_env}/bin/itwinai exec-pipeline --config-path {TORCH_PATH} \
         +pipe_key=inference_pipeline"
-    with tempfile.TemporaryDirectory() as temp_dir:
+    with tempfile.TemporaryDirectory() as tmp_path:
         # Create fake inference dataset and checkpoint
-        generate_model_cmd = f"{torch_env}/bin/python {exec} --root {temp_dir}"
-        subprocess.run(generate_model_cmd.split(), check=True, cwd=temp_dir)
+        generate_model_cmd = f"{torch_env}/bin/python {exec} --root {tmp_path}"
+        subprocess.run(generate_model_cmd.split(), check=True, cwd=tmp_path)
 
         # Running inference
-        subprocess.run(run_inference_cmd.split(), check=True, cwd=temp_dir)
+        subprocess.run(run_inference_cmd.split(), check=True, cwd=tmp_path)
 
 
 @pytest.mark.functional
@@ -109,8 +109,8 @@ def test_mnist_train_torch_lightning(torch_env, install_requirements):
         f"--config-path {LIGHTNING_PATH} "
         f"dataset_root={dataset_path} "
     )
-    with tempfile.TemporaryDirectory() as temp_dir:
-        subprocess.run(cmd.split(), check=True, cwd=temp_dir)
+    with tempfile.TemporaryDirectory() as tmp_path:
+        subprocess.run(cmd.split(), check=True, cwd=tmp_path)
 
 
 @pytest.mark.tensorflow
@@ -123,5 +123,5 @@ def test_mnist_train_tf(tf_env, install_requirements):
     conf_name = "pipeline"
     cmd = f"{tf_env}/bin/itwinai exec-pipeline --config-path {TF_PATH} \
         --config-name {conf_name} +pipe_key=pipeline"
-    with tempfile.TemporaryDirectory() as temp_dir:
-        subprocess.run(cmd.split(), check=True, cwd=temp_dir)
+    with tempfile.TemporaryDirectory() as tmp_path:
+        subprocess.run(cmd.split(), check=True, cwd=tmp_path)
