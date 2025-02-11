@@ -49,7 +49,7 @@ def test_structure_mnist_tf(check_folder_structure):
 
 
 @pytest.mark.functional
-def test_mnist_train_torch(torch_env, install_requirements):
+def test_mnist_train_torch(torch_env, install_requirements, tmp_path):
     """
     Test MNIST torch native trainer by running it end-to-end.
 
@@ -67,8 +67,7 @@ def test_mnist_train_torch(torch_env, install_requirements):
         f"--config-path {TORCH_PATH} "
         f"dataset_root={dataset_path} "
     )
-    with tempfile.TemporaryDirectory() as tmp_path:
-        subprocess.run(cmd.split(), check=True, cwd=tmp_path)
+    subprocess.run(cmd.split(), check=True, cwd=tmp_path)
 
 
 @pytest.mark.functional
