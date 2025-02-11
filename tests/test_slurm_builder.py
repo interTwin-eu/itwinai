@@ -1,6 +1,7 @@
 import os
 from pathlib import Path
 from unittest.mock import patch
+from typing import Generator
 
 import pytest
 
@@ -8,6 +9,14 @@ from itwinai.slurm.slurm_script_builder import (
     SlurmScriptBuilder,
     SlurmScriptConfiguration,
 )
+
+
+@pytest.fixture
+def cd_tmpdir(tmp_path) -> Generator[None, None, None]:
+    old_cwd = Path.cwd()
+    os.chdir(tmp_path)
+    yield
+    os.chdir(old_cwd)
 
 
 @pytest.fixture
@@ -44,11 +53,11 @@ def test_process_slurm_script(
     save_script: bool,
     submit_slurm_job: bool,
     tmp_path: Path,
+    cd_tmpdir: None,
 ):
     """Test that process_slurm_script behaves correctly for all cases of save_script
     and submit_slurm_job."""
 
-    os.chdir(tmp_path)
     file_path = tmp_path / "slurm_script.sh"
 
     with patch("subprocess.run") as mock_run:
@@ -76,12 +85,13 @@ def test_process_slurm_script(
         assert file_path.exists() == save_script
 
 
-def test_process_slurm_script_twice(slurm_builder: SlurmScriptBuilder, tmp_path: Path):
+def test_process_slurm_script_twice(
+    slurm_builder: SlurmScriptBuilder, tmp_path: Path, cd_tmpdir: None
+):
     """Ensure that calling process_slurm_script twice with save_script=True fails,
     but calling it first with save_script=True and then with save_script=False works fine.
     """
 
-    os.chdir(tmp_path)
     file_path = Path(tmp_path) / "slurm_script.sh"
 
     # First call with save_script=True should succeed
