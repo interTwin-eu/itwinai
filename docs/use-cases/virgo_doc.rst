@@ -1,7 +1,5 @@
-:orphan:
-
-Virgo
-=====
+Noise Simulation for Gravitational Waves Detector (Virgo, INFN)
+===============================================================
 
 The code is adapted from
 `this notebook <https://github.com/interTwin-eu/DT-Virgo-notebooks/blob/main/WP_4_4/interTwin_wp_4.4_synthetic_data.ipynb>`_
@@ -18,7 +16,7 @@ or by consulting the use case's README:
 
 .. include:: ../../use-cases/virgo/README.md
    :parser: myst_parser.sphinx_
-   :start-line: 6
+   :start-line: 2
 
 Scalability Metrics
 -------------------
