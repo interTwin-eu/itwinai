@@ -5,8 +5,7 @@
 # Job configuration
 #SBATCH --job-name=distributed_training
 #SBATCH --account=intertwin
-#SBATCH --mail-user=
-#SBATCH --mail-type=ALL
+#SBATCH --partition=develbooster
 #SBATCH --output=job.out
 #SBATCH --error=job.err
 #SBATCH --time=00:30:00

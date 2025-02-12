@@ -106,13 +106,13 @@ class RNNDistributedTrainer(TorchTrainer):
         return super().execute(train_dataset, validation_dataset, test_dataset)
 
     def init_hython_trainer(self) -> None:
-        self.config.loss_fn = instantiate(
-            OmegaConf.create({"loss_fn": self.config.loss_fn})
-        )["loss_fn"]
-
-        self.config.metric_fn = instantiate(
-            OmegaConf.create({"metric_fn": self.config.metric_fn})
-        )["metric_fn"]
+        # self.config.loss_fn = instantiate(
+        #     OmegaConf.create({"loss_fn": self.config.loss_fn})
+        # )["loss_fn"]
+        #
+        # self.config.metric_fn = instantiate(
+        #     OmegaConf.create({"metric_fn": self.config.metric_fn})
+        # )["metric_fn"]
 
         if self.config.hython_trainer == "rnntrainer":
             self.model = self.model_class(
