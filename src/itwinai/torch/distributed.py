@@ -5,6 +5,7 @@
 #
 # Credit:
 # - Matteo Bunino <matteo.bunino@cern.ch> - CERN
+# - Rakesh Sarma <r.sarma@fz-juelich.de> - FZJ
 # - Jarl Sondre Sæther <jarl.sondre.saether@cern.ch> - CERN
 # - Henry Mutegeki <henry.mutegeki@cern.ch> - CERN
 # - Anna Lappe <anna.elisa.lappe@cern.ch> - CERN
