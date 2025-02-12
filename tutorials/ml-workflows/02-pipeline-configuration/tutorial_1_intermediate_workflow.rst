@@ -46,13 +46,14 @@ from the command-line interface (CLI) or from within your code.
 Parsing Pipelines from CLI
 ==========================
 
-You can execute a pipeline from a configuration file with the CLI using:
+You can execute a pipeline from a configuration file (which by default is called ``config.yaml``)
+with the CLI using:
 
 .. code-block:: bash
 
     itwinai exec-pipeline
 
-This command loads the default configuration file and executes the defined pipeline. 
+This command loads the configuration file and executes the defined pipeline. 
 You can customize execution using the following options:
 
 1. Setting a ``--config-path`` and ``--config-name``
@@ -67,6 +68,9 @@ If your configuration file has a different name (not ``config.yaml``), you may s
 .. code-block:: bash
 
     itwinai exec-pipeline --config-path path/to/dir --config-name my-config-file
+
+Note that we omit the extension ``.yaml``. This is intentional, as hydra expects only the stem 
+of the filename.
 
 2. Selecting a pipeline by name (``+pipe_key``)
 -----------------------------------------
@@ -98,9 +102,16 @@ You can override any parameter in the configuration file directly from the comma
 
 .. code-block:: bash
 
-    itwinai exec-pipeline +my-getter.data_size=500
+    itwinai exec-pipeline +training_pipeline.steps.my-getter.data_size=500
 
-This modifies the ``data_size`` parameter inside the pipeline configuration.
+This modifies the ``data_size`` parameter inside the pipeline configuration. You can also override 
+fields if your pipeline steps are defined in the form of a list in your configuration file.
+In this case, you give the step's index instead of its name, for example
+
+.. code-block:: bash
+
+    itwinai exec-pipeline +training_pipeline.steps.0.data_size=500
+
 
 Advanced Functionality with Hydra
 =================================
