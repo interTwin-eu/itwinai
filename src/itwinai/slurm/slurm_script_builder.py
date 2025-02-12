@@ -11,7 +11,7 @@
 import subprocess
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import List, Dict
+from typing import Dict, List
 
 from pydantic import BaseModel
 

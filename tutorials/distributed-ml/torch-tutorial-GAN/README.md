@@ -62,20 +62,20 @@ srun --jobid XXXX --ntasks-per-node=1 deepspeed train.py --strategy deepspeed
 
 You can run your training with SLURM by using the `itwinai` SLURM Builder. Use the
 `slurm_config.yaml` file to specify your SLURM parameters and then preview your script
-with the following command: 
+with the following command:
 
 ```bash
 itwinai generate-slurm -c slurm_config.yaml --no-save-script --no-submit-job
 ```
 
-If you are happy with the script, you can then run it by omitting `--no-submit-job`: 
+If you are happy with the script, you can then run it by omitting `--no-submit-job`:
 
 ```bash
 itwinai generate-slurm -c slurm_config.yaml --no-save-script
 ```
 
 If you want to store a copy of the script in a folder, then you can similarly omit
-`--no-save-script`: 
+`--no-save-script`:
 
 ```bash
 itwinai generate-slurm -c slurm_config.yaml
