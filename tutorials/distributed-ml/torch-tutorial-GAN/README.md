@@ -60,38 +60,25 @@ srun --jobid XXXX --ntasks-per-node=1 deepspeed train.py --strategy deepspeed
 
 ## Distributed training with SLURM (batch mode)
 
-Before running distributed training with slurm, make sure to create the `logs_slurm` folder in your
-current working directory to store slurm logs and outputs.
+You can run your training with SLURM by using the `itwinai` SLURM Builder. Use the
+`slurm_config.yaml` file to specify your SLURM parameters and then preview your script
+with the following command: 
 
-Each distributed strategy has its own SLURM job script, which
-should be used to run it:
-
-If you want to distribute the code in `train.py` with **torch DDP**, run from terminal:
-  
 ```bash
-export DIST_MODE="ddp"
-export RUN_NAME="ddp-itwinai"
-export TRAINING_CMD="train.py --strategy ddp"
-export PYTHON_VENV="../../../envAI_hdfml"
-sbatch --export=ALL,DIST_MODE="$DIST_MODE",RUN_NAME="$RUN_NAME",TRAINING_CMD="$TRAINING_CMD",PYTHON_VENV="$PYTHON_VENV" \
-    --job-name="$RUN_NAME-n$N" \
-    --output="logs_slurm/job-$RUN_NAME-n$N.out" \
-    --error="logs_slurm/job-$RUN_NAME-n$N.err" \
-    slurm.sh
+itwinai generate-slurm -c slurm_config.yaml --no-save-script --no-submit-job
 ```
 
-If you want to distribute the code in `train.py` with **DeepSpeed**, run from terminal:
-  
+If you are happy with the script, you can then run it by omitting `--no-submit-job`: 
+
 ```bash
-export DIST_MODE="deepspeed"
-export RUN_NAME="deepspeed-itwinai"
-export TRAINING_CMD="train.py --strategy deepspeed"
-export PYTHON_VENV="../../../envAI_hdfml"
-sbatch --export=ALL,DIST_MODE="$DIST_MODE",RUN_NAME="$RUN_NAME",TRAINING_CMD="$TRAINING_CMD",PYTHON_VENV="$PYTHON_VENV" \
-    --job-name="$RUN_NAME-n$N" \
-    --output="logs_slurm/job-$RUN_NAME-n$N.out" \
-    --error="logs_slurm/job-$RUN_NAME-n$N.err" \
-    slurm.sh
+itwinai generate-slurm -c slurm_config.yaml --no-save-script
+```
+
+If you want to store a copy of the script in a folder, then you can similarly omit
+`--no-save-script`: 
+
+```bash
+itwinai generate-slurm -c slurm_config.yaml
 ```
 
 ## Analyze the logs

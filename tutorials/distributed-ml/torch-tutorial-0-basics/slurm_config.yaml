@@ -1,6 +1,6 @@
 account: intertwin
-partition: develbooster
 time: 00:20:00
+partition: develbooster
 
 dist_strat: ddp
 std_out: slurm_job_logs/${dist_strat}.out
@@ -13,4 +13,4 @@ num_nodes: 1
 gpus_per_node: 4
 cpus_per_gpu: 4
 
-training_cmd: "train.py -s {dist_strat} -c config.yaml"
+training_cmd: "train.py -s {dist_strat}"

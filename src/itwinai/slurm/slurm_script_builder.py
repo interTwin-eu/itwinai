@@ -11,7 +11,7 @@
 import subprocess
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import List
+from typing import List, Dict
 
 from pydantic import BaseModel
 
@@ -97,8 +97,9 @@ class SlurmScriptBuilder:
         else:
             self.omp_num_threads = 1
 
-        # Used to dynamically change the training command
-        self.training_cmd_formatter = {
+    @property
+    def get_training_cmd_formatter(self) -> Dict[str, str]:
+        return {
             "dist_strat": self.distributed_strategy,
             "config_name": self.config_name,
             "config_path": self.config_path,
@@ -112,9 +113,9 @@ class SlurmScriptBuilder:
 
     def get_training_command(self) -> str:
         if self.training_command:
-            return self.training_command.format(**self.training_cmd_formatter)
+            return self.training_command.format(**self.get_training_cmd_formatter)
 
-        # This is made to work with the TorchTrainer
+        # Default for the TorchTrainer
         default_command = rf"""
             $(which itwinai) exec-pipeline \
             strategy={self.distributed_strategy} \

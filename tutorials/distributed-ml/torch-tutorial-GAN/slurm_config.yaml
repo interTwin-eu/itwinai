@@ -13,4 +13,4 @@ num_nodes: 1
 gpus_per_node: 4
 cpus_per_gpu: 4
 
-training_cmd: "train.py -s {dist_strat} -c config.yaml"
+training_cmd: "train.py --strategy {dist_strat}"
