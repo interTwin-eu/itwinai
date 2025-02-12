@@ -74,6 +74,9 @@ class SlurmScriptBuilder:
         training_command: str | None = None,
         python_venv: str = ".venv",
         debug: bool = False,
+        config_name: str = "config",
+        config_path: str = ".",
+        pipe_key: str = "rnn_training_pipeline",
         file_folder: Path = Path("slurm_scripts"),
     ):
         self.slurm_script_configuration = slurm_script_configuration
@@ -84,10 +87,23 @@ class SlurmScriptBuilder:
         self.debug = debug
         self.file_folder = file_folder
 
+        # exec-pipeline-specific commands
+        self.config_name = config_name
+        self.config_path = config_path
+        self.pipe_key = pipe_key
+
         if self.slurm_script_configuration.cpus_per_gpu > 0:
             self.omp_num_threads = self.slurm_script_configuration.cpus_per_gpu
         else:
             self.omp_num_threads = 1
+
+        # Used to dynamically change the training command
+        self.training_cmd_formatter = {
+            "dist_strat": self.distributed_strategy,
+            "config_name": self.config_name,
+            "config_path": self.config_path,
+            "pipe_key": self.pipe_key,
+        }
 
     def generate_identifier(self) -> str:
         num_nodes = self.slurm_script_configuration.num_nodes
@@ -96,8 +112,9 @@ class SlurmScriptBuilder:
 
     def get_training_command(self) -> str:
         if self.training_command:
-            return self.training_command
+            return self.training_command.format(**self.training_cmd_formatter)
 
+        # This is made to work with the TorchTrainer
         default_command = rf"""
             $(which itwinai) exec-pipeline \
             strategy={self.distributed_strategy} \

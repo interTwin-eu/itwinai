@@ -1,0 +1,4 @@
+dist_strat: ddp
+
+# arguments will be formatted into the string later. Currently supports 'dist_strat'
+training_cmd: "train.py -s {dist_strat} -c config.yaml"
