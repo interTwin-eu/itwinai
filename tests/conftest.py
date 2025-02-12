@@ -22,7 +22,6 @@ def torch_env() -> str:
     Returns absolute path to torch virtual environment.
     """
     env_path = Path(os.environ.get("TORCH_ENV", "./.venv-pytorch"))
-    print("torch env:", str(env_path.resolve()))
     return str(env_path.resolve())
 
 

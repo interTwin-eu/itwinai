@@ -98,7 +98,7 @@ class SlurmScriptBuilder:
             self.omp_num_threads = 1
 
     @property
-    def get_training_cmd_formatter(self) -> Dict[str, str]:
+    def training_cmd_formatter(self) -> Dict[str, str]:
         return {
             "dist_strat": self.distributed_strategy,
             "config_name": self.config_name,
@@ -113,7 +113,7 @@ class SlurmScriptBuilder:
 
     def get_training_command(self) -> str:
         if self.training_command:
-            return self.training_command.format(**self.get_training_cmd_formatter)
+            return self.training_command.format(**self.training_cmd_formatter)
 
         # Default for the TorchTrainer
         default_command = rf"""
@@ -292,15 +292,12 @@ class SlurmScriptBuilder:
         self.file_folder = file_folder
         for strategy in strategies:
             self.distributed_strategy = strategy
+            job_identifier = self.generate_identifier()
 
             # Overriding job_name, std_out and err_out
-            self.slurm_script_configuration.job_name = self.generate_identifier()
-            std_out_path = Path("slurm_job_logs") / (
-                self.generate_identifier() + ".out"
-            )
-            err_out_path = Path("slurm_job_logs") / (
-                self.generate_identifier() + ".err"
-            )
+            self.slurm_script_configuration.job_name = job_identifier
+            std_out_path = Path("slurm_job_logs") / f"{job_identifier}.out"
+            err_out_path = Path("slurm_job_logs") / f"{job_identifier}.err"
             self.slurm_script_configuration.std_out = std_out_path
             self.slurm_script_configuration.err_out = err_out_path
 
