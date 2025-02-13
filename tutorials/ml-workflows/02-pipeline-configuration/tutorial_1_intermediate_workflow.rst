@@ -73,7 +73,7 @@ Note that we omit the extension ``.yaml``. This is intentional, as hydra expects
 of the filename.
 
 2. Selecting a pipeline by name (``+pipe_key``)
------------------------------------------
+-----------------------------------------------
 
 A configuration file can contain multiple pipelines. The default key that the parser will look 
 for is ``training_pipeline``. Use the ``pipe_key`` argument to overwrite this default and 
@@ -96,7 +96,7 @@ This will execute only the ``MyDatasetSplitter`` and ``MyTrainer`` steps of the 
 give ``pipe_steps`` as a list of indices, if your configuration file defines your steps in list format.
 
 4. Dynamically overriding configuration fields
-----------------------
+----------------------------------------------
 
 You can override any parameter in the configuration file directly from the command line:
 
@@ -141,7 +141,7 @@ refer to the `Hydra documentation <https://hydra.cc/docs/advanced/hydra-command-
 
 
 Parsing Pipelines from Python
-===========================
+=============================
 
 In some cases, you may want to parse and execute a pipeline from a configuration file from within 
 your Python code. You can do this by running:
