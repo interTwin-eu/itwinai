@@ -159,9 +159,6 @@ dagger call \
         --tag-template='${itwinai_version}-torch${framework_version}-${os_version}' \
         --password env:SING_PWD --username env:SING_USER $KUBERNETES
 
-
-
-
 # Open teminal in newly created container
 dagger call \
     build-container --context=.. --dockerfile=../env-files/torch/Dockerfile \
@@ -177,7 +174,10 @@ dagger call --name="$(git rev-parse --verify HEAD)"  \
     logs
 
 
+# Release pipeline
+export COMMIT_HASH=$(git rev-parse --verify HEAD)
 export BASE_IMG_NAME="python:3.10-slim"
+export BASE_IMG_DIGEST="$(echo "$BASE_IMG_NAME" | cut -d ':' -f 1)@$(docker buildx imagetools inspect $BASE_IMG_NAME | grep "Digest:" | head -n 1 | awk '{print $2}')"
 dagger call \
     --nickname torch-slim \
     --image itwinai-dev \
@@ -195,21 +195,24 @@ dagger call \
     --username env:SING_USER \
     --kubernetes tcp://localhost:6443
 
-
+# Dev pipeline
+export COMMIT_HASH=$(git rev-parse --verify HEAD)
+export BASE_IMG_NAME="python:3.10-slim"
+export BASE_IMG_DIGEST="$(echo "$BASE_IMG_NAME" | cut -d ':' -f 1)@$(docker buildx imagetools inspect $BASE_IMG_NAME | grep "Digest:" | head -n 1 | awk '{print $2}')"
 dagger call \
-    --nickname torch-skinny \
+    --nickname torch-slim \
     --image itwinai-dev \
     --docker-registry ghcr.io/intertwin-eu \
     --singularity-registry registry.egi.eu/dev.intertwin.eu \
-    --container ubuntu \
-    release-pipeline \
-    --values file:tmp.yaml \
+    build-container \
+    --context .. \
+    --dockerfile ../env-files/torch/slim.Dockerfile \
+    --build-args ="COMMIT_HASH=$COMMIT_HASH,BASE_IMG_NAME=$BASE_IMG_NAME,BASE_IMG_DIGEST=$BASE_IMG_DIGEST" \
+    dev-pipeline \
     --framework TORCH \
     --tag-template '${itwinai_version}-slim-torch${framework_version}-${os_version}' \
     --password env:SING_PWD \
-    --username env:SING_USER \
-    --skip-singularity
-
+    --username env:SING_USER
 
 # Test on HPC and publish
 export COMMIT_HASH=$(git rev-parse --verify HEAD)
@@ -228,6 +231,38 @@ dagger call --name="${COMMIT_HASH}-torch-slim" \
     build-container --context=.. --dockerfile=../env-files/torch/slim.Dockerfile \
     singularity --src-container "python:3.12" \
     export --path my_container.sif
+
+############## TORCH SKINNY ###############
+
+export COMMIT_HASH=$(git rev-parse --verify HEAD)
+export BASE_IMG_NAME="python:3.10-slim"
+export BASE_IMG_DIGEST="$(echo "$BASE_IMG_NAME" | cut -d ':' -f 1)@$(docker buildx imagetools inspect $BASE_IMG_NAME | grep "Digest:" | head -n 1 | awk '{print $2}')"
+dagger call \
+    --nickname torch-skinny \
+    --image itwinai-dev \
+    --docker-registry ghcr.io/intertwin-eu \
+    --singularity-registry registry.egi.eu/dev.intertwin.eu \
+    build-container \
+    --context .. \
+    --dockerfile ../env-files/torch/skinny.Dockerfile \
+    --build-args ="COMMIT_HASH=$COMMIT_HASH,BASE_IMG_NAME=$BASE_IMG_NAME,BASE_IMG_DIGEST=$BASE_IMG_DIGEST" \
+    release-pipeline \
+    --values file:tmp.yaml \
+    --framework TORCH \
+    --tag-template '${itwinai_version}-slim-torch${framework_version}-${os_version}' \
+    --password env:SING_PWD \
+    --username env:SING_USER \
+    --skip-singularity
+
+
+# CI pytest
+dagger call \
+    build-container \
+    --context .. \
+    --dockerfile ../env-files/torch/skinny.Dockerfile \
+    test-local \
+    --cmd "pytest,-v,-n,logical,/app/tests/,-m,not hpc and not tensorflow" \
+    logs
 
 ############## JUPYTER (SLIM) ###############
 
