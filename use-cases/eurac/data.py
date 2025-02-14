@@ -48,8 +48,18 @@ class RNNDatasetGetterAndPreprocessor(DataSplitter):
         self.save_parameters(**self.locals2params(locals()))
 
         self.cfg = deepcopy(self.locals2params(locals()))
+        train_downsampler = self.cfg["train_downsampler"]
+        valid_downsampler = self.cfg["valid_downsampler"]
+        # test_downsampler = self.cfg["test_downsampler"]
+
+        del self.cfg["train_downsampler"]
+        del self.cfg["valid_downsampler"]
+        # del self.cfg["test_downsampler"]
 
         self.cfg = instantiate(OmegaConf.create(self.cfg))
+        self.cfg.train_downsampler = train_downsampler
+        self.cfg.valid_downsampler = valid_downsampler
+        # self.cfg.test_downsampler = test_downsampler
 
     @monitor_exec
     def execute(self) -> Tuple[Wflow1d, Wflow1d, None]:

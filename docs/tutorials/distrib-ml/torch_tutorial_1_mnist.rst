@@ -16,17 +16,3 @@ config.yaml
 
 .. literalinclude:: ../../../tutorials/distributed-ml/torch-tutorial-1-mnist/config.yaml
    :language: yaml
-
-
-slurm.sh
-++++++++
-
-.. literalinclude:: ../../../tutorials/distributed-ml/torch-tutorial-1-mnist/slurm.sh
-   :language: bash
-
-
-runall.sh
-+++++++++
-
-.. literalinclude:: ../../../tutorials/distributed-ml/torch-tutorial-1-mnist/runall.sh
-   :language: bash
