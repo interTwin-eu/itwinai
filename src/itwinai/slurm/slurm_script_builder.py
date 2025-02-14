@@ -360,6 +360,9 @@ def generate_default_slurm_script() -> None:
         debug=args.debug,
         python_venv=args.python_venv,
         training_command=args.training_cmd,
+        config_path=args.config_path,
+        config_name=args.config_name,
+        pipe_key=args.pipe_key
     )
 
     submit_job = not args.no_submit_job
