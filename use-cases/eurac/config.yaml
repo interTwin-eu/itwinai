@@ -61,7 +61,7 @@ lr_scheduler:
 seq_length: 120
 learning_rate: 0.001
 batch: 256
-epochs: 3
+epochs: 60
 gradient_clip: null
 target_weights: even # null, even, or dict
 
@@ -71,20 +71,20 @@ predict_steps: 0 # all # (prediction: 0 = t ), ( forecasts: 1 = t+1, 2 = t + 2)
 # > Donwsampling < 
 
 # spatial downsampling
-train_downsampler: null 
-  # _target_: hython.sampler.downsampler.RegularIntervalDownsampler
-  # intervals: [3,3]
-  # origin: [0,0]
-
-valid_downsampler: null 
-  # _target_: hython.sampler.downsampler.RegularIntervalDownsampler
-  # intervals: [3,3]
-  # origin: [1,1]
-
-test_downsampler: null
-  # _target_: hython.sampler.downsampler.RegularIntervalDownsampler
-  # intervals: [3,3]
-  # origin: [2,2]
+train_downsampler: 
+  _target_: hython.sampler.downsampler.RegularIntervalDownsampler
+  intervals: [3,3]
+  origin: [0,0]
+#
+valid_downsampler:  
+  _target_: hython.sampler.downsampler.RegularIntervalDownsampler
+  intervals: [3,3]
+  origin: [1,1]
+#
+test_downsampler: 
+  _target_: hython.sampler.downsampler.RegularIntervalDownsampler
+  intervals: [3,3]
+  origin: [2,2]
 
 
 # temporal downsampling
@@ -129,7 +129,7 @@ mask_variables:
 # Scaling
 
 scaling_variant: minmax
-scaling_use_cached: True
+scaling_use_cached: False
 
 # == Pipeline == 
 

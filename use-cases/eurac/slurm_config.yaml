@@ -7,20 +7,20 @@ mode: single # "single", "runall" or "scaling-test" - defaults to "single"
 dist_strat: ddp # "ddp", "deepspeed" or "horovod"
 
 account: intertwin
-time: 00:20:00
+time: 01:00:00
 partition: develbooster
 
 std_out: slurm_job_logs/${dist_strat}.out
 err_out: slurm_job_logs/${dist_strat}.err
 job_name: eurac-${dist_strat}-job
 
-num_nodes: 4
+num_nodes: 1
 num_tasks_per_node: 1
 gpus_per_node: 4
 cpus_per_gpu: 4
 
 python_venv: ../../.venv
-pipe_key: rnn_training_pipeline
+pipe_key: training_pipeline
 config_path: .
 config_name: config
 
