@@ -88,6 +88,8 @@ class TrainingConfiguration(Configuration):
     #: gradients before adding them up.
     #: Defaults to 1.0.
     gradient_predivide_factor: float = 1.0
+
+    # TODO: move this inside the some "run" or "scaling" dedicated config
     #: Torch distributed
     #: `backend <https://pytorch.org/docs/stable/distributed.html#backends>`_.
     #: Defaults to ``nccl``.
