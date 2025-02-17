@@ -164,10 +164,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # RUN wget -q -O openmpi-$OPENMPI_VERSION.tar.gz $OPENMPI_URL && tar xzf openmpi-$OPENMPI_VERSION.tar.gz \
 #     && cd openmpi-$OPENMPI_VERSION && ./configure --prefix=$OPENMPI_DIR && make install
 
-# Activate the virtualenv in the container
-# See here for more information:
-# https://pythonspeed.com/articles/multi-stage-docker-python/
-ENV PATH="/opt/venv/bin:$PATH"
+# # Activate the virtualenv in the container
+# # See here for more information:
+# # https://pythonspeed.com/articles/multi-stage-docker-python/
+# ENV PATH="/opt/venv/bin:$PATH"
 
 # # Singularity may change the $PATH, hence this env var may increase the chances that the venv
 # # is actually recognised
@@ -177,6 +177,9 @@ ENV PATH="/opt/venv/bin:$PATH" \
     # Prevent silent override of PYTHONPATH by Singularity/Apptainer
     PYTHONPATH="" \
     SSL_CERT_FILE="/etc/ssl/certs/ca-certificates.crt"
+
+# Make sure that the virualenv is reacheable also from login shell
+RUN echo 'PATH="/opt/venv/bin:$PATH"' >> /etc/profile
 
 RUN itwinai sanity-check --torch \
     --optional-deps deepspeed \
