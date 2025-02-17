@@ -1067,7 +1067,11 @@ class NonDistributedStrategy(TorchDistributedStrategy):
         return [tensor]
 
 
-class RayDDPStrategy(TorchDDPStrategy):
+class RayTorchDistributedStrategy(TorchDistributedStrategy):
+    """Base class for all ray distributed strategies."""
+
+
+class RayDDPStrategy(TorchDDPStrategy, RayTorchDistributedStrategy):
     """A distributed data-parallel (DDP) strategy using Ray Train for PyTorch training."""
 
     def __init__(self) -> None:
@@ -1148,7 +1152,7 @@ class RayDDPStrategy(TorchDDPStrategy):
         return self.ray_train.torch.prepare_data_loader(dataloader)
 
 
-class RayDeepSpeedStrategy(DeepSpeedStrategy):
+class RayDeepSpeedStrategy(DeepSpeedStrategy, RayTorchDistributedStrategy):
     """A distributed strategy using Ray and DeepSpeed for PyTorch training.
 
     Args:
@@ -1158,3 +1162,13 @@ class RayDeepSpeedStrategy(DeepSpeedStrategy):
     def __init__(self, backend: Literal["nccl", "gloo", "mpi"]) -> None:
         initialize_ray()
         super().__init__(backend=backend)
+
+
+class RayHorovodStrategy(HorovodStrategy, RayTorchDistributedStrategy):
+    """A distributed strategy using Ray and Horovod for PyTorch training."""
+
+    def __init__(self) -> None:
+        initialize_ray()
+        super().__init__()
+        # TODO: implement this
+        raise NotImplementedError()
