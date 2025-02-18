@@ -81,27 +81,28 @@ def detect_distributed_environment() -> ClusterEnvironment:
             local_world_size=os.getenv("OMPI_COMM_WORLD_LOCAL_SIZE"),
             global_world_size=os.getenv("OMPI_COMM_WORLD_SIZE"),
         )
-    elif ray_cluster_is_running():
-        import ray
+    # elif ray_cluster_is_running():
+    #     import ray
 
-        ray.init(address="auto")
-        try:
-            # Determine the local rank and local world size
-            current_node = ray.util.get_node_ip_address()
-            all_nodes = [node["NodeManagerAddress"] for node in ray.nodes()]
+    #     if not ray.is_initialized():
+    #         ray.init(address="auto")
+    #     try:
+    #         # Determine the local rank and local world size
+    #         current_node = ray.util.get_node_ip_address()
+    #         all_nodes = [node["NodeManagerAddress"] for node in ray.nodes()]
 
-            # Filter tasks on the same node
-            local_world_size = all_nodes.count(current_node)
-            local_rank = all_nodes[: all_nodes.index(current_node) + 1].count(current_node) - 1
-            cluster = ClusterEnvironment(
-                global_rank=ray.get_runtime_context().get_node_id(),
-                local_rank=local_rank,
-                local_world_size=local_world_size,
-                global_world_size=len(ray.nodes()),
-            )
-        finally:
-            ray.shutdown()
-        return cluster
+    #         # Filter tasks on the same node
+    #         local_world_size = all_nodes.count(current_node)
+    #         local_rank = all_nodes[: all_nodes.index(current_node) + 1].count(current_node) - 1
+    #         cluster = ClusterEnvironment(
+    #             global_rank=ray.get_runtime_context().get_node_id(),
+    #             local_rank=local_rank,
+    #             local_world_size=local_world_size,
+    #             global_world_size=len(ray.nodes()),
+    #         )
+    #     finally:
+    #         ray.shutdown()
+    #     return cluster
     elif os.getenv("SLURM_JOB_ID") is not None:
         # https://hpcc.umd.edu/hpcc/help/slurmenv.html
         return ClusterEnvironment(

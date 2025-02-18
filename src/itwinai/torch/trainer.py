@@ -1536,6 +1536,8 @@ class RayTorchTrainer(Trainer):
             for name, param in self.train_loop_config.items():
                 if not isinstance(param, dict):
                     continue
+                elif not "type" in param.keys():
+                    continue
 
                 # Convert specific keys to float if necessary
                 for key in ["lower", "upper", "mean", "std"]:

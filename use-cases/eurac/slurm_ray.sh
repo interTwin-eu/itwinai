@@ -22,8 +22,13 @@ ml Stages/2024 GCC/12.3.0 OpenMPI CUDA/12 MPI-settings/CUDA
 ml Python/3.11 HDF5 PnetCDF libaio mpi4py CMake cuDNN/8.9.5.29-CUDA-12
 
 # Set and activate virtual environment
-PYTHON_VENV="../../envAI_hdfml"
+PYTHON_VENV="../../envAI_juwels"
 source $PYTHON_VENV/bin/activate
+
+#######
+export GIT_PYTHON_REFRESH=quiet
+######
+
 
 # make sure CUDA devices are visible
 export CUDA_VISIBLE_DEVICES="0,1,2,3"
@@ -34,22 +39,18 @@ num_cpus=$SLURM_CPUS_PER_TASK
 # This tells Tune to not change the working directory to the trial directory
 # which makes relative paths accessible from inside a trial
 export RAY_CHDIR_TO_TRIAL_DIR=0
-
+export RAY_DEDUP_LOGS=0
 export RAY_USAGE_STATS_DISABLE=1
 
 #########   Set up Ray cluster   ########
 
 # Get the node names
 nodes=$(scontrol show hostnames "$SLURM_JOB_NODELIST")
-nodes_array=($nodes)
+mapfile -t nodes_array <<< "$nodes"
 
 # The head node will act as the central manager (head) of the Ray cluster.
 head_node=${nodes_array[0]}
 port=7639       # This port will be used by Ray to communicate with worker nodes.
-
-# This is so that the ray.init() command called from the hpo.py script knows which ports to connect to
-export ip_head="$head_node"i:"$port"
-export head_node_ip="$head_node"i
 
 echo "Starting HEAD at $head_node"
 # Start Ray on the head node.
@@ -67,7 +68,7 @@ echo HEAD node started.
 
 # Start Ray worker nodes
 # These nodes will connect to the head node and become part of the Ray cluster.
-worker_num=$((SLURM_JOB_NUM_NODES - 1))    # Total number of worker nodes (excluding the head node).
+worker_num=$((SLURM_JOB_NUM_NODES - 1))    # Total number of worker nodes (excl the head node)
 for ((i = 1; i <= worker_num; i++)); do
     node_i=${nodes_array[$i]}   # Get the current worker node hostname.
     echo "Starting WORKER $i at $node_i"
@@ -78,7 +79,7 @@ for ((i = 1; i <= worker_num; i++)); do
         ray start --address "$head_node"i:"$port" --redis-password='5241580000000000' \
         --num-cpus "$num_cpus" --num-gpus "$num_gpus" --block &
     
-    sleep 5 # Wait for a few seconds before starting the next worker to prevent race conditions.
+    sleep 5 # Wait before starting the next worker to prevent race conditions.
 done
 echo All Ray workers started.
 
@@ -88,7 +89,9 @@ echo All Ray workers started.
 # Run the Python script using Ray
 echo 'Starting HPO.'
 
-python hpo.py --num_samples 4 --max_iterations 2 --ngpus $num_gpus --ncpus $num_cpus --pipeline_name rnn_training_pipeline # NOTE: conv_training_pipeline has not been tested
+# HYDRA_FULL_ERROR=1 $PYTHON_VENV/bin/itwinai exec-pipeline +pipe_key=ray_training_pipeline
+
+python hpo.py --num_samples 4 --max_iterations 10 --ngpus $num_gpus --ncpus $num_cpus
 
 # Shutdown Ray after completion
 ray stop

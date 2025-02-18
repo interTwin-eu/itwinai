@@ -20,6 +20,8 @@ from ray import train, tune
 from itwinai.cli import exec_pipeline_with_compose
 from hydra import compose, initialize
 
+from ray.tune.schedulers import AsyncHyperBandScheduler
+
 
 def run_trial(config: Dict, data: Dict):
     """Execute a single trial using the given configuration (config).
@@ -40,8 +42,11 @@ def run_trial(config: Dict, data: Dict):
         cfg = compose(
             "config.yaml",
             overrides=[
-                f"batch_size={config['batch_size']}",
-                f"optim_lr={config['optim_lr']}",
+                f"batch={config['batch']}",
+                f"learning_rate={config['learning_rate']}",
+                f"hidden_size={config['hidden_size']}",
+                f"dropout={config['dropout']}",
+                f"interval_value={config['interval_value']}",
                 f"+pipe_key={pipe_key}",
             ],
         )
@@ -57,15 +62,16 @@ def run_hpo(args):
     """
     if not args.load_old_results:
         # Initialize Ray with cluster configuration from environment variables
-        ray.init(
-            address=os.environ["ip_head"],
-            _node_ip_address=os.environ["head_node_ip"],
-        )
+        ray.init()
 
         # Define the search space for hyperparameters
         search_space = {
-            "batch_size": tune.choice([64, 128, 256]),
-            "lr": tune.uniform(1e-5, 1e-3),
+            "batch": tune.qrandint(128, 1024, 128),
+            "learning_rate": tune.uniform(1e-4, 1e-2),
+            "hidden_size": tune.randint(16, 512),
+            "dropout": tune.choice([0.1, 0.2, 0.3, 0.4, 0.5]),
+            "seq_length": tune.qrandint(90, 365, 30),
+            "interval_value": tune.choice([3, 5, 10]),
         }
 
         # TuneConfig for configuring search algorithm and scheduler
@@ -73,11 +79,12 @@ def run_hpo(args):
             metric=args.metric,  # Metric to optimize (loss by default)
             mode="min",  # Minimize the loss
             num_samples=args.num_samples,  # Number of trials to run
+            scheduler=AsyncHyperBandScheduler(max_t=args.max_iterations, grace_period=30, reduction_factor=4),
         )
 
         # Ray's RunConfig for experiment name and stopping criteria
         run_config = train.RunConfig(
-            name="Eurac-Ray-Experiment", stop={"training_iteration": args.max_iterations}
+            stop={"training_iteration": args.max_iterations}
         )
 
         # Determine GPU and CPU utilization per trial
@@ -129,8 +136,8 @@ def run_hpo(args):
     print(f"All result columns: {result_df.columns}")
 
     # Plot the results for all trials
-    plot_results(result_grid, metric=args.metric, filename="ray-loss-plot.png")
-    plot_results(result_grid, metric="train_loss", filename="ray-train_loss-plot.png")
+    # plot_results(result_grid, metric=args.metric, filename="ray-loss-plot.png")
+    # plot_results(result_grid, metric="train_loss", filename="ray-train_loss-plot.png")
 
 
 def plot_results(result_grid, metric="loss", filename="plot.png"):
