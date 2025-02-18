@@ -9,12 +9,12 @@
 #SBATCH --mail-type=ALL
 #SBATCH --output=job.out
 #SBATCH --error=job.err
-#SBATCH --time=00:05:00
+#SBATCH --time=00:30:00
 
 # Resources allocation
-#SBATCH --partition=develbooster
-#SBATCH --nodes=1
-#SBATCH --gpus-per-node=4
+#SBATCH --partition=booster
+#SBATCH --nodes=2
+#SBATCH --gpus-per-node=1
 #SBATCH --cpus-per-gpu=4
 #SBATCH --exclusive
 
@@ -94,7 +94,9 @@ elif [ "$DIST_MODE" == "deepspeed" ] ; then
   export MASTER_ADDR
   export MASTER_PORT=29500 
 
-  srun --cpu-bind=none --ntasks-per-node=$SLURM_GPUS_PER_NODE --cpus-per-task=$SLURM_CPUS_PER_GPU \
+  srun --cpu-bind=none --ntasks-per-node=$SLURM_GPUS_PER_NODE \
+    --cpus-per-task=$SLURM_CPUS_PER_GPU \
+    --ntasks=$(($SLURM_GPUS_PER_NODE * $SLURM_NNODES)) \
     $TRAINING_CMD
 
   # # Run with deepspeed launcher: set --ntasks-per-node=1
