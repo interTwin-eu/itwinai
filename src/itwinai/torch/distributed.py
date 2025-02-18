@@ -114,17 +114,6 @@ class TorchDistributedStrategy(DistributedStrategy):
         """Setup model, optimizer and scheduler for distributed."""
 
     @abc.abstractmethod
-    def reverse_distributed(
-        self,
-        model: nn.Module,
-        optimizer: Optimizer,
-        lr_scheduler: Optional[LRScheduler] = None,
-    ) -> Tuple[nn.Module, Optimizer, Optional[LRScheduler]]:
-        """Reverse the distributed method. Convenient for retrieving the original model,
-        optimizer, and lr scheduler.
-        """
-
-    @abc.abstractmethod
     def global_world_size(self) -> int:
         """Returns the total number of processes (global world size).
 
@@ -480,20 +469,6 @@ class TorchDDPStrategy(TorchDistributedStrategy):
 
         return dist_model, optimizer, lr_scheduler
 
-    def reverse_distributed(
-        self,
-        model: nn.Module,
-        optimizer: Optimizer,
-        lr_scheduler: Optional[LRScheduler] = None,
-    ) -> Tuple[nn.Module, Optimizer, Optional[LRScheduler]]:
-        """Undo DDP wrapping to get back the original model."""
-        model = (
-            model.module
-            if isinstance(model, torch.nn.parallel.DistributedDataParallel)
-            else model
-        )
-        return model, optimizer, lr_scheduler
-
     @check_initialized
     def global_world_size(self) -> int:
         """Returns the total number of processes (global world size).
@@ -675,19 +650,6 @@ class DeepSpeedStrategy(TorchDistributedStrategy):
             **init_kwargs,
         )
         return distrib_model, optimizer, lr_scheduler
-
-    def reverse_distributed(
-        self,
-        model: nn.Module,
-        optimizer: Optimizer,
-        lr_scheduler: Optional[LRScheduler] = None,
-    ) -> Tuple[nn.Module, Optimizer, Optional[LRScheduler]]:
-        """Undo DeepSpeed wrapping to get back the original model and optimizer."""
-        if hasattr(model, "module"):
-            model = model.module
-        if hasattr(model, "optimizer"):
-            optimizer = model.optimizer
-        return model, optimizer, lr_scheduler
 
     @check_initialized
     def global_world_size(self) -> int:
@@ -871,17 +833,6 @@ class HorovodStrategy(TorchDistributedStrategy):
         )
         return model, distOptimizer, lr_scheduler
 
-    def reverse_distributed(
-        self,
-        model: nn.Module,
-        optimizer: Optimizer,
-        lr_scheduler: Optional[LRScheduler] = None,
-    ) -> Tuple[nn.Module, Optimizer, Optional[LRScheduler]]:
-        """Undo Horovod wrapping to get back the original optimizer."""
-        if isinstance(optimizer, self.hvd.DistributedOptimizer):
-            optimizer = optimizer._optimizer
-        return model, optimizer, lr_scheduler
-
     def _broadcast_params(self, model: nn.Module, optimizer: optim.Optimizer) -> None:
         """Broadcasts variables from root rank to all other processes.
 
@@ -892,7 +843,7 @@ class HorovodStrategy(TorchDistributedStrategy):
                 across processes.
         """
         self.hvd.broadcast_parameters(model.state_dict(), root_rank=0)
-        self.hvd.broadcast_optimizer_state(optimizer, root_rank=-0)
+        self.hvd.broadcast_optimizer_state(optimizer, root_rank=0)
 
     @check_initialized
     def global_world_size(self) -> int:
@@ -1143,16 +1094,6 @@ class RayDDPStrategy(TorchDDPStrategy, RayTorchDistributedStrategy):
     ) -> Tuple[nn.Module, Optimizer, LRScheduler | None]:
         model = self.ray_train.torch.prepare_model(model)
 
-        return model, optimizer, lr_scheduler
-
-    def reverse_distributed(
-        self,
-        model: nn.Module,
-        optimizer: Optimizer,
-        lr_scheduler: Optional[LRScheduler] = None,
-    ) -> Tuple[nn.Module, Optimizer, Optional[LRScheduler]]:
-        """Undo Ray Train wrapping to get back the original model."""
-        model = model.module
         return model, optimizer, lr_scheduler
 
     @check_initialized
