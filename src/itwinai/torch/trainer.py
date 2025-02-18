@@ -13,6 +13,7 @@
 
 """Provides training logic for PyTorch models via Trainer classes."""
 
+import logging
 import os
 import sys
 import tempfile
@@ -55,6 +56,8 @@ from .ray import run_config, scaling_config, search_space, tune_config
 from .reproducibility import seed_worker, set_seed
 from .type import Batch, LrScheduler
 
+logging.basicConfig(level=logging.DEBUG)
+
 
 class TorchTrainer(Trainer, LogMixin):
     """Trainer class for torch training algorithms.
@@ -85,6 +88,15 @@ class TorchTrainer(Trainer, LogMixin):
             the profiler.
         profiling_warmup_epochs (int): length of the profiler warmup phase in terms of
             number of epochs.
+        ray_scaling_config (Dict[str, Any], optional): scaling config for Ray Trainer.
+            Defaults to None,
+        ray_tune_config (Dict[str, Any], optional): tune config for Ray Tuner.
+            Defaults to None.
+        ray_run_config (Dict[str, Any], optional): run config for Ray Trainer.
+            Defaults to None.
+        ray_search_space (Dict[str, Any], optional): search space for Ray Tuner.
+            Defaults to None.
+        from_checkpoint (str | Path, optional): path to checkpoint directory. Defaults to None.
     """
 
     # TODO:
@@ -201,27 +213,43 @@ class TorchTrainer(Trainer, LogMixin):
     def _detect_strategy(self, strategy: str) -> TorchDistributedStrategy:
         """If a Ray cluster is detected"""
 
+        logging.debug(f"Stragety was set to {strategy}")
+
         enough_resources = distributed_resources_available() or ray_cluster_is_running()
+        logging.debug(
+            f"Enough resources? {enough_resources} "
+            f"(distributed_resources_available: {distributed_resources_available()}) "
+            f"(ray_cluster_is_running: {ray_cluster_is_running()})"
+        )
 
         # NOTE: setting strategy to None prevents the trainer to run distribtued ML, regardless
         # of the availability of the resources.
         if strategy is None or not enough_resources:
-            print("WARNING: falling back to non-distributed strategy.")
+            logging.warning("falling back to non-distributed strategy.")
             strategy_obj = NonDistributedStrategy()
         elif strategy == "ddp":
             if ray_cluster_is_running():
                 # NOTE: the torch backend is passed in the Ray's torch config
                 strategy_obj = RayDDPStrategy()
+                logging.info(
+                    f"Ray cluster was detected, thus the Ray equvalent for {strategy} is used"
+                )
             else:
                 strategy_obj = TorchDDPStrategy(backend=self.config.dist_backend)
         elif strategy == "horovod":
             if ray_cluster_is_running():
                 strategy_obj = RayHorovodStrategy()
+                logging.info(
+                    f"Ray cluster was detected, thus the Ray equvalent for {strategy} is used"
+                )
             else:
                 strategy_obj = HorovodStrategy()
         elif strategy == "deepspeed":
             if ray_cluster_is_running():
                 strategy_obj = RayDeepSpeedStrategy(backend=self.config.dist_backend)
+                logging.info(
+                    f"Ray cluster was detected, thus the Ray equvalent for {strategy} is used"
+                )
             else:
                 strategy_obj = DeepSpeedStrategy(backend=self.config.dist_backend)
         else:
@@ -338,6 +366,11 @@ class TorchTrainer(Trainer, LogMixin):
         # Loss can be changed with a custom one here!
         self._loss_from_config()
 
+        # Save non-distributed copies of model, optim and lr scheduler
+        self.original_model = self.model
+        self.original_optimizer = self.optimizer
+        self.original_lr_scheduler = self.lr_scheduler
+
         # IMPORTANT: model, optimizer, and scheduler need to be distributed
         distribute_kwargs = self.get_default_distributed_kwargs()
 
@@ -363,6 +396,11 @@ class TorchTrainer(Trainer, LogMixin):
             self.epoch = state["epoch"]
             self.best_validation_loss = state["best_validation_loss"]
             self.torch_rng = state["torch_rng"]
+
+            # Save non-distributed copies
+            self.original_model = self.model
+            self.original_optimizer = self.optimizer
+            self.original_lr_scheduler = self.lr_scheduler
 
     def create_dataloaders(
         self,
@@ -640,9 +678,9 @@ class TorchTrainer(Trainer, LogMixin):
         # optimizer = self.optimizer.state_dict()
         # lr_scheduler = self.lr_scheduler.state_dict() if self.lr_scheduler else None
         # TODO: check un-distributed model and optimizer before saving them
-        model, optimizer, lr_scheduler = self.strategy.reverse_distributed(
-            self.model, self.optimizer, self.lr_scheduler
-        )
+        model = self.original_model
+        optimizer = self.original_optimizer
+        lr_scheduler = self.original_lr_scheduler
 
         ckpt_dir = Path(checkpoints_root or self.checkpoints_location) / name
         ckpt_dir.mkdir(parents=True, exist_ok=True)
