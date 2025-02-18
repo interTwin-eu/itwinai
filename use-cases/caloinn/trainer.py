@@ -6,6 +6,7 @@ from typing import Any, Dict, Literal, Optional, Tuple, Union
 import torch
 import torch.distributions as dist
 import torch.optim as optim
+import torch.nn as nn
 import numpy as np
 import math
 
@@ -16,7 +17,9 @@ from model import CINN
 from itwinai.loggers import EpochTimeTracker, Logger
 from itwinai.torch.config import TrainingConfiguration
 from itwinai.torch.trainer import TorchTrainer
+from itwinai.torch.inference import TorchPredictor
 #from ..src.itwinai.type import Batch, LrScheduler, Metric
+from itwinai.serialization import ModelLoader
 
 
 class CaloChallengeTrainer(TorchTrainer):
@@ -48,15 +51,11 @@ class CaloChallengeTrainer(TorchTrainer):
             config = TrainingConfiguration(**config)
 
         self.config = config
-        print(self.config)
-        print(type(self.config))
-        print(self.config.use_norm)
         self.num_epochs = num_epochs
         self.checkpoints_location = checkpoint_path
         os.makedirs(os.path.dirname(checkpoint_path), exist_ok=True)
 
     def log_prob_loss(self, x, c):
-        print("IN LOSS")
         z, log_jac_det = self.model.forward(x, c, rev=False)
         log_prob = - 0.5*torch.sum(z**2, 1) + log_jac_det - z.shape[1]/2 * math.log(2*math.pi)
         return -torch.mean(log_prob)
@@ -66,21 +65,15 @@ class CaloChallengeTrainer(TorchTrainer):
         log_prob = - 0.5*torch.sum(z**2, 1) + log_jac_det - z.shape[1]/2 * math.log(2*math.pi)
         kl_loss = sum(layer.KL() for layer in self.model.bayesian_layers)
         return -torch.mean(log_prob) + kl_loss / z.shape[0] 
-    
-    def test_loss(self, x, c):
-        return 10
         
     def create_model_loss_optimizer(self) -> None:
 
-        print("next(itertools.islice(self.train_dataloader, 0, None))[0].shape[1] ", next(itertools.islice(self.train_dataloader, 0, None))[0].shape[1])
         self.model = CINN(next(itertools.islice(self.train_dataloader, 0, None))[0].shape[1], self.config)
-        
 
         if self.model.bayesian:
             self.loss = self.log_prob_kl_loss
         else:
             self.loss = self.log_prob_loss
-        #self.loss = self.test_loss
 
         # TODO: include other option for optimizer and scheduler from config
         # TODO: change eps, seems the double naming happened
@@ -118,6 +111,7 @@ class CaloChallengeTrainer(TorchTrainer):
             Tuple[Loss, Dict[str, Any]]: batch loss and dictionary of metric
             values with the same structure of ``self.metrics``.
         """
+        print("IN TRAINING STEP")
         x, c = batch
         x, c = x.to(self.device), c.to(self.device)
 
@@ -125,6 +119,15 @@ class CaloChallengeTrainer(TorchTrainer):
         loss = self.loss(x, c)
         loss.backward()
         self.optimizer.step()
+        self.lr_scheduler.step()
+        
+        self.log(
+            self.lr_scheduler.optimizer.param_groups[0]['lr'], 
+            identifier="lr", 
+            kind="metric", 
+            step=self.train_glob_step,
+            batch_idx=batch_idx
+        )
 
         # Log metrics
         self.log(
@@ -135,16 +138,82 @@ class CaloChallengeTrainer(TorchTrainer):
             batch_idx=batch_idx,
         )
         metrics: Dict[str, Any] = self.compute_metrics(
-            true=None,#y,
-            pred=None,#pred_y,
+            true=None,#x,
+            pred=None,#c,
             logger_step=self.train_glob_step,
             batch_idx=batch_idx,
             stage="train",
         )
         return loss, metrics 
+    
+    def validation_step(
+        self, batch, batch_idx: int
+    ) -> Tuple[torch.Tensor, Dict[str, Any]]:
+        """Perform a single optimization step using a batch sampled from the
+        validation dataset.
 
+        Args:
+            batch (Batch): batch sampled by a dataloader.
+            batch_idx (int): batch index in the dataloader.
+
+        Returns:
+            Tuple[Loss, Dict[str, Any]]: batch loss and dictionary of metric
+            values with the same structure of ``self.metrics``.
+        """
+        x, c = batch
+        x, c = x.to(self.device), c.to(self.device)
+        with torch.no_grad():
+            loss: torch.Tensor = self.loss(x, c)
+        self.log(
+            item=loss.item(),
+            identifier="validation_loss",
+            kind="metric",
+            step=self.validation_glob_step,
+            batch_idx=batch_idx,
+        )
+        metrics: Dict[str, Any] = self.compute_metrics(
+            true=None,#y,
+            pred=None,#pred_y,
+            logger_step=self.validation_glob_step,
+            batch_idx=batch_idx,
+            stage="validation",
+        )
+        return loss, metrics
     
-    
-            
-            
+
+class CaloChallengePredictor(TorchPredictor):
+    def __init__(
+        self,
+        model: Union[nn.Module, ModelLoader],
+        config: Union[Dict, TrainingConfiguration] | None = None,
+        test_dataloader_class: str = "torch.utils.data.DataLoader",
+        test_dataloader_kwargs: Optional[Dict] = None,
+        name: str = None
+    ) -> None:
+        super().__init__(
+            model=model, 
+            test_dataloader_class=test_dataloader_class,
+            test_dataloader_kwargs=test_dataloader_kwargs,
+            name=name
+            )
+        self.save_parameters(**self.locals2params(locals()))
+        self.num_samples_to_generate = self.config.num_samples_to_generate
+        self.config = config
+
+    def execute(self,
+        test_dataset,
+        model,
+        config
+    ) -> None:
+        if model is not None:
+            # Overrides existing "internal" model
+            self.model = model
+
+        test_dataloader = self.test_dataloader_class(
+            test_dataset, **self.test_dataloader_kwargs
+        )
+
+        self.model.generate()
+
+
         

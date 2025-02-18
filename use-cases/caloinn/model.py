@@ -2,10 +2,14 @@ import math
 import numpy as np
 import torch
 import torch.nn as nn
+import torch.distributions as dist
 import FrEIA.framework as ff
 import FrEIA.modules as fm
 
 from src.vblinear import VBLinear
+
+from src.XMLHandler import XMLHandler
+import h5py
 
 from src.spline_blocks import CubicSplineBlock, RationalQuadraticSplineBlock
 from src.made import MADE
@@ -102,6 +106,11 @@ class LogTransformation(fm.InvertibleModule):
     def output_dims(self, input_dims):
         return input_dims
 
+class LogUniform(dist.TransformedDistribution):
+    def __init__(self, lb, ub):
+        super(LogUniform, self).__init__(dist.Uniform(torch.log(lb), torch.log(ub)),
+                                            dist.ExpTransform())
+
 class CINN(nn.Module):
     """ cINN model """
 
@@ -117,8 +126,6 @@ class CINN(nn.Module):
     
         self.num_dim = data_dim
         self.config = config
-        print("in model")
-        print(self.config)
 
         self.norm_m = None
         self.use_norm = self.config.use_norm and not self.config.use_extra_dim
@@ -175,9 +182,6 @@ class CINN(nn.Module):
             name = "inp_log"
         ))
         CouplingBlock, block_kwargs = self.get_coupling_block()
-        print("CouplingBlock, block_kwargs")
-        print([nodes[-1].out0], CouplingBlock, block_kwargs)
-        
 
         for i in range(self.config.n_blocks or 10):
             if self.config.norm or True and i!=0:
@@ -268,11 +272,7 @@ class CINN(nn.Module):
                 else:
                     layer_class.append(nn.Linear)
                 layer_args.append(dicts)
-        print("+++++++++++++++++++++++")
-        print("in module")
-        print(self.config)
-        print(self.config.dropout)
-        print(self.config.dropout or 0.0)
+
         def func(x_in, x_out):
             subnet = Subnet(
                     self.config.layers_per_block or 3,
@@ -316,7 +316,164 @@ class CINN(nn.Module):
             c_norm = c
         if self.pre_subnet:
             c_norm = self.pre_subnet(c_norm)
-        print("IN FORWARD")
-        print(x.shape, x.float())
-        print(c_norm.shape, c_norm.float())
         return self.model.forward(x.float(), c_norm.float(), rev=rev, jac=jac)
+    
+    def generate_Einc_ds1(self, energy=None, sample_multiplier=1000):
+        """ generate the incident energy distribution of CaloChallenge ds1 
+			sample_multiplier controls how many samples are generated: 10* sample_multiplier for low energies,
+			and 5, 3, 2, 1 times sample multiplier for the highest energies
+		
+        """
+        ret = np.logspace(8,18,11, base=2)
+        ret = np.tile(ret, 10)
+        ret = np.array([*ret, *np.tile(2.**19, 5), *np.tile(2.**20, 3), *np.tile(2.**21, 2), *np.tile(2.**22, 1)])
+        ret = np.tile(ret, sample_multiplier)
+        if energy is not None:
+            ret = ret[ret==energy]
+        np.random.shuffle(ret)
+        return ret 
+    
+    def unnormalize_layers(self, x, c, layer_boundaries, eps=1.e-10):
+        """Reverses the effect of the normalize_layers function"""
+        
+        # Here we should not use clone, since it might result
+        # in a memory leak, if this functions is used on tensors
+        # with gradients. Instead, we use a different output tensor
+        # to prevent inplace operations.
+        output = np.zeros_like(x, dtype=np.float64)
+        x = x.astype(np.float64)
+        
+        # Get the number of layers
+        number_of_layers = len(layer_boundaries) - 1
+
+        # Split up the conditions
+        incident_energy = c[..., [0]]
+        extra_dims = x[..., -number_of_layers:]
+        extra_dims[:, (-number_of_layers+1):] = np.clip(extra_dims[:, (-number_of_layers+1):], a_min=0., a_max=1.)   #clipping 
+        x = x[:, :-number_of_layers]
+        
+        layer_energies = []
+        en_tot = np.multiply(incident_energy.flatten(), extra_dims[:,0])
+        cum_sum = np.zeros_like(en_tot, dtype=np.float64)
+        for i in range(extra_dims.shape[-1]-1):
+            ens = (en_tot - cum_sum)*extra_dims[:,i+1]
+            layer_energies.append(ens)
+            cum_sum += ens
+
+        layer_energies.append((en_tot - cum_sum))
+        layer_energies = np.vstack(layer_energies).T
+        # Normalize each layer and multiply it with its original energy
+        for layer_index, (layer_start, layer_end) in enumerate(zip(layer_boundaries[:-1], layer_boundaries[1:])):
+            output[..., layer_start:layer_end] = x[..., layer_start:layer_end] * layer_energies[..., [layer_index]]  / \
+                                                (np.sum(x[..., layer_start:layer_end], axis=1, keepdims=True) + eps)
+        return output
+    
+    def postprocess(self, x, c, layer_boundaries, quantiles):
+        """Reverses the effect of the preprocess funtion"""
+    
+        # Input sanity checks
+        assert len(x) == len(c)
+        assert len(x.shape) == 2
+        assert len(x.shape) == 2
+        
+        # Makes sure, that the original set is not modified inplace
+        #x = np.copy(x)
+        #c = np.copy(c)
+
+        # Set all energies smaller than a threshold to 0. Also prevents negative energies that might occur due to the alpha parameter in
+        # the logit preprocessing
+        x[x < quantiles] = 0.0
+
+        x = self.unnormalize_layers(x, c, layer_boundaries)
+
+        # Create a new dict 'data' for the output
+        data = {}
+        data["energy"] = c[..., [0]]
+        for layer_index, (layer_start, layer_end) in enumerate(zip(layer_boundaries[:-1], layer_boundaries[1:])):
+            data[f"layer_{layer_index}"] = x[..., layer_start:layer_end]
+
+        return data
+    
+    def get_energy_and_sorted_layers(self, data):
+        """returns the energy and the sorted layers from the data dict"""
+        
+        # Get the incident energies
+        energy = data["energy"]
+
+        # Get the number of layers layers from the keys of the data array
+        number_of_layers = len(data)-1
+        
+        # Create a container for the layers
+        layers = []
+
+        # Append the layers such that they are sorted.
+        for layer_index in range(number_of_layers):
+            layer = f"layer_{layer_index}"
+            
+            layers.append(data[layer])
+               
+        return energy, layers
+
+    def save_data(self, data, filename):
+        """Saves the data with the same format as dataset 1 from the calo challenge"""
+        
+        # extract the needed data
+        incident_energies, layers = self.get_energy_and_sorted_layers(data)
+        
+        # renormalize the energies
+        incident_energies *= 1.e3
+        
+        # concatenate the layers and renormalize them, too           
+        showers = np.concatenate(layers, axis=1) * 1.e3
+                
+        save_file = h5py.File(filename, 'w')
+        save_file.create_dataset('incident_energies', data=incident_energies)
+        save_file.create_dataset('showers', data=showers)
+        save_file.close() 
+    
+    def generate(self, num_samples=1000, batch_size = 500):
+        self.model.eval()
+        # Create a XML_handler to extract the layer boundaries. (Geometric setup is stored in the XML file)
+        dataset_to_particle_type = {"dataset_1_photons" : "photon",
+                                    "dataset_1_pions" : "pion",
+                                    "dataset_2" : "electron",
+                                    "dataset_3" : "electron"}
+        if self.config.dataset_type not in dataset_to_particle_type.keys():
+            print("WARNING! Dataset type is invalid " "Loading dataset 1 photon")
+            self.dataset_type = "dataset_1_photons"
+        else:
+            self.dataset_type = self.config.dataset_type
+
+        xml_handler = XMLHandler(particle_name=dataset_to_particle_type[self.dataset_type], 
+                                 filename="./calochallenge_binning/binning_" + self.dataset_type + ".xml")
+        self.layer_boundaries = np.unique(xml_handler.GetBinEdges())
+
+        with torch.no_grad():
+            if '2' in self.config.dataset_type:
+                logunif = LogUniform(torch.tensor(1e3), torch.tensor(1e6))
+                energies = logunif.sample((num_samples,1))/1e3
+            else:
+                energies = (torch.tensor(self.generate_Einc_ds1(energy=self.single_energy or None, sample_multiplier=1000), dtype=torch.float)/1e3).reshape(-1, 1)
+            samples = torch.zeros((energies.shape[0],1,self.num_dim))
+            num_samples = energies.shape[0]
+            for batch in range((num_samples+batch_size-1)//batch_size):
+                    start = batch_size*batch
+                    stop = min(batch_size*(batch+1), num_samples)
+                    energies_l = energies[start:stop].to(self.device)
+                    samples[start:stop] = self.model.sample(1, energies_l)
+            samples = samples[:,0,...].cpu().numpy()
+            energies = energies.cpu().numpy()
+        samples -= self.config.width_noise or 1e-7
+        data = self.postprocess(
+                samples,
+                energies,
+                layer_boundaries=self.layer_boundaries,
+                threshold=self.config.width_noise or 1e-7,
+                quantiles=torch.tensor(self.config.width_noise or 1e-7).numpy(),
+            )
+        self.save_data(
+            data,
+            filename = self.config.tosave_path or "samples.hdf5"
+        )
+
+        return data

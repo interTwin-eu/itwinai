@@ -1,5 +1,10 @@
 downloaded_hdf5_location: calochallenge_data/
 dataset_type: "dataset_1_pions"
+checkpoint_path: checkpoints/
+epochs: 3
+strategy: ddp
+batch_size: 512
+inference_model_mlflow_uri: checkpoints/best_model.pth
 
 dataloading_step:
   class_path: data.CaloChallengeDownloader
@@ -50,11 +55,40 @@ training_pipeline:
             layer_act: nn.SiLU
             prior_prec: 5000
             std_init: -15.0
-            batch_size: 512
+            batch_size: ${batch_size}
             eps: 1.0e-10
 
             max_lr: 1.e-5
             optim_lr: 1.e-6
-          num_epochs: 5
+          num_epochs: ${epochs}
+          checkpoint_path: ${checkpoint_path}
+          checkpoint_every: 5
+          validation_every: 1
+          strategy: ${strategy}
+          logger:
+            class_path: itwinai.loggers.LoggersCollection
+            init_args:
+              loggers:
+                - class_path: itwinai.loggers.ConsoleLogger
+                  init_args:
+                    log_freq: 1
+                - class_path: itwinai.loggers.MLFlowLogger
+                  init_args:
+                    experiment_name: Calorimeter simulation (CaloINN) ddp strategy
+                    log_freq: batch 
+      inference_step:
+        class_path: trainer.CaloChallengePredictor
+        init_args:
+          model:
+            class_path: itwinai.torch.inference.TorchModelLoader
+            init_args:
+              model_uri: ${inference_model_mlflow_uri}
+          test_dataloader_kwargs:
+            batch_size: ${batch_size}
+          config:
+            single_energy: null
+            num_samples_to_generate: 10000
+
+
           
           

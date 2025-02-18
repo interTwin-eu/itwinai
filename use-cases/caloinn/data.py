@@ -124,8 +124,6 @@ class CalochallengeDataset(Dataset):
         if self.fixed_noise and self.noise:
             noise = self.noise_distribution.sample(self.x.shape)*self.width_noise
             self.x += noise.reshape(self.x.shape)
-        print("IN DATALOADER")
-        print(self.x, self.cond)
 
     def __len__(self):
         return self.x.shape[0]
