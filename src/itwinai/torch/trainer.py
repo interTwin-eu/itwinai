@@ -27,6 +27,7 @@ import torch.distributed as dist
 import torch.nn as nn
 import torch.optim as optim
 import torchvision
+import yaml
 from torch.nn.parallel import DistributedDataParallel as DDP
 from torch.optim.optimizer import Optimizer
 from torch.utils.data import DataLoader, Dataset, Sampler
@@ -142,6 +143,7 @@ class TorchTrainer(Trainer, LogMixin):
         ray_tune_config: Dict[str, Any] | None = None,
         ray_run_config: Dict[str, Any] | None = None,
         ray_search_space: Dict[str, Any] | None = None,
+        from_checkpoint: str | Path | None = None,
     ) -> None:
         super().__init__(name)
         self.save_parameters(**self.locals2params(locals()))
@@ -153,7 +155,6 @@ class TorchTrainer(Trainer, LogMixin):
 
         self.config = config
         self.epochs = epochs
-        self.model = model
         self.strategy = strategy
         self.test_every = test_every
         self.random_seed = random_seed
@@ -170,6 +171,15 @@ class TorchTrainer(Trainer, LogMixin):
         self.ray_tune_config = ray_tune_config
         self.ray_run_config = ray_run_config
         self.ray_search_space = ray_search_space
+        self.from_checkpoint = from_checkpoint
+
+        # Initial training state -- can be resumed from a checkpoint
+        self.model = model
+        self.optimizer = None
+        self.lr_scheduler = None
+        self.torch_rng = None
+        self.best_validation_loss = float("inf")
+        self.epoch = 0
 
     @property
     def strategy(self) -> TorchDistributedStrategy:
@@ -306,15 +316,23 @@ class TorchTrainer(Trainer, LogMixin):
         # may be interested to override!  #
         ###################################
 
+        # Model, optimizer, and lr scheduler may have already been loaded from a checkpoint
+
         if self.model is None:
             raise ValueError(
-                "self.model is None! Either pass it to the constructor or "
+                "self.model is None! Either pass it to the constructor, load a checkpoint, or "
                 "override create_model_loss_optimizer method."
             )
+        if not self.optimizer:
+            # The optimizer was not loaded from a checkpoint. Create it here.
 
-        # Parse optimizer from training configuration
-        # Optimizer can be changed with a custom one here!
-        self._optimizer_from_config()
+            # Parse optimizer from training configuration
+            # Optimizer can be changed with a custom one here!
+            self._optimizer_from_config()
+
+        if not self.lr_scheduler:
+            # The lr scheduler was not loaded from a checkpoint. Create it here.
+            pass
 
         # Parse loss from training configuration
         # Loss can be changed with a custom one here!
@@ -327,6 +345,24 @@ class TorchTrainer(Trainer, LogMixin):
         (self.model, self.optimizer, self.lr_scheduler) = self.strategy.distributed(
             self.model, self.optimizer, self.lr_scheduler, **distribute_kwargs
         )
+
+    def _load_checkpoint(self) -> None:
+        """Reload model, optimizer, and scheduler from checkpoint, if available."""
+
+        if self.from_checkpoint:
+            self.from_checkpoint = Path(self.from_checkpoint)
+            state = torch.load(self.from_checkpoint / "state.pt")
+            model = torch.load(self.from_checkpoint / "model.pt")
+
+            # Override initial training state
+            # self.model = self.model.load_state_dict(model)
+            # self.optimizer.load_state_dict(state["optimizer"])
+            self.model = model
+            self.optimizer = state["optimizer"]
+            self.lr_scheduler = state["lr_scheduler"]
+            self.epoch = state["epoch"]
+            self.best_validation_loss = state["best_validation_loss"]
+            self.torch_rng = state["torch_rng"]
 
     def create_dataloaders(
         self,
@@ -447,9 +483,11 @@ class TorchTrainer(Trainer, LogMixin):
         validation_dataset: Optional[Dataset] = None,
         test_dataset: Optional[Dataset] = None,
     ) -> Tuple[Dataset, Dataset, Dataset, Any]:
+        self._load_checkpoint()
+
         self._override_config(config)
 
-        self.torch_rng = set_seed(self.random_seed)
+        self._set_seed()
         self._init_distributed_strategy()
         self._setup_metrics()
 
@@ -473,12 +511,13 @@ class TorchTrainer(Trainer, LogMixin):
         self.strategy.clean_up()
         return train_dataset, validation_dataset, test_dataset, self.model
 
+    def _set_seed(self):
+        # The PRNG could have been resumed from a checkpoint
+        self.torch_rng = set_seed(self.random_seed) if not self.torch_rng else self.torch_rng
+
     def _override_config(self, config: Dict) -> None:
-        """This is overriding self.config with a sample from the search space from the Ray
-        tuner.
-        """
-        # TODO: improve
-        self.config = TrainingConfiguration(self.config.model_dump().update(config))
+        """Overrid self.config with a sample from the search space from the Ray tuner."""
+        self.config = self.config.model_copy(update=config)
 
     def _set_epoch_dataloaders(self, epoch: int):
         """
@@ -571,17 +610,18 @@ class TorchTrainer(Trainer, LogMixin):
     def save_checkpoint(
         self,
         name: str,
-        loss: Optional[torch.Tensor] = None,
-        path: str | Path | None = None,
+        best_validation_loss: Optional[torch.Tensor] = None,
+        checkpoints_root: str | Path | None = None,
         force: bool = False,
     ) -> str | None:
         """Save training checkpoint.
 
         Args:
-            name (str): name of the checkpoint.
-            loss (Optional[torch.Tensor]): current loss (if available).
-            path (str | None): path for checkpoint. If None, uses
-                ``self.checkpoints_location``.
+            name (str): name of the checkpoint directory.
+            best_validation_loss (Optional[torch.Tensor]): best validation loss throughout
+                training so far (if available).
+            checkpoints_root (str | None): path for root checkpoints dir. If None, uses
+                ``self.checkpoints_location`` as base.
             force (bool): force checkpointign now.
 
         Returns:
@@ -596,47 +636,43 @@ class TorchTrainer(Trainer, LogMixin):
             # Do nothing and return
             return
 
-        state = dict(
-            epoch=self.epoch,
-            loss=loss,
-            optimizer=self.optimizer.state_dict(),
-            model=self.model.state_dict(),
-            lr_scheduler=self.lr_scheduler,
+        # model = self.model.state_dict()
+        # optimizer = self.optimizer.state_dict()
+        # lr_scheduler = self.lr_scheduler.state_dict() if self.lr_scheduler else None
+        # TODO: check un-distributed model and optimizer before saving them
+        model, optimizer, lr_scheduler = self.strategy.reverse_distributed(
+            self.model, self.optimizer, self.lr_scheduler
         )
-        ckpt_path = os.path.join(path or self.checkpoints_location, name)
-        torch.save(state, ckpt_path)
-        # print(f"Saved '{name}' checkpoint at {ckpt_path}")
 
-        # Save checkpoint to logger
-        self.log(ckpt_path, name, kind="artifact")
-        return ckpt_path
+        ckpt_dir = Path(checkpoints_root or self.checkpoints_location) / name
+        ckpt_dir.mkdir(parents=True, exist_ok=True)
 
-    # def load_checkpoint(self, name: str) -> None:
-    #     """Load state from a checkpoint.
+        # Save state (epoch, loss, optimizer, scheduler)
+        state = {
+            "epoch": self.epoch,
+            # This can store the best validation loss
+            "loss": best_validation_loss.item() if best_validation_loss is not None else None,
+            "optimizer": optimizer,
+            "lr_scheduler": lr_scheduler,
+            "torch_rng": self.torch_rng,
+        }
+        state_path = ckpt_dir / "state.pt"
+        torch.save(state, state_path)
 
-    #     Args:
-    #         name (str): name of the checkpoint to load, assuming it
-    #             is under ``self.checkpoints_location`` location.
-    #     """
-    #     ckpt_path = os.path.join(self.checkpoints_location, name)
-    #     state = torch.load(ckpt_path, map_location=self.device)
-    #     self.model.load_state_dict(state["model"])
-    #     self.optimizer.load_state_dict(state["optimizer"])
-    #     self.lr_scheduler = state["lr_scheduler"]
+        # Save PyTorch model separately
+        model_path = ckpt_dir / "model.pt"
+        torch.save(model, model_path)
 
-    # @classmethod
-    # def from_checkpoint(cls, path: str | Path) -> TorchTrainer:
-    #     """Load state from a checkpoint.
+        # Save Pydantic config as YAML
+        config_path = ckpt_dir / "config.yaml"
+        with config_path.open("w") as f:
+            yaml.safe_dump(self.config.model_dump(), f)
 
-    #     Args:
-    #         path (str|Path): name of the checkpoint to load, assuming it
-    #             is under ``self.checkpoints_location`` location.
-    #     """
-    #     ckpt_path = os.path.join(self.checkpoints_location, name)
-    #     state = torch.load(path, map_location="cpu")
-    #     self.model.load_state_dict(state["model"])
-    #     self.optimizer.load_state_dict(state["optimizer"])
-    #     self.lr_scheduler = state["lr_scheduler"]
+        # Log each file with an appropriate identifier
+        self.log(str(state_path), f"{name}_state", kind="artifact")
+        self.log(str(model_path), f"{name}_model", kind="artifact")
+        self.log(str(config_path), f"{name}_config", kind="artifact")
+        return str(ckpt_dir)
 
     def compute_metrics(
         self,
@@ -686,10 +722,9 @@ class TorchTrainer(Trainer, LogMixin):
             Tuple[Dataset, Dataset, Dataset, Any]: training dataset,
             validation dataset, test dataset, trained model.
         """
-        best_loss = float("inf")
 
         progress_bar = tqdm(
-            range(self.epochs),
+            range(self.epoch, self.epochs),
             desc="Epochs",
             disable=self.disable_tqdm or not self.strategy.is_main_worker,
         )
@@ -700,30 +735,29 @@ class TorchTrainer(Trainer, LogMixin):
             epoch_n = self.epoch + 1
             self.set_epoch()
             self.train_epoch()
+            val_loss = self.validation_epoch()
 
             # Periodic checkpointing
-            periodic_ckpt_path = self.save_checkpoint(name=f"epoch_{self.epoch}.pth")
-
-            val_loss = self.validation_epoch()
+            periodic_ckpt_path = self.save_checkpoint(name=f"epoch_{self.epoch}")
 
             # Checkpointing current best model
             best_ckpt_path = None
             worker_val_losses = self.strategy.gather(val_loss, dst_rank=0)
             if self.strategy.is_main_worker:
                 avg_loss = torch.mean(torch.stack(worker_val_losses)).detach().cpu()
-                if avg_loss < best_loss and self.checkpoint_every is not None:
-                    ckpt_name = "best_model.pth"
+                if avg_loss < self.best_validation_loss and self.checkpoint_every is not None:
+                    ckpt_name = "best_model"
                     best_ckpt_path = self.save_checkpoint(
                         name=ckpt_name,
-                        loss=avg_loss,
+                        best_validation_loss=avg_loss,
                         force=True,
                     )
-                    best_loss = avg_loss
+                    self.best_validation_loss = avg_loss
 
             # Report validation metrics to Ray (useful for tuning!)
             self.ray_report(
                 {"validation_loss_epoch": val_loss},
-                checkpoint_file=best_ckpt_path or periodic_ckpt_path,
+                checkpoint_dir=best_ckpt_path or periodic_ckpt_path,
             )
 
             if self.test_every and epoch_n % self.test_every == 0:
