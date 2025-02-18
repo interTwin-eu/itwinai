@@ -1,6 +1,8 @@
 import inspect
-from itwinai.slurm.utils import get_slurm_job_parser
+
 from itwinai.cli import generate_slurm
+from itwinai.slurm.utils import get_slurm_job_parser
+
 
 def test_cli_slurm_function_signature():
     """Test that function signature in cli.py matches argparser"""
