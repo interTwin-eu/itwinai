@@ -9,7 +9,11 @@
 
 """Tests for itwinai.utils module."""
 
-from itwinai.utils import SignatureInspector, flatten_dict
+from pathlib import Path
+
+import pytest
+
+from itwinai.utils import SignatureInspector, flatten_dict, make_config_paths_absolute
 
 
 def test_flatten_dict():
@@ -97,3 +101,31 @@ def test_signature_inspector():
     assert inspector.required_params == ("foo", "bar", "hello")
     assert inspector.min_params_num == 3
     assert inspector.max_params_num == SignatureInspector.INFTY
+
+
+@pytest.mark.parametrize(
+    "args,correct_updated_args",
+    [
+        (
+            ["--config-path=./relative/path", "--some-other-arg"],
+            [f"--config-path={Path('./relative/path').resolve()}", "--some-other-arg"],
+        ),
+        (
+            ["--config-path", "./relative/path", "--some-other-arg"],
+            ["--config-path", f"{Path('./relative/path').resolve()}", "--some-other-arg"],
+        ),
+        (
+            ["-cp=./relative/path", "--some-other-arg"],
+            [f"-cp={Path('./relative/path').resolve()}", "--some-other-arg"],
+        ),
+        (
+            ["-cp", "./relative/path", "--some-other-arg"],
+            ["-cp", f"{Path('./relative/path').resolve()}", "--some-other-arg"],
+        ),
+    ],
+)
+def test_make_config_paths_absolute(args, correct_updated_args):
+    """Test that make_config_paths_absolute correctly resolves absolute paths."""
+    updated_args = make_config_paths_absolute(args)
+
+    assert updated_args == correct_updated_args

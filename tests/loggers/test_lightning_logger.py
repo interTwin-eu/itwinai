@@ -21,6 +21,11 @@ from itwinai.torch.loggers import ItwinaiLogger as PyTorchLightningLogger
 
 def test_mock_experiment_log(lightning_mock_loggers):
     itwinai_logger_mock, lightning_logger = lightning_mock_loggers
+
+    # Check that the mock is preserving default class attributes
+    assert not itwinai_logger_mock.is_initialized
+    assert itwinai_logger_mock.worker_rank == 0
+
     lightning_logger.experiment.log(
         item={"test": 10}, identifier="test_dict", kind="dict", step=1, batch_idx=1
     )
@@ -109,13 +114,22 @@ def test_experiment_and_finalize(itwinai_logger, request):
     itwinai_logger_instance = request.getfixturevalue(itwinai_logger)
     lightning_logger = PyTorchLightningLogger(itwinai_logger=itwinai_logger_instance)
 
-    with patch.object(itwinai_logger_instance, "create_logger_context"):
-        assert not lightning_logger._initialized
+    def create_logger_side_effect(*args, **kwargs):
+        # Mimic the real method behavior of doing nothing if already initialized
+        if not itwinai_logger_instance.is_initialized:
+            itwinai_logger_instance.is_initialized = True
+        return
+
+    with patch.object(
+        itwinai_logger_instance, "create_logger_context", side_effect=create_logger_side_effect
+    ) as mock_create_context:
+        assert not lightning_logger.itwinai_logger.is_initialized
         assert lightning_logger.name is None
         assert lightning_logger.version is None
 
+        # Trigger the calls to `create_logger_context`
         experiment = lightning_logger.experiment
-        itwinai_logger_instance.create_logger_context.assert_called_once_with(rank=0)
+        mock_create_context.assert_called_once_with(rank=0)
         assert isinstance(experiment, Logger)
 
 

@@ -6,6 +6,7 @@
 # Credit:
 # - Matteo Bunino <matteo.bunino@cern.ch> - CERN
 # - Jarl Sondre Sæther <jarl.sondre.saether@cern.ch> - CERN
+# - Anna Lappe <anna.elisa.lappe@cern.ch> - CERN
 #
 # --------------------------------------------------------------------------------------
 # Command-line interface for the itwinai Python library.
@@ -18,246 +19,112 @@
 # NOTE: import libraries in the command's function, not here, as having them here will
 # slow down the CLI commands significantly.
 
+import os
+import sys
 from pathlib import Path
 from typing import List, Optional
 
+import hydra
 import typer
 from typing_extensions import Annotated
+
+from itwinai.utils import make_config_paths_absolute
 
 app = typer.Typer(pretty_exceptions_enable=False)
 
 
 @app.command()
-def generate_gpu_data_plots(
-    log_dir: str = "scalability-metrics/gpu-energy-data",
-    pattern: str = r".*\.csv$",
-    plot_dir: str = "plots/",
-    do_backup: bool = False,
-    backup_dir: str = "backup-scalability-metrics/",
-    experiment_name: Optional[str] = None,
-    run_name: Optional[str] = None,
-) -> None:
-    """Generate GPU energy and utilization plots showing the expenditure for each
-    combination of strategy and number of GPUs in Watt hours and total computing
-    percentage. Backs up the data used to create the plot if ``backup_dir`` is not None
+def generate_scalability_report(
+    log_dir: Annotated[
+        str,
+        typer.Option(help=("Which directory to search for the scalability metrics in.")),
+    ] = "scalability-metrics",
+    plot_dir: Annotated[
+        str, typer.Option(help=("Which directory to save the resulting plots in."))
+    ] = "plots",
+    do_backup: Annotated[
+        bool,
+        typer.Option(
+            help=(
+                "Whether to store a backup of the scalability metrics that were used"
+                " to make the report or not."
+            )
+        ),
+    ] = False,
+    backup_root_dir: Annotated[
+        str, typer.Option(help=("Which directory to store the backup files in."))
+    ] = "backup-scalability-metrics/",
+    experiment_name: Annotated[
+        Optional[str],
+        typer.Option(
+            help=(
+                "What to name the experiment in the backup directory."
+                " Will be automatically generated if left as None."
+            )
+        ),
+    ] = None,
+):
+    """Generates scalability reports for epoch time, GPU data, and communication data
+    based on log files in the specified directory. Optionally, backups of the reports
+    can be created.
 
-    Args:
-        log_dir: The directory where the csv logs are stored. Defaults to
-            ``utilization_logs``.
-        pattern: A regex pattern to recognize the file names in the 'log_dir' folder.
-            Defaults to ``dataframe_(?:\\w+)_(?:\\d+)\\.csv$``. Set it to 'None' to
-            make it None. In this case, it will match all files in the given folder.
-        plot_dir: The directory where the resulting plots should be saved. Defaults to
-            ``plots/``.
-        do_backup: Whether to backup the data used for making the plot or not.
-        backup_dir: The path to where the data used to produce the plot should be
-            saved.
-        experiment_name: The name of the experiment to be used when creating a backup
-            of the data used for the plot.
-        run_name: The name of the run to be used when creating a backup of the data
-            used for the plot.
-
+    This command processes log files stored in specific subdirectories under the given
+    `log_dir`. It generates plots and metrics for scalability analysis and saves them
+    in the `plot_dir`. If backups are enabled, the generated reports will also be
+    copied to a backup directory under `backup_root_dir`.
     """
+    import uuid
 
-    from itwinai.scalability import (
-        backup_scalability_metrics,
-        convert_matching_files_to_dataframe,
-    )
-    from itwinai.torch.monitoring.plotting import (
-        calculate_average_gpu_utilization,
-        calculate_total_energy_expenditure,
-        gpu_bar_plot,
+    from itwinai.scalability_report.reports import (
+        communication_data_report,
+        epoch_time_report,
+        gpu_data_report,
     )
 
     log_dir_path = Path(log_dir)
     if not log_dir_path.exists():
-        raise ValueError(
-            f"The provided log_dir, '{log_dir_path.resolve()}', does not exist."
-        )
-
+        raise ValueError(f"The provided log_dir, '{log_dir_path.resolve()}', does not exist.")
     plot_dir_path = Path(plot_dir)
-    if pattern.lower() == "none":
-        pattern = None
+    plot_dir_path.mkdir(exist_ok=True, parents=True)
 
-    gpu_data_df = convert_matching_files_to_dataframe(
-        pattern=pattern, log_dir=log_dir_path
-    )
-
-    energy_df = calculate_total_energy_expenditure(gpu_data_df=gpu_data_df)
-    utilization_df = calculate_average_gpu_utilization(gpu_data_df=gpu_data_df)
-
-    plot_dir_path.mkdir(parents=True, exist_ok=True)
-    energy_plot_path = plot_dir_path / "gpu_energy_plot.png"
-    utilization_plot_path = plot_dir_path / "utilization_plot.png"
-
-    energy_fig, _ = gpu_bar_plot(
-        data_df=energy_df,
-        plot_title="Energy Consumption by Strategy and Number of GPUs",
-        y_label="Energy Consumption (Wh)",
-        main_column="total_energy_wh",
-    )
-    utilization_fig, _ = gpu_bar_plot(
-        data_df=utilization_df,
-        plot_title="GPU Utilization by Strategy and Number of GPUs",
-        y_label="GPU Utilization (%)",
-        main_column="utilization",
-    )
-
-    energy_fig.savefig(energy_plot_path)
-    utilization_fig.savefig(utilization_plot_path)
-    print(f"Saved GPU energy plot at '{energy_plot_path.resolve()}'.")
-    print(f"Saved utilization plot at '{utilization_plot_path.resolve()}'.")
-
-    if not do_backup:
-        return
-
-    backup_scalability_metrics(
-        experiment_name=experiment_name,
-        run_name=run_name,
-        backup_dir=backup_dir,
-        metric_df=gpu_data_df,
-        filename="gpu_data.csv",
-    )
-
-
-@app.command()
-def generate_communication_plot(
-    log_dir: str = "scalability-metrics/communication-data",
-    pattern: str = r"(.+)_(\d+)_(\d+)\.csv$",
-    output_file: str = "plots/communication_plot.png",
-    do_backup: bool = False,
-    backup_dir: str = "backup-scalability-metrics/",
-    experiment_name: Optional[str] = None,
-    run_name: Optional[str] = None,
-) -> None:
-    """Generate stacked plot showing computation vs. communication fraction. Stores it
-    to output_file.
-
-    Args:
-        log_dir: The directory where the csv logs are stored. Defaults to
-            ``profiling_logs``.
-        pattern: A regex pattern to recognize the file names in the 'log_dir' folder.
-            Defaults to ``profile_(\\w+)_(\\d+)_(\\d+)\\.csv$``. Set it to 'None' to
-            make it None. In this case, it will match all files in the given folder.
-        output_file: The path to where the resulting plot should be saved. Defaults to
-            ``plots/comm_plot.png``.
-        do_backup: Whether to backup the data used for making the plot or not.
-        backup_dir: The path to where the data used to produce the plot should be
-            saved.
-        experiment_name: The name of the experiment to be used when creating a backup
-            of the data used for the plot.
-        run_name: The name of the run to be used when creating a backup of the data
-            used for the plot.
-    """
-
-    from itwinai.scalability import (
-        backup_scalability_metrics,
-        convert_matching_files_to_dataframe,
-    )
-    from itwinai.torch.profiling.communication_plot import (
-        communication_overhead_stacked_bar_plot,
-        get_comp_fraction_full_array,
-    )
-
-    log_dir_path = Path(log_dir)
-    if not log_dir_path.exists():
-        raise ValueError(
-            f"The provided directory, '{log_dir_path.resolve()}', does not exist."
-        )
-
-    if pattern.lower() == "none":
-        pattern = None
-
-    expected_columns = {
-        "strategy",
-        "num_gpus",
-        "global_rank",
-        "name",
-        "self_cuda_time_total",
+    report_dirs = {
+        "Epoch Time": {
+            "dir": log_dir_path / "epoch-time",
+            "func": epoch_time_report,
+        },
+        "GPU Data": {
+            "dir": log_dir_path / "gpu-energy-data",
+            "func": gpu_data_report,
+        },
+        "Communication Data": {
+            "dir": log_dir_path / "communication-data",
+            "func": communication_data_report,
+        },
     }
-    communication_df = convert_matching_files_to_dataframe(
-        log_dir=log_dir_path, pattern=pattern, expected_columns=expected_columns
-    )
-    values = get_comp_fraction_full_array(communication_df, print_table=True)
 
-    strategies = sorted(communication_df["strategy"].unique())
-    gpu_numbers = sorted(communication_df["num_gpus"].unique(), key=lambda x: int(x))
+    # Setting the backup directory from exp name and run name
+    experiment_name = experiment_name or f"exp_{uuid.uuid4().hex[:6]}"
+    backup_dir = Path(backup_root_dir) / experiment_name
 
-    fig, _ = communication_overhead_stacked_bar_plot(values, strategies, gpu_numbers)
+    # Creating reports from dictionary
+    for report_name, details in report_dirs.items():
+        report_dir = details["dir"]
+        report_func = details["func"]
 
-    output_path = Path(output_file)
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-
-    fig.savefig(output_path)
-    print(f"\nSaved computation vs. communication plot at '{output_path.resolve()}'.")
-
-    if not do_backup:
-        return
-
-    backup_scalability_metrics(
-        experiment_name=experiment_name,
-        run_name=run_name,
-        backup_dir=backup_dir,
-        metric_df=communication_df,
-        filename="communication_data.csv",
-    )
-
-
-@app.command()
-def generate_scalability_plot(
-    pattern: str = "None",
-    log_dir: str = "scalability-metrics/epoch-time",
-    do_backup: bool = False,
-    backup_dir: str = "backup-scalability-metrics/",
-    experiment_name: Optional[str] = None,
-    run_name: Optional[str] = None,
-) -> None:
-    """Creates two scalability plots from measured wall-clock times of an experiment
-    run and saves them to file. Uses pattern to filter out files if given, otherwise
-    it will try to use all files it finds in the given log directory. Will store all
-    the data that was used as a backup file if do_backup is provided.
-    """
-
-    from itwinai.scalability import (  # archive_data,
-        backup_scalability_metrics,
-        convert_matching_files_to_dataframe,
-        create_absolute_plot,
-        create_relative_plot,
-    )
-
-    log_dir_path = Path(log_dir)
-    if pattern.lower() == "none":
-        pattern = None
-
-    expected_columns = {"name", "nodes", "epoch_id", "time"}
-    combined_df = convert_matching_files_to_dataframe(
-        log_dir=log_dir_path, pattern=pattern, expected_columns=expected_columns
-    )
-    print("Merged CSV:")
-    print(combined_df)
-
-    avg_time_df = (
-        combined_df.drop(columns="epoch_id")
-        .groupby(["name", "nodes"])
-        .mean()
-        .reset_index()
-    )
-    print("\nAvg over name and nodes:")
-    print(avg_time_df.rename(columns=dict(time="avg(time)")))
-
-    create_absolute_plot(avg_time_df)
-    create_relative_plot(avg_time_df)
-
-    if not do_backup:
-        return
-
-    backup_scalability_metrics(
-        experiment_name=experiment_name,
-        run_name=run_name,
-        backup_dir=backup_dir,
-        metric_df=combined_df,
-        filename="epoch_time.csv",
-    )
+        if report_dir.exists():
+            print("#" * 8, f"{report_name} Report", "#" * 8)
+            report_func(
+                report_dir,
+                plot_dir=plot_dir_path,
+                backup_dir=backup_dir,
+                do_backup=do_backup,
+            )
+            print()
+        else:
+            print(
+                f"No report was created for {report_name} as '{report_dir.resolve()}' does "
+                f"not exist."
+            )
 
 
 @app.command()
@@ -269,9 +136,7 @@ def sanity_check(
         Optional[bool], typer.Option(help=("Check also itwinai.tensorflow modules."))
     ] = False,
     all: Annotated[Optional[bool], typer.Option(help=("Check all modules."))] = False,
-    optional_deps: List[str] = typer.Option(
-        None, help="List of optional dependencies."
-    ),
+    optional_deps: List[str] = typer.Option(None, help="List of optional dependencies."),
 ):
     """Run sanity checks on the installation of itwinai and its dependencies by trying
     to import itwinai modules. By default, only itwinai core modules (neither torch, nor
@@ -298,88 +163,167 @@ def sanity_check(
         run_sanity_check(optional_deps)
 
 
-@app.command()
+@app.command(context_settings={"allow_extra_args": True, "ignore_unknown_options": True})
 def exec_pipeline(
-    config: Annotated[
-        Path,
-        typer.Option(help="Path to the configuration file of the pipeline to execute."),
-    ],
-    pipe_key: Annotated[
+    # NOTE: The arguments below are not actually needed in this function, but they are here
+    # to replicate Hydra's help page in Typer, making it easier for the users to use it.
+    hydra_help: Annotated[bool, typer.Option(help="Show Hydra's help page")] = False,
+    version: Annotated[bool, typer.Option(help="Show Hydra's version and exit")] = False,
+    cfg: Annotated[
+        str, typer.Option("--cfg", "-c", help="Show config instead of running [job|hydra|all]")
+    ] = "",
+    resolve: Annotated[
+        bool,
+        typer.Option(
+            help="Used in conjunction with --cfg, resolve "
+            "config interpolations before printing."
+        ),
+    ] = False,
+    package: Annotated[
+        str,
+        typer.Option("--package", "-p", help="Config package to show"),
+    ] = "",
+    run: Annotated[
+        str,
+        typer.Option("--run", "-r", help="Run a job"),
+    ] = "",
+    multirun: Annotated[
         str,
         typer.Option(
-            help=(
-                "Key in the configuration file identifying "
-                "the pipeline object to execute."
-            )
+            "--multirun",
+            "-m",
+            help="Run multiple jobs with the configured launcher and sweeper",
         ),
-    ] = "pipeline",
-    steps: Annotated[
-        Optional[str],
+    ] = "",
+    shell_completion: Annotated[
+        str,
         typer.Option(
-            help=(
-                "Run only some steps of the pipeline. Accepted values are "
-                "indices, python slices (e.g., 0:3 or 2:10:100), and "
-                "string names of steps."
-            )
+            "--shell-completion",
+            "-sc",
+            help="Install or Uninstall shell completion",
         ),
-    ] = None,
-    print_config: Annotated[
-        bool, typer.Option(help=("Print config to be executed after overrides."))
-    ] = False,
-    overrides_list: Annotated[
+    ] = "",
+    config_path: Annotated[
+        str,
+        typer.Option(
+            "--config-path",
+            "-cp",
+            help=(
+                # NOTE: this docstring changed from Hydra's help page.
+                "Overrides the config_path specified in hydra.main(). "
+                "The config_path is absolute, or relative to the current workign directory. "
+                "Defaults to the current working directory."
+            ),
+        ),
+    ] = "",
+    config_name: Annotated[
+        str,
+        typer.Option(
+            "--config-name",
+            "-cn",
+            help="Overrides the config_name specified in hydra.main()",
+        ),
+    ] = "config",
+    config_dir: Annotated[
+        str,
+        typer.Option(
+            "--config-dir",
+            "-cd",
+            help="Adds an additional config dir to the config search path",
+        ),
+    ] = "",
+    experimental_rerun: Annotated[
+        str,
+        typer.Option(
+            "--experimental-rerun",
+            help="Rerun a job from a previous config pickle",
+        ),
+    ] = "",
+    info: Annotated[
+        str,
+        typer.Option(
+            "--info",
+            "-i",
+            help=(
+                "Print Hydra information "
+                "[all|config|defaults|defaults-tree|plugins|searchpath]"
+            ),
+        ),
+    ] = "",
+    overrides: Annotated[
         Optional[List[str]],
-        typer.Option(
-            "--override",
-            "-o",
+        typer.Argument(
             help=(
-                "Nested key to dynamically override elements in the "
-                "configuration file with the "
-                "corresponding new value, joined by '='. It is also possible "
-                "to index elements in lists using their list index. "
-                "Example: [...] "
-                "-o pipeline.init_args.trainer.init_args.lr=0.001 "
-                "-o pipeline.my_list.2.batch_size=64 "
+                "Any key=value arguments to override config values "
+                "(use dots for.nested=overrides), using the Hydra syntax."
             ),
         ),
     ] = None,
 ):
-    """Execute a pipeline from configuration file. Allows dynamic override of fields."""
-    # Add working directory to python path so that the interpreter is able
-    # to find the local python files imported from the pipeline file
-    import os
-    import re
-    import sys
+    """Execute a pipeline from configuration file using Hydra CLI. Allows dynamic override
+    of fields which can be appended as a list of overrides (e.g., batch_size=32).
+    By default, it will expect a configuration file called "config.yaml" in the
+    current working directory. To override the default behavior set --config-name and
+    --config-path.
+    By default, this command will execute the whole pipeline under "training_pipeline"
+    field in the configuration file. To execute a different pipeline you can override this
+    by passing "+pipe_key=your_pipeline" in the list of overrides, and to execute only a
+    subset of the steps, you can pass "+pipe_steps=[0,1]".
+    """
 
-    from .utils import str_to_slice
+    del sys.argv[0]
 
-    sys.path.append(os.path.dirname(config))
+    # Add current working directory to the module search path
+    # so hydra will find the objects defined in the config (usually paths relative to config)
     sys.path.append(os.getcwd())
 
-    # Parse and execute pipeline
-    from itwinai.parser import ConfigParser
+    # Process CLI arguments to handle paths
+    sys.argv = make_config_paths_absolute(sys.argv)
 
-    overrides_list = overrides_list if overrides_list is not None else []
-    overrides = {
-        k: v
-        for k, v in map(lambda x: (x.split("=")[0], x.split("=")[1]), overrides_list)
-    }
-    parser = ConfigParser(config=config, override_keys=overrides)
-    if print_config:
-        import json
+    exec_pipeline_with_compose()
 
-        print()
-        print("#=" * 15 + " Used configuration " + "#=" * 15)
-        print(json.dumps(parser.config, indent=2))
-        print("#=" * 50)
-        print()
 
-    pipeline = parser.parse_pipeline(pipeline_nested_key=pipe_key)
-    if steps:
-        if not re.match(r"\d+(:\d+)?(:\d+)?", steps):
-            print(f"Looking for step name '{steps}'")
-        else:
-            steps = str_to_slice(steps)
-        pipeline = pipeline[steps]
+@hydra.main(version_base=None, config_path=os.getcwd(), config_name="config")
+def exec_pipeline_with_compose(cfg):
+    """Hydra entry function. The hydra.main decorator parses a configuration file
+    (under config_path), which contains a pipeline definition, and passes it to this function
+    as an omegaconf.DictConfig object (called cfg). This function then instantiates and
+    executes the resulting pipeline object.
+    Filters steps if `pipe_steps` is provided, otherwise executes the entire pipeline.
+    For more information on hydra.main, please see
+    https://hydra.cc/docs/tutorials/basic/your_first_app/simple_cli/."""
+
+    from hydra.utils import instantiate
+    from omegaconf import OmegaConf, errors
+
+    pipe_steps = OmegaConf.select(cfg, "pipe_steps", default=None)
+    pipe_key = OmegaConf.select(cfg, "pipe_key", default="training_pipeline")
+
+    try:
+        cfg = OmegaConf.select(cfg, pipe_key, throw_on_missing=True)
+    except errors.MissingMandatoryValue as e:
+        e.add_note(
+            f"Could not find pipeline key {pipe_key}. Make sure that you provide the full "
+            "dotpath to your pipeline key."
+        )
+        raise e
+
+    if pipe_steps:
+        try:
+            cfg.steps = [cfg.steps[step] for step in pipe_steps]
+            print(f"Successfully selected steps {pipe_steps}")
+        except errors.ConfigKeyError as e:
+            e.add_note(
+                "Could not find all selected steps. Please ensure that all steps exist "
+                "and that you provided to the dotpath to them. "
+                f"Steps provided: {pipe_steps}."
+            )
+            raise e
+    else:
+        print("No steps selected. Executing the whole pipeline.")
+
+    # Instantiate and execute the pipeline
+    pipeline = instantiate(cfg, _convert_="all")
     pipeline.execute()
 
 
@@ -387,11 +331,15 @@ def exec_pipeline(
 def mlflow_ui(
     path: str = typer.Option("ml-logs/", help="Path to logs storage."),
     port: int = typer.Option(5000, help="Port on which the MLFlow UI is listening."),
+    host: str = typer.Option(
+        "127.0.0.1",
+        help="Which host to use. Switch to '0.0.0.0' to e.g. allow for port-forwarding.",
+    ),
 ):
     """Visualize Mlflow logs."""
     import subprocess
 
-    subprocess.run(f"mlflow ui --backend-store-uri {path} --port {port}".split())
+    subprocess.run(f"mlflow ui --backend-store-uri {path} --port {port} --host {host}".split())
 
 
 @app.command()

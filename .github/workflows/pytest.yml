@@ -1,38 +1,76 @@
----
-name: Unit and integration tests
+name: Testing with pytest
 
 on:
   pull_request:
     branches: [main, dev]
 
 jobs:
-  test-itwinai:
-    name: Test itwinai with pytest
+  test-torch:
+    name: Testing with pytest
     runs-on: ubuntu-latest
     steps:
+      - name: Maximize Disk Space
+        uses: easimon/maximize-build-space@v10
+        with:
+          # Reserve space on root for docker/dagger cache
+          build-mount-path: /docker
+          root-reserve-mb: 2048
+          overprovision-lvm: false
+          swap-size-mb: 4096
+          remove-dotnet: true
+          remove-android: true
+          remove-haskell: true
+          remove-codeql: true
+      
       - uses: actions/checkout@v4
 
-      - name: Install compilers for Horovod
+      - name: Move Docker directory
+        shell: bash
         run: |
-          sudo apt-get update &&
-          sudo apt-get install -y gcc-11 g++-11 &&
-          sudo apt-get install -y cmake &&
-          sudo apt-get install openmpi-bin  openmpi-common openmpi-doc libopenmpi-dev &&
-          gcc --version &&
-          cmake --version &&
-          mpirun --version
-        
-      - name: Make PyTorch virtualenv
-        shell: bash -l {0}
-        run: make torch-env-cpu
-
-      - name: Make Tensorflow virtualenv
-        shell: bash -l {0}
-        run: make tensorflow-env-cpu
+          sudo mv /var/lib/docker /docker/ &&
+          sudo ln -s /docker/docker /var/lib/docker &&
+          sudo systemctl restart docker
       
-      # NOTE, to change the name in which tests are run, set custom TORCH_ENV and TF_ENV env variables.
-      # Default environment names are ".venv-pytorch" and ".venv-tf"
-      - name: Run pytest for workflows
-        shell: bash -l {0}
-        run: .venv-pytorch/bin/pytest -v ./tests/ -m "not hpc"
+      # Run tests with pytest in a container
+      - name: Run Integration Test (development pipeline)
+        uses: dagger/dagger-for-github@v7
+        with:
+          workdir: ci
+          verb: call
+          args: >-
+            build-container
+            --context ..
+            --dockerfile ../env-files/torch/skinny.Dockerfile
+            test-local
+            --cmd "pytest,-v,--disable-warnings,-n,logical,/app/tests/,-m,not hpc and not tensorflow"
+            logs
+          cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
+          version: "latest"
 
+  # test-torch:
+  #   name: Testing with pytest
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v4
+
+  #     - name: Set up Python 3.11.9
+  #       uses: actions/setup-python@v5
+  #       with:
+  #         python-version: 3.11.9
+
+  #     - name: Make PyTorch virtualenv
+  #       shell: bash -l {0}
+  #       run: make torch-env-cpu
+      
+  #     # Comment this back in to also build tensorflow env
+  #     # - name: Make Tensorflow virtualenv
+  #     #   shell: bash -l {0}
+  #     #   run: make tensorflow-env-cpu
+
+  #     # NOTE, to change the name of the env in which tests are run, set custom TORCH_ENV
+  #     # and TF_ENV env variables. Default environment names are ".venv-pytorch" and 
+  #     # ".venv-tf"
+
+  #     - name: Run pytest for workflows
+  #       shell: bash -l {0}
+  #       run: .venv-pytorch/bin/pytest -v -n logical ./tests/ -m "not hpc and not tensorflow"

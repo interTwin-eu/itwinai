@@ -10,130 +10,210 @@
 # - Matteo Bunino <matteo.bunino@cern.ch> - CERN
 # --------------------------------------------------------------------------------------
 
+
 # General configuration
-rnn_surrogate_input: /p/scratch/intertwin/datasets/eurac/input/adg1km_eobs_preprocessed.zarr
-conv_surrogate_input: /p/scratch/intertwin/datasets/eurac/input/adg1km_eobs_original.zarr
-surrogate_model_output: /p/scratch/intertwin/datasets/eurac/model
-tmp_stats: /p/scratch/intertwin/datasets/eurac/stats
+experiment_name: "itwinai"
+experiment_run: "vwc_actevap"
 
-experiment: "drought use case lstm"
-run_name: "alps_test"
-epochs: 5
-random_seed: 1010
-lr: 0.001
-batch_size: 256
+work_dir: /p/scratch/intertwin/datasets/eurac/model
 
-target_names: ["vwc", "actevap"]
-strategy: ddp
+train_temporal_range: ["2016-01-01", "2018-12-31"]
+valid_temporal_range: ["2019-01-01", "2020-12-31"]
+test_temporal_range: ["2019-01-01", "2020-12-31"]
 
-rnn_training_pipeline:
-  class_path: itwinai.pipeline.Pipeline
-  init_args:
-    steps:
-      - class_path: data.RNNDatasetGetterAndSplitter
-        init_args:
-          surrogate_input: ${rnn_surrogate_input}
-          dynamic_names: ["precip", "pet", "temp"]
-          static_names: [ 'thetaS', 'thetaR', 'SoilThickness','RootingDepth', 'Swood','KsatVer', 'Sl', 'f', 'Kext']
-          target_names: ${target_names}
-          mask_names: ["mask_missing", "mask_lake"]
-          train_temporal_range: ["2016-01-01", "2018-12-31"] 
-          test_temporal_range: ["2019-01-01", "2020-12-31"] 
-      - class_path: data.RNNProcessor
-        init_args:
-          dataset: LSTMDataset
-      - class_path: trainer.RNNDistributedTrainer
-        init_args:
-          config:
-            experiment: ${run_name}
-            batch_size: ${batch_size}
-            lr: ${lr}
-            num_workers_dataloader: 1
-            temporal_subsampling: True
-            temporal_subset: [150, 150]
-            seq_length: 360
-            target_names: ${target_names}
-            dp_weights: ${surrogate_model_output}
-            distributed: True
-            lr_reduction_factor: 0.5
-            lr_reduction_patience: 10
-          model:
-            class_path: hython.models.cudnnLSTM.CuDNNLSTM
-            init_args:
-              hidden_size: 64
-              dynamic_input_size: 3
-              static_input_size: 9
-              output_size: 2
-              num_layers: 1
-              dropout: 0.0
-          strategy: ${strategy}
-          epochs: ${epochs}
-          random_seed: ${random_seed}
-          profiling_wait_epochs: 1
-          profiling_warmup_epochs: 1
-          logger:
-            class_path: itwinai.loggers.LoggersCollection
-            init_args:
-              loggers:
-                - class_path: itwinai.loggers.ConsoleLogger
-                  init_args:
-                    log_freq: 100
-                # - class_path: itwinai.loggers.MLFlowLogger
-                #   init_args:
-                #     experiment_name: ${experiment}
-                #     run_name: ${run_name}
-                #     log_freq: batch
-                #     savedir: /p/project1/intertwin/ferrario1/itwinai/use-cases/eurac/mllogs
-                    
-conv_training_pipeline:
-  class_path: itwinai.pipeline.Pipeline
-  init_args:
-    steps:
-      - class_path: data.ConvRNNDatasetGetterAndSplitter
-        init_args:
-          surrogate_input: ${conv_surrogate_input}
-          dynamic_names: ["precip", "pet", "temp"]
-          static_names: [ 'thetaS', 'RootingDepth', 'Swood','KsatVer', "Sl"]
-          target_names: [ "vwc","actevap"]
-          mask_names: ["mask_missing", "mask_lake"]
-          train_temporal_range: ["2016-01-01", "2018-12-31"] 
-          test_temporal_range: ["2019-01-01", "2020-12-31"] 
-      - class_path: data.ConvRNNProcessor
-        init_args:
-          dataset: CubeletsDataset
-          downsampling_train: 
-            class_path: hython.sampler.CubeletsDownsampler
-            init_args:
-              temporal_downsample_fraction: 0.8
-              spatial_downsample_fraction: 1
-          downsampling_test: 
-            class_path: hython.sampler.CubeletsDownsampler
-            init_args:
-              temporal_downsample_fraction: 0.8
-              spatial_downsample_fraction: 1
-      - class_path: trainer.ConvRNNDistributedTrainer
-        init_args:
-          config:
-            experiment: ${run_name}
-            batch_size: 32
-            lr_reduction_factor: 0.5
-            lr_reduction_patience: 10
-            lr: 0.001
-            temporal_subsampling: True
-            temporal_subset: 1
-            target_names:  [ "vwc","actevap"]
-            distributed: True
-          model:
-            class_path: hython.models.convLSTM.ConvLSTM
-            init_args:
-              input_dim: 8
-              hidden_dim: 24
-              output_dim: 2
-              kernel_size: [5, 5]
-              num_layers: 1
-              batch_first: True
-              bias: False
-              return_all_layers: False
-          strategy: ddp
-          epochs: ${epochs}
-          random_seed: ${random_seed}
+seed: 10 
+
+device: "cuda:0"
+
+# === Model ===
+
+model_file_name: model.pt
+
+model: cudalstm
+
+hidden_size: 136
+dropout: 0.4
+
+model_head_layer: regression # distr_normal
+model_head_activation: linear
+model_head_kwargs: null
+  
+# === Training ===
+
+strategy: ddp #null
+
+hython_trainer: rnntrainer
+
+loss_fn:
+  _target_: hython.losses.RMSELoss
+    
+# metric_fn:
+#   _target_: hython.metrics.MSEMetric
+
+metric_fn:
+  _target_: hython.metrics.MetricCollection
+  metrics:
+    - _target_: hython.metrics.MSEMetric
+    #- _target_: hython.metrics.KGEMetric
+    - _target_: hython.metrics.NSEMetric
+
+optimizer: adam
+
+lr_scheduler:
+  mode: min
+  factor: 0.5
+  patience: 10
+
+seq_length: 120
+
+learning_rate: 0.001
+
+batch: 256
+
+epochs: 30
+
+gradient_clip: null
+
+target_weights: even # null, even, or dict
+
+# which steps are used in the computation of the loss function
+predict_steps: 0 # all # (prediction: 0 = t ), ( forecasts: 1 = t+1, 2 = t + 2)
+
+# > Donwsampling < 
+
+# spatial downsampling
+train_downsampler: null 
+  # _target_: hython.sampler.downsampler.RegularIntervalDownsampler
+  # intervals: [3,3]
+  # origin: [0,0]
+
+valid_downsampler: null 
+  # _target_: hython.sampler.downsampler.RegularIntervalDownsampler
+  # intervals: [3,3]
+  # origin: [1,1]
+
+test_downsampler: null
+  # _target_: hython.sampler.downsampler.RegularIntervalDownsampler
+  # intervals: [3,3]
+  # origin: [2,2]
+
+
+# temporal downsampling
+temporal_downsampling: True
+temporal_subset: [200, 150]
+
+
+# === Data ===
+
+dataset: Wflow1d
+
+data_source:
+  file:
+    data_dir: /p/scratch/intertwin/datasets/eurac/input #!! change to your directory
+    data_file: adg1km_eobs_preprocessed.zarr
+  # s3:
+  #   url: https://eurac-eo.s3.amazonaws.com/INTERTWIN/SURROGATE_INPUT/adg1km_eobs_preprocessed.zarr/
+
+static_categorical_inputs:
+   - wflow_landuse
+   - wflow_soil
+
+static_inputs:
+  - thetaS
+  - thetaR
+  - KsatVer
+  - c
+  - f
+
+dynamic_inputs:
+  - precip
+  - pet
+  - temp
+  
+target_variables:
+  - vwc
+
+mask_variables:
+  - mask_missing
+  - mask_lake
+
+# Scaling
+
+scaling_variant: minmax
+scaling_use_cached: True
+
+# == Pipeline == 
+
+training_pipeline:
+  _target_: itwinai.pipeline.Pipeline
+  steps:
+    - _target_: data.RNNDatasetGetterAndPreprocessor
+      dynamic_inputs: ${dynamic_inputs}
+      static_inputs: ${static_inputs}
+      target_variables: ${target_variables}
+      mask_variables: ${mask_variables}
+      train_temporal_range: ${train_temporal_range}
+      valid_temporal_range: ${valid_temporal_range}
+      dataset: ${dataset}
+      data_source: ${data_source}
+      scaling_variant: ${scaling_variant}
+      scaling_use_cached: ${scaling_use_cached}
+      experiment_name: ${experiment_name}
+      experiment_run: ${experiment_run}
+      work_dir: ${work_dir}
+      train_downsampler: ${train_downsampler}
+      valid_downsampler: ${valid_downsampler}
+    - _target_: trainer.RNNDistributedTrainer
+      model: ${model}
+      config:
+        experiment: ${experiment_name}/${experiment_run}
+        experiment_name: ${experiment_name}
+        experiment_run: ${experiment_run}
+        work_dir: ${work_dir}
+        batch_size: ${batch}
+        learning_rate: ${learning_rate}
+        num_workers_dataloader: 1
+        hython_trainer: ${hython_trainer}
+        temporal_downsampling: ${temporal_downsampling}
+        temporal_subset: ${temporal_subset}
+        seq_length: ${seq_length}
+        target_variables: ${target_variables}
+        dynamic_inputs: ${dynamic_inputs}
+        static_inputs: ${static_inputs}
+
+        optimizer: ${optimizer}
+        lr_scheduler: ${lr_scheduler}
+        target_weights: ${target_weights}
+
+        # model config
+        model_file_name: ${model_file_name}
+        hidden_size: ${hidden_size}
+        dropout: ${dropout}
+
+        model_head_layer: ${model_head_layer}
+        model_head_activation: ${model_head_activation}
+        model_head_kwargs: ${model_head_kwargs}
+
+        loss_fn: ${loss_fn}
+        metric_fn: ${metric_fn}
+
+        gradient_clip: ${gradient_clip}
+
+        predict_steps: ${predict_steps}
+
+        strategy: ${strategy}
+        epochs: ${epochs}
+        random_seed: ${seed}
+        profiling_wait_epochs: 1
+        profiling_warmup_epochs: 1
+        logger:
+          _target_: itwinai.loggers.LoggersCollection
+          loggers:
+            - _target_: itwinai.loggers.ConsoleLogger
+              log_freq: 100
+          # - _target_: itwinai.loggers.MLFlowLogger
+          #   experiment_name: ${experiment_name}
+          #   run_name: ${experiment_run}
+          #   log_freq: batch
+          #   savedir: /p/project1/intertwin/ferrario1/itwinai/use-cases/eurac/mllogs
+

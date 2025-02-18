@@ -1,15 +1,3 @@
-# --------------------------------------------------------------------------------------
-# Part of the interTwin Project: https://www.intertwin.eu/
-#
-# Created by: Matteo Bunino
-#
-# Credit:
-# - Jarl Sondre Sæther <jarl.sondre.saether@cern.ch> - CERN
-# - Henry Mutegeki <henry.mutegeki@cern.ch> - CERN
-# - Iacopo Ferrario <iacopofederico.ferrario@eurac.edu> - EURAC
-# - Matteo Bunino <matteo.bunino@cern.ch> - CERN
-# --------------------------------------------------------------------------------------
-
 import os
 from pathlib import Path
 from timeit import default_timer
@@ -18,13 +6,12 @@ from typing import Any, Dict, Literal, Optional, Tuple, Union
 import pandas as pd
 import torch
 import torch.nn as nn
-import torch.optim as optim
-from hython.losses import RMSELoss
-from hython.metrics import MSEMetric
+from hydra.utils import instantiate
+from hython.models import get_model as get_hython_model
 from hython.sampler import SamplerBuilder
-from hython.trainer import ConvTrainer, RNNTrainer, RNNTrainParams
+from hython.trainer import CalTrainer, RNNTrainer
+from omegaconf import OmegaConf
 from ray import train
-from torch.optim.lr_scheduler import ReduceLROnPlateau
 from torch.utils.data import Dataset
 from tqdm.auto import tqdm
 
@@ -37,7 +24,6 @@ from itwinai.torch.distributed import (
     NonDistributedStrategy,
     TorchDDPStrategy,
 )
-from itwinai.torch.profiling.profiler import profile_torch_trainer
 from itwinai.torch.monitoring.monitoring import measure_gpu_utilization
 from itwinai.torch.trainer import TorchTrainer
 from itwinai.torch.type import Metric
@@ -75,8 +61,10 @@ class RNNDistributedTrainer(TorchTrainer):
         self,
         config: Union[Dict, TrainingConfiguration],
         epochs: int,
-        model: Optional[nn.Module] = None,
-        strategy: Optional[Literal["ddp", "deepspeed", "horovod"]] = "ddp",
+        model: Optional[Union[str, nn.Module]] = None,
+        strategy: Optional[
+            Literal["ddp", "deepspeed", "horovod"]
+        ] = "ddp",
         validation_every: Optional[int] = 1,
         test_every: Optional[int] = None,
         random_seed: Optional[int] = None,
@@ -104,6 +92,8 @@ class RNNDistributedTrainer(TorchTrainer):
         )
         self.save_parameters(**self.locals2params(locals()))
 
+        self.model_class = get_hython_model(self.model)
+
     @suppress_workers_print
     def execute(
         self,
@@ -111,43 +101,96 @@ class RNNDistributedTrainer(TorchTrainer):
         validation_dataset: Optional[Dataset] = None,
         test_dataset: Optional[Dataset] = None,
     ) -> Tuple[Dataset, Dataset, Dataset, Any]:
+        self.init_hython_trainer()
+
         return super().execute(train_dataset, validation_dataset, test_dataset)
 
+    def init_hython_trainer(self) -> None:
+        self.config.loss_fn = instantiate(
+            OmegaConf.create({"loss_fn": self.config.loss_fn})
+        )["loss_fn"]
+
+        self.config.metric_fn = instantiate(
+            OmegaConf.create({"metric_fn": self.config.metric_fn})
+        )["metric_fn"]
+
+        if self.config.hython_trainer == "rnntrainer":
+            self.model = self.model_class(
+                hidden_size=self.config.hidden_size,
+                dynamic_input_size=len(self.config.dynamic_inputs),
+                static_input_size=len(self.config.static_inputs),
+                output_size=len(self.config.target_variables),
+                dropout=self.config.dropout,
+                head_layer=self.config.model_head_layer,
+                head_activation=self.config.model_head_activation,
+                head_kwargs= self.config.model_head_kwargs if self.config.model_head_kwargs is not None else {}
+            )
+            self.hython_trainer = RNNTrainer(self.config)
+
+        elif self.config.hython_trainer == "caltrainer":
+            surrogate = get_hython_model(self.config.model_head)(
+                hidden_size=self.config.model_head_hidden_size,
+                dynamic_input_size=len(self.config.dynamic_inputs),
+                static_input_size=len(self.config.head_model_inputs),
+                output_size=len(self.config.target_variables),
+                dropout=self.config.model_head_dropout,
+                head_layer=self.config.model_head_layer,
+                head_activation=self.config.model_head_activation,
+                head_kwargs= self.config.model_head_kwargs if self.config.model_head_kwargs is not None else {}
+            )
+
+            model_pt = Path(self.config.work_dir) / self.config.model_head_dir / self.config.model_head_file
+
+            surrogate.load_state_dict(
+                torch.load(
+                   model_pt
+                )
+            )
+
+            transfer_nn = get_hython_model(self.config.model_transfer)(
+                self.config.head_model_inputs,
+                len(self.config.static_inputs),
+                self.config.mt_output_dim,
+                self.config.mt_hidden_dim,
+                self.config.mt_n_layers,
+            )
+
+            self.model = self.model_class(
+                transfernn=transfer_nn,
+                head_layer=surrogate,
+                freeze_head=self.config.freeze_head,
+                scale_head_input_parameter=self.config.scale_head_input_parameter,
+            )
+
+            self.hython_trainer = CalTrainer(self.config)
+
+        self.hython_trainer.init_trainer(self.model)
+
     def create_model_loss_optimizer(self) -> None:
-        self.optimizer = optim.Adam(self.model.parameters(), lr=self.config.lr)
-        self.lr_scheduler = ReduceLROnPlateau(
-            self.optimizer,
-            mode="min",
-            factor=self.config.lr_reduction_factor,
-            patience=self.config.lr_reduction_patience,
-        )
-
-        target_weights = {
-            t: 1 / len(self.config.target_names) for t in self.config.target_names
-        }
-        self.loss_fn = RMSELoss(target_weight=target_weights)
-        self.metric_fn = MSEMetric()
-
         distribute_kwargs = {}
         if isinstance(self.strategy, DeepSpeedStrategy):
             # Batch size definition is not optional for DeepSpeedStrategy!
             distribute_kwargs = {
-                "config_params": {"train_micro_batch_size_per_gpu": self.config.batch_size}
+                "config_params": {
+                    "train_micro_batch_size_per_gpu": self.config.batch_size
+                }
             }
         elif isinstance(self.strategy, TorchDDPStrategy):
             if "find_unused_parameters" not in self.config.model_fields:
                 self.config.find_unused_parameters = False
-            distribute_kwargs = {"find_unused_parameters": self.config.find_unused_parameters}
+            distribute_kwargs = {
+                "find_unused_parameters": self.config.find_unused_parameters
+            }
 
         self.model, self.optimizer, _ = self.strategy.distributed(
             model=self.model,
-            optimizer=self.optimizer,
-            lr_scheduler=self.lr_scheduler,
+            optimizer=self.hython_trainer.optimizer,
+            lr_scheduler=self.hython_trainer.lr_scheduler,
             **distribute_kwargs,
         )
 
     def set_epoch(self, epoch: int):
-        if self.profiler is not None and epoch > 0:
+        if self.profiler is not None:
             # We don't want to start stepping until after the first epoch
             self.profiler.step()
 
@@ -155,13 +198,14 @@ class RNNDistributedTrainer(TorchTrainer):
             self.train_loader.sampler.set_epoch(epoch)
             self.val_loader.sampler.set_epoch(epoch)
 
-    @profile_torch_trainer
     @measure_gpu_utilization
     def train(self):
-        """Override version of hython to support distributed strategy."""
+        """Override train_val version of hython to support distributed strategy."""
+
         # Tracking epoch times for scaling test
         if self.strategy.is_main_worker:
-            num_nodes = int(os.environ.get("SLURM_NNODES", "unk"))
+            num_nodes = os.environ.get("SLURM_NNODES", "unk")
+            series_name = os.environ.get("DIST_MODE", "unk") + "-torch"
             epoch_time_output_dir = Path("scalability-metrics/epoch-time")
             epoch_time_file_name = f"epochtime_{self.strategy.name}_{num_nodes}N.csv"
             epoch_time_output_path = epoch_time_output_dir / epoch_time_file_name
@@ -172,48 +216,29 @@ class RNNDistributedTrainer(TorchTrainer):
                 num_nodes=num_nodes
             )
 
-        trainer = RNNTrainer(
-            RNNTrainParams(
-                experiment=self.config.experiment,
-                temporal_subsampling=self.config.temporal_subsampling,
-                temporal_subset=self.config.temporal_subset,
-                seq_length=self.config.seq_length,
-                target_names=self.config.target_names,
-                metric_func=self.metric_fn,
-                loss_func=self.loss_fn,
-            )
-        )
-
         device = self.strategy.device()
         loss_history = {"train": [], "val": []}
-        metric_history = {f"train_{target}": [] for target in trainer.P.target_names}
-        metric_history.update({f"val_{target}": [] for target in trainer.P.target_names})
+        metric_history = {
+            f"train_{target}": [] for target in self.config.target_variables
+        }
+        metric_history.update(
+            {f"val_{target}": [] for target in self.config.target_variables}
+        )
 
         best_loss = float("inf")
         for epoch in tqdm(range(self.epochs)):
             epoch_start_time = default_timer()
             self.set_epoch(epoch)
-            self.model.train()
 
-            # set time indices for training
-            # This has effect only if the trainer overload the
-            # method (i.e. for RNN)
-            trainer.temporal_index([self.train_loader, self.val_loader])
-
-            train_loss, train_metric = trainer.epoch_step(
-                self.model, self.train_loader, device, opt=self.optimizer
+            # run train_valid epoch step of hython trainer
+            (
+                train_loss,
+                train_metric,
+                val_loss,
+                val_metric,
+            ) = self.hython_trainer.train_valid_epoch(
+                self.model, self.train_loader, self.val_loader, device
             )
-
-            self.model.eval()
-            with torch.no_grad():
-                # set time indices for validation
-                # This has effect only if the trainer overload the method
-                # (i.e. for RNN)
-                trainer.temporal_index([self.train_loader, self.val_loader])
-
-                val_loss, val_metric = trainer.epoch_step(
-                    self.model, self.val_loader, device, opt=None
-                )
 
             # gather losses from each worker and place them on the main worker.
             worker_val_losses = self.strategy.gather(val_loss, dst_rank=0)
@@ -223,7 +248,7 @@ class RNNDistributedTrainer(TorchTrainer):
 
             # Moving them all to the cpu() before performing calculations
             avg_val_loss = torch.mean(torch.stack(worker_val_losses)).detach().cpu()
-            self.lr_scheduler.step(avg_val_loss)
+            self.hython_trainer.lr_scheduler.step(avg_val_loss)
             loss_history["train"].append(train_loss)
             loss_history["val"].append(avg_val_loss)
 
@@ -240,12 +265,20 @@ class RNNDistributedTrainer(TorchTrainer):
                 step=epoch,
             )
 
-            for target in trainer.P.target_names:
+            for target in self.config.target_variables:
                 metric_history[f"train_{target}"].append(train_metric[target])
                 metric_history[f"val_{target}"].append(val_metric[target])
 
             # Aggregate and log metrics
-            avg_metrics = pd.DataFrame(metric_history).mean().to_dict()
+            metric_history_ = {}
+            for period in metric_history:
+                for target in metric_history[period]:
+                    for imetric, metric_value in target.items():
+                        metric_key = imetric.lower().split("metric")[0]
+                        new_metric_key = period + "_" + metric_key
+                        metric_history_[new_metric_key] = [metric_value]
+
+            avg_metrics = pd.DataFrame(metric_history_).mean().to_dict()
             for m_name, m_val in avg_metrics.items():
                 self.log(
                     item=m_val,
@@ -257,6 +290,7 @@ class RNNDistributedTrainer(TorchTrainer):
             if avg_val_loss < best_loss:
                 best_loss = avg_val_loss
                 best_model = self.model.state_dict()
+                #self.hython_trainer.save_weights(self.model)
 
             epoch_time = default_timer() - epoch_start_time
             epoch_time_tracker.add_epoch_time(epoch + 1, epoch_time)
@@ -265,6 +299,8 @@ class RNNDistributedTrainer(TorchTrainer):
             epoch_time_tracker.save()
             self.model.load_state_dict(best_model)
             self.log(item=self.model, identifier="LSTM", kind="model")
+
+
 
             # Report training metrics of last epoch to Ray
             train.report({"loss": avg_val_loss.item(), "train_loss": train_loss.item()})
@@ -318,222 +354,4 @@ class RNNDistributedTrainer(TorchTrainer):
                 generator=self.torch_rng,
                 sampler=val_sampler,
                 drop_last=True,
-            )
-
-
-class ConvRNNDistributedTrainer(TorchTrainer):
-    """Trainer class for ConvRNN model using pytorch.
-
-    Args:
-        config (Union[Dict, TrainingConfiguration]): training configuration
-            containing hyperparameters.
-        epochs (int): number of training epochs.
-        model (Optional[nn.Module], optional): model to train.
-            Defaults to None.
-        strategy (Literal['ddp', 'deepspeed', 'horovod'], optional):
-            distributed strategy. Defaults to 'ddp'.
-        validation_every (Optional[int], optional): run a validation epoch
-            every ``validation_every`` epochs. Disabled if None. Defaults to 1.
-        test_every (Optional[int], optional): run a test epoch
-            every ``test_every`` epochs. Disabled if None. Defaults to None.
-        random_seed (Optional[int], optional): set random seed for
-            reproducibility. If None, the seed is not set. Defaults to None.
-        logger (Optional[Logger], optional): logger for ML tracking.
-            Defaults to None.
-        metrics (Optional[Dict[str, Metric]], optional): map of torch metrics
-            metrics. Defaults to None.
-        checkpoints_location (str): path to checkpoints directory.
-            Defaults to "checkpoints".
-        checkpoint_every (Optional[int]): save a checkpoint every
-            ``checkpoint_every`` epochs. Disabled if None. Defaults to None.
-        name (Optional[str], optional): trainer custom name. Defaults to None.
-    """
-
-    def __init__(
-        self,
-        config: Union[Dict, TrainingConfiguration],
-        epochs: int,
-        model: Optional[nn.Module] = None,
-        strategy: Literal["ddp", "deepspeed", "horovod"] = "ddp",
-        validation_every: Optional[int] = 1,
-        test_every: Optional[int] = None,
-        random_seed: Optional[int] = None,
-        logger: Optional[Logger] = None,
-        metrics: Optional[Dict[str, Metric]] = None,
-        checkpoints_location: str = "checkpoints",
-        checkpoint_every: Optional[int] = None,
-        name: Optional[str] = None,
-        **kwargs,
-    ) -> None:
-        super().__init__(
-            config=config,
-            epochs=epochs,
-            model=model,
-            strategy=strategy,
-            validation_every=validation_every,
-            test_every=test_every,
-            random_seed=random_seed,
-            logger=logger,
-            metrics=metrics,
-            checkpoints_location=checkpoints_location,
-            checkpoint_every=checkpoint_every,
-            name=name,
-            **kwargs,
-        )
-        self.save_parameters(**self.locals2params(locals()))
-
-    def create_model_loss_optimizer(self) -> None:
-        self.optimizer = optim.Adam(self.model.parameters(), lr=self.config.lr)
-        self.lr_scheduler = ReduceLROnPlateau(
-            self.optimizer,
-            mode="min",
-            factor=self.config.lr_reduction_factor,
-            patience=self.config.lr_reduction_patience,
-        )
-
-        target_weights = {
-            t: 1 / len(self.config.target_names) for t in self.config.target_names
-        }
-        self.loss_fn = RMSELoss(target_weight=target_weights)
-        self.metric_fn = MSEMetric()
-
-        if isinstance(self.strategy, DeepSpeedStrategy):
-            # Batch size definition is not optional for DeepSpeedStrategy!
-            distribute_kwargs = dict(
-                config_params=dict(train_micro_batch_size_per_gpu=self.config.batch_size)
-            )
-        else:
-            distribute_kwargs = {}  # dict(find_unused_parameters=True)
-
-        self.model, self.optimizer, _ = self.strategy.distributed(
-            model=self.model,
-            optimizer=self.optimizer,
-            lr_scheduler=self.lr_scheduler,
-            **distribute_kwargs,
-        )
-
-    def train(self):
-        """Override version of hython to support distributed strategy."""
-        trainer = ConvTrainer(
-            RNNTrainParams(
-                experiment=self.config.experiment,
-                temporal_subsampling=False,
-                temporal_subset=1,
-                target_names=self.config.target_names,
-                metric_func=self.metric_fn,
-                loss_func=self.loss_fn,
-            )
-        )
-
-        device = self.strategy.device()
-        loss_history = {"train": [], "val": []}
-        metric_history = {f"train_{target}": [] for target in trainer.P.target_names}
-        metric_history.update({f"val_{target}": [] for target in trainer.P.target_names})
-
-        best_loss = float("inf")
-        for epoch in tqdm(range(self.epochs)):
-            if self.strategy.is_distributed:
-                # *Added for distributed*
-                self.train_loader.sampler.set_epoch(epoch)
-                self.val_loader.sampler.set_epoch(epoch)
-
-            self.model.train()
-
-            # set time indices for training
-            # This has effect only if the trainer overload the
-            # method (i.e. for RNN)
-            trainer.temporal_index([self.train_loader, self.val_loader])
-
-            train_loss, train_metric = trainer.epoch_step(
-                self.model, self.train_loader, device, opt=self.optimizer
-            )
-
-            self.model.eval()
-            with torch.no_grad():
-                # set time indices for validation
-                # This has effect only if the trainer overload the method
-                # (i.e. for RNN)
-                trainer.temporal_index([self.train_loader, self.val_loader])
-
-                val_loss, val_metric = trainer.epoch_step(
-                    self.model, self.val_loader, device, opt=None
-                )
-
-            # gather losses from each worker and place them on the main worker.
-            worker_val_losses = self.strategy.gather(val_loss, dst_rank=0)
-            if not self.strategy.global_rank() == 0:
-                continue
-
-            avg_val_loss = torch.mean(torch.stack(worker_val_losses)).detach().cpu()
-            self.lr_scheduler.step(avg_val_loss)
-            loss_history["train"].append(train_loss)
-            loss_history["val"].append(avg_val_loss)
-            self.log(
-                item=train_loss.item(),
-                identifier="train_loss_per_epoch",
-                kind="metric",
-                step=epoch,
-            )
-            self.log(
-                item=avg_val_loss.item(),
-                identifier="val_loss_per_epoch",
-                kind="metric",
-                step=epoch,
-            )
-
-            for target in trainer.P.target_names:
-                metric_history[f"train_{target}"].append(train_metric[target])
-                metric_history[f"val_{target}"].append(val_metric[target])
-            # Aggregate and log metrics
-            avg_metrics = pd.DataFrame(metric_history).mean().to_dict()
-            for m_name, m_val in avg_metrics.items():
-                self.log(
-                    item=m_val,
-                    identifier=m_name + "_epoch",
-                    kind="metric",
-                    step=epoch,
-                )
-
-            if avg_val_loss < best_loss:
-                best_loss = avg_val_loss
-                # self.model.load_state_dict(best_model_weights)
-
-            # Report training metrics of last epoch to Ray
-            train.report({"loss": avg_val_loss.item(), "train_loss": train_loss.item()})
-
-        return loss_history, metric_history
-
-    def create_dataloaders(self, train_dataset, validation_dataset, test_dataset):
-        train_sampler_builder = SamplerBuilder(
-            train_dataset,
-            sampling="random",
-            processing=("multi-gpu" if self.config.distributed else "single-gpu"),
-        )
-
-        val_sampler_builder = SamplerBuilder(
-            validation_dataset,
-            sampling="sequential",
-            processing=("multi-gpu" if self.config.distributed else "single-gpu"),
-        )
-
-        train_sampler = train_sampler_builder.get_sampler()
-        val_sampler = val_sampler_builder.get_sampler()
-
-        self.train_loader = self.strategy.create_dataloader(
-            dataset=train_dataset,
-            batch_size=self.config.batch_size,
-            num_workers=self.config.num_workers_dataloader,
-            pin_memory=self.config.pin_gpu_memory,
-            generator=self.torch_rng,
-            sampler=train_sampler,
-        )
-
-        if validation_dataset is not None:
-            self.val_loader = self.strategy.create_dataloader(
-                dataset=validation_dataset,
-                batch_size=self.config.batch_size,
-                num_workers=self.config.num_workers_dataloader,
-                pin_memory=self.config.pin_gpu_memory,
-                generator=self.torch_rng,
-                sampler=val_sampler,
             )

@@ -33,7 +33,7 @@ class MNISTDataModuleTorch(DataGetter):
         self.save_path = save_path
 
     @monitor_exec
-    def execute(self) -> Tuple[Dataset, Dataset]:
+    def execute(self) -> Tuple[Dataset, Dataset, None]:
         train_dataset = datasets.MNIST(
             self.save_path,
             train=True,
@@ -95,8 +95,7 @@ class InferenceMNIST(Dataset):
 
     @staticmethod
     def generate_jpg_sample(root: str, max_items: int = 100):
-        """Generate a sample dataset of JPG images starting from
-            LeCun's test dataset.
+        """Generate a sample dataset of JPG images starting from LeCun's test dataset.
 
         Args:
             root (str): sample path on disk

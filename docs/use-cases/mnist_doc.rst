@@ -1,5 +1,5 @@
-MNIST
-=====
+MNIST dataset
+=============
 
 This section covers the MNIST use case. This use case has been implemented using three
 different strategies, ``TensorFlow``, ``PyTorch`` and ``PyTorch Lightning``. You can 

@@ -117,7 +117,6 @@ class SyntheticTimeSeriesDatasetHDF5(Dataset):
                 f"remainder will be truncated. "
             )
         self.length = self.num_datapoints // self.chunk_size
-        print(f"self.length: {self.length}")
 
     def __len__(self):
         """Return the total number of files in the dataset."""
@@ -183,7 +182,6 @@ class TimeSeriesDatasetSplitter(DataSplitter):
         Returns:
             Tuple[Dataset, Dataset, Dataset]: Training, validation, and test datasets.
         """
-
         whole_dataset = SyntheticTimeSeriesDatasetHDF5(
             hdf5_file_location=self.hdf5_file_location,
             chunk_size=self.chunk_size,

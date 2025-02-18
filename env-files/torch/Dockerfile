@@ -28,6 +28,7 @@ RUN apt-get update && apt-get install -y \
     dot2tex \
     && apt-get clean -y && rm -rf /var/lib/apt/lists/*
 
+# TODO: replace mpi4py build with install of linux binary "python3-mpi4py"
 # https://github.com/mpi4py/mpi4py/pull/431
 RUN pip install --no-cache-dir --upgrade pip \
     && env SETUPTOOLS_USE_DISTUTILS=local python -m pip install --no-cache-dir mpi4py
@@ -35,7 +36,7 @@ RUN pip install --no-cache-dir --upgrade pip \
 # Install itwinai with torch
 COPY pyproject.toml pyproject.toml
 COPY src src
-RUN pip install --no-cache-dir .[torch,tf,dev] --extra-index-url https://download.pytorch.org/whl/cu124
+RUN pip install --no-cache-dir .[torch] --extra-index-url https://download.pytorch.org/whl/cu124
 
 # Install DeepSpeed, Horovod and Ray
 ENV HOROVOD_WITH_PYTORCH=1 \
@@ -62,6 +63,10 @@ RUN CONTAINER_TORCH_VERSION="$(python -c 'import torch;print(torch.__version__)'
     && pip install --no-cache-dir torch=="$CONTAINER_TORCH_VERSION" \
     deepspeed==0.15.* \
     git+https://github.com/horovod/horovod.git@3a31d93 \
+    "prov4ml[nvidia]@git+https://github.com/matbun/ProvML@new-main" \
+    pytest \
+    pytest-xdist \
+    psutil \
     # fix .triton/autotune/Fp16Matmul_2d_kernel.pickle bug
     && pver="$(python --version 2>&1 | awk '{print $2}' | cut -f1-2 -d.)" \
     && line=$(cat -n "/usr/local/lib/python${pver}/dist-packages/deepspeed/ops/transformer/inference/triton/matmul_ext.py" | grep os.rename | awk '{print $1}' | head -n 1) \
@@ -69,12 +74,12 @@ RUN CONTAINER_TORCH_VERSION="$(python -c 'import torch;print(torch.__version__)'
 
 # Installation sanity check
 RUN itwinai sanity-check --torch \
-    # Needed by TensorBoard logger
-    --optional-deps tensorflow \
     # Microsoft DeepSpeed for distributed ML
     --optional-deps deepspeed \
     # Horovod for distributed ML
     --optional-deps horovod \
+    # Prov4ML provenance logger
+    --optional-deps prov4ml \
     # Ray for disrtibuted ML and hyperparameter-tuning
     --optional-deps ray
 
@@ -91,6 +96,8 @@ ENV PYTHONNOUSERSITE=1 \
 
 # Add tests
 COPY tests tests
+# Add Dockerfile
+COPY env-files/torch/Dockerfile Dockerfile
 
 
 # Labels
