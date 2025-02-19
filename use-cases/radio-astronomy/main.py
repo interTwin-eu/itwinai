@@ -21,6 +21,7 @@ from src.pulsar_analysis.pipeline_methods import ImageDataSet, ImageReader, Pipe
 
 from trainer import PulsarTrainer
 
+
 image_preprocessing_engine = PrepareFreqTimeImage(
                                                 do_rot_phase_avg=True,
                                                 do_binarize=False,
@@ -52,21 +53,7 @@ mask_tag = 'train_v0_*_payload_flux.json'
 mask_directory='syn_payload/'
 
 store_trained_model_image2mask_at = './models/trained_UNet_test_v0.pt'
-image2mask_network_trainer = TrainImageToMaskNetworkModel(
-                                    model=UNet(),
-                                    num_epochs=2, #10
-                                    store_trained_model_at=store_trained_model_image2mask_at,
-                                    loss_criterion = WeightedBCELoss(pos_weight=3,neg_weight=1)                                
-                                    )
 
-# image2mask_network_trainer = PulsarTrainer(
-#                                     model=UNet(),
-#                                     num_epochs=2, #10
-#                                     store_trained_model_at=store_trained_model_image2mask_at,
-#                                     loss_criterion = WeightedBCELoss(pos_weight=3,neg_weight=1)                                
-#                                     )
-
-# if input('Type [y/n] to train') == 'y':
 
 image_mask_train_dataset = ImageToMaskDataset(
                         image_tag = image_tag,
@@ -77,8 +64,47 @@ image_mask_train_dataset = ImageToMaskDataset(
                         mask_engine=mask_preprocessing_engine
                         )
 
-image2mask_network_trainer(image_mask_pairset=image_mask_train_dataset)
 
+### PDDT
+
+# image2mask_network_trainer = TrainImageToMaskNetworkModel(
+#                                     model=UNet(),
+#                                     num_epochs=2, #10
+#                                     store_trained_model_at=store_trained_model_image2mask_at,
+#                                     loss_criterion = WeightedBCELoss(pos_weight=3,neg_weight=1)                                
+#                                     )
+
+
+
+# image2mask_network_trainer(image_mask_pairset=image_mask_train_dataset)
+
+### MYWAY
+
+config = {
+    "generator": "simple",
+    "batch_size": 1,
+    "optimizer": "adam",
+    "optim_lr": 0.001,
+    "loss": 'cross_entropy',
+    "save_best": True,
+    "shuffle_train": True,
+    "device": "auto"
+}
+
+
+image2mask_network_trainer = PulsarTrainer(
+                                    model=UNet(),
+                                    num_epochs=2, #10
+                                    store_trained_model_at=store_trained_model_image2mask_at,
+                                    config=config                               
+                                    )
+
+# if input('Type [y/n] to train') == 'y':
+
+
+
+image2mask_network_trainer.create_dataloaders(train_dataset=image_mask_train_dataset)
+image2mask_network_trainer.train()
 # store_trained_model_inmask2mask_at = './models/trained_FilterCNN_test_v0.pt'
 # inmask2mask_network_trainer = TrainImageToMaskNetworkModel(
 #                                     model= FilterCNN(),
