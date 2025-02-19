@@ -1,18 +1,21 @@
 """Logic to parse configuration and transform it into Ray objects."""
 
+import logging
 from pathlib import Path
 from typing import Dict
 
 import ray.train
 import ray.tune
 
+py_logger = logging.getLogger(__name__)
+
 
 def tune_config(tune_config: Dict | None) -> ray.tune.TuneConfig | None:
     from .tuning import get_raytune_scheduler, get_raytune_search_alg
 
     if not tune_config:
-        print(
-            "WARNING: Empty Tune Config configured. Using the default configuration with "
+        py_logger.warning(
+            "Empty Tune Config configured. Using the default configuration with "
             "a single trial."
         )
         return
@@ -43,11 +46,11 @@ def tune_config(tune_config: Dict | None) -> ray.tune.TuneConfig | None:
 
 def scaling_config(scaling_config: Dict | None) -> ray.train.ScalingConfig | None:
     if not scaling_config:
-        print("WARNING: No Scaling Config configured. Running trials non-distributed.")
+        py_logger.warning("No Scaling Config configured. Running trials non-distributed.")
         return
 
     try:
-        scaling_config = ray.train.ScalingConfig(**scaling_config)
+        return ray.train.ScalingConfig(**scaling_config)
     except AttributeError as exc:
         exc.add_note(
             "Could not instantiate ScalingConfig. Please ensure that you have passed the "
@@ -60,17 +63,17 @@ def scaling_config(scaling_config: Dict | None) -> ray.train.ScalingConfig | Non
 
 def run_config(run_config: Dict | None) -> ray.train.RunConfig | None:
     if not run_config:
-        print("WARNING: No RunConfig provided. Assuming local or single-node execution.")
+        py_logger.warning("No RunConfig provided. Assuming local or single-node execution.")
         return
 
     try:
         storage_path = Path(run_config.pop("storage_path")).resolve()
 
         if not storage_path:
-            print("INFO: Empty storage path provided. Using default path 'ray_checkpoints'")
+            py_logger.info("Empty storage path provided. Using default path 'ray_checkpoints'")
             storage_path = Path("ray_checkpoints").resolve()
 
-        run_config = ray.train.RunConfig(**run_config, storage_path=storage_path)
+        return ray.train.RunConfig(**run_config, storage_path=storage_path)
     except AttributeError as exc:
         exc.add_note(
             "Could not instantiate RunConfig. Please ensure that you have passed the "
@@ -83,8 +86,8 @@ def run_config(run_config: Dict | None) -> ray.train.RunConfig | None:
 
 def search_space(config: Dict | None) -> Dict:
     if not config:
-        print(
-            "WARNING: No training_loop_config detected. "
+        py_logger.warning(
+            "No training_loop_config detected. "
             "If you want to tune any hyperparameters, make sure to define them here."
         )
         return {}

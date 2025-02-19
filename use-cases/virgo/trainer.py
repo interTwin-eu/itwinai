@@ -27,8 +27,8 @@ from itwinai.distributed import suppress_workers_print
 from itwinai.loggers import EpochTimeTracker, Logger
 from itwinai.torch.config import TrainingConfiguration
 from itwinai.torch.distributed import DeepSpeedStrategy, RayDDPStrategy, RayDeepSpeedStrategy
-from itwinai.torch.profiling.profiler import profile_torch_trainer
 from itwinai.torch.monitoring.monitoring import measure_gpu_utilization
+from itwinai.torch.profiling.profiler import profile_torch_trainer
 from itwinai.torch.trainer import RayTorchTrainer, TorchTrainer
 from src.model import Decoder, Decoder_2d_deep, GeneratorResNet, UNet
 from src.utils import init_weights
@@ -70,7 +70,7 @@ class NoiseGeneratorTrainer(TorchTrainer):
         )
         self.save_parameters(**self.locals2params(locals()))
         # Global training configuration
-        
+
         if isinstance(config, dict):
             config = VirgoTrainingConfiguration(**config)
         self.config = config

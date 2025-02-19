@@ -23,6 +23,8 @@ from time import perf_counter as default_timer
 from typing import Any, Callable, Dict, Iterable, List, Literal, Optional, Tuple
 
 import ray.train
+import ray.train.horovod
+import ray.train.torch
 import ray.tune
 import torch
 import torch.distributed as dist
@@ -61,7 +63,7 @@ from .ray import run_config, scaling_config, search_space, tune_config
 from .reproducibility import seed_worker, set_seed
 from .type import Batch, LrScheduler
 
-logging.basicConfig(level=logging.DEBUG)
+py_logger = logging.getLogger(__name__)
 
 
 class TorchTrainer(Trainer, LogMixin):
@@ -198,6 +200,11 @@ class TorchTrainer(Trainer, LogMixin):
         self.ray_search_space = ray_search_space
         self.from_checkpoint = from_checkpoint
 
+        py_logger.debug(f"ray_scaling_config: {ray_scaling_config}")
+        py_logger.debug(f"ray_tune_config: {ray_tune_config}")
+        py_logger.debug(f"ray_run_config: {ray_run_config}")
+        py_logger.debug(f"ray_search_space: {ray_search_space}")
+
         # Initial training state -- can be resumed from a checkpoint
         self.model = model
         self.optimizer = None
@@ -226,10 +233,10 @@ class TorchTrainer(Trainer, LogMixin):
     def _detect_strategy(self, strategy: str) -> TorchDistributedStrategy:
         """If a Ray cluster is detected"""
 
-        logging.debug(f"Stragety was set to {strategy}")
+        py_logger.debug(f"Strategy was set to {strategy}")
 
         enough_resources = distributed_resources_available() or ray_cluster_is_running()
-        logging.debug(
+        py_logger.debug(
             f"Enough resources? {enough_resources} "
             f"(distributed_resources_available: {distributed_resources_available()}) "
             f"(ray_cluster_is_running: {ray_cluster_is_running()})"
@@ -238,13 +245,13 @@ class TorchTrainer(Trainer, LogMixin):
         # NOTE: setting strategy to None prevents the trainer to run distribtued ML, regardless
         # of the availability of the resources.
         if strategy is None or not enough_resources:
-            logging.warning("falling back to non-distributed strategy.")
+            py_logger.warning("falling back to non-distributed strategy.")
             strategy_obj = NonDistributedStrategy()
         elif strategy == "ddp":
             if ray_cluster_is_running():
                 # NOTE: the torch backend is passed in the Ray's torch config
                 strategy_obj = RayDDPStrategy()
-                logging.info(
+                py_logger.info(
                     f"Ray cluster was detected, thus the Ray equvalent for {strategy} is used"
                 )
             else:
@@ -252,7 +259,7 @@ class TorchTrainer(Trainer, LogMixin):
         elif strategy == "horovod":
             if ray_cluster_is_running():
                 strategy_obj = RayHorovodStrategy()
-                logging.info(
+                py_logger.info(
                     f"Ray cluster was detected, thus the Ray equvalent for {strategy} is used"
                 )
             else:
@@ -260,7 +267,7 @@ class TorchTrainer(Trainer, LogMixin):
         elif strategy == "deepspeed":
             if ray_cluster_is_running():
                 strategy_obj = RayDeepSpeedStrategy(backend=self.config.dist_backend)
-                logging.info(
+                py_logger.info(
                     f"Ray cluster was detected, thus the Ray equvalent for {strategy} is used"
                 )
             else:
@@ -501,13 +508,28 @@ class TorchTrainer(Trainer, LogMixin):
                 validation_dataset=validation_dataset,
                 test_dataset=test_dataset,
             )
-            trainer = ray.train.torch.TorchTrainer(
-                train_with_data,
-                # TODO: this may have to be set to some relevant config
-                train_loop_config=None,
-                scaling_config=scaling_config(self.ray_scaling_config),
-                run_config=run_config(self.ray_run_config),
-            )
+
+            if isinstance(self.strategy, RayHorovodStrategy):
+                # Using Horovod with Ray
+                trainer = ray.train.horovod.HorovodTrainer(
+                    train_with_data,
+                    # TODO: this may have to be set to some relevant config
+                    train_loop_config=None,
+                    # TODO: this may need to be set
+                    horovod_config=None,
+                    scaling_config=scaling_config(self.ray_scaling_config),
+                    run_config=run_config(self.ray_run_config),
+                )
+            else:
+                # Using DDP or DeepSpeed with Ray
+                py_logger.debug(f"scaling config: {scaling_config(self.ray_scaling_config)}")
+                trainer = ray.train.torch.TorchTrainer(
+                    train_with_data,
+                    # TODO: this may have to be set to some relevant config
+                    train_loop_config=None,
+                    scaling_config=scaling_config(self.ray_scaling_config),
+                    run_config=run_config(self.ray_run_config),
+                )
             param_space = {"train_loop_config": search_space(self.ray_search_space)}
             tuner = ray.tune.Tuner(
                 trainer,
@@ -517,15 +539,34 @@ class TorchTrainer(Trainer, LogMixin):
 
             result_grid = tuner.fit()
 
+            # TODO: review returned objs
             return train_dataset, validation_dataset, test_dataset, result_grid
         else:
+            if self.ray_scaling_config:
+                py_logger.warning(
+                    "Ray scaling config was passed, but it's ignored as Ray is not used"
+                )
+            if self.ray_run_config:
+                py_logger.warning(
+                    "Ray run config was passed, but it's ignored as Ray is not used"
+                )
+            if self.ray_tune_config:
+                py_logger.warning(
+                    "Ray tune config was passed, but it's ignored as Ray is not used"
+                )
+            if self.ray_search_space:
+                py_logger.warning(
+                    "Ray search space was passed, but it's ignored as Ray is not used"
+                )
             # Run without Ray
-            return self._run_worker(
+            self._run_worker(
                 config={},
                 train_dataset=train_dataset,
                 validation_dataset=validation_dataset,
                 test_dataset=test_dataset,
             )
+            # TODO: review returned objs
+            return train_dataset, validation_dataset, test_dataset, None
 
     def _run_worker(
         self,
@@ -560,7 +601,7 @@ class TorchTrainer(Trainer, LogMixin):
         if self.logger:
             self.logger.destroy_logger_context()
         self.strategy.clean_up()
-        return train_dataset, validation_dataset, test_dataset, self.model
+        return
 
     def _set_seed(self):
         # The PRNG could have been resumed from a checkpoint
@@ -712,6 +753,7 @@ class TorchTrainer(Trainer, LogMixin):
 
         # Save PyTorch model separately
         model_path = ckpt_dir / "model.pt"
+        # TODO: move model to CPU: model.cpu()
         torch.save(model, model_path)
 
         # Save Pydantic config as YAML
@@ -828,7 +870,7 @@ class TorchTrainer(Trainer, LogMixin):
 
             # Report validation metrics to Ray (useful for tuning!)
             self.ray_report(
-                {"validation_loss_epoch": val_loss},
+                {"validation_loss_epoch": val_loss.item()},
                 checkpoint_dir=best_ckpt_path or periodic_ckpt_path,
             )
 
@@ -906,6 +948,9 @@ class TorchTrainer(Trainer, LogMixin):
         """
         x, y = batch
         x, y = x.to(self.device), y.to(self.device)
+
+        py_logger.debug(f"self.device: {self.device}")
+        py_logger.debug(f"model device: {next(self.model.parameters()).device}")
 
         self.optimizer.zero_grad()
         pred_y = self.model(x)
@@ -1670,7 +1715,6 @@ class RayTorchTrainer(Trainer):
             Tuple[Dataset, Dataset, Dataset, Any]:
                 A tuple containing the datasets and the training result grid.
         """
-        import ray.train.torch
 
         train_with_data = self.ray_tune.with_parameters(
             self.train, data=[train_dataset, validation_dataset, test_dataset]
