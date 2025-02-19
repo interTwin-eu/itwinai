@@ -81,7 +81,7 @@ if TYPE_CHECKING:
 
 BASE_EXP_NAME: str = "default_experiment"
 
-logging.basicConfig(level=logging.INFO)
+py_logger = logging.getLogger(__name__)
 
 
 class LogMixin(ABC):
@@ -136,7 +136,7 @@ def check_not_initialized(method: Callable) -> Callable:
     @functools.wraps(method)
     def wrapper(self: "Logger", *args, **kwargs):
         if self.is_initialized:
-            logging.warning(
+            py_logger.warning(
                 f"Trying to initialize {self.__class__.__name__} twice.. "
                 "Skipping initialization."
             )
@@ -371,7 +371,7 @@ class ConsoleLogger(Logger):
             self.is_initialized = True
             return
 
-        logging.info(f"Initializing {self.__class__.__name__} on rank {rank}")
+        py_logger.info(f"Initializing {self.__class__.__name__} on rank {rank}")
 
         if self.savedir.is_dir():
             numeric_dirs = [
@@ -555,7 +555,7 @@ class MLFlowLogger(Logger):
             self.is_initialized = True
             return
 
-        logging.info(f"Initializing {self.__class__.__name__} on rank {rank}")
+        py_logger.info(f"Initializing {self.__class__.__name__} on rank {rank}")
 
         active_run = self.mlflow.active_run()
         if active_run:
@@ -741,7 +741,7 @@ class WandBLogger(Logger):
             self.is_initialized = True
             return
 
-        logging.info(f"Initializing {self.__class__.__name__} on rank {rank}")
+        py_logger.info(f"Initializing {self.__class__.__name__} on rank {rank}")
 
         (self.savedir / "wandb").mkdir(
             exist_ok=True,
@@ -872,7 +872,7 @@ class TensorBoardLogger(Logger):
             self.is_initialized = True
             return
 
-        logging.info(f"Initializing {self.__class__.__name__} on rank {rank}")
+        py_logger.info(f"Initializing {self.__class__.__name__} on rank {rank}")
 
         if self.framework == "tensorflow":
             self.writer.set_as_default()
@@ -1130,7 +1130,7 @@ class Prov4MLLogger(Logger):
             self.is_initialized = True
             return
 
-        logging.info(f"Initializing {self.__class__.__name__} on rank {rank}")
+        py_logger.info(f"Initializing {self.__class__.__name__} on rank {rank}")
 
         self.prov4ml.start_run(
             prov_user_namespace=self.prov_user_namespace,

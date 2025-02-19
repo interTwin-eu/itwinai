@@ -47,6 +47,31 @@ training_pipeline:
         fp16_allreduce: ${fp16_allreduce}
         use_adasum: ${use_adasum}
         gradient_predivide_factor: ${gradient_predivide_factor}
+      ray_scaling_config:
+        num_workers: 2
+        use_gpu: true
+        resources_per_worker:
+          CPU: 4
+          GPU: 1
+      ray_tune_config:
+        num_samples: 1
+        scheduler:
+          name: asha
+          max_t: 5
+          grace_period: 2
+          reduction_factor: 6
+          brackets: 1
+      ray_run_config:
+        storage_path: ray_checkpoints
+        name: MNIST-HPO-Experiment
+      ray_search_space:
+        batch_size:
+          type: choice
+          categories: [2, 4]
+        optim_lr:
+          type: uniform
+          lower: 1e-5
+          upper: 1e-3
       model:
         _target_: model.Net
       epochs: ${epochs}

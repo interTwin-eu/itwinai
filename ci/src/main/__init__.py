@@ -28,3 +28,5 @@ container registries.
 """
 
 from .main import Itwinai as Itwinai
+
+__all__ = ["Itwinai"]

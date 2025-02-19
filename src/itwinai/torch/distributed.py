@@ -12,6 +12,7 @@
 
 import abc
 import functools
+import logging
 import os
 from typing import Any, Callable, Iterable, List, Literal, Optional, Tuple, Union
 
@@ -24,8 +25,14 @@ from torch.optim.optimizer import Optimizer
 from torch.utils.data import DataLoader, Dataset, DistributedSampler, Sampler
 from torch.utils.data.dataloader import T_co, _collate_fn_t, _worker_init_fn_t
 
-from ..distributed import DistributedStrategy, detect_distributed_environment
+from ..distributed import (
+    DistributedStrategy,
+    detect_distributed_environment,
+    ray_cluster_is_running,
+)
 from .type import DistributedStrategyError, UninitializedStrategyError
+
+py_logger = logging.getLogger(__name__)
 
 
 def distributed_resources_available() -> bool:
@@ -58,7 +65,8 @@ def check_initialized(method: Callable) -> Callable:
 
 def initialize_ray() -> None:
     """This method is used by the RayDDPStrategy and RayDeepSpeedStrategy to initialize
-    the Ray backend if it is not already initialized.
+    the Ray backend if it is not already initialized. This is meant to be called before
+    submitting a function to Ray (as a trial in tuning, or as a worker in distributed ML).
 
         Raises:
             EnvironmentError: If required environment variables `HEAD_NODE_PORT` or
@@ -66,6 +74,11 @@ def initialize_ray() -> None:
                 These should be set from the slurm script where the ray cluster is launched.
     """
     import ray
+
+    if not ray_cluster_is_running():
+        raise RuntimeError(
+            "You are trying to initialize Ray, but the cluster seems not to be running"
+        )
 
     if ray.is_initialized():
         return
@@ -640,6 +653,8 @@ class DeepSpeedStrategy(TorchDistributedStrategy):
         **init_kwargs,
     ) -> Tuple[nn.Module, Optimizer, Optional[LRScheduler]]:
         """Setup model, optimizer and scheduler for distributed."""
+        py_logger.debug(f"I am going to distribute the model using device: {self.device()}")
+        # model = model.to(self.device())
 
         distrib_model, optimizer, _, lr_scheduler = self.deepspeed.initialize(
             model=model,
@@ -703,6 +718,9 @@ class DeepSpeedStrategy(TorchDistributedStrategy):
     def clean_up(self) -> None:
         """Destroys the current process group."""
         # deepspeed.sys.exit() # disabled as it kills the execution
+        if distributed_resources_available():
+            dist.barrier()
+            dist.destroy_process_group()
 
     @check_initialized
     def allgather_obj(self, obj: Any) -> List[Any]:
@@ -1160,4 +1178,4 @@ class RayHorovodStrategy(HorovodStrategy, RayTorchDistributedStrategy):
         initialize_ray()
         super().__init__()
         # TODO: implement this
-        raise NotImplementedError()
+        # raise NotImplementedError()
