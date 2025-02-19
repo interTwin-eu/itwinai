@@ -93,13 +93,20 @@ contains thoroughly tested features aligned with the toolkit's most recent relea
    :caption: 📚 Scientific Use Cases
 
    use-cases/use_cases
+   use-cases/eurac_doc
+   use-cases/virgo_doc
+   use-cases/3dgan_doc
+   use-cases/cyclones_doc
+   use-cases/mnist_doc
+   use-cases/xtclim_doc
 
 .. toctree::
    :maxdepth: 2
    :hidden:
-   :caption: ⚡ Python API reference
+   :caption: ⚡ API reference
 
-   python-api/modules
+   api/cli_reference
+   api/modules
 
 .. toctree::
    :maxdepth: 2
