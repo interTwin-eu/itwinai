@@ -33,7 +33,7 @@ num_cpus=$SLURM_CPUS_PER_TASK
 # This tells Tune to not change the working directory to the trial directory
 # which makes relative paths accessible from inside a trial
 export RAY_CHDIR_TO_TRIAL_DIR=0
-
+export RAY_DEDUP_LOGS=0
 export RAY_USAGE_STATS_DISABLE=1
 
 #########   Set up Ray cluster   ########
@@ -45,10 +45,6 @@ nodes_array=($nodes)
 # The head node will act as the central manager (head) of the Ray cluster.
 head_node=${nodes_array[0]}
 port=7639       # This port will be used by Ray to communicate with worker nodes.
-
-# This is so that the ray.init() command called from the hpo.py script knows which ports to connect to
-export ip_head="$head_node"i:"$port"
-export head_node_ip="$head_node"i
 
 echo "Starting HEAD at $head_node"
 # Start Ray on the head node.
