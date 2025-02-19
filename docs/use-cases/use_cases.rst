@@ -67,3 +67,10 @@ Drought Early Warning in the Alps | EURAC
 
 You can find more information on the EURAC use-case integration with the ``itwinai``
 in the :doc:`EURAC documentation <eurac_doc>`.
+
+
+ML-based extreme events detection and characterization (xtclim) | CERFACS
+=========================================================================
+
+You can find more information on the CERFACS use-case integration with the ``itwinai``
+in the :doc:`CERFACS documentation <xtclim_doc>`.
