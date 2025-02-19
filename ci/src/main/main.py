@@ -28,6 +28,7 @@ ignore_list = [
     "!src/itwinai/**",
     "!tests/**",
     "!env-files/**",
+    "!use-cases/**",
     "**/__pycache__",
     "!pyproject.toml",
 ]
@@ -155,17 +156,23 @@ class Itwinai:
         return self
 
     @function
-    async def test_local(self) -> Self:
+    async def test_local(
+        self, cmd: Annotated[list[str] | None, Doc("Command to run tests")] = None
+    ) -> Self:
         """Test itwinai container image with pytest on non-HPC environments."""
-        tests_result = await self.container.with_exec(
-            [
-                "pytest",
-                "-v",
-                "-m",
-                "not hpc and not functional and not tensorflow",
-                "/app/tests",
-            ]
-        ).stdout()
+
+        cmd = cmd or [
+            "pytest",
+            "-v",
+            # tell pytest-xdist to parallelize tests over logical cores
+            "-n",
+            "logical",
+            "-m",
+            "not hpc and not functional and not tensorflow",
+            "/app/tests",
+        ]
+
+        tests_result = await self.container.with_exec(cmd).stdout()
         self._logs.append("INFO: running pytest for 'local' tests:")
         self._logs.append(tests_result)
         return self

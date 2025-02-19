@@ -50,10 +50,7 @@ def check_initialized(method: Callable) -> Callable:
     def wrapper(self: "TorchDistributedStrategy", *args, **kwargs):
         if not self.is_initialized:
             raise UninitializedStrategyError(
-                (
-                    f"{self.__class__.__name__} has not been initialized. "
-                    "Use the init method."
-                )
+                (f"{self.__class__.__name__} has not been initialized. Use the init method.")
             )
         return method(self, *args, **kwargs)
 

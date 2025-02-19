@@ -1,7 +1,6 @@
-:orphan: 
+Drought Early Warning in the Alps (EURAC)
+=========================================
 
-EURAC Use Case
-==============
 You can find the relevant code for the EURAC use case in the 
 `use case's folder on Github <https://github.com/interTwin-eu/itwinai/tree/main/use-cases/eurac>`_,
 or by consulting the use case's README: 
