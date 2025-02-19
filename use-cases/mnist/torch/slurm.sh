@@ -15,7 +15,7 @@
 #SBATCH --partition=booster
 #SBATCH --nodes=2
 #SBATCH --gpus-per-node=1
-#SBATCH --cpus-per-gpu=4
+#SBATCH --cpus-per-task=16
 #SBATCH --exclusive
 
 # gres options have to be disabled for deepv
@@ -38,7 +38,8 @@ echo "DEBUG: SLURM_NTASKS: $SLURM_NTASKS"
 echo "DEBUG: SLURM_TASKS_PER_NODE: $SLURM_TASKS_PER_NODE"
 echo "DEBUG: SLURM_SUBMIT_HOST: $SLURM_SUBMIT_HOST"
 echo "DEBUG: SLURMD_NODENAME: $SLURMD_NODENAME"
-echo "DEBUG: CUDA_VISIBLE_DEVICES: $CUDA_VISIBLE_DEVICES"
+echo "DEBUG: SLURM_CPUS_PER_TASK: $SLURM_CPUS_PER_TASK"
+
 if [ "$DEBUG" = true ] ; then
   echo "DEBUG: NCCL_DEBUG=INFO" 
   export NCCL_DEBUG=INFO
@@ -46,10 +47,11 @@ fi
 echo
 
 # Setup env for distributed ML
-export CUDA_VISIBLE_DEVICES="0,1,2,3"
+export CUDA_VISIBLE_DEVICES=$(seq -s, 0 $((SLURM_GPUS_PER_NODE - 1)))
+echo "DEBUG: CUDA_VISIBLE_DEVICES: $CUDA_VISIBLE_DEVICES"
 export OMP_NUM_THREADS=1
-if [ "$SLURM_CPUS_PER_GPU" -gt 0 ] ; then
-  export OMP_NUM_THREADS=$SLURM_CPUS_PER_GPU
+if [ "$SLURM_GPUS_PER_NODE" -gt 0 ] ; then
+  export OMP_NUM_THREADS=$(($SLURM_CPUS_PER_TASK / $SLURM_GPUS_PER_NODE))
 fi
 
 # Env vairables check
@@ -72,12 +74,66 @@ else
   source $PYTHON_VENV/bin/activate
 fi
 
-# Get GPUs info per node
-srun --cpu-bind=none --ntasks-per-node=1 bash -c 'echo -e "NODE hostname: $(hostname)\n$(nvidia-smi)\n\n"'
+function ray-launcher(){
+  num_gpus=$SLURM_GPUS_PER_NODE
+  num_cpus=$SLURM_CPUS_PER_TASK
 
-# Launch training
-if [ "$DIST_MODE" == "ddp" ] ; then
-  echo "DDP training: $TRAINING_CMD"
+  # This tells Tune to not change the working directory to the trial directory
+  # which makes relative paths accessible from inside a trial
+  export RAY_CHDIR_TO_TRIAL_DIR=0
+  export RAY_DEDUP_LOGS=0
+  export RAY_USAGE_STATS_DISABLE=1
+
+  # Disable colors in output
+  export NO_COLOR=1
+  export RAY_COLOR_PREFIX=0
+
+  #########   Set up Ray cluster   ########
+
+  # Get the node names
+  nodes=$(scontrol show hostnames "$SLURM_JOB_NODELIST")
+  mapfile -t nodes_array <<< "$nodes"
+
+  # The head node will act as the central manager (head) of the Ray cluster.
+  head_node=${nodes_array[0]}
+  port=7639       # This port will be used by Ray to communicate with worker nodes.
+
+  echo "Starting HEAD at $head_node"
+  # Start Ray on the head node.
+  # The `--head` option specifies that this node will be the head of the Ray cluster.
+  # `srun` submits a job that runs on the head node to start the Ray head with the specified 
+  # number of CPUs and GPUs.
+  srun --nodes=1 --ntasks=1 -w "$head_node" \
+      ray start --head --node-ip-address="$head_node"i --port=$port \
+      --num-cpus "$num_cpus" --num-gpus "$num_gpus"  --block &
+
+  # Wait for a few seconds to ensure that the head node has fully initialized.
+  sleep 1
+
+  echo HEAD node started.
+
+  # Start Ray worker nodes
+  # These nodes will connect to the head node and become part of the Ray cluster.
+  worker_num=$((SLURM_JOB_NUM_NODES - 1))    # Total number of worker nodes (excl the head node)
+  for ((i = 1; i <= worker_num; i++)); do
+      node_i=${nodes_array[$i]}   # Get the current worker node hostname.
+      echo "Starting WORKER $i at $node_i"
+
+      # Use srun to start Ray on the worker node and connect it to the head node.
+      # The `--address` option tells the worker node where to find the head node.
+      srun --nodes=1 --ntasks=1 -w "$node_i" \
+          ray start --address "$head_node"i:"$port" --redis-password='5241580000000000' \
+          --num-cpus "$num_cpus" --num-gpus "$num_gpus" --block &
+      
+      sleep 5 # Wait before starting the next worker to prevent race conditions.
+  done
+  echo All Ray workers started.
+
+  # Run command without srun
+  $1 training_pipeline.steps.training_step.ray_scaling_config.num_workers=$(($SLURM_GPUS_PER_NODE * $SLURM_NNODES))
+}
+
+function torchrun-launcher(){
   srun --cpu-bind=none --ntasks-per-node=1 \
     bash -c "torchrun \
     --log_dir='logs_torchrun' \
@@ -87,31 +143,49 @@ if [ "$DIST_MODE" == "ddp" ] ; then
     --rdzv_conf=is_host=\$(((SLURM_NODEID)) && echo 0 || echo 1) \
     --rdzv_backend=c10d \
     --rdzv_endpoint='$(scontrol show hostnames "$SLURM_JOB_NODELIST" | head -n 1)'i:29500 \
-    $TRAINING_CMD"
+    $1"
+}
+
+function srun-launcher(){
+  srun --cpu-bind=none --ntasks-per-node=$SLURM_GPUS_PER_NODE \
+    --cpus-per-task=$(($SLURM_CPUS_PER_TASK / $SLURM_GPUS_PER_NODE)) \
+    --ntasks=$(($SLURM_GPUS_PER_NODE * $SLURM_NNODES)) \
+    $1
+}
+
+# Dual echo on both stdout and stderr
+function decho (){
+  echo "$@"
+  >&2 echo "$@"
+}
+
+# Get GPUs info per node
+srun --cpu-bind=none --ntasks-per-node=1 bash -c 'echo -e "NODE hostname: $(hostname)\n$(nvidia-smi)\n\n"'
+
+# Launch training
+if [ "$DIST_MODE" == "ddp" ] ; then
+  echo "DDP training: $TRAINING_CMD"
+  # torchrun-launcher "$TRAINING_CMD"
+
+  # decho "======================================================================================"
+
+  ray-launcher "$TRAINING_CMD"
+  
 elif [ "$DIST_MODE" == "deepspeed" ] ; then
   echo "DEEPSPEED training: $TRAINING_CMD"
-  MASTER_ADDR=$(scontrol show hostnames "\$SLURM_JOB_NODELIST" | head -n 1)i
-  export MASTER_ADDR
-  export MASTER_PORT=29500 
+  # torchrun-launcher "$TRAINING_CMD"
 
-  srun --cpu-bind=none --ntasks-per-node=$SLURM_GPUS_PER_NODE \
-    --cpus-per-task=$SLURM_CPUS_PER_GPU \
-    --ntasks=$(($SLURM_GPUS_PER_NODE * $SLURM_NNODES)) \
-    $TRAINING_CMD
+  # decho "======================================================================================"
 
-  # # Run with deepspeed launcher: set --ntasks-per-node=1
-  # # https://www.deepspeed.ai/getting-started/#multi-node-environment-variables
-  # export NCCL_IB_DISABLE=1
-  # export NCCL_SOCKET_IFNAME=eth0
-  # nodelist=$(scontrol show hostname $SLURM_NODELIST)
-  # echo "$nodelist" | sed -e 's/$/ slots=4/' > .hostfile
-  # # Requires passwordless SSH access among compute node
-  # srun --cpu-bind=none deepspeed --hostfile=.hostfile $TRAINING_CMD --deepspeed
-  # rm .hostfile
+  ray-launcher "$TRAINING_CMD"
+
 elif [ "$DIST_MODE" == "horovod" ] ; then
   echo "HOROVOD training: $TRAINING_CMD"
-  srun --cpu-bind=none --ntasks-per-node=$SLURM_GPUS_PER_NODE --cpus-per-task=$SLURM_CPUS_PER_GPU \
-    $TRAINING_CMD
+  # srun-launcher "$TRAINING_CMD"
+
+  # decho "======================================================================================"
+
+  ray-launcher "$TRAINING_CMD"
 else
   >&2 echo "ERROR: unrecognized \$DIST_MODE env variable"
   exit 1
