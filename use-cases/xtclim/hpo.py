@@ -3,7 +3,6 @@ import os
 import sys
 from pathlib import Path
 from typing import Dict
-#import yaml
 
 import matplotlib.pyplot as plt
 import ray
@@ -45,10 +44,7 @@ def run_trial(config: Dict, data: Dict):
             'lr': config['lr']
         }
 
-        parser = ConfigParser(
-            config=yaml_config,
-            override_keys=override_dict
-        )
+        parser = ConfigParser(config=yaml_config, override_keys=override_dict)
         my_pipeline = parser.parse_pipeline()
         print(f"Running pipeline for season: {season}")
         my_pipeline.execute()
@@ -64,10 +60,7 @@ def run_hpo(args: argparse.Namespace) -> None:
     if not args.load_old_results:
 
         # Initialize Ray with cluster configuration from environment variables
-        ray.init(
-            address=os.environ["ip_head"],
-            _node_ip_address=os.environ["head_node_ip"],
-        )
+        ray.init(address="auto")
 
         # Define the search space for hyperparameters
         search_space = {
@@ -84,8 +77,7 @@ def run_hpo(args: argparse.Namespace) -> None:
 
         # Ray's RunConfig for experiment name and stopping criteria
         run_config = train.RunConfig(
-            name="XTClim-Ray-Experiment",
-            stop={"training_iteration": args.max_iterations}
+            name="XTClim-Ray-Experiment", stop={"training_iteration": args.max_iterations}
         )
 
         # Determine GPU and CPU utilization per trial
@@ -101,10 +93,7 @@ def run_hpo(args: argparse.Namespace) -> None:
         )
 
         data = {"pipeline_name": args.pipeline_name}
-        trainable_with_parameters = tune.with_parameters(
-            trainable_with_resources,
-            data=data
-        )
+        trainable_with_parameters = tune.with_parameters(trainable_with_resources, data=data)
 
         tuner = tune.Tuner(
             trainable_with_parameters,
@@ -121,10 +110,7 @@ def run_hpo(args: argparse.Namespace) -> None:
         print(f"Loading results from {args.experiment_path}...")
 
         # Restore tuner from saved results
-        restored_tuner = tune.Tuner.restore(
-            args.experiment_path,
-            trainable=run_trial
-        )
+        restored_tuner = tune.Tuner.restore(args.experiment_path, trainable=run_trial)
         result_grid = restored_tuner.get_results()
 
     # Display experiment statistics
@@ -146,16 +132,8 @@ def run_hpo(args: argparse.Namespace) -> None:
     print(f"All result columns: {result_df.columns}")
 
     # Plot the results for all trials
-    plot_results(
-        result_grid,
-        metric=args.metric,
-        filename="ray-loss-plot.png"
-    )
-    plot_results(
-        result_grid,
-        metric="valid_loss",
-        filename="ray-valid_loss-plot.png"
-    )
+    plot_results(result_grid, metric=args.metric, filename="ray-loss-plot.png")
+    plot_results(result_grid, metric="valid_loss", filename="ray-valid_loss-plot.png")
 
 
 def plot_results(result_grid: ResultGrid, metric: str = "loss", filename: str = "plot.png"):
@@ -210,33 +188,11 @@ if __name__ == "__main__":
         Set this only if load_old_results is set to True. \
         Defaults to ~/ray_results/XTClim-Ray-Experiment'
     )
-    parser.add_argument(
-        '--num_samples',
-        type=int,
-        default=10, help='Number of trials to run'
-    )
-    parser.add_argument(
-        '--ngpus',
-        type=int,
-        help='Number of GPUs available on node.'
-    )
-    parser.add_argument(
-        '--ncpus',
-        type=int,
-        help='Number of CPUs available on node.'
-    )
-    parser.add_argument(
-        '--metric',
-        type=str,
-        default='loss',
-        help='Metric to optimise.'
-    )
-    parser.add_argument(
-        '--max_iterations',
-        type=int,
-        default='20',
-        help='Maximum iterations per trial'
-    )
+    parser.add_argument('--num_samples', type=int, default=10, help='Number of trials to run')
+    parser.add_argument('--ngpus', type=int, help='Number of GPUs available on node.')
+    parser.add_argument('--ncpus', type=int, help='Number of CPUs available on node.')
+    parser.add_argument('--metric', type=str, default='loss', help='Metric to optimise.')
+    parser.add_argument('--max_iterations', type=int, default='20', help='Maximum iterations per trial')
 
     args = parser.parse_args()  # Parse the command-line arguments
 
