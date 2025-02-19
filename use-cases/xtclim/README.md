@@ -1,5 +1,6 @@
 # xtclim
 ## ML-based extreme events detection and characterization (CERFACS)
+**Integration author(s)**: Rakesh Sarma (Juelich), Jarl Sondre Sæther (CERN), Matteo Bunino (CERN)
 
 The code is adapted from CERFACS' [repository](https://github.com/cerfacs-globc/xtclim/tree/master).
 The implementation of a pipeline with itwinai framework is shown below. 
