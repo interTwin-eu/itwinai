@@ -64,7 +64,7 @@ def run_hpo(args: argparse.Namespace) -> None:
 
         # Define the search space for hyperparameters
         search_space = {
-            'batch_size': tune.choice([64, 128, 256]),
+            'batch_size': tune.choice([64, 128]),
             'lr': tune.uniform(1e-5, 1e-3)
         }
 
