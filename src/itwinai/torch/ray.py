@@ -61,7 +61,9 @@ def scaling_config(scaling_config: Dict | None) -> ray.train.ScalingConfig | Non
         raise exc
 
 
-def run_config(run_config: Dict | None) -> ray.train.RunConfig | None:
+def run_config(
+    run_config: Dict | None, default_checkpoints_root: Path | str
+) -> ray.train.RunConfig | None:
     if not run_config:
         py_logger.warning("No RunConfig provided. Assuming local or single-node execution.")
         return
@@ -71,7 +73,7 @@ def run_config(run_config: Dict | None) -> ray.train.RunConfig | None:
 
         if not storage_path:
             py_logger.info("Empty storage path provided. Using default path 'ray_checkpoints'")
-            storage_path = Path("ray_checkpoints").resolve()
+            storage_path = (Path(default_checkpoints_root) / "ray_checkpoints").resolve()
 
         return ray.train.RunConfig(**run_config, storage_path=storage_path)
     except AttributeError as exc:

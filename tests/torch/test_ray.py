@@ -1,7 +1,6 @@
 import ray.train
 import ray.tune
 
-
 from itwinai.torch.ray import (
     run_config,
     scaling_config,
@@ -77,6 +76,9 @@ def test_run_config():
 def test_search_space():
     """Test search space config parser"""
     from ray.tune.search.sample import Categorical, Float
+
+    # TODO: test also other types
+    # TODO: test also for raised exceptions
 
     search_params = search_space(ray_search_space)
     assert isinstance(search_params, dict)

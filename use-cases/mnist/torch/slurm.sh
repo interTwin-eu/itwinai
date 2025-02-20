@@ -162,28 +162,30 @@ function decho (){
 # Get GPUs info per node
 srun --cpu-bind=none --ntasks-per-node=1 bash -c 'echo -e "NODE hostname: $(hostname)\n$(nvidia-smi)\n\n"'
 
+export ITWINAI_LOG_LEVEL="DEBUG"
+
 # Launch training
 if [ "$DIST_MODE" == "ddp" ] ; then
   echo "DDP training: $TRAINING_CMD"
-  # torchrun-launcher "$TRAINING_CMD"
+  torchrun-launcher "$TRAINING_CMD"
 
-  # decho "======================================================================================"
+  decho "======================================================================================"
 
   ray-launcher "$TRAINING_CMD"
   
 elif [ "$DIST_MODE" == "deepspeed" ] ; then
   echo "DEEPSPEED training: $TRAINING_CMD"
-  # torchrun-launcher "$TRAINING_CMD"
+  torchrun-launcher "$TRAINING_CMD"
 
-  # decho "======================================================================================"
+  decho "======================================================================================"
 
   ray-launcher "$TRAINING_CMD"
 
 elif [ "$DIST_MODE" == "horovod" ] ; then
   echo "HOROVOD training: $TRAINING_CMD"
-  # srun-launcher "$TRAINING_CMD"
+  srun-launcher "$TRAINING_CMD"
 
-  # decho "======================================================================================"
+  decho "======================================================================================"
 
   ray-launcher "$TRAINING_CMD"
 else
