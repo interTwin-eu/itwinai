@@ -836,7 +836,7 @@ class TorchTrainer(Trainer, LogMixin):
 
             # Report validation metrics to Ray (useful for tuning!)
             self.ray_report(
-                {"validation_loss_epoch": val_loss.item()},
+                {"loss": val_loss.item()},
                 checkpoint_dir=best_ckpt_path or periodic_ckpt_path,
             )
 
