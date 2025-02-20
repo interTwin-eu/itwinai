@@ -949,9 +949,6 @@ class TorchTrainer(Trainer, LogMixin):
         x, y = batch
         x, y = x.to(self.device), y.to(self.device)
 
-        py_logger.debug(f"self.device: {self.device}")
-        py_logger.debug(f"model device: {next(self.model.parameters()).device}")
-
         self.optimizer.zero_grad()
         pred_y = self.model(x)
         loss = self.loss(pred_y, y)
