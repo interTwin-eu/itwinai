@@ -68,10 +68,11 @@ def initialize_ray() -> None:
     the Ray backend if it is not already initialized. This is meant to be called before
     submitting a function to Ray (as a trial in tuning, or as a worker in distributed ML).
 
-        Raises:
-            EnvironmentError: If required environment variables `HEAD_NODE_PORT` or
-                `HEAD_NODE_IP` are not set.
-                These should be set from the slurm script where the ray cluster is launched.
+    Raises:
+        RuntimeError: when no Ray cluster is detected.
+        EnvironmentError: If required environment variables `HEAD_NODE_PORT` or
+            `HEAD_NODE_IP` are not set.
+            These should be set from the slurm script where the ray cluster is launched.
     """
     import ray
 
@@ -84,8 +85,8 @@ def initialize_ray() -> None:
         return
 
     ray.init(address="auto")
-    print(f"Nodes in the cluster: {ray.nodes()}")
-    print(f"Available cluster resources: {ray.available_resources()}")
+    py_logger.info(f"Nodes in the cluster: {ray.nodes()}")
+    py_logger.info(f"Available cluster resources: {ray.available_resources()}")
 
 
 class TorchDistributedStrategy(DistributedStrategy):
@@ -1100,6 +1101,13 @@ class RayDDPStrategy(TorchDDPStrategy, RayTorchDistributedStrategy):
         self.ray_train = ray.train
 
     def init(self) -> None:
+        """Initializes Ray trial/worker.
+
+        Raises:
+            RuntimeError: when the Ray cluster is not detected.
+        """
+        if not ray_cluster_is_running():
+            raise RuntimeError("Ray cluster was not detected")
         self.is_initialized = True
 
     @check_initialized
@@ -1185,6 +1193,35 @@ class RayDeepSpeedStrategy(DeepSpeedStrategy, RayTorchDistributedStrategy):
         initialize_ray()
         super().__init__(backend=backend)
 
+    def init(self) -> None:
+        """Initializes the distributed process group and the distributed
+        package.
+
+        Raises:
+            RuntimeError: when there is not a Ray cluster running.
+            DistributedStrategyError: when trying to initialize a strategy
+                already initialized.
+        """
+        import deepspeed
+
+        self.deepspeed = deepspeed
+        if not ray_cluster_is_running():
+            raise RuntimeError("Ray cluster was not detected")
+
+        if self.is_initialized:
+            raise DistributedStrategyError("Strategy was already initialized")
+
+        # https://github.com/Lightning-AI/pytorch-lightning/issues/13567
+        # This block of code should be removed as some point
+        if os.environ.get("LOCAL_RANK"):
+            os.environ["OMPI_COMM_WORLD_LOCAL_RANK"] = os.environ.get("LOCAL_RANK")
+
+        # https://deepspeed.readthedocs.io/en/latest/initialize.html#training-initialization
+        self.deepspeed.init_distributed(dist_backend=self.backend)
+        self.is_initialized = True
+
+        self.set_device()
+
 
 class RayHorovodStrategy(HorovodStrategy, RayTorchDistributedStrategy):
     """A distributed strategy using Ray and Horovod for PyTorch training."""
@@ -1192,5 +1229,25 @@ class RayHorovodStrategy(HorovodStrategy, RayTorchDistributedStrategy):
     def __init__(self) -> None:
         initialize_ray()
         super().__init__()
-        # TODO: implement this
-        # raise NotImplementedError()
+
+    def init(self) -> None:
+        """Initializes the Horovod distributed backend.
+
+        Raises:
+            RuntimeError: when there is not a Ray cluster running.
+            DistributedStrategyError: when trying to initialize a strategy
+                already initialized.
+        """
+        if not ray_cluster_is_running():
+            raise RuntimeError("Ray cluster was not detected.")
+        if self.is_initialized:
+            raise DistributedStrategyError("Strategy was already initialized")
+
+        import horovod.torch as hvd
+
+        self.hvd = hvd
+
+        self.hvd.init()
+        self.is_initialized = True
+
+        self.set_device()
