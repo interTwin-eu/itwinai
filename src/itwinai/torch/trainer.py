@@ -19,7 +19,7 @@ import sys
 import tempfile
 from collections import defaultdict
 from pathlib import Path
-from typing import Any, Callable, Dict, Iterable, List, Literal, Optional, Tuple
+from typing import Any, Callable, Dict, List, Literal, Optional, Tuple, Union
 
 import ray.train
 import ray.train.horovod
@@ -29,11 +29,13 @@ import torch
 import torch.distributed as dist
 import torch.nn as nn
 import torch.optim as optim
+import torch.optim.lr_scheduler as lr_scheduler
 import torchvision
 import yaml
 from torch.nn.parallel import DistributedDataParallel as DDP
+from torch.optim.lr_scheduler import LRScheduler
 from torch.optim.optimizer import Optimizer
-from torch.utils.data import DataLoader, Dataset, Sampler
+from torch.utils.data import DataLoader, Dataset
 from torch.utils.data.distributed import DistributedSampler
 from tqdm import tqdm
 
@@ -56,7 +58,7 @@ from .distributed import (
 )
 from .ray import run_config, scaling_config, search_space, tune_config
 from .reproducibility import seed_worker, set_seed
-from .type import Batch, LrScheduler
+from .type import Batch, Metric
 
 py_logger = logging.getLogger(__name__)
 
@@ -121,7 +123,7 @@ class TorchTrainer(Trainer, LogMixin):
     #: Optimizer.
     optimizer: Optimizer | None = None
     #: Learning rate scheduler.
-    lr_scheduler: LrScheduler | None = None
+    lr_scheduler: LRScheduler = None
     #: PyTorch random number generator (PRNG).
     torch_rng: torch.Generator | None = None
     #: itwinai ``itwinai.Logger``
@@ -147,8 +149,8 @@ class TorchTrainer(Trainer, LogMixin):
         random_seed: Optional[int] = None,
         logger: Optional[Logger] = None,
         metrics: Optional[Dict[str, Metric]] = None,
-        checkpoints_location: str = "checkpoints",
-        checkpoint_every: int | None = None,
+        checkpoints_location: str | Path = "checkpoints",
+        checkpoint_every: Optional[int] = None,
         disable_tqdm: bool = False,
         name: str | None = None,
         profiling_wait_epochs: int = 1,
@@ -169,6 +171,7 @@ class TorchTrainer(Trainer, LogMixin):
 
         self.config = config
         self.epochs = epochs
+        self.model = model
         self.strategy = strategy
         self.test_every = test_every
         self.random_seed = random_seed
@@ -187,16 +190,23 @@ class TorchTrainer(Trainer, LogMixin):
         self.ray_search_space = ray_search_space
         self.from_checkpoint = from_checkpoint
 
+        if self.from_checkpoint:
+            self.from_checkpoint = Path(from_checkpoint)
+            if not self.from_checkpoint.exists():
+                raise RuntimeError(
+                    "from_checkpoint was passed, but the checkpoint is not found"
+                )
+
         py_logger.debug(f"ray_scaling_config: {ray_scaling_config}")
         py_logger.debug(f"ray_tune_config: {ray_tune_config}")
         py_logger.debug(f"ray_run_config: {ray_run_config}")
         py_logger.debug(f"ray_search_space: {ray_search_space}")
 
         # Initial training state -- can be resumed from a checkpoint
-        self.model = model
-        self.optimizer = None
-        self.lr_scheduler = None
-        self.torch_rng = None
+        self.model_state_dict = None
+        self.optimizer_state_dict = None
+        self.lr_scheduler_state_dict = None
+        self.torch_rng_state = None
         self.best_validation_loss = float("inf")
         self.epoch = 0
 
@@ -268,38 +278,72 @@ class TorchTrainer(Trainer, LogMixin):
             self.strategy.init()
 
     def _optimizer_from_config(self) -> None:
-        if self.config.optimizer == "adadelta":
-            self.optimizer = optim.Adadelta(
-                self.model.parameters(),
-                lr=self.config.optim_lr,
-                weight_decay=self.config.optim_weight_decay,
-            )
-        elif self.config.optimizer == "adam":
-            self.optimizer = optim.Adam(
-                self.model.parameters(),
-                lr=self.config.optim_lr,
-                weight_decay=self.config.optim_weight_decay,
-            )
-        elif self.config.optimizer == "rmsprop":
-            self.optimizer = optim.RMSprop(
-                self.model.parameters(),
-                lr=self.config.optim_lr,
-                weight_decay=self.config.optim_weight_decay,
-                momentum=self.config.optim_momentum,
-            )
-        elif self.config.optimizer == "sgd":
-            self.optimizer = optim.SGD(
-                self.model.parameters(),
-                lr=self.config.optim_lr,
-                weight_decay=self.config.optim_weight_decay,
-                momentum=self.config.optim_momentum,
-            )
-        else:
-            raise ValueError(
-                "Unrecognized self.config.optimizer! Check the docs for "
-                "supported values and consider overriding "
-                "create_model_loss_optimizer method for more flexibility."
-            )
+        match self.config.optimizer:
+            case "adadelta":
+                self.optimizer = optim.Adadelta(
+                    self.model.parameters(),
+                    lr=self.config.optim_lr,
+                    weight_decay=self.config.optim_weight_decay,
+                )
+            case "adam":
+                self.optimizer = optim.Adam(
+                    self.model.parameters(),
+                    lr=self.config.optim_lr,
+                    weight_decay=self.config.optim_weight_decay,
+                )
+            case "rmsprop":
+                self.optimizer = optim.RMSprop(
+                    self.model.parameters(),
+                    lr=self.config.optim_lr,
+                    weight_decay=self.config.optim_weight_decay,
+                    momentum=self.config.optim_momentum,
+                )
+            case "sgd":
+                self.optimizer = optim.SGD(
+                    self.model.parameters(),
+                    lr=self.config.optim_lr,
+                    weight_decay=self.config.optim_weight_decay,
+                    momentum=self.config.optim_momentum,
+                )
+            case _:
+                raise ValueError(
+                    "Unrecognized self.config.optimizer! Check the docs for "
+                    "supported values and consider overriding "
+                    "create_model_loss_optimizer method for more flexibility."
+                )
+
+    def _lr_scheduler_from_config(self) -> None:
+        """Parse Lr scheduler from training config"""
+        if not self.config.lr_scheduler:
+            return
+        if not self.optimizer:
+            raise ValueError("Trying to instantiate a LR scheduler but the optimizer is None!")
+
+        match self.config.lr_scheduler:
+            case "constant":
+                self.lr_scheduler = lr_scheduler.ConstantLR(self.optimizer)
+            case "polynomial":
+                self.lr_scheduler = lr_scheduler.PolynomialLR(self.optimizer)
+            case "exponential":
+                self.lr_scheduler = lr_scheduler.ExponentialLR(
+                    self.optimizer, gamma=self.config.lr_scheduler_gamma
+                )
+            case "linear":
+                self.lr_scheduler = lr_scheduler.LinearLR(self.optimizer)
+            case "multistep":
+                self.lr_scheduler = lr_scheduler.MultiStepLR(
+                    self.optimizer, milestones=self.config.lr_scheduler_step_size
+                )
+            case "step":
+                self.lr_scheduler = lr_scheduler.StepLR(
+                    self.optimizer, step_size=self.config.lr_scheduler_step_size
+                )
+            case _:
+                raise ValueError(
+                    "Unrecognized self.config.lr_scheduler! Check the docs for "
+                    "supported values and consider overriding "
+                    "create_model_loss_optimizer method for more flexibility."
+                )
 
     def _loss_from_config(self) -> None:
         if self.config.loss == "nllloss":
@@ -358,25 +402,37 @@ class TorchTrainer(Trainer, LogMixin):
                 "self.model is None! Either pass it to the constructor, load a checkpoint, or "
                 "override create_model_loss_optimizer method."
             )
-        if not self.optimizer:
-            # The optimizer was not loaded from a checkpoint. Create it here.
+        if self.model_state_dict:
+            # Load model from checkpoint
+            self.model.load_state_dict(self.model_state_dict, strict=False)
 
-            # Parse optimizer from training configuration
-            # Optimizer can be changed with a custom one here!
-            self._optimizer_from_config()
+        # Parse optimizer from training configuration
+        # Optimizer can be changed with a custom one here!
+        self._optimizer_from_config()
 
-        if not self.lr_scheduler:
-            # The lr scheduler was not loaded from a checkpoint. Create it here.
-            pass
+        # Parse LR scheduler from training configuration
+        # LR scheduler can be changed with a custom one here!
+        self._lr_scheduler_from_config()
+
+        if self.optimizer_state_dict:
+            # Load optimizer state from checkpoint
+            # IMPORTANT: this must be after the learning rate scheduler was already initialized
+            # by passing to it the optimizer. Otherwise the optimizer state just loaded will
+            # be modified by the lr scheduler.
+            self.optimizer.load_state_dict(self.optimizer_state_dict)
+
+        if self.lr_scheduler_state_dict and self.lr_scheduler:
+            # Load LR scheduler state from checkpoint
+            self.lr_scheduler.load_state_dict(self.lr_scheduler_state_dict)
 
         # Parse loss from training configuration
         # Loss can be changed with a custom one here!
         self._loss_from_config()
 
-        # Save non-distributed copies of model, optim and lr scheduler
-        self.original_model = self.model
-        self.original_optimizer = self.optimizer
-        self.original_lr_scheduler = self.lr_scheduler
+        # # Save non-distributed copies of model, optim and lr scheduler
+        # self.original_model = self.model
+        # self.original_optimizer = self.optimizer
+        # self.original_lr_scheduler = self.lr_scheduler
 
         # IMPORTANT: model, optimizer, and scheduler need to be distributed
         distribute_kwargs = self.get_default_distributed_kwargs()
@@ -386,28 +442,88 @@ class TorchTrainer(Trainer, LogMixin):
             self.model, self.optimizer, self.lr_scheduler, **distribute_kwargs
         )
 
+    def save_checkpoint(
+        self,
+        name: str,
+        best_validation_loss: Optional[torch.Tensor] = None,
+        checkpoints_root: str | Path | None = None,
+        force: bool = False,
+    ) -> str | None:
+        """Save training checkpoint.
+
+        Args:
+            name (str): name of the checkpoint directory.
+            best_validation_loss (Optional[torch.Tensor]): best validation loss throughout
+                training so far (if available).
+            checkpoints_root (str | None): path for root checkpoints dir. If None, uses
+                ``self.checkpoints_location`` as base.
+            force (bool): force checkpointign now.
+
+        Returns:
+            path to the checkpoint file or ``None`` when the checkpoint is not created.
+        """
+        if not (
+            force
+            or self.strategy.is_main_worker
+            and self.checkpoint_every
+            and (self.epoch + 1) % self.checkpoint_every == 0
+        ):
+            # Do nothing and return
+            return
+
+        ckpt_dir = Path(checkpoints_root or self.checkpoints_location) / name
+        ckpt_dir.mkdir(parents=True, exist_ok=True)
+
+        # Save state (epoch, loss, optimizer, scheduler)
+        state = {
+            "epoch": self.epoch,
+            # This could store the best validation loss
+            "best_validation_loss": (
+                best_validation_loss.item() if best_validation_loss is not None else None
+            ),
+            "optimizer_state_dict": self.optimizer.state_dict(),
+            "lr_scheduler_state_dict": (
+                self.lr_scheduler.state_dict() if self.lr_scheduler is not None else None
+            ),
+            "torch_rng_state": self.torch_rng.get_state(),
+            "random_seed": self.random_seed,
+        }
+        state_path = ckpt_dir / "state.pt"
+        torch.save(state, state_path)
+
+        # Save PyTorch model separately
+        model_path = ckpt_dir / "model.pt"
+        # TODO: check that the state dict is stripped from any distributed info
+        torch.save(self.model.state_dict(), model_path)
+
+        # Save Pydantic config as YAML
+        config_path = ckpt_dir / "config.yaml"
+        with config_path.open("w") as f:
+            yaml.safe_dump(self.config.model_dump(), f)
+
+        # Log each file with an appropriate identifier
+        self.log(str(state_path), f"{name}_state", kind="artifact")
+        self.log(str(model_path), f"{name}_model", kind="artifact")
+        self.log(str(config_path), f"{name}_config", kind="artifact")
+        return str(ckpt_dir)
+
     def _load_checkpoint(self) -> None:
-        """Reload model, optimizer, and scheduler from checkpoint, if available."""
+        """Reload training state from checkpoint."""
 
         if self.from_checkpoint:
             self.from_checkpoint = Path(self.from_checkpoint)
             state = torch.load(self.from_checkpoint / "state.pt")
-            model = torch.load(self.from_checkpoint / "model.pt")
 
             # Override initial training state
-            # self.model = self.model.load_state_dict(model)
-            # self.optimizer.load_state_dict(state["optimizer"])
-            self.model = model
-            self.optimizer = state["optimizer"]
-            self.lr_scheduler = state["lr_scheduler"]
+            self.model_state_dict = torch.load(self.from_checkpoint / "model.pt")
+            self.optimizer_state_dict = state["optimizer_state_dict"]
+            self.lr_scheduler_state_dict = state["lr_scheduler_state_dict"]
+            self.torch_rng_state = state["torch_rng_state"]
+            # Direct overrides (don't require further attention)
+            self.random_seed = state["random_seed"]
             self.epoch = state["epoch"]
-            self.best_validation_loss = state["best_validation_loss"]
-            self.torch_rng = state["torch_rng"]
-
-            # Save non-distributed copies
-            self.original_model = self.model
-            self.original_optimizer = self.optimizer
-            self.original_lr_scheduler = self.lr_scheduler
+            if state["best_validation_loss"]:
+                self.best_validation_loss = state["best_validation_loss"]
 
     def create_dataloaders(
         self,
@@ -505,7 +621,9 @@ class TorchTrainer(Trainer, LogMixin):
                     # TODO: this may need to be set
                     horovod_config=None,
                     scaling_config=scaling_config(self.ray_scaling_config),
-                    run_config=run_config(self.ray_run_config),
+                    run_config=run_config(
+                        self.ray_run_config, default_checkpoints_root=self.checkpoints_location
+                    ),
                 )
             else:
                 # Using DDP or DeepSpeed with Ray
@@ -515,7 +633,9 @@ class TorchTrainer(Trainer, LogMixin):
                     # TODO: this may have to be set to some relevant config
                     train_loop_config=None,
                     scaling_config=scaling_config(self.ray_scaling_config),
-                    run_config=run_config(self.ray_run_config),
+                    run_config=run_config(
+                        self.ray_run_config, default_checkpoints_root=self.checkpoints_location
+                    ),
                 )
             param_space = {"train_loop_config": search_space(self.ray_search_space)}
             tuner = ray.tune.Tuner(
@@ -591,8 +711,11 @@ class TorchTrainer(Trainer, LogMixin):
         return
 
     def _set_seed(self):
-        # The PRNG could have been resumed from a checkpoint
-        self.torch_rng = set_seed(self.random_seed) if not self.torch_rng else self.torch_rng
+        self.torch_rng = set_seed(self.random_seed)
+
+        if self.torch_rng_state is not None:
+            # Resume state from checkpoint
+            self.torch_rng.set_state(self.torch_rng_state)
 
     def _override_config(self, config: Dict) -> None:
         """Overrid self.config with a sample from the search space from the Ray tuner."""
@@ -614,6 +737,8 @@ class TorchTrainer(Trainer, LogMixin):
         if self.profiler is not None and self.epoch > 0:
             # We don't want to start stepping until after the first epoch
             self.profiler.step()
+        if self.lr_scheduler:
+            self.lr_scheduler.step()
         self._set_epoch_dataloaders(self.epoch)
 
     def log(
@@ -685,74 +810,6 @@ class TorchTrainer(Trainer, LogMixin):
             elif checkpoint_dir:
                 checkpoint = ray.train.Checkpoint.from_directory(checkpoint_dir)
             ray.train.report(metrics, checkpoint=checkpoint)
-
-    def save_checkpoint(
-        self,
-        name: str,
-        best_validation_loss: Optional[torch.Tensor] = None,
-        checkpoints_root: str | Path | None = None,
-        force: bool = False,
-    ) -> str | None:
-        """Save training checkpoint.
-
-        Args:
-            name (str): name of the checkpoint directory.
-            best_validation_loss (Optional[torch.Tensor]): best validation loss throughout
-                training so far (if available).
-            checkpoints_root (str | None): path for root checkpoints dir. If None, uses
-                ``self.checkpoints_location`` as base.
-            force (bool): force checkpointign now.
-
-        Returns:
-            path to the checkpoint file or ``None`` when the checkpoint is not created.
-        """
-        if not (
-            force
-            or self.strategy.is_main_worker
-            and self.checkpoint_every
-            and (self.epoch + 1) % self.checkpoint_every == 0
-        ):
-            # Do nothing and return
-            return
-
-        # model = self.model.state_dict()
-        # optimizer = self.optimizer.state_dict()
-        # lr_scheduler = self.lr_scheduler.state_dict() if self.lr_scheduler else None
-        # TODO: check un-distributed model and optimizer before saving them
-        model = self.original_model
-        optimizer = self.original_optimizer
-        lr_scheduler = self.original_lr_scheduler
-
-        ckpt_dir = Path(checkpoints_root or self.checkpoints_location) / name
-        ckpt_dir.mkdir(parents=True, exist_ok=True)
-
-        # Save state (epoch, loss, optimizer, scheduler)
-        state = {
-            "epoch": self.epoch,
-            # This can store the best validation loss
-            "loss": best_validation_loss.item() if best_validation_loss is not None else None,
-            "optimizer": optimizer,
-            "lr_scheduler": lr_scheduler,
-            "torch_rng": self.torch_rng,
-        }
-        state_path = ckpt_dir / "state.pt"
-        torch.save(state, state_path)
-
-        # Save PyTorch model separately
-        model_path = ckpt_dir / "model.pt"
-        # TODO: move model to CPU: model.cpu()
-        torch.save(model, model_path)
-
-        # Save Pydantic config as YAML
-        config_path = ckpt_dir / "config.yaml"
-        with config_path.open("w") as f:
-            yaml.safe_dump(self.config.model_dump(), f)
-
-        # Log each file with an appropriate identifier
-        self.log(str(state_path), f"{name}_state", kind="artifact")
-        self.log(str(model_path), f"{name}_model", kind="artifact")
-        self.log(str(config_path), f"{name}_config", kind="artifact")
-        return str(ckpt_dir)
 
     def compute_metrics(
         self,
@@ -1067,7 +1124,20 @@ class GANTrainer(TorchTrainer):
             Defaults to "checkpoints".
         checkpoint_every (int | None): save a checkpoint every
             ``checkpoint_every`` epochs. Disabled if None. Defaults to None.
-        name (str | None, optional): trainer custom name. Defaults to None.
+        name (Optional[str], optional): trainer custom name. Defaults to None.
+        profiling_wait_epochs (int): how many epochs to wait before starting
+            the profiler.
+        profiling_warmup_epochs (int): length of the profiler warmup phase in terms of
+            number of epochs.
+        ray_scaling_config (Dict[str, Any], optional): scaling config for Ray Trainer.
+            Defaults to None,
+        ray_tune_config (Dict[str, Any], optional): tune config for Ray Tuner.
+            Defaults to None.
+        ray_run_config (Dict[str, Any], optional): run config for Ray Trainer.
+            Defaults to None.
+        ray_search_space (Dict[str, Any], optional): search space for Ray Tuner.
+            Defaults to None.
+        from_checkpoint (str | Path, optional): path to checkpoint directory. Defaults to None.
     """
 
     def __init__(
@@ -1082,8 +1152,15 @@ class GANTrainer(TorchTrainer):
         logger: Optional[Logger] = None,
         metrics: Optional[Dict[str, Metric]] = None,
         checkpoints_location: str = "checkpoints",
-        checkpoint_every: int | None = None,
-        name: str | None = None,
+        checkpoint_every: Optional[int] = None,
+        name: Optional[str] = None,
+        profiling_wait_epochs: int = 1,
+        profiling_warmup_epochs: int = 2,
+        ray_scaling_config: Dict[str, Any] | None = None,
+        ray_tune_config: Dict[str, Any] | None = None,
+        ray_run_config: Dict[str, Any] | None = None,
+        ray_search_space: Dict[str, Any] | None = None,
+        from_checkpoint: str | Path | None = None,
         **kwargs,
     ) -> None:
         super().__init__(
@@ -1098,19 +1175,34 @@ class GANTrainer(TorchTrainer):
             checkpoints_location=checkpoints_location,
             checkpoint_every=checkpoint_every,
             name=name,
+            profiling_wait_epochs=profiling_wait_epochs,
+            profiling_warmup_epochs=profiling_warmup_epochs,
+            ray_scaling_config=ray_scaling_config,
+            ray_tune_config=ray_tune_config,
+            ray_run_config=ray_run_config,
+            ray_search_space=ray_search_space,
+            from_checkpoint=from_checkpoint,
             **kwargs,
         )
         self.save_parameters(**self.locals2params(locals()))
+
+        # Initial training state -- can be resumed from a checkpoint
         self.discriminator = discriminator
         self.generator = generator
+        self.optimizerD_state_dict = None
+        self.optimizerG = None
 
     def create_model_loss_optimizer(self) -> None:
-        self.optimizerD = optim.Adam(
-            self.discriminator.parameters(), lr=self.config.lr, betas=(0.5, 0.999)
-        )
-        self.optimizerG = optim.Adam(
-            self.generator.parameters(), lr=self.config.lr, betas=(0.5, 0.999)
-        )
+        # Model, optimizer, and lr scheduler may have already been loaded from a checkpoint
+        # TODO: this is incomplete
+        if not self.optimizerD:
+            self.optimizerD = optim.Adam(
+                self.discriminator.parameters(), lr=self.config.lr, betas=(0.5, 0.999)
+            )
+        if not self.optimizerG:
+            self.optimizerG = optim.Adam(
+                self.generator.parameters(), lr=self.config.lr, betas=(0.5, 0.999)
+            )
         self.criterion = nn.BCELoss()
 
         # https://stackoverflow.com/a/67437077
@@ -1125,6 +1217,7 @@ class GANTrainer(TorchTrainer):
             )
         else:
             distribute_kwargs = {}
+
         # Distribute discriminator and its optimizer
         self.discriminator, self.optimizerD, _ = self.strategy.distributed(
             self.discriminator, self.optimizerD, **distribute_kwargs
@@ -1519,246 +1612,3 @@ def distributed(func):
                 dist.destroy_process_group()
 
     return dist_train
-
-
-class RayTorchTrainer(Trainer):
-    """A trainer class for distributed training and hyperparameter optimization
-    using Ray Train/ Tune and PyTorch.
-
-    Args:
-        config (Dict): A dictionary of configuration settings for the trainer.
-        strategy (Optional[Literal["ddp", "deepspeed"]]):
-            The distributed training strategy to use. Defaults to "ddp".
-        name (str | None): Optional name for the trainer instance. Defaults to None.
-        logger (Logger | None): Optional logger instance. Defaults to None.
-    """
-
-    def __init__(
-        self,
-        config: Dict,
-        strategy: Literal["ddp", "deepspeed"] = "ddp",
-        name: str | None = None,
-        logger: Logger | None = None,
-        random_seed: int = 1234,
-    ) -> None:
-        super().__init__(name=name)
-        import ray.train
-        import ray.tune
-
-        self.ray_train = ray.train
-        self.ray_tune = ray.tune
-
-        self.logger = logger
-        self._set_strategy_and_init_ray(strategy)
-        self._set_configs(config=config)
-        self.torch_rng = set_seed(random_seed)
-
-    def _set_strategy_and_init_ray(self, strategy: str) -> None:
-        """Set the distributed training strategy. This will initialize the ray backend.
-
-        Args:
-            strategy (str): The strategy to use for distributed training.
-                Must be one of ["ddp", "deepspeed"].
-
-        Raises:
-            ValueError: If an unsupported strategy is provided.
-        """
-        if strategy == "ddp":
-            self.strategy = RayDDPStrategy()
-        elif strategy == "deepspeed":
-            self.strategy = RayDeepSpeedStrategy(backend="nccl")
-        else:
-            raise ValueError(f"Unsupported strategy: {strategy}")
-
-    def _set_configs(self, config: Dict) -> None:
-        self.config = config
-        self._set_scaling_config()
-        self._set_tune_config()
-        self._set_run_config()
-        self._set_train_loop_config()
-
-    @property
-    def device(self) -> str:
-        """Get the current device from distributed strategy.
-        Returns:
-            str: Device string (e.g., "cuda:0").
-        """
-        return self.strategy.device()
-
-    def create_dataloaders(
-        self,
-        train_dataset: Dataset,
-        validation_dataset: Dataset | None = None,
-        test_dataset: Dataset | None = None,
-        batch_size: int = 1,
-        num_workers_dataloader: int = 4,
-        pin_memory: bool = False,
-        shuffle_train: bool | None = False,
-        shuffle_test: bool | None = False,
-        shuffle_validation: bool | None = False,
-        sampler: Sampler | Iterable | None = None,
-        collate_fn: Callable[[List], Any] | None = None,
-    ) -> None:
-        """Create data loaders for training, validation, and testing.
-
-        Args:
-            train_dataset (Dataset): The training dataset.
-            validation_dataset (Dataset, optional): The validation dataset. Defaults to None.
-            test_dataset (Dataset, optional): The test dataset. Defaults to None.
-            batch_size (int, optional): Batch size for data loaders. Defaults to 1.
-            shuffle_train (bool, optional): Whether to shuffle the training dataset.
-                Defaults to False.
-            shuffle_test (bool, optional): Whether to shuffle the test dataset.
-                Defaults to False.
-            shuffle_validation (bool, optional): Whether to shuffle the validation dataset.
-                Defaults to False.
-            sampler (Sampler | Iterable, None, optional): Sampler for the datasets.
-                Defaults to None.
-            collate_fn (Callable[[List], Any], optional):
-                Function to collate data samples into batches. Defaults to None.
-        """
-        self.train_dataloader = self.strategy.create_dataloader(
-            dataset=train_dataset,
-            batch_size=batch_size,
-            num_workers=num_workers_dataloader,
-            pin_memory=pin_memory,
-            generator=self.torch_rng,
-            shuffle=shuffle_train,
-            sampler=sampler,
-            collate_fn=collate_fn,
-        )
-        if validation_dataset is not None:
-            self.validation_dataloader = self.strategy.create_dataloader(
-                dataset=validation_dataset,
-                batch_size=batch_size,
-                num_workers=num_workers_dataloader,
-                pin_memory=pin_memory,
-                generator=self.torch_rng,
-                shuffle=shuffle_validation,
-                sampler=sampler,
-                collate_fn=collate_fn,
-            )
-        else:
-            self.validation_dataloader = None
-        if test_dataset is not None:
-            self.test_dataloader = self.strategy.create_dataloader(
-                dataset=test_dataset,
-                batch_size=batch_size,
-                num_workers=num_workers_dataloader,
-                pin_memory=pin_memory,
-                generator=self.torch_rng,
-                shuffle=shuffle_test,
-                sampler=sampler,
-                collate_fn=collate_fn,
-            )
-        else:
-            self.test_dataloader = None
-
-    @monitor_exec
-    def execute(
-        self,
-        train_dataset: Dataset,
-        validation_dataset: Dataset | None = None,
-        test_dataset: Dataset | None = None,
-    ) -> Tuple[Dataset, Dataset, Dataset, Any]:
-        """Execute the training pipeline with the given datasets.
-
-        Args:
-            train_dataset (Dataset): Training dataset.
-            validation_dataset (Dataset | None, optional): Validation dataset.
-                Defaults to None.
-            test_dataset (Dataset | None, optional): Test dataset. Defaults to None.
-
-        Returns:
-            Tuple[Dataset, Dataset, Dataset, Any]:
-                A tuple containing the datasets and the training result grid.
-        """
-
-        train_with_data = self.ray_tune.with_parameters(
-            self.train, data=[train_dataset, validation_dataset, test_dataset]
-        )
-        trainer = ray.train.torch.TorchTrainer(
-            train_with_data,
-            train_loop_config=self.train_loop_config,
-            scaling_config=self.scaling_config,
-            run_config=self.run_config,
-        )
-        param_space = {"train_loop_config": self.train_loop_config}
-        tuner = self.ray_tune.Tuner(
-            trainer, param_space=param_space, tune_config=self.tune_config
-        )
-
-        result_grid = tuner.fit()
-
-        return train_dataset, validation_dataset, test_dataset, result_grid
-
-    def set_epoch(self, epoch: int) -> None:
-        self.train_dataloader.sampler.set_epoch(epoch)
-        if self.validation_dataloader is not None:
-            self.validation_dataloader.sampler.set_epoch(epoch)
-        if self.test_dataloader is not None:
-            self.test_dataloader.sampler.set_epoch(epoch)
-
-    # TODO: Can I also log the checkpoint?
-    def checkpoint_and_report(self, epoch, tuning_metrics, checkpointing_data=None):
-        with tempfile.TemporaryDirectory() as temp_checkpoint_dir:
-            checkpoint = None
-
-            should_checkpoint = epoch % self.config.get("checkpoint_freq", 1)
-
-            if checkpointing_data and should_checkpoint:
-                torch.save(checkpointing_data, os.path.join(temp_checkpoint_dir, str(epoch)))
-                checkpoint = self.ray_train.Checkpoint.from_directory(temp_checkpoint_dir)
-
-        self.ray_train.report(tuning_metrics, checkpoint=checkpoint)
-
-    def initialize_logger(self, hyperparams: Dict | None, rank):
-        if not self.logger:
-            return
-
-        self.logger.create_logger_context(rank=rank)
-        print(f"Logger initialized with rank {rank}")
-
-        if hyperparams:
-            self.logger.save_hyperparameters(hyperparams)
-
-    def close_logger(self):
-        if self.logger:
-            self.logger.destroy_logger_context()
-
-    def log(
-        self,
-        item: Any | List[Any],
-        identifier: str | List[str],
-        kind: str = "metric",
-        step: int | None = None,
-        batch_idx: int | None = None,
-        **kwargs,
-    ) -> None:
-        """Log ``item`` with ``identifier`` name of ``kind`` type at ``step``
-        time step.
-
-        Args:
-            item (Any | List[Any]): element to be logged (e.g., metric).
-            identifier (str | List[str]): unique identifier for the
-                element to log(e.g., name of a metric).
-            kind (str, optional): type of the item to be logged. Must be one
-                among the list of self.supported_types. Defaults to 'metric'.
-            step (int | None, optional): logging step. Defaults to None.
-            batch_idx (int | None, optional): DataLoader batch counter
-                (i.e., batch idx), if available. Defaults to None.
-        """
-        if self.logger:
-            self.logger.log(
-                item=item,
-                identifier=identifier,
-                kind=kind,
-                step=step,
-                batch_idx=batch_idx,
-                **kwargs,
-            )
-        else:
-            print(
-                "INFO: The log method was called, but no logger was configured for this "
-                "Trainer."
-            )

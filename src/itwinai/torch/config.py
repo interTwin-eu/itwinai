@@ -9,7 +9,7 @@
 
 """Default configuration"""
 
-from typing import Literal
+from typing import Iterable, Literal
 
 from pydantic import BaseModel
 
@@ -75,6 +75,16 @@ class TrainingConfiguration(Configuration):
     optim_momentum: float = 0.9
     #: Weight decay parameter for the optimizer. Defaults to 0.
     optim_weight_decay: float = 0.0
+    #: Learning rate scheduler algorithm. Defaults to None (not used).
+    lr_scheduler: (
+        Literal["step", "multistep", "constant", "linear", "exponential", "polynomial"] | None
+    ) = None
+    #: Learning rate scheduler step size, if needed by the scheduler. Defaults to 10 (epochs).
+    lr_scheduler_step_size: int | Iterable[int] = 10
+    #: Learning rate scheduler step size, if needed by the scheduler.
+    #: Usually this is used by the ExponentialLR.
+    # : Defaults to 0.5.
+    lr_scheduler_gamma: float = 0.95
     #: Parameter of Horovod's ``DistributedOptimizer``: uses float16
     #: operations in the allreduce
     #: distributed gradients aggregation. Better performances at
