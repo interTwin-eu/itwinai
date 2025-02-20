@@ -1,4 +1,4 @@
-from pathlib import Path
+import copy
 from unittest.mock import MagicMock
 
 import pytest
@@ -84,9 +84,26 @@ def test_inexistent_checkpoint():
         assert "checkpoint is not found" in err
 
 
+def equal_models(model1: torch.nn.Module, model2: torch.nn.Module) -> bool:
+    # Compare the state dictionaries
+    state_dict1 = model1.state_dict()
+    state_dict2 = model2.state_dict()
+
+    if state_dict1.keys() != state_dict2.keys():
+        return False
+
+    for key in state_dict1:
+        if not torch.equal(state_dict1[key], state_dict2[key]):
+            print(f"Mismatch in parameter: {key}")
+            return False
+
+    return True
+
+
 @pytest.mark.parametrize("strategy", STRATEGIES)
 def test_checkpoint_loading(strategy, tmp_path):
     model = torch.nn.Linear(10, 1)
+    untrained_model = copy.deepcopy(model)
     ckpt_path = tmp_path / "checkpoint"
     ckpt_path.mkdir(parents=True, exist_ok=True)
 
@@ -113,7 +130,11 @@ def test_checkpoint_loading(strategy, tmp_path):
     # Run training -- generate checkpoints
     trainer.execute(train_dataset=train_dataset, validation_dataset=validation_dataset)
 
+    # Check that the model was actually trained
+    assert not equal_models(trainer.model, untrained_model)
+
     # Create TorchTrainer instance with checkpoint
+    model = torch.nn.Linear(10, 1)
     target_ckpt = ckpt_path / "best_model"
     trainer = TorchTrainer(
         config=get_mock_config(),
@@ -157,8 +178,7 @@ def test_checkpoint_loading(strategy, tmp_path):
     assert trainer.epoch == epoch, "Epoch should be restored from checkpoint"
 
     # Validate model parameters
-    for p1, p2 in zip(trainer.model.parameters(), loaded_model.parameters()):
-        assert torch.equal(p1, p2), "Model parameters do not match after loading checkpoint"
+    assert equal_models(trainer.model, loaded_model), "Model checkpoint not loaded correctly"
 
     # Validate optimizer state
     assert trainer.optimizer is not None, "Optimizer should be initialized"
