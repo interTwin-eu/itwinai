@@ -147,8 +147,6 @@ def test_checkpoint_loading(strategy, tmp_path):
     loaded_optim.load_state_dict(optimizer_state_dict)
     loaded_lr_scheduler.load_state_dict(lr_scheduler_state_dict)
 
-    raise ValueError(loaded_lr_scheduler.state_dict())
-
     # Best validation loss
     assert best_validation_loss == best_val_loss
     assert trainer.best_validation_loss == best_val_loss, (
