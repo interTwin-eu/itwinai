@@ -22,7 +22,7 @@ from pathlib import Path
 from typing import Any, Callable, Dict, List, Literal, Optional, Tuple, Union
 
 import ray.train
-import ray.train.horovod
+
 import ray.train.torch
 import ray.tune
 import torch
@@ -613,6 +613,8 @@ class TorchTrainer(Trainer, LogMixin):
             )
 
             if isinstance(self.strategy, RayHorovodStrategy):
+                import ray.train.horovod
+
                 # Using Horovod with Ray
                 trainer = ray.train.horovod.HorovodTrainer(
                     train_with_data,
