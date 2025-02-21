@@ -1,3 +1,14 @@
+# --------------------------------------------------------------------------------------
+# Part of the interTwin Project: https://www.intertwin.eu/
+#
+# Created by: Matteo Bunino
+#
+# Credit:
+# - Matteo Bunino <matteo.bunino@cern.ch> - CERN
+# - Anna Lappe <anna.elisa.lappe@cern.ch> - CERN
+# --------------------------------------------------------------------------------------
+
+
 """Logic to parse configuration and transform it into Ray objects."""
 
 import logging
@@ -20,20 +31,13 @@ def tune_config(tune_config: Dict | None) -> ray.tune.TuneConfig | None:
         )
         return
 
-    search_alg = get_raytune_search_alg(tune_config)
-    scheduler = get_raytune_scheduler(tune_config)
-
-    metric = tune_config.get("metric", "loss")
-    mode = tune_config.get("mode", "min")
+    tune_config["search_alg"] = get_raytune_search_alg(tune_config)
+    tune_config["scheduler"] = get_raytune_scheduler(tune_config)
+    tune_config["metric"] = tune_config.get("metric", "loss")
+    tune_config["mode"] = tune_config.get("mode", "min")
 
     try:
-        return ray.tune.TuneConfig(
-            **tune_config,
-            search_alg=search_alg,
-            scheduler=scheduler,
-            metric=metric,
-            mode=mode,
-        )
+        return ray.tune.TuneConfig(**tune_config)
     except Exception as exc:
         exc.add_note(
             "Could not instantiate TuneConfig. Please ensure that you have passed the "
