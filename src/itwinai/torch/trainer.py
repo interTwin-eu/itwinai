@@ -32,8 +32,9 @@ import torch.optim as optim
 import torch.optim.lr_scheduler as lr_scheduler
 import torchvision
 import yaml
-from ray.train import RunConfig, ScalingConfig
+from ray.train import DataConfig, RunConfig, ScalingConfig
 from ray.train.horovod.config import HorovodConfig
+from ray.train.torch import TorchConfig
 from ray.tune import TuneConfig
 from torch.nn.parallel import DistributedDataParallel as DDP
 from torch.optim.lr_scheduler import LRScheduler
@@ -107,8 +108,12 @@ class TorchTrainer(Trainer, LogMixin):
             Defaults to None.
         ray_search_space (Dict[str, Any], optional): search space for Ray Tuner.
             Defaults to None.
-        ray_horovod_config (HorovodConfig, optional): configuration for Ray horovod trainer.
+        ray_torch_config (TorchConfig, optional): torch configuration for Ray's TorchTrainer.
             Defaults to None.
+        ray_data_config (DataConfig, optional): dataset configuration for Ray.
+            Defaults to None.
+        ray_horovod_config (HorovodConfig, optional): horovod configuration for Ray's
+            HorovodTrainer. Defaults to None.
         from_checkpoint (str | Path, optional): path to checkpoint directory. Defaults to None.
     """
 
@@ -173,6 +178,8 @@ class TorchTrainer(Trainer, LogMixin):
         ray_tune_config: TuneConfig | None = None,
         ray_run_config: RunConfig | None = None,
         ray_search_space: Dict[str, Any] | None = None,
+        ray_torch_config: TorchConfig | None = None,
+        ray_data_config: DataConfig | None = None,
         ray_horovod_config: HorovodConfig | None = None,
         from_checkpoint: str | Path | None = None,
     ) -> None:
@@ -207,6 +214,8 @@ class TorchTrainer(Trainer, LogMixin):
         self.ray_run_config = ray_run_config
         self.ray_search_space = ray_search_space
         self.ray_horovod_config = ray_horovod_config
+        self.ray_torch_config = ray_torch_config
+        self.ray_data_config = ray_data_config
         self.from_checkpoint = from_checkpoint
 
         if self.from_checkpoint:
@@ -220,6 +229,8 @@ class TorchTrainer(Trainer, LogMixin):
         py_logger.debug(f"ray_tune_config: {ray_tune_config}")
         py_logger.debug(f"ray_run_config: {ray_run_config}")
         py_logger.debug(f"ray_horovod_config: {ray_horovod_config}")
+        py_logger.debug(f"ray_torch_config: {ray_torch_config}")
+        py_logger.debug(f"ray_data_config: {ray_data_config}")
         py_logger.debug(f"ray_search_space: {ray_search_space}")
 
         # Initial training state -- can be resumed from a checkpoint
@@ -628,6 +639,11 @@ class TorchTrainer(Trainer, LogMixin):
             )
 
             if isinstance(self.strategy, RayHorovodStrategy):
+                if self.ray_torch_config:
+                    py_logger.warning(
+                        "Ray torch config was passed, but it's ignored "
+                        f"{self.strategy.__class__.__name__} strategy is used"
+                    )
                 import ray.train.horovod
 
                 # Using Horovod with Ray
@@ -637,6 +653,7 @@ class TorchTrainer(Trainer, LogMixin):
                     horovod_config=self.ray_horovod_config,
                     scaling_config=self.ray_scaling_config,
                     run_config=self.ray_run_config,
+                    dataset_config=self.ray_data_config,
                 )
             else:
                 # Using DDP or DeepSpeed with Ray
@@ -650,6 +667,8 @@ class TorchTrainer(Trainer, LogMixin):
                     train_loop_config=None,
                     scaling_config=self.ray_scaling_config,
                     run_config=self.ray_run_config,
+                    torch_config=self.ray_torch_config,
+                    dataset_config=self.ray_data_config,
                 )
             param_space = {"train_loop_config": search_space(self.ray_search_space)}
             tuner = ray.tune.Tuner(
@@ -682,6 +701,14 @@ class TorchTrainer(Trainer, LogMixin):
             if self.ray_horovod_config:
                 py_logger.warning(
                     "Ray horovod config was passed, but it's ignored as Ray is not used"
+                )
+            if self.ray_torch_config:
+                py_logger.warning(
+                    "Ray torch config was passed, but it's ignored as Ray is not used"
+                )
+            if self.ray_data_config:
+                py_logger.warning(
+                    "Ray dataset config was passed, but it's ignored as Ray is not used"
                 )
             # Run without Ray
             self._run_worker(
@@ -1181,8 +1208,12 @@ class GANTrainer(TorchTrainer):
             Defaults to None.
         ray_search_space (Dict[str, Any], optional): search space for Ray Tuner.
             Defaults to None.
-        ray_horovod_config (HorovodConfig, optional): configuration for Ray horovod trainer.
+        ray_torch_config (TorchConfig, optional): torch configuration for Ray's TorchTrainer.
             Defaults to None.
+        ray_data_config (DataConfig, optional): dataset configuration for Ray.
+            Defaults to None.
+        ray_horovod_config (HorovodConfig, optional): horovod configuration for Ray's
+            HorovodTrainer. Defaults to None.
         from_checkpoint (str | Path, optional): path to checkpoint directory. Defaults to None.
     """
 
@@ -1206,6 +1237,8 @@ class GANTrainer(TorchTrainer):
         ray_tune_config: TuneConfig | None = None,
         ray_run_config: RunConfig | None = None,
         ray_search_space: Dict[str, Any] | None = None,
+        ray_torch_config: TorchConfig | None = None,
+        ray_data_config: DataConfig | None = None,
         ray_horovod_config: HorovodConfig | None = None,
         from_checkpoint: str | Path | None = None,
         **kwargs,
@@ -1230,7 +1263,8 @@ class GANTrainer(TorchTrainer):
             ray_search_space=ray_search_space,
             ray_horovod_config=ray_horovod_config,
             from_checkpoint=from_checkpoint,
-            **kwargs,
+            ray_torch_config=ray_torch_config,
+            ray_data_config=ray_data_config**kwargs,
         )
         self.save_parameters(**self.locals2params(locals()))
 
