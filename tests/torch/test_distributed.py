@@ -384,7 +384,7 @@ def test_ray_ddp_strategy(strategy_name):
             # Test initialization
             init_path = "horovod.torch.init"
             with patch(init_path, autospec=True) as mock_init_ds:
-                strategy = HorovodStrategy()
+                strategy = RayHorovodStrategy()
                 strategy.init()
                 mock_init_ds.assert_called_once()
 
