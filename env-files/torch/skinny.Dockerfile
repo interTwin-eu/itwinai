@@ -35,8 +35,7 @@ RUN uv venv \
     # This is needed by UV to trust all indexes:
     --index-strategy unsafe-best-match \
     # Install packages
-    # hpo extra needed for tests of tuning features
-    .[torch,hpo] \
+    .[torch] \
     "prov4ml[nvidia]@git+https://github.com/matbun/ProvML@new-main" \
     pytest \
     pytest-xdist \
