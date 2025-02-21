@@ -1,7 +1,33 @@
+# --------------------------------------------------------------------------------------
+# Part of the interTwin Project: https://www.intertwin.eu/
+#
+# Created by: Matteo Bunino
+#
+# Credit:
+# - Matteo Bunino <matteo.bunino@cern.ch> - CERN
+# --------------------------------------------------------------------------------------
+
+
 import pytest
 import ray.train
 import ray.tune
+from ray.tune import TuneConfig
+from ray.tune.schedulers import (
+    AsyncHyperBandScheduler,
+    HyperBandForBOHB,
+    HyperBandScheduler,
+    PopulationBasedTraining,
+)
+from ray.tune.schedulers.pb2 import PB2
+from ray.tune.search.ax import AxSearch
+from ray.tune.search.bayesopt import BayesOptSearch
+from ray.tune.search.bohb import TuneBOHB
+from ray.tune.search.hebo import HEBOSearch
+from ray.tune.search.hyperopt import HyperOptSearch
+from ray.tune.search.nevergrad import NevergradSearch
+from ray.tune.search.optuna import OptunaSearch
 from ray.tune.search.sample import Categorical, Float, Integer
+from ray.tune.search.zoopt import ZOOptSearch
 
 from itwinai.torch.ray import (
     run_config,
@@ -17,16 +43,6 @@ ray_scaling_config = {
     "resources_per_worker": {"CPU": 4, "GPU": 1},
 }
 
-ray_tune_config = {
-    "num_samples": 1,
-    "scheduler": {
-        "name": "asha",
-        "max_t": 5,
-        "grace_period": 2,
-        "reduction_factor": 6,
-        "brackets": 1,
-    },
-}
 
 ray_run_config = {
     "storage_path": "ray_checkpoints",
@@ -35,18 +51,56 @@ ray_run_config = {
 
 
 def test_tune_config():
-    """Test tune config parser and exception handling"""
-    config = tune_config(ray_tune_config)
-    assert isinstance(config, ray.tune.TuneConfig)
-    assert config.num_samples == 1
-    assert config.metric == "loss"
-    assert config.mode == "min"
+    """Test tune config parser including search algorithms and schedulers"""
+    tune_cfg = {
+        "num_samples": 2,
+        "metric": "accuracy",
+        "mode": "max",
+        "scheduler": {"name": "asha", "max_t": 5, "grace_period": 2, "reduction_factor": 6},
+        "search_alg": {"name": "hyperopt"},
+    }
+    config = tune_config(tune_cfg)
+    assert isinstance(config, TuneConfig)
+    assert config.num_samples == 2
+    assert config.metric == "accuracy"
+    assert config.mode == "max"
+    assert isinstance(config.scheduler, AsyncHyperBandScheduler)
+    assert isinstance(config.search_alg, HyperOptSearch)
+
+    schedulers = [
+        ("hyperband", HyperBandScheduler),
+        ("bohb", HyperBandForBOHB),
+        ("pbt", PopulationBasedTraining),
+        ("pb2", PB2),
+    ]
+    for name, sched_class in schedulers:
+        tune_cfg["scheduler"] = {"name": name}
+        config = tune_config(tune_cfg)
+        assert isinstance(config.scheduler, sched_class)
+
+    search_algs = [
+        ("ax", AxSearch),
+        ("bayesopt", BayesOptSearch),
+        ("bohb", TuneBOHB),
+        ("hyperopt", HyperOptSearch),
+        ("hebo", HEBOSearch),
+        ("nevergrad", NevergradSearch),
+        ("optuna", OptunaSearch),
+        ("zoo", ZOOptSearch),
+    ]
+    for name, search_class in search_algs:
+        tune_cfg["search_alg"] = {"name": name}
+        config = tune_config(tune_cfg)
+        assert isinstance(config.search_alg, search_class)
 
     config = tune_config(None)
     assert config is None
 
-    with pytest.raises(TypeError):
-        tune_config({"invalid_key": "value"})
+    with pytest.raises(Exception):
+        tune_config({"search_alg": {"name": "invalid"}})
+
+    with pytest.raises(Exception):
+        tune_config({"scheduler": {"name": "invalid"}})
 
 
 def test_scaling_config():

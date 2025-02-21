@@ -5,8 +5,9 @@
 #
 # Credit:
 # - Anna Lappe <anna.elisa.lappe@cern.ch> - CERN
+# - Matteo Bunino <matteo.bunino@cern.ch> - CERN
 # --------------------------------------------------------------------------------------
-
+import logging
 from typing import Dict
 
 from ray.tune.schedulers import (
@@ -24,6 +25,8 @@ from ray.tune.search.hyperopt import HyperOptSearch
 from ray.tune.search.nevergrad import NevergradSearch
 from ray.tune.search.optuna import OptunaSearch
 from ray.tune.search.zoopt import ZOOptSearch
+
+py_logger = logging.getLogger(__name__)
 
 
 def get_raytune_search_alg(
@@ -55,17 +58,18 @@ def get_raytune_search_alg(
 
     match scheduler_name.lower():
         case "pbt" | "pb2":
-            print(
-                f"INFO: Using scheduler {scheduler_name} "
+            py_logger.info(
+                f"Using scheduler {scheduler_name} "
                 "is not compatible with Ray Tune search algorithms."
             )
-            print(f"Using the Ray Tune {scheduler_name} scheduler without search algorithm")
+            py_logger.info(
+                f"Using the Ray Tune {scheduler_name} scheduler without search algorithm"
+            )
             return None
 
         case "bohb":
-            print(
-                "INFO: Using TuneBOHB search algorithm since it is required for BOHB "
-                "scheduler."
+            py_logger.info(
+                "Using TuneBOHB search algorithm since it is required for BOHB scheduler."
             )
             return TuneBOHB()
 
@@ -91,18 +95,18 @@ def get_raytune_search_alg(
             case "zoo":
                 return ZOOptSearch(**search_alg)
             case _:
-                print(
-                    "INFO: No search algorithm detected. Using Ray Tune BasicVariantGenerator."
+                py_logger.info(
+                    "No search algorithm detected. Using Ray Tune BasicVariantGenerator."
                 )
                 return None
-    except AttributeError as e:
-        print(
+    except Exception as exc:
+        exc.add_note(
             "Invalid search algorithm configuration passed. Please make sure that the search "
             "algorithm you are using has the correct attributes. You can read more about the "
             "different search algorithms supported by Ray Tune at "
             "https://docs.ray.io/en/latest/tune/api/suggestion.html. "
         )
-        print(e)
+        raise exc
 
 
 def get_raytune_scheduler(
@@ -142,15 +146,15 @@ def get_raytune_scheduler(
             case "pb2":
                 return PB2(**scheduler)
             case _:
-                print(
-                    "INFO: No search algorithm detected. Using default Ray Tune FIFOScheduler."
+                py_logger.info(
+                    "No search algorithm detected. Using default Ray Tune FIFOScheduler."
                 )
                 return None
-    except AttributeError as e:
-        print(
+    except Exception as exc:
+        exc.add_note(
             "Invalid scheduler configuration passed. Please make sure that the scheduler "
             "you are using has the correct attributes. You can read more about the "
             "different schedulers supported by Ray Tune at "
             "https://docs.ray.io/en/latest/tune/api/schedulers.html."
         )
-        print(e)
+        raise exc
