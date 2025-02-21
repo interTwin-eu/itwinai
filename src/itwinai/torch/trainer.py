@@ -20,7 +20,7 @@ import tempfile
 from collections import defaultdict
 from pathlib import Path
 from time import perf_counter as default_timer
-from typing import Any, Callable, Dict, List, Literal, Optional, Tuple, Union
+from typing import TYPE_CHECKING, Any, Callable, Dict, List, Literal, Optional, Tuple, Union
 
 import ray.train
 import ray.train.torch
@@ -33,7 +33,6 @@ import torch.optim.lr_scheduler as lr_scheduler
 import torchvision
 import yaml
 from ray.train import DataConfig, RunConfig, ScalingConfig
-from ray.train.horovod.config import HorovodConfig
 from ray.train.torch import TorchConfig
 from ray.tune import TuneConfig
 from torch.nn.parallel import DistributedDataParallel as DDP
@@ -67,6 +66,9 @@ from .distributed import (
 from .ray import search_space
 from .reproducibility import seed_worker, set_seed
 from .type import Batch, Metric
+
+if TYPE_CHECKING:
+    from ray.train.horovod import HorovodConfig
 
 py_logger = logging.getLogger(__name__)
 
@@ -180,7 +182,7 @@ class TorchTrainer(Trainer, LogMixin):
         ray_search_space: Dict[str, Any] | None = None,
         ray_torch_config: TorchConfig | None = None,
         ray_data_config: DataConfig | None = None,
-        ray_horovod_config: HorovodConfig | None = None,
+        ray_horovod_config: "HorovodConfig" | None = None,
         from_checkpoint: str | Path | None = None,
     ) -> None:
         super().__init__(name)
@@ -1239,7 +1241,7 @@ class GANTrainer(TorchTrainer):
         ray_search_space: Dict[str, Any] | None = None,
         ray_torch_config: TorchConfig | None = None,
         ray_data_config: DataConfig | None = None,
-        ray_horovod_config: HorovodConfig | None = None,
+        ray_horovod_config: "HorovodConfig" | None = None,
         from_checkpoint: str | Path | None = None,
         **kwargs,
     ) -> None:

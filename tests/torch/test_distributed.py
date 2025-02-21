@@ -305,6 +305,7 @@ def get_adaptive_scaling_config() -> ScalingConfig:
         return ScalingConfig(num_workers=num_gpus, use_gpu=True)
 
 
+@pytest.mark.hpc
 @pytest.mark.ray_dist
 @pytest.mark.parametrize(
     "strategy_name",
