@@ -34,7 +34,7 @@ def tune_config(tune_config: Dict | None) -> ray.tune.TuneConfig | None:
             metric=metric,
             mode=mode,
         )
-    except AttributeError as exc:
+    except Exception as exc:
         exc.add_note(
             "Could not instantiate TuneConfig. Please ensure that you have passed the "
             "correct arguments for it. You can find more information for which "
@@ -51,7 +51,7 @@ def scaling_config(scaling_config: Dict | None) -> ray.train.ScalingConfig | Non
 
     try:
         return ray.train.ScalingConfig(**scaling_config)
-    except AttributeError as exc:
+    except Exception as exc:
         exc.add_note(
             "Could not instantiate ScalingConfig. Please ensure that you have passed the "
             "correct arguments for it. You can find more information for which "
@@ -69,14 +69,14 @@ def run_config(
         return
 
     try:
-        storage_path = Path(run_config.pop("storage_path")).resolve()
-
-        if not storage_path:
+        if not run_config.get("storage_path"):
             py_logger.info("Empty storage path provided. Using default path 'ray_checkpoints'")
             storage_path = (Path(default_checkpoints_root) / "ray_checkpoints").resolve()
+        else:
+            storage_path = Path(run_config.pop("storage_path")).resolve()
 
         return ray.train.RunConfig(**run_config, storage_path=storage_path)
-    except AttributeError as exc:
+    except Exception as exc:
         exc.add_note(
             "Could not instantiate RunConfig. Please ensure that you have passed the "
             "correct arguments for it. You can find more information for which "
@@ -111,7 +111,7 @@ def search_space(config: Dict | None) -> Dict:
             param = getattr(ray.tune, param_type)(**param)
             search_space[name] = param
         return search_space
-    except AttributeError as exc:
+    except Exception as exc:
         exc.add_note(
             f"{param} could not be set. Check that this parameter type is "
             "supported by Ray Tune at "

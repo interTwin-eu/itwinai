@@ -1,5 +1,7 @@
+import pytest
 import ray.train
 import ray.tune
+from ray.tune.search.sample import Categorical, Float, Integer
 
 from itwinai.torch.ray import (
     run_config,
@@ -31,14 +33,9 @@ ray_run_config = {
     "name": "MNIST-HPO-Experiment",
 }
 
-ray_search_space = {
-    "batch_size": {"type": "choice", "categories": [2, 4]},
-    "optim_lr": {"type": "uniform", "lower": 1e-5, "upper": 1e-3},
-}
-
 
 def test_tune_config():
-    """Test tune config parser"""
+    """Test tune config parser and exception handling"""
     config = tune_config(ray_tune_config)
     assert isinstance(config, ray.tune.TuneConfig)
     assert config.num_samples == 1
@@ -48,9 +45,12 @@ def test_tune_config():
     config = tune_config(None)
     assert config is None
 
+    with pytest.raises(TypeError):
+        tune_config({"invalid_key": "value"})
+
 
 def test_scaling_config():
-    """Test scaling config parser"""
+    """Test scaling config parser and exception handling"""
     config = scaling_config(ray_scaling_config)
     assert isinstance(config, ray.train.ScalingConfig)
     assert config.num_workers == 2
@@ -61,37 +61,90 @@ def test_scaling_config():
     config = scaling_config(None)
     assert config is None
 
+    with pytest.raises(TypeError):
+        scaling_config({"invalid_key": "value"})
 
-def test_run_config():
-    """Test run config parser"""
-    config = run_config(ray_run_config)
+
+def test_run_config(tmp_path):
+    """Test run config parser and exception handling"""
+    config = run_config(ray_run_config, tmp_path)
     assert isinstance(config, ray.train.RunConfig)
     assert str(config.storage_path).endswith("ray_checkpoints")
     assert config.name == "MNIST-HPO-Experiment"
 
-    config = run_config(None)
+    config = run_config(None, tmp_path)
     assert config is None
+
+    with pytest.raises(TypeError):
+        run_config({"invalid_key": "value"}, tmp_path)
 
 
 def test_search_space():
-    """Test search space config parser"""
-    from ray.tune.search.sample import Categorical, Float
-
-    # TODO: test also other types
-    # TODO: test also for raised exceptions
-
-    search_params = search_space(ray_search_space)
+    """Test search space config parser for all Ray Tune types and exceptions"""
+    search_params = search_space(
+        {
+            "uniform_param": {"type": "uniform", "lower": 1e-5, "upper": 1e-3},
+            "quniform_param": {"type": "quniform", "lower": 1, "upper": 10, "q": 0.5},
+            "loguniform_param": {"type": "loguniform", "lower": 1, "upper": 100},
+            "qloguniform_param": {"type": "qloguniform", "lower": 1, "upper": 100, "q": 0.5},
+            "randn_param": {"type": "randn", "mean": 0.0, "sd": 1.0},
+            "qrandn_param": {"type": "qrandn", "mean": 0.0, "sd": 1.0, "q": 0.5},
+            "randint_param": {"type": "randint", "lower": 1, "upper": 100},
+            "qrandint_param": {"type": "qrandint", "lower": 1, "upper": 100, "q": 5},
+            "lograndint_param": {"type": "lograndint", "lower": 1, "upper": 100},
+            "qlograndint_param": {"type": "qlograndint", "lower": 1, "upper": 100, "q": 5},
+            "choice_param": {"type": "choice", "categories": [2, 4]},
+            "grid_param": {"type": "grid_search", "values": [1, 2, 3]},
+        }
+    )
     assert isinstance(search_params, dict)
-    assert "batch_size" in search_params
-    assert "optim_lr" in search_params
+    assert isinstance(search_params["uniform_param"], Float)
+    assert search_params["uniform_param"].lower == 1e-5
+    assert search_params["uniform_param"].upper == 1e-3
 
-    assert isinstance(search_params["batch_size"], Categorical)
-    assert search_params["batch_size"].categories == [2, 4]
+    assert isinstance(search_params["quniform_param"], Float)
+    assert search_params["quniform_param"].lower == 1
+    assert search_params["quniform_param"].upper == 10
 
-    assert isinstance(search_params["optim_lr"], Float)
-    assert search_params["optim_lr"].lower == 1e-5
-    assert search_params["optim_lr"].upper == 1e-3
+    assert isinstance(search_params["loguniform_param"], Float)
+    assert search_params["loguniform_param"].lower == 1
+    assert search_params["loguniform_param"].upper == 100
+
+    assert isinstance(search_params["qloguniform_param"], Float)
+    assert search_params["qloguniform_param"].lower == 1
+    assert search_params["qloguniform_param"].upper == 100
+
+    assert isinstance(search_params["randn_param"], Float)
+
+    assert isinstance(search_params["qrandn_param"], Float)
+
+    assert isinstance(search_params["randint_param"], Integer)
+    assert search_params["randint_param"].lower == 1
+    assert search_params["randint_param"].upper == 100
+
+    assert isinstance(search_params["qrandint_param"], Integer)
+    assert search_params["qrandint_param"].lower == 1
+    assert search_params["qrandint_param"].upper == 100
+
+    assert isinstance(search_params["lograndint_param"], Integer)
+    assert search_params["lograndint_param"].lower == 1
+    assert search_params["lograndint_param"].upper == 100
+
+    assert isinstance(search_params["qlograndint_param"], Integer)
+    assert search_params["qlograndint_param"].lower == 1
+    assert search_params["qlograndint_param"].upper == 100
+
+    assert isinstance(search_params["choice_param"], Categorical)
+    assert search_params["choice_param"].categories == [2, 4]
+    assert isinstance(search_params["grid_param"], dict)
+    assert search_params["grid_param"] == {"grid_search": [1, 2, 3]}
 
     search_params = search_space(None)
     assert isinstance(search_params, dict)
     assert search_params == {}
+
+    with pytest.raises(ValueError):
+        search_space({"invalid": "value"})
+
+    with pytest.raises(AttributeError):
+        search_space({"invalid_param": {"type": "unknown_type"}})
