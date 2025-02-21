@@ -61,7 +61,7 @@ lr_scheduler:
 seq_length: 120
 learning_rate: 0.001
 batch: 256
-epochs: 60
+epochs: 20
 gradient_clip: null
 target_weights: even # null, even, or dict
 
@@ -75,12 +75,12 @@ train_downsampler:
   _target_: hython.sampler.downsampler.RegularIntervalDownsampler
   intervals: [3,3]
   origin: [0,0]
-#
+
 valid_downsampler:  
   _target_: hython.sampler.downsampler.RegularIntervalDownsampler
   intervals: [3,3]
   origin: [1,1]
-#
+
 test_downsampler: 
   _target_: hython.sampler.downsampler.RegularIntervalDownsampler
   intervals: [3,3]
@@ -155,6 +155,7 @@ training_pipeline:
     - _target_: trainer.RNNDistributedTrainer
       model: ${model}
       epochs: ${epochs}
+      strategy: ${strategy}
       config:
         experiment: ${experiment_name}/${experiment_run}
         experiment_name: ${experiment_name}

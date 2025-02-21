@@ -142,11 +142,7 @@ class RNNDistributedTrainer(TorchTrainer):
 
             model_pt = Path(self.config.work_dir) / self.config.model_head_dir / self.config.model_head_file
 
-            surrogate.load_state_dict(
-                torch.load(
-                   model_pt
-                )
-            )
+            surrogate.load_state_dict(torch.load(model_pt))
 
             transfer_nn = get_hython_model(self.config.model_transfer)(
                 self.config.head_model_inputs,
@@ -189,6 +185,7 @@ class RNNDistributedTrainer(TorchTrainer):
             lr_scheduler=self.hython_trainer.lr_scheduler,
             **distribute_kwargs,
         )
+        self.hython_trainer.optimizer = self.optimizer
 
     def set_epoch(self, epoch: int):
         if self.profiler is not None:

@@ -4,7 +4,7 @@
 # Default arguments can be seen in src/itwinai/slurm/utils.py
 
 mode: single # "single", "runall" or "scaling-test" - defaults to "single"
-dist_strat: ddp # "ddp", "deepspeed" or "horovod"
+dist_strat: horovod # "ddp", "deepspeed" or "horovod"
 
 account: intertwin
 time: 01:00:00
@@ -16,7 +16,7 @@ job_name: eurac-${dist_strat}-job
 
 num_nodes: 1
 num_tasks_per_node: 1
-gpus_per_node: 4
+gpus_per_node: 2
 cpus_per_gpu: 4
 
 python_venv: ../../.venv
