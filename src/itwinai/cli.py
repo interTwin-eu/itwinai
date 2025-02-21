@@ -19,6 +19,7 @@
 # NOTE: import libraries in the command's function, not here, as having them here will
 # slow down the CLI commands significantly.
 
+import logging
 import os
 import sys
 from pathlib import Path
@@ -28,9 +29,9 @@ import hydra
 import typer
 from typing_extensions import Annotated
 
-from itwinai.utils import make_config_paths_absolute
-
 app = typer.Typer(pretty_exceptions_enable=False)
+
+py_logger = logging.getLogger(__name__)
 
 
 @app.command()
@@ -404,6 +405,7 @@ def exec_pipeline(
     by passing "+pipe_key=your_pipeline" in the list of overrides, and to execute only a
     subset of the steps, you can pass "+pipe_steps=[0,1]".
     """
+    from itwinai.utils import make_config_paths_absolute
 
     del sys.argv[0]
 
