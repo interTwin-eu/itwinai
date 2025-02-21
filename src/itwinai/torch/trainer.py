@@ -22,7 +22,6 @@ from pathlib import Path
 from typing import Any, Callable, Dict, List, Literal, Optional, Tuple, Union
 
 import ray.train
-
 import ray.train.torch
 import ray.tune
 import torch
@@ -32,6 +31,9 @@ import torch.optim as optim
 import torch.optim.lr_scheduler as lr_scheduler
 import torchvision
 import yaml
+from ray.train import RunConfig, ScalingConfig
+from ray.train.horovod.config import HorovodConfig
+from ray.tune import TuneConfig
 from torch.nn.parallel import DistributedDataParallel as DDP
 from torch.optim.lr_scheduler import LRScheduler
 from torch.optim.optimizer import Optimizer
@@ -56,7 +58,7 @@ from .distributed import (
     TorchDistributedStrategy,
     distributed_resources_available,
 )
-from .ray import run_config, scaling_config, search_space, tune_config
+from .ray import search_space
 from .reproducibility import seed_worker, set_seed
 from .type import Batch, Metric
 
@@ -92,13 +94,15 @@ class TorchTrainer(Trainer, LogMixin):
             the profiler.
         profiling_warmup_epochs (int): length of the profiler warmup phase in terms of
             number of epochs.
-        ray_scaling_config (Dict[str, Any], optional): scaling config for Ray Trainer.
+        ray_scaling_config (ScalingConfig, optional): scaling config for Ray Trainer.
             Defaults to None,
-        ray_tune_config (Dict[str, Any], optional): tune config for Ray Tuner.
+        ray_tune_config (TuneConfig, optional): tune config for Ray Tuner.
             Defaults to None.
-        ray_run_config (Dict[str, Any], optional): run config for Ray Trainer.
+        ray_run_config (RunConfig, optional): run config for Ray Trainer.
             Defaults to None.
         ray_search_space (Dict[str, Any], optional): search space for Ray Tuner.
+            Defaults to None.
+        ray_horovod_config (HorovodConfig, optional): configuration for Ray horovod trainer.
             Defaults to None.
         from_checkpoint (str | Path, optional): path to checkpoint directory. Defaults to None.
     """
@@ -155,10 +159,11 @@ class TorchTrainer(Trainer, LogMixin):
         name: str | None = None,
         profiling_wait_epochs: int = 1,
         profiling_warmup_epochs: int = 2,
-        ray_scaling_config: Dict[str, Any] | None = None,
-        ray_tune_config: Dict[str, Any] | None = None,
-        ray_run_config: Dict[str, Any] | None = None,
+        ray_scaling_config: ScalingConfig | None = None,
+        ray_tune_config: TuneConfig | None = None,
+        ray_run_config: RunConfig | None = None,
         ray_search_space: Dict[str, Any] | None = None,
+        ray_horovod_config: HorovodConfig | None = None,
         from_checkpoint: str | Path | None = None,
     ) -> None:
         super().__init__(name)
@@ -188,18 +193,20 @@ class TorchTrainer(Trainer, LogMixin):
         self.ray_tune_config = ray_tune_config
         self.ray_run_config = ray_run_config
         self.ray_search_space = ray_search_space
+        self.ray_horovod_config = ray_horovod_config
         self.from_checkpoint = from_checkpoint
 
         if self.from_checkpoint:
             self.from_checkpoint = Path(from_checkpoint)
             if not self.from_checkpoint.exists():
                 raise RuntimeError(
-                    "from_checkpoint was passed, but the checkpoint is not found"
+                    "from_checkpoint argument was passed, but the checkpoint is not found"
                 )
 
         py_logger.debug(f"ray_scaling_config: {ray_scaling_config}")
         py_logger.debug(f"ray_tune_config: {ray_tune_config}")
         py_logger.debug(f"ray_run_config: {ray_run_config}")
+        py_logger.debug(f"ray_horovod_config: {ray_horovod_config}")
         py_logger.debug(f"ray_search_space: {ray_search_space}")
 
         # Initial training state -- can be resumed from a checkpoint
@@ -429,11 +436,6 @@ class TorchTrainer(Trainer, LogMixin):
         # Loss can be changed with a custom one here!
         self._loss_from_config()
 
-        # # Save non-distributed copies of model, optim and lr scheduler
-        # self.original_model = self.model
-        # self.original_optimizer = self.optimizer
-        # self.original_lr_scheduler = self.lr_scheduler
-
         # IMPORTANT: model, optimizer, and scheduler need to be distributed
         distribute_kwargs = self.get_default_distributed_kwargs()
 
@@ -618,32 +620,29 @@ class TorchTrainer(Trainer, LogMixin):
                 # Using Horovod with Ray
                 trainer = ray.train.horovod.HorovodTrainer(
                     train_with_data,
-                    # TODO: this may have to be set to some relevant config
                     train_loop_config=None,
-                    # TODO: this may need to be set
-                    horovod_config=None,
-                    scaling_config=scaling_config(self.ray_scaling_config),
-                    run_config=run_config(
-                        self.ray_run_config, default_checkpoints_root=self.checkpoints_location
-                    ),
+                    horovod_config=self.ray_horovod_config,
+                    scaling_config=self.ray_scaling_config,
+                    run_config=self.ray_run_config,
                 )
             else:
                 # Using DDP or DeepSpeed with Ray
-                py_logger.debug(f"scaling config: {scaling_config(self.ray_scaling_config)}")
+                if self.ray_horovod_config:
+                    py_logger.warning(
+                        "Ray horovod config was passed, but it's ignored "
+                        f"{self.strategy.__class__.__name__} strategy is used"
+                    )
                 trainer = ray.train.torch.TorchTrainer(
                     train_with_data,
-                    # TODO: this may have to be set to some relevant config
                     train_loop_config=None,
-                    scaling_config=scaling_config(self.ray_scaling_config),
-                    run_config=run_config(
-                        self.ray_run_config, default_checkpoints_root=self.checkpoints_location
-                    ),
+                    scaling_config=self.ray_scaling_config,
+                    run_config=self.ray_run_config,
                 )
             param_space = {"train_loop_config": search_space(self.ray_search_space)}
             tuner = ray.tune.Tuner(
                 trainer,
                 param_space=param_space,
-                tune_config=tune_config(self.ray_tune_config),
+                tune_config=self.ray_tune_config,
             )
 
             result_grid = tuner.fit()
@@ -666,6 +665,10 @@ class TorchTrainer(Trainer, LogMixin):
             if self.ray_search_space:
                 py_logger.warning(
                     "Ray search space was passed, but it's ignored as Ray is not used"
+                )
+            if self.ray_horovod_config:
+                py_logger.warning(
+                    "Ray horovod config was passed, but it's ignored as Ray is not used"
                 )
             # Run without Ray
             self._run_worker(
@@ -1131,13 +1134,15 @@ class GANTrainer(TorchTrainer):
             the profiler.
         profiling_warmup_epochs (int): length of the profiler warmup phase in terms of
             number of epochs.
-        ray_scaling_config (Dict[str, Any], optional): scaling config for Ray Trainer.
+        ray_scaling_config (ScalingConfig, optional): scaling config for Ray Trainer.
             Defaults to None,
-        ray_tune_config (Dict[str, Any], optional): tune config for Ray Tuner.
+        ray_tune_config (TuneConfig, optional): tune config for Ray Tuner.
             Defaults to None.
-        ray_run_config (Dict[str, Any], optional): run config for Ray Trainer.
+        ray_run_config (RunConfig, optional): run config for Ray Trainer.
             Defaults to None.
         ray_search_space (Dict[str, Any], optional): search space for Ray Tuner.
+            Defaults to None.
+        ray_horovod_config (HorovodConfig, optional): configuration for Ray horovod trainer.
             Defaults to None.
         from_checkpoint (str | Path, optional): path to checkpoint directory. Defaults to None.
     """
@@ -1158,10 +1163,11 @@ class GANTrainer(TorchTrainer):
         name: Optional[str] = None,
         profiling_wait_epochs: int = 1,
         profiling_warmup_epochs: int = 2,
-        ray_scaling_config: Dict[str, Any] | None = None,
-        ray_tune_config: Dict[str, Any] | None = None,
-        ray_run_config: Dict[str, Any] | None = None,
+        ray_scaling_config: ScalingConfig | None = None,
+        ray_tune_config: TuneConfig | None = None,
+        ray_run_config: RunConfig | None = None,
         ray_search_space: Dict[str, Any] | None = None,
+        ray_horovod_config: HorovodConfig | None = None,
         from_checkpoint: str | Path | None = None,
         **kwargs,
     ) -> None:
@@ -1183,12 +1189,14 @@ class GANTrainer(TorchTrainer):
             ray_tune_config=ray_tune_config,
             ray_run_config=ray_run_config,
             ray_search_space=ray_search_space,
+            ray_horovod_config=ray_horovod_config,
             from_checkpoint=from_checkpoint,
             **kwargs,
         )
         self.save_parameters(**self.locals2params(locals()))
 
         # Initial training state -- can be resumed from a checkpoint
+        # TODO: complete this...
         self.discriminator = discriminator
         self.generator = generator
         self.optimizerD_state_dict = None
