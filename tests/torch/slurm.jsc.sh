@@ -58,6 +58,7 @@ if [ $SLURM_CPUS_PER_GPU -gt 0 ] ; then
 fi
 
 # Launch distributed job in container with torchrun
+# NOTE: this was copied from the script for Vega and may not work here
 torchrun_launcher ()
 {
   # Avoid propagating PYTHONPATH to the singularity container, as it breaks the import of packages inside the container
@@ -83,6 +84,7 @@ torchrun_launcher ()
 }
 
 # Launch distribtued job in container with mpirun
+# NOTE: this was copied from the script for Vega and may not work here
 mpirun_launcher ()
 {
   # https://doc.vega.izum.si/mpi/#multi-node-jobs
@@ -142,6 +144,7 @@ mpirun_launcher ()
 }
 
 # Launch distribtued job in container with srun
+# NOTE: this was copied from the script for Vega and may not work here
 srun_launcher ()
 {
   # Avoid propagating PYTHONPATH to the singularity container, as it breaks the import of packages inside the container
@@ -223,7 +226,7 @@ ray_launcher(){
   echo All Ray workers started.
 
   # Run command without srun
-  $1 training_pipeline.steps.training_step.ray_scaling_config.num_workers=$(($SLURM_GPUS_PER_NODE * $SLURM_NNODES))
+  $1 
 }
 
 
