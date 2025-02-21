@@ -12,82 +12,13 @@
 """Logic to parse configuration and transform it into Ray objects."""
 
 import logging
-from pathlib import Path
 from typing import Dict
 
 import ray.train
 import ray.tune
+from ray.tune.search.sample import Categorical, Float, Function, Integer
 
 py_logger = logging.getLogger(__name__)
-
-
-def tune_config(tune_config: Dict | None) -> ray.tune.TuneConfig | None:
-    from .tuning import get_raytune_scheduler, get_raytune_search_alg
-
-    if not tune_config:
-        py_logger.warning(
-            "Empty Tune Config configured. Using the default configuration with "
-            "a single trial."
-        )
-        return
-
-    tune_config["search_alg"] = get_raytune_search_alg(tune_config)
-    tune_config["scheduler"] = get_raytune_scheduler(tune_config)
-    tune_config["metric"] = tune_config.get("metric", "loss")
-    tune_config["mode"] = tune_config.get("mode", "min")
-
-    try:
-        return ray.tune.TuneConfig(**tune_config)
-    except Exception as exc:
-        exc.add_note(
-            "Could not instantiate TuneConfig. Please ensure that you have passed the "
-            "correct arguments for it. You can find more information for which "
-            "arguments to set at "
-            "https://docs.ray.io/en/latest/tune/api/doc/ray.tune.TuneConfig.html."
-        )
-        raise exc
-
-
-def scaling_config(scaling_config: Dict | None) -> ray.train.ScalingConfig | None:
-    if not scaling_config:
-        py_logger.warning("No Scaling Config configured. Running trials non-distributed.")
-        return
-
-    try:
-        return ray.train.ScalingConfig(**scaling_config)
-    except Exception as exc:
-        exc.add_note(
-            "Could not instantiate ScalingConfig. Please ensure that you have passed the "
-            "correct arguments for it. You can find more information for which "
-            "arguments to set at "
-            "https://docs.ray.io/en/latest/train/api/doc/ray.train.ScalingConfig.html"
-        )
-        raise exc
-
-
-def run_config(
-    run_config: Dict | None, default_checkpoints_root: Path | str
-) -> ray.train.RunConfig | None:
-    if not run_config:
-        py_logger.warning("No RunConfig provided. Assuming local or single-node execution.")
-        return
-
-    try:
-        if not run_config.get("storage_path"):
-            py_logger.info("Empty storage path provided. Using default path 'ray_checkpoints'")
-            storage_path = (Path(default_checkpoints_root) / "ray_checkpoints").resolve()
-        else:
-            storage_path = Path(run_config.pop("storage_path")).resolve()
-
-        return ray.train.RunConfig(**run_config, storage_path=storage_path)
-    except Exception as exc:
-        exc.add_note(
-            "Could not instantiate RunConfig. Please ensure that you have passed the "
-            "correct arguments for it. You can find more information for which "
-            "arguments to set at "
-            "https://docs.ray.io/en/latest/train/api/doc/ray.train.RunConfig.html"
-        )
-        raise exc
 
 
 def search_space(config: Dict | None) -> Dict:
@@ -101,6 +32,16 @@ def search_space(config: Dict | None) -> Dict:
     try:
         search_space = {}
         for name, param in config.items():
+            if isinstance(param, (Categorical, Float, Integer, Function)):
+                # The param is already a tune object and does not need to be parsed
+                search_space[name] = param
+                continue
+            if isinstance(param, dict) and "grid_search" in param:
+                # The param is already a tune grid search object and does not need to be parsed
+                search_space[name] = param
+                continue
+
+            # From now on this function tries to parse the params from a dictionary
             if not isinstance(param, dict):
                 raise ValueError(
                     f"Unable to parse '{param}' in the config as a tunable param."
