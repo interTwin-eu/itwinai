@@ -1108,6 +1108,8 @@ class RayDDPStrategy(TorchDDPStrategy, RayTorchDistributedStrategy):
         """
         if not ray_cluster_is_running():
             raise RuntimeError("Ray cluster was not detected")
+        if self.is_initialized:
+            raise DistributedStrategyError("Strategy was already initialized")
         self.is_initialized = True
 
     @check_initialized
