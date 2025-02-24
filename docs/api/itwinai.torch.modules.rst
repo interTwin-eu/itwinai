@@ -28,6 +28,7 @@ inference.py
    :show-inheritance:
    :member-order: bysource
 
+
 loggers.py
 ++++++++++
 .. automodule:: itwinai.torch.loggers
@@ -35,7 +36,8 @@ loggers.py
    :undoc-members:
    :show-inheritance:
    :member-order: bysource
-   
+
+
 mlflow.py
 +++++++++
 .. automodule:: itwinai.torch.mlflow
@@ -63,10 +65,18 @@ type.py
    :member-order: bysource
 
 
-
 trainer.py
 ++++++++++
 .. automodule:: itwinai.torch.trainer
+   :members:
+   :undoc-members:
+   :show-inheritance:
+   :member-order: bysource
+
+
+tuning.py
+++++++++++
+.. automodule:: itwinai.torch.tuning
    :members:
    :undoc-members:
    :show-inheritance:

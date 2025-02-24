@@ -58,8 +58,8 @@ from .distributed import (
     TorchDistributedStrategy,
     distributed_resources_available,
 )
-from .ray import search_space
 from .reproducibility import seed_worker, set_seed
+from .tuning import search_space
 from .type import Batch, Metric
 
 if TYPE_CHECKING:
@@ -172,7 +172,7 @@ class TorchTrainer(Trainer, LogMixin):
         ray_search_space: Dict[str, Any] | None = None,
         ray_torch_config: TorchConfig | None = None,
         ray_data_config: DataConfig | None = None,
-        ray_horovod_config: "HorovodConfig" | None = None,
+        ray_horovod_config: Optional["HorovodConfig"] = None,
         from_checkpoint: str | Path | None = None,
     ) -> None:
         super().__init__(name)
@@ -618,8 +618,8 @@ class TorchTrainer(Trainer, LogMixin):
         """
         if isinstance(self.strategy, RayTorchDistributedStrategy):
             # Run with Ray
-            # TODO: check that args can be always passed like this (e.g., large datasets or
-            # weird objs)
+            import ray.tune
+
             train_with_data = ray.tune.with_parameters(
                 self._run_worker,
                 train_dataset=train_dataset,
@@ -627,10 +627,15 @@ class TorchTrainer(Trainer, LogMixin):
                 test_dataset=test_dataset,
             )
 
+            if self.ray_run_config:
+                # Create Ray checkpoints dir if it does not exist yet
+                ckpt_dir = Path(self.ray_run_config.storage_path)
+                ckpt_dir.mkdir(parents=True, exist_ok=True)
+
             if isinstance(self.strategy, RayHorovodStrategy):
                 if self.ray_torch_config:
                     py_logger.warning(
-                        "Ray torch config was passed, but it's ignored "
+                        "Ray torch config was passed, but it's ignored as "
                         f"{self.strategy.__class__.__name__} strategy is used"
                     )
                 import ray.train.horovod
@@ -648,7 +653,7 @@ class TorchTrainer(Trainer, LogMixin):
                 # Using DDP or DeepSpeed with Ray
                 if self.ray_horovod_config:
                     py_logger.warning(
-                        "Ray horovod config was passed, but it's ignored "
+                        "Ray horovod config was passed, but it's ignored as "
                         f"{self.strategy.__class__.__name__} strategy is used"
                     )
                 trainer = ray.train.torch.TorchTrainer(
@@ -1202,7 +1207,7 @@ class GANTrainer(TorchTrainer):
         ray_search_space: Dict[str, Any] | None = None,
         ray_torch_config: TorchConfig | None = None,
         ray_data_config: DataConfig | None = None,
-        ray_horovod_config: "HorovodConfig" | None = None,
+        ray_horovod_config: Optional["HorovodConfig"] | None = None,
         from_checkpoint: str | Path | None = None,
         **kwargs,
     ) -> None:
