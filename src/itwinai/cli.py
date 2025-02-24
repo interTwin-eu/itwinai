@@ -298,6 +298,10 @@ def exec_pipeline_with_compose(cfg):
     from hydra.utils import instantiate
     from omegaconf import OmegaConf, errors
 
+    # Register custom OmegaConf resolver to allow to dynaimcally compute the current working
+    # directory. Example: some_field: ${cwd:}/some/nested/path/in/current/working/dir
+    OmegaConf.register_new_resolver("cwd", lambda: os.getcwd())
+
     pipe_steps = OmegaConf.select(cfg, "pipe_steps", default=None)
     pipe_key = OmegaConf.select(cfg, "pipe_key", default="training_pipeline")
 
