@@ -39,6 +39,7 @@ echo "DEBUG: SLURM_TASKS_PER_NODE: $SLURM_TASKS_PER_NODE"
 echo "DEBUG: SLURM_SUBMIT_HOST: $SLURM_SUBMIT_HOST"
 echo "DEBUG: SLURMD_NODENAME: $SLURMD_NODENAME"
 echo "DEBUG: SLURM_CPUS_PER_TASK: $SLURM_CPUS_PER_TASK"
+echo "DEBUG: TRAINING_CMD: $TRAINING_CMD"
 
 if [ "$DEBUG" = true ] ; then
   echo "DEBUG: NCCL_DEBUG=INFO" 
@@ -143,6 +144,7 @@ function torchrun-launcher(){
     --rdzv_conf=is_host=\$(((SLURM_NODEID)) && echo 0 || echo 1) \
     --rdzv_backend=c10d \
     --rdzv_endpoint='$(scontrol show hostnames "$SLURM_JOB_NODELIST" | head -n 1)'i:29500 \
+    --no-python \
     $1"
 }
 
@@ -159,6 +161,16 @@ function decho (){
   >&2 echo "$@"
 }
 
+function separation(){
+
+  decho
+  decho "======================================================================================"
+  decho "======================================================================================"
+  decho "======================================================================================"
+  decho
+
+}
+
 # Get GPUs info per node
 srun --cpu-bind=none --ntasks-per-node=1 bash -c 'echo -e "NODE hostname: $(hostname)\n$(nvidia-smi)\n\n"'
 
@@ -169,7 +181,7 @@ if [ "$DIST_MODE" == "ddp" ] ; then
   echo "DDP training: $TRAINING_CMD"
   torchrun-launcher "$TRAINING_CMD"
 
-  decho "======================================================================================"
+  separation
 
   ray-launcher "$TRAINING_CMD"
   
@@ -177,7 +189,7 @@ elif [ "$DIST_MODE" == "deepspeed" ] ; then
   echo "DEEPSPEED training: $TRAINING_CMD"
   torchrun-launcher "$TRAINING_CMD"
 
-  decho "======================================================================================"
+  separation
 
   ray-launcher "$TRAINING_CMD"
 
@@ -185,7 +197,7 @@ elif [ "$DIST_MODE" == "horovod" ] ; then
   echo "HOROVOD training: $TRAINING_CMD"
   srun-launcher "$TRAINING_CMD"
 
-  decho "======================================================================================"
+  separation
 
   ray-launcher "$TRAINING_CMD"
 else

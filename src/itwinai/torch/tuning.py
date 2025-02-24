@@ -1,7 +1,7 @@
 # --------------------------------------------------------------------------------------
 # Part of the interTwin Project: https://www.intertwin.eu/
 #
-# Created by: Matteo Bunino
+# Created by: Anna Lappe
 #
 # Credit:
 # - Matteo Bunino <matteo.bunino@cern.ch> - CERN

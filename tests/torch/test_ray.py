@@ -12,7 +12,7 @@ import pytest
 import ray.tune
 from ray.tune.search.sample import Categorical, Float, Function, Integer
 
-from itwinai.torch.ray import (
+from itwinai.torch.tuning import (
     search_space,
 )
 
