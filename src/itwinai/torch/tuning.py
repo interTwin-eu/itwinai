@@ -57,9 +57,11 @@ def search_space(config: Dict | None) -> Dict:
             search_space[name] = param
         return search_space
     except Exception as exc:
-        exc.add_note(
-            f"{param} could not be set. Check that this parameter type is "
-            "supported by Ray Tune at "
-            "https://docs.ray.io/en/latest/tune/api/search_space.html"
-        )
+        if hasattr(exc, "add_note"):
+            # This was introduced from Python 3.11
+            exc.add_note(
+                f"{param} could not be set. Check that this parameter type is "
+                "supported by Ray Tune at "
+                "https://docs.ray.io/en/latest/tune/api/search_space.html"
+            )
         raise exc

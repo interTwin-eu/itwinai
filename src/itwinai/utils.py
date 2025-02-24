@@ -202,7 +202,7 @@ def get_root_cause(exception: Exception) -> Exception:
     return root
 
 
-def to_uri(path_str: str) -> str:
+def to_uri(path_str: str | Path) -> str:
     """Parse a path and convert it to a URI.
 
     Args:
@@ -211,6 +211,8 @@ def to_uri(path_str: str) -> str:
     Returns:
         str: URI.
     """
+    if isinstance(path_str, Path):
+        return str(Path(path_str).resolve())
     parsed = urlparse(path_str)
     if parsed.scheme:
         # If it has a scheme, assume it's a URI and return as-is

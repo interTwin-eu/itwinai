@@ -13,9 +13,12 @@ import functools
 import os
 import subprocess
 import sys
-from typing import Any, Callable
+from typing import TYPE_CHECKING, Any, Callable
 
 from pydantic import BaseModel
+
+if TYPE_CHECKING:
+    from ray.train import ScalingConfig
 
 
 class DistributedStrategy(abc.ABC):
@@ -206,3 +209,27 @@ def suppress_workers_output(func):
             sys.stderr = original_stderr
 
     return wrapper
+
+
+def get_adaptive_ray_scaling_config() -> "ScalingConfig":
+    import ray
+    from ray.train import ScalingConfig
+
+    # Initialize Ray if not already initialized
+    if not ray.is_initialized():
+        ray.init()
+
+    # Get cluster resources
+    cluster_resources = ray.cluster_resources()
+    num_gpus = int(cluster_resources.get("GPU", 0))
+
+    # Configure ScalingConfig based on GPU availability
+    if num_gpus <= 1:
+        # If 0 or 1 GPU, don't use GPU for training
+        return ScalingConfig(
+            num_workers=2,  # Default to 2 CPU workers
+            use_gpu=False,
+        )
+    else:
+        # If multiple GPUs, use all available GPUs
+        return ScalingConfig(num_workers=num_gpus, use_gpu=True)

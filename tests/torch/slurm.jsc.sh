@@ -23,11 +23,11 @@
 #SBATCH --time=00:20:00
 
 # Resources allocation
-#SBATCH --partition=develbooster
+#SBATCH --partition=booster
 #SBATCH --nodes=2
-#SBATCH --gpus-per-node=4
+#SBATCH --gpus-per-node=1
 #SBATCH --cpus-per-task=16
-#SBATCH --ntasks-per-node=1
+#SBATCH --ntasks-per-node=2
 # SBATCH --mem-per-gpu=10G
 # SBATCH --exclusive
 #SBATCH --gres=gpu:4
@@ -57,32 +57,20 @@ if [ $SLURM_CPUS_PER_GPU -gt 0 ] ; then
   export OMP_NUM_THREADS=$SLURM_CPUS_PER_GPU
 fi
 
-# Launch distributed job in container with torchrun
-# NOTE: this was copied from the script for Vega and may not work here
-torchrun_launcher ()
-{
-  # Avoid propagating PYTHONPATH to the singularity container, as it breaks the import of packages inside the container
-  # https://docs.sylabs.io/guides/4.1/user-guide/environment_and_metadata.html#environment-from-the-host
-  unset PYTHONPATH
-
-  # --no-python is needed when running commands which are not python scripts (e.g., pytest, itwinai)
-  # --redirects=\$(((SLURM_NODEID)) && echo "3" || echo "1:3,2:3,3:3"): redirect stdout and stderr to 
-  # torchrun logs dir for workers having rank !=0 
+torchrun_launcher(){
   srun --cpu-bind=none --ntasks-per-node=1 \
-    singularity exec --nv $CONTAINER_PATH /bin/bash -c "torchrun \
+    bash -c "torchrun \
     --log_dir='logs_torchrun' \
     --nnodes=$SLURM_NNODES \
     --nproc_per_node=$SLURM_GPUS_PER_NODE \
-    --node-rank=$SLURM_NODEID \
     --rdzv_id=$SLURM_JOB_ID \
     --rdzv_conf=is_host=\$(((SLURM_NODEID)) && echo 0 || echo 1) \
     --rdzv_backend=c10d \
-    --rdzv_endpoint=$(scontrol show hostnames "$SLURM_JOB_NODELIST" | head -n 1)i:29500 \
+    --rdzv_endpoint='$(scontrol show hostnames "$SLURM_JOB_NODELIST" | head -n 1)'i:29500 \
     --no-python \
     --redirects=\$(((SLURM_NODEID)) && echo "3" || echo "1:3,2:3,3:3") \
-    ${1}"
+    $1"
 }
-
 # Launch distribtued job in container with mpirun
 # NOTE: this was copied from the script for Vega and may not work here
 mpirun_launcher ()
@@ -143,31 +131,17 @@ mpirun_launcher ()
     if [ $OMPI_COMM_WORLD_RANK  -ne 0 ]; then exec > "logs_mpirun/$SLURM_JOB_ID/rank.$OMPI_COMM_WORLD_RANK" 2>&1; fi; exec '"${1}"
 }
 
-# Launch distribtued job in container with srun
-# NOTE: this was copied from the script for Vega and may not work here
 srun_launcher ()
 {
-  # Avoid propagating PYTHONPATH to the singularity container, as it breaks the import of packages inside the container
-  # https://docs.sylabs.io/guides/4.1/user-guide/environment_and_metadata.html#environment-from-the-host
-  unset PYTHONPATH
-
   # Create mpirun logs folder
   mkdir -p "logs_srun/$SLURM_JOB_ID"
 
-  # # Get OpenMPI installation prefixes (locally and in container)
-  # OMPI_CONTAINER="$(singularity exec ${CONTAINER_PATH} /bin/bash -c 'ompi_info' | grep Prefix | awk '{ print $2 }')"
-  # OMPI_HOST="$(ompi_info | grep Prefix | awk '{ print $2 }')"
-  # # If you want to explicitly mount host OpenMPI in container use --bind "${OMPI_HOST}":"${OMPI_CONTAINER}"  
-  
-  # "if [ $SLURM_PROCID  -ne 0 ]; then exec > "logs_srun/$SLURM_JOB_ID/rank.$SLURM_PROCID" 2>&1; fi; exec" redirects stdout and stderr of ranks != 0
-  # Logs of the main woker (rank == 0) will be incorportated into the standard SLURM out and err files
-  srun --mpi=pmix_v3 --cpu-bind=none --ntasks-per-node=$SLURM_GPUS_PER_NODE \
+  # Launch command
+  srun --cpu-bind=none --ntasks-per-node=$SLURM_GPUS_PER_NODE \
     --cpus-per-task=$(($SLURM_CPUS_PER_TASK / $SLURM_GPUS_PER_NODE)) \
     --ntasks=$(($SLURM_GPUS_PER_NODE * $SLURM_NNODES)) \
-    singularity exec --nv \
-    "${CONTAINER_PATH}" /bin/bash -c \
-    'echo "Rank: $SLURM_PROCID, LD_LIBRARY_PATH=$LD_LIBRARY_PATH" && \
-    if [ $SLURM_PROCID  -ne 0 ]; then exec > "logs_srun/$SLURM_JOB_ID/rank.$SLURM_PROCID" 2>&1; fi; exec '"${1}"
+    /bin/bash -c \
+    'if [ $SLURM_PROCID  -ne 0 ]; then exec > "logs_srun/$SLURM_JOB_ID/rank.$SLURM_PROCID" 2>&1; fi; exec '"${1}"
 }
 
 ray_launcher(){
