@@ -11,7 +11,7 @@ from itwinai.components import monitor_exec
 from itwinai.torch.config import TrainingConfiguration
 
 from src.model import ConvVAE
-from torch.utils.data import DataLoader, Dataset
+from torch.utils.data import DataLoader, Dataset, TensorDataset
 from src.engine import evaluate
 from src.initialization import beta, criterion, n_avg, pixel_wise_criterion
 
@@ -145,35 +145,29 @@ class XTClimPredictor(TorchPredictor):
         # Initialize distributed backend
         self._init_distributed_strategy()
 
+        if isinstance(self.model, TorchModelLoader):
+            self.model = self.model()
+        else:
+            raise ValueError("Error: model is not an instance of TorchModelLoader.")
+
+        self.model = self.model.to(self.device)
+
+        # Distributed model
+        self.distribute_model()
+
+        if self.strategy.is_main_worker and self.logger:
+            self.logger.create_logger_context()
+
         if self.evaluation == 'past':
-            # load previously trained model
-            cvae_model = self.model.to(self.device)
 
-            # Create TorchPredictor instance
-            predictor = TorchPredictor(
-                config=self.config,
-                model=cvae_model,
-                strategy=self.strategy,
-                logger=self.logger
-            )
-
-            # Read data and create dataloaders
             trainset, n_train = self.read_data_and_dataloader(input_dir, self.seasons, "train")
-            predictor.create_dataloaders(trainset)
-            trainloader = predictor.inference_dataloader
+            trainloader = self.create_dataloaders(trainset)
             testset, n_test = self.read_data_and_dataloader(input_dir, self.seasons, "test")
-            predictor.create_dataloaders(testset)
-            testloader = predictor.inference_dataloader
-
-            if self.strategy.is_main_worker and self.logger:
-                self.logger.create_logger_context()
-
-            # Distributed model
-            predictor.distribute_model()
+            testloader = self.create_dataloaders(testset)
 
             # Evaluate model
             train_avg_losses, tot_train_losses = self.evaluate_and_average(
-                predictor.model,
+                self.model,
                 trainloader,
                 trainset,
                 self.device,
@@ -182,7 +176,7 @@ class XTClimPredictor(TorchPredictor):
                 n_avg
             )
             test_avg_losses, tot_test_losses = self.evaluate_and_average(
-                predictor.model,
+                self.model,
                 testloader,
                 testset,
                 self.device,
@@ -201,7 +195,6 @@ class XTClimPredictor(TorchPredictor):
             self.log(train_avg_losses, 'Average train loss', kind='metric')
             self.log(test_avg_losses, 'Average test loss', kind='metric')
 
-
             # Clean-up
             if self.strategy.is_main_worker and self.logger:
                 self.logger.destroy_logger_context()
@@ -212,43 +205,17 @@ class XTClimPredictor(TorchPredictor):
             SCENARIO_585 = '585'
             SCENARIO_245 = '245'
 
-            # load previously trained model
-            cvae_model = ConvVAE().to(self.device)
-            cvae_model.load_state_dict(self.model['model_state_dict'], strict=False)
-
-            # Create TorchPredictor instance
-            predictor = TorchPredictor(
-                config=self.config,
-                model=cvae_model,
-                strategy=self.strategy,
-                logger=self.logger
-            )
-
-            # Initialize distributed backend
-            predictor._init_distributed_strategy()
-
-            # Distributed model
-            predictor.distribute_model()
-
-            if self.strategy.is_main_worker and self.logger:
-                self.logger.create_logger_context()
-
             for scenario in [SCENARIO_585, SCENARIO_245]:
 
                 # projection set and data loader
-                projset, n_proj = read_data_and_dataloader(
-                    input_dir,
-                    self.seasons,
-                    "proj{scenario}"
-                )
+                projset, n_proj = read_data_and_dataloader(input_dir, self.seasons, "proj{scenario}")
 
-                predictor.config.batch_size = 1
-                predictor.create_dataloaders(projset)
-                projloader = predictor.inference_dataloader
+                self.config.batch_size = 1
+                projloader = self.create_dataloaders(projset)
 
                 # Evaluate projection data
                 proj_avg_losses, tot_proj_losses = self.evaluate_and_average(
-                    predictor.model,
+                    self.model,
                     projloader,
                     projset,
                     self.device,

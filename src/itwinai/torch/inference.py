@@ -5,7 +5,7 @@
 #
 # Credit:
 # - Matteo Bunino <matteo.bunino@cern.ch> - CERN
-# - Rakesh Sarma <r.sarma@fz-juelich.de> - FZJ
+# - Rakesh Sarma <r.sarma@fz-juelich.de> - Juelich
 # - Jarl Sondre Sæther <jarl.sondre.saether@cern.ch> - CERN
 # --------------------------------------------------------------------------------------
 
@@ -20,14 +20,9 @@ from ..components import Predictor, monitor_exec
 from ..loggers import Logger
 from ..serialization import ModelLoader
 from .config import TrainingConfiguration
-from .distributed import (
-    DeepSpeedStrategy,
-    HorovodStrategy,
-    NonDistributedStrategy,
-    TorchDDPStrategy,
-    TorchDistributedStrategy,
-    distributed_resources_available,
-)
+from .distributed import TorchDistributedStrategy
+from .trainer import TorchTrainer
+
 from .type import Batch
 
 
@@ -40,6 +35,8 @@ class TorchModelLoader(ModelLoader):
             'mlflow+MLFLOW_TRACKING_URI+RUN_ID+ARTIFACT_PATH'
         model_class (torch.nn.Module): The class of the
             neural network to run the inference.
+        strategy (Literal['ddp', 'deepspeed', 'horovod'], optional):
+             distributed strategy. Defaults to ddp.
     """
 
     def __init__(
@@ -62,10 +59,7 @@ class TorchModelLoader(ModelLoader):
         Returns:
             nn.Module: torch neural network.
         """
-        if self.strategy and self.strategy.is_initialized:
-            device = self.strategy.device()
-        else:
-            device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        device = self.strategy.device()
 
         if os.path.exists(self.model_uri):
             # Model is on local filesystem.
@@ -105,17 +99,19 @@ class TorchModelLoader(ModelLoader):
         )
 
     def _load_model_from_checkpoint(self, checkpoint: Dict[str, Any]) -> nn.Module:
+        if not isinstance(checkpoint, dict):
+            raise TypeError("checkpoint should be dictionary containing model_state_dict.")
 
-        if self.model_class:
-            model = self.model_class()
-            model.load_state_dict(checkpoint['model_state_dict'], strict=False)
-        else:
-            model = checkpoint
+        if self.model_class is None:
+            raise ValueError("model_class should be provided to instantiate the model.")
+
+        model = self.model_class()
+        model.load_state_dict(checkpoint['model_state_dict'], strict=False)
 
         return model
 
 
-class TorchPredictor(Predictor):
+class TorchPredictor(TorchTrainer, Predictor):
     """Applies a pre-trained torch model to unseen data."""
 
     _strategy: TorchDistributedStrategy = None
@@ -137,52 +133,20 @@ class TorchPredictor(Predictor):
         checkpoints_location: str = "checkpoints",
         name: str | None = None
     ) -> None:
-        super().__init__(model=model, name=name)
-        self.save_parameters(**self.locals2params(locals()))
         if isinstance(config, dict):
             self.config = TrainingConfiguration(**config)
         else:
             self.config = config
+
+        epochs = getattr(self.config, "epochs", 1)
+
+        super().__init__(model=model, config=self.config, epochs=epochs, name=name)
+        self.save_parameters(**self.locals2params(locals()))
         self.strategy = strategy
+        if isinstance(model, TorchModelLoader) and model.strategy is None:
+            model.strategy = self.strategy
         self.logger = logger
         self.checkpoints_location = checkpoints_location
-
-    @property
-    def strategy(self) -> TorchDistributedStrategy:
-        """Strategy currently in use."""
-        return self._strategy
-
-    @strategy.setter
-    def strategy(self, strategy: str | TorchDistributedStrategy) -> None:
-        if isinstance(strategy, TorchDistributedStrategy):
-            self._strategy = strategy
-        else:
-            self._strategy = self._detect_strategy(strategy)
-
-    @property
-    def device(self) -> str:
-        """Current device from distributed strategy."""
-        return self.strategy.device()
-
-    def _detect_strategy(self, strategy: str) -> TorchDistributedStrategy:
-        if not distributed_resources_available():
-            print("WARNING: falling back to non-distributed strategy.")
-            dist_str = NonDistributedStrategy()
-        elif strategy == 'ddp':
-            dist_str = TorchDDPStrategy(backend='nccl')
-        elif strategy == 'horovod':
-            dist_str = HorovodStrategy()
-        elif strategy == 'deepspeed':
-            dist_str = DeepSpeedStrategy(backend='nccl')
-        else:
-            raise NotImplementedError(
-                f"Strategy '{strategy}' is not recognized/implemented."
-            )
-        return dist_str
-
-    def _init_distributed_strategy(self) -> None:
-        if not self.strategy.is_initialized:
-            self.strategy.init()
 
     def distribute_model(self) -> None:
         """Distribute the torch model with the chosen strategy."""
@@ -196,14 +160,14 @@ class TorchPredictor(Predictor):
             model=self.model, optimizer=None, lr_scheduler=None, **distribute_kwargs
         )
 
-    def create_dataloaders(
-        self,
-        inference_dataset: Dataset
-    ) -> None:
+    def create_dataloaders(self, inference_dataset: Dataset) -> DataLoader:
         """Create inference dataloader.
 
         Args:
             inference_dataset (Dataset): inference dataset object.
+
+        Returns:
+            DataLoader: Instance of DataLoader for the given inference dataset.
         """
 
         self.inference_dataloader = self.strategy.create_dataloader(
@@ -214,6 +178,8 @@ class TorchPredictor(Predictor):
             generator=self.torch_rng,
             shuffle=self.config.shuffle_test
         )
+
+        return self.inference_dataloader
 
     def predict(self) -> Dict[str, Any]:
         """Predicts or runs inference on a trained ML model.
@@ -311,7 +277,8 @@ class TorchPredictor(Predictor):
 
     def transform_predictions(self, batch: Batch) -> Batch:
         """Post-process the predictions of the torch model (e.g., apply
-        threshold in case of multi-label classifier)."""
+        threshold in case of multi-label classifier).
+        """
 
 
 class MulticlassTorchPredictor(TorchPredictor):
