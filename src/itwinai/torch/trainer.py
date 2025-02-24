@@ -225,7 +225,8 @@ class TorchTrainer(Trainer, LogMixin):
             self.from_checkpoint = Path(from_checkpoint)
             if not self.from_checkpoint.exists():
                 raise RuntimeError(
-                    "from_checkpoint argument was passed, but the checkpoint is not found"
+                    "from_checkpoint argument was passed, but the checkpoint is not found "
+                    f"at {self.from_checkpoint}"
                 )
 
         py_logger.debug(f"ray_scaling_config: {ray_scaling_config}")

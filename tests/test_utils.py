@@ -141,3 +141,6 @@ def test_to_uri():
     assert to_uri(absolute_path) == absolute_path, "Should remain unchanged"
     assert to_uri(s3_uri) == s3_uri, "Should remain unchanged"
     assert to_uri(http_uri) == http_uri, "Should remain unchanged"
+    assert to_uri(Path(relative_path)) == str(Path(relative_path).resolve()), (
+        "Should manage Path"
+    )

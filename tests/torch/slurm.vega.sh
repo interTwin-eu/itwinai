@@ -171,6 +171,67 @@ srun_launcher ()
     if [ $SLURM_PROCID  -ne 0 ]; then exec > "logs_srun/$SLURM_JOB_ID/rank.$SLURM_PROCID" 2>&1; fi; exec '"${1}"
 }
 
+# Launch distribtued job in container with Ray
+ray_launcher ()
+{
+  # This tells Tune to not change the working directory to the trial directory
+  # which makes relative paths accessible from inside a trial
+  export RAY_CHDIR_TO_TRIAL_DIR=0
+  export RAY_DEDUP_LOGS=0
+  export RAY_USAGE_STATS_DISABLE=1
+
+  # Disable colored output
+  export NO_COLOR=1
+  export RAY_COLOR_PREFIX=0
+
+  #########   Set up Ray cluster   ########
+
+  # Get the node names
+  nodes=$(scontrol show hostnames "$SLURM_JOB_NODELIST")
+  mapfile -t nodes_array <<< "$nodes"
+
+  # The head node will act as the central manager (head) of the Ray cluster.
+  head_node=${nodes_array[0]}
+  port=7639       # This port will be used by Ray to communicate with worker nodes.
+
+  echo "Starting HEAD at $head_node"
+  # Start Ray on the head node.
+  # The `--head` option specifies that this node will be the head of the Ray cluster.
+  # `srun` submits a job that runs on the head node to start the Ray head with the specified 
+  # number of CPUs and GPUs.
+  srun --nodes=1 --ntasks=1 -w "$head_node" \
+    singularity exec --nv $CONTAINER_PATH \
+      ray start --head --node-ip-address="$head_node" --port=$port \
+      --num-cpus "$SLURM_CPUS_PER_TASK" --num-gpus "$SLURM_GPUS_PER_NODE" --block &
+
+  # Wait for a few seconds to ensure that the head node has fully initialized.
+  sleep 2
+
+  echo HEAD node started.
+
+  # Start Ray worker nodes
+  # These nodes will connect to the head node and become part of the Ray cluster.
+  worker_num=$((SLURM_JOB_NUM_NODES - 1))    # Total number of worker nodes (excl the head node)
+  for ((i = 1; i <= worker_num; i++)); do
+      node_i=${nodes_array[$i]}   # Get the current worker node hostname.
+      echo "Starting WORKER $i at $node_i"
+
+      # Use srun to start Ray on the worker node and connect it to the head node.
+      # The `--address` option tells the worker node where to find the head node.
+      srun --nodes=1 --ntasks=1 -w "$node_i" \
+        singularity exec --nv $CONTAINER_PATH \
+          ray start --address "$head_node":"$port" --redis-password='5241580000000000' \
+          --num-cpus "$SLURM_CPUS_PER_TASK" --num-gpus "$SLURM_GPUS_PER_NODE" --block &
+      
+      sleep 5 # Wait before starting the next worker to prevent race conditions.
+  done
+  echo All Ray workers started.
+
+  # Run command without srun
+  singularity exec --nv $CONTAINER_PATH /bin/bash -c "$1"
+
+}
+
 # Dual echo on both stdout and stderr
 decho ()
 {
@@ -225,6 +286,9 @@ if [ "${DIST_MODE}" == "ddp" ] ; then
   decho -e "\nLaunching DDP strategy with torchrun"
   torchrun_launcher "${COMMAND}"
 
+  decho -e "\nLaunching DDP strategy with Ray"
+  ray_launcher "${COMMAND}"
+
 elif [ "${DIST_MODE}" == "deepspeed" ] ; then
 
   decho -e "\nLaunching DeepSpeed strategy with torchrun"
@@ -236,6 +300,9 @@ elif [ "${DIST_MODE}" == "deepspeed" ] ; then
   decho -e "\nLaunching DeepSpeed strategy with srun"
   srun_launcher "python -m ${COMMAND}"
 
+  decho -e "\nLaunching DeepSpeed strategy with Ray"
+  ray_launcher "${COMMAND}"
+
 elif [ "${DIST_MODE}" == "horovod" ] ; then
 
   decho -e "\nLaunching Horovod strategy with mpirun"
@@ -243,6 +310,9 @@ elif [ "${DIST_MODE}" == "horovod" ] ; then
 
   decho -e "\nLaunching Horovod strategy with srun"
   srun_launcher "python -m ${COMMAND}"
+
+  decho -e "\nLaunching Horovod strategy with Ray"
+  ray_launcher "${COMMAND}"
 
 else
   >&2 echo "ERROR: unrecognized \$DIST_MODE env variable"
