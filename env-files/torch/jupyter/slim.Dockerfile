@@ -162,7 +162,9 @@ COPY --chown=${NB_UID} src src
 RUN pip install --no-cache-dir .[torch] --extra-index-url https://download.pytorch.org/whl/cu124
 RUN pip install --no-cache-dir \
     "prov4ml[nvidia]@git+https://github.com/matbun/ProvML@new-main" \
-    pytest
+    pytest \
+    pytest-xdist \
+    psutil
 
 # Installation sanity check
 RUN itwinai sanity-check --torch \

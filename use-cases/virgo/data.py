@@ -182,7 +182,6 @@ class TimeSeriesDatasetSplitter(DataSplitter):
         Returns:
             Tuple[Dataset, Dataset, Dataset]: Training, validation, and test datasets.
         """
-
         whole_dataset = SyntheticTimeSeriesDatasetHDF5(
             hdf5_file_location=self.hdf5_file_location,
             chunk_size=self.chunk_size,

@@ -16,7 +16,6 @@ from itwinai.slurm.utils import get_slurm_job_parser
 
 
 class EuracSlurmScriptBuilder(SlurmScriptBuilder):
-
     def __init__(
         self,
         slurm_script_configuration: SlurmScriptConfiguration,
@@ -24,7 +23,8 @@ class EuracSlurmScriptBuilder(SlurmScriptBuilder):
         training_command: str | None = None,
         python_venv: str = ".venv",
         debug: bool = False,
-        config_file: str = "config.yaml",
+        config_name: str = "config",
+        config_path: str = ".",
         pipe_key: str = "rnn_training_pipeline",
     ):
         super().__init__(
@@ -34,7 +34,8 @@ class EuracSlurmScriptBuilder(SlurmScriptBuilder):
             python_venv=python_venv,
             debug=debug,
         )
-        self.config_file = config_file
+        self.config_path = config_path
+        self.config_name = config_name
         self.pipe_key = pipe_key
 
     def get_training_command(self):
@@ -43,9 +44,10 @@ class EuracSlurmScriptBuilder(SlurmScriptBuilder):
 
         training_command = rf"""
         $(which itwinai) exec-pipeline \
-            --config {self.config_file} \
-            --pipe-key {self.pipe_key} \
-            -o strategy={self.distributed_strategy}
+            --config-path {self.config_path} \
+            --config-name {self.config_name} \
+            +pipe-key={self.pipe_key} \
+            strategy={self.distributed_strategy} \
         """
         training_command = training_command.strip()
         return remove_indentation_from_multiline_string(training_command)
@@ -74,7 +76,8 @@ def main():
         python_venv=args.python_venv,
         debug=args.debug,
         pipe_key=args.pipe_key,
-        config_file=args.config_file,
+        config_name=args.config_name,
+        config_path=args.config_path,
     )
 
     submit_job = not args.no_submit_job

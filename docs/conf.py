@@ -26,10 +26,7 @@ sys.path.insert(0, os.path.abspath("../src"))
 sys.path.insert(0, os.path.abspath("../images"))
 
 project = "itwinai"
-copyright = "2024, Matteo Bunino on behalf of CERN"
-author = "Matteo Bunino"
-version = "0.2"  # short version
-release = "0.2.2"  # full version
+copyright = "2024, interTwin"
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
@@ -63,10 +60,10 @@ exclude_patterns = [
     "testing-with-pytest.md",
     "working-with-containers.md",
 ]
+
+
+autodoc_mock_imports = ["tensorflow", "keras"]
 suppress_warnings = ["myst.xref_missing", "myst.header"]
-
-autodoc_mock_imports = ["mlflow"]
-
 
 # Enable numref
 numfig = True

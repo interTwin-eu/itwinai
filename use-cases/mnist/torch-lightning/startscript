@@ -30,4 +30,4 @@ source ../../../envAI_juwels/bin/activate
 # ON LOGIN NODE download datasets:
 # ../../../.venv-pytorch/bin/itwinai exec-pipeline --config config.yaml --pipe-key training_pipeline --steps dataloading_step
 
-srun itwinai exec-pipeline --config config.yaml --pipe-key training_pipeline --steps 1:
+srun itwinai exec-pipeline +pipe_steps=[1]
