@@ -1,10 +1,9 @@
 from tqdm import tqdm
 import torch
-from initialization import pixel_wise_criterion
+from src.initialization import pixel_wise_criterion
 
 def final_loss(bce_loss, mu, logvar, beta=0.1):
-    """
-    Adds up reconstruction loss (BCELoss) and Kullback-Leibler divergence.
+    """Adds up reconstruction loss (BCELoss) and Kullback-Leibler divergence.
     KL-Divergence = 0.5 * sum(1 + log(sigma^2) - mu^2 - sigma^2)
 
     Parameters:
@@ -19,8 +18,7 @@ def final_loss(bce_loss, mu, logvar, beta=0.1):
 
 def train(model, dataloader, dataset, device, optimizer, criterion, beta):
     # trains the model over shuffled data set
-    """
-    Trains the CVAE network and returns the loss.
+    """Trains the CVAE network and returns the loss.
 
     Parameters:
     model: neural network (CVAE)
@@ -50,8 +48,7 @@ def train(model, dataloader, dataset, device, optimizer, criterion, beta):
     return train_loss
 
 def validate(model, dataloader, dataset, device, criterion, beta):
-    """
-    Evaluates the CVAE network and returns the loss and reconstructions.
+    """Evaluates the CVAE network and returns the loss and reconstructions.
     No backpropagation.
 
     Parameters:
@@ -82,8 +79,7 @@ def validate(model, dataloader, dataset, device, criterion, beta):
 
 def evaluate(model, dataloader, dataset, device,
              criterion, pixel_wise_criterion = pixel_wise_criterion):
-    """
-    Evaluates the CVAE network and returns the reconstruction loss
+    """Evaluates the CVAE network and returns the reconstruction loss
     (no KL divergence component) and reconstructions.
     No backpropagation.
 
@@ -119,8 +115,7 @@ def evaluate(model, dataloader, dataset, device,
     return val_loss, recon_images, losses, pixel_wise_losses
 
 def latent_space_position(model, dataloader, dataset, device, criterion):
-    """
-    Evaluates the CVAE network and returns the reconstruction loss
+    """Evaluates the CVAE network and returns the reconstruction loss
     (no KL divergence component) and reconstructions (no backpropagation).
     Returns the means and variances of the latent encodings.
 

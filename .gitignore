@@ -19,6 +19,7 @@ pl-training.yml
 0
 *.tar
 *.sif
+.DS_Store
 *slurm_scripts/
 
 # Use cases files

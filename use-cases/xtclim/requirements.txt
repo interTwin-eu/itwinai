@@ -1,0 +1,15 @@
+cartopy
+cftime
+codecarbon
+dask
+datetime
+imageio
+ipykernel
+matplotlib
+numpy
+pandas
+tqdm
+urllib3==1.26.*
+xarray
+netCDF4
+h5netcdf
