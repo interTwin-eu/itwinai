@@ -22,7 +22,6 @@ from ..serialization import ModelLoader
 from .config import TrainingConfiguration
 from .distributed import TorchDistributedStrategy
 from .trainer import TorchTrainer
-
 from .type import Batch
 
 
@@ -33,21 +32,11 @@ class TorchModelLoader(ModelLoader):
         model_uri (str): Can be a path on local filesystem
             or an mlflow 'locator' in the form:
             'mlflow+MLFLOW_TRACKING_URI+RUN_ID+ARTIFACT_PATH'
-        model_class (torch.nn.Module): The class of the
-            neural network to run the inference.
-        strategy (Literal['ddp', 'deepspeed', 'horovod'], optional):
-             distributed strategy. Defaults to ddp.
     """
 
-    def __init__(
-            self,
-            model_uri: str,
-            model_class: nn.Module | None = None,
-            strategy: TorchDistributedStrategy | None = None
-    ):
+    def __init__(self, model_uri: str, model_class: nn.Module | None = None):
         self.model_uri = model_uri
         self.model_class = model_class
-        self.strategy = strategy
 
     def __call__(self) -> nn.Module:
         """Loads model from model URI.
@@ -59,15 +48,23 @@ class TorchModelLoader(ModelLoader):
         Returns:
             nn.Module: torch neural network.
         """
-        device = self.strategy.device()
-
         if os.path.exists(self.model_uri):
             # Model is on local filesystem.
-            checkpoint = torch.load(self.model_uri, map_location=device)
-            model = self._load_model_from_checkpoint(checkpoint)
+            checkpoint = torch.load(self.model_uri)
+
+            if isinstance(checkpoint, dict) and "model_state_dict" in checkpoint:
+                if self.model_class is None:
+                    raise ValueError(
+                        "model_class required to instantiate model when checkpoint is dict."
+                    )
+                model = self.model_class()
+                model.load_state_dict(checkpoint["model_state_dict"], strict=False)
+            else:
+                model = checkpoint
+
             return model.eval()
 
-        if self.model_uri.startswith('mlflow+'):
+        if self.model_uri.startswith("mlflow+"):
             # Model is on an MLFLow server
             # Form is 'mlflow+MLFLOW_TRACKING_URI+RUN_ID+ARTIFACT_PATH'
             import mlflow
@@ -89,26 +86,22 @@ class TorchModelLoader(ModelLoader):
                 dst_path="tmp/",
                 tracking_uri=mlflow.get_tracking_uri(),
             )
-            checkpoint = torch.load(ckpt_path, map_location=device)
-            model = self._load_model_from_checkpoint(checkpoint)
+            checkpoint = torch.load(ckpt_path)
+
+            if isinstance(checkpoint, dict) and "model_state_dict" in checkpoint:
+                if self.model_class is None:
+                    raise ValueError("model_class is required to instantiate the model.")
+                model = self.model_class()
+                model.load_state_dict(checkpoint["model_state_dict"], strict=False)
+            else:
+                model = checkpoint
+
             return model.eval()
 
         raise ValueError(
             "Unrecognized model URI: model may not be there! "
             f"Received model URI: {self.model_uri}"
         )
-
-    def _load_model_from_checkpoint(self, checkpoint: Dict[str, Any]) -> nn.Module:
-        if not isinstance(checkpoint, dict):
-            raise TypeError("checkpoint should be dictionary containing model_state_dict.")
-
-        if self.model_class is None:
-            raise ValueError("model_class should be provided to instantiate the model.")
-
-        model = self.model_class()
-        model.load_state_dict(checkpoint['model_state_dict'], strict=False)
-
-        return model
 
 
 class TorchPredictor(TorchTrainer, Predictor):
@@ -143,8 +136,6 @@ class TorchPredictor(TorchTrainer, Predictor):
         super().__init__(model=model, config=self.config, epochs=epochs, name=name)
         self.save_parameters(**self.locals2params(locals()))
         self.strategy = strategy
-        if isinstance(model, TorchModelLoader) and model.strategy is None:
-            model.strategy = self.strategy
         self.logger = logger
         self.checkpoints_location = checkpoints_location
 
