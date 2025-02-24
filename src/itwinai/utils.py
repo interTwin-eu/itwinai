@@ -13,7 +13,9 @@ import inspect
 import os
 import sys
 from collections.abc import MutableMapping
+from pathlib import Path
 from typing import Callable, Dict, Hashable, List, Tuple, Type
+from urllib.parse import urlparse
 
 import yaml
 
@@ -198,3 +200,20 @@ def get_root_cause(exception: Exception) -> Exception:
     while root.__cause__ is not None:  # Traverse the exception chain
         root = root.__cause__
     return root
+
+
+def to_uri(path_str: str) -> str:
+    """Parse a path and convert it to a URI.
+
+    Args:
+        path_str (str): path to convert.
+
+    Returns:
+        str: URI.
+    """
+    parsed = urlparse(path_str)
+    if parsed.scheme:
+        # If it has a scheme, assume it's a URI and return as-is
+        return path_str
+    # Otherwise, make it absolute
+    return str(Path(path_str).resolve())

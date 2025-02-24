@@ -32,8 +32,9 @@ import torch.optim as optim
 import torch.optim.lr_scheduler as lr_scheduler
 import torchvision
 import yaml
-from ray.train import DataConfig, RunConfig, ScalingConfig
+from ray.train import Checkpoint, DataConfig, RunConfig, ScalingConfig
 from ray.train.torch import TorchConfig
+from ray.train.torch import TorchTrainer as RayTorchTrainer
 from ray.tune import TuneConfig
 from torch.nn.parallel import DistributedDataParallel as DDP
 from torch.optim.lr_scheduler import LRScheduler
@@ -49,7 +50,7 @@ from itwinai.torch.profiling.profiler import profile_torch_trainer
 from ..components import Trainer, monitor_exec
 from ..distributed import ray_cluster_is_running
 from ..loggers import EpochTimeTracker, Logger, LogMixin
-from ..utils import load_yaml
+from ..utils import load_yaml, to_uri
 from .config import TrainingConfiguration
 from .distributed import (
     DeepSpeedStrategy,
@@ -535,23 +536,38 @@ class TorchTrainer(Trainer, LogMixin):
         self.log(str(config_path), f"{name}_config", kind="artifact")
         return str(ckpt_dir)
 
-    def _load_checkpoint(self) -> None:
+    def load_checkpoint(self) -> None:
         """Reload training state from checkpoint."""
-
         if self.from_checkpoint:
-            self.from_checkpoint = Path(self.from_checkpoint)
-            state = torch.load(self.from_checkpoint / "state.pt")
+            # A checkpoint path was provided
 
-            # Override initial training state
-            self.model_state_dict = torch.load(self.from_checkpoint / "model.pt")
-            self.optimizer_state_dict = state["optimizer_state_dict"]
-            self.lr_scheduler_state_dict = state["lr_scheduler_state_dict"]
-            self.torch_rng_state = state["torch_rng_state"]
-            # Direct overrides (don't require further attention)
-            self.random_seed = state["random_seed"]
-            self.epoch = state["epoch"]
-            if state["best_validation_loss"]:
-                self.best_validation_loss = state["best_validation_loss"]
+            if isinstance(self.strategy, RayTorchDistributedStrategy):
+                # A Ray checkpoint directory was passed to the trainer -- assuming to be
+                # inside a trial
+                checkpoint = ray.train.get_checkpoint()
+                if checkpoint:
+                    with checkpoint.as_directory() as checkpoint_dir:
+                        self._load_checkpoint(checkpoint_dir=checkpoint_dir)
+
+            else:
+                # Not using Ray, falling back to simple checkpoint reload
+                self._load_checkpoint(checkpoint_dir=self.from_checkpoint)
+
+    def _load_checkpoint(self, checkpoint_dir: str | Path) -> None:
+        """Load checkpoint from path."""
+        checkpoint_dir = Path(checkpoint_dir)
+        state = torch.load(checkpoint_dir / "state.pt")
+
+        # Override initial training state
+        self.model_state_dict = torch.load(checkpoint_dir / "model.pt")
+        self.optimizer_state_dict = state["optimizer_state_dict"]
+        self.lr_scheduler_state_dict = state["lr_scheduler_state_dict"]
+        self.torch_rng_state = state["torch_rng_state"]
+        # Direct overrides (don't require further attention)
+        self.random_seed = state["random_seed"]
+        self.epoch = state["epoch"] + 1  # Start from next epoch
+        if state["best_validation_loss"]:
+            self.best_validation_loss = state["best_validation_loss"]
 
     def create_dataloaders(
         self,
@@ -646,22 +662,45 @@ class TorchTrainer(Trainer, LogMixin):
                 ckpt_dir.mkdir(parents=True, exist_ok=True)
 
             if isinstance(self.strategy, RayHorovodStrategy):
+                # Using Horovod with Ray
+                from ray.train.horovod import HorovodTrainer
+
                 if self.ray_torch_config:
                     py_logger.warning(
                         "Ray torch config was passed, but it's ignored as "
                         f"{self.strategy.__class__.__name__} strategy is used"
                     )
-                import ray.train.horovod
 
-                # Using Horovod with Ray
-                trainer = ray.train.horovod.HorovodTrainer(
-                    train_with_data,
-                    train_loop_config=None,
-                    horovod_config=self.ray_horovod_config,
-                    scaling_config=self.ray_scaling_config,
-                    run_config=self.ray_run_config,
-                    dataset_config=self.ray_data_config,
-                )
+                if self.from_checkpoint:
+                    # Create trainer from checkpoint
+                    if HorovodTrainer.can_restore(to_uri(self.from_checkpoint)):
+                        trainer = HorovodTrainer.restore(
+                            path=to_uri(self.from_checkpoint),
+                            train_loop_per_worker=train_with_data,
+                            train_loop_config=None,
+                        )
+                    else:
+                        # Ray is unable to restore the checkpoint implicitly, but it's passing
+                        # it to the trial
+                        trainer = HorovodTrainer(
+                            train_loop_per_worker=train_with_data,
+                            train_loop_config=None,
+                            horovod_config=self.ray_horovod_config,
+                            scaling_config=self.ray_scaling_config,
+                            run_config=self.ray_run_config,
+                            dataset_config=self.ray_data_config,
+                            resume_from_checkpoint=Checkpoint(to_uri(self.from_checkpoint)),
+                        )
+                else:
+                    # Create trainer without checkpoint
+                    trainer = HorovodTrainer(
+                        train_loop_per_worker=train_with_data,
+                        train_loop_config=None,
+                        horovod_config=self.ray_horovod_config,
+                        scaling_config=self.ray_scaling_config,
+                        run_config=self.ray_run_config,
+                        dataset_config=self.ray_data_config,
+                    )
             else:
                 # Using DDP or DeepSpeed with Ray
                 if self.ray_horovod_config:
@@ -669,14 +708,38 @@ class TorchTrainer(Trainer, LogMixin):
                         "Ray horovod config was passed, but it's ignored as "
                         f"{self.strategy.__class__.__name__} strategy is used"
                     )
-                trainer = ray.train.torch.TorchTrainer(
-                    train_with_data,
-                    train_loop_config=None,
-                    scaling_config=self.ray_scaling_config,
-                    run_config=self.ray_run_config,
-                    torch_config=self.ray_torch_config,
-                    dataset_config=self.ray_data_config,
-                )
+                if self.from_checkpoint:
+                    # Create trainer from checkpoint
+                    if RayTorchTrainer.can_restore(to_uri(self.from_checkpoint)):
+                        trainer = RayTorchTrainer.restore(
+                            path=to_uri(self.from_checkpoint),
+                            train_loop_per_worker=train_with_data,
+                            train_loop_config=None,
+                        )
+                    else:
+                        # Ray is unable to restore the checkpoint implicitly, but it's passing
+                        # it to the trial
+                        trainer = RayTorchTrainer(
+                            train_loop_per_worker=train_with_data,
+                            train_loop_config=None,
+                            scaling_config=self.ray_scaling_config,
+                            run_config=self.ray_run_config,
+                            torch_config=self.ray_torch_config,
+                            dataset_config=self.ray_data_config,
+                            resume_from_checkpoint=Checkpoint(to_uri(self.from_checkpoint)),
+                        )
+                else:
+                    # Create trainer without checkpoint
+                    trainer = RayTorchTrainer(
+                        train_loop_per_worker=train_with_data,
+                        train_loop_config=None,
+                        scaling_config=self.ray_scaling_config,
+                        run_config=self.ray_run_config,
+                        torch_config=self.ray_torch_config,
+                        dataset_config=self.ray_data_config,
+                    )
+
+            # Wrap the trainer into a Tuner
             param_space = {"train_loop_config": search_space(self.ray_search_space)}
             tuner = ray.tune.Tuner(
                 trainer,
@@ -734,7 +797,7 @@ class TorchTrainer(Trainer, LogMixin):
         validation_dataset: Optional[Dataset] = None,
         test_dataset: Optional[Dataset] = None,
     ) -> Tuple[Dataset, Dataset, Dataset, Any]:
-        self._load_checkpoint()
+        self.load_checkpoint()
 
         self._override_config(config)
 
