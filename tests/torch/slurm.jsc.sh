@@ -289,16 +289,16 @@ elif [ "${DIST_MODE}" == "deepspeed" ] ; then
   decho -e "\nLaunching DeepSpeed strategy with torchrun"
   torchrun_launcher "${COMMAND}"
 
-  decho -e "\nLaunching DeepSpeed strategy with mpirun"
-  mpirun_launcher "python -m ${COMMAND}"
+  # decho -e "\nLaunching DeepSpeed strategy with mpirun"
+  # mpirun_launcher "python -m ${COMMAND}"
 
-  decho -e "\nLaunching DeepSpeed strategy with srun"
-  srun_launcher "python -m ${COMMAND}"
+  # decho -e "\nLaunching DeepSpeed strategy with srun"
+  # srun_launcher "python -m ${COMMAND}"
 
 elif [ "${DIST_MODE}" == "horovod" ] ; then
 
-  decho -e "\nLaunching Horovod strategy with mpirun"
-  mpirun_launcher "python -m ${COMMAND}"
+  # decho -e "\nLaunching Horovod strategy with mpirun"
+  # mpirun_launcher "python -m ${COMMAND}"
 
   decho -e "\nLaunching Horovod strategy with srun"
   srun_launcher "python -m ${COMMAND}"

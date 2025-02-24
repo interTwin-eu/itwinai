@@ -66,16 +66,34 @@ def mnist_datasets():
     return train_set, val_set
 
 
-@pytest.mark.hpc
 @pytest.mark.parametrize(
     "strategy_name,strategy_fixture",
     [
-        pytest.param("ddp", "ddp_strategy", marks=pytest.mark.torch_dist),
-        pytest.param("deepspeed", "deepspeed_strategy", marks=pytest.mark.deepspeed_dist),
-        pytest.param("horovod", "horovod_strategy", marks=pytest.mark.horovod_dist),
+        pytest.param(None, None),  # NonDistributedStrategy
+        pytest.param(
+            "ddp",
+            "ddp_strategy",
+            marks=[pytest.mark.torch_dist, pytest.mark.hpc],
+        ),
+        pytest.param(
+            "deepspeed",
+            "deepspeed_strategy",
+            marks=[pytest.mark.deepspeed_dist, pytest.mark.hpc],
+        ),
+        pytest.param(
+            "horovod",
+            "horovod_strategy",
+            marks=[pytest.mark.horovod_dist, pytest.mark.hpc],
+        ),
     ],
 )
-def test_distributed_trainer_mnist(mnist_datasets, request, strategy_name, strategy_fixture):
+def test_distributed_trainer_mnist(
+    mnist_datasets,
+    request,
+    strategy_name,
+    strategy_fixture,
+    tmp_path,
+):
     """Test TorchTrainer on MNIST with different distributed strategies."""
     training_config = dict(optimizer="sgd", loss="nllloss")
     trainer = TorchTrainer(
@@ -84,10 +102,12 @@ def test_distributed_trainer_mnist(mnist_datasets, request, strategy_name, strat
         epochs=2,
         strategy=strategy_name,
         checkpoint_every=1,
+        checkpoints_location=tmp_path / "my_checkpoints",
     )
-
-    strategy_instance = request.getfixturevalue(strategy_fixture)
-    trainer.strategy = strategy_instance  # Patch the strategy with the fixture instance
+    if strategy_name:
+        # Override when the strategy is supposed to be distributed
+        strategy_instance = request.getfixturevalue(strategy_fixture)
+        trainer.strategy = strategy_instance  # Patch the strategy with the fixture instance
 
     train_set, val_set = mnist_datasets
 
@@ -99,3 +119,56 @@ def test_distributed_trainer_mnist(mnist_datasets, request, strategy_name, strat
 
         # Check that the torch trainer is cleaning up the strategy
         mock_cleanup.assert_called_once()
+
+    # Restore training from checkpoint
+    trainer = TorchTrainer(
+        model=Net(),
+        config=training_config,
+        epochs=2,
+        strategy=strategy_name,
+        checkpoint_every=1,
+        from_checkpoint=tmp_path / "my_checkpoints/best_model",
+        checkpoints_location=tmp_path / "my_checkpoints",
+    )
+    # Resume training
+    trainer.execute(train_set, val_set)
+
+
+@pytest.mark.hpc
+@pytest.mark.ray_dist
+@pytest.mark.parametrize(
+    "strategy_name",
+    [
+        pytest.param("ddp"),
+        pytest.param("deepspeed"),
+        pytest.param("horovod"),
+    ],
+)
+def test_distributed_trainer_mnist_ray(mnist_datasets, strategy_name, tmp_path):
+    """Test TorchTrainer on MNIST with different distributed strategies using Ray."""
+    training_config = dict(optimizer="sgd", loss="nllloss")
+    trainer = TorchTrainer(
+        model=Net(),
+        config=training_config,
+        epochs=2,
+        strategy=strategy_name,
+        checkpoint_every=1,
+        checkpoints_location=tmp_path / "my_checkpoints",
+    )
+
+    train_set, val_set = mnist_datasets
+    # Train
+    trainer.execute(train_set, val_set)
+
+    # Restore training from checkpoint
+    trainer = TorchTrainer(
+        model=Net(),
+        config=training_config,
+        epochs=2,
+        strategy=strategy_name,
+        checkpoint_every=1,
+        from_checkpoint=tmp_path / "my_checkpoints/best_model",
+        checkpoints_location=tmp_path / "my_checkpoints",
+    )
+    # Resume training
+    trainer.execute(train_set, val_set)
