@@ -17,10 +17,9 @@ experiment_run: "vwc_actevap"
 
 work_dir: /p/scratch/intertwin/datasets/eurac/model
 
-train_temporal_range: ["2016-01-01", "2018-12-31"]
-valid_temporal_range: ["2019-01-01", "2020-12-31"]
+train_temporal_range: ["2016-01-01", "2017-12-31"]
+valid_temporal_range: ["2018-01-01", "2018-12-31"]
 test_temporal_range: ["2019-01-01", "2020-12-31"]
-<<<<<<< HEAD
 
 seed: 10 
 
@@ -30,14 +29,16 @@ device: "cuda:0"
 
 model_file_name: model.pt
 
-model: cudalstm
+model: CudaLSTM
 
 hidden_size: 136
 dropout: 0.4
+lstm_layers: 1
+lstm_batch_norm: False
 
 model_head_layer: regression # distr_normal
 model_head_activation: linear
-model_head_kwargs: null
+model_head_kwargs: {}
   
 # === Training ===
 
@@ -84,11 +85,19 @@ predict_steps: 0 # all # (prediction: 0 = t ), ( forecasts: 1 = t+1, 2 = t + 2)
 
 # spatial downsampling
 train_downsampler: null 
+  # _target_: hython.sampler.downsampler.RandomDownsampler
+  # frac_time: null
+  # frac_space: 0.005
+
   # _target_: hython.sampler.downsampler.RegularIntervalDownsampler
   # intervals: [3,3]
   # origin: [0,0]
 
 valid_downsampler: null 
+  # _target_: hython.sampler.downsampler.RandomDownsampler
+  # frac_time: null
+  # frac_space: 0.005
+
   # _target_: hython.sampler.downsampler.RegularIntervalDownsampler
   # intervals: [3,3]
   # origin: [1,1]
@@ -100,18 +109,22 @@ test_downsampler: null
 
 
 # temporal downsampling
+downsampling_temporal_dynamic: True
 temporal_downsampling: True
 temporal_subset: [200, 150]
 
 
 # === Data ===
 
-dataset: Wflow1d
+data_lazy_load: False
+
+dataset: WflowSBM
 
 data_source:
   file:
-    data_dir: /p/scratch/intertwin/datasets/eurac/input #!! change to your directory
-    data_file: adg1km_eobs_preprocessed.zarr
+    static_inputs: /p/scratch/intertwin/datasets/eurac/input/alps2_static.zarr
+    dynamic_inputs: /p/scratch/intertwin/datasets/eurac/input/alps2_dynamic.zarr
+    target_variables: /p/scratch/intertwin/datasets/eurac/input/alps2_dynamic.zarr
   # s3:
   #   url: https://eurac-eo.s3.amazonaws.com/INTERTWIN/SURROGATE_INPUT/adg1km_eobs_preprocessed.zarr/
 
@@ -143,209 +156,25 @@ mask_variables:
 scaling_variant: minmax
 scaling_use_cached: True
 
-# == Pipeline == 
+# ==== MODEL LOGGER ========
 
-training_pipeline:
-  class_path: itwinai.pipeline.Pipeline
-  init_args:
-    steps:
-      - class_path: data.RNNDatasetGetterAndPreprocessor
-        init_args:
-          dynamic_inputs: ${dynamic_inputs}
-          static_inputs: ${static_inputs}
-          target_variables: ${target_variables}
-          mask_variables: ${mask_variables}
-          train_temporal_range: ${train_temporal_range}
-          valid_temporal_range: ${valid_temporal_range}
-          dataset: ${dataset}
-          data_source: ${data_source}
-          scaling_variant: ${scaling_variant}
-          scaling_use_cached: ${scaling_use_cached}
-          experiment_name: ${experiment_name}
-          experiment_run: ${experiment_run}
-          work_dir: ${work_dir}
-          train_downsampler: ${train_downsampler}
-          valid_downsampler: ${valid_downsampler}
-      - class_path: trainer.RNNDistributedTrainer
-        init_args:
-          model: ${model}
-          config:
-            experiment: ${experiment_name}/${experiment_run}
-            experiment_name: ${experiment_name}
-            experiment_run: ${experiment_run}
-            work_dir: ${work_dir}
-            batch_size: ${batch}
-            learning_rate: ${learning_rate}
-            num_workers_dataloader: 1
-            hython_trainer: ${hython_trainer}
-            temporal_downsampling: ${temporal_downsampling}
-            temporal_subset: ${temporal_subset}
-            seq_length: ${seq_length}
-            target_variables: ${target_variables}
-            dynamic_inputs: ${dynamic_inputs}
-            static_inputs: ${static_inputs}
-
-            optimizer: ${optimizer}
-            lr_scheduler: ${lr_scheduler}
-            target_weights: ${target_weights}
-
-            # model config
-            model_file_name: ${model_file_name}
-            hidden_size: ${hidden_size}
-            dropout: ${dropout}
-
-            model_head_layer: ${model_head_layer}
-            model_head_activation: ${model_head_activation}
-            model_head_kwargs: ${model_head_kwargs}
-
-            loss_fn: ${loss_fn}
-            metric_fn: ${metric_fn}
-
-            gradient_clip: ${gradient_clip}
-
-            predict_steps: ${predict_steps}
-
-          strategy: ${strategy}
-          epochs: ${epochs}
-          random_seed: ${seed}
-          profiling_wait_epochs: 1
-          profiling_warmup_epochs: 1
-          logger:
-            class_path: itwinai.loggers.LoggersCollection
-            init_args:
-              loggers:
-                - class_path: itwinai.loggers.ConsoleLogger
-                  init_args:
-                    log_freq: 100
-                # - class_path: itwinai.loggers.MLFlowLogger
-                #   init_args:
-                #     experiment_name: ${experiment_name}
-                #     run_name: ${experiment_run}
-                #     log_freq: batch
-                #     savedir: /p/project1/intertwin/ferrario1/itwinai/use-cases/eurac/mllogs
-
-=======
-
-seed: 10 
-
-device: "cuda:0"
-
-# === Model ===
-
-model_file_name: model.pt
-
-model: cudalstm
-
-hidden_size: 136
-dropout: 0.4
-
-model_head_layer: regression # distr_normal
-model_head_activation: linear
-model_head_kwargs: null
-  
-# === Training ===
-
-strategy: ddp #null
-
-hython_trainer: rnntrainer
-
-loss_fn:
-  _target_: hython.losses.RMSELoss
-    
-# metric_fn:
-#   _target_: hython.metrics.MSEMetric
-
-metric_fn:
-  _target_: hython.metrics.MetricCollection
-  metrics:
-    - _target_: hython.metrics.MSEMetric
-    #- _target_: hython.metrics.KGEMetric
-    - _target_: hython.metrics.NSEMetric
-
-optimizer: adam
-
-lr_scheduler:
-  mode: min
-  factor: 0.5
-  patience: 10
-
-seq_length: 120
-
-learning_rate: 0.001
-
-batch: 256
-
-epochs: 30
-
-gradient_clip: null
-
-target_weights: even # null, even, or dict
-
-# which steps are used in the computation of the loss function
-predict_steps: 0 # all # (prediction: 0 = t ), ( forecasts: 1 = t+1, 2 = t + 2)
-
-# > Donwsampling < 
-
-# spatial downsampling
-train_downsampler: null 
-  # _target_: hython.sampler.downsampler.RegularIntervalDownsampler
-  # intervals: [3,3]
-  # origin: [0,0]
-
-valid_downsampler: null 
-  # _target_: hython.sampler.downsampler.RegularIntervalDownsampler
-  # intervals: [3,3]
-  # origin: [1,1]
-
-test_downsampler: null
-  # _target_: hython.sampler.downsampler.RegularIntervalDownsampler
-  # intervals: [3,3]
-  # origin: [2,2]
-
-
-# temporal downsampling
-temporal_downsampling: True
-temporal_subset: [200, 150]
-
-
-# === Data ===
-
-dataset: Wflow1d
-
-data_source:
-  file:
-    data_dir: /p/scratch/intertwin/datasets/eurac/input #!! change to your directory
-    data_file: adg1km_eobs_preprocessed.zarr
-  # s3:
-  #   url: https://eurac-eo.s3.amazonaws.com/INTERTWIN/SURROGATE_INPUT/adg1km_eobs_preprocessed.zarr/
-
-static_categorical_inputs:
-   - wflow_landuse
-   - wflow_soil
-
-static_inputs:
-  - thetaS
-  - thetaR
-  - KsatVer
-  - c
-  - f
-
-dynamic_inputs:
-  - precip
-  - pet
-  - temp
-  
-target_variables:
-  - vwc
-
-mask_variables:
-  - mask_missing
-  - mask_lake
-
-# Scaling
-
-scaling_variant: minmax
-scaling_use_cached: True
+# where the model is loaded/saved
+model_logger:
+    # mlflow: 
+    # - ``/Users/me/path/to/local/model``
+    # - ``relative/path/to/local/model``
+    # - ``s3://my_bucket/path/to/model``
+    # - ``runs:/<mlflow_run_id>/run-relative/path/to/model``
+    # - ``models:/<model_name>/<model_version>``
+    # - ``models:/<model_name>/<stage>``
+  CudaLSTM:
+      logger: local
+      model_component: model # the main model
+      model_name: ${model}
+      model_uri: ${work_dir}/${experiment_name}_${experiment_run}/${model}.pt
+      #model_uri: "models:/${model}/latest" #  
+      log: False
+      load: False
 
 # == Pipeline == 
 
@@ -353,6 +182,7 @@ training_pipeline:
   _target_: itwinai.pipeline.Pipeline
   steps:
     - _target_: data.RNNDatasetGetterAndPreprocessor
+      hython_trainer: ${hython_trainer}
       dynamic_inputs: ${dynamic_inputs}
       static_inputs: ${static_inputs}
       target_variables: ${target_variables}
@@ -361,6 +191,8 @@ training_pipeline:
       valid_temporal_range: ${valid_temporal_range}
       dataset: ${dataset}
       data_source: ${data_source}
+      data_lazy_load: ${data_lazy_load}
+      downsampling_temporal_dynamic: ${downsampling_temporal_dynamic}
       scaling_variant: ${scaling_variant}
       scaling_use_cached: ${scaling_use_cached}
       experiment_name: ${experiment_name}
@@ -394,6 +226,8 @@ training_pipeline:
         model_file_name: ${model_file_name}
         hidden_size: ${hidden_size}
         dropout: ${dropout}
+        lstm_layers: ${lstm_layers}
+        lstm_batch_norm: ${lstm_batch_norm}
 
         model_head_layer: ${model_head_layer}
         model_head_activation: ${model_head_activation}
@@ -406,20 +240,22 @@ training_pipeline:
 
         predict_steps: ${predict_steps}
 
-        strategy: ${strategy}
-        epochs: ${epochs}
-        random_seed: ${seed}
-        profiling_wait_epochs: 1
-        profiling_warmup_epochs: 1
-        logger:
-          _target_: itwinai.loggers.LoggersCollection
-          loggers:
-            - _target_: itwinai.loggers.ConsoleLogger
-              log_freq: 100
-          # - _target_: itwinai.loggers.MLFlowLogger
-          #   experiment_name: ${experiment_name}
-          #   run_name: ${experiment_run}
-          #   log_freq: batch
-          #   savedir: /p/project1/intertwin/ferrario1/itwinai/use-cases/eurac/mllogs
+        # model logger
+        model_logger: ${model_logger}
 
->>>>>>> main
+      strategy: ${strategy}
+      epochs: ${epochs}
+      random_seed: ${seed}
+      profiling_wait_epochs: 1
+      profiling_warmup_epochs: 1
+      logger:
+        _target_: itwinai.loggers.LoggersCollection
+        loggers:
+          - _target_: itwinai.loggers.ConsoleLogger
+            log_freq: 100
+        # - _target_: itwinai.loggers.MLFlowLogger
+        #   experiment_name: ${experiment_name}
+        #   run_name: ${experiment_run}
+        #   log_freq: batch
+        #   savedir: /p/project1/intertwin/ferrario1/itwinai/use-cases/eurac/mllogs
+

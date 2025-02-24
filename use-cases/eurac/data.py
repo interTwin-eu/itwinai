@@ -1,11 +1,10 @@
 from copy import deepcopy
 from typing import Dict, List, Tuple
 
-from hydra.utils import instantiate
+from hython.datasets.wflow_sbm import WflowSBM
 from hython.datasets import get_dataset
-from hython.datasets.wflow_sbm import Wflow1d
 from hython.scaler import Scaler
-from omegaconf import OmegaConf
+from hython.config import Config
 
 from itwinai.components import DataSplitter, monitor_exec
 
@@ -14,12 +13,15 @@ class RNNDatasetGetterAndPreprocessor(DataSplitter):
     def __init__(
         self,
         # == common ==
+        hython_trainer: str,
         dataset: str,
+        downsampling_temporal_dynamic: bool,
         scaling_variant: str,
         experiment_name: str,
         experiment_run: str,
         data_source: dict,
         work_dir: str,
+        data_lazy_load: bool,
         scaling_use_cached: bool | None = None,
         dynamic_inputs: List[str] | None = None,
         static_inputs: List[str] | None = None,
@@ -39,24 +41,24 @@ class RNNDatasetGetterAndPreprocessor(DataSplitter):
         seq_length: int | None = None,
         # == training ==
     ) -> None:
-
-        if train_temporal_range is None:
-            train_temporal_range = ["", ""]
-        if valid_temporal_range is None:
-            valid_temporal_range = ["", ""]
-
         self.save_parameters(**self.locals2params(locals()))
 
-        self.cfg = deepcopy(self.locals2params(locals()))
-
-        self.cfg = instantiate(OmegaConf.create(self.cfg))
-
     @monitor_exec
-    def execute(self) -> Tuple[Wflow1d, Wflow1d, None]:
-        scaler = Scaler(self.cfg, self.cfg.scaling_use_cached)
+    def execute(self) -> Tuple[WflowSBM, WflowSBM, None]:
 
-        train_dataset = get_dataset(self.cfg.dataset)(self.cfg, scaler, True, "train")
+        cfg = Config() 
 
-        val_dataset = get_dataset(self.cfg.dataset)(self.cfg, scaler, False, "valid")
+        for i in self.parameters: setattr(cfg, i, self.parameters[i])
+
+        scaler = Scaler(cfg, cfg.scaling_use_cached)
+
+        period = "train"
+        istrain = True
+        if "cal" in cfg.hython_trainer:
+            period = "cal" 
+        
+        train_dataset = get_dataset(cfg.dataset)(cfg, scaler, istrain, period)
+
+        val_dataset = get_dataset(cfg.dataset)(cfg, scaler, False, "valid")
 
         return train_dataset, val_dataset, None

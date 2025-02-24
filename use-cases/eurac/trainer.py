@@ -7,7 +7,8 @@ import pandas as pd
 import torch
 import torch.nn as nn
 from hydra.utils import instantiate
-from hython.models import get_model as get_hython_model
+from hython.models import get_model_class as get_hython_model
+from hython.models import ModelLogAPI
 from hython.sampler import SamplerBuilder
 from hython.trainer import CalTrainer, RNNTrainer
 from omegaconf import OmegaConf
@@ -91,8 +92,9 @@ class RNNDistributedTrainer(TorchTrainer):
             **kwargs,
         )
         self.save_parameters(**self.locals2params(locals()))
-
-        self.model_class = get_hython_model(self.model)
+        self.model_class = get_hython_model(model)
+        self.model_class_name = model
+        self.model_dict = {}
 
     @suppress_workers_print
     def execute(
@@ -107,45 +109,38 @@ class RNNDistributedTrainer(TorchTrainer):
 
     def init_hython_trainer(self) -> None:
         self.config.loss_fn = instantiate(
-            OmegaConf.create({"loss_fn": self.config.loss_fn})
+            {"loss_fn": self.config.loss_fn}
         )["loss_fn"]
 
         self.config.metric_fn = instantiate(
-            OmegaConf.create({"metric_fn": self.config.metric_fn})
+            {"metric_fn": self.config.metric_fn}
         )["metric_fn"]
 
+        self.model_api = ModelLogAPI(self.config)
+
         if self.config.hython_trainer == "rnntrainer":
+
+            # LOAD MODEL
+            self.model_logger = self.model_api.get_model_logger("model")
+
             self.model = self.model_class(
-                hidden_size=self.config.hidden_size,
-                dynamic_input_size=len(self.config.dynamic_inputs),
-                static_input_size=len(self.config.static_inputs),
-                output_size=len(self.config.target_variables),
-                dropout=self.config.dropout,
-                head_layer=self.config.model_head_layer,
-                head_activation=self.config.model_head_activation,
-                head_kwargs= self.config.model_head_kwargs if self.config.model_head_kwargs is not None else {}
+                self.config
             )
             self.hython_trainer = RNNTrainer(self.config)
 
         elif self.config.hython_trainer == "caltrainer":
-            surrogate = get_hython_model(self.config.model_head)(
-                hidden_size=self.config.model_head_hidden_size,
-                dynamic_input_size=len(self.config.dynamic_inputs),
-                static_input_size=len(self.config.head_model_inputs),
-                output_size=len(self.config.target_variables),
-                dropout=self.config.model_head_dropout,
-                head_layer=self.config.model_head_layer,
-                head_activation=self.config.model_head_activation,
-                head_kwargs= self.config.model_head_kwargs if self.config.model_head_kwargs is not None else {}
-            )
+            # LOAD MODEL HEAD/SURROGATE
+            self.model_logger = self.model_api.get_model_logger("head")
 
-            model_pt = Path(self.config.work_dir) / self.config.model_head_dir / self.config.model_head_file
-
-            surrogate.load_state_dict(
-                torch.load(
-                   model_pt
+            # TODO: remove if condition, logic is  delegated to model api
+            if self.model_logger == "mlflow":
+                surrogate = self.model_api.load_model("head")
+            else:
+                surrogate = get_hython_model(self.config.model_head)(
+                    self.config
                 )
-            )
+
+                surrogate = self.model_api.load_model("head", surrogate)
 
             transfer_nn = get_hython_model(self.config.model_transfer)(
                 self.config.head_model_inputs,
@@ -298,8 +293,21 @@ class RNNDistributedTrainer(TorchTrainer):
         if self.strategy.is_main_worker:
             epoch_time_tracker.save()
             self.model.load_state_dict(best_model)
-            self.log(item=self.model, identifier="LSTM", kind="model")
+            # self.log(item=self.model, identifier="LSTM", kind="model")
+            # MODEL LOGGING
+            model_log_names = self.model_api.get_model_log_names()
 
+            for module_name, model_class_name in model_log_names.items():
+                if module_name == "model": # main model
+                    if self.model_logger == "mlflow":
+                        self.log(item=self.model, identifier = model_class_name, kind="model", registered_model_name = model_class_name)
+                    else:
+                        self.model_api.log_model(module_name, self.model)
+                else: # submodule
+                    if self.model_logger == "mlflow":
+                        self.log(item=self.model.get_submodule(module_name), identifier = model_class_name, kind="model", registered_model_name = model_class_name)
+                    else:
+                        self.model_api.log_model(module_name, self.model.get_submodule(module_name))
 
 
             # Report training metrics of last epoch to Ray
