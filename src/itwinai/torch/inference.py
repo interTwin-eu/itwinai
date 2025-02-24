@@ -214,6 +214,8 @@ class TorchPredictor(TorchTrainer, Predictor):
         if model is not None:
             # Overrides existing "internal" model
             self.model = model
+        elif isinstance(self.model, TorchModelLoader):
+            self.model = self.model()
 
         self.create_dataloaders(inference_dataset=inference_dataset)
 
