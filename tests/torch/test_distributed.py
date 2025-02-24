@@ -13,18 +13,13 @@ from typing import Any
 from unittest.mock import patch
 
 import pytest
-import ray
-import ray.train
-import ray.train.torch
-import ray.tune
 import torch
 import torch.nn as nn
-from ray.train import ScalingConfig
 from torch.nn import Linear
 from torch.optim import SGD, Optimizer
 from torch.utils.data import DataLoader, Dataset, DistributedSampler
 
-from itwinai.distributed import ray_cluster_is_running
+from itwinai.distributed import get_adaptive_ray_scaling_config, ray_cluster_is_running
 from itwinai.torch.distributed import (
     DeepSpeedStrategy,
     HorovodStrategy,
@@ -284,27 +279,6 @@ class TestHorovodStrategy(BaseTestDistributedStrategy):
         )
 
 
-def get_adaptive_scaling_config() -> ScalingConfig:
-    # Initialize Ray if not already initialized
-    if not ray.is_initialized():
-        ray.init()
-
-    # Get cluster resources
-    cluster_resources = ray.cluster_resources()
-    num_gpus = int(cluster_resources.get("GPU", 0))
-
-    # Configure ScalingConfig based on GPU availability
-    if num_gpus <= 1:
-        # If 0 or 1 GPU, don't use GPU for training
-        return ScalingConfig(
-            num_workers=2,  # Default to 2 CPU workers
-            use_gpu=False,
-        )
-    else:
-        # If multiple GPUs, use all available GPUs
-        return ScalingConfig(num_workers=num_gpus, use_gpu=True)
-
-
 @pytest.mark.hpc
 @pytest.mark.ray_dist
 @pytest.mark.parametrize(
@@ -493,7 +467,7 @@ def test_ray_ddp_strategy(strategy_name):
             assert granks is None
 
     # scaling_config = ScalingConfig(num_workers=2, use_gpu=False)
-    scaling_config = get_adaptive_scaling_config()
+    scaling_config = get_adaptive_ray_scaling_config()
 
     match strategy_name:
         case "ddp":
