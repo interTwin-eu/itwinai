@@ -79,8 +79,9 @@ training_pipeline:
           type: uniform
           lower: 1e-5
           upper: 1e-3
-      ray_horovod_config:
-        _target_: ray.train.horovod.config.HorovodConfig
+      # keep ray_horovod_config commented out if you don't have horovod installed
+      # ray_horovod_config:
+      #   _target_: ray.train.horovod.config.HorovodConfig
       model:
         _target_: model.Net
       epochs: ${epochs}
