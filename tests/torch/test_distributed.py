@@ -9,12 +9,14 @@
 
 """Test distributed training strategies."""
 
-from typing import Any
+from pathlib import Path
+from typing import Any, Literal
 from unittest.mock import patch
 
 import pytest
 import torch
 import torch.nn as nn
+from ray.train import RunConfig
 from torch.nn import Linear
 from torch.optim import SGD, Optimizer
 from torch.utils.data import DataLoader, Dataset, DistributedSampler
@@ -31,7 +33,6 @@ from itwinai.torch.distributed import (
     TorchDistributedStrategy,
 )
 from itwinai.torch.type import DistributedStrategyError, UninitializedStrategyError
-from ray.train import RunConfig
 
 
 class DummyDataset(Dataset):
@@ -177,7 +178,7 @@ class BaseTestDistributedStrategy:
 @pytest.mark.torch_dist
 class TestTorchDDPStrategy(BaseTestDistributedStrategy):
     @pytest.fixture(scope="module")
-    def strategy(self, ddp_strategy) -> TorchDDPStrategy:
+    def strategy(self, ddp_strategy: TorchDistributedStrategy) -> TorchDDPStrategy:
         return ddp_strategy
 
     def test_init(self, strategy: TorchDDPStrategy):
@@ -209,7 +210,7 @@ class TestTorchDDPStrategy(BaseTestDistributedStrategy):
 @pytest.mark.deepspeed_dist
 class TestDeepSpeedStrategy(BaseTestDistributedStrategy):
     @pytest.fixture(scope="module")
-    def strategy(self, deepspeed_strategy) -> DeepSpeedStrategy:
+    def strategy(self, deepspeed_strategy: DeepSpeedStrategy) -> DeepSpeedStrategy:
         return deepspeed_strategy
 
     def test_init(self, strategy: DeepSpeedStrategy):
@@ -253,10 +254,10 @@ class TestDeepSpeedStrategy(BaseTestDistributedStrategy):
 @pytest.mark.horovod_dist
 class TestHorovodStrategy(BaseTestDistributedStrategy):
     @pytest.fixture(scope="module")
-    def strategy(self, horovod_strategy) -> HorovodStrategy:
+    def strategy(self, horovod_strategy: HorovodStrategy) -> HorovodStrategy:
         return horovod_strategy
 
-    def test_init(self, strategy):
+    def test_init(self, strategy: HorovodStrategy):
         assert strategy.is_initialized
         assert hasattr(strategy, "hvd"), (
             "Lazy import of horovod not found in HorovodStrategy class."
@@ -269,7 +270,7 @@ class TestHorovodStrategy(BaseTestDistributedStrategy):
             strategy.init()
             mock_init_ds.assert_called_once()
 
-    def test_distributed_model(self, strategy, simple_model, optimizer):
+    def test_distributed_model(self, strategy: HorovodStrategy, simple_model, optimizer):
         dist_model, dist_optimizer, _ = strategy.distributed(
             simple_model, optimizer=optimizer, op=strategy.hvd.Average
         )
@@ -290,7 +291,10 @@ class TestHorovodStrategy(BaseTestDistributedStrategy):
         pytest.param("horovod"),
     ],
 )
-def test_ray_distributed_strategy(strategy_name, shared_tmp_path):
+def test_ray_distributed_strategy(
+    strategy_name: Literal["ddp"] | Literal["deepspeed"] | Literal["horovod"],
+    shared_tmp_path: Path,
+):
     import ray  # needed here
 
     assert ray_cluster_is_running()
