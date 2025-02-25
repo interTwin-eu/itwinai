@@ -989,9 +989,8 @@ class TorchTrainer(Trainer, LogMixin):
             if self.strategy.is_main_worker:
                 avg_loss = torch.mean(torch.stack(worker_val_losses)).detach().cpu()
                 if avg_loss < self.best_validation_loss and self.checkpoint_every is not None:
-                    ckpt_name = "best_model"
                     best_ckpt_path = self.save_checkpoint(
-                        name=ckpt_name,
+                        name="best_model",
                         best_validation_loss=avg_loss,
                         force=True,
                     )
@@ -999,7 +998,7 @@ class TorchTrainer(Trainer, LogMixin):
 
             # Report validation metrics to Ray (useful for tuning!)
             self.ray_report(
-                {"loss": val_loss.item()},
+                metrics={"loss": val_loss.item()},
                 checkpoint_dir=best_ckpt_path or periodic_ckpt_path,
             )
 
