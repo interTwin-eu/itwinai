@@ -174,6 +174,11 @@ srun_launcher ()
 # Launch distribtued job in container with Ray
 ray_launcher ()
 {
+
+  # Path to shared filesystem that all the Ray workers can access. /tmp is a local filesystem path to each worker
+  # This is only needed by tests
+  export SHARED_FS_PATH="/ceph/hpc/data/st2301-itwin-users/tmp-mbunino"
+
   # This tells Tune to not change the working directory to the trial directory
   # which makes relative paths accessible from inside a trial
   export RAY_CHDIR_TO_TRIAL_DIR=0

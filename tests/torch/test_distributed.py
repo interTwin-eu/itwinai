@@ -31,6 +31,7 @@ from itwinai.torch.distributed import (
     TorchDistributedStrategy,
 )
 from itwinai.torch.type import DistributedStrategyError, UninitializedStrategyError
+from ray.train import RunConfig
 
 
 class DummyDataset(Dataset):
@@ -289,7 +290,7 @@ class TestHorovodStrategy(BaseTestDistributedStrategy):
         pytest.param("horovod"),
     ],
 )
-def test_ray_ddp_strategy(strategy_name):
+def test_ray_distributed_strategy(strategy_name, shared_tmp_path):
     import ray  # needed here
 
     assert ray_cluster_is_running()
@@ -468,6 +469,7 @@ def test_ray_ddp_strategy(strategy_name):
 
     # scaling_config = ScalingConfig(num_workers=2, use_gpu=False)
     scaling_config = get_adaptive_ray_scaling_config()
+    run_config = RunConfig(storage_path=shared_tmp_path / "ray_checkpoints")
 
     match strategy_name:
         case "ddp":
@@ -481,6 +483,7 @@ def test_ray_ddp_strategy(strategy_name):
             trainer = ray.train.torch.TorchTrainer(
                 test_function,
                 scaling_config=scaling_config,
+                run_config=run_config,
             )
             trainer.fit()
         case "deepspeed":
@@ -496,6 +499,7 @@ def test_ray_ddp_strategy(strategy_name):
             trainer = ray.train.torch.TorchTrainer(
                 test_function,
                 scaling_config=scaling_config,
+                run_config=run_config,
             )
             trainer.fit()
         case "horovod":
@@ -511,6 +515,7 @@ def test_ray_ddp_strategy(strategy_name):
             trainer = ray.train.horovod.HorovodTrainer(
                 test_function,
                 scaling_config=scaling_config,
+                run_config=run_config,
             )
             trainer.fit()
         case _:

@@ -23,14 +23,14 @@
 #SBATCH --time=00:20:00
 
 # Resources allocation
-#SBATCH --partition=booster
+#SBATCH --partition=develbooster
 #SBATCH --nodes=2
 #SBATCH --gpus-per-node=1
 #SBATCH --cpus-per-task=16
-#SBATCH --ntasks-per-node=2
+#SBATCH --ntasks-per-node=1
 # SBATCH --mem-per-gpu=10G
 # SBATCH --exclusive
-#SBATCH --gres=gpu:4
+#SBATCH --gres=gpu:1
 
 echo "DEBUG: SLURM_SUBMIT_DIR: $SLURM_SUBMIT_DIR"
 echo "DEBUG: SLURM_JOB_ID: $SLURM_JOB_ID"
@@ -147,6 +147,10 @@ srun_launcher ()
 ray_launcher(){
   num_gpus=$SLURM_GPUS_PER_NODE
   num_cpus=$SLURM_CPUS_PER_TASK
+
+  # Path to shared filesystem that all the Ray workers can access. /tmp is a local filesystem path to each worker
+  # This is only needed by tests
+  export SHARED_FS_PATH="/p/project1/intertwin/bunino1/tmp"
 
   # This tells Tune to not change the working directory to the trial directory
   # which makes relative paths accessible from inside a trial
