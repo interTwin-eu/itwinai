@@ -229,6 +229,9 @@ class TorchTrainer(Trainer, LogMixin):
                     f"at {self.from_checkpoint}"
                 )
 
+        if self.checkpoints_location:
+            Path(self.checkpoints_location).mkdir(exist_ok=True, parents=True)
+
         py_logger.debug(f"ray_scaling_config: {ray_scaling_config}")
         py_logger.debug(f"ray_tune_config: {ray_tune_config}")
         py_logger.debug(f"ray_run_config: {ray_run_config}")
