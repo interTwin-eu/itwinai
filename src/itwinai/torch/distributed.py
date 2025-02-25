@@ -22,7 +22,14 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.optim.lr_scheduler import _LRScheduler as LRScheduler
 from torch.optim.optimizer import Optimizer
-from torch.utils.data import DataLoader, Dataset, DistributedSampler, Sampler
+from torch.utils.data import (
+    DataLoader,
+    Dataset,
+    DistributedSampler,
+    Sampler,
+    RandomSampler,
+    SequentialSampler,
+)
 from torch.utils.data.dataloader import T_co, _collate_fn_t, _worker_init_fn_t
 
 from ..distributed import (
@@ -355,6 +362,11 @@ class TorchDistributedStrategy(DistributedStrategy):
                 )
             elif not isinstance(sampler, DistributedSampler):
                 raise RuntimeError("User-provided sampler must implement DistributedSampler.")
+        else:
+            if shuffle:
+                sampler = RandomSampler(dataset)
+            else:
+                sampler = SequentialSampler(dataset)
         # shuffle and batch_sampler must be unset
         return DataLoader(
             dataset=dataset,
