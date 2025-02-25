@@ -148,13 +148,19 @@ def test_distributed_trainer_mnist(
         pytest.param("horovod"),
     ],
 )
-def test_distributed_trainer_mnist_ray(mnist_datasets, strategy_name, tmp_path):
+def test_distributed_trainer_mnist_ray(mnist_datasets, strategy_name, shared_tmp_path):
     """Test TorchTrainer on MNIST with different distributed strategies using Ray."""
+    from ray.train import RunConfig
+
+    ray_run_config = RunConfig(storage_path=shared_tmp_path / "ray_checkpoints")
+
     # from pathlib import Path
 
     # ckpt_path = (
     #     Path("/p/project1/intertwin/bunino1/itwinai/tests/torch/checkpoints") / strategy_name
     # )
+
+    ckpt_path = shared_tmp_path / "my_checkpoints" / strategy_name
     training_config = dict(optimizer="sgd", loss="nllloss")
     trainer = TorchTrainer(
         model=Net(),
@@ -162,8 +168,9 @@ def test_distributed_trainer_mnist_ray(mnist_datasets, strategy_name, tmp_path):
         epochs=2,
         strategy=strategy_name,
         ray_scaling_config=get_adaptive_ray_scaling_config(),
+        ray_run_config=ray_run_config,
         checkpoint_every=1,
-        checkpoints_location=tmp_path / "my_checkpoints",  # ckpt_path,
+        checkpoints_location=ckpt_path,
     )
 
     train_set, val_set = mnist_datasets
@@ -178,9 +185,10 @@ def test_distributed_trainer_mnist_ray(mnist_datasets, strategy_name, tmp_path):
         config=training_config,
         epochs=2,
         strategy=strategy_name,
+        ray_scaling_config=get_adaptive_ray_scaling_config(),
         checkpoint_every=1,
-        from_checkpoint=tmp_path / "my_checkpoints/best_model",  # ckpt_path / "best_model",
-        checkpoints_location=tmp_path / "my_checkpoints",  # ckpt_path,
+        from_checkpoint=ckpt_path / "best_model",
+        checkpoints_location=ckpt_path,
     )
     # Resume training
     # TODO: prevent strategy cleanup?

@@ -7,6 +7,10 @@
 # - Matteo Bunino <matteo.bunino@cern.ch> - CERN
 # --------------------------------------------------------------------------------------
 
+import logging
+import os
+import tempfile
+from pathlib import Path
 from typing import Generator
 
 import pytest
@@ -45,3 +49,21 @@ def horovod_strategy() -> Generator[HorovodStrategy, None, None]:
     strategy.init()
     yield strategy
     strategy.clean_up()
+
+
+@pytest.fixture(scope="function")
+def shared_tmp_path():
+    """Return the Path to a shared filesystem that all nodes can access.
+    /tmp location is usually a local filesystem. Uses as a prefix SHARED_FS_PATH
+    env variable, but if that's not set it falls back to /tmp.
+    """
+    if not os.environ.get("SHARED_FS_PATH"):
+        logging.warning(
+            "SHARED_FS_PATH env var not set! Falling back to /tmp, but this could cause "
+            "problems as this fixture should return the path to a location reachable by all "
+            "nodes (/tmp usually isn't)."
+        )
+    else:
+        Path(os.environ.get("SHARED_FS_PATH")).mkdir(parents=True, exist_ok=True)
+    with tempfile.TemporaryDirectory(dir=os.environ.get("SHARED_FS_PATH", "/tmp")) as tmp_path:
+        yield Path(tmp_path)

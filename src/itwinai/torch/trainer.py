@@ -743,7 +743,7 @@ class TorchTrainer(Trainer, LogMixin):
             # Wrap the trainer into a Tuner
             param_space = {"train_loop_config": search_space(self.ray_search_space)}
             tuner = ray.tune.Tuner(
-                trainer,
+                trainable=trainer,
                 param_space=param_space,
                 tune_config=self.ray_tune_config,
             )
