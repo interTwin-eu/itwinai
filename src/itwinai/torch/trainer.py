@@ -531,6 +531,7 @@ class TorchTrainer(Trainer, LogMixin):
         """Reload training state from checkpoint."""
         if self.from_checkpoint:
             # A checkpoint path was provided
+            py_logger.info(f"Loading from existing checkpoint at {self.from_checkpoint}")
 
             if isinstance(self.strategy, RayTorchDistributedStrategy):
                 # A Ray checkpoint directory was passed to the trainer -- assuming to be
@@ -538,10 +539,12 @@ class TorchTrainer(Trainer, LogMixin):
                 checkpoint = ray.train.get_checkpoint()
                 if checkpoint:
                     with checkpoint.as_directory() as checkpoint_dir:
+                        py_logger.debug("Loading from existing Ray checkpoint")
                         self._load_checkpoint(checkpoint_dir=checkpoint_dir)
 
             else:
                 # Not using Ray, falling back to simple checkpoint reload
+                py_logger.debug("Loading from existing checkpoint without using Ray")
                 self._load_checkpoint(checkpoint_dir=self.from_checkpoint)
 
     def _load_checkpoint(self, checkpoint_dir: str | Path) -> None:
@@ -796,18 +799,20 @@ class TorchTrainer(Trainer, LogMixin):
         self._init_distributed_strategy()
         self._setup_metrics()
 
+        if self.logger:
+            py_logger.debug(f"Using logger: {self.logger.__class__.__name__}")
+            self.logger.create_logger_context(rank=self.strategy.global_rank())
+            py_logger.debug("...the logger has been initialized")
+            hparams = self.config.model_dump()
+            hparams["distributed_strategy"] = self.strategy.__class__.__name__
+            self.logger.save_hyperparameters(hparams)
+
         self.create_dataloaders(
             train_dataset=train_dataset,
             validation_dataset=validation_dataset,
             test_dataset=test_dataset,
         )
         self.create_model_loss_optimizer()
-
-        if self.logger:
-            self.logger.create_logger_context(rank=self.strategy.global_rank())
-            hparams = self.config.model_dump()
-            hparams["distributed_strategy"] = self.strategy.__class__.__name__
-            self.logger.save_hyperparameters(hparams)
 
         self.train()
 
@@ -817,20 +822,21 @@ class TorchTrainer(Trainer, LogMixin):
         return
 
     def _set_seed(self):
+        py_logger.debug(f"Using random seed: {self.random_seed}")
         self.torch_rng = set_seed(self.random_seed)
 
         if self.torch_rng_state is not None:
             # Resume state from checkpoint
+            py_logger.debug("Resuming torch PRNG state from checkpoint")
             self.torch_rng.set_state(self.torch_rng_state)
 
     def _override_config(self, config: Dict) -> None:
         """Overrid self.config with a sample from the search space from the Ray tuner."""
         self.config = self.config.model_copy(update=config)
+        py_logger.debug("Overridden self.config with trial config (if given)")
 
     def _set_epoch_dataloaders(self, epoch: int):
-        """
-        Sets epoch in the distributed sampler of a dataloader when using it.
-        """
+        """Sets epoch in the distributed sampler of a dataloader when using it."""
         if self.strategy.is_distributed:
             self.train_dataloader.sampler.set_epoch(epoch)
             if self.validation_dataloader is not None:
