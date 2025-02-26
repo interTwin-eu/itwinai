@@ -24,7 +24,7 @@ py_logger = logging.getLogger(__name__)
 def search_space(config: Dict | None) -> Dict:
     if not config:
         py_logger.warning(
-            "No training_loop_config detected. "
+            "No search_space configuration detected. "
             "If you want to tune any hyperparameters, make sure to define them here."
         )
         return {}
