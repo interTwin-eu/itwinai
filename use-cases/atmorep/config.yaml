@@ -26,7 +26,7 @@ atmorep_training_pipeline:
             path_results: ../../results/
             path_plots: ../results/plots/
             #path_data: ./data/era5_y1979_2021_res025_chunk8.zarr/
-            file_path: '/p/scratch/atmo-rep/data/era5_1deg/months/era5_y1979_2021_res025_chunk8.zarr' #this will change in the new atmorep branch
+            file_path: /p/scratch/intertwin/datasets/era5_y2021_res025.zarr # /p/scratch/atmo-rep/data/era5_1deg/months/era5_y1979_2021_res025_chunk8.zarr #this will change in the new atmorep branch
             fields: [ [ "velocity_u", [ 1, 1024, [ ], 0 ], [ 96, 105, 114, 123, 137 ], [12, 3, 6], [3, 18, 18], [0.5, 0.9, 0.2, 0.05] ] ]
             #to load a pretrained run and continue training:
             #fields: [ [ "velocity_u", [ 1, 1024, [ ], 0, ["model_id", "epoch" ] ], [ 96, 105, 114, 123, 137 ], [12, 3, 6], [3, 18, 18], [0.5, 0.9, 0.2, 0.05] ]
