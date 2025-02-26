@@ -185,11 +185,13 @@ def get_slurm_job_parser() -> ArgumentParser:
         help="Whether to include debugging information or not",
     )
     parser.add_argument(
+        "-ns",
         "--no-save-script",
         action="store_true",
         help="Whether to save the script after processing it.",
     )
     parser.add_argument(
+        "-nj",
         "--no-submit-job",
         action="store_true",
         help="Whether to submit the job when processing the script.",
