@@ -1,0 +1,78 @@
+# --------------------------------------------------------------------------------------
+# Part of the interTwin Project: https://www.intertwin.eu/
+#
+# Created by: Matteo Bunino
+#
+# Credit:
+# - Oleksandr Krochak - FZJ
+# --------------------------------------------------------------------------------------
+
+num_payloads: 10
+tag: train_v0_
+
+# mask_maker_dict: {
+#     model: UNet,
+#     model_path: ./models/trained_UNet_test_v0.pt
+#     }
+
+image_tag: train_v0_*_payload_detected.json
+image_directory: syn_payload/
+
+mask_tag: train_v0_*_payload_flux.json
+mask_directory: syn_payload/
+learning_rate: 0.001
+
+
+# To use the entire synthetic dataset that is generated prior to running the pipeline
+training_pipeline:
+  class_path: itwinai.pipeline.Pipeline
+  init_args:
+    steps:
+      - class_path: data.SynthesizeData
+        init_args:
+          tag: ${tag}
+          num_payloads: ${num_payloads}
+          name: syntheticData
+      # - class_path: data.GenericDataset
+      #   init_args:
+      #     image_tag: ${image_tag}
+      #     image_directory: ${image_directory}
+      #     mask_tag: ${mask_tag}
+      #     mask_directory: ${mask_directory}
+      #     do_rot_phase_avg: 1
+      #     do_resize: 1
+      #     resize_shape: [128,128]
+      #     mask_binarize_func: "thresh"
+      #     name: img2maskDataset
+      # - class_path: data.DatasetSplitter
+      #   init_args:          
+      #     train_proportion: 0.8
+      #     validation_proportion: 0.1
+      #     test_proportion: 0.1
+      #     rnd_seed: 42
+      #     name: Splitter
+      # - class_path: trainer.PulsarTrainer
+      #   init_args:
+      #     model: UNet
+      #     num_epochs: 10
+      #     store_trained_model_at: ./models/trained_UNet_test_v0.pt
+      #     name: ImgToMaskTrainer
+      #     config:
+      #       generator: simple #unet
+      #       batch_size: 10 # Set to one because "chunk_size" implicitly decides this
+      #       optim_lr: ${learning_rate}
+      #       loss: l1
+      #       save_best: 1
+      #       shuffle_train: 1
+      #     # logger:
+      #     #   class_path: itwinai.loggers.LoggersCollection
+      #     #   init_args:
+      #     #     loggers:
+      #     #       - class_path: itwinai.loggers.ConsoleLogger
+      #     #         init_args:
+      #     #           log_freq: 1
+      #     #       - class_path: itwinai.loggers.MLFlowLogger
+      #     #         init_args:
+      #     #           experiment_name: Noise simulator (Virgo)
+      #     #           log_freq: batch 
+

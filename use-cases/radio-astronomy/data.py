@@ -12,14 +12,20 @@ import torch
 import glob
 
 from torch.utils.data import Dataset, TensorDataset, random_split
-from src.pulsar_analysis.train_neural_network_model import ImageMaskPair
-from src.pulsar_analysis.preprocessing import PrepareFreqTimeImage
+from src.pulsar_analysis.train_neural_network_model import ImageMaskPair, SignalToLabelDataset
+from src.pulsar_analysis.preprocessing import PrepareFreqTimeImage, BinarizeToMask
 from src.pulsar_analysis.pipeline_methods import PipelineImageToMask
+from src.pulsar_analysis.neural_network_models import UNet
 
-class synthesizeData(DataGetter):
-    def __init__(self, name: Optional[str] = None,
-                 tag: str = "test_v0_", num_payloads: int = 50, plot: bool = 0, num_cpus: int = 4, 
-                 param_root: str = "syn_runtime/", payload_root: str = "syn_payload/") -> None:
+class SynthesizeData(DataGetter):
+    def __init__(self, 
+                 name: Optional[str] = None,
+                 tag: str = "test_v0_", 
+                 num_payloads: int = 50, 
+                 plot: bool = 0, 
+                 num_cpus: int = 4, 
+                 param_root: str = "./syn_runtime/", 
+                 payload_root: str = "./syn_payload/") -> None:
        
         """Initialize the synthesizeData class.
     
@@ -65,7 +71,12 @@ class GenericDataset(Dataset):
         mask_tag: str,
         image_directory: str,
         mask_directory: str,
-        mask_maker_engine: Optional[PipelineImageToMask] = None,
+        # Re-use some arguments to initialize PrepareFreqTimeImage class inside this class
+        do_rot_phase_avg: bool = True,
+        do_resize: bool = True,
+        resize_size: Tuple = (128,128),
+        mask_binarize_func: str = "thresh",
+        mask_maker_engine: Optional[dict] = None,
         image_engine: PrepareFreqTimeImage = PrepareFreqTimeImage(
             do_rot_phase_avg=True, do_binarize=False, do_resize=True
         ),
@@ -80,10 +91,40 @@ class GenericDataset(Dataset):
         self._mask_tag = mask_tag
         self._image_directory = image_directory
         self._mask_directory = mask_directory
+        self._device = device
+
+
+        # Initialize PrepareFreqTimeImage classes
+        self._img_engine = PrepareFreqTimeImage(
+                    do_rot_phase_avg=do_rot_phase_avg,
+                    do_binarize=False,
+                    do_resize=do_resize,
+                    resize_size=resize_size,
+                    )
+        self._mask_engine = PrepareFreqTimeImage(
+                    do_rot_phase_avg=True,
+                    do_binarize=True,
+                    do_resize=True,
+                    resize_size=resize_size,
+                    binarize_engine = BinarizeToMask(binarize_func=mask_binarize_func)
+                    #BinarizeToMask(binarize_func='gaussian_blur') # or 'exponential'
+                    )
+        
         self._image_engine = image_engine
         self._mask_engine = mask_engine
-        self._device = device
-        self._mask_maker_engine = mask_maker_engine
+
+        # Optional initialization of mask_maker_engine
+        if mask_maker_engine is not None:
+            if mask_maker_engine["model"] == "UNet":
+                mme_model = UNet()
+            else:
+                raise ValueError("Uknown model type for mask_maker_engine")
+            self._mask_maker_engine = PipelineImageToMask(
+                image_to_mask_network=mme_model,
+                trained_image_to_mask_network_path=mask_maker_engine["model_path"],
+            )
+        else:
+            self._mask_maker_engine = None
 
     def loadImagePair(self, index) -> ImageMaskPair:
         imgAddress = self._image_directory + self._image_tag.replace(
@@ -145,13 +186,37 @@ class GenericDataset(Dataset):
         )
         image_mask_pair.plot()
 
-# testData = synthesizeData(num_payloads=10)
-# testData.execute()
 
-# trainData = synthesizeData(tag='train_v0_', num_payloads=10)
-# trainData.execute()
 
-class TimeSeriesDatasetSplitter(DataSplitter):
+class SignalDataset(SignalToLabelDataset):
+    # this class is defined to provide a new init method for 
+    # easy initialization from config.yaml file.
+    def __init__(
+        self,
+        mask_tag: str,
+        mask_directory: str,
+        do_rot_phase_avg: bool = True,
+        do_binarize: bool = True,
+        do_resize: bool = True,
+        resize_size: Tuple = (128,128),
+        mask_binarize_func: str = "thresh",
+        device: torch.device = torch.device(
+            "cuda" if torch.cuda.is_available() else "cpu"
+        ),
+    ):
+        self._mask_tag = mask_tag
+        self._mask_directory = mask_directory
+
+        self._device = device
+        self._mask_engine = PrepareFreqTimeImage(
+                    do_rot_phase_avg=do_rot_phase_avg,
+                    do_binarize=do_binarize,
+                    do_resize=do_resize,
+                    resize_size=resize_size,
+                    binarize_engine = BinarizeToMask(binarize_func=mask_binarize_func)
+                    )
+
+class DatasetSplitter(DataSplitter):
     def __init__(
         self,
         train_proportion: int | float,
