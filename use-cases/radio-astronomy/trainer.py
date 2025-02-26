@@ -3,7 +3,7 @@ from typing import Any, Dict, Literal, Optional, Tuple
 from torch.utils.data import Dataset, DataLoader
 
 import torch.nn as nn
-from torch import device, cuda
+from torch import device, cuda, save
 from src.pulsar_analysis.neural_network_models import (
     UNet,
     CustomLossUNet,
@@ -11,7 +11,7 @@ from src.pulsar_analysis.neural_network_models import (
     Simple1DCnnClassifier,
     CustomLossClassifier,
 )
-from itwinai.torch.trainer import TorchTrainer
+from itwinai.torch.trainer import TorchTrainer, RayTorchTrainer
 from itwinai.torch.config import TrainingConfiguration
 from itwinai.loggers import EpochTimeTracker, Logger
 
@@ -27,11 +27,13 @@ class PulsarTrainer(TorchTrainer):
     def __init__(
         self,
         config: Dict | TrainingConfiguration | None = None,
-        strategy: Literal["ddp", "deepspeed", "horovod"] | None = "ddp",
+        strategy: Literal["ddp", "deepspeed", "horovod"] | None = None,
         logger: Logger | None = None,
         num_epochs: int = 3,
         model: nn.Module = None,
+        loss: nn.Module = None,
         store_trained_model_at: str = ".models/model.pt",
+        name: Optional[str] = None,
     ) -> None:
         # manually set up the config:
 
@@ -42,10 +44,43 @@ class PulsarTrainer(TorchTrainer):
             strategy=strategy,
             logger=logger,
             epochs=num_epochs,
-            model=model
+            model=model,
+            name=name
         )
 
+        # set the custom loss function
+        self.loss = loss 
+        self.store_trained_model_at = store_trained_model_at
         os.makedirs(os.path.dirname(store_trained_model_at), exist_ok=True)
+
+
+
+    def create_model_loss_optimizer(self) -> None:
+        """
+        Instantiate a torch model, loss, optimizer, and LR scheduler using the
+        configuration provided in the Trainer constructor.
+        Generally a user-defined method.
+        """
+
+        if self.model is None:
+            raise ValueError(
+                "self.model is None! Either pass it to the constructor or "
+                "override create_model_loss_optimizer method."
+            )
+
+        # Parse optimizer from training configuration
+        # Optimizer can be changed with a custom one here!
+        self._optimizer_from_config()
+
+        # The loss fucntion is already defined in the constructor
+
+        # IMPORTANT: model, optimizer, and scheduler need to be distributed
+        distribute_kwargs = self.get_default_distributed_kwargs()
+
+        # Distributed model, optimizer, and scheduler
+        (self.model, self.optimizer, self.lr_scheduler) = self.strategy.distributed(
+            self.model, self.optimizer, self.lr_scheduler, **distribute_kwargs
+        )
 
 
     def create_dataloaders(
@@ -55,5 +90,12 @@ class PulsarTrainer(TorchTrainer):
         test_dataset: Optional[Dataset] = None,
     ) -> None:
         self.train_dataloader = DataLoader(
-            dataset=train_dataset, batch_size=self.config.batch_size, shuffle=self.config.shuffle_train, pin_memory=True
-        )
+            dataset=train_dataset, batch_size=self.config.batch_size, shuffle=self.config.shuffle_train, pin_memory=True)
+        self.validation_dataloader = DataLoader(
+            dataset=validation_dataset, batch_size=self.config.batch_size, shuffle=self.config.shuffle_train, pin_memory=True)
+        self.test_dataloader = DataLoader(
+            dataset=test_dataset, batch_size=self.config.batch_size, shuffle=self.config.shuffle_train, pin_memory=True)
+        
+    def write_model(self) -> None:
+        """Write the model to disk."""
+        save(self.model.state_dict(), self.store_trained_model_at)
