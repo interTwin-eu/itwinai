@@ -142,7 +142,7 @@ Average Epoch Time Comparison
 This plot shows a comparison between the average time per epochs for each strategy
 and number of nodes. 
 
-.. image:: ./images/absolute_scalability_plot.png
+.. image:: ./images/absolute_epoch_time.png
 
 Relative Epoch Time Speedup
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -150,7 +150,7 @@ This plot shows a comparison between the speedup between the different number of
 for each strategy. The speedup is calculated using the lowest number of nodes as a
 baseline.
 
-.. image:: ./images/relative_scalability_plot.png
+.. image:: ./images/relative_epoch_time_speedup.png
 
 Communication vs Computation
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -159,7 +159,7 @@ communication between GPUs and nodes, for each strategy and number of nodes. The
 area is communication and the colored area is computation. They have all been
 normalized so that the values are between 0 and 1.0. 
 
-.. image:: ./images/communication_plot.png
+.. image:: ./images/computation_fraction_plot.png
 
 GPU Utilization
 ~~~~~~~~~~~~~~~
