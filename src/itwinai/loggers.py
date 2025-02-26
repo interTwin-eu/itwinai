@@ -672,11 +672,27 @@ class MLFlowLogger(Logger):
         elif kind == "dict":
             self.mlflow.log_dict(dictionary=item, artifact_file=identifier)
         elif kind == "figure":
+            identifier = identifier if identifier.endswith(".png") else identifier + ".png"
             self.mlflow.log_figure(
                 artifact_file=identifier,
                 figure=item,
                 save_kwargs=kwargs.get("save_kwargs"),
             )
+
+            # # Here is a temporary patch
+
+            # import tempfile
+
+            # with tempfile.TemporaryDirectory() as tmpdirname:
+            #     filename = (
+            #         identifier if identifier.endswith(".png") else identifier + ".png"
+            #     )
+            #     file_path = os.path.join(tmpdirname, filename)
+            #     item.savefig(file_path)
+            #     self.mlflow.log_artifact(
+            #         local_path=file_path,
+            #         artifact_path=filename,
+            #     )
         elif kind == "image":
             self.mlflow.log_image(artifact_file=identifier, image=item)
         elif kind == "param":
@@ -855,18 +871,24 @@ class TensorBoardLogger(Logger):
     ) -> None:
         tbl_savedir = Path(savedir) / "tensorboard"
         super().__init__(savedir=tbl_savedir, log_freq=log_freq, log_on_workers=log_on_workers)
-        self.framework = framework
-        if framework.lower() == "tensorflow":
-            import tensorflow as tf
+        if framework.lower() not in ["tensorflow", "pytorch"]:
+            raise ValueError(
+                "Accepted values for TensorBoardLogger framework are 'tensorflow' and "
+                f"'pytorch'. Received {framework}"
+            )
+        self.framework = framework.lower()
 
-            self.tf = tf
-            self.writer = tf.summary.create_file_writer(tbl_savedir.resolve().as_posix())
-        elif framework.lower() == "pytorch":
-            from torch.utils.tensorboard import SummaryWriter
+        # if framework.lower() == "tensorflow":
+        #     import tensorflow as tf
 
-            self.writer = SummaryWriter(tbl_savedir.resolve().as_posix())
-        else:
-            raise ValueError("Framework must be either 'tensorflow' or 'pytorch'")
+        #     self.tf = tf
+        #     self.writer = tf.summary.create_file_writer(tbl_savedir.resolve().as_posix())
+        # elif framework.lower() == "pytorch":
+        #     from torch.utils.tensorboard import SummaryWriter
+
+        #     self.writer = SummaryWriter(tbl_savedir.resolve().as_posix())
+        # else:
+        #     raise ValueError("Framework must be either 'tensorflow' or 'pytorch'")
 
     @check_not_initialized
     def create_logger_context(self, rank: int = 0) -> None:
@@ -883,6 +905,19 @@ class TensorBoardLogger(Logger):
             return
 
         py_logger.info(f"Initializing {self.__class__.__name__} on rank {rank}")
+
+        # Create the writer
+        if self.framework == "tensorflow":
+            import tensorflow as tf
+
+            self.tf = tf
+            self.writer = tf.summary.create_file_writer(self.savedir.resolve().as_posix())
+        elif self.framework == "pytorch":
+            from torch.utils.tensorboard import SummaryWriter
+
+            self.writer = SummaryWriter(self.savedir.resolve().as_posix())
+        else:
+            raise ValueError("Framework must be either 'tensorflow' or 'pytorch'")
 
         if self.framework == "tensorflow":
             self.writer.set_as_default()
@@ -914,7 +949,20 @@ class TensorBoardLogger(Logger):
             with self.writer.as_default():
                 hp.hparams(hparams)
         elif self.framework == "pytorch":
-            self.writer.add_hparams(params, {})
+            supported_params = {}
+
+            for name, val in params.items():
+                if val is None or isinstance(val, (int, float, str, bool)):
+                    supported_params[name] = val
+                else:
+                    supported_params[name] = str(val)
+                    py_logger.debug(
+                        "itwinai TensorboardLogger is converting parameter "
+                        f"'{name}' to string as it is of type {type(val)}. "
+                        "Supported types for params are int, float, str, bool, or None."
+                    )
+
+            self.writer.add_hparams(supported_params, {})
 
     @check_initialized
     def log(

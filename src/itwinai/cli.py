@@ -469,14 +469,14 @@ def exec_pipeline_with_compose(cfg):
 
 @app.command()
 def mlflow_ui(
-    path: str = typer.Option("ml-logs/", help="Path to logs storage."),
+    path: str = typer.Option("mllogs/mlflow", help="Path to logs storage."),
     port: int = typer.Option(5000, help="Port on which the MLFlow UI is listening."),
     host: str = typer.Option(
         "127.0.0.1",
         help="Which host to use. Switch to '0.0.0.0' to e.g. allow for port-forwarding.",
     ),
 ):
-    """Visualize Mlflow logs."""
+    """Visualize logs with Mlflow."""
     import subprocess
 
     subprocess.run(f"mlflow ui --backend-store-uri {path} --port {port} --host {host}".split())
@@ -484,7 +484,7 @@ def mlflow_ui(
 
 @app.command()
 def mlflow_server(
-    path: str = typer.Option("ml-logs/", help="Path to logs storage."),
+    path: str = typer.Option("mllogs/mlflow", help="Path to logs storage."),
     port: int = typer.Option(5000, help="Port on which the server is listening."),
 ):
     """Spawn Mlflow server."""
@@ -565,7 +565,7 @@ def download_mlflow_data(
         run_id = run.info.run_id
         metric_keys = run.data.metrics.keys()  # Get all metric names
 
-        print(f"Processing run {run_idx+1}/{len(runs)}")
+        print(f"Processing run {run_idx + 1}/{len(runs)}")
         for metric_name in metric_keys:
             metrics = client.get_metric_history(run_id, metric_name)
             for metric in metrics:
@@ -586,6 +586,20 @@ def download_mlflow_data(
     df_metrics = pd.DataFrame(all_metrics)
     df_metrics.to_csv(output_file, index=False)
     print(f"Saved data to '{Path(output_file).resolve()}'!")
+
+
+def tensorboard_ui(
+    path: str = typer.Option("mllogs/tensorboard", help="Path to logs storage."),
+    port: int = typer.Option(6006, help="Port on which the Tensorboard UI is listening."),
+    host: str = typer.Option(
+        "127.0.0.1",
+        help="Which host to use. Switch to '0.0.0.0' to e.g. allow for port-forwarding.",
+    ),
+):
+    """Visualize logs with TensorBoard."""
+    import subprocess
+
+    subprocess.run(f"tensorboard --logdir={path} --port={port} --host={host}".split())
 
 
 if __name__ == "__main__":
