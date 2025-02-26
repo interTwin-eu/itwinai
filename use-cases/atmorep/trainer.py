@@ -1,9 +1,10 @@
 import datetime
 import functools
 import os
+import re
 import time
 from pathlib import Path
-from typing import Dict, Literal, Optional, Tuple, Union
+from typing import Dict, Literal, Optional, Union
 
 import atmorep.utils.token_infos_transformations as token_infos_transformations
 import numpy as np
@@ -13,32 +14,23 @@ import torch.nn as nn
 import torch.utils.data.distributed
 import wandb
 from atmorep.core.atmorep_model import AtmoRep, AtmoRepData
-from atmorep.datasets.data_writer import write_attention, write_BERT, write_forecast
-from atmorep.datasets.normalizer import denormalize
 from atmorep.training.bert import prepare_batch_BERT_multifield
 from atmorep.utils.utils import (
     CRPS,
     Gaussian,
     NetMode,
-    detokenize,
     init_torch,
     kernel_crps,
     setup_ddp,
     setup_wandb,
-    tokenize,
     weighted_mse,
 )
 from atmorep_training_configuration import AtmoRepTrainingConfiguration
-
-# import horovod.torch as hvd
 from torch.distributed.optim import ZeroRedundancyOptimizer
 
-from itwinai.loggers import EpochTimeTracker, Logger
+from itwinai.loggers import Logger
 from itwinai.torch.config import TrainingConfiguration
 from itwinai.torch.distributed import (
-    DeepSpeedStrategy,
-    HorovodStrategy,
-    NonDistributedStrategy,
     TorchDDPStrategy,
 )
 from itwinai.torch.trainer import TorchTrainer
@@ -84,7 +76,7 @@ class AtmoRepTrainer(TorchTrainer):
             config = AtmoRepTrainingConfiguration(**config)
             self.config = config
 
-        if self.config.load_model != None:
+        if self.config.load_model is not None:
             model_id = self.config.load_model[0]
             self.config = self.config.load_json(model_id).add_backward_compatibility()
 
@@ -96,7 +88,8 @@ class AtmoRepTrainer(TorchTrainer):
             "Resolution not in file name. Please specify it."
         )
         size = np.multiply(cf.fields[0][3], cf.fields[0][4])  # ntokens x token_size
-        resol = int(cf.path_data.split("res")[1].split("_")[0]) / 100
+        resol = int(re.search(r"res(\d{3})", cf.path_data).group(1)) / 100
+        # resol = int(cf.path_data.split("res")[1].split("_")[0]) / 100
         cf.n_size = [
             float(cf.time_sampling * size[0]),
             float(resol * size[1]),
@@ -116,7 +109,8 @@ class AtmoRepTrainer(TorchTrainer):
             "Resolution not in file name. Please specify it."
         )
         size = np.multiply(cf.fields[0][3], cf.fields[0][4])  # ntokens x token_size
-        resol = int(cf.path_data.split("res")[1].split("_")[0]) / 100
+        resol = int(re.search(r"res(\d{3})", cf.path_data).group(1)) / 100
+        # resol = int(cf.path_data.split("res")[1].split("_")[0]) / 100
         cf.n_size = [
             float(cf.time_sampling * size[0]),
             float(resol * size[1]),
@@ -274,8 +268,6 @@ class AtmoRepTrainer(TorchTrainer):
         self.model.net.encoder_to_decoder = self.encoder_to_decoder
         self.model.net.decoder_to_tail = self.decoder_to_tail
         return self
-
-    s
 
     def load(self):
         cf = self.config

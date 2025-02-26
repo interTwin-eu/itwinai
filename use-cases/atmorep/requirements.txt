@@ -11,3 +11,4 @@ cfgrib
 mlflow
 ray
 importlib_resources
+zarr
