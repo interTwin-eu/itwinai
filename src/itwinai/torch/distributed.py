@@ -1110,6 +1110,7 @@ class RayDDPStrategy(TorchDDPStrategy, RayTorchDistributedStrategy):
         import ray.train
 
         self.ray_train = ray.train
+        self.name = "ray-torch-ddp"
 
     def init(self) -> None:
         """Initializes Ray trial/worker.
@@ -1205,6 +1206,7 @@ class RayDeepSpeedStrategy(DeepSpeedStrategy, RayTorchDistributedStrategy):
     def __init__(self, backend: Literal["nccl", "gloo", "mpi"]) -> None:
         initialize_ray()
         super().__init__(backend=backend)
+        self.name = "ray-deepspeed"
 
     def init(self) -> None:
         """Initializes the distributed process group and the distributed
@@ -1242,6 +1244,7 @@ class RayHorovodStrategy(HorovodStrategy, RayTorchDistributedStrategy):
     def __init__(self) -> None:
         initialize_ray()
         super().__init__()
+        self.name = "ray-horovod"
 
     def init(self) -> None:
         """Initializes the Horovod distributed backend.
