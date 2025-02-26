@@ -1,8 +1,10 @@
 Scalability Report
 ==================
 
-The `itwinai` Scalability Report provides information about your model's scalability
-when distributed to multiple nodes. The main goals are as follows: 
+The ``itwinai``` Scalability Report provides insights into how well your model's
+performance scales when training across multiple GPUs and nodes. It can be used to find
+bottlenecks or bugs as you distribute your workload, as well as help you monitor your
+model's sustainability. The main goals are as follows:
 
 - Understand how well your model scales with regards to the given metrics
 - Discover which distributed strategy works best for your pipeline
@@ -47,7 +49,7 @@ The following is an example of how this can be enabled:
    from itwinai.torch.profiling.profiler import profile_torch_trainer
    from itwinai.torch.monitoring.monitoring import measure_gpu_utilization
 
-   class MyTrainerTrainer(TorchTrainer):
+   class MyTrainer(TorchTrainer):
      ...
 
      @profile_torch_trainer
