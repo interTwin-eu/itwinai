@@ -7,11 +7,11 @@
 #SBATCH --account=intertwin
 #SBATCH --output=job.out
 #SBATCH --error=job.err
-#SBATCH --time=00:30:00
+#SBATCH --time=00:10:00
 
 # Resources allocation
 #SBATCH --partition=develbooster
-#SBATCH --nodes=1
+#SBATCH --nodes=2
 #SBATCH --gpus-per-node=4
 #SBATCH --cpus-per-gpu=4
 #SBATCH --exclusive
@@ -50,25 +50,25 @@ if [ "$SLURM_CPUS_PER_GPU" -gt 0 ] ; then
   export OMP_NUM_THREADS=$SLURM_CPUS_PER_GPU
 fi
 
-# Env vairables check
-if [ -z "$DIST_MODE" ]; then 
-  >&2 echo "ERROR: env variable DIST_MODE is not set. Allowed values are 'horovod', 'ddp' or 'deepspeed'"
-  exit 1
-fi
-if [ -z "$RUN_NAME" ]; then 
-  >&2 echo "WARNING: env variable RUN_NAME is not set. It's a way to identify some specific run of an experiment."
-  RUN_NAME=$DIST_MODE
-fi
-if [ -z "$TRAINING_CMD" ]; then 
-  >&2 echo "ERROR: env variable TRAINING_CMD is not set. It's the python command to execute."
-  exit 1
-fi
-if [ -z "$PYTHON_VENV" ]; then 
-  >&2 echo "WARNING: env variable PYTHON_VENV is not set. It's the path to a python virtual environment."
-else
-  # Activate Python virtual env
-  source $PYTHON_VENV/bin/activate
-fi
+# # Env vairables check
+# if [ -z "$DIST_MODE" ]; then 
+#   >&2 echo "ERROR: env variable DIST_MODE is not set. Allowed values are 'horovod', 'ddp' or 'deepspeed'"
+#   exit 1
+# fi
+# if [ -z "$RUN_NAME" ]; then 
+#   >&2 echo "WARNING: env variable RUN_NAME is not set. It's a way to identify some specific run of an experiment."
+#   RUN_NAME=$DIST_MODE
+# fi
+# if [ -z "$TRAINING_CMD" ]; then 
+#   >&2 echo "ERROR: env variable TRAINING_CMD is not set. It's the python command to execute."
+#   exit 1
+# fi
+# if [ -z "$PYTHON_VENV" ]; then 
+#   >&2 echo "WARNING: env variable PYTHON_VENV is not set. It's the path to a python virtual environment."
+# else
+#   # Activate Python virtual env
+#   source $PYTHON_VENV/bin/activate
+# fi
 
 # Get GPUs info per node
 srun --cpu-bind=none --ntasks-per-node=1 bash -c 'echo -e "NODE hostname: $(hostname)\n$(nvidia-smi)\n\n"'

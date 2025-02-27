@@ -6,6 +6,8 @@ import time
 from pathlib import Path
 from typing import Dict, Literal, Optional, Union
 
+import atmorep
+import atmorep.config
 import atmorep.utils.token_infos_transformations as token_infos_transformations
 import numpy as np
 import torch
@@ -74,7 +76,13 @@ class AtmoRepTrainer(TorchTrainer):
         # Global training configuration
         if isinstance(config, dict):
             config = AtmoRepTrainingConfiguration(**config)
-            self.config = config
+        self.config = config
+
+        # Override default atmorep config
+        atmorep.config.config.path_data = self.config.path_data
+        atmorep.config.config.path_models = self.config.path_models
+        atmorep.config.config.path_results = self.config.path_results
+        atmorep.config.config.path_plots = self.config.path_plots
 
         if self.config.load_model is not None:
             model_id = self.config.load_model[0]

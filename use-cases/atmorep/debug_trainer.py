@@ -8,10 +8,11 @@ my_pipeline = Pipeline(
             config={
                 "load_model": None,  # ['dys79lgw', 82],
                 "mode": "train",
-                "path_models": "models",  # "/p/home/jusers/luise1/juwels/interTwin/itwinai_AtmoRep/itwinai/use-cases/atmorep/models/",
-                "path_results": "results",  # "/p/home/jusers/luise1/juwels/interTwin/itwinai_AtmoRep/itwinai/use-cases/atmorep/results/",
-                "path_data": "/p/scratch/intertwin/datasets/era5_y2021_res025.zarr/",  # "./data/era5_y1979_2021_res025_chunk8.zarr/",
-                "file_path": "/p/scratch/intertwin/datasets/era5_y2021_res025.zarr",  # "/p/scratch/atmo-rep/data/era5_1deg/months/era5_y1979_2021_res025_chunk8.zarr",  # this will change in the new atmorep branch
+                "path_models": "models",
+                "path_plots": "plots",
+                "path_results": "results",
+                "path_data": "/p/scratch/intertwin/datasets/era5_y2021_res025.zarr/",
+                "file_path": "/p/scratch/intertwin/datasets/era5_y2021_res025.zarr",
                 "fields": [
                     [
                         "velocity_u",
@@ -80,7 +81,8 @@ my_pipeline = Pipeline(
                 # BERT strategies: 'BERT', 'forecast', 'temporal_interpolation'
                 "BERT_strategy": "BERT",
                 "forecast_num_tokens": 2,  # only needed / used for BERT_strategy 'forecast
-                "BERT_fields_synced": False,  # apply synchronized / identical masking to all fields
+                # apply synchronized / identical masking to all fields
+                "BERT_fields_synced": False,
                 # (fields need to have same BERT params for this to have effect)
                 "BERT_mr_max": 2,  # maximum reduction rate for resolution
                 # debug / output

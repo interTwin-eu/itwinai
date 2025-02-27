@@ -1,4 +1,4 @@
-atmorep @ git+https://github.com/clessig/atmorep@iluise/develop/itwinai
+atmorep @ git+https://github.com/matbun/atmorep@iluise/itwinai
 click
 requests
 platformdirs
