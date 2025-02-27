@@ -118,6 +118,8 @@ class TorchTrainer(Trainer, LogMixin):
     #: PyTorch Profiler for communication vs. computation comparison
     profiler: Optional[Any]
 
+    measure_gpu_data: bool = False
+
     def __init__(
         self,
         config: Union[Dict, TrainingConfiguration],
@@ -135,6 +137,9 @@ class TorchTrainer(Trainer, LogMixin):
         name: Optional[str] = None,
         profiling_wait_epochs: int = 1,
         profiling_warmup_epochs: int = 2,
+        measure_gpu_data: bool = False,
+        measure_communication_overhead: bool = False,
+        measure_epoch_time: bool = False
     ) -> None:
         super().__init__(name)
         self.save_parameters(**self.locals2params(locals()))
@@ -160,6 +165,9 @@ class TorchTrainer(Trainer, LogMixin):
         self.profiler = None
         self.profiling_wait_epochs = profiling_wait_epochs
         self.profiling_warmup_epochs = profiling_warmup_epochs
+        self.measure_gpu_data = measure_gpu_data
+        self.measure_communication_overhead = measure_communication_overhead
+        self.measure_epoch_time = measure_epoch_time
 
     @property
     def strategy(self) -> TorchDistributedStrategy:

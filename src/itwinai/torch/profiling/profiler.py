@@ -83,6 +83,9 @@ def profile_torch_trainer(method: Callable) -> Callable:
 
     @functools.wraps(method)
     def profiled_method(self: TorchTrainer, *args, **kwargs) -> Any:
+        if not self.measure_communication_overhead: 
+            return method(self, *args, **kwargs)
+
         active_epochs, wait_epochs, warmup_epochs = adjust_wait_and_warmup_epochs(
             training_epochs=self.epochs,
             wait_epochs=self.profiling_wait_epochs,

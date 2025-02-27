@@ -16,7 +16,7 @@ from torch.utils.data import Dataset
 from tqdm.auto import tqdm
 
 from itwinai.distributed import suppress_workers_print
-from itwinai.loggers import EpochTimeTracker, Logger
+from itwinai.loggers import EpochTimeLogger, Logger
 from itwinai.torch.config import TrainingConfiguration
 from itwinai.torch.distributed import (
     DeepSpeedStrategy,
@@ -210,10 +210,11 @@ class RNNDistributedTrainer(TorchTrainer):
             epoch_time_file_name = f"epochtime_{self.strategy.name}_{num_nodes}N.csv"
             epoch_time_output_path = epoch_time_output_dir / epoch_time_file_name
 
-            epoch_time_tracker = EpochTimeTracker(
+            epoch_time_tracker = EpochTimeLogger(
                 strategy_name=self.strategy.name,
                 save_path=epoch_time_output_path,
-                num_nodes=num_nodes
+                num_nodes=num_nodes,
+                should_log=self.should_log
             )
 
         device = self.strategy.device()

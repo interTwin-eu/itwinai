@@ -112,6 +112,9 @@ def measure_gpu_utilization(method: Callable) -> Callable:
 
     @functools.wraps(method)
     def measured_method(self: TorchTrainer, *args, **kwargs) -> Any:
+        if not self.measure_gpu_data: 
+            return method(self, *args, **kwargs)
+
         gpu_probing_interval = 1
         warmup_time = 5
 

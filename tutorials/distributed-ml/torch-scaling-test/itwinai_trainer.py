@@ -25,7 +25,7 @@ from torch.utils.data import DataLoader
 from torch.utils.data.distributed import DistributedSampler
 from utils import get_parser, imagenet_dataset, train_epoch
 
-from itwinai.loggers import EpochTimeTracker
+from itwinai.loggers import EpochTimeLogger
 from itwinai.torch.distributed import (
     DeepSpeedStrategy,
     HorovodStrategy,
@@ -135,7 +135,7 @@ def main():
         num_nodes = os.environ.get("SLURM_NNODES", 1)
         strategy_name = f"{args.strategy}-it"
         save_path = epoch_time_save_dir / f"epochtime_{strategy_name}_{num_nodes}.csv"
-        epoch_time_tracker = EpochTimeTracker(
+        epoch_time_tracker = EpochTimeLogger(
             strategy_name=strategy_name,
             save_path=save_path,
             num_nodes=int(num_nodes),
