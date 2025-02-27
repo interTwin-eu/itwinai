@@ -37,9 +37,9 @@ training_pipeline:
       save_path: ${dataset_root}
     training_step:
       _target_: itwinai.torch.trainer.TorchTrainer
-      measure_gpu_data: False
-      measure_communication_overhead: False
-      measure_epoch_time: False
+      measure_gpu_data: True
+      measure_communication_overhead: True
+      measure_epoch_time: True
       config:
         batch_size: ${batch_size}
         num_workers_dataloader: ${num_workers_dataloader}
