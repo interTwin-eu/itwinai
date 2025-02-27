@@ -9,17 +9,16 @@
 #SBATCH --mail-type=ALL
 #SBATCH --output=job.out
 #SBATCH --error=job.err
-#SBATCH --time=00:30:00
+#SBATCH --time=00:08:00
 
 # Resources allocation
-#SBATCH --partition=booster
+#SBATCH --partition=develbooster
 #SBATCH --nodes=2
 #SBATCH --gpus-per-node=1
+#SBATCH --gres=gpu:1
 #SBATCH --cpus-per-task=16
 #SBATCH --exclusive
 
-# gres options have to be disabled for deepv
-#SBATCH --gres=gpu:4
 
 # Load environment modules
 ml Stages/2024 GCC OpenMPI CUDA/12 MPI-settings/CUDA Python HDF5 PnetCDF libaio mpi4py

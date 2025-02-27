@@ -818,6 +818,8 @@ class TorchTrainer(Trainer, LogMixin):
 
         if self.logger:
             self.logger.destroy_logger_context()
+
+        self.strategy.barrier()
         self.strategy.clean_up()
         return
 
