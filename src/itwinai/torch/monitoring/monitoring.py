@@ -12,13 +12,14 @@ import functools
 import time
 from multiprocessing import Manager, Process
 from pathlib import Path
-from typing import Any, Callable, Dict, List
+from typing import Any, Callable, Dict, List, TYPE_CHECKING
 
 import pandas as pd
 import pynvml
 from pynvml import nvmlDeviceGetHandleByIndex, nvmlInit
 
-from itwinai.torch.trainer import TorchTrainer
+if TYPE_CHECKING:
+    from itwinai.torch.trainer import TorchTrainer
 
 logging_columns = [
     "sample_idx",
@@ -110,9 +111,11 @@ def measure_gpu_utilization(method: Callable) -> Callable:
         log_df.to_csv(output_path, index=False)
         print(f"Writing GPU energy dataframe to '{output_path.resolve()}'.")
 
+
     @functools.wraps(method)
-    def measured_method(self: TorchTrainer, *args, **kwargs) -> Any:
+    def measured_method(self: 'TorchTrainer', *args, **kwargs) -> Any:
         if not self.measure_gpu_data: 
+            print("Warning: Profiling of GPU data has been disabled!")
             return method(self, *args, **kwargs)
 
         gpu_probing_interval = 1

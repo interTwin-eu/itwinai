@@ -165,6 +165,9 @@ training_pipeline:
       valid_downsampler: ${valid_downsampler}
     - _target_: trainer.RNNDistributedTrainer
       model: ${model}
+      measure_gpu_data: False
+      measure_communication_overhead: False
+      measure_epoch_time: False
       config:
         experiment: ${experiment_name}/${experiment_run}
         experiment_name: ${experiment_name}

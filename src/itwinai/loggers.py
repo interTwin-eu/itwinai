@@ -1258,6 +1258,9 @@ class EpochTimeLogger:
         self.num_nodes = num_nodes
         self.data = {"epoch_id": [], "time": []}
 
+        if not self.should_log:
+            print("Warning: EpochTimeLogger has been disabled!")
+
     def add_epoch_time(self, epoch_idx: int, time: float) -> None:
         """Add epoch time to data."""
         if not self.should_log: 
@@ -1280,7 +1283,7 @@ class EpochTimeLogger:
 
         self.save_path.parent.mkdir(parents=True, exist_ok=True)
         df.to_csv(self.save_path, index=False)
-        print(f"Saving EpochTimeTracking data to '{self.save_path.resolve()}'.")
+        print(f"Saving EpochTimeLogging data to '{self.save_path.resolve()}'.")
 
 
 class EmptyLogger(Logger):

@@ -10,13 +10,15 @@
 
 import functools
 from pathlib import Path
-from typing import Any, Callable, Iterable, Tuple
+from typing import Any, Callable, Iterable, Tuple, TYPE_CHECKING
 
 import matplotlib
 import pandas as pd
 from torch.profiler import ProfilerActivity, profile, schedule
 
-from itwinai.torch.trainer import TorchTrainer
+if TYPE_CHECKING:
+    from itwinai.torch.trainer import TorchTrainer
+
 
 # Doing this because otherwise I get an error about X11 Forwarding which I believe
 # is due to the server trying to pass the image to the client computer
@@ -81,9 +83,14 @@ def profile_torch_trainer(method: Callable) -> Callable:
         )
         return active_epochs, wait_epochs, warmup_epochs
 
+
     @functools.wraps(method)
-    def profiled_method(self: TorchTrainer, *args, **kwargs) -> Any:
+    def profiled_method(self: 'TorchTrainer', *args, **kwargs) -> Any:
         if not self.measure_communication_overhead: 
+            print(
+                "Warning: Profiling of communiation overhead with the PyTorch profiler"
+                " has been disabled!"
+            )
             return method(self, *args, **kwargs)
 
         active_epochs, wait_epochs, warmup_epochs = adjust_wait_and_warmup_epochs(

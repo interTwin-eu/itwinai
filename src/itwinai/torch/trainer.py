@@ -18,7 +18,9 @@ import sys
 import tempfile
 from collections import defaultdict
 from pathlib import Path
+from time import perf_counter as default_timer
 from typing import Any, Callable, Dict, Iterable, List, Literal, Optional, Tuple, Union
+
 
 import torch
 import torch.distributed as dist
@@ -31,8 +33,12 @@ from torch.utils.data import DataLoader, Dataset, Sampler
 from torch.utils.data.distributed import DistributedSampler
 from tqdm import tqdm
 
+# Cyclic imports...
+from itwinai.torch.monitoring.monitoring import measure_gpu_utilization
+from itwinai.torch.profiling.profiler import profile_torch_trainer
+
 from ..components import Trainer, monitor_exec
-from ..loggers import Logger, LogMixin
+from ..loggers import EpochTimeLogger, Logger, LogMixin
 from ..utils import load_yaml
 from .config import TrainingConfiguration
 from .distributed import (
@@ -168,6 +174,7 @@ class TorchTrainer(Trainer, LogMixin):
         self.measure_gpu_data = measure_gpu_data
         self.measure_communication_overhead = measure_communication_overhead
         self.measure_epoch_time = measure_epoch_time
+
 
     @property
     def strategy(self) -> TorchDistributedStrategy:
@@ -536,6 +543,8 @@ class TorchTrainer(Trainer, LogMixin):
             m_values[m_name] = m_val
         return m_values
 
+    @profile_torch_trainer
+    @measure_gpu_utilization
     def train(self):
         """Trains a machine learning model.
         Main training loop/logic.
@@ -549,6 +558,24 @@ class TorchTrainer(Trainer, LogMixin):
             Tuple[Dataset, Dataset, Dataset, Any]: training dataset,
             validation dataset, test dataset, trained model.
         """
+        epoch_time_logger: EpochTimeLogger | None = None
+        if self.strategy.is_main_worker and self.strategy.is_distributed:
+            if not "SLURM_NNODES" in os.environ:
+                raise EnvironmentError(
+                    "'SLURM_NNODES' is not present in 'os.environ', but is required"
+                    "when running distributed training!"
+                )
+            num_nodes = int(os.environ["SLURM_NNODES"])
+            epoch_time_output_dir = Path("scalability-metrics/epoch-time")
+            epoch_time_file_name = f"epochtime_{self.strategy.name}_{num_nodes}N.csv"
+            epoch_time_output_path = epoch_time_output_dir / epoch_time_file_name
+
+            epoch_time_logger = EpochTimeLogger(
+                strategy_name=self.strategy.name,
+                save_path=epoch_time_output_path,
+                num_nodes=num_nodes,
+                should_log=self.measure_epoch_time
+            )
         best_loss = float("inf")
 
         progress_bar = tqdm(
@@ -558,6 +585,7 @@ class TorchTrainer(Trainer, LogMixin):
         )
 
         for epoch in progress_bar:
+            epoch_start_time = default_timer()
             progress_bar.set_description(f"Epoch {epoch + 1}/{self.epochs}")
 
             epoch_n = epoch + 1
@@ -586,6 +614,11 @@ class TorchTrainer(Trainer, LogMixin):
             ):
                 ckpt_name = f"epoch_{epoch}.pth"
                 self.save_checkpoint(name=ckpt_name, epoch=epoch)
+
+            if self.strategy.is_main_worker and self.strategy.is_distributed:
+                assert epoch_time_logger is not None
+                epoch_time = default_timer() - epoch_start_time
+                epoch_time_logger.add_epoch_time(epoch + 1, epoch_time)
 
     def train_epoch(self, epoch: int) -> torch.Tensor:
         """Perform a complete sweep over the training dataset, completing an
