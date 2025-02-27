@@ -201,7 +201,8 @@ def gpu_bar_plot(
     """Creates a centered bar plot grouped by number of GPUs and strategy.
 
     Args:
-        data_df (pd.DataFrame): DataFrame containing "strategy", "num_global_gpus", and `main_column`.
+        data_df (pd.DataFrame): DataFrame containing "strategy", "num_global_gpus",
+            and `main_column`.
         plot_title (str): The title of the plot.
         y_label (str): The label for the y-axis.
         main_column (str): Column name for bar heights.
@@ -224,13 +225,13 @@ def gpu_bar_plot(
     x_positions = np.arange(len(unique_gpu_counts))  # Fixed positions for GPU counts
 
     # To store dynamic x offsets per GPU count
-    bar_positions = {}  
+    bar_positions = {}
 
     # Calculating the global bar_width based on the highest number of adjacent bars
     max_num_strategies = (
         data_df.groupby(["num_global_gpus"])["strategy"].nunique().max()
     )
-    bar_width = 1 / (max_num_strategies + 1) 
+    bar_width = 1 / (max_num_strategies + 1)
 
     # To only add labels the first time we see a strategy
     seen_strategies = set()
@@ -241,7 +242,7 @@ def gpu_bar_plot(
         num_strategies = len(strategies)
 
         # Center the bars
-        offset = (num_strategies - 1) / 2  
+        offset = (num_strategies - 1) / 2
 
         bar_positions[gpu_count] = {
             strategy: x_positions[i] + (idx - offset) * bar_width
@@ -252,7 +253,7 @@ def gpu_bar_plot(
             strategy_data = subset[subset["strategy"] == strategy]
             color = strategy_color[strategy]
 
-            label=strategy if strategy not in seen_strategies else None
+            label = strategy if strategy not in seen_strategies else None
             seen_strategies.add(strategy)
             ax.bar(
                 x=bar_positions[gpu_count][strategy],
