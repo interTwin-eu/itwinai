@@ -169,6 +169,10 @@ class TorchDistributedStrategy(DistributedStrategy):
             int: local rank.
         """
 
+    @abc.abstractmethod
+    def barrier(self) -> None:
+        """Forces all the workers to wait for each other."""
+
     @check_initialized
     def device(self) -> str:
         """Device used by local worker.
@@ -496,6 +500,11 @@ class TorchDDPStrategy(TorchDistributedStrategy):
         return dist_model, optimizer, lr_scheduler
 
     @check_initialized
+    def barrier(self) -> None:
+        """Forces all the workers to wait for each other."""
+        return dist.barrier()
+
+    @check_initialized
     def global_world_size(self) -> int:
         """Returns the total number of processes (global world size).
 
@@ -678,6 +687,11 @@ class DeepSpeedStrategy(TorchDistributedStrategy):
             **init_kwargs,
         )
         return distrib_model, optimizer, lr_scheduler
+
+    @check_initialized
+    def barrier(self) -> None:
+        """Forces all the workers to wait for each other."""
+        return dist.barrier()
 
     @check_initialized
     def global_world_size(self) -> int:
@@ -864,6 +878,11 @@ class HorovodStrategy(TorchDistributedStrategy):
         )
         return model, distOptimizer, lr_scheduler
 
+    @check_initialized
+    def barrier(self) -> None:
+        """Forces all the workers to wait for each other."""
+        self.hvd.barrier()
+
     def _broadcast_params(self, model: nn.Module, optimizer: optim.Optimizer) -> None:
         """Broadcasts variables from root rank to all other processes.
 
@@ -1009,6 +1028,10 @@ class NonDistributedStrategy(TorchDistributedStrategy):
         if torch.cuda.is_available():
             model = model.cuda()
         return model, optimizer, lr_scheduler
+
+    @check_initialized
+    def barrier(self) -> None:
+        """Forces all the workers to wait for each other."""
 
     def global_world_size(self) -> int:
         """Returns the total number of processes (global world size).
