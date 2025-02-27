@@ -611,6 +611,11 @@ class DeepSpeedStrategy(TorchDistributedStrategy):
                 already initialized.
         """
         import deepspeed
+        from deepspeed.ops.transformer.inference.triton.matmul_ext import AutotuneCacheManager
+        def noop_put(self, table):
+            pass
+
+        AutotuneCacheManager.put = noop_put
 
         self.deepspeed = deepspeed
         if not distributed_resources_available():

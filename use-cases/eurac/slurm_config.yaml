@@ -4,19 +4,19 @@
 # Default arguments can be seen in src/itwinai/slurm/utils.py
 
 mode: single # "single", "runall" or "scaling-test" - defaults to "single"
-dist_strat: horovod # "ddp", "deepspeed" or "horovod"
+dist_strat: ddp # "ddp", "deepspeed" or "horovod"
 
 account: intertwin
-time: 01:00:00
+time: 02:00:00
 partition: develbooster
 
 std_out: slurm_job_logs/${dist_strat}.out
 err_out: slurm_job_logs/${dist_strat}.err
 job_name: eurac-${dist_strat}-job
 
-num_nodes: 1
+num_nodes: 2
 num_tasks_per_node: 1
-gpus_per_node: 2
+gpus_per_node: 4
 cpus_per_gpu: 4
 
 python_venv: ../../.venv
@@ -25,7 +25,7 @@ config_path: .
 config_name: config
 
 # The different number of nodes to use for the scalability testing
-scalability_nodes: "1, 2, 4"
+scalability_nodes: "1, 2, 4, 8"
 
 # Variables in the curly brackets, "{}", will be overridden by the builder
 training_cmd: "$(which itwinai) exec-pipeline \
