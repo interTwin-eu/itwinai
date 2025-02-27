@@ -152,6 +152,14 @@ srun_launcher ()
   # https://docs.sylabs.io/guides/4.1/user-guide/environment_and_metadata.html#environment-from-the-host
   unset PYTHONPATH
 
+  # https://doc.vega.izum.si/mpi/#multi-node-jobs
+  export UCX_TLS=self,sm,rc,ud
+  export OMPI_MCA_PML="ucx"
+  export OMPI_MCA_osc="ucx"
+
+  # This tells UCX to enable fork safety when using RDMA (InfiniBand)
+  export RDMAV_FORK_SAFE=1
+
   # Create mpirun logs folder
   mkdir -p "logs_srun/$SLURM_JOB_ID"
 
