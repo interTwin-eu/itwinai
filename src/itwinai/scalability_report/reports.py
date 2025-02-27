@@ -102,7 +102,7 @@ def gpu_data_report(
     plot_dir: Path | str,
     backup_dir: Path,
     do_backup: bool = False,
-    plot_file_suffix: str = ".png"
+    plot_file_suffix: str = ".png",
 ) -> None:
     """Generates reports and plots for GPU energy consumption and utilization across
     distributed training strategies. Includes bar plots for energy consumption and GPU
@@ -181,7 +181,7 @@ def communication_data_report(
     plot_dir: Path | str,
     backup_dir: Path,
     do_backup: bool = False,
-    plot_file_suffix: str = ".png"
+    plot_file_suffix: str = ".png",
 ) -> None:
     """Generates reports and plots for communication and computation fractions across
     distributed training strategies. Includes a bar plot showing the fraction of time
@@ -221,7 +221,9 @@ def communication_data_report(
     )
     print(communication_data_table)
 
-    computation_fraction_plot_path = plot_dir / ("computation_fraction_plot" + plot_file_suffix)
+    computation_fraction_plot_path = plot_dir / (
+        "computation_fraction_plot" + plot_file_suffix
+    )
     computation_fraction_fig, _ = computation_fraction_bar_plot(computation_fraction_df)
     computation_fraction_fig.savefig(computation_fraction_plot_path)
     print(
