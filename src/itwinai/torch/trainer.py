@@ -21,7 +21,6 @@ from pathlib import Path
 from time import perf_counter as default_timer
 from typing import Any, Callable, Dict, Iterable, List, Literal, Optional, Tuple, Union
 
-
 import torch
 import torch.distributed as dist
 import torch.nn as nn
@@ -560,7 +559,7 @@ class TorchTrainer(Trainer, LogMixin):
         """
         epoch_time_logger: EpochTimeLogger | None = None
         if self.strategy.is_main_worker and self.strategy.is_distributed:
-            if not "SLURM_NNODES" in os.environ:
+            if "SLURM_NNODES" not in os.environ:
                 raise EnvironmentError(
                     "'SLURM_NNODES' is not present in 'os.environ', but is required"
                     "when running distributed training!"

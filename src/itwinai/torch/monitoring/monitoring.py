@@ -12,7 +12,7 @@ import functools
 import time
 from multiprocessing import Manager, Process
 from pathlib import Path
-from typing import Any, Callable, Dict, List, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Callable, Dict, List
 
 import pandas as pd
 import pynvml
@@ -114,7 +114,7 @@ def measure_gpu_utilization(method: Callable) -> Callable:
 
     @functools.wraps(method)
     def measured_method(self: 'TorchTrainer', *args, **kwargs) -> Any:
-        if not self.measure_gpu_data: 
+        if not self.measure_gpu_data:
             print("Warning: Profiling of GPU data has been disabled!")
             return method(self, *args, **kwargs)
 

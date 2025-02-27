@@ -10,7 +10,7 @@
 
 import functools
 from pathlib import Path
-from typing import Any, Callable, Iterable, Tuple, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Callable, Iterable, Tuple
 
 import matplotlib
 import pandas as pd
@@ -86,7 +86,7 @@ def profile_torch_trainer(method: Callable) -> Callable:
 
     @functools.wraps(method)
     def profiled_method(self: 'TorchTrainer', *args, **kwargs) -> Any:
-        if not self.measure_communication_overhead: 
+        if not self.measure_communication_overhead:
             print(
                 "Warning: Profiling of communiation overhead with the PyTorch profiler"
                 " has been disabled!"
