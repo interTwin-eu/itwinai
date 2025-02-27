@@ -293,8 +293,6 @@ class AtmoRepTrainer(TorchTrainer):
         print(str)
         return trainer
 
-    ##
-
     def create_model_loss_optimizer(self) -> None:
         cf = self.config
 
@@ -318,8 +316,8 @@ class AtmoRepTrainer(TorchTrainer):
             self.load()
 
         if cf.with_ddp:
-            self.model = torch.nn.parallel.DistributedDataParallel(
-                self.model, static_graph=True
+            self.model.net = torch.nn.parallel.DistributedDataParallel(
+                self.model.net, static_graph=True
             )
             if not cf.optimizer_zero:
                 self.optimizer = torch.optim.AdamW(
@@ -383,13 +381,14 @@ class AtmoRepTrainer(TorchTrainer):
             if cf.with_wandb and 0 == cf.par_rank:
                 self.save(epoch)
 
-            cur_test_loss = self.validate(epoch, cf.BERT_strategy).cpu().numpy()
-            # self.validate( epoch, 'forecast')
+            if self.config.run_validation:
+                cur_test_loss = self.validate(epoch, cf.BERT_strategy).cpu().numpy()
+                # self.validate( epoch, 'forecast')
 
-            # save model
-            if cur_test_loss < test_loss.min():
-                self.save(-2)
-            test_loss = np.append(test_loss, [cur_test_loss])
+                # save model
+                if cur_test_loss < test_loss.min():
+                    self.save(-2)
+                test_loss = np.append(test_loss, [cur_test_loss])
 
             epoch += 1
 
@@ -455,11 +454,13 @@ class AtmoRepTrainer(TorchTrainer):
                     for i, field in enumerate(cf.fields_prediction):
                         idx_name = loss_name + ", " + field[0]
                         idx_std_name = "stddev, " + field[0]
-                        loss_dict[idx_name] = torch.mean(lt[:, i]).cpu().detach()
-                        loss_dict[idx_std_name] = (
-                            torch.mean(torch.cat(std_dev_total[i], 0)).cpu().detach()
-                        )
-                wandb.log(loss_dict)
+                        if cf.par_rank == 0:
+                            loss_dict[idx_name] = torch.mean(lt[:, i]).cpu().detach()
+                            loss_dict[idx_std_name] = (
+                                torch.mean(torch.cat(std_dev_total[i], 0)).cpu().detach()
+                            )
+                if cf.par_rank == 0:
+                    wandb.log(loss_dict)
 
                 # console output
                 samples_sec = cf.batch_size / (time.time() - time_start)
@@ -522,7 +523,7 @@ class AtmoRepTrainer(TorchTrainer):
 
     def validate(self, epoch=0, BERT_test_strategy=None):
         cf = self.config
-        if BERT_test_strategy != None:
+        if BERT_test_strategy is not None:
             BERT_strategy_train = cf.BERT_strategy
             cf.BERT_strategy = BERT_test_strategy
         self.model.mode(NetMode.test)
@@ -600,7 +601,7 @@ class AtmoRepTrainer(TorchTrainer):
         batch_data = []
         torch.cuda.empty_cache()
 
-        if BERT_test_strategy != None:
+        if BERT_test_strategy is not None:
             cf.BERT_strategy = BERT_strategy_train
 
         return total_loss
@@ -701,4 +702,8 @@ class AtmoRepTrainer(TorchTrainer):
         return loss, mse_loss, losses
 
     def save(self, epoch):
-        self.model.net.save(epoch)
+        if 0 == self.config.par_rank:
+            if self.config.with_ddp:
+                self.model.net.module.save(epoch)
+            else:
+                self.model.net.save(epoch)

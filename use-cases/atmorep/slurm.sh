@@ -7,7 +7,7 @@
 #SBATCH --account=intertwin
 #SBATCH --output=job.out
 #SBATCH --error=job.err
-#SBATCH --time=00:10:00
+#SBATCH --time=00:30:00
 
 # Resources allocation
 #SBATCH --partition=develbooster
@@ -50,6 +50,31 @@ if [ "$SLURM_CPUS_PER_GPU" -gt 0 ] ; then
   export OMP_NUM_THREADS=$SLURM_CPUS_PER_GPU
 fi
 
+torchrun_launcher(){
+  
+  export NCCL_SOCKET_IFNAME=ib0   # Use infiniband interface ib0
+  export NCCL_DEBUG=INFO          # Enables detailed logging
+  export NCCL_P2P_DISABLE=0       # Ensure P2P communication is enabled
+  export NCCL_IB_DISABLE=0        # Ensure InfiniBand is used if available
+  export GLOO_SOCKET_IFNAME=ib0   # Ensure GLOO (fallback) also uses the correct interface
+
+  srun --cpu-bind=none --ntasks-per-node=1 \
+    bash -c "torchrun \
+    --log_dir='logs_torchrun' \
+    --nnodes=$SLURM_NNODES \
+    --nproc_per_node=1 \
+    --rdzv_id=$SLURM_JOB_ID \
+    --rdzv_conf=is_host=\$(((SLURM_NODEID)) && echo 0 || echo 1) \
+    --rdzv_backend=c10d \
+    --rdzv_endpoint='$(scontrol show hostnames "$SLURM_JOB_NODELIST" | head -n 1)'i:29500 \
+    $1"
+}
+# work-around for flipping links issue on JUWELS-BOOSTER
+export NCCL_IB_TIMEOUT=250
+export UCX_RC_TIMEOUT=16s
+export NCCL_IB_RETRY_CNT=50
+
+
 # # Env vairables check
 # if [ -z "$DIST_MODE" ]; then 
 #   >&2 echo "ERROR: env variable DIST_MODE is not set. Allowed values are 'horovod', 'ddp' or 'deepspeed'"
@@ -74,7 +99,8 @@ fi
 srun --cpu-bind=none --ntasks-per-node=1 bash -c 'echo -e "NODE hostname: $(hostname)\n$(nvidia-smi)\n\n"'
 
 # Launch atmorep. Ref: https://github.com/clessig/atmorep/blob/iluise/develop/itwinai/slurm_atmorep.sh
-srun uv run python debug_trainer.py
+# srun uv run python debug_trainer.py
+torchrun_launcher debug_trainer.py
 
 # # Launch training
 # if [ "$DIST_MODE" == "ddp" ] ; then

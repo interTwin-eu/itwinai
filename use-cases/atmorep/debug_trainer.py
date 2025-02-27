@@ -7,6 +7,7 @@ my_pipeline = Pipeline(
         AtmoRepTrainer(
             config={
                 "load_model": None,  # ['dys79lgw', 82],
+                "run_validation": False,
                 "mode": "train",
                 "path_models": "models",
                 "path_plots": "plots",
