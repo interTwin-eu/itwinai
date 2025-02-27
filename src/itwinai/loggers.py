@@ -1303,6 +1303,7 @@ class EpochTimeTracker:
         """Add epoch time to data."""
         self.data["epoch_id"].append(epoch_idx)
         self.data["time"].append(time)
+        self.save()
 
     def save(self) -> None:
         """Save data to a new CSV file."""
