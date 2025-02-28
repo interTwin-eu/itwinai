@@ -54,7 +54,11 @@ def ray_cluster_is_running() -> bool:
             check=True,
         )
         # Check if the output indicates a running cluster
-        return "No cluster running" not in result.stdout
+        return (
+            "Node status" in result.stdout
+            and "Resources" in result.stdout
+            and "Usage" in result.stdout
+        )
     except subprocess.CalledProcessError:
         # If the command fails, the cluster is not running
         return False
