@@ -7,7 +7,7 @@
 #SBATCH --account=intertwin
 #SBATCH --output=job.out
 #SBATCH --error=job.err
-#SBATCH --time=00:30:00
+#SBATCH --time=01:00:00
 
 # Resources allocation
 #SBATCH --partition=develbooster
@@ -43,21 +43,26 @@ if [ "$DEBUG" = true ] ; then
 fi
 echo
 
-# Setup env for distributed ML
-export CUDA_VISIBLE_DEVICES="0,1,2,3"
-export OMP_NUM_THREADS=1
-if [ "$SLURM_CPUS_PER_GPU" -gt 0 ] ; then
-  export OMP_NUM_THREADS=$SLURM_CPUS_PER_GPU
-fi
+export OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK
+export CUDA_VISIBLE_DEVICES=0,1,2,3
+
+export UCX_TLS="^cma"
+export UCX_NET_DEVICES=mlx5_0:1,mlx5_1:1,mlx5_4:1,mlx5_5:1
+
+# work-around for flipping links issue on JUWELS-BOOSTER
+export NCCL_IB_TIMEOUT=250
+export UCX_RC_TIMEOUT=16s
+export NCCL_IB_RETRY_CNT=50
+
+export NCCL_SOCKET_IFNAME=ib0   # Use infiniband interface ib0
+export NCCL_DEBUG=INFO          # Enables detailed logging
+export NCCL_P2P_DISABLE=0       # Ensure P2P communication is enabled
+export NCCL_IB_DISABLE=0        # Ensure InfiniBand is used if available
+export GLOO_SOCKET_IFNAME=ib0   # Ensure GLOO (fallback) also uses the correct interface
+
 
 torchrun_launcher(){
   
-  export NCCL_SOCKET_IFNAME=ib0   # Use infiniband interface ib0
-  export NCCL_DEBUG=INFO          # Enables detailed logging
-  export NCCL_P2P_DISABLE=0       # Ensure P2P communication is enabled
-  export NCCL_IB_DISABLE=0        # Ensure InfiniBand is used if available
-  export GLOO_SOCKET_IFNAME=ib0   # Ensure GLOO (fallback) also uses the correct interface
-
   srun --cpu-bind=none --ntasks-per-node=1 \
     bash -c "torchrun \
     --log_dir='logs_torchrun' \
@@ -69,80 +74,8 @@ torchrun_launcher(){
     --rdzv_endpoint='$(scontrol show hostnames "$SLURM_JOB_NODELIST" | head -n 1)'i:29500 \
     $1"
 }
-# work-around for flipping links issue on JUWELS-BOOSTER
-export NCCL_IB_TIMEOUT=250
-export UCX_RC_TIMEOUT=16s
-export NCCL_IB_RETRY_CNT=50
 
-
-# # Env vairables check
-# if [ -z "$DIST_MODE" ]; then 
-#   >&2 echo "ERROR: env variable DIST_MODE is not set. Allowed values are 'horovod', 'ddp' or 'deepspeed'"
-#   exit 1
-# fi
-# if [ -z "$RUN_NAME" ]; then 
-#   >&2 echo "WARNING: env variable RUN_NAME is not set. It's a way to identify some specific run of an experiment."
-#   RUN_NAME=$DIST_MODE
-# fi
-# if [ -z "$TRAINING_CMD" ]; then 
-#   >&2 echo "ERROR: env variable TRAINING_CMD is not set. It's the python command to execute."
-#   exit 1
-# fi
-# if [ -z "$PYTHON_VENV" ]; then 
-#   >&2 echo "WARNING: env variable PYTHON_VENV is not set. It's the path to a python virtual environment."
-# else
-#   # Activate Python virtual env
-#   source $PYTHON_VENV/bin/activate
-# fi
-
-# Get GPUs info per node
-srun --cpu-bind=none --ntasks-per-node=1 bash -c 'echo -e "NODE hostname: $(hostname)\n$(nvidia-smi)\n\n"'
 
 # Launch atmorep. Ref: https://github.com/clessig/atmorep/blob/iluise/develop/itwinai/slurm_atmorep.sh
-# srun uv run python debug_trainer.py
 torchrun_launcher debug_trainer.py
 
-# # Launch training
-# if [ "$DIST_MODE" == "ddp" ] ; then
-#   echo "DDP training: $TRAINING_CMD"
-#   srun --cpu-bind=none --ntasks-per-node=1 \
-#     bash -c "torchrun \
-#     --log_dir='logs_torchrun' \
-#     --nnodes=$SLURM_NNODES \
-#     --nproc_per_node=$SLURM_GPUS_PER_NODE \
-#     --rdzv_id=$SLURM_JOB_ID \
-#     --rdzv_conf=is_host=\$(((SLURM_NODEID)) && echo 0 || echo 1) \
-#     --rdzv_backend=c10d \
-#     --rdzv_endpoint='$(scontrol show hostnames "$SLURM_JOB_NODELIST" | head -n 1)'i:29500 \
-#     $TRAINING_CMD"
-# elif [ "$DIST_MODE" == "deepspeed" ] ; then
-#   echo "DEEPSPEED training: $TRAINING_CMD"
-#   srun --cpu-bind=none --ntasks-per-node=1 \
-#     bash -c "torchrun \
-#     --log_dir='logs_torchrun' \
-#     --nnodes=$SLURM_NNODES \
-#     --nproc_per_node=$SLURM_GPUS_PER_NODE \
-#     --rdzv_id=$SLURM_JOB_ID \
-#     --rdzv_conf=is_host=\$(((SLURM_NODEID)) && echo 0 || echo 1) \
-#     --rdzv_backend=c10d \
-#     --rdzv_endpoint='$(scontrol show hostnames "$SLURM_JOB_NODELIST" | head -n 1)'i:29500 \
-#     $TRAINING_CMD"
-
-#   # # Run with deepspeed launcher: set --ntasks-per-node=1
-#   # # https://www.deepspeed.ai/getting-started/#multi-node-environment-variables
-#   # export NCCL_IB_DISABLE=1
-#   # export NCCL_SOCKET_IFNAME=eth0
-#   # nodelist=$(scontrol show hostname $SLURM_NODELIST)
-#   # echo "$nodelist" | sed -e 's/$/ slots=4/' > .hostfile
-#   # # Requires passwordless SSH access among compute node
-#   # srun --cpu-bind=none deepspeed --hostfile=.hostfile $TRAINING_CMD --deepspeed
-#   # rm .hostfile
-# elif [ "$DIST_MODE" == "horovod" ] ; then
-#   echo "HOROVOD training: $TRAINING_CMD"
-#   srun --cpu-bind=none --ntasks-per-node=$SLURM_GPUS_PER_NODE --cpus-per-task=$SLURM_CPUS_PER_GPU \
-# 	  --ntasks=$(($SLURM_GPUS_PER_NODE * $SLURM_NNODES)) \
-#     $TRAINING_CMD
-# else
-#   >&2 echo "ERROR: unrecognized \$DIST_MODE env variable"
-#   exit 1
-# fi
