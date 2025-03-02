@@ -436,6 +436,15 @@ def exec_pipeline_with_compose(cfg):
     # directory. Example: some_field: ${cwd:}/some/nested/path/in/current/working/dir
     OmegaConf.register_new_resolver("cwd", lambda: os.getcwd())
 
+    def range_resolver(x, y=None, step=1):
+        """Custom OmegaConf resolver for range."""
+        if y is None:
+            return list(range(x))
+        return list(range(x, y, step))
+
+    # Register custom OmegaConf resolver to allow to dynaimcally compute ranges
+    OmegaConf.register_new_resolver("range", range_resolver)
+
     pipe_steps = OmegaConf.select(cfg, "pipe_steps", default=None)
     pipe_key = OmegaConf.select(cfg, "pipe_key", default="training_pipeline")
 
