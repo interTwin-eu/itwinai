@@ -71,8 +71,8 @@ training_pipeline:
       ray_run_config:
         _target_: ray.train.RunConfig
         # storage_path must be an absolute path. Defaulting to the directory from which the
-        # job is launched using the itwinai custom OmegaConf resolver ${cwd:}
-        storage_path: ${cwd:}/ray_checkpoints
+        # job is launched using the itwinai custom OmegaConf resolver ${itwinai.cwd:}
+        storage_path: ${itwinai.cwd:}/ray_checkpoints
         name: MNIST-HPO-Experiment
       ray_search_space:
         batch_size:
