@@ -10,12 +10,14 @@
 # --------------------------------------------------------------------------------------
 
 # Python virtual environment (no conda/micromamba)
-PYTHON_VENV="../../../envAI_hdfml"
+PYTHON_VENV="../../../.venv"
 
 # Clear SLURM logs (*.out and *.err files)
-rm -rf logs_slurm checkpoints* mllogs*
+rm -rf logs_slurm checkpoints* mllogs* ray_checkpoints
 mkdir logs_slurm
 rm -rf logs_torchrun
+
+export HYDRA_FULL_ERROR=1
 
 # DDP itwinai
 DIST_MODE="ddp"

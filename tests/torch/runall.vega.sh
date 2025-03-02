@@ -9,6 +9,8 @@
 # - Matteo Bunino <matteo.bunino@cern.ch> - CERN
 # --------------------------------------------------------------------------------------
 
+# shellcheck disable=all
+
 # DISCLAIMER: 
 # this script is here to support the development, so it may not be maintained and it may be a bit "rough".
 # Do not mind it too much.

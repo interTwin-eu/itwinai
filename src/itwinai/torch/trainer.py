@@ -13,27 +13,39 @@
 
 """Provides training logic for PyTorch models via Trainer classes."""
 
+import logging
 import os
 import sys
 import tempfile
 from collections import defaultdict
 from pathlib import Path
-from typing import Any, Callable, Dict, Iterable, List, Literal, Optional, Tuple, Union
+from typing import TYPE_CHECKING, Any, Callable, Dict, List, Literal, Optional, Tuple, Union
 
+import ray.train
+import ray.train.torch
+import ray.tune
 import torch
 import torch.distributed as dist
 import torch.nn as nn
 import torch.optim as optim
+import torch.optim.lr_scheduler as lr_scheduler
 import torchvision
+import yaml
+from ray.train import Checkpoint, DataConfig, RunConfig, ScalingConfig
+from ray.train.torch import TorchConfig
+from ray.train.torch import TorchTrainer as RayTorchTrainer
+from ray.tune import TuneConfig
 from torch.nn.parallel import DistributedDataParallel as DDP
+from torch.optim.lr_scheduler import LRScheduler
 from torch.optim.optimizer import Optimizer
-from torch.utils.data import DataLoader, Dataset, Sampler
+from torch.utils.data import DataLoader, Dataset
 from torch.utils.data.distributed import DistributedSampler
 from tqdm import tqdm
 
 from ..components import Trainer, monitor_exec
+from ..distributed import ray_cluster_is_running
 from ..loggers import Logger, LogMixin
-from ..utils import load_yaml
+from ..utils import load_yaml, to_uri
 from .config import TrainingConfiguration
 from .distributed import (
     DeepSpeedStrategy,
@@ -41,12 +53,20 @@ from .distributed import (
     NonDistributedStrategy,
     RayDDPStrategy,
     RayDeepSpeedStrategy,
+    RayHorovodStrategy,
+    RayTorchDistributedStrategy,
     TorchDDPStrategy,
     TorchDistributedStrategy,
     distributed_resources_available,
 )
 from .reproducibility import seed_worker, set_seed
-from .type import Batch, LrScheduler, Metric
+from .tuning import search_space
+from .type import Batch, Metric
+
+if TYPE_CHECKING:
+    from ray.train.horovod import HorovodConfig
+
+py_logger = logging.getLogger(__name__)
 
 
 class TorchTrainer(Trainer, LogMixin):
@@ -60,8 +80,6 @@ class TorchTrainer(Trainer, LogMixin):
             train or a string identifier. Defaults to None.
         strategy (Literal['ddp', 'deepspeed', 'horovod'], optional):
             distributed strategy. Defaults to 'ddp'.
-        validation_every (Optional[int], optional): run a validation epoch
-            every ``validation_every`` epochs. Disabled if None. Defaults to 1.
         test_every (Optional[int], optional): run a test epoch
             every ``test_every`` epochs. Disabled if None. Defaults to None.
         random_seed (Optional[int], optional): set random seed for
@@ -80,6 +98,21 @@ class TorchTrainer(Trainer, LogMixin):
             the profiler.
         profiling_warmup_epochs (int): length of the profiler warmup phase in terms of
             number of epochs.
+        ray_scaling_config (ScalingConfig, optional): scaling config for Ray Trainer.
+            Defaults to None,
+        ray_tune_config (TuneConfig, optional): tune config for Ray Tuner.
+            Defaults to None.
+        ray_run_config (RunConfig, optional): run config for Ray Trainer.
+            Defaults to None.
+        ray_search_space (Dict[str, Any], optional): search space for Ray Tuner.
+            Defaults to None.
+        ray_torch_config (TorchConfig, optional): torch configuration for Ray's TorchTrainer.
+            Defaults to None.
+        ray_data_config (DataConfig, optional): dataset configuration for Ray.
+            Defaults to None.
+        ray_horovod_config (HorovodConfig, optional): horovod configuration for Ray's
+            HorovodTrainer. Defaults to None.
+        from_checkpoint (str | Path, optional): path to checkpoint directory. Defaults to None.
     """
 
     # TODO:
@@ -102,7 +135,7 @@ class TorchTrainer(Trainer, LogMixin):
     #: Optimizer.
     optimizer: Optimizer = None
     #: Learning rate scheduler.
-    lr_scheduler: LrScheduler = None
+    lr_scheduler: LRScheduler = None
     #: PyTorch random number generator (PRNG).
     torch_rng: torch.Generator = None
     #: itwinai ``itwinai.Logger``
@@ -124,17 +157,24 @@ class TorchTrainer(Trainer, LogMixin):
         epochs: int,
         model: Optional[Union[nn.Module, str]] = None,
         strategy: Optional[Literal["ddp", "deepspeed", "horovod"]] = "ddp",
-        validation_every: Optional[int] = 1,
         test_every: Optional[int] = None,
         random_seed: Optional[int] = None,
         logger: Optional[Logger] = None,
         metrics: Optional[Dict[str, Metric]] = None,
-        checkpoints_location: str = "checkpoints",
+        checkpoints_location: str | Path = "checkpoints",
         checkpoint_every: Optional[int] = None,
         disable_tqdm: bool = False,
         name: Optional[str] = None,
         profiling_wait_epochs: int = 1,
         profiling_warmup_epochs: int = 2,
+        ray_scaling_config: ScalingConfig | None = None,
+        ray_tune_config: TuneConfig | None = None,
+        ray_run_config: RunConfig | None = None,
+        ray_search_space: Dict[str, Any] | None = None,
+        ray_torch_config: TorchConfig | None = None,
+        ray_data_config: DataConfig | None = None,
+        ray_horovod_config: Optional["HorovodConfig"] = None,
+        from_checkpoint: str | Path | None = None,
     ) -> None:
         super().__init__(name)
         self.save_parameters(**self.locals2params(locals()))
@@ -148,7 +188,6 @@ class TorchTrainer(Trainer, LogMixin):
         self.epochs = epochs
         self.model = model
         self.strategy = strategy
-        self.validation_every = validation_every
         self.test_every = test_every
         self.random_seed = random_seed
         self.logger = logger
@@ -160,6 +199,41 @@ class TorchTrainer(Trainer, LogMixin):
         self.profiler = None
         self.profiling_wait_epochs = profiling_wait_epochs
         self.profiling_warmup_epochs = profiling_warmup_epochs
+        self.ray_scaling_config = ray_scaling_config
+        self.ray_tune_config = ray_tune_config
+        self.ray_run_config = ray_run_config
+        self.ray_search_space = ray_search_space
+        self.ray_horovod_config = ray_horovod_config
+        self.ray_torch_config = ray_torch_config
+        self.ray_data_config = ray_data_config
+        self.from_checkpoint = from_checkpoint
+
+        if self.from_checkpoint:
+            self.from_checkpoint = Path(from_checkpoint)
+            if not self.from_checkpoint.exists():
+                raise RuntimeError(
+                    "from_checkpoint argument was passed, but the checkpoint is not found "
+                    f"at {self.from_checkpoint}"
+                )
+
+        if self.checkpoints_location:
+            Path(self.checkpoints_location).mkdir(exist_ok=True, parents=True)
+
+        py_logger.debug(f"ray_scaling_config: {ray_scaling_config}")
+        py_logger.debug(f"ray_tune_config: {ray_tune_config}")
+        py_logger.debug(f"ray_run_config: {ray_run_config}")
+        py_logger.debug(f"ray_horovod_config: {ray_horovod_config}")
+        py_logger.debug(f"ray_torch_config: {ray_torch_config}")
+        py_logger.debug(f"ray_data_config: {ray_data_config}")
+        py_logger.debug(f"ray_search_space: {ray_search_space}")
+
+        # Initial training state -- can be resumed from a checkpoint
+        self.model_state_dict = None
+        self.optimizer_state_dict = None
+        self.lr_scheduler_state_dict = None
+        self.torch_rng_state = None
+        self.best_validation_loss = float("inf")
+        self.epoch = 0
 
     @property
     def strategy(self) -> TorchDistributedStrategy:
@@ -179,15 +253,47 @@ class TorchTrainer(Trainer, LogMixin):
         return self.strategy.device()
 
     def _detect_strategy(self, strategy: str) -> TorchDistributedStrategy:
-        if strategy is None or not distributed_resources_available():
-            print("WARNING: falling back to non-distributed strategy.")
+        """If a Ray cluster is detected"""
+
+        py_logger.debug(f"Strategy was set to {strategy}")
+
+        enough_resources = distributed_resources_available() or ray_cluster_is_running()
+        py_logger.debug(
+            f"Enough resources? {enough_resources} "
+            f"(distributed_resources_available: {distributed_resources_available()}) "
+            f"(ray_cluster_is_running: {ray_cluster_is_running()})"
+        )
+
+        # NOTE: setting strategy to None prevents the trainer to run distribtued ML, regardless
+        # of the availability of the resources.
+        if strategy is None or not enough_resources:
+            py_logger.warning("falling back to non-distributed strategy.")
             strategy_obj = NonDistributedStrategy()
         elif strategy == "ddp":
-            strategy_obj = TorchDDPStrategy(backend=self.config.dist_backend)
+            if ray_cluster_is_running():
+                # NOTE: the torch backend is passed in the Ray's torch config
+                strategy_obj = RayDDPStrategy()
+                py_logger.info(
+                    f"Ray cluster was detected, thus the Ray equvalent for {strategy} is used"
+                )
+            else:
+                strategy_obj = TorchDDPStrategy(backend=self.config.dist_backend)
         elif strategy == "horovod":
-            strategy_obj = HorovodStrategy()
+            if ray_cluster_is_running():
+                strategy_obj = RayHorovodStrategy()
+                py_logger.info(
+                    f"Ray cluster was detected, thus the Ray equvalent for {strategy} is used"
+                )
+            else:
+                strategy_obj = HorovodStrategy()
         elif strategy == "deepspeed":
-            strategy_obj = DeepSpeedStrategy(backend=self.config.dist_backend)
+            if ray_cluster_is_running():
+                strategy_obj = RayDeepSpeedStrategy(backend=self.config.dist_backend)
+                py_logger.info(
+                    f"Ray cluster was detected, thus the Ray equvalent for {strategy} is used"
+                )
+            else:
+                strategy_obj = DeepSpeedStrategy(backend=self.config.dist_backend)
         else:
             raise NotImplementedError(f"Strategy '{strategy}' is not recognized/implemented.")
         return strategy_obj
@@ -197,38 +303,72 @@ class TorchTrainer(Trainer, LogMixin):
             self.strategy.init()
 
     def _optimizer_from_config(self) -> None:
-        if self.config.optimizer == "adadelta":
-            self.optimizer = optim.Adadelta(
-                self.model.parameters(),
-                lr=self.config.optim_lr,
-                weight_decay=self.config.optim_weight_decay,
-            )
-        elif self.config.optimizer == "adam":
-            self.optimizer = optim.Adam(
-                self.model.parameters(),
-                lr=self.config.optim_lr,
-                weight_decay=self.config.optim_weight_decay,
-            )
-        elif self.config.optimizer == "rmsprop":
-            self.optimizer = optim.RMSprop(
-                self.model.parameters(),
-                lr=self.config.optim_lr,
-                weight_decay=self.config.optim_weight_decay,
-                momentum=self.config.optim_momentum,
-            )
-        elif self.config.optimizer == "sgd":
-            self.optimizer = optim.SGD(
-                self.model.parameters(),
-                lr=self.config.optim_lr,
-                weight_decay=self.config.optim_weight_decay,
-                momentum=self.config.optim_momentum,
-            )
-        else:
-            raise ValueError(
-                "Unrecognized self.config.optimizer! Check the docs for "
-                "supported values and consider overriding "
-                "create_model_loss_optimizer method for more flexibility."
-            )
+        match self.config.optimizer:
+            case "adadelta":
+                self.optimizer = optim.Adadelta(
+                    self.model.parameters(),
+                    lr=self.config.optim_lr,
+                    weight_decay=self.config.optim_weight_decay,
+                )
+            case "adam":
+                self.optimizer = optim.Adam(
+                    self.model.parameters(),
+                    lr=self.config.optim_lr,
+                    weight_decay=self.config.optim_weight_decay,
+                )
+            case "rmsprop":
+                self.optimizer = optim.RMSprop(
+                    self.model.parameters(),
+                    lr=self.config.optim_lr,
+                    weight_decay=self.config.optim_weight_decay,
+                    momentum=self.config.optim_momentum,
+                )
+            case "sgd":
+                self.optimizer = optim.SGD(
+                    self.model.parameters(),
+                    lr=self.config.optim_lr,
+                    weight_decay=self.config.optim_weight_decay,
+                    momentum=self.config.optim_momentum,
+                )
+            case _:
+                raise ValueError(
+                    "Unrecognized self.config.optimizer! Check the docs for "
+                    "supported values and consider overriding "
+                    "create_model_loss_optimizer method for more flexibility."
+                )
+
+    def _lr_scheduler_from_config(self) -> None:
+        """Parse Lr scheduler from training config"""
+        if not self.config.lr_scheduler:
+            return
+        if not self.optimizer:
+            raise ValueError("Trying to instantiate a LR scheduler but the optimizer is None!")
+
+        match self.config.lr_scheduler:
+            case "constant":
+                self.lr_scheduler = lr_scheduler.ConstantLR(self.optimizer)
+            case "polynomial":
+                self.lr_scheduler = lr_scheduler.PolynomialLR(self.optimizer)
+            case "exponential":
+                self.lr_scheduler = lr_scheduler.ExponentialLR(
+                    self.optimizer, gamma=self.config.lr_scheduler_gamma
+                )
+            case "linear":
+                self.lr_scheduler = lr_scheduler.LinearLR(self.optimizer)
+            case "multistep":
+                self.lr_scheduler = lr_scheduler.MultiStepLR(
+                    self.optimizer, milestones=self.config.lr_scheduler_step_size
+                )
+            case "step":
+                self.lr_scheduler = lr_scheduler.StepLR(
+                    self.optimizer, step_size=self.config.lr_scheduler_step_size
+                )
+            case _:
+                raise ValueError(
+                    "Unrecognized self.config.lr_scheduler! Check the docs for "
+                    "supported values and consider overriding "
+                    "create_model_loss_optimizer method for more flexibility."
+                )
 
     def _loss_from_config(self) -> None:
         if self.config.loss == "nllloss":
@@ -280,15 +420,35 @@ class TorchTrainer(Trainer, LogMixin):
         # may be interested to override!  #
         ###################################
 
+        # Model, optimizer, and lr scheduler may have already been loaded from a checkpoint
+
         if self.model is None:
             raise ValueError(
-                "self.model is None! Either pass it to the constructor or "
+                "self.model is None! Either pass it to the constructor, load a checkpoint, or "
                 "override create_model_loss_optimizer method."
             )
+        if self.model_state_dict:
+            # Load model from checkpoint
+            self.model.load_state_dict(self.model_state_dict, strict=False)
 
         # Parse optimizer from training configuration
         # Optimizer can be changed with a custom one here!
         self._optimizer_from_config()
+
+        # Parse LR scheduler from training configuration
+        # LR scheduler can be changed with a custom one here!
+        self._lr_scheduler_from_config()
+
+        if self.optimizer_state_dict:
+            # Load optimizer state from checkpoint
+            # IMPORTANT: this must be after the learning rate scheduler was already initialized
+            # by passing to it the optimizer. Otherwise the optimizer state just loaded will
+            # be modified by the lr scheduler.
+            self.optimizer.load_state_dict(self.optimizer_state_dict)
+
+        if self.lr_scheduler_state_dict and self.lr_scheduler:
+            # Load LR scheduler state from checkpoint
+            self.lr_scheduler.load_state_dict(self.lr_scheduler_state_dict)
 
         # Parse loss from training configuration
         # Loss can be changed with a custom one here!
@@ -301,6 +461,107 @@ class TorchTrainer(Trainer, LogMixin):
         (self.model, self.optimizer, self.lr_scheduler) = self.strategy.distributed(
             self.model, self.optimizer, self.lr_scheduler, **distribute_kwargs
         )
+
+    def save_checkpoint(
+        self,
+        name: str,
+        best_validation_loss: Optional[torch.Tensor] = None,
+        checkpoints_root: str | Path | None = None,
+        force: bool = False,
+    ) -> str | None:
+        """Save training checkpoint.
+
+        Args:
+            name (str): name of the checkpoint directory.
+            best_validation_loss (Optional[torch.Tensor]): best validation loss throughout
+                training so far (if available).
+            checkpoints_root (str | None): path for root checkpoints dir. If None, uses
+                ``self.checkpoints_location`` as base.
+            force (bool): force checkpointign now.
+
+        Returns:
+            path to the checkpoint file or ``None`` when the checkpoint is not created.
+        """
+        if not (
+            force
+            or self.strategy.is_main_worker
+            and self.checkpoint_every
+            and (self.epoch + 1) % self.checkpoint_every == 0
+        ):
+            # Do nothing and return
+            return
+
+        ckpt_dir = Path(checkpoints_root or self.checkpoints_location) / name
+        ckpt_dir.mkdir(parents=True, exist_ok=True)
+
+        # Save state (epoch, loss, optimizer, scheduler)
+        state = {
+            "epoch": self.epoch,
+            # This could store the best validation loss
+            "best_validation_loss": (
+                best_validation_loss.item() if best_validation_loss is not None else None
+            ),
+            "optimizer_state_dict": self.optimizer.state_dict(),
+            "lr_scheduler_state_dict": (
+                self.lr_scheduler.state_dict() if self.lr_scheduler is not None else None
+            ),
+            "torch_rng_state": self.torch_rng.get_state(),
+            "random_seed": self.random_seed,
+        }
+        state_path = ckpt_dir / "state.pt"
+        torch.save(state, state_path)
+
+        # Save PyTorch model separately
+        model_path = ckpt_dir / "model.pt"
+        # TODO: check that the state dict is stripped from any distributed info
+        torch.save(self.model.state_dict(), model_path)
+
+        # Save Pydantic config as YAML
+        config_path = ckpt_dir / "config.yaml"
+        with config_path.open("w") as f:
+            yaml.safe_dump(self.config.model_dump(), f)
+
+        # Log each file with an appropriate identifier
+        self.log(str(state_path), f"{name}_state", kind="artifact")
+        self.log(str(model_path), f"{name}_model", kind="artifact")
+        self.log(str(config_path), f"{name}_config", kind="artifact")
+        return str(ckpt_dir)
+
+    def load_checkpoint(self) -> None:
+        """Reload training state from checkpoint."""
+        if self.from_checkpoint:
+            # A checkpoint path was provided
+            py_logger.info(f"Loading from existing checkpoint at {self.from_checkpoint}")
+
+            if isinstance(self.strategy, RayTorchDistributedStrategy):
+                # A Ray checkpoint directory was passed to the trainer -- assuming to be
+                # inside a trial
+                checkpoint = ray.train.get_checkpoint()
+                if checkpoint:
+                    with checkpoint.as_directory() as checkpoint_dir:
+                        py_logger.debug("Loading from existing Ray checkpoint")
+                        self._load_checkpoint(checkpoint_dir=checkpoint_dir)
+
+            else:
+                # Not using Ray, falling back to simple checkpoint reload
+                py_logger.debug("Loading from existing checkpoint without using Ray")
+                self._load_checkpoint(checkpoint_dir=self.from_checkpoint)
+
+    def _load_checkpoint(self, checkpoint_dir: str | Path) -> None:
+        """Load checkpoint from path."""
+        checkpoint_dir = Path(checkpoint_dir)
+        state = torch.load(checkpoint_dir / "state.pt")
+
+        # Override initial training state
+        self.model_state_dict = torch.load(checkpoint_dir / "model.pt")
+        self.optimizer_state_dict = state["optimizer_state_dict"]
+        self.lr_scheduler_state_dict = state["lr_scheduler_state_dict"]
+        self.torch_rng_state = state["torch_rng_state"]
+        # Direct overrides (don't require further attention)
+        self.random_seed = state["random_seed"]
+        self.epoch = state["epoch"] + 1  # Start from next epoch
+        if state["best_validation_loss"]:
+            self.best_validation_loss = state["best_validation_loss"]
 
     def create_dataloaders(
         self,
@@ -378,9 +639,173 @@ class TorchTrainer(Trainer, LogMixin):
             Tuple[Dataset, Dataset, Dataset, Any]: training dataset,
             validation dataset, test dataset, trained model.
         """
-        self.torch_rng = set_seed(self.random_seed)
+        if isinstance(self.strategy, RayTorchDistributedStrategy):
+            # Run with Ray
+            import ray.tune
+
+            train_with_data = ray.tune.with_parameters(
+                self._run_worker,
+                train_dataset=train_dataset,
+                validation_dataset=validation_dataset,
+                test_dataset=test_dataset,
+            )
+
+            if self.ray_run_config:
+                # Create Ray checkpoints dir if it does not exist yet
+                ckpt_dir = Path(self.ray_run_config.storage_path)
+                ckpt_dir.mkdir(parents=True, exist_ok=True)
+
+            if isinstance(self.strategy, RayHorovodStrategy):
+                # Using Horovod with Ray
+                from ray.train.horovod import HorovodTrainer
+
+                if self.ray_torch_config:
+                    py_logger.warning(
+                        "Ray torch config was passed, but it's ignored as "
+                        f"{self.strategy.__class__.__name__} strategy is used"
+                    )
+
+                if self.from_checkpoint:
+                    # Create trainer from checkpoint
+                    if HorovodTrainer.can_restore(to_uri(self.from_checkpoint)):
+                        trainer = HorovodTrainer.restore(
+                            path=to_uri(self.from_checkpoint),
+                            train_loop_per_worker=train_with_data,
+                            train_loop_config=None,
+                        )
+                    else:
+                        # Ray is unable to restore the checkpoint implicitly, but it's passing
+                        # it to the trial
+                        trainer = HorovodTrainer(
+                            train_loop_per_worker=train_with_data,
+                            train_loop_config=None,
+                            horovod_config=self.ray_horovod_config,
+                            scaling_config=self.ray_scaling_config,
+                            run_config=self.ray_run_config,
+                            dataset_config=self.ray_data_config,
+                            resume_from_checkpoint=Checkpoint(to_uri(self.from_checkpoint)),
+                        )
+                else:
+                    # Create trainer without checkpoint
+                    trainer = HorovodTrainer(
+                        train_loop_per_worker=train_with_data,
+                        train_loop_config=None,
+                        horovod_config=self.ray_horovod_config,
+                        scaling_config=self.ray_scaling_config,
+                        run_config=self.ray_run_config,
+                        dataset_config=self.ray_data_config,
+                    )
+            else:
+                # Using DDP or DeepSpeed with Ray
+                if self.ray_horovod_config:
+                    py_logger.warning(
+                        "Ray horovod config was passed, but it's ignored as "
+                        f"{self.strategy.__class__.__name__} strategy is used"
+                    )
+                if self.from_checkpoint:
+                    # Create trainer from checkpoint
+                    if RayTorchTrainer.can_restore(to_uri(self.from_checkpoint)):
+                        trainer = RayTorchTrainer.restore(
+                            path=to_uri(self.from_checkpoint),
+                            train_loop_per_worker=train_with_data,
+                            train_loop_config=None,
+                        )
+                    else:
+                        # Ray is unable to restore the checkpoint implicitly, but it's passing
+                        # it to the trial
+                        trainer = RayTorchTrainer(
+                            train_loop_per_worker=train_with_data,
+                            train_loop_config=None,
+                            scaling_config=self.ray_scaling_config,
+                            run_config=self.ray_run_config,
+                            torch_config=self.ray_torch_config,
+                            dataset_config=self.ray_data_config,
+                            resume_from_checkpoint=Checkpoint(to_uri(self.from_checkpoint)),
+                        )
+                else:
+                    # Create trainer without checkpoint
+                    trainer = RayTorchTrainer(
+                        train_loop_per_worker=train_with_data,
+                        train_loop_config=None,
+                        scaling_config=self.ray_scaling_config,
+                        run_config=self.ray_run_config,
+                        torch_config=self.ray_torch_config,
+                        dataset_config=self.ray_data_config,
+                    )
+
+            # Wrap the trainer into a Tuner
+            param_space = {"train_loop_config": search_space(self.ray_search_space)}
+            tuner = ray.tune.Tuner(
+                trainable=trainer,
+                param_space=param_space,
+                tune_config=self.ray_tune_config,
+            )
+
+            result_grid = tuner.fit()
+
+            # TODO: review returned objs
+            return train_dataset, validation_dataset, test_dataset, result_grid
+        else:
+            if self.ray_scaling_config:
+                py_logger.warning(
+                    "Ray scaling config was passed, but it's ignored as Ray is not used"
+                )
+            if self.ray_run_config:
+                py_logger.warning(
+                    "Ray run config was passed, but it's ignored as Ray is not used"
+                )
+            if self.ray_tune_config:
+                py_logger.warning(
+                    "Ray tune config was passed, but it's ignored as Ray is not used"
+                )
+            if self.ray_search_space:
+                py_logger.warning(
+                    "Ray search space was passed, but it's ignored as Ray is not used"
+                )
+            if self.ray_horovod_config:
+                py_logger.warning(
+                    "Ray horovod config was passed, but it's ignored as Ray is not used"
+                )
+            if self.ray_torch_config:
+                py_logger.warning(
+                    "Ray torch config was passed, but it's ignored as Ray is not used"
+                )
+            if self.ray_data_config:
+                py_logger.warning(
+                    "Ray dataset config was passed, but it's ignored as Ray is not used"
+                )
+            # Run without Ray
+            self._run_worker(
+                config={},
+                train_dataset=train_dataset,
+                validation_dataset=validation_dataset,
+                test_dataset=test_dataset,
+            )
+            # TODO: review returned objs
+            return train_dataset, validation_dataset, test_dataset, None
+
+    def _run_worker(
+        self,
+        config: Dict,
+        train_dataset: Dataset,
+        validation_dataset: Optional[Dataset] = None,
+        test_dataset: Optional[Dataset] = None,
+    ) -> Tuple[Dataset, Dataset, Dataset, Any]:
+        self.load_checkpoint()
+
+        self._override_config(config)
+
+        self._set_seed()
         self._init_distributed_strategy()
         self._setup_metrics()
+
+        if self.logger:
+            py_logger.debug(f"Using logger: {self.logger.__class__.__name__}")
+            self.logger.create_logger_context(rank=self.strategy.global_rank())
+            py_logger.debug("...the logger has been initialized")
+            hparams = self.config.model_dump()
+            hparams["distributed_strategy"] = self.strategy.__class__.__name__
+            self.logger.save_hyperparameters(hparams)
 
         self.create_dataloaders(
             train_dataset=train_dataset,
@@ -389,23 +814,31 @@ class TorchTrainer(Trainer, LogMixin):
         )
         self.create_model_loss_optimizer()
 
-        if self.logger:
-            self.logger.create_logger_context(rank=self.strategy.global_rank())
-            hparams = self.config.model_dump()
-            hparams["distributed_strategy"] = self.strategy.__class__.__name__
-            self.logger.save_hyperparameters(hparams)
-
         self.train()
 
         if self.logger:
             self.logger.destroy_logger_context()
+
+        self.strategy.barrier()
         self.strategy.clean_up()
-        return train_dataset, validation_dataset, test_dataset, self.model
+        return
+
+    def _set_seed(self):
+        py_logger.debug(f"Using random seed: {self.random_seed}")
+        self.torch_rng = set_seed(self.random_seed)
+
+        if self.torch_rng_state is not None:
+            # Resume state from checkpoint
+            py_logger.debug("Resuming torch PRNG state from checkpoint")
+            self.torch_rng.set_state(self.torch_rng_state)
+
+    def _override_config(self, config: Dict) -> None:
+        """Overrid self.config with a sample from the search space from the Ray tuner."""
+        self.config = self.config.model_copy(update=config)
+        py_logger.debug("Overridden self.config with trial config (if given)")
 
     def _set_epoch_dataloaders(self, epoch: int):
-        """
-        Sets epoch in the distributed sampler of a dataloader when using it.
-        """
+        """Sets epoch in the distributed sampler of a dataloader when using it."""
         if self.strategy.is_distributed:
             self.train_dataloader.sampler.set_epoch(epoch)
             if self.validation_dataloader is not None:
@@ -413,16 +846,14 @@ class TorchTrainer(Trainer, LogMixin):
             if self.test_dataloader is not None:
                 self.test_dataloader.sampler.set_epoch(epoch)
 
-    def set_epoch(self, epoch: int) -> None:
-        """Set current epoch at the beginning of training.
-
-        Args:
-            epoch (int): epoch number, from 0 to ``epochs-1``.
-        """
-        if self.profiler is not None and epoch > 0:
+    def set_epoch(self) -> None:
+        """Set current epoch at the beginning of training."""
+        if self.profiler is not None and self.epoch > 0:
             # We don't want to start stepping until after the first epoch
             self.profiler.step()
-        self._set_epoch_dataloaders(epoch)
+        if self.lr_scheduler:
+            self.lr_scheduler.step()
+        self._set_epoch_dataloaders(self.epoch)
 
     def log(
         self,
@@ -456,42 +887,43 @@ class TorchTrainer(Trainer, LogMixin):
                 **kwargs,
             )
 
-    def save_checkpoint(
-        self, name: str, epoch: int, loss: Optional[torch.Tensor] = None
-    ) -> None:
-        """Save training checkpoint.
+    def ray_report(
+        self,
+        metrics: Dict[str, float],
+        checkpoint_file: str | Path | None = None,
+        checkpoint_dir: str | Path | None = None,
+        checkpoint_data: Any | None = None,
+    ):
+        """Report a dictionary of metrics and optionally a checkpoint to Ray, only when using
+        Ray distributed strategies. The checkpoint could be in the form of a Python object
+        (passed as ``checkpoint_data``), the path to a single file (passed as
+        ``checkpoint_file``), or the path to an existing checkpoint directory (passed as
+        ``checkpoint_dir``).
 
         Args:
-            name (str): name of the checkpoint.
-            epoch (int): current training epoch.
-            loss (Optional[torch.Tensor]): current loss (if available).
+            metrics (Dict[str, float]): metrics to be reported.
+            checkpoint_file (str | Path | None, optional): path to the checkpoint file.
+                Defaults to None.
+            checkpoint_dir (str | Path | None, optional): path to the checkpoint directory.
+                Defaults to None.
+            checkpoint_data (Any | None, optional):object to serialize as a checkpoint.
+                Defaults to None.
         """
-        state = dict(
-            epoch=epoch,
-            loss=loss,
-            optimizer=self.optimizer.state_dict(),
-            model=self.model.state_dict(),
-            lr_scheduler=self.lr_scheduler,
-        )
-        ckpt_path = os.path.join(self.checkpoints_location, name)
-        torch.save(state, ckpt_path)
-        # print(f"Saved '{name}' checkpoint at {ckpt_path}")
+        if isinstance(self.strategy, RayTorchDistributedStrategy):
+            checkpoint = None
+            if checkpoint_file:
+                with tempfile.TemporaryDirectory() as tmp_dir:
+                    import shutil
 
-        # Save checkpoint to logger
-        self.log(ckpt_path, name, kind="artifact")
-
-    def load_checkpoint(self, name: str) -> None:
-        """Load state from a checkpoint.
-
-        Args:
-            name (str): name of the checkpoint to load, assuming it
-                is under ``self.checkpoints_location`` location.
-        """
-        ckpt_path = os.path.join(self.checkpoints_location, name)
-        state = torch.load(ckpt_path, map_location=self.device)
-        self.model.load_state_dict(state["model"])
-        self.optimizer.load_state_dict(state["optimizer"])
-        self.lr_scheduler = state["lr_scheduler"]
+                    shutil.copy(checkpoint_file, tmp_dir)
+                    checkpoint = ray.train.Checkpoint.from_directory(tmp_dir)
+            elif checkpoint_data:
+                with tempfile.TemporaryDirectory() as tmp_dir:
+                    torch.save(checkpoint_data, tmp_dir + "ckpt.pt")
+                    checkpoint = ray.train.Checkpoint.from_directory(tmp_dir)
+            elif checkpoint_dir:
+                checkpoint = ray.train.Checkpoint.from_directory(checkpoint_dir)
+            ray.train.report(metrics, checkpoint=checkpoint)
 
     def compute_metrics(
         self,
@@ -541,45 +973,47 @@ class TorchTrainer(Trainer, LogMixin):
             Tuple[Dataset, Dataset, Dataset, Any]: training dataset,
             validation dataset, test dataset, trained model.
         """
-        best_loss = float("inf")
 
         progress_bar = tqdm(
-            range(self.epochs),
+            range(self.epoch, self.epochs),
             desc="Epochs",
             disable=self.disable_tqdm or not self.strategy.is_main_worker,
         )
 
-        for epoch in progress_bar:
-            progress_bar.set_description(f"Epoch {epoch + 1}/{self.epochs}")
+        for self.epoch in progress_bar:
+            progress_bar.set_description(f"Epoch {self.epoch + 1}/{self.epochs}")
 
-            epoch_n = epoch + 1
-            self.set_epoch(epoch)
-            self.train_epoch(epoch)
-            if self.validation_every and epoch_n % self.validation_every == 0:
-                val_loss = self.validation_epoch(epoch)
-
-                # Checkpointing current best model
-                worker_val_losses = self.strategy.gather(val_loss, dst_rank=0)
-                if self.strategy.is_main_worker:
-                    avg_loss = torch.mean(torch.stack(worker_val_losses)).detach().cpu()
-                    if avg_loss < best_loss and self.checkpoint_every is not None:
-                        ckpt_name = "best_model.pth"
-                        self.save_checkpoint(name=ckpt_name, epoch=epoch, loss=avg_loss)
-                        best_loss = avg_loss
-
-            if self.test_every and epoch_n % self.test_every == 0:
-                self.test_epoch(epoch)
+            epoch_n = self.epoch + 1
+            self.set_epoch()
+            self.train_epoch()
+            val_loss = self.validation_epoch()
 
             # Periodic checkpointing
-            if (
-                self.strategy.is_main_worker
-                and self.checkpoint_every
-                and epoch_n % self.checkpoint_every == 0
-            ):
-                ckpt_name = f"epoch_{epoch}.pth"
-                self.save_checkpoint(name=ckpt_name, epoch=epoch)
+            periodic_ckpt_path = self.save_checkpoint(name=f"epoch_{self.epoch}")
 
-    def train_epoch(self, epoch: int) -> torch.Tensor:
+            # Checkpointing current best model
+            best_ckpt_path = None
+            worker_val_losses = self.strategy.gather(val_loss, dst_rank=0)
+            if self.strategy.is_main_worker:
+                avg_loss = torch.mean(torch.stack(worker_val_losses)).detach().cpu()
+                if avg_loss < self.best_validation_loss and self.checkpoint_every is not None:
+                    best_ckpt_path = self.save_checkpoint(
+                        name="best_model",
+                        best_validation_loss=avg_loss,
+                        force=True,
+                    )
+                    self.best_validation_loss = avg_loss
+
+            # Report validation metrics to Ray (useful for tuning!)
+            self.ray_report(
+                metrics={"loss": val_loss.item()},
+                checkpoint_dir=best_ckpt_path or periodic_ckpt_path,
+            )
+
+            if self.test_every and epoch_n % self.test_every == 0:
+                self.test_epoch()
+
+    def train_epoch(self) -> torch.Tensor:
         """Perform a complete sweep over the training dataset, completing an
         epoch of training.
 
@@ -669,12 +1103,9 @@ class TorchTrainer(Trainer, LogMixin):
         )
         return loss, metrics
 
-    def validation_epoch(self, epoch: int) -> torch.Tensor:
+    def validation_epoch(self) -> torch.Tensor:
         """Perform a complete sweep over the validation dataset, completing an
         epoch of validation.
-
-        Args:
-            epoch (int): current epoch number, from 0 to ``self.epochs - 1``.
 
         Returns:
             Optional[Loss]: average validation loss for the current epoch if
@@ -759,12 +1190,9 @@ class TorchTrainer(Trainer, LogMixin):
         )
         return loss, metrics
 
-    def test_epoch(self, epoch: int) -> torch.Tensor:
+    def test_epoch(self) -> torch.Tensor:
         """Perform a complete sweep over the test dataset, completing an
         epoch of test.
-
-        Args:
-            epoch (int): current epoch number, from 0 to ``self.epochs - 1``.
 
         Returns:
             Loss: average test loss for the current epoch.
@@ -797,8 +1225,6 @@ class GANTrainer(TorchTrainer):
         generator (nn.Module): pytorch generator model to train GAN.
         strategy (Literal['ddp', 'deepspeed', 'horovod'], optional):
             distributed strategy. Defaults to 'ddp'.
-        validation_every (Optional[int], optional): run a validation epoch
-            every ``validation_every`` epochs. Disabled if None. Defaults to 1.
         test_every (Optional[int], optional): run a test epoch
             every ``test_every`` epochs. Disabled if None. Defaults to None.
         random_seed (Optional[int], optional): set random seed for
@@ -812,6 +1238,25 @@ class GANTrainer(TorchTrainer):
         checkpoint_every (Optional[int]): save a checkpoint every
             ``checkpoint_every`` epochs. Disabled if None. Defaults to None.
         name (Optional[str], optional): trainer custom name. Defaults to None.
+        profiling_wait_epochs (int): how many epochs to wait before starting
+            the profiler.
+        profiling_warmup_epochs (int): length of the profiler warmup phase in terms of
+            number of epochs.
+        ray_scaling_config (ScalingConfig, optional): scaling config for Ray Trainer.
+            Defaults to None,
+        ray_tune_config (TuneConfig, optional): tune config for Ray Tuner.
+            Defaults to None.
+        ray_run_config (RunConfig, optional): run config for Ray Trainer.
+            Defaults to None.
+        ray_search_space (Dict[str, Any], optional): search space for Ray Tuner.
+            Defaults to None.
+        ray_torch_config (TorchConfig, optional): torch configuration for Ray's TorchTrainer.
+            Defaults to None.
+        ray_data_config (DataConfig, optional): dataset configuration for Ray.
+            Defaults to None.
+        ray_horovod_config (HorovodConfig, optional): horovod configuration for Ray's
+            HorovodTrainer. Defaults to None.
+        from_checkpoint (str | Path, optional): path to checkpoint directory. Defaults to None.
     """
 
     def __init__(
@@ -821,7 +1266,6 @@ class GANTrainer(TorchTrainer):
         discriminator: nn.Module,
         generator: nn.Module,
         strategy: Literal["ddp", "deepspeed"] = "ddp",
-        validation_every: Optional[int] = 1,
         test_every: Optional[int] = None,
         random_seed: Optional[int] = None,
         logger: Optional[Logger] = None,
@@ -829,6 +1273,16 @@ class GANTrainer(TorchTrainer):
         checkpoints_location: str = "checkpoints",
         checkpoint_every: Optional[int] = None,
         name: Optional[str] = None,
+        profiling_wait_epochs: int = 1,
+        profiling_warmup_epochs: int = 2,
+        ray_scaling_config: ScalingConfig | None = None,
+        ray_tune_config: TuneConfig | None = None,
+        ray_run_config: RunConfig | None = None,
+        ray_search_space: Dict[str, Any] | None = None,
+        ray_torch_config: TorchConfig | None = None,
+        ray_data_config: DataConfig | None = None,
+        ray_horovod_config: Optional["HorovodConfig"] | None = None,
+        from_checkpoint: str | Path | None = None,
         **kwargs,
     ) -> None:
         super().__init__(
@@ -836,7 +1290,6 @@ class GANTrainer(TorchTrainer):
             epochs=epochs,
             model=None,
             strategy=strategy,
-            validation_every=validation_every,
             test_every=test_every,
             random_seed=random_seed,
             logger=logger,
@@ -844,19 +1297,37 @@ class GANTrainer(TorchTrainer):
             checkpoints_location=checkpoints_location,
             checkpoint_every=checkpoint_every,
             name=name,
-            **kwargs,
+            profiling_wait_epochs=profiling_wait_epochs,
+            profiling_warmup_epochs=profiling_warmup_epochs,
+            ray_scaling_config=ray_scaling_config,
+            ray_tune_config=ray_tune_config,
+            ray_run_config=ray_run_config,
+            ray_search_space=ray_search_space,
+            ray_horovod_config=ray_horovod_config,
+            from_checkpoint=from_checkpoint,
+            ray_torch_config=ray_torch_config,
+            ray_data_config=ray_data_config**kwargs,
         )
         self.save_parameters(**self.locals2params(locals()))
+
+        # Initial training state -- can be resumed from a checkpoint
+        # TODO: complete this...
         self.discriminator = discriminator
         self.generator = generator
+        self.optimizerD_state_dict = None
+        self.optimizerG = None
 
     def create_model_loss_optimizer(self) -> None:
-        self.optimizerD = optim.Adam(
-            self.discriminator.parameters(), lr=self.config.lr, betas=(0.5, 0.999)
-        )
-        self.optimizerG = optim.Adam(
-            self.generator.parameters(), lr=self.config.lr, betas=(0.5, 0.999)
-        )
+        # Model, optimizer, and lr scheduler may have already been loaded from a checkpoint
+        # TODO: this is incomplete
+        if not self.optimizerD:
+            self.optimizerD = optim.Adam(
+                self.discriminator.parameters(), lr=self.config.lr, betas=(0.5, 0.999)
+            )
+        if not self.optimizerG:
+            self.optimizerG = optim.Adam(
+                self.generator.parameters(), lr=self.config.lr, betas=(0.5, 0.999)
+            )
         self.criterion = nn.BCELoss()
 
         # https://stackoverflow.com/a/67437077
@@ -871,6 +1342,7 @@ class GANTrainer(TorchTrainer):
             )
         else:
             distribute_kwargs = {}
+
         # Distribute discriminator and its optimizer
         self.discriminator, self.optimizerD, _ = self.strategy.distributed(
             self.discriminator, self.optimizerD, **distribute_kwargs
@@ -1265,355 +1737,3 @@ def distributed(func):
                 dist.destroy_process_group()
 
     return dist_train
-
-
-class RayTorchTrainer(Trainer):
-    """A trainer class for distributed training and hyperparameter optimization
-    using Ray Train/ Tune and PyTorch.
-
-    Args:
-        config (Dict): A dictionary of configuration settings for the trainer.
-        strategy (Optional[Literal["ddp", "deepspeed"]]):
-            The distributed training strategy to use. Defaults to "ddp".
-        name (Optional[str]): Optional name for the trainer instance. Defaults to None.
-        logger (Optional[Logger]): Optional logger instance. Defaults to None.
-    """
-
-    def __init__(
-        self,
-        config: Dict,
-        strategy: Literal["ddp", "deepspeed"] = "ddp",
-        name: str | None = None,
-        logger: Logger | None = None,
-        random_seed: int = 1234,
-    ) -> None:
-        super().__init__(name=name)
-        import ray.train
-        import ray.tune
-
-        self.ray_train = ray.train
-        self.ray_tune = ray.tune
-
-        self.logger = logger
-        self._set_strategy_and_init_ray(strategy)
-        self._set_configs(config=config)
-        self.torch_rng = set_seed(random_seed)
-
-    def _set_strategy_and_init_ray(self, strategy: str) -> None:
-        """Set the distributed training strategy. This will initialize the ray backend.
-
-        Args:
-            strategy (str): The strategy to use for distributed training.
-                Must be one of ["ddp", "deepspeed"].
-
-        Raises:
-            ValueError: If an unsupported strategy is provided.
-        """
-        if strategy == "ddp":
-            self.strategy = RayDDPStrategy()
-        elif strategy == "deepspeed":
-            self.strategy = RayDeepSpeedStrategy(backend="nccl")
-        else:
-            raise ValueError(f"Unsupported strategy: {strategy}")
-
-    def _set_configs(self, config: Dict) -> None:
-        self.config = config
-        self._set_scaling_config()
-        self._set_tune_config()
-        self._set_run_config()
-        self._set_train_loop_config()
-
-    @property
-    def device(self) -> str:
-        """Get the current device from distributed strategy.
-        Returns:
-            str: Device string (e.g., "cuda:0").
-        """
-        return self.strategy.device()
-
-    def create_dataloaders(
-        self,
-        train_dataset: Dataset,
-        validation_dataset: Dataset | None = None,
-        test_dataset: Dataset | None = None,
-        batch_size: int = 1,
-        num_workers_dataloader: int = 4,
-        pin_memory: bool = False,
-        shuffle_train: bool | None = False,
-        shuffle_test: bool | None = False,
-        shuffle_validation: bool | None = False,
-        sampler: Union[Sampler, Iterable, None] = None,
-        collate_fn: Callable[[List], Any] | None = None,
-    ) -> None:
-        """Create data loaders for training, validation, and testing.
-
-        Args:
-            train_dataset (Dataset): The training dataset.
-            validation_dataset (Dataset, optional): The validation dataset. Defaults to None.
-            test_dataset (Dataset, optional): The test dataset. Defaults to None.
-            batch_size (int, optional): Batch size for data loaders. Defaults to 1.
-            shuffle_train (bool, optional): Whether to shuffle the training dataset.
-                Defaults to False.
-            shuffle_test (bool, optional): Whether to shuffle the test dataset.
-                Defaults to False.
-            shuffle_validation (bool, optional): Whether to shuffle the validation dataset.
-                Defaults to False.
-            sampler (Union[Sampler, Iterable, None], optional): Sampler for the datasets.
-                Defaults to None.
-            collate_fn (Callable[[List], Any], optional):
-                Function to collate data samples into batches. Defaults to None.
-        """
-        self.train_dataloader = self.strategy.create_dataloader(
-            dataset=train_dataset,
-            batch_size=batch_size,
-            num_workers=num_workers_dataloader,
-            pin_memory=pin_memory,
-            generator=self.torch_rng,
-            shuffle=shuffle_train,
-            sampler=sampler,
-            collate_fn=collate_fn,
-        )
-        if validation_dataset is not None:
-            self.validation_dataloader = self.strategy.create_dataloader(
-                dataset=validation_dataset,
-                batch_size=batch_size,
-                num_workers=num_workers_dataloader,
-                pin_memory=pin_memory,
-                generator=self.torch_rng,
-                shuffle=shuffle_validation,
-                sampler=sampler,
-                collate_fn=collate_fn,
-            )
-        else:
-            self.validation_dataloader = None
-        if test_dataset is not None:
-            self.test_dataloader = self.strategy.create_dataloader(
-                dataset=test_dataset,
-                batch_size=batch_size,
-                num_workers=num_workers_dataloader,
-                pin_memory=pin_memory,
-                generator=self.torch_rng,
-                shuffle=shuffle_test,
-                sampler=sampler,
-                collate_fn=collate_fn,
-            )
-        else:
-            self.test_dataloader = None
-
-    @monitor_exec
-    def execute(
-        self,
-        train_dataset: Dataset,
-        validation_dataset: Dataset | None = None,
-        test_dataset: Dataset | None = None,
-    ) -> Tuple[Dataset, Dataset, Dataset, Any]:
-        """Execute the training pipeline with the given datasets.
-
-        Args:
-            train_dataset (Dataset): Training dataset.
-            validation_dataset (Optional[Dataset], optional): Validation dataset.
-                Defaults to None.
-            test_dataset (Optional[Dataset], optional): Test dataset. Defaults to None.
-
-        Returns:
-            Tuple[Dataset, Dataset, Dataset, Any]:
-                A tuple containing the datasets and the training result grid.
-        """
-        import ray.train.torch
-
-        train_with_data = self.ray_tune.with_parameters(
-            self.train, data=[train_dataset, validation_dataset, test_dataset]
-        )
-        trainer = ray.train.torch.TorchTrainer(
-            train_with_data,
-            train_loop_config=self.train_loop_config,
-            scaling_config=self.scaling_config,
-            run_config=self.run_config,
-        )
-        param_space = {"train_loop_config": self.train_loop_config}
-        tuner = self.ray_tune.Tuner(
-            trainer, param_space=param_space, tune_config=self.tune_config
-        )
-
-        result_grid = tuner.fit()
-
-        return train_dataset, validation_dataset, test_dataset, result_grid
-
-    def set_epoch(self, epoch: int) -> None:
-        self.train_dataloader.sampler.set_epoch(epoch)
-        if self.validation_dataloader is not None:
-            self.validation_dataloader.sampler.set_epoch(epoch)
-        if self.test_dataloader is not None:
-            self.test_dataloader.sampler.set_epoch(epoch)
-
-    def _set_tune_config(self) -> None:
-        from .tuning import get_raytune_scheduler, get_raytune_search_alg
-
-        tune_config = self.config.get("tune_config", {})
-
-        if not tune_config:
-            print(
-                "WARNING: Empty Tune Config configured. Using the default configuration with "
-                "a single trial."
-            )
-
-        search_alg = get_raytune_search_alg(tune_config)
-        scheduler = get_raytune_scheduler(tune_config)
-
-        metric = tune_config.get("metric", "loss")
-        mode = tune_config.get("mode", "min")
-
-        try:
-            self.tune_config = self.ray_tune.TuneConfig(
-                **tune_config,
-                search_alg=search_alg,
-                scheduler=scheduler,
-                metric=metric,
-                mode=mode,
-            )
-        except AttributeError as e:
-            print(
-                "Could not set Tune Config. Please ensure that you have passed the "
-                "correct arguments for it. You can find more information for which "
-                "arguments to set at "
-                "https://docs.ray.io/en/latest/tune/api/doc/ray.tune.TuneConfig.html."
-            )
-            print(e)
-
-    def _set_scaling_config(self) -> None:
-        scaling_config = self.config.get("scaling_config", {})
-
-        if not scaling_config:
-            print("WARNING: No Scaling Config configured. Running trials non-distributed.")
-
-        try:
-            self.scaling_config = self.ray_train.ScalingConfig(**scaling_config)
-        except AttributeError as e:
-            print(
-                "Could not set Scaling Config. Please ensure that you have passed the "
-                "correct arguments for it. You can find more information for which "
-                "arguments to set at "
-                "https://docs.ray.io/en/latest/train/api/doc/ray.train.ScalingConfig.html"
-            )
-            print(e)
-
-    def _set_run_config(self) -> None:
-        run_config = self.config.get("run_config", {})
-
-        if not run_config:
-            print("WARNING: No RunConfig provided. Assuming local or single-node execution.")
-
-        try:
-            storage_path = Path(run_config.pop("storage_path")).resolve()
-
-            if not storage_path:
-                print(
-                    "INFO: Empty storage path provided. Using default path 'ray_checkpoints'"
-                )
-                storage_path = Path("ray_checkpoints").resolve()
-
-            self.run_config = self.ray_train.RunConfig(**run_config, storage_path=storage_path)
-        except AttributeError as e:
-            print(
-                "Could not set Run Config. Please ensure that you have passed the "
-                "correct arguments for it. You can find more information for which "
-                "arguments to set at "
-                "https://docs.ray.io/en/latest/train/api/doc/ray.train.RunConfig.html"
-            )
-            print(e)
-
-    def _set_train_loop_config(self) -> None:
-        self.train_loop_config = self.config.get("train_loop_config", {})
-
-        if not self.train_loop_config:
-            print(
-                "WARNING: No training_loop_config detected. "
-                "If you want to tune any hyperparameters, make sure to define them here."
-            )
-            return
-
-        try:
-            for name, param in self.train_loop_config.items():
-                if not isinstance(param, dict):
-                    continue
-
-                # Convert specific keys to float if necessary
-                for key in ["lower", "upper", "mean", "std"]:
-                    if key in param:
-                        param[key] = float(param[key])
-
-                param_type = param.pop("type")
-                param = getattr(self.ray_tune, param_type)(**param)
-                self.train_loop_config[name] = param
-
-        except AttributeError as e:
-            print(
-                f"{param} could not be set. Check that this parameter type is "
-                "supported by Ray Tune at "
-                "https://docs.ray.io/en/latest/tune/api/search_space.html"
-            )
-            print(e)
-
-    # TODO: Can I also log the checkpoint?
-    def checkpoint_and_report(self, epoch, tuning_metrics, checkpointing_data=None):
-        with tempfile.TemporaryDirectory() as temp_checkpoint_dir:
-            checkpoint = None
-
-            should_checkpoint = epoch % self.config.get("checkpoint_freq", 1)
-
-            if checkpointing_data and should_checkpoint:
-                torch.save(checkpointing_data, os.path.join(temp_checkpoint_dir, str(epoch)))
-                checkpoint = self.ray_train.Checkpoint.from_directory(temp_checkpoint_dir)
-
-        self.ray_train.report(tuning_metrics, checkpoint=checkpoint)
-
-    def initialize_logger(self, hyperparams: Optional[Dict], rank):
-        if not self.logger:
-            return
-
-        self.logger.create_logger_context(rank=rank)
-        print(f"Logger initialized with rank {rank}")
-
-        if hyperparams:
-            self.logger.save_hyperparameters(hyperparams)
-
-    def close_logger(self):
-        if self.logger:
-            self.logger.destroy_logger_context()
-
-    def log(
-        self,
-        item: Union[Any, List[Any]],
-        identifier: Union[str, List[str]],
-        kind: str = "metric",
-        step: Optional[int] = None,
-        batch_idx: Optional[int] = None,
-        **kwargs,
-    ) -> None:
-        """Log ``item`` with ``identifier`` name of ``kind`` type at ``step``
-        time step.
-
-        Args:
-            item (Union[Any, List[Any]]): element to be logged (e.g., metric).
-            identifier (Union[str, List[str]]): unique identifier for the
-                element to log(e.g., name of a metric).
-            kind (str, optional): type of the item to be logged. Must be one
-                among the list of self.supported_types. Defaults to 'metric'.
-            step (Optional[int], optional): logging step. Defaults to None.
-            batch_idx (Optional[int], optional): DataLoader batch counter
-                (i.e., batch idx), if available. Defaults to None.
-        """
-        if self.logger:
-            self.logger.log(
-                item=item,
-                identifier=identifier,
-                kind=kind,
-                step=step,
-                batch_idx=batch_idx,
-                **kwargs,
-            )
-        else:
-            print(
-                "INFO: The log method was called, but no logger was configured for this "
-                "Trainer."
-            )

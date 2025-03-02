@@ -16,6 +16,7 @@ import torch.nn.functional as F
 from torch import nn
 from torchvision import datasets, transforms
 
+from itwinai.distributed import get_adaptive_ray_scaling_config
 from itwinai.torch.trainer import TorchTrainer
 
 MNIST_PATH = "mnist_dataset"
@@ -66,32 +67,48 @@ def mnist_datasets():
     return train_set, val_set
 
 
-@pytest.mark.hpc
 @pytest.mark.parametrize(
-    "strategy_name,strategy_fixture",
+    "strategy_fixture",
     [
-        pytest.param("ddp", "ddp_strategy", marks=pytest.mark.torch_dist),
-        pytest.param("deepspeed", "deepspeed_strategy", marks=pytest.mark.deepspeed_dist),
-        pytest.param("horovod", "horovod_strategy", marks=pytest.mark.horovod_dist),
+        pytest.param(None),  # NonDistributedStrategy
+        pytest.param(
+            "ddp_strategy",
+            marks=[pytest.mark.torch_dist, pytest.mark.hpc],
+        ),
+        pytest.param(
+            "deepspeed_strategy",
+            marks=[pytest.mark.deepspeed_dist, pytest.mark.hpc],
+        ),
+        pytest.param(
+            "horovod_strategy",
+            marks=[pytest.mark.horovod_dist, pytest.mark.hpc],
+        ),
     ],
 )
-def test_distributed_trainer_mnist(mnist_datasets, request, strategy_name, strategy_fixture):
+def test_distributed_trainer_mnist(
+    mnist_datasets,
+    request,
+    strategy_fixture,
+    tmp_path,
+):
     """Test TorchTrainer on MNIST with different distributed strategies."""
     training_config = dict(optimizer="sgd", loss="nllloss")
     trainer = TorchTrainer(
         model=Net(),
         config=training_config,
         epochs=2,
-        strategy=strategy_name,
+        strategy=None,
         checkpoint_every=1,
+        checkpoints_location=tmp_path / "my_checkpoints",
     )
-
-    strategy_instance = request.getfixturevalue(strategy_fixture)
-    trainer.strategy = strategy_instance  # Patch the strategy with the fixture instance
+    if strategy_fixture:
+        # Override when the strategy is supposed to be distributed
+        trainer.strategy = request.getfixturevalue(strategy_fixture)
 
     train_set, val_set = mnist_datasets
 
-    # Mock strategy cleanup
+    # Mock strategy cleanup -- IMPORTANT, otherwise the trainer will mess up with the strategy
+    # fixture
     with patch.object(
         trainer.strategy, "clean_up", new=MagicMock(name="clean_up")
     ) as mock_cleanup:
@@ -99,3 +116,80 @@ def test_distributed_trainer_mnist(mnist_datasets, request, strategy_name, strat
 
         # Check that the torch trainer is cleaning up the strategy
         mock_cleanup.assert_called_once()
+
+    # Restore training from checkpoint
+    trainer = TorchTrainer(
+        model=Net(),
+        config=training_config,
+        epochs=2,
+        strategy=None,
+        checkpoint_every=1,
+        from_checkpoint=tmp_path / "my_checkpoints/best_model",
+        checkpoints_location=tmp_path / "my_checkpoints",
+    )
+    # Mock strategy cleanup -- IMPORTANT, otherwise the trainer will mess up with the strategy
+    # fixture
+    with patch.object(
+        trainer.strategy, "clean_up", new=MagicMock(name="clean_up")
+    ) as mock_cleanup:
+        trainer.execute(train_set, val_set)
+
+        # Check that the torch trainer is cleaning up the strategy
+        mock_cleanup.assert_called_once()
+
+
+@pytest.mark.hpc
+@pytest.mark.ray_dist
+@pytest.mark.parametrize(
+    "strategy_name",
+    [
+        pytest.param("ddp"),
+        pytest.param("deepspeed"),
+        pytest.param("horovod"),
+    ],
+)
+def test_distributed_trainer_mnist_ray(mnist_datasets, strategy_name, shared_tmp_path):
+    """Test TorchTrainer on MNIST with different distributed strategies using Ray."""
+    from ray.train import RunConfig
+
+    ray_run_config = RunConfig(storage_path=shared_tmp_path / "ray_checkpoints")
+
+    # from pathlib import Path
+
+    # ckpt_path = (
+    #     Path("/p/project1/intertwin/bunino1/itwinai/tests/torch/checkpoints") / strategy_name
+    # )
+
+    ckpt_path = shared_tmp_path / "my_checkpoints" / strategy_name
+    training_config = dict(optimizer="sgd", loss="nllloss")
+    trainer = TorchTrainer(
+        model=Net(),
+        config=training_config,
+        epochs=2,
+        strategy=strategy_name,
+        ray_scaling_config=get_adaptive_ray_scaling_config(),
+        ray_run_config=ray_run_config,
+        checkpoint_every=1,
+        checkpoints_location=ckpt_path,
+    )
+
+    train_set, val_set = mnist_datasets
+
+    # Train
+    # TODO: prevent strategy cleanup?
+    trainer.execute(train_set, val_set)
+
+    # Restore training from checkpoint
+    trainer = TorchTrainer(
+        model=Net(),
+        config=training_config,
+        epochs=2,
+        strategy=strategy_name,
+        ray_scaling_config=get_adaptive_ray_scaling_config(),
+        checkpoint_every=1,
+        from_checkpoint=ckpt_path / "best_model",
+        checkpoints_location=ckpt_path,
+    )
+    # Resume training
+    # TODO: prevent strategy cleanup?
+    trainer.execute(train_set, val_set)
