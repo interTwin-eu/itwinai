@@ -562,7 +562,7 @@ class TorchTrainer(Trainer, LogMixin):
             if "SLURM_NNODES" not in os.environ:
                 raise EnvironmentError(
                     "'SLURM_NNODES' is not present in 'os.environ', but is required"
-                    "when running distributed training!"
+                    " when running distributed training!"
                 )
             num_nodes = int(os.environ["SLURM_NNODES"])
             epoch_time_output_dir = Path("scalability-metrics/epoch-time")

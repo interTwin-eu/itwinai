@@ -948,7 +948,7 @@ class NonDistributedStrategy(TorchDistributedStrategy):
 
     #: This strategy is not distributed.
     #: Defaults to False.
-    is_distributed: bool = True
+    is_distributed: bool = False
     is_initialized: bool = False
 
     def __init__(self):
