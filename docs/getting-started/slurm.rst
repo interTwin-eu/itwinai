@@ -172,7 +172,7 @@ configuration file:
 
     training_cmd: "train.py"
 
-If this file is called ``slurm_config.yaml``, then you could specify it as follows:
+If this file is called ``slurm_config.yaml``, then you would specify it as follows:
 
 .. code-block:: bash
 
