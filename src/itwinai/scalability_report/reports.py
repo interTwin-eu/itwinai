@@ -152,13 +152,13 @@ def gpu_data_report(
     utilization_plot_path = plot_dir / ("utilization_plot" + plot_file_suffix)
     energy_fig, _ = gpu_bar_plot(
         data_df=gpu_data_statistics_df,
-        plot_title="Energy Consumption by Strategy and Number of GPUs",
+        plot_title="Energy Consumption by Framework and Number of GPUs",
         y_label="Energy Consumption (Wh)",
         main_column="total_energy_wh",
     )
     utilization_fig, _ = gpu_bar_plot(
         data_df=gpu_data_statistics_df,
-        plot_title="GPU Utilization by Strategy and Number of GPUs",
+        plot_title="GPU Utilization by Framework and Number of GPUs",
         y_label="GPU Utilization (%)",
         main_column="utilization",
     )

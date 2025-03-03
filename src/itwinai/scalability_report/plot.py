@@ -249,7 +249,7 @@ def gpu_bar_plot(
             for idx, strategy in enumerate(strategies)
         }
 
-        for idx, strategy in enumerate(strategies):
+        for strategy in strategies:
             strategy_data = subset[subset["strategy"] == strategy]
             color = strategy_color[strategy]
 
@@ -268,7 +268,7 @@ def gpu_bar_plot(
     ax.set_title(plot_title)
     ax.set_xticks(x_positions)
     ax.set_xticklabels(unique_gpu_counts)
-    ax.legend(title="Strategy")
+    ax.legend()
 
     sns.reset_orig()
 
@@ -341,7 +341,7 @@ def computation_fraction_bar_plot(
 
     ax.set_ylabel("Computation fraction")
     ax.set_xlabel("Number of GPUs")
-    ax.set_title("Computation vs Communication Time by Method")
+    ax.set_title("Computation vs Communication Time by Framework and Number of GPUs")
     ax.set_xticks(x)
     ax.set_xticklabels(gpu_numbers)
     ax.set_ylim(0, 1.1)
