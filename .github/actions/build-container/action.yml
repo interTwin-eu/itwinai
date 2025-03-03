@@ -148,7 +148,7 @@ runs:
         args: >-
           --nickname ${{ inputs.nickname }}
           --docker-registry ghcr.io/intertwin-eu
-          --singularity-registry registry.egi.eu/dev.intertwin.eu
+          --singularity-registry registry.cern.ch/itwinai
           --image itwinai-dev
           build-container
           --context ..
@@ -179,7 +179,7 @@ runs:
           --nickname ${{ inputs.nickname }}
           --image itwinai
           --docker-registry ghcr.io/intertwin-eu
-          --singularity-registry registry.egi.eu/dev.intertwin.eu
+          --singularity-registry registry.cern.ch/itwinai
           build-container
           --context ..
           --dockerfile ${{ inputs.dockerfile }}
