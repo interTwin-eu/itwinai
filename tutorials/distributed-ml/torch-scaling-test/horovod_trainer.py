@@ -22,7 +22,7 @@ from torch.utils.data import DataLoader
 from torch.utils.data.distributed import DistributedSampler
 from utils import get_parser, imagenet_dataset, train_epoch
 
-from itwinai.loggers import EpochTimeTracker
+from itwinai.loggers import EpochTimeLogger
 from itwinai.torch.reproducibility import seed_worker, set_seed
 
 
@@ -117,7 +117,7 @@ def main():
     if global_rank == 0:
         num_nodes = os.environ.get("SLURM_NNODES", 1)
         save_path = epoch_time_save_dir / f"epochtime_horovod-bl_{num_nodes}.csv"
-        epoch_time_tracker = EpochTimeTracker(
+        epoch_time_logger = EpochTimeLogger(
             strategy_name="horovod-bl",
             save_path=save_path,
             num_nodes=int(num_nodes),
@@ -140,13 +140,13 @@ def main():
 
         if global_rank == 0:
             epoch_elapsed_time = timer() - epoch_start_time
-            epoch_time_tracker.add_epoch_time(epoch_idx, epoch_elapsed_time)
+            epoch_time_logger.add_epoch_time(epoch_idx, epoch_elapsed_time)
             print(f"[{epoch_idx}/{args.epochs}] - time: {epoch_elapsed_time:.2f}s")
 
     if global_rank == 0:
         total_time = timer() - start_time
         print(f"Training finished - took {total_time:.2f}s")
-        epoch_time_tracker.save()
+        epoch_time_logger.save()
 
 
 if __name__ == "__main__":

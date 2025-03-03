@@ -1239,25 +1239,42 @@ class Prov4MLLogger(Logger):
                         self.mlflow.log_artifact(f)
 
 
-class EpochTimeTracker:
-    """Tracker for epoch execution time during training."""
+class EpochTimeLogger:
+    """Logger for epoch execution time during training."""
 
-    def __init__(self, strategy_name: str, save_path: Path | str, num_nodes: int) -> None:
+    def __init__(
+        self, 
+        strategy_name: str,
+        save_path: Path | str,
+        num_nodes: int,
+        should_log: bool = True
+    ) -> None:
         if isinstance(save_path, str):
             save_path = Path(save_path)
 
+        self.should_log = should_log
         self.save_path: Path = save_path
         self.strategy_name = strategy_name
         self.num_nodes = num_nodes
         self.data = {"epoch_id": [], "time": []}
 
+        if not self.should_log:
+            print("Warning: EpochTimeLogger has been disabled!")
+
     def add_epoch_time(self, epoch_idx: int, time: float) -> None:
         """Add epoch time to data."""
+        if not self.should_log: 
+            return
+
         self.data["epoch_id"].append(epoch_idx)
         self.data["time"].append(time)
+        self.save()
 
     def save(self) -> None:
         """Save data to a new CSV file."""
+        if not self.should_log:
+            return
+
         import pandas as pd
 
         df = pd.DataFrame(self.data)
@@ -1266,7 +1283,7 @@ class EpochTimeTracker:
 
         self.save_path.parent.mkdir(parents=True, exist_ok=True)
         df.to_csv(self.save_path, index=False)
-        print(f"Saving EpochTimeTracking data to '{self.save_path.resolve()}'.")
+        print(f"Saving EpochTimeLogging data to '{self.save_path.resolve()}'.")
 
 
 class EmptyLogger(Logger):
