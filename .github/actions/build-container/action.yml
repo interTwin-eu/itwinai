@@ -126,7 +126,7 @@ runs:
     - name: Login to Harbor Container Registry
       uses: docker/login-action@v3
       with:
-        registry: registry.egi.eu
+        registry: registry.cern.ch
         username: ${{ inputs.singularity-username }}
         password: ${{ inputs.singularity-password }}
 
