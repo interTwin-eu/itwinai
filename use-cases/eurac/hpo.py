@@ -77,7 +77,8 @@ def run_hpo(args):
 
         # Ray's RunConfig for experiment name and stopping criteria
         run_config = train.RunConfig(
-            name="Eurac-Ray-Experiment", stop={"training_iteration": args.max_iterations}
+            name="Eurac-Ray-Experiment",
+            stop={"training_iteration": args.max_iterations},
         )
 
         # Determine GPU and CPU utilization per trial
