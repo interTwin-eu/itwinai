@@ -45,7 +45,6 @@ class RNNDatasetGetterAndPreprocessor(DataSplitter):
 
     @monitor_exec
     def execute(self) -> Tuple[WflowSBM, WflowSBM, None]:
-
         cfg = Config()
 
         for i in self.parameters:

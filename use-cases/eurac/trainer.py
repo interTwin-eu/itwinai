@@ -113,14 +113,11 @@ class RNNDistributedTrainer(TorchTrainer):
     def init_hython_trainer(self) -> None:
         self.config.loss_fn = instantiate({"loss_fn": self.config.loss_fn})["loss_fn"]
 
-        self.config.metric_fn = instantiate({"metric_fn": self.config.metric_fn})[
-            "metric_fn"
-        ]
+        self.config.metric_fn = instantiate({"metric_fn": self.config.metric_fn})["metric_fn"]
 
         self.model_api = ModelLogAPI(self.config)
 
         if self.config.hython_trainer == "rnntrainer":
-
             # LOAD MODEL
             self.model_logger = self.model_api.get_model_logger("model")
             self.model = self.model_class(self.config)
@@ -128,7 +125,6 @@ class RNNDistributedTrainer(TorchTrainer):
             self.hython_trainer = RNNTrainer(self.config)
 
         elif self.config.hython_trainer == "caltrainer":
-
             # LOAD MODEL HEAD/SURROGATE
             self.model_logger = self.model_api.get_model_logger("head")
 
@@ -172,16 +168,12 @@ class RNNDistributedTrainer(TorchTrainer):
         if isinstance(self.strategy, DeepSpeedStrategy):
             # Batch size definition is not optional for DeepSpeedStrategy!
             distribute_kwargs = {
-                "config_params": {
-                    "train_micro_batch_size_per_gpu": self.config.batch_size
-                }
+                "config_params": {"train_micro_batch_size_per_gpu": self.config.batch_size}
             }
         elif isinstance(self.strategy, TorchDDPStrategy):
             if "find_unused_parameters" not in self.config.model_fields:
                 self.config.find_unused_parameters = False
-            distribute_kwargs = {
-                "find_unused_parameters": self.config.find_unused_parameters
-            }
+            distribute_kwargs = {"find_unused_parameters": self.config.find_unused_parameters}
 
         self.model, self.optimizer, _ = self.strategy.distributed(
             model=self.model,
@@ -218,12 +210,8 @@ class RNNDistributedTrainer(TorchTrainer):
 
         device = self.strategy.device()
         loss_history = {"train": [], "val": []}
-        metric_history = {
-            f"train_{target}": [] for target in self.config.target_variables
-        }
-        metric_history.update(
-            {f"val_{target}": [] for target in self.config.target_variables}
-        )
+        metric_history = {f"train_{target}": [] for target in self.config.target_variables}
+        metric_history.update({f"val_{target}": [] for target in self.config.target_variables})
 
         best_loss = float("inf")
         for epoch in tqdm(range(self.epochs)):
