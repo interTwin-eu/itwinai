@@ -3,7 +3,7 @@ from pathlib import Path
 from timeit import default_timer
 from typing import Dict, Literal, Optional, Union, Any, Tuple
 from tqdm.auto import tqdm
-import copy
+
 from torch.utils.data import Dataset
 import torch
 import torch.nn as nn
@@ -14,7 +14,7 @@ from copy import deepcopy
 from hython.sampler import SamplerBuilder
 from hython.trainer import RNNTrainer, CalTrainer
 from hython.models import get_model_class as get_hython_model
-from hython.models import load_model, ModelLogAPI
+from hython.models import ModelLogAPI
 
 from itwinai.torch.distributed import (
     DeepSpeedStrategy,
@@ -31,7 +31,6 @@ from itwinai.torch.trainer import TorchTrainer
 from itwinai.torch.type import Metric
 from itwinai.torch.profiling.profiler import profile_torch_trainer
 
-from omegaconf import OmegaConf
 from hydra.utils import instantiate
 
 
@@ -67,10 +66,8 @@ class RNNDistributedTrainer(TorchTrainer):
         self,
         config: Union[Dict, TrainingConfiguration],
         epochs: int,
-        model: str = None,
-        strategy: Optional[
-            Literal["ddp", "deepspeed", "horovod"]
-        ] = "ddp",
+        model: Optional[Union[str, nn.Module]] = None,
+        strategy: Optional[Literal["ddp", "deepspeed", "horovod"]] = "ddp",
         validation_every: Optional[int] = 1,
         test_every: Optional[int] = None,
         random_seed: Optional[int] = None,
@@ -114,26 +111,24 @@ class RNNDistributedTrainer(TorchTrainer):
         return super().execute(train_dataset, validation_dataset, test_dataset)
 
     def init_hython_trainer(self) -> None:
-        self.config.loss_fn = instantiate(
-            {"loss_fn": self.config.loss_fn}
-        )["loss_fn"]
+        self.config.loss_fn = instantiate({"loss_fn": self.config.loss_fn})["loss_fn"]
 
-        self.config.metric_fn = instantiate(
-            {"metric_fn": self.config.metric_fn}
-        )["metric_fn"]
+        self.config.metric_fn = instantiate({"metric_fn": self.config.metric_fn})[
+            "metric_fn"
+        ]
 
         self.model_api = ModelLogAPI(self.config)
 
         if self.config.hython_trainer == "rnntrainer":
-            
+
             # LOAD MODEL
             self.model_logger = self.model_api.get_model_logger("model")
             self.model = self.model_class(self.config)
 
             self.hython_trainer = RNNTrainer(self.config)
-            
+
         elif self.config.hython_trainer == "caltrainer":
-            
+
             # LOAD MODEL HEAD/SURROGATE
             self.model_logger = self.model_api.get_model_logger("head")
 
@@ -143,16 +138,14 @@ class RNNDistributedTrainer(TorchTrainer):
             else:
                 # FIXME: There is a clash in "static_inputs" semantics between training and calibration
                 # In the training the "static_inputs" are used to train the CudaLSTM model (main model - the surrogate -)
-                # In the calibration the "static_inputs" are other input features that are used to train the TransferNN model. 
+                # In the calibration the "static_inputs" are other input features that are used to train the TransferNN model.
                 # Hence during calibration, when loading the weights of the surrogate,
                 # I need to replace the CudaLSTM (now the head model) "static_inputs" with the correct "head_model_inputs"
                 # in order to avoid clashes with the TransferNN model inputs
                 config = deepcopy(self.config)
                 config.static_inputs = config.head_model_inputs
-                surrogate = get_hython_model(self.config.model_head)(
-                    config
-                )
-                
+                surrogate = get_hython_model(self.config.model_head)(config)
+
                 surrogate = self.model_api.load_model("head", surrogate)
 
             transfer_nn = get_hython_model(self.config.model_transfer)(
@@ -205,7 +198,7 @@ class RNNDistributedTrainer(TorchTrainer):
             self.train_loader.sampler.set_epoch(epoch)
             self.val_loader.sampler.set_epoch(epoch)
 
-    #@measure_gpu_utilization
+    @measure_gpu_utilization
     def train(self):
         """Override train_val version of hython to support distributed strategy."""
 
@@ -220,7 +213,7 @@ class RNNDistributedTrainer(TorchTrainer):
             epoch_time_tracker = EpochTimeTracker(
                 strategy_name=self.strategy.name,
                 save_path=epoch_time_output_path,
-                num_nodes=num_nodes
+                num_nodes=num_nodes,
             )
 
         device = self.strategy.device()
@@ -297,7 +290,7 @@ class RNNDistributedTrainer(TorchTrainer):
             if avg_val_loss < best_loss:
                 best_loss = avg_val_loss
                 best_model = self.model.state_dict()
-                #self.hython_trainer.save_weights(self.model)
+                # self.hython_trainer.save_weights(self.model)
 
             epoch_time = default_timer() - epoch_start_time
             epoch_time_tracker.add_epoch_time(epoch + 1, epoch_time)
@@ -305,25 +298,35 @@ class RNNDistributedTrainer(TorchTrainer):
         if self.strategy.is_main_worker:
             epoch_time_tracker.save()
             self.model.load_state_dict(best_model)
-            
+
             # MODEL LOGGING
             model_log_names = self.model_api.get_model_log_names()
             for module_name, model_class_name in model_log_names.items():
-                if module_name == "model": # main model
+                if module_name == "model":  # main model
                     if self.model_logger == "mlflow":
-                        self.log(item=self.model, identifier = model_class_name, kind="model", registered_model_name = model_class_name)
+                        self.log(
+                            item=self.model,
+                            identifier=model_class_name,
+                            kind="model",
+                            registered_model_name=model_class_name,
+                        )
                     else:
                         self.model_api.log_model(module_name, self.model)
-                else: # submodule
+                else:  # submodule
                     if self.model_logger == "mlflow":
-                        self.log(item=self.model.get_submodule(module_name), identifier = model_class_name, kind="model", registered_model_name = model_class_name)
+                        self.log(
+                            item=self.model.get_submodule(module_name),
+                            identifier=model_class_name,
+                            kind="model",
+                            registered_model_name=model_class_name,
+                        )
                     else:
-                        self.model_api.log_model(module_name, self.model.get_submodule(module_name))
+                        self.model_api.log_model(
+                            module_name, self.model.get_submodule(module_name)
+                        )
 
             # Report training metrics of last epoch to Ray
             train.report({"loss": avg_val_loss.item(), "train_loss": train_loss.item()})
-
-
 
         return loss_history, metric_history
 

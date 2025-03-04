@@ -1,10 +1,10 @@
 # === Experiment === 
 experiment_name: "calibration"
-experiment_run: "run_1"
+experiment_run: "run_0"
 
 # the base directory with all the runs
 # here a new directory <experiment_name>_<experiment_run> is created
-work_dir: /mnt/CEPH_PROJECTS/InterTwin/hython_model_run
+work_dir: /p/scratch/intertwin/datasets/eurac/model
 
 train_temporal_range: ["2017-01-01", "2017-12-31"]
 cal_temporal_range: ["2017-01-01", "2017-12-30"]  # calibration
@@ -40,9 +40,7 @@ mt_n_layers: 3
 
 model_head: CudaLSTM # model class
 
-model_head_dir: training_test # directory to load the surrogate model, relative to work_dir.
-
-model_head_file: model.pt
+# model_head_dir: training_run_0 # directory to load the surrogate model, relative to work_dir.
 
 model_head_hidden_size: 64
 model_head_dropout: 0.1
@@ -80,7 +78,7 @@ learning_rate: 0.001
 
 batch: 256
 
-epochs: 2
+epochs: 1
 
 gradient_clip: null
 
@@ -118,12 +116,12 @@ dataset: WflowSBMCal # dataset class
 
 data_source:
   file:
-    static_inputs: /mnt/CEPH_PROJECTS/InterTwin/hydrologic_data/param_learning_input/predictor_alps.zarr
-    dynamic_inputs: /mnt/CEPH_PROJECTS/InterTwin/hydrologic_data/surrogate_input/alps2_dynamic.zarr
-    target_variables: /mnt/CEPH_PROJECTS/InterTwin/hydrologic_data/SSM-RT0-SIG0-R-CRRL/processed/daily/alps_masked_20170101-20171231.nc
+    static_inputs: /p/scratch/intertwin/datasets/eurac/input/predictor_alps.zarr
+    dynamic_inputs: /p/scratch/intertwin/datasets/eurac/input/alps2_dynamic.zarr
+    target_variables: /p/scratch/intertwin/datasets/eurac/input/alps_masked_20170101-20171231.nc
     #target_variables_mask: /mnt/CEPH_PROJECTS/InterTwin/hydrologic_data/SSM-RT0-SIG0-R-CRRL/processed/daily/alps_masked_20170101-20171231.nc
-    mask_variables: /mnt/CEPH_PROJECTS/InterTwin/hydrologic_data/surrogate_input/alps2_static.zarr
-    static_inputs_mask: /mnt/CEPH_PROJECTS/InterTwin/hydrologic_data/param_learning_input/predictor_alps.zarr
+    mask_variables: /p/scratch/intertwin/datasets/eurac/input/alps2_static.zarr
+    static_inputs_mask: /p/scratch/intertwin/datasets/eurac/input/predictor_alps.zarr
   # s3:
   #   url: https://eurac-eo.s3.amazonaws.com/INTERTWIN/SURROGATE_INPUT/adg1km_eobs_preprocessed.zarr/
   
@@ -202,7 +200,7 @@ model_logger:
       model_component: head
       model_name: ${model_head}
       #model_uri: "models:/${model_head}/latest" # <---- mlflow
-      model_uri: "/home/iferrario/dev/hython/hython/itwinai/training.yaml" # <-- local
+      model_uri: "/p/project1/intertwin/ferrario1/itwinai/use-cases/eurac/config_training.yaml" # <-- local
       log: False
       load: True
   TransferNN:
@@ -220,7 +218,7 @@ model_logger:
 training_pipeline:
   _target_: itwinai.pipeline.Pipeline
   steps:
-    - _target_: data.RNNDatasetGetterAndPreprocessor
+    - _target_: data_new.RNNDatasetGetterAndPreprocessor
       hython_trainer: ${hython_trainer}
       dynamic_inputs: ${dynamic_inputs}
       static_inputs: ${static_inputs}
@@ -250,7 +248,7 @@ training_pipeline:
       cal_downsampler: ${cal_downsampler}
       min_sample_target: ${min_sample_target}
       seq_length: ${seq_length}
-    - _target_: trainer.RNNDistributedTrainer
+    - _target_: trainer_new.RNNDistributedTrainer
       model: ${model}
       config:
         experiment: ${experiment_name}/${experiment_run}
@@ -294,9 +292,8 @@ training_pipeline:
 
         # > head model < 
         # model_file_name: ${model_file_name}
-        model_head_dir: ${model_head_dir}
+        # model_head_dir: ${model_head_dir}
 
-        model_head_file: ${model_head_file}
         hidden_size: ${model_head_hidden_size}
         dropout: ${model_head_dropout}
         lstm_layers: ${model_lstm_layers}
@@ -324,8 +321,8 @@ training_pipeline:
         loggers:
           - _target_: itwinai.loggers.ConsoleLogger
             log_freq: 1
-          - _target_: itwinai.loggers.MLFlowLogger
-            experiment_name: ${experiment_name}
-            run_name: ${experiment_run}
-            log_freq: batch
-            savedir: /home/iferrario/dev/hython/hython/itwinai/mllogs
+          # - _target_: itwinai.loggers.MLFlowLogger
+          #   experiment_name: ${experiment_name}
+          #   run_name: ${experiment_run}
+          #   log_freq: batch
+          #   savedir: /home/iferrario/dev/hython/hython/itwinai/mllogs

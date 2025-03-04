@@ -8,6 +8,7 @@ from hython.datasets.wflow_sbm import WflowSBM
 from hython.sampler.downsampler import AbstractDownSampler
 from hython.config import Config
 
+
 class RNNDatasetGetterAndPreprocessor(DataSplitter):
     def __init__(
         self,
@@ -42,23 +43,23 @@ class RNNDatasetGetterAndPreprocessor(DataSplitter):
     ) -> None:
         self.save_parameters(**self.locals2params(locals()))
 
-
     @monitor_exec
     def execute(self) -> Tuple[WflowSBM, WflowSBM, None]:
-       
-        cfg = Config() 
 
-        for i in self.parameters: setattr(cfg, i, self.parameters[i])
+        cfg = Config()
+
+        for i in self.parameters:
+            setattr(cfg, i, self.parameters[i])
 
         scaler = Scaler(cfg, cfg.scaling_use_cached)
 
         period = "train"
         istrain = True
         if "cal" in cfg.hython_trainer:
-            period = "cal" 
-        
+            period = "cal"
+
         train_dataset = get_dataset(cfg.dataset)(cfg, scaler, istrain, period)
 
         val_dataset = get_dataset(cfg.dataset)(cfg, scaler, False, "valid")
-        
+
         return train_dataset, val_dataset, None

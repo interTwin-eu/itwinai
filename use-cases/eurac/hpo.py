@@ -77,7 +77,8 @@ def run_hpo(args):
 
         # Ray's RunConfig for experiment name and stopping criteria
         run_config = train.RunConfig(
-            name="Eurac-Ray-Experiment", stop={"training_iteration": args.max_iterations}
+            name="Eurac-Ray-Experiment",
+            stop={"training_iteration": args.max_iterations},
         )
 
         # Determine GPU and CPU utilization per trial
@@ -92,7 +93,9 @@ def run_hpo(args):
         )
 
         data = {"pipeline_name": args.pipeline_name}
-        trainable_with_parameters = tune.with_parameters(trainable_with_resources, data=data)
+        trainable_with_parameters = tune.with_parameters(
+            trainable_with_resources, data=data
+        )
 
         tuner = tune.Tuner(
             trainable_with_parameters,
@@ -143,11 +146,17 @@ def plot_results(result_grid, metric="loss", filename="plot.png"):
     """
     ax = None
     for result in result_grid:
-        label = f"lr={result.config['lr']:.6f}, batch size={result.config['batch_size']}"
+        label = (
+            f"lr={result.config['lr']:.6f}, batch size={result.config['batch_size']}"
+        )
         if ax is None:
-            ax = result.metrics_dataframe.plot("training_iteration", metric, label=label)
+            ax = result.metrics_dataframe.plot(
+                "training_iteration", metric, label=label
+            )
         else:
-            result.metrics_dataframe.plot("training_iteration", metric, ax=ax, label=label)
+            result.metrics_dataframe.plot(
+                "training_iteration", metric, ax=ax, label=label
+            )
 
     ax.set_title(f"{metric.capitalize()} vs. Training Iteration for All Trials")
     ax.set_ylabel(metric.capitalize())
@@ -161,7 +170,9 @@ def plot_results(result_grid, metric="loss", filename="plot.png"):
 # Main entry point for script execution
 if __name__ == "__main__":
     # Parse command-line arguments
-    parser = argparse.ArgumentParser(description="Hyperparameter Optimization with Ray Tune")
+    parser = argparse.ArgumentParser(
+        description="Hyperparameter Optimization with Ray Tune"
+    )
     parser.add_argument(
         "--load_old_results",
         type=bool,
@@ -184,10 +195,14 @@ if __name__ == "__main__":
         Set this only if load_old_results is set to True. \
         Defaults to ~/ray_results/Eurac-Ray-Experiment",
     )
-    parser.add_argument("--num_samples", type=int, default=10, help="Number of trials to run")
+    parser.add_argument(
+        "--num_samples", type=int, default=10, help="Number of trials to run"
+    )
     parser.add_argument("--ngpus", type=int, help="Number of GPUs available on node.")
     parser.add_argument("--ncpus", type=int, help="Number of CPUs available on node.")
-    parser.add_argument("--metric", type=str, default="loss", help="Metric to optimise.")
+    parser.add_argument(
+        "--metric", type=str, default="loss", help="Metric to optimise."
+    )
     parser.add_argument(
         "--max_iterations", type=int, default="20", help="Maximum iterations per trial"
     )

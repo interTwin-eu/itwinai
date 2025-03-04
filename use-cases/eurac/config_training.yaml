@@ -12,13 +12,13 @@
 
 # General configuration
 experiment_name: "training"
-experiment_run: "run_1"
+experiment_run: "run_0"
 
 work_dir: /p/scratch/intertwin/datasets/eurac/model
 
-train_temporal_range: ["2017-01-01", "2017-12-31"]
-valid_temporal_range: ["2017-01-01", "2017-12-31"]
-test_temporal_range: ["2017-01-01", "2017-12-31"]
+train_temporal_range: ["2016-01-01", "2017-12-31"]
+valid_temporal_range: ["2018-01-01", "2018-12-31"]
+test_temporal_range: ["2019-01-01", "2020-12-31"]
 
 seed: 10 
 
@@ -187,65 +187,65 @@ training_pipeline:
       work_dir: ${work_dir}
       train_downsampler: ${train_downsampler}
       valid_downsampler: ${valid_downsampler}
-    # - _target_: trainer_new.RNNDistributedTrainer
-    #   model: ${model}
-    #   config:
-    #     experiment: ${experiment_name}/${experiment_run}
-    #     experiment_name: ${experiment_name}
-    #     experiment_run: ${experiment_run}
-    #     work_dir: ${work_dir}
-    #     batch_size: ${batch}
-    #     learning_rate: ${learning_rate}
-    #     num_workers_dataloader: 1
-    #     hython_trainer: ${hython_trainer}
-    #     #temporal_downsampling_dynamic: ${downsampling_temporal_dynamic}
-    #     temporal_downsampling: ${temporal_downsampling}
-    #     temporal_subset: ${temporal_subset}
-    #     seq_length: ${seq_length}
-    #     target_variables: ${target_variables}
-    #     dynamic_inputs: ${dynamic_inputs}
-    #     static_inputs: ${static_inputs}
+    - _target_: trainer_new.RNNDistributedTrainer
+      model: ${model}
+      config:
+        experiment: ${experiment_name}/${experiment_run}
+        experiment_name: ${experiment_name}
+        experiment_run: ${experiment_run}
+        work_dir: ${work_dir}
+        batch_size: ${batch}
+        learning_rate: ${learning_rate}
+        num_workers_dataloader: 1
+        hython_trainer: ${hython_trainer}
+        #temporal_downsampling_dynamic: ${downsampling_temporal_dynamic}
+        temporal_downsampling: ${temporal_downsampling}
+        temporal_subset: ${temporal_subset}
+        seq_length: ${seq_length}
+        target_variables: ${target_variables}
+        dynamic_inputs: ${dynamic_inputs}
+        static_inputs: ${static_inputs}
 
-    #     optimizer: ${optimizer}
-    #     lr_scheduler: ${lr_scheduler}
-    #     target_weights: ${target_weights}
+        optimizer: ${optimizer}
+        lr_scheduler: ${lr_scheduler}
+        target_weights: ${target_weights}
 
-    #     # model config
+        # model config
 
 
-    #     hidden_size: ${hidden_size}
-    #     dropout: ${dropout}
-    #     lstm_layers: ${lstm_layers}
-    #     lstm_batch_norm: ${lstm_batch_norm}
+        hidden_size: ${hidden_size}
+        dropout: ${dropout}
+        lstm_layers: ${lstm_layers}
+        lstm_batch_norm: ${lstm_batch_norm}
 
-    #     model_head_layer: ${model_head_layer}
-    #     model_head_activation: ${model_head_activation}
-    #     model_head_kwargs: ${model_head_kwargs}
+        model_head_layer: ${model_head_layer}
+        model_head_activation: ${model_head_activation}
+        model_head_kwargs: ${model_head_kwargs}
 
-    #     loss_fn: ${loss_fn}
-    #     metric_fn: ${metric_fn}
+        loss_fn: ${loss_fn}
+        metric_fn: ${metric_fn}
 
-    #     gradient_clip: ${gradient_clip}
+        gradient_clip: ${gradient_clip}
 
-    #     predict_steps: ${predict_steps}
+        predict_steps: ${predict_steps}
 
-    #     # model logger
-    #     model_logger: ${model_logger}
+        # model logger
+        model_logger: ${model_logger}
 
-    #   strategy: ${strategy}
-    #   epochs: ${epochs}
-    #   random_seed: ${seed}
-    #   profiling_wait_epochs: 1
-    #   profiling_warmup_epochs: 1
-    #   logger:
-    #     _target_: itwinai.loggers.LoggersCollection
-    #     loggers:
-    #       - _target_: itwinai.loggers.ConsoleLogger
-    #         log_freq: 1
-    #       - _target_: itwinai.loggers.MLFlowLogger
-    #         experiment_name: ${experiment_name}
-    #         run_name: ${experiment_run}
-    #         log_freq: batch
-    #         savedir: /home/iferrario/dev/hython/hython/itwinai/mllogs
+      strategy: ${strategy}
+      epochs: ${epochs}
+      random_seed: ${seed}
+      profiling_wait_epochs: 1
+      profiling_warmup_epochs: 1
+      logger:
+        _target_: itwinai.loggers.LoggersCollection
+        loggers:
+          - _target_: itwinai.loggers.ConsoleLogger
+            log_freq: 1
+          # - _target_: itwinai.loggers.MLFlowLogger
+          #   experiment_name: ${experiment_name}
+          #   run_name: ${experiment_run}
+          #   log_freq: batch
+          #   savedir: /home/iferrario/dev/hython/hython/itwinai/mllogs
                     
 

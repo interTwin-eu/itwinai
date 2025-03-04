@@ -46,17 +46,18 @@ class RNNDatasetGetterAndPreprocessor(DataSplitter):
     @monitor_exec
     def execute(self) -> Tuple[WflowSBM, WflowSBM, None]:
 
-        cfg = Config() 
+        cfg = Config()
 
-        for i in self.parameters: setattr(cfg, i, self.parameters[i])
+        for i in self.parameters:
+            setattr(cfg, i, self.parameters[i])
 
         scaler = Scaler(cfg, cfg.scaling_use_cached)
 
         period = "train"
         istrain = True
         if "cal" in cfg.hython_trainer:
-            period = "cal" 
-        
+            period = "cal"
+
         train_dataset = get_dataset(cfg.dataset)(cfg, scaler, istrain, period)
 
         val_dataset = get_dataset(cfg.dataset)(cfg, scaler, False, "valid")
