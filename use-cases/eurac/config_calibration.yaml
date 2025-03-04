@@ -218,7 +218,7 @@ model_logger:
 training_pipeline:
   _target_: itwinai.pipeline.Pipeline
   steps:
-    - _target_: data_new.RNNDatasetGetterAndPreprocessor
+    - _target_: data.RNNDatasetGetterAndPreprocessor
       hython_trainer: ${hython_trainer}
       dynamic_inputs: ${dynamic_inputs}
       static_inputs: ${static_inputs}
@@ -248,7 +248,7 @@ training_pipeline:
       cal_downsampler: ${cal_downsampler}
       min_sample_target: ${min_sample_target}
       seq_length: ${seq_length}
-    - _target_: trainer_new.RNNDistributedTrainer
+    - _target_: trainer.RNNDistributedTrainer
       model: ${model}
       config:
         experiment: ${experiment_name}/${experiment_run}
