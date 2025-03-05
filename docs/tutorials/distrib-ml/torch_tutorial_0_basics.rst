@@ -10,18 +10,3 @@ train.py
 
 .. literalinclude:: ../../../tutorials/distributed-ml/torch-tutorial-0-basics/train.py
    :language: python
-
-
-slurm.sh
-++++++++
-
-.. literalinclude:: ../../../tutorials/distributed-ml/torch-tutorial-0-basics/slurm.sh
-   :language: bash
-
-
-runall.sh
-+++++++++
-
-.. literalinclude:: ../../../tutorials/distributed-ml/torch-tutorial-0-basics/runall.sh
-   :language: bash
-

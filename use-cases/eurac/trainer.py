@@ -25,6 +25,7 @@ from itwinai.torch.distributed import (
     TorchDDPStrategy,
 )
 from itwinai.torch.monitoring.monitoring import measure_gpu_utilization
+from itwinai.torch.profiling.profiler import profile_torch_trainer
 from itwinai.torch.trainer import TorchTrainer
 from itwinai.torch.type import Metric
 
@@ -106,13 +107,13 @@ class RNNDistributedTrainer(TorchTrainer):
         return super().execute(train_dataset, validation_dataset, test_dataset)
 
     def init_hython_trainer(self) -> None:
-        self.config.loss_fn = instantiate(
-            OmegaConf.create({"loss_fn": self.config.loss_fn})
-        )["loss_fn"]
-
-        self.config.metric_fn = instantiate(
-            OmegaConf.create({"metric_fn": self.config.metric_fn})
-        )["metric_fn"]
+        # self.config.loss_fn = instantiate(
+        #     OmegaConf.create({"loss_fn": self.config.loss_fn})
+        # )["loss_fn"]
+        #
+        # self.config.metric_fn = instantiate(
+        #     OmegaConf.create({"metric_fn": self.config.metric_fn})
+        # )["metric_fn"]
 
         if self.config.hython_trainer == "rnntrainer":
             self.model = self.model_class(
@@ -141,11 +142,7 @@ class RNNDistributedTrainer(TorchTrainer):
 
             model_pt = Path(self.config.work_dir) / self.config.model_head_dir / self.config.model_head_file
 
-            surrogate.load_state_dict(
-                torch.load(
-                   model_pt
-                )
-            )
+            surrogate.load_state_dict(torch.load(model_pt))
 
             transfer_nn = get_hython_model(self.config.model_transfer)(
                 self.config.head_model_inputs,
@@ -188,6 +185,7 @@ class RNNDistributedTrainer(TorchTrainer):
             lr_scheduler=self.hython_trainer.lr_scheduler,
             **distribute_kwargs,
         )
+        self.hython_trainer.optimizer = self.optimizer
 
     def set_epoch(self, epoch: int):
         if self.profiler is not None:
@@ -198,6 +196,7 @@ class RNNDistributedTrainer(TorchTrainer):
             self.train_loader.sampler.set_epoch(epoch)
             self.val_loader.sampler.set_epoch(epoch)
 
+    @profile_torch_trainer
     @measure_gpu_utilization
     def train(self):
         """Override train_val version of hython to support distributed strategy."""
@@ -335,9 +334,10 @@ class RNNDistributedTrainer(TorchTrainer):
         train_sampler = train_sampler_builder.get_sampler()
         val_sampler = val_sampler_builder.get_sampler()
 
+        batch_size = self.config.batch_size // self.strategy.global_world_size()
         self.train_loader = self.strategy.create_dataloader(
             dataset=train_dataset,
-            batch_size=self.config.batch_size,
+            batch_size=batch_size,
             num_workers=self.config.num_workers_dataloader,
             pin_memory=self.config.pin_gpu_memory,
             generator=self.torch_rng,
@@ -348,7 +348,7 @@ class RNNDistributedTrainer(TorchTrainer):
         if validation_dataset is not None:
             self.val_loader = self.strategy.create_dataloader(
                 dataset=validation_dataset,
-                batch_size=self.config.batch_size,
+                batch_size=batch_size,
                 num_workers=self.config.num_workers_dataloader,
                 pin_memory=self.config.pin_gpu_memory,
                 generator=self.torch_rng,

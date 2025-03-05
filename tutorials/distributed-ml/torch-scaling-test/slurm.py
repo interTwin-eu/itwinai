@@ -84,7 +84,7 @@ def main():
         cpus_per_gpu=args.cpus_per_gpu,
     )
 
-    retain_file = not args.no_retain_file
+    save_script = not args.no_save_script
     submit_job = not args.no_submit_job
 
     # Setting the training command for the single run
@@ -115,34 +115,34 @@ def main():
     mode = args.mode
     if mode == "single":
         script_builder.process_slurm_script(
-            retain_file=retain_file, submit_slurm_job=submit_job
+            save_script=save_script, submit_slurm_job=submit_job
         )
     elif mode == "runall":
         # Running all strategies with and without the itwinai trainer
         script_builder.training_command = None
         script_builder.use_itwinai_trainer = False
         script_builder.run_slurm_script_all_strategies(
-            retain_file=retain_file, submit_slurm_job=submit_job
+            save_script=save_script, submit_slurm_job=submit_job
         )
 
         # We do this twice as there are two types of strategies
         script_builder.use_itwinai_trainer = True
         script_builder.run_slurm_script_all_strategies(
-            retain_file=retain_file, submit_slurm_job=submit_job
+            save_script=save_script, submit_slurm_job=submit_job
         )
     elif mode == "scaling-test":
         # Running the scaling test with and without the itwinai trainer
         script_builder.training_command = None
         script_builder.use_itwinai_trainer = False
         script_builder.run_scaling_test(
-            retain_file=retain_file,
+            save_script=save_script,
             submit_slurm_job=submit_job,
             num_nodes_list=args.scalability_nodes,
         )
 
         script_builder.use_itwinai_trainer = True
         script_builder.run_scaling_test(
-            retain_file=retain_file,
+            save_script=save_script,
             submit_slurm_job=submit_job,
             num_nodes_list=args.scalability_nodes,
         )

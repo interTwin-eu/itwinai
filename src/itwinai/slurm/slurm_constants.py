@@ -19,15 +19,17 @@ SLURM_TEMPLATE = r"""#!/bin/bash
 #SBATCH --output={std_out}
 #SBATCH --error={err_out}
 
-# Resources allocation
+# Resource allocation
 #SBATCH --nodes={num_nodes}
 #SBATCH --ntasks-per-node={num_tasks_per_node}
 #SBATCH --gpus-per-node={gpus_per_node}
 #SBATCH --cpus-per-gpu={cpus_per_gpu}
 #SBATCH --exclusive
 
+# Pre-execution command
 {pre_exec_command}
 
+# Job execution command
 {exec_command}"""
 
 JUWELS_HPC_MODULES = [
