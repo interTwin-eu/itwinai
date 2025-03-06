@@ -5,7 +5,6 @@ from itwinai.components import DataSplitter, monitor_exec
 from hython.scaler import Scaler
 from hython.datasets import get_dataset
 from hython.datasets.wflow_sbm import WflowSBM
-from hython.sampler.downsampler import AbstractDownSampler
 from hython.config import Config
 
 
@@ -31,13 +30,11 @@ class RNNDatasetGetterAndPreprocessor(DataSplitter):
         head_model_inputs: List[str] | None = None,
         train_temporal_range: List[str] = None,
         valid_temporal_range: List[str] = None,
-        train_downsampler: AbstractDownSampler | None = None,
-        valid_downsampler: AbstractDownSampler | None = None,
+        train_downsampler: Dict | None = None,
+        valid_downsampler: Dict | None = None,
         downsampling_temporal_dynamic: bool | None = None,
-        # == calibration ==
         min_sample_target: int | None = None,
-        seq_length: int | None = None,
-        # == training ==
+        seq_length: int | None = None
     ) -> None:
         self.save_parameters(**self.locals2params(locals()))
 
