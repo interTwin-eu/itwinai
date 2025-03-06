@@ -292,28 +292,16 @@ class RNNDistributedTrainer(TorchTrainer):
             # MODEL LOGGING
             model_log_names = self.model_api.get_model_log_names()
             for module_name, model_class_name in model_log_names.items():
-                if module_name == "model":  # main model
-                    if self.model_logger == "mlflow":
-                        self.log(
-                            item=self.model,
-                            identifier=model_class_name,
-                            kind="model",
-                            registered_model_name=model_class_name,
-                        )
-                    else:
-                        self.model_api.log_model(module_name, self.model)
-                else:  # submodule
-                    if self.model_logger == "mlflow":
-                        self.log(
-                            item=self.model.get_submodule(module_name),
-                            identifier=model_class_name,
-                            kind="model",
-                            registered_model_name=model_class_name,
-                        )
-                    else:
-                        self.model_api.log_model(
-                            module_name, self.model.get_submodule(module_name)
-                        )
+                item = self.model if module_name == "model" else self.model.get_submodule(module_name)
+                if self.model_logger == "mlflow":
+                    self.log(
+                                item=item,
+                                identifier=model_class_name,
+                                kind="model",
+                                registered_model_name=model_class_name,
+                            )
+                else:
+                    self.model_api.log_model(module_name, item)     
 
             # Report training metrics of last epoch to Ray
             train.report({"loss": avg_val_loss.item(), "train_loss": train_loss.item()})
