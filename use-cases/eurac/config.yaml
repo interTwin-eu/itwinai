@@ -13,7 +13,7 @@
 
 # General configuration
 experiment_name: "itwinai"
-experiment_run: "vwc_actevap_jarl"
+experiment_run: "vwc_actevap"
 work_dir: /p/scratch/intertwin/datasets/eurac/model
 
 train_temporal_range: ["2016-01-01", "2018-12-31"]
