@@ -399,7 +399,7 @@ def download_mlflow_data(
     ] = None,
 ):
     """Download metrics data from MLFlow experiments and save to a CSV file.
-    
+
     Requires MLFlow authentication if the server is configured to use it.
     Authentication can be provided via environment variables or command arguments.
     """
@@ -425,8 +425,8 @@ def download_mlflow_data(
             "--mlflow-tracking-password your_password"
         )
 
-    import pandas as pd
     import mlflow
+    import pandas as pd
     from mlflow import MlflowClient
 
     mlflow.set_tracking_uri(tracking_uri)
@@ -442,7 +442,7 @@ def download_mlflow_data(
         status_code = e.get_http_status_code()
         if status_code == 401:
             print(
-                f"Authentication with MLFlow failed with code 401! Either your "
+                "Authentication with MLFlow failed with code 401! Either your "
                 "environment variables are not set or they are incorrect!"
             )
             return
