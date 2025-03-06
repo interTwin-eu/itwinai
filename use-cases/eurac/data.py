@@ -33,7 +33,6 @@ class RNNDatasetGetterAndPreprocessor(DataSplitter):
         valid_temporal_range: List[str] = None,
         train_downsampler: AbstractDownSampler | None = None,
         valid_downsampler: AbstractDownSampler | None = None,
-        cal_downsampler: dict = None,
         downsampling_temporal_dynamic: bool | None = None,
         # == calibration ==
         min_sample_target: int | None = None,
