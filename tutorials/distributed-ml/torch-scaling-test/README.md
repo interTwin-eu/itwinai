@@ -128,12 +128,12 @@ Once all jobs have completed, you can generate a scalability report using the fo
 command:
 
 ```bash
-itwinai generate-scalability-plot 
+itwinai generate-scalability-report 
     
 ```
 
 To see the full list of possible arguments, type:
 
 ```bash
-itwinai generate-scalability-plot --help
+itwinai generate-scalability-report --help
 ```
