@@ -148,7 +148,7 @@ class SlurmScriptBuilder:
         if self.distributed_strategy in ["ddp", "deepspeed"]:
             rdzv_endpoint = (
                 '\'$(scontrol show hostnames "$SLURM_JOB_NODELIST"'
-                " | head -n 1)':29500"
+                " | head -n 1)'i:29500"
             )
             main_command = rf"""
             srun --cpu-bind=none --ntasks-per-node=1 \
