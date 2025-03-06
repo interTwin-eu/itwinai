@@ -16,8 +16,8 @@ experiment_run: "run_0"
 
 work_dir: /p/scratch/intertwin/datasets/eurac/model
 
-train_temporal_range: ["2016-01-01", "2017-12-31"]
-valid_temporal_range: ["2018-01-01", "2018-12-31"]
+train_temporal_range: ["2016-01-01", "2019-12-31"]
+valid_temporal_range: ["2020-01-01", "2020-12-31"]
 test_temporal_range: ["2019-01-01", "2020-12-31"]
 
 seed: 10 
@@ -29,7 +29,7 @@ device: "cuda:0"
 model: CudaLSTM
 
 hidden_size: 64
-dropout: 0.1
+dropout: 0.2
 lstm_layers: 1
 lstm_batch_norm: False
 
@@ -56,13 +56,13 @@ lr_scheduler:
   factor: 0.5
   patience: 10
 
-seq_length: 120
+seq_length: 180
 
 learning_rate: 0.001
 
-batch: 256
+batch: 512
 
-epochs: 2
+epochs: 30
 
 gradient_clip: null
 
@@ -78,12 +78,12 @@ predict_steps: 0 # all # (prediction: 0 = t ), ( forecasts: 1 = t+1, 2 = t + 2)
 train_downsampler: #null
   _target_: hython.sampler.downsampler.RandomDownsampler
   frac_time: null
-  frac_space: 0.005
+  frac_space: 0.01
 
 valid_downsampler: #null
   _target_: hython.sampler.downsampler.RandomDownsampler
   frac_time: null
-  frac_space: 0.005
+  frac_space: 0.01
 
 test_downsampler: null
 
