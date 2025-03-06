@@ -138,6 +138,8 @@ class RNNDistributedTrainer(TorchTrainer):
                 # Hence during calibration, when loading the weights of the surrogate,
                 # I need to replace the CudaLSTM (now the head model) "static_inputs" with the correct "head_model_inputs"
                 # in order to avoid clashes with the TransferNN model inputs
+                # I think that if I used more modular config files, thanks to hydra, then I could import a surrogate_model.yaml
+                # into both...
                 config = deepcopy(self.config)
                 config.static_inputs = config.head_model_inputs
                 surrogate = get_hython_model(self.config.model_head)(config)
