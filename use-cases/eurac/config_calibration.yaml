@@ -6,8 +6,7 @@ experiment_run: "run_0"
 # here a new directory <experiment_name>_<experiment_run> is created
 work_dir: /p/scratch/intertwin/datasets/eurac/model
 
-train_temporal_range: ["2017-01-01", "2017-12-31"]
-cal_temporal_range: ["2017-01-01", "2017-12-30"]  # calibration
+train_temporal_range: ["2017-01-01", "2017-12-30"]
 valid_temporal_range: ["2017-01-01", "2017-12-30"]
 test_temporal_range: ["2017-01-01", "2017-12-31"]
 
@@ -72,8 +71,6 @@ lr_scheduler:
   factor: 0.5
   patience: 10
 
-seq_length: 180
-
 learning_rate: 0.001
 
 batch: 256
@@ -99,14 +96,6 @@ valid_downsampler: #None
   frac_time: 0.05
   frac_space: 0.01
 
-cal_downsampler: #None
-  _target_: hython.sampler.downsampler.RandomDownsampler
-  frac_time: 0.05
-  frac_space: 0.01
-
-test_downsampler: null
-temporal_downsampling: null
-downsampling_temporal_dynamic: True
 
 # === Data ===
 
@@ -117,10 +106,10 @@ dataset: WflowSBMCal # dataset class
 data_source:
   file:
     static_inputs: /p/scratch/intertwin/datasets/eurac/input/predictor_alps.zarr
-    dynamic_inputs: /p/scratch/intertwin/datasets/eurac/input/alps2_dynamic.zarr
+    dynamic_inputs: /p/scratch/intertwin/datasets/eurac/input/eobs_dynamic.zarr
     target_variables: /p/scratch/intertwin/datasets/eurac/input/alps_masked_20170101-20171231.nc
     #target_variables_mask: /mnt/CEPH_PROJECTS/InterTwin/hydrologic_data/SSM-RT0-SIG0-R-CRRL/processed/daily/alps_masked_20170101-20171231.nc
-    mask_variables: /p/scratch/intertwin/datasets/eurac/input/alps2_static.zarr
+    mask_variables: /p/scratch/intertwin/datasets/eurac/input/eobs_static.zarr
     static_inputs_mask: /p/scratch/intertwin/datasets/eurac/input/predictor_alps.zarr
   # s3:
   #   url: https://eurac-eo.s3.amazonaws.com/INTERTWIN/SURROGATE_INPUT/adg1km_eobs_preprocessed.zarr/
@@ -227,14 +216,13 @@ training_pipeline:
 
       mask_variables: ${mask_variables}
       static_inputs_mask: ${static_inputs_mask}
-      
-      
+    
       train_temporal_range: ${train_temporal_range}
       valid_temporal_range: ${valid_temporal_range}
-      cal_temporal_range: ${cal_temporal_range}
+
       dataset: ${dataset}
       data_lazy_load: ${data_lazy_load}
-      downsampling_temporal_dynamic: ${downsampling_temporal_dynamic}
+
       data_source: ${data_source}
       scaling_variant: ${scaling_variant}
       scaling_use_cached: ${scaling_use_cached}
@@ -245,9 +233,8 @@ training_pipeline:
 
       train_downsampler: ${train_downsampler}
       valid_downsampler: ${valid_downsampler}
-      cal_downsampler: ${cal_downsampler}
+
       min_sample_target: ${min_sample_target}
-      seq_length: ${seq_length}
     - _target_: trainer.RNNDistributedTrainer
       model: ${model}
       config:
@@ -259,8 +246,7 @@ training_pipeline:
         learning_rate: ${learning_rate}
         num_workers_dataloader: 1
         hython_trainer: ${hython_trainer}
-        temporal_downsampling: ${temporal_downsampling}
-        seq_length: ${seq_length}
+
         
         target_variables: ${target_variables}
         dynamic_inputs: ${dynamic_inputs}
