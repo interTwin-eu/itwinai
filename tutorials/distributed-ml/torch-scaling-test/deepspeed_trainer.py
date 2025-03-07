@@ -22,7 +22,7 @@ from torch.utils.data import DataLoader
 from torch.utils.data.distributed import DistributedSampler
 from utils import get_parser, imagenet_dataset, train_epoch
 
-from itwinai.loggers import EpochTimeLogger
+from itwinai.loggers import EpochTimer
 from itwinai.torch.reproducibility import seed_worker, set_seed
 
 
@@ -100,7 +100,7 @@ def main():
     if global_rank == 0:
         num_nodes = os.environ.get("SLURM_NNODES", "1")
         save_path = epoch_time_save_dir / f"epochtime_deepspeed-bl_{num_nodes}.csv"
-        epoch_time_logger = EpochTimeLogger(
+        epoch_time_logger = EpochTimer(
             strategy_name="deepspeed-bl",
             save_path=save_path,
             num_nodes=int(num_nodes),

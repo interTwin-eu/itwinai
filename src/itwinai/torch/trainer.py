@@ -37,7 +37,7 @@ from itwinai.torch.monitoring.monitoring import measure_gpu_utilization
 from itwinai.torch.profiling.profiler import profile_torch_trainer
 
 from ..components import Trainer, monitor_exec
-from ..loggers import EpochTimeLogger, Logger, LogMixin
+from ..loggers import EpochTimer, Logger, LogMixin
 from ..utils import load_yaml
 from .config import TrainingConfiguration
 from .distributed import (
@@ -557,7 +557,7 @@ class TorchTrainer(Trainer, LogMixin):
             Tuple[Dataset, Dataset, Dataset, Any]: training dataset,
             validation dataset, test dataset, trained model.
         """
-        epoch_time_logger: EpochTimeLogger | None = None
+        epoch_time_logger: EpochTimer | None = None
         if self.strategy.is_main_worker and self.strategy.is_distributed:
             if "SLURM_NNODES" not in os.environ:
                 raise EnvironmentError(
@@ -569,7 +569,7 @@ class TorchTrainer(Trainer, LogMixin):
             epoch_time_file_name = f"epochtime_{self.strategy.name}_{num_nodes}N.csv"
             epoch_time_output_path = epoch_time_output_dir / epoch_time_file_name
 
-            epoch_time_logger = EpochTimeLogger(
+            epoch_time_logger = EpochTimer(
                 strategy_name=self.strategy.name,
                 save_path=epoch_time_output_path,
                 num_nodes=num_nodes,
