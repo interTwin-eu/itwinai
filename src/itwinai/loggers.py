@@ -73,7 +73,17 @@ import os
 from abc import ABC, abstractmethod
 from contextlib import contextmanager
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Callable, Dict, List, Literal, Optional, Tuple, Union
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Callable,
+    Dict,
+    List,
+    Literal,
+    Optional,
+    Tuple,
+    Union,
+)
 
 if TYPE_CHECKING:
     import mlflow
@@ -312,7 +322,8 @@ class Logger(LogMixin):
             isinstance(self.log_on_workers, int)
             and (self.log_on_workers == -1 or self.log_on_workers == self.worker_rank)
         ) or (
-            isinstance(self.log_on_workers, list) and self.worker_rank in self.log_on_workers
+            isinstance(self.log_on_workers, list)
+            and self.worker_rank in self.log_on_workers
         )
         if not worker_ok:
             return False
@@ -355,7 +366,9 @@ class ConsoleLogger(Logger):
         log_on_workers: Union[int, List[int]] = 0,
     ) -> None:
         cl_savedir = Path(savedir) / "simple-logger"
-        super().__init__(savedir=cl_savedir, log_freq=log_freq, log_on_workers=log_on_workers)
+        super().__init__(
+            savedir=cl_savedir, log_freq=log_freq, log_on_workers=log_on_workers
+        )
 
     @check_not_initialized
     def create_logger_context(self, rank: int = 0):
@@ -521,7 +534,9 @@ class MLFlowLogger(Logger):
         log_on_workers: Union[int, List[int]] = 0,
     ):
         mfl_savedir = Path(savedir) / "mlflow"
-        super().__init__(savedir=mfl_savedir, log_freq=log_freq, log_on_workers=log_on_workers)
+        super().__init__(
+            savedir=mfl_savedir, log_freq=log_freq, log_on_workers=log_on_workers
+        )
         self.tracking_uri = tracking_uri
         self.run_description = run_description
         self.run_name = run_name
@@ -719,7 +734,9 @@ class WandBLogger(Logger):
         offline_mode: bool = False,
     ) -> None:
         wbl_savedir = Path(savedir) / "wandb"
-        super().__init__(savedir=wbl_savedir, log_freq=log_freq, log_on_workers=log_on_workers)
+        super().__init__(
+            savedir=wbl_savedir, log_freq=log_freq, log_on_workers=log_on_workers
+        )
         self.project_name = project_name
         self.offline_mode = offline_mode
 
@@ -844,13 +861,17 @@ class TensorBoardLogger(Logger):
         log_on_workers: Union[int, List[int]] = 0,
     ) -> None:
         tbl_savedir = Path(savedir) / "tensorboard"
-        super().__init__(savedir=tbl_savedir, log_freq=log_freq, log_on_workers=log_on_workers)
+        super().__init__(
+            savedir=tbl_savedir, log_freq=log_freq, log_on_workers=log_on_workers
+        )
         self.framework = framework
         if framework.lower() == "tensorflow":
             import tensorflow as tf
 
             self.tf = tf
-            self.writer = tf.summary.create_file_writer(tbl_savedir.resolve().as_posix())
+            self.writer = tf.summary.create_file_writer(
+                tbl_savedir.resolve().as_posix()
+            )
         elif framework.lower() == "pytorch":
             from torch.utils.tensorboard import SummaryWriter
 
@@ -1190,7 +1211,9 @@ class Prov4MLLogger(Logger):
             return
 
         if kind == "metric":
-            self.prov4ml.log_metric(key=identifier, value=item, context=context, step=step)
+            self.prov4ml.log_metric(
+                key=identifier, value=item, context=context, step=step
+            )
         elif kind == "flops_pb":
             model, batch = item
             self.prov4ml.log_flops_per_batch(
@@ -1199,7 +1222,11 @@ class Prov4MLLogger(Logger):
         elif kind == "flops_pe":
             model, dataset = item
             self.prov4ml.log_flops_per_epoch(
-                label=identifier, model=model, dataset=dataset, context=context, step=step
+                label=identifier,
+                model=model,
+                dataset=dataset,
+                context=context,
+                step=step,
             )
         elif kind == "system":
             self.prov4ml.log_system_metrics(context=context, step=step)
@@ -1239,53 +1266,6 @@ class Prov4MLLogger(Logger):
                         self.mlflow.log_artifact(f)
 
 
-class EpochTimeTracker:
-    """Logger for epoch execution time during training."""
-
-    def __init__(
-        self, 
-        strategy_name: str,
-        save_path: Path | str,
-        num_nodes: int,
-        should_log: bool = True
-    ) -> None:
-        if isinstance(save_path, str):
-            save_path = Path(save_path)
-
-        self.should_log = should_log
-        self.save_path: Path = save_path
-        self.strategy_name = strategy_name
-        self.num_nodes = num_nodes
-        self.data = {"epoch_id": [], "time": []}
-
-        if not self.should_log:
-            print("Warning: EpochTimeLogger has been disabled!")
-
-    def add_epoch_time(self, epoch_idx: int, time: float) -> None:
-        """Add epoch time to data."""
-        if not self.should_log: 
-            return
-
-        self.data["epoch_id"].append(epoch_idx)
-        self.data["time"].append(time)
-        self.save()
-
-    def save(self) -> None:
-        """Save data to a new CSV file."""
-        if not self.should_log:
-            return
-
-        import pandas as pd
-
-        df = pd.DataFrame(self.data)
-        df["name"] = self.strategy_name
-        df["nodes"] = self.num_nodes
-
-        self.save_path.parent.mkdir(parents=True, exist_ok=True)
-        df.to_csv(self.save_path, index=False)
-        print(f"Saving EpochTimeLogging data to '{self.save_path.resolve()}'.")
-
-
 class EmptyLogger(Logger):
     """Dummy logger which can be used as a placeholder when a real logger is
     not available. All methods do nothing.
@@ -1318,3 +1298,50 @@ class EmptyLogger(Logger):
         **kwargs,
     ) -> None:
         pass
+
+
+class EpochTimeTracker:
+    """Logger for epoch execution time during training."""
+
+    def __init__(
+        self,
+        strategy_name: str,
+        save_path: Path | str,
+        num_nodes: int,
+        should_log: bool = True,
+    ) -> None:
+        if isinstance(save_path, str):
+            save_path = Path(save_path)
+
+        self.should_log = should_log
+        self.save_path: Path = save_path
+        self.strategy_name = strategy_name
+        self.num_nodes = num_nodes
+        self.data = {"epoch_id": [], "time": []}
+
+        if not self.should_log:
+            print("Warning: EpochTimeLogger has been disabled!")
+
+    def add_epoch_time(self, epoch_idx: int, time: float) -> None:
+        """Add epoch time to data."""
+        if not self.should_log:
+            return
+
+        self.data["epoch_id"].append(epoch_idx)
+        self.data["time"].append(time)
+        self.save()
+
+    def save(self) -> None:
+        """Save data to a new CSV file."""
+        if not self.should_log:
+            return
+
+        import pandas as pd
+
+        df = pd.DataFrame(self.data)
+        df["name"] = self.strategy_name
+        df["nodes"] = self.num_nodes
+
+        self.save_path.parent.mkdir(parents=True, exist_ok=True)
+        df.to_csv(self.save_path, index=False)
+        print(f"Saving EpochTimeLogging data to '{self.save_path.resolve()}'.")
