@@ -135,7 +135,7 @@ def main():
         num_nodes = os.environ.get("SLURM_NNODES", 1)
         strategy_name = f"{args.strategy}-it"
         save_path = epoch_time_save_dir / f"epochtime_{strategy_name}_{num_nodes}.csv"
-        epoch_time_tracker = EpochTimeTracker(
+        epoch_time_logger = EpochTimeTracker(
             strategy_name=strategy_name,
             save_path=save_path,
             num_nodes=int(num_nodes),
@@ -157,13 +157,13 @@ def main():
 
         if strategy.is_main_worker:
             epoch_elapsed_time = timer() - epoch_start_time
-            epoch_time_tracker.add_epoch_time(epoch_idx, epoch_elapsed_time)
+            epoch_time_logger.add_epoch_time(epoch_idx, epoch_elapsed_time)
             print(f"[{epoch_idx}/{args.epochs}] - time: {epoch_elapsed_time:.2f}s")
 
     if global_rank == 0:
         total_time = timer() - start_time
         print(f"Training finished - took {total_time:.2f}s")
-        epoch_time_tracker.save()
+        epoch_time_logger.save()
 
     # Clean-up
     if is_distributed:
