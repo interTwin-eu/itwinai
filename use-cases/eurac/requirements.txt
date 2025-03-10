@@ -1,4 +1,4 @@
-hython[complete] @ git+https://github.com/interTwin-eu/hython.git@main
+hython[complete] @ git+https://github.com/interTwin-eu/hython.git@0.1.1
 scikit-learn
 tqdm
 cf_xarray

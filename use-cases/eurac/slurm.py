@@ -47,7 +47,7 @@ class EuracSlurmScriptBuilder(SlurmScriptBuilder):
             --config-path {self.config_path} \
             --config-name {self.config_name} \
             +pipe-key={self.pipe_key} \
-            strategy={self.distributed_strategy} \
+            strategy={self.distributed_strategy}
         """
         training_command = training_command.strip()
         return remove_indentation_from_multiline_string(training_command)
