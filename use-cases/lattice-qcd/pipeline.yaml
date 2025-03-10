@@ -1,0 +1,39 @@
+# General configuration
+epochs: 100
+batch_size: 128
+lr: 0.001
+strategy: 'ddp'
+
+pipeline:
+  class_path: itwinai.pipeline.Pipeline
+  init_args:
+    steps:
+      training-step:
+        class_path: normflow.Fitter
+        init_args:
+          model:
+            class_path: normflow.Model
+            init_args:
+              net_:
+                class_path: normflow.nn.DistConvertor_
+                init_args:
+                  knots_len: 10
+                  symmetric: True
+              prior:
+                class_path: normflow.prior.NormalPrior
+                init_args:
+                  shape: [1]
+              action:
+                class_path: normflow.action.ScalarPhi4Action
+                init_args:
+                  kappa: 0
+                  m_sq: -1.2
+                  lambd: 0.5
+          config: null
+          epochs: 100
+          strategy: "ddp"
+          logger:
+            class_path: itwinai.loggers.MLFlowLogger
+            init_args:
+              experiment_name: "Lattice QCD"
+              log_freq: "batch"
