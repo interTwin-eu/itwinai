@@ -1,8 +1,12 @@
 # General configuration
 epochs: 100
-batch_size: 128
-lr: 0.001
 strategy: 'ddp'
+knots_len: 10
+shape: [1]
+kappa: 0
+m_sq: -1.2
+lambd: 0.5
+symmetric: True
 
 pipeline:
   class_path: itwinai.pipeline.Pipeline
@@ -17,21 +21,21 @@ pipeline:
               net_:
                 class_path: normflow.nn.DistConvertor_
                 init_args:
-                  knots_len: 10
-                  symmetric: True
+                  knots_len: ${knots_len}
+                  symmetric: ${symmetric}
               prior:
                 class_path: normflow.prior.NormalPrior
                 init_args:
-                  shape: [1]
+                  shape: ${shape}
               action:
                 class_path: normflow.action.ScalarPhi4Action
                 init_args:
-                  kappa: 0
-                  m_sq: -1.2
-                  lambd: 0.5
+                  kappa: ${kappa}
+                  m_sq: ${m_sq}
+                  lambd: ${lambd}
           config: null
-          epochs: 100
-          strategy: "ddp"
+          epochs: ${epochs}
+          strategy: ${strategy}
           logger:
             class_path: itwinai.loggers.MLFlowLogger
             init_args:
