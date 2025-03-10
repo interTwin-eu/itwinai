@@ -49,6 +49,7 @@ torch_modules = [
     "itwinai.torch.trainer",
     "itwinai.torch.type",
     "itwinai.torch.loggers",
+    "itwinai.torch.tuning",
 ]
 
 tensorflow_modules = [
