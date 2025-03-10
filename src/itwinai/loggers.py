@@ -1239,7 +1239,7 @@ class Prov4MLLogger(Logger):
                         self.mlflow.log_artifact(f)
 
 
-class EpochTimer:
+class EpochTimeTracker:
     """Logger for epoch execution time during training."""
 
     def __init__(

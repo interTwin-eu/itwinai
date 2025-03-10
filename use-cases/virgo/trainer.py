@@ -24,7 +24,7 @@ from torch.utils.data import Dataset, TensorDataset
 from tqdm import tqdm
 
 from itwinai.distributed import suppress_workers_print
-from itwinai.loggers import EpochTimer, Logger
+from itwinai.loggers import EpochTimeTracker, Logger
 from itwinai.torch.config import TrainingConfiguration
 from itwinai.torch.distributed import DeepSpeedStrategy, RayDDPStrategy, RayDeepSpeedStrategy
 from itwinai.torch.profiling.profiler import profile_torch_trainer
@@ -202,7 +202,7 @@ class NoiseGeneratorTrainer(TorchTrainer):
         # Note that it significantly slows down the whole process
         # it also might not work as the function has not been fully
         # implemented yet
-        epoch_time_logger: EpochTimer | None = None
+        epoch_time_logger: EpochTimeTracker | None = None
         if self.strategy.is_main_worker and self.strategy.is_distributed:
             print("TIMER: broadcast:", timer() - st, "s")
             print("\nDEBUG: start training")
@@ -215,7 +215,7 @@ class NoiseGeneratorTrainer(TorchTrainer):
             epoch_time_output_dir = Path("scalability-metrics/epoch-time")
             epoch_time_file_name = f"epochtime_{self.strategy.name}_{num_nodes}N.csv"
             epoch_time_output_path = epoch_time_output_dir / epoch_time_file_name
-            epoch_time_logger = EpochTimer(
+            epoch_time_logger = EpochTimeTracker(
                 strategy_name=self.strategy.name,
                 save_path=epoch_time_output_path,
                 num_nodes=num_nodes,
