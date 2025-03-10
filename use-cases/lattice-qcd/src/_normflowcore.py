@@ -8,23 +8,28 @@ along with support for MCMC sampling and device management.
 """
 
 import torch
+import torch.distributed as dist
 import time
-import os
+import os, sys
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any, Dict, Literal, Optional, Tuple
+from torch.utils.data import Dataset
 
 import numpy as np
 
 from .mcmc import MCMCSampler, BlockedMCMCSampler
 from .lib.combo import estimate_logz, fmt_val_err
-from .device import ModelDeviceHandler
+from normflow.prior import Prior
+from normflow.nn import ModuleList_
+from normflow.action.scalar_action import ScalarPhi4Action
 
 from itwinai.torch.trainer import TorchTrainer
-from itwinai.torch.distributed import TorchDDPStrategy
+from itwinai.torch.distributed import DeepSpeedStrategy
 from itwinai.loggers import Logger
 from itwinai.torch.profiling.profiler import profile_torch_trainer
+from itwinai.torch.config import TrainingConfiguration
 
-# =============================================================================
+
 class Model:
     """
     The central high-level class of the package, which integrates instances of
@@ -72,7 +77,15 @@ class Model:
         seamless operation across hardware setups.
     """
 
-    def __init__(self, *, prior, net_, action, config=None, epochs=1000, logger=None):
+    def __init__(self,
+        *,
+        prior: Prior,
+        net_: ModuleList_,
+        action: ScalarPhi4Action,
+        config=None,
+        epochs=1000,
+        logger=None
+    ):
         self.net_ = net_
         self.prior = prior
         self.action = action
@@ -84,7 +97,6 @@ class Model:
         self.posterior = Posterior(self)
         self.mcmc = MCMCSampler(self)
         self.blocked_mcmc = BlockedMCMCSampler(self)
-        self.device_handler = ModelDeviceHandler(self)
 
 
 class Posterior:
@@ -210,35 +222,23 @@ class Posterior:
         return logq
 
 
-# =============================================================================
-class Strategy(TorchDDPStrategy):
-    def __init__(self, model):
-        self._model = model
-    def global_rank(self):
-        return self._model.device_handler.rank
-    def global_world_size(self):
-        return self._model.device_handler.nranks
-    @property
-    def name(self):
-        return "DDPStrategy"
-
 class Fitter(TorchTrainer):
     """A class for training a given model."""
     profiler: Optional[Any]
-    def __init__(self,
-            model: Model,
-            config=None,
-            epochs=1000,
-            logger: Optional[Logger] = None,
-            profiling_wait_epochs: int = 1,
-            profiling_warmup_epochs: int = 2
-        ):
-        super().__init__(
-                config=config,
-                epochs=epochs,
-                logger=logger
-        )
+    def __init__(
+        self,
+        model: Model,
+        epochs: int = 100,
+        config: Dict | TrainingConfiguration | None = None,
+        strategy: Literal["ddp", "deepspeed", "horovod"] = 'ddp',
+        logger: Logger | None = None,
+        profiling_wait_epochs: int = 1,
+        profiling_warmup_epochs: int = 2,
+    ):
+        super().__init__(config=config, epochs=epochs, strategy=strategy, logger=logger)
         self._model = model
+        self.epochs = epochs
+
         self.train_batch_size = 1
         self.train_history = dict(
                 loss=[], logqp=[], logz=[], ess=[], rho=[], accept_rate=[]
@@ -251,23 +251,46 @@ class Fitter(TorchTrainer):
             snapshot_path=None,
             epochs_run=0
             )
-        self.strategy = Strategy(model)
+        # Global training configuration
+        if isinstance(config, dict):
+            config = TrainingConfiguration(**config)
+        self.config = config
         self.profiler = None
         self.profiling_wait_epochs = profiling_wait_epochs
         self.profiling_warmup_epochs = profiling_warmup_epochs
 
-    def __call__(self,
-            n_epochs=1000,
-            save_every=None,
-            batch_size=64,
-            optimizer_class=torch.optim.AdamW,
-            scheduler=None,
-            loss_fn=None,
-            hyperparam={},
-            checkpoint_dict={},
-            profiling_wait_epochs=1,
-            profiling_warmup_epochs=1
-            ):
+    def setup_seed(self, rank, world_size):
+        """Sets up random seed for each worker in a distributed setting."""
+        if self.strategy.is_main_worker:
+            # Generate unique seed for each worker based on its rank
+            seeds_torch = [torch.randint(2**32 - 1, (1,)).item() for _ in range(world_size)]
+            print(f"Generated seeds for workers: {seeds_torch}\n")
+        else:
+            seeds_torch = [None] * world_size
+
+        # Broadcast seed list to all workers
+        seeds_torch_list = self.strategy.allgather_obj(seeds_torch)
+        seeds_torch = next(s for s in seeds_torch_list if s is not None)
+
+        # Set seed for current worker based on its rank
+        seed = seeds_torch[rank]
+        torch.manual_seed(seed)
+
+        sys.stdout.write(f"Rank {rank} has been assigned seed {seed}\n")
+
+    def execute(
+        self,
+        n_epochs=100,
+        save_every=None,
+        batch_size=64,
+        optimizer_class=torch.optim.AdamW,
+        scheduler=None,
+        loss_fn=None,
+        hyperparam={},
+        checkpoint_dict={},
+        profiling_wait_epochs=1,
+        profiling_warmup_epochs=1
+    ):
 
         """Fit the model; i.e. train the model.
 
@@ -309,19 +332,44 @@ class Fitter(TorchTrainer):
 
         self.epochs = n_epochs
 
+        self._init_distributed_strategy()
+
+        if self.strategy.is_main_worker and self.logger:
+            self.logger.create_logger_context()
+
+        self._model.prior.to(device=self.device)
+
+        # First, define strategy-wise optional configurations
+        if isinstance(self.strategy, DeepSpeedStrategy):
+            # Batch size definition is not optional for DeepSpeedStrategy!
+            distribute_kwargs = dict(
+                config_params=dict(
+                    train_micro_batch_size_per_gpu=self.config.batch_size
+                )
+            )
+        else:
+            distribute_kwargs = {}
+
+        if '_groups' in self._model.net_.__dict__.keys():
+            parameters = self._model.net_.grouped_parameters()
+        else:
+            parameters = self._model.net_.parameters()
+        self.optimizer = optimizer_class(parameters, **self.hyperparam)
+
+        # Distributed model, optimizer, and scheduler
+        self._model.net_, self.optimizer, _ = self.strategy.distributed(
+            self._model.net_, self.optimizer, **distribute_kwargs
+        )
+
+        # Call setup_seed to set seed with current rank and world_size
+        self.setup_seed(self.strategy.global_rank(), self.strategy.global_world_size())
+
         # decide whether to load a snapshot
         if (snapshot_path is not None) and os.path.exists(snapshot_path):
             print(f"Trying to load snapshot from {snapshot_path}")
             self._load_snapshot()
 
         self.loss_fn = Fitter.calc_kl_mean if loss_fn is None else loss_fn
-
-        net_ = self._model.net_
-        if '_groups' in net_.__dict__.keys():
-            parameters = net_.grouped_parameters()
-        else:
-            parameters = net_.parameters()
-        self.optimizer = optimizer_class(parameters, **self.hyperparam)
 
         if scheduler is None:
             self.scheduler = None
@@ -331,11 +379,15 @@ class Fitter(TorchTrainer):
         if n_epochs > 0:
             self._train(n_epochs, batch_size, save_every)
 
+        if self.strategy.is_main_worker and self.logger:
+            self.logger.destroy_logger_context()
+
+        self.strategy.clean_up()
+
     def _load_snapshot(self):
         snapshot_path = self.checkpoint_dict['snapshot_path']
         if torch.cuda.is_available():
-            gpu_id = self._model.device_handler.rank
-            # gpu_id = int(os.environ["LOCAL_RANK"]) might be needed for torchrun ??
+            gpu_id = self.strategy.global_rank()
             loc = f"cuda:{gpu_id}"
             print(f"GPU: Attempting to load saved model into {loc}")
         else:
@@ -354,8 +406,9 @@ class Fitter(TorchTrainer):
         epochs_run = epoch + self.checkpoint_dict['epochs_run']
         snapshot_new_path = snapshot_path.rsplit('.',2)[0] + ".E" + str(epochs_run) + ".tar"
         snapshot = {
-                    "MODEL_STATE": self._model.net_.state_dict(),
-                     "EPOCHS_RUN": epochs_run }
+            "MODEL_STATE": self._model.net_.state_dict(),
+            "EPOCHS_RUN": epochs_run
+        }
         torch.save(snapshot, snapshot_new_path)
         print(f"Epoch {epochs_run} | Model Snapshot saved at {snapshot_new_path}")
 
@@ -364,6 +417,7 @@ class Fitter(TorchTrainer):
 
         T1 = time.time()
         for epoch in range(1, n_epochs+1):
+
             if self.profiler is not None:
                 self.profiler.step()
             loss, logqp = self.step(batch_size)
@@ -371,8 +425,8 @@ class Fitter(TorchTrainer):
             if self.scheduler is not None:
                 self.scheduler.step()
         T2 = time.time()
-        if n_epochs > 0 and self._model.device_handler.rank == 0:
-            print(f"({loss.device}) Time = {T2 - T1:.3g} sec.")
+        if n_epochs > 0 and self.strategy.is_main_worker:
+            print(f"({self.device}) Time = {T2 - T1:.3g} sec.")
 
     def step(self, batch_size):
         """Perform a train step with a batch of inputs"""
@@ -386,7 +440,8 @@ class Fitter(TorchTrainer):
         logp = -action(y)
         loss = self.loss_fn(logq, logp)
 
-        self.optimizer.zero_grad()  # clears old gradients from last steps
+        # clears old gradients from last steps
+        self.optimizer.zero_grad()
 
         loss.backward()
 
@@ -396,28 +451,29 @@ class Fitter(TorchTrainer):
 
     def checkpoint(self, epoch, loss, save_every):
 
-        rank = self._model.device_handler.rank
         print_stride = self.checkpoint_dict['print_stride']
         print_batch_size = self.checkpoint_dict['print_batch_size']
         snapshot_path = self.checkpoint_dict['snapshot_path']
 
         # Always save loss on rank 0
-        if rank == 0:
+        if self.strategy.is_main_worker:
             self.train_history['loss'].append(loss.item())
             # Save model as well
             if snapshot_path is not None and (epoch % save_every == 0):
                 self._save_snapshot(epoch)
 
-        print_batch_size = print_batch_size // self._model.device_handler.nranks
+        print_batch_size = print_batch_size // self.strategy.global_world_size()
 
         if epoch == 1 or (epoch % print_stride == 0):
 
             _, logq, logp = self._model.posterior.sample__(print_batch_size)
+            logq = self.strategy.gather(logq)
+            logp = self.strategy.gather(logp)
 
-            logq = self._model.device_handler.all_gather_into_tensor(logq)
-            logp = self._model.device_handler.all_gather_into_tensor(logp)
+            if self.strategy.is_main_worker:
+                logq = torch.cat(logq, dim=0)
+                logp = torch.cat(logp, dim=0)
 
-            if rank == 0:
                 loss_ = self.loss_fn(logq, logp)
                 self._append_to_train_history(logq, logp)
                 self.print_fit_status(epoch, loss=loss_)
@@ -494,7 +550,7 @@ class Fitter(TorchTrainer):
         rho = mydict['rho'][-1]
 
         if epoch == 1:
-            print(f"\n>>> Training progress ({ess.device}) <<<\n")
+            print(f"\n>>> Training progress ({self.device}) <<<\n")
             print("Note: log(q/p) is estimated with normalized p; " \
                   + "mean & error are obtained from samples in a batch\n")
 
