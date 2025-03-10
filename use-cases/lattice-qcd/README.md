@@ -169,15 +169,22 @@ and expand its functionality.
 
 ## itwinai integration
 
-Integration of itwinai functionalities in normflow is based on changing the 
-implementation to `torchrun` enabling multi-node parallelism. This version 
-provides `train.py` file to execute the workflow. For working on HPC systems, 
-additionally a `startscript.sh` file is provided. This can be launched by:
-```sbatch startscript.sh```. The version includes integration of loggers and 
-profiling tools provided by itwinai. 
-In order to install the environment, please follow the instructions provided 
+Integration of itwinai functionalities in normflow is based on allowing the
+model to benefit from the `TorchTrainer` class provided by `itwinai`. This
+enables, among other features, multi-node parallelism.
+In order to install the `itwinai` environment, please follow the instructions provided 
 [in the main README](../../README.md#environment-setup), and activate it. 
 After that the use-case required packages, such as `normflow` should be installed.
+This version provides `train.py` file to execute the workflow. Alternatively, one can use
+the `exec-pipeline` CLI from `itwinai` to launch the workflow. A script to 
+define the pipeline called `pipeline.yaml` is provided. In order to launch the
+pipeline, simply run:
+```
+itwinai exec-pipeline --config pipeline.yaml
+```
+For working on HPC systems, additionally a `startscript.sh` file is provided. 
+This can be launched by:```sbatch startscript.sh```. The version includes integration 
+of loggers and  profiling tools provided by itwinai. 
 
 | Created by Javad Komijani in 2021 \
 | Copyright (C) 2021-24, Javad Komijani
