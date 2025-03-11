@@ -170,8 +170,7 @@ def exec_pipeline(
     hydra_help: Annotated[bool, typer.Option(help="Show Hydra's help page")] = False,
     version: Annotated[bool, typer.Option(help="Show Hydra's version and exit")] = False,
     cfg: Annotated[
-        str,
-        typer.Option("--cfg", "-c", help="Show config instead of running [job|hydra|all]"),
+        str, typer.Option("--cfg", "-c", help="Show config instead of running [job|hydra|all]")
     ] = "",
     resolve: Annotated[
         bool,
