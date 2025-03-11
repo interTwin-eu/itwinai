@@ -87,12 +87,8 @@ def absolute_avg_epoch_time_plot(
     ax.set_xscale("log")
 
     # Calculating upper and lower bounds to get the appropriate top and bottom ticks
-    upper_bound = 10 ** int(
-        np.ceil(np.log10(avg_epoch_time_df["avg_epoch_time"].max()))
-    )
-    lower_bound = 10 ** int(
-        np.floor(np.log10(avg_epoch_time_df["avg_epoch_time"].min()))
-    )
+    upper_bound = 10 ** int(np.ceil(np.log10(avg_epoch_time_df["avg_epoch_time"].max())))
+    lower_bound = 10 ** int(np.floor(np.log10(avg_epoch_time_df["avg_epoch_time"].min())))
     ax.set_ylim(lower_bound, upper_bound)
 
     # Remove minor ticks on x-axis and format new ticks
@@ -106,9 +102,7 @@ def absolute_avg_epoch_time_plot(
     ax.legend(title="Method")
 
     num_datapoints = len(unique_nodes)
-    figure_height, figure_width = calculate_plot_dimensions(
-        num_datapoints=num_datapoints
-    )
+    figure_height, figure_width = calculate_plot_dimensions(num_datapoints=num_datapoints)
     fig.set_figheight(figure_height)
     fig.set_figwidth(figure_width)
 
@@ -160,9 +154,7 @@ def relative_epoch_time_speedup_plot(
     # Plotting the linear line
     num_gpus = np.array(avg_epoch_time_df["num_gpus"].unique())
     linear_speedup = np.array(avg_epoch_time_df["linear_speedup"].unique())
-    ax.plot(
-        num_gpus, linear_speedup, ls="dashed", lw=1.0, c="k", label="linear speedup"
-    )
+    ax.plot(num_gpus, linear_speedup, ls="dashed", lw=1.0, c="k", label="linear speedup")
 
     # The log scale must be set before changing the ticks
     ax.set_yscale("log", base=2)
@@ -183,9 +175,7 @@ def relative_epoch_time_speedup_plot(
     ax.legend(ncol=1)
 
     num_datapoints = len(num_gpus)
-    figure_height, figure_width = calculate_plot_dimensions(
-        num_datapoints=num_datapoints
-    )
+    figure_height, figure_width = calculate_plot_dimensions(num_datapoints=num_datapoints)
     fig.set_figheight(figure_height)
     fig.set_figwidth(figure_width)
 
@@ -195,9 +185,7 @@ def relative_epoch_time_speedup_plot(
     return fig, ax
 
 
-def gpu_bar_plot(
-    data_df: pd.DataFrame, plot_title: str, y_label: str, main_column: str
-):
+def gpu_bar_plot(data_df: pd.DataFrame, plot_title: str, y_label: str, main_column: str):
     """Creates a centered bar plot grouped by number of GPUs and strategy.
 
     Args:
@@ -228,9 +216,7 @@ def gpu_bar_plot(
     bar_positions = {}
 
     # Calculating the global bar_width based on the highest number of adjacent bars
-    max_num_strategies = (
-        data_df.groupby(["num_global_gpus"])["strategy"].nunique().max()
-    )
+    max_num_strategies = data_df.groupby(["num_global_gpus"])["strategy"].nunique().max()
     bar_width = 1 / (max_num_strategies + 1)
 
     # To only add labels the first time we see a strategy
@@ -347,9 +333,7 @@ def computation_fraction_bar_plot(
     ax.set_ylim(0, 1.1)
 
     # Adding communication time to the legend
-    hatch_patch = Patch(
-        facecolor="none", edgecolor="gray", hatch="//", label="Communication"
-    )
+    hatch_patch = Patch(facecolor="none", edgecolor="gray", hatch="//", label="Communication")
     ax.legend(handles=ax.get_legend_handles_labels()[0] + [hatch_patch])
 
     # Dynamically adjusting the width of the figure

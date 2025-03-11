@@ -70,23 +70,15 @@ def epoch_time_report(
 
     # Create and save the figures
     absolute_fig, _ = absolute_avg_epoch_time_plot(avg_epoch_time_df=avg_epoch_time_df)
-    relative_fig, _ = relative_epoch_time_speedup_plot(
-        avg_epoch_time_df=avg_epoch_time_df
-    )
+    relative_fig, _ = relative_epoch_time_speedup_plot(avg_epoch_time_df=avg_epoch_time_df)
 
     absolute_avg_time_plot_path = plot_dir / ("absolute_epoch_time" + plot_file_suffix)
-    relative_speedup_plot_path = plot_dir / (
-        "relative_epoch_time_speedup" + plot_file_suffix
-    )
+    relative_speedup_plot_path = plot_dir / ("relative_epoch_time_speedup" + plot_file_suffix)
 
     absolute_fig.savefig(absolute_avg_time_plot_path)
     relative_fig.savefig(relative_speedup_plot_path)
-    print(
-        f"Saved absolute average time plot at '{absolute_avg_time_plot_path.resolve()}'."
-    )
-    print(
-        f"Saved relative average time plot at '{relative_speedup_plot_path.resolve()}'."
-    )
+    print(f"Saved absolute average time plot at '{absolute_avg_time_plot_path.resolve()}'.")
+    print(f"Saved relative average time plot at '{relative_speedup_plot_path.resolve()}'.")
 
     if not do_backup:
         return
@@ -143,9 +135,7 @@ def gpu_data_report(
         "total_energy_wh": "{:.2f} Wh".format,
         "utilization": "{:.2f} %".format,
     }
-    gpu_data_table = gpu_data_statistics_df.to_string(
-        index=False, formatters=formatters
-    )
+    gpu_data_table = gpu_data_statistics_df.to_string(index=False, formatters=formatters)
     print(gpu_data_table)
 
     energy_plot_path = plot_dir / ("gpu_energy_plot" + plot_file_suffix)
@@ -226,9 +216,7 @@ def communication_data_report(
     )
     computation_fraction_fig, _ = computation_fraction_bar_plot(computation_fraction_df)
     computation_fraction_fig.savefig(computation_fraction_plot_path)
-    print(
-        f"Saved computation fraction plot at '{computation_fraction_plot_path.resolve()}'."
-    )
+    print(f"Saved computation fraction plot at '{computation_fraction_plot_path.resolve()}'.")
 
     if not do_backup:
         return
