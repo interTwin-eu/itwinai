@@ -235,84 +235,74 @@ Code Comparison: HPO Config vs TorchTrainer Config
         .. code-block:: yaml
 
             ray_training_pipeline:
-            class_path: itwinai.pipeline.Pipeline
-            init_args:
-                steps:
-                - class_path: data.FashionMNISTGetter
-                - class_path: data.FashionMNISTSplitter
-                    init_args: 
-                    train_proportion: 0.9
-                    validation_proportion: 0.1
-                - class_path: trainer.MyRayTorchTrainer
-                    init_args:
-                    config:
-                        scaling_config:
-                            num_workers: 4
-                            use_gpu: true
-                            resources_per_worker:
-                                CPU: 5
-                                GPU: 1
-                        train_loop_config:
-                            batch_size:
-                                type: choice
-                                options: [32, 64, 128]
-                            learning_rate:
-                                type: uniform
-                                min: 1e-5
-                                max: 1e-3
-                            epochs: 20
-                        tune_config:
-                            num_samples: 2
-                            scheduler:
-                                name: asha
-                                max_t: 20
-                                grace_period: 10
-                                reduction_factor: 4
-                                brackets: 1
-                            search_alg:
-                                name: bayes
-                                metric: loss
-                                mode: min
-                                n_random_steps: 5
-                        run_config:
-                            storage_path: ray_checkpoints
-                            name: Virgo-HPO-Experiment
-                    strategy: ddp
-                    logger:
-                        class_path: itwinai.loggers.LoggersCollection
-                        init_args:
-                        loggers:
-                            - class_path: itwinai.loggers.MLFlowLogger
-                            init_args:
-                                experiment_name: MNIST HPO Experiment
-                                log_freq: batch
+            _target_: itwinai.pipeline.Pipeline
+            steps:
+            - _target_: data.FashionMNISTGetter
+            - _target_: data.FashionMNISTSplitter
+              train_proportion: 0.9
+              validation_proportion: 0.1
+            - _target_: trainer.MyRayTorchTrainer
+              config:
+                scaling_config:
+                  num_workers: 4
+                  use_gpu: true
+                  resources_per_worker:
+                    CPU: 5
+                    GPU: 1
+                train_loop_config:
+                  batch_size:
+                    type: choice
+                    options: [32, 64, 128]
+                  learning_rate:
+                    type: uniform
+                    min: 1e-5
+                    max: 1e-3
+                  epochs: 20
+                tune_config:
+                  num_samples: 2
+                  scheduler:
+                    name: asha
+                    max_t: 20
+                    grace_period: 10
+                    reduction_factor: 4
+                    brackets: 1
+                  search_alg:
+                    name: bayes
+                    metric: loss
+                    mode: min
+                    n_random_steps: 5
+                run_config:
+                  storage_path: ray_checkpoints
+                  name: Virgo-HPO-Experiment
+              strategy: ddp
+              logger:
+                _target_: itwinai.loggers.LoggersCollection
+                loggers:
+                  - _target_: itwinai.loggers.MLFlowLogger
+                    experiment_name: MNIST HPO Experiment
+                    log_freq: batch
 
     .. tab:: TorchTrainer Config
 
         .. code-block:: yaml
 
             training_pipeline:
-            class_path: itwinai.pipeline.Pipeline
-            init_args:
-                steps:
-                - class_path: data.FashionMNISTGetter
-                - class_path: data.FashionMNISTSplitter
-                    init_args: 
-                    train_proportion: 0.9
-                    validation_proportion: 0.1
-                - class_path: trainer.MyRayTrainer
-                    init_args:
-                    strategy: ddp
-                    epochs: 20
-                    checkpoints_location: checkpoints
-                    logger:
-                        class_path: itwinai.loggers.LoggersCollection
-                        init_args:
-                        loggers:
-                            - class_path: itwinai.loggers.MLFlowLogger
-                            init_args:
-                                experiment_name: MNIST Experiment
-                                log_freq: batch
+            _target_: itwinai.pipeline.Pipeline
+            steps:
+            - _target_: data.FashionMNISTGetter
+            - _target_: data.FashionMNISTSplitter
+              train_proportion: 0.9
+              validation_proportion: 0.1
+            - _target_: trainer.MyRayTrainer
+              strategy: ddp
+              epochs: 20
+              checkpoints_location: checkpoints
+              logger:
+                _target_: itwinai.loggers.LoggersCollection
+                loggers:
+                - _target_: itwinai.loggers.MLFlowLogger
+                  experiment_name: MNIST Experiment
+                  log_freq: batch
 
 
 Okay, let's break down the arguments to our ``MyRayTorchTrainer`` class. 

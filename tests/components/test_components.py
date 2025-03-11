@@ -27,8 +27,9 @@ def test_serializable():
     assert isinstance(dict_serializ, dict)
     assert comp.name == "FakeGetterExec"
     assert dict_serializ == dict(
-        class_path="itwinai.tests.dummy_components.FakeGetterExec",
-        init_args=dict(data_uri="http://...", name=None),
+        _target_="itwinai.tests.dummy_components.FakeGetterExec",
+        data_uri="http://...",
+        name=None,
     )
 
     # List
@@ -37,8 +38,9 @@ def test_serializable():
     assert isinstance(dict_serializ, dict)
     assert comp.name == "FakeGetterExec"
     assert dict_serializ == dict(
-        class_path="itwinai.tests.dummy_components.FakeGetterExec",
-        init_args=dict(data_uri=[1, 2, 3], name=None),
+        _target_="itwinai.tests.dummy_components.FakeGetterExec",
+        data_uri=[1, 2, 3],
+        name=None,
     )
 
     # Tuple
@@ -47,8 +49,9 @@ def test_serializable():
     assert isinstance(dict_serializ, dict)
     assert comp.name == "FakeGetterExec"
     assert dict_serializ == dict(
-        class_path="itwinai.tests.dummy_components.FakeGetterExec",
-        init_args=dict(data_uri=[1, 2, 3], name=None),
+        _target_="itwinai.tests.dummy_components.FakeGetterExec",
+        data_uri=[1, 2, 3],
+        name=None,
     )
 
     # Set
@@ -57,8 +60,9 @@ def test_serializable():
     assert isinstance(dict_serializ, dict)
     assert comp.name == "FakeGetterExec"
     assert dict_serializ == dict(
-        class_path="itwinai.tests.dummy_components.FakeGetterExec",
-        init_args=dict(data_uri=[1, 2, 3], name=None),
+        _target_="itwinai.tests.dummy_components.FakeGetterExec",
+        data_uri=[1, 2, 3],
+        name=None,
     )
 
     # Dict
@@ -67,8 +71,9 @@ def test_serializable():
     assert isinstance(dict_serializ, dict)
     assert comp.name == "FakeGetterExec"
     assert dict_serializ == dict(
-        class_path="itwinai.tests.dummy_components.FakeGetterExec",
-        init_args=dict(data_uri=dict(foo=12, bar="123", hl=3.14), name=None),
+        _target_="itwinai.tests.dummy_components.FakeGetterExec",
+        data_uri=dict(foo=12, bar="123", hl=3.14),
+        name=None,
     )
 
     class NonSerializable:
@@ -94,7 +99,7 @@ def test_serializable():
 def test_adapter():
     """Test Adapter component."""
     prefix = Adapter.INPUT_PREFIX
-    adapter = Adapter(policy=[f"{prefix}{3-i}" for i in range(4)])
+    adapter = Adapter(policy=[f"{prefix}{3 - i}" for i in range(4)])
     result = adapter.execute(0, 1, 2, 3)
     assert result == (3, 2, 1, 0)
 
@@ -117,7 +122,7 @@ def test_adapter():
     result = adapter.execute(0, 1, 2, 3)
     assert result == (1, 3, 5, 7, 11)
 
-    adapter = Adapter(policy=[f"{prefix}{9-i}" for i in range(10)])
+    adapter = Adapter(policy=[f"{prefix}{9 - i}" for i in range(10)])
     with pytest.raises(IndexError) as exc_info:
         result = adapter.execute(0, 1)
     assert str(exc_info.value) == (

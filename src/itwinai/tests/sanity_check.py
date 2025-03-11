@@ -29,6 +29,11 @@ core_modules = [
     "itwinai.tests.exceptions",
     "itwinai.tests.sanity_check",
     "itwinai.plugins",
+    "itwinai.scalability_report",
+    "itwinai.scalability_report.data",
+    "itwinai.scalability_report.utils",
+    "itwinai.scalability_report.reports",
+    "itwinai.scalability_report.plot",
 ]
 
 torch_modules = [

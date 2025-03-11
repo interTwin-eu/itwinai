@@ -19,9 +19,12 @@ experiment management.
 Moreover, the toolkit is designed with extensibility in mind, allowing third-party developers to build and integrate their own
 plugins, enhancing the flexibility and adaptability of the platform.
 
-``itwinai`` is primarily developed by `Matteo Bunino <matteo.bunino@cern.ch>`_ from `CERN <https://home.cern/>`_, in
-collaboration with the `interTwin <https://www.intertwin.eu/>`_
-project, which aims to advance the use of digital twins in scientific research.
+``itwinai`` is an open-source Python library primarily developed by CERN, in collaboration with Forschungszentrum Jülich (FZJ).
+As the primary contributor, CERN will retain administrative rights to the repository during and after the interTwin project,
+except in cases where CERN is unable to maintain it.
+
+The library also benefits from contributions by members of the interTwin collaboration. 
+For a complete list of contributors, visit the `GitHub contributors page <https://github.com/interTwin-eu/itwinai/graphs/contributors>`_.
 
 
 How to Read the Docs
@@ -64,6 +67,7 @@ contains thoroughly tested features aligned with the toolkit's most recent relea
 
    getting-started/getting_started_with_itwinai
    getting-started/slurm
+   getting-started/containers
    getting-started/plugins
 
 .. toctree::
@@ -89,13 +93,19 @@ contains thoroughly tested features aligned with the toolkit's most recent relea
    :caption: 📚 Scientific Use Cases
 
    use-cases/use_cases
+   use-cases/eurac_doc
+   use-cases/virgo_doc
+   use-cases/3dgan_doc
+   use-cases/cyclones_doc
+   use-cases/mnist_doc
 
 .. toctree::
    :maxdepth: 2
    :hidden:
-   :caption: ⚡ Python API reference
+   :caption: ⚡ API reference
 
-   python-api/modules
+   api/cli_reference
+   api/modules
 
 .. toctree::
    :maxdepth: 2

@@ -61,7 +61,8 @@ def get_slurm_job_parser() -> ArgumentParser:
     # Default other arguments
     default_mode = "single"
     default_distributed_strategy = "ddp"
-    default_config_file = "config.yaml"
+    default_config_file_path = "."
+    default_config_file = "config"
     default_pipe_key = "rnn_training_pipeline"
     default_training_command = None
     default_python_venv = ".venv"
@@ -127,10 +128,16 @@ def get_slurm_job_parser() -> ArgumentParser:
 
     # Arguments specific to the itwinai pipeline
     parser.add_argument(
-        "--config-file",
+        "--config-path",
+        type=str,
+        default=default_config_file_path,
+        help="The path to the directory containing the config file to use for training.",
+    )
+    parser.add_argument(
+        "--config-name",
         type=str,
         default=default_config_file,
-        help="Which config file to use for training.",
+        help="The name of the config file to use for training.",
     )
     parser.add_argument(
         "--pipe-key",

@@ -8,24 +8,22 @@ strategy: 'ddp'
 
 # Workflows
 pipeline:
-   class_path: itwinai.pipeline.Pipeline
-   init_args:
-     steps:
-         preprocessing-step:
-           class_path: preprocessing.preprocess_functions_2d_ssp.PreprocessData
-           init_args:
-               dataset_root: ${dataset_root}
-               scenario: ${scenario}
-         preprocessing-split-step:
-           class_path: preprocessing.preprocess_2d_seasons.SplitPreprocessedData
-           init_args:
-               scenario: ${scenario} 
-         training-step:
-             #class_path: src.trainer_dist.XTClimTrainer
-           class_path: src.trainer.TorchTrainer
-           init_args:
-               epochs: ${epochs}
-               batch_size: ${batch_size}
-               lr: ${lr}
-               #strategy: ${strategy}
+  _target_: itwinai.pipeline.Pipeline
+  steps:
+    preprocessing-step:
+      _target_: preprocessing.preprocess_functions_2d_ssp.PreprocessData
+      dataset_root: ${dataset_root}
+      scenario: ${scenario}
+      
+    preprocessing-split-step:
+      _target_: preprocessing.preprocess_2d_seasons.SplitPreprocessedData
+      scenario: ${scenario}
+      
+    training-step:
+      _target_: src.trainer.TorchTrainer
+      epochs: ${epochs}
+      batch_size: ${batch_size}
+      lr: ${lr}
+      # strategy: ${strategy}
+
         
