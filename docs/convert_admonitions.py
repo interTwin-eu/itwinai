@@ -32,7 +32,7 @@ def convert_github_admonitions(content):
     ```
     """
     # Github markdown pattern
-    pattern = r">\s*\[!(NOTE|WARNING|TIP|IMPORTANT|CAUTION)\][ \t]*\n((?:>\s*[^\n]*\n)+)"
+    pattern = r">\s*\[!(NOTE|WARNING|TIP|IMPORTANT|CAUTION)\][ \t]*(.*(?:\n>.*)*)"
 
     def replace_admonition(match):
         # same name in lowercase for sphinx-compatible admonitions
@@ -46,7 +46,7 @@ def convert_github_admonitions(content):
                 cleaned_line = re.sub(r"^>\s?", "", line)
                 cleaned_content.append(cleaned_line)
 
-        return "```{" + f"{admonition_type}" + "}\n" + "\n".join(cleaned_content) + "\n```\n"
+        return "```{" + f"{admonition_type}" + "}\n" + "\n".join(cleaned_content) + "\n```"
 
     return re.sub(pattern, replace_admonition, content)
 
