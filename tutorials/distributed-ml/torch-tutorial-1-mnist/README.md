@@ -47,6 +47,7 @@ sbatch --export=ALL,DIST_MODE="$DIST_MODE",RUN_NAME="$RUN_NAME",TRAINING_CMD="$T
     --job-name="$RUN_NAME-n$N" \
     --output="logs_slurm/job-$RUN_NAME-n$N.out" \
     --error="logs_slurm/job-$RUN_NAME-n$N.err" \
+    --partition=develbooster \
     slurm.sh
 ```
 
@@ -61,6 +62,7 @@ sbatch --export=ALL,DIST_MODE="$DIST_MODE",RUN_NAME="$RUN_NAME",TRAINING_CMD="$T
     --job-name="$RUN_NAME-n$N" \
     --output="logs_slurm/job-$RUN_NAME-n$N.out" \
     --error="logs_slurm/job-$RUN_NAME-n$N.err" \
+    --partition=develbooster \
     slurm.sh
 ```
 
@@ -75,6 +77,7 @@ sbatch --export=ALL,DIST_MODE="$DIST_MODE",RUN_NAME="$RUN_NAME",TRAINING_CMD="$T
     --job-name="$RUN_NAME-n$N" \
     --output="logs_slurm/job-$RUN_NAME-n$N.out" \
     --error="logs_slurm/job-$RUN_NAME-n$N.err" \
+    --partition=develbooster \
     slurm.sh
 ```
 

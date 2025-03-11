@@ -23,7 +23,7 @@ If you want to use SLURM in interactive mode, do the following:
 
 ```bash
 # Allocate resources
-$ salloc --partition=batch --nodes=1 --account=intertwin  --gres=gpu:4 --time=1:59:00
+$ salloc --partition=develbooster --nodes=1 --account=intertwin  --gres=gpu:4 --time=1:59:00
 job ID is XXXX
 # Get a shell in the compute node (if using SLURM)
 $ srun --jobid XXXX --overlap --pty /bin/bash 
@@ -49,7 +49,7 @@ srun --jobid XXXX --ntasks-per-node=1 torchrun --standalone --nnodes=1 --nproc-p
 To launch the training with Microsoft DeepSpeed use:
 
 ```bash
-deepspeed train.py -s deepspeed --deepspeed
+torchrun --standalone --nnodes=1 --nproc-per-node=gpu train.py -s deepspeed
 
 # Optional -- from a SLURM login node:
 srun --jobid XXXX --ntasks-per-node=1 deepspeed train.py -s deepspeed --deepspeed 

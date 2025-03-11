@@ -130,7 +130,7 @@ includes convolutional layers that are well-suited for processing image data.
 
 ### Step 2: Implement Distributed Training
 
-The `GANTrainer` class extends the custom itwinia `TorchTrainer` class and handles the initialization of models,
+The `GANTrainer` class extends the custom itwinai `TorchTrainer` class and handles the initialization of models,
 optimizers, and the distributed training strategy for the GAN. The snippet below shows how the GANTrainer is extending
 the TorchTrainer class and initializing the parameters.
 This is essentially done to handle the scenario for the GAN which comprises of two Neural Network models which is not
