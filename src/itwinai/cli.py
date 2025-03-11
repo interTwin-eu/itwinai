@@ -391,22 +391,12 @@ def download_mlflow_data(
     output_file: Annotated[
         str, typer.Option(help="The file path to save the data to.")
     ] = "mlflow_data.csv",
-    mlflow_tracking_username: Annotated[
-        str | None, typer.Option(help="The MLFlow username used for authentication.")
-    ] = None,
-    mlflow_tracking_password: Annotated[
-        str | None, typer.Option(help="The MLFlow password used for authentication.")
-    ] = None,
 ):
     """Download metrics data from MLFlow experiments and save to a CSV file.
 
     Requires MLFlow authentication if the server is configured to use it.
-    Authentication can be provided via environment variables or command arguments.
+    Authentication must be provided via environment variables
     """
-    if mlflow_tracking_username:
-        os.environ["MLFLOW_TRACKING_USERNAME"] = mlflow_tracking_username
-    if mlflow_tracking_password:
-        os.environ["MLFLOW_TRACKING_PASSWORD"] = mlflow_tracking_password
 
     mlflow_credentials_set = (
         "MLFLOW_TRACKING_USERNAME" in os.environ
@@ -416,13 +406,9 @@ def download_mlflow_data(
         print(
             "\nWarning: MLFlow authentication environment variables are not set. "
             "If the server requires authentication, your request will fail."
-            "Authentication options:\n"
-            "Option 1: Set environment variables before running\n"
+            "You can authenticate by setting environment variables before running:\n"
             "\texport MLFLOW_TRACKING_USERNAME=your_username\n"
             "\texport MLFLOW_TRACKING_PASSWORD=your_password\n"
-            "Option 2: Pass credentials as arguments\n"
-            "\t--mlflow-tracking-username your_username"
-            "--mlflow-tracking-password your_password"
         )
 
     import mlflow
