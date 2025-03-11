@@ -63,6 +63,15 @@ def generate_scalability_report(
             )
         ),
     ] = None,
+    plot_file_suffix: Annotated[
+        str,
+        typer.Option(
+            help=(
+                "Which file suffix to use for the plots. Useful for changing between raster"
+                " and vector based images"
+            )
+        ),
+    ] = ".png",
 ):
     """Generates scalability reports for epoch time, GPU data, and communication data
     based on log files in the specified directory. Optionally, backups of the reports
@@ -118,6 +127,7 @@ def generate_scalability_report(
                 plot_dir=plot_dir_path,
                 backup_dir=backup_dir,
                 do_backup=do_backup,
+                plot_file_suffix=plot_file_suffix,
             )
             print()
         else:
