@@ -1,7 +1,7 @@
 Scalability Report
 ==================
 
-The ``itwinai``` Scalability Report provides insights into how well your model's
+The ``itwinai`` Scalability Report provides insights into how well your model's
 performance scales when training across multiple GPUs and nodes. It can be used to find
 bottlenecks or bugs as you distribute your workload, as well as help you monitor your
 model's sustainability. The main goals are as follows:
@@ -25,24 +25,33 @@ The Scalability Report includes the following metrics:
 Generating the Data
 -------------------
 
-To generate the data, you have to train a model with the various profilers enabled.
-The ``EpochTimeTracker`` is usually enabled by default, but you should check that it is
-instantiated and called in your training code. You can enable the remaining two
-profilers by adding their decorators above your trainer's ``train()`` function. The
-remaining profilers are:
+To generate the data, you have to train a model with the various profilers enabled,
+which can be toggled using the following flags in your training configuration:
+
+.. code-block:: yaml
+
+   steps:
+    - ...
+    - _target_: <your-trainer-class>
+      measure_gpu_data: True  # Measures GPU utilization and power consumption
+      measure_communication_overhead: True  # Measures communication overhead
+      measure_epoch_time: True  # Measures avg. epoch time and rel. speedup
+      ...
+
+The epoch time is measured using the `EpochTimeTracker`, while the remaining metrics
+are measured using the following decorators:
 
 - **PyTorch Communication Profiler**: This profiler measures the communication overhead
   of your distributed machine learning by aggregating the time spent in communication
   functions (typically ``NCCL`` and ``cudaStream`` calls) and comparing it with the time
   spent doing computations (typically any call to ``PyTorch``'s ``aTen`` library). It uses
-  the ``PyTorch`` Profiler to retrieve this information. To enable this profiler, use
-  the ``@profile_torch_trainer`` decorator.
+  the ``PyTorch`` Profiler to retrieve this information. 
 - **GPU Data Profiler**: This profiler measures the GPU utilization and the total power
   consumption of the training. This is done by probing the GPU at a pre-defined interval
-  and retrieving the needed data. To enable this profiler, use the
-  ``@measure_gpu_utilization`` decorator.
+  and retrieving the needed data. 
 
-The following is an example of how this can be enabled: 
+If you overwrite the ``TorchTrainer``'s ``train()`` method, then the decorators need to
+be placed above your overwritten ``train()`` method as in the following example:
 
 .. code-block:: python
    
@@ -57,8 +66,10 @@ The following is an example of how this can be enabled:
      def train(self, ...):
         # Your train method here
 
-This will create a directory named ``scalability-metrics`` in the current working
-directory, under which three subdirectories will be created: 
+If your profilers are enabled in the configuration—and if applicable, your decorators have
+been appropriately positioned above your ``train()`` method—then this will create a
+directory named ``scalability-metrics`` in the current working directory, under which
+three subdirectories will be created: 
 
 - ``epoch-time``: The wall-clock time data from the ``EpochTimeTracker``
 - ``gpu-energy-data``: The GPU utilization and power consumption data
@@ -81,7 +92,7 @@ This command takes in some extra arguments that can be viewed with the ``--help`
 
 When running this command by default, it will look in your ``scalability-metrics``
 directory and look for the subdirectories listed above. Only the reports relevant to
-the subdirectories that are present will be created, missing subdirectories will only
+the subdirectories that are present will be created, while missing subdirectories will only
 result in a warning.
 
 Example Results
@@ -164,8 +175,9 @@ normalized so that the values are between 0 and 1.0.
 GPU Utilization
 ~~~~~~~~~~~~~~~
 This plot shows how high the GPU utilization is for each strategy and number of nodes,
-as a percentage from 0 to 100. This is the defined as how much of the time is spent
-in computation mode vs not, and does not directly correlate to FLOPs. 
+as a percentage from 0 to 100. This is defined as how much time is spent in computation
+mode vs idle time, and does not directly correlate to FLOPs. See more here: 
+`NVML API Reference <https://docs.nvidia.com/deploy/nvml-api/structnvmlUtilization__t.html#structnvmlUtilization__t_1cf0e52a024f25abf0442e39851a85d46>`_
 
 .. image:: ./images/utilization_plot.png
 
