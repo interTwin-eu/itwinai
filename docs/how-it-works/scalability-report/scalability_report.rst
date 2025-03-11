@@ -98,54 +98,68 @@ result in a warning.
 Example Results
 ---------------
 
+The following will show some example results from the Virgo use case. Note that this
+was run once and might therefore have some slightly distorted results due to random
+noise in the training, such as some nodes performing better than others. To mitigate
+this, one can run more analyses and aggregate the results.
+
 The report will result in a table of scalability results, printed in the console, as
 well as plots showing the same results visually. An example of the resulting console
-output can be seen here: 
+output can be seen here
 
 .. code-block::
 
-   ######## Epoch Time Report ########
-    name  nodes avg_epoch_time
+    ######## Epoch Time Report ########
+         name  nodes avg_epoch_time
     deepspeed      1        59.01 s
     deepspeed      2        31.37 s
     deepspeed      4        17.86 s
+    deepspeed      8         9.48 s
       horovod      1        59.77 s
       horovod      2        34.91 s
       horovod      4        21.95 s
+      horovod      8        16.75 s
     torch-ddp      1        72.92 s
     torch-ddp      2        48.62 s
     torch-ddp      4        19.26 s
-    Saved absolute average time plot at '<your_cwd>/plots/absolute_epoch_time.png'.
-    Saved relative average time plot at '<your_cwd>/plots/relative_epoch_time_speedup.png'.
+    torch-ddp      8        10.30 s
+    Saved absolute average time plot at '/Users/jarl/cern/cern_projects/itwinai/plots/absolute_epoch_time.png'.
+    Saved relative average time plot at '/Users/jarl/cern/cern_projects/itwinai/plots/relative_epoch_time_speedup.png'.
 
     ######## GPU Data Report ########
      strategy  num_global_gpus total_energy_wh utilization
     deepspeed                4       221.87 Wh     60.30 %
     deepspeed                8       235.11 Wh     57.54 %
     deepspeed               16       242.77 Wh     50.62 %
+    deepspeed               32       246.58 Wh     49.33 %
       horovod                4       227.58 Wh     66.00 %
       horovod                8       243.00 Wh     59.20 %
       horovod               16       265.22 Wh     50.35 %
+      horovod               32       337.83 Wh     37.44 %
     torch-ddp                4       264.86 Wh     70.63 %
     torch-ddp                8       296.17 Wh     72.77 %
     torch-ddp               16       253.62 Wh     65.53 %
-    Saved GPU energy plot at '<your_cwd>/plots/gpu_energy_plot.png'.
-    Saved utilization plot at '<your_cwd>/plots/utilization_plot.png'.
+    torch-ddp               32       267.12 Wh     56.25 %
+    Saved GPU energy plot at '/Users/jarl/cern/cern_projects/itwinai/plots/gpu_energy_plot.png'.
+    Saved utilization plot at '/Users/jarl/cern/cern_projects/itwinai/plots/utilization_plot.png'.
 
     ######## Communication Data Report ########
      strategy  num_gpus computation_fraction
     deepspeed         4              99.09 %
     deepspeed         8              99.08 %
     deepspeed        16              99.08 %
+    deepspeed        32              99.09 %
       horovod         4              84.77 %
       horovod         8              83.24 %
       horovod        16              78.21 %
+      horovod        32              70.58 %
     torch-ddp         4              68.50 %
     torch-ddp         8              50.79 %
     torch-ddp        16              71.03 %
-    Saved computation fraction plot at '<your_cwd>/plots/computation_fraction_plot.png'.
+    torch-ddp        32              76.62 %
+    Saved computation fraction plot at '/Users/jarl/cern/cern_projects/itwinai/plots/computation_fraction_plot.png'.
 
-In this case, data was collected for 4, 8 and 16 GPUs for the ``DeepSpeed``, ``Horovod``
+In this case, data was collected for 4, 8, 16 and 32 GPUs for the ``DeepSpeed``, ``Horovod``
 and ``PyTorch DDP`` strategies. The associated plots can be seen below: 
 
 Average Epoch Time Comparison
