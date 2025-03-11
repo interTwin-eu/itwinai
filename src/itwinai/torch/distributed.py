@@ -616,6 +616,7 @@ class DeepSpeedStrategy(TorchDistributedStrategy):
         # This is the same bug that was earlier removed in the generic_torch.sh script,
         # using the sed command
         from deepspeed.ops.transformer.inference.triton.matmul_ext import AutotuneCacheManager
+
         def noop_put(self, table):
             pass
 

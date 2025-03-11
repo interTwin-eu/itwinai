@@ -147,8 +147,7 @@ class SlurmScriptBuilder:
         """
         if self.distributed_strategy in ["ddp", "deepspeed"]:
             rdzv_endpoint = (
-                '\'$(scontrol show hostnames "$SLURM_JOB_NODELIST"'
-                " | head -n 1)'i:29500"
+                '\'$(scontrol show hostnames "$SLURM_JOB_NODELIST"' " | head -n 1)'i:29500"
             )
             main_command = rf"""
             srun --cpu-bind=none --ntasks-per-node=1 \
@@ -239,12 +238,8 @@ class SlurmScriptBuilder:
             self.slurm_script_configuration.err_out = err_out_path
 
         # Making sure the std out and err out folders exist
-        self.slurm_script_configuration.std_out.parent.mkdir(
-            exist_ok=True, parents=True
-        )
-        self.slurm_script_configuration.err_out.parent.mkdir(
-            exist_ok=True, parents=True
-        )
+        self.slurm_script_configuration.std_out.parent.mkdir(exist_ok=True, parents=True)
+        self.slurm_script_configuration.err_out.parent.mkdir(exist_ok=True, parents=True)
 
         # Generate the script using the given configuration
         script = self.slurm_script_configuration.format_script()
@@ -362,7 +357,7 @@ def generate_default_slurm_script() -> None:
         training_command=args.training_cmd,
         config_path=args.config_path,
         config_name=args.config_name,
-        pipe_key=args.pipe_key
+        pipe_key=args.pipe_key,
     )
 
     submit_job = not args.no_submit_job
