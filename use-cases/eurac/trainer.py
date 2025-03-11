@@ -185,6 +185,7 @@ class RNNDistributedTrainer(TorchTrainer):
             lr_scheduler=self.hython_trainer.lr_scheduler,
             **distribute_kwargs,
         )
+        self.hython_trainer.optimizer = self.optimizer
 
     def set_epoch(self, epoch: int):
         if self.profiler is not None:
@@ -295,16 +296,21 @@ class RNNDistributedTrainer(TorchTrainer):
             # MODEL LOGGING
             model_log_names = self.model_api.get_model_log_names()
             for module_name, model_class_name in model_log_names.items():
-                item = self.model if module_name == "model" else self.model.get_submodule(module_name)
+                item = (
+                    self.model
+                    if module_name == "model"
+                    else self.model.get_submodule(module_name)
+                )
+
                 if self.model_logger == "mlflow":
                     self.log(
-                                item=item,
-                                identifier=model_class_name,
-                                kind="model",
-                                registered_model_name=model_class_name,
-                            )
+                        item=item,
+                        identifier=model_class_name,
+                        kind="model",
+                        registered_model_name=model_class_name,
+                    )
                 else:
-                    self.model_api.log_model(module_name, item)     
+                    self.model_api.log_model(module_name, item)
 
             # Report training metrics of last epoch to Ray
             train.report({"loss": avg_val_loss.item(), "train_loss": train_loss.item()})
@@ -339,9 +345,10 @@ class RNNDistributedTrainer(TorchTrainer):
         train_sampler = train_sampler_builder.get_sampler()
         val_sampler = val_sampler_builder.get_sampler()
 
+        batch_size = self.config.batch_size // self.strategy.global_world_size()
         self.train_loader = self.strategy.create_dataloader(
             dataset=train_dataset,
-            batch_size=self.config.batch_size,
+            batch_size=batch_size,
             num_workers=self.config.num_workers_dataloader,
             pin_memory=self.config.pin_gpu_memory,
             generator=self.torch_rng,
@@ -352,7 +359,7 @@ class RNNDistributedTrainer(TorchTrainer):
         if validation_dataset is not None:
             self.val_loader = self.strategy.create_dataloader(
                 dataset=validation_dataset,
-                batch_size=self.config.batch_size,
+                batch_size=batch_size,
                 num_workers=self.config.num_workers_dataloader,
                 pin_memory=self.config.pin_gpu_memory,
                 generator=self.torch_rng,

@@ -12,7 +12,7 @@
 hdf5_file_location: /p/scratch/intertwin/datasets/virgo_hdf5/virgo_data.hdf5
 hdf5_dataset_name: virgo_dataset
 data_root: ./data
-epochs: 10
+epochs: 15
 chunk_size: 1000 # equivalent to chunk size 
 batch_size: 64 # Note: not used for "training_pipeline"
 learning_rate: 0.0001

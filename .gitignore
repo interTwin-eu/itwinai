@@ -22,7 +22,6 @@ pl-training.yml
 *slurm_scripts/
 
 # Use cases files
-MNIST
 3dgan-generated-data/
 mnist-sample-data/
 exp_data/

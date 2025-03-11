@@ -18,18 +18,3 @@ simpleGAN.py
 +++++++++++++++
 .. literalinclude:: ../../../tutorials/distributed-ml/torch-tutorial-GAN/simpleGAN.py
    :language: python
-
-Shell scripts
---------------
-
-slurm.sh
-++++++++++++
-.. literalinclude:: ../../../tutorials/distributed-ml/torch-tutorial-GAN/slurm.sh
-   :language: bash
-
-
-runall.sh
-++++++++++++++++
-.. literalinclude:: ../../../tutorials/distributed-ml/torch-tutorial-GAN/runall.sh
-   :language: bash
-

@@ -612,6 +612,21 @@ class DeepSpeedStrategy(TorchDistributedStrategy):
         """
         import deepspeed
 
+        # Removing the .put() method of the cache manager
+        # This is the same bug that was earlier removed in the generic_torch.sh script,
+        # using the sed command
+        from deepspeed.ops.transformer.inference.triton.matmul_ext import AutotuneCacheManager
+
+        def noop_put(self, table):
+            pass
+
+        AutotuneCacheManager.put = noop_put
+        print(
+            "[WARNING]: Disabling Triton's AutotuneCacheManager's `put()` method to fix "
+            "bug with temporary files. This might be fixed in the future by DeepSpeed,"
+            "in which case our fix should be removed."
+        )
+
         self.deepspeed = deepspeed
         if not distributed_resources_available():
             raise RuntimeError("Trying to run distributed on insufficient resources.")
