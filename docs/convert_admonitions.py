@@ -120,9 +120,9 @@ def process_rst_files(docs_dir: str) -> None:
                     print(f"Changed admonitions in: {md_file}")
 
         except UnicodeDecodeError as e:
-            print(f"Error reading file {rst_file} or {md_file}: {str(e)}")
+            print(f"Error reading file {rst_file} or one of its included md files: {str(e)}")
         except IOError as e:
-            print(f"Error accessing file {rst_file} or {md_file}: {str(e)}")
+            print(f"Error accessing file {rst_file} or one of its included md files: {str(e)}")
         except Exception as e:
             print(f"Unexpected error processing {rst_file}: {str(e)}")
 
