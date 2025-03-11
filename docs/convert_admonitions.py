@@ -12,9 +12,8 @@ import re
 from pathlib import Path
 
 
-def convert_github_admonitions(content):
-    """
-    Converts GitHub-style admonitions to sphinx md syntax.
+def convert_github_admonitions(content: str) -> str:
+    """Converts GitHub-style admonitions to sphinx md syntax.
 
     Args:
         content (str): The markdown content containing GitHub-style admonitions
@@ -51,7 +50,7 @@ def convert_github_admonitions(content):
     return re.sub(pattern, replace_admonition, content)
 
 
-def find_md_includes_in_rst(rst_content, rst_file_path):
+def find_md_includes_in_rst(rst_content: str, rst_file_path: str) -> list[Path]:
     """Find all .md file includes in an RST file and return their absolute paths.
 
     Args:
@@ -59,7 +58,7 @@ def find_md_includes_in_rst(rst_content, rst_file_path):
         rst_file_path (str): Path to the RST file, used for resolving relative paths
 
     Returns:
-        list: List of absolute Path objects pointing to included .md files
+        list[Path]: List of absolute Path objects pointing to included .md files
     """
     pattern = r"\.\.\s+include::\s+(.+\.md)"
     matches = re.finditer(pattern, rst_content)
@@ -75,7 +74,7 @@ def find_md_includes_in_rst(rst_content, rst_file_path):
     return md_files
 
 
-def process_rst_files(docs_dir):
+def process_rst_files(docs_dir: str) -> None:
     """Process all RST files in the docs directory and convert referenced MD files.
 
     Args:
@@ -97,10 +96,8 @@ def process_rst_files(docs_dir):
         try:
             # Read RST content
             rst_content = rst_file.read_text(encoding="utf-8")
-
             # Find MD includes
             md_files = find_md_includes_in_rst(rst_content, rst_file)
-
             # Process each MD file
             for md_file in md_files:
                 if md_file in processed_files:
@@ -108,26 +105,26 @@ def process_rst_files(docs_dir):
 
                 processed_files.add(md_file)
 
-                if md_file.exists():
-                    print(f"Converting admonitions in: {md_file}")
-
-                    try:
-                        # assume uft8
-                        md_content = md_file.read_text(encoding="utf-8")
-
-                        # Convert admonitions
-                        converted_content = convert_github_admonitions(md_content)
-
-                        # Print to stdout where changes were made
-                        if converted_content != md_content:
-                            md_file.write_text(converted_content, encoding="utf-8")
-                            print(f"Updated: {md_file}")
-                    except Exception as e:
-                        print(f"Error processing {md_file}: {str(e)}")
-                else:
+                if not md_file.exists():
                     print(f"Warning: Referenced MD file not found: {md_file}")
+                    continue
+
+                print(f"Checking for admonitions in: {md_file}")
+                # assume utf8
+                md_content = md_file.read_text(encoding="utf-8")
+                # Convert admonitions
+                converted_content = convert_github_admonitions(md_content)
+                # Print to stdout where changes were made
+                if converted_content != md_content:
+                    md_file.write_text(converted_content, encoding="utf-8")
+                    print(f"Changed admonitions in: {md_file}")
+
+        except UnicodeDecodeError as e:
+            print(f"Error reading file {rst_file} or {md_file}: {str(e)}")
+        except IOError as e:
+            print(f"Error accessing file {rst_file} or {md_file}: {str(e)}")
         except Exception as e:
-            print(f"Error processing {rst_file}: {str(e)}")
+            print(f"Unexpected error processing {rst_file}: {str(e)}")
 
 
 if __name__ == "__main__":
