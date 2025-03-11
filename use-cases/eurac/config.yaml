@@ -10,12 +10,12 @@
 # - Matteo Bunino <matteo.bunino@cern.ch> - CERN
 # --------------------------------------------------------------------------------------
 
-
 # General configuration
 experiment_name: "itwinai"
 experiment_run: "vwc_actevap"
 
 work_dir: /p/scratch/intertwin/datasets/eurac/model
+dataset_root: /p/scratch/intertwin/datasets/eurac/input
 
 train_temporal_range: ["2016-01-01", "2018-12-31"]
 valid_temporal_range: ["2019-01-01", "2020-12-31"]
@@ -37,7 +37,7 @@ dropout: 0.4
 model_head_layer: regression # distr_normal
 model_head_activation: linear
 model_head_kwargs: null
-  
+
 # === Training ===
 
 strategy: ddp #null
@@ -46,7 +46,7 @@ hython_trainer: rnntrainer
 
 loss_fn:
   _target_: hython.losses.RMSELoss
-    
+
 # metric_fn:
 #   _target_: hython.metrics.MSEMetric
 
@@ -79,36 +79,34 @@ target_weights: even # null, even, or dict
 # which steps are used in the computation of the loss function
 predict_steps: 0 # all # (prediction: 0 = t ), ( forecasts: 1 = t+1, 2 = t + 2)
 
-# > Donwsampling < 
+# > Donwsampling <
 
 interval_value: 5
 # spatial downsampling
-train_downsampler:  
-  _target_: hython.sampler.downsampler.RegularIntervalDownsampler
-  intervals: 
-    - ${interval_value}
-    - ${interval_value}
-  origin: [0,0]
-
-valid_downsampler:  
-  _target_: hython.sampler.downsampler.RegularIntervalDownsampler
-  intervals: 
-    - ${interval_value}
-    - ${interval_value}
-  origin: [1,1]
-
-test_downsampler: 
+train_downsampler:
   _target_: hython.sampler.downsampler.RegularIntervalDownsampler
   intervals:
     - ${interval_value}
     - ${interval_value}
-  origin: [2,2]
+  origin: [0, 0]
 
+valid_downsampler:
+  _target_: hython.sampler.downsampler.RegularIntervalDownsampler
+  intervals:
+    - ${interval_value}
+    - ${interval_value}
+  origin: [1, 1]
+
+test_downsampler:
+  _target_: hython.sampler.downsampler.RegularIntervalDownsampler
+  intervals:
+    - ${interval_value}
+    - ${interval_value}
+  origin: [2, 2]
 
 # temporal downsampling
 temporal_downsampling: True
 temporal_subset: [200, 150]
-
 
 # === Data ===
 
@@ -116,14 +114,14 @@ dataset: Wflow1d
 
 data_source:
   file:
-    data_dir: /p/scratch/intertwin/datasets/eurac/input #!! change to your directory
+    data_dir: ${dataset_root}
     data_file: alps1km_eobs_preprocessed.zarr
   # s3:
   #   url: https://eurac-eo.s3.amazonaws.com/INTERTWIN/SURROGATE_INPUT/adg1km_eobs_preprocessed.zarr/
 
 static_categorical_inputs:
-   - wflow_landuse
-   - wflow_soil
+  - wflow_landuse
+  - wflow_soil
 
 static_inputs:
   - thetaS
@@ -140,7 +138,7 @@ dynamic_inputs:
   - precip
   - pet
   - temp
-  
+
 target_variables:
   - vwc
   - actevap
@@ -155,7 +153,7 @@ mask_variables:
 scaling_variant: minmax
 scaling_use_cached: True
 
-# == Pipeline == 
+# == Pipeline ==
 
 training_pipeline:
   _target_: itwinai.pipeline.Pipeline
@@ -228,13 +226,10 @@ training_pipeline:
             experiment_name: Eurac HPO Experiment Baseline
             # run_name: ${experiment_run}
             log_freq: epoch
-            
-
 
 ray_training_pipeline:
   _target_: itwinai.pipeline.Pipeline
   steps:
-
     - _target_: data.RNNDatasetGetterAndPreprocessor
       dynamic_inputs: ${dynamic_inputs}
       static_inputs: ${static_inputs}
@@ -293,7 +288,7 @@ ray_training_pipeline:
             lower: 1e-5
             upper: 1e-3
 
-          batch: 
+          batch:
             type: choice
             categories: [64, 128, 256]
 

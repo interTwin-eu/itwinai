@@ -9,18 +9,16 @@
 # --------------------------------------------------------------------------------------
 
 import argparse
-import os
 from typing import Dict
 
 import matplotlib.pyplot as plt
 import ray
 import torch
+from hydra import compose, initialize
 from ray import train, tune
+from ray.tune.schedulers import AsyncHyperBandScheduler
 
 from itwinai.cli import exec_pipeline_with_compose
-from hydra import compose, initialize
-
-from ray.tune.schedulers import AsyncHyperBandScheduler
 
 
 def run_trial(config: Dict, data: Dict):
@@ -48,6 +46,8 @@ def run_trial(config: Dict, data: Dict):
                 f"dropout={config['dropout']}",
                 f"interval_value={config['interval_value']}",
                 f"+pipe_key={pipe_key}",
+                f"work_dir={args.workdir}",
+                f"dataset_root={args.dataset_path}",
             ],
         )
         exec_pipeline_with_compose(cfg)
@@ -79,26 +79,25 @@ def run_hpo(args):
             metric=args.metric,  # Metric to optimize (loss by default)
             mode="min",  # Minimize the loss
             num_samples=args.num_samples,  # Number of trials to run
-            scheduler=AsyncHyperBandScheduler(max_t=args.max_iterations, grace_period=30, reduction_factor=4),
+            scheduler=AsyncHyperBandScheduler(
+                max_t=args.max_iterations, grace_period=30, reduction_factor=4
+            ),
         )
 
         # Ray's RunConfig for experiment name and stopping criteria
-        run_config = train.RunConfig(
-            stop={"training_iteration": args.max_iterations}
-        )
-
-        # Determine GPU and CPU utilization per trial
-        # We are allocating all available ressources per node evenly across trials
-        ngpus_per_trial = max(1, args.ngpus // args.num_samples)
-        ncpus_per_trial = max(1, args.ncpus // args.num_samples)
+        run_config = train.RunConfig(stop={"training_iteration": args.max_iterations})
 
         # Set up Ray Tune Tuner with resources and parameters
-        resources_per_trial = {"gpu": ngpus_per_trial, "cpu": ncpus_per_trial}
+        resources_per_trial = {"gpu": args.ngpus, "cpu": args.ncpus}
         trainable_with_resources = tune.with_resources(
             run_trial, resources=resources_per_trial
         )
 
-        data = {"pipeline_name": args.pipeline_name}
+        data = {
+            "pipeline_name": args.pipeline_name,
+            "dataset_path": args.dataset_path,
+            "workdir": args.workdir,
+        }
         trainable_with_parameters = tune.with_parameters(trainable_with_resources, data=data)
 
         tuner = tune.Tuner(
@@ -192,12 +191,16 @@ if __name__ == "__main__":
         Defaults to ~/ray_results/Eurac-Ray-Experiment",
     )
     parser.add_argument("--num_samples", type=int, default=10, help="Number of trials to run")
-    parser.add_argument("--ngpus", type=int, help="Number of GPUs available on node.")
-    parser.add_argument("--ncpus", type=int, help="Number of CPUs available on node.")
+    parser.add_argument("--ngpus", type=int, help="Number of GPUs per trial")
+    parser.add_argument("--ncpus", type=int, help="Number of CPUs per trial")
     parser.add_argument("--metric", type=str, default="loss", help="Metric to optimise.")
     parser.add_argument(
         "--max_iterations", type=int, default="20", help="Maximum iterations per trial"
     )
+    parser.add_argument(
+        "--dataset_path", default="/dataset", type=str, help="Path to the EURAC dataset"
+    )
+    parser.add_argument("--workdir", default="/app", type=str, help="Path to the workdir")
 
     args = parser.parse_args()  # Parse the command-line arguments
 

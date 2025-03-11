@@ -28,6 +28,7 @@ ignore_list = [
     "!src/itwinai/**",
     "!tests/**",
     "!env-files/**",
+    "!use-cases/**",
     "**/__pycache__",
     "!pyproject.toml",
 ]
@@ -349,7 +350,7 @@ class Itwinai:
         if status not in ["Succeeded", "Completed"]:
             message = (
                 f"Pod did not complete successfully! Status: {status}\n"
-                f"{"#"*100}\nJOB LOGS:\n\n{logs}"
+                f"{'#' * 100}\nJOB LOGS:\n\n{logs}"
             )
             print(message)
             raise RuntimeError(message)
@@ -387,7 +388,9 @@ class Itwinai:
         await self.test_local()
 
         # Publish to Docker registry with "final" tag
-        tag = await self._evaluate_tag_template(tag_template=tag_template, framework=framework)
+        tag = self.tag or await self._evaluate_tag_template(
+            tag_template=tag_template, framework=framework
+        )
         await self.publish(uri=f"{self.docker_registry}/{self.image}:{tag}")
 
         if not skip_singularity:

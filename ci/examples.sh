@@ -138,6 +138,7 @@ export COMMIT_HASH=$(git rev-parse --verify HEAD)
 export BASE_IMG_NAME="nvcr.io/nvidia/pytorch:24.05-py3"
 export BASE_IMG_DIGEST="$(echo "$BASE_IMG_NAME" | cut -d ':' -f 1)@$(docker buildx imagetools inspect $BASE_IMG_NAME | grep "Digest:" | head -n 1 | awk '{print $2}')"
 dagger call \
+    --tag "${COMMIT_HASH}-torch" \
     build-container --context=.. --dockerfile=../env-files/torch/Dockerfile \
         --build-args="COMMIT_HASH=$COMMIT_HASH,BASE_IMG_NAME=$BASE_IMG_NAME,BASE_IMG_DIGEST=$BASE_IMG_DIGEST" \
     dev-pipeline
@@ -175,6 +176,18 @@ dagger call --name="$(git rev-parse --verify HEAD)"  \
     build-container --context=.. --dockerfile=../env-files/torch/slim.Dockerfile \
     test-local \
     logs
+
+# Development pipeline
+export COMMIT_HASH=$(git rev-parse --verify HEAD)
+export BASE_IMG_NAME="python:3.10-slim"
+export BASE_IMG_DIGEST="$(echo "$BASE_IMG_NAME" | cut -d ':' -f 1)@$(docker buildx imagetools inspect $BASE_IMG_NAME | grep "Digest:" | head -n 1 | awk '{print $2}')"
+dagger call \
+    --tag "${COMMIT_HASH}-torch-slim" \
+    --docker-registry ghcr.io/intertwin-eu \
+    --image itwinai-dev \
+    build-container --context=.. --dockerfile=../env-files/torch/slim.Dockerfile \
+        --build-args="COMMIT_HASH=$COMMIT_HASH,BASE_IMG_NAME=$BASE_IMG_NAME,BASE_IMG_DIGEST=$BASE_IMG_DIGEST" \
+    dev-pipeline
 
 
 export BASE_IMG_NAME="python:3.10-slim"
