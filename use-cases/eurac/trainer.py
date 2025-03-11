@@ -299,6 +299,7 @@ class RNNDistributedTrainer(TorchTrainer):
                     if module_name == "model"
                     else self.model.get_submodule(module_name)
                 )
+
                 if self.model_logger == "mlflow":
                     self.log(
                         item=item,
