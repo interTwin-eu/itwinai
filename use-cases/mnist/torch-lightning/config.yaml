@@ -63,7 +63,7 @@ training_pipeline:
                 class_path: itwinai.loggers.MLFlowLogger
                 init_args:
                   savedir: mllogs
-          max_epochs: 5
+          max_epochs: 2
           max_steps: -1
           max_time: null
           min_epochs: null

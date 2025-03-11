@@ -18,7 +18,7 @@ import sys
 import tempfile
 from collections import defaultdict
 from pathlib import Path
-from typing import Any, Callable, Dict, Iterable, List, Literal, Optional, Tuple, Union
+from typing import Any, Callable, Dict, Iterable, List, Literal, Optional, Tuple
 
 import torch
 import torch.distributed as dist
@@ -46,36 +46,36 @@ from .distributed import (
     distributed_resources_available,
 )
 from .reproducibility import seed_worker, set_seed
-from .type import Batch, LrScheduler, Metric
+from .type import Batch, LrScheduler
 
 
 class TorchTrainer(Trainer, LogMixin):
     """Trainer class for torch training algorithms.
 
     Args:
-        config (Union[Dict, TrainingConfiguration]): training configuration
+        config (Dict | TrainingConfiguration): training configuration
             containing hyperparameters.
         epochs (int): number of training epochs.
         model (Optional[Union[nn.Module, str]], optional): pytorch model to
             train or a string identifier. Defaults to None.
         strategy (Literal['ddp', 'deepspeed', 'horovod'], optional):
             distributed strategy. Defaults to 'ddp'.
-        validation_every (Optional[int], optional): run a validation epoch
+        validation_every (int | None, optional): run a validation epoch
             every ``validation_every`` epochs. Disabled if None. Defaults to 1.
-        test_every (Optional[int], optional): run a test epoch
+        test_every (int | None, optional): run a test epoch
             every ``test_every`` epochs. Disabled if None. Defaults to None.
-        random_seed (Optional[int], optional): set random seed for
+        random_seed (int | None, optional): set random seed for
             reproducibility. If None, the seed is not set. Defaults to None.
-        logger (Optional[Logger], optional): logger for ML tracking.
+        logger (Logger | None, optional): logger for ML tracking.
             Defaults to None.
-        metrics (Optional[Dict[str, Metric]], optional): map of torchmetrics
+        metrics (Optional[Dict[str, Callable]], optional): map of torchmetrics
             metrics. Defaults to None.
         checkpoints_location (str): path to checkpoints directory.
             Defaults to "checkpoints".
-        checkpoint_every (Optional[int]): save a checkpoint every
+        checkpoint_every (int | None): save a checkpoint every
             ``checkpoint_every`` epochs. Disabled if None. Defaults to None.
         disable_tqdm (bool): whether to disable tqdm progress bar(s).
-        name (Optional[str], optional): trainer custom name. Defaults to None.
+        name (str | None, optional): trainer custom name. Defaults to None.
         profiling_wait_epochs (int): how many epochs to wait before starting
             the profiler.
         profiling_warmup_epochs (int): length of the profiler warmup phase in terms of
@@ -87,26 +87,26 @@ class TorchTrainer(Trainer, LogMixin):
     #     templates (e.g.. GAN, Classifier, Transformer) allowing scientists
     #     to reuse ML algos.
 
-    _strategy: TorchDistributedStrategy = None
+    _strategy: TorchDistributedStrategy | None = None
 
     #: PyTorch ``DataLoader`` for training dataset.
-    train_dataloader: DataLoader = None
+    train_dataloader: DataLoader | None = None
     #: PyTorch ``DataLoader`` for validation dataset.
-    validation_dataloader: DataLoader = None
+    validation_dataloader: DataLoader | None = None
     #: PyTorch ``DataLoader`` for test dataset.
-    test_dataloader: DataLoader = None
+    test_dataloader: DataLoader | None = None
     #: PyTorch model to train.
-    model: nn.Module = None
+    model: nn.Module | None = None
     #: Loss criterion.
-    loss: Callable = None
+    loss: Callable | None = None
     #: Optimizer.
-    optimizer: Optimizer = None
+    optimizer: Optimizer | None = None
     #: Learning rate scheduler.
-    lr_scheduler: LrScheduler = None
+    lr_scheduler: LrScheduler | None = None
     #: PyTorch random number generator (PRNG).
-    torch_rng: torch.Generator = None
+    torch_rng: torch.Generator | None = None
     #: itwinai ``itwinai.Logger``
-    logger: Logger = None
+    logger: Logger | None = None
     #: Total number training batches used so far, across all epochs.
     train_glob_step: int = 0
     #: Total number validation batches used so far, across all epochs.
@@ -114,25 +114,25 @@ class TorchTrainer(Trainer, LogMixin):
     #: Total number test batches used so far, across all epochs.
     test_glob_step: int = 0
     #: Dictionary of ``torchmetrics`` metrics, indexed by user-defined names.
-    metrics: Dict[str, Metric]
+    metrics: Dict[str, Callable]
     #: PyTorch Profiler for communication vs. computation comparison
-    profiler: Optional[Any]
+    profiler: Any | None
 
     def __init__(
         self,
-        config: Union[Dict, TrainingConfiguration],
+        config: Dict | TrainingConfiguration,
         epochs: int,
-        model: Optional[Union[nn.Module, str]] = None,
-        strategy: Optional[Literal["ddp", "deepspeed", "horovod"]] = "ddp",
-        validation_every: Optional[int] = 1,
-        test_every: Optional[int] = None,
-        random_seed: Optional[int] = None,
-        logger: Optional[Logger] = None,
-        metrics: Optional[Dict[str, Metric]] = None,
+        model: nn.Module | str | None = None,
+        strategy: Literal["ddp", "deepspeed", "horovod"] | None = "ddp",
+        validation_every: int | None = 1,
+        test_every: int | None = None,
+        random_seed: int | None = None,
+        logger: Logger | None = None,
+        metrics: Dict[str, Callable] | None = None,
         checkpoints_location: str = "checkpoints",
-        checkpoint_every: Optional[int] = None,
+        checkpoint_every: int | None = None,
         disable_tqdm: bool = False,
-        name: Optional[str] = None,
+        name: str | None = None,
         profiling_wait_epochs: int = 1,
         profiling_warmup_epochs: int = 2,
     ) -> None:
@@ -305,8 +305,8 @@ class TorchTrainer(Trainer, LogMixin):
     def create_dataloaders(
         self,
         train_dataset: Dataset,
-        validation_dataset: Optional[Dataset] = None,
-        test_dataset: Optional[Dataset] = None,
+        validation_dataset: Dataset | None = None,
+        test_dataset: Dataset | None = None,
     ) -> None:
         """
         Create train, validation and test dataloaders using the
@@ -315,9 +315,9 @@ class TorchTrainer(Trainer, LogMixin):
 
         Args:
             train_dataset (Dataset): training dataset object.
-            validation_dataset (Optional[Dataset]): validation dataset object.
+            validation_dataset (Dataset | None): validation dataset object.
                 Default None.
-            test_dataset (Optional[Dataset]): test dataset object.
+            test_dataset (Dataset | None): test dataset object.
                 Default None.
         """
 
@@ -361,17 +361,17 @@ class TorchTrainer(Trainer, LogMixin):
     def execute(
         self,
         train_dataset: Dataset,
-        validation_dataset: Optional[Dataset] = None,
-        test_dataset: Optional[Dataset] = None,
+        validation_dataset: Dataset | None = None,
+        test_dataset: Dataset | None = None,
     ) -> Tuple[Dataset, Dataset, Dataset, Any]:
         """Prepares distributed environment and data structures
         for the actual training.
 
         Args:
             train_dataset (Dataset): training dataset.
-            validation_dataset (Optional[Dataset], optional): validation
+            validation_dataset (Dataset | None, optional): validation
                 dataset. Defaults to None.
-            test_dataset (Optional[Dataset], optional): test dataset.
+            test_dataset (Dataset | None, optional): test dataset.
                 Defaults to None.
 
         Returns:
@@ -426,24 +426,24 @@ class TorchTrainer(Trainer, LogMixin):
 
     def log(
         self,
-        item: Union[Any, List[Any]],
-        identifier: Union[str, List[str]],
+        item: Any | List[Any],
+        identifier: str | List[str],
         kind: str = "metric",
-        step: Optional[int] = None,
-        batch_idx: Optional[int] = None,
+        step: int | None = None,
+        batch_idx: int | None = None,
         **kwargs,
     ) -> None:
         """Log ``item`` with ``identifier`` name of ``kind`` type at ``step``
         time step.
 
         Args:
-            item (Union[Any, List[Any]]): element to be logged (e.g., metric).
-            identifier (Union[str, List[str]]): unique identifier for the
+            item (Any | List[Any]): element to be logged (e.g., metric).
+            identifier (str | List[str]): unique identifier for the
                 element to log(e.g., name of a metric).
             kind (str, optional): type of the item to be logged. Must be one
                 among the list of self.supported_types. Defaults to 'metric'.
-            step (Optional[int], optional): logging step. Defaults to None.
-            batch_idx (Optional[int], optional): DataLoader batch counter
+            step (int | None, optional): logging step. Defaults to None.
+            batch_idx (int | None, optional): DataLoader batch counter
                 (i.e., batch idx), if available. Defaults to None.
         """
         if self.logger:
@@ -498,13 +498,13 @@ class TorchTrainer(Trainer, LogMixin):
         true: Batch,
         pred: Batch,
         logger_step: int,
-        batch_idx: Optional[int],
+        batch_idx: int | None,
         stage: str = "train",
     ) -> Dict[str, Any]:
         """Compute and log metrics.
 
         Args:
-            metrics (Dict[str, Metric]): metrics dict. Can be
+            metrics (Dict[str, Callable]): metrics dict. Can be
                 ``self.train_metrics`` or ``self.validation_metrics``.
             true (Batch): true values.
             pred (Batch): predicted values.
@@ -669,7 +669,7 @@ class TorchTrainer(Trainer, LogMixin):
         )
         return loss, metrics
 
-    def validation_epoch(self, epoch: int) -> torch.Tensor:
+    def validation_epoch(self, epoch: int) -> torch.Tensor | None:
         """Perform a complete sweep over the validation dataset, completing an
         epoch of validation.
 
@@ -677,7 +677,7 @@ class TorchTrainer(Trainer, LogMixin):
             epoch (int): current epoch number, from 0 to ``self.epochs - 1``.
 
         Returns:
-            Optional[Loss]: average validation loss for the current epoch if
+            Loss | None: average validation loss for the current epoch if
                 self.validation_dataloader is not None
         """
         if self.validation_dataloader is None:
@@ -790,45 +790,45 @@ class GANTrainer(TorchTrainer):
     """Trainer class for GAN models using pytorch.
 
     Args:
-        config (Union[Dict, TrainingConfiguration]): training configuration
+        config (Dict | TrainingConfiguration): training configuration
             containing hyperparameters.
         epochs (int): number of training epochs.
         discriminator (nn.Module): pytorch discriminator model to train GAN.
         generator (nn.Module): pytorch generator model to train GAN.
         strategy (Literal['ddp', 'deepspeed', 'horovod'], optional):
             distributed strategy. Defaults to 'ddp'.
-        validation_every (Optional[int], optional): run a validation epoch
+        validation_every (int | None, optional): run a validation epoch
             every ``validation_every`` epochs. Disabled if None. Defaults to 1.
-        test_every (Optional[int], optional): run a test epoch
+        test_every (int | None, optional): run a test epoch
             every ``test_every`` epochs. Disabled if None. Defaults to None.
-        random_seed (Optional[int], optional): set random seed for
+        random_seed (int | None, optional): set random seed for
             reproducibility. If None, the seed is not set. Defaults to None.
-        logger (Optional[Logger], optional): logger for ML tracking.
+        logger (Logger | None, optional): logger for ML tracking.
             Defaults to None.
-        metrics (Optional[Dict[str, Metric]], optional): map of torch metrics
+        metrics (Optional[Dict[str, Callable]], optional): map of torch metrics
             metrics. Defaults to None.
         checkpoints_location (str): path to checkpoints directory.
             Defaults to "checkpoints".
-        checkpoint_every (Optional[int]): save a checkpoint every
+        checkpoint_every (int | None): save a checkpoint every
             ``checkpoint_every`` epochs. Disabled if None. Defaults to None.
-        name (Optional[str], optional): trainer custom name. Defaults to None.
+        name (str | None, optional): trainer custom name. Defaults to None.
     """
 
     def __init__(
         self,
-        config: Union[Dict, TrainingConfiguration],
+        config: Dict | TrainingConfiguration,
         epochs: int,
         discriminator: nn.Module,
         generator: nn.Module,
         strategy: Literal["ddp", "deepspeed"] = "ddp",
-        validation_every: Optional[int] = 1,
-        test_every: Optional[int] = None,
-        random_seed: Optional[int] = None,
-        logger: Optional[Logger] = None,
-        metrics: Optional[Dict[str, Metric]] = None,
+        validation_every: int | None = 1,
+        test_every: int | None = None,
+        random_seed: int | None = None,
+        logger: Logger | None = None,
+        metrics: Dict[str, Callable] | None = None,
         checkpoints_location: str = "checkpoints",
-        checkpoint_every: Optional[int] = None,
-        name: Optional[str] = None,
+        checkpoint_every: int | None = None,
+        name: str | None = None,
         **kwargs,
     ) -> None:
         super().__init__(
@@ -1148,7 +1148,7 @@ class TorchLightningTrainer(Trainer):
     """Generic trainer for torch Lightning workflows.
 
     Args:
-        config (Union[Dict, str]): `Lightning configuration`_
+        config (Dict | str): `Lightning configuration`_
             which can be the path to a file or a Python dictionary.
         mlflow_saved_model (str, optional): name of the model created in
             MLFlow. Defaults to 'my_model'.
@@ -1157,7 +1157,7 @@ class TorchLightningTrainer(Trainer):
         https://pytorch-lightning.readthedocs.io/en/1.6.5/common/lightning_cli.html
     """
 
-    def __init__(self, config: Union[Dict, str], mlflow_saved_model: str = "my_model"):
+    def __init__(self, config: Dict | str, mlflow_saved_model: str = "my_model"):
         self.save_parameters(**self.locals2params(locals()))
         super().__init__()
         if isinstance(config, str) and os.path.isfile(config):
@@ -1275,8 +1275,8 @@ class RayTorchTrainer(Trainer):
         config (Dict): A dictionary of configuration settings for the trainer.
         strategy (Optional[Literal["ddp", "deepspeed"]]):
             The distributed training strategy to use. Defaults to "ddp".
-        name (Optional[str]): Optional name for the trainer instance. Defaults to None.
-        logger (Optional[Logger]): Optional logger instance. Defaults to None.
+        name (str | None): Optional name for the trainer instance. Defaults to None.
+        logger (Logger | None): Optional logger instance. Defaults to None.
     """
 
     def __init__(
@@ -1342,7 +1342,7 @@ class RayTorchTrainer(Trainer):
         shuffle_train: bool | None = False,
         shuffle_test: bool | None = False,
         shuffle_validation: bool | None = False,
-        sampler: Union[Sampler, Iterable, None] = None,
+        sampler: Sampler | Iterable | None = None,
         collate_fn: Callable[[List], Any] | None = None,
     ) -> None:
         """Create data loaders for training, validation, and testing.
@@ -1358,7 +1358,7 @@ class RayTorchTrainer(Trainer):
                 Defaults to False.
             shuffle_validation (bool, optional): Whether to shuffle the validation dataset.
                 Defaults to False.
-            sampler (Union[Sampler, Iterable, None], optional): Sampler for the datasets.
+            sampler (Sampler | Iterable, None, optional): Sampler for the datasets.
                 Defaults to None.
             collate_fn (Callable[[List], Any], optional):
                 Function to collate data samples into batches. Defaults to None.
@@ -1411,9 +1411,9 @@ class RayTorchTrainer(Trainer):
 
         Args:
             train_dataset (Dataset): Training dataset.
-            validation_dataset (Optional[Dataset], optional): Validation dataset.
+            validation_dataset (Dataset | None, optional): Validation dataset.
                 Defaults to None.
-            test_dataset (Optional[Dataset], optional): Test dataset. Defaults to None.
+            test_dataset (Dataset | None, optional): Test dataset. Defaults to None.
 
         Returns:
             Tuple[Dataset, Dataset, Dataset, Any]:
@@ -1567,7 +1567,7 @@ class RayTorchTrainer(Trainer):
 
         self.ray_train.report(tuning_metrics, checkpoint=checkpoint)
 
-    def initialize_logger(self, hyperparams: Optional[Dict], rank):
+    def initialize_logger(self, hyperparams: Dict | None, rank):
         if not self.logger:
             return
 
@@ -1583,24 +1583,24 @@ class RayTorchTrainer(Trainer):
 
     def log(
         self,
-        item: Union[Any, List[Any]],
-        identifier: Union[str, List[str]],
+        item: Any | List[Any],
+        identifier: str | List[str],
         kind: str = "metric",
-        step: Optional[int] = None,
-        batch_idx: Optional[int] = None,
+        step: int | None = None,
+        batch_idx: int | None = None,
         **kwargs,
     ) -> None:
         """Log ``item`` with ``identifier`` name of ``kind`` type at ``step``
         time step.
 
         Args:
-            item (Union[Any, List[Any]]): element to be logged (e.g., metric).
-            identifier (Union[str, List[str]]): unique identifier for the
+            item (Any | List[Any]): element to be logged (e.g., metric).
+            identifier (str | List[str]): unique identifier for the
                 element to log(e.g., name of a metric).
             kind (str, optional): type of the item to be logged. Must be one
                 among the list of self.supported_types. Defaults to 'metric'.
-            step (Optional[int], optional): logging step. Defaults to None.
-            batch_idx (Optional[int], optional): DataLoader batch counter
+            step (int | None, optional): logging step. Defaults to None.
+            batch_idx (int | None, optional): DataLoader batch counter
                 (i.e., batch idx), if available. Defaults to None.
         """
         if self.logger:

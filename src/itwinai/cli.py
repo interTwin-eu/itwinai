@@ -164,13 +164,137 @@ def sanity_check(
 
 
 @app.command(context_settings={"allow_extra_args": True, "ignore_unknown_options": True})
+def generate_slurm(
+    job_name: Annotated[
+        str | None, typer.Option("--job-name", help="The name of the SLURM job.")
+    ] = None,
+    account: Annotated[
+        str, typer.Option("--account", help="The billing account for the SLURM job.")
+    ] = "intertwin",
+    time: Annotated[
+        str, typer.Option("--time", help="The time limit of the SLURM job.")
+    ] = "00:30:00",
+    partition: Annotated[
+        str,
+        typer.Option(
+            "--partition",
+            help="Which partition of the cluster the SLURM job is going to run on.",
+        ),
+    ] = "develbooster",
+    std_out: Annotated[
+        str | None, typer.Option("--std-out", help="The standard out file.")
+    ] = None,
+    err_out: Annotated[
+        str | None, typer.Option("--err-out", help="The error out file.")
+    ] = None,
+    num_nodes: Annotated[
+        int,
+        typer.Option(
+            "--num-nodes",
+            help="The number of nodes that the SLURM job is going to run on.",
+        ),
+    ] = 1,
+    num_tasks_per_node: Annotated[
+        int, typer.Option("--num-tasks-per-node", help="The number of tasks per node.")
+    ] = 1,
+    gpus_per_node: Annotated[
+        int,
+        typer.Option("--gpus-per-node", help="The requested number of GPUs per node."),
+    ] = 4,
+    cpus_per_gpu: Annotated[
+        int,
+        typer.Option("--cpus-per-gpu", help="The requested number of CPUs per GPU."),
+    ] = 4,
+    config_path: Annotated[
+        str,
+        typer.Option(
+            "--config-path",
+            help="The path to the directory containing the config file to use for training.",
+        ),
+    ] = ".",
+    config_name: Annotated[
+        str,
+        typer.Option("--config-name", help="The name of the config file to use for training."),
+    ] = "config",
+    pipe_key: Annotated[
+        str,
+        typer.Option("--pipe-key", help="Which pipe key to use for running the pipeline."),
+    ] = "rnn_training_pipeline",
+    mode: Annotated[
+        str,
+        typer.Option(
+            "--mode",
+            help="Which mode to run, e.g. scaling test, all strategies, or a single run.",
+            case_sensitive=False,
+        ),
+    ] = "single",
+    dist_strat: Annotated[
+        str,
+        typer.Option(
+            "--dist-strat",
+            help="Which distributed strategy to use.",
+            case_sensitive=False,
+        ),
+    ] = "ddp",
+    training_cmd: Annotated[
+        str | None,
+        typer.Option(
+            "--training-cmd", help="The training command to use for the python script."
+        ),
+    ] = None,
+    python_venv: Annotated[
+        str,
+        typer.Option(
+            "--python-venv", help="Which python venv to use for running the command."
+        ),
+    ] = ".venv",
+    scalability_nodes: Annotated[
+        str,
+        typer.Option(
+            "--scalability-nodes",
+            help="A comma-separated list of node numbers to use for the scalability test.",
+        ),
+    ] = "1,2,4,8",
+    debug: Annotated[
+        bool,
+        typer.Option("--debug", help="Whether to include debugging information or not"),
+    ] = False,
+    no_save_script: Annotated[
+        bool,
+        typer.Option(
+            "--no-save-script", help="Whether to save the script after processing it."
+        ),
+    ] = False,
+    no_submit_job: Annotated[
+        bool,
+        typer.Option(
+            "--no-submit-job",
+            help="Whether to submit the job when processing the script.",
+        ),
+    ] = False,
+    config: Annotated[
+        str | None,
+        typer.Option("--config", help="The path to the SLURM configuration file."),
+    ] = None,
+):
+    """Generates a default SLURM script using arguments and optionally a configuration
+    file.
+    """
+    from itwinai.slurm.slurm_script_builder import generate_default_slurm_script
+
+    del sys.argv[0]
+    generate_default_slurm_script()
+
+
+@app.command(context_settings={"allow_extra_args": True, "ignore_unknown_options": True})
 def exec_pipeline(
     # NOTE: The arguments below are not actually needed in this function, but they are here
     # to replicate Hydra's help page in Typer, making it easier for the users to use it.
     hydra_help: Annotated[bool, typer.Option(help="Show Hydra's help page")] = False,
     version: Annotated[bool, typer.Option(help="Show Hydra's version and exit")] = False,
     cfg: Annotated[
-        str, typer.Option("--cfg", "-c", help="Show config instead of running [job|hydra|all]")
+        str,
+        typer.Option("--cfg", "-c", help="Show config instead of running [job|hydra|all]"),
     ] = "",
     resolve: Annotated[
         bool,
