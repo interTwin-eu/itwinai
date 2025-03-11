@@ -37,9 +37,7 @@ app = typer.Typer(pretty_exceptions_enable=False)
 def generate_scalability_report(
     log_dir: Annotated[
         str,
-        typer.Option(
-            help=("Which directory to search for the scalability metrics in.")
-        ),
+        typer.Option(help=("Which directory to search for the scalability metrics in.")),
     ] = "scalability-metrics",
     plot_dir: Annotated[
         str, typer.Option(help=("Which directory to save the resulting plots in."))
@@ -85,9 +83,7 @@ def generate_scalability_report(
 
     log_dir_path = Path(log_dir)
     if not log_dir_path.exists():
-        raise ValueError(
-            f"The provided log_dir, '{log_dir_path.resolve()}', does not exist."
-        )
+        raise ValueError(f"The provided log_dir, '{log_dir_path.resolve()}', does not exist.")
     plot_dir_path = Path(plot_dir)
     plot_dir_path.mkdir(exist_ok=True, parents=True)
 
@@ -140,9 +136,7 @@ def sanity_check(
         Optional[bool], typer.Option(help=("Check also itwinai.tensorflow modules."))
     ] = False,
     all: Annotated[Optional[bool], typer.Option(help=("Check all modules."))] = False,
-    optional_deps: List[str] = typer.Option(
-        None, help="List of optional dependencies."
-    ),
+    optional_deps: List[str] = typer.Option(None, help="List of optional dependencies."),
 ):
     """Run sanity checks on the installation of itwinai and its dependencies by trying
     to import itwinai modules. By default, only itwinai core modules (neither torch, nor
@@ -169,21 +163,15 @@ def sanity_check(
         run_sanity_check(optional_deps)
 
 
-@app.command(
-    context_settings={"allow_extra_args": True, "ignore_unknown_options": True}
-)
+@app.command(context_settings={"allow_extra_args": True, "ignore_unknown_options": True})
 def exec_pipeline(
     # NOTE: The arguments below are not actually needed in this function, but they are here
     # to replicate Hydra's help page in Typer, making it easier for the users to use it.
     hydra_help: Annotated[bool, typer.Option(help="Show Hydra's help page")] = False,
-    version: Annotated[
-        bool, typer.Option(help="Show Hydra's version and exit")
-    ] = False,
+    version: Annotated[bool, typer.Option(help="Show Hydra's version and exit")] = False,
     cfg: Annotated[
         str,
-        typer.Option(
-            "--cfg", "-c", help="Show config instead of running [job|hydra|all]"
-        ),
+        typer.Option("--cfg", "-c", help="Show config instead of running [job|hydra|all]"),
     ] = "",
     resolve: Annotated[
         bool,
@@ -352,9 +340,7 @@ def mlflow_ui(
     """Visualize Mlflow logs."""
     import subprocess
 
-    subprocess.run(
-        f"mlflow ui --backend-store-uri {path} --port {port} --host {host}".split()
-    )
+    subprocess.run(f"mlflow ui --backend-store-uri {path} --port {port} --host {host}".split())
 
 
 @app.command()
@@ -399,8 +385,7 @@ def download_mlflow_data(
     """
 
     mlflow_credentials_set = (
-        "MLFLOW_TRACKING_USERNAME" in os.environ
-        and "MLFLOW_TRACKING_PASSWORD" in os.environ
+        "MLFLOW_TRACKING_USERNAME" in os.environ and "MLFLOW_TRACKING_PASSWORD" in os.environ
     )
     if not mlflow_credentials_set:
         print(
