@@ -322,8 +322,7 @@ class Logger(LogMixin):
             isinstance(self.log_on_workers, int)
             and (self.log_on_workers == -1 or self.log_on_workers == self.worker_rank)
         ) or (
-            isinstance(self.log_on_workers, list)
-            and self.worker_rank in self.log_on_workers
+            isinstance(self.log_on_workers, list) and self.worker_rank in self.log_on_workers
         )
         if not worker_ok:
             return False
@@ -366,9 +365,7 @@ class ConsoleLogger(Logger):
         log_on_workers: Union[int, List[int]] = 0,
     ) -> None:
         cl_savedir = Path(savedir) / "simple-logger"
-        super().__init__(
-            savedir=cl_savedir, log_freq=log_freq, log_on_workers=log_on_workers
-        )
+        super().__init__(savedir=cl_savedir, log_freq=log_freq, log_on_workers=log_on_workers)
 
     @check_not_initialized
     def create_logger_context(self, rank: int = 0):
@@ -534,9 +531,7 @@ class MLFlowLogger(Logger):
         log_on_workers: Union[int, List[int]] = 0,
     ):
         mfl_savedir = Path(savedir) / "mlflow"
-        super().__init__(
-            savedir=mfl_savedir, log_freq=log_freq, log_on_workers=log_on_workers
-        )
+        super().__init__(savedir=mfl_savedir, log_freq=log_freq, log_on_workers=log_on_workers)
         self.tracking_uri = tracking_uri
         self.run_description = run_description
         self.run_name = run_name
@@ -734,9 +729,7 @@ class WandBLogger(Logger):
         offline_mode: bool = False,
     ) -> None:
         wbl_savedir = Path(savedir) / "wandb"
-        super().__init__(
-            savedir=wbl_savedir, log_freq=log_freq, log_on_workers=log_on_workers
-        )
+        super().__init__(savedir=wbl_savedir, log_freq=log_freq, log_on_workers=log_on_workers)
         self.project_name = project_name
         self.offline_mode = offline_mode
 
@@ -861,17 +854,13 @@ class TensorBoardLogger(Logger):
         log_on_workers: Union[int, List[int]] = 0,
     ) -> None:
         tbl_savedir = Path(savedir) / "tensorboard"
-        super().__init__(
-            savedir=tbl_savedir, log_freq=log_freq, log_on_workers=log_on_workers
-        )
+        super().__init__(savedir=tbl_savedir, log_freq=log_freq, log_on_workers=log_on_workers)
         self.framework = framework
         if framework.lower() == "tensorflow":
             import tensorflow as tf
 
             self.tf = tf
-            self.writer = tf.summary.create_file_writer(
-                tbl_savedir.resolve().as_posix()
-            )
+            self.writer = tf.summary.create_file_writer(tbl_savedir.resolve().as_posix())
         elif framework.lower() == "pytorch":
             from torch.utils.tensorboard import SummaryWriter
 
@@ -1211,9 +1200,7 @@ class Prov4MLLogger(Logger):
             return
 
         if kind == "metric":
-            self.prov4ml.log_metric(
-                key=identifier, value=item, context=context, step=step
-            )
+            self.prov4ml.log_metric(key=identifier, value=item, context=context, step=step)
         elif kind == "flops_pb":
             model, batch = item
             self.prov4ml.log_flops_per_batch(
