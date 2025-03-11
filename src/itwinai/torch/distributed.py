@@ -621,6 +621,11 @@ class DeepSpeedStrategy(TorchDistributedStrategy):
             pass
 
         AutotuneCacheManager.put = noop_put
+        print(
+            "[WARNING]: Disabling Triton's AutotuneCacheManager's `put()` method to fix "
+            "bug with temporary files. This might be fixed in the future by DeepSpeed,"
+            "in which case our fix should be removed."
+        )
 
         self.deepspeed = deepspeed
         if not distributed_resources_available():

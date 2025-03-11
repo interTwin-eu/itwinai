@@ -76,7 +76,7 @@ class SlurmScriptBuilder:
         debug: bool = False,
         config_name: str = "config",
         config_path: str = ".",
-        pipe_key: str = "rnn_training_pipeline",
+        pipe_key: str = "training_pipeline",
         file_folder: Path = Path("slurm_scripts"),
     ):
         self.slurm_script_configuration = slurm_script_configuration

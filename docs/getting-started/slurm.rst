@@ -159,6 +159,9 @@ configuration file:
     time: 01:00:00
     partition: develbooster
 
+    # Which distributed strategy/framework to use, controlling how the communication
+    # between workers is implemented. The acronym 'ddp' refers to PyTorch's Distributed
+    # Data Parallel.
     dist_strat: ddp # "ddp", "deepspeed" or "horovod"
 
     std_out: slurm_job_logs/${dist_strat}.out
