@@ -100,7 +100,8 @@ def training_fn(
 
     for epoch in range(2):
         # IMPORTANT: set current epoch ID in distributed sampler
-        train_loader.sampler.set_epoch(epoch)
+        if strategy.is_distributed:
+            train_loader.sampler.set_epoch(epoch)
 
         for x, y in train_loader:
             # print(f"tensor to cuda:{device}")

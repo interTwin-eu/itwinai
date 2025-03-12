@@ -5,6 +5,7 @@
 #
 # Credit:
 # - Matteo Bunino <matteo.bunino@cern.ch> - CERN
+# - Linus Eickhoff <linus.maximilian.eickhoff@cern.ch> - CERN
 # --------------------------------------------------------------------------------------
 
 import abc
@@ -72,7 +73,8 @@ def detect_distributed_environment() -> ClusterEnvironment:
             local_world_size=os.getenv("LOCAL_WORLD_SIZE"),
             global_world_size=os.getenv("WORLD_SIZE"),
         )
-    elif os.getenv("OMPI_COMM_WORLD_SIZE") is not None:
+    # Fixes issue that OMPI_* env vars might be set despite using srun instead of mpirun
+    elif os.getenv("OMPI_COMM_WORLD_SIZE") > os.getenv("SLURM_NTASKS", 0):
         # Open MPI environment
         # https://docs.open-mpi.org/en/v5.0.x/tuning-apps/environment-var.html
         return ClusterEnvironment(
