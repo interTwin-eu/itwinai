@@ -754,10 +754,10 @@ class TorchTrainer(Trainer, LogMixin):
                 tune_config=self.ray_tune_config,
             )
 
-            result_grid = tuner.fit()
+            self.tune_result_grid = tuner.fit()
 
             # TODO: review returned objs
-            return train_dataset, validation_dataset, test_dataset, result_grid
+            return train_dataset, validation_dataset, test_dataset, self.tune_result_grid
         else:
             if self.ray_scaling_config:
                 py_logger.warning(

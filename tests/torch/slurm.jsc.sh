@@ -26,11 +26,11 @@
 #SBATCH --partition=develbooster
 #SBATCH --nodes=2
 #SBATCH --gpus-per-node=1
-#SBATCH --cpus-per-task=16
+#SBATCH --gres=gpu:1
+#SBATCH --cpus-per-task=48
 #SBATCH --ntasks-per-node=1
 # SBATCH --mem-per-gpu=10G
 # SBATCH --exclusive
-#SBATCH --gres=gpu:1
 
 echo "DEBUG: SLURM_SUBMIT_DIR: $SLURM_SUBMIT_DIR"
 echo "DEBUG: SLURM_JOB_ID: $SLURM_JOB_ID"
@@ -50,6 +50,10 @@ ml Python/3.11 HDF5 PnetCDF libaio mpi4py CMake cuDNN/8.9.5.29-CUDA-12
 source ~/.bashrc
 source $PYTHON_VENV/bin/activate
 
+export ITWINAI_LOG_LEVEL=DEBUG
+# Disable ANSI colors in log files
+export NO_COLOR=1
+
 # Setup env for distributed ML
 export CUDA_VISIBLE_DEVICES=$(seq -s, 0 $((SLURM_GPUS_PER_NODE - 1)))
 export OMP_NUM_THREADS=1
@@ -57,7 +61,25 @@ if [ $SLURM_CPUS_PER_GPU -gt 0 ] ; then
   export OMP_NUM_THREADS=$SLURM_CPUS_PER_GPU
 fi
 
+export NCCL_SOCKET_IFNAME=ib0   # Use infiniband interface ib0
+export NCCL_DEBUG=INFO          # Enables detailed logging
+export NCCL_P2P_DISABLE=0       # Ensure P2P communication is enabled
+export NCCL_IB_DISABLE=0        # Ensure InfiniBand is used if available
+export GLOO_SOCKET_IFNAME=ib0   # Ensure GLOO (fallback) also uses the correct interface
+
+# work-around for flipping links issue on JUWELS-BOOSTER
+export NCCL_IB_TIMEOUT=250
+export UCX_RC_TIMEOUT=16s
+export NCCL_IB_RETRY_CNT=50
+
+# other stuff I found...
+export UCX_TLS="^cma"
+export UCX_NET_DEVICES=mlx5_0:1,mlx5_1:1,mlx5_4:1,mlx5_5:1
+
 torchrun_launcher(){
+  # Stop Ray processes, if any
+  srun uv run ray stop
+
   srun --cpu-bind=none --ntasks-per-node=1 \
     bash -c "torchrun \
     --log_dir='logs_torchrun' \
@@ -71,68 +93,12 @@ torchrun_launcher(){
     --redirects=\$(((SLURM_NODEID)) && echo "3" || echo "1:3,2:3,3:3") \
     $1"
 }
-# Launch distribtued job in container with mpirun
-# NOTE: this was copied from the script for Vega and may not work here
-mpirun_launcher ()
-{
-  # https://doc.vega.izum.si/mpi/#multi-node-jobs
-  export UCX_TLS=self,sm,rc,ud
-  export OMPI_MCA_PML="ucx"
-  export OMPI_MCA_osc="ucx"
-
-  # Get the node list from Slurm
-  NODELIST=$(scontrol show hostnames "$SLURM_NODELIST")
-  SLOTS_PER_NODE=${SLURM_GPUS_PER_NODE:-1}
-
-  # Create the string for horovodrun format, e.g., "node1:4,node2:4,..."
-  HOSTFILE=""
-  for NODE in $NODELIST; do
-      if [ -z "$HOSTFILE" ]; then
-          # First node, no comma
-          HOSTFILE="$NODE:$SLOTS_PER_NODE"
-      else
-          # Subsequent nodes, prepend comma
-          HOSTFILE="$HOSTFILE,$NODE:$SLOTS_PER_NODE"
-      fi
-  done
-
-  # Display the generated hostfile (optional)
-  echo "Generated host string: $HOSTFILE"
-
-  # Calculate the total number of processes (GPUs in this case)
-  TOTAL_PROCESSES=$(($SLURM_GPUS_PER_NODE * $SLURM_NNODES))
-
-  # Calculate the total number of processes (GPUs in this case)
-  echo "SLURM_GPUS_PER_NODE: $SLURM_GPUS_PER_NODE"
-  echo "SLURM_NNODES: $SLURM_NNODES"
-  echo "TOTAL_MPI_PROCESSES: $TOTAL_PROCESSES"
-  echo "SLURM_CPUS_PER_GPU: $SLURM_CPUS_PER_GPU"
-  echo
-
-  # # Get OpenMPI installation prefixes (locally and in container)
-  # OMPI_CONTAINER="$(singularity exec ${CONTAINER_PATH} /bin/bash -c 'ompi_info' | grep Prefix | awk '{ print $2 }')"
-  # OMPI_HOST="$(ompi_info | grep Prefix | awk '{ print $2 }')"
-  # # If you want to explicitly mount host OpenMPI in container use --bind "${OMPI_HOST}":"${OMPI_CONTAINER}"  
-
-  # Avoid propagating PYTHONPATH to the singularity container, as it breaks the import of packages inside the container
-  # https://docs.sylabs.io/guides/4.1/user-guide/environment_and_metadata.html#environment-from-the-host
-  unset PYTHONPATH
-
-  # Create mpirun logs folder
-  mkdir -p "logs_mpirun/$SLURM_JOB_ID"
-
-  # https://doc.vega.izum.si/mpi/#multi-node-jobs
-  # "if [ $OMPI_COMM_WORLD_RANK  -ne 0 ]; then exec > "logs_mpirun/$SLURM_JOB_ID/rank.$OMPI_COMM_WORLD_RANK" 2>&1; fi; exec" redirects stdout and stderr of ranks != 0
-  # Logs of the main woker (rank == 0) will be incorportated into the standard SLURM out and err files
-  mpirun -H "${HOSTFILE}" -np $TOTAL_PROCESSES --oversubscribe -mca pml ucx -mca btl ^uct,tcp,openib,vader --bind-to core \
-    singularity exec --nv  \
-    "${CONTAINER_PATH}" /bin/bash -c \
-    'echo "Rank: $OMPI_COMM_WORLD_RANK, lrank: $OMPI_COMM_WORLD_LOCAL_RANK, Size: $OMPI_COMM_WORLD_SIZE, LD_LIBRARY_PATH=$LD_LIBRARY_PATH" &&  \
-    if [ $OMPI_COMM_WORLD_RANK  -ne 0 ]; then exec > "logs_mpirun/$SLURM_JOB_ID/rank.$OMPI_COMM_WORLD_RANK" 2>&1; fi; exec '"${1}"
-}
 
 srun_launcher ()
 {
+  # Stop Ray processes, if any
+  srun uv run ray stop
+
   # Create mpirun logs folder
   mkdir -p "logs_srun/$SLURM_JOB_ID"
 
@@ -182,7 +148,7 @@ ray_launcher(){
       --num-cpus "$num_cpus" --num-gpus "$num_gpus"  --block &
 
   # Wait for a few seconds to ensure that the head node has fully initialized.
-  sleep 1
+  sleep 5
 
   echo HEAD node started.
 
