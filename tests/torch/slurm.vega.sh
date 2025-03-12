@@ -20,17 +20,18 @@
 #SBATCH --mail-type=ALL
 #SBATCH --output=job.out
 #SBATCH --error=job.err
-#SBATCH --time=00:10:00
+#SBATCH --time=00:20:00
 
 # Resources allocation
 #SBATCH --partition=gpu
 #SBATCH --nodes=2
 #SBATCH --gpus-per-node=4
-#SBATCH --cpus-per-task=16
+#SBATCH --gres=gpu:4
+#SBATCH --cpus-per-task=48
 #SBATCH --ntasks-per-node=1
 # SBATCH --mem-per-gpu=10G
 # SBATCH --exclusive
-#SBATCH --gres=gpu:4
+
 
 echo "DEBUG: SLURM_SUBMIT_DIR: $SLURM_SUBMIT_DIR"
 echo "DEBUG: SLURM_JOB_ID: $SLURM_JOB_ID"
@@ -43,15 +44,18 @@ echo "DEBUG: SLURMD_NODENAME: $SLURMD_NODENAME"
 echo "DEBUG: CUDA_VISIBLE_DEVICES: $CUDA_VISIBLE_DEVICES"
 
 ml --force purge
-# ml Python CMake/3.24.3-GCCcore-11.3.0 mpi4py OpenMPI/4.1.5-GCC-12.3.0 CUDA/12.3
-ml Python/3.11.5-GCCcore-13.2.0 CMake/3.24.3-GCCcore-11.3.0 OpenMPI/4.1.5-GCC-12.3.0 CUDA/12.3
-ml GCCcore/11.3.0 NCCL cuDNN/8.9.7.29-CUDA-12.3.0
-ml UCX-CUDA/1.15.0-GCCcore-13.2.0-CUDA-12.3.0
-
-# ml Python
+ml Python/3.11.5-GCCcore-13.2.0 
+ml CMake/3.24.3-GCCcore-11.3.0
+ml mpi4py
+ml OpenMPI
+ml CUDA/12.3
+ml GCCcore/11.3.0
+ml NCCL
+ml cuDNN/8.9.7.29-CUDA-12.3.0
+ml UCX-CUDA/1.15.0-GCCcore-13.2.0-CUDA-12.3.0 # this is needed by horovod!
 module unload OpenSSL
 
-source ~/.bashrc
+# source ~/.bashrc
 # source ../../.venv-pytorch/bin/activate
 
 # Setup env for distributed ML
@@ -61,12 +65,25 @@ if [ $SLURM_CPUS_PER_GPU -gt 0 ] ; then
   export OMP_NUM_THREADS=$SLURM_CPUS_PER_GPU
 fi
 
+export ITWINAI_LOG_LEVEL=DEBUG
+# Disable ANSI colors in log files
+export NO_COLOR=1
+
+export NCCL_SOCKET_IFNAME=ib0   # Use infiniband interface ib0
+export NCCL_DEBUG=INFO          # Enables detailed logging
+export NCCL_P2P_DISABLE=0       # Ensure P2P communication is enabled
+export NCCL_IB_DISABLE=0        # Ensure InfiniBand is used if available
+export GLOO_SOCKET_IFNAME=ib0   # Ensure GLOO (fallback) also uses the correct interface
+
 # Launch distributed job in container with torchrun
 torchrun_launcher ()
 {
   # Avoid propagating PYTHONPATH to the singularity container, as it breaks the import of packages inside the container
   # https://docs.sylabs.io/guides/4.1/user-guide/environment_and_metadata.html#environment-from-the-host
   unset PYTHONPATH
+
+  # Stop Ray processes, if any
+  singularity exec $CONTAINER_PATH /bin/bash -c 'ray stop'
 
   # --no-python is needed when running commands which are not python scripts (e.g., pytest, itwinai)
   # --redirects=\$(((SLURM_NODEID)) && echo "3" || echo "1:3,2:3,3:3"): redirect stdout and stderr to 
@@ -89,6 +106,10 @@ torchrun_launcher ()
 # Launch distribtued job in container with mpirun
 mpirun_launcher ()
 {
+
+  # Stop Ray processes, if any
+  singularity exec $CONTAINER_PATH /bin/bash -c 'ray stop'
+
   # https://doc.vega.izum.si/mpi/#multi-node-jobs
   export UCX_TLS=self,sm,rc,ud
   export OMPI_MCA_PML="ucx"
@@ -152,6 +173,9 @@ srun_launcher ()
   # https://docs.sylabs.io/guides/4.1/user-guide/environment_and_metadata.html#environment-from-the-host
   unset PYTHONPATH
 
+  # Stop Ray processes, if any
+  singularity exec $CONTAINER_PATH /bin/bash -c 'ray stop'
+
   # https://doc.vega.izum.si/mpi/#multi-node-jobs
   export UCX_TLS=self,sm,rc,ud
   export OMPI_MCA_PML="ucx"
@@ -193,8 +217,7 @@ ray_launcher ()
   export RAY_DEDUP_LOGS=0
   export RAY_USAGE_STATS_DISABLE=1
 
-  # Disable colored output
-  export NO_COLOR=1
+  # Disable colors in output
   export RAY_COLOR_PREFIX=0
 
   #########   Set up Ray cluster   ########
@@ -213,12 +236,12 @@ ray_launcher ()
   # `srun` submits a job that runs on the head node to start the Ray head with the specified 
   # number of CPUs and GPUs.
   srun --nodes=1 --ntasks=1 -w "$head_node" \
-    singularity exec --nv $CONTAINER_PATH \
+    singularity exec --nv $CONTAINER_PATH /bin/bash -c " \
       ray start --head --node-ip-address="$head_node" --port=$port \
-      --num-cpus "$SLURM_CPUS_PER_TASK" --num-gpus "$SLURM_GPUS_PER_NODE" --block &
+      --num-cpus "$SLURM_CPUS_PER_TASK" --num-gpus "$SLURM_GPUS_PER_NODE" --block &"
 
   # Wait for a few seconds to ensure that the head node has fully initialized.
-  sleep 2
+  sleep 5
 
   echo HEAD node started.
 
@@ -232,9 +255,9 @@ ray_launcher ()
       # Use srun to start Ray on the worker node and connect it to the head node.
       # The `--address` option tells the worker node where to find the head node.
       srun --nodes=1 --ntasks=1 -w "$node_i" \
-        singularity exec --nv $CONTAINER_PATH \
+        singularity exec --nv $CONTAINER_PATH /bin/bash -c "\
           ray start --address "$head_node":"$port" --redis-password='5241580000000000' \
-          --num-cpus "$SLURM_CPUS_PER_TASK" --num-gpus "$SLURM_GPUS_PER_NODE" --block &
+          --num-cpus "$SLURM_CPUS_PER_TASK" --num-gpus "$SLURM_GPUS_PER_NODE" --block &"
       
       sleep 5 # Wait before starting the next worker to prevent race conditions.
   done

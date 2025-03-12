@@ -34,36 +34,36 @@ export NO_COLOR=1
 
 export DIST_MODE="ray"
 export RUN_NAME="ray-itwinai"
-export COMMAND='pytest -v -m pytest -m ray_dist'
+export COMMAND='pytest -v -m ray_dist test_tuning.py'
 sbatch  \
     --job-name="$RUN_NAME-n$N" \
     --output="logs_slurm/job-$RUN_NAME-n$N.out" \
     --error="logs_slurm/job-$RUN_NAME-n$N.err" \
     slurm.jsc.sh
 
-export DIST_MODE="ddp"
-export RUN_NAME="ddp-itwinai"
-export COMMAND='pytest -v -m torch_dist '
-sbatch  \
-    --job-name="$RUN_NAME-n$N" \
-    --output="logs_slurm/job-$RUN_NAME-n$N.out" \
-    --error="logs_slurm/job-$RUN_NAME-n$N.err" \
-    slurm.jsc.sh
+# export DIST_MODE="ddp"
+# export RUN_NAME="ddp-itwinai"
+# export COMMAND='pytest -v -m torch_dist '
+# sbatch  \
+#     --job-name="$RUN_NAME-n$N" \
+#     --output="logs_slurm/job-$RUN_NAME-n$N.out" \
+#     --error="logs_slurm/job-$RUN_NAME-n$N.err" \
+#     slurm.jsc.sh
 
-export DIST_MODE="deepspeed"
-export RUN_NAME="ds-itwinai"
-export COMMAND='pytest -v -m deepspeed_dist '
-sbatch  \
-    --job-name="$RUN_NAME-n$N" \
-    --output="logs_slurm/job-$RUN_NAME-n$N.out" \
-    --error="logs_slurm/job-$RUN_NAME-n$N.err" \
-    slurm.jsc.sh
+# export DIST_MODE="deepspeed"
+# export RUN_NAME="ds-itwinai"
+# export COMMAND='pytest -v -m deepspeed_dist '
+# sbatch  \
+#     --job-name="$RUN_NAME-n$N" \
+#     --output="logs_slurm/job-$RUN_NAME-n$N.out" \
+#     --error="logs_slurm/job-$RUN_NAME-n$N.err" \
+#     slurm.jsc.sh
 
-export DIST_MODE="horovod"
-export RUN_NAME="horovod-itwinai"
-export COMMAND="pytest -v -m horovod_dist "
-sbatch \
-    --job-name="$RUN_NAME-n$N" \
-    --output="logs_slurm/job-$RUN_NAME-n$N.out" \
-    --error="logs_slurm/job-$RUN_NAME-n$N.err" \
-    slurm.jsc.sh
+# export DIST_MODE="horovod"
+# export RUN_NAME="horovod-itwinai"
+# export COMMAND="pytest -v -m horovod_dist "
+# sbatch \
+#     --job-name="$RUN_NAME-n$N" \
+#     --output="logs_slurm/job-$RUN_NAME-n$N.out" \
+#     --error="logs_slurm/job-$RUN_NAME-n$N.err" \
+#     slurm.jsc.sh
