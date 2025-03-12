@@ -380,7 +380,8 @@ def download_mlflow_data(
     """Download metrics data from MLFlow experiments and save to a CSV file.
 
     Requires MLFlow authentication if the server is configured to use it.
-    Authentication must be provided via environment variables
+    Authentication must be provided via the following environment variables:
+    'MLFLOW_TRACKING_USERNAME' and 'MLFLOW_TRACKING_PASSWORD'.
     """
 
     mlflow_credentials_set = (
