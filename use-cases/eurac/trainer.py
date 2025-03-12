@@ -108,7 +108,9 @@ class RNNDistributedTrainer(TorchTrainer):
     ) -> Tuple[Dataset, Dataset, Dataset, Any]:
         self.init_hython_trainer()
 
-        return super().execute(train_dataset, validation_dataset, test_dataset)
+        train_dataset, validation_dataset, test_dataset, model = super().execute(train_dataset, validation_dataset, test_dataset)
+
+        return test_dataset, self.test_loader, self.model, self.strategy, self.config
 
     def init_hython_trainer(self) -> None:
         self.config.loss_fn = instantiate({"loss_fn": self.config.loss_fn})["loss_fn"]
@@ -333,6 +335,13 @@ class RNNDistributedTrainer(TorchTrainer):
             sampling_kwargs=sampling_kwargs,
         )
 
+        test_sampler_builder = SamplerBuilder(
+            test_dataset,
+            sampling="sequential",
+            processing=processing,
+            sampling_kwargs=sampling_kwargs,
+        )
+
         train_sampler = train_sampler_builder.get_sampler()
         val_sampler = val_sampler_builder.get_sampler()
 
@@ -349,6 +358,17 @@ class RNNDistributedTrainer(TorchTrainer):
         if validation_dataset is not None:
             self.val_loader = self.strategy.create_dataloader(
                 dataset=validation_dataset,
+                batch_size=self.config.batch_size,
+                num_workers=self.config.num_workers_dataloader,
+                pin_memory=self.config.pin_gpu_memory,
+                generator=self.torch_rng,
+                sampler=val_sampler,
+                drop_last=True,
+            )
+
+        if test_dataset is not None:
+            self.test_loader = self.strategy.create_dataloader(
+                dataset=test_dataset,
                 batch_size=self.config.batch_size,
                 num_workers=self.config.num_workers_dataloader,
                 pin_memory=self.config.pin_gpu_memory,

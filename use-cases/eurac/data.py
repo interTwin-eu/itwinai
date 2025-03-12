@@ -30,8 +30,10 @@ class RNNDatasetGetterAndPreprocessor(DataSplitter):
         head_model_inputs: List[str] | None = None,
         train_temporal_range: List[str] = None,
         valid_temporal_range: List[str] = None,
+        test_temporal_range: List[str] = None,
         train_downsampler: Dict | None = None,
         valid_downsampler: Dict | None = None,
+        test_downsampler: Dict | None = None,
         downsampling_temporal_dynamic: bool | None = None,
         min_sample_target: int | None = None,
         seq_length: int | None = None
@@ -39,7 +41,7 @@ class RNNDatasetGetterAndPreprocessor(DataSplitter):
         self.save_parameters(**self.locals2params(locals()))
 
     @monitor_exec
-    def execute(self) -> Tuple[WflowSBM, WflowSBM, None]:
+    def execute(self) -> Tuple[WflowSBM, WflowSBM, WflowSBM | None]:
         cfg = Config()
 
         for i in self.parameters:
@@ -51,4 +53,9 @@ class RNNDatasetGetterAndPreprocessor(DataSplitter):
 
         val_dataset = get_dataset(cfg.dataset)(cfg, scaler, False, "valid")
 
-        return train_dataset, val_dataset, None
+        test_dataset = None
+
+        if "cal" in cfg.hython_trainer:
+            test_dataset = get_dataset(cfg.dataset)(cfg, scaler, False, "test")
+            
+        return train_dataset, val_dataset, test_dataset

@@ -6,9 +6,9 @@ experiment_run: "run_0"
 # here a new directory <experiment_name>_<experiment_run> is created
 work_dir: /p/scratch/intertwin/datasets/eurac/model
 
-train_temporal_range: ["2017-01-01", "2017-12-30"]
-valid_temporal_range: ["2017-01-01", "2017-12-30"]
-test_temporal_range: ["2017-01-01", "2017-12-31"]
+train_temporal_range: ["2017-01-01", "2017-03-30"]
+valid_temporal_range: ["2017-01-01", "2017-03-30"]
+test_temporal_range: ["2017-01-01", "2017-03-31"]
 
 seed: 10 
 
@@ -42,7 +42,7 @@ model_head: CudaLSTM # model class
 # model_head_dir: training_run_0 # directory to load the surrogate model, relative to work_dir.
 
 model_head_hidden_size: 64
-model_head_dropout: 0.1
+model_head_dropout: 0.2
 model_lstm_layers: 1
 model_lstm_batch_norm: False
 
@@ -73,11 +73,12 @@ lr_scheduler:
 
 learning_rate: 0.001
 
-batch: 256
+batch: 512
 
 epochs: 1
 
-gradient_clip: null
+gradient_clip:
+    max_norm: 1
 
 target_weights: even # null, even, or dict
 
@@ -91,11 +92,13 @@ train_downsampler:
   frac_time: 0.1
   frac_space: 0.1
 
-valid_downsampler: #None
+valid_downsampler:
   _target_: hython.sampler.downsampler.RandomDownsampler
   frac_time: 0.05
   frac_space: 0.01
 
+
+test_downsampler: null
 
 # === Data ===
 
@@ -219,6 +222,7 @@ training_pipeline:
     
       train_temporal_range: ${train_temporal_range}
       valid_temporal_range: ${valid_temporal_range}
+      test_temporal_range: ${test_temporal_range}
 
       dataset: ${dataset}
       data_lazy_load: ${data_lazy_load}
@@ -233,6 +237,7 @@ training_pipeline:
 
       train_downsampler: ${train_downsampler}
       valid_downsampler: ${valid_downsampler}
+      test_downsampler: ${test_downsampler}
 
       min_sample_target: ${min_sample_target}
     - _target_: trainer.RNNDistributedTrainer
@@ -244,7 +249,7 @@ training_pipeline:
         work_dir: ${work_dir}
         batch_size: ${batch}
         learning_rate: ${learning_rate}
-        num_workers_dataloader: 1
+        num_workers_dataloader: 5
         hython_trainer: ${hython_trainer}
 
         
@@ -312,3 +317,8 @@ training_pipeline:
           #   run_name: ${experiment_run}
           #   log_freq: batch
           #   savedir: /home/iferrario/dev/hython/hython/itwinai/mllogs
+    - _target_: inference.ParameterInference
+      test_dataset: null
+      test_dataloader: null
+      model: null
+      scaling_static_range: ${scaling_static_range}

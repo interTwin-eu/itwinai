@@ -56,15 +56,16 @@ lr_scheduler:
   factor: 0.5
   patience: 10
 
-seq_length: 180
+seq_length: 210
 
 learning_rate: 0.001
 
 batch: 512
 
-epochs: 30
+epochs: 1
 
-gradient_clip: null
+gradient_clip:
+    max_norm: 1
 
 target_weights: even # null, even, or dict
 
@@ -78,12 +79,12 @@ predict_steps: 0 # all # (prediction: 0 = t ), ( forecasts: 1 = t+1, 2 = t + 2)
 train_downsampler: #null
   _target_: hython.sampler.downsampler.RandomDownsampler
   frac_time: null
-  frac_space: 0.01
+  frac_space: 0.1
 
 valid_downsampler: #null
   _target_: hython.sampler.downsampler.RandomDownsampler
   frac_time: null
-  frac_space: 0.01
+  frac_space: 0.1
 
 test_downsampler: null
 
@@ -97,6 +98,8 @@ temporal_subset: [200, 200]
 # === Data ===
 
 data_lazy_load: False
+
+num_workers_dataloader: 5
 
 dataset: WflowSBM
 
@@ -133,7 +136,13 @@ mask_variables:
 # Scaling
 
 scaling_variant: minmax
-scaling_use_cached: True
+scaling_use_cached: False
+
+scaling_static_range:
+    thetaS: [0.25, 0.95]
+    thetaR: [0.01, 0.25]
+    c: [1, 20]
+    KsatVer: [1, 10000]
 
 # ==== MODEL LOGGER ========
 #mlflow: 
@@ -179,6 +188,7 @@ training_pipeline:
       data_source: ${data_source}
       scaling_variant: ${scaling_variant}
       scaling_use_cached: ${scaling_use_cached}
+      scaling_static_range: ${scaling_static_range}
       experiment_name: ${experiment_name}
       experiment_run: ${experiment_run}
       work_dir: ${work_dir}
@@ -193,7 +203,7 @@ training_pipeline:
         work_dir: ${work_dir}
         batch_size: ${batch}
         learning_rate: ${learning_rate}
-        num_workers_dataloader: 1
+        num_workers_dataloader: ${num_workers_dataloader}
         hython_trainer: ${hython_trainer}
         #temporal_downsampling_dynamic: ${downsampling_temporal_dynamic}
         temporal_downsampling: ${temporal_downsampling}
