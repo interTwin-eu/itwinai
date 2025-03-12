@@ -37,6 +37,16 @@ export CONTAINER_PATH="container1.sif"
 # Disable pytest ANSI coloring
 export NO_COLOR=1
 
+export DIST_MODE="ray"
+export RUN_NAME="ray-itwinai"
+export COMMAND='pytest -v -m ray_dist /app/tests'
+sbatch  \
+    --job-name="$RUN_NAME-n$N" \
+    --output="logs_slurm/job-$RUN_NAME-n$N.out" \
+    --error="logs_slurm/job-$RUN_NAME-n$N.err" \
+    slurm.vega.sh
+
+
 export DIST_MODE="ddp"
 export RUN_NAME="ddp-itwinai"
 export COMMAND='pytest -v -m torch_dist /app/tests'

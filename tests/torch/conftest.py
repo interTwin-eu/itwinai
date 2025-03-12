@@ -23,6 +23,31 @@ from itwinai.torch.distributed import (
     TorchDistributedStrategy,
 )
 
+import torch.nn.functional as F
+from torch import nn
+
+
+class Net(nn.Module):
+    def __init__(self):
+        super(Net, self).__init__()
+        self.conv1 = nn.Conv2d(1, 10, kernel_size=5)
+        self.conv2 = nn.Conv2d(10, 20, kernel_size=5)
+        self.conv2_drop = nn.Dropout2d()
+        self.fc1 = nn.Linear(320, 50)
+        self.fc2 = nn.Linear(50, 10)
+
+    def forward(self, x):
+        x = F.relu(F.max_pool2d(self.conv1(x), 2))
+        x = F.relu(F.max_pool2d(self.conv2_drop(self.conv2(x)), 2))
+        x = x.view(-1, 320)
+        x = F.relu(self.fc1(x))
+        x = F.dropout(x, training=self.training)
+        x = self.fc2(x)
+        return F.log_softmax(x, dim=0)
+
+
+MNIST_PATH = "mnist_dataset"
+
 
 @pytest.fixture(scope="package")
 def ddp_strategy() -> Generator[TorchDistributedStrategy, None, None]:
@@ -67,3 +92,38 @@ def shared_tmp_path():
         Path(os.environ.get("SHARED_FS_PATH")).mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(dir=os.environ.get("SHARED_FS_PATH", "/tmp")) as tmp_path:
         yield Path(tmp_path)
+
+
+@pytest.fixture(scope="module")
+def mnist_datasets():
+    """Parse MNIST datasets."""
+
+    import logging
+    import os
+    from torchvision import datasets, transforms
+    if not os.environ.get("MNIST_PATH"):
+        logging.warning("MNIST dataset not found locally. I have to download it!")
+
+    dataset_path = os.environ.get("MNIST_PATH", MNIST_PATH)
+    train_set = datasets.MNIST(
+        dataset_path,
+        train=True,
+        download=True,
+        transform=transforms.Compose(
+            [transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))]
+        ),
+    )
+    val_set = datasets.MNIST(
+        dataset_path,
+        train=False,
+        download=False,
+        transform=transforms.Compose(
+            [transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))]
+        ),
+    )
+    return train_set, val_set
+
+
+@pytest.fixture(scope="function")
+def mnist_net():
+    return Net()
