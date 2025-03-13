@@ -200,6 +200,9 @@ training_pipeline:
       valid_downsampler: ${valid_downsampler}
     - _target_: trainer.RNNDistributedTrainer
       model: ${model}
+      measure_gpu_data: False
+      measure_communication_overhead: False
+      measure_epoch_time: False
       epochs: ${epochs}
       strategy: ${strategy}
       config:
@@ -243,8 +246,6 @@ training_pipeline:
         # model logger
         model_logger: ${model_logger}
 
-      strategy: ${strategy}
-      epochs: ${epochs}
       random_seed: ${seed}
       profiling_wait_epochs: 1
       profiling_warmup_epochs: 1
