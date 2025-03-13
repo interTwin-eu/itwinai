@@ -1,0 +1,43 @@
+# --------------------------------------------------------------------------------------
+# Part of the interTwin Project: https://www.intertwin.eu/
+#
+# Created by: Oleksandr Krochak - Forschungzentrum Juelich
+# --------------------------------------------------------------------------------------
+
+training_pipeline:
+  _target_: itwinai.pipeline.Pipeline
+  steps:
+    pipeline_step:
+      _target_: pipelines.pipelinePulsarInterface
+      image_to_mask_network: 
+        _target_: src.pulsar_analysis.neural_network_models.UNet
+      trained_image_to_mask_network_path: './models/trained_UNet_test_v0.pt'
+      mask_filter_network: 
+        _target_: src.pulsar_analysis.neural_network_models.FilterCNN
+      trained_mask_filter_network_path: './models/trained_Filter_test_v0.pt'
+      signal_to_label_network: 
+        _target_: src.pulsar_analysis.neural_network_models.CNN1D
+      trained_signal_to_label_network: './models/trained_CNN1D_test_v0.pt'
+    plot_step:
+      _target_: pipelines.pipelinePulsarInterface.test_on_real_data_from_npy_files
+      img_dir: './test_data/joint_dataset_8_classes_real_remix_128x128.npy' 
+      lbl_dir: './test_data/joint_dataset_8_classes_real_remix_labels.npy' 
+      offset: 0
+      size: 500
+
+# ppl1f = PipelineImageToFilterDelGraphtoIsPulsar(
+#                     image_to_mask_network=UNet(),
+#                     trained_image_to_mask_network_path='./models/trained_UNet_test_v0.pt',
+#                     mask_filter_network=FilterCNN(),
+#                     trained_mask_filter_network_path='./models/trained_Filter_test_v0.pt',
+#                     signal_to_label_network=CNN1D(),
+#                     trained_signal_to_label_network='./models/trained_CNN1D_test_v0.pt'
+#                     )
+
+# ppl2f = PipelineImageToFilterToCCtoLabels(
+#                     image_to_mask_network=UNet(),
+#                     trained_image_to_mask_network_path='./models/trained_UNet_test_v0.pt',
+#                     mask_filter_network=FilterCNN(),
+#                     trained_mask_filter_network_path='./models/trained_Filter_test_v0.pt',
+#                     min_cc_size_threshold=5
+#                     )

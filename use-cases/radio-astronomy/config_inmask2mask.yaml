@@ -7,6 +7,11 @@
 num_payloads: 10
 tag: train_v0_
 
+mask_maker_dict: {
+    model: UNet,
+    model_path: ./models/trained_UNet_test_v0.pt
+    }
+
 image_tag: train_v0_*_payload_detected.json
 image_directory: syn_payload/
 
@@ -16,7 +21,7 @@ learning_rate: 0.001
 
 training_pipeline:
   _target_: itwinai.pipeline.Pipeline
-  steps:
+  steps:        
     dataloading_step:
       _target_: data.SynthesizeData
       tag: ${tag}
@@ -28,6 +33,7 @@ training_pipeline:
       image_directory: ${image_directory}
       mask_tag: ${mask_tag}
       mask_directory: ${mask_directory}
+      mask_maker_engine: ${mask_maker_dict}
       do_rot_phase_avg: 1
       do_resize: 1
       resize_size: [128,128]
@@ -42,14 +48,14 @@ training_pipeline:
     training_step:
       _target_: trainer.PulsarTrainer
       model:
-       _target_: src.pulsar_analysis.neural_network_models.UNet
+       _target_: src.pulsar_analysis.neural_network_models.FilterCNN
       loss:
         _target_: src.pulsar_analysis.neural_network_models.WeightedBCELoss
-        pos_weight: 3
+        pos_weight: 1
         neg_weight: 1
-      num_epochs: 10
-      store_trained_model_at: ./models/trained_UNet_test_v0.pt
-      name: ImgToMaskTrainer
+      num_epochs: 3
+      store_trained_model_at: ./models/trained_Filter_test_v0.pt
+      name: InmaskToMaskTrainer
       config:
         generator: simple #unet
         optimizer: adam

@@ -23,9 +23,7 @@ training_pipeline:
       num_payloads: ${num_payloads}
       name: syntheticData
     dataset_step:  
-      _target_: data.GenericDataset
-      image_tag: ${image_tag}
-      image_directory: ${image_directory}
+      _target_: data.SignalDataset
       mask_tag: ${mask_tag}
       mask_directory: ${mask_directory}
       do_rot_phase_avg: 1
@@ -42,13 +40,13 @@ training_pipeline:
     training_step:
       _target_: trainer.PulsarTrainer
       model:
-       _target_: src.pulsar_analysis.neural_network_models.UNet
+       _target_: src.pulsar_analysis.neural_network_models.CNN1D
       loss:
         _target_: src.pulsar_analysis.neural_network_models.WeightedBCELoss
-        pos_weight: 3
+        pos_weight: 1
         neg_weight: 1
-      num_epochs: 10
-      store_trained_model_at: ./models/trained_UNet_test_v0.pt
+      num_epochs: 20
+      store_trained_model_at: ./models/trained_CNN1D_test_v0.pt
       name: ImgToMaskTrainer
       config:
         generator: simple #unet
