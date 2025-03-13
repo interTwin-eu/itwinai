@@ -66,13 +66,15 @@ class TrainingConfiguration(Configuration):
     #: Defaults to 4.
     num_workers_dataloader: int = 4
     #: Loss function. Defaults to 'cross_entropy'
-    loss: Literal["mse", "nllloss", "cross_entropy", "l1", "l2"] = "cross_entropy"
+    loss: Literal["mse", "nllloss", "cross_entropy", "l1", "l2", "bceloss"] = "cross_entropy"
     #: Name of the optimizer to use. Defaults to 'adam'.
-    optimizer: Literal["adadelta", "adam", "rmsprop", "sgd"] = "adam"
+    optimizer: Literal["adadelta", "adam", "adamw", "rmsprop", "sgd"] = "adam"
     #: Learning rate used by the optimizer. Defaults to 1e-3.
     optim_lr: float = 1e-3
     #: Momentum used by some optimizers (e.g., SGD). Defaults to 0.9.
     optim_momentum: float = 0.9
+    #: Betas of Adam optimizer (if used). Defaults to (0.9, 0.999).
+    optim_betas: Iterable[float] = (0.9, 0.999)
     #: Weight decay parameter for the optimizer. Defaults to 0.
     optim_weight_decay: float = 0.0
     #: Learning rate scheduler algorithm. Defaults to None (not used).
