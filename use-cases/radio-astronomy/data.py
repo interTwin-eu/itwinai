@@ -186,7 +186,13 @@ class GenericDataset(Dataset):
         )
         image_mask_pair.plot()
 
+    def execute(self) -> None:
+        """Load the dataset from disk and return it.
 
+        Returns:
+            Any: The dataset.
+        """
+        return self
 
 class SignalDataset(SignalToLabelDataset):
     # this class is defined to provide a new init method for 

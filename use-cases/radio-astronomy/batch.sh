@@ -34,4 +34,7 @@ source ~/.bashrc
 
 # ON LOGIN NODE download datasets:
 source /p/project1/intertwin/krochak1/itwinai/.venv/bin/activate
-srun uv run dataloader.py
+
+export HYDRA_FULL_ERROR=1
+
+itwinai exec-pipeline > log 

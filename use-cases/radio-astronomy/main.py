@@ -12,7 +12,7 @@ matplotlib.use('MacOSX')
 
 # itwinai integration
 from trainer import PulsarTrainer
-from dataloader import GenericDataset, DatasetSplitter, SignalDataset
+from data import GenericDataset, DatasetSplitter, SignalDataset
 
 
 mask_maker_dict = {
