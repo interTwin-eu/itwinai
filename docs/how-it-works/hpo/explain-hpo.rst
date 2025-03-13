@@ -54,6 +54,27 @@ A **trial** is the evaluation of one set of hyperparameters. Depending on whethe
 using a scheduler, this could be the entire training run, so as many epochs as you 
 have specified, or it could be terminated early and thus run for fewer epochs.
 
+Example of HPO on the EURAC use case
+------------------------------------
+
+The following is an example of HPO on the EURAC use case. We asked a domain expert
+to
+
+1. suggest their best guess for high-performing hyperparameters
+2. suggest an appropriate hyperparameter search space for HPO
+
+We then ran the parameters that the developer thought would perform best as an isolated
+trial and performed HPO using random search, running 28 trials of 40 epochs each within
+the suggested search space. You can see the resulting validation losses in the following
+plot:
+
+.. image:: images/hpo_fig_eurac.svg
+   :alt: HPO results on the EURAC use case
+   :align: center
+
+As we can see, the best HPO run is considerably better, achieving a validation loss
+three times lower than the developer's suggested parameters. This shows that
+even a domain expert may miss substantial performance gains by not utilizing HPO. 
 
 When to Use HPO and Key Considerations
 ---------------------------------------
