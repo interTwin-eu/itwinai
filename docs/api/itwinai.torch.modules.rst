@@ -20,6 +20,15 @@ distributed.py
    :member-order: bysource
 
 
+gan.py
+++++++++++++++
+.. automodule:: itwinai.torch.gan
+   :members:
+   :undoc-members:
+   :show-inheritance:
+   :member-order: bysource
+
+
 inference.py
 ++++++++++++
 .. automodule:: itwinai.torch.inference

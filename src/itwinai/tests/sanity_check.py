@@ -39,6 +39,7 @@ core_modules = [
 torch_modules = [
     "itwinai.torch",
     "itwinai.torch.data",
+    "itwinai.torch.gan",
     "itwinai.torch.models",
     "itwinai.torch.models.mnist",
     "itwinai.torch.config",
