@@ -15,6 +15,8 @@ from typing import Generator
 
 import pytest
 import torch
+import torch.nn.functional as F
+from torch import nn
 
 from itwinai.torch.distributed import (
     DeepSpeedStrategy,
@@ -22,9 +24,6 @@ from itwinai.torch.distributed import (
     TorchDDPStrategy,
     TorchDistributedStrategy,
 )
-
-import torch.nn.functional as F
-from torch import nn
 
 
 class Net(nn.Module):
@@ -101,6 +100,7 @@ def mnist_datasets():
     import logging
     import os
     from torchvision import datasets, transforms
+
     if not os.environ.get("MNIST_PATH"):
         logging.warning("MNIST dataset not found locally. I have to download it!")
 
