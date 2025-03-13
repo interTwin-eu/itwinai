@@ -25,8 +25,8 @@
 # Resources allocation
 #SBATCH --partition=develbooster
 #SBATCH --nodes=2
-#SBATCH --gpus-per-node=1
-#SBATCH --gres=gpu:1
+#SBATCH --gpus-per-node=2
+#SBATCH --gres=gpu:2
 #SBATCH --cpus-per-task=48
 #SBATCH --ntasks-per-node=1
 # SBATCH --mem-per-gpu=10G
