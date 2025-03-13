@@ -53,7 +53,12 @@ training_pipeline:
       name: Splitter
     training_step:
       _target_: trainer.PulsarTrainer
-      model: UNet
+      model:
+       _target_: src.pulsar_analysis.neural_network_models.UNet
+      loss:
+        _target_: src.pulsar_analysis.neural_network_models.WeightedBCELoss
+        pos_weight: 3
+        neg_weight: 1
       num_epochs: 10
       store_trained_model_at: ./models/trained_UNet_test_v0.pt
       name: ImgToMaskTrainer
@@ -62,7 +67,6 @@ training_pipeline:
         optimizer: adam
         batch_size: 10 # Set to one because "chunk_size" implicitly decides this
         optim_lr: ${learning_rate}
-        loss: l1
         save_best: 1
         shuffle_train: 1
 
