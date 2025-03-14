@@ -9,14 +9,15 @@
 
 """Default configuration"""
 
-from typing import Iterable, Literal, Tuple
+from typing import Any, Dict, Iterable, Literal, Tuple
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class Configuration(BaseModel):
     """Base configuration class."""
 
+    __pydantic_extra__: Dict[str, Any] = Field(default_factory=dict)
     model_config = ConfigDict(extra="allow")
 
     def __getitem__(self, idx):

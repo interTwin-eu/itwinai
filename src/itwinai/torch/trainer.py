@@ -67,8 +67,12 @@ if TYPE_CHECKING:
 py_logger = logging.getLogger(__name__)
 
 
-def _get_tuning_metric_name(tune_config: TuneConfig):
+def _get_tuning_metric_name(tune_config: TuneConfig | None) -> str:
     """Extracts the metric name from TuneConfig or scheduler in a generic way."""
+    DEFAULT_NAME = "loss"
+
+    if not tune_config:
+        return DEFAULT_NAME
 
     # Try to get from TuneConfig
     if tune_config.metric:
@@ -79,7 +83,7 @@ def _get_tuning_metric_name(tune_config: TuneConfig):
     if scheduler and hasattr(scheduler, "metric") and scheduler.metric:
         return scheduler.metric
 
-    return "loss"
+    return DEFAULT_NAME
 
 
 class TorchTrainer(Trainer, LogMixin):
