@@ -178,7 +178,7 @@ class GANTrainer(TorchTrainer):
         **kwargs,
     ) -> None:
         super().__init__(
-            config=None,  # Managed below
+            config=config,
             epochs=epochs,
             model=None,
             strategy=strategy,

@@ -72,6 +72,21 @@ if TYPE_CHECKING:
 py_logger = logging.getLogger(__name__)
 
 
+def _get_tuning_metric_name(tune_config: TuneConfig):
+    """Extracts the metric name from TuneConfig or scheduler in a generic way."""
+
+    # Try to get from TuneConfig
+    if tune_config.metric:
+        return tune_config.metric
+
+    # Try to get from the scheduler (if defined)
+    scheduler = tune_config.scheduler
+    if scheduler and hasattr(scheduler, "metric") and scheduler.metric:
+        return scheduler.metric
+
+    return "loss"
+
+
 class TorchTrainer(Trainer, LogMixin):
     """Trainer class for torch training algorithms.
 
@@ -1053,7 +1068,8 @@ class TorchTrainer(Trainer, LogMixin):
                     self.best_validation_metric = avg_metric
 
             # Report validation metrics to Ray (useful for tuning!)
-            metric_name = self.ray_tune_config.metric if self.ray_tune_config else "loss"
+            metric_name = _get_tuning_metric_name(self.ray_tune_config)
+            assert metric_name is not None, "Could not find a metric in the TuneConfig"
             self.ray_report(
                 metrics={metric_name: val_metric.item()},
                 checkpoint_dir=best_ckpt_path or periodic_ckpt_path,

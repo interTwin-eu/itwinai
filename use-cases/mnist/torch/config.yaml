@@ -178,7 +178,7 @@ training_pipeline_gan:
         batch_size:
           type: choice
           categories: [2, 4]
-        optim_lr:
+        optim_generator_lr:
           type: uniform
           lower: 1e-5
           upper: 1e-3

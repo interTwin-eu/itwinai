@@ -9,10 +9,10 @@
 #SBATCH --mail-type=ALL
 #SBATCH --output=job.out
 #SBATCH --error=job.err
-#SBATCH --time=00:08:00
+#SBATCH --time=00:15:00
 
 # Resources allocation
-#SBATCH --partition=develbooster
+#SBATCH --partition=booster
 #SBATCH --nodes=2
 #SBATCH --gpus-per-node=1
 #SBATCH --gres=gpu:1
