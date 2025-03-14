@@ -129,8 +129,11 @@ training_pipeline_gan:
   _target_: itwinai.pipeline.Pipeline
   steps:
     dataloading_step:
-      _target_: dataloader.MNISTDataModuleTorchGAN
+      _target_: dataloader.MNISTDataModuleTorch
       save_path: ${dataset_root}
+      resize: 64
+      # max_train_size: 200
+      # max_valid_size: 200
     training_step:
       _target_: itwinai.torch.gan.GANTrainer
       config:

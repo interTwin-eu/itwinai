@@ -13,7 +13,7 @@
 
 import logging
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Dict, Iterable, Literal, Optional, Tuple
+from typing import TYPE_CHECKING, Any, Callable, Dict, Iterable, Literal, Optional, Tuple
 
 import torch
 import torch.nn as nn
@@ -24,6 +24,8 @@ import yaml
 from ray.train import DataConfig, RunConfig, ScalingConfig
 from ray.train.torch import TorchConfig
 from ray.tune import TuneConfig
+from torch.optim.lr_scheduler import LRScheduler
+from torch.optim.optimizer import Optimizer
 
 from ..loggers import Logger
 from .config import TrainingConfiguration
@@ -46,7 +48,7 @@ class GANTrainingConfiguration(TrainingConfiguration):
     #: Momentum used by some optimizers (e.g., SGD) for the generator. Defaults to 0.9.
     optim_generator_momentum: float = 0.9
     #: Betas of Adam optimized (if used) for the generator. Defaults to (0.5, 0.999).
-    optim_generator_betas: Iterable[float] = (0.5, 0.999)
+    optim_generator_betas: Tuple[float] = (0.5, 0.999)
     #: Weight decay parameter for the optimizer for the generator. Defaults to 0.
     optim_generator_weight_decay: float = 0.0
     #: Learning rate scheduler algorithm for the generator optimizer.
@@ -133,6 +135,21 @@ class GANTrainer(TorchTrainer):
             HorovodTrainer. Defaults to None.
         from_checkpoint (str | Path, optional): path to checkpoint directory. Defaults to None.
     """
+
+    #: PyTorch generator to train.
+    generator: nn.Module | None = None
+    #: PyTorch discriminator to train.
+    discriminator: nn.Module | None = None
+    #: Classification loss criterion used in the generator and discriminator losses.
+    loss: Callable | None = None
+    #: Optimizer for the generator.
+    optimizer_generator: Optimizer | None = None
+    #: Optimizer for the discriminator.
+    optimizer_discriminator: Optimizer | None = None
+    #: Learning rate scheduler for the optimizer of the generator.
+    lr_scheduler_generator: LRScheduler = None
+    #: Learning rate scheduler for the optimizer of the discriminator.
+    lr_scheduler_discriminator: LRScheduler = None
 
     def __init__(
         self,
@@ -595,56 +612,7 @@ class GANTrainer(TorchTrainer):
             step=self.epoch,
         )
 
-        self.save_fake_generator_images(self.epoch)
-
-    def validation_epoch(self) -> torch.Tensor:
-        gen_validation_losses = []
-        gen_validation_accuracy = []
-        disc_validation_losses = []
-        disc_validation_accuracy = []
-        self.discriminator.eval()
-        self.generator.eval()
-        for batch_idx, (real_images, _) in enumerate(self.validation_dataloader):
-            loss_gen, accuracy_gen, loss_disc, accuracy_disc = self.validation_step(
-                real_images, batch_idx
-            )
-            gen_validation_losses.append(loss_gen)
-            gen_validation_accuracy.append(accuracy_gen)
-            disc_validation_losses.append(loss_disc)
-            disc_validation_accuracy.append(accuracy_disc)
-            self.validation_glob_step += 1
-
-        # Aggregate and log metrics
-        disc_validation_loss = torch.mean(torch.stack(disc_validation_losses))
-        self.log(
-            item=disc_validation_loss.item(),
-            identifier="disc_valid_loss_per_epoch",
-            kind="metric",
-            step=self.epoch,
-        )
-        disc_validation_accuracy = torch.mean(torch.stack(disc_validation_accuracy))
-        self.log(
-            item=disc_validation_accuracy.item(),
-            identifier="disc_valid_accuracy_epoch",
-            kind="metric",
-            step=self.epoch,
-        )
-        gen_validation_loss = torch.mean(torch.stack(gen_validation_losses))
-        self.log(
-            item=gen_validation_loss.item(),
-            identifier="gen_valid_loss_per_epoch",
-            kind="metric",
-            step=self.epoch,
-        )
-        gen_validation_accuracy = torch.mean(torch.stack(gen_validation_accuracy))
-        self.log(
-            item=gen_validation_accuracy.item(),
-            identifier="gen_valid_accuracy_epoch",
-            kind="metric",
-            step=self.epoch,
-        )
-        # TODO: return IS or FID metrics instead, more suitable for GAN validation
-        return gen_validation_loss
+        self.save_fake_generator_images()
 
     def train_step(self, real_images, batch_idx):
         real_images = real_images.to(self.device)
@@ -703,7 +671,58 @@ class GANTrainer(TorchTrainer):
 
         return lossG, lossD, accuracy_disc
 
-    def validation_step(self, real_images, batch_idx):
+    def validation_epoch(self) -> torch.Tensor:
+        gen_validation_losses = []
+        gen_validation_accuracy = []
+        disc_validation_losses = []
+        disc_validation_accuracy = []
+        self.discriminator.eval()
+        self.generator.eval()
+        for batch_idx, (real_images, _) in enumerate(self.validation_dataloader):
+            loss_gen, accuracy_gen, loss_disc, accuracy_disc = self.validation_step(
+                real_images, batch_idx
+            )
+            gen_validation_losses.append(loss_gen)
+            gen_validation_accuracy.append(accuracy_gen)
+            disc_validation_losses.append(loss_disc)
+            disc_validation_accuracy.append(accuracy_disc)
+            self.validation_glob_step += 1
+
+        # Aggregate and log metrics
+        disc_validation_loss = torch.mean(torch.stack(disc_validation_losses))
+        self.log(
+            item=disc_validation_loss.item(),
+            identifier="disc_valid_loss_per_epoch",
+            kind="metric",
+            step=self.epoch,
+        )
+        disc_validation_accuracy = torch.mean(torch.stack(disc_validation_accuracy))
+        self.log(
+            item=disc_validation_accuracy.item(),
+            identifier="disc_valid_accuracy_epoch",
+            kind="metric",
+            step=self.epoch,
+        )
+        gen_validation_loss = torch.mean(torch.stack(gen_validation_losses))
+        self.log(
+            item=gen_validation_loss.item(),
+            identifier="gen_valid_loss_per_epoch",
+            kind="metric",
+            step=self.epoch,
+        )
+        gen_validation_accuracy = torch.mean(torch.stack(gen_validation_accuracy))
+        self.log(
+            item=gen_validation_accuracy.item(),
+            identifier="gen_valid_accuracy_epoch",
+            kind="metric",
+            step=self.epoch,
+        )
+        # TODO: return IS or FID metrics instead, more suitable for GAN validation
+        return gen_validation_loss
+
+    def validation_step(
+        self, real_images, batch_idx
+    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
         real_images = real_images.to(self.device)
         batch_size = real_images.size(0)
         real_labels = torch.ones((batch_size,), dtype=torch.float, device=self.device)
@@ -730,7 +749,7 @@ class GANTrainer(TorchTrainer):
         accuracy = ((output_real > 0.5).float() == real_labels).float().mean() + (
             (output_fake < 0.5).float() == fake_labels
         ).float().mean()
-        d_accuracy = accuracy.item() / 2
+        d_accuracy = accuracy / 2
 
         self.log(
             item=loss_gen.item(),
@@ -755,13 +774,13 @@ class GANTrainer(TorchTrainer):
             batch_idx=batch_idx,
         )
         self.log(
-            item=d_accuracy,
+            item=d_accuracy.item(),
             identifier="disc_valid_accuracy_per_batch",
             kind="metric",
             step=self.validation_glob_step,
             batch_idx=batch_idx,
         )
-        return loss_gen, accuracy_gen
+        return loss_gen, accuracy_gen, d_total_loss, d_accuracy
 
     def save_fake_generator_images(self):
         """Plot and save fake images from generator
