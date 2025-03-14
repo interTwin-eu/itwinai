@@ -1,6 +1,6 @@
 # Tutorial: distributed strategies for PyTorch
 
-**Author(s)**: Matteo Bunino (CERN), Jarl Sondre Sæther (CERN)
+**Author(s)**: Matteo Bunino (CERN), Jarl Sondre Sæther (CERN), Linus Eickhoff (CERN)
 
 In this tutorial we show how to use torch `DistributedDataParallel` (DDP), Horovod and
 DeepSpeed from the same client code.
@@ -23,7 +23,7 @@ If you want to use SLURM in interactive mode, do the following:
 
 ```bash
 # Allocate resources
-$ salloc --partition=batch --nodes=1 --account=intertwin  --gres=gpu:4 --time=1:59:00
+$ salloc --partition=develbooster --nodes=1 --account=intertwin  --gres=gpu:4 --time=1:59:00
 job ID is XXXX
 # Get a shell in the compute node (if using SLURM)
 $ srun --jobid XXXX --overlap --pty /bin/bash 
@@ -49,7 +49,7 @@ srun --jobid XXXX --ntasks-per-node=1 torchrun --standalone --nnodes=1 --nproc-p
 To launch the training with Microsoft DeepSpeed use:
 
 ```bash
-deepspeed train.py -s deepspeed --deepspeed
+torchrun --standalone --nnodes=1 --nproc-per-node=gpu train.py -s deepspeed
 
 # Optional -- from a SLURM login node:
 srun --jobid XXXX --ntasks-per-node=1 deepspeed train.py -s deepspeed --deepspeed 
@@ -58,13 +58,23 @@ srun --jobid XXXX --ntasks-per-node=1 deepspeed train.py -s deepspeed --deepspee
 To launch the training with Horovod use:
 
 > [!NOTE]  
-> NOTE: Assuming 4 GPUs are available.
+> Assuming 4 GPUs are available.
 
 If your setup has a different number of GPUs, change the `-np 4 -H localhost:4` part.
 
 > [!WARNING]  
-> To use `horovodrun`, make sure that `mpirun` is available in your environment. Otherwise
-> you cannot use Horovod in interactive mode.
+> Using `horovodrun` is the suggested way according to the [horovod docs](https://horovod.readthedocs.io/en/stable/running_include.html).
+> To use `horovodrun`, make sure that `mpirun` is available in your environment.
+> Otherwise you cannot use Horovod in interactive mode.
+> On JSC juwels, `mpirun` is not available, use the `srun` command as a valid fallback instead.
+
+You can find out if `mpirun` exists using:
+
+```bash
+which mpirun
+```
+
+Using `horovodrun` (if `mpirun` exists):
 
 ```bash
 # Assuming 4 GPUs are available (-np=4)
@@ -72,6 +82,13 @@ horovodrun -np 4 -H localhost:4 train.py -s horovod
 
 # Optional -- from a SLURM login node:
 srun --jobid XXXX --ntasks-per-node=1 horovodrun -np 4 -H localhost:4 python -u train.py -s horovod
+```
+
+Using `srun` (if `mpirun` doesn't exist, e.g. on JSC juwels):
+
+```bash
+# Assuming 4 GPUs are available
+srun --cpu-bind=none --ntasks=4 --ntasks-per-node=4 --cpus-per-task=1 python -u train.py -s horovod
 ```
 
 ## Distributed training with SLURM (batch mode)
