@@ -10,6 +10,7 @@
 import argparse
 import re
 from pathlib import Path
+from typing import List
 
 
 def convert_github_admonitions(content: str) -> str:
@@ -50,7 +51,7 @@ def convert_github_admonitions(content: str) -> str:
     return re.sub(pattern, replace_admonition, content)
 
 
-def find_md_includes_in_rst(rst_content: str, rst_file_path: str) -> list[Path]:
+def find_md_includes_in_rst(rst_content: str, rst_file_path: str | Path) -> List[Path]:
     """Find all .md file includes in an RST file and return their absolute paths.
 
     Args:
@@ -100,29 +101,29 @@ def process_rst_files(docs_dir: str) -> None:
             md_files = find_md_includes_in_rst(rst_content, rst_file)
             # Process each MD file
             for md_file in md_files:
-                if md_file in processed_files:
-                    continue
+                try:
+                    if md_file in processed_files:
+                        continue
 
-                processed_files.add(md_file)
+                    processed_files.add(md_file)
 
-                if not md_file.exists():
-                    print(f"Warning: Referenced MD file not found: {md_file}")
-                    continue
+                    if not md_file.exists():
+                        print(f"Warning: Referenced MD file not found: {md_file}")
+                        continue
 
-                print(f"Checking for admonitions in: {md_file}")
-                # assume utf8
-                md_content = md_file.read_text(encoding="utf-8")
-                # Convert admonitions
-                converted_content = convert_github_admonitions(md_content)
-                # Print to stdout where changes were made
-                if converted_content != md_content:
-                    md_file.write_text(converted_content, encoding="utf-8")
-                    print(f"Changed admonitions in: {md_file}")
+                    print(f"Checking for admonitions in: {md_file}")
+                    # assume utf8
+                    md_content = md_file.read_text(encoding="utf-8")
+                    # Convert admonitions
+                    converted_content = convert_github_admonitions(md_content)
+                    # Print to stdout where changes were made
+                    if converted_content != md_content:
+                        md_file.write_text(converted_content, encoding="utf-8")
+                        print(f"Changed admonitions in: {md_file}")
 
-        except UnicodeDecodeError as e:
-            print(f"Error reading file {rst_file} or one of its included md files: {str(e)}")
-        except IOError as e:
-            print(f"Error accessing file {rst_file} or one of its included md files: {str(e)}")
+                except Exception as e:
+                    print(f"Unexpected error processing {md_file}: {str(e)}")
+
         except Exception as e:
             print(f"Unexpected error processing {rst_file}: {str(e)}")
 
