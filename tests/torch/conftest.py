@@ -99,6 +99,7 @@ def mnist_datasets():
 
     import logging
     import os
+
     from torchvision import datasets, transforms
 
     if not os.environ.get("MNIST_PATH"):

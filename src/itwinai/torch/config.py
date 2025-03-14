@@ -74,7 +74,7 @@ class TrainingConfiguration(Configuration):
     #: Momentum used by some optimizers (e.g., SGD). Defaults to 0.9.
     optim_momentum: float = 0.9
     #: Betas of Adam optimizer (if used). Defaults to (0.9, 0.999).
-    optim_betas: Tuple[float] = (0.9, 0.999)
+    optim_betas: Tuple[float, float] = (0.9, 0.999)
     #: Weight decay parameter for the optimizer. Defaults to 0.
     optim_weight_decay: float = 0.0
     #: Learning rate scheduler algorithm. Defaults to None (not used).

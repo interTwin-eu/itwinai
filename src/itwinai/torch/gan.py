@@ -48,7 +48,7 @@ class GANTrainingConfiguration(TrainingConfiguration):
     #: Momentum used by some optimizers (e.g., SGD) for the generator. Defaults to 0.9.
     optim_generator_momentum: float = 0.9
     #: Betas of Adam optimized (if used) for the generator. Defaults to (0.5, 0.999).
-    optim_generator_betas: Tuple[float] = (0.5, 0.999)
+    optim_generator_betas: Tuple[float, float] = (0.5, 0.999)
     #: Weight decay parameter for the optimizer for the generator. Defaults to 0.
     optim_generator_weight_decay: float = 0.0
     #: Learning rate scheduler algorithm for the generator optimizer.
@@ -70,7 +70,7 @@ class GANTrainingConfiguration(TrainingConfiguration):
     #: Momentum used by some optimizers (e.g., SGD) for the discriminator. Defaults to 0.9.
     optim_discriminator_momentum: float = 0.9
     #: Betas of Adam optimized (if used) for the discriminator. Defaults to (0.5, 0.999).
-    optim_discriminator_betas: Tuple[float] = (0.5, 0.999)
+    optim_discriminator_betas: Tuple[float, float] = (0.5, 0.999)
     #: Weight decay parameter for the optimizer for the discriminator. Defaults to 0.
     optim_discriminator_weight_decay: float = 0.0
     #: Learning rate scheduler algorithm for the discriminator optimizer.
@@ -85,6 +85,8 @@ class GANTrainingConfiguration(TrainingConfiguration):
     # : Defaults to 0.5.
     lr_scheduler_discriminator_gamma: float = 0.95
 
+    #: Classification criterion to be used for generator and discriminator losses. Defaults to
+    #: "bceloss".
     loss: str = "bceloss"
 
     #: Generator input size (random noise size). Defaults to 100.
