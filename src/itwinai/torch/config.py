@@ -11,11 +11,13 @@
 
 from typing import Iterable, Literal, Tuple
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 
-class Configuration(BaseModel, extra="allow"):
+class Configuration(BaseModel):
     """Base configuration class."""
+
+    model_config = ConfigDict(extra="allow")
 
     def __getitem__(self, idx):
         return self.__getattribute__(idx)
