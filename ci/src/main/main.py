@@ -356,7 +356,7 @@ class Itwinai:
         if status not in ["Succeeded", "Completed"]:
             message = (
                 f"Pod did not complete successfully! Status: {status}\n"
-                f"{"#"*100}\nJOB LOGS:\n\n{logs}"
+                f"{'#' * 100}\nJOB LOGS:\n\n{logs}"
             )
             print(message)
             raise RuntimeError(message)

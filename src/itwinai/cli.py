@@ -19,6 +19,7 @@
 # NOTE: import libraries in the command's function, not here, as having them here will
 # slow down the CLI commands significantly.
 
+import logging
 import os
 import sys
 from pathlib import Path
@@ -28,9 +29,9 @@ import hydra
 import typer
 from typing_extensions import Annotated
 
-from itwinai.utils import make_config_paths_absolute
-
 app = typer.Typer(pretty_exceptions_enable=False)
+
+py_logger = logging.getLogger(__name__)
 
 
 @app.command()
@@ -404,6 +405,7 @@ def exec_pipeline(
     by passing "+pipe_key=your_pipeline" in the list of overrides, and to execute only a
     subset of the steps, you can pass "+pipe_steps=[0,1]".
     """
+    from itwinai.utils import make_config_paths_absolute
 
     del sys.argv[0]
 
@@ -429,6 +431,22 @@ def exec_pipeline_with_compose(cfg):
 
     from hydra.utils import instantiate
     from omegaconf import OmegaConf, errors
+
+    # Register custom OmegaConf resolver to allow to dynaimcally compute the current working
+    # directory. Example: some_field: ${itwinai.cwd:}/some/nested/path/in/current/working/dir
+    OmegaConf.register_new_resolver("itwinai.cwd", lambda: os.getcwd())
+
+    def range_resolver(x, y=None, step=1):
+        """Custom OmegaConf resolver for range."""
+        if y is None:
+            return list(range(int(x)))
+        return list(range(int(x), int(y), int(step)))
+
+    # Register custom OmegaConf resolver to allow to dynaimcally compute ranges
+    OmegaConf.register_new_resolver("itwinai.range", range_resolver)
+
+    # Register custom OmegaConf resolver to allow to dynaimcally compute ranges
+    OmegaConf.register_new_resolver("itwinai.multiply", lambda x, y: x * y)
 
     pipe_steps = OmegaConf.select(cfg, "pipe_steps", default=None)
     pipe_key = OmegaConf.select(cfg, "pipe_key", default="training_pipeline")
@@ -463,14 +481,14 @@ def exec_pipeline_with_compose(cfg):
 
 @app.command()
 def mlflow_ui(
-    path: str = typer.Option("ml-logs/", help="Path to logs storage."),
+    path: str = typer.Option("mllogs/mlflow", help="Path to logs storage."),
     port: int = typer.Option(5000, help="Port on which the MLFlow UI is listening."),
     host: str = typer.Option(
         "127.0.0.1",
         help="Which host to use. Switch to '0.0.0.0' to e.g. allow for port-forwarding.",
     ),
 ):
-    """Visualize Mlflow logs."""
+    """Visualize logs with Mlflow."""
     import subprocess
 
     subprocess.run(f"mlflow ui --backend-store-uri {path} --port {port} --host {host}".split())
@@ -478,7 +496,7 @@ def mlflow_ui(
 
 @app.command()
 def mlflow_server(
-    path: str = typer.Option("ml-logs/", help="Path to logs storage."),
+    path: str = typer.Option("mllogs/mlflow", help="Path to logs storage."),
     port: int = typer.Option(5000, help="Port on which the server is listening."),
 ):
     """Spawn Mlflow server."""
@@ -497,6 +515,21 @@ def kill_mlflow_server(
     subprocess.run(
         f"kill -9 $(lsof -t -i:{port})".split(), check=True, stderr=subprocess.DEVNULL
     )
+
+
+@app.command()
+def tensorboard_ui(
+    path: str = typer.Option("mllogs/tensorboard", help="Path to logs storage."),
+    port: int = typer.Option(6006, help="Port on which the Tensorboard UI is listening."),
+    host: str = typer.Option(
+        "127.0.0.1",
+        help="Which host to use. Switch to '0.0.0.0' to e.g. allow for port-forwarding.",
+    ),
+):
+    """Visualize logs with TensorBoard."""
+    import subprocess
+
+    subprocess.run(f"tensorboard --logdir={path} --port={port} --host={host}".split())
 
 
 if __name__ == "__main__":
