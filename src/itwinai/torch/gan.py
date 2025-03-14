@@ -12,24 +12,21 @@
 """Provides training logic for PyTorch models via Trainer classes."""
 
 import logging
-import os
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Dict, Iterable, Literal, Optional
+from typing import TYPE_CHECKING, Any, Dict, Iterable, Literal, Optional, Tuple
 
 import torch
 import torch.nn as nn
 import torch.optim as optim
 import torch.optim.lr_scheduler as lr_scheduler
 import torchvision
+import yaml
 from ray.train import DataConfig, RunConfig, ScalingConfig
 from ray.train.torch import TorchConfig
 from ray.tune import TuneConfig
 
 from ..loggers import Logger
 from .config import TrainingConfiguration
-from .distributed import (
-    DeepSpeedStrategy,
-)
 from .trainer import TorchTrainer
 from .type import Metric
 
@@ -71,7 +68,7 @@ class GANTrainingConfiguration(TrainingConfiguration):
     #: Momentum used by some optimizers (e.g., SGD) for the discriminator. Defaults to 0.9.
     optim_discriminator_momentum: float = 0.9
     #: Betas of Adam optimized (if used) for the discriminator. Defaults to (0.5, 0.999).
-    optim_discriminator_betas: Iterable[float] = (0.5, 0.999)
+    optim_discriminator_betas: Tuple[float] = (0.5, 0.999)
     #: Weight decay parameter for the optimizer for the discriminator. Defaults to 0.
     optim_discriminator_weight_decay: float = 0.0
     #: Learning rate scheduler algorithm for the discriminator optimizer.
@@ -87,6 +84,9 @@ class GANTrainingConfiguration(TrainingConfiguration):
     lr_scheduler_discriminator_gamma: float = 0.95
 
     loss: str = "bceloss"
+
+    #: Generator input size (random noise size). Defaults to 100.
+    z_dim: int = 100
 
 
 class GANTrainer(TorchTrainer):
@@ -181,56 +181,57 @@ class GANTrainer(TorchTrainer):
             ray_horovod_config=ray_horovod_config,
             from_checkpoint=from_checkpoint,
             ray_torch_config=ray_torch_config,
-            ray_data_config=ray_data_config**kwargs,
+            ray_data_config=ray_data_config,
+            **kwargs,
         )
         self.save_parameters(**self.locals2params(locals()))
 
         self.discriminator = discriminator
         self.generator = generator
 
-        if not isinstance(config, TrainingConfiguration):
-            config = GANTrainingConfiguration(config)
+        if isinstance(config, dict):
+            config = GANTrainingConfiguration(**config)
         self.config = config
 
         # Initial training state -- can be resumed from a checkpoint
         self.discriminator_state_dict = None
         self.generator_state_dict = None
-        self.optimizerD_state_dict = None
-        self.optimizerG_state_dict = None
+        self.optimizer_discriminator_state_dict = None
+        self.optimizer_generator_state_dict = None
         self.lr_scheduler_generator_state_dict = None
         self.lr_scheduler_discriminator_state_dict = None
 
     def _optimizer_from_config(self) -> None:
         match self.config.optimizer_generator:
             case "adadelta":
-                self.optimizerG = optim.Adadelta(
+                self.optimizer_generator = optim.Adadelta(
                     self.generator.parameters(),
                     lr=self.config.optim_generator_lr,
                     weight_decay=self.config.optim_generator_weight_decay,
                 )
             case "adam":
-                self.optimizerG = optim.Adam(
+                self.optimizer_generator = optim.Adam(
                     self.generator.parameters(),
                     lr=self.config.optim_generator_lr,
                     betas=self.config.optim_generator_betas,
                     weight_decay=self.config.optim_generator_weight_decay,
                 )
             case "adamw":
-                self.optimizerG = optim.AdamW(
+                self.optimizer_generator = optim.AdamW(
                     self.generator.parameters(),
                     lr=self.config.optim_generator_lr,
                     betas=self.config.optim_generator_betas,
                     weight_decay=self.config.optim_generator_weight_decay,
                 )
             case "rmsprop":
-                self.optimizerG = optim.RMSprop(
+                self.optimizer_generator = optim.RMSprop(
                     self.generator.parameters(),
                     lr=self.config.optim_generator_lr,
                     weight_decay=self.config.optim_generator_weight_decay,
                     momentum=self.config.optim_generator_momentum,
                 )
             case "sgd":
-                self.optimizerG = optim.SGD(
+                self.optimizer_generator = optim.SGD(
                     self.generator.parameters(),
                     lr=self.config.optim_generator_lr,
                     weight_decay=self.config.optim_generator_weight_decay,
@@ -245,34 +246,34 @@ class GANTrainer(TorchTrainer):
 
         match self.config.optimizer_discriminator:
             case "adadelta":
-                self.optimizerD = optim.Adadelta(
+                self.optimizer_discriminator = optim.Adadelta(
                     self.discriminator.parameters(),
                     lr=self.config.optim_discriminator_lr,
                     weight_decay=self.config.optim_discriminator_weight_decay,
                 )
             case "adam":
-                self.optimizerD = optim.Adam(
+                self.optimizer_discriminator = optim.Adam(
                     self.discriminator.parameters(),
                     lr=self.config.optim_discriminator_lr,
                     betas=self.config.optim_discriminator_betas,
                     weight_decay=self.config.optim_discriminator_weight_decay,
                 )
             case "adamw":
-                self.optimizerD = optim.AdamW(
+                self.optimizer_discriminator = optim.AdamW(
                     self.discriminator.parameters(),
                     lr=self.config.optim_discriminator_lr,
                     betas=self.config.optim_discriminator_betas,
                     weight_decay=self.config.optim_discriminator_weight_decay,
                 )
             case "rmsprop":
-                self.optimizerD = optim.RMSprop(
+                self.optimizer_discriminator = optim.RMSprop(
                     self.discriminator.parameters(),
                     lr=self.config.optim_discriminator_lr,
                     weight_decay=self.config.optim_discriminator_weight_decay,
                     momentum=self.config.optim_discriminator_momentum,
                 )
             case "sgd":
-                self.optimizerD = optim.SGD(
+                self.optimizer_discriminator = optim.SGD(
                     self.discriminator.parameters(),
                     lr=self.config.optim_discriminator_lr,
                     weight_decay=self.config.optim_discriminator_weight_decay,
@@ -288,30 +289,38 @@ class GANTrainer(TorchTrainer):
     def _lr_scheduler_from_config(self) -> None:
         """Parse Lr scheduler from training config"""
         if self.config.lr_scheduler_generator:
-            if not self.optimizerG:
+            if not self.optimizer_generator:
                 raise ValueError(
-                    "Trying to instantiate a LR scheduler but the optimizerG is None!"
+                    "Trying to instantiate a LR scheduler but the optimizer_generator is None!"
                 )
 
             match self.config.lr_scheduler_generator:
                 case "constant":
-                    self.lr_scheduler_generator = lr_scheduler.ConstantLR(self.optimizerG)
+                    self.lr_scheduler_generator = lr_scheduler.ConstantLR(
+                        self.optimizer_generator
+                    )
                 case "polynomial":
-                    self.lr_scheduler_generator = lr_scheduler.PolynomialLR(self.optimizerG)
+                    self.lr_scheduler_generator = lr_scheduler.PolynomialLR(
+                        self.optimizer_generator
+                    )
                 case "exponential":
                     self.lr_scheduler_generator = lr_scheduler.ExponentialLR(
-                        self.optimizerG, gamma=self.config.lr_scheduler_generator_gamma
+                        self.optimizer_generator,
+                        gamma=self.config.lr_scheduler_generator_gamma,
                     )
                 case "linear":
-                    self.lr_scheduler_generator = lr_scheduler.LinearLR(self.optimizerG)
+                    self.lr_scheduler_generator = lr_scheduler.LinearLR(
+                        self.optimizer_generator
+                    )
                 case "multistep":
                     self.lr_scheduler_generator = lr_scheduler.MultiStepLR(
-                        self.optimizerG,
+                        self.optimizer_generator,
                         milestones=self.config.lr_scheduler_generator_step_size,
                     )
                 case "step":
                     self.lr_scheduler_generator = lr_scheduler.StepLR(
-                        self.optimizerG, step_size=self.config.lr_scheduler_generator_step_size
+                        self.optimizer_generator,
+                        step_size=self.config.lr_scheduler_generator_step_size,
                     )
                 case _:
                     raise ValueError(
@@ -321,32 +330,38 @@ class GANTrainer(TorchTrainer):
                     )
 
         if self.config.lr_scheduler_discriminator:
-            if not self.optimizerD:
+            if not self.optimizer_discriminator:
                 raise ValueError(
-                    "Trying to instantiate a LR scheduler but the optimizerD is None!"
+                    "Trying to instantiate a LR scheduler but the optimizer_discriminator "
+                    "is None!"
                 )
 
             match self.config.lr_scheduler_discriminator:
                 case "constant":
-                    self.lr_scheduler_discriminator = lr_scheduler.ConstantLR(self.optimizerD)
+                    self.lr_scheduler_discriminator = lr_scheduler.ConstantLR(
+                        self.optimizer_discriminator
+                    )
                 case "polynomial":
                     self.lr_scheduler_discriminator = lr_scheduler.PolynomialLR(
-                        self.optimizerD
+                        self.optimizer_discriminator
                     )
                 case "exponential":
                     self.lr_scheduler_discriminator = lr_scheduler.ExponentialLR(
-                        self.optimizerD, gamma=self.config.lr_scheduler_discriminator_gamma
+                        self.optimizer_discriminator,
+                        gamma=self.config.lr_scheduler_discriminator_gamma,
                     )
                 case "linear":
-                    self.lr_scheduler_discriminator = lr_scheduler.LinearLR(self.optimizerD)
+                    self.lr_scheduler_discriminator = lr_scheduler.LinearLR(
+                        self.optimizer_discriminator
+                    )
                 case "multistep":
                     self.lr_scheduler_discriminator = lr_scheduler.MultiStepLR(
-                        self.optimizerD,
+                        self.optimizer_discriminator,
                         milestones=self.config.lr_scheduler_discriminator_step_size,
                     )
                 case "step":
                     self.lr_scheduler_discriminator = lr_scheduler.StepLR(
-                        self.optimizerD,
+                        self.optimizer_discriminator,
                         step_size=self.config.lr_scheduler_discriminator_step_size,
                     )
                 case _:
@@ -374,40 +389,176 @@ class GANTrainer(TorchTrainer):
                 "Either pass it to the constructor, load a checkpoint, or "
                 "override create_model_loss_optimizer method."
             )
-        # TODO: this method is incomplete
 
-        if not self.optimizerD:
-            self.optimizerD = optim.Adam(
-                self.discriminator.parameters(), lr=self.config.lr, betas=(0.5, 0.999)
+        if self.generator_state_dict:
+            # Load generator from checkpoint
+            self.generator.load_state_dict(self.generator_state_dict, strict=False)
+
+        if self.discriminator_state_dict:
+            # Load discriminator from checkpoint
+            self.discriminator.load_state_dict(self.discriminator_state_dict, strict=False)
+
+        # Parse optimizers from training configuration
+        # Optimizers can be changed with a custom one here!
+        self._optimizer_from_config()
+
+        # Parse LR schedulers from training configuration
+        # LR schedulers can be changed with a custom one here!
+        self._lr_scheduler_from_config()
+
+        if self.optimizer_generator_state_dict:
+            # Load optimizer state from checkpoint
+            # IMPORTANT: this must be after the learning rate scheduler was already initialized
+            # by passing to it the optimizer. Otherwise the optimizer state just loaded will
+            # be modified by the lr scheduler.
+            self.optimizer_generator.load_state_dict(self.optimizer_generator_state_dict)
+        if self.optimizer_discriminator_state_dict:
+            # Load optimizer state from checkpoint
+            # IMPORTANT: this must be after the learning rate scheduler was already initialized
+            # by passing to it the optimizer. Otherwise the optimizer state just loaded will
+            # be modified by the lr scheduler.
+            self.optimizer_discriminator.load_state_dict(
+                self.optimizer_discriminator_state_dict
             )
-        if not self.optimizerG:
-            self.optimizerG = optim.Adam(
-                self.generator.parameters(), lr=self.config.lr, betas=(0.5, 0.999)
+
+        if self.lr_scheduler_generator_state_dict and self.lr_scheduler_generator:
+            # Load LR scheduler state from checkpoint
+            self.lr_scheduler_generator.load_state_dict(self.lr_scheduler_generator_state_dict)
+        if self.lr_scheduler_discriminator_state_dict and self.lr_scheduler_discriminator:
+            # Load LR scheduler state from checkpoint
+            self.lr_scheduler_discriminator.load_state_dict(
+                self.lr_scheduler_discriminator_state_dict
             )
-        self.criterion = nn.BCELoss()
+
+        # Parse loss from training configuration
+        # Loss can be change with a custom one here!
+        self._loss_from_config()
+        self.criterion = self.loss
+
+        # if not self.optimizer_discriminator:
+        #     self.optimizer_discriminator = optim.Adam(
+        #         self.discriminator.parameters(), lr=self.config.lr, betas=(0.5, 0.999)
+        #     )
+        # if not self.optimizer_generator:
+        #     self.optimizer_generator = optim.Adam(
+        #         self.generator.parameters(), lr=self.config.lr, betas=(0.5, 0.999)
+        #     )
+        # self.criterion = nn.BCELoss()
 
         # https://stackoverflow.com/a/67437077
         self.discriminator = torch.nn.SyncBatchNorm.convert_sync_batchnorm(self.discriminator)
         self.generator = torch.nn.SyncBatchNorm.convert_sync_batchnorm(self.generator)
 
-        # First, define strategy-wise optional configurations
-        if isinstance(self.strategy, DeepSpeedStrategy):
-            # Batch size definition is not optional for DeepSpeedStrategy!
-            distribute_kwargs = dict(
-                config_params=dict(train_micro_batch_size_per_gpu=self.config.batch_size)
-            )
-        else:
-            distribute_kwargs = {}
+        # IMPORTANT: model, optimizer, and scheduler need to be distributed from here on
+
+        distribute_kwargs = self.get_default_distributed_kwargs()
 
         # Distribute discriminator and its optimizer
-        self.discriminator, self.optimizerD, _ = self.strategy.distributed(
-            self.discriminator, self.optimizerD, **distribute_kwargs
+        self.discriminator, self.optimizer_discriminator, _ = self.strategy.distributed(
+            self.discriminator, self.optimizer_discriminator, **distribute_kwargs
         )
-        self.generator, self.optimizerG, _ = self.strategy.distributed(
-            self.generator, self.optimizerG, **distribute_kwargs
+        self.generator, self.optimizer_generator, _ = self.strategy.distributed(
+            self.generator, self.optimizer_generator, **distribute_kwargs
         )
 
-    def train_epoch(self, epoch: int):
+    def save_checkpoint(
+        self,
+        name: str,
+        best_validation_metric: Optional[torch.Tensor] = None,
+        checkpoints_root: str | Path | None = None,
+        force: bool = False,
+    ) -> str | None:
+        """Save training checkpoint.
+
+        Args:
+            name (str): name of the checkpoint directory.
+            best_validation_metric (Optional[torch.Tensor]): best validation loss throughout
+                training so far (if available).
+            checkpoints_root (str | None): path for root checkpoints dir. If None, uses
+                ``self.checkpoints_location`` as base.
+            force (bool): force checkpointign now.
+
+        Returns:
+            path to the checkpoint file or ``None`` when the checkpoint is not created.
+        """
+        if not (
+            force
+            or self.strategy.is_main_worker
+            and self.checkpoint_every
+            and (self.epoch + 1) % self.checkpoint_every == 0
+        ):
+            # Do nothing and return
+            return
+
+        ckpt_dir = Path(checkpoints_root or self.checkpoints_location) / name
+        ckpt_dir.mkdir(parents=True, exist_ok=True)
+
+        # Save state (epoch, loss, optimizer, scheduler)
+        state = {
+            "epoch": self.epoch,
+            # This could store the best validation loss
+            "best_validation_metric": (
+                best_validation_metric.item() if best_validation_metric is not None else None
+            ),
+            "optimizer_generator_state_dict": self.optimizer_generator.state_dict(),
+            "optimizer_discriminator_state_dict": self.optimizer_discriminator.state_dict(),
+            "lr_scheduler_generator_state_dict": (
+                self.lr_scheduler_generator.state_dict()
+                if self.lr_scheduler_generator is not None
+                else None
+            ),
+            "lr_scheduler_discriminator_state_dict": (
+                self.lr_scheduler_discriminator.state_dict()
+                if self.lr_scheduler_discriminator is not None
+                else None
+            ),
+            "torch_rng_state": self.torch_rng.get_state(),
+            "random_seed": self.random_seed,
+        }
+        state_path = ckpt_dir / "state.pt"
+        torch.save(state, state_path)
+
+        # Save PyTorch models separately
+        # TODO: check that the state dict is stripped from any distributed info
+        generator_path = ckpt_dir / "generator.pt"
+        torch.save(self.generator.state_dict(), generator_path)
+        discriminator_path = ckpt_dir / "discriminator.pt"
+        torch.save(self.discriminator.state_dict(), discriminator_path)
+
+        # Save Pydantic config as YAML
+        config_path = ckpt_dir / "config.yaml"
+        with config_path.open("w") as f:
+            yaml.safe_dump(self.config.model_dump(), f)
+
+        # Log each file with an appropriate identifier
+        self.log(str(state_path), f"{name}_state", kind="artifact")
+        self.log(str(generator_path), f"{name}_generator", kind="artifact")
+        self.log(str(discriminator_path), f"{name}_discriminator", kind="artifact")
+        self.log(str(config_path), f"{name}_config", kind="artifact")
+        return str(ckpt_dir)
+
+    def _load_checkpoint(self, checkpoint_dir: str | Path) -> None:
+        """Load checkpoint from path."""
+        checkpoint_dir = Path(checkpoint_dir)
+        state = torch.load(checkpoint_dir / "state.pt")
+
+        # Override initial training state
+        self.generator_state_dict_state_dict = torch.load(checkpoint_dir / "generator.pt")
+        self.discriminator_state_dict = torch.load(checkpoint_dir / "discriminator.pt")
+        self.optimizer_generator_state_dict = state["optimizer_generator_state_dict"]
+        self.optimizer_discriminator_state_dict = state["optimizer_discriminator_state_dict"]
+        self.lr_scheduler_generator_state_dict = state["lr_scheduler_generator_state_dict"]
+        self.lr_scheduler_discriminator_state_dict = state[
+            "lr_scheduler_discriminator_state_dict"
+        ]
+        self.torch_rng_state = state["torch_rng_state"]
+        # Direct overrides (don't require further attention)
+        self.random_seed = state["random_seed"]
+        self.epoch = state["epoch"] + 1  # Start from next epoch
+        if state["best_validation_metric"]:
+            self.best_validation_metric = state["best_validation_metric"]
+
+    def train_epoch(self):
         self.discriminator.train()
         self.generator.train()
         gen_train_losses = []
@@ -426,14 +577,14 @@ class GANTrainer(TorchTrainer):
             item=avg_disc_accuracy.item(),
             identifier="disc_train_accuracy_per_epoch",
             kind="metric",
-            step=epoch,
+            step=self.epoch,
         )
         avg_gen_loss = torch.mean(torch.stack(gen_train_losses))
         self.log(
             item=avg_gen_loss.item(),
             identifier="gen_train_loss_per_epoch",
             kind="metric",
-            step=epoch,
+            step=self.epoch,
         )
 
         avg_disc_loss = torch.mean(torch.stack(disc_train_losses))
@@ -441,12 +592,12 @@ class GANTrainer(TorchTrainer):
             item=avg_disc_loss.item(),
             identifier="disc_train_loss_per_epoch",
             kind="metric",
-            step=epoch,
+            step=self.epoch,
         )
 
-        self.save_fake_generator_images(epoch)
+        self.save_fake_generator_images(self.epoch)
 
-    def validation_epoch(self, epoch: int):
+    def validation_epoch(self) -> torch.Tensor:
         gen_validation_losses = []
         gen_validation_accuracy = []
         disc_validation_losses = []
@@ -469,30 +620,30 @@ class GANTrainer(TorchTrainer):
             item=disc_validation_loss.item(),
             identifier="disc_valid_loss_per_epoch",
             kind="metric",
-            step=epoch,
+            step=self.epoch,
         )
         disc_validation_accuracy = torch.mean(torch.stack(disc_validation_accuracy))
         self.log(
             item=disc_validation_accuracy.item(),
             identifier="disc_valid_accuracy_epoch",
             kind="metric",
-            step=epoch,
+            step=self.epoch,
         )
         gen_validation_loss = torch.mean(torch.stack(gen_validation_losses))
         self.log(
             item=gen_validation_loss.item(),
             identifier="gen_valid_loss_per_epoch",
             kind="metric",
-            step=epoch,
+            step=self.epoch,
         )
         gen_validation_accuracy = torch.mean(torch.stack(gen_validation_accuracy))
         self.log(
             item=gen_validation_accuracy.item(),
             identifier="gen_valid_accuracy_epoch",
             kind="metric",
-            step=epoch,
+            step=self.epoch,
         )
-
+        # TODO: return IS or FID metrics instead, more suitable for GAN validation
         return gen_validation_loss
 
     def train_step(self, real_images, batch_idx):
@@ -513,9 +664,9 @@ class GANTrainer(TorchTrainer):
 
         lossD = (lossD_real + lossD_fake) / 2
 
-        self.optimizerD.zero_grad()
+        self.optimizer_discriminator.zero_grad()
         lossD.backward()
-        self.optimizerD.step()
+        self.optimizer_discriminator.step()
 
         accuracy = ((output_real > 0.5).float() == real_labels).float().mean() + (
             (output_fake < 0.5).float() == fake_labels
@@ -525,9 +676,9 @@ class GANTrainer(TorchTrainer):
         # Train Generator
         output_fake = self.discriminator(fake_images)
         lossG = self.criterion(output_fake, real_labels)
-        self.optimizerG.zero_grad()
+        self.optimizer_generator.zero_grad()
         lossG.backward()
-        self.optimizerG.step()
+        self.optimizer_generator.step()
         self.log(
             item=accuracy_disc,
             identifier="disc_train_accuracy_per_batch",
@@ -612,46 +763,11 @@ class GANTrainer(TorchTrainer):
         )
         return loss_gen, accuracy_gen
 
-    def save_checkpoint(self, name, epoch, loss=None):
-        """Save training checkpoint with both optimizers."""
-        if not os.path.exists(self.checkpoints_location):
-            os.makedirs(self.checkpoints_location)
+    def save_fake_generator_images(self):
+        """Plot and save fake images from generator
 
-        checkpoint_path = os.path.join(self.checkpoints_location, f"{name}")
-        checkpoint = {
-            "epoch": epoch,
-            "loss": loss.item() if loss is not None else None,
-            "discriminator_state_dict": self.discriminator.state_dict(),
-            "generator_state_dict": self.generator.state_dict(),
-            "optimizerD_state_dict": self.optimizerD.state_dict(),
-            "optimizerG_state_dict": self.optimizerG.state_dict(),
-            "lr_scheduler": self.lr_scheduler.state_dict() if self.lr_scheduler else None,
-        }
-
-        torch.save(checkpoint, checkpoint_path)
-        print(f"Checkpoint saved to {checkpoint_path}")
-
-    def load_checkpoint(self, checkpoint_path):
-        """Load models and optimizers from checkpoint."""
-        checkpoint = torch.load(checkpoint_path)
-
-        self.discriminator.load_state_dict(checkpoint["discriminator_state_dict"])
-        self.generator.load_state_dict(checkpoint["generator_state_dict"])
-        self.optimizerD.load_state_dict(checkpoint["optimizerD_state_dict"])
-        self.optimizerG.load_state_dict(checkpoint["optimizerG_state_dict"])
-
-        if "lr_scheduler" in checkpoint:
-            if checkpoint["lr_scheduler"] is not None:
-                self.lr_scheduler.load_state_dict(checkpoint["lr_scheduler"])
-
-        print(f"Checkpoint loaded from {checkpoint_path}")
-
-    def save_fake_generator_images(self, epoch):
-        """
-        plot and save fake images from generator
-
-         Args:
-            epoch (int): epoch number, from 0 to ``epochs-1``.
+        Args:
+           epoch (int): epoch number, from 0 to ``epochs-1``.
         """
         import matplotlib.pyplot as plt
         import numpy as np
@@ -662,11 +778,11 @@ class GANTrainer(TorchTrainer):
         fake_images_grid = torchvision.utils.make_grid(fake_images, normalize=True)
         fig, ax = plt.subplots(figsize=(8, 8))
         ax.set_axis_off()
-        ax.set_title(f"Fake images for epoch {epoch}")
+        ax.set_title(f"Fake images for epoch {self.epoch}")
         ax.imshow(np.transpose(fake_images_grid.cpu().numpy(), (1, 2, 0)))
         self.log(
             item=fig,
-            identifier=f"fake_images_epoch_{epoch}.png",
+            identifier=f"fake_images_epoch_{self.epoch}.png",
             kind="figure",
-            step=epoch,
+            step=self.epoch,
         )
