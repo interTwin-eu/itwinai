@@ -218,8 +218,8 @@ def test_checkpoint_loading(strategy_fixture: str | None, shared_tmp_path: Path,
     random_seed = state["random_seed"]
     epoch = state["epoch"]
     best_validation_loss = None
-    if state["best_validation_loss"]:
-        best_validation_loss = state["best_validation_loss"]
+    if state["best_validation_metric"]:
+        best_validation_loss = state["best_validation_metric"]
     loaded_model = torch.nn.Linear(10, 1)
     loaded_model.load_state_dict(model_state_dict, strict=False)
     loaded_optim = Adam(loaded_model.parameters())
@@ -230,7 +230,7 @@ def test_checkpoint_loading(strategy_fixture: str | None, shared_tmp_path: Path,
 
     # Best validation loss
     assert best_validation_loss == best_val_loss
-    assert trainer.best_validation_loss == best_val_loss, (
+    assert trainer.best_validation_metric == best_val_loss, (
         "Best validation loss was not correctly restored"
     )
 
