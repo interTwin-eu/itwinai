@@ -230,7 +230,9 @@ class TorchTrainer(Trainer, LogMixin):
         self.optimizer_state_dict = None
         self.lr_scheduler_state_dict = None
         self.torch_rng_state = None
-        self.best_validation_loss = float("inf")
+        # This is initialized to inf as it usually represents a loss to minimize.
+        # If the validation metric is meant to be maximized, change this to -inf.
+        self.best_validation_metric = float("inf")
         self.epoch = 0
 
     @property
@@ -462,7 +464,8 @@ class TorchTrainer(Trainer, LogMixin):
         # Loss can be changed with a custom one here!
         self._loss_from_config()
 
-        # IMPORTANT: model, optimizer, and scheduler need to be distributed
+        # IMPORTANT: model, optimizer, and scheduler need to be distributed from here on
+
         distribute_kwargs = self.get_default_distributed_kwargs()
 
         # Distributed model, optimizer, and scheduler
@@ -473,7 +476,7 @@ class TorchTrainer(Trainer, LogMixin):
     def save_checkpoint(
         self,
         name: str,
-        best_validation_loss: Optional[torch.Tensor] = None,
+        best_validation_metric: Optional[torch.Tensor] = None,
         checkpoints_root: str | Path | None = None,
         force: bool = False,
     ) -> str | None:
@@ -481,8 +484,8 @@ class TorchTrainer(Trainer, LogMixin):
 
         Args:
             name (str): name of the checkpoint directory.
-            best_validation_loss (Optional[torch.Tensor]): best validation loss throughout
-                training so far (if available).
+            best_validation_metric (Optional[torch.Tensor]): best validation metric throughout
+                training so far (if available). Usually this is the validation loss.
             checkpoints_root (str | None): path for root checkpoints dir. If None, uses
                 ``self.checkpoints_location`` as base.
             force (bool): force checkpointign now.
@@ -506,8 +509,8 @@ class TorchTrainer(Trainer, LogMixin):
         state = {
             "epoch": self.epoch,
             # This could store the best validation loss
-            "best_validation_loss": (
-                best_validation_loss.item() if best_validation_loss is not None else None
+            "best_validation_metric": (
+                best_validation_metric.item() if best_validation_metric is not None else None
             ),
             "optimizer_state_dict": self.optimizer.state_dict(),
             "lr_scheduler_state_dict": (
@@ -568,8 +571,8 @@ class TorchTrainer(Trainer, LogMixin):
         # Direct overrides (don't require further attention)
         self.random_seed = state["random_seed"]
         self.epoch = state["epoch"] + 1  # Start from next epoch
-        if state["best_validation_loss"]:
-            self.best_validation_loss = state["best_validation_loss"]
+        if state["best_validation_metric"]:
+            self.best_validation_metric = state["best_validation_metric"]
 
     def create_dataloaders(
         self,
@@ -994,27 +997,31 @@ class TorchTrainer(Trainer, LogMixin):
             epoch_n = self.epoch + 1
             self.set_epoch()
             self.train_epoch()
-            val_loss = self.validation_epoch()
+            val_metric = self.validation_epoch()
 
             # Periodic checkpointing
             periodic_ckpt_path = self.save_checkpoint(name=f"epoch_{self.epoch}")
 
             # Checkpointing current best model
             best_ckpt_path = None
-            worker_val_losses = self.strategy.gather(val_loss, dst_rank=0)
+            worker_val_metrics = self.strategy.gather(val_metric, dst_rank=0)
             if self.strategy.is_main_worker:
-                avg_loss = torch.mean(torch.stack(worker_val_losses)).detach().cpu()
-                if avg_loss < self.best_validation_loss and self.checkpoint_every is not None:
+                avg_metric = torch.mean(torch.stack(worker_val_metrics)).detach().cpu()
+                if (
+                    avg_metric < self.best_validation_metric
+                    and self.checkpoint_every is not None
+                ):
                     best_ckpt_path = self.save_checkpoint(
                         name="best_model",
-                        best_validation_loss=avg_loss,
+                        best_validation_metric=avg_metric,
                         force=True,
                     )
-                    self.best_validation_loss = avg_loss
+                    self.best_validation_metric = avg_metric
 
             # Report validation metrics to Ray (useful for tuning!)
+            metric_name = self.ray_tune_config.metric if self.ray_tune_config else "loss"
             self.ray_report(
-                metrics={"loss": val_loss.item()},
+                metrics={metric_name: val_metric.item()},
                 checkpoint_dir=best_ckpt_path or periodic_ckpt_path,
             )
 

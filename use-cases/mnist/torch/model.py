@@ -32,6 +32,16 @@ class Net(nn.Module):
         return F.log_softmax(x, dim=0)
 
 
+def weights_init(m):
+    """Random initialization for some GAN layers."""
+    classname = m.__class__.__name__
+    if classname.find("Conv") != -1:
+        m.weight.data.normal_(0.0, 0.02)
+    elif classname.find("BatchNorm") != -1:
+        m.weight.data.normal_(1.0, 0.02)
+        m.bias.data.fill_(0)
+
+
 class Generator(nn.Module):
     """Simple GAN generator for MNIST."""
 
@@ -58,6 +68,7 @@ class Generator(nn.Module):
             nn.ConvTranspose2d(g_hidden, image_channel, 4, 2, 1, bias=False),
             nn.Tanh(),
         )
+        self.apply(weights_init)
 
     def forward(self, input):
         return self.main(input)
@@ -88,6 +99,7 @@ class Discriminator(nn.Module):
             nn.Conv2d(d_hidden * 8, 1, 4, 1, 0, bias=False),
             nn.Sigmoid(),
         )
+        self.apply(weights_init)
 
     def forward(self, input):
         return self.main(input).view(-1, 1).squeeze(1)

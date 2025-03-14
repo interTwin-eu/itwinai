@@ -54,6 +54,47 @@ class MNISTDataModuleTorch(DataGetter):
         return train_dataset, validation_dataset, None
 
 
+class MNISTDataModuleTorchGAN(DataGetter):
+    """Download MNIST dataset for torch, to train a GAN."""
+
+    def __init__(
+        self,
+        save_path: str = ".tmp/",
+    ) -> None:
+        super().__init__()
+        self.save_parameters(**self.locals2params(locals()))
+        self.save_path = save_path
+
+    @monitor_exec
+    def execute(self) -> Tuple[Dataset, Dataset, None]:
+        train_dataset = datasets.MNIST(
+            self.save_path,
+            train=True,
+            download=True,
+            transform=transforms.Compose(
+                [
+                    transforms.Resize(64),
+                    transforms.ToTensor(),
+                    transforms.Normalize((0.1307,), (0.3081,)),
+                ]
+            ),
+        )
+        validation_dataset = datasets.MNIST(
+            self.save_path,
+            train=False,
+            download=True,
+            transform=transforms.Compose(
+                [
+                    transforms.Resize(64),
+                    transforms.ToTensor(),
+                    transforms.Normalize((0.1307,), (0.3081,)),
+                ]
+            ),
+        )
+        print("Train and validation datasets loaded.")
+        return train_dataset, validation_dataset, None
+
+
 class InferenceMNIST(Dataset):
     """Loads a set of MNIST images from a folder of JPG files."""
 

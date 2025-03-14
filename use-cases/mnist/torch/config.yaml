@@ -129,11 +129,12 @@ training_pipeline_gan:
   _target_: itwinai.pipeline.Pipeline
   steps:
     dataloading_step:
-      _target_: dataloader.MNISTDataModuleTorch
+      _target_: dataloader.MNISTDataModuleTorchGAN
       save_path: ${dataset_root}
     training_step:
-      _target_: itwinai.torch.trainer.GANTrainer
+      _target_: itwinai.torch.gan.GANTrainer
       config:
+        z_dim: 100
         batch_size: ${batch_size}
         num_workers_dataloader: ${num_workers_dataloader}
         pin_gpu_memory: ${pin_memory}
@@ -187,16 +188,6 @@ training_pipeline_gan:
         d_hidden: 64
       epochs: ${epochs}
       
-      metrics:
-        accuracy:
-          _target_: torchmetrics.classification.MulticlassAccuracy
-          num_classes: ${num_classes}
-        precision:
-          _target_: torchmetrics.classification.MulticlassPrecision
-          num_classes: ${num_classes}
-        recall:
-          _target_: torchmetrics.classification.MulticlassRecall
-          num_classes: ${num_classes}
       logger:
         _target_: itwinai.loggers.LoggersCollection
         loggers:
