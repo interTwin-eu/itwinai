@@ -154,12 +154,18 @@ training_pipeline_gan:
         resources_per_worker:
           CPU: 4
           GPU: 1
+      # GAN metrics for HPO:
+      # - fid_score: Fréchet Inception Distance (lower is better) - measures similarity between real and generated images
+      # TODO: Other potential metrics that could be implemented in the future:
+      # - inception_score: Measures quality and diversity of generated images (higher is better)
+      # - precision/recall: Measures quality vs. diversity tradeoff
+      # - perceptual path length: Measures smoothness of the generator's latent space
       ray_tune_config:
         _target_: ray.tune.TuneConfig
         num_samples: 1
         scheduler:
           _target_: ray.tune.schedulers.ASHAScheduler
-          metric: loss
+          metric: fid_score
           mode: min
           max_t: 5
           grace_period: 2

@@ -40,7 +40,7 @@ mlflow ui --backend-store-uri mllogs/mlflow/
 folder containing a CSV file with the predictions as rows.
 
     ```bash
-    itwinai exec-pipeline --config config.yaml --pipe-key inference_pipeline 
+    itwinai exec-pipeline +pipe_key=training_pipeline_gan
     ```
 
 Note the same entry point as for training.
