@@ -21,8 +21,12 @@ exit 0
 
 itwin
 singularity pull --force eurac.sif docker://ghcr.io/intertwin-eu/itwinai-dev:eurac-hpo
-# Lauch ray cluster on login
 bash ray_cluster_container.sh
-# Launch HPO
-singularity exec eurac.sif /bin/bash -c \
-    'cd /app/eurac && python hpo.py --workdir /ceph/hpc/data/st2301-itwin-users/mbunino --dataset_path /ceph/hpc/data/st2301-itwin-users/eurac --ncpus 1 --ngpus 1 --max_iterations 40'
+singularity exec  -B /ceph/hpc/data/st2301-itwin-users/eurac/config.yaml:/app/eurac/config.yaml \
+    eurac.sif /bin/bash -c \
+    'cd /app/eurac && python hpo.py --workdir /ceph/hpc/data/st2301-itwin-users/mbunino \
+    --dataset_path /ceph/hpc/data/st2301-itwin-users/eurac \
+    --ncpus 8 \
+    --ngpus 1 \
+    --max_iterations 20 \
+    --pipeline_name training_pipeline'

@@ -80,7 +80,7 @@ def run_hpo(args):
             mode="min",  # Minimize the loss
             num_samples=args.num_samples,  # Number of trials to run
             scheduler=AsyncHyperBandScheduler(
-                max_t=args.max_iterations, grace_period=30, reduction_factor=4
+                max_t=args.max_iterations, grace_period=args.grace_period, reduction_factor=4
             ),
         )
 
@@ -195,7 +195,10 @@ if __name__ == "__main__":
     parser.add_argument("--ncpus", type=int, help="Number of CPUs per trial")
     parser.add_argument("--metric", type=str, default="loss", help="Metric to optimise.")
     parser.add_argument(
-        "--max_iterations", type=int, default="20", help="Maximum iterations per trial"
+        "--max_iterations", type=int, default=20, help="Maximum iterations per trial"
+    )
+    parser.add_argument(
+        "--grace_period", type=int, default=10, help="Grace period for AsyncHyperBandScheduler"
     )
     parser.add_argument(
         "--dataset_path", default="/dataset", type=str, help="Path to the EURAC dataset"

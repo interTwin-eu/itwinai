@@ -17,7 +17,7 @@ experiment_run: "vwc_actevap"
 work_dir: /p/scratch/intertwin/datasets/eurac/model
 dataset_root: /p/scratch/intertwin/datasets/eurac/input
 
-train_temporal_range: ["2016-01-01", "2018-12-31"]
+train_temporal_range: ["2016-01-01", "2017-12-31"]
 valid_temporal_range: ["2019-01-01", "2020-12-31"]
 test_temporal_range: ["2019-01-01", "2020-12-31"]
 
@@ -64,7 +64,7 @@ lr_scheduler:
   factor: 0.5
   patience: 10
 
-seq_length: 120
+seq_length: 50
 
 learning_rate: 0.001
 

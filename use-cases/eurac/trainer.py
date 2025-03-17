@@ -292,7 +292,7 @@ class RNNDistributedTrainer(TorchTrainer):
             epoch_time_tracker.add_epoch_time(epoch + 1, epoch_time)
 
             # Report training metrics of last epoch to Ray
-            # train.report({"loss": avg_val_loss.item(), "train_loss": train_loss.item()})
+            train.report({"loss": avg_val_loss.item(), "train_loss": train_loss.item()})
 
         if self.strategy.is_main_worker:
             epoch_time_tracker.save()
