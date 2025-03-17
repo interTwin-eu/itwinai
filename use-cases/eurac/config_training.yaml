@@ -16,9 +16,9 @@ experiment_run: "run_0"
 
 work_dir: /p/scratch/intertwin/datasets/eurac/model
 
-train_temporal_range: ["2016-01-01", "2019-12-31"]
+train_temporal_range: ["2016-01-01", "2016-12-31"]
 valid_temporal_range: ["2020-01-01", "2020-12-31"]
-test_temporal_range: ["2019-01-01", "2020-12-31"]
+test_temporal_range: ["2020-01-01", "2020-12-31"]
 
 seed: 10 
 
@@ -56,7 +56,7 @@ lr_scheduler:
   factor: 0.5
   patience: 10
 
-seq_length: 210
+seq_length: 50
 
 learning_rate: 0.001
 
@@ -79,12 +79,12 @@ predict_steps: 0 # all # (prediction: 0 = t ), ( forecasts: 1 = t+1, 2 = t + 2)
 train_downsampler: #null
   _target_: hython.sampler.downsampler.RandomDownsampler
   frac_time: null
-  frac_space: 0.1
+  frac_space: 0.01
 
 valid_downsampler: #null
   _target_: hython.sampler.downsampler.RandomDownsampler
   frac_time: null
-  frac_space: 0.1
+  frac_space: 0.01
 
 test_downsampler: null
 
@@ -92,14 +92,14 @@ test_downsampler: null
 # temporal downsampling
 downsampling_temporal_dynamic: True
 temporal_downsampling: True
-temporal_subset: [200, 200]
+temporal_subset: [5, 5]
 
 
 # === Data ===
 
 data_lazy_load: False
 
-num_workers_dataloader: 5
+num_workers_dataloader: 1
 
 dataset: WflowSBM
 
@@ -167,7 +167,31 @@ model_logger:
       log: True
       load: False
 
+## ==== EVALUATION ====
 
+evaluator:
+    var_metadata:
+      vwc:
+        unit: "mm/mm"
+    dir_out: "${work_dir}/${experiment_name}_${experiment_run}/evaluate"
+    # map:
+    #   var: ["vwc"]
+    #   metric: ["bias", "pbias", "pearson", "nse"]
+    #   write: True
+    distr:
+      var: ["vwc"]
+      metric: null
+      write: True
+      kwargs: {}
+    # ts_compare:
+    #   var: ["vwc"]
+    #   metric: null
+    #   coords: [[48, 11], [45, 10]] # lat.lon 
+    #   write: False
+    # global_metric:
+    #   var: ["vwc"]
+    #   metric: ["kge", "bias", "pbias", "pearson","nse", "rmse"]
+    #   write: True
 
 # == Pipeline == 
 
@@ -182,6 +206,7 @@ training_pipeline:
       mask_variables: ${mask_variables}
       train_temporal_range: ${train_temporal_range}
       valid_temporal_range: ${valid_temporal_range}
+      test_temporal_range: ${test_temporal_range}
       dataset: ${dataset}
       data_lazy_load: ${data_lazy_load}
       downsampling_temporal_dynamic: ${downsampling_temporal_dynamic}
@@ -194,6 +219,7 @@ training_pipeline:
       work_dir: ${work_dir}
       train_downsampler: ${train_downsampler}
       valid_downsampler: ${valid_downsampler}
+      test_downsampler: ${test_downsampler}
     - _target_: trainer.RNNDistributedTrainer
       model: ${model}
       config:
@@ -254,5 +280,5 @@ training_pipeline:
           #   run_name: ${experiment_run}
           #   log_freq: batch
           #   savedir: /home/iferrario/dev/hython/hython/itwinai/mllogs
-                    
-
+    # - _target_: inference.Evaluation
+    #   evaluator: ${evaluator}

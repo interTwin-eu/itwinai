@@ -36,6 +36,11 @@ from itwinai.components import Predictor
 from itwinai.torch.type import Metric
 from itwinai.torch.profiling.profiler import profile_torch_trainer
 
+from hython.config import Config
+from hython.evaluator import Evaluator
+
+from omegaconf import DictConfig
+
 
 def create_xarray_dataset(
     y_target,
@@ -61,8 +66,6 @@ def create_xarray_dataset(
 class ParameterInference(Predictor):
 
     def __init__(self,
-                 test_dataset: Dataset | None = None, 
-                 test_dataloader: DataLoader | None = None, 
                  model: Union[nn.Module, ModelLoader, None] = None,
                  scaling_static_range: Dict | None = None):
         super().__init__(model = model)
@@ -118,3 +121,31 @@ class ParameterInference(Predictor):
         y_params.to_netcdf(f"{cfg.work_dir}/test.nc")
 
 
+
+class Evaluation(Predictor):
+    def __init__(self,
+                 evaluator: Dict,
+                 model: Union[nn.Module, ModelLoader, None] = None
+                 ):
+        super().__init__(model = model)
+        self.save_parameters(**self.locals2params(locals()))
+        self.cfg_evaluator = DictConfig({"evaluator":evaluator})
+
+    @monitor_exec
+    def execute(
+        self,
+        test_dataset: Dataset,
+        dataloader: DataLoader,
+        model: nn.Module = None,
+        strategy = None, 
+        cfg = None
+    ) -> Dict[str, Any]:
+
+        if strategy.is_main_worker:
+            evaluator = Evaluator(self.cfg_evaluator)
+
+            device = strategy.device()
+
+            target, pred = evaluator.preprocess(test_dataset, dataloader, model, device, target="y_hat")
+
+            evaluator.run(target, pred)

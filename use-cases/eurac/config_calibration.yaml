@@ -64,6 +64,15 @@ loss_fn:
 metric_fn:
   _target_: hython.metrics.MSEMetric
 
+regularization:
+  _target_: hython.regularizations.RangeBoundReg
+  factor: 1
+  bounds:
+    thetaS: [0, 1]
+    thetaR: [0, 1]
+    KsatVer: [0, 1]
+    c: [0, 1]
+
 optimizer: adam
 
 lr_scheduler:
@@ -252,6 +261,7 @@ training_pipeline:
         num_workers_dataloader: 5
         hython_trainer: ${hython_trainer}
 
+        regularization: ${regularization}
         
         target_variables: ${target_variables}
         dynamic_inputs: ${dynamic_inputs}
@@ -317,8 +327,6 @@ training_pipeline:
           #   run_name: ${experiment_run}
           #   log_freq: batch
           #   savedir: /home/iferrario/dev/hython/hython/itwinai/mllogs
-    - _target_: inference.ParameterInference
-      test_dataset: null
-      test_dataloader: null
-      model: null
-      scaling_static_range: ${scaling_static_range}
+    # - _target_: inference.ParameterInference
+    #   model: null
+    #   scaling_static_range: ${scaling_static_range}

@@ -53,9 +53,6 @@ class RNNDatasetGetterAndPreprocessor(DataSplitter):
 
         val_dataset = get_dataset(cfg.dataset)(cfg, scaler, False, "valid")
 
-        test_dataset = None
-
-        if "cal" in cfg.hython_trainer:
-            test_dataset = get_dataset(cfg.dataset)(cfg, scaler, False, "test")
+        test_dataset = get_dataset(cfg.dataset)(cfg, scaler, False, "test")
             
         return train_dataset, val_dataset, test_dataset
