@@ -104,19 +104,19 @@ class GANTrainer(TorchTrainer):
         generator (nn.Module): pytorch generator model to train GAN.
         strategy (Literal['ddp', 'deepspeed', 'horovod'], optional):
             distributed strategy. Defaults to 'ddp'.
-        test_every (Optional[int], optional): run a test epoch
+        test_every (int | None, optional): run a test epoch
             every ``test_every`` epochs. Disabled if None. Defaults to None.
         random_seed (int | None, optional): set random seed for
             reproducibility. If None, the seed is not set. Defaults to None.
         logger (Logger | None, optional): logger for ML tracking.
             Defaults to None.
-        metrics (Optional[Dict[str, Callable]], optional): map of torch metrics
+        metrics (Dict[str, Callable] | None, optional): map of torch metrics
             metrics. Defaults to None.
         checkpoints_location (str): path to checkpoints directory.
             Defaults to "checkpoints".
         checkpoint_every (int | None): save a checkpoint every
             ``checkpoint_every`` epochs. Disabled if None. Defaults to None.
-        name (Optional[str], optional): trainer custom name. Defaults to None.
+        name (str | None, optional): trainer custom name. Defaults to None.
         profiling_wait_epochs (int): how many epochs to wait before starting
             the profiler.
         profiling_warmup_epochs (int): length of the profiler warmup phase in terms of
@@ -136,6 +136,12 @@ class GANTrainer(TorchTrainer):
         ray_horovod_config (HorovodConfig, optional): horovod configuration for Ray's
             HorovodTrainer. Defaults to None.
         from_checkpoint (str | Path, optional): path to checkpoint directory. Defaults to None.
+        initial_best_validation_metric (str): initial value for the best validation metric.
+            Usually the validation metric is a loss to be minimized and this value exceeds the
+            highest possible loss value, so that it will be overwritten when the first
+            vaidation loss is computed. Example values are "inf" and "-inf", depending on
+            wether the best validation metric should be minimized or maximized.
+            Defaults to "inf".
     """
 
     #: PyTorch generator to train.
@@ -149,9 +155,9 @@ class GANTrainer(TorchTrainer):
     #: Optimizer for the discriminator.
     optimizer_discriminator: Optimizer | None = None
     #: Learning rate scheduler for the optimizer of the generator.
-    lr_scheduler_generator: LRScheduler = None
+    lr_scheduler_generator: LRScheduler | None = None
     #: Learning rate scheduler for the optimizer of the discriminator.
-    lr_scheduler_discriminator: LRScheduler = None
+    lr_scheduler_discriminator: LRScheduler | None = None
 
     def __init__(
         self,
@@ -160,13 +166,13 @@ class GANTrainer(TorchTrainer):
         discriminator: nn.Module,
         generator: nn.Module,
         strategy: Literal["ddp", "deepspeed"] = "ddp",
-        test_every: Optional[int] = None,
-        random_seed: Optional[int] = None,
-        logger: Optional[Logger] = None,
-        metrics: Optional[Dict[str, Metric]] = None,
+        test_every: int | None = None,
+        random_seed: int | None = None,
+        logger: Logger | None = None,
+        metrics: Dict[str, Metric] | None = None,
         checkpoints_location: str = "checkpoints",
-        checkpoint_every: Optional[int] = None,
-        name: Optional[str] = None,
+        checkpoint_every: int | None = None,
+        name: str | None = None,
         profiling_wait_epochs: int = 1,
         profiling_warmup_epochs: int = 2,
         ray_scaling_config: ScalingConfig | None = None,
@@ -177,6 +183,7 @@ class GANTrainer(TorchTrainer):
         ray_data_config: DataConfig | None = None,
         ray_horovod_config: Optional["HorovodConfig"] = None,
         from_checkpoint: str | Path | None = None,
+        initial_best_validation_metric: str = "inf",
         **kwargs,
     ) -> None:
         super().__init__(
@@ -201,6 +208,7 @@ class GANTrainer(TorchTrainer):
             from_checkpoint=from_checkpoint,
             ray_torch_config=ray_torch_config,
             ray_data_config=ray_data_config,
+            initial_best_validation_metric=initial_best_validation_metric,
             **kwargs,
         )
         self.save_parameters(**self.locals2params(locals()))
@@ -220,7 +228,7 @@ class GANTrainer(TorchTrainer):
         self.lr_scheduler_generator_state_dict = None
         self.lr_scheduler_discriminator_state_dict = None
 
-    def _optimizer_from_config(self) -> None:
+    def _set_optimizer_from_config(self) -> None:
         match self.config.optimizer_generator:
             case "adadelta":
                 self.optimizer_generator = optim.Adadelta(
@@ -305,7 +313,7 @@ class GANTrainer(TorchTrainer):
                     "create_model_loss_optimizer method for more flexibility."
                 )
 
-    def _lr_scheduler_from_config(self) -> None:
+    def _set_lr_scheduler_from_config(self) -> None:
         """Parse Lr scheduler from training config"""
         if self.config.lr_scheduler_generator:
             if not self.optimizer_generator:
@@ -419,11 +427,11 @@ class GANTrainer(TorchTrainer):
 
         # Parse optimizers from training configuration
         # Optimizers can be changed with a custom one here!
-        self._optimizer_from_config()
+        self._set_optimizer_from_config()
 
         # Parse LR schedulers from training configuration
         # LR schedulers can be changed with a custom one here!
-        self._lr_scheduler_from_config()
+        self._set_lr_scheduler_from_config()
 
         if self.optimizer_generator_state_dict:
             # Load optimizer state from checkpoint
@@ -451,7 +459,7 @@ class GANTrainer(TorchTrainer):
 
         # Parse loss from training configuration
         # Loss can be change with a custom one here!
-        self._loss_from_config()
+        self._set_loss_from_config()
         self.criterion = self.loss
 
         # if not self.optimizer_discriminator:
@@ -483,7 +491,7 @@ class GANTrainer(TorchTrainer):
     def save_checkpoint(
         self,
         name: str,
-        best_validation_metric: Optional[torch.Tensor] = None,
+        best_validation_metric: torch.Tensor | None = None,
         checkpoints_root: str | Path | None = None,
         force: bool = False,
     ) -> str | None:
@@ -491,7 +499,7 @@ class GANTrainer(TorchTrainer):
 
         Args:
             name (str): name of the checkpoint directory.
-            best_validation_metric (Optional[torch.Tensor]): best validation loss throughout
+            best_validation_metric (torch.Tensor | None): best validation loss throughout
                 training so far (if available).
             checkpoints_root (str | None): path for root checkpoints dir. If None, uses
                 ``self.checkpoints_location`` as base.
@@ -504,7 +512,7 @@ class GANTrainer(TorchTrainer):
             force
             or self.strategy.is_main_worker
             and self.checkpoint_every
-            and (self.epoch + 1) % self.checkpoint_every == 0
+            and (self.current_epoch + 1) % self.checkpoint_every == 0
         ):
             # Do nothing and return
             return
@@ -514,7 +522,7 @@ class GANTrainer(TorchTrainer):
 
         # Save state (epoch, loss, optimizer, scheduler)
         state = {
-            "epoch": self.epoch,
+            "epoch": self.current_epoch,
             # This could store the best validation loss
             "best_validation_metric": (
                 best_validation_metric.item() if best_validation_metric is not None else None
@@ -573,7 +581,7 @@ class GANTrainer(TorchTrainer):
         self.torch_rng_state = state["torch_rng_state"]
         # Direct overrides (don't require further attention)
         self.random_seed = state["random_seed"]
-        self.epoch = state["epoch"] + 1  # Start from next epoch
+        self.current_epoch = state["epoch"] + 1  # Start from next epoch
         if state["best_validation_metric"]:
             self.best_validation_metric = state["best_validation_metric"]
 
@@ -596,14 +604,14 @@ class GANTrainer(TorchTrainer):
             item=avg_disc_accuracy.item(),
             identifier="disc_train_accuracy_per_epoch",
             kind="metric",
-            step=self.epoch,
+            step=self.current_epoch,
         )
         avg_gen_loss = torch.mean(torch.stack(gen_train_losses))
         self.log(
             item=avg_gen_loss.item(),
             identifier="gen_train_loss_per_epoch",
             kind="metric",
-            step=self.epoch,
+            step=self.current_epoch,
         )
 
         avg_disc_loss = torch.mean(torch.stack(disc_train_losses))
@@ -611,7 +619,7 @@ class GANTrainer(TorchTrainer):
             item=avg_disc_loss.item(),
             identifier="disc_train_loss_per_epoch",
             kind="metric",
-            step=self.epoch,
+            step=self.current_epoch,
         )
 
         self.save_fake_generator_images()
@@ -696,28 +704,28 @@ class GANTrainer(TorchTrainer):
             item=disc_validation_loss.item(),
             identifier="disc_valid_loss_per_epoch",
             kind="metric",
-            step=self.epoch,
+            step=self.current_epoch,
         )
         disc_validation_accuracy = torch.mean(torch.stack(disc_validation_accuracy))
         self.log(
             item=disc_validation_accuracy.item(),
             identifier="disc_valid_accuracy_epoch",
             kind="metric",
-            step=self.epoch,
+            step=self.current_epoch,
         )
         gen_validation_loss = torch.mean(torch.stack(gen_validation_losses))
         self.log(
             item=gen_validation_loss.item(),
             identifier="gen_valid_loss_per_epoch",
             kind="metric",
-            step=self.epoch,
+            step=self.current_epoch,
         )
         gen_validation_accuracy = torch.mean(torch.stack(gen_validation_accuracy))
         self.log(
             item=gen_validation_accuracy.item(),
             identifier="gen_valid_accuracy_epoch",
             kind="metric",
-            step=self.epoch,
+            step=self.current_epoch,
         )
         # TODO: return IS or FID metrics instead, more suitable for GAN validation
         return gen_validation_loss
@@ -799,11 +807,11 @@ class GANTrainer(TorchTrainer):
         fake_images_grid = torchvision.utils.make_grid(fake_images, normalize=True)
         fig, ax = plt.subplots(figsize=(8, 8))
         ax.set_axis_off()
-        ax.set_title(f"Fake images for epoch {self.epoch}")
+        ax.set_title(f"Fake images for epoch {self.current_epoch}")
         ax.imshow(np.transpose(fake_images_grid.cpu().numpy(), (1, 2, 0)))
         self.log(
             item=fig,
-            identifier=f"fake_images_epoch_{self.epoch}.png",
+            identifier=f"fake_images_epoch_{self.current_epoch}.png",
             kind="figure",
-            step=self.epoch,
+            step=self.current_epoch,
         )
