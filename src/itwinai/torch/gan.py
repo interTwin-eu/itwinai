@@ -97,7 +97,7 @@ class GANTrainer(TorchTrainer):
     """Trainer class for GAN models using pytorch.
 
     Args:
-        config (Dict | TrainingConfiguration): training configuration
+        config (Dict | GANTrainingConfiguration): training configuration
             containing hyperparameters.
         epochs (int): number of training epochs.
         discriminator (nn.Module): pytorch discriminator model to train GAN.
