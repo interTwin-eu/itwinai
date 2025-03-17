@@ -1,4 +1,5 @@
 import os
+from os.path import isdir
 from pathlib import Path
 from timeit import default_timer
 from typing import Dict, Literal, Optional, Union, Any, Tuple
@@ -24,6 +25,7 @@ from itwinai.torch.distributed import (
 )
 
 from itwinai.torch.monitoring.monitoring import measure_gpu_utilization
+from itwinai.torch.profiling.profiler import profile_torch_trainer
 from itwinai.distributed import suppress_workers_print
 from itwinai.loggers import EpochTimeTracker, Logger
 from itwinai.torch.config import TrainingConfiguration
@@ -199,17 +201,17 @@ class RNNDistributedTrainer(TorchTrainer):
         """Override train_val version of hython to support distributed strategy."""
 
         # Tracking epoch times for scaling test
-        if self.strategy.is_main_worker:
+        if self.strategy.is_main_worker and self.strategy.is_distributed:
             num_nodes = os.environ.get("SLURM_NNODES", "unk")
-            series_name = os.environ.get("DIST_MODE", "unk") + "-torch"
             epoch_time_output_dir = Path("scalability-metrics/epoch-time")
             epoch_time_file_name = f"epochtime_{self.strategy.name}_{num_nodes}N.csv"
             epoch_time_output_path = epoch_time_output_dir / epoch_time_file_name
 
-            epoch_time_tracker = EpochTimeTracker(
+            epoch_time_logger= EpochTimeTracker(
                 strategy_name=self.strategy.name,
                 save_path=epoch_time_output_path,
                 num_nodes=num_nodes,
+                should_log=self.measure_epoch_time
             )
 
         device = self.strategy.device()
@@ -284,11 +286,11 @@ class RNNDistributedTrainer(TorchTrainer):
                 best_model = self.model.state_dict()
                 # self.hython_trainer.save_weights(self.model)
 
-            epoch_time = default_timer() - epoch_start_time
-            epoch_time_tracker.add_epoch_time(epoch + 1, epoch_time)
+            if self.strategy.is_distributed:
+                epoch_time = default_timer() - epoch_start_time
+                epoch_time_logger.add_epoch_time(epoch + 1, epoch_time)
 
         if self.strategy.is_main_worker:
-            epoch_time_tracker.save()
             self.model.load_state_dict(best_model)
 
             # MODEL LOGGING
