@@ -18,6 +18,7 @@ maintainers = [
   { name = "Matteo Bunino", email = "matteo.bunino@cern.ch" },
   { name = "Jarl Sondre Sæther", email = "jarl.sondre.saether@cern.ch" },
   { name = "Anna Lappe", email = "anna.elisa.lappe@cern.ch" },
+  { name = "Linus Eickhoff", email = "linus.maximilian.eickhoff@cern.ch" },
 ]
 classifiers = [
   "Development Status :: 4 - Beta",
