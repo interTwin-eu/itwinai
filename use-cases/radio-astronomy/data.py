@@ -186,12 +186,7 @@ class GenericDataset(Dataset):
         )
         image_mask_pair.plot()
 
-    def execute(self) -> None:
-        """Load the dataset from disk and return it.
-
-        Returns:
-            Any: The dataset.
-        """
+    def execute(self) -> Dataset:
         return self
 
 class SignalDataset(SignalToLabelDataset):
@@ -221,6 +216,9 @@ class SignalDataset(SignalToLabelDataset):
                     resize_size=resize_size,
                     binarize_engine = BinarizeToMask(binarize_func=mask_binarize_func)
                     )
+        
+    def execute(self) -> Dataset:
+        return self
 
 class DatasetSplitter(DataSplitter):
     def __init__(

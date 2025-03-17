@@ -13,7 +13,7 @@ matplotlib.use('MacOSX')
 # itwinai integration
 from trainer import PulsarTrainer
 from data import GenericDataset, DatasetSplitter, SignalDataset
-
+from pipelines import pipelineLabelsInterface, pipelinePulsarInterface
 
 mask_maker_dict = {
     "model": "UNet",
