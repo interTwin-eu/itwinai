@@ -344,6 +344,7 @@ class RNNDistributedTrainer(TorchTrainer):
 
         train_sampler = train_sampler_builder.get_sampler()
         val_sampler = val_sampler_builder.get_sampler()
+        test_sampler = test_sampler_builder.get_sampler()
 
         self.train_loader = self.strategy.create_dataloader(
             dataset=train_dataset,
@@ -373,6 +374,6 @@ class RNNDistributedTrainer(TorchTrainer):
                 num_workers=self.config.num_workers_dataloader,
                 pin_memory=self.config.pin_gpu_memory,
                 generator=self.torch_rng,
-                sampler=val_sampler,
+                sampler=test_sampler,
                 drop_last=True,
             )

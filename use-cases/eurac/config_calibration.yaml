@@ -327,6 +327,6 @@ training_pipeline:
           #   run_name: ${experiment_run}
           #   log_freq: batch
           #   savedir: /home/iferrario/dev/hython/hython/itwinai/mllogs
-    # - _target_: inference.ParameterInference
-    #   model: null
-    #   scaling_static_range: ${scaling_static_range}
+    - _target_: inference.ParameterInference
+      model: null
+      scaling_static_range: ${scaling_static_range}

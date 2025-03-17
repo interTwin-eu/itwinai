@@ -40,7 +40,7 @@ from hython.config import Config
 from hython.evaluator import Evaluator
 
 from omegaconf import DictConfig
-
+from hython.utils import create_xarray_data
 
 def create_xarray_dataset(
     y_target,
@@ -107,18 +107,19 @@ class ParameterInference(Predictor):
         
         params_orig = scaler.transform_inverse_custom_range(params, scale=scale, center= center)
 
-        coords = xr.Coordinates({"lat":test_dataset.xd.lat, "lon":test_dataset.xd.lon, "variable":cfg.head_model_inputs})
+        var_names = list(test_dataset.y.data_vars)
 
-        lat, lon = len(test_dataset.xs.lat),len(test_dataset.xs.lon)
+        coords = xr.Coordinates({"lat":test_dataset.y.lat, "lon":test_dataset.y.lon, "variable":cfg.head_model_inputs})
+        output_shape = {"lat":len(test_dataset.y.lat),"lon":len(test_dataset.y.lon), "variable":len(var_names)}
+        ypar = create_xarray_data(params_orig.cpu(), 
+                          coords, 
+                          output_shape=output_shape
+                         )
 
-        y_params = prepare_for_plotting2d(
-                                        y_target= params_orig.cpu(),
-                                        shape = (lat, lon),
-                                        coords  = coords)
         
-        y_params = y_params.to_dataset("variable")
+        ypar = ypar.to_dataset("variable")
 
-        y_params.to_netcdf(f"{cfg.work_dir}/test.nc")
+        #y_params.to_netcdf(f"{cfg.work_dir}/test.nc")
 
 
 
