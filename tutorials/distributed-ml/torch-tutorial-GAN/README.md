@@ -40,6 +40,10 @@ ml Stages/2024 GCC OpenMPI CUDA/12 MPI-settings/CUDA Python HDF5 PnetCDF libaio 
 source ../../../envAI_hdfml/bin/activate
 ```
 
+For more info you can refer to
+[this](https://itwinai.readthedocs.io/latest/getting-started/slurm.html#interactive-shell-on-a-compute-node)
+documentation page.
+
 To launch the training with torch DDP use:
 
 ```bash
