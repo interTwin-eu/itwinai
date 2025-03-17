@@ -7,21 +7,41 @@
 num_payloads: 10
 tag: train_v0_
 
+mask_maker_dict: {
+    model: UNet,
+    model_path: ./models/trained_UNet_test_v0.pt
+    }
+
 image_tag: train_v0_*_payload_detected.json
 image_directory: syn_payload/
 
 mask_tag: train_v0_*_payload_flux.json
 mask_directory: syn_payload/
+
 learning_rate: 0.001
 
-training_pipeline:
+# Pipeline for synthesizing training data
+syndata_pipeline:
   _target_: itwinai.pipeline.Pipeline
+  name: Synthetic Data Generation Pipeline
   steps:
     dataloading_step:
       _target_: data.SynthesizeData
       tag: ${tag}
       num_payloads: ${num_payloads}
       name: syntheticData
+
+# Training pipeline for the UNet model 
+unet_pipeline:
+  _target_: itwinai.pipeline.Pipeline
+  name: UNet Pipeline
+  steps:
+    ### Uncomment the code below if you want to run ONLY this pipeline
+    # dataloading_step:
+    #   _target_: data.SynthesizeData
+    #   tag: ${tag}
+    #   num_payloads: ${num_payloads}
+    #   name: syntheticData
     dataset_step:  
       _target_: data.GenericDataset
       image_tag: ${image_tag}
@@ -57,3 +77,135 @@ training_pipeline:
         optim_lr: ${learning_rate}
         save_best: 1
         shuffle_train: 1
+
+fcnn_pipeline:
+  _target_: itwinai.pipeline.Pipeline
+  name: Filter CNN Pipeline
+  steps:        
+    ### Uncomment the code below if you want to run ONLY this pipeline
+    # dataloading_step:
+    #   _target_: data.SynthesizeData
+    #   tag: ${tag}
+    #   num_payloads: ${num_payloads}
+    #   name: syntheticData
+    dataset_step:  
+      _target_: data.GenericDataset
+      image_tag: ${image_tag}
+      image_directory: ${image_directory}
+      mask_tag: ${mask_tag}
+      mask_directory: ${mask_directory}
+      mask_maker_engine: ${mask_maker_dict}
+      do_rot_phase_avg: 1
+      do_resize: 1
+      resize_size: [128,128]
+      mask_binarize_func: "thresh"
+    splitter_step:
+      _target_: data.DatasetSplitter
+      train_proportion: 0.8
+      validation_proportion: 0.1
+      test_proportion: 0.1
+      rnd_seed: 42
+      name: Splitter
+    training_step:
+      _target_: trainer.PulsarTrainer
+      model:
+       _target_: src.pulsar_analysis.neural_network_models.FilterCNN
+      loss:
+        _target_: src.pulsar_analysis.neural_network_models.WeightedBCELoss
+        pos_weight: 1
+        neg_weight: 1
+      num_epochs: 3
+      store_trained_model_at: ./models/trained_Filter_test_v0.pt
+      name: InmaskToMaskTrainer
+      config:
+        generator: simple #unet
+        optimizer: adam
+        batch_size: 10 # Set to one because "chunk_size" implicitly decides this
+        optim_lr: ${learning_rate}
+        save_best: 1
+        shuffle_train: 1
+
+cnn1d_pipeline:
+  _target_: itwinai.pipeline.Pipeline
+  name: CNN1D Pipeline
+  steps:
+    ### Uncomment the code below if you want to run ONLY this pipeline
+    # dataloading_step:
+    #   _target_: data.SynthesizeData
+    #   tag: ${tag}
+    #   num_payloads: ${num_payloads}
+    #   name: syntheticData
+    dataset_step:  
+      _target_: data.SignalDataset
+      mask_tag: ${mask_tag}
+      mask_directory: ${mask_directory}
+      do_rot_phase_avg: 1
+      do_resize: 1
+      resize_size: [128,128]
+      mask_binarize_func: "thresh"
+    splitter_step:
+      _target_: data.DatasetSplitter
+      train_proportion: 0.8
+      validation_proportion: 0.1
+      test_proportion: 0.1
+      rnd_seed: 42
+      name: Splitter
+    training_step:
+      _target_: trainer.PulsarTrainer
+      model:
+       _target_: src.pulsar_analysis.neural_network_models.CNN1D
+      loss:
+        _target_: src.pulsar_analysis.neural_network_models.WeightedBCELoss
+        pos_weight: 1
+        neg_weight: 1
+      num_epochs: 20
+      store_trained_model_at: ./models/trained_CNN1D_test_v0.pt
+      name: ImgToMaskTrainer
+      config:
+        generator: simple #unet
+        optimizer: adam
+        batch_size: 10 # Set to one because "chunk_size" implicitly decides this
+        optim_lr: ${learning_rate}
+        save_best: 1
+        shuffle_train: 1
+
+# TODO: replace storage locs with vars
+evaluate_pipeline:
+  _target_: itwinai.pipeline.Pipeline
+  steps:
+    eval_step: # arguments for class __init__ and consequent execute() call
+      _target_: pipelines.testSuite
+      image_to_mask_network: 
+        _target_: src.pulsar_analysis.neural_network_models.UNet
+      trained_image_to_mask_network_path: './models/trained_UNet_test_v0.pt'
+      mask_filter_network: 
+        _target_: src.pulsar_analysis.neural_network_models.FilterCNN
+      trained_mask_filter_network_path: './models/trained_Filter_test_v0.pt'
+      signal_to_label_network: 
+        _target_: src.pulsar_analysis.neural_network_models.CNN1D
+      trained_signal_to_label_network: './models/trained_CNN1D_test_v0.pt'
+      img_dir: './test_data/joint_dataset_8_classes_real_remix_128x128.npy' 
+      lbl_dir: './test_data/joint_dataset_8_classes_real_remix_labels.npy' 
+      offset: 0
+      size: 500
+
+
+# Complete pipeline for the three NNs
+complete_pipeline:
+  _target_: itwinai.pipeline.Pipeline
+  name: Complete Training Pipeline
+  steps:
+    syndata: ${syndata_pipeline}
+    unet:    ${unet_pipeline}
+    adapter1:
+      _target_: itwinai.components.Adapter
+      policy: []
+    fcnn: ${fcnn_pipeline}
+    adapter2:
+      _target_: itwinai.components.Adapter
+      policy: []
+    cnn1d: ${cnn1d_pipeline}
+    adapter3:
+      _target_: itwinai.components.Adapter
+      policy: []
+    evaluate: ${evaluate_pipeline}
