@@ -48,7 +48,7 @@ class FashionMNISTTrainer(TorchTrainer):
             val_losses = []
 
             # Training epoch
-            self.model = self.model.train()
+            self.model.train()
             for images, labels in self.train_dataloader:
                 images, labels = images.to(device), labels.to(device)
                 outputs = self.model(images)
@@ -59,7 +59,7 @@ class FashionMNISTTrainer(TorchTrainer):
                 train_losses.append(train_loss.detach().cpu().numpy())
 
             # Validation epoch
-            self.model = self.model.eval()
+            self.model.eval()
             for images, labels in self.validation_dataloader:
                 images, labels = images.to(device), labels.to(device)
                 with torch.no_grad():

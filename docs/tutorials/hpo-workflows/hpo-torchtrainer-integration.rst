@@ -60,7 +60,7 @@ it and override the :meth:`~itwinai.torch.trainer.TorchTrainer.train` method.
    Also, consider that when a Ray cluster is not available and you are not running HPO, the
    :meth:`~itwinai.torch.trainer.TorchTrainer.train` method is automatically ignored. In other
    words, you don't need to remove the call to
-   :meth:`~itwinai.torch.trainer.TorchTrainer.ray_report`  when you are not using Ray for
+   :meth:`~itwinai.torch.trainer.TorchTrainer.ray_report` when you are not using Ray for
    distributed ML training or HPO.
 
 In this tutorial, we will tune two hyperparameters: **batch size** and **learning rate**.  
@@ -81,7 +81,7 @@ method can be overridden:
             val_losses = []
 
             # Training epoch
-            self.model = self.model.train()
+            self.model.train()
             for images, labels in self.train_dataloader:
                 images, labels = images.to(device), labels.to(device)
                 outputs = self.model(images)
@@ -92,7 +92,7 @@ method can be overridden:
                 train_losses.append(train_loss.detach().cpu().numpy())
 
             # Validation epoch
-            self.model = self.model.eval()
+            self.model.eval()
             for images, labels in self.validation_dataloader:
                 images, labels = images.to(device), labels.to(device)
                 with torch.no_grad():

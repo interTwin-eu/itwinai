@@ -110,7 +110,7 @@ want to make are to
      idea to use one, unless you expect your objective function to be extremely heterogenous,
      i.e. that the performance of a hyperparameter configuration on the first (for example) ten
      epochs is not a good indicator for its future performance at all. You might also have
-     experience in training your model and want to account for additional behaviors  - for this
+     experience in training your model and want to account for additional behaviors -- for this
      there are additional parameters you may set, such as a grace period (a minimum number of
      iterations a configuration is allowed to run).
 
@@ -119,12 +119,13 @@ Hyperparameter Optimization in itwinai
 --------------------------------------
 
 Now that we know the key concepts behind HPO, we can explore how these are implemented in
-itwinai. The itwinai :class:`~itwinai.torch.trainer.TorchTrainer` has HPO functionalities already built-in, which means no
-extra scripts and you can run it as you normally would in any itwinai pipeline. In the next
-section we'll introduce distributed HPO, and discover how we can easily start optimizing
-hyperparameters in our exisiting itwinai pipeline with just a few lines of code. We will then
-describe the architecture and operation of the :class:`~itwinai.torch.trainer.TorchTrainer` and talk about what to consider
-when choosing the best HPO integration for you.
+itwinai. The itwinai :class:`~itwinai.torch.trainer.TorchTrainer` has HPO functionalities
+already built-in, which means no extra scripts and you can run it as you normally would in any
+itwinai pipeline. In the next section we'll introduce distributed HPO, and discover how we can
+easily start optimizing hyperparameters in our exisiting itwinai pipeline with just a few lines
+of code. We will then describe the architecture and operation of the
+:class:`~itwinai.torch.trainer.TorchTrainer` and talk about what to consider when choosing the
+best HPO integration for you.
 
 Ray Overview
 ^^^^^^^^^^^^
@@ -174,8 +175,9 @@ Key features of the :class:`~itwinai.torch.trainer.TorchTrainer`:
   modifications.  
 
 .. note::  
-   Do **not** wrap the :class:`~itwinai.torch.trainer.TorchTrainer` into Ray's ``Tuner`` manually, as the trainer already  
-   uses the tuner under the hood, and doing so would create two tuners.  
+   Do **not** wrap the :class:`~itwinai.torch.trainer.TorchTrainer` into Ray's ``Tuner``
+   manually, as the trainer already uses the tuner under the hood, and doing so would create
+   two tuners.  
 
 For a hands-on tutorial on setting up distributed HPO with itwinai, check out the
 :doc:`distributed HPO tutorial <../../tutorials/hpo-workflows/hpo-torchtrainer-integration>`.  
