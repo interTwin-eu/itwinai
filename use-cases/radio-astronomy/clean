@@ -1,0 +1,5 @@
+#!/bin/bash
+
+rm -f ./syn_data/* ./syn_runtime/* ./syn_payload/* 
+rm -rf outputs checkpoints models/*
+rm -f job.err job.out log

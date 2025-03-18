@@ -35,7 +35,9 @@ source ~/.bashrc
 # ON LOGIN NODE download datasets:
 source /p/project1/intertwin/krochak1/itwinai/.venv/bin/activate
 
-export HYDRA_FULL_ERROR=1
-
 #uv run main.py > log
-itwinai exec-pipeline +pipe-key=complete_pipeline > log 
+# itwinai exec-pipeline +pipe_key=syndata_pipeline  
+# itwinai exec-pipeline +pipe_key=unet_pipeline  
+# itwinai exec-pipeline +pipe_key=complete_pipeline
+itwinai exec-pipeline +pipe_key=evaluate_pipeline
+

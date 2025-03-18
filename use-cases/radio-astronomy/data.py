@@ -331,4 +331,9 @@ class testSuite:
 
         plt.show()
         return print("Test Suite executed")       
-        
+
+class ModelSaver:
+    def execute(self, model, path) -> None:
+        torch.save(model.state_dict(), path)
+        print(f"Model saved at {path}")
+        return None

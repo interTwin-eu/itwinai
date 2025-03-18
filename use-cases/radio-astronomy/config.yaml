@@ -77,6 +77,12 @@ unet_pipeline:
         optim_lr: ${learning_rate}
         save_best: 1
         shuffle_train: 1
+    adapter_step:
+      _target_: itwinai.components.Adapter
+      policy: ["INPUT_ARG#3", ./models/trained_UNet_test_v0.pt]
+    save_step:
+      _target_: data.ModelSaver
+
 
 fcnn_pipeline:
   _target_: itwinai.pipeline.Pipeline
@@ -124,6 +130,12 @@ fcnn_pipeline:
         optim_lr: ${learning_rate}
         save_best: 1
         shuffle_train: 1
+    adapter_step:
+      _target_: itwinai.components.Adapter
+      policy: ["INPUT_ARG#3", ./models/trained_Filter_test_v0.pt]
+    save_step:
+      _target_: data.ModelSaver
+
 
 cnn1d_pipeline:
   _target_: itwinai.pipeline.Pipeline
@@ -168,13 +180,19 @@ cnn1d_pipeline:
         optim_lr: ${learning_rate}
         save_best: 1
         shuffle_train: 1
+    adapter_step:
+      _target_: itwinai.components.Adapter
+      policy: ["INPUT_ARG#3", ./models/trained_CNN1D_test_v0.pt]
+    save_step:
+      _target_: data.ModelSaver
+
 
 # TODO: replace storage locs with vars
 evaluate_pipeline:
   _target_: itwinai.pipeline.Pipeline
   steps:
     eval_step: # arguments for class __init__ and consequent execute() call
-      _target_: pipelines.testSuite
+      _target_: data.testSuite
       image_to_mask_network: 
         _target_: src.pulsar_analysis.neural_network_models.UNet
       trained_image_to_mask_network_path: './models/trained_UNet_test_v0.pt'
@@ -197,15 +215,15 @@ complete_pipeline:
   steps:
     syndata: ${syndata_pipeline}
     unet:    ${unet_pipeline}
-    adapter1:
-      _target_: itwinai.components.Adapter
-      policy: []
+    # adapter1:
+    #   _target_: itwinai.components.Adapter
+    #   policy: []
     fcnn: ${fcnn_pipeline}
-    adapter2:
-      _target_: itwinai.components.Adapter
-      policy: []
+    # adapter2:
+    #   _target_: itwinai.components.Adapter
+    #   policy: []
     cnn1d: ${cnn1d_pipeline}
-    adapter3:
-      _target_: itwinai.components.Adapter
-      policy: []
-    evaluate: ${evaluate_pipeline}
+    # adapter3:
+    #  _target_: itwinai.components.Adapter
+    #  policy: []
+    # evaluate: ${evaluate_pipeline}
