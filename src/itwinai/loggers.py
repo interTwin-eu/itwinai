@@ -636,7 +636,7 @@ class MLFlowLogger(Logger):
             import torch
 
             if isinstance(item, torch.nn.Module):
-                self.mlflow.pytorch.log_model(item, identifier, **kwargs)
+                self.mlflow.pytorch.log_model(item, identifier)
             else:
                 print("WARNING: unrecognized model type")
         elif kind == "dataset":
