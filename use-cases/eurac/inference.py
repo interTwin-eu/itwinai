@@ -140,7 +140,10 @@ class Evaluation(Predictor):
         cfg = None
     ) -> Dict[str, Any]:
 
+        strategy.init()
+
         if strategy.is_main_worker:
+        
             evaluator = Evaluator(self.cfg_evaluator)
 
             device = strategy.device()
