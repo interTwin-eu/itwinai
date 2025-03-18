@@ -6,14 +6,33 @@ import matplotlib
 
 from src.pulsar_analysis.neural_network_models import UNet, FilterCNN, CNN1D, WeightedBCELoss
 from src.pulsar_analysis.pipeline_methods import PipelineImageToFilterDelGraphtoIsPulsar, PipelineImageToFilterToCCtoLabels
-
-
-matplotlib.use('MacOSX')
+from pulsar_simulation.generate_data_pipeline import generate_example_payloads_for_training
 
 # itwinai integration
 from trainer import PulsarTrainer
-from data import GenericDataset, DatasetSplitter, SignalDataset
-from pipelines import pipelineLabelsInterface, pipelinePulsarInterface
+from data import GenericDataset, DatasetSplitter, SignalDataset, \
+         pipelineLabelsInterface, pipelinePulsarInterface
+
+# matplotlib.use('MacOSX')
+
+## Generate synthetic data
+
+generate_example_payloads_for_training(tag='train_v0_',
+                                       num_payloads=10,
+                                       plot_a_example=False,
+                                       param_folder='./syn_payload/',
+                                       payload_folder='./syn_payload/',
+                                       num_cpus=1 #: choose based on the number of nodes/cores in your system
+                                       )
+
+# generate_example_payloads_for_training(tag='test_v0_',
+#                                        num_payloads=50,
+#                                        plot_a_example=False,
+#                                        param_folder='./syn_data/runtime/',
+#                                        payload_folder='./syn_data/payloads/',
+#                                        num_cpus=10 #: choose based on the number of nodes/cores in your system
+#                                        )
+
 
 mask_maker_dict = {
     "model": "UNet",

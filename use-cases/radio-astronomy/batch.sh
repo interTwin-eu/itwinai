@@ -37,4 +37,5 @@ source /p/project1/intertwin/krochak1/itwinai/.venv/bin/activate
 
 export HYDRA_FULL_ERROR=1
 
-itwinai exec-pipeline > log 
+#uv run main.py > log
+itwinai exec-pipeline +pipe-key=complete_pipeline > log 
