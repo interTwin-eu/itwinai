@@ -107,19 +107,17 @@ class ParameterInference(Predictor):
         
         params_orig = scaler.transform_inverse_custom_range(params, scale=scale, center= center)
 
-        var_names = list(test_dataset.y.data_vars)
-
         coords = xr.Coordinates({"lat":test_dataset.y.lat, "lon":test_dataset.y.lon, "variable":cfg.head_model_inputs})
-        output_shape = {"lat":len(test_dataset.y.lat),"lon":len(test_dataset.y.lon), "variable":len(var_names)}
+        output_shape = {"lat":len(test_dataset.y.lat),"lon":len(test_dataset.y.lon), "variable":len(cfg.head_model_inputs)}
         ypar = create_xarray_data(params_orig.cpu(), 
                           coords, 
                           output_shape=output_shape
                          )
 
         
-        ypar = ypar.to_dataset("variable")
+        #ypar = ypar .to_dataset("variable")
 
-        #y_params.to_netcdf(f"{cfg.work_dir}/test.nc")
+        ypar.to_netcdf(f"{cfg.work_dir}/test.nc")
 
 
 

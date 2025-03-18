@@ -14,6 +14,7 @@
 experiment_name: "training"
 experiment_run: "run_0"
 
+#work_dir: /mnt/CEPH_PROJECTS/InterTwin/hython_model_run 
 work_dir: /p/scratch/intertwin/datasets/eurac/model
 
 train_temporal_range: ["2016-01-01", "2016-12-31"]
@@ -39,7 +40,7 @@ model_head_kwargs: {}
   
 # === Training ===
 
-strategy: ddp
+strategy: ddp # null
 
 hython_trainer: rnntrainer
 
@@ -100,8 +101,17 @@ temporal_subset: [5, 5]
 data_lazy_load: False
 
 num_workers_dataloader: 1
+num_workers_dataloader_eval: 24
 
 dataset: WflowSBM
+
+# data_source:
+#   file:
+#     static_inputs: /mnt/CEPH_PROJECTS/InterTwin/hydrologic_data/surrogate_input/eobs_static.zarr
+#     dynamic_inputs: /mnt/CEPH_PROJECTS/InterTwin/hydrologic_data/surrogate_input/eobs_dynamic.zarr
+#     target_variables: /mnt/CEPH_PROJECTS/InterTwin/hydrologic_data/surrogate_input/eobs_dynamic.zarr
+#   # s3:
+#   #   url: https://eurac-eo.s3.amazonaws.com/INTERTWIN/SURROGATE_INPUT/adg1km_eobs_preprocessed.zarr/
 
 data_source:
   file:
@@ -230,6 +240,7 @@ training_pipeline:
         batch_size: ${batch}
         learning_rate: ${learning_rate}
         num_workers_dataloader: ${num_workers_dataloader}
+        num_workers_dataloader_eval: ${num_workers_dataloader_eval}
         hython_trainer: ${hython_trainer}
         #temporal_downsampling_dynamic: ${downsampling_temporal_dynamic}
         temporal_downsampling: ${temporal_downsampling}
@@ -280,5 +291,5 @@ training_pipeline:
           #   run_name: ${experiment_run}
           #   log_freq: batch
           #   savedir: /home/iferrario/dev/hython/hython/itwinai/mllogs
-    # - _target_: inference.Evaluation
-    #   evaluator: ${evaluator}
+    - _target_: inference.Evaluation
+      evaluator: ${evaluator}

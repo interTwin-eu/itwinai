@@ -4,11 +4,12 @@ experiment_run: "run_0"
 
 # the base directory with all the runs
 # here a new directory <experiment_name>_<experiment_run> is created
+#work_dir: /mnt/CEPH_PROJECTS/InterTwin/hython_model_run # 
 work_dir: /p/scratch/intertwin/datasets/eurac/model
 
 train_temporal_range: ["2017-01-01", "2017-03-30"]
 valid_temporal_range: ["2017-01-01", "2017-03-30"]
-test_temporal_range: ["2017-01-01", "2017-03-31"]
+test_temporal_range: ["2017-01-01", "2017-03-30"]
 
 seed: 10 
 
@@ -54,7 +55,7 @@ model_head_kwargs: {}
 
 # === Training ===
 
-strategy: null
+strategy: ddp #null
 
 hython_trainer: caltrainer # trainer class
 
@@ -114,6 +115,21 @@ test_downsampler: null
 data_lazy_load: False
 
 dataset: WflowSBMCal # dataset class
+
+num_workers_dataloader: 1
+num_workers_dataloader_eval: 24
+
+# data_source:
+#   file:
+#     static_inputs: /mnt/CEPH_PROJECTS/InterTwin/hydrologic_data/param_learning_input/predictor_alps.zarr
+#     dynamic_inputs: /mnt/CEPH_PROJECTS/InterTwin/hydrologic_data/surrogate_input/eobs_dynamic.zarr
+#     target_variables: /mnt/CEPH_PROJECTS/InterTwin/hydrologic_data/SSM-RT0-SIG0-R-CRRL/processed/daily/alps_masked_20170101-20171231.nc
+#     #target_variables_mask: /mnt/CEPH_PROJECTS/InterTwin/hydrologic_data/SSM-RT0-SIG0-R-CRRL/processed/daily/alps_masked_20170101-20171231.nc
+#     mask_variables: /mnt/CEPH_PROJECTS/InterTwin/hydrologic_data/surrogate_input/eobs_static.zarr
+#     static_inputs_mask: /mnt/CEPH_PROJECTS/InterTwin/hydrologic_data/param_learning_input/predictor_alps.zarr
+#   # s3:
+#   #   url: https://eurac-eo.s3.amazonaws.com/INTERTWIN/SURROGATE_INPUT/adg1km_eobs_preprocessed.zarr/
+  
 
 data_source:
   file:
@@ -201,7 +217,7 @@ model_logger:
       model_component: head
       model_name: ${model_head}
       #model_uri: "models:/${model_head}/latest" # <---- mlflow
-      model_uri: "/p/project1/intertwin/ferrario1/itwinai/use-cases/eurac/config_training.yaml" # <-- local
+      model_uri: "/home/iferrario/dev/hython/hython/itwinai/training.yaml" # "/p/project1/intertwin/ferrario1/itwinai/use-cases/eurac/config_training.yaml" # <-- local
       log: False
       load: True
   TransferNN:
@@ -258,7 +274,8 @@ training_pipeline:
         work_dir: ${work_dir}
         batch_size: ${batch}
         learning_rate: ${learning_rate}
-        num_workers_dataloader: 5
+        num_workers_dataloader: ${num_workers_dataloader}
+        num_workers_dataloder_eval: ${num_workers_dataloader_eval}
         hython_trainer: ${hython_trainer}
 
         regularization: ${regularization}

@@ -371,9 +371,9 @@ class RNNDistributedTrainer(TorchTrainer):
             self.test_loader = self.strategy.create_dataloader(
                 dataset=test_dataset,
                 batch_size=self.config.batch_size,
-                num_workers=self.config.num_workers_dataloader,
+                num_workers=self.config.num_workers_dataloader_eval,
                 pin_memory=self.config.pin_gpu_memory,
                 generator=self.torch_rng,
                 sampler=test_sampler,
-                drop_last=True,
+                drop_last=False,
             )
