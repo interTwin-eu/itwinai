@@ -237,7 +237,7 @@ dagger call --name="${COMMIT_HASH}-torch-slim" \
 #######################################
 
 
-# Release pipeline
+# Release pipeline (but for testing purposes)
 export COMMIT_HASH=$(git rev-parse --verify HEAD)
 export BASE_IMG_NAME="python:3.10-slim"
 export BASE_IMG_DIGEST="$(echo "$BASE_IMG_NAME" | cut -d ':' -f 1)@$(docker buildx imagetools inspect $BASE_IMG_NAME | grep "Digest:" | head -n 1 | awk '{print $2}')"

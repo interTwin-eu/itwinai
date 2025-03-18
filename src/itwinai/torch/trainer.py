@@ -699,7 +699,11 @@ class TorchTrainer(Trainer, LogMixin):
         """
         if isinstance(self.strategy, RayTorchDistributedStrategy):
             # Execute with Ray
-            return self._execute_with_ray()
+            return self._execute_with_ray(
+                train_dataset=train_dataset,
+                validation_dataset=validation_dataset,
+                test_dataset=test_dataset,
+            )
 
         # Execute without ray
         if self.ray_scaling_config:
