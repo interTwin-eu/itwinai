@@ -202,8 +202,8 @@ class NoiseGeneratorTrainer(TorchTrainer):
         # Note that it significantly slows down the whole process
         # it also might not work as the function has not been fully
         # implemented yet
-        epoch_time_tracker: EpochTimeTracker | None = None
-        if self.strategy.is_main_worker:
+        epoch_time_logger: EpochTimeTracker | None = None
+        if self.strategy.is_main_worker and self.strategy.is_distributed:
             print("TIMER: broadcast:", timer() - st, "s")
             print("\nDEBUG: start training")
             print("--------------------------------------------------------")
@@ -215,10 +215,11 @@ class NoiseGeneratorTrainer(TorchTrainer):
             epoch_time_output_dir = Path("scalability-metrics/epoch-time")
             epoch_time_file_name = f"epochtime_{self.strategy.name}_{num_nodes}N.csv"
             epoch_time_output_path = epoch_time_output_dir / epoch_time_file_name
-            epoch_time_tracker = EpochTimeTracker(
+            epoch_time_logger = EpochTimeTracker(
                 strategy_name=self.strategy.name,
                 save_path=epoch_time_output_path,
                 num_nodes=num_nodes,
+                should_log=self.measure_epoch_time
             )
         loss_plot = []
         val_loss_plot = []
@@ -375,17 +376,13 @@ class NoiseGeneratorTrainer(TorchTrainer):
                         )
             # return (loss_plot, val_loss_plot,
             # acc_plot, val_acc_plot ,acc_plot, val_acc_plot)
-            if self.strategy.is_main_worker:
+            if self.strategy.is_main_worker and self.strategy.is_distributed:
                 print("TIMER: epoch time:", timer() - lt, "s")
-                assert epoch_time_tracker is not None
-                epoch_time_tracker.add_epoch_time(epoch - 1, timer() - lt)
+                assert epoch_time_logger is not None
+                epoch_time_logger.add_epoch_time(epoch - 1, timer() - lt)
 
             # Report training metrics of last epoch to Ray
             train.report({"loss": np.mean(val_loss)})
-
-        if self.strategy.is_main_worker:
-            assert epoch_time_tracker is not None
-            epoch_time_tracker.save()
 
         return loss_plot, val_loss_plot, acc_plot, val_acc_plot
 

@@ -2,15 +2,36 @@
 
 **Integration author(s)**: Matteo Bunino (CERN)
 
-## Training
+In this simple use case integration we demostrate how to use itwinai for a set of simple
+use cases based on the popular MNIST dataset.
+
+## Training a CNN classifier
+
+It is possible to lauch the training of a CNN classifier on the MNIST dataset using the
+YAML configuration file describing the whole training workflow.
+
+```bash
+# Run the whole training pipeline
+itwinai exec-pipeline --config-name config.yaml
+```
+
+Notice that the training "pipeline" starts by downloading the dataset if not available locally.
+Since on some HPC systems there is not internet connection on the compute nodes, it is
+advised to run the dataloading step on the login node to download the dataset and, later,
+the whole pipeline on the compute nodes. To do that, you can use the `pipe_steps` option as
+below:
 
 ```bash
 # Download dataset and exit
-itwinai exec-pipeline --config config.yaml --pipe-key training_pipeline --steps dataloading_step
+itwinai exec-pipeline --config-name config.yaml +pipe_steps=[dataloading_step]
 
-# Run the whole training pipeline
-itwinai exec-pipeline --config config.yaml --pipe-key training_pipeline 
+# Run the whole pipeline
+itwinai exec-pipeline --config-name config.yaml
 ```
+
+> [!NOTE]
+> Setting `HYDRA_FULL_ERROR=1` environment variable can be convenient when debugging errors
+> that originate during the instantiation of the pipeline.
 
 View training logs on MLFLow server (if activated from the configuration):
 
@@ -18,7 +39,25 @@ View training logs on MLFLow server (if activated from the configuration):
 mlflow ui --backend-store-uri mllogs/mlflow/
 ```
 
-## Inference
+### Hyper-parameter optimization
+
+The CNN classifier can undergo hyper-parameter optimization (HPO) to find the hyperparameters,
+such as learning rate and batch size, that result in the best validation performances.
+
+To do so, it is enough to correctly set the `search_space` and the `tune_config` in the trainer
+configuration in the `config.yaml` file.
+Please refer to the Ray's official documentation to know more about
+[RunConfig](https://docs.ray.io/en/latest/train/api/doc/ray.train.RunConfig.html),
+[TuneConfig](https://docs.ray.io/en/latest/tune/api/doc/ray.tune.TuneConfig.html),
+[ScalingConfig](https://docs.ray.io/en/latest/train/api/doc/ray.train.ScalingConfig.html),
+and [search spaces](https://docs.ray.io/en/latest/tune/api/search_space.html).
+
+### Inference
+
+Now you can use the trained model to make predictions on the MNIST dataset.
+Notice that the inference is defined by using a different pipeline in the `config.yaml` file.
+By default, the `training_pipeline` is executed, but you can run other piplines by explicitly
+setting the `+pipe_key` option.
 
 1. Create sample dataset
 
@@ -40,10 +79,20 @@ mlflow ui --backend-store-uri mllogs/mlflow/
 folder containing a CSV file with the predictions as rows.
 
     ```bash
-    itwinai exec-pipeline +pipe_key=training_pipeline_gan
+    itwinai exec-pipeline --config-name config.yaml +pipe_key=inference_pipeline 
     ```
 
 Note the same entry point as for training.
+
+## Training a GAN
+
+In this use case you can also find an example on how to train a Generative Adversarial Network
+(GAN). It is enough to select the correct training pipeline setting the `+pipe_key` option.
+
+```bash
+# Train a GAN
+itwinai exec-pipeline --config-name config.yaml +pipe_key=training_pipeline_gan
+```
 
 ## Docker image
 

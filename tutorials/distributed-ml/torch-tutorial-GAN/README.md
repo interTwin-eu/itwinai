@@ -40,6 +40,10 @@ ml Stages/2024 GCC OpenMPI CUDA/12 MPI-settings/CUDA Python HDF5 PnetCDF libaio 
 source ../../../envAI_hdfml/bin/activate
 ```
 
+For more info you can refer to
+[this](https://itwinai.readthedocs.io/latest/getting-started/slurm.html#interactive-shell-on-a-compute-node)
+documentation page.
+
 To launch the training with torch DDP use:
 
 ```bash
@@ -117,7 +121,7 @@ includes convolutional layers that are well-suited for processing image data.
 
 ### Step 2: Implement Distributed Training
 
-The `GANTrainer` class extends the custom itwinia `TorchTrainer` class and handles the initialization of models,
+The `GANTrainer` class extends the custom itwinai `TorchTrainer` class and handles the initialization of models,
 optimizers, and the distributed training strategy for the GAN. The snippet below shows how the GANTrainer is extending
 the TorchTrainer class and initializing the parameters.
 This is essentially done to handle the scenario for the GAN which comprises of two Neural Network models which is not

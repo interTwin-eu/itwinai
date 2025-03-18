@@ -235,7 +235,7 @@ def test_checkpoint_loading(strategy_fixture: str | None, shared_tmp_path: Path,
     )
 
     # Validate that state is properly loaded -- restart from the following epoch
-    assert trainer.epoch == epoch + 1, "Epoch should be restored from checkpoint"
+    assert trainer.current_epoch == epoch + 1, "Epoch should be restored from checkpoint"
 
     # Validate model parameters
     assert equal_models(trainer.model, loaded_model), "Model checkpoint not loaded correctly"

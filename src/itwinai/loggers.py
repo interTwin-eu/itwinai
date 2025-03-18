@@ -73,7 +73,17 @@ import os
 from abc import ABC, abstractmethod
 from contextlib import contextmanager
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Callable, Dict, List, Literal, Optional, Tuple, Union
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Callable,
+    Dict,
+    List,
+    Literal,
+    Optional,
+    Tuple,
+    Union,
+)
 
 if TYPE_CHECKING:
     import mlflow
@@ -1247,7 +1257,11 @@ class Prov4MLLogger(Logger):
         elif kind == "flops_pe":
             model, dataset = item
             self.prov4ml.log_flops_per_epoch(
-                label=identifier, model=model, dataset=dataset, context=context, step=step
+                label=identifier,
+                model=model,
+                dataset=dataset,
+                context=context,
+                step=step,
             )
         elif kind == "system":
             self.prov4ml.log_system_metrics(context=context, step=step)
@@ -1287,37 +1301,6 @@ class Prov4MLLogger(Logger):
                         self.mlflow.log_artifact(f)
 
 
-class EpochTimeTracker:
-    """Tracker for epoch execution time during training."""
-
-    def __init__(self, strategy_name: str, save_path: Path | str, num_nodes: int) -> None:
-        if isinstance(save_path, str):
-            save_path = Path(save_path)
-
-        self.save_path: Path = save_path
-        self.strategy_name = strategy_name
-        self.num_nodes = num_nodes
-        self.data = {"epoch_id": [], "time": []}
-
-    def add_epoch_time(self, epoch_idx: int, time: float) -> None:
-        """Add epoch time to data."""
-        self.data["epoch_id"].append(epoch_idx)
-        self.data["time"].append(time)
-        self.save()
-
-    def save(self) -> None:
-        """Save data to a new CSV file."""
-        import pandas as pd
-
-        df = pd.DataFrame(self.data)
-        df["name"] = self.strategy_name
-        df["nodes"] = self.num_nodes
-
-        self.save_path.parent.mkdir(parents=True, exist_ok=True)
-        df.to_csv(self.save_path, index=False)
-        print(f"Saving EpochTimeTracking data to '{self.save_path.resolve()}'.")
-
-
 class EmptyLogger(Logger):
     """Dummy logger which can be used as a placeholder when a real logger is
     not available. All methods do nothing.
@@ -1350,3 +1333,50 @@ class EmptyLogger(Logger):
         **kwargs,
     ) -> None:
         pass
+
+
+class EpochTimeTracker:
+    """Logger for epoch execution time during training."""
+
+    def __init__(
+        self,
+        strategy_name: str,
+        save_path: Path | str,
+        num_nodes: int,
+        should_log: bool = True,
+    ) -> None:
+        if isinstance(save_path, str):
+            save_path = Path(save_path)
+
+        self.should_log = should_log
+        self.save_path: Path = save_path
+        self.strategy_name = strategy_name
+        self.num_nodes = num_nodes
+        self.data = {"epoch_id": [], "time": []}
+
+        if not self.should_log:
+            print("Warning: EpochTimeLogger has been disabled!")
+
+    def add_epoch_time(self, epoch_idx: int, time: float) -> None:
+        """Add epoch time to data."""
+        if not self.should_log:
+            return
+
+        self.data["epoch_id"].append(epoch_idx)
+        self.data["time"].append(time)
+        self.save()
+
+    def save(self) -> None:
+        """Save data to a new CSV file."""
+        if not self.should_log:
+            return
+
+        import pandas as pd
+
+        df = pd.DataFrame(self.data)
+        df["name"] = self.strategy_name
+        df["nodes"] = self.num_nodes
+
+        self.save_path.parent.mkdir(parents=True, exist_ok=True)
+        df.to_csv(self.save_path, index=False)
+        print(f"Saving EpochTimeLogging data to '{self.save_path.resolve()}'.")

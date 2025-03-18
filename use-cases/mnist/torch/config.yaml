@@ -37,6 +37,9 @@ training_pipeline:
       save_path: ${dataset_root}
     training_step:
       _target_: itwinai.torch.trainer.TorchTrainer
+      measure_gpu_data: True
+      measure_communication_overhead: True
+      measure_epoch_time: True
       config:
         batch_size: ${batch_size}
         num_workers_dataloader: ${num_workers_dataloader}
@@ -47,6 +50,41 @@ training_pipeline:
         fp16_allreduce: ${fp16_allreduce}
         use_adasum: ${use_adasum}
         gradient_predivide_factor: ${gradient_predivide_factor}
+      ray_scaling_config:
+        _target_: ray.train.ScalingConfig
+        num_workers: 2
+        use_gpu: true
+        resources_per_worker:
+          CPU: 4
+          GPU: 1
+      ray_tune_config:
+        _target_: ray.tune.TuneConfig
+        num_samples: 1
+        scheduler:
+          _target_: ray.tune.schedulers.ASHAScheduler
+          metric: loss
+          mode: min
+          max_t: 5
+          grace_period: 2
+          reduction_factor: 6
+          brackets: 1
+      ray_run_config:
+        _target_: ray.train.RunConfig
+        # storage_path must be an absolute path. Defaulting to the directory from which the
+        # job is launched using the itwinai custom OmegaConf resolver ${itwinai.cwd:}
+        storage_path: ${itwinai.cwd:}/ray_checkpoints
+        name: MNIST-HPO-Experiment
+      ray_search_space:
+        batch_size:
+          type: choice
+          categories: [2, 4]
+        optim_lr:
+          type: uniform
+          lower: 1e-5
+          upper: 1e-3
+      # keep ray_horovod_config commented out if you don't have horovod installed
+      # ray_horovod_config:
+      #   _target_: ray.train.horovod.config.HorovodConfig
       ray_scaling_config:
         _target_: ray.train.ScalingConfig
         num_workers: 2

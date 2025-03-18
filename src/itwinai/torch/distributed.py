@@ -690,7 +690,7 @@ class DeepSpeedStrategy(TorchDistributedStrategy):
         **init_kwargs,
     ) -> Tuple[nn.Module, Optimizer, Optional[LRScheduler]]:
         """Setup model, optimizer and scheduler for distributed."""
-        py_logger.debug(f"I am going to distribute the model using device: {self.device()}")
+        py_logger.debug(f"Distributing the model using device: {self.device()}")
         # model = model.to(self.device())
 
         distrib_model, optimizer, _, lr_scheduler = self.deepspeed.initialize(
@@ -759,7 +759,6 @@ class DeepSpeedStrategy(TorchDistributedStrategy):
     @check_initialized
     def clean_up(self) -> None:
         """Destroys the current process group."""
-        # deepspeed.sys.exit() # disabled as it kills the execution
         if distributed_resources_available():
             dist.barrier()
             dist.destroy_process_group()
@@ -951,6 +950,7 @@ class HorovodStrategy(TorchDistributedStrategy):
     @check_initialized
     def clean_up(self) -> None:
         """Shuts Horovod down."""
+        self.hvd.barrier()
         self.hvd.shutdown()
 
     @check_initialized

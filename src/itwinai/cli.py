@@ -518,6 +518,88 @@ def kill_mlflow_server(
 
 
 @app.command()
+def download_mlflow_data(
+    tracking_uri: Annotated[
+        str, typer.Option(help="The tracking URI of the MLFlow server.")
+    ] = "https://mlflow.intertwin.fedcloud.eu/",
+    experiment_id: Annotated[
+        str, typer.Option(help="The experiment ID that you wish to retrieve data from.")
+    ] = "48",
+    output_file: Annotated[
+        str, typer.Option(help="The file path to save the data to.")
+    ] = "mlflow_data.csv",
+):
+    """Download metrics data from MLFlow experiments and save to a CSV file.
+
+    Requires MLFlow authentication if the server is configured to use it.
+    Authentication must be provided via the following environment variables:
+    'MLFLOW_TRACKING_USERNAME' and 'MLFLOW_TRACKING_PASSWORD'.
+    """
+
+    mlflow_credentials_set = (
+        "MLFLOW_TRACKING_USERNAME" in os.environ and "MLFLOW_TRACKING_PASSWORD" in os.environ
+    )
+    if not mlflow_credentials_set:
+        print(
+            "\nWarning: MLFlow authentication environment variables are not set. "
+            "If the server requires authentication, your request will fail."
+            "You can authenticate by setting environment variables before running:\n"
+            "\texport MLFLOW_TRACKING_USERNAME=your_username\n"
+            "\texport MLFLOW_TRACKING_PASSWORD=your_password\n"
+        )
+
+    import mlflow
+    import pandas as pd
+    from mlflow import MlflowClient
+
+    mlflow.set_tracking_uri(tracking_uri)
+    client = MlflowClient()
+
+    # Handling authentication
+    try:
+        print(f"\nConnecting to MLFlow server at {tracking_uri}")
+        print(f"Accessing experiment ID: {experiment_id}")
+        runs = client.search_runs(experiment_ids=[experiment_id])
+        print(f"Authentication successful! Found {len(runs)} runs.")
+    except mlflow.MlflowException as e:
+        status_code = e.get_http_status_code()
+        if status_code == 401:
+            print(
+                "Authentication with MLFlow failed with code 401! Either your "
+                "environment variables are not set or they are incorrect!"
+            )
+            return
+        else:
+            raise e
+
+    all_metrics = []
+    for run_idx, run in enumerate(runs):
+        run_id = run.info.run_id
+        metric_keys = run.data.metrics.keys()  # Get all metric names
+
+        print(f"Processing run {run_idx + 1}/{len(runs)}")
+        for metric_name in metric_keys:
+            metrics = client.get_metric_history(run_id, metric_name)
+            for metric in metrics:
+                all_metrics.append(
+                    {
+                        "run_id": run_id,
+                        "metric_name": metric.key,
+                        "value": metric.value,
+                        "step": metric.step,
+                        "timestamp": metric.timestamp,
+                    }
+                )
+
+    if not all_metrics:
+        print("No metrics found in the runs")
+        return
+
+    df_metrics = pd.DataFrame(all_metrics)
+    df_metrics.to_csv(output_file, index=False)
+    print(f"Saved data to '{Path(output_file).resolve()}'!")
+
+
 def tensorboard_ui(
     path: str = typer.Option("mllogs/tensorboard", help="Path to logs storage."),
     port: int = typer.Option(6006, help="Port on which the Tensorboard UI is listening."),

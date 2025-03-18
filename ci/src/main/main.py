@@ -164,6 +164,7 @@ class Itwinai:
         cmd = cmd or [
             "pytest",
             "-v",
+            "--disable-warnings",
             # tell pytest-xdist to parallelize tests over logical cores
             "-n",
             "logical",
@@ -289,6 +290,11 @@ class Itwinai:
             "&& export MNIST_PATH=/ceph/hpc/data/st2301-itwin-users/mbunino/mnist "
             "&& export NO_COLOR=1 "
             # Launch code in SLURM job
+            # Ray
+            "&& export DIST_MODE=ray "
+            "&& export RUN_NAME=ray-itwinai "
+            "&& export COMMAND='pytest -v -m ray_dist /app/tests' "
+            "&& source slurm.vega.sh "
             # DDP
             "&& export DIST_MODE=ddp "
             "&& export RUN_NAME=ddp-itwinai "
@@ -453,8 +459,10 @@ class Itwinai:
             if skip_singularity:
                 # The Docker image will be automatically converted to Singularity on HPC
                 # before running the tests
-                uri = f"docker://{self.singularity_registry}/itwinai-dev:{self.tag}"
-                await self.publish(usri=uri)
+                uri = f"{self.docker_registry}/itwinai-dev:{self.tag}"
+                await self.publish(uri=uri)
+                # Append Docker prefix to tell singularity where to pull the image from
+                uri = f"docker://{uri}"
             else:
                 # Publish to registry with random hash
                 uri = f"oras://{self.singularity_registry}/itwinai-dev:{self.tag}"

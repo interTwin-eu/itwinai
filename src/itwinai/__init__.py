@@ -14,15 +14,19 @@ import os
 logger = logging.getLogger(__name__)
 
 # Get log level from env variable (default to INFO)
-log_level = os.getenv("ITWINAI_LOG_LEVEL", "INFO").upper()
+log_level = os.getenv("ITWINAI_LOG_LEVEL", "INFO")
 
 # Validate log level
 valid_levels = {"DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"}
-if log_level not in valid_levels:
+if log_level.upper() not in valid_levels:
+    logger.warning(
+        f"ITWINAI_LOG_LEVEL was set to '{log_level}', which is not recognized. "
+        f"Supported types are {', '.join(valid_levels)}."
+    )
     log_level = "INFO"  # Default to INFO if invalid
 
 # Apply log level
-logger.setLevel(getattr(logging, log_level))
+logger.setLevel(getattr(logging, log_level.upper()))
 
 # Prevent duplicate handlers
 if not logger.hasHandlers():

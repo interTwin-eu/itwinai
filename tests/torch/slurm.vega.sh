@@ -350,6 +350,11 @@ elif [ "${DIST_MODE}" == "horovod" ] ; then
   decho -e "\nLaunching Horovod strategy with Ray"
   ray_launcher "${COMMAND}"
 
+elif [ "${DIST_MODE}" == "ray" ] ; then
+
+  decho -e "\nLaunching Ray tests"
+  ray_launcher "${COMMAND}"
+
 else
   >&2 echo "ERROR: unrecognized \$DIST_MODE env variable"
   exit 1
