@@ -65,6 +65,7 @@ if [ $SLURM_CPUS_PER_GPU -gt 0 ] ; then
   export OMP_NUM_THREADS=$SLURM_CPUS_PER_GPU
 fi
 
+# Adjust itwinai logging level to help with debugging 
 export ITWINAI_LOG_LEVEL=DEBUG
 # Disable ANSI colors in log files
 export NO_COLOR=1
@@ -75,13 +76,13 @@ export NCCL_P2P_DISABLE=0       # Ensure P2P communication is enabled
 export NCCL_IB_DISABLE=0        # Ensure InfiniBand is used if available
 export GLOO_SOCKET_IFNAME=ib0   # Ensure GLOO (fallback) also uses the correct interface
 
+# Avoid propagating PYTHONPATH to the singularity container, as it breaks the import of packages inside the container
+# https://docs.sylabs.io/guides/4.1/user-guide/environment_and_metadata.html#environment-from-the-host
+unset PYTHONPATH
+
 # Launch distributed job in container with torchrun
 torchrun_launcher ()
 {
-  # Avoid propagating PYTHONPATH to the singularity container, as it breaks the import of packages inside the container
-  # https://docs.sylabs.io/guides/4.1/user-guide/environment_and_metadata.html#environment-from-the-host
-  unset PYTHONPATH
-
   # Stop Ray processes, if any
   singularity exec $CONTAINER_PATH /bin/bash -c 'ray stop'
 
@@ -106,7 +107,6 @@ torchrun_launcher ()
 # Launch distribtued job in container with mpirun
 mpirun_launcher ()
 {
-
   # Stop Ray processes, if any
   singularity exec $CONTAINER_PATH /bin/bash -c 'ray stop'
 
@@ -149,10 +149,6 @@ mpirun_launcher ()
   # OMPI_HOST="$(ompi_info | grep Prefix | awk '{ print $2 }')"
   # # If you want to explicitly mount host OpenMPI in container use --bind "${OMPI_HOST}":"${OMPI_CONTAINER}"  
 
-  # Avoid propagating PYTHONPATH to the singularity container, as it breaks the import of packages inside the container
-  # https://docs.sylabs.io/guides/4.1/user-guide/environment_and_metadata.html#environment-from-the-host
-  unset PYTHONPATH
-
   # Create mpirun logs folder
   mkdir -p "logs_mpirun/$SLURM_JOB_ID"
 
@@ -169,9 +165,6 @@ mpirun_launcher ()
 # Launch distribtued job in container with srun
 srun_launcher ()
 {
-  # Avoid propagating PYTHONPATH to the singularity container, as it breaks the import of packages inside the container
-  # https://docs.sylabs.io/guides/4.1/user-guide/environment_and_metadata.html#environment-from-the-host
-  unset PYTHONPATH
 
   # Stop Ray processes, if any
   singularity exec $CONTAINER_PATH /bin/bash -c 'ray stop'
