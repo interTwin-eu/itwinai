@@ -136,6 +136,8 @@ to fool the Discriminator. Validation evaluates the performance of the Generator
 ### Step 4: Visualization and Monitoring
 
 Training progress is monitored through visualizations of loss metrics and image samples generated periodically.
+[FID](https://lightning.ai/docs/torchmetrics/stable/image/frechet_inception_distance.html)
+is used as the default GAN validation metric.
 
 ## Takeaways
 

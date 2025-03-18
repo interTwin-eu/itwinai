@@ -212,6 +212,7 @@ class GANTrainer(TorchTrainer):
         if isinstance(config, dict):
             config = GANTrainingConfiguration(**config)
         self.config = config
+        self.epoch = 0
 
         # Initial training state -- can be resumed from a checkpoint
         self.discriminator_state_dict = None
@@ -452,7 +453,7 @@ class GANTrainer(TorchTrainer):
 
         # Parse loss from training configuration
         # Loss can be change with a custom one here!
-        self._loss_from_config()
+        self._set_loss_from_config()
         self.criterion = self.loss
 
         # if not self.optimizer_discriminator:
