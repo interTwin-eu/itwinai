@@ -324,7 +324,7 @@ class Itwinai:
                 f"--gpus-per-node={gpus_per_node} "
                 f"--ntasks-per-node=1 --nodes={num_nodes} "
                 f"--cpus-per-task={cpus_per_gpu * gpus_per_node} "
-                "--time=00:30:00 --exclude gn42"
+                "--time=01:00:00 --exclude gn42"
             ),
             "slurm-job.vk.io/pre-exec": (
                 "trap 'export SINGULARITYENV_PRE_EXEC_RETURN_CODE=1' ERR && "

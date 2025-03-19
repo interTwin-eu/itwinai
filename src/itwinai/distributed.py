@@ -232,6 +232,10 @@ def suppress_workers_output(func):
 
 
 def get_adaptive_ray_scaling_config() -> "ScalingConfig":
+    """Returns a Ray scaling config for distributed ML training depending on the resources
+    available in the Ray cluster. The number of workers is equal to the number of GPUs
+    available, and if there are not GPUs two CPU-only workers are used.
+    """
     import ray
     from ray.train import ScalingConfig
 
@@ -246,10 +250,12 @@ def get_adaptive_ray_scaling_config() -> "ScalingConfig":
     # Configure ScalingConfig based on GPU availability
     if num_gpus <= 1:
         # If 0 or 1 GPU, don't use GPU for training
+        py_logger.debug("Returning a scaling config to run distributed ML on 2 CPUs")
         return ScalingConfig(
             num_workers=2,  # Default to 2 CPU workers
             use_gpu=False,
         )
     else:
         # If multiple GPUs, use all available GPUs
+        py_logger.debug(f"Returning a scaling config to run distributed ML on {num_gpus} GPUs")
         return ScalingConfig(num_workers=num_gpus, use_gpu=True)

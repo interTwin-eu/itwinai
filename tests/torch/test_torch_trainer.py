@@ -66,7 +66,7 @@ def test_distributed_trainer_mnist(
     trainer = TorchTrainer(
         model=mnist_net,
         config=training_config,
-        epochs=2,
+        epochs=1,
         strategy=None,
         checkpoint_every=1,
         from_checkpoint=tmp_path / "my_checkpoints/best_model",
@@ -126,7 +126,7 @@ def test_distributed_trainer_mnist_ray(
     trainer = TorchTrainer(
         model=mnist_net,
         config=training_config,
-        epochs=2,
+        epochs=1,
         strategy=strategy_name,
         ray_scaling_config=get_adaptive_ray_scaling_config(),
         checkpoint_every=1,

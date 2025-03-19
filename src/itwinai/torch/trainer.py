@@ -980,6 +980,7 @@ class TorchTrainer(Trainer, LogMixin):
             return
 
         if checkpoint_file:
+            # A checkpoint is given as a file
             with tempfile.TemporaryDirectory() as tmp_dir:
                 import shutil
 
@@ -988,6 +989,7 @@ class TorchTrainer(Trainer, LogMixin):
                 ray.train.report(metrics, checkpoint=checkpoint)
 
         elif checkpoint_data:
+            # A checkpoint is given as a python object which needs to be serialized
             with tempfile.TemporaryDirectory() as tmp_dir:
                 tmp_dir = Path(tmp_dir)
                 ckpt_file = tmp_dir / "ckpt.pt"
@@ -996,8 +998,13 @@ class TorchTrainer(Trainer, LogMixin):
                 ray.train.report(metrics, checkpoint=checkpoint)
 
         elif checkpoint_dir:
+            # A checkpoint is given as a directory
             checkpoint = ray.train.Checkpoint.from_directory(checkpoint_dir)
             ray.train.report(metrics, checkpoint=checkpoint)
+
+        else:
+            # No checkpoint is given: only report metrics
+            ray.train.report(metrics)
 
     def compute_metrics(
         self,
@@ -1116,7 +1123,7 @@ class TorchTrainer(Trainer, LogMixin):
             if self.strategy.is_main_worker and self.strategy.is_distributed:
                 assert epoch_time_logger is not None
                 epoch_time = default_timer() - epoch_start_time
-                epoch_time_logger.add_epoch_time(self.epoch + 1, epoch_time)
+                epoch_time_logger.add_epoch_time(self.current_epoch + 1, epoch_time)
 
     def train_epoch(self) -> torch.Tensor:
         """Perform a complete sweep over the training dataset, completing an

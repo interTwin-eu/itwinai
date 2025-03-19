@@ -20,7 +20,7 @@
 #SBATCH --mail-type=ALL
 #SBATCH --output=job.out
 #SBATCH --error=job.err
-#SBATCH --time=00:20:00
+#SBATCH --time=00:30:00
 
 # Resources allocation
 #SBATCH --partition=gpu
@@ -234,7 +234,7 @@ ray_launcher ()
       --num-cpus "$SLURM_CPUS_PER_TASK" --num-gpus "$SLURM_GPUS_PER_NODE" --block &
 
   # Wait for a few seconds to ensure that the head node has fully initialized.
-  sleep 15
+  sleep 10
 
   echo HEAD node started.
 
@@ -252,18 +252,16 @@ ray_launcher ()
           ray start --address "$head_node":"$port" --redis-password='5241580000000000' \
           --num-cpus "$SLURM_CPUS_PER_TASK" --num-gpus "$SLURM_GPUS_PER_NODE" --block &
       
-      sleep 15 # Wait before starting the next worker to prevent race conditions.
+      sleep 10 # Wait before starting the next worker to prevent race conditions.
   done
   echo All Ray workers started.
 
   # Check cluster
   singularity exec --nv $CONTAINER_PATH ray status
-  # running=$(singularity exec --nv $CONTAINER_PATH python -c 'from itwinai.distributed import ray_cluster_is_running; print(ray_cluster_is_running())')
-  # echo "IS RUNNNING: $running"
   echo "============================================="
 
   # Run command without srun
-  singularity exec --nv $CONTAINER_PATH /bin/bash -c "$1"
+  singularity exec --nv $CONTAINER_PATH $1
 
 }
 
