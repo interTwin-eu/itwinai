@@ -329,7 +329,11 @@ class testSuite:
             batch_size=2
         )
 
-        plt.show()
+        # plt.show()
+        for i in plt.get_fignums():
+            fig = plt.figure(i)
+            fig.savefig(f"plots/figure_{i}.png")
+            
         return print("Test Suite executed")       
 
 class ModelSaver:

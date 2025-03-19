@@ -1,5 +1,8 @@
 #!/bin/bash
 
 rm -f ./syn_data/* ./syn_runtime/* ./syn_payload/* 
-rm -rf outputs checkpoints models/*
-rm -f job.err job.out log
+rm -rf outputs checkpoints models/* plots/*
+rm -f progress.out report.out
+# touch ./models/trained_UNet_test_v0.pt 
+# touch ./models/trained_Filter_test_v0.pt 
+# touch ./models/trained_CNN1D_test_v0.pt
