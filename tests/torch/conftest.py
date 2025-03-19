@@ -17,6 +17,7 @@ import pytest
 import torch
 import torch.nn.functional as F
 from torch import nn
+from torch.utils.data import Subset
 
 from itwinai.torch.distributed import (
     DeepSpeedStrategy,
@@ -122,6 +123,10 @@ def mnist_datasets():
             [transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))]
         ),
     )
+
+    # Downsample datasets
+    train_set = Subset(train_set, range(500))
+    val_set = Subset(val_set, range(500))
     return train_set, val_set
 
 

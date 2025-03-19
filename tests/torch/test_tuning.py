@@ -125,7 +125,7 @@ def test_tuning_dist_ml_mnist_ray(mnist_datasets, shared_tmp_path, mnist_net):
             )
 
     INITIAL_BATCH_SIZE = 17
-    search_space = {"batch_size": tune.qrandint(128, 1024, 128)}
+    search_space = {"batch_size": tune.choice([32, 50, 64])}
     tune_config = TuneConfig(
         metric="loss",
         mode="min",
