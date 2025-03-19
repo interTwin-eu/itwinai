@@ -9,6 +9,7 @@
 num_payloads: 500
 learning_rate: 0.001
 batch_size: 1
+strategy: ddp
 
 tag: train_v0_
 image_tag: train_v0_*_payload_detected.json
@@ -36,6 +37,7 @@ syndata_pipeline:
       _target_: data.SynthesizeData
       tag: ${tag}
       num_payloads: ${num_payloads}
+      num_cpus: 48 # set to the number of available CPUs on node
       name: syntheticData
 
 # Training pipeline for the UNet model 
@@ -68,6 +70,7 @@ unet_pipeline:
       name: Splitter
     training_step:
       _target_: trainer.PulsarTrainer
+      strategy: "${strategy}"
       model:
        _target_: src.pulsar_analysis.neural_network_models.UNet
       loss:
@@ -84,7 +87,7 @@ unet_pipeline:
         optim_lr: ${learning_rate}
         save_best: 1
         shuffle_train: 1
-        num_workers_dataloader: 24
+        num_workers_dataloader: 48
     adapter_step:
       _target_: itwinai.components.Adapter
       policy:
@@ -124,6 +127,7 @@ fcnn_pipeline:
       name: Splitter
     training_step:
       _target_: trainer.PulsarTrainer
+      strategy: ${strategy}
       model:
        _target_: src.pulsar_analysis.neural_network_models.FilterCNN
       loss:
@@ -140,7 +144,7 @@ fcnn_pipeline:
         optim_lr: ${learning_rate}
         save_best: 1
         shuffle_train: 1
-        num_workers_dataloader: 24
+        num_workers_dataloader: 48
     adapter_step:
       _target_: itwinai.components.Adapter
       policy: 
@@ -177,6 +181,7 @@ cnn1d_pipeline:
       name: Splitter
     training_step:
       _target_: trainer.PulsarTrainer
+      strategy: ${strategy}
       model:
        _target_: src.pulsar_analysis.neural_network_models.CNN1D
       loss:
@@ -193,7 +198,7 @@ cnn1d_pipeline:
         optim_lr: ${learning_rate}
         save_best: 1
         shuffle_train: 1
-        num_workers_dataloader: 24
+        num_workers_dataloader: 48
     adapter_step:
       _target_: itwinai.components.Adapter
       policy:

@@ -82,19 +82,18 @@ class PulsarTrainer(TorchTrainer):
             self.model, self.optimizer, self.lr_scheduler, **distribute_kwargs
         )
 
-
-    def create_dataloaders(
-        self,
-        train_dataset: Dataset,
-        validation_dataset: Optional[Dataset] = None,
-        test_dataset: Optional[Dataset] = None,
-    ) -> None:
-        self.train_dataloader = DataLoader(
-            dataset=train_dataset, batch_size=self.config.batch_size, shuffle=self.config.shuffle_train, pin_memory=True)
-        self.validation_dataloader = DataLoader(
-            dataset=validation_dataset, batch_size=self.config.batch_size, shuffle=self.config.shuffle_train, pin_memory=True)
-        self.test_dataloader = DataLoader(
-            dataset=test_dataset, batch_size=self.config.batch_size, shuffle=self.config.shuffle_train, pin_memory=True)
+    # def create_dataloaders(
+    #     self,
+    #     train_dataset: Dataset,
+    #     validation_dataset: Optional[Dataset] = None,
+    #     test_dataset: Optional[Dataset] = None,
+    # ) -> None:
+    #     self.train_dataloader = DataLoader(
+    #         dataset=train_dataset, batch_size=self.config.batch_size, shuffle=self.config.shuffle_train, pin_memory=True)
+    #     self.validation_dataloader = DataLoader(
+    #         dataset=validation_dataset, batch_size=self.config.batch_size, shuffle=self.config.shuffle_train, pin_memory=True)
+    #     self.test_dataloader = DataLoader(
+    #         dataset=test_dataset, batch_size=self.config.batch_size, shuffle=self.config.shuffle_train, pin_memory=True)
         
     def write_model(self) -> None:
         """Write the model to disk."""

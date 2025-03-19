@@ -1,6 +1,6 @@
 #!/bin/bash
 
-rm -f ./syn_data/* ./syn_runtime/* ./syn_payload/* 
+# rm -f ./syn_data/* ./syn_runtime/* ./syn_payload/* 
 rm -rf outputs checkpoints models/* plots/*
 rm -f progress.out report.out
 # touch ./models/trained_UNet_test_v0.pt 
