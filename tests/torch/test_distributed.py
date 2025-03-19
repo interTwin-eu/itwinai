@@ -297,7 +297,7 @@ def test_ray_distributed_strategy(
 ):
     import ray  # needed here
 
-    assert ray_cluster_is_running()
+    assert ray_cluster_is_running(), "Ray cluster not detected. Aborting tests"
 
     # The worker function must be declared inline, ohterwise the Ray workers will not find it
     def ray_tests(config, strategy: RayTorchDistributedStrategy):

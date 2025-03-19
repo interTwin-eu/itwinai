@@ -25,8 +25,8 @@
 # Resources allocation
 #SBATCH --partition=gpu
 #SBATCH --nodes=2
-#SBATCH --gpus-per-node=4
-#SBATCH --gres=gpu:4
+#SBATCH --gpus-per-node=1
+#SBATCH --gres=gpu:1
 #SBATCH --cpus-per-task=48
 #SBATCH --ntasks-per-node=1
 # SBATCH --mem-per-gpu=10G
@@ -202,7 +202,7 @@ ray_launcher ()
 
   # Path to shared filesystem that all the Ray workers can access. /tmp is a local filesystem path to each worker
   # This is only needed by tests
-  export SHARED_FS_PATH="/ceph/hpc/data/st2301-itwin-users/tmp-mbunino"
+  export SHARED_FS_PATH="/ceph/hpc/data/st2301-itwin-users/tmp-mbunino2"
 
   # This tells Tune to not change the working directory to the trial directory
   # which makes relative paths accessible from inside a trial
@@ -229,12 +229,12 @@ ray_launcher ()
   # `srun` submits a job that runs on the head node to start the Ray head with the specified 
   # number of CPUs and GPUs.
   srun --nodes=1 --ntasks=1 -w "$head_node" \
-    singularity exec --nv $CONTAINER_PATH /bin/bash -c " \
+    singularity exec --nv $CONTAINER_PATH  \
       ray start --head --node-ip-address="$head_node" --port=$port \
-      --num-cpus "$SLURM_CPUS_PER_TASK" --num-gpus "$SLURM_GPUS_PER_NODE" --block &"
+      --num-cpus "$SLURM_CPUS_PER_TASK" --num-gpus "$SLURM_GPUS_PER_NODE" --block &
 
   # Wait for a few seconds to ensure that the head node has fully initialized.
-  sleep 5
+  sleep 15
 
   echo HEAD node started.
 
@@ -248,13 +248,19 @@ ray_launcher ()
       # Use srun to start Ray on the worker node and connect it to the head node.
       # The `--address` option tells the worker node where to find the head node.
       srun --nodes=1 --ntasks=1 -w "$node_i" \
-        singularity exec --nv $CONTAINER_PATH /bin/bash -c "\
+        singularity exec --nv $CONTAINER_PATH \
           ray start --address "$head_node":"$port" --redis-password='5241580000000000' \
-          --num-cpus "$SLURM_CPUS_PER_TASK" --num-gpus "$SLURM_GPUS_PER_NODE" --block &"
+          --num-cpus "$SLURM_CPUS_PER_TASK" --num-gpus "$SLURM_GPUS_PER_NODE" --block &
       
-      sleep 5 # Wait before starting the next worker to prevent race conditions.
+      sleep 15 # Wait before starting the next worker to prevent race conditions.
   done
   echo All Ray workers started.
+
+  # Check cluster
+  singularity exec --nv $CONTAINER_PATH ray status
+  # running=$(singularity exec --nv $CONTAINER_PATH python -c 'from itwinai.distributed import ray_cluster_is_running; print(ray_cluster_is_running())')
+  # echo "IS RUNNNING: $running"
+  echo "============================================="
 
   # Run command without srun
   singularity exec --nv $CONTAINER_PATH /bin/bash -c "$1"

@@ -11,7 +11,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from itwinai.distributed import get_adaptive_ray_scaling_config
+from itwinai.distributed import get_adaptive_ray_scaling_config, ray_cluster_is_running
 from itwinai.torch.trainer import TorchTrainer
 
 
@@ -34,11 +34,7 @@ from itwinai.torch.trainer import TorchTrainer
     ],
 )
 def test_distributed_trainer_mnist(
-    mnist_datasets,
-    request,
-    strategy_fixture,
-    tmp_path,
-    mnist_net
+    mnist_datasets, request, strategy_fixture, tmp_path, mnist_net
 ):
     """Test TorchTrainer on MNIST with different distributed strategies."""
     training_config = dict(optimizer="sgd", loss="nllloss")
@@ -102,6 +98,8 @@ def test_distributed_trainer_mnist_ray(
 ):
     """Test TorchTrainer on MNIST with different distributed strategies using Ray."""
     from ray.train import RunConfig
+
+    assert ray_cluster_is_running(), "Ray cluster not detected. Aborting tests"
 
     ray_run_config = RunConfig(storage_path=shared_tmp_path / "ray_checkpoints")
 

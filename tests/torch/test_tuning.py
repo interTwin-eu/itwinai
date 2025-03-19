@@ -11,15 +11,16 @@ from ray.train import RunConfig, ScalingConfig
 from ray.tune import TuneConfig
 from ray.tune.schedulers import AsyncHyperBandScheduler
 
+from itwinai.distributed import ray_cluster_is_running
 from itwinai.torch.trainer import TorchTrainer
-
-# from itwinai.distributed import get_adaptive_ray_scaling_config
 
 
 @pytest.mark.hpc
 @pytest.mark.ray_dist
 def test_tuning_mnist_ray(mnist_datasets, shared_tmp_path, mnist_net):
     """Test HPO for TorchTrainer on MNIST."""
+
+    assert ray_cluster_is_running(), "Ray cluster not detected. Aborting tests"
 
     def dummy_train(self: TorchTrainer):
         """Dummy training function"""
