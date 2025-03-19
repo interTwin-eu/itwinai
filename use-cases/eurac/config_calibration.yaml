@@ -105,7 +105,7 @@ train_downsampler:
 valid_downsampler:
   _target_: hython.sampler.downsampler.RandomDownsampler
   frac_time: 0.05
-  frac_space: 0.01
+  frac_space: 0.1
 
 
 test_downsampler: null
@@ -217,7 +217,8 @@ model_logger:
       model_component: head
       model_name: ${model_head}
       #model_uri: "models:/${model_head}/latest" # <---- mlflow
-      model_uri: "/home/iferrario/dev/hython/hython/itwinai/training.yaml" # "/p/project1/intertwin/ferrario1/itwinai/use-cases/eurac/config_training.yaml" # <-- local
+      #model_uri: "/home/iferrario/dev/hython/hython/itwinai/training.yaml" # 
+      model_uri: "/p/project1/intertwin/ferrario1/itwinai/use-cases/eurac/config_training.yaml" # <-- local
       log: False
       load: True
   TransferNN:
@@ -275,7 +276,7 @@ training_pipeline:
         batch_size: ${batch}
         learning_rate: ${learning_rate}
         num_workers_dataloader: ${num_workers_dataloader}
-        num_workers_dataloder_eval: ${num_workers_dataloader_eval}
+        num_workers_dataloader_eval: ${num_workers_dataloader_eval}
         hython_trainer: ${hython_trainer}
 
         regularization: ${regularization}

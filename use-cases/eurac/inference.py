@@ -85,7 +85,10 @@ class ParameterInference(Predictor):
         if model is not None:
             # Overrides existing "internal" model
             self.model = model
-        transfer_nn = model.transfernn
+        try:
+            transfer_nn = model.transfernn
+        except:
+            transfer_nn = model.module.transfernn
 
         device = strategy.device()
 
@@ -140,14 +143,11 @@ class Evaluation(Predictor):
         cfg = None
     ) -> Dict[str, Any]:
 
-        strategy.init()
+        evaluator = Evaluator(self.cfg_evaluator)
 
-        if strategy.is_main_worker:
-        
-            evaluator = Evaluator(self.cfg_evaluator)
+        #device = strategy.device()
+        device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-            device = strategy.device()
+        target, pred = evaluator.preprocess(test_dataset, dataloader, model, device, target="y_hat")
 
-            target, pred = evaluator.preprocess(test_dataset, dataloader, model, device, target="y_hat")
-
-            evaluator.run(target, pred)
+        evaluator.run(target, pred)
