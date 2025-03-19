@@ -7,7 +7,7 @@ use cases based on the popular MNIST dataset.
 
 ## Training a CNN classifier
 
-It is possible to lauch the training of a CNN classifier on the MNIST dataset using the
+It is possible to launch the training of a CNN classifier on the MNIST dataset using the
 YAML configuration file describing the whole training workflow.
 
 ```bash
@@ -16,8 +16,8 @@ itwinai exec-pipeline --config-name config.yaml
 ```
 
 Notice that the training "pipeline" starts by downloading the dataset if not available locally.
-Since on some HPC systems there is not internet connection on the compute nodes, it is
-advised to run the dataloading step on the login node to download the dataset and, later,
+Since on some HPC systems there is no internet connection on the compute nodes, it is
+advisable to run the dataloading step on the login node to download the dataset and, later,
 the whole pipeline on the compute nodes. To do that, you can use the `pipe_steps` option as
 below:
 
@@ -41,7 +41,7 @@ mlflow ui --backend-store-uri mllogs/mlflow/
 
 ### Hyper-parameter optimization
 
-The CNN classifier can undergo hyper-parameter optimization (HPO) to find the hyperparameters,
+The CNN classifier can undergo hyper-parameter optimization (HPO) to find the hyper-parameters,
 such as learning rate and batch size, that result in the best validation performances.
 
 To do so, it is enough to correctly set the `search_space` and the `tune_config` in the trainer
@@ -87,7 +87,8 @@ Note the same entry point as for training.
 ## Training a GAN
 
 In this use case you can also find an example on how to train a Generative Adversarial Network
-(GAN). It is enough to select the correct training pipeline setting the `+pipe_key` option.
+(GAN). All you need to do is specify that you wish to use the GAN by setting the `+pipe_key`
+option.
 
 ```bash
 # Train a GAN

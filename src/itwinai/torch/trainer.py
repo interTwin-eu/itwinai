@@ -215,6 +215,7 @@ class TorchTrainer(Trainer, LogMixin):
 
         # config is mean to store all hyperparameters, which can very from use
         # case to use case and include learning_rate, batch_size....
+        config = {} if config is None else config
         if isinstance(config, dict):
             config = TrainingConfiguration(**config)
 
@@ -699,7 +700,11 @@ class TorchTrainer(Trainer, LogMixin):
         """
         if isinstance(self.strategy, RayTorchDistributedStrategy):
             # Execute with Ray
-            return self._execute_with_ray()
+            return self._execute_with_ray(
+                train_dataset=train_dataset,
+                validation_dataset=validation_dataset,
+                test_dataset=test_dataset,
+            )
 
         # Execute without ray
         if self.ray_scaling_config:
@@ -974,20 +979,25 @@ class TorchTrainer(Trainer, LogMixin):
             # Ray is not used, thus do nothing
             return
 
-        checkpoint = None
         if checkpoint_file:
             with tempfile.TemporaryDirectory() as tmp_dir:
                 import shutil
 
                 shutil.copy(checkpoint_file, tmp_dir)
                 checkpoint = ray.train.Checkpoint.from_directory(tmp_dir)
+                ray.train.report(metrics, checkpoint=checkpoint)
+
         elif checkpoint_data:
             with tempfile.TemporaryDirectory() as tmp_dir:
-                torch.save(checkpoint_data, tmp_dir + "ckpt.pt")
+                tmp_dir = Path(tmp_dir)
+                ckpt_file = tmp_dir / "ckpt.pt"
+                torch.save(checkpoint_data, ckpt_file)
                 checkpoint = ray.train.Checkpoint.from_directory(tmp_dir)
+                ray.train.report(metrics, checkpoint=checkpoint)
+
         elif checkpoint_dir:
             checkpoint = ray.train.Checkpoint.from_directory(checkpoint_dir)
-        ray.train.report(metrics, checkpoint=checkpoint)
+            ray.train.report(metrics, checkpoint=checkpoint)
 
     def compute_metrics(
         self,

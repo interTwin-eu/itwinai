@@ -11,6 +11,7 @@
 import abc
 import builtins as __builtin__
 import functools
+import logging
 import os
 import subprocess
 import sys
@@ -20,6 +21,9 @@ from pydantic import BaseModel
 
 if TYPE_CHECKING:
     from ray.train import ScalingConfig
+
+
+py_logger = logging.getLogger(__name__)
 
 
 class DistributedStrategy(abc.ABC):
@@ -59,11 +63,21 @@ def ray_cluster_is_running() -> bool:
             and "Resources" in result.stdout
             and "Usage" in result.stdout
         )
-    except subprocess.CalledProcessError:
+    except subprocess.CalledProcessError as exc:
         # If the command fails, the cluster is not running
+        py_logger.debug(
+            f"Subprocess failed with return code {exc.returncode} while checking if "
+            "a Ray cluster exists.\n\n"
+            f"Stdout: {exc.stdout}\n\n"
+            f"Stderr: {exc.stderr}"
+        )
         return False
     except FileNotFoundError:
         # If `ray` command is not found, Ray is not installed
+        py_logger.debug(
+            "Error: 'ray' command not found while checking if a Ray cluster "
+            "exists. Is Ray installed?"
+        )
         return False
 
 
