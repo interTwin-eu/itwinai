@@ -51,6 +51,7 @@ def generate_scalability_report(
             )
         ),
     ] = False,
+    run_id: str | None = None,
     backup_root_dir: Annotated[
         str, typer.Option(help=("Which directory to store the backup files in."))
     ] = "backup-scalability-metrics/",
@@ -96,45 +97,65 @@ def generate_scalability_report(
     plot_dir_path = Path(plot_dir)
     plot_dir_path.mkdir(exist_ok=True, parents=True)
 
-    report_dirs = {
-        "Epoch Time": {
-            "dir": log_dir_path / "epoch-time",
-            "func": epoch_time_report,
-        },
-        "GPU Data": {
-            "dir": log_dir_path / "gpu-energy-data",
-            "func": gpu_data_report,
-        },
-        "Communication Data": {
-            "dir": log_dir_path / "communication-data",
-            "func": communication_data_report,
-        },
-    }
+    # Finding all the appropriate paths
+    epoch_time_logdirs = []
+    gpu_data_logdirs = []
+    comm_time_logdirs = []
+    if run_id is None:
+        print("run_id was not passed, so will aggregate data from all runs in given directory!")
+        for path_elem in log_dir_path.iterdir():
+            print(f"Adding data from {path_elem}!")
+            if not path_elem.is_dir():
+                raise ValueError(
+                    f"Found element in logdir that was not itself a directory: "
+                    f"{path_elem.resolve()}"
+                )
+            epoch_time_logdirs.append(path_elem / "epoch-time")
+            gpu_data_logdirs.append(path_elem / "gpu-energy-data")
+            comm_time_logdirs.append(path_elem / "communication-data")
+        print()
+    else:
+        epoch_time_logdirs.append(log_dir_path / run_id / "epoch-time")
+        gpu_data_logdirs.append(log_dir_path / run_id / "gpu-energy-data")
+        comm_time_logdirs.append(log_dir_path / run_id / "communication-data")
 
+    # TODO: Add run_id into this, somehow
     # Setting the backup directory from exp name and run name
     experiment_name = experiment_name or f"exp_{uuid.uuid4().hex[:6]}"
     backup_dir = Path(backup_root_dir) / experiment_name
 
-    # Creating reports from dictionary
-    for report_name, details in report_dirs.items():
-        report_dir = details["dir"]
-        report_func = details["func"]
+    epoch_time_table = epoch_time_report(
+        log_dirs=epoch_time_logdirs,
+        plot_dir=plot_dir_path,
+        backup_dir=backup_dir,
+        do_backup=do_backup,
+        plot_file_suffix=plot_file_suffix,
+    )
+    gpu_data_table = gpu_data_report(
+        log_dirs=gpu_data_logdirs,
+        plot_dir=plot_dir_path,
+        backup_dir=backup_dir,
+        do_backup=do_backup,
+        plot_file_suffix=plot_file_suffix,
+    )
+    communication_data_table = communication_data_report(
+        log_dirs=comm_time_logdirs,
+        plot_dir=plot_dir_path,
+        backup_dir=backup_dir,
+        do_backup=do_backup,
+        plot_file_suffix=plot_file_suffix,
+    )
 
-        if report_dir.exists():
-            print("#" * 8, f"{report_name} Report", "#" * 8)
-            report_func(
-                report_dir,
-                plot_dir=plot_dir_path,
-                backup_dir=backup_dir,
-                do_backup=do_backup,
-                plot_file_suffix=plot_file_suffix,
-            )
-            print()
-        else:
-            print(
-                f"No report was created for {report_name} as '{report_dir.resolve()}' does "
-                f"not exist."
-            )
+    print()
+    print("#" * 8, "Epoch Time Report", "#" * 8)
+    print(epoch_time_table)
+    print()
+    print("#" * 8, "GPU Data Report", "#" * 8)
+    print(gpu_data_table)
+    print()
+    print("#" * 8, "Communication Data Report", "#" * 8)
+    print(communication_data_table)
+    print()
 
 
 @app.command()
