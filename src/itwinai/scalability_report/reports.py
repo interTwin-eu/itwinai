@@ -26,7 +26,7 @@ from itwinai.scalability_report.utils import (
 
 
 def epoch_time_report(
-    log_dirs: List[Path] | List[str], 
+    log_dirs: List[Path] | List[str],
     plot_dir: Path | str,
     backup_dir: Path,
     do_backup: bool = False,
