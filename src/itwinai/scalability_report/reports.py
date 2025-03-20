@@ -10,6 +10,7 @@
 
 from pathlib import Path
 from typing import List
+
 import pandas as pd
 
 from itwinai.scalability_report.data import read_scalability_metrics_from_csv
