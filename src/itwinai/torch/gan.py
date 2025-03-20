@@ -13,7 +13,7 @@
 
 import logging
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Callable, Dict, Iterable, Literal, Optional, Tuple
+from typing import TYPE_CHECKING, Any, Callable, Dict, Iterable, Literal, Tuple
 
 import torch
 import torch.nn as nn
@@ -105,19 +105,19 @@ class GANTrainer(TorchTrainer):
         generator (nn.Module): pytorch generator model to train GAN.
         strategy (Literal['ddp', 'deepspeed', 'horovod'], optional):
             distributed strategy. Defaults to 'ddp'.
-        test_every (Optional[int], optional): run a test epoch
+        test_every (int | None, optional): run a test epoch
             every ``test_every`` epochs. Disabled if None. Defaults to None.
         random_seed (int | None, optional): set random seed for
             reproducibility. If None, the seed is not set. Defaults to None.
         logger (Logger | None, optional): logger for ML tracking.
             Defaults to None.
-        metrics (Optional[Dict[str, Callable]], optional): map of torch metrics
+        metrics (Dict[str, Callable] | None, optional): map of torch metrics
             metrics. Defaults to None.
         checkpoints_location (str): path to checkpoints directory.
             Defaults to "checkpoints".
         checkpoint_every (int | None): save a checkpoint every
             ``checkpoint_every`` epochs. Disabled if None. Defaults to None.
-        name (Optional[str], optional): trainer custom name. Defaults to None.
+        name (str | None, optional): trainer custom name. Defaults to None.
         profiling_wait_epochs (int): how many epochs to wait before starting
             the profiler.
         profiling_warmup_epochs (int): length of the profiler warmup phase in terms of
@@ -161,13 +161,13 @@ class GANTrainer(TorchTrainer):
         discriminator: nn.Module,
         generator: nn.Module,
         strategy: Literal["ddp", "deepspeed"] = "ddp",
-        test_every: Optional[int] = None,
-        random_seed: Optional[int] = None,
-        logger: Optional[Logger] = None,
-        metrics: Optional[Dict[str, Metric]] = None,
+        test_every: int | None = None,
+        random_seed: int | None = None,
+        logger: Logger | None = None,
+        metrics: Dict[str, Metric] | None = None,
         checkpoints_location: str = "checkpoints",
-        checkpoint_every: Optional[int] = None,
-        name: Optional[str] = None,
+        checkpoint_every: int | None = None,
+        name: str | None = None,
         profiling_wait_epochs: int = 1,
         profiling_warmup_epochs: int = 2,
         ray_scaling_config: ScalingConfig | None = None,
@@ -176,7 +176,7 @@ class GANTrainer(TorchTrainer):
         ray_search_space: Dict[str, Any] | None = None,
         ray_torch_config: TorchConfig | None = None,
         ray_data_config: DataConfig | None = None,
-        ray_horovod_config: Optional["HorovodConfig"] = None,
+        ray_horovod_config: HorovodConfig | None = None,
         from_checkpoint: str | Path | None = None,
         **kwargs,
     ) -> None:
@@ -485,7 +485,7 @@ class GANTrainer(TorchTrainer):
     def save_checkpoint(
         self,
         name: str,
-        best_validation_metric: Optional[torch.Tensor] = None,
+        best_validation_metric: torch.Tensor | None = None,
         checkpoints_root: str | Path | None = None,
         force: bool = False,
     ) -> str | None:
@@ -493,7 +493,7 @@ class GANTrainer(TorchTrainer):
 
         Args:
             name (str): name of the checkpoint directory.
-            best_validation_metric (Optional[torch.Tensor]): best validation loss throughout
+            best_validation_metric (torch.Tensor | None) : best validation loss throughout
                 training so far (if available).
             checkpoints_root (str | None): path for root checkpoints dir. If None, uses
                 ``self.checkpoints_location`` as base.
@@ -586,9 +586,9 @@ class GANTrainer(TorchTrainer):
         disc_train_losses = []
         disc_train_accuracy = []
         for batch_idx, (real_images, _) in enumerate(self.train_dataloader):
-            lossG, lossD, accuracy_disc = self.train_step(real_images, batch_idx)
-            gen_train_losses.append(lossG)
-            disc_train_losses.append(lossD)
+            loss_gen, loss_disc, accuracy_disc = self.train_step(real_images, batch_idx)
+            gen_train_losses.append(loss_gen)
+            disc_train_losses.append(loss_disc)
             disc_train_accuracy.append(accuracy_disc)
 
             self.train_glob_step += 1
@@ -618,7 +618,16 @@ class GANTrainer(TorchTrainer):
 
         self.save_fake_generator_images()
 
-    def train_step(self, real_images, batch_idx):
+    def train_step(self, real_images: torch.Tensor, batch_idx: int) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+        """train step for GAN.
+
+        Args:
+            real_images (torch.Tensor): real images.
+            batch_idx (int): batch index.
+
+        Returns:
+            Tuple[torch.Tensor, torch.Tensor, torch.Tensor]: loss metrics of generator and discriminator and accuracy of the discriminator
+        """
         real_images = real_images.to(self.device)
         batch_size = real_images.size(0)
         real_labels = torch.ones((batch_size,), dtype=torch.float, device=self.device)
@@ -626,18 +635,18 @@ class GANTrainer(TorchTrainer):
 
         # Train Discriminator with real images
         output_real = self.discriminator(real_images)
-        lossD_real = self.criterion(output_real, real_labels)
+        loss_disc_real = self.criterion(output_real, real_labels)
         # Generate fake images and train Discriminator
         noise = torch.randn(batch_size, self.config.z_dim, 1, 1, device=self.device)
 
         fake_images = self.generator(noise)
         output_fake = self.discriminator(fake_images.detach())
-        lossD_fake = self.criterion(output_fake, fake_labels)
+        loss_disc_fake = self.criterion(output_fake, fake_labels)
 
-        lossD = (lossD_real + lossD_fake) / 2
+        loss_disc = (loss_disc_real + loss_disc_fake) / 2
 
         self.optimizer_discriminator.zero_grad()
-        lossD.backward()
+        loss_disc.backward()
         self.optimizer_discriminator.step()
 
         accuracy = ((output_real > 0.5).float() == real_labels).float().mean() + (
@@ -647,9 +656,9 @@ class GANTrainer(TorchTrainer):
 
         # Train Generator
         output_fake = self.discriminator(fake_images)
-        lossG = self.criterion(output_fake, real_labels)
+        loss_gen = self.criterion(output_fake, real_labels)
         self.optimizer_generator.zero_grad()
-        lossG.backward()
+        loss_gen.backward()
         self.optimizer_generator.step()
         self.log(
             item=accuracy_disc,
@@ -659,21 +668,21 @@ class GANTrainer(TorchTrainer):
             batch_idx=batch_idx,
         )
         self.log(
-            item=lossG,
+            item=loss_gen,
             identifier="gen_train_loss_per_batch",
             kind="metric",
             step=self.train_glob_step,
             batch_idx=batch_idx,
         )
         self.log(
-            item=lossD,
+            item=loss_disc,
             identifier="disc_train_loss_per_batch",
             kind="metric",
             step=self.train_glob_step,
             batch_idx=batch_idx,
         )
 
-        return lossG, lossD, accuracy_disc
+        return loss_gen, loss_disc, accuracy_disc
 
     def validation_epoch(self, fid_features: int = 2048) -> torch.Tensor:
         """Validation epoch for GAN.
@@ -730,7 +739,7 @@ class GANTrainer(TorchTrainer):
         return fid_score
 
     def validation_step(
-        self, real_images, batch_idx, fid: FrechetInceptionDistance
+        self, real_images: torch.Tensor, batch_idx: int, fid: FrechetInceptionDistance
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         """Validation step for GAN.
 
@@ -791,11 +800,7 @@ class GANTrainer(TorchTrainer):
         return accuracy_gen, accuracy_disc
 
     def save_fake_generator_images(self):
-        """Plot and save fake images from generator
-
-        Args:
-           epoch (int): epoch number, from 0 to ``epochs-1``.
-        """
+        """Plot and save fake images from generator"""
         import matplotlib.pyplot as plt
         import numpy as np
 
