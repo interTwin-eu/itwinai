@@ -51,19 +51,13 @@ def generate_scalability_report(
             )
         ),
     ] = False,
-    run_id: str | None = None,
+    run_id: Annotated[
+        str | None,
+        typer.Option(help=("Which run_id to read. Will also be used when making backup.")),
+    ] = None,
     backup_root_dir: Annotated[
         str, typer.Option(help=("Which directory to store the backup files in."))
     ] = "backup-scalability-metrics/",
-    experiment_name: Annotated[
-        Optional[str],
-        typer.Option(
-            help=(
-                "What to name the experiment in the backup directory."
-                " Will be automatically generated if left as None."
-            )
-        ),
-    ] = None,
     plot_file_suffix: Annotated[
         str,
         typer.Option(
@@ -102,7 +96,10 @@ def generate_scalability_report(
     gpu_data_logdirs = []
     comm_time_logdirs = []
     if run_id is None:
-        print("run_id was not passed, so will aggregate data from all runs in given directory!")
+        print(
+            "run_id was not passed, so will aggregate data from all runs in the given "
+            f"directory: '{log_dir_path.resolve()}'."
+        )
         for path_elem in log_dir_path.iterdir():
             print(f"Adding data from {path_elem}!")
             if not path_elem.is_dir():
@@ -113,35 +110,46 @@ def generate_scalability_report(
             epoch_time_logdirs.append(path_elem / "epoch-time")
             gpu_data_logdirs.append(path_elem / "gpu-energy-data")
             comm_time_logdirs.append(path_elem / "communication-data")
-        print()
     else:
+        # Make sure run_id actually exists
+        run_path = log_dir_path / run_id
+        if not run_path.exists():
+            raise ValueError(
+                f"No directory with given run_id: '{run_id}' exists! Path should have been "
+                f"'{run_path.resolve()}', but was not found!"
+            )
+        print(f"Reading data using run_id: '{run_id}' at location '{run_path.resolve()}'")
         epoch_time_logdirs.append(log_dir_path / run_id / "epoch-time")
         gpu_data_logdirs.append(log_dir_path / run_id / "gpu-energy-data")
         comm_time_logdirs.append(log_dir_path / run_id / "communication-data")
+    print()
 
     # TODO: Add run_id into this, somehow
     # Setting the backup directory from exp name and run name
-    experiment_name = experiment_name or f"exp_{uuid.uuid4().hex[:6]}"
-    backup_dir = Path(backup_root_dir) / experiment_name
+    run_id = run_id or f"run_{uuid.uuid4().hex[:6]}"
+    backup_dir = Path(backup_root_dir) / run_id
+    epoch_time_backup_dir = backup_dir / "epoch-time"
+    gpu_data_backup_dir = backup_dir / "gpu-energy-data"
+    communication_data_backup_dir = backup_dir / "communication-data"
 
     epoch_time_table = epoch_time_report(
         log_dirs=epoch_time_logdirs,
         plot_dir=plot_dir_path,
-        backup_dir=backup_dir,
+        backup_dir=epoch_time_backup_dir,
         do_backup=do_backup,
         plot_file_suffix=plot_file_suffix,
     )
     gpu_data_table = gpu_data_report(
         log_dirs=gpu_data_logdirs,
         plot_dir=plot_dir_path,
-        backup_dir=backup_dir,
+        backup_dir=gpu_data_backup_dir,
         do_backup=do_backup,
         plot_file_suffix=plot_file_suffix,
     )
     communication_data_table = communication_data_report(
         log_dirs=comm_time_logdirs,
         plot_dir=plot_dir_path,
-        backup_dir=backup_dir,
+        backup_dir=communication_data_backup_dir,
         do_backup=do_backup,
         plot_file_suffix=plot_file_suffix,
     )
