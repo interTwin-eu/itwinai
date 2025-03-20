@@ -39,15 +39,17 @@ def epoch_time_report(
     function optionally creates backups of the data.
 
     Args:
-        # epoch_time_dir (Path | str): Path to the directory containing CSV files with
-        #     epoch time metrics. The files must include the columns "name", "nodes",
-        #     "epoch_id", and "time".
+        log_dirs (List[Path] | List[str]): List of path(s) to the directory containing CSV
+            files with epoch time metrics. The files must include the columns "name", "nodes",
+            "epoch_id", and "time".
         plot_dir (Path | str): Path to the directory where the generated plots will
             be saved.
         backup_dir (Path): Path to the directory where backups of the data will be stored
             if `do_backup` is True.
         do_backup (bool): Whether to create a backup of the epoch time data in the
             `backup_dir`. Defaults to False.
+        plot_file_suffix (str): Suffix for the plot file names. Defaults to ".png".
+
     """
     if isinstance(plot_dir, str):
         plot_dir = Path(plot_dir)
@@ -110,10 +112,10 @@ def gpu_data_report(
     of the data.
 
     Args:
-        gpu_data_dir (Path | str): Path to the directory containing CSV files with GPU
-            data. The files must include the columns "sample_idx", "utilization",
-            "power", "local_rank", "node_idx", "num_global_gpus", "strategy", and
-            "probing_interval".
+        log_dirs (List[Path] | List[str]): List of path(s) to the directory containing CSV
+            files with GPU data. The files must include the columns "sample_idx",
+            "utilization", "power", "local_rank", "node_idx", "num_global_gpus", "strategy",
+            and "probing_interval".
         plot_dir (Path | str): Path to the directory where the generated plots will
             be saved.
         backup_dir (Path): Path to the directory where backups of the data will be stored
@@ -193,8 +195,8 @@ def communication_data_report(
     optionally creates backups of the data.
 
     Args:
-        communication_data_dir (Path | str): Path to the directory containing CSV files
-            with communication data. The files must include the columns "strategy",
+        log_dirs (List[Path] | List[str]): List of path(s) to the directory containing CSV
+            files with communication data. The files must include the columns "strategy",
             "num_gpus", "global_rank", "name", and "self_cuda_time_total".
         plot_dir (Path | str): Path to the directory where the generated plot will
             be saved.
