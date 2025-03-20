@@ -204,6 +204,9 @@ ray_launcher ()
   # This is only needed by tests
   export SHARED_FS_PATH="/ceph/hpc/data/st2301-itwin-users/tmp-mbunino2"
 
+  # Remove ray metadata if present
+  rm -rf /tmp/ray & disown
+
   # This tells Tune to not change the working directory to the trial directory
   # which makes relative paths accessible from inside a trial
   export RAY_CHDIR_TO_TRIAL_DIR=0

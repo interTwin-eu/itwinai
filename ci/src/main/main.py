@@ -271,7 +271,7 @@ class Itwinai:
         self._logs.append(f"INFO: testing on HPC image {image}")
 
         # Create pod manifest
-        gpus_per_node = 1
+        gpus_per_node = 2
         cpus_per_gpu = 4
         num_nodes = 2
         jobscript = "/app/tests/torch/slurm.vega.sh"
