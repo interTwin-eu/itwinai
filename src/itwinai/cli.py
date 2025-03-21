@@ -109,11 +109,19 @@ def generate_scalability_report(
                     f"Found element in logdir that was not itself a directory: "
                     f"{path_elem.resolve()}"
                 )
-            epoch_time_logdirs.append(path_elem / "epoch-time")
-            gpu_data_logdirs.append(path_elem / "gpu-energy-data")
-            comm_time_logdirs.append(path_elem / "communication-data")
+
+            # Creating all potential paths and adding them if they exist
+            epoch_time_logdir = path_elem / "epoch-time"
+            gpu_data_logdir = path_elem / "gpu-energy-data"
+            comm_time_logdir = path_elem / "communication-data"
+
+            if epoch_time_logdir.exists():
+                epoch_time_logdirs.append(epoch_time_logdir)
+            if gpu_data_logdir.exists():
+                gpu_data_logdirs.append(gpu_data_logdir)
+            if comm_time_logdir.exists():
+                comm_time_logdirs.append(comm_time_logdir)
     else:
-        # Make sure run_id actually exists
         for run_id in run_id_list:
             run_path = log_dir_path / run_id
             if not run_path.exists():
@@ -121,9 +129,18 @@ def generate_scalability_report(
                     f"No directory with given run_id: '{run_id}' exists! Path should have been "
                     f"'{run_path.resolve()}', but was not found!"
                 )
-            epoch_time_logdirs.append(log_dir_path / run_id / "epoch-time")
-            gpu_data_logdirs.append(log_dir_path / run_id / "gpu-energy-data")
-            comm_time_logdirs.append(log_dir_path / run_id / "communication-data")
+
+            # Creating all potential paths and adding them if they exist
+            epoch_time_logdir = log_dir_path / run_id / "epoch-time"
+            gpu_data_logdir = log_dir_path / run_id / "gpu-energy-data"
+            comm_time_logdir = log_dir_path / run_id / "communication-data"
+
+            if epoch_time_logdir.exists():
+                epoch_time_logdirs.append(epoch_time_logdir)
+            if gpu_data_logdir.exists():
+                gpu_data_logdirs.append(gpu_data_logdir)
+            if comm_time_logdir.exists():
+                comm_time_logdirs.append(comm_time_logdir)
 
     # Setting the backup directory from run name
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")

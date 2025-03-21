@@ -60,8 +60,6 @@ def epoch_time_report(
     # Reading data from all the logdirs and concatenating the results
     dataframes = []
     for log_dir in log_dir_paths:
-        if not log_dir.exists():
-            continue
         temp_df = read_scalability_metrics_from_csv(
             data_dir=log_dir, expected_columns=epoch_time_expected_columns
         )
@@ -144,8 +142,6 @@ def gpu_data_report(
     log_dir_paths = [Path(logdir) for logdir in log_dirs]
     dataframes = []
     for log_dir in log_dir_paths:
-        if not log_dir.exists():
-            continue
         temp_df = read_scalability_metrics_from_csv(
             data_dir=log_dir, expected_columns=gpu_data_expected_columns
         )
@@ -229,8 +225,6 @@ def communication_data_report(
     log_dir_paths = [Path(logdir) for logdir in log_dirs]
     dataframes = []
     for log_dir in log_dir_paths:
-        if not log_dir.exists():
-            continue
         temp_df = read_scalability_metrics_from_csv(
             data_dir=log_dir, expected_columns=communication_data_expected_columns
         )
