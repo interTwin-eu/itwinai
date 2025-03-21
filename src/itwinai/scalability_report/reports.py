@@ -53,19 +53,22 @@ def epoch_time_report(
     """
     if isinstance(plot_dir, str):
         plot_dir = Path(plot_dir)
+    log_dir_paths = [Path(logdir) for logdir in log_dirs]
 
     epoch_time_expected_columns = {"name", "nodes", "epoch_id", "time"}
 
     # Reading data from all the logdirs and concatenating the results
     dataframes = []
-    for log_dir in log_dirs:
+    for log_dir in log_dir_paths:
+        if not log_dir.exists():
+            continue
         temp_df = read_scalability_metrics_from_csv(
             data_dir=log_dir, expected_columns=epoch_time_expected_columns
         )
         dataframes.append(temp_df)
-    epoch_time_df = pd.concat(dataframes)
-    if epoch_time_df.empty:
+    if not dataframes:
         return None
+    epoch_time_df = pd.concat(dataframes)
 
     # Calculate the average time per epoch for each strategy and number of nodes
     print("\nAnalyzing Epoch Time Data...")
@@ -139,15 +142,18 @@ def gpu_data_report(
         "strategy",
         "probing_interval",
     }
+    log_dir_paths = [Path(logdir) for logdir in log_dirs]
     dataframes = []
-    for log_dir in log_dirs:
+    for log_dir in log_dir_paths:
+        if not log_dir.exists():
+            continue
         temp_df = read_scalability_metrics_from_csv(
             data_dir=log_dir, expected_columns=gpu_data_expected_columns
         )
         dataframes.append(temp_df)
-    gpu_data_df = pd.concat(dataframes)
-    if gpu_data_df.empty:
+    if not dataframes:
         return None
+    gpu_data_df = pd.concat(dataframes)
 
     print("\nAnalyzing Epoch Time Data...")
     gpu_data_statistics_df = calculate_gpu_statistics(
@@ -221,15 +227,18 @@ def communication_data_report(
         "name",
         "self_cuda_time_total",
     }
+    log_dir_paths = [Path(logdir) for logdir in log_dirs]
     dataframes = []
-    for log_dir in log_dirs:
+    for log_dir in log_dir_paths:
+        if not log_dir.exists():
+            continue
         temp_df = read_scalability_metrics_from_csv(
             data_dir=log_dir, expected_columns=communication_data_expected_columns
         )
         dataframes.append(temp_df)
-    communication_data_df = pd.concat(dataframes)
-    if communication_data_df.empty:
+    if not dataframes:
         return None
+    communication_data_df = pd.concat(dataframes)
 
     print("\nAnalyzing Communication Data...")
     computation_fraction_df = get_computation_fraction_data(communication_data_df)
