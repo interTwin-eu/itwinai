@@ -8,6 +8,9 @@
 # - Matteo Bunino <matteo.bunino@cern.ch> - CERN
 # --------------------------------------------------------------------------------------
 
+
+"""This script shows a simple example on how to train a GAN without using itwinai."""
+
 import matplotlib.pyplot as plt
 import numpy as np
 import torch

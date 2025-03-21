@@ -8,8 +8,6 @@
 # - Matteo Bunino <matteo.bunino@cern.ch> - CERN
 # --------------------------------------------------------------------------------------
 
-import argparse
-import sys
 from pathlib import Path
 from typing import Tuple
 
@@ -18,41 +16,17 @@ from torchvision import datasets, transforms
 
 from itwinai.components import DataGetter, DataSplitter
 
-data_dir = Path("data")
-
-
-def download_fashion_mnist() -> None:
-    """Download the FashionMNIST dataset using torchvision."""
-    print("Downloading FashionMNIST dataset...")
-    datasets.FashionMNIST(
-        data_dir,
-        train=True,
-        download=True,
-        transform=transforms.Compose(
-            [transforms.ToTensor(), transforms.Normalize((0.5,), (0.5,))]
-        ),
-    )
-    datasets.FashionMNIST(
-        data_dir,
-        train=False,
-        download=True,
-        transform=transforms.Compose(
-            [transforms.ToTensor(), transforms.Normalize((0.5,), (0.5,))]
-        ),
-    )
-    print("Download complete!")
-
 
 class FashionMNISTGetter(DataGetter):
-    def __init__(self) -> None:
+    def __init__(self, data_dir: str | Path = "data") -> None:
         super().__init__()
+        self.data_dir = data_dir
 
-    def execute(self) -> Tuple[Dataset, Dataset]:
-        """Load the FashionMNIST dataset from the specified directory. If it not available,
-        download and return it."""
+    def execute(self) -> Dataset:
+        """Load the FashionMNIST dataset from the specified directory."""
         print("Loading FashionMNIST dataset...")
         train_dataset = datasets.FashionMNIST(
-            data_dir,
+            self.data_dir,
             train=True,
             download=True,
             transform=transforms.Compose(
@@ -68,7 +42,7 @@ class FashionMNISTSplitter(DataSplitter):
         self,
         train_proportion: float,
         validation_proportion: float,
-        test_proportion: float = 0.0,
+        test_proportion: float,
         name: str | None = None,
     ) -> None:
         super().__init__(train_proportion, validation_proportion, test_proportion, name)
@@ -86,17 +60,3 @@ class FashionMNISTSplitter(DataSplitter):
         )
         print("Splitting complete!")
         return train_dataset, validation_dataset, test_dataset
-
-
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="FashionMNIST Dataset Loader")
-    parser.add_argument(
-        "--download_only",
-        action="store_true",
-        help="Download the FashionMNIST dataset and exit",
-    )
-    args = parser.parse_args()
-
-    if args.download_only:
-        download_fashion_mnist()
-        sys.exit()
