@@ -32,14 +32,14 @@ def epoch_time_report(
     backup_dir: Path,
     do_backup: bool = False,
     plot_file_suffix: str = ".png",
-) -> str:
+) -> str | None:
     """Generates reports and plots for epoch training times across distributed training
     strategies, including a log-log plot of absolute average epoch times against the
     number of GPUs and a log-log plot of relative speedup as more GPUs are added. The
     function optionally creates backups of the data.
 
     Args:
-        log_dirs (List[Path] | List[str]): List of path(s) to the directory containing CSV
+        log_dirs (List[Path] | List[str]): List of paths to the directory containing CSV
             files with epoch time metrics. The files must include the columns "name", "nodes",
             "epoch_id", and "time".
         plot_dir (Path | str): Path to the directory where the generated plots will
@@ -64,8 +64,11 @@ def epoch_time_report(
         )
         dataframes.append(temp_df)
     epoch_time_df = pd.concat(dataframes)
+    if epoch_time_df.empty:
+        return None
 
     # Calculate the average time per epoch for each strategy and number of nodes
+    print("\nAnalyzing Epoch Time Data...")
     avg_epoch_time_df = (
         epoch_time_df.groupby(["name", "nodes"])
         .agg(avg_epoch_time=("time", "mean"))
@@ -105,14 +108,14 @@ def gpu_data_report(
     backup_dir: Path,
     do_backup: bool = False,
     plot_file_suffix: str = ".png",
-) -> str:
+) -> str | None:
     """Generates reports and plots for GPU energy consumption and utilization across
     distributed training strategies. Includes bar plots for energy consumption and GPU
     utilization by strategy and number of GPUs. The function optionally creates backups
     of the data.
 
     Args:
-        log_dirs (List[Path] | List[str]): List of path(s) to the directory containing CSV
+        log_dirs (List[Path] | List[str]): List of paths to the directory containing CSV
             files with GPU data. The files must include the columns "sample_idx",
             "utilization", "power", "local_rank", "node_idx", "num_global_gpus", "strategy",
             and "probing_interval".
@@ -143,7 +146,10 @@ def gpu_data_report(
         )
         dataframes.append(temp_df)
     gpu_data_df = pd.concat(dataframes)
+    if gpu_data_df.empty:
+        return None
 
+    print("\nAnalyzing Epoch Time Data...")
     gpu_data_statistics_df = calculate_gpu_statistics(
         gpu_data_df=gpu_data_df, expected_columns=gpu_data_expected_columns
     )
@@ -188,14 +194,14 @@ def communication_data_report(
     backup_dir: Path,
     do_backup: bool = False,
     plot_file_suffix: str = ".png",
-) -> str:
+) -> str | None:
     """Generates reports and plots for communication and computation fractions across
     distributed training strategies. Includes a bar plot showing the fraction of time
     spent on computation vs communication for each strategy and GPU count. The function
     optionally creates backups of the data.
 
     Args:
-        log_dirs (List[Path] | List[str]): List of path(s) to the directory containing CSV
+        log_dirs (List[Path] | List[str]): List of paths to the directory containing CSV
             files with communication data. The files must include the columns "strategy",
             "num_gpus", "global_rank", "name", and "self_cuda_time_total".
         plot_dir (Path | str): Path to the directory where the generated plot will
@@ -222,6 +228,10 @@ def communication_data_report(
         )
         dataframes.append(temp_df)
     communication_data_df = pd.concat(dataframes)
+    if communication_data_df.empty:
+        return None
+
+    print("\nAnalyzing Communication Data...")
     computation_fraction_df = get_computation_fraction_data(communication_data_df)
 
     formatters = {"computation_fraction": lambda x: "{:.2f} %".format(x * 100)}

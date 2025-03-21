@@ -122,12 +122,10 @@ def generate_scalability_report(
         epoch_time_logdirs.append(log_dir_path / run_id / "epoch-time")
         gpu_data_logdirs.append(log_dir_path / run_id / "gpu-energy-data")
         comm_time_logdirs.append(log_dir_path / run_id / "communication-data")
-    print()
 
-    # TODO: Add run_id into this, somehow
-    # Setting the backup directory from exp name and run name
-    run_id = run_id or f"run_{uuid.uuid4().hex[:6]}"
-    backup_dir = Path(backup_root_dir) / run_id
+    # Setting the backup directory from run name
+    backup_run_id = run_id or f"aggregated_run_{uuid.uuid4().hex[:6]}"
+    backup_dir = Path(backup_root_dir) / backup_run_id
     epoch_time_backup_dir = backup_dir / "epoch-time"
     gpu_data_backup_dir = backup_dir / "gpu-energy-data"
     communication_data_backup_dir = backup_dir / "communication-data"
@@ -154,16 +152,25 @@ def generate_scalability_report(
         plot_file_suffix=plot_file_suffix,
     )
 
+
     print()
-    print("#" * 8, "Epoch Time Report", "#" * 8)
-    print(epoch_time_table)
-    print()
-    print("#" * 8, "GPU Data Report", "#" * 8)
-    print(gpu_data_table)
-    print()
-    print("#" * 8, "Communication Data Report", "#" * 8)
-    print(communication_data_table)
-    print()
+    if epoch_time_table is not None:
+        print("#" * 8, "Epoch Time Report", "#" * 8)
+        print(epoch_time_table, "\n")
+    else: 
+        print("No Epoch Time Data Found\n")
+
+    if gpu_data_table is not None:
+        print("#" * 8, "GPU Data Report", "#" * 8)
+        print(gpu_data_table, "\n")
+    else: 
+        print("No GPU Data Found\n")
+
+    if communication_data_table is not None:
+        print("#" * 8, "Communication Data Report", "#" * 8)
+        print(communication_data_table, "\n")
+    else: 
+        print("No Communication Data Found\n")
 
 
 @app.command()
