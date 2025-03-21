@@ -53,7 +53,9 @@ def generate_scalability_report(
     ] = False,
     run_ids: Annotated[
         str | None,
-        typer.Option(help="Which run ids to read, presented as comma-separated values."),
+        typer.Option(
+        help="Which run ids to read, presented as comma-separated values, e.g. 'run0,run1'."
+    ),
     ] = None,
     backup_root_dir: Annotated[
         str, typer.Option(help=("Which directory to store the backup files in."))
