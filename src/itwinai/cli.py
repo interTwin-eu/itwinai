@@ -54,8 +54,8 @@ def generate_scalability_report(
     run_ids: Annotated[
         str | None,
         typer.Option(
-        help="Which run ids to read, presented as comma-separated values, e.g. 'run0,run1'."
-    ),
+            help="Which run ids to read, presented as comma-separated values, e.g. 'run0,run1'."
+        ),
     ] = None,
     backup_root_dir: Annotated[
         str, typer.Option(help=("Which directory to store the backup files in."))
@@ -126,8 +126,8 @@ def generate_scalability_report(
             run_path = log_dir_path / run_id
             if not run_path.exists():
                 raise ValueError(
-                    f"No directory with given run_id: '{run_id}' exists! Path should have been "
-                    f"'{run_path.resolve()}', but was not found!"
+                    f"No directory with given run_id: '{run_id}' exists! Path should have been"
+                    f" '{run_path.resolve()}', but was not found!"
                 )
 
             # Creating all potential paths and adding them if they exist
@@ -144,7 +144,10 @@ def generate_scalability_report(
 
     # Setting the backup directory from run name
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    backup_run_id = "_".join(run_id_list) + f"_{timestamp}" if run_id_list else f"aggregated_run_{timestamp}"
+    if run_id_list:
+        backup_run_id = "_".join(run_id_list) + f"_{timestamp}"
+    else:
+        backup_run_id = f"aggregated_run_{timestamp}"
     backup_dir = Path(backup_root_dir) / backup_run_id
 
     epoch_time_backup_dir = backup_dir / "epoch-time"
@@ -176,24 +179,23 @@ def generate_scalability_report(
         plot_file_suffix=plot_file_suffix,
     )
 
-
     print()
     if epoch_time_table is not None:
         print("#" * 8, "Epoch Time Report", "#" * 8)
         print(epoch_time_table, "\n")
-    else: 
+    else:
         print("No Epoch Time Data Found\n")
 
     if gpu_data_table is not None:
         print("#" * 8, "GPU Data Report", "#" * 8)
         print(gpu_data_table, "\n")
-    else: 
+    else:
         print("No GPU Data Found\n")
 
     if communication_data_table is not None:
         print("#" * 8, "Communication Data Report", "#" * 8)
         print(communication_data_table, "\n")
-    else: 
+    else:
         print("No Communication Data Found\n")
 
 
