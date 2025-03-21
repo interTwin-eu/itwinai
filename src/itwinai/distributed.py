@@ -67,8 +67,8 @@ def ray_cluster_is_running() -> bool:
         # If the command fails, the cluster is not running
         py_logger.debug(
             f"Subprocess failed with return code {exc.returncode} while checking if "
-            "a Ray cluster exists.\n\n"
-            f"Stdout: {exc.stdout}\n\n"
+            "a Ray cluster exists.\n"
+            f"Stdout: {exc.stdout}\n"
             f"Stderr: {exc.stderr}"
         )
         return False

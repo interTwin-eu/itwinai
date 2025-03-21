@@ -94,7 +94,8 @@ some debugging tips to (hopefully) address the failing tests quickly.
   redirected to files.  
   - If all tests pass but failures appear in `stderr`, or if a test fails without a clear
     reason, **⚠️ check the logs of all workers!**. Worker logs can be found in `logs_torchrun`,
-    `logs_srun`, `logs_mpirun`, and `logs_ray` directories.
+    `logs_srun`, and `logs_mpirun` directories. On the other hand, Ray usually tries to report
+    workers info on the stdout and stderr of the main worker (user `-s` option for pytest).
 - **Ray workers may be slow to start**: if the tests fails to correctly connect to the Ray
   cluster, consider that sometimes it may just due to the fact that Ray Head node and Workers
   are slow at starting... Try to wait a bit more (increasing the sleep time) for the Ray

@@ -59,14 +59,11 @@ rm -rf logs_slurm
 mkdir logs_slurm
 rm -rf logs_torchrun logs_mpirun logs_srun checkpoints
 
-rm -rf /tmp/mbunino/logs_ray   logs_ray
-mkdir -p /tmp/mbunino/logs_ray
-ln -s /tmp/mbunino/logs_ray
 
 # Launch tests
 export DIST_MODE="ray"
 export RUN_NAME="ray-itwinai"
-export COMMAND="pytest -v -o log_cli=true -o log_cli_level=INFO -m ray_dist $TESTS_LOCATION"
+export COMMAND="pytest -v -s -o log_cli=true -o log_cli_level=INFO -m ray_dist $TESTS_LOCATION"
 sbatch  \
     --job-name="$RUN_NAME-n$N" \
     --output="logs_slurm/job-$RUN_NAME-n$N.out" \

@@ -55,9 +55,9 @@ source $PYTHON_VENV/bin/activate
 export CUDA_VISIBLE_DEVICES=$(seq -s, 0 $((SLURM_GPUS_PER_NODE - 1)))
 echo "DEBUG: CUDA_VISIBLE_DEVICES (after): $CUDA_VISIBLE_DEVICES"
 export OMP_NUM_THREADS=1
-# if [ $(($SLURM_CPUS_PER_TASK / $SLURM_GPUS_PER_NODE)) -gt 0 ] ; then
-#   export OMP_NUM_THREADS=$(($SLURM_CPUS_PER_TASK / $SLURM_GPUS_PER_NODE))
-# fi
+if [ $(($SLURM_CPUS_PER_TASK / $SLURM_GPUS_PER_NODE)) -gt 0 ] ; then
+  export OMP_NUM_THREADS=$(($SLURM_CPUS_PER_TASK / $SLURM_GPUS_PER_NODE))
+fi
 
 # Adjust itwinai logging level to help with debugging 
 export ITWINAI_LOG_LEVEL=DEBUG
@@ -88,6 +88,7 @@ torchrun_launcher(){
     --log_dir='logs_torchrun' \
     --nnodes=$SLURM_NNODES \
     --nproc_per_node=$SLURM_GPUS_PER_NODE \
+    --node-rank=$SLURM_NODEID \
     --rdzv_id=$SLURM_JOB_ID \
     --rdzv_conf=is_host=\$(((SLURM_NODEID)) && echo 0 || echo 1) \
     --rdzv_backend=c10d \
@@ -97,8 +98,10 @@ torchrun_launcher(){
     $1"
 }
 
+# Launch distribtued job in container with srun
 srun_launcher ()
 {
+
   # Stop Ray processes, if any
   srun uv run ray stop
 
@@ -113,6 +116,7 @@ srun_launcher ()
     'if [ $SLURM_PROCID  -ne 0 ]; then exec > "logs_srun/$SLURM_JOB_ID/rank.$SLURM_PROCID" 2>&1; fi; exec '"${1}"
 }
 
+# Launch distribtued job in container with Ray
 ray_launcher ()
 {
 
@@ -127,9 +131,6 @@ ray_launcher ()
 
   # Disable colors in output
   export RAY_COLOR_PREFIX=0
-
-  # Create ray logs folder
-  mkdir -p "/tmp/mbunino/logs_ray/$SLURM_JOB_ID"
 
   #########   Set up Ray cluster   ########
 
@@ -147,8 +148,6 @@ ray_launcher ()
   # The `--head` option specifies that this node will be the head of the Ray cluster.
   # `srun` submits a job that runs on the head node to start the Ray head with the specified 
   # number of CPUs and GPUs.
-
-  #       --temp-dir "/tmp/mbunino/logs_ray/$SLURM_JOB_ID" \
 
   srun --nodes=1 --ntasks=1 -w "$head_node" \
       ray start \
@@ -191,7 +190,8 @@ ray_launcher ()
   echo -e "\n\n=============== RAY STATUS ==============================\n$(ray status)\n=============== END RAY STATUS ==============================\n\n"
 
   # Run command without srun
-  $1 
+  $1
+
 }
 
 # Dual echo on both stdout and stderr

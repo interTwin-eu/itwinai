@@ -20,7 +20,7 @@
 #SBATCH --mail-type=ALL
 #SBATCH --output=job.out
 #SBATCH --error=job.err
-#SBATCH --time=00:30:00
+#SBATCH --time=00:20:00
 
 # Resources allocation
 #SBATCH --partition=gpu
@@ -31,7 +31,6 @@
 #SBATCH --ntasks-per-node=1
 # SBATCH --mem-per-gpu=10G
 # SBATCH --exclusive
-
 
 echo "DEBUG: SLURM_SUBMIT_DIR: $SLURM_SUBMIT_DIR"
 echo "DEBUG: SLURM_JOB_ID: $SLURM_JOB_ID"
@@ -44,6 +43,7 @@ echo "DEBUG: SLURMD_NODENAME: $SLURMD_NODENAME"
 echo "DEBUG: SLURM_GPUS_PER_NODE: $SLURM_GPUS_PER_NODE"
 echo "DEBUG: CUDA_VISIBLE_DEVICES (before): $CUDA_VISIBLE_DEVICES"
 
+# Load environment modules
 ml --force purge
 ml Python/3.11.5-GCCcore-13.2.0 
 ml CMake/3.24.3-GCCcore-11.3.0
@@ -201,6 +201,7 @@ srun_launcher ()
 # Launch distribtued job in container with Ray
 ray_launcher ()
 {
+
   # Remove ray metadata if present
   srun rm -rf /tmp/ray & disown
 
@@ -229,10 +230,17 @@ ray_launcher ()
   # The `--head` option specifies that this node will be the head of the Ray cluster.
   # `srun` submits a job that runs on the head node to start the Ray head with the specified 
   # number of CPUs and GPUs.
+
   srun --nodes=1 --ntasks=1 -w "$head_node" \
     singularity exec --nv $CONTAINER_PATH  \
-      ray start --head --node-ip-address="$head_node" --port=$port \
-      --num-cpus "$SLURM_CPUS_PER_TASK" --num-gpus "$SLURM_GPUS_PER_NODE" --block &
+      ray start \
+      --head \
+      --log-color false \
+      --node-ip-address="$head_node" \
+      --port=$port \
+      --num-cpus "$SLURM_CPUS_PER_TASK" \
+      --num-gpus "$SLURM_GPUS_PER_NODE" \
+      --block &
 
   # Wait for a few seconds to ensure that the head node has fully initialized.
   sleep 15
@@ -250,8 +258,13 @@ ray_launcher ()
       # The `--address` option tells the worker node where to find the head node.
       srun --nodes=1 --ntasks=1 -w "$node_i" \
         singularity exec --nv $CONTAINER_PATH \
-          ray start --address "$head_node":"$port" --redis-password='5241580000000000' \
-          --num-cpus "$SLURM_CPUS_PER_TASK" --num-gpus "$SLURM_GPUS_PER_NODE" --block &
+          ray start \
+          --address "$head_node":"$port" \
+          --log-color false \
+          --redis-password='5241580000000000' \
+          --num-cpus "$SLURM_CPUS_PER_TASK" \
+          --num-gpus "$SLURM_GPUS_PER_NODE" \
+          --block &
       
       sleep 15 # Wait before starting the next worker to prevent race conditions.
   done

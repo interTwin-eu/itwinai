@@ -91,7 +91,7 @@ def initialize_ray() -> None:
     if ray.is_initialized():
         return
 
-    ray.init(address="auto", log_to_driver=True)
+    ray.init(address="auto")
     py_logger.info(f"Nodes in the cluster: {ray.nodes()}")
     py_logger.info(f"Available cluster resources: {ray.available_resources()}")
 
