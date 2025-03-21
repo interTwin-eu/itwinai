@@ -63,8 +63,8 @@ module unload OpenSSL
 export CUDA_VISIBLE_DEVICES=$(seq -s, 0 $((SLURM_GPUS_PER_NODE - 1)))
 echo "DEBUG: CUDA_VISIBLE_DEVICES (after): $CUDA_VISIBLE_DEVICES"
 export OMP_NUM_THREADS=1
-if [ $SLURM_CPUS_PER_GPU -gt 0 ] ; then
-  export OMP_NUM_THREADS=$SLURM_CPUS_PER_GPU
+if [ $(($SLURM_CPUS_PER_TASK / $SLURM_GPUS_PER_NODE)) -gt 0 ] ; then
+  export OMP_NUM_THREADS=$(($SLURM_CPUS_PER_TASK / $SLURM_GPUS_PER_NODE))
 fi
 
 # Adjust itwinai logging level to help with debugging 
@@ -86,7 +86,7 @@ unset PYTHONPATH
 torchrun_launcher ()
 {
   # Stop Ray processes, if any
-  singularity exec --nv $CONTAINER_PATH ray stop
+  srun singularity exec --nv $CONTAINER_PATH ray stop
 
   # --no-python is needed when running commands which are not python scripts (e.g., pytest, itwinai)
   # --redirects=\$(((SLURM_NODEID)) && echo "3" || echo "1:3,2:3,3:3"): redirect stdout and stderr to 
@@ -110,7 +110,7 @@ torchrun_launcher ()
 mpirun_launcher ()
 {
   # Stop Ray processes, if any
-  singularity exec --nv $CONTAINER_PATH ray stop
+  srun singularity exec --nv $CONTAINER_PATH ray stop
 
   # https://doc.vega.izum.si/mpi/#multi-node-jobs
   export UCX_TLS=self,sm,rc,ud
@@ -169,7 +169,7 @@ srun_launcher ()
 {
 
   # Stop Ray processes, if any
-  singularity exec --nv $CONTAINER_PATH ray stop
+  srun singularity exec --nv $CONTAINER_PATH ray stop
 
   # https://doc.vega.izum.si/mpi/#multi-node-jobs
   export UCX_TLS=self,sm,rc,ud
@@ -201,11 +201,6 @@ srun_launcher ()
 # Launch distribtued job in container with Ray
 ray_launcher ()
 {
-
-  # Path to shared filesystem that all the Ray workers can access. /tmp is a local filesystem path to each worker
-  # This is only needed by tests
-  export SHARED_FS_PATH="/ceph/hpc/data/st2301-itwin-users/tmp-mbunino2"
-
   # Remove ray metadata if present
   srun rm -rf /tmp/ray & disown
 
@@ -324,7 +319,6 @@ if [ "${DIST_MODE}" == "ddp" ] ; then
 
   decho -e "\nLaunching DDP strategy with torchrun"
   torchrun_launcher "${COMMAND}"
-
 
 elif [ "${DIST_MODE}" == "deepspeed" ] ; then
 

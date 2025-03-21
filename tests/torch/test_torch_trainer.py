@@ -34,7 +34,7 @@ from itwinai.torch.trainer import TorchTrainer
     ],
 )
 def test_distributed_trainer_mnist(
-    mnist_datasets, request, strategy_fixture, tmp_path, mnist_net
+    mnist_datasets, request, strategy_fixture, named_temp_dir, mnist_net
 ):
     """Test TorchTrainer on MNIST with different distributed strategies."""
     training_config = dict(optimizer="sgd", loss="nllloss")
@@ -44,7 +44,7 @@ def test_distributed_trainer_mnist(
         epochs=2,
         strategy=None,
         checkpoint_every=1,
-        checkpoints_location=tmp_path / "my_checkpoints",
+        checkpoints_location=named_temp_dir / "my_checkpoints",
     )
     if strategy_fixture:
         # Override when the strategy is supposed to be distributed
@@ -69,8 +69,8 @@ def test_distributed_trainer_mnist(
         epochs=1,
         strategy=None,
         checkpoint_every=1,
-        from_checkpoint=tmp_path / "my_checkpoints/best_model",
-        checkpoints_location=tmp_path / "my_checkpoints",
+        from_checkpoint=named_temp_dir / "my_checkpoints/best_model",
+        checkpoints_location=named_temp_dir / "my_checkpoints_new_model",
     )
     # Mock strategy cleanup -- IMPORTANT, otherwise the trainer will mess up with the strategy
     # fixture

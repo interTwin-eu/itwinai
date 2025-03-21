@@ -40,7 +40,8 @@ echo "DEBUG: SLURM_NTASKS: $SLURM_NTASKS"
 echo "DEBUG: SLURM_TASKS_PER_NODE: $SLURM_TASKS_PER_NODE"
 echo "DEBUG: SLURM_SUBMIT_HOST: $SLURM_SUBMIT_HOST"
 echo "DEBUG: SLURMD_NODENAME: $SLURMD_NODENAME"
-echo "DEBUG: CUDA_VISIBLE_DEVICES: $CUDA_VISIBLE_DEVICES"
+echo "DEBUG: SLURM_GPUS_PER_NODE: $SLURM_GPUS_PER_NODE"
+echo "DEBUG: CUDA_VISIBLE_DEVICES (before): $CUDA_VISIBLE_DEVICES"
 
 # Load environment modules
 ml --force purge
@@ -50,16 +51,18 @@ ml Python/3.11 HDF5 PnetCDF libaio mpi4py CMake cuDNN/8.9.5.29-CUDA-12
 source ~/.bashrc
 source $PYTHON_VENV/bin/activate
 
+# Setup env for distributed ML
+export CUDA_VISIBLE_DEVICES=$(seq -s, 0 $((SLURM_GPUS_PER_NODE - 1)))
+echo "DEBUG: CUDA_VISIBLE_DEVICES (after): $CUDA_VISIBLE_DEVICES"
+export OMP_NUM_THREADS=1
+# if [ $(($SLURM_CPUS_PER_TASK / $SLURM_GPUS_PER_NODE)) -gt 0 ] ; then
+#   export OMP_NUM_THREADS=$(($SLURM_CPUS_PER_TASK / $SLURM_GPUS_PER_NODE))
+# fi
+
+# Adjust itwinai logging level to help with debugging 
 export ITWINAI_LOG_LEVEL=DEBUG
 # Disable ANSI colors in log files
 export NO_COLOR=1
-
-# Setup env for distributed ML
-export CUDA_VISIBLE_DEVICES=$(seq -s, 0 $((SLURM_GPUS_PER_NODE - 1)))
-export OMP_NUM_THREADS=1
-if [ $SLURM_CPUS_PER_GPU -gt 0 ] ; then
-  export OMP_NUM_THREADS=$SLURM_CPUS_PER_GPU
-fi
 
 export NCCL_SOCKET_IFNAME=ib0   # Use infiniband interface ib0
 export NCCL_DEBUG=INFO          # Enables detailed logging
@@ -110,13 +113,11 @@ srun_launcher ()
     'if [ $SLURM_PROCID  -ne 0 ]; then exec > "logs_srun/$SLURM_JOB_ID/rank.$SLURM_PROCID" 2>&1; fi; exec '"${1}"
 }
 
-ray_launcher(){
-  num_gpus=$SLURM_GPUS_PER_NODE
-  num_cpus=$SLURM_CPUS_PER_TASK
+ray_launcher ()
+{
 
-  # Path to shared filesystem that all the Ray workers can access. /tmp is a local filesystem path to each worker
-  # This is only needed by tests
-  export SHARED_FS_PATH="/p/project1/intertwin/bunino1/tmp"
+  # Remove ray metadata if present
+  srun rm -rf /tmp/ray & disown
 
   # This tells Tune to not change the working directory to the trial directory
   # which makes relative paths accessible from inside a trial
@@ -125,14 +126,17 @@ ray_launcher(){
   export RAY_USAGE_STATS_DISABLE=1
 
   # Disable colors in output
-  export NO_COLOR=1
   export RAY_COLOR_PREFIX=0
+
+  # Create ray logs folder
+  mkdir -p "/tmp/mbunino/logs_ray/$SLURM_JOB_ID"
 
   #########   Set up Ray cluster   ########
 
   # Get the node names
   nodes=$(scontrol show hostnames "$SLURM_JOB_NODELIST")
   mapfile -t nodes_array <<< "$nodes"
+  echo "Nodes in nodes_array: ${nodes_array[@]}"
 
   # The head node will act as the central manager (head) of the Ray cluster.
   head_node=${nodes_array[0]}
@@ -143,12 +147,21 @@ ray_launcher(){
   # The `--head` option specifies that this node will be the head of the Ray cluster.
   # `srun` submits a job that runs on the head node to start the Ray head with the specified 
   # number of CPUs and GPUs.
+
+  #       --temp-dir "/tmp/mbunino/logs_ray/$SLURM_JOB_ID" \
+
   srun --nodes=1 --ntasks=1 -w "$head_node" \
-      ray start --head --node-ip-address="$head_node"i --port=$port \
-      --num-cpus "$num_cpus" --num-gpus "$num_gpus"  --block &
+      ray start \
+      --head \
+      --log-color false \
+      --node-ip-address="$head_node"i \
+      --port=$port \
+      --num-cpus "$SLURM_CPUS_PER_TASK" \
+      --num-gpus "$SLURM_GPUS_PER_NODE" \
+      --block &
 
   # Wait for a few seconds to ensure that the head node has fully initialized.
-  sleep 5
+  sleep 15
 
   echo HEAD node started.
 
@@ -162,17 +175,24 @@ ray_launcher(){
       # Use srun to start Ray on the worker node and connect it to the head node.
       # The `--address` option tells the worker node where to find the head node.
       srun --nodes=1 --ntasks=1 -w "$node_i" \
-          ray start --address "$head_node"i:"$port" --redis-password='5241580000000000' \
-          --num-cpus "$num_cpus" --num-gpus "$num_gpus" --block &
+          ray start \
+          --address "$head_node"i:"$port" \
+          --log-color false \
+          --redis-password='5241580000000000' \
+          --num-cpus "$SLURM_CPUS_PER_TASK" \
+          --num-gpus "$SLURM_GPUS_PER_NODE" \
+          --block &
       
-      sleep 5 # Wait before starting the next worker to prevent race conditions.
+      sleep 15 # Wait before starting the next worker to prevent race conditions.
   done
   echo All Ray workers started.
+
+  # Check cluster
+  echo -e "\n\n=============== RAY STATUS ==============================\n$(ray status)\n=============== END RAY STATUS ==============================\n\n"
 
   # Run command without srun
   $1 
 }
-
 
 # Dual echo on both stdout and stderr
 decho ()
@@ -236,8 +256,8 @@ elif [ "${DIST_MODE}" == "deepspeed" ] ; then
   # decho -e "\nLaunching DeepSpeed strategy with mpirun"
   # mpirun_launcher "python -m ${COMMAND}"
 
-  # decho -e "\nLaunching DeepSpeed strategy with srun"
-  # srun_launcher "python -m ${COMMAND}"
+  decho -e "\nLaunching DeepSpeed strategy with srun"
+  srun_launcher "python -m ${COMMAND}"
 
 elif [ "${DIST_MODE}" == "horovod" ] ; then
 

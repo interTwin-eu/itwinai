@@ -534,12 +534,17 @@ class TorchTrainer(Trainer, LogMixin):
         Returns:
             path to the checkpoint file or ``None`` when the checkpoint is not created.
         """
-        if not (
+        # Determine whether a checkpoint should be created
+        should_checkpoint = self.strategy.is_main_worker and (
             force
-            or self.strategy.is_main_worker
-            and self.checkpoint_every
+            or self.checkpoint_every
             and (self.current_epoch + 1) % self.checkpoint_every == 0
-        ):
+        )
+
+        ckpt_dir = Path(checkpoints_root or self.checkpoints_location) / name
+        py_logger.info(f"Saving checkpoint at {ckpt_dir.resolve()}? {should_checkpoint}")
+
+        if not should_checkpoint:
             # Do nothing and return
             return
 
@@ -577,6 +582,13 @@ class TorchTrainer(Trainer, LogMixin):
         self.log(str(state_path), f"{name}_state", kind="artifact")
         self.log(str(model_path), f"{name}_model", kind="artifact")
         self.log(str(config_path), f"{name}_config", kind="artifact")
+
+        assert state_path.exists()
+        assert model_path.exists()
+        assert config_path.exists()
+
+        py_logger.info(f"Saved checkpoint at {ckpt_dir.resolve()}")
+
         return str(ckpt_dir)
 
     def load_checkpoint(self) -> None:
@@ -1097,10 +1109,7 @@ class TorchTrainer(Trainer, LogMixin):
             worker_val_metrics = self.strategy.gather(val_metric, dst_rank=0)
             if self.strategy.is_main_worker:
                 avg_metric = torch.mean(torch.stack(worker_val_metrics)).detach().cpu()
-                if (
-                    avg_metric < self.best_validation_metric
-                    and self.checkpoint_every is not None
-                ):
+                if avg_metric < self.best_validation_metric:
                     best_ckpt_path = self.save_checkpoint(
                         name="best_model",
                         best_validation_metric=avg_metric,

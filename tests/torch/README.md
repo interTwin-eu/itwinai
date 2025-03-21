@@ -99,3 +99,6 @@ some debugging tips to (hopefully) address the failing tests quickly.
   cluster, consider that sometimes it may just due to the fact that Ray Head node and Workers
   are slow at starting... Try to wait a bit more (increasing the sleep time) for the Ray
   cluster to be ready, before launching any job.
+- **Increase pytest verbosity**. By default pytest hides stdout from tests, which may be useful
+  when debugging. Consider adding `-o log_cli=true -o log_cli_level=INFO` and `-s` options to
+  get more verbose outputs.

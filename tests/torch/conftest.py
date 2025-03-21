@@ -9,7 +9,9 @@
 
 import logging
 import os
+import shutil
 import tempfile
+import time
 from pathlib import Path
 from typing import Generator
 
@@ -79,6 +81,7 @@ def horovod_strategy() -> Generator[HorovodStrategy, None, None]:
 @pytest.fixture(scope="function")
 def shared_tmp_path():
     """Return the Path to a shared filesystem that all nodes can access.
+    This is good for Ray-based Trainer because it gets broadcasted to all workers by Ray.
     /tmp location is usually a local filesystem. Uses as a prefix SHARED_FS_PATH
     env variable, but if that's not set it falls back to /tmp.
     """
@@ -92,6 +95,27 @@ def shared_tmp_path():
         Path(os.environ.get("SHARED_FS_PATH")).mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(dir=os.environ.get("SHARED_FS_PATH", "/tmp")) as tmp_path:
         yield Path(tmp_path)
+
+
+@pytest.fixture(scope="function")
+def named_temp_dir(request):
+    """Create a temporay directory for a test case with the name of the test.
+    This is useful when you want a tempdir which has a stable path across multiple workers, but
+    you are not relying on Ray Trainer to broadcast a single path to all workers.
+    """
+    user_id = os.getuid()  # Get Linux user ID to avoid collisions among users
+    test_name = request.node.name  # Get the name of the calling test
+
+    base_path = Path(os.environ.get("SHARED_FS_PATH", "/tmp"))
+
+    temp_dir = base_path / str(user_id) / test_name
+    temp_dir.mkdir(parents=True, exist_ok=True)
+    yield temp_dir
+
+    # Cleanup after the test, but wait a bit for all the workers to have accessed the files
+    # before deleting them
+    time.sleep(5)
+    shutil.rmtree(temp_dir, ignore_errors=True)
 
 
 @pytest.fixture(scope="module")
