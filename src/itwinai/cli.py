@@ -51,9 +51,9 @@ def generate_scalability_report(
             )
         ),
     ] = False,
-    run_id: Annotated[
+    run_ids: Annotated[
         str | None,
-        typer.Option(help=("Which run_id to read. Will also be used when making backup.")),
+        typer.Option(help="Which run ids to read, presented as comma-separated values."),
     ] = None,
     backup_root_dir: Annotated[
         str, typer.Option(help=("Which directory to store the backup files in."))
@@ -77,7 +77,7 @@ def generate_scalability_report(
     in the `plot_dir`. If backups are enabled, the generated reports will also be
     copied to a backup directory under `backup_root_dir`.
     """
-    import uuid
+    from datetime import datetime
 
     from itwinai.scalability_report.reports import (
         communication_data_report,
@@ -88,14 +88,14 @@ def generate_scalability_report(
     log_dir_path = Path(log_dir)
     if not log_dir_path.exists():
         raise ValueError(f"The provided log_dir, '{log_dir_path.resolve()}', does not exist.")
-    plot_dir_path = Path(plot_dir)
-    plot_dir_path.mkdir(exist_ok=True, parents=True)
+
+    run_id_list = run_ids.split(",") if run_ids else []
 
     # Finding all the appropriate paths
     epoch_time_logdirs = []
     gpu_data_logdirs = []
     comm_time_logdirs = []
-    if run_id is None:
+    if not run_id_list:
         print(
             "run_id was not passed, so will aggregate data from all runs in the given "
             f"directory: '{log_dir_path.resolve()}'."
@@ -112,23 +112,28 @@ def generate_scalability_report(
             comm_time_logdirs.append(path_elem / "communication-data")
     else:
         # Make sure run_id actually exists
-        run_path = log_dir_path / run_id
-        if not run_path.exists():
-            raise ValueError(
-                f"No directory with given run_id: '{run_id}' exists! Path should have been "
-                f"'{run_path.resolve()}', but was not found!"
-            )
-        print(f"Reading data using run_id: '{run_id}' at location '{run_path.resolve()}'")
-        epoch_time_logdirs.append(log_dir_path / run_id / "epoch-time")
-        gpu_data_logdirs.append(log_dir_path / run_id / "gpu-energy-data")
-        comm_time_logdirs.append(log_dir_path / run_id / "communication-data")
+        for run_id in run_id_list:
+            run_path = log_dir_path / run_id
+            if not run_path.exists():
+                raise ValueError(
+                    f"No directory with given run_id: '{run_id}' exists! Path should have been "
+                    f"'{run_path.resolve()}', but was not found!"
+                )
+            epoch_time_logdirs.append(log_dir_path / run_id / "epoch-time")
+            gpu_data_logdirs.append(log_dir_path / run_id / "gpu-energy-data")
+            comm_time_logdirs.append(log_dir_path / run_id / "communication-data")
 
     # Setting the backup directory from run name
-    backup_run_id = run_id or f"aggregated_run_{uuid.uuid4().hex[:6]}"
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    backup_run_id = "_".join(run_id_list) + f"_{timestamp}" if run_id_list else f"aggregated_run_{timestamp}"
     backup_dir = Path(backup_root_dir) / backup_run_id
+
     epoch_time_backup_dir = backup_dir / "epoch-time"
     gpu_data_backup_dir = backup_dir / "gpu-energy-data"
     communication_data_backup_dir = backup_dir / "communication-data"
+
+    plot_dir_path = Path(plot_dir)
+    plot_dir_path.mkdir(exist_ok=True, parents=True)
 
     epoch_time_table = epoch_time_report(
         log_dirs=epoch_time_logdirs,
