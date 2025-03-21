@@ -81,7 +81,6 @@ def epoch_time_report(
     # Print the resulting table
     formatters = {"avg_epoch_time": "{:.2f} s".format}
     epoch_time_table = avg_epoch_time_df.to_string(index=False, formatters=formatters)
-    # print(epoch_time_table)
 
     # Create and save the figures
     absolute_fig, _ = absolute_avg_epoch_time_plot(avg_epoch_time_df=avg_epoch_time_df)
