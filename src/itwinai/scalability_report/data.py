@@ -54,9 +54,7 @@ def read_scalability_metrics_from_csv(
     dataframes = []
     for file_path in file_paths:
         df = pd.read_csv(file_path)
-        check_contains_columns(
-            df=df, expected_columns=expected_columns, file_path=file_path
-        )
+        check_contains_columns(df=df, expected_columns=expected_columns, file_path=file_path)
         dataframes.append(df)
 
     return pd.concat(dataframes)

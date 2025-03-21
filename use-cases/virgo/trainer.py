@@ -212,7 +212,7 @@ class NoiseGeneratorTrainer(TorchTrainer):
             # save_path
 
             num_nodes = int(os.environ.get("SLURM_NNODES", 1))
-            epoch_time_output_dir = Path("scalability-metrics/epoch-time")
+            epoch_time_output_dir = Path(f"scalability-metrics/{self.run_id}/epoch-time")
             epoch_time_file_name = f"epochtime_{self.strategy.name}_{num_nodes}N.csv"
             epoch_time_output_path = epoch_time_output_dir / epoch_time_file_name
             epoch_time_logger = EpochTimeTracker(

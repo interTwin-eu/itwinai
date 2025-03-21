@@ -51,18 +51,17 @@ def generate_scalability_report(
             )
         ),
     ] = False,
-    backup_root_dir: Annotated[
-        str, typer.Option(help=("Which directory to store the backup files in."))
-    ] = "backup-scalability-metrics/",
-    experiment_name: Annotated[
-        Optional[str],
+    run_ids: Annotated[
+        str | None,
         typer.Option(
             help=(
-                "What to name the experiment in the backup directory."
-                " Will be automatically generated if left as None."
+                "Which run ids to read, presented as comma-separated values, e.g. 'run0,run1'."
             )
         ),
     ] = None,
+    backup_root_dir: Annotated[
+        str, typer.Option(help=("Which directory to store the backup files in."))
+    ] = "backup-scalability-metrics/",
     plot_file_suffix: Annotated[
         str,
         typer.Option(
@@ -82,7 +81,7 @@ def generate_scalability_report(
     in the `plot_dir`. If backups are enabled, the generated reports will also be
     copied to a backup directory under `backup_root_dir`.
     """
-    import uuid
+    from datetime import datetime
 
     from itwinai.scalability_report.reports import (
         communication_data_report,
@@ -93,48 +92,113 @@ def generate_scalability_report(
     log_dir_path = Path(log_dir)
     if not log_dir_path.exists():
         raise ValueError(f"The provided log_dir, '{log_dir_path.resolve()}', does not exist.")
+
+    run_id_list = run_ids.split(",") if run_ids else []
+
+    # Finding all the appropriate paths
+    epoch_time_logdirs = []
+    gpu_data_logdirs = []
+    comm_time_logdirs = []
+    if not run_id_list:
+        print(
+            "run_id was not passed, so will aggregate data from all runs in the given "
+            f"directory: '{log_dir_path.resolve()}'."
+        )
+        for path_elem in log_dir_path.iterdir():
+            print(f"Adding data from {path_elem}!")
+            if not path_elem.is_dir():
+                raise ValueError(
+                    f"Found element in logdir that was not itself a directory: "
+                    f"{path_elem.resolve()}"
+                )
+
+            # Creating all potential paths and adding them if they exist
+            epoch_time_logdir = path_elem / "epoch-time"
+            gpu_data_logdir = path_elem / "gpu-energy-data"
+            comm_time_logdir = path_elem / "communication-data"
+
+            if epoch_time_logdir.exists():
+                epoch_time_logdirs.append(epoch_time_logdir)
+            if gpu_data_logdir.exists():
+                gpu_data_logdirs.append(gpu_data_logdir)
+            if comm_time_logdir.exists():
+                comm_time_logdirs.append(comm_time_logdir)
+    else:
+        for run_id in run_id_list:
+            run_path = log_dir_path / run_id
+            if not run_path.exists():
+                raise ValueError(
+                    f"No directory with given run_id: '{run_id}' exists! Path should have been"
+                    f" '{run_path.resolve()}', but was not found!"
+                )
+
+            # Creating all potential paths and adding them if they exist
+            epoch_time_logdir = log_dir_path / run_id / "epoch-time"
+            gpu_data_logdir = log_dir_path / run_id / "gpu-energy-data"
+            comm_time_logdir = log_dir_path / run_id / "communication-data"
+
+            if epoch_time_logdir.exists():
+                epoch_time_logdirs.append(epoch_time_logdir)
+            if gpu_data_logdir.exists():
+                gpu_data_logdirs.append(gpu_data_logdir)
+            if comm_time_logdir.exists():
+                comm_time_logdirs.append(comm_time_logdir)
+
+    # Setting the backup directory from run name
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    if run_id_list:
+        backup_run_id = "_".join(run_id_list) + f"_{timestamp}"
+    else:
+        backup_run_id = f"aggregated_run_{timestamp}"
+    backup_dir = Path(backup_root_dir) / backup_run_id
+
+    epoch_time_backup_dir = backup_dir / "epoch-time"
+    gpu_data_backup_dir = backup_dir / "gpu-energy-data"
+    communication_data_backup_dir = backup_dir / "communication-data"
+
     plot_dir_path = Path(plot_dir)
     plot_dir_path.mkdir(exist_ok=True, parents=True)
 
-    report_dirs = {
-        "Epoch Time": {
-            "dir": log_dir_path / "epoch-time",
-            "func": epoch_time_report,
-        },
-        "GPU Data": {
-            "dir": log_dir_path / "gpu-energy-data",
-            "func": gpu_data_report,
-        },
-        "Communication Data": {
-            "dir": log_dir_path / "communication-data",
-            "func": communication_data_report,
-        },
-    }
+    epoch_time_table = epoch_time_report(
+        log_dirs=epoch_time_logdirs,
+        plot_dir=plot_dir_path,
+        backup_dir=epoch_time_backup_dir,
+        do_backup=do_backup,
+        plot_file_suffix=plot_file_suffix,
+    )
+    gpu_data_table = gpu_data_report(
+        log_dirs=gpu_data_logdirs,
+        plot_dir=plot_dir_path,
+        backup_dir=gpu_data_backup_dir,
+        do_backup=do_backup,
+        plot_file_suffix=plot_file_suffix,
+    )
+    communication_data_table = communication_data_report(
+        log_dirs=comm_time_logdirs,
+        plot_dir=plot_dir_path,
+        backup_dir=communication_data_backup_dir,
+        do_backup=do_backup,
+        plot_file_suffix=plot_file_suffix,
+    )
 
-    # Setting the backup directory from exp name and run name
-    experiment_name = experiment_name or f"exp_{uuid.uuid4().hex[:6]}"
-    backup_dir = Path(backup_root_dir) / experiment_name
+    print()
+    if epoch_time_table is not None:
+        print("#" * 8, "Epoch Time Report", "#" * 8)
+        print(epoch_time_table, "\n")
+    else:
+        print("No Epoch Time Data Found\n")
 
-    # Creating reports from dictionary
-    for report_name, details in report_dirs.items():
-        report_dir = details["dir"]
-        report_func = details["func"]
+    if gpu_data_table is not None:
+        print("#" * 8, "GPU Data Report", "#" * 8)
+        print(gpu_data_table, "\n")
+    else:
+        print("No GPU Data Found\n")
 
-        if report_dir.exists():
-            print("#" * 8, f"{report_name} Report", "#" * 8)
-            report_func(
-                report_dir,
-                plot_dir=plot_dir_path,
-                backup_dir=backup_dir,
-                do_backup=do_backup,
-                plot_file_suffix=plot_file_suffix,
-            )
-            print()
-        else:
-            print(
-                f"No report was created for {report_name} as '{report_dir.resolve()}' does "
-                f"not exist."
-            )
+    if communication_data_table is not None:
+        print("#" * 8, "Communication Data Report", "#" * 8)
+        print(communication_data_table, "\n")
+    else:
+        print("No Communication Data Found\n")
 
 
 @app.command()

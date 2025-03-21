@@ -124,7 +124,7 @@ def profile_torch_trainer(method: Callable) -> Callable:
         profiling_dataframe["num_gpus"] = num_gpus_global
         profiling_dataframe["global_rank"] = global_rank
 
-        profiling_log_dir = Path("scalability-metrics/communication-data")
+        profiling_log_dir = Path(f"scalability-metrics/{self.run_id}/communication-data")
         profiling_log_dir.mkdir(parents=True, exist_ok=True)
 
         filename = f"{strategy_name}_{num_gpus_global}_{global_rank}.csv"
