@@ -1,4 +1,4 @@
-from typing import Literal, Optional
+from typing import Any, Dict, Literal, Optional
 import torch
 import numpy as np
 import pandas as pd
@@ -120,6 +120,30 @@ class XTClimPredictor(TorchPredictor):
 
         return avg_losses, total_losses
 
+    def predict(self) -> Dict[str, Any]:
+        """Predict to use evaluate_and_average instead of direct model inference.
+
+        Returns:
+            Dict[str, Any]: A dictionary containing average and total losses.
+        """
+
+        avg_losses, total_losses = self.evaluate_and_average(
+            model=self.model,
+            dataloader=self.inference_dataloader,
+            dataset=self.inference_dataset,
+            device=self.device,
+            criterion=criterion,
+            pixel_wise_criterion=pixel_wise_criterion,
+            n_avg=n_avg
+        )
+
+        predictions = {
+            "avg_losses": float(avg_losses),
+            "total_losses": total_losses.tolist() if isinstance(total_losses, np.ndarray) else total_losses
+        }
+
+        return predictions
+
 
     def save_to_csv(self, losses: list | np.ndarray, output_dir: Path, filename: str) -> None:
         """Saves to CSV file at specified location.
@@ -142,48 +166,25 @@ class XTClimPredictor(TorchPredictor):
         input_dir = Path("input")
         output_dir = Path("outputs")
 
-        # Initialize distributed backend
-        self._init_distributed_strategy()
-
         if isinstance(self.model, TorchModelLoader):
             self.model = self.model()
         else:
             raise ValueError("Error: model is not an instance of TorchModelLoader.")
 
-        self.model = self.model.to(self.device)
-
-        # Distributed model
-        self.distribute_model()
-
-        if self.strategy.is_main_worker and self.logger:
-            self.logger.create_logger_context()
-
         if self.evaluation == 'past':
 
             trainset, n_train = self.read_data_and_dataloader(input_dir, self.seasons, "train")
-            trainloader = self.create_dataloaders(trainset)
-            testset, n_test = self.read_data_and_dataloader(input_dir, self.seasons, "test")
-            testloader = self.create_dataloaders(testset)
+            self.inference_dataset = trainset
+            train_predictions = super().execute(inference_dataset=self.inference_dataset, model=self.model)
 
-            # Evaluate model
-            train_avg_losses, tot_train_losses = self.evaluate_and_average(
-                self.model,
-                trainloader,
-                trainset,
-                self.device,
-                criterion,
-                pixel_wise_criterion,
-                n_avg
-            )
-            test_avg_losses, tot_test_losses = self.evaluate_and_average(
-                self.model,
-                testloader,
-                testset,
-                self.device,
-                criterion,
-                pixel_wise_criterion,
-                n_avg
-            )
+            testset, n_test = self.read_data_and_dataloader(input_dir, self.seasons, "test")
+            self.inference_dataset = testset
+            test_predictions = super().execute(inference_dataset=self.inference_dataset, model=self.model)
+
+            train_avg_losses = train_predictions["avg_losses"]
+            tot_train_losses = train_predictions["total_losses"]
+            test_avg_losses = test_predictions["avg_losses"]
+            tot_test_losses = test_predictions["total_losses"]
 
             # Export to CSV
             self.save_to_csv(tot_train_losses, output_dir, f"train_losses_{self.seasons}1d_allssp.csv")
@@ -195,12 +196,6 @@ class XTClimPredictor(TorchPredictor):
             self.log(train_avg_losses, 'Average train loss', kind='metric')
             self.log(test_avg_losses, 'Average test loss', kind='metric')
 
-            # Clean-up
-            if self.strategy.is_main_worker and self.logger:
-                self.logger.destroy_logger_context()
-
-            self.strategy.clean_up()
-
         else:
             SCENARIO_585 = '585'
             SCENARIO_245 = '245'
@@ -211,18 +206,12 @@ class XTClimPredictor(TorchPredictor):
                 projset, n_proj = read_data_and_dataloader(input_dir, self.seasons, "proj{scenario}")
 
                 self.config.batch_size = 1
-                projloader = self.create_dataloaders(projset)
 
-                # Evaluate projection data
-                proj_avg_losses, tot_proj_losses = self.evaluate_and_average(
-                    self.model,
-                    projloader,
-                    projset,
-                    self.device,
-                    criterion,
-                    pixel_wise_criterion,
-                    n_avg
-                )
+                self.inference_dataset = projset
+                proj_predictions = super().execute(inference_dataset=self.inference_dataset, model=self.model)
+
+                proj_avg_losses = proj_predictions["avg_losses"]
+                tot_proj_losses = proj_predictions["total_losses"]
 
                 # Export to CSV
                 self.save_to_csv(
@@ -234,9 +223,3 @@ class XTClimPredictor(TorchPredictor):
 
                 # Logging
                 self.log(proj_avg_losses, 'Average projection loss', kind='metric')
-
-                # Clean-up
-                if self.strategy.is_main_worker and self.logger:
-                    self.logger.destroy_logger_context()
-
-                self.strategy.clean_up()

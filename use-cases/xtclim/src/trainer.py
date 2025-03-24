@@ -14,7 +14,7 @@ tracker = EmissionsTracker(
 tracker.start()
 """
 
-from typing import Dict, List, Literal, Optional, Tuple
+from typing import Any, Dict, List, Literal, Optional, Tuple
 import torch
 import torch.optim as optim
 import numpy as np
@@ -31,9 +31,10 @@ from itwinai.torch.config import TrainingConfiguration
 
 from ray import train as train_ray
 import src.model as model
-from torch.utils.data import DataLoader
+from torch.utils.data import Dataset, DataLoader
 from torchvision.utils import make_grid
-from src.engine import train, validate
+from src.engine import train as train_engine
+from src.engine import validate as validate_engine
 from src.utils import save_reconstructed_images, save_loss_plot, save_ex
 from src.initialization import beta, criterion, pixel_wise_criterion
 
@@ -82,51 +83,32 @@ class XTClimTrainer(TorchTrainer):
         KLD = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())
         return bce_loss + beta*KLD
 
-    def _load_data(self, input_dir: Path, season: str) -> Tuple[DataLoader, DataLoader, List, List]:
-        """Load the training and test dataloaders.
+    def create_dataloaders(
+        self,
+        train_dataset: Dataset,
+        validation_dataset: Dataset | None = None,
+        test_dataset: Dataset | None = None
+    ) -> None: #Tuple[DataLoader, DataLoader, List, List]:
+        """Create the training and test dataloaders.
 
         Args:
-            input_dir (Path): directory where input data is stored.
-            season (str): selected season ('winter_', 'spring_', etc.).
+            train_dataset (Dataset): training dataset object.
+            validation_dataset (Dataset | None): validation dataset object.
+                Default None.
+            test_dataset (Dataset | None): test dataset object.
+                Default None.
 
         Returns:
             Tuple[DataLoader, DataLoader, List, List]: tuple containing dataloaders and samples.
         """
-        # Load train data
-        train_time = pd.read_csv(
-            input_dir / f"dates_train_{season}data_{self.config.n_memb}memb.csv"
-        )
-        train_data = np.load(
-            input_dir / f"preprocessed_1d_train_{season}data_{self.config.n_memb}memb.npy"
-        )
-        n_train = len(train_data)
-        trainset = [
-            (torch.from_numpy(np.reshape(train_data[i], (2, 32, 32))), train_time["0"][i])
-            for i in range(n_train)
-        ]
-
-        # Load test data
-        test_time = pd.read_csv(
-            input_dir / f"dates_test_{season}data_{self.config.n_memb}memb.csv"
-        )
-        test_data = np.load(
-            input_dir / f"preprocessed_1d_test_{season}data_{self.config.n_memb}memb.npy"
-        )
-        n_test = len(test_data)
-        testset = [
-            (torch.from_numpy(np.reshape(test_data[i], (2, 32, 32))), test_time["0"][i])
-            for i in range(n_test)
-        ]
 
         # Create dataloaders
-        trainloader = self.strategy.create_dataloader(
-            trainset, batch_size=self.config.batch_size, shuffle=True, pin_memory=True
+        self.trainloader = self.strategy.create_dataloader(
+            self.train_dataset, batch_size=self.config.batch_size, shuffle=True, pin_memory=True
         )
-        testloader = self.strategy.create_dataloader(
-            testset, batch_size=self.config.batch_size, shuffle=False, pin_memory=True
+        self.testloader = self.strategy.create_dataloader(
+            self.test_dataset, batch_size=self.config.batch_size, shuffle=False, pin_memory=True
         )
-
-        return trainloader, testloader, trainset, testset
 
     def _handle_early_stopping(self, epoch: int, valid_epoch_loss: float) -> bool:
         """Handle early stopping based on validation loss.
@@ -148,30 +130,18 @@ class XTClimTrainer(TorchTrainer):
             if self.config.early_count > self.config.patience:
                 # if too small improvement for a few epochs in a row, stop learning
                 print(f"Early stopping at epoch {epoch}")
-                save_ex(recon_images[0], epoch, season)
+                save_ex(recon_images[0], epoch, self.seasons)
                 return True
         else:
             # if the condition is not verified anymore, reset the count
             self.config.early_count = 0
 
-    def _save_best_model(
-        self,
-        cvae_model: torch.nn.Module,
-        optimizer: torch.optim.Optimizer,
-        valid_epoch_loss: float,
-        epoch: int,
-        season: str,
-        output_dir: Path
-    ) -> None:
+    def _save_best_model(self, valid_epoch_loss: float, epoch: int) -> None:
         """Save the model checkpoint if best.
 
         Args:
-            cvae_model (torch.nn.Module): model under training.
-            optimizer (torch.optim.Optimizer): Optimizer for training.
             valid_epoch_loss (float): Validation loss for current epoch.
             epoch (int): Current epoch number.
-            season (str): Season selected (e.g. 'winter_', 'spring_', etc.).
-            output_dir (Path): directory to save checkpoints.
 
         Returns:
             None
@@ -185,29 +155,17 @@ class XTClimTrainer(TorchTrainer):
                 self.min_valid_epoch_loss = avg_loss
                 checkpoint = {
                     'epoch': epoch,
-                    'model_state_dict': cvae_model.state_dict(),
-                    'optim_state_dict': optimizer.state_dict(),
+                    'model_state_dict': self.model.state_dict(),
+                    'optim_state_dict': self.optimizer.state_dict(),
                     'val_loss': valid_epoch_loss,
                 }
                 # save checkpoint only if it is better than the previous ones
-                checkpoint_filename = output_dir / f"cvae_model_{season}1d_{self.config.n_memb}memb.pth"
+                checkpoint_filename = self.output_dir / f"cvae_model_{self.seasons}1d_{self.config.n_memb}memb.pth"
                 torch.save(checkpoint, checkpoint_filename)
                 # itwinai - log checkpoint as artifact
                 self.log(checkpoint_filename, Path(checkpoint_filename).name, kind='artifact')
 
-    @monitor_exec
-    def execute(self):
-
-        # Define the base directory for input and output data
-        input_dir = Path("input")
-        output_dir = Path("outputs")
-
-        # Pick the season to study among:
-        season = self.seasons
-
-        # Initialize distributed backend
-        self._init_distributed_strategy()
-
+    def create_model_loss_optimizer(self) -> None:
         # initialize the model
         cvae_model = model.ConvVAE()
         optimizer = optim.Adam(cvae_model.parameters(), lr=self.config.optim_lr)
@@ -224,15 +182,44 @@ class XTClimTrainer(TorchTrainer):
             distribute_kwargs = {}
 
         # Distributed model, optimizer, and scheduler
-        cvae_model, optimizer, _ = self.strategy.distributed(
+        self.model, self.optimizer, _ = self.strategy.distributed(
             cvae_model, optimizer, **distribute_kwargs
         )
 
-        # Load training and validation dataloaders
-        trainloader, testloader, trainset, testset = self._load_data(input_dir, season)
+    def init_dataloading_step(self):
+        self.input_dir = Path("input")
+        self.output_dir = Path("outputs")
 
-        if self.strategy.is_main_worker and self.logger:
-            self.logger.create_logger_context()
+        # Load train data
+        train_time = pd.read_csv(
+            self.input_dir / f"dates_train_{self.seasons}data_{self.config.n_memb}memb.csv"
+        )
+        train_data = np.load(
+            self.input_dir / f"preprocessed_1d_train_{self.seasons}data_{self.config.n_memb}memb.npy"
+        )
+        n_train = len(train_data)
+        train_dataset = [
+            (torch.from_numpy(np.reshape(train_data[i], (2, 32, 32))), train_time["0"][i])
+            for i in range(n_train)
+        ]
+
+        # Load test data
+        test_time = pd.read_csv(
+            self.input_dir / f"dates_test_{self.seasons}data_{self.config.n_memb}memb.csv"
+        )
+        test_data = np.load(
+            self.input_dir / f"preprocessed_1d_test_{self.seasons}data_{self.config.n_memb}memb.npy"
+        )
+        n_test = len(test_data)
+        test_dataset = [
+            (torch.from_numpy(np.reshape(test_data[i], (2, 32, 32))), test_time["0"][i])
+            for i in range(n_test)
+        ]
+
+        return train_dataset, test_dataset
+
+    def train(self):
+        """Trains the XTClim model."""
 
         # Initialize lists to track loss and images
         grid_images = []
@@ -245,19 +232,18 @@ class XTClimTrainer(TorchTrainer):
                 print(f"Epoch {epoch+1} of {self.epochs}")
 
             if self.strategy.is_distributed:
-                # Inform the sampler that a new epoch started: shuffle
-                # may be needed
-                trainloader.sampler.set_epoch(epoch)
-                testloader.sampler.set_epoch(epoch)
+                # Inform the sampler that a new epoch started: shuffle may be needed
+                self.trainloader.sampler.set_epoch(epoch)
+                self.testloader.sampler.set_epoch(epoch)
 
             # train the model
-            train_epoch_loss = train(
-                cvae_model, trainloader, trainset, self.device, optimizer, criterion, beta
+            train_epoch_loss = train_engine(
+                self.model, self.trainloader, self.train_dataset, self.device, self.optimizer, criterion, beta
             )
 
             # evaluate the model on the test set
-            valid_epoch_loss, recon_images = validate(
-                cvae_model, testloader, testset, self.device, criterion, beta
+            valid_epoch_loss, recon_images = validate_engine(
+                self.model, self.testloader, self.test_dataset, self.device, criterion, beta
             )
 
             self.log(train_epoch_loss, 'epoch_train_loss', kind='metric')
@@ -266,9 +252,6 @@ class XTClimTrainer(TorchTrainer):
             # keep track of the losses
             train_loss.append(train_epoch_loss)
             valid_loss.append(valid_epoch_loss)
-
-            # Save reconstructed images
-            #save_reconstructed_images(recon_images, epoch + 1, season)
 
             # Convert the reconstructed images to PyTorch grid format
             image_grid = make_grid(recon_images.detach().cpu())
@@ -284,9 +267,7 @@ class XTClimTrainer(TorchTrainer):
             self.config.old_valid_loss = valid_epoch_loss
 
             # Save the best model checkpoint
-            self._save_best_model(
-                cvae_model, optimizer, valid_epoch_loss, epoch, season, output_dir
-            )
+            self._save_best_model(valid_epoch_loss, epoch)
 
         # Final loss reports
         print(f"Train Loss: {train_epoch_loss:.4f}")
@@ -300,18 +281,19 @@ class XTClimTrainer(TorchTrainer):
             }
         )
 
-        save_loss_plot(train_loss, valid_loss, season)
+        save_loss_plot(train_loss, valid_loss, self.seasons)
         # save the loss evolutions
         pd.DataFrame(train_loss).to_csv(
-            output_dir / f"train_loss_indiv_{season}1d_{self.config.n_memb}memb.csv"
+            self.output_dir / f"train_loss_indiv_{self.seasons}1d_{self.config.n_memb}memb.csv"
         )
         pd.DataFrame(valid_loss).to_csv(
-            output_dir / f"test_loss_indiv_{season}1d_{self.config.n_memb}memb.csv"
+            self.output_dir / f"test_loss_indiv_{self.seasons}1d_{self.config.n_memb}memb.csv"
         )
 
-        # Clean-up strategy and logger
-        if self.strategy.is_main_worker and self.logger:
-            self.logger.destroy_logger_context()
+    @monitor_exec
+    def execute(self) -> None:
+        self.train_dataset, self.test_dataset = self.init_dataloading_step()
 
-        self.strategy.clean_up()
+        _ = super().execute(self.train_dataset, self.test_dataset)
 
+        return None
