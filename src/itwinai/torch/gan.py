@@ -13,7 +13,7 @@
 
 import logging
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Callable, Dict, Iterable, Literal, Tuple
+from typing import Any, Callable, Dict, Iterable, Literal, Tuple
 
 import torch
 import torch.nn as nn
@@ -22,6 +22,7 @@ import torch.optim.lr_scheduler as lr_scheduler
 import torchvision
 import yaml
 from ray.train import DataConfig, RunConfig, ScalingConfig
+from ray.train.horovod import HorovodConfig
 from ray.train.torch import TorchConfig
 from ray.tune import TuneConfig
 from torch.optim.lr_scheduler import LRScheduler
@@ -32,9 +33,6 @@ from torchmetrics.image.fid import FrechetInceptionDistance
 from ..loggers import Logger
 from .config import TrainingConfiguration
 from .trainer import TorchTrainer
-
-if TYPE_CHECKING:
-    from ray.train.horovod import HorovodConfig
 
 py_logger = logging.getLogger(__name__)
 
