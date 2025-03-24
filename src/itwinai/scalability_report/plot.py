@@ -87,12 +87,8 @@ def absolute_avg_epoch_time_plot(
     ax.set_xscale("log")
 
     # Calculating upper and lower bounds to get the appropriate top and bottom ticks
-    upper_bound = 10 ** int(
-        np.ceil(np.log10(avg_epoch_time_df["avg_epoch_time"].max()))
-    )
-    lower_bound = 10 ** int(
-        np.floor(np.log10(avg_epoch_time_df["avg_epoch_time"].min()))
-    )
+    upper_bound = 10 ** int(np.ceil(np.log10(avg_epoch_time_df["avg_epoch_time"].max())))
+    lower_bound = 10 ** int(np.floor(np.log10(avg_epoch_time_df["avg_epoch_time"].min())))
     ax.set_ylim(lower_bound, upper_bound)
 
     # Remove minor ticks on x-axis and format new ticks
@@ -106,9 +102,7 @@ def absolute_avg_epoch_time_plot(
     ax.legend(title="Method")
 
     num_datapoints = len(unique_nodes)
-    figure_height, figure_width = calculate_plot_dimensions(
-        num_datapoints=num_datapoints
-    )
+    figure_height, figure_width = calculate_plot_dimensions(num_datapoints=num_datapoints)
     fig.set_figheight(figure_height)
     fig.set_figwidth(figure_width)
 
@@ -160,9 +154,7 @@ def relative_epoch_time_speedup_plot(
     # Plotting the linear line
     num_gpus = np.array(avg_epoch_time_df["num_gpus"].unique())
     linear_speedup = np.array(avg_epoch_time_df["linear_speedup"].unique())
-    ax.plot(
-        num_gpus, linear_speedup, ls="dashed", lw=1.0, c="k", label="linear speedup"
-    )
+    ax.plot(num_gpus, linear_speedup, ls="dashed", lw=1.0, c="k", label="linear speedup")
 
     # The log scale must be set before changing the ticks
     ax.set_yscale("log", base=2)
@@ -183,9 +175,7 @@ def relative_epoch_time_speedup_plot(
     ax.legend(ncol=1)
 
     num_datapoints = len(num_gpus)
-    figure_height, figure_width = calculate_plot_dimensions(
-        num_datapoints=num_datapoints
-    )
+    figure_height, figure_width = calculate_plot_dimensions(num_datapoints=num_datapoints)
     fig.set_figheight(figure_height)
     fig.set_figwidth(figure_width)
 
@@ -195,66 +185,76 @@ def relative_epoch_time_speedup_plot(
     return fig, ax
 
 
-def gpu_bar_plot(
-    data_df: pd.DataFrame, plot_title: str, y_label: str, main_column: str
-) -> Tuple[Figure, Axes]:
-    """Creates a bar plot for the specified data, grouped by strategy and number of GPUs.
+def gpu_bar_plot(data_df: pd.DataFrame, plot_title: str, y_label: str, main_column: str):
+    """Creates a centered bar plot grouped by number of GPUs and strategy.
 
     Args:
-        data_df (pd.DataFrame): A DataFrame containing the data to plot. Must include the
-            columns "strategy", "num_global_gpus", and the column specified in
-            `main_column`.
+        data_df (pd.DataFrame): DataFrame containing "strategy", "num_global_gpus",
+            and `main_column`.
         plot_title (str): The title of the plot.
         y_label (str): The label for the y-axis.
-        main_column (str): The column in `data_df` to use for the bar heights.
+        main_column (str): Column name for bar heights.
 
     Returns:
-        Tuple[Figure, Axes]: A tuple containing the matplotlib `Figure` and `Axes` objects
-        of the generated bar plot.
-
-    Raises:
-        ValueError: If `data_df` is missing required columns.
+        Tuple[Figure, Axes]: The generated bar plot.
     """
     sns.set_theme()
 
-    strategies = data_df["strategy"].unique()
-    unique_gpu_counts = np.array(data_df["num_global_gpus"].unique())
+    unique_gpu_counts = np.sort(data_df["num_global_gpus"].unique())
+
+    # Deciding the color for each strategy in advance
     color_map = plt.get_cmap("tab10")
+    strategy_color = {
+        strategy: color_map(idx % 10)
+        for idx, strategy in enumerate(data_df["strategy"].unique())
+    }
 
     fig, ax = plt.subplots()
-    x = np.arange(len(unique_gpu_counts))
+    x_positions = np.arange(len(unique_gpu_counts))  # Fixed positions for GPU counts
 
-    bar_width = 1 / (len(strategies) + 1)
-    static_offset = (len(strategies) - 1) / 2
-    for strategy_idx, strategy in enumerate(strategies):
-        dynamic_bar_offset = strategy_idx - static_offset
-        strategy_data = data_df[data_df["strategy"] == strategy]
-        color = color_map(strategy_idx % 10)
+    # To store dynamic x offsets per GPU count
+    bar_positions = {}
 
-        # Ensuring the correct spacing of the bars
-        strategy_num_gpus = len(strategy_data["num_global_gpus"])
+    # Calculating the global bar_width based on the highest number of adjacent bars
+    max_num_strategies = data_df.groupby(["num_global_gpus"])["strategy"].nunique().max()
+    bar_width = 1 / (max_num_strategies + 1)
 
-        ax.bar(
-            x=x[:strategy_num_gpus] + dynamic_bar_offset * bar_width,
-            height=strategy_data[main_column],
-            width=bar_width,
-            label=strategy,
-            color=color,
-        )
+    # To only add labels the first time we see a strategy
+    seen_strategies = set()
+
+    for i, gpu_count in enumerate(unique_gpu_counts):
+        subset = data_df[data_df["num_global_gpus"] == gpu_count]
+        strategies = subset["strategy"].unique()
+        num_strategies = len(strategies)
+
+        # Center the bars
+        offset = (num_strategies - 1) / 2
+
+        bar_positions[gpu_count] = {
+            strategy: x_positions[i] + (idx - offset) * bar_width
+            for idx, strategy in enumerate(strategies)
+        }
+
+        for strategy in strategies:
+            strategy_data = subset[subset["strategy"] == strategy]
+            color = strategy_color[strategy]
+
+            label = strategy if strategy not in seen_strategies else None
+            seen_strategies.add(strategy)
+            ax.bar(
+                x=bar_positions[gpu_count][strategy],
+                height=strategy_data[main_column].values[0],
+                width=bar_width,
+                label=label,
+                color=color,
+            )
 
     ax.set_xlabel("Number of GPUs")
     ax.set_ylabel(y_label)
     ax.set_title(plot_title)
-    ax.set_xticks(x)
+    ax.set_xticks(x_positions)
     ax.set_xticklabels(unique_gpu_counts)
-    ax.legend(title="Strategy")
-
-    num_datapoints = len(unique_gpu_counts)
-    figure_height, figure_width = calculate_plot_dimensions(
-        num_datapoints=num_datapoints
-    )
-    fig.set_figheight(figure_height)
-    fig.set_figwidth(figure_width)
+    ax.legend()
 
     sns.reset_orig()
 
@@ -327,15 +327,13 @@ def computation_fraction_bar_plot(
 
     ax.set_ylabel("Computation fraction")
     ax.set_xlabel("Number of GPUs")
-    ax.set_title("Computation vs Communication Time by Method")
+    ax.set_title("Computation vs Communication Time by Framework and Number of GPUs")
     ax.set_xticks(x)
     ax.set_xticklabels(gpu_numbers)
     ax.set_ylim(0, 1.1)
 
     # Adding communication time to the legend
-    hatch_patch = Patch(
-        facecolor="none", edgecolor="gray", hatch="//", label="Communication"
-    )
+    hatch_patch = Patch(facecolor="none", edgecolor="gray", hatch="//", label="Communication")
     ax.legend(handles=ax.get_legend_handles_labels()[0] + [hatch_patch])
 
     # Dynamically adjusting the width of the figure

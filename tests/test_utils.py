@@ -104,7 +104,7 @@ def test_signature_inspector():
 
 
 @pytest.mark.parametrize(
-    "args,correct_updated_args",
+    "args,correct_absolute_args",
     [
         (
             ["--config-path=./relative/path", "--some-other-arg"],
@@ -124,8 +124,6 @@ def test_signature_inspector():
         ),
     ],
 )
-def test_make_config_paths_absolute(args, correct_updated_args):
+def test_make_config_paths_absolute(args, correct_absolute_args):
     """Test that make_config_paths_absolute correctly resolves absolute paths."""
-    updated_args = make_config_paths_absolute(args)
-
-    assert updated_args == correct_updated_args
+    assert make_config_paths_absolute(args) == correct_absolute_args
