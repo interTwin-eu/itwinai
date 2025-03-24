@@ -618,7 +618,9 @@ class GANTrainer(TorchTrainer):
 
         self.save_fake_generator_images()
 
-    def train_step(self, real_images: torch.Tensor, batch_idx: int) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+    def train_step(
+        self, real_images: torch.Tensor, batch_idx: int
+    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         """train step for GAN.
 
         Args:
@@ -626,7 +628,8 @@ class GANTrainer(TorchTrainer):
             batch_idx (int): batch index.
 
         Returns:
-            Tuple[torch.Tensor, torch.Tensor, torch.Tensor]: loss metrics of generator and discriminator and accuracy of the discriminator
+            Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+            loss metrics of generator and discriminator and accuracy of the discriminator
         """
         real_images = real_images.to(self.device)
         batch_size = real_images.size(0)
