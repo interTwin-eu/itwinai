@@ -6,7 +6,7 @@ data/
 nohup*
 tmp*
 .tmp*
-checkpoints/
+checkpoints*
 outputs/
 mamba*
 pl-training.yml

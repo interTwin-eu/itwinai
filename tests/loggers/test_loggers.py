@@ -14,6 +14,16 @@ import numpy as np
 import pytest
 
 
+@pytest.fixture(scope="function")
+def enable_logs_propagation():
+    """Force the logs to be propagated to the root logger, so that caplog can see them"""
+    import itwinai
+
+    itwinai.logger.propagate = True
+    yield
+    itwinai.logger.propagate = False
+
+
 @pytest.mark.parametrize(
     "itwinai_logger",
     [
@@ -25,7 +35,7 @@ import pytest
         "loggers_collection",
     ],
 )
-def test_logger_initialization(itwinai_logger, request, caplog):
+def test_logger_initialization(itwinai_logger, request, caplog, enable_logs_propagation):
     itwinai_logger = request.getfixturevalue(itwinai_logger)
     # Never initialized
     with pytest.raises(RuntimeError) as exc_info:
