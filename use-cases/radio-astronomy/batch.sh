@@ -1,24 +1,25 @@
 #!/bin/bash
 
-# general configuration of the job
+## general configuration of the job
 #SBATCH --job-name=PrototypeTest
 #SBATCH --account=intertwin
 #SBATCH --mail-user=
 #SBATCH --mail-type=ALL
 #SBATCH --output=report.out
 #SBATCH --error=progress.out
-#SBATCH --time=01:00:00
+#SBATCH --time=00:30:00
 
-# configure node and process count on the CM
-#SBATCH --partition=booster
-#SBATCH --nodes=4
+## configure node and process count on the CM
+#SBATCH --partition=develbooster
+#SBATCH --nodes=1
 #SBATCH --gpus-per-node=4
 #SBATCH --ntasks-per-node=1
 #SBATCH --cpus-per-task=48
 #SBATCH --exclusive
 
-# gres options have to be disabled for deepv
+## gres options have to be disabled for deepv
 #SBATCH --gres=gpu:4
+
 
 # load modules
 ml --force purge
@@ -33,7 +34,6 @@ if [ "$SYSTEMNAME" = juwelsbooster ] \
     MASTER_ADDR="$MASTER_ADDR"i
 fi
 export MASTER_PORT=29500
-
 source /p/project1/intertwin/krochak1/itwinai/.venv/bin/activate
 
 srun_torchrun() {
@@ -48,7 +48,11 @@ srun_torchrun() {
     $*"
 }
 
-srun_torchrun $(which itwinai) exec-pipeline +pipe_key=unet_pipeline
-srun_torchrun $(which itwinai) exec-pipeline +pipe_key=fcnn_pipeline
-srun_torchrun $(which itwinai) exec-pipeline +pipe_key=cnn1d_pipeline
-srun_torchrun $(which itwinai) exec-pipeline +pipe_key=evaluate_pipeline
+## Data generation - run on a single node withou GPUs
+srun --cpu-bind=none $(which itwinai) exec-pipeline +pipe_key=syndata_pipeline 
+
+
+# srun_torchrun $(which itwinai) exec-pipeline +pipe_key=unet_pipeline
+# srun_torchrun $(which itwinai) exec-pipeline +pipe_key=fcnn_pipeline
+# srun_torchrun $(which itwinai) exec-pipeline +pipe_key=cnn1d_pipeline
+# srun_torchrun $(which itwinai) exec-pipeline +pipe_key=evaluate_pipeline

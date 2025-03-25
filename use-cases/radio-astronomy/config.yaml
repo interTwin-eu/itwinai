@@ -6,9 +6,9 @@
 
 # input variables
 
-num_payloads: 500
+num_payloads: 100
 learning_rate: 0.001
-batch_size: 1
+batch_size: 64
 strategy: ddp
 
 tag: train_v0_

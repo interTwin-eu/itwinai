@@ -35,8 +35,6 @@ class PulsarTrainer(TorchTrainer):
         store_trained_model_at: str = ".models/model.pt",
         name: Optional[str] = None,
     ) -> None:
-        # manually set up the config:
-
 
         # these parameters are initialized with the TorchTrainer class:
         super().__init__(
@@ -53,14 +51,10 @@ class PulsarTrainer(TorchTrainer):
         self.store_trained_model_at = store_trained_model_at
         os.makedirs(os.path.dirname(store_trained_model_at), exist_ok=True)
 
-
-
     def create_model_loss_optimizer(self) -> None:
-        """
-        Instantiate a torch model, loss, optimizer, and LR scheduler using the
-        configuration provided in the Trainer constructor.
-        Generally a user-defined method.
-        """
+
+        """Redefined method that doens't implement
+        the loss function as it's defined in the constructor"""
 
         if self.model is None:
             raise ValueError(
@@ -68,13 +62,8 @@ class PulsarTrainer(TorchTrainer):
                 "override create_model_loss_optimizer method."
             )
 
-        # Parse optimizer from training configuration
-        # Optimizer can be changed with a custom one here!
         self._optimizer_from_config()
 
-        # The loss fucntion is already defined in the constructor
-
-        # IMPORTANT: model, optimizer, and scheduler need to be distributed
         distribute_kwargs = self.get_default_distributed_kwargs()
 
         # Distributed model, optimizer, and scheduler
