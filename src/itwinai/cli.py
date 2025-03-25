@@ -96,22 +96,19 @@ def generate_scalability_report(
     if run_ids:
         base_directories_for_runs = [log_dir_path / run_id for run_id in run_ids.split(",")]
         # Ensure that all passed run_ids actually exist as directories
-        non_existent_path: Path | None = next(
-            (path for path in base_directories_for_runs if not path.exists()), None
-        )
-        if non_existent_path:
-            raise ValueError(
-                f"Given run_id path does not exist: '{non_existent_path.resolve()}'!"
-            )
+        non_existent_paths = [
+            str(path.resolve()) for path in base_directories_for_runs if not path.exists()
+        ]
+        if non_existent_paths:
+            raise ValueError(f"Given run_id paths do not exist: '{non_existent_paths}'!")
     else:
         # Ensure that all elements in log_dir are directories
-        non_directory_path: Path | None = next(
-            (path for path in log_dir_path.iterdir() if not path.is_dir()), None
-        )
-        if non_directory_path:
+        non_directory_paths = [
+            str(path.resolve()) for path in log_dir_path.iterdir() if not path.is_dir()
+        ]
+        if non_directory_paths:
             raise ValueError(
-                "Found element in log_dir that was not a directory: "
-                f"'{non_directory_path.resolve()}'"
+                f"Found elements in log_dir that are not directories: '{non_directory_paths}'"
             )
         base_directories_for_runs = list(log_dir_path.iterdir())
 
