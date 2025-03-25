@@ -93,61 +93,49 @@ def generate_scalability_report(
     if not log_dir_path.exists():
         raise ValueError(f"The provided log_dir, '{log_dir_path.resolve()}', does not exist.")
 
-    run_id_list = run_ids.split(",") if run_ids else []
-
-    # Finding all the appropriate paths
-    epoch_time_logdirs = []
-    gpu_data_logdirs = []
-    comm_time_logdirs = []
-    if not run_id_list:
-        print(
-            "run_id was not passed, so will aggregate data from all runs in the given "
-            f"directory: '{log_dir_path.resolve()}'."
+    if run_ids:
+        base_directories_for_runs = [log_dir_path / run_id for run_id in run_ids.split(",")]
+        # Ensure that all passed run_ids actually exist as directories
+        non_existent_path: Path | None = next(
+            (path for path in base_directories_for_runs if not path.exists()), None
         )
-        for path_elem in log_dir_path.iterdir():
-            print(f"Adding data from {path_elem}!")
-            if not path_elem.is_dir():
-                raise ValueError(
-                    f"Found element in logdir that was not itself a directory: "
-                    f"{path_elem.resolve()}"
-                )
-
-            # Creating all potential paths and adding them if they exist
-            epoch_time_logdir = path_elem / "epoch-time"
-            gpu_data_logdir = path_elem / "gpu-energy-data"
-            comm_time_logdir = path_elem / "communication-data"
-
-            if epoch_time_logdir.exists():
-                epoch_time_logdirs.append(epoch_time_logdir)
-            if gpu_data_logdir.exists():
-                gpu_data_logdirs.append(gpu_data_logdir)
-            if comm_time_logdir.exists():
-                comm_time_logdirs.append(comm_time_logdir)
+        if non_existent_path:
+            raise ValueError(
+                f"Given run_id path does not exist: '{non_existent_path.resolve()}'!"
+            )
     else:
-        for run_id in run_id_list:
-            run_path = log_dir_path / run_id
-            if not run_path.exists():
-                raise ValueError(
-                    f"No directory with given run_id: '{run_id}' exists! Path should have been"
-                    f" '{run_path.resolve()}', but was not found!"
-                )
+        # Ensure that all elements in log_dir are directories
+        non_directory_path: Path | None = next(
+            (path for path in log_dir_path.iterdir() if not path.is_dir()), None
+        )
+        if non_directory_path:
+            raise ValueError(
+                "Found element in log_dir that was not a directory: "
+                f"'{non_directory_path.resolve()}'"
+            )
+        base_directories_for_runs = list(log_dir_path.iterdir())
 
-            # Creating all potential paths and adding them if they exist
-            epoch_time_logdir = log_dir_path / run_id / "epoch-time"
-            gpu_data_logdir = log_dir_path / run_id / "gpu-energy-data"
-            comm_time_logdir = log_dir_path / run_id / "communication-data"
-
-            if epoch_time_logdir.exists():
-                epoch_time_logdirs.append(epoch_time_logdir)
-            if gpu_data_logdir.exists():
-                gpu_data_logdirs.append(gpu_data_logdir)
-            if comm_time_logdir.exists():
-                comm_time_logdirs.append(comm_time_logdir)
+    # Finding the respective data logging directories
+    epoch_time_logdirs = [
+        path / "epoch-time"
+        for path in base_directories_for_runs
+        if (path / "epoch-time").exists()
+    ]
+    gpu_data_logdirs = [
+        path / "gpu-energy-data"
+        for path in base_directories_for_runs
+        if (path / "gpu-energy-data").exists()
+    ]
+    comm_time_logdirs = [
+        path / "communication-data"
+        for path in base_directories_for_runs
+        if (path / "communication-data").exists()
+    ]
 
     # Setting the backup directory from run name
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    if run_id_list:
-        backup_run_id = "_".join(run_id_list) + f"_{timestamp}"
+    if base_directories_for_runs:
+        backup_run_id = "_".join(map(str, base_directories_for_runs)) + f"_{timestamp}"
     else:
         backup_run_id = f"aggregated_run_{timestamp}"
     backup_dir = Path(backup_root_dir) / backup_run_id
