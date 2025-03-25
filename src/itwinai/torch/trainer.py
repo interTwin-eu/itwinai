@@ -123,7 +123,13 @@ class TorchTrainer(Trainer, LogMixin):
     #: PyTorch Profiler for communication vs. computation comparison
     profiler: Any | None
 
+    #: Toggles for the profilers
     measure_gpu_data: bool = False
+    measure_communication_overhead: bool = False
+    measure_epoch_time: bool = False
+
+    #: Run ID
+    run_id: str 
 
     def __init__(
         self,
@@ -144,7 +150,8 @@ class TorchTrainer(Trainer, LogMixin):
         profiling_warmup_epochs: int = 2,
         measure_gpu_data: bool = False,
         measure_communication_overhead: bool = False,
-        measure_epoch_time: bool = False
+        measure_epoch_time: bool = False,
+        run_id: str | None = None
     ) -> None:
         super().__init__(name)
         self.save_parameters(**self.locals2params(locals()))
@@ -174,6 +181,9 @@ class TorchTrainer(Trainer, LogMixin):
         self.measure_communication_overhead = measure_communication_overhead
         self.measure_epoch_time = measure_epoch_time
 
+        if run_id is None:
+            run_id = "run0"
+        self.run_id = run_id
 
     @property
     def strategy(self) -> TorchDistributedStrategy:
@@ -565,7 +575,7 @@ class TorchTrainer(Trainer, LogMixin):
                     " when running distributed training!"
                 )
             num_nodes = int(os.environ["SLURM_NNODES"])
-            epoch_time_output_dir = Path("scalability-metrics/epoch-time")
+            epoch_time_output_dir = Path(f"scalability-metrics/{self.run_id}/epoch-time")
             epoch_time_file_name = f"epochtime_{self.strategy.name}_{num_nodes}N.csv"
             epoch_time_output_path = epoch_time_output_dir / epoch_time_file_name
 
