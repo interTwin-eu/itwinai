@@ -1,26 +1,17 @@
-import sys
 import os
-import time
 from typing import Any, Dict, Literal, Optional, Tuple, Union
 
 import torch
-import torch.distributions as dist
 import torch.optim as optim
-import torch.nn as nn
-import numpy as np
 import math
 
 import itertools
 
 from model import CINN
 
-from itwinai.loggers import EpochTimeTracker, Logger
+from itwinai.loggers import Logger
 from itwinai.torch.config import TrainingConfiguration
 from itwinai.torch.trainer import TorchTrainer
-from itwinai.torch.inference import TorchPredictor
-#from ..src.itwinai.type import Batch, LrScheduler, Metric
-from itwinai.serialization import ModelLoader
-
 
 class CaloChallengeTrainer(TorchTrainer):
     def __init__(
@@ -70,6 +61,7 @@ class CaloChallengeTrainer(TorchTrainer):
 
         self.model = CINN(next(itertools.islice(self.train_dataloader, 0, None))[0].shape[1], self.config)
 
+
         if self.model.bayesian:
             self.loss = self.log_prob_kl_loss
         else:
@@ -87,8 +79,9 @@ class CaloChallengeTrainer(TorchTrainer):
         self.lr_scheduler = optim.lr_scheduler.OneCycleLR(
                 self.optimizer,
                 self.config.max_lr or self.config.optim_lr*10,
-                epochs = self.num_epochs or self.config.cycle_epochs,
+                epochs = self.config.cycle_epochs or self.num_epochs,
                 steps_per_epoch=len(self.train_dataloader),
+                final_div_factor=1e0
             )
 
         # IMPORTANT: model, optimizer, and scheduler need to be distributed
@@ -111,15 +104,15 @@ class CaloChallengeTrainer(TorchTrainer):
             Tuple[Loss, Dict[str, Any]]: batch loss and dictionary of metric
             values with the same structure of ``self.metrics``.
         """
-        print("IN TRAINING STEP")
         x, c = batch
         x, c = x.to(self.device), c.to(self.device)
-
+    
         self.optimizer.zero_grad()
         loss = self.loss(x, c)
         loss.backward()
         self.optimizer.step()
-        self.lr_scheduler.step()
+        if self.lr_scheduler.last_epoch < self.lr_scheduler.total_steps-2:
+            self.lr_scheduler.step()
         
         self.log(
             self.lr_scheduler.optimizer.param_groups[0]['lr'], 
@@ -138,8 +131,8 @@ class CaloChallengeTrainer(TorchTrainer):
             batch_idx=batch_idx,
         )
         metrics: Dict[str, Any] = self.compute_metrics(
-            true=None,#x,
-            pred=None,#c,
+            true=None,
+            pred=None,
             logger_step=self.train_glob_step,
             batch_idx=batch_idx,
             stage="train",
@@ -172,48 +165,10 @@ class CaloChallengeTrainer(TorchTrainer):
             batch_idx=batch_idx,
         )
         metrics: Dict[str, Any] = self.compute_metrics(
-            true=None,#y,
-            pred=None,#pred_y,
+            true=None,
+            pred=None,
             logger_step=self.validation_glob_step,
             batch_idx=batch_idx,
             stage="validation",
         )
         return loss, metrics
-    
-
-class CaloChallengePredictor(TorchPredictor):
-    def __init__(
-        self,
-        model: Union[nn.Module, ModelLoader],
-        config: Union[Dict, TrainingConfiguration] | None = None,
-        test_dataloader_class: str = "torch.utils.data.DataLoader",
-        test_dataloader_kwargs: Optional[Dict] = None,
-        name: str = None
-    ) -> None:
-        super().__init__(
-            model=model, 
-            test_dataloader_class=test_dataloader_class,
-            test_dataloader_kwargs=test_dataloader_kwargs,
-            name=name
-            )
-        self.save_parameters(**self.locals2params(locals()))
-        self.num_samples_to_generate = self.config.num_samples_to_generate
-        self.config = config
-
-    def execute(self,
-        test_dataset,
-        model,
-        config
-    ) -> None:
-        if model is not None:
-            # Overrides existing "internal" model
-            self.model = model
-
-        test_dataloader = self.test_dataloader_class(
-            test_dataset, **self.test_dataloader_kwargs
-        )
-
-        self.model.generate()
-
-
-        

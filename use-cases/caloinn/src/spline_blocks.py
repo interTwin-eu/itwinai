@@ -81,7 +81,10 @@ class CubicSplineBlock(fm.InvertibleModule):
             w = torch.tensor(w, dtype=torch.get_default_dtype())
         else:
             w = torch.zeros((channels, channels))
-            for i, j in enumerate(np.random.permutation(channels)):
+            #for i, j in enumerate(np.random.permutation(channels)):
+            random_indices = np.arange(channels)  
+            np.random.shuffle(random_indices)  
+            for i, j in enumerate(random_indices):
                 w[i, j] = 1.
 
         self.w_perm = nn.Parameter(w.view(channels, channels, *([1] * self.input_rank)),
@@ -418,13 +421,11 @@ class RationalQuadraticSplineBlock(fm.InvertibleModule):
             w = special_ortho_group.rvs(channels)
         else:
             w = np.zeros((channels, channels))
-            for i, j in enumerate(np.random.permutation(channels)):
+            random_indices = np.arange(channels)  
+            np.random.shuffle(random_indices)
+            for i, j in enumerate(random_indices):  
                 w[i, j] = 1.
-
-        # self.w_perm = nn.Parameter(torch.FloatTensor(w).view(channels, channels, *([1] * self.input_rank)),
-        #                            requires_grad=False)
-        # self.w_perm_inv = nn.Parameter(torch.FloatTensor(w.T).view(channels, channels, *([1] * self.input_rank)),
-        #                                requires_grad=False)
+ 
         self.w_perm = nn.Parameter(torch.Tensor(w).view(channels, channels, *([1] * self.input_rank)),
                                    requires_grad=False)
         self.w_perm_inv = nn.Parameter(torch.Tensor(w.T).view(channels, channels, *([1] * self.input_rank)),
@@ -604,6 +605,9 @@ class RationalQuadraticSplineBlock(fm.InvertibleModule):
                     perm_log_jac)
 
     def forward(self, x, c=[], rev=False, jac=True):
+        #print("IN SPLINE")
+        #torch.save(x, "in_spline_x.pt")
+        #torch.save(c, "in_spline_c.pt")
         '''See base class docstring'''
         self.bounds = self.bounds.to(x[0].device)
         
@@ -639,6 +643,12 @@ class RationalQuadraticSplineBlock(fm.InvertibleModule):
         # number of elements of the first channel of the first batch member
         n_pixels = x_out[0, :1].numel()
         log_jac_det += (-1)**rev * n_pixels * global_scaling_jac
+        #print("OUT SPLINE")
+        #torch.save(x_out, "out_spline_x.pt")
+        #torch.save(log_jac_det, "out_spline_c.pt")
+        #import time
+        #time.sleep(5)
+        #v = 0/0
         return (x_out,), log_jac_det
 
     def output_dims(self, input_dims):

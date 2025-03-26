@@ -1,21 +1,13 @@
-import glob
 import os
-import shutil
-from typing import Any, Callable, Optional, Tuple
+from typing import Optional, Tuple
 import h5py
-#import gdown
 import numpy as np
 import requests
-
 from torch.utils.data import Dataset, random_split
-from torchvision import datasets, transforms
-
-from src.XMLHandler import XMLHandler
-
-from itwinai.components import DataGetter, monitor_exec, DataSplitter
-from itwinai.loggers import Logger as BaseItwinaiLogger
-
 import torch
+from src.XMLHandler import XMLHandler
+from itwinai.components import DataGetter, monitor_exec, DataSplitter
+
 
 class CaloChallengeDownloader(DataGetter):
     def __init__(
@@ -28,16 +20,15 @@ class CaloChallengeDownloader(DataGetter):
         self.data_path = data_path
         self.dataset_type = dataset_type
 
-        #TODO: fill the 3rd dataset links
-        type_to_link_train = {"dataset_1_photons" : ["cdataset_1_photons_1.hdf5"],
+        type_to_link_train = {"dataset_1_photons" : ["https://zenodo.org/records/8099322/files/dataset_1_photons_1.hdf5"],
                               "dataset_1_pions" : ["https://zenodo.org/records/8099322/files/dataset_1_pions_1.hdf5"],
                               "dataset_2" : ["https://zenodo.org/records/6366271/files/dataset_2_1.hdf5"],
-                              "dataset_3" : [""]}
+                              "dataset_3" : ["https://zenodo.org/records/6366324/files/dataset_3_1.hdf5", "https://zenodo.org/records/6366324/files/dataset_3_2.hdf5"]}
         
         type_to_link_test  = {"dataset_1_photons" : ["https://zenodo.org/records/8099322/files/dataset_1_photons_2.hdf5"],
                               "dataset_1_pions" : ["https://zenodo.org/records/8099322/files/dataset_1_pions_2.hdf5"],
                               "dataset_2" : ["https://zenodo.org/records/6366271/files/dataset_2_2.hdf5"],
-                              "dataset_3" : [""]}
+                              "dataset_3" : ["https://zenodo.org/records/6366324/files/dataset_3_3.hdf5", "https://zenodo.org/records/6366324/files/dataset_3_4.hdf5"]}
 
         if dataset_type not in type_to_link_train.keys():
             print("WARNING! Dataset type is invalid " "Loading dataset 1 photon")
@@ -94,6 +85,8 @@ class CalochallengeDataset(Dataset):
         else:
             self.dataset_trainortest = dataset_trainortest
 
+        torch.set_default_dtype(torch.float32)
+
         # Create a XML_handler to extract the layer boundaries. (Geometric setup is stored in the XML file)
         dataset_to_particle_type = {"dataset_1_photons" : "photon",
                                     "dataset_1_pions" : "pion",
@@ -114,8 +107,6 @@ class CalochallengeDataset(Dataset):
         self.noise = noise
         self.width_noise = width_noise
         self.fixed_noise = fixed_noise
-        if self.noise:
-            self.noise_distribution = torch.distributions.Uniform(torch.tensor(0., device=self.x.device), torch.tensor(1., device=self.x.device))
         
         self.data = {}
 
@@ -125,6 +116,10 @@ class CalochallengeDataset(Dataset):
             noise = self.noise_distribution.sample(self.x.shape)*self.width_noise
             self.x += noise.reshape(self.x.shape)
 
+        if self.noise:
+            self.noise_distribution = torch.distributions.Uniform(torch.tensor(0.), torch.tensor(1.))
+        
+
     def __len__(self):
         return self.x.shape[0]
 
@@ -132,14 +127,13 @@ class CalochallengeDataset(Dataset):
         data = self.x[idx]
         if not self.fixed_noise and self.noise:
             noise = self.noise_distribution.sample(data.shape)*self.width_noise
-            data += noise.reshape(data.shape)
+            data = (torch.tensor(data) + noise.reshape(data.shape).clone()).clone()
         cond = self.cond[idx]
         return data, cond
 
     def _load_data(self) -> None:
         print("Searching in :", self.data_path)
         files = [os.path.join(self.data_path, filename) for filename in os.listdir(self.data_path) if self.dataset_type in filename and self.dataset_trainortest in filename] 
-        #sorted(glob.glob(os.path.join(self.data_path, "**/*.hdf5"), recursive=True))
         print("Found {} files. ".format(len(files)))
         if len(files) == 0:
             raise RuntimeError(f"No H5 files found at '{self.data_path}'!")
@@ -252,13 +246,6 @@ class CalochallengeDataset(Dataset):
         x = np.copy(x)
         c = np.copy(c)
         
-        # Get the number of layers
-        number_of_layers = len(self.layer_boundaries) - 1
-
-        # Split up the conditions
-        incident_energy = c[..., [0]]
-        extra_dims = c[..., 1:number_of_layers+1]
-        
         # Use the exact layer energies for numerical stability
         for layer_index, (layer_start, layer_end) in enumerate(zip(self.layer_boundaries[:-1], self.layer_boundaries[1:])):
             x[..., layer_start:layer_end] = x[..., layer_start:layer_end] / ( np.sum(x[..., layer_start:layer_end], axis=1, keepdims=True) + eps)
@@ -291,6 +278,11 @@ class CalochallengeDataSplitter(DataSplitter):
         else:
             print("WARNING! Wrong value of validation dataset proportion" "Set validation dataset proportion to 0.1")
 
+        if rnd_seed:
+            self.generator = torch.Generator().manual_seed(self.rnd_seed)
+        else:
+            self.generator = torch.Generator()
+
         self.train_dataset = CalochallengeDataset(data_path=data_path,
                                                   dataset_type=dataset_type, 
                                                   dataset_trainortest="train",
@@ -314,9 +306,8 @@ class CalochallengeDataSplitter(DataSplitter):
     @monitor_exec
     def execute(self) -> Tuple:
         # Split train file into train and validation sets
-        generator = torch.Generator().manual_seed(self.rnd_seed)
         [train_dataset, validation_dataset] = random_split(self.train_dataset,
                                                            [1-self.validation_proportion, self.validation_proportion],
-                                                           generator=generator
+                                                           generator=self.generator
                                                            )
         return train_dataset, validation_dataset, self.test_dataset
