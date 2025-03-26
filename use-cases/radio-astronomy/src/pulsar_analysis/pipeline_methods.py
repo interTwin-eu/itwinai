@@ -194,7 +194,6 @@ class PipelineImageToMask:
     ):
         self.__image_to_mask_network = image_to_mask_network
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
         self.__image_to_mask_network = self.__image_to_mask_network.to(self.device)
         self.__image_to_mask_network.load_state_dict(
             torch.load(trained_image_to_mask_network_path,map_location=torch.device(self.device),weights_only=True)
@@ -218,8 +217,15 @@ class PipelineImageToMask:
             torch.tensor(image, requires_grad=False).unsqueeze(0).unsqueeze(0).float()
         )
         with torch.no_grad():
-            pred = self.__image_to_mask_network(image.to(self.device))
-        pred = pred.to("cpu")
+
+            # self.__image_to_mask_network = self.__image_to_mask_network.to(self.device)
+            # pred = self.__image_to_mask_network(image.to(self.device))
+            # pred = pred.to("cpu")
+
+            # remap models saved on multiple GPUs to CPU
+            self.__image_to_mask_network = self.__image_to_mask_network.to("cpu")
+            pred = self.__image_to_mask_network(image.to(torch.device("cpu")))
+
         pred_numpy = pred.squeeze().numpy()
         pred_numpy_copy = deepcopy(pred_numpy)
         # binarizer = BinarizeToMask(binarize_func="gaussian_blur")

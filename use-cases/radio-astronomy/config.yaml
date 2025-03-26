@@ -6,27 +6,29 @@
 
 # input variables
 
-num_payloads: 100
-learning_rate: 0.001
-batch_size: 64
-strategy: ddp
+num_payloads:     20
+learning_rate:    0.001
+batch_size:       16
+num_cores:        4
+seed:             42
+strategy:         ddp
 
-tag: train_v0_
-image_tag: train_v0_*_payload_detected.json
-image_directory: syn_payload/
-mask_tag: train_v0_*_payload_flux.json
-mask_directory: syn_payload/
+tag:              train_v0_
+image_tag:        train_v0_*_payload_detected.json
+image_directory:  syn_payload/
+mask_tag:         train_v0_*_payload_flux.json
+mask_directory:   syn_payload/
 
 mask_maker_dict: {
-    model: UNet,
-    model_path: ./models/trained_UNet_test_v0.pt
+    model:        UNet,
+    model_path:   ./models/trained_UNet_test_v0.pt
     }
 
-unet_st: ./models/trained_UNet_test_v0.pt
-fcnn_st: ./models/trained_Filter_test_v0.pt
-cnn1d_st: ./models/trained_CNN1D_test_v0.pt
-real_img_st: ./test_data/joint_dataset_8_classes_real_remix_128x128.npy
-real_lbl_st: ./test_data/joint_dataset_8_classes_real_remix_labels.npy
+unet_st:          ./models/trained_UNet_test_v0.pt
+fcnn_st:          ./models/trained_Filter_test_v0.pt
+cnn1d_st:         ./models/trained_CNN1D_test_v0.pt
+real_img_st:      ./test_data/joint_dataset_8_classes_real_remix_128x128.npy
+real_lbl_st:      ./test_data/joint_dataset_8_classes_real_remix_labels.npy
 
 # Pipeline for synthesizing training data
 syndata_pipeline:
@@ -37,7 +39,7 @@ syndata_pipeline:
       _target_: data.SynthesizeData
       tag: ${tag}
       num_payloads: ${num_payloads}
-      num_cpus: 48 # set to the number of available CPUs on node
+      num_cpus: ${num_cores} # set to the number of available CPUs on node
       name: syntheticData
 
 # Training pipeline for the UNet model 
@@ -66,7 +68,7 @@ unet_pipeline:
       train_proportion: 0.8
       validation_proportion: 0.1
       test_proportion: 0.1
-      rnd_seed: 42
+      rnd_seed: ${seed}
       name: Splitter
     training_step:
       _target_: trainer.PulsarTrainer
@@ -87,7 +89,7 @@ unet_pipeline:
         optim_lr: ${learning_rate}
         save_best: 1
         shuffle_train: 1
-        num_workers_dataloader: 48
+        num_workers_dataloader: ${num_cores}
     adapter_step:
       _target_: itwinai.components.Adapter
       policy:
@@ -101,12 +103,6 @@ fcnn_pipeline:
   _target_: itwinai.pipeline.Pipeline
   name: Filter CNN Pipeline
   steps:        
-    ### Uncomment the code below if you want to run ONLY this pipeline
-    # dataloading_step:
-    #   _target_: data.SynthesizeData
-    #   tag: ${tag}
-    #   num_payloads: ${num_payloads}
-    #   name: syntheticData
     dataset_step:  
       _target_: data.GenericDataset
       image_tag: ${image_tag}
@@ -123,7 +119,7 @@ fcnn_pipeline:
       train_proportion: 0.8
       validation_proportion: 0.1
       test_proportion: 0.1
-      rnd_seed: 42
+      rnd_seed: ${seed}
       name: Splitter
     training_step:
       _target_: trainer.PulsarTrainer
@@ -138,13 +134,13 @@ fcnn_pipeline:
       store_trained_model_at: ${fcnn_st}
       name: FilterCNNTrainer
       config:
-        generator: simple #unet
+        generator: simple
         optimizer: adam
-        batch_size: ${batch_size} # Set to one because "chunk_size" implicitly decides this
+        batch_size: ${batch_size}
         optim_lr: ${learning_rate}
         save_best: 1
         shuffle_train: 1
-        num_workers_dataloader: 48
+        num_workers_dataloader: ${num_cores}
     adapter_step:
       _target_: itwinai.components.Adapter
       policy: 
@@ -153,17 +149,10 @@ fcnn_pipeline:
     save_step:
       _target_: data.ModelSaver
 
-
 cnn1d_pipeline:
   _target_: itwinai.pipeline.Pipeline
   name: CNN1D Pipeline
   steps:
-    ### Uncomment the code below if you want to run ONLY this pipeline
-    # dataloading_step:
-    #   _target_: data.SynthesizeData
-    #   tag: ${tag}
-    #   num_payloads: ${num_payloads}
-    #   name: syntheticData
     dataset_step:  
       _target_: data.SignalDataset
       mask_tag: ${mask_tag}
@@ -177,7 +166,7 @@ cnn1d_pipeline:
       train_proportion: 0.8
       validation_proportion: 0.1
       test_proportion: 0.1
-      rnd_seed: 42
+      rnd_seed: ${seed}
       name: Splitter
     training_step:
       _target_: trainer.PulsarTrainer
@@ -192,13 +181,13 @@ cnn1d_pipeline:
       store_trained_model_at: ${cnn1d_st}
       name: CNN1DTrainer
       config:
-        generator: simple #unet
+        generator: simple 
         optimizer: adam
-        batch_size: ${batch_size} # Set to one because "chunk_size" implicitly decides this
+        batch_size: ${batch_size}
         optim_lr: ${learning_rate}
         save_best: 1
         shuffle_train: 1
-        num_workers_dataloader: 48
+        num_workers_dataloader: ${num_cores}
     adapter_step:
       _target_: itwinai.components.Adapter
       policy:
@@ -207,12 +196,10 @@ cnn1d_pipeline:
     save_step:
       _target_: data.ModelSaver
 
-
-# TODO: replace storage locs with vars
 evaluate_pipeline:
   _target_: itwinai.pipeline.Pipeline
   steps:
-    eval_step: # arguments for class __init__ and consequent execute() call
+    eval_step: 
       _target_: data.testSuite
       image_to_mask_network: 
         _target_: src.pulsar_analysis.neural_network_models.UNet
@@ -226,7 +213,7 @@ evaluate_pipeline:
       img_dir: ${real_img_st}
       lbl_dir: ${real_lbl_st}
       offset: 0
-      size: 500
+      size: ${num_payloads}
 
 
 # Complete pipeline for the three NNs
@@ -234,17 +221,8 @@ complete_pipeline:
   _target_: itwinai.pipeline.Pipeline
   name: Complete Training Pipeline
   steps:
-    syndata: ${syndata_pipeline}
-    unet:    ${unet_pipeline}
-    # adapter1:
-    #   _target_: itwinai.components.Adapter
-    #   policy: []
-    fcnn: ${fcnn_pipeline}
-    # adapter2:
-    #   _target_: itwinai.components.Adapter
-    #   policy: []
-    cnn1d: ${cnn1d_pipeline}
-    # adapter3:
-    #  _target_: itwinai.components.Adapter
-    #  policy: []
+    syndata:  ${syndata_pipeline}
+    unet:     ${unet_pipeline}
+    fcnn:     ${fcnn_pipeline}
+    cnn1d:    ${cnn1d_pipeline}
     evaluate: ${evaluate_pipeline}
