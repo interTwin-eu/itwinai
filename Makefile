@@ -42,7 +42,6 @@ torch-env-vega: env-files/torch/createEnvVega.sh env-files/torch/generic_torch.s
 tf-env-vega: env-files/tensorflow/createEnvVegaTF.sh env-files/tensorflow/generic_tf.sh
 	sh env-files/tensorflow/createEnvVegaTF.sh
 
-
 test:
 	.venv/bin/pytest -v tests/
 	

@@ -15,7 +15,6 @@ do not break use cases' workflows.
 
 import os
 import subprocess
-import tempfile
 from pathlib import Path
 
 import pytest
@@ -32,7 +31,7 @@ def test_structure_cyclones(check_folder_structure):
 @pytest.mark.skip("deprecated")
 @pytest.mark.functional
 @pytest.mark.memory_heavy
-def test_cyclones_train_tf(tf_env, install_requirements):
+def test_cyclones_train_tf(tf_env, install_requirements, tmp_path):
     """
     Test Cyclones tensorflow trainer by running it end-to-end.
 
@@ -51,5 +50,4 @@ def test_cyclones_train_tf(tf_env, install_requirements):
     cmd = (
         f"{tf_env}/bin/python {train.resolve()} -p {pipe.resolve()} --data_path {dataset_path}"
     )
-    with tempfile.TemporaryDirectory() as tmpdirname:
-        subprocess.run(cmd.split(), check=True, cwd=tmpdirname)
+    subprocess.run(cmd.split(), check=True, cwd=tmp_path)

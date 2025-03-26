@@ -30,7 +30,7 @@ def test_structure_3dgan(check_folder_structure):
 
 
 @pytest.mark.functional
-def test_3dgan_train(torch_env, install_requirements):
+def test_3dgan_train(torch_env, install_requirements, tmp_path):
     """Test 3DGAN torch lightning trainer by running it end-to-end.
 
     If CERN_DATASET env variable is defined, it is used to
@@ -49,14 +49,14 @@ def test_3dgan_train(torch_env, install_requirements):
         "mlflow_tracking_uri=ml_logs/mlflow"
     )
 
-    with tempfile.TemporaryDirectory() as temp_dir:
-        subprocess.run(cmd.split(), check=True, cwd=temp_dir)
+    subprocess.run(cmd.split(), check=True, cwd=tmp_path)
 
 
 @pytest.mark.functional
 def test_3dgan_inference(
     torch_env,
     install_requirements,
+    tmp_path,
     # fake_model_checkpoint
 ):
     """Test 3DGAN torch lightning trainer by running it end-to-end.
@@ -84,14 +84,13 @@ def test_3dgan_inference(
         "inference_results_location=3dgan-generated-data "
     )
 
-    with tempfile.TemporaryDirectory() as temp_dir:
-        # Create fake inference dataset and checkpoint
-        generate_model_cmd = (
-            f"{torch_env}/bin/python {exec} "
-            f"--root {str(Path(temp_dir).resolve())} "
-            f"--ckpt-name {CKPT_NAME}"
-        )
-        subprocess.run(generate_model_cmd.split(), check=True, cwd=temp_dir)
+    # Create fake inference dataset and checkpoint
+    generate_model_cmd = (
+        f"{torch_env}/bin/python {exec} "
+        f"--root {str(Path(tmp_path).resolve())} "
+        f"--ckpt-name {CKPT_NAME}"
+    )
+    subprocess.run(generate_model_cmd.split(), check=True, cwd=tmp_path)
 
-        # Running the inference
-        subprocess.run(run_inference_cmd.split(), check=True, cwd=temp_dir)
+    # Running the inference
+    subprocess.run(run_inference_cmd.split(), check=True, cwd=tmp_path)

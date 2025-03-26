@@ -12,7 +12,7 @@
 hdf5_file_location: /p/scratch/intertwin/datasets/virgo_hdf5/virgo_data.hdf5
 hdf5_dataset_name: virgo_dataset
 data_root: ./data
-epochs: 10
+epochs: 5
 chunk_size: 1000 # equivalent to chunk size 
 batch_size: 64 # Note: not used for "training_pipeline"
 learning_rate: 0.0001
@@ -20,6 +20,7 @@ strategy: ddp
 checkpoint_path: checkpoints/epoch_{}.pth
 validation_proportion: 0.1
 rnd_seed: 42
+run_id: "run2"
 
 # To use the entire synthetic dataset that is generated prior to running the pipeline
 training_pipeline:
@@ -33,6 +34,10 @@ training_pipeline:
       chunk_size: ${chunk_size}
       hdf5_dataset_name: ${hdf5_dataset_name}
     - _target_: trainer.NoiseGeneratorTrainer
+      measure_gpu_data: True
+      measure_communication_overhead: False
+      measure_epoch_time: True
+      run_id: ${run_id}
       config:
         generator: simple #unet
         batch_size: 1
