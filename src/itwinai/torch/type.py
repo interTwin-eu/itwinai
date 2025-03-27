@@ -12,10 +12,6 @@
 from typing import Callable
 
 import torch
-from torch import nn
-
-#: Torch learning rate scheduler
-LrScheduler = nn.Module
 
 #: Torch data batch sampled by a ``DataLoader``.
 Batch = torch.Tensor

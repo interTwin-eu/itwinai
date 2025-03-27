@@ -58,5 +58,4 @@ This tutorial provides an overview of Hyperparameter Optimization (HPO) workflow
 .. toctree::
    :maxdepth: 1
 
-   hpo-workflows/hpo-basic-integration
    hpo-workflows/hpo-torchtrainer-integration

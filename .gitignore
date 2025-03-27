@@ -6,7 +6,7 @@ data/
 nohup*
 tmp*
 .tmp*
-checkpoints/
+checkpoints*
 outputs/
 mamba*
 pl-training.yml
@@ -26,6 +26,7 @@ pl-training.yml
 3dgan-generated-data/
 mnist-sample-data/
 exp_data/
+mnist_dataset/
 
 
 # Kubernetes
