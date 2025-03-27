@@ -111,10 +111,10 @@ def write_rucio_config():
                                 'https://rucio-intertwin-testbed.desy.de'),
         'auth_host': os.getenv('RUCIO_AUTH_URL',
                                'https://rucio-intertwin-testbed-auth.desy.de'),
-        'ca_cert': os.getenv('RUCIO_CA_CERT', '/certs/rucio_ca.pem'),
+        #'ca_cert': os.getenv('RUCIO_CA_CERT', '/certs/rucio_ca.pem'),
         'auth_type': os.getenv('RUCIO_AUTH_TYPE', 'oidc'),  # 'x509' or 'oidc'
         # This is the RUCIO account name, need to be mapped from idp
-        'account': os.getenv('RUCIO_ACCOUNT', '$RUCIO_ACCOUNT'),
+        'account': os.getenv('USERNAME', '$USERNAME'),
         'oidc_polling': 'true',
         'oidc_scope': 'openid profile offline_access eduperson_entitlement',
         # 'username': os.getenv('RUCIO_USERNAME', ''),
