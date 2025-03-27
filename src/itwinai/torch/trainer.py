@@ -188,9 +188,9 @@ class TorchTrainer(Trainer, LogMixin):
     measure_communication_overhead: bool = False
     #: Toggle for epoch time tracking
     measure_epoch_time: bool = False
-
     #: Run ID
     run_id: str
+
 
     def __init__(
         self,

@@ -109,7 +109,6 @@ training_pipeline:
       strategy: ${strategy}
       checkpoint_every: ${checkpoint_every}
       checkpoints_location: ${checkpoints_location}
-
       
 inference_pipeline:
   _target_: itwinai.pipeline.Pipeline
@@ -120,7 +119,7 @@ inference_pipeline:
       model:
         _target_: itwinai.torch.inference.TorchModelLoader
         model_uri: ${inference_model_mlflow_uri}
-      test_dataloader_kwargs:
+      config:
         batch_size: ${batch_size}
     - _target_: saver.TorchMNISTLabelSaver
       save_dir: ${predictions_dir}
