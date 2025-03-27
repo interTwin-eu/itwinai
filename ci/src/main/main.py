@@ -289,6 +289,7 @@ class Itwinai:
             # Env variables necessary for tests
             "&& export MNIST_PATH=/ceph/hpc/data/st2301-itwin-users/mbunino/mnist "
             "&& export NO_COLOR=1 "
+            "&& export SHARED_FS_PATH=/ceph/hpc/data/st2301-itwin-users/tmp-mbunino2 "
             # Launch code in SLURM job
             # DDP
             "&& export DIST_MODE=ddp "
