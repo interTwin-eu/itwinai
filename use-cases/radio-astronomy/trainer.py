@@ -1,24 +1,17 @@
+# --------------------------------------------------------------------------------------
+# Part of the interTwin Project: https://www.intertwin.eu/
+# Created by: Oleksandr Krochak
+# --------------------------------------------------------------------------------------
+
 import os
 from typing import Any, Dict, Literal, Optional, Tuple
 from torch.utils.data import Dataset, DataLoader
 
 import torch.nn as nn
 from torch import device, cuda, save
-from src.pulsar_analysis.neural_network_models import (
-    UNet,
-    CustomLossUNet,
-    OneDconvEncoder,
-    Simple1DCnnClassifier,
-    CustomLossClassifier,
-)
 from itwinai.torch.trainer import TorchTrainer, RayTorchTrainer
 from itwinai.torch.config import TrainingConfiguration
 from itwinai.loggers import EpochTimeTracker, Logger
-
-from src.pulsar_analysis.train_neural_network_model import TrainImageToMaskNetworkModel,ImageToMaskDataset,InMaskToMaskDataset
-from src.pulsar_analysis.neural_network_models import UNet, CustomLossUNet, UNetFilter, FilterCNN, CustomLossSemanticSeg, CNN1D, WeightedBCELoss
-
-from itwinai.torch.distributed import DeepSpeedStrategy, RayDDPStrategy, RayDeepSpeedStrategy
 
 class PulsarTrainer(TorchTrainer):
     """Trainer class for radio-astronomy use-case. 
@@ -45,7 +38,6 @@ class PulsarTrainer(TorchTrainer):
             model=model,
             name=name
         )
-
         # set the custom loss function
         self.loss = loss 
         self.store_trained_model_at = store_trained_model_at
@@ -71,19 +63,6 @@ class PulsarTrainer(TorchTrainer):
             self.model, self.optimizer, self.lr_scheduler, **distribute_kwargs
         )
 
-    # def create_dataloaders(
-    #     self,
-    #     train_dataset: Dataset,
-    #     validation_dataset: Optional[Dataset] = None,
-    #     test_dataset: Optional[Dataset] = None,
-    # ) -> None:
-    #     self.train_dataloader = DataLoader(
-    #         dataset=train_dataset, batch_size=self.config.batch_size, shuffle=self.config.shuffle_train, pin_memory=True)
-    #     self.validation_dataloader = DataLoader(
-    #         dataset=validation_dataset, batch_size=self.config.batch_size, shuffle=self.config.shuffle_train, pin_memory=True)
-    #     self.test_dataloader = DataLoader(
-    #         dataset=test_dataset, batch_size=self.config.batch_size, shuffle=self.config.shuffle_train, pin_memory=True)
-        
     def write_model(self) -> None:
         """Write the model to disk."""
         save(self.model.state_dict(), self.store_trained_model_at)

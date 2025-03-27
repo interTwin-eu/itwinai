@@ -25,13 +25,13 @@ generate_example_payloads_for_training(tag='train_v0_',
                                        num_cpus=1 #: choose based on the number of nodes/cores in your system
                                        )
 
-# generate_example_payloads_for_training(tag='test_v0_',
-#                                        num_payloads=50,
-#                                        plot_a_example=False,
-#                                        param_folder='./syn_data/runtime/',
-#                                        payload_folder='./syn_data/payloads/',
-#                                        num_cpus=10 #: choose based on the number of nodes/cores in your system
-#                                        )
+generate_example_payloads_for_training(tag='test_v0_',
+                                       num_payloads=50,
+                                       plot_a_example=False,
+                                       param_folder='./syn_data/runtime/',
+                                       payload_folder='./syn_data/payloads/',
+                                       num_cpus=10 #: choose based on the number of nodes/cores in your system
+                                       )
 
 
 mask_maker_dict = {
@@ -110,7 +110,7 @@ config = {
 
 ImgToMaskTrainer = PulsarTrainer(
                     model= UNet(),
-                    num_epochs=10, #10
+                    num_epochs=2, #10
                     store_trained_model_at='./models/trained_UNet_test_v0.pt',
                     loss = WeightedBCELoss(pos_weight=3,neg_weight=1),
                     name='ImgToMaskTrainer',
@@ -185,6 +185,3 @@ while(True):
     if continue_loop==False:
         break
     plt.close()
-
-    
-    

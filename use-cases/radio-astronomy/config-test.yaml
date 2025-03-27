@@ -6,22 +6,22 @@
 
 # input variables
 
-num_payloads:     500
+num_payloads:     4
 learning_rate:    0.001
-batch_size:       500 #128
-num_cores:        40
+batch_size:       4 #128
+num_cores:        4
 seed:             42
-strategy:         ddp
+strategy:         none #ddp
 
 tag:              train_v0_
 image_tag:        train_v0_*_payload_detected.json
-image_directory:  syn_payload/
+image_directory:  ./use-cases/radio-astronomy/test_dataset/
 mask_tag:         train_v0_*_payload_flux.json
-mask_directory:   syn_payload/
+mask_directory:   ./use-cases/radio-astronomy/test_dataset/
 
 mask_maker_dict: {
     model:        UNet,
-    model_path:   ./models/trained_UNet_test_v0.pt
+    model_path:   ./use-cases/radio-astronomy/models/trained_UNet_test_v0.pt
     }
 
 unet_st:          ./models/trained_UNet_test_v0.pt
@@ -30,7 +30,6 @@ cnn1d_st:         ./models/trained_CNN1D_test_v0.pt
 real_img_st:      ./test_data/joint_dataset_8_classes_real_remix_128x128.npy
 real_lbl_st:      ./test_data/joint_dataset_8_classes_real_remix_labels.npy
 
-# tracking_uri_mlflow: https://127.0.0.1:8000
 
 # Pipeline for synthesizing training data
 syndata_pipeline:
@@ -67,9 +66,9 @@ unet_pipeline:
       mask_binarize_func: "thresh"
     splitter_step:
       _target_: data.DatasetSplitter
-      train_proportion: 0.8
-      validation_proportion: 0.1
-      test_proportion: 0.1
+      train_proportion: 0.5
+      validation_proportion: 0.25
+      test_proportion: 0.25
       rnd_seed: ${seed}
       name: Splitter
     training_step:
@@ -81,8 +80,8 @@ unet_pipeline:
         _target_: src.pulsar_analysis.neural_network_models.WeightedBCELoss
         pos_weight: 3
         neg_weight: 1
-      num_epochs: 25 #10
-      store_trained_model_at: ${unet_st}
+      num_epochs: 1 #10
+      # store_trained_model_at: ${unet_st}
       name: UNetTrainer
       config:
         generator: simple #unet
@@ -92,20 +91,20 @@ unet_pipeline:
         save_best: 1
         shuffle_train: 1
         num_workers_dataloader: ${num_cores}
-      logger:
-        _target_: itwinai.loggers.LoggersCollection
-        loggers:
-          - _target_: itwinai.loggers.MLFlowLogger
-            experiment_name: radio-astronomy 
-            log_freq: batch 
+      # logger:
+      #   _target_: itwinai.loggers.LoggersCollection
+      #   loggers:
+      #     - _target_: itwinai.loggers.MLFlowLogger
+      #       experiment_name: radio-astronomy 
+      #       log_freq: batch 
             # tracking_uri: ${tracking_uri_mlflow}
-    adapter_step:
-      _target_: itwinai.components.Adapter
-      policy:
-        - "INPUT_ARG#3"
-        - "${unet_st}"
-    save_step:
-      _target_: data.ModelSaver
+    # adapter_step:
+    #   _target_: itwinai.components.Adapter
+    #   policy:
+    #     - "INPUT_ARG#3"
+    #     - "${unet_st}"
+    # save_step:
+    #   _target_: data.ModelSaver
 
 
 fcnn_pipeline:
@@ -125,9 +124,9 @@ fcnn_pipeline:
       mask_binarize_func: "thresh"
     splitter_step:
       _target_: data.DatasetSplitter
-      train_proportion: 0.8
-      validation_proportion: 0.1
-      test_proportion: 0.1
+      train_proportion: 0.5
+      validation_proportion: 0.25
+      test_proportion: 0.25
       rnd_seed: ${seed}
       name: Splitter
     training_step:
@@ -139,7 +138,7 @@ fcnn_pipeline:
         _target_: src.pulsar_analysis.neural_network_models.WeightedBCELoss
         pos_weight: 1
         neg_weight: 1
-      num_epochs: 10 #
+      num_epochs: 1 #
       store_trained_model_at: ${fcnn_st}
       name: FilterCNNTrainer
       config:
@@ -178,9 +177,9 @@ cnn1d_pipeline:
       mask_binarize_func: "thresh"
     splitter_step:
       _target_: data.DatasetSplitter
-      train_proportion: 0.8
-      validation_proportion: 0.1
-      test_proportion: 0.1
+      train_proportion: 0.5
+      validation_proportion: 0.25
+      test_proportion: 0.25
       rnd_seed: ${seed}
       name: Splitter
     training_step:
@@ -192,7 +191,7 @@ cnn1d_pipeline:
         _target_: src.pulsar_analysis.neural_network_models.WeightedBCELoss
         pos_weight: 1
         neg_weight: 1
-      num_epochs: 50 #20
+      num_epochs: 1 #20
       store_trained_model_at: ${cnn1d_st}
       name: CNN1DTrainer
       config:

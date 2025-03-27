@@ -1,6 +1,5 @@
 # --------------------------------------------------------------------------------------
 # Part of the interTwin Project: https://www.intertwin.eu/
-#
 # Created by: Oleksandr Krochak
 # --------------------------------------------------------------------------------------
 
@@ -12,6 +11,7 @@ import torch
 import glob
 import matplotlib.pyplot as plt
 import numpy as np
+from collections import OrderedDict
 
 from torch.utils.data import Dataset, TensorDataset, random_split
 from src.pulsar_analysis.train_neural_network_model import ImageMaskPair, SignalToLabelDataset
@@ -108,7 +108,6 @@ class GenericDataset(Dataset):
                     do_resize=True,
                     resize_size=resize_size,
                     binarize_engine = BinarizeToMask(binarize_func=mask_binarize_func)
-                    #BinarizeToMask(binarize_func='gaussian_blur') # or 'exponential'
                     )
         
         self._image_engine = image_engine
@@ -261,7 +260,6 @@ class DatasetSplitter(DataSplitter):
             [self.train_proportion, self.validation_proportion, self.test_proportion],
             generator=generator,
         )
-        print(f"Shape of item: {train_dataset.__getitem__(idx=5)[0].shape}")
         return train_dataset, validation_dataset, test_dataset
 
 class pipelinePulsarInterface(PipelineImageToFilterDelGraphtoIsPulsar):
@@ -329,7 +327,7 @@ class testSuite:
             batch_size=2
         )
 
-        # plt.show()
+        plt.show()
         for i in plt.get_fignums():
             fig = plt.figure(i)
             fig.savefig(f"plots/figure_{i}.png")
@@ -338,6 +336,10 @@ class testSuite:
 
 class ModelSaver:
     def execute(self, model, path) -> None:
-        torch.save(model.state_dict(), path)
+        m_dict = model.state_dict()
+        # ensure correct saving syntax expected by the loader
+        m_new = OrderedDict([(k.replace("module.",""), v) if k.startswith("module") else (k, v) for k, v in m_dict.items()])
+        del m_dict
+        torch.save(m_new, path)
         print(f"Model saved at {path}")
         return None

@@ -1,50 +1,34 @@
 Pulsar Segmentation and Analysis for Radio-Astronomy (HTW Berlin)
 ===============================================================
-
 The code is adapted from
 `this repository <https://gitlab.com/ml-ppa/pulsarrfi_nn/-/tree/version_0.2/unet_semantic_segmentation?ref_type=heads>`_.
 Please visit the original repository for more technical information on the code. 
 This use-case features a sophisticated pipeline composed of few neural networks.
 
-Scalability Metrics
--------------------
-Here are some examples of the scalability metrics for this use case: 
+Environment Management
+-----------------------------------------------------------------
+It is recommended to use UV environment for running this pipeline. 
+The overview of itwinai-wide module dependencies can be found in `intertwin/pyproject.toml`.
+By running `uv sync --extra devel --extra torch --extra radio-astronomy`, uv lockfile will 
+be generated/updated that ensures that correct dependencies are installed. If want to 
+change some use-case specific dependencies, please do so in pyproject.toml in the radio-astronomy
+section. Afterwards, re-run `uv sync` with the same flags.
 
-Average Epoch Time Comparison
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-This plot shows a comparison between the average time per epochs for each strategy
-and number of nodes. 
+Running from a configuration file
+----------------------------------
+You can run the full pipeline sequency by executing the following commands locally. 
+Itwinai will read these commands from the `config.yaml` file in the root of the repository.
+1. Generate the synthetic data            - `itwinai exec-pipeline +pipe_key=syndata_pipeline`
+2. Initialize and train a UNet model      - `itwinai exec-pipeline +pipe_key=unet_pipeline`
+3. Initialize and train a FilterCNN model - `itwinai exec-pipeline +pipe_key=fcnn_pipeline`
+4. Initialize and train a CNN1D model     - `itwinai exec-pipeline +pipe_key=cnn1d_pipeline`
+5. Compile a full pipeline and test it    - `itwinai exec-pipeline +pipe_key=evaluate_pipeline`
 
-.. image:: ../../use-cases/virgo/scalability-plots/absolute_scalability_plot.png
+When running on HPC, you can use the `batch.sh` SLURM script to run these commands.
 
-Relative Epoch Time Speedup
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
-This plot shows a comparison between the speedup between the different number of nodes
-for each strategy. The speedup is calculated using the lowest number of nodes as a
-baseline.
-
-.. image:: ../../use-cases/virgo/scalability-plots/relative_scalability_plot.png
-
-Communication vs Computation
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-This plot shows how much of the GPU time is spent doing computation compared to
-communication between GPUs and nodes, for each strategy and number of nodes. The shaded
-area is communication and the colored area is computation. They have all been
-normalized so that the values are between 0 and 1.0. 
-
-.. image:: ../../use-cases/virgo/scalability-plots/communication_plot.png
-
-GPU Utilization
-~~~~~~~~~~~~~~~
-This plot shows how high the GPU utilization is for each strategy and number of nodes,
-as a percentage from 0 to 100. This is the defined as how much of the time is spent
-in computation mode vs not, and does not directly correlate to FLOPs. 
-
-.. image:: ../../use-cases/virgo/scalability-plots/utilization_plot.png
-
-Power Consumption
-~~~~~~~~~~~~~~~~~
-This plot shows the total energy consumption in watt-hours for the different strategies
-and number of nodes. 
-
-.. image:: ../../use-cases/virgo/scalability-plots/gpu_energy_plot.png
+Logging with MLflow
+----------------------------------
+By default, the `config.yaml` ensures that the MLflow logging is enabled during the training.
+During or after the run, you can launch an MLflow server by executing
+`mlflow server --backend-store-uri mllogs/mlflow` and connecting to `http://127.0.0.1:5000/` 
+in your browser.
