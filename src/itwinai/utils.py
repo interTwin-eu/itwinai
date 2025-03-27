@@ -11,6 +11,7 @@
 
 import inspect
 import os
+import random
 import sys
 from collections.abc import MutableMapping
 from pathlib import Path
@@ -18,6 +19,61 @@ from typing import Callable, Dict, Hashable, List, Tuple, Type
 from urllib.parse import urlparse
 
 import yaml
+
+adjectives = [
+    "quantum",
+    "relativistic",
+    "wavy",
+    "entangled",
+    "chiral",
+    "tachyonic",
+    "superluminal",
+    "anomalous",
+    "hypercharged",
+    "fermionic",
+    "hadronic",
+    "quarky",
+    "holographic",
+    "dark",
+    "force-sensitive",
+    "chaotic",
+]
+
+names = [
+    "neutrino",
+    "graviton",
+    "muon",
+    "gluon",
+    "tachyon",
+    "quasar",
+    "pulsar",
+    "blazar",
+    "meson",
+    "boson",
+    "hyperon",
+    "starlord",
+    "groot",
+    "rocket",
+    "yoda",
+    "skywalker",
+    "sithlord",
+    "midichlorian",
+    "womp-rat",
+    "beskar",
+    "mandalorian",
+    "ewok",
+    "vibranium",
+    "nova",
+    "gamora",
+    "drax",
+    "ronan",
+    "thanos",
+    "cosmo",
+]
+
+
+def generate_random_name():
+    return f"{random.choice(adjectives)}-{random.choice(names)}"
 
 
 def load_yaml(path: str) -> Dict:

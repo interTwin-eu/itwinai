@@ -48,7 +48,7 @@ from itwinai.torch.profiling.profiler import profile_torch_trainer
 from ..components import Trainer, monitor_exec
 from ..distributed import ray_cluster_is_running
 from ..loggers import EpochTimeTracker, Logger, LogMixin
-from ..utils import load_yaml, to_uri
+from ..utils import generate_random_name, load_yaml, to_uri
 from .config import TrainingConfiguration
 from .distributed import (
     DeepSpeedStrategy,
@@ -120,6 +120,13 @@ class TorchTrainer(Trainer, LogMixin):
             the profiler.
         profiling_warmup_epochs (int): length of the profiler warmup phase in terms of
             number of epochs.
+        measure_gpu_data (bool): enable the collection of data on average GPU utilization and
+            total energy consumption throughout training. Defaults to False.
+        measure_communication_overhead (bool): enable the profiling of computation and
+            multi-worker communication operations. It uses the torch profiler and it may
+            slow down training. Dafults to False.
+        measure_epoch_time (bool): enable the measurement of epoch duration (in seconds).
+            Defaults to False,
         ray_scaling_config (ScalingConfig, optional): scaling config for Ray Trainer.
             Defaults to None,
         ray_tune_config (TuneConfig, optional): tune config for Ray Tuner.
@@ -141,12 +148,9 @@ class TorchTrainer(Trainer, LogMixin):
             vaidation loss is computed. Example values are "inf" and "-inf", depending on
             wether the best validation metric should be minimized or maximized.
             Defaults to "inf".
+        run_id (str, optional): name used to identify a specific run when collecting
+            metrics on the trainer (e.g. GPU utilization). Defaults to None.
     """
-
-    # TODO:
-    #   - extract BaseTorchTrainer and extend it creating a set of trainer
-    #     templates (e.g.. GAN, Classifier, Transformer) allowing scientists
-    #     to reuse ML algos.
 
     _strategy: TorchDistributedStrategy | None = None
 
@@ -178,8 +182,15 @@ class TorchTrainer(Trainer, LogMixin):
     metrics: Dict[str, Callable]
     #: PyTorch Profiler for communication vs. computation comparison
     profiler: Any | None
-
+    #: Toggle for GPU utilization monitoring
     measure_gpu_data: bool = False
+    #: Toggle for communication vs computation fraction profiling
+    measure_communication_overhead: bool = False
+    #: Toggle for epoch time tracking
+    measure_epoch_time: bool = False
+
+    #: Run ID
+    run_id: str
 
     def __init__(
         self,
@@ -209,6 +220,7 @@ class TorchTrainer(Trainer, LogMixin):
         ray_horovod_config: Optional["HorovodConfig"] = None,
         from_checkpoint: str | Path | None = None,
         initial_best_validation_metric: str = "inf",
+        run_id: str | None = None,
     ) -> None:
         super().__init__(name)
         self.save_parameters(**self.locals2params(locals()))
@@ -274,6 +286,9 @@ class TorchTrainer(Trainer, LogMixin):
         # If the validation metric is meant to be maximized, change this to -inf.
         self.best_validation_metric = float(initial_best_validation_metric)
         self.current_epoch = 0
+        if run_id is None:
+            run_id = generate_random_name()
+        self.run_id = run_id
 
     @property
     def strategy(self) -> TorchDistributedStrategy:
@@ -1076,7 +1091,7 @@ class TorchTrainer(Trainer, LogMixin):
                     " when running distributed training!"
                 )
             num_nodes = int(os.environ["SLURM_NNODES"])
-            epoch_time_output_dir = Path("scalability-metrics/epoch-time")
+            epoch_time_output_dir = Path(f"scalability-metrics/{self.run_id}/epoch-time")
             epoch_time_file_name = f"epochtime_{self.strategy.name}_{num_nodes}N.csv"
             epoch_time_output_path = epoch_time_output_dir / epoch_time_file_name
 
