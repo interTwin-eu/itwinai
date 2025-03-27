@@ -20,7 +20,7 @@
 #SBATCH --mail-type=ALL
 #SBATCH --output=job.out
 #SBATCH --error=job.err
-#SBATCH --time=00:20:00
+#SBATCH --time=00:10:00
 
 # Resources allocation
 #SBATCH --partition=develbooster
@@ -88,7 +88,6 @@ torchrun_launcher(){
     --log_dir='logs_torchrun' \
     --nnodes=$SLURM_NNODES \
     --nproc_per_node=$SLURM_GPUS_PER_NODE \
-    --node-rank=$SLURM_NODEID \
     --rdzv_id=$SLURM_JOB_ID \
     --rdzv_conf=is_host=\$(((SLURM_NODEID)) && echo 0 || echo 1) \
     --rdzv_backend=c10d \

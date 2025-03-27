@@ -123,7 +123,7 @@ class BaseTestDistributedStrategy:
         assert dataloader.sampler.rank == strategy.global_rank()
         assert dataloader.sampler.num_replicas == strategy.global_world_size()
 
-    def test_gather_operations(self, strategy):
+    def test_gather_operations(self, strategy: TorchDistributedStrategy):
         """Test collective operations."""
         # Test tensor gather
         local_tensor = torch.tensor([strategy.global_rank()], device=strategy.device())

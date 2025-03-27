@@ -20,7 +20,7 @@ WHERE_TO_RUN=$1 #"jsc" # "vega"
 
 # Global config
 NUM_NODES=2
-GPUS_PER_NODE=1
+GPUS_PER_NODE=2
 
 # HPC-wise config
 if [[ $WHERE_TO_RUN == "jsc" ]]; then
@@ -36,7 +36,7 @@ if [[ $WHERE_TO_RUN == "jsc" ]]; then
     SLURM_SCRIPT="slurm.jsc.sh"
     PARTITION="booster"
 
-elif [[ $WHERE_TO_RUN == "jsc" ]]; then
+elif [[ $WHERE_TO_RUN == "vega" ]]; then
 
     # Vega (container)
     export MNIST_PATH="/ceph/hpc/data/st2301-itwin-users/mbunino/mnist"
@@ -60,23 +60,24 @@ mkdir logs_slurm
 rm -rf logs_torchrun logs_mpirun logs_srun checkpoints
 
 
-# Launch tests
-export DIST_MODE="ray"
-export RUN_NAME="ray-itwinai"
-export COMMAND="pytest -v -o log_cli=true -o log_cli_level=INFO -m ray_dist $TESTS_LOCATION"
-sbatch  \
-    --job-name="$RUN_NAME-n$N" \
-    --output="logs_slurm/job-$RUN_NAME-n$N.out" \
-    --error="logs_slurm/job-$RUN_NAME-n$N.err" \
-    --nodes=$NUM_NODES \
-    --gpus-per-node=$GPUS_PER_NODE \
-    --gres=gpu:$GPUS_PER_NODE \
-    --partition=$PARTITION \
-    $SLURM_SCRIPT
+# # Launch tests
+# export DIST_MODE="ray"
+# export RUN_NAME="ray-itwinai"
+# export COMMAND="pytest -v -s -o log_cli=true -o log_cli_level=INFO -m ray_dist $TESTS_LOCATION"
+# sbatch  \
+#     --job-name="$RUN_NAME-n$N" \
+#     --output="logs_slurm/job-$RUN_NAME-n$N.out" \
+#     --error="logs_slurm/job-$RUN_NAME-n$N.err" \
+#     --nodes=$NUM_NODES \
+#     --gpus-per-node=$GPUS_PER_NODE \
+#     --gres=gpu:$GPUS_PER_NODE \
+#     --partition=$PARTITION \
+#     $SLURM_SCRIPT
 
 export DIST_MODE="ddp"
 export RUN_NAME="ddp-itwinai"
-export COMMAND="pytest -v -o log_cli=true -o log_cli_level=INFO -m torch_dist $TESTS_LOCATION"
+export COMMAND="pytest -v -s -o log_cli=true -o log_cli_level=INFO -m torch_dist $TESTS_LOCATION"
+# export COMMAND="pytest -v -s -o log_cli=true -o log_cli_level=INFO -m torch_dist test_torch_trainer.py"
 sbatch  \
     --job-name="$RUN_NAME-n$N" \
     --output="logs_slurm/job-$RUN_NAME-n$N.out" \
@@ -87,28 +88,28 @@ sbatch  \
     --partition=$PARTITION \
     $SLURM_SCRIPT
 
-export DIST_MODE="deepspeed"
-export RUN_NAME="ds-itwinai"
-export COMMAND="pytest -v -o log_cli=true -o log_cli_level=INFO -m deepspeed_dist $TESTS_LOCATION"
-sbatch  \
-    --job-name="$RUN_NAME-n$N" \
-    --output="logs_slurm/job-$RUN_NAME-n$N.out" \
-    --error="logs_slurm/job-$RUN_NAME-n$N.err" \
-    --nodes=$NUM_NODES \
-    --gpus-per-node=$GPUS_PER_NODE \
-    --gres=gpu:$GPUS_PER_NODE \
-    --partition=$PARTITION \
-    $SLURM_SCRIPT
+# export DIST_MODE="deepspeed"
+# export RUN_NAME="ds-itwinai"
+# export COMMAND="pytest -v -s -o log_cli=true -o log_cli_level=INFO -m deepspeed_dist $TESTS_LOCATION"
+# sbatch  \
+#     --job-name="$RUN_NAME-n$N" \
+#     --output="logs_slurm/job-$RUN_NAME-n$N.out" \
+#     --error="logs_slurm/job-$RUN_NAME-n$N.err" \
+#     --nodes=$NUM_NODES \
+#     --gpus-per-node=$GPUS_PER_NODE \
+#     --gres=gpu:$GPUS_PER_NODE \
+#     --partition=$PARTITION \
+#     $SLURM_SCRIPT
 
-export DIST_MODE="horovod"
-export RUN_NAME="horovod-itwinai"
-export COMMAND="pytest -v -o log_cli=true -o log_cli_level=INFO -m horovod_dist $TESTS_LOCATION"
-sbatch \
-    --job-name="$RUN_NAME-n$N" \
-    --output="logs_slurm/job-$RUN_NAME-n$N.out" \
-    --error="logs_slurm/job-$RUN_NAME-n$N.err" \
-    --nodes=$NUM_NODES \
-    --gpus-per-node=$GPUS_PER_NODE \
-    --gres=gpu:$GPUS_PER_NODE \
-    --partition=$PARTITION \
-    $SLURM_SCRIPT
+# export DIST_MODE="horovod"
+# export RUN_NAME="horovod-itwinai"
+# export COMMAND="pytest -v -s -o log_cli=true -o log_cli_level=INFO -m horovod_dist $TESTS_LOCATION"
+# sbatch \
+#     --job-name="$RUN_NAME-n$N" \
+#     --output="logs_slurm/job-$RUN_NAME-n$N.out" \
+#     --error="logs_slurm/job-$RUN_NAME-n$N.err" \
+#     --nodes=$NUM_NODES \
+#     --gpus-per-node=$GPUS_PER_NODE \
+#     --gres=gpu:$GPUS_PER_NODE \
+#     --partition=$PARTITION \
+#     $SLURM_SCRIPT
