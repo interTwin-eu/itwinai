@@ -34,6 +34,41 @@ app = typer.Typer(pretty_exceptions_enable=False)
 
 
 @app.command()
+def generate_py_spy_report(
+    file: Annotated[str, typer.Option(help="The location of the raw profiling data.")],
+    num_rows: Annotated[
+        str,
+        typer.Option(help="Number of rows to display. Pass 'all' to print the full table."),
+    ] = "10",
+):
+    from itwinai.torch.profiling.py_spy_aggregation import (
+        handle_data_point,
+        create_bottom_function_table,
+    )
+
+    if not num_rows.isnumeric() and num_rows != "all":
+        raise typer.BadParameter(
+            f"'num-rows' has to be either an integer or 'all'. Was '{num_rows}'."
+        )
+    parsed_num_rows: int | None = int(num_rows) if num_rows.isnumeric() else None
+    if isinstance(parsed_num_rows, int) and parsed_num_rows < 1:
+        raise typer.BadParameter(f"'num_rows' has to be greater than one! Was '{num_rows}'.")
+
+    file_path = Path(file)
+    with file_path.open("r") as f:
+        profiling_data = f.readlines()
+
+    data_points = [handle_data_point(line) for line in profiling_data]
+    data_points = [dp for dp in data_points if dp]
+    leaf_functions = [data_point[-1] for data_point in data_points]
+    leaf_functions.sort(key=lambda x: x["num_samples"], reverse=True)
+    table = create_bottom_function_table(
+        function_data_list=leaf_functions, num_rows=parsed_num_rows
+    )
+    print(table)
+
+
+@app.command()
 def generate_scalability_report(
     log_dir: Annotated[
         str,
