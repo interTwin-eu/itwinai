@@ -24,6 +24,8 @@ class RNNDatasetGetterAndPreprocessor(DataSplitter):
         dynamic_inputs: List[str] | None = None,
         static_inputs: List[str] | None = None,
         target_variables: List[str] | None = None,
+        calibration_target_variables: List[str] | None = None,
+        head_output_variables: List[str] | None = None,
         scaling_static_range: Dict | None = None,
         mask_variables: List[str] | None = None,
         static_inputs_mask: List[str] | None = None,

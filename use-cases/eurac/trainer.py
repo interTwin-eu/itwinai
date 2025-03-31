@@ -144,6 +144,7 @@ class RNNDistributedTrainer(TorchTrainer):
                 # into both...
                 config = deepcopy(self.config)
                 config.static_inputs = config.head_model_inputs
+                config.target_variables = config.head_output_variables
                 surrogate = get_hython_model(self.config.model_head)(config)
 
                 surrogate = self.model_api.load_model("head", surrogate)

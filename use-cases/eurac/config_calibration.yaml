@@ -23,7 +23,7 @@ model: Hybrid # model class
 
 freeze_head: True
 
-scale_head_input_parameter: True 
+scale_head_input_parameter: False
 
 scale_head_output: False
 
@@ -31,8 +31,8 @@ scale_head_output: False
 
 model_transfer: TransferNN # model class
 
+mt_hidden_dim: 60
 mt_output_dim: 1
-mt_hidden_dim: 10
 mt_n_layers: 3
 
 
@@ -69,10 +69,16 @@ regularization:
   _target_: hython.regularizations.RangeBoundReg
   factor: 1
   bounds:
-    thetaS: [0, 1]
+    #thetaS: [0, 1]
     thetaR: [0, 1]
     KsatVer: [0, 1]
     c: [0, 1]
+    f: [0, 1]
+    # M: [0, 1]
+    # RootingDepth: [0, 1] # (mm)
+    # Swood: [0, 1] # -
+    # Sl: [0, 1] #(mm)
+    # Kext: [0, 1] # -
 
 optimizer: adam
 
@@ -104,7 +110,7 @@ train_downsampler:
 
 valid_downsampler:
   _target_: hython.sampler.downsampler.RandomDownsampler
-  frac_time: 0.05
+  frac_time: 0.1
   frac_space: 0.1
 
 
@@ -116,7 +122,7 @@ data_lazy_load: False
 
 dataset: WflowSBMCal # dataset class
 
-num_workers_dataloader: 1
+num_workers_dataloader: 24
 num_workers_dataloader_eval: 24
 
 # data_source:
@@ -148,17 +154,29 @@ data_source:
 scaling_use_cached: True
 scaling_variant: minmax
 scaling_static_range:
-    thetaS: [0.25, 0.95]
-    thetaR: [0.01, 0.25]
-    c: [1, 20]
+    #thetaS: [0.25, 0.95]
+    thetaR: [0.01, 0.35]
     KsatVer: [1, 10000]
+    c: [1, 20]
+    f: [0.00001, 0.1]
+    M: [1, 3000]
+    RootingDepth: [100, 5000] # (mm)
+    Swood: [0.0, 0.5] # -
+    Sl: [0.02, 0.2] #(mm)
+    Kext: [0.48, 0.96] # -
 
 
 head_model_inputs:
-  - thetaS
+  # - thetaS
   - thetaR
   - KsatVer
   - c
+  - f
+  # - M
+  # - RootingDepth
+  # - Swood
+  # - Sl
+  # - Kext
 
 
 static_inputs:
@@ -176,7 +194,11 @@ dynamic_inputs:
   - pet
   - temp
   
-target_variables:
+head_output_variables: # output from head (surrogate)
+  - ssm
+  # - actevap
+
+target_variables: # target for calibration
   - ssm
 
 mask_variables:
@@ -241,6 +263,7 @@ training_pipeline:
       dynamic_inputs: ${dynamic_inputs}
       static_inputs: ${static_inputs}
       target_variables: ${target_variables}
+      head_output_variables: ${head_output_variables}
       head_model_inputs: ${head_model_inputs}
 
       mask_variables: ${mask_variables}
@@ -284,6 +307,7 @@ training_pipeline:
         target_variables: ${target_variables}
         dynamic_inputs: ${dynamic_inputs}
         static_inputs: ${static_inputs}
+        head_output_variables: ${head_output_variables}
 
         optimizer: ${optimizer}
         lr_scheduler: ${lr_scheduler}
