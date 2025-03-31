@@ -73,7 +73,17 @@ import os
 from abc import ABC, abstractmethod
 from contextlib import contextmanager
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Callable, Dict, List, Literal, Optional, Tuple, Union
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Callable,
+    Dict,
+    List,
+    Literal,
+    Optional,
+    Tuple,
+    Union,
+)
 
 if TYPE_CHECKING:
     import mlflow
@@ -81,7 +91,7 @@ if TYPE_CHECKING:
 
 BASE_EXP_NAME: str = "default_experiment"
 
-logging.basicConfig(level=logging.INFO)
+py_logger = logging.getLogger(__name__)
 
 
 class LogMixin(ABC):
@@ -136,7 +146,7 @@ def check_not_initialized(method: Callable) -> Callable:
     @functools.wraps(method)
     def wrapper(self: "Logger", *args, **kwargs):
         if self.is_initialized:
-            logging.warning(
+            py_logger.warning(
                 f"Trying to initialize {self.__class__.__name__} twice.. "
                 "Skipping initialization."
             )
@@ -371,7 +381,7 @@ class ConsoleLogger(Logger):
             self.is_initialized = True
             return
 
-        logging.info(f"Initializing {self.__class__.__name__} on rank {rank}")
+        py_logger.info(f"Initializing {self.__class__.__name__} on rank {rank}")
 
         if self.savedir.is_dir():
             numeric_dirs = [
@@ -555,7 +565,7 @@ class MLFlowLogger(Logger):
             self.is_initialized = True
             return
 
-        logging.info(f"Initializing {self.__class__.__name__} on rank {rank}")
+        py_logger.info(f"Initializing {self.__class__.__name__} on rank {rank}")
 
         active_run = self.mlflow.active_run()
         if active_run:
@@ -662,11 +672,27 @@ class MLFlowLogger(Logger):
         elif kind == "dict":
             self.mlflow.log_dict(dictionary=item, artifact_file=identifier)
         elif kind == "figure":
+            identifier = identifier if identifier.endswith(".png") else identifier + ".png"
             self.mlflow.log_figure(
                 artifact_file=identifier,
                 figure=item,
                 save_kwargs=kwargs.get("save_kwargs"),
             )
+
+            # # Here is a temporary patch
+
+            # import tempfile
+
+            # with tempfile.TemporaryDirectory() as tmpdirname:
+            #     filename = (
+            #         identifier if identifier.endswith(".png") else identifier + ".png"
+            #     )
+            #     file_path = os.path.join(tmpdirname, filename)
+            #     item.savefig(file_path)
+            #     self.mlflow.log_artifact(
+            #         local_path=file_path,
+            #         artifact_path=filename,
+            #     )
         elif kind == "image":
             self.mlflow.log_image(artifact_file=identifier, image=item)
         elif kind == "param":
@@ -741,7 +767,7 @@ class WandBLogger(Logger):
             self.is_initialized = True
             return
 
-        logging.info(f"Initializing {self.__class__.__name__} on rank {rank}")
+        py_logger.info(f"Initializing {self.__class__.__name__} on rank {rank}")
 
         (self.savedir / "wandb").mkdir(
             exist_ok=True,
@@ -845,18 +871,24 @@ class TensorBoardLogger(Logger):
     ) -> None:
         tbl_savedir = Path(savedir) / "tensorboard"
         super().__init__(savedir=tbl_savedir, log_freq=log_freq, log_on_workers=log_on_workers)
-        self.framework = framework
-        if framework.lower() == "tensorflow":
-            import tensorflow as tf
+        if framework.lower() not in ["tensorflow", "pytorch"]:
+            raise ValueError(
+                "Accepted values for TensorBoardLogger framework are 'tensorflow' and "
+                f"'pytorch'. Received {framework}"
+            )
+        self.framework = framework.lower()
 
-            self.tf = tf
-            self.writer = tf.summary.create_file_writer(tbl_savedir.resolve().as_posix())
-        elif framework.lower() == "pytorch":
-            from torch.utils.tensorboard import SummaryWriter
+        # if framework.lower() == "tensorflow":
+        #     import tensorflow as tf
 
-            self.writer = SummaryWriter(tbl_savedir.resolve().as_posix())
-        else:
-            raise ValueError("Framework must be either 'tensorflow' or 'pytorch'")
+        #     self.tf = tf
+        #     self.writer = tf.summary.create_file_writer(tbl_savedir.resolve().as_posix())
+        # elif framework.lower() == "pytorch":
+        #     from torch.utils.tensorboard import SummaryWriter
+
+        #     self.writer = SummaryWriter(tbl_savedir.resolve().as_posix())
+        # else:
+        #     raise ValueError("Framework must be either 'tensorflow' or 'pytorch'")
 
     @check_not_initialized
     def create_logger_context(self, rank: int = 0) -> None:
@@ -872,7 +904,20 @@ class TensorBoardLogger(Logger):
             self.is_initialized = True
             return
 
-        logging.info(f"Initializing {self.__class__.__name__} on rank {rank}")
+        py_logger.info(f"Initializing {self.__class__.__name__} on rank {rank}")
+
+        # Create the writer
+        if self.framework == "tensorflow":
+            import tensorflow as tf
+
+            self.tf = tf
+            self.writer = tf.summary.create_file_writer(self.savedir.resolve().as_posix())
+        elif self.framework == "pytorch":
+            from torch.utils.tensorboard import SummaryWriter
+
+            self.writer = SummaryWriter(self.savedir.resolve().as_posix())
+        else:
+            raise ValueError("Framework must be either 'tensorflow' or 'pytorch'")
 
         if self.framework == "tensorflow":
             self.writer.set_as_default()
@@ -904,7 +949,20 @@ class TensorBoardLogger(Logger):
             with self.writer.as_default():
                 hp.hparams(hparams)
         elif self.framework == "pytorch":
-            self.writer.add_hparams(params, {})
+            supported_params = {}
+
+            for name, val in params.items():
+                if val is None or isinstance(val, (int, float, str, bool)):
+                    supported_params[name] = val
+                else:
+                    supported_params[name] = str(val)
+                    py_logger.debug(
+                        "itwinai TensorboardLogger is converting parameter "
+                        f"'{name}' to string as it is of type {type(val)}. "
+                        "Supported types for params are int, float, str, bool, or None."
+                    )
+
+            self.writer.add_hparams(supported_params, {})
 
     @check_initialized
     def log(
@@ -1130,7 +1188,7 @@ class Prov4MLLogger(Logger):
             self.is_initialized = True
             return
 
-        logging.info(f"Initializing {self.__class__.__name__} on rank {rank}")
+        py_logger.info(f"Initializing {self.__class__.__name__} on rank {rank}")
 
         self.prov4ml.start_run(
             prov_user_namespace=self.prov_user_namespace,
@@ -1199,7 +1257,11 @@ class Prov4MLLogger(Logger):
         elif kind == "flops_pe":
             model, dataset = item
             self.prov4ml.log_flops_per_epoch(
-                label=identifier, model=model, dataset=dataset, context=context, step=step
+                label=identifier,
+                model=model,
+                dataset=dataset,
+                context=context,
+                step=step,
             )
         elif kind == "system":
             self.prov4ml.log_system_metrics(context=context, step=step)
@@ -1239,36 +1301,6 @@ class Prov4MLLogger(Logger):
                         self.mlflow.log_artifact(f)
 
 
-class EpochTimeTracker:
-    """Tracker for epoch execution time during training."""
-
-    def __init__(self, strategy_name: str, save_path: Path | str, num_nodes: int) -> None:
-        if isinstance(save_path, str):
-            save_path = Path(save_path)
-
-        self.save_path: Path = save_path
-        self.strategy_name = strategy_name
-        self.num_nodes = num_nodes
-        self.data = {"epoch_id": [], "time": []}
-
-    def add_epoch_time(self, epoch_idx: int, time: float) -> None:
-        """Add epoch time to data."""
-        self.data["epoch_id"].append(epoch_idx)
-        self.data["time"].append(time)
-
-    def save(self) -> None:
-        """Save data to a new CSV file."""
-        import pandas as pd
-
-        df = pd.DataFrame(self.data)
-        df["name"] = self.strategy_name
-        df["nodes"] = self.num_nodes
-
-        self.save_path.parent.mkdir(parents=True, exist_ok=True)
-        df.to_csv(self.save_path, index=False)
-        print(f"Saving EpochTimeTracking data to '{self.save_path.resolve()}'.")
-
-
 class EmptyLogger(Logger):
     """Dummy logger which can be used as a placeholder when a real logger is
     not available. All methods do nothing.
@@ -1301,3 +1333,50 @@ class EmptyLogger(Logger):
         **kwargs,
     ) -> None:
         pass
+
+
+class EpochTimeTracker:
+    """Logger for epoch execution time during training."""
+
+    def __init__(
+        self,
+        strategy_name: str,
+        save_path: Path | str,
+        num_nodes: int,
+        should_log: bool = True,
+    ) -> None:
+        if isinstance(save_path, str):
+            save_path = Path(save_path)
+
+        self.should_log = should_log
+        self.save_path: Path = save_path
+        self.strategy_name = strategy_name
+        self.num_nodes = num_nodes
+        self.data = {"epoch_id": [], "time": []}
+
+        if not self.should_log:
+            print("Warning: EpochTimeLogger has been disabled!")
+
+    def add_epoch_time(self, epoch_idx: int, time: float) -> None:
+        """Add epoch time to data."""
+        if not self.should_log:
+            return
+
+        self.data["epoch_id"].append(epoch_idx)
+        self.data["time"].append(time)
+        self.save()
+
+    def save(self) -> None:
+        """Save data to a new CSV file."""
+        if not self.should_log:
+            return
+
+        import pandas as pd
+
+        df = pd.DataFrame(self.data)
+        df["name"] = self.strategy_name
+        df["nodes"] = self.num_nodes
+
+        self.save_path.parent.mkdir(parents=True, exist_ok=True)
+        df.to_csv(self.save_path, index=False)
+        print(f"Saving EpochTimeLogging data to '{self.save_path.resolve()}'.")

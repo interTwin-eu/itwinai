@@ -123,7 +123,7 @@ refer to the `Hydra documentation <https://hydra.cc/docs/advanced/hydra-command-
 .. note::
 
     If your pipeline execution fails and you need detailed error messages, 
-    we recomment that you set the following environment variable before running the pipeline:
+    we recommend that you set the following environment variable before running the pipeline:
 
     .. code-block:: bash
 

@@ -1,4 +1,5 @@
 import os
+from os.path import isdir
 from pathlib import Path
 from timeit import default_timer
 from typing import Dict, Literal, Optional, Union, Any, Tuple
@@ -24,6 +25,7 @@ from itwinai.torch.distributed import (
 )
 
 from itwinai.torch.monitoring.monitoring import measure_gpu_utilization
+from itwinai.torch.profiling.profiler import profile_torch_trainer
 from itwinai.distributed import suppress_workers_print
 from itwinai.loggers import EpochTimeTracker, Logger
 from itwinai.torch.config import TrainingConfiguration
@@ -183,6 +185,7 @@ class RNNDistributedTrainer(TorchTrainer):
             lr_scheduler=self.hython_trainer.lr_scheduler,
             **distribute_kwargs,
         )
+        self.hython_trainer.optimizer = self.optimizer
 
     def set_epoch(self, epoch: int):
         if self.profiler is not None:
@@ -192,22 +195,23 @@ class RNNDistributedTrainer(TorchTrainer):
             self.train_loader.sampler.set_epoch(epoch)
             self.val_loader.sampler.set_epoch(epoch)
 
+    @profile_torch_trainer
     @measure_gpu_utilization
     def train(self):
         """Override train_val version of hython to support distributed strategy."""
 
         # Tracking epoch times for scaling test
-        if self.strategy.is_main_worker:
+        if self.strategy.is_main_worker and self.strategy.is_distributed:
             num_nodes = os.environ.get("SLURM_NNODES", "unk")
-            series_name = os.environ.get("DIST_MODE", "unk") + "-torch"
             epoch_time_output_dir = Path("scalability-metrics/epoch-time")
             epoch_time_file_name = f"epochtime_{self.strategy.name}_{num_nodes}N.csv"
             epoch_time_output_path = epoch_time_output_dir / epoch_time_file_name
 
-            epoch_time_tracker = EpochTimeTracker(
+            epoch_time_logger= EpochTimeTracker(
                 strategy_name=self.strategy.name,
                 save_path=epoch_time_output_path,
                 num_nodes=num_nodes,
+                should_log=self.measure_epoch_time
             )
 
         device = self.strategy.device()
@@ -282,26 +286,31 @@ class RNNDistributedTrainer(TorchTrainer):
                 best_model = self.model.state_dict()
                 # self.hython_trainer.save_weights(self.model)
 
-            epoch_time = default_timer() - epoch_start_time
-            epoch_time_tracker.add_epoch_time(epoch + 1, epoch_time)
+            if self.strategy.is_distributed:
+                epoch_time = default_timer() - epoch_start_time
+                epoch_time_logger.add_epoch_time(epoch + 1, epoch_time)
 
         if self.strategy.is_main_worker:
-            epoch_time_tracker.save()
             self.model.load_state_dict(best_model)
 
             # MODEL LOGGING
             model_log_names = self.model_api.get_model_log_names()
             for module_name, model_class_name in model_log_names.items():
-                item = self.model if module_name == "model" else self.model.get_submodule(module_name)
+                item = (
+                    self.model
+                    if module_name == "model"
+                    else self.model.get_submodule(module_name)
+                )
+
                 if self.model_logger == "mlflow":
                     self.log(
-                                item=item,
-                                identifier=model_class_name,
-                                kind="model",
-                                registered_model_name=model_class_name,
-                            )
+                        item=item,
+                        identifier=model_class_name,
+                        kind="model",
+                        registered_model_name=model_class_name,
+                    )
                 else:
-                    self.model_api.log_model(module_name, item)     
+                    self.model_api.log_model(module_name, item)
 
             # Report training metrics of last epoch to Ray
             train.report({"loss": avg_val_loss.item(), "train_loss": train_loss.item()})
@@ -336,9 +345,10 @@ class RNNDistributedTrainer(TorchTrainer):
         train_sampler = train_sampler_builder.get_sampler()
         val_sampler = val_sampler_builder.get_sampler()
 
+        batch_size = self.config.batch_size // self.strategy.global_world_size()
         self.train_loader = self.strategy.create_dataloader(
             dataset=train_dataset,
-            batch_size=self.config.batch_size,
+            batch_size=batch_size,
             num_workers=self.config.num_workers_dataloader,
             pin_memory=self.config.pin_gpu_memory,
             generator=self.torch_rng,
@@ -349,7 +359,7 @@ class RNNDistributedTrainer(TorchTrainer):
         if validation_dataset is not None:
             self.val_loader = self.strategy.create_dataloader(
                 dataset=validation_dataset,
-                batch_size=self.config.batch_size,
+                batch_size=batch_size,
                 num_workers=self.config.num_workers_dataloader,
                 pin_memory=self.config.pin_gpu_memory,
                 generator=self.torch_rng,

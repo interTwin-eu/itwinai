@@ -10,6 +10,7 @@
         "bierner.markdown-mermaid",
         "tamasfe.even-better-toml",
         "charliermarsh.ruff",
-        "github.vscode-github-actions"
+        "github.vscode-github-actions",
+        "dnut.rewrap-revived"
     ]
 }

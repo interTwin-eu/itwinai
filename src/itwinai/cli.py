@@ -19,6 +19,7 @@
 # NOTE: import libraries in the command's function, not here, as having them here will
 # slow down the CLI commands significantly.
 
+import logging
 import os
 import sys
 from pathlib import Path
@@ -28,9 +29,9 @@ import hydra
 import typer
 from typing_extensions import Annotated
 
-from itwinai.utils import make_config_paths_absolute
-
 app = typer.Typer(pretty_exceptions_enable=False)
+
+py_logger = logging.getLogger(__name__)
 
 
 @app.command()
@@ -51,18 +52,26 @@ def generate_scalability_report(
             )
         ),
     ] = False,
-    backup_root_dir: Annotated[
-        str, typer.Option(help=("Which directory to store the backup files in."))
-    ] = "backup-scalability-metrics/",
-    experiment_name: Annotated[
-        Optional[str],
+    run_ids: Annotated[
+        str | None,
         typer.Option(
             help=(
-                "What to name the experiment in the backup directory."
-                " Will be automatically generated if left as None."
+                "Which run ids to read, presented as comma-separated values, e.g. 'run0,run1'."
             )
         ),
     ] = None,
+    backup_root_dir: Annotated[
+        str, typer.Option(help=("Which directory to store the backup files in."))
+    ] = "backup-scalability-metrics/",
+    plot_file_suffix: Annotated[
+        str,
+        typer.Option(
+            help=(
+                "Which file suffix to use for the plots. Useful for changing between raster"
+                " and vector based images"
+            )
+        ),
+    ] = ".png",
 ):
     """Generates scalability reports for epoch time, GPU data, and communication data
     based on log files in the specified directory. Optionally, backups of the reports
@@ -73,7 +82,7 @@ def generate_scalability_report(
     in the `plot_dir`. If backups are enabled, the generated reports will also be
     copied to a backup directory under `backup_root_dir`.
     """
-    import uuid
+    from datetime import datetime
 
     from itwinai.scalability_report.reports import (
         communication_data_report,
@@ -84,47 +93,98 @@ def generate_scalability_report(
     log_dir_path = Path(log_dir)
     if not log_dir_path.exists():
         raise ValueError(f"The provided log_dir, '{log_dir_path.resolve()}', does not exist.")
+
+    if run_ids:
+        base_directories_for_runs = [log_dir_path / run_id for run_id in run_ids.split(",")]
+        # Ensure that all passed run_ids actually exist as directories
+        non_existent_paths = [
+            str(path.resolve()) for path in base_directories_for_runs if not path.exists()
+        ]
+        if non_existent_paths:
+            raise ValueError(f"Given run_id paths do not exist: '{non_existent_paths}'!")
+    else:
+        # Ensure that all elements in log_dir are directories
+        non_directory_paths = [
+            str(path.resolve()) for path in log_dir_path.iterdir() if not path.is_dir()
+        ]
+        if non_directory_paths:
+            raise ValueError(
+                f"Found elements in log_dir that are not directories: '{non_directory_paths}'"
+            )
+        base_directories_for_runs = list(log_dir_path.iterdir())
+
+    # Finding the respective data logging directories
+    epoch_time_logdirs = [
+        path / "epoch-time"
+        for path in base_directories_for_runs
+        if (path / "epoch-time").exists()
+    ]
+    gpu_data_logdirs = [
+        path / "gpu-energy-data"
+        for path in base_directories_for_runs
+        if (path / "gpu-energy-data").exists()
+    ]
+    comm_time_logdirs = [
+        path / "communication-data"
+        for path in base_directories_for_runs
+        if (path / "communication-data").exists()
+    ]
+
+    # Setting the backup directory from run name
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    if base_directories_for_runs:
+        backup_run_id = "_".join(map(str, base_directories_for_runs)) + f"_{timestamp}"
+    else:
+        backup_run_id = f"aggregated_run_{timestamp}"
+    backup_dir = Path(backup_root_dir) / backup_run_id
+
+    epoch_time_backup_dir = backup_dir / "epoch-time"
+    gpu_data_backup_dir = backup_dir / "gpu-energy-data"
+    communication_data_backup_dir = backup_dir / "communication-data"
+
     plot_dir_path = Path(plot_dir)
     plot_dir_path.mkdir(exist_ok=True, parents=True)
 
-    report_dirs = {
-        "Epoch Time": {
-            "dir": log_dir_path / "epoch-time",
-            "func": epoch_time_report,
-        },
-        "GPU Data": {
-            "dir": log_dir_path / "gpu-energy-data",
-            "func": gpu_data_report,
-        },
-        "Communication Data": {
-            "dir": log_dir_path / "communication-data",
-            "func": communication_data_report,
-        },
-    }
+    epoch_time_table = epoch_time_report(
+        log_dirs=epoch_time_logdirs,
+        plot_dir=plot_dir_path,
+        backup_dir=epoch_time_backup_dir,
+        do_backup=do_backup,
+        plot_file_suffix=plot_file_suffix,
+    )
+    gpu_data_table = gpu_data_report(
+        log_dirs=gpu_data_logdirs,
+        plot_dir=plot_dir_path,
+        backup_dir=gpu_data_backup_dir,
+        do_backup=do_backup,
+        plot_file_suffix=plot_file_suffix,
+    )
+    communication_data_table = communication_data_report(
+        log_dirs=comm_time_logdirs,
+        plot_dir=plot_dir_path,
+        backup_dir=communication_data_backup_dir,
+        do_backup=do_backup,
+        plot_file_suffix=plot_file_suffix,
+    )
 
-    # Setting the backup directory from exp name and run name
-    experiment_name = experiment_name or f"exp_{uuid.uuid4().hex[:6]}"
-    backup_dir = Path(backup_root_dir) / experiment_name
+    print()
+    if epoch_time_table is not None:
+        print("#" * 8, "Epoch Time Report", "#" * 8)
+        print(epoch_time_table, "\n")
+    else:
+        print("No Epoch Time Data Found\n")
 
-    # Creating reports from dictionary
-    for report_name, details in report_dirs.items():
-        report_dir = details["dir"]
-        report_func = details["func"]
+    if gpu_data_table is not None:
+        print("#" * 8, "GPU Data Report", "#" * 8)
+        print(gpu_data_table, "\n")
+    else:
+        print("No GPU Data Found\n")
 
-        if report_dir.exists():
-            print("#" * 8, f"{report_name} Report", "#" * 8)
-            report_func(
-                report_dir,
-                plot_dir=plot_dir_path,
-                backup_dir=backup_dir,
-                do_backup=do_backup,
-            )
-            print()
-        else:
-            print(
-                f"No report was created for {report_name} as '{report_dir.resolve()}' does "
-                f"not exist."
-            )
+    if communication_data_table is not None:
+        print("#" * 8, "Communication Data Report", "#" * 8)
+        print(communication_data_table, "\n")
+    else:
+        print("No Communication Data Found\n")
 
 
 @app.command()
@@ -164,13 +224,137 @@ def sanity_check(
 
 
 @app.command(context_settings={"allow_extra_args": True, "ignore_unknown_options": True})
+def generate_slurm(
+    job_name: Annotated[
+        str | None, typer.Option("--job-name", help="The name of the SLURM job.")
+    ] = None,
+    account: Annotated[
+        str, typer.Option("--account", help="The billing account for the SLURM job.")
+    ] = "intertwin",
+    time: Annotated[
+        str, typer.Option("--time", help="The time limit of the SLURM job.")
+    ] = "00:30:00",
+    partition: Annotated[
+        str,
+        typer.Option(
+            "--partition",
+            help="Which partition of the cluster the SLURM job is going to run on.",
+        ),
+    ] = "develbooster",
+    std_out: Annotated[
+        str | None, typer.Option("--std-out", help="The standard out file.")
+    ] = None,
+    err_out: Annotated[
+        str | None, typer.Option("--err-out", help="The error out file.")
+    ] = None,
+    num_nodes: Annotated[
+        int,
+        typer.Option(
+            "--num-nodes",
+            help="The number of nodes that the SLURM job is going to run on.",
+        ),
+    ] = 1,
+    num_tasks_per_node: Annotated[
+        int, typer.Option("--num-tasks-per-node", help="The number of tasks per node.")
+    ] = 1,
+    gpus_per_node: Annotated[
+        int,
+        typer.Option("--gpus-per-node", help="The requested number of GPUs per node."),
+    ] = 4,
+    cpus_per_gpu: Annotated[
+        int,
+        typer.Option("--cpus-per-gpu", help="The requested number of CPUs per GPU."),
+    ] = 4,
+    config_path: Annotated[
+        str,
+        typer.Option(
+            "--config-path",
+            help="The path to the directory containing the config file to use for training.",
+        ),
+    ] = ".",
+    config_name: Annotated[
+        str,
+        typer.Option("--config-name", help="The name of the config file to use for training."),
+    ] = "config",
+    pipe_key: Annotated[
+        str,
+        typer.Option("--pipe-key", help="Which pipe key to use for running the pipeline."),
+    ] = "rnn_training_pipeline",
+    mode: Annotated[
+        str,
+        typer.Option(
+            "--mode",
+            help="Which mode to run, e.g. scaling test, all strategies, or a single run.",
+            case_sensitive=False,
+        ),
+    ] = "single",
+    dist_strat: Annotated[
+        str,
+        typer.Option(
+            "--dist-strat",
+            help="Which distributed strategy to use.",
+            case_sensitive=False,
+        ),
+    ] = "ddp",
+    training_cmd: Annotated[
+        str | None,
+        typer.Option(
+            "--training-cmd", help="The training command to use for the python script."
+        ),
+    ] = None,
+    python_venv: Annotated[
+        str,
+        typer.Option(
+            "--python-venv", help="Which python venv to use for running the command."
+        ),
+    ] = ".venv",
+    scalability_nodes: Annotated[
+        str,
+        typer.Option(
+            "--scalability-nodes",
+            help="A comma-separated list of node numbers to use for the scalability test.",
+        ),
+    ] = "1,2,4,8",
+    debug: Annotated[
+        bool,
+        typer.Option("--debug", help="Whether to include debugging information or not"),
+    ] = False,
+    no_save_script: Annotated[
+        bool,
+        typer.Option(
+            "--no-save-script", help="Whether to save the script after processing it."
+        ),
+    ] = False,
+    no_submit_job: Annotated[
+        bool,
+        typer.Option(
+            "--no-submit-job",
+            help="Whether to submit the job when processing the script.",
+        ),
+    ] = False,
+    config: Annotated[
+        str | None,
+        typer.Option("--config", help="The path to the SLURM configuration file."),
+    ] = None,
+):
+    """Generates a default SLURM script using arguments and optionally a configuration
+    file.
+    """
+    from itwinai.slurm.slurm_script_builder import generate_default_slurm_script
+
+    del sys.argv[0]
+    generate_default_slurm_script()
+
+
+@app.command(context_settings={"allow_extra_args": True, "ignore_unknown_options": True})
 def exec_pipeline(
     # NOTE: The arguments below are not actually needed in this function, but they are here
     # to replicate Hydra's help page in Typer, making it easier for the users to use it.
     hydra_help: Annotated[bool, typer.Option(help="Show Hydra's help page")] = False,
     version: Annotated[bool, typer.Option(help="Show Hydra's version and exit")] = False,
     cfg: Annotated[
-        str, typer.Option("--cfg", "-c", help="Show config instead of running [job|hydra|all]")
+        str,
+        typer.Option("--cfg", "-c", help="Show config instead of running [job|hydra|all]"),
     ] = "",
     resolve: Annotated[
         bool,
@@ -270,6 +454,7 @@ def exec_pipeline(
     by passing "+pipe_key=your_pipeline" in the list of overrides, and to execute only a
     subset of the steps, you can pass "+pipe_steps=[0,1]".
     """
+    from itwinai.utils import make_config_paths_absolute
 
     del sys.argv[0]
 
@@ -295,6 +480,22 @@ def exec_pipeline_with_compose(cfg):
 
     from hydra.utils import instantiate
     from omegaconf import OmegaConf, errors
+
+    # Register custom OmegaConf resolver to allow to dynaimcally compute the current working
+    # directory. Example: some_field: ${itwinai.cwd:}/some/nested/path/in/current/working/dir
+    OmegaConf.register_new_resolver("itwinai.cwd", lambda: os.getcwd())
+
+    def range_resolver(x, y=None, step=1):
+        """Custom OmegaConf resolver for range."""
+        if y is None:
+            return list(range(int(x)))
+        return list(range(int(x), int(y), int(step)))
+
+    # Register custom OmegaConf resolver to allow to dynaimcally compute ranges
+    OmegaConf.register_new_resolver("itwinai.range", range_resolver)
+
+    # Register custom OmegaConf resolver to allow to dynaimcally compute ranges
+    OmegaConf.register_new_resolver("itwinai.multiply", lambda x, y: x * y)
 
     pipe_steps = OmegaConf.select(cfg, "pipe_steps", default=None)
     pipe_key = OmegaConf.select(cfg, "pipe_key", default="training_pipeline")
@@ -329,14 +530,14 @@ def exec_pipeline_with_compose(cfg):
 
 @app.command()
 def mlflow_ui(
-    path: str = typer.Option("ml-logs/", help="Path to logs storage."),
+    path: str = typer.Option("mllogs/mlflow", help="Path to logs storage."),
     port: int = typer.Option(5000, help="Port on which the MLFlow UI is listening."),
     host: str = typer.Option(
         "127.0.0.1",
         help="Which host to use. Switch to '0.0.0.0' to e.g. allow for port-forwarding.",
     ),
 ):
-    """Visualize Mlflow logs."""
+    """Visualize logs with Mlflow."""
     import subprocess
 
     subprocess.run(f"mlflow ui --backend-store-uri {path} --port {port} --host {host}".split())
@@ -344,7 +545,7 @@ def mlflow_ui(
 
 @app.command()
 def mlflow_server(
-    path: str = typer.Option("ml-logs/", help="Path to logs storage."),
+    path: str = typer.Option("mllogs/mlflow", help="Path to logs storage."),
     port: int = typer.Option(5000, help="Port on which the server is listening."),
 ):
     """Spawn Mlflow server."""
@@ -363,6 +564,103 @@ def kill_mlflow_server(
     subprocess.run(
         f"kill -9 $(lsof -t -i:{port})".split(), check=True, stderr=subprocess.DEVNULL
     )
+
+
+@app.command()
+def download_mlflow_data(
+    tracking_uri: Annotated[
+        str, typer.Option(help="The tracking URI of the MLFlow server.")
+    ] = "https://mlflow.intertwin.fedcloud.eu/",
+    experiment_id: Annotated[
+        str, typer.Option(help="The experiment ID that you wish to retrieve data from.")
+    ] = "48",
+    output_file: Annotated[
+        str, typer.Option(help="The file path to save the data to.")
+    ] = "mlflow_data.csv",
+):
+    """Download metrics data from MLFlow experiments and save to a CSV file.
+
+    Requires MLFlow authentication if the server is configured to use it.
+    Authentication must be provided via the following environment variables:
+    'MLFLOW_TRACKING_USERNAME' and 'MLFLOW_TRACKING_PASSWORD'.
+    """
+
+    mlflow_credentials_set = (
+        "MLFLOW_TRACKING_USERNAME" in os.environ and "MLFLOW_TRACKING_PASSWORD" in os.environ
+    )
+    if not mlflow_credentials_set:
+        print(
+            "\nWarning: MLFlow authentication environment variables are not set. "
+            "If the server requires authentication, your request will fail."
+            "You can authenticate by setting environment variables before running:\n"
+            "\texport MLFLOW_TRACKING_USERNAME=your_username\n"
+            "\texport MLFLOW_TRACKING_PASSWORD=your_password\n"
+        )
+
+    import mlflow
+    import pandas as pd
+    from mlflow import MlflowClient
+
+    mlflow.set_tracking_uri(tracking_uri)
+    client = MlflowClient()
+
+    # Handling authentication
+    try:
+        print(f"\nConnecting to MLFlow server at {tracking_uri}")
+        print(f"Accessing experiment ID: {experiment_id}")
+        runs = client.search_runs(experiment_ids=[experiment_id])
+        print(f"Authentication successful! Found {len(runs)} runs.")
+    except mlflow.MlflowException as e:
+        status_code = e.get_http_status_code()
+        if status_code == 401:
+            print(
+                "Authentication with MLFlow failed with code 401! Either your "
+                "environment variables are not set or they are incorrect!"
+            )
+            return
+        else:
+            raise e
+
+    all_metrics = []
+    for run_idx, run in enumerate(runs):
+        run_id = run.info.run_id
+        metric_keys = run.data.metrics.keys()  # Get all metric names
+
+        print(f"Processing run {run_idx + 1}/{len(runs)}")
+        for metric_name in metric_keys:
+            metrics = client.get_metric_history(run_id, metric_name)
+            for metric in metrics:
+                all_metrics.append(
+                    {
+                        "run_id": run_id,
+                        "metric_name": metric.key,
+                        "value": metric.value,
+                        "step": metric.step,
+                        "timestamp": metric.timestamp,
+                    }
+                )
+
+    if not all_metrics:
+        print("No metrics found in the runs")
+        return
+
+    df_metrics = pd.DataFrame(all_metrics)
+    df_metrics.to_csv(output_file, index=False)
+    print(f"Saved data to '{Path(output_file).resolve()}'!")
+
+
+def tensorboard_ui(
+    path: str = typer.Option("mllogs/tensorboard", help="Path to logs storage."),
+    port: int = typer.Option(6006, help="Port on which the Tensorboard UI is listening."),
+    host: str = typer.Option(
+        "127.0.0.1",
+        help="Which host to use. Switch to '0.0.0.0' to e.g. allow for port-forwarding.",
+    ),
+):
+    """Visualize logs with TensorBoard."""
+    import subprocess
+
+    subprocess.run(f"tensorboard --logdir={path} --port={port} --host={host}".split())
 
 
 if __name__ == "__main__":

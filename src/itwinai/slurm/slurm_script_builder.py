@@ -10,12 +10,16 @@
 
 import subprocess
 from pathlib import Path
-from typing import List
+from tempfile import TemporaryDirectory
+from typing import Dict, List
 
 from pydantic import BaseModel
 
 from itwinai.slurm.slurm_constants import JUWELS_HPC_MODULES, SLURM_TEMPLATE
-from itwinai.slurm.utils import remove_indentation_from_multiline_string
+from itwinai.slurm.utils import (
+    get_slurm_job_parser,
+    remove_indentation_from_multiline_string,
+)
 
 
 class SlurmScriptConfiguration(BaseModel):
@@ -70,6 +74,9 @@ class SlurmScriptBuilder:
         training_command: str | None = None,
         python_venv: str = ".venv",
         debug: bool = False,
+        config_name: str = "config",
+        config_path: str = ".",
+        pipe_key: str = "training_pipeline",
         file_folder: Path = Path("slurm_scripts"),
     ):
         self.slurm_script_configuration = slurm_script_configuration
@@ -80,10 +87,24 @@ class SlurmScriptBuilder:
         self.debug = debug
         self.file_folder = file_folder
 
+        # exec-pipeline-specific commands
+        self.config_name = config_name
+        self.config_path = config_path
+        self.pipe_key = pipe_key
+
         if self.slurm_script_configuration.cpus_per_gpu > 0:
             self.omp_num_threads = self.slurm_script_configuration.cpus_per_gpu
         else:
             self.omp_num_threads = 1
+
+    @property
+    def training_cmd_formatter(self) -> Dict[str, str]:
+        return {
+            "dist_strat": self.distributed_strategy,
+            "config_name": self.config_name,
+            "config_path": self.config_path,
+            "pipe_key": self.pipe_key,
+        }
 
     def generate_identifier(self) -> str:
         num_nodes = self.slurm_script_configuration.num_nodes
@@ -91,11 +112,17 @@ class SlurmScriptBuilder:
         return f"{self.distributed_strategy}-{num_nodes}x{gpus_per_node}"
 
     def get_training_command(self) -> str:
-        if self.training_command is None:
-            raise ValueError(
-                "self.training_command cannot be None in an instance of the parent class."
-            )
-        return self.training_command
+        if self.training_command:
+            return self.training_command.format(**self.training_cmd_formatter)
+
+        # Default for the TorchTrainer
+        default_command = rf"""
+            $(which itwinai) exec-pipeline \
+            strategy={self.distributed_strategy} \
+            checkpoints_location=checkpoints_{self.distributed_strategy}
+        """
+        default_command = default_command.strip()
+        return remove_indentation_from_multiline_string(default_command)
 
     def get_pre_exec_command(self) -> str:
         """Generates a pre-execution command for the SLURM script. This will load the
@@ -120,8 +147,7 @@ class SlurmScriptBuilder:
         """
         if self.distributed_strategy in ["ddp", "deepspeed"]:
             rdzv_endpoint = (
-                '\'$(scontrol show hostnames "$SLURM_JOB_NODELIST"'
-                " | head -n 1)':29500"
+                '\'$(scontrol show hostnames "$SLURM_JOB_NODELIST"' " | head -n 1)'i:29500"
             )
             main_command = rf"""
             srun --cpu-bind=none --ntasks-per-node=1 \
@@ -181,73 +207,77 @@ class SlurmScriptBuilder:
     def process_slurm_script(
         self,
         file_path: Path | None = None,
-        retain_file: bool = True,
+        save_script: bool = True,
         submit_slurm_job: bool = True,
     ) -> None:
         """Will generate and process a SLURM script according to specifications. Will
         run the script if ``submit_slurm_job`` is set to True, will store the SLURM script file
-        if ``retain_file`` is set to True. If both are false, it will simply print the
-        script to the console without any further processing.
+        if ``save_script`` is set to True. If both are false, it will simply print the
+        script to the console without any further processing. Also creates the
+        needed directories for the stderr and stdout for the script.
 
         Args:
             file_path: Where to store the file before processing the script. Also the location
-                it will remain if ``retain_file`` is set to True.
-            retain_file: Whether to keep or delete the file after finishing processing.
+                it will remain if ``save_script`` is set to True.
+            save_script: Whether to keep or delete the file after finishing processing.
             submit_slurm_job: Whether to submit the script as a SLURM job.
         """
+        job_identifier = self.generate_identifier()
         self.slurm_script_configuration.pre_exec_command = self.get_pre_exec_command()
         self.slurm_script_configuration.exec_command = self.get_srun_command()
 
         # Setting some default fields
         if self.slurm_script_configuration.job_name is None:
-            self.slurm_script_configuration.job_name = self.generate_identifier()
+            self.slurm_script_configuration.job_name = job_identifier
 
         if self.slurm_script_configuration.std_out is None:
-            std_out_path = Path("slurm_job_logs") / (self.generate_identifier() + ".out")
+            std_out_path = Path("slurm_job_logs") / f"{job_identifier}.out"
             self.slurm_script_configuration.std_out = std_out_path
         if self.slurm_script_configuration.err_out is None:
-            err_out_path = Path("slurm_job_logs") / (self.generate_identifier() + ".err")
+            err_out_path = Path("slurm_job_logs") / f"{job_identifier}.err"
             self.slurm_script_configuration.err_out = err_out_path
 
         # Making sure the std out and err out folders exist
-        self.slurm_script_configuration.std_out.parent.mkdir(
-            exist_ok=True, parents=True
-        )
-        self.slurm_script_configuration.err_out.parent.mkdir(
-            exist_ok=True, parents=True
-        )
+        self.slurm_script_configuration.std_out.parent.mkdir(exist_ok=True, parents=True)
+        self.slurm_script_configuration.err_out.parent.mkdir(exist_ok=True, parents=True)
 
         # Generate the script using the given configuration
         script = self.slurm_script_configuration.format_script()
-        if not submit_slurm_job and not retain_file:
-            print("#" * 20, "SLURM Script Preview", "#"*20)
+        if not submit_slurm_job and not save_script:
+            upper_banner_str = f"{'#'*20} SLURM Script Preview {'#'*20}"
+            print(upper_banner_str)
             print(script)
-            print("#" * 62)
+            print("#" * len(upper_banner_str))
             return
 
-        if file_path is None:
-            file_path = self.file_folder / (self.generate_identifier() + ".sh")
+        temp_dir = None
+        if save_script:
+            file_path = file_path or self.file_folder / f"{job_identifier}.sh"
+            if file_path.exists():
+                raise FileExistsError(
+                    f"File '{file_path.resolve()}' already exists! Give a different path "
+                    f"or delete the file first."
+                )
 
-        if file_path.exists():
-            raise ValueError(
-                f"File '{file_path.resolve()}' already exists! Give a different path "
-                f"or delete the file first!"
-            )
+            self.file_folder.mkdir(exist_ok=True, parents=True)
+            print(f"Storing SLURM script at '{file_path.resolve()}'.")
+        else:
+            temp_dir = TemporaryDirectory()
+            file_path = Path(temp_dir.name) / f"{job_identifier}.sh"
 
-        file_path.parent.mkdir(exist_ok=True, parents=True)
         with open(file_path, "w") as f:
             f.write(script)
 
         if submit_slurm_job:
             subprocess.run(["sbatch", str(file_path.resolve())])
 
-        if not retain_file:
-            file_path.unlink()
+        if temp_dir:
+            temp_dir.cleanup()
 
     def run_slurm_script_all_strategies(
         self,
         file_folder: Path = Path("slurm_scripts"),
-        retain_file: bool = True,
+        save_script: bool = True,
         submit_slurm_job: bool = True,
         strategies: List[str] = ["ddp", "horovod", "deepspeed"],
     ):
@@ -257,22 +287,23 @@ class SlurmScriptBuilder:
         self.file_folder = file_folder
         for strategy in strategies:
             self.distributed_strategy = strategy
+            job_identifier = self.generate_identifier()
 
             # Overriding job_name, std_out and err_out
-            self.slurm_script_configuration.job_name = self.generate_identifier()
-            std_out_path = Path("slurm_job_logs") / (self.generate_identifier() + ".out")
-            err_out_path = Path("slurm_job_logs") / (self.generate_identifier() + ".err")
+            self.slurm_script_configuration.job_name = job_identifier
+            std_out_path = Path("slurm_job_logs") / f"{job_identifier}.out"
+            err_out_path = Path("slurm_job_logs") / f"{job_identifier}.err"
             self.slurm_script_configuration.std_out = std_out_path
             self.slurm_script_configuration.err_out = err_out_path
 
             self.process_slurm_script(
-                retain_file=retain_file, submit_slurm_job=submit_slurm_job
+                save_script=save_script, submit_slurm_job=submit_slurm_job
             )
 
     def run_scaling_test(
         self,
         file_folder: Path = Path("slurm_scripts"),
-        retain_file: bool = True,
+        save_script: bool = True,
         submit_slurm_job: bool = True,
         strategies: List[str] = ["ddp", "horovod", "deepspeed"],
         num_nodes_list: List[int] = [1, 2, 4, 8],
@@ -284,7 +315,66 @@ class SlurmScriptBuilder:
             self.slurm_script_configuration.num_nodes = num_nodes
             self.run_slurm_script_all_strategies(
                 file_folder=file_folder,
-                retain_file=retain_file,
+                save_script=save_script,
                 submit_slurm_job=submit_slurm_job,
                 strategies=strategies,
             )
+
+
+def generate_default_slurm_script() -> None:
+    """Generates and optionally submits a default SLURM script.
+
+    This function creates a SLURM script using the `SlurmScriptBuilder`, based on
+    command-line arguments parsed from `get_slurm_job_parser()`. It sets up a
+    basic SLURM configuration with common parameters like job name, account,
+    requested resources, and execution commands.
+
+    If `--no-submit-job` is provided, the script will not be submitted via `sbatch`.
+    If `--no-save-script` is provided, the generated SLURM script will be deleted
+    after execution.
+    """
+    parser = get_slurm_job_parser()
+    args = parser.parse_args()
+
+    slurm_script_configuration = SlurmScriptConfiguration(
+        job_name=args.job_name,
+        account=args.account,
+        time=args.time,
+        partition=args.partition,
+        std_out=args.std_out,
+        err_out=args.err_out,
+        num_nodes=args.num_nodes,
+        num_tasks_per_node=args.num_tasks_per_node,
+        gpus_per_node=args.gpus_per_node,
+        cpus_per_gpu=args.cpus_per_gpu,
+    )
+
+    slurm_script_builder = SlurmScriptBuilder(
+        slurm_script_configuration=slurm_script_configuration,
+        distributed_strategy=args.dist_strat,
+        debug=args.debug,
+        python_venv=args.python_venv,
+        training_command=args.training_cmd,
+        config_path=args.config_path,
+        config_name=args.config_name,
+        pipe_key=args.pipe_key,
+    )
+
+    submit_job = not args.no_submit_job
+    save_script = not args.no_save_script
+
+    mode = args.mode
+    if mode == "single":
+        slurm_script_builder.process_slurm_script(
+            submit_slurm_job=submit_job, save_script=save_script
+        )
+    elif mode == "runall":
+        slurm_script_builder.run_slurm_script_all_strategies(
+            submit_slurm_job=submit_job, save_script=save_script
+        )
+    elif mode == "scaling-test":
+        slurm_script_builder.run_scaling_test(
+            submit_slurm_job=submit_job,
+            save_script=save_script,
+            num_nodes_list=args.scalability_nodes,
+        )
