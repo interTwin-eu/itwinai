@@ -81,7 +81,7 @@ unet_pipeline:
         _target_: src.pulsar_analysis.neural_network_models.WeightedBCELoss
         pos_weight: 3
         neg_weight: 1
-      num_epochs: 25 #10
+      epochs: 1      # epochs: 1 #10
       store_trained_model_at: ${unet_st}
       name: UNetTrainer
       config:
@@ -139,7 +139,7 @@ fcnn_pipeline:
         _target_: src.pulsar_analysis.neural_network_models.WeightedBCELoss
         pos_weight: 1
         neg_weight: 1
-      num_epochs: 10 #
+      epochs: 10 #
       store_trained_model_at: ${fcnn_st}
       name: FilterCNNTrainer
       config:
@@ -192,7 +192,7 @@ cnn1d_pipeline:
         _target_: src.pulsar_analysis.neural_network_models.WeightedBCELoss
         pos_weight: 1
         neg_weight: 1
-      num_epochs: 50 #20
+      epochs: 50 #20
       store_trained_model_at: ${cnn1d_st}
       name: CNN1DTrainer
       config:

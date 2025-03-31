@@ -110,7 +110,7 @@ config = {
 
 ImgToMaskTrainer = PulsarTrainer(
                     model= UNet(),
-                    num_epochs=2, #10
+                    epochs=2, #10
                     store_trained_model_at='./models/trained_UNet_test_v0.pt',
                     loss = WeightedBCELoss(pos_weight=3,neg_weight=1),
                     name='ImgToMaskTrainer',
@@ -119,7 +119,7 @@ ImgToMaskTrainer = PulsarTrainer(
 
 InmaskToMaskTrainer = PulsarTrainer(
                     model= FilterCNN(),
-                    num_epochs=3,
+                    epochs=3,
                     store_trained_model_at='./models/trained_Filter_test_v0.pt',
                     loss = WeightedBCELoss(pos_weight=1,neg_weight=1),  
                     name='InmaskToMaskTrainer',
@@ -128,7 +128,7 @@ InmaskToMaskTrainer = PulsarTrainer(
 
 SignalToLabelTrainer = PulsarTrainer(
                     model =CNN1D(),
-                    num_epochs=20,
+                    epochs=20,
                     loss = WeightedBCELoss(pos_weight=1,neg_weight=1),
                     store_trained_model_at='./models/trained_CNN1D_test_v0.pt',
                     name='SignalToLabelTrainer',

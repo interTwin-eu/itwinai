@@ -50,26 +50,6 @@ def test_radio_astronomy_syndata(torch_env):
     ## Clean up the use-case folder
     subprocess.run("rm -rf syndata_test", shell=True, check=True, cwd=USECASE_FOLDER)
 
-
-@pytest.mark.functional
-def test_radio_astronomy_unet(torch_env):
-    """
-    Test U-Net Pulsar-DDT trainer by running it end-to-end
-    via the config-test.yaml configuration file.
-    """
-
-    cmd = (
-        f"{torch_env}/bin/itwinai exec-pipeline "
-        f"--config-name .config-test "
-        f"+pipe_key=unet_pipeline "
-    )
-
-    ## Run the pipeline and check file generation in the use-case folder
-    subprocess.run(cmd.split(), check=True, cwd=USECASE_FOLDER)
-    ## Clean up the use-case folder
-    subprocess.run("./.pytest-clean", shell=True, check=True, cwd=USECASE_FOLDER)
-
-
 @pytest.mark.functional
 def test_radio_astronomy_unet(torch_env):
     """

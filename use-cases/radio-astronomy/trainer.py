@@ -17,12 +17,13 @@ class PulsarTrainer(TorchTrainer):
     """Trainer class for radio-astronomy use-case. 
        Inherited from itwinai TorchTrainer class.
     """
+
     def __init__(
         self,
         config: Dict | TrainingConfiguration | None = None,
         strategy: Literal["ddp", "deepspeed", "horovod"] | None = None,
         logger: Logger | None = None,
-        num_epochs: int = 3,
+        epochs: int = 3,
         model: nn.Module = None,
         loss: nn.Module = None,
         store_trained_model_at: str = ".models/model.pt",
@@ -34,7 +35,7 @@ class PulsarTrainer(TorchTrainer):
             config=config,
             strategy=strategy,
             logger=logger,
-            epochs=num_epochs,
+            epochs=epochs,
             model=model,
             name=name
         )
@@ -43,18 +44,54 @@ class PulsarTrainer(TorchTrainer):
         self.store_trained_model_at = store_trained_model_at
         os.makedirs(os.path.dirname(store_trained_model_at), exist_ok=True)
 
+
+    #NOTE: this would be a nice way to re-use the original __init__
+    # and insert the custom loss function, but AFAIK this doesn't 
+    # work nicely while running from config.yaml
+
+    # def set_attributes(self, loss, store_trained_model_at) -> None:
+    #     self.loss = loss 
+    #     self.store_trained_model_at = store_trained_model_at
+    #     os.makedirs(os.path.dirname(store_trained_model_at), exist_ok=True)        
+
     def create_model_loss_optimizer(self) -> None:
 
-        """Redefined method that doens't implement
-        the loss function as it's defined in the constructor"""
+        ### This code is almost a complete copy of this method from ### 
+        ### src/itwinai/torch/trainer.py, with exception of removed ### 
+        ### loss function definition as it is already set in the    ###
+        ### constructor                                             ###
+
+        # Model, optimizer, and lr scheduler may have already been loaded from a checkpoint
 
         if self.model is None:
             raise ValueError(
-                "self.model is None! Either pass it to the constructor or "
+                "self.model is None! Either pass it to the constructor, load a checkpoint, or "
                 "override create_model_loss_optimizer method."
             )
+        if self.model_state_dict:
+            # Load model from checkpoint
+            self.model.load_state_dict(self.model_state_dict, strict=False)
 
-        self._optimizer_from_config()
+        # Parse optimizer from training configuration
+        # Optimizer can be changed with a custom one here!
+        self._set_optimizer_from_config()
+
+        # Parse LR scheduler from training configuration
+        # LR scheduler can be changed with a custom one here!
+        self._set_lr_scheduler_from_config()
+
+        if self.optimizer_state_dict:
+            # Load optimizer state from checkpoint
+            # IMPORTANT: this must be after the learning rate scheduler was already initialized
+            # by passing to it the optimizer. Otherwise the optimizer state just loaded will
+            # be modified by the lr scheduler.
+            self.optimizer.load_state_dict(self.optimizer_state_dict)
+
+        if self.lr_scheduler_state_dict and self.lr_scheduler:
+            # Load LR scheduler state from checkpoint
+            self.lr_scheduler.load_state_dict(self.lr_scheduler_state_dict)
+
+        # IMPORTANT: model, optimizer, and scheduler need to be distributed from here on
 
         distribute_kwargs = self.get_default_distributed_kwargs()
 
@@ -62,7 +99,23 @@ class PulsarTrainer(TorchTrainer):
         (self.model, self.optimizer, self.lr_scheduler) = self.strategy.distributed(
             self.model, self.optimizer, self.lr_scheduler, **distribute_kwargs
         )
-
     def write_model(self) -> None:
         """Write the model to disk."""
         save(self.model.state_dict(), self.store_trained_model_at)
+
+
+    # Hacky way to get around the fact that the execute method
+    # does not return self.model anymore
+    def execute(
+        self,
+        train_dataset: Dataset,
+        validation_dataset: Dataset | None = None,
+        test_dataset: Dataset | None = None,
+    ) -> Tuple[Dataset, Dataset, Dataset, Any]:
+        objs = super().execute( 
+            train_dataset=train_dataset,
+            validation_dataset=validation_dataset,
+            test_dataset=test_dataset,
+        )
+        # return the datasets and the model
+        return *(objs[:-1]), self.model
