@@ -32,3 +32,19 @@ By default, the `config.yaml` ensures that the MLflow logging is enabled during 
 During or after the run, you can launch an MLflow server by executing
 `mlflow server --backend-store-uri mllogs/mlflow` and connecting to `http://127.0.0.1:5000/` 
 in your browser.
+
+Test suite
+----------------------------------
+The test suite is located in the `tests/use-cases/radio-astronomy` folder. 
+
+Before running the test suite, you should make sure that the pytorch fixture in:
+`tests/use-cases/radio-astronomy/test_radio-astronomy.py`:torch_env()  
+is correctly defined and corresponds to the virtual environment where itwinai is installed on 
+your system. 
+
+It contains integration tests for each of the pipelines 1-5 mentioned above. The configuration
+and execution of the test suite is defined in: 
+`tests/use-cases/radio-astronomy/test_radio-astronomy.py` 
+and in the configuration file in the use-case repostiry:
+`use-cases/radio-astronomy/.config-test.yaml`. 
+If you are updating the test suite, make sure you update both of these files. 

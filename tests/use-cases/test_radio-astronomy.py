@@ -3,10 +3,16 @@
 # Created by: Oleksandr Krochak
 # --------------------------------------------------------------------------------------
 
-"""Tests for MNIST use case.
+"""Tests for radio-astronomy use case.
 
 Intended to be integration tests, to make sure that updates in the code base
 do not break use cases' workflows.
+
+This is meant to be run from the main itwinai directory, not the use-case folder !!!
+"pytest use-cases/radio-astronomy/tests/test_radio-astronomy.py"
+
+NOTE FOR DEVELOPERS: if you are editing this file, make sure that entries in 
+use-cases/radio-astronomy/.config-test.yaml are updated accordingly !!! 
 """
 
 import os
@@ -17,97 +23,121 @@ from pathlib import Path
 import pytest
 
 USECASE_FOLDER = Path("use-cases", "radio-astronomy").resolve()
-# USECASE_FOLDER = Path().resolve()
-
-DEFAULT_MNIST_DATASET = ".tmp"
-
-
 
 @pytest.fixture
 def torch_env() -> str:
-    """If torch_env env variable is defined, it overrides the default
-    torch virtual environment name. Otherwise, fall back
-    to './.venv-pytorch'.
-
-    Returns absolute path to torch virtual environment.
+    """Enter your .venv installation path here
+    if non-default is used.
     """
+
     return "/p/project1/intertwin/krochak1/itwinai/.venv"
 
 @pytest.mark.functional
-def test_radio_astronomy_train(torch_env):
+def test_radio_astronomy_syndata(torch_env):
     """
-    Test MNIST torch native trainer by running it end-to-end.
-
-    If MNIST_DATASET env variable is defined, it is used to
-    override the default dataset download location: useful
-    when it contains a local copy of the dataset, preventing
-    downloading it again.
+    Test synthetic data generation by running it end-to-end
+    via the config-test.yaml configuration file.
     """
-    # install_requirements(TORCH_PATH, torch_env)
-
-    # dataset_path = os.environ.get("MNIST_DATASET", DEFAULT_MNIST_DATASET)
 
     cmd = (
         f"{torch_env}/bin/itwinai exec-pipeline "
-        f"--config-path {USECASE_FOLDER} "
-        f"--config-name config-test "
+        f"--config-name .config-test "
+        f"+pipe_key=syndata_pipeline "
+    )
+
+    ## Run the pipeline and check file generation in the use-case folder
+    subprocess.run(cmd.split(), check=True, cwd=USECASE_FOLDER)
+    ## Clean up the use-case folder
+    subprocess.run("rm -rf syndata_test", shell=True, check=True, cwd=USECASE_FOLDER)
+
+
+@pytest.mark.functional
+def test_radio_astronomy_unet(torch_env):
+    """
+    Test U-Net Pulsar-DDT trainer by running it end-to-end
+    via the config-test.yaml configuration file.
+    """
+
+    cmd = (
+        f"{torch_env}/bin/itwinai exec-pipeline "
+        f"--config-name .config-test "
         f"+pipe_key=unet_pipeline "
     )
-    with tempfile.TemporaryDirectory() as temp_dir:
-        subprocess.run(cmd.split(), check=True)
+
+    ## Run the pipeline and check file generation in the use-case folder
+    subprocess.run(cmd.split(), check=True, cwd=USECASE_FOLDER)
+    ## Clean up the use-case folder
+    subprocess.run("./.pytest-clean", shell=True, check=True, cwd=USECASE_FOLDER)
 
 
-# @pytest.mark.functional
-# def test_mnist_inference_torch(torch_env, install_requirements):
-#     """
-#     Test MNIST torch native inference by running it end-to-end.
-#     """
-#     install_requirements(TORCH_PATH, torch_env)
+@pytest.mark.functional
+def test_radio_astronomy_unet(torch_env):
+    """
+    Test U-Net Pulsar-DDT trainer by running it end-to-end
+    via the config-test.yaml configuration file.
+    """
 
-#     exec = TORCH_PATH / "create_inference_sample.py"
+    cmd = (
+        f"{torch_env}/bin/itwinai exec-pipeline "
+        f"--config-name .config-test "
+        f"+pipe_key=unet_pipeline "
+    )
 
-#     run_inference_cmd = f"{torch_env}/bin/itwinai exec-pipeline --config-path {TORCH_PATH} \
-#         +pipe_key=inference_pipeline"
-#     with tempfile.TemporaryDirectory() as temp_dir:
-#         # Create fake inference dataset and checkpoint
-#         generate_model_cmd = f"{torch_env}/bin/python {exec} --root {temp_dir}"
-#         subprocess.run(generate_model_cmd.split(), check=True, cwd=temp_dir)
+    ## Run the pipeline and check file generation in the use-case folder
+    subprocess.run(cmd.split(), check=True, cwd=USECASE_FOLDER)
+    ## Clean up the use-case folder
+    subprocess.run("./.pytest-clean", shell=True, check=True, cwd=USECASE_FOLDER)
 
-#         # Running inference
-#         subprocess.run(run_inference_cmd.split(), check=True, cwd=temp_dir)
+@pytest.mark.functional
+def test_radio_astronomy_filtercnn(torch_env):
+    """
+    Test Filter-CNN Pulsar-DDT trainer by running it end-to-end
+    via the config-test.yaml configuration file.
+    """
 
+    cmd = (
+        f"{torch_env}/bin/itwinai exec-pipeline "
+        f"--config-name .config-test "
+        f"+pipe_key=fcnn_pipeline "
+    )
 
-# @pytest.mark.functional
-# def test_mnist_train_torch_lightning(torch_env, install_requirements):
-#     """
-#     Test MNIST torch lightning trainer by running it end-to-end.
+    ## Run the pipeline and check file generation in the use-case folder
+    subprocess.run(cmd.split(), check=True, cwd=USECASE_FOLDER)
+    ## Clean up the use-case folder
+    subprocess.run("./.pytest-clean", shell=True, check=True, cwd=USECASE_FOLDER)
 
-#     If MNIST_DATASET env variable is defined, it is used to
-#     override the default dataset download location: useful
-#     when it contains a local copy of the dataset, preventing
-#     downloading it again.
-#     """
-#     install_requirements(LIGHTNING_PATH, torch_env)
+@pytest.mark.functional
+def test_radio_astronomy_cnn1d(torch_env):
+    """
+    Test CNN-1D Pulsar-DDT trainer by running it end-to-end
+    via the config-test.yaml configuration file.
+    """
 
-#     dataset_path = os.environ.get("MNIST_DATASET", DEFAULT_MNIST_DATASET)
-#     cmd = (
-#         f"{torch_env}/bin/itwinai exec-pipeline "
-#         f"--config-path {LIGHTNING_PATH} "
-#         f"dataset_root={dataset_path} "
-#     )
-#     with tempfile.TemporaryDirectory() as temp_dir:
-#         subprocess.run(cmd.split(), check=True, cwd=temp_dir)
+    cmd = (
+        f"{torch_env}/bin/itwinai exec-pipeline "
+        f"--config-name .config-test "
+        f"+pipe_key=cnn1d_pipeline "
+    )
 
+    ## Run the pipeline and check file generation in the use-case folder
+    subprocess.run(cmd.split(), check=True, cwd=USECASE_FOLDER)
+    ## Clean up the use-case folder
+    subprocess.run("./.pytest-clean", shell=True, check=True, cwd=USECASE_FOLDER)
 
-# @pytest.mark.tensorflow
-# @pytest.mark.functional
-# def test_mnist_train_tf(tf_env, install_requirements):
-#     """
-#     Test MNIST tensorflow trainer by running it end-to-end.
-#     """
-#     install_requirements(TF_PATH, tf_env)
-#     conf_name = "pipeline"
-#     cmd = f"{tf_env}/bin/itwinai exec-pipeline --config-path {TF_PATH} \
-#         --config-name {conf_name} +pipe_key=pipeline"
-#     with tempfile.TemporaryDirectory() as temp_dir:
-#         subprocess.run(cmd.split(), check=True, cwd=temp_dir)
+@pytest.mark.functional
+def test_radio_astronomy_evaluate(torch_env):
+    """
+    Test the evaluate pipeline by running it end-to-end
+    via the config-test.yaml configuration file.
+    """
+
+    cmd = (
+        f"{torch_env}/bin/itwinai exec-pipeline "
+        f"--config-name .config-test "
+        f"+pipe_key=evaluate_pipeline "
+    )
+
+    ## Run the pipeline and check file generation in the use-case folder
+    subprocess.run(cmd.split(), check=True, cwd=USECASE_FOLDER)
+    ## Clean up the use-case folder
+    subprocess.run("./.pytest-clean", shell=True, check=True, cwd=USECASE_FOLDER)

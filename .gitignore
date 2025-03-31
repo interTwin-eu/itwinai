@@ -30,7 +30,7 @@ exp_data/
 # radio-astronomy
 use-cases/radio-astronomy/syn_payload/
 use-cases/radio-astronomy/syn_runtime/
-
+use-cases/radio-astronomy/test_data/
 # Kubernetes
 secret*.yaml
 
