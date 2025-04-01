@@ -21,7 +21,6 @@ import torch.optim as optim
 import torch.optim.lr_scheduler as lr_scheduler
 import torchvision
 import yaml
-import logging
 from ray.train import DataConfig, RunConfig, ScalingConfig
 from ray.train.torch import TorchConfig
 from ray.tune import TuneConfig
@@ -629,8 +628,9 @@ class GANTrainer(TorchTrainer):
             batch_idx (int): batch index.
 
         Returns:
-            Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
-            loss metrics of generator and discriminator and accuracy of the discriminator
+            torch.Tensor: loss of the discriminator
+            torch.Tensor: loss of the generator
+            torch.Tensor: accuracy of the discriminator
         """
         real_images = real_images.to(self.device)
         batch_size = real_images.size(0)
@@ -753,7 +753,8 @@ class GANTrainer(TorchTrainer):
             fid (FrechetInceptionDistance): FID metric.
 
         Returns:
-            Tuple[torch.Tensor, torch.Tensor]: accuracy of generator and discriminator.
+            torch.Tensor: accuracy of the generator
+            torch.Tensor: accuracy of the discriminator
         """
         real_images = real_images.to(self.device)
         batch_size = real_images.size(0)
@@ -783,8 +784,8 @@ class GANTrainer(TorchTrainer):
         # use float64 for FID
         real_images = real_images.repeat(1, 3, 1, 1).to(torch.float64)
         fake_images = fake_images.repeat(1, 3, 1, 1).to(torch.float64)
-        fid.update(real_images, True)
-        fid.update(fake_images, False)
+        fid.update(real_images, real=True)
+        fid.update(fake_images, real=False)
         # Does not log FID score per batch, because it is computed on the whole validation set
         # Per batch logging of FID would be too noisy
         self.log(
