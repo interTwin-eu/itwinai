@@ -35,8 +35,6 @@ def console_logger():
 
 @pytest.fixture()
 def mlflow_logger():
-    import mlflow
-    mlflow.end_run()
     with tempfile.TemporaryDirectory() as temp_dir:
         save_dir = Path(temp_dir) / "mlflow/test_mllogs"
         yield MLFlowLogger(
