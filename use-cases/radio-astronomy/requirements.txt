@@ -1,0 +1,7 @@
+numpyencoder
+--extra-index-url https://gitlab.com/api/v4/projects/59840702/packages/pypi/simple
+pulsardt
+pyqt6
+pyquaternion
+scikit-image
+tqdm

@@ -1,0 +1,9 @@
+#!/bin/bash
+
+rm -rf outputs checkpoints plots/* 
+rm models/trained_Filter_test_v0.pt 
+rm models/trained_CNN1D_test_v0.pt 
+rm models/trained_UNet_test_v0.pt
+rm -rf logs
+rm -rf mllogs ml-logs mlruns
+rm -f progress.out report.out

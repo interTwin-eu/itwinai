@@ -99,6 +99,7 @@ contains thoroughly tested features aligned with the toolkit's most recent relea
    use-cases/cyclones_doc
    use-cases/mnist_doc
    use-cases/xtclim_doc
+   use-cases/radio-astronomy
 
 .. toctree::
    :maxdepth: 2

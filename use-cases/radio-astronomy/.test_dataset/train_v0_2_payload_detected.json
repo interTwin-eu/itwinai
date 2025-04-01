@@ -1,0 +1,19 @@
+{
+    "freqs": [
+        0.5
+    ],
+    "dataframe": [
+        [
+            12.001350733320137
+        ]
+    ],
+    "bandwidths": null,
+    "description": {
+        "Pulsar": 0,
+        "NBRFI": 1,
+        "BBRFI": 0
+    },
+    "rot_phases": [
+        360.0
+    ]
+}
