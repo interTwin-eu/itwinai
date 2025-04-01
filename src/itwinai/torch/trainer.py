@@ -191,7 +191,6 @@ class TorchTrainer(Trainer, LogMixin):
     #: Run ID
     run_id: str
 
-
     def __init__(
         self,
         config: Dict | TrainingConfiguration,

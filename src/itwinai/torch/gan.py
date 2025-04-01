@@ -6,8 +6,8 @@
 # Credit:
 # - Matteo Bunino <matteo.bunino@cern.ch> - CERN
 # - Henry Mutegeki <henry.mutegeki@cern.ch> - CERN
+# - Linus Eickhoff <linus.maximilian.eickhoff@cern.ch> - CERN
 # --------------------------------------------------------------------------------------
-
 
 """Provides training logic for PyTorch models via Trainer classes."""
 
@@ -26,11 +26,12 @@ from ray.train.torch import TorchConfig
 from ray.tune import TuneConfig
 from torch.optim.lr_scheduler import LRScheduler
 from torch.optim.optimizer import Optimizer
+from torchmetrics import Metric
+from torchmetrics.image.fid import FrechetInceptionDistance
 
 from ..loggers import Logger
 from .config import TrainingConfiguration
 from .trainer import TorchTrainer
-from .type import Metric
 
 if TYPE_CHECKING:
     from ray.train.horovod import HorovodConfig
@@ -97,7 +98,7 @@ class GANTrainer(TorchTrainer):
     """Trainer class for GAN models using pytorch.
 
     Args:
-        config (Dict | GANTrainingConfiguration): training configuration
+        config (Dict | TrainingConfiguration): training configuration
             containing hyperparameters.
         epochs (int): number of training epochs.
         discriminator (nn.Module): pytorch discriminator model to train GAN.
@@ -136,12 +137,6 @@ class GANTrainer(TorchTrainer):
         ray_horovod_config (HorovodConfig, optional): horovod configuration for Ray's
             HorovodTrainer. Defaults to None.
         from_checkpoint (str | Path, optional): path to checkpoint directory. Defaults to None.
-        initial_best_validation_metric (str): initial value for the best validation metric.
-            Usually the validation metric is a loss to be minimized and this value exceeds the
-            highest possible loss value, so that it will be overwritten when the first
-            vaidation loss is computed. Example values are "inf" and "-inf", depending on
-            wether the best validation metric should be minimized or maximized.
-            Defaults to "inf".
     """
 
     #: PyTorch generator to train.
@@ -183,7 +178,6 @@ class GANTrainer(TorchTrainer):
         ray_data_config: DataConfig | None = None,
         ray_horovod_config: Optional["HorovodConfig"] = None,
         from_checkpoint: str | Path | None = None,
-        initial_best_validation_metric: str = "inf",
         **kwargs,
     ) -> None:
         super().__init__(
@@ -208,7 +202,6 @@ class GANTrainer(TorchTrainer):
             from_checkpoint=from_checkpoint,
             ray_torch_config=ray_torch_config,
             ray_data_config=ray_data_config,
-            initial_best_validation_metric=initial_best_validation_metric,
             **kwargs,
         )
         self.save_parameters(**self.locals2params(locals()))
@@ -219,6 +212,7 @@ class GANTrainer(TorchTrainer):
         if isinstance(config, dict):
             config = GANTrainingConfiguration(**config)
         self.config = config
+        self.epoch = 0
 
         # Initial training state -- can be resumed from a checkpoint
         self.discriminator_state_dict = None
@@ -228,7 +222,7 @@ class GANTrainer(TorchTrainer):
         self.lr_scheduler_generator_state_dict = None
         self.lr_scheduler_discriminator_state_dict = None
 
-    def _set_optimizer_from_config(self) -> None:
+    def _optimizer_from_config(self) -> None:
         match self.config.optimizer_generator:
             case "adadelta":
                 self.optimizer_generator = optim.Adadelta(
@@ -313,7 +307,7 @@ class GANTrainer(TorchTrainer):
                     "create_model_loss_optimizer method for more flexibility."
                 )
 
-    def _set_lr_scheduler_from_config(self) -> None:
+    def _lr_scheduler_from_config(self) -> None:
         """Parse Lr scheduler from training config"""
         if self.config.lr_scheduler_generator:
             if not self.optimizer_generator:
@@ -427,11 +421,11 @@ class GANTrainer(TorchTrainer):
 
         # Parse optimizers from training configuration
         # Optimizers can be changed with a custom one here!
-        self._set_optimizer_from_config()
+        self._optimizer_from_config()
 
         # Parse LR schedulers from training configuration
         # LR schedulers can be changed with a custom one here!
-        self._set_lr_scheduler_from_config()
+        self._lr_scheduler_from_config()
 
         if self.optimizer_generator_state_dict:
             # Load optimizer state from checkpoint
@@ -499,7 +493,7 @@ class GANTrainer(TorchTrainer):
 
         Args:
             name (str): name of the checkpoint directory.
-            best_validation_metric (torch.Tensor | None): best validation loss throughout
+            best_validation_metric (torch.Tensor | None) : best validation loss throughout
                 training so far (if available).
             checkpoints_root (str | None): path for root checkpoints dir. If None, uses
                 ``self.checkpoints_location`` as base.
@@ -512,7 +506,7 @@ class GANTrainer(TorchTrainer):
             force
             or self.strategy.is_main_worker
             and self.checkpoint_every
-            and (self.current_epoch + 1) % self.checkpoint_every == 0
+            and (self.epoch + 1) % self.checkpoint_every == 0
         ):
             # Do nothing and return
             return
@@ -522,7 +516,7 @@ class GANTrainer(TorchTrainer):
 
         # Save state (epoch, loss, optimizer, scheduler)
         state = {
-            "epoch": self.current_epoch,
+            "epoch": self.epoch,
             # This could store the best validation loss
             "best_validation_metric": (
                 best_validation_metric.item() if best_validation_metric is not None else None
@@ -581,7 +575,7 @@ class GANTrainer(TorchTrainer):
         self.torch_rng_state = state["torch_rng_state"]
         # Direct overrides (don't require further attention)
         self.random_seed = state["random_seed"]
-        self.current_epoch = state["epoch"] + 1  # Start from next epoch
+        self.epoch = state["epoch"] + 1  # Start from next epoch
         if state["best_validation_metric"]:
             self.best_validation_metric = state["best_validation_metric"]
 
@@ -592,9 +586,9 @@ class GANTrainer(TorchTrainer):
         disc_train_losses = []
         disc_train_accuracy = []
         for batch_idx, (real_images, _) in enumerate(self.train_dataloader):
-            lossG, lossD, accuracy_disc = self.train_step(real_images, batch_idx)
-            gen_train_losses.append(lossG)
-            disc_train_losses.append(lossD)
+            loss_gen, loss_disc, accuracy_disc = self.train_step(real_images, batch_idx)
+            gen_train_losses.append(loss_gen)
+            disc_train_losses.append(loss_disc)
             disc_train_accuracy.append(accuracy_disc)
 
             self.train_glob_step += 1
@@ -604,14 +598,14 @@ class GANTrainer(TorchTrainer):
             item=avg_disc_accuracy.item(),
             identifier="disc_train_accuracy_per_epoch",
             kind="metric",
-            step=self.current_epoch,
+            step=self.epoch,
         )
         avg_gen_loss = torch.mean(torch.stack(gen_train_losses))
         self.log(
             item=avg_gen_loss.item(),
             identifier="gen_train_loss_per_epoch",
             kind="metric",
-            step=self.current_epoch,
+            step=self.epoch,
         )
 
         avg_disc_loss = torch.mean(torch.stack(disc_train_losses))
@@ -619,12 +613,25 @@ class GANTrainer(TorchTrainer):
             item=avg_disc_loss.item(),
             identifier="disc_train_loss_per_epoch",
             kind="metric",
-            step=self.current_epoch,
+            step=self.epoch,
         )
 
         self.save_fake_generator_images()
 
-    def train_step(self, real_images, batch_idx):
+    def train_step(
+        self, real_images: torch.Tensor, batch_idx: int
+    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+        """train step for GAN.
+
+        Args:
+            real_images (torch.Tensor): real images.
+            batch_idx (int): batch index.
+
+        Returns:
+            torch.Tensor: loss of the discriminator
+            torch.Tensor: loss of the generator
+            torch.Tensor: accuracy of the discriminator
+        """
         real_images = real_images.to(self.device)
         batch_size = real_images.size(0)
         real_labels = torch.ones((batch_size,), dtype=torch.float, device=self.device)
@@ -632,18 +639,18 @@ class GANTrainer(TorchTrainer):
 
         # Train Discriminator with real images
         output_real = self.discriminator(real_images)
-        lossD_real = self.criterion(output_real, real_labels)
+        loss_disc_real = self.criterion(output_real, real_labels)
         # Generate fake images and train Discriminator
         noise = torch.randn(batch_size, self.config.z_dim, 1, 1, device=self.device)
 
         fake_images = self.generator(noise)
         output_fake = self.discriminator(fake_images.detach())
-        lossD_fake = self.criterion(output_fake, fake_labels)
+        loss_disc_fake = self.criterion(output_fake, fake_labels)
 
-        lossD = (lossD_real + lossD_fake) / 2
+        loss_disc = (loss_disc_real + loss_disc_fake) / 2
 
         self.optimizer_discriminator.zero_grad()
-        lossD.backward()
+        loss_disc.backward()
         self.optimizer_discriminator.step()
 
         accuracy = ((output_real > 0.5).float() == real_labels).float().mean() + (
@@ -653,9 +660,9 @@ class GANTrainer(TorchTrainer):
 
         # Train Generator
         output_fake = self.discriminator(fake_images)
-        lossG = self.criterion(output_fake, real_labels)
+        loss_gen = self.criterion(output_fake, real_labels)
         self.optimizer_generator.zero_grad()
-        lossG.backward()
+        loss_gen.backward()
         self.optimizer_generator.step()
         self.log(
             item=accuracy_disc,
@@ -665,74 +672,90 @@ class GANTrainer(TorchTrainer):
             batch_idx=batch_idx,
         )
         self.log(
-            item=lossG,
+            item=loss_gen,
             identifier="gen_train_loss_per_batch",
             kind="metric",
             step=self.train_glob_step,
             batch_idx=batch_idx,
         )
         self.log(
-            item=lossD,
+            item=loss_disc,
             identifier="disc_train_loss_per_batch",
             kind="metric",
             step=self.train_glob_step,
             batch_idx=batch_idx,
         )
 
-        return lossG, lossD, accuracy_disc
+        return loss_gen, loss_disc, accuracy_disc
 
-    def validation_epoch(self) -> torch.Tensor:
-        gen_validation_losses = []
+    def validation_epoch(self, fid_features: int = 2048) -> torch.Tensor:
+        """Validation epoch for GAN.
+
+        Args:
+            fid_features (int, optional): number of features for InceptionV3 modela.
+            Defaults to 2048.
+
+        Returns:
+            torch.Tensor: FID score that is returned by the FID metric.
+        """
         gen_validation_accuracy = []
-        disc_validation_losses = []
         disc_validation_accuracy = []
         self.discriminator.eval()
         self.generator.eval()
+
+        fid = FrechetInceptionDistance(feature=fid_features, normalize=True)
+        # known to be unstable with float32
+        # (https://lightning.ai/docs/torchmetrics/stable/image/frechet_inception_distance.html)
+        fid.set_dtype(torch.float64)
+        # Move FID to the same device as GAN
+        fid = fid.to(self.device)
+
         for batch_idx, (real_images, _) in enumerate(self.validation_dataloader):
-            loss_gen, accuracy_gen, loss_disc, accuracy_disc = self.validation_step(
-                real_images, batch_idx
-            )
-            gen_validation_losses.append(loss_gen)
+            accuracy_gen, accuracy_disc = self.validation_step(real_images, batch_idx, fid)
             gen_validation_accuracy.append(accuracy_gen)
-            disc_validation_losses.append(loss_disc)
             disc_validation_accuracy.append(accuracy_disc)
             self.validation_glob_step += 1
 
         # Aggregate and log metrics
-        disc_validation_loss = torch.mean(torch.stack(disc_validation_losses))
-        self.log(
-            item=disc_validation_loss.item(),
-            identifier="disc_valid_loss_per_epoch",
-            kind="metric",
-            step=self.current_epoch,
-        )
         disc_validation_accuracy = torch.mean(torch.stack(disc_validation_accuracy))
+        # Compute FID score using InceptionV3 model
+        fid_score = fid.compute()
+
         self.log(
             item=disc_validation_accuracy.item(),
             identifier="disc_valid_accuracy_epoch",
             kind="metric",
-            step=self.current_epoch,
-        )
-        gen_validation_loss = torch.mean(torch.stack(gen_validation_losses))
-        self.log(
-            item=gen_validation_loss.item(),
-            identifier="gen_valid_loss_per_epoch",
-            kind="metric",
-            step=self.current_epoch,
+            step=self.epoch,
         )
         gen_validation_accuracy = torch.mean(torch.stack(gen_validation_accuracy))
         self.log(
             item=gen_validation_accuracy.item(),
             identifier="gen_valid_accuracy_epoch",
             kind="metric",
-            step=self.current_epoch,
+            step=self.epoch,
         )
-        # TODO: return IS or FID metrics instead, more suitable for GAN validation
-        return gen_validation_loss
+        self.log(
+            item=fid_score.item(),
+            identifier="gen_valid_fid_score_epoch",
+            kind="metric",
+            step=self.epoch,
+        )
+        return fid_score
 
     def validation_step(
-        self, real_images, batch_idx
-    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
+        self, real_images: torch.Tensor, batch_idx: int, fid: FrechetInceptionDistance
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        """Validation step for GAN.
+
+        Args:
+            real_images (torch.Tensor): real images.
+            batch_idx (int): batch index.
+            fid (FrechetInceptionDistance): FID metric.
+
+        Returns:
+            torch.Tensor: accuracy of the generator
+            torch.Tensor: accuracy of the discriminator
+        """
         real_images = real_images.to(self.device)
         batch_size = real_images.size(0)
         real_labels = torch.ones((batch_size,), dtype=torch.float, device=self.device)
@@ -740,7 +763,6 @@ class GANTrainer(TorchTrainer):
 
         # Validate with real images
         output_real = self.discriminator(real_images)
-        loss_real = self.criterion(output_real, real_labels)
 
         # Generate and validate fake images
         noise = torch.randn(batch_size, self.config.z_dim, 1, 1, device=self.device)
@@ -748,26 +770,24 @@ class GANTrainer(TorchTrainer):
         with torch.no_grad():
             fake_images = self.generator(noise)
             output_fake = self.discriminator(fake_images.detach())
-        loss_fake = self.criterion(output_fake, fake_labels)
 
         # Generator's attempt to fool the discriminator
-        loss_gen = self.criterion(output_fake, real_labels)
         accuracy_gen = ((output_fake > 0.5).float() == real_labels).float().mean()
 
         # Calculate total discriminator loss and accuracy
-        d_total_loss = (loss_real + loss_fake) / 2
         accuracy = ((output_real > 0.5).float() == real_labels).float().mean() + (
             (output_fake < 0.5).float() == fake_labels
         ).float().mean()
-        d_accuracy = accuracy / 2
+        accuracy_disc = accuracy / 2
 
-        self.log(
-            item=loss_gen.item(),
-            identifier="gen_valid_loss_per_batch",
-            kind="metric",
-            step=self.validation_glob_step,
-            batch_idx=batch_idx,
-        )
+        # convert to 3 channel images for inceptionV3 model (which is used for FID) and
+        # use float64 for FID
+        real_images = real_images.repeat(1, 3, 1, 1).to(torch.float64)
+        fake_images = fake_images.repeat(1, 3, 1, 1).to(torch.float64)
+        fid.update(real_images, real=True)
+        fid.update(fake_images, real=False)
+        # Does not log FID score per batch, because it is computed on the whole validation set
+        # Per batch logging of FID would be too noisy
         self.log(
             item=accuracy_gen.item(),
             identifier="gen_valid_accuracy_per_batch",
@@ -775,29 +795,17 @@ class GANTrainer(TorchTrainer):
             step=self.validation_glob_step,
             batch_idx=batch_idx,
         )
-
         self.log(
-            item=d_total_loss.item(),
-            identifier="disc_valid_loss_per_batch",
-            kind="metric",
-            step=self.validation_glob_step,
-            batch_idx=batch_idx,
-        )
-        self.log(
-            item=d_accuracy.item(),
+            item=accuracy_disc.item(),
             identifier="disc_valid_accuracy_per_batch",
             kind="metric",
             step=self.validation_glob_step,
             batch_idx=batch_idx,
         )
-        return loss_gen, accuracy_gen, d_total_loss, d_accuracy
+        return accuracy_gen, accuracy_disc
 
     def save_fake_generator_images(self):
-        """Plot and save fake images from generator
-
-        Args:
-           epoch (int): epoch number, from 0 to ``epochs-1``.
-        """
+        """Plot and save fake images from generator"""
         import matplotlib.pyplot as plt
         import numpy as np
 
@@ -807,11 +815,11 @@ class GANTrainer(TorchTrainer):
         fake_images_grid = torchvision.utils.make_grid(fake_images, normalize=True)
         fig, ax = plt.subplots(figsize=(8, 8))
         ax.set_axis_off()
-        ax.set_title(f"Fake images for epoch {self.current_epoch}")
+        ax.set_title(f"Fake images for epoch {self.epoch}")
         ax.imshow(np.transpose(fake_images_grid.cpu().numpy(), (1, 2, 0)))
         self.log(
             item=fig,
-            identifier=f"fake_images_epoch_{self.current_epoch}.png",
+            identifier=f"fake_images_epoch_{self.epoch}.png",
             kind="figure",
-            step=self.current_epoch,
+            step=self.epoch,
         )

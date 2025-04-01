@@ -13,8 +13,3 @@ train.py
 
 .. literalinclude:: ../../../tutorials/distributed-ml/torch-tutorial-GAN/train.py
    :language: python
-
-simpleGAN.py
-+++++++++++++++
-.. literalinclude:: ../../../tutorials/distributed-ml/torch-tutorial-GAN/simpleGAN.py
-   :language: python

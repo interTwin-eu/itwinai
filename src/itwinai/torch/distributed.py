@@ -355,7 +355,7 @@ class TorchDistributedStrategy(DistributedStrategy):
         """
 
         if batch_sampler is not None:
-            print("WARNING: batch_sampler is ignored by TorchDistributedStrategy")
+            py_logger.warning("WARNING: batch_sampler is ignored by TorchDistributedStrategy")
 
         if self.is_distributed:
             if sampler is None:
@@ -657,7 +657,7 @@ class DeepSpeedStrategy(TorchDistributedStrategy):
             pass
 
         AutotuneCacheManager.put = noop_put
-        print(
+        py_logger.warning(
             "[WARNING]: Disabling Triton's AutotuneCacheManager's `put()` method to fix "
             "bug with temporary files. This might be fixed in the future by DeepSpeed,"
             "in which case our fix should be removed."

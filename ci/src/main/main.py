@@ -291,6 +291,11 @@ class Itwinai:
             "&& export NO_COLOR=1 "
             "&& export SHARED_FS_PATH=/ceph/hpc/data/st2301-itwin-users/tmp-mbunino2 "
             # Launch code in SLURM job
+            # Ray
+            "&& export DIST_MODE=ray "
+            "&& export RUN_NAME=ray-itwinai "
+            "&& export COMMAND='pytest -v -m ray_dist /app/tests' "
+            "&& source slurm.vega.sh "
             # DDP
             "&& export DIST_MODE=ddp "
             "&& export RUN_NAME=ddp-itwinai "
