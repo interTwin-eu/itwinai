@@ -14,19 +14,19 @@
 num_payloads:     4
 learning_rate:    0.001
 batch_size:       4 #128
-num_cores:        10
+num_cores:        1
 seed:             42
 strategy:         ddp #ddp
 
 tag:              train_v0_
 image_tag:        train_v0_*_payload_detected.json
-image_directory:  test_dataset/
+image_directory:  .test_dataset/
 mask_tag:         train_v0_*_payload_flux.json
-mask_directory:   test_dataset/ 
+mask_directory:   .test_dataset/ 
 
 # folder to test syndata generation pipeline, to be deleted after the test
 # should correspond to deleted folder in "test_radio-astronomy.py": file 
-# do NOT confuse with "test_dataset" which should be present after the test completion
+# do NOT confuse with ".test_dataset" which should be present after the test completion
 syndata_test_dir: syndata_test/
 
 mask_maker_dict: {

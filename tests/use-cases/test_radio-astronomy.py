@@ -25,11 +25,13 @@ import pytest
 USECASE_FOLDER = Path("use-cases", "radio-astronomy").resolve()
 
 @pytest.mark.functional
-def test_radio_astronomy_syndata(torch_env):
+def test_radio_astronomy_syndata(torch_env,  install_requirements):
     """
     Test synthetic data generation by running it end-to-end
     via the config-test.yaml configuration file.
     """
+
+    install_requirements(USECASE_FOLDER, torch_env)
 
     cmd = (
         f"{torch_env}/bin/itwinai exec-pipeline "
@@ -43,11 +45,13 @@ def test_radio_astronomy_syndata(torch_env):
     subprocess.run("rm -rf syndata_test", shell=True, check=True, cwd=USECASE_FOLDER)
 
 @pytest.mark.functional
-def test_radio_astronomy_unet(torch_env):
+def test_radio_astronomy_unet(torch_env, install_requirements):
     """
     Test U-Net Pulsar-DDT trainer by running it end-to-end
     via the config-test.yaml configuration file.
     """
+
+    install_requirements(USECASE_FOLDER, torch_env)
 
     cmd = (
         f"{torch_env}/bin/itwinai exec-pipeline "
@@ -61,11 +65,13 @@ def test_radio_astronomy_unet(torch_env):
     subprocess.run("./.pytest-clean", shell=True, check=True, cwd=USECASE_FOLDER)
 
 @pytest.mark.functional
-def test_radio_astronomy_filtercnn(torch_env):
+def test_radio_astronomy_filtercnn(torch_env, install_requirements):
     """
     Test Filter-CNN Pulsar-DDT trainer by running it end-to-end
     via the config-test.yaml configuration file.
     """
+
+    install_requirements(USECASE_FOLDER, torch_env)
 
     cmd = (
         f"{torch_env}/bin/itwinai exec-pipeline "
@@ -79,11 +85,13 @@ def test_radio_astronomy_filtercnn(torch_env):
     subprocess.run("./.pytest-clean", shell=True, check=True, cwd=USECASE_FOLDER)
 
 @pytest.mark.functional
-def test_radio_astronomy_cnn1d(torch_env):
+def test_radio_astronomy_cnn1d(torch_env, install_requirements):
     """
     Test CNN-1D Pulsar-DDT trainer by running it end-to-end
     via the config-test.yaml configuration file.
     """
+
+    install_requirements(USECASE_FOLDER, torch_env)
 
     cmd = (
         f"{torch_env}/bin/itwinai exec-pipeline "
@@ -96,7 +104,7 @@ def test_radio_astronomy_cnn1d(torch_env):
     ## Clean up the use-case folder
     subprocess.run("./.pytest-clean", shell=True, check=True, cwd=USECASE_FOLDER)
 
-@pytest.mark.functional
+@pytest.mark.skip(reason="dependent on large real data set")
 def test_radio_astronomy_evaluate(torch_env):
     """
     Test the evaluate pipeline by running it end-to-end

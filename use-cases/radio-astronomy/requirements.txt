@@ -1,0 +1,6 @@
+numpyencoder
+pulsardt
+pyqt6
+pyquaternion
+scikit-image
+tqdm
