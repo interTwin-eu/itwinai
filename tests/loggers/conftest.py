@@ -33,7 +33,7 @@ def console_logger():
         yield ConsoleLogger(savedir=save_dir, log_freq=1)
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture()
 def mlflow_logger():
     import mlflow
     mlflow.end_run()
