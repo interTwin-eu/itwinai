@@ -96,6 +96,7 @@ def detect_distributed_environment() -> ClusterEnvironment:
         )
     # Fixes issue that OMPI_* env vars might be set despite using srun instead of mpirun
     elif int(os.getenv("OMPI_COMM_WORLD_SIZE", -1)) >= int(os.getenv("SLURM_NTASKS", 0)):
+        print("Using Open MPI environment")
         # Open MPI environment
         # https://docs.open-mpi.org/en/v5.0.x/tuning-apps/environment-var.html
         return ClusterEnvironment(
