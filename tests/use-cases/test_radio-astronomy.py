@@ -24,6 +24,14 @@ import pytest
 
 USECASE_FOLDER = Path("use-cases", "radio-astronomy").resolve()
 
+@pytest.fixture
+def torch_env() -> str:
+    """
+    Returns absolute path to torch virtual environment.
+    """
+    env_path = Path(os.environ.get("TORCH_ENV", "./.venv"))
+    return str(env_path.resolve())
+
 @pytest.mark.functional
 def test_radio_astronomy_syndata(torch_env,  install_requirements):
     """
