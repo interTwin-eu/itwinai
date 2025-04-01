@@ -33,7 +33,7 @@ def console_logger():
         yield ConsoleLogger(savedir=save_dir, log_freq=1)
 
 
-@pytest.fixture()
+@pytest.fixture(scope="function")
 def mlflow_logger():
     with tempfile.TemporaryDirectory() as temp_dir:
         save_dir = Path(temp_dir) / "mlflow/test_mllogs"
