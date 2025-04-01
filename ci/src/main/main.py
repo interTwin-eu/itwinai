@@ -289,6 +289,7 @@ class Itwinai:
             # Env variables necessary for tests
             "&& export MNIST_PATH=/ceph/hpc/data/st2301-itwin-users/mbunino/mnist "
             "&& export NO_COLOR=1 "
+            "&& export SHARED_FS_PATH=/ceph/hpc/data/st2301-itwin-users/tmp-mbunino2 "
             # Launch code in SLURM job
             # Ray
             "&& export DIST_MODE=ray "
@@ -310,6 +311,13 @@ class Itwinai:
             "&& export RUN_NAME=horovod-itwinai "
             "&& export COMMAND='pytest -v -m horovod_dist /app/tests' "
             "&& source slurm.vega.sh "
+            # Ray: must be at the bottom! srun are blocking forever and won't release
+            # the resources, this no more srun cannot be invoked after a Ray cluster
+            # is launched.
+            "&& export DIST_MODE=ray "
+            "&& export RUN_NAME=ray-itwinai "
+            "&& export COMMAND='pytest -v -m ray_dist /app/tests' "
+            "&& source slurm.vega.sh "
         )
         # Request memory and CPUs
         resources = {
@@ -324,7 +332,7 @@ class Itwinai:
                 f"--gpus-per-node={gpus_per_node} "
                 f"--ntasks-per-node=1 --nodes={num_nodes} "
                 f"--cpus-per-task={cpus_per_gpu * gpus_per_node} "
-                "--time=00:30:00 --exclude gn42"
+                "--time=01:00:00 "
             ),
             "slurm-job.vk.io/pre-exec": (
                 "trap 'export SINGULARITYENV_PRE_EXEC_RETURN_CODE=1' ERR && "
@@ -356,7 +364,7 @@ class Itwinai:
 
             self._logs.append(await interlink_svc.submit_pod(pod_manifest_str))
             status, logs = await interlink_svc.wait_pod(
-                name=pod_name, timeout=3000, poll_interval=30
+                name=pod_name, timeout=10000, poll_interval=600
             )
 
         if status not in ["Succeeded", "Completed"]:

@@ -25,13 +25,12 @@
 # Resources allocation
 #SBATCH --partition=gpu
 #SBATCH --nodes=2
-#SBATCH --gpus-per-node=4
-#SBATCH --gres=gpu:4
+#SBATCH --gpus-per-node=2
+#SBATCH --gres=gpu:2
 #SBATCH --cpus-per-task=48
 #SBATCH --ntasks-per-node=1
 # SBATCH --mem-per-gpu=10G
 # SBATCH --exclusive
-
 
 echo "DEBUG: SLURM_SUBMIT_DIR: $SLURM_SUBMIT_DIR"
 echo "DEBUG: SLURM_JOB_ID: $SLURM_JOB_ID"
@@ -41,8 +40,10 @@ echo "DEBUG: SLURM_NTASKS: $SLURM_NTASKS"
 echo "DEBUG: SLURM_TASKS_PER_NODE: $SLURM_TASKS_PER_NODE"
 echo "DEBUG: SLURM_SUBMIT_HOST: $SLURM_SUBMIT_HOST"
 echo "DEBUG: SLURMD_NODENAME: $SLURMD_NODENAME"
-echo "DEBUG: CUDA_VISIBLE_DEVICES: $CUDA_VISIBLE_DEVICES"
+echo "DEBUG: SLURM_GPUS_PER_NODE: $SLURM_GPUS_PER_NODE"
+echo "DEBUG: CUDA_VISIBLE_DEVICES (before): $CUDA_VISIBLE_DEVICES"
 
+# Load environment modules
 ml --force purge
 ml Python/3.11.5-GCCcore-13.2.0 
 ml CMake/3.24.3-GCCcore-11.3.0
@@ -60,9 +61,10 @@ module unload OpenSSL
 
 # Setup env for distributed ML
 export CUDA_VISIBLE_DEVICES=$(seq -s, 0 $((SLURM_GPUS_PER_NODE - 1)))
+echo "DEBUG: CUDA_VISIBLE_DEVICES (after): $CUDA_VISIBLE_DEVICES"
 export OMP_NUM_THREADS=1
-if [ $SLURM_CPUS_PER_GPU -gt 0 ] ; then
-  export OMP_NUM_THREADS=$SLURM_CPUS_PER_GPU
+if [ $(($SLURM_CPUS_PER_TASK / $SLURM_GPUS_PER_NODE)) -gt 0 ] ; then
+  export OMP_NUM_THREADS=$(($SLURM_CPUS_PER_TASK / $SLURM_GPUS_PER_NODE))
 fi
 
 # Adjust itwinai logging level to help with debugging 
@@ -84,7 +86,7 @@ unset PYTHONPATH
 torchrun_launcher ()
 {
   # Stop Ray processes, if any
-  singularity exec $CONTAINER_PATH /bin/bash -c 'ray stop'
+  srun singularity exec --nv $CONTAINER_PATH ray stop
 
   # --no-python is needed when running commands which are not python scripts (e.g., pytest, itwinai)
   # --redirects=\$(((SLURM_NODEID)) && echo "3" || echo "1:3,2:3,3:3"): redirect stdout and stderr to 
@@ -108,7 +110,7 @@ torchrun_launcher ()
 mpirun_launcher ()
 {
   # Stop Ray processes, if any
-  singularity exec $CONTAINER_PATH /bin/bash -c 'ray stop'
+  srun singularity exec --nv $CONTAINER_PATH ray stop
 
   # https://doc.vega.izum.si/mpi/#multi-node-jobs
   export UCX_TLS=self,sm,rc,ud
@@ -167,7 +169,7 @@ srun_launcher ()
 {
 
   # Stop Ray processes, if any
-  singularity exec $CONTAINER_PATH /bin/bash -c 'ray stop'
+  srun singularity exec --nv $CONTAINER_PATH ray stop
 
   # https://doc.vega.izum.si/mpi/#multi-node-jobs
   export UCX_TLS=self,sm,rc,ud
@@ -200,9 +202,8 @@ srun_launcher ()
 ray_launcher ()
 {
 
-  # Path to shared filesystem that all the Ray workers can access. /tmp is a local filesystem path to each worker
-  # This is only needed by tests
-  export SHARED_FS_PATH="/ceph/hpc/data/st2301-itwin-users/tmp-mbunino"
+  # Remove ray metadata if present
+  srun rm -rf /tmp/ray & disown
 
   # This tells Tune to not change the working directory to the trial directory
   # which makes relative paths accessible from inside a trial
@@ -218,6 +219,7 @@ ray_launcher ()
   # Get the node names
   nodes=$(scontrol show hostnames "$SLURM_JOB_NODELIST")
   mapfile -t nodes_array <<< "$nodes"
+  echo "Nodes in nodes_array: ${nodes_array[@]}"
 
   # The head node will act as the central manager (head) of the Ray cluster.
   head_node=${nodes_array[0]}
@@ -228,13 +230,20 @@ ray_launcher ()
   # The `--head` option specifies that this node will be the head of the Ray cluster.
   # `srun` submits a job that runs on the head node to start the Ray head with the specified 
   # number of CPUs and GPUs.
+
   srun --nodes=1 --ntasks=1 -w "$head_node" \
-    singularity exec --nv $CONTAINER_PATH /bin/bash -c " \
-      ray start --head --node-ip-address="$head_node" --port=$port \
-      --num-cpus "$SLURM_CPUS_PER_TASK" --num-gpus "$SLURM_GPUS_PER_NODE" --block &"
+    singularity exec --nv $CONTAINER_PATH  \
+      ray start \
+      --head \
+      --log-color false \
+      --node-ip-address="$head_node" \
+      --port=$port \
+      --num-cpus "$SLURM_CPUS_PER_TASK" \
+      --num-gpus "$SLURM_GPUS_PER_NODE" \
+      --block &
 
   # Wait for a few seconds to ensure that the head node has fully initialized.
-  sleep 5
+  sleep 15
 
   echo HEAD node started.
 
@@ -248,16 +257,25 @@ ray_launcher ()
       # Use srun to start Ray on the worker node and connect it to the head node.
       # The `--address` option tells the worker node where to find the head node.
       srun --nodes=1 --ntasks=1 -w "$node_i" \
-        singularity exec --nv $CONTAINER_PATH /bin/bash -c "\
-          ray start --address "$head_node":"$port" --redis-password='5241580000000000' \
-          --num-cpus "$SLURM_CPUS_PER_TASK" --num-gpus "$SLURM_GPUS_PER_NODE" --block &"
+        singularity exec --nv $CONTAINER_PATH \
+          ray start \
+          --address "$head_node":"$port" \
+          --log-color false \
+          --redis-password='5241580000000000' \
+          --num-cpus "$SLURM_CPUS_PER_TASK" \
+          --num-gpus "$SLURM_GPUS_PER_NODE" \
+          --block &
       
-      sleep 5 # Wait before starting the next worker to prevent race conditions.
+      sleep 15 # Wait before starting the next worker to prevent race conditions.
   done
   echo All Ray workers started.
 
+  # Check cluster
+  singularity exec --nv $CONTAINER_PATH ray status
+  echo "============================================="
+
   # Run command without srun
-  singularity exec --nv $CONTAINER_PATH /bin/bash -c "$1"
+  singularity exec --nv $CONTAINER_PATH $1
 
 }
 
@@ -339,9 +357,6 @@ elif [ "${DIST_MODE}" == "horovod" ] ; then
 
   decho -e "\nLaunching Horovod strategy with srun"
   srun_launcher "python -m ${COMMAND}"
-
-  decho -e "\nLaunching Horovod strategy with Ray"
-  ray_launcher "${COMMAND}"
 
 elif [ "${DIST_MODE}" == "ray" ] ; then
 

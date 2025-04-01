@@ -123,7 +123,7 @@ class BaseTestDistributedStrategy:
         assert dataloader.sampler.rank == strategy.global_rank()
         assert dataloader.sampler.num_replicas == strategy.global_world_size()
 
-    def test_gather_operations(self, strategy):
+    def test_gather_operations(self, strategy: TorchDistributedStrategy):
         """Test collective operations."""
         # Test tensor gather
         local_tensor = torch.tensor([strategy.global_rank()], device=strategy.device())
@@ -297,7 +297,7 @@ def test_ray_distributed_strategy(
 ):
     import ray  # needed here
 
-    assert ray_cluster_is_running()
+    assert ray_cluster_is_running(), "Ray cluster not detected. Aborting tests"
 
     # The worker function must be declared inline, ohterwise the Ray workers will not find it
     def ray_tests(config, strategy: RayTorchDistributedStrategy):

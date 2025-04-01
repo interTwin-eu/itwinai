@@ -19,7 +19,7 @@ import tempfile
 from collections import defaultdict
 from pathlib import Path
 from time import perf_counter as default_timer
-from typing import TYPE_CHECKING, Any, Callable, Dict, List, Literal, Tuple, Union
+from typing import TYPE_CHECKING, Any, Callable, Dict, List, Literal, Optional, Tuple, Union
 
 import ray.train
 import ray.train.torch
@@ -48,7 +48,7 @@ from itwinai.torch.profiling.profiler import profile_torch_trainer
 from ..components import Trainer, monitor_exec
 from ..distributed import ray_cluster_is_running
 from ..loggers import EpochTimeTracker, Logger, LogMixin
-from ..utils import load_yaml, to_uri
+from ..utils import generate_random_name, load_yaml, to_uri
 from .config import TrainingConfiguration
 from .distributed import (
     DeepSpeedStrategy,
@@ -120,6 +120,13 @@ class TorchTrainer(Trainer, LogMixin):
             the profiler.
         profiling_warmup_epochs (int): length of the profiler warmup phase in terms of
             number of epochs.
+        measure_gpu_data (bool): enable the collection of data on average GPU utilization and
+            total energy consumption throughout training. Defaults to False.
+        measure_communication_overhead (bool): enable the profiling of computation and
+            multi-worker communication operations. It uses the torch profiler and it may
+            slow down training. Dafults to False.
+        measure_epoch_time (bool): enable the measurement of epoch duration (in seconds).
+            Defaults to False,
         ray_scaling_config (ScalingConfig, optional): scaling config for Ray Trainer.
             Defaults to None,
         ray_tune_config (TuneConfig, optional): tune config for Ray Tuner.
@@ -141,12 +148,9 @@ class TorchTrainer(Trainer, LogMixin):
             vaidation loss is computed. Example values are "inf" and "-inf", depending on
             wether the best validation metric should be minimized or maximized.
             Defaults to "inf".
+        run_id (str, optional): name used to identify a specific run when collecting
+            metrics on the trainer (e.g. GPU utilization). Defaults to None.
     """
-
-    # TODO:
-    #   - extract BaseTorchTrainer and extend it creating a set of trainer
-    #     templates (e.g.. GAN, Classifier, Transformer) allowing scientists
-    #     to reuse ML algos.
 
     _strategy: TorchDistributedStrategy | None = None
 
@@ -178,8 +182,14 @@ class TorchTrainer(Trainer, LogMixin):
     metrics: Dict[str, Callable]
     #: PyTorch Profiler for communication vs. computation comparison
     profiler: Any | None
-
+    #: Toggle for GPU utilization monitoring
     measure_gpu_data: bool = False
+    #: Toggle for communication vs computation fraction profiling
+    measure_communication_overhead: bool = False
+    #: Toggle for epoch time tracking
+    measure_epoch_time: bool = False
+    #: Run ID
+    run_id: str
 
     def __init__(
         self,
@@ -206,9 +216,10 @@ class TorchTrainer(Trainer, LogMixin):
         ray_search_space: Dict[str, Any] | None = None,
         ray_torch_config: TorchConfig | None = None,
         ray_data_config: DataConfig | None = None,
-        ray_horovod_config: "HorovodConfig | None" = None,
+        ray_horovod_config: Optional["HorovodConfig"] = None,
         from_checkpoint: str | Path | None = None,
         initial_best_validation_metric: str = "inf",
+        run_id: str | None = None,
     ) -> None:
         super().__init__(name)
         self.save_parameters(**self.locals2params(locals()))
@@ -274,6 +285,9 @@ class TorchTrainer(Trainer, LogMixin):
         # If the validation metric is meant to be maximized, change this to -inf.
         self.best_validation_metric = float(initial_best_validation_metric)
         self.current_epoch = 0
+        if run_id is None:
+            run_id = generate_random_name()
+        self.run_id = run_id
 
     @property
     def strategy(self) -> TorchDistributedStrategy:
@@ -534,12 +548,17 @@ class TorchTrainer(Trainer, LogMixin):
         Returns:
             path to the checkpoint file or ``None`` when the checkpoint is not created.
         """
-        if not (
+        # Determine whether a checkpoint should be created
+        should_checkpoint = self.strategy.is_main_worker and (
             force
-            or self.strategy.is_main_worker
-            and self.checkpoint_every
+            or self.checkpoint_every
             and (self.current_epoch + 1) % self.checkpoint_every == 0
-        ):
+        )
+
+        ckpt_dir = Path(checkpoints_root or self.checkpoints_location) / name
+        py_logger.info(f"Saving checkpoint at {ckpt_dir.resolve()}? {should_checkpoint}")
+
+        if not should_checkpoint:
             # Do nothing and return
             return
 
@@ -577,6 +596,13 @@ class TorchTrainer(Trainer, LogMixin):
         self.log(str(state_path), f"{name}_state", kind="artifact")
         self.log(str(model_path), f"{name}_model", kind="artifact")
         self.log(str(config_path), f"{name}_config", kind="artifact")
+
+        assert state_path.exists()
+        assert model_path.exists()
+        assert config_path.exists()
+
+        py_logger.info(f"Saved checkpoint at {ckpt_dir.resolve()}")
+
         return str(ckpt_dir)
 
     def load_checkpoint(self) -> None:
@@ -980,6 +1006,7 @@ class TorchTrainer(Trainer, LogMixin):
             return
 
         if checkpoint_file:
+            # A checkpoint is given as a file
             with tempfile.TemporaryDirectory() as tmp_dir:
                 import shutil
 
@@ -988,6 +1015,7 @@ class TorchTrainer(Trainer, LogMixin):
                 ray.train.report(metrics, checkpoint=checkpoint)
 
         elif checkpoint_data:
+            # A checkpoint is given as a python object which needs to be serialized
             with tempfile.TemporaryDirectory() as tmp_dir:
                 tmp_dir = Path(tmp_dir)
                 ckpt_file = tmp_dir / "ckpt.pt"
@@ -996,8 +1024,13 @@ class TorchTrainer(Trainer, LogMixin):
                 ray.train.report(metrics, checkpoint=checkpoint)
 
         elif checkpoint_dir:
+            # A checkpoint is given as a directory
             checkpoint = ray.train.Checkpoint.from_directory(checkpoint_dir)
             ray.train.report(metrics, checkpoint=checkpoint)
+
+        else:
+            # No checkpoint is given: only report metrics
+            ray.train.report(metrics)
 
     def compute_metrics(
         self,
@@ -1057,7 +1090,7 @@ class TorchTrainer(Trainer, LogMixin):
                     " when running distributed training!"
                 )
             num_nodes = int(os.environ["SLURM_NNODES"])
-            epoch_time_output_dir = Path("scalability-metrics/epoch-time")
+            epoch_time_output_dir = Path(f"scalability-metrics/{self.run_id}/epoch-time")
             epoch_time_file_name = f"epochtime_{self.strategy.name}_{num_nodes}N.csv"
             epoch_time_output_path = epoch_time_output_dir / epoch_time_file_name
 
@@ -1090,10 +1123,7 @@ class TorchTrainer(Trainer, LogMixin):
             worker_val_metrics = self.strategy.gather(val_metric, dst_rank=0)
             if self.strategy.is_main_worker:
                 avg_metric = torch.mean(torch.stack(worker_val_metrics)).detach().cpu()
-                if (
-                    avg_metric < self.best_validation_metric
-                    and self.checkpoint_every is not None
-                ):
+                if avg_metric < self.best_validation_metric:
                     best_ckpt_path = self.save_checkpoint(
                         name="best_model",
                         best_validation_metric=avg_metric,
@@ -1116,7 +1146,7 @@ class TorchTrainer(Trainer, LogMixin):
             if self.strategy.is_main_worker and self.strategy.is_distributed:
                 assert epoch_time_logger is not None
                 epoch_time = default_timer() - epoch_start_time
-                epoch_time_logger.add_epoch_time(self.epoch + 1, epoch_time)
+                epoch_time_logger.add_epoch_time(self.current_epoch + 1, epoch_time)
 
     def train_epoch(self) -> torch.Tensor:
         """Perform a complete sweep over the training dataset, completing an
