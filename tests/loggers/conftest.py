@@ -37,7 +37,6 @@ def console_logger():
 def mlflow_logger():
     with tempfile.TemporaryDirectory() as temp_dir:
         save_dir = Path(temp_dir) / "mlflow/test_mllogs"
-        save_dir.mkdir(parents=True, exist_ok=True)
         yield MLFlowLogger(
             savedir=save_dir,
             experiment_name="test_experiment",
