@@ -1,9 +1,10 @@
 Pulsar Segmentation and Analysis for Radio-Astronomy (HTW Berlin)
 ===============================================================
-The code is adapted from
-`this repository <https://gitlab.com/ml-ppa/pulsarrfi_nn/-/tree/version_0.2/unet_semantic_segmentation?ref_type=heads>`_.
+The code is adapted from `this repository <https://gitlab.com/ml-ppa/pulsarrfi_nn/-/tree/version_0.2/unet_semantic_segmentation?ref_type=heads>`_.
 Please visit the original repository for more technical information on the code. 
 This use-case features a sophisticated pipeline composed of few neural networks.
+
+Integration Author: Oleksandr Krochak, FZJ
 
 Environment Management
 -----------------------------------------------------------------

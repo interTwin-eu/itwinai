@@ -24,14 +24,6 @@ import pytest
 
 USECASE_FOLDER = Path("use-cases", "radio-astronomy").resolve()
 
-@pytest.fixture
-def torch_env() -> str:
-    """Enter your .venv installation path here
-    if non-default is used.
-    """
-
-    return "/p/project1/intertwin/krochak1/itwinai/.venv"
-
 @pytest.mark.functional
 def test_radio_astronomy_syndata(torch_env):
     """
