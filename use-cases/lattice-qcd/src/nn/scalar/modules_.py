@@ -336,19 +336,31 @@ class DistConvertor_(ModuleList_):
 
     Steps: pass through Expit_, SplineNet_, and Logit_
     """
-
-    def __init__(self, knots_len, symmetric=False, label='dc_',
-            sgnbias=False, initial_scale=False, final_scale=False,
-            **kwargs
-            ):
+    def __init__(self,
+        knots_len: int,
+        symmetric: bool = False,
+        label: str = 'dc_',
+        sgnbias: bool = False,
+        initial_scale: bool = False,
+        final_scale: bool = False,
+        **kwargs
+    ):
+        self.knots_len = knots_len
+        self.symmetric = symmetric
+        self.label = label
+        self.sgnbias = sgnbias
+        self.initial_scale = initial_scale
+        self.final_scale = final_scale
 
         if symmetric:
             extra = dict(xlim=(0.5, 1), ylim=(0.5, 1), extrap={'left':'anti'})
         else:
             extra = dict(xlim=(0, 1), ylim=(0, 1))
 
+        kwargs.update(extra)
+
         if knots_len > 1:
-            spline_ = SplineNet_(knots_len, label='spline_', **kwargs, **extra)
+            spline_ = SplineNet_(knots_len, label='spline_', **kwargs)
             nets_ = [Expit_(label='expit_'), spline_, Logit_(label='logit_')]
         else:
             nets_ = []
@@ -363,24 +375,6 @@ class DistConvertor_(ModuleList_):
 
         super().__init__(nets_)
         self.label = label
-
-    @property
-    def spline_layer_(self):
-        for net_ in self:
-            if net_.label == 'spline_':
-                return net_
-
-    @property
-    def scale_layer_(self):
-        for net_ in self:
-            if net_.label == 'scale_':
-                return net_
-
-    @property
-    def sgnbias_layer_(self):
-        for net_ in self:
-            if net_.label == 'sgnbias_':
-                return net_
 
 
 class SgnBiasNet_(Module_):

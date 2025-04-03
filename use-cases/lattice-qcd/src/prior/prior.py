@@ -9,6 +9,7 @@ import copy
 import numpy as np
 
 from abc import abstractmethod, ABC
+from typing import Dict, Tuple
 
 
 class Prior(ABC):
@@ -16,9 +17,10 @@ class Prior(ABC):
 
     propagate_density = False
 
-    def __init__(self, dist, seed=None):
+    def __init__(self, dist, seed=None, **kwargs):
         self.dist = dist
         Prior.manual_seed(seed)
+        self.extra_params = kwargs
 
     def sample(self, batch_size=1):
         return self.dist.sample((batch_size,))
@@ -92,7 +94,19 @@ class UniformPrior(Prior):
 class NormalPrior(Prior):
     """Creates a normal distribution parameterized by loc and scale."""
 
-    def __init__(self, loc=None, scale=None, shape=None, seed=None, **kwargs):
+    def __init__(
+        self,
+        loc: float | torch.Tensor = None,
+        scale: float | torch.Tensor = None,
+        shape: Tuple[int, ...] | None = None,
+        seed: int | None = None,
+        **kwargs: Dict
+    ):
+        self.loc = loc
+        self.scale = scale
+        self.shape = shape
+        self.seed = seed
+
         """If shape is None, loc & scale must be of similar shape."""
         if shape is not None:
             loc = torch.zeros(shape)  # i.e. mean
@@ -176,3 +190,4 @@ class BlockUpdater:
         batch_size = x.shape[0]
         view = x.view(batch_size, -1, self.block_len)
         view[restore_ind, block_ind] = self.backup_block[restore_ind]
+

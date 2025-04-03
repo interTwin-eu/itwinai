@@ -16,8 +16,11 @@ class ScalarPhi4Action:
             + \lambda \phi(x)^4
             ).
     """
-    def __init__(self, *, m_sq, lambd, kappa=1, a=1):
-        self.kappa, self.m_sq, self.lambd, self.a = kappa, m_sq, lambd, a
+    def __init__(self, *, m_sq: float, lambd: float, kappa: float = 1.0, a: float = 1.0):
+        self.kappa = kappa
+        self.m_sq = m_sq
+        self.lambd = lambd
+        self.a = a
 
     def get_coef(self, lat_ndim):
         """Returns coefficients of different terms after absorbing appropriate
@@ -67,3 +70,4 @@ class ScalarPhi4Action:
     def log_prob(self, x, action_logz=0):
         """Returns log probability up to an additive constant."""
         return -self.action(x) - action_logz
+

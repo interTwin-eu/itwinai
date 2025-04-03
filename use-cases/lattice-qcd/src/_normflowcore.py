@@ -173,7 +173,6 @@ class Posterior:
 
 class Fitter(TorchTrainer):
     """A class for training a given model."""
-    profiler: Optional[Any]
     def __init__(
         self,
         model: Model,
@@ -181,8 +180,6 @@ class Fitter(TorchTrainer):
         config: Dict | TrainingConfiguration | None = None,
         strategy: Literal["ddp", "deepspeed", "horovod"] = 'ddp',
         logger: Logger | None = None,
-        profiling_wait_epochs: int = 1,
-        profiling_warmup_epochs: int = 2,
     ):
         super().__init__(config=config, epochs=epochs, strategy=strategy, logger=logger)
         self._model = model
@@ -203,9 +200,6 @@ class Fitter(TorchTrainer):
             loss=[], logqp=[], logz=[], ess=[], rho=[], accept_rate=[]
         )
         self.hyperparam = dict(lr=self.config.optim_lr, weight_decay=self.config.weight_decay)
-        self.profiler = None
-        self.profiling_wait_epochs = profiling_wait_epochs
-        self.profiling_warmup_epochs = profiling_warmup_epochs
 
     def setup_seed(self, rank: int, world_size: int) -> None:
         """Sets up random seed for each worker in a distributed setting.
@@ -361,7 +355,6 @@ class Fitter(TorchTrainer):
         torch.save(snapshot, snapshot_new_path)
         print(f"Epoch {epochs_run} | Model Snapshot saved at {snapshot_new_path}")
 
-    @profile_torch_trainer
     def train(self) -> None:
         """Trains the neural network model."""
         if self.config.save_every == "None":

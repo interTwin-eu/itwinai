@@ -60,10 +60,5 @@ pipeline:
             epochs_run: ${epochs_run}
           epochs: ${epochs}
           strategy: "ddp"
-          logger:
-            class_path: itwinai.loggers.MLFlowLogger
-            init_args:
-              experiment_name: "Lattice QCD"
-              log_freq: "batch"
 
 
