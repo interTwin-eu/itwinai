@@ -1,6 +1,6 @@
 normflow
 [![SQAaaS badge shields.io](https://img.shields.io/badge/sqaaas%20software-silver-lightgrey)](https://api.eu.badgr.io/public/assertions/-g9rQYZJTyi4S-VUrbvqlQ "SQAaaS silver badge achieved")
-[![License: MIT](https://cdn.prod.website-files.com/5e0f1144930a8bc8aace526c/65dd9eb5aaca434fac4f1c34_License-MIT-blue.svg)](/LICENSE)
+[![License: MIT](https://cdn.prod.website-files.com/5e0f1144930a8bc8aace526c/65dd9eb5aaca434fac4f1c34_License-MIT-blue.svg)](LICENSE)
 --------
 This package provides utilities for implementing the
 **method of normalizing flows** as a generative model for lattice field theory.
@@ -177,10 +177,10 @@ In order to install the `itwinai` environment, please follow the instructions pr
 After that the use-case required packages, such as `normflow` should be installed.
 This version provides `train.py` file to execute the workflow. Alternatively, one can use
 the `exec-pipeline` CLI from `itwinai` to launch the workflow. A script to 
-define the pipeline called `pipeline.yaml` is provided. In order to launch the
+define the pipeline called `config.yaml` is provided. In order to launch the
 pipeline, simply run:
 ```
-itwinai exec-pipeline --config pipeline.yaml
+itwinai exec-pipeline --config config.yaml
 ```
 For working on HPC systems, additionally a `startscript.sh` file is provided. 
 This can be launched by:```sbatch startscript.sh```. The version includes integration 
