@@ -1,162 +1,128 @@
+# --------------------------------------------------------------------------------------
+# Part of the interTwin Project: https://www.intertwin.eu/
+#
+# Created by: Javad Komijani - ETHZ
+#
+# Credit:
+# - Javad Komijani <jkomijani@gmail.com> - ETHZ
+# - Gaurav Sinha Ray <sinha@ifca.unican.es> - CSIC
+# - Rakesh Sarma <r.sarma@fz-juelich.de> - Juelich
+# --------------------------------------------------------------------------------------
+
 # Copyright (c) 2021-2024 Javad Komijani
 
-"""
-This module contains high-level classes for normalizing flow techniques,
+"""This module contains high-level classes for normalizing flow techniques,
 with the central `Model` class integrating essential components such as priors,
 networks, and actions. It provides utilities for training and sampling,
-along with support for MCMC sampling and device management.
+along with support for MCMC sampling. It also integrates with the itwinai package
+to perform distributed training, profiling and logging.
 """
 
 import torch
+import torch.distributed as dist
 import time
-import os
+import os, sys
 from pathlib import Path
-from typing import Any, Optional
-
+from typing import Any, Callable, Dict, Literal, Optional, Tuple
+from torch.utils.data import Dataset
+import torch.optim.lr_scheduler as lr_scheduler
 import numpy as np
 
 from .mcmc import MCMCSampler, BlockedMCMCSampler
 from .lib.combo import estimate_logz, fmt_val_err
-from .device import ModelDeviceHandler
+from normflow.prior import Prior
+from normflow.nn import ModuleList_
+from normflow.action.scalar_action import ScalarPhi4Action
 
 from itwinai.torch.trainer import TorchTrainer
-from itwinai.torch.distributed import TorchDDPStrategy
+from itwinai.torch.distributed import DeepSpeedStrategy
 from itwinai.loggers import Logger
 from itwinai.torch.profiling.profiler import profile_torch_trainer
+from itwinai.torch.config import TrainingConfiguration
 
-# =============================================================================
+
 class Model:
-    """
-    The central high-level class of the package, which integrates instances of
+    """The central high-level class of the package, which integrates instances of
     essential classes (`prior`, `net_`, and `action`) to provide utilities for
     training and sampling. This class interfaces with various core components
-    to facilitate training, posterior inference, MCMC sampling, and device
-    management.
+    to facilitate training, posterior inference and MCMC sampling.
 
-    Parameters
-    ----------
-    prior : instance of a `Prior` class
-        An instance of a Prior class (e.g., `NormalPrior`) representing the
-        model's prior distribution.
+    Args:
+        prior (Prior): instance of a `Prior` class
+            An instance of a Prior class (e.g., `NormalPrior`) representing the
+            model's prior distribution.
+        net_ (Module_): instance of a `Module_` class
+            A model component responsible for the transformations required in the
+            model. The trailing underscore indicates that the associated forward
+            method computes and returns the Jacobian of the transformation, which
+            is crucial in the method of normalizing flows.
+        action (Action): instance of an `ScalarPhi4Action` class
+            Defines the model's action, which specified the target distribution
+            during training.
 
-    net_ : instance of a `Module_` class
-        A model component responsible for the transformations required in the
-        model. The trailing underscore indicates that the associated forward
-        method computes and returns the Jacobian of the transformation, which
-        is crucial in the method of normalizing flows.
-
-    action : instance of an `Action` class
-        Defines the model's action, which specified the target distribution
-        during training.
-
-    Attributes
-    ----------
-    fit : Fitter
-        An instance of the Fitter class, responsible for training the model.
-        `fit` is aliased to `train` for flexibility in usage.
-
-    posterior : Posterior
-        An instance of the Posterior class, which manages posterior inference
-        on the model parameters.
-
-    mcmc : MCMCSampler
-        An instance of the MCMCSampler class, enabling MCMC sampling for
-        posterior distributions.
-
-    blocked_mcmc : BlockedMCMCSampler
-        An instance of the BlockedMCMCSampler class, providing blockwise
-        MCMC sampling for improved sampling efficiency.
-
-    device_handler : ModelDeviceHandler
-        Manages the device (CPU/GPU) for model training and inference, ensuring
-        seamless operation across hardware setups.
+    Attributes:
+        posterior (Posterior): An instance of the Posterior class,
+            which manages posterior inference on the model parameters.
+        mcmc (MCMCSampler): An instance of the MCMCSampler class, enabling
+            MCMC sampling for posterior distributions.
+        blocked_mcmc (BlockedMCMCSampler): An instance of the BlockedMCMCSampler class,
+            providing blockwise MCMC sampling for improved sampling efficiency.
     """
 
-    def __init__(self, *, prior, net_, action, config=None, epochs=1000, logger=None):
+    def __init__(self, *, prior: Prior, net_: ModuleList_, action: ScalarPhi4Action):
         self.net_ = net_
         self.prior = prior
         self.action = action
 
-        # Components for training, sampling, and device handling
-        self.fit = Fitter(self, config=config, epochs=epochs, logger=logger)
-        self.train = self.fit  # Alias for `fit`
-
         self.posterior = Posterior(self)
         self.mcmc = MCMCSampler(self)
         self.blocked_mcmc = BlockedMCMCSampler(self)
-        self.device_handler = ModelDeviceHandler(self)
 
 
 class Posterior:
-    """
-    Creates samples directly from a trained probabilistic model.
-
+    """Creates samples directly from a trained probabilistic model.
     The `Posterior` class generates samples from a specified model without
     using an accept-reject step, making it suitable for tasks that require
     quick, direct sampling. All methods in this class use `torch.no_grad()`
     to prevent gradient computation.
 
-    Parameters
-    ----------
-    model : Model
-        A trained model to sample from.
-
-    Methods
-    -------
-    sample(batch_size=1, **kwargs)
-        Returns a specified number of samples from the model.
-
-    sample_(batch_size=1, preprocess_func=None)
-        Returns samples and their log probabilities, with an optional
-        preprocessing function.
-
-    sample__(batch_size=1, **kwargs)
-        Similar to `sample_`, but also returns the log probability of the
-        target distribution.
-
-    log_prob(y)
-        Computes the log probability of given samples.
+    Args:
+        model (Model): A trained model to sample from.
     """
 
     def __init__(self, model: Model):
         self._model = model
 
     @torch.no_grad()
-    def sample(self, batch_size=1, **kwargs):
-        """
-        Draws samples from the model.
+    def sample(self, batch_size: int = 1, **kwargs) -> torch.Tensor:
+        """Draws samples from the model.
 
-        Parameters
-        ----------
-        batch_size : int, optional
-            Number of samples to draw, default is 1.
+        Args:
+            batch_size (int, optional): Number of samples to draw. Defaults to 1.
 
-        Returns
-        -------
-        Tensor
-            Generated samples.
+        Returns:
+            torch.Tensor: Generated samples.
         """
         return self.sample_(batch_size=batch_size, **kwargs)[0]
 
     @torch.no_grad()
-    def sample_(self, batch_size=1, preprocess_func=None):
-        """
-        Draws samples and their log probabilities from the model.
+    def sample_(
+        self,
+        batch_size: int = 1,
+        preprocess_func: Callable | None = None
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        """Draws samples and their log probabilities from the model.
 
-        Parameters
-        ----------
-        batch_size : int, optional
-            Number of samples to draw, default is 1.
+        Args:
+            batch_size (int, optional): Number of samples to draw. Defaults to 1.
+            preprocess_func (Callable, optional): A function to adjust the prior
+                samples if needed. It should take samples and log probabilities as
+                input and return modified values.
 
-        preprocess_func : function or None, optional
-            A function to adjust the prior samples if needed. It should take
-            samples and log probabilities as input and return modified values.
-
-        Returns
-        -------
-        tuple
-            - `y`: Generated samples.
-            - `logq`: Log probabilities of the samples.
+        Returns:
+            Tuple[torch.Tensor, torch.Tensor]:
+                - `y`: Generated samples.
+                - `logq`: Log probabilities of the samples.
         """
         x, logr = self._model.prior.sample_(batch_size)
 
@@ -168,41 +134,36 @@ class Posterior:
         return y, logq
 
     @torch.no_grad()
-    def sample__(self, batch_size=1, **kwargs):
-        """
-        Similar to `sample_`, but also returns the log probability of the
+    def sample__(
+        self,
+        batch_size: int = 1,
+        **kwargs
+    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+        """Similar to `sample_`, but also returns the log probability of the
         target distribution from `model.action`.
 
-        Parameters
-        ----------
-        batch_size : int, optional
-            Number of samples to draw, default is 1.
+        Args:
+            batch_size (int, optional): Number of samples to draw. Defaults to 1.
 
-        Returns
-        -------
-        tuple
-            - `y`: Generated samples.
-            - `logq`: Log probabilities of the samples.
-            - `logp`: Log probabilities from the target distribution.
+        Returns:
+            Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+                - `y`: Generated samples.
+                - `logq`: Log probabilities of the samples.
+                - `logp`: Log probabilities from the target distribution.
         """
         y, logq = self.sample_(batch_size=batch_size, **kwargs)
         logp = -self._model.action(y)  # logp is log(p_{non-normalized})
         return y, logq, logp
 
     @torch.no_grad()
-    def log_prob(self, y):
-        """
-        Computes the log probability of the provided samples.
+    def log_prob(self, y: torch.Tensor) -> torch.Tensor:
+        """Computes the log probability of the provided samples.
 
-        Parameters
-        ----------
-        y : torch.Tensor
-            Samples for which to calculate the log probability.
+        Args:
+            y (torch.Tensor): Samples for which to calculate the log probability.
 
-        Returns
-        -------
-        Tensor
-            Log probabilities of the samples.
+        Returns:
+            torch.Tensor: Log probabilities of the samples.
         """
         x, minus_logj = self._model.net_.reverse(y)
         logr = self._model.prior.log_prob(x)
@@ -210,132 +171,167 @@ class Posterior:
         return logq
 
 
-# =============================================================================
-#class Strategy(TorchDDPStrategy):
-#    def __init__(self, model):
-#        self._model = model
-#    def global_rank(self):
-#        return self._model.device_handler.rank
-#    def global_world_size(self):
-#        return self._model.device_handler.nranks
-#    @property
-#    def name(self):
-#        return "DDPStrategy"
-
 class Fitter(TorchTrainer):
     """A class for training a given model."""
     profiler: Optional[Any]
-    def __init__(self,
-            model: Model,
-            config=None,
-            epochs=1000,
-            logger: Optional[Logger] = None,
-            profiling_wait_epochs: int = 1,
-            profiling_warmup_epochs: int = 2
-        ):
-        super().__init__(
-                config=config,
-                epochs=epochs,
-                logger=logger
-        )
+    def __init__(
+        self,
+        model: Model,
+        epochs: int,
+        config: Dict | TrainingConfiguration | None = None,
+        strategy: Literal["ddp", "deepspeed", "horovod"] = 'ddp',
+        logger: Logger | None = None,
+        profiling_wait_epochs: int = 1,
+        profiling_warmup_epochs: int = 2,
+    ):
+        super().__init__(config=config, epochs=epochs, strategy=strategy, logger=logger)
         self._model = model
+        self.epochs = epochs
+        # Global training configuration
+        if isinstance(config, dict):
+            config = TrainingConfiguration(**config)
+        self.config = config
+        self.checkpoint_dict = dict(
+            display=self.config.ckpt_disp,
+            print_stride=self.config.print_stride,
+            print_batch_size=self.config.print_batch_size,
+            snapshot_path=self.config.snapshot_path,
+            epochs_run=self.config.epochs_run
+        )
         self.train_batch_size = 1
         self.train_history = dict(
-                loss=[], logqp=[], logz=[], ess=[], rho=[], accept_rate=[]
-                )
-        self.hyperparam = dict(lr=0.001, weight_decay=0.01)
-        self.checkpoint_dict = dict(
-            display=False,
-            print_stride=10,
-            print_batch_size=1024,
-            snapshot_path=None,
-            epochs_run=0
-            )
-        #self.strategy = Strategy(model)
+            loss=[], logqp=[], logz=[], ess=[], rho=[], accept_rate=[]
+        )
+        self.hyperparam = dict(lr=self.config.optim_lr, weight_decay=self.config.weight_decay)
         self.profiler = None
         self.profiling_wait_epochs = profiling_wait_epochs
         self.profiling_warmup_epochs = profiling_warmup_epochs
 
-    def __call__(self,
-            n_epochs=1000,
-            save_every=None,
-            batch_size=64,
-            optimizer_class=torch.optim.AdamW,
-            scheduler=None,
-            loss_fn=None,
-            hyperparam={},
-            checkpoint_dict={},
-            profiling_wait_epochs=1,
-            profiling_warmup_epochs=1
-            ):
+    def setup_seed(self, rank: int, world_size: int) -> None:
+        """Sets up random seed for each worker in a distributed setting.
+        This methods ensures that each workers receives a unique seed. The main worker
+        generates the seeds and broadcasts to other workers.
 
-        """Fit the model; i.e. train the model.
+        Args:
+            rank (int): The rank of the current worker.
+            world_size (int): The total number of workers in the distributed setting
 
-        Parameters
-        ----------
-        n_epochs : int
-            Number of epochs of training.
-
-        save_every: int
-            save a model every <save_every> epochs.
-
-        batch_size : int
-            Size of samples used at each epoch.
-
-        optimizer_class : optimization class, optional
-            By default is set to torch.optim.AdamW, but can be changed.
-
-        scheduler : scheduler class, optional
-            By default no scheduler is used.
-
-        loss_fn : None or function, optional
-            The default value is None, which translates to using KL divergence.
-
-        hyperparam : dict, optional
-            Can be used to set hyperparameters like the learning rate and decay
-            weights.
-
-        checkpoint_dict : dict, optional
-            Can be set to control the printing and saving of the training status.
+        Returns:
+            None
         """
+        if self.strategy.is_main_worker:
+            # Generate unique seed for each worker based on its rank
+            seeds_torch = [torch.randint(2**32 - 1, (1,)).item() for _ in range(world_size)]
+            print(f"Generated seeds for workers: {seeds_torch}\n")
+        else:
+            seeds_torch = [None] * world_size
 
-        self.hyperparam.update(hyperparam)
-        self.checkpoint_dict.update(checkpoint_dict)
+        # Broadcast seed list to all workers
+        seeds_torch_list = self.strategy.allgather_obj(seeds_torch)
+        seeds_torch = next(s for s in seeds_torch_list if s is not None)
 
-        snapshot_path = self.checkpoint_dict['snapshot_path']
+        # Set seed for current worker based on its rank
+        seed = seeds_torch[rank]
+        torch.manual_seed(seed)
 
-        if save_every is None:
-            save_every = n_epochs
+        sys.stdout.write(f"Rank {rank} has been assigned seed {seed}\n")
 
-        self.epochs = n_epochs
+    def create_dataloaders(
+        self,
+        train_dataset: Dataset,
+        validation_dataset: Dataset | None = None,
+        test_dataset: Dataset | None = None
+    ) -> None:
+        """Overrides create_dataloaders method from itwinai TorchTrainer and returns
+        nothing since this is not needed in this use-case.
+
+        Args:
+            train_dataset (Dataset): training dataset object.
+            validation_dataset (Dataset | None): validation dataset object.
+                Defaults to None.
+            test_dataset (Dataset | None): test dataset object.
+                Defaults to None.
+
+        Returns:
+            None.
+        """
+        return
+
+    def create_model_loss_optimizer(self) -> None:
+        """Creates create_model_loss_optimizer method to setup model, seeds,
+        loss function and optimizer."""
+        self._model.prior.to(device=self.device)
+
+        # First, define strategy-wise optional configurations
+        if isinstance(self.strategy, DeepSpeedStrategy):
+            # Batch size definition is not optional for DeepSpeedStrategy!
+            distribute_kwargs = dict(
+                config_params=dict(
+                    train_micro_batch_size_per_gpu=self.config.batch_size
+                )
+            )
+        else:
+            distribute_kwargs = {}
+
+        optimizer_class = eval(self.config.optimizer_class)
+        if '_groups' in self._model.net_.__dict__.keys():
+            parameters = self._model.net_.grouped_parameters()
+        else:
+            parameters = self._model.net_.parameters()
+        self.optimizer = optimizer_class(parameters, **self.hyperparam)
+
+        # Distributed model, optimizer, and scheduler
+        self._model.net_, self.optimizer, _ = self.strategy.distributed(
+            self._model.net_, self.optimizer, **distribute_kwargs
+        )
+
+        # Call setup_seed to set seed with current rank and world_size
+        self.setup_seed(self.strategy.global_rank(), self.strategy.global_world_size())
 
         # decide whether to load a snapshot
+        snapshot_path = self.checkpoint_dict['snapshot_path']
         if (snapshot_path is not None) and os.path.exists(snapshot_path):
             print(f"Trying to load snapshot from {snapshot_path}")
             self._load_snapshot()
 
-        self.loss_fn = Fitter.calc_kl_mean if loss_fn is None else loss_fn
+        self.loss_fn = Fitter.calc_kl_mean if self.config.loss_fn == "None" else self.config.loss_fn
 
-        net_ = self._model.net_
-        if '_groups' in net_.__dict__.keys():
-            parameters = net_.grouped_parameters()
-        else:
-            parameters = net_.parameters()
-        self.optimizer = optimizer_class(parameters, **self.hyperparam)
-
-        if scheduler is None:
+        if not self.config.scheduler or self.config.scheduler == "None":
             self.scheduler = None
         else:
-            self.scheduler = scheduler(self.optimizer)
+            try:
+                scheduler_class = getattr(lr_scheduler, self.config.scheduler)
+                self.scheduler = scheduler_class(self.optimizer)
+            except AttributeError:
+                raise ValueError(f"Invalid scheduler name: {self.config.scheduler}")
 
-        if n_epochs > 0:
-            self._train(n_epochs, batch_size, save_every)
+    def execute(
+        self,
+        train_dataset: Dataset | None = None,
+        validation_dataset: Dataset | None = None,
+        test_dataset: Dataset | None = None
+    ) -> None:
+        """Overrides execute method from itwinai TorchTrainer class to ignore
+        train_dataset since it is not needed in this usecase.
 
-    def _load_snapshot(self):
+        Args:
+            train_dataset (Dataset | None): training dataset object. Defaults to None.
+            validation_dataset (Dataset | None): validation dataset object.
+                Defaults to None.
+            test_dataset (Dataset | None): test dataset object. Defaults to None.
+
+        Returns:
+            None.
+        """
+        _ = super().execute(train_dataset, validation_dataset, test_dataset)
+
+        return None
+
+    def _load_snapshot(self) -> None:
+        """Method to load a snapshot from a path provided in checkpoint_dict"""
         snapshot_path = self.checkpoint_dict['snapshot_path']
         if torch.cuda.is_available():
-            gpu_id = self._model.device_handler.rank
-            # gpu_id = int(os.environ["LOCAL_RANK"]) might be needed for torchrun ??
+            gpu_id = self.strategy.global_rank()
             loc = f"cuda:{gpu_id}"
             print(f"GPU: Attempting to load saved model into {loc}")
         else:
@@ -346,36 +342,53 @@ class Fitter(TorchTrainer):
         self.checkpoint_dict['epochs_run'] = snapshot['EPOCHS_RUN']
         print(f"Snapshot found: {snapshot_path}\nResuming training via Saved Snapshot at Epoch {snapshot['EPOCHS_RUN']}")
 
-    def _save_snapshot(self, epoch):
-        """Save snapshot of training for analysis and/or to continue training
-        at a later date.
+    def _save_snapshot(self, epoch: int) -> None:
+        """Save snapshot of training for analysis and/or to continue training at a later date.
+
+        Args:
+            epoch (int): Number of the epoch at which the snapshot is saved.
+
+        Returns:
+            None.
         """
         snapshot_path = self.checkpoint_dict['snapshot_path']
         epochs_run = epoch + self.checkpoint_dict['epochs_run']
         snapshot_new_path = snapshot_path.rsplit('.',2)[0] + ".E" + str(epochs_run) + ".tar"
         snapshot = {
-                    "MODEL_STATE": self._model.net_.state_dict(),
-                     "EPOCHS_RUN": epochs_run }
+            "MODEL_STATE": self._model.net_.state_dict(),
+            "EPOCHS_RUN": epochs_run
+        }
         torch.save(snapshot, snapshot_new_path)
         print(f"Epoch {epochs_run} | Model Snapshot saved at {snapshot_new_path}")
 
     @profile_torch_trainer
-    def _train(self, n_epochs: int, batch_size: int, save_every: int):
+    def train(self) -> None:
+        """Trains the neural network model."""
+        if self.config.save_every == "None":
+            self.config.save_every = self.epochs
 
         T1 = time.time()
-        for epoch in range(1, n_epochs+1):
+        for epoch in range(1, self.epochs+1):
+
             if self.profiler is not None:
                 self.profiler.step()
-            loss, logqp = self.step(batch_size)
-            self.checkpoint(epoch, loss, save_every)
+            loss, logqp = self.step(self.config.batch_size)
+            self.checkpoint(epoch, loss, self.config.save_every)
             if self.scheduler is not None:
                 self.scheduler.step()
         T2 = time.time()
-        if n_epochs > 0 and self._model.device_handler.rank == 0:
-            print(f"({loss.device}) Time = {T2 - T1:.3g} sec.")
+        if self.epochs > 0 and self.strategy.is_main_worker:
+            print(f"({self.strategy.device()}) Time = {T2 - T1:.3g} sec.")
 
-    def step(self, batch_size):
-        """Perform a train step with a batch of inputs"""
+    def step(self, batch_size: int) -> None:
+        """Perform a train step with a batch of inputs.
+
+        Args:
+            batch_size (int): Specifies the batch size for the training.
+
+        Returns:
+            None
+        """
         net_ = self._model.net_
         prior = self._model.prior
         action = self._model.action
@@ -386,57 +399,99 @@ class Fitter(TorchTrainer):
         logp = -action(y)
         loss = self.loss_fn(logq, logp)
 
-        self.optimizer.zero_grad()  # clears old gradients from last steps
-
+        # clears old gradients from last steps
+        self.optimizer.zero_grad()
         loss.backward()
-
         self.optimizer.step()
 
         return loss, logq - logp
 
-    def checkpoint(self, epoch, loss, save_every):
+    def checkpoint(self, epoch: int, loss: torch.Tensor, save_every: int) -> None:
+        """Handles model checkpointing and logging during training.
 
-        rank = self._model.device_handler.rank
+        Args:
+            epoch (int): Epoch at which checkpoint is created.
+            loss (torch.Tensor): Loss value at the epoch.
+            save_every (int): interval at which checkpoints are saved.
+
+        Returns:
+            None
+        """
         print_stride = self.checkpoint_dict['print_stride']
         print_batch_size = self.checkpoint_dict['print_batch_size']
         snapshot_path = self.checkpoint_dict['snapshot_path']
 
         # Always save loss on rank 0
-        if rank == 0:
+        if self.strategy.is_main_worker:
             self.train_history['loss'].append(loss.item())
             # Save model as well
             if snapshot_path is not None and (epoch % save_every == 0):
                 self._save_snapshot(epoch)
 
-        print_batch_size = print_batch_size // self._model.device_handler.nranks
+        print_batch_size = print_batch_size // self.strategy.global_world_size()
 
         if epoch == 1 or (epoch % print_stride == 0):
-
             _, logq, logp = self._model.posterior.sample__(print_batch_size)
+            logq = self.strategy.gather(logq)
+            logp = self.strategy.gather(logp)
 
-            logq = self._model.device_handler.all_gather_into_tensor(logq)
-            logp = self._model.device_handler.all_gather_into_tensor(logp)
-
-            if rank == 0:
+            if self.strategy.is_main_worker:
+                logq = torch.cat(logq, dim=0)
+                logp = torch.cat(logp, dim=0)
                 loss_ = self.loss_fn(logq, logp)
                 self._append_to_train_history(logq, logp)
                 self.print_fit_status(epoch, loss=loss_)
 
     @staticmethod
-    def calc_kl_mean(logq, logp):
-        """Return Kullback-Leibler divergence estimated from logq and logp."""
+    def calc_kl_mean(logq: torch.Tensor, logp: torch.Tensor) -> torch.Tensor:
+        """Return Kullback-Leibler divergence estimated from logq and logp.
+
+        Args:
+            logq (torch.Tensor): Log probabilities from the approximate distribution `q`.
+            logp (torch.Tensor): Log probabilities from the target distribution `p`.
+
+        Returns:
+            torch.Tensor: Estimated KL divergence.
+        """
         return (logq - logp).mean()  # KL, assuming samples from q
 
     @staticmethod
-    def calc_kl_var(logq, logp):
+    def calc_kl_var(logq: torch.Tensor, logp: torch.Tensor) -> torch.Tensor:
+        """Compute variance of the Kullback-Leibler (KL) divergence.
+
+        Args:
+            logq (torch.Tensor): Log probabilities from the approximate distribution `q`.
+            logp (torch.Tensor): Log probabilities from the target distribution `p`.
+
+        Returns:
+            torch.Tensor: Variance of the KL divergence.
+        """
         return (logq - logp).var()
 
     @staticmethod
-    def calc_corrcoef(logq, logp):
+    def calc_corrcoef(logq: torch.Tensor, logp: torch.Tensor) -> torch.Tensor:
+        """Compute the Pearson correlation coefficient between logq and logp.
+
+        Args:
+            logq (torch.Tensor): Log probabilities from the approximate distribution `q`.
+            logp (torch.Tensor): Log probabilities from the target distribution `p`.
+
+        Returns:
+            torch.Tensor: Pearson correlation coefficient.
+        """
         return torch.corrcoef(torch.stack([logq, logp]))[0, 1]
 
     @staticmethod
-    def calc_direct_kl_mean(logq, logp):
+    def calc_direct_kl_mean(logq: torch.Tensor, logp: torch.Tensor) -> torch.Tensor:
+        """Compute the direct KL divergence.
+
+        Args:
+            logq (torch.Tensor): Log probabilities from the approximate distribution `q`.
+            logp (torch.Tensor): Log probabilities from the target distribution `p`.
+
+        Returns:
+            torch.Tensor: KL divergence
+        """
         logpq = logp - logq
         logz = torch.logsumexp(logpq, dim=0) - np.log(logp.shape[0])
         logpq = logpq - logz  # p is now normalized
@@ -444,13 +499,30 @@ class Fitter(TorchTrainer):
         return (p_by_q * logpq).mean()
 
     @staticmethod
-    def calc_minus_logz(logq, logp):
+    def calc_minus_logz(logq: torch.Tensor, logp: torch.Tensor) -> torch.Tensor:
+        """Compute the negative log partition function.
+
+        Args:
+            logq (torch.Tensor): Log probabilities from the approximate distribution `q`.
+            logp (torch.Tensor): Log probabilities from the target distribution `p`.
+
+        Returns:
+            torch.Tensor: Negative log partition function.
+        """
         logz = torch.logsumexp(logp - logq, dim=0) - np.log(logp.shape[0])
         return -logz
 
     @staticmethod
-    def calc_ess(logq, logp):
-        """Rerturn effective sample size (ESS)."""
+    def calc_ess(logq: torch.Tensor, logp: torch.Tensor) -> torch.Tensor:
+        """Return effective sample size (ESS).
+
+        Args:
+            logq (torch.Tensor): Log probabilities from the approximate distribution `q`.
+            logp (torch.Tensor): Log probabilities from the target distribution `p`.
+
+        Returns:
+            torch.Tensor: Estimated effective sample size (ESS).
+        """
         logqp = logq - logp
         log_ess = 2*torch.logsumexp(-logqp, dim=0) \
                 - torch.logsumexp(-2*logqp, dim=0)
@@ -458,15 +530,32 @@ class Fitter(TorchTrainer):
         return ess
 
     @staticmethod
-    def calc_minus_logess(logq, logp):
-        """Return logarithm of inverse of effective sample size."""
+    def calc_minus_logess(logq: torch.Tensor, logp: torch.Tensor) -> torch.Tensor:
+        """Return logarithm of inverse of effective sample size.
+
+        Args:
+            logq (torch.Tensor): Log probabilities from the approximate distribution `q`.
+            logp (torch.Tensor): Log probabilities from the target distribution `p`.
+
+        Returns:
+            torch.Tensor: logarithm of inverse of effective sample size.
+        """
         logqp = logq - logp
         log_ess = 2*torch.logsumexp(-logqp, dim=0) \
                 - torch.logsumexp(-2*logqp, dim=0)
         return - log_ess + np.log(len(logqp))  # normalized
 
     @torch.no_grad()
-    def _append_to_train_history(self, logq, logp):
+    def _append_to_train_history(self, logq: torch.Tensor, logp: torch.Tensor) -> None:
+        """Update train history with log probability estimates.
+
+        Args:
+            logq (torch.Tensor): Log probabilities from the approximate distribution `q`.
+            logp (torch.Tensor): Log probabilities from the target distribution `p`.
+
+        Returns:
+            None.
+        """
         logqp = logq - logp
         logz = estimate_logz(logqp, method='jackknife')  # returns (mean, std)
         accept_rate = self._model.mcmc.estimate_accept_rate(logqp)
@@ -479,7 +568,16 @@ class Fitter(TorchTrainer):
         self.train_history['rho'].append(rho)
         self.train_history['accept_rate'].append(accept_rate)
 
-    def print_fit_status(self, epoch, loss=None):
+    def print_fit_status(self, epoch: int, loss: torch.Tensor | None = None) -> None:
+        """Print training progress and key metrics.
+
+        Args:
+            epoch (int): Current epoch.
+            loss (torch.Tensor, optional): Loss value for the current epoch.
+
+        Returns:
+            None.
+        """
         mydict = self.train_history
         if loss is None:
             loss = mydict['loss'][-1]
@@ -494,7 +592,7 @@ class Fitter(TorchTrainer):
         rho = mydict['rho'][-1]
 
         if epoch == 1:
-            print(f"\n>>> Training progress ({ess.device}) <<<\n")
+            print(f"\n>>> Training progress ({self.device}) <<<\n")
             print("Note: log(q/p) is estimated with normalized p; " \
                   + "mean & error are obtained from samples in a batch\n")
 
@@ -506,9 +604,20 @@ class Fitter(TorchTrainer):
 
 # =============================================================================
 @torch.no_grad()
-def reverse_flow_sanitychecker(model, n_samples=4, net_=None):
-    """Performs a sanity check on the reverse method of modules."""
+def reverse_flow_sanitychecker(
+    model: Model,
+    n_samples: int = 4,
+    net_: torch.nn.Module | None = None
+) -> None:
+    """Performs a sanity check on the reverse method of modules.
+    Args:
+        model (Model): Model containing prior and transformation networks.
+        n_samples (int, optional): Number of samples to test. Defaults to 4.
+        net_ (torch.nn.Module, optional): The transformation network.
 
+    Returns:
+        None
+    """
     if net_ is None:
         net_ = model.net_
 
