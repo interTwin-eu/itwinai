@@ -1,12 +1,24 @@
 # General configuration
+batch_size: 128
 epochs: 100
-strategy: 'ddp'
+optim_lr: 0.001
+weight_decay: 0.01
 knots_len: 10
+symmetric: True
 shape: [1]
 kappa: 0
 m_sq: -1.2
 lambd: 0.5
-symmetric: True
+ckpt_disp: False
+save_every: None
+optimizer_class: torch.optim.AdamW
+loss_fn: None
+scheduler: None
+print_stride: 10
+print_batch_size: 1024
+snapshot_path: None
+epochs_run: 0
+strategy: 'ddp'
 
 pipeline:
   class_path: itwinai.pipeline.Pipeline
@@ -33,11 +45,25 @@ pipeline:
                   kappa: ${kappa}
                   m_sq: ${m_sq}
                   lambd: ${lambd}
-          config: null
+          config:
+            optim_lr: ${optim_lr}
+            weight_decay: ${weight_decay}
+            save_every: ${save_every}
+            ckpt_disp: ${ckpt_disp}
+            batch_size: ${batch_size}
+            optimizer_class: ${optimizer_class}
+            scheduler: ${scheduler}
+            loss_fn: ${loss_fn}
+            print_stride: ${print_stride}
+            print_batch_size: ${print_batch_size}
+            snapshot_path: ${snapshot_path}
+            epochs_run: ${epochs_run}
           epochs: ${epochs}
-          strategy: ${strategy}
+          strategy: "ddp"
           logger:
             class_path: itwinai.loggers.MLFlowLogger
             init_args:
               experiment_name: "Lattice QCD"
               log_freq: "batch"
+
+

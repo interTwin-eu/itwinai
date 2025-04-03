@@ -55,4 +55,4 @@ srun --cpu-bind=none --ntasks-per-node=1 bash -c "torchrun \
     --rdzv_conf=is_host=\$(((SLURM_NODEID)) && echo 0 || echo 1) \
     --rdzv_backend=c10d \
     --rdzv_endpoint='$(scontrol show hostnames "$SLURM_JOB_NODELIST" | head -n 1)'i:54123 \
-   $(which itwinai) exec-pipeline --config pipeline.yaml"
+   $(which itwinai) exec-pipeline --config config.yaml"
