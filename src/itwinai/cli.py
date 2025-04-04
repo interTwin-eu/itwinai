@@ -42,8 +42,8 @@ def generate_py_spy_report(
     ] = "10",
 ):
     from itwinai.torch.profiling.py_spy_aggregation import (
-        handle_data_point,
         create_bottom_function_table,
+        handle_data_point,
     )
 
     if not num_rows.isnumeric() and num_rows != "all":
