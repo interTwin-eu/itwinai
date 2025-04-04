@@ -1,5 +1,5 @@
 import re
-from typing import List, Dict
+from typing import Dict, List
 
 function_pattern = r"([^\s]+) \(([^():]+):(\d+)\)"
 
