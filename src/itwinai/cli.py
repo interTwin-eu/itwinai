@@ -48,18 +48,26 @@ def generate_py_spy_report(
 
     if not num_rows.isnumeric() and num_rows != "all":
         raise typer.BadParameter(
-            f"'num-rows' has to be either an integer or 'all'. Was '{num_rows}'."
+            f"Number of rows must be either an integer or 'all'. Was '{num_rows}'.",
+            param_hint="num-rows",
         )
     parsed_num_rows: int | None = int(num_rows) if num_rows.isnumeric() else None
     if isinstance(parsed_num_rows, int) and parsed_num_rows < 1:
-        raise typer.BadParameter(f"'num_rows' has to be greater than one! Was '{num_rows}'.")
+        raise typer.BadParameter(
+            f"Number of rows must be greater than one! Was '{num_rows}'.",
+            param_hint="num-rows",
+        )
 
     file_path = Path(file)
+    if not file_path.exists():
+        raise typer.BadParameter(f"'{file_path.resolve()}' was not found!", param_hint="file")
+
     with file_path.open("r") as f:
         profiling_data = f.readlines()
 
     data_points = [handle_data_point(line) for line in profiling_data]
-    data_points = [dp for dp in data_points if dp]
+    data_points = [dp for dp in data_points if dp]  # filter away empty lists
+
     leaf_functions = [data_point[-1] for data_point in data_points]
     leaf_functions.sort(key=lambda x: x["num_samples"], reverse=True)
     table = create_bottom_function_table(
