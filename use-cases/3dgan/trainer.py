@@ -28,7 +28,7 @@ from itwinai.components import Predictor, Trainer, monitor_exec
 #     init_lightning_mlflow,
 #     teardown_lightning_mlflow
 # )
-from itwinai.loggers import Logger, _EmptyLogger
+from itwinai.loggers import EmptyLogger, Logger
 from itwinai.serialization import ModelLoader
 from itwinai.torch.inference import TorchModelLoader
 from itwinai.torch.type import Batch
@@ -43,7 +43,7 @@ class Lightning3DGANTrainer(Trainer):
             # Load from YAML
             config = load_yaml(config)
         self.conf = config
-        self.itwinai_logger = itwinai_logger if itwinai_logger else _EmptyLogger()
+        self.itwinai_logger = itwinai_logger if itwinai_logger else EmptyLogger()
 
     @monitor_exec
     def execute(self) -> Any:

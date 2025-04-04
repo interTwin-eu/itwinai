@@ -17,7 +17,8 @@ import ray
 import torch
 from ray import train, tune
 
-from itwinai.parser import ConfigParser
+from itwinai.cli import exec_pipeline_with_compose
+from hydra import compose, initialize
 
 
 def run_trial(config: Dict, data: Dict):
@@ -33,21 +34,18 @@ def run_trial(config: Dict, data: Dict):
         data (dict): A dictionary containing a "pipeline_path" field, which points to the yaml
             file containing the pipeline definition
     """
-    parser = ConfigParser(
-        config="config.yaml",
-        override_keys={
-            # Set hyperparameters controlled by ray
-            "batch_size": config["batch_size"],
-            "learning_rate": config["lr"],
-            # Override logger field, because performance is logged by ray
-            "training_pipeline.init_args.steps.2.init_args.logger": None,
-        },
-    )
-    my_pipeline = parser.parse_pipeline(
-        pipeline_nested_key=data["pipeline_name"], verbose=False
-    )
+    pipe_key = data["pipeline_name"]
 
-    my_pipeline.execute()
+    with initialize():
+        cfg = compose(
+            "config.yaml",
+            overrides=[
+                f"batch_size={config['batch_size']}",
+                f"optim_lr={config['optim_lr']}",
+                f"+pipe_key={pipe_key}",
+            ],
+        )
+        exec_pipeline_with_compose(cfg)
 
 
 def run_hpo(args):
@@ -79,7 +77,8 @@ def run_hpo(args):
 
         # Ray's RunConfig for experiment name and stopping criteria
         run_config = train.RunConfig(
-            name="Eurac-Ray-Experiment", stop={"training_iteration": args.max_iterations}
+            name="Eurac-Ray-Experiment",
+            stop={"training_iteration": args.max_iterations},
         )
 
         # Determine GPU and CPU utilization per trial

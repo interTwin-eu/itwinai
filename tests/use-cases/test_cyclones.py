@@ -15,7 +15,6 @@ do not break use cases' workflows.
 
 import os
 import subprocess
-import tempfile
 from pathlib import Path
 
 import pytest
@@ -32,7 +31,7 @@ def test_structure_cyclones(check_folder_structure):
 @pytest.mark.skip("deprecated")
 @pytest.mark.functional
 @pytest.mark.memory_heavy
-def test_cyclones_train_tf(tf_env, install_requirements):
+def test_cyclones_train_tf(tf_env, install_requirements, tmp_path):
     """
     Test Cyclones tensorflow trainer by running it end-to-end.
 
@@ -43,12 +42,12 @@ def test_cyclones_train_tf(tf_env, install_requirements):
     """
     # TODO: create a small sample dataset for tests only
     install_requirements(CYCLONES_PATH, tf_env)
-    if os.environ.get("CMCCC_DATASET"):
-        dataset_path = os.environ.get("CMCCC_DATASET")
-    else:
-        dataset_path = "./data/tmp_data"
-    pipe = os.path.join(os.path.abspath(CYCLONES_PATH), "pipeline.yaml")
-    train = os.path.join(os.path.abspath(CYCLONES_PATH), "train.py")
-    cmd = f"{tf_env}/bin/python {train} " f"-p {pipe} --data_path {dataset_path}"
-    with tempfile.TemporaryDirectory() as tmpdirname:
-        subprocess.run(cmd.split(), check=True, cwd=tmpdirname)
+
+    dataset_path = os.environ.get("CMCCC_DATASET", "./data/tmp_data")
+    pipe = CYCLONES_PATH / "pipeline.yaml"
+    train = CYCLONES_PATH / "train.py"
+
+    cmd = (
+        f"{tf_env}/bin/python {train.resolve()} -p {pipe.resolve()} --data_path {dataset_path}"
+    )
+    subprocess.run(cmd.split(), check=True, cwd=tmp_path)

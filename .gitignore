@@ -2,11 +2,12 @@
 *_logs
 logs_*
 TODO
-/data
+data/
 nohup*
 tmp*
 .tmp*
-checkpoints/
+checkpoints*
+outputs/
 mamba*
 pl-training.yml
 *-predictions/
@@ -18,12 +19,14 @@ pl-training.yml
 0
 *.tar
 *.sif
+.DS_Store
+*slurm_scripts/
 
 # Use cases files
-MNIST
 3dgan-generated-data/
 mnist-sample-data/
 exp_data/
+mnist_dataset/
 
 
 # Kubernetes

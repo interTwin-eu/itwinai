@@ -1,137 +1,39 @@
-3DGAN
-=====
+Fast particle detector simulation (CERN) 
+========================================
 
-This section covers the CERN use case that utilizes the `torch-lightning` framework for training and evaluation. Following you can find instructions to execute CERN use case and its integral scripts:
+This use case trains a 3D Generative Adversarial Network (3DGAN) for
+generation of images of calorimeter depositions. It is based on the
+prototype `3DGAN <https://github.com/svalleco/3Dgan/tree/Anglegan/keras>`_ model
+developed at CERN and is implemented on PyTorch Lightning framework.
 
-itwinai x 3DGAN
----------------
+This section covers the CERN use case that utilizes the `torch-lightning` framework 
+for training and evaluation. Following you can find instructions to execute CERN use 
+case and its integral scripts:
+
+Integration with itwinai
+------------------------
 
 .. include:: ../../use-cases/3dgan/README.md
    :parser: myst_parser.sphinx_
    :start-line: 2
 
-.. toctree::
-   :maxdepth: 5
 
-model.py
-++++++++
+3DGAN plugin for itwinai
+------------------------
 
-.. literalinclude:: ../../use-cases/3dgan/model.py
-   :language: python
+The integration code of the 3DGAN model has been adapted to be distributed as an independent
+itwinai plugin called `itwinai-3dgan-plugin <https://github.com/interTwin-eu/itwinai-3dgan-plugin>`_. 
 
 
-trainer.py
-++++++++++
-.. literalinclude:: ../../use-cases/3dgan/trainer.py
-   :language: python
+Offloading jobs via interLink
+-----------------------------
+
+The CERN use case also has an integration with `interLink <https://github.com/interTwin-eu/interlink>`_. You can find
+the relevant files in the 
+`interLink directory on Github <https://github.com/interTwin-eu/itwinai/tree/main/use-cases/3dgan/interLink>`_.
+You can also look at the README for more information:
 
 
-saver.py
-++++++++
-
-.. literalinclude:: ../../use-cases/3dgan/saver.py
-   :language: python
-
-
-dataloader.py
-+++++++++++++
-
-.. literalinclude:: ../../use-cases/3dgan/dataloader.py
-   :language: python
-
-
-config.yaml
-+++++++++++
-
-This YAML file defines the pipeline configuration for the CERN use case.
-
-.. literalinclude:: ../../use-cases/3dgan/config.yaml
-   :language: yaml
-
-
-create_inference_sample.py
-++++++++++++++++++++++++++
-
-This file defines a pipeline configuration for the CERN use case inference.
-
-.. literalinclude:: ../../use-cases/3dgan/create_inference_sample.py
-   :language: python
-
-
-Dockerfile
-++++++++++
-
-.. literalinclude:: ../../use-cases/3dgan/Dockerfile
-   :language: bash
-
-
-SLURM job script for JSC (HDFML system)
-+++++++++++++++++++++++++++++++++++++++++
-
-.. literalinclude:: ../../use-cases/3dgan/slurm.jsc.sh
-   :language: bash
-
-
-SLURM job script for Vega Supercomputer (GPU partition)
-++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
-.. literalinclude:: ../../use-cases/3dgan/slurm.vega.sh
-   :language: bash
-
-
-interLink x 3DGAN
------------------
-
-This section covers the CERN use case integration with `interLink <https://github.com/interTwin-eu/interLink>`_ using ``itwinai``. The following files are integral to this use case:
-
-
-.. toctree::
-   :maxdepth: 5
-
-
-3dgan-inference-cpu.yaml
-++++++++++++++++++++++++
-
-.. literalinclude:: ../../use-cases/3dgan/interLink/3dgan-inference-cpu.yaml
-   :language: yaml
-
-
-3dgan-inference.yaml
-++++++++++++++++++++
-
-.. literalinclude:: ../../use-cases/3dgan/interLink/3dgan-inference.yaml
-   :language: yaml
-
-
-3dgan-train.yaml
-++++++++++++++++
-
-.. literalinclude:: ../../use-cases/3dgan/interLink/3dgan-train.yaml
-   :language: yaml
-
-
-
-.. .. automodule:: 3dgan.model
-..     :members:
-..     :undoc-members:
-..     :show-inheritance:
-
-.. .. automodule:: 3dgan.train
-..     :members:
-..     :undoc-members:
-..     :show-inheritance:
-
-.. .. automodule:: 3dgan.trainer
-..     :members:
-..     :undoc-members:
-..     :show-inheritance:
-
-.. .. automodule:: 3dgan.saver
-..     :members:
-..     :undoc-members:
-..     :show-inheritance:
-
-.. .. automodule:: 3dgan.dataloader
-..     :members:
-..     :undoc-members:
-..     :show-inheritance:
+.. include:: ../../use-cases/3dgan/interLink/README.md
+   :parser: myst_parser.sphinx_
+   :start-line: 0

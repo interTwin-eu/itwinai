@@ -22,12 +22,18 @@ build:
   apt_packages:
     - gcc-11
     - g++-11
-    - cmake
+    # - cmake
     - pandoc
+
+  jobs:
+    pre_build:
+      - typer itwinai.cli  utils docs --output docs/api/cli.md
+      - python docs/convert_admonitions.py --dir docs/
 
 # Build documentation in the "docs/" directory with Sphinx
 sphinx:
   configuration: docs/conf.py
+  fail_on_warning: true  # Equivalent to -W in the Makefile
 
 # Optionally build your docs in additional formats such as PDF and ePub
 # formats:
@@ -39,6 +45,4 @@ sphinx:
 # See https://docs.readthedocs.io/en/stable/guides/reproducible-builds.html
 python:
    install:
-  #  - wheel
-   # - requirements: docs/pre-requirements.txt
    - requirements: docs/requirements.txt

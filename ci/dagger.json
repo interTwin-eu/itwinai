@@ -1,6 +1,16 @@
 {
   "name": "itwinai",
+  "engineVersion": "v0.15.2",
   "sdk": "python",
+  "dependencies": [
+    {
+      "name": "k3s",
+      "source": "github.com/marcosnils/daggerverse/k3s@k3s/v0.1.7",
+      "pin": "833ec36632b2457862f6e3bf1f7107ad65e3e515"
+    }
+  ],
   "source": ".",
-  "engineVersion": "v0.13.6"
+  "gc": {
+    "maxUsedSpace": "30GB"
+  }
 }

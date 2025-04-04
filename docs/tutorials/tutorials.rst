@@ -21,6 +21,7 @@ Distributed ML with PyTorch
    distrib-ml/torch-tutorial-GAN
    distrib-ml/torch_scaling_test
    distrib-ml/torch-tutorial-containers
+   distrib-ml/torch_tutorial_kubeflow_1.rst
 
 
 Distributed ML with TensorFlow
@@ -40,7 +41,6 @@ Machine learning workflows
 
 Here you can find a collection of tutorials for various complexity ML workflows.
 
-
 .. toctree::
    :maxdepth: 1
    
@@ -49,6 +49,13 @@ Here you can find a collection of tutorials for various complexity ML workflows.
    workflows/03-dag-workflows/tutorial_2_advanced_workflow
    workflows/04_itwinai_argparser
  
- 
 
-   
+Hyperparameter Optimization Workflows
+======================================
+
+This tutorial provides an overview of Hyperparameter Optimization (HPO) workflows.
+
+.. toctree::
+   :maxdepth: 1
+
+   hpo-workflows/hpo-torchtrainer-integration

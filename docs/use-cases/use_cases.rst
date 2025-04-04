@@ -1,80 +1,20 @@
-How to run a use case
-======================
+Introduction
+============
 
-First, create the use case's Python environment (i.e., PyTorch or TensorFlow)
-as described `here <https://itwinai.readthedocs.io/latest/getting_started_with_itwinai.html#environment-setup>`_, and activate it.
-Then, install use case-specific dependencies, if any:
+Each use case comes with their own tutorial on how to run it. Before running them,
+however, you should set up a Python virtual environment. Refer to the
+:doc:`getting started section <../getting-started/getting_started_with_itwinai>`
+for more information on how to do this.
 
-.. code-block:: bash
-
-   pip install -r /use/case/path/requirements.txt
-
-
-Alternatively, you can use the use case Docker image, if available.
-
-Then, go to the use case's directory:
+After installing and activating the virtual environment, you will want to install the
+use-case specific dependencies, if applicable. This can be done by first ``cd``-ing
+into the use-case directory and then installing the requirements, as follows
 
 .. code-block:: bash
 
-   cd /use/case/path
+   cd use-cases/<name-of-use-case>
+   pip install -r requirements.txt
 
 
-From here you can run the use case (having activated the correct Python env):
-
-.. code-block:: bash
-
-   # Locally
-   python train.py [OPTIONS...]
-
-   # With SLURM: stdout and stderr will be saved to job.out and job.err files
-   sbatch startscript
-
-
-
-Fast particle detector simulation | CERN use case
-=================================================
-
-The first ``interTwin`` use case integrated with ``itwinai`` framework is the DT for fast particle detector simulation. 
-3D Generative Adversarial Network (3DGAN) for generation of images of calorimeter depositions. 
-This project is based on the prototype `3DGAN <https://github.com/svalleco/3Dgan/tree/Anglegan/keras>`_ model developed at CERN and is implemented on PyTorch Lightning framework.
-
-.. toctree::
-   :maxdepth: 2
-
-   3dgan_doc
-
-
-MNIST dataset use case
-=========================
-
-MNIST image classification is used to provide an example on 
-how to define an end-to-end digital twin workflow with the ``itwinai`` software.
-
-.. toctree::
-   :maxdepth: 2
-
-   mnist_doc
-
-
-Tropical Cyclones Detection | CMCC use case
-==============================================
-
-Below you can find the training and validation of a Tropical Cyclones (TCs) Detection model, developed by CMCC, integrated with ``itwinai`` framework.
-
-.. toctree::
-   :maxdepth: 1
-
-   cyclones_doc
-
-
-
-Noise Simulation for Gravitational Waves Detector (Virgo) | INFN use case
-===========================================================================
-
-Below you can find the integration of the Virgo use case with ``itwinai`` framework, developed by INFN.
-
-.. toctree::
-   :maxdepth: 1
-
-   virgo_doc
-
+Alternatively, you can use the use-case Docker image, if available. After setting
+everything up, you can now run the use case as specified in the use case's tutorial.

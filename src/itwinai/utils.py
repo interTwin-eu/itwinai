@@ -10,11 +10,70 @@
 """Utilities for itwinai package."""
 
 import inspect
+import os
+import random
 import sys
 from collections.abc import MutableMapping
-from typing import Callable, Dict, Hashable, Tuple, Type
+from pathlib import Path
+from typing import Callable, Dict, Hashable, List, Tuple, Type
+from urllib.parse import urlparse
 
 import yaml
+
+adjectives = [
+    "quantum",
+    "relativistic",
+    "wavy",
+    "entangled",
+    "chiral",
+    "tachyonic",
+    "superluminal",
+    "anomalous",
+    "hypercharged",
+    "fermionic",
+    "hadronic",
+    "quarky",
+    "holographic",
+    "dark",
+    "force-sensitive",
+    "chaotic",
+]
+
+names = [
+    "neutrino",
+    "graviton",
+    "muon",
+    "gluon",
+    "tachyon",
+    "quasar",
+    "pulsar",
+    "blazar",
+    "meson",
+    "boson",
+    "hyperon",
+    "starlord",
+    "groot",
+    "rocket",
+    "yoda",
+    "skywalker",
+    "sithlord",
+    "midichlorian",
+    "womp-rat",
+    "beskar",
+    "mandalorian",
+    "ewok",
+    "vibranium",
+    "nova",
+    "gamora",
+    "drax",
+    "ronan",
+    "thanos",
+    "cosmo",
+]
+
+
+def generate_random_name():
+    return f"{random.choice(adjectives)}-{random.choice(names)}"
 
 
 def load_yaml(path: str) -> Dict:
@@ -148,32 +207,6 @@ class SignatureInspector:
         return len(self.func_params)
 
 
-def str_to_slice(interval: str) -> slice:
-    """Transform string interval to Python slice.
-    Example: "1:17:3" -> slice(1,17,3)
-
-    Args:
-        interval (str): interval to parse.
-
-    Raises:
-        ValueError: when interval is invalid.
-
-    Returns:
-        slice: parsed slice.
-    """
-    import re
-
-    # TODO: add support for slices starting with empty index
-    # e.g., :20:3
-    if not re.match(r"\d+(:\d+)?(:\d+)?", interval):
-        raise ValueError(f"Received invalid interval for slice: '{interval}'")
-    if ":" in interval:
-        return slice(
-            *map(lambda x: int(x.strip()) if x.strip() else None, interval.split(":"))
-        )
-    return int(interval)
-
-
 def clear_key(my_dict: Dict, dict_name: str, key: Hashable, complain: bool = True) -> Dict:
     """Remove key from dictionary if present and complain.
 
@@ -184,6 +217,61 @@ def clear_key(my_dict: Dict, dict_name: str, key: Hashable, complain: bool = Tru
     """
     if key in my_dict:
         if complain:
-            print(f"Field '{key}' should not be present " f"in dictionary '{dict_name}'")
+            print(f"Field '{key}' should not be present in dictionary '{dict_name}'")
         del my_dict[key]
     return my_dict
+
+
+def make_config_paths_absolute(args: List[str]):
+    """Process CLI arguments to make paths specified for `--config-path` or `-cp` absolute.
+    Returns the modified arguments list.
+
+    Args:
+        args (List[str]): a list of system arguments
+
+    Returns:
+        List(str): the updated list of system arguments, where all the config path argument is
+            absolute.
+    """
+    updated_args = args.copy()
+    for i, arg in enumerate(updated_args):
+        if arg.startswith("--config-path=") or arg.startswith("-cp="):
+            prefix, path = arg.split("=", 1)
+            abs_path = os.path.abspath(path)
+            updated_args[i] = f"{prefix}={abs_path}"
+            sys.path.append(abs_path)
+            break
+        elif arg in {"--config-path", "-cp"}:
+            # Handle the case where the path is in the next argument
+            abs_path = os.path.abspath(updated_args[i + 1])
+            updated_args[i + 1] = abs_path
+            sys.path.append(abs_path)
+            break
+    return updated_args
+
+
+def get_root_cause(exception: Exception) -> Exception:
+    """Recursively extract the first exception in the exception chain."""
+    root = exception
+    while root.__cause__ is not None:  # Traverse the exception chain
+        root = root.__cause__
+    return root
+
+
+def to_uri(path_str: str | Path) -> str:
+    """Parse a path and convert it to a URI.
+
+    Args:
+        path_str (str): path to convert.
+
+    Returns:
+        str: URI.
+    """
+    if isinstance(path_str, Path):
+        return str(Path(path_str).resolve())
+    parsed = urlparse(path_str)
+    if parsed.scheme:
+        # If it has a scheme, assume it's a URI and return as-is
+        return path_str
+    # Otherwise, make it absolute
+    return str(Path(path_str).resolve())

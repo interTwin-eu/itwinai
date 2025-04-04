@@ -33,7 +33,7 @@ RUN apt-get update && apt-get install -y \
 RUN pip install --no-cache-dir --upgrade pip \
     && pip install --no-cache-dir \
     tf_keras==2.16.* \
-    ray[tune]
+    "prov4ml[nvidia]@git+https://github.com/matbun/ProvML@new-main"
 
 # Inprove robustness: avoid silent override by Singularity/Apptainer
 ENV PYTHONPATH=""
@@ -41,7 +41,7 @@ ENV PYTHONPATH=""
 # Install itwinai
 COPY pyproject.toml pyproject.toml
 COPY src src
-RUN pip install --no-cache-dir .[nvidia] \
+RUN pip install --no-cache-dir .[tf-cuda] \
     && itwinai sanity-check --tensorflow --optional-deps ray
 
 # Additional pip deps

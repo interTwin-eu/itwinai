@@ -29,11 +29,17 @@ core_modules = [
     "itwinai.tests.exceptions",
     "itwinai.tests.sanity_check",
     "itwinai.plugins",
+    "itwinai.scalability_report",
+    "itwinai.scalability_report.data",
+    "itwinai.scalability_report.utils",
+    "itwinai.scalability_report.reports",
+    "itwinai.scalability_report.plot",
 ]
 
 torch_modules = [
     "itwinai.torch",
     "itwinai.torch.data",
+    "itwinai.torch.gan",
     "itwinai.torch.models",
     "itwinai.torch.models.mnist",
     "itwinai.torch.config",
@@ -44,6 +50,7 @@ torch_modules = [
     "itwinai.torch.trainer",
     "itwinai.torch.type",
     "itwinai.torch.loggers",
+    "itwinai.torch.tuning",
 ]
 
 tensorflow_modules = [

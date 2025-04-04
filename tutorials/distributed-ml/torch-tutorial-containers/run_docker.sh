@@ -9,7 +9,7 @@
 # - Matteo Bunino <matteo.bunino@cern.ch> - CERN
 # --------------------------------------------------------------------------------------
 
-CMD="itwinai exec-pipeline --config config.yaml --pipe-key training_pipeline"
+CMD="itwinai exec-pipeline"
 
 # Run command in the itwinai torch Docker container
 if [ -z "$1" ]; then

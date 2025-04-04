@@ -13,6 +13,7 @@
 
 import abc
 import functools
+import logging
 import os
 from typing import Any, Callable, Iterable, List, Literal, Optional, Tuple, Union
 
@@ -22,11 +23,24 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.optim.lr_scheduler import _LRScheduler as LRScheduler
 from torch.optim.optimizer import Optimizer
-from torch.utils.data import DataLoader, Dataset, DistributedSampler, Sampler
+from torch.utils.data import (
+    DataLoader,
+    Dataset,
+    DistributedSampler,
+    RandomSampler,
+    Sampler,
+    SequentialSampler,
+)
 from torch.utils.data.dataloader import T_co, _collate_fn_t, _worker_init_fn_t
 
-from ..distributed import DistributedStrategy, detect_distributed_environment
+from ..distributed import (
+    DistributedStrategy,
+    detect_distributed_environment,
+    ray_cluster_is_running,
+)
 from .type import DistributedStrategyError, UninitializedStrategyError
+
+py_logger = logging.getLogger(__name__)
 
 
 def distributed_resources_available() -> bool:
@@ -59,21 +73,28 @@ def check_initialized(method: Callable) -> Callable:
 
 def initialize_ray() -> None:
     """This method is used by the RayDDPStrategy and RayDeepSpeedStrategy to initialize
-    the Ray backend if it is not already initialized.
+    the Ray backend if it is not already initialized. This is meant to be called before
+    submitting a function to Ray (as a trial in tuning, or as a worker in distributed ML).
 
-        Raises:
-            EnvironmentError: If required environment variables `HEAD_NODE_PORT` or
-                `HEAD_NODE_IP` are not set.
-                These should be set from the slurm script where the ray cluster is launched.
+    Raises:
+        RuntimeError: when no Ray cluster is detected.
+        EnvironmentError: If required environment variables `HEAD_NODE_PORT` or
+            `HEAD_NODE_IP` are not set.
+            These should be set from the slurm script where the ray cluster is launched.
     """
     import ray
+
+    if not ray_cluster_is_running():
+        raise RuntimeError(
+            "You are trying to initialize Ray, but the cluster seems not to be running"
+        )
 
     if ray.is_initialized():
         return
 
     ray.init(address="auto")
-    print(f"Nodes in the cluster: {ray.nodes()}")
-    print(f"Available cluster resources: {ray.available_resources()}")
+    py_logger.info(f"Nodes in the cluster: {ray.nodes()}")
+    py_logger.info(f"Available cluster resources: {ray.available_resources()}")
 
 
 class TorchDistributedStrategy(DistributedStrategy):
@@ -148,6 +169,10 @@ class TorchDistributedStrategy(DistributedStrategy):
         Returns:
             int: local rank.
         """
+
+    @abc.abstractmethod
+    def barrier(self) -> None:
+        """Forces all the workers to wait for each other."""
 
     @check_initialized
     def device(self) -> str:
@@ -330,7 +355,7 @@ class TorchDistributedStrategy(DistributedStrategy):
         """
 
         if batch_sampler is not None:
-            print("WARNING: batch_sampler is ignored by TorchDistributedStrategy")
+            py_logger.warning("WARNING: batch_sampler is ignored by TorchDistributedStrategy")
 
         if self.is_distributed:
             if sampler is None:
@@ -342,6 +367,11 @@ class TorchDistributedStrategy(DistributedStrategy):
                 )
             elif not isinstance(sampler, DistributedSampler):
                 raise RuntimeError("User-provided sampler must implement DistributedSampler.")
+        else:
+            if shuffle:
+                sampler = RandomSampler(dataset)
+            else:
+                sampler = SequentialSampler(dataset)
         # shuffle and batch_sampler must be unset
         return DataLoader(
             dataset=dataset,
@@ -453,7 +483,7 @@ class TorchDDPStrategy(TorchDistributedStrategy):
 
         if torch.cuda.is_available():
             # If GPUs are available
-            model.to(self.device())
+            model = model.to(self.device())
             dist_model = torch.nn.parallel.DistributedDataParallel(
                 model,
                 device_ids=[self.device()],
@@ -470,6 +500,11 @@ class TorchDDPStrategy(TorchDistributedStrategy):
             dist_model = model
 
         return dist_model, optimizer, lr_scheduler
+
+    @check_initialized
+    def barrier(self) -> None:
+        """Forces all the workers to wait for each other."""
+        return dist.barrier()
 
     @check_initialized
     def global_world_size(self) -> int:
@@ -614,6 +649,21 @@ class DeepSpeedStrategy(TorchDistributedStrategy):
         """
         import deepspeed
 
+        # Removing the .put() method of the cache manager
+        # This is the same bug that was earlier removed in the generic_torch.sh script,
+        # using the sed command
+        from deepspeed.ops.transformer.inference.triton.matmul_ext import AutotuneCacheManager
+
+        def noop_put(self, table):
+            pass
+
+        AutotuneCacheManager.put = noop_put
+        py_logger.warning(
+            "[WARNING]: Disabling Triton's AutotuneCacheManager's `put()` method to fix "
+            "bug with temporary files. This might be fixed in the future by DeepSpeed,"
+            "in which case our fix should be removed."
+        )
+
         self.deepspeed = deepspeed
         if not distributed_resources_available():
             raise RuntimeError("Trying to run distributed on insufficient resources.")
@@ -642,6 +692,8 @@ class DeepSpeedStrategy(TorchDistributedStrategy):
         **init_kwargs,
     ) -> Tuple[nn.Module, Optimizer, Optional[LRScheduler]]:
         """Setup model, optimizer and scheduler for distributed."""
+        py_logger.debug(f"Distributing the model using device: {self.device()}")
+        # model = model.to(self.device())
 
         distrib_model, optimizer, _, lr_scheduler = self.deepspeed.initialize(
             model=model,
@@ -652,6 +704,11 @@ class DeepSpeedStrategy(TorchDistributedStrategy):
             **init_kwargs,
         )
         return distrib_model, optimizer, lr_scheduler
+
+    @check_initialized
+    def barrier(self) -> None:
+        """Forces all the workers to wait for each other."""
+        return dist.barrier()
 
     @check_initialized
     def global_world_size(self) -> int:
@@ -704,7 +761,9 @@ class DeepSpeedStrategy(TorchDistributedStrategy):
     @check_initialized
     def clean_up(self) -> None:
         """Destroys the current process group."""
-        # deepspeed.sys.exit() # disabled as it kills the execution
+        if distributed_resources_available():
+            dist.barrier()
+            dist.destroy_process_group()
 
     @check_initialized
     def allgather_obj(self, obj: Any) -> List[Any]:
@@ -835,6 +894,11 @@ class HorovodStrategy(TorchDistributedStrategy):
         )
         return model, distOptimizer, lr_scheduler
 
+    @check_initialized
+    def barrier(self) -> None:
+        """Forces all the workers to wait for each other."""
+        self.hvd.barrier()
+
     def _broadcast_params(self, model: nn.Module, optimizer: optim.Optimizer) -> None:
         """Broadcasts variables from root rank to all other processes.
 
@@ -845,7 +909,7 @@ class HorovodStrategy(TorchDistributedStrategy):
                 across processes.
         """
         self.hvd.broadcast_parameters(model.state_dict(), root_rank=0)
-        self.hvd.broadcast_optimizer_state(optimizer, root_rank=-0)
+        self.hvd.broadcast_optimizer_state(optimizer, root_rank=0)
 
     @check_initialized
     def global_world_size(self) -> int:
@@ -888,6 +952,7 @@ class HorovodStrategy(TorchDistributedStrategy):
     @check_initialized
     def clean_up(self) -> None:
         """Shuts Horovod down."""
+        self.hvd.barrier()
         self.hvd.shutdown()
 
     @check_initialized
@@ -950,7 +1015,6 @@ class NonDistributedStrategy(TorchDistributedStrategy):
 
     #: This strategy is not distributed.
     #: Defaults to False.
-    is_distributed: bool = True
     is_distributed: bool = False
 
     def __init__(self):
@@ -981,6 +1045,10 @@ class NonDistributedStrategy(TorchDistributedStrategy):
         if torch.cuda.is_available():
             model = model.cuda()
         return model, optimizer, lr_scheduler
+
+    @check_initialized
+    def barrier(self) -> None:
+        """Forces all the workers to wait for each other."""
 
     def global_world_size(self) -> int:
         """Returns the total number of processes (global world size).
@@ -1055,7 +1123,11 @@ class NonDistributedStrategy(TorchDistributedStrategy):
         return [tensor]
 
 
-class RayDDPStrategy(TorchDDPStrategy):
+class RayTorchDistributedStrategy(TorchDistributedStrategy):
+    """Base class for all ray distributed strategies."""
+
+
+class RayDDPStrategy(TorchDDPStrategy, RayTorchDistributedStrategy):
     """A distributed data-parallel (DDP) strategy using Ray Train for PyTorch training."""
 
     def __init__(self) -> None:
@@ -1063,8 +1135,18 @@ class RayDDPStrategy(TorchDDPStrategy):
         import ray.train
 
         self.ray_train = ray.train
+        self.name = "ray-torch-ddp"
 
     def init(self) -> None:
+        """Initializes Ray trial/worker.
+
+        Raises:
+            RuntimeError: when the Ray cluster is not detected.
+        """
+        if not ray_cluster_is_running():
+            raise RuntimeError("Ray cluster was not detected")
+        if self.is_initialized:
+            raise DistributedStrategyError("Strategy was already initialized")
         self.is_initialized = True
 
     @check_initialized
@@ -1094,49 +1176,8 @@ class RayDDPStrategy(TorchDDPStrategy):
 
         return model, optimizer, lr_scheduler
 
-    @check_initialized
-    def create_dataloader(
-        self,
-        dataset: Dataset[T_co],
-        batch_size: Optional[int] = 1,
-        shuffle: Optional[bool] = None,
-        sampler: Union[Sampler, Iterable, None] = None,
-        batch_sampler: Union[Sampler[List], Iterable[List], None] = None,
-        num_workers: int = 0,
-        collate_fn: Optional[_collate_fn_t] = None,
-        pin_memory: bool = False,
-        drop_last: bool = False,
-        timeout: float = 0,
-        worker_init_fn: Optional[_worker_init_fn_t] = None,
-        multiprocessing_context=None,
-        generator=None,
-        *,
-        prefetch_factor: Optional[int] = None,
-        persistent_workers: bool = False,
-        pin_memory_device: str = "",
-    ):
-        dataloader = DataLoader(
-            dataset=dataset,
-            batch_size=batch_size,
-            sampler=sampler,
-            shuffle=shuffle,
-            num_workers=num_workers,
-            collate_fn=collate_fn,
-            pin_memory=pin_memory,
-            drop_last=drop_last,
-            timeout=timeout,
-            worker_init_fn=worker_init_fn,
-            multiprocessing_context=multiprocessing_context,
-            generator=generator,
-            prefetch_factor=prefetch_factor,
-            persistent_workers=persistent_workers,
-            pin_memory_device=pin_memory_device,
-        )
 
-        return self.ray_train.torch.prepare_data_loader(dataloader)
-
-
-class RayDeepSpeedStrategy(DeepSpeedStrategy):
+class RayDeepSpeedStrategy(DeepSpeedStrategy, RayTorchDistributedStrategy):
     """A distributed strategy using Ray and DeepSpeed for PyTorch training.
 
     Args:
@@ -1146,3 +1187,64 @@ class RayDeepSpeedStrategy(DeepSpeedStrategy):
     def __init__(self, backend: Literal["nccl", "gloo", "mpi"]) -> None:
         initialize_ray()
         super().__init__(backend=backend)
+        self.name = "ray-deepspeed"
+
+    def init(self) -> None:
+        """Initializes the distributed process group and the distributed
+        package.
+
+        Raises:
+            RuntimeError: when there is not a Ray cluster running.
+            DistributedStrategyError: when trying to initialize a strategy
+                already initialized.
+        """
+        import deepspeed
+
+        self.deepspeed = deepspeed
+        if not ray_cluster_is_running():
+            raise RuntimeError("Ray cluster was not detected")
+
+        if self.is_initialized:
+            raise DistributedStrategyError("Strategy was already initialized")
+
+        # https://github.com/Lightning-AI/pytorch-lightning/issues/13567
+        # This block of code should be removed as some point
+        if os.environ.get("LOCAL_RANK"):
+            os.environ["OMPI_COMM_WORLD_LOCAL_RANK"] = os.environ.get("LOCAL_RANK")
+
+        # https://deepspeed.readthedocs.io/en/latest/initialize.html#training-initialization
+        self.deepspeed.init_distributed(dist_backend=self.backend)
+        self.is_initialized = True
+
+        self.set_device()
+
+
+class RayHorovodStrategy(HorovodStrategy, RayTorchDistributedStrategy):
+    """A distributed strategy using Ray and Horovod for PyTorch training."""
+
+    def __init__(self) -> None:
+        initialize_ray()
+        super().__init__()
+        self.name = "ray-horovod"
+
+    def init(self) -> None:
+        """Initializes the Horovod distributed backend.
+
+        Raises:
+            RuntimeError: when there is not a Ray cluster running.
+            DistributedStrategyError: when trying to initialize a strategy
+                already initialized.
+        """
+        if not ray_cluster_is_running():
+            raise RuntimeError("Ray cluster was not detected.")
+        if self.is_initialized:
+            raise DistributedStrategyError("Strategy was already initialized")
+
+        import horovod.torch as hvd
+
+        self.hvd = hvd
+
+        self.hvd.init()
+        self.is_initialized = True
+
+        self.set_device()

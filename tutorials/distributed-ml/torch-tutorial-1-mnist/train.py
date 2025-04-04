@@ -25,7 +25,7 @@ import torch.nn.functional as F
 from torch.utils.data import Dataset
 from torchvision import datasets, transforms
 
-from itwinai.parser import ArgumentParser as ItAIArgumentParser
+from itwinai.parser import ArgumentParser as ItwinaiArgParser
 from itwinai.torch.distributed import (
     DeepSpeedStrategy,
     HorovodStrategy,
@@ -44,11 +44,15 @@ def parse_params() -> argparse.Namespace:
 
     >>> train.py --strategy ddp --config config.yaml
     """
-    parser = ItAIArgumentParser(description="PyTorch MNIST Example")
+    parser = ItwinaiArgParser(description="PyTorch MNIST Example")
 
     # Distributed ML strategy
     parser.add_argument(
-        "--strategy", "-s", type=str, choices=["ddp", "horovod", "deepspeed"], default="ddp"
+        "--strategy",
+        "-s",
+        type=str,
+        choices=["ddp", "horovod", "deepspeed"],
+        default="ddp",
     )
 
     # Data and logging
@@ -57,12 +61,19 @@ def parse_params() -> argparse.Namespace:
         default="./",
         help=("location of the training dataset in the local " "filesystem"),
     )
-    parser.add_argument("--log-int", type=int, default=10, help="log interval per training")
     parser.add_argument(
-        "--verbose", action=argparse.BooleanOptionalAction, help="Print parsed arguments"
+        "--log-int", type=int, default=10, help="log interval per training"
     )
     parser.add_argument(
-        "--restart-int", type=int, default=10, help="restart interval per epoch (default: 10)"
+        "--verbose",
+        action=argparse.BooleanOptionalAction,
+        help="Print parsed arguments",
+    )
+    parser.add_argument(
+        "--restart-int",
+        type=int,
+        default=10,
+        help="restart interval per epoch (default: 10)",
     )
     parser.add_argument(
         "--download-only",
@@ -76,7 +87,10 @@ def parse_params() -> argparse.Namespace:
         help="concatenate MNIST to this factor (default: 100)",
     )
     parser.add_argument(
-        "--shuff", action="store_true", default=False, help="shuffle dataset (default: False)"
+        "--shuff",
+        action="store_true",
+        default=False,
+        help="shuffle dataset (default: False)",
     )
     parser.add_argument(
         "--nworker",
@@ -85,7 +99,10 @@ def parse_params() -> argparse.Namespace:
         help=("number of workers in DataLoader (default: 0 -" " only main)"),
     )
     parser.add_argument(
-        "--prefetch", type=int, default=2, help="prefetch data in DataLoader (default: 2)"
+        "--prefetch",
+        type=int,
+        default=2,
+        help="prefetch data in DataLoader (default: 2)",
     )
 
     # Model
@@ -98,14 +115,22 @@ def parse_params() -> argparse.Namespace:
     parser.add_argument(
         "--epochs", type=int, default=10, help="number of epochs to train (default: 10)"
     )
-    parser.add_argument("--lr", type=float, default=0.01, help="learning rate (default: 0.01)")
     parser.add_argument(
-        "--momentum", type=float, default=0.5, help="momentum in SGD optimizer (default: 0.5)"
+        "--lr", type=float, default=0.01, help="learning rate (default: 0.01)"
+    )
+    parser.add_argument(
+        "--momentum",
+        type=float,
+        default=0.5,
+        help="momentum in SGD optimizer (default: 0.5)",
     )
 
     # Reproducibility
     parser.add_argument(
-        "--rnd-seed", type=int, default=0, help="seed integer for reproducibility (default: 0)"
+        "--rnd-seed",
+        type=int,
+        default=0,
+        help="seed integer for reproducibility (default: 0)",
     )
 
     # Distributed ML
@@ -176,7 +201,9 @@ class Net(nn.Module):
         return F.log_softmax(x, dim=-1)
 
 
-def train(model, train_loader, optimizer, epoch, strategy: TorchDistributedStrategy, args):
+def train(
+    model, train_loader, optimizer, epoch, strategy: TorchDistributedStrategy, args
+):
     """
     Training function, representing an epoch.
     """
@@ -194,7 +221,11 @@ def train(model, train_loader, optimizer, epoch, strategy: TorchDistributedStrat
         loss = F.nll_loss(output, target)
         loss.backward()
         optimizer.step()
-        if strategy.is_main_worker and args.log_int > 0 and batch_idx % args.log_int == 0:
+        if (
+            strategy.is_main_worker
+            and args.log_int > 0
+            and batch_idx % args.log_int == 0
+        ):
             dl_size = len(train_loader.dataset) // strategy.global_world_size()
             print(
                 f"Train epoch: {epoch} "
@@ -331,7 +362,9 @@ if __name__ == "__main__":
             config_params=dict(train_micro_batch_size_per_gpu=args.batch_size)
         )
     else:
-        raise NotImplementedError(f"Strategy {args.strategy} is not recognized/implemented.")
+        raise NotImplementedError(
+            f"Strategy {args.strategy} is not recognized/implemented."
+        )
 
     # Initialize strategy
     strategy.init()

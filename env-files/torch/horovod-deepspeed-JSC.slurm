@@ -1,0 +1,22 @@
+#!/bin/bash
+
+# Installation for JSC
+
+# Job configuration
+#SBATCH --job-name=setup_venv
+#SBATCH --account=intertwin
+#SBATCH --output=horovod_ds_installation.out
+#SBATCH --error=horovod_ds_installation.err
+#SBATCH --time=00:30:00
+
+# Resources allocation
+#SBATCH --partition=develbooster
+#SBATCH --nodes=1
+#SBATCH --gres=gpu
+
+ml --force purge
+ml Stages/2024 GCC OpenMPI CUDA/12 cuDNN MPI-settings/CUDA
+ml Python/3.11.3 CMake HDF5 PnetCDF libaio mpi4py git Clang
+
+source .venv/bin/activate
+source env-files/torch/install-horovod-deepspeed-cuda.sh

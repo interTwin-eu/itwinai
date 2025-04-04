@@ -21,9 +21,10 @@ This repository offers two main approaches for training based on the dataset siz
 
 ### Small Dataset Pipeline
 
-This pipeline allows you to generate a small synthetic dataset on-the-fly as part of the training process.
-It's suited for quick tests and debugging where the entire workflow stays self-contained in memory.
-The dataset generation step can also be skipped for subsequent runs.
+This pipeline allows you to generate a small synthetic dataset on-the-fly as part of
+the training process. It's suited for quick tests and debugging where the entire
+workflow stays self-contained in memory. The dataset generation step can also be
+skipped for subsequent runs.
 
 To run the entire pipeline, including dataset generation, use the following command:
 
@@ -31,8 +32,8 @@ To run the entire pipeline, including dataset generation, use the following comm
 itwinai exec-pipeline --config config.yaml --pipe-key training_pipeline_small
 ```
 
-If you've already generated the dataset in a previous run, you can skip the dataset generation step by executing the
-following command:
+If you've already generated the dataset in a previous run, you can skip the dataset
+generation step by executing the following command:
 
 ```bash
 itwinai exec-pipeline --config config.yaml --pipe-key training_pipeline_small --steps 1:
@@ -42,56 +43,29 @@ This will load the dataset from memory and proceed with the training steps.
 
 ### Large Dataset Pipeline
 
-The large dataset pipeline is designed to handle massive datasets that are stored on disk.
-To generate this data, this project includes another SLURM job script,
-`synthetic_data_gen/data_generation.sh`, which generates a synthetic dataset for the
-Virgo gravitational wave detector use case.
+The large dataset pipeline is designed to handle massive datasets that are stored on
+disk. To generate this data, this project includes another SLURM job script,
+`synthetic-data-gen/data_generation_hdf5.sh`, which generates a synthetic dataset for
+the Virgo gravitational wave detector use case.
 
-The synthetic data is generated using a Python script, `file_gen.py`, which creates multiple files
-containing simulated data. Each file is a pickled pandas dataframe containing `datapoints_per_file`
-datapoints (defaults to 500), each
-one representing a set of time series for main and strain detector channels.
+The synthetic data is generated using a Python script, `file_gen_hdf5.py`, which
+creates multiple HDF5 files containing simulated data. We generate multiple files as
+this allows us to create them in parallel, saving us some time. To do this, we use
+SLURM [job arrays](https://slurm.schedmd.com/job_array.html). After generating the
+files, they are concatenated into a single, large file using
+`concat_hdf5_dataset_files.py`.
 
-If you need to generate a new dataset, you can run the SLURM script with the following command:
-
-```bash
-sbatch synthetic_data_gen/data_generation.sh
-```
-
-The script will generate multiple data files and store them in separate folders, which are
-created in the `target_folder_name` directory.
-
-The generated pickle files are organized in a set of nested folders to avoid creating too many
-files in the same folder. To generate such folders and its files we use SLURM
-[job arrays](https://slurm.schedmd.com/job_array.html).
-Each SLURM array job will create its own folder and populate it with the synthetic data files.
-The number of files created in each folder can be customized by setting the `NUM_FILES` environment
-variable before submitting the job.
-For example, to generate 50 files per array job, you can run:
+To generate a new dataset, you can run the SLURM script with the following command:
 
 ```bash
-export NUM_FILES=50
-sbatch synthetic_data_gen/data_generation.sh
+sbatch synthetic_data_gen/data_generation_hdf5.sh
 ```
-
-If you do not specify `NUM_FILES`, the script will default to creating 100 files per folder.
 
 Once the dataset is generated, you can proceed with training:
 
 ```bash
 itwinai exec-pipeline --config config.yaml --pipe-key training_pipeline
 ```
-
-You can also run the training in a distributed manner using all strategies by running runall.sh:
-
-```bash
-bash runall.sh
-```
-
-Change the `$TRAINING_CMD` variable in `runall.sh` to reflect the pipeline you wish to run, as explained above.
-This will launch jobs for all the strategies and log their outputs into the logs_slurm folder.
-
-When using MLFLow logger, you can visualize the logs in from the MLFlow UI:
 
 ```bash
 mlflow ui --backend-store-uri mllogs/mlflow
@@ -100,31 +74,58 @@ mlflow ui --backend-store-uri mllogs/mlflow
 mlflow ui --backend-store-uri mllogs/mlflow > /dev/null 2>&1 &
 ```
 
-## Running scaling tests
+## Training using SLURM
 
-Scaling tests provide information about how well the different distributed strategies scale.
-We have integrated them into this use case and you can run them using the scaling-test.sh script:
+If you wish to train the model using SLURM, you can use the `itwinai` SLURM script
+builder with the following command to generate a preview of the script:
 
 ```bash
-bash scaling-test.sh
+itwinai generate-slurm -c slurm_config.yaml --no-save-script --no-submit-job
 ```
 
-To generate the plots, refer to the [Scaling-Test Tutorial](https://github.com/interTwin-eu/itwinai/tree/main/tutorials/distributed-ml/torch-scaling-test#analyze-results).
+If you are happy with the SLURM script, you can run it either by removing
+`--no-submit-job` and let the builder submit it for you, or you can remove
+`--no-save-script`—allowing the builder to store the script for you—and then running
+the script yourself using `sbatch <path/to/script>`. 
 
-## Running HPO for Virgo Non-distributed
+## Scaling Tests and "runall"
 
-Hyperparameter optimization (HPO) is integrated into the pipeline using Ray Tune.
+Scaling tests provide information about how well the different distributed strategies
+scale. We have integrated them into this use case and you can run them using the
+`slurm.py` file. The format is very similar to the `itwinai generate-slurm` command,
+and you can even pass it the configuration file, but it will overwrite some of the
+parameters automatically—such as `std_out`, `err_out` and `job_name`. 
+
+You can run all strategies by setting `--mode` to `runall` and you can run scaling
+tests by setting `--mode` to `scaling-test` and specifying `scalability_nodes` in the
+configuration.
+
+To generate the plots, refer to the 
+[Scaling-Test Tutorial](https://github.com/interTwin-eu/itwinai/tree/main/tutorials/distributed-ml/torch-scaling-test#analyze-results).
+
+## Running HPO for Virgo on JSC
+
+Hyperparameter optimization (HPO) is integrated into the pipeline using Ray Tune and Ray Train.
 This allows you to run multiple trials and fine-tune model parameters efficiently.
-HPO is configured to run multiple trials in parallel, but run those trials each in a non-distributed way.
-
-To launch an HPO experiment, run
+HPO is configured to run multiple trials in parallel. There is two methods to run HPO.
+Both methods are launched with
 
 ```bash
 sbatch slurm_ray.sh
 ```
 
-This script sets up a Ray cluster and runs `hpo.py` for hyperparameter tuning.
-You may change CLI variables for `hpo.py` to change parameters,
-such as the number of trials you want to run, to change the stopping criteria for the trials or to set a
-different metric on which ray will evaluate trial results.
-By default, trials monitor validation loss, and results are plotted once all trials are completed.
+This script sets up a Ray cluster and runs the script for hyperparameter tuning.
+Change the run command in `slurm_ray.sh` to run the script you want. You have two options:
+
+1. You can run non-distributed HPO by using the command
+
+```python hpo.py --num_samples 4 --max_iterations 2 --ngpus $num_gpus --ncpus $num_cpus --pipeline_name training_pipeline```
+
+at the end of the slurm script. Change the argument ``num_samples`` to run a different number of trials, and change ``max_iterations`` to set a higher or lower stopping criteria.
+3. You can run distributed HPO by using the command
+
+```$PYTHON_VENV/bin/itwinai exec-pipeline --config config.yaml --pipe-key ray_training_pipeline```
+
+at the end of the slurm script.
+
+Please refer to the itwinai documentation for more guides and tutorials on these two HPO methods.
