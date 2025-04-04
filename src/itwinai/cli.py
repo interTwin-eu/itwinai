@@ -21,6 +21,7 @@
 
 import os
 import sys
+import subprocess
 from pathlib import Path
 from typing import List, Optional
 
@@ -31,6 +32,29 @@ from typing_extensions import Annotated
 from itwinai.utils import make_config_paths_absolute
 
 app = typer.Typer(pretty_exceptions_enable=False)
+
+@app.command()
+def generate_flamegraph():
+    filename = "profiling_data.txt"
+    output_svg = "flamegraph.svg"
+
+    script_path = Path(__file__).parent / "flamegraph.pl"
+    if not script_path.exists():
+        raise typer.Exit(f"Could not find flamegraph.pl at {script_path}")
+
+    try:
+        with open(output_svg, "w") as out:
+            subprocess.run(
+                ["perl", str(script_path), filename],
+                stdout=out,
+                check=True,
+            )
+        typer.echo(f"Flamegraph saved to {output_svg}")
+    except FileNotFoundError:
+        typer.echo("Error: Perl is not installed or not in PATH.")
+    except subprocess.CalledProcessError as e:
+        typer.echo(f"Flamegraph generation failed: {e}")
+
 
 
 @app.command()
