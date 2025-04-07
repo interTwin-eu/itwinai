@@ -12,7 +12,6 @@ def readme():
 packages = [
         'normflow',
         'normflow.action',
-        'normflow.device',
         'normflow.lib',
         'normflow.lib.combo',
         'normflow.lib.indexing',
@@ -29,7 +28,6 @@ packages = [
 package_dir = {
         'normflow': 'src',
         'normflow.action': 'src/action',
-        'normflow.device': 'src/device',
         'normflow.lib': 'src/lib',
         'normflow.lib.combo': 'src/lib/combo',
         'normflow.lib.indexing': 'src/lib/indexing',

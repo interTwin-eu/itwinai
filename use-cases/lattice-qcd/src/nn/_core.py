@@ -129,10 +129,6 @@ class ModuleList_(torch.nn.ModuleList):
     def npar(self):
         return sum([np.prod(p.shape) for p in super().parameters()])
 
-    def to(self, *args, **kwargs):
-        for net_ in self:
-            net_.to(*args, **kwargs)
-
 
 # =============================================================================
 class MultiChannelModule_(torch.nn.ModuleList):
@@ -198,7 +194,7 @@ class MultiOutChannelModule_(MultiChannelModule_):
 # =============================================================================
 class InvisibilityMaskWrapperModule_(Module_):
     """A wrapper that makes a part of the input invisible before passing it the
-    underlying network (`net_`). 
+    underlying network (`net_`).
 
     Parameters
     ----------
