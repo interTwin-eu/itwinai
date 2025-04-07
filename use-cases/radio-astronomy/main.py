@@ -10,7 +10,7 @@ from pulsar_simulation.generate_data_pipeline import generate_example_payloads_f
 
 # itwinai integration
 from trainer import PulsarTrainer
-from data import GenericDataset, DatasetSplitter, SignalDataset, \
+from data import GenericDataset, CommonDataset, DatasetSplitter, SignalDataset, \
          pipelineLabelsInterface, pipelinePulsarInterface
 
 # matplotlib.use('MacOSX')
@@ -46,38 +46,105 @@ mask_tag = 'train_v0_*_payload_flux.json'
 mask_directory='syn_payload/'
 
 ## Initialize the datasets
+engine_settings_unet = {
+    "image": {
+        "do_rot_phase_avg": True,
+        "do_resize": True,
+        "resize_size": (128, 128),
+        "do_binarize": False
+    },
+    "mask": {
+        "do_rot_phase_avg": True,
+        "do_resize": True,
+        "resize_size": (128, 128),
+        "do_binarize": True,
+        "binarize_func": "thresh"
+    }
+}
+engine_settings_filtercnn = {
+    "image": {
+        "do_rot_phase_avg": True,
+        "do_resize": True,
+        "resize_size": (128, 128),
+        "do_binarize": False
+    },
+    "mask": {
+        "do_rot_phase_avg": True,
+        "do_resize": True,
+        "resize_size": (128, 128),
+        "do_binarize": True,
+        "binarize_func": "thresh"
+    },
+    "mask_maker_engine": {
+        "model": "UNet",
+        "model_path": "./models/trained_UNet_test_v0.pt",
+    }
+}
+engine_settings_cnn1d = {
+    "mask": {
+        "do_rot_phase_avg": True,
+        "do_resize": True,
+        "resize_size": (128, 128),
+        "do_binarize": True,
+        "binarize_func": "thresh"
+    }
+}
 
-ImgToMaskDs = GenericDataset(
+# ImgToMaskDs = GenericDataset(
+#                     image_tag = image_tag,
+#                     mask_tag= mask_tag,
+#                     image_directory = image_directory,
+#                     mask_directory = mask_directory,
+#                     do_rot_phase_avg=True,
+#                     do_resize=True,
+#                     resize_size=(128,128), 
+#                     mask_binarize_func="thresh"
+#                     )
+
+# InmaskToMaskDs = GenericDataset(
+#                     image_tag = image_tag,
+#                     mask_tag= mask_tag,
+#                     image_directory = image_directory,
+#                     mask_directory = mask_directory,
+#                     mask_maker_engine=mask_maker_dict,
+#                     do_rot_phase_avg=True,
+#                     do_resize=True,
+#                     resize_size=(128,128), 
+#                     mask_binarize_func="thresh"
+#                     )
+# SignalToLabelDs = SignalDataset(
+#                     mask_tag=mask_tag,
+#                     mask_directory=mask_directory,
+#                     do_rot_phase_avg=True,
+#                     do_resize=True,
+#                     resize_size=(128,128), 
+#                     mask_binarize_func="thresh"
+# )
+
+ImgToMaskDs = CommonDataset(
                     image_tag = image_tag,
                     mask_tag= mask_tag,
                     image_directory = image_directory,
                     mask_directory = mask_directory,
-                    do_rot_phase_avg=True,
-                    do_resize=True,
-                    resize_size=(128,128), 
-                    mask_binarize_func="thresh"
+                    type = 'unet',
+                    engine_settings=engine_settings_unet,
                     )
 
-
-InmaskToMaskDs = GenericDataset(
+InmaskToMaskDs = CommonDataset(
                     image_tag = image_tag,
                     mask_tag= mask_tag,
                     image_directory = image_directory,
                     mask_directory = mask_directory,
-                    mask_maker_engine=mask_maker_dict,
-                    do_rot_phase_avg=True,
-                    do_resize=True,
-                    resize_size=(128,128), 
-                    mask_binarize_func="thresh"
+                    type = 'filtercnn',
+                    engine_settings=engine_settings_filtercnn,
                     )
-
-SignalToLabelDs = SignalDataset(
-                    mask_tag=mask_tag,
-                    mask_directory=mask_directory,
-                    do_rot_phase_avg=True,
-                    do_resize=True,
-                    resize_size=(128,128), 
-                    mask_binarize_func="thresh"
+SignalToLabelDs = CommonDataset(
+                    image_tag = image_tag,
+                    mask_tag= mask_tag,
+                    image_directory = image_directory,
+                    mask_directory = mask_directory,
+                    type = 'cnn1d',
+                    engine_settings=engine_settings_cnn1d,
 )
 
 

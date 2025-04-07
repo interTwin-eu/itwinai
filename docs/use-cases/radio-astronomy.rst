@@ -3,23 +3,23 @@ Pulsar Segmentation and Analysis for Radio-Astronomy (HTW Berlin)
 The code is adapted from 
 `this repository <https://gitlab.com/ml-ppa/pulsarrfi_nn/-/tree/version_0.2/unet_semantic_segmentation?ref_type=heads>`_.
 Please visit the original repository for more technical information on the code. 
-This use-case features a sophisticated pipeline composed of few neural networks.
+This use case features a sophisticated pipeline composed of few neural networks.
 
 Integration Author: Oleksandr Krochak, FZJ
 
 Environment Management
 -----------------------------------------------------------------------------------------------
-It is recommended to use UV environment for running this pipeline. 
+It is recommended to use the UV environment for running this pipeline. 
 The overview of itwinai-wide module dependencies can be found in `intertwin/pyproject.toml`.
-By running `uv sync --extra devel --extra torch --extra radio-astronomy`, uv lockfile will 
-be generated/updated that ensures that correct dependencies are installed. If want to 
+By running `uv sync --extra devel --extra torch --extra radio-astronomy`, the uv lockfile will 
+be generated/updated that ensures that correct dependencies are installed. If you want to 
 change some use-case specific dependencies, please do so in pyproject.toml in the radio-astronomy
 section. Afterwards, re-run `uv sync` with the same flags.
 
 Running from a configuration file
 -----------------------------------------------------------------------------------------------
-You can run the full pipeline sequency by executing the following commands locally. 
-Itwinai will read these commands from the `config.yaml` file in the root of the repository.
+You can run the full pipeline sequence by executing the following commands locally. 
+itwinai will read these commands from the `config.yaml` file in the root of the repository.
 1. Generate the synthetic data            - `itwinai exec-pipeline +pipe_key=syndata_pipeline`
 2. Initialize and train a UNet model      - `itwinai exec-pipeline +pipe_key=unet_pipeline`
 3. Initialize and train a FilterCNN model - `itwinai exec-pipeline +pipe_key=fcnn_pipeline`
