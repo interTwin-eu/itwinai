@@ -180,7 +180,7 @@ the `exec-pipeline` CLI from `itwinai` to launch the workflow. A script to
 define the pipeline called `config.yaml` is provided. In order to launch the
 pipeline, simply run:
 ```
-itwinai exec-pipeline --config config.yaml
+itwinai exec-pipeline --config-name config.yaml +pipe_key=training_pipeline
 ```
 For working on HPC systems, additionally a `startscript.sh` file is provided. 
 This can be launched by:```sbatch startscript.sh```. The version includes integration 
