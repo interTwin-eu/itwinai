@@ -27,13 +27,6 @@ The central high-level class of the package is called `Model`, which can be
 instantiated by providing instances of the three objects mentioned above:
 the prior, the neural network, and the action.
 
-Following the terminology used by *scikit-learn*, each instance of `Model`
-comes with a `fit` method, responsible for training the model. For those who
-prefer an alternative to the scikit-learn terminology, an alias called `train`
-is also available and functions identically. The training process involves
-optimizing the parameters of the neural network to accurately map the prior
-distribution to the target distribution.
-
 The `Fitter` class trains this instance of the `Model` class, which is
 instantiated during the initialization of the `Fitter` class. The `Fitter`
 class inherits from the `TorchTrainer` class provided by `itwinai`. Importantly,
