@@ -6,29 +6,68 @@
 
 # input variables
 
-num_payloads:     500
+num_payloads:     50
 learning_rate:    0.001
-batch_size:       500 #128
-num_cores:        40
+batch_size:       128 #128
+num_cores:        5
 seed:             42
-strategy:         ddp
+strategy:         none #ddp
+size:             [128,128]
 
 tag:              train_v0_
 image_tag:        train_v0_*_payload_detected.json
 image_directory:  syn_payload/
 mask_tag:         train_v0_*_payload_flux.json
-mask_directory:   syn_payload/
+mask_directory:   syn_payload/ 
 
-mask_maker_dict: {
-    model:        UNet,
-    model_path:   ./models/trained_UNet_test_v0.pt
-    }
+# folder to test syndata generation pipeline, to be deleted after the test
+# should correspond to deleted folder in "test_radio-astronomy.py": file 
+# do NOT confuse with ".test_dataset" which should be present after the test completion
+syndata_test_dir: syndata_test/
 
-unet_st:          ./models/trained_UNet_test_v0.pt
+unet_st:          models/trained_UNet_test_v0.pt 
 fcnn_st:          ./models/trained_Filter_test_v0.pt
 cnn1d_st:         ./models/trained_CNN1D_test_v0.pt
 real_img_st:      ./test_data/joint_dataset_8_classes_real_remix_128x128.npy
 real_lbl_st:      ./test_data/joint_dataset_8_classes_real_remix_labels.npy
+
+## Initialize the datasets
+engine_settings_unet: 
+  image: 
+    do_rot_phase_avg: True
+    do_resize: True
+    resize_size: ${size}
+    do_binarize: False
+  mask: 
+    do_rot_phase_avg: True
+    do_resize: True
+    resize_size: ${size}
+    do_binarize: True
+    binarize_func: thresh
+
+engine_settings_filtercnn: 
+    image:
+        do_rot_phase_avg: True
+        do_resize: True
+        resize_size: ${size}
+        do_binarize: False
+    mask:
+        do_rot_phase_avg: True
+        do_resize: True
+        resize_size: ${size}
+        do_binarize: True
+        binarize_func: thresh
+    mask_maker: 
+        model: UNet
+        trained_image_to_mask_network_path: ./models/trained_UNet_test_v0.pt
+
+engine_settings_cnn1d: 
+    mask: 
+        do_rot_phase_avg: True
+        do_resize: True
+        resize_size: ${size}
+        do_binarize: True
+        binarize_func: "thresh"
 
 # tracking_uri_mlflow: https://127.0.0.1:8000
 
@@ -56,15 +95,13 @@ unet_pipeline:
     #   num_payloads: ${num_payloads}
     #   name: syntheticData
     dataset_step:  
-      _target_: data.GenericDataset
+      _target_: data.PulsarDataset
+      type: "unet"
       image_tag: ${image_tag}
       image_directory: ${image_directory}
       mask_tag: ${mask_tag}
       mask_directory: ${mask_directory}
-      do_rot_phase_avg: 1
-      do_resize: 1
-      resize_size: [128,128]
-      mask_binarize_func: "thresh"
+      engine_settings: ${engine_settings_unet}
     splitter_step:
       _target_: data.DatasetSplitter
       train_proportion: 0.8
@@ -107,22 +144,18 @@ unet_pipeline:
     save_step:
       _target_: data.ModelSaver
 
-
 fcnn_pipeline:
   _target_: itwinai.pipeline.Pipeline
   name: Filter CNN Pipeline
   steps:        
     dataset_step:  
-      _target_: data.GenericDataset
+      _target_: data.PulsarDataset
+      type: "filtercnn"
       image_tag: ${image_tag}
       image_directory: ${image_directory}
       mask_tag: ${mask_tag}
       mask_directory: ${mask_directory}
-      mask_maker_engine: ${mask_maker_dict}
-      do_rot_phase_avg: 1
-      do_resize: 1
-      resize_size: [128,128]
-      mask_binarize_func: "thresh"
+      engine_settings: ${engine_settings_filtercnn}
     splitter_step:
       _target_: data.DatasetSplitter
       train_proportion: 0.8
@@ -169,13 +202,13 @@ cnn1d_pipeline:
   name: CNN1D Pipeline
   steps:
     dataset_step:  
-      _target_: data.SignalDataset
+      _target_: data.PulsarDataset
+      type: "cnn1d"
+      image_tag: ${image_tag}
+      image_directory: ${image_directory}
       mask_tag: ${mask_tag}
       mask_directory: ${mask_directory}
-      do_rot_phase_avg: 1
-      do_resize: 1
-      resize_size: [128,128]
-      mask_binarize_func: "thresh"
+      engine_settings: ${engine_settings_cnn1d}
     splitter_step:
       _target_: data.DatasetSplitter
       train_proportion: 0.8
@@ -192,7 +225,7 @@ cnn1d_pipeline:
         _target_: src.pulsar_analysis.neural_network_models.WeightedBCELoss
         pos_weight: 1
         neg_weight: 1
-      epochs: 50 #20
+      epochs: 20
       store_trained_model_at: ${cnn1d_st}
       name: CNN1DTrainer
       config:

@@ -63,7 +63,7 @@ class SynthesizeData(DataGetter):
                                             num_cpus       = self.parameters["num_cpus"],
                                             reinit_ray     = False) 
 
-class CommonDataset(Dataset):
+class PulsarDataset(Dataset):
     """Class to represent common datasets. Variable 'engine_settings' is supposed to 
     provide the settings for the image, mask and mask_maker engines, depending on 
     the type of dataset. For example, for UNet dataset, the settings could be:
@@ -119,16 +119,14 @@ class CommonDataset(Dataset):
             assert set(engine_settings) == {'image', 'mask'}, \
             "Wrong engine settings for UNet dataset. Provide 'image' and 'mask' engine settings."
 
-            self._mask_engine  = PrepareFreqTimeImage(**engine_settings["mask"])
-
         elif self._type == "filtercnn":
             assert set(engine_settings) == {'image', 'mask', 'mask_maker'}, \
             "Wrong engine settings for FilterCNN dataset. \n" 
             "Provide 'image', 'mask' and 'mask_maker' engine settings."
 
         else:
-            assert set(engine_settings) == {'image'}, \
-            "Wrong engine settings for SignalLabel dataset. Provide 'image' engine settings."
+            assert set(engine_settings) == {'mask'}, \
+            "Wrong engine settings for CNN1D dataset. Provide 'mask' engine settings."
         
         ### Initialize the engines, one to three dependent on the dataset type ### 
         # Mask engine settings are needed for all dataset types
@@ -197,10 +195,15 @@ class CommonDataset(Dataset):
         return pair
         
     def __getitem__(self, index):
-        img, mask = self.loadImagePair(index)()
-        img = img.unsqueeze(0)
-        mask = mask.unsqueeze(0)
-        return img.float(), mask.float()
+        # have to do this because they return different types of objects, and 
+        # I want to avoid modifying other methods as they can be called elsewhere
+        if self._type == "cnn1d":
+            return self.loadImagePair(index)
+        else: 
+            img, mask = self.loadImagePair(index)()
+            img = img.unsqueeze(0)
+            mask = mask.unsqueeze(0)
+            return img.float(), mask.float()
     
     def __get_descriptions__(self, index):
         return self.loadImagePair(index).descriptions

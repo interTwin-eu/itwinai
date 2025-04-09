@@ -10,28 +10,28 @@ from pulsar_simulation.generate_data_pipeline import generate_example_payloads_f
 
 # itwinai integration
 from trainer import PulsarTrainer
-from data import GenericDataset, CommonDataset, DatasetSplitter, SignalDataset, \
+from data import GenericDataset, PulsarDataset, DatasetSplitter, SignalDataset, \
          pipelineLabelsInterface, pipelinePulsarInterface
 
 # matplotlib.use('MacOSX')
 
 ## Generate synthetic data
 
-generate_example_payloads_for_training(tag='train_v0_',
-                                       num_payloads=10,
-                                       plot_a_example=False,
-                                       param_folder='./syn_payload/',
-                                       payload_folder='./syn_payload/',
-                                       num_cpus=1 #: choose based on the number of nodes/cores in your system
-                                       )
+# generate_example_payloads_for_training(tag='train_v0_',
+#                                        num_payloads=10,
+#                                        plot_a_example=False,
+#                                        param_folder='./syn_payload/',
+#                                        payload_folder='./syn_payload/',
+#                                        num_cpus=1 #: choose based on the number of nodes/cores in your system
+#                                        )
 
-generate_example_payloads_for_training(tag='test_v0_',
-                                       num_payloads=50,
-                                       plot_a_example=False,
-                                       param_folder='./syn_data/runtime/',
-                                       payload_folder='./syn_data/payloads/',
-                                       num_cpus=10 #: choose based on the number of nodes/cores in your system
-                                       )
+# generate_example_payloads_for_training(tag='test_v0_',
+#                                        num_payloads=50,
+#                                        plot_a_example=False,
+#                                        param_folder='./syn_data/runtime/',
+#                                        payload_folder='./syn_data/payloads/',
+#                                        num_cpus=10 #: choose based on the number of nodes/cores in your system
+#                                        )
 
 
 mask_maker_dict = {
@@ -75,9 +75,9 @@ engine_settings_filtercnn = {
         "do_binarize": True,
         "binarize_func": "thresh"
     },
-    "mask_maker_engine": {
+    "mask_maker": {
         "model": "UNet",
-        "model_path": "./models/trained_UNet_test_v0.pt",
+        "trained_image_to_mask_network_path": "./models/trained_UNet_test_v0.pt",
     }
 }
 engine_settings_cnn1d = {
@@ -121,7 +121,7 @@ engine_settings_cnn1d = {
 #                     mask_binarize_func="thresh"
 # )
 
-ImgToMaskDs = CommonDataset(
+ImgToMaskDs = PulsarDataset(
                     image_tag = image_tag,
                     mask_tag= mask_tag,
                     image_directory = image_directory,
@@ -130,7 +130,7 @@ ImgToMaskDs = CommonDataset(
                     engine_settings=engine_settings_unet,
                     )
 
-InmaskToMaskDs = CommonDataset(
+InmaskToMaskDs = PulsarDataset(
                     image_tag = image_tag,
                     mask_tag= mask_tag,
                     image_directory = image_directory,
@@ -138,7 +138,7 @@ InmaskToMaskDs = CommonDataset(
                     type = 'filtercnn',
                     engine_settings=engine_settings_filtercnn,
                     )
-SignalToLabelDs = CommonDataset(
+SignalToLabelDs = PulsarDataset(
                     image_tag = image_tag,
                     mask_tag= mask_tag,
                     image_directory = image_directory,
@@ -169,15 +169,15 @@ config = {
     # "shuffle_validation": True,
     # "shuffle_test": True,
     "device": "auto",
-    "num_workers_dataloader": 1,
-    "pin_gpu_memory": True,
+    "num_workers_dataloader": 0,
+    # "pin_gpu_memory": True,
 }
 
 ## Initialize the various trainers
 
 ImgToMaskTrainer = PulsarTrainer(
                     model= UNet(),
-                    epochs=2, #10
+                    epochs=1, #10
                     store_trained_model_at='./models/trained_UNet_test_v0.pt',
                     loss = WeightedBCELoss(pos_weight=3,neg_weight=1),
                     name='ImgToMaskTrainer',
@@ -186,7 +186,7 @@ ImgToMaskTrainer = PulsarTrainer(
 
 InmaskToMaskTrainer = PulsarTrainer(
                     model= FilterCNN(),
-                    epochs=3,
+                    epochs=1,
                     store_trained_model_at='./models/trained_Filter_test_v0.pt',
                     loss = WeightedBCELoss(pos_weight=1,neg_weight=1),  
                     name='InmaskToMaskTrainer',
@@ -195,7 +195,7 @@ InmaskToMaskTrainer = PulsarTrainer(
 
 SignalToLabelTrainer = PulsarTrainer(
                     model =CNN1D(),
-                    epochs=20,
+                    epochs=1,
                     loss = WeightedBCELoss(pos_weight=1,neg_weight=1),
                     store_trained_model_at='./models/trained_CNN1D_test_v0.pt',
                     name='SignalToLabelTrainer',
