@@ -52,7 +52,7 @@ training_pipeline:
         snapshot_path: ${snapshot_path}
         epochs_run: ${epochs_run}
       epochs: ${epochs}
-      strategy: "ddp"
+      strategy: ${strategy}
       measure_epoch_time: False
       measure_gpu_data: False
       measure_communication_overhead: False
