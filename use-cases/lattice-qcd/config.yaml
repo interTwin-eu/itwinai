@@ -16,7 +16,7 @@ loss_fn: None
 scheduler: None
 print_stride: 10
 print_batch_size: 1024
-snapshot_path: None
+snapshot_path: null
 epochs_run: 0
 strategy: 'ddp'
 

@@ -192,7 +192,7 @@ class Fitter(TorchTrainer):
             display=self.config.ckpt_disp,
             print_stride=self.config.print_stride,
             print_batch_size=self.config.print_batch_size,
-            snapshot_path=self.config.snapshot_path,
+            snapshot_path=self.config.snapshot_path or 'checkpoint.pth',
             epochs_run=self.config.epochs_run
         )
         self.train_batch_size = 1
