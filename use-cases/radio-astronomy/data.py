@@ -13,7 +13,7 @@ from torch.utils.data import Dataset, TensorDataset, random_split
 
 from typing import Optional, Tuple, Literal
 from collections import OrderedDict
-
+from functools import cached_property
 from src.pulsar_analysis.train_neural_network_model import ImageMaskPair, \
     SignalToLabelDataset, SignalLabelPair
 from src.pulsar_analysis.preprocessing import PrepareFreqTimeImage, BinarizeToMask
@@ -27,7 +27,7 @@ class SynthesizeData(DataGetter):
                  name: Optional[str] = None,
                  tag: str = "test_v0_", 
                  num_payloads: int = 50, 
-                 plot: bool = 0, 
+                 plot: bool = False, 
                  num_cpus: int = 4, 
                  param_root: str = "./syn_runtime/", 
                  payload_root: str = "./syn_payload/") -> None:
@@ -114,6 +114,11 @@ class PulsarDataset(Dataset):
         self._mask_engine = None
         self._mask_maker_engine = None
 
+        ### Compute dataset length ###
+        search_pattern = os.path.join(self._image_directory, self._image_tag)
+        matching_files = glob.glob(search_pattern)
+        self._len = len(matching_files)
+
         ### Check that the engine settings are appropriate for chosen dataset type ###
         if self._type == "unet":
             assert set(engine_settings) == {'image', 'mask'}, \
@@ -155,9 +160,9 @@ class PulsarDataset(Dataset):
                 image_to_mask_network=mme_model
             )
 
-    def loadImagePair(self, index) -> ImageMaskPair:
-        img_address = self._image_directory + self._image_tag.replace("*", str(index))
-        mask_address = self._mask_directory + self._mask_tag.replace("*", str(index))
+    def load_image_pair(self, id) -> ImageMaskPair:
+        img_address = self._image_directory + self._image_tag.replace("*", str(id))
+        mask_address = self._mask_directory + self._mask_tag.replace("*", str(id))
 
         if self._type == "unet":
             pair = ImageMaskPair.load_from_payload_address(
@@ -198,21 +203,18 @@ class PulsarDataset(Dataset):
         # have to do this because they return different types of objects, and 
         # I want to avoid modifying other methods as they can be called elsewhere
         if self._type == "cnn1d":
-            return self.loadImagePair(index)
+            return self.load_image_pair(index)
         else: 
-            img, mask = self.loadImagePair(index)()
+            img, mask = self.load_image_pair(index)()
             img = img.unsqueeze(0)
             mask = mask.unsqueeze(0)
             return img.float(), mask.float()
     
     def __get_descriptions__(self, index):
-        return self.loadImagePair(index).descriptions
-
+        return self.load_image_pair(index).descriptions
+    
     def __len__(self):
-        search_pattern = os.path.join(self._image_directory, self._image_tag)
-        matching_files = glob.glob(search_pattern)
-        num_items = len(matching_files)
-        return num_items
+        return self._len
 
     def plot(self, index):
 
@@ -248,164 +250,6 @@ class PulsarDataset(Dataset):
             return plt.gca()
 
 
-    def execute(self) -> Dataset:
-        return self
-    
-class GenericDataset(Dataset):
-    
-    """Class to represent Pulsar datasets"""
-
-    def __init__(
-        self,
-        image_tag: str,
-        mask_tag: str,
-        image_directory: str,
-        mask_directory: str,
-        # Re-use some arguments to initialize PrepareFreqTimeImage class inside this class
-        do_rot_phase_avg: bool = True,
-        do_resize: bool = True,
-        resize_size: Tuple = (128,128),
-        mask_binarize_func: str = "thresh",
-        mask_maker_engine: Optional[dict] = None,
-        image_engine: PrepareFreqTimeImage = PrepareFreqTimeImage(
-            do_rot_phase_avg=True, do_binarize=False, do_resize=True
-        ),
-        mask_engine: PrepareFreqTimeImage = PrepareFreqTimeImage(
-            do_rot_phase_avg=True, do_binarize=True, do_resize=True
-        ),
-        device: torch.device = torch.device(
-            "cuda" if torch.cuda.is_available() else "cpu"
-        ),
-    ):
-        self._image_tag = image_tag
-        self._mask_tag = mask_tag
-        self._image_directory = image_directory
-        self._mask_directory = mask_directory
-        self._device = device
-
-
-        # Initialize PrepareFreqTimeImage classes
-        self._img_engine = PrepareFreqTimeImage(
-                    do_rot_phase_avg=do_rot_phase_avg,
-                    do_binarize=False,
-                    do_resize=do_resize,
-                    resize_size=resize_size,
-                    )
-        self._mask_engine = PrepareFreqTimeImage(
-                    do_rot_phase_avg=True,
-                    do_binarize=True,
-                    do_resize=True,
-                    resize_size=resize_size,
-                    binarize_engine = BinarizeToMask(binarize_func=mask_binarize_func)
-                    )
-        
-        self._image_engine = image_engine
-        self._mask_engine = mask_engine
-
-        # Optional initialization of mask_maker_engine
-        if mask_maker_engine is not None:
-            if mask_maker_engine["model"] == "UNet":
-                mme_model = UNet()
-            else:
-                raise ValueError("Uknown model type for mask_maker_engine")
-            self._mask_maker_engine = PipelineImageToMask(
-                image_to_mask_network=mme_model,
-                trained_image_to_mask_network_path=mask_maker_engine["model_path"],
-            )
-        else:
-            self._mask_maker_engine = None
-
-    def loadImagePair(self, index) -> ImageMaskPair:
-        imgAddress = self._image_directory + self._image_tag.replace(
-            "*", str(index)
-        )
-        maskAddress = self._mask_directory + self._mask_tag.replace(
-            "*", str(index)
-        )
-        if self._mask_maker_engine is None: # this method is taken from ImageToMaskDataset class
-            image_mask_pair = ImageMaskPair.load_from_payload_address(
-                image_payload_address=imgAddress,
-                mask_payload_address=maskAddress,
-                image_engine=self._image_engine,
-                mask_engine=self._mask_engine,
-            )
-        else:     # this method is taken from InMaskToDataset class
-            image_mask_pair = ImageMaskPair.load_from_payload_and_make_in_mask(
-                image_payload_address=imgAddress,
-                mask_payload_address=maskAddress,
-                mask_maker_engine=self._mask_maker_engine,
-                image_engine=self._image_engine,
-                mask_engine=self._mask_engine,
-            )
-        return image_mask_pair
-        
-    def __getitem__(self, index):
-        img, mask = self.loadImagePair(index)()
-        img = img.unsqueeze(0)
-        mask = mask.unsqueeze(0)
-        return img.float(), mask.float()
-    
-    def __get_descriptions__(self, index):
-        return self.loadImagePair(index).descriptions
-
-    def __len__(self):
-        search_pattern = os.path.join(self._image_directory, self._image_tag)
-        matching_files = glob.glob(search_pattern)
-        num_items = len(matching_files)
-        return num_items
-
-    def plot(self, index):
-        """Plot InMask and Mask pair
-
-        Args:
-            index (int): index of the pair to plot
-        """
-        image_payload_address = self._image_directory + self._image_tag.replace(
-            "*", str(index)
-        )
-        mask_payload_address = self._mask_directory + self._mask_tag.replace(
-            "*", str(index)
-        )
-        image_mask_pair = ImageMaskPair.load_from_payload_and_make_in_mask(
-            image_payload_address=image_payload_address,
-            mask_payload_address=mask_payload_address,
-            mask_maker_engine=self._mask_maker_engine,
-            image_engine=self._image_engine,
-            mask_engine=self._mask_engine,
-        )
-        image_mask_pair.plot()
-
-    def execute(self) -> Dataset:
-        return self
-
-class SignalDataset(SignalToLabelDataset):
-    # this class is defined to provide a new init method for 
-    # easy initialization from config.yaml file.
-    def __init__(
-        self,
-        mask_tag: str,
-        mask_directory: str,
-        do_rot_phase_avg: bool = True,
-        do_binarize: bool = True,
-        do_resize: bool = True,
-        resize_size: Tuple = (128,128),
-        mask_binarize_func: str = "thresh",
-        device: torch.device = torch.device(
-            "cuda" if torch.cuda.is_available() else "cpu"
-        ),
-    ):
-        self._mask_tag = mask_tag
-        self._mask_directory = mask_directory
-
-        self._device = device
-        self._mask_engine = PrepareFreqTimeImage(
-                    do_rot_phase_avg=do_rot_phase_avg,
-                    do_binarize=do_binarize,
-                    do_resize=do_resize,
-                    resize_size=resize_size,
-                    binarize_engine = BinarizeToMask(binarize_func=mask_binarize_func)
-                    )
-        
     def execute(self) -> Dataset:
         return self
 
@@ -444,22 +288,22 @@ class DatasetSplitter(DataSplitter):
 
         # Split file paths into train, validation, and test sets
         generator = torch.Generator().manual_seed(self.rnd_seed)
-        [train_dataset, validation_dataset, test_dataset] = random_split(
+        train_dataset, validation_dataset, test_dataset = random_split(
             whole_dataset,
             [self.train_proportion, self.validation_proportion, self.test_proportion],
             generator=generator,
         )
         return train_dataset, validation_dataset, test_dataset
 
-class pipelinePulsarInterface(PipelineImageToFilterDelGraphtoIsPulsar):
+class PipelinePulsarInterface(PipelineImageToFilterDelGraphtoIsPulsar):
     def execute(self) -> PipelineImageToFilterDelGraphtoIsPulsar:
         return self
     
-class pipelineLabelsInterface(PipelineImageToFilterToCCtoLabels):
+class PipelineLabelsInterface(PipelineImageToFilterToCCtoLabels):
     def execute(self) -> PipelineImageToFilterToCCtoLabels:
         return self
 
-class testSuite:
+class TestSuite:
     def __init__(
         self,
         image_to_mask_network: torch.nn.Module,
@@ -478,7 +322,7 @@ class testSuite:
             self.size = size
             self.offset = offset
 
-            self.DelGraphtoIsPulsar = PipelineImageToFilterDelGraphtoIsPulsar(
+            self.del_graph_to_is_pulsar = PipelineImageToFilterDelGraphtoIsPulsar(
                 image_to_mask_network,
                 trained_image_to_mask_network_path,
                 mask_filter_network,
@@ -487,7 +331,7 @@ class testSuite:
                 trained_signal_to_label_network   
             )
 
-            self.ToCCtoLabels = PipelineImageToFilterToCCtoLabels(
+            self.to_cc_to_labels = PipelineImageToFilterToCCtoLabels(
                 image_to_mask_network,
                 trained_image_to_mask_network_path,
                 mask_filter_network,
@@ -501,7 +345,7 @@ class testSuite:
         data_subset = data[self.offset+1:self.offset+self.size,:,:]
         data_label_subset = data_label[self.offset+1:self.offset+self.size]
 
-        self.DelGraphtoIsPulsar.test_on_real_data_from_npy_files(
+        self.del_graph_to_is_pulsar.test_on_real_data_from_npy_files(
             image_data_set=data_subset,
             image_label_set=data_label_subset,
             plot_details=True,
@@ -509,14 +353,15 @@ class testSuite:
             batch_size=2
         )
 
-        self.ToCCtoLabels.test_on_real_data_from_npy_files(
+        self.to_cc_to_labels.test_on_real_data_from_npy_files(
             image_data_set=data_subset,
             image_label_set=data_label_subset,
             plot_randomly=True,
             batch_size=2
         )
 
-        plt.show()
+        # plt.show()
+        os.makedirs("plots", exist_ok=True)
         for i in plt.get_fignums():
             fig = plt.figure(i)
             fig.savefig(f"plots/figure_{i}.png")
@@ -528,7 +373,5 @@ class ModelSaver:
         m_dict = model.state_dict()
         # ensure correct saving syntax expected by the loader
         m_new = OrderedDict([(k.replace("module.",""), v) if k.startswith("module") else (k, v) for k, v in m_dict.items()])
-        del m_dict
         torch.save(m_new, path)
         print(f"Model saved at {path}")
-        return None

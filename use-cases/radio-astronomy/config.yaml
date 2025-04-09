@@ -254,7 +254,7 @@ evaluate_pipeline:
   _target_: itwinai.pipeline.Pipeline
   steps:
     eval_step: 
-      _target_: data.testSuite
+      _target_: data.TestSuite
       image_to_mask_network: 
         _target_: src.pulsar_analysis.neural_network_models.UNet
       trained_image_to_mask_network_path: ${unet_st}
