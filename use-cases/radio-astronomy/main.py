@@ -128,15 +128,9 @@ while(True):
     plt.show()
     if (input('[y/n] to quit: ')=='y'):
         break
-    # continue_loop = not(input('[y/n] to quit: ')=='y')    
-    # if continue_loop==False:
-    #     break
     plt.close()
     ppl2f.test_on_real_data_from_npy_files(image_data_set=data_subset,image_label_set=data_label_subset,plot_randomly=True,batch_size=2)    
     plt.show()
     if (input('[y/n] to quit: ')=='y'):
         break
-    # continue_loop = not(input('[y/n] to quit: ')=='y')
-    # if continue_loop==False:
-    #     break
     plt.close()

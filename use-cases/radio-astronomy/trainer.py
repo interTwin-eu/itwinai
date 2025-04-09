@@ -20,24 +20,24 @@ class PulsarTrainer(TorchTrainer):
 
     def __init__(
         self,
-        config: Dict | TrainingConfiguration | None = None,
-        strategy: Literal["ddp", "deepspeed", "horovod"] | None = None,
-        logger: Logger | None = None,
-        epochs: int = 3,
-        model: nn.Module = None,
-        loss: nn.Module = None,
-        store_trained_model_at: str = ".models/model.pt",
-        name: Optional[str] = None,
+        config:                 Dict | TrainingConfiguration | None             = None,
+        strategy:               Literal["ddp", "deepspeed", "horovod"] | None   = None,
+        logger:                 Logger | None                                   = None,
+        epochs:                 int                                             = 3,
+        model:                  nn.Module                                       = None,
+        loss:                   nn.Module                                       = None,
+        store_trained_model_at: str                                             = ".models/model.pt",
+        name:                   Optional[str]                                   = None,
     ) -> None:
 
         # these parameters are initialized with the TorchTrainer class:
         super().__init__(
-            config=config,
-            strategy=strategy,
-            logger=logger,
-            epochs=epochs,
-            model=model,
-            name=name
+            config      = config,
+            strategy    = strategy,
+            logger      = logger,
+            epochs      = epochs,
+            model       = model,
+            name        = name
         )
         # set the custom loss function
         self.loss = loss 
@@ -108,14 +108,14 @@ class PulsarTrainer(TorchTrainer):
     # does not return self.model anymore
     def execute(
         self,
-        train_dataset: Dataset,
-        validation_dataset: Dataset | None = None,
-        test_dataset: Dataset | None = None,
+        train_dataset:          Dataset,
+        validation_dataset:     Dataset | None = None,
+        test_dataset:           Dataset | None = None,
     ) -> Tuple[Dataset, Dataset, Dataset, Any]:
         objs = super().execute( 
-            train_dataset=train_dataset,
-            validation_dataset=validation_dataset,
-            test_dataset=test_dataset,
+            train_dataset       = train_dataset,
+            validation_dataset  = validation_dataset,
+            test_dataset        = test_dataset,
         )
         # return the datasets and the model
         return *(objs[:-1]), self.model

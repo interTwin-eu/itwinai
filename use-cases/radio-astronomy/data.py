@@ -24,16 +24,15 @@ from pulsar_simulation.generate_data_pipeline import generate_example_payloads_f
 
 class SynthesizeData(DataGetter):
     def __init__(self, 
-                 name: Optional[str] = None,
-                 tag: str = "test_v0_", 
-                 num_payloads: int = 50, 
-                 plot: bool = False, 
-                 num_cpus: int = 4, 
-                 param_root: str = "./syn_runtime/", 
-                 payload_root: str = "./syn_payload/") -> None:
-       
+        name:           Optional[str]   = None,
+        tag:            str             = "test_v0_", 
+        num_payloads:   int             = 50, 
+        plot:           bool            = False, 
+        num_cpus:       int             = 4, 
+        param_root:     str             = "./syn_runtime/", 
+        payload_root:   str             = "./syn_payload/"
+    ) -> None:
         """Initialize the synthesizeData class.
-    
         Args:
             name [optional] (str):  name of the data getter component.
             param_root      (str):  folder where synthetic param data will be saved.
@@ -46,22 +45,22 @@ class SynthesizeData(DataGetter):
         """
         super().__init__(name)
         self.save_parameters(**self.locals2params(locals()), pop_self=False)
-
         # TODO find a smart way to compute the right value for num_cpus
-
         os.makedirs(param_root, exist_ok=True)
         os.makedirs(payload_root, exist_ok=True)
 
     @monitor_exec
     def execute(self) -> None:
         """Generate synthetic data and save it to disk. Relies on the pulsar_simulation package."""
-        generate_example_payloads_for_training(tag         = self.parameters["tag"], 
-                                            num_payloads   = self.parameters["num_payloads"],
-                                            plot_a_example = self.parameters["plot"], 
-                                            param_folder   = self.parameters["param_root"],
-                                            payload_folder = self.parameters["payload_root"],
-                                            num_cpus       = self.parameters["num_cpus"],
-                                            reinit_ray     = False) 
+        generate_example_payloads_for_training(
+            tag            = self.parameters["tag"], 
+            num_payloads   = self.parameters["num_payloads"],
+            plot_a_example = self.parameters["plot"], 
+            param_folder   = self.parameters["param_root"],
+            payload_folder = self.parameters["payload_root"],
+            num_cpus       = self.parameters["num_cpus"],
+            reinit_ray     = False
+        ) 
 
 class PulsarDataset(Dataset):
     """Class to represent common datasets. Variable 'engine_settings' is supposed to 
@@ -96,22 +95,22 @@ class PulsarDataset(Dataset):
 
     def __init__(
         self,
-        type: Literal["unet", "filtercnn", "cnn1d"],
-        image_tag: str,
-        mask_tag: str,
-        image_directory: str,
-        mask_directory: str,
-        engine_settings: dict,
+        type:               Literal["unet", "filtercnn", "cnn1d"],
+        image_tag:          str,
+        mask_tag:           str,
+        image_directory:    str,
+        mask_directory:     str,
+        engine_settings:    dict,
     ):
-        self._type = type
-        self._image_tag = image_tag
-        self._mask_tag = mask_tag
-        self._image_directory = image_directory
-        self._mask_directory = mask_directory
-        self._device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self._type              = type
+        self._image_tag         = image_tag
+        self._mask_tag          = mask_tag
+        self._image_directory   = image_directory
+        self._mask_directory    = mask_directory
+        self._device            = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-        self._image_engine = None
-        self._mask_engine = None
+        self._image_engine      = None
+        self._mask_engine       = None
         self._mask_maker_engine = None
 
         ### Compute dataset length ###
@@ -134,7 +133,7 @@ class PulsarDataset(Dataset):
             "Wrong engine settings for CNN1D dataset. Provide 'mask' engine settings."
         
         ### Initialize the engines, one to three dependent on the dataset type ### 
-        # Mask engine settings are needed for all dataset types
+        ###        Mask engine settings are needed for all dataset types       ###
 
         # retrieve the binarization function from the engine settings and remove it
         bin_func = engine_settings["mask"].pop("binarize_func")
@@ -166,25 +165,27 @@ class PulsarDataset(Dataset):
 
         if self._type == "unet":
             pair = ImageMaskPair.load_from_payload_address(
-                image_payload_address=img_address,
-                mask_payload_address=mask_address,
-                image_engine=self._image_engine,
-                mask_engine=self._mask_engine,
+                image_payload_address   = img_address,
+                mask_payload_address    = mask_address,
+                image_engine            = self._image_engine,
+                mask_engine             = self._mask_engine,
             )
 
         elif self._type == "filtercnn":  
             pair = ImageMaskPair.load_from_payload_and_make_in_mask(
-                image_payload_address=img_address,
-                mask_payload_address=mask_address,
-                mask_maker_engine=self._mask_maker_engine,
-                image_engine=self._image_engine,
-                mask_engine=self._mask_engine,
+                image_payload_address   = img_address,
+                mask_payload_address    = mask_address,
+                mask_maker_engine       = self._mask_maker_engine,
+                image_engine            = self._image_engine,
+                mask_engine             = self._mask_engine,
             )
 
         elif self._type == "cnn1d":
             signal_label_pair = SignalLabelPair.load_from_payload_address(
-            mask_payload_address=mask_address, mask_engine=self._mask_engine
+                mask_payload_address=mask_address, 
+                mask_engine=self._mask_engine
             )
+
             signal, label = signal_label_pair()
             label_vector = list(label.values())
             pulsar_present = label_vector[0]
@@ -219,21 +220,17 @@ class PulsarDataset(Dataset):
     def plot(self, index):
 
         ##TODO: make this method HPC-friendy 
-
         if self._type == "unet" or self._type == "filtercnn":
 
-            image_payload_address = self._image_directory + self._image_tag.replace(
-                "*", str(index)
-            )
-            mask_payload_address = self._mask_directory + self._mask_tag.replace(
-                "*", str(index)
-            )
+            image_payload_address = self._image_directory + self._image_tag.replace("*", str(index))
+            mask_payload_address  = self._mask_directory  + self._mask_tag.replace("*", str(index))
+
             image_mask_pair = ImageMaskPair.load_from_payload_and_make_in_mask(
-                image_payload_address=image_payload_address,
-                mask_payload_address=mask_payload_address,
-                mask_maker_engine=self._mask_maker_engine,
-                image_engine=self._image_engine,
-                mask_engine=self._mask_engine,
+                image_payload_address   = image_payload_address,
+                mask_payload_address    = mask_payload_address,
+                mask_maker_engine       = self._mask_maker_engine,
+                image_engine            = self._image_engine,
+                mask_engine             = self._mask_engine,
             )
             image_mask_pair.plot()
 
@@ -256,11 +253,11 @@ class PulsarDataset(Dataset):
 class DatasetSplitter(DataSplitter):
     def __init__(
         self,
-        train_proportion: int | float,
-        validation_proportion: int | float = 0.0,
-        test_proportion: int | float = 0.0,
-        rnd_seed: Optional[int] = None,
-        name: Optional[str] = None,
+        train_proportion:       int | float,
+        validation_proportion:  int | float   = 0.0,
+        test_proportion:        int | float   = 0.0,
+        rnd_seed:               Optional[int] = None,
+        name:                   Optional[str] = None
     ) -> None:
         """Initialize the splitter for time-series datasets.
 
@@ -306,21 +303,21 @@ class PipelineLabelsInterface(PipelineImageToFilterToCCtoLabels):
 class TestSuite:
     def __init__(
         self,
-        image_to_mask_network: torch.nn.Module,
-        trained_image_to_mask_network_path: str,
-        mask_filter_network: torch.nn.Module,
-        trained_mask_filter_network_path: str,
-        signal_to_label_network: torch.nn.Module,
-        trained_signal_to_label_network: str,
-        img_dir: str,
-        lbl_dir: str,
-        size: int,
-        offset: int,
+        image_to_mask_network:                  torch.nn.Module,
+        trained_image_to_mask_network_path:     str,
+        mask_filter_network:                    torch.nn.Module,
+        trained_mask_filter_network_path:       str,
+        signal_to_label_network:                torch.nn.Module,
+        trained_signal_to_label_network:        str,
+        img_dir:                                str,
+        lbl_dir:                                str,
+        size:                                   int,
+        offset:                                 int,
         ):
             self.img_dir = img_dir
             self.lbl_dir = lbl_dir
-            self.size = size
-            self.offset = offset
+            self.size    = size
+            self.offset  = offset
 
             self.del_graph_to_is_pulsar = PipelineImageToFilterDelGraphtoIsPulsar(
                 image_to_mask_network,
@@ -340,24 +337,24 @@ class TestSuite:
             )
 
     def execute(self):
-        data = np.load(file=self.img_dir,mmap_mode='r')
-        data_label = np.load(file=self.lbl_dir,mmap_mode='r')
-        data_subset = data[self.offset+1:self.offset+self.size,:,:]
-        data_label_subset = data_label[self.offset+1:self.offset+self.size]
+        data                = np.load(file=self.img_dir,mmap_mode='r')
+        data_label          = np.load(file=self.lbl_dir,mmap_mode='r')
+        data_subset         = data[self.offset+1:self.offset+self.size,:,:]
+        data_label_subset   = data_label[self.offset+1:self.offset+self.size]
 
         self.del_graph_to_is_pulsar.test_on_real_data_from_npy_files(
-            image_data_set=data_subset,
-            image_label_set=data_label_subset,
-            plot_details=True,
-            plot_randomly=True,
-            batch_size=2
+            image_data_set  = data_subset,
+            image_label_set = data_label_subset,
+            plot_details    = True,
+            plot_randomly   = True,
+            batch_size      = 2
         )
 
         self.to_cc_to_labels.test_on_real_data_from_npy_files(
-            image_data_set=data_subset,
-            image_label_set=data_label_subset,
-            plot_randomly=True,
-            batch_size=2
+            image_data_set  = data_subset,
+            image_label_set = data_label_subset,
+            plot_randomly   = True,
+            batch_size      = 2
         )
 
         # plt.show()
