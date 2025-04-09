@@ -53,6 +53,9 @@ training_pipeline:
         epochs_run: ${epochs_run}
       epochs: ${epochs}
       strategy: "ddp"
+      measure_epoch_time: False
+      measure_gpu_data: False
+      measure_communication_overhead: False
       logger:
         _target_: itwinai.loggers.LoggersCollection
         loggers:

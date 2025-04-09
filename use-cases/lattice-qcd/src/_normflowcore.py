@@ -36,8 +36,10 @@ from normflow.action.scalar_action import ScalarPhi4Action
 
 from itwinai.torch.trainer import TorchTrainer
 from itwinai.torch.distributed import DeepSpeedStrategy
-from itwinai.loggers import Logger
+from itwinai.loggers import EpochTimeTracker, Logger
+from itwinai.torch.monitoring.monitoring import measure_gpu_utilization
 from itwinai.torch.profiling.profiler import profile_torch_trainer
+from itwinai.distributed import suppress_workers_print
 from itwinai.torch.config import TrainingConfiguration
 
 
@@ -180,8 +182,15 @@ class Fitter(TorchTrainer):
         config: Dict | TrainingConfiguration | None = None,
         strategy: Literal["ddp", "deepspeed", "horovod"] = 'ddp',
         logger: Logger | None = None,
+        **kwargs
     ):
-        super().__init__(config=config, epochs=epochs, strategy=strategy, logger=logger)
+        super().__init__(
+            config=config,
+            epochs=epochs,
+            strategy=strategy,
+            logger=logger,
+            **kwargs
+        )
         self._model = model
         self.epochs = epochs
         # Global training configuration
@@ -299,6 +308,7 @@ class Fitter(TorchTrainer):
             except AttributeError:
                 raise ValueError(f"Invalid scheduler name: {self.config.scheduler}")
 
+    @suppress_workers_print
     def execute(
         self,
         train_dataset: Dataset | None = None,
@@ -355,16 +365,43 @@ class Fitter(TorchTrainer):
         torch.save(snapshot, snapshot_new_path)
         print(f"Epoch {epochs_run} | Model Snapshot saved at {snapshot_new_path}")
 
+    def set_epoch(self, epoch: int) -> None:
+        """Sets current epoch at beginning of training.
+
+        Args:
+            epoch (int): current epoch number.
+
+        Returns:
+            None
+        """
+        if self.profiler is not None:
+            self.profiler.step()
+
+    @profile_torch_trainer
+    @measure_gpu_utilization
     def train(self) -> None:
         """Trains the neural network model."""
+
+        # Track epoch time for scaling statistics
+        if self.strategy.is_main_worker and self.strategy.is_distributed:
+            num_nodes = os.environ.get("SLURM_NNODES", "unk")
+            epoch_time_output_dir = Path("scalability-metrics/epoch-time")
+            epoch_time_file_name = f"epochtime_{self.strategy.name}_{num_nodes}N.csv"
+            epoch_time_output_path = epoch_time_output_dir / epoch_time_file_name
+
+            epoch_time_logger= EpochTimeTracker(
+                strategy_name=self.strategy.name,
+                save_path=epoch_time_output_path,
+                num_nodes=num_nodes,
+                should_log=self.measure_epoch_time
+            )
+
         if self.config.save_every == "None":
             self.config.save_every = self.epochs
 
         T1 = time.time()
         for epoch in range(1, self.epochs+1):
-
-            if self.profiler is not None:
-                self.profiler.step()
+            self.set_epoch(epoch)
             loss, logqp = self.step(self.config.batch_size)
             self.checkpoint(epoch, loss, self.config.save_every)
             if self.scheduler is not None:
