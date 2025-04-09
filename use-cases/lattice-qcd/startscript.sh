@@ -25,7 +25,7 @@ ml Stages/2024 GCC OpenMPI CUDA/12 MPI-settings/CUDA Python HDF5 PnetCDF libaio 
 #source envAI_juwels/bin/activate
 # source /p/project1/intertwin/rakesh/T6.5-AI-and-ML/latticeqcd/Use_Case_T4.1_normflow/itwinai/itwinai/envAI_juwels/bin/activate
 
-source /p/project1/intertwin/rakesh/T6.5-AI-and-ML/latticeqcd/itwinai_lqcd2/itwinai/envAI_juwels_new/bin/activate
+source /p/project1/intertwin/rakesh/T6.5-AI-and-ML/latticeqcd/itwinai_lqcd3/itwinai/envAI_juwels/bin/activate
 
 export MASTER_ADDR="$(scontrol show hostnames "$SLURM_JOB_NODELIST" | head -n 1)"
 if [ "$SYSTEMNAME" = juwelsbooster ] \
