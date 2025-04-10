@@ -11,7 +11,7 @@ Environment setup
 -----------------
 In order to setup the environment, please first look at the `itwinai installation instructions
 <https://itwinai.readthedocs.io/latest/installation/developer_installation.html>`_. Once `itwinai` is installed,
-navigate to the use-case directory under `use-cases/lattice-qcd` and simply run `pip install .`.
+navigate to the use-case directory under ``use-cases/lattice-qcd`` and simply run ``pip install .``.
 
 About the use-case and integration
 ----------------------------------
