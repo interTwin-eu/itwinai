@@ -38,10 +38,12 @@ app = typer.Typer(pretty_exceptions_enable=False)
 def generate_flamegraph():
     filename = "profiling_data.txt"
     output_svg = "flamegraph.svg"
+    script_filename = "flamegraph.pl"
 
-    script_path = Path(__file__).parent / "flamegraph.pl"
+    script_path = Path(__file__).parent / script_filename
     if not script_path.exists():
-        raise typer.Exit(f"Could not find flamegraph.pl at '{script_path}'")
+        print(f"Could not find '{script_filename}' at '{script_path}'")
+        raise typer.Exit()
 
     try:
         with open(output_svg, "w") as out:
@@ -96,7 +98,7 @@ def generate_py_spy_report(
                 data_points.append(structured_stack_trace)
         except ValueError as exception:
             print(f"Failed to aggregate data with following error:\n{str(exception)}")
-            return 1
+            raise typer.Exit()
 
     leaf_functions = [data_point[-1] for data_point in data_points]
     leaf_functions.sort(key=lambda x: x["num_samples"], reverse=True)
