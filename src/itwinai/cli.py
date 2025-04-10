@@ -361,6 +361,15 @@ def generate_slurm(
         str | None,
         typer.Option("--config", help="The path to the SLURM configuration file."),
     ] = None,
+    py_spy: Annotated[
+        bool, typer.Option("--py-spy", help="Whether to activate profiling with py-spy or not")
+    ] = False,
+    profiling_rate: Annotated[
+        int,
+        typer.Option(
+            "--profiling-rate", help="The rate at which to profile with the py-spy profiler."
+        ),
+    ] = 10,
 ):
     """Generates a default SLURM script using arguments and optionally a configuration
     file.
