@@ -78,6 +78,8 @@ class SlurmScriptBuilder:
         config_path: str = ".",
         pipe_key: str = "training_pipeline",
         file_folder: Path = Path("slurm_scripts"),
+        py_spy_profiling: bool = False,
+        profiling_sampling_rate: int = 10,
     ):
         self.slurm_script_configuration = slurm_script_configuration
         self.distributed_strategy = distributed_strategy
@@ -86,6 +88,9 @@ class SlurmScriptBuilder:
         self.python_venv = python_venv
         self.debug = debug
         self.file_folder = file_folder
+
+        self.py_spy_profiling = py_spy_profiling
+        self.profiling_sampling_rate = profiling_sampling_rate
 
         # exec-pipeline-specific commands
         self.config_name = config_name
@@ -145,13 +150,12 @@ class SlurmScriptBuilder:
         the internal training command. Sets up rendezvous connections etc. when
         necessary and exports necessary environment variables.
         """
+
         if self.distributed_strategy in ["ddp", "deepspeed"]:
             rdzv_endpoint = (
-                '\'$(scontrol show hostnames "$SLURM_JOB_NODELIST"' " | head -n 1)'i:29500"
+                "'$(scontrol show hostnames \"$SLURM_JOB_NODELIST\" | head -n 1)'i:29500"
             )
-            main_command = rf"""
-            srun --cpu-bind=none --ntasks-per-node=1 \
-            bash -c "torchrun \
+            bash_command = rf"""torchrun \
                 --log_dir='{torch_log_dir}' \
                 --nnodes=$SLURM_NNODES \
                 --nproc_per_node=$SLURM_GPUS_PER_NODE \
@@ -159,7 +163,18 @@ class SlurmScriptBuilder:
                 --rdzv_conf=is_host=\$(((SLURM_NODEID)) && echo 0 || echo 1) \
                 --rdzv_backend=c10d \
                 --rdzv_endpoint={rdzv_endpoint} \
-                {self.get_training_command()}"
+                {self.get_training_command()}"""
+            if self.py_spy_profiling:
+                # Prepending the py-spy profiling command
+                py_spy_profiling_output = "py_spy_profiling_$SLURM_NODEID.svg"
+                bash_command = (
+                    f"py-spy record -r {self.profiling_sampling_rate} -s "
+                    f"-o {py_spy_profiling_output} -- " + bash_command
+                )
+
+            main_command = rf"""
+            srun --cpu-bind=none --ntasks-per-node=1 \
+            bash -c "{bash_command}"
         """
         else:
             gpus_per_node = self.slurm_script_configuration.gpus_per_node
@@ -244,7 +259,7 @@ class SlurmScriptBuilder:
         # Generate the script using the given configuration
         script = self.slurm_script_configuration.format_script()
         if not submit_slurm_job and not save_script:
-            upper_banner_str = f"{'#'*20} SLURM Script Preview {'#'*20}"
+            upper_banner_str = f"{'#' * 20} SLURM Script Preview {'#' * 20}"
             print(upper_banner_str)
             print(script)
             print("#" * len(upper_banner_str))
@@ -358,6 +373,8 @@ def generate_default_slurm_script() -> None:
         config_path=args.config_path,
         config_name=args.config_name,
         pipe_key=args.pipe_key,
+        py_spy_profiling=args.py_spy,
+        profiling_sampling_rate=args.profiling_rate,
     )
 
     submit_job = not args.no_submit_job
