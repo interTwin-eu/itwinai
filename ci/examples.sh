@@ -296,13 +296,22 @@ dagger call \
     --cmd "pytest,-v,-n,logical,/app/tests/,-m,not hpc and not tensorflow" \
     logs
 
+############## ROCm ###############
+
+# Build and test locally
+export COMMIT_HASH=$(git rev-parse --verify HEAD)
+dagger call --tag="${COMMIT_HASH}-torch-rocm-slim" \
+    build-container --context=.. --dockerfile=../env-files/torch/slim.rocm.Dockerfile \
+    publish \
+    logs
+
 ############## JUPYTER (SLIM) ###############
 
 # Build and test locally
 export COMMIT_HASH=$(git rev-parse --verify HEAD)
 export BASE_IMG_NAME="jupyter/scipy-notebook:python-3.10.11"
 export BASE_IMG_DIGEST="$(echo "$BASE_IMG_NAME" | cut -d ':' -f 1)@$(docker buildx imagetools inspect $BASE_IMG_NAME | grep "Digest:" | head -n 1 | awk '{print $2}')"
-dagger call --name="${COMMIT_HASH}-torch-jlab-slim" \
+dagger call --tag="${COMMIT_HASH}-torch-jlab-slim" \
     build-container --context=.. --dockerfile=../env-files/torch/jupyter/slim.Dockerfile \
         --build-args="COMMIT_HASH=$COMMIT_HASH,BASE_IMG_NAME=$BASE_IMG_NAME,BASE_IMG_DIGEST=$BASE_IMG_DIGEST" \
     test-local \
@@ -313,7 +322,7 @@ export COMMIT_HASH=$(git rev-parse --verify HEAD)
 export BASE_IMG_NAME="jupyter/scipy-notebook:python-3.10.11"
 export BASE_IMG_DIGEST="$(echo "$BASE_IMG_NAME" | cut -d ':' -f 1)@$(docker buildx imagetools inspect $BASE_IMG_NAME | grep "Digest:" | head -n 1 | awk '{print $2}')"
 export KUBERNETES="--kubernetes tcp://localhost:6443" # Set this to empty string to avoid using k8s endpoint
-dagger call --name="${COMMIT_HASH}-torch-jlab-slim" \
+dagger call --tag="${COMMIT_HASH}-torch-jlab-slim" \
     build-container --context=.. --dockerfile=../env-files/torch/jupyter/slim.Dockerfile \
         --build-args="COMMIT_HASH=$COMMIT_HASH,BASE_IMG_NAME=$BASE_IMG_NAME,BASE_IMG_DIGEST=$BASE_IMG_DIGEST" \
     release-pipeline --values=file:tmp.yaml --framework=TORCH $KUBERNETES \
@@ -325,7 +334,7 @@ dagger call --name="${COMMIT_HASH}-torch-jlab-slim" \
 export COMMIT_HASH=$(git rev-parse --verify HEAD)
 export BASE_IMG_NAME="jupyter/scipy-notebook:python-3.10.11"
 export BASE_IMG_DIGEST=$(echo "$BASE_IMG_NAME" | cut -d ':' -f 1)@$(docker buildx imagetools inspect $BASE_IMG_NAME | grep "Digest:" | head -n 1 | awk '{print $2}')
-dagger call --name="${COMMIT_HASH}-torch-jlab" \
+dagger call --tag="${COMMIT_HASH}-torch-jlab" \
     build-container --context=.. --dockerfile=../env-files/torch/jupyter/Dockerfile \
         --build-args="COMMIT_HASH=$COMMIT_HASH,BASE_IMG_NAME=$BASE_IMG_NAME,BASE_IMG_DIGEST=$BASE_IMG_DIGEST" \
     test-local \
