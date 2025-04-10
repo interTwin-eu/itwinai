@@ -301,7 +301,7 @@ dagger call \
 # Build and test locally
 export COMMIT_HASH=$(git rev-parse --verify HEAD)
 dagger call --tag="${COMMIT_HASH}-torch-rocm-slim" \
-    build-container --context=.. --dockerfile=../env-files/torch/slim.rocm.Dockerfile \
+    build-container --context=.. --dockerfile=../env-files/torch/rocm.Dockerfile \
     publish \
     logs
 
