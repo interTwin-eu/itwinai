@@ -105,8 +105,8 @@ def generate_py_spy_report(
             if structured_stack_trace:
                 data_points.append(structured_stack_trace)
         except ValueError as exception:
-            py_logger.exception(
-                f"Failed to aggregate data with following error:\n{str(exception)}"
+            typer.echo(
+                f"Failed to aggregate data with following error:\n{exception}"
             )
             raise typer.Exit()
 
