@@ -36,24 +36,27 @@ py_logger = logging.getLogger(__name__)
 
 
 @app.command()
-def generate_flamegraph():
-    filename = "profiling_data.txt"
-    output_svg = "flamegraph.svg"
+def generate_flamegraph(
+    file: Annotated[str, typer.Option(help="The location of the raw profiling data.")],
+    output_filename: Annotated[
+        str, typer.Option(help="The filename of the resulting flamegraph.")
+    ] = "flamegraph.svg",
+):
     script_filename = "flamegraph.pl"
-
     script_path = Path(__file__).parent / script_filename
+
     if not script_path.exists():
-        print(f"Could not find '{script_filename}' at '{script_path}'")
+        py_logger.exception(f"Could not find '{script_filename}' at '{script_path}'")
         raise typer.Exit()
 
     try:
-        with open(output_svg, "w") as out:
+        with open(output_filename, "w") as out:
             subprocess.run(
-                ["perl", str(script_path), filename],
+                ["perl", str(script_path), file],
                 stdout=out,
                 check=True,
             )
-        typer.echo(f"Flamegraph saved to '{output_svg}'")
+        typer.echo(f"Flamegraph saved to '{output_filename}'")
     except FileNotFoundError:
         typer.echo("Error: Perl is not installed or not in PATH.")
     except subprocess.CalledProcessError as e:
@@ -98,7 +101,9 @@ def generate_py_spy_report(
             if structured_stack_trace:
                 data_points.append(structured_stack_trace)
         except ValueError as exception:
-            print(f"Failed to aggregate data with following error:\n{str(exception)}")
+            py_logger.exception(
+                f"Failed to aggregate data with following error:\n{str(exception)}"
+            )
             raise typer.Exit()
 
     leaf_functions = [data_point[-1] for data_point in data_points]
@@ -106,7 +111,7 @@ def generate_py_spy_report(
     table = create_bottom_function_table(
         function_data_list=leaf_functions, num_rows=parsed_num_rows
     )
-    print(table)
+    typer.echo(table)
 
 
 @app.command()
@@ -242,24 +247,24 @@ def generate_scalability_report(
         plot_file_suffix=plot_file_suffix,
     )
 
-    print()
+    typer.echo("")
     if epoch_time_table is not None:
-        print("#" * 8, "Epoch Time Report", "#" * 8)
-        print(epoch_time_table, "\n")
+        typer.echo("#" * 8 + " Epoch Time Report " + "#" * 8)
+        typer.echo(epoch_time_table + "\n")
     else:
-        print("No Epoch Time Data Found\n")
+        typer.echo("No Epoch Time Data Found\n")
 
     if gpu_data_table is not None:
-        print("#" * 8, "GPU Data Report", "#" * 8)
-        print(gpu_data_table, "\n")
+        typer.echo("#" * 8 + "GPU Data Report" + "#" * 8)
+        typer.echo(gpu_data_table + "\n")
     else:
-        print("No GPU Data Found\n")
+        typer.echo("No GPU Data Found\n")
 
     if communication_data_table is not None:
-        print("#" * 8, "Communication Data Report", "#" * 8)
-        print(communication_data_table, "\n")
+        typer.echo("#" * 8 + "Communication Data Report" + "#" * 8)
+        typer.echo(communication_data_table, "\n")
     else:
-        print("No Communication Data Found\n")
+        typer.echo("No Communication Data Found\n")
 
 
 @app.command()
@@ -596,7 +601,7 @@ def exec_pipeline_with_compose(cfg):
     if pipe_steps:
         try:
             cfg.steps = [cfg.steps[step] for step in pipe_steps]
-            print(f"Successfully selected steps {pipe_steps}")
+            typer.echo(f"Successfully selected steps {pipe_steps}")
         except errors.ConfigKeyError as e:
             e.add_note(
                 "Could not find all selected steps. Please ensure that all steps exist "
@@ -605,7 +610,7 @@ def exec_pipeline_with_compose(cfg):
             )
             raise e
     else:
-        print("No steps selected. Executing the whole pipeline.")
+        typer.echo("No steps selected. Executing the whole pipeline.")
 
     # Instantiate and execute the pipeline
     pipeline = instantiate(cfg, _convert_="all")
@@ -673,7 +678,7 @@ def download_mlflow_data(
         "MLFLOW_TRACKING_USERNAME" in os.environ and "MLFLOW_TRACKING_PASSWORD" in os.environ
     )
     if not mlflow_credentials_set:
-        print(
+        typer.echo(
             "\nWarning: MLFlow authentication environment variables are not set. "
             "If the server requires authentication, your request will fail."
             "You can authenticate by setting environment variables before running:\n"
@@ -690,27 +695,28 @@ def download_mlflow_data(
 
     # Handling authentication
     try:
-        print(f"\nConnecting to MLFlow server at {tracking_uri}")
-        print(f"Accessing experiment ID: {experiment_id}")
+        typer.echo(f"\nConnecting to MLFlow server at {tracking_uri}")
+        typer.echo(f"Accessing experiment ID: {experiment_id}")
         runs = client.search_runs(experiment_ids=[experiment_id])
-        print(f"Authentication successful! Found {len(runs)} runs.")
+        typer.echo(f"Authentication successful! Found {len(runs)} runs.")
     except mlflow.MlflowException as e:
         status_code = e.get_http_status_code()
         if status_code == 401:
-            print(
+            typer.echo(
                 "Authentication with MLFlow failed with code 401! Either your "
                 "environment variables are not set or they are incorrect!"
             )
-            return
+            typer.Exit()
         else:
-            raise e
+            typer.echo(e.message)
+            typer.Exit()
 
     all_metrics = []
     for run_idx, run in enumerate(runs):
         run_id = run.info.run_id
         metric_keys = run.data.metrics.keys()  # Get all metric names
 
-        print(f"Processing run {run_idx + 1}/{len(runs)}")
+        typer.echo(f"Processing run {run_idx + 1}/{len(runs)}")
         for metric_name in metric_keys:
             metrics = client.get_metric_history(run_id, metric_name)
             for metric in metrics:
@@ -725,12 +731,12 @@ def download_mlflow_data(
                 )
 
     if not all_metrics:
-        print("No metrics found in the runs")
-        return
+        typer.echo("No metrics found in the runs")
+        typer.Exit()
 
     df_metrics = pd.DataFrame(all_metrics)
     df_metrics.to_csv(output_file, index=False)
-    print(f"Saved data to '{Path(output_file).resolve()}'!")
+    typer.echo(f"Saved data to '{Path(output_file).resolve()}'!")
 
 
 def tensorboard_ui(
