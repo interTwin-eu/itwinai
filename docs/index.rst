@@ -98,6 +98,7 @@ contains thoroughly tested features aligned with the toolkit's most recent relea
    use-cases/3dgan_doc
    use-cases/cyclones_doc
    use-cases/mnist_doc
+   use-cases/xtclim_doc
 
 .. toctree::
    :maxdepth: 2

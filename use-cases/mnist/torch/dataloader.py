@@ -15,42 +15,60 @@ import shutil
 from typing import Any, Callable, Optional, Tuple
 
 from PIL import Image
-from torch.utils.data import Dataset
+from torch.utils.data import Dataset, Subset
 from torchvision import datasets, transforms
 
 from itwinai.components import DataGetter, monitor_exec
 
 
 class MNISTDataModuleTorch(DataGetter):
-    """Download MNIST dataset for torch."""
+    """Download MNIST dataset for torch, to train a GAN."""
 
     def __init__(
         self,
         save_path: str = ".tmp/",
+        resize: int | None = None,
+        max_train_size: int | None = None,
+        max_valid_size: int | None = None,
     ) -> None:
         super().__init__()
         self.save_parameters(**self.locals2params(locals()))
         self.save_path = save_path
+        self.resize = resize
+        self.max_train_size = max_train_size
+        self.max_valid_size = max_valid_size
 
     @monitor_exec
     def execute(self) -> Tuple[Dataset, Dataset, None]:
+        transform_ops = []
+        if self.resize:
+            transform_ops.append(transforms.Resize(self.resize))
+        transform_ops.extend(
+            [
+                transforms.ToTensor(),
+                transforms.Normalize((0.1307,), (0.3081,)),
+            ]
+        )
+
         train_dataset = datasets.MNIST(
             self.save_path,
             train=True,
             download=True,
-            transform=transforms.Compose(
-                [transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))]
-            ),
+            transform=transforms.Compose(transform_ops),
         )
         validation_dataset = datasets.MNIST(
             self.save_path,
             train=False,
             download=True,
-            transform=transforms.Compose(
-                [transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))]
-            ),
+            transform=transforms.Compose(transform_ops),
         )
         print("Train and validation datasets loaded.")
+
+        if self.max_train_size:
+            train_dataset = Subset(train_dataset, range(self.max_train_size))
+        if self.max_valid_size:
+            validation_dataset = Subset(validation_dataset, range(self.max_valid_size))
+
         return train_dataset, validation_dataset, None
 
 

@@ -19,6 +19,7 @@
 # NOTE: import libraries in the command's function, not here, as having them here will
 # slow down the CLI commands significantly.
 
+import logging
 import os
 import subprocess
 import sys
@@ -29,9 +30,9 @@ import hydra
 import typer
 from typing_extensions import Annotated
 
-from itwinai.utils import make_config_paths_absolute
-
 app = typer.Typer(pretty_exceptions_enable=False)
+
+py_logger = logging.getLogger(__name__)
 
 
 @app.command()
@@ -126,18 +127,17 @@ def generate_scalability_report(
             )
         ),
     ] = False,
-    backup_root_dir: Annotated[
-        str, typer.Option(help=("Which directory to store the backup files in."))
-    ] = "backup-scalability-metrics/",
-    experiment_name: Annotated[
-        Optional[str],
+    run_ids: Annotated[
+        str | None,
         typer.Option(
             help=(
-                "What to name the experiment in the backup directory."
-                " Will be automatically generated if left as None."
+                "Which run ids to read, presented as comma-separated values, e.g. 'run0,run1'."
             )
         ),
     ] = None,
+    backup_root_dir: Annotated[
+        str, typer.Option(help=("Which directory to store the backup files in."))
+    ] = "backup-scalability-metrics/",
     plot_file_suffix: Annotated[
         str,
         typer.Option(
@@ -157,7 +157,7 @@ def generate_scalability_report(
     in the `plot_dir`. If backups are enabled, the generated reports will also be
     copied to a backup directory under `backup_root_dir`.
     """
-    import uuid
+    from datetime import datetime
 
     from itwinai.scalability_report.reports import (
         communication_data_report,
@@ -168,48 +168,98 @@ def generate_scalability_report(
     log_dir_path = Path(log_dir)
     if not log_dir_path.exists():
         raise ValueError(f"The provided log_dir, '{log_dir_path.resolve()}', does not exist.")
+
+    if run_ids:
+        base_directories_for_runs = [log_dir_path / run_id for run_id in run_ids.split(",")]
+        # Ensure that all passed run_ids actually exist as directories
+        non_existent_paths = [
+            str(path.resolve()) for path in base_directories_for_runs if not path.exists()
+        ]
+        if non_existent_paths:
+            raise ValueError(f"Given run_id paths do not exist: '{non_existent_paths}'!")
+    else:
+        # Ensure that all elements in log_dir are directories
+        non_directory_paths = [
+            str(path.resolve()) for path in log_dir_path.iterdir() if not path.is_dir()
+        ]
+        if non_directory_paths:
+            raise ValueError(
+                f"Found elements in log_dir that are not directories: '{non_directory_paths}'"
+            )
+        base_directories_for_runs = list(log_dir_path.iterdir())
+
+    # Finding the respective data logging directories
+    epoch_time_logdirs = [
+        path / "epoch-time"
+        for path in base_directories_for_runs
+        if (path / "epoch-time").exists()
+    ]
+    gpu_data_logdirs = [
+        path / "gpu-energy-data"
+        for path in base_directories_for_runs
+        if (path / "gpu-energy-data").exists()
+    ]
+    comm_time_logdirs = [
+        path / "communication-data"
+        for path in base_directories_for_runs
+        if (path / "communication-data").exists()
+    ]
+
+    # Setting the backup directory from run name
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    if base_directories_for_runs:
+        backup_run_id = "_".join(map(str, base_directories_for_runs)) + f"_{timestamp}"
+    else:
+        backup_run_id = f"aggregated_run_{timestamp}"
+    backup_dir = Path(backup_root_dir) / backup_run_id
+
+    epoch_time_backup_dir = backup_dir / "epoch-time"
+    gpu_data_backup_dir = backup_dir / "gpu-energy-data"
+    communication_data_backup_dir = backup_dir / "communication-data"
+
     plot_dir_path = Path(plot_dir)
     plot_dir_path.mkdir(exist_ok=True, parents=True)
 
-    report_dirs = {
-        "Epoch Time": {
-            "dir": log_dir_path / "epoch-time",
-            "func": epoch_time_report,
-        },
-        "GPU Data": {
-            "dir": log_dir_path / "gpu-energy-data",
-            "func": gpu_data_report,
-        },
-        "Communication Data": {
-            "dir": log_dir_path / "communication-data",
-            "func": communication_data_report,
-        },
-    }
+    epoch_time_table = epoch_time_report(
+        log_dirs=epoch_time_logdirs,
+        plot_dir=plot_dir_path,
+        backup_dir=epoch_time_backup_dir,
+        do_backup=do_backup,
+        plot_file_suffix=plot_file_suffix,
+    )
+    gpu_data_table = gpu_data_report(
+        log_dirs=gpu_data_logdirs,
+        plot_dir=plot_dir_path,
+        backup_dir=gpu_data_backup_dir,
+        do_backup=do_backup,
+        plot_file_suffix=plot_file_suffix,
+    )
+    communication_data_table = communication_data_report(
+        log_dirs=comm_time_logdirs,
+        plot_dir=plot_dir_path,
+        backup_dir=communication_data_backup_dir,
+        do_backup=do_backup,
+        plot_file_suffix=plot_file_suffix,
+    )
 
-    # Setting the backup directory from exp name and run name
-    experiment_name = experiment_name or f"exp_{uuid.uuid4().hex[:6]}"
-    backup_dir = Path(backup_root_dir) / experiment_name
+    print()
+    if epoch_time_table is not None:
+        print("#" * 8, "Epoch Time Report", "#" * 8)
+        print(epoch_time_table, "\n")
+    else:
+        print("No Epoch Time Data Found\n")
 
-    # Creating reports from dictionary
-    for report_name, details in report_dirs.items():
-        report_dir = details["dir"]
-        report_func = details["func"]
+    if gpu_data_table is not None:
+        print("#" * 8, "GPU Data Report", "#" * 8)
+        print(gpu_data_table, "\n")
+    else:
+        print("No GPU Data Found\n")
 
-        if report_dir.exists():
-            print("#" * 8, f"{report_name} Report", "#" * 8)
-            report_func(
-                report_dir,
-                plot_dir=plot_dir_path,
-                backup_dir=backup_dir,
-                do_backup=do_backup,
-                plot_file_suffix=plot_file_suffix,
-            )
-            print()
-        else:
-            print(
-                f"No report was created for {report_name} as '{report_dir.resolve()}' does "
-                f"not exist."
-            )
+    if communication_data_table is not None:
+        print("#" * 8, "Communication Data Report", "#" * 8)
+        print(communication_data_table, "\n")
+    else:
+        print("No Communication Data Found\n")
 
 
 @app.command()
@@ -488,6 +538,7 @@ def exec_pipeline(
     by passing "+pipe_key=your_pipeline" in the list of overrides, and to execute only a
     subset of the steps, you can pass "+pipe_steps=[0,1]".
     """
+    from itwinai.utils import make_config_paths_absolute
 
     del sys.argv[0]
 
@@ -513,6 +564,22 @@ def exec_pipeline_with_compose(cfg):
 
     from hydra.utils import instantiate
     from omegaconf import OmegaConf, errors
+
+    # Register custom OmegaConf resolver to allow to dynaimcally compute the current working
+    # directory. Example: some_field: ${itwinai.cwd:}/some/nested/path/in/current/working/dir
+    OmegaConf.register_new_resolver("itwinai.cwd", lambda: os.getcwd())
+
+    def range_resolver(x, y=None, step=1):
+        """Custom OmegaConf resolver for range."""
+        if y is None:
+            return list(range(int(x)))
+        return list(range(int(x), int(y), int(step)))
+
+    # Register custom OmegaConf resolver to allow to dynaimcally compute ranges
+    OmegaConf.register_new_resolver("itwinai.range", range_resolver)
+
+    # Register custom OmegaConf resolver to allow to dynaimcally compute ranges
+    OmegaConf.register_new_resolver("itwinai.multiply", lambda x, y: x * y)
 
     pipe_steps = OmegaConf.select(cfg, "pipe_steps", default=None)
     pipe_key = OmegaConf.select(cfg, "pipe_key", default="training_pipeline")
@@ -547,14 +614,14 @@ def exec_pipeline_with_compose(cfg):
 
 @app.command()
 def mlflow_ui(
-    path: str = typer.Option("ml-logs/", help="Path to logs storage."),
+    path: str = typer.Option("mllogs/mlflow", help="Path to logs storage."),
     port: int = typer.Option(5000, help="Port on which the MLFlow UI is listening."),
     host: str = typer.Option(
         "127.0.0.1",
         help="Which host to use. Switch to '0.0.0.0' to e.g. allow for port-forwarding.",
     ),
 ):
-    """Visualize Mlflow logs."""
+    """Visualize logs with Mlflow."""
     import subprocess
 
     subprocess.run(f"mlflow ui --backend-store-uri {path} --port {port} --host {host}".split())
@@ -562,7 +629,7 @@ def mlflow_ui(
 
 @app.command()
 def mlflow_server(
-    path: str = typer.Option("ml-logs/", help="Path to logs storage."),
+    path: str = typer.Option("mllogs/mlflow", help="Path to logs storage."),
     port: int = typer.Option(5000, help="Port on which the server is listening."),
 ):
     """Spawn Mlflow server."""
@@ -664,6 +731,20 @@ def download_mlflow_data(
     df_metrics = pd.DataFrame(all_metrics)
     df_metrics.to_csv(output_file, index=False)
     print(f"Saved data to '{Path(output_file).resolve()}'!")
+
+
+def tensorboard_ui(
+    path: str = typer.Option("mllogs/tensorboard", help="Path to logs storage."),
+    port: int = typer.Option(6006, help="Port on which the Tensorboard UI is listening."),
+    host: str = typer.Option(
+        "127.0.0.1",
+        help="Which host to use. Switch to '0.0.0.0' to e.g. allow for port-forwarding.",
+    ),
+):
+    """Visualize logs with TensorBoard."""
+    import subprocess
+
+    subprocess.run(f"tensorboard --logdir={path} --port={port} --host={host}".split())
 
 
 if __name__ == "__main__":

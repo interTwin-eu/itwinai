@@ -175,7 +175,7 @@ def measure_gpu_utilization(method: Callable) -> Callable:
 
         global_utilization_log = strategy.gather_obj(local_utilization_log, dst_rank=0)
         if strategy.is_main_worker:
-            output_dir = Path("scalability-metrics/gpu-energy-data")
+            output_dir = Path(f"scalability-metrics/{self.run_id}/gpu-energy-data")
             output_dir.mkdir(exist_ok=True, parents=True)
             output_path = output_dir / f"{strategy_name}_{num_global_gpus}.csv"
 

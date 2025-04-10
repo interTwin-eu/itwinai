@@ -4,13 +4,13 @@
 # Default arguments can be seen in src/itwinai/slurm/utils.py
 
 mode: single # "single", "runall" or "scaling-test" - defaults to "single"
-dist_strat: deepspeed # "ddp", "deepspeed" or "horovod"
+dist_strat: ddp # "ddp", "deepspeed" or "horovod"
 
 account: intertwin
-time: 01:00:00
+time: 00:30:00
 partition: develbooster
 
-num_nodes: 2
+num_nodes: 1
 num_tasks_per_node: 1
 gpus_per_node: 4
 cpus_per_gpu: 4

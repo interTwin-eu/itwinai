@@ -4,26 +4,75 @@ epochs: 3
 batch_size: 10
 lr: 0.001
 scenario: '245'
-strategy: 'ddp'
+strategy: ddp
+seasons: ['winter_', 'spring_', 'summer_', 'autumn_']
+evaluation: 'past'
+season: 'unk'
+model_uri: 'unk'
+save_best: True
+n_memb: 1 # number of members used in training the network
+stop_delta: 0.01  # under 1% improvement consider the model starts converging
+patience: 15  # wait for a few epochs to be sure before actually stopping
+early_count: 0  # count when validation loss < stop_delta
+old_valid_loss: !!float 1e-15  # keep track of validation loss at t-1
+lr_decay_interval: 20 # number of epochs to decay learning rate
+lr_decay_rate: 5 # Rate by which learning rate should be decayed
 
 # Workflows
 pipeline:
-  _target_: itwinai.pipeline.Pipeline
-  steps:
-    preprocessing-step:
-      _target_: preprocessing.preprocess_functions_2d_ssp.PreprocessData
-      dataset_root: ${dataset_root}
-      scenario: ${scenario}
-      
-    preprocessing-split-step:
-      _target_: preprocessing.preprocess_2d_seasons.SplitPreprocessedData
-      scenario: ${scenario}
-      
-    training-step:
-      _target_: src.trainer.TorchTrainer
-      epochs: ${epochs}
-      batch_size: ${batch_size}
-      lr: ${lr}
-      # strategy: ${strategy}
-
-        
+   class_path: itwinai.pipeline.Pipeline
+   init_args:
+     steps:
+         preprocessing-step:
+           class_path: preprocessing.preprocess_functions_2d_ssp.PreprocessData
+           init_args:
+               dataset_root: ${dataset_root}
+               scenario: ${scenario}
+         preprocessing-split-step:
+           class_path: preprocessing.preprocess_2d_seasons.SplitPreprocessedData
+           init_args:
+               scenario: ${scenario}
+         training-step:
+           class_path: src.trainer.XTClimTrainer
+           init_args:
+               config:
+                  batch_size: ${batch_size}
+                  optim_lr: ${lr}
+                  save_best: ${save_best}
+                  n_memb: ${n_memb}
+                  stop_delta: ${stop_delta}
+                  patience: ${patience}
+                  early_count: ${early_count}
+                  old_valid_loss: ${old_valid_loss}
+                  lr_decay_interval: ${lr_decay_interval}
+                  lr_decay_rate: ${lr_decay_rate}
+               epochs: ${epochs}
+               strategy: ${strategy}
+               seasons: ${season}
+               logger:
+                 class_path: itwinai.loggers.LoggersCollection
+                 init_args:
+                   loggers:
+                     - class_path: itwinai.loggers.MLFlowLogger
+                       init_args:
+                         experiment_name: XTClim (Cerfacs)
+                         log_freq: epoch
+                     - class_path: itwinai.loggers.WandBLogger
+                       init_args:
+                         log_freq: epoch
+         evaluation-step:
+           class_path: src.anomaly.XTClimPredictor
+           init_args:
+               evaluation: ${evaluation}
+               batch_size: ${batch_size}
+               strategy: ${strategy}
+               seasons: ${season}
+               model_uri: ${model_uri}
+               logger:
+                   class_path: itwinai.loggers.LoggersCollection
+                   init_args:
+                       loggers:
+                           - class_path: itwinai.loggers.MLFlowLogger
+                             init_args:
+                                 experiment_name: XTClim (Cerfacs)
+                                 log_freq: epoch
