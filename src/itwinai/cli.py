@@ -42,6 +42,7 @@ def generate_flamegraph(
         str, typer.Option(help="The filename of the resulting flamegraph.")
     ] = "flamegraph.svg",
 ):
+    """Generates a flamegraph from the given profiling output."""
     script_filename = "flamegraph.pl"
     script_path = Path(__file__).parent / script_filename
 
@@ -71,6 +72,9 @@ def generate_py_spy_report(
         typer.Option(help="Number of rows to display. Pass 'all' to print the full table."),
     ] = "10",
 ):
+    """Generates a short aggregation of the raw py-spy profiling data, showing which leaf
+    functions collected the most samples.
+    """
     from itwinai.torch.profiling.py_spy_aggregation import (
         create_bottom_function_table,
         handle_data_point,
