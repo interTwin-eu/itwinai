@@ -2,9 +2,11 @@ normflow
 [![SQAaaS badge shields.io](https://img.shields.io/badge/sqaaas%20software-silver-lightgrey)](https://api.eu.badgr.io/public/assertions/-g9rQYZJTyi4S-VUrbvqlQ "SQAaaS silver badge achieved")
 [![License: MIT](https://cdn.prod.website-files.com/5e0f1144930a8bc8aace526c/65dd9eb5aaca434fac4f1c34_License-MIT-blue.svg)](LICENSE)
 --------
+<!-- sphinx-start -->
+**Integration author(s)**: Rakesh Sarma (Juelich)
+
 This package provides utilities for implementing the
 **method of normalizing flows** as a generative model for lattice field theory.
-
 The method of normalizing flows is a powerful generative modeling approach that
 learns complex probability distributions by transforming samples from a simple
 distribution through a series of invertible transformations. It has found
@@ -147,7 +149,7 @@ This example demonstrates the flexibility of using the package to implement
 scalar field theories in a simplified zero-dimensional setting. It can be
 generalized to any dimension by changing the shape provided to the prior
 distribution.
-
+<!-- sphinx-end -->
 After training the model, one can draw samples using an attribute called
 `posterior`.
 To draw `n` samples from the trained distribution, use the following command:
