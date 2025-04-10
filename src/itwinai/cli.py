@@ -33,6 +33,7 @@ from itwinai.utils import make_config_paths_absolute
 
 app = typer.Typer(pretty_exceptions_enable=False)
 
+
 @app.command()
 def generate_flamegraph():
     filename = "profiling_data.txt"
@@ -40,7 +41,7 @@ def generate_flamegraph():
 
     script_path = Path(__file__).parent / "flamegraph.pl"
     if not script_path.exists():
-        raise typer.Exit(f"Could not find flamegraph.pl at {script_path}")
+        raise typer.Exit(f"Could not find flamegraph.pl at '{script_path}'")
 
     try:
         with open(output_svg, "w") as out:
@@ -49,12 +50,11 @@ def generate_flamegraph():
                 stdout=out,
                 check=True,
             )
-        typer.echo(f"Flamegraph saved to {output_svg}")
+        typer.echo(f"Flamegraph saved to '{output_svg}'")
     except FileNotFoundError:
         typer.echo("Error: Perl is not installed or not in PATH.")
     except subprocess.CalledProcessError as e:
         typer.echo(f"Flamegraph generation failed: {e}")
-
 
 
 @app.command()
@@ -88,9 +88,15 @@ def generate_py_spy_report(
 
     with file_path.open("r") as f:
         profiling_data = f.readlines()
-
-    data_points = [handle_data_point(line) for line in profiling_data]
-    data_points = [dp for dp in data_points if dp]  # filter away empty lists
+    data_points = []
+    for line in profiling_data:
+        try:
+            structured_stack_trace = handle_data_point(line)
+            if structured_stack_trace:
+                data_points.append(structured_stack_trace)
+        except ValueError as exception:
+            print(f"Failed to aggregate data with following error:\n{str(exception)}")
+            return 1
 
     leaf_functions = [data_point[-1] for data_point in data_points]
     leaf_functions.sort(key=lambda x: x["num_samples"], reverse=True)
@@ -626,7 +632,7 @@ def download_mlflow_data(
         run_id = run.info.run_id
         metric_keys = run.data.metrics.keys()  # Get all metric names
 
-        print(f"Processing run {run_idx+1}/{len(runs)}")
+        print(f"Processing run {run_idx + 1}/{len(runs)}")
         for metric_name in metric_keys:
             metrics = client.get_metric_history(run_id, metric_name)
             for metric in metrics:
