@@ -14,3 +14,8 @@ WORKDIR /app
 COPY pyproject.toml pyproject.toml
 COPY src src
 RUN pip install --no-cache-dir .[torch]
+
+# Installation sanity check
+RUN itwinai sanity-check --torch \
+    # Ray for disrtibuted ML and hyperparameter-tuning
+    --optional-deps ray
