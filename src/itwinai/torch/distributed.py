@@ -480,6 +480,7 @@ class TorchDDPStrategy(TorchDistributedStrategy):
         **kwargs,
     ) -> Tuple[nn.Module, Optimizer, Optional[LRScheduler]]:
         """Setup model, optimizer and scheduler for distributed."""
+
         if torch.cuda.is_available():
             # If GPUs are available
             model = model.to(self.device())

@@ -84,6 +84,13 @@ hpo = [
   "hpbandster>=0.7.0",
   "gpy>=1.13.2",
 ]
+# Dependencies for Lattice-QCD
+lattice-qcd = ["normflow"]
+
+[tool.hatch.metadata]
+allow-direct-references = true
+
+
 # Git dependencies are not supported by PyPI and will prevent pushing new versions to it.
 # prov4ml = ["prov4ml@git+https://github.com/matbun/ProvML@new-main"]
 # prov4ml-macos = ["prov4ml[apple]@git+https://github.com/matbun/ProvML@new-main"]
@@ -131,6 +138,7 @@ torch = [{ index = "pytorch-cu121", marker = "platform_system != 'Darwin'" }]
 torchvision = [
   { index = "pytorch-cu121", marker = "platform_system != 'Darwin'" },
 ]
+normflow = { path = "use-cases/lattice-qcd" }
 
 # Specific index for pytorch
 [[tool.uv.index]]
