@@ -27,7 +27,7 @@ sbatch --export=ALL,DIST_MODE="$DIST_MODE",RUN_NAME="$RUN_NAME",TRAINING_CMD="$T
     --job-name="$RUN_NAME-n$N" \
     --output="logs_slurm/job-$RUN_NAME-n$N.out" \
     --error="logs_slurm/job-$RUN_NAME-n$N.err" \
-    slurm.sh
+    slurm.jsc.sh
 
 # DeepSpeed itwinai
 DIST_MODE="deepspeed"
@@ -37,7 +37,7 @@ sbatch --export=ALL,DIST_MODE="$DIST_MODE",RUN_NAME="$RUN_NAME",TRAINING_CMD="$T
     --job-name="$RUN_NAME-n$N" \
     --output="logs_slurm/job-$RUN_NAME-n$N.out" \
     --error="logs_slurm/job-$RUN_NAME-n$N.err" \
-    slurm.sh
+    slurm.jsc.sh
 
 # Horovod itwinai
 DIST_MODE="horovod"
@@ -47,7 +47,7 @@ sbatch --export=ALL,DIST_MODE="$DIST_MODE",RUN_NAME="$RUN_NAME",TRAINING_CMD="$T
     --job-name="$RUN_NAME-n$N" \
     --output="logs_slurm/job-$RUN_NAME-n$N.out" \
     --error="logs_slurm/job-$RUN_NAME-n$N.err" \
-    slurm.sh
+    slurm.jsc.sh
 
 
 ### GAN training ###
@@ -60,7 +60,7 @@ sbatch --export=ALL,DIST_MODE="$DIST_MODE",RUN_NAME="$RUN_NAME",TRAINING_CMD="$T
     --job-name="$RUN_NAME-n$N" \
     --output="logs_slurm/job-$RUN_NAME-n$N.out" \
     --error="logs_slurm/job-$RUN_NAME-n$N.err" \
-    slurm.sh
+    slurm.jsc.sh
 
 # DeepSpeed itwinai
 DIST_MODE="deepspeed"
@@ -70,7 +70,7 @@ sbatch --export=ALL,DIST_MODE="$DIST_MODE",RUN_NAME="$RUN_NAME",TRAINING_CMD="$T
     --job-name="$RUN_NAME-n$N" \
     --output="logs_slurm/job-$RUN_NAME-n$N.out" \
     --error="logs_slurm/job-$RUN_NAME-n$N.err" \
-    slurm.sh
+    slurm.jsc.sh
 
 # GAN with Horovod does not work
 # # Horovod itwinai
@@ -81,4 +81,4 @@ sbatch --export=ALL,DIST_MODE="$DIST_MODE",RUN_NAME="$RUN_NAME",TRAINING_CMD="$T
 #     --job-name="$RUN_NAME-n$N" \
 #     --output="logs_slurm/job-$RUN_NAME-n$N.out" \
 #     --error="logs_slurm/job-$RUN_NAME-n$N.err" \
-#     slurm.sh
+#     slurm.jsc.sh
