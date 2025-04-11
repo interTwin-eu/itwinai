@@ -166,10 +166,10 @@ class SlurmScriptBuilder:
                 {self.get_training_command()}"""
             if self.py_spy_profiling:
                 # Prepending the py-spy profiling command
-                py_spy_profiling_output = "py_spy_profiling_$SLURM_NODEID.svg"
+                py_spy_profiling_output = "py_spy_profiling_$SLURM_NODEID.txt"
                 bash_command = (
                     f"py-spy record -r {self.profiling_sampling_rate} -s "
-                    f"-o {py_spy_profiling_output} -- " + bash_command
+                    f"-o {py_spy_profiling_output} -f raw -- " + bash_command
                 )
 
             main_command = rf"""
