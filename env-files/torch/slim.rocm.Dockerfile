@@ -63,6 +63,7 @@ RUN pip install --no-cache-dir .[torch] --extra-index-url https://download.pytor
 
 # DeepSpeed, Horovod and other deps
 ENV HOROVOD_GPU=ROCM \
+    HOROVOD_ROCM_HOME=/opt/rocm \
     HOROVOD_WITH_PYTORCH=1 \
     HOROVOD_WITHOUT_TENSORFLOW=1 \
     HOROVOD_WITHOUT_MXNET=1 \
@@ -71,6 +72,16 @@ ENV HOROVOD_GPU=ROCM \
     HOROVOD_CPU_OPERATIONS=MPI \
     HOROVOD_GPU_ALLREDUCE=NCCL \
     HOROVOD_NCCL_LINK=SHARED \
+    HOROVOD_GPU_BROADCAST=NCCL \
+    # Flags needed to build horovod with ROCm
+    # CC=gcc \
+    # CXX=g++ \
+    CXX=/opt/rocm/llvm/bin/clang++ \
+    CC=/opt/rocm/llvm/bin/clang \
+    CPLUS_INCLUDE_PATH=/usr/include/c++/11 \
+    CXXFLAGS="-I/usr/include/c++/11 -I/usr/include/x86_64-linux-gnu/c++/11 -I/usr/include/c++/11/bits" \
+    ROCM_PATH=/opt/rocm \
+    #
     # DeepSpeed
     # This is disabled as it needs OneCCL
     # DS_BUILD_CCL_COMM=1 \
@@ -83,11 +94,32 @@ ENV HOROVOD_GPU=ROCM \
     DS_BUILD_STOCHASTIC_TRANSFORMER=0 \
     DS_BUILD_TRANSFORMER_INFERENCE=0
 
-# Install DeepSpeed, Horovod and Ray
+# Libs needed to build horovod with rocm
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    g++-11 \
+    libstdc++-11-dev \
+    libstdc++-12-dev \
+    gcc-multilib \
+    g++-multilib \
+    && apt-get clean -y && rm -rf /var/lib/apt/lists/*
+
+# Install Horovod
+# https://github.com/ROCm/ROCm/issues/3987#issuecomment-2479684637
+RUN git clone --recursive https://github.com/horovod/horovod.git \
+    && cd horovod \
+    && git checkout 3a31d93 \
+    && ln -s $ROCM_PATH/lib/cmake/hip/FindHIP* cmake/Modules/ \
+    && sed -i 's/rccl\.h/rccl\/rccl\.h/' horovod/common/ops/nccl_operations.h \
+    && CC=gcc CXX=g++ MAKEFLAGS=-j16 python setup.py bdist_wheel \
+    && pip install dist/*.whl \
+    # cleanup
+    && cd .. && rm -rf horovod \
+    && horovodrun --check-build
+
+# Install DeepSpeed
 RUN CONTAINER_TORCH_VERSION="$(python -c 'import torch;print(torch.__version__)')" \
     && pip install --no-cache-dir torch=="$CONTAINER_TORCH_VERSION" \
-    deepspeed==0.15.* \
-    git+https://github.com/horovod/horovod.git@3a31d93 
+    deepspeed==0.15.* 
 
 # Installation sanity check
 RUN itwinai sanity-check --torch \
