@@ -58,6 +58,7 @@ jobs:
           # Both options below should be already covered by ruff
           VALIDATE_PYTHON_ISORT: false
           VALIDATE_PYTHON_FLAKE8: false
+          VALIDATE_PERL: false
 
           # Only check new or edited files
           VALIDATE_ALL_CODEBASE: false
