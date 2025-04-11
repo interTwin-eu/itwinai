@@ -10,8 +10,15 @@ More information on the use-case is available in the published deliverables,
 Environment setup
 -----------------
 In order to setup the environment, please first look at the `itwinai installation instructions
-<https://itwinai.readthedocs.io/latest/installation/developer_installation.html>`_. Once `itwinai` is installed,
-navigate to the use-case directory under ``use-cases/lattice-qcd`` and simply run ``pip install .``.
+<https://itwinai.readthedocs.io/latest/installation/developer_installation.html>`_. For `itwinai`,
+using ``uv`` project management is recommended. A `comprehensive tutorial <https://itwinai.readthedocs.io/latest/installation/uv_tutorial.html>`_ on this is provided in the
+itwinai documentation. With ``uv``, the ``normflow`` repository can be installed with the ``--extra``
+flag. For instance, for installing normflow environment in itwinai with torch support in development
+mode, the command is:
+```
+uv sync --no-cache  --extra dev --extra torch --extra lattice-qcd
+```
+This installs all itwinai and normflow dependencies with torch.
 
 About the use-case and integration
 ----------------------------------
