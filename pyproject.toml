@@ -51,7 +51,9 @@ dependencies = [
 # dependencies that are not included by dev or torch
 # but needed for radio-astronomy.
 radio-astronomy = [
-  "pulsardt==0.2",
+  "pulsarrfi-nn @ git+https://gitlab.com/ml-ppa/pulsarrfi_nn.git@version_0.2#subdirectory=unet_semantic_segmentation",
+  "pulsardt @ git+https://gitlab.com/ml-ppa/pulsardt@main",
+  "ipywidgets",
   "tqdm>=4.65.0",
   "numpyencoder>=0.3.0",
   "pyquaternion>=0.9.9",

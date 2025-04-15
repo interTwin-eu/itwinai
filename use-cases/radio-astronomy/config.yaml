@@ -20,10 +20,16 @@ image_directory:  syn_payload/
 mask_tag:         train_v0_*_payload_flux.json
 mask_directory:   syn_payload/ 
 
-# folder to test syndata generation pipeline, to be deleted after the test
-# should correspond to deleted folder in "test_radio-astronomy.py": file 
-# do NOT confuse with ".test_dataset" which should be present after the test completion
-syndata_test_dir: syndata_test/
+split_train:      0.8  
+split_val:        0.1  
+split_test:       0.1  
+
+epoch_unet:       5
+epoch_fcnn:       10  
+epoch_cnn1d:      20
+
+save_best:        1
+shuffle_train:    1
 
 unet_st:          models/trained_UNet_test_v0.pt 
 fcnn_st:          ./models/trained_Filter_test_v0.pt
@@ -104,21 +110,21 @@ unet_pipeline:
       engine_settings: ${engine_settings_unet}
     splitter_step:
       _target_: data.DatasetSplitter
-      train_proportion: 0.8
-      validation_proportion: 0.1
-      test_proportion: 0.1
+      train_proportion: ${split_train}
+      validation_proportion: ${split_val}
+      test_proportion: ${split_test}
       rnd_seed: ${seed}
       name: Splitter
     training_step:
       _target_: trainer.PulsarTrainer
       strategy: ${strategy}
       model:
-       _target_: src.pulsar_analysis.neural_network_models.UNet
+       _target_: pulsar_analysis.neural_network_models.UNet
       loss:
-        _target_: src.pulsar_analysis.neural_network_models.WeightedBCELoss
+        _target_: pulsar_analysis.neural_network_models.WeightedBCELoss
         pos_weight: 3
         neg_weight: 1
-      epochs: 1      # epochs: 1 #10
+      epochs: ${epoch_unet}
       store_trained_model_at: ${unet_st}
       name: UNetTrainer
       config:
@@ -126,8 +132,8 @@ unet_pipeline:
         optimizer: adam
         batch_size: ${batch_size}
         optim_lr: ${learning_rate}
-        save_best: 1
-        shuffle_train: 1
+        save_best: ${save_best}
+        shuffle_train: ${shuffle_train}
         num_workers_dataloader: ${num_cores}
       logger:
         _target_: itwinai.loggers.LoggersCollection
@@ -158,21 +164,21 @@ fcnn_pipeline:
       engine_settings: ${engine_settings_filtercnn}
     splitter_step:
       _target_: data.DatasetSplitter
-      train_proportion: 0.8
-      validation_proportion: 0.1
-      test_proportion: 0.1
+      train_proportion: ${split_train}
+      validation_proportion: ${split_val}
+      test_proportion: ${split_test}
       rnd_seed: ${seed}
       name: Splitter
     training_step:
       _target_: trainer.PulsarTrainer
       strategy: ${strategy}
       model:
-       _target_: src.pulsar_analysis.neural_network_models.FilterCNN
+       _target_: pulsar_analysis.neural_network_models.FilterCNN
       loss:
-        _target_: src.pulsar_analysis.neural_network_models.WeightedBCELoss
+        _target_: pulsar_analysis.neural_network_models.WeightedBCELoss
         pos_weight: 1
         neg_weight: 1
-      epochs: 10 #
+      epochs: ${epoch_fcnn} #
       store_trained_model_at: ${fcnn_st}
       name: FilterCNNTrainer
       config:
@@ -180,8 +186,8 @@ fcnn_pipeline:
         optimizer: adam
         batch_size: ${batch_size}
         optim_lr: ${learning_rate}
-        save_best: 1
-        shuffle_train: 1
+        save_best: ${save_best}
+        shuffle_train: ${shuffle_train}
         num_workers_dataloader: ${num_cores}
       logger:
         _target_: itwinai.loggers.LoggersCollection
@@ -211,21 +217,21 @@ cnn1d_pipeline:
       engine_settings: ${engine_settings_cnn1d}
     splitter_step:
       _target_: data.DatasetSplitter
-      train_proportion: 0.8
-      validation_proportion: 0.1
-      test_proportion: 0.1
+      train_proportion: ${split_train}
+      validation_proportion: ${split_val}
+      test_proportion: ${split_test}
       rnd_seed: ${seed}
       name: Splitter
     training_step:
       _target_: trainer.PulsarTrainer
       strategy: ${strategy}
       model:
-       _target_: src.pulsar_analysis.neural_network_models.CNN1D
+       _target_: pulsar_analysis.neural_network_models.CNN1D
       loss:
-        _target_: src.pulsar_analysis.neural_network_models.WeightedBCELoss
+        _target_: pulsar_analysis.neural_network_models.WeightedBCELoss
         pos_weight: 1
         neg_weight: 1
-      epochs: 20
+      epochs: ${epoch_cnn1d}
       store_trained_model_at: ${cnn1d_st}
       name: CNN1DTrainer
       config:
@@ -233,8 +239,8 @@ cnn1d_pipeline:
         optimizer: adam
         batch_size: ${batch_size}
         optim_lr: ${learning_rate}
-        save_best: 1
-        shuffle_train: 1
+        save_best: ${save_best}
+        shuffle_train: ${shuffle_train}
         num_workers_dataloader: ${num_cores}
       logger:
         _target_: itwinai.loggers.LoggersCollection
@@ -256,13 +262,13 @@ evaluate_pipeline:
     eval_step: 
       _target_: data.TestSuite
       image_to_mask_network: 
-        _target_: src.pulsar_analysis.neural_network_models.UNet
+        _target_: pulsar_analysis.neural_network_models.UNet
       trained_image_to_mask_network_path: ${unet_st}
       mask_filter_network: 
-        _target_: src.pulsar_analysis.neural_network_models.FilterCNN
+        _target_: pulsar_analysis.neural_network_models.FilterCNN
       trained_mask_filter_network_path: ${fcnn_st}
       signal_to_label_network: 
-        _target_: src.pulsar_analysis.neural_network_models.CNN1D
+        _target_: pulsar_analysis.neural_network_models.CNN1D
       trained_signal_to_label_network: ${cnn1d_st}
       img_dir: ${real_img_st}
       lbl_dir: ${real_lbl_st}

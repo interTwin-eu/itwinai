@@ -8,18 +8,16 @@ import glob
 import numpy as np
 import matplotlib.pyplot as plt
 
-from itwinai.components import DataGetter, DataProcessor, DataSplitter, monitor_exec
-from torch.utils.data import Dataset, TensorDataset, random_split
+from itwinai.components import DataGetter, DataSplitter, monitor_exec
+from torch.utils.data import Dataset, random_split
 
 from typing import Optional, Tuple, Literal
 from collections import OrderedDict
-from functools import cached_property
-from src.pulsar_analysis.train_neural_network_model import ImageMaskPair, \
-    SignalToLabelDataset, SignalLabelPair
-from src.pulsar_analysis.preprocessing import PrepareFreqTimeImage, BinarizeToMask
-from src.pulsar_analysis.pipeline_methods import PipelineImageToMask, \
+from pulsar_analysis.train_neural_network_model import ImageMaskPair, SignalLabelPair
+from pulsar_analysis.preprocessing import PrepareFreqTimeImage, BinarizeToMask
+from pulsar_analysis.pipeline_methods import PipelineImageToMask, \
         PipelineImageToFilterDelGraphtoIsPulsar, PipelineImageToFilterToCCtoLabels
-from src.pulsar_analysis.neural_network_models import UNet
+from pulsar_analysis.neural_network_models import UNet
 from pulsar_simulation.generate_data_pipeline import generate_example_payloads_for_training
 
 class SynthesizeData(DataGetter):
@@ -41,7 +39,8 @@ class SynthesizeData(DataGetter):
             num_cpus        (int):  number of CPUs used for parallel processing.
             num_payloads    (int):  number of generated examples.
             plot            (bool): if True, plotting routine is activated \
-                                               (set False when running 'main.py' directly after)
+                                    (set False when running 'main.py' directly after)
+            returns None.
         """
         super().__init__(name)
         self.save_parameters(**self.locals2params(locals()), pop_self=False)
@@ -51,7 +50,8 @@ class SynthesizeData(DataGetter):
 
     @monitor_exec
     def execute(self) -> None:
-        """Generate synthetic data and save it to disk. Relies on the pulsar_simulation package."""
+        """Generate synthetic data and save it to disk. 
+            Relies on the pulsar_simulation package."""
         generate_example_payloads_for_training(
             tag            = self.parameters["tag"], 
             num_payloads   = self.parameters["num_payloads"],
@@ -121,7 +121,8 @@ class PulsarDataset(Dataset):
         ### Check that the engine settings are appropriate for chosen dataset type ###
         if self._type == "unet":
             assert set(engine_settings) == {'image', 'mask'}, \
-            "Wrong engine settings for UNet dataset. Provide 'image' and 'mask' engine settings."
+            "Wrong engine settings for UNet dataset. \n"
+            "Provide 'image' and 'mask' engine settings."
 
         elif self._type == "filtercnn":
             assert set(engine_settings) == {'image', 'mask', 'mask_maker'}, \
@@ -159,9 +160,13 @@ class PulsarDataset(Dataset):
                 image_to_mask_network=mme_model
             )
 
-    def load_image_pair(self, id) -> ImageMaskPair:
-        img_address = self._image_directory + self._image_tag.replace("*", str(id))
-        mask_address = self._mask_directory + self._mask_tag.replace("*", str(id))
+    def load_image_pair(self, img_id: int) -> ImageMaskPair:
+        """Load an a data point from disk. Loading method depends on the network type:
+           - For UNet and FilterCNN architectures, data point consits of image and mask pair.
+           - For CNN1D architecture, data point consists of a mask only.
+         """
+        img_address = self._image_directory + self._image_tag.replace("*", str(img_id))
+        mask_address = self._mask_directory + self._mask_tag.replace("*", str(img_id))
 
         if self._type == "unet":
             pair = ImageMaskPair.load_from_payload_address(
@@ -200,30 +205,38 @@ class PulsarDataset(Dataset):
 
         return pair
         
-    def __getitem__(self, index):
-        # have to do this because they return different types of objects, and 
-        # I want to avoid modifying other methods as they can be called elsewhere
+    def __getitem__(self, item_id: int):
+        """ Use load_image_pair method to retrieve the data point with the given item_id. 
+            Output is network architecture dependent. 
+            Returns either image-mask pair (UNET, FCNN) or signal-label pair (CNN1D). """
+
+        ### Implementation is slightly different per architecture 
+        ### due to the original use-case code  
         if self._type == "cnn1d":
-            return self.load_image_pair(index)
+            return self.load_image_pair(item_id)
         else: 
-            img, mask = self.load_image_pair(index)()
+            img, mask = self.load_image_pair(item_id)()
             img = img.unsqueeze(0)
             mask = mask.unsqueeze(0)
             return img.float(), mask.float()
     
-    def __get_descriptions__(self, index):
-        return self.load_image_pair(index).descriptions
+    def __get_descriptions__(self, item_id: int):
+        """Provide descriptions of the data point with the given item_id."""
+        return self.load_image_pair(item_id).descriptions
     
     def __len__(self):
+        """Return the length of the dataset pre-computed during the initialization."""
         return self._len
 
-    def plot(self, index):
-
+    def plot(self, item_id: int):
+        """ Plot the data point with the provided item_id. 
+            Plotting method is model-dependent. """
         ##TODO: make this method HPC-friendy 
         if self._type == "unet" or self._type == "filtercnn":
-
-            image_payload_address = self._image_directory + self._image_tag.replace("*", str(index))
-            mask_payload_address  = self._mask_directory  + self._mask_tag.replace("*", str(index))
+            image_payload_address = \
+                self._image_directory + self._image_tag.replace("*", str(item_id))
+            mask_payload_address  = \
+                self._mask_directory  + self._mask_tag.replace("*", str(item_id))
 
             image_mask_pair = ImageMaskPair.load_from_payload_and_make_in_mask(
                 image_payload_address   = image_payload_address,
@@ -235,7 +248,7 @@ class PulsarDataset(Dataset):
             image_mask_pair.plot()
 
         elif self._type == "cnn1d":
-            signal, label_vector = self[index]
+            signal, label_vector = self[item_id]
             _, ax = plt.subplots(1, 1, figsize=(3.5, 3.5))
             ax.plot(signal.detach().numpy().flatten())
             ax.set_xlabel("freqs (a.u)")
@@ -248,6 +261,7 @@ class PulsarDataset(Dataset):
 
 
     def execute(self) -> Dataset:
+        """Read the dataset from disk and return it to the trainer in-memory."""
         return self
 
 class DatasetSplitter(DataSplitter):
@@ -273,7 +287,7 @@ class DatasetSplitter(DataSplitter):
         self.rnd_seed = rnd_seed
 
     @monitor_exec
-    def execute(self, whole_dataset) -> Tuple[Dataset, Dataset, Dataset]:
+    def execute(self, whole_dataset: Dataset) -> Tuple[Dataset, Dataset, Dataset]:
         """Execute the dataset splitting process.
 
         Finds all pickled files in the root folder, then splits them into
@@ -369,6 +383,7 @@ class ModelSaver:
     def execute(self, model, path) -> None:
         m_dict = model.state_dict()
         # ensure correct saving syntax expected by the loader
-        m_new = OrderedDict([(k.replace("module.",""), v) if k.startswith("module") else (k, v) for k, v in m_dict.items()])
+        m_new = OrderedDict([(k.replace("module.",""), v) if \
+                             k.startswith("module") else (k, v) for k, v in m_dict.items()])
         torch.save(m_new, path)
         print(f"Model saved at {path}")

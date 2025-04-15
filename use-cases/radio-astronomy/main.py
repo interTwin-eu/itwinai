@@ -1,24 +1,25 @@
-from os import chdir
 import numpy as np
 import matplotlib.pyplot as plt
-import matplotlib
-# import src.pulsar_analysis as pa
+import os
 
-from src.pulsar_analysis.neural_network_models import UNet, FilterCNN, CNN1D, WeightedBCELoss
-from src.pulsar_analysis.pipeline_methods import PipelineImageToFilterDelGraphtoIsPulsar, PipelineImageToFilterToCCtoLabels
+from pulsar_analysis.neural_network_models import UNet, FilterCNN, CNN1D, WeightedBCELoss
+from pulsar_analysis.pipeline_methods import \
+    PipelineImageToFilterDelGraphtoIsPulsar, PipelineImageToFilterToCCtoLabels
 from pulsar_simulation.generate_data_pipeline import generate_example_payloads_for_training
 
 # itwinai integration
 from trainer import PulsarTrainer
-from data import PulsarDataset, DatasetSplitter, PipelineLabelsInterface, PipelinePulsarInterface
-
+from data import PulsarDataset, DatasetSplitter
 import inputs
 
 if inputs.generate_data:
+    os.makedirs(inputs.param_folder, exist_ok=True)
+    os.makedirs(inputs.payload_folder, exist_ok=True)
+
     generate_example_payloads_for_training( 
         tag             = inputs.tag,
         num_payloads    = inputs.num_payloads,
-        plot_a_exampl   = inputs.plot_a_example,
+        plot_a_example  = inputs.plot_a_example,
         param_folder    = inputs.param_folder,
         payload_folder  = inputs.payload_folder,
         num_cpus        = inputs.num_cpus
@@ -98,39 +99,44 @@ unet_trainer.write_model()
 fcnn_trainer.write_model()
 cnn1d_trainer.write_model()
 
-## assemble the full pipeline and test on real data
-
-ppl1f = PipelineImageToFilterDelGraphtoIsPulsar(
-    image_to_mask_network               = UNet(),
-    trained_image_to_mask_network_path  = inputs.unet_dir,
-    mask_filter_network                 = FilterCNN(),
-    trained_mask_filter_network_path    = inputs.fcnn_dir,
-    signal_to_label_network             = CNN1D(),
-    trained_signal_to_label_network     = inputs.cnn1d_dir,
-)
-
-ppl2f = PipelineImageToFilterToCCtoLabels(
-    image_to_mask_network               = UNet(),
-    trained_image_to_mask_network_path  = inputs.unet_dir,
-    mask_filter_network                 = FilterCNN(),
-    trained_mask_filter_network_path    = inputs.fcnn_dir,
-    min_cc_size_threshold               = 5
-)
 
 
-data                = np.load(file=inputs.image_directory_npy,mmap_mode='r')
-data_label          = np.load(file=inputs.label_directory_npy,mmap_mode='r')
-data_subset         = data[inputs.offset+1:inputs.offset+inputs.size_of_set,:,:]
-data_label_subset   = data_label[inputs.offset+1:inputs.offset+inputs.size_of_set]
 
-while(True):
-    ppl1f.test_on_real_data_from_npy_files(image_data_set=data_subset,image_label_set=data_label_subset,plot_details=True,plot_randomly=True,batch_size=2)
+if input("Evaluate model on real data? [y/N]: ") == 'y':
+    ## assemble the full pipeline and test on real data
+    ppl1f = PipelineImageToFilterDelGraphtoIsPulsar(
+        image_to_mask_network               = UNet(),
+        trained_image_to_mask_network_path  = inputs.unet_dir,
+        mask_filter_network                 = FilterCNN(),
+        trained_mask_filter_network_path    = inputs.fcnn_dir,
+        signal_to_label_network             = CNN1D(),
+        trained_signal_to_label_network     = inputs.cnn1d_dir,
+    )
+
+    ppl2f = PipelineImageToFilterToCCtoLabels(
+        image_to_mask_network               = UNet(),
+        trained_image_to_mask_network_path  = inputs.unet_dir,
+        mask_filter_network                 = FilterCNN(),
+        trained_mask_filter_network_path    = inputs.fcnn_dir,
+        min_cc_size_threshold               = 5
+    )
+
+    # Load and format the evaluation data
+    data                = np.load(file=inputs.image_directory_npy,mmap_mode='r')
+    data_label          = np.load(file=inputs.label_directory_npy,mmap_mode='r')
+    data_subset         = data[inputs.offset+1:inputs.offset+inputs.size_of_set,:,:]
+    data_label_subset   = data_label[inputs.offset+1:inputs.offset+inputs.size_of_set]
+
+    ppl1f.test_on_real_data_from_npy_files(
+        image_data_set=data_subset,
+        image_label_set=data_label_subset,
+        plot_details=True,
+        plot_randomly=True,
+        batch_size=2)
+    ppl2f.test_on_real_data_from_npy_files(
+        image_data_set=data_subset,
+        image_label_set=data_label_subset,
+        plot_randomly=True,
+        batch_size=2)    
     plt.show()
-    if (input('[y/n] to quit: ')=='y'):
-        break
-    plt.close()
-    ppl2f.test_on_real_data_from_npy_files(image_data_set=data_subset,image_label_set=data_label_subset,plot_randomly=True,batch_size=2)    
-    plt.show()
-    if (input('[y/n] to quit: ')=='y'):
-        break
     plt.close()

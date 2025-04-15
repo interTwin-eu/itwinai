@@ -1,12 +1,12 @@
 ### MAIN SETTINGS ### 
 
-generate_data = False
+generate_data = True
 
 ### DATA GENERATION SETTINGS ###
 
-tag             = 'train_v0_',
-num_payloads    = 50,
-plot_a_example  = False,
+tag             = 'train_v0_'
+num_payloads    = 50
+plot_a_example  = False
 num_cpus        = 1
 param_folder    = 'syn_param/'
 payload_folder  = 'syn_payload/'
