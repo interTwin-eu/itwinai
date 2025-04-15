@@ -67,9 +67,7 @@ def probe_gpu_utilization_loop(
 
     if not set(logging_columns).issubset(set(log_dict.keys())):
         missing_columns = set(logging_columns) - set(log_dict.keys())
-        raise ValueError(
-            f"log_dict is missing the following columns: {missing_columns}"
-        )
+        raise ValueError(f"log_dict is missing the following columns: {missing_columns}")
 
     nvmlInit()
     time.sleep(warmup_time)
@@ -111,9 +109,8 @@ def measure_gpu_utilization(method: Callable) -> Callable:
         log_df.to_csv(output_path, index=False)
         print(f"Writing GPU energy dataframe to '{output_path.resolve()}'.")
 
-
     @functools.wraps(method)
-    def measured_method(self: 'TorchTrainer', *args, **kwargs) -> Any:
+    def measured_method(self: "TorchTrainer", *args, **kwargs) -> Any:
         if not self.measure_gpu_data:
             print("Warning: Profiling of GPU data has been disabled!")
             return method(self, *args, **kwargs)
@@ -137,7 +134,6 @@ def measure_gpu_utilization(method: Callable) -> Callable:
 
         # Starting a child process once per node
         if local_rank == 0:
-
             # Setting up shared variables for the child process
             manager = Manager()
             data = manager.dict()

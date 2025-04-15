@@ -5,12 +5,13 @@
 #
 # Credit:
 # - Matteo Bunino <matteo.bunino@cern.ch> - CERN
+# - Linus Eickhoff <linus.maximilian.eickhoff@cern.ch> - CERN
 # --------------------------------------------------------------------------------------
 
 # General config
 dataset_root: .tmp/
 num_classes: 10
-batch_size: 64
+batch_size: 256
 num_workers_dataloader: 4
 pin_memory: False
 lr: 0.001
@@ -40,6 +41,7 @@ training_pipeline:
       measure_gpu_data: True
       measure_communication_overhead: True
       measure_epoch_time: True
+      time_ray: True # track time for ray report and fit
       config:
         batch_size: ${batch_size}
         num_workers_dataloader: ${num_workers_dataloader}
@@ -55,11 +57,11 @@ training_pipeline:
         num_workers: 2
         use_gpu: true
         resources_per_worker:
-          CPU: 4
+          CPU: 6
           GPU: 1
       ray_tune_config:
         _target_: ray.tune.TuneConfig
-        num_samples: 1
+        num_samples: 2
         scheduler:
           _target_: ray.tune.schedulers.ASHAScheduler
           metric: loss
@@ -105,7 +107,7 @@ training_pipeline:
             log_freq: 10000
           - _target_: itwinai.loggers.MLFlowLogger
             experiment_name: MNIST classifier
-            log_freq: batch 
+            log_freq: epoch
       strategy: ${strategy}
       checkpoint_every: ${checkpoint_every}
       checkpoints_location: ${checkpoints_location}
