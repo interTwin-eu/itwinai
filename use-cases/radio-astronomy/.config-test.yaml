@@ -41,7 +41,7 @@ mask_directory:   .test_dataset/
 # do NOT confuse with ".test_dataset" which should be present after the test completion
 syndata_test_dir: syndata_test/
 
-unet_st:          models/trained_UNet_test_v0.pt 
+unet_st:          ./models/trained_UNet_test_v0.pt 
 fcnn_st:          ./models/trained_Filter_test_v0.pt
 cnn1d_st:         ./models/trained_CNN1D_test_v0.pt
 real_img_st:      ./test_data/joint_dataset_8_classes_real_remix_128x128.npy
@@ -83,9 +83,7 @@ engine_settings_cnn1d:
         do_resize: True
         resize_size: ${size}
         do_binarize: True
-        binarize_func: "thresh"
-    
-
+        binarize_func: thresh
 
 # Pipeline for synthesizing training data
 syndata_pipeline:

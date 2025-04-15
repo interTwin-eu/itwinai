@@ -9,7 +9,7 @@
 num_payloads:     50
 learning_rate:    0.001
 batch_size:       128 #128
-num_cores:        5
+num_cores:        1
 seed:             42
 strategy:         none #ddp
 size:             [128,128]
@@ -31,7 +31,7 @@ epoch_cnn1d:      20
 save_best:        1
 shuffle_train:    1
 
-unet_st:          models/trained_UNet_test_v0.pt 
+unet_st:          ./models/trained_UNet_test_v0.pt 
 fcnn_st:          ./models/trained_Filter_test_v0.pt
 cnn1d_st:         ./models/trained_CNN1D_test_v0.pt
 real_img_st:      ./test_data/joint_dataset_8_classes_real_remix_128x128.npy
