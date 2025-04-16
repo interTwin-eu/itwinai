@@ -191,7 +191,7 @@ def test_log_best_model(logger_instance):
         )
 
 
-def test_log_prov_documents(logger_instance):
+def test_log_prov_documents(logger_instance, mlflow_run):
     logger_instance.should_log = MagicMock(return_value=True)
     logger_instance.create_logger_context(rank=1)
 
