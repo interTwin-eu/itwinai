@@ -19,7 +19,7 @@ learning_rate:    0.001
 batch_size:       4 #128
 num_cores:        1
 seed:             42
-strategy:         none #ddp
+strategy:         None #ddp
 size:             [128,128]
 
 split_train:      0.5  
@@ -203,12 +203,12 @@ fcnn_pipeline:
         save_best: ${save_best}
         shuffle_train: ${shuffle_train}
         num_workers_dataloader: ${num_cores}
-      logger:
-        _target_: itwinai.loggers.LoggersCollection
-        loggers:
-          - _target_: itwinai.loggers.MLFlowLogger
-            experiment_name: radio-astronomy
-            log_freq: batch 
+      # logger:
+      #   _target_: itwinai.loggers.LoggersCollection
+      #   loggers:
+      #     - _target_: itwinai.loggers.MLFlowLogger
+      #       experiment_name: radio-astronomy
+      #       log_freq: batch 
     adapter_step:
       _target_: itwinai.components.Adapter
       policy: 
@@ -256,12 +256,12 @@ cnn1d_pipeline:
         save_best: ${save_best}
         shuffle_train: ${shuffle_train}
         num_workers_dataloader: ${num_cores}
-      logger:
-        _target_: itwinai.loggers.LoggersCollection
-        loggers:
-          - _target_: itwinai.loggers.MLFlowLogger
-            experiment_name: radio-astronomy 
-            log_freq: batch 
+      # logger:
+      #   _target_: itwinai.loggers.LoggersCollection
+      #   loggers:
+      #     - _target_: itwinai.loggers.MLFlowLogger
+      #       experiment_name: radio-astronomy 
+      #       log_freq: batch 
     adapter_step:
       _target_: itwinai.components.Adapter
       policy:
