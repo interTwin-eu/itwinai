@@ -15,6 +15,7 @@ Environmental Sciences
 -----------------------
 
 - `Hython – Hydrological Modelling for Drought Early Warnings <https://github.com/interTwin-eu/hython-itwinai-plugin>`__
+- `xtclim – ML-based extreme events detection and characterization (CERFACS) <https://github.com/interTwin-eu/xtclim>`__
 - `AtmoRep – A Stochastic Model of Atmosphere Dynamics <https://github.com/matbun/atmorep-itwinai-plugin>`__
 
 Contribute Your Plugin
