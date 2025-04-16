@@ -457,21 +457,20 @@ class TorchTrainer(Trainer, LogMixin):
                     "create_model_loss_optimizer method for more flexibility."
                 )
 
-    def _time_and_log_ray(
-        self, fn: Callable, identifier: str, step: int | None = None, *args, **kwargs
-    ) -> Any:
-        """Time and log the execution of a function.
+    def _time_and_log(self, fn: Callable, identifier: str, step: int | None = None) -> Any:
+        """Time and log the execution of a function (using time.monotonic()).
 
         Args:
-            fn (Callable): function to execute, time and log
+            fn (Callable): function to execute, time and log (pass args using lambda)
             identifier (str): identifier for the logged metric
             step (int | None): step for logging
-            *args: positional arguments to pass to fn
-            **kwargs: keyword arguments to pass to fn
+
+        Returns:
+            result (Any): result of the function call
         """
         if not self.logger:
-            py_logger.warning(f"No logger set! Cannot log {identifier} time!")
-            return fn(*args, **kwargs)
+            py_logger.warning(f"No logger set! Cannot log time for {identifier}! ")
+            return fn()
 
         if not self.logger.is_initialized:
             py_logger.warning(
@@ -479,16 +478,13 @@ class TorchTrainer(Trainer, LogMixin):
             )
             self.logger.create_logger_context()
 
-        if not self.time_ray:
-            return fn(*args, **kwargs)
-
         step = step or self.current_epoch
         if step is None:
             py_logger.warning("current_epoch is not set and no explicit step was provided!")
 
         # Use monotonic time to avoid time drift
         t_start = time.monotonic()
-        result = fn(*args, **kwargs)
+        result = fn()
         t_end = time.monotonic()
         # already in seconds
         t_delta = t_end - t_start
@@ -926,8 +922,10 @@ class TorchTrainer(Trainer, LogMixin):
             tune_config=self.ray_tune_config,
         )
 
-        # self.tune_result_grid = tuner.fit()
-        self.tune_result_grid = self._time_and_log_ray(tuner.fit, "ray_fit_time_s", step=0)
+        if self.time_ray:
+            self.tune_result_grid = self._time_and_log(tuner.fit, "ray_fit_time_s", step=0)
+        else:
+            self.tune_result_grid = tuner.fit()
 
         return train_dataset, validation_dataset, test_dataset, None
 
@@ -1190,14 +1188,21 @@ class TorchTrainer(Trainer, LogMixin):
             if metric_name is None:
                 raise ValueError("Could not find a metric in the TuneConfig")
 
-            self._time_and_log_ray(
-                self.ray_report,
-                "ray_report_time_s_per_epoch",
-                step=self.current_epoch,
-                # fn args
-                metrics={metric_name: val_metric.item()},
-                checkpoint_dir=best_ckpt_path or periodic_ckpt_path,
-            )
+            if self.time_ray:
+                # time and log the ray_report call
+                self._time_and_log(
+                    lambda: self.ray_report(
+                        metrics={metric_name: val_metric.item()},
+                        checkpoint_dir=best_ckpt_path or periodic_ckpt_path,
+                    ),
+                    "ray_report_time_s_per_epoch",
+                    step=self.current_epoch,
+                )
+            else:
+                self.ray_report(
+                    metrics={metric_name: val_metric.item()},
+                    checkpoint_dir=best_ckpt_path or periodic_ckpt_path,
+                )
 
             if self.test_every and (self.current_epoch + 1) % self.test_every == 0:
                 self.test_epoch()
