@@ -36,7 +36,7 @@ def torch_env() -> str:
     env_path = Path(os.environ.get("TORCH_ENV", "./.venv"))
     return str(env_path.resolve())
 
-@pytest.mark.functional
+@pytest.mark.skip(reason="incoroporated into integration test")
 def test_radio_astronomy_syndata(torch_env,  install_requirements):
     """
     Test synthetic data generation by running it end-to-end
@@ -54,9 +54,9 @@ def test_radio_astronomy_syndata(torch_env,  install_requirements):
     ## Run the pipeline and check file generation in the use-case folder
     subprocess.run(cmd.split(), check=True, cwd=USECASE_FOLDER)
     ## Clean up the use-case folder
-    subprocess.run("rm -rf syndata_test", shell=True, check=True, cwd=USECASE_FOLDER)
+    subprocess.run("rm -rf .test_dataset", shell=True, check=True, cwd=USECASE_FOLDER)
 
-@pytest.mark.functional
+@pytest.mark.skip(reason="dependent on .test_dataset, incoroporated into integration test")
 def test_radio_astronomy_unet(torch_env, install_requirements):
     """
     Test U-Net Pulsar-DDT trainer by running it end-to-end
@@ -131,5 +131,36 @@ def test_radio_astronomy_evaluate(torch_env):
 
     ## Run the pipeline and check file generation in the use-case folder
     subprocess.run(cmd.split(), check=True, cwd=USECASE_FOLDER)
+    ## Clean up the use-case folder
+    subprocess.run("./.pytest-clean", shell=True, check=True, cwd=USECASE_FOLDER)
+
+
+@pytest.mark.functional
+def test_radio_astronomy_integration(torch_env, install_requirements):
+    """
+    Test the synthetic data generation and 
+    U-Net Pulsar-DDT trainer by running it end-to-end
+    via the config-test.yaml configuration file.
+    """
+
+    install_requirements(USECASE_FOLDER, torch_env)
+
+    cmd_data = (
+        f"{torch_env}/bin/itwinai exec-pipeline "
+        f"--config-name .config-test "
+        f"+pipe_key=syndata_pipeline "
+    )
+
+    cmd_run = (
+        f"{torch_env}/bin/itwinai exec-pipeline "
+        f"--config-name .config-test "
+        f"+pipe_key=syndata_pipeline "
+    )
+    ## Generate the synthetic dataset needed for the integration test
+    subprocess.run(cmd_data.split(), check=True, cwd=USECASE_FOLDER)
+
+    ##  Execute the network run
+    subprocess.run(cmd_run.split(), check=True, cwd=USECASE_FOLDER)
+
     ## Clean up the use-case folder
     subprocess.run("./.pytest-clean", shell=True, check=True, cwd=USECASE_FOLDER)

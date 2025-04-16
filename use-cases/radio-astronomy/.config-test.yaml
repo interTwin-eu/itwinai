@@ -40,9 +40,7 @@ mask_tag:         train_v0_*_payload_flux.json
 mask_directory:   .test_dataset/ 
 
 # folder to test syndata generation pipeline, to be deleted after the test
-# should correspond to deleted folder in "test_radio-astronomy.py": file 
-# do NOT confuse with ".test_dataset" which should be present after the test completion
-syndata_test_dir: syndata_test/
+syndata_test_dir: .test_dataset/
 
 unet_st:          ./models/trained_UNet_test_v0.pt 
 fcnn_st:          ./models/trained_Filter_test_v0.pt

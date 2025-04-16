@@ -8,3 +8,4 @@ rm -rf outputs checkpoints plots/*
 rm -rf logs
 rm -rf mllogs ml-logs mlruns
 rm -f progress.out report.out
+rm -rf .test_dataset
