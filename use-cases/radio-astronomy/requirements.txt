@@ -1,5 +1,4 @@
 numpyencoder
-# --extra-index-url https://gitlab.com/api/v4/projects/59840702/packages/pypi/simple
 pulsarrfi-nn @ git+https://gitlab.com/ml-ppa/pulsarrfi_nn.git@version_0.2#subdirectory=unet_semantic_segmentation
 pulsardt @ git+https://gitlab.com/ml-ppa/pulsardt@main
 ipywidgets

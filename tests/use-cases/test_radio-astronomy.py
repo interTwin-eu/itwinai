@@ -1,6 +1,10 @@
 # --------------------------------------------------------------------------------------
 # Part of the interTwin Project: https://www.intertwin.eu/
-# Created by: Oleksandr Krochak
+#
+# Created by: Alex Krochak
+#
+# Credit:
+# - Alex Krochak <o.krochak@fz-juelich.de> - FZJ
 # --------------------------------------------------------------------------------------
 
 """Tests for radio-astronomy use case.
