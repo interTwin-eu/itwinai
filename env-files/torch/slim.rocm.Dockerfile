@@ -121,6 +121,8 @@ RUN CONTAINER_TORCH_VERSION="$(python -c 'import torch;print(torch.__version__)'
     && pip install --no-cache-dir torch=="$CONTAINER_TORCH_VERSION" \
     deepspeed==0.15.* 
 
+RUN pip install --no-cache-dir amdsmi
+
 # Installation sanity check
 RUN itwinai sanity-check --torch \
     --optional-deps deepspeed \

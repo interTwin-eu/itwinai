@@ -1,0 +1,119 @@
+# Singularity definition file for ROCm with PyTorch, starting from ROCm base image provided
+# by LUMI and AMD.
+
+Bootstrap: localimage
+From: /mnt/mbunino/lumi-rocm-pytorch.sif 
+#ubuntu.sif
+
+%files
+    pyproject.toml /app/pyproject.toml
+    src /app/src
+
+%environment
+    export VIRTUAL_ENV=/opt/venv
+    export PATH="/opt/venv/bin:$PATH"
+
+%post
+    # apt-get update && apt-get install -y --no-install-recommends \
+    #     build-essential \
+    #     cmake \
+    #     git \
+    #     libopenmpi-dev \
+    #     python3-mpi4py \
+    #     python3.10-dev \
+    #     python3.10-venv \
+    #     wget \
+    #     g++-11 \
+    #     libstdc++-11-dev \
+    #     libstdc++-12-dev \
+    #     gcc-multilib \
+    #     g++-multilib \
+    #     && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+    # # Install ROCm
+    # mkdir -p /tmp/rocm && cd /tmp/rocm
+    # wget https://repo.radeon.com/amdgpu-install/6.3.3/ubuntu/jammy/amdgpu-install_6.3.60303-1_all.deb
+    # apt-get update && apt-get install -y ./amdgpu-install_6.3.60303-1_all.deb
+    # amdgpu-install -y --usecase=rocm
+    # dkms status || true
+    # rm -rf /tmp/rocm /tmp/*
+
+    # # Python venv
+    # export VIRTUAL_ENV=/opt/venv
+    # export PATH="/opt/venv/bin:$PATH"
+    # # # Horovod build environment
+    # # export HOROVOD_GPU=ROCM
+    # # export HOROVOD_ROCM_HOME=/opt/rocm
+    # # export HOROVOD_WITH_PYTORCH=1
+    # # export HOROVOD_WITHOUT_TENSORFLOW=1
+    # # export HOROVOD_WITHOUT_MXNET=1
+    # # export CMAKE_CXX_STANDARD=17
+    # # export HOROVOD_MPI_THREADS_DISABLE=1
+    # # export HOROVOD_CPU_OPERATIONS=MPI
+    # # export HOROVOD_GPU_ALLREDUCE=NCCL
+    # # export HOROVOD_NCCL_LINK=SHARED
+    # # export HOROVOD_GPU_BROADCAST=NCCL
+    # # export CXX=/opt/rocm/llvm/bin/clang++
+    # # export CC=/opt/rocm/llvm/bin/clang
+    # # export CPLUS_INCLUDE_PATH=/usr/include/c++/11
+    # # export CXXFLAGS="-I/usr/include/c++/11 -I/usr/include/x86_64-linux-gnu/c++/11 -I/usr/include/c++/11/bits"
+    # # export ROCM_PATH=/opt/rocm
+    # # # DeepSpeed build environment
+    # # export DS_BUILD_UTILS=1
+    # # export DS_BUILD_AIO=1
+    # # export DS_BUILD_STOCHASTIC_TRANSFORMER=0
+    # # export DS_BUILD_TRANSFORMER_INFERENCE=0
+
+
+    # # Set up Python virtual environment and install deps
+    # python3.10 -m venv /opt/venv
+    # pip install --no-cache-dir --upgrade pip wheel
+    # pip install --no-cache-dir mpi4py
+
+    # Activate conda env
+    $WITH_CONDA
+
+    # Install itwinai
+    cd /app
+
+    pip install --no-cache-dir .[torch] --extra-index-url https://download.pytorch.org/whl/rocm6.1 \
+        "prov4ml[nvidia]@git+https://github.com/matbun/ProvML@new-main" \
+        pytest \
+        pytest-xdist \
+        psutil \
+        wheel
+
+    # # Install Horovod
+    # git clone --recursive https://github.com/horovod/horovod.git
+    # cd horovod
+    # git checkout 3a31d93
+    # ln -s $ROCM_PATH/lib/cmake/hip/FindHIP* cmake/Modules/
+    # sed -i 's/rccl\.h/rccl\/rccl\.h/' horovod/common/ops/nccl_operations.h
+    # CC=gcc CXX=g++ MAKEFLAGS=-j16 python setup.py bdist_wheel
+    # pip install dist/*.whl
+    # cd .. && rm -rf horovod
+    # horovodrun --check-build || true
+
+    # # Install DeepSpeed
+    # CONTAINER_TORCH_VERSION="$(python -c 'import torch;print(torch.__version__)')"
+    # pip install --no-cache-dir torch=="$CONTAINER_TORCH_VERSION" deepspeed==0.15.*
+
+    # AMD monitoring tool
+    pip install --no-cache-dir amdsmi
+
+%labels
+    Author Matteo Bunino
+    Project interTwin
+    Version 0.3.1
+
+%test
+    # Activate conda env
+    $WITH_CONDA
+    
+    echo "Running post-build test..."
+    # 
+    #     --optional-deps horovod \
+    itwinai sanity-check --torch \
+        --optional-deps deepspeed \
+        --optional-deps prov4ml \
+        --optional-deps ray

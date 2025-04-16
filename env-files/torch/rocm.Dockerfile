@@ -13,7 +13,7 @@ FROM rocm/pytorch:rocm6.3.4_ubuntu22.04_py3.10_pytorch_release_2.4.0
 WORKDIR /app
 COPY pyproject.toml pyproject.toml
 COPY src src
-RUN pip install --no-cache-dir .[torch]
+RUN pip install --no-cache-dir .[torch] --extra-index-url https://download.pytorch.org/whl/rocm6.1
 
 # Installation sanity check
 RUN itwinai sanity-check --torch \
