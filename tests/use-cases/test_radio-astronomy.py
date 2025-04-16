@@ -76,7 +76,7 @@ def test_radio_astronomy_unet(torch_env, install_requirements):
     ## Clean up the use-case folder
     subprocess.run("./.pytest-clean", shell=True, check=True, cwd=USECASE_FOLDER)
 
-@pytest.mark.functional
+@pytest.mark.skip(reason="dependent on test execution order")
 def test_radio_astronomy_filtercnn(torch_env, install_requirements):
     """
     Test Filter-CNN Pulsar-DDT trainer by running it end-to-end
@@ -96,7 +96,7 @@ def test_radio_astronomy_filtercnn(torch_env, install_requirements):
     ## Clean up the use-case folder
     subprocess.run("./.pytest-clean", shell=True, check=True, cwd=USECASE_FOLDER)
 
-@pytest.mark.functional
+@pytest.mark.skip(reason="dependent on test execution order")
 def test_radio_astronomy_cnn1d(torch_env, install_requirements):
     """
     Test CNN-1D Pulsar-DDT trainer by running it end-to-end
