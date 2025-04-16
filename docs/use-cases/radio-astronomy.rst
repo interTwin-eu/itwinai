@@ -50,6 +50,9 @@ your system.
 It contains integration tests for each of the pipelines 1-5 mentioned above. The configuration
 and execution of the test suite is defined in: 
 `tests/use-cases/radio-astronomy/test_radio-astronomy.py` 
-and in the configuration file in the use-case repostiry:
+and in the configuration file in the use-case repository:
 `use-cases/radio-astronomy/.config-test.yaml`. 
 If you are updating the test suite, make sure you update both of these files. 
+
+Feel free to change the pytest markers as needed, but be careful with pushing these changes. 
+Tests should be able to run in an isolated environment. 
