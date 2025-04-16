@@ -1,0 +1,18 @@
+Current List of itwinai Plugins
+===============================
+
+Below is a list of existing **itwinai plugins**, which correspond to scientific use cases that have been integrated into the itwinai framework.
+
+Physics Sciences
+----------------
+
+- `3DGAN – Fast Simulation of Particles in Calorimeters <https://github.com/interTwin-eu/itwinai-3dgan-plugin>`__
+- `GlitchFlow – Noise Generation for Gravitational Waves Analysis at Virgo <https://github.com/interTwin-eu/glitchflow-itwinai-plugin>`__
+- `Pulsar Detection (Radio Astronomy) <https://github.com/interTwin-eu/pulsar-plugin>`__
+- `Machine Learned Particle Flow Reconstruction <https://github.com/matbun/mlpf-itwinai-plugin>`__
+
+Environmental Sciences
+-----------------------
+
+- `Hython – Hydrological Modelling for Drought Early Warnings <https://github.com/interTwin-eu/hython-itwinai-plugin>`__
+- `AtmoRep – A Stochastic Model of Atmosphere Dynamics <https://github.com/matbun/atmorep-itwinai-plugin>`__
