@@ -14,7 +14,7 @@ learning_rate:    0.001
 batch_size:       128 #128
 num_cores:        1
 seed:             42
-strategy:         none #ddp
+strategy:         None #ddp
 size:             [128,128]
 
 tag:              train_v0_
@@ -30,6 +30,10 @@ split_test:       0.1
 epoch_unet:       5
 epoch_fcnn:       10  
 epoch_cnn1d:      20
+
+meas_gpu:         False
+meas_comm:        False
+meas_epoch:       false
 
 save_best:        True
 shuffle_train:    True
@@ -147,9 +151,9 @@ unet_pipeline:
           #   experiment_name: radio-astronomy 
           #   log_freq: batch 
           #   # tracking_uri: ${tracking_uri_mlflow}
-      measure_gpu_data: False
-      measure_communication_overhead: True
-      measure_epoch_time: True
+      measure_gpu_data: ${meas_gpu}
+      measure_communication_overhead: ${meas_comm}
+      measure_epoch_time: ${meas_epoch}
     adapter_step:
       _target_: itwinai.components.Adapter
       policy:
