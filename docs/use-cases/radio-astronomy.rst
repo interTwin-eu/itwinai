@@ -16,6 +16,9 @@ be generated/updated that ensures that correct dependencies are installed. If yo
 change some use-case specific dependencies, please do so in pyproject.toml in the radio-astronomy
 section. Afterwards, re-run `uv sync` with the same flags.
 
+Alternatively, you can install the required dependencies from the use-case directory:
+`pip install requirements.txt`
+
 Running from a configuration file
 -----------------------------------------------------------------------------------------------
 You can run the full pipeline sequence by executing the following commands locally. 
