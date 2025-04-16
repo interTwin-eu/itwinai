@@ -27,8 +27,8 @@ epoch_unet:       1
 epoch_fcnn:       1
 epoch_cnn1d:      1
 
-save_best:        1
-shuffle_train:    1
+save_best:        True
+shuffle_train:    True
 
 tag:              train_v0_
 image_tag:        train_v0_*_payload_detected.json

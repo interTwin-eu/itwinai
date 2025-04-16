@@ -28,8 +28,8 @@ epoch_unet:       5
 epoch_fcnn:       10  
 epoch_cnn1d:      20
 
-save_best:        1
-shuffle_train:    1
+save_best:        True
+shuffle_train:    True
 
 unet_st:          ./models/trained_UNet_test_v0.pt 
 fcnn_st:          ./models/trained_Filter_test_v0.pt
