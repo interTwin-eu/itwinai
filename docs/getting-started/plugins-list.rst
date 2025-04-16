@@ -9,7 +9,7 @@ Physics Sciences
 - `3DGAN – Fast Simulation of Particles in Calorimeters <https://github.com/interTwin-eu/itwinai-3dgan-plugin>`__
 - `GlitchFlow – Noise Generation for Gravitational Waves Analysis at Virgo <https://github.com/interTwin-eu/glitchflow-itwinai-plugin>`__
 - `Pulsar Detection (Radio Astronomy) <https://github.com/interTwin-eu/pulsar-plugin>`__
-- `Machine Learned Particle Flow Reconstruction <https://github.com/matbun/mlpf-itwinai-plugin>`__
+- `Machine Learned Particle Flow Reconstruction (MLPF) <https://github.com/matbun/mlpf-itwinai-plugin>`__
 
 Environmental Sciences
 -----------------------
