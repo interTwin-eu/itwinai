@@ -16,3 +16,8 @@ Environmental Sciences
 
 - `Hython – Hydrological Modelling for Drought Early Warnings <https://github.com/interTwin-eu/hython-itwinai-plugin>`__
 - `AtmoRep – A Stochastic Model of Atmosphere Dynamics <https://github.com/matbun/atmorep-itwinai-plugin>`__
+
+Contribute Your Plugin
+-----------------------
+
+If you are developing a plugin and would like it to be listed on this page, feel free to open a pull request to update it!
