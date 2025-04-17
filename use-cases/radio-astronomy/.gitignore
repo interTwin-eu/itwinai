@@ -1,0 +1,9 @@
+syn_payload/
+syn_param/
+models/*
+scalability-metrics/
+plots/*
+outputs/
+mllogs/
+checkpoints/
+__pycache__/
