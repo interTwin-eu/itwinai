@@ -7,6 +7,7 @@
 # - Matteo Bunino <matteo.bunino@cern.ch> - CERN
 # - Anna Lappe <anna.elisa.lappe@cern.ch> - CERN
 # - Jarl Sondre Sæther <jarl.sondre.saether@cern.ch> - CERN
+# - Linus Eickhoff <linus.maximilian.eickhoff@cern.ch> - CERN
 # --------------------------------------------------------------------------------------
 
 
@@ -16,6 +17,7 @@ import logging
 import os
 import sys
 import tempfile
+import time
 from collections import defaultdict
 from pathlib import Path
 from time import perf_counter as default_timer
@@ -150,6 +152,8 @@ class TorchTrainer(Trainer, LogMixin):
             Defaults to "inf".
         run_id (str, optional): name used to identify a specific run when collecting
             metrics on the trainer (e.g. GPU utilization). Defaults to None.
+        time_ray (bool): whether to time and log the execution of Ray functions.
+            Defaults to False.
     """
 
     _strategy: TorchDistributedStrategy | None = None
@@ -190,6 +194,8 @@ class TorchTrainer(Trainer, LogMixin):
     measure_epoch_time: bool = False
     #: Run ID
     run_id: str
+    #: Toggle for Ray time logging
+    time_ray: bool = False
 
     def __init__(
         self,
@@ -220,6 +226,7 @@ class TorchTrainer(Trainer, LogMixin):
         from_checkpoint: str | Path | None = None,
         initial_best_validation_metric: str = "inf",
         run_id: str | None = None,
+        time_ray: bool = False,
     ) -> None:
         super().__init__(name)
         self.save_parameters(**self.locals2params(locals()))
@@ -256,7 +263,7 @@ class TorchTrainer(Trainer, LogMixin):
         self.ray_torch_config = ray_torch_config
         self.ray_data_config = ray_data_config
         self.from_checkpoint = from_checkpoint
-
+        self.time_ray = time_ray
         if self.from_checkpoint:
             self.from_checkpoint = Path(from_checkpoint)
             if not self.from_checkpoint.exists():
@@ -449,6 +456,47 @@ class TorchTrainer(Trainer, LogMixin):
                     "supported values and consider overriding "
                     "create_model_loss_optimizer method for more flexibility."
                 )
+
+    def _time_and_log(self, fn: Callable, identifier: str, step: int | None = None) -> Any:
+        """Time and log the execution of a function (using time.monotonic()).
+
+        Args:
+            fn (Callable): function to execute, time and log (pass args using lambda)
+            identifier (str): identifier for the logged metric
+            step (int | None): step for logging
+
+        Returns:
+            result (Any): result of the function call
+        """
+        if not self.logger:
+            py_logger.warning(f"No logger set! Cannot log time for {identifier}! ")
+            return fn()
+
+        if not self.logger.is_initialized:
+            py_logger.warning(
+                f"Logger context not initialized for timing {identifier}. Setting context."
+            )
+            self.logger.create_logger_context()
+
+        step = step or self.current_epoch
+        if step is None:
+            py_logger.warning("current_epoch is not set and no explicit step was provided!")
+
+        # Use monotonic time to avoid time drift
+        t_start = time.monotonic()
+        result = fn()
+        t_end = time.monotonic()
+        # already in seconds
+        t_delta = t_end - t_start
+
+        self.log(
+            item=t_delta,
+            identifier=identifier,
+            kind="metric",
+            step=step,
+        )
+
+        return result
 
     def get_default_distributed_kwargs(self) -> Dict:
         """Gives the default kwargs for the trainer's strategy's distributed() method."""
@@ -874,7 +922,12 @@ class TorchTrainer(Trainer, LogMixin):
             tune_config=self.ray_tune_config,
         )
 
-        self.tune_result_grid = tuner.fit()
+        if self.time_ray:
+            self.tune_result_grid = self._time_and_log(
+                lambda: tuner.fit(), "ray_fit_time_s", step=0
+            )
+        else:
+            self.tune_result_grid = tuner.fit()
 
         return train_dataset, validation_dataset, test_dataset, None
 
@@ -1121,6 +1174,7 @@ class TorchTrainer(Trainer, LogMixin):
             # Checkpointing current best model
             best_ckpt_path = None
             worker_val_metrics = self.strategy.gather(val_metric, dst_rank=0)
+
             if self.strategy.is_main_worker:
                 avg_metric = torch.mean(torch.stack(worker_val_metrics)).detach().cpu()
                 if avg_metric < self.best_validation_metric:
@@ -1135,10 +1189,22 @@ class TorchTrainer(Trainer, LogMixin):
             metric_name = _get_tuning_metric_name(self.ray_tune_config)
             if metric_name is None:
                 raise ValueError("Could not find a metric in the TuneConfig")
-            self.ray_report(
-                metrics={metric_name: val_metric.item()},
-                checkpoint_dir=best_ckpt_path or periodic_ckpt_path,
-            )
+
+            if self.time_ray:
+                # time and log the ray_report call
+                self._time_and_log(
+                    lambda: self.ray_report(
+                        metrics={metric_name: val_metric.item()},
+                        checkpoint_dir=best_ckpt_path or periodic_ckpt_path,
+                    ),
+                    "ray_report_time_s_per_epoch",
+                    step=self.current_epoch,
+                )
+            else:
+                self.ray_report(
+                    metrics={metric_name: val_metric.item()},
+                    checkpoint_dir=best_ckpt_path or periodic_ckpt_path,
+                )
 
             if self.test_every and (self.current_epoch + 1) % self.test_every == 0:
                 self.test_epoch()
