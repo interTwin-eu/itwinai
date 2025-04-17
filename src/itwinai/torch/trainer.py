@@ -923,7 +923,9 @@ class TorchTrainer(Trainer, LogMixin):
         )
 
         if self.time_ray:
-            self.tune_result_grid = self._time_and_log(lambda: tuner.fit(), "ray_fit_time_s", step=0)
+            self.tune_result_grid = self._time_and_log(
+                lambda: tuner.fit(), "ray_fit_time_s", step=0
+            )
         else:
             self.tune_result_grid = tuner.fit()
 
