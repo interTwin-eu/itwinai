@@ -61,9 +61,11 @@ FROM python:3.12-slim
 ENV DEBIAN_FRONTEND=noninteractive \
     PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1 \
-    NB_USER=jovyan \
-    NB_UID=1000 \
-    NB_GID=1000
+    # Improve robustness: avoid silent override by Singularity/Apptainer
+    PYTHONPATH=""
+# NB_USER=jovyan \
+# NB_UID=1000 \
+# NB_GID=1000
 
 # OS deps
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -83,9 +85,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     gnupg \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Create user and group
-RUN groupadd -g ${NB_GID} ${NB_USER} && \
-    useradd -m -s /bin/bash -u ${NB_UID} -g ${NB_GID} ${NB_USER}
+# # Create user and group
+# RUN groupadd -g ${NB_GID} ${NB_USER} && \
+#     useradd -m -s /bin/bash -u ${NB_UID} -g ${NB_GID} ${NB_USER}
 
 # Install jupyter ecosystem
 RUN pip install --upgrade pip && \
@@ -107,6 +109,9 @@ RUN pip install --upgrade pip && \
     "ipykernel" \
     "jsonschema" \
     "traitlets"
+
+# Needs to be installed separated from the rest of the jupyterlab ecosystem to avoid conflicts...
+RUN pip install rucio-jupyterlab 
 
 # Set up CERN/ESCAPE CA certs
 # RUN wget -q -O - https://dist.eugridpma.info/distribution/igtf/current/GPG-KEY-EUGridPMA-RPM-3 | apt-key add - && \
@@ -154,38 +159,60 @@ RUN mkdir -p /opt/rucio/etc && chown -R ${NB_UID}:${NB_GID} /opt/rucio/etc
 # Enable JupyterLab
 ENV JUPYTER_ENABLE_LAB=yes
 
-# Switch to user
-USER ${NB_UID}
-WORKDIR /home/${NB_USER}
+# # Switch to user
+# USER ${NB_UID}
+# WORKDIR /home/${NB_USER}
 
-# Rucio JupyterLab extension
-RUN pip install rucio-jupyterlab
+# # Rucio JupyterLab extension
+# RUN pip install rucio-jupyterlab
+
+# # Install itwinai and prov4ml
+# WORKDIR /home/${NB_USER}/itwinai
+# COPY --chown=${NB_UID} pyproject.toml pyproject.toml
+# COPY --chown=${NB_UID} src src
+
+# RUN pip install ".[torch]" --extra-index-url https://download.pytorch.org/whl/cu124 && \
+#     pip install \
+#     "prov4ml[nvidia]@git+https://github.com/matbun/ProvML@new-main" \
+#     pytest pytest-xdist psutil
+
+# ENV PATH="${PATH}:/home/${NB_USER}/.local/bin"
+# RUN itwinai sanity-check --torch \
+#     --optional-deps prov4ml \
+#     --optional-deps ray
+
+# # # Additional requirements
+# # ARG REQUIREMENTS=env-files/torch/requirements/requirements.txt
+# # COPY --chown=${NB_UID} "${REQUIREMENTS}" additional-requirements.txt
+# # RUN pip install -r additional-requirements.txt
+
+# # Add tests
+# WORKDIR /app
+# COPY pyproject.toml pyproject.toml
+# COPY tests tests
+# COPY env-files/torch/jupyter/new.Dockerfile Dockerfile
+
+# WORKDIR /home/${NB_USER}
+# CMD ["setup.sh", "start-notebook.sh"]
+
+
 
 # Install itwinai and prov4ml
-WORKDIR /home/${NB_USER}/itwinai
-COPY --chown=${NB_UID} pyproject.toml pyproject.toml
-COPY --chown=${NB_UID} src src
+WORKDIR /opt/itwinai
+COPY pyproject.toml pyproject.toml
+COPY src src
 
 RUN pip install ".[torch]" --extra-index-url https://download.pytorch.org/whl/cu124 && \
     pip install \
     "prov4ml[nvidia]@git+https://github.com/matbun/ProvML@new-main" \
     pytest pytest-xdist psutil
 
-ENV PATH="${PATH}:/home/${NB_USER}/.local/bin"
 RUN itwinai sanity-check --torch \
     --optional-deps prov4ml \
     --optional-deps ray
 
-# # Additional requirements
-# ARG REQUIREMENTS=env-files/torch/requirements/requirements.txt
-# COPY --chown=${NB_UID} "${REQUIREMENTS}" additional-requirements.txt
-# RUN pip install -r additional-requirements.txt
-
 # Add tests
-WORKDIR /app
-COPY pyproject.toml pyproject.toml
 COPY tests tests
 COPY env-files/torch/jupyter/new.Dockerfile Dockerfile
 
-WORKDIR /home/${NB_USER}
 CMD ["setup.sh", "start-notebook.sh"]
