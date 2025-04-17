@@ -1,4 +1,5 @@
-#!/opt/conda/bin/python
+#!/usr/bin/env python3
+# before it was !/opt/conda/bin/python
 # -*- coding: utf-8 -*-
 #
 # D. Ciangottini
@@ -38,16 +39,16 @@ async def run_client():
         await listener.wait_closed()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     print("Connecting ssh...")
     loop = asyncio.get_event_loop()
     loop.create_task(run_client())
 
     print("Configuring Rucio extension...")
-    p = Popen(['/usr/local/bin/setup.sh'])
+    p = Popen(["/usr/local/bin/setup.sh"])
     while p.poll() is None:
         pass
 
     print("Starting JLAB")
-    sys.argv[0] = re.sub(r'(-script\.pyw|\.exe)?$', '', sys.argv[0])
+    sys.argv[0] = re.sub(r"(-script\.pyw|\.exe)?$", "", sys.argv[0])
     sys.exit(main())
