@@ -9,7 +9,10 @@
 # - Matteo Bunino <matteo.bunino@cern.ch> - CERN
 # --------------------------------------------------------------------------------------
 
-export CONTAINER_PATH="../../../../itwinai-rocm.sif"
+# export CONTAINER_PATH="../../../../itwinai-rocm-slim.sif"
+
+export CONTAINER_PATH="../../../../container_test.sif"
+
 
 # Clear SLURM logs (*.out and *.err files)
 rm -rf logs_slurm checkpoints* mllogs* ray_checkpoints logs_torchrun
