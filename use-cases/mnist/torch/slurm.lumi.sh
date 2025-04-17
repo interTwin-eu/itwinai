@@ -14,21 +14,17 @@
 # Resources allocation
 #SBATCH --partition=small-g
 #SBATCH --nodes=2
-#SBATCH --gpus-per-node=4
-#SBATCH --gres=gpu:4
+#SBATCH --gpus-per-node=8
 #SBATCH --cpus-per-task=16
 #SBATCH --exclusive
 
+set -e
 
 # Load environment modules
-ml Stages/2024 GCC OpenMPI CUDA/12 MPI-settings/CUDA Python HDF5 PnetCDF libaio mpi4py
+ml LUMI partition/G rocm/6.2.2
 
 # Job info
 echo "DEBUG: TIME: $(date)"
-sysN="$(uname -n | cut -f2- -d.)"
-sysN="${sysN%%[0-9]*}"
-echo "Running on system: $sysN"
-echo "DEBUG: EXECUTE: $EXEC"
 echo "DEBUG: SLURM_SUBMIT_DIR: $SLURM_SUBMIT_DIR"
 echo "DEBUG: SLURM_JOB_ID: $SLURM_JOB_ID"
 echo "DEBUG: SLURM_JOB_NODELIST: $SLURM_JOB_NODELIST"
@@ -38,21 +34,57 @@ echo "DEBUG: SLURM_TASKS_PER_NODE: $SLURM_TASKS_PER_NODE"
 echo "DEBUG: SLURM_SUBMIT_HOST: $SLURM_SUBMIT_HOST"
 echo "DEBUG: SLURMD_NODENAME: $SLURMD_NODENAME"
 echo "DEBUG: SLURM_CPUS_PER_TASK: $SLURM_CPUS_PER_TASK"
+echo "DEBUG: SLURM_GPUS_PER_NODE: $SLURM_GPUS_PER_NODE"
 echo "DEBUG: TRAINING_CMD: $TRAINING_CMD"
-
-if [ "$DEBUG" = true ] ; then
-  echo "DEBUG: NCCL_DEBUG=INFO" 
-  export NCCL_DEBUG=INFO
-fi
 echo
 
+# Optional: Inject the environment variables for NCCL debugging into the container.   
+# This will produce a lot of debug output!     
+export NCCL_DEBUG=INFO
+export NCCL_DEBUG_SUBSYS=INIT,COLL
+
+c=fe
+MYMASKS="0x${c}000000000000,0x${c}00000000000000,0x${c}0000,0x${c}000000,0x${c},0x${c}00,0x${c}00000000,0x${c}0000000000"
+
+# Make sure GPUs are up
+if [ $SLURM_LOCALID -eq 0 ] ; then
+    rocm-smi
+fi
+sleep 2
+
+# MIOPEN needs some initialisation for the cache as the default location
+# does not work on LUMI as Lustre does not provide the necessary features.
+export MIOPEN_USER_DB_PATH="/tmp/$(whoami)-miopen-cache-$SLURM_NODEID"
+export MIOPEN_CUSTOM_CACHE_DIR=$MIOPEN_USER_DB_PATH
+
+if [ $SLURM_LOCALID -eq 0 ] ; then
+    rm -rf $MIOPEN_USER_DB_PATH
+    mkdir -p $MIOPEN_USER_DB_PATH
+fi
+sleep 2
+
+# Set interfaces to be used by RCCL.
+# This is needed as otherwise RCCL tries to use a network interface it has
+# no access to on LUMI.
+export NCCL_SOCKET_IFNAME=hsn0,hsn1,hsn2,hsn3
+export NCCL_NET_GDR_LEVEL=3
+
+# Set ROCR_VISIBLE_DEVICES so that each task uses the proper GPU
+export ROCR_VISIBLE_DEVICES=$SLURM_LOCALID
+
+# Report affinity to check
+echo "Rank $SLURM_PROCID --> $(taskset -p $$); GPU $ROCR_VISIBLE_DEVICES"
+
+
 # Setup env for distributed ML
-export CUDA_VISIBLE_DEVICES=$(seq -s, 0 $((SLURM_GPUS_PER_NODE - 1)))
-echo "DEBUG: CUDA_VISIBLE_DEVICES: $CUDA_VISIBLE_DEVICES"
+# export CUDA_VISIBLE_DEVICES=$(seq -s, 0 $((SLURM_GPUS_PER_NODE - 1)))
+# echo "DEBUG: CUDA_VISIBLE_DEVICES: $CUDA_VISIBLE_DEVICES"
 export OMP_NUM_THREADS=1
 if [ "$SLURM_GPUS_PER_NODE" -gt 0 ] ; then
   export OMP_NUM_THREADS=$(($SLURM_CPUS_PER_TASK / $SLURM_GPUS_PER_NODE))
 fi
+
+export HYDRA_FULL_ERROR=1
 
 # Env vairables check
 if [ -z "$DIST_MODE" ]; then 
@@ -85,6 +117,10 @@ function ray-launcher(){
   export NO_COLOR=1
   export RAY_COLOR_PREFIX=0
 
+  # Fix (?) for: HIP error: invalid device ordinal
+  export RAY_EXPERIMENTAL_NOSET_ROCR_VISIBLE_DEVICES=1
+  export ROCR_VISIBLE_DEVICES=0,1,2,3,4,5,6,7
+
   #########   Set up Ray cluster   ########
 
   # Get the node names
@@ -101,14 +137,16 @@ function ray-launcher(){
   # `srun` submits a job that runs on the head node to start the Ray head with the specified 
   # number of CPUs and GPUs.
   srun --nodes=1 --ntasks=1 -w "$head_node" \
-      singularity exec --bind $(pwd):$(pwd) $CONTAINER_PATH \
+      singularity exec --bind $(pwd):$(pwd) --rocm $CONTAINER_PATH  bash -c " \
+      source /opt/miniconda3/bin/activate pytorch && \
       ray start \
         --head \
         --node-ip-address="$head_node" \
         --port=$port \
       --num-cpus "$num_cpus" \
       --num-gpus "$num_gpus"  \
-      --block &
+      --log-color false \
+      --block" &
 
   # Wait for a few seconds to ensure that the head node has fully initialized.
   sleep 5
@@ -125,34 +163,52 @@ function ray-launcher(){
       # Use srun to start Ray on the worker node and connect it to the head node.
       # The `--address` option tells the worker node where to find the head node.
       srun --nodes=1 --ntasks=1 -w "$node_i" \
-        singularity exec --bind $(pwd):$(pwd) $CONTAINER_PATH \
+        singularity exec --bind $(pwd):$(pwd) --rocm $CONTAINER_PATH bash -c " \
+        source /opt/miniconda3/bin/activate pytorch && \
         ray start \
           --address "$head_node":"$port" \
           --redis-password='5241580000000000' \
           --num-cpus "$num_cpus" \
           --num-gpus "$num_gpus" \
-          --block &
+          --log-color false \
+          --block" &
       
       sleep 5 # Wait before starting the next worker to prevent race conditions.
   done
+  sleep 20
   echo All Ray workers started.
 
+  # Check cluster
+  singularity exec --rocm --bind $(pwd):$(pwd) $CONTAINER_PATH bash -c "\
+    source /opt/miniconda3/bin/activate pytorch && \
+    ray status"
+  echo "============================================="
+
+  singularity exec --rocm --bind $(pwd):$(pwd) $CONTAINER_PATH bash -c '\
+    source /opt/miniconda3/bin/activate pytorch && \
+    echo HIP_VISIBLE_DEVICES: $HIP_VISIBLE_DEVICES'
+
   # Run command without srun
-  singularity exec --bind $(pwd):$(pwd) $CONTAINER_PATH \
-    $1 training_pipeline.steps.training_step.ray_scabashling_config.num_workers=$(($SLURM_GPUS_PER_NODE * $SLURM_NNODES))
+  singularity exec --bind $(pwd):$(pwd) $CONTAINER_PATH bash -c "\
+    source /opt/miniconda3/bin/activate pytorch && \
+    $1"
 }
 
 function torchrun-launcher(){
   srun --cpu-bind=none --ntasks-per-node=1 \
-    singularity exec --nv --bind $(pwd):$(pwd) $CONTAINER_PATH /bin/bash -c "torchrun \
+    singularity exec --rocm --bind $(pwd):$(pwd) $CONTAINER_PATH /bin/bash -c "\
+    source /opt/miniconda3/bin/activate pytorch && \
+    torchrun \
     --log_dir='logs_torchrun' \
     --nnodes=$SLURM_NNODES \
     --nproc_per_node=$SLURM_GPUS_PER_NODE \
+    --node-rank=$SLURM_NODEID \
     --rdzv_id=$SLURM_JOB_ID \
     --rdzv_conf=is_host=\$(((SLURM_NODEID)) && echo 0 || echo 1) \
     --rdzv_backend=c10d \
-    --rdzv_endpoint='$(scontrol show hostnames "$SLURM_JOB_NODELIST" | head -n 1)'i:29500 \
+    --rdzv_endpoint='$(scontrol show hostnames "$SLURM_JOB_NODELIST" | head -n 1)':29500 \
     --no-python \
+    --redirects=\$(((SLURM_NODEID)) && echo "3" || echo "1:3,2:3,3:3") \
     $1"
 }
 
@@ -180,7 +236,7 @@ function separation(){
 }
 
 # Get GPUs info per node
-srun --cpu-bind=none --ntasks-per-node=1 bash -c 'echo -e "NODE hostname: $(hostname)\n$(nvidia-smi)\n\n"'
+srun --cpu-bind=none --ntasks-per-node=1 bash -c 'echo -e "NODE hostname: $(hostname)\n$(rocm-smi)\n\n"'
 
 export ITWINAI_LOG_LEVEL="DEBUG"
 

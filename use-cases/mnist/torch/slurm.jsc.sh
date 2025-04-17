@@ -130,7 +130,9 @@ function ray-launcher(){
   echo All Ray workers started.
 
   # Run command without srun
-  $1 training_pipeline.steps.training_step.ray_scaling_config.num_workers=$(($SLURM_GPUS_PER_NODE * $SLURM_NNODES))
+  # if you want the number of workers to be adaptive during distributed training append this:
+  # training_pipeline.steps.training_step.ray_scaling_config.num_workers=$(($SLURM_GPUS_PER_NODE * $SLURM_NNODES))
+  $1
 }
 
 function torchrun-launcher(){
