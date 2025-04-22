@@ -67,7 +67,7 @@ def get_slurm_job_parser() -> ArgumentParser:
     default_training_command = None
     default_python_venv = ".venv"
     default_scalability_nodes = "1,2,4,8"
-    default_profiling_rate = 10
+    default_profiling_rate = 10 # py-spy profiler sample rate/frequency
 
     parser = ArgumentParser(parser_mode="omegaconf")
 

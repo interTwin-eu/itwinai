@@ -1,4 +1,10 @@
 #!/usr/bin/perl -w
+# This file is part of the Flamegraph project: https://github.com/brendangregg/FlameGraph
+# Retrieved on: 2025-04-22
+# License: Common Development and Distribution License (CDDL) v1.0
+# 
+# This script is included unmodified in the itwinai project for generating flame graphs.
+# Original copyright and license terms apply.
 #
 # flamegraph.pl		flame stack grapher.
 #
