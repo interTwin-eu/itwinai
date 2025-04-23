@@ -129,25 +129,18 @@ class PulsarDataset(Dataset):
         self._len = len(matching_files)
 
         ### Check that the engine settings are appropriate for chosen dataset type ###
-        if self._type == "unet":
-            assert set(engine_settings) == {
-                "image",
-                "mask",
-            }, "Wrong engine settings for UNet dataset. \n"
-            "Provide 'image' and 'mask' engine settings."
+        if self._type == "unet" and engine_settings.keys() != {"image","mask"}:
+            raise ValueError("Wrong engine settings for UNet dataset. \n"
+                "Provide 'image' and 'mask' engine settings.")
 
-        elif self._type == "filtercnn":
-            assert set(engine_settings) == {
-                "image",
-                "mask",
-                "mask_maker",
-            }, "Wrong engine settings for FilterCNN dataset. \n"
-            "Provide 'image', 'mask' and 'mask_maker' engine settings."
-
-        else:
-            assert set(engine_settings) == {
-                "mask"
-            }, "Wrong engine settings for CNN1D dataset. Provide 'mask' engine settings."
+        elif self._type == "filtercnn" and \
+        engine_settings.keys() != {"image","mask","mask_maker"}:
+            raise ValueError("Wrong engine settings for FilterCNN dataset. \n"
+            "Provide 'image', 'mask' and 'mask_maker' engine settings.")
+        
+        elif self._type == "cnn1d" and engine_settings.keys() != {"mask"}:
+            raise ValueError("Wrong engine settings for CNN1D dataset.\n"
+                             "Provide 'mask' engine settings.")
 
         ### Initialize the engines, one to three dependent on the dataset type ###
         ###        Mask engine settings are needed for all dataset types       ###
@@ -170,13 +163,13 @@ class PulsarDataset(Dataset):
                 mme_model = UNet()
             else:
                 raise ValueError(
-                    "Uknown model type in engine_settings['mask_maker']['model']"
+                    "Unknown model type in engine_settings['mask_maker']['model']"
                 )
             self._mask_maker_engine = PipelineImageToMask(
                 **engine_settings["mask_maker"], image_to_mask_network=mme_model
             )
 
-    def load_image_pair(self, img_id: int) -> ImageMaskPair:
+    def load_image_pair(self, img_id: int) -> ImageMaskPair | Tuple[torch.tensor, torch.tensor]:
         """Load an a data point from disk. Loading method depends on the network type:
         - For UNet and FilterCNN architectures, data point consits of image and mask pair.
         - For CNN1D architecture, data point consists of a mask only.
@@ -220,7 +213,7 @@ class PulsarDataset(Dataset):
 
         return pair
 
-    def __getitem__(self, item_id: int):
+    def __getitem__(self, item_id: int) -> ImageMaskPair | Tuple[torch.tensor, torch.tensor]:
         """Use load_image_pair method to retrieve the data point with the given item_id.
         Output is network architecture dependent.
         Returns either image-mask pair (UNET, FCNN) or signal-label pair (CNN1D)."""
@@ -229,7 +222,7 @@ class PulsarDataset(Dataset):
         ### due to the original use-case code
         if self._type == "cnn1d":
             return self.load_image_pair(item_id)
-        else:
+        elif self._type == "unet" or self._type == "filtercnn":
             img, mask = self.load_image_pair(item_id)()
             img = img.unsqueeze(0)
             mask = mask.unsqueeze(0)
