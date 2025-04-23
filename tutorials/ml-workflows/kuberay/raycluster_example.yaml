@@ -1,0 +1,78 @@
+image:
+  # TODO Change to the path where your singularity container file resides. (example is for file named hython:sif)
+  repository: /ceph/hpc/data/st2301-itwin-users/lineick/hython
+  tag: sif
+  pullPolicy: IfNotPresent
+
+# TODO Edit resources as needed
+head:
+  resources:
+    limits:
+      cpu: "32"
+      # To avoid out-of-memory issues, never allocate less than 2G memory for the Ray head.
+      memory: "200G"
+    requests:
+      cpu: "32"
+      # To avoid out-of-memory issues, never allocate less than 2G memory for the Ray head.
+      memory: "200G"
+  annotations:
+    slurm-job.vk.io/flags: "-p gpu --gres=gpu:1  --time 120" # TODO: increase gpus if needed
+    slurm-job.vk.io/singularity-options: "--no-home --compat --no-mount /exa5 --env POD_IP=$POD_IP  --env HYDRA_FULL_ERROR=1,NCCL_SOCKET_IFNAME=br0,RAY_record_ref_creation_sites=1,SLURM_NNODES=1,ITWINAI_LOG_LEVEL=DEBUG"
+    slurm-job.vk.io/singularity-mounts: "--bind /ceph"
+    interlink.eu/pod-vpn: "true"
+    slurm-job.vk.io/pre-exec: "singularity exec --no-mount /scratch,/exa5,/cvmfs --bind $PWD/wireguard:/var/run/wireguard --env POD_IP=$POD_IP  docker://dciangot/test-singularity:v1  ./slirp.sh "
+  nodeSelector:
+    kubernetes.io/hostname: vega-node
+
+  tolerations:
+  - key: virtual-node.interlink/no-schedule
+    operator: Exists
+  - effect: NoExecute
+    key: node.kubernetes.io/unreachable
+    operator: Exists
+    tolerationSeconds: 300
+  rayStartParams:
+    node-ip-address: "$POD_IP"         
+    verbose: true
+
+  headService: {}
+
+worker:
+  # If you want to disable the default workergroup
+  # uncomment the line below
+  # disabled: true
+  groupName: workergroup
+  replicas: 3
+  minReplicas: 1
+  maxReplicas: 3
+  resources:
+    limits:
+      cpu: "32"
+      memory: "200G"
+    requests:
+      cpu: "32"
+      memory: "200G"
+  annotations:
+    slurm-job.vk.io/flags: "-p gpu --gres=gpu:1 --time 120" # TODO: increase gpus if needed
+    # RAY_ADDRESS=auto
+    slurm-job.vk.io/singularity-options: "--no-home --compat --no-mount /exa5 --env HYDRA_FULL_ERROR=1,RAY_record_ref_creation_sites=1,ITWINAI_LOG_LEVEL=DEBUG,NCCL_SOCKET_IFNAME=br0,SLURM_NNODES=1"
+    slurm-job.vk.io/singularity-mounts: "--bind /ceph"
+    interlink.eu/pod-vpn: "true"
+    slurm-job.vk.io/pre-exec: "singularity exec --no-mount /scratch,/exa5,/cvmfs --bind $PWD/wireguard:/var/run/wireguard --env POD_IP=$POD_IP  docker://dciangot/test-singularity:v1  ./slirp.sh "
+  nodeSelector:
+    kubernetes.io/hostname: vega-node
+  tolerations:
+  - key: virtual-node.interlink/no-schedule
+    operator: Exists
+  - effect: NoExecute
+    key: node.kubernetes.io/unreachable
+    operator: Exists
+    tolerationSeconds: 300
+  rayStartParams:
+    verbose: true
+
+# Configuration for Head's Kubernetes Service
+service:
+  # This is optional, and the default is ClusterIP.
+  type: ClusterIP
+
