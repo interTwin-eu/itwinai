@@ -135,6 +135,14 @@ ConsoleLogger: epoch_loss = -0.9056745767593384
 This output indicates the loss values at specified epochs during the training
 process, providing insight into the model's performance over time.
 
+Alternatively, the model initialization and training can also be performed
+using the `train.py` file, which provides another interface to the user to build
+the models and launch the training with configurations files defined within the
+Python script. When using this script to launch the training, one can do so by:
+```
+python train.py
+```
+
 For working on HPC systems,  a `startscript.sh` file is provided. This can be launched
 by:
 ```
@@ -143,7 +151,9 @@ sbatch startscript.sh
 In the startscript, `nodes` specifies the number of workers to be used for training.
 You can efficiently scale your model training across multiple GPUs, enhancing
 performance and reducing training time. This flexibility allows you to tackle
-larger datasets and more complex models with ease.
+larger datasets and more complex models with ease. When using the `train.py` file
+to launch the training, the last line in the `startscript.sh` file should be modified
+to `train.py`.
 
 This example demonstrates the flexibility of using the package to implement
 scalar field theories in a simplified zero-dimensional setting. It can be
