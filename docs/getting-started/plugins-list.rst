@@ -10,6 +10,7 @@ Physics Sciences
 - `GlitchFlow – Noise Generation for Gravitational Waves Analysis at Virgo <https://github.com/interTwin-eu/glitchflow-itwinai-plugin>`__
 - `Pulsar Detection (Radio Astronomy) <https://github.com/interTwin-eu/pulsar-plugin>`__
 - `Machine Learned Particle Flow Reconstruction (MLPF) <https://github.com/matbun/mlpf-itwinai-plugin>`__
+- `Normflow - Normalizing flows as a generative model for lattice field theory <https://github.com/interTwin-eu/normflow-plugin>`__
 
 Environmental Sciences
 -----------------------
