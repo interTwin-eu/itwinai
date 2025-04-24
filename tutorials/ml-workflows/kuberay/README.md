@@ -73,7 +73,7 @@ helm delete raycluster
 To submit a ray job to the cluster, run the following command from e.g. vega:
 
 ```bash
-ray job submit --address <address> --workdir <path> -- <command>
+ray job submit --address <address> --working-dir <path> -- <command>
 ```
 
 To start the hython training pipeline, the submit would be:
