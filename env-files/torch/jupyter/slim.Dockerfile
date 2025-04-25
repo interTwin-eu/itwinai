@@ -174,6 +174,7 @@ RUN itwinai sanity-check --torch \
     --optional-deps ray
 
 # Add tests
+WORKDIR /app
 COPY tests tests
 COPY env-files/torch/jupyter/slim.Dockerfile Dockerfile
 
