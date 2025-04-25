@@ -82,18 +82,11 @@ def test_log_flops_per_batch(logger_instance):
     model_mock, batch_mock = MagicMock(), MagicMock()
     with patch("prov4ml.log_flops_per_batch") as log_flops_pb:
         logger_instance.log(
-            item=(model_mock, batch_mock),
-            identifier="my_flops_pb",
-            kind="flops_pb",
-            step=1,
+            item=(model_mock, batch_mock), identifier="my_flops_pb", kind="flops_pb", step=1
         )
 
         log_flops_pb.assert_called_once_with(
-            model=model_mock,
-            batch=batch_mock,
-            label="my_flops_pb",
-            step=1,
-            context="training",
+            model=model_mock, batch=batch_mock, label="my_flops_pb", step=1, context="training"
         )
 
 
@@ -104,10 +97,7 @@ def test_log_flops_per_epoch(logger_instance):
     model_mock, dataset_mock = MagicMock(), MagicMock()
     with patch("prov4ml.log_flops_per_epoch") as log_flops_pe:
         logger_instance.log(
-            item=(model_mock, dataset_mock),
-            identifier="my_flops_pe",
-            kind="flops_pe",
-            step=1,
+            item=(model_mock, dataset_mock), identifier="my_flops_pe", kind="flops_pe", step=1
         )
 
         log_flops_pe.assert_called_once_with(
