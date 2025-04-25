@@ -12,19 +12,6 @@ from itwinai.loggers import Prov4MLLogger
 def logger_instance():
     return Prov4MLLogger()
 
-
-@pytest.fixture
-def mlflow_run():
-    with tempfile.TemporaryDirectory() as mlflow_temp_dir:
-        mlflow.set_tracking_uri(Path(mlflow_temp_dir).resolve().as_uri())
-        experiment_id = mlflow.create_experiment("temporary_experiment")
-        mlflow.set_experiment(experiment_id=experiment_id)
-        if mlflow.active_run():
-            mlflow.end_run()
-        yield mlflow.start_run()
-        mlflow.end_run()
-
-
 def test_create_destroy_logger_context(logger_instance):
     logger_instance.should_log = MagicMock(return_value=True)
     with patch("prov4ml.start_run") as start_run, patch("prov4ml.end_run") as end_run:
@@ -154,7 +141,7 @@ def test_log_carbon(logger_instance):
         log_carbon.assert_called_once_with(context="training", step=1)
 
 
-def test_log_execution_time(logger_instance):
+def test_log_execution_time(logger_instance, ):
     logger_instance.should_log = MagicMock(return_value=True)
     logger_instance.create_logger_context(rank=1)
 
@@ -201,7 +188,7 @@ def test_log_best_model(logger_instance):
         )
 
 
-def test_log_prov_documents(logger_instance, mlflow_run):
+def test_log_prov_documents(logger_instance):
     logger_instance.should_log = MagicMock(return_value=True)
     logger_instance.create_logger_context(rank=1)
 
