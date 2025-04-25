@@ -105,5 +105,5 @@ ray job submit \
 > [!NOTE]
 > Ensure to set `experiment_name` to an individual name.
 > In case someone else created an experiment with the same name, it will fail with `permission denied`.
-> You have to log in and create an account [here](http://mlflow.intertwin.fedcloud.eu/) first,
+> You have to create an account [here](http://mlflow.intertwin.fedcloud.eu/) first,
 > then use your email as the username.
