@@ -19,7 +19,8 @@ def mlflow_run():
         mlflow.set_tracking_uri(Path(mlflow_temp_dir).resolve().as_uri())
         experiment_id = mlflow.create_experiment("temporary_experiment")
         mlflow.set_experiment(experiment_id=experiment_id)
-        yield mlflow.start_run()
+        with mlflow.start_run() as run:
+            yield run
         mlflow.end_run()
 
 
@@ -95,7 +96,10 @@ def test_log_flops_per_batch(logger_instance):
     model_mock, batch_mock = MagicMock(), MagicMock()
     with patch("prov4ml.log_flops_per_batch") as log_flops_pb:
         logger_instance.log(
-            item=(model_mock, batch_mock), identifier="my_flops_pb", kind="flops_pb", step=1
+            item=(model_mock, batch_mock),
+            identifier="my_flops_pb",
+            kind="flops_pb",
+            step=1,
         )
 
         log_flops_pb.assert_called_once_with(
@@ -114,7 +118,10 @@ def test_log_flops_per_epoch(logger_instance):
     model_mock, dataset_mock = MagicMock(), MagicMock()
     with patch("prov4ml.log_flops_per_epoch") as log_flops_pe:
         logger_instance.log(
-            item=(model_mock, dataset_mock), identifier="my_flops_pe", kind="flops_pe", step=1
+            item=(model_mock, dataset_mock),
+            identifier="my_flops_pe",
+            kind="flops_pe",
+            step=1,
         )
 
         log_flops_pe.assert_called_once_with(
@@ -166,7 +173,9 @@ def test_log_model(logger_instance):
 
     model_mock = MagicMock()
     with patch("prov4ml.save_model_version") as log_model:
-        logger_instance.log(item=model_mock, identifier="model_v1", kind="model", step=1)
+        logger_instance.log(
+            item=model_mock, identifier="model_v1", kind="model", step=1
+        )
 
         log_model.assert_called_once_with(
             model=model_mock, model_name="model_v1", context="training", step=1
@@ -199,8 +208,12 @@ def test_log_prov_documents(logger_instance, mlflow_run):
         log_prov_documents.return_value = ["doc1", "doc2"]
 
         with patch("mlflow.log_artifact") as mlflow_log_artifact:
-            logger_instance.log(item=None, identifier=None, kind="prov_documents", step=1)
+            logger_instance.log(
+                item=None, identifier=None, kind="prov_documents", step=1
+            )
 
-            log_prov_documents.assert_called_once_with(create_graph=True, create_svg=True)
+            log_prov_documents.assert_called_once_with(
+                create_graph=True, create_svg=True
+            )
             mlflow_log_artifact.assert_any_call("doc1")
             mlflow_log_artifact.assert_any_call("doc2")
