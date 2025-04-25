@@ -96,8 +96,8 @@ def initialize_ray() -> None:
     if ray.is_initialized():
         return
 
-    username = os.environ.get("MLFLOW_TRACKING_USERNAME", None)
-    password = os.environ.get("MLFLOW_TRACKING_PASSWORD", None)
+    username = os.environ.get("MLFLOW_TRACKING_USERNAME", "")
+    password = os.environ.get("MLFLOW_TRACKING_PASSWORD", "")
 
     # Set mlflow credentials to be accessible for all the workers
     runtime_env = RuntimeEnv(
