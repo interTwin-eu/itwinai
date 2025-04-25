@@ -79,8 +79,18 @@ ray job submit --address <address> --working-dir <cwd> -- <command>
 To start the hython training pipeline from the hython-itwinai-plugin directory, the submit would be:
 
 ```bash
-ray job submit --address <address> --working-dir configuration_files/ -- itwinai exec-pipeline --config-name training
+ray job submit --address <address> --working-dir configuration_files/ -- itwinai exec-pipeline --config-name <config-name>
 ```
 
 > [!NOTE]
 > The address is not public information and therefor not revealed here, ask one of the contributors in case you miss it.
+
+To log to the intertwin MLflow server, overwrite the `tracking_uri` and prefix your authentication environment variables:
+
+```bash
+ray job submit --address <address> --working-dir configuration_files/ -- MLFLOW_TRACKING_USERNAME= MLFLOW_TRACKING_USERNAME= itwinai exec-pipeline --config-name <config-name> tracking_uri=http://mlflow.intertwin.fedcloud.eu/
+```
+
+> [!NOTE]
+> Ensure to set `experiment_name` to an individual name. In case someone else created an experiment with the same name, it will fail with `permission denied`.
+> You have to log in and create an account [here](http://mlflow.intertwin.fedcloud.eu/) first, then use your email as the username.
