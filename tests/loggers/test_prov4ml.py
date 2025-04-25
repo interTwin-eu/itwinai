@@ -1,8 +1,5 @@
-import tempfile
-from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-import mlflow
 import pytest
 
 from itwinai.loggers import Prov4MLLogger
@@ -11,16 +8,6 @@ from itwinai.loggers import Prov4MLLogger
 @pytest.fixture
 def logger_instance():
     return Prov4MLLogger()
-
-
-@pytest.fixture
-def mlflow_run():
-    with tempfile.TemporaryDirectory() as mlflow_temp_dir:
-        mlflow.set_tracking_uri(Path(mlflow_temp_dir).resolve().as_uri())
-        experiment_id = mlflow.create_experiment("temporary_experiment")
-        mlflow.set_experiment(experiment_id=experiment_id)
-        yield mlflow.start_run()
-        mlflow.end_run()
 
 
 def test_create_destroy_logger_context(logger_instance):
@@ -99,11 +86,7 @@ def test_log_flops_per_batch(logger_instance):
         )
 
         log_flops_pb.assert_called_once_with(
-            model=model_mock,
-            batch=batch_mock,
-            label="my_flops_pb",
-            step=1,
-            context="training",
+            model=model_mock, batch=batch_mock, label="my_flops_pb", step=1, context="training"
         )
 
 
@@ -191,7 +174,7 @@ def test_log_best_model(logger_instance):
         )
 
 
-def test_log_prov_documents(logger_instance, mlflow_run):
+def test_log_prov_documents(logger_instance):
     logger_instance.should_log = MagicMock(return_value=True)
     logger_instance.create_logger_context(rank=1)
 
