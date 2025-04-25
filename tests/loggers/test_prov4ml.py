@@ -129,9 +129,7 @@ def test_log_carbon(logger_instance):
         log_carbon.assert_called_once_with(context="training", step=1)
 
 
-def test_log_execution_time(
-    logger_instance,
-):
+def test_log_execution_time(logger_instance):
     logger_instance.should_log = MagicMock(return_value=True)
     logger_instance.create_logger_context(rank=1)
 
