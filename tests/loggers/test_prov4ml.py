@@ -19,8 +19,9 @@ def mlflow_run():
         mlflow.set_tracking_uri(Path(mlflow_temp_dir).resolve().as_uri())
         experiment_id = mlflow.create_experiment("temporary_experiment")
         mlflow.set_experiment(experiment_id=experiment_id)
-        with mlflow.start_run() as run:
-            yield run
+        if mlflow.active_run():
+            mlflow.end_run()
+        yield mlflow.start_run()
         mlflow.end_run()
 
 
