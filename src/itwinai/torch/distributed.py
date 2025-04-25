@@ -9,6 +9,7 @@
 # - Henry Mutegeki <henry.mutegeki@cern.ch> - CERN
 # - Anna Lappe <anna.elisa.lappe@cern.ch> - CERN
 # - Rakesh Sarma <r.sarma@fz-juelich.de> - Juelich
+# - Linus Eickhoff <linus.maximilian.eickhoff@cern.ch> - CERN
 # --------------------------------------------------------------------------------------
 
 import abc
@@ -64,7 +65,9 @@ def check_initialized(method: Callable) -> Callable:
     def wrapper(self: "TorchDistributedStrategy", *args, **kwargs):
         if not self.is_initialized:
             raise UninitializedStrategyError(
-                (f"{self.__class__.__name__} has not been initialized. Use the init method.")
+                (
+                    f"{self.__class__.__name__} has not been initialized. Use the init method."
+                )
             )
         return method(self, *args, **kwargs)
 
@@ -83,6 +86,7 @@ def initialize_ray() -> None:
             These should be set from the slurm script where the ray cluster is launched.
     """
     import ray
+    from ray.runtime_env import RuntimeEnv
 
     if not ray_cluster_is_running():
         raise RuntimeError(
@@ -92,7 +96,17 @@ def initialize_ray() -> None:
     if ray.is_initialized():
         return
 
-    ray.init(address="auto")
+    username = os.environ.get("MLFLOW_TRACKING_USERNAME", None)
+    password = os.environ.get("MLFLOW_TRACKING_PASSWORD", None)
+
+    # Set mlflow credentials to be accessible for all the workers
+    runtime_env = RuntimeEnv(
+        env_vars={
+            "MLFLOW_TRACKING_USERNAME": username,
+            "MLFLOW_TRACKING_PASSWORD": password,
+        }
+    )
+    ray.init(address="auto", runtime_env=runtime_env)
     py_logger.info(f"Nodes in the cluster: {ray.nodes()}")
     py_logger.info(f"Available cluster resources: {ray.available_resources()}")
 
@@ -355,7 +369,9 @@ class TorchDistributedStrategy(DistributedStrategy):
         """
 
         if batch_sampler is not None:
-            py_logger.warning("WARNING: batch_sampler is ignored by TorchDistributedStrategy")
+            py_logger.warning(
+                "WARNING: batch_sampler is ignored by TorchDistributedStrategy"
+            )
 
         if self.is_distributed:
             if sampler is None:
@@ -366,7 +382,9 @@ class TorchDistributedStrategy(DistributedStrategy):
                     shuffle=shuffle,
                 )
             elif not isinstance(sampler, DistributedSampler):
-                raise RuntimeError("User-provided sampler must implement DistributedSampler.")
+                raise RuntimeError(
+                    "User-provided sampler must implement DistributedSampler."
+                )
         else:
             if shuffle:
                 sampler = RandomSampler(dataset)
@@ -651,7 +669,9 @@ class DeepSpeedStrategy(TorchDistributedStrategy):
         # Removing the .put() method of the cache manager
         # This is the same bug that was earlier removed in the generic_torch.sh script,
         # using the sed command
-        from deepspeed.ops.transformer.inference.triton.matmul_ext import AutotuneCacheManager
+        from deepspeed.ops.transformer.inference.triton.matmul_ext import (
+            AutotuneCacheManager,
+        )
 
         def noop_put(self, table):
             pass
@@ -803,7 +823,9 @@ class DeepSpeedStrategy(TorchDistributedStrategy):
         dist.gather_object(obj, dst=dst_rank)
 
     @check_initialized
-    def gather(self, tensor: torch.Tensor, dst_rank: int = 0) -> Optional[List[torch.Tensor]]:
+    def gather(
+        self, tensor: torch.Tensor, dst_rank: int = 0
+    ) -> Optional[List[torch.Tensor]]:
         """Gathers a tensor from the whole group in a list
         (to all workers).
 
@@ -988,7 +1010,9 @@ class HorovodStrategy(TorchDistributedStrategy):
             return result
 
     @check_initialized
-    def gather(self, tensor: torch.Tensor, dst_rank: int = 0) -> Optional[List[torch.Tensor]]:
+    def gather(
+        self, tensor: torch.Tensor, dst_rank: int = 0
+    ) -> Optional[List[torch.Tensor]]:
         """Gathers a tensor from the whole group in a list
         (to all workers). Under the hood it relies on allgather as gather is
         not supported by Horovod.
