@@ -1,8 +1,5 @@
-import tempfile
-from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-import mlflow
 import pytest
 
 from itwinai.loggers import Prov4MLLogger
