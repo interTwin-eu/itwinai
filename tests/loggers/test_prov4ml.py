@@ -9,6 +9,7 @@ from itwinai.loggers import Prov4MLLogger
 def logger_instance():
     return Prov4MLLogger()
 
+
 def test_create_destroy_logger_context(logger_instance):
     logger_instance.should_log = MagicMock(return_value=True)
     with patch("prov4ml.start_run") as start_run, patch("prov4ml.end_run") as end_run:
@@ -138,7 +139,9 @@ def test_log_carbon(logger_instance):
         log_carbon.assert_called_once_with(context="training", step=1)
 
 
-def test_log_execution_time(logger_instance, ):
+def test_log_execution_time(
+    logger_instance,
+):
     logger_instance.should_log = MagicMock(return_value=True)
     logger_instance.create_logger_context(rank=1)
 
@@ -158,9 +161,7 @@ def test_log_model(logger_instance):
 
     model_mock = MagicMock()
     with patch("prov4ml.save_model_version") as log_model:
-        logger_instance.log(
-            item=model_mock, identifier="model_v1", kind="model", step=1
-        )
+        logger_instance.log(item=model_mock, identifier="model_v1", kind="model", step=1)
 
         log_model.assert_called_once_with(
             model=model_mock, model_name="model_v1", context="training", step=1
@@ -193,12 +194,8 @@ def test_log_prov_documents(logger_instance):
         log_prov_documents.return_value = ["doc1", "doc2"]
 
         with patch("mlflow.log_artifact") as mlflow_log_artifact:
-            logger_instance.log(
-                item=None, identifier=None, kind="prov_documents", step=1
-            )
+            logger_instance.log(item=None, identifier=None, kind="prov_documents", step=1)
 
-            log_prov_documents.assert_called_once_with(
-                create_graph=True, create_svg=True
-            )
+            log_prov_documents.assert_called_once_with(create_graph=True, create_svg=True)
             mlflow_log_artifact.assert_any_call("doc1")
             mlflow_log_artifact.assert_any_call("doc2")
