@@ -21,10 +21,12 @@ for the right tag.
 ## 0. Connect to ray server (e.g. grnet) via SSH
 
 Request access to the server first.
+SSH into the server, which you will use to launch the KubeRay cluster.
+The KubeRay cluster will use Vega resources via [interlink](https://github.com/intertwin-eu/interlink).
 Then SSH on the server, from which to launch the KubeRay cluster, which then manages
 jobs via `interlink`.
 
-Get into root shell and navigate to a work directory:
+Get into superuser shell and navigate to a work directory:
 
 ```bash
 sudo su
@@ -55,13 +57,13 @@ helm upgrade --install raycluster kuberay/ray-cluster --version 1.2.2 --values <
 
 This will start the kuberay cluster based on the provided values file.
 
-You can check the status of the current pods with:
+You can check the status of the current pods with "raycluster" in their name with:
 
 ```bash
 kubectl get pods | grep raycluster
 ```
 
-As the pods need to allocate jobs on vega, you will have to wait a few minutes before the cluster is ready for submits.
+As the pods need to allocate jobs on vega, you will have to wait a few minutes before the cluster is ready for submissions.
 The pods are ready when each pod displays _1/1_ and _Running_.
 
 > [!CAUTION]
@@ -71,15 +73,15 @@ The pods are ready when each pod displays _1/1_ and _Running_.
 helm delete raycluster
 ```
 
-## 2. Submit to the Cluster
+## 2. Submit to the KubeRay cluster
 
-To submit a ray job to the cluster, run the following command from e.g. vega:
+To submit a ray job to the KubeRay cluster, run the following command from e.g. vega:
 
 ```bash
 ray job submit --address <address> --working-dir <cwd> -- <command>
 ```
 
-To start the hython training pipeline from the hython-itwinai-plugin directory, the submit would be:
+To start the hython training pipeline from the hython-itwinai-plugin directory, the full submission command would be:
 
 ```bash
 ray job submit --address <address> --working-dir configuration_files/ -- itwinai exec-pipeline --config-name <config-name>
@@ -95,8 +97,8 @@ ray job submit \
   --address <address> \
   --working-dir configuration_files/ \
   -- \
-  MLFLOW_TRACKING_USERNAME= \
-  MLFLOW_TRACKING_PASSWORD= \
+  MLFLOW_TRACKING_USERNAME=<username> \
+  MLFLOW_TRACKING_PASSWORD=<password> \
   itwinai exec-pipeline \
     --config-name <config-name> \
     tracking_uri=http://mlflow.intertwin.fedcloud.eu/
