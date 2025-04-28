@@ -17,9 +17,17 @@ class BinnedSpline(_BaseCouplingBlock):
     by a non-invertible coupling subnetwork
     """
 
-    def __init__(self, dims_in, dims_c=None, subnet_constructor: callable = None, split_len: Union[float, int] = 0.5,
-                 bins: int = 10, parameter_counts: Dict[str, int] = None, min_bin_sizes: Tuple[float] = (0.1, 0.1),
-                 default_domain: Tuple[float] = (-3.0, 3.0, -3.0, 3.0)) -> None:
+    def __init__(
+        self,
+        dims_in,
+        dims_c=None,
+        subnet_constructor: callable = None,
+        split_len: Union[float, int] = 0.5,
+        bins: int = 10,
+        parameter_counts: Dict[str, int] = None,
+        min_bin_sizes: Tuple[float] = (0.1, 0.1),
+        default_domain: Tuple[float] = (-3.0, 3.0, -3.0, 3.0),
+    ) -> None:
         """
         Args:
             bins: number of bins to use
@@ -35,7 +43,13 @@ class BinnedSpline(_BaseCouplingBlock):
         if parameter_counts is None:
             parameter_counts = {}
 
-        super().__init__(dims_in, dims_c, clamp=0.0, clamp_activation=lambda u: u, split_len=split_len)
+        super().__init__(
+            dims_in,
+            dims_c,
+            clamp=0.0,
+            clamp_activation=lambda u: u,
+            split_len=split_len,
+        )
 
         assert bins >= 1, "need at least one bin"
         assert all(s >= 0 for s in min_bin_sizes), "minimum bin size cannot be negative"
@@ -43,8 +57,12 @@ class BinnedSpline(_BaseCouplingBlock):
         assert default_domain[3] > default_domain[2], "y domain must be increasing"
 
         self.register_buffer("bins", torch.tensor(bins, dtype=torch.int32))
-        self.register_buffer("min_bin_sizes", torch.as_tensor(min_bin_sizes, dtype=torch.float32))
-        self.register_buffer("default_domain", torch.as_tensor(default_domain, dtype=torch.float32))
+        self.register_buffer(
+            "min_bin_sizes", torch.as_tensor(min_bin_sizes, dtype=torch.float32)
+        )
+        self.register_buffer(
+            "default_domain", torch.as_tensor(default_domain, dtype=torch.float32)
+        )
 
         # The default parameters are
         #       parameter                                       constraints             count
@@ -62,16 +80,26 @@ class BinnedSpline(_BaseCouplingBlock):
         self.parameter_counts = {**default_parameter_counts, **parameter_counts}
 
         num_params = sum(self.parameter_counts.values())
-        self.subnet1 = subnet_constructor(self.split_len2 + self.condition_length, self.split_len1 * num_params)
-        self.subnet2 = subnet_constructor(self.split_len1 + self.condition_length, self.split_len2 * num_params)
+        self.subnet1 = subnet_constructor(
+            self.split_len2 + self.condition_length, self.split_len1 * num_params
+        )
+        self.subnet2 = subnet_constructor(
+            self.split_len1 + self.condition_length, self.split_len2 * num_params
+        )
 
-    def _spline1(self, x1: torch.Tensor, parameters: Dict[str, torch.Tensor], rev: bool = False) -> Tuple[torch.Tensor, torch.Tensor]:
+    def _spline1(
+        self, x1: torch.Tensor, parameters: Dict[str, torch.Tensor], rev: bool = False
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
         raise NotImplementedError
 
-    def _spline2(self, x2: torch.Tensor, parameters: Dict[str, torch.Tensor], rev: bool = False) -> Tuple[torch.Tensor, torch.Tensor]:
+    def _spline2(
+        self, x2: torch.Tensor, parameters: Dict[str, torch.Tensor], rev: bool = False
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
         raise NotImplementedError
 
-    def _coupling1(self, x1: torch.Tensor, u2: torch.Tensor, rev: bool = False) -> Tuple[torch.Tensor, torch.Tensor]:
+    def _coupling1(
+        self, x1: torch.Tensor, u2: torch.Tensor, rev: bool = False
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
         """
         The full coupling consists of:
         1. Querying the parameter tensor from the subnetwork
@@ -83,16 +111,24 @@ class BinnedSpline(_BaseCouplingBlock):
         parameters = self.split_parameters(parameters, self.split_len1)
         parameters = self.constrain_parameters(parameters)
 
-        return self.binned_spline(x=x1, parameters=parameters, spline=self._spline1, rev=rev)
+        return self.binned_spline(
+            x=x1, parameters=parameters, spline=self._spline1, rev=rev
+        )
 
-    def _coupling2(self, x2: torch.Tensor, u1: torch.Tensor, rev: bool = False) -> Tuple[torch.Tensor, torch.Tensor]:
+    def _coupling2(
+        self, x2: torch.Tensor, u1: torch.Tensor, rev: bool = False
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
         parameters = self.subnet2(u1)
         parameters = self.split_parameters(parameters, self.split_len2)
         parameters = self.constrain_parameters(parameters)
 
-        return self.binned_spline(x=x2, parameters=parameters, spline=self._spline2, rev=rev)
+        return self.binned_spline(
+            x=x2, parameters=parameters, spline=self._spline2, rev=rev
+        )
 
-    def split_parameters(self, parameters: torch.Tensor, split_len: int) -> Dict[str, torch.Tensor]:
+    def split_parameters(
+        self, parameters: torch.Tensor, split_len: int
+    ) -> Dict[str, torch.Tensor]:
         """
         Split network output into semantic parameters, as given by self.parameter_counts
         """
@@ -100,11 +136,15 @@ class BinnedSpline(_BaseCouplingBlock):
         parameters = parameters.reshape(*parameters.shape[:-1], split_len, -1)
 
         keys = list(self.parameter_counts.keys())
-        values = list(torch.split(parameters, list(self.parameter_counts.values()), dim=-1))
+        values = list(
+            torch.split(parameters, list(self.parameter_counts.values()), dim=-1)
+        )
 
         return dict(zip(keys, values))
 
-    def constrain_parameters(self, parameters: Dict[str, torch.Tensor]) -> Dict[str, torch.Tensor]:
+    def constrain_parameters(
+        self, parameters: Dict[str, torch.Tensor]
+    ) -> Dict[str, torch.Tensor]:
         """
         Constrain Parameters to meet certain conditions (e.g. positivity)
         """
@@ -121,12 +161,22 @@ class BinnedSpline(_BaseCouplingBlock):
         xshift = torch.log(torch.exp(default_width - self.min_bin_sizes[0]) - 1)
         yshift = torch.log(torch.exp(default_height - self.min_bin_sizes[1]) - 1)
 
-        parameters["widths"] = self.min_bin_sizes[0] + F.softplus(parameters["widths"] + xshift)
-        parameters["heights"] = self.min_bin_sizes[1] + F.softplus(parameters["heights"] + yshift)
+        parameters["widths"] = self.min_bin_sizes[0] + F.softplus(
+            parameters["widths"] + xshift
+        )
+        parameters["heights"] = self.min_bin_sizes[1] + F.softplus(
+            parameters["heights"] + yshift
+        )
 
         return parameters
 
-    def binned_spline(self, x: torch.Tensor, parameters: Dict[str, torch.Tensor], spline: callable, rev: bool = False) -> Tuple[torch.Tensor, torch.Tensor]:
+    def binned_spline(
+        self,
+        x: torch.Tensor,
+        parameters: Dict[str, torch.Tensor],
+        spline: callable,
+        rev: bool = False,
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
         """
         Compute the spline for given bin and spline parameters
         """
@@ -151,7 +201,9 @@ class BinnedSpline(_BaseCouplingBlock):
         x_in = x[inside]
         x_out = x[~inside]
 
-        scale = torch.sum(parameters["heights"], dim=-1, keepdim=True) / torch.sum(parameters["widths"], dim=-1, keepdim=True)
+        scale = torch.sum(parameters["heights"], dim=-1, keepdim=True) / torch.sum(
+            parameters["widths"], dim=-1, keepdim=True
+        )
         shift = parameters["bottom"] - scale * parameters["left"]
 
         scale = scale[~inside].squeeze(-1)
@@ -168,13 +220,18 @@ class BinnedSpline(_BaseCouplingBlock):
 
         spline_parameters = dict()
 
-        
         # gather bin edges from indices
-        spline_parameters["left"] = torch.gather(knot_x, dim=-1, index=lower).squeeze(-1)
-        spline_parameters["right"] = torch.gather(knot_x, dim=-1, index=upper).squeeze(-1)
-        spline_parameters["bottom"] = torch.gather(knot_y, dim=-1, index=lower).squeeze(-1)
+        spline_parameters["left"] = torch.gather(knot_x, dim=-1, index=lower).squeeze(
+            -1
+        )
+        spline_parameters["right"] = torch.gather(knot_x, dim=-1, index=upper).squeeze(
+            -1
+        )
+        spline_parameters["bottom"] = torch.gather(knot_y, dim=-1, index=lower).squeeze(
+            -1
+        )
         spline_parameters["top"] = torch.gather(knot_y, dim=-1, index=upper).squeeze(-1)
-        
+
         # try:
         #     assert 0 == 1
         # except:
@@ -195,8 +252,12 @@ class BinnedSpline(_BaseCouplingBlock):
 
             v = value[inside]
 
-            spline_parameters[f"{key}_left"] = torch.gather(v, dim=-1, index=lower).squeeze(-1)
-            spline_parameters[f"{key}_right"] = torch.gather(v, dim=-1, index=upper).squeeze(-1)
+            spline_parameters[f"{key}_left"] = torch.gather(
+                v, dim=-1, index=lower
+            ).squeeze(-1)
+            spline_parameters[f"{key}_right"] = torch.gather(
+                v, dim=-1, index=upper
+            ).squeeze(-1)
 
         if not rev:
             y = torch.clone(x)

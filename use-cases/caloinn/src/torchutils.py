@@ -156,7 +156,7 @@ def get_temperature(max_value, bound=1 - 1e-3):
 def gaussian_kde_log_eval(samples, query):
     N, D = samples.shape[0], samples.shape[-1]
     std = N ** (-1 / (D + 4))
-    precision = (1 / (std ** 2)) * torch.eye(D)
+    precision = (1 / (std**2)) * torch.eye(D)
     a = query - samples
     b = a @ precision
     c = -0.5 * torch.sum(a * b, dim=-1)

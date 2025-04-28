@@ -9,16 +9,37 @@ class LinearSpline(BinnedSpline):
     def __init__(self, *args, bins: int = 10, **kwargs):
         super().__init__(*args, **kwargs, bins=bins, parameter_counts=None)
 
-    def _spline1(self, x: torch.Tensor, parameters: Dict[str, torch.Tensor], rev: bool = False) -> Tuple[torch.Tensor, torch.Tensor]:
-        left, right, bottom, top = parameters["left"], parameters["right"], parameters["bottom"], parameters["top"]
+    def _spline1(
+        self, x: torch.Tensor, parameters: Dict[str, torch.Tensor], rev: bool = False
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        left, right, bottom, top = (
+            parameters["left"],
+            parameters["right"],
+            parameters["bottom"],
+            parameters["top"],
+        )
         return linear_spline(x, left, right, bottom, top, rev=rev)
 
-    def _spline2(self, x: torch.Tensor, parameters: Dict[str, torch.Tensor], rev: bool = False) -> Tuple[torch.Tensor, torch.Tensor]:
-        left, right, bottom, top = parameters["left"], parameters["right"], parameters["bottom"], parameters["top"]
+    def _spline2(
+        self, x: torch.Tensor, parameters: Dict[str, torch.Tensor], rev: bool = False
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        left, right, bottom, top = (
+            parameters["left"],
+            parameters["right"],
+            parameters["bottom"],
+            parameters["top"],
+        )
         return linear_spline(x, left, right, bottom, top, rev=rev)
 
 
-def linear_spline(x: torch.Tensor, left: torch.Tensor, right: torch.Tensor, bottom: torch.Tensor, top: torch.Tensor, rev: bool = False) -> Tuple[torch.Tensor, torch.Tensor]:
+def linear_spline(
+    x: torch.Tensor,
+    left: torch.Tensor,
+    right: torch.Tensor,
+    bottom: torch.Tensor,
+    top: torch.Tensor,
+    rev: bool = False,
+) -> Tuple[torch.Tensor, torch.Tensor]:
     """
     Computes a linear spline, connecting each knot with a straight line
     Args:

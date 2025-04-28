@@ -4,8 +4,11 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+
 class VBLinear(nn.Module):
-    def __init__(self, in_features, out_features, prior_prec=1.0, _map=False, std_init=-9):
+    def __init__(
+        self, in_features, out_features, prior_prec=1.0, _map=False, std_init=-9
+    ):
         super(VBLinear, self).__init__()
         self.n_in = in_features
         self.n_out = out_features
@@ -25,7 +28,7 @@ class VBLinear(nn.Module):
         self.map = False
 
     def reset_parameters(self):
-        stdv = 1. / math.sqrt(self.mu_w.size(1))
+        stdv = 1.0 / math.sqrt(self.mu_w.size(1))
         self.mu_w.data.normal_(0, stdv)
         self.logsig2_w.data.zero_().normal_(self.std_init, 0.001)
         self.bias.data.zero_()
@@ -38,12 +41,20 @@ class VBLinear(nn.Module):
         return torch.randn_like(self.logsig2_w).detach().cpu().numpy()
 
     def import_random_state(self, state):
-        self.random = torch.tensor(state, device=self.logsig2_w.device,
-                                   dtype=self.logsig2_w.dtype)
+        self.random = torch.tensor(
+            state, device=self.logsig2_w.device, dtype=self.logsig2_w.dtype
+        )
 
     def KL(self):
-        return 0.5 * (self.prior_prec * (self.mu_w.pow(2) + self.logsig2_w.exp())
-                        - self.logsig2_w - 1 - math.log(self.prior_prec)).sum()
+        return (
+            0.5
+            * (
+                self.prior_prec * (self.mu_w.pow(2) + self.logsig2_w.exp())
+                - self.logsig2_w
+                - 1
+                - math.log(self.prior_prec)
+            ).sum()
+        )
 
     def forward(self, input):
         if self.training:

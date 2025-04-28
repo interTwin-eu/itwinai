@@ -1,15 +1,16 @@
 # pylint: disable=invalid-name
 """
-    Helperclass that reads the binning xml file
+Helperclass that reads the binning xml file
 """
 
 import math
 import numpy as np
 import xml.etree.ElementTree as ET
 
+
 class XMLHandler:
 
-    def __init__(self, particle_name, filename='binning.xml'):
+    def __init__(self, particle_name, filename="binning.xml"):
 
         tree = ET.parse(filename)
         root = tree.getroot()
@@ -39,7 +40,9 @@ class XMLHandler:
                 for layer in particle:
                     self.ReadPolarCoordinates(layer)
         if not found_particle:
-            raise ValueError('Particle {} not found in {}'.format(particle_name, filename))
+            raise ValueError(
+                "Particle {} not found in {}".format(particle_name, filename)
+            )
 
         self.totalBins = 0
         self.bin_number = []
@@ -55,15 +58,15 @@ class XMLHandler:
     def ReadPolarCoordinates(self, subelem):
         bins = 0
         r_list = []
-        str_r = subelem.attrib.get('r_edges')
-        r_list = [float(s) for s in str_r.split(',')]
+        str_r = subelem.attrib.get("r_edges")
+        r_list = [float(s) for s in str_r.split(",")]
         bins = len(r_list) - 1
 
         self.r_edges.append(r_list)
         self.r_bins.append(bins)
-        layer = subelem.attrib.get('id')
+        layer = subelem.attrib.get("id")
 
-        bins_in_alpha = int(subelem.attrib.get('n_bin_alpha'))
+        bins_in_alpha = int(subelem.attrib.get("n_bin_alpha"))
         self.a_bins.append(bins_in_alpha)
         self.r_midvalue.append(self.get_midpoint(r_list))
         if bins_in_alpha > 1:
@@ -84,8 +87,8 @@ class XMLHandler:
 
     def get_midpoint(self, arr):
         middle_points = []
-        for i in range(len(arr)-1):
-            middle_value = arr[i] + float((arr[i+1] - arr[i]))/2
+        for i in range(len(arr) - 1):
+            middle_value = arr[i] + float((arr[i + 1] - arr[i])) / 2
             middle_points.append(middle_value)
         return middle_points
 
@@ -113,9 +116,10 @@ class XMLHandler:
             alphaBinList = []
             nBinAlpha = []
 
-            bin_no = self.r_bins[layer]*self.a_bins[layer]
-            centres_alpha = self.get_midpoint(np.linspace(self.minAlpha,
-                                                          math.pi, self.a_bins[layer]+1))
+            bin_no = self.r_bins[layer] * self.a_bins[layer]
+            centres_alpha = self.get_midpoint(
+                np.linspace(self.minAlpha, math.pi, self.a_bins[layer] + 1)
+            )
             for _ in range(self.r_bins[layer]):
                 alphaBinList.append(centres_alpha)
                 nBinAlpha.append(self.a_bins[layer])

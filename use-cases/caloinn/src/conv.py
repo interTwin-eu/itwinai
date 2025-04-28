@@ -4,8 +4,10 @@ from torch import nn
 from torch.nn import functional as F
 from torch.nn import init
 import FrEIA.modules as fm
-#import torchutils
-#import n_checks as check
+
+# import torchutils
+# import n_checks as check
+
 
 class myConv(fm.InvertibleModule):
     def __init__(self, dims_in, dims_c=None):
@@ -17,7 +19,7 @@ class myConv(fm.InvertibleModule):
         self.weight = nn.Parameter(weight)
 
     def forward(self, x, rev=False, jac=True):
-        x, = x
+        (x,) = x
         x = x.unsqueeze(2).unsqueeze(3)
         _, _, height, width = x.shape
 
@@ -32,11 +34,12 @@ class myConv(fm.InvertibleModule):
 
         else:
             out = F.conv2d(x, self.weight.squeeze().inverse().unsqueeze(2).unsqueeze(3))
-            logdet = - dlogdet
+            logdet = -dlogdet
         return (out.squeeze(),), logdet
 
     def output_dims(self, input_dims):
         return input_dims
+
 
 class Transform(nn.Module):
     """Base class for all transform objects."""
@@ -46,6 +49,7 @@ class Transform(nn.Module):
 
     def inverse(self, inputs, context=None):
         raise InverseNotAvailable()
+
 
 class Linear(Transform):
     """Abstract base class for linear transforms that parameterize a weight matrix."""
@@ -143,6 +147,7 @@ class Linear(Transform):
     def logabsdet(self):
         """Returns the log absolute determinant of the weight matrix."""
         raise NotImplementedError()
+
 
 class LULinear(Linear):
     """A linear transform where we parameterize the LU decomposition of the weights."""
@@ -263,6 +268,7 @@ class LULinear(Linear):
             D = num of features
         """
         return torch.sum(torch.log(self.upper_diag))
+
 
 class OneByOneConvolution(LULinear):
     """An invertible 1x1 convolution with a fixed permutation, as introduced in the Glow paper.

@@ -11,9 +11,13 @@ class RationalQuadraticSpline(BinnedSpline):
     def __init__(self, *args, bins: int = 10, **kwargs):
         #       parameter                                       constraints             count
         # 1.    the derivative at the edge of each inner bin    positive                #bins - 1
-        super().__init__(*args, **kwargs, bins=bins, parameter_counts={"deltas": bins - 1})
+        super().__init__(
+            *args, **kwargs, bins=bins, parameter_counts={"deltas": bins - 1}
+        )
 
-    def constrain_parameters(self, parameters: Dict[str, torch.Tensor]) -> Dict[str, torch.Tensor]:
+    def constrain_parameters(
+        self, parameters: Dict[str, torch.Tensor]
+    ) -> Dict[str, torch.Tensor]:
         parameters = super().constrain_parameters(parameters)
         # we additionally want positive derivatives to preserve monotonicity
         # the derivative must also match the tails at the spline boundaries
@@ -24,7 +28,9 @@ class RationalQuadraticSpline(BinnedSpline):
         deltas = F.softplus(deltas + shift)
 
         # boundary condition: derivative is equal to affine scale at spline boundaries
-        scale = torch.sum(parameters["heights"], dim=-1, keepdim=True) / torch.sum(parameters["widths"], dim=-1, keepdim=True)
+        scale = torch.sum(parameters["heights"], dim=-1, keepdim=True) / torch.sum(
+            parameters["widths"], dim=-1, keepdim=True
+        )
         scale = scale.expand(*scale.shape[:-1], 2)
 
         deltas = torch.cat((deltas, scale), dim=-1).roll(1, dims=-1)
@@ -33,27 +39,51 @@ class RationalQuadraticSpline(BinnedSpline):
 
         return parameters
 
-    def _spline1(self, x: torch.Tensor, parameters: Dict[str, torch.Tensor], rev: bool = False) -> Tuple[torch.Tensor, torch.Tensor]:
-        left, right, bottom, top = parameters["left"], parameters["right"], parameters["bottom"], parameters["top"]
-        deltas_left, deltas_right = parameters["deltas_left"], parameters["deltas_right"]
-        return rational_quadratic_spline(x, left, right, bottom, top, deltas_left, deltas_right, rev=rev)
-            
+    def _spline1(
+        self, x: torch.Tensor, parameters: Dict[str, torch.Tensor], rev: bool = False
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        left, right, bottom, top = (
+            parameters["left"],
+            parameters["right"],
+            parameters["bottom"],
+            parameters["top"],
+        )
+        deltas_left, deltas_right = (
+            parameters["deltas_left"],
+            parameters["deltas_right"],
+        )
+        return rational_quadratic_spline(
+            x, left, right, bottom, top, deltas_left, deltas_right, rev=rev
+        )
 
-    def _spline2(self, x: torch.Tensor, parameters: Dict[str, torch.Tensor], rev: bool = False) -> Tuple[torch.Tensor, torch.Tensor]:
-        left, right, bottom, top = parameters["left"], parameters["right"], parameters["bottom"], parameters["top"]
-        deltas_left, deltas_right = parameters["deltas_left"], parameters["deltas_right"]
-        return rational_quadratic_spline(x, left, right, bottom, top, deltas_left, deltas_right, rev=rev)
-            
+    def _spline2(
+        self, x: torch.Tensor, parameters: Dict[str, torch.Tensor], rev: bool = False
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        left, right, bottom, top = (
+            parameters["left"],
+            parameters["right"],
+            parameters["bottom"],
+            parameters["top"],
+        )
+        deltas_left, deltas_right = (
+            parameters["deltas_left"],
+            parameters["deltas_right"],
+        )
+        return rational_quadratic_spline(
+            x, left, right, bottom, top, deltas_left, deltas_right, rev=rev
+        )
 
-def rational_quadratic_spline(x: torch.Tensor,
-                              left: torch.Tensor,
-                              right: torch.Tensor,
-                              bottom: torch.Tensor,
-                              top: torch.Tensor,
-                              deltas_left: torch.Tensor,
-                              deltas_right: torch.Tensor,
-                              rev: bool = False,
-                              ) -> Tuple[torch.Tensor, torch.Tensor]:
+
+def rational_quadratic_spline(
+    x: torch.Tensor,
+    left: torch.Tensor,
+    right: torch.Tensor,
+    bottom: torch.Tensor,
+    top: torch.Tensor,
+    deltas_left: torch.Tensor,
+    deltas_right: torch.Tensor,
+    rev: bool = False,
+) -> Tuple[torch.Tensor, torch.Tensor]:
     """
     Compute the rational-quadratic spline with the algorithm described in arXiv:1906.04032
     Forward output is defined for each bin by the fraction
@@ -93,7 +123,7 @@ def rational_quadratic_spline(x: torch.Tensor,
         xi = (x - xk) / dx
 
         # Eq 4 in the paper
-        numerator = dy * (sk * xi ** 2 + dk * xi * (1 - xi))
+        numerator = dy * (sk * xi**2 + dk * xi * (1 - xi))
         denominator = sk + (dkp + dk - 2 * sk) * xi * (1 - xi)
         out = yk + numerator / denominator
     else:
@@ -104,7 +134,7 @@ def rational_quadratic_spline(x: torch.Tensor,
         c = -sk * (y - yk)
 
         # Eq 29 in the appendix of the paper
-        discriminant = b ** 2 - 4 * a * c
+        discriminant = b**2 - 4 * a * c
         assert torch.all(discriminant >= 0)
 
         xi = 2 * c / (-b - torch.sqrt(discriminant))
@@ -112,7 +142,7 @@ def rational_quadratic_spline(x: torch.Tensor,
         out = xi * dx + xk
 
     # Eq 5 in the paper
-    numerator = sk ** 2 * (dkp * xi ** 2 + 2 * sk * xi * (1 - xi) + dk * (1 - xi) ** 2)
+    numerator = sk**2 * (dkp * xi**2 + 2 * sk * xi * (1 - xi) + dk * (1 - xi) ** 2)
     denominator = (sk + (dkp + dk - 2 * sk) * xi * (1 - xi)) ** 2
     log_jac = torch.log(numerator) - torch.log(denominator)
 

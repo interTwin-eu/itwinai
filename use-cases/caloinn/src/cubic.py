@@ -10,13 +10,16 @@ DEFAULT_MIN_BIN_HEIGHT = 1e-3
 DEFAULT_EPS = 1e-5
 DEFAULT_QUADRATIC_THRESHOLD = 1e-3
 
+
 def searchsorted(bin_locations, inputs, eps=1e-6):
     bin_locations[..., -1] += eps
     return torch.sum(inputs[..., None] >= bin_locations, dim=-1) - 1
 
+
 def cbrt(x):
     """Cube root. Equivalent to torch.pow(x, 1/3), but numerically stable."""
     return torch.sign(x) * torch.exp(torch.log(torch.abs(x)) / 3.0)
+
 
 def unconstrained_cubic_spline(
     inputs,
@@ -88,7 +91,7 @@ def cubic_spline(
     Graphics and Applications, 27(3):78–89.
     """
     if torch.min(inputs) < left or torch.max(inputs) > right:
-        raise RuntimeError('input out of bounds')
+        raise RuntimeError("input out of bounds")
 
     num_bins = unnormalized_widths.shape[-1]
 

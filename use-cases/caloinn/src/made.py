@@ -14,7 +14,7 @@ from .cubic import unconstrained_cubic_spline
 
 
 def tile(x, n):
-    if not (isinstance(n, int) and n>0):
+    if not (isinstance(n, int) and n > 0):
         raise TypeError("Argument 'n' must be a positive integer.")
     x_ = x.reshape(-1)
     x_ = x_.repeat(n)
@@ -22,6 +22,7 @@ def tile(x, n):
     x_ = x_.transpose(1, 0)
     x_ = x_.reshape(-1)
     return x_
+
 
 def _get_input_degrees(in_features):
     """Returns the degrees an input to MADE should have."""
@@ -216,14 +217,15 @@ class MaskedPiecewiseCubicAutoregressiveTransform(InvertibleModule):
         dims_in,
         dims_c=[],
         num_bins: int = 10,
-        bounds_init: float = 10.,
+        bounds_init: float = 10.0,
         hidden_features: int = 512,
         permute_soft: bool = False,
         num_blocks=1,
         random_mask=False,
         activation=F.relu,
         dropout=0.0,
-        use_batch_norm=False):
+        use_batch_norm=False,
+    ):
         super().__init__(dims_in, dims_c)
 
         self.num_bins = num_bins
@@ -235,8 +237,9 @@ class MaskedPiecewiseCubicAutoregressiveTransform(InvertibleModule):
             self.conditional = False
             self.context_features = None
         else:
-            assert tuple(dims_c[0][1:]) == tuple(dims_in[0][1:]), \
-                F"Dimensions of input and condition don't agree: {dims_c} vs {dims_in}."
+            assert tuple(dims_c[0][1:]) == tuple(
+                dims_in[0][1:]
+            ), f"Dimensions of input and condition don't agree: {dims_c} vs {dims_in}."
             self.conditional = True
             self.context_features = sum(dc[0] for dc in dims_c)
         self.autoregressive_net = MADE(
@@ -251,10 +254,12 @@ class MaskedPiecewiseCubicAutoregressiveTransform(InvertibleModule):
             use_batch_norm=use_batch_norm,
         )
         try:
-            self.permute_function = {0: F.linear,
-                                     1: F.conv1d,
-                                     2: F.conv2d,
-                                     3: F.conv3d}[self.input_rank]
+            self.permute_function = {
+                0: F.linear,
+                1: F.conv1d,
+                2: F.conv2d,
+                3: F.conv3d,
+            }[self.input_rank]
         except KeyError:
             raise ValueError(f"Data is {1 + self.input_rank}D. Must be 1D-4D.")
         if permute_soft:
@@ -262,19 +267,27 @@ class MaskedPiecewiseCubicAutoregressiveTransform(InvertibleModule):
         else:
             w = torch.zeros((self.features, self.features))
             for i, j in enumerate(np.random.permutation(self.features)):
-                w[i, self.features-i-1] = 1.
-        self.w_perm = nn.Parameter(torch.FloatTensor(w).view(self.features, self.features, *([1] * self.input_rank)),
-                                   requires_grad=False)
-        self.w_perm_inv = nn.Parameter(torch.FloatTensor(w.T).view(self.features, self.features, *([1] * self.input_rank)),
-                                       requires_grad=False)
+                w[i, self.features - i - 1] = 1.0
+        self.w_perm = nn.Parameter(
+            torch.FloatTensor(w).view(
+                self.features, self.features, *([1] * self.input_rank)
+            ),
+            requires_grad=False,
+        )
+        self.w_perm_inv = nn.Parameter(
+            torch.FloatTensor(w.T).view(
+                self.features, self.features, *([1] * self.input_rank)
+            ),
+            requires_grad=False,
+        )
 
     def forward(self, x, c=[], rev=False, jac=True):
-        '''See base class docstring'''
-        inputs, = x
+        """See base class docstring"""
+        (inputs,) = x
         if self.conditional:
-            context, = c
+            (context,) = c
         else:
-            context=None
+            context = None
         if rev:
             inputs = self.permute_function(inputs, self.w_perm_inv)
             num_inputs = np.prod(inputs.shape[1:])
@@ -318,7 +331,7 @@ class MaskedPiecewiseCubicAutoregressiveTransform(InvertibleModule):
             unnorm_derivatives_left=unnorm_derivatives_left,
             unnorm_derivatives_right=unnorm_derivatives_right,
             inverse=inverse,
-            tail_bound=self.tail_bound
+            tail_bound=self.tail_bound,
         )
         return outputs, torch.sum(logabsdet, dim=self.sum_dims)
 
