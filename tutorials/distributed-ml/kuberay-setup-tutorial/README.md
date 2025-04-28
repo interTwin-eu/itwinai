@@ -84,7 +84,7 @@ ray job submit --address <address> --working-dir <cwd> -- <command>
 To start the hython training pipeline from the hython-itwinai-plugin directory, the full submission command would be:
 
 ```bash
-ray job submit --address <address> --working-dir configuration_files/ -- itwinai exec-pipeline --config-name <config-name>
+ray job submit --address <address> --working-dir configuration_files/ -- itwinai exec-pipeline --config-name vega_training +pipe_key=training
 ```
 
 > [!NOTE]
@@ -101,7 +101,8 @@ ray job submit \
   MLFLOW_TRACKING_PASSWORD=<password> \
   itwinai exec-pipeline \
     --config-name <config-name> \
-    tracking_uri=http://mlflow.intertwin.fedcloud.eu/
+    tracking_uri=http://mlflow.intertwin.fedcloud.eu/ \
+    +pipe_key=training
 ```
 
 > [!NOTE]
