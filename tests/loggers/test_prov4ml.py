@@ -19,7 +19,8 @@ def mlflow_run():
         mlflow.set_tracking_uri(Path(mlflow_temp_dir).resolve().as_uri())
         experiment_id = mlflow.create_experiment("temporary_experiment")
         mlflow.set_experiment(experiment_id=experiment_id)
-        yield mlflow.start_run()
+        # nested=True is needed
+        yield mlflow.start_run(nested=True)
         mlflow.end_run()
 
 
