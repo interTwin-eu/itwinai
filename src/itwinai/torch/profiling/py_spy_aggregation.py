@@ -58,7 +58,7 @@ def handle_data_point(line: str) -> List[Dict[str, str | int]]:
     if not stack_trace:
         return []
 
-    # The various function calls are separed with semicolons
+    # The various function calls are separated with semicolons
     stack_trace = stack_trace.split(";")
     stack_trace = [trace_line for trace_line in stack_trace if trace_line]
 

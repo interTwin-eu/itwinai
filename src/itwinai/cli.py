@@ -105,12 +105,23 @@ def generate_py_spy_report(
             if structured_stack_trace:
                 data_points.append(structured_stack_trace)
         except ValueError as exception:
-            typer.echo(
-                f"Failed to aggregate data with following error:\n{exception}"
-            )
+            typer.echo(f"Failed to aggregate data with following error:\n{exception}")
             raise typer.Exit()
 
     leaf_functions = [data_point[-1] for data_point in data_points]
+
+    # Aggregating leaf functions with the same path, name and line number
+    aggregated_leaf_functions = {}
+    for entry in leaf_functions:
+        key = (entry["name"], entry["path"], entry["line"])
+        aggregated_leaf_functions[key] = (
+            aggregated_leaf_functions.get(key, 0) + entry["num_samples"]
+        )
+    leaf_functions = [
+        {"name": key[0], "path": key[1], "line": key[2], "num_samples": value}
+        for key, value in aggregated_leaf_functions.items()
+    ]
+
     leaf_functions.sort(key=lambda x: x["num_samples"], reverse=True)
     table = create_bottom_function_table(
         function_data_list=leaf_functions, num_rows=parsed_num_rows
