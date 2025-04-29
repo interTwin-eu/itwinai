@@ -1,8 +1,5 @@
-import tempfile
-from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-import mlflow
 import pytest
 
 from itwinai.loggers import Prov4MLLogger
@@ -22,6 +19,7 @@ def mlflow_run():
         # nested=True is needed
         yield mlflow.start_run(nested=True)
         mlflow.end_run()
+
 
 
 def test_create_destroy_logger_context(logger_instance):
@@ -100,11 +98,7 @@ def test_log_flops_per_batch(logger_instance):
         )
 
         log_flops_pb.assert_called_once_with(
-            model=model_mock,
-            batch=batch_mock,
-            label="my_flops_pb",
-            step=1,
-            context="training",
+            model=model_mock, batch=batch_mock, label="my_flops_pb", step=1, context="training"
         )
 
 
