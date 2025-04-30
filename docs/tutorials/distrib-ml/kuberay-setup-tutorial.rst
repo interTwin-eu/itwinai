@@ -1,5 +1,5 @@
-Tensorflow scaling test
-=======================
+KubeRay Setup Tutorial
+======================
 
 .. include:: ../../../tutorials/distributed-ml/kuberay-setup-tutorial/README.md
    :parser: myst_parser.sphinx_
