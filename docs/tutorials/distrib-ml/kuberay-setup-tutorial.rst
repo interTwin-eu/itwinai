@@ -1,4 +1,4 @@
-KubeRay Setup Tutorial
+KubeRay setup tutorial
 ======================
 
 .. include:: ../../../tutorials/distributed-ml/kuberay-setup-tutorial/README.md
