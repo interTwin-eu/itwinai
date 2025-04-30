@@ -135,7 +135,8 @@ From: /mnt/mbunino/lumi-rocm-pytorch.sif
     export CC=/usr/bin/gcc-11
     export CXX=/usr/bin/g++-11
     export CXXFLAGS="-std=c++17"
-
+    
+    # https://github.com/ROCm/ROCm/issues/3987#issuecomment-2479684637
     git clone --recursive https://github.com/horovod/horovod.git
     cd horovod
     ln -s $ROCM_PATH/lib/cmake/hip/FindHIP* cmake/Modules/
@@ -157,7 +158,7 @@ From: /mnt/mbunino/lumi-rocm-pytorch.sif
 
 %labels
     Author Matteo Bunino
-    Project interTwin
+    Project interTwin - itwinai
     Version 0.3.1
 
 %test
