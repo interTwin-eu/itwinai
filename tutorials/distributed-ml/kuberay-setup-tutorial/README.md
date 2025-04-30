@@ -15,8 +15,9 @@ For more background on Ray job submission and KubeRay, see:
   Kubernetes.
 - [Ray job submission guide](https://docs.ray.io/en/latest/cluster/running-applications/job-submission/index.html) –
   Explains how to submit jobs to a Ray cluster.
-- [Job submission quickstart](https://docs.ray.io/en/latest/cluster/running-applications/job-submission/quickstart.html) –
-  A hands-on walkthrough to get started quickly.
+- [Job submission quickstart](
+    https://docs.ray.io/en/latest/cluster/running-applications/job-submission/quickstart.html
+  ) – A hands-on walkthrough to get started quickly.
 
 ## Prerequisites
 
