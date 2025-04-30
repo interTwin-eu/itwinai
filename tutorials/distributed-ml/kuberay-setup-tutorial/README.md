@@ -83,7 +83,7 @@ The pods are ready when each pod displays _1/1_ and _Running_.
 
 > [!WARNING]
 > In the end, remember to shutdown your raycluster when it is no longer in use, so it does not block `vega` resources.
-> See [3. Shutting down and deleting the KubeRay cluster](3-shutting-down-and-deleting-the-kuberay-cluster)
+> See [3. Shutting down and deleting the KubeRay cluster](#3-shutting-down-and-deleting-the-kuberay-cluster)
 
 ## 2. Submit to the KubeRay cluster
 
