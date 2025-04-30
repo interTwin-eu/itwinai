@@ -14,14 +14,14 @@
 # Resources allocation
 #SBATCH --partition=small-g
 #SBATCH --nodes=2
-#SBATCH --gpus-per-node=8
+#SBATCH --gpus-per-node=1
 #SBATCH --cpus-per-task=16
 #SBATCH --exclusive
 
 set -e
 
 # Load environment modules
-ml LUMI partition/G rocm/6.2.2
+ml LUMI partition/G cray-mpich/8.1.29 #libfabric #rocm/6.2.2
 
 # Job info
 echo "DEBUG: TIME: $(date)"
@@ -41,6 +41,7 @@ echo
 # Optional: Inject the environment variables for NCCL debugging into the container.   
 # This will produce a lot of debug output!     
 export NCCL_DEBUG=INFO
+export RCCL_DEBUG=INFO
 export NCCL_DEBUG_SUBSYS=INIT,COLL
 
 c=fe
@@ -119,7 +120,7 @@ function ray-launcher(){
 
   # Fix (?) for: HIP error: invalid device ordinal
   export RAY_EXPERIMENTAL_NOSET_ROCR_VISIBLE_DEVICES=1
-  export ROCR_VISIBLE_DEVICES=0,1,2,3,4,5,6,7
+  export ROCR_VISIBLE_DEVICES=$(seq -s, 0 $((SLURM_GPUS_PER_NODE - 1))) #0,1,2,3,4,5,6,7
 
   #########   Set up Ray cluster   ########
 
@@ -184,9 +185,9 @@ function ray-launcher(){
     ray status"
   echo "============================================="
 
-  singularity exec --rocm --bind $(pwd):$(pwd) $CONTAINER_PATH bash -c '\
-    source /opt/miniconda3/bin/activate pytorch && \
-    echo HIP_VISIBLE_DEVICES: $HIP_VISIBLE_DEVICES'
+  # singularity exec --rocm --bind $(pwd):$(pwd) $CONTAINER_PATH bash -c '\
+  #   source /opt/miniconda3/bin/activate pytorch && \
+  #   echo HIP_VISIBLE_DEVICES: $HIP_VISIBLE_DEVICES'
 
   # Run command without srun
   singularity exec --bind $(pwd):$(pwd) $CONTAINER_PATH bash -c "\
@@ -213,10 +214,27 @@ function torchrun-launcher(){
 }
 
 function srun-launcher(){
-  srun --cpu-bind=none --ntasks-per-node=$SLURM_GPUS_PER_NODE \
+  # export OMPI_MCA_btl=self,vader
+  # export ROCR_VISIBLE_DEVICES=$(seq -s, 0 $((SLURM_GPUS_PER_NODE - 1))) #0,1,2,3,4,5,6,7
+  export OMP_NUM_THREADS=1
+  export MPICH_GPU_SUPPORT_ENABLED=1
+
+  srun --cpu-bind=none \
+    --mpi=pmi2 \
+    --ntasks-per-node=$SLURM_GPUS_PER_NODE \
     --cpus-per-task=$(($SLURM_CPUS_PER_TASK / $SLURM_GPUS_PER_NODE)) \
     --ntasks=$(($SLURM_GPUS_PER_NODE * $SLURM_NNODES)) \
-    $1
+    singularity exec --rocm --bind $(pwd):$(pwd) $CONTAINER_PATH /bin/bash -c "
+    source /opt/miniconda3/bin/activate pytorch && 
+    export ROCR_VISIBLE_DEVICES=\$SLURM_LOCALID && 
+    $1"
+
+    # singularity exec --rocm --bind $(pwd):$(pwd) $CONTAINER_PATH /bin/bash -c '
+    # source /opt/miniconda3/bin/activate pytorch && 
+    # python -c "import horovod.torch as hvd;  hvd.init(); print(f\"HVD: global rank: {hvd.rank()}\")"
+    # '
+    
+    # $1"
 }
 
 # Dual echo on both stdout and stderr
@@ -261,9 +279,9 @@ elif [ "$DIST_MODE" == "horovod" ] ; then
   echo "HOROVOD training: $TRAINING_CMD"
   srun-launcher "$TRAINING_CMD"
 
-  separation
+  # separation
 
-  ray-launcher "$TRAINING_CMD"
+  # ray-launcher "$TRAINING_CMD"
 else
   >&2 echo "ERROR: unrecognized \$DIST_MODE env variable"
   exit 1
