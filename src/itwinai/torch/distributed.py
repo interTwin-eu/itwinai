@@ -9,6 +9,7 @@
 # - Henry Mutegeki <henry.mutegeki@cern.ch> - CERN
 # - Anna Lappe <anna.elisa.lappe@cern.ch> - CERN
 # - Rakesh Sarma <r.sarma@fz-juelich.de> - Juelich
+# - Linus Eickhoff <linus.maximilian.eickhoff@cern.ch> - CERN
 # --------------------------------------------------------------------------------------
 
 import abc
@@ -64,7 +65,7 @@ def check_initialized(method: Callable) -> Callable:
     def wrapper(self: "TorchDistributedStrategy", *args, **kwargs):
         if not self.is_initialized:
             raise UninitializedStrategyError(
-                (f"{self.__class__.__name__} has not been initialized. Use the init method.")
+                f"{self.__class__.__name__} has not been initialized. Use the init method."
             )
         return method(self, *args, **kwargs)
 
@@ -83,6 +84,7 @@ def initialize_ray() -> None:
             These should be set from the slurm script where the ray cluster is launched.
     """
     import ray
+    from ray.runtime_env import RuntimeEnv
 
     if not ray_cluster_is_running():
         raise RuntimeError(
@@ -92,7 +94,22 @@ def initialize_ray() -> None:
     if ray.is_initialized():
         return
 
-    ray.init(address="auto")
+    mlflow_username = os.environ.get("MLFLOW_TRACKING_USERNAME", "")
+    mlflow_password = os.environ.get("MLFLOW_TRACKING_PASSWORD", "")
+
+    if not mlflow_username:
+        py_logger.warning("MLFLOW_TRACKING_USERNAME env variable is not set.")
+    if not mlflow_password:
+        py_logger.warning("MLFLOW_TRACKING_PASSWORD env variable is not set.")
+
+    # Set mlflow credentials to be accessible for all the workers
+    runtime_env = RuntimeEnv(
+        env_vars={
+            "MLFLOW_TRACKING_USERNAME": mlflow_username,
+            "MLFLOW_TRACKING_PASSWORD": mlflow_password,
+        }
+    )
+    ray.init(address="auto", runtime_env=runtime_env)
     py_logger.info(f"Nodes in the cluster: {ray.nodes()}")
     py_logger.info(f"Available cluster resources: {ray.available_resources()}")
 
