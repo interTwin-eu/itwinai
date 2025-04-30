@@ -1,18 +1,22 @@
 # Running the itwinai pipeline with KubeRay
 
-This tutorial shows how to set up a KubeRay cluster and run the itwinai training or hyperparameter optimization (HPO) pipeline
-using the [hython-itwinai-plugin](https://github.com/interTwin-eu/hython-itwinai-plugin).
+This tutorial shows how to set up a KubeRay cluster and run the itwinai training or hyperparameter
+optimization (HPO) pipeline using the [hython-itwinai-plugin](https://github.com/interTwin-eu/hython-itwinai-plugin).
 
 - `grnet` will refer to the server from where we start and install the KubeRay cluster.
-- `vega` is the supercomputer, its [resources](https://doc.vega.izum.si/general-spec/) are accessed from the KubeRay cluster via interlink.
+- `vega` is the supercomputer, its [resources](https://doc.vega.izum.si/general-spec/) are
+  accessed from the KubeRay cluster via interlink.
 
 The kubeRay cluster runs its pods on `vega` resources with [interLink](https://github.com/interTwin-eu/interLink).
 
 For more background on Ray job submission and KubeRay, see:
 
-- [KubeRay overview](https://docs.ray.io/en/latest/cluster/kubernetes/index.html) – Setting up and managing Ray on Kubernetes.
-- [Ray job submission guide](https://docs.ray.io/en/latest/cluster/running-applications/job-submission/index.html) – Explains how to submit jobs to a Ray cluster.
-- [Job submission quickstart](https://docs.ray.io/en/latest/cluster/running-applications/job-submission/quickstart.html) – A hands-on walkthrough to get started quickly.
+- [KubeRay overview](https://docs.ray.io/en/latest/cluster/kubernetes/index.html) – Setting up and managing Ray on
+  Kubernetes.
+- [Ray job submission guide](https://docs.ray.io/en/latest/cluster/running-applications/job-submission/index.html) –
+  Explains how to submit jobs to a Ray cluster.
+- [Job submission quickstart](https://docs.ray.io/en/latest/cluster/running-applications/job-submission/quickstart.html) –
+  A hands-on walkthrough to get started quickly.
 
 ## Prerequisites
 
@@ -72,7 +76,8 @@ You can check the status of the current pods with "raycluster" in their name wit
 kubectl get pods | grep raycluster
 ```
 
-As the pods need to allocate jobs on `vega`, you will have to wait a few minutes before the cluster is ready for submissions.
+As the pods need to allocate jobs on `vega`, you will have to wait a few minutes before the cluster is ready for
+submissions.
 The pods are ready when each pod displays _1/1_ and _Running_.
 
 > [!WARNING]
@@ -94,11 +99,13 @@ ray job submit --address <address> --working-dir configuration_files/ -- itwinai
 ```
 
 > [!NOTE]
-> The address is not public information and therefore not revealed here, ask one of the contributors in case you don't have it.
+> The address is not public information and therefore not revealed here, ask one of the contributors in case you don't
+> have it.
 > It is the public address of the Ray head node. In this setup the IP is exposed via Ingress.
 > But this can very for different setups.
 
-To log to the intertwin MLflow server, overwrite the `tracking_uri` and prefix your authentication environment variables.
+To log to the intertwin MLflow server, overwrite the `tracking_uri` and prefix your authentication environment
+variables.
 E.g., for running the HPO pipeline of the hython-itwinai-plugin, run:
 
 ```bash
