@@ -24,7 +24,7 @@ import os
 import subprocess
 import sys
 from pathlib import Path
-from typing import List, Optional
+from typing import Dict, List, Optional
 
 import hydra
 import typer
@@ -71,13 +71,19 @@ def generate_py_spy_report(
         str,
         typer.Option(help="Number of rows to display. Pass 'all' to print the full table."),
     ] = "10",
+    aggregate_leaf_calls: Annotated[
+        bool,
+        typer.Option(
+            help="Whether to aggregate all unique leaf calls across different call stacks."
+        ),
+    ] = False,
 ):
     """Generates a short aggregation of the raw py-spy profiling data, showing which leaf
     functions collected the most samples.
     """
     from itwinai.torch.profiling.py_spy_aggregation import (
-        create_bottom_function_table,
-        handle_data_point,
+        convert_stack_trace_to_list,
+        create_leaf_function_table,
     )
 
     if not num_rows.isnumeric() and num_rows != "all":
@@ -98,33 +104,53 @@ def generate_py_spy_report(
 
     with file_path.open("r") as f:
         profiling_data = f.readlines()
-    data_points = []
+
+    stack_traces: List[List[Dict]] = []
     for line in profiling_data:
         try:
-            structured_stack_trace = handle_data_point(line)
+            structured_stack_trace = convert_stack_trace_to_list(line)
             if structured_stack_trace:
-                data_points.append(structured_stack_trace)
+                stack_traces.append(structured_stack_trace)
         except ValueError as exception:
             typer.echo(f"Failed to aggregate data with following error:\n{exception}")
             raise typer.Exit()
 
-    leaf_functions = [data_point[-1] for data_point in data_points]
+    # Go through the list and find the lowest itwinai call if any
+    trace: List[Dict]
+    for trace in stack_traces:
+        itwinai_path = "Not Found"
+        itwinai_function = "Not Found"
+        itwinai_line = "Not Found"
+        for function_dict in trace:
+            if "itwinai" in function_dict["path"]:
+                itwinai_path = function_dict["path"]
+                itwinai_function = function_dict["name"]
+                itwinai_line = function_dict["line"]
+        for function_dict in trace:
+            function_dict["itwinai_function_name"] = itwinai_function
+            function_dict["itwinai_function_path"] = itwinai_path
+            function_dict["itwinai_function_line"] = itwinai_line
+
+    leaf_functions = [data_point[-1] for data_point in stack_traces]
 
     # Aggregating leaf functions with the same path, name and line number
-    aggregated_leaf_functions = {}
-    for entry in leaf_functions:
-        key = (entry["name"], entry["path"], entry["line"])
-        aggregated_leaf_functions[key] = (
-            aggregated_leaf_functions.get(key, 0) + entry["num_samples"]
-        )
-    leaf_functions = [
-        {"name": key[0], "path": key[1], "line": key[2], "num_samples": value}
-        for key, value in aggregated_leaf_functions.items()
-    ]
+    if aggregate_leaf_calls:
+        aggregated_leaf_functions = {}
+        for entry in leaf_functions:
+            key = (entry["name"], entry["path"], entry["line"])
+            aggregated_leaf_functions[key] = (
+                aggregated_leaf_functions.get(key, 0) + entry["num_samples"]
+            )
+        leaf_functions = [
+            {"name": key[0], "path": key[1], "line": key[2], "num_samples": value}
+            for key, value in aggregated_leaf_functions.items()
+        ]
 
     leaf_functions.sort(key=lambda x: x["num_samples"], reverse=True)
-    table = create_bottom_function_table(
-        function_data_list=leaf_functions, num_rows=parsed_num_rows
+    table = create_leaf_function_table(
+        function_data_list=leaf_functions,
+        num_rows=parsed_num_rows,
+        aggregated_leaf_functions=aggregate_leaf_calls,
     )
     typer.echo(table)
 

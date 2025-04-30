@@ -4,7 +4,7 @@ from typing import Dict, List
 function_pattern = r"([^\s]+) \(([^():]+):(\d+)\)"
 
 
-def handle_trace_line(trace_line: str, num_samples: int) -> Dict[str, str | int]:
+def convert_trace_line_to_dict(trace_line: str, num_samples: int) -> Dict[str, str | int]:
     """Converts a single trace line, which contains a function name, file name and line number,
     to a dictionary with the name, path, line and number of samples.
 
@@ -31,7 +31,7 @@ def handle_trace_line(trace_line: str, num_samples: int) -> Dict[str, str | int]
     }
 
 
-def handle_data_point(line: str) -> List[Dict[str, str | int]]:
+def convert_stack_trace_to_list(line: str) -> List[Dict[str, str | int]]:
     """Converts a single line of the raw profiling output, which contains a stack trace
     and a number of samples, to a list of dictionaries with the data for each line of the
     stack trace.
@@ -65,7 +65,7 @@ def handle_data_point(line: str) -> List[Dict[str, str | int]]:
     result = []
     for trace_line in stack_trace:
         try:
-            trace_line_dict = handle_trace_line(trace_line, num_samples)
+            trace_line_dict = convert_trace_line_to_dict(trace_line, num_samples)
             result.append(trace_line_dict)
         except ValueError as exception:
             raise ValueError(
@@ -76,12 +76,19 @@ def handle_data_point(line: str) -> List[Dict[str, str | int]]:
     return result
 
 
-def create_bottom_function_table(function_data_list: List, num_rows: int | None = None) -> str:
+def create_leaf_function_table(
+    function_data_list: List,
+    num_rows: int | None = None,
+    aggregated_leaf_functions: bool = False,
+) -> str:
     """Uses the data from `function_data_list` to create a table of the most time consuming
     functions from the bottom of their respective stack traces.
     """
     final_table = ""
-    header = f"{'samples':>7} {'function':>35} {'path':>35} {'line':>5}"
+    header = f"{'function':<30} {'path':<30} {'line':^5} "
+    if not aggregated_leaf_functions:
+        header += f"{'itwinai_function':>30} {'itwinai_path':>30} {'itwinai_line':^12} "
+    header += f"{'samples':>7}"
     final_table += header
     final_table += "\n" + "=" * len(header)
 
@@ -91,8 +98,20 @@ def create_bottom_function_table(function_data_list: List, num_rows: int | None 
 
     for function_data in function_data_list[:num_rows]:
         num_samples = function_data["num_samples"]
+
         function_name = function_data["name"]
         path = function_data["path"]
         line = function_data["line"]
-        final_table += "\n" + f"{num_samples:<7} {function_name:>35} {path:>35} {line:>5}"
+
+        final_table += "\n" + f"{function_name[-30:]:<30} {path[-30:]:<30} {line:^5} "
+
+        if not aggregated_leaf_functions:
+            itwinai_function_name = function_data["itwinai_function_name"]
+            itwinai_path = function_data["itwinai_function_path"]
+            itwinai_line = function_data["itwinai_function_line"]
+            final_table += f"{itwinai_function_name[-30:]:>30} {itwinai_path[-30:]:>30} "
+            final_table += f"{itwinai_line:^12} "
+
+        final_table += f"{num_samples:>7}"
+
     return final_table
