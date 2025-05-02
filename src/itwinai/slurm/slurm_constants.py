@@ -22,8 +22,9 @@ SLURM_TEMPLATE = r"""#!/bin/bash
 # Resource allocation
 #SBATCH --nodes={num_nodes}
 #SBATCH --ntasks-per-node={num_tasks_per_node}
-#SBATCH --gpus-per-node={gpus_per_node}
 #SBATCH --cpus-per-gpu={cpus_per_gpu}
+#SBATCH --gpus-per-node={gpus_per_node}
+#SBATCH --gres=gpu:{gpus_per_node}
 #SBATCH --exclusive
 
 # Pre-execution command

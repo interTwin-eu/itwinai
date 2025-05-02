@@ -38,8 +38,8 @@ training_pipeline:
       save_path: ${dataset_root}
     training_step:
       _target_: itwinai.torch.trainer.TorchTrainer
-      measure_gpu_data: True
-      measure_communication_overhead: True
+      measure_gpu_data: False
+      measure_communication_overhead: False
       measure_epoch_time: True
       time_ray: True # track time for ray report and fit
       config:
