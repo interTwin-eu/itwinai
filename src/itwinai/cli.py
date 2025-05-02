@@ -146,6 +146,12 @@ def generate_py_spy_report(
             for key, value in aggregated_leaf_functions.items()
         ]
 
+    # Turn num_samples into percentages
+    total_samples = sum(function_dict["num_samples"] for function_dict in leaf_functions)
+    for function_dict in leaf_functions:
+        percentage = 100 * function_dict["num_samples"] / total_samples
+        function_dict["percentage"] = percentage
+
     leaf_functions.sort(key=lambda x: x["num_samples"], reverse=True)
     table = create_leaf_function_table(
         function_data_list=leaf_functions,

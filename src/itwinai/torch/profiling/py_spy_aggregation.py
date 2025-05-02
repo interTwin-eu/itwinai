@@ -88,7 +88,7 @@ def create_leaf_function_table(
     header = f"{'function':<30} {'path':<30} {'line':^5} "
     if not aggregated_leaf_functions:
         header += f"{'itwinai_function':>30} {'itwinai_path':>30} {'itwinai_line':^12} "
-    header += f"{'samples':>7}"
+    header += f"{'percentage':>15}"
     final_table += header
     final_table += "\n" + "=" * len(header)
 
@@ -98,6 +98,8 @@ def create_leaf_function_table(
 
     for function_data in function_data_list[:num_rows]:
         num_samples = function_data["num_samples"]
+        percentage = function_data["percentage"]
+        percentage_str = f"{percentage:.2f}% ({num_samples})"
 
         function_name = function_data["name"]
         path = function_data["path"]
@@ -112,6 +114,6 @@ def create_leaf_function_table(
             final_table += f"{itwinai_function_name[-30:]:>30} {itwinai_path[-30:]:>30} "
             final_table += f"{itwinai_line:^12} "
 
-        final_table += f"{num_samples:>7}"
+        final_table += f"{percentage_str:>15}"
 
     return final_table
