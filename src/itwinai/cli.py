@@ -81,11 +81,12 @@ def generate_py_spy_report(
     """Generates a short aggregation of the raw py-spy profiling data, showing which leaf
     functions collected the most samples.
     """
+    from tabulate import tabulate
+
     from itwinai.torch.profiling.py_spy_aggregation import (
         add_lowest_itwinai_function,
-        aggregate_paths,
         convert_stack_trace_to_list,
-        create_leaf_function_table,
+        get_aggregated_paths,
     )
 
     if not num_rows.isnumeric() and num_rows != "all":
@@ -121,19 +122,19 @@ def generate_py_spy_report(
     add_lowest_itwinai_function(stack_traces=stack_traces)
     leaf_functions = [data_point[-1] for data_point in stack_traces]
     if aggregate_leaf_paths:
-        leaf_functions = aggregate_paths(functions=leaf_functions)
+        leaf_functions = get_aggregated_paths(functions=leaf_functions)
+
+    leaf_functions.sort(key=lambda x: x["num_samples"], reverse=True)
 
     # Turn num_samples into percentages
     total_samples = sum(function_dict["num_samples"] for function_dict in leaf_functions)
     for function_dict in leaf_functions:
-        percentage = 100 * function_dict["num_samples"] / total_samples
-        function_dict["percentage"] = percentage
+        num_samples = function_dict["num_samples"]
+        percentage = 100 * num_samples / total_samples
+        function_dict["proportion (n)"] = f"{percentage:.2f}% ({num_samples})"
+        del function_dict["num_samples"]
 
-    leaf_functions.sort(key=lambda x: x["num_samples"], reverse=True)
-    table = create_leaf_function_table(
-        function_data_list=leaf_functions, num_rows=parsed_num_rows
-    )
-    typer.echo(table)
+    typer.echo(tabulate(leaf_functions[:parsed_num_rows], headers="keys", tablefmt="presto"))
 
 
 @app.command()

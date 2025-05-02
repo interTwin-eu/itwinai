@@ -4,21 +4,24 @@ from typing import Dict, List
 
 def add_lowest_itwinai_function(stack_traces: List[List[Dict]]) -> None:
     """Iterates through each stack traces in the given list and finds the lowest ``itwinai``
-    call, if any, and adds it to each dictionary in the dict. This function changes the
-    given list in-place.
+    call, if any, and adds it to each dictionary in the trace.
+
+    This function changes the given list in-place.
     """
     trace: List[Dict]
     for trace in stack_traces:
         itwinai_path = "Not Found"
         itwinai_function = "Not Found"
         itwinai_line = "Not Found"
-        for function_dict in trace:
+        for function_dict in reversed(trace):
             if "itwinai" not in function_dict["path"]:
                 continue
 
             itwinai_path = function_dict["path"]
             itwinai_function = function_dict["name"]
             itwinai_line = function_dict["line"]
+            # Since we iterate backwards then we stop once we found a match
+            break
 
         # Adding the last one that was found (lowest) to all the dicts
         for function_dict in trace:
@@ -27,7 +30,12 @@ def add_lowest_itwinai_function(stack_traces: List[List[Dict]]) -> None:
             function_dict["itwinai_function_line"] = itwinai_line
 
 
-def aggregate_paths(functions: List[Dict]) -> List[Dict]:
+def get_aggregated_paths(functions: List[Dict]) -> List[Dict]:
+    """Return a new list where all entries with the same information have been combined
+    into one. This means that if the name, path and line for the function itself and the
+    itwinai function are the same in two entries, then they are combined into one, with their
+    number of samples summed.
+    """
     aggregated_functions = {}
     for entry in functions:
         key = (
@@ -39,7 +47,7 @@ def aggregate_paths(functions: List[Dict]) -> List[Dict]:
             entry["itwinai_function_line"],
         )
         aggregated_functions[key] = aggregated_functions.get(key, 0) + entry["num_samples"]
-    functions = [
+    aggregated_functions = [
         {
             "name": key[0],
             "path": key[1],
@@ -51,11 +59,11 @@ def aggregate_paths(functions: List[Dict]) -> List[Dict]:
         }
         for key, value in aggregated_functions.items()
     ]
-    return functions
+    return aggregated_functions
 
 
-def convert_trace_line_to_dict(trace_line: str, num_samples: int) -> Dict[str, str | int]:
-    """Converts a single trace line, which contains a function name, file name and line number,
+def parse_trace_line_to_dict(trace_line: str, num_samples: int) -> Dict[str, str | int]:
+    """Parses a single trace line, which contains a function name, file name and line number,
     to a dictionary with the name, path, line and number of samples.
 
     Raises:
@@ -116,7 +124,7 @@ def convert_stack_trace_to_list(line: str) -> List[Dict[str, str | int]]:
     result = []
     for trace_line in stack_trace:
         try:
-            trace_line_dict = convert_trace_line_to_dict(trace_line, num_samples)
+            trace_line_dict = parse_trace_line_to_dict(trace_line, num_samples)
             result.append(trace_line_dict)
         except ValueError as exception:
             raise ValueError(
@@ -125,43 +133,3 @@ def convert_stack_trace_to_list(line: str) -> List[Dict[str, str | int]]:
             )
 
     return result
-
-
-def create_leaf_function_table(
-    function_data_list: List,
-    num_rows: int | None = None,
-) -> str:
-    """Uses the data from `function_data_list` to create a table of the most time consuming
-    functions from the bottom of their respective stack traces.
-    """
-    final_table = ""
-    header = f"{'function':<30} {'path':<30} {'line':^5} "
-    header += f"{'itwinai_function':>30} {'itwinai_path':>30} {'itwinai_line':^12} "
-    header += f"{'percentage':>15}"
-    final_table += header
-    final_table += "\n" + "=" * len(header)
-
-    # If not passed the do the whole table
-    if num_rows is None:
-        num_rows = len(function_data_list)
-
-    for function_data in function_data_list[:num_rows]:
-        num_samples = function_data["num_samples"]
-        percentage = function_data["percentage"]
-        percentage_str = f"{percentage:.2f}% ({num_samples})"
-
-        function_name = function_data["name"]
-        path = function_data["path"]
-        line = function_data["line"]
-
-        final_table += "\n" + f"{function_name[-30:]:<30} {path[-30:]:<30} {line:^5} "
-
-        itwinai_function_name = function_data["itwinai_function_name"]
-        itwinai_path = function_data["itwinai_function_path"]
-        itwinai_line = function_data["itwinai_function_line"]
-        final_table += f"{itwinai_function_name[-30:]:>30} {itwinai_path[-30:]:>30} "
-        final_table += f"{itwinai_line:^12} "
-
-        final_table += f"{percentage_str:>15}"
-
-    return final_table
