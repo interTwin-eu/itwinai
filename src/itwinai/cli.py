@@ -71,7 +71,7 @@ def generate_py_spy_report(
         str,
         typer.Option(help="Number of rows to display. Pass 'all' to print the full table."),
     ] = "10",
-    aggregate_leaf_calls: Annotated[
+    aggregate_leaf_paths: Annotated[
         bool,
         typer.Option(
             help="Whether to aggregate all unique leaf calls across different call stacks."
@@ -82,6 +82,8 @@ def generate_py_spy_report(
     functions collected the most samples.
     """
     from itwinai.torch.profiling.py_spy_aggregation import (
+        add_lowest_itwinai_function,
+        aggregate_paths,
         convert_stack_trace_to_list,
         create_leaf_function_table,
     )
@@ -94,7 +96,7 @@ def generate_py_spy_report(
     parsed_num_rows: int | None = int(num_rows) if num_rows.isnumeric() else None
     if isinstance(parsed_num_rows, int) and parsed_num_rows < 1:
         raise typer.BadParameter(
-            f"Number of rows must be greater than one! Was '{num_rows}'.",
+            f"Number of rows must be at least one! Was '{num_rows}'.",
             param_hint="num-rows",
         )
 
@@ -102,6 +104,7 @@ def generate_py_spy_report(
     if not file_path.exists():
         raise typer.BadParameter(f"'{file_path.resolve()}' was not found!", param_hint="file")
 
+    # Reading and converting the data
     with file_path.open("r") as f:
         profiling_data = f.readlines()
 
@@ -115,36 +118,10 @@ def generate_py_spy_report(
             typer.echo(f"Failed to aggregate data with following error:\n{exception}")
             raise typer.Exit()
 
-    # Go through the list and find the lowest itwinai call if any
-    trace: List[Dict]
-    for trace in stack_traces:
-        itwinai_path = "Not Found"
-        itwinai_function = "Not Found"
-        itwinai_line = "Not Found"
-        for function_dict in trace:
-            if "itwinai" in function_dict["path"]:
-                itwinai_path = function_dict["path"]
-                itwinai_function = function_dict["name"]
-                itwinai_line = function_dict["line"]
-        for function_dict in trace:
-            function_dict["itwinai_function_name"] = itwinai_function
-            function_dict["itwinai_function_path"] = itwinai_path
-            function_dict["itwinai_function_line"] = itwinai_line
-
+    add_lowest_itwinai_function(stack_traces=stack_traces)
     leaf_functions = [data_point[-1] for data_point in stack_traces]
-
-    # Aggregating leaf functions with the same path, name and line number
-    if aggregate_leaf_calls:
-        aggregated_leaf_functions = {}
-        for entry in leaf_functions:
-            key = (entry["name"], entry["path"], entry["line"])
-            aggregated_leaf_functions[key] = (
-                aggregated_leaf_functions.get(key, 0) + entry["num_samples"]
-            )
-        leaf_functions = [
-            {"name": key[0], "path": key[1], "line": key[2], "num_samples": value}
-            for key, value in aggregated_leaf_functions.items()
-        ]
+    if aggregate_leaf_paths:
+        leaf_functions = aggregate_paths(functions=leaf_functions)
 
     # Turn num_samples into percentages
     total_samples = sum(function_dict["num_samples"] for function_dict in leaf_functions)
@@ -154,9 +131,7 @@ def generate_py_spy_report(
 
     leaf_functions.sort(key=lambda x: x["num_samples"], reverse=True)
     table = create_leaf_function_table(
-        function_data_list=leaf_functions,
-        num_rows=parsed_num_rows,
-        aggregated_leaf_functions=aggregate_leaf_calls,
+        function_data_list=leaf_functions, num_rows=parsed_num_rows
     )
     typer.echo(table)
 

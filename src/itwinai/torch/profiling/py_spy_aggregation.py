@@ -1,7 +1,57 @@
 import re
 from typing import Dict, List
 
-function_pattern = r"([^\s]+) \(([^():]+):(\d+)\)"
+
+def add_lowest_itwinai_function(stack_traces: List[List[Dict]]) -> None:
+    """Iterates through each stack traces in the given list and finds the lowest ``itwinai``
+    call, if any, and adds it to each dictionary in the dict. This function changes the
+    given list in-place.
+    """
+    trace: List[Dict]
+    for trace in stack_traces:
+        itwinai_path = "Not Found"
+        itwinai_function = "Not Found"
+        itwinai_line = "Not Found"
+        for function_dict in trace:
+            if "itwinai" not in function_dict["path"]:
+                continue
+
+            itwinai_path = function_dict["path"]
+            itwinai_function = function_dict["name"]
+            itwinai_line = function_dict["line"]
+
+        # Adding the last one that was found (lowest) to all the dicts
+        for function_dict in trace:
+            function_dict["itwinai_function_name"] = itwinai_function
+            function_dict["itwinai_function_path"] = itwinai_path
+            function_dict["itwinai_function_line"] = itwinai_line
+
+
+def aggregate_paths(functions: List[Dict]) -> List[Dict]:
+    aggregated_functions = {}
+    for entry in functions:
+        key = (
+            entry["name"],
+            entry["path"],
+            entry["line"],
+            entry["itwinai_function_name"],
+            entry["itwinai_function_path"],
+            entry["itwinai_function_line"],
+        )
+        aggregated_functions[key] = aggregated_functions.get(key, 0) + entry["num_samples"]
+    functions = [
+        {
+            "name": key[0],
+            "path": key[1],
+            "line": key[2],
+            "itwinai_function_name": key[3],
+            "itwinai_function_path": key[4],
+            "itwinai_function_line": key[5],
+            "num_samples": value,
+        }
+        for key, value in aggregated_functions.items()
+    ]
+    return functions
 
 
 def convert_trace_line_to_dict(trace_line: str, num_samples: int) -> Dict[str, str | int]:
@@ -12,6 +62,7 @@ def convert_trace_line_to_dict(trace_line: str, num_samples: int) -> Dict[str, s
         ValueError: If the given trace line does not conform to the expected structure of
         "function_name (path/to/function:line_number)"
     """
+    function_pattern = r"([^\s]+) \(([^():]+):(\d+)\)"
     pattern_match = re.match(function_pattern, trace_line)
     if pattern_match is None:
         raise ValueError(
@@ -79,15 +130,13 @@ def convert_stack_trace_to_list(line: str) -> List[Dict[str, str | int]]:
 def create_leaf_function_table(
     function_data_list: List,
     num_rows: int | None = None,
-    aggregated_leaf_functions: bool = False,
 ) -> str:
     """Uses the data from `function_data_list` to create a table of the most time consuming
     functions from the bottom of their respective stack traces.
     """
     final_table = ""
     header = f"{'function':<30} {'path':<30} {'line':^5} "
-    if not aggregated_leaf_functions:
-        header += f"{'itwinai_function':>30} {'itwinai_path':>30} {'itwinai_line':^12} "
+    header += f"{'itwinai_function':>30} {'itwinai_path':>30} {'itwinai_line':^12} "
     header += f"{'percentage':>15}"
     final_table += header
     final_table += "\n" + "=" * len(header)
@@ -107,12 +156,11 @@ def create_leaf_function_table(
 
         final_table += "\n" + f"{function_name[-30:]:<30} {path[-30:]:<30} {line:^5} "
 
-        if not aggregated_leaf_functions:
-            itwinai_function_name = function_data["itwinai_function_name"]
-            itwinai_path = function_data["itwinai_function_path"]
-            itwinai_line = function_data["itwinai_function_line"]
-            final_table += f"{itwinai_function_name[-30:]:>30} {itwinai_path[-30:]:>30} "
-            final_table += f"{itwinai_line:^12} "
+        itwinai_function_name = function_data["itwinai_function_name"]
+        itwinai_path = function_data["itwinai_function_path"]
+        itwinai_line = function_data["itwinai_function_line"]
+        final_table += f"{itwinai_function_name[-30:]:>30} {itwinai_path[-30:]:>30} "
+        final_table += f"{itwinai_line:^12} "
 
         final_table += f"{percentage_str:>15}"
 
