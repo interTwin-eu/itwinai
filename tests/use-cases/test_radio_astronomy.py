@@ -38,9 +38,10 @@ USECASE_FOLDER = Path("use-cases", "radio-astronomy").resolve()
 #     return str(env_path.resolve())
 
 @pytest.fixture
-def syndata(tmp_path, torch_env):
+def syndata(tmp_path, torch_env,install_requirements):
     # This fixture implicitly tests the synthetic data generation pipeline
-    
+    install_requirements(USECASE_FOLDER, torch_env)
+
     cmd_data = (
         f"{torch_env}/bin/itwinai exec-pipeline --config-name .config-test "
         f"+pipe_key=syndata_pipeline ++syndata_test_dir={tmp_path}/ "
