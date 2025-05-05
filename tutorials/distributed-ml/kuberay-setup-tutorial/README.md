@@ -11,19 +11,19 @@ this example, the concepts apply to any Kubernetes cluster accessing HPC resourc
 
 In this guide we use the following as `cloud` and `HPC` resources:
 
--   `grnet` is the `cloud` server where we start and install the KubeRay cluster ([grnet homepage](https://grnet.gr/en/))
--   `Vega` is the `HPC` environment whose [resources](https://doc.vega.izum.si/general-spec/) are accessed from the KubeRay
+- `grnet` is the `cloud` server where we start and install the KubeRay cluster ([grnet homepage](https://grnet.gr/en/))
+- `Vega` is the `HPC` environment whose [resources](https://doc.vega.izum.si/general-spec/) are accessed from the KubeRay
     cluster via interlink ([Vega homepage](https://izum.si/en/vega-en/))
 
 The KubeRay cluster runs its pods on `HPC` resources using [interLink](https://github.com/interTwin-eu/interLink).
 
 For additional background on Ray job submission and KubeRay, refer to:
 
--   [KubeRay overview](https://docs.ray.io/en/latest/cluster/kubernetes/index.html) –
+- [KubeRay overview](https://docs.ray.io/en/latest/cluster/kubernetes/index.html) –
     Setting up and managing Ray on Kubernetes
--   [Ray job submission guide](https://docs.ray.io/en/latest/cluster/running-applications/job-submission/index.html) –
+- [Ray job submission guide](https://docs.ray.io/en/latest/cluster/running-applications/job-submission/index.html) –
     Explains how to submit jobs to a Ray cluster
--   [Job submission quickstart](https://docs.ray.io/en/latest/cluster/running-applications/job-submission/quickstart.html)
+- [Job submission quickstart](https://docs.ray.io/en/latest/cluster/running-applications/job-submission/quickstart.html)
     – A hands-on walkthrough to get started quickly
 
 ## Prerequisites
