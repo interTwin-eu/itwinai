@@ -51,8 +51,8 @@ def syndata(tmp_path, torch_env):
         shutil.copy(USECASE_FOLDER / "data.py", tmp_path)
         shutil.copy(USECASE_FOLDER / "trainer.py", tmp_path)
 
-
-        print("Files in /tmp/ dir: ", os.listdir(tmp_path))
+        subprocess.run(["ls", "-l", str(tmp_path)], check=True)
+        # print("Files in /tmp/ dir: ", os.listdir(tmp_path))
 
         subprocess.run(cmd_data.split(), check=True, cwd=USECASE_FOLDER)
 
