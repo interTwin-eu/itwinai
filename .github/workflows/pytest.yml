@@ -31,6 +31,9 @@ jobs:
           sudo ln -s /docker/docker /var/lib/docker &&
           sudo systemctl restart docker
 
+      - name: set uv
+        run: export HYDRA_FULL_ERROR=1 
+        
       # Run tests with pytest in a container
       - name: Run Integration Test (development pipeline)
         uses: dagger/dagger-for-github@v7
@@ -42,7 +45,7 @@ jobs:
             --context ..
             --dockerfile ../env-files/torch/skinny.Dockerfile
             test-local
-            --cmd "HYDRA_FULL_ERROR=1,pytest,-v,--disable-warnings,-n,logical,--dist,loadfile,/app/tests/,-m,not hpc and not tensorflow"
+            --cmd "pytest,-v,--disable-warnings,-n,logical,--dist,loadfile,/app/tests/,-m,not hpc and not tensorflow"
             logs
           cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
           version: "0.18.0"
