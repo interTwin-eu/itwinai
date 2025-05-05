@@ -5,7 +5,7 @@
  [![SQAaaS source code](https://github.com/EOSC-synergy/itwinai.assess.sqaaas/raw/main/.badge/status_shields.svg)](https://sqaaas.eosc-synergy.eu/#/full-assessment/report/https://raw.githubusercontent.com/eosc-synergy/itwinai.assess.sqaaas/main/.report/assessment_output.json)
 
 <!-- markdownlint-disable MD033 -->
-<img src="./docs/images/icon-itwinai-orange-aqua-subtitle.png" alt="itwinai-icon" width="600"/>
+<img src="./docs/images/icon-itwinai-new-subtitle.png" alt="itwinai-icon" width="600"/>
 <!-- markdownlint-enable MD033 -->
 
 `itwinai` is a Python toolkit designed to help scientists and researchers streamline AI and machine learning
