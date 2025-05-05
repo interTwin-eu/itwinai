@@ -1,5 +1,5 @@
-KubeRay setup tutorial
-======================
+Distributed Machine Learning on HPC from k8s using KubeRay operator and interLink
+=================================================================================
 
 .. include:: ../../../tutorials/distributed-ml/kuberay-setup-tutorial/README.md
    :parser: myst_parser.sphinx_
