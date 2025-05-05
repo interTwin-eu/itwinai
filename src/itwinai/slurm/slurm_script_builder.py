@@ -71,6 +71,7 @@ class SlurmScriptBuilder:
         self,
         slurm_script_configuration: SlurmScriptConfiguration,
         distributed_strategy: str,
+        pre_exec_command: str | None = None,
         training_command: str | None = None,
         python_venv: str = ".venv",
         debug: bool = False,
@@ -83,6 +84,7 @@ class SlurmScriptBuilder:
     ):
         self.slurm_script_configuration = slurm_script_configuration
         self.distributed_strategy = distributed_strategy
+        self.pre_exec_command = pre_exec_command
         self.training_command = training_command
 
         self.python_venv = python_venv
@@ -137,6 +139,7 @@ class SlurmScriptBuilder:
             ml {" ".join(JUWELS_HPC_MODULES)}
             source {self.python_venv}/bin/activate
             export OMP_NUM_THREADS={self.omp_num_threads}
+            {self.pre_exec_command if self.pre_exec_command else ""}
         """
 
         if self.debug:
