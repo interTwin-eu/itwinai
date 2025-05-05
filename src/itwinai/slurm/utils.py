@@ -64,6 +64,7 @@ def get_slurm_job_parser() -> ArgumentParser:
     default_config_file_path = "."
     default_config_file = "config"
     default_pipe_key = "rnn_training_pipeline"
+    # Command to be executed before the main process starts. Set this if a pre-execution step is required.
     default_pre_exec_command = None
     default_training_command = None
     default_python_venv = ".venv"
