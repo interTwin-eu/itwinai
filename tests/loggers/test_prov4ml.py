@@ -15,13 +15,13 @@ def logger_instance():
 
 @pytest.fixture
 def mlflow_run():
-    with tempfile.TemporaryDirectory() as mlflow_temp_dir:
-        mlflow.end_run() # Ensure no active run
-        mlflow.set_tracking_uri(Path(mlflow_temp_dir).resolve().as_uri())
-        experiment_id = mlflow.create_experiment("temporary_experiment")
-        mlflow.set_experiment(experiment_id=experiment_id)
-        yield mlflow.start_run()
-        mlflow.end_run()
+     with tempfile.TemporaryDirectory() as mlflow_temp_dir:
+         mlflow.set_tracking_uri(Path(mlflow_temp_dir).resolve().as_uri())
+         experiment_id = mlflow.create_experiment("temporary_experiment")
+         mlflow.set_experiment(experiment_id=experiment_id)
+         # nested=True is needed
+         yield mlflow.start_run(nested=True)
+         mlflow.end_run()
 
 def test_create_destroy_logger_context(logger_instance):
     logger_instance.should_log = MagicMock(return_value=True)
