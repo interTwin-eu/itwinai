@@ -52,7 +52,7 @@ def syndata(tmp_path, torch_env):
         shutil.copy(USECASE_FOLDER / "trainer.py", tmp_path)
 
         subprocess.run(["ls", "-l","-a", str(tmp_path)], check=True)
-        subprocess.run(["cat", str(tmp_path / "data.py")], check=True)
+        # subprocess.run(["cat", str(tmp_path / "data.py")], check=True)
         # print("Files in /tmp/ dir: ", os.listdir(tmp_path))
 
         subprocess.run(cmd_data.split(), check=True, cwd=tmp_path)

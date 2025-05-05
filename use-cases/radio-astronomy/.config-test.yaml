@@ -145,7 +145,7 @@ unet_pipeline:
         optim_lr: ${learning_rate}
         save_best: ${save_best}
         shuffle_train: ${shuffle_train}
-        num_workers_dataloader: ${num_cores}
+        num_workers_dataloader: 1
       logger:
         _target_: itwinai.loggers.LoggersCollection
         loggers:
@@ -200,7 +200,7 @@ fcnn_pipeline:
         optim_lr: ${learning_rate}
         save_best: ${save_best}
         shuffle_train: ${shuffle_train}
-        num_workers_dataloader: ${num_cores}
+        num_workers_dataloader: 1
       # logger:
       #   _target_: itwinai.loggers.LoggersCollection
       #   loggers:
@@ -253,7 +253,7 @@ cnn1d_pipeline:
         optim_lr: ${learning_rate}
         save_best: ${save_best}
         shuffle_train: ${shuffle_train}
-        num_workers_dataloader: ${num_cores}
+        num_workers_dataloader: 1
       # logger:
       #   _target_: itwinai.loggers.LoggersCollection
       #   loggers:
