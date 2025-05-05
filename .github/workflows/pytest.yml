@@ -42,7 +42,7 @@ jobs:
             --context ..
             --dockerfile ../env-files/torch/skinny.Dockerfile
             test-local
-            --cmd "pytest,-v,--disable-warnings,-n,logical,--dist,loadfile,/app/tests/,-m,not hpc and not tensorflow"
+            --cmd "HYDRA_FULL_ERROR=1 pytest,-v,--disable-warnings,-n,logical,--dist,loadfile,/app/tests/,-m,not hpc and not tensorflow"
             logs
           cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
           version: "0.18.0"
