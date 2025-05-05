@@ -139,9 +139,10 @@ class SlurmScriptBuilder:
             ml {" ".join(JUWELS_HPC_MODULES)}
             source {self.python_venv}/bin/activate
             export OMP_NUM_THREADS={self.omp_num_threads}
-            {self.pre_exec_command if self.pre_exec_command else ""}
         """
 
+        if self.pre_exec_command:
+            pre_exec_command += f"\n{self.pre_exec_command}"
         if self.debug:
             pre_exec_command += "\n" + self.get_debug_command()
 
