@@ -21,9 +21,10 @@
 
 import logging
 import os
+import subprocess
 import sys
 from pathlib import Path
-from typing import List, Optional
+from typing import Dict, List, Optional
 
 import hydra
 import typer
@@ -32,6 +33,108 @@ from typing_extensions import Annotated
 app = typer.Typer(pretty_exceptions_enable=False)
 
 py_logger = logging.getLogger(__name__)
+
+
+@app.command()
+def generate_flamegraph(
+    file: Annotated[str, typer.Option(help="The location of the raw profiling data.")],
+    output_filename: Annotated[
+        str, typer.Option(help="The filename of the resulting flamegraph.")
+    ] = "flamegraph.svg",
+):
+    """Generates a flamegraph from the given profiling output."""
+    script_filename = "flamegraph.pl"
+    script_path = Path(__file__).parent / script_filename
+
+    if not script_path.exists():
+        py_logger.exception(f"Could not find '{script_filename}' at '{script_path}'")
+        raise typer.Exit()
+
+    try:
+        with open(output_filename, "w") as out:
+            subprocess.run(
+                ["perl", str(script_path), file],
+                stdout=out,
+                check=True,
+            )
+        typer.echo(f"Flamegraph saved to '{output_filename}'")
+    except FileNotFoundError:
+        typer.echo("Error: Perl is not installed or not in PATH.")
+    except subprocess.CalledProcessError as e:
+        typer.echo(f"Flamegraph generation failed: {e}")
+
+
+@app.command()
+def generate_py_spy_report(
+    file: Annotated[str, typer.Option(help="The location of the raw profiling data.")],
+    num_rows: Annotated[
+        str,
+        typer.Option(help="Number of rows to display. Pass 'all' to print the full table."),
+    ] = "10",
+    aggregate_leaf_paths: Annotated[
+        bool,
+        typer.Option(
+            help="Whether to aggregate all unique leaf calls across different call stacks."
+        ),
+    ] = False,
+):
+    """Generates a short aggregation of the raw py-spy profiling data, showing which leaf
+    functions collected the most samples.
+    """
+    from tabulate import tabulate
+
+    from itwinai.torch.profiling.py_spy_aggregation import (
+        add_lowest_itwinai_function,
+        convert_stack_trace_to_list,
+        get_aggregated_paths,
+    )
+
+    if not num_rows.isnumeric() and num_rows != "all":
+        raise typer.BadParameter(
+            f"Number of rows must be either an integer or 'all'. Was '{num_rows}'.",
+            param_hint="num-rows",
+        )
+    parsed_num_rows: int | None = int(num_rows) if num_rows.isnumeric() else None
+    if isinstance(parsed_num_rows, int) and parsed_num_rows < 1:
+        raise typer.BadParameter(
+            f"Number of rows must be at least one! Was '{num_rows}'.",
+            param_hint="num-rows",
+        )
+
+    file_path = Path(file)
+    if not file_path.exists():
+        raise typer.BadParameter(f"'{file_path.resolve()}' was not found!", param_hint="file")
+
+    # Reading and converting the data
+    with file_path.open("r") as f:
+        profiling_data = f.readlines()
+
+    stack_traces: List[List[Dict]] = []
+    for line in profiling_data:
+        try:
+            structured_stack_trace = convert_stack_trace_to_list(line)
+            if structured_stack_trace:
+                stack_traces.append(structured_stack_trace)
+        except ValueError as exception:
+            typer.echo(f"Failed to aggregate data with following error:\n{exception}")
+            raise typer.Exit()
+
+    add_lowest_itwinai_function(stack_traces=stack_traces)
+    leaf_functions = [data_point[-1] for data_point in stack_traces]
+    if aggregate_leaf_paths:
+        leaf_functions = get_aggregated_paths(functions=leaf_functions)
+
+    leaf_functions.sort(key=lambda x: x["num_samples"], reverse=True)
+
+    # Turn num_samples into percentages
+    total_samples = sum(function_dict["num_samples"] for function_dict in leaf_functions)
+    for function_dict in leaf_functions:
+        num_samples = function_dict["num_samples"]
+        percentage = 100 * num_samples / total_samples
+        function_dict["proportion (n)"] = f"{percentage:.2f}% ({num_samples})"
+        del function_dict["num_samples"]
+
+    typer.echo(tabulate(leaf_functions[:parsed_num_rows], headers="keys", tablefmt="presto"))
 
 
 @app.command()
@@ -167,24 +270,24 @@ def generate_scalability_report(
         plot_file_suffix=plot_file_suffix,
     )
 
-    print()
+    typer.echo("")
     if epoch_time_table is not None:
-        print("#" * 8, "Epoch Time Report", "#" * 8)
-        print(epoch_time_table, "\n")
+        typer.echo("#" * 8 + " Epoch Time Report " + "#" * 8)
+        typer.echo(epoch_time_table + "\n")
     else:
-        print("No Epoch Time Data Found\n")
+        typer.echo("No Epoch Time Data Found\n")
 
     if gpu_data_table is not None:
-        print("#" * 8, "GPU Data Report", "#" * 8)
-        print(gpu_data_table, "\n")
+        typer.echo("#" * 8 + "GPU Data Report" + "#" * 8)
+        typer.echo(gpu_data_table + "\n")
     else:
-        print("No GPU Data Found\n")
+        typer.echo("No GPU Data Found\n")
 
     if communication_data_table is not None:
-        print("#" * 8, "Communication Data Report", "#" * 8)
-        print(communication_data_table, "\n")
+        typer.echo("#" * 8 + "Communication Data Report" + "#" * 8)
+        typer.echo(communication_data_table, "\n")
     else:
-        print("No Communication Data Found\n")
+        typer.echo("No Communication Data Found\n")
 
 
 @app.command()
@@ -336,6 +439,15 @@ def generate_slurm(
         str | None,
         typer.Option("--config", help="The path to the SLURM configuration file."),
     ] = None,
+    py_spy: Annotated[
+        bool, typer.Option("--py-spy", help="Whether to activate profiling with py-spy or not")
+    ] = False,
+    profiling_rate: Annotated[
+        int,
+        typer.Option(
+            "--profiling-rate", help="The rate at which to profile with the py-spy profiler."
+        ),
+    ] = 10,
 ):
     """Generates a default SLURM script using arguments and optionally a configuration
     file.
@@ -512,7 +624,7 @@ def exec_pipeline_with_compose(cfg):
     if pipe_steps:
         try:
             cfg.steps = [cfg.steps[step] for step in pipe_steps]
-            print(f"Successfully selected steps {pipe_steps}")
+            typer.echo(f"Successfully selected steps {pipe_steps}")
         except errors.ConfigKeyError as e:
             e.add_note(
                 "Could not find all selected steps. Please ensure that all steps exist "
@@ -521,7 +633,7 @@ def exec_pipeline_with_compose(cfg):
             )
             raise e
     else:
-        print("No steps selected. Executing the whole pipeline.")
+        typer.echo("No steps selected. Executing the whole pipeline.")
 
     # Instantiate and execute the pipeline
     pipeline = instantiate(cfg, _convert_="all")
@@ -589,7 +701,7 @@ def download_mlflow_data(
         "MLFLOW_TRACKING_USERNAME" in os.environ and "MLFLOW_TRACKING_PASSWORD" in os.environ
     )
     if not mlflow_credentials_set:
-        print(
+        typer.echo(
             "\nWarning: MLFlow authentication environment variables are not set. "
             "If the server requires authentication, your request will fail."
             "You can authenticate by setting environment variables before running:\n"
@@ -606,27 +718,28 @@ def download_mlflow_data(
 
     # Handling authentication
     try:
-        print(f"\nConnecting to MLFlow server at {tracking_uri}")
-        print(f"Accessing experiment ID: {experiment_id}")
+        typer.echo(f"\nConnecting to MLFlow server at {tracking_uri}")
+        typer.echo(f"Accessing experiment ID: {experiment_id}")
         runs = client.search_runs(experiment_ids=[experiment_id])
-        print(f"Authentication successful! Found {len(runs)} runs.")
+        typer.echo(f"Authentication successful! Found {len(runs)} runs.")
     except mlflow.MlflowException as e:
         status_code = e.get_http_status_code()
         if status_code == 401:
-            print(
+            typer.echo(
                 "Authentication with MLFlow failed with code 401! Either your "
                 "environment variables are not set or they are incorrect!"
             )
-            return
+            typer.Exit()
         else:
-            raise e
+            typer.echo(e.message)
+            typer.Exit()
 
     all_metrics = []
     for run_idx, run in enumerate(runs):
         run_id = run.info.run_id
         metric_keys = run.data.metrics.keys()  # Get all metric names
 
-        print(f"Processing run {run_idx + 1}/{len(runs)}")
+        typer.echo(f"Processing run {run_idx + 1}/{len(runs)}")
         for metric_name in metric_keys:
             metrics = client.get_metric_history(run_id, metric_name)
             for metric in metrics:
@@ -641,12 +754,12 @@ def download_mlflow_data(
                 )
 
     if not all_metrics:
-        print("No metrics found in the runs")
-        return
+        typer.echo("No metrics found in the runs")
+        typer.Exit()
 
     df_metrics = pd.DataFrame(all_metrics)
     df_metrics.to_csv(output_file, index=False)
-    print(f"Saved data to '{Path(output_file).resolve()}'!")
+    typer.echo(f"Saved data to '{Path(output_file).resolve()}'!")
 
 
 def tensorboard_ui(

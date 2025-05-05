@@ -74,6 +74,16 @@ rm -rf logs_torchrun logs_mpirun logs_srun checkpoints
 #     --partition=$PARTITION \
 #     $SLURM_SCRIPT
 
+export DIST_MODE="ray"
+export RUN_NAME="ray-itwinai"
+export COMMAND='pytest -v -m ray_dist /app/tests'
+sbatch  \
+    --job-name="$RUN_NAME-n$N" \
+    --output="logs_slurm/job-$RUN_NAME-n$N.out" \
+    --error="logs_slurm/job-$RUN_NAME-n$N.err" \
+    slurm.vega.sh
+
+
 export DIST_MODE="ddp"
 export RUN_NAME="ddp-itwinai"
 export COMMAND="pytest -v -s -o log_cli=true -o log_cli_level=INFO -m torch_dist $TESTS_LOCATION"

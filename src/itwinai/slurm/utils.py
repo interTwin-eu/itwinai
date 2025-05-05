@@ -67,6 +67,7 @@ def get_slurm_job_parser() -> ArgumentParser:
     default_training_command = None
     default_python_venv = ".venv"
     default_scalability_nodes = "1,2,4,8"
+    default_profiling_rate = 10 # py-spy profiler sample rate/frequency
 
     parser = ArgumentParser(parser_mode="omegaconf")
 
@@ -177,12 +178,19 @@ def get_slurm_job_parser() -> ArgumentParser:
         default=default_scalability_nodes,
         help="A comma-separated list of node numbers to use for the scalability test.",
     )
+    parser.add_argument(
+        "-pr",
+        "--profiling-rate",
+        type=int,
+        default=default_profiling_rate,
+        help="The rate at which the py-spy profiler should sample the call stack.",
+    )
 
     # Boolean arguments where you only need to include the flag and not an actual value
     parser.add_argument(
         "--debug",
         action="store_true",
-        help="Whether to include debugging information or not",
+        help="Whether to include debugging information or not.",
     )
     parser.add_argument(
         "-ns",
@@ -195,6 +203,12 @@ def get_slurm_job_parser() -> ArgumentParser:
         "--no-submit-job",
         action="store_true",
         help="Whether to submit the job when processing the script.",
+    )
+    parser.add_argument(
+        "-ps",
+        "--py-spy",
+        action="store_true",
+        help="Whether to activate profiling with py-spy.",
     )
 
     return parser

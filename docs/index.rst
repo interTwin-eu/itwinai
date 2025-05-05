@@ -69,6 +69,7 @@ contains thoroughly tested features aligned with the toolkit's most recent relea
    getting-started/slurm
    getting-started/containers
    getting-started/plugins
+   getting-started/plugins-list
 
 .. toctree::
    :maxdepth: 2
