@@ -23,8 +23,8 @@ For additional background on Ray job submission and KubeRay, refer to:
     Setting up and managing Ray on Kubernetes
 -   [Ray job submission guide](https://docs.ray.io/en/latest/cluster/running-applications/job-submission/index.html) –
     Explains how to submit jobs to a Ray cluster
--   [Job submission quickstart](https://docs.ray.io/en/latest/cluster/running-applications/job-submission/quickstart.html) –
-    A hands-on walkthrough to get started quickly
+-   [Job submission quickstart](https://docs.ray.io/en/latest/cluster/running-applications/job-submission/quickstart.html)
+    – A hands-on walkthrough to get started quickly
 
 ## Prerequisites
 
@@ -89,7 +89,7 @@ The pods are ready when each pod shows _1/1_ and _Running_.
 
 > [!WARNING]
 > Remember to shut down your raycluster when it's no longer in use to free up `HPC` resources.
-> See [3. Shutting down and deleting the KubeRay cluster](#3-shutting-down-and-deleting-the-kuberay-cluster)
+> See [3. Shutting down and deleting the KubeRay cluster](#shutting-down-and-deleting-the-kuberay-cluster)
 
 ## Submit to the KubeRay cluster
 
