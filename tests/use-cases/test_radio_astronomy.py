@@ -46,7 +46,7 @@ def syndata(tmp_path, torch_env):
         f"+pipe_key=syndata_pipeline ++syndata_test_dir={tmp_path}/ "
     )
     if len(os.listdir(tmp_path)) == 0:  # only run if directory is empty
-        subprocess.run(cmd_data, check=True, shell=True, cwd=USECASE_FOLDER)
+        subprocess.run(cmd_data.split(), check=True, cwd=USECASE_FOLDER)
 
         # Copy the necessary files to the temporary directory for testing
         shutil.copy(USECASE_FOLDER / ".config-test.yaml", tmp_path)
@@ -133,5 +133,5 @@ def test_radio_astronomy_evaluate(torch_env):
     ## Run the pipeline and check file generation in the use-case folder
     subprocess.run(cmd.split(), check=True, cwd=USECASE_FOLDER)
     ## Clean up the use-case folder
-    subprocess.run("./.pytest-clean", shell=True, check=True, cwd=USECASE_FOLDER)
+    subprocess.run("./.pytest-clean", check=True, cwd=USECASE_FOLDER)
 
