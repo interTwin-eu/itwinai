@@ -45,13 +45,12 @@ def syndata(tmp_path, torch_env) -> Path:
         f"{torch_env}/bin/itwinai exec-pipeline --config-name .config-test "
         f"+pipe_key=syndata_pipeline ++syndata_test_dir={tmp_path}/ "
     )
-    if len(os.listdir(tmp_path)) == 0:  # only run if directory is empty
-        subprocess.run(cmd_data, check=True, shell=True, cwd=USECASE_FOLDER)
+    subprocess.run(cmd_data, check=True, shell=True, cwd=USECASE_FOLDER)
 
-        # Copy the necessary files to the temporary directory for testing
-        shutil.copy(USECASE_FOLDER / ".config-test.yaml", tmp_path)
-        shutil.copy(USECASE_FOLDER / "data.py", tmp_path)
-        shutil.copy(USECASE_FOLDER / "trainer.py", tmp_path)
+    # Copy the necessary files to the temporary directory for testing
+    shutil.copy(USECASE_FOLDER / ".config-test.yaml", tmp_path)
+    shutil.copy(USECASE_FOLDER / "data.py", tmp_path)
+    shutil.copy(USECASE_FOLDER / "trainer.py", tmp_path)
 
     yield tmp_path
 
