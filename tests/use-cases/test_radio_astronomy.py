@@ -28,14 +28,13 @@ import pytest
 
 USECASE_FOLDER = Path("use-cases", "radio-astronomy").resolve()
 
-
-# @pytest.fixture
-# def torch_env() -> str:
-#     """
-#     Returns absolute path to torch virtual environment.
-#     """
-#     env_path = Path(os.environ.get("TORCH_ENV", "./.venv"))
-#     return str(env_path.resolve())
+@pytest.fixture
+def torch_env() -> str:
+    """
+    Returns absolute path to torch virtual environment.
+    """
+    env_path = Path(os.environ.get("TORCH_ENV", "./.venv"))
+    return str(env_path.resolve())
 
 @pytest.fixture
 def syndata(tmp_path, torch_env,install_requirements):
@@ -51,10 +50,6 @@ def syndata(tmp_path, torch_env,install_requirements):
         shutil.copy(USECASE_FOLDER / ".config-test.yaml", tmp_path)
         shutil.copy(USECASE_FOLDER / "data.py", tmp_path)
         shutil.copy(USECASE_FOLDER / "trainer.py", tmp_path)
-
-        subprocess.run(["ls", "-l","-a", str(tmp_path)], check=True)
-        # subprocess.run(["cat", str(tmp_path / "data.py")], check=True)
-        # print("Files in /tmp/ dir: ", os.listdir(tmp_path))
 
         subprocess.run(cmd_data.split(), check=True, cwd=tmp_path)
 
@@ -118,7 +113,6 @@ def test_radio_astronomy_cnn1d(torch_env, syndata, install_requirements):
     )
 
     subprocess.run(cmd.split(), check=True, cwd=syndata)
-
 
 @pytest.mark.skip(reason="dependent on large real data set")
 def test_radio_astronomy_evaluate(torch_env):
