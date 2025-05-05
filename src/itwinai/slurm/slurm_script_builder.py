@@ -372,6 +372,7 @@ def generate_default_slurm_script() -> None:
         distributed_strategy=args.dist_strat,
         debug=args.debug,
         python_venv=args.python_venv,
+        pre_exec_command=args.pre_exec_cmd,
         training_command=args.training_cmd,
         config_path=args.config_path,
         config_name=args.config_name,
