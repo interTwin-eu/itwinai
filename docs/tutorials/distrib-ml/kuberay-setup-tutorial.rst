@@ -14,7 +14,7 @@ clusters on Kubernetes.
 It specifies the configuration for head and worker nodes, including resource requests,
 environment variables, and startup commands.
 For a full reference of supported fields and structure, see the
-[Ray on Kubernetes config documentation](https://docs.ray.io/en/latest/cluster/kubernetes/user-guides/config.html).
+`Ray on Kubernetes config documentation <https://docs.ray.io/en/latest/cluster/kubernetes/user-guides/config.html>`_
 
 
 .. literalinclude:: ../../../tutorials/distributed-ml/kuberay-setup-tutorial/raycluster_example.yaml
