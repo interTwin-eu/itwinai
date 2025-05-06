@@ -22,6 +22,7 @@ Distributed ML with PyTorch
    distrib-ml/torch_scaling_test
    distrib-ml/torch-tutorial-containers
    distrib-ml/torch_tutorial_kubeflow_1.rst
+   distrib-ml/kuberay-setup-tutorial.rst
 
 
 Distributed ML with TensorFlow
