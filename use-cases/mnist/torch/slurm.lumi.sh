@@ -14,14 +14,21 @@
 # Resources allocation
 #SBATCH --partition=small-g
 #SBATCH --nodes=2
-#SBATCH --gpus-per-node=1
+#SBATCH --gpus-per-node=8
 #SBATCH --cpus-per-task=16
 #SBATCH --exclusive
+
+# NOTES:
+# - Ray seems to be working only when using 8 GPUs per node (I only have tested 1 per node, which did not work -> causes segfault)
+# - Still needs to be done proper GPU to CUP mapping, as explained on the LUMI docs to optimize the GPU-to-CPU communication
+
 
 set -e
 
 # Load environment modules
-ml LUMI partition/G cray-mpich/8.1.29 #libfabric #rocm/6.2.2
+ml LUMI partition/G #cray-mpich/8.1.29 #libfabric #rocm/6.2.2
+module use /appl/local/containers/ai-modules
+# module load singularity-AI-bindings # this is a troublemaker
 
 # Job info
 echo "DEBUG: TIME: $(date)"
@@ -137,17 +144,20 @@ function ray-launcher(){
   # The `--head` option specifies that this node will be the head of the Ray cluster.
   # `srun` submits a job that runs on the head node to start the Ray head with the specified 
   # number of CPUs and GPUs.
-  srun --nodes=1 --ntasks=1 -w "$head_node" \
-      singularity exec --bind $(pwd):$(pwd) --rocm $CONTAINER_PATH  bash -c " \
-      source /opt/miniconda3/bin/activate pytorch && \
-      ray start \
-        --head \
-        --node-ip-address="$head_node" \
-        --port=$port \
-      --num-cpus "$num_cpus" \
-      --num-gpus "$num_gpus"  \
-      --log-color false \
-      --block" &
+ srun --nodes=1 --ntasks=1 -w "$head_node" \
+    singularity exec \
+      --bind $(pwd) \
+      --rocm \
+      $CONTAINER_PATH bash -c " \
+        source /opt/miniconda3/bin/activate pytorch && \
+        ray start \
+          --head \
+          --node-ip-address="$head_node" \
+          --port=$port \
+        --num-cpus "$num_cpus" \
+        --num-gpus "$num_gpus"  \
+        --log-color false \
+        --block" &
 
   # Wait for a few seconds to ensure that the head node has fully initialized.
   sleep 5
@@ -164,15 +174,18 @@ function ray-launcher(){
       # Use srun to start Ray on the worker node and connect it to the head node.
       # The `--address` option tells the worker node where to find the head node.
       srun --nodes=1 --ntasks=1 -w "$node_i" \
-        singularity exec --bind $(pwd):$(pwd) --rocm $CONTAINER_PATH bash -c " \
-        source /opt/miniconda3/bin/activate pytorch && \
-        ray start \
-          --address "$head_node":"$port" \
-          --redis-password='5241580000000000' \
-          --num-cpus "$num_cpus" \
-          --num-gpus "$num_gpus" \
-          --log-color false \
-          --block" &
+        singularity exec \
+        --bind $(pwd) \
+        --rocm \
+        $CONTAINER_PATH bash -c " \
+          source /opt/miniconda3/bin/activate pytorch && \
+          ray start \
+            --address "$head_node":"$port" \
+            --redis-password='5241580000000000' \
+            --num-cpus "$num_cpus" \
+            --num-gpus "$num_gpus" \
+            --log-color false \
+            --block" &
       
       sleep 5 # Wait before starting the next worker to prevent race conditions.
   done
@@ -190,27 +203,32 @@ function ray-launcher(){
   #   echo HIP_VISIBLE_DEVICES: $HIP_VISIBLE_DEVICES'
 
   # Run command without srun
-  singularity exec --bind $(pwd):$(pwd) $CONTAINER_PATH bash -c "\
-    source /opt/miniconda3/bin/activate pytorch && \
-    $1"
+  singularity exec \
+    --bind $(pwd) \
+    $CONTAINER_PATH bash -c "\
+      source /opt/miniconda3/bin/activate pytorch && \
+      $1"
 }
 
 function torchrun-launcher(){
   srun --cpu-bind=none --ntasks-per-node=1 \
-    singularity exec --rocm --bind $(pwd):$(pwd) $CONTAINER_PATH /bin/bash -c "\
-    source /opt/miniconda3/bin/activate pytorch && \
-    torchrun \
-    --log_dir='logs_torchrun' \
-    --nnodes=$SLURM_NNODES \
-    --nproc_per_node=$SLURM_GPUS_PER_NODE \
-    --node-rank=$SLURM_NODEID \
-    --rdzv_id=$SLURM_JOB_ID \
-    --rdzv_conf=is_host=\$(((SLURM_NODEID)) && echo 0 || echo 1) \
-    --rdzv_backend=c10d \
-    --rdzv_endpoint='$(scontrol show hostnames "$SLURM_JOB_NODELIST" | head -n 1)':29500 \
-    --no-python \
-    --redirects=\$(((SLURM_NODEID)) && echo "3" || echo "1:3,2:3,3:3") \
-    $1"
+    singularity exec \
+      --bind $(pwd) \
+      --rocm \
+      $CONTAINER_PATH /bin/bash -c "\
+        source /opt/miniconda3/bin/activate pytorch && \
+        torchrun \
+        --log_dir='logs_torchrun' \
+        --nnodes=$SLURM_NNODES \
+        --nproc_per_node=$SLURM_GPUS_PER_NODE \
+        --node-rank=$SLURM_NODEID \
+        --rdzv_id=$SLURM_JOB_ID \
+        --rdzv_conf=is_host=\$(((SLURM_NODEID)) && echo 0 || echo 1) \
+        --rdzv_backend=c10d \
+        --rdzv_endpoint='$(scontrol show hostnames "$SLURM_JOB_NODELIST" | head -n 1)':29500 \
+        --no-python \
+        --redirects=\$(((SLURM_NODEID)) && echo "3" || echo "1:3,2:3,3:3") \
+        $1"
 }
 
 function srun-launcher(){
@@ -224,10 +242,15 @@ function srun-launcher(){
     --ntasks-per-node=$SLURM_GPUS_PER_NODE \
     --cpus-per-task=$(($SLURM_CPUS_PER_TASK / $SLURM_GPUS_PER_NODE)) \
     --ntasks=$(($SLURM_GPUS_PER_NODE * $SLURM_NNODES)) \
-    singularity exec --rocm --bind $(pwd):$(pwd) $CONTAINER_PATH /bin/bash -c "
-    source /opt/miniconda3/bin/activate pytorch && 
-    export ROCR_VISIBLE_DEVICES=\$SLURM_LOCALID && 
-    $1"
+    singularity exec \
+    --bind $(pwd) \
+    --rocm \
+    $CONTAINER_PATH /bin/bash -c "
+      source /opt/miniconda3/bin/activate pytorch && 
+      $1"
+
+    #       export ROCR_VISIBLE_DEVICES=\$SLURM_LOCALID && 
+
 
     # singularity exec --rocm --bind $(pwd):$(pwd) $CONTAINER_PATH /bin/bash -c '
     # source /opt/miniconda3/bin/activate pytorch && 
@@ -279,9 +302,9 @@ elif [ "$DIST_MODE" == "horovod" ] ; then
   echo "HOROVOD training: $TRAINING_CMD"
   srun-launcher "$TRAINING_CMD"
 
-  # separation
+  separation
 
-  # ray-launcher "$TRAINING_CMD"
+  ray-launcher "$TRAINING_CMD"
 else
   >&2 echo "ERROR: unrecognized \$DIST_MODE env variable"
   exit 1
