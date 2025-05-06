@@ -5,7 +5,7 @@
 Example for LUMI (AMD GPUs):
 
 ```bash
-sudo singularity build --tmpdir /mnt/mbunino/tmp /mnt/mbunino/container_test_2.sif env-files/torch/rocm.def
+sudo singularity build --tmpdir /mnt/mbunino/tmp /mnt/mbunino/container_test_3.sif env-files/torch/rocm.def
 ```
 
 - `/mnt/mbunino/tmp` is a location with enough storage space to support the build.
