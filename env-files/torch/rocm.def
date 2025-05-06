@@ -85,7 +85,7 @@ From: /mnt/mbunino/lumi-rocm-pytorch.sif
     cd /app
 
     pip install --no-cache-dir .[torch] --extra-index-url https://download.pytorch.org/whl/rocm6.1 \
-        "prov4ml[nvidia]@git+https://github.com/matbun/ProvML@new-main" \
+        "prov4ml[amd]@git+https://github.com/matbun/ProvML@new-main" \
         pytest \
         pytest-xdist \
         psutil \
