@@ -28,7 +28,7 @@ set -e
 # Load environment modules
 ml LUMI partition/G #cray-mpich/8.1.29 #libfabric #rocm/6.2.2
 module use /appl/local/containers/ai-modules
-# module load singularity-AI-bindings # this is a troublemaker
+module load singularity-AI-bindings
 
 # Job info
 echo "DEBUG: TIME: $(date)"
