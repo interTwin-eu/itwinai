@@ -59,7 +59,7 @@ cd .interlink
 To start the Kubernetes cluster, create a values file (e.g., `<your-name>_raycluster.yaml`).
 You can use the `raycluster_example.yaml` in this directory as a template.
 
-Edit the values file to ensure it points to the correct `sif` file:
+Edit the values file (`raycluster_example.yaml`) to ensure it points to the correct `sif` file:
 
 ```yaml
 image:
@@ -69,6 +69,9 @@ image:
     pullPolicy: IfNotPresent
 # TODO Edit resources as needed (e.g. increase number and resources per head/worker pod)
 ```
+
+To get an overview over the available attributes for ray values files, please consult the ray documentation for the
+[RayCluster Configuration](https://docs.ray.io/en/latest/cluster/kubernetes/user-guides/config.html).
 
 Then execute:
 
