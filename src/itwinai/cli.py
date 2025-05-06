@@ -78,7 +78,7 @@ def generate_py_spy_report(
         ),
     ] = False,
     library_name: Annotated[
-        str, typer.Option(help="Which library name to find the lowest contact point of")
+        str, typer.Option(help="Which library name to find the lowest contact point of.")
     ] = "itwinai",
 ):
     """Generates a short aggregation of the raw py-spy profiling data, showing which leaf
