@@ -1,0 +1,8 @@
+numpyencoder
+pulsarrfi-nn @ git+https://gitlab.com/ml-ppa/pulsarrfi_nn.git@version_0.2#subdirectory=unet_semantic_segmentation
+pulsardt @ git+https://gitlab.com/ml-ppa/pulsardt@main
+ipywidgets
+pyqt6
+pyquaternion
+scikit-image
+tqdm
