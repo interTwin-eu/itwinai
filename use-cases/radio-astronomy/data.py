@@ -267,7 +267,6 @@ class PulsarDataset(Dataset):
             ax.set_ylim(0, 1)
             ax.grid()
             ax.set_title(f"Pulsar Present {label_vector[0]>=0.9}")
-            return plt.gca()
 
     def execute(self) -> Dataset:
         """Read the dataset from disk and return it to the trainer in-memory."""
@@ -390,7 +389,7 @@ class TestSuite:
             fig = plt.figure(i)
             fig.savefig(f"plots/figure_{i}.png")
 
-        return print("Test Suite executed")
+        print("Test Suite executed")
 
 
 class ModelSaver:

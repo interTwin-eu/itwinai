@@ -30,9 +30,7 @@ USECASE_FOLDER = Path("use-cases", "radio-astronomy").resolve()
 
 @pytest.fixture
 def torch_env() -> str:
-    """
-    Returns absolute path to torch virtual environment.
-    """
+    """Returns absolute path to torch virtual environment."""
     env_path = Path(os.environ.get("TORCH_ENV", "./.venv"))
     return str(env_path.resolve())
 
@@ -57,9 +55,7 @@ def syndata(tmp_path, torch_env,install_requirements):
 
 @pytest.fixture
 def generate_unet(torch_env, syndata):
-    """
-    Generate the U-Net model for the Filter-CNN test.
-    """
+    """Generate the U-Net model for the Filter-CNN test. """
     cmd = (
         f"{torch_env}/bin/itwinai exec-pipeline --config-name .config-test "
         f"+pipe_key=unet_pipeline ++image_directory={syndata}/ ++mask_directory={syndata}/ "
@@ -69,10 +65,8 @@ def generate_unet(torch_env, syndata):
 
 # @pytest.mark.skip(reason="dependent on .test_dataset, incoroporated into integration test")
 def test_radio_astronomy_unet(torch_env, syndata, install_requirements):
-    """
-    Test U-Net Pulsar-DDT trainer by running it end-to-end
-    via the config-test.yaml configuration file.
-    """
+    """Test U-Net Pulsar-DDT trainer by running it end-to-end
+    via the config-test.yaml configuration file."""
 
     install_requirements(USECASE_FOLDER, torch_env)
 
@@ -85,10 +79,8 @@ def test_radio_astronomy_unet(torch_env, syndata, install_requirements):
 
 @pytest.mark.functional
 def test_radio_astronomy_filtercnn(torch_env, syndata, generate_unet, install_requirements):
-    """
-    Test Filter-CNN Pulsar-DDT trainer by running it end-to-end
-    via the config-test.yaml configuration file. Requires the U-Net model to be present.
-    """
+    """Test Filter-CNN Pulsar-DDT trainer by running it end-to-end
+    via the config-test.yaml configuration file. Requires the U-Net model to be present."""
 
     install_requirements(USECASE_FOLDER, torch_env)
 
@@ -100,10 +92,8 @@ def test_radio_astronomy_filtercnn(torch_env, syndata, generate_unet, install_re
     subprocess.run(cmd.split(), check=True, cwd=syndata)
 
 def test_radio_astronomy_cnn1d(torch_env, syndata, install_requirements):
-    """
-    Test CNN-1D Pulsar-DDT trainer by running it end-to-end
-    via the config-test.yaml configuration file.
-    """
+    """Test CNN-1D Pulsar-DDT trainer by running it end-to-end
+    via the config-test.yaml configuration file."""
 
     install_requirements(USECASE_FOLDER, torch_env)
 
@@ -116,10 +106,8 @@ def test_radio_astronomy_cnn1d(torch_env, syndata, install_requirements):
 
 @pytest.mark.skip(reason="dependent on large real data set")
 def test_radio_astronomy_evaluate(torch_env):
-    """
-    Test the evaluate pipeline by running it end-to-end
-    via the config-test.yaml configuration file.
-    """
+    """Test the evaluate pipeline by running it end-to-end
+    via the config-test.yaml configuration file."""
 
     cmd = (
         f"{torch_env}/bin/itwinai exec-pipeline "
@@ -131,4 +119,3 @@ def test_radio_astronomy_evaluate(torch_env):
     subprocess.run(cmd.split(), check=True, cwd=USECASE_FOLDER)
     ## Clean up the use-case folder
     subprocess.run("./.pytest-clean", check=True, cwd=USECASE_FOLDER)
-

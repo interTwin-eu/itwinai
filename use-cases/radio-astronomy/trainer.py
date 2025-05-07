@@ -21,8 +21,7 @@ from itwinai.torch.profiling.profiler import profile_torch_trainer
 
 class PulsarTrainer(TorchTrainer):
     """Trainer class for radio-astronomy use-case.
-    Inherited from itwinai TorchTrainer class.
-    """
+    Inherited from itwinai TorchTrainer class."""
 
     def __init__(
         self,
