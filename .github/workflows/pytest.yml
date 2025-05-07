@@ -45,7 +45,7 @@ jobs:
             --cmd "pytest,-v,--disable-warnings,-n,logical,/app/tests/,--dist,loadfile,-m,not hpc and not tensorflow"
             logs
           cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
-          version: "latest"
+          version: "0.18.0"
 
   # test-torch:
   #   name: Testing with pytest
