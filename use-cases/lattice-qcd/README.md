@@ -38,6 +38,62 @@ strategies configured in `itwinai`. Besides, it also provides functionalities
 to perform profiling, logging and HyperParameter Optimization (HPO), which
 are all inherited from the TorchTrainer class.
 
+# Important to note: Environment setup
+
+In order to minimize source files from `normflow` in the `itwinai` main repository,
+some of the source files are cloned from a forked `normflow` repository, which can
+be accessed [here](https://github.com/r-sarma/normflow_itwinai_source). The files
+which are part of the itwinai integration for `normflow` are included in the `itwinai`
+repository. In order to correctly build the environment for `normflow`, it is
+important to follow these steps mentioned below.
+
+1. Once `itwinai` is cloned and the environment is setup (see instructions
+[here](https://itwinai.readthedocs.io/latest/installation/developer_installation.html)),
+please navigate to the `use-cases/lattice-qcd` directory:
+
+```
+cd use-cases/lattice-qcd
+```
+
+2. In this directory, the source files from the integration are included. The
+other files required to build the `normflow` environment are imported from
+the forked repository mentioned above. To do this, please run the following lines
+on your terminal:
+
+```
+mkdir tmp-repo && cd tmp-repo
+cd tmp-repo/
+git init
+git remote add origin https://github.com/r-sarma/normflow_itwinai_source.git
+git sparse-checkout init --cone
+git sparse-checkout set src
+git pull origin master
+mv src ../src
+cd ..
+rm -rf tmp-repo
+```
+
+These lines clone the required files from the forked repository, and then
+removes the `tmp-repo` since this is not needed for setting up the environment.
+
+3. Next, the file `_normflowcore.py` has to be moved to the newly-created
+`src` directory. This files contains the `Trainer` configuration and enables
+access to all the logic defined for distributed training strategy, logging,
+profiling and other functionalities offered by `itwinai`.
+
+```
+mv _normflowcore.py src/
+```
+
+4. When this is done, all the files required to install `normflow` are
+present, which can be done with:
+
+```
+pip install .
+```
+
+# Launching a training pipeline
+
 The training configuration is handled with `yaml` based configuration files.
 An example of such a configuration file is provided in `config.yaml`. An example
 to demonstrate the scalar theory in zero dimension, i.e., a scenario with one
