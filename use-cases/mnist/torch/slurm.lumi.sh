@@ -29,6 +29,8 @@ set -e
 ml LUMI partition/G #cray-mpich/8.1.29 #libfabric #rocm/6.2.2
 module use /appl/local/containers/ai-modules
 module load singularity-AI-bindings
+# export SINGULARITY_BIND="/var/spool/slurmd,/usr/lib64/libcxi.so.1,/usr/lib64/libjansson.so.4,/pfs,/scratch,/projappl,/project,/flash,/appl"
+
 
 # Job info
 echo "DEBUG: TIME: $(date)"
@@ -247,6 +249,7 @@ function srun-launcher(){
     --rocm \
     $CONTAINER_PATH /bin/bash -c "
       source /opt/miniconda3/bin/activate pytorch && 
+      export LD_LIBRARY_PATH=/usr/lib64/mpi/gcc/mpich/lib64:\$LD_LIBRARY_PATH &&
       $1"
 
     #       export ROCR_VISIBLE_DEVICES=\$SLURM_LOCALID && 
