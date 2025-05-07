@@ -84,8 +84,6 @@ hpo = [
   "hpbandster>=0.7.0",
   "gpy>=1.13.2",
 ]
-# Dependencies for Lattice-QCD
-lattice-qcd = ["normflow"]
 
 [tool.hatch.metadata]
 allow-direct-references = true
@@ -138,7 +136,6 @@ torch = [{ index = "pytorch-cu121", marker = "platform_system != 'Darwin'" }]
 torchvision = [
   { index = "pytorch-cu121", marker = "platform_system != 'Darwin'" },
 ]
-normflow = { path = "use-cases/lattice-qcd" }
 
 # Specific index for pytorch
 [[tool.uv.index]]

@@ -77,7 +77,7 @@ These lines clone the required files from the forked repository, and then
 removes the `tmp-repo` since this is not needed for setting up the environment.
 
 3. Next, the file `_normflowcore.py` has to be moved to the newly-created
-`src` directory. This files contains the `Trainer` configuration and enables
+`src` directory. This file contains the `Trainer` configuration and enables
 access to all the logic defined for distributed training strategy, logging,
 profiling and other functionalities offered by `itwinai`.
 
