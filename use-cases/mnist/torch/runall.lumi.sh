@@ -51,6 +51,32 @@ sbatch --export=ALL,DIST_MODE="$DIST_MODE",RUN_NAME="$RUN_NAME",TRAINING_CMD="$T
     --error="logs_slurm/job-$RUN_NAME-n$N.err" \
     slurm.lumi.sh
 
+# DIST_MODE="hpo"
+# RUN_NAME="ddp-hpo-itwinai"
+# TRAINING_CMD="itwinai exec-pipeline strategy=ddp checkpoints_location=checkpoints_ddp +pipe_key=training_pipeline"
+# sbatch --export=ALL,DIST_MODE="$DIST_MODE",RUN_NAME="$RUN_NAME",TRAINING_CMD="$TRAINING_CMD",PYTHON_VENV="$PYTHON_VENV" \
+#     --job-name="$RUN_NAME-n$N" \
+#     --output="logs_slurm/job-$RUN_NAME-n$N.out" \
+#     --error="logs_slurm/job-$RUN_NAME-n$N.err" \
+#     slurm.lumi.sh
+#
+# DIST_MODE="hpo"
+# RUN_NAME="deepspeed-hpo-itwinai"
+# TRAINING_CMD="itwinai exec-pipeline strategy=deepspeed checkpoints_location=checkpoints_deepspeed +pipe_key=training_pipeline"
+# sbatch --export=ALL,DIST_MODE="$DIST_MODE",RUN_NAME="$RUN_NAME",TRAINING_CMD="$TRAINING_CMD",PYTHON_VENV="$PYTHON_VENV" \
+#     --job-name="$RUN_NAME-n$N" \
+#     --output="logs_slurm/job-$RUN_NAME-n$N.out" \
+#     --error="logs_slurm/job-$RUN_NAME-n$N.err" \
+#     slurm.lumi.sh
+
+# DIST_MODE="hpo"
+# RUN_NAME="horovod-hpo-itwinai"
+# TRAINING_CMD="itwinai exec-pipeline strategy=horovod checkpoints_location=checkpoints_hvd +pipe_key=training_pipeline"
+# sbatch --export=ALL,DIST_MODE="$DIST_MODE",RUN_NAME="$RUN_NAME",TRAINING_CMD="$TRAINING_CMD",PYTHON_VENV="$PYTHON_VENV" \
+#     --job-name="$RUN_NAME-n$N" \
+#     --output="logs_slurm/job-$RUN_NAME-n$N.out" \
+#     --error="logs_slurm/job-$RUN_NAME-n$N.err" \
+#     slurm.lumi.sh
 
 # ### GAN training ###
 
