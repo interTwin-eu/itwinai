@@ -1,6 +1,6 @@
 normflow
 [![SQAaaS badge shields.io](https://img.shields.io/badge/sqaaas%20software-silver-lightgrey)](https://api.eu.badgr.io/public/assertions/-g9rQYZJTyi4S-VUrbvqlQ "SQAaaS silver badge achieved")
-[![License: MIT](https://opensource.org/licenses/MIT)](LICENSE)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 --------
 <!-- sphinx-start -->
 **Integration author(s)**: Rakesh Sarma (Juelich)
