@@ -51,7 +51,7 @@ important to follow these steps mentioned below.
 [here](https://itwinai.readthedocs.io/latest/installation/developer_installation.html)),
 please navigate to the `use-cases/lattice-qcd` directory:
 
-```
+```bash
 cd use-cases/lattice-qcd
 ```
 
@@ -60,7 +60,7 @@ other files required to build the `normflow` environment are imported from
 the forked repository mentioned above. To do this, please run the following lines
 on your terminal:
 
-```
+```bash
 mkdir tmp-repo && cd tmp-repo
 cd tmp-repo/
 git init
@@ -81,14 +81,14 @@ removes the `tmp-repo` since this is not needed for setting up the environment.
 access to all the logic defined for distributed training strategy, logging,
 profiling and other functionalities offered by `itwinai`.
 
-```
+```bash
 mv _normflowcore.py src/
 ```
 
 4. When this is done, all the files required to install `normflow` are
 present, which can be done with:
 
-```
+```bash
 pip install .
 ```
 
@@ -118,7 +118,8 @@ model:
 
 In this example, we have:
 
--   **Prior Distribution**: A normal distribution is used with a shape of`[1]`.
+-   **Prior Distribution**: A univariate normal distribution,
+    represented with a tensor shaped (1,).
 
 -   **Action**: A quartic scalar theory is defined with parameters
     `kappa=0`, `m_sq=-2.0`, and `lambda=0.2`.
@@ -130,7 +131,7 @@ In this example, we have:
     and the distribution is assumed to be symmetric with respect to the origin.
 
 The other parameters for training are specified within the same `yaml` file.
-For conciseness, only few of the options, the `config` parameter, epochs and strategy
+For conciseness, only some of the options, the `config` parameter, epochs and strategy
 are shown in the snippet here.
 ```yaml
 config:
@@ -147,7 +148,7 @@ to `ddp` here, which implies the default PyTorch-based Distributed Data Parallel
 strategy.
 
 In order to launch the pipeline, simply run:
-```
+```bash
 itwinai exec-pipeline --config-name config.yaml +pipe_key=training_pipeline
 ```
 The above code block results in an output similar to:
@@ -194,19 +195,23 @@ process, providing insight into the model's performance over time.
 Alternatively, the model initialization and training can also be performed
 using the `train.py` file, which provides another interface to the user to build
 the models and launch the training with configurations files defined within the
-Python script. When using this script to launch the training, one can do so by:
-```
+Python script. One can use this script to launch the training with:
+
+```bash
 python train.py
 ```
 
-For working on HPC systems,  a `startscript.sh` file is provided. This can be launched
-by:
-```
+For working on High Performance Computing (HPC) systems,  a `startscript.sh` file
+is provided. This can be launched by:
+
+```bash
 sbatch startscript.sh
 ```
+
 In the startscript, `nodes` specifies the number of workers to be used for training.
-You can efficiently scale your model training across multiple GPUs, enhancing
-performance and reducing training time. This flexibility allows you to tackle
+You can efficiently scale your model training across multiple GPUs with any one of
+the distributed training strategies configured in `itwinai`, which is read from the
+`config.yaml` file in the startscript. This flexibility allows you to tackle
 larger datasets and more complex models with ease. When using the `train.py` file
 to launch the training, the last line in the `startscript.sh` file should be modified
 to `train.py`.

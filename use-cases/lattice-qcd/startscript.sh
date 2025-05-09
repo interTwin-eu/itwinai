@@ -12,7 +12,7 @@
 #SBATCH --nodes=2
 #SBATCH --gpus-per-node=4
 #SBATCH --ntasks-per-node=1
-#SBATCH --cpus-per-task=32
+#SBATCH --cpus-per-task=6
 #SBATCH --exclusive
 
 # Propagate the specified number of CPUs per task to each `srun`.
@@ -30,7 +30,7 @@ if [ "$SYSTEMNAME" = juwelsbooster ] \
        || [ "$SYSTEMNAME" = jurecadc ] \
        || [ "$SYSTEMNAME" = jusuf ]; then
     # Allow communication over InfiniBand cells on JSC machines.
-    MASTER_ADDR="$MASTER_ADDR"i
+    export MASTER_ADDR="$MASTER_ADDR"i
 fi
 export MASTER_PORT=54123
 
@@ -46,12 +46,53 @@ export NCCL_SOCKET_IFNAME=ib0
 # Prevent Gloo not being able to communicate.
 export GLOO_SOCKET_IFNAME=ib0
 
-srun --cpu-bind=none --ntasks-per-node=1 bash -c "torchrun \
-    --log_dir='logs' \
-    --nnodes=$SLURM_NNODES \
-    --nproc_per_node=$SLURM_GPUS_PER_NODE \
-    --rdzv_id=$SLURM_JOB_ID \
-    --rdzv_conf=is_host=\$(((SLURM_NODEID)) && echo 0 || echo 1) \
-    --rdzv_backend=c10d \
-    --rdzv_endpoint='$(scontrol show hostnames "$SLURM_JOB_NODELIST" | head -n 1)'i:54123 \
-   $(which itwinai) exec-pipeline --config-name config.yaml +pipe_key=training_pipeline"
+# Read strategy from config.yaml
+STRATEGY=$(grep '^strategy:' config.yaml | sed -E "s/.*strategy:[[:space:]]*'?([^']*)'?/\1/")
+
+echo "Launching training with strategy: $STRATEGY"
+
+case "$STRATEGY" in
+  ddp)
+    echo "Running with DDP"
+    srun --cpu-bind=none --ntasks-per-node=1 \
+    bash -c "torchrun \
+      --log_dir='logs' \
+      --nnodes=$SLURM_NNODES \
+      --nproc_per_node=$SLURM_GPUS_PER_NODE \
+      --rdzv_id=$SLURM_JOB_ID \
+      --rdzv_conf=is_host=\$(((SLURM_NODEID)) && echo 0 || echo 1) \
+      --rdzv_backend=c10d \
+      --rdzv_endpoint=${MASTER_ADDR}:${MASTER_PORT} \
+      $(which itwinai) exec-pipeline --config-name config.yaml +pipe_key=training_pipeline strategy=ddp"
+    ;;
+
+  deepspeed)
+    echo "Running with DeepSpeed"
+    srun --cpu-bind=none --ntasks-per-node=1 \
+    bash -c "torchrun \
+      --log_dir='logs_torchrun' \
+      --nnodes=$SLURM_NNODES \
+      --nproc_per_node=$SLURM_GPUS_PER_NODE \
+      --rdzv_id=$SLURM_JOB_ID \
+      --rdzv_conf=is_host=\$(((SLURM_NODEID)) && echo 0 || echo 1) \
+      --rdzv_backend=c10d \
+      --rdzv_endpoint=${MASTER_ADDR}:${MASTER_PORT} \
+      $(which itwinai) exec-pipeline --config-name config.yaml +pipe_key=training_pipeline \
+      strategy=deepspeed"
+    ;;
+
+  horovod)
+    echo "Running with Horovod"
+    srun --cpu-bind=none \
+      --ntasks-per-node=$SLURM_GPUS_PER_NODE \
+      --cpus-per-task=$SLURM_CPUS_PER_TASK \
+      --ntasks=$((SLURM_NNODES * SLURM_GPUS_PER_NODE)) \
+      $(which itwinai) exec-pipeline --config-name config.yaml +pipe_key=training_pipeline \
+      strategy=horovod
+    ;;
+
+  *)
+    echo "Error: Unknown strategy '$STRATEGY' in config.yaml"
+    exit 1
+    ;;
+esac

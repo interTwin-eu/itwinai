@@ -9,9 +9,7 @@ def make_model():
     prior = NormalPrior(shape=(1,))
     action = ScalarPhi4Action(kappa=0, m_sq=-1.2, lambd=0.5)
 
-    model = Model(net_=net_, prior=prior, action=action)
-
-    return model
+    return Model(net_=net_, prior=prior, action=action)
 
 def fit_func(model, n_epochs=100, strategy='ddp'):
     """Training function to fit model."""
@@ -40,4 +38,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-    sys.exit()

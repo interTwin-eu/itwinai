@@ -1,5 +1,0 @@
-To install:
-    python3 -m pip install . --user
-
-To uninstall:
-    python3 -m pip uninstall normflow

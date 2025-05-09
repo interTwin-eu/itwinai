@@ -21,7 +21,7 @@ to perform distributed training, profiling and logging.
 import torch
 import torch.distributed as dist
 import time
-import os, sys
+import logging, os, sys
 from pathlib import Path
 from typing import Any, Callable, Dict, Literal, Optional, Tuple
 from torch.utils.data import Dataset
@@ -122,9 +122,8 @@ class Posterior:
                 input and return modified values.
 
         Returns:
-            Tuple[torch.Tensor, torch.Tensor]:
-                - `y`: Generated samples.
-                - `logq`: Log probabilities of the samples.
+            torch.Tensor: Generated Samples (`y`)
+            torch.Tensor: Log probabilities of the samples (`logq`)
         """
         x, logr = self._model.prior.sample_(batch_size)
 
@@ -136,7 +135,7 @@ class Posterior:
         return y, logq
 
     @torch.no_grad()
-    def sample__(
+    def sample_log(
         self,
         batch_size: int = 1,
         **kwargs
@@ -218,9 +217,6 @@ class Fitter(TorchTrainer):
         Args:
             rank (int): The rank of the current worker.
             world_size (int): The total number of workers in the distributed setting
-
-        Returns:
-            None
         """
         if self.strategy.is_main_worker:
             # Generate unique seed for each worker based on its rank
@@ -237,7 +233,7 @@ class Fitter(TorchTrainer):
         seed = seeds_torch[rank]
         torch.manual_seed(seed)
 
-        sys.stdout.write(f"Rank {rank} has been assigned seed {seed}\n")
+        print(f"Rank {rank} has been assigned seed {seed}\n")
 
     def create_dataloaders(
         self,
@@ -247,22 +243,13 @@ class Fitter(TorchTrainer):
     ) -> None:
         """Overrides create_dataloaders method from itwinai TorchTrainer and returns
         nothing since this is not needed in this use-case.
-
-        Args:
-            train_dataset (Dataset): training dataset object.
-            validation_dataset (Dataset | None): validation dataset object.
-                Defaults to None.
-            test_dataset (Dataset | None): test dataset object.
-                Defaults to None.
-
-        Returns:
-            None.
         """
         return
 
     def create_model_loss_optimizer(self) -> None:
         """Creates create_model_loss_optimizer method to setup model, seeds,
-        loss function and optimizer."""
+        loss function and optimizer.
+        """
         self._model.prior.to(device=self.device)
 
         # First, define strategy-wise optional configurations
@@ -323,13 +310,8 @@ class Fitter(TorchTrainer):
             validation_dataset (Dataset | None): validation dataset object.
                 Defaults to None.
             test_dataset (Dataset | None): test dataset object. Defaults to None.
-
-        Returns:
-            None.
         """
-        _ = super().execute(train_dataset, validation_dataset, test_dataset)
-
-        return None
+        super().execute(train_dataset, validation_dataset, test_dataset)
 
     def _load_snapshot(self) -> None:
         """Method to load a snapshot from a path provided in checkpoint_dict"""
@@ -351,9 +333,6 @@ class Fitter(TorchTrainer):
 
         Args:
             epoch (int): Number of the epoch at which the snapshot is saved.
-
-        Returns:
-            None.
         """
         snapshot_path = self.checkpoint_dict['snapshot_path']
         epochs_run = epoch + self.checkpoint_dict['epochs_run']
@@ -370,9 +349,6 @@ class Fitter(TorchTrainer):
 
         Args:
             epoch (int): current epoch number.
-
-        Returns:
-            None
         """
         if self.profiler is not None:
             self.profiler.step()
@@ -384,7 +360,11 @@ class Fitter(TorchTrainer):
 
         # Track epoch time for scaling statistics
         if self.strategy.is_main_worker and self.strategy.is_distributed:
-            num_nodes = os.environ.get("SLURM_NNODES", "unk")
+            try:
+                num_nodes = int(os.environ["SLURM_NNODES"])
+            except (KeyError, ValueError):
+                logging.warning("SLURM_NNODES is not set or invalid; defaulting num_nodes to 1.")
+                num_nodes = 1
             epoch_time_output_dir = Path("scalability-metrics/epoch-time")
             epoch_time_file_name = f"epochtime_{self.strategy.name}_{num_nodes}N.csv"
             epoch_time_output_path = epoch_time_output_dir / epoch_time_file_name
@@ -399,25 +379,22 @@ class Fitter(TorchTrainer):
         if self.config.save_every == "None":
             self.config.save_every = self.epochs
 
-        T1 = time.time()
+        start_time = time.time()
         for epoch in range(1, self.epochs+1):
             self.set_epoch(epoch)
             loss, logqp = self.step(self.config.batch_size)
             self.checkpoint(epoch, loss, self.config.save_every)
             if self.scheduler is not None:
                 self.scheduler.step()
-        T2 = time.time()
-        if self.epochs > 0 and self.strategy.is_main_worker:
-            print(f"({self.strategy.device()}) Time = {T2 - T1:.3g} sec.")
+        end_time = time.time()
+        if self.strategy.is_main_worker:
+            print(f"({self.strategy.device()}) Time = {end_time - start_time:.3g} sec.")
 
     def step(self, batch_size: int) -> None:
         """Perform a train step with a batch of inputs.
 
         Args:
             batch_size (int): Specifies the batch size for the training.
-
-        Returns:
-            None
         """
         net_ = self._model.net_
         prior = self._model.prior
@@ -443,9 +420,6 @@ class Fitter(TorchTrainer):
             epoch (int): Epoch at which checkpoint is created.
             loss (torch.Tensor): Loss value at the epoch.
             save_every (int): interval at which checkpoints are saved.
-
-        Returns:
-            None
         """
         print_stride = self.checkpoint_dict['print_stride']
         print_batch_size = self.checkpoint_dict['print_batch_size']
@@ -458,19 +432,22 @@ class Fitter(TorchTrainer):
             if snapshot_path is not None and (epoch % save_every == 0):
                 self._save_snapshot(epoch)
 
+        if epoch != 1 or epoch % print_stride != 0:
+            return
+
         print_batch_size = print_batch_size // self.strategy.global_world_size()
+        _, logq, logp = self._model.posterior.sample_log(print_batch_size)
+        logq = self.strategy.gather(logq)
+        logp = self.strategy.gather(logp)
 
-        if epoch == 1 or (epoch % print_stride == 0):
-            _, logq, logp = self._model.posterior.sample__(print_batch_size)
-            logq = self.strategy.gather(logq)
-            logp = self.strategy.gather(logp)
+        if not self.strategy.is_main_worker:
+            return
 
-            if self.strategy.is_main_worker:
-                logq = torch.cat(logq, dim=0)
-                logp = torch.cat(logp, dim=0)
-                loss_ = self.loss_fn(logq, logp)
-                self._append_to_train_history(logq, logp)
-                self.print_fit_status(epoch, loss=loss_)
+        logq = torch.cat(logq, dim=0)
+        logp = torch.cat(logp, dim=0)
+        loss_ = self.loss_fn(logq, logp)
+        self._append_to_train_history(logq, logp)
+        self.print_fit_status(epoch, loss=loss_)
 
     @staticmethod
     def calc_kl_mean(logq: torch.Tensor, logp: torch.Tensor) -> torch.Tensor:
@@ -554,8 +531,7 @@ class Fitter(TorchTrainer):
             torch.Tensor: Estimated effective sample size (ESS).
         """
         logqp = logq - logp
-        log_ess = 2*torch.logsumexp(-logqp, dim=0) \
-                - torch.logsumexp(-2*logqp, dim=0)
+        log_ess = 2*torch.logsumexp(-logqp, dim=0) - torch.logsumexp(-2*logqp, dim=0)
         ess = torch.exp(log_ess) / len(logqp)  # normalized
         return ess
 
@@ -571,8 +547,7 @@ class Fitter(TorchTrainer):
             torch.Tensor: logarithm of inverse of effective sample size.
         """
         logqp = logq - logp
-        log_ess = 2*torch.logsumexp(-logqp, dim=0) \
-                - torch.logsumexp(-2*logqp, dim=0)
+        log_ess = 2*torch.logsumexp(-logqp, dim=0) - torch.logsumexp(-2*logqp, dim=0)
         return - log_ess + np.log(len(logqp))  # normalized
 
     @torch.no_grad()
@@ -582,9 +557,6 @@ class Fitter(TorchTrainer):
         Args:
             logq (torch.Tensor): Log probabilities from the approximate distribution `q`.
             logp (torch.Tensor): Log probabilities from the target distribution `p`.
-
-        Returns:
-            None.
         """
         logqp = logq - logp
         logz = estimate_logz(logqp, method='jackknife')  # returns (mean, std)
@@ -604,15 +576,10 @@ class Fitter(TorchTrainer):
         Args:
             epoch (int): Current epoch.
             loss (torch.Tensor, optional): Loss value for the current epoch.
-
-        Returns:
-            None.
         """
         mydict = self.train_history
         if loss is None:
             loss = mydict['loss'][-1]
-        else:
-            pass  # the printed loss can be different from mydict['loss'][-1]
         logqp_mean, logqp_std = mydict['logqp'][-1]
         logz_mean, logz_std = mydict['logz'][-1]
         accept_rate_mean, accept_rate_std = mydict['accept_rate'][-1]
@@ -627,8 +594,7 @@ class Fitter(TorchTrainer):
                   + "mean & error are obtained from samples in a batch\n")
 
         epoch += self.checkpoint_dict['epochs_run']
-        str1 = f"Epoch: {epoch} | loss: {loss:.4f} | ess: {ess:.4f}"
-        print(str1)
+        print(f"Epoch: {epoch} | loss: {loss:.4f} | ess: {ess:.4f}")
         self.log(loss.detach().cpu().numpy(),'epoch_loss',kind='metric')
 
 
@@ -644,9 +610,6 @@ def reverse_flow_sanitychecker(
         model (Model): Model containing prior and transformation networks.
         n_samples (int, optional): Number of samples to test. Defaults to 4.
         net_ (torch.nn.Module, optional): The transformation network.
-
-    Returns:
-        None
     """
     if net_ is None:
         net_ = model.net_
