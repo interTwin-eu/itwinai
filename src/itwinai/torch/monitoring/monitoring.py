@@ -15,8 +15,8 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, Callable, Dict, List
 
 import pandas as pd
-import pynvml
-from pynvml import nvmlDeviceGetHandleByIndex, nvmlInit
+
+from .backend import init_backend
 
 if TYPE_CHECKING:
     from itwinai.torch.trainer import TorchTrainer
@@ -64,23 +64,29 @@ def probe_gpu_utilization_loop(
             properly start before reading.
 
     """
-
     if not set(logging_columns).issubset(set(log_dict.keys())):
         missing_columns = set(logging_columns) - set(log_dict.keys())
         raise ValueError(f"log_dict is missing the following columns: {missing_columns}")
 
-    nvmlInit()
+    # load management library backend
+    man_lib_type, handles, man_lib = init_backend()
+    # ensure all gpu handles where retrieved
+    assert len(handles) == num_local_gpus
+
     time.sleep(warmup_time)
 
     sample_idx = 0
     while not stop_flag.value:
         for idx in range(num_local_gpus):
-            handle = nvmlDeviceGetHandleByIndex(idx)
-            utilization_rates = pynvml.nvmlDeviceGetUtilizationRates(handle)
+            if man_lib_type == "nvidia":
+                handle = handles[idx]
+                gpu_util = man_lib.nvmlDeviceGetUtilizationRates(handle).gpu
+                power = man_lib.nvmlDeviceGetPowerUsage(handle) / 1000.0  # mW -> W
 
-            gpu_util = utilization_rates.gpu
-            power = pynvml.nvmlDeviceGetPowerUsage(handle)
-            power = power / 1000  # mW -> W
+            elif man_lib_type == "amd":
+                handle = handles[idx]
+                gpu_util = man_lib.amdsmi_get_gpu_activity(handle)["gfx_activity"]  # W
+                power = man_lib.amdsmi_get_power_info(handle)["average_socket_power"]
 
             log_dict["sample_idx"].append(sample_idx)
             log_dict["utilization"].append(gpu_util)
