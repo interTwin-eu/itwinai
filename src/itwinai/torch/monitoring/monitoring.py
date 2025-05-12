@@ -71,7 +71,8 @@ def probe_gpu_utilization_loop(
     # load management library backend
     man_lib_type, handles, man_lib = init_backend()
     # ensure all gpu handles where retrieved
-    assert len(handles) == num_local_gpus
+    if len(handles) != num_local_gpus:
+        raise ValueError(f"Expected {num_local_gpus} handles, but got {len(handles)}.")
 
     time.sleep(warmup_time)
 

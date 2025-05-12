@@ -23,7 +23,9 @@ def init_backend() -> Backend:
         py_logger.info("Monitoring: NVIDIA backend set up")
         return "nvidia", handles, nv
     except Exception:
-        py_logger.warning("Monitoring: NVIDIA backend could not be set up")
+        py_logger.info(
+            "Monitoring: NVIDIA backend could not be set up. (pynvml could not be initialized)"
+        )
 
     try:
         import amdsmi
@@ -33,6 +35,11 @@ def init_backend() -> Backend:
         py_logger.info("Monitoring: AMD backend set up")
         return "amd", handles, amdsmi
     except Exception:
-        py_logger.warning("Monitoring: AMD backend could not be set up")
-
-    raise RuntimeError("Monitoring: No supported GPU backend found")
+        py_logger.info(
+            "Monitoring: AMD backend could not be set up. (amdsmi could not be initialized)"
+        )
+    raise RuntimeError(
+        "Monitoring backend initialization failed: Neither NVIDIA (pynvml) nor AMD (amdsmi) "
+        "GPU backends could be initialized. Ensure that the appropriate drivers and Python "
+        "packages are installed, and that AMD or NVIDIA GPUs are available on this system."
+    )
