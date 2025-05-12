@@ -26,8 +26,8 @@ jobs:
       matrix:
         config:
           # Note: in the tag template we replace '$' with '@' as otherwise the GH action will
-          # try to interpolate the values, breaking the template  
-          
+          # try to interpolate the values, breaking the template
+
           # - base-img-name: "nvcr.io/nvidia/pytorch:24.05-py3"
           #   dockerfile: "../env-files/torch/Dockerfile"
           #   nickname: "torch"
@@ -48,7 +48,7 @@ jobs:
             tag-template: "@{itwinai_version}-slim-torch@{framework_version}-@{os_version}"
             skip-hpc: false
             skip-singularity: false
-          - base-img-name: "jupyter/scipy-notebook:python-3.10.11"
+          - base-img-name: "python:3.12-slim"
             dockerfile: "../env-files/torch/jupyter/slim.Dockerfile"
             nickname: "jlab-slim"
             tag-template: "jlab-slim-@{itwinai_version}-torch@{framework_version}-@{os_version}"
@@ -69,7 +69,7 @@ jobs:
           skip-hpc: ${{ matrix.config.skip-hpc }}
           skip-singularity: ${{ matrix.config.skip-singularity }}
           docker-token: ${{ secrets.DOCKER_TOKEN }}
-          dagger-cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }} 
+          dagger-cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
           interlink-values: ${{ secrets.INTERLINK_VALUES }}
           singularity-password: ${{ secrets.SINGULARITY_PWD }}
           singularity-username: ${{ secrets.SINGULARITY_USR }}
