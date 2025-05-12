@@ -19,21 +19,22 @@
 #SBATCH --exclusive
 
 # NOTES:
-# - Ray seems to be working only when using 8 GPUs per node (I only have tested 1 per node, which did not work -> causes segfault)
 # - Still needs to be done proper GPU to CUP mapping, as explained on the LUMI docs to optimize the GPU-to-CPU communication
-
 
 set -e
 
 # Load environment modules
-ml LUMI partition/G #cray-mpich/8.1.29 #libfabric #rocm/6.2.2
+ml LUMI partition/G
+# These modules are needed to bind into the container the correct software suite on LUMI.
+# More info: https://lumi-supercomputer.github.io/LUMI-training-materials/ai-20250204/extra_05_RunningContainers/
 module use /appl/local/containers/ai-modules
 module load singularity-AI-bindings
-# export SINGULARITY_BIND="/var/spool/slurmd,/usr/lib64/libcxi.so.1,/usr/lib64/libjansson.so.4,/pfs,/scratch,/projappl,/project,/flash,/appl"
+# In addition to binding the right locations into the containers, we also need to override
+# the default behavior of the dynamic linker:
+# - libmpi: use the MPI library inside the container because the one on LUMI has some missing Nvidia dependencies
+# - libfabric: the fix for libmpi causes some trouble with finding libfabric, which can be fixed this way
 export FI_ROOT=/opt/cray/libfabric/1.15.2.0
 export SINGULARITY_BIND=$FI_ROOT/lib64:$FI_ROOT/lib64,$SINGULARITY_BIND
-
-# Make sure the dynamic linker can see it inside the container
 export LD_LIBRARY_PATH=$FI_ROOT/lib64:$LD_LIBRARY_PATH
 
 # Job info
