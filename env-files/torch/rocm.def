@@ -1,12 +1,21 @@
+# --------------------------------------------------------------------------------------
+# Part of the interTwin Project: https://www.intertwin.eu/
+#
+# Created by: Matteo Bunino
+#
+# Credit:
+# - Matteo Bunino <matteo.bunino@cern.ch> - CERN
+# --------------------------------------------------------------------------------------
+
 # Singularity definition file for ROCm with PyTorch, starting from ROCm base image provided
 # by LUMI and AMD.
 
-Bootstrap: localimage
-From: /mnt/mbunino/lumi-rocm-pytorch.sif
+Bootstrap: docker
+From: registry.egi.eu/dev.intertwin.eu/itwinai-dev:lumi-pytorch-rocm-6.1.3-python-3.12-pytorch-v2.4.1
 
-# To build from anywhere:
-# Bootstrap: docker
-# From: registry.egi.eu/dev.intertwin.eu/itwinai-dev:lumi-pytorch-rocm-6.1.3-python-3.12-pytorch-v2.4.1
+# # To build from local image
+# Bootstrap: localimage
+# From: /path/to/base.sif
 
 %files
     pyproject.toml /app/pyproject.toml

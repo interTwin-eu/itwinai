@@ -25,9 +25,6 @@ ENV DEBIAN_FRONTEND=noninteractive \
     PYTHONPATH="" \
     # User-fiendly page for Rucio clients
     PAGER=cat
-# NB_USER=jovyan \
-# NB_UID=1000 \
-# NB_GID=1000
 
 # OS deps
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -46,10 +43,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     voms-clients-java \
     gnupg \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
-
-# # Create user and group
-# RUN groupadd -g ${NB_GID} ${NB_USER} && \
-#     useradd -m -s /bin/bash -u ${NB_UID} -g ${NB_GID} ${NB_USER}
 
 # Install jupyter ecosystem
 RUN pip install --upgrade pip && \
@@ -120,43 +113,6 @@ RUN mkdir -p /opt/rucio/etc && chown -R ${NB_UID}:${NB_GID} /opt/rucio/etc
 
 # Enable JupyterLab
 ENV JUPYTER_ENABLE_LAB=yes
-
-# # Switch to user
-# USER ${NB_UID}
-# WORKDIR /home/${NB_USER}
-
-# # Rucio JupyterLab extension
-# RUN pip install rucio-jupyterlab
-
-# # Install itwinai and prov4ml
-# WORKDIR /home/${NB_USER}/itwinai
-# COPY --chown=${NB_UID} pyproject.toml pyproject.toml
-# COPY --chown=${NB_UID} src src
-
-# RUN pip install ".[torch]" --extra-index-url https://download.pytorch.org/whl/cu124 && \
-#     pip install \
-#     "prov4ml[nvidia]@git+https://github.com/matbun/ProvML@new-main" \
-#     pytest pytest-xdist psutil
-
-# ENV PATH="${PATH}:/home/${NB_USER}/.local/bin"
-# RUN itwinai sanity-check --torch \
-#     --optional-deps prov4ml \
-#     --optional-deps ray
-
-# # # Additional requirements
-# # ARG REQUIREMENTS=env-files/torch/requirements/requirements.txt
-# # COPY --chown=${NB_UID} "${REQUIREMENTS}" additional-requirements.txt
-# # RUN pip install -r additional-requirements.txt
-
-# # Add tests
-# WORKDIR /app
-# COPY pyproject.toml pyproject.toml
-# COPY tests tests
-# COPY env-files/torch/jupyter/new.Dockerfile Dockerfile
-
-# WORKDIR /home/${NB_USER}
-# CMD ["setup.sh", "start-notebook.sh"]
-
 
 
 # Install itwinai and prov4ml
