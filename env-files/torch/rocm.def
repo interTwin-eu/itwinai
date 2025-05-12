@@ -33,7 +33,7 @@ From: /mnt/mbunino/lumi-rocm-pytorch.sif
     # ------------------------------------------------------------------
 
     #‑‑‑ Safety: make ROCm toolchain come first and stop CUDA detection
-    export PATH=/opt/rocm/bin:$PATH   # put HIP/nvcc‑stub ahead of host CUDA
+    export PATH=/opt/rocm/bin:$PATH   # put HIP/nvcc-stub ahead of host CUDA
     unset CUDA_HOME CUDACXX CUDAHOSTCXX
 
     # Horovod build environment variables
