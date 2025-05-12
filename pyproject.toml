@@ -47,7 +47,6 @@ dependencies = [
   "pynvml>=12.0.0",
   "py-spy>=0.4.0",
   "tabulate>=0.9.0",
-  "amdsmi>=6.0.0",
   "click==8.1.8",
   "amdsmi>=6.4.0",
 ]
