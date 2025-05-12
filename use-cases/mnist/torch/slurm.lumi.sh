@@ -19,7 +19,7 @@
 #SBATCH --exclusive
 
 # NOTES:
-# - Still needs to be done proper GPU to CUP mapping, as explained on the LUMI docs to optimize the GPU-to-CPU communication
+# - Still needs to be done proper GPU to CPU mapping, as explained on the LUMI docs to optimize the GPU-to-CPU communication
 
 set -e
 
