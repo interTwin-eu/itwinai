@@ -326,11 +326,6 @@ elif [ "$DIST_MODE" == "horovod" ] ; then
 
   ray-launcher "$TRAINING_CMD"
 
-elif [ "$DIST_MODE" == "hpo" ] ; then
-  echo "HOROVOD training: $TRAINING_CMD"
-
-   ray-launcher "$TRAINING_CMD"
-
 else
   >&2 echo "ERROR: unrecognized \$DIST_MODE env variable"
   exit 1
