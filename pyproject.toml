@@ -48,10 +48,12 @@ dependencies = [
   "py-spy>=0.4.0",
   "tabulate>=0.9.0",
   "click==8.1.8",
-  "amdsmi>=6.4.0",
 ]
 
 [project.optional-dependencies]
+# Has to be added as an optional dependency, when installed in non-AMD environments, the torch
+# import will fail as it tries to find the related AMD libs of amdsmi.
+amd = ["amdsmi>=6.4.0"]
 torch = [
   "torch==2.4.*",
   "lightning>=2",
