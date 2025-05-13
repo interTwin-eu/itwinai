@@ -48,6 +48,7 @@ dependencies = [
   "pynvml>=12.0.0",
   "py-spy>=0.4.0",
   "tabulate>=0.9.0",
+  "click==8.1.8",
 ]
 
 [project.optional-dependencies]
@@ -100,6 +101,11 @@ hpo = [
   "hpbandster>=0.7.0",
   "gpy>=1.13.2",
 ]
+
+[tool.hatch.metadata]
+allow-direct-references = true
+
+
 # Git dependencies are not supported by PyPI and will prevent pushing new versions to it.
 # prov4ml = ["prov4ml@git+https://github.com/matbun/ProvML@new-main"]
 # prov4ml-macos = ["prov4ml[apple]@git+https://github.com/matbun/ProvML@new-main"]

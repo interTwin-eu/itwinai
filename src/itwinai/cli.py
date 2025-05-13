@@ -77,6 +77,9 @@ def generate_py_spy_report(
             help="Whether to aggregate all unique leaf calls across different call stacks."
         ),
     ] = False,
+    library_name: Annotated[
+        str, typer.Option(help="Which library name to find the lowest contact point of.")
+    ] = "itwinai",
 ):
     """Generates a short aggregation of the raw py-spy profiling data, showing which leaf
     functions collected the most samples.
@@ -84,7 +87,7 @@ def generate_py_spy_report(
     from tabulate import tabulate
 
     from itwinai.torch.profiling.py_spy_aggregation import (
-        add_lowest_itwinai_function,
+        add_lowest_library_function,
         convert_stack_trace_to_list,
         get_aggregated_paths,
     )
@@ -119,7 +122,7 @@ def generate_py_spy_report(
             typer.echo(f"Failed to aggregate data with following error:\n{exception}")
             raise typer.Exit()
 
-    add_lowest_itwinai_function(stack_traces=stack_traces)
+    add_lowest_library_function(stack_traces=stack_traces, library_name=library_name)
     leaf_functions = [data_point[-1] for data_point in stack_traces]
     if aggregate_leaf_paths:
         leaf_functions = get_aggregated_paths(functions=leaf_functions)
@@ -399,6 +402,12 @@ def generate_slurm(
             case_sensitive=False,
         ),
     ] = "ddp",
+    pre_exec_cmd: Annotated[
+        str | None,
+        typer.Option(
+            "--pre-exec-cmd", help="The pre-execution command to use for the python script."
+        ),
+    ] = None,
     training_cmd: Annotated[
         str | None,
         typer.Option(

@@ -1756,6 +1756,7 @@ torch = [
 [package.metadata]
 requires-dist = [
     { name = "bayesian-optimization", marker = "extra == 'hpo'", specifier = ">=2.0.0" },
+    { name = "click", specifier = "==8.1.8" },
     { name = "configspace", marker = "extra == 'hpo'", specifier = ">=1.2.0" },
     { name = "gpy", marker = "extra == 'hpo'", specifier = ">=1.13.2" },
     { name = "hpbandster", marker = "extra == 'hpo'", specifier = ">=0.7.0" },

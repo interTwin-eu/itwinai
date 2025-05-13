@@ -2,39 +2,41 @@ import re
 from typing import Dict, List
 
 
-def add_lowest_itwinai_function(stack_traces: List[List[Dict]]) -> None:
-    """Iterates through each stack traces in the given list and finds the lowest ``itwinai``
-    call, if any, and adds it to each dictionary in the trace.
+def add_lowest_library_function(
+    stack_traces: List[List[Dict]], library_name: str = "itwinai"
+) -> None:
+    """Iterates through each stack traces in the given list and finds the lowest call with
+    the given library name, if any, and adds it to each dictionary in the trace.
 
     This function changes the given list in-place.
     """
     trace: List[Dict]
     for trace in stack_traces:
-        itwinai_path = "Not Found"
-        itwinai_function = "Not Found"
-        itwinai_line = "Not Found"
+        library_path = "Not Found"
+        library_function = "Not Found"
+        library_line = "Not Found"
         for function_dict in reversed(trace):
-            if "itwinai" not in function_dict["path"]:
+            if library_name not in function_dict["path"]:
                 continue
 
-            itwinai_path = function_dict["path"]
-            itwinai_function = function_dict["name"]
-            itwinai_line = function_dict["line"]
+            library_path = function_dict["path"]
+            library_function = function_dict["name"]
+            library_line = function_dict["line"]
             # Since we iterate backwards then we stop once we found a match
             break
 
         # Adding the last one that was found (lowest) to all the dicts
         for function_dict in trace:
-            function_dict["itwinai_function_name"] = itwinai_function
-            function_dict["itwinai_function_path"] = itwinai_path
-            function_dict["itwinai_function_line"] = itwinai_line
+            function_dict["library_function_name"] = library_function
+            function_dict["library_function_path"] = library_path
+            function_dict["library_function_line"] = library_line
 
 
 def get_aggregated_paths(functions: List[Dict]) -> List[Dict]:
     """Return a new list where all entries with the same information have been combined
     into one. This means that if the name, path and line for the function itself and the
-    itwinai function are the same in two entries, then they are combined into one, with their
-    number of samples summed.
+    specified library function are the same in two entries, then they are combined into one,
+    with their number of samples summed.
     """
     aggregated_functions = {}
     for entry in functions:
@@ -42,9 +44,9 @@ def get_aggregated_paths(functions: List[Dict]) -> List[Dict]:
             entry["name"],
             entry["path"],
             entry["line"],
-            entry["itwinai_function_name"],
-            entry["itwinai_function_path"],
-            entry["itwinai_function_line"],
+            entry["library_function_name"],
+            entry["library_function_path"],
+            entry["library_function_line"],
         )
         aggregated_functions[key] = aggregated_functions.get(key, 0) + entry["num_samples"]
     aggregated_functions = [
@@ -52,9 +54,9 @@ def get_aggregated_paths(functions: List[Dict]) -> List[Dict]:
             "name": key[0],
             "path": key[1],
             "line": key[2],
-            "itwinai_function_name": key[3],
-            "itwinai_function_path": key[4],
-            "itwinai_function_line": key[5],
+            "library_function_name": key[3],
+            "library_function_path": key[4],
+            "library_function_line": key[5],
             "num_samples": value,
         }
         for key, value in aggregated_functions.items()
