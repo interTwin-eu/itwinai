@@ -82,13 +82,10 @@ From: registry.egi.eu/dev.intertwin.eu/itwinai-dev:lumi-pytorch-rocm-6.1.3-pytho
     cd /app
 
     pip install --no-cache-dir --no-binary=horovod \
-        .[torch] \
+        .[torch,amd] \
         --extra-index-url https://download.pytorch.org/whl/rocm6.1 \
         "prov4ml[amd]@git+https://github.com/matbun/ProvML@new-main" \
         pytest pytest-xdist psutil wheel
-
-    # AMD monitoring tool
-    pip install --no-cache-dir amdsmi
 
 %labels
     Author Matteo Bunino
