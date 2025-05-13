@@ -4,7 +4,12 @@
 [![GitHub Super-Linter](https://github.com/interTwin-eu/T6.5-AI-and-ML/actions/workflows/check-links.yml/badge.svg)](https://github.com/marketplace/actions/markdown-link-check)
  [![SQAaaS source code](https://github.com/EOSC-synergy/itwinai.assess.sqaaas/raw/main/.badge/status_shields.svg)](https://sqaaas.eosc-synergy.eu/#/full-assessment/report/https://raw.githubusercontent.com/eosc-synergy/itwinai.assess.sqaaas/main/.report/assessment_output.json)
 
-![itwinai Logo](./docs/images/icon-itwinai-orange-black-subtitle.png)
+<!-- markdownlint-disable MD033 -->
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="./docs/images/icon-itwinai-orange-white-subtitle.png">
+  <img src="./docs/images/icon-itwinai-orange-black-subtitle.png" alt="itwinai-icon" width="600">
+</picture>
+<!-- markdownlint-enable MD033 -->
 
 `itwinai` is a Python toolkit designed to help scientists and researchers streamline AI and machine learning
 workflows, specifically for digital twin applications. It provides easy-to-use tools for distributed training,
