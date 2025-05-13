@@ -9,17 +9,23 @@
 #SBATCH --mail-type=ALL
 #SBATCH --output=job.out
 #SBATCH --error=job.err
-#SBATCH --time=00:30:00
+#SBATCH --time=00:20:00
 
 # Resources allocation
 #SBATCH --partition=small-g
 #SBATCH --nodes=2
-#SBATCH --gpus-per-node=3
+#SBATCH --gpus-per-node=2
 #SBATCH --cpus-per-task=16
 #SBATCH --exclusive
+#SBATCH --mem=128G
 
 # NOTES:
-# - Still needs to be done proper GPU to CPU mapping, as explained on the LUMI docs to optimize the GPU-to-CPU communication
+# - Reserve a maximum of 480G form small-g, as recommended per g-node node on lumi (512 - 32G),
+# see p.20: https://462000265.lumidata.eu/2day-20241210/files/LUMI-2day-20241210-07-Slurm.pdf
+# - Reserving that much is usually not needed but when using full monitoring it is important
+# to set it above its default as you might run into OOM errors with the ROCTracer otherwise
+# - Still needs to be done proper GPU to CPU mapping, as explained on the LUMI docs to
+# optimize the GPU-to-CPU communication
 
 set -e
 
@@ -31,11 +37,10 @@ module use /appl/local/containers/ai-modules
 module load singularity-AI-bindings
 # In addition to binding the right locations into the containers, we also need to override
 # the default behavior of the dynamic linker:
-# - libmpi: use the MPI library inside the container because the one on LUMI has some missing Nvidia dependencies
-# - libfabric: the fix for libmpi causes some trouble with finding libfabric, which can be fixed this way
-export FI_ROOT=/opt/cray/libfabric/1.15.2.0
-export SINGULARITY_BIND=$FI_ROOT/lib64:$FI_ROOT/lib64,$SINGULARITY_BIND
-export LD_LIBRARY_PATH=$FI_ROOT/lib64:$LD_LIBRARY_PATH
+# - libmpi: use the MPI library inside the container because the one on LUMI has some missing
+# Nvidia dependencies
+# - libfabric: the fix for libmpi causes some trouble with finding libfabric, which can be
+# fixed this way
 
 # Job info
 echo "DEBUG: TIME: $(date)"
@@ -169,7 +174,7 @@ function ray-launcher(){
         --log-color false \
         --block" &
   # Wait for a few seconds to ensure that the head node has fully initialized.
-  sleep 5
+  sleep 8
 
   echo HEAD node started.
 
@@ -199,9 +204,9 @@ function ray-launcher(){
         --num-gpus=$num_gpus \
         --log-color false \
         --block" &      
-      sleep 5 # wait before starting the next worker to prevent race conditions.
+      sleep 8 # wait before starting the next worker to prevent race conditions.
   done
-  sleep 20
+  sleep 30
   echo all ray workers started.
 
   # Check cluster
@@ -255,7 +260,7 @@ function srun-launcher(){
     --cpus-per-task=$(($SLURM_CPUS_PER_TASK / $SLURM_GPUS_PER_NODE)) \
     --ntasks=$(($SLURM_GPUS_PER_NODE * $SLURM_NNODES)) \
     singularity exec \
-    --bind $(pwd) \
+    --bind $(pwd),/users/eickhoff/itwinai:/mnt/itwinai/ \
     --rocm \
     $CONTAINER_PATH /bin/bash -c "
       source /opt/miniconda3/bin/activate pytorch && 
@@ -315,9 +320,9 @@ elif [ "$DIST_MODE" == "deepspeed" ] ; then
 
 elif [ "$DIST_MODE" == "horovod" ] ; then
   echo "HOROVOD training: $TRAINING_CMD"
-  # srun-launcher "$TRAINING_CMD"
-  #
-  # separation
+  srun-launcher "$TRAINING_CMD"
+
+  separation
 
   ray-launcher "$TRAINING_CMD"
 
