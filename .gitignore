@@ -210,3 +210,6 @@ cython_debug/
 
 # MacOS
 .DS_Store
+
+# Lattice QCD exception
+!use-cases/lattice-qcd/src/lib
