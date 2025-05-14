@@ -28,7 +28,6 @@ mnist-sample-data/
 exp_data/
 mnist_dataset/
 
-
 # Kubernetes
 secret*.yaml
 
