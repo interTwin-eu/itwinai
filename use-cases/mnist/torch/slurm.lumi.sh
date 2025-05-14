@@ -35,12 +35,6 @@ ml LUMI partition/G
 # More info: https://lumi-supercomputer.github.io/LUMI-training-materials/ai-20250204/extra_05_RunningContainers/
 module use /appl/local/containers/ai-modules
 module load singularity-AI-bindings
-# In addition to binding the right locations into the containers, we also need to override
-# the default behavior of the dynamic linker:
-# - libmpi: use the MPI library inside the container because the one on LUMI has some missing
-# Nvidia dependencies
-# - libfabric: the fix for libmpi causes some trouble with finding libfabric, which can be
-# fixed this way
 
 # Job info
 echo "DEBUG: TIME: $(date)"
@@ -63,6 +57,7 @@ echo
 # export RCCL_DEBUG=INFO
 # export NCCL_DEBUG_SUBSYS=INIT,COLL
 
+# Currently not used, but can be used for CPU mapping in the future
 c=fe
 MYMASKS="0x${c}000000000000,0x${c}00000000000000,0x${c}0000,0x${c}000000,0x${c},0x${c}00,0x${c}00000000,0x${c}0000000000"
 
@@ -95,10 +90,7 @@ export ROCR_VISIBLE_DEVICES=$SLURM_LOCALID
 # Report affinity to check
 echo "Rank $SLURM_PROCID --> $(taskset -p $$); GPU $ROCR_VISIBLE_DEVICES"
 
-
 # Setup env for distributed ML
-# export CUDA_VISIBLE_DEVICES=$(seq -s, 0 $((SLURM_GPUS_PER_NODE - 1)))
-# echo "DEBUG: CUDA_VISIBLE_DEVICES: $CUDA_VISIBLE_DEVICES"
 export OMP_NUM_THREADS=1
 if [ "$SLURM_GPUS_PER_NODE" -gt 0 ] ; then
   export OMP_NUM_THREADS=$(($SLURM_CPUS_PER_TASK / $SLURM_GPUS_PER_NODE))
@@ -215,10 +207,6 @@ function ray-launcher(){
     ray status"
   echo "============================================="
 
-  # singularity exec --rocm --bind $(pwd):$(pwd) $CONTAINER_PATH bash -c '\
-  #   source /opt/miniconda3/bin/activate pytorch && \
-  #   echo HIP_VISIBLE_DEVICES: $HIP_VISIBLE_DEVICES'
-
   # Run command without srun
   singularity exec \
     --bind $(pwd) \
@@ -249,8 +237,7 @@ function torchrun-launcher(){
 }
 
 function srun-launcher(){
-  # export OMPI_MCA_btl=self,vader
-  # export ROCR_VISIBLE_DEVICES=$(seq -s, 0 $((SLURM_GPUS_PER_NODE - 1))) #0,1,2,3,4,5,6,7
+  # May be superfluous and therefor not needed
   export OMP_NUM_THREADS=1
   export MPICH_GPU_SUPPORT_ENABLED=1
 
@@ -268,16 +255,6 @@ function srun-launcher(){
       ldd /opt/aws-ofi-rccl/librccl-net.so | grep fabric &&
       ls /opt/cray/libfabric/1.15.2.0/lib64/libfabric.so.1 &&
       $1"
-
-    #       export ROCR_VISIBLE_DEVICES=\$SLURM_LOCALID && 
-
-
-    # singularity exec --rocm --bind $(pwd):$(pwd) $CONTAINER_PATH /bin/bash -c '
-    # source /opt/miniconda3/bin/activate pytorch && 
-    # python -c "import horovod.torch as hvd;  hvd.init(); print(f\"HVD: global rank: {hvd.rank()}\")"
-    # '
-    
-    # $1"
 }
 
 # Dual echo on both stdout and stderr

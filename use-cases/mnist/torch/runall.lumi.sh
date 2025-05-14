@@ -21,7 +21,7 @@ mkdir -p logs_slurm logs_torchrun
 
 export HYDRA_FULL_ERROR=1
 
-# # DDP itwinai
+# DDP itwinai
 DIST_MODE="ddp"
 RUN_NAME="ddp-itwinai"
 TRAINING_CMD="itwinai exec-pipeline strategy=ddp checkpoints_location=checkpoints_ddp"
@@ -31,7 +31,7 @@ sbatch --export=ALL,DIST_MODE="$DIST_MODE",RUN_NAME="$RUN_NAME",TRAINING_CMD="$T
     --error="logs_slurm/job-$RUN_NAME-n$N.err" \
     slurm.lumi.sh
 
-# # DeepSpeed itwinai
+# DeepSpeed itwinai
 DIST_MODE="deepspeed"
 RUN_NAME="deepspeed-itwinai"
 TRAINING_CMD="itwinai exec-pipeline strategy=deepspeed checkpoints_location=checkpoints_deepspeed"
