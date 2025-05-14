@@ -7,13 +7,10 @@
 #
 # Credit:
 # - Matteo Bunino <matteo.bunino@cern.ch> - CERN
+# - Linus Eickhoff <linus.maximilian.eickhoff@cern.ch> - CERN
 # --------------------------------------------------------------------------------------
 
-# SIF: oras://registry.egi.eu/dev.intertwin.eu/itwinai-dev:lumi-itwinai-pytorch-rocm-6.1.3-python-3.12-pytorch-v2.4.1
-# export CONTAINER_PATH="/project/project_465001592/itwinai-containers/lumi-itwinai-pytorch-rocm-6.1.3-python-3.12-pytorch-v2.4.1.sif"
 export CONTAINER_PATH="/project/project_465001592/itwinai-containers/container_test_5.sif"
-
-
 
 # Clear SLURM logs (*.out and *.err files)
 rm -rf logs_slurm checkpoints* mllogs* ray_checkpoints logs_torchrun
