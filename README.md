@@ -7,7 +7,7 @@
 <!-- markdownlint-disable MD033 -->
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="./docs/images/icon-itwinai-orange-white-subtitle.png">
-  <img src="./docs/images/icon-itwinai-orange-black-subtitle.png" alt="itwinai-icon" width="600">
+  <img src="./docs/images/icon-itwinai-orange-black-subtitle.png" alt="itwinai-icon" width="400">
 </picture>
 <!-- markdownlint-enable MD033 -->
 
