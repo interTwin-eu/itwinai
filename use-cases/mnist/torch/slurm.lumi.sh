@@ -238,6 +238,9 @@ function torchrun-launcher(){
 
 function srun-launcher(){
   # May be superfluous and therefor not needed
+  # - OMP_NUM_THREADS is already set earlier based on GPU count
+  # - MPICH_GPU_SUPPORT_ENABLED is not required unless using GPU-aware MPI with MPICH.
+  # Keeping them has no harmful effect but may be redundant
   export OMP_NUM_THREADS=1
   export MPICH_GPU_SUPPORT_ENABLED=1
 
