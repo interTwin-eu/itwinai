@@ -16,7 +16,7 @@ from unittest.mock import patch
 import pytest
 import torch
 import torch.nn as nn
-from ray.train import RunConfig
+from ray.tune import RunConfig
 from torch.nn import Linear
 from torch.optim import SGD, Optimizer
 from torch.utils.data import DataLoader, Dataset, DistributedSampler

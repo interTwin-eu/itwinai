@@ -160,9 +160,9 @@ argument of the :class:`~itwinai.torch.trainer.TorchTrainer`.
             reduction_factor: 4
             brackets: 1
 
-    # For more info: https://docs.ray.io/en/latest/train/api/doc/ray.train.RunConfig.html
+    # For more info: https://docs.ray.io/en/latest/tune/api/doc/ray.tune.RunConfig.html
     ray_run_config:
-        _target_: ray.train.RunConfig
+        _target_: ray.tune.RunConfig
         storage_path: ${itwinai.cwd:}/ray_checkpoints
         name: FashionMNIST-HPO-Experiment
 

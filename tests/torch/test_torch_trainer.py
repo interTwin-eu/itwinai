@@ -97,7 +97,7 @@ def test_distributed_trainer_mnist_ray(
     mnist_datasets, strategy_name, shared_tmp_path, mnist_net
 ):
     """Test TorchTrainer on MNIST with different distributed strategies using Ray."""
-    from ray.train import RunConfig
+    from ray.tune import RunConfig
 
     assert ray_cluster_is_running(), "Ray cluster not detected. Aborting tests"
 
