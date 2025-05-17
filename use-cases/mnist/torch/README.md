@@ -47,7 +47,7 @@ such as learning rate and batch size, that result in the best validation perform
 To do so, it is enough to correctly set the `search_space` and the `tune_config` in the trainer
 configuration in the `config.yaml` file.
 Please refer to the Ray's official documentation to know more about
-[RunConfig](https://docs.ray.io/en/latest/train/api/doc/ray.train.RunConfig.html),
+[RunConfig](https://docs.ray.io/en/latest/tune/api/doc/ray.tune.RunConfig.html),
 [TuneConfig](https://docs.ray.io/en/latest/tune/api/doc/ray.tune.TuneConfig.html),
 [ScalingConfig](https://docs.ray.io/en/latest/train/api/doc/ray.train.ScalingConfig.html),
 and [search spaces](https://docs.ray.io/en/latest/tune/api/search_space.html).

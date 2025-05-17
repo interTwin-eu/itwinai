@@ -32,10 +32,10 @@ import torch.nn as nn
 import torch.optim as optim
 import torch.optim.lr_scheduler as lr_scheduler
 import yaml
-from ray.train import Checkpoint, DataConfig, RunConfig, ScalingConfig
+from ray.train import Checkpoint, DataConfig, ScalingConfig
 from ray.train.torch import TorchConfig
 from ray.train.torch import TorchTrainer as RayTorchTrainer
-from ray.tune import TuneConfig
+from ray.tune import RunConfig, TuneConfig
 from torch.nn.parallel import DistributedDataParallel as DDP
 from torch.optim.lr_scheduler import LRScheduler
 from torch.optim.optimizer import Optimizer
@@ -917,6 +917,8 @@ class TorchTrainer(Trainer, LogMixin):
         # Wrap the trainer into a Tuner
         param_space = {"train_loop_config": search_space(self.ray_search_space)}
         tuner = ray.tune.Tuner(
+            # passing a trainer instead of a function is deprecated
+            # https://github.com/ray-project/ray/issues/49454
             trainable=trainer,
             param_space=param_space,
             tune_config=self.ray_tune_config,

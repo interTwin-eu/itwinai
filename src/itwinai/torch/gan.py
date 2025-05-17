@@ -21,9 +21,9 @@ import torch.optim as optim
 import torch.optim.lr_scheduler as lr_scheduler
 import torchvision
 import yaml
-from ray.train import DataConfig, RunConfig, ScalingConfig
+from ray.train import DataConfig, ScalingConfig
 from ray.train.torch import TorchConfig
-from ray.tune import TuneConfig
+from ray.tune import RunConfig, TuneConfig
 from torch.optim.lr_scheduler import LRScheduler
 from torch.optim.optimizer import Optimizer
 from torchmetrics import Metric

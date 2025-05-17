@@ -7,8 +7,8 @@ import numpy as np
 import pytest
 import ray
 from ray import tune
-from ray.train import RunConfig, ScalingConfig
-from ray.tune import TuneConfig
+from ray.train import ScalingConfig
+from ray.tune import RunConfig, TuneConfig
 from ray.tune.schedulers import AsyncHyperBandScheduler
 
 from itwinai.distributed import ray_cluster_is_running
