@@ -141,7 +141,6 @@ conflicts = [[{ extra = "tf-cuda" }, { extra = "torch" }]]
 [tool.uv.sources]
 torch = [{ index = "pytorch-cu121", marker = "platform_system != 'Darwin'" }]
 torchvision = [{ index = "pytorch-cu121", marker = "platform_system != 'Darwin'" }]
-pulsardt = [{ index = "pulsar-dt"}]
 
 # Specific index for pytorch
 [[tool.uv.index]]
