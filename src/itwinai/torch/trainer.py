@@ -23,8 +23,6 @@ from pathlib import Path
 from time import perf_counter as default_timer
 from typing import TYPE_CHECKING, Any, Callable, Dict, List, Literal, Optional, Tuple, Union
 
-import ray.train
-import ray.train.torch
 import ray.tune
 import torch
 import torch.distributed as dist
@@ -828,21 +826,37 @@ class TorchTrainer(Trainer, LogMixin):
             ckpt_dir = Path(self.ray_run_config.storage_path)
             ckpt_dir.mkdir(parents=True, exist_ok=True)
 
+        # Store large datasets in Ray's object store to avoid serialization issues
+        train_dataset_ref = ray.put(train_dataset)
+        validation_dataset_ref = (
+            ray.put(validation_dataset) if validation_dataset is not None else None
+        )
+        test_dataset_ref = ray.put(test_dataset) if test_dataset is not None else None
+
         def train_driver_fn(config: dict):
-            """Driver function for Ray tune
-
-
-            """
+            """Driver function for Ray tune"""
             # Extract hyperparameters from config
-            train_loop_config = config.get("train_loop_config", None)
+            train_loop_config = config.get("train_loop_config", {})
 
-            # Create a partial function with the datasets
-            train_with_data = ray.tune.with_parameters(
-                self._run_worker,
-                train_dataset=train_dataset,
-                validation_dataset=validation_dataset,
-                test_dataset=test_dataset,
-            )
+            # Define a worker function to be run on each worker
+            def worker_fn():
+                # This function will run on the workers
+                # Retrieve datasets from references
+                train_ds = ray.get(train_dataset_ref)
+                val_ds = (
+                    ray.get(validation_dataset_ref)
+                    if validation_dataset_ref is not None
+                    else None
+                )
+                test_ds = ray.get(test_dataset_ref) if test_dataset_ref is not None else None
+
+                # Call the original worker function with the datasets and config
+                return self._run_worker(
+                    train_loop_config,
+                    train_dataset=train_ds,
+                    validation_dataset=val_ds,
+                    test_dataset=test_ds,
+                )
 
             # Handle checkpoint path
             checkpoint_path = None
@@ -860,8 +874,8 @@ class TorchTrainer(Trainer, LogMixin):
                 from ray.train.horovod import HorovodTrainer
 
                 trainer = HorovodTrainer(
-                    train_loop_per_worker=train_with_data,
-                    train_loop_config=train_loop_config,
+                    train_loop_per_worker=worker_fn,
+                    train_loop_config=None, # Already applied in worker_fn
                     horovod_config=self.ray_horovod_config,
                     scaling_config=self.ray_scaling_config,
                     run_config=run_config,
@@ -869,15 +883,14 @@ class TorchTrainer(Trainer, LogMixin):
                 )
             else:
                 trainer = RayTorchTrainer(
-                    train_loop_per_worker=train_with_data,
-                    train_loop_config=train_loop_config,
+                    train_loop_per_worker=worker_fn,
+                    train_loop_config=None, # Already applied in worker_fn
                     scaling_config=self.ray_scaling_config,
                     run_config=run_config,
                     torch_config=self.ray_torch_config,
                     dataset_config=self.ray_data_config,
                 )
 
-            # Run the trainer and return results
             result = trainer.fit()
             return result
 
