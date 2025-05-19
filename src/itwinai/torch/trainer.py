@@ -32,7 +32,7 @@ import torch.nn as nn
 import torch.optim as optim
 import torch.optim.lr_scheduler as lr_scheduler
 import yaml
-from ray.train import Checkpoint, DataConfig, ScalingConfig
+from ray.train import DataConfig, ScalingConfig
 from ray.train.torch import TorchConfig
 from ray.train.torch import TorchTrainer as RayTorchTrainer
 from ray.tune import RunConfig, TuneConfig
@@ -669,7 +669,7 @@ class TorchTrainer(Trainer, LogMixin):
             return
 
         # A Ray checkpoint directory was passed to the trainer -- assuming to be inside a trial
-        checkpoint = ray.train.get_checkpoint()
+        checkpoint = ray.tune.get_checkpoint()
         if not checkpoint:
             py_logger.warning(
                 "A checkpoint path was passed, but Ray could not find a valid "
@@ -822,108 +822,76 @@ class TorchTrainer(Trainer, LogMixin):
         validation_dataset: Dataset | None = None,
         test_dataset: Dataset | None = None,
     ) -> Tuple[Dataset, Dataset, Dataset, Any]:
-        """Launch training and, optionally, hyperarameter tuning with Ray"""
-
-        train_with_data = ray.tune.with_parameters(
-            self._run_worker,
-            train_dataset=train_dataset,
-            validation_dataset=validation_dataset,
-            test_dataset=test_dataset,
-        )
-
+        """Launch training and, optionally, hyperparameter tuning with Ray"""
         if self.ray_run_config:
             # Create Ray checkpoints dir if it does not exist yet
             ckpt_dir = Path(self.ray_run_config.storage_path)
             ckpt_dir.mkdir(parents=True, exist_ok=True)
 
-        if isinstance(self.strategy, RayHorovodStrategy):
-            # Using Horovod with Ray
-            from ray.train.horovod import HorovodTrainer
+        def train_driver_fn(config: dict):
+            """Driver function for Ray tune
 
-            if self.ray_torch_config:
-                py_logger.warning(
-                    "Ray torch config was passed, but it's ignored as "
-                    f"{self.strategy.__class__.__name__} strategy is used"
+
+            """
+            # Extract hyperparameters from config
+            train_loop_config = config.get("train_loop_config", None)
+
+            # Create a partial function with the datasets
+            train_with_data = ray.tune.with_parameters(
+                self._run_worker,
+                train_dataset=train_dataset,
+                validation_dataset=validation_dataset,
+                test_dataset=test_dataset,
+            )
+
+            # Handle checkpoint path
+            checkpoint_path = None
+            run_config = self.ray_run_config
+            if self.from_checkpoint:
+                checkpoint_path = to_uri(self.from_checkpoint)
+                # Create a new RunConfig with checkpoint path
+                run_config = RunConfig(
+                    name=Path(checkpoint_path).name,
+                    storage_path=str(Path(checkpoint_path).parent),
                 )
 
-            if self.from_checkpoint:
-                # Create trainer from checkpoint
-                if HorovodTrainer.can_restore(to_uri(self.from_checkpoint)):
-                    trainer = HorovodTrainer.restore(
-                        path=to_uri(self.from_checkpoint),
-                        train_loop_per_worker=train_with_data,
-                        train_loop_config=None,
-                    )
-                else:
-                    # Ray is unable to restore the checkpoint implicitly, but it's passing
-                    # it to the trial
-                    trainer = HorovodTrainer(
-                        train_loop_per_worker=train_with_data,
-                        train_loop_config=None,
-                        horovod_config=self.ray_horovod_config,
-                        scaling_config=self.ray_scaling_config,
-                        run_config=self.ray_run_config,
-                        dataset_config=self.ray_data_config,
-                        resume_from_checkpoint=Checkpoint(to_uri(self.from_checkpoint)),
-                    )
-            else:
-                # Create trainer without checkpoint
+            # Create and run the appropriate trainer based on strategy
+            if isinstance(self.strategy, RayHorovodStrategy):
+                from ray.train.horovod import HorovodTrainer
+
                 trainer = HorovodTrainer(
                     train_loop_per_worker=train_with_data,
-                    train_loop_config=None,
+                    train_loop_config=train_loop_config,
                     horovod_config=self.ray_horovod_config,
                     scaling_config=self.ray_scaling_config,
-                    run_config=self.ray_run_config,
+                    run_config=run_config,
                     dataset_config=self.ray_data_config,
                 )
-        else:
-            # Using DDP or DeepSpeed with Ray
-            if self.ray_horovod_config:
-                py_logger.warning(
-                    "Ray horovod config was passed, but it's ignored as "
-                    f"{self.strategy.__class__.__name__} strategy is used"
-                )
-            if self.from_checkpoint:
-                # Create trainer from checkpoint
-                if RayTorchTrainer.can_restore(to_uri(self.from_checkpoint)):
-                    trainer = RayTorchTrainer.restore(
-                        path=to_uri(self.from_checkpoint),
-                        train_loop_per_worker=train_with_data,
-                        train_loop_config=None,
-                    )
-                else:
-                    # Ray is unable to restore the checkpoint implicitly, but it's passing
-                    # it to the trial
-                    trainer = RayTorchTrainer(
-                        train_loop_per_worker=train_with_data,
-                        train_loop_config=None,
-                        scaling_config=self.ray_scaling_config,
-                        run_config=self.ray_run_config,
-                        torch_config=self.ray_torch_config,
-                        dataset_config=self.ray_data_config,
-                        resume_from_checkpoint=Checkpoint(to_uri(self.from_checkpoint)),
-                    )
             else:
-                # Create trainer without checkpoint
                 trainer = RayTorchTrainer(
                     train_loop_per_worker=train_with_data,
-                    train_loop_config=None,
+                    train_loop_config=train_loop_config,
                     scaling_config=self.ray_scaling_config,
-                    run_config=self.ray_run_config,
+                    run_config=run_config,
                     torch_config=self.ray_torch_config,
                     dataset_config=self.ray_data_config,
                 )
 
-        # Wrap the trainer into a Tuner
+            # Run the trainer and return results
+            result = trainer.fit()
+            return result
+
+        # Create the parameter space for hyperparameter tuning
         param_space = {"train_loop_config": search_space(self.ray_search_space)}
+
+        # Create the tuner with the driver function
         tuner = ray.tune.Tuner(
-            # passing a trainer instead of a function is deprecated
-            # https://github.com/ray-project/ray/issues/49454
-            trainable=trainer,
+            trainable=train_driver_fn,
             param_space=param_space,
             tune_config=self.ray_tune_config,
         )
 
+        # Run the tuner and capture results
         if self.time_ray:
             self.tune_result_grid = self._time_and_log(
                 lambda: tuner.fit(), "ray_fit_time_s", step=0
@@ -1066,8 +1034,8 @@ class TorchTrainer(Trainer, LogMixin):
                 import shutil
 
                 shutil.copy(checkpoint_file, tmp_dir)
-                checkpoint = ray.train.Checkpoint.from_directory(tmp_dir)
-                ray.train.report(metrics, checkpoint=checkpoint)
+                checkpoint = ray.tune.Checkpoint.from_directory(tmp_dir)
+                ray.tune.report(metrics, checkpoint=checkpoint)
 
         elif checkpoint_data:
             # A checkpoint is given as a python object which needs to be serialized
@@ -1075,17 +1043,17 @@ class TorchTrainer(Trainer, LogMixin):
                 tmp_dir = Path(tmp_dir)
                 ckpt_file = tmp_dir / "ckpt.pt"
                 torch.save(checkpoint_data, ckpt_file)
-                checkpoint = ray.train.Checkpoint.from_directory(tmp_dir)
-                ray.train.report(metrics, checkpoint=checkpoint)
+                checkpoint = ray.tune.Checkpoint.from_directory(tmp_dir)
+                ray.tune.report(metrics, checkpoint=checkpoint)
 
         elif checkpoint_dir:
             # A checkpoint is given as a directory
-            checkpoint = ray.train.Checkpoint.from_directory(checkpoint_dir)
-            ray.train.report(metrics, checkpoint=checkpoint)
+            checkpoint = ray.tune.Checkpoint.from_directory(checkpoint_dir)
+            ray.tune.report(metrics, checkpoint=checkpoint)
 
         else:
             # No checkpoint is given: only report metrics
-            ray.train.report(metrics)
+            ray.tune.report(metrics)
 
     def compute_metrics(
         self,
