@@ -133,7 +133,9 @@ class TorchTrainer(Trainer, LogMixin):
             Defaults to None,
         ray_tune_config (TuneConfig, optional): tune config for Ray Tuner.
             Defaults to None.
-        ray_run_config (RunConfig, optional): run config for Ray Tuner.
+        ray_run_config (ray.tune.RunConfig, optional): run config for Ray Tuner.
+            Distributed training with Ray but without HPO will still be wrapped into a Ray
+            Tuner, too keep everything homogeneous.
             Defaults to None.
         ray_search_space (Dict[str, Any], optional): search space for Ray Tuner.
             Defaults to None.
