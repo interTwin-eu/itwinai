@@ -1071,7 +1071,6 @@ class TorchTrainer(Trainer, LogMixin):
 
         else:
             # No checkpoint is given: only report metrics
-            print("is this the problem? no checkpoint report")
             ray.train.report(metrics)
 
     def compute_metrics(
@@ -1176,7 +1175,6 @@ class TorchTrainer(Trainer, LogMixin):
 
             # Report validation metrics to Ray (useful for tuning!)
             metric_name = _get_tuning_metric_name(self.ray_tune_config)
-            # TODO remove
             if metric_name is None:
                 raise ValueError("Could not find a metric in the TuneConfig")
 
