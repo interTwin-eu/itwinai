@@ -1150,10 +1150,8 @@ class RayDDPStrategy(TorchDDPStrategy, RayTorchDistributedStrategy):
     def __init__(self) -> None:
         initialize_ray()
         import ray.train
-        import ray.tune
 
         self.ray_train = ray.train
-        self.ray_tune = ray.tune
         self.name = "ray-torch-ddp"
 
     def init(self) -> None:
@@ -1170,19 +1168,19 @@ class RayDDPStrategy(TorchDDPStrategy, RayTorchDistributedStrategy):
 
     @check_initialized
     def global_world_size(self) -> int:
-        return self.ray_tune.get_context().get_world_size()
+        return self.ray_train.get_context().get_world_size()
 
     @check_initialized
     def local_world_size(self) -> int:
-        return self.ray_tune.get_context().get_local_world_size()
+        return self.ray_train.get_context().get_local_world_size()
 
     @check_initialized
     def global_rank(self) -> int:
-        return self.ray_tune.get_context().get_world_rank()
+        return self.ray_train.get_context().get_world_rank()
 
     @check_initialized
     def local_rank(self) -> int:
-        return self.ray_tune.get_context().get_local_rank()
+        return self.ray_train.get_context().get_local_rank()
 
     @check_initialized
     def distributed(
