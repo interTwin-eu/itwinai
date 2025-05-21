@@ -17,11 +17,14 @@ workflows.
 Available Container Images
 --------------------------
 
-Three types of container flavors are available:
+Four types of container flavors are available:
 
 - **torch-slim**: Includes Horovod and DeepSpeed, tested on HPC (currently Vega)
 - **torch-skinny**: A minimal installation with a significantly reduced image size
-- **jlab-slim**: Designed for JupyterLab single-user mode, supports offloading to HPC via interLink
+- **jlab-slim**: Designed for JupyterLab single-user mode, supports offloading to HPC via
+  interLink
+- **jlab-cloud**: Designed for JupyterLab single-user mode to be executed on cloud, **without**
+  offloading to HPC via interLink
 
 Container Registries
 --------------------

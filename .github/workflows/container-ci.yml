@@ -54,6 +54,12 @@ jobs:
             tag-template: "jlab-slim-@{itwinai_version}-torch@{framework_version}-@{os_version}"
             skip-hpc: true
             skip-singularity: false
+          - base-img-name: "quay.io/jupyter/minimal-notebook:python-3.12"
+            dockerfile: "../env-files/torch/jupyter/cloud.Dockerfile"
+            nickname: "jlab-cloud"
+            tag-template: "jlab-cloud-@{itwinai_version}-torch@{framework_version}-@{os_version}"
+            skip-hpc: true
+            skip-singularity: true
 
     steps:
       - name: Checkout Code

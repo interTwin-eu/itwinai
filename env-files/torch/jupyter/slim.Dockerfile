@@ -80,7 +80,6 @@ RUN mkdir -p /etc/grid-security/certificates && \
     tar -xzf igtf-policy-installation-bundle.tar.gz -C /etc/grid-security/certificates --strip-components=1 && \
     rm igtf-policy-installation-bundle.tar.gz
 
-
 # VOMS setup
 RUN mkdir -p /etc/vomses && \
     wget -q https://indigo-iam.github.io/escape-docs/voms-config/voms-escape.cloud.cnaf.infn.it.vomses -O /etc/vomses/voms-escape.cloud.cnaf.infn.it.vomses && \
@@ -98,22 +97,19 @@ RUN mkdir /certs && touch /certs/rucio_ca.pem && \
     rm /tmp/*.crt && \
     update-ca-certificates
 
-# Add custom asyncssh config
+# Add custom asyncssh config (interLink)
 COPY env-files/torch/jupyter/asyncssh_config.py /opt/ssh/jupyterhub-singleuser
 RUN chmod +x /opt/ssh/jupyterhub-singleuser && chown -R ${NB_UID}:${NB_GID} /opt/ssh/jupyterhub-singleuser
 
-# Add rucio setup
+# Add Rucio setup
 COPY env-files/torch/jupyter/configure.py /opt/setup-rucio-jupyterlab/configure.py
 RUN chmod +x /opt/setup-rucio-jupyterlab/configure.py && chown -R ${NB_UID}:${NB_GID} /opt/setup-rucio-jupyterlab
-
 COPY env-files/torch/jupyter/setup.sh /usr/local/bin/setup.sh
 RUN chmod +x /usr/local/bin/setup.sh
-
 RUN mkdir -p /opt/rucio/etc && chown -R ${NB_UID}:${NB_GID} /opt/rucio/etc
 
 # Enable JupyterLab
 ENV JUPYTER_ENABLE_LAB=yes
-
 
 # Install itwinai and prov4ml
 WORKDIR /opt/itwinai
@@ -134,6 +130,7 @@ WORKDIR /app
 COPY tests tests
 COPY env-files/torch/jupyter/slim.Dockerfile Dockerfile
 
+# This is most likely ignored when jupyterlab is launched from jhub, in favour of jupyterhub-singleuser
 CMD ["setup.sh", "start-notebook.sh"]
 
 
