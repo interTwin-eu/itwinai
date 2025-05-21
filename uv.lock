@@ -208,6 +208,15 @@ wheels = [
 ]
 
 [[package]]
+name = "amdsmi"
+version = "6.4.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/6f/4a/4f670d69cc27009c5fbd3e93df99c955cddff64752129b88ccdf75a71874/amdsmi-6.4.0.tar.gz", hash = "sha256:2f5eca0885400d39ee04eb6ee8e4a572337204065cbbfce896261c625feebd4c", size = 54014 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/78/03/768a686552afedf58c499ac55808180425e9b33d9059b9af2e91599c8a96/amdsmi-6.4.0-py3-none-any.whl", hash = "sha256:cb744efd41e41af5a685117f77d223960c3661e22ab56253725cfcea2bfb8b5d", size = 56674 },
+]
+
+[[package]]
 name = "annotated-types"
 version = "0.7.0"
 source = { registry = "https://pypi.org/simple" }
@@ -1672,6 +1681,7 @@ name = "itwinai"
 version = "0.3.1"
 source = { editable = "." }
 dependencies = [
+    { name = "click" },
     { name = "hydra-core" },
     { name = "jsonargparse", extra = ["signatures"] },
     { name = "matplotlib" },
@@ -1696,6 +1706,9 @@ dependencies = [
 ]
 
 [package.optional-dependencies]
+amd = [
+    { name = "amdsmi" },
+]
 dev = [
     { name = "ipykernel" },
     { name = "ipython", version = "8.36.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11' or (extra == 'extra-7-itwinai-tf-cuda' and extra == 'extra-7-itwinai-torch')" },
@@ -1755,6 +1768,7 @@ torch = [
 
 [package.metadata]
 requires-dist = [
+    { name = "amdsmi", marker = "extra == 'amd'", specifier = ">=6.4.0" },
     { name = "bayesian-optimization", marker = "extra == 'hpo'", specifier = ">=2.0.0" },
     { name = "click", specifier = "==8.1.8" },
     { name = "configspace", marker = "extra == 'hpo'", specifier = ">=1.2.0" },
@@ -1791,7 +1805,7 @@ requires-dist = [
     { name = "pytest-mock", marker = "extra == 'dev'", specifier = ">=3.11.1" },
     { name = "pytest-xdist", marker = "extra == 'dev'", specifier = ">=3.6.1" },
     { name = "pyyaml", specifier = ">=6.0.2" },
-    { name = "ray", extras = ["default", "train", "tune"], specifier = ">=2.39.0" },
+    { name = "ray", extras = ["default", "train", "tune"], specifier = ">=2.43.0" },
     { name = "rich", specifier = ">=13.5.3" },
     { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.8.3" },
     { name = "scikit-image", marker = "extra == 'radio-astronomy'", specifier = ">=0.22.0" },
@@ -1818,7 +1832,7 @@ requires-dist = [
     { name = "wandb", specifier = ">=0.18.7" },
     { name = "wheel", specifier = ">=0.45.0" },
 ]
-provides-extras = ["radio-astronomy", "torch", "tf", "tf-cuda", "dev", "docs", "hpo"]
+provides-extras = ["amd", "radio-astronomy", "torch", "tf", "tf-cuda", "dev", "docs", "hpo"]
 
 [[package]]
 name = "jedi"

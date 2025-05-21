@@ -19,7 +19,7 @@ from typing import Any, Dict, Literal, Optional, Tuple
 import numpy as np
 import torch
 import torch.nn as nn
-from ray import train
+from ray import tune
 from torch.utils.data import Dataset, TensorDataset
 from tqdm import tqdm
 
@@ -382,7 +382,7 @@ class NoiseGeneratorTrainer(TorchTrainer):
                 epoch_time_logger.add_epoch_time(epoch - 1, timer() - lt)
 
             # Report training metrics of last epoch to Ray
-            train.report({"loss": np.mean(val_loss)})
+            tune.report({"loss": np.mean(val_loss)})
 
         return loss_plot, val_loss_plot, acc_plot, val_acc_plot
 
