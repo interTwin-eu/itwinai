@@ -288,7 +288,7 @@ def generate_scalability_report(
 
     if communication_data_table is not None:
         typer.echo("#" * 8 + "Communication Data Report" + "#" * 8)
-        typer.echo(communication_data_table, "\n")
+        typer.echo(communication_data_table + "\n")
     else:
         typer.echo("No Communication Data Found\n")
 
