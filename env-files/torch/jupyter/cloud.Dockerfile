@@ -8,9 +8,10 @@
 # - VRE Team @ CERN 23/24 - E. Garcia, G. Guerrieri
 # --------------------------------------------------------------------------------------
 
-# Container image for JupyterHub 2.5.1 -- supports JupyterLab 4
+# Container image for JupyterHub 2.5.1 -- supports JupyterLab 4. 
+# Could-only image: without integration for offloading with interLink
 
-ARG BASE_IMG_NAME=python:3.12-slim
+ARG BASE_IMG_NAME=quay.io/jupyter/minimal-notebook:python-3.12
 
 FROM ${BASE_IMG_NAME}
 ARG BASE_IMG_NAME
@@ -27,6 +28,7 @@ ENV DEBIAN_FRONTEND=noninteractive \
     PAGER=cat
 
 # OS deps
+USER root
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     cmake \
@@ -43,30 +45,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     voms-clients-java \
     gnupg \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
-
-# Install jupyter ecosystem
-RUN pip install --upgrade pip && \
-    pip install \
-    "jupyterhub==5.2.1" \
-    "notebook>=7.0.0" \
-    "jupyterlab>=4.1,<4.2" \
-    "jupyterlab-git" \
-    "jupyter-server-proxy" \
-    "ipywidgets" \
-    "PyJWT" \
-    "asyncssh" \
-    "peewee" \
-    "numpy" \
-    "pandas" \
-    "matplotlib" \
-    "scikit-learn" \
-    "nbformat" \
-    "ipykernel" \
-    "jsonschema" \
-    "traitlets"
-
-# Needs to be installed separated from the rest of the jupyterlab ecosystem to avoid conflicts...
-RUN pip install rucio-jupyterlab 
 
 # Set up CERN/ESCAPE CA certs
 # RUN wget -q -O - https://dist.eugridpma.info/distribution/igtf/current/GPG-KEY-EUGridPMA-RPM-3 | apt-key add - && \
@@ -97,9 +75,9 @@ RUN mkdir /certs && touch /certs/rucio_ca.pem && \
     rm /tmp/*.crt && \
     update-ca-certificates
 
-# Add custom asyncssh config (interLink)
-COPY env-files/torch/jupyter/asyncssh_config.py /opt/ssh/jupyterhub-singleuser
-RUN chmod +x /opt/ssh/jupyterhub-singleuser && chown -R ${NB_UID}:${NB_GID} /opt/ssh/jupyterhub-singleuser
+# # Add custom asyncssh config (interLink)
+# COPY env-files/torch/jupyter/asyncssh_config.py /opt/ssh/jupyterhub-singleuser
+# RUN chmod +x /opt/ssh/jupyterhub-singleuser && chown -R ${NB_UID}:${NB_GID} /opt/ssh/jupyterhub-singleuser
 
 # Add Rucio setup
 COPY env-files/torch/jupyter/configure.py /opt/setup-rucio-jupyterlab/configure.py
@@ -107,14 +85,44 @@ RUN chmod +x /opt/setup-rucio-jupyterlab/configure.py && chown -R ${NB_UID}:${NB
 COPY env-files/torch/jupyter/setup.sh /usr/local/bin/setup.sh
 RUN chmod +x /usr/local/bin/setup.sh
 RUN mkdir -p /opt/rucio/etc && chown -R ${NB_UID}:${NB_GID} /opt/rucio/etc
+# Wrap Rucio setup.sh ans start.sh under a single file (which is called from ENTRYPOINT)
+RUN mv /usr/local/bin/start.sh /usr/local/bin/start-original.sh
+COPY env-files/torch/jupyter/start-cloud.sh /usr/local/bin/start.sh
+RUN chmod +x /usr/local/bin/start.sh
 
 # Enable JupyterLab
 ENV JUPYTER_ENABLE_LAB=yes
 
+
+# Install python dependencies
+USER $NB_UID
+RUN pip install --upgrade pip && \
+    pip install \
+    "jupyterhub==5.2.1" \
+    "notebook>=7.0.0" \
+    "jupyterlab>=4.1,<4.2" \
+    "jupyterlab-git" \
+    "jupyter-server-proxy" \
+    "ipywidgets" \
+    "PyJWT" \
+    "asyncssh" \
+    "peewee" \
+    "numpy" \
+    "pandas" \
+    "matplotlib" \
+    "scikit-learn" \
+    "nbformat" \
+    "ipykernel" \
+    "jsonschema" \
+    "traitlets"
+
+# Needs to be installed separated from the rest of the jupyterlab ecosystem to avoid conflicts...
+RUN pip install rucio-jupyterlab 
+
 # Install itwinai and prov4ml
-WORKDIR /opt/itwinai
-COPY pyproject.toml pyproject.toml
-COPY src src
+WORKDIR "$HOME/itwinai"
+COPY --chown=${NB_UID} pyproject.toml pyproject.toml
+COPY --chown=${NB_UID} src src
 
 RUN pip install ".[torch]" --extra-index-url https://download.pytorch.org/whl/cu124 && \
     pip install \
@@ -127,12 +135,11 @@ RUN itwinai sanity-check --torch \
 
 # Add tests
 WORKDIR /app
-COPY tests tests
-COPY env-files/torch/jupyter/slim.Dockerfile Dockerfile
+COPY --chown=${NB_UID} tests tests
+COPY --chown=${NB_UID} env-files/torch/jupyter/cloud.Dockerfile Dockerfile
 
 # This is most likely ignored when jupyterlab is launched from jhub, in favour of jupyterhub-singleuser
-CMD ["setup.sh", "start-notebook.sh"]
-
+CMD ["start-notebook.sh"]
 
 # Labels
 ARG CREATION_DATE
@@ -153,6 +160,6 @@ LABEL org.opencontainers.image.vendor="CERN - European Organization for Nuclear 
 LABEL org.opencontainers.image.licenses="MIT"
 LABEL org.opencontainers.image.ref.name=${IMAGE_FULL_NAME}
 LABEL org.opencontainers.image.title="itwinai"
-LABEL org.opencontainers.image.description="slim itwinai image with torch dependencies, and Rucio client for jupyterlab v4 singleuser server enabled for interLink offloading"
+LABEL org.opencontainers.image.description="itwinai image with torch dependencies, and Rucio client for jupyterlab v4 singleuser server, without interLink offloading"
 LABEL org.opencontainers.image.base.digest=${BASE_IMG_DIGEST}
 LABEL org.opencontainers.image.base.name=${BASE_IMG_NAME}
