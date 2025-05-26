@@ -160,9 +160,9 @@ argument of the :class:`~itwinai.torch.trainer.TorchTrainer`.
             reduction_factor: 4
             brackets: 1
 
-    # For more info: https://docs.ray.io/en/latest/train/api/doc/ray.train.RunConfig.html
+    # For more info: https://docs.ray.io/en/latest/tune/api/doc/ray.tune.RunConfig.html
     ray_run_config:
-        _target_: ray.train.RunConfig
+        _target_: ray.tune.RunConfig
         storage_path: ${itwinai.cwd:}/ray_checkpoints
         name: FashionMNIST-HPO-Experiment
 
@@ -196,6 +196,9 @@ Okay, let's break down the Ray configuration objects.
 *   The ``ray_run_config`` defines a path that is used for checkpointing. This is mandatory to
     set if you want to distribute any one trial across more than one node, because ray uses
     this as a shared directory to coordinate and share data generated on each of the nodes.
+    The ``ray_run_config`` is of type ``ray.tune.RunConfig`` even for Ray distributed training
+    without HPO. Find out more about the ``RunConfig``
+    `here <https://docs.ray.io/en/latest/tune/api/doc/ray.tune.RunConfig.html>`_.
 *   In the ``ray_search_space`` we define which hyperparameters we want to tune. For the
     tunable parameters we have to specify the type and define their domain. For more
     information on which parameter types are possible and how to define their domains, have a

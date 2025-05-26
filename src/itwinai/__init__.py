@@ -10,6 +10,9 @@
 import logging
 import os
 
+# Set Ray V2 train env variable
+os.environ["RAY_TRAIN_V2_ENABLED"] = "1"
+
 # Create a logger for your library
 logger = logging.getLogger(__name__)
 

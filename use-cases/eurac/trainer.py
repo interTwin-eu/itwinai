@@ -1,39 +1,34 @@
 import os
-from os.path import isdir
+from copy import deepcopy
 from pathlib import Path
 from timeit import default_timer
-from typing import Dict, Literal, Optional, Union, Any, Tuple
-from tqdm.auto import tqdm
+from typing import Any, Dict, Literal, Optional, Tuple, Union
 
-from torch.utils.data import Dataset
+import pandas as pd
 import torch
 import torch.nn as nn
-import pandas as pd
-from ray import train
-from copy import deepcopy
-
-from hython.sampler import SamplerBuilder
-from hython.trainer import RNNTrainer, CalTrainer
-from hython.models import get_model_class as get_hython_model
+from hydra.utils import instantiate
 from hython.models import ModelLogAPI
+from hython.models import get_model_class as get_hython_model
+from hython.sampler import SamplerBuilder
+from hython.trainer import CalTrainer, RNNTrainer
+from ray import tune
+from torch.utils.data import Dataset
+from tqdm.auto import tqdm
 
+from itwinai.distributed import suppress_workers_print
+from itwinai.loggers import EpochTimeTracker, Logger
+from itwinai.torch.config import TrainingConfiguration
 from itwinai.torch.distributed import (
     DeepSpeedStrategy,
     HorovodStrategy,
     NonDistributedStrategy,
     TorchDDPStrategy,
 )
-
 from itwinai.torch.monitoring.monitoring import measure_gpu_utilization
 from itwinai.torch.profiling.profiler import profile_torch_trainer
-from itwinai.distributed import suppress_workers_print
-from itwinai.loggers import EpochTimeTracker, Logger
-from itwinai.torch.config import TrainingConfiguration
 from itwinai.torch.trainer import TorchTrainer
 from itwinai.torch.type import Metric
-from itwinai.torch.profiling.profiler import profile_torch_trainer
-
-from hydra.utils import instantiate
 
 
 class RNNDistributedTrainer(TorchTrainer):
@@ -207,11 +202,11 @@ class RNNDistributedTrainer(TorchTrainer):
             epoch_time_file_name = f"epochtime_{self.strategy.name}_{num_nodes}N.csv"
             epoch_time_output_path = epoch_time_output_dir / epoch_time_file_name
 
-            epoch_time_logger= EpochTimeTracker(
+            epoch_time_logger = EpochTimeTracker(
                 strategy_name=self.strategy.name,
                 save_path=epoch_time_output_path,
                 num_nodes=num_nodes,
-                should_log=self.measure_epoch_time
+                should_log=self.measure_epoch_time,
             )
 
         device = self.strategy.device()
@@ -313,7 +308,7 @@ class RNNDistributedTrainer(TorchTrainer):
                     self.model_api.log_model(module_name, item)
 
             # Report training metrics of last epoch to Ray
-            train.report({"loss": avg_val_loss.item(), "train_loss": train_loss.item()})
+            tune.report({"loss": avg_val_loss.item(), "train_loss": train_loss.item()})
 
         return loss_history, metric_history
 

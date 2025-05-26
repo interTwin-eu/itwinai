@@ -15,7 +15,7 @@ import matplotlib.pyplot as plt
 import ray
 import torch
 from hydra import compose, initialize
-from ray import train, tune
+from ray import tune
 
 from itwinai.cli import exec_pipeline_with_compose
 
@@ -97,7 +97,7 @@ def run_hpo(args):
             num_samples=args.num_samples,  # Number of trials to run
         )
 
-        run_config = train.RunConfig(
+        run_config = tune.RunConfig(
             name="Virgo-Ray-Experiment", stop={"training_iteration": args.max_iterations}
         )
 
