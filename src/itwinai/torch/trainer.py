@@ -824,13 +824,32 @@ class TorchTrainer(Trainer, LogMixin):
         validation_dataset: Dataset | None = None,
         test_dataset: Dataset | None = None,
     ) -> Tuple[Dataset, Dataset, Dataset, Any]:
-        """Launch training and, optionally, hyperparameter tuning with Ray"""
+        """Launch training and, optionally, hyperparameter tuning with Ray
+        Args:
+            train_dataset (Dataset): training dataset.
+            validation_dataset (Dataset | None, optional): validation
+                dataset. Defaults to None.
+            test_dataset (Dataset | None, optional): test dataset.
+                Defaults to None.
+        Returns:
+            Tuple[Dataset, Dataset, Dataset, Any]: training dataset,
+            validation dataset, test dataset, trained model.
+        """
 
         if self.from_checkpoint:
+            if not self.ray_run_config:
+                # If a checkpoint is provided, we need to create a RunConfig
+                # to be used by Ray Tuner
+                py_logger.warning(
+                    "from_checkpoint was passed, but ray_run_config is not set. "
+                    "Creating a new RunConfig with the checkpoint path."
+                )
+                self.ray_run_config = ray.tune.RunConfig()
+
             checkpoint_path = to_uri(self.from_checkpoint)
             # Create a new RunConfig with checkpoint path
-            run_config.name = Path(checkpoint_path).name
-            run_config.storage_path = str(Path(checkpoint_path).parent)
+            self.ray_run_config.name = Path(checkpoint_path).name
+            self.ray_run_config.storage_path = str(Path(checkpoint_path).parent)
 
         elif self.ray_run_config:
             # Create Ray checkpoints dir if it does not exist yet
@@ -847,7 +866,12 @@ class TorchTrainer(Trainer, LogMixin):
 
         # Define a worker function to be run on each worker
         def train_fn_per_worker(train_loop_config: dict):
-            """Retrieve datasets from references and start worker"""
+            """Retrieve datasets from references and start worker
+
+            Args:
+                train_loop_config (dict): configuration for the training loop,
+                    passed by Ray Tuner.
+            """
 
             train_ds = ray.get(train_dataset_ref)
             val_ds = (
@@ -864,7 +888,13 @@ class TorchTrainer(Trainer, LogMixin):
             )
 
         def train_driver_fn(config: dict):
-            """Driver function for Ray tune"""
+            """Driver function for Ray tune
+            This function is called by Ray Tuner to start the training process.
+
+            Args:
+                config (dict): configuration for the training loop,
+                    passed by Ray Tuner.
+            """
             # Extract hyperparameters from config
             train_loop_config = config.get("train_loop_config", {})
 
