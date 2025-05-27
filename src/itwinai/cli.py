@@ -48,7 +48,7 @@ def generate_flamegraph(
 
     if not script_path.exists():
         py_logger.exception(f"Could not find '{script_filename}' at '{script_path}'")
-        raise typer.Exit()
+        raise typer.Exit(code=1)
 
     try:
         with open(output_filename, "w") as out:
@@ -88,40 +88,27 @@ def generate_py_spy_report(
 
     from itwinai.torch.profiling.py_spy_aggregation import (
         add_lowest_library_function,
-        convert_stack_trace_to_list,
         get_aggregated_paths,
+        parse_num_rows,
+        read_stack_traces,
     )
 
-    if not num_rows.isnumeric() and num_rows != "all":
+    try:
+        parsed_num_rows: int | None = parse_num_rows(num_rows=num_rows)
+    except ValueError as exception:
         raise typer.BadParameter(
-            f"Number of rows must be either an integer or 'all'. Was '{num_rows}'.",
-            param_hint="num-rows",
-        )
-    parsed_num_rows: int | None = int(num_rows) if num_rows.isnumeric() else None
-    if isinstance(parsed_num_rows, int) and parsed_num_rows < 1:
-        raise typer.BadParameter(
-            f"Number of rows must be at least one! Was '{num_rows}'.",
-            param_hint="num-rows",
+            f"Failed to parse `num_rows` with error:\n{str(exception)}", param_hint="num-rows"
         )
 
     file_path = Path(file)
     if not file_path.exists():
         raise typer.BadParameter(f"'{file_path.resolve()}' was not found!", param_hint="file")
 
-    # Reading and converting the data
-    with file_path.open("r") as f:
-        profiling_data = f.readlines()
-
-    stack_traces: List[List[Dict]] = []
-    for line in profiling_data:
-        try:
-            structured_stack_trace = convert_stack_trace_to_list(line)
-            if structured_stack_trace:
-                stack_traces.append(structured_stack_trace)
-        except ValueError as exception:
-            typer.echo(f"Failed to aggregate data with following error:\n{exception}")
-            raise typer.Exit()
-
+    try:
+        stack_traces = read_stack_traces(path=file_path)
+    except ValueError as exception:
+        typer.echo(f"Failed to read stack traces with following error:\n{str(exception)}")
+        raise typer.Exit(code=1)
     add_lowest_library_function(stack_traces=stack_traces, library_name=library_name)
     leaf_functions = [data_point[-1] for data_point in stack_traces]
     if aggregate_leaf_paths:
@@ -738,10 +725,10 @@ def download_mlflow_data(
                 "Authentication with MLFlow failed with code 401! Either your "
                 "environment variables are not set or they are incorrect!"
             )
-            typer.Exit()
+            typer.Exit(code=1)
         else:
             typer.echo(e.message)
-            typer.Exit()
+            typer.Exit(code=1)
 
     all_metrics = []
     for run_idx, run in enumerate(runs):
@@ -764,7 +751,7 @@ def download_mlflow_data(
 
     if not all_metrics:
         typer.echo("No metrics found in the runs")
-        typer.Exit()
+        typer.Exit(code=1)
 
     df_metrics = pd.DataFrame(all_metrics)
     df_metrics.to_csv(output_file, index=False)

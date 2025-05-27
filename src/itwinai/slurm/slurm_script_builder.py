@@ -170,10 +170,15 @@ class SlurmScriptBuilder:
                 {self.get_training_command()}"""
             if self.py_spy_profiling:
                 # Prepending the py-spy profiling command
-                py_spy_profiling_output = "py_spy_profiling_$SLURM_NODEID.txt"
+
+                # TODO: This should probably be saved somewhere else?
+                py_spy_profiling_dir = Path("py_spy_outputs")
+                py_spy_profiling_dir.mkdir(parents=True, exist_ok=True)
+                py_spy_output_file = py_spy_profiling_dir / r"profile_\$SLURM_NODEID.txt"
+
                 bash_command = (
                     f"py-spy record -r {self.profiling_sampling_rate} -s "
-                    f"-o {py_spy_profiling_output} -f raw -- " + bash_command
+                    f"-o {py_spy_output_file} -f raw -- " + bash_command
                 )
 
             main_command = rf"""

@@ -1,5 +1,6 @@
 import re
 from typing import Dict, List
+from pathlib import Path
 
 
 def add_lowest_library_function(
@@ -135,3 +136,68 @@ def convert_stack_trace_to_list(line: str) -> List[Dict[str, str | int]]:
             )
 
     return result
+
+
+def parse_py_spy_lines(file_lines: List[str]) -> List[List[Dict]]:
+    """
+
+    Raises:
+        ValueError: If converting the stack trace to a list fails
+    """
+    stack_traces: List[List[Dict]] = []
+    for line in file_lines:
+        try:
+            structured_stack_trace = convert_stack_trace_to_list(line)
+            if structured_stack_trace:
+                stack_traces.append(structured_stack_trace)
+        except ValueError as exception:
+            raise ValueError(
+                f"Failed to aggregate profiling data with following error:\n{exception}"
+            )
+    return stack_traces
+
+
+def parse_num_rows(num_rows: str) -> int | None:
+    """
+
+    Raises:
+        ValueError: If `num_rows` is not numeric or "all"
+        ValueError: If 'num_rows` is parsed to a number smaller than one
+    """
+    if not num_rows.isnumeric() and num_rows != "all":
+        raise ValueError(
+            f"Number of rows must be either an integer or 'all'. Was '{num_rows}'.",
+        )
+
+    parsed_num_rows: int | None = int(num_rows) if num_rows.isnumeric() else None
+    if isinstance(parsed_num_rows, int) and parsed_num_rows < 1:
+        raise ValueError(
+            f"Number of rows must be at least one! Was '{num_rows}'.",
+        )
+    return parsed_num_rows
+
+def read_stack_traces(path: Path) -> List:
+    """
+
+    Raises:
+        ValueError: If parsing the lines from one of the files fails
+    """
+    if not path.is_dir():
+        with path.open("r") as f:
+            profiling_data = f.readlines()
+        return parse_py_spy_lines(file_lines=profiling_data)
+
+    stack_traces = []
+    # Try to read the data from all of the files in the directory
+    for iter_file in path.iterdir():
+        try:
+            with iter_file.open("r") as f:
+                data = f.readlines()
+            file_stack_traces = parse_py_spy_lines(file_lines=data)
+            stack_traces += file_stack_traces
+        except ValueError as exception:
+            raise ValueError(
+                f"Failed to read one of the files in directory '{path.resolve()}'"
+                f" with following error:\n{str(exception)}"
+            )
+    return stack_traces
