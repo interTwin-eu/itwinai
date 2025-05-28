@@ -65,7 +65,7 @@ def get_aggregated_paths(functions: List[Dict]) -> List[Dict]:
     return aggregated_functions
 
 
-def parse_trace_line_to_dict(trace_line: str, num_samples: int) -> Dict[str, str | int]:
+def parse_trace_line_to_dict(trace_line: str, num_samples: int) -> Dict[str, str | int] | None:
     """Parses a single trace line, which contains a function name, file name and line number,
     to a dictionary with the name, path, line and number of samples.
 
@@ -73,6 +73,13 @@ def parse_trace_line_to_dict(trace_line: str, num_samples: int) -> Dict[str, str
         ValueError: If the given trace line does not conform to the expected structure of
         "function_name (path/to/function:line_number)"
     """
+
+    # Skip all the process patterns
+    process_pattern = r"process [0-9]+:\".*\""
+    process_match = re.match(process_pattern, trace_line)
+    if process_match is not None:
+        return None
+
     function_pattern = r"([^\s]+) \(([^():]+):(\d+)\)"
     pattern_match = re.match(function_pattern, trace_line)
     if pattern_match is None:
@@ -128,6 +135,8 @@ def convert_stack_trace_to_list(line: str) -> List[Dict[str, str | int]]:
     for trace_line in stack_trace:
         try:
             trace_line_dict = parse_trace_line_to_dict(trace_line, num_samples)
+            if trace_line_dict is None:
+                continue
             result.append(trace_line_dict)
         except ValueError as exception:
             raise ValueError(
@@ -176,7 +185,7 @@ def parse_num_rows(num_rows: str) -> int | None:
         )
     return parsed_num_rows
 
-def read_stack_traces(path: Path) -> List:
+def read_stack_traces(path: Path) -> List[List[Dict]]:
     """
 
     Raises:

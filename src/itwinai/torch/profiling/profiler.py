@@ -14,7 +14,7 @@ from typing import TYPE_CHECKING, Any, Callable, Iterable, Tuple
 
 import matplotlib
 import pandas as pd
-from torch.profiler import ProfilerActivity, profile, schedule
+from torch.profiler import ProfilerActivity, profile, schedule, tensorboard_trace_handler
 
 if TYPE_CHECKING:
     from itwinai.torch.trainer import TorchTrainer
@@ -83,9 +83,8 @@ def profile_torch_trainer(method: Callable) -> Callable:
         )
         return active_epochs, wait_epochs, warmup_epochs
 
-
     @functools.wraps(method)
-    def profiled_method(self: 'TorchTrainer', *args, **kwargs) -> Any:
+    def profiled_method(self: "TorchTrainer", *args, **kwargs) -> Any:
         if not self.measure_communication_overhead:
             print(
                 "Warning: Profiling of communiation overhead with the PyTorch profiler"
@@ -98,6 +97,10 @@ def profile_torch_trainer(method: Callable) -> Callable:
             wait_epochs=self.profiling_wait_epochs,
             warmup_epochs=self.profiling_warmup_epochs,
         )
+        trace_handler = tensorboard_trace_handler(
+            dir_name=f"scalability-metrics/{self.run_id}/trace-data",
+            use_gzip=True,
+        )
         with profile(
             activities=[ProfilerActivity.CUDA, ProfilerActivity.CPU],
             schedule=schedule(
@@ -105,7 +108,8 @@ def profile_torch_trainer(method: Callable) -> Callable:
                 warmup=warmup_epochs,
                 active=active_epochs,
             ),
-            with_modules=True
+            on_trace_ready=trace_handler,
+            with_modules=True,
         ) as profiler:
             self.profiler = profiler
             result = method(self, *args, **kwargs)

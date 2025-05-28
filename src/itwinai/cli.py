@@ -24,7 +24,7 @@ import os
 import subprocess
 import sys
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import List, Optional
 
 import hydra
 import typer
@@ -109,6 +109,13 @@ def generate_py_spy_report(
     except ValueError as exception:
         typer.echo(f"Failed to read stack traces with following error:\n{str(exception)}")
         raise typer.Exit(code=1)
+
+    typer.echo(
+        "Warning: Multiprocessing calls (e.g. Dataloader subprocesses) might be counted"
+        " multiple times (once per process) and thus be overrepresented. Take this into "
+        " consideration when reading the results."
+    )
+
     add_lowest_library_function(stack_traces=stack_traces, library_name=library_name)
     leaf_functions = [data_point[-1] for data_point in stack_traces]
     if aggregate_leaf_paths:
