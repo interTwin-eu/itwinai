@@ -111,9 +111,9 @@ def generate_py_spy_report(
         raise typer.Exit(code=1)
 
     typer.echo(
-        "Warning: Multiprocessing calls (e.g. Dataloader subprocesses) might be counted"
-        " multiple times (once per process) and thus be overrepresented. Take this into "
-        " consideration when reading the results."
+        "[WARNING]: Multiprocessing calls (e.g. Dataloader subprocesses) might be counted"
+        " multiple times (once per process) and thus be overrepresented. Take this into"
+        " consideration when reading the results.\n"
     )
 
     add_lowest_library_function(stack_traces=stack_traces, library_name=library_name)

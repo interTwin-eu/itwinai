@@ -172,7 +172,10 @@ class SlurmScriptBuilder:
                 # Prepending the py-spy profiling command
                 py_spy_profiling_dir = Path("py_spy_outputs")
                 py_spy_profiling_dir.mkdir(parents=True, exist_ok=True)
-                py_spy_output_file = py_spy_profiling_dir / r"profile_\$SLURM_NODEID.txt"
+                py_spy_profiling_filename = (
+                    rf"{self.distributed_strategy}_profile_\$SLURM_NODEID.txt"
+                )
+                py_spy_output_file = py_spy_profiling_dir / py_spy_profiling_filename
 
                 bash_command = (
                     f"py-spy record -r {self.profiling_sampling_rate} -s "
