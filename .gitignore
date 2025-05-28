@@ -212,3 +212,6 @@ cython_debug/
 
 # Lattice QCD exception
 !use-cases/lattice-qcd/src/lib
+
+# py-spy profiling output
+py_spy_outputs/
