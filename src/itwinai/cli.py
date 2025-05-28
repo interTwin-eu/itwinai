@@ -87,7 +87,7 @@ def generate_py_spy_report(
     from tabulate import tabulate
 
     from itwinai.torch.profiling.py_spy_aggregation import (
-        add_lowest_library_function,
+        add_library_information,
         get_aggregated_paths,
         parse_num_rows,
         read_stack_traces,
@@ -97,7 +97,8 @@ def generate_py_spy_report(
         parsed_num_rows: int | None = parse_num_rows(num_rows=num_rows)
     except ValueError as exception:
         raise typer.BadParameter(
-            f"Failed to parse `num_rows` with error:\n{str(exception)}", param_hint="num-rows"
+            f"Failed to parse `num_rows` with value '{num_rows}'. Error:\n{str(exception)}",
+            param_hint="num-rows",
         )
 
     file_path = Path(file)
@@ -116,22 +117,31 @@ def generate_py_spy_report(
         " consideration when reading the results.\n"
     )
 
-    add_lowest_library_function(stack_traces=stack_traces, library_name=library_name)
-    leaf_functions = [data_point[-1] for data_point in stack_traces]
+    add_library_information(stack_traces=stack_traces, library_name=library_name)
+    leaf_stack_frames = [stack_frame_list[-1] for stack_frame_list in stack_traces]
     if aggregate_leaf_paths:
-        leaf_functions = get_aggregated_paths(functions=leaf_functions)
+        leaf_stack_frames = get_aggregated_paths(stack_frames=leaf_stack_frames)
 
-    leaf_functions.sort(key=lambda x: x["num_samples"], reverse=True)
+    leaf_stack_frames.sort(reverse=True)
 
     # Turn num_samples into percentages
-    total_samples = sum(function_dict["num_samples"] for function_dict in leaf_functions)
-    for function_dict in leaf_functions:
-        num_samples = function_dict["num_samples"]
+    total_samples = sum(stack_frame.num_samples for stack_frame in leaf_stack_frames)
+    for stack_frame in leaf_stack_frames:
+        num_samples = stack_frame.num_samples
         percentage = 100 * num_samples / total_samples
-        function_dict["proportion (n)"] = f"{percentage:.2f}% ({num_samples})"
-        del function_dict["num_samples"]
+        stack_frame.proportion = percentage
 
-    typer.echo(tabulate(leaf_functions[:parsed_num_rows], headers="keys", tablefmt="presto"))
+    filtered_leaf_stack_dicts = []
+    for stack_frame in leaf_stack_frames[:parsed_num_rows]:
+        stack_frame_dict = stack_frame.model_dump()
+
+        # Creating a proportion string for the table and putting it at the end
+        num_samples = stack_frame_dict.pop("num_samples")
+        proportion = stack_frame_dict.pop("proportion")
+        stack_frame_dict["proportion (n)"] = f"{proportion:.2f}% ({num_samples})"
+        filtered_leaf_stack_dicts.append(stack_frame_dict)
+
+    typer.echo(tabulate(filtered_leaf_stack_dicts, headers="keys", tablefmt="presto"))
 
 
 @app.command()

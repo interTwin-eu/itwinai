@@ -1284,12 +1284,14 @@ class TorchTrainer(Trainer, LogMixin):
         self.optimizer.zero_grad()
         pred_y = self.model(x)
         loss = self.loss(pred_y, y)
+        loss_item = loss.item()
+
         loss.backward()
         self.optimizer.step()
 
         # Log metrics
         self.log(
-            item=loss.item(),
+            item=loss_item,
             identifier="train_loss",
             kind="metric",
             step=self.train_glob_step,
