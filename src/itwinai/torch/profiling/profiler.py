@@ -99,6 +99,11 @@ def profile_torch_trainer(method: Callable) -> Callable:
             wait_epochs=self.profiling_wait_epochs,
             warmup_epochs=self.profiling_warmup_epochs,
         )
+        # Set correct values for the profiling epochs
+        self.profiling_active_epochs = active_epochs
+        self.profiling_wait_epochs = wait_epochs
+        self.profiling_warmup_epochs = warmup_epochs
+
         with profile(
             activities=[ProfilerActivity.CUDA, ProfilerActivity.CPU],
             schedule=schedule(
@@ -110,11 +115,8 @@ def profile_torch_trainer(method: Callable) -> Callable:
         ) as profiler:
             # Measure the overall time taken by the method including profiling
             # This can be used to calculate the computation ratio (comp time / profiling time)
-            start_t = time.monotonic()
             self.profiler = profiler
             result = method(self, *args, **kwargs)
-            profiling_time = time.monotonic() - start_t
-
 
         strategy = self.strategy
         strategy_name = strategy.name
@@ -129,8 +131,7 @@ def profile_torch_trainer(method: Callable) -> Callable:
         profiling_dataframe["strategy"] = strategy_name
         profiling_dataframe["num_gpus"] = num_gpus_global
         profiling_dataframe["global_rank"] = global_rank
-        profiling_dataframe["profiling_time"] = profiling_time
-
+        profiling_dataframe["profiling_time"] = self._profiling_time
         profiling_log_dir = Path(f"scalability-metrics/{self.run_id}/computation-data")
         profiling_log_dir.mkdir(parents=True, exist_ok=True)
 

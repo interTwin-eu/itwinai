@@ -24,14 +24,15 @@ from time import perf_counter as default_timer
 from typing import TYPE_CHECKING, Any, Callable, Dict, List, Literal, Optional, Tuple, Union
 
 import ray.train
-import ray.train.torch
 import ray.tune
 import torch
 import torch.distributed as dist
 import torch.nn as nn
 import torch.optim as optim
 import torch.optim.lr_scheduler as lr_scheduler
+import torch.profiler
 import yaml
+
 from ray.train import Checkpoint, DataConfig, RunConfig, ScalingConfig
 from ray.train.torch import TorchConfig
 from ray.train.torch import TorchTrainer as RayTorchTrainer
@@ -122,6 +123,8 @@ class TorchTrainer(Trainer, LogMixin):
             the profiler.
         profiling_warmup_epochs (int): length of the profiler warmup phase in terms of
             number of epochs.
+        profiling_active_epochs (int): number of epochs in which the profiler is active.
+        profiling_time: (float): time in seconds in which the profiler ran.
         measure_gpu_data (bool): enable the collection of data on average GPU utilization and
             total energy consumption throughout training. Defaults to False.
         measure_computation (bool): enable the profiling of computation.
@@ -184,7 +187,7 @@ class TorchTrainer(Trainer, LogMixin):
     test_glob_step: int = 0
     #: Dictionary of ``torchmetrics`` metrics, indexed by user-defined names.
     metrics: Dict[str, Callable]
-    #: PyTorch Profiler for communication vs. computation comparison
+    #: PyTorch Profiler for computation ratio profiling.
     profiler: Any | None
     #: Toggle for GPU utilization monitoring
     measure_gpu_data: bool = False
@@ -213,6 +216,8 @@ class TorchTrainer(Trainer, LogMixin):
         name: str | None = None,
         profiling_wait_epochs: int = 1,
         profiling_warmup_epochs: int = 2,
+        profiling_active_epochs: int = 1,
+        profiling_time: float = 0.0,
         measure_gpu_data: bool = False,
         measure_computation: bool = False,
         measure_epoch_time: bool = False,
@@ -252,6 +257,9 @@ class TorchTrainer(Trainer, LogMixin):
         self.profiler = None
         self.profiling_wait_epochs = profiling_wait_epochs
         self.profiling_warmup_epochs = profiling_warmup_epochs
+        self._profiling_active_epochs = profiling_active_epochs
+        self._profiling_time = profiling_time
+        self._profiling_start_time = None
         self.measure_gpu_data = measure_gpu_data
         self.measure_computation = measure_computation
         self.measure_epoch_time = measure_epoch_time
@@ -993,12 +1001,35 @@ class TorchTrainer(Trainer, LogMixin):
 
     def set_epoch(self) -> None:
         """Set current epoch at the beginning of training."""
-        if self.profiler is not None and self.current_epoch > 0:
-            # We don't want to start stepping until after the first epoch
+        if self.profiler and self._active_epoch():
+            # start recording time only for epochs in which the profiler is active
+            self._profiling_start_time = time.monotonic()
+
+        # We don't want to start stepping until after the first epoch
+        if self.profiler and self.current_epoch > 0:
+            # Always step the profiler at the beginning of the epoch
             self.profiler.step()
+
         if self.lr_scheduler:
             self.lr_scheduler.step()
         self._set_epoch_dataloaders(self.current_epoch)
+
+    def _active_epoch(self) -> bool:
+        """Check if the current epoch is active for profiling."""
+        if self.profiler is None:
+            py_logger.info(
+                "Profiler is not set! Current epoch is therefor not active."
+            )
+            return False
+
+        if self.current_epoch < self.profiling_warmup_epochs:
+            return False
+
+        # Calculate the current epoch in the profiling cycle
+        cycle_length = self.profiling_wait_epochs + self.profiling_active_epochs
+        epoch_in_cycle = (self.current_epoch - self.profiling_warmup_epochs) % cycle_length
+        # Check if the current epoch is in the active profiling phase
+        return epoch_in_cycle >= self.profiling_wait_epochs
 
     def log(
         self,
@@ -1213,6 +1244,14 @@ class TorchTrainer(Trainer, LogMixin):
                 assert epoch_time_logger is not None
                 epoch_time = default_timer() - epoch_start_time
                 epoch_time_logger.add_epoch_time(self.current_epoch + 1, epoch_time)
+
+
+            if self._profiling_start_time is not None:
+                # Add profiling time if profiling was active in this epoch
+                self._profiling_time += time.monotonic() - self._profiling_start_time
+
+            # Reset profiling start time, will be set for the next epoch with active profiling
+            self._profiling_start_time = None
 
     def train_epoch(self) -> torch.Tensor:
         """Perform a complete sweep over the training dataset, completing an
