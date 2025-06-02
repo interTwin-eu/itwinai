@@ -1287,14 +1287,6 @@ class TorchTrainer(Trainer, LogMixin):
         loss.backward()
         self.optimizer.step()
 
-        # Log metrics
-        self.log(
-            item=loss.item(),
-            identifier="train_loss",
-            kind="metric",
-            step=self.train_glob_step,
-            batch_idx=batch_idx,
-        )
         metrics: Dict[str, Any] = self.compute_metrics(
             true=y,
             pred=pred_y,
@@ -1375,13 +1367,7 @@ class TorchTrainer(Trainer, LogMixin):
         with torch.no_grad():
             pred_y = self.model(x)
             loss: torch.Tensor = self.loss(pred_y, y)
-        self.log(
-            item=loss.item(),
-            identifier="validation_loss",
-            kind="metric",
-            step=self.validation_glob_step,
-            batch_idx=batch_idx,
-        )
+
         metrics: Dict[str, Any] = self.compute_metrics(
             true=y,
             pred=pred_y,
