@@ -43,7 +43,7 @@ class SlurmScriptConfiguration(BaseModel):
     gpus_per_node: int
     cpus_per_gpu: int
 
-    # Tyipcally used to set up the environment before executing the command,
+    # Typically used to set up the environment before executing the command,
     # e.g. "ml Python", "source .venv/bin/activate" etc.
     pre_exec_command: str | None = None
 
@@ -118,6 +118,20 @@ class SlurmScriptBuilder:
         gpus_per_node = self.slurm_script_configuration.gpus_per_node
         return f"{self.distributed_strategy}-{num_nodes}x{gpus_per_node}"
 
+    def _handle_directory_existence(self, directory: Path, should_create: bool) -> None:
+        if directory.exists():
+            return
+
+        dir_name = str(directory.resolve())
+        if should_create:
+            directory.mkdir(parents=True)
+            print(f"Creating directory '{dir_name}'")
+        else:
+            print(
+                "[WARNING]: Make sure to create the following directory before submitting the"
+                f" SLURM job: '{dir_name}'"
+            )
+
     def get_training_command(self) -> str:
         if self.training_command:
             return self.training_command.format(**self.training_cmd_formatter)
@@ -170,10 +184,18 @@ class SlurmScriptBuilder:
                 {self.get_training_command()}"""
             if self.py_spy_profiling:
                 # Prepending the py-spy profiling command
-                py_spy_profiling_output = "py_spy_profiling_$SLURM_NODEID.txt"
+                py_spy_profiling_dir = Path("py-spy-outputs")
+                self._handle_directory_existence(
+                    directory=py_spy_profiling_dir, should_create=True
+                )
+                py_spy_profiling_filename = (
+                    rf"{self.distributed_strategy}_profile_\$SLURM_NODEID.txt"
+                )
+                py_spy_output_file = py_spy_profiling_dir / py_spy_profiling_filename
+
                 bash_command = (
                     f"py-spy record -r {self.profiling_sampling_rate} -s "
-                    f"-o {py_spy_profiling_output} -f raw -- " + bash_command
+                    f"-o {py_spy_output_file} -f raw -- " + bash_command
                 )
 
             main_command = rf"""
@@ -256,9 +278,15 @@ class SlurmScriptBuilder:
             err_out_path = Path("slurm_job_logs") / f"{job_identifier}.err"
             self.slurm_script_configuration.err_out = err_out_path
 
-        # Making sure the std out and err out folders exist
-        self.slurm_script_configuration.std_out.parent.mkdir(exist_ok=True, parents=True)
-        self.slurm_script_configuration.err_out.parent.mkdir(exist_ok=True, parents=True)
+        # Making sure the std out and std err directories exist
+        self._handle_directory_existence(
+            directory=self.slurm_script_configuration.std_out.parent,
+            should_create=submit_slurm_job,
+        )
+        self._handle_directory_existence(
+            directory=self.slurm_script_configuration.err_out.parent,
+            should_create=submit_slurm_job,
+        )
 
         # Generate the script using the given configuration
         script = self.slurm_script_configuration.format_script()
@@ -379,7 +407,7 @@ def generate_default_slurm_script() -> None:
         config_name=args.config_name,
         pipe_key=args.pipe_key,
         py_spy_profiling=args.py_spy,
-        profiling_sampling_rate=args.profiling_rate,
+        profiling_sampling_rate=args.profiling_sampling_rate,
     )
 
     submit_job = not args.no_submit_job

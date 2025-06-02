@@ -1284,6 +1284,7 @@ class TorchTrainer(Trainer, LogMixin):
         self.optimizer.zero_grad()
         pred_y = self.model(x)
         loss = self.loss(pred_y, y)
+
         loss.backward()
         self.optimizer.step()
 
