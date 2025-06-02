@@ -131,13 +131,13 @@ def profile_torch_trainer(method: Callable) -> Callable:
         profiling_dataframe["global_rank"] = global_rank
         profiling_dataframe["profiling_time"] = profiling_time
 
-        profiling_log_dir = Path(f"scalability-metrics/{self.run_id}/communication-data")
+        profiling_log_dir = Path(f"scalability-metrics/{self.run_id}/computation-data")
         profiling_log_dir.mkdir(parents=True, exist_ok=True)
 
         filename = f"{strategy_name}_{num_gpus_global}_{global_rank}.csv"
         output_path = profiling_log_dir / filename
 
-        print(f"Writing communication profiling dataframe to '{output_path}'.")
+        print(f"Writing computation profiling dataframe to '{output_path}'.")
         profiling_dataframe.to_csv(output_path)
 
         return result
