@@ -1,6 +1,6 @@
 import re
 from pathlib import Path
-from typing import List, Tuple
+from typing import Dict, List, Tuple
 
 from pydantic import BaseModel
 
@@ -32,9 +32,6 @@ class StackFrame(BaseModel):
     # For sorting purposes
     def __lt__(self, other: "StackFrame") -> bool:
         return self.num_samples < other.num_samples
-
-    def __len__(self) -> int:
-        return 8  # number of fields, for tabulation purposes
 
 
 def add_library_information(
@@ -79,7 +76,7 @@ def get_aggregated_paths(stack_frames: List[StackFrame]) -> List[StackFrame]:
     Returns a new list of stack frames, each representing a unique key with the
     corresponding total number of samples.
     """
-    aggregates = {}
+    aggregates: Dict[Tuple, StackFrame] = {}
     for frame in stack_frames:
         key = frame.get_aggregation_key()
         if key not in aggregates:
@@ -99,7 +96,7 @@ def parse_trace_line_to_stack_frame(trace_line: str, num_samples: int) -> StackF
         "function_name (path/to/function:line_number)".
     """
 
-    # Skip all the process patterns
+    # We skip the patterns that specify which process is running
     process_pattern = r"process [0-9]+:\".*\""
     process_match = re.match(process_pattern, trace_line)
     if process_match is not None:

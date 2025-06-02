@@ -81,7 +81,7 @@ def generate_py_spy_report(
         str, typer.Option(help="Which library name to find the lowest contact point of.")
     ] = "itwinai",
 ):
-    """Generates a short aggregation of the raw py-spy profiling data, showing which leaf
+    """Generates an aggregation of the raw py-spy profiling data, showing which leaf
     functions collected the most samples.
     """
     from tabulate import tabulate
@@ -132,7 +132,12 @@ def generate_py_spy_report(
         stack_frame.proportion = percentage
 
     filtered_leaf_stack_dicts = []
-    for stack_frame in leaf_stack_frames[:parsed_num_rows]:
+    if parsed_num_rows is not None:
+        frames_to_print = leaf_stack_frames[:parsed_num_rows]
+    else:
+        frames_to_print = leaf_stack_frames
+
+    for stack_frame in frames_to_print:
         stack_frame_dict = stack_frame.model_dump()
 
         # Creating a proportion string for the table and putting it at the end
