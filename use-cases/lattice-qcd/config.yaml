@@ -55,7 +55,7 @@ training_pipeline:
       strategy: ${strategy}
       measure_epoch_time: False
       measure_gpu_data: False
-      measure_communication_overhead: False
+      measure_computation: False
       logger:
         _target_: itwinai.loggers.LoggersCollection
         loggers:

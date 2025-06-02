@@ -124,8 +124,8 @@ class TorchTrainer(Trainer, LogMixin):
             number of epochs.
         measure_gpu_data (bool): enable the collection of data on average GPU utilization and
             total energy consumption throughout training. Defaults to False.
-        measure_communication_overhead (bool): enable the profiling of computation and
-            multi-worker communication operations. It uses the torch profiler and it may
+        measure_computation (bool): enable the profiling of computation.
+            It uses the torch profiler and it may
             slow down training. Dafults to False.
         measure_epoch_time (bool): enable the measurement of epoch duration (in seconds).
             Defaults to False,
@@ -188,8 +188,8 @@ class TorchTrainer(Trainer, LogMixin):
     profiler: Any | None
     #: Toggle for GPU utilization monitoring
     measure_gpu_data: bool = False
-    #: Toggle for communication vs computation fraction profiling
-    measure_communication_overhead: bool = False
+    #: Toggle for computation fraction profiling
+    measure_computation: bool = False
     #: Toggle for epoch time tracking
     measure_epoch_time: bool = False
     #: Run ID
@@ -214,7 +214,7 @@ class TorchTrainer(Trainer, LogMixin):
         profiling_wait_epochs: int = 1,
         profiling_warmup_epochs: int = 2,
         measure_gpu_data: bool = False,
-        measure_communication_overhead: bool = False,
+        measure_computation: bool = False,
         measure_epoch_time: bool = False,
         ray_scaling_config: ScalingConfig | None = None,
         ray_tune_config: TuneConfig | None = None,
@@ -253,7 +253,7 @@ class TorchTrainer(Trainer, LogMixin):
         self.profiling_wait_epochs = profiling_wait_epochs
         self.profiling_warmup_epochs = profiling_warmup_epochs
         self.measure_gpu_data = measure_gpu_data
-        self.measure_communication_overhead = measure_communication_overhead
+        self.measure_computation = measure_computation
         self.measure_epoch_time = measure_epoch_time
         self.ray_scaling_config = ray_scaling_config
         self.ray_tune_config = ray_tune_config

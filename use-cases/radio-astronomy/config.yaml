@@ -152,7 +152,7 @@ unet_pipeline:
           #   log_freq: batch 
           #   # tracking_uri: ${tracking_uri_mlflow}
       measure_gpu_data: ${meas_gpu}
-      measure_communication_overhead: ${meas_comm}
+      measure_computation: ${meas_comm}
       measure_epoch_time: ${meas_epoch}
     adapter_step:
       _target_: itwinai.components.Adapter

@@ -87,9 +87,9 @@ def profile_torch_trainer(method: Callable) -> Callable:
 
     @functools.wraps(method)
     def profiled_method(self: "TorchTrainer", *args, **kwargs) -> Any:
-        if not self.measure_communication_overhead:
+        if not self.measure_computation:
             print(
-                "Warning: Profiling of communication overhead with the PyTorch profiler"
+                "Warning: Profiling of computation with the PyTorch profiler"
                 " has been disabled!"
             )
             return method(self, *args, **kwargs)
