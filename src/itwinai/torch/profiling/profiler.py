@@ -9,12 +9,14 @@
 # --------------------------------------------------------------------------------------
 
 import functools
+import time
+
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Callable, Iterable, Tuple
 
 import matplotlib
 import pandas as pd
-from torch.profiler import ProfilerActivity, profile, schedule
+from torch.profiler import ProfilerActivity, profile, schedule, tensorboard_trace_handler
 
 if TYPE_CHECKING:
     from itwinai.torch.trainer import TorchTrainer
@@ -26,8 +28,8 @@ matplotlib.use("Agg")
 
 
 def profile_torch_trainer(method: Callable) -> Callable:
-    """Decorator for execute method for components. Profiles the communication time
-    vs. computation time and stores the result for future analysis.
+    """Decorator for execute method for components. Profiles the computation fraction and
+    stores the result for future analysis.
     """
 
     def gather_profiling_data(key_averages: Iterable) -> pd.DataFrame:
@@ -83,12 +85,11 @@ def profile_torch_trainer(method: Callable) -> Callable:
         )
         return active_epochs, wait_epochs, warmup_epochs
 
-
     @functools.wraps(method)
-    def profiled_method(self: 'TorchTrainer', *args, **kwargs) -> Any:
+    def profiled_method(self: "TorchTrainer", *args, **kwargs) -> Any:
         if not self.measure_communication_overhead:
             print(
-                "Warning: Profiling of communiation overhead with the PyTorch profiler"
+                "Warning: Profiling of communication overhead with the PyTorch profiler"
                 " has been disabled!"
             )
             return method(self, *args, **kwargs)
@@ -105,10 +106,15 @@ def profile_torch_trainer(method: Callable) -> Callable:
                 warmup=warmup_epochs,
                 active=active_epochs,
             ),
-            with_modules=True
+            with_modules=True,
         ) as profiler:
+            # Measure the overall time taken by the method including profiling
+            # This can be used to calculate the computation ratio (comp time / profiling time)
+            start_t = time.monotonic()
             self.profiler = profiler
             result = method(self, *args, **kwargs)
+            profiling_time = time.monotonic() - start_t
+
 
         strategy = self.strategy
         strategy_name = strategy.name
@@ -123,6 +129,7 @@ def profile_torch_trainer(method: Callable) -> Callable:
         profiling_dataframe["strategy"] = strategy_name
         profiling_dataframe["num_gpus"] = num_gpus_global
         profiling_dataframe["global_rank"] = global_rank
+        profiling_dataframe["profiling_time"] = profiling_time
 
         profiling_log_dir = Path(f"scalability-metrics/{self.run_id}/communication-data")
         profiling_log_dir.mkdir(parents=True, exist_ok=True)

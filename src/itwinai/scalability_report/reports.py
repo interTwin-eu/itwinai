@@ -6,6 +6,7 @@
 # Credit:
 # - Jarl Sondre Sæther <jarl.sondre.saether@cern.ch> - CERN
 # - Matteo Bunino <matteo.bunino@cern.ch> - CERN
+# - Linus Eickhoff <linus.maximilian.eickhoff@cern.ch> - CERN
 # --------------------------------------------------------------------------------------
 
 from pathlib import Path
@@ -17,14 +18,16 @@ from itwinai.scalability_report.data import read_scalability_metrics_from_csv
 from itwinai.scalability_report.plot import (
     absolute_avg_epoch_time_plot,
     computation_fraction_bar_plot,
+    computation_other_bar_plot,
     gpu_bar_plot,
     relative_epoch_time_speedup_plot,
 )
 from itwinai.scalability_report.utils import (
     calculate_gpu_statistics,
     get_computation_fraction_data,
+    get_computation_other_data,
 )
-
+from itwinai.utils import deprecated
 
 def epoch_time_report(
     log_dirs: List[Path] | List[str],
@@ -189,6 +192,7 @@ def gpu_data_report(
     return gpu_data_table
 
 
+@deprecated("Please use `computation_data_report` instead.")
 def communication_data_report(
     log_dirs: List[Path] | List[str],
     plot_dir: Path | str,
@@ -221,6 +225,7 @@ def communication_data_report(
         "global_rank",
         "name",
         "self_cuda_time_total",
+        "profiling_time",
     }
     log_dir_paths = [Path(logdir) for logdir in log_dirs]
     dataframes = []
@@ -242,7 +247,7 @@ def communication_data_report(
     )
 
     computation_fraction_plot_path = plot_dir / (
-        "computation_fraction_plot" + plot_file_suffix
+        "computation_communication_plot" + plot_file_suffix
     )
     computation_fraction_fig, _ = computation_fraction_bar_plot(computation_fraction_df)
     computation_fraction_fig.savefig(computation_fraction_plot_path)
@@ -256,3 +261,73 @@ def communication_data_report(
     communication_data_df.to_csv(backup_path)
     print(f"Storing backup file at '{backup_path.resolve()}'.")
     return communication_data_table
+
+def computation_data_report(
+    log_dirs: List[Path] | List[str],
+    plot_dir: Path | str,
+    backup_dir: Path,
+    do_backup: bool = False,
+    plot_file_suffix: str = ".png",
+) -> str | None:
+    """Generates reports and plots for computation and other fractions across
+    distributed training strategies. Includes a bar plot showing the fraction of time
+    spent on computation vs other for each strategy and GPU count. The function
+    optionally creates backups of the data.
+
+    Args:
+        log_dirs (List[Path] | List[str]): List of paths to the directory containing CSV
+            files with function-call data. The files must include the columns "strategy",
+            "num_gpus", "global_rank", "name", and "self_cuda_time_total".
+        plot_dir (Path | str): Path to the directory where the generated plot will
+            be saved.
+        backup_dir (Path): Path to the directory where backups of the data will be stored
+            if `do_backup` is True.
+        do_backup (bool): Whether to create a backup of the computation and other data in the
+            `backup_dir`. Defaults to False.
+    """
+    if isinstance(plot_dir, str):
+        plot_dir = Path(plot_dir)
+
+    computation_data_expected_columns = {
+        "strategy",
+        "num_gpus",
+        "global_rank",
+        "name",
+        "self_cuda_time_total",
+        "profiling_time",
+    }
+    log_dir_paths = [Path(logdir) for logdir in log_dirs]
+    dataframes = []
+    for log_dir in log_dir_paths:
+        temp_df = read_scalability_metrics_from_csv(
+            data_dir=log_dir, expected_columns=computation_data_expected_columns
+        )
+        dataframes.append(temp_df)
+    if not dataframes:
+        print("No computation data found in the provided log directories.")
+        return None
+    computation_data_df = pd.concat(dataframes)
+
+    print("\nAnalyzing Computation Data...")
+    computation_fraction_df = get_computation_other_data(computation_data_df)
+
+    formatters = {"computation_fraction": lambda x: "{:.2f} %".format(x * 100)}
+    computation_data_table = computation_fraction_df.to_string(
+        index=False, formatters=formatters
+    )
+
+    computation_fraction_plot_path = plot_dir / (
+        "computation_other_plot" + plot_file_suffix
+    )
+    computation_fraction_fig, _ = computation_other_bar_plot(computation_fraction_df)
+    computation_fraction_fig.savefig(computation_fraction_plot_path)
+    print(f"Saved computation fraction plot at '{computation_fraction_plot_path.resolve()}'.")
+
+    if not do_backup:
+        return computation_data_table
+
+    backup_dir.mkdir(exist_ok=True, parents=True)
+    backup_path = backup_dir / "computation_data.csv"
+    computation_data_df.to_csv(backup_path)
+    print(f"Storing backup file at '{backup_path.resolve()}'.")
+    return computation_data_table

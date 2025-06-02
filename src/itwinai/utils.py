@@ -5,14 +5,18 @@
 #
 # Credit:
 # - Matteo Bunino <matteo.bunino@cern.ch> - CERN
+# - Linus Eickhoff <linus.maximilian.eickhoff@cern.ch> - CERN
 # --------------------------------------------------------------------------------------
 
 """Utilities for itwinai package."""
 
+import functools
 import inspect
 import os
 import random
 import sys
+import warnings
+
 from collections.abc import MutableMapping
 from pathlib import Path
 from typing import Callable, Dict, Hashable, List, Tuple, Type
@@ -275,3 +279,17 @@ def to_uri(path_str: str | Path) -> str:
         return path_str
     # Otherwise, make it absolute
     return str(Path(path_str).resolve())
+
+
+def deprecated(reason):
+    def decorator(func):
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            warnings.warn(
+                f"{func.__name__} is deprecated: {reason}",
+                category=DeprecationWarning,
+                stacklevel=2
+            )
+            return func(*args, **kwargs)
+        return wrapper
+    return decorator

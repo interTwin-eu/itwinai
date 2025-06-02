@@ -192,6 +192,7 @@ def generate_scalability_report(
 
     from itwinai.scalability_report.reports import (
         communication_data_report,
+        computation_data_report,
         epoch_time_report,
         gpu_data_report,
     )
@@ -235,6 +236,11 @@ def generate_scalability_report(
         for path in base_directories_for_runs
         if (path / "communication-data").exists()
     ]
+    comp_time_logdirs = [
+        path / "communication-data"
+        for path in base_directories_for_runs
+        if (path / "communication-data").exists()
+    ]
 
     # Setting the backup directory from run name
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -247,6 +253,7 @@ def generate_scalability_report(
     epoch_time_backup_dir = backup_dir / "epoch-time"
     gpu_data_backup_dir = backup_dir / "gpu-energy-data"
     communication_data_backup_dir = backup_dir / "communication-data"
+    computation_data_backup_dir = backup_dir / "communication-data"
 
     plot_dir_path = Path(plot_dir)
     plot_dir_path.mkdir(exist_ok=True, parents=True)
@@ -272,6 +279,13 @@ def generate_scalability_report(
         do_backup=do_backup,
         plot_file_suffix=plot_file_suffix,
     )
+    computation_data_table = computation_data_report(
+        log_dirs=comp_time_logdirs,
+        plot_dir=plot_dir_path,
+        backup_dir=computation_data_backup_dir,
+        do_backup=do_backup,
+        plot_file_suffix=plot_file_suffix,
+    )
 
     typer.echo("")
     if epoch_time_table is not None:
@@ -291,6 +305,12 @@ def generate_scalability_report(
         typer.echo(communication_data_table + "\n")
     else:
         typer.echo("No Communication Data Found\n")
+
+    if computation_data_table is not None:
+        typer.echo("#" * 8 + "Computation Data Report" + "#" * 8)
+        typer.echo(computation_data_table + "\n")
+    else:
+        typer.echo("No Computation Data Found\n")
 
 
 @app.command()
