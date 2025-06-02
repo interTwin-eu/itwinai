@@ -407,7 +407,7 @@ def generate_default_slurm_script() -> None:
         config_name=args.config_name,
         pipe_key=args.pipe_key,
         py_spy_profiling=args.py_spy,
-        profiling_sampling_rate=args.profiling_rate,
+        profiling_sampling_rate=args.profiling_sampling_rate,
     )
 
     submit_job = not args.no_submit_job

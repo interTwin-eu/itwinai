@@ -460,10 +460,11 @@ def generate_slurm(
     py_spy: Annotated[
         bool, typer.Option("--py-spy", help="Whether to activate profiling with py-spy or not")
     ] = False,
-    profiling_rate: Annotated[
+    profiling_sampling_rate: Annotated[
         int,
         typer.Option(
-            "--profiling-rate", help="The rate at which to profile with the py-spy profiler."
+            "--profiling-sampling-rate",
+            help="The rate at which to profile with the py-spy profiler.",
         ),
     ] = 10,
 ):

@@ -6,7 +6,7 @@ dist_strat: ddp
 pipe_key: training_pipeline
 
 py_spy: true
-profiling_rate: 100
+profiling_sampling_rate: 100
 
 training_cmd: "$(which itwinai) exec-pipeline \
   strategy={dist_strat} \
