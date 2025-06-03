@@ -16,6 +16,7 @@ from scipy.constants import hour as SECONDS_IN_HOUR
 
 from itwinai.utils import deprecated
 
+
 def check_contains_columns(
     df: pd.DataFrame, expected_columns: Set, file_path: Path | None = None
 ) -> None:

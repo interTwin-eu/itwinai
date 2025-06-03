@@ -29,6 +29,7 @@ from itwinai.scalability_report.utils import (
 )
 from itwinai.utils import deprecated
 
+
 def epoch_time_report(
     log_dirs: List[Path] | List[str],
     plot_dir: Path | str,
