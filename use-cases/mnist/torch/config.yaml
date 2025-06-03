@@ -19,7 +19,7 @@ momentum: 0.9
 fp16_allreduce: False
 use_adasum: False
 gradient_predivide_factor: 1.0
-epochs: 2
+epochs: 20
 strategy: ddp
 test_data_path: mnist-sample-data
 inference_model_mlflow_uri: mnist-pre-trained.pth
