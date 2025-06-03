@@ -133,7 +133,7 @@ def calculate_comp_and_comm_time(df: pd.DataFrame) -> Tuple[float, float]:
 
     return comp_time, comm_time
 
-def calculate_comp_time(df: pd.DataFrame) -> Tuple[float]:
+def calculate_comp_time(df: pd.DataFrame) -> float:
     """Calculates the time spent on computation in seconds from the
     given DataFrame.
 
@@ -193,12 +193,15 @@ def get_computation_other_data(df: pd.DataFrame) -> pd.DataFrame:
     unique_num_gpus = sorted(df["num_gpus"].unique(), key=lambda x: int(x))
     unique_strategies = sorted(df["strategy"].unique())
     index = pd.MultiIndex.from_product(
-        [unique_strategies, unique_num_gpus], names=["strategy", "num_gpus"]
+        [unique_strategies, unique_num_gpus],
+        names=["strategy", "num_gpus"]
     )
-
     # Group by strategy and number of GPUs, calculate computation fraction
     def compute_fraction(group):
-        total_time = group["profiling_time"][0] # profiling_time is constant
+        # Sum over the unique entries
+        # Theoretically, two identical float32 runtimes could be the same and thus disregarded
+        # but this is practically impossible to happen in practice for ml runs.
+        total_time = group["profiling_time"].unique().sum()
         comp_time = calculate_comp_time(df=group)
         return comp_time / (total_time + 1e-10)
 

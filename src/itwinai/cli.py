@@ -276,13 +276,6 @@ def generate_scalability_report(
         do_backup=do_backup,
         plot_file_suffix=plot_file_suffix,
     )
-    computation_data_table = computation_data_report(
-        log_dirs=comp_time_logdirs,
-        plot_dir=plot_dir_path,
-        backup_dir=computation_data_backup_dir,
-        do_backup=do_backup,
-        plot_file_suffix=plot_file_suffix,
-    )
 
     if include_communication:
         comm_time_logdirs = [
@@ -298,6 +291,15 @@ def generate_scalability_report(
             do_backup=do_backup,
             plot_file_suffix=plot_file_suffix,
         )
+
+    computation_data_table = computation_data_report(
+        log_dirs=comp_time_logdirs,
+        plot_dir=plot_dir_path,
+        backup_dir=computation_data_backup_dir,
+        do_backup=do_backup,
+        plot_file_suffix=plot_file_suffix,
+    )
+
 
     typer.echo("")
     if epoch_time_table is not None:

@@ -9,6 +9,7 @@
 # --------------------------------------------------------------------------------------
 
 # General config
+run_id: mnist-usecase-0
 dataset_root: .tmp/
 num_classes: 10
 batch_size: 256
@@ -42,6 +43,7 @@ training_pipeline:
       measure_computation: True
       measure_epoch_time: False
       time_ray: True # track time for ray report and fit
+      run_id: ${run_id}
       config:
         batch_size: ${batch_size}
         num_workers_dataloader: ${num_workers_dataloader}
