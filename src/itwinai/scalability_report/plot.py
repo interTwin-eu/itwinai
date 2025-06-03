@@ -264,8 +264,10 @@ def gpu_bar_plot(data_df: pd.DataFrame, plot_title: str, y_label: str, main_colu
     return fig, ax
 
 
-@deprecated("""Communication vs computation is unreliable and not comparable between GPU
-    architectures. Please use computation_other_bar_plot instead.""")
+@deprecated(
+    "Communication vs computation is unreliable and not comparable between GPU"
+    " architectures. Please use computation_vs_other_bar_plot instead."
+)
 def computation_fraction_bar_plot(
     communication_data_df: pd.DataFrame,
 ) -> Tuple[Figure, Axes]:
@@ -351,7 +353,7 @@ def computation_fraction_bar_plot(
 
     return fig, ax
 
-def computation_other_bar_plot(
+def computation_vs_other_bar_plot(
     computation_data_df: pd.DataFrame,
 ) -> Tuple[Figure, Axes]:
     """Creates a stacked bar plot showing computation and other fractions for

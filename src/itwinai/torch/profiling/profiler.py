@@ -9,6 +9,7 @@
 # --------------------------------------------------------------------------------------
 
 import functools
+import logging
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Callable, Iterable, Tuple
 
@@ -24,10 +25,11 @@ if TYPE_CHECKING:
 # is due to the server trying to pass the image to the client computer
 matplotlib.use("Agg")
 
+py_logger = logging.getLogger(__name__)
 
 def profile_torch_trainer(method: Callable) -> Callable:
-    """Decorator for execute method for components. Profiles the computation fraction and
-    stores the result for future analysis.
+    """Decorator for execute method for components. Profiles function calls and
+    stores the result for future analysis (e.g. computation vs. other plots).
     """
 
     def gather_profiling_data(key_averages: Iterable) -> pd.DataFrame:
@@ -77,8 +79,8 @@ def profile_torch_trainer(method: Callable) -> Callable:
                 f"Training epochs: {training_epochs}, wait epochs: {wait_epochs}"
                 f", warmup epochs: {warmup_epochs}"
             )
-        print(
-            f"Warning: adjusted the given wait and warmup epochs for the profiler - "
+        py_logger.warning(
+            f"Adjusted the given wait and warmup epochs for the profiler - "
             f"wait epochs: {wait_epochs}, warmup epochs: {warmup_epochs}."
         )
         return active_epochs, wait_epochs, warmup_epochs
@@ -86,8 +88,8 @@ def profile_torch_trainer(method: Callable) -> Callable:
     @functools.wraps(method)
     def profiled_method(self: "TorchTrainer", *args, **kwargs) -> Any:
         if not self.measure_computation:
-            print(
-                "Warning: Profiling of computation with the PyTorch profiler"
+            py_logger.info(
+                "Profiling of computation with the PyTorch profiler"
                 " has been disabled!"
             )
             return method(self, *args, **kwargs)
@@ -110,8 +112,6 @@ def profile_torch_trainer(method: Callable) -> Callable:
             ),
             with_modules=True,
         ) as profiler:
-            # Measure the overall time taken by the method including profiling
-            # This can be used to calculate the computation ratio (comp time / profiling time)
             self.profiler = profiler
             result = method(self, *args, **kwargs)
 
@@ -128,14 +128,14 @@ def profile_torch_trainer(method: Callable) -> Callable:
         profiling_dataframe["strategy"] = strategy_name
         profiling_dataframe["num_gpus"] = num_gpus_global
         profiling_dataframe["global_rank"] = global_rank
-        profiling_dataframe["profiling_time"] = self._profiling_time
+        profiling_dataframe["profiling_time"] = self.profiling_time
         profiling_log_dir = Path(f"scalability-metrics/{self.run_id}/computation-data")
         profiling_log_dir.mkdir(parents=True, exist_ok=True)
 
         filename = f"{strategy_name}_{num_gpus_global}_{global_rank}.csv"
         output_path = profiling_log_dir / filename
 
-        print(f"Writing computation profiling dataframe to '{output_path}'.")
+        py_logger.info(f"Writing torch-profiling dataframe to '{output_path}'.")
         profiling_dataframe.to_csv(output_path)
 
         return result

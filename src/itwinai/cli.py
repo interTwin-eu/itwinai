@@ -31,6 +31,8 @@ import hydra
 import typer
 from typing_extensions import Annotated
 
+from itwinai.utils import COMPUTATION_DATA_DIR
+
 app = typer.Typer(pretty_exceptions_enable=False)
 
 py_logger = logging.getLogger(__name__)
@@ -192,8 +194,9 @@ def generate_scalability_report(
         bool,
         typer.Option(
             help=(
-                "Include communication data in the scalability report. Communication"
-                " fractions are unreliable and vary significantly for different HPC systems"
+                "Include communication data in the scalability report. Disclaimer:"
+                " Communication fractions are unreliable and vary significantly for different"
+                " HPC systems."
             )
         ),
     ] = False,
@@ -251,9 +254,9 @@ def generate_scalability_report(
         if (path / "gpu-energy-data").exists()
     ]
     comp_time_logdirs = [
-        path / "computation-data"
+        path / COMPUTATION_DATA_DIR
         for path in base_directories_for_runs
-        if (path / "computation-data").exists()
+        if (path / COMPUTATION_DATA_DIR).exists()
     ]
 
     # Setting the backup directory from run name
@@ -266,7 +269,7 @@ def generate_scalability_report(
 
     epoch_time_backup_dir = backup_dir / "epoch-time"
     gpu_data_backup_dir = backup_dir / "gpu-energy-data"
-    computation_data_backup_dir = backup_dir / "computation-data"
+    computation_data_backup_dir = backup_dir / COMPUTATION_DATA_DIR
 
     plot_dir_path = Path(plot_dir)
     plot_dir_path.mkdir(exist_ok=True, parents=True)
@@ -288,11 +291,11 @@ def generate_scalability_report(
 
     if include_communication:
         comm_time_logdirs = [
-            path / "computation-data"
+            path / COMPUTATION_DATA_DIR
             for path in base_directories_for_runs
-            if (path / "computation-data").exists()
+            if (path / COMPUTATION_DATA_DIR).exists()
         ]
-        communication_data_backup_dir = backup_dir / "computation-data"
+        communication_data_backup_dir = backup_dir / COMPUTATION_DATA_DIR
         communication_data_table = communication_data_report(
             log_dirs=comm_time_logdirs,
             plot_dir=plot_dir_path,

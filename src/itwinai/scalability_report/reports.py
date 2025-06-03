@@ -18,14 +18,14 @@ from itwinai.scalability_report.data import read_scalability_metrics_from_csv
 from itwinai.scalability_report.plot import (
     absolute_avg_epoch_time_plot,
     computation_fraction_bar_plot,
-    computation_other_bar_plot,
+    computation_vs_other_bar_plot,
     gpu_bar_plot,
     relative_epoch_time_speedup_plot,
 )
 from itwinai.scalability_report.utils import (
     calculate_gpu_statistics,
     get_computation_fraction_data,
-    get_computation_other_data,
+    get_computation_vs_other_data,
 )
 from itwinai.utils import deprecated
 
@@ -285,6 +285,7 @@ def computation_data_report(
             if `do_backup` is True.
         do_backup (bool): Whether to create a backup of the computation and other data in the
             `backup_dir`. Defaults to False.
+        plot_file_suffix (str): Suffix for the plot file names. Defaults to ".png".
     """
     if isinstance(plot_dir, str):
         plot_dir = Path(plot_dir)
@@ -310,7 +311,7 @@ def computation_data_report(
     computation_data_df = pd.concat(dataframes)
 
     print("\nAnalyzing Computation Data...")
-    computation_fraction_df = get_computation_other_data(computation_data_df)
+    computation_fraction_df = get_computation_vs_other_data(computation_data_df)
 
     formatters = {"computation_fraction": lambda x: "{:.2f} %".format(x * 100)}
     computation_data_table = computation_fraction_df.to_string(
@@ -318,9 +319,9 @@ def computation_data_report(
     )
 
     computation_fraction_plot_path = plot_dir / (
-        "computation_other_plot" + plot_file_suffix
+        "computation_vs_other_plot" + plot_file_suffix
     )
-    computation_fraction_fig, _ = computation_other_bar_plot(computation_fraction_df)
+    computation_fraction_fig, _ = computation_vs_other_bar_plot(computation_fraction_df)
     computation_fraction_fig.savefig(computation_fraction_plot_path)
     print(f"Saved computation fraction plot at '{computation_fraction_plot_path.resolve()}'.")
 

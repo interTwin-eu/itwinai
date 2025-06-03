@@ -158,20 +158,15 @@ def calculate_comp_time(df: pd.DataFrame) -> float:
 
     return comp_time
 
-@deprecated("""Communication calculation is unreliable and not comparable between GPU
-    architectures. Please use get_computation_other_data instead.""")
+@deprecated(
+    "Communication calculation is unreliable and not comparable between GPU"
+    " architectures. Please use get_computation_vs_other_data instead."
+)
 def get_computation_fraction_data(df: pd.DataFrame) -> pd.DataFrame:
     """Calculates the computation fraction for each strategy and GPU configuration,
     returning a DataFrame with the results. The computation fraction is defined as the
     ratio of computation time to the total time (computation + communication).
     """
-    # Sort and create cartesian product of unique strategies and GPU counts
-    unique_num_gpus = sorted(df["num_gpus"].unique(), key=lambda x: int(x))
-    unique_strategies = sorted(df["strategy"].unique())
-    index = pd.MultiIndex.from_product(
-        [unique_strategies, unique_num_gpus], names=["strategy", "num_gpus"]
-    )
-
     # Group by strategy and number of GPUs, calculate computation fraction
     def compute_fraction(group):
         comp_time, comm_time = calculate_comp_and_comm_time(df=group)
@@ -179,17 +174,33 @@ def get_computation_fraction_data(df: pd.DataFrame) -> pd.DataFrame:
 
     grouped = df.groupby(["strategy", "num_gpus"]).apply(compute_fraction)
 
+    # Sort and create cartesian product of unique strategies and GPU counts
+    unique_num_gpus = sorted(df["num_gpus"].unique(), key=lambda x: int(x))
+    unique_strategies = sorted(df["strategy"].unique())
+    index = pd.MultiIndex.from_product(
+        [unique_strategies, unique_num_gpus], names=["strategy", "num_gpus"]
+    )
     # Reindex to fill in missing combinations with NaN
     result_df = pd.DataFrame(grouped.reindex(index))
     result_df = result_df.reset_index()
     result_df.columns = ["strategy", "num_gpus", "computation_fraction"]
     return result_df
 
-def get_computation_other_data(df: pd.DataFrame) -> pd.DataFrame:
+def get_computation_vs_other_data(df: pd.DataFrame) -> pd.DataFrame:
     """Calculates the computation fraction for each strategy and GPU configuration,
     returning a DataFrame with the results. The computation fraction is defined as the
     ratio of computation time to the total time of profiling.
     """
+    # Group by strategy and number of GPUs, calculate computation fraction
+    def compute_fraction(group):
+        # Theoretically, two identical float32 runtimes could be the same and thus disregarded
+        # but this is impossible to happen in practice for ml runs.
+        total_time = group["profiling_time"].unique().sum()
+        comp_time = calculate_comp_time(df=group)
+        return comp_time / (total_time + 1e-10)
+
+    grouped = df.groupby(["strategy", "num_gpus"]).apply(compute_fraction)
+
     # Sort and create cartesian product of unique strategies and GPU counts
     unique_num_gpus = sorted(df["num_gpus"].unique(), key=lambda x: int(x))
     unique_strategies = sorted(df["strategy"].unique())
@@ -197,17 +208,6 @@ def get_computation_other_data(df: pd.DataFrame) -> pd.DataFrame:
         [unique_strategies, unique_num_gpus],
         names=["strategy", "num_gpus"]
     )
-    # Group by strategy and number of GPUs, calculate computation fraction
-    def compute_fraction(group):
-        # Sum over the unique entries
-        # Theoretically, two identical float32 runtimes could be the same and thus disregarded
-        # but this is practically impossible to happen in practice for ml runs.
-        total_time = group["profiling_time"].unique().sum()
-        comp_time = calculate_comp_time(df=group)
-        return comp_time / (total_time + 1e-10)
-
-    grouped = df.groupby(["strategy", "num_gpus"]).apply(compute_fraction)
-
     # Reindex to fill in missing combinations with NaN
     result_df = pd.DataFrame(grouped.reindex(index))
     result_df = result_df.reset_index()

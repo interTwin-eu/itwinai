@@ -23,6 +23,8 @@ from urllib.parse import urlparse
 
 import yaml
 
+COMPUTATION_DATA_DIR = "computation-data"
+
 adjectives = [
     "quantum",
     "relativistic",
