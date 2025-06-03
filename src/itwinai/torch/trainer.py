@@ -58,7 +58,6 @@ from .distributed import (
     NonDistributedStrategy,
     RayDDPStrategy,
     RayDeepSpeedStrategy,
-    RayHorovodStrategy,
     RayTorchDistributedStrategy,
     TorchDDPStrategy,
     TorchDistributedStrategy,
@@ -67,9 +66,6 @@ from .distributed import (
 from .reproducibility import seed_worker, set_seed
 from .tuning import search_space
 from .type import Batch, Metric
-
-if TYPE_CHECKING:
-    from ray.train.horovod import HorovodConfig
 
 py_logger = logging.getLogger(__name__)
 
@@ -143,8 +139,6 @@ class TorchTrainer(Trainer, LogMixin):
             Defaults to None.
         ray_data_config (DataConfig, optional): dataset configuration for Ray.
             Defaults to None.
-        ray_horovod_config (HorovodConfig, optional): horovod configuration for Ray's
-            HorovodTrainer. Defaults to None.
         from_checkpoint (str | Path, optional): path to checkpoint directory. Defaults to None.
         initial_best_validation_metric (str): initial value for the best validation metric.
             Usually the validation metric is a loss to be minimized and this value exceeds the
@@ -224,7 +218,6 @@ class TorchTrainer(Trainer, LogMixin):
         ray_search_space: Dict[str, Any] | None = None,
         ray_torch_config: TorchConfig | None = None,
         ray_data_config: DataConfig | None = None,
-        ray_horovod_config: Optional["HorovodConfig"] = None,
         from_checkpoint: str | Path | None = None,
         initial_best_validation_metric: str = "inf",
         run_id: str | None = None,
@@ -261,7 +254,6 @@ class TorchTrainer(Trainer, LogMixin):
         self.ray_tune_config = ray_tune_config
         self.ray_run_config = ray_run_config
         self.ray_search_space = ray_search_space
-        self.ray_horovod_config = ray_horovod_config
         self.ray_torch_config = ray_torch_config
         self.ray_data_config = ray_data_config
         self.from_checkpoint = from_checkpoint
@@ -280,7 +272,6 @@ class TorchTrainer(Trainer, LogMixin):
         py_logger.debug(f"ray_scaling_config: {ray_scaling_config}")
         py_logger.debug(f"ray_tune_config: {ray_tune_config}")
         py_logger.debug(f"ray_run_config: {ray_run_config}")
-        py_logger.debug(f"ray_horovod_config: {ray_horovod_config}")
         py_logger.debug(f"ray_torch_config: {ray_torch_config}")
         py_logger.debug(f"ray_data_config: {ray_data_config}")
         py_logger.debug(f"ray_search_space: {ray_search_space}")
@@ -348,7 +339,11 @@ class TorchTrainer(Trainer, LogMixin):
                 return TorchDDPStrategy(backend=self.config.dist_backend)
 
             case "horovod", True:
-                return RayHorovodStrategy()
+                py_logger.warning(
+                    "Horovod strategy is no longer supported with Ray V2. See "
+                    "https://github.com/ray-project/ray/issues/49454#issuecomment-2899138398. "
+                    "Falling back to HorovodStrategy without Ray.")
+                return HorovodStrategy()
 
             case "horovod", False:
                 return HorovodStrategy()
@@ -797,10 +792,6 @@ class TorchTrainer(Trainer, LogMixin):
             py_logger.warning(
                 "Ray search space was passed, but it's ignored as Ray is not used"
             )
-        if self.ray_horovod_config:
-            py_logger.warning(
-                "Ray horovod config was passed, but it's ignored as Ray is not used"
-            )
         if self.ray_torch_config:
             py_logger.warning(
                 "Ray torch config was passed, but it's ignored as Ray is not used"
@@ -904,27 +895,14 @@ class TorchTrainer(Trainer, LogMixin):
                 callbacks = [TuneReportCallback()],
             )
 
-            # Create and run the appropriate trainer based on strategy
-            if isinstance(self.strategy, RayHorovodStrategy):
-                from ray.train.horovod import HorovodTrainer
-
-                trainer = HorovodTrainer(
-                    train_loop_per_worker=train_fn_per_worker,
-                    train_loop_config=train_loop_config,
-                    horovod_config=self.ray_horovod_config,
-                    scaling_config=self.ray_scaling_config,
-                    run_config=run_config,
-                    dataset_config=self.ray_data_config,
-                )
-            else:
-                trainer = RayTorchTrainer(
-                    train_loop_per_worker=train_fn_per_worker,
-                    train_loop_config=train_loop_config,
-                    scaling_config=self.ray_scaling_config,
-                    run_config=run_config,
-                    torch_config=self.ray_torch_config,
-                    dataset_config=self.ray_data_config,
-                )
+            trainer = RayTorchTrainer(
+                train_loop_per_worker=train_fn_per_worker,
+                train_loop_config=train_loop_config,
+                scaling_config=self.ray_scaling_config,
+                run_config=run_config,
+                torch_config=self.ray_torch_config,
+                dataset_config=self.ray_data_config,
+            )
 
             trainer.fit()
 
