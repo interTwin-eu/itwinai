@@ -13,7 +13,7 @@
 
 import logging
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Callable, Dict, Iterable, Literal, Optional, Tuple
+from typing import Any, Callable, Dict, Iterable, Literal, Tuple
 
 import torch
 import torch.nn as nn

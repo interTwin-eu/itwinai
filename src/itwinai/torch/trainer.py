@@ -21,7 +21,7 @@ import time
 from collections import defaultdict
 from pathlib import Path
 from time import perf_counter as default_timer
-from typing import TYPE_CHECKING, Any, Callable, Dict, List, Literal, Optional, Tuple, Union
+from typing import Any, Callable, Dict, List, Literal, Tuple, Union
 
 import ray.train
 import ray.tune
