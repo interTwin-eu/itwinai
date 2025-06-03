@@ -126,7 +126,7 @@ class TorchTrainer(Trainer, LogMixin):
         profiling_time: (float): time in seconds in which the profiler ran.
         measure_gpu_data (bool): enable the collection of data on average GPU utilization and
             total energy consumption throughout training. Defaults to False.
-        measure_computation (bool): enable the profiling of computation.
+        torch_profiling (bool): enable the profiling of computation.
             It uses the torch profiler and it may
             slow down training. Dafults to False.
         measure_epoch_time (bool): enable the measurement of epoch duration (in seconds).
@@ -191,7 +191,7 @@ class TorchTrainer(Trainer, LogMixin):
     #: Toggle for GPU utilization monitoring
     measure_gpu_data: bool = False
     #: Toggle for computation fraction profiling
-    measure_computation: bool = False
+    torch_profiling: bool = False
     #: Toggle for epoch time tracking
     measure_epoch_time: bool = False
     #: Run ID
@@ -218,7 +218,7 @@ class TorchTrainer(Trainer, LogMixin):
         profiling_active_epochs: int = 1,
         profiling_time: float = 0.0,
         measure_gpu_data: bool = False,
-        measure_computation: bool = False,
+        torch_profiling: bool = False,
         measure_epoch_time: bool = False,
         ray_scaling_config: ScalingConfig | None = None,
         ray_tune_config: TuneConfig | None = None,
@@ -260,7 +260,7 @@ class TorchTrainer(Trainer, LogMixin):
         self.profiling_time = profiling_time
         self.profiling_start_time = None
         self.measure_gpu_data = measure_gpu_data
-        self.measure_computation = measure_computation
+        self.torch_profiling = torch_profiling
         self.measure_epoch_time = measure_epoch_time
         self.ray_scaling_config = ray_scaling_config
         self.ray_tune_config = ray_tune_config

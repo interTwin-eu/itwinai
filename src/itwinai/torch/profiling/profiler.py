@@ -87,7 +87,7 @@ def profile_torch_trainer(method: Callable) -> Callable:
 
     @functools.wraps(method)
     def profiled_method(self: "TorchTrainer", *args, **kwargs) -> Any:
-        if not self.measure_computation:
+        if not self.torch_profiling:
             py_logger.info(
                 "Profiling of computation with the PyTorch profiler"
                 " has been disabled!"
