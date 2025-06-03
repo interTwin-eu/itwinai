@@ -157,6 +157,9 @@ select = ["E", "F", "I", "W"]
 ignore = ["E203"]
 fixable = ["ALL"]
 
+[tool.ruff.lint.isort]
+known-third-party = ["torch"]
+
 [tool.ruff.format]
 quote-style = "double"
 indent-style = "space"

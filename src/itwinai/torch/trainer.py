@@ -25,28 +25,27 @@ from typing import TYPE_CHECKING, Any, Callable, Dict, List, Literal, Optional, 
 
 import ray.train
 import ray.tune
-import yaml
-from ray.train import Checkpoint, DataConfig, RunConfig, ScalingConfig
-from ray.train.torch import TorchConfig
-from ray.train.torch import TorchTrainer as RayTorchTrainer
-from ray.tune import TuneConfig
-from tqdm import tqdm
-
 import torch
 import torch.distributed as dist
 import torch.nn as nn
 import torch.optim as optim
 import torch.optim.lr_scheduler as lr_scheduler
 import torch.profiler
-
-# Cyclic imports...
-from itwinai.torch.monitoring.monitoring import measure_gpu_utilization
-from itwinai.torch.profiling.profiler import profile_torch_trainer
+import yaml
+from ray.train import Checkpoint, DataConfig, RunConfig, ScalingConfig
+from ray.train.torch import TorchConfig
+from ray.train.torch import TorchTrainer as RayTorchTrainer
+from ray.tune import TuneConfig
 from torch.nn.parallel import DistributedDataParallel as DDP
 from torch.optim.lr_scheduler import LRScheduler
 from torch.optim.optimizer import Optimizer
 from torch.utils.data import DataLoader, Dataset
 from torch.utils.data.distributed import DistributedSampler
+from tqdm import tqdm
+
+# Cyclic imports...
+from itwinai.torch.monitoring.monitoring import measure_gpu_utilization
+from itwinai.torch.profiling.profiler import profile_torch_trainer
 
 from ..components import Trainer, monitor_exec
 from ..distributed import ray_cluster_is_running

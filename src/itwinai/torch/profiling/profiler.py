@@ -14,7 +14,6 @@ from typing import TYPE_CHECKING, Any, Callable, Iterable, Tuple
 
 import matplotlib
 import pandas as pd
-
 from torch.profiler import ProfilerActivity, profile, schedule
 
 if TYPE_CHECKING:
