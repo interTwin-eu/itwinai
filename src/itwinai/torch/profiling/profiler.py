@@ -102,7 +102,6 @@ def profile_torch_trainer(method: Callable) -> Callable:
         self.profiling_active_epochs = active_epochs
         self.profiling_wait_epochs = wait_epochs
         self.profiling_warmup_epochs = warmup_epochs
-
         with profile(
             activities=[ProfilerActivity.CUDA, ProfilerActivity.CPU],
             schedule=schedule(

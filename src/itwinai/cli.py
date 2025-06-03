@@ -25,7 +25,7 @@ import os
 import subprocess
 import sys
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import List, Optional
 
 import hydra
 import typer
@@ -49,7 +49,7 @@ def generate_flamegraph(
 
     if not script_path.exists():
         py_logger.exception(f"Could not find '{script_filename}' at '{script_path}'")
-        raise typer.Exit()
+        raise typer.Exit(code=1)
 
     try:
         with open(output_filename, "w") as out:
@@ -82,26 +82,23 @@ def generate_py_spy_report(
         str, typer.Option(help="Which library name to find the lowest contact point of.")
     ] = "itwinai",
 ):
-    """Generates a short aggregation of the raw py-spy profiling data, showing which leaf
+    """Generates an aggregation of the raw py-spy profiling data, showing which leaf
     functions collected the most samples.
     """
     from tabulate import tabulate
 
     from itwinai.torch.profiling.py_spy_aggregation import (
-        add_lowest_library_function,
-        convert_stack_trace_to_list,
+        add_library_information,
         get_aggregated_paths,
+        parse_num_rows,
+        read_stack_traces,
     )
 
-    if not num_rows.isnumeric() and num_rows != "all":
+    try:
+        parsed_num_rows: int | None = parse_num_rows(num_rows=num_rows)
+    except ValueError as exception:
         raise typer.BadParameter(
-            f"Number of rows must be either an integer or 'all'. Was '{num_rows}'.",
-            param_hint="num-rows",
-        )
-    parsed_num_rows: int | None = int(num_rows) if num_rows.isnumeric() else None
-    if isinstance(parsed_num_rows, int) and parsed_num_rows < 1:
-        raise typer.BadParameter(
-            f"Number of rows must be at least one! Was '{num_rows}'.",
+            f"Failed to parse `num_rows` with value '{num_rows}'. Error:\n{str(exception)}",
             param_hint="num-rows",
         )
 
@@ -109,36 +106,48 @@ def generate_py_spy_report(
     if not file_path.exists():
         raise typer.BadParameter(f"'{file_path.resolve()}' was not found!", param_hint="file")
 
-    # Reading and converting the data
-    with file_path.open("r") as f:
-        profiling_data = f.readlines()
+    try:
+        stack_traces = read_stack_traces(path=file_path)
+    except ValueError as exception:
+        typer.echo(f"Failed to read stack traces with following error:\n{str(exception)}")
+        raise typer.Exit(code=1)
 
-    stack_traces: List[List[Dict]] = []
-    for line in profiling_data:
-        try:
-            structured_stack_trace = convert_stack_trace_to_list(line)
-            if structured_stack_trace:
-                stack_traces.append(structured_stack_trace)
-        except ValueError as exception:
-            typer.echo(f"Failed to aggregate data with following error:\n{exception}")
-            raise typer.Exit()
+    typer.echo(
+        "[WARNING]: Multiprocessing calls (e.g. Dataloader subprocesses) might be counted"
+        " multiple times (once per process) and thus be overrepresented. Take this into"
+        " consideration when reading the results.\n"
+    )
 
-    add_lowest_library_function(stack_traces=stack_traces, library_name=library_name)
-    leaf_functions = [data_point[-1] for data_point in stack_traces]
+    add_library_information(stack_traces=stack_traces, library_name=library_name)
+    leaf_stack_frames = [stack_frame_list[-1] for stack_frame_list in stack_traces]
     if aggregate_leaf_paths:
-        leaf_functions = get_aggregated_paths(functions=leaf_functions)
+        leaf_stack_frames = get_aggregated_paths(stack_frames=leaf_stack_frames)
 
-    leaf_functions.sort(key=lambda x: x["num_samples"], reverse=True)
+    leaf_stack_frames.sort(reverse=True)
 
     # Turn num_samples into percentages
-    total_samples = sum(function_dict["num_samples"] for function_dict in leaf_functions)
-    for function_dict in leaf_functions:
-        num_samples = function_dict["num_samples"]
+    total_samples = sum(stack_frame.num_samples for stack_frame in leaf_stack_frames)
+    for stack_frame in leaf_stack_frames:
+        num_samples = stack_frame.num_samples
         percentage = 100 * num_samples / total_samples
-        function_dict["proportion (n)"] = f"{percentage:.2f}% ({num_samples})"
-        del function_dict["num_samples"]
+        stack_frame.proportion = percentage
 
-    typer.echo(tabulate(leaf_functions[:parsed_num_rows], headers="keys", tablefmt="presto"))
+    filtered_leaf_stack_dicts = []
+    if parsed_num_rows is not None:
+        frames_to_print = leaf_stack_frames[:parsed_num_rows]
+    else:
+        frames_to_print = leaf_stack_frames
+
+    for stack_frame in frames_to_print:
+        stack_frame_dict = stack_frame.model_dump()
+
+        # Creating a proportion string for the table and putting it at the end
+        num_samples = stack_frame_dict.pop("num_samples")
+        proportion = stack_frame_dict.pop("proportion")
+        stack_frame_dict["proportion (n)"] = f"{proportion:.2f}% ({num_samples})"
+        filtered_leaf_stack_dicts.append(stack_frame_dict)
+
+    typer.echo(tabulate(filtered_leaf_stack_dicts, headers="keys", tablefmt="presto"))
 
 
 @app.command()
@@ -486,10 +495,11 @@ def generate_slurm(
     py_spy: Annotated[
         bool, typer.Option("--py-spy", help="Whether to activate profiling with py-spy or not")
     ] = False,
-    profiling_rate: Annotated[
+    profiling_sampling_rate: Annotated[
         int,
         typer.Option(
-            "--profiling-rate", help="The rate at which to profile with the py-spy profiler."
+            "--profiling-sampling-rate",
+            help="The rate at which to profile with the py-spy profiler.",
         ),
     ] = 10,
 ):
@@ -773,10 +783,10 @@ def download_mlflow_data(
                 "Authentication with MLFlow failed with code 401! Either your "
                 "environment variables are not set or they are incorrect!"
             )
-            typer.Exit()
+            typer.Exit(code=1)
         else:
             typer.echo(e.message)
-            typer.Exit()
+            typer.Exit(code=1)
 
     all_metrics = []
     for run_idx, run in enumerate(runs):
@@ -799,7 +809,7 @@ def download_mlflow_data(
 
     if not all_metrics:
         typer.echo("No metrics found in the runs")
-        typer.Exit()
+        typer.Exit(code=1)
 
     df_metrics = pd.DataFrame(all_metrics)
     df_metrics.to_csv(output_file, index=False)

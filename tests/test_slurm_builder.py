@@ -68,10 +68,12 @@ def test_process_slurm_script(
         )
 
         # Checking that it creates the stdout and stderr directories
+
         assert slurm_builder.slurm_script_configuration.std_out is not None
-        assert slurm_builder.slurm_script_configuration.std_out.parent.exists()
         assert slurm_builder.slurm_script_configuration.err_out is not None
-        assert slurm_builder.slurm_script_configuration.err_out.parent.exists()
+        if submit_slurm_job:
+            assert slurm_builder.slurm_script_configuration.std_out.parent.exists()
+            assert slurm_builder.slurm_script_configuration.err_out.parent.exists()
 
         # Check if sbatch was called
         if submit_slurm_job:

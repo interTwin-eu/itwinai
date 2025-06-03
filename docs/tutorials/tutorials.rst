@@ -60,3 +60,13 @@ This tutorial provides an overview of Hyperparameter Optimization (HPO) workflow
    :maxdepth: 1
 
    hpo-workflows/hpo-torchtrainer-integration
+
+Profiling
+=========
+
+Here you can find our tutorials on how to do profiling with ``itwinai``:
+
+.. toctree::
+   :maxdepth: 1
+
+   profiling/py-spy-profiling
