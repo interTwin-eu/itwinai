@@ -19,20 +19,20 @@ can read more about the ``py-spy`` profiler in the
 Quickstart
 ----------
 
-To profile your training script, you can prepend the ``py-spy report`` command, together with
+To profile your training script, you can prepend the ``py-spy record`` command, together with
 two hyphens, ``--``, to separate arguments for the profiler and your own code, to your training
 command as follows:
 
 .. code-block:: bash
 
-    py-spy report -- <your_training_command>
+    py-spy record -- <your_training_command>
 
 As an example, if I typically launch my training pipeline with ``itwinai exec-pipeline``, then
 I can do the following to profile my program:
 
 .. code-block:: bash
 
-    py-spy report -- itwinai exec-pipeline
+    py-spy record -- itwinai exec-pipeline
 
 
 Sampling Rate
@@ -46,14 +46,14 @@ the following:
 
 .. code-block:: bash
 
-    py-spy report -r 250 -- <your_training_command>
+    py-spy record -r 250 -- <your_training_command>
 
 
 E.g. if you use the ``itwinai`` pipeline as mentioned before, you would do the following:
 
 .. code-block:: bash
 
-    py-spy report -r 250 -- itwinai exec-pipeline
+    py-spy record -r 250 -- itwinai exec-pipeline
 
 Output File and Format
 ----------------------
@@ -65,7 +65,7 @@ the ``-f`` flag. With our previous ``itwinai`` pipeline example, this would be:
 
 .. code-block:: bash
 
-    py-spy report -f raw -- itwinai exec-pipeline
+    py-spy record -f raw -- itwinai exec-pipeline
 
 This will create a file containing the stack traces, which can later be used for either
 data aggregation or to construct a FlameGraph. 
@@ -76,19 +76,19 @@ to store your output in a directory called ``py-spy-outputs`` with the name
 
 .. code-block:: bash
 
-   py-spy report -o py-spy-outputs/profiling_output.txt -- <your_training_command>
+   py-spy record -o py-spy-outputs/profiling_output.txt -- <your_training_command>
 
 .. warning::
 
    If you're specifying a specific directory for your outputs, then make sure the directory
-   already exists as ``py-spy report`` will not create it for you.
+   already exists as ``py-spy record`` will not create it for you.
 
 You can combine both of these flags to both specify the raw format and name the output file
 as follows:
 
 .. code-block:: bash
 
-   py-spy report -o py-spy-outputs/profiling_output.txt -f raw -- <your_training_command>
+   py-spy record -o py-spy-outputs/profiling_output.txt -f raw -- <your_training_command>
 
 
 
@@ -194,4 +194,56 @@ You can see an example of a FlameGraph—made using the same data as the table a
    :alt: Example image of FlameGraph from MNIST use case
    :align: center
 
+.. 
+   This HTML segment is to add more space between the image and the following paragraph
 
+.. raw:: html
+
+   <div style="margin-bottom: 2em;"></div>
+
+
+Distributed Profiling
+---------------------
+
+When training your model in a distributed manner, i.e. with multiple GPUs and potentially
+multiple nodes, there are certain considerations that have to be made. Typically you would
+launch your distributed training using ``torchrun``, which will spawn multiple processes of
+your training loop. If you want to get the full data from each process, you have to make
+sure that each of these processes is profiled using ``py-spy``. This can be done by
+appending the ``py-spy record`` command in front of your ``torchrun`` command as follows:
+
+.. code-block:: bash
+
+   py-spy record -s -f raw -- torchrun <torchrun_flags> <your_training_command>
+
+.. note::
+
+   We use the ``-s`` flag here as this allows ``py-spy`` to monitor all subprocesses. 
+
+If you run your code in a multi-node setting with SLURM, then your ``srun`` command is going
+to launch ``torchrun`` once per node. To make sure you run profiling on each node and also
+avoid race conditions, you want to automatically name your output file based on the node id.
+An example of such a command can be seen here:
+
+.. code-block:: bash
+
+    srun --cpu-bind=none --ntasks-per-node=1 \
+    bash -c "py-spy record -s -o py-spy-outputs/profile_node\$SLURM_NODEID.txt -f raw -- torchrun \
+    --log_dir='logs_torchrun' \
+    --nnodes=$SLURM_NNODES \
+    --nproc_per_node=$SLURM_GPUS_PER_NODE \
+    --rdzv_id=$SLURM_JOB_ID \
+    --rdzv_conf=is_host=\$(((SLURM_NODEID)) && echo 0 || echo 1) \
+    --rdzv_backend=c10d \
+    --rdzv_endpoint='$(scontrol show hostnames "$SLURM_JOB_NODELIST" | head -n 1)'i:29500 \
+    $(which itwinai) exec-pipeline"
+
+This shows a typical SLURM script for distributing a multi-node job. We show the full command
+for completeness, but the important thing here is the ``py-spy record`` command and the 
+``$SLURM_NODEID`` in the output name. In this example, we store each output in the 
+``py-spy-outputs`` directory and each node gets its own name. For example, the first node 
+would store its outputs in the file ``py-spy-outputs/profile_node0.txt``, the second in 
+``py-spy-outputs/profile_node1.txt`` etc.
+
+In ``itwinai``, this is all done automatically using the SLURM builder. To enable profiling
+with ``py-spy`` in the SLURM configuration, you can set ``py_spy: true``. 
