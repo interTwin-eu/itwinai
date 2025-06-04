@@ -14,7 +14,9 @@ code. It works by periodically sampling the call stack of your program and summa
 locations your code spends the most time in. ``itwinai`` integrates with this profiler by
 adding CLI commands for launching it and by providing a specialized data aggregation. You
 can read more about the ``py-spy`` profiler in the 
-`py-spy documentation <https://github.com/benfred/py-spy/>`_. 
+`py-spy documentation <https://github.com/benfred/py-spy/>`_ and see all the CLI functions
+in the 
+`itwinai CLI documentation <https://itwinai.readthedocs.io/latest/api/cli_reference.html>`_.
 
 Quickstart
 ----------
@@ -195,7 +197,7 @@ You can see an example of a FlameGraph—made using the same data as the table a
    :align: center
 
 .. 
-   This HTML segment is to add more space between the image and the following paragraph
+   This HTML segment is to add more space between the image and the subsequent paragraph.
 
 .. raw:: html
 

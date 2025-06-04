@@ -22,6 +22,7 @@ the profiling outputs were created and how they were used to spot and fix a larg
    The code used in this example is from a private repository called normflow, which differs
    slightly from the publicly accessible version linked above. However, these differences will
    not affect your understanding of the profiling and optimization workflow presented here.
+
 Searching for Bottlenecks
 -------------------------
 
