@@ -138,8 +138,9 @@ We can see that running it on the GPU takes ~100 times as long. This confirms th
 this computation on the GPU indeed is a bottleneck.
 
 After moving this computation to the CPU—while leaving the rest of the code on the GPU, of
-course—we reduce the total training time of this example from around 77 seconds to around 23.
-This shows that our optimization proved fruitful. A new run of profiling also shows that the
+course—we reduce the total training time of this example from ~77 seconds to ~23 seconds.
+The optimized version now runs at **more than 300% of the original speed**, showing that our
+optimization indeed proved fruitful. A new run of profiling also shows that the
 time spent doing the QR-decomposition was reduced to ~8%, further substantiating that the
 bottleneck has been resolved. 
 
