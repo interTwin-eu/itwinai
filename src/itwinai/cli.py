@@ -31,7 +31,8 @@ import hydra
 import typer
 from typing_extensions import Annotated
 
-from itwinai.utils import COMPUTATION_DATA_DIR
+from itwinai.utils import COMPUTATION_DATA_DIR, EPOCH_TIME_DIR, GPU_ENERGY_DIR
+
 
 app = typer.Typer(pretty_exceptions_enable=False)
 
@@ -244,14 +245,14 @@ def generate_scalability_report(
 
     # Finding the respective data logging directories
     epoch_time_logdirs = [
-        path / "epoch-time"
+        path / EPOCH_TIME_DIR
         for path in base_directories_for_runs
-        if (path / "epoch-time").exists()
+        if (path / EPOCH_TIME_DIR).exists()
     ]
     gpu_data_logdirs = [
-        path / "gpu-energy-data"
+        path / GPU_ENERGY_DIR
         for path in base_directories_for_runs
-        if (path / "gpu-energy-data").exists()
+        if (path / GPU_ENERGY_DIR).exists()
     ]
     comp_time_logdirs = [
         path / COMPUTATION_DATA_DIR
@@ -267,8 +268,8 @@ def generate_scalability_report(
         backup_run_id = f"aggregated_run_{timestamp}"
     backup_dir = Path(backup_root_dir) / backup_run_id
 
-    epoch_time_backup_dir = backup_dir / "epoch-time"
-    gpu_data_backup_dir = backup_dir / "gpu-energy-data"
+    epoch_time_backup_dir = backup_dir / EPOCH_TIME_DIR
+    gpu_data_backup_dir = backup_dir / GPU_ENERGY_DIR
     computation_data_backup_dir = backup_dir / COMPUTATION_DATA_DIR
 
     plot_dir_path = Path(plot_dir)

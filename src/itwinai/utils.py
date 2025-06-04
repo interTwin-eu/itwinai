@@ -23,7 +23,10 @@ from urllib.parse import urlparse
 
 import yaml
 
+# Directory names for logging and profiling data
 COMPUTATION_DATA_DIR = "computation-data"
+EPOCH_TIME_DIR = "epoch-time"
+GPU_ENERGY_DIR = "gpu-energy-data"
 
 adjectives = [
     "quantum",
