@@ -204,7 +204,6 @@ def get_computation_vs_other_data(df: pd.DataFrame) -> pd.DataFrame:
         profiler_overhead = group.loc[
             group["name"] == "ProfilerStep*", "self_cuda_time_total"
         ].values
-        print(f"Profiler overhead values: {profiler_overhead}")
         profiler_overhead = profiler_overhead.sum() if len(profiler_overhead) > 0 else 0.
         profiler_overhead *= 1e-6  # Convert from microseconds to seconds
 
