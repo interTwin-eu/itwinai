@@ -1,10 +1,11 @@
-from typing import Dict, List, Tuple, Union
+from typing import Dict, Callable, Tuple, Union
 
 import numpy as np
 import torch
 import torch.nn.functional as F
 
 from itertools import chain
+from typing import Tuple
 
 from FrEIA.modules.coupling_layers import _BaseCouplingBlock
 from splines import utils
@@ -19,9 +20,9 @@ class BinnedSpline(_BaseCouplingBlock):
 
     def __init__(
         self,
-        dims_in,
-        dims_c=None,
-        subnet_constructor: callable = None,
+        dims_in: Tuple[int],
+        dims_c: Union[Tuple[int], None] = None,
+        subnet_constructor: Callable = None,
         split_len: Union[float, int] = 0.5,
         bins: int = 10,
         parameter_counts: Dict[str, int] = None,
@@ -29,14 +30,22 @@ class BinnedSpline(_BaseCouplingBlock):
         default_domain: Tuple[float] = (-3.0, 3.0, -3.0, 3.0),
     ) -> None:
         """
+        Initializes the BinnedSpline module.
+
         Args:
-            bins: number of bins to use
-            parameter_counts: dictionary containing (parameter_name, parameter_counts)
-                the counts are used to split the network outputs
-            min_bin_sizes: tuple of (min_x_size, min_y_size)
-                bins are scaled such that they never fall below this size
-            default_domain: tuple of (left, right, bottom, top) default spline domain values
-                these values will be used as the starting domain (when the network outputs zero)
+            dims_in (tuple): The input dimensions, typically the size of the input tensor.
+            dims_c (tuple or None, optional): The condition dimensions. Defaults to None.
+            subnet_constructor (callable, optional): A function or callable to create the subnet(s) for 
+                generating spline parameters. Defaults to None.
+            split_len (float or int, optional): A factor for splitting the subnet. Defaults to 0.5.
+            bins (int, optional): The number of bins for the spline. Must be at least 1. Defaults to 10.
+            parameter_counts (dict, optional): A dictionary that specifies the count of each parameter 
+                (parameter_name, parameter_counts) the counts are used to split the network outputs. Defaults to None.
+            min_bin_sizes (tuple of float, optional): tuple of (min_x_size, min_y_size)
+                bins are scaled such that they never fall below this size. Defaults to (0.1, 0.1).
+            default_domain (tuple of float, optional): The default domain for the spline, represented as 
+                (left, right, bottom, top). These values will be used as the starting domain (when the network outputs zero). 
+                Defaults to (-3.0, 3.0, -3.0, 3.0).
         """
         if dims_c is None:
             dims_c = []

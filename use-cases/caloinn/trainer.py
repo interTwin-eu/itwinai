@@ -18,15 +18,35 @@ class CaloChallengeTrainer(TorchTrainer):
     def __init__(
         self,
         num_epochs: int = 2,
-        config: Union[Dict, TrainingConfiguration] | None = None,
+        config: Optional[Union[Dict[str, Any], TrainingConfiguration]] = None,
         strategy: Optional[Literal["ddp", "deepspeed", "horovod"]] = "ddp",
         checkpoint_path: str = "checkpoints/epoch_{}.pth",
         logger: Optional[Logger] = None,
         random_seed: Optional[int] = None,
-        name: str | None = None,
+        name: Optional[str] = None,
         validation_every: int = 50,
-        **kwargs,
+        **kwargs: Any,
     ) -> None:
+        """Initializes the CaloChallengeTrainer with the provided configuration.
+
+        Args:
+            num_epochs (int, optional): Number of epochs to train. Defaults to 2.
+            config (Union[Dict, TrainingConfiguration], optional): Training configuration dictionary
+                or instance. Defaults to None.
+            strategy (Optional[Literal["ddp", "deepspeed", "horovod"]], optional): Distributed training
+                strategy. Defaults to "ddp".
+            checkpoint_path (str, optional): File path format to save checkpoints. Defaults to
+                "checkpoints/epoch_{}.pth".
+            logger (Optional[Logger], optional): Logger instance for logging training progress.
+                Defaults to None.
+            random_seed (Optional[int], optional): Random seed for reproducibility. Defaults to None.
+            name (Optional[str], optional): Optional name for the training session. Defaults to None.
+            validation_every (int, optional): Number of iterations between validations. Defaults to 50.
+            **kwargs: Additional arguments passed to the base class.
+
+        Returns:
+            None
+        """
         super().__init__(
             epochs=num_epochs,
             config=config,
@@ -47,7 +67,16 @@ class CaloChallengeTrainer(TorchTrainer):
         self.checkpoints_location = checkpoint_path
         os.makedirs(os.path.dirname(checkpoint_path), exist_ok=True)
 
-    def log_prob_loss(self, x, c):
+    def log_prob_loss(self, x: torch.Tensor, c: torch.Tensor) -> torch.Tensor:
+        """Computes the negative log-probability loss for the given input batch.
+
+        Args:
+            x (torch.Tensor): Input tensor.
+            c (torch.Tensor): Conditioning tensor.
+
+        Returns:
+            torch.Tensor: Computed negative log-probability loss.
+        """
         z, log_jac_det = self.model.forward(x, c, rev=False)
         log_prob = (
             -0.5 * torch.sum(z**2, 1)
@@ -56,7 +85,16 @@ class CaloChallengeTrainer(TorchTrainer):
         )
         return -torch.mean(log_prob)
 
-    def log_prob_kl_loss(self, x, c):
+    def log_prob_kl_loss(self, x: torch.Tensor, c: torch.Tensor) -> torch.Tensor:
+        """Computes the negative log-probability loss with KL divergence for Bayesian models.
+
+        Args:
+            x (torch.Tensor): Input tensor.
+            c (torch.Tensor): Conditioning tensor.
+
+        Returns:
+            torch.Tensor: Computed total loss (log-probability + KL divergence).
+        """
         z, log_jac_det = self.model.forward(x, c, rev=False)
         log_prob = (
             -0.5 * torch.sum(z**2, 1)
@@ -67,7 +105,15 @@ class CaloChallengeTrainer(TorchTrainer):
         return -torch.mean(log_prob) + kl_loss / z.shape[0]
 
     def create_model_loss_optimizer(self) -> None:
+        """Creates the model, loss function, optimizer, and learning rate scheduler.
 
+        Initializes the CINN model, assigns the loss function depending on model type,
+        sets up the AdamW optimizer and a OneCycleLR scheduler, and applies distributed
+        strategies if needed.
+
+        Returns:
+            None
+        """
         self.model = CINN(
             next(itertools.islice(self.train_dataloader, 0, None))[0].shape[1],
             self.config,
@@ -103,17 +149,19 @@ class CaloChallengeTrainer(TorchTrainer):
             self.model, self.optimizer, self.lr_scheduler, **distribute_kwargs
         )
 
-    def train_step(self, batch, batch_idx: int) -> Tuple[torch.Tensor, Dict[str, Any]]:
+    def train_step(
+        self, batch: Tuple[torch.Tensor, torch.Tensor], batch_idx: int
+    ) -> Tuple[torch.Tensor, Dict[str, Any]]:
         """Perform a single optimization step using a batch sampled from the
         training dataset.
 
         Args:
-            batch (Batch): batch sampled by a dataloader.
-            batch_idx (int): batch index in the dataloader.
+            batch (Tuple[torch.Tensor, torch.Tensor]): Batch sampled by a dataloader,
+                containing input and conditioning tensors.
+            batch_idx (int): Batch index within the dataloader.
 
         Returns:
-            Tuple[Loss, Dict[str, Any]]: batch loss and dictionary of metric
-            values with the same structure of ``self.metrics``.
+            Tuple[torch.Tensor, Dict[str, Any]]: Batch loss and a dictionary of computed metrics.
         """
         x, c = batch
         x, c = x.to(self.device), c.to(self.device)
@@ -151,18 +199,18 @@ class CaloChallengeTrainer(TorchTrainer):
         return loss, metrics
 
     def validation_step(
-        self, batch, batch_idx: int
+        self, batch: Tuple[torch.Tensor, torch.Tensor], batch_idx: int
     ) -> Tuple[torch.Tensor, Dict[str, Any]]:
         """Perform a single optimization step using a batch sampled from the
         validation dataset.
 
         Args:
-            batch (Batch): batch sampled by a dataloader.
-            batch_idx (int): batch index in the dataloader.
+            batch (Tuple[torch.Tensor, torch.Tensor]): Batch sampled by a dataloader,
+                containing input and conditioning tensors.
+            batch_idx (int): Batch index within the dataloader.
 
         Returns:
-            Tuple[Loss, Dict[str, Any]]: batch loss and dictionary of metric
-            values with the same structure of ``self.metrics``.
+            Tuple[torch.Tensor, Dict[str, Any]]: Batch loss and a dictionary of computed metrics.
         """
         x, c = batch
         x, c = x.to(self.device), c.to(self.device)

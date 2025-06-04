@@ -5,7 +5,20 @@ import numpy as np
 import torch
 
 
-def tile(x, n):
+def tile(x: torch.Tensor, n: int) -> torch.Tensor:
+    """Tile a 1D tensor by repeating its elements in a specific pattern.
+
+    Args:
+        x (torch.Tensor): Input tensor to be tiled.
+        n (int): Number of times to repeat each element. Must be positive.
+
+    Returns:
+        torch.Tensor: The tiled tensor.
+
+    Raises:
+        TypeError: If `n` is not a positive integer.
+    """
+
     if not check.is_positive_int(n):
         raise TypeError("Argument 'n' must be a positive integer.")
     x_ = x.reshape(-1)
@@ -16,7 +29,7 @@ def tile(x, n):
     return x_
 
 
-def sum_except_batch(x, num_batch_dims=1):
+def sum_except_batch(x: torch.Tensor, num_batch_dims: int = 1) -> torch.Tensor:
     """Sums all elements of `x` except for the first `num_batch_dims` dimensions."""
     if not check.is_nonnegative_int(num_batch_dims):
         raise TypeError("Number of batch dimensions must be a non-negative integer.")
@@ -24,13 +37,13 @@ def sum_except_batch(x, num_batch_dims=1):
     return torch.sum(x, dim=reduce_dims)
 
 
-def split_leading_dim(x, shape):
+def split_leading_dim(x: torch.Tensor, shape: Tuple[int, ...]) -> torch.Tensor:
     """Reshapes the leading dim of `x` to have the given shape."""
     new_shape = torch.Size(shape) + x.shape[1:]
     return torch.reshape(x, new_shape)
 
 
-def merge_leading_dims(x, num_dims):
+def merge_leading_dims(x: torch.Tensor, num_dims: int) -> torch.Tensor:
     """Reshapes the tensor `x` such that the first `num_dims` dimensions are merged to one."""
     if not check.is_positive_int(num_dims):
         raise TypeError("Number of leading dims must be a positive integer.")
@@ -42,7 +55,7 @@ def merge_leading_dims(x, num_dims):
     return torch.reshape(x, new_shape)
 
 
-def repeat_rows(x, num_reps):
+def repeat_rows(x: torch.Tensor, num_reps: int) -> torch.Tensor:
     """Each row of tensor `x` is repeated `num_reps` times along leading dimension."""
     if not check.is_positive_int(num_reps):
         raise TypeError("Number of repetitions must be a positive integer.")
@@ -52,18 +65,18 @@ def repeat_rows(x, num_reps):
     return merge_leading_dims(x, num_dims=2)
 
 
-def tensor2numpy(x):
+def tensor2numpy(x: torch.Tensor) -> np.ndarray:
     return x.detach().cpu().numpy()
 
 
-def logabsdet(x):
+def logabsdet(x: torch.Tensor) -> np.ndarray:
     """Returns the log absolute determinant of square matrix x."""
     # Note: torch.logdet() only works for positive determinant.
     _, res = torch.slogdet(x)
     return res
 
 
-def random_orthogonal(size):
+def random_orthogonal(size: int) -> torch.Tensor:
     """
     Returns a random orthogonal matrix as a 2-dim tensor of shape [size, size].
     """
@@ -74,7 +87,7 @@ def random_orthogonal(size):
     return q
 
 
-def get_num_parameters(model):
+def get_num_parameters(model: nn.Module) -> int:
     """
     Returns the number of trainable parameters in a model of type nets.Module
     :param model: nets.Module containing trainable parameters
@@ -86,7 +99,7 @@ def get_num_parameters(model):
     return num_parameters
 
 
-def create_alternating_binary_mask(features, even=True):
+def create_alternating_binary_mask(features: int, even: bool = True) -> torch.Tensor:
     """
     Creates a binary mask of a given dimension which alternates its masking.
     :param features: Dimension of mask.
@@ -99,7 +112,7 @@ def create_alternating_binary_mask(features, even=True):
     return mask
 
 
-def create_mid_split_binary_mask(features):
+def create_mid_split_binary_mask(features: int) -> torch.Tensor:
     """
     Creates a binary mask of a given dimension which splits its masking at the midpoint.
     :param features: Dimension of mask.
@@ -111,7 +124,7 @@ def create_mid_split_binary_mask(features):
     return mask
 
 
-def create_random_binary_mask(features):
+def create_random_binary_mask(features: int) -> torch.Tensor:
     """
     Creates a random binary mask of a given dimension with half of its entries
     randomly set to 1s.
@@ -128,17 +141,22 @@ def create_random_binary_mask(features):
     return mask
 
 
-def searchsorted(bin_locations, inputs, eps=1e-6):
+def searchsorted(
+    bin_locations: torch.Tensor, 
+    inputs: torch.Tensor, 
+    eps: float = 1e-6
+) -> torch.Tensor:
+    """Find the index of the bin each input value falls into."""
     bin_locations[..., -1] += eps
     return torch.sum(inputs[..., None] >= bin_locations, dim=-1) - 1
 
 
-def cbrt(x):
+def cbrt(x: torch.Tensor) -> torch.Tensor:
     """Cube root. Equivalent to torch.pow(x, 1/3), but numerically stable."""
     return torch.sign(x) * torch.exp(torch.log(torch.abs(x)) / 3.0)
 
 
-def get_temperature(max_value, bound=1 - 1e-3):
+def get_temperature(max_value: float, bound: float = 1 - 1e-3) -> torch.Tensor:
     """
     For a dataset with max value 'max_value', returns the temperature such that
         sigmoid(temperature * max_value) = bound.
@@ -153,7 +171,19 @@ def get_temperature(max_value, bound=1 - 1e-3):
     return temperature
 
 
-def gaussian_kde_log_eval(samples, query):
+def gaussian_kde_log_eval(
+    samples: torch.Tensor, 
+    query: torch.Tensor
+) -> torch.Tensor:
+    """Evaluate the log-density of a Gaussian kernel density estimate at query points.
+
+    Args:
+        samples (torch.Tensor): Sample points of shape `[N, D]`.
+        query (torch.Tensor): Query points of shape `[M, D]`.
+
+    Returns:
+        torch.Tensor: Tensor of shape `[M]` containing the log-density estimates at each query point.
+    """    
     N, D = samples.shape[0], samples.shape[-1]
     std = N ** (-1 / (D + 4))
     precision = (1 / (std**2)) * torch.eye(D)

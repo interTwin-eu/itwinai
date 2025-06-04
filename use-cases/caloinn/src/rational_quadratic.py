@@ -1,4 +1,4 @@
-from typing import Dict, List, Tuple
+from typing import Dict, Tuple
 
 import torch
 import torch.nn.functional as F
@@ -8,7 +8,14 @@ from .binned import BinnedSpline
 
 
 class RationalQuadraticSpline(BinnedSpline):
-    def __init__(self, *args, bins: int = 10, **kwargs):
+    def __init__(self, *args: Any, bins: int = 10, **kwargs: Any) -> None:
+        """Initialize a RationalQuadraticSpline with a specified number of bins.
+
+        Args:
+            *args (Any): Positional arguments passed to the BinnedSpline base class.
+            bins (int, optional): Number of spline bins. Defaults to 10.
+            **kwargs (Any): Keyword arguments passed to the BinnedSpline base class.
+        """
         #       parameter                                       constraints             count
         # 1.    the derivative at the edge of each inner bin    positive                #bins - 1
         super().__init__(
@@ -16,8 +23,21 @@ class RationalQuadraticSpline(BinnedSpline):
         )
 
     def constrain_parameters(
-        self, parameters: Dict[str, torch.Tensor]
+    self, parameters: Dict[str, torch.Tensor]
     ) -> Dict[str, torch.Tensor]:
+        """Constrain spline parameters to ensure monotonicity and boundary conditions.
+
+        Applies a softplus transformation to the inner-bin derivatives and ensures 
+        the derivatives at the boundaries match the affine tail scales.
+
+        Args:
+            parameters (Dict[str, torch.Tensor]): Dictionary of spline parameters. 
+                Must include keys: 'widths', 'heights', 'deltas'.
+
+        Returns:
+            Dict[str, torch.Tensor]: Dictionary with updated 'deltas' that meet constraints.
+        """
+
         parameters = super().constrain_parameters(parameters)
         # we additionally want positive derivatives to preserve monotonicity
         # the derivative must also match the tails at the spline boundaries
@@ -40,8 +60,23 @@ class RationalQuadraticSpline(BinnedSpline):
         return parameters
 
     def _spline1(
-        self, x: torch.Tensor, parameters: Dict[str, torch.Tensor], rev: bool = False
+    self, x: torch.Tensor, parameters: Dict[str, torch.Tensor], rev: bool = False
     ) -> Tuple[torch.Tensor, torch.Tensor]:
+        """Apply the first rational quadratic spline transformation.
+
+        Args:
+            x (torch.Tensor): Input tensor.
+            parameters (Dict[str, torch.Tensor]): Dictionary of spline parameters. 
+                Must include keys: 'left', 'right', 'bottom', 'top', 
+                'deltas_left', 'deltas_right'.
+            rev (bool, optional): If True, applies the inverse spline. Defaults to False.
+
+        Returns:
+            Tuple[torch.Tensor, torch.Tensor]: 
+                - Transformed tensor.
+                - Log absolute determinant of the Jacobian.
+        """
+
         left, right, bottom, top = (
             parameters["left"],
             parameters["right"],
@@ -57,8 +92,22 @@ class RationalQuadraticSpline(BinnedSpline):
         )
 
     def _spline2(
-        self, x: torch.Tensor, parameters: Dict[str, torch.Tensor], rev: bool = False
+    self, x: torch.Tensor, parameters: Dict[str, torch.Tensor], rev: bool = False
     ) -> Tuple[torch.Tensor, torch.Tensor]:
+        """Apply the second rational quadratic spline transformation.
+
+        Args:
+            x (torch.Tensor): Input tensor.
+            parameters (Dict[str, torch.Tensor]): Dictionary of spline parameters. 
+                Must include keys: 'left', 'right', 'bottom', 'top', 
+                'deltas_left', 'deltas_right'.
+            rev (bool, optional): If True, applies the inverse spline. Defaults to False.
+
+        Returns:
+            Tuple[torch.Tensor, torch.Tensor]: 
+                - Transformed tensor.
+                - Log absolute determinant of the Jacobian.
+        """
         left, right, bottom, top = (
             parameters["left"],
             parameters["right"],

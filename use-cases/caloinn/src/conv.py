@@ -5,12 +5,20 @@ from torch.nn import functional as F
 from torch.nn import init
 import FrEIA.modules as fm
 
+from typing import List, Tuple, Optional
+
 # import torchutils
 # import n_checks as check
 
 
 class myConv(fm.InvertibleModule):
-    def __init__(self, dims_in, dims_c=None):
+    def __init__(self, dims_in: List[Tuple[int, int, int]], dims_c: Optional[List] = None) -> None:
+        """Initializes the myConv module.
+
+        Args:
+            dims_in: A list containing one tuple (C, H, W) representing input dimensions.
+            dims_c: Optional context dimensions (unused).
+        """
         super().__init__(dims_in, dims_c)
         weight = torch.randn(dims_in[0][0], dims_in[0][0])
         # use the Q matrix from QR decompisition as the initial weight to make sure it's invertible
@@ -18,7 +26,24 @@ class myConv(fm.InvertibleModule):
         weight = q.unsqueeze(2).unsqueeze(3)
         self.weight = nn.Parameter(weight)
 
-    def forward(self, x, rev=False, jac=True):
+    def forward(
+        self,
+        x: Tuple[torch.torch.Tensor],
+        rev: bool = False,
+        jac: bool = True
+    ) -> Tuple[Tuple[torch.torch.Tensor], torch.torch.Tensor]:
+        """Applies the forward or inverse transformation with log-determinant calculation.
+
+        Args:
+            x: A tuple containing one input torch.Tensor of shape (B, C, H, W).
+            rev: If True, applies the inverse transformation. Defaults to False.
+            jac: If True, computes the log-determinant of the Jacobian. Defaults to True.
+
+        Returns:
+            A tuple containing:
+                - A one-element tuple with the transformed torch.Tensor of shape (B, C, H, W).
+                - A torch.Tensor containing the log-determinant of the Jacobian (shape: scalar).
+        """
         (x,) = x
         x = x.unsqueeze(2).unsqueeze(3)
         _, _, height, width = x.shape
@@ -37,7 +62,15 @@ class myConv(fm.InvertibleModule):
             logdet = -dlogdet
         return (out.squeeze(),), logdet
 
-    def output_dims(self, input_dims):
+    def output_dims(self, input_dims: List[Tuple[int, int, int]]) -> List[Tuple[int, int, int]]:
+        """Returns output dimensions which are unchanged by this transform.
+
+        Args:
+            input_dims: List of input dimension tuples, e.g., [(C, H, W)].
+
+        Returns:
+            The same list of input dimensions.
+        """
         return input_dims
 
 
@@ -54,7 +87,13 @@ class Transform(nn.Module):
 class Linear(Transform):
     """Abstract base class for linear transforms that parameterize a weight matrix."""
 
-    def __init__(self, features, using_cache=False):
+    def __init__(self, features: int, using_cache: bool = False) -> None:
+        """Initializes the Linear module.
+
+        Args:
+            features: Number of input/output features.
+            using_cache: Whether to use caching for weights/logabsdet.
+        """
         if not check.is_positive_int(features):
             raise TypeError("Number of features must be a positive integer.")
         super().__init__()
@@ -66,7 +105,16 @@ class Linear(Transform):
         self.using_cache = using_cache
         self.cache = LinearCache()
 
-    def forward(self, inputs, context=None):
+    def forward(self, inputs: torch.Tensor, context: Optional[torch.Tensor] = None) -> Tuple[torch.Tensor, torch.Tensor]:
+        """Applies the forward transformation.
+
+        Args:
+            inputs: Input torch.Tensor.
+            context: Optional context torch.Tensor.
+
+        Returns:
+            A tuple of output torch.Tensor and log-abs-determinant.
+        """
         if not self.training and self.using_cache:
             self._check_forward_cache()
             outputs = F.linear(inputs, self.cache.weight, self.bias)
@@ -85,7 +133,16 @@ class Linear(Transform):
         elif self.cache.logabsdet is None:
             self.cache.logabsdet = self.logabsdet()
 
-    def inverse(self, inputs, context=None):
+    def inverse(self, inputs: torch.Tensor, context: Optional[torch.Tensor] = None) -> Tuple[torch.Tensor, torch.Tensor]:
+        """Applies the inverse transformation.
+
+        Args:
+            inputs: Input torch.Tensor.
+            context: Optional context torch.Tensor.
+
+        Returns:
+            A tuple of output torch.Tensor and log-abs-determinant.
+        """
         if not self.training and self.using_cache:
             self._check_inverse_cache()
             outputs = F.linear(inputs - self.bias, self.cache.inverse)
@@ -107,44 +164,57 @@ class Linear(Transform):
         elif self.cache.logabsdet is None:
             self.cache.logabsdet = self.logabsdet()
 
-    def train(self, mode=True):
+    def train(self, mode: bool = True) -> nn.Module:
+        """Sets the module in training or evaluation mode and clears the cache.
+
+        Args:
+            mode: Whether to set training mode.
+
+        Returns:
+            The module itself.
+        """
         if mode:
             # If training again, invalidate cache.
             self.cache.invalidate()
         return super().train(mode)
 
-    def use_cache(self, mode=True):
+    def use_cache(self, mode: bool = True) -> None:
+        """Sets the caching mode.
+
+        Args:
+            mode: Whether to enable caching.
+        """
         if not check.is_bool(mode):
             raise TypeError("Mode must be boolean.")
         self.using_cache = mode
 
-    def weight_and_logabsdet(self):
+    def weight_and_logabsdet(self) -> Tuple[torch.Tensor, torch.Tensor]:
         # To be overridden by subclasses if it is more efficient to compute the weight matrix
         # and its logabsdet together.
         return self.weight(), self.logabsdet()
 
-    def weight_inverse_and_logabsdet(self):
+    def weight_inverse_and_logabsdet(self) -> Tuple[torch.Tensor, torch.Tensor]:
         # To be overridden by subclasses if it is more efficient to compute the weight matrix
         # inverse and weight matrix logabsdet together.
         return self.weight_inverse(), self.logabsdet()
 
-    def forward_no_cache(self, inputs):
+    def forward_no_cache(self, inputs: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
         """Applies `forward` method without using the cache."""
         raise NotImplementedError()
 
-    def inverse_no_cache(self, inputs):
+    def inverse_no_cache(self, inputs: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
         """Applies `inverse` method without using the cache."""
         raise NotImplementedError()
 
-    def weight(self):
+    def weight(self) -> torch.Tensor:
         """Returns the weight matrix."""
         raise NotImplementedError()
 
-    def weight_inverse(self):
+    def weight_inverse(self) -> torch.Tensor:
         """Returns the inverse weight matrix."""
         raise NotImplementedError()
 
-    def logabsdet(self):
+    def logabsdet(self) -> torch.Tensor:
         """Returns the log absolute determinant of the weight matrix."""
         raise NotImplementedError()
 
@@ -152,7 +222,21 @@ class Linear(Transform):
 class LULinear(Linear):
     """A linear transform where we parameterize the LU decomposition of the weights."""
 
-    def __init__(self, features, using_cache=False, identity_init=True, eps=1e-3):
+    def __init__(
+        self,
+        features: int,
+        using_cache: bool = False,
+        identity_init: bool = True,
+        eps: float = 1e-3,
+    ) -> None:
+        """Initializes the LULinear module.
+
+        Args:
+            features: Number of features.
+            using_cache: Whether to use caching.
+            identity_init: Whether to initialize as identity.
+            eps: Small value added for numerical stability.
+        """
         super().__init__(features, using_cache)
 
         self.eps = eps
@@ -169,7 +253,7 @@ class LULinear(Linear):
 
         self._initialize(identity_init)
 
-    def _initialize(self, identity_init):
+    def _initialize(self, identity_init: bool) -> None:
         init.zeros_(self.bias)
 
         if identity_init:
@@ -183,7 +267,7 @@ class LULinear(Linear):
             init.uniform_(self.upper_entries, -stdv, stdv)
             init.uniform_(self.unconstrained_upper_diag, -stdv, stdv)
 
-    def _create_lower_upper(self):
+    def _create_lower_upper(self) -> Tuple[torch.Tensor, torch.Tensor]:
         lower = self.lower_entries.new_zeros(self.features, self.features)
         lower[self.lower_indices[0], self.lower_indices[1]] = self.lower_entries
         # The diagonal of L is taken to be all-ones without loss of generality.
@@ -195,7 +279,7 @@ class LULinear(Linear):
 
         return lower, upper
 
-    def forward_no_cache(self, inputs):
+    def forward_no_cache(self, inputs: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
         """Cost:
             output = O(D^2N)
             logabsdet = O(D)
@@ -209,7 +293,7 @@ class LULinear(Linear):
         logabsdet = self.logabsdet() * inputs.new_ones(outputs.shape[0])
         return outputs, logabsdet
 
-    def inverse_no_cache(self, inputs):
+    def inverse_no_cache(self, inputs: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
         """Cost:
             output = O(D^2N)
             logabsdet = O(D)
@@ -232,7 +316,7 @@ class LULinear(Linear):
 
         return outputs, logabsdet
 
-    def weight(self):
+    def weight(self) -> torch.Tensor:
         """Cost:
             weight = O(D^3)
         where:
@@ -241,7 +325,7 @@ class LULinear(Linear):
         lower, upper = self._create_lower_upper()
         return lower @ upper
 
-    def weight_inverse(self):
+    def weight_inverse(self) -> torch.Tensor:
         """Cost:
             inverse = O(D^3)
         where:
@@ -258,10 +342,10 @@ class LULinear(Linear):
         return weight_inverse
 
     @property
-    def upper_diag(self):
+    def upper_diag(self) -> torch.Tensor:
         return F.softplus(self.unconstrained_upper_diag) + self.eps
 
-    def logabsdet(self):
+    def logabsdet(self) -> torch.Tensor:
         """Cost:
             logabsdet = O(D)
         where:
@@ -276,11 +360,23 @@ class OneByOneConvolution(LULinear):
     > D. Kingma et. al., Glow: Generative flow with invertible 1x1 convolutions, NeurIPS 2018.
     """
 
-    def __init__(self, num_channels, using_cache=False, identity_init=True):
+    def __init__(
+        self,
+        num_channels: int,
+        using_cache: bool = False,
+        identity_init: bool = True
+    ) -> None:
+        """Initializes the 1x1 convolution layer.
+
+        Args:
+            num_channels: Number of channels in input.
+            using_cache: Whether to use cached weights.
+            identity_init: Whether to initialize weights to identity.
+        """
         super().__init__(num_channels, using_cache, identity_init)
         self.permutation = RandomPermutation(num_channels, dim=1)
 
-    def _lu_forward_inverse(self, inputs, inverse=False):
+    def _lu_forward_inverse(self, inputs: torch.Tensor, inverse: bool = False) -> Tuple[torch.Tensor, torch.Tensor]:
         b, c, h, w = inputs.shape
         inputs = inputs.permute(0, 2, 3, 1).reshape(b * h * w, c)
 
@@ -294,17 +390,17 @@ class OneByOneConvolution(LULinear):
 
         return outputs, torchutils.sum_except_batch(logabsdet)
 
-    def forward(self, inputs, context=None):
+    def forward(self, inputs: torch.Tensor, context: Optional[torch.Tensor] = None) -> Tuple[torch.Tensor, torch.Tensor]:
         if inputs.dim() != 4:
-            raise ValueError("Inputs must be a 4D tensor.")
+            raise ValueError("Inputs must be a 4D torch.Tensor.")
 
         inputs, _ = self.permutation(inputs)
 
         return self._lu_forward_inverse(inputs, inverse=False)
 
-    def inverse(self, inputs, context=None):
+    def inverse(self, inputs: torch.Tensor, context: Optional[torch.Tensor] = None) -> Tuple[torch.Tensor, torch.Tensor]:
         if inputs.dim() != 4:
-            raise ValueError("Inputs must be a 4D tensor.")
+            raise ValueError("Inputs must be a 4D torch.Tensor.")
 
         outputs, logabsdet = self._lu_forward_inverse(inputs, inverse=True)
 

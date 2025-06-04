@@ -5,36 +5,76 @@ import math
 import torch
 from torch.nn import functional as F
 
+from typing import Tuple
+
 DEFAULT_MIN_BIN_WIDTH = 1e-3
 DEFAULT_MIN_BIN_HEIGHT = 1e-3
 DEFAULT_EPS = 1e-5
 DEFAULT_QUADRATIC_THRESHOLD = 1e-3
 
 
-def searchsorted(bin_locations, inputs, eps=1e-6):
+def searchsorted(bin_locations: torch.Tensor, inputs: torch.Tensor, eps: float = 1e-6) -> torch.Tensor:
+    """Find the index of the bins each input falls into.
+
+    Args:
+        bin_locations (torch.Tensor): Tensor of bin edges of shape [..., num_bins].
+        inputs (torch.Tensor): Input values of shape [...].
+        eps (float): Small value added to ensure numerical stability.
+
+    Returns:
+        torch.Tensor: Indices of the bins each input falls into.
+    """
     bin_locations[..., -1] += eps
     return torch.sum(inputs[..., None] >= bin_locations, dim=-1) - 1
 
 
-def cbrt(x):
-    """Cube root. Equivalent to torch.pow(x, 1/3), but numerically stable."""
+def cbrt(x: torch.Tensor) -> torch.Tensor:
+    """Compute a numerically stable cube root.
+
+    Equivalent to `torch.pow(x, 1/3)` but avoids instability near zero.
+
+    Args:
+        x (torch.Tensor): Input tensor.
+
+    Returns:
+        torch.Tensor: Cube root of each element.
+    """
     return torch.sign(x) * torch.exp(torch.log(torch.abs(x)) / 3.0)
 
 
 def unconstrained_cubic_spline(
-    inputs,
-    unnormalized_widths,
-    unnormalized_heights,
-    unnorm_derivatives_left,
-    unnorm_derivatives_right,
-    inverse=False,
-    tail_bound=1.0,
-    tails="linear",
-    min_bin_width=DEFAULT_MIN_BIN_WIDTH,
-    min_bin_height=DEFAULT_MIN_BIN_HEIGHT,
-    eps=DEFAULT_EPS,
-    quadratic_threshold=DEFAULT_QUADRATIC_THRESHOLD,
-):
+    inputs: torch.Tensor,
+    unnormalized_widths: torch.Tensor,
+    unnormalized_heights: torch.Tensor,
+    unnorm_derivatives_left: torch.Tensor,
+    unnorm_derivatives_right: torch.Tensor,
+    inverse: bool = False,
+    tail_bound: float = 1.0,
+    tails: str = "linear",
+    min_bin_width: float = DEFAULT_MIN_BIN_WIDTH,
+    min_bin_height: float = DEFAULT_MIN_BIN_HEIGHT,
+    eps: float = DEFAULT_EPS,
+    quadratic_threshold: float = DEFAULT_QUADRATIC_THRESHOLD,
+) -> Tuple[torch.Tensor, torch.Tensor]:
+    """Apply an unconstrained cubic spline or its inverse within a tail-bound interval.
+
+    Args:
+        inputs (torch.Tensor): Input tensor.
+        unnormalized_widths (torch.Tensor): Raw bin widths before softmax normalization.
+        unnormalized_heights (torch.Tensor): Raw bin heights before softmax normalization.
+        unnorm_derivatives_left (torch.Tensor): Raw left derivative values.
+        unnorm_derivatives_right (torch.Tensor): Raw right derivative values.
+        inverse (bool): Whether to apply the inverse spline transformation.
+        tail_bound (float): Interval boundary [-tail_bound, tail_bound].
+        tails (str): Tail behavior. Currently only 'linear' is supported.
+        min_bin_width (float): Minimum allowed bin width.
+        min_bin_height (float): Minimum allowed bin height.
+        eps (float): Small constant to avoid numerical instability.
+        quadratic_threshold (float): Threshold to switch to quadratic approximation.
+
+    Returns:
+        Tuple[torch.Tensor, torch.Tensor]: Transformed outputs and log absolute determinant of the Jacobian.
+    """
 
     inside_interval_mask = (inputs >= -tail_bound) & (inputs <= tail_bound)
     outside_interval_mask = ~inside_interval_mask
@@ -70,25 +110,47 @@ def unconstrained_cubic_spline(
 
 
 def cubic_spline(
-    inputs,
-    unnormalized_widths,
-    unnormalized_heights,
-    unnorm_derivatives_left,
-    unnorm_derivatives_right,
-    inverse=False,
-    left=0.0,
-    right=1.0,
-    bottom=0.0,
-    top=1.0,
-    min_bin_width=DEFAULT_MIN_BIN_WIDTH,
-    min_bin_height=DEFAULT_MIN_BIN_HEIGHT,
-    eps=DEFAULT_EPS,
-    quadratic_threshold=DEFAULT_QUADRATIC_THRESHOLD,
-):
-    """
+    inputs: torch.Tensor,
+    unnormalized_widths: torch.Tensor,
+    unnormalized_heights: torch.Tensor,
+    unnorm_derivatives_left: torch.Tensor,
+    unnorm_derivatives_right: torch.Tensor,
+    inverse: bool = False,
+    left: float = 0.0,
+    right: float = 1.0,
+    bottom: float = 0.0,
+    top: float = 1.0,
+    min_bin_width: float = DEFAULT_MIN_BIN_WIDTH,
+    min_bin_height: float = DEFAULT_MIN_BIN_HEIGHT,
+    eps: float = DEFAULT_EPS,
+    quadratic_threshold: float = DEFAULT_QUADRATIC_THRESHOLD,
+) -> Tuple[torch.Tensor, torch.Tensor]:
+    """Applies a cubic spline transformation or its inverse over a bounded interval.
+
     References:
-    > Blinn, J. F. (2007). How to solve a cubic equation, part 5: Back to numerics. IEEE Computer
-    Graphics and Applications, 27(3):78–89.
+        Blinn, J. F. (2007). How to solve a cubic equation, part 5: Back to numerics.
+        IEEE Computer Graphics and Applications, 27(3):78–89.
+
+    Args:
+        inputs (torch.Tensor): Input tensor to be transformed.
+        unnormalized_widths (torch.Tensor): Raw bin widths before normalization.
+        unnormalized_heights (torch.Tensor): Raw bin heights before normalization.
+        unnorm_derivatives_left (torch.Tensor): Raw left endpoint derivatives.
+        unnorm_derivatives_right (torch.Tensor): Raw right endpoint derivatives.
+        inverse (bool): Whether to apply the inverse transformation.
+        left (float): Left boundary of the input domain.
+        right (float): Right boundary of the input domain.
+        bottom (float): Bottom boundary of the output range.
+        top (float): Top boundary of the output range.
+        min_bin_width (float): Minimum width of each bin.
+        min_bin_height (float): Minimum height of each bin.
+        eps (float): Small constant for numerical stability.
+        quadratic_threshold (float): Threshold below which cubic is approximated by a quadratic.
+
+    Returns:
+        Tuple[torch.Tensor, torch.Tensor]: 
+            - outputs: Transformed tensor of same shape as `inputs`.
+            - logabsdet: Log absolute determinant of the Jacobian.
     """
     if torch.min(inputs) < left or torch.max(inputs) > right:
         raise RuntimeError("input out of bounds")

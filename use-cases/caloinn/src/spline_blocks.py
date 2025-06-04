@@ -1,5 +1,5 @@
 import math
-from typing import Callable
+from typing import Callable, Tuple, List
 
 import numpy as np
 from scipy.stats import special_ortho_group
@@ -117,7 +117,25 @@ class CubicSplineBlock(fm.InvertibleModule):
         )
         self.last_jac = None
 
-    def _unconstrained_cubic_spline(self, inputs, theta, rev=False):
+    def _unconstrained_cubic_spline(
+        self, 
+        inputs: torch.Tensor, 
+        theta: torch.Tensor, 
+        rev: bool = False
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        """Applies an unconstrained cubic spline transformation to the inputs.
+
+        Args:
+            inputs (torch.Tensor): The input tensor to transform.
+            theta (torch.Tensor): Parameters for the spline transformation, including
+                bin widths, heights, and derivatives.
+            rev (bool, optional): Whether to apply the inverse of the transformation.
+                Defaults to False.
+
+        Returns:
+            Tuple[torch.Tensor, torch.Tensor]: Transformed tensor and its log absolute
+            determinant of the Jacobian.
+        """
 
         inside_interval_mask = torch.all(
             (inputs >= -self.bounds) & (inputs <= self.bounds), dim=-1
@@ -339,15 +357,35 @@ class CubicSplineBlock(fm.InvertibleModule):
 
         return masked_outputs, masked_logabsdet
 
-    def searchsorted(self, bin_locations, inputs, eps=1e-6):
+    def searchsorted(
+        self, 
+        bin_locations: torch.Tensor, 
+        inputs: torch.Tensor, 
+        eps: float = 1e-6
+    ) -> torch.Tensor:
+        """Performs a vectorized search to find indices of input values within bins.
+
+        Args:
+            bin_locations (torch.Tensor): Sorted tensor of bin edges.
+            inputs (torch.Tensor): Values to find the corresponding bin index for.
+            eps (float, optional): Small constant added to the final bin edge to ensure
+                inclusivity. Defaults to 1e-6.
+
+        Returns:
+            torch.Tensor: Indices of the bins each input falls into.
+        """
         bin_locations[..., -1] += eps
         return torch.sum(inputs[..., None] >= bin_locations, dim=-1) - 1
 
-    def cbrt(self, x):
+    def cbrt(self, x: torch.Tensor) -> torch.Tensor:
         """Cube root. Equivalent to torch.pow(x, 1/3), but numerically stable."""
         return torch.sign(x) * torch.exp(torch.log(torch.abs(x)) / 3.0)
 
-    def _permute(self, x, rev=False):
+    def _permute(
+        self, 
+        x: torch.Tensor, 
+        rev: bool = False
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
         """Performs the permutation and scaling after the coupling operation.
         Returns transformed outputs and the LogJacDet of the scaling operation."""
 
@@ -359,7 +397,25 @@ class CubicSplineBlock(fm.InvertibleModule):
         else:
             return (self.permute_function(x, self.w_perm) / scale, perm_log_jac)
 
-    def forward(self, x, c=[], rev=False, jac=True):
+    def forward(
+        self, 
+        x: Tuple[torch.Tensor], 
+        c: List[torch.Tensor] = [], 
+        rev: bool = False, 
+        jac: bool = True
+    ) -> Tuple[Tuple[torch.Tensor], torch.Tensor]:
+        """Applies the forward or inverse pass through the spline coupling block.
+
+        Args:
+            x (Tuple[torch.Tensor]): Input tensor, provided as a tuple.
+            c (List[torch.Tensor], optional): Conditioning tensors. Defaults to [].
+            rev (bool, optional): If True, compute the inverse transformation. Defaults to False.
+            jac (bool, optional): Whether to compute the Jacobian determinant. Defaults to True.
+
+        Returns:
+            Tuple[Tuple[torch.Tensor], torch.Tensor]: Output tensor tuple and total log absolute determinant of the Jacobian.
+        """
+
         """See base class docstring"""
         self.bounds = self.bounds.to(x[0].device)
         if rev:
@@ -395,7 +451,10 @@ class CubicSplineBlock(fm.InvertibleModule):
         log_jac_det += (-1) ** rev * n_pixels * global_scaling_jac
         return (x_out,), log_jac_det
 
-    def output_dims(self, input_dims):
+    def output_dims(
+        self, 
+        input_dims: List[Tuple[int, ...]]
+    ) -> List[Tuple[int, ...]]:
         return input_dims
 
 
@@ -505,7 +564,25 @@ class RationalQuadraticSplineBlock(fm.InvertibleModule):
         )
         self.last_jac = None
 
-    def _unconstrained_rational_quadratic_spline(self, inputs, theta, rev=False):
+    def _unconstrained_rational_quadratic_spline(
+        self,
+        inputs: torch.Tensor,
+        theta: torch.Tensor,
+        rev: bool = False
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        """Applies the rational quadratic spline transformation to the input tensor.
+
+        Args:
+            inputs (torch.Tensor): The tensor to be transformed, shape (B, C, ...).
+            theta (torch.Tensor): Parameters for the spline transformation, shape (B, C, 3*num_bins - 1).
+            rev (bool, optional): Whether to apply the reverse transformation. Defaults to False.
+
+        Returns:
+            Tuple[torch.Tensor, torch.Tensor]: A tuple containing:
+                - The transformed tensor of the same shape as inputs.
+                - The log absolute determinant of the Jacobian, shape (B,).
+        """
+
 
         inside_interval_mask = torch.all(
             (inputs >= -self.bounds) & (inputs <= self.bounds), dim=-1
@@ -659,11 +736,30 @@ class RationalQuadraticSplineBlock(fm.InvertibleModule):
 
         return masked_outputs, masked_logabsdet
 
-    def searchsorted(self, bin_locations, inputs, eps=1e-6):
+    def searchsorted(
+        self,
+        bin_locations: torch.Tensor,
+        inputs: torch.Tensor,
+        eps: float = 1e-6
+    ) -> torch.Tensor:
+        """Finds the bin index each input belongs to.
+
+        Args:
+            bin_locations (torch.Tensor): Tensor of bin boundaries, shape (..., num_bins + 1).
+            inputs (torch.Tensor): Input values to locate within the bins, shape (...,).
+            eps (float, optional): Small value added to the last bin to ensure inclusivity. Defaults to 1e-6.
+
+        Returns:
+            torch.Tensor: Indices of the bins each input belongs to, same shape as inputs.
+        """
         bin_locations[..., -1] += eps
         return torch.sum(inputs[..., None] >= bin_locations, dim=-1) - 1
 
-    def _permute(self, x, rev=False):
+    def _permute(
+        self,
+        x: torch.Tensor,
+        rev: bool = False
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
         """Performs the permutation and scaling after the coupling operation.
         Returns transformed outputs and the LogJacDet of the scaling operation."""
 
@@ -674,15 +770,16 @@ class RationalQuadraticSplineBlock(fm.InvertibleModule):
         else:
             return (self.permute_function(x, self.w_perm) / scale, perm_log_jac)
 
-    def forward(self, x, c=[], rev=False, jac=True):
-        # print("IN SPLINE")
-        # torch.save(x, "in_spline_x.pt")
-        # torch.save(c, "in_spline_c.pt")
+    def forward(
+        self,
+        x: Tuple[torch.Tensor],
+        c: List[torch.Tensor] = [],
+        rev: bool = False,
+        jac: bool = True
+    ) -> Tuple[Tuple[torch.Tensor], torch.Tensor]:
         """See base class docstring"""
         self.bounds = self.bounds.to(x[0].device)
 
-        # For debugging
-        # print(np.exp(c[0].cpu().numpy()))
         self.cond = torch.exp(c[0])
         self.data = x[0]
 
@@ -717,12 +814,7 @@ class RationalQuadraticSplineBlock(fm.InvertibleModule):
         # number of elements of the first channel of the first batch member
         n_pixels = x_out[0, :1].numel()
         log_jac_det += (-1) ** rev * n_pixels * global_scaling_jac
-        # print("OUT SPLINE")
-        # torch.save(x_out, "out_spline_x.pt")
-        # torch.save(log_jac_det, "out_spline_c.pt")
-        # import time
-        # time.sleep(5)
-        # v = 0/0
+
         return (x_out,), log_jac_det
 
     def output_dims(self, input_dims):

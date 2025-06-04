@@ -1,4 +1,4 @@
-from typing import Dict, List, Tuple
+from typing import Dict, Tuple
 
 import torch
 
@@ -6,7 +6,16 @@ from .binned import BinnedSpline
 
 
 class LinearSpline(BinnedSpline):
-    def __init__(self, *args, bins: int = 10, **kwargs):
+    """A spline module that uses piecewise linear interpolation."""
+
+    def __init__(self, *args, bins: int = 10, **kwargs) -> None:
+        """Initializes the LinearSpline with a specified number of bins.
+
+        Args:
+            *args: Positional arguments passed to the superclass.
+            bins (int): Number of bins to use for the spline. Defaults to 10.
+            **kwargs: Keyword arguments passed to the superclass.
+        """
         super().__init__(*args, **kwargs, bins=bins, parameter_counts=None)
 
     def _spline1(

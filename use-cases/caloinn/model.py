@@ -14,30 +14,47 @@ import h5py
 from src.spline_blocks import CubicSplineBlock, RationalQuadraticSplineBlock
 from src.made import MADE
 
+from typing import Any, Dict, Tuple, Callable, List, Type
+
 
 class Subnet(nn.Module):
-    """This class constructs a subnet for the coupling blocks"""
+    """Constructs a subnet for coupling blocks."""
 
     def __init__(
         self,
-        num_layers,
-        size_in,
-        size_out,
-        internal_size=None,
-        dropout=0.0,
+        num_layers: int,
+        size_in: int,
+        size_out: int,
+        internal_size: int = None,
+        dropout: float = 0.0,
         layer_class=nn.Linear,
         layer_args={},
-        layer_norm=None,
-        layer_act="nn.ReLU",
+        layer_norm: str = None,
+        layer_act: str = "nn.ReLU",
     ):
-        """
-        Initializes subnet class.
+        """Initializes the Subnet module.
 
-        Parameters:
-        size_in: input size of the subnet
-        size: output size of the subnet
-        internal_size: hidden size of the subnet. If None, set to 2*size
-        dropout: dropout chance of the subnet
+        Args:
+            num_layers (int): The number of layers in the subnet, excluding the output layer. 
+                Must be at least 1. Each layer is followed by an activation function, dropout, 
+                and possibly a normalization layer.
+            size_in (int): The number of input features to the subnet (dimension of the input tensor).
+            size_out (int): The number of output features from the subnet (dimension of the output tensor).
+            internal_size (int or list of int, optional): The size(s) of the hidden layers. 
+                If None, defaults to 2 * size_out. If a list is provided, it defines the size for each hidden layer.
+            dropout (float, optional): The dropout probability applied after each hidden layer to reduce overfitting. 
+                A value between 0.0 and 1.0. Defaults to 0.0 (no dropout).
+            layer_class (type or list of types, optional): The class used for the layers in the subnet, typically 
+                nn.Linear or a similar module like VBLinear. If a list is provided, each layer will have a 
+                corresponding class from the list. Defaults to nn.Linear.
+            layer_args (list of dicts, optional): A list of dictionaries containing arguments to pass 
+                to each layer constructor. Each dictionary should match the parameters expected by the 
+                `layer_class`. The length of the list should correspond to the number of layers in the subnet.
+            layer_norm (str, optional): The name of the normalization layer class to use after each hidden layer.
+                For example, 'nn.BatchNorm1d'. Defaults to None (no normalization).
+            layer_act (str, optional): The activation function to use for hidden layers. Should be a string
+                corresponding to an activation function class, such as 'nn.ReLU' or 'nn.LeakyReLU'.
+                Defaults to 'nn.ReLU'.
         """
         super().__init__()
         if internal_size is None:
@@ -77,16 +94,46 @@ class Subnet(nn.Module):
             if name[0] == final_layer_name and "logsig2_w" not in name:
                 param.data.zero_()
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """Applies the subnet to the input tensor.
+
+        Args:
+            x (torch.Tensor): The input tensor to the subnet. It is expected to have shape 
+                (batch_size, size_in), where `size_in` is the number of input features.
+
+        Returns:
+            torch.Tensor: The output tensor after passing through the subnet. It will have shape 
+                (batch_size, size_out), where `size_out` is the number of output features.
+        """
         return self.layers(x)
 
 
 class NormTransformation(fm.InvertibleModule):
-    def __init__(self, dims_in, dims_c=None, log_cond=False):
+    def __init__(self, dims_in: tuple, dims_c: tuple = None, log_cond: bool = False):
+        """Initializes the NormTransformation module.
+
+        Args:
+            dims_in (tuple): Input dimensions for the transformation (e.g., (batch_size, num_features)).
+            dims_c (tuple, optional): Condition dimensions for the transformation. 
+                It can be None or a tensor of matching dimensions for the condition. Defaults to None.
+            log_cond (bool, optional): If True, exponentiates the condition `c`. Defaults to False.
+        """
         super().__init__(dims_in, dims_c)
         self.log_cond = log_cond
 
-    def forward(self, x, c=None, rev=False, jac=True):
+    def forward(self, x: torch.Tensor, c: torch.Tensor = None, rev: bool = False, jac: bool = True) -> tuple:
+        """Applies the forward or inverse transformation.
+
+        Args:
+            x (tuple of torch.Tensor): Input tensor(s), with `x` being the first element.
+            c (tuple of torch.Tensor, optional): Condition tensor(s), with `c` being the first element. 
+                If log_cond is True, the condition will be exponentiated before use.
+            rev (bool, optional): If True, applies the inverse transformation. Defaults to False (forward transformation).
+            jac (bool, optional): If True, returns the Jacobian term (though not used in this case). Defaults to True.
+
+        Returns:
+            tuple: A tuple containing the transformed tensor(s) and a dummy Jacobian tensor (as a tensor of zeros).
+        """
         (x,) = x
         (c,) = c
         if self.log_cond:
@@ -99,17 +146,48 @@ class NormTransformation(fm.InvertibleModule):
             jac = torch.log(c)
         return (z,), torch.tensor([0.0], device=x.device)
 
-    def output_dims(self, input_dims):
+    def output_dims(self, input_dims: tuple) -> tuple:
+        """Returns the output dimensions, which are the same as the input dimensions.
+
+        Args:
+            input_dims (tuple): Input dimensions.
+
+        Returns:
+            tuple: The output dimensions, which are the same as the input dimensions.
+        """
         return input_dims
 
 
 class LogTransformation(fm.InvertibleModule):
-    def __init__(self, dims_in, dims_c=None, alpha=0.0, alpha_logit=0.0):
+    """Applies a logarithmic transformation with an additive shift."""
+    
+    def __init__(self, dims_in: tuple, dims_c: tuple = None, alpha: float = 0.0, alpha_logit: float = 0.0):
+        """Initializes the LogTransformation module.
+
+        Args:
+            dims_in (tuple): Input dimensions for the transformation (e.g., (batch_size, num_features)).
+            dims_c (tuple, optional): Condition dimensions for the transformation. It is not used 
+                in this class, so it can be None. Defaults to None.
+            alpha (float, optional): A small value to be added before taking the logarithm to avoid log(0).
+                Defaults to 0.0.
+            alpha_logit (float, optional): Placeholder for future functionality. Defaults to 0.0.
+        """
         super().__init__(dims_in, dims_c)
         self.alpha = alpha
         self.alpha_logit = alpha_logit
 
-    def forward(self, x, c=None, rev=False, jac=True):
+    def forward(self, x: torch.Tensor, c: torch.Tensor = None, rev: bool = False, jac: bool = True) -> tuple:
+        """Applies the forward or inverse log transformation.
+
+        Args:
+            x (tuple of torch.Tensor): Input tensor(s).
+            c (tuple of torch.Tensor, optional): Condition tensor(s). Not used in this function.
+            rev (bool, optional): If True, applies the inverse transformation (exponentiation). Defaults to False.
+            jac (bool, optional): If True, returns the Jacobian term (though not used here). Defaults to True.
+
+        Returns:
+            tuple: A tuple containing the transformed tensor(s) and a dummy Jacobian tensor (as a tensor of zeros).
+        """
         (x,) = x
         if rev:
             z = torch.exp(x) - self.alpha
@@ -119,27 +197,42 @@ class LogTransformation(fm.InvertibleModule):
             jac = -torch.sum(z, dim=1)
         return (z,), torch.tensor([0.0], device=x.device)  # jac
 
-    def output_dims(self, input_dims):
+    def output_dims(self, input_dims: tuple) -> tuple:
+        """Returns the output dimensions, which are the same as the input dimensions.
+
+        Args:
+            input_dims (tuple): Input dimensions.
+
+        Returns:
+            tuple: The output dimensions, which are the same as the input dimensions.
+        """
         return input_dims
 
 
 class LogUniform(dist.TransformedDistribution):
-    def __init__(self, lb, ub):
+    """Defines a log-uniform distribution between two bounds."""
+
+    def __init__(self, lb: torch.Tensor, ub: torch.Tensor):
+        """Initializes the LogUniform distribution.
+
+        Args:
+            lb (torch.Tensor): Lower bound for the distribution. The logarithm of this value is used.
+            ub (torch.Tensor): Upper bound for the distribution. The logarithm of this value is used.
+        """
         super(LogUniform, self).__init__(
             dist.Uniform(torch.log(lb), torch.log(ub)), dist.ExpTransform()
         )
 
 
 class CINN(nn.Module):
-    """cINN model"""
+    """Conditional Invertible Neural Network (cINN) model."""
 
-    def __init__(self, data_dim, config):
-        """Initializes model class.
+    def __init__(self, data_dim: int, config: Any) -> None:
+        """Initializes the CINN model.
 
-        Parameters:
-        params: Dict containing the network and training parameter
-        data: Training data to initialize the norm layer
-        cond: Conditions to the training data
+        Args:
+            data_dim (int): Dimensionality of the input data.
+            config (Any): Configuration object containing model and training parameters.
         """
         super(CINN, self).__init__()
 
@@ -160,8 +253,13 @@ class CINN(nn.Module):
         self.define_model_architecture(self.num_dim)
         print(self.model)
 
-    def initialize_normalization(self, data, cond):
-        """Calculates the normalization transformation from the training data and stores it."""
+    def initialize_normalization(self, data: torch.Tensor, cond: torch.Tensor) -> None:
+        """Calculates and stores normalization transformations based on training data.
+
+        Args:
+            data (torch.Tensor): Input data tensor.
+            cond (torch.Tensor): Condition tensor associated with the input data.
+        """
         data = torch.clone(data)
         if self.use_norm:
             data /= cond
@@ -179,9 +277,12 @@ class CINN(nn.Module):
             ).item(),
         )
 
-    def define_model_architecture(self, in_dim):
-        """Create a ReversibleGraphNet model based on the settings, using
-        SubnetConstructor as the subnet constructor"""
+    def define_model_architecture(self, in_dim: int) -> None:
+        """Creates a reversible network model based on the provided configuration.
+
+        Args:
+            in_dim (int): Dimensionality of the input space.
+        """
 
         self.in_dim = in_dim
         if self.norm_m is None:
@@ -237,8 +338,12 @@ class CINN(nn.Module):
         n_trainable = sum(p.numel() for p in self.params_trainable)
         print(f"number of parameters: {n_trainable}", flush=True)
 
-    def get_coupling_block(self):
-        """Returns the class and keyword arguments for different coupling block types"""
+    def get_coupling_block(self) -> Tuple[Any, Dict[str, Any]]:
+        """Retrieves the coupling block class and corresponding keyword arguments.
+
+        Returns:
+            Tuple containing the coupling block class and a dictionary of keyword arguments.
+        """
         constructor_fct = self.get_constructor_func()
 
         if self.config.coupling_type == "affine":
@@ -283,8 +388,12 @@ class CINN(nn.Module):
 
         return CouplingBlock, block_kwargs
 
-    def get_constructor_func(self):
-        """Returns a function that constructs a subnetwork with the given parameters"""
+    def get_constructor_func(self) -> Callable:
+        """Returns a function to construct subnetwork layers.
+
+        Returns:
+            Callable that builds a subnetwork given input and output dimensions.
+        """
         if self.sub_layers:
             layer_class = self.get_layer_class()
             layer_args = self.get_layer_args()
@@ -321,7 +430,12 @@ class CINN(nn.Module):
 
         return func
 
-    def get_layer_class(self):
+    def get_layer_class(self) -> List[Type[nn.Module]]:
+        """Retrieves the list of layer classes based on configuration.
+
+        Returns:
+            List of layer classes.
+        """
         lays = []
         for n in range(len(self.sub_layers)):
             if self.sub_layers[n] == "vblinear":
@@ -330,7 +444,12 @@ class CINN(nn.Module):
                 lays.append(nn.Linear)
         return lays
 
-    def get_layer_args(self):
+    def get_layer_args(self) -> List[Dict[str, Any]]:
+        """Retrieves the list of argument dictionaries for each layer.
+
+        Returns:
+            List of dictionaries with layer-specific arguments.
+        """
         layer_args = []
         for n in range(len(self.sub_layers)):
             n_args = {}
@@ -340,7 +459,18 @@ class CINN(nn.Module):
             layer_args.append(n_args)
         return layer_args
 
-    def forward(self, x, c, rev=False, jac=True):
+    def forward(self, x: torch.Tensor, c: torch.Tensor, rev: bool = False, jac: bool = True) -> Any:
+        """Forward or inverse pass through the network.
+
+        Args:
+            x (torch.Tensor): Input data.
+            c (torch.Tensor): Conditioning data.
+            rev (bool, optional): Whether to perform the inverse transformation. Defaults to False.
+            jac (bool, optional): Whether to compute the Jacobian. Defaults to True.
+
+        Returns:
+            Output of the model forward pass.
+        """
         if self.config.log_cond:
             c_norm = torch.log10(
                 c
