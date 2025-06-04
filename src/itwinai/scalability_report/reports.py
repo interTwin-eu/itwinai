@@ -226,7 +226,6 @@ def communication_data_report(
         "global_rank",
         "name",
         "self_cuda_time_total",
-        "profiling_time",
     }
     log_dir_paths = [Path(logdir) for logdir in log_dirs]
     dataframes = []
@@ -296,7 +295,6 @@ def computation_data_report(
         "global_rank",
         "name",
         "self_cuda_time_total",
-        "profiling_time",
     }
     log_dir_paths = [Path(logdir) for logdir in log_dirs]
     dataframes = []

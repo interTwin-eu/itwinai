@@ -116,7 +116,10 @@ def calculate_comp_and_comm_time(df: pd.DataFrame) -> Tuple[float, float]:
     nccl_comm_pattern = rf"nccl:(?:{'|'.join(comm_types)})"
     cuda_stream_pattern = r"cudaStream(?:WaitEvent|Synchronize)"
 
-    aten_comp_pattern = r".*(aten::|at::)"
+    # Any operation that is a part of PyTorch's ATen library and autograd is considered a 
+    # computation.
+    # See torch namespaces: https://docs.pytorch.org/cppdocs/api/library_root.html
+    aten_comp_pattern = r".*(?:aten::|\sat::|c10::|autograd::)"
 
     comm_df = df[
         (df["name"].str.contains(nccl_comm_pattern))
@@ -144,9 +147,10 @@ def calculate_comp_time(df: pd.DataFrame) -> float:
     expected_columns = {"name", "self_cuda_time_total"}
     check_contains_columns(df=df, expected_columns=expected_columns)
 
-    # Any operation that is a part of PyTorch's ATen library is considered a computation
-    # We assume no overlaps of ATen operations.
-    aten_comp_pattern = r".*(aten::|at::)"
+    # Any operation that is a part of PyTorch's ATen library and autograd is considered a 
+    # computation.
+    # See torch namespaces: https://docs.pytorch.org/cppdocs/api/library_root.html
+    aten_comp_pattern = r".*(?:aten::|\sat::|c10::|autograd::)"
 
     comp_df = df[df["name"].str.contains(aten_comp_pattern)]
 
@@ -194,9 +198,20 @@ def get_computation_vs_other_data(df: pd.DataFrame) -> pd.DataFrame:
     def compute_fraction(group):
         # Theoretically, two identical float32 runtimes could be the same and thus disregarded
         # but this is impossible to happen in practice for ml runs.
-        total_time = group["profiling_time"].unique().sum()
+
+        # Convert from microseconds to seconds
+        total_time = group["self_cuda_time_total"].sum() * 1e-6
+        profiler_overhead = group.loc[
+            group["name"] == "ProfilerStep*", "self_cuda_time_total"
+        ].values
+        print(f"Profiler overhead values: {profiler_overhead}")
+        profiler_overhead = profiler_overhead.sum() if len(profiler_overhead) > 0 else 0.
+        profiler_overhead *= 1e-6  # Convert from microseconds to seconds
+
+        total_time_without_profiler = total_time - profiler_overhead
         comp_time = calculate_comp_time(df=group)
-        return comp_time / (total_time + 1e-10)
+
+        return comp_time / (total_time_without_profiler + 1e-10)
 
     grouped = df.groupby(["strategy", "num_gpus"]).apply(compute_fraction)
 
