@@ -30,7 +30,6 @@ import torch.distributed as dist
 import torch.nn as nn
 import torch.optim as optim
 import torch.optim.lr_scheduler as lr_scheduler
-import torch.profiler
 import yaml
 from ray.train import Checkpoint, DataConfig, RunConfig, ScalingConfig
 from ray.train.torch import TorchConfig

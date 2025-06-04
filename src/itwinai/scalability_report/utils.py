@@ -116,8 +116,7 @@ def calculate_comp_and_comm_time(df: pd.DataFrame) -> Tuple[float, float]:
     nccl_comm_pattern = rf"nccl:(?:{'|'.join(comm_types)})"
     cuda_stream_pattern = r"cudaStream(?:WaitEvent|Synchronize)"
 
-    # Any operation that is a part of PyTorch's ATen library is considered a computation
-    aten_comp_pattern = r"aten::"
+    aten_comp_pattern = r".*(aten::|at::)"
 
     comm_df = df[
         (df["name"].str.contains(nccl_comm_pattern))
@@ -147,7 +146,7 @@ def calculate_comp_time(df: pd.DataFrame) -> float:
 
     # Any operation that is a part of PyTorch's ATen library is considered a computation
     # We assume no overlaps of ATen operations.
-    aten_comp_pattern = r"aten::"
+    aten_comp_pattern = r".*(aten::|at::)"
 
     comp_df = df[df["name"].str.contains(aten_comp_pattern)]
 
