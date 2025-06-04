@@ -3,6 +3,9 @@ Profiling using the ``py-spy`` Profiler
 
 This tutorial will show how you can profile using ``py-spy``.
 
+You can see an example of a success story in our page,
+:doc:`Profiling Lattice QCD with the py-spy profiler<py-spy-lattice-qcd-example>`.
+
 Introduction
 ------------
 
