@@ -13,7 +13,7 @@
 
 import logging
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Callable, Dict, Iterable, Literal, Optional, Tuple
+from typing import Any, Callable, Dict, Iterable, Literal, Tuple
 
 import torch
 import torch.nn as nn
@@ -21,9 +21,9 @@ import torch.optim as optim
 import torch.optim.lr_scheduler as lr_scheduler
 import torchvision
 import yaml
-from ray.train import DataConfig, RunConfig, ScalingConfig
+from ray.train import DataConfig, ScalingConfig
 from ray.train.torch import TorchConfig
-from ray.tune import TuneConfig
+from ray.tune import RunConfig, TuneConfig
 from torch.optim.lr_scheduler import LRScheduler
 from torch.optim.optimizer import Optimizer
 from torchmetrics import Metric
@@ -32,9 +32,6 @@ from torchmetrics.image.fid import FrechetInceptionDistance
 from ..loggers import Logger
 from .config import TrainingConfiguration
 from .trainer import TorchTrainer
-
-if TYPE_CHECKING:
-    from ray.train.horovod import HorovodConfig
 
 py_logger = logging.getLogger(__name__)
 
@@ -134,8 +131,6 @@ class GANTrainer(TorchTrainer):
             Defaults to None.
         ray_data_config (DataConfig, optional): dataset configuration for Ray.
             Defaults to None.
-        ray_horovod_config (HorovodConfig, optional): horovod configuration for Ray's
-            HorovodTrainer. Defaults to None.
         from_checkpoint (str | Path, optional): path to checkpoint directory. Defaults to None.
     """
 
@@ -176,7 +171,6 @@ class GANTrainer(TorchTrainer):
         ray_search_space: Dict[str, Any] | None = None,
         ray_torch_config: TorchConfig | None = None,
         ray_data_config: DataConfig | None = None,
-        ray_horovod_config: Optional["HorovodConfig"] = None,
         from_checkpoint: str | Path | None = None,
         **kwargs,
     ) -> None:
@@ -198,7 +192,6 @@ class GANTrainer(TorchTrainer):
             ray_tune_config=ray_tune_config,
             ray_run_config=ray_run_config,
             ray_search_space=ray_search_space,
-            ray_horovod_config=ray_horovod_config,
             from_checkpoint=from_checkpoint,
             ray_torch_config=ray_torch_config,
             ray_data_config=ray_data_config,
