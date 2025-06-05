@@ -26,3 +26,11 @@ want to do this with or without GPU (CUDA) support:
    Horovod requires ``CMake>=1.13`` and 
    `other packages <https://horovod.readthedocs.io/en/latest/install_include.html#requirements>`_
    Make sure to have them installed in your environment before proceeding.
+
+.. warning::
+
+   If you run the installation script for CUDA above, then make sure that you actually have
+   CUDA installed. For some HPCs, we found it better to install this via a SLURM script since
+   they only have CUDA on their compute nodes. You can find a sample SLURM script that we use
+   for the Jülich Supercomputing Centre (JSC) here:
+   `horovod-deepspeed-JSC.slurm <https://github.com/interTwin-eu/itwinai/blob/main/env-files/torch/horovod-deepspeed-JSC.slurm>`_.
