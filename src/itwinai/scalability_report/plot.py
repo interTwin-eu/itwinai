@@ -464,6 +464,7 @@ def computation_vs_other_bar_plot(
         current_x = group_start_x + group_spacing
 
     ax.set_ylabel("Computation fraction")
+    ax.set_xlabel("Number of GPUs")
     ax.set_title("Computation Time (ATen, Autograd) vs Other by Number of GPUs per Strategy")
     ax.set_xticks(x_positions)
     ax.set_xticklabels(x_labels, rotation=0, ha="center")
