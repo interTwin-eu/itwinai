@@ -1,8 +1,9 @@
 line-length = 95
 
 [lint]
-select = ["E", "F", "I"]
+select = ["E", "F", "I", "W"]
 ignore = ["E203"]
+fixable = ["ALL"]
 
 [format]
 quote-style = "double"
