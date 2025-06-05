@@ -361,8 +361,8 @@ def computation_vs_other_bar_plot(
 
     Args:
         computation_data_df (pd.DataFrame): A DataFrame containing the following columns:
-            - "strategy": The name of the distributed training strategy.
             - "num_gpus": The number of GPUs used.
+            - "strategy": The name of the distributed training strategy.
             - "computation_fraction": The fraction of time spent on computation.
 
     Returns:
@@ -377,63 +377,71 @@ def computation_vs_other_bar_plot(
     hatch_patterns = ["//", r"\\"]
 
     strategy_labels = sorted(computation_data_df["strategy"].unique())
-    gpu_numbers = sorted(computation_data_df["num_gpus"].unique())
-    values = computation_data_df.pivot(
-        index="strategy", columns="num_gpus", values="computation_fraction"
-    ).to_numpy()
-
-    width = 1 / (len(strategy_labels) + 1)
-    complements = 1 - values
-
-    x = np.arange(len(gpu_numbers))
     fig, ax = plt.subplots()
 
-    # Creating an offset to "center" around zero
-    static_offset = (len(strategy_labels) - 1) / 2
-    for strategy_idx in range(len(strategy_labels)):
-        dynamic_bar_offset = strategy_idx - static_offset
+    bar_width = 0.8 / len(strategy_labels)
+    x_positions = []
+    x_labels = []
+    bar_index = 0
 
-        color = color_map(strategy_idx % 10)
-        hatch = hatch_patterns[strategy_idx % 2]
+    strategy_patches = []
 
-        ax.bar(
-            x=x + dynamic_bar_offset * width,
-            height=values[strategy_idx],
-            width=width,
-            color=color,
-            label=strategy_labels[strategy_idx],
-            edgecolor="gray",
-            linewidth=0.6,
-        )
-        ax.bar(
-            x=x + dynamic_bar_offset * width,
-            height=complements[strategy_idx],
-            width=width,
-            bottom=values[strategy_idx],
-            facecolor="none",
-            edgecolor="gray",
-            alpha=0.8,
-            linewidth=0.6,
-            hatch=hatch,
-        )
+    for i, strategy in enumerate(strategy_labels):
+        strategy_df = computation_data_df[computation_data_df["strategy"] == strategy]
+        strategy_df = strategy_df.sort_values("num_gpus")
+
+        color = color_map(i % 10)
+        strategy_patches.append(Patch(color=color, label=strategy))
+
+        for j, (_, row) in enumerate(strategy_df.iterrows()):
+            computation_frac = row["computation_fraction"]
+            other_frac = 1 - computation_frac
+            num_gpus = row["num_gpus"]
+
+            x = bar_index + i * bar_width
+            hatch = hatch_patterns[j % len(hatch_patterns)]
+
+            ax.bar(
+                x=x,
+                height=computation_frac,
+                width=bar_width,
+                color=color,
+                edgecolor="gray",
+                linewidth=0.6,
+            )
+
+            ax.bar(
+                x=x,
+                height=other_frac,
+                width=bar_width,
+                bottom=computation_frac,
+                facecolor="none",
+                edgecolor="gray",
+                alpha=0.8,
+                linewidth=0.6,
+                hatch=hatch,
+            )
+
+            x_positions.append(x)
+            x_labels.append(str(num_gpus))
+            bar_index += 1
 
     ax.set_ylabel("Computation fraction")
-    ax.set_xlabel("Number of GPUs")
-    ax.set_title("Computation Time (ATen) vs Other by Framework and Number of GPUs")
-    ax.set_xticks(x)
-    ax.set_xticklabels(gpu_numbers)
+    ax.set_title("Computation Time (ATen, Autograd) vs Other by Number of GPUs per Strategy")
+    ax.set_xticks(x_positions)
+    ax.set_xticklabels(x_labels, rotation=0, ha="center")
     ax.set_ylim(0, 1.1)
 
-    # Adding Other time to the legend
     hatch_patch = Patch(facecolor="none", edgecolor="gray", hatch="//", label="Other")
-    ax.legend(handles=ax.get_legend_handles_labels()[0] + [hatch_patch])
+    ax.legend(handles=strategy_patches + [hatch_patch])
 
     # Dynamically adjusting the width of the figure
-    figure_width = max(int(2 * len(gpu_numbers)), 8)
+    figure_width = max(int(1.2 * len(x_labels)), 10)
     fig.set_figwidth(figure_width)
-    fig.set_figheight(figure_width * 0.8)
+    fig.set_figheight(figure_width * 0.6)
 
     # Resetting so that seaborn's theme doesn't affect other plots
     sns.reset_orig()
 
     return fig, ax
+

@@ -212,18 +212,18 @@ def get_computation_vs_other_data(df: pd.DataFrame) -> pd.DataFrame:
 
         return comp_time / (total_time_without_profiler + 1e-10)
 
-    grouped = df.groupby(["strategy", "num_gpus"]).apply(compute_fraction)
+    grouped = df.groupby(["num_gpus", "strategy"]).apply(compute_fraction)
 
     # Sort and create cartesian product of unique strategies and GPU counts
     unique_num_gpus = sorted(df["num_gpus"].unique(), key=lambda x: int(x))
     unique_strategies = sorted(df["strategy"].unique())
     index = pd.MultiIndex.from_product(
-        [unique_strategies, unique_num_gpus],
-        names=["strategy", "num_gpus"]
+        [unique_num_gpus, unique_strategies],
+        names=["num_gpus", "strategy"]
     )
     # Reindex to fill in missing combinations with NaN
     result_df = pd.DataFrame(grouped.reindex(index))
     result_df = result_df.reset_index()
-    result_df.columns = ["strategy", "num_gpus", "computation_fraction"]
+    result_df.columns = ["num_gpus", "strategy", "computation_fraction"]
 
     return result_df
