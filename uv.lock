@@ -1759,7 +1759,7 @@ requires-dist = [
     { name = "pytest-mock", marker = "extra == 'dev'", specifier = ">=3.11.1" },
     { name = "pytest-xdist", marker = "extra == 'dev'", specifier = ">=3.6.1" },
     { name = "pyyaml", specifier = ">=6.0.2" },
-    { name = "ray", extras = ["default", "train", "tune"], specifier = ">=2.39.0" },
+    { name = "ray", extras = ["default", "train", "tune"], specifier = ">=2.43.0" },
     { name = "rich", specifier = ">=13.5.3" },
     { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.8.3" },
     { name = "seaborn", specifier = ">=0.13.2" },
@@ -1784,7 +1784,7 @@ requires-dist = [
     { name = "wandb", specifier = ">=0.18.7" },
     { name = "wheel", specifier = ">=0.45.0" },
 ]
-provides-extras = ["amd", "torch", "tf", "tf-cuda", "dev", "docs", "hpo"]
+provides-extras = ["amd", "radio-astronomy", "torch", "tf", "tf-cuda", "dev", "docs", "hpo"]
 
 [[package]]
 name = "jedi"

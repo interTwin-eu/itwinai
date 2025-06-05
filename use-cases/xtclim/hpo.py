@@ -76,7 +76,7 @@ def run_hpo(args: argparse.Namespace) -> None:
         )
 
         # Ray's RunConfig for experiment name and stopping criteria
-        run_config = train.RunConfig(
+        run_config = tune.RunConfig(
             name="XTClim-Ray-Experiment", stop={"training_iteration": args.max_iterations}
         )
 

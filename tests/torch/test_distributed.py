@@ -16,7 +16,7 @@ from unittest.mock import patch
 import pytest
 import torch
 import torch.nn as nn
-from ray.train import RunConfig
+from ray.tune import RunConfig
 from torch.nn import Linear
 from torch.optim import SGD, Optimizer
 from torch.utils.data import DataLoader, Dataset, DistributedSampler
@@ -27,7 +27,6 @@ from itwinai.torch.distributed import (
     HorovodStrategy,
     RayDDPStrategy,
     RayDeepSpeedStrategy,
-    RayHorovodStrategy,
     RayTorchDistributedStrategy,
     TorchDDPStrategy,
     TorchDistributedStrategy,
@@ -355,29 +354,6 @@ def test_ray_distributed_strategy(
             assert dist_optimizer is not None
             assert isinstance(dist_optimizer, Optimizer)
 
-        elif isinstance(strategy, RayHorovodStrategy):
-            assert strategy.is_initialized
-            assert hasattr(strategy, "hvd"), (
-                "Lazy import of horovod not found in RayHorovodStrategy class."
-            )
-
-            # Test initialization
-            init_path = "horovod.torch.init"
-            with patch(init_path, autospec=True) as mock_init_ds:
-                strategy = RayHorovodStrategy()
-                strategy.init()
-                mock_init_ds.assert_called_once()
-
-            # Test distributed model
-            dist_model, dist_optimizer, _ = strategy.distributed(
-                simple_model, optimizer=simple_optimizer, op=strategy.hvd.Average
-            )
-            assert isinstance(dist_model, nn.Module)
-            assert isinstance(dist_optimizer, Optimizer)
-            assert hasattr(dist_optimizer, "synchronize"), (
-                "synchronize() method not found for Horovod optimizer"
-            )
-
         else:
             raise ValueError("Unrecognized strategy type")
 
@@ -501,22 +477,6 @@ def test_ray_distributed_strategy(
 
             # Create a trainer
             trainer = ray.train.torch.TorchTrainer(
-                test_function,
-                scaling_config=scaling_config,
-                run_config=run_config,
-            )
-            trainer.fit()
-        case "horovod":
-            import ray.train.horovod
-
-            # This calls ray.init under the hood
-            strategy = RayHorovodStrategy()
-
-            # Trainable
-            test_function = ray.tune.with_parameters(ray_tests, strategy=strategy)
-
-            # Create a trainer
-            trainer = ray.train.horovod.HorovodTrainer(
                 test_function,
                 scaling_config=scaling_config,
                 run_config=run_config,

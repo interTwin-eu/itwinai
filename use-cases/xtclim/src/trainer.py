@@ -29,7 +29,7 @@ from itwinai.torch.distributed import DeepSpeedStrategy
 from itwinai.loggers import Logger
 from itwinai.torch.config import TrainingConfiguration
 
-from ray import train as train_ray
+from ray import tune as tune_ray
 import src.model as model
 from torch.utils.data import Dataset, DataLoader
 from torchvision.utils import make_grid
@@ -274,7 +274,7 @@ class XTClimTrainer(TorchTrainer):
         print(f"Val Loss: {valid_epoch_loss:.4f}")
 
         # Report training metrics of last epoch to Ray
-        train_ray.report(
+        tune_ray.report(
             {
                 "loss": train_epoch_loss,
                 "valid_loss": valid_epoch_loss

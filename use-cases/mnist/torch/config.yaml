@@ -20,7 +20,7 @@ momentum: 0.9
 fp16_allreduce: False
 use_adasum: False
 gradient_predivide_factor: 1.0
-epochs: 2
+epochs: 20
 strategy: ddp
 test_data_path: mnist-sample-data
 inference_model_mlflow_uri: mnist-pre-trained.pth
@@ -56,7 +56,7 @@ training_pipeline:
         gradient_predivide_factor: ${gradient_predivide_factor}
       ray_scaling_config:
         _target_: ray.train.ScalingConfig
-        num_workers: 2
+        num_workers: 1
         use_gpu: true
         resources_per_worker:
           CPU: 6
@@ -73,7 +73,7 @@ training_pipeline:
           reduction_factor: 6
           brackets: 1
       ray_run_config:
-        _target_: ray.train.RunConfig
+        _target_: ray.tune.RunConfig
         # storage_path must be an absolute path. Defaulting to the directory from which the
         # job is launched using the itwinai custom OmegaConf resolver ${itwinai.cwd:}
         storage_path: ${itwinai.cwd:}/ray_checkpoints
@@ -86,9 +86,6 @@ training_pipeline:
           type: uniform
           lower: 1e-5
           upper: 1e-3
-      # keep ray_horovod_config commented out if you don't have horovod installed
-      # ray_horovod_config:
-      #   _target_: ray.train.horovod.config.HorovodConfig
       model:
         _target_: model.Net
       epochs: ${epochs}
@@ -172,7 +169,7 @@ training_pipeline_gan:
           reduction_factor: 6
           brackets: 1
       ray_run_config:
-        _target_: ray.train.RunConfig
+        _target_: ray.tune.RunConfig
         # storage_path must be an absolute path. Defaulting to the directory from which the
         # job is launched using the itwinai custom OmegaConf resolver ${itwinai.cwd:}
         storage_path: ${itwinai.cwd:}/ray_checkpoints
@@ -185,9 +182,6 @@ training_pipeline_gan:
           type: uniform
           lower: 1e-5
           upper: 1e-3
-      # keep ray_horovod_config commented out if you don't have horovod installed
-      # ray_horovod_config:
-      #   _target_: ray.train.horovod.config.HorovodConfig
       generator:
         _target_: model.Generator
         z_dim: 100
