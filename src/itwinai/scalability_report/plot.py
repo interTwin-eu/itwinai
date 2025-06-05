@@ -297,7 +297,6 @@ def computation_fraction_bar_plot(
     x_positions = []
     x_labels = []
     strategy_patches = []
-    group_spacing = 1.0
     current_x = 0.0
 
     for i, strategy in enumerate(strategy_labels):
