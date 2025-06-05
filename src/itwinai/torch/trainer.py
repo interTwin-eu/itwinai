@@ -24,7 +24,6 @@ from time import perf_counter as default_timer
 from typing import TYPE_CHECKING, Any, Callable, Dict, List, Literal, Optional, Tuple, Union
 
 import ray.train
-import ray.train.torch
 import ray.tune
 import torch
 import torch.distributed as dist
