@@ -124,8 +124,7 @@ class TorchTrainer(Trainer, LogMixin):
         measure_gpu_data (bool): enable the collection of data on average GPU utilization and
             total energy consumption throughout training. Defaults to False.
         torch_profiling (bool): enable the profiling of computation.
-            It uses the torch profiler and it may
-            slow down training. Dafults to False.
+            It uses the torch profiler and it may slow down training. Defaults to False.
         measure_epoch_time (bool): enable the measurement of epoch duration (in seconds).
             Defaults to False,
         ray_scaling_config (ScalingConfig, optional): scaling config for Ray Trainer.

@@ -17,6 +17,8 @@ import matplotlib
 import pandas as pd
 from torch.profiler import ProfilerActivity, profile, schedule
 
+from itwinai.utils import COMPUTATION_DATA_DIR
+
 if TYPE_CHECKING:
     from itwinai.torch.trainer import TorchTrainer
 
@@ -127,7 +129,7 @@ def profile_torch_trainer(method: Callable) -> Callable:
         profiling_dataframe["strategy"] = strategy_name
         profiling_dataframe["num_gpus"] = num_gpus_global
         profiling_dataframe["global_rank"] = global_rank
-        profiling_log_dir = Path(f"scalability-metrics/{self.run_id}/computation-data")
+        profiling_log_dir = Path(f"scalability-metrics/{self.run_id}/{COMPUTATION_DATA_DIR}")
         profiling_log_dir.mkdir(parents=True, exist_ok=True)
 
         filename = f"{strategy_name}_{num_gpus_global}_{global_rank}.csv"

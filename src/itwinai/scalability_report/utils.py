@@ -93,8 +93,10 @@ def calculate_gpu_statistics(
     return aggregated_df
 
 
-@deprecated("""Communication vs computation is unreliable and comparable between GPU
-    architectures. Please use calculate_comp_time instead.""")
+@deprecated(
+    "Communication vs computation is unreliable and comparable between GPU"
+    " architectures. Please use calculate_comp_time instead."
+)
 def calculate_comp_and_comm_time(df: pd.DataFrame) -> Tuple[float, float]:
     """Calculates the time spent on computation and communication in seconds from the
     given DataFrame, assuming an NCCL backend.
@@ -119,7 +121,7 @@ def calculate_comp_and_comm_time(df: pd.DataFrame) -> Tuple[float, float]:
     # Any operation that is a part of PyTorch's ATen library and autograd is considered a 
     # computation.
     # See torch namespaces: https://docs.pytorch.org/cppdocs/api/library_root.html
-    aten_comp_pattern = r".*(?:aten::|\sat::|c10::|autograd::)"
+    aten_comp_pattern = r".*(?:aten|\sat|c10|autograd)::"
 
     comm_df = df[
         (df["name"].str.contains(nccl_comm_pattern))
@@ -147,10 +149,10 @@ def calculate_comp_time(df: pd.DataFrame) -> float:
     expected_columns = {"name", "self_cuda_time_total"}
     check_contains_columns(df=df, expected_columns=expected_columns)
 
-    # Any operation that is a part of PyTorch's ATen library and autograd is considered a 
+    # Any operation that is a part of PyTorch's ATen library and autograd is considered a
     # computation.
     # See torch namespaces: https://docs.pytorch.org/cppdocs/api/library_root.html
-    aten_comp_pattern = r".*(?:aten::|\sat::|c10::|autograd::)"
+    aten_comp_pattern = r".*(?:aten|\sat|c10|autograd)::"
 
     comp_df = df[df["name"].str.contains(aten_comp_pattern)]
 
