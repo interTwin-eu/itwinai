@@ -128,8 +128,9 @@ class SlurmScriptBuilder:
             print(f"Creating directory '{dir_name}'")
         else:
             print(
-                "[WARNING]: Make sure to create the following directory before submitting the"
-                f" SLURM job: '{dir_name}'"
+                "[WARNING] If you're submitting the SLURM job manually, make sure to create "
+                f"the directory '{dir_name}' first. This is handled automatically when using "
+                "the SLURM builder."
             )
 
     def get_training_command(self) -> str:
@@ -383,6 +384,10 @@ def generate_default_slurm_script() -> None:
     parser = get_slurm_job_parser()
     args = parser.parse_args()
 
+    # When using `torchrun` (ddp and deepspeed) then we only want `srun` to launch one process
+    # per node, but when using horovod we need `srun` to launch one process per GPU
+    num_tasks_per_node = 1 if args.dist_strat != "horovod" else args.gpus_per_node
+
     slurm_script_configuration = SlurmScriptConfiguration(
         job_name=args.job_name,
         account=args.account,
@@ -391,7 +396,7 @@ def generate_default_slurm_script() -> None:
         std_out=args.std_out,
         err_out=args.err_out,
         num_nodes=args.num_nodes,
-        num_tasks_per_node=args.num_tasks_per_node,
+        num_tasks_per_node=num_tasks_per_node,
         gpus_per_node=args.gpus_per_node,
         cpus_per_gpu=args.cpus_per_gpu,
     )
