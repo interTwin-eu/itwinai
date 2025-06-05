@@ -201,7 +201,7 @@ training_pipeline:
     - _target_: trainer.RNNDistributedTrainer
       model: ${model}
       measure_gpu_data: False
-      measure_communication_overhead: False
+      torch_profiling: False
       measure_epoch_time: False
       epochs: ${epochs}
       strategy: ${strategy}

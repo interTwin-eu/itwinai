@@ -120,9 +120,8 @@ class TorchTrainer(Trainer, LogMixin):
             number of epochs.
         measure_gpu_data (bool): enable the collection of data on average GPU utilization and
             total energy consumption throughout training. Defaults to False.
-        measure_communication_overhead (bool): enable the profiling of computation and
-            multi-worker communication operations. It uses the torch profiler and it may
-            slow down training. Dafults to False.
+        torch_profiling (bool): enable the profiling of computation.
+            It uses the torch profiler and it may slow down training. Defaults to False.
         measure_epoch_time (bool): enable the measurement of epoch duration (in seconds).
             Defaults to False,
         ray_scaling_config (ScalingConfig, optional): scaling config for Ray Trainer.
@@ -180,12 +179,12 @@ class TorchTrainer(Trainer, LogMixin):
     test_glob_step: int = 0
     #: Dictionary of ``torchmetrics`` metrics, indexed by user-defined names.
     metrics: Dict[str, Callable]
-    #: PyTorch Profiler for communication vs. computation comparison
+    #: PyTorch Profiler for computation ratio profiling.
     profiler: Any | None
     #: Toggle for GPU utilization monitoring
     measure_gpu_data: bool = False
-    #: Toggle for communication vs computation fraction profiling
-    measure_communication_overhead: bool = False
+    #: Toggle for computation fraction profiling
+    torch_profiling: bool = False
     #: Toggle for epoch time tracking
     measure_epoch_time: bool = False
     #: Run ID
@@ -210,7 +209,7 @@ class TorchTrainer(Trainer, LogMixin):
         profiling_wait_epochs: int = 1,
         profiling_warmup_epochs: int = 2,
         measure_gpu_data: bool = False,
-        measure_communication_overhead: bool = False,
+        torch_profiling: bool = False,
         measure_epoch_time: bool = False,
         ray_scaling_config: ScalingConfig | None = None,
         ray_tune_config: TuneConfig | None = None,
@@ -248,7 +247,7 @@ class TorchTrainer(Trainer, LogMixin):
         self.profiling_wait_epochs = profiling_wait_epochs
         self.profiling_warmup_epochs = profiling_warmup_epochs
         self.measure_gpu_data = measure_gpu_data
-        self.measure_communication_overhead = measure_communication_overhead
+        self.torch_profiling = torch_profiling
         self.measure_epoch_time = measure_epoch_time
         self.ray_scaling_config = ray_scaling_config
         self.ray_tune_config = ray_tune_config
@@ -989,9 +988,11 @@ class TorchTrainer(Trainer, LogMixin):
 
     def set_epoch(self) -> None:
         """Set current epoch at the beginning of training."""
-        if self.profiler is not None and self.current_epoch > 0:
-            # We don't want to start stepping until after the first epoch
+        # We don't want to start stepping until after the first epoch
+        if self.profiler and self.current_epoch > 0:
+            # Always step the profiler at the beginning of the epoch
             self.profiler.step()
+
         if self.lr_scheduler:
             self.lr_scheduler.step()
         self._set_epoch_dataloaders(self.current_epoch)
@@ -1209,6 +1210,7 @@ class TorchTrainer(Trainer, LogMixin):
                 assert epoch_time_logger is not None
                 epoch_time = default_timer() - epoch_start_time
                 epoch_time_logger.add_epoch_time(self.current_epoch + 1, epoch_time)
+
 
     def train_epoch(self) -> torch.Tensor:
         """Perform a complete sweep over the training dataset, completing an

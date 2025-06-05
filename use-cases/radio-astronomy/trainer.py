@@ -34,7 +34,7 @@ class PulsarTrainer(TorchTrainer):
         store_trained_model_at: str = ".models/model.pt",
         name: Optional[str] = None,
         measure_gpu_data: bool = False,
-        measure_communication_overhead: bool = False,
+        torch_profiling: bool = False,
         measure_epoch_time: bool = False,
     ) -> None:
 
@@ -47,7 +47,7 @@ class PulsarTrainer(TorchTrainer):
             model=model,
             name=name,
             measure_gpu_data=measure_gpu_data,
-            measure_communication_overhead=measure_communication_overhead,
+            torch_profiling=torch_profiling,
             measure_epoch_time=measure_epoch_time,
         )
         # set the custom loss function
