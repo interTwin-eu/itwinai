@@ -128,11 +128,8 @@ def check_initialized(method: Callable) -> Callable:
     def wrapper(self: "Logger", *args, **kwargs):
         if not self.is_initialized:
             raise RuntimeError(
-                (
-                    f"{self.__class__.__name__} has not been initialized. "
-                    "Use either the ``start_logging`` context or the "
-                    "``create_logger_context`` method."
-                )
+                f"{self.__class__.__name__} has not been initialized. Use either the "
+                "``start_logging`` context or the ``create_logger_context`` method."
             )
         return method(self, *args, **kwargs)
 
@@ -141,14 +138,15 @@ def check_initialized(method: Callable) -> Callable:
 
 def check_not_initialized(method: Callable) -> Callable:
     """Decorator for ``create_logger_context`` method to prevent double initialization of
-    a logger."""
+    a logger.
+    """
 
     @functools.wraps(method)
     def wrapper(self: "Logger", *args, **kwargs):
         if self.is_initialized:
             py_logger.warning(
-                f"Trying to initialize {self.__class__.__name__} twice.. "
-                "Skipping initialization."
+                f"Tried to initialize {self.__class__.__name__} twice. Skipping"
+                " initialization."
             )
             return
         return method(self, *args, **kwargs)
@@ -157,7 +155,7 @@ def check_not_initialized(method: Callable) -> Callable:
 
 
 class Logger(LogMixin):
-    """Base class for logger
+    """Base class for logger.
 
     Args:
         savedir (Union[Path, str], optional): filesystem location where logs are stored.
@@ -462,10 +460,10 @@ class ConsoleLogger(Logger):
                 target_path = artifact_dir / f"{self._experiment_id}.{child_id}"
                 shutil.copytree(item, target_path, dirs_exist_ok=True)
             else:
-                print(
-                    f"INFO: The ConsoleLogger expects an artifact to be either a path \
-                      or a directory. Received instead an item of type {type(item)}. \
-                        The item will be ignored and not logged."
+                py_logger.info(
+                    "The ConsoleLogger expects an artifact to be either a path or a directory."
+                    f" Received instead an item of type {type(item)}. The item will be ignored"
+                    " and not logged."
                 )
 
         elif kind == "torch":
@@ -473,10 +471,10 @@ class ConsoleLogger(Logger):
 
             target_path = self.run_path / identifier
             torch.save(item, target_path)
-            print(f"INFO: ConsoleLogger saved to {target_path}...")
+            py_logger.info(f"ConsoleLogger saved to {target_path}...")
 
         elif kind == "metric":
-            print(f"ConsoleLogger: {identifier} = {item}")
+            py_logger.info(f"ConsoleLogger: {identifier} = {item}")
 
 
 class MLFlowLogger(Logger):
@@ -569,7 +567,7 @@ class MLFlowLogger(Logger):
 
         active_run = self.mlflow.active_run()
         if active_run:
-            print("Detected an active MLFlow run. Attaching to it...")
+            py_logger.info("Detected an active MLFlow run. Attaching to it...")
             self.active_run = active_run
         else:
             self.mlflow.set_tracking_uri(self.tracking_uri)
@@ -648,7 +646,7 @@ class MLFlowLogger(Logger):
             if isinstance(item, torch.nn.Module):
                 self.mlflow.pytorch.log_model(item, identifier)
             else:
-                print("WARNING: unrecognized model type")
+                py_logger.warning("Unrecognized model type")
         elif kind == "dataset":
             # Log mlflow dataset
             # https://mlflow.org/docs/latest/python_api/mlflow.html#mlflow.log_input
@@ -658,7 +656,7 @@ class MLFlowLogger(Logger):
             if isinstance(item, self.mlflow.data.Dataset):
                 self.mlflow.log_input(item)
             else:
-                print("WARNING: unrecognized dataset type. Must be an MLFlow dataset")
+                py_logger.warning("Unrecognized dataset type. Must be an MLFlow dataset")
         elif kind == "torch":
             import torch
 
@@ -1355,7 +1353,7 @@ class EpochTimeTracker:
         self.data = {"epoch_id": [], "time": []}
 
         if not self.should_log:
-            print("Warning: EpochTimeLogger has been disabled!")
+            py_logger.warning("EpochTimeLogger has been disabled!")
 
     def add_epoch_time(self, epoch_idx: int, time: float) -> None:
         """Add epoch time to data."""
@@ -1379,4 +1377,4 @@ class EpochTimeTracker:
 
         self.save_path.parent.mkdir(parents=True, exist_ok=True)
         df.to_csv(self.save_path, index=False)
-        print(f"Saving EpochTimeLogging data to '{self.save_path.resolve()}'.")
+        py_logger.info(f"Saving EpochTimeLogging data to '{self.save_path.resolve()}'.")

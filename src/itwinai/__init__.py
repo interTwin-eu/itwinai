@@ -9,6 +9,7 @@
 
 import logging
 import os
+import sys
 
 # Set Ray V2 train env variable
 os.environ["RAY_TRAIN_V2_ENABLED"] = "1"
@@ -40,3 +41,22 @@ if not logger.hasHandlers():
 
 # Prevent logs from bubbling up to the root logger
 logger.propagate = False
+
+# Logger for CLI or no-format output
+class CLIFormatter(logging.Formatter):
+    def format(self, record: logging.LogRecord) -> str:
+        msg = record.getMessage()
+        if record.levelno >= logging.ERROR:
+            return f"[ERROR]: {msg}"
+        if record.levelno == logging.WARNING:
+            return f"[WARNING]: {msg}"
+        # Don't do anything if level is below 
+        return msg
+
+plain_logger = logging.getLogger("cli_logger")
+plain_logger.setLevel(logging.INFO)
+if not plain_logger.hasHandlers():
+    handler = logging.StreamHandler(sys.stdout)
+    handler.setFormatter(CLIFormatter())
+    plain_logger.addHandler(handler)
+plain_logger.propagate = False
