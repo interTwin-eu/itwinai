@@ -54,7 +54,6 @@ def get_slurm_job_parser() -> ArgumentParser:
     default_std_out = None
     default_err_out = None
     default_num_nodes = 1
-    default_num_tasks_per_node = 1
     default_gpus_per_node = 4
     default_cpus_per_gpu = 4
 
@@ -109,12 +108,6 @@ def get_slurm_job_parser() -> ArgumentParser:
         type=int,
         default=default_num_nodes,
         help="The number of nodes that the SLURM job is going to run on.",
-    )
-    parser.add_argument(
-        "--num-tasks-per-node",
-        type=int,
-        default=default_num_tasks_per_node,
-        help="The number of tasks per node.",
     )
     parser.add_argument(
         "--gpus-per-node",
