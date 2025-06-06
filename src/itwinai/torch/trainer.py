@@ -96,7 +96,7 @@ class TorchTrainer(Trainer, LogMixin):
         config (Dict | TrainingConfiguration): training configuration
             containing hyperparameters.
         epochs (int): number of training epochs.
-        model (Union[nn.Module, str] | None, optional): pytorch model to
+        model (nn.Module | None, optional): pytorch model to
             train or a string identifier. Defaults to None.
         strategy (Literal['ddp', 'deepspeed', 'horovod'], optional):
             distributed strategy. Defaults to 'ddp'.
@@ -529,6 +529,9 @@ class TorchTrainer(Trainer, LogMixin):
         """Instantiate a torch model, loss, optimizer, and LR scheduler using the
         configuration provided in the Trainer constructor.
         Generally a user-defined method.
+
+        Raises:
+            ValueError: If ``self.model`` is None.
         """
         ###################################
         # Dear user, this is a method you #
@@ -821,15 +824,19 @@ class TorchTrainer(Trainer, LogMixin):
         test_dataset: Dataset | None = None,
     ) -> Tuple[Dataset, Dataset, Dataset, Any]:
         """Launch training and, optionally, hyperparameter tuning with Ray
+
         Args:
             train_dataset (Dataset): training dataset.
             validation_dataset (Dataset | None, optional): validation
                 dataset. Defaults to None.
             test_dataset (Dataset | None, optional): test dataset.
                 Defaults to None.
+
         Returns:
-            Tuple[Dataset, Dataset, Dataset, Any]: training dataset,
-            validation dataset, test dataset, trained model.
+            Dataset: The training dataset
+            Dataset: The validation dataset
+            Dataset: The test dataset
+            Any: The trained model
         """
 
         if self.from_checkpoint:
@@ -860,12 +867,12 @@ class TorchTrainer(Trainer, LogMixin):
         test_dataset_ref = ray.put(test_dataset) if test_dataset is not None else None
 
         # Define a worker function to be run on each worker
-        def train_fn_per_worker(train_loop_config: dict):
+        def train_fn_per_worker(train_loop_config: Dict):
             """Retrieve datasets from references and start worker
 
             Args:
-                train_loop_config (dict): configuration for the training loop,
-                    passed by Ray Tuner.
+                train_loop_config (Dict): configuration for the training loop, passed by Ray
+                Tuner.
             """
 
             train_ds = ray.get(train_dataset_ref)
@@ -882,13 +889,13 @@ class TorchTrainer(Trainer, LogMixin):
                 test_dataset=test_ds,
             )
 
-        def train_driver_fn(config: dict):
-            """Driver function for Ray tune
+        def train_driver_fn(config: Dict):
+            """Driver function for Ray tune.
+
             This function is called by Ray Tuner to start the training process.
 
             Args:
-                config (dict): configuration for the training loop,
-                    passed by Ray Tuner.
+                config (Dict): configuration for the training loop, passed by Ray Tuner.
             """
             # Extract hyperparameters from config
             train_loop_config = config.get("train_loop_config", {})
@@ -1006,7 +1013,7 @@ class TorchTrainer(Trainer, LogMixin):
 
     def log(
         self,
-        item: Any | List[Any],
+        item: Any | List,
         identifier: str | List[str],
         kind: str = "metric",
         step: int | None = None,
@@ -1017,7 +1024,7 @@ class TorchTrainer(Trainer, LogMixin):
         time step.
 
         Args:
-            item (Any | List[Any]): element to be logged (e.g., metric).
+            item (Any | List): element to be logged (e.g., metric).
             identifier (str | List[str]): unique identifier for the
                 element to log(e.g., name of a metric).
             kind (str, optional): type of the item to be logged. Must be one
@@ -1100,10 +1107,8 @@ class TorchTrainer(Trainer, LogMixin):
         """Compute and log metrics.
 
         Args:
-            metrics (Dict[str, Callable]): metrics dict. Can be
-                ``self.train_metrics`` or ``self.validation_metrics``.
-            true (Batch): true values.
-            pred (Batch): predicted values.
+            true (torch.Tensor): true values.
+            pred (torch.Tensor): predicted values.
             logger_step (int): global step to pass to the logger.
             stage (str): 'train', 'validation'...
 
@@ -1136,8 +1141,10 @@ class TorchTrainer(Trainer, LogMixin):
             test_dataset (Dataset): test dataset.
 
         Returns:
-            Tuple[Dataset, Dataset, Dataset, Any]: training dataset,
-            validation dataset, test dataset, trained model.
+            Dataset: The training dataset.
+            Dataset: The validation dataset.
+            Dataset: The test dataset.
+            Any: The trained model
         """
         epoch_time_logger: EpochTimeTracker | None = None
         if self.strategy.is_main_worker and self.strategy.is_distributed:
@@ -1219,14 +1226,13 @@ class TorchTrainer(Trainer, LogMixin):
                 epoch_time_logger.add_epoch_time(self.current_epoch + 1, epoch_time)
 
     def train_epoch(self) -> torch.Tensor:
-        """Perform a complete sweep over the training dataset, completing an
-        epoch of training.
+        """Perform a complete sweep over the training dataset, completing an epoch of training.
 
         Args:
             epoch (int): current epoch number, from 0 to ``self.epochs - 1``.
 
         Returns:
-            Loss: average training loss for the current epoch.
+            torch.Tensor: average training loss for the current epoch.
         """
         self.model.train()
         train_loss_sum = 0.0
@@ -1273,16 +1279,15 @@ class TorchTrainer(Trainer, LogMixin):
     def train_step(
         self, batch: torch.Tensor, batch_idx: int
     ) -> Tuple[torch.Tensor, Dict[str, Any]]:
-        """Perform a single optimization step using a batch sampled from the
-        training dataset.
+        """Perform a single optimization step using a batch sampled from the training dataset.
 
         Args:
-            batch (Batch): batch sampled by a dataloader.
+            batch (torch.Tensor): batch sampled by a dataloader.
             batch_idx (int): batch index in the dataloader.
 
         Returns:
-            Tuple[Loss, Dict[str, Any]]: batch loss and dictionary of metric
-            values with the same structure of ``self.metrics``.
+            torch.Tensor: The batch loss.
+            Dict[str, Any]: Dictionary of metric values (same structure as ``self.metrics``).
         """
         x, y = batch
         x, y = x.to(self.device), y.to(self.device)
@@ -1311,13 +1316,13 @@ class TorchTrainer(Trainer, LogMixin):
         )
         return loss, metrics
 
-    def validation_epoch(self) -> torch.Tensor:
-        """Perform a complete sweep over the validation dataset, completing an
-        epoch of validation.
+    def validation_epoch(self) -> torch.Tensor | None:
+        """Perform a complete sweep over the validation dataset, completing an epoch of
+        validation.
 
         Returns:
-            Loss | None: average validation loss for the current epoch if
-                self.validation_dataloader is not None
+            torch.Tensor | None: average validation loss for the current epoch if
+            self.validation_dataloader is not None
         """
         if self.validation_dataloader is None:
             return
@@ -1366,16 +1371,16 @@ class TorchTrainer(Trainer, LogMixin):
     def validation_step(
         self, batch: torch.Tensor, batch_idx: int
     ) -> Tuple[torch.Tensor, Dict[str, Any]]:
-        """Perform a single optimization step using a batch sampled from the
-        validation dataset.
+        """Perform a single optimization step using a batch sampled from the validation
+        dataset.
 
         Args:
-            batch (Batch): batch sampled by a dataloader.
+            batch (torch.Tensor): batch sampled by a dataloader.
             batch_idx (int): batch index in the dataloader.
 
         Returns:
-            Tuple[Loss, Dict[str, Any]]: batch loss and dictionary of metric
-            values with the same structure of ``self.metrics``.
+            torch.Tensor: Batch loss.
+            Dict[str, Any]: Dictionary of metric values (same structure as ``self.metrics``).
         """
         x, y = batch
         x, y = x.to(self.device), y.to(self.device)
@@ -1399,27 +1404,25 @@ class TorchTrainer(Trainer, LogMixin):
         return loss, metrics
 
     def test_epoch(self) -> torch.Tensor:
-        """Perform a complete sweep over the test dataset, completing an
-        epoch of test.
+        """Perform a complete sweep over the test dataset, completing an epoch of test.
 
         Returns:
-            Loss: average test loss for the current epoch.
+            torch.Tensor: average test loss for the current epoch.
         """
         raise NotImplementedError()
 
     def test_step(
         self, batch: torch.Tensor, batch_idx: int
     ) -> Tuple[torch.Tensor, Dict[str, Any]]:
-        """Perform a single predictions step using a batch sampled from the
-        test dataset.
+        """Perform a single predictions step using a batch sampled from the test dataset.
 
         Args:
-            batch (Batch): batch sampled by a dataloader.
+            batch (torch.Tensor): batch sampled by a dataloader.
             batch_idx (int): batch index in the dataloader.
 
         Returns:
-            Tuple[Loss, Dict[str, Any]]: batch loss and dictionary of metric
-            values with the same structure of ``self.metrics``.
+            torch.Tensor: The batch loss
+            Dict[str, Any]: Dictionary of metric values (same structure as ``self.metrics``).
         """
         raise NotImplementedError()
 
