@@ -14,7 +14,6 @@
 import logging
 from typing import Dict
 
-import ray.train
 import ray.tune
 from ray.tune.search.sample import Categorical, Float, Function, Integer
 

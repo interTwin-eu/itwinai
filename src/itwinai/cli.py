@@ -7,6 +7,7 @@
 # - Matteo Bunino <matteo.bunino@cern.ch> - CERN
 # - Jarl Sondre Sæther <jarl.sondre.saether@cern.ch> - CERN
 # - Anna Lappe <anna.elisa.lappe@cern.ch> - CERN
+# - Linus Eickhoff <linus.maximilian.eickhoff@cern.ch> - CERN
 #
 # --------------------------------------------------------------------------------------
 # Command-line interface for the itwinai Python library.
@@ -29,6 +30,8 @@ from typing import List, Optional
 import hydra
 import typer
 from typing_extensions import Annotated
+
+from itwinai.utils import COMPUTATION_DATA_DIR, EPOCH_TIME_DIR, GPU_ENERGY_DIR
 
 app = typer.Typer(pretty_exceptions_enable=False)
 
@@ -187,6 +190,16 @@ def generate_scalability_report(
             )
         ),
     ] = ".png",
+    include_communication: Annotated[
+        bool,
+        typer.Option(
+            help=(
+                "Include communication data in the scalability report. Disclaimer:"
+                " Communication fractions are unreliable and vary significantly for different"
+                " HPC systems."
+            )
+        ),
+    ] = False,
 ):
     """Generates scalability reports for epoch time, GPU data, and communication data
     based on log files in the specified directory. Optionally, backups of the reports
@@ -201,6 +214,7 @@ def generate_scalability_report(
 
     from itwinai.scalability_report.reports import (
         communication_data_report,
+        computation_data_report,
         epoch_time_report,
         gpu_data_report,
     )
@@ -230,19 +244,19 @@ def generate_scalability_report(
 
     # Finding the respective data logging directories
     epoch_time_logdirs = [
-        path / "epoch-time"
+        path / EPOCH_TIME_DIR
         for path in base_directories_for_runs
-        if (path / "epoch-time").exists()
+        if (path / EPOCH_TIME_DIR).exists()
     ]
     gpu_data_logdirs = [
-        path / "gpu-energy-data"
+        path / GPU_ENERGY_DIR
         for path in base_directories_for_runs
-        if (path / "gpu-energy-data").exists()
+        if (path / GPU_ENERGY_DIR).exists()
     ]
-    comm_time_logdirs = [
-        path / "communication-data"
+    comp_time_logdirs = [
+        path / COMPUTATION_DATA_DIR
         for path in base_directories_for_runs
-        if (path / "communication-data").exists()
+        if (path / COMPUTATION_DATA_DIR).exists()
     ]
 
     # Setting the backup directory from run name
@@ -253,9 +267,9 @@ def generate_scalability_report(
         backup_run_id = f"aggregated_run_{timestamp}"
     backup_dir = Path(backup_root_dir) / backup_run_id
 
-    epoch_time_backup_dir = backup_dir / "epoch-time"
-    gpu_data_backup_dir = backup_dir / "gpu-energy-data"
-    communication_data_backup_dir = backup_dir / "communication-data"
+    epoch_time_backup_dir = backup_dir / EPOCH_TIME_DIR
+    gpu_data_backup_dir = backup_dir / GPU_ENERGY_DIR
+    computation_data_backup_dir = backup_dir / COMPUTATION_DATA_DIR
 
     plot_dir_path = Path(plot_dir)
     plot_dir_path.mkdir(exist_ok=True, parents=True)
@@ -274,13 +288,30 @@ def generate_scalability_report(
         do_backup=do_backup,
         plot_file_suffix=plot_file_suffix,
     )
-    communication_data_table = communication_data_report(
-        log_dirs=comm_time_logdirs,
+
+    if include_communication:
+        comm_time_logdirs = [
+            path / COMPUTATION_DATA_DIR
+            for path in base_directories_for_runs
+            if (path / COMPUTATION_DATA_DIR).exists()
+        ]
+        communication_data_backup_dir = backup_dir / COMPUTATION_DATA_DIR
+        communication_data_table = communication_data_report(
+            log_dirs=comm_time_logdirs,
+            plot_dir=plot_dir_path,
+            backup_dir=communication_data_backup_dir,
+            do_backup=do_backup,
+            plot_file_suffix=plot_file_suffix,
+        )
+
+    computation_data_table = computation_data_report(
+        log_dirs=comp_time_logdirs,
         plot_dir=plot_dir_path,
-        backup_dir=communication_data_backup_dir,
+        backup_dir=computation_data_backup_dir,
         do_backup=do_backup,
         plot_file_suffix=plot_file_suffix,
     )
+
 
     typer.echo("")
     if epoch_time_table is not None:
@@ -295,11 +326,18 @@ def generate_scalability_report(
     else:
         typer.echo("No GPU Data Found\n")
 
-    if communication_data_table is not None:
-        typer.echo("#" * 8 + "Communication Data Report" + "#" * 8)
-        typer.echo(communication_data_table + "\n")
+    if computation_data_table is not None:
+        typer.echo("#" * 8 + "Computation Data Report" + "#" * 8)
+        typer.echo(computation_data_table + "\n")
     else:
-        typer.echo("No Communication Data Found\n")
+        typer.echo("No Computation Data Found\n")
+
+    if include_communication:
+        if communication_data_table is not None:
+            typer.echo("#" * 8 + "Communication Data Report" + "#" * 8)
+            typer.echo(communication_data_table + "\n")
+        else:
+            typer.echo("No Communication Data Found\n")
 
 
 @app.command()

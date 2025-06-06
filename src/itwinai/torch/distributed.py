@@ -1235,33 +1235,3 @@ class RayDeepSpeedStrategy(DeepSpeedStrategy, RayTorchDistributedStrategy):
 
         self.set_device()
 
-
-class RayHorovodStrategy(HorovodStrategy, RayTorchDistributedStrategy):
-    """A distributed strategy using Ray and Horovod for PyTorch training."""
-
-    def __init__(self) -> None:
-        initialize_ray()
-        super().__init__()
-        self.name = "ray-horovod"
-
-    def init(self) -> None:
-        """Initializes the Horovod distributed backend.
-
-        Raises:
-            RuntimeError: when there is not a Ray cluster running.
-            DistributedStrategyError: when trying to initialize a strategy
-                already initialized.
-        """
-        if not ray_cluster_is_running():
-            raise RuntimeError("Ray cluster was not detected.")
-        if self.is_initialized:
-            raise DistributedStrategyError("Strategy was already initialized")
-
-        import horovod.torch as hvd
-
-        self.hvd = hvd
-
-        self.hvd.init()
-        self.is_initialized = True
-
-        self.set_device()
