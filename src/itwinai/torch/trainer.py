@@ -93,51 +93,46 @@ class TorchTrainer(Trainer, LogMixin):
     """Trainer class for torch training algorithms.
 
     Args:
-        config (Dict | TrainingConfiguration): training configuration
-            containing hyperparameters.
+        config (Dict | TrainingConfiguration): training configuration containing
+            hyperparameters.
         epochs (int): number of training epochs.
-        model (nn.Module | None, optional): pytorch model to
-            train or a string identifier. Defaults to None.
-        strategy (Literal['ddp', 'deepspeed', 'horovod'], optional):
-            distributed strategy. Defaults to 'ddp'.
-        test_every (int | None, optional): run a test epoch
-            every ``test_every`` epochs. Disabled if None. Defaults to None.
-        random_seed (int | None, optional): set random seed for
-            reproducibility. If None, the seed is not set. Defaults to None.
-        logger (Logger | None, optional): logger for ML tracking.
+        model (nn.Module | None, optional): pytorch model to train or a string identifier. 
             Defaults to None.
-        metrics (Dict[str, Callable] | None, optional): map of torchmetrics
-            metrics. Defaults to None.
-        checkpoints_location (str): path to checkpoints directory.
-            Defaults to "checkpoints".
-        checkpoint_every (int | None): save a checkpoint every
-            ``checkpoint_every`` epochs. Disabled if None. Defaults to None.
+        strategy (Literal['ddp', 'deepspeed', 'horovod'], optional): distributed strategy. 
+            Defaults to 'ddp'.
+        test_every (int | None, optional): run a test epoch every ``test_every`` epochs. 
+            Disabled if None. Defaults to None.
+        random_seed (int | None, optional): set random seed for reproducibility. If None, the
+            seed is not set. Defaults to None.
+        logger (Logger | None, optional): logger for ML tracking. Defaults to None.
+        metrics (Dict[str, Callable] | None, optional): map of torchmetrics metrics. Defaults
+            to None.
+        checkpoints_location (str): path to checkpoints directory. Defaults to "checkpoints".
+        checkpoint_every (int | None): save a checkpoint every ``checkpoint_every`` epochs. 
+            Disabled if None. Defaults to None.
         disable_tqdm (bool): whether to disable tqdm progress bar(s).
         name (str | None, optional): trainer custom name. Defaults to None.
-        profiling_wait_epochs (int): how many epochs to wait before starting
-            the profiler.
-        profiling_warmup_epochs (int): length of the profiler warmup phase in terms of
-            number of epochs.
+        profiling_wait_epochs (int): how many epochs to wait before starting the profiler.
+        profiling_warmup_epochs (int): length of the profiler warmup phase in terms of number
+            of epochs.
         measure_gpu_data (bool): enable the collection of data on average GPU utilization and
             total energy consumption throughout training. Defaults to False.
-        torch_profiling (bool): enable the profiling of computation.
-            It uses the torch profiler and it may slow down training. Defaults to False.
-        measure_epoch_time (bool): enable the measurement of epoch duration (in seconds).
+        torch_profiling (bool): enable the profiling of computation. It uses the torch profiler
+            and it may slow down training. Defaults to False.
+        measure_epoch_time (bool): enable the measurement of epoch duration (in seconds). 
             Defaults to False,
-        ray_scaling_config (ScalingConfig, optional): scaling config for Ray Trainer.
-            Defaults to None,
-        ray_tune_config (TuneConfig, optional): tune config for Ray Tuner.
-            Defaults to None.
-        ray_run_config (ray.tune.RunConfig, optional): run config for Ray Tuner.
-            Distributed training with Ray but without HPO will still be wrapped into a Ray
-            Tuner, too keep everything homogeneous.
-            Defaults to None.
-        ray_search_space (Dict[str, Any], optional): search space for Ray Tuner.
-            Defaults to None.
+        ray_scaling_config (ScalingConfig, optional): scaling config for Ray Trainer. Defaults
+            to None,
+        ray_tune_config (TuneConfig, optional): tune config for Ray Tuner. Defaults to None.
+        ray_run_config (ray.tune.RunConfig, optional): run config for Ray Tuner. Distributed
+            training with Ray but without HPO will still be wrapped into a Ray Tuner, to keep
+            everything homogeneous. Defaults to None.
+        ray_search_space (Dict[str, Any], optional): search space for Ray Tuner. Defaults to
+            None.
         ray_torch_config (TorchConfig, optional): torch configuration for Ray's TorchTrainer.
             Defaults to None.
-        ray_data_config (DataConfig, optional): dataset configuration for Ray.
-            Defaults to None.
+        ray_data_config (DataConfig, optional): dataset configuration for Ray. Defaults to 
+            None.
         from_checkpoint (str | Path, optional): path to checkpoint directory. Defaults to None.
         initial_best_validation_metric (str): initial value for the best validation metric.
             Usually the validation metric is a loss to be minimized and this value exceeds the
@@ -145,10 +140,10 @@ class TorchTrainer(Trainer, LogMixin):
             vaidation loss is computed. Example values are "inf" and "-inf", depending on
             wether the best validation metric should be minimized or maximized.
             Defaults to "inf".
-        run_id (str, optional): name used to identify a specific run when collecting
-            metrics on the trainer (e.g. GPU utilization). Defaults to None.
-        time_ray (bool): whether to time and log the execution of Ray functions.
-            Defaults to False.
+        run_id (str, optional): name used to identify a specific run when collecting metrics
+            on the trainer (e.g. GPU utilization). Defaults to None.
+        time_ray (bool): whether to time and log the execution of Ray functions. Defaults to 
+            False.
     """
 
     _strategy: TorchDistributedStrategy | None = None
