@@ -30,7 +30,7 @@ want to do this with or without GPU (CUDA) support:
 .. warning::
 
    If you run the installation script for CUDA above, then make sure that you actually have
-   CUDA installed. For some HPCs, we found it better to install this via a SLURM script since
-   they only have CUDA on their compute nodes. You can find a sample SLURM script that we use
-   for the Jülich Supercomputing Centre (JSC) here:
+   CUDA installed. For some HPC systems, we found it better to install this via a SLURM script
+   since they only have CUDA on their compute nodes. You can find a sample SLURM script that
+   we use for the Jülich Supercomputing Centre (JSC) here:
    `horovod-deepspeed-JSC.slurm <https://github.com/interTwin-eu/itwinai/blob/main/env-files/torch/horovod-deepspeed-JSC.slurm>`_.

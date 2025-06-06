@@ -120,9 +120,9 @@ class TorchTrainer(Trainer, LogMixin):
         torch_profiling (bool): enable the profiling of computation. It uses the torch profiler
             and it may slow down training. Defaults to False.
         measure_epoch_time (bool): enable the measurement of epoch duration (in seconds).
-            Defaults to False,
+            Defaults to False.
         ray_scaling_config (ScalingConfig, optional): scaling config for Ray Trainer. Defaults
-            to None,
+            to None.
         ray_tune_config (TuneConfig, optional): tune config for Ray Tuner. Defaults to None.
         ray_run_config (ray.tune.RunConfig, optional): run config for Ray Tuner. Distributed
             training with Ray but without HPO will still be wrapped into a Ray Tuner, to keep
