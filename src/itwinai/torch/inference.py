@@ -268,7 +268,7 @@ class TorchPredictor(TorchTrainer, Predictor):
                 **kwargs
             )
 
-    def transform_predictions(self, batch: Batch) -> Batch:
+    def transform_predictions(self, batch: torch.Tensor) -> torch.Tensor:
         """Post-process the predictions of the torch model (e.g., apply
         threshold in case of multi-label classifier).
         """
@@ -277,7 +277,7 @@ class TorchPredictor(TorchTrainer, Predictor):
 class MulticlassTorchPredictor(TorchPredictor):
     """Applies a pre-trained torch model to unseen data for multiclass classification."""
 
-    def transform_predictions(self, batch: Batch) -> Batch:
+    def transform_predictions(self, batch: torch.Tensor) -> torch.Tensor:
         batch = batch.argmax(-1)
         return batch
 
@@ -303,7 +303,7 @@ class MultilabelTorchPredictor(TorchPredictor):
         super().__init__(model, test_dataloader_class, test_dataloader_kwargs, name)
         self.threshold = threshold
 
-    def transform_predictions(self, batch: Batch) -> Batch:
+    def transform_predictions(self, batch: torch.Tensor) -> torch.Tensor:
         return (batch > self.threshold).float()
 
 
@@ -313,5 +313,5 @@ class RegressionTorchPredictor(TorchPredictor):
     network.
     """
 
-    def transform_predictions(self, batch: Batch) -> Batch:
+    def transform_predictions(self, batch: torch.Tensor) -> torch.Tensor:
         return batch

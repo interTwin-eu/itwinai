@@ -21,14 +21,13 @@ import time
 from collections import defaultdict
 from pathlib import Path
 from time import perf_counter as default_timer
-from typing import TYPE_CHECKING, Any, Callable, Dict, List, Literal, Optional, Tuple, Union
+from typing import TYPE_CHECKING, Any, Callable, Dict, List, Literal, Optional, Tuple
 
 import ray.train
 import ray.tune
 import torch
 import torch.distributed as dist
 import torch.nn as nn
-import torch.optim as optim
 import torch.optim.lr_scheduler as lr_scheduler
 import yaml
 from ray.train import Checkpoint, DataConfig, RunConfig, ScalingConfig
@@ -40,6 +39,8 @@ from torch.optim.lr_scheduler import LRScheduler
 from torch.optim.optimizer import Optimizer
 from torch.utils.data import DataLoader, Dataset
 from torch.utils.data.distributed import DistributedSampler
+from torch.optim import Adadelta, Adam, AdamW, RMSprop, SGD
+from torchmetrics import Metric
 from tqdm import tqdm
 
 # Cyclic imports...
@@ -65,7 +66,7 @@ from .distributed import (
 )
 from .reproducibility import seed_worker, set_seed
 from .tuning import search_space
-from .type import Batch, Metric
+# from .type import Batch, Metric
 
 if TYPE_CHECKING:
     from ray.train.horovod import HorovodConfig
@@ -200,8 +201,8 @@ class TorchTrainer(Trainer, LogMixin):
         self,
         config: Dict | TrainingConfiguration,
         epochs: int,
-        model: Union[nn.Module, str] | None = None,
-        strategy: Literal["ddp", "deepspeed", "horovod"] | None = "ddp",
+        model: nn.Module | None = None,
+        strategy: Literal["ddp", "deepspeed", "horovod"] = "ddp",
         test_every: int | None = None,
         random_seed: int | None = None,
         logger: Logger | None = None,
@@ -210,8 +211,8 @@ class TorchTrainer(Trainer, LogMixin):
         checkpoint_every: int | None = None,
         disable_tqdm: bool = False,
         name: str | None = None,
-        profiling_wait_epochs: int = 1,
-        profiling_warmup_epochs: int = 2,
+        profiling_wait_epochs: int = 0,
+        profiling_warmup_epochs: int = 0,
         measure_gpu_data: bool = False,
         measure_communication_overhead: bool = False,
         measure_epoch_time: bool = False,
@@ -222,7 +223,7 @@ class TorchTrainer(Trainer, LogMixin):
         ray_torch_config: TorchConfig | None = None,
         ray_data_config: DataConfig | None = None,
         ray_horovod_config: Optional["HorovodConfig"] = None,
-        from_checkpoint: str | Path | None = None,
+        from_checkpoint: Path | str | None = None,
         initial_best_validation_metric: str = "inf",
         run_id: str | None = None,
         time_ray: bool = False,
@@ -264,7 +265,7 @@ class TorchTrainer(Trainer, LogMixin):
         self.from_checkpoint = from_checkpoint
         self.time_ray = time_ray
         if self.from_checkpoint:
-            self.from_checkpoint = Path(from_checkpoint)
+            self.from_checkpoint = Path(self.from_checkpoint)
             if not self.from_checkpoint.exists():
                 raise RuntimeError(
                     "from_checkpoint argument was passed, but the checkpoint is not found "
@@ -298,6 +299,7 @@ class TorchTrainer(Trainer, LogMixin):
     @property
     def strategy(self) -> TorchDistributedStrategy:
         """Strategy currently in use."""
+        assert self._strategy is not None, "Expected strategy to be initialized before access"
         return self._strategy
 
     @strategy.setter
@@ -357,43 +359,47 @@ class TorchTrainer(Trainer, LogMixin):
                 return DeepSpeedStrategy(backend=self.config.dist_backend)
 
             case _:
-                raise RuntimeError(f"Strategy '{strategy}' is not recognized.")
+                raise ValueError(f"Strategy '{strategy}' is not recognized.")
 
     def _init_distributed_strategy(self) -> None:
         if not self.strategy.is_initialized:
             self.strategy.init()
 
     def _set_optimizer_from_config(self) -> None:
+        if self.model is None:
+            raise ValueError(
+                "self.model should be initialized before setting optimizer from configuration."
+            )
         match self.config.optimizer:
             case "adadelta":
-                self.optimizer = optim.Adadelta(
+                self.optimizer = Adadelta(
                     self.model.parameters(),
                     lr=self.config.optim_lr,
                     weight_decay=self.config.optim_weight_decay,
                 )
             case "adam":
-                self.optimizer = optim.Adam(
+                self.optimizer = Adam(
                     self.model.parameters(),
                     lr=self.config.optim_lr,
                     betas=self.config.optim_betas,
                     weight_decay=self.config.optim_weight_decay,
                 )
             case "adamw":
-                self.optimizer = optim.AdamW(
+                self.optimizer = AdamW(
                     self.model.parameters(),
                     lr=self.config.optim_lr,
                     betas=self.config.optim_betas,
                     weight_decay=self.config.optim_weight_decay,
                 )
             case "rmsprop":
-                self.optimizer = optim.RMSprop(
+                self.optimizer = RMSprop(
                     self.model.parameters(),
                     lr=self.config.optim_lr,
                     weight_decay=self.config.optim_weight_decay,
                     momentum=self.config.optim_momentum,
                 )
             case "sgd":
-                self.optimizer = optim.SGD(
+                self.optimizer = SGD(
                     self.model.parameters(),
                     lr=self.config.optim_lr,
                     weight_decay=self.config.optim_weight_decay,
@@ -983,12 +989,14 @@ class TorchTrainer(Trainer, LogMixin):
 
     def _set_epoch_dataloaders(self, epoch: int) -> None:
         """Sets epoch in the distributed sampler of a dataloader when using it."""
-        if self.strategy.is_distributed:
-            self.train_dataloader.sampler.set_epoch(epoch)
-            if self.validation_dataloader is not None:
-                self.validation_dataloader.sampler.set_epoch(epoch)
-            if self.test_dataloader is not None:
-                self.test_dataloader.sampler.set_epoch(epoch)
+        if not self.strategy.is_distributed:
+            return
+
+        self.train_dataloader.sampler.set_epoch(epoch)
+        if self.validation_dataloader is not None:
+            self.validation_dataloader.sampler.set_epoch(epoch)
+        if self.test_dataloader is not None:
+            self.test_dataloader.sampler.set_epoch(epoch)
 
     def set_epoch(self) -> None:
         """Set current epoch at the beginning of training."""
@@ -1086,8 +1094,8 @@ class TorchTrainer(Trainer, LogMixin):
 
     def compute_metrics(
         self,
-        true: Batch,
-        pred: Batch,
+        true: torch.Tensor,
+        pred: torch.Tensor,
         logger_step: int,
         batch_idx: int | None,
         stage: str = "train",
@@ -1265,7 +1273,7 @@ class TorchTrainer(Trainer, LogMixin):
 
         return avg_loss
 
-    def train_step(self, batch: Batch, batch_idx: int) -> Tuple[torch.Tensor, Dict[str, Any]]:
+    def train_step(self, batch: torch.Tensor, batch_idx: int) -> Tuple[torch.Tensor, Dict[str, Any]]:
         """Perform a single optimization step using a batch sampled from the
         training dataset.
 
@@ -1357,7 +1365,7 @@ class TorchTrainer(Trainer, LogMixin):
         return avg_loss
 
     def validation_step(
-        self, batch: Batch, batch_idx: int
+        self, batch: torch.Tensor, batch_idx: int
     ) -> Tuple[torch.Tensor, Dict[str, Any]]:
         """Perform a single optimization step using a batch sampled from the
         validation dataset.
@@ -1400,7 +1408,7 @@ class TorchTrainer(Trainer, LogMixin):
         """
         raise NotImplementedError()
 
-    def test_step(self, batch: Batch, batch_idx: int) -> Tuple[torch.Tensor, Dict[str, Any]]:
+    def test_step(self, batch: torch.Tensor, batch_idx: int) -> Tuple[torch.Tensor, Dict[str, Any]]:
         """Perform a single predictions step using a batch sampled from the
         test dataset.
 

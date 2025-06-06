@@ -369,9 +369,6 @@ def generate_slurm(
             help="The number of nodes that the SLURM job is going to run on.",
         ),
     ] = 1,
-    num_tasks_per_node: Annotated[
-        int, typer.Option("--num-tasks-per-node", help="The number of tasks per node.")
-    ] = 1,
     gpus_per_node: Annotated[
         int,
         typer.Option("--gpus-per-node", help="The requested number of GPUs per node."),
