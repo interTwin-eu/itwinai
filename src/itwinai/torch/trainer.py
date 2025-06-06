@@ -21,7 +21,7 @@ import time
 from collections import defaultdict
 from pathlib import Path
 from time import perf_counter as default_timer
-from typing import Any, Callable, Dict, List, Literal, Optional, Tuple
+from typing import Any, Callable, Dict, List, Literal, Tuple
 
 import ray.train
 import ray.tune
@@ -342,7 +342,8 @@ class TorchTrainer(Trainer, LogMixin):
                 py_logger.warning(
                     "Horovod strategy is no longer supported with Ray V2. See "
                     "https://github.com/ray-project/ray/issues/49454#issuecomment-2899138398. "
-                    "Falling back to HorovodStrategy without Ray.")
+                    "Falling back to HorovodStrategy without Ray."
+                )
                 return HorovodStrategy()
 
             case "horovod", False:
@@ -851,7 +852,6 @@ class TorchTrainer(Trainer, LogMixin):
             ckpt_dir = Path(self.ray_run_config.storage_path)
             ckpt_dir.mkdir(parents=True, exist_ok=True)
 
-
         # Store large datasets in Rays object store to avoid serialization issues
         train_dataset_ref = ray.put(train_dataset)
         validation_dataset_ref = (
@@ -896,7 +896,7 @@ class TorchTrainer(Trainer, LogMixin):
             run_config = ray.train.RunConfig(
                 name=f"train-trial_id={ray.tune.get_context().get_trial_id()}",
                 # Needed as of ray version 2.46, to propagate train.report back to the Tuner
-                callbacks = [TuneReportCallback()],
+                callbacks=[TuneReportCallback()],
             )
 
             trainer = RayTorchTrainer(
@@ -1217,7 +1217,6 @@ class TorchTrainer(Trainer, LogMixin):
                 assert epoch_time_logger is not None
                 epoch_time = default_timer() - epoch_start_time
                 epoch_time_logger.add_epoch_time(self.current_epoch + 1, epoch_time)
-
 
     def train_epoch(self) -> torch.Tensor:
         """Perform a complete sweep over the training dataset, completing an
