@@ -35,11 +35,11 @@ from ray.train.torch import TorchConfig
 from ray.train.torch import TorchTrainer as RayTorchTrainer
 from ray.tune import TuneConfig
 from torch.nn.parallel import DistributedDataParallel as DDP
+from torch.optim import SGD, Adadelta, Adam, AdamW, RMSprop
 from torch.optim.lr_scheduler import LRScheduler
 from torch.optim.optimizer import Optimizer
 from torch.utils.data import DataLoader, Dataset
 from torch.utils.data.distributed import DistributedSampler
-from torch.optim import Adadelta, Adam, AdamW, RMSprop, SGD
 from torchmetrics import Metric
 from tqdm import tqdm
 
@@ -66,6 +66,7 @@ from .distributed import (
 )
 from .reproducibility import seed_worker, set_seed
 from .tuning import search_space
+
 # from .type import Batch, Metric
 
 if TYPE_CHECKING:
@@ -1273,7 +1274,9 @@ class TorchTrainer(Trainer, LogMixin):
 
         return avg_loss
 
-    def train_step(self, batch: torch.Tensor, batch_idx: int) -> Tuple[torch.Tensor, Dict[str, Any]]:
+    def train_step(
+        self, batch: torch.Tensor, batch_idx: int
+    ) -> Tuple[torch.Tensor, Dict[str, Any]]:
         """Perform a single optimization step using a batch sampled from the
         training dataset.
 
@@ -1408,7 +1411,9 @@ class TorchTrainer(Trainer, LogMixin):
         """
         raise NotImplementedError()
 
-    def test_step(self, batch: torch.Tensor, batch_idx: int) -> Tuple[torch.Tensor, Dict[str, Any]]:
+    def test_step(
+        self, batch: torch.Tensor, batch_idx: int
+    ) -> Tuple[torch.Tensor, Dict[str, Any]]:
         """Perform a single predictions step using a batch sampled from the
         test dataset.
 

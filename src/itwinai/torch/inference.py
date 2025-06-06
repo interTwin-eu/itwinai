@@ -22,7 +22,6 @@ from ..serialization import ModelLoader
 from .config import TrainingConfiguration
 from .distributed import TorchDistributedStrategy
 from .trainer import TorchTrainer
-from .type import Batch
 
 
 class TorchModelLoader(ModelLoader):
@@ -121,10 +120,10 @@ class TorchPredictor(TorchTrainer, Predictor):
         self,
         config: Dict | TrainingConfiguration,
         model: nn.Module | ModelLoader,
-        strategy: Literal["ddp", "deepspeed", "horovod"] = 'ddp',
+        strategy: Literal["ddp", "deepspeed", "horovod"] = "ddp",
         logger: Logger | None = None,
         checkpoints_location: str = "checkpoints",
-        name: str | None = None
+        name: str | None = None,
     ) -> None:
         if isinstance(config, dict):
             self.config = TrainingConfiguration(**config)
@@ -167,7 +166,7 @@ class TorchPredictor(TorchTrainer, Predictor):
             num_workers=self.config.num_workers_dataloader,
             pin_memory=self.config.pin_gpu_memory,
             generator=self.torch_rng,
-            shuffle=self.config.shuffle_test
+            shuffle=self.config.shuffle_test,
         )
 
         return self.inference_dataloader
@@ -224,7 +223,7 @@ class TorchPredictor(TorchTrainer, Predictor):
         if self.logger:
             self.logger.create_logger_context(rank=self.strategy.global_rank())
             hparams = self.config.model_dump()
-            hparams['distributed_strategy'] = self.strategy.__class__.__name__
+            hparams["distributed_strategy"] = self.strategy.__class__.__name__
             self.logger.save_hyperparameters(hparams)
 
         all_predictions = self.predict()
@@ -240,10 +239,10 @@ class TorchPredictor(TorchTrainer, Predictor):
         self,
         item: Any | List[Any],
         identifier: str | List[str],
-        kind: str = 'metric',
+        kind: str = "metric",
         step: int | None = None,
         batch_idx: int | None = None,
-        **kwargs
+        **kwargs,
     ) -> None:
         """Log ``item`` with ``identifier`` name of ``kind`` type at ``step``
         time step.
@@ -265,7 +264,7 @@ class TorchPredictor(TorchTrainer, Predictor):
                 kind=kind,
                 step=step,
                 batch_idx=batch_idx,
-                **kwargs
+                **kwargs,
             )
 
     def transform_predictions(self, batch: torch.Tensor) -> torch.Tensor:
