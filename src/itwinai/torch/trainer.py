@@ -96,11 +96,11 @@ class TorchTrainer(Trainer, LogMixin):
         config (Dict | TrainingConfiguration): training configuration containing
             hyperparameters.
         epochs (int): number of training epochs.
-        model (nn.Module | None, optional): pytorch model to train or a string identifier. 
+        model (nn.Module | None, optional): pytorch model to train or a string identifier.
             Defaults to None.
-        strategy (Literal['ddp', 'deepspeed', 'horovod'], optional): distributed strategy. 
+        strategy (Literal['ddp', 'deepspeed', 'horovod'], optional): distributed strategy.
             Defaults to 'ddp'.
-        test_every (int | None, optional): run a test epoch every ``test_every`` epochs. 
+        test_every (int | None, optional): run a test epoch every ``test_every`` epochs.
             Disabled if None. Defaults to None.
         random_seed (int | None, optional): set random seed for reproducibility. If None, the
             seed is not set. Defaults to None.
@@ -108,7 +108,7 @@ class TorchTrainer(Trainer, LogMixin):
         metrics (Dict[str, Callable] | None, optional): map of torchmetrics metrics. Defaults
             to None.
         checkpoints_location (str): path to checkpoints directory. Defaults to "checkpoints".
-        checkpoint_every (int | None): save a checkpoint every ``checkpoint_every`` epochs. 
+        checkpoint_every (int | None): save a checkpoint every ``checkpoint_every`` epochs.
             Disabled if None. Defaults to None.
         disable_tqdm (bool): whether to disable tqdm progress bar(s).
         name (str | None, optional): trainer custom name. Defaults to None.
@@ -119,7 +119,7 @@ class TorchTrainer(Trainer, LogMixin):
             total energy consumption throughout training. Defaults to False.
         torch_profiling (bool): enable the profiling of computation. It uses the torch profiler
             and it may slow down training. Defaults to False.
-        measure_epoch_time (bool): enable the measurement of epoch duration (in seconds). 
+        measure_epoch_time (bool): enable the measurement of epoch duration (in seconds).
             Defaults to False,
         ray_scaling_config (ScalingConfig, optional): scaling config for Ray Trainer. Defaults
             to None,
@@ -131,7 +131,7 @@ class TorchTrainer(Trainer, LogMixin):
             None.
         ray_torch_config (TorchConfig, optional): torch configuration for Ray's TorchTrainer.
             Defaults to None.
-        ray_data_config (DataConfig, optional): dataset configuration for Ray. Defaults to 
+        ray_data_config (DataConfig, optional): dataset configuration for Ray. Defaults to
             None.
         from_checkpoint (str | Path, optional): path to checkpoint directory. Defaults to None.
         initial_best_validation_metric (str): initial value for the best validation metric.
@@ -142,7 +142,7 @@ class TorchTrainer(Trainer, LogMixin):
             Defaults to "inf".
         run_id (str, optional): name used to identify a specific run when collecting metrics
             on the trainer (e.g. GPU utilization). Defaults to None.
-        time_ray (bool): whether to time and log the execution of Ray functions. Defaults to 
+        time_ray (bool): whether to time and log the execution of Ray functions. Defaults to
             False.
     """
 
