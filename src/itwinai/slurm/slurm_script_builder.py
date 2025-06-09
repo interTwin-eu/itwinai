@@ -43,7 +43,7 @@ class SlurmScriptConfiguration(BaseModel):
     gpus_per_node: int
     cpus_per_gpu: int
 
-    # Tyipcally used to set up the environment before executing the command,
+    # Typically used to set up the environment before executing the command,
     # e.g. "ml Python", "source .venv/bin/activate" etc.
     pre_exec_command: str | None = None
 
@@ -71,6 +71,7 @@ class SlurmScriptBuilder:
         self,
         slurm_script_configuration: SlurmScriptConfiguration,
         distributed_strategy: str,
+        pre_exec_command: str | None = None,
         training_command: str | None = None,
         python_venv: str = ".venv",
         debug: bool = False,
@@ -78,14 +79,20 @@ class SlurmScriptBuilder:
         config_path: str = ".",
         pipe_key: str = "training_pipeline",
         file_folder: Path = Path("slurm_scripts"),
+        py_spy_profiling: bool = False,
+        profiling_sampling_rate: int = 10,
     ):
         self.slurm_script_configuration = slurm_script_configuration
         self.distributed_strategy = distributed_strategy
+        self.pre_exec_command = pre_exec_command
         self.training_command = training_command
 
         self.python_venv = python_venv
         self.debug = debug
         self.file_folder = file_folder
+
+        self.py_spy_profiling = py_spy_profiling
+        self.profiling_sampling_rate = profiling_sampling_rate
 
         # exec-pipeline-specific commands
         self.config_name = config_name
@@ -111,6 +118,20 @@ class SlurmScriptBuilder:
         gpus_per_node = self.slurm_script_configuration.gpus_per_node
         return f"{self.distributed_strategy}-{num_nodes}x{gpus_per_node}"
 
+    def _handle_directory_existence(self, directory: Path, should_create: bool) -> None:
+        if directory.exists():
+            return
+
+        dir_name = str(directory.resolve())
+        if should_create:
+            directory.mkdir(parents=True)
+            print(f"Creating directory '{dir_name}'")
+        else:
+            print(
+                "[WARNING]: Make sure to create the following directory before submitting the"
+                f" SLURM job: '{dir_name}'"
+            )
+
     def get_training_command(self) -> str:
         if self.training_command:
             return self.training_command.format(**self.training_cmd_formatter)
@@ -134,6 +155,8 @@ class SlurmScriptBuilder:
             export OMP_NUM_THREADS={self.omp_num_threads}
         """
 
+        if self.pre_exec_command:
+            pre_exec_command += f"\n{self.pre_exec_command}"
         if self.debug:
             pre_exec_command += "\n" + self.get_debug_command()
 
@@ -145,13 +168,12 @@ class SlurmScriptBuilder:
         the internal training command. Sets up rendezvous connections etc. when
         necessary and exports necessary environment variables.
         """
+
         if self.distributed_strategy in ["ddp", "deepspeed"]:
             rdzv_endpoint = (
-                '\'$(scontrol show hostnames "$SLURM_JOB_NODELIST"' " | head -n 1)'i:29500"
+                "'$(scontrol show hostnames \"$SLURM_JOB_NODELIST\" | head -n 1)'i:29500"
             )
-            main_command = rf"""
-            srun --cpu-bind=none --ntasks-per-node=1 \
-            bash -c "torchrun \
+            bash_command = rf"""torchrun \
                 --log_dir='{torch_log_dir}' \
                 --nnodes=$SLURM_NNODES \
                 --nproc_per_node=$SLURM_GPUS_PER_NODE \
@@ -159,7 +181,26 @@ class SlurmScriptBuilder:
                 --rdzv_conf=is_host=\$(((SLURM_NODEID)) && echo 0 || echo 1) \
                 --rdzv_backend=c10d \
                 --rdzv_endpoint={rdzv_endpoint} \
-                {self.get_training_command()}"
+                {self.get_training_command()}"""
+            if self.py_spy_profiling:
+                # Prepending the py-spy profiling command
+                py_spy_profiling_dir = Path("py-spy-outputs")
+                self._handle_directory_existence(
+                    directory=py_spy_profiling_dir, should_create=True
+                )
+                py_spy_profiling_filename = (
+                    rf"{self.distributed_strategy}_profile_\$SLURM_NODEID.txt"
+                )
+                py_spy_output_file = py_spy_profiling_dir / py_spy_profiling_filename
+
+                bash_command = (
+                    f"py-spy record -r {self.profiling_sampling_rate} -s "
+                    f"-o {py_spy_output_file} -f raw -- " + bash_command
+                )
+
+            main_command = rf"""
+            srun --cpu-bind=none --ntasks-per-node=1 \
+            bash -c "{bash_command}"
         """
         else:
             gpus_per_node = self.slurm_script_configuration.gpus_per_node
@@ -237,14 +278,20 @@ class SlurmScriptBuilder:
             err_out_path = Path("slurm_job_logs") / f"{job_identifier}.err"
             self.slurm_script_configuration.err_out = err_out_path
 
-        # Making sure the std out and err out folders exist
-        self.slurm_script_configuration.std_out.parent.mkdir(exist_ok=True, parents=True)
-        self.slurm_script_configuration.err_out.parent.mkdir(exist_ok=True, parents=True)
+        # Making sure the std out and std err directories exist
+        self._handle_directory_existence(
+            directory=self.slurm_script_configuration.std_out.parent,
+            should_create=submit_slurm_job,
+        )
+        self._handle_directory_existence(
+            directory=self.slurm_script_configuration.err_out.parent,
+            should_create=submit_slurm_job,
+        )
 
         # Generate the script using the given configuration
         script = self.slurm_script_configuration.format_script()
         if not submit_slurm_job and not save_script:
-            upper_banner_str = f"{'#'*20} SLURM Script Preview {'#'*20}"
+            upper_banner_str = f"{'#' * 20} SLURM Script Preview {'#' * 20}"
             print(upper_banner_str)
             print(script)
             print("#" * len(upper_banner_str))
@@ -354,10 +401,13 @@ def generate_default_slurm_script() -> None:
         distributed_strategy=args.dist_strat,
         debug=args.debug,
         python_venv=args.python_venv,
+        pre_exec_command=args.pre_exec_cmd,
         training_command=args.training_cmd,
         config_path=args.config_path,
         config_name=args.config_name,
         pipe_key=args.pipe_key,
+        py_spy_profiling=args.py_spy,
+        profiling_sampling_rate=args.profiling_sampling_rate,
     )
 
     submit_job = not args.no_submit_job

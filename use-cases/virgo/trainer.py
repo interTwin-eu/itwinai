@@ -19,7 +19,7 @@ from typing import Any, Dict, Literal, Optional, Tuple
 import numpy as np
 import torch
 import torch.nn as nn
-from ray import train
+from ray import tune
 from torch.utils.data import Dataset, TensorDataset
 from tqdm import tqdm
 
@@ -27,8 +27,8 @@ from itwinai.distributed import suppress_workers_print
 from itwinai.loggers import EpochTimeTracker, Logger
 from itwinai.torch.config import TrainingConfiguration
 from itwinai.torch.distributed import DeepSpeedStrategy, RayDDPStrategy, RayDeepSpeedStrategy
-from itwinai.torch.profiling.profiler import profile_torch_trainer
 from itwinai.torch.monitoring.monitoring import measure_gpu_utilization
+from itwinai.torch.profiling.profiler import profile_torch_trainer
 from itwinai.torch.trainer import RayTorchTrainer, TorchTrainer
 from src.model import Decoder, Decoder_2d_deep, GeneratorResNet, UNet
 from src.utils import init_weights
@@ -70,7 +70,7 @@ class NoiseGeneratorTrainer(TorchTrainer):
         )
         self.save_parameters(**self.locals2params(locals()))
         # Global training configuration
-        
+
         if isinstance(config, dict):
             config = VirgoTrainingConfiguration(**config)
         self.config = config
@@ -382,7 +382,7 @@ class NoiseGeneratorTrainer(TorchTrainer):
                 epoch_time_logger.add_epoch_time(epoch - 1, timer() - lt)
 
             # Report training metrics of last epoch to Ray
-            train.report({"loss": np.mean(val_loss)})
+            tune.report({"loss": np.mean(val_loss)})
 
         return loss_plot, val_loss_plot, acc_plot, val_acc_plot
 

@@ -1,7 +1,7 @@
 Welcome to itwinai's documentation!
 ===================================
 
-``itwinai`` is a versatile toolkit designed to accelerate AI and machine learning (ML) workflows for researchers and scientists, 
+``itwinai`` is a versatile toolkit designed to accelerate AI and machine learning (ML) workflows for researchers and scientists,
 particularly in the realm of Digital Twins (DTs). This toolkit provides a suite of user-friendly tools to effortlessly
 scale machine learning projects to high-performance computing (HPC) resources, seamlessly integrating with cloud-based services.
 The primary focus of ``itwinai`` is to reduce the engineering burden on researchers, enabling them to concentrate more on advancing
@@ -23,7 +23,7 @@ plugins, enhancing the flexibility and adaptability of the platform.
 As the primary contributor, CERN will retain administrative rights to the repository during and after the interTwin project,
 except in cases where CERN is unable to maintain it.
 
-The library also benefits from contributions by members of the interTwin collaboration. 
+The library also benefits from contributions by members of the interTwin collaboration.
 For a complete list of contributors, visit the `GitHub contributors page <https://github.com/interTwin-eu/itwinai/graphs/contributors>`_.
 
 
@@ -59,7 +59,7 @@ contains thoroughly tested features aligned with the toolkit's most recent relea
    installation/user_installation
    installation/developer_installation
    installation/uv_tutorial
-   
+
 .. toctree::
    :maxdepth: 2
    :hidden:
@@ -69,6 +69,7 @@ contains thoroughly tested features aligned with the toolkit's most recent relea
    getting-started/slurm
    getting-started/containers
    getting-started/plugins
+   getting-started/plugins-list
 
 .. toctree::
    :maxdepth: 2
@@ -98,6 +99,9 @@ contains thoroughly tested features aligned with the toolkit's most recent relea
    use-cases/3dgan_doc
    use-cases/cyclones_doc
    use-cases/mnist_doc
+   use-cases/xtclim_doc
+   use-cases/radio-astronomy
+   use-cases/latticeqcd_doc
 
 .. toctree::
    :maxdepth: 2
@@ -123,11 +127,11 @@ contains thoroughly tested features aligned with the toolkit's most recent relea
 ..    notebooks/example
 
 
-interTwin Demo: itwinai integration with other DTE modules 
+interTwin Demo: itwinai integration with other DTE modules
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 .. raw:: html
-   
+
    <iframe width="560" height="315" src="https://www.youtube.com/embed/NoVCfSxwtX0" title="interTwin demo: itwinai (WP6)" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
 
 

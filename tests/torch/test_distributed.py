@@ -9,19 +9,25 @@
 
 """Test distributed training strategies."""
 
-from typing import Any
+from pathlib import Path
+from typing import Any, Literal
 from unittest.mock import patch
 
 import pytest
 import torch
 import torch.nn as nn
+from ray.tune import RunConfig
 from torch.nn import Linear
 from torch.optim import SGD, Optimizer
 from torch.utils.data import DataLoader, Dataset, DistributedSampler
 
+from itwinai.distributed import get_adaptive_ray_scaling_config, ray_cluster_is_running
 from itwinai.torch.distributed import (
     DeepSpeedStrategy,
     HorovodStrategy,
+    RayDDPStrategy,
+    RayDeepSpeedStrategy,
+    RayTorchDistributedStrategy,
     TorchDDPStrategy,
     TorchDistributedStrategy,
 )
@@ -116,7 +122,7 @@ class BaseTestDistributedStrategy:
         assert dataloader.sampler.rank == strategy.global_rank()
         assert dataloader.sampler.num_replicas == strategy.global_world_size()
 
-    def test_gather_operations(self, strategy):
+    def test_gather_operations(self, strategy: TorchDistributedStrategy):
         """Test collective operations."""
         # Test tensor gather
         local_tensor = torch.tensor([strategy.global_rank()], device=strategy.device())
@@ -171,7 +177,7 @@ class BaseTestDistributedStrategy:
 @pytest.mark.torch_dist
 class TestTorchDDPStrategy(BaseTestDistributedStrategy):
     @pytest.fixture(scope="module")
-    def strategy(self, ddp_strategy) -> TorchDDPStrategy:
+    def strategy(self, ddp_strategy: TorchDistributedStrategy) -> TorchDDPStrategy:
         return ddp_strategy
 
     def test_init(self, strategy: TorchDDPStrategy):
@@ -203,15 +209,15 @@ class TestTorchDDPStrategy(BaseTestDistributedStrategy):
 @pytest.mark.deepspeed_dist
 class TestDeepSpeedStrategy(BaseTestDistributedStrategy):
     @pytest.fixture(scope="module")
-    def strategy(self, deepspeed_strategy) -> DeepSpeedStrategy:
+    def strategy(self, deepspeed_strategy: DeepSpeedStrategy) -> DeepSpeedStrategy:
         return deepspeed_strategy
 
     def test_init(self, strategy: DeepSpeedStrategy):
         """Test specific initialization of DeepSpeedStrategy."""
         assert strategy.backend in ["nccl", "gloo", "mpi"]
-        assert hasattr(
-            strategy, "deepspeed"
-        ), "Lazy import of deepspeed not found in strategy class."
+        assert hasattr(strategy, "deepspeed"), (
+            "Lazy import of deepspeed not found in DeepSpeedStrategy class."
+        )
 
         # Test initialization
         init_path = "deepspeed.init_distributed"
@@ -247,12 +253,14 @@ class TestDeepSpeedStrategy(BaseTestDistributedStrategy):
 @pytest.mark.horovod_dist
 class TestHorovodStrategy(BaseTestDistributedStrategy):
     @pytest.fixture(scope="module")
-    def strategy(self, horovod_strategy) -> HorovodStrategy:
+    def strategy(self, horovod_strategy: HorovodStrategy) -> HorovodStrategy:
         return horovod_strategy
 
-    def test_init(self, strategy):
+    def test_init(self, strategy: HorovodStrategy):
         assert strategy.is_initialized
-        assert hasattr(strategy, "hvd"), "Lazy import of horovod not found in strategy class."
+        assert hasattr(strategy, "hvd"), (
+            "Lazy import of horovod not found in HorovodStrategy class."
+        )
 
         # Test initialization
         init_path = "horovod.torch.init"
@@ -261,12 +269,218 @@ class TestHorovodStrategy(BaseTestDistributedStrategy):
             strategy.init()
             mock_init_ds.assert_called_once()
 
-    def test_distributed_model(self, strategy, simple_model, optimizer):
+    def test_distributed_model(self, strategy: HorovodStrategy, simple_model, optimizer):
         dist_model, dist_optimizer, _ = strategy.distributed(
             simple_model, optimizer=optimizer, op=strategy.hvd.Average
         )
         assert isinstance(dist_model, nn.Module)
         assert isinstance(dist_optimizer, Optimizer)
-        assert hasattr(
-            dist_optimizer, "synchronize"
-        ), "synchronize() method not found for Horovod optimizer"
+        assert hasattr(dist_optimizer, "synchronize"), (
+            "synchronize() method not found for Horovod optimizer"
+        )
+
+
+@pytest.mark.hpc
+@pytest.mark.ray_dist
+@pytest.mark.parametrize(
+    "strategy_name",
+    [
+        pytest.param("ddp"),
+        pytest.param("deepspeed"),
+        pytest.param("horovod"),
+    ],
+)
+def test_ray_distributed_strategy(
+    strategy_name: Literal["ddp"] | Literal["deepspeed"] | Literal["horovod"],
+    shared_tmp_path: Path,
+):
+    import ray  # needed here
+
+    assert ray_cluster_is_running(), "Ray cluster not detected. Aborting tests"
+
+    # The worker function must be declared inline, ohterwise the Ray workers will not find it
+    def ray_tests(config, strategy: RayTorchDistributedStrategy):
+        """The tests below are a flattened version of BaseTestDistributedStrategy"""
+        strategy.init()
+
+        simple_model = Linear(10, 2)
+        simple_optimizer = SGD(simple_model.parameters(), lr=0.01)
+
+        # Strategy-specific tests
+        if isinstance(strategy, RayDDPStrategy):
+            # Test init
+            assert hasattr(strategy, "ray_train"), (
+                "Lazy import of ray.train not found in RayDDPStrategy class."
+            )
+            # Test distribute model
+            from torch.nn.parallel import DistributedDataParallel
+
+            dist_model, dist_optimizer, _ = strategy.distributed(
+                simple_model, simple_optimizer
+            )
+            assert isinstance(dist_model, DistributedDataParallel)
+            assert hasattr(dist_model, "module") or isinstance(dist_model, nn.Module)
+            assert isinstance(dist_optimizer, Optimizer)
+
+        elif isinstance(strategy, RayDeepSpeedStrategy):
+            assert strategy.backend in ["nccl", "gloo", "mpi"]
+            assert hasattr(strategy, "deepspeed"), (
+                "Lazy import of deepspeed not found in RayDeepSpeedStrategy class."
+            )
+
+            # Test initialization
+            init_path = "deepspeed.init_distributed"
+            with patch(init_path, autospec=True) as mock_init_ds:
+                strategy = RayDeepSpeedStrategy(
+                    backend="nccl" if torch.cuda.is_available() else "gloo"
+                )
+                strategy.init()
+                mock_init_ds.assert_called_once()
+
+            # Test distribute model
+            from deepspeed.runtime.engine import DeepSpeedEngine
+
+            ds_config = {
+                "train_batch_size": 16,
+                "fp16": {"enabled": False},
+                "optimizer": {"type": "SGD", "params": {"lr": 0.001}},
+            }
+
+            dist_model, dist_optimizer, _ = strategy.distributed(
+                simple_model, optimizer=simple_optimizer, config=ds_config
+            )
+            assert hasattr(dist_model, "module")
+            assert isinstance(dist_model, DeepSpeedEngine)
+            assert dist_optimizer is not None
+            assert isinstance(dist_optimizer, Optimizer)
+
+        else:
+            raise ValueError("Unrecognized strategy type")
+
+        # Test cluster properties
+        assert strategy.is_initialized
+        assert isinstance(strategy.device(), str)
+        assert isinstance(strategy.is_main_worker, bool)
+        assert strategy.global_world_size() >= 1
+        assert strategy.local_world_size() >= 1
+        assert strategy.global_rank() >= 0
+        assert strategy.local_rank() >= 0
+
+        # Test re-initialization
+        with pytest.raises(DistributedStrategyError) as init_exc:
+            strategy.init()
+            assert "already initialized" in init_exc.value
+
+        # Test initialized flag
+        strategy.is_initialized = False
+
+        with pytest.raises(UninitializedStrategyError):
+            strategy.distributed(simple_model, simple_optimizer)
+        with pytest.raises(UninitializedStrategyError):
+            strategy.global_rank()
+        with pytest.raises(UninitializedStrategyError):
+            strategy.local_rank()
+        with pytest.raises(UninitializedStrategyError):
+            strategy.local_world_size()
+        with pytest.raises(UninitializedStrategyError):
+            strategy.global_world_size()
+        with pytest.raises(UninitializedStrategyError):
+            strategy.device()
+        with pytest.raises(UninitializedStrategyError):
+            strategy.is_main_worker
+        x = torch.ones(2)
+        with pytest.raises(UninitializedStrategyError):
+            strategy.gather(x)
+        with pytest.raises(UninitializedStrategyError):
+            strategy.allgather_obj(x)
+        with pytest.raises(UninitializedStrategyError):
+            strategy.gather_obj(x)
+        with pytest.raises(UninitializedStrategyError):
+            strategy.clean_up()
+
+        strategy.is_initialized = True
+
+        # Test tensor gather
+        local_tensor = torch.tensor([strategy.global_rank()], device=strategy.device())
+        gathered = strategy.gather(local_tensor)
+        if strategy.is_main_worker:
+            assert len(gathered) == strategy.global_world_size()
+        else:
+            assert gathered is None
+
+        # Test tensor gather from CPU
+        my_tensor = torch.ones(10) * strategy.global_rank()
+        tensors = strategy.gather(my_tensor, dst_rank=0)
+        if strategy.is_main_worker:
+            assert torch.stack(tensors).sum() == sum(range(strategy.global_world_size())) * 10
+        else:
+            assert tensors is None
+
+        # Test object gather
+        local_obj = {"rank": strategy.global_rank()}
+        gathered_obj = strategy.gather_obj(local_obj)
+        if strategy.is_main_worker:
+            assert len(gathered_obj) == strategy.global_world_size()
+        else:
+            assert gathered_obj is None
+
+        # Test allgather
+        all_gathered = strategy.allgather_obj(local_obj)
+        assert len(all_gathered) == strategy.global_world_size()
+
+        # Check that the values of the ranks are as expected
+        nnodes = strategy.global_world_size() // strategy.local_world_size()
+
+        # Test local ranks
+        lranks = strategy.gather_obj(strategy.local_rank(), dst_rank=0)
+        if strategy.is_main_worker:
+            assert len(lranks) == strategy.global_world_size()
+            assert sum(lranks) == sum(range(strategy.local_world_size())) * nnodes
+        else:
+            assert lranks is None
+
+        # Test global ranks
+        granks = strategy.gather_obj(strategy.global_rank(), dst_rank=0)
+        if strategy.is_main_worker:
+            assert len(granks) == strategy.global_world_size()
+            assert sum(granks) == sum(range(strategy.global_world_size()))
+        else:
+            assert granks is None
+
+    # scaling_config = ScalingConfig(num_workers=2, use_gpu=False)
+    scaling_config = get_adaptive_ray_scaling_config()
+    run_config = RunConfig(storage_path=shared_tmp_path / "ray_checkpoints")
+
+    match strategy_name:
+        case "ddp":
+            # This calls ray.init under the hood
+            strategy = RayDDPStrategy()
+
+            # Trainable
+            test_function = ray.tune.with_parameters(ray_tests, strategy=strategy)
+
+            # Create a trainer
+            trainer = ray.train.torch.TorchTrainer(
+                test_function,
+                scaling_config=scaling_config,
+                run_config=run_config,
+            )
+            trainer.fit()
+        case "deepspeed":
+            # This calls ray.init under the hood
+            strategy = RayDeepSpeedStrategy(
+                backend="nccl" if torch.cuda.is_available() else "gloo"
+            )
+
+            # Trainable
+            test_function = ray.tune.with_parameters(ray_tests, strategy=strategy)
+
+            # Create a trainer
+            trainer = ray.train.torch.TorchTrainer(
+                test_function,
+                scaling_config=scaling_config,
+                run_config=run_config,
+            )
+            trainer.fit()
+        case _:
+            raise ValueError("unrecognized strategy name")

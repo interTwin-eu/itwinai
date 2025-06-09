@@ -7,6 +7,7 @@
 # - Matteo Bunino <matteo.bunino@cern.ch> - CERN
 # - Jarl Sondre Sæther <jarl.sondre.saether@cern.ch> - CERN
 # - Anna Lappe <anna.elisa.lappe@cern.ch> - CERN
+# - Linus Eickhoff <linus.maximilian.eickhoff@cern.ch> - CERN
 #
 # --------------------------------------------------------------------------------------
 # Command-line interface for the itwinai Python library.
@@ -19,7 +20,9 @@
 # NOTE: import libraries in the command's function, not here, as having them here will
 # slow down the CLI commands significantly.
 
+import logging
 import os
+import subprocess
 import sys
 from pathlib import Path
 from typing import List, Optional
@@ -28,9 +31,125 @@ import hydra
 import typer
 from typing_extensions import Annotated
 
-from itwinai.utils import make_config_paths_absolute
+from itwinai.utils import COMPUTATION_DATA_DIR, EPOCH_TIME_DIR, GPU_ENERGY_DIR
 
 app = typer.Typer(pretty_exceptions_enable=False)
+
+py_logger = logging.getLogger(__name__)
+
+
+@app.command()
+def generate_flamegraph(
+    file: Annotated[str, typer.Option(help="The location of the raw profiling data.")],
+    output_filename: Annotated[
+        str, typer.Option(help="The filename of the resulting flamegraph.")
+    ] = "flamegraph.svg",
+):
+    """Generates a flamegraph from the given profiling output."""
+    script_filename = "flamegraph.pl"
+    script_path = Path(__file__).parent / script_filename
+
+    if not script_path.exists():
+        py_logger.exception(f"Could not find '{script_filename}' at '{script_path}'")
+        raise typer.Exit(code=1)
+
+    try:
+        with open(output_filename, "w") as out:
+            subprocess.run(
+                ["perl", str(script_path), file],
+                stdout=out,
+                check=True,
+            )
+        typer.echo(f"Flamegraph saved to '{output_filename}'")
+    except FileNotFoundError:
+        typer.echo("Error: Perl is not installed or not in PATH.")
+    except subprocess.CalledProcessError as e:
+        typer.echo(f"Flamegraph generation failed: {e}")
+
+
+@app.command()
+def generate_py_spy_report(
+    file: Annotated[str, typer.Option(help="The location of the raw profiling data.")],
+    num_rows: Annotated[
+        str,
+        typer.Option(help="Number of rows to display. Pass 'all' to print the full table."),
+    ] = "10",
+    aggregate_leaf_paths: Annotated[
+        bool,
+        typer.Option(
+            help="Whether to aggregate all unique leaf calls across different call stacks."
+        ),
+    ] = False,
+    library_name: Annotated[
+        str, typer.Option(help="Which library name to find the lowest contact point of.")
+    ] = "itwinai",
+):
+    """Generates an aggregation of the raw py-spy profiling data, showing which leaf
+    functions collected the most samples.
+    """
+    from tabulate import tabulate
+
+    from itwinai.torch.profiling.py_spy_aggregation import (
+        add_library_information,
+        get_aggregated_paths,
+        parse_num_rows,
+        read_stack_traces,
+    )
+
+    try:
+        parsed_num_rows: int | None = parse_num_rows(num_rows=num_rows)
+    except ValueError as exception:
+        raise typer.BadParameter(
+            f"Failed to parse `num_rows` with value '{num_rows}'. Error:\n{str(exception)}",
+            param_hint="num-rows",
+        )
+
+    file_path = Path(file)
+    if not file_path.exists():
+        raise typer.BadParameter(f"'{file_path.resolve()}' was not found!", param_hint="file")
+
+    try:
+        stack_traces = read_stack_traces(path=file_path)
+    except ValueError as exception:
+        typer.echo(f"Failed to read stack traces with following error:\n{str(exception)}")
+        raise typer.Exit(code=1)
+
+    typer.echo(
+        "[WARNING]: Multiprocessing calls (e.g. Dataloader subprocesses) might be counted"
+        " multiple times (once per process) and thus be overrepresented. Take this into"
+        " consideration when reading the results.\n"
+    )
+
+    add_library_information(stack_traces=stack_traces, library_name=library_name)
+    leaf_stack_frames = [stack_frame_list[-1] for stack_frame_list in stack_traces]
+    if aggregate_leaf_paths:
+        leaf_stack_frames = get_aggregated_paths(stack_frames=leaf_stack_frames)
+
+    leaf_stack_frames.sort(reverse=True)
+
+    # Turn num_samples into percentages
+    total_samples = sum(stack_frame.num_samples for stack_frame in leaf_stack_frames)
+    for stack_frame in leaf_stack_frames:
+        num_samples = stack_frame.num_samples
+        percentage = 100 * num_samples / total_samples
+        stack_frame.proportion = percentage
+
+    filtered_leaf_stack_dicts = []
+    if parsed_num_rows is not None:
+        frames_to_print = leaf_stack_frames[:parsed_num_rows]
+    else:
+        frames_to_print = leaf_stack_frames
+
+    for stack_frame in frames_to_print:
+        stack_frame_dict = stack_frame.model_dump()
+
+        # Creating a proportion string for the table and putting it at the end
+        num_samples = stack_frame_dict.pop("num_samples")
+        proportion = stack_frame_dict.pop("proportion")
+        stack_frame_dict["proportion (n)"] = f"{proportion:.2f}% ({num_samples})"
+        filtered_leaf_stack_dicts.append(stack_frame_dict)
+
+    typer.echo(tabulate(filtered_leaf_stack_dicts, headers="keys", tablefmt="presto"))
 
 
 @app.command()
@@ -71,6 +190,16 @@ def generate_scalability_report(
             )
         ),
     ] = ".png",
+    include_communication: Annotated[
+        bool,
+        typer.Option(
+            help=(
+                "Include communication data in the scalability report. Disclaimer:"
+                " Communication fractions are unreliable and vary significantly for different"
+                " HPC systems."
+            )
+        ),
+    ] = False,
 ):
     """Generates scalability reports for epoch time, GPU data, and communication data
     based on log files in the specified directory. Optionally, backups of the reports
@@ -85,6 +214,7 @@ def generate_scalability_report(
 
     from itwinai.scalability_report.reports import (
         communication_data_report,
+        computation_data_report,
         epoch_time_report,
         gpu_data_report,
     )
@@ -114,19 +244,19 @@ def generate_scalability_report(
 
     # Finding the respective data logging directories
     epoch_time_logdirs = [
-        path / "epoch-time"
+        path / EPOCH_TIME_DIR
         for path in base_directories_for_runs
-        if (path / "epoch-time").exists()
+        if (path / EPOCH_TIME_DIR).exists()
     ]
     gpu_data_logdirs = [
-        path / "gpu-energy-data"
+        path / GPU_ENERGY_DIR
         for path in base_directories_for_runs
-        if (path / "gpu-energy-data").exists()
+        if (path / GPU_ENERGY_DIR).exists()
     ]
-    comm_time_logdirs = [
-        path / "communication-data"
+    comp_time_logdirs = [
+        path / COMPUTATION_DATA_DIR
         for path in base_directories_for_runs
-        if (path / "communication-data").exists()
+        if (path / COMPUTATION_DATA_DIR).exists()
     ]
 
     # Setting the backup directory from run name
@@ -137,9 +267,9 @@ def generate_scalability_report(
         backup_run_id = f"aggregated_run_{timestamp}"
     backup_dir = Path(backup_root_dir) / backup_run_id
 
-    epoch_time_backup_dir = backup_dir / "epoch-time"
-    gpu_data_backup_dir = backup_dir / "gpu-energy-data"
-    communication_data_backup_dir = backup_dir / "communication-data"
+    epoch_time_backup_dir = backup_dir / EPOCH_TIME_DIR
+    gpu_data_backup_dir = backup_dir / GPU_ENERGY_DIR
+    computation_data_backup_dir = backup_dir / COMPUTATION_DATA_DIR
 
     plot_dir_path = Path(plot_dir)
     plot_dir_path.mkdir(exist_ok=True, parents=True)
@@ -158,32 +288,56 @@ def generate_scalability_report(
         do_backup=do_backup,
         plot_file_suffix=plot_file_suffix,
     )
-    communication_data_table = communication_data_report(
-        log_dirs=comm_time_logdirs,
+
+    if include_communication:
+        comm_time_logdirs = [
+            path / COMPUTATION_DATA_DIR
+            for path in base_directories_for_runs
+            if (path / COMPUTATION_DATA_DIR).exists()
+        ]
+        communication_data_backup_dir = backup_dir / COMPUTATION_DATA_DIR
+        communication_data_table = communication_data_report(
+            log_dirs=comm_time_logdirs,
+            plot_dir=plot_dir_path,
+            backup_dir=communication_data_backup_dir,
+            do_backup=do_backup,
+            plot_file_suffix=plot_file_suffix,
+        )
+
+    computation_data_table = computation_data_report(
+        log_dirs=comp_time_logdirs,
         plot_dir=plot_dir_path,
-        backup_dir=communication_data_backup_dir,
+        backup_dir=computation_data_backup_dir,
         do_backup=do_backup,
         plot_file_suffix=plot_file_suffix,
     )
 
-    print()
+
+    typer.echo("")
     if epoch_time_table is not None:
-        print("#" * 8, "Epoch Time Report", "#" * 8)
-        print(epoch_time_table, "\n")
+        typer.echo("#" * 8 + " Epoch Time Report " + "#" * 8)
+        typer.echo(epoch_time_table + "\n")
     else:
-        print("No Epoch Time Data Found\n")
+        typer.echo("No Epoch Time Data Found\n")
 
     if gpu_data_table is not None:
-        print("#" * 8, "GPU Data Report", "#" * 8)
-        print(gpu_data_table, "\n")
+        typer.echo("#" * 8 + "GPU Data Report" + "#" * 8)
+        typer.echo(gpu_data_table + "\n")
     else:
-        print("No GPU Data Found\n")
+        typer.echo("No GPU Data Found\n")
 
-    if communication_data_table is not None:
-        print("#" * 8, "Communication Data Report", "#" * 8)
-        print(communication_data_table, "\n")
+    if computation_data_table is not None:
+        typer.echo("#" * 8 + "Computation Data Report" + "#" * 8)
+        typer.echo(computation_data_table + "\n")
     else:
-        print("No Communication Data Found\n")
+        typer.echo("No Computation Data Found\n")
+
+    if include_communication:
+        if communication_data_table is not None:
+            typer.echo("#" * 8 + "Communication Data Report" + "#" * 8)
+            typer.echo(communication_data_table + "\n")
+        else:
+            typer.echo("No Communication Data Found\n")
 
 
 @app.command()
@@ -295,6 +449,12 @@ def generate_slurm(
             case_sensitive=False,
         ),
     ] = "ddp",
+    pre_exec_cmd: Annotated[
+        str | None,
+        typer.Option(
+            "--pre-exec-cmd", help="The pre-execution command to use for the python script."
+        ),
+    ] = None,
     training_cmd: Annotated[
         str | None,
         typer.Option(
@@ -335,6 +495,16 @@ def generate_slurm(
         str | None,
         typer.Option("--config", help="The path to the SLURM configuration file."),
     ] = None,
+    py_spy: Annotated[
+        bool, typer.Option("--py-spy", help="Whether to activate profiling with py-spy or not")
+    ] = False,
+    profiling_sampling_rate: Annotated[
+        int,
+        typer.Option(
+            "--profiling-sampling-rate",
+            help="The rate at which to profile with the py-spy profiler.",
+        ),
+    ] = 10,
 ):
     """Generates a default SLURM script using arguments and optionally a configuration
     file.
@@ -453,6 +623,7 @@ def exec_pipeline(
     by passing "+pipe_key=your_pipeline" in the list of overrides, and to execute only a
     subset of the steps, you can pass "+pipe_steps=[0,1]".
     """
+    from itwinai.utils import make_config_paths_absolute
 
     del sys.argv[0]
 
@@ -479,6 +650,22 @@ def exec_pipeline_with_compose(cfg):
     from hydra.utils import instantiate
     from omegaconf import OmegaConf, errors
 
+    # Register custom OmegaConf resolver to allow to dynaimcally compute the current working
+    # directory. Example: some_field: ${itwinai.cwd:}/some/nested/path/in/current/working/dir
+    OmegaConf.register_new_resolver("itwinai.cwd", lambda: os.getcwd())
+
+    def range_resolver(x, y=None, step=1):
+        """Custom OmegaConf resolver for range."""
+        if y is None:
+            return list(range(int(x)))
+        return list(range(int(x), int(y), int(step)))
+
+    # Register custom OmegaConf resolver to allow to dynaimcally compute ranges
+    OmegaConf.register_new_resolver("itwinai.range", range_resolver)
+
+    # Register custom OmegaConf resolver to allow to dynaimcally compute ranges
+    OmegaConf.register_new_resolver("itwinai.multiply", lambda x, y: x * y)
+
     pipe_steps = OmegaConf.select(cfg, "pipe_steps", default=None)
     pipe_key = OmegaConf.select(cfg, "pipe_key", default="training_pipeline")
 
@@ -494,7 +681,7 @@ def exec_pipeline_with_compose(cfg):
     if pipe_steps:
         try:
             cfg.steps = [cfg.steps[step] for step in pipe_steps]
-            print(f"Successfully selected steps {pipe_steps}")
+            typer.echo(f"Successfully selected steps {pipe_steps}")
         except errors.ConfigKeyError as e:
             e.add_note(
                 "Could not find all selected steps. Please ensure that all steps exist "
@@ -503,7 +690,7 @@ def exec_pipeline_with_compose(cfg):
             )
             raise e
     else:
-        print("No steps selected. Executing the whole pipeline.")
+        typer.echo("No steps selected. Executing the whole pipeline.")
 
     # Instantiate and execute the pipeline
     pipeline = instantiate(cfg, _convert_="all")
@@ -512,14 +699,14 @@ def exec_pipeline_with_compose(cfg):
 
 @app.command()
 def mlflow_ui(
-    path: str = typer.Option("ml-logs/", help="Path to logs storage."),
+    path: str = typer.Option("mllogs/mlflow", help="Path to logs storage."),
     port: int = typer.Option(5000, help="Port on which the MLFlow UI is listening."),
     host: str = typer.Option(
         "127.0.0.1",
         help="Which host to use. Switch to '0.0.0.0' to e.g. allow for port-forwarding.",
     ),
 ):
-    """Visualize Mlflow logs."""
+    """Visualize logs with Mlflow."""
     import subprocess
 
     subprocess.run(f"mlflow ui --backend-store-uri {path} --port {port} --host {host}".split())
@@ -527,7 +714,7 @@ def mlflow_ui(
 
 @app.command()
 def mlflow_server(
-    path: str = typer.Option("ml-logs/", help="Path to logs storage."),
+    path: str = typer.Option("mllogs/mlflow", help="Path to logs storage."),
     port: int = typer.Option(5000, help="Port on which the server is listening."),
 ):
     """Spawn Mlflow server."""
@@ -571,7 +758,7 @@ def download_mlflow_data(
         "MLFLOW_TRACKING_USERNAME" in os.environ and "MLFLOW_TRACKING_PASSWORD" in os.environ
     )
     if not mlflow_credentials_set:
-        print(
+        typer.echo(
             "\nWarning: MLFlow authentication environment variables are not set. "
             "If the server requires authentication, your request will fail."
             "You can authenticate by setting environment variables before running:\n"
@@ -588,27 +775,28 @@ def download_mlflow_data(
 
     # Handling authentication
     try:
-        print(f"\nConnecting to MLFlow server at {tracking_uri}")
-        print(f"Accessing experiment ID: {experiment_id}")
+        typer.echo(f"\nConnecting to MLFlow server at {tracking_uri}")
+        typer.echo(f"Accessing experiment ID: {experiment_id}")
         runs = client.search_runs(experiment_ids=[experiment_id])
-        print(f"Authentication successful! Found {len(runs)} runs.")
+        typer.echo(f"Authentication successful! Found {len(runs)} runs.")
     except mlflow.MlflowException as e:
         status_code = e.get_http_status_code()
         if status_code == 401:
-            print(
+            typer.echo(
                 "Authentication with MLFlow failed with code 401! Either your "
                 "environment variables are not set or they are incorrect!"
             )
-            return
+            typer.Exit(code=1)
         else:
-            raise e
+            typer.echo(e.message)
+            typer.Exit(code=1)
 
     all_metrics = []
     for run_idx, run in enumerate(runs):
         run_id = run.info.run_id
         metric_keys = run.data.metrics.keys()  # Get all metric names
 
-        print(f"Processing run {run_idx+1}/{len(runs)}")
+        typer.echo(f"Processing run {run_idx + 1}/{len(runs)}")
         for metric_name in metric_keys:
             metrics = client.get_metric_history(run_id, metric_name)
             for metric in metrics:
@@ -623,12 +811,26 @@ def download_mlflow_data(
                 )
 
     if not all_metrics:
-        print("No metrics found in the runs")
-        return
+        typer.echo("No metrics found in the runs")
+        typer.Exit(code=1)
 
     df_metrics = pd.DataFrame(all_metrics)
     df_metrics.to_csv(output_file, index=False)
-    print(f"Saved data to '{Path(output_file).resolve()}'!")
+    typer.echo(f"Saved data to '{Path(output_file).resolve()}'!")
+
+
+def tensorboard_ui(
+    path: str = typer.Option("mllogs/tensorboard", help="Path to logs storage."),
+    port: int = typer.Option(6006, help="Port on which the Tensorboard UI is listening."),
+    host: str = typer.Option(
+        "127.0.0.1",
+        help="Which host to use. Switch to '0.0.0.0' to e.g. allow for port-forwarding.",
+    ),
+):
+    """Visualize logs with TensorBoard."""
+    import subprocess
+
+    subprocess.run(f"tensorboard --logdir={path} --port={port} --host={host}".split())
 
 
 if __name__ == "__main__":
