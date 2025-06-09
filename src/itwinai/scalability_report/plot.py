@@ -6,6 +6,7 @@
 # Credit:
 # - Jarl Sondre Sæther <jarl.sondre.saether@cern.ch> - CERN
 # - Matteo Bunino <matteo.bunino@cern.ch> - CERN
+# - Linus Eickhoff <linus.maximilian.eickhoff@cern.ch> - CERN
 # --------------------------------------------------------------------------------------
 
 from itertools import cycle
@@ -20,6 +21,8 @@ from matplotlib.axes import Axes
 from matplotlib.figure import Figure
 from matplotlib.patches import Patch
 from matplotlib.ticker import NullLocator, ScalarFormatter
+
+from itwinai.utils import deprecated
 
 # Doing this because otherwise I get an error about X11 Forwarding which I believe
 # is due to the server trying to pass the image to the client computer
@@ -261,6 +264,10 @@ def gpu_bar_plot(data_df: pd.DataFrame, plot_title: str, y_label: str, main_colu
     return fig, ax
 
 
+@deprecated(
+    "Communication vs computation is unreliable and not comparable between GPU"
+    " architectures. Please use computation_vs_other_bar_plot instead."
+)
 def computation_fraction_bar_plot(
     communication_data_df: pd.DataFrame,
 ) -> Tuple[Figure, Axes]:
@@ -285,63 +292,195 @@ def computation_fraction_bar_plot(
     hatch_patterns = ["//", r"\\"]
 
     strategy_labels = sorted(communication_data_df["strategy"].unique())
-    gpu_numbers = sorted(communication_data_df["num_gpus"].unique())
-    values = communication_data_df.pivot(
-        index="strategy", columns="num_gpus", values="computation_fraction"
-    ).to_numpy()
-
-    width = 1 / (len(strategy_labels) + 1)
-    complements = 1 - values
-
-    x = np.arange(len(gpu_numbers))
     fig, ax = plt.subplots()
 
-    # Creating an offset to "center" around zero
-    static_offset = (len(strategy_labels) - 1) / 2
-    for strategy_idx in range(len(strategy_labels)):
-        dynamic_bar_offset = strategy_idx - static_offset
+    x_positions = []
+    x_labels = []
+    strategy_patches = []
+    current_x = 0.0
 
-        color = color_map(strategy_idx % 10)
-        hatch = hatch_patterns[strategy_idx % 2]
+    for i, strategy in enumerate(strategy_labels):
+        strategy_df = communication_data_df[communication_data_df["strategy"] == strategy]
+        strategy_df = strategy_df.sort_values("num_gpus")
+        num_variants = len(strategy_df)
 
-        ax.bar(
-            x=x + dynamic_bar_offset * width,
-            height=values[strategy_idx],
-            width=width,
-            color=color,
-            label=strategy_labels[strategy_idx],
-            edgecolor="gray",
-            linewidth=0.6,
-        )
-        ax.bar(
-            x=x + dynamic_bar_offset * width,
-            height=complements[strategy_idx],
-            width=width,
-            bottom=values[strategy_idx],
-            facecolor="none",
-            edgecolor="gray",
-            alpha=0.8,
-            linewidth=0.6,
-            hatch=hatch,
-        )
+        color = color_map(i % 10)
+        strategy_patches.append(Patch(color=color, label=strategy))
+
+        bar_width = 0.8 / max(num_variants, 1)
+        group_start_x = current_x
+
+        for j, (_, row) in enumerate(strategy_df.iterrows()):
+            computation_frac = row["computation_fraction"]
+            communication_frac = 1 - computation_frac
+            num_gpus = row["num_gpus"]
+
+            x = current_x + j * bar_width
+            hatch = hatch_patterns[j % len(hatch_patterns)]
+
+            ax.bar(
+                x=x,
+                height=computation_frac,
+                width=bar_width,
+                color=color,
+                edgecolor="gray",
+                linewidth=0.6,
+            )
+
+            ax.text(
+                x=x,
+                y=computation_frac + 0.01,
+                s=f"{computation_frac * 100:.1f}%",
+                ha="center",
+                va="bottom",
+                color="black",
+                fontsize=9,
+            )
+
+            ax.bar(
+                x=x,
+                height=communication_frac,
+                width=bar_width,
+                bottom=computation_frac,
+                facecolor="none",
+                edgecolor="gray",
+                alpha=0.8,
+                linewidth=0.6,
+                hatch=hatch,
+            )
+
+            x_positions.append(x)
+            x_labels.append(str(num_gpus))
+
+        current_x = group_start_x + 1.0  # fixed group spacing
 
     ax.set_ylabel("Computation fraction")
     ax.set_xlabel("Number of GPUs")
     ax.set_title("Computation vs Communication Time by Framework and Number of GPUs")
-    ax.set_xticks(x)
-    ax.set_xticklabels(gpu_numbers)
+    ax.set_xticks(x_positions)
+    ax.set_xticklabels(x_labels, rotation=0, ha="center")
     ax.set_ylim(0, 1.1)
 
-    # Adding communication time to the legend
+    # Adding communication time and strategy colors to the legend
     hatch_patch = Patch(facecolor="none", edgecolor="gray", hatch="//", label="Communication")
-    ax.legend(handles=ax.get_legend_handles_labels()[0] + [hatch_patch])
+    ax.legend(handles=strategy_patches + [hatch_patch])
 
     # Dynamically adjusting the width of the figure
-    figure_width = max(int(2 * len(gpu_numbers)), 8)
+    figure_width = max(int(1.2 * len(x_labels)), 10)
     fig.set_figwidth(figure_width)
-    fig.set_figheight(figure_width * 0.8)
+    fig.set_figheight(figure_width * 0.6)
 
     # Resetting so that seaborn's theme doesn't affect other plots
     sns.reset_orig()
 
     return fig, ax
+
+
+def computation_vs_other_bar_plot(
+    computation_data_df: pd.DataFrame,
+) -> Tuple[Figure, Axes]:
+    """Creates a stacked bar plot showing computation and other fractions for
+    different strategies and GPU counts.
+
+    Args:
+        computation_data_df (pd.DataFrame): A DataFrame containing the following columns:
+            - "num_gpus": The number of GPUs used.
+            - "strategy": The name of the distributed training strategy.
+            - "computation_fraction": The fraction of time spent on computation.
+
+    Returns:
+        Tuple[Figure, Axes]: A tuple containing the matplotlib `Figure` and `Axes` objects
+        of the generated plot.
+
+    Raises:
+        ValueError: If the DataFrame is missing required columns or has invalid data.
+    """
+    sns.set_theme()
+    color_map = plt.get_cmap("tab10")
+    hatch_patterns = ["//", r"\\"]
+
+    strategy_labels = sorted(computation_data_df["strategy"].unique())
+    fig, ax = plt.subplots()
+
+    x_positions = []
+    x_labels = []
+    strategy_patches = []
+    group_spacing = 1.0
+    current_x = 0.0
+
+    for i, strategy in enumerate(strategy_labels):
+        strategy_df = computation_data_df[computation_data_df["strategy"] == strategy]
+        strategy_df = strategy_df.sort_values("num_gpus")
+        num_variants = len(strategy_df)
+
+        color = color_map(i % 10)
+        strategy_patches.append(Patch(color=color, label=strategy))
+
+        bar_width = 0.8 / max(num_variants, 1)
+        group_start_x = current_x
+
+        for j, (_, row) in enumerate(strategy_df.iterrows()):
+            computation_frac = row["computation_fraction"]
+            other_frac = 1 - computation_frac
+            num_gpus = row["num_gpus"]
+
+            x = current_x + j * bar_width
+            hatch = hatch_patterns[j % len(hatch_patterns)]
+
+            ax.bar(
+                x=x,
+                height=computation_frac,
+                width=bar_width,
+                color=color,
+                edgecolor="gray",
+                linewidth=0.6,
+            )
+
+            ax.text(
+                x=x,
+                y=computation_frac + 0.01,
+                s=f"{computation_frac * 100:.1f}%",
+                ha="center",
+                va="bottom",
+                color="black",
+                fontsize=9,
+            )
+
+            ax.bar(
+                x=x,
+                height=other_frac,
+                width=bar_width,
+                bottom=computation_frac,
+                facecolor="none",
+                edgecolor="gray",
+                alpha=0.8,
+                linewidth=0.6,
+                hatch=hatch,
+            )
+
+            x_positions.append(x)
+            x_labels.append(str(num_gpus))
+
+        current_x = group_start_x + group_spacing
+
+    ax.set_ylabel("Computation fraction")
+    ax.set_xlabel("Number of GPUs")
+    ax.set_title("Computation Time (ATen, Autograd) vs Other by Number of GPUs per Strategy")
+    ax.set_xticks(x_positions)
+    ax.set_xticklabels(x_labels, rotation=0, ha="center")
+    ax.set_ylim(0, 1.1)
+
+    hatch_patch = Patch(facecolor="none", edgecolor="gray", hatch="//", label="Other")
+    ax.legend(handles=strategy_patches + [hatch_patch])
+
+    # Dynamically adjusting the width of the figure
+    figure_width = max(int(1.2 * len(x_labels)), 10)
+    fig.set_figwidth(figure_width)
+    fig.set_figheight(figure_width * 0.6)
+
+    # Resetting so that seaborn's theme doesn't affect other plots
+    sns.reset_orig()
+
+    return fig, ax
+
+

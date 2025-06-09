@@ -1,0 +1,5 @@
+The file `src/itwinai/flamegraph.pl` is from Brendan Gregg’s Flamegraph project
+(https://github.com/brendangregg/Flamegraph) and is licensed under the CDDL v1.0. It was
+copied unmodified on 2025-04-22.
+
+See `licenses/CDDL-1.0.txt` for the full license text. 

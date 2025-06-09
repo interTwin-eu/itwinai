@@ -15,8 +15,8 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, Callable, Dict, List
 
 import pandas as pd
-import pynvml
-from pynvml import nvmlDeviceGetHandleByIndex, nvmlInit
+
+from .backend import init_backend
 
 if TYPE_CHECKING:
     from itwinai.torch.trainer import TorchTrainer
@@ -64,25 +64,30 @@ def probe_gpu_utilization_loop(
             properly start before reading.
 
     """
-
     if not set(logging_columns).issubset(set(log_dict.keys())):
         missing_columns = set(logging_columns) - set(log_dict.keys())
-        raise ValueError(
-            f"log_dict is missing the following columns: {missing_columns}"
-        )
+        raise ValueError(f"log_dict is missing the following columns: {missing_columns}")
 
-    nvmlInit()
+    # load management library backend
+    man_lib_type, handles, man_lib = init_backend()
+    # ensure all gpu handles where retrieved
+    if len(handles) != num_local_gpus:
+        raise ValueError(f"Expected {num_local_gpus} handles, but got {len(handles)}.")
+
     time.sleep(warmup_time)
 
     sample_idx = 0
     while not stop_flag.value:
         for idx in range(num_local_gpus):
-            handle = nvmlDeviceGetHandleByIndex(idx)
-            utilization_rates = pynvml.nvmlDeviceGetUtilizationRates(handle)
+            if man_lib_type == "nvidia":
+                handle = handles[idx]
+                gpu_util = man_lib.nvmlDeviceGetUtilizationRates(handle).gpu
+                power = man_lib.nvmlDeviceGetPowerUsage(handle) / 1000.0  # mW -> W
 
-            gpu_util = utilization_rates.gpu
-            power = pynvml.nvmlDeviceGetPowerUsage(handle)
-            power = power / 1000  # mW -> W
+            elif man_lib_type == "amd":
+                handle = handles[idx]
+                gpu_util = man_lib.amdsmi_get_gpu_activity(handle)["gfx_activity"]  # W
+                power = man_lib.amdsmi_get_power_info(handle)["average_socket_power"]
 
             log_dict["sample_idx"].append(sample_idx)
             log_dict["utilization"].append(gpu_util)
@@ -111,9 +116,8 @@ def measure_gpu_utilization(method: Callable) -> Callable:
         log_df.to_csv(output_path, index=False)
         print(f"Writing GPU energy dataframe to '{output_path.resolve()}'.")
 
-
     @functools.wraps(method)
-    def measured_method(self: 'TorchTrainer', *args, **kwargs) -> Any:
+    def measured_method(self: "TorchTrainer", *args, **kwargs) -> Any:
         if not self.measure_gpu_data:
             print("Warning: Profiling of GPU data has been disabled!")
             return method(self, *args, **kwargs)
@@ -137,7 +141,6 @@ def measure_gpu_utilization(method: Callable) -> Callable:
 
         # Starting a child process once per node
         if local_rank == 0:
-
             # Setting up shared variables for the child process
             manager = Manager()
             data = manager.dict()

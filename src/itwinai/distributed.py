@@ -11,12 +11,19 @@
 import abc
 import builtins as __builtin__
 import functools
+import logging
 import os
 import subprocess
 import sys
-from typing import Any, Callable
+from typing import TYPE_CHECKING, Any, Callable
 
 from pydantic import BaseModel
+
+if TYPE_CHECKING:
+    from ray.train import ScalingConfig
+
+
+py_logger = logging.getLogger(__name__)
 
 
 class DistributedStrategy(abc.ABC):
@@ -51,12 +58,26 @@ def ray_cluster_is_running() -> bool:
             check=True,
         )
         # Check if the output indicates a running cluster
-        return "No cluster running" not in result.stdout
-    except subprocess.CalledProcessError:
+        return (
+            "Node status" in result.stdout
+            and "Resources" in result.stdout
+            and "Usage" in result.stdout
+        )
+    except subprocess.CalledProcessError as exc:
         # If the command fails, the cluster is not running
+        py_logger.debug(
+            f"Subprocess failed with return code {exc.returncode} while checking if "
+            "a Ray cluster exists.\n"
+            f"Stdout: {exc.stdout}\n"
+            f"Stderr: {exc.stderr}"
+        )
         return False
     except FileNotFoundError:
         # If `ray` command is not found, Ray is not installed
+        py_logger.debug(
+            "Error: 'ray' command not found while checking if a Ray cluster "
+            "exists. Is Ray installed?"
+        )
         return False
 
 
@@ -75,6 +96,7 @@ def detect_distributed_environment() -> ClusterEnvironment:
         )
     # Fixes issue that OMPI_* env vars might be set despite using srun instead of mpirun
     elif int(os.getenv("OMPI_COMM_WORLD_SIZE", -1)) >= int(os.getenv("SLURM_NTASKS", 0)):
+        py_logger.debug("Using Open MPI environment")
         # Open MPI environment
         # https://docs.open-mpi.org/en/v5.0.x/tuning-apps/environment-var.html
         return ClusterEnvironment(
@@ -83,27 +105,36 @@ def detect_distributed_environment() -> ClusterEnvironment:
             local_world_size=os.getenv("OMPI_COMM_WORLD_LOCAL_SIZE"),
             global_world_size=os.getenv("OMPI_COMM_WORLD_SIZE"),
         )
-    elif ray_cluster_is_running():
-        import ray
+    # It is difficult to understand ranks from a Ray cluster... It could have been set up to
+    # tune a model with non-distributed strategy.
+    # elif ray_cluster_is_running():
+    #     import ray
 
-        ray.init(address="auto")
-        try:
-            # Determine the local rank and local world size
-            current_node = ray.util.get_node_ip_address()
-            all_nodes = [node["NodeManagerAddress"] for node in ray.nodes()]
+    #     ray_initialized_in_here = False
 
-            # Filter tasks on the same node
-            local_world_size = all_nodes.count(current_node)
-            local_rank = all_nodes[: all_nodes.index(current_node) + 1].count(current_node) - 1
-            cluster = ClusterEnvironment(
-                global_rank=ray.get_runtime_context().get_node_id(),
-                local_rank=local_rank,
-                local_world_size=local_world_size,
-                global_world_size=len(ray.nodes()),
-            )
-        finally:
-            ray.shutdown()
-        return cluster
+    #     if not ray.is_initialized():
+    #         ray_initialized_in_here = True
+    #         ray.init(address="auto")
+    #     try:
+    #         # Determine the local rank and local world size
+    #         current_node = ray.util.get_node_ip_address()
+    #         all_nodes = [node["NodeManagerAddress"] for node in ray.nodes()]
+
+    #         # Filter tasks on the same node
+    #         local_world_size = all_nodes.count(current_node)
+    #         local_rank = (
+    # all_nodes[: all_nodes.index(current_node) + 1].count(current_node) - 1
+    # )
+    #         cluster = ClusterEnvironment(
+    #             global_rank=ray.get_runtime_context().get_node_id(),
+    #             local_rank=local_rank,
+    #             local_world_size=local_world_size,
+    #             global_world_size=len(ray.nodes()),
+    #         )
+    #     finally:
+    #         if ray_initialized_in_here:
+    #             ray.shutdown()
+    #     return cluster
     elif os.getenv("SLURM_JOB_ID") is not None:
         # https://hpcc.umd.edu/hpcc/help/slurmenv.html
         return ClusterEnvironment(
@@ -199,3 +230,33 @@ def suppress_workers_output(func):
             sys.stderr = original_stderr
 
     return wrapper
+
+
+def get_adaptive_ray_scaling_config() -> "ScalingConfig":
+    """Returns a Ray scaling config for distributed ML training depending on the resources
+    available in the Ray cluster. The number of workers is equal to the number of GPUs
+    available, and if there are not GPUs two CPU-only workers are used.
+    """
+    import ray
+    from ray.train import ScalingConfig
+
+    # Initialize Ray if not already initialized
+    if not ray.is_initialized():
+        ray.init()
+
+    # Get cluster resources
+    cluster_resources = ray.cluster_resources()
+    num_gpus = int(cluster_resources.get("GPU", 0))
+
+    # Configure ScalingConfig based on GPU availability
+    if num_gpus <= 1:
+        # If 0 or 1 GPU, don't use GPU for training
+        py_logger.debug("Returning a scaling config to run distributed ML on 2 CPUs")
+        return ScalingConfig(
+            num_workers=2,  # Default to 2 CPU workers
+            use_gpu=False,
+        )
+    else:
+        # If multiple GPUs, use all available GPUs
+        py_logger.debug(f"Returning a scaling config to run distributed ML on {num_gpus} GPUs")
+        return ScalingConfig(num_workers=num_gpus, use_gpu=True)

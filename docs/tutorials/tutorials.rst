@@ -22,6 +22,7 @@ Distributed ML with PyTorch
    distrib-ml/torch_scaling_test
    distrib-ml/torch-tutorial-containers
    distrib-ml/torch_tutorial_kubeflow_1.rst
+   distrib-ml/kuberay-setup-tutorial.rst
 
 
 Distributed ML with TensorFlow
@@ -58,5 +59,15 @@ This tutorial provides an overview of Hyperparameter Optimization (HPO) workflow
 .. toctree::
    :maxdepth: 1
 
-   hpo-workflows/hpo-basic-integration
    hpo-workflows/hpo-torchtrainer-integration
+
+Profiling
+=========
+
+Here you can find our tutorials on how to do profiling with ``itwinai``:
+
+.. toctree::
+   :maxdepth: 1
+
+   profiling/py-spy-profiling
+   profiling/py-spy-lattice-qcd-example

@@ -1,0 +1,61 @@
+hpo_training_pipeline:
+  _target_: itwinai.pipeline.Pipeline
+  steps:
+    - _target_: data.FashionMNISTGetter
+    - _target_: data.FashionMNISTSplitter
+      train_proportion: 0.9
+      validation_proportion: 0.1
+      test_proportion: 0.0
+    - _target_: trainer.FashionMNISTTrainer
+
+      # In this case we have noting to pass to the TrainingConfiguration. Some of its fields
+      # will be overridden using the hyperparameters sampled from the search space by the tuner
+      config: null
+
+      epochs: 2
+
+      # For more info: https://docs.ray.io/en/latest/train/api/doc/ray.train.ScalingConfig.html
+      ray_scaling_config:
+        _target_: ray.train.ScalingConfig
+        num_workers: 1
+        use_gpu: true
+        resources_per_worker:
+          CPU: 8
+          GPU: 1
+
+      # For more info: https://docs.ray.io/en/latest/tune/api/doc/ray.tune.TuneConfig.html
+      ray_tune_config:
+        _target_: ray.tune.TuneConfig
+        num_samples: 2
+        scheduler:
+          _target_: ray.tune.schedulers.ASHAScheduler
+          metric: loss  # name of the metric to optimize during HPO
+          mode: min
+          max_t: 10
+          grace_period: 5
+          reduction_factor: 4
+          brackets: 1
+
+      # For more info: https://docs.ray.io/en/latest/tune/api/doc/ray.tune.RunConfig.html
+      ray_run_config:
+        _target_: ray.tune.RunConfig
+        storage_path: ${itwinai.cwd:}/ray_checkpoints
+        name: FashionMNIST-HPO-Experiment
+
+      # For more info: https://docs.ray.io/en/latest/tune/api/search_space.html
+      ray_search_space:
+        batch_size:
+          type: choice
+          categories: [32, 64, 128]
+        learning_rate:
+          type: uniform
+          lower: 1e-5
+          upper: 1e-3
+
+      strategy: ddp
+      logger:
+        _target_: itwinai.loggers.LoggersCollection
+        loggers:
+          - _target_: itwinai.loggers.MLFlowLogger
+            experiment_name: FashionMNIST HPO Experiment
+            log_freq: batch
