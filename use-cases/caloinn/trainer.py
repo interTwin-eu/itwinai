@@ -18,12 +18,12 @@ class CaloChallengeTrainer(TorchTrainer):
     def __init__(
         self,
         num_epochs: int = 2,
-        config: Optional[Union[Dict[str, Any], TrainingConfiguration]] = None,
-        strategy: Optional[Literal["ddp", "deepspeed", "horovod"]] = "ddp",
+        config: Union[Dict[str, Any], TrainingConfiguration] | None = None,
+        strategy: Literal["ddp", "deepspeed", "horovod"] | None = "ddp",
         checkpoint_path: str = "checkpoints/epoch_{}.pth",
-        logger: Optional[Logger] = None,
-        random_seed: Optional[int] = None,
-        name: Optional[str] = None,
+        logger: Logger | None = None,
+        random_seed: int | None = None,
+        name: str | None = None,
         validation_every: int = 50,
         **kwargs: Any,
     ) -> None:
@@ -39,7 +39,7 @@ class CaloChallengeTrainer(TorchTrainer):
                 "checkpoints/epoch_{}.pth".
             logger (Optional[Logger], optional): Logger instance for logging training progress.
                 Defaults to None.
-            random_seed (Optional[int], optional): Random seed for reproducibility. Defaults to None.
+            random_seed (int | None, optional): Random seed for reproducibility. Defaults to None.
             name (Optional[str], optional): Optional name for the training session. Defaults to None.
             validation_every (int, optional): Number of iterations between validations. Defaults to 50.
             **kwargs: Additional arguments passed to the base class.
