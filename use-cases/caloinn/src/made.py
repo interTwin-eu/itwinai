@@ -149,7 +149,7 @@ class MaskedFeedforwardBlock(nn.Module):
         self,
         in_degrees: torch.Tensor,
         autoregressive_features: int,
-        context_features: Optional[int] = None,
+        context_features: int | None = None,
         random_mask: bool = False,
         activation: callable = F.relu,
         dropout_probability: float = 0.0,
@@ -192,7 +192,7 @@ class MaskedFeedforwardBlock(nn.Module):
     def forward(
         self,
         inputs: torch.Tensor,
-        context: Optional[torch.Tensor] = None,
+        context: torch.Tensor | None = None,
     ) -> torch.Tensor:
         """Apply the block to inputs (and optionally context).
 
@@ -223,7 +223,7 @@ class MADE(nn.Module):
         self,
         features: int,
         hidden_features: int,
-        context_features: Optional[int] = None,
+        context_features: int | None = None,
         num_blocks: int = 2,
         output_multiplier: int = 1,
         random_mask: bool = False,
@@ -286,7 +286,7 @@ class MADE(nn.Module):
         )
 
     def forward(
-        self, inputs: torch.Tensor, context: Optional[torch.Tensor] = None
+        self, inputs: torch.Tensor, context: torch.Tensor | None = None
     ) -> torch.Tensor:
         """Apply MADE to the input and context.
 
@@ -403,7 +403,7 @@ class MaskedPiecewiseCubicAutoregressiveTransform(InvertibleModule):
         c: List[torch.Tensor] = [],
         rev: bool = False,
         jac: bool = True,
-    ) -> Tuple[Tuple[torch.Tensor], Optional[torch.Tensor]]:
+    ) -> Tuple[Tuple[torch.Tensor], torch.Tensor | None]:
         """Applies the transform (or its inverse) to the input tensor.
 
         Args:

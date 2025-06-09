@@ -60,10 +60,14 @@ class BinnedSpline(_BaseCouplingBlock):
             split_len=split_len,
         )
 
-        assert bins >= 1, "need at least one bin"
-        assert all(s >= 0 for s in min_bin_sizes), "minimum bin size cannot be negative"
-        assert default_domain[1] > default_domain[0], "x domain must be increasing"
-        assert default_domain[3] > default_domain[2], "y domain must be increasing"
+        if bins >= 1:
+            raise ValueError("need at least one bin")
+        if all(s >= 0 for s in min_bin_sizes):
+            raise ValueError("minimum bin size cannot be negative")
+        if default_domain[1] > default_domain[0]:
+            raise ValueError("x domain must be increasing")
+        if default_domain[3] > default_domain[2]:
+            raise ValueError("y domain must be increasing")
 
         self.register_buffer("bins", torch.tensor(bins, dtype=torch.int32))
         self.register_buffer(

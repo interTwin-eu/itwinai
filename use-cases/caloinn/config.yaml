@@ -1,21 +1,20 @@
-downloaded_hdf5_location: calochallenge_data/
+downloaded_hdf5_location: /gpfs/users/maiborodav/itwinai_0325/use-cases/caloinn/calochallenge_data/
 dataset_type: "dataset_1_pions"
 checkpoint_path: checkpoints/
-epochs: 50
+epochs: 1
 strategy: ddp
 batch_size: 512
 inference_model_mlflow_uri: checkpoints/best_model.pth
-
-dataloading_step:
-  class_path: data.CaloChallengeDownloader
-  init_args:
-    data_path: ${downloaded_hdf5_location}
-    dataset_type: ${dataset_type}
 
 training_pipeline:
   _target_: itwinai.pipeline.Pipeline
   steps:
     dataloading_step:
+          _target_: data.CaloChallengeDownloader
+          data_path: ${downloaded_hdf5_location}
+          dataset_type: ${dataset_type}
+
+    readingdataset_step:
       _target_: data.CalochallengeDataSplitter
       data_path: ${downloaded_hdf5_location}
       dataset_type: ${dataset_type}
@@ -27,7 +26,6 @@ training_pipeline:
       fixed_noise: False
       noise: True
       validation_proportion: 0.01
-      #rnd_seed: 42
 
     training_step:
       _target_: trainer.CaloChallengeTrainer
@@ -59,7 +57,6 @@ training_pipeline:
         optim_lr: 1.e-5
         cycle_epochs: 37
       num_epochs: ${epochs}
-      #random_seed: 42
       checkpoint_path: ${checkpoint_path}
       checkpoint_every: 50
       validation_every: 1
@@ -70,7 +67,7 @@ training_pipeline:
           - _target_: itwinai.loggers.ConsoleLogger
             log_freq: 1
           - _target_: itwinai.loggers.MLFlowLogger
-            experiment_name: CaloINN
+            experiment_name: CaloINN docs test
             log_freq: batch 
 
 

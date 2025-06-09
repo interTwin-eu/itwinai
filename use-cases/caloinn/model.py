@@ -1,5 +1,3 @@
-import math
-import numpy as np
 import torch
 import torch.nn as nn
 import torch.distributions as dist
@@ -7,14 +5,13 @@ import FrEIA.framework as ff
 import FrEIA.modules as fm
 
 from src.vblinear import VBLinear
-
-from src.XMLHandler import XMLHandler
-import h5py
+from functools import partial
 
 from src.spline_blocks import CubicSplineBlock, RationalQuadraticSplineBlock
 from src.made import MADE
 
 from typing import Any, Dict, Tuple, Callable, List, Type
+from itwinai.torch.config import TrainingConfiguration
 
 
 class Subnet(nn.Module):
@@ -125,8 +122,8 @@ class NormTransformation(fm.InvertibleModule):
         """Applies the forward or inverse transformation.
 
         Args:
-            x (tuple of torch.Tensor): Input tensor(s), with `x` being the first element.
-            c (tuple of torch.Tensor, optional): Condition tensor(s), with `c` being the first element. 
+            x (tuple of torch.Tensor): Input tensor(s), containing showers.
+            c (tuple of torch.Tensor, optional): Condition tensor(s), containing incident energy information. 
                 If log_cond is True, the condition will be exponentiated before use.
             rev (bool, optional): If True, applies the inverse transformation. Defaults to False (forward transformation).
             jac (bool, optional): If True, returns the Jacobian term (though not used in this case). Defaults to True.
@@ -147,14 +144,6 @@ class NormTransformation(fm.InvertibleModule):
         return (z,), torch.tensor([0.0], device=x.device)
 
     def output_dims(self, input_dims: tuple) -> tuple:
-        """Returns the output dimensions, which are the same as the input dimensions.
-
-        Args:
-            input_dims (tuple): Input dimensions.
-
-        Returns:
-            tuple: The output dimensions, which are the same as the input dimensions.
-        """
         return input_dims
 
 
@@ -198,14 +187,6 @@ class LogTransformation(fm.InvertibleModule):
         return (z,), torch.tensor([0.0], device=x.device)  # jac
 
     def output_dims(self, input_dims: tuple) -> tuple:
-        """Returns the output dimensions, which are the same as the input dimensions.
-
-        Args:
-            input_dims (tuple): Input dimensions.
-
-        Returns:
-            tuple: The output dimensions, which are the same as the input dimensions.
-        """
         return input_dims
 
 
@@ -227,7 +208,7 @@ class LogUniform(dist.TransformedDistribution):
 class CINN(nn.Module):
     """Conditional Invertible Neural Network (cINN) model."""
 
-    def __init__(self, data_dim: int, config: Any) -> None:
+    def __init__(self, data_dim: int, config: Dict | TrainingConfiguration | None = None) -> None:
         """Initializes the CINN model.
 
         Args:
@@ -269,13 +250,9 @@ class CINN(nn.Module):
         self.norm_m = torch.diag(1 / std)
         self.norm_b = -mean / std
 
-        print(
-            "num samples out of bounds:",
-            torch.count_nonzero(
-                torch.max(torch.abs(data), dim=1)[0]
-                > self.params.get("bounds_init", 10)
-            ).item(),
-        )
+        max_data = torch.max(torch.abs(data), dim=1)[0]
+        bounds_init = self.config.bounds_init or 10
+        print(f"num samples out of bounds: {torch.count_nonzero(max_data > bounds_init).item()}")
 
     def define_model_architecture(self, in_dim: int) -> None:
         """Creates a reversible network model based on the provided configuration.
@@ -332,9 +309,7 @@ class CINN(nn.Module):
         nodes.append(cond_node)
 
         self.model = ff.GraphINN(nodes)
-        self.params_trainable = list(
-            filter(lambda p: p.requires_grad, self.model.parameters())
-        )
+        self.params_trainable = self.params_trainable = [p for p in self.model.parameters() if p.requires_grad]
         n_trainable = sum(p.numel() for p in self.params_trainable)
         print(f"number of parameters: {n_trainable}", flush=True)
 
@@ -388,47 +363,45 @@ class CINN(nn.Module):
 
         return CouplingBlock, block_kwargs
 
-    def get_constructor_func(self) -> Callable:
-        """Returns a function to construct subnetwork layers.
-
-        Returns:
-            Callable that builds a subnetwork given input and output dimensions.
-        """
+    def get_constructor_func(self):
+        """Returns a function that constructs a subnetwork with the given parameters using functools.partial."""
         if self.sub_layers:
             layer_class = self.get_layer_class()
             layer_args = self.get_layer_args()
         else:
             layer_class = []
             layer_args = []
-            for n in range(self.config.layers_per_block or 3):
-                dicts = {}
+            for _ in range(self.config.layers_per_block or 3):
+                args_dict = {}
                 if self.config.bayesian:
                     layer_class.append(VBLinear)
-                    dicts["prior_prec"] = self.config.prior_prec
-                    dicts["std_init"] = self.config.std_init
+                    args_dict["prior_prec"] = self.config.prior_prec
+                    args_dict["std_init"] = self.config.std_init
                 else:
                     layer_class.append(nn.Linear)
-                layer_args.append(dicts)
+                layer_args.append(args_dict)
 
-        def func(x_in, x_out):
-            subnet = Subnet(
-                self.config.layers_per_block or 3,
-                x_in,
-                x_out,
-                internal_size=self.config.internal_size,
-                dropout=self.config.dropout or 0.0,
-                layer_class=layer_class,
-                layer_args=layer_args,
-                layer_norm=self.config.layer_norm or None,
-                layer_act=self.config.layer_act or nn.ReLU,
-            )
+        subnet_partial = partial(
+            Subnet,
+            num_layers=self.config.layers_per_block or 3,
+            internal_size=self.config.internal_size,
+            dropout=self.config.dropout or 0.0,
+            layer_class=layer_class,
+            layer_args=layer_args,
+            layer_norm=self.config.layer_norm or None,
+            layer_act=self.config.layer_act or "nn.ReLU",
+        )
+
+        def wrapped_constructor(x_in, x_out):
+            subnet = subnet_partial(size_in=x_in, size_out=x_out)
             if self.config.bayesian:
                 self.config.bayesian_layers.extend(
                     layer for layer in subnet.layer_list if isinstance(layer, VBLinear)
                 )
             return subnet
 
-        return func
+        return wrapped_constructor
+
 
     def get_layer_class(self) -> List[Type[nn.Module]]:
         """Retrieves the list of layer classes based on configuration.
@@ -436,12 +409,7 @@ class CINN(nn.Module):
         Returns:
             List of layer classes.
         """
-        lays = []
-        for n in range(len(self.sub_layers)):
-            if self.sub_layers[n] == "vblinear":
-                lays.append(VBLinear)
-            if self.sub_layers[n] == "linear":
-                lays.append(nn.Linear)
+        lays = [VBLinear if elem == "vblinear" else nn.Linear for elem in self.sub_layers]
         return lays
 
     def get_layer_args(self) -> List[Dict[str, Any]]:

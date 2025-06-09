@@ -28,28 +28,28 @@ class XMLHandler:
 
         self.r_bins = []
         self.a_bins = []
-        self.nBinAlphaPerlayer = []
-        self.alphaListPerLayer = []
+        self.n_bin_alpha_per_layer = []
+        self.alpha_list_per_layer = []
 
         self.r_edges = []
         self.r_midvalue = []
         self.r_midvalueCorrected = []
         self.relevantlayers = []
-        self.layerWithBinningInAlpha = []
+        self.layer_with_binning_in_alpha = []
 
         self.eta_edges = []
         self.phi_edges = []
         self.eta_bins = []
         self.phi_bins = []
 
-        self.etaRegion = 0
+        self.eta_region = 0
 
         found_particle = False
         for particle in root:
             if particle.attrib["name"] == particle_name:
                 found_particle = True
                 for layer in particle:
-                    self.ReadPolarCoordinates(layer)
+                    self.read_polar_coordinates(layer)
         if not found_particle:
             raise ValueError(
                 "Particle {} not found in {}".format(particle_name, filename)
@@ -61,12 +61,12 @@ class XMLHandler:
         self.eta_all_layers = []
         self.phi_all_layers = []
 
-        self.SetEtaAndPhiFromPolar()
+        self.set_eta_phi_from_polar()
         self.bin_edges = [0]
         for i in range(len(self.bin_number)):
             self.bin_edges.append(self.bin_number[i] + self.bin_edges[i])
 
-    def ReadPolarCoordinates(self, subelem: ET.Element) -> None:
+    def read_polar_coordinates(self, subelem: ET.Element) -> None:
         """Reads and stores polar coordinate binning information from an XML element.
 
         Args:
@@ -86,7 +86,7 @@ class XMLHandler:
         self.a_bins.append(bins_in_alpha)
         self.r_midvalue.append(self.get_midpoint(r_list))
         if bins_in_alpha > 1:
-            self.layerWithBinningInAlpha.append(int(layer))
+            self.layer_with_binning_in_alpha.append(int(layer))
 
     def fill_r_a_lists(self, layer: int) -> Tuple[List[float], List[float]]:
         """Constructs lists of radial (r) and angular (alpha) midpoints for a given layer.
@@ -99,10 +99,10 @@ class XMLHandler:
         """
         no_of_rbins = self.r_bins[layer]
         list_mid_values = self.r_midvalue[layer]
-        list_a_values = self.alphaListPerLayer[layer]
+        list_a_values = self.alpha_list_per_layer[layer]
         r_list = []
         a_list = []
-        actual_no_alpha_bins = self.nBinAlphaPerlayer[layer][0]
+        actual_no_alpha_bins = self.n_bin_alpha_per_layer[layer][0]
         for j0 in range(0, actual_no_alpha_bins):
             for i0 in range(0, no_of_rbins):
                 r_list.append(list_mid_values[i0])
@@ -124,10 +124,10 @@ class XMLHandler:
             middle_points.append(middle_value)
         return middle_points
 
-    def SetEtaAndPhiFromPolar(self) -> None:
+    def set_eta_phi_from_polar(self) -> None:
         """Computes eta and phi values for all layers from polar coordinates using r and alpha."""
         self.minAlpha = -math.pi
-        self.SetNumberOfBins()
+        self.set_number_of_bins()
 
         r_all_layers = []
         alpha_all_layers = []
@@ -143,7 +143,7 @@ class XMLHandler:
             phi = r_all_layers[layer] * np.sin(alpha_all_layers[layer])
             self.phi_all_layers.append(phi)
 
-    def SetNumberOfBins(self) -> None:
+    def set_number_of_bins(self) -> None:
         """Calculates the number of bins and prepares binning information for each layer."""
 
         for layer in range(len(self.r_bins)):
@@ -163,26 +163,11 @@ class XMLHandler:
             self.bin_number.append(bin_no)
             if self.r_bins[layer] > 0:
                 self.relevantlayers.append(layer)
-                self.alphaListPerLayer.append(alphaBinList)
-                self.nBinAlphaPerlayer.append(nBinAlpha)
+                self.alpha_list_per_layer.append(alphaBinList)
+                self.n_bin_alpha_per_layer.append(nBinAlpha)
             else:
-                self.alphaListPerLayer.append([0])
-                self.nBinAlphaPerlayer.append([0])
+                self.alpha_list_per_layer.append([0])
+                self.n_bin_alpha_per_layer.append([0])
 
-    def GetTotalNumberOfBins(self) -> int:
-        return self.totalBins
-
-    def GetBinEdges(self) -> List[int]:
+    def get_bin_edges(self) -> List[int]:
         return self.bin_edges
-
-    def GetEtaPhiAllLayers(self) -> Tuple[List[np.ndarray], List[np.ndarray]]:
-        return self.eta_all_layers, self.phi_all_layers
-
-    def GetRelevantLayers(self) -> List[int]:
-        return self.relevantlayers
-
-    def GetLayersWithBinningInAlpha(self) -> List[int]:
-        return self.layerWithBinningInAlpha
-
-    def GetEtaRegion(self) -> int:
-        return self.etaRegion

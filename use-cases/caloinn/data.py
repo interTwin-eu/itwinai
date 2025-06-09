@@ -1,22 +1,33 @@
 import os
-from typing import Optional, Tuple
+from typing import Tuple
+from pathlib import Path
+
 import h5py
 import numpy as np
 import requests
-from torch.utils.data import Dataset, random_split
 import torch
+from torch.utils.data import Dataset, random_split
+
+from itwinai.components import DataGetter, DataSplitter, monitor_exec
 from src.XMLHandler import XMLHandler
-from itwinai.components import DataGetter, monitor_exec, DataSplitter
 
 
 class CaloChallengeDownloader(DataGetter):
     def __init__(
         self,
-        data_path: Optional[str] = "./calochallenge_data/",
-        dataset_type: Optional[str] = "dataset_1_photons",
+        data_path: str | Path | None = "./calochallenge_data/",
+        dataset_type: str | None = "dataset_1_photons",
     ) -> None:
+        """Initializes the CaloChallengeDownloader with the given dataset type and data path.
+
+        Args:
+            data_path (str | None): Path to store downloaded dataset files. Defaults to "./calochallenge_data/".
+            dataset_type (str | None): Dataset identifier string ("dataset_1_photons", "dataset_1_pions", "dataset_2" or "dataset_3"). Defaults to "dataset_1_photons".
+        """
         self.save_parameters(**self.locals2params(locals()))
         super().__init__()
+        if isinstance(data_path, str): 
+            data_path = Path(data_path)
         self.data_path = data_path
         self.dataset_type = dataset_type
 
@@ -49,7 +60,7 @@ class CaloChallengeDownloader(DataGetter):
         }
 
         if dataset_type not in type_to_link_train.keys():
-            print("WARNING! Dataset type is invalid " "Loading dataset 1 photon")
+            print("WARNING! Dataset type is invalid. Loading dataset 1 photon")
             self.dataset_type = "dataset_1_photons"
 
         self.data_train_url = type_to_link_train[self.dataset_type]
@@ -57,31 +68,39 @@ class CaloChallengeDownloader(DataGetter):
 
     @monitor_exec
     def execute(self):
+        """Downloads and saves the train and test datasets for the specified dataset type."""
         # Download data
-        if not os.path.exists(self.data_path):
+        if not self.data_path.exists():
             if self.data_train_url is None:
                 print(
-                    "WARNING! Train data URL is None. "
-                    "Skipping train dataset downloading"
+                    "WARNING! Train data URL is None. Skipping train dataset downloading"
                 )
             if self.data_test_url is None:
                 print(
-                    "WARNING! Test data URL is None. "
-                    "Skipping test dataset downloading"
+                    "WARNING! Test data URL is None. Skipping test dataset downloading"
                 )
-
+        
         def download_rename(url_list, prefix):
+            """
+            Downloads CaloChallenge datasets according to the provided links
+            and renames the files adding prefix "train" or "test".
+
+            Args:
+                url_list (Tuple(str)): list of datasets URLs.
+                prefix (str): "train" or "test" to add to the datasest name.
+            """
             for url in url_list:
                 response = requests.get(url, stream=True)
-                if response.status_code == 200:
-                    new_filename = f"{url.split('/')[-1].split('.')[0]}_{prefix}.hdf5"
-                    with open(os.path.join(self.data_path, new_filename), "wb") as file:
-                        # Write the content of the response to the file
-                        for chunk in response.iter_content(chunk_size=8192):
-                            file.write(chunk)
-                    print(f"File downloaded and saved as: {new_filename}")
-                else:
-                    print(f"Failed to download file.")
+                if response.status_code != 200:
+                    print(f"Failed to download file from {url}")
+                    continue
+                print(f"Downloading {url}")
+                new_filename = f"{url.split('/')[-1].split('.')[0]}_{prefix}.hdf5"
+                with open(self.data_path / new_filename, "wb") as file:
+                    # Write the content of the response to the file
+                    for chunk in response.iter_content(chunk_size=8192):
+                        file.write(chunk)
+                print(f"File downloaded and saved as: {new_filename}")                    
 
         print(f"Downloading train dataset to {self.data_path}")
         download_rename(self.data_train_url, "train")
@@ -92,9 +111,9 @@ class CaloChallengeDownloader(DataGetter):
 class CalochallengeDataset(Dataset):
     def __init__(
         self,
-        data_path: str,
+        data_path: str | Path | None,
         dataset_type: str,
-        dataset_trainortest: str,
+        dataset_is_train: bool,
         eps: float = 1e-10,
         u0up_cut: float = 7.0,
         u0low_cut: float = 0.0,
@@ -103,13 +122,10 @@ class CalochallengeDataset(Dataset):
         fixed_noise: bool = False,
         noise: bool = False,
     ) -> None:
-        if dataset_trainortest not in ["train", "test"]:
-            print(
-                "WARNING! Subset type (train ir test) is not defined" "Loading as train"
-            )
+        if dataset_is_train:
             self.dataset_trainortest = "train"
         else:
-            self.dataset_trainortest = dataset_trainortest
+            self.dataset_trainortest = "test"
 
         torch.set_default_dtype(torch.float32)
 
@@ -120,8 +136,8 @@ class CalochallengeDataset(Dataset):
             "dataset_2": "electron",
             "dataset_3": "electron",
         }
-        if dataset_type not in dataset_to_particle_type.keys():
-            print("WARNING! Dataset type is invalid " "Loading dataset 1 photon")
+        if dataset_type not in dataset_to_particle_type:
+            print("WARNING! Dataset type is invalid. Loading dataset 1 photon")
             self.dataset_type = "dataset_1_photons"
         else:
             self.dataset_type = dataset_type
@@ -130,9 +146,10 @@ class CalochallengeDataset(Dataset):
             particle_name=dataset_to_particle_type[self.dataset_type],
             filename="./calochallenge_binning/binning_" + self.dataset_type + ".xml",
         )
-        self.layer_boundaries = np.unique(xml_handler.GetBinEdges())
+        self.layer_boundaries = np.unique(xml_handler.get_bin_edges())
 
-        self.data_path = data_path
+        if isinstance(data_path, str): 
+            self.data_path = Path(data_path)
 
         self.noise = noise
         self.width_noise = width_noise
@@ -143,19 +160,21 @@ class CalochallengeDataset(Dataset):
         self._load_data()
         self._preprocess_data(eps, u0up_cut, u0low_cut, dep_cut)
         if self.fixed_noise and self.noise:
-            noise = self.noise_distribution.sample(self.x.shape) * self.width_noise
-            self.x += noise.reshape(self.x.shape)
+            noise = self.noise_distribution.sample(self.showers.shape) * self.width_noise
+            self.showers += noise.reshape(self.showers.shape)
 
         if self.noise:
             self.noise_distribution = torch.distributions.Uniform(
                 torch.tensor(0.0), torch.tensor(1.0)
             )
 
-    def __len__(self):
-        return self.x.shape[0]
+    def __len__(self) -> int:
+        """Returns the total number of events in the dataset."""
+        return self.showers.shape[0]
 
-    def __getitem__(self, idx):
-        data = self.x[idx]
+    def __getitem__(self, idx: int) -> Tuple[torch.Tensor, torch.Tensor]:
+        """Fetches a single data sample and its condition, with optional noise."""
+        data = self.showers[idx]
         if not self.fixed_noise and self.noise:
             noise = self.noise_distribution.sample(data.shape) * self.width_noise
             data = (torch.tensor(data) + noise.reshape(data.shape).clone()).clone()
@@ -163,15 +182,16 @@ class CalochallengeDataset(Dataset):
         return data, cond
 
     def _load_data(self) -> None:
-        print("Searching in :", self.data_path)
+        """Loads HDF5 dataset files into memory and aggregates per-layer and energy information."""
+        print(f"Searching in : {self.data_path}")
         files = [
-            os.path.join(self.data_path, filename)
+            self.data_path / filename
             for filename in os.listdir(self.data_path)
             if self.dataset_type in filename and self.dataset_trainortest in filename
         ]
-        print("Found {} files. ".format(len(files)))
+        print(f"Found {len(files)} files.")
         if len(files) == 0:
-            raise RuntimeError(f"No H5 files found at '{self.data_path}'!")
+            raise FileNotFoundError(f"No H5 files found at '{self.data_path}'!")
 
         for file in files:
             with h5py.File(file, "r") as data_file:
@@ -189,11 +209,12 @@ class CalochallengeDataset(Dataset):
                         data_file["showers"][..., layer_start:layer_end] / 1.0e3
                     )
 
-        print(self.data[f"layer_{layer_index}"].shape)
-
-    def _preprocess_data(self, eps, u0up_cut, u0low_cut, dep_cut) -> None:
+    def _preprocess_data(
+        self, eps: float, u0up_cut: float, u0low_cut: float, dep_cut: float
+    ) -> None:
         """Transforms the dict 'data' into the ndarray 'x'. Furthermore, the events
-        are masked and the extra dims are appended to the incident energies"""
+        are masked and the extra dims are appended to the incident energies
+        """
         c, x = self.get_energy_and_sorted_layers()
         self.data = None
 
@@ -220,19 +241,15 @@ class CalochallengeDataset(Dataset):
         x = self.normalize_layers(x, c, eps)
         x = np.concatenate((x, extra_dims), axis=1)
 
-        self.x = x
+        self.showers = x
         self.cond = c
 
-    def get_energy_and_sorted_layers(self):
-        """returns the energy and the sorted layers from the data dict"""
+    def get_energy_and_sorted_layers(self) -> Tuple[np.ndarray, np.ndarray]:
+        """Returns the energy and the sorted layers from the data dict"""
 
-        # Get the incident energies
         energy = self.data["energy"]
-
-        # Get the number of layers layers from the keys of the data array
         number_of_layers = len(self.data) - 1
 
-        # Create a container for the layers
         layers = []
 
         # Append the layers such that they are sorted.
@@ -243,11 +260,14 @@ class CalochallengeDataset(Dataset):
 
         return energy, np.concatenate(layers, axis=1)
 
-    def get_energy_dims(self, x, c, eps):
+    def get_energy_dims(
+        self, x: np.ndarray, c: np.ndarray, eps: float
+    ) -> Tuple[np.ndarray, np.ndarray]:
         """Appends the extra dimensions and the layer energies to the conditions
         The layer energies will always be the last #layers entries, the extra dims will
         be the #layers entries directly after the first entry - the incident energy.
-        Inbetween additional features might be appended as further conditions"""
+        Inbetween additional features might be appended as further conditions
+        """
 
         x = np.copy(x)
         c = np.copy(c)
@@ -266,7 +286,6 @@ class CalochallengeDataset(Dataset):
                 layer_energy + eps
             )
 
-            # Store its energy for later
             layer_energies.append(layer_energy)
 
         layer_energies_np = np.array(layer_energies).T[0]
@@ -276,17 +295,18 @@ class CalochallengeDataset(Dataset):
 
         for layer_index in range(len(self.layer_boundaries) - 2):
             extra_dim = layer_energies_np[..., [layer_index]] / (
-                np.sum(layer_energies_np[..., layer_index:], axis=1, keepdims=True)
+                np.sum(layer_energies_np[..., layer_index:], axis=1, keepdims=True
+                )
                 + eps
             )
             extra_dims.append(extra_dim)
 
-        # Collect all the conditions
         extra_dims = np.concatenate(extra_dims, axis=1)
-
         return c, extra_dims
 
-    def normalize_layers(self, x, c, eps=1.0e-10):
+    def normalize_layers(
+        self, x: np.ndarray, c: np.ndarray, eps: float = 1.0e-10
+    ) -> np.ndarray:
         """Normalizes each layer by its energy"""
 
         # Prevent inplace operations
@@ -298,7 +318,9 @@ class CalochallengeDataset(Dataset):
             zip(self.layer_boundaries[:-1], self.layer_boundaries[1:])
         ):
             x[..., layer_start:layer_end] = x[..., layer_start:layer_end] / (
-                np.sum(x[..., layer_start:layer_end], axis=1, keepdims=True) + eps
+                np.sum(x[..., layer_start:layer_end], axis=1, keepdims=True
+                ) 
+                + eps
             )
 
         return x
@@ -319,7 +341,7 @@ class CalochallengeDataSplitter(DataSplitter):
         train_proportion: int | float = 1.0,
         validation_proportion: int | float = 0.0,
         test_proportion: int | float = 0.0,
-        rnd_seed: Optional[int] = None,
+        rnd_seed: int | None = None,
     ) -> None:
         super().__init__(train_proportion, validation_proportion, test_proportion)
         self.save_parameters(**self.locals2params(locals()))
@@ -341,7 +363,7 @@ class CalochallengeDataSplitter(DataSplitter):
         self.train_dataset = CalochallengeDataset(
             data_path=data_path,
             dataset_type=dataset_type,
-            dataset_trainortest="train",
+            dataset_is_train=True,
             eps=eps,
             u0up_cut=u0up_cut,
             u0low_cut=u0low_cut,
@@ -353,7 +375,7 @@ class CalochallengeDataSplitter(DataSplitter):
         self.test_dataset = CalochallengeDataset(
             data_path=data_path,
             dataset_type=dataset_type,
-            dataset_trainortest="test",
+            dataset_is_train=False,
             eps=eps,
             u0up_cut=u0up_cut,
             u0low_cut=u0low_cut,
@@ -364,7 +386,7 @@ class CalochallengeDataSplitter(DataSplitter):
     @monitor_exec
     def execute(self) -> Tuple:
         # Split train file into train and validation sets
-        [train_dataset, validation_dataset] = random_split(
+        train_dataset, validation_dataset = random_split(
             self.train_dataset,
             [1 - self.validation_proportion, self.validation_proportion],
             generator=self.generator,

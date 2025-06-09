@@ -12,7 +12,7 @@ from typing import List, Tuple, Optional
 
 
 class myConv(fm.InvertibleModule):
-    def __init__(self, dims_in: List[Tuple[int, int, int]], dims_c: Optional[List] = None) -> None:
+    def __init__(self, dims_in: List[Tuple[int, int, int]], dims_c: List | None = None) -> None:
         """Initializes the myConv module.
 
         Args:
@@ -105,7 +105,7 @@ class Linear(Transform):
         self.using_cache = using_cache
         self.cache = LinearCache()
 
-    def forward(self, inputs: torch.Tensor, context: Optional[torch.Tensor] = None) -> Tuple[torch.Tensor, torch.Tensor]:
+    def forward(self, inputs: torch.Tensor, context: torch.Tensor | None = None) -> Tuple[torch.Tensor, torch.Tensor]:
         """Applies the forward transformation.
 
         Args:
@@ -133,7 +133,7 @@ class Linear(Transform):
         elif self.cache.logabsdet is None:
             self.cache.logabsdet = self.logabsdet()
 
-    def inverse(self, inputs: torch.Tensor, context: Optional[torch.Tensor] = None) -> Tuple[torch.Tensor, torch.Tensor]:
+    def inverse(self, inputs: torch.Tensor, context: torch.Tensor | None = None) -> Tuple[torch.Tensor, torch.Tensor]:
         """Applies the inverse transformation.
 
         Args:
@@ -390,7 +390,7 @@ class OneByOneConvolution(LULinear):
 
         return outputs, torchutils.sum_except_batch(logabsdet)
 
-    def forward(self, inputs: torch.Tensor, context: Optional[torch.Tensor] = None) -> Tuple[torch.Tensor, torch.Tensor]:
+    def forward(self, inputs: torch.Tensor, context: torch.Tensor | None = None) -> Tuple[torch.Tensor, torch.Tensor]:
         if inputs.dim() != 4:
             raise ValueError("Inputs must be a 4D torch.Tensor.")
 
@@ -398,7 +398,7 @@ class OneByOneConvolution(LULinear):
 
         return self._lu_forward_inverse(inputs, inverse=False)
 
-    def inverse(self, inputs: torch.Tensor, context: Optional[torch.Tensor] = None) -> Tuple[torch.Tensor, torch.Tensor]:
+    def inverse(self, inputs: torch.Tensor, context: torch.Tensor | None = None) -> Tuple[torch.Tensor, torch.Tensor]:
         if inputs.dim() != 4:
             raise ValueError("Inputs must be a 4D torch.Tensor.")
 
