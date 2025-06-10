@@ -289,6 +289,33 @@ def generate_scalability_report(
         plot_file_suffix=plot_file_suffix,
     )
 
+    # Disclaimer for the plots
+    typer.echo(
+        typer.style(
+            "-" * 35 + "DISCLAIMER" + "-" * 35, fg= typer.colors.YELLOW, bold=True
+        )
+    )
+    typer.echo("""
+    The computation plots are experimental and do not account for parallelism.
+
+    The computed fractions are calculated as:
+        (sum of Aten + Autograd operations) / (sum of all operations)
+
+    Note:
+        Different strategies handle computation and communication differently.
+        Therefore, these plots should *not* be used to compare strategies solely
+        based on computation fractions.
+
+    However:
+        Comparing the computation fraction across multiple GPU counts *within*
+        the same strategy may provide insights into its scalability.
+    """.strip())
+    typer.echo(
+        typer.style(
+            "-" * 80, fg= typer.colors.YELLOW, bold=True
+        )
+    )
+
     if include_communication:
         comm_time_logdirs = [
             path / COMPUTATION_DATA_DIR
