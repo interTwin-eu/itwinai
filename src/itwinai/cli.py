@@ -299,7 +299,7 @@ def generate_scalability_report(
     The computation plots are experimental and do not account for parallelism.
 
     The computed fractions are calculated as:
-        (sum of Aten + Autograd operations) / (sum of all operations)
+    (summed duration of Aten + Autograd operations) / (summed duration of all operations)
 
     Note:
         Different strategies handle computation and communication differently.
