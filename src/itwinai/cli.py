@@ -299,10 +299,10 @@ def generate_scalability_report(
     typer.echo(dedent("""
     The computation plots are experimental and do not account for parallelism.
     Calls traced by the torch profiler may overlap in time, so the sum of
-    individual operation durations does not equal the total training run duration.
+    individual operation durations does not necessarily equal the total training run duration.
 
     The computed fractions are calculated as:
-    (summed duration of Aten + Autograd operations) / (summed duration of all operations)
+    (summed duration of ATen + Autograd operations) / (summed duration of all operations)
 
     Note:
         Different strategies handle computation and communication differently.
