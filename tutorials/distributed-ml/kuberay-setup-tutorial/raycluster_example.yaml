@@ -16,7 +16,7 @@ head:
       # To avoid out-of-memory issues, never allocate less than 2G memory for the Ray head.
       memory: "128G"
   annotations:
-    slurm-job.vk.io/flags: "-p gpu --cpus-per-task=32 --gres=gpu:1  --time 230" # TODO: Adjust as needed
+    slurm-job.vk.io/flags: "-p gpu --gres=gpu:1  --time 230" # TODO: Adjust as needed
     # TODO: Add container envs here
     slurm-job.vk.io/singularity-options: "--no-home --compat --no-mount /exa5 --env POD_IP=$POD_IP  --env HYDRA_FULL_ERROR=1,NCCL_SOCKET_IFNAME=br0,RAY_record_ref_creation_sites=1,SLURM_NNODES=1,ITWINAI_LOG_LEVEL=DEBUG"
     slurm-job.vk.io/singularity-mounts: "--bind /ceph"
@@ -58,7 +58,7 @@ worker:
       cpu: "64"
       memory: "128G"
   annotations:
-    slurm-job.vk.io/flags: "-p gpu --cpus-per-task=32 --gres=gpu:1 --time 230" # TODO: change num of gpus and cpus
+    slurm-job.vk.io/flags: "-p gpu --gres=gpu:1 --time 230" # TODO: change num of gpus and cpus
     slurm-job.vk.io/singularity-options: "--no-home --compat --no-mount /exa5 --env HYDRA_FULL_ERROR=1,RAY_record_ref_creation_sites=1,ITWINAI_LOG_LEVEL=DEBUG,NCCL_SOCKET_IFNAME=br0,SLURM_NNODES=1"
     slurm-job.vk.io/singularity-mounts: "--bind /ceph"
     interlink.eu/pod-vpn: "true"
