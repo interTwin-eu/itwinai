@@ -49,7 +49,7 @@ from itwinai.torch.profiling.profiler import profile_torch_trainer
 from ..components import Trainer, monitor_exec
 from ..distributed import ray_cluster_is_running
 from ..loggers import EpochTimeTracker, Logger, LogMixin
-from ..utils import generate_random_name, load_yaml, to_uri
+from ..utils import EPOCH_TIME_DIR, generate_random_name, load_yaml, to_uri
 from .config import TrainingConfiguration
 from .distributed import (
     DeepSpeedStrategy,
@@ -1115,7 +1115,7 @@ class TorchTrainer(Trainer, LogMixin):
                     " when running distributed training!"
                 )
             num_nodes = int(os.environ["SLURM_NNODES"])
-            epoch_time_output_dir = Path(f"scalability-metrics/{self.run_id}/epoch-time")
+            epoch_time_output_dir = Path(f"scalability-metrics/{self.run_id}/{EPOCH_TIME_DIR}")
             epoch_time_file_name = f"epochtime_{self.strategy.name}_{num_nodes}N.csv"
             epoch_time_output_path = epoch_time_output_dir / epoch_time_file_name
 
