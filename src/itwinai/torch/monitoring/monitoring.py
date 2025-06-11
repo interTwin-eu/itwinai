@@ -9,6 +9,7 @@
 # --------------------------------------------------------------------------------------
 
 import functools
+import os
 import time
 from multiprocessing import Manager, Process
 from pathlib import Path
@@ -69,30 +70,47 @@ def probe_gpu_utilization_loop(
         raise ValueError(f"log_dict is missing the following columns: {missing_columns}")
 
     # load management library backend
-    man_lib_type, handles, man_lib = init_backend()
+    man_lib_type, man_lib = init_backend()
+
+    cuda_visible_devices = os.environ.get("CUDA_VISIBLE_DEVICES")
+
+    if not cuda_visible_devices:
+        raise ValueError(
+            "CUDA_VISIBLE_DEVICES environment variable is not set. "
+            "Please set it to the indices of the GPUs you want to monitor."
+        )
+
+    gpu_ids = list(map(int, cuda_visible_devices.split(",")))
+
     # ensure all gpu handles where retrieved
-    if len(handles) != num_local_gpus:
-        raise ValueError(f"Expected {num_local_gpus} handles, but got {len(handles)}.")
+    if len(gpu_ids) != num_local_gpus:
+        raise ValueError(f"Expected {num_local_gpus} handles, but got {len(gpu_ids)}.")
 
     time.sleep(warmup_time)
 
+    if man_lib_type == "nvidia":
+        handles = [man_lib.nvmlDeviceGetHandleByIndex(idx) for idx in gpu_ids]
+    elif man_lib_type == "amd":
+        handles = amdsmi.amdsmi_get_processor_handles()
+        # assumes that amdsmi_get_processor_handles() returns all GPUs on the node
+        handles = [handles[id] for id in gpu_ids]  # filter handles by gpu_ids
+    else:
+        raise ValueError(f"Unsupported management library type: {man_lib_type}")
+
     sample_idx = 0
     while not stop_flag.value:
-        for idx in range(num_local_gpus):
+        for id, handle in zip(gpu_ids, handles):
             if man_lib_type == "nvidia":
-                handle = handles[idx]
-                gpu_util = man_lib.nvmlDeviceGetUtilizationRates(handle).gpu
                 power = man_lib.nvmlDeviceGetPowerUsage(handle) / 1000.0  # mW -> W
 
             elif man_lib_type == "amd":
-                handle = handles[idx]
                 gpu_util = man_lib.amdsmi_get_gpu_activity(handle)["gfx_activity"]  # W
                 power = man_lib.amdsmi_get_power_info(handle)["average_socket_power"]
 
             log_dict["sample_idx"].append(sample_idx)
             log_dict["utilization"].append(gpu_util)
             log_dict["power"].append(power)
-            log_dict["local_rank"].append(idx)
+            log_dict["local_rank"].append(id)
             log_dict["node_idx"].append(node_idx)
             log_dict["num_global_gpus"].append(num_global_gpus)
             log_dict["strategy"].append(strategy_name)
