@@ -13,9 +13,13 @@ from itwinai.parser import ArgumentParser
 
 
 def remove_indentation_from_multiline_string(multiline_string: str) -> str:
-    """Removes the indentation from the start of each line in a multi-line string. The
-    main purpose of this function is allowing you to define multi-line strings that
-    don't touch the left margin of the editor, thus increasing readability.
+    """Removes *all* indentation from the start of each line in a multi-line string.
+
+    If you want to remove only the shared indentation of all lines, thus preserving
+    indentation for nested structures, use the builtin `textwrap.dedent` function instead.
+
+    The main purpose of this function is allowing you to define multi-line strings that
+    only appear indented in the code, thus increasing readability.
     """
     return "\n".join([line.lstrip() for line in multiline_string.split("\n")])
 

@@ -247,7 +247,7 @@ def communication_data_report(
     )
 
     computation_fraction_plot_path = plot_dir / (
-        "computation_communication_plot" + plot_file_suffix
+        "computation_vs_communication_plot" + plot_file_suffix
     )
     computation_fraction_fig, _ = computation_fraction_bar_plot(computation_fraction_df)
     computation_fraction_fig.savefig(computation_fraction_plot_path)
@@ -261,6 +261,7 @@ def communication_data_report(
     communication_data_df.to_csv(backup_path)
     print(f"Storing backup file at '{backup_path.resolve()}'.")
     return communication_data_table
+
 
 def computation_data_report(
     log_dirs: List[Path] | List[str],
