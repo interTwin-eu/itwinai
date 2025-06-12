@@ -908,9 +908,25 @@ class TorchTrainer(Trainer, LogMixin):
         # Create the parameter space for hyperparameter tuning
         param_space = {"train_loop_config": search_space(self.ray_search_space)}
 
+        if self.ray_scaling_config is None:
+            # If no scaling config is provided, use default resources
+            py_logger.warning("No ray_scaling_config provided, using 1 CPU per worker.")
+            self.ray_scaling_config = ScalingConfig(
+                num_workers=1,
+                resources_per_worker={"CPU": 1, "GPU": 0},
+                use_gpu=False,
+            )
+
+        trainable = ray.tune.with_resources(
+            train_driver_fn, resources={
+                "cpu": float(self.ray_scaling_config.resources_per_worker["CPU"]),
+                "gpu": float(self.ray_scaling_config.resources_per_worker["GPU"]),
+            }
+        )
+
         # Create the tuner with the driver function
         tuner = ray.tune.Tuner(
-            trainable=train_driver_fn,
+            trainable=trainable,
             param_space=param_space,
             tune_config=self.ray_tune_config,
             run_config=self.ray_run_config,
