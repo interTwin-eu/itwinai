@@ -846,14 +846,6 @@ class TorchTrainer(Trainer, LogMixin):
             ckpt_dir = Path(self.ray_run_config.storage_path)
             ckpt_dir.mkdir(parents=True, exist_ok=True)
 
-
-        # Store large datasets in Rays object store to avoid serialization issues
-        train_dataset_ref = ray.put(train_dataset)
-        validation_dataset_ref = (
-            ray.put(validation_dataset) if validation_dataset is not None else None
-        )
-        test_dataset_ref = ray.put(test_dataset) if test_dataset is not None else None
-
         # Define a worker function to be run on each worker
         def train_fn_per_worker(train_loop_config: dict):
             """Retrieve datasets from references and start worker
@@ -862,19 +854,12 @@ class TorchTrainer(Trainer, LogMixin):
                 train_loop_config (dict): configuration for the training loop,
                     passed by Ray Tuner.
             """
-
-            train_ds = ray.get(train_dataset_ref)
-            val_ds = (
-                ray.get(validation_dataset_ref) if validation_dataset_ref is not None else None
-            )
-            test_ds = ray.get(test_dataset_ref) if test_dataset_ref is not None else None
-
             # Call the original worker function with the datasets and config
             return self._run_worker(
                 train_loop_config,
-                train_dataset=train_ds,
-                validation_dataset=val_ds,
-                test_dataset=test_ds,
+                train_dataset=train_dataset,
+                validation_dataset=validation_dataset,
+                test_dataset=test_dataset,
             )
 
         def train_driver_fn(config: dict):
@@ -908,9 +893,28 @@ class TorchTrainer(Trainer, LogMixin):
         # Create the parameter space for hyperparameter tuning
         param_space = {"train_loop_config": search_space(self.ray_search_space)}
 
+        if self.ray_scaling_config is None:
+            # If no scaling config is provided, use default resources
+            py_logger.warning("No ray_scaling_config provided, using 1 CPU per worker.")
+            self.ray_scaling_config = ScalingConfig(
+                num_workers=1,
+                resources_per_worker={"CPU": 1, "GPU": 0},
+                use_gpu=False,
+            )
+
+        # Reserve *whole* placement group: all workers + 1 CPU for driver
+        worker_resources = self.ray_scaling_config.resources_per_worker
+        # add 1 CPU for the driver function
+        cpu_per_trial = worker_resources["CPU"] * self.ray_scaling_config.num_workers + 1
+        gpu_per_trial = worker_resources.get("GPU", 0) * self.ray_scaling_config.num_workers
+
+        trainable = ray.tune.with_resources(
+            train_driver_fn,
+            resources={"cpu": float(cpu_per_trial), "gpu": float(gpu_per_trial)},
+        )
         # Create the tuner with the driver function
         tuner = ray.tune.Tuner(
-            trainable=train_driver_fn,
+            trainable=trainable,
             param_space=param_space,
             tune_config=self.ray_tune_config,
             run_config=self.ray_run_config,
