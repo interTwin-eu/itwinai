@@ -903,7 +903,8 @@ class TorchTrainer(Trainer, LogMixin):
             run_config = ray.train.RunConfig(
                 name=f"train-trial_id={ray.tune.get_context().get_trial_id()}",
                 # Needed as of ray version 2.46, to propagate train.report back to the Tuner
-                callbacks=[TuneReportCallback()],
+                callbacks = [TuneReportCallback()],
+                storage_path=self.ray_run_config.storage_path if self.ray_run_config else None,
             )
 
             trainer = RayTorchTrainer(
