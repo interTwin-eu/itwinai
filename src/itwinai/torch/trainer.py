@@ -846,7 +846,6 @@ class TorchTrainer(Trainer, LogMixin):
             ckpt_dir = Path(self.ray_run_config.storage_path)
             ckpt_dir.mkdir(parents=True, exist_ok=True)
 
-
         # Store large datasets in Rays object store to avoid serialization issues
         train_dataset_ref = ray.put(train_dataset)
         validation_dataset_ref = (
@@ -892,6 +891,7 @@ class TorchTrainer(Trainer, LogMixin):
                 name=f"train-trial_id={ray.tune.get_context().get_trial_id()}",
                 # Needed as of ray version 2.46, to propagate train.report back to the Tuner
                 callbacks = [TuneReportCallback()],
+                storage_path=self.ray_run_config.storage_path if self.ray_run_config else None,
             )
 
             trainer = RayTorchTrainer(
