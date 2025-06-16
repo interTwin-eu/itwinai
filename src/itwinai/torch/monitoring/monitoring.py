@@ -9,6 +9,7 @@
 # --------------------------------------------------------------------------------------
 
 import functools
+import logging
 import time
 from multiprocessing import Manager, Process
 from pathlib import Path
@@ -32,6 +33,7 @@ logging_columns = [
     "probing_interval",
 ]
 
+cli_logger = logging.getLogger("cli_logger")
 
 def probe_gpu_utilization_loop(
     node_idx: int,
@@ -114,12 +116,12 @@ def measure_gpu_utilization(method: Callable) -> Callable:
 
         log_df = pd.concat(dataframes)
         log_df.to_csv(output_path, index=False)
-        print(f"Writing GPU energy dataframe to '{output_path.resolve()}'.")
+        cli_logger.info(f"Writing GPU energy dataframe to '{output_path.resolve()}'.")
 
     @functools.wraps(method)
     def measured_method(self: "TorchTrainer", *args, **kwargs) -> Any:
         if not self.measure_gpu_data:
-            print("Warning: Profiling of GPU data has been disabled!")
+            cli_logger.warning("Profiling of GPU data has been disabled!")
             return method(self, *args, **kwargs)
 
         gpu_probing_interval = 1

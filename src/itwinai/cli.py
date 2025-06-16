@@ -36,7 +36,7 @@ from itwinai.utils import COMPUTATION_DATA_DIR, EPOCH_TIME_DIR, GPU_ENERGY_DIR
 app = typer.Typer(pretty_exceptions_enable=False)
 
 py_logger = logging.getLogger(__name__)
-
+cli_logger = logging.getLogger("cli_logger")
 
 @app.command()
 def generate_flamegraph(
@@ -55,17 +55,14 @@ def generate_flamegraph(
 
     try:
         with open(output_filename, "w") as out:
-            subprocess.run(
-                ["perl", str(script_path), file],
-                stdout=out,
-                check=True,
-            )
-        typer.echo(f"Flamegraph saved to '{output_filename}'")
+            subprocess.run(["perl", str(script_path), file], stdout=out, check=True)
+        cli_logger.info(f"Flamegraph saved to '{output_filename}'")
     except FileNotFoundError:
-        typer.echo("Error: Perl is not installed or not in PATH.")
+        cli_logger.error("Perl is not installed or not in PATH.")
+        raise typer.Exit(code=1)
     except subprocess.CalledProcessError as e:
-        typer.echo(f"Flamegraph generation failed: {e}")
-
+        cli_logger.error(f"Flamegraph generation failed: {e}")
+        raise typer.Exit(code=1)
 
 @app.command()
 def generate_py_spy_report(
@@ -100,7 +97,7 @@ def generate_py_spy_report(
         parsed_num_rows: int | None = parse_num_rows(num_rows=num_rows)
     except ValueError as exception:
         raise typer.BadParameter(
-            f"Failed to parse `num_rows` with value '{num_rows}'. Error:\n{str(exception)}",
+            f"Failed to parse num_rows with value '{num_rows}'. Error:\n{str(exception)}",
             param_hint="num-rows",
         )
 
@@ -111,11 +108,13 @@ def generate_py_spy_report(
     try:
         stack_traces = read_stack_traces(path=file_path)
     except ValueError as exception:
-        typer.echo(f"Failed to read stack traces with following error:\n{str(exception)}")
+        cli_logger.error(
+            f"Failed to read stack traces with following error:\n{str(exception)}"
+        )
         raise typer.Exit(code=1)
 
-    typer.echo(
-        "[WARNING]: Multiprocessing calls (e.g. Dataloader subprocesses) might be counted"
+    cli_logger.warning(
+        "Multiprocessing calls (e.g. Dataloader subprocesses) might be counted"
         " multiple times (once per process) and thus be overrepresented. Take this into"
         " consideration when reading the results.\n"
     )
@@ -149,8 +148,7 @@ def generate_py_spy_report(
         stack_frame_dict["proportion (n)"] = f"{proportion:.2f}% ({num_samples})"
         filtered_leaf_stack_dicts.append(stack_frame_dict)
 
-    typer.echo(tabulate(filtered_leaf_stack_dicts, headers="keys", tablefmt="presto"))
-
+    cli_logger.info(tabulate(filtered_leaf_stack_dicts, headers="keys", tablefmt="presto"))
 
 @app.command()
 def generate_scalability_report(
@@ -206,9 +204,9 @@ def generate_scalability_report(
     can be created.
 
     This command processes log files stored in specific subdirectories under the given
-    `log_dir`. It generates plots and metrics for scalability analysis and saves them
-    in the `plot_dir`. If backups are enabled, the generated reports will also be
-    copied to a backup directory under `backup_root_dir`.
+    log_dir. It generates plots and metrics for scalability analysis and saves them
+    in the plot_dir. If backups are enabled, the generated reports will also be
+    copied to a backup directory under backup_root_dir.
     """
     from datetime import datetime
 
@@ -312,43 +310,41 @@ def generate_scalability_report(
         plot_file_suffix=plot_file_suffix,
     )
 
-
-    typer.echo("")
+    cli_logger.info("")
     if epoch_time_table is not None:
-        typer.echo("#" * 8 + " Epoch Time Report " + "#" * 8)
-        typer.echo(epoch_time_table + "\n")
+        cli_logger.info("#" * 8 + " Epoch Time Report " + "#" * 8)
+        cli_logger.info(epoch_time_table + "\n")
     else:
-        typer.echo("No Epoch Time Data Found\n")
+        cli_logger.info("No Epoch Time Data Found\n")
 
     if gpu_data_table is not None:
-        typer.echo("#" * 8 + "GPU Data Report" + "#" * 8)
-        typer.echo(gpu_data_table + "\n")
+        cli_logger.info("#" * 8 + "GPU Data Report" + "#" * 8)
+        cli_logger.info(gpu_data_table + "\n")
     else:
-        typer.echo("No GPU Data Found\n")
+        cli_logger.info("No GPU Data Found\n")
 
     if computation_data_table is not None:
-        typer.echo("#" * 8 + "Computation Data Report" + "#" * 8)
-        typer.echo(computation_data_table + "\n")
+        cli_logger.info("#" * 8 + "Computation Data Report" + "#" * 8)
+        cli_logger.info(computation_data_table + "\n")
     else:
-        typer.echo("No Computation Data Found\n")
+        cli_logger.info("No Computation Data Found\n")
 
     if include_communication:
         if communication_data_table is not None:
-            typer.echo("#" * 8 + "Communication Data Report" + "#" * 8)
-            typer.echo(communication_data_table + "\n")
+            cli_logger.info("#" * 8 + "Communication Data Report" + "#" * 8)
+            cli_logger.info(communication_data_table + "\n")
         else:
-            typer.echo("No Communication Data Found\n")
-
+            cli_logger.info("No Communication Data Found\n")
 
 @app.command()
 def sanity_check(
     torch: Annotated[
-        Optional[bool], typer.Option(help=("Check also itwinai.torch modules."))
+        bool | None, typer.Option(help=("Check also itwinai.torch modules."))
     ] = False,
     tensorflow: Annotated[
-        Optional[bool], typer.Option(help=("Check also itwinai.tensorflow modules."))
+        bool | None, typer.Option(help=("Check also itwinai.tensorflow modules."))
     ] = False,
-    all: Annotated[Optional[bool], typer.Option(help=("Check all modules."))] = False,
+    all: Annotated[bool | None, typer.Option(help=("Check all modules."))] = False,
     optional_deps: List[str] = typer.Option(None, help="List of optional dependencies."),
 ):
     """Run sanity checks on the installation of itwinai and its dependencies by trying
@@ -374,7 +370,6 @@ def sanity_check(
 
     if optional_deps is not None:
         run_sanity_check(optional_deps)
-
 
 @app.command(context_settings={"allow_extra_args": True, "ignore_unknown_options": True})
 def generate_slurm(
@@ -511,7 +506,6 @@ def generate_slurm(
     del sys.argv[0]
     generate_default_slurm_script()
 
-
 @app.command(context_settings={"allow_extra_args": True, "ignore_unknown_options": True})
 def exec_pipeline(
     # NOTE: The arguments below are not actually needed in this function, but they are here
@@ -633,14 +627,13 @@ def exec_pipeline(
 
     exec_pipeline_with_compose()
 
-
 @hydra.main(version_base=None, config_path=os.getcwd(), config_name="config")
 def exec_pipeline_with_compose(cfg):
     """Hydra entry function. The hydra.main decorator parses a configuration file
     (under config_path), which contains a pipeline definition, and passes it to this function
     as an omegaconf.DictConfig object (called cfg). This function then instantiates and
     executes the resulting pipeline object.
-    Filters steps if `pipe_steps` is provided, otherwise executes the entire pipeline.
+    Filters steps if pipe_steps is provided, otherwise executes the entire pipeline.
     For more information on hydra.main, please see
     https://hydra.cc/docs/tutorials/basic/your_first_app/simple_cli/."""
 
@@ -678,7 +671,7 @@ def exec_pipeline_with_compose(cfg):
     if pipe_steps:
         try:
             cfg.steps = [cfg.steps[step] for step in pipe_steps]
-            typer.echo(f"Successfully selected steps {pipe_steps}")
+            py_logger.info(f"Successfully selected steps {pipe_steps}")
         except errors.ConfigKeyError as e:
             e.add_note(
                 "Could not find all selected steps. Please ensure that all steps exist "
@@ -687,12 +680,11 @@ def exec_pipeline_with_compose(cfg):
             )
             raise e
     else:
-        typer.echo("No steps selected. Executing the whole pipeline.")
+        py_logger.info("No steps selected. Executing the whole pipeline.")
 
     # Instantiate and execute the pipeline
     pipeline = instantiate(cfg, _convert_="all")
     pipeline.execute()
-
 
 @app.command()
 def mlflow_ui(
@@ -708,7 +700,6 @@ def mlflow_ui(
 
     subprocess.run(f"mlflow ui --backend-store-uri {path} --port {port} --host {host}".split())
 
-
 @app.command()
 def mlflow_server(
     path: str = typer.Option("mllogs/mlflow", help="Path to logs storage."),
@@ -718,7 +709,6 @@ def mlflow_server(
     import subprocess
 
     subprocess.run(f"mlflow server --backend-store-uri {path} --port {port}".split())
-
 
 @app.command()
 def kill_mlflow_server(
@@ -730,7 +720,6 @@ def kill_mlflow_server(
     subprocess.run(
         f"kill -9 $(lsof -t -i:{port})".split(), check=True, stderr=subprocess.DEVNULL
     )
-
 
 @app.command()
 def download_mlflow_data(
@@ -755,8 +744,8 @@ def download_mlflow_data(
         "MLFLOW_TRACKING_USERNAME" in os.environ and "MLFLOW_TRACKING_PASSWORD" in os.environ
     )
     if not mlflow_credentials_set:
-        typer.echo(
-            "\nWarning: MLFlow authentication environment variables are not set. "
+        cli_logger.warning(
+            "MLFlow authentication environment variables are not set. "
             "If the server requires authentication, your request will fail."
             "You can authenticate by setting environment variables before running:\n"
             "\texport MLFLOW_TRACKING_USERNAME=your_username\n"
@@ -772,28 +761,28 @@ def download_mlflow_data(
 
     # Handling authentication
     try:
-        typer.echo(f"\nConnecting to MLFlow server at {tracking_uri}")
-        typer.echo(f"Accessing experiment ID: {experiment_id}")
+        cli_logger.info(f"\nConnecting to MLFlow server at {tracking_uri}")
+        cli_logger.info(f"Accessing experiment ID: {experiment_id}")
         runs = client.search_runs(experiment_ids=[experiment_id])
-        typer.echo(f"Authentication successful! Found {len(runs)} runs.")
+        cli_logger.info(f"Authentication successful! Found {len(runs)} runs.")
     except mlflow.MlflowException as e:
         status_code = e.get_http_status_code()
         if status_code == 401:
-            typer.echo(
+            cli_logger.error(
                 "Authentication with MLFlow failed with code 401! Either your "
                 "environment variables are not set or they are incorrect!"
             )
-            typer.Exit(code=1)
+            raise typer.Exit(code=1)
         else:
-            typer.echo(e.message)
-            typer.Exit(code=1)
+            cli_logger.info(e.message)
+            raise typer.Exit(code=1)
 
     all_metrics = []
     for run_idx, run in enumerate(runs):
         run_id = run.info.run_id
         metric_keys = run.data.metrics.keys()  # Get all metric names
 
-        typer.echo(f"Processing run {run_idx + 1}/{len(runs)}")
+        cli_logger.info(f"Processing run {run_idx + 1}/{len(runs)}")
         for metric_name in metric_keys:
             metrics = client.get_metric_history(run_id, metric_name)
             for metric in metrics:
@@ -808,13 +797,12 @@ def download_mlflow_data(
                 )
 
     if not all_metrics:
-        typer.echo("No metrics found in the runs")
-        typer.Exit(code=1)
+        cli_logger.error("No metrics found in the runs")
+        raise typer.Exit(code=1)
 
     df_metrics = pd.DataFrame(all_metrics)
     df_metrics.to_csv(output_file, index=False)
-    typer.echo(f"Saved data to '{Path(output_file).resolve()}'!")
-
+    cli_logger.info(f"Saved data to '{Path(output_file).resolve()}'!")
 
 def tensorboard_ui(
     path: str = typer.Option("mllogs/tensorboard", help="Path to logs storage."),
@@ -828,7 +816,6 @@ def tensorboard_ui(
     import subprocess
 
     subprocess.run(f"tensorboard --logdir={path} --port={port} --host={host}".split())
-
 
 if __name__ == "__main__":
     app()

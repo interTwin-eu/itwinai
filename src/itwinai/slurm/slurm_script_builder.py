@@ -8,6 +8,7 @@
 # - Matteo Bunino <matteo.bunino@cern.ch> - CERN
 # --------------------------------------------------------------------------------------
 
+import logging
 import subprocess
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -21,6 +22,7 @@ from itwinai.slurm.utils import (
     remove_indentation_from_multiline_string,
 )
 
+cli_logger = logging.getLogger("cli_logger")
 
 class SlurmScriptConfiguration(BaseModel):
     """Configuration object for the SLURM script. It contains all the settings for the
@@ -125,10 +127,10 @@ class SlurmScriptBuilder:
         dir_name = str(directory.resolve())
         if should_create:
             directory.mkdir(parents=True)
-            print(f"Creating directory '{dir_name}'")
+            cli_logger.info(f"Creating directory '{dir_name}'")
         else:
-            print(
-                "[WARNING] If you're submitting the SLURM job manually, make sure to create "
+            cli_logger.warning(
+                "If you're submitting the SLURM job manually, make sure to create "
                 f"the directory '{dir_name}' first. This is handled automatically when using "
                 "the SLURM builder."
             )
@@ -293,9 +295,9 @@ class SlurmScriptBuilder:
         script = self.slurm_script_configuration.format_script()
         if not submit_slurm_job and not save_script:
             upper_banner_str = f"{'#' * 20} SLURM Script Preview {'#' * 20}"
-            print(upper_banner_str)
-            print(script)
-            print("#" * len(upper_banner_str))
+            cli_logger.info(upper_banner_str)
+            cli_logger.info(script)
+            cli_logger.info("#" * len(upper_banner_str))
             return
 
         temp_dir = None
@@ -308,7 +310,7 @@ class SlurmScriptBuilder:
                 )
 
             self.file_folder.mkdir(exist_ok=True, parents=True)
-            print(f"Storing SLURM script at '{file_path.resolve()}'.")
+            cli_logger.info(f"Storing SLURM script at '{file_path.resolve()}'.")
         else:
             temp_dir = TemporaryDirectory()
             file_path = Path(temp_dir.name) / f"{job_identifier}.sh"

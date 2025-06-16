@@ -7,11 +7,14 @@
 # - Matteo Bunino <matteo.bunino@cern.ch> - CERN
 # --------------------------------------------------------------------------------------
 
+import logging
 import os
 from typing import Dict, Optional
 
 import mlflow
 import yaml
+
+py_logger = logging.getLogger(__name__)
 
 
 def _get_mlflow_logger_conf(pl_config: Dict) -> Optional[Dict]:
@@ -77,7 +80,7 @@ def init_lightning_mlflow(
     mlflow.set_experiment(experiment_name)
     mlflow.pytorch.autolog(**autolog_kwargs)
     run = mlflow.start_run()
-    print(f"MLFlow's artifacts URI: {run.info.artifact_uri}")
+    py_logger.info(f"MLFlow's artifacts URI: {run.info.artifact_uri}")
 
     mlflow_conf["experiment_name"] = experiment_name
     mlflow_conf["run_id"] = mlflow.active_run().info.run_id

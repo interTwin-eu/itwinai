@@ -12,6 +12,7 @@
 
 import functools
 import inspect
+import logging
 import os
 import random
 import sys
@@ -22,6 +23,8 @@ from typing import Callable, Dict, Hashable, List, Tuple, Type
 from urllib.parse import urlparse
 
 import yaml
+
+py_logger = logging.getLogger(__name__)
 
 # Directory names for logging and profiling data
 COMPUTATION_DATA_DIR = "computation-data"
@@ -96,12 +99,8 @@ def load_yaml(path: str) -> Dict:
     Returns:
         Dict: nested dict representation of parsed YAML file.
     """
-    with open(path, "r", encoding="utf-8") as yaml_file:
-        try:
-            loaded_config = yaml.safe_load(yaml_file)
-        except yaml.YAMLError as exc:
-            print(exc)
-            raise exc
+    with open(path, encoding="utf-8") as yaml_file:
+        loaded_config = yaml.safe_load(yaml_file)
     return loaded_config
 
 
@@ -121,14 +120,14 @@ def dynamically_import_class(name: str) -> Type:
         mod = __import__(module, fromlist=[class_name])
         klass = getattr(mod, class_name)
     except ModuleNotFoundError as err:
-        print(
+        py_logger.error(
             f"Module not found when trying to dynamically import '{name}'. "
             "Make sure that the module's file is reachable from your current "
             "directory."
         )
         raise err
     except Exception as err:
-        print(
+        py_logger.error(
             f"Exception occurred when trying to dynamically import '{name}'. "
             "Make sure that the module's file is reachable from your current "
             "directory and that the class is present in that module."
@@ -225,7 +224,9 @@ def clear_key(my_dict: Dict, dict_name: str, key: Hashable, complain: bool = Tru
     """
     if key in my_dict:
         if complain:
-            print(f"Field '{key}' should not be present in dictionary '{dict_name}'")
+            py_logger.warning(
+                f"Field '{key}' should not be present in dictionary '{dict_name}'"
+            )
         del my_dict[key]
     return my_dict
 
@@ -292,8 +293,10 @@ def deprecated(reason):
             warnings.warn(
                 f"{func.__name__} is deprecated: {reason}",
                 category=DeprecationWarning,
-                stacklevel=2
+                stacklevel=2,
             )
             return func(*args, **kwargs)
+
         return wrapper
+
     return decorator

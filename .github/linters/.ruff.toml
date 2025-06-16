@@ -1,8 +1,26 @@
 line-length = 95
 
 [lint]
-select = ["E", "F", "I", "W"]
-ignore = ["E203"]
+select = [
+  "E",     # pycodestyle errors
+  "F",     # pyflakes: undefined names, unused imports, etc.
+  "I",     # isort: import sorting
+  "W",     # pycodestyle warnings
+  "B",     # flake8-bugbear: likely bugs and bad practices (e.g. mutable defaults)
+  "C4",    # flake8-comprehensions: unnecessary or suboptimal comprehensions
+  "SIM",   # flake8-simplify: redundant ifs, returns, boolean logic
+  "UP",    # pyupgrade: use modern Python syntax (e.g. f-strings, `Path()` literals)
+  "PTH",   # flake8-use-pathlib: use pathlib instead of os.path
+  "N",     # pep8-naming: naming conventions for classes, functions, variables
+]
+ignore = [
+  "E203",      # Whitespace before ':' – conflicts with Black
+  "PTH122",    # Avoid replacing os.path.splitext – Path.suffix drops info (e.g. .tar.gz)
+  "PTH123",    # Allow use of builtin open() – Path.open() adds no real benefit
+  "UP006",     # Keep using typing.List/Dict/Set – prefer consistency over builtin generics
+  "UP035",     # Same as above – avoid auto-converting to list[]/dict[] syntax
+  "B904",      # Don't require `from err` in CLI code – breaks Typer/Click behavior
+]
 fixable = ["ALL"]
 
 [format]
