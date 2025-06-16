@@ -917,12 +917,7 @@ class TorchTrainer(Trainer, LogMixin):
         )
 
         # Run the tuner and capture results
-        if self.time_ray:
-            self.tune_result_grid = self._time_and_log(
-                lambda: tuner.fit(), "ray_fit_time_s", step=0
-            )
-        else:
-            self.tune_result_grid = tuner.fit()
+        self.tune_result_grid = tuner.fit()
 
         return train_dataset, validation_dataset, test_dataset, None
 
