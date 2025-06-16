@@ -38,6 +38,7 @@ app = typer.Typer(pretty_exceptions_enable=False)
 py_logger = logging.getLogger(__name__)
 cli_logger = logging.getLogger("cli_logger")
 
+
 @app.command()
 def generate_flamegraph(
     file: Annotated[str, typer.Option(help="The location of the raw profiling data.")],
@@ -63,6 +64,7 @@ def generate_flamegraph(
     except subprocess.CalledProcessError as e:
         cli_logger.error(f"Flamegraph generation failed: {e}")
         raise typer.Exit(code=1)
+
 
 @app.command()
 def generate_py_spy_report(
@@ -149,6 +151,7 @@ def generate_py_spy_report(
         filtered_leaf_stack_dicts.append(stack_frame_dict)
 
     cli_logger.info(tabulate(filtered_leaf_stack_dicts, headers="keys", tablefmt="presto"))
+
 
 @app.command()
 def generate_scalability_report(
@@ -336,6 +339,7 @@ def generate_scalability_report(
         else:
             cli_logger.info("No Communication Data Found\n")
 
+
 @app.command()
 def sanity_check(
     torch: Annotated[
@@ -345,7 +349,9 @@ def sanity_check(
         bool | None, typer.Option(help=("Check also itwinai.tensorflow modules."))
     ] = False,
     all: Annotated[bool | None, typer.Option(help=("Check all modules."))] = False,
-    optional_deps: List[str] = typer.Option(None, help="List of optional dependencies."),
+    optional_deps: Annotated[
+        List[str] | None, typer.Option(None, help="List of optional dependencies.")
+    ] = None,
 ):
     """Run sanity checks on the installation of itwinai and its dependencies by trying
     to import itwinai modules. By default, only itwinai core modules (neither torch, nor
@@ -370,6 +376,7 @@ def sanity_check(
 
     if optional_deps is not None:
         run_sanity_check(optional_deps)
+
 
 @app.command(context_settings={"allow_extra_args": True, "ignore_unknown_options": True})
 def generate_slurm(
@@ -506,6 +513,7 @@ def generate_slurm(
     del sys.argv[0]
     generate_default_slurm_script()
 
+
 @app.command(context_settings={"allow_extra_args": True, "ignore_unknown_options": True})
 def exec_pipeline(
     # NOTE: The arguments below are not actually needed in this function, but they are here
@@ -627,6 +635,7 @@ def exec_pipeline(
 
     exec_pipeline_with_compose()
 
+
 @hydra.main(version_base=None, config_path=os.getcwd(), config_name="config")
 def exec_pipeline_with_compose(cfg):
     """Hydra entry function. The hydra.main decorator parses a configuration file
@@ -686,6 +695,7 @@ def exec_pipeline_with_compose(cfg):
     pipeline = instantiate(cfg, _convert_="all")
     pipeline.execute()
 
+
 @app.command()
 def mlflow_ui(
     path: str = typer.Option("mllogs/mlflow", help="Path to logs storage."),
@@ -700,6 +710,7 @@ def mlflow_ui(
 
     subprocess.run(f"mlflow ui --backend-store-uri {path} --port {port} --host {host}".split())
 
+
 @app.command()
 def mlflow_server(
     path: str = typer.Option("mllogs/mlflow", help="Path to logs storage."),
@@ -709,6 +720,7 @@ def mlflow_server(
     import subprocess
 
     subprocess.run(f"mlflow server --backend-store-uri {path} --port {port}".split())
+
 
 @app.command()
 def kill_mlflow_server(
@@ -720,6 +732,7 @@ def kill_mlflow_server(
     subprocess.run(
         f"kill -9 $(lsof -t -i:{port})".split(), check=True, stderr=subprocess.DEVNULL
     )
+
 
 @app.command()
 def download_mlflow_data(
@@ -804,6 +817,7 @@ def download_mlflow_data(
     df_metrics.to_csv(output_file, index=False)
     cli_logger.info(f"Saved data to '{Path(output_file).resolve()}'!")
 
+
 def tensorboard_ui(
     path: str = typer.Option("mllogs/tensorboard", help="Path to logs storage."),
     port: int = typer.Option(6006, help="Port on which the Tensorboard UI is listening."),
@@ -816,6 +830,7 @@ def tensorboard_ui(
     import subprocess
 
     subprocess.run(f"tensorboard --logdir={path} --port={port} --host={host}".split())
+
 
 if __name__ == "__main__":
     app()

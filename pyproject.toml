@@ -167,6 +167,7 @@ select = [
 ]
 ignore = [
   "E203",      # Whitespace before ':' – conflicts with Black
+  "PTH109",    # Allow os.getcwd()
   "PTH122",    # Avoid replacing os.path.splitext – Path.suffix drops info (e.g. .tar.gz)
   "PTH123",    # Allow use of builtin open() – Path.open() adds no real benefit
   "UP006",     # Keep using typing.List/Dict/Set – prefer consistency over builtin generics

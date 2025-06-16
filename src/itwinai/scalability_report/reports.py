@@ -96,8 +96,12 @@ def epoch_time_report(
 
     absolute_fig.savefig(absolute_avg_time_plot_path)
     relative_fig.savefig(relative_speedup_plot_path)
-    cli_logger.info(f"Saved absolute average time plot at '{absolute_avg_time_plot_path.resolve()}'.")
-    cli_logger.info(f"Saved relative average time plot at '{relative_speedup_plot_path.resolve()}'.")
+    cli_logger.info(
+        f"Saved absolute average time plot at '{absolute_avg_time_plot_path.resolve()}'."
+    )
+    cli_logger.info(
+        f"Saved relative average time plot at '{relative_speedup_plot_path.resolve()}'."
+    )
 
     if not do_backup:
         return epoch_time_table
@@ -244,7 +248,7 @@ def communication_data_report(
     cli_logger.info("\nAnalyzing Communication Data...")
     computation_fraction_df = get_computation_fraction_data(communication_data_df)
 
-    formatters = {"computation_fraction": lambda x: "{:.2f} %".format(x * 100)}
+    formatters = {"computation_fraction": lambda x: f"{x * 100:.2f}"}
     communication_data_table = computation_fraction_df.to_string(
         index=False, formatters=formatters
     )
@@ -254,7 +258,9 @@ def communication_data_report(
     )
     computation_fraction_fig, _ = computation_fraction_bar_plot(computation_fraction_df)
     computation_fraction_fig.savefig(computation_fraction_plot_path)
-    cli_logger.info(f"Saved computation fraction plot at '{computation_fraction_plot_path.resolve()}'.")
+    cli_logger.info(
+        f"Saved computation fraction plot at '{computation_fraction_plot_path.resolve()}'."
+    )
 
     if not do_backup:
         return communication_data_table
@@ -324,7 +330,9 @@ def computation_data_report(
     )
     computation_fraction_fig, _ = computation_vs_other_bar_plot(computation_fraction_df)
     computation_fraction_fig.savefig(computation_fraction_plot_path)
-    cli_logger.info(f"Saved computation fraction plot at '{computation_fraction_plot_path.resolve()}'.")
+    cli_logger.info(
+        f"Saved computation fraction plot at '{computation_fraction_plot_path.resolve()}'."
+    )
 
     if not do_backup:
         return computation_data_table

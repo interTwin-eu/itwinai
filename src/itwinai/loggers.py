@@ -126,11 +126,9 @@ def check_initialized(method: Callable) -> Callable:
     def wrapper(self: "Logger", *args, **kwargs):
         if not self.is_initialized:
             raise RuntimeError(
-
-                    f"{self.__class__.__name__} has not been initialized. "
-                    "Use either the ``start_logging`` context or the "
-                    "``create_logger_context`` method."
-
+                f"{self.__class__.__name__} has not been initialized. "
+                "Use either the ``start_logging`` context or the "
+                "``create_logger_context`` method."
             )
         return method(self, *args, **kwargs)
 
@@ -325,16 +323,13 @@ class Logger(LogMixin):
         if not worker_ok:
             return False
 
-        # Check batch ID
-        if batch_idx is not None:
-            if isinstance(self.log_freq, int):
-                if batch_idx % self.log_freq == 0:
-                    return True
-                return False
-            if self.log_freq == "batch":
-                return True
-            return False
-        return True
+        if batch_idx is None:
+            return True
+
+        if isinstance(self.log_freq, int):
+            return batch_idx % self.log_freq == 0
+
+        return self.log_freq == "batch"
 
 
 class ConsoleLogger(Logger):
@@ -633,12 +628,16 @@ class MLFlowLogger(Logger):
         if kind == "metric":
             self.mlflow.log_metric(key=identifier, value=item, step=step)
         elif kind == "artifact":
+            if not isinstance(identifier, str):
+                raise ValueError(
+                    "Expected identifier to be a string for kind='artifact'."
+                )
             if not isinstance(item, str):
                 # Save the object locally and then log it
-                name = os.path.basename(identifier)
+                name = Path(identifier).name
                 save_path = self.savedir / ".trash" / str(name)
-                save_path.mkdir(os.path.dirname(save_path), exist_ok=True)
-                item = self.serialize(item, save_path)
+                save_path.parent.mkdir(exist_ok=True, parents=True)
+                item = self.serialize(item, str(save_path))
             self.mlflow.log_artifact(local_path=item, artifact_path=identifier)
         elif kind == "model":
             import torch
@@ -657,16 +656,19 @@ class MLFlowLogger(Logger):
                 self.mlflow.log_input(item)
             else:
                 py_logger.warning("Unrecognized dataset type. Must be an MLFlow dataset")
+
         elif kind == "torch":
+            if not isinstance(identifier, str):
+                raise ValueError("Expected identifier to be a string for kind='torch'")
+
             import torch
 
-            # Save the object locally and then log it
-            name = os.path.basename(identifier)
+            name = Path(identifier).name
             save_path = self.savedir / ".trash" / str(name)
-            save_path.mkdir(os.path.dirname(save_path), exist_ok=True)
+            save_path.parent.mkdir(parents=True, exist_ok=True)
             torch.save(item, save_path)
-            # Log into mlflow
             self.mlflow.log_artifact(local_path=save_path, artifact_path=identifier)
+
         elif kind == "dict":
             self.mlflow.log_dict(dictionary=item, artifact_file=identifier)
         elif kind == "figure":
