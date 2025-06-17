@@ -176,12 +176,12 @@ class SignatureInspector:
     @property
     def has_varargs(self) -> bool:
         """Checks if the function has ``*args`` parameter."""
-        return any(map(lambda p: p[1].kind == p[1].VAR_POSITIONAL, self.func_params))
+        return any(p[1].kind == p[1].VAR_POSITIONAL for p in self.func_params)
 
     @property
     def has_kwargs(self) -> bool:
         """Checks if the function has ``**kwargs`` parameter."""
-        return any(map(lambda p: p[1].kind == p[1].VAR_KEYWORD, self.func_params))
+        return any(p[1].kind == p[1].VAR_KEYWORD for p in self.func_params)
 
     @property
     def required_params(self) -> Tuple[str]:
@@ -197,7 +197,7 @@ class SignatureInspector:
                 self.func_params,
             )
         )
-        return tuple(map(lambda p: p[0], required_params))
+        return tuple(p[0] for p in required_params)
 
     @property
     def min_params_num(self) -> int:
@@ -246,15 +246,15 @@ def make_config_paths_absolute(args: List[str]):
     for i, arg in enumerate(updated_args):
         if arg.startswith("--config-path=") or arg.startswith("-cp="):
             prefix, path = arg.split("=", 1)
-            abs_path = os.path.abspath(path)
+            abs_path = Path(path).resolve()
             updated_args[i] = f"{prefix}={abs_path}"
-            sys.path.append(abs_path)
+            sys.path.append(str(abs_path))
             break
         elif arg in {"--config-path", "-cp"}:
             # Handle the case where the path is in the next argument
-            abs_path = os.path.abspath(updated_args[i + 1])
-            updated_args[i + 1] = abs_path
-            sys.path.append(abs_path)
+            abs_path = Path(updated_args[i + 1]).resolve()
+            updated_args[i + 1] = str(abs_path)
+            sys.path.append(str(abs_path))
             break
     return updated_args
 
