@@ -320,7 +320,7 @@ def computation_data_report(
     cli_logger.info("\nAnalyzing Computation Data...")
     computation_fraction_df = get_computation_vs_other_data(computation_data_df)
 
-    formatters = {"computation_fraction": lambda x: "{:.2f} %".format(x * 100)}
+    formatters = {"computation_fraction": lambda x: f"{x * 100:.2f} %"}
     computation_data_table = computation_fraction_df.to_string(
         index=False, formatters=formatters
     )

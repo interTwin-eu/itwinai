@@ -15,11 +15,14 @@ select = [
 ]
 ignore = [
   "E203",      # Whitespace before ':' – conflicts with Black
+  "PTH109",    # Allow os.getcwd()
   "PTH122",    # Avoid replacing os.path.splitext – Path.suffix drops info (e.g. .tar.gz)
   "PTH123",    # Allow use of builtin open() – Path.open() adds no real benefit
   "UP006",     # Keep using typing.List/Dict/Set – prefer consistency over builtin generics
   "UP035",     # Same as above – avoid auto-converting to list[]/dict[] syntax
   "B904",      # Don't require `from err` in CLI code – breaks Typer/Click behavior
+  "SIM108",    # Don't always use ternary operators — they can be kind of hard to read sometimes
+  "N806",      # Allow UPPER_CASE_VARIABLE_NAMES in a function scope (for default values etc.)
 ]
 fixable = ["ALL"]
 

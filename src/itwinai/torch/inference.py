@@ -10,7 +10,8 @@
 # --------------------------------------------------------------------------------------
 
 import os
-from typing import Any, Dict, List, Literal, Optional, Union
+from pathlib import Path
+from typing import Any, Dict, List, Literal
 
 import torch
 from torch import nn
@@ -47,7 +48,7 @@ class TorchModelLoader(ModelLoader):
         Returns:
             nn.Module: torch neural network.
         """
-        if os.path.exists(self.model_uri):
+        if Path(self.model_uri).exists():
             # Model is on local filesystem.
             checkpoint = torch.load(self.model_uri)
 
@@ -177,14 +178,14 @@ class TorchPredictor(TorchTrainer, Predictor):
         Returns:
             Dict[str, Any]: maps each item ID to the corresponding predicted values.
         """
-        all_predictions = dict()
+        all_predictions = {}
         for samples_ids, samples in self.inference_dataloader:
             with torch.no_grad():
                 pred_batch = self.model(samples.to(self.device))
             pred_batch = self.transform_predictions(pred_batch)
-            for idx, pred in zip(samples_ids, pred_batch):
+            for idx, pred in zip(samples_ids, pred_batch, strict=False):
                 # For each item in the batch
-                if pred.numel() == 1:
+                if pred.numl() == 1:
                     pred = pred.item()
                 else:
                     pred = pred.to_dense().tolist()
@@ -293,9 +294,9 @@ class MultilabelTorchPredictor(TorchPredictor):
 
     def __init__(
         self,
-        model: Union[nn.Module, ModelLoader],
+        model: nn.Module | ModelLoader,
         test_dataloader_class: str = "torch.utils.data.DataLoader",
-        test_dataloader_kwargs: Optional[Dict] = None,
+        test_dataloader_kwargs: Dict | None = None,
         threshold: float = 0.5,
         name: str = None,
     ) -> None:

@@ -19,6 +19,7 @@ import sys
 import tempfile
 import time
 from collections import defaultdict
+from functools import partial
 from pathlib import Path
 from time import perf_counter as default_timer
 from typing import Any, Callable, Dict, List, Literal, Tuple
@@ -35,7 +36,7 @@ from ray.train.torch import TorchConfig
 from ray.train.torch import TorchTrainer as RayTorchTrainer
 from ray.tune import TuneConfig
 from ray.tune.integration.ray_train import TuneReportCallback
-from torch.nn.parallel import DistributedDataParallel as DDP
+from torch.nn.parallel import DistributedDataParallel
 from torch.optim import SGD, Adadelta, Adam, AdamW, RMSprop
 from torch.optim.lr_scheduler import LRScheduler
 from torch.optim.optimizer import Optimizer
@@ -235,7 +236,7 @@ class TorchTrainer(Trainer, LogMixin):
         self.logger = logger
         self.metrics = metrics if metrics is not None else {}
         self.checkpoints_location = checkpoints_location
-        os.makedirs(self.checkpoints_location, exist_ok=True)
+        Path(self.checkpoints_location).mkdir(exist_ok=True, parents=True)
         self.checkpoint_every = checkpoint_every
         self.disable_tqdm = disable_tqdm
         self.profiler = None
@@ -500,21 +501,21 @@ class TorchTrainer(Trainer, LogMixin):
 
         if isinstance(self.strategy, DeepSpeedStrategy):
             # Batch size definition is not optional for DeepSpeedStrategy!
-            distribute_kwargs = dict(
-                config_params=dict(train_micro_batch_size_per_gpu=self.config.batch_size)
-            )
+            distribute_kwargs = {
+                "config_params": {"train_micro_batch_size_per_gpu": self.config.batch_size}
+            }
         elif isinstance(self.strategy, HorovodStrategy):
             import horovod.torch as hvd
 
-            distribute_kwargs = dict(
-                compression=(
+            distribute_kwargs = {
+                "compression": (
                     hvd.Compression.fp16
                     if self.config.fp16_allreduce
                     else hvd.Compression.none
                 ),
-                op=hvd.Adasum if self.config.use_adasum else hvd.Average,
-                gradient_predivide_factor=self.config.gradient_predivide_factor,
-            )
+                "op": hvd.Adasum if self.config.use_adasum else hvd.Average,
+                "gradient_predivide_factor": self.config.gradient_predivide_factor,
+            }
         else:
             distribute_kwargs = {}
 
@@ -1144,9 +1145,9 @@ class TorchTrainer(Trainer, LogMixin):
         epoch_time_logger: EpochTimeTracker | None = None
         if self.strategy.is_main_worker and self.strategy.is_distributed:
             if "SLURM_NNODES" not in os.environ:
-                raise EnvironmentError(
-                    "'SLURM_NNODES' is not present in 'os.environ', but is required"
-                    " when running distributed training!"
+                raise OSError(
+                    "'SLURM_NNODES' is not present in 'os.environ', but is required when "
+                    "running distributed training!"
                 )
             num_nodes = int(os.environ["SLURM_NNODES"])
             epoch_time_output_dir = Path(f"scalability-metrics/{self.run_id}/epoch-time")
@@ -1199,7 +1200,8 @@ class TorchTrainer(Trainer, LogMixin):
             if self.time_ray:
                 # time and log the ray_report call
                 self._time_and_log(
-                    lambda: self.ray_report(
+                    partial(
+                        self.ray_report,
                         metrics={metric_name: val_metric.item()},
                         checkpoint_dir=best_ckpt_path or periodic_ckpt_path,
                     ),
@@ -1438,7 +1440,7 @@ class TorchLightningTrainer(Trainer):
     def __init__(self, config: Dict | str, mlflow_saved_model: str = "my_model"):
         self.save_parameters(**self.locals2params(locals()))
         super().__init__()
-        if isinstance(config, str) and os.path.isfile(config):
+        if isinstance(config, str) and Path(config).is_file():
             # Load from YAML
             config = load_yaml(config)
         self.conf = config
@@ -1446,7 +1448,7 @@ class TorchLightningTrainer(Trainer):
 
     @monitor_exec
     def execute(self) -> Any:
-        import lightning as L
+        from lightning import LightningDataModule, LightningModule
         from lightning.pytorch.cli import LightningCLI
 
         from .mlflow import init_lightning_mlflow, teardown_lightning_mlflow
@@ -1458,8 +1460,8 @@ class TorchLightningTrainer(Trainer):
         sys.argv = ["some_script_placeholder.py"]
         cli = LightningCLI(
             args=self.conf,
-            model_class=L.LightningModule,
-            datamodule_class=L.LightningDataModule,
+            model_class=LightningModule,
+            datamodule_class=LightningDataModule,
             run=False,
             save_config_kwargs={
                 "overwrite": True,
@@ -1527,7 +1529,7 @@ def distributed(func):
             torch.cuda.set_device(lrank)
 
         model = model.to(device)
-        model = DDP(model, device_ids=[device], output_device=device)
+        model = DistributedDataParallel(model, device_ids=[device], output_device=device)
 
         train_dataloader = _distributed_dataloader(train_dataloader, gwsize, grank)
         if validation_dataloader is not None:

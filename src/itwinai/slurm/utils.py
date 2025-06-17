@@ -32,10 +32,9 @@ def scalability_nodes_list(value: str | List[int]) -> List[int]:
     """
 
     if isinstance(value, list):
-        if not all([isinstance(x, int) for x in value]):
+        if not all(isinstance(x, int) for x in value):
             raise ValueError(f"Provided list, '{value}', contains non-integer values.")
-        else:
-            return value
+        return value
 
     try:
         return [int(n) for n in value.split(",")]

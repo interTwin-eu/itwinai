@@ -35,6 +35,7 @@ logging_columns = [
 
 cli_logger = logging.getLogger("cli_logger")
 
+
 def probe_gpu_utilization_loop(
     node_idx: int,
     num_local_gpus: int,
@@ -175,7 +176,7 @@ def measure_gpu_utilization(method: Callable) -> Callable:
                 gpu_monitor_process.join(timeout=gpu_probing_interval + grace_period)
 
                 # Converting the shared log to non-shared log
-                local_utilization_log = {key: list(data[key]) for key in data.keys()}
+                local_utilization_log = {key: list(data[key]) for key in data}
                 manager.shutdown()
 
         global_utilization_log = strategy.gather_obj(local_utilization_log, dst_rank=0)

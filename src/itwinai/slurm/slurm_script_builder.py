@@ -329,11 +329,13 @@ class SlurmScriptBuilder:
         file_folder: Path = Path("slurm_scripts"),
         save_script: bool = True,
         submit_slurm_job: bool = True,
-        strategies: List[str] = ["ddp", "horovod", "deepspeed"],
+        strategies: List[str] | None = None,
     ):
         """Runs the SLURM script with all the given strategies. Does the same as the
         ``runall.sh`` script has been doing.
         """
+        if strategies is None:
+            strategies = ["ddp", "horovod", "deepspeed"]
         self.file_folder = file_folder
         for strategy in strategies:
             self.distributed_strategy = strategy
@@ -355,12 +357,16 @@ class SlurmScriptBuilder:
         file_folder: Path = Path("slurm_scripts"),
         save_script: bool = True,
         submit_slurm_job: bool = True,
-        strategies: List[str] = ["ddp", "horovod", "deepspeed"],
-        num_nodes_list: List[int] = [1, 2, 4, 8],
+        strategies: List[str] | None = None,
+        num_nodes_list: List[int] | None = None,
     ):
         """Runs a scaling test, i.e. runs all the strategies with separate runs for each
         distinct number of nodes.
         """
+        if strategies is None:
+            strategies = ["ddp", "horovod", "deepspeed"]
+        if num_nodes_list is None:
+            num_nodes_list = [1, 2, 4, 8]
         for num_nodes in num_nodes_list:
             self.slurm_script_configuration.num_nodes = num_nodes
             self.run_slurm_script_all_strategies(

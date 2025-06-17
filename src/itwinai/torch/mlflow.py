@@ -9,7 +9,8 @@
 
 import logging
 import os
-from typing import Dict, Optional
+from pathlib import Path
+from typing import Dict
 
 import mlflow
 import yaml
@@ -17,7 +18,7 @@ import yaml
 py_logger = logging.getLogger(__name__)
 
 
-def _get_mlflow_logger_conf(pl_config: Dict) -> Optional[Dict]:
+def _get_mlflow_logger_conf(pl_config: Dict) -> Dict | None:
     """Extract MLFLowLogger configuration from pytorch lightning
     configuration file, if present.
 
@@ -39,11 +40,14 @@ def _get_mlflow_logger_conf(pl_config: Dict) -> Optional[Dict]:
         return pl_config["trainer"]["logger"]["init_args"]
 
 
-def _mlflow_log_pl_config(pl_config: Dict, local_yaml_path: str) -> None:
-    os.makedirs(os.path.dirname(local_yaml_path), exist_ok=True)
+def _mlflow_log_pl_config(pl_config: Dict, local_yaml_path: str | Path) -> None:
+    if isinstance(local_yaml_path, str):
+        local_yaml_path = Path(local_yaml_path)
+
+    local_yaml_path.parent.mkdir(exist_ok=True, parents=True)
     with open(local_yaml_path, "w") as outfile:
         yaml.dump(pl_config, outfile, default_flow_style=False)
-    mlflow.log_artifact(local_yaml_path)
+    mlflow.log_artifact(str(local_yaml_path))
 
 
 def init_lightning_mlflow(
@@ -63,14 +67,14 @@ def init_lightning_mlflow(
         tmp_dir (str): where to temporarily store some artifacts.
         autolog_kwargs (kwargs): args for mlflow.pytorch.autolog(...).
     """
-    mlflow_conf: Optional[Dict] = _get_mlflow_logger_conf(pl_config)
+    mlflow_conf: Dict | None = _get_mlflow_logger_conf(pl_config)
     if not mlflow_conf:
         return
 
     tracking_uri = mlflow_conf.get("tracking_uri")
     if not tracking_uri:
         save_path = mlflow_conf.get("save_dir")
-        tracking_uri = "file://" + os.path.abspath(save_path)
+        tracking_uri = "file://" + str(Path(save_path).resolve())
 
     experiment_name = mlflow_conf.get("experiment_name")
     if not experiment_name:
@@ -85,7 +89,8 @@ def init_lightning_mlflow(
     mlflow_conf["experiment_name"] = experiment_name
     mlflow_conf["run_id"] = mlflow.active_run().info.run_id
 
-    _mlflow_log_pl_config(pl_config, os.path.join(tmp_dir, "pl_config.yml"))
+    tmp_dir_path = Path(tmp_dir)
+    _mlflow_log_pl_config(pl_config, tmp_dir_path / "pl_config.yml")
 
 
 def teardown_lightning_mlflow() -> None:
