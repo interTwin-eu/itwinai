@@ -350,7 +350,7 @@ def sanity_check(
     ] = False,
     all: Annotated[bool | None, typer.Option(help=("Check all modules."))] = False,
     optional_deps: Annotated[
-        List[str] | None, typer.Option(None, help="List of optional dependencies.")
+        List[str] | None, typer.Option(help="List of optional dependencies.")
     ] = None,
 ):
     """Run sanity checks on the installation of itwinai and its dependencies by trying
