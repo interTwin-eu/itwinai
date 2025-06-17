@@ -453,13 +453,21 @@ class TorchTrainer(Trainer, LogMixin):
                     "create_model_loss_optimizer method for more flexibility."
                 )
 
-    def _time_and_log(self, fn: Callable, identifier: str, step: int | None = None) -> Any:
+    def _time_and_log(
+            self,
+            fn: Callable,
+            identifier: str,
+            step: int | None = None,
+            destroy_current_logger_context: bool = False,
+    ) -> Any:
         """Time and log the execution of a function (using time.monotonic()).
 
         Args:
             fn (Callable): function to execute, time and log (pass args using lambda)
             identifier (str): identifier for the logged metric
             step (int | None): step for logging
+            destroy_current_logger_context (bool):
+                Whether to destroy the current logger context. Default is False.
 
         Returns:
             result (Any): result of the function call
@@ -467,12 +475,6 @@ class TorchTrainer(Trainer, LogMixin):
         if not self.logger:
             py_logger.warning(f"No logger set! Cannot log time for {identifier}! ")
             return fn()
-
-        if not self.logger.is_initialized:
-            py_logger.warning(
-                f"Logger context not initialized for timing {identifier}. Setting context."
-            )
-            self.logger.create_logger_context()
 
         step = step or self.current_epoch
         if step is None:
@@ -484,6 +486,19 @@ class TorchTrainer(Trainer, LogMixin):
         t_end = time.monotonic()
         # already in seconds
         t_delta = t_end - t_start
+
+        if self.logger.is_initialized and destroy_current_logger_context:
+            py_logger.warning(
+                f"Destroying logger context for timing {identifier}."
+            )
+            self.logger.destroy_logger_context()
+            self.logger.is_initialized = False
+
+        if not self.logger.is_initialized:
+            py_logger.warning(
+                f"Logger context not initialized for timing {identifier}. Setting context."
+            )
+            self.logger.create_logger_context()
 
         self.log(
             item=t_delta,
@@ -908,16 +923,37 @@ class TorchTrainer(Trainer, LogMixin):
         # Create the parameter space for hyperparameter tuning
         param_space = {"train_loop_config": search_space(self.ray_search_space)}
 
+        if self.ray_scaling_config is None:
+            # If no scaling config is provided, use default resources
+            py_logger.warning("No ray_scaling_config provided, using 1 CPU per worker.")
+            self.ray_scaling_config = ScalingConfig(
+                num_workers=1,
+                resources_per_worker={"CPU": 1, "GPU": 0},
+                use_gpu=False,
+            )
+
+        trainable = ray.tune.with_resources(
+            train_driver_fn, resources={
+                "cpu": float(self.ray_scaling_config.resources_per_worker["CPU"]),
+                "gpu": float(self.ray_scaling_config.resources_per_worker["GPU"]),
+            }
+        )
+
         # Create the tuner with the driver function
         tuner = ray.tune.Tuner(
-            trainable=train_driver_fn,
+            trainable=trainable,
             param_space=param_space,
             tune_config=self.ray_tune_config,
             run_config=self.ray_run_config,
         )
 
-        # Run the tuner and capture results
-        self.tune_result_grid = tuner.fit()
+        if self.time_ray:
+            self.tune_result_grid = self._time_and_log(
+                lambda: tuner.fit(), "ray_fit_time_s", step=0
+            )
+        else:
+            # Run the tuner and capture results
+            self.tune_result_grid = tuner.fit()
 
         return train_dataset, validation_dataset, test_dataset, None
 
