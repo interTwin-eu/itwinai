@@ -9,7 +9,6 @@
 # - Jarl Sondre Sæther <jarl.sondre.saether@cern.ch> - CERN
 # --------------------------------------------------------------------------------------
 
-import os
 from pathlib import Path
 from typing import Any, Dict, List, Literal
 
