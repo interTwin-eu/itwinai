@@ -13,7 +13,7 @@ import subprocess
 from collections.abc import Iterable
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import Dict, List
+from typing import Dict
 
 from pydantic import BaseModel
 

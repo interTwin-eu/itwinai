@@ -21,9 +21,10 @@ from collections.abc import MutableMapping
 from pathlib import Path
 from typing import Any, Callable, Dict, Hashable, List, Tuple, Type
 from urllib.parse import urlparse
-from .loggers import Logger
 
 import yaml
+
+from .loggers import Logger
 
 py_logger = logging.getLogger(__name__)
 
