@@ -23,6 +23,7 @@ from pathlib import Path
 from time import perf_counter as default_timer
 from typing import Any, Callable, Dict, List, Literal, Tuple, Union
 
+from ray import cluster_resources
 import ray.train
 import ray.tune
 import torch
@@ -33,6 +34,7 @@ import torch.optim.lr_scheduler as lr_scheduler
 import yaml
 from ray.train import DataConfig, ScalingConfig
 from ray.train.torch import TorchConfig
+from ray.tune import PlacementGroupFactory
 from ray.train.torch import TorchTrainer as RayTorchTrainer
 from ray.tune import TuneConfig
 from ray.tune.integration.ray_train import TuneReportCallback
@@ -341,7 +343,8 @@ class TorchTrainer(Trainer, LogMixin):
                 py_logger.warning(
                     "Horovod strategy is no longer supported with Ray V2. See "
                     "https://github.com/ray-project/ray/issues/49454#issuecomment-2899138398. "
-                    "Falling back to HorovodStrategy without Ray.")
+                    "Falling back to HorovodStrategy without Ray."
+                )
                 return HorovodStrategy()
 
             case "horovod", False:
@@ -454,11 +457,11 @@ class TorchTrainer(Trainer, LogMixin):
                 )
 
     def _time_and_log(
-            self,
-            fn: Callable,
-            identifier: str,
-            step: int | None = None,
-            destroy_current_logger_context: bool = False,
+        self,
+        fn: Callable,
+        identifier: str,
+        step: int | None = None,
+        destroy_current_logger_context: bool = False,
     ) -> Any:
         """Time and log the execution of a function (using time.monotonic()).
 
@@ -476,7 +479,6 @@ class TorchTrainer(Trainer, LogMixin):
             py_logger.warning(f"No logger set! Cannot log time for {identifier}! ")
             return fn()
 
-        step = step or self.current_epoch
         if step is None:
             py_logger.warning("current_epoch is not set and no explicit step was provided!")
 
@@ -488,9 +490,7 @@ class TorchTrainer(Trainer, LogMixin):
         t_delta = t_end - t_start
 
         if self.logger.is_initialized and destroy_current_logger_context:
-            py_logger.warning(
-                f"Destroying logger context for timing {identifier}."
-            )
+            py_logger.warning(f"Destroying logger context for timing {identifier}.")
             self.logger.destroy_logger_context()
             self.logger.is_initialized = False
 
@@ -877,18 +877,18 @@ class TorchTrainer(Trainer, LogMixin):
                     passed by Ray Tuner.
             """
 
-            train_ds = ray.get(train_dataset_ref)
-            val_ds = (
+            train_dataset = ray.get(train_dataset_ref)
+            val_dataset = (
                 ray.get(validation_dataset_ref) if validation_dataset_ref is not None else None
             )
-            test_ds = ray.get(test_dataset_ref) if test_dataset_ref is not None else None
+            test_dataset = ray.get(test_dataset_ref) if test_dataset_ref is not None else None
 
             # Call the original worker function with the datasets and config
-            return self._run_worker(
+            self._run_worker(
                 train_loop_config,
-                train_dataset=train_ds,
-                validation_dataset=val_ds,
-                test_dataset=test_ds,
+                train_dataset=train_dataset,
+                validation_dataset=val_dataset,
+                test_dataset=test_dataset,
             )
 
         def train_driver_fn(config: dict):
@@ -901,6 +901,8 @@ class TorchTrainer(Trainer, LogMixin):
             """
             # Extract hyperparameters from config
             train_loop_config = config.get("train_loop_config", {})
+            avail = ray.available_resources()
+            print(f"trial: {avail}")
 
             run_config = ray.train.RunConfig(
                 name=f"train-trial_id={ray.tune.get_context().get_trial_id()}",
@@ -923,25 +925,43 @@ class TorchTrainer(Trainer, LogMixin):
         # Create the parameter space for hyperparameter tuning
         param_space = {"train_loop_config": search_space(self.ray_search_space)}
 
-        if self.ray_scaling_config is None:
-            # If no scaling config is provided, use default resources
-            py_logger.warning("No ray_scaling_config provided, using 1 CPU per worker.")
-            self.ray_scaling_config = ScalingConfig(
-                num_workers=1,
-                resources_per_worker={"CPU": 1, "GPU": 0},
-                use_gpu=False,
-            )
+        # get current avail resources
+        available_resources = ray.available_resources()
+        print("AVAIL RES: ", available_resources)
+        print("RAY_V2", os.environ.get("RAY_TRAIN_V2_ENABLED"))
 
-        trainable = ray.tune.with_resources(
-            train_driver_fn, resources={
-                "cpu": float(self.ray_scaling_config.resources_per_worker["CPU"]),
-                "gpu": float(self.ray_scaling_config.resources_per_worker["GPU"]),
-            }
-        )
+        available_cpus = available_resources["CPU"]
+        available_gpus = available_resources["GPU"]
+
+        num_w = self.ray_scaling_config.num_workers
+        cpu_w = self.ray_scaling_config.num_cpus_per_worker
+        gpu_w = self.ray_scaling_config.num_gpus_per_worker
+
+        # calculate the max number of concurrent_trials
+        # +1 for cpus as each trial gets a driver function running on 1 CPU
+        if gpu_w > 0.0 and cpu_w > 0.0:
+            max_concurrent_trials = int(
+                    min(available_cpus // (num_w * cpu_w + 1), available_gpus // (num_w * gpu_w))
+            )
+        elif cpu_w > 0.0:
+            max_concurrent_trials = int(available_cpus // (num_w * cpu_w + 1))
+        elif gpu_w > 0.0:
+            max_concurrent_trials = int(available_gpus // (num_w * gpu_w))
+        else:
+            max_concurrent_trials = 0
+
+        print("MAX CONC TRIALS: ", max_concurrent_trials)
+        if max_concurrent_trials == 0:
+            raise ValueError("Not enough resources for one trial available.")
+
+        self.ray_tune_config.max_concurrent_trials = max_concurrent_trials
+        # self.ray_tune_config.reuse_actors = True
+
+        print("TUNE_conf: ", self.ray_tune_config)
 
         # Create the tuner with the driver function
         tuner = ray.tune.Tuner(
-            trainable=trainable,
+            trainable=train_driver_fn,
             param_space=param_space,
             tune_config=self.ray_tune_config,
             run_config=self.ray_run_config,
@@ -1241,7 +1261,6 @@ class TorchTrainer(Trainer, LogMixin):
                 assert epoch_time_logger is not None
                 epoch_time = default_timer() - epoch_start_time
                 epoch_time_logger.add_epoch_time(self.current_epoch + 1, epoch_time)
-
 
     def train_epoch(self) -> torch.Tensor:
         """Perform a complete sweep over the training dataset, completing an
