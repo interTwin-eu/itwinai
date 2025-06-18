@@ -161,7 +161,7 @@ def gpu_data_report(
         return None
     gpu_data_df = pd.concat(dataframes)
 
-    cli_logger.info("\nAnalyzing Epoch Time Data...")
+    cli_logger.info("\nAnalyzing GPU Data...")
     gpu_data_statistics_df = calculate_gpu_statistics(
         gpu_data_df=gpu_data_df, expected_columns=gpu_data_expected_columns
     )
