@@ -126,9 +126,8 @@ def check_initialized(method: Callable) -> Callable:
     def wrapper(self: "Logger", *args, **kwargs):
         if not self.is_initialized:
             raise RuntimeError(
-                f"{self.__class__.__name__} has not been initialized. "
-                "Use either the ``start_logging`` context or the "
-                "``create_logger_context`` method."
+                f"{self.__class__.__name__} has not been initialized. Use either the"
+                " ``start_logging`` context or the ``create_logger_context`` method."
             )
         return method(self, *args, **kwargs)
 
@@ -629,9 +628,7 @@ class MLFlowLogger(Logger):
             self.mlflow.log_metric(key=identifier, value=item, step=step)
         elif kind == "artifact":
             if not isinstance(identifier, str):
-                raise ValueError(
-                    "Expected identifier to be a string for kind='artifact'."
-                )
+                raise ValueError("Expected identifier to be a string for kind='artifact'.")
             if not isinstance(item, str):
                 # Save the object locally and then log it
                 name = Path(identifier).name

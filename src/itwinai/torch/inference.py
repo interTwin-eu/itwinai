@@ -182,9 +182,9 @@ class TorchPredictor(TorchTrainer, Predictor):
             with torch.no_grad():
                 pred_batch = self.model(samples.to(self.device))
             pred_batch = self.transform_predictions(pred_batch)
-            for idx, pred in zip(samples_ids, pred_batch, strict=False):
+            for idx, pred in zip(samples_ids, pred_batch, strict=True):
                 # For each item in the batch
-                if pred.numl() == 1:
+                if pred.numel() == 1:
                     pred = pred.item()
                 else:
                     pred = pred.to_dense().tolist()

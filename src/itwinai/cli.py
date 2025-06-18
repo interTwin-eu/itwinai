@@ -99,7 +99,7 @@ def generate_py_spy_report(
         parsed_num_rows: int | None = parse_num_rows(num_rows=num_rows)
     except ValueError as exception:
         raise typer.BadParameter(
-            f"Failed to parse num_rows with value '{num_rows}'. Error:\n{str(exception)}",
+            f"Failed to parse `num_rows` with value '{num_rows}'. Error:\n{str(exception)}",
             param_hint="num-rows",
         )
 
@@ -207,9 +207,9 @@ def generate_scalability_report(
     can be created.
 
     This command processes log files stored in specific subdirectories under the given
-    log_dir. It generates plots and metrics for scalability analysis and saves them
-    in the plot_dir. If backups are enabled, the generated reports will also be
-    copied to a backup directory under backup_root_dir.
+    `log_dir`. It generates plots and metrics for scalability analysis and saves them
+    in the `plot_dir`. If backups are enabled, the generated reports will also be
+    copied to a backup directory under `backup_root_dir`.
     """
     from datetime import datetime
 
@@ -642,7 +642,7 @@ def exec_pipeline_with_compose(cfg):
     (under config_path), which contains a pipeline definition, and passes it to this function
     as an omegaconf.DictConfig object (called cfg). This function then instantiates and
     executes the resulting pipeline object.
-    Filters steps if pipe_steps is provided, otherwise executes the entire pipeline.
+    Filters steps if `pipe_steps` is provided, otherwise executes the entire pipeline.
     For more information on hydra.main, please see
     https://hydra.cc/docs/tutorials/basic/your_first_app/simple_cli/."""
 
@@ -758,9 +758,9 @@ def download_mlflow_data(
     )
     if not mlflow_credentials_set:
         cli_logger.warning(
-            "MLFlow authentication environment variables are not set. "
-            "If the server requires authentication, your request will fail."
-            "You can authenticate by setting environment variables before running:\n"
+            "MLFlow authentication environment variables are not set. If the server requires"
+            " authentication, your request will fail. You can authenticate by setting"
+            " environment variables before running:\n"
             "\texport MLFLOW_TRACKING_USERNAME=your_username\n"
             "\texport MLFLOW_TRACKING_PASSWORD=your_password\n"
         )

@@ -49,12 +49,15 @@ class CLIFormatter(logging.Formatter):
             return f"[ERROR]: {msg}"
         if record.levelno == logging.WARNING:
             return f"[WARNING]: {msg}"
-        return msg  # INFO / DEBUG stay “plain”
+
+        # INFO / DEBUG stay “plain”
+        return msg
 
 plain_logger = logging.getLogger("cli_logger")
 plain_logger.setLevel(logging.INFO)
 if not plain_logger.hasHandlers():
-    h = logging.StreamHandler(sys.stdout)          # stdout, not stderr
+    # Moving the output to stdout instead of stderr
+    h = logging.StreamHandler(sys.stdout)
     h.setFormatter(CLIFormatter())
     plain_logger.addHandler(h)
 plain_logger.propagate = False

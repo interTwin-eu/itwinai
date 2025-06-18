@@ -10,6 +10,7 @@
 
 import logging
 import subprocess
+from collections.abc import Iterable
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import Dict, List
@@ -23,6 +24,7 @@ from itwinai.slurm.utils import (
 )
 
 cli_logger = logging.getLogger("cli_logger")
+
 
 class SlurmScriptConfiguration(BaseModel):
     """Configuration object for the SLURM script. It contains all the settings for the
@@ -329,13 +331,12 @@ class SlurmScriptBuilder:
         file_folder: Path = Path("slurm_scripts"),
         save_script: bool = True,
         submit_slurm_job: bool = True,
-        strategies: List[str] | None = None,
+        strategies: Iterable[str] = ("ddp", "horovod", "deepspeed"),
     ):
-        """Runs the SLURM script with all the given strategies. Does the same as the
-        ``runall.sh`` script has been doing.
+        """Runs the SLURM script with all the given strategies.
+
+        Does the same as the ``runall.sh`` script has been doing.
         """
-        if strategies is None:
-            strategies = ["ddp", "horovod", "deepspeed"]
         self.file_folder = file_folder
         for strategy in strategies:
             self.distributed_strategy = strategy
@@ -357,16 +358,12 @@ class SlurmScriptBuilder:
         file_folder: Path = Path("slurm_scripts"),
         save_script: bool = True,
         submit_slurm_job: bool = True,
-        strategies: List[str] | None = None,
-        num_nodes_list: List[int] | None = None,
+        strategies: Iterable[str] = ("ddp", "horovod", "deepspeed"),
+        num_nodes_list: Iterable[int] = (1, 2, 4, 8),
     ):
         """Runs a scaling test, i.e. runs all the strategies with separate runs for each
         distinct number of nodes.
         """
-        if strategies is None:
-            strategies = ["ddp", "horovod", "deepspeed"]
-        if num_nodes_list is None:
-            num_nodes_list = [1, 2, 4, 8]
         for num_nodes in num_nodes_list:
             self.slurm_script_configuration.num_nodes = num_nodes
             self.run_slurm_script_all_strategies(

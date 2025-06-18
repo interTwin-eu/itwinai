@@ -15,11 +15,13 @@ import inspect
 import logging
 import random
 import sys
+import time
 import warnings
 from collections.abc import MutableMapping
 from pathlib import Path
-from typing import Callable, Dict, Hashable, List, Tuple, Type
+from typing import Any, Callable, Dict, Hashable, List, Tuple, Type
 from urllib.parse import urlparse
+from .loggers import Logger
 
 import yaml
 
@@ -299,3 +301,43 @@ def deprecated(reason):
         return wrapper
 
     return decorator
+
+
+def time_and_log(
+    func: Callable, logger: Logger, identifier: str, step: int | None = None
+) -> Any:
+    """Time and log the execution of a function (using time.monotonic()).
+
+    Args:
+        func (Callable): function to execute, time and log, expects zero arguments. Use
+            `partial` from `functools` if you need to add arguments.
+        logger
+        identifier (str): identifier for the logged metric
+        step (int | None): step for logging
+
+    Returns:
+        result (Any): result of the function call
+    """
+    if not logger.is_initialized:
+        py_logger.warning(
+            f"Logger context not initialized for timing {identifier}. Creating context."
+        )
+        logger.create_logger_context()
+
+    if step is None:
+        py_logger.warning("No explicit step was provided for timing and logging!")
+
+    # Using monotonic time to avoid time drift
+    start_time = time.monotonic()
+    result = func()
+    end_time = time.monotonic()
+    elapsed_time = end_time - start_time
+
+    logger.log(
+        item=elapsed_time,
+        identifier=identifier,
+        kind="metric",
+        step=step,
+    )
+
+    return result

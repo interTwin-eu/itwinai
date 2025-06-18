@@ -17,7 +17,6 @@ import logging
 import os
 import sys
 import tempfile
-import time
 from collections import defaultdict
 from functools import partial
 from pathlib import Path
@@ -45,14 +44,13 @@ from torch.utils.data.distributed import DistributedSampler
 from torchmetrics import Metric
 from tqdm import tqdm
 
-# Cyclic imports...
 from itwinai.torch.monitoring.monitoring import measure_gpu_utilization
 from itwinai.torch.profiling.profiler import profile_torch_trainer
 
 from ..components import Trainer, monitor_exec
 from ..distributed import ray_cluster_is_running
 from ..loggers import EpochTimeTracker, Logger, LogMixin
-from ..utils import generate_random_name, load_yaml, to_uri
+from ..utils import generate_random_name, load_yaml, to_uri, time_and_log
 from .config import TrainingConfiguration
 from .distributed import (
     DeepSpeedStrategy,
@@ -454,47 +452,6 @@ class TorchTrainer(Trainer, LogMixin):
                     "supported values and consider overriding "
                     "create_model_loss_optimizer method for more flexibility."
                 )
-
-    def _time_and_log(self, fn: Callable, identifier: str, step: int | None = None) -> Any:
-        """Time and log the execution of a function (using time.monotonic()).
-
-        Args:
-            fn (Callable): function to execute, time and log (pass args using lambda)
-            identifier (str): identifier for the logged metric
-            step (int | None): step for logging
-
-        Returns:
-            result (Any): result of the function call
-        """
-        if not self.logger:
-            py_logger.warning(f"No logger set! Cannot log time for {identifier}! ")
-            return fn()
-
-        if not self.logger.is_initialized:
-            py_logger.warning(
-                f"Logger context not initialized for timing {identifier}. Setting context."
-            )
-            self.logger.create_logger_context()
-
-        step = step or self.current_epoch
-        if step is None:
-            py_logger.warning("current_epoch is not set and no explicit step was provided!")
-
-        # Use monotonic time to avoid time drift
-        t_start = time.monotonic()
-        result = fn()
-        t_end = time.monotonic()
-        # already in seconds
-        t_delta = t_end - t_start
-
-        self.log(
-            item=t_delta,
-            identifier=identifier,
-            kind="metric",
-            step=step,
-        )
-
-        return result
 
     def get_default_distributed_kwargs(self) -> Dict:
         """Gives the default kwargs for the trainer's strategy's distributed() method."""
@@ -925,9 +882,9 @@ class TorchTrainer(Trainer, LogMixin):
         )
 
         # Run the tuner and capture results
-        if self.time_ray:
-            self.tune_result_grid = self._time_and_log(
-                lambda: tuner.fit(), "ray_fit_time_s", step=0
+        if self.time_ray and self.logger is not None:
+            self.tune_result_grid = time_and_log(
+                func=tuner.fit, logger=self.logger, identifier="ray_fit_time_s", step=0
             )
         else:
             self.tune_result_grid = tuner.fit()
@@ -981,9 +938,9 @@ class TorchTrainer(Trainer, LogMixin):
             self.torch_rng.set_state(self.torch_rng_state)
 
     def _override_config(self, config: Dict) -> None:
-        """Overrid self.config with a sample from the search space from the Ray tuner."""
+        """Override self.config with a sample from the search space from the Ray tuner."""
         self.config = self.config.model_copy(update=config)
-        py_logger.debug("Overridden self.config with trial config (if given)")
+        py_logger.debug("Overrode self.config with trial config (if given)")
 
     def _set_epoch_dataloaders(self, epoch: int) -> None:
         """Sets epoch in the distributed sampler of a dataloader when using it."""
@@ -1009,7 +966,7 @@ class TorchTrainer(Trainer, LogMixin):
 
     def log(
         self,
-        item: Any | List,
+        item: Any | List[Any],
         identifier: str | List[str],
         kind: str = "metric",
         step: int | None = None,
@@ -1020,7 +977,7 @@ class TorchTrainer(Trainer, LogMixin):
         time step.
 
         Args:
-            item (Any | List): element to be logged (e.g., metric).
+            item (Any | List[Any]): element to be logged (e.g., metric).
             identifier (str | List[str]): unique identifier for the
                 element to log(e.g., name of a metric).
             kind (str, optional): type of the item to be logged. Must be one
@@ -1197,15 +1154,15 @@ class TorchTrainer(Trainer, LogMixin):
             if metric_name is None:
                 raise ValueError("Could not find a metric in the TuneConfig")
 
-            if self.time_ray:
-                # time and log the ray_report call
-                self._time_and_log(
-                    partial(
+            if self.time_ray and self.logger is not None:
+                time_and_log(
+                    func=partial(
                         self.ray_report,
                         metrics={metric_name: val_metric.item()},
                         checkpoint_dir=best_ckpt_path or periodic_ckpt_path,
                     ),
-                    "ray_report_time_s_per_epoch",
+                    logger=self.logger,
+                    identifier="ray_report_time_s_per_epoch",
                     step=self.current_epoch,
                 )
             else:
