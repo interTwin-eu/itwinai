@@ -26,7 +26,6 @@ from typing import Any, Callable, Dict, List, Literal, Tuple
 import ray.train
 import ray.tune
 import torch
-import torch.distributed as dist
 import torch.nn as nn
 import torch.optim.lr_scheduler as lr_scheduler
 import yaml
@@ -35,12 +34,10 @@ from ray.train.torch import TorchConfig
 from ray.train.torch import TorchTrainer as RayTorchTrainer
 from ray.tune import TuneConfig
 from ray.tune.integration.ray_train import TuneReportCallback
-from torch.nn.parallel import DistributedDataParallel
 from torch.optim import SGD, Adadelta, Adam, AdamW, RMSprop
 from torch.optim.lr_scheduler import LRScheduler
 from torch.optim.optimizer import Optimizer
 from torch.utils.data import DataLoader, Dataset
-from torch.utils.data.distributed import DistributedSampler
 from torchmetrics import Metric
 from tqdm import tqdm
 
@@ -63,7 +60,7 @@ from .distributed import (
     TorchDistributedStrategy,
     distributed_resources_available,
 )
-from .reproducibility import seed_worker, set_seed
+from .reproducibility import set_seed
 from .tuning import search_space
 
 py_logger = logging.getLogger(__name__)
@@ -136,7 +133,7 @@ class TorchTrainer(Trainer, LogMixin):
         initial_best_validation_metric (str): initial value for the best validation metric.
             Usually the validation metric is a loss to be minimized and this value exceeds the
             highest possible loss value, so that it will be overwritten when the first
-            vaidation loss is computed. Example values are "inf" and "-inf", depending on
+            validation loss is computed. Example values are "inf" and "-inf", depending on
             wether the best validation metric should be minimized or maximized.
             Defaults to "inf".
         run_id (str, optional): name used to identify a specific run when collecting metrics
@@ -219,7 +216,7 @@ class TorchTrainer(Trainer, LogMixin):
         super().__init__(name)
         self.save_parameters(**self.locals2params(locals()))
 
-        # config is mean to store all hyperparameters, which can very from use
+        # config is meant to store all hyperparameters, which can very from use
         # case to use case and include learning_rate, batch_size....
         config = {} if config is None else config
         if isinstance(config, dict):
@@ -314,7 +311,7 @@ class TorchTrainer(Trainer, LogMixin):
             f"(ray_cluster_is_running: {ray_cluster_is_running()})"
         )
 
-        # NOTE: setting strategy to None prevents the trainer to run distribtued ML, regardless
+        # NOTE: setting strategy to None prevents the trainer to run distributed ML, regardless
         # of the availability of the resources.
         if strategy is None or not enough_resources:
             py_logger.warning("Falling back to non-distributed strategy.")
@@ -549,7 +546,7 @@ class TorchTrainer(Trainer, LogMixin):
                 training so far (if available). Usually this is the validation loss.
             checkpoints_root (str | None): path for root checkpoints dir. If None, uses
                 ``self.checkpoints_location`` as base.
-            force (bool): force checkpointign now.
+            force (bool): force checkpointing now.
 
         Returns:
             path to the checkpoint file or ``None`` when the checkpoint is not created.
@@ -1430,75 +1427,3 @@ class TorchLightningTrainer(Trainer):
         sys.argv = old_argv
         cli.trainer.fit(cli.model, datamodule=cli.datamodule)
         teardown_lightning_mlflow()
-
-
-def _distributed_dataloader(dataloader: DataLoader, gwsize, grank):
-    """Makes a Dataloader distributed."""
-    sampler = DistributedSampler(
-        dataloader.dataset, num_replicas=gwsize, rank=grank, shuffle=True
-    )
-    # Recreate dataloader, with updated sampler
-    return DataLoader(
-        dataloader.dataset,
-        batch_size=dataloader.batch_size,
-        sampler=sampler,
-        num_workers=dataloader.num_workers,
-        collate_fn=dataloader.collate_fn,
-        pin_memory=dataloader.pin_memory,
-        drop_last=dataloader.drop_last,
-        timeout=dataloader.timeout,
-        worker_init_fn=seed_worker,  # dataloader.worker_init_fn,
-        multiprocessing_context=dataloader.multiprocessing_context,
-        generator=dataloader.generator,
-        prefetch_factor=dataloader.prefetch_factor,
-        persistent_workers=dataloader.persistent_workers,
-        pin_memory_device=dataloader.pin_memory_device,
-    )
-
-
-def distributed(func):
-    """The decorated function must have a standard signature.
-    Its first arguments must be:
-    model, train_dataloader, validation_dataloader, device (in this order).
-
-    Additional args or kwargs are allowed consistently with the signature
-    of the decorated function.
-    """
-
-    def dist_train(
-        model, train_dataloader, validation_dataloader=None, device="cpu", *args, **kwargs
-    ):
-        if torch.cuda.is_available():
-            dist.init_process_group(backend="nccl")
-
-        if torch.cuda.is_available():
-            lwsize = torch.cuda.device_count()  # local world size - per node
-            gwsize = dist.get_world_size()  # global world size - per run
-            grank = dist.get_rank()  # global rank - assign per run
-            lrank = dist.get_rank() % lwsize  # local rank - assign per node
-        else:
-            gwsize = 1
-            grank = 0
-            lrank = 0
-
-        device = torch.device("cuda" if torch.cuda.is_available() else "cpu", lrank)
-        if torch.cuda.is_available():
-            torch.cuda.set_device(lrank)
-
-        model = model.to(device)
-        model = DistributedDataParallel(model, device_ids=[device], output_device=device)
-
-        train_dataloader = _distributed_dataloader(train_dataloader, gwsize, grank)
-        if validation_dataloader is not None:
-            validation_dataloader = _distributed_dataloader(
-                validation_dataloader, gwsize, grank
-            )
-
-        try:
-            func(model, train_dataloader, validation_dataloader, device, *args, **kwargs)
-        finally:
-            if torch.cuda.is_available():
-                dist.barrier()
-                dist.destroy_process_group()
-
-    return dist_train
