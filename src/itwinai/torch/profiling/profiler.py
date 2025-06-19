@@ -104,9 +104,13 @@ def profile_torch_trainer(method: Callable) -> Callable:
         # Set correct values for the profiling epochs
         self.profiling_wait_epochs = wait_epochs
         self.profiling_warmup_epochs = warmup_epochs
-        trace_handler = tensorboard_trace_handler(
-            f"scalability-metrics/{self.run_id}/torch-traces"
-        )
+        if self.store_torch_traces:
+            trace_handler = tensorboard_trace_handler(
+                f"scalability-metrics/{self.run_id}/torch-traces"
+            )
+        else:
+            py_logger.warning("Profiling computation with storing the traces!")
+            trace_handler = None
         with profile(
             activities=[ProfilerActivity.CUDA, ProfilerActivity.CPU],
             schedule=schedule(
