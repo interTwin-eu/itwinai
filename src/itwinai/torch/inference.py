@@ -9,8 +9,8 @@
 # - Jarl Sondre Sæther <jarl.sondre.saether@cern.ch> - CERN
 # --------------------------------------------------------------------------------------
 
-import os
-from typing import Any, Dict, List, Literal, Optional, Union
+from pathlib import Path
+from typing import Any, Dict, List, Literal
 
 import torch
 from torch import nn
@@ -22,7 +22,6 @@ from ..serialization import ModelLoader
 from .config import TrainingConfiguration
 from .distributed import TorchDistributedStrategy
 from .trainer import TorchTrainer
-from .type import Batch
 
 
 class TorchModelLoader(ModelLoader):
@@ -48,7 +47,7 @@ class TorchModelLoader(ModelLoader):
         Returns:
             nn.Module: torch neural network.
         """
-        if os.path.exists(self.model_uri):
+        if Path(self.model_uri).exists():
             # Model is on local filesystem.
             checkpoint = torch.load(self.model_uri)
 
@@ -121,10 +120,10 @@ class TorchPredictor(TorchTrainer, Predictor):
         self,
         config: Dict | TrainingConfiguration,
         model: nn.Module | ModelLoader,
-        strategy: Literal["ddp", "deepspeed", "horovod"] = 'ddp',
+        strategy: Literal["ddp", "deepspeed", "horovod"] = "ddp",
         logger: Logger | None = None,
         checkpoints_location: str = "checkpoints",
-        name: str | None = None
+        name: str | None = None,
     ) -> None:
         if isinstance(config, dict):
             self.config = TrainingConfiguration(**config)
@@ -167,7 +166,7 @@ class TorchPredictor(TorchTrainer, Predictor):
             num_workers=self.config.num_workers_dataloader,
             pin_memory=self.config.pin_gpu_memory,
             generator=self.torch_rng,
-            shuffle=self.config.shuffle_test
+            shuffle=self.config.shuffle_test,
         )
 
         return self.inference_dataloader
@@ -178,12 +177,12 @@ class TorchPredictor(TorchTrainer, Predictor):
         Returns:
             Dict[str, Any]: maps each item ID to the corresponding predicted values.
         """
-        all_predictions = dict()
+        all_predictions = {}
         for samples_ids, samples in self.inference_dataloader:
             with torch.no_grad():
                 pred_batch = self.model(samples.to(self.device))
             pred_batch = self.transform_predictions(pred_batch)
-            for idx, pred in zip(samples_ids, pred_batch):
+            for idx, pred in zip(samples_ids, pred_batch, strict=True):
                 # For each item in the batch
                 if pred.numel() == 1:
                     pred = pred.item()
@@ -224,7 +223,7 @@ class TorchPredictor(TorchTrainer, Predictor):
         if self.logger:
             self.logger.create_logger_context(rank=self.strategy.global_rank())
             hparams = self.config.model_dump()
-            hparams['distributed_strategy'] = self.strategy.__class__.__name__
+            hparams["distributed_strategy"] = self.strategy.__class__.__name__
             self.logger.save_hyperparameters(hparams)
 
         all_predictions = self.predict()
@@ -240,10 +239,10 @@ class TorchPredictor(TorchTrainer, Predictor):
         self,
         item: Any | List[Any],
         identifier: str | List[str],
-        kind: str = 'metric',
+        kind: str = "metric",
         step: int | None = None,
         batch_idx: int | None = None,
-        **kwargs
+        **kwargs,
     ) -> None:
         """Log ``item`` with ``identifier`` name of ``kind`` type at ``step``
         time step.
@@ -265,10 +264,10 @@ class TorchPredictor(TorchTrainer, Predictor):
                 kind=kind,
                 step=step,
                 batch_idx=batch_idx,
-                **kwargs
+                **kwargs,
             )
 
-    def transform_predictions(self, batch: Batch) -> Batch:
+    def transform_predictions(self, batch: torch.Tensor) -> torch.Tensor:
         """Post-process the predictions of the torch model (e.g., apply
         threshold in case of multi-label classifier).
         """
@@ -277,7 +276,7 @@ class TorchPredictor(TorchTrainer, Predictor):
 class MulticlassTorchPredictor(TorchPredictor):
     """Applies a pre-trained torch model to unseen data for multiclass classification."""
 
-    def transform_predictions(self, batch: Batch) -> Batch:
+    def transform_predictions(self, batch: torch.Tensor) -> torch.Tensor:
         batch = batch.argmax(-1)
         return batch
 
@@ -294,16 +293,16 @@ class MultilabelTorchPredictor(TorchPredictor):
 
     def __init__(
         self,
-        model: Union[nn.Module, ModelLoader],
+        model: nn.Module | ModelLoader,
         test_dataloader_class: str = "torch.utils.data.DataLoader",
-        test_dataloader_kwargs: Optional[Dict] = None,
+        test_dataloader_kwargs: Dict | None = None,
         threshold: float = 0.5,
         name: str = None,
     ) -> None:
         super().__init__(model, test_dataloader_class, test_dataloader_kwargs, name)
         self.threshold = threshold
 
-    def transform_predictions(self, batch: Batch) -> Batch:
+    def transform_predictions(self, batch: torch.Tensor) -> torch.Tensor:
         return (batch > self.threshold).float()
 
 
@@ -313,5 +312,5 @@ class RegressionTorchPredictor(TorchPredictor):
     network.
     """
 
-    def transform_predictions(self, batch: Batch) -> Batch:
+    def transform_predictions(self, batch: torch.Tensor) -> torch.Tensor:
         return batch
