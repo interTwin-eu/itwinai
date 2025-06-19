@@ -70,6 +70,7 @@ contains thoroughly tested features aligned with the toolkit's most recent relea
    getting-started/containers
    getting-started/plugins
    getting-started/plugins-list
+   getting-started/glossary
 
 .. toctree::
    :maxdepth: 2
@@ -80,7 +81,6 @@ contains thoroughly tested features aligned with the toolkit's most recent relea
    how-it-works/loggers/explain_loggers
    how-it-works/workflows/explain_workflows
    how-it-works/hpo/explain-hpo
-   how-it-works/glossary/glossary
 
 .. toctree::
    :maxdepth: 2

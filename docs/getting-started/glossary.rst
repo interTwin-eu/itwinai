@@ -1,6 +1,3 @@
-.. _distributed_training_glossary:
-
-
 Glossary
 ========
 
