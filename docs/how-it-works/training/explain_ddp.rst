@@ -28,6 +28,11 @@ implementations of DDP:
 * https://huggingface.co/blog/pytorch-ddp-accelerate-transformers
 
 
+Data-Parallelism with Deepspeed's Zero Redundancy Optimizer (ZeRO):
+
+* https://sumanthrh.com/post/distributed-and-efficient-finetuning/#zero-powered-data-parallelism
+
+
 Investigation of expected performance improvement: 
 
 * https://www.mdpi.com/2079-9292/11/10/1525
