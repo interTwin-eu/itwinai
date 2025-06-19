@@ -15,7 +15,7 @@ from typing import TYPE_CHECKING, Any, Callable, Iterable, Tuple
 
 import matplotlib
 import pandas as pd
-from torch.profiler import ProfilerActivity, profile, schedule
+from torch.profiler import ProfilerActivity, profile, schedule, tensorboard_trace_handler
 
 from itwinai.utils import COMPUTATION_DATA_DIR
 
@@ -28,6 +28,7 @@ if TYPE_CHECKING:
 matplotlib.use("Agg")
 
 py_logger = logging.getLogger(__name__)
+
 
 def profile_torch_trainer(method: Callable) -> Callable:
     """Decorator for execute method for components. Profiles function calls and
@@ -91,8 +92,7 @@ def profile_torch_trainer(method: Callable) -> Callable:
     def profiled_method(self: "TorchTrainer", *args, **kwargs) -> Any:
         if not self.torch_profiling:
             py_logger.info(
-                "Profiling of computation with the PyTorch profiler"
-                " has been disabled!"
+                "Profiling of computation with the PyTorch profiler has been disabled!"
             )
             return method(self, *args, **kwargs)
 
@@ -104,6 +104,9 @@ def profile_torch_trainer(method: Callable) -> Callable:
         # Set correct values for the profiling epochs
         self.profiling_wait_epochs = wait_epochs
         self.profiling_warmup_epochs = warmup_epochs
+        trace_handler = tensorboard_trace_handler(
+            f"scalability-metrics/{self.run_id}/torch-traces"
+        )
         with profile(
             activities=[ProfilerActivity.CUDA, ProfilerActivity.CPU],
             schedule=schedule(
@@ -111,6 +114,7 @@ def profile_torch_trainer(method: Callable) -> Callable:
                 warmup=warmup_epochs,
                 active=active_epochs,
             ),
+            on_trace_ready=trace_handler,
             with_modules=True,
         ) as profiler:
             self.profiler = profiler
