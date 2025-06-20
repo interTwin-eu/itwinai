@@ -110,7 +110,7 @@ def profile_torch_trainer(method: Callable) -> Callable:
                 worker_name=f"worker_{self.strategy.global_rank()}"
             )
         else:
-            py_logger.warning("Profiling computation with storing the traces!")
+            py_logger.warning("Profiling computation without storing the traces!")
             trace_handler = None
         with profile(
             activities=[ProfilerActivity.CUDA, ProfilerActivity.CPU],
