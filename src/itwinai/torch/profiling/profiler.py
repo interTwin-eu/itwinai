@@ -106,7 +106,8 @@ def profile_torch_trainer(method: Callable) -> Callable:
         self.profiling_warmup_epochs = warmup_epochs
         if self.store_torch_traces:
             trace_handler = tensorboard_trace_handler(
-                f"scalability-metrics/{self.run_id}/torch-traces"
+                dir_name=f"scalability-metrics/{self.run_id}/torch-traces",
+                worker_name=f"worker_{self.strategy.global_rank()}"
             )
         else:
             py_logger.warning("Profiling computation with storing the traces!")

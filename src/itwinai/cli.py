@@ -848,7 +848,7 @@ def download_mlflow_data(
     df_metrics.to_csv(output_file, index=False)
     typer.echo(f"Saved data to '{Path(output_file).resolve()}'!")
 
-
+@app.command()
 def tensorboard_ui(
     path: str = typer.Option("mllogs/tensorboard", help="Path to logs storage."),
     port: int = typer.Option(6006, help="Port on which the Tensorboard UI is listening."),
