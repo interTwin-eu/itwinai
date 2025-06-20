@@ -185,6 +185,8 @@ class TorchTrainer(Trainer, LogMixin):
     measure_gpu_data: bool = False
     #: Toggle for computation fraction profiling
     torch_profiling: bool = False
+    #: Store PyTorch Profiling traces
+    store_torch_traces: bool = False
     #: Toggle for epoch time tracking
     measure_epoch_time: bool = False
     #: Run ID
@@ -210,6 +212,7 @@ class TorchTrainer(Trainer, LogMixin):
         profiling_warmup_epochs: int = 2,
         measure_gpu_data: bool = False,
         torch_profiling: bool = False,
+        store_torch_traces: bool = False,
         measure_epoch_time: bool = False,
         ray_scaling_config: ScalingConfig | None = None,
         ray_tune_config: TuneConfig | None = None,
@@ -243,12 +246,15 @@ class TorchTrainer(Trainer, LogMixin):
         os.makedirs(self.checkpoints_location, exist_ok=True)
         self.checkpoint_every = checkpoint_every
         self.disable_tqdm = disable_tqdm
+
         self.profiler = None
         self.profiling_wait_epochs = profiling_wait_epochs
         self.profiling_warmup_epochs = profiling_warmup_epochs
         self.measure_gpu_data = measure_gpu_data
         self.torch_profiling = torch_profiling
+        self.store_torch_traces = store_torch_traces
         self.measure_epoch_time = measure_epoch_time
+
         self.ray_scaling_config = ray_scaling_config
         self.ray_tune_config = ray_tune_config
         self.ray_run_config = ray_run_config
