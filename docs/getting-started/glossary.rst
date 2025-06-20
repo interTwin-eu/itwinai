@@ -15,7 +15,7 @@ HPC Terms
 
 * **collectives / collective operations / collective communications**
 
-  Concurrency primitives that involve all ranks in a communicator to move or reduce data in a single operation.
+  Concurrency primitives that involve all ranks in a communicator to move or reduce data in a single operation. Read more `here <https://docs.nvidia.com/deeplearning/nccl/user-guide/docs/usage/collectives.html>`_.
 
   * **all-gather**
     
@@ -36,7 +36,7 @@ HPC Terms
 
 * **job**
   
-  User-submitted unit of work that the scheduler runs with allocated resources.
+  Submitted unit of work that the scheduler runs with allocated resources.
 
 * **InfiniBand**
   
@@ -74,7 +74,7 @@ HPC Terms
 
   Protocol that allows a program to execute a procedure or function on a remote system as if it were local.
 
-* **scheduler**
+* **scheduler (e.g. SLURM)**
   
   Software that queues jobs and assigns cluster resources according to policy and priority.
 
@@ -82,11 +82,11 @@ HPC Terms
   
   Task or node that runs significantly slower than its peers, delaying synchronous operations.
 
-* **task**
+* **task (SLURM)**
   
   Smallest schedulable execution unit within a job, typically a process or thread.
 
-* **wall time**
+* **wall time / wall-clock time**
   
   Real-world elapsed time from job start to finish.
 
@@ -116,11 +116,11 @@ Distributed ML Terms
 
 * **world size**
 
-  Total number of ranks participating in the current distributed run.
+  Total number of devices participating in the current distributed run.
 
 
-Libraries (HPC)
----------------
+Libraries for Distributed Computing
+-----------------------------------
 
 * **CUDA**
 
@@ -137,12 +137,12 @@ Libraries (HPC)
   * **helm**
 
     Package manager that deploys and upgrades Kubernetes applications via declarative charts.
-
+a way to ask for a set of resources that are grouped or located together on the same machine or nearby.
   * **pod**
 
     Smallest deployable Kubernetes object, grouping one or more tightly coupled containers.
 
-* **MPI**
+* **MPI (Message Passing Interface)**
 
   Family of libraries implementing the Message Passing Interface standard for distributed communication.
   Used for point-to-point and collective operations in distributed applications.
@@ -173,15 +173,15 @@ Libraries (HPC)
 
 * **Singularity**
   
-  Container runtime tailored to HPC that runs unprivileged, reproducible images.
+  Container runtime tailored to HPC that runs unprivileged, reproducible images (similar to Docker).
 
 * **SLURM**
   
   Open-source workload manager that queues jobs and allocates nodes on HPC systems.
 
 
-Libraries (ML)
---------------
+Libraries for ML
+----------------
 
 * **DDP**
 
@@ -201,7 +201,7 @@ Libraries (ML)
 
 * **Horovod**
 
-  Uber-initiated framework providing MPI/NCCL-backed data-parallel training APIs across major DL frameworks.
+  Framework providing MPI/NCCL-backed data-parallel training APIs across major DL frameworks.
 
 * **Ray**
 
@@ -209,9 +209,13 @@ Libraries (ML)
 
   * **placement group**
 
-    Ray construct that requests a set of resources with locality or colocation constraints.
+    Ray construct for requesting a set of resources that are grouped or located together on the same machine or nearby.
 
   * **KubeRay**
 
     Kubernetes operator that provisions and manages Ray clusters as native resources.
+
+  * **Ray Tune**
+
+    Ray’s HPO library that supports distributed trials and advanced search and HPO-scheduling algorithms.
 
