@@ -24,7 +24,6 @@ class CaloChallengeTrainer(TorchTrainer):
         logger: Logger | None = None,
         random_seed: int | None = None,
         name: str | None = None,
-        validation_every: int = 50,
         **kwargs: Any,
     ) -> None:
         """Initializes the CaloChallengeTrainer with the provided configuration.
@@ -41,7 +40,6 @@ class CaloChallengeTrainer(TorchTrainer):
                 Defaults to None.
             random_seed (int | None, optional): Random seed for reproducibility. Defaults to None.
             name (Optional[str], optional): Optional name for the training session. Defaults to None.
-            validation_every (int, optional): Number of iterations between validations. Defaults to 50.
             **kwargs: Additional arguments passed to the base class.
 
         Returns:
@@ -54,7 +52,6 @@ class CaloChallengeTrainer(TorchTrainer):
             logger=logger,
             random_seed=random_seed,
             name=name,
-            validation_every=validation_every,
             **kwargs,
         )
         self.save_parameters(**self.locals2params(locals()))
