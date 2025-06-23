@@ -19,7 +19,7 @@ export HYDRA_FULL_ERROR=1
 
 # DDP itwinai
 DIST_MODE="ddp"
-run_id="${1:-ddp-itwinai}"
+run_id="$DIST_MODE-${1:-itwinai}"
 TRAINING_CMD="itwinai exec-pipeline strategy=ddp checkpoints_location=checkpoints_ddp run_id=$run_id"
 sbatch --export=ALL,DIST_MODE="$DIST_MODE",run_id="$run_id",TRAINING_CMD="$TRAINING_CMD",PYTHON_VENV="$PYTHON_VENV" \
     --job-name="$run_id-n$N" \
@@ -29,7 +29,7 @@ sbatch --export=ALL,DIST_MODE="$DIST_MODE",run_id="$run_id",TRAINING_CMD="$TRAIN
 
 # DeepSpeed itwinai
 DIST_MODE="deepspeed"
-run_id="${1:-deepspeed-itwinai}"
+run_id="$DIST_MODE-${1:-itwinai}"
 TRAINING_CMD="itwinai exec-pipeline strategy=deepspeed checkpoints_location=checkpoints_deepspeed run_id=$run_id"
 sbatch --export=ALL,DIST_MODE="$DIST_MODE",run_id="$run_id",TRAINING_CMD="$TRAINING_CMD",PYTHON_VENV="$PYTHON_VENV" \
     --job-name="$run_id-n$N" \
@@ -39,7 +39,7 @@ sbatch --export=ALL,DIST_MODE="$DIST_MODE",run_id="$run_id",TRAINING_CMD="$TRAIN
 
 # Horovod itwinai
 DIST_MODE="horovod"
-run_id="horovod-itwinai"
+run_id="$DIST_MODE-${1:-itwinai}"
 TRAINING_CMD="itwinai exec-pipeline strategy=horovod checkpoints_location=checkpoints_hvd run_id=$run_id"
 sbatch --export=ALL,DIST_MODE="$DIST_MODE",run_id="$run_id",TRAINING_CMD="$TRAINING_CMD",PYTHON_VENV="$PYTHON_VENV" \
     --job-name="$run_id-n$N" \
@@ -51,7 +51,7 @@ sbatch --export=ALL,DIST_MODE="$DIST_MODE",run_id="$run_id",TRAINING_CMD="$TRAIN
 
 # DDP itwinai
 DIST_MODE="ddp"
-run_id="${1:-ddp-itwinai}"
+run_id="$DIST_MODE-gan-${1:-itwinai}"
 TRAINING_CMD="itwinai exec-pipeline strategy=ddp checkpoints_location=checkpoints_ddp run_id=$run_id +pipe_key=training_pipeline_gan"
 sbatch --export=ALL,DIST_MODE="$DIST_MODE",run_id="$run_id",TRAINING_CMD="$TRAINING_CMD",PYTHON_VENV="$PYTHON_VENV" \
     --job-name="$run_id-n$N" \
@@ -61,7 +61,7 @@ sbatch --export=ALL,DIST_MODE="$DIST_MODE",run_id="$run_id",TRAINING_CMD="$TRAIN
 
 # DeepSpeed itwinai
 DIST_MODE="deepspeed"
-run_id="${1:-deepspeed-itwinai}"
+run_id="$DIST_MODE-gan-${1:-itwinai}"
 TRAINING_CMD="itwinai exec-pipeline strategy=deepspeed checkpoints_location=checkpoints_deepspeed run_id=$run_id +pipe_key=training_pipeline_gan"
 sbatch --export=ALL,DIST_MODE="$DIST_MODE",run_id="$run_id",TRAINING_CMD="$TRAINING_CMD",PYTHON_VENV="$PYTHON_VENV" \
     --job-name="$run_id-n$N" \
@@ -72,7 +72,7 @@ sbatch --export=ALL,DIST_MODE="$DIST_MODE",run_id="$run_id",TRAINING_CMD="$TRAIN
 # GAN with Horovod does not work
 # Horovod itwinai
 # DIST_MODE="horovod"
-# run_id="${1:-horovod-itwinai}"
+# run_id="$DIST_MODE-gan-${1:-itwinai}"
 # TRAINING_CMD="itwinai exec-pipeline strategy=horovod checkpoints_location=checkpoints_hvd run_id=$run_id +pipe_key=training_pipeline_gan"
 # sbatch --export=ALL,DIST_MODE="$DIST_MODE",run_id="$run_id",TRAINING_CMD="$TRAINING_CMD",PYTHON_VENV="$PYTHON_VENV" \
 #     --job-name="$run_id-n$N" \
