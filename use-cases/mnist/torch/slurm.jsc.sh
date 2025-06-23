@@ -13,10 +13,9 @@
 
 # Resources allocation
 #SBATCH --partition=booster
-#SBATCH --nodes=2
-#SBATCH --gpus-per-node=1
-#SBATCH --gres=gpu:1
-#SBATCH --cpus-per-task=16
+#SBATCH --nodes=1
+#SBATCH --gpus-per-node=4
+#SBATCH --cpus-per-task=48
 #SBATCH --exclusive
 
 
@@ -58,10 +57,6 @@ fi
 if [ -z "$DIST_MODE" ]; then 
   >&2 echo "ERROR: env variable DIST_MODE is not set. Allowed values are 'horovod', 'ddp' or 'deepspeed'"
   exit 1
-fi
-if [ -z "$RUN_NAME" ]; then 
-  >&2 echo "WARNING: env variable RUN_NAME is not set. It's a way to identify some specific run of an experiment."
-  RUN_NAME=$DIST_MODE
 fi
 if [ -z "$TRAINING_CMD" ]; then 
   >&2 echo "ERROR: env variable TRAINING_CMD is not set. It's the python command to execute."
