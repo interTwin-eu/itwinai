@@ -113,8 +113,8 @@ class TorchTrainer(Trainer, LogMixin):
             of epochs.
         measure_gpu_data (bool): enable the collection of data on average GPU utilization and
             total energy consumption throughout training. Defaults to False.
-        torch_profiling (bool): enable the profiling of computation. It uses the torch profiler
-            and it may slow down training. Defaults to False.
+        enable_torch_profiling (bool): enable the profiling of computation. It uses the torch
+            profiler and it may slow down training. Defaults to False.
         measure_epoch_time (bool): enable the measurement of epoch duration (in seconds).
             Defaults to False.
         ray_scaling_config (ScalingConfig, optional): scaling config for Ray Trainer. Defaults
@@ -175,7 +175,9 @@ class TorchTrainer(Trainer, LogMixin):
     #: Toggle for GPU utilization monitoring
     measure_gpu_data: bool = False
     #: Toggle for computation fraction profiling
-    torch_profiling: bool = False
+    enable_torch_profiling: bool = False
+    #: Store PyTorch Profiling traces
+    store_torch_profiling_traces: bool = False
     #: Toggle for epoch time tracking
     measure_epoch_time: bool = False
     #: Run ID
@@ -200,7 +202,8 @@ class TorchTrainer(Trainer, LogMixin):
         profiling_wait_epochs: int = 0,
         profiling_warmup_epochs: int = 0,
         measure_gpu_data: bool = False,
-        torch_profiling: bool = False,
+        enable_torch_profiling: bool = False,
+        store_torch_profiling_traces: bool = False,
         measure_epoch_time: bool = False,
         ray_scaling_config: ScalingConfig | None = None,
         ray_tune_config: TuneConfig | None = None,
@@ -222,6 +225,12 @@ class TorchTrainer(Trainer, LogMixin):
         if isinstance(config, dict):
             config = TrainingConfiguration(**config)
 
+        if store_torch_profiling_traces and not enable_torch_profiling:
+            raise ValueError(
+                "`store_torch_profiling_traces` is True, but `enable_torch_profiling` is"
+                "False. Cannot store traces without enabling profiling."
+            )
+
         self.config = config
         self.epochs = epochs
         self.model = model
@@ -234,12 +243,15 @@ class TorchTrainer(Trainer, LogMixin):
         Path(self.checkpoints_location).mkdir(exist_ok=True, parents=True)
         self.checkpoint_every = checkpoint_every
         self.disable_tqdm = disable_tqdm
+
         self.profiler = None
         self.profiling_wait_epochs = profiling_wait_epochs
         self.profiling_warmup_epochs = profiling_warmup_epochs
         self.measure_gpu_data = measure_gpu_data
-        self.torch_profiling = torch_profiling
+        self.enable_torch_profiling = enable_torch_profiling
+        self.store_torch_profiling_traces = store_torch_profiling_traces
         self.measure_epoch_time = measure_epoch_time
+
         self.ray_scaling_config = ray_scaling_config
         self.ray_tune_config = ray_tune_config
         self.ray_run_config = ray_run_config

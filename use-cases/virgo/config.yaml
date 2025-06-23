@@ -35,7 +35,7 @@ training_pipeline:
       hdf5_dataset_name: ${hdf5_dataset_name}
     - _target_: trainer.NoiseGeneratorTrainer
       measure_gpu_data: True
-      torch_profiling: False
+      enable_torch_profiling: False
       measure_epoch_time: True
       run_id: ${run_id}
       config:
