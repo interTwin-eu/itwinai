@@ -1,11 +1,11 @@
-Profiling Roadmap
-=================
+Profiling Overview
+==================
 
 This is an overview over the different profiling methods used in ``itwinai``, as well as a
 roadmap on when to use which profiler.
 
-Profiler Overview
------------------
+``itwinai`` Profilers — a quick intro
+-------------------------------------
 
 These are the different options for profiling your training with ``itwinai``:
 
@@ -36,8 +36,8 @@ this target, as shown in the following example:
       ...
       training_step:
         _target_: itwinai.torch.trainer.TorchTrainer
-        torch_profiling: True
-        store_torch_traces: True
+        enable_torch_profiling: True
+        store_torch_profiling_traces: True
         measure_gpu_data: True
         measure_epoch_time: True
 
@@ -60,49 +60,41 @@ If you're running your code on multiple GPUs or nodes and want to evaluate how w
 ``itwinai`` provides several tools to help you break down where time is spent and how hardware
 is used.
 
-**Tracking Communication Overhead**
+enable_torch_profiling
+    Approximates time spent on communication vs computation to help identify scaling
+    bottlenecks when running on multiple GPUs or nodes.
 
-When scaling to more GPUs, increased communication costs can slow things down. To understand
-how much time is lost to communication (vs. actual computation):
+    Optionally enable ``store_torch_profiling_traces`` to view a timeline of activity in TensorBoard.
 
-→ **Enable**: ``torch_profiling``  
+    .. warning::
 
-Optionally enable ``store_torch_traces`` to view a timeline in TensorBoard.
+       This measure is only a rough approximation, as it does not account for overlap in time.
+       Also note that distributed training frameworks differ in their implementation, so
+       comparisons across frameworks are not meaningful. Use this to compare how each strategy
+       scales, not as an absolute measure of communication overhead.
 
-.. warning::
+measure_epoch_time
+    Tracks the wall-clock time per epoch to evaluate how your training scales with more data or
+    compute.
 
-   This measure is only a rough approximation as it does not account for overlap in time.
-   Additionally, since the different frameworks for distributed learning vary in their
-   implementation, a direct comparison between frameworks cannot be made. Use this to compare
-   how each strategy scales, but not as an overall measure of communication overhead. 
+    This is a coarse but direct measure of scalability. The output can be plotted or compared
+    across runs and configurations.
 
-**Comparing Wall-Clock Time Across Runs**
+measure_gpu_data
+    Monitors GPU energy consumption and utilization. Useful for assessing whether your GPUs are
+    underutilized or your training is unnecessarily energy-intensive.
 
-To get a coarse but direct measure of scalability, track how long each epoch takes as you scale
-up data or compute:
-
-→ **Enable**: ``measure_epoch_time``  
-
-Gives per-epoch timing that can be plotted or compared across configurations.
-
-**Analyzing GPU Efficiency**
-
-To measure the energy cost of your training, or check whether your GPUs are sitting idle too
-much:
-
-→ **Enable**: ``measure_gpu_data``  
-
-This provides average utilization and energy use for each GPU during training.
+    Reports average utilization and total energy usage per GPU for the full training run.
 
 Diagnosing Python-Side Bottlenecks
 ----------------------------------
 
-If training is slow even on a single GPU or small setup, you may have issues unrelated to
-scaling—such as inefficient loops, slow I/O, or blocking calls. For more information about
-our **py-spy** integration, read the :doc:`py-spy profiling guide <py-spy-profiling>`.
+py-spy
+    External profiler that captures a statistical overview of where time is spent in your
+    Python code.
 
-→ **Use**: py-spy 
+    Particularly useful for spotting performance issues that are unrelated to scaling—such as
+    slow Python loops, blocking calls, or I/O overhead. Best used when you're unsure where to
+    begin optimizing.
 
-This runs externally and gives you a statistical overview of where time is spent in your Python
-code. Best used when you don’t know where to start optimizing.
-
+    For more details, see the :doc:`py-spy profiling guide <py-spy-profiling>`.
