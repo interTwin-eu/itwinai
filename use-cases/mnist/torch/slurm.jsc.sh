@@ -176,7 +176,7 @@ export ITWINAI_LOG_LEVEL="DEBUG"
 if [ "$DIST_MODE" == "ddp" ] ; then
   echo "DDP training: $TRAINING_CMD"
   torchrun-launcher "$TRAINING_CMD"
-
+ 
   separation
 
   ray-launcher "$TRAINING_CMD"
@@ -184,7 +184,7 @@ if [ "$DIST_MODE" == "ddp" ] ; then
 elif [ "$DIST_MODE" == "deepspeed" ] ; then
   echo "DEEPSPEED training: $TRAINING_CMD"
   torchrun-launcher "$TRAINING_CMD"
-
+  
   separation
 
   ray-launcher "$TRAINING_CMD"
