@@ -120,7 +120,7 @@ class TorchTrainer(Trainer, LogMixin):
             number of epochs.
         measure_gpu_data (bool): enable the collection of data on average GPU utilization and
             total energy consumption throughout training. Defaults to False.
-        torch_profiling (bool): enable the profiling of computation.
+        enable_torch_profiling (bool): enable the profiling of computation.
             It uses the torch profiler and it may slow down training. Defaults to False.
         measure_epoch_time (bool): enable the measurement of epoch duration (in seconds).
             Defaults to False,
