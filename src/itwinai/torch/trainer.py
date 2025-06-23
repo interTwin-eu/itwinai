@@ -184,9 +184,9 @@ class TorchTrainer(Trainer, LogMixin):
     #: Toggle for GPU utilization monitoring
     measure_gpu_data: bool = False
     #: Toggle for computation fraction profiling
-    torch_profiling: bool = False
+    enable_torch_profiling: bool = False
     #: Store PyTorch Profiling traces
-    store_torch_traces: bool = False
+    store_torch_profiling_traces: bool = False
     #: Toggle for epoch time tracking
     measure_epoch_time: bool = False
     #: Run ID
@@ -257,8 +257,8 @@ class TorchTrainer(Trainer, LogMixin):
         self.profiling_wait_epochs = profiling_wait_epochs
         self.profiling_warmup_epochs = profiling_warmup_epochs
         self.measure_gpu_data = measure_gpu_data
-        self.torch_profiling = enable_torch_profiling
-        self.store_torch_traces = store_torch_profiling_traces
+        self.enable_torch_profiling = enable_torch_profiling
+        self.store_torch_profiling_traces = store_torch_profiling_traces
         self.measure_epoch_time = measure_epoch_time
 
         self.ray_scaling_config = ray_scaling_config
