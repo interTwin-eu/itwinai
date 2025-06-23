@@ -9,13 +9,13 @@
 #SBATCH --mail-type=ALL
 #SBATCH --output=job.out
 #SBATCH --error=job.err
-#SBATCH --time=00:20:00
+#SBATCH --time=00:15:00
 
 # Resources allocation
 #SBATCH --partition=small-g
-#SBATCH --nodes=2
-#SBATCH --gpus-per-node=2
-#SBATCH --cpus-per-task=16
+#SBATCH --nodes=1
+#SBATCH --gpus-per-node=4
+#SBATCH --cpus-per-task=64
 #SBATCH --exclusive
 #SBATCH --mem=128G
 
@@ -102,10 +102,6 @@ export HYDRA_FULL_ERROR=1
 if [ -z "$DIST_MODE" ]; then 
   >&2 echo "ERROR: env variable DIST_MODE is not set. Allowed values are 'horovod', 'ddp' or 'deepspeed'"
   exit 1
-fi
-if [ -z "$RUN_NAME" ]; then 
-  >&2 echo "WARNING: env variable RUN_NAME is not set. It's a way to identify some specific run of an experiment."
-  RUN_NAME=$DIST_MODE
 fi
 if [ -z "$TRAINING_CMD" ]; then 
   >&2 echo "ERROR: env variable TRAINING_CMD is not set. It's the python command to execute."
