@@ -211,8 +211,8 @@ class TorchTrainer(Trainer, LogMixin):
         profiling_wait_epochs: int = 1,
         profiling_warmup_epochs: int = 2,
         measure_gpu_data: bool = False,
-        torch_profiling: bool = False,
-        store_torch_traces: bool = False,
+        enable_torch_profiling: bool = False,
+        store_torch_profiling_traces: bool = False,
         measure_epoch_time: bool = False,
         ray_scaling_config: ScalingConfig | None = None,
         ray_tune_config: TuneConfig | None = None,
@@ -234,6 +234,12 @@ class TorchTrainer(Trainer, LogMixin):
         if isinstance(config, dict):
             config = TrainingConfiguration(**config)
 
+        if store_torch_profiling_traces and not enable_torch_profiling:
+            raise ValueError(
+                "`store_torch_profiling_traces` is True, but `enable_torch_profiling` is"
+                "False. Cannot store traces without enabling profiling."
+            )
+
         self.config = config
         self.epochs = epochs
         self.model = model
@@ -251,8 +257,8 @@ class TorchTrainer(Trainer, LogMixin):
         self.profiling_wait_epochs = profiling_wait_epochs
         self.profiling_warmup_epochs = profiling_warmup_epochs
         self.measure_gpu_data = measure_gpu_data
-        self.torch_profiling = torch_profiling
-        self.store_torch_traces = store_torch_traces
+        self.torch_profiling = enable_torch_profiling
+        self.store_torch_traces = store_torch_profiling_traces
         self.measure_epoch_time = measure_epoch_time
 
         self.ray_scaling_config = ray_scaling_config
@@ -347,7 +353,8 @@ class TorchTrainer(Trainer, LogMixin):
                 py_logger.warning(
                     "Horovod strategy is no longer supported with Ray V2. See "
                     "https://github.com/ray-project/ray/issues/49454#issuecomment-2899138398. "
-                    "Falling back to HorovodStrategy without Ray.")
+                    "Falling back to HorovodStrategy without Ray."
+                )
                 return HorovodStrategy()
 
             case "horovod", False:
@@ -852,7 +859,6 @@ class TorchTrainer(Trainer, LogMixin):
             ckpt_dir = Path(self.ray_run_config.storage_path)
             ckpt_dir.mkdir(parents=True, exist_ok=True)
 
-
         # Store large datasets in Rays object store to avoid serialization issues
         train_dataset_ref = ray.put(train_dataset)
         validation_dataset_ref = (
@@ -897,7 +903,7 @@ class TorchTrainer(Trainer, LogMixin):
             run_config = ray.train.RunConfig(
                 name=f"train-trial_id={ray.tune.get_context().get_trial_id()}",
                 # Needed as of ray version 2.46, to propagate train.report back to the Tuner
-                callbacks = [TuneReportCallback()],
+                callbacks=[TuneReportCallback()],
             )
 
             trainer = RayTorchTrainer(
@@ -1216,7 +1222,6 @@ class TorchTrainer(Trainer, LogMixin):
                 assert epoch_time_logger is not None
                 epoch_time = default_timer() - epoch_start_time
                 epoch_time_logger.add_epoch_time(self.current_epoch + 1, epoch_time)
-
 
     def train_epoch(self) -> torch.Tensor:
         """Perform a complete sweep over the training dataset, completing an
