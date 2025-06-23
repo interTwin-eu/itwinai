@@ -70,6 +70,7 @@ contains thoroughly tested features aligned with the toolkit's most recent relea
    getting-started/containers
    getting-started/plugins
    getting-started/plugins-list
+   getting-started/glossary
 
 .. toctree::
    :maxdepth: 2

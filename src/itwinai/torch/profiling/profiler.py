@@ -90,7 +90,7 @@ def profile_torch_trainer(method: Callable) -> Callable:
 
     @functools.wraps(method)
     def profiled_method(self: "TorchTrainer", *args, **kwargs) -> Any:
-        if not self.torch_profiling:
+        if not self.enable_torch_profiling:
             py_logger.info(
                 "Profiling of computation with the PyTorch profiler has been disabled!"
             )
@@ -104,7 +104,7 @@ def profile_torch_trainer(method: Callable) -> Callable:
         # Set correct values for the profiling epochs
         self.profiling_wait_epochs = wait_epochs
         self.profiling_warmup_epochs = warmup_epochs
-        if self.store_torch_traces:
+        if self.store_torch_profiling_traces:
             trace_handler = tensorboard_trace_handler(
                 dir_name=f"scalability-metrics/{self.run_id}/torch-traces",
                 worker_name=f"worker_{self.strategy.global_rank()}"
