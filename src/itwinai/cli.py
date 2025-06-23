@@ -25,6 +25,7 @@ import os
 import subprocess
 import sys
 from pathlib import Path
+from textwrap import dedent
 from typing import List, Optional
 
 import hydra
@@ -288,6 +289,35 @@ def generate_scalability_report(
         backup_dir=gpu_data_backup_dir,
         do_backup=do_backup,
         plot_file_suffix=plot_file_suffix,
+    )
+
+    # Disclaimer for the plots
+    typer.echo(
+        typer.style(
+            "-" * 38 + "DISCLAIMER" + "-" * 38, fg= typer.colors.YELLOW, bold=True
+        )
+    )
+    typer.echo(dedent("""
+    The computation plots are experimental and do not account for parallelism.
+    Calls traced by the torch profiler may overlap in time, so the sum of
+    individual operation durations does not necessarily equal the total training run duration.
+
+    The computed fractions are calculated as:
+    (summed duration of ATen + Autograd operations) / (summed duration of all operations)
+
+    Note:
+        Different strategies handle computation and communication differently.
+        Therefore, these plots should *not* be used to compare strategies solely
+        based on computation fractions.
+
+    However:
+        Comparing the computation fraction across multiple GPU counts *within*
+        the same strategy may provide insights into its scalability.
+    """).strip())
+    typer.echo(
+        typer.style(
+            "-" * 86, fg= typer.colors.YELLOW, bold=True
+        )
     )
 
     if include_communication:

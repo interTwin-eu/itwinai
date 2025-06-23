@@ -254,7 +254,7 @@ def communication_data_report(
     )
 
     computation_fraction_plot_path = plot_dir / (
-        "computation_communication_plot" + plot_file_suffix
+        "computation_vs_communication_plot" + plot_file_suffix
     )
     computation_fraction_fig, _ = computation_fraction_bar_plot(computation_fraction_df)
     computation_fraction_fig.savefig(computation_fraction_plot_path)
