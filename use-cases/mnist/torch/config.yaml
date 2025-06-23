@@ -41,6 +41,7 @@ training_pipeline:
       _target_: itwinai.torch.trainer.TorchTrainer
       measure_gpu_data: False
       enable_torch_profiling: True
+      store_torch_profiling_traces: False
       measure_epoch_time: False
       time_ray: True # track time for ray report and fit
       run_id: ${run_id}
