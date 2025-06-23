@@ -137,7 +137,7 @@ Libraries for Distributed Computing
   * **helm**
 
     Package manager that deploys and upgrades Kubernetes applications via declarative charts.
-a way to ask for a set of resources that are grouped or located together on the same machine or nearby.
+
   * **pod**
 
     Smallest deployable Kubernetes object, grouping one or more tightly coupled containers.
