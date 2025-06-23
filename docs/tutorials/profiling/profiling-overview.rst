@@ -2,9 +2,9 @@ Profiling Overview
 ==================
 
 This is an overview over the different profiling methods used in ``itwinai``, as well as a
-roadmap on when to use which profiler.
+guide on when to use which profiler.
 
-``itwinai`` Profilers — a quick intro
+``itwinai`` Profilers — a Quick Intro
 -------------------------------------
 
 These are the different options for profiling your training with ``itwinai``:
@@ -21,9 +21,11 @@ These are the different options for profiling your training with ``itwinai``:
 
 The first three can be toggled with the following boolean flags in your configuration:
 
-* ``torch_profiling``: Activate the PyTorch Profiler for computation vs other.
-* ``store_torch_traces``: Store the traces from the PyTorch Profiler (requires 
-  ``torch_profiling`` to be activated as well).
+* ``enable_torch_profiling``: Activate the PyTorch Profiler for computation vs other.
+* ``store_torch_profiling_traces``: Store the traces from the PyTorch Profiler.
+
+  * Requires ``enable_torch_profiling`` to be activated as well.
+
 * ``measure_gpu_data``: Measure the GPU energy consumption and utilization.
 * ``measure_epoch_time``: Measure the time per epoch.
 
@@ -41,19 +43,22 @@ this target, as shown in the following example:
         measure_epoch_time: True
 
 
+If you want a full example on how to set up your configuration, you can have a look at the
+:doc:`MNIST use case <../../use-cases/mnist_doc>`.
+
 For more information on how to activate the **py-spy** profiler, read the
 :doc:`py-spy profiling guide <py-spy-profiling>`.
 
 
 Selection Guide
-===============
+---------------
 
 This section guides you in choosing the right profiler based on what you're trying to measure.
 Some profilers are primarily intended for analyzing **scalability** across different training
 setups, while others are best suited for **debugging general bottlenecks**.
 
 Understanding Scalability
---------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^^
 
 If you're running your code on multiple GPUs or nodes and want to evaluate how well it scales,
 ``itwinai`` provides several tools to help you break down where time is spent and how hardware
@@ -71,14 +76,24 @@ enable_torch_profiling
     Approximates time spent on computation vs other to help identify scaling bottlenecks when
     running on multiple GPUs or nodes.
 
-    Optionally enable ``store_torch_profiling_traces`` to view a timeline of activity in TensorBoard.
-
     .. warning::
 
        This measure is only a rough approximation, as it does not account for overlap in time.
        Also note that distributed training frameworks differ in their implementation, so
        comparisons across frameworks are not meaningful. Use this to compare how each strategy
        scales, not as an absolute measure of potential overhead.
+
+
+store_torch_profiling_traces
+    Saves the traces from the profiling using the TensorBoard Trace Handler. Requires that
+    ``enable_torch_profiling`` also is activated. 
+    
+
+measure_gpu_data
+    Monitors GPU energy consumption and utilization. Useful for assessing whether your GPUs are
+    underutilized or your training is unnecessarily energy-intensive.
+
+    Reports average utilization and total energy usage per GPU for the full training run.
 
 measure_epoch_time
     Tracks the wall-clock time per epoch to evaluate how your training scales with more data or
@@ -87,14 +102,8 @@ measure_epoch_time
     This is a coarse but direct measure of scalability. The output can be plotted or compared
     across runs and configurations.
 
-measure_gpu_data
-    Monitors GPU energy consumption and utilization. Useful for assessing whether your GPUs are
-    underutilized or your training is unnecessarily energy-intensive.
-
-    Reports average utilization and total energy usage per GPU for the full training run.
-
 Diagnosing Python-Side Bottlenecks
-----------------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 py-spy
     External profiler that captures a statistical overview of where time is spent in your
