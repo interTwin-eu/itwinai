@@ -62,10 +62,10 @@ the `itwinai` library is designed to help scientific researchers to develop thei
 AI and ML workflows by easing their development effort. `itwinai` offers a wide-array
 of ML sub-routines which can be exploited by scientists to seamlessly scale their
 workflows on state-of-the-art High Performance Computing (HPC) resources. With
-`itwinai`, the researchers focus on model development without needing to look at
-workflow deployment, HPC optimizations and distributed training strategies. A wide
-array of features are provided by the library, which help the applications to
-increase their performance and accuracy.
+`itwinai`, researchers are able to focus solely on model development, as
+workflow deployment, HPC optimizations and distributed training strategies, is
+handled by `itwinai`. A wide array of features is provided by the library,
+which help the applications to increase their performance and accuracy.
 
 # Statement of need
 
@@ -80,9 +80,9 @@ and tools.
 `itwinai` is developed in a modular architecture, which allows users to easily import
 and/or replace components in their ML pipelines. Furthermore, the application developers
 can exploit `itwinai` plugins to continue their developments independently, while
-exploiting features offered by the library. A comprehensive set of tutorials are provided
+exploiting features offered by the library. A comprehensive set of tutorials is provided
 to allow new applications to easily adopt `itwinai`. Importantly, `itwinai` brings
-together a multitude of functionalities (described in next section) under one library,
+together a multitude of functionalities (described in the next section) under one library,
 significantly advancing the scientific applications that have already been integrated.
 
 `itwinai` has been developed as part of the `interTwin` project to support various
@@ -101,10 +101,13 @@ frameworks, including PyTorch-DDP, DeepSpeed, Horovod and Ray. The performance o
 these could vary, depending on the infrastructure or the use-case. `itiwnai` allows users
 to benchmarks them for their applications and compare their performance.
 
-**HyperParameter Optimization (HPO)**: HPO is the process of improving the accuracy
-of ML models by optimizing the hyperparameters. `itwinai` provides efficient HPO
-tools to only increase the number of trials executed in parallel, but also to assign
-more workers to train individual trials.
+**HyperParameter Optimization (HPO)**: 
+HPO is the process of improving machine learning model performance on a given task by
+systematically searching for the best hyperparameter values. Powered by Ray, `itwinai`
+provides efficient HPO tools that scale the number of parallel trials and support
+assigning multiple workers to individual trials for faster training. Furthermore, it
+enables complex scheduling and resource management for large-scale, distributed
+experiments.
 
 **Profilers**:
 
@@ -113,6 +116,15 @@ more workers to train individual trials.
 # Performance
 
 # Use-case integrations
+
+Drought prediction: The Hython plugin for itwinai integrates distributed hydrological
+modeling with our platform. The hydrological model WflowSBM predicts hydrological
+variables over time but is computationally intensive. To address this, `Hython` uses
+LSTM models trained for sequence prediction, with custom data loading and data preparation.
+Our itwinai plugin integrates `Hython` with `itwinai`, to enable distributed model training
+with any of our supported distributed machine learning frameworks, including seamless
+integration of Ray's HPO features with minimal changes required to the training loop and
+extensive configuration options.
 
 # Acknowledgements
 
