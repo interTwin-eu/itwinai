@@ -65,6 +65,7 @@ def generate_unet(torch_env, syndata):
 
 # @pytest.mark.skip(reason="dependent on .test_dataset, incoroporated into integration test")
 @pytest.mark.functional
+@pytest.mark.skip(reason="dependent on large real data set")
 def test_radio_astronomy_unet(torch_env, syndata, install_requirements):
     """Test U-Net Pulsar-DDT trainer by running it end-to-end
     via the config-test.yaml configuration file."""
