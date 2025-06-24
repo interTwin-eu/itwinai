@@ -785,6 +785,8 @@ class WandBLogger(Logger):
         """Destroy logger."""
         if not self.should_log():
             return
+        self.wandb.finish()
+
 
     @check_initialized
     def save_hyperparameters(self, params: Dict[str, Any]) -> None:
