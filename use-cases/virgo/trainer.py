@@ -30,6 +30,7 @@ from itwinai.torch.distributed import DeepSpeedStrategy, RayDDPStrategy, RayDeep
 from itwinai.torch.monitoring.monitoring import measure_gpu_utilization
 from itwinai.torch.profiling.profiler import profile_torch_trainer
 from itwinai.torch.trainer import RayTorchTrainer, TorchTrainer
+from itwinai.utils import EPOCH_TIME_DIR
 from src.model import Decoder, Decoder_2d_deep, GeneratorResNet, UNet
 from src.utils import init_weights
 
@@ -212,7 +213,7 @@ class NoiseGeneratorTrainer(TorchTrainer):
             # save_path
 
             num_nodes = int(os.environ.get("SLURM_NNODES", 1))
-            epoch_time_output_dir = Path(f"scalability-metrics/{self.run_id}/epoch-time")
+            epoch_time_output_dir = Path(f"scalability-metrics/{self.run_id}/{EPOCH_TIME_DIR}")
             epoch_time_file_name = f"epochtime_{self.strategy.name}_{num_nodes}N.csv"
             epoch_time_output_path = epoch_time_output_dir / epoch_time_file_name
             epoch_time_logger = EpochTimeTracker(
