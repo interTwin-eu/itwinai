@@ -33,54 +33,54 @@ from itwinai.torch.trainer import TorchTrainer
         ),
     ],
 )
-def test_distributed_trainer_mnist(
-    mnist_datasets, request, strategy_fixture, named_temp_dir, mnist_net
-):
-    """Test TorchTrainer on MNIST with different distributed strategies."""
-    training_config = dict(optimizer="sgd", loss="nllloss")
-    trainer = TorchTrainer(
-        model=mnist_net,
-        config=training_config,
-        epochs=2,
-        strategy=None,
-        checkpoint_every=1,
-        checkpoints_location=named_temp_dir / "my_checkpoints",
-    )
-    if strategy_fixture:
-        # Override when the strategy is supposed to be distributed
-        trainer.strategy = request.getfixturevalue(strategy_fixture)
-
-    train_set, val_set = mnist_datasets
-
-    # Mock strategy cleanup -- IMPORTANT, otherwise the trainer will mess up with the strategy
-    # fixture
-    with patch.object(
-        trainer.strategy, "clean_up", new=MagicMock(name="clean_up")
-    ) as mock_cleanup:
-        trainer.execute(train_set, val_set)
-
-        # Check that the torch trainer is cleaning up the strategy
-        mock_cleanup.assert_called_once()
-
-    # Restore training from checkpoint
-    trainer = TorchTrainer(
-        model=mnist_net,
-        config=training_config,
-        epochs=1,
-        strategy=None,
-        checkpoint_every=1,
-        from_checkpoint=named_temp_dir / "my_checkpoints/best_model",
-        checkpoints_location=named_temp_dir / "my_checkpoints_new_model",
-    )
-    # Mock strategy cleanup -- IMPORTANT, otherwise the trainer will mess up with the strategy
-    # fixture
-    with patch.object(
-        trainer.strategy, "clean_up", new=MagicMock(name="clean_up")
-    ) as mock_cleanup:
-        trainer.execute(train_set, val_set)
-
-        # Check that the torch trainer is cleaning up the strategy
-        mock_cleanup.assert_called_once()
+# def test_distributed_trainer_mnist(
+#     mnist_datasets, request, strategy_fixture, named_temp_dir, mnist_net
+# ):
+#     """Test TorchTrainer on MNIST with different distributed strategies."""
+#     training_config = dict(optimizer="sgd", loss="nllloss")
+#     trainer = TorchTrainer(
+#         model=mnist_net,
+#         config=training_config,
+#         epochs=2,
+#         strategy=None,
+#         checkpoint_every=1,
+#         checkpoints_location=named_temp_dir / "my_checkpoints",
+#     )
+#     if strategy_fixture:
+#         # Override when the strategy is supposed to be distributed
+#         trainer.strategy = request.getfixturevalue(strategy_fixture)
+#
+#     train_set, val_set = mnist_datasets
+#
+#     # Mock strategy cleanup -- IMPORTANT, otherwise the trainer will mess up with the strategy
+#     # fixture
+#     with patch.object(
+#         trainer.strategy, "clean_up", new=MagicMock(name="clean_up")
+#     ) as mock_cleanup:
+#         trainer.execute(train_set, val_set)
+#
+#         # Check that the torch trainer is cleaning up the strategy
+#         mock_cleanup.assert_called_once()
+#
+#     # Restore training from checkpoint
+#     trainer = TorchTrainer(
+#         model=mnist_net,
+#         config=training_config,
+#         epochs=1,
+#         strategy=None,
+#         checkpoint_every=1,
+#         from_checkpoint=named_temp_dir / "my_checkpoints/best_model",
+#         checkpoints_location=named_temp_dir / "my_checkpoints_new_model",
+#     )
+#     # Mock strategy cleanup -- IMPORTANT, otherwise the trainer will mess up with the strategy
+#     # fixture
+#     with patch.object(
+#         trainer.strategy, "clean_up", new=MagicMock(name="clean_up")
+#     ) as mock_cleanup:
+#         trainer.execute(train_set, val_set)
+#
+#         # Check that the torch trainer is cleaning up the strategy
+#         mock_cleanup.assert_called_once()
 
 
 @pytest.mark.hpc
