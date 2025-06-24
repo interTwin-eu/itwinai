@@ -103,8 +103,8 @@ to benchmarks them for their applications and compare their performance.
 
 **HyperParameter Optimization (HPO)**: 
 HPO is the process of improving machine learning model performance on a given task by
-systematically searching for the best hyperparameter values. Powered by Ray, `itwinai`
-provides efficient HPO tools that scale the number of parallel trials and support
+systematically searching for the best hyperparameter values. Powered by Ray [@ray],
+`itwinai` provides efficient HPO tools that scale the number of parallel trials and support
 assigning multiple workers to individual trials for faster training. Furthermore, it
 enables complex scheduling and resource management for large-scale, distributed
 experiments.
@@ -117,9 +117,9 @@ experiments.
 
 # Use-case integrations
 
-Drought prediction: The Hython plugin for itwinai integrates distributed hydrological
+Drought prediction: The `Hython` plugin for itwinai integrates distributed hydrological
 modeling with our platform. The hydrological model WflowSBM predicts hydrological
-variables over time but is computationally intensive. To address this, `Hython` uses
+variables over time but is computationally intensive. To address this, `Hython` [@hython] uses
 LSTM models trained for sequence prediction, with custom data loading and data preparation.
 Our itwinai plugin integrates `Hython` with `itwinai`, to enable distributed model training
 with any of our supported distributed machine learning frameworks, including seamless
