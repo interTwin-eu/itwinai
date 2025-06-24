@@ -113,6 +113,7 @@ def equal_models(model1: torch.nn.Module, model2: torch.nn.Module) -> bool:
     return True
 
 
+@pytest.mark.skip(reason="dependent on large real data set")
 def test_inexistent_checkpoint():
     # Test unexisting checkpoint directory
     with pytest.raises(RuntimeError) as err:
@@ -127,6 +128,7 @@ def test_inexistent_checkpoint():
         assert "checkpoint is not found" in err
 
 
+@pytest.mark.skip(reason="dependent on large real data set")
 @pytest.mark.parametrize(
     "strategy_fixture",
     [
