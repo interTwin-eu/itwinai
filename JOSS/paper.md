@@ -27,7 +27,7 @@ authors:
     orcid: 0000-0002-7069-4082
     corresponding: true # (This is how to denote the corresponding author)
     affiliation: 2
-  - given-names: Mario
+  - given-names: Maria
     surname: Girone
     affiliation: 1
   - given-names: Andreas
