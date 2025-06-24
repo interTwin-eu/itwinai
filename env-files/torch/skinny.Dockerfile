@@ -8,7 +8,7 @@
 # --------------------------------------------------------------------------------------
 
 
-ARG BASE_IMG_NAME=python:3.10-slim
+ARG BASE_IMG_NAME=python:3.11-slim
 
 FROM ${BASE_IMG_NAME}
 ARG BASE_IMG_NAME
@@ -35,11 +35,8 @@ RUN uv venv \
     # This is needed by UV to trust all indexes:
     --index-strategy unsafe-best-match \
     # Install packages
-    .[torch] \
-    "prov4ml[nvidia]@git+https://github.com/matbun/ProvML@new-main" \
-    pytest \
-    pytest-xdist \
-    psutil
+    .[torch,dev] \
+    "prov4ml[nvidia]@git+https://github.com/matbun/ProvML@new-main"
 
 # Make uv venv the default python env
 ENV VIRTUAL_ENV=/app/.venv \
