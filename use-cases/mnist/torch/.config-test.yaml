@@ -1,0 +1,205 @@
+# --------------------------------------------------------------------------------------
+# Part of the interTwin Project: https://www.intertwin.eu/
+#
+# Created by: Matteo Bunino
+#
+# Credit:
+# - Matteo Bunino <matteo.bunino@cern.ch> - CERN
+# - Linus Eickhoff <linus.maximilian.eickhoff@cern.ch> - CERN
+# --------------------------------------------------------------------------------------
+
+# General config
+run_id: mnist-usecase-0
+dataset_root: .tmp/
+num_classes: 10
+batch_size: 256
+num_workers_dataloader: 4
+pin_memory: False
+lr: 0.001
+momentum: 0.9
+fp16_allreduce: False
+use_adasum: False
+gradient_predivide_factor: 1.0
+epochs: 1
+strategy: ddp
+test_data_path: mnist-sample-data
+inference_model_mlflow_uri: mnist-pre-trained.pth
+predictions_dir: mnist-predictions
+predictions_file: predictions.csv
+class_labels: null
+checkpoints_location: checkpoints
+checkpoint_every: 1
+
+# Workflows configuration
+training_pipeline:
+  _target_: itwinai.pipeline.Pipeline
+  steps:
+    dataloading_step:
+      _target_: dataloader.MNISTDataModuleTorch
+      save_path: ${dataset_root}
+    training_step:
+      _target_: itwinai.torch.trainer.TorchTrainer
+      measure_gpu_data: False
+      enable_torch_profiling: False
+      store_torch_profiling_traces: False
+      measure_epoch_time: False
+      time_ray: True # track time for ray report and fit
+      run_id: ${run_id}
+      config:
+        batch_size: ${batch_size}
+        num_workers_dataloader: ${num_workers_dataloader}
+        pin_gpu_memory: ${pin_memory}
+        optimizer: sgd
+        optim_lr: ${lr}
+        optim_momentum: ${momentum}
+        fp16_allreduce: ${fp16_allreduce}
+        use_adasum: ${use_adasum}
+        gradient_predivide_factor: ${gradient_predivide_factor}
+      ray_scaling_config:
+        _target_: ray.train.ScalingConfig
+        num_workers: 1
+        use_gpu: true
+        resources_per_worker:
+          CPU: 6
+          GPU: 1
+      ray_tune_config:
+        _target_: ray.tune.TuneConfig
+        num_samples: 2
+        scheduler:
+          _target_: ray.tune.schedulers.ASHAScheduler
+          metric: loss
+          mode: min
+          max_t: 5
+          grace_period: 2
+          reduction_factor: 6
+          brackets: 1
+      ray_run_config:
+        _target_: ray.tune.RunConfig
+        # storage_path must be an absolute path. Defaulting to the directory from which the
+        # job is launched using the itwinai custom OmegaConf resolver ${itwinai.cwd:}
+        storage_path: ${itwinai.cwd:}/ray_checkpoints
+        name: MNIST-HPO-Experiment
+      ray_search_space:
+        batch_size:
+          type: choice
+          categories: [2, 4]
+        optim_lr:
+          type: uniform
+          lower: 1e-5
+          upper: 1e-3
+      model:
+        _target_: model.Net
+      epochs: ${epochs}
+      metrics:
+        accuracy:
+          _target_: torchmetrics.classification.MulticlassAccuracy
+          num_classes: ${num_classes}
+        precision:
+          _target_: torchmetrics.classification.MulticlassPrecision
+          num_classes: ${num_classes}
+        recall:
+          _target_: torchmetrics.classification.MulticlassRecall
+          num_classes: ${num_classes}
+      logger:
+        _target_: itwinai.loggers.LoggersCollection
+        loggers:
+          - _target_: itwinai.loggers.ConsoleLogger
+            log_freq: 10000
+          - _target_: itwinai.loggers.MLFlowLogger
+            experiment_name: MNIST classifier
+            log_freq: epoch
+      strategy: ${strategy}
+      checkpoint_every: ${checkpoint_every}
+      checkpoints_location: ${checkpoints_location}
+      
+inference_pipeline:
+  _target_: itwinai.pipeline.Pipeline
+  steps:
+    - _target_: dataloader.MNISTPredictLoader
+      test_data_path: ${test_data_path}
+    - _target_: itwinai.torch.inference.MulticlassTorchPredictor
+      model:
+        _target_: itwinai.torch.inference.TorchModelLoader
+        model_uri: ${inference_model_mlflow_uri}
+      config:
+        batch_size: ${batch_size}
+    - _target_: saver.TorchMNISTLabelSaver
+      save_dir: ${predictions_dir}
+      predictions_file: ${predictions_file}
+      class_labels: ${class_labels}
+
+# Workflows for a GAN trainer
+training_pipeline_gan:
+  _target_: itwinai.pipeline.Pipeline
+  steps:
+    dataloading_step:
+      _target_: dataloader.MNISTDataModuleTorch
+      save_path: ${dataset_root}
+      resize: 64
+      # max_train_size: 200
+      # max_valid_size: 200
+    training_step:
+      _target_: itwinai.torch.gan.GANTrainer
+      config:
+        z_dim: 100
+        batch_size: ${batch_size}
+        num_workers_dataloader: ${num_workers_dataloader}
+        pin_gpu_memory: ${pin_memory}
+        optimizer: sgd
+        optim_lr: ${lr}
+        optim_momentum: ${momentum}
+        fp16_allreduce: ${fp16_allreduce}
+        use_adasum: ${use_adasum}
+        gradient_predivide_factor: ${gradient_predivide_factor}
+      ray_scaling_config:
+        _target_: ray.train.ScalingConfig
+        num_workers: 2
+        use_gpu: true
+        resources_per_worker:
+          CPU: 4
+          GPU: 1
+      ray_tune_config:
+        _target_: ray.tune.TuneConfig
+        num_samples: 1
+        scheduler:
+          _target_: ray.tune.schedulers.ASHAScheduler
+          metric: loss
+          mode: min
+          max_t: 5
+          grace_period: 2
+          reduction_factor: 6
+          brackets: 1
+      ray_run_config:
+        _target_: ray.tune.RunConfig
+        # storage_path must be an absolute path. Defaulting to the directory from which the
+        # job is launched using the itwinai custom OmegaConf resolver ${itwinai.cwd:}
+        storage_path: ${itwinai.cwd:}/ray_checkpoints
+        name: MNIST-HPO-Experiment
+      ray_search_space:
+        batch_size:
+          type: choice
+          categories: [2, 4]
+        optim_generator_lr:
+          type: uniform
+          lower: 1e-5
+          upper: 1e-3
+      generator:
+        _target_: model.Generator
+        z_dim: 100
+        g_hidden: 64
+      discriminator:
+        _target_: model.Discriminator
+        d_hidden: 64
+      epochs: ${epochs}
+      
+      logger:
+        _target_: itwinai.loggers.LoggersCollection
+        loggers:
+          - _target_: itwinai.loggers.ConsoleLogger
+            log_freq: 10000
+          - _target_: itwinai.loggers.MLFlowLogger
+            experiment_name: MNIST classifier
+            log_freq: batch 
+      strategy: ${strategy}
+      checkpoint_every: ${checkpoint_every}
+      checkpoints_location: ${checkpoints_location}

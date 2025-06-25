@@ -65,6 +65,7 @@ def test_mnist_train_torch(torch_env, install_requirements, tmp_path):
     cmd = (
         f"{torch_env}/bin/itwinai exec-pipeline "
         f"--config-path {TORCH_PATH} "
+        f"--config-name .config-test.yaml "
         f"dataset_root={dataset_path} "
     )
     subprocess.run(cmd.split(), check=True, cwd=tmp_path)
