@@ -164,13 +164,13 @@ class Itwinai:
         cmd = cmd or [
             "pytest",
             "-v",
+            "--disable-warnings",
             # tell pytest-xdist to parallelize tests over logical cores
             "-n",
             "logical",
             "-m",
             "not hpc and not functional and not tensorflow",
             "/app/tests",
-            "--capture=no",
         ]
 
         tests_result = await self.container.with_exec(cmd).stdout()

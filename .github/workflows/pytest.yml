@@ -42,7 +42,7 @@ jobs:
             --context ..
             --dockerfile ../env-files/torch/skinny.Dockerfile
             test-local
-            --cmd "pytest,-v,--disable-warnings,/app/tests/,-m,not hpc and not tensorflow,--capture=no"
+            --cmd "pytest,-v,--disable-warnings,-n,logical,/app/tests/,--dist,loadfile,-m,not hpc and not tensorflow"
             logs
           cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
           version: "0.18.0"
