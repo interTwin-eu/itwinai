@@ -42,7 +42,7 @@ def test_logger_initialization(itwinai_logger, request, caplog, enable_logs_prop
         itwinai_logger.log(identifier="num", item=123, kind="metric")
     assert "has not been initialized" in str(exc_info.value)
     with pytest.raises(RuntimeError) as exc_info:
-        itwinai_logger.save_hyperparameters(dict(a=1, b=2))
+        itwinai_logger.save_hyperparameters({"a": 1, "b": 2})
     assert "has not been initialized" in str(exc_info.value)
     with pytest.raises(RuntimeError) as exc_info:
         itwinai_logger.destroy_logger_context()
