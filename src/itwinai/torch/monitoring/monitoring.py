@@ -72,34 +72,23 @@ def probe_gpu_utilization_loop(
     # load management library backend
     man_lib_type, man_lib = init_backend()
 
-    cuda_visible_devices = os.environ.get("CUDA_VISIBLE_DEVICES")
-
-    if not cuda_visible_devices:
-        raise ValueError(
-            "CUDA_VISIBLE_DEVICES environment variable is not set. "
-            "Please set it to the indices of the GPUs you want to monitor."
-        )
-
-    gpu_ids = list(map(int, cuda_visible_devices.split(",")))
-
-    # ensure all gpu handles where retrieved
-    if len(gpu_ids) != num_local_gpus:
-        raise ValueError(f"Expected {num_local_gpus} handles, but got {len(gpu_ids)}.")
-
     time.sleep(warmup_time)
 
     if man_lib_type == "nvidia":
-        handles = [man_lib.nvmlDeviceGetHandleByIndex(idx) for idx in gpu_ids]
+        handles = [man_lib.nvmlDeviceGetHandleByIndex(idx) for idx in range(num_local_gpus)]
     elif man_lib_type == "amd":
-        handles = amdsmi.amdsmi_get_processor_handles()
+        handles = man_lib.amdsmi_get_processor_handles()
         # assumes that amdsmi_get_processor_handles() returns all GPUs on the node
-        handles = [handles[id] for id in gpu_ids]  # filter handles by gpu_ids
+        handles = [handles[id] for id in range(num_local_gpus)]  # filter handles by gpu_ids
     else:
         raise ValueError(f"Unsupported management library type: {man_lib_type}")
 
+    print("handles: ", len(handles))
+    print("num_local_gpus: ", num_local_gpus)
+
     sample_idx = 0
     while not stop_flag.value:
-        for id, handle in zip(gpu_ids, handles):
+        for handle in handles:
             if man_lib_type == "nvidia":
                 power = man_lib.nvmlDeviceGetPowerUsage(handle) / 1000.0  # mW -> W
 
@@ -150,6 +139,8 @@ def measure_gpu_utilization(method: Callable) -> Callable:
         global_rank = strategy.global_rank()
         num_global_gpus = strategy.global_world_size()
         num_local_gpus = strategy.local_world_size()
+        print(f"Number of global GPUs: {num_global_gpus}, Local rank: {local_rank}")
+        print(f"Number of local GPUs: {num_local_gpus}, Global rank: {global_rank}")
         node_idx = global_rank // num_local_gpus
 
         gpu_monitor_process = None
