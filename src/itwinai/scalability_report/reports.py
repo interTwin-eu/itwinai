@@ -97,10 +97,10 @@ def epoch_time_report(
     absolute_fig.savefig(absolute_avg_time_plot_path)
     relative_fig.savefig(relative_speedup_plot_path)
     cli_logger.info(
-        f"Saved absolute average time plot at '{absolute_avg_time_plot_path.resolve()}'."
+        f"Saved absolute-average-time plot at '{absolute_avg_time_plot_path.resolve()}'."
     )
     cli_logger.info(
-        f"Saved relative average time plot at '{relative_speedup_plot_path.resolve()}'."
+        f"Saved relative-average-time plot at '{relative_speedup_plot_path.resolve()}'."
     )
 
     if not do_backup:
