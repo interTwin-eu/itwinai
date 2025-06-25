@@ -123,3 +123,4 @@ class ParticleImagesSaver(Saver):
         ang = ang[6:]
         ax.set_title(f"Energy: {en} - Angle: {ang}")
         fig.savefig(img_path)
+        plt.close()

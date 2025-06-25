@@ -84,6 +84,7 @@ def test_wandb_logger_log(wandb_logger):
         wandb_logger.create_logger_context()
         wandb_logger.log(0.5, "test_metric", kind="metric")
         mock_log.assert_called_once_with({"test_metric": 0.5}, commit=True)
+        wandb_logger.destroy_logger_context()
 
 
 @pytest.mark.tensorflow
