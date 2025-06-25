@@ -37,7 +37,7 @@ RUN uv venv \
     # Install packages
     .[torch,dev] \
     "prov4ml[nvidia]@git+https://github.com/matbun/ProvML@new-main" \
-    lxml
+    lxml rdflib
 
 # Make uv venv the default python env
 ENV VIRTUAL_ENV=/app/.venv \
