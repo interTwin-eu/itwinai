@@ -35,8 +35,11 @@ RUN uv venv \
     # This is needed by UV to trust all indexes:
     --index-strategy unsafe-best-match \
     # Install packages
-    .[torch,dev] \
-    "prov4ml[nvidia]@git+https://github.com/matbun/ProvML@new-main"
+    .[torch] \
+    "prov4ml[nvidia]@git+https://github.com/matbun/ProvML@new-main" \
+    pytest \
+    pytest-xdist \
+    psutil
 
 # Make uv venv the default python env
 ENV VIRTUAL_ENV=/app/.venv \
