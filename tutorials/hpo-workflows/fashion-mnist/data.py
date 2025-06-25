@@ -8,6 +8,7 @@
 # - Matteo Bunino <matteo.bunino@cern.ch> - CERN
 # --------------------------------------------------------------------------------------
 
+import logging
 from pathlib import Path
 from typing import Tuple
 
@@ -15,6 +16,8 @@ from torch.utils.data import Dataset, random_split
 from torchvision import datasets, transforms
 
 from itwinai.components import DataGetter, DataSplitter
+
+py_logger = logging.getLogger(__name__)
 
 
 class FashionMNISTGetter(DataGetter):
@@ -24,7 +27,7 @@ class FashionMNISTGetter(DataGetter):
 
     def execute(self) -> Dataset:
         """Load the FashionMNIST dataset from the specified directory."""
-        print("Loading FashionMNIST dataset...")
+        py_logger.info("Loading FashionMNIST dataset...")
         train_dataset = datasets.FashionMNIST(
             self.data_dir,
             train=True,
@@ -33,7 +36,7 @@ class FashionMNISTGetter(DataGetter):
                 [transforms.ToTensor(), transforms.Normalize((0.5,), (0.5,))]
             ),
         )
-        print("Loading complete!")
+        py_logger.info("Loading complete!")
         return train_dataset
 
 
@@ -49,7 +52,7 @@ class FashionMNISTSplitter(DataSplitter):
 
     def execute(self, dataset: Dataset) -> Tuple[Dataset, Dataset, Dataset]:
         """Split the dataset into train, validation, and test sets."""
-        print("Splitting dataset...")
+        py_logger.info("Splitting dataset...")
         total_size = len(dataset)
         train_size = int(self.train_proportion * total_size)
         validation_size = int(self.validation_proportion * total_size)
@@ -58,5 +61,6 @@ class FashionMNISTSplitter(DataSplitter):
         train_dataset, validation_dataset, test_dataset = random_split(
             dataset, [train_size, validation_size, test_size]
         )
-        print("Splitting complete!")
+        py_logger.info("Splitting complete!")
+
         return train_dataset, validation_dataset, test_dataset

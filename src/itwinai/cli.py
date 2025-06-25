@@ -37,6 +37,7 @@ from itwinai.utils import COMPUTATION_DATA_DIR, EPOCH_TIME_DIR, GPU_ENERGY_DIR
 app = typer.Typer(pretty_exceptions_enable=False)
 
 py_logger = logging.getLogger(__name__)
+cli_logger = logging.getLogger("cli_logger")
 
 
 @app.command()
@@ -56,16 +57,14 @@ def generate_flamegraph(
 
     try:
         with open(output_filename, "w") as out:
-            subprocess.run(
-                ["perl", str(script_path), file],
-                stdout=out,
-                check=True,
-            )
-        typer.echo(f"Flamegraph saved to '{output_filename}'")
+            subprocess.run(["perl", str(script_path), file], stdout=out, check=True)
+        cli_logger.info(f"Flamegraph saved to '{output_filename}'")
     except FileNotFoundError:
-        typer.echo("Error: Perl is not installed or not in PATH.")
+        cli_logger.error("Perl is not installed or not in PATH.")
+        raise typer.Exit(code=1)
     except subprocess.CalledProcessError as e:
-        typer.echo(f"Flamegraph generation failed: {e}")
+        cli_logger.error(f"Flamegraph generation failed: {e}")
+        raise typer.Exit(code=1)
 
 
 @app.command()
@@ -112,11 +111,13 @@ def generate_py_spy_report(
     try:
         stack_traces = read_stack_traces(path=file_path)
     except ValueError as exception:
-        typer.echo(f"Failed to read stack traces with following error:\n{str(exception)}")
+        cli_logger.error(
+            f"Failed to read stack traces with following error:\n{str(exception)}"
+        )
         raise typer.Exit(code=1)
 
-    typer.echo(
-        "[WARNING]: Multiprocessing calls (e.g. Dataloader subprocesses) might be counted"
+    cli_logger.warning(
+        "Multiprocessing calls (e.g. Dataloader subprocesses) might be counted"
         " multiple times (once per process) and thus be overrepresented. Take this into"
         " consideration when reading the results.\n"
     )
@@ -150,7 +151,7 @@ def generate_py_spy_report(
         stack_frame_dict["proportion (n)"] = f"{proportion:.2f}% ({num_samples})"
         filtered_leaf_stack_dicts.append(stack_frame_dict)
 
-    typer.echo(tabulate(filtered_leaf_stack_dicts, headers="keys", tablefmt="presto"))
+    cli_logger.info(tabulate(filtered_leaf_stack_dicts, headers="keys", tablefmt="presto"))
 
 
 @app.command()
@@ -342,44 +343,45 @@ def generate_scalability_report(
         plot_file_suffix=plot_file_suffix,
     )
 
-
-    typer.echo("")
+    cli_logger.info("")
     if epoch_time_table is not None:
-        typer.echo("#" * 8 + " Epoch Time Report " + "#" * 8)
-        typer.echo(epoch_time_table + "\n")
+        cli_logger.info("#" * 8 + " Epoch Time Report " + "#" * 8)
+        cli_logger.info(epoch_time_table + "\n")
     else:
-        typer.echo("No Epoch Time Data Found\n")
+        cli_logger.info("No Epoch Time Data Found\n")
 
     if gpu_data_table is not None:
-        typer.echo("#" * 8 + "GPU Data Report" + "#" * 8)
-        typer.echo(gpu_data_table + "\n")
+        cli_logger.info("#" * 8 + "GPU Data Report" + "#" * 8)
+        cli_logger.info(gpu_data_table + "\n")
     else:
-        typer.echo("No GPU Data Found\n")
+        cli_logger.info("No GPU Data Found\n")
 
     if computation_data_table is not None:
-        typer.echo("#" * 8 + "Computation Data Report" + "#" * 8)
-        typer.echo(computation_data_table + "\n")
+        cli_logger.info("#" * 8 + "Computation Data Report" + "#" * 8)
+        cli_logger.info(computation_data_table + "\n")
     else:
-        typer.echo("No Computation Data Found\n")
+        cli_logger.info("No Computation Data Found\n")
 
     if include_communication:
         if communication_data_table is not None:
-            typer.echo("#" * 8 + "Communication Data Report" + "#" * 8)
-            typer.echo(communication_data_table + "\n")
+            cli_logger.info("#" * 8 + "Communication Data Report" + "#" * 8)
+            cli_logger.info(communication_data_table + "\n")
         else:
-            typer.echo("No Communication Data Found\n")
+            cli_logger.info("No Communication Data Found\n")
 
 
 @app.command()
 def sanity_check(
     torch: Annotated[
-        Optional[bool], typer.Option(help=("Check also itwinai.torch modules."))
+        bool | None, typer.Option(help=("Check also itwinai.torch modules."))
     ] = False,
     tensorflow: Annotated[
-        Optional[bool], typer.Option(help=("Check also itwinai.tensorflow modules."))
+        bool | None, typer.Option(help=("Check also itwinai.tensorflow modules."))
     ] = False,
-    all: Annotated[Optional[bool], typer.Option(help=("Check all modules."))] = False,
-    optional_deps: List[str] = typer.Option(None, help="List of optional dependencies."),
+    all: Annotated[bool | None, typer.Option(help=("Check all modules."))] = False,
+    optional_deps: Annotated[
+        List[str] | None, typer.Option(help="List of optional dependencies.")
+    ] = None,
 ):
     """Run sanity checks on the installation of itwinai and its dependencies by trying
     to import itwinai modules. By default, only itwinai core modules (neither torch, nor
@@ -436,9 +438,6 @@ def generate_slurm(
             "--num-nodes",
             help="The number of nodes that the SLURM job is going to run on.",
         ),
-    ] = 1,
-    num_tasks_per_node: Annotated[
-        int, typer.Option("--num-tasks-per-node", help="The number of tasks per node.")
     ] = 1,
     gpus_per_node: Annotated[
         int,
@@ -711,7 +710,7 @@ def exec_pipeline_with_compose(cfg):
     if pipe_steps:
         try:
             cfg.steps = [cfg.steps[step] for step in pipe_steps]
-            typer.echo(f"Successfully selected steps {pipe_steps}")
+            py_logger.info(f"Successfully selected steps {pipe_steps}")
         except errors.ConfigKeyError as e:
             e.add_note(
                 "Could not find all selected steps. Please ensure that all steps exist "
@@ -720,7 +719,7 @@ def exec_pipeline_with_compose(cfg):
             )
             raise e
     else:
-        typer.echo("No steps selected. Executing the whole pipeline.")
+        py_logger.info("No steps selected. Executing the whole pipeline.")
 
     # Instantiate and execute the pipeline
     pipeline = instantiate(cfg, _convert_="all")
@@ -788,10 +787,10 @@ def download_mlflow_data(
         "MLFLOW_TRACKING_USERNAME" in os.environ and "MLFLOW_TRACKING_PASSWORD" in os.environ
     )
     if not mlflow_credentials_set:
-        typer.echo(
-            "\nWarning: MLFlow authentication environment variables are not set. "
-            "If the server requires authentication, your request will fail."
-            "You can authenticate by setting environment variables before running:\n"
+        cli_logger.warning(
+            "MLFlow authentication environment variables are not set. If the server requires"
+            " authentication, your request will fail. You can authenticate by setting"
+            " environment variables before running:\n"
             "\texport MLFLOW_TRACKING_USERNAME=your_username\n"
             "\texport MLFLOW_TRACKING_PASSWORD=your_password\n"
         )
@@ -805,28 +804,28 @@ def download_mlflow_data(
 
     # Handling authentication
     try:
-        typer.echo(f"\nConnecting to MLFlow server at {tracking_uri}")
-        typer.echo(f"Accessing experiment ID: {experiment_id}")
+        cli_logger.info(f"\nConnecting to MLFlow server at {tracking_uri}")
+        cli_logger.info(f"Accessing experiment ID: {experiment_id}")
         runs = client.search_runs(experiment_ids=[experiment_id])
-        typer.echo(f"Authentication successful! Found {len(runs)} runs.")
+        cli_logger.info(f"Authentication successful! Found {len(runs)} runs.")
     except mlflow.MlflowException as e:
         status_code = e.get_http_status_code()
         if status_code == 401:
-            typer.echo(
+            cli_logger.error(
                 "Authentication with MLFlow failed with code 401! Either your "
                 "environment variables are not set or they are incorrect!"
             )
-            typer.Exit(code=1)
+            raise typer.Exit(code=1)
         else:
-            typer.echo(e.message)
-            typer.Exit(code=1)
+            cli_logger.info(e.message)
+            raise typer.Exit(code=1)
 
     all_metrics = []
     for run_idx, run in enumerate(runs):
         run_id = run.info.run_id
         metric_keys = run.data.metrics.keys()  # Get all metric names
 
-        typer.echo(f"Processing run {run_idx + 1}/{len(runs)}")
+        cli_logger.info(f"Processing run {run_idx + 1}/{len(runs)}")
         for metric_name in metric_keys:
             metrics = client.get_metric_history(run_id, metric_name)
             for metric in metrics:
@@ -841,12 +840,12 @@ def download_mlflow_data(
                 )
 
     if not all_metrics:
-        typer.echo("No metrics found in the runs")
-        typer.Exit(code=1)
+        cli_logger.error("No metrics found in the runs")
+        raise typer.Exit(code=1)
 
     df_metrics = pd.DataFrame(all_metrics)
     df_metrics.to_csv(output_file, index=False)
-    typer.echo(f"Saved data to '{Path(output_file).resolve()}'!")
+    cli_logger.info(f"Saved data to '{Path(output_file).resolve()}'!")
 
 @app.command()
 def tensorboard_ui(
