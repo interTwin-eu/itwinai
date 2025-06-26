@@ -9,7 +9,6 @@
 # --------------------------------------------------------------------------------------
 
 import functools
-import os
 import time
 from multiprocessing import Manager, Process
 from pathlib import Path
@@ -75,21 +74,21 @@ def probe_gpu_utilization_loop(
     time.sleep(warmup_time)
 
     if man_lib_type == "nvidia":
-        handles = [man_lib.nvmlDeviceGetHandleByIndex(idx) for idx in range(num_local_gpus)]
+        handles = [
+            man_lib.nvmlDeviceGetHandleByIndex(idx)
+            for idx in range(man_lib.nvmlDeviceGetCount())
+        ]
     elif man_lib_type == "amd":
         handles = man_lib.amdsmi_get_processor_handles()
         # assumes that amdsmi_get_processor_handles() returns all GPUs on the node
-        handles = [handles[id] for id in range(num_local_gpus)]  # filter handles by gpu_ids
     else:
         raise ValueError(f"Unsupported management library type: {man_lib_type}")
 
-    print("handles: ", len(handles))
-    print("num_local_gpus: ", num_local_gpus)
-
     sample_idx = 0
     while not stop_flag.value:
-        for handle in handles:
+        for local_rank, handle in enumerate(handles):
             if man_lib_type == "nvidia":
+                gpu_util = man_lib.nvmlDeviceGetUtilizationRates(handle).gpu
                 power = man_lib.nvmlDeviceGetPowerUsage(handle) / 1000.0  # mW -> W
 
             elif man_lib_type == "amd":
@@ -99,7 +98,7 @@ def probe_gpu_utilization_loop(
             log_dict["sample_idx"].append(sample_idx)
             log_dict["utilization"].append(gpu_util)
             log_dict["power"].append(power)
-            log_dict["local_rank"].append(id)
+            log_dict["local_rank"].append(local_rank)
             log_dict["node_idx"].append(node_idx)
             log_dict["num_global_gpus"].append(num_global_gpus)
             log_dict["strategy"].append(strategy_name)
@@ -126,7 +125,6 @@ def measure_gpu_utilization(method: Callable) -> Callable:
     @functools.wraps(method)
     def measured_method(self: "TorchTrainer", *args, **kwargs) -> Any:
         if not self.measure_gpu_data:
-            print("Warning: Profiling of GPU data has been disabled!")
             return method(self, *args, **kwargs)
 
         gpu_probing_interval = 1
@@ -186,6 +184,7 @@ def measure_gpu_utilization(method: Callable) -> Callable:
                 manager.shutdown()
 
         global_utilization_log = strategy.gather_obj(local_utilization_log, dst_rank=0)
+        print(strategy.is_main_worker)
         if strategy.is_main_worker:
             output_dir = Path(f"scalability-metrics/{self.run_id}/gpu-energy-data")
             output_dir.mkdir(exist_ok=True, parents=True)

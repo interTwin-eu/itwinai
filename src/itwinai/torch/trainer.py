@@ -883,6 +883,17 @@ class TorchTrainer(Trainer, LogMixin):
         # Create the parameter space for hyperparameter tuning
         param_space = {"train_loop_config": search_space(self.ray_search_space)}
 
+        if (
+            self.ray_tune_config
+            and self.ray_tune_config.scheduler is not None
+            and self.measure_gpu_data
+        ):
+            py_logger.warning(
+                "A Trial scheduler for Ray is specified"
+                f" ({type(self.ray_tune_config.scheduler)}), while measuring gpu data."
+                " Trials stopped by the scheduler will not store gpu data to disk."
+            )
+
         # Create the tuner with the driver function
         tuner = ray.tune.Tuner(
             trainable=trainer,
