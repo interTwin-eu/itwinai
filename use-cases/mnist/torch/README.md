@@ -113,10 +113,10 @@ docker push ghcr.io/intertwin-eu/itwinai:0.0.1-mnist-torch-0.1
 ```bash
 docker run -it --rm --name running-inference \
     -v "$PWD":/usr/data ghcr.io/intertwin-eu/itwinai:0.01-mnist-torch-0.1 \
-    /bin/bash -c "itwinai exec-pipeline --print-config \
-    --config /usr/src/app/config.yaml \
-    --pipe-key training_pipeline \
-    -o dataset_root=/usr/data/mnist-dataset "
+    /bin/bash -c "itwinai exec-pipeline \
+    --config-path /usr/src/app \
+    +pipe_key=training_pipeline \
+    dataset_root=/usr/data/mnist-dataset "
 ```
 
 ### Inference with Docker container
@@ -137,12 +137,12 @@ From wherever a sample of MNIST jpg images is available
 ```bash
 docker run -it --rm --name running-inference \
     -v "$PWD":/usr/data ghcr.io/intertwin-eu/itwinai:0.01-mnist-torch-0.1 \
-    /bin/bash -c "itwinai exec-pipeline --print-config \
-    --config /usr/src/app/config.yaml \
-    --pipe-key inference_pipeline \
-    -o test_data_path=/usr/data/mnist-sample-data \
-    -o inference_model_mlflow_uri=/usr/src/app/mnist-pre-trained.pth \
-    -o predictions_dir=/usr/data/mnist-predictions "
+    /bin/bash -c "itwinai exec-pipeline \
+    --config-path /usr/src/app \
+    +pipe_key=inference_pipeline \
+    test_data_path=/usr/data/mnist-sample-data \
+    inference_model_mlflow_uri=/usr/src/app/mnist-pre-trained.pth \
+    predictions_dir=/usr/data/mnist-predictions "
 ```
 
 This command will store the results in a folder called "mnist-predictions":

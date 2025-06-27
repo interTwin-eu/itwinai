@@ -183,7 +183,7 @@ For a hands-on tutorial on setting up distributed HPO with itwinai, check out th
 :doc:`distributed HPO tutorial <../../tutorials/hpo-workflows/hpo-torchtrainer-integration>`.  
 
 
-Further References on Hyper-parameter Optimization
+Further References on Hyperparameter Optimization
 ==================================================
 
 Some of these talks are short; others more in-depth. All are highly recommended:

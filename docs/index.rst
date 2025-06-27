@@ -113,8 +113,8 @@ Quick Start
    # Install via pip
    pip install itwinai
 
-   # Launch a simple distributed training job
-   itwinai exec-pipeline --config config.yaml
+   # Launch a simple distributed training job (assuming a valid config.yaml exists)
+   itwinai exec-pipeline
 
    # View logs in MLflow
    itwinai mlflow-ui --path mllogs/mlflow
@@ -138,6 +138,7 @@ Quick Start
 🎓 Tutorials
 =============
 
+- :doc:`Writing Configuration Files for itwinai <tutorials/workflows/02-pipeline-configuration/tutorial_1_intermediate_workflow>`
 - :ref:`Distributed Training <distributed-training-tutorials>`
 - :ref:`Hyper-parameter Optimization <hpo-tutorials>`
 - :ref:`ML Workflows <ml-workflows-tutorials>`

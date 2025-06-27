@@ -20,21 +20,21 @@ spec:
   containers:
   - args:
     # cd to writable location
-    - " cd /tmp && itwinai exec-pipeline --print-config \
-          --config $CERN_CODE_ROOT/config.yaml \
-          --pipe-key inference_pipeline \
-          -o dataset_location=$CERN_DATA_ROOT \
-          -o logs_dir=$TMP_DATA_ROOT/ml_logs/mlflow_logs \ 
-          -o distributed_strategy=$STRATEGY \
-          -o devices=$DEVICES \
-          -o hw_accelerators=$ACCELERATOR \
-          -o checkpoints_path=$TMP_DATA_ROOT/checkpoints \
-          -o inference_model_uri=$CERN_CODE_ROOT/3dgan-inference.pth \ 
-          -o max_dataset_size=$MAX_DATA_SAMPLES \
-          -o batch_size=$BATCH_SIZE \
-          -o num_workers_dataloader=$NUM_WORKERS_DL \
-          -o inference_results_location=$TMP_DATA_ROOT/3dgan-generated-data \
-          -o aggregate_predictions=$AGGREGATE_PREDS "
+    - " cd /tmp && itwinai exec-pipeline \
+          --config-path $CERN_CODE_ROOT \
+          +pipe_key=inference_pipeline \
+          dataset_location=$CERN_DATA_ROOT \
+          logs_dir=$TMP_DATA_ROOT/ml_logs/mlflow_logs \ 
+          distributed_strategy=$STRATEGY \
+          devices=$DEVICES \
+          hw_accelerators=$ACCELERATOR \
+          checkpoints_path=$TMP_DATA_ROOT/checkpoints \
+          inference_model_uri=$CERN_CODE_ROOT/3dgan-inference.pth \ 
+          max_dataset_size=$MAX_DATA_SAMPLES \
+          batch_size=$BATCH_SIZE \
+          num_workers_dataloader=$NUM_WORKERS_DL \
+          inference_results_location=$TMP_DATA_ROOT/3dgan-generated-data \
+          aggregate_predictions=$AGGREGATE_PREDS "
     command:
     - /bin/sh
     - -c
