@@ -215,3 +215,46 @@ file but want a different job name without changing the config, you can do the f
 .. code-block:: bash
 
    itwinai generate-slurm -c slurm_config.yaml --job-name different_job_name
+
+
+The resulting SLURM script generated using the ``slurm_config.yaml`` file above is:
+
+.. code-block:: bash
+   :caption: ``ddp-1x4.sh``
+   :name: SLURM Job Script generated using the configuration above
+
+      #!/bin/bash
+
+      # Job configuration
+      #SBATCH --job-name=ddp-job
+      #SBATCH --account=intertwin
+      #SBATCH --partition=develbooster
+      #SBATCH --time=01:00:00
+
+      #SBATCH --output=slurm_job_logs/ddp.out
+      #SBATCH --error=slurm_job_logs/ddp.err
+
+      # Resource allocation
+      #SBATCH --nodes=1
+      #SBATCH --ntasks-per-node=1
+      #SBATCH --cpus-per-gpu=4
+      #SBATCH --gpus-per-node=4
+      #SBATCH --gres=gpu:4
+      #SBATCH --exclusive
+
+      # Pre-execution command
+      ml Stages/2024 GCC OpenMPI CUDA/12 MPI-settings/CUDA Python/3.11.3 HDF5 PnetCDF libaio mpi4py
+      source .venv/bin/activate
+      export OMP_NUM_THREADS=4
+
+      # Job execution command
+      srun --cpu-bind=none --ntasks-per-node=1 \
+      bash -c "torchrun \
+      --log_dir='logs_torchrun' \
+      --nnodes=$SLURM_NNODES \
+      --nproc_per_node=$SLURM_GPUS_PER_NODE \
+      --rdzv_id=$SLURM_JOB_ID \
+      --rdzv_conf=is_host=\$(((SLURM_NODEID)) && echo 0 || echo 1) \
+      --rdzv_backend=c10d \
+      --rdzv_endpoint='$(scontrol show hostnames "$SLURM_JOB_NODELIST" | head -n 1)'i:29500 \
+      train.py"
