@@ -859,10 +859,22 @@ class TorchTrainer(Trainer, LogMixin):
             test_dataset=test_dataset,
         )
 
-        if self.ray_run_config:
+        if self.ray_run_config and self.ray_run_config.storage_path:
             # Create Ray checkpoints dir if it does not exist yet
             ckpt_dir = Path(self.ray_run_config.storage_path)
             ckpt_dir.mkdir(parents=True, exist_ok=True)
+
+        if (
+            self.ray_scaling_config
+            and getattr(self.ray_scaling_config, "num_workers", 1) > 1
+            and getattr(self.ray_scaling_config.resources_per_worker, "GPU", 0) > 0.0
+            and getattr(self.ray_scaling_config.resources_per_worker, "GPU", 0) < 1.0
+        ):
+            py_logger.error(
+                "Distributed trials with fractional gpu resources are not supported."
+                " Please ensure that either num_workers is set to 1 or GPUs in"
+                " resources_per_worker is 0 or 1"
+            )
 
         if self.from_checkpoint:
             # Create trainer from checkpoint

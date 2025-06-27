@@ -45,6 +45,7 @@ training_pipeline:
       measure_epoch_time: False
       time_ray: True # track time for ray report and fit
       run_id: ${run_id}
+      # from_checkpoint: ${itwinai.cwd:}/checkpoints_ddp/best_model/
       config:
         batch_size: ${batch_size}
         num_workers_dataloader: ${num_workers_dataloader}
@@ -61,7 +62,7 @@ training_pipeline:
         use_gpu: true
         resources_per_worker:
           CPU: 11
-          GPU: 1
+          GPU: 1 # can be 0.0 < 1.0 as long as num_workers set to 1
       ray_tune_config:
         _target_: ray.tune.TuneConfig
         num_samples: 4
@@ -70,8 +71,7 @@ training_pipeline:
           _target_: ray.tune.schedulers.ASHAScheduler
           metric: loss
           mode: min
-          max_t: 5
-          grace_period: 2
+          grace_period: 4
           reduction_factor: 6
           brackets: 1
       ray_run_config:
