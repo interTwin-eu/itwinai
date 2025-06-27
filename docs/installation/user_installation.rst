@@ -2,11 +2,10 @@ User Installation (for Non-Developers)
 ======================================
 
 This guide provides step-by-step instructions for installing the ``itwinai`` library for
-users. 
+users.
 
-Requirements: Linux or macOS environment. Windows is not supported. 
-
-.. include:: ./creating_venv.rst
+.. The explanation for creating a venv is the same for developers and users
+.. include:: ./software_prerequisites.rst
 
 
 Installing the ``itwinai`` Library
@@ -23,13 +22,13 @@ TensorFlow by using extras:
 
         .. code-block:: bash
             
-            pip install "itwinai[torch]"
+            uv pip install "itwinai[torch]"
 
         To enable GPU acceleration, you can use the following command:
 
         .. code-block:: bash
 
-            pip install ".[torch]" \
+            uv pip install ".[torch]" \
                 --extra-index-url https://download.pytorch.org/whl/cu121
 
 
@@ -40,13 +39,13 @@ TensorFlow by using extras:
 
         .. code-block:: bash
             
-            pip install "itwinai[tf]"
+            uv pip install "itwinai[tf]"
 
         To enable GPU acceleration, you can use the following command:
 
         .. code-block:: bash
 
-            pip install ".[tf-cuda]"
+            uv pip install ".[tf-cuda]"
 
 
 .. note:: 
@@ -57,13 +56,13 @@ TensorFlow by using extras:
 
     .. code-block:: bash
 
-       pip install "prov4ml[nvidia]@git+https://github.com/matbun/ProvML@new-main"
+       uv pip install "prov4ml[nvidia]@git+https://github.com/matbun/ProvML@new-main"
 
     For macOS:
 
     .. code-block:: bash
 
-       pip install "prov4ml[apple]@git+https://github.com/matbun/ProvML@new-main"
+       uv pip install "prov4ml[apple]@git+https://github.com/matbun/ProvML@new-main"
 
 .. The explanation for installing horovod and DS is the same for developers and users
 .. include:: ./horovod_deepspeed_installation.rst

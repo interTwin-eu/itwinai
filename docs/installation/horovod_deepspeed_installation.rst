@@ -10,8 +10,8 @@ want to do this with or without GPU (CUDA) support:
 
         .. code-block:: bash
 
-            pip install --no-cache-dir --no-build-isolation git+https://github.com/horovod/horovod.git
-            pip install --no-cache-dir --no-build-isolation deepspeed
+            uv pip install --no-cache-dir --no-build-isolation git+https://github.com/horovod/horovod.git
+            uv pip install --no-cache-dir --no-build-isolation deepspeed
 
     
     .. tab-item:: CUDA
