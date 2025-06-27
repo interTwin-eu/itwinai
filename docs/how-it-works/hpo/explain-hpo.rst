@@ -182,3 +182,23 @@ Key features of the :class:`~itwinai.torch.trainer.TorchTrainer`:
 For a hands-on tutorial on setting up distributed HPO with itwinai, check out the
 :doc:`distributed HPO tutorial <../../tutorials/hpo-workflows/hpo-torchtrainer-integration>`.  
 
+
+Further References on Hyper-parameter Optimization
+==================================================
+
+Some of these talks are short; others more in-depth. All are highly recommended:
+
+- `Andrew Ng: Scaling Neural Networks <https://www.youtube.com/watch?v=wKkcBPp3F1Y&t=4s>`__
+- `Geoff Hinton: Deep Learning Foundations <https://www.youtube.com/watch?v=i0cKa0di_lo&t=683s>`__
+- `Dataroots: AI & Digital Twins Overview <https://www.youtube.com/watch?v=hboCNMhUb4g>`__
+- `Paretos: HPO Techniques Explained <https://www.youtube.com/watch?v=M-NTkxfd7-8>`__
+
+Key papers on popular hyperparameter-optimization algorithms (you needn’t read them all immediately, but they’re great to bookmark):
+
+- `Hyperband (Li et al. 2016) <https://arxiv.org/abs/1603.06560>`__
+- `ASHA (Li et al. 2018) <https://arxiv.org/abs/1810.05934>`__
+- `BOHB (Falkner et al. 2018) <https://arxiv.org/abs/1807.01774>`__
+- `GP- and TPE-based Bayesian Optimization <https://proceedings.neurips.cc/paper_files/paper/2011/file/86e8f7ab32cfd12577bc2619bc635690-Paper.pdf>`__
+
+Also, see the Ray Tune key-concepts overview for a concise tour of HPO in Ray:
+`Ray Tune Key Concepts <https://docs.ray.io/en/latest/tune/key-concepts.html?_gl=1*1i6k6z8*_ga*ODM5ODM1MjI4LjE3MjY0Nzk2ODQ.*_up*MQ..*_ga_0LCWHW1N3S*MTcyNjQ3OTY4Ny4xLjEuMTcyNjQ3OTY4OS4wLjAuMA>`__.

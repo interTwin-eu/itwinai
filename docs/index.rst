@@ -124,41 +124,52 @@ Quick Start
 
 - :doc:`User Installation (for non-developers) <installation/user_installation>`
 - :doc:`Developer Installation <installation/developer_installation>`
-- :doc:`Slurm Setup <getting-started/slurm>`
-- :doc:`Containers Guide <getting-started/containers>`
+- :doc:`Submitting jobs to SLURM on HPC <getting-started/slurm>`
+- :doc:`Using itwinai Container Images <getting-started/containers>`
 
 🛠️ Core Guides
 ===============
 
-- :doc:`Training Concepts <how-it-works/training/training>`
-- :doc:`Logging Integration <how-it-works/loggers/explain_loggers>`
-- :doc:`Workflow Management <how-it-works/workflows/explain_workflows>`
+- :doc:`Training a Neural Network <how-it-works/training/training>`
+- :doc:`Logging and Tracking ML workflows <how-it-works/loggers/explain_loggers>`
+- :doc:`Defining machine learning workflows <how-it-works/workflows/explain_workflows>`
 - :doc:`Hyperparameter Optimization <how-it-works/hpo/explain-hpo>`
 
-🎓 Tutorials & 📚 Use Cases
-============================
+🎓 Tutorials
+=============
 
-- :doc:`Tutorials Overview <tutorials/tutorials>`
-- :doc:`MNIST Example <use-cases/mnist_doc>`
-- :doc:`Radio Astronomy <use-cases/radio-astronomy>`
+- :ref:`Distributed Training <distributed-training-tutorials>`
+- :ref:`Hyper-parameter Optimization <hpo-tutorials>`
+- :ref:`ML Workflows <ml-workflows-tutorials>`
+- :ref:`Code Profiling and Optimization <profiling-tutorials>`
+
+📚 Use Cases & 🧩 Plugins
+==========================
+
+- :doc:`MNIST — A Toy Use Case Example <use-cases/mnist_doc>`
+- :doc:`Drought Early Warning in the Alps (EURAC) <use-cases/eurac_doc>`
+- :doc:`Fast particle detector simulation (CERN) <use-cases/3dgan_doc>`
+- :doc:`Writing Plugins for itwinai <getting-started/plugins>`
+- :doc:`Current List of itwinai Plugins <getting-started/plugins-list>`
+
+For the full list of scientific use cases refer to the navigation side bar.
 
 ⚡ API Reference
 ================
 
 - :doc:`CLI Reference <api/cli_reference>`
-- :doc:`Module Docs <api/modules>`
+- :doc:`Python SDK <api/modules>`
 
 Community & Support
 ===================
-
-**itwinai** is an open-source Python library primarily developed by CERN, in collaboration with Forschungszentrum Jülich (FZJ).
-As the primary contributor, CERN will retain administrative rights to the repository during and after the interTwin project,
-except in cases where CERN is unable to maintain it.
 
 - `GitHub Repository <https://github.com/interTwin-eu/itwinai>`_
 - `Contributors <https://github.com/interTwin-eu/itwinai/graphs/contributors>`_
 - `interTwin Project <https://www.intertwin.eu/>`_
 
+**itwinai** is an open-source Python library primarily developed by CERN, in collaboration with Forschungszentrum Jülich (FZJ).
+As the primary contributor, CERN will retain administrative rights to the repository during and after the interTwin project,
+except in cases where CERN is unable to maintain it.
 
 Indices and Tables
 ==================

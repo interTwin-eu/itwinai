@@ -50,11 +50,38 @@ To interpret the state code, use this guide: https://confluence.cscs.ch/display/
 Interactive shell on a compute node
 -----------------------------------
 
-Allocate a compute node with 4 GPUs on JSC supercomputer:
+Allocate a compute node with 4 GPUs for 1 hour:
 
-.. code-block:: bash
+.. note::
+   make sure to adapt the ``--account`` in the code snippets below to your allocation account
 
-   salloc --account=intertwin --partition=batch --nodes=1 --ntasks-per-node=1 --cpus-per-task=4 --gpus-per-node=4 --time=01:00:00
+.. tab-set::
+
+   .. tab-item:: Juelich (JSC)
+
+      On Juelich Supercomputer (JSC):
+
+      .. code-block:: bash
+
+         salloc --account=intertwin --partition=develbooster --nodes=1 --ntasks-per-node=1 --cpus-per-task=4 --gpus-per-node=4 --time=01:00:00
+
+         
+   .. tab-item:: Vega
+
+      On Vega Supercomputer:
+
+      .. code-block:: bash
+
+         salloc --account=s24r05-03-users --partition=gpu --nodes=1 --cpus-per-gpu=4 --gres=gpu:4 --time=1:00:00
+
+   .. tab-item:: LUMI
+
+      On LUMI Supercomputer:
+
+      .. code-block:: bash
+
+         salloc --account=project_123456 --partition=dev-g --nodes=1  --gres=gpu:4 --cpus-per-gpu=16 --time=1:00:00
+   
 
 Once resources are available, the command will return a ``JOBID``. Use it to jump into the compute node with the 4 GPUs in this way:
 
