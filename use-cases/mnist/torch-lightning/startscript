@@ -28,6 +28,6 @@ ml Python CMake HDF5 PnetCDF libaio
 source ../../../envAI_juwels/bin/activate
 
 # ON LOGIN NODE download datasets:
-# ../../../.venv-pytorch/bin/itwinai exec-pipeline --config config.yaml --pipe-key training_pipeline --steps dataloading_step
+# ../../../.venv-pytorch/bin/itwinai exec-pipeline +pipe_key=training_pipeline +pipe_steps=[dataloading_step]
 
 srun itwinai exec-pipeline +pipe_steps=[1]

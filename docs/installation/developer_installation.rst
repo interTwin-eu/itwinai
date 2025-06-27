@@ -13,9 +13,12 @@ do both with the following command:
 
   git clone [--recurse-submodules] git@github.com:interTwin-eu/itwinai.git
 
+Where the ``--recurse-submodules`` is an optional flag that allows to pull also git submodules.
+It is not generally needed.
+
 
 .. The explanation for creating a venv is the same for developers and users
-.. include:: ./creating_venv.rst
+.. include:: ./software_prerequisites.rst
 
 Installing the ``itwinai`` Library as a Developer
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -38,8 +41,8 @@ installing with ``pip`` through extras:
 You can at any point in time find (or update) the optional dependencies in the
 ``pyproject.toml`` file in the root of the repository. 
 
-Installing the Library Itself
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Installing the ``itwinai`` Library
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 As a developer, you will also install the library using ``pip`` (or ``uv pip`` if you
 wish), but the main difference is that you need to install it as *editable* using the
 ``-e`` flag. Another difference is that you also need the ``dev`` extra. 
@@ -59,14 +62,20 @@ Below you can find complete commands for installation, depending on if you are i
     
         .. code-block:: bash
 
-            pip install -e ".[torch,dev,tf]"
+            uv sync --extra torch --extra dev
+            
+            # Or alternatively, using pip
+            uv pip install -e ".[torch,dev]"
 
     
     .. tab-item:: Local (CUDA)
 
         .. code-block:: bash
 
-            pip install -e ".[torch,dev,tf]" \
+            uv sync --extra torch --extra dev
+            
+            # Or alternatively, using pip
+            uv pip install -e ".[torch,dev]" \
                 --extra-index-url https://download.pytorch.org/whl/cu121
 
 
@@ -75,28 +84,13 @@ Below you can find complete commands for installation, depending on if you are i
         Note: This is the same as ``Local (CUDA)`` but without using the cache directory.
 
         .. code-block:: bash
-
-            pip install -e ".[torch,dev,tf]" \
+            
+            uv sync --extra torch --extra dev
+            
+            # Or alternatively, using pip
+            uv pip install -e ".[torch,dev]" \
                 --no-cache-dir \
                 --extra-index-url https://download.pytorch.org/whl/cu121
 
-
-.. note:: 
-    If you want to use the Prov4ML logger, you need to install it explicitly since it is only
-    available on GitHub:
-
-    For systems with Nvidia GPUs:
-
-    .. code-block:: bash
-
-       pip install "prov4ml[nvidia]@git+https://github.com/matbun/ProvML@new-main"
-
-    For macOS:
-
-    .. code-block:: bash
-
-       pip install "prov4ml[apple]@git+https://github.com/matbun/ProvML@new-main"
-
-
-.. The explanation for installing horovod and DS is the same for developers and users
-.. include:: ./horovod_deepspeed_installation.rst
+.. Explanation for installing horovod, DS, and other packages that need to be installed AFTER itwinai
+.. include:: ./post_itwinai_installation.rst
