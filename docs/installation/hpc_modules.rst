@@ -12,7 +12,8 @@ on whether you want ``PyTorch`` or ``TensorFlow`` support:
 
     .. tab-item:: Juelich (JSC)
 
-        Modules for Juelich Supercomputer (JSC):
+        Modules for the `JUWELS <https://apps.fz-juelich.de/jsc/hps/juwels/configuration.html>`_ 
+        system at Juelich Supercomputer (JSC):
 
         .. tab-set::
 
@@ -38,7 +39,7 @@ on whether you want ``PyTorch`` or ``TensorFlow`` support:
 
     .. tab-item:: Vega
 
-        Modules for Vega Supercomputer:
+        Modules for `Vega <https://doc.vega.izum.si/introduction/>`_ Supercomputer:
 
         .. tab-set::
 
@@ -65,5 +66,6 @@ on whether you want ``PyTorch`` or ``TensorFlow`` support:
 
     .. tab-item:: LUMI
 
-        On LUMI Python virtual environments are not allowed, in favour of containers. Therefore,
+        On `LUMI <https://docs.lumi-supercomputer.eu/hardware/lumig/>`_, Python virtual
+        environments are not allowed, in favour of containers. Therefore,
         the software modules are a bit different (WIP).

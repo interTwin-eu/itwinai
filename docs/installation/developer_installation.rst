@@ -92,23 +92,5 @@ Below you can find complete commands for installation, depending on if you are i
                 --no-cache-dir \
                 --extra-index-url https://download.pytorch.org/whl/cu121
 
-
-.. note:: 
-    If you want to use the Prov4ML logger, you need to install it explicitly since it is only
-    available on GitHub:
-
-    For systems with Nvidia GPUs:
-
-    .. code-block:: bash
-
-       uv pip install "prov4ml[nvidia]@git+https://github.com/matbun/ProvML@new-main"
-
-    For macOS:
-
-    .. code-block:: bash
-
-       uv pip install "prov4ml[apple]@git+https://github.com/matbun/ProvML@new-main"
-
-
-.. The explanation for installing horovod and DS is the same for developers and users
-.. include:: ./horovod_deepspeed_installation.rst
+.. Explanation for installing horovod, DS, and other packages that need to be installed AFTER itwinai
+.. include:: ./post_itwinai_installation.rst

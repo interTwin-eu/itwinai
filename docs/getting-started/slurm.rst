@@ -59,7 +59,7 @@ Allocate a compute node with 4 GPUs for 1 hour:
 
    .. tab-item:: Juelich (JSC)
 
-      On Juelich Supercomputer (JSC):
+      On the `JUWELS <https://apps.fz-juelich.de/jsc/hps/juwels/configuration.html>`_ system at Juelich Supercomputer (JSC):
 
       .. code-block:: bash
 
@@ -68,7 +68,7 @@ Allocate a compute node with 4 GPUs for 1 hour:
          
    .. tab-item:: Vega
 
-      On Vega Supercomputer:
+      On `Vega <https://doc.vega.izum.si/introduction/>`_ Supercomputer:
 
       .. code-block:: bash
 
@@ -76,7 +76,7 @@ Allocate a compute node with 4 GPUs for 1 hour:
 
    .. tab-item:: LUMI
 
-      On LUMI Supercomputer:
+      On `LUMI <https://docs.lumi-supercomputer.eu/hardware/lumig/>`_ Supercomputer:
 
       .. code-block:: bash
 
