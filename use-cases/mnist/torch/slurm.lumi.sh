@@ -15,7 +15,7 @@
 #SBATCH --partition=small-g
 #SBATCH --nodes=2
 #SBATCH --gpus-per-node=2
-#SBATCH --cpus-per-task=16
+#SBATCH --cpus-per-task=32
 #SBATCH --exclusive
 #SBATCH --mem=128G
 
@@ -151,6 +151,7 @@ function ray-launcher(){
   srun --nodes=1 --ntasks=1 -w "$head_node" \
   singularity exec \
     --bind "$(pwd)" \
+    --bind /users/$USER/itwinai/src/:/app/src/ \
     --rocm \
     "$CONTAINER_PATH" bash -c " \
       source /opt/miniconda3/bin/activate pytorch && 
@@ -184,6 +185,7 @@ function ray-launcher(){
     srun --nodes=1 --ntasks=1 -w "$node_i" \
       singularity exec \
       --bind "$(pwd)" \
+      --bind /users/$USER/itwinai/src/:/app/src/ \
       --rocm \
       "$CONTAINER_PATH" bash -c " \
       source /opt/miniconda3/bin/activate pytorch && 
@@ -212,6 +214,7 @@ function ray-launcher(){
   # Run command without srun
   singularity exec \
     --bind $(pwd) \
+    --bind /users/$USER/itwinai/src/:/app/src/ \
     $CONTAINER_PATH bash -c "\
       source /opt/miniconda3/bin/activate pytorch && \
       $1"
@@ -221,6 +224,7 @@ function torchrun-launcher(){
   srun --cpu-bind=none --ntasks-per-node=1 \
     singularity exec \
       --bind $(pwd) \
+      --bind /users/$USER/itwinai/src/:/app/src/ \
       --rocm \
       $CONTAINER_PATH /bin/bash -c "\
         source /opt/miniconda3/bin/activate pytorch && \
@@ -253,6 +257,7 @@ function srun-launcher(){
     --ntasks=$(($SLURM_GPUS_PER_NODE * $SLURM_NNODES)) \
     singularity exec \
     --bind $(pwd),/users/eickhoff/itwinai:/mnt/itwinai/ \
+    --bind /users/$USER/itwinai/src/:/app/src/ \
     --rocm \
     $CONTAINER_PATH /bin/bash -c "
       source /opt/miniconda3/bin/activate pytorch && 
