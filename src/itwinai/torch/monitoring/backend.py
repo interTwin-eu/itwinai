@@ -8,7 +8,7 @@
 # --------------------------------------------------------------------------------------
 import logging
 from types import ModuleType
-from typing import Any, List, Tuple
+from typing import Tuple
 
 py_logger = logging.getLogger(__name__)
 Backend = Tuple[str, ModuleType]  # ("nvidia" | "amd"), module

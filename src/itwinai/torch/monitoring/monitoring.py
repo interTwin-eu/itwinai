@@ -6,6 +6,7 @@
 # Credit:
 # - Jarl Sondre Sæther <jarl.sondre.saether@cern.ch> - CERN
 # - Matteo Bunino <matteo.bunino@cern.ch> - CERN
+# - Linus Eickhoff <linus.maximilian.eickhoff@cern.ch> - CERN
 # --------------------------------------------------------------------------------------
 
 import functools
@@ -35,7 +36,6 @@ logging_columns = [
 
 def probe_gpu_utilization_loop(
     node_idx: int,
-    num_local_gpus: int,
     num_global_gpus: int,
     strategy_name: str,
     log_dict: Any,
