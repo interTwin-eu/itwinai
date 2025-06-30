@@ -5,6 +5,7 @@
 #
 # Credit:
 # - Matteo Bunino <matteo.bunino@cern.ch> - CERN
+# - Linus Eickhoff <linus.maximilian.eickhoff@cern.ch> - CERN
 # --------------------------------------------------------------------------------------
 
 import logging
@@ -37,6 +38,10 @@ if not logger.hasHandlers():
 
 # Prevent logs from bubbling up to the root logger
 logger.propagate = False
+
+# Ray
+if os.environ.get("TUNE_DISABLE_STRICT_METRIC_CHECKING", None) is None:
+    os.environ["TUNE_DISABLE_STRICT_METRIC_CHECKING"] = "1"
 
 # Set Ray V2 train to 1 as soon as Ray V2 train works:
 # Our issue: https://github.com/ray-project/ray/issues/53921

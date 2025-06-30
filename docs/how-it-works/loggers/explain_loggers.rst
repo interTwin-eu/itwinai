@@ -39,9 +39,6 @@ manner regardless of which logger is used on the backend.
 The abstraction of logging logic that the itwinai logger provides can avoid redundant
 code duplication and simplify the maintenance of large-scale projects.
 
-To get started with the itwinai logger, make sure to follow the initial
-:doc:`itwinai setup guide <../../getting-started/getting_started_with_itwinai>` first.
-
 The itwinai :class:`~itwinai.loggers.Logger` provides a unique interface to log any
 *kind* of data trough the :meth:`~itwinai.loggers.LogMixin.log` method. You can use
 it to log metrics, model checkpoints, images, text, provenance information, and more.

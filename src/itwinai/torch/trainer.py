@@ -119,7 +119,7 @@ class TorchTrainer(Trainer, LogMixin):
             number of epochs.
         measure_gpu_data (bool): enable the collection of data on average GPU utilization and
             total energy consumption throughout training. Defaults to False.
-        torch_profiling (bool): enable the profiling of computation.
+        enable_torch_profiling (bool): enable the profiling of computation.
             It uses the torch profiler and it may slow down training. Defaults to False.
         measure_epoch_time (bool): enable the measurement of epoch duration (in seconds).
             Defaults to False,
@@ -183,7 +183,9 @@ class TorchTrainer(Trainer, LogMixin):
     #: Toggle for GPU utilization monitoring
     measure_gpu_data: bool = False
     #: Toggle for computation fraction profiling
-    torch_profiling: bool = False
+    enable_torch_profiling: bool = False
+    #: Store PyTorch Profiling traces
+    store_torch_profiling_traces: bool = False
     #: Toggle for epoch time tracking
     measure_epoch_time: bool = False
     #: Run ID
@@ -208,7 +210,8 @@ class TorchTrainer(Trainer, LogMixin):
         profiling_wait_epochs: int = 1,
         profiling_warmup_epochs: int = 2,
         measure_gpu_data: bool = False,
-        torch_profiling: bool = False,
+        enable_torch_profiling: bool = False,
+        store_torch_profiling_traces: bool = False,
         measure_epoch_time: bool = False,
         ray_scaling_config: ScalingConfig | None = None,
         ray_tune_config: TuneConfig | None = None,
@@ -230,6 +233,12 @@ class TorchTrainer(Trainer, LogMixin):
         if isinstance(config, dict):
             config = TrainingConfiguration(**config)
 
+        if store_torch_profiling_traces and not enable_torch_profiling:
+            raise ValueError(
+                "`store_torch_profiling_traces` is True, but `enable_torch_profiling` is"
+                "False. Cannot store traces without enabling profiling."
+            )
+
         self.config = config
         self.epochs = epochs
         self.model = model
@@ -242,12 +251,15 @@ class TorchTrainer(Trainer, LogMixin):
         os.makedirs(self.checkpoints_location, exist_ok=True)
         self.checkpoint_every = checkpoint_every
         self.disable_tqdm = disable_tqdm
+
         self.profiler = None
         self.profiling_wait_epochs = profiling_wait_epochs
         self.profiling_warmup_epochs = profiling_warmup_epochs
         self.measure_gpu_data = measure_gpu_data
-        self.torch_profiling = torch_profiling
+        self.enable_torch_profiling = enable_torch_profiling
+        self.store_torch_profiling_traces = store_torch_profiling_traces
         self.measure_epoch_time = measure_epoch_time
+
         self.ray_scaling_config = ray_scaling_config
         self.ray_tune_config = ray_tune_config
         self.ray_run_config = ray_run_config
@@ -340,7 +352,8 @@ class TorchTrainer(Trainer, LogMixin):
                 py_logger.warning(
                     "Horovod strategy is no longer supported with Ray V2. See "
                     "https://github.com/ray-project/ray/issues/49454#issuecomment-2899138398. "
-                    "Falling back to HorovodStrategy without Ray.")
+                    "Falling back to HorovodStrategy without Ray."
+                )
                 return HorovodStrategy()
 
             case "horovod", False:
@@ -846,11 +859,23 @@ class TorchTrainer(Trainer, LogMixin):
             test_dataset=test_dataset,
         )
 
-        if self.ray_run_config:
+        if self.ray_run_config and self.ray_run_config.storage_path:
             # Create Ray checkpoints dir if it does not exist yet
             ckpt_dir = Path(self.ray_run_config.storage_path)
             ckpt_dir.mkdir(parents=True, exist_ok=True)
 
+        if (
+            self.ray_scaling_config
+            and getattr(self.ray_scaling_config, "num_workers", 1) > 1
+            and getattr(self.ray_scaling_config.resources_per_worker, "GPU", 0) > 0.0
+            and getattr(self.ray_scaling_config.resources_per_worker, "GPU", 0) < 1.0
+        ):
+            raise ValueError(
+                "Distributed trials with fractional gpu resources are not supported."
+                " Please ensure that either num_workers is set to 1 or GPUs in"
+                " resources_per_worker is 0 or 1"
+            )
+      
         if self.from_checkpoint:
             # Create trainer from checkpoint
             if RayTorchTrainer.can_restore(to_uri(self.from_checkpoint)):
@@ -1196,7 +1221,6 @@ class TorchTrainer(Trainer, LogMixin):
                 assert epoch_time_logger is not None
                 epoch_time = default_timer() - epoch_start_time
                 epoch_time_logger.add_epoch_time(self.current_epoch + 1, epoch_time)
-
 
     def train_epoch(self) -> torch.Tensor:
         """Perform a complete sweep over the training dataset, completing an
