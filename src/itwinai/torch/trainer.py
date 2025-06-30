@@ -870,7 +870,7 @@ class TorchTrainer(Trainer, LogMixin):
             and getattr(self.ray_scaling_config.resources_per_worker, "GPU", 0) > 0.0
             and getattr(self.ray_scaling_config.resources_per_worker, "GPU", 0) < 1.0
         ):
-            py_logger.error(
+            raise ValueError(
                 "Distributed trials with fractional gpu resources are not supported."
                 " Please ensure that either num_workers is set to 1 or GPUs in"
                 " resources_per_worker is 0 or 1"
