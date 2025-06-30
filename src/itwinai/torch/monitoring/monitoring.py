@@ -137,8 +137,6 @@ def measure_gpu_utilization(method: Callable) -> Callable:
         global_rank = strategy.global_rank()
         num_global_gpus = strategy.global_world_size()
         num_local_gpus = strategy.local_world_size()
-        print(f"Number of global GPUs: {num_global_gpus}, Local rank: {local_rank}")
-        print(f"Number of local GPUs: {num_local_gpus}, Global rank: {global_rank}")
         node_idx = global_rank // num_local_gpus
 
         gpu_monitor_process = None
@@ -184,7 +182,6 @@ def measure_gpu_utilization(method: Callable) -> Callable:
                 manager.shutdown()
 
         global_utilization_log = strategy.gather_obj(local_utilization_log, dst_rank=0)
-        print(strategy.is_main_worker)
         if strategy.is_main_worker:
             output_dir = Path(f"scalability-metrics/{self.run_id}/gpu-energy-data")
             output_dir.mkdir(exist_ok=True, parents=True)

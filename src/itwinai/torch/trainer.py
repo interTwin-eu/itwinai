@@ -875,7 +875,7 @@ class TorchTrainer(Trainer, LogMixin):
                 " Please ensure that either num_workers is set to 1 or GPUs in"
                 " resources_per_worker is 0 or 1"
             )
-      
+
         if self.from_checkpoint:
             # Create trainer from checkpoint
             if RayTorchTrainer.can_restore(to_uri(self.from_checkpoint)):
