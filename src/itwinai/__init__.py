@@ -10,6 +10,7 @@
 
 import logging
 import os
+import sys
 
 # Create a logger for your library
 logger = logging.getLogger(__name__)
@@ -38,6 +39,26 @@ if not logger.hasHandlers():
 
 # Prevent logs from bubbling up to the root logger
 logger.propagate = False
+
+class CLIFormatter(logging.Formatter):
+    def format(self, record: logging.LogRecord) -> str:
+        msg = record.getMessage()
+        if record.levelno >= logging.ERROR:
+            return f"[ERROR]: {msg}"
+        if record.levelno == logging.WARNING:
+            return f"[WARNING]: {msg}"
+
+        # INFO / DEBUG stay “plain”
+        return msg
+
+plain_logger = logging.getLogger("cli_logger")
+plain_logger.setLevel(logging.INFO)
+if not plain_logger.hasHandlers():
+    # Moving the output to stdout instead of stderr
+    h = logging.StreamHandler(sys.stdout)
+    h.setFormatter(CLIFormatter())
+    plain_logger.addHandler(h)
+plain_logger.propagate = False
 
 # Ray
 if os.environ.get("TUNE_DISABLE_STRICT_METRIC_CHECKING", None) is None:

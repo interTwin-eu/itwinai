@@ -9,7 +9,7 @@
 #SBATCH --error=horovod_ds_installation.err
 #SBATCH --time=00:30:00
 
-# Resources allocation
+# Resource allocation
 #SBATCH --partition=develbooster
 #SBATCH --nodes=1
 #SBATCH --gres=gpu
