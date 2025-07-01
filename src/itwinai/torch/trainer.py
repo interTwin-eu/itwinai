@@ -32,11 +32,8 @@ import yaml
 from ray.train import Checkpoint, DataConfig, ScalingConfig
 from ray.train.torch import TorchConfig
 from ray.train.torch import TorchTrainer as RayTorchTrainer
-from ray.tune import TuneConfig
-from ray.tune.integration.ray_train import TuneReportCallback
-from torch.optim import SGD, Adadelta, Adam, AdamW, RMSprop
 from ray.tune import RunConfig, TuneConfig
-from torch.nn.parallel import DistributedDataParallel as DDP
+from torch.optim import SGD, Adadelta, Adam, AdamW, RMSprop
 from torch.optim.lr_scheduler import LRScheduler
 from torch.optim.optimizer import Optimizer
 from torch.utils.data import DataLoader, Dataset
