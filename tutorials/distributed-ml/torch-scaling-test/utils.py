@@ -17,6 +17,7 @@ from torch.utils.data import DataLoader, Subset
 from torchvision import datasets, transforms
 
 from itwinai.parser import ArgumentParser as ItwinaiArgParser
+from itwinai.utils import EPOCH_TIME_DIR
 
 
 def imagenet_dataset(data_root: str, subset_size: int | None = None):
@@ -169,7 +170,7 @@ def get_parser() -> ItwinaiArgParser:
     parser.add_argument(
         "--epoch-time-directory",
         type=str,
-        default="scalability-metrics/epoch-time",
+        default=f"scalability-metrics/{EPOCH_TIME_DIR}",
         help="Where to store the epoch time metrics used in the scalability report",
     )
     return parser

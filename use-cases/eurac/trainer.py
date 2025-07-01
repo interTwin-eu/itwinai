@@ -29,6 +29,7 @@ from itwinai.torch.monitoring.monitoring import measure_gpu_utilization
 from itwinai.torch.profiling.profiler import profile_torch_trainer
 from itwinai.torch.trainer import TorchTrainer
 from itwinai.torch.type import Metric
+from itwinai.utils import EPOCH_TIME_DIR
 
 
 class RNNDistributedTrainer(TorchTrainer):
@@ -198,7 +199,7 @@ class RNNDistributedTrainer(TorchTrainer):
         # Tracking epoch times for scaling test
         if self.strategy.is_main_worker and self.strategy.is_distributed:
             num_nodes = os.environ.get("SLURM_NNODES", "unk")
-            epoch_time_output_dir = Path("scalability-metrics/epoch-time")
+            epoch_time_output_dir = Path(f"scalability-metrics/{EPOCH_TIME_DIR}")
             epoch_time_file_name = f"epochtime_{self.strategy.name}_{num_nodes}N.csv"
             epoch_time_output_path = epoch_time_output_dir / epoch_time_file_name
 

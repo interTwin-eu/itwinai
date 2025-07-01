@@ -6,6 +6,7 @@
 # Credit:
 # - Jarl Sondre Sæther <jarl.sondre.saether@cern.ch> - CERN
 # - Matteo Bunino <matteo.bunino@cern.ch> - CERN
+# - Linus Eickhoff <linus.maximilian.eickhoff@cern.ch> - CERN
 # --------------------------------------------------------------------------------------
 
 import functools
@@ -35,7 +36,6 @@ logging_columns = [
 
 def probe_gpu_utilization_loop(
     node_idx: int,
-    num_local_gpus: int,
     num_global_gpus: int,
     strategy_name: str,
     log_dict: Any,
@@ -69,30 +69,36 @@ def probe_gpu_utilization_loop(
         raise ValueError(f"log_dict is missing the following columns: {missing_columns}")
 
     # load management library backend
-    man_lib_type, handles, man_lib = init_backend()
-    # ensure all gpu handles where retrieved
-    if len(handles) != num_local_gpus:
-        raise ValueError(f"Expected {num_local_gpus} handles, but got {len(handles)}.")
+    man_lib_type, man_lib = init_backend()
 
     time.sleep(warmup_time)
 
+    if man_lib_type == "nvidia":
+        handles = [
+            man_lib.nvmlDeviceGetHandleByIndex(idx)
+            for idx in range(man_lib.nvmlDeviceGetCount())
+        ]
+    elif man_lib_type == "amd":
+        handles = man_lib.amdsmi_get_processor_handles()
+        # assumes that amdsmi_get_processor_handles() returns all GPUs on the node
+    else:
+        raise ValueError(f"Unsupported management library type: {man_lib_type}")
+
     sample_idx = 0
     while not stop_flag.value:
-        for idx in range(num_local_gpus):
+        for local_rank, handle in enumerate(handles):
             if man_lib_type == "nvidia":
-                handle = handles[idx]
                 gpu_util = man_lib.nvmlDeviceGetUtilizationRates(handle).gpu
                 power = man_lib.nvmlDeviceGetPowerUsage(handle) / 1000.0  # mW -> W
 
             elif man_lib_type == "amd":
-                handle = handles[idx]
                 gpu_util = man_lib.amdsmi_get_gpu_activity(handle)["gfx_activity"]  # W
                 power = man_lib.amdsmi_get_power_info(handle)["average_socket_power"]
 
             log_dict["sample_idx"].append(sample_idx)
             log_dict["utilization"].append(gpu_util)
             log_dict["power"].append(power)
-            log_dict["local_rank"].append(idx)
+            log_dict["local_rank"].append(local_rank)
             log_dict["node_idx"].append(node_idx)
             log_dict["num_global_gpus"].append(num_global_gpus)
             log_dict["strategy"].append(strategy_name)
@@ -119,7 +125,6 @@ def measure_gpu_utilization(method: Callable) -> Callable:
     @functools.wraps(method)
     def measured_method(self: "TorchTrainer", *args, **kwargs) -> Any:
         if not self.measure_gpu_data:
-            print("Warning: Profiling of GPU data has been disabled!")
             return method(self, *args, **kwargs)
 
         gpu_probing_interval = 1
