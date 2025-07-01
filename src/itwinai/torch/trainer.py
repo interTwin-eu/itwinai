@@ -218,7 +218,7 @@ class TorchTrainer(Trainer, LogMixin):
         super().__init__(name)
         self.save_parameters(**self.locals2params(locals()))
 
-        # config is meant to store all hyperparameters, which can very from use
+        # config is meant to store all hyperparameters, which can vary from use
         # case to use case and include learning_rate, batch_size....
         config = {} if config is None else config
         if isinstance(config, dict):
