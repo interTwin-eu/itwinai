@@ -64,7 +64,7 @@ if [ -z "$RUN_NAME" ]; then
 fi
 if [ -z "$TRAINING_CMD" ]; then 
   >&2 echo "WARNING: env variable TRAINING_CMD is not set. It's the python command to execute."
-  TRAINING_CMD='$(/usr/bin/which itwinai) exec-pipeline --config config.yaml --pipe-key training_pipeline -o strategy=ddp'
+  TRAINING_CMD='$(/usr/bin/which itwinai) exec-pipeline +pipe_key=training_pipeline strategy=ddp'
   >&2 echo "setting TRAINING_CMD=$TRAINING_CMD"
 fi
 
