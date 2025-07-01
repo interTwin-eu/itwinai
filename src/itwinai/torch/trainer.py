@@ -46,7 +46,13 @@ from itwinai.torch.profiling.profiler import profile_torch_trainer
 from ..components import Trainer, monitor_exec
 from ..distributed import ray_cluster_is_running
 from ..loggers import EpochTimeTracker, Logger, LogMixin
-from ..utils import generate_random_name, load_yaml, time_and_log, to_uri
+from ..utils import (
+    EPOCH_TIME_DIR,
+    generate_random_name,
+    load_yaml,
+    time_and_log,
+    to_uri,
+)
 from .config import TrainingConfiguration
 from .distributed import (
     DeepSpeedStrategy,
@@ -856,6 +862,17 @@ class TorchTrainer(Trainer, LogMixin):
         # Create the parameter space for hyperparameter tuning
         param_space = {"train_loop_config": search_space(self.ray_search_space)}
 
+        if (
+            self.ray_tune_config
+            and self.ray_tune_config.scheduler is not None
+            and self.measure_gpu_data
+        ):
+            py_logger.warning(
+                "A Trial scheduler for Ray is specified"
+                f" ({type(self.ray_tune_config.scheduler)}), while measuring gpu data."
+                " Trials stopped by the scheduler will not store gpu data to disk."
+            )
+
         # Create the tuner with the driver function
         tuner = ray.tune.Tuner(
             trainable=trainer,
@@ -1091,7 +1108,7 @@ class TorchTrainer(Trainer, LogMixin):
                     "running distributed training!"
                 )
             num_nodes = int(os.environ["SLURM_NNODES"])
-            epoch_time_output_dir = Path(f"scalability-metrics/{self.run_id}/epoch-time")
+            epoch_time_output_dir = Path(f"scalability-metrics/{self.run_id}/{EPOCH_TIME_DIR}")
             epoch_time_file_name = f"epochtime_{self.strategy.name}_{num_nodes}N.csv"
             epoch_time_output_path = epoch_time_output_dir / epoch_time_file_name
 

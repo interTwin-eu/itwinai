@@ -71,7 +71,7 @@ training_pipeline:
           _target_: ray.tune.schedulers.ASHAScheduler
           metric: loss
           mode: min
-          grace_period: 4
+          grace_period: 5
           reduction_factor: 6
           brackets: 1
       ray_run_config:
@@ -109,6 +109,7 @@ training_pipeline:
           - _target_: itwinai.loggers.MLFlowLogger
             experiment_name: MNIST classifier
             log_freq: epoch
+            tracking_uri: null
       strategy: ${strategy}
       checkpoint_every: ${checkpoint_every}
       checkpoints_location: ${checkpoints_location}
@@ -166,8 +167,8 @@ training_pipeline_gan:
           _target_: ray.tune.schedulers.ASHAScheduler
           metric: loss
           mode: min
-          max_t: 5
-          grace_period: 2
+          max_t: 120
+          grace_period: 5
           reduction_factor: 6
           brackets: 1
       ray_run_config:

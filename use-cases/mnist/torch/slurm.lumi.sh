@@ -13,9 +13,9 @@
 
 # Resources allocation
 #SBATCH --partition=small-g
-#SBATCH --nodes=1
-#SBATCH --gpus-per-node=4
-#SBATCH --cpus-per-task=64
+#SBATCH --nodes=2
+#SBATCH --gpus-per-node=2
+#SBATCH --cpus-per-task=32
 #SBATCH --exclusive
 #SBATCH --mem=128G
 
@@ -84,11 +84,11 @@ sleep 2
 export NCCL_SOCKET_IFNAME=hsn0,hsn1,hsn2,hsn3
 export NCCL_NET_GDR_LEVEL=3
 
-# Set ROCR_VISIBLE_DEVICES so that each task uses the proper GPU
-export ROCR_VISIBLE_DEVICES=$SLURM_LOCALID
+# Set HIP_VISIBLE_DEVICES so that each task uses the proper GPU
+export HIP_VISIBLE_DEVICES=$SLURM_LOCALID
 
 # Report affinity to check
-echo "Rank $SLURM_PROCID --> $(taskset -p $$); GPU $ROCR_VISIBLE_DEVICES"
+echo "Rank $SLURM_PROCID --> $(taskset -p $$); GPU $HIP_VISIBLE_DEVICES"
 
 # Setup env for distributed ML
 export OMP_NUM_THREADS=1
@@ -127,7 +127,7 @@ function ray-launcher(){
 
   # Fix (?) for: HIP error: invalid device ordinal
   export RAY_EXPERIMENTAL_NOSET_ROCR_VISIBLE_DEVICES=1
-  export ROCR_VISIBLE_DEVICES=$(seq -s, 0 $((SLURM_GPUS_PER_NODE - 1))) #0,1,2,3,4,5,6,7
+  export HIP_VISIBLE_DEVICES=$(seq -s, 0 $((SLURM_GPUS_PER_NODE - 1))) #0,1,2,3,4,5,6,7
   
   #########   Set up Ray cluster   ########
 
@@ -147,12 +147,14 @@ function ray-launcher(){
   srun --nodes=1 --ntasks=1 -w "$head_node" \
   singularity exec \
     --bind "$(pwd)" \
+    --bind /users/$USER/itwinai/src/:/app/src/ \
     --rocm \
     "$CONTAINER_PATH" bash -c " \
       source /opt/miniconda3/bin/activate pytorch && 
       export LD_LIBRARY_PATH=/usr/lib64/mpi/gcc/mpich/lib64:\$LD_LIBRARY_PATH &&
       ldd /opt/aws-ofi-rccl/librccl-net.so | grep fabric &&
       ls /opt/cray/libfabric/1.15.2.0/lib64/libfabric.so.1 &&
+      unset ROCR_VISIBLE_DEVICES &&
       ray start \
         --head \
         --node-ip-address=$head_node \
@@ -179,12 +181,14 @@ function ray-launcher(){
     srun --nodes=1 --ntasks=1 -w "$node_i" \
       singularity exec \
       --bind "$(pwd)" \
+      --bind /users/$USER/itwinai/src/:/app/src/ \
       --rocm \
       "$CONTAINER_PATH" bash -c " \
       source /opt/miniconda3/bin/activate pytorch && 
       export LD_LIBRARY_PATH=/usr/lib64/mpi/gcc/mpich/lib64:\$LD_LIBRARY_PATH &&
       ldd /opt/aws-ofi-rccl/librccl-net.so | grep fabric &&
       ls /opt/cray/libfabric/1.15.2.0/lib64/libfabric.so.1 &&
+      unset ROCR_VISIBLE_DEVICES &&
       ray start \
         --address $head_node:$port \
         --redis-password='5241580000000000' \
@@ -206,6 +210,7 @@ function ray-launcher(){
   # Run command without srun
   singularity exec \
     --bind $(pwd) \
+    --bind /users/$USER/itwinai/src/:/app/src/ \
     $CONTAINER_PATH bash -c "\
       source /opt/miniconda3/bin/activate pytorch && \
       $1"
@@ -215,6 +220,7 @@ function torchrun-launcher(){
   srun --cpu-bind=none --ntasks-per-node=1 \
     singularity exec \
       --bind $(pwd) \
+      --bind /users/$USER/itwinai/src/:/app/src/ \
       --rocm \
       $CONTAINER_PATH /bin/bash -c "\
         source /opt/miniconda3/bin/activate pytorch && \
@@ -247,6 +253,7 @@ function srun-launcher(){
     --ntasks=$(($SLURM_GPUS_PER_NODE * $SLURM_NNODES)) \
     singularity exec \
     --bind $(pwd),/users/eickhoff/itwinai:/mnt/itwinai/ \
+    --bind /users/$USER/itwinai/src/:/app/src/ \
     --rocm \
     $CONTAINER_PATH /bin/bash -c "
       source /opt/miniconda3/bin/activate pytorch && 
