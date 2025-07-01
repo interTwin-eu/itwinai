@@ -10,6 +10,7 @@
 # --------------------------------------------------------------------------------------
 
 import functools
+import logging
 import time
 from multiprocessing import Manager, Process
 from pathlib import Path
@@ -32,6 +33,8 @@ logging_columns = [
     "strategy",
     "probing_interval",
 ]
+
+cli_logger = logging.getLogger("cli_logger")
 
 
 def probe_gpu_utilization_loop(
@@ -120,11 +123,12 @@ def measure_gpu_utilization(method: Callable) -> Callable:
 
         log_df = pd.concat(dataframes)
         log_df.to_csv(output_path, index=False)
-        print(f"Writing GPU energy dataframe to '{output_path.resolve()}'.")
+        cli_logger.info(f"Writing GPU energy dataframe to '{output_path.resolve()}'.")
 
     @functools.wraps(method)
     def measured_method(self: "TorchTrainer", *args, **kwargs) -> Any:
         if not self.measure_gpu_data:
+            cli_logger.warning("Profiling of GPU data has been disabled!")
             return method(self, *args, **kwargs)
 
         gpu_probing_interval = 1
@@ -178,7 +182,7 @@ def measure_gpu_utilization(method: Callable) -> Callable:
                 gpu_monitor_process.join(timeout=gpu_probing_interval + grace_period)
 
                 # Converting the shared log to non-shared log
-                local_utilization_log = {key: list(data[key]) for key in data.keys()}
+                local_utilization_log = {key: list(data[key]) for key in data}
                 manager.shutdown()
 
         global_utilization_log = strategy.gather_obj(local_utilization_log, dst_rank=0)

@@ -12,16 +12,21 @@
 
 import functools
 import inspect
-import os
+import logging
 import random
 import sys
+import time
 import warnings
 from collections.abc import MutableMapping
 from pathlib import Path
-from typing import Callable, Dict, Hashable, List, Tuple, Type
+from typing import Any, Callable, Dict, Hashable, List, Tuple, Type
 from urllib.parse import urlparse
 
 import yaml
+
+from .loggers import Logger
+
+py_logger = logging.getLogger(__name__)
 
 # Directory names for logging and profiling data
 COMPUTATION_DATA_DIR = "computation-data"
@@ -96,12 +101,8 @@ def load_yaml(path: str) -> Dict:
     Returns:
         Dict: nested dict representation of parsed YAML file.
     """
-    with open(path, "r", encoding="utf-8") as yaml_file:
-        try:
-            loaded_config = yaml.safe_load(yaml_file)
-        except yaml.YAMLError as exc:
-            print(exc)
-            raise exc
+    with open(path, encoding="utf-8") as yaml_file:
+        loaded_config = yaml.safe_load(yaml_file)
     return loaded_config
 
 
@@ -121,14 +122,14 @@ def dynamically_import_class(name: str) -> Type:
         mod = __import__(module, fromlist=[class_name])
         klass = getattr(mod, class_name)
     except ModuleNotFoundError as err:
-        print(
+        py_logger.error(
             f"Module not found when trying to dynamically import '{name}'. "
             "Make sure that the module's file is reachable from your current "
             "directory."
         )
         raise err
     except Exception as err:
-        print(
+        py_logger.error(
             f"Exception occurred when trying to dynamically import '{name}'. "
             "Make sure that the module's file is reachable from your current "
             "directory and that the class is present in that module."
@@ -177,12 +178,12 @@ class SignatureInspector:
     @property
     def has_varargs(self) -> bool:
         """Checks if the function has ``*args`` parameter."""
-        return any(map(lambda p: p[1].kind == p[1].VAR_POSITIONAL, self.func_params))
+        return any(p[1].kind == p[1].VAR_POSITIONAL for p in self.func_params)
 
     @property
     def has_kwargs(self) -> bool:
         """Checks if the function has ``**kwargs`` parameter."""
-        return any(map(lambda p: p[1].kind == p[1].VAR_KEYWORD, self.func_params))
+        return any(p[1].kind == p[1].VAR_KEYWORD for p in self.func_params)
 
     @property
     def required_params(self) -> Tuple[str]:
@@ -198,7 +199,7 @@ class SignatureInspector:
                 self.func_params,
             )
         )
-        return tuple(map(lambda p: p[0], required_params))
+        return tuple(p[0] for p in required_params)
 
     @property
     def min_params_num(self) -> int:
@@ -225,7 +226,9 @@ def clear_key(my_dict: Dict, dict_name: str, key: Hashable, complain: bool = Tru
     """
     if key in my_dict:
         if complain:
-            print(f"Field '{key}' should not be present in dictionary '{dict_name}'")
+            py_logger.warning(
+                f"Field '{key}' should not be present in dictionary '{dict_name}'"
+            )
         del my_dict[key]
     return my_dict
 
@@ -245,15 +248,15 @@ def make_config_paths_absolute(args: List[str]):
     for i, arg in enumerate(updated_args):
         if arg.startswith("--config-path=") or arg.startswith("-cp="):
             prefix, path = arg.split("=", 1)
-            abs_path = os.path.abspath(path)
+            abs_path = Path(path).resolve()
             updated_args[i] = f"{prefix}={abs_path}"
-            sys.path.append(abs_path)
+            sys.path.append(str(abs_path))
             break
         elif arg in {"--config-path", "-cp"}:
             # Handle the case where the path is in the next argument
-            abs_path = os.path.abspath(updated_args[i + 1])
-            updated_args[i + 1] = abs_path
-            sys.path.append(abs_path)
+            abs_path = Path(updated_args[i + 1]).resolve()
+            updated_args[i + 1] = str(abs_path)
+            sys.path.append(str(abs_path))
             break
     return updated_args
 
@@ -292,8 +295,65 @@ def deprecated(reason):
             warnings.warn(
                 f"{func.__name__} is deprecated: {reason}",
                 category=DeprecationWarning,
-                stacklevel=2
+                stacklevel=2,
             )
             return func(*args, **kwargs)
+
         return wrapper
+
     return decorator
+
+
+def time_and_log(
+    func: Callable,
+    logger: Logger,
+    identifier: str,
+    step: int | None = None,
+    destroy_current_logger_context: bool = False,
+) -> Any:
+    """Time and log the execution of a function (using time.monotonic()).
+
+    Args:
+        func (Callable): function to execute, time and log, expects zero arguments. Use
+            `partial` from `functools` if you need to add arguments.
+        logger
+        identifier (str): identifier for the logged metric
+        step (int | None): step for logging. Defaults to None.
+        destroy_current_logger_context (bool): Whether to destroy the current logger context.
+            Default is False.
+
+    Returns:
+        result (Any): result of the function call
+    """
+    if step is None:
+        py_logger.warning("No explicit step was provided for timing and logging!")
+
+    # Using monotonic time to avoid time drift
+    start_time = time.monotonic()
+    result = func()
+    end_time = time.monotonic()
+    elapsed_time = end_time - start_time
+
+    if logger.is_initialized and destroy_current_logger_context:
+        py_logger.warning(f"Destroying logger context for timing {identifier}.")
+
+        logger.destroy_logger_context()
+
+        logger.is_initialized = False
+
+    if not logger.is_initialized:
+        py_logger.warning(
+            f"Logger context not initialized for timing {identifier}. Setting context."
+        )
+
+        logger.create_logger_context()
+
+    logger.log(
+        item=elapsed_time,
+        identifier=identifier,
+        kind="metric",
+        step=step,
+    )
+
+
+    return result

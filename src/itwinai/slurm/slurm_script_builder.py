@@ -8,10 +8,12 @@
 # - Matteo Bunino <matteo.bunino@cern.ch> - CERN
 # --------------------------------------------------------------------------------------
 
+import logging
 import subprocess
+from collections.abc import Iterable
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import Dict, List
+from typing import Dict
 
 from pydantic import BaseModel
 
@@ -20,6 +22,8 @@ from itwinai.slurm.utils import (
     get_slurm_job_parser,
     remove_indentation_from_multiline_string,
 )
+
+cli_logger = logging.getLogger("cli_logger")
 
 
 class SlurmScriptConfiguration(BaseModel):
@@ -125,11 +129,12 @@ class SlurmScriptBuilder:
         dir_name = str(directory.resolve())
         if should_create:
             directory.mkdir(parents=True)
-            print(f"Creating directory '{dir_name}'")
+            cli_logger.info(f"Creating directory '{dir_name}'")
         else:
-            print(
-                "[WARNING]: Make sure to create the following directory before submitting the"
-                f" SLURM job: '{dir_name}'"
+            cli_logger.warning(
+                "If you're submitting the SLURM job manually, make sure to create "
+                f"the directory '{dir_name}' first. This is handled automatically when using "
+                "the SLURM builder."
             )
 
     def get_training_command(self) -> str:
@@ -292,9 +297,9 @@ class SlurmScriptBuilder:
         script = self.slurm_script_configuration.format_script()
         if not submit_slurm_job and not save_script:
             upper_banner_str = f"{'#' * 20} SLURM Script Preview {'#' * 20}"
-            print(upper_banner_str)
-            print(script)
-            print("#" * len(upper_banner_str))
+            cli_logger.info(upper_banner_str)
+            cli_logger.info(script)
+            cli_logger.info("#" * len(upper_banner_str))
             return
 
         temp_dir = None
@@ -307,7 +312,7 @@ class SlurmScriptBuilder:
                 )
 
             self.file_folder.mkdir(exist_ok=True, parents=True)
-            print(f"Storing SLURM script at '{file_path.resolve()}'.")
+            cli_logger.info(f"Storing SLURM script at '{file_path.resolve()}'.")
         else:
             temp_dir = TemporaryDirectory()
             file_path = Path(temp_dir.name) / f"{job_identifier}.sh"
@@ -326,10 +331,11 @@ class SlurmScriptBuilder:
         file_folder: Path = Path("slurm_scripts"),
         save_script: bool = True,
         submit_slurm_job: bool = True,
-        strategies: List[str] = ["ddp", "horovod", "deepspeed"],
+        strategies: Iterable[str] = ("ddp", "horovod", "deepspeed"),
     ):
-        """Runs the SLURM script with all the given strategies. Does the same as the
-        ``runall.sh`` script has been doing.
+        """Runs the SLURM script with all the given strategies.
+
+        Does the same as the ``runall.sh`` script has been doing.
         """
         self.file_folder = file_folder
         for strategy in strategies:
@@ -352,8 +358,8 @@ class SlurmScriptBuilder:
         file_folder: Path = Path("slurm_scripts"),
         save_script: bool = True,
         submit_slurm_job: bool = True,
-        strategies: List[str] = ["ddp", "horovod", "deepspeed"],
-        num_nodes_list: List[int] = [1, 2, 4, 8],
+        strategies: Iterable[str] = ("ddp", "horovod", "deepspeed"),
+        num_nodes_list: Iterable[int] = (1, 2, 4, 8),
     ):
         """Runs a scaling test, i.e. runs all the strategies with separate runs for each
         distinct number of nodes.
@@ -383,6 +389,10 @@ def generate_default_slurm_script() -> None:
     parser = get_slurm_job_parser()
     args = parser.parse_args()
 
+    # When using `torchrun` (ddp and deepspeed) then we only want `srun` to launch one process
+    # per node, but when using horovod we need `srun` to launch one process per GPU
+    num_tasks_per_node = 1 if args.dist_strat != "horovod" else args.gpus_per_node
+
     slurm_script_configuration = SlurmScriptConfiguration(
         job_name=args.job_name,
         account=args.account,
@@ -391,7 +401,7 @@ def generate_default_slurm_script() -> None:
         std_out=args.std_out,
         err_out=args.err_out,
         num_nodes=args.num_nodes,
-        num_tasks_per_node=args.num_tasks_per_node,
+        num_tasks_per_node=num_tasks_per_node,
         gpus_per_node=args.gpus_per_node,
         cpus_per_gpu=args.cpus_per_gpu,
     )

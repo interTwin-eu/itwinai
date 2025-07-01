@@ -17,39 +17,42 @@ import logging
 import os
 import sys
 import tempfile
-import time
 from collections import defaultdict
+from functools import partial
 from pathlib import Path
 from time import perf_counter as default_timer
-from typing import Any, Callable, Dict, List, Literal, Tuple, Union
+from typing import Any, Callable, Dict, List, Literal, Tuple
 
 import ray.train
 import ray.tune
 import torch
-import torch.distributed as dist
 import torch.nn as nn
-import torch.optim as optim
 import torch.optim.lr_scheduler as lr_scheduler
 import yaml
 from ray.train import Checkpoint, DataConfig, ScalingConfig
 from ray.train.torch import TorchConfig
 from ray.train.torch import TorchTrainer as RayTorchTrainer
 from ray.tune import RunConfig, TuneConfig
-from torch.nn.parallel import DistributedDataParallel as DDP
+from torch.optim import SGD, Adadelta, Adam, AdamW, RMSprop
 from torch.optim.lr_scheduler import LRScheduler
 from torch.optim.optimizer import Optimizer
 from torch.utils.data import DataLoader, Dataset
-from torch.utils.data.distributed import DistributedSampler
+from torchmetrics import Metric
 from tqdm import tqdm
 
-# Cyclic imports...
 from itwinai.torch.monitoring.monitoring import measure_gpu_utilization
 from itwinai.torch.profiling.profiler import profile_torch_trainer
 
 from ..components import Trainer, monitor_exec
 from ..distributed import ray_cluster_is_running
 from ..loggers import EpochTimeTracker, Logger, LogMixin
-from ..utils import EPOCH_TIME_DIR, generate_random_name, load_yaml, to_uri
+from ..utils import (
+    EPOCH_TIME_DIR,
+    generate_random_name,
+    load_yaml,
+    time_and_log,
+    to_uri,
+)
 from .config import TrainingConfiguration
 from .distributed import (
     DeepSpeedStrategy,
@@ -62,9 +65,8 @@ from .distributed import (
     TorchDistributedStrategy,
     distributed_resources_available,
 )
-from .reproducibility import seed_worker, set_seed
+from .reproducibility import set_seed
 from .tuning import search_space
-from .type import Batch, Metric
 
 py_logger = logging.getLogger(__name__)
 
@@ -92,62 +94,57 @@ class TorchTrainer(Trainer, LogMixin):
     """Trainer class for torch training algorithms.
 
     Args:
-        config (Dict | TrainingConfiguration): training configuration
-            containing hyperparameters.
+        config (Dict | TrainingConfiguration): training configuration containing
+            hyperparameters.
         epochs (int): number of training epochs.
-        model (Union[nn.Module, str] | None, optional): pytorch model to
-            train or a string identifier. Defaults to None.
-        strategy (Literal['ddp', 'deepspeed', 'horovod'], optional):
-            distributed strategy. Defaults to 'ddp'.
-        test_every (int | None, optional): run a test epoch
-            every ``test_every`` epochs. Disabled if None. Defaults to None.
-        random_seed (int | None, optional): set random seed for
-            reproducibility. If None, the seed is not set. Defaults to None.
-        logger (Logger | None, optional): logger for ML tracking.
+        model (nn.Module | None, optional): pytorch model to train or a string identifier.
             Defaults to None.
-        metrics (Dict[str, Callable] | None, optional): map of torchmetrics
-            metrics. Defaults to None.
-        checkpoints_location (str): path to checkpoints directory.
-            Defaults to "checkpoints".
-        checkpoint_every (int | None): save a checkpoint every
-            ``checkpoint_every`` epochs. Disabled if None. Defaults to None.
+        strategy (Literal['ddp', 'deepspeed', 'horovod'], optional): distributed strategy.
+            Defaults to 'ddp'.
+        test_every (int | None, optional): run a test epoch every ``test_every`` epochs.
+            Disabled if None. Defaults to None.
+        random_seed (int | None, optional): set random seed for reproducibility. If None, the
+            seed is not set. Defaults to None.
+        logger (Logger | None, optional): logger for ML tracking. Defaults to None.
+        metrics (Dict[str, Callable] | None, optional): map of torchmetrics metrics. Defaults
+            to None.
+        checkpoints_location (str): path to checkpoints directory. Defaults to "checkpoints".
+        checkpoint_every (int | None): save a checkpoint every ``checkpoint_every`` epochs.
+            Disabled if None. Defaults to None.
         disable_tqdm (bool): whether to disable tqdm progress bar(s).
         name (str | None, optional): trainer custom name. Defaults to None.
-        profiling_wait_epochs (int): how many epochs to wait before starting
-            the profiler.
-        profiling_warmup_epochs (int): length of the profiler warmup phase in terms of
-            number of epochs.
+        profiling_wait_epochs (int): how many epochs to wait before starting the profiler.
+        profiling_warmup_epochs (int): length of the profiler warmup phase in terms of number
+            of epochs.
         measure_gpu_data (bool): enable the collection of data on average GPU utilization and
             total energy consumption throughout training. Defaults to False.
-        enable_torch_profiling (bool): enable the profiling of computation.
-            It uses the torch profiler and it may slow down training. Defaults to False.
+        enable_torch_profiling (bool): enable the profiling of computation. It uses the torch
+            profiler and it may slow down training. Defaults to False.
         measure_epoch_time (bool): enable the measurement of epoch duration (in seconds).
-            Defaults to False,
-        ray_scaling_config (ScalingConfig, optional): scaling config for Ray Trainer.
-            Defaults to None,
-        ray_tune_config (TuneConfig, optional): tune config for Ray Tuner.
-            Defaults to None.
-        ray_run_config (ray.tune.RunConfig, optional): run config for Ray Tuner.
-            Distributed training with Ray but without HPO will still be wrapped into a Ray
-            Tuner, too keep everything homogeneous.
-            Defaults to None.
-        ray_search_space (Dict[str, Any], optional): search space for Ray Tuner.
-            Defaults to None.
+            Defaults to False.
+        ray_scaling_config (ScalingConfig, optional): scaling config for Ray Trainer. Defaults
+            to None.
+        ray_tune_config (TuneConfig, optional): tune config for Ray Tuner. Defaults to None.
+        ray_run_config (ray.tune.RunConfig, optional): run config for Ray Tuner. Distributed
+            training with Ray but without HPO will still be wrapped into a Ray Tuner, to keep
+            everything homogeneous. Defaults to None.
+        ray_search_space (Dict[str, Any], optional): search space for Ray Tuner. Defaults to
+            None.
         ray_torch_config (TorchConfig, optional): torch configuration for Ray's TorchTrainer.
             Defaults to None.
-        ray_data_config (DataConfig, optional): dataset configuration for Ray.
-            Defaults to None.
+        ray_data_config (DataConfig, optional): dataset configuration for Ray. Defaults to
+            None.
         from_checkpoint (str | Path, optional): path to checkpoint directory. Defaults to None.
         initial_best_validation_metric (str): initial value for the best validation metric.
             Usually the validation metric is a loss to be minimized and this value exceeds the
             highest possible loss value, so that it will be overwritten when the first
-            vaidation loss is computed. Example values are "inf" and "-inf", depending on
+            validation loss is computed. Example values are "inf" and "-inf", depending on
             wether the best validation metric should be minimized or maximized.
             Defaults to "inf".
-        run_id (str, optional): name used to identify a specific run when collecting
-            metrics on the trainer (e.g. GPU utilization). Defaults to None.
-        time_ray (bool): whether to time and log the execution of Ray functions.
-            Defaults to False.
+        run_id (str, optional): name used to identify a specific run when collecting metrics
+            on the trainer (e.g. GPU utilization). Defaults to None.
+        time_ray (bool): whether to time and log the execution of Ray functions. Defaults to
+            False.
     """
 
     _strategy: TorchDistributedStrategy | None = None
@@ -197,8 +194,8 @@ class TorchTrainer(Trainer, LogMixin):
         self,
         config: Dict | TrainingConfiguration,
         epochs: int,
-        model: Union[nn.Module, str] | None = None,
-        strategy: Literal["ddp", "deepspeed", "horovod"] | None = "ddp",
+        model: nn.Module | None = None,
+        strategy: Literal["ddp", "deepspeed", "horovod"] = "ddp",
         test_every: int | None = None,
         random_seed: int | None = None,
         logger: Logger | None = None,
@@ -207,8 +204,8 @@ class TorchTrainer(Trainer, LogMixin):
         checkpoint_every: int | None = None,
         disable_tqdm: bool = False,
         name: str | None = None,
-        profiling_wait_epochs: int = 1,
-        profiling_warmup_epochs: int = 2,
+        profiling_wait_epochs: int = 0,
+        profiling_warmup_epochs: int = 0,
         measure_gpu_data: bool = False,
         enable_torch_profiling: bool = False,
         store_torch_profiling_traces: bool = False,
@@ -219,7 +216,7 @@ class TorchTrainer(Trainer, LogMixin):
         ray_search_space: Dict[str, Any] | None = None,
         ray_torch_config: TorchConfig | None = None,
         ray_data_config: DataConfig | None = None,
-        from_checkpoint: str | Path | None = None,
+        from_checkpoint: Path | str | None = None,
         initial_best_validation_metric: str = "inf",
         run_id: str | None = None,
         time_ray: bool = False,
@@ -227,7 +224,7 @@ class TorchTrainer(Trainer, LogMixin):
         super().__init__(name)
         self.save_parameters(**self.locals2params(locals()))
 
-        # config is mean to store all hyperparameters, which can very from use
+        # config is meant to store all hyperparameters, which can vary from use
         # case to use case and include learning_rate, batch_size....
         config = {} if config is None else config
         if isinstance(config, dict):
@@ -248,7 +245,7 @@ class TorchTrainer(Trainer, LogMixin):
         self.logger = logger
         self.metrics = metrics if metrics is not None else {}
         self.checkpoints_location = checkpoints_location
-        os.makedirs(self.checkpoints_location, exist_ok=True)
+        Path(self.checkpoints_location).mkdir(exist_ok=True, parents=True)
         self.checkpoint_every = checkpoint_every
         self.disable_tqdm = disable_tqdm
 
@@ -269,7 +266,7 @@ class TorchTrainer(Trainer, LogMixin):
         self.from_checkpoint = from_checkpoint
         self.time_ray = time_ray
         if self.from_checkpoint:
-            self.from_checkpoint = Path(from_checkpoint)
+            self.from_checkpoint = Path(self.from_checkpoint)
             if not self.from_checkpoint.exists():
                 raise RuntimeError(
                     "from_checkpoint argument was passed, but the checkpoint is not found "
@@ -302,6 +299,7 @@ class TorchTrainer(Trainer, LogMixin):
     @property
     def strategy(self) -> TorchDistributedStrategy:
         """Strategy currently in use."""
+        assert self._strategy is not None, "Expected strategy to be initialized before access"
         return self._strategy
 
     @strategy.setter
@@ -330,7 +328,7 @@ class TorchTrainer(Trainer, LogMixin):
             f"(ray_cluster_is_running: {ray_cluster_is_running()})"
         )
 
-        # NOTE: setting strategy to None prevents the trainer to run distribtued ML, regardless
+        # NOTE: setting strategy to None prevents the trainer to run distributed ML, regardless
         # of the availability of the resources.
         if strategy is None or not enough_resources:
             py_logger.warning("Falling back to non-distributed strategy.")
@@ -366,43 +364,47 @@ class TorchTrainer(Trainer, LogMixin):
                 return DeepSpeedStrategy(backend=self.config.dist_backend)
 
             case _:
-                raise RuntimeError(f"Strategy '{strategy}' is not recognized.")
+                raise ValueError(f"Strategy '{strategy}' is not recognized.")
 
     def _init_distributed_strategy(self) -> None:
         if not self.strategy.is_initialized:
             self.strategy.init()
 
     def _set_optimizer_from_config(self) -> None:
+        if self.model is None:
+            raise ValueError(
+                "self.model should be initialized before setting optimizer from configuration."
+            )
         match self.config.optimizer:
             case "adadelta":
-                self.optimizer = optim.Adadelta(
+                self.optimizer = Adadelta(
                     self.model.parameters(),
                     lr=self.config.optim_lr,
                     weight_decay=self.config.optim_weight_decay,
                 )
             case "adam":
-                self.optimizer = optim.Adam(
+                self.optimizer = Adam(
                     self.model.parameters(),
                     lr=self.config.optim_lr,
                     betas=self.config.optim_betas,
                     weight_decay=self.config.optim_weight_decay,
                 )
             case "adamw":
-                self.optimizer = optim.AdamW(
+                self.optimizer = AdamW(
                     self.model.parameters(),
                     lr=self.config.optim_lr,
                     betas=self.config.optim_betas,
                     weight_decay=self.config.optim_weight_decay,
                 )
             case "rmsprop":
-                self.optimizer = optim.RMSprop(
+                self.optimizer = RMSprop(
                     self.model.parameters(),
                     lr=self.config.optim_lr,
                     weight_decay=self.config.optim_weight_decay,
                     momentum=self.config.optim_momentum,
                 )
             case "sgd":
-                self.optimizer = optim.SGD(
+                self.optimizer = SGD(
                     self.model.parameters(),
                     lr=self.config.optim_lr,
                     weight_decay=self.config.optim_weight_decay,
@@ -465,81 +467,26 @@ class TorchTrainer(Trainer, LogMixin):
                     "create_model_loss_optimizer method for more flexibility."
                 )
 
-    def _time_and_log(
-            self,
-            fn: Callable,
-            identifier: str,
-            step: int | None = None,
-            destroy_current_logger_context: bool = False,
-    ) -> Any:
-        """Time and log the execution of a function (using time.monotonic()).
-
-        Args:
-            fn (Callable): function to execute, time and log (pass args using lambda)
-            identifier (str): identifier for the logged metric
-            step (int | None): step for logging
-            destroy_current_logger_context (bool):
-                Whether to destroy the current logger context. Default is False.
-
-        Returns:
-            result (Any): result of the function call
-        """
-        if not self.logger:
-            py_logger.warning(f"No logger set! Cannot log time for {identifier}! ")
-            return fn()
-
-        if step is None:
-            py_logger.warning("current_epoch is not set and no explicit step was provided!")
-
-        # Use monotonic time to avoid time drift
-        t_start = time.monotonic()
-        result = fn()
-        t_end = time.monotonic()
-        # already in seconds
-        t_delta = t_end - t_start
-
-        if self.logger.is_initialized and destroy_current_logger_context:
-            py_logger.warning(
-                f"Destroying logger context for timing {identifier}."
-            )
-            self.logger.destroy_logger_context()
-            self.logger.is_initialized = False
-
-        if not self.logger.is_initialized:
-            py_logger.warning(
-                f"Logger context not initialized for timing {identifier}. Setting context."
-            )
-            self.logger.create_logger_context()
-
-        self.log(
-            item=t_delta,
-            identifier=identifier,
-            kind="metric",
-            step=step,
-        )
-
-        return result
-
     def get_default_distributed_kwargs(self) -> Dict:
         """Gives the default kwargs for the trainer's strategy's distributed() method."""
 
         if isinstance(self.strategy, DeepSpeedStrategy):
             # Batch size definition is not optional for DeepSpeedStrategy!
-            distribute_kwargs = dict(
-                config_params=dict(train_micro_batch_size_per_gpu=self.config.batch_size)
-            )
+            distribute_kwargs = {
+                "config_params": {"train_micro_batch_size_per_gpu": self.config.batch_size}
+            }
         elif isinstance(self.strategy, HorovodStrategy):
             import horovod.torch as hvd
 
-            distribute_kwargs = dict(
-                compression=(
+            distribute_kwargs = {
+                "compression": (
                     hvd.Compression.fp16
                     if self.config.fp16_allreduce
                     else hvd.Compression.none
                 ),
-                op=hvd.Adasum if self.config.use_adasum else hvd.Average,
-                gradient_predivide_factor=self.config.gradient_predivide_factor,
-            )
+                "op": hvd.Adasum if self.config.use_adasum else hvd.Average,
+                "gradient_predivide_factor": self.config.gradient_predivide_factor,
+            }
         else:
             distribute_kwargs = {}
 
@@ -549,6 +496,9 @@ class TorchTrainer(Trainer, LogMixin):
         """Instantiate a torch model, loss, optimizer, and LR scheduler using the
         configuration provided in the Trainer constructor.
         Generally a user-defined method.
+
+        Raises:
+            ValueError: If ``self.model`` is None.
         """
         ###################################
         # Dear user, this is a method you #
@@ -613,7 +563,7 @@ class TorchTrainer(Trainer, LogMixin):
                 training so far (if available). Usually this is the validation loss.
             checkpoints_root (str | None): path for root checkpoints dir. If None, uses
                 ``self.checkpoints_location`` as base.
-            force (bool): force checkpointign now.
+            force (bool): force checkpointing now.
 
         Returns:
             path to the checkpoint file or ``None`` when the checkpoint is not created.
@@ -841,15 +791,19 @@ class TorchTrainer(Trainer, LogMixin):
         test_dataset: Dataset | None = None,
     ) -> Tuple[Dataset, Dataset, Dataset, Any]:
         """Launch training and, optionally, hyperparameter tuning with Ray
+
         Args:
             train_dataset (Dataset): training dataset.
             validation_dataset (Dataset | None, optional): validation
                 dataset. Defaults to None.
             test_dataset (Dataset | None, optional): test dataset.
                 Defaults to None.
+
         Returns:
-            Tuple[Dataset, Dataset, Dataset, Any]: training dataset,
-            validation dataset, test dataset, trained model.
+            Dataset: The training dataset
+            Dataset: The validation dataset
+            Dataset: The test dataset
+            Any: The trained model
         """
         # Passes datasets to workers efficiently through Ray storage
         train_with_data = ray.tune.with_parameters(
@@ -927,9 +881,10 @@ class TorchTrainer(Trainer, LogMixin):
             run_config=self.ray_run_config,
         )
 
-        if self.time_ray:
-            self.tune_result_grid = self._time_and_log(
-                lambda: tuner.fit(), "ray_fit_time_s", step=0
+        # Run the tuner and capture results
+        if self.time_ray and self.logger is not None:
+            self.tune_result_grid = time_and_log(
+                func=tuner.fit, logger=self.logger, identifier="ray_fit_time_s", step=0
             )
         else:
             # Run the tuner and capture results
@@ -984,18 +939,20 @@ class TorchTrainer(Trainer, LogMixin):
             self.torch_rng.set_state(self.torch_rng_state)
 
     def _override_config(self, config: Dict) -> None:
-        """Overrid self.config with a sample from the search space from the Ray tuner."""
+        """Override self.config with a sample from the search space from the Ray tuner."""
         self.config = self.config.model_copy(update=config)
-        py_logger.debug("Overridden self.config with trial config (if given)")
+        py_logger.debug("Overrode self.config with trial config (if given)")
 
     def _set_epoch_dataloaders(self, epoch: int) -> None:
         """Sets epoch in the distributed sampler of a dataloader when using it."""
-        if self.strategy.is_distributed:
-            self.train_dataloader.sampler.set_epoch(epoch)
-            if self.validation_dataloader is not None:
-                self.validation_dataloader.sampler.set_epoch(epoch)
-            if self.test_dataloader is not None:
-                self.test_dataloader.sampler.set_epoch(epoch)
+        if not self.strategy.is_distributed:
+            return
+
+        self.train_dataloader.sampler.set_epoch(epoch)
+        if self.validation_dataloader is not None:
+            self.validation_dataloader.sampler.set_epoch(epoch)
+        if self.test_dataloader is not None:
+            self.test_dataloader.sampler.set_epoch(epoch)
 
     def set_epoch(self) -> None:
         """Set current epoch at the beginning of training."""
@@ -1095,8 +1052,8 @@ class TorchTrainer(Trainer, LogMixin):
 
     def compute_metrics(
         self,
-        true: Batch,
-        pred: Batch,
+        true: torch.Tensor,
+        pred: torch.Tensor,
         logger_step: int,
         batch_idx: int | None,
         stage: str = "train",
@@ -1104,10 +1061,8 @@ class TorchTrainer(Trainer, LogMixin):
         """Compute and log metrics.
 
         Args:
-            metrics (Dict[str, Callable]): metrics dict. Can be
-                ``self.train_metrics`` or ``self.validation_metrics``.
-            true (Batch): true values.
-            pred (Batch): predicted values.
+            true (torch.Tensor): true values.
+            pred (torch.Tensor): predicted values.
             logger_step (int): global step to pass to the logger.
             stage (str): 'train', 'validation'...
 
@@ -1140,15 +1095,17 @@ class TorchTrainer(Trainer, LogMixin):
             test_dataset (Dataset): test dataset.
 
         Returns:
-            Tuple[Dataset, Dataset, Dataset, Any]: training dataset,
-            validation dataset, test dataset, trained model.
+            Dataset: The training dataset.
+            Dataset: The validation dataset.
+            Dataset: The test dataset.
+            Any: The trained model
         """
         epoch_time_logger: EpochTimeTracker | None = None
         if self.strategy.is_main_worker and self.strategy.is_distributed:
             if "SLURM_NNODES" not in os.environ:
-                raise EnvironmentError(
-                    "'SLURM_NNODES' is not present in 'os.environ', but is required"
-                    " when running distributed training!"
+                raise OSError(
+                    "'SLURM_NNODES' is not present in 'os.environ', but is required when "
+                    "running distributed training!"
                 )
             num_nodes = int(os.environ["SLURM_NNODES"])
             epoch_time_output_dir = Path(f"scalability-metrics/{self.run_id}/{EPOCH_TIME_DIR}")
@@ -1198,14 +1155,15 @@ class TorchTrainer(Trainer, LogMixin):
             if metric_name is None:
                 raise ValueError("Could not find a metric in the TuneConfig")
 
-            if self.time_ray:
-                # time and log the ray_report call
-                self._time_and_log(
-                    lambda: self.ray_report(
+            if self.time_ray and self.logger is not None:
+                time_and_log(
+                    func=partial(
+                        self.ray_report,
                         metrics={metric_name: val_metric.item()},
                         checkpoint_dir=best_ckpt_path or periodic_ckpt_path,
                     ),
-                    "ray_report_time_s_per_epoch",
+                    logger=self.logger,
+                    identifier="ray_report_time_s_per_epoch",
                     step=self.current_epoch,
                 )
             else:
@@ -1223,14 +1181,13 @@ class TorchTrainer(Trainer, LogMixin):
                 epoch_time_logger.add_epoch_time(self.current_epoch + 1, epoch_time)
 
     def train_epoch(self) -> torch.Tensor:
-        """Perform a complete sweep over the training dataset, completing an
-        epoch of training.
+        """Perform a complete sweep over the training dataset, completing an epoch of training.
 
         Args:
             epoch (int): current epoch number, from 0 to ``self.epochs - 1``.
 
         Returns:
-            Loss: average training loss for the current epoch.
+            torch.Tensor: average training loss for the current epoch.
         """
         self.model.train()
         train_loss_sum = 0.0
@@ -1274,17 +1231,18 @@ class TorchTrainer(Trainer, LogMixin):
 
         return avg_loss
 
-    def train_step(self, batch: Batch, batch_idx: int) -> Tuple[torch.Tensor, Dict[str, Any]]:
-        """Perform a single optimization step using a batch sampled from the
-        training dataset.
+    def train_step(
+        self, batch: torch.Tensor, batch_idx: int
+    ) -> Tuple[torch.Tensor, Dict[str, Any]]:
+        """Perform a single optimization step using a batch sampled from the training dataset.
 
         Args:
-            batch (Batch): batch sampled by a dataloader.
+            batch (torch.Tensor): batch sampled by a dataloader.
             batch_idx (int): batch index in the dataloader.
 
         Returns:
-            Tuple[Loss, Dict[str, Any]]: batch loss and dictionary of metric
-            values with the same structure of ``self.metrics``.
+            torch.Tensor: The batch loss.
+            Dict[str, Any]: Dictionary of metric values (same structure as ``self.metrics``).
         """
         x, y = batch
         x, y = x.to(self.device), y.to(self.device)
@@ -1313,13 +1271,13 @@ class TorchTrainer(Trainer, LogMixin):
         )
         return loss, metrics
 
-    def validation_epoch(self) -> torch.Tensor:
-        """Perform a complete sweep over the validation dataset, completing an
-        epoch of validation.
+    def validation_epoch(self) -> torch.Tensor | None:
+        """Perform a complete sweep over the validation dataset, completing an epoch of
+        validation.
 
         Returns:
-            Loss | None: average validation loss for the current epoch if
-                self.validation_dataloader is not None
+            torch.Tensor | None: average validation loss for the current epoch if
+            self.validation_dataloader is not None
         """
         if self.validation_dataloader is None:
             return
@@ -1366,18 +1324,18 @@ class TorchTrainer(Trainer, LogMixin):
         return avg_loss
 
     def validation_step(
-        self, batch: Batch, batch_idx: int
+        self, batch: torch.Tensor, batch_idx: int
     ) -> Tuple[torch.Tensor, Dict[str, Any]]:
-        """Perform a single optimization step using a batch sampled from the
-        validation dataset.
+        """Perform a single optimization step using a batch sampled from the validation
+        dataset.
 
         Args:
-            batch (Batch): batch sampled by a dataloader.
+            batch (torch.Tensor): batch sampled by a dataloader.
             batch_idx (int): batch index in the dataloader.
 
         Returns:
-            Tuple[Loss, Dict[str, Any]]: batch loss and dictionary of metric
-            values with the same structure of ``self.metrics``.
+            torch.Tensor: Batch loss.
+            Dict[str, Any]: Dictionary of metric values (same structure as ``self.metrics``).
         """
         x, y = batch
         x, y = x.to(self.device), y.to(self.device)
@@ -1401,25 +1359,25 @@ class TorchTrainer(Trainer, LogMixin):
         return loss, metrics
 
     def test_epoch(self) -> torch.Tensor:
-        """Perform a complete sweep over the test dataset, completing an
-        epoch of test.
+        """Perform a complete sweep over the test dataset, completing an epoch of test.
 
         Returns:
-            Loss: average test loss for the current epoch.
+            torch.Tensor: average test loss for the current epoch.
         """
         raise NotImplementedError()
 
-    def test_step(self, batch: Batch, batch_idx: int) -> Tuple[torch.Tensor, Dict[str, Any]]:
-        """Perform a single predictions step using a batch sampled from the
-        test dataset.
+    def test_step(
+        self, batch: torch.Tensor, batch_idx: int
+    ) -> Tuple[torch.Tensor, Dict[str, Any]]:
+        """Perform a single predictions step using a batch sampled from the test dataset.
 
         Args:
-            batch (Batch): batch sampled by a dataloader.
+            batch (torch.Tensor): batch sampled by a dataloader.
             batch_idx (int): batch index in the dataloader.
 
         Returns:
-            Tuple[Loss, Dict[str, Any]]: batch loss and dictionary of metric
-            values with the same structure of ``self.metrics``.
+            torch.Tensor: The batch loss
+            Dict[str, Any]: Dictionary of metric values (same structure as ``self.metrics``).
         """
         raise NotImplementedError()
 
@@ -1440,7 +1398,7 @@ class TorchLightningTrainer(Trainer):
     def __init__(self, config: Dict | str, mlflow_saved_model: str = "my_model"):
         self.save_parameters(**self.locals2params(locals()))
         super().__init__()
-        if isinstance(config, str) and os.path.isfile(config):
+        if isinstance(config, str) and Path(config).is_file():
             # Load from YAML
             config = load_yaml(config)
         self.conf = config
@@ -1448,7 +1406,7 @@ class TorchLightningTrainer(Trainer):
 
     @monitor_exec
     def execute(self) -> Any:
-        import lightning as L
+        from lightning import LightningDataModule, LightningModule
         from lightning.pytorch.cli import LightningCLI
 
         from .mlflow import init_lightning_mlflow, teardown_lightning_mlflow
@@ -1460,8 +1418,8 @@ class TorchLightningTrainer(Trainer):
         sys.argv = ["some_script_placeholder.py"]
         cli = LightningCLI(
             args=self.conf,
-            model_class=L.LightningModule,
-            datamodule_class=L.LightningDataModule,
+            model_class=LightningModule,
+            datamodule_class=LightningDataModule,
             run=False,
             save_config_kwargs={
                 "overwrite": True,
@@ -1473,75 +1431,3 @@ class TorchLightningTrainer(Trainer):
         sys.argv = old_argv
         cli.trainer.fit(cli.model, datamodule=cli.datamodule)
         teardown_lightning_mlflow()
-
-
-def _distributed_dataloader(dataloader: DataLoader, gwsize, grank):
-    """Makes a Dataloader distributed."""
-    sampler = DistributedSampler(
-        dataloader.dataset, num_replicas=gwsize, rank=grank, shuffle=True
-    )
-    # Recreate dataloader, with updated sampler
-    return DataLoader(
-        dataloader.dataset,
-        batch_size=dataloader.batch_size,
-        sampler=sampler,
-        num_workers=dataloader.num_workers,
-        collate_fn=dataloader.collate_fn,
-        pin_memory=dataloader.pin_memory,
-        drop_last=dataloader.drop_last,
-        timeout=dataloader.timeout,
-        worker_init_fn=seed_worker,  # dataloader.worker_init_fn,
-        multiprocessing_context=dataloader.multiprocessing_context,
-        generator=dataloader.generator,
-        prefetch_factor=dataloader.prefetch_factor,
-        persistent_workers=dataloader.persistent_workers,
-        pin_memory_device=dataloader.pin_memory_device,
-    )
-
-
-def distributed(func):
-    """The decorated function must have a standard signature.
-    Its first arguments must be:
-    model, train_dataloader, validation_dataloader, device (in this order).
-
-    Additional args or kwargs are allowed consistently with the signature
-    of the decorated function.
-    """
-
-    def dist_train(
-        model, train_dataloader, validation_dataloader=None, device="cpu", *args, **kwargs
-    ):
-        if torch.cuda.is_available():
-            dist.init_process_group(backend="nccl")
-
-        if torch.cuda.is_available():
-            lwsize = torch.cuda.device_count()  # local world size - per node
-            gwsize = dist.get_world_size()  # global world size - per run
-            grank = dist.get_rank()  # global rank - assign per run
-            lrank = dist.get_rank() % lwsize  # local rank - assign per node
-        else:
-            gwsize = 1
-            grank = 0
-            lrank = 0
-
-        device = torch.device("cuda" if torch.cuda.is_available() else "cpu", lrank)
-        if torch.cuda.is_available():
-            torch.cuda.set_device(lrank)
-
-        model = model.to(device)
-        model = DDP(model, device_ids=[device], output_device=device)
-
-        train_dataloader = _distributed_dataloader(train_dataloader, gwsize, grank)
-        if validation_dataloader is not None:
-            validation_dataloader = _distributed_dataloader(
-                validation_dataloader, gwsize, grank
-            )
-
-        try:
-            func(model, train_dataloader, validation_dataloader, device, *args, **kwargs)
-        finally:
-            if torch.cuda.is_available():
-                dist.barrier()
-                dist.destroy_process_group()
-
-    return dist_train
