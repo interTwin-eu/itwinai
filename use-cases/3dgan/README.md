@@ -24,13 +24,13 @@ Make sure to be in the `use-cases/3dgan` folder. Before you can start training, 
 to download the data using the dataloading script:
 
 ```bash
-itwinai exec-pipeline --config config.yaml --pipe-key training_pipeline --steps dataloading_step
+itwinai exec-pipeline +pipe_key=training_pipeline +pipe_steps=[dataloading_step]
 ```
 
 Now you can launch training using `itwinai` and the provided training configuration `config.yaml`:
 
 ```bash
-itwinai exec-pipeline --config config.yaml --pipe-key training_pipeline
+itwinai exec-pipeline +pipe_key=training_pipeline
 ```
 
 The command above shows how to run the training using a single worker,
@@ -69,11 +69,11 @@ To launch the training with torch DDP use:
 
 ```bash
 torchrun --standalone --nnodes=1 --nproc-per-node=gpu \
-    $(which itwinai) exec-pipeline --config config.yaml --pipe-key training_pipeline
+    $(which itwinai) exec-pipeline +pipe_key=training_pipeline
 
 # Alternatively, from a SLURM login node:
 srun --jobid XXXX --ntasks-per-node=1 torchrun --standalone --nnodes=1 --nproc-per-node=gpu \
-    $(which itwinai) exec-pipeline --config config.yaml --pipe-key training_pipeline
+    $(which itwinai) exec-pipeline +pipe_key=training_pipeline
 ```
 
 ### Distributed training with SLURM (batch mode)
@@ -176,7 +176,7 @@ folder containing generated particle traces in form of torch tensors
 (.pth files) and 3D scatter plots (.jpg images).
 
     ```bash
-    itwinai exec-pipeline --config config.yaml --pipe-key inference_pipeline
+    itwinai exec-pipeline +pipe_key=inference_pipeline
     ```
 
 The inference execution will produce a folder called
@@ -214,20 +214,20 @@ export STRATEGY="auto" # distributed strategy
 export DEVICES="0," # GPU devices list
 
 
-itwinai exec-pipeline --print-config --config $CERN_CODE_ROOT/config.yaml \
-    --pipe-key inference_pipeline \
-    -o dataset_location=$CERN_DATA_ROOT/exp_data \
-    -o logs_dir=$TMP_DATA_ROOT/ml_logs/mlflow_logs \
-    -o distributed_strategy=$STRATEGY \
-    -o devices=$DEVICES \
-    -o hw_accelerators=$ACCELERATOR \
-    -o checkpoints_path=$TMP_DATA_ROOT/checkpoints \
-    -o inference_model_uri=$CERN_CODE_ROOT/3dgan-inference.pth \
-    -o max_dataset_size=$MAX_DATA_SAMPLES \
-    -o batch_size=$BATCH_SIZE \
-    -o num_workers_dataloader=$NUM_WORKERS_DL \
-    -o inference_results_location=$TMP_DATA_ROOT/3dgan-generated-data \
-    -o aggregate_predictions=$AGGREGATE_PREDS
+itwinai exec-pipeline --config-path $CERN_CODE_ROOT \
+    +pipe_key=inference_pipeline \
+    dataset_location=$CERN_DATA_ROOT/exp_data \
+    logs_dir=$TMP_DATA_ROOT/ml_logs/mlflow_logs \
+    distributed_strategy=$STRATEGY \
+    devices=$DEVICES \
+    hw_accelerators=$ACCELERATOR \
+    checkpoints_path=$TMP_DATA_ROOT/checkpoints \
+    inference_model_uri=$CERN_CODE_ROOT/3dgan-inference.pth \
+    max_dataset_size=$MAX_DATA_SAMPLES \
+    batch_size=$BATCH_SIZE \
+    num_workers_dataloader=$NUM_WORKERS_DL \
+    inference_results_location=$TMP_DATA_ROOT/3dgan-generated-data \
+    aggregate_predictions=$AGGREGATE_PREDS
 ```
 
 ## Docker image
@@ -272,8 +272,8 @@ This command will store the results in a folder called `3dgan-generated-data`:
 |   │   ├── energy=1.664689540863037&angle=1.4906378984451294.jpg
 ```
 
-To override fields in the configuration file at runtime, you can use the `-o`
-flag. Example: `-o path.to.config.element=NEW_VALUE`.
+To override fields in the configuration file at runtime, do that inline appending the override
+at the end of the command. Example: `path.to.config.element=NEW_VALUE`.
 
 Please find a complete exampled below, showing how to override default configurations
 by setting some env variables:
@@ -291,20 +291,20 @@ export ACCELERATOR="gpu" # choose "cpu" or "gpu"
 docker run -it --rm --name running-inference \
 -v "$PWD":/usr/data ghcr.io/intertwin-eu/itwinai:0.0.1-3dgan-0.1 \
 /bin/bash -c "itwinai exec-pipeline \
-    --print-config --config $CERN_CODE_ROOT/config.yaml \
-    --pipe-key inference_pipeline \
-    -o dataset_location=$CERN_DATA_ROOT/exp_data \
-    -o logs_dir=$TMP_DATA_ROOT/ml_logs/mlflow_logs \
-    -o distributed_strategy=$STRATEGY \
-    -o devices=$DEVICES \
-    -o hw_accelerators=$ACCELERATOR \
-    -o checkpoints_path=$TMP_DATA_ROOT/checkpoints \
-    -o inference_model_uri=$CERN_CODE_ROOT/3dgan-inference.pth \
-    -o max_dataset_size=$MAX_DATA_SAMPLES \
-    -o batch_size=$BATCH_SIZE \
-    -o num_workers_dataloader=$NUM_WORKERS_DL \
-    -o inference_results_location=$TMP_DATA_ROOT/3dgan-generated-data \
-    -o aggregate_predictions=$AGGREGATE_PREDS "
+    --config-path $CERN_CODE_ROOT \
+    +pipe_key=inference_pipeline \
+    dataset_location=$CERN_DATA_ROOT/exp_data \
+    logs_dir=$TMP_DATA_ROOT/ml_logs/mlflow_logs \
+    distributed_strategy=$STRATEGY \
+    devices=$DEVICES \
+    hw_accelerators=$ACCELERATOR \
+    checkpoints_path=$TMP_DATA_ROOT/checkpoints \
+    inference_model_uri=$CERN_CODE_ROOT/3dgan-inference.pth \
+    max_dataset_size=$MAX_DATA_SAMPLES \
+    batch_size=$BATCH_SIZE \
+    num_workers_dataloader=$NUM_WORKERS_DL \
+    inference_results_location=$TMP_DATA_ROOT/3dgan-generated-data \
+    aggregate_predictions=$AGGREGATE_PREDS "
 ```
 
 ### How to fully exploit GPU resources
@@ -329,7 +329,7 @@ Run Docker container with Singularity:
 
 ```bash
 singularity run --nv -B "$PWD":/usr/data docker://ghcr.io/intertwin-eu/itwinai:0.0.1-3dgan-0.1 /bin/bash -c \
-"cd /usr/src/app && itwinai exec-pipeline --config config.yaml --pipe-key inference_pipeline"
+"cd /usr/src/app && itwinai exec-pipeline +pipe_key=inference_pipeline"
 ```
 
 Example with overrides (as above for Docker):
@@ -346,18 +346,18 @@ export ACCELERATOR="gpu" # choose "cpu" or "gpu"
 
 singularity run --nv -B "$PWD":/usr/data docker://ghcr.io/intertwin-eu/itwinai:0.0.1-3dgan-0.1 /bin/bash -c \
 "cd /usr/src/app && itwinai exec-pipeline \
-    --print-config --config $CERN_CODE_ROOT/config.yaml \
-    --pipe-key inference_pipeline \
-    -o dataset_location=$CERN_DATA_ROOT/exp_data \
-    -o logs_dir=$TMP_DATA_ROOT/ml_logs/mlflow_logs \
-    -o distributed_strategy=$STRATEGY \
-    -o devices=$DEVICES \
-    -o hw_accelerators=$ACCELERATOR \
-    -o checkpoints_path=$TMP_DATA_ROOT/checkpoints \
-    -o inference_model_uri=$CERN_CODE_ROOT/3dgan-inference.pth \
-    -o max_dataset_size=$MAX_DATA_SAMPLES \
-    -o batch_size=$BATCH_SIZE \
-    -o num_workers_dataloader=$NUM_WORKERS_DL \
-    -o inference_results_location=$TMP_DATA_ROOT/3dgan-generated-data \
-    -o aggregate_predictions=$AGGREGATE_PREDS "
+    --config-path $CERN_CODE_ROOT \
+    +pipe_key=inference_pipeline \
+    dataset_location=$CERN_DATA_ROOT/exp_data \
+    logs_dir=$TMP_DATA_ROOT/ml_logs/mlflow_logs \
+    distributed_strategy=$STRATEGY \
+    devices=$DEVICES \
+    hw_accelerators=$ACCELERATOR \
+    checkpoints_path=$TMP_DATA_ROOT/checkpoints \
+    inference_model_uri=$CERN_CODE_ROOT/3dgan-inference.pth \
+    max_dataset_size=$MAX_DATA_SAMPLES \
+    batch_size=$BATCH_SIZE \
+    num_workers_dataloader=$NUM_WORKERS_DL \
+    inference_results_location=$TMP_DATA_ROOT/3dgan-generated-data \
+    aggregate_predictions=$AGGREGATE_PREDS "
 ```

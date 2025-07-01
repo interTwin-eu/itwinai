@@ -305,7 +305,11 @@ def deprecated(reason):
 
 
 def time_and_log(
-    func: Callable, logger: Logger, identifier: str, step: int | None = None
+    func: Callable,
+    logger: Logger,
+    identifier: str,
+    step: int | None = None,
+    destroy_current_logger_context: bool = False,
 ) -> Any:
     """Time and log the execution of a function (using time.monotonic()).
 
@@ -314,17 +318,13 @@ def time_and_log(
             `partial` from `functools` if you need to add arguments.
         logger
         identifier (str): identifier for the logged metric
-        step (int | None): step for logging
+        step (int | None): step for logging. Defaults to None.
+        destroy_current_logger_context (bool): Whether to destroy the current logger context.
+            Default is False.
 
     Returns:
         result (Any): result of the function call
     """
-    if not logger.is_initialized:
-        py_logger.warning(
-            f"Logger context not initialized for timing {identifier}. Creating context."
-        )
-        logger.create_logger_context()
-
     if step is None:
         py_logger.warning("No explicit step was provided for timing and logging!")
 
@@ -334,11 +334,26 @@ def time_and_log(
     end_time = time.monotonic()
     elapsed_time = end_time - start_time
 
+    if logger.is_initialized and destroy_current_logger_context:
+        py_logger.warning(f"Destroying logger context for timing {identifier}.")
+
+        logger.destroy_logger_context()
+
+        logger.is_initialized = False
+
+    if not logger.is_initialized:
+        py_logger.warning(
+            f"Logger context not initialized for timing {identifier}. Setting context."
+        )
+
+        logger.create_logger_context()
+
     logger.log(
         item=elapsed_time,
         identifier=identifier,
         kind="metric",
         step=step,
     )
+
 
     return result

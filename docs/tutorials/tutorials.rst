@@ -2,6 +2,8 @@
 
 
 
+.. _distributed-training-tutorials:
+
 Distributed machine learning training
 ======================================
 
@@ -37,7 +39,9 @@ Distributed ML with TensorFlow
    distrib-ml/tf_scaling_test
 
 
-Machine learning workflows
+.. _ml-workflows-tutorials:
+
+Machine Learning Workflows
 ===========================
 
 Here you can find a collection of tutorials for various complexity ML workflows.
@@ -51,8 +55,10 @@ Here you can find a collection of tutorials for various complexity ML workflows.
    workflows/04_itwinai_argparser
  
 
-Hyperparameter Optimization Workflows
-======================================
+.. _hpo-tutorials:
+
+Hyperparameter Optimization 
+===========================
 
 This tutorial provides an overview of Hyperparameter Optimization (HPO) workflows.
 
@@ -61,10 +67,13 @@ This tutorial provides an overview of Hyperparameter Optimization (HPO) workflow
 
    hpo-workflows/hpo-torchtrainer-integration
 
-Profiling
-=========
 
-Here you can find our tutorials on how to do profiling with ``itwinai``:
+.. _profiling-tutorials:
+
+Code Profiling and Optimization
+===============================
+
+Here you can find our tutorials on how to do profiling with **itwinai**:
 
 .. toctree::
    :maxdepth: 1

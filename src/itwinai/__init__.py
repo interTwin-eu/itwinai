@@ -5,14 +5,12 @@
 #
 # Credit:
 # - Matteo Bunino <matteo.bunino@cern.ch> - CERN
+# - Linus Eickhoff <linus.maximilian.eickhoff@cern.ch> - CERN
 # --------------------------------------------------------------------------------------
 
 import logging
 import os
 import sys
-
-# Set Ray V2 train env variable
-os.environ["RAY_TRAIN_V2_ENABLED"] = "1"
 
 # Create a logger for your library
 logger = logging.getLogger(__name__)
@@ -61,3 +59,13 @@ if not plain_logger.hasHandlers():
     h.setFormatter(CLIFormatter())
     plain_logger.addHandler(h)
 plain_logger.propagate = False
+
+# Ray
+if os.environ.get("TUNE_DISABLE_STRICT_METRIC_CHECKING", None) is None:
+    os.environ["TUNE_DISABLE_STRICT_METRIC_CHECKING"] = "1"
+
+# Set Ray V2 train to 1 as soon as Ray V2 train works:
+# Our issue: https://github.com/ray-project/ray/issues/53921
+if os.environ.get("RAY_TRAIN_V2_ENABLED", None) is None:
+    os.environ["RAY_TRAIN_V2_ENABLED"] = "0"
+
