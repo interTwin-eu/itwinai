@@ -248,7 +248,7 @@ def communication_data_report(
     cli_logger.info("\nAnalyzing Communication Data...")
     computation_fraction_df = get_computation_fraction_data(communication_data_df)
 
-    formatters = {"computation_fraction": lambda x: f"{x * 100:.2f}"}
+    formatters = {"computation_fraction": lambda x: f"{x * 100:.2f} %"}
     communication_data_table = computation_fraction_df.to_string(
         index=False, formatters=formatters
     )
