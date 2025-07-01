@@ -2,7 +2,8 @@
 
 ## Singularity
 
-This example is for building the itwinai container for LUMI (AMD GPUs) locally (use `scp` to transfer the final image to LUMI)
+This example is for building the itwinai container for LUMI (AMD GPUs) locally (use `scp` to transfer the final image
+to LUMI)
 
 First navigate with `cd` to the base folder of itwinai.
 
