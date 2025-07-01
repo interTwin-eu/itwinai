@@ -50,11 +50,38 @@ To interpret the state code, use this guide: https://confluence.cscs.ch/display/
 Interactive shell on a compute node
 -----------------------------------
 
-Allocate a compute node with 4 GPUs on JSC supercomputer:
+Allocate a compute node with 4 GPUs for 1 hour:
 
-.. code-block:: bash
+.. note::
+   make sure to adapt the ``--account`` in the code snippets below to your allocation account
 
-   salloc --account=intertwin --partition=batch --nodes=1 --ntasks-per-node=1 --cpus-per-task=4 --gpus-per-node=4 --time=01:00:00
+.. tab-set::
+
+   .. tab-item:: Juelich (JSC)
+
+      On the `JUWELS <https://apps.fz-juelich.de/jsc/hps/juwels/configuration.html>`_ system at Juelich Supercomputer (JSC):
+
+      .. code-block:: bash
+
+         salloc --account=intertwin --partition=develbooster --nodes=1 --ntasks-per-node=1 --cpus-per-task=4 --gpus-per-node=4 --time=01:00:00
+
+         
+   .. tab-item:: Vega
+
+      On `Vega <https://doc.vega.izum.si/introduction/>`_ Supercomputer:
+
+      .. code-block:: bash
+
+         salloc --account=s24r05-03-users --partition=gpu --nodes=1 --cpus-per-gpu=4 --gres=gpu:4 --time=1:00:00
+
+   .. tab-item:: LUMI
+
+      On `LUMI <https://docs.lumi-supercomputer.eu/hardware/lumig/>`_ Supercomputer:
+
+      .. code-block:: bash
+
+         salloc --account=project_123456 --partition=dev-g --nodes=1  --gres=gpu:4 --cpus-per-gpu=16 --time=1:00:00
+   
 
 Once resources are available, the command will return a ``JOBID``. Use it to jump into the compute node with the 4 GPUs in this way:
 
@@ -188,3 +215,46 @@ file but want a different job name without changing the config, you can do the f
 .. code-block:: bash
 
    itwinai generate-slurm -c slurm_config.yaml --job-name different_job_name
+
+
+The resulting SLURM script generated using the ``slurm_config.yaml`` file above is:
+
+.. code-block:: bash
+   :caption: ``ddp-1x4.sh``
+   :name: SLURM Job Script generated using the configuration above
+
+      #!/bin/bash
+
+      # Job configuration
+      #SBATCH --job-name=ddp-job
+      #SBATCH --account=intertwin
+      #SBATCH --partition=develbooster
+      #SBATCH --time=01:00:00
+
+      #SBATCH --output=slurm_job_logs/ddp.out
+      #SBATCH --error=slurm_job_logs/ddp.err
+
+      # Resource allocation
+      #SBATCH --nodes=1
+      #SBATCH --ntasks-per-node=1
+      #SBATCH --cpus-per-gpu=4
+      #SBATCH --gpus-per-node=4
+      #SBATCH --gres=gpu:4
+      #SBATCH --exclusive
+
+      # Pre-execution command
+      ml Stages/2024 GCC OpenMPI CUDA/12 MPI-settings/CUDA Python/3.11.3 HDF5 PnetCDF libaio mpi4py
+      source .venv/bin/activate
+      export OMP_NUM_THREADS=4
+
+      # Job execution command
+      srun --cpu-bind=none --ntasks-per-node=1 \
+      bash -c "torchrun \
+      --log_dir='logs_torchrun' \
+      --nnodes=$SLURM_NNODES \
+      --nproc_per_node=$SLURM_GPUS_PER_NODE \
+      --rdzv_id=$SLURM_JOB_ID \
+      --rdzv_conf=is_host=\$(((SLURM_NODEID)) && echo 0 || echo 1) \
+      --rdzv_backend=c10d \
+      --rdzv_endpoint='$(scontrol show hostnames "$SLURM_JOB_NODELIST" | head -n 1)'i:29500 \
+      train.py"

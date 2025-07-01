@@ -6,5 +6,5 @@
 
 ```bash
 # Run the whole training pipeline
-itwinai exec-pipeline --config pipeline.yaml --pipe-key pipeline
+itwinai exec-pipeline +pipe_key=pipeline
 ```

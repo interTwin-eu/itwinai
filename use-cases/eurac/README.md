@@ -20,7 +20,7 @@ pip install -r requirements.txt
 You can run the RNN pipeline with the following command:
 
 ```bash
-itwinai exec-pipeline --config config.yaml --pipe-key rnn_training_pipeline
+itwinai exec-pipeline +pipe_key=rnn_training_pipeline
 ```
 
 If you want to use the Conv pipeline instead, you can replace `rnn_training_pipeline`

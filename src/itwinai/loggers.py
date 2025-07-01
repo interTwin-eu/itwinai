@@ -758,8 +758,8 @@ class WandBLogger(Logger):
         """Initializes the logger context. Init WandB run.
 
         Args:
-            rank (int): global rank of current process,
-                used in distributed environments. Defaults to 0.
+            rank (int): global rank of current process, used in distributed environments.
+            Defaults to 0.
         """
         self.worker_rank = rank
 
@@ -769,10 +769,7 @@ class WandBLogger(Logger):
 
         py_logger.info(f"Initializing {self.__class__.__name__} on rank {rank}")
 
-        (self.savedir / "wandb").mkdir(
-            exist_ok=True,
-            parents=True,
-        )
+        (self.savedir / "wandb").mkdir(exist_ok=True, parents=True)
         self.active_run = self.wandb.init(
             dir=self.savedir.resolve(),
             project=self.project_name,
@@ -785,6 +782,7 @@ class WandBLogger(Logger):
         """Destroy logger."""
         if not self.should_log():
             return
+        self.wandb.finish()
 
     @check_initialized
     def save_hyperparameters(self, params: Dict[str, Any]) -> None:

@@ -31,11 +31,10 @@ import torch.nn as nn
 import torch.optim as optim
 import torch.optim.lr_scheduler as lr_scheduler
 import yaml
-from ray.train import DataConfig, ScalingConfig
+from ray.train import Checkpoint, DataConfig, ScalingConfig
 from ray.train.torch import TorchConfig
 from ray.train.torch import TorchTrainer as RayTorchTrainer
-from ray.tune import TuneConfig
-from ray.tune.integration.ray_train import TuneReportCallback
+from ray.tune import RunConfig, TuneConfig
 from torch.nn.parallel import DistributedDataParallel as DDP
 from torch.optim.lr_scheduler import LRScheduler
 from torch.optim.optimizer import Optimizer
@@ -216,7 +215,7 @@ class TorchTrainer(Trainer, LogMixin):
         measure_epoch_time: bool = False,
         ray_scaling_config: ScalingConfig | None = None,
         ray_tune_config: TuneConfig | None = None,
-        ray_run_config: ray.tune.RunConfig | None = None,
+        ray_run_config: RunConfig | None = None,
         ray_search_space: Dict[str, Any] | None = None,
         ray_torch_config: TorchConfig | None = None,
         ray_data_config: DataConfig | None = None,
@@ -466,13 +465,21 @@ class TorchTrainer(Trainer, LogMixin):
                     "create_model_loss_optimizer method for more flexibility."
                 )
 
-    def _time_and_log(self, fn: Callable, identifier: str, step: int | None = None) -> Any:
+    def _time_and_log(
+            self,
+            fn: Callable,
+            identifier: str,
+            step: int | None = None,
+            destroy_current_logger_context: bool = False,
+    ) -> Any:
         """Time and log the execution of a function (using time.monotonic()).
 
         Args:
             fn (Callable): function to execute, time and log (pass args using lambda)
             identifier (str): identifier for the logged metric
             step (int | None): step for logging
+            destroy_current_logger_context (bool):
+                Whether to destroy the current logger context. Default is False.
 
         Returns:
             result (Any): result of the function call
@@ -481,13 +488,6 @@ class TorchTrainer(Trainer, LogMixin):
             py_logger.warning(f"No logger set! Cannot log time for {identifier}! ")
             return fn()
 
-        if not self.logger.is_initialized:
-            py_logger.warning(
-                f"Logger context not initialized for timing {identifier}. Setting context."
-            )
-            self.logger.create_logger_context()
-
-        step = step or self.current_epoch
         if step is None:
             py_logger.warning("current_epoch is not set and no explicit step was provided!")
 
@@ -497,6 +497,19 @@ class TorchTrainer(Trainer, LogMixin):
         t_end = time.monotonic()
         # already in seconds
         t_delta = t_end - t_start
+
+        if self.logger.is_initialized and destroy_current_logger_context:
+            py_logger.warning(
+                f"Destroying logger context for timing {identifier}."
+            )
+            self.logger.destroy_logger_context()
+            self.logger.is_initialized = False
+
+        if not self.logger.is_initialized:
+            py_logger.warning(
+                f"Logger context not initialized for timing {identifier}. Setting context."
+            )
+            self.logger.create_logger_context()
 
         self.log(
             item=t_delta,
@@ -678,7 +691,7 @@ class TorchTrainer(Trainer, LogMixin):
             return
 
         # A Ray checkpoint directory was passed to the trainer -- assuming to be inside a trial
-        checkpoint = ray.tune.get_checkpoint()
+        checkpoint = ray.train.get_checkpoint()
         if not checkpoint:
             py_logger.warning(
                 "A checkpoint path was passed, but Ray could not find a valid "
@@ -838,102 +851,77 @@ class TorchTrainer(Trainer, LogMixin):
             Tuple[Dataset, Dataset, Dataset, Any]: training dataset,
             validation dataset, test dataset, trained model.
         """
+        # Passes datasets to workers efficiently through Ray storage
+        train_with_data = ray.tune.with_parameters(
+            self._run_worker,
+            train_dataset=train_dataset,
+            validation_dataset=validation_dataset,
+            test_dataset=test_dataset,
+        )
 
-        if self.from_checkpoint:
-            if not self.ray_run_config:
-                # If a checkpoint is provided, we need to create a RunConfig
-                # to be used by Ray Tuner
-                py_logger.warning(
-                    "from_checkpoint was passed, but ray_run_config is not set. "
-                    "Creating a new RunConfig with the checkpoint path."
-                )
-                self.ray_run_config = ray.tune.RunConfig()
-
-            checkpoint_path = to_uri(self.from_checkpoint)
-            # Create a new RunConfig with checkpoint path
-            self.ray_run_config.name = Path(checkpoint_path).name
-            self.ray_run_config.storage_path = str(Path(checkpoint_path).parent)
-
-        elif self.ray_run_config:
+        if self.ray_run_config and self.ray_run_config.storage_path:
             # Create Ray checkpoints dir if it does not exist yet
             ckpt_dir = Path(self.ray_run_config.storage_path)
             ckpt_dir.mkdir(parents=True, exist_ok=True)
 
-        # Store large datasets in Rays object store to avoid serialization issues
-        train_dataset_ref = ray.put(train_dataset)
-        validation_dataset_ref = (
-            ray.put(validation_dataset) if validation_dataset is not None else None
-        )
-        test_dataset_ref = ray.put(test_dataset) if test_dataset is not None else None
-
-        # Define a worker function to be run on each worker
-        def train_fn_per_worker(train_loop_config: dict):
-            """Retrieve datasets from references and start worker
-
-            Args:
-                train_loop_config (dict): configuration for the training loop,
-                    passed by Ray Tuner.
-            """
-
-            train_ds = ray.get(train_dataset_ref)
-            val_ds = (
-                ray.get(validation_dataset_ref) if validation_dataset_ref is not None else None
-            )
-            test_ds = ray.get(test_dataset_ref) if test_dataset_ref is not None else None
-
-            # Call the original worker function with the datasets and config
-            return self._run_worker(
-                train_loop_config,
-                train_dataset=train_ds,
-                validation_dataset=val_ds,
-                test_dataset=test_ds,
+        if (
+            self.ray_scaling_config
+            and getattr(self.ray_scaling_config, "num_workers", 1) > 1
+            and getattr(self.ray_scaling_config.resources_per_worker, "GPU", 0) > 0.0
+            and getattr(self.ray_scaling_config.resources_per_worker, "GPU", 0) < 1.0
+        ):
+            raise ValueError(
+                "Distributed trials with fractional gpu resources are not supported."
+                " Please ensure that either num_workers is set to 1 or GPUs in"
+                " resources_per_worker is 0 or 1"
             )
 
-        def train_driver_fn(config: dict):
-            """Driver function for Ray tune
-            This function is called by Ray Tuner to start the training process.
-
-            Args:
-                config (dict): configuration for the training loop,
-                    passed by Ray Tuner.
-            """
-            # Extract hyperparameters from config
-            train_loop_config = config.get("train_loop_config", {})
-
-            run_config = ray.train.RunConfig(
-                name=f"train-trial_id={ray.tune.get_context().get_trial_id()}",
-                # Needed as of ray version 2.46, to propagate train.report back to the Tuner
-                callbacks=[TuneReportCallback()],
-            )
-
+        if self.from_checkpoint:
+            # Create trainer from checkpoint
+            if RayTorchTrainer.can_restore(to_uri(self.from_checkpoint)):
+                trainer = RayTorchTrainer.restore(
+                    path=to_uri(self.from_checkpoint),
+                    train_loop_per_worker=train_with_data,
+                    train_loop_config=None,
+                )
+            else:
+                # Ray is unable to restore the checkpoint implicitly, but it's passing
+                # it to the trial
+                trainer = RayTorchTrainer(
+                    train_loop_per_worker=train_with_data,
+                    train_loop_config=None,
+                    scaling_config=self.ray_scaling_config,
+                    torch_config=self.ray_torch_config,
+                    dataset_config=self.ray_data_config,
+                    resume_from_checkpoint=Checkpoint(to_uri(self.from_checkpoint)),
+                )
+        else:
+            # Create trainer without checkpoint
             trainer = RayTorchTrainer(
-                train_loop_per_worker=train_fn_per_worker,
-                train_loop_config=train_loop_config,
+                train_loop_per_worker=train_with_data,
+                train_loop_config=None,
                 scaling_config=self.ray_scaling_config,
-                run_config=run_config,
                 torch_config=self.ray_torch_config,
                 dataset_config=self.ray_data_config,
             )
-
-            trainer.fit()
 
         # Create the parameter space for hyperparameter tuning
         param_space = {"train_loop_config": search_space(self.ray_search_space)}
 
         # Create the tuner with the driver function
         tuner = ray.tune.Tuner(
-            trainable=train_driver_fn,
+            trainable=trainer,
             param_space=param_space,
             tune_config=self.ray_tune_config,
             run_config=self.ray_run_config,
         )
 
-        # Run the tuner and capture results
         if self.time_ray:
             self.tune_result_grid = self._time_and_log(
                 lambda: tuner.fit(), "ray_fit_time_s", step=0
             )
         else:
+            # Run the tuner and capture results
             self.tune_result_grid = tuner.fit()
 
         return train_dataset, validation_dataset, test_dataset, None
@@ -1073,7 +1061,7 @@ class TorchTrainer(Trainer, LogMixin):
                 import shutil
 
                 shutil.copy(checkpoint_file, tmp_dir)
-                checkpoint = ray.tune.Checkpoint.from_directory(tmp_dir)
+                checkpoint = ray.train.Checkpoint.from_directory(tmp_dir)
                 ray.train.report(metrics, checkpoint=checkpoint)
 
         elif checkpoint_data:
@@ -1082,12 +1070,12 @@ class TorchTrainer(Trainer, LogMixin):
                 tmp_dir = Path(tmp_dir)
                 ckpt_file = tmp_dir / "ckpt.pt"
                 torch.save(checkpoint_data, ckpt_file)
-                checkpoint = ray.tune.Checkpoint.from_directory(tmp_dir)
+                checkpoint = ray.train.Checkpoint.from_directory(tmp_dir)
                 ray.train.report(metrics, checkpoint=checkpoint)
 
         elif checkpoint_dir:
             # A checkpoint is given as a directory
-            checkpoint = ray.tune.Checkpoint.from_directory(checkpoint_dir)
+            checkpoint = ray.train.Checkpoint.from_directory(checkpoint_dir)
             ray.train.report(metrics, checkpoint=checkpoint)
 
         else:

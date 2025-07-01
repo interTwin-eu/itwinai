@@ -20,20 +20,20 @@ spec:
   containers:
   - args:
     # cd to writable location before launching training
-    - " cd /tmp && itwinai exec-pipeline --print-config \
-          --config $CERN_CODE_ROOT/config.yaml \ 
-          --pipe-key training_pipeline \
-          -o dataset_location=$CERN_DATA_ROOT \ 
-          -o logs_dir=$TMP_DATA_ROOT/ml_logs \ 
-          -o distributed_strategy=$STRATEGY \ 
-          -o devices=$DEVICES \ 
-          -o hw_accelerators=$ACCELERATOR \ 
-          -o checkpoints_path=$TMP_DATA_ROOT/checkpoints \
-          -o batch_size=$BATCH_SIZE \ 
-          -o num_workers_dataloader=$NUM_WORKERS_DL \
-          -o max_dataset_size=$MAX_DATA_SAMPLES \
-          -o mlflow_tracking_uri=$MLFLOW_TRACKING_URI \
-          -o train_dataset_proportion=$TRAIN_PROPORTION"
+    - " cd /tmp && itwinai exec-pipeline \
+          --config-path $CERN_CODE_ROOT \
+          +pipe_key=training_pipeline \
+          dataset_location=$CERN_DATA_ROOT \ 
+          logs_dir=$TMP_DATA_ROOT/ml_logs \ 
+          distributed_strategy=$STRATEGY \ 
+          devices=$DEVICES \ 
+          hw_accelerators=$ACCELERATOR \ 
+          checkpoints_path=$TMP_DATA_ROOT/checkpoints \
+          batch_size=$BATCH_SIZE \ 
+          num_workers_dataloader=$NUM_WORKERS_DL \
+          max_dataset_size=$MAX_DATA_SAMPLES \
+          mlflow_tracking_uri=$MLFLOW_TRACKING_URI \
+          train_dataset_proportion=$TRAIN_PROPORTION"
     command:
     - /bin/sh
     - -c
