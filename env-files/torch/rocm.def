@@ -5,17 +5,18 @@
 #
 # Credit:
 # - Matteo Bunino <matteo.bunino@cern.ch> - CERN
+# - Linus Eickhoff <linus.maximilian.eickhoff@cern.ch> - CERN
 # --------------------------------------------------------------------------------------
 
 # Singularity definition file for ROCm with PyTorch, starting from ROCm base image provided
-# by LUMI and AMD.
+# by LUMI and AMD. Allows for editable installation of the itwinai project.
 
-Bootstrap: docker
-From: registry.egi.eu/dev.intertwin.eu/itwinai-dev:lumi-pytorch-rocm-6.1.3-python-3.12-pytorch-v2.4.1
+# Acquire the base image for rocm pytorch for lumi, by running the following command in the terminal:
+# singularity pull rocm-base-pytorch.sif oras://registry.egi.eu/dev.intertwin.eu/itwinai-dev:lumi-pytorch-rocm-6.1.3-python-3.12-pytorch-v2.4.1
 
-# # To build from local image
-# Bootstrap: localimage
-# From: /path/to/base.sif
+# To build from local image
+Bootstrap: localimage
+From: rocm-base-pytorch.sif
 
 %files
     pyproject.toml /app/pyproject.toml
@@ -63,6 +64,7 @@ From: registry.egi.eu/dev.intertwin.eu/itwinai-dev:lumi-pytorch-rocm-6.1.3-pytho
     export CXX=/usr/bin/g++-11
     export CXXFLAGS="-std=c++17"
 
+
     # clone + patch + build wheel (j16 keeps image build time reasonable)
     git clone --recursive https://github.com/horovod/horovod.git \
         && cd horovod \
@@ -81,8 +83,9 @@ From: registry.egi.eu/dev.intertwin.eu/itwinai-dev:lumi-pytorch-rocm-6.1.3-pytho
     # ------------------------------------------------------------------
     cd /app
 
-    pip install --no-cache-dir --no-binary=horovod \
-        .[torch,amd] \
+    # Install in editable mode. For development on LUMI, mount the src directory to /app/src.
+    pip install --no-cache-dir --no-binary=horovod -e \
+        .[torch,dev,amd] \
         --extra-index-url https://download.pytorch.org/whl/rocm6.1 \
         "prov4ml[amd]@git+https://github.com/matbun/ProvML@new-main" \
         pytest pytest-xdist psutil wheel
@@ -90,7 +93,7 @@ From: registry.egi.eu/dev.intertwin.eu/itwinai-dev:lumi-pytorch-rocm-6.1.3-pytho
 %labels
     Author Matteo Bunino
     Project interTwin - itwinai
-    Version 0.3.1
+    Version 0.3.2
 
 %test
     # Activate conda env

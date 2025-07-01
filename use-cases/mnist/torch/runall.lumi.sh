@@ -10,7 +10,7 @@
 # - Linus Eickhoff <linus.maximilian.eickhoff@cern.ch> - CERN
 # --------------------------------------------------------------------------------------
 
-export CONTAINER_PATH="/project/project_465001592/itwinai-containers/container_test_5.sif"
+export CONTAINER_PATH="/project/project_465001592/itwinai-containers/itwinai-dev.sif"
 
 # Clear SLURM logs (*.out and *.err files)
 mkdir -p logs_slurm logs_torchrun
