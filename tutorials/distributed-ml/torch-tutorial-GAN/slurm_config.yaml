@@ -11,6 +11,6 @@ python_venv: ../../../.venv/
 
 num_nodes: 1
 gpus_per_node: 4
-cpus_per_gpu: 4
+cpus_per_task: 16
 
 training_cmd: "train.py --strategy {dist_strat}"

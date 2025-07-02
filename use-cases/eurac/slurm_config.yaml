@@ -17,7 +17,7 @@ job_name: eurac-${dist_strat}-job
 num_nodes: 2
 num_tasks_per_node: 1
 gpus_per_node: 4
-cpus_per_gpu: 4
+cpus_per_task: 16
 
 python_venv: ../../.venv
 pipe_key: training_pipeline

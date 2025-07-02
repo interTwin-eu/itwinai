@@ -293,11 +293,10 @@ def generate_scalability_report(
 
     # Disclaimer for the plots
     typer.echo(
-        typer.style(
-            "-" * 38 + "DISCLAIMER" + "-" * 38, fg= typer.colors.YELLOW, bold=True
-        )
+        typer.style("-" * 38 + "DISCLAIMER" + "-" * 38, fg=typer.colors.YELLOW, bold=True)
     )
-    typer.echo(dedent("""
+    typer.echo(
+        dedent("""
     The computation plots are experimental and do not account for parallelism.
     Calls traced by the torch profiler may overlap in time, so the sum of
     individual operation durations does not necessarily equal the total training run duration.
@@ -313,12 +312,9 @@ def generate_scalability_report(
     However:
         Comparing the computation fraction across multiple GPU counts *within*
         the same strategy may provide insights into its scalability.
-    """).strip())
-    typer.echo(
-        typer.style(
-            "-" * 86, fg= typer.colors.YELLOW, bold=True
-        )
+    """).strip()
     )
+    typer.echo(typer.style("-" * 86, fg=typer.colors.YELLOW, bold=True))
 
     if include_communication:
         comm_time_logdirs = [
@@ -443,9 +439,9 @@ def generate_slurm(
         int,
         typer.Option("--gpus-per-node", help="The requested number of GPUs per node."),
     ] = 4,
-    cpus_per_gpu: Annotated[
+    cpus_per_task: Annotated[
         int,
-        typer.Option("--cpus-per-gpu", help="The requested number of CPUs per GPU."),
+        typer.Option("--cpus-per-gpu", help="The requested number of CPUs per SLURM task."),
     ] = 4,
     config_path: Annotated[
         str,
@@ -846,6 +842,7 @@ def download_mlflow_data(
     df_metrics = pd.DataFrame(all_metrics)
     df_metrics.to_csv(output_file, index=False)
     cli_logger.info(f"Saved data to '{Path(output_file).resolve()}'!")
+
 
 @app.command()
 def tensorboard_ui(
