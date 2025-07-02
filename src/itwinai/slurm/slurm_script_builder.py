@@ -210,8 +210,6 @@ class SlurmScriptBuilder:
         """
         else:
             gpus_per_node = self.slurm_script_configuration.gpus_per_node
-            num_nodes = self.slurm_script_configuration.num_nodes
-            num_tasks = gpus_per_node * num_nodes
 
             # E.g. "0,1,2,3" with 4 GPUs per node
             cuda_visible_devices = ",".join(str(i) for i in range(gpus_per_node))
@@ -220,8 +218,8 @@ class SlurmScriptBuilder:
             export CUDA_VISIBLE_DEVICES="{cuda_visible_devices}"
             srun --cpu-bind=none \
                 --ntasks-per-node=$SLURM_GPUS_PER_NODE \
+                --ntasks=$SLURM_GPUS_PER_NODE \
                 --cpus-per-task=$((SLURM_CPUS_PER_TASK / SLURM_GPUS_PER_NODE)) \
-                --ntasks={num_tasks} \
                 {self.get_training_command()}
         """
 
@@ -390,9 +388,7 @@ def generate_default_slurm_script() -> None:
     parser = get_slurm_job_parser()
     args = parser.parse_args()
 
-    # When using `torchrun` (ddp and deepspeed) then we only want `srun` to launch one process
-    # per node, but when using horovod we need `srun` to launch one process per GPU
-    num_tasks_per_node = 1 if args.dist_strat != "horovod" else args.gpus_per_node
+    num_tasks_per_node = 1
 
     slurm_script_configuration = SlurmScriptConfiguration(
         job_name=args.job_name,
