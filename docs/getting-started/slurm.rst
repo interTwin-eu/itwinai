@@ -198,7 +198,7 @@ configuration file:
     num_nodes: 1
     num_tasks_per_node: 1
     gpus_per_node: 4
-    cpus_per_gpu: 4
+    cpus_per_task: 16
 
     training_cmd: "train.py"
 
@@ -237,7 +237,7 @@ The resulting SLURM script generated using the ``slurm_config.yaml`` file above 
       # Resource allocation
       #SBATCH --nodes=1
       #SBATCH --ntasks-per-node=1
-      #SBATCH --cpus-per-gpu=4
+      #SBATCH --cpus-per-task=16
       #SBATCH --gpus-per-node=4
       #SBATCH --gres=gpu:4
       #SBATCH --exclusive

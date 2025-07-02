@@ -58,7 +58,7 @@ def get_slurm_job_parser() -> ArgumentParser:
     default_err_out = None
     default_num_nodes = 1
     default_gpus_per_node = 4
-    default_cpus_per_gpu = 4
+    default_cpus_per_task = 16
 
     # Default other arguments
     default_mode = "single"
@@ -71,7 +71,7 @@ def get_slurm_job_parser() -> ArgumentParser:
     default_training_command = None
     default_python_venv = ".venv"
     default_scalability_nodes = "1,2,4,8"
-    default_profiling_sampling_rate = 10 # py-spy profiler sample rate/frequency
+    default_profiling_sampling_rate = 10  # py-spy profiler sample rate/frequency
 
     parser = ArgumentParser(parser_mode="omegaconf")
 
@@ -119,10 +119,10 @@ def get_slurm_job_parser() -> ArgumentParser:
         help="The requested number of GPUs per node.",
     )
     parser.add_argument(
-        "--cpus-per-gpu",
+        "--cpus-per-task",
         type=int,
-        default=default_cpus_per_gpu,
-        help="The requested number of CPUs per node.",
+        default=default_cpus_per_task,
+        help="The requested number of CPUs per task.",
     )
 
     # Arguments specific to the itwinai pipeline

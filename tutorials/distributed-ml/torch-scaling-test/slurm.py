@@ -16,7 +16,6 @@ from itwinai.slurm.utils import get_slurm_job_parser
 
 
 class TutorialSlurmScriptBuilder(SlurmScriptBuilder):
-
     def __init__(
         self,
         slurm_script_configuration: SlurmScriptConfiguration,
@@ -81,7 +80,7 @@ def main():
         num_nodes=args.num_nodes,
         num_tasks_per_node=args.num_tasks_per_node,
         gpus_per_node=args.gpus_per_node,
-        cpus_per_gpu=args.cpus_per_gpu,
+        cpus_per_task=args.cpus_per_task,
     )
 
     save_script = not args.no_save_script

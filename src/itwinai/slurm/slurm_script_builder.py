@@ -45,7 +45,7 @@ class SlurmScriptConfiguration(BaseModel):
     num_nodes: int
     num_tasks_per_node: int
     gpus_per_node: int
-    cpus_per_gpu: int
+    cpus_per_task: int
 
     # Typically used to set up the environment before executing the command,
     # e.g. "ml Python", "source .venv/bin/activate" etc.
@@ -103,10 +103,11 @@ class SlurmScriptBuilder:
         self.config_path = config_path
         self.pipe_key = pipe_key
 
-        if self.slurm_script_configuration.cpus_per_gpu > 0:
-            self.omp_num_threads = self.slurm_script_configuration.cpus_per_gpu
-        else:
-            self.omp_num_threads = 1
+        self.omp_num_threads = max(
+            1,
+            self.slurm_script_configuration.cpus_per_task
+            // self.slurm_script_configuration.gpus_per_node,
+        )
 
     @property
     def training_cmd_formatter(self) -> Dict[str, str]:
@@ -219,8 +220,8 @@ class SlurmScriptBuilder:
             export CUDA_VISIBLE_DEVICES="{cuda_visible_devices}"
             srun --cpu-bind=none \
                 --ntasks-per-node=$SLURM_GPUS_PER_NODE \
-                --cpus-per-task=$SLURM_CPUS_PER_GPU \
                 --ntasks={num_tasks} \
+                --cpus-per-task=$((SLURM_CPUS_PER_TASK / SLURM_GPUS_PER_NODE)) \
                 {self.get_training_command()}
         """
 
@@ -389,9 +390,7 @@ def generate_default_slurm_script() -> None:
     parser = get_slurm_job_parser()
     args = parser.parse_args()
 
-    # When using `torchrun` (ddp and deepspeed) then we only want `srun` to launch one process
-    # per node, but when using horovod we need `srun` to launch one process per GPU
-    num_tasks_per_node = 1 if args.dist_strat != "horovod" else args.gpus_per_node
+    num_tasks_per_node = 1
 
     slurm_script_configuration = SlurmScriptConfiguration(
         job_name=args.job_name,
@@ -403,7 +402,7 @@ def generate_default_slurm_script() -> None:
         num_nodes=args.num_nodes,
         num_tasks_per_node=num_tasks_per_node,
         gpus_per_node=args.gpus_per_node,
-        cpus_per_gpu=args.cpus_per_gpu,
+        cpus_per_task=args.cpus_per_task,
     )
 
     slurm_script_builder = SlurmScriptBuilder(
