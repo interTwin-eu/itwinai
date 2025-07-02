@@ -257,7 +257,7 @@ class Logger(LogMixin):
             self.destroy_logger_context()
 
     @abstractmethod
-    def create_logger_context(self, rank: int = 0) -> Any:
+    def create_logger_context(self, rank: int = 0, nested: bool = False) -> Any:
         """Initializes the logger context.
 
         Args:
@@ -368,7 +368,7 @@ class ConsoleLogger(Logger):
         super().__init__(savedir=cl_savedir, log_freq=log_freq, log_on_workers=log_on_workers)
 
     @check_not_initialized
-    def create_logger_context(self, rank: int = 0):
+    def create_logger_context(self, rank: int = 0, nested: bool = False):
         """Initializes the logger context.
 
         Args:
@@ -549,7 +549,7 @@ class MLFlowLogger(Logger):
         self.mlflow = mlflow
 
     @check_not_initialized
-    def create_logger_context(self, rank: int = 0) -> "mlflow.ActiveRun":
+    def create_logger_context(self, rank: int = 0, nested: bool = False) -> "mlflow.ActiveRun":
         """Initializes the logger context. Start MLFLow run.
 
         Args:
@@ -568,7 +568,7 @@ class MLFlowLogger(Logger):
         py_logger.info(f"Initializing {self.__class__.__name__} on rank {rank}")
 
         active_run = self.mlflow.active_run()
-        if active_run:
+        if active_run and not nested:
             print("Detected an active MLFlow run. Attaching to it...")
             self.active_run = active_run
         else:
@@ -754,7 +754,7 @@ class WandBLogger(Logger):
         self.wandb = wandb
 
     @check_not_initialized
-    def create_logger_context(self, rank: int = 0) -> None:
+    def create_logger_context(self, rank: int = 0, nested: bool = False) -> None:
         """Initializes the logger context. Init WandB run.
 
         Args:
@@ -889,7 +889,7 @@ class TensorBoardLogger(Logger):
         #     raise ValueError("Framework must be either 'tensorflow' or 'pytorch'")
 
     @check_not_initialized
-    def create_logger_context(self, rank: int = 0) -> None:
+    def create_logger_context(self, rank: int = 0, nested: bool = False) -> None:
         """Initializes the logger context. Init Tensorboard run.
 
         Args:
@@ -1074,7 +1074,7 @@ class LoggersCollection(Logger):
             )
 
     @check_not_initialized
-    def create_logger_context(self, rank: int = 0) -> Any:
+    def create_logger_context(self, rank: int = 0, nested: bool = False) -> Any:
         """Initializes all loggers.
 
         Args:
@@ -1082,7 +1082,7 @@ class LoggersCollection(Logger):
                 used in distributed environments. Defaults to 0.
         """
         for logger in self.loggers:
-            logger.create_logger_context(rank=rank)
+            logger.create_logger_context(rank=rank, nested=nested)
 
         self.is_initialized = True
 

@@ -236,7 +236,7 @@ class TorchTrainer(Trainer, LogMixin):
         if store_torch_profiling_traces and not enable_torch_profiling:
             raise ValueError(
                 "`store_torch_profiling_traces` is True, but `enable_torch_profiling` is"
-                "False. Cannot store traces without enabling profiling."
+                " False. Cannot store traces without enabling profiling."
             )
 
         self.config = config

@@ -10,17 +10,18 @@
 # --------------------------------------------------------------------------------------
 
 import functools
+import logging
 import time
-from multiprocessing import Manager, Process
-from pathlib import Path
-from typing import TYPE_CHECKING, Any, Callable, Dict, List
+from multiprocessing import Process
+from typing import TYPE_CHECKING, Any, Callable
 
-import pandas as pd
-
-from .backend import init_backend
+from ...loggers import Logger
+from .backend import detect_gpu_backend
 
 if TYPE_CHECKING:
     from itwinai.torch.trainer import TorchTrainer
+
+py_logger = logging.getLogger(__name__)
 
 logging_columns = [
     "sample_idx",
@@ -34,12 +35,10 @@ logging_columns = [
 ]
 
 
-def probe_gpu_utilization_loop(
-    node_idx: int,
-    num_global_gpus: int,
-    strategy_name: str,
-    log_dict: Any,
-    stop_flag: Any,
+def profile_gpu_utilization(
+    local_rank: int,
+    global_rank: int,
+    logger: Logger,
     probing_interval: int = 2,
     warmup_time: int = 5,
 ) -> None:
@@ -64,45 +63,49 @@ def probe_gpu_utilization_loop(
             properly start before reading.
 
     """
-    if not set(logging_columns).issubset(set(log_dict.keys())):
-        missing_columns = set(logging_columns) - set(log_dict.keys())
-        raise ValueError(f"log_dict is missing the following columns: {missing_columns}")
+    backend = detect_gpu_backend()
+    visible_gpu_ids = backend.get_visible_gpu_ids()
 
-    # load management library backend
-    man_lib_type, man_lib = init_backend()
+    if not visible_gpu_ids:
+        py_logger.warning("No visible GPUs found. Skipping GPU utilization profiling.")
+        return
 
+    if local_rank >= len(visible_gpu_ids):
+        raise ValueError("local_rank exceeds the number of visible GPUs.")
+
+    gpu_handle = backend.get_handle_by_id(visible_gpu_ids[local_rank])
+
+    py_logger.warning("GPU utilization needs a MLFlowLogger to log data")
+
+    # warmup time to wait for the training to start
     time.sleep(warmup_time)
 
-    if man_lib_type == "nvidia":
-        handles = [
-            man_lib.nvmlDeviceGetHandleByIndex(idx)
-            for idx in range(man_lib.nvmlDeviceGetCount())
-        ]
-    elif man_lib_type == "amd":
-        handles = man_lib.amdsmi_get_processor_handles()
-        # assumes that amdsmi_get_processor_handles() returns all GPUs on the node
-    else:
-        raise ValueError(f"Unsupported management library type: {man_lib_type}")
-
     sample_idx = 0
-    while not stop_flag.value:
-        for local_rank, handle in enumerate(handles):
-            if man_lib_type == "nvidia":
-                gpu_util = man_lib.nvmlDeviceGetUtilizationRates(handle).gpu
-                power = man_lib.nvmlDeviceGetPowerUsage(handle) / 1000.0  # mW -> W
 
-            elif man_lib_type == "amd":
-                gpu_util = man_lib.amdsmi_get_gpu_activity(handle)["gfx_activity"]  # W
-                power = man_lib.amdsmi_get_power_info(handle)["average_socket_power"]
+    # created nested logging on global rank of current worker
+    # TODO: add custom run_ids for the nested runs
+    logger.create_logger_context(rank=global_rank, nested=True)
 
-            log_dict["sample_idx"].append(sample_idx)
-            log_dict["utilization"].append(gpu_util)
-            log_dict["power"].append(power)
-            log_dict["local_rank"].append(local_rank)
-            log_dict["node_idx"].append(node_idx)
-            log_dict["num_global_gpus"].append(num_global_gpus)
-            log_dict["strategy"].append(strategy_name)
-            log_dict["probing_interval"].append(probing_interval)
+    t_start = time.monotonic()  # fractional seconds
+
+    while True:
+        time_stamp = time.monotonic() - t_start
+
+        gpu_util = backend.get_gpu_utilization(gpu_handle)
+        gpu_power = backend.get_gpu_power_usage(gpu_handle)
+
+        logger.log(
+            item=gpu_power,
+            identifier="gpu_power_W",
+            kind="metric",
+            step=int(time_stamp),
+        )
+        logger.log(
+            item=gpu_util,
+            identifier="gpu_utilization_percent",
+            kind="metric",
+            step=int(time_stamp),
+        )
 
         sample_idx += 1
         time.sleep(probing_interval)
@@ -110,17 +113,6 @@ def probe_gpu_utilization_loop(
 
 def measure_gpu_utilization(method: Callable) -> Callable:
     """Decorator for measuring GPU utilization and storing it to a .csv file."""
-
-    def write_logs_to_file(utilization_logs: List[Dict], output_path: Path) -> None:
-        dataframes = []
-        for log in utilization_logs:
-            if len(log) == 0:
-                continue
-            dataframes.append(pd.DataFrame(log))
-
-        log_df = pd.concat(dataframes)
-        log_df.to_csv(output_path, index=False)
-        print(f"Writing GPU energy dataframe to '{output_path.resolve()}'.")
 
     @functools.wraps(method)
     def measured_method(self: "TorchTrainer", *args, **kwargs) -> Any:
@@ -131,63 +123,29 @@ def measure_gpu_utilization(method: Callable) -> Callable:
         warmup_time = 5
 
         strategy = self.strategy
-        strategy_name = strategy.name
 
         local_rank = strategy.local_rank()
         global_rank = strategy.global_rank()
-        num_global_gpus = strategy.global_world_size()
-        num_local_gpus = strategy.local_world_size()
-        node_idx = global_rank // num_local_gpus
 
-        gpu_monitor_process = None
-        manager = None
-        stop_flag = None
-        data = None
+        gpu_monitor_process = Process(
+            target=profile_gpu_utilization,
+            kwargs={
+                "local_rank": local_rank,
+                "global_rank": global_rank,
+                "logger": self.logger,
+                "probing_interval": gpu_probing_interval,
+                "warmup_time": warmup_time,
+            },
+        )
+        # set child process as daemon such that child exits when parent exits
+        gpu_monitor_process.daemon = True
+        gpu_monitor_process.start()
 
-        # Starting a child process once per node
-        if local_rank == 0:
-            # Setting up shared variables for the child process
-            manager = Manager()
-            data = manager.dict()
-            for col in logging_columns:
-                data[col] = manager.list()
-            stop_flag = manager.Value("i", False)
-
-            gpu_monitor_process = Process(
-                target=probe_gpu_utilization_loop,
-                kwargs={
-                    "node_idx": node_idx,
-                    "num_local_gpus": num_local_gpus,
-                    "num_global_gpus": num_global_gpus,
-                    "strategy_name": strategy_name,
-                    "log_dict": data,
-                    "stop_flag": stop_flag,
-                    "probing_interval": gpu_probing_interval,
-                    "warmup_time": warmup_time,
-                },
-            )
-            gpu_monitor_process.start()
-
-        local_utilization_log = {}
         try:
             result = method(self, *args, **kwargs)
         finally:
-            if local_rank == 0:
-                stop_flag.value = True
-                grace_period = 5  # extra time to let process finish gracefully
-                gpu_monitor_process.join(timeout=gpu_probing_interval + grace_period)
-
-                # Converting the shared log to non-shared log
-                local_utilization_log = {key: list(data[key]) for key in data.keys()}
-                manager.shutdown()
-
-        global_utilization_log = strategy.gather_obj(local_utilization_log, dst_rank=0)
-        if strategy.is_main_worker:
-            output_dir = Path(f"scalability-metrics/{self.run_id}/gpu-energy-data")
-            output_dir.mkdir(exist_ok=True, parents=True)
-            output_path = output_dir / f"{strategy_name}_{num_global_gpus}.csv"
-
-            write_logs_to_file(global_utilization_log, output_path)
+            # terminate the process
+            gpu_monitor_process.terminate()
 
         return result
 
