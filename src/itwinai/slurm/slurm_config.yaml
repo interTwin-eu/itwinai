@@ -6,7 +6,7 @@ time: 00:11:11
 num_nodes: 1
 num_tasks_per_node: 1
 gpus_per_node: 4
-cpus_per_gpu: 4
+cpus_per_task: 16
 
 # Keep in mind that these will be overwritten if "mode" is not "single", and that
 # if you override the dist_strat in the CLI, then these will already have evaluated
