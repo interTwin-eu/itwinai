@@ -26,8 +26,21 @@ class Singularity:
 
     @function
     def client(self) -> dagger.Container:
-        """Return base image container with Singularity."""
-        return self.base_image
+        """Return base image container with Singularity and Oras clients."""
+        oras_install_cmd = """
+# install prerequisites
+apk update && apk add --no-cache curl tar ca-certificates
+
+# grab the latest ORAS (here v1.2.2) and install
+export ORAS_VERSION=1.2.2
+curl -LO "https://github.com/oras-project/oras/releases/download/v${ORAS_VERSION}/oras_${ORAS_VERSION}_linux_amd64.tar.gz"
+mkdir -p /usr/local/oras-install
+tar -xzf oras_${ORAS_VERSION}_linux_amd64.tar.gz -C /usr/local/oras-install
+mv /usr/local/oras-install/oras /usr/local/bin/oras
+chmod +x /usr/local/bin/oras
+rm -rf oras_${ORAS_VERSION}_linux_amd64.tar.gz /usr/local/oras-install
+"""
+        return self.base_image.with_exec(["bash", "-c", oras_install_cmd])
 
     @function
     def convert(self) -> dagger.File:
@@ -46,19 +59,52 @@ class Singularity:
         return self.client().with_file("container.sif", self.convert())
 
     @function
-    async def publish(
+    async def publish_singularity(
         self,
         password: Annotated[dagger.Secret, Doc("Password for registry")],
         username: Annotated[dagger.Secret, Doc("Username for registry")],
         uri: Annotated[str, Doc("Target URI for the image")],
     ) -> str:
-        """Export container and publish it to some registry."""
+        """Export container and publish it to some registry using singularity push (slow)."""
         print(f"The Singularity image will be published at: {uri}")
         return await (
             self.base_image.with_file("container.sif", self.convert())
             .with_secret_variable(name="SINGULARITY_DOCKER_USERNAME", secret=username)
             .with_secret_variable(name="SINGULARITY_DOCKER_PASSWORD", secret=password)
             .with_exec(["singularity", "push", "container.sif", f"{uri}"])
+            .stdout()
+        )
+
+    @function
+    async def publish(
+        self,
+        password: Annotated[dagger.Secret, Doc("Password for registry")],
+        username: Annotated[dagger.Secret, Doc("Username for registry")],
+        uri: Annotated[str, Doc("Target URI for the image")],
+        concurrency: Annotated[
+            int, Doc("Number of parallel threads used during image push")
+        ] = 5,
+    ) -> str:
+        """Export container and publish it to some registry using oras push (using
+        concurrency).
+        """
+        print(f"The Singularity image will be published using oras push at: {uri}")
+
+        if uri.startswith("oras://"):
+            # Remove "oras://" prefix
+            uri = uri[7:]
+
+        registry_name = uri.split("/")[0]
+
+        return await (
+            self.client()
+            .with_file("container.sif", self.convert())
+            .with_secret_variable(name="USERNAME", secret=username)
+            .with_secret_variable(name="PASSWORD", secret=password)
+            .with_exec(["bash", "-c", f"oras login {registry_name} -u $USERNAME -p $PASSWORD"])
+            .with_exec(
+                ["bash", "-c", f"oras push --concurrency {concurrency} {uri} container.sif"]
+            )
             .stdout()
         )
 
