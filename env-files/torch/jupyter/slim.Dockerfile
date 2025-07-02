@@ -9,8 +9,8 @@
 # --------------------------------------------------------------------------------------
 
 # Container image for JupyterHub 2.5.1 -- supports JupyterLab 4
+# This generates an image that can be both offloaded via interLink and started on a local cloud
 
-# ARG BASE_IMG_NAME=python:3.12-slim
 ARG BASE_IMG_NAME=quay.io/jupyter/minimal-notebook:python-3.12
 
 FROM ${BASE_IMG_NAME}
@@ -85,6 +85,10 @@ RUN chmod +x /opt/setup-rucio-jupyterlab/configure.py && chown -R ${NB_UID}:${NB
 COPY env-files/torch/jupyter/setup.sh /usr/local/bin/setup.sh
 RUN chmod +x /usr/local/bin/setup.sh
 RUN mkdir -p /opt/rucio/etc && chown -R ${NB_UID}:${NB_GID} /opt/rucio/etc
+# Wrap Rucio setup.sh ans start.sh under a single file (which is called from ENTRYPOINT)
+RUN mv /usr/local/bin/start.sh /usr/local/bin/start-original.sh
+COPY env-files/torch/jupyter/start-cloud.sh /usr/local/bin/start.sh
+RUN chmod +x /usr/local/bin/start.sh
 
 # Enable JupyterLab
 ENV JUPYTER_ENABLE_LAB=yes
@@ -134,7 +138,7 @@ COPY --chown=${NB_UID} tests tests
 COPY --chown=${NB_UID} env-files/torch/jupyter/slim.Dockerfile Dockerfile
 
 # This is most likely ignored when jupyterlab is launched from jhub, in favour of jupyterhub-singleuser
-CMD ["setup.sh", "start-notebook.sh"]
+CMD ["start-notebook.sh"]
 
 
 # Labels
