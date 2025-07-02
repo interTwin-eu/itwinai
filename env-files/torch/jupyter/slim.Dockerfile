@@ -25,7 +25,12 @@ ENV DEBIAN_FRONTEND=noninteractive \
     # Improve robustness: avoid silent override by Singularity/Apptainer
     PYTHONPATH="" \
     # User-fiendly page for Rucio clients
-    PAGER=cat
+    PAGER=cat \
+    # Install uv packages system wide (no need for .venv):
+    # https://docs.astral.sh/uv/reference/environment/#uv_system_python
+    UV_SYSTEM_PYTHON=true \
+    # https://docs.astral.sh/uv/reference/environment/#uv_no_cache
+    UV_NO_CACHE=1
 
 # OS deps
 USER root
@@ -93,10 +98,14 @@ RUN chmod +x /usr/local/bin/start.sh
 # Enable JupyterLab
 ENV JUPYTER_ENABLE_LAB=yes
 
+# install uv so that uv → /usr/local/bin/uv
+RUN curl -LsSf https://astral.sh/uv/install.sh \
+    | env UV_INSTALL_DIR=/usr/local/bin INSTALLER_NO_MODIFY_PATH=1 sh
+
 # Install jupyter ecosystem
 USER $NB_UID
-RUN pip install --upgrade pip && \
-    pip install \
+RUN uv pip install --upgrade pip && \
+    uv pip install \
     "jupyterhub==5.2.1" \
     "notebook>=7.0.0" \
     "jupyterlab>=4.1,<4.2" \
@@ -116,17 +125,26 @@ RUN pip install --upgrade pip && \
     "traitlets"
 
 # Needs to be installed separated from the rest of the jupyterlab ecosystem to avoid conflicts...
-RUN pip install rucio-jupyterlab 
+RUN uv pip install rucio-jupyterlab 
 
 # Install itwinai and prov4ml
 WORKDIR "$HOME/itwinai"
 COPY --chown=${NB_UID} pyproject.toml pyproject.toml
 COPY --chown=${NB_UID} src src
 
-RUN pip install ".[torch]" --extra-index-url https://download.pytorch.org/whl/cu124 && \
-    pip install \
+
+RUN uv pip install --no-cache-dir --upgrade pip \
+    && uv pip install --no-cache-dir \
+    # Select from which index to install torch
+    --extra-index-url https://download.pytorch.org/whl/cu124 \
+    # This is needed by UV to trust all indexes:
+    --index-strategy unsafe-best-match \
+    # Install packages
+    .[torch] \
     "prov4ml[nvidia]@git+https://github.com/matbun/ProvML@new-main" \
-    pytest pytest-xdist psutil
+    pytest \
+    pytest-xdist \
+    psutil
 
 RUN itwinai sanity-check --torch \
     --optional-deps prov4ml \
