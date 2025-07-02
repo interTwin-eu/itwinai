@@ -29,9 +29,7 @@ Where:
   not both.
 - `x.y` is the **version of the ML framework** (e.g., PyTorch or TensorFlow)
 - `distro` is the OS distro in the container (e.g., Ubuntu Jammy)
-- `jlab-` is prepended to the tag of images including JupyterLab. Note that `jlab-cloud-`
-  prefix is used for JupyterLab images which are not meant to be launched through interLink,
-  but directly on cloud without any offloading mechanism.
+- `jlab-` is prepended to the tag of images including JupyterLab.
 
 ## Image Names and Their Purpose
 

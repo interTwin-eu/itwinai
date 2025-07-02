@@ -8,6 +8,10 @@
 # - VRE Team @ CERN 23/24 - E. Garcia, G. Guerrieri
 # --------------------------------------------------------------------------------------
 
+# !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+# WARNING: THIS IMAGE IS NOT USED ANYMORE. 
+# !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
 # Container image for JupyterHub 2.5.1 -- supports JupyterLab 4. 
 # Could-only image: without integration for offloading with interLink
 
@@ -92,7 +96,6 @@ RUN chmod +x /usr/local/bin/start.sh
 
 # Enable JupyterLab
 ENV JUPYTER_ENABLE_LAB=yes
-
 
 # Install python dependencies
 USER $NB_UID
