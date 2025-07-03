@@ -83,7 +83,7 @@ rm -rf oras_${ORAS_VERSION}_linux_amd64.tar.gz /usr/local/oras-install
         uri: Annotated[str, Doc("Target URI for the image")],
         concurrency: Annotated[
             int, Doc("Number of parallel threads used during image push")
-        ] = 10,
+        ] = 2,
     ) -> str:
         """Export container and publish it to some registry using oras push (using
         concurrency).
