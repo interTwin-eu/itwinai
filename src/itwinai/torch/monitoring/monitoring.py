@@ -84,7 +84,12 @@ def profile_gpu_utilization(
 
     # created nested logging on global rank of current worker
     # TODO: add custom run_ids for the nested runs
-    logger.create_logger_context(rank=global_rank, nested=True)
+    run_name = f"gpu_utilization_{global_rank}"
+    parent_run_id = logger.run_id
+
+    logger.create_logger_context(
+        rank=global_rank, nested=True, run_id=parent_run_id, run_name=run_name
+    )
 
     t_start = time.monotonic()  # fractional seconds
 
@@ -99,12 +104,14 @@ def profile_gpu_utilization(
             identifier="gpu_power_W",
             kind="metric",
             step=int(time_stamp),
+            force=True,
         )
         logger.log(
             item=gpu_util,
             identifier="gpu_utilization_percent",
             kind="metric",
             step=int(time_stamp),
+            force=True,
         )
 
         sample_idx += 1

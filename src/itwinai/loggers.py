@@ -73,17 +73,7 @@ import os
 from abc import ABC, abstractmethod
 from contextlib import contextmanager
 from pathlib import Path
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Callable,
-    Dict,
-    List,
-    Literal,
-    Optional,
-    Tuple,
-    Union,
-)
+from typing import TYPE_CHECKING, Any, Callable, Dict, List, Literal, Optional, Tuple, Union
 
 if TYPE_CHECKING:
     import mlflow
@@ -103,6 +93,7 @@ class LogMixin(ABC):
         kind: str = "metric",
         step: Optional[int] = None,
         batch_idx: Optional[int] = None,
+        force: bool = False,
         **kwargs,
     ) -> None:
         """Log ``item`` with ``identifier`` name of ``kind`` type at ``step``
@@ -257,7 +248,7 @@ class Logger(LogMixin):
             self.destroy_logger_context()
 
     @abstractmethod
-    def create_logger_context(self, rank: int = 0, nested: bool = False) -> Any:
+    def create_logger_context(self, rank: int = 0, **kwargs) -> Any:
         """Initializes the logger context.
 
         Args:
@@ -368,7 +359,7 @@ class ConsoleLogger(Logger):
         super().__init__(savedir=cl_savedir, log_freq=log_freq, log_on_workers=log_on_workers)
 
     @check_not_initialized
-    def create_logger_context(self, rank: int = 0, nested: bool = False):
+    def create_logger_context(self, rank: int = 0, **kwargs):
         """Initializes the logger context.
 
         Args:
@@ -422,6 +413,7 @@ class ConsoleLogger(Logger):
         kind: str = "metric",
         step: Optional[int] = None,
         batch_idx: Optional[int] = None,
+        force: bool = False,
         **kwargs,
     ) -> None:
         """Print metrics to stdout and save artifacts to the filesystem.
@@ -438,7 +430,7 @@ class ConsoleLogger(Logger):
                 (i.e., batch idx), if available. Defaults to None.
             kwargs: keyword arguments to pass to the logger.
         """
-        if not self.should_log(batch_idx=batch_idx):
+        if not self.should_log(batch_idx=batch_idx) and not force:
             return
 
         if kind == "artifact":
@@ -549,39 +541,58 @@ class MLFlowLogger(Logger):
         self.mlflow = mlflow
 
     @check_not_initialized
-    def create_logger_context(self, rank: int = 0, nested: bool = False) -> "mlflow.ActiveRun":
+    def create_logger_context(self, rank: int = 0, **kwargs) -> "mlflow.ActiveRun":
         """Initializes the logger context. Start MLFLow run.
 
         Args:
             rank (int): global rank of current process,
                 used in distributed environments. Defaults to 0.
 
+            kwargs:
+                - ``nested`` (bool): whether to create a nested run.
+                  Defaults to False.
+                - ``run_id`` (Optional[str]): MLFlow run ID to attach to.
+                  Defaults to None.
+                - ``run_name`` (Optional[str]): name of the MLFlow run.
+                  Defaults to None.
+
         Returns:
             mlflow.ActiveRun: active MLFlow run.
         """
         self.worker_rank = rank
-
         if not self.should_log():
             self.is_initialized = True
             return
 
-        py_logger.info(f"Initializing {self.__class__.__name__} on rank {rank}")
+        nested = kwargs.get("nested", False)
+        run_id = kwargs.get("run_id")
+        run_name = kwargs.get("run_name")
+
+        self.mlflow.set_tracking_uri(self.tracking_uri)
+        self.mlflow.set_experiment(experiment_name=self.experiment_name)
 
         active_run = self.mlflow.active_run()
-        if active_run and not nested:
-            print("Detected an active MLFlow run. Attaching to it...")
+
+        if nested and run_id and active_run is None:
+            self.mlflow.start_run(run_id=run_id)
+            active_run = self.mlflow.active_run()
+
+        if not nested and active_run is not None:
+            py_logger.info(
+                f"{self.__class__.__name__}: re-using existing MLflow run "
+                f"(run_id={active_run.info.run_id}) on rank {rank}"
+            )
             self.active_run = active_run
         else:
-            self.mlflow.set_tracking_uri(self.tracking_uri)
-            self.mlflow.set_experiment(experiment_name=self.experiment_name)
-            self.active_run: self.mlflow.ActiveRun = self.mlflow.start_run(
-                description=self.run_description, run_name=self.run_name
+            self.active_run = self.mlflow.start_run(
+                nested=nested,
+                run_name=run_name,
+                description=self.run_description,
             )
+
         self._run_id = self.active_run.info.run_id
         self._experiment_id = self.active_run.info.experiment_id
-
         self.is_initialized = True
-
         return self.active_run
 
     @check_initialized
@@ -613,6 +624,7 @@ class MLFlowLogger(Logger):
         kind: str = "metric",
         step: Optional[int] = None,
         batch_idx: Optional[int] = None,
+        force: bool = False,
         **kwargs,
     ) -> None:
         """Log with MLFlow.
@@ -628,8 +640,9 @@ class MLFlowLogger(Logger):
             batch_idx (Optional[int], optional): DataLoader batch counter
                 (i.e., batch idx), if available. Defaults to None.
             kwargs: keyword arguments to pass to the logger.
+
         """
-        if not self.should_log(batch_idx=batch_idx):
+        if not self.should_log(batch_idx=batch_idx) and not force:
             return
 
         if kind == "metric":
@@ -679,20 +692,6 @@ class MLFlowLogger(Logger):
                 save_kwargs=kwargs.get("save_kwargs"),
             )
 
-            # # Here is a temporary patch
-
-            # import tempfile
-
-            # with tempfile.TemporaryDirectory() as tmpdirname:
-            #     filename = (
-            #         identifier if identifier.endswith(".png") else identifier + ".png"
-            #     )
-            #     file_path = os.path.join(tmpdirname, filename)
-            #     item.savefig(file_path)
-            #     self.mlflow.log_artifact(
-            #         local_path=file_path,
-            #         artifact_path=filename,
-            #     )
         elif kind == "image":
             self.mlflow.log_image(artifact_file=identifier, image=item)
         elif kind == "param":
@@ -754,7 +753,7 @@ class WandBLogger(Logger):
         self.wandb = wandb
 
     @check_not_initialized
-    def create_logger_context(self, rank: int = 0, nested: bool = False) -> None:
+    def create_logger_context(self, rank: int = 0, **kwargs) -> None:
         """Initializes the logger context. Init WandB run.
 
         Args:
@@ -804,6 +803,7 @@ class WandBLogger(Logger):
         kind: str = "metric",
         step: Optional[int] = None,
         batch_idx: Optional[int] = None,
+        force: bool = False,
         **kwargs,
     ) -> None:
         """Log with WandB. Wrapper of https://docs.wandb.ai/ref/python/log
@@ -820,7 +820,7 @@ class WandBLogger(Logger):
                 (i.e., batch idx), if available. Defaults to None.
             kwargs: keyword arguments to pass to the logger.
         """
-        if not self.should_log(batch_idx=batch_idx):
+        if not self.should_log(batch_idx=batch_idx) and not force:
             return
 
         if kind == "watch":
@@ -889,7 +889,7 @@ class TensorBoardLogger(Logger):
         #     raise ValueError("Framework must be either 'tensorflow' or 'pytorch'")
 
     @check_not_initialized
-    def create_logger_context(self, rank: int = 0, nested: bool = False) -> None:
+    def create_logger_context(self, rank: int = 0, **kwargs) -> None:
         """Initializes the logger context. Init Tensorboard run.
 
         Args:
@@ -970,6 +970,7 @@ class TensorBoardLogger(Logger):
         kind: str = "metric",
         step: Optional[int] = None,
         batch_idx: Optional[int] = None,
+        force: bool = False,
         **kwargs,
     ) -> None:
         """Log with Tensorboard.
@@ -986,7 +987,7 @@ class TensorBoardLogger(Logger):
                 (i.e., batch idx), if available. Defaults to None.
             kwargs: keyword arguments to pass to the logger.
         """
-        if not self.should_log(batch_idx=batch_idx):
+        if not self.should_log(batch_idx=batch_idx) and not force:
             return
 
         if self.framework == "tensorflow":
@@ -1047,6 +1048,7 @@ class LoggersCollection(Logger):
         kind: str = "metric",
         step: Optional[int] = None,
         batch_idx: Optional[int] = None,
+        force: bool = False,
         **kwargs,
     ) -> None:
         """Log on all loggers.
@@ -1070,17 +1072,19 @@ class LoggersCollection(Logger):
                 kind=kind,
                 step=step,
                 batch_idx=batch_idx,
+                force=force,
                 **kwargs,
             )
 
     @check_not_initialized
-    def create_logger_context(self, rank: int = 0, nested: bool = False) -> Any:
+    def create_logger_context(self, rank: int = 0, **kwargs) -> None:
         """Initializes all loggers.
 
         Args:
             rank (int): global rank of current process,
                 used in distributed environments. Defaults to 0.
         """
+        nested = kwargs.get("nested", False)
         for logger in self.loggers:
             logger.create_logger_context(rank=rank, nested=nested)
 
@@ -1173,7 +1177,7 @@ class Prov4MLLogger(Logger):
         self.mlflow = mlflow
 
     @check_not_initialized
-    def create_logger_context(self, rank: int = 0):
+    def create_logger_context(self, rank: int = 0, **kwargs) -> None:
         """Initializes the logger context.
 
         Args:
@@ -1225,6 +1229,7 @@ class Prov4MLLogger(Logger):
         step: Optional[int] = None,
         batch_idx: Optional[int] = None,
         context: Optional[str] = "training",
+        force: bool = False,
         **kwargs,
     ) -> None:
         """Logs with Prov4ML.
@@ -1242,7 +1247,7 @@ class Prov4MLLogger(Logger):
             kwargs: keyword arguments to pass to the logger.
         """
 
-        if not self.should_log(batch_idx=batch_idx):
+        if not self.should_log(batch_idx=batch_idx) and not force:
             return
 
         if kind == "metric":
@@ -1312,7 +1317,7 @@ class EmptyLogger(Logger):
     ) -> None:
         super().__init__(savedir, log_freq, log_on_workers)
 
-    def create_logger_context(self, rank: int = 0):
+    def create_logger_context(self, rank: int = 0, **kwargs):
         pass
 
     def destroy_logger_context(self):
@@ -1328,6 +1333,7 @@ class EmptyLogger(Logger):
         kind: str = "metric",
         step: Optional[int] = None,
         batch_idx: Optional[int] = None,
+        force: bool = False,
         **kwargs,
     ) -> None:
         pass
