@@ -161,7 +161,7 @@ COPY --chown=${NB_UID} src src
 # DO NOT install dev extras as they may change some versions of ipython and ipykernel
 RUN pip install --no-cache-dir .[torch] --extra-index-url https://download.pytorch.org/whl/cu124
 RUN pip install --no-cache-dir \
-    "prov4ml[nvidia]@git+https://github.com/matbun/ProvML@new-main" \
+    "prov4ml[nvidia]@git+https://github.com/matbun/ProvML@v0.0.1" \
     pytest \
     pytest-xdist \
     psutil
