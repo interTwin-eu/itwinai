@@ -29,6 +29,7 @@ from textwrap import dedent
 from typing import List, Optional
 
 import hydra
+from omegaconf import DictConfig
 import typer
 from typing_extensions import Annotated
 
@@ -293,11 +294,10 @@ def generate_scalability_report(
 
     # Disclaimer for the plots
     typer.echo(
-        typer.style(
-            "-" * 38 + "DISCLAIMER" + "-" * 38, fg= typer.colors.YELLOW, bold=True
-        )
+        typer.style("-" * 38 + "DISCLAIMER" + "-" * 38, fg=typer.colors.YELLOW, bold=True)
     )
-    typer.echo(dedent("""
+    typer.echo(
+        dedent("""
     The computation plots are experimental and do not account for parallelism.
     Calls traced by the torch profiler may overlap in time, so the sum of
     individual operation durations does not necessarily equal the total training run duration.
@@ -313,12 +313,9 @@ def generate_scalability_report(
     However:
         Comparing the computation fraction across multiple GPU counts *within*
         the same strategy may provide insights into its scalability.
-    """).strip())
-    typer.echo(
-        typer.style(
-            "-" * 86, fg= typer.colors.YELLOW, bold=True
-        )
+    """).strip()
     )
+    typer.echo(typer.style("-" * 86, fg=typer.colors.YELLOW, bold=True))
 
     if include_communication:
         comm_time_logdirs = [
@@ -667,7 +664,7 @@ def exec_pipeline(
 
 
 @hydra.main(version_base=None, config_path=os.getcwd(), config_name="config")
-def exec_pipeline_with_compose(cfg):
+def exec_pipeline_with_compose(cfg: DictConfig):
     """Hydra entry function. The hydra.main decorator parses a configuration file
     (under config_path), which contains a pipeline definition, and passes it to this function
     as an omegaconf.DictConfig object (called cfg). This function then instantiates and
@@ -677,11 +674,12 @@ def exec_pipeline_with_compose(cfg):
     https://hydra.cc/docs/tutorials/basic/your_first_app/simple_cli/."""
 
     from hydra.utils import instantiate
-    from omegaconf import OmegaConf, errors
+    from omegaconf import OmegaConf
+    from itwinai.utils import filter_pipeline_steps
 
     # Register custom OmegaConf resolver to allow to dynaimcally compute the current working
     # directory. Example: some_field: ${itwinai.cwd:}/some/nested/path/in/current/working/dir
-    OmegaConf.register_new_resolver("itwinai.cwd", lambda: os.getcwd())
+    OmegaConf.register_new_resolver("itwinai.cwd", os.getcwd)
 
     def range_resolver(x, y=None, step=1):
         """Custom OmegaConf resolver for range."""
@@ -689,40 +687,27 @@ def exec_pipeline_with_compose(cfg):
             return list(range(int(x)))
         return list(range(int(x), int(y), int(step)))
 
-    # Register custom OmegaConf resolver to allow to dynaimcally compute ranges
     OmegaConf.register_new_resolver("itwinai.range", range_resolver)
-
-    # Register custom OmegaConf resolver to allow to dynaimcally compute ranges
     OmegaConf.register_new_resolver("itwinai.multiply", lambda x, y: x * y)
 
     pipe_steps = OmegaConf.select(cfg, "pipe_steps", default=None)
     pipe_key = OmegaConf.select(cfg, "pipe_key", default="training_pipeline")
 
-    try:
-        cfg = OmegaConf.select(cfg, pipe_key, throw_on_missing=True)
-    except errors.MissingMandatoryValue as e:
-        e.add_note(
-            f"Could not find pipeline key {pipe_key}. Make sure that you provide the full "
+    pipeline_cfg = OmegaConf.select(cfg, key=pipe_key)
+    if pipeline_cfg is None:
+        py_logger.error(
+            f"Could not find pipeline key '{pipe_key}'. Make sure that you provide the full "
             "dotpath to your pipeline key."
         )
-        raise e
+        raise typer.Exit(1)
 
     if pipe_steps:
-        try:
-            cfg.steps = [cfg.steps[step] for step in pipe_steps]
-            py_logger.info(f"Successfully selected steps {pipe_steps}")
-        except errors.ConfigKeyError as e:
-            e.add_note(
-                "Could not find all selected steps. Please ensure that all steps exist "
-                "and that you provided to the dotpath to them. "
-                f"Steps provided: {pipe_steps}."
-            )
-            raise e
+        filter_pipeline_steps(pipeline_cfg=pipeline_cfg, pipe_steps=pipe_steps)
     else:
         py_logger.info("No steps selected. Executing the whole pipeline.")
 
     # Instantiate and execute the pipeline
-    pipeline = instantiate(cfg, _convert_="all")
+    pipeline = instantiate(pipeline_cfg, _convert_="all")
     pipeline.execute()
 
 
@@ -846,6 +831,7 @@ def download_mlflow_data(
     df_metrics = pd.DataFrame(all_metrics)
     df_metrics.to_csv(output_file, index=False)
     cli_logger.info(f"Saved data to '{Path(output_file).resolve()}'!")
+
 
 @app.command()
 def tensorboard_ui(
