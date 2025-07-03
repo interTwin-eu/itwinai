@@ -163,7 +163,7 @@ runs:
           --password env:SINGULARITY_PWD
           --username env:SINGULARITY_USR
         cloud-token: ${{ inputs.dagger-cloud-token }}
-        version: "0.18.0"
+        version: latest
       env:
           INTERLINK_VALUES: ${{ inputs.interlink-values }}
           SINGULARITY_PWD: ${{ inputs.singularity-password }}
@@ -195,7 +195,7 @@ runs:
           $([[ "${{ inputs.skip-hpc }}" == "true" ]] && echo '--skip-hpc' || echo '')
           $([[ "${{ inputs.skip-singularity }}" == "true" ]] && echo '--skip-singularity' || echo '')
         cloud-token: ${{ inputs.dagger-cloud-token }}
-        version: "0.18.0"
+        version: latest
       env:
           INTERLINK_VALUES: ${{ inputs.interlink-values }}
           SINGULARITY_PWD: ${{ inputs.singularity-password }}
