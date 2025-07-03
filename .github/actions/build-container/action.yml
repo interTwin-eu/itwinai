@@ -145,6 +145,8 @@ runs:
       with:
         workdir: ci
         verb: call
+        # NOTE: Singularity conversion and push in the dev pipeline is always skipped because
+        # it takes too long
         args: >-
           --nickname ${{ inputs.nickname }}
           --docker-registry ghcr.io/intertwin-eu
@@ -159,7 +161,7 @@ runs:
           --framework TORCH
           --password env:SINGULARITY_PWD
           --username env:SINGULARITY_USR
-          $([[ "${{ inputs.skip-singularity }}" == "true" ]] && echo '--skip-singularity' || echo '')
+          --skip-singularity
         cloud-token: ${{ inputs.dagger-cloud-token }}
         version: "0.18.0"
       env:
