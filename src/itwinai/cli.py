@@ -26,11 +26,11 @@ import subprocess
 import sys
 from pathlib import Path
 from textwrap import dedent
-from typing import List, Optional
+from typing import List
 
 import hydra
-from omegaconf import DictConfig
 import typer
+from omegaconf import DictConfig
 from typing_extensions import Annotated
 
 from itwinai.utils import COMPUTATION_DATA_DIR, EPOCH_TIME_DIR, GPU_ENERGY_DIR
@@ -630,7 +630,7 @@ def exec_pipeline(
         ),
     ] = "",
     overrides: Annotated[
-        Optional[List[str]],
+        List[str] | None,
         typer.Argument(
             help=(
                 "Any key=value arguments to override config values "
@@ -675,6 +675,7 @@ def exec_pipeline_with_compose(cfg: DictConfig):
 
     from hydra.utils import instantiate
     from omegaconf import OmegaConf
+
     from itwinai.utils import filter_pipeline_steps
 
     # Register custom OmegaConf resolver to allow to dynaimcally compute the current working

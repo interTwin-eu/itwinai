@@ -13,7 +13,6 @@ from unittest.mock import patch
 
 import pytest
 import yaml
-from omegaconf import errors
 
 from itwinai.cli import exec_pipeline
 

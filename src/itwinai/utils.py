@@ -18,14 +18,13 @@ import sys
 import time
 import warnings
 from collections.abc import MutableMapping
-from omegaconf import DictConfig
 from pathlib import Path
 from typing import Any, Callable, Dict, Hashable, List, Tuple, Type
 from urllib.parse import urlparse
 
-from omegaconf import DictConfig, errors, ListConfig
-import yaml
 import typer
+import yaml
+from omegaconf import DictConfig, ListConfig, errors
 
 from .loggers import Logger
 
