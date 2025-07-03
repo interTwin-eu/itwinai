@@ -26,10 +26,11 @@ import subprocess
 import sys
 from pathlib import Path
 from textwrap import dedent
-from typing import List, Optional
+from typing import List
 
 import hydra
 import typer
+from omegaconf import DictConfig
 from typing_extensions import Annotated
 
 from itwinai.utils import COMPUTATION_DATA_DIR, EPOCH_TIME_DIR, GPU_ENERGY_DIR
@@ -629,7 +630,7 @@ def exec_pipeline(
         ),
     ] = "",
     overrides: Annotated[
-        Optional[List[str]],
+        List[str] | None,
         typer.Argument(
             help=(
                 "Any key=value arguments to override config values "
@@ -663,7 +664,7 @@ def exec_pipeline(
 
 
 @hydra.main(version_base=None, config_path=os.getcwd(), config_name="config")
-def exec_pipeline_with_compose(cfg):
+def exec_pipeline_with_compose(cfg: DictConfig):
     """Hydra entry function. The hydra.main decorator parses a configuration file
     (under config_path), which contains a pipeline definition, and passes it to this function
     as an omegaconf.DictConfig object (called cfg). This function then instantiates and
@@ -673,11 +674,9 @@ def exec_pipeline_with_compose(cfg):
     https://hydra.cc/docs/tutorials/basic/your_first_app/simple_cli/."""
 
     from hydra.utils import instantiate
-    from omegaconf import OmegaConf, errors
+    from omegaconf import OmegaConf
 
-    # Register custom OmegaConf resolver to allow to dynaimcally compute the current working
-    # directory. Example: some_field: ${itwinai.cwd:}/some/nested/path/in/current/working/dir
-    OmegaConf.register_new_resolver("itwinai.cwd", lambda: os.getcwd())
+    from itwinai.utils import filter_pipeline_steps
 
     def range_resolver(x, y=None, step=1):
         """Custom OmegaConf resolver for range."""
@@ -685,40 +684,34 @@ def exec_pipeline_with_compose(cfg):
             return list(range(int(x)))
         return list(range(int(x), int(y), int(step)))
 
-    # Register custom OmegaConf resolver to allow to dynaimcally compute ranges
-    OmegaConf.register_new_resolver("itwinai.range", range_resolver)
+    if not OmegaConf.has_resolver("itwinai.range"):
+        OmegaConf.register_new_resolver("itwinai.range", range_resolver)
+    if not OmegaConf.has_resolver("itwinai.multiply"):
+        OmegaConf.register_new_resolver("itwinai.multiply", lambda x, y: x * y)
 
-    # Register custom OmegaConf resolver to allow to dynaimcally compute ranges
-    OmegaConf.register_new_resolver("itwinai.multiply", lambda x, y: x * y)
+    # Register custom OmegaConf resolver to allow dynamically computing the current working
+    # directory. Example: some_field: ${itwinai.cwd:}/some/nested/path/in/current/working/dir
+    if not OmegaConf.has_resolver("itwinai.cwd"):
+        OmegaConf.register_new_resolver("itwinai.cwd", os.getcwd)
 
     pipe_steps = OmegaConf.select(cfg, "pipe_steps", default=None)
     pipe_key = OmegaConf.select(cfg, "pipe_key", default="training_pipeline")
 
-    try:
-        cfg = OmegaConf.select(cfg, pipe_key, throw_on_missing=True)
-    except errors.MissingMandatoryValue as e:
-        e.add_note(
-            f"Could not find pipeline key {pipe_key}. Make sure that you provide the full "
+    pipeline_cfg = OmegaConf.select(cfg, key=pipe_key)
+    if pipeline_cfg is None:
+        py_logger.error(
+            f"Could not find pipeline key '{pipe_key}'. Make sure that you provide the full "
             "dotpath to your pipeline key."
         )
-        raise e
+        raise typer.Exit(1)
 
     if pipe_steps:
-        try:
-            cfg.steps = [cfg.steps[step] for step in pipe_steps]
-            py_logger.info(f"Successfully selected steps {pipe_steps}")
-        except errors.ConfigKeyError as e:
-            e.add_note(
-                "Could not find all selected steps. Please ensure that all steps exist "
-                "and that you provided to the dotpath to them. "
-                f"Steps provided: {pipe_steps}."
-            )
-            raise e
+        filter_pipeline_steps(pipeline_cfg=pipeline_cfg, pipe_steps=pipe_steps)
     else:
         py_logger.info("No steps selected. Executing the whole pipeline.")
 
     # Instantiate and execute the pipeline
-    pipeline = instantiate(cfg, _convert_="all")
+    pipeline = instantiate(pipeline_cfg, _convert_="all")
     pipeline.execute()
 
 
