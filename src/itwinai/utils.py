@@ -368,7 +368,9 @@ def filter_pipeline_steps(pipeline_cfg: DictConfig, pipe_steps: List[Any]) -> No
     """
     if "steps" not in pipeline_cfg:
         py_logger.error(
-            "'pipe_steps' were passed but the given pipe key does not contain 'steps'."
+            "Pipelines have to contain the key `steps`, but the given pipeline does not. Make"
+            " sure that your pipeline has at least one step. Are you sure you used the right"
+            " pipe key?"
         )
         raise typer.Exit(1)
 
@@ -384,7 +386,7 @@ def filter_pipeline_steps(pipeline_cfg: DictConfig, pipe_steps: List[Any]) -> No
         py_logger.error(
             "The steps in the given pipeline are unnamed, but some of the `pipe_steps` are"
             " named. This is not supported. Use indices to filter steps when the steps are"
-            "unnamed."
+            " unnamed."
         )
         raise typer.Exit(1)
 
@@ -394,8 +396,7 @@ def filter_pipeline_steps(pipeline_cfg: DictConfig, pipe_steps: List[Any]) -> No
     except errors.ConfigKeyError:
         py_logger.error(
             "Could not find all selected steps. Please ensure that all steps exist and that"
-            f"you provided to the dotpath to them. \n\tSteps provided: {pipe_steps}."
+            f" you provided to the dotpath to them. \n\tSteps provided: {pipe_steps}."
             f"\n\tValid steps: {pipeline_cfg.steps.keys()}"
         )
         raise typer.Exit(1)
-

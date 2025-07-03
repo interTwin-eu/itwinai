@@ -68,7 +68,7 @@ def test_instantiate_and_execute_pipeline(pipe_key, temp_yaml_files, monkeypatch
     ):
         path = temp_yaml_files[pipe_key]
         args = [
-            "exec_pipeline",
+            "itwinai exec_pipeline", # This doesn't actually do anything
             f"--config-dir={path.parent}",
             f"--config-path={path.parent}",
             f"--config-name={path.stem}",
@@ -102,7 +102,7 @@ def test_step_selection_list_pipeline(temp_yaml_files, monkeypatch):
         pipe_key="my-list-pipeline"
         path = temp_yaml_files[pipe_key]
         args = [
-            "exec_pipeline",
+            "itwinai exec_pipeline", # This doesn't actually do anything
             f"--config-dir={path.parent}",
             f"--config-path={path.parent}",
             f"--config-name={path.stem}",
@@ -137,7 +137,7 @@ def test_step_selection_dict_pipeline(temp_yaml_files, monkeypatch):
         pipe_key="my-dict-pipeline"
         path = temp_yaml_files[pipe_key]
         args = [
-            "exec_pipeline",
+            "itwinai exec_pipeline", # This doesn't actually do anything
             f"--config-dir={path.parent}",
             f"--config-path={path.parent}",
             f"--config-name={path.stem}",
@@ -168,7 +168,7 @@ def test_dynamic_override_interpolation_list_pipeline(temp_yaml_files, monkeypat
         path = temp_yaml_files[pipe_key]
 
         args = [
-            "exec_pipeline",
+            "itwinai exec_pipeline", # This doesn't actually do anything
             f"--config-path={path.parent}",
             f"--config-dir={path.parent}",
             f"--config-name={path.stem}",
@@ -193,7 +193,7 @@ def test_dynamic_override_cli_dict_pipeline(temp_yaml_files, monkeypatch):
         pipe_key = 'my-dict-pipeline'
         path = temp_yaml_files[pipe_key]
         args = [
-            "exec_pipeline",
+            "itwinai exec_pipeline", # This doesn't actually do anything
             f"--config-path={path.parent}",
             f"--config-dir={path.parent}",
             f"--config-name={path.stem}",
@@ -210,6 +210,7 @@ def test_invalid_step_selection(temp_yaml_files, monkeypatch):
     """Test that a call to exec_pipeline throws a 'ConfigKeyError' error if it is called
     with an invalid step to select."""
     args = [
+        "itwinai exec_pipeline", # This doesn't actually do anything
         f"--config-path={temp_yaml_files['my-dict-pipeline']}",
         "pipe_key=my-dict-pipeline",
         "+pipe_steps=[non-existent-step]",
@@ -225,6 +226,7 @@ def test_invalid_pipeline_key(temp_yaml_files, monkeypatch):
     """Test that a call to exec_pipeline throws a 'MissingMandatoryValue' error if it is called
     with an invalid pipeline key to select"""
     args = [
+        "itwinai exec_pipeline", # This doesn't actually do anything
         f"--config-path={temp_yaml_files['my-dict-pipeline']}",
         "pipe_key=non-existent-pipeline",
     ]

@@ -689,7 +689,7 @@ def exec_pipeline_with_compose(cfg: DictConfig):
     if not OmegaConf.has_resolver("itwinai.multiply"):
         OmegaConf.register_new_resolver("itwinai.multiply", lambda x, y: x * y)
 
-    # Register custom OmegaConf resolver to allow to dynaimcally compute the current working
+    # Register custom OmegaConf resolver to allow dynamically computing the current working
     # directory. Example: some_field: ${itwinai.cwd:}/some/nested/path/in/current/working/dir
     if not OmegaConf.has_resolver("itwinai.cwd"):
         OmegaConf.register_new_resolver("itwinai.cwd", os.getcwd)
