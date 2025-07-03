@@ -145,8 +145,9 @@ runs:
       with:
         workdir: ci
         verb: call
-        # NOTE: Singularity conversion and push in the dev pipeline is always skipped because
-        # it takes too long
+        # NOTES:
+        # - Singularity conversion and push in the dev pipeline is always skipped because it takes too long
+        # - The current commit hash is appended to the tag
         args: >-
           --nickname ${{ inputs.nickname }}
           --docker-registry ghcr.io/intertwin-eu
@@ -157,7 +158,7 @@ runs:
           --dockerfile ${{ inputs.dockerfile }}
           --build-args "COMMIT_HASH=${{ env.COMMIT_HASH }},BASE_IMG_NAME=${{ inputs.base-img-name }},BASE_IMG_DIGEST=${{ env.BASE_IMG_DIGEST }}"
           dev-pipeline
-          --tag-template ${{ inputs.tag-template }}
+          --tag-template ${{ inputs.tag-template }}-${{ env.COMMIT_HASH }}
           --framework TORCH
           --password env:SINGULARITY_PWD
           --username env:SINGULARITY_USR
