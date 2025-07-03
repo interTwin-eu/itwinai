@@ -93,7 +93,7 @@ From: rocm-base-pytorch.sif
 %labels
     Author Matteo Bunino
     Project interTwin - itwinai
-    Version 0.3.2
+    Version 0.3.3
 
 %test
     # Activate conda env
