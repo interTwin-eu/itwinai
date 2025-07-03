@@ -162,7 +162,6 @@ runs:
           --framework TORCH
           --password env:SINGULARITY_PWD
           --username env:SINGULARITY_USR
-          --skip-singularity
         cloud-token: ${{ inputs.dagger-cloud-token }}
         version: "0.18.0"
       env:
