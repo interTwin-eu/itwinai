@@ -1,6 +1,6 @@
 {
   "name": "itwinai",
-  "engineVersion": "v0.15.2",
+  "engineVersion": "latest",
   "sdk": "python",
   "dependencies": [
     {

@@ -21,7 +21,7 @@ jobs:
           remove-android: true
           remove-haskell: true
           remove-codeql: true
-      
+
       - uses: actions/checkout@v4
 
       - name: Move Docker directory
@@ -30,7 +30,7 @@ jobs:
           sudo mv /var/lib/docker /docker/ &&
           sudo ln -s /docker/docker /var/lib/docker &&
           sudo systemctl restart docker
-      
+
       # Run tests with pytest in a container
       - name: Run Integration Test (development pipeline)
         uses: dagger/dagger-for-github@v7
@@ -45,7 +45,7 @@ jobs:
             --cmd "pytest,-v,--disable-warnings,-n,logical,/app/tests/,--dist,loadfile,-m,not hpc and not tensorflow"
             logs
           cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
-          version: "0.18.0"
+          version: latest
 
   # test-torch:
   #   name: Testing with pytest
@@ -61,14 +61,14 @@ jobs:
   #     - name: Make PyTorch virtualenv
   #       shell: bash -l {0}
   #       run: make torch-env-cpu
-      
+
   #     # Comment this back in to also build tensorflow env
   #     # - name: Make Tensorflow virtualenv
   #     #   shell: bash -l {0}
   #     #   run: make tensorflow-env-cpu
 
   #     # NOTE, to change the name of the env in which tests are run, set custom TORCH_ENV
-  #     # and TF_ENV env variables. Default environment names are ".venv-pytorch" and 
+  #     # and TF_ENV env variables. Default environment names are ".venv-pytorch" and
   #     # ".venv-tf"
 
   #     - name: Run pytest for workflows
