@@ -97,12 +97,12 @@ allow-direct-references = true
 
 
 # Git dependencies are not supported by PyPI and will prevent pushing new versions to it.
-# prov4ml = ["prov4ml@git+https://github.com/matbun/ProvML@new-main"]
-# prov4ml-macos = ["prov4ml[apple]@git+https://github.com/matbun/ProvML@new-main"]
+# prov4ml = ["prov4ml@git+https://github.com/matbun/ProvML@v0.0.1"]
+# prov4ml-macos = ["prov4ml[apple]@git+https://github.com/matbun/ProvML@v0.0.1"]
 # prov4ml-nvidia = [
-#   "prov4ml[nvidia]@git+https://github.com/matbun/ProvML@new-main",
+#   "prov4ml[nvidia]@git+https://github.com/matbun/ProvML@v0.0.1",
 # ]
-# prov4ml-amd = ["prov4ml[amd]@git+https://github.com/matbun/ProvML@new-main"]
+# prov4ml-amd = ["prov4ml[amd]@git+https://github.com/matbun/ProvML@v0.0.1"]
 
 [project.urls]
 Homepage = "https://www.intertwin.eu/"
@@ -140,7 +140,9 @@ conflicts = [[{ extra = "tf-cuda" }, { extra = "torch" }]]
 # Use PyTorch with CUDA for anything that is not macos
 [tool.uv.sources]
 torch = [{ index = "pytorch-cu121", marker = "platform_system != 'Darwin'" }]
-torchvision = [{ index = "pytorch-cu121", marker = "platform_system != 'Darwin'" }]
+torchvision = [
+  { index = "pytorch-cu121", marker = "platform_system != 'Darwin'" },
+]
 
 # Specific index for pytorch
 [[tool.uv.index]]
@@ -154,28 +156,28 @@ line-length = 95
 
 [tool.ruff.lint]
 select = [
-  "E",     # pycodestyle errors
-  "F",     # pyflakes: undefined names, unused imports, etc.
-  "I",     # isort: import sorting
-  "W",     # pycodestyle warnings
-  "B",     # flake8-bugbear: likely bugs and bad practices (e.g. mutable defaults)
-  "C4",    # flake8-comprehensions: unnecessary or suboptimal comprehensions
-  "SIM",   # flake8-simplify: redundant ifs, returns, boolean logic
-  "UP",    # pyupgrade: use modern Python syntax (e.g. f-strings, `Path()` literals)
-  "PTH",   # flake8-use-pathlib: use pathlib instead of os.path
-  "N",     # pep8-naming: naming conventions for classes, functions, variables
+  "E",   # pycodestyle errors
+  "F",   # pyflakes: undefined names, unused imports, etc.
+  "I",   # isort: import sorting
+  "W",   # pycodestyle warnings
+  "B",   # flake8-bugbear: likely bugs and bad practices (e.g. mutable defaults)
+  "C4",  # flake8-comprehensions: unnecessary or suboptimal comprehensions
+  "SIM", # flake8-simplify: redundant ifs, returns, boolean logic
+  "UP",  # pyupgrade: use modern Python syntax (e.g. f-strings, `Path()` literals)
+  "PTH", # flake8-use-pathlib: use pathlib instead of os.path
+  "N",   # pep8-naming: naming conventions for classes, functions, variables
 ]
 ignore = [
-  "E203",      # Whitespace before ':' – conflicts with Black
-  "PTH109",    # Allow os.getcwd()
-  "PTH122",    # Avoid replacing os.path.splitext – Path.suffix drops info (e.g. .tar.gz)
-  "PTH123",    # Allow use of builtin open() – Path.open() adds no real benefit
-  "UP006",     # Keep using typing.List/Dict/Set – prefer consistency over builtin generics
-  "UP035",     # Same as above – avoid auto-converting to list[]/dict[] syntax
-  "B904",      # Don't require `from err` in CLI code – breaks Typer/Click behavior
-  "SIM108",    # Don't always use ternary operators — they can be kind of hard to read sometimes
-  "N806",      # Allow UPPER_CASE_VARIABLE_NAMES in function scopes (for default values etc.)
-  "N812",      # Allow importing stuff as uppercase (e.g. function as F)
+  "E203",   # Whitespace before ':' – conflicts with Black
+  "PTH109", # Allow os.getcwd()
+  "PTH122", # Avoid replacing os.path.splitext – Path.suffix drops info (e.g. .tar.gz)
+  "PTH123", # Allow use of builtin open() – Path.open() adds no real benefit
+  "UP006",  # Keep using typing.List/Dict/Set – prefer consistency over builtin generics
+  "UP035",  # Same as above – avoid auto-converting to list[]/dict[] syntax
+  "B904",   # Don't require `from err` in CLI code – breaks Typer/Click behavior
+  "SIM108", # Don't always use ternary operators — they can be kind of hard to read sometimes
+  "N806",   # Allow UPPER_CASE_VARIABLE_NAMES in function scopes (for default values etc.)
+  "N812",   # Allow importing stuff as uppercase (e.g. function as F)
 ]
 fixable = ["ALL"]
 
