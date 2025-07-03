@@ -678,18 +678,21 @@ def exec_pipeline_with_compose(cfg: DictConfig):
 
     from itwinai.utils import filter_pipeline_steps
 
-    # Register custom OmegaConf resolver to allow to dynaimcally compute the current working
-    # directory. Example: some_field: ${itwinai.cwd:}/some/nested/path/in/current/working/dir
-    OmegaConf.register_new_resolver("itwinai.cwd", os.getcwd)
-
     def range_resolver(x, y=None, step=1):
         """Custom OmegaConf resolver for range."""
         if y is None:
             return list(range(int(x)))
         return list(range(int(x), int(y), int(step)))
 
-    OmegaConf.register_new_resolver("itwinai.range", range_resolver)
-    OmegaConf.register_new_resolver("itwinai.multiply", lambda x, y: x * y)
+    if OmegaConf.has_resolver("itwinai.range"):
+        OmegaConf.register_new_resolver("itwinai.range", range_resolver)
+    if OmegaConf.has_resolver("itwinai.multiply"):
+        OmegaConf.register_new_resolver("itwinai.multiply", lambda x, y: x * y)
+
+    # Register custom OmegaConf resolver to allow to dynaimcally compute the current working
+    # directory. Example: some_field: ${itwinai.cwd:}/some/nested/path/in/current/working/dir
+    if OmegaConf.has_resolver("itwinai.cwd"):
+        OmegaConf.register_new_resolver("itwinai.cwd", os.getcwd)
 
     pipe_steps = OmegaConf.select(cfg, "pipe_steps", default=None)
     pipe_key = OmegaConf.select(cfg, "pipe_key", default="training_pipeline")
