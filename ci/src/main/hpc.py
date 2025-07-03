@@ -17,8 +17,8 @@ from dagger import Doc, dag, function, object_type
 class Singularity:
     """Manage Singularity images."""
 
-    base_image: Annotated[dagger.Container, Doc("Base singularity image")] = (
-        dag.container().from_("quay.io/singularity/docker2singularity")
+    base_image: Annotated[str, Doc("Base singularity image")] = (
+        "quay.io/singularity/docker2singularity"
     )
     docker: Annotated[
         dagger.Container | None, Doc("Docker container to convert to Singularity")
@@ -40,13 +40,16 @@ mv /usr/local/oras-install/oras /usr/local/bin/oras
 chmod +x /usr/local/bin/oras
 rm -rf oras_${ORAS_VERSION}_linux_amd64.tar.gz /usr/local/oras-install
 """
-        return self.base_image.with_exec(["bash", "-c", oras_install_cmd])
+        return (
+            dag.container().from_(self.base_image).with_exec(["bash", "-c", oras_install_cmd])
+        )
 
     @function
     def convert(self) -> dagger.File:
         """Export Docker container to a Singularity file."""
         return (
-            self.base_image.with_file("img.tar", self.docker.as_tarball())
+            self.client()
+            .with_file("img.tar", self.docker.as_tarball())
             .with_exec(["singularity", "build", "img.sif", "oci-archive://img.tar"])
             .file("img.sif")
         )
@@ -68,7 +71,8 @@ rm -rf oras_${ORAS_VERSION}_linux_amd64.tar.gz /usr/local/oras-install
         """Export container and publish it to some registry using singularity push (slow)."""
         print(f"The Singularity image will be published at: {uri}")
         return await (
-            self.base_image.with_file("container.sif", self.convert())
+            self.client()
+            .with_file("container.sif", self.convert())
             .with_secret_variable(name="SINGULARITY_DOCKER_USERNAME", secret=username)
             .with_secret_variable(name="SINGULARITY_DOCKER_PASSWORD", secret=password)
             .with_exec(["singularity", "push", "container.sif", f"{uri}"])
