@@ -13,29 +13,35 @@ in form of pipelines.
 
 from __future__ import annotations
 
-from typing import Any, Dict, Iterable, Optional, Tuple, Union
+from typing import Any, Dict, Iterable, Tuple
 
 from .components import BaseComponent, monitor_exec
 from .utils import SignatureInspector
 
 
 class Pipeline(BaseComponent):
-    """Executes a set of components arranged as a pipeline."""
+    """Executes a set of components arranged as a pipeline.
+
+    Args:
+        steps (Dict[str, BaseComponent] | Iterable[BaseComponent]): can be a list or a
+            dictionary of steps of type :class:`~itwinai.components.BaseComponent`.
+        name (str, optional): name of the pipeline. Defaults to None.
+    """
 
     #: Pipeline steps. Can be a list of ``BaseComponent`` or a dictionary
     #: allowing the user to name each ``BaseComponent``.
-    steps: Union[Dict[str, BaseComponent], Iterable[BaseComponent]]
+    steps: Dict[str, BaseComponent] | Iterable[BaseComponent]
 
     def __init__(
         self,
-        steps: Union[Dict[str, BaseComponent], Iterable[BaseComponent]],
-        name: Optional[str] = None,
+        steps: Dict[str, BaseComponent] | Iterable[BaseComponent],
+        name: str | None = None,
     ):
         super().__init__(name=name)
         self.save_parameters(steps=steps, name=name)
         self.steps = steps
 
-    def __getitem__(self, subscript: Union[str, int, slice]) -> Pipeline:
+    def __getitem__(self, subscript: str | int | slice) -> Pipeline:
         if isinstance(subscript, slice):
             # First, convert to list if is a dict
             if isinstance(self.steps, dict):
@@ -59,7 +65,7 @@ class Pipeline(BaseComponent):
 
     @monitor_exec
     def execute(self, *args) -> Any:
-        """ "Execute components sequentially."""
+        """Execute components sequentially."""
         if isinstance(self.steps, dict):
             steps = list(self.steps.values())
         else:
