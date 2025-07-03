@@ -12,7 +12,6 @@ name: Container CI
 on:
   push:
     branches: [main]
-  pull_request:
 
   # If not triggered on push, but on PR, the commit hash is a bit weird
   # pull_request:
@@ -43,18 +42,18 @@ jobs:
             # Tests on HPC are skipped as this image is not really meant to run on HPC
             skip-hpc: true
             skip-singularity: false
-          # - base-img-name: "python:3.10-slim"
-          #   dockerfile: "../env-files/torch/slim.Dockerfile"
-          #   nickname: "torch-slim"
-          #   tag-template: "@{itwinai_version}-slim-torch@{framework_version}-@{os_version}"
-          #   skip-hpc: false
-          #   skip-singularity: false
-          # - base-img-name: "quay.io/jupyter/minimal-notebook:python-3.12"
-          #   dockerfile: "../env-files/torch/jupyter/slim.Dockerfile"
-          #   nickname: "jlab-slim"
-          #   tag-template: "jlab-slim-@{itwinai_version}-torch@{framework_version}-@{os_version}"
-          #   skip-hpc: true
-          #   skip-singularity: false
+          - base-img-name: "python:3.10-slim"
+            dockerfile: "../env-files/torch/slim.Dockerfile"
+            nickname: "torch-slim"
+            tag-template: "@{itwinai_version}-slim-torch@{framework_version}-@{os_version}"
+            skip-hpc: false
+            skip-singularity: false
+          - base-img-name: "quay.io/jupyter/minimal-notebook:python-3.12"
+            dockerfile: "../env-files/torch/jupyter/slim.Dockerfile"
+            nickname: "jlab-slim"
+            tag-template: "jlab-slim-@{itwinai_version}-torch@{framework_version}-@{os_version}"
+            skip-hpc: true
+            skip-singularity: false
 
     steps:
       - name: Checkout Code
