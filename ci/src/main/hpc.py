@@ -7,6 +7,7 @@
 # - Matteo Bunino <matteo.bunino@cern.ch> - CERN
 # --------------------------------------------------------------------------------------
 
+from textwrap import dedent
 from typing import Annotated
 
 import dagger
@@ -27,19 +28,21 @@ class Singularity:
     @function
     def client(self) -> dagger.Container:
         """Return base image container with Singularity and Oras clients."""
-        oras_install_cmd = """
-# install prerequisites
-apk update && apk add --no-cache curl tar ca-certificates
 
-# grab the latest ORAS (here v1.2.2) and install
-export ORAS_VERSION=1.2.2
-curl -LO "https://github.com/oras-project/oras/releases/download/v${ORAS_VERSION}/oras_${ORAS_VERSION}_linux_amd64.tar.gz"
-mkdir -p /usr/local/oras-install
-tar -xzf oras_${ORAS_VERSION}_linux_amd64.tar.gz -C /usr/local/oras-install
-mv /usr/local/oras-install/oras /usr/local/bin/oras
-chmod +x /usr/local/bin/oras
-rm -rf oras_${ORAS_VERSION}_linux_amd64.tar.gz /usr/local/oras-install
-"""
+        oras_install_cmd = dedent("""
+        # install prerequisites
+        apk update && apk add --no-cache curl tar ca-certificates
+
+        # grab the latest ORAS (here v1.2.2) and install
+        export ORAS_VERSION=1.2.2
+        curl -LO "https://github.com/oras-project/oras/releases/download/v${ORAS_VERSION}/oras_${ORAS_VERSION}_linux_amd64.tar.gz"
+        mkdir -p /usr/local/oras-install
+        tar -xzf oras_${ORAS_VERSION}_linux_amd64.tar.gz -C /usr/local/oras-install
+        mv /usr/local/oras-install/oras /usr/local/bin/oras
+        chmod +x /usr/local/bin/oras
+        rm -rf oras_${ORAS_VERSION}_linux_amd64.tar.gz /usr/local/oras-install
+        """).strip()
+
         return (
             dag.container().from_(self.base_image).with_exec(["bash", "-c", oras_install_cmd])
         )

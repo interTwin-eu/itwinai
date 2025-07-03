@@ -22,7 +22,9 @@ from pathlib import Path
 from typing import Any, Callable, Dict, Hashable, List, Tuple, Type
 from urllib.parse import urlparse
 
+import typer
 import yaml
+from omegaconf import DictConfig, ListConfig, errors
 
 from .loggers import Logger
 
@@ -355,5 +357,46 @@ def time_and_log(
         step=step,
     )
 
-
     return result
+
+
+def filter_pipeline_steps(pipeline_cfg: DictConfig, pipe_steps: List[Any]) -> None:
+    """Filters the steps in the pipeline configuration, `pipeline_cfg`, using `pipe_steps`,
+    and validates the provided `pipe_steps`. Changes the `pipeline_cfg` object in-place. In
+    the event of a validation error, the program is exited, as this is expected to be used
+    from the CLI.
+    """
+    if "steps" not in pipeline_cfg:
+        py_logger.error(
+            "Pipelines have to contain the key `steps`, but the given pipeline does not. Make"
+            " sure that your pipeline has at least one step. Are you sure you used the right"
+            " pipe key?"
+        )
+        raise typer.Exit(1)
+
+    any_numeric_steps = any(isinstance(step, int) for step in pipe_steps)
+    any_string_steps = any(isinstance(step, str) for step in pipe_steps)
+    if any_numeric_steps and isinstance(pipeline_cfg.steps, DictConfig):
+        py_logger.error(
+            "We don't support numbered indices for named steps. Filter steps using their"
+            " names instead of indices."
+        )
+        raise typer.Exit(1)
+    if any_string_steps and isinstance(pipeline_cfg.steps, ListConfig):
+        py_logger.error(
+            "The steps in the given pipeline are unnamed, but some of the `pipe_steps` are"
+            " named. This is not supported. Use indices to filter steps when the steps are"
+            " unnamed."
+        )
+        raise typer.Exit(1)
+
+    try:
+        pipeline_cfg.steps = [pipeline_cfg.steps[step] for step in pipe_steps]
+        py_logger.info(f"Successfully selected steps {pipe_steps}")
+    except errors.ConfigKeyError:
+        py_logger.error(
+            "Could not find all selected steps. Please ensure that all steps exist and that"
+            f" you provided to the dotpath to them. \n\tSteps provided: {pipe_steps}."
+            f"\n\tValid steps: {pipeline_cfg.steps.keys()}"
+        )
+        raise typer.Exit(1)
