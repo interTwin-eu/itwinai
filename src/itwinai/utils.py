@@ -23,12 +23,11 @@ from pathlib import Path
 from typing import Any, Callable, Dict, Hashable, List, Tuple, Type
 from urllib.parse import urlparse
 
-from requests.exceptions import HTTPError, ConnectionError, Timeout, RequestException
+import requests
 import typer
 import yaml
-from yarl import URL
 from omegaconf import DictConfig, ListConfig, OmegaConf, errors
-import requests
+from requests.exceptions import ConnectionError, HTTPError, RequestException, Timeout
 
 from .loggers import Logger
 
