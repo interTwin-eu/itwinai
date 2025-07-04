@@ -649,7 +649,9 @@ def exec_pipeline(
     by passing "+pipe_key=your_pipeline" in the list of overrides, and to execute only a
     subset of the steps, you can pass "+pipe_steps=[0,1]".
     """
-    from itwinai.utils import make_config_paths_absolute
+    from validators import url
+
+    from itwinai.utils import make_config_paths_absolute, retrieve_remote_omegaconf_file
 
     del sys.argv[0]
 
@@ -660,18 +662,27 @@ def exec_pipeline(
     # Process CLI arguments to handle paths
     sys.argv = make_config_paths_absolute(sys.argv)
 
-    exec_pipeline_with_compose()
+    config = None
+    if url(config_name):
+        py_logger.info("Treating `config-name` as a URL.")
+        config = retrieve_remote_omegaconf_file(url=config_name)
+
+    exec_pipeline_with_compose(cfg_passthrough=config)
 
 
 @hydra.main(version_base=None, config_path=os.getcwd(), config_name="config")
 def exec_pipeline_with_compose(cfg: DictConfig):
-    """Hydra entry function. The hydra.main decorator parses a configuration file
-    (under config_path), which contains a pipeline definition, and passes it to this function
-    as an omegaconf.DictConfig object (called cfg). This function then instantiates and
-    executes the resulting pipeline object.
-    Filters steps if `pipe_steps` is provided, otherwise executes the entire pipeline.
-    For more information on hydra.main, please see
-    https://hydra.cc/docs/tutorials/basic/your_first_app/simple_cli/."""
+    """Hydra entry function.
+
+    The hydra.main decorator parses a configuration file (under config_path), which contains a
+    pipeline definition, and passes it to this function as an omegaconf.DictConfig object
+    (called cfg).
+
+    This function then instantiates and executes the resulting pipeline object. Filters steps
+    if `pipe_steps` is provided, otherwise executes the entire pipeline. For more information
+    on hydra.main, please see
+    https://hydra.cc/docs/tutorials/basic/your_first_app/simple_cli/.
+    """
 
     from hydra.utils import instantiate
     from omegaconf import OmegaConf

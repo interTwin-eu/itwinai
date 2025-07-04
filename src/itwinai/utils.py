@@ -12,6 +12,7 @@
 
 import functools
 import inspect
+import io
 import logging
 import random
 import sys
@@ -22,9 +23,12 @@ from pathlib import Path
 from typing import Any, Callable, Dict, Hashable, List, Tuple, Type
 from urllib.parse import urlparse
 
+from requests.exceptions import HTTPError, ConnectionError, Timeout, RequestException
 import typer
 import yaml
-from omegaconf import DictConfig, ListConfig, errors
+from yarl import URL
+from omegaconf import DictConfig, ListConfig, OmegaConf, errors
+import requests
 
 from .loggers import Logger
 
@@ -400,3 +404,47 @@ def filter_pipeline_steps(pipeline_cfg: DictConfig, pipe_steps: List[Any]) -> No
             f"\n\tValid steps: {pipeline_cfg.steps.keys()}"
         )
         raise typer.Exit(1)
+
+
+def retrieve_remote_omegaconf_file(url: str) -> DictConfig | ListConfig:
+    """Fetches and parses a remote OmegaConf configuration file.
+
+    Args:
+       url: URL to the raw configuration file (YAML/JSON format), e.g. raw GitHub link.
+
+    Returns:
+       Parsed OmegaConf configuration as DictConfig or ListConfig.
+
+    Raises:
+       typer.Exit: If the request to the URL or the parsing fails.
+    """
+    try:
+        response = requests.get(url, timeout=10)
+        response.raise_for_status()
+    except HTTPError as exception:
+        py_logger.error(f"Failed to fetch data from '{url}' - '{exception.response.text}'")
+        raise typer.Exit(1)
+    except ConnectionError:
+        py_logger.error(
+            f"Failed to connect to '{url}' - Check your internet connection or if the server"
+            " is available. Did you write the URL correctly?"
+        )
+        raise typer.Exit(1)
+    except Timeout:
+        py_logger.error(f"Request to '{url}' timed out - The server took too long to respond")
+        raise typer.Exit(1)
+    except RequestException as exception:
+        py_logger.error(f"Failed to fetch data from '{url}' - {str(exception)}")
+        raise typer.Exit(1)
+
+    response_io_stream = io.StringIO(response.text)
+    try:
+        cfg = OmegaConf.load(response_io_stream)
+    except Exception as exception:
+        py_logger.error(
+            f"Failed to load configuration from '{url}'. Did you remember to pass a raw file?"
+            f"\nException: '{str(exception)}'"
+        )
+        raise typer.Exit(1)
+
+    return cfg
