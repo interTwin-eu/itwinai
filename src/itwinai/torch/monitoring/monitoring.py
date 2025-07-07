@@ -54,7 +54,6 @@ def probe_gpu_utilization_loop(
     Args:
         node_idx: The index of the compute node that the function is called by, used
             for logging purposes.
-        num_local_gpus: Number of GPUs on the current compute node.
         num_global_gpus: Number of GPUs on all nodes combined.
         strategy: Which distributed strategy is being used, e.g. "ddp" or "horovod".
         log_dict: Dictionary for storing logging data on. Should be managed by a
@@ -161,7 +160,6 @@ def measure_gpu_utilization(method: Callable) -> Callable:
                 target=probe_gpu_utilization_loop,
                 kwargs={
                     "node_idx": node_idx,
-                    "num_local_gpus": num_local_gpus,
                     "num_global_gpus": num_global_gpus,
                     "strategy_name": strategy_name,
                     "log_dict": data,
