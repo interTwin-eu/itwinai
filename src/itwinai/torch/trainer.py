@@ -23,6 +23,7 @@ from pathlib import Path
 from time import perf_counter as default_timer
 from typing import Any, Callable, Dict, List, Literal, Tuple, Union
 
+import mlflow
 import ray.train
 import ray.tune
 import torch
@@ -192,8 +193,10 @@ class TorchTrainer(Trainer, LogMixin):
     run_id: str
     #: Toggle for Ray time logging
     time_ray: bool = False
-    # parent run id for nested runs in mlflow
-    parent_run_id: str | None = None
+    # Tune run id for nested runs in mlflow
+    tune_run_id: str | None = None
+    # Trial run id for nested runs in mlflow
+    trial_run_id: str | None = None
 
     def __init__(
         self,
@@ -921,22 +924,10 @@ class TorchTrainer(Trainer, LogMixin):
 
         if self.logger:
             self.logger.create_logger_context(run_name=self.run_id)
-            if isinstance(self.logger, MLFlowLogger):
-                self.parent_run_id = self.logger.active_run.info.run_id
-            elif isinstance(self.logger, LoggersCollection):
-                mlflow_run_ids = []
-                for logger in self.logger.loggers:
-                    if isinstance(logger, MLFlowLogger):
-                        mlflow_run_ids.append(logger.active_run.info.run_id)
-
-                if len(mlflow_run_ids) > 1:
-                    py_logger.warning("More than one mlflow logger given. Using first only.")
-
-                if mlflow_run_ids:
-                    self.parent_run_id = mlflow_run_ids[0]
-
+            if (run := mlflow.active_run()) is not None:
+                self.tune_run_id = run.info.run_id
             py_logger.debug(
-                f"Logger for Ray Tune initialized with run ID: {self.parent_run_id}"
+                f"Logger for Ray Tune initialized with run ID: {self.tune_run_id}"
             )
 
         # Create the tuner with the driver function
@@ -974,14 +965,17 @@ class TorchTrainer(Trainer, LogMixin):
 
         if self.logger:
             py_logger.debug(f"Using logger: {self.logger.__class__.__name__}")
-            if self.parent_run_id is not None:
+            if self.tune_run_id is not None:
                 # Nest the logger of each trial for ray (non-HPO is still nested as a trial)
                 trial_id = ray.tune.get_context().get_trial_name()
                 self.logger.create_logger_context(
                     rank=self.strategy.global_rank(),
-                    run_id=self.parent_run_id,
-                    run_name=f"trial_{trial_id}",
+                    run_id=self.tune_run_id,
+                    run_name=trial_id,
                 )
+                # Get nested trial run ID for MLFlow
+                if (run := mlflow.active_run()) is not None:
+                    self.trial_run_id = run.info.run_id
             else:
                 # Create a logger context for the current worker without nesting
                 self.logger.create_logger_context(rank=self.strategy.global_rank())

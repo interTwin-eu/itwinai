@@ -540,7 +540,6 @@ class MLFlowLogger(Logger):
 
         self.mlflow = mlflow
 
-    @check_not_initialized
     def create_logger_context(self, rank: int = 0, **kwargs) -> "mlflow.ActiveRun | None":
         """Initializes the logger context. Start MLFLow run.
 
@@ -1075,7 +1074,6 @@ class LoggersCollection(Logger):
                 **kwargs,
             )
 
-    @check_not_initialized
     def create_logger_context(self, rank: int = 0, **kwargs) -> None:
         """Initializes all loggers.
 

@@ -39,7 +39,7 @@ def profile_gpu_utilization(
     local_rank: int,
     global_rank: int,
     logger: Logger,
-    parent_run_id: str,
+    parent_run_id: str | None = None,
     probing_interval: int = 2,
     warmup_time: int = 5,
 ) -> None:
@@ -126,7 +126,7 @@ def measure_gpu_utilization(method: Callable) -> Callable:
         warmup_time = 5
 
         strategy = self.strategy
-        parent_run_id = self.parent_run_id
+        parent_run_id = self.trial_run_id
 
         local_rank = strategy.local_rank()
         global_rank = strategy.global_rank()
