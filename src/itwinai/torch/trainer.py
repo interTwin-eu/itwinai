@@ -22,7 +22,6 @@ from collections import defaultdict
 from pathlib import Path
 from time import perf_counter as default_timer
 from typing import Any, Callable, Dict, List, Literal, Tuple, Union
-from uuid import uuid4
 
 import ray.train
 import ray.tune
@@ -49,7 +48,7 @@ from itwinai.torch.profiling.profiler import profile_torch_trainer
 
 from ..components import Trainer, monitor_exec
 from ..distributed import ray_cluster_is_running
-from ..loggers import EpochTimeTracker, Logger, LogMixin
+from ..loggers import EpochTimeTracker, Logger, LoggersCollection, LogMixin, MLFlowLogger
 from ..utils import EPOCH_TIME_DIR, generate_random_name, load_yaml, to_uri
 from .config import TrainingConfiguration
 from .distributed import (
@@ -920,17 +919,27 @@ class TorchTrainer(Trainer, LogMixin):
                 " Trials stopped by the scheduler will not store gpu data to disk."
             )
 
-        # Create the tuner with the driver function
         if self.logger:
-            suffix = uuid4().hex
-            mlflow_run_id = f"{self.run_id}_{suffix}"
-            self.logger.create_logger_context(run_id=mlflow_run_id, run_name=self.run_id)
-            # store parent run id for nested trials
-            self.parent_run_id = mlflow_run_id
+            self.logger.create_logger_context(run_name=self.run_id)
+            if isinstance(self.logger, MLFlowLogger):
+                self.parent_run_id = self.logger.active_run.info.run_id
+            elif isinstance(self.logger, LoggersCollection):
+                mlflow_run_ids = []
+                for logger in self.logger.loggers:
+                    if isinstance(logger, MLFlowLogger):
+                        mlflow_run_ids.append(logger.active_run.info.run_id)
+
+                if len(mlflow_run_ids) > 1:
+                    py_logger.warning("More than one mlflow logger given. Using first only.")
+
+                if mlflow_run_ids:
+                    self.parent_run_id = mlflow_run_ids[0]
+
             py_logger.debug(
                 f"Logger for Ray Tune initialized with run ID: {self.parent_run_id}"
             )
 
+        # Create the tuner with the driver function
         tuner = ray.tune.Tuner(
             trainable=trainer,
             param_space=param_space,
@@ -972,7 +981,6 @@ class TorchTrainer(Trainer, LogMixin):
                     rank=self.strategy.global_rank(),
                     run_id=self.parent_run_id,
                     run_name=f"trial_{trial_id}",
-                    nested=True,
                 )
             else:
                 # Create a logger context for the current worker without nesting

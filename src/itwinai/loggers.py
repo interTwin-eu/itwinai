@@ -205,7 +205,7 @@ class Logger(LogMixin):
 
     @property
     def run_id(self) -> Optional[Union[int, str]]:
-        """Return the experiment version."""
+        """Return the id of the current run."""
         return self._run_id
 
     @property
@@ -541,7 +541,7 @@ class MLFlowLogger(Logger):
         self.mlflow = mlflow
 
     @check_not_initialized
-    def create_logger_context(self, rank: int = 0, **kwargs) -> "mlflow.ActiveRun":
+    def create_logger_context(self, rank: int = 0, **kwargs) -> "mlflow.ActiveRun | None":
         """Initializes the logger context. Start MLFLow run.
 
         Args:
@@ -549,8 +549,6 @@ class MLFlowLogger(Logger):
                 used in distributed environments. Defaults to 0.
 
             kwargs:
-                - ``nested`` (bool): whether to create a nested run.
-                  Defaults to False.
                 - ``run_id`` (Optional[str]): MLFlow run ID to attach to.
                   Defaults to None.
                 - ``run_name`` (Optional[str]): name of the MLFlow run.
@@ -564,7 +562,6 @@ class MLFlowLogger(Logger):
             self.is_initialized = True
             return
 
-        nested = kwargs.get("nested", False)
         run_id = kwargs.get("run_id")
         run_name = kwargs.get("run_name")
 
@@ -573,7 +570,13 @@ class MLFlowLogger(Logger):
 
         active_run = self.mlflow.active_run()
 
-        if active_run and not nested:
+        if run_id:
+            self.active_run = self.mlflow.start_run(
+                parent_run_id=run_id,
+                run_name=run_name,
+                description=self.run_description,
+            )
+        elif active_run:
             py_logger.info(
                 f"{self.__class__.__name__}: re-using existing MLflow run "
                 f"(run_id={active_run.info.run_id}) on rank {rank}"
@@ -581,9 +584,7 @@ class MLFlowLogger(Logger):
             self.active_run = active_run
         else:
             self.active_run = self.mlflow.start_run(
-                run_id=run_id,
                 run_name=run_name,
-                nested=nested,
                 description=self.run_description,
             )
 
