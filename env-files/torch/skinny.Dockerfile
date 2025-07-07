@@ -36,7 +36,7 @@ RUN uv venv \
     --index-strategy unsafe-best-match \
     # Install packages
     .[torch] \
-    "prov4ml[nvidia]@git+https://github.com/matbun/ProvML" \
+    "prov4ml[nvidia]@git+https://github.com/matbun/ProvML@0.0.2" \
     pytest \
     pytest-xdist \
     psutil
