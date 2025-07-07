@@ -30,6 +30,7 @@
    how-it-works/loggers/explain_loggers
    how-it-works/workflows/explain_workflows
    how-it-works/hpo/explain-hpo
+   how-it-works/scalability-report/scalability_report
 
 .. toctree::
    :maxdepth: 2
