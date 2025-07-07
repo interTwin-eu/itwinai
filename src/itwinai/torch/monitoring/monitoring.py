@@ -39,6 +39,7 @@ def profile_gpu_utilization(
     local_rank: int,
     global_rank: int,
     logger: Logger,
+    parent_run_id: str,
     probing_interval: int = 2,
     warmup_time: int = 5,
 ) -> None:
@@ -75,8 +76,6 @@ def profile_gpu_utilization(
 
     gpu_handle = backend.get_handle_by_id(visible_gpu_ids[local_rank])
 
-    py_logger.warning("GPU utilization needs a MLFlowLogger to log data")
-
     # warmup time to wait for the training to start
     time.sleep(warmup_time)
 
@@ -85,7 +84,6 @@ def profile_gpu_utilization(
     # created nested logging on global rank of current worker
     # TODO: add custom run_ids for the nested runs
     run_name = f"gpu_utilization_{global_rank}"
-    parent_run_id = logger.run_id
 
     logger.create_logger_context(
         rank=global_rank, nested=True, run_id=parent_run_id, run_name=run_name
@@ -130,6 +128,7 @@ def measure_gpu_utilization(method: Callable) -> Callable:
         warmup_time = 5
 
         strategy = self.strategy
+        parent_run_id = self.parent_run_id
 
         local_rank = strategy.local_rank()
         global_rank = strategy.global_rank()
@@ -140,6 +139,7 @@ def measure_gpu_utilization(method: Callable) -> Callable:
                 "local_rank": local_rank,
                 "global_rank": global_rank,
                 "logger": self.logger,
+                "parent_run_id": parent_run_id,
                 "probing_interval": gpu_probing_interval,
                 "warmup_time": warmup_time,
             },

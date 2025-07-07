@@ -573,11 +573,7 @@ class MLFlowLogger(Logger):
 
         active_run = self.mlflow.active_run()
 
-        if nested and run_id and active_run is None:
-            self.mlflow.start_run(run_id=run_id)
-            active_run = self.mlflow.active_run()
-
-        if not nested and active_run is not None:
+        if active_run and not nested:
             py_logger.info(
                 f"{self.__class__.__name__}: re-using existing MLflow run "
                 f"(run_id={active_run.info.run_id}) on rank {rank}"
@@ -585,14 +581,16 @@ class MLFlowLogger(Logger):
             self.active_run = active_run
         else:
             self.active_run = self.mlflow.start_run(
-                nested=nested,
+                run_id=run_id,
                 run_name=run_name,
+                nested=nested,
                 description=self.run_description,
             )
 
         self._run_id = self.active_run.info.run_id
         self._experiment_id = self.active_run.info.experiment_id
         self.is_initialized = True
+
         return self.active_run
 
     @check_initialized
@@ -1084,9 +1082,8 @@ class LoggersCollection(Logger):
             rank (int): global rank of current process,
                 used in distributed environments. Defaults to 0.
         """
-        nested = kwargs.get("nested", False)
         for logger in self.loggers:
-            logger.create_logger_context(rank=rank, nested=nested)
+            logger.create_logger_context(rank=rank, **kwargs)
 
         self.is_initialized = True
 

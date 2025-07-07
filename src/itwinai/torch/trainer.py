@@ -22,6 +22,7 @@ from collections import defaultdict
 from pathlib import Path
 from time import perf_counter as default_timer
 from typing import Any, Callable, Dict, List, Literal, Tuple, Union
+from uuid import uuid4
 
 import ray.train
 import ray.tune
@@ -192,6 +193,8 @@ class TorchTrainer(Trainer, LogMixin):
     run_id: str
     #: Toggle for Ray time logging
     time_ray: bool = False
+    # parent run id for nested runs in mlflow
+    parent_run_id: str | None = None
 
     def __init__(
         self,
@@ -466,11 +469,11 @@ class TorchTrainer(Trainer, LogMixin):
                 )
 
     def _time_and_log(
-            self,
-            fn: Callable,
-            identifier: str,
-            step: int | None = None,
-            destroy_current_logger_context: bool = False,
+        self,
+        fn: Callable,
+        identifier: str,
+        step: int | None = None,
+        destroy_current_logger_context: bool = False,
     ) -> Any:
         """Time and log the execution of a function (using time.monotonic()).
 
@@ -499,9 +502,7 @@ class TorchTrainer(Trainer, LogMixin):
         t_delta = t_end - t_start
 
         if self.logger.is_initialized and destroy_current_logger_context:
-            py_logger.warning(
-                f"Destroying logger context for timing {identifier}."
-            )
+            py_logger.warning(f"Destroying logger context for timing {identifier}.")
             self.logger.destroy_logger_context()
             self.logger.is_initialized = False
 
@@ -920,6 +921,16 @@ class TorchTrainer(Trainer, LogMixin):
             )
 
         # Create the tuner with the driver function
+        if self.logger:
+            suffix = uuid4().hex
+            mlflow_run_id = f"{self.run_id}_{suffix}"
+            self.logger.create_logger_context(run_id=mlflow_run_id, run_name=self.run_id)
+            # store parent run id for nested trials
+            self.parent_run_id = mlflow_run_id
+            py_logger.debug(
+                f"Logger for Ray Tune initialized with run ID: {self.parent_run_id}"
+            )
+
         tuner = ray.tune.Tuner(
             trainable=trainer,
             param_space=param_space,
@@ -954,7 +965,19 @@ class TorchTrainer(Trainer, LogMixin):
 
         if self.logger:
             py_logger.debug(f"Using logger: {self.logger.__class__.__name__}")
-            self.logger.create_logger_context(rank=self.strategy.global_rank())
+            if self.parent_run_id is not None:
+                # Nest the logger of each trial for ray (non-HPO is still nested as a trial)
+                trial_id = ray.tune.get_context().get_trial_name()
+                self.logger.create_logger_context(
+                    rank=self.strategy.global_rank(),
+                    run_id=self.parent_run_id,
+                    run_name=f"trial_{trial_id}",
+                    nested=True,
+                )
+            else:
+                # Create a logger context for the current worker without nesting
+                self.logger.create_logger_context(rank=self.strategy.global_rank())
+
             py_logger.debug("...the logger has been initialized")
             hparams = self.config.model_dump()
             hparams["distributed_strategy"] = self.strategy.__class__.__name__
