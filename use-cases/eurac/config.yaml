@@ -14,36 +14,32 @@
 # General configuration
 experiment_name: "itwinai"
 experiment_run: "vwc_actevap"
-
 work_dir: /p/scratch/intertwin/datasets/eurac/model
 
-train_temporal_range: ["2016-01-01", "2018-12-31"]
-valid_temporal_range: ["2019-01-01", "2020-12-31"]
+train_temporal_range: ["2016-01-01", "2017-12-31"]
+valid_temporal_range: ["2018-01-01", "2018-12-31"]
 test_temporal_range: ["2019-01-01", "2020-12-31"]
 
 seed: 10 
-
 device: "cuda:0"
 
 # === Model ===
 
 model_file_name: model.pt
-
 model: cudalstm
-
 hidden_size: 136
 dropout: 0.4
+lstm_layers: 1
+lstm_batch_norm: False
 
 model_head_layer: regression # distr_normal
 model_head_activation: linear
-model_head_kwargs: null
+model_head_kwargs: {}
   
 # === Training ===
 
 strategy: ddp #null
-
 hython_trainer: rnntrainer
-
 loss_fn:
   _target_: hython.losses.RMSELoss
     
@@ -65,15 +61,10 @@ lr_scheduler:
   patience: 10
 
 seq_length: 120
-
 learning_rate: 0.001
-
 batch: 256
-
-epochs: 30
-
+epochs: 20
 gradient_clip: null
-
 target_weights: even # null, even, or dict
 
 # which steps are used in the computation of the loss function
@@ -82,35 +73,56 @@ predict_steps: 0 # all # (prediction: 0 = t ), ( forecasts: 1 = t+1, 2 = t + 2)
 # > Donwsampling < 
 
 # spatial downsampling
+train_downsampler: 
+  _target_: hython.sampler.downsampler.RegularIntervalDownsampler
+  intervals: [3,3]
+  origin: [0,0]
+
+valid_downsampler:  
+  _target_: hython.sampler.downsampler.RegularIntervalDownsampler
+  intervals: [3,3]
+  origin: [1,1]
 train_downsampler: null 
+  # _target_: hython.sampler.downsampler.RandomDownsampler
+  # frac_time: null
+  # frac_space: 0.005
+
   # _target_: hython.sampler.downsampler.RegularIntervalDownsampler
   # intervals: [3,3]
   # origin: [0,0]
 
 valid_downsampler: null 
+  # _target_: hython.sampler.downsampler.RandomDownsampler
+  # frac_time: null
+  # frac_space: 0.005
+
   # _target_: hython.sampler.downsampler.RegularIntervalDownsampler
   # intervals: [3,3]
   # origin: [1,1]
 
-test_downsampler: null
-  # _target_: hython.sampler.downsampler.RegularIntervalDownsampler
-  # intervals: [3,3]
-  # origin: [2,2]
+test_downsampler: 
+  _target_: hython.sampler.downsampler.RegularIntervalDownsampler
+  intervals: [3,3]
+  origin: [2,2]
 
 
 # temporal downsampling
+downsampling_temporal_dynamic: True
 temporal_downsampling: True
 temporal_subset: [200, 150]
 
 
 # === Data ===
 
-dataset: Wflow1d
+data_lazy_load: False
+
+dataset: WflowSBM
 
 data_source:
   file:
-    data_dir: /p/scratch/intertwin/datasets/eurac/input #!! change to your directory
-    data_file: adg1km_eobs_preprocessed.zarr
+    static_inputs: /p/scratch/intertwin/datasets/eurac/input/alps2_static.zarr
+    dynamic_inputs: /p/scratch/intertwin/datasets/eurac/input/alps2_dynamic.zarr
+    target_variables: /p/scratch/intertwin/datasets/eurac/input/alps2_dynamic.zarr
   # s3:
   #   url: https://eurac-eo.s3.amazonaws.com/INTERTWIN/SURROGATE_INPUT/adg1km_eobs_preprocessed.zarr/
 
@@ -140,7 +152,27 @@ mask_variables:
 # Scaling
 
 scaling_variant: minmax
-scaling_use_cached: True
+scaling_use_cached: False
+
+# ==== MODEL LOGGER ========
+
+# where the model is loaded/saved
+model_logger:
+    # mlflow: 
+    # - ``/Users/me/path/to/local/model``
+    # - ``relative/path/to/local/model``
+    # - ``s3://my_bucket/path/to/model``
+    # - ``runs:/<mlflow_run_id>/run-relative/path/to/model``
+    # - ``models:/<model_name>/<model_version>``
+    # - ``models:/<model_name>/<stage>``
+  CudaLSTM:
+      logger: local
+      model_component: model # the main model
+      model_name: ${model}
+      model_uri: ${work_dir}/${experiment_name}_${experiment_run}/${model}.pt
+      #model_uri: "models:/${model}/latest" #  
+      log: False
+      load: False
 
 # == Pipeline == 
 
@@ -148,6 +180,7 @@ training_pipeline:
   _target_: itwinai.pipeline.Pipeline
   steps:
     - _target_: data.RNNDatasetGetterAndPreprocessor
+      hython_trainer: ${hython_trainer}
       dynamic_inputs: ${dynamic_inputs}
       static_inputs: ${static_inputs}
       target_variables: ${target_variables}
@@ -156,6 +189,8 @@ training_pipeline:
       valid_temporal_range: ${valid_temporal_range}
       dataset: ${dataset}
       data_source: ${data_source}
+      data_lazy_load: ${data_lazy_load}
+      downsampling_temporal_dynamic: ${downsampling_temporal_dynamic}
       scaling_variant: ${scaling_variant}
       scaling_use_cached: ${scaling_use_cached}
       experiment_name: ${experiment_name}
@@ -165,6 +200,11 @@ training_pipeline:
       valid_downsampler: ${valid_downsampler}
     - _target_: trainer.RNNDistributedTrainer
       model: ${model}
+      measure_gpu_data: False
+      torch_profiling: False
+      measure_epoch_time: False
+      epochs: ${epochs}
+      strategy: ${strategy}
       config:
         experiment: ${experiment_name}/${experiment_run}
         experiment_name: ${experiment_name}
@@ -189,6 +229,8 @@ training_pipeline:
         model_file_name: ${model_file_name}
         hidden_size: ${hidden_size}
         dropout: ${dropout}
+        lstm_layers: ${lstm_layers}
+        lstm_batch_norm: ${lstm_batch_norm}
 
         model_head_layer: ${model_head_layer}
         model_head_activation: ${model_head_activation}
@@ -201,19 +243,20 @@ training_pipeline:
 
         predict_steps: ${predict_steps}
 
-        strategy: ${strategy}
-        epochs: ${epochs}
-        random_seed: ${seed}
-        profiling_wait_epochs: 1
-        profiling_warmup_epochs: 1
-        logger:
-          _target_: itwinai.loggers.LoggersCollection
-          loggers:
-            - _target_: itwinai.loggers.ConsoleLogger
-              log_freq: 100
-          # - _target_: itwinai.loggers.MLFlowLogger
-          #   experiment_name: ${experiment_name}
-          #   run_name: ${experiment_run}
-          #   log_freq: batch
-          #   savedir: /p/project1/intertwin/ferrario1/itwinai/use-cases/eurac/mllogs
+        # model logger
+        model_logger: ${model_logger}
+
+      random_seed: ${seed}
+      profiling_wait_epochs: 1
+      profiling_warmup_epochs: 1
+      logger:
+        _target_: itwinai.loggers.LoggersCollection
+        loggers:
+          - _target_: itwinai.loggers.ConsoleLogger
+            log_freq: 100
+        # - _target_: itwinai.loggers.MLFlowLogger
+        #   experiment_name: ${experiment_name}
+        #   run_name: ${experiment_run}
+        #   log_freq: batch
+        #   savedir: /p/project1/intertwin/ferrario1/itwinai/use-cases/eurac/mllogs
 

@@ -126,7 +126,7 @@ runs:
     - name: Login to Harbor Container Registry
       uses: docker/login-action@v3
       with:
-        registry: registry.egi.eu
+        registry: registry.cern.ch
         username: ${{ inputs.singularity-username }}
         password: ${{ inputs.singularity-password }}
 
@@ -145,23 +145,26 @@ runs:
       with:
         workdir: ci
         verb: call
+        # NOTES:
+        # - Singularity conversion and push in the dev pipeline is always skipped because it takes too long
+        # - The current commit hash is appended to the tag
         args: >-
           --nickname ${{ inputs.nickname }}
           --docker-registry ghcr.io/intertwin-eu
-          --singularity-registry registry.egi.eu/dev.intertwin.eu
+          --singularity-registry registry.cern.ch/itwinai
           --image itwinai-dev
           build-container
           --context ..
           --dockerfile ${{ inputs.dockerfile }}
           --build-args "COMMIT_HASH=${{ env.COMMIT_HASH }},BASE_IMG_NAME=${{ inputs.base-img-name }},BASE_IMG_DIGEST=${{ env.BASE_IMG_DIGEST }}"
           dev-pipeline
-          --tag-template ${{ inputs.tag-template }}
+          --tag-template ${{ inputs.tag-template }}-${{ env.COMMIT_HASH }}
           --framework TORCH
           --password env:SINGULARITY_PWD
           --username env:SINGULARITY_USR
-          $([[ "${{ inputs.skip-singularity }}" == "true" ]] && echo '--skip-singularity' || echo '')
+          --skip-singularity
         cloud-token: ${{ inputs.dagger-cloud-token }}
-        version: "latest"
+        version: latest
       env:
           INTERLINK_VALUES: ${{ inputs.interlink-values }}
           SINGULARITY_PWD: ${{ inputs.singularity-password }}
@@ -179,7 +182,7 @@ runs:
           --nickname ${{ inputs.nickname }}
           --image itwinai
           --docker-registry ghcr.io/intertwin-eu
-          --singularity-registry registry.egi.eu/dev.intertwin.eu
+          --singularity-registry registry.cern.ch/itwinai
           build-container
           --context ..
           --dockerfile ${{ inputs.dockerfile }}
@@ -193,7 +196,7 @@ runs:
           $([[ "${{ inputs.skip-hpc }}" == "true" ]] && echo '--skip-hpc' || echo '')
           $([[ "${{ inputs.skip-singularity }}" == "true" ]] && echo '--skip-singularity' || echo '')
         cloud-token: ${{ inputs.dagger-cloud-token }}
-        version: "latest"
+        version: latest
       env:
           INTERLINK_VALUES: ${{ inputs.interlink-values }}
           SINGULARITY_PWD: ${{ inputs.singularity-password }}

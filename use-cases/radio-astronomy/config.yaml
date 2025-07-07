@@ -1,0 +1,300 @@
+# --------------------------------------------------------------------------------------
+# Part of the interTwin Project: https://www.intertwin.eu/
+#
+# Created by: Alex Krochak
+#
+# Credit:
+# - Alex Krochak <o.krochak@fz-juelich.de> - FZJ
+# --------------------------------------------------------------------------------------
+
+# input variables
+
+num_payloads:     50
+learning_rate:    0.001
+batch_size:       128 #128
+num_cores:        1
+seed:             42
+strategy:         None #ddp
+size:             [128,128]
+
+tag:              train_v0_
+image_tag:        train_v0_*_payload_detected.json
+image_directory:  syn_payload/
+mask_tag:         train_v0_*_payload_flux.json
+mask_directory:   syn_payload/ 
+
+split_train:      0.8  
+split_val:        0.1  
+split_test:       0.1  
+
+epoch_unet:       5
+epoch_fcnn:       10  
+epoch_cnn1d:      20
+
+meas_gpu:         False
+torch_prof:       False
+meas_epoch:       false
+
+save_best:        True
+shuffle_train:    True
+
+unet_st:          ./models/trained_UNet_test_v0.pt 
+fcnn_st:          ./models/trained_Filter_test_v0.pt
+cnn1d_st:         ./models/trained_CNN1D_test_v0.pt
+real_img_st:      ./test_data/joint_dataset_8_classes_real_remix_128x128.npy
+real_lbl_st:      ./test_data/joint_dataset_8_classes_real_remix_labels.npy
+
+## Initialize the datasets
+engine_settings_unet: 
+  image: 
+    do_rot_phase_avg: True
+    do_resize: True
+    resize_size: ${size}
+    do_binarize: False
+  mask: 
+    do_rot_phase_avg: True
+    do_resize: True
+    resize_size: ${size}
+    do_binarize: True
+    binarize_func: thresh
+
+engine_settings_filtercnn: 
+    image:
+        do_rot_phase_avg: True
+        do_resize: True
+        resize_size: ${size}
+        do_binarize: False
+    mask:
+        do_rot_phase_avg: True
+        do_resize: True
+        resize_size: ${size}
+        do_binarize: True
+        binarize_func: thresh
+    mask_maker: 
+        model: UNet
+        trained_image_to_mask_network_path: ./models/trained_UNet_test_v0.pt
+
+engine_settings_cnn1d: 
+    mask: 
+        do_rot_phase_avg: True
+        do_resize: True
+        resize_size: ${size}
+        do_binarize: True
+        binarize_func: "thresh"
+
+# tracking_uri_mlflow: https://127.0.0.1:8000
+
+# Pipeline for synthesizing training data
+syndata_pipeline:
+  _target_: itwinai.pipeline.Pipeline
+  name: Synthetic Data Generation Pipeline
+  steps:
+    dataloading_step:
+      _target_: data.SynthesizeData
+      tag: ${tag}
+      num_payloads: ${num_payloads}
+      num_cpus: ${num_cores} # set to the number of available CPUs on node
+      name: syntheticData
+
+# Training pipeline for the UNet model 
+unet_pipeline:
+  _target_: itwinai.pipeline.Pipeline
+  name: UNet Pipeline
+  steps:
+    ### Uncomment the code below if you want to run ONLY this pipeline
+    # dataloading_step:
+    #   _target_: data.SynthesizeData
+    #   tag: ${tag}
+    #   num_payloads: ${num_payloads}
+    #   name: syntheticData
+    dataset_step:  
+      _target_: data.PulsarDataset
+      type: "unet"
+      image_tag: ${image_tag}
+      image_directory: ${image_directory}
+      mask_tag: ${mask_tag}
+      mask_directory: ${mask_directory}
+      engine_settings: ${engine_settings_unet}
+    splitter_step:
+      _target_: data.DatasetSplitter
+      train_proportion: ${split_train}
+      validation_proportion: ${split_val}
+      test_proportion: ${split_test}
+      rnd_seed: ${seed}
+      name: Splitter
+    training_step:
+      _target_: trainer.PulsarTrainer
+      strategy: ${strategy}
+      model:
+       _target_: pulsar_analysis.neural_network_models.UNet
+      loss:
+        _target_: pulsar_analysis.neural_network_models.WeightedBCELoss
+        pos_weight: 3
+        neg_weight: 1
+      epochs: ${epoch_unet}
+      store_trained_model_at: ${unet_st}
+      name: UNetTrainer
+      config:
+        generator: simple #unet
+        optimizer: adam
+        batch_size: ${batch_size}
+        optim_lr: ${learning_rate}
+        save_best: ${save_best}
+        shuffle_train: ${shuffle_train}
+        num_workers_dataloader: ${num_cores}
+      logger:
+        _target_: itwinai.loggers.LoggersCollection
+        loggers:
+          - _target_: itwinai.loggers.ConsoleLogger
+            log_freq: 1
+          # - _target_: itwinai.loggers.MLFlowLogger
+          #   experiment_name: radio-astronomy 
+          #   log_freq: batch 
+          #   # tracking_uri: ${tracking_uri_mlflow}
+      measure_gpu_data: ${meas_gpu}
+      enable_torch_profiling: ${torch_prof}
+      measure_epoch_time: ${meas_epoch}
+    adapter_step:
+      _target_: itwinai.components.Adapter
+      policy:
+        - "INPUT_ARG#3"
+        - "${unet_st}"
+    save_step:
+      _target_: data.ModelSaver
+
+fcnn_pipeline:
+  _target_: itwinai.pipeline.Pipeline
+  name: Filter CNN Pipeline
+  steps:        
+    dataset_step:  
+      _target_: data.PulsarDataset
+      type: "filtercnn"
+      image_tag: ${image_tag}
+      image_directory: ${image_directory}
+      mask_tag: ${mask_tag}
+      mask_directory: ${mask_directory}
+      engine_settings: ${engine_settings_filtercnn}
+    splitter_step:
+      _target_: data.DatasetSplitter
+      train_proportion: ${split_train}
+      validation_proportion: ${split_val}
+      test_proportion: ${split_test}
+      rnd_seed: ${seed}
+      name: Splitter
+    training_step:
+      _target_: trainer.PulsarTrainer
+      strategy: ${strategy}
+      model:
+       _target_: pulsar_analysis.neural_network_models.FilterCNN
+      loss:
+        _target_: pulsar_analysis.neural_network_models.WeightedBCELoss
+        pos_weight: 1
+        neg_weight: 1
+      epochs: ${epoch_fcnn} #
+      store_trained_model_at: ${fcnn_st}
+      name: FilterCNNTrainer
+      config:
+        generator: simple
+        optimizer: adam
+        batch_size: ${batch_size}
+        optim_lr: ${learning_rate}
+        save_best: ${save_best}
+        shuffle_train: ${shuffle_train}
+        num_workers_dataloader: ${num_cores}
+      logger:
+        _target_: itwinai.loggers.LoggersCollection
+        loggers:
+          - _target_: itwinai.loggers.MLFlowLogger
+            experiment_name: radio-astronomy
+            log_freq: batch 
+    adapter_step:
+      _target_: itwinai.components.Adapter
+      policy: 
+        - "INPUT_ARG#3"
+        - "${fcnn_st}"
+    save_step:
+      _target_: data.ModelSaver
+
+cnn1d_pipeline:
+  _target_: itwinai.pipeline.Pipeline
+  name: CNN1D Pipeline
+  steps:
+    dataset_step:  
+      _target_: data.PulsarDataset
+      type: "cnn1d"
+      image_tag: ${image_tag}
+      image_directory: ${image_directory}
+      mask_tag: ${mask_tag}
+      mask_directory: ${mask_directory}
+      engine_settings: ${engine_settings_cnn1d}
+    splitter_step:
+      _target_: data.DatasetSplitter
+      train_proportion: ${split_train}
+      validation_proportion: ${split_val}
+      test_proportion: ${split_test}
+      rnd_seed: ${seed}
+      name: Splitter
+    training_step:
+      _target_: trainer.PulsarTrainer
+      strategy: ${strategy}
+      model:
+       _target_: pulsar_analysis.neural_network_models.CNN1D
+      loss:
+        _target_: pulsar_analysis.neural_network_models.WeightedBCELoss
+        pos_weight: 1
+        neg_weight: 1
+      epochs: ${epoch_cnn1d}
+      store_trained_model_at: ${cnn1d_st}
+      name: CNN1DTrainer
+      config:
+        generator: simple 
+        optimizer: adam
+        batch_size: ${batch_size}
+        optim_lr: ${learning_rate}
+        save_best: ${save_best}
+        shuffle_train: ${shuffle_train}
+        num_workers_dataloader: ${num_cores}
+      logger:
+        _target_: itwinai.loggers.LoggersCollection
+        loggers:
+          - _target_: itwinai.loggers.MLFlowLogger
+            experiment_name: radio-astronomy 
+            log_freq: batch 
+    adapter_step:
+      _target_: itwinai.components.Adapter
+      policy:
+        - "INPUT_ARG#3"
+        - ${cnn1d_st}
+    save_step:
+      _target_: data.ModelSaver
+
+evaluate_pipeline:
+  _target_: itwinai.pipeline.Pipeline
+  steps:
+    eval_step: 
+      _target_: data.TestSuite
+      image_to_mask_network: 
+        _target_: pulsar_analysis.neural_network_models.UNet
+      trained_image_to_mask_network_path: ${unet_st}
+      mask_filter_network: 
+        _target_: pulsar_analysis.neural_network_models.FilterCNN
+      trained_mask_filter_network_path: ${fcnn_st}
+      signal_to_label_network: 
+        _target_: pulsar_analysis.neural_network_models.CNN1D
+      trained_signal_to_label_network: ${cnn1d_st}
+      img_dir: ${real_img_st}
+      lbl_dir: ${real_lbl_st}
+      offset: 0
+      size: ${num_payloads}
+
+
+# Complete pipeline for the three NNs
+complete_pipeline:
+  _target_: itwinai.pipeline.Pipeline
+  name: Complete Training Pipeline
+  steps:
+    syndata:  ${syndata_pipeline}
+    unet:     ${unet_pipeline}
+    fcnn:     ${fcnn_pipeline}
+    cnn1d:    ${cnn1d_pipeline}
+    evaluate: ${evaluate_pipeline}

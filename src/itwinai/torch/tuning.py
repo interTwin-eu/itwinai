@@ -4,153 +4,63 @@
 # Created by: Anna Lappe
 #
 # Credit:
+# - Matteo Bunino <matteo.bunino@cern.ch> - CERN
 # - Anna Lappe <anna.elisa.lappe@cern.ch> - CERN
 # --------------------------------------------------------------------------------------
 
+
+"""Logic to parse configuration and transform it into Ray objects."""
+
+import logging
 from typing import Dict
 
-from ray.tune.schedulers import (
-    AsyncHyperBandScheduler,
-    HyperBandForBOHB,
-    HyperBandScheduler,
-    PopulationBasedTraining,
-)
-from ray.tune.schedulers.pb2 import PB2  # Population Based Bandits
-from ray.tune.search.ax import AxSearch
-from ray.tune.search.bayesopt import BayesOptSearch
-from ray.tune.search.bohb import TuneBOHB
-from ray.tune.search.hebo import HEBOSearch
-from ray.tune.search.hyperopt import HyperOptSearch
-from ray.tune.search.nevergrad import NevergradSearch
-from ray.tune.search.optuna import OptunaSearch
-from ray.tune.search.zoopt import ZOOptSearch
+import ray.tune
+from ray.tune.search.sample import Categorical, Float, Function, Integer
+
+py_logger = logging.getLogger(__name__)
 
 
-def get_raytune_search_alg(
-    tune_config: Dict,
-) -> (
-    TuneBOHB
-    | BayesOptSearch
-    | HyperOptSearch
-    | AxSearch
-    | HEBOSearch
-    | NevergradSearch
-    | OptunaSearch
-    | ZOOptSearch
-    | None
-):
-    """Get the appropriate Ray Tune search algorithm based on the provided configuration.
-
-    Args:
-        tune_config (Dict): Configuration dictionary specifying the search algorithm,
-            metric, mode, and, depending on the search algorithm, other parameters.
-        seeds (bool, optional): Whether to use a fixed seed for reproducibility for some
-            search algorithms that take a seed. Defaults to False.
-
-    Returns:
-        An instance of the chosen Ray Tune search algorithm or None if no search algorithm is
-        used or if the search algorithm does not match any of the supported options.
-    """
-    scheduler_name = tune_config.get("scheduler", {}).get("name", "")
-
-    match scheduler_name.lower():
-        case "pbt" | "pb2":
-            print(
-                f"INFO: Using scheduler {scheduler_name} "
-                "is not compatible with Ray Tune search algorithms."
-            )
-            print(f"Using the Ray Tune {scheduler_name} scheduler without search algorithm")
-            return None
-
-        case "bohb":
-            print(
-                "INFO: Using TuneBOHB search algorithm since it is required for BOHB "
-                "scheduler."
-            )
-            return TuneBOHB()
-
-    search_alg = tune_config.pop("search_alg", {})
-    search_alg_name = search_alg.pop("name", "")
+def search_space(config: Dict | None) -> Dict:
+    if not config:
+        py_logger.warning(
+            "No search_space configuration detected. "
+            "If you want to tune any hyperparameters, make sure to define them here."
+        )
+        return {}
 
     try:
-        match search_alg_name.lower():
-            case "ax":
-                return AxSearch()
-            case "bayesopt":
-                return BayesOptSearch(**search_alg)
-            case "hyperopt":
-                return HyperOptSearch(**search_alg)
-            case "bohb":
-                return TuneBOHB(**search_alg)
-            case "hepo":
-                return HEBOSearch(**search_alg)
-            case "nevergrad":
-                return NevergradSearch(**search_alg)
-            case "optuna":
-                return OptunaSearch(**search_alg)
-            case "zoo":
-                return ZOOptSearch(**search_alg)
-            case _:
-                print(
-                    "INFO: No search algorithm detected. Using Ray Tune BasicVariantGenerator."
+        search_space = {}
+        for name, param in config.items():
+            if isinstance(param, (Categorical, Float, Integer, Function)):
+                # The param is already a tune object and does not need to be parsed
+                search_space[name] = param
+                continue
+            if isinstance(param, dict) and "grid_search" in param:
+                # The param is already a tune grid search object and does not need to be parsed
+                search_space[name] = param
+                continue
+
+            # From now on this function tries to parse the params from a dictionary
+            if not isinstance(param, dict):
+                raise ValueError(
+                    f"Unable to parse '{param}' in the config as a tunable param."
                 )
-                return None
-    except AttributeError as e:
-        print(
-            "Invalid search algorithm configuration passed. Please make sure that the search "
-            "algorithm you are using has the correct attributes. You can read more about the "
-            "different search algorithms supported by Ray Tune at "
-            "https://docs.ray.io/en/latest/tune/api/suggestion.html. "
-        )
-        print(e)
 
+            # Convert specific keys to float if necessary
+            for key in ["lower", "upper", "mean", "std"]:
+                if key in param:
+                    param[key] = float(param[key])
 
-def get_raytune_scheduler(
-    tune_config: Dict,
-) -> (
-    AsyncHyperBandScheduler
-    | HyperBandScheduler
-    | HyperBandForBOHB
-    | PopulationBasedTraining
-    | PB2
-    | None
-):
-    """Get the appropriate Ray Tune scheduler based on the provided configuration.
-
-    Args:
-        tune_config (Dict): Configuration dictionary specifying the scheduler type,
-            metric, mode, and, depending on the scheduler, other parameters.
-
-    Returns:
-        An instance of the chosen Ray Tune scheduler or None if no scheduler is used
-        or if the scheduler does not match any of the supported options.
-    """
-
-    scheduler = tune_config.pop("scheduler", {})
-    scheduler_name = scheduler.pop("name", "")
-
-    try:
-        match scheduler_name.lower():
-            case "asha":
-                return AsyncHyperBandScheduler(**scheduler)
-            case "hyperband":
-                return HyperBandScheduler(**scheduler)
-            case "bohb":
-                return HyperBandForBOHB(**scheduler)
-            case "pbt":
-                return PopulationBasedTraining(**scheduler)
-            case "pb2":
-                return PB2(**scheduler)
-            case _:
-                print(
-                    "INFO: No search algorithm detected. Using default Ray Tune FIFOScheduler."
-                )
-                return None
-    except AttributeError as e:
-        print(
-            "Invalid scheduler configuration passed. Please make sure that the scheduler "
-            "you are using has the correct attributes. You can read more about the "
-            "different schedulers supported by Ray Tune at "
-            "https://docs.ray.io/en/latest/tune/api/schedulers.html."
-        )
-        print(e)
+            param_type = param.pop("type")
+            param = getattr(ray.tune, param_type)(**param)
+            search_space[name] = param
+        return search_space
+    except Exception as exc:
+        if hasattr(exc, "add_note"):
+            # This was introduced from Python 3.11
+            exc.add_note(
+                f"{param} could not be set. Check that this parameter type is "
+                "supported by Ray Tune at "
+                "https://docs.ray.io/en/latest/tune/api/search_space.html"
+            )
+        raise exc

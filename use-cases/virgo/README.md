@@ -29,14 +29,14 @@ skipped for subsequent runs.
 To run the entire pipeline, including dataset generation, use the following command:
 
 ```bash
-itwinai exec-pipeline --config config.yaml --pipe-key training_pipeline_small
+itwinai exec-pipeline +pipe_key=training_pipeline_small
 ```
 
 If you've already generated the dataset in a previous run, you can skip the dataset
 generation step by executing the following command:
 
 ```bash
-itwinai exec-pipeline --config config.yaml --pipe-key training_pipeline_small --steps 1:
+itwinai exec-pipeline +pipe_key=training_pipeline_small +pipe_steps=[1,2,3]
 ```
 
 This will load the dataset from memory and proceed with the training steps.
@@ -64,21 +64,8 @@ sbatch synthetic_data_gen/data_generation_hdf5.sh
 Once the dataset is generated, you can proceed with training:
 
 ```bash
-itwinai exec-pipeline --config config.yaml --pipe-key training_pipeline
+itwinai exec-pipeline +pipe_key=training_pipeline
 ```
-
-You can also run the training in a distributed manner using all strategies by running
-`runall.sh`:
-
-```bash
-bash runall.sh
-```
-
-Change the `$TRAINING_CMD` variable in `runall.sh` to reflect the pipeline you wish to
-run, as explained above. This will launch jobs for all the strategies and log their
-outputs into the logs_slurm folder.
-
-When using the MLFLow logger, you can visualize the logs in from the MLFlow UI:
 
 ```bash
 mlflow ui --backend-store-uri mllogs/mlflow
@@ -87,16 +74,34 @@ mlflow ui --backend-store-uri mllogs/mlflow
 mlflow ui --backend-store-uri mllogs/mlflow > /dev/null 2>&1 &
 ```
 
-## Running scaling tests
+## Training using SLURM
 
-Scaling tests provide information about how well the different distributed strategies scale.
-We have integrated them into this use case and you can run them using the scaling-test.sh script:
+If you wish to train the model using SLURM, you can use the `itwinai` SLURM script
+builder with the following command to generate a preview of the script:
 
 ```bash
-bash scaling-test.sh
+itwinai generate-slurm -c slurm_config.yaml --no-save-script --no-submit-job
 ```
 
-To generate the plots, refer to the [Scaling-Test Tutorial](https://github.com/interTwin-eu/itwinai/tree/main/tutorials/distributed-ml/torch-scaling-test#analyze-results).
+If you are happy with the SLURM script, you can run it either by removing
+`--no-submit-job` and let the builder submit it for you, or you can remove
+`--no-save-script`—allowing the builder to store the script for you—and then running
+the script yourself using `sbatch <path/to/script>`.
+
+## Scaling Tests and "runall"
+
+Scaling tests provide information about how well the different distributed strategies
+scale. We have integrated them into this use case and you can run them using the
+`slurm.py` file. The format is very similar to the `itwinai generate-slurm` command,
+and you can even pass it the configuration file, but it will overwrite some of the
+parameters automatically—such as `std_out`, `err_out` and `job_name`.
+
+You can run all strategies by setting `--mode` to `runall` and you can run scaling
+tests by setting `--mode` to `scaling-test` and specifying `scalability_nodes` in the
+configuration.
+
+To generate the plots, refer to the
+[Scaling-Test Tutorial](https://github.com/interTwin-eu/itwinai/tree/main/tutorials/distributed-ml/torch-scaling-test#analyze-results).
 
 ## Running HPO for Virgo on JSC
 
@@ -110,16 +115,17 @@ sbatch slurm_ray.sh
 ```
 
 This script sets up a Ray cluster and runs the script for hyperparameter tuning.
-Chnage the run command in `slurm.sh` to run the script you want. You have two options:
+Change the run command in `slurm_ray.sh` to run the script you want. You have two options:
 
 1. You can run non-distributed HPO by using the command
 
 ```python hpo.py --num_samples 4 --max_iterations 2 --ngpus $num_gpus --ncpus $num_cpus --pipeline_name training_pipeline```
 
-at the end of the slurm script. Change the argument ``num_samples`` to run a different number of trials, and change ``max_iterations`` to set a higher or lower stopping criteria.
+at the end of the slurm script. Change the argument ``num_samples`` to run a different number of trials, and
+change ``max_iterations`` to set a higher or lower stopping criteria.
 3. You can run distributed HPO by using the command
 
-```$PYTHON_VENV/bin/itwinai exec-pipeline --config config.yaml --pipe-key ray_training_pipeline```
+```$PYTHON_VENV/bin/itwinai exec-pipeline +pipe_key=ray_training_pipeline```
 
 at the end of the slurm script.
 

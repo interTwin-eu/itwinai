@@ -20,34 +20,37 @@ pip install -r requirements.txt
 You can run the RNN pipeline with the following command:
 
 ```bash
-itwinai exec-pipeline --config config.yaml --pipe-key rnn_training_pipeline
+itwinai exec-pipeline +pipe_key=rnn_training_pipeline
 ```
 
 If you want to use the Conv pipeline instead, you can replace `rnn_training_pipeline`
 with `conv_training_pipeline`.
 
-### Distributed runs
+### Training using SLURM
 
-You can run the training in a distributed manner using all strategies by running
-`runall.sh`. This will launch jobs for all the strategies and log their outputs into the
-`logs_slurm` folder. You can pass arguments by prepending environment variables. E.g. if
-you want to turn debug-mode on, you pass `DEBUG=false` as follows:
+If you wish to train the model using SLURM, you can use the `itwinai` SLURM script
+builder with the following command to generate a preview of the script:
 
 ```bash
-DEBUG=false ./runall.sh
+itwinai generate-slurm -c slurm_config.yaml --no-save-script --no-submit-job
 ```
 
-The same can be done with any other variables you might want to change. You can see
-all the variables in `runall.sh`.
+If you are happy with the SLURM script, you can run it either by removing
+`--no-submit-job` and let the builder submit it for you, or you can remove
+`--no-save-script`—allowing the builder to store the script for you—and then running
+the script yourself using `sbatch <path/to/script>`. 
 
-## Running scaling tests
+### Scaling Tests and "runall"
 
-Scaling tests provide information about how well the different
-distributed strategies scale. We have integrated them into this use case
-and you can run them using the `scaling-test.sh` script.
+Scaling tests provide information about how well the different distributed strategies
+scale. We have integrated them into this use case and you can run them using the
+`slurm.py` file. The format is very similar to the `itwinai generate-slurm` command,
+and you can even pass it the configuration file, but it will overwrite some of the
+parameters automatically—such as `std_out`, `err_out` and `job_name`. 
 
-To generate the plots, refer to the
-[Scaling-Test Tutorial](https://github.com/interTwin-eu/itwinai/tree/main/tutorials/distributed-ml/torch-scaling-test#analyze-results).
+You can run all strategies by setting `--mode` to `runall` and you can run scaling
+tests by setting `--mode` to `scaling-test` and specifying `scalability_nodes` in the
+configuration.
 
 ## Running HPO for EURAC Non-distributed
 

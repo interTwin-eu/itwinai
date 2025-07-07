@@ -39,7 +39,7 @@ The script above runs the following command in the itwinai torch container
 in this folder:
 
 ```bash
-itwinai exec-pipeline --config config.yaml --pipe-key training_pipeline
+itwinai exec-pipeline +pipe_key=training_pipeline
 ```
 
 > [!WARNING]
@@ -73,7 +73,7 @@ the dataset as usually there is not internet connection on compute nodes:
 ```bash
 # Run only the first step on the HPC login node, which downloads the datasets if not present
 singularity run itwinai_torch.sif /bin/bash -c \
-    "itwinai exec-pipeline --config config.yaml --pipe-key training_pipeline --steps dataloading_step"
+    "itwinai exec-pipeline +pipe_key=training_pipeline +pipe_steps=[dataloading_step]"
 ```
 
 Now run distributed ML on multiple compute nodes using both Torch DDP and Microsoft DeepSpeed:

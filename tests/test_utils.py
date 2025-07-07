@@ -13,7 +13,7 @@ from pathlib import Path
 
 import pytest
 
-from itwinai.utils import SignatureInspector, flatten_dict, make_config_paths_absolute
+from itwinai.utils import SignatureInspector, flatten_dict, make_config_paths_absolute, to_uri
 
 
 def test_flatten_dict():
@@ -104,7 +104,7 @@ def test_signature_inspector():
 
 
 @pytest.mark.parametrize(
-    "args,correct_updated_args",
+    "args,correct_absolute_args",
     [
         (
             ["--config-path=./relative/path", "--some-other-arg"],
@@ -124,8 +124,23 @@ def test_signature_inspector():
         ),
     ],
 )
-def test_make_config_paths_absolute(args, correct_updated_args):
+def test_make_config_paths_absolute(args, correct_absolute_args):
     """Test that make_config_paths_absolute correctly resolves absolute paths."""
     updated_args = make_config_paths_absolute(args)
 
-    assert updated_args == correct_updated_args
+    assert updated_args == correct_absolute_args
+
+
+def test_to_uri():
+    relative_path = "relative/path/to/file.txt"
+    absolute_path = "/absolute/path/to/file.txt"
+    s3_uri = "s3://my-bucket/data/file.txt"
+    http_uri = "http://example.com/file.txt"
+
+    assert to_uri(relative_path) == str(Path(relative_path).resolve()), "Should be absolute"
+    assert to_uri(absolute_path) == absolute_path, "Should remain unchanged"
+    assert to_uri(s3_uri) == s3_uri, "Should remain unchanged"
+    assert to_uri(http_uri) == http_uri, "Should remain unchanged"
+    assert to_uri(Path(relative_path)) == str(Path(relative_path).resolve()), (
+        "Should manage Path"
+    )

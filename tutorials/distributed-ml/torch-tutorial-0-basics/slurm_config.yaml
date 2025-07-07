@@ -1,0 +1,16 @@
+account: intertwin
+time: 00:20:00
+partition: develbooster
+
+dist_strat: ddp
+std_out: slurm_job_logs/${dist_strat}.out
+err_out: slurm_job_logs/${dist_strat}.err
+job_name: ${dist_strat}-job
+
+python_venv: ../../../.venv/
+
+num_nodes: 1
+gpus_per_node: 4
+cpus_per_task: 16
+
+training_cmd: "train.py -s {dist_strat}"

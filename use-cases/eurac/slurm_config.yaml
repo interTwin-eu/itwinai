@@ -7,34 +7,33 @@ mode: single # "single", "runall" or "scaling-test" - defaults to "single"
 dist_strat: ddp # "ddp", "deepspeed" or "horovod"
 
 account: intertwin
-time: 01:15:00
+time: 02:00:00
 partition: develbooster
 
-# Keep in mind that these will be overwritten if "mode" is not "single", and that
-# if you override the dist_strat in the CLI, then these will already have evaluated
-# and thus might not correspond. Thus, we suggest you only change the dist_strat in
-# the config and avoid overriding it in the CLI.
 std_out: slurm_job_logs/${dist_strat}.out
 err_out: slurm_job_logs/${dist_strat}.err
 job_name: eurac-${dist_strat}-job
 
-num_nodes: 1
+num_nodes: 2
 num_tasks_per_node: 1
 gpus_per_node: 4
-cpus_per_gpu: 4
+cpus_per_task: 16
 
 python_venv: ../../.venv
-pipe_key: rnn_training_pipeline
-config-path: .
-config-name: config
+pipe_key: training_pipeline
+config_path: .
+config_name: config
 
 # The different number of nodes to use for the scalability testing
-scalability_nodes: "1, 2, 4"
+scalability_nodes: "1, 2, 4, 8"
 
-# If you want to manually override the training command, comment in the following:
-# training_cmd: | 
-#   $(which itwinai) exec-pipeline \
-#   --config-path ${config_file} \
-#   --config-name ${config_name}
-#   +pipe_key=${pipe_key} \
-#   strategy=${dist_strat} \
+# Variables in the curly brackets, "{}", will be overridden by the builder
+training_cmd: "$(which itwinai) exec-pipeline \
+  --config-path {config_path} \
+  --config-name {config_name}
+  +pipe_key={pipe_key} \
+  strategy={dist_strat}"
+
+# WARNING: If you, in the CLI, override any of the variables specified in the curly
+# brackets above, there will likely be a mismatch in the builder, causing potential
+# bugs.

@@ -232,6 +232,38 @@ dagger call --name="${COMMIT_HASH}-torch-slim" \
     singularity --src-container "python:3.12" \
     export --path my_container.sif
 
+
+#######################################
+#######################################
+
+
+# Release pipeline (but for testing purposes)
+export COMMIT_HASH=$(git rev-parse --verify HEAD)
+export BASE_IMG_NAME="python:3.10-slim"
+export BASE_IMG_DIGEST="$(echo "$BASE_IMG_NAME" | cut -d ':' -f 1)@$(docker buildx imagetools inspect $BASE_IMG_NAME | grep "Digest:" | head -n 1 | awk '{print $2}')"
+dagger call \
+    --nickname torch-slim \
+    --image itwinai-dev \
+    --tag torch-slim-${COMMIT_HASH} \
+    --docker-registry ghcr.io/intertwin-eu \
+    --singularity-registry registry.egi.eu/dev.intertwin.eu \
+    build-container \
+    --context .. \
+    --dockerfile ../env-files/torch/slim.Dockerfile \
+    --build-args ="COMMIT_HASH=$COMMIT_HASH,BASE_IMG_NAME=$BASE_IMG_NAME,BASE_IMG_DIGEST=$BASE_IMG_DIGEST" \
+    release-pipeline \
+    --values file:tmp.yaml \
+    --framework TORCH \
+    --tag-template '${itwinai_version}-slim-torch${framework_version}-${os_version}' \
+    --skip-singularity \
+    --kubernetes tcp://localhost:6443
+
+
+#######################################
+#######################################
+
+
+
 ############## TORCH SKINNY ###############
 
 export COMMIT_HASH=$(git rev-parse --verify HEAD)
@@ -264,13 +296,14 @@ dagger call \
     --cmd "pytest,-v,-n,logical,/app/tests/,-m,not hpc and not tensorflow" \
     logs
 
+
 ############## JUPYTER (SLIM) ###############
 
 # Build and test locally
 export COMMIT_HASH=$(git rev-parse --verify HEAD)
-export BASE_IMG_NAME="jupyter/scipy-notebook:python-3.10.11"
+export BASE_IMG_NAME="python:3.12-slim"
 export BASE_IMG_DIGEST="$(echo "$BASE_IMG_NAME" | cut -d ':' -f 1)@$(docker buildx imagetools inspect $BASE_IMG_NAME | grep "Digest:" | head -n 1 | awk '{print $2}')"
-dagger call --name="${COMMIT_HASH}-torch-jlab-slim" \
+dagger call --tag="${COMMIT_HASH}-torch-jlab-slim" \
     build-container --context=.. --dockerfile=../env-files/torch/jupyter/slim.Dockerfile \
         --build-args="COMMIT_HASH=$COMMIT_HASH,BASE_IMG_NAME=$BASE_IMG_NAME,BASE_IMG_DIGEST=$BASE_IMG_DIGEST" \
     test-local \
@@ -278,10 +311,10 @@ dagger call --name="${COMMIT_HASH}-torch-jlab-slim" \
 
 # Build and publish
 export COMMIT_HASH=$(git rev-parse --verify HEAD)
-export BASE_IMG_NAME="jupyter/scipy-notebook:python-3.10.11"
+export BASE_IMG_NAME="python:3.12-slim"
 export BASE_IMG_DIGEST="$(echo "$BASE_IMG_NAME" | cut -d ':' -f 1)@$(docker buildx imagetools inspect $BASE_IMG_NAME | grep "Digest:" | head -n 1 | awk '{print $2}')"
 export KUBERNETES="--kubernetes tcp://localhost:6443" # Set this to empty string to avoid using k8s endpoint
-dagger call --name="${COMMIT_HASH}-torch-jlab-slim" \
+dagger call --tag="${COMMIT_HASH}-torch-jlab-slim" \
     build-container --context=.. --dockerfile=../env-files/torch/jupyter/slim.Dockerfile \
         --build-args="COMMIT_HASH=$COMMIT_HASH,BASE_IMG_NAME=$BASE_IMG_NAME,BASE_IMG_DIGEST=$BASE_IMG_DIGEST" \
     release-pipeline --values=file:tmp.yaml --framework=TORCH $KUBERNETES \
@@ -293,7 +326,7 @@ dagger call --name="${COMMIT_HASH}-torch-jlab-slim" \
 export COMMIT_HASH=$(git rev-parse --verify HEAD)
 export BASE_IMG_NAME="jupyter/scipy-notebook:python-3.10.11"
 export BASE_IMG_DIGEST=$(echo "$BASE_IMG_NAME" | cut -d ':' -f 1)@$(docker buildx imagetools inspect $BASE_IMG_NAME | grep "Digest:" | head -n 1 | awk '{print $2}')
-dagger call --name="${COMMIT_HASH}-torch-jlab" \
+dagger call --tag="${COMMIT_HASH}-torch-jlab" \
     build-container --context=.. --dockerfile=../env-files/torch/jupyter/Dockerfile \
         --build-args="COMMIT_HASH=$COMMIT_HASH,BASE_IMG_NAME=$BASE_IMG_NAME,BASE_IMG_DIGEST=$BASE_IMG_DIGEST" \
     test-local \

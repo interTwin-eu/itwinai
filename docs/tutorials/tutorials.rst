@@ -2,6 +2,8 @@
 
 
 
+.. _distributed-training-tutorials:
+
 Distributed machine learning training
 ======================================
 
@@ -22,6 +24,7 @@ Distributed ML with PyTorch
    distrib-ml/torch_scaling_test
    distrib-ml/torch-tutorial-containers
    distrib-ml/torch_tutorial_kubeflow_1.rst
+   distrib-ml/kuberay-setup-tutorial.rst
 
 
 Distributed ML with TensorFlow
@@ -36,7 +39,9 @@ Distributed ML with TensorFlow
    distrib-ml/tf_scaling_test
 
 
-Machine learning workflows
+.. _ml-workflows-tutorials:
+
+Machine Learning Workflows
 ===========================
 
 Here you can find a collection of tutorials for various complexity ML workflows.
@@ -50,13 +55,29 @@ Here you can find a collection of tutorials for various complexity ML workflows.
    workflows/04_itwinai_argparser
  
 
-Hyperparameter Optimization Workflows
-======================================
+.. _hpo-tutorials:
+
+Hyperparameter Optimization 
+===========================
 
 This tutorial provides an overview of Hyperparameter Optimization (HPO) workflows.
 
 .. toctree::
    :maxdepth: 1
 
-   hpo-workflows/hpo-basic-integration
    hpo-workflows/hpo-torchtrainer-integration
+
+
+.. _profiling-tutorials:
+
+Code Profiling and Optimization
+===============================
+
+Here you can find our tutorials on how to do profiling with **itwinai**:
+
+.. toctree::
+   :maxdepth: 1
+
+   profiling/profiling-overview
+   profiling/py-spy-profiling
+   profiling/py-spy-lattice-qcd-example

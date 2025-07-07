@@ -6,7 +6,7 @@
 num_nodes: 1
 num_tasks_per_node: 1
 gpus_per_node: 4
-cpus_per_gpu: 4
+cpus_per_task: 16
 
 mode: single # "single", "runall" or "scaling-test" - defaults to "single"
 dist_strat: ddp # "ddp", "deepspeed" or "horovod"

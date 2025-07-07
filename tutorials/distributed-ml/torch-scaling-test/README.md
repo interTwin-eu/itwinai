@@ -75,20 +75,20 @@ python slurm.py -c slurm_config.yaml
 Running this command will submit the job and store the script to file. If you don't
 want the job to be submitted immediately, you could add `--no-submit-job`, allowing you
 to inspect the saved file before running it. If you don't want to store the script for
-later use, then you can add `--no-retain-file`. If you add both of these, the builder
+later use, then you can add `--no-save-script`. If you add both of these, the builder
 will simply print the resulting script without running or saving it, allowing you to
 quickly tinker with it before running it. An example of the full command with both
 of these options looks like this:
 
 ```bash
-python slurm.py -c slurm_config.yaml --no-retain-file --no-submit-job
+python slurm.py -c slurm_config.yaml --no-save-script --no-submit-job
 ```
 
 If you want to override any of the fields from the configuration file, you can add the
 argument inline after, like this:
 
 ```bash
-python slurm.py -c slurm_config.yaml --no-retain-file --no-submit-job --job-name my_job
+python slurm.py -c slurm_config.yaml --no-save-script --no-submit-job --job-name my_job
 ```
 
 Here, we overrode the `job-name` field with the value `my_job`.
@@ -109,7 +109,7 @@ the distributed strategies with a configuration file where you print the scripts
 can be seen here:
 
 ```bash
-python slurm.py -c slurm_config.yaml --no-retain-file --no-submit-job --mode runall
+python slurm.py -c slurm_config.yaml --no-save-script --no-submit-job --mode runall
 ```
 
 ## Run scaling test
@@ -119,7 +119,7 @@ launch all the distributed strategies with different number of nodes. An example
 this can be seen here:
 
 ```bash
-python slurm.py -c slurm_config.yaml --no-retain-file --no-submit-job --mode scaling-test
+python slurm.py -c slurm_config.yaml --no-save-script --no-submit-job --mode scaling-test
 ```
 
 ## Analyze results

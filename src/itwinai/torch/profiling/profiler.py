@@ -9,23 +9,30 @@
 # --------------------------------------------------------------------------------------
 
 import functools
+import logging
 from pathlib import Path
-from typing import Any, Callable, Iterable, Tuple
+from typing import TYPE_CHECKING, Any, Callable, Iterable, Tuple
 
 import matplotlib
 import pandas as pd
-from torch.profiler import ProfilerActivity, profile, schedule
+from torch.profiler import ProfilerActivity, profile, schedule, tensorboard_trace_handler
 
-from itwinai.torch.trainer import TorchTrainer
+from itwinai.utils import COMPUTATION_DATA_DIR
+
+if TYPE_CHECKING:
+    from itwinai.torch.trainer import TorchTrainer
+
 
 # Doing this because otherwise I get an error about X11 Forwarding which I believe
 # is due to the server trying to pass the image to the client computer
 matplotlib.use("Agg")
 
+py_logger = logging.getLogger(__name__)
+
 
 def profile_torch_trainer(method: Callable) -> Callable:
-    """Decorator for execute method for components. Profiles the communication time
-    vs. computation time and stores the result for future analysis.
+    """Decorator for execute method for components. Profiles function calls and
+    stores the result for future analysis (e.g. computation vs. other plots).
     """
 
     def gather_profiling_data(key_averages: Iterable) -> pd.DataFrame:
@@ -75,19 +82,36 @@ def profile_torch_trainer(method: Callable) -> Callable:
                 f"Training epochs: {training_epochs}, wait epochs: {wait_epochs}"
                 f", warmup epochs: {warmup_epochs}"
             )
-        print(
-            f"Warning: adjusted the given wait and warmup epochs for the profiler - "
+        py_logger.warning(
+            f"Adjusted the given wait and warmup epochs for the profiler - "
             f"wait epochs: {wait_epochs}, warmup epochs: {warmup_epochs}."
         )
         return active_epochs, wait_epochs, warmup_epochs
 
     @functools.wraps(method)
-    def profiled_method(self: TorchTrainer, *args, **kwargs) -> Any:
+    def profiled_method(self: "TorchTrainer", *args, **kwargs) -> Any:
+        if not self.enable_torch_profiling:
+            py_logger.info(
+                "Profiling of computation with the PyTorch profiler has been disabled!"
+            )
+            return method(self, *args, **kwargs)
+
         active_epochs, wait_epochs, warmup_epochs = adjust_wait_and_warmup_epochs(
             training_epochs=self.epochs,
             wait_epochs=self.profiling_wait_epochs,
             warmup_epochs=self.profiling_warmup_epochs,
         )
+        # Set correct values for the profiling epochs
+        self.profiling_wait_epochs = wait_epochs
+        self.profiling_warmup_epochs = warmup_epochs
+        if self.store_torch_profiling_traces:
+            trace_handler = tensorboard_trace_handler(
+                dir_name=f"scalability-metrics/{self.run_id}/torch-traces",
+                worker_name=f"worker_{self.strategy.global_rank()}"
+            )
+        else:
+            py_logger.warning("Profiling computation without storing the traces!")
+            trace_handler = None
         with profile(
             activities=[ProfilerActivity.CUDA, ProfilerActivity.CPU],
             schedule=schedule(
@@ -95,7 +119,8 @@ def profile_torch_trainer(method: Callable) -> Callable:
                 warmup=warmup_epochs,
                 active=active_epochs,
             ),
-            with_modules=True
+            on_trace_ready=trace_handler,
+            with_modules=True,
         ) as profiler:
             self.profiler = profiler
             result = method(self, *args, **kwargs)
@@ -113,14 +138,13 @@ def profile_torch_trainer(method: Callable) -> Callable:
         profiling_dataframe["strategy"] = strategy_name
         profiling_dataframe["num_gpus"] = num_gpus_global
         profiling_dataframe["global_rank"] = global_rank
-
-        profiling_log_dir = Path("scalability-metrics/communication-data")
+        profiling_log_dir = Path(f"scalability-metrics/{self.run_id}/{COMPUTATION_DATA_DIR}")
         profiling_log_dir.mkdir(parents=True, exist_ok=True)
 
         filename = f"{strategy_name}_{num_gpus_global}_{global_rank}.csv"
         output_path = profiling_log_dir / filename
 
-        print(f"Writing communication profiling dataframe to '{output_path}'.")
+        py_logger.info(f"Writing torch-profiling dataframe to '{output_path}'.")
         profiling_dataframe.to_csv(output_path)
 
         return result

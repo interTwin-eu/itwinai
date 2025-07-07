@@ -8,7 +8,7 @@ learning applications. These containers are built at each release and are availa
 locations:
 
 - **Docker images**: Hosted on GitHub Container Registry (GHCR) under ``ghcr.io/intertwin-eu``
-- **Singularity images**: Available on Harbor at ``registry.egi.eu/dev.intertwin.eu``
+- **Singularity images**: Available on Harbor at ``registry.cern.ch/itwinai``
 
 These images provide a convenient base for users to build their applications on top of a
 pre-configured environment optimized for high-performance computing (HPC) and deep learning
@@ -21,7 +21,8 @@ Three types of container flavors are available:
 
 - **torch-slim**: Includes Horovod and DeepSpeed, tested on HPC (currently Vega)
 - **torch-skinny**: A minimal installation with a significantly reduced image size
-- **jlab-slim**: Designed for JupyterLab single-user mode, supports offloading to HPC via interLink
+- **jlab-slim**: Designed for JupyterLab single-user mode, supports offloading to HPC via
+  interLink
 
 Container Registries
 --------------------
@@ -45,17 +46,18 @@ will be made available through CVMFS via `Unpacker <https://gitlab.cern.ch/unpac
 Singularity Containers (Harbor)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Singularity images are stored on Harbor (``registry.egi.eu/dev.intertwin.eu``) and are directly
-pullable on HPC systems without conversion.
+Singularity images are stored on Harbor (``registry.cern.ch``) and can be directly
+pulled on HPC systems without conversion. Only release images are converted to Singularity and
+pushed to the containers registry.
 
 For JupyterHub integration, use the following URI format to launch JupyterLab single-user
 containers::
 
-    oras://registry.egi.eu/dev.intertwin.eu/itwinai:TAG
+    oras://registry.cern.ch/itwinai/itwinai:TAG
 
 For example::
 
-    oras://registry.egi.eu/dev.intertwin.eu/itwinai:jlab-slim-latest
+    oras://registry.cern.ch/itwinai/itwinai:jlab-slim-latest
 
 Building Applications on Top of itwinai Containers
 --------------------------------------------------

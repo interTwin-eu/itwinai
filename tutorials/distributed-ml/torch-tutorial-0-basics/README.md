@@ -1,6 +1,6 @@
 # Tutorial: distributed strategies for PyTorch
 
-**Author(s)**: Matteo Bunino (CERN)
+**Author(s)**: Matteo Bunino (CERN), Jarl Sondre Sæther (CERN), Linus Eickhoff (CERN)
 
 In this tutorial we show how to use torch `DistributedDataParallel` (DDP), Horovod and
 DeepSpeed from the same client code.
@@ -23,7 +23,7 @@ If you want to use SLURM in interactive mode, do the following:
 
 ```bash
 # Allocate resources
-$ salloc --partition=batch --nodes=1 --account=intertwin  --gres=gpu:4 --time=1:59:00
+$ salloc --partition=develbooster --nodes=1 --account=intertwin  --gres=gpu:4 --time=1:59:00
 job ID is XXXX
 # Get a shell in the compute node (if using SLURM)
 $ srun --jobid XXXX --overlap --pty /bin/bash 
@@ -49,7 +49,7 @@ srun --jobid XXXX --ntasks-per-node=1 torchrun --standalone --nnodes=1 --nproc-p
 To launch the training with Microsoft DeepSpeed use:
 
 ```bash
-deepspeed train.py -s deepspeed --deepspeed
+torchrun --standalone --nnodes=1 --nproc-per-node=gpu train.py -s deepspeed
 
 # Optional -- from a SLURM login node:
 srun --jobid XXXX --ntasks-per-node=1 deepspeed train.py -s deepspeed --deepspeed 
@@ -58,13 +58,23 @@ srun --jobid XXXX --ntasks-per-node=1 deepspeed train.py -s deepspeed --deepspee
 To launch the training with Horovod use:
 
 > [!NOTE]  
-> NOTE: Assuming 4 GPUs are available.
+> Assuming 4 GPUs are available.
 
 If your setup has a different number of GPUs, change the `-np 4 -H localhost:4` part.
 
 > [!WARNING]  
-> To use `horovodrun`, make sure that `mpirun` is available in your environment. Otherwise
-> you cannot use Horovod in interactive mode.
+> Using `horovodrun` is the suggested way according to the [horovod docs](https://horovod.readthedocs.io/en/stable/running_include.html).
+> To use `horovodrun`, make sure that `mpirun` is available in your environment.
+> Otherwise you cannot use Horovod in interactive mode.
+> On JSC juwels, `mpirun` is not available, use the `srun` command as a valid fallback instead.
+
+You can find out if `mpirun` exists using:
+
+```bash
+which mpirun
+```
+
+Using `horovodrun` (if `mpirun` exists):
 
 ```bash
 # Assuming 4 GPUs are available (-np=4)
@@ -74,59 +84,32 @@ horovodrun -np 4 -H localhost:4 train.py -s horovod
 srun --jobid XXXX --ntasks-per-node=1 horovodrun -np 4 -H localhost:4 python -u train.py -s horovod
 ```
 
+Using `srun` (if `mpirun` doesn't exist, e.g. on JSC juwels):
+
+```bash
+# Assuming 4 GPUs are available
+srun --cpu-bind=none --ntasks=4 --ntasks-per-node=4 --cpus-per-task=1 python -u train.py -s horovod
+```
+
 ## Distributed training with SLURM (batch mode)
 
-Before running any of the commands below independently, for the first time,
-ensure you have created the `logs_slurm` folder to ensure output and error files are stored correctly.
-Ignore this step if you are to execute the `runall.sh` script as it creates the folder.
+You can run your training with SLURM by using the `itwinai` SLURM Builder. Use the
+`slurm_config.yaml` file to specify your SLURM parameters and then preview your script
+with the following command:
 
-Each distributed strategy has its own SLURM job script, which
-should be used to run it:
-
-If you want to distribute the code in `train.py` with **torch DDP**, run from terminal:
-  
 ```bash
-export DIST_MODE="ddp"
-export RUN_NAME="ddp-itwinai"
-export TRAINING_CMD="train.py -s ddp"
-export PYTHON_VENV="../../../envAI_hdfml"
-sbatch --export=ALL,DIST_MODE="$DIST_MODE",RUN_NAME="$RUN_NAME",TRAINING_CMD="$TRAINING_CMD",PYTHON_VENV="$PYTHON_VENV" \
-    --job-name="$RUN_NAME-n$N" \
-    --output="logs_slurm/job-$RUN_NAME-n$N.out" \
-    --error="logs_slurm/job-$RUN_NAME-n$N.err" \
-    slurm.sh
+itwinai generate-slurm -c slurm_config.yaml --no-save-script --no-submit-job
 ```
 
-If you want to distribute the code in `train.py` with **DeepSpeed**, run from terminal:
-  
+If you are happy with the script, you can then run it by omitting `--no-submit-job`:
+
 ```bash
-export DIST_MODE="deepspeed"
-export RUN_NAME="deepspeed-itwinai"
-export TRAINING_CMD="train.py -s deepspeed"
-export PYTHON_VENV="../../../envAI_hdfml"
-sbatch --export=ALL,DIST_MODE="$DIST_MODE",RUN_NAME="$RUN_NAME",TRAINING_CMD="$TRAINING_CMD",PYTHON_VENV="$PYTHON_VENV" \
-    --job-name="$RUN_NAME-n$N" \
-    --output="logs_slurm/job-$RUN_NAME-n$N.out" \
-    --error="logs_slurm/job-$RUN_NAME-n$N.err" \
-    slurm.sh
+itwinai generate-slurm -c slurm_config.yaml --no-save-script
 ```
 
-If you want to distribute the code in `train.py` with **Horovod**, run from terminal:
-  
-```bash
-export DIST_MODE="horovod"
-export RUN_NAME="horovod-itwinai"
-export TRAINING_CMD="train.py -s horovod"
-export PYTHON_VENV="../../../envAI_hdfml"
-sbatch --export=ALL,DIST_MODE="$DIST_MODE",RUN_NAME="$RUN_NAME",TRAINING_CMD="$TRAINING_CMD",PYTHON_VENV="$PYTHON_VENV" \
-    --job-name="$RUN_NAME-n$N" \
-    --output="logs_slurm/job-$RUN_NAME-n$N.out" \
-    --error="logs_slurm/job-$RUN_NAME-n$N.err" \
-    slurm.sh
-```
-
-You can run all of them with:
+If you want to store a copy of the script in a folder, then you can similarly omit
+`--no-save-script`:
 
 ```bash
-bash runall.sh
+itwinai generate-slurm -c slurm_config.yaml
 ```

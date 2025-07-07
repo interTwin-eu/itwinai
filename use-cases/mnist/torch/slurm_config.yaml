@@ -1,0 +1,14 @@
+num_nodes: 1
+gpus_per_node: 4
+python_venv: ../../../.venv/
+
+dist_strat: ddp
+pipe_key: training_pipeline
+
+py_spy: true
+profiling_sampling_rate: 100
+
+training_cmd: "$(which itwinai) exec-pipeline \
+  strategy={dist_strat} \
+  checkpoints_location=checkpoints_{dist_strat} \
+  +pipe_key={pipe_key}"

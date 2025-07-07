@@ -1,0 +1,84 @@
+# TODO: Change to your image path (filename should be <name>:<tag>)
+image:
+  repository: /ceph/hpc/data/st2301-itwin-users/lineick/hython
+  tag: sif
+  pullPolicy: IfNotPresent
+
+# TODO: change resources for head as needed
+head:
+  resources:
+    limits:
+      cpu: "64"
+      # To avoid out-of-memory issues, never allocate less than 2G memory for the Ray head.
+      memory: "128G"
+    requests:
+      cpu: "64"
+      # To avoid out-of-memory issues, never allocate less than 2G memory for the Ray head.
+      memory: "128G"
+  annotations:
+    slurm-job.vk.io/flags: "-p gpu --gres=gpu:1  --time 230" # TODO: Adjust as needed
+    # TODO: Add container envs here
+    slurm-job.vk.io/singularity-options: "--no-home --compat --no-mount /exa5 --env POD_IP=$POD_IP  --env HYDRA_FULL_ERROR=1,NCCL_SOCKET_IFNAME=br0,RAY_record_ref_creation_sites=1,SLURM_NNODES=1,ITWINAI_LOG_LEVEL=DEBUG"
+    slurm-job.vk.io/singularity-mounts: "--bind /ceph"
+    interlink.eu/pod-vpn: "true"
+    slurm-job.vk.io/pre-exec: "mkdir -p  /ceph/hpc/data/st2301-itwin-users/interlink/ray; cd /ceph/hpc/home/ciangottinid/test_dodas_net && singularity exec --no-mount /scratch,/exa5,/cvmfs --bind /ceph/hpc/data/st2301-itwin-users/eurac/:/ceph/hpc/data/st2301-itwin-users/eurac/ --bind $PWD/wireguard:/var/run/wireguard --bind /ceph/hpc/data/st2301-itwin-users/interlink/ray:/mnt/cluster_storage --env INTERNAL_IP=$INTERNAL_IP --env POD_IP=$POD_IP  /ceph/hpc/home/ciangottinid/launch:latest  ./slirp.sh"
+  nodeSelector:
+    kubernetes.io/hostname: vega-virtual-node
+
+  tolerations:
+    - key: virtual-node.interlink/no-schedule
+      operator: Exists
+    - effect: NoExecute
+      key: node.kubernetes.io/unreachable
+      operator: Exists
+      tolerationSeconds: 300
+  rayStartParams:
+    node-ip-address: "$POD_IP"
+    verbose: true
+    #  volumeMounts:
+    #    - mountPath: /ceph
+    #      name: ceph-volume
+    #      readOnly: true
+  headService: {}
+
+# TODO: change resources for worker as needed
+worker:
+  # If you want to disable the default workergroup
+  # uncomment the line below
+  # disabled: true
+  groupName: workergroup
+  replicas: 3 # TODO: Change number of workers in cluster
+  minReplicas: 1
+  maxReplicas: 3
+  resources:
+    limits:
+      cpu: "64"
+      memory: "128G"
+    requests:
+      cpu: "64"
+      memory: "128G"
+  annotations:
+    slurm-job.vk.io/flags: "-p gpu --gres=gpu:1 --time 230" # TODO: change num of gpus and cpus
+    slurm-job.vk.io/singularity-options: "--no-home --compat --no-mount /exa5 --env HYDRA_FULL_ERROR=1,RAY_record_ref_creation_sites=1,ITWINAI_LOG_LEVEL=DEBUG,NCCL_SOCKET_IFNAME=br0,SLURM_NNODES=1"
+    slurm-job.vk.io/singularity-mounts: "--bind /ceph"
+    interlink.eu/pod-vpn: "true"
+    slurm-job.vk.io/pre-exec: "mkdir -p  /ceph/hpc/data/st2301-itwin-users/interlink/ray; cd /ceph/hpc/home/ciangottinid/test_dodas_net && singularity exec --no-mount /scratch,/exa5,/cvmfs --bind /ceph/hpc/data/st2301-itwin-users/eurac/:/ceph/hpc/data/st2301-itwin-users/eurac/ --bind $PWD/wireguard:/var/run/wireguard --bind /ceph/hpc/data/st2301-itwin-users/interlink/ray:/mnt/cluster_storage --env INTERNAL_IP=$INTERNAL_IP --env POD_IP=$POD_IP  /ceph/hpc/home/ciangottinid/launch:latest  ./slirp.sh"
+  nodeSelector:
+    kubernetes.io/hostname: vega-virtual-node
+  tolerations:
+    - key: virtual-node.interlink/no-schedule
+      operator: Exists
+    - effect: NoExecute
+      key: node.kubernetes.io/unreachable
+      operator: Exists
+      tolerationSeconds: 300
+  rayStartParams:
+    #num-gpus: 1
+    #num-cpus: 4
+    #memory: 12000
+    verbose: true
+
+# Configuration for Head's Kubernetes Service
+service:
+  # This is optional, and the default is ClusterIP.
+  type: ClusterIP
