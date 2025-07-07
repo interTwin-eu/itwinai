@@ -965,7 +965,7 @@ class TorchTrainer(Trainer, LogMixin):
 
         if self.logger:
             py_logger.debug(f"Using logger: {self.logger.__class__.__name__}")
-            if self.tune_run_id is not None:
+            if self.tune_run_id is not None and self.strategy.is_main_worker:
                 # Nest the logger of each trial for ray (non-HPO is still nested as a trial)
                 trial_id = ray.tune.get_context().get_trial_name()
                 self.logger.create_logger_context(
