@@ -929,6 +929,13 @@ class TorchTrainer(Trainer, LogMixin):
             py_logger.debug(
                 f"Logger for Ray Tune initialized with run ID: {self.tune_run_id}"
             )
+            client = mlflow.tracking.MlflowClient()
+            self.trial_run_ids = []
+
+            for trial_idx in range(self.ray_tune_config.num_samples):
+                # create a mlflow run for each trial (without starting it)
+                trial_run = client.create_run(self.logger.experiment_id, run_name=f"trial_{trial_idx}")
+                self.trial_run_ids.append(trial_run.info.run_id)
 
         # Create the tuner with the driver function
         tuner = ray.tune.Tuner(
@@ -968,14 +975,13 @@ class TorchTrainer(Trainer, LogMixin):
             if self.tune_run_id is not None and self.strategy.is_main_worker:
                 # Nest the logger of each trial for ray (non-HPO is still nested as a trial)
                 trial_id = ray.tune.get_context().get_trial_name()
+                trial_idx = int(trial_id[-1])
                 self.logger.create_logger_context(
                     rank=self.strategy.global_rank(),
-                    run_id=self.tune_run_id,
+                    parent_run_id=self.tune_run_id,
+                    run_id=self.trial_run_ids[trial_idx],
                     run_name=trial_id,
                 )
-                # Get nested trial run ID for MLFlow
-                if (run := mlflow.active_run()) is not None:
-                    self.trial_run_id = run.info.run_id
             else:
                 # Create a logger context for the current worker without nesting
                 self.logger.create_logger_context(rank=self.strategy.global_rank())

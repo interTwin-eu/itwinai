@@ -14,6 +14,7 @@ import logging
 import time
 from multiprocessing import Process
 from typing import TYPE_CHECKING, Any, Callable
+import ray.tune
 
 from ...loggers import Logger
 from .backend import detect_gpu_backend
@@ -84,7 +85,7 @@ def profile_gpu_utilization(
     run_name = f"gpu_utilization_{global_rank}"
 
     logger.create_logger_context(
-        rank=global_rank, run_id=parent_run_id, run_name=run_name
+        rank=global_rank, parent_run_id=parent_run_id, run_name=run_name
     )
 
     t_start = time.monotonic()  # fractional seconds
@@ -126,7 +127,9 @@ def measure_gpu_utilization(method: Callable) -> Callable:
         warmup_time = 5
 
         strategy = self.strategy
-        parent_run_id = self.trial_run_id
+        trial_id = ray.tune.get_context().get_trial_name()
+        trial_idx = int(trial_id[-1])
+        parent_run_id = self.trial_run_ids[trial_idx]
 
         local_rank = strategy.local_rank()
         global_rank = strategy.global_rank()

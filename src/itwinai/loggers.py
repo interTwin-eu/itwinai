@@ -563,11 +563,13 @@ class MLFlowLogger(Logger):
                   Defaults to None.
                 - ``run_name`` (Optional[str]): name of the MLFlow run.
                   Defaults to None.
+                - ``parent_run_id`` (Optional[str]): parent run ID to attach to.
 
         Returns:
             mlflow.ActiveRun: active MLFlow run.
         """
         run_id = kwargs.get("run_id")
+        parent_run_id = kwargs.get("parent_run_id")
         run_name = kwargs.get("run_name")
 
         self.worker_rank = rank
@@ -580,9 +582,10 @@ class MLFlowLogger(Logger):
 
         active_run = self.mlflow.active_run()
 
-        if run_id:
+        if parent_run_id:
             self.active_run = self.mlflow.start_run(
-                parent_run_id=run_id,
+                run_id=run_id,
+                parent_run_id=parent_run_id,
                 run_name=run_name,
                 description=self.run_description,
             )
@@ -595,6 +598,7 @@ class MLFlowLogger(Logger):
         else:
             self.active_run = self.mlflow.start_run(
                 run_name=run_name,
+                run_id=run_id,
                 description=self.run_description,
             )
 
