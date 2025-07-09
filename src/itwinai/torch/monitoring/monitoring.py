@@ -20,7 +20,7 @@ import ray.tune
 
 from itwinai.torch.distributed import RayTorchDistributedStrategy
 
-from ...loggers import Logger
+from ...loggers import Logger, contains_mlflow_logger
 from .backend import detect_gpu_backend
 
 if TYPE_CHECKING:
@@ -125,13 +125,24 @@ def measure_gpu_utilization(method: Callable) -> Callable:
         if not self.measure_gpu_data:
             return method(self, *args, **kwargs)
 
+        if not self.logger:
+            py_logger.warning(
+                f"No loggers set, while measure_gpu_data is set to {self.measure_gpu_data}"
+                " Please provide loggers so measure_gpu_data can log."
+                " Skipping GPU logging."
+            )
+            return method(self, *args, **kwargs)
+
         gpu_probing_interval = 1
         warmup_time = 5
 
         strategy = self.strategy
         parent_run_id = None
 
-        if isinstance(strategy, RayTorchDistributedStrategy):
+        if (
+            isinstance(strategy, RayTorchDistributedStrategy)
+            and contains_mlflow_logger(self.logger)
+        ):
             trial_name = ray.tune.get_context().get_trial_name()
             # The trial index are the last 5 characters of the trial name
             # (e.g. 2 in "TorchTrainer_a6b44_00002")

@@ -1013,7 +1013,9 @@ class TorchTrainer(Trainer, LogMixin):
                 )
             else:
                 # Create a logger context for the current worker without nesting
-                self.logger.create_logger_context(rank=self.strategy.global_rank())
+                self.logger.create_logger_context(
+                    rank=self.strategy.global_rank(), run_name=self.run_id
+                )
 
             py_logger.debug("...the logger has been initialized")
             hparams = self.config.model_dump()
@@ -1258,7 +1260,7 @@ class TorchTrainer(Trainer, LogMixin):
             if metric_name is None:
                 raise ValueError("Could not find a metric in the TuneConfig")
 
-            if self.time_ray:
+            if self.time_ray and isinstance(self.strategy, RayTorchDistributedStrategy):
                 # time and log the ray_report call
                 self._time_and_log(
                     lambda: self.ray_report(
