@@ -504,6 +504,13 @@ def generate_slurm(
         bool,
         typer.Option("--debug", help="Whether to include debugging information or not"),
     ] = False,
+    use_infiniband_suffix: Annotated[
+        bool,
+        typer.Option(
+            "--use-infiniband-suffix",
+            help="Whether to use the infiniband suffix, i.e. {master_addr}i:{port}.",
+        ),
+    ] = False,
     no_save_script: Annotated[
         bool,
         typer.Option(

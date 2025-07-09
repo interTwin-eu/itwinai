@@ -72,6 +72,7 @@ def get_slurm_job_parser() -> ArgumentParser:
     default_python_venv = ".venv"
     default_scalability_nodes = "1,2,4,8"
     default_profiling_sampling_rate = 10  # py-spy profiler sample rate/frequency
+    default_use_infiniband_suffix = False
 
     parser = ArgumentParser(parser_mode="omegaconf")
 
@@ -188,6 +189,13 @@ def get_slurm_job_parser() -> ArgumentParser:
         type=int,
         default=default_profiling_sampling_rate,
         help="The rate at which the py-spy profiler should sample the call stack.",
+    )
+    parser.add_argument(
+        "-ib",
+        "--use-infiniband-suffix",
+        type=bool,
+        default=default_use_infiniband_suffix,
+        help="Whether to use the infiniband suffix, i.e. {master_addr}i:{port}.",
     )
 
     # Boolean arguments where you only need to include the flag and not an actual value

@@ -7,6 +7,7 @@ pipe_key: training_pipeline
 
 py_spy: true
 profiling_sampling_rate: 100
+use_infiniband_suffix: false
 
 training_cmd: "$(which itwinai) exec-pipeline \
   strategy={dist_strat} \

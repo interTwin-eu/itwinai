@@ -86,6 +86,7 @@ class SlurmScriptBuilder:
         file_folder: Path = Path("slurm_scripts"),
         py_spy_profiling: bool = False,
         profiling_sampling_rate: int = 10,
+        use_infiniband_suffix: bool = False,
     ):
         self.slurm_script_configuration = slurm_script_configuration
         self.distributed_strategy = distributed_strategy
@@ -98,6 +99,7 @@ class SlurmScriptBuilder:
 
         self.py_spy_profiling = py_spy_profiling
         self.profiling_sampling_rate = profiling_sampling_rate
+        self.use_infiniband_suffix = use_infiniband_suffix
 
         # exec-pipeline-specific commands
         self.config_name = config_name
@@ -188,9 +190,13 @@ class SlurmScriptBuilder:
         """
 
         if self.distributed_strategy in ["ddp", "deepspeed"]:
-            rdzv_endpoint = (
-                "'$(scontrol show hostnames \"$SLURM_JOB_NODELIST\" | head -n 1)'i:29500"
-            )
+            # Constructing the rendezvous endpoint
+            master_address = "'$(scontrol show hostnames \"$SLURM_JOB_NODELIST\" | head -n 1)'"
+            if self.use_infiniband_suffix:
+                master_address = f"{master_address}i"
+            master_port = "29500"
+            rdzv_endpoint = f"{master_address}:{master_port}"
+
             bash_command = rf"""torchrun \
                 --log_dir='{torch_log_dir}' \
                 --nnodes=$SLURM_NNODES \
@@ -429,6 +435,7 @@ def generate_default_slurm_script() -> None:
         pipe_key=args.pipe_key,
         py_spy_profiling=args.py_spy,
         profiling_sampling_rate=args.profiling_sampling_rate,
+        use_infiniband_suffix=args.use_infiniband_suffix,
     )
 
     submit_job = not args.no_submit_job
