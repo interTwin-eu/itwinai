@@ -49,6 +49,8 @@ def syndata(tmp_path, torch_env,install_requirements):
         shutil.copy(USECASE_FOLDER / "data.py", tmp_path)
         shutil.copy(USECASE_FOLDER / "trainer.py", tmp_path)
 
+        print(f"Running synthetic data generation command: {cmd_data}")
+        
         subprocess.run(cmd_data.split(), check=True, cwd=tmp_path)
 
     return tmp_path
