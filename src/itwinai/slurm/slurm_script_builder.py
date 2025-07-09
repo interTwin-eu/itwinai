@@ -8,6 +8,7 @@
 # - Matteo Bunino <matteo.bunino@cern.ch> - CERN
 # --------------------------------------------------------------------------------------
 
+import os
 import logging
 import subprocess
 from collections.abc import Iterable
@@ -155,8 +156,19 @@ class SlurmScriptBuilder:
         """Generates a pre-execution command for the SLURM script. This will load the
         standard HPC modules, source the given python venv and set the OpenMP number
         of threads. Will also add debug echo statements if debug flag is set to True."""
+        if "SLURM_BUILDER_HPC_ENV_INIT" in os.environ:
+            hpc_setup_command = os.environ["SLURM_BUILDER_HPC_ENV_INIT"]
+            cli_logger.info(
+                "Using the environment variable 'SLURM_BUILDER_HPC_ENV_INIT' for the "
+                "pre-execution command. Turn on debug mode for more information."
+            )
+            cli_logger.debug(f"'SLURM_BUILDER_HPC_ENV_INIT' is set to '{hpc_setup_command}'")
+        else:
+            hpc_setup_command = f"ml {' '.join(JUWELS_HPC_MODULES)}"
+            cli_logger.debug(f"Using default JUWELS setup: '{hpc_setup_command}'")
+
         pre_exec_command = rf"""
-            ml {" ".join(JUWELS_HPC_MODULES)}
+            {hpc_setup_command}
             source {self.python_venv}/bin/activate
             export OMP_NUM_THREADS={self.omp_num_threads}
         """
