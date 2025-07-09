@@ -111,6 +111,7 @@ def detect_distributed_environment() -> ClusterEnvironment:
     # 1) TorchElastic
     if os.getenv("TORCHELASTIC_RUN_ID") is not None:
         py_logger.debug("Using TorchElastic distributed cluster")
+        # https://pytorch.org/docs/stable/elastic/run.html#environment-variables
         return ClusterEnvironment(
             global_rank=_get_int("RANK", required=True),
             local_rank=_get_int("LOCAL_RANK", required=True),
@@ -123,6 +124,7 @@ def detect_distributed_environment() -> ClusterEnvironment:
     slurm_tasks = _get_int("SLURM_NTASKS", default=0)
     if ompi_size >= slurm_tasks:
         py_logger.debug("Using Open MPI distributed cluster")
+        # https://docs.open-mpi.org/en/v5.0.x/tuning-apps/environment-var.html
         return ClusterEnvironment(
             global_rank=_get_int("OMPI_COMM_WORLD_RANK", required=True),
             local_rank=_get_int("OMPI_COMM_WORLD_LOCAL_RANK", required=True),
@@ -133,6 +135,7 @@ def detect_distributed_environment() -> ClusterEnvironment:
     # 3) SLURM (fallback)
     if os.getenv("SLURM_JOB_ID") is not None:
         py_logger.debug("Using SLURM distributed environment")
+        # https://hpcc.umd.edu/hpcc/help/slurmenv.html
         return ClusterEnvironment(
             global_rank=_get_int("SLURM_PROCID", required=True),
             local_rank=_get_int("SLURM_LOCALID", required=True),
