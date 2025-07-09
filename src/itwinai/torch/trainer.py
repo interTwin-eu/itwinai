@@ -906,7 +906,6 @@ class TorchTrainer(Trainer, LogMixin):
             client = mlflow.tracking.MlflowClient()
             experiment_id = client.get_experiment_by_name(self.experiment_name).experiment_id
 
-            print("linus ray tune", self.ray_tune_config)
             for trial_idx in range(self.ray_tune_config.num_samples):
                 # create a mlflow run for each trial (without starting it)
                 trial_run = client.create_run(experiment_id, run_name=f"trial_{trial_idx}")
@@ -915,9 +914,7 @@ class TorchTrainer(Trainer, LogMixin):
                     MLFLOW_PARENT_RUN_ID,
                     self.mlflow_root_run_id,
                 )
-                print("linus run_ids", trial_run.info.run_id)
                 self.mlflow_trial_run_ids.append(trial_run.info.run_id)
-                print(self.mlflow_trial_run_ids)
 
         # Passes datasets to workers efficiently through Ray storage
         train_with_data = ray.tune.with_parameters(
@@ -1004,9 +1001,7 @@ class TorchTrainer(Trainer, LogMixin):
                 trial_name = ray.tune.get_context().get_trial_name()
                 # The trial index is the last section of the trial name
                 # (e.g. 2 for "TorchTrainer_a6b44_00002")
-                print("linus trial ids:", self.mlflow_trial_run_ids)
                 trial_idx = int(trial_name.split("_")[-1])
-                print("linus idx trial trainer: ", trial_idx)
                 self.logger.create_logger_context(
                     rank=self.strategy.global_rank(),
                     parent_run_id=self.mlflow_root_run_id,
