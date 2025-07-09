@@ -66,10 +66,9 @@ def ray_cluster_is_running() -> bool:
     except subprocess.CalledProcessError as exc:
         # If the command fails, the cluster is not running
         py_logger.debug(
-            f"Subprocess failed with return code {exc.returncode} while checking if "
-            "a Ray cluster exists.\n"
-            f"Stdout: {exc.stdout}\n"
-            f"Stderr: {exc.stderr}"
+            "itwinai was checking for the existance of a Ray cluster trying to "
+            "connect to it, but could not do it. This is not a problem if you "
+            "are not plannig to connect to a Ray cluster."
         )
         return False
     except FileNotFoundError:
