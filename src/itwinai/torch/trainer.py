@@ -24,7 +24,6 @@ from time import perf_counter as default_timer
 from typing import Any, Callable, Dict, List, Literal, Tuple, Union
 
 import mlflow
-from mlflow.utils.mlflow_tags import MLFLOW_PARENT_RUN_ID
 import ray.train
 import ray.tune
 import torch
@@ -33,6 +32,7 @@ import torch.nn as nn
 import torch.optim as optim
 import torch.optim.lr_scheduler as lr_scheduler
 import yaml
+from mlflow.utils.mlflow_tags import MLFLOW_PARENT_RUN_ID
 from ray.train import Checkpoint, DataConfig, ScalingConfig
 from ray.train.torch import TorchConfig
 from ray.train.torch import TorchTrainer as RayTorchTrainer
@@ -192,7 +192,7 @@ class TorchTrainer(Trainer, LogMixin):
     #: Toggle for epoch time tracking
     measure_epoch_time: bool = False
     #: Experiment Name for mlflow
-    experiment_name: str | None = None
+    experiment_name: str
     #: Run ID
     run_id: str
     #: Toggle for Ray time logging
@@ -305,7 +305,11 @@ class TorchTrainer(Trainer, LogMixin):
         # If the validation metric is meant to be maximized, change this to -inf.
         self.best_validation_metric = float(initial_best_validation_metric)
         self.current_epoch = 0
+
+        if experiment_name is None:
+            experiment_name = generate_random_name()
         self.experiment_name = experiment_name
+
         if run_id is None:
             run_id = generate_random_name()
         self.run_id = run_id
@@ -933,6 +937,8 @@ class TorchTrainer(Trainer, LogMixin):
             if (run := mlflow.active_run()) is not None:
                 self.tune_run_id = run.info.run_id
             py_logger.debug(f"Logger for Ray Tune initialized with run ID: {self.tune_run_id}")
+
+            # Create mlflow runs for each trial (will be started by the trial's main worker)
             client = mlflow.tracking.MlflowClient()
             self.trial_run_ids = []
             experiment_id = client.get_experiment_by_name(self.experiment_name).experiment_id

@@ -12,8 +12,10 @@
 import functools
 import logging
 import time
-from multiprocessing import Process
+from multiprocessing import Manager, Process
+from multiprocessing.managers import ValueProxy
 from typing import TYPE_CHECKING, Any, Callable
+
 import ray.tune
 
 from ...loggers import Logger
@@ -24,19 +26,9 @@ if TYPE_CHECKING:
 
 py_logger = logging.getLogger(__name__)
 
-logging_columns = [
-    "sample_idx",
-    "utilization",
-    "power",
-    "local_rank",
-    "node_idx",
-    "num_global_gpus",
-    "strategy",
-    "probing_interval",
-]
-
 
 def profile_gpu_utilization(
+    stop_flag: ValueProxy,
     local_rank: int,
     global_rank: int,
     logger: Logger,
@@ -90,7 +82,7 @@ def profile_gpu_utilization(
 
     t_start = time.monotonic()  # fractional seconds
 
-    while True:
+    while not stop_flag.value:
         time_stamp = time.monotonic() - t_start
 
         gpu_util = backend.get_gpu_utilization(gpu_handle)
@@ -114,6 +106,8 @@ def profile_gpu_utilization(
         sample_idx += 1
         time.sleep(probing_interval)
 
+    logger.destroy_logger_context()
+
 
 def measure_gpu_utilization(method: Callable) -> Callable:
     """Decorator for measuring GPU utilization and storing it to a .csv file."""
@@ -134,9 +128,13 @@ def measure_gpu_utilization(method: Callable) -> Callable:
         local_rank = strategy.local_rank()
         global_rank = strategy.global_rank()
 
+        manager = Manager()
+        stop_flag = manager.Value("i", False)
+
         gpu_monitor_process = Process(
             target=profile_gpu_utilization,
             kwargs={
+                "stop_flag": stop_flag,
                 "local_rank": local_rank,
                 "global_rank": global_rank,
                 "logger": self.logger,
