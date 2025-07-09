@@ -8,8 +8,8 @@
 # - Matteo Bunino <matteo.bunino@cern.ch> - CERN
 # --------------------------------------------------------------------------------------
 
-import os
 import logging
+import os
 import subprocess
 from collections.abc import Iterable
 from pathlib import Path
