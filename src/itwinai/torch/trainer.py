@@ -806,14 +806,6 @@ class TorchTrainer(Trainer, LogMixin):
             Tuple[Dataset, Dataset, Dataset, Any]: training dataset,
             validation dataset, test dataset, trained model.
         """
-        if self.logger:
-            self.logger.create_logger_context(run_name=self.run_id)
-            if (run := mlflow.active_run()) is not None:
-                self.mlflow_root_run_id = run.info.run_id
-                py_logger.debug(
-                    f"Root mlflow run initialized with run ID: {self.mlflow_root_run_id}"
-                )
-
         if isinstance(self.strategy, RayTorchDistributedStrategy):
             # Execute with Ray
             return self._execute_with_ray(
@@ -901,20 +893,31 @@ class TorchTrainer(Trainer, LogMixin):
                 " caveat and can be ignored."
             )
 
-        if contains_mlflow_logger(self.logger):
-            # Create mlflow runs for each trial (will be started by the trial's main worker)
-            client = mlflow.tracking.MlflowClient()
-            experiment_id = client.get_experiment_by_name(self.experiment_name).experiment_id
-
-            for trial_idx in range(self.ray_tune_config.num_samples):
-                # create a mlflow run for each trial (without starting it)
-                trial_run = client.create_run(experiment_id, run_name=f"trial_{trial_idx}")
-                client.set_tag(
-                    trial_run.info.run_id,
-                    MLFLOW_PARENT_RUN_ID,
-                    self.mlflow_root_run_id,
+        if self.logger:
+            # Create a logger context for the root run
+            self.logger.create_logger_context(run_name=self.run_id)
+            if (run := mlflow.active_run()) is not None:
+                self.mlflow_root_run_id = run.info.run_id
+                py_logger.debug(
+                    f"Root mlflow run initialized with run ID: {self.mlflow_root_run_id}"
                 )
-                self.mlflow_trial_run_ids.append(trial_run.info.run_id)
+
+            if contains_mlflow_logger(self.logger):
+                # Create mlflow runs per trial (will be started by the trial's main worker)
+                client = mlflow.tracking.MlflowClient()
+                experiment_id = (
+                    client.get_experiment_by_name(self.experiment_name).experiment_id
+                )
+
+                for trial_idx in range(self.ray_tune_config.num_samples):
+                    # create a mlflow run for each trial (without starting it)
+                    trial_run = client.create_run(experiment_id, run_name=f"trial_{trial_idx}")
+                    client.set_tag(
+                        trial_run.info.run_id,
+                        MLFLOW_PARENT_RUN_ID,
+                        self.mlflow_root_run_id,
+                    )
+                    self.mlflow_trial_run_ids.append(trial_run.info.run_id)
 
         # Passes datasets to workers efficiently through Ray storage
         train_with_data = ray.tune.with_parameters(

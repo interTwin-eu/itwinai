@@ -34,6 +34,7 @@ def profile_gpu_utilization(
     local_rank: int,
     global_rank: int,
     logger: Logger,
+    root_run_name: str,
     parent_run_id: str | None = None,
     probing_interval: int = 2,
     warmup_time: int = 5,
@@ -76,10 +77,15 @@ def profile_gpu_utilization(
 
     sample_idx = 0
 
-    run_name = f"gpu_utilization_{global_rank}"
+    run_name = f"gpu_{global_rank}"
+    if parent_run_id is None:
+        run_name = f"{root_run_name}_gpu_{global_rank}"
 
     logger.create_logger_context(
-        rank=global_rank, force=True, parent_run_id=parent_run_id, run_name=run_name
+        rank=global_rank,
+        force=True,
+        parent_run_id=parent_run_id,
+        run_name=run_name,
     )
 
     t_start = time.monotonic()  # fractional seconds
@@ -123,16 +129,14 @@ def measure_gpu_utilization(method: Callable) -> Callable:
         warmup_time = 5
 
         strategy = self.strategy
+        parent_run_id = None
+
         if isinstance(strategy, RayTorchDistributedStrategy):
             trial_name = ray.tune.get_context().get_trial_name()
             # The trial index are the last 5 characters of the trial name
             # (e.g. 2 in "TorchTrainer_a6b44_00002")
             trial_idx = int(trial_name.split("_")[-1])
             parent_run_id = self.mlflow_trial_run_ids[trial_idx]
-
-        else:
-            # If not using Ray, use the root run ID
-            parent_run_id = self.mlflow_root_run_id
 
         local_rank = strategy.local_rank()
         global_rank = strategy.global_rank()
@@ -147,6 +151,7 @@ def measure_gpu_utilization(method: Callable) -> Callable:
                 "local_rank": local_rank,
                 "global_rank": global_rank,
                 "logger": self.logger,
+                "root_run_name": self.run_id,
                 "parent_run_id": parent_run_id,
                 "probing_interval": gpu_probing_interval,
                 "warmup_time": warmup_time,
