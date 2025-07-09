@@ -50,7 +50,7 @@ from itwinai.torch.profiling.profiler import profile_torch_trainer
 
 from ..components import Trainer, monitor_exec
 from ..distributed import ray_cluster_is_running
-from ..loggers import EpochTimeTracker, Logger, LogMixin
+from ..loggers import EpochTimeTracker, Logger, LogMixin, contains_mlflow_logger
 from ..utils import EPOCH_TIME_DIR, generate_random_name, load_yaml, to_uri
 from .config import TrainingConfiguration
 from .distributed import (
@@ -901,7 +901,7 @@ class TorchTrainer(Trainer, LogMixin):
                 " caveat and can be ignored."
             )
 
-        if self.logger:
+        if contains_mlflow_logger(self.logger):
             # Create mlflow runs for each trial (will be started by the trial's main worker)
             client = mlflow.tracking.MlflowClient()
             experiment_id = client.get_experiment_by_name(self.experiment_name).experiment_id
@@ -996,6 +996,7 @@ class TorchTrainer(Trainer, LogMixin):
             if (
                 isinstance(self.strategy, RayTorchDistributedStrategy)
                 and self.strategy.is_main_worker
+                and contains_mlflow_logger(self.logger)
             ):
                 # Nest the logger of each trial for ray (non-HPO is still nested as a trial)
                 trial_name = ray.tune.get_context().get_trial_name()

@@ -6,6 +6,7 @@
 # Credit:
 # - Matteo Bunino <matteo.bunino@cern.ch> - CERN
 # - Anna Lappe <anna.elisa.lappe@cern.ch> - CERN
+# - Linus Eickhoff <linus.maximilian.eickhoff@cern.ch> - CERN
 # -------------------------------------------------------------------------------------
 
 """
@@ -1403,3 +1404,18 @@ class EpochTimeTracker:
         self.save_path.parent.mkdir(parents=True, exist_ok=True)
         df.to_csv(self.save_path, index=False)
         print(f"Saving EpochTimeLogging data to '{self.save_path.resolve()}'.")
+
+
+
+def contains_mlflow_logger(logger: Logger) -> bool:
+    """checks if logger contains or is an MLFlowLogger"""
+    if isinstance(logger, LoggersCollection):
+        for l in logger.loggers:
+            if isinstance(l, MLFlowLogger):
+                return True
+
+    if isinstance(logger, MLFlowLogger):
+        return True
+
+    return False
+
