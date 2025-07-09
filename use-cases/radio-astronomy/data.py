@@ -64,7 +64,8 @@ class SynthesizeData(DataGetter):
         Relies on the pulsar_simulation package."""
 
         # Ray is assumed to be running for the data generation. 
-        if ray.is_initialized() == False: ray.init(num_cpus=self.parameters["num_cpus"])
+        if ray.is_initialized() == False: ray.init(num_cpus=self.parameters["num_cpus"],
+                                                   include_dashboard=False)
         generate_example_payloads_for_training(
             tag=self.parameters["tag"],
             num_payloads=self.parameters["num_payloads"],
