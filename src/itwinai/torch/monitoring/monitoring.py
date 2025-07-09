@@ -85,7 +85,7 @@ def profile_gpu_utilization(
     run_name = f"gpu_utilization_{global_rank}"
 
     logger.create_logger_context(
-        rank=global_rank, parent_run_id=parent_run_id, run_name=run_name
+        rank=global_rank, force=True, parent_run_id=parent_run_id, run_name=run_name
     )
 
     t_start = time.monotonic()  # fractional seconds

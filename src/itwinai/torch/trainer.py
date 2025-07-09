@@ -24,6 +24,7 @@ from time import perf_counter as default_timer
 from typing import Any, Callable, Dict, List, Literal, Tuple, Union
 
 import mlflow
+from mlflow.utils.mlflow_tags import MLFLOW_PARENT_RUN_ID
 import ray.train
 import ray.tune
 import torch
@@ -145,6 +146,7 @@ class TorchTrainer(Trainer, LogMixin):
             vaidation loss is computed. Example values are "inf" and "-inf", depending on
             wether the best validation metric should be minimized or maximized.
             Defaults to "inf".
+        experiment_name (str, optional): name of the experiment used for mlflow logging
         run_id (str, optional): name used to identify a specific run when collecting
             metrics on the trainer (e.g. GPU utilization). Defaults to None.
         time_ray (bool): whether to time and log the execution of Ray functions.
@@ -189,13 +191,15 @@ class TorchTrainer(Trainer, LogMixin):
     store_torch_profiling_traces: bool = False
     #: Toggle for epoch time tracking
     measure_epoch_time: bool = False
+    #: Experiment Name for mlflow
+    experiment_name: str | None = None
     #: Run ID
     run_id: str
     #: Toggle for Ray time logging
     time_ray: bool = False
     # Tune run id for nested runs in mlflow
     tune_run_id: str | None = None
-    # Trial run id for nested runs in mlflow
+    #: Trial run id for nested runs in mlflow
     trial_run_id: str | None = None
 
     def __init__(
@@ -226,6 +230,7 @@ class TorchTrainer(Trainer, LogMixin):
         ray_data_config: DataConfig | None = None,
         from_checkpoint: str | Path | None = None,
         initial_best_validation_metric: str = "inf",
+        experiment_name: str | None = None,
         run_id: str | None = None,
         time_ray: bool = False,
     ) -> None:
@@ -300,6 +305,7 @@ class TorchTrainer(Trainer, LogMixin):
         # If the validation metric is meant to be maximized, change this to -inf.
         self.best_validation_metric = float(initial_best_validation_metric)
         self.current_epoch = 0
+        self.experiment_name = experiment_name
         if run_id is None:
             run_id = generate_random_name()
         self.run_id = run_id
@@ -926,15 +932,15 @@ class TorchTrainer(Trainer, LogMixin):
             self.logger.create_logger_context(run_name=self.run_id)
             if (run := mlflow.active_run()) is not None:
                 self.tune_run_id = run.info.run_id
-            py_logger.debug(
-                f"Logger for Ray Tune initialized with run ID: {self.tune_run_id}"
-            )
+            py_logger.debug(f"Logger for Ray Tune initialized with run ID: {self.tune_run_id}")
             client = mlflow.tracking.MlflowClient()
             self.trial_run_ids = []
+            experiment_id = client.get_experiment_by_name(self.experiment_name).experiment_id
 
             for trial_idx in range(self.ray_tune_config.num_samples):
                 # create a mlflow run for each trial (without starting it)
-                trial_run = client.create_run(self.logger.experiment_id, run_name=f"trial_{trial_idx}")
+                trial_run = client.create_run(experiment_id, run_name=f"trial_{trial_idx}")
+                client.set_tag(trial_run.info.run_id, MLFLOW_PARENT_RUN_ID, self.tune_run_id)
                 self.trial_run_ids.append(trial_run.info.run_id)
 
         # Create the tuner with the driver function

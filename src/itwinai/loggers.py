@@ -545,10 +545,10 @@ class MLFlowLogger(Logger):
         self.mlflow = mlflow
 
     def create_logger_context(
-            self,
-            rank: int = 0,
-            force: bool = False,
-            **kwargs
+        self,
+        rank: int = 0,
+        force: bool = False,
+        **kwargs,
     ) -> "mlflow.ActiveRun | None":
         """Initializes the logger context. Start MLFLow run.
 
@@ -904,7 +904,7 @@ class TensorBoardLogger(Logger):
         #     raise ValueError("Framework must be either 'tensorflow' or 'pytorch'")
 
     @check_not_initialized
-    def create_logger_context(self, rank: int = 0,  force: bool = False, **kwargs) -> None:
+    def create_logger_context(self, rank: int = 0, force: bool = False, **kwargs) -> None:
         """Initializes the logger context. Init Tensorboard run.
 
         Args:
