@@ -1,9 +1,11 @@
 name: Testing with pytest
 
-on:
-  pull_request:
-    branches: [main, dev]
-
+# on:
+#   pull_request:
+#     branches: [main, dev]
+on: 
+  push: 
+  
 jobs:
   test-torch:
     name: Testing with pytest
