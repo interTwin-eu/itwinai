@@ -570,8 +570,8 @@ class Itwinai:
     def singularity(
         self,
         base_image: Annotated[
-            dagger.Container, Doc("Base Singularity image")
-        ] = dag.container().from_("quay.io/singularity/docker2singularity"),
+            str, Doc("Base Singularity image")
+        ] = "quay.io/singularity/docker2singularity",
         docker: Annotated[
             dagger.Container | None,
             Doc(

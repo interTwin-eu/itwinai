@@ -42,7 +42,7 @@ def test_logger_initialization(itwinai_logger, request, caplog, enable_logs_prop
         itwinai_logger.log(identifier="num", item=123, kind="metric")
     assert "has not been initialized" in str(exc_info.value)
     with pytest.raises(RuntimeError) as exc_info:
-        itwinai_logger.save_hyperparameters(dict(a=1, b=2))
+        itwinai_logger.save_hyperparameters({"a": 1, "b": 2})
     assert "has not been initialized" in str(exc_info.value)
     with pytest.raises(RuntimeError) as exc_info:
         itwinai_logger.destroy_logger_context()
@@ -64,9 +64,9 @@ def test_logger_initialization(itwinai_logger, request, caplog, enable_logs_prop
 
 def test_console_logger_log(console_logger):
     console_logger.create_logger_context()
-    with patch("builtins.print") as mocked_print:
-        console_logger.log("test_value", "test_identifier")
-        mocked_print.assert_called_with("ConsoleLogger: test_identifier = test_value")
+    with patch("itwinai.loggers.py_logger.info") as mocked_py_logger:
+        console_logger.log("test_value", "test_identifier", kind="metric")
+        mocked_py_logger.assert_called_with("ConsoleLogger: test_identifier = test_value")
     console_logger.destroy_logger_context()
 
 
@@ -144,7 +144,7 @@ def test_tensorboard_logger_log_torch(tensorboard_logger_torch):
 
 def test_loggers_collection_log(loggers_collection):
     with (
-        patch("builtins.print") as mocked_print,
+        patch("itwinai.loggers.py_logger.info") as mocked_py_logger_info,
         patch("mlflow.log_metric") as mock_log_metric,
         patch("wandb.init") as mock_wandb_init,
         patch("wandb.log") as mock_wandb_log,
@@ -158,7 +158,7 @@ def test_loggers_collection_log(loggers_collection):
         loggers_collection.create_logger_context()
         loggers_collection.log(0.5, "test_metric", kind="metric", step=1)
 
-        mocked_print.assert_called_with("ConsoleLogger: test_metric = 0.5")
+        mocked_py_logger_info.assert_called_with("ConsoleLogger: test_metric = 0.5")
         mock_log_metric.assert_called_once_with(key="test_metric", value=0.5, step=1)
         mock_wandb_log.assert_called_once_with({"test_metric": 0.5}, commit=True)
 

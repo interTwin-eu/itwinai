@@ -36,10 +36,9 @@ def scalability_nodes_list(value: str | List[int]) -> List[int]:
     """
 
     if isinstance(value, list):
-        if not all([isinstance(x, int) for x in value]):
+        if not all(isinstance(x, int) for x in value):
             raise ValueError(f"Provided list, '{value}', contains non-integer values.")
-        else:
-            return value
+        return value
 
     try:
         return [int(n) for n in value.split(",")]
@@ -58,9 +57,8 @@ def get_slurm_job_parser() -> ArgumentParser:
     default_std_out = None
     default_err_out = None
     default_num_nodes = 1
-    default_num_tasks_per_node = 1
     default_gpus_per_node = 4
-    default_cpus_per_gpu = 4
+    default_cpus_per_task = 16
 
     # Default other arguments
     default_mode = "single"
@@ -73,7 +71,7 @@ def get_slurm_job_parser() -> ArgumentParser:
     default_training_command = None
     default_python_venv = ".venv"
     default_scalability_nodes = "1,2,4,8"
-    default_profiling_sampling_rate = 10 # py-spy profiler sample rate/frequency
+    default_profiling_sampling_rate = 10  # py-spy profiler sample rate/frequency
 
     parser = ArgumentParser(parser_mode="omegaconf")
 
@@ -115,22 +113,16 @@ def get_slurm_job_parser() -> ArgumentParser:
         help="The number of nodes that the SLURM job is going to run on.",
     )
     parser.add_argument(
-        "--num-tasks-per-node",
-        type=int,
-        default=default_num_tasks_per_node,
-        help="The number of tasks per node.",
-    )
-    parser.add_argument(
         "--gpus-per-node",
         type=int,
         default=default_gpus_per_node,
         help="The requested number of GPUs per node.",
     )
     parser.add_argument(
-        "--cpus-per-gpu",
+        "--cpus-per-task",
         type=int,
-        default=default_cpus_per_gpu,
-        help="The requested number of CPUs per node.",
+        default=default_cpus_per_task,
+        help="The requested number of CPUs per task.",
     )
 
     # Arguments specific to the itwinai pipeline

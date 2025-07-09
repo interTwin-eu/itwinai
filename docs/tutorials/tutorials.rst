@@ -78,5 +78,6 @@ Here you can find our tutorials on how to do profiling with **itwinai**:
 .. toctree::
    :maxdepth: 1
 
+   profiling/profiling-overview
    profiling/py-spy-profiling
    profiling/py-spy-lattice-qcd-example

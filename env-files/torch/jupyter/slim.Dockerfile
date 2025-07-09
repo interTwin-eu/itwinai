@@ -9,8 +9,9 @@
 # --------------------------------------------------------------------------------------
 
 # Container image for JupyterHub 2.5.1 -- supports JupyterLab 4
+# This generates an image that can be both offloaded via interLink and started on a local cloud
 
-ARG BASE_IMG_NAME=python:3.12-slim
+ARG BASE_IMG_NAME=quay.io/jupyter/minimal-notebook:python-3.12
 
 FROM ${BASE_IMG_NAME}
 ARG BASE_IMG_NAME
@@ -24,9 +25,15 @@ ENV DEBIAN_FRONTEND=noninteractive \
     # Improve robustness: avoid silent override by Singularity/Apptainer
     PYTHONPATH="" \
     # User-fiendly page for Rucio clients
-    PAGER=cat
+    PAGER=cat \
+    # Install uv packages system wide (no need for .venv):
+    # https://docs.astral.sh/uv/reference/environment/#uv_system_python
+    UV_SYSTEM_PYTHON=true \
+    # https://docs.astral.sh/uv/reference/environment/#uv_no_cache
+    UV_NO_CACHE=1
 
 # OS deps
+USER root
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     cmake \
@@ -43,30 +50,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     voms-clients-java \
     gnupg \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
-
-# Install jupyter ecosystem
-RUN pip install --upgrade pip && \
-    pip install \
-    "jupyterhub==5.2.1" \
-    "notebook>=7.0.0" \
-    "jupyterlab>=4.1,<4.2" \
-    "jupyterlab-git" \
-    "jupyter-server-proxy" \
-    "ipywidgets" \
-    "PyJWT" \
-    "asyncssh" \
-    "peewee" \
-    "numpy" \
-    "pandas" \
-    "matplotlib" \
-    "scikit-learn" \
-    "nbformat" \
-    "ipykernel" \
-    "jsonschema" \
-    "traitlets"
-
-# Needs to be installed separated from the rest of the jupyterlab ecosystem to avoid conflicts...
-RUN pip install rucio-jupyterlab 
 
 # Set up CERN/ESCAPE CA certs
 # RUN wget -q -O - https://dist.eugridpma.info/distribution/igtf/current/GPG-KEY-EUGridPMA-RPM-3 | apt-key add - && \
@@ -107,19 +90,61 @@ RUN chmod +x /opt/setup-rucio-jupyterlab/configure.py && chown -R ${NB_UID}:${NB
 COPY env-files/torch/jupyter/setup.sh /usr/local/bin/setup.sh
 RUN chmod +x /usr/local/bin/setup.sh
 RUN mkdir -p /opt/rucio/etc && chown -R ${NB_UID}:${NB_GID} /opt/rucio/etc
+# Wrap Rucio setup.sh ans start.sh under a single file (which is called from ENTRYPOINT)
+RUN mv /usr/local/bin/start.sh /usr/local/bin/start-original.sh
+COPY env-files/torch/jupyter/start-cloud.sh /usr/local/bin/start.sh
+RUN chmod +x /usr/local/bin/start.sh
 
 # Enable JupyterLab
 ENV JUPYTER_ENABLE_LAB=yes
 
-# Install itwinai and prov4ml
-WORKDIR /opt/itwinai
-COPY pyproject.toml pyproject.toml
-COPY src src
+# install uv so that uv → /usr/local/bin/uv
+RUN curl -LsSf https://astral.sh/uv/install.sh \
+    | env UV_INSTALL_DIR=/usr/local/bin INSTALLER_NO_MODIFY_PATH=1 sh
 
-RUN pip install ".[torch]" --extra-index-url https://download.pytorch.org/whl/cu124 && \
-    pip install \
+# Install jupyter ecosystem
+USER $NB_UID
+RUN uv pip install --upgrade pip && \
+    uv pip install \
+    "jupyterhub==5.2.1" \
+    "notebook>=7.0.0" \
+    "jupyterlab>=4.1,<4.2" \
+    "jupyterlab-git" \
+    "jupyter-server-proxy" \
+    "ipywidgets" \
+    "PyJWT" \
+    "asyncssh" \
+    "peewee" \
+    "numpy" \
+    "pandas" \
+    "matplotlib" \
+    "scikit-learn" \
+    "nbformat" \
+    "ipykernel" \
+    "jsonschema" \
+    "traitlets"
+
+# Needs to be installed separated from the rest of the jupyterlab ecosystem to avoid conflicts...
+RUN uv pip install rucio-jupyterlab 
+
+# Install itwinai and prov4ml
+WORKDIR "$HOME/itwinai"
+COPY --chown=${NB_UID} pyproject.toml pyproject.toml
+COPY --chown=${NB_UID} src src
+
+
+RUN uv pip install --no-cache-dir --upgrade pip \
+    && uv pip install --no-cache-dir \
+    # Select from which index to install torch
+    --extra-index-url https://download.pytorch.org/whl/cu124 \
+    # This is needed by UV to trust all indexes:
+    --index-strategy unsafe-best-match \
+    # Install packages
+    .[torch] \
     "prov4ml[nvidia]@git+https://github.com/matbun/ProvML@new-main" \
-    pytest pytest-xdist psutil
+    pytest \
+    pytest-xdist \
+    psutil
 
 RUN itwinai sanity-check --torch \
     --optional-deps prov4ml \
@@ -127,11 +152,11 @@ RUN itwinai sanity-check --torch \
 
 # Add tests
 WORKDIR /app
-COPY tests tests
-COPY env-files/torch/jupyter/slim.Dockerfile Dockerfile
+COPY --chown=${NB_UID} tests tests
+COPY --chown=${NB_UID} env-files/torch/jupyter/slim.Dockerfile Dockerfile
 
 # This is most likely ignored when jupyterlab is launched from jhub, in favour of jupyterhub-singleuser
-CMD ["setup.sh", "start-notebook.sh"]
+CMD ["start-notebook.sh"]
 
 
 # Labels
