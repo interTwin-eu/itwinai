@@ -199,8 +199,6 @@ class TorchTrainer(Trainer, LogMixin):
     time_ray: bool = False
     # Tune run id for nested runs in mlflow
     mlflow_root_run_id: str | None = None
-    #: Trial run id for nested runs in mlflow
-    mlflow_trial_run_ids: List[str] = []
 
     def __init__(
         self,
@@ -278,6 +276,7 @@ class TorchTrainer(Trainer, LogMixin):
         self.ray_data_config = ray_data_config
         self.from_checkpoint = from_checkpoint
         self.time_ray = time_ray
+        self.mlflow_trial_run_ids = []
         if self.from_checkpoint:
             self.from_checkpoint = Path(from_checkpoint)
             if not self.from_checkpoint.exists():
@@ -872,14 +871,6 @@ class TorchTrainer(Trainer, LogMixin):
             Tuple[Dataset, Dataset, Dataset, Any]: training dataset,
             validation dataset, test dataset, trained model.
         """
-        # Passes datasets to workers efficiently through Ray storage
-        train_with_data = ray.tune.with_parameters(
-            self._run_worker,
-            train_dataset=train_dataset,
-            validation_dataset=validation_dataset,
-            test_dataset=test_dataset,
-        )
-
         if self.ray_run_config and self.ray_run_config.storage_path:
             # Create Ray checkpoints dir if it does not exist yet
             ckpt_dir = Path(self.ray_run_config.storage_path)
@@ -896,6 +887,45 @@ class TorchTrainer(Trainer, LogMixin):
                 " Please ensure that either num_workers is set to 1 or GPUs in"
                 " resources_per_worker is 0 or 1"
             )
+
+        if (
+            self.ray_tune_config
+            and self.ray_tune_config.scheduler is not None
+            and self.measure_gpu_data
+        ):
+            py_logger.info(
+                "A Trial scheduler for Ray is specified"
+                f" ({type(self.ray_tune_config.scheduler)}), while measuring gpu data."
+                " Trials stopped by the scheduler might not close logger context in time,"
+                " leaving the status of the mlflow run in 'pending'. This is just a visual"
+                " caveat and can be ignored."
+            )
+
+        if self.logger:
+            # Create mlflow runs for each trial (will be started by the trial's main worker)
+            client = mlflow.tracking.MlflowClient()
+            experiment_id = client.get_experiment_by_name(self.experiment_name).experiment_id
+
+            print("linus ray tune", self.ray_tune_config)
+            for trial_idx in range(self.ray_tune_config.num_samples):
+                # create a mlflow run for each trial (without starting it)
+                trial_run = client.create_run(experiment_id, run_name=f"trial_{trial_idx}")
+                client.set_tag(
+                    trial_run.info.run_id,
+                    MLFLOW_PARENT_RUN_ID,
+                    self.mlflow_root_run_id,
+                )
+                print("linus run_ids", trial_run.info.run_id)
+                self.mlflow_trial_run_ids.append(trial_run.info.run_id)
+                print(self.mlflow_trial_run_ids)
+
+        # Passes datasets to workers efficiently through Ray storage
+        train_with_data = ray.tune.with_parameters(
+            self._run_worker,
+            train_dataset=train_dataset,
+            validation_dataset=validation_dataset,
+            test_dataset=test_dataset,
+        )
 
         if self.from_checkpoint:
             # Create trainer from checkpoint
@@ -928,32 +958,6 @@ class TorchTrainer(Trainer, LogMixin):
 
         # Create the parameter space for hyperparameter tuning
         param_space = {"train_loop_config": search_space(self.ray_search_space)}
-
-        if (
-            self.ray_tune_config
-            and self.ray_tune_config.scheduler is not None
-            and self.measure_gpu_data
-        ):
-            py_logger.warning(
-                "A Trial scheduler for Ray is specified"
-                f" ({type(self.ray_tune_config.scheduler)}), while measuring gpu data."
-                " Trials stopped by the scheduler will not store gpu data to disk."
-            )
-
-        if self.logger:
-            # Create mlflow runs for each trial (will be started by the trial's main worker)
-            client = mlflow.tracking.MlflowClient()
-            experiment_id = client.get_experiment_by_name(self.experiment_name).experiment_id
-
-            for trial_idx in range(self.ray_tune_config.num_samples):
-                # create a mlflow run for each trial (without starting it)
-                trial_run = client.create_run(experiment_id, run_name=f"trial_{trial_idx}")
-                client.set_tag(
-                    trial_run.info.run_id,
-                    MLFLOW_PARENT_RUN_ID,
-                    self.mlflow_root_run_id,
-                )
-                self.mlflow_trial_run_ids.append(trial_run.info.run_id)
 
         # Create the tuner with the driver function
         tuner = ray.tune.Tuner(
@@ -1000,12 +1004,13 @@ class TorchTrainer(Trainer, LogMixin):
                 trial_name = ray.tune.get_context().get_trial_name()
                 # The trial index is the last section of the trial name
                 # (e.g. 2 for "TorchTrainer_a6b44_00002")
+                print("linus trial ids:", self.mlflow_trial_run_ids)
                 trial_idx = int(trial_name.split("_")[-1])
+                print("linus idx trial trainer: ", trial_idx)
                 self.logger.create_logger_context(
                     rank=self.strategy.global_rank(),
                     parent_run_id=self.mlflow_root_run_id,
                     run_id=self.mlflow_trial_run_ids[trial_idx],
-                    run_name=trial_name,
                 )
             else:
                 # Create a logger context for the current worker without nesting

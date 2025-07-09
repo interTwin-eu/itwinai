@@ -125,13 +125,13 @@ def measure_gpu_utilization(method: Callable) -> Callable:
         strategy = self.strategy
         if isinstance(strategy, RayTorchDistributedStrategy):
             trial_name = ray.tune.get_context().get_trial_name()
-            # the trial index are the last 5 characters of the trial name
+            # The trial index are the last 5 characters of the trial name
             # (e.g. 2 in "TorchTrainer_a6b44_00002")
             trial_idx = int(trial_name.split("_")[-1])
             parent_run_id = self.mlflow_trial_run_ids[trial_idx]
 
         else:
-            # if not using Ray, use the root run ID
+            # If not using Ray, use the root run ID
             parent_run_id = self.mlflow_root_run_id
 
         local_rank = strategy.local_rank()
@@ -152,15 +152,18 @@ def measure_gpu_utilization(method: Callable) -> Callable:
                 "warmup_time": warmup_time,
             },
         )
-        # set child process as daemon such that child exits when parent exits
+        # Set child process as daemon such that child exits when parent exits
         gpu_monitor_process.daemon = True
         gpu_monitor_process.start()
 
         try:
             result = method(self, *args, **kwargs)
         finally:
-            # terminate the process
-            gpu_monitor_process.terminate()
+            # Terminate the process
+            stop_flag.value = True
+            grace_period = 4  # seconds
+            timeout = gpu_probing_interval + grace_period
+            gpu_monitor_process.join(timeout=timeout)
 
         return result
 
