@@ -18,6 +18,8 @@ from typing import TYPE_CHECKING, Any, Callable
 
 import ray.tune
 
+from itwinai.torch.distributed import RayTorchDistributedStrategy
+
 from ...loggers import Logger
 from .backend import detect_gpu_backend
 
@@ -121,9 +123,16 @@ def measure_gpu_utilization(method: Callable) -> Callable:
         warmup_time = 5
 
         strategy = self.strategy
-        trial_id = ray.tune.get_context().get_trial_name()
-        trial_idx = int(trial_id[-1])
-        parent_run_id = self.trial_run_ids[trial_idx]
+        if isinstance(strategy, RayTorchDistributedStrategy):
+            trial_name = ray.tune.get_context().get_trial_name()
+            # the trial index are the last 5 characters of the trial name
+            # (e.g. 2 in "TorchTrainer_a6b44_00002")
+            trial_idx = int(trial_name.split("_")[-1])
+            parent_run_id = self.mlflow_trial_run_ids[trial_idx]
+
+        else:
+            # if not using Ray, use the root run ID
+            parent_run_id = self.mlflow_root_run_id
 
         local_rank = strategy.local_rank()
         global_rank = strategy.global_rank()
