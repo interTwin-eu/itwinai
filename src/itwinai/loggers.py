@@ -259,7 +259,7 @@ class Logger(LogMixin):
         """
 
     @abstractmethod
-    def destroy_logger_context(self) -> None:
+    def destroy_logger_context(self, force: bool = False) -> None:
         """Destroy logger."""
 
     @abstractmethod
@@ -394,7 +394,7 @@ class ConsoleLogger(Logger):
         self.is_initialized = True
 
     @check_initialized
-    def destroy_logger_context(self):
+    def destroy_logger_context(self, force: bool = False) -> None:
         """Destroy logger. Do nothing."""
 
     @check_initialized
@@ -609,9 +609,9 @@ class MLFlowLogger(Logger):
         return self.active_run
 
     @check_initialized
-    def destroy_logger_context(self):
+    def destroy_logger_context(self, force: bool = False) -> None:
         """Destroy logger. End current MLFlow run."""
-        if not self.should_log():
+        if not self.should_log() and not force:
             return
 
         self.mlflow.end_run()
@@ -792,9 +792,9 @@ class WandBLogger(Logger):
         self.is_initialized = True
 
     @check_initialized
-    def destroy_logger_context(self):
+    def destroy_logger_context(self, force: bool = False) -> None:
         """Destroy logger."""
-        if not self.should_log():
+        if not self.should_log() and not force:
             return
         self.wandb.finish()
 
@@ -940,9 +940,9 @@ class TensorBoardLogger(Logger):
         self.is_initialized = True
 
     @check_initialized
-    def destroy_logger_context(self):
-        """Destroy logger. Close SummaryWriter."""
-        if not self.should_log():
+    def destroy_logger_context(self, force: bool = False) -> None:
+        """Destroy logger."""
+        if not self.should_log() and not force:
             return
 
         self.writer.close()
@@ -1108,10 +1108,10 @@ class LoggersCollection(Logger):
         self.is_initialized = True
 
     @check_initialized
-    def destroy_logger_context(self):
+    def destroy_logger_context(self, force: bool = False) -> None:
         """Destroy all loggers."""
         for logger in self.loggers:
-            logger.destroy_logger_context()
+            logger.destroy_logger_context(force=force)
 
     @check_initialized
     def save_hyperparameters(self, params: Dict[str, Any]) -> None:
@@ -1223,9 +1223,9 @@ class Prov4MLLogger(Logger):
         self.is_initialized = True
 
     @check_initialized
-    def destroy_logger_context(self):
-        """Destroys the logger context."""
-        if not self.should_log():
+    def destroy_logger_context(self, force: bool = False) -> None:
+        """Destroy logger."""
+        if not self.should_log() and not force:
             return
 
         self.prov4ml.end_run(create_graph=self.create_graph, create_svg=self.create_svg)
@@ -1339,7 +1339,7 @@ class EmptyLogger(Logger):
     def create_logger_context(self, rank: int = 0, force: bool = False, **kwargs):
         pass
 
-    def destroy_logger_context(self):
+    def destroy_logger_context(self, force: bool = False) -> None:
         pass
 
     def save_hyperparameters(self, params: Dict[str, Any]) -> None:

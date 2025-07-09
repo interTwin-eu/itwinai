@@ -108,7 +108,7 @@ def profile_gpu_utilization(
         sample_idx += 1
         time.sleep(probing_interval)
 
-    logger.destroy_logger_context()
+    logger.destroy_logger_context(force=True)
 
 
 def measure_gpu_utilization(method: Callable) -> Callable:
