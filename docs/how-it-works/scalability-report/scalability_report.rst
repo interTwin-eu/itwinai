@@ -34,14 +34,15 @@ which can be toggled using the following flags in your training configuration:
     - ...
     - _target_: <your-trainer-class>
       measure_gpu_data: True  # Measures GPU utilization and power consumption
-      measure_communication_overhead: True  # Measures communication overhead
+      enable_torch_profiling: True  # Enable profiling for comparing comm. time vs. other
+      store_torch_profiling_traces: True # Store the traces from the profiling (requires setting enable_torch_profiler to True)
       measure_epoch_time: True  # Measures avg. epoch time and rel. speedup
       ...
 
 The epoch time is measured using the `EpochTimeTracker`, while the remaining metrics
 are measured using the following decorators:
 
-- **PyTorch Communication Profiler**: This profiler measures the communication overhead
+- **PyTorch Profiler**: This profiler measures the time spent in computation (WIP)
   of your distributed machine learning by aggregating the time spent in communication
   functions (typically ``NCCL`` and ``cudaStream`` calls) and comparing it with the time
   spent doing computations (typically any call to ``PyTorch``'s ``aTen`` library). It uses
