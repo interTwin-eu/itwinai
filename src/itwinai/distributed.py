@@ -63,10 +63,10 @@ def ray_cluster_is_running() -> bool:
             and "Resources" in result.stdout
             and "Usage" in result.stdout
         )
-    except subprocess.CalledProcessError as exc:
+    except subprocess.CalledProcessError:
         # If the command fails, the cluster is not running
         py_logger.debug(
-            "itwinai was checking for the existance of a Ray cluster trying to "
+            "Ray was checking for the existance of a Ray cluster trying to "
             "connect to it, but could not do it. This is not a problem if you "
             "are not plannig to connect to a Ray cluster."
         )
