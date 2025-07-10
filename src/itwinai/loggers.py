@@ -1417,11 +1417,8 @@ class EpochTimeTracker:
 def contains_mlflow_logger(logger: Logger) -> bool:
     """checks if logger contains or is an MLFlowLogger"""
     if isinstance(logger, LoggersCollection):
-        for l in logger.loggers:
-            if isinstance(l, MLFlowLogger):
+        for logger_obj in logger.loggers:
+            if isinstance(logger_obj, MLFlowLogger):
                 return True
 
-    if isinstance(logger, MLFlowLogger):
-        return True
-
-    return False
+    return isinstance(logger, MLFlowLogger)
