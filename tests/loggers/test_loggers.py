@@ -83,6 +83,8 @@ def test_logger_double_initialization(
             "Skipping initialization."
         ) in caplog.text
 
+    initialize_once_logger.destroy_logger_context()
+
 
 def test_console_logger_log(console_logger):
     console_logger.create_logger_context()
