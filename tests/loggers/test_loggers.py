@@ -15,6 +15,15 @@ import numpy as np
 import pytest
 
 
+@pytest.fixture(scope="function")
+def enable_logs_propagation():
+    """Force the logs to be propagated to the root logger, so that caplog can see them"""
+    import itwinai
+
+    itwinai.logger.propagate = True
+    yield
+    itwinai.logger.propagate = False
+
 @pytest.mark.parametrize(
     "itwinai_logger",
     [
@@ -51,7 +60,12 @@ def test_logger_no_initialization(itwinai_logger, request):
         "prov4ml_logger",
     ]
 )
-def test_logger_double_initialization(initialize_once_logger, request, caplog):
+def test_logger_double_initialization(
+    initialize_once_logger,
+    request,
+    caplog,
+    enable_logs_propagation,
+):
     """Test that the logger is initialized only once."""
     initialize_once_logger = request.getfixturevalue(initialize_once_logger)
 
