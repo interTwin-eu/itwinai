@@ -11,7 +11,9 @@
 
 ARG BASE_IMG_NAME=python:3.12-slim
 
-FROM ubuntu:jammy AS build
+FROM nvidia/cuda:12.6.3-devel-ubuntu24.04 AS build
+
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
@@ -20,50 +22,56 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     git \
     # Needed (at least) by horovod wheel builder
     libopenmpi-dev \
+    python3 \
     # Needed (at least) by horovod wheel builder
     python3-mpi4py \
     # Needed to build horovod
-    python3.10-dev \
-    # Needed to create virtual envs
-    python3.10-venv \
+    python3.12-dev \
+    # # Needed to create virtual envs
+    # python3.12-venv \
     wget \
     && apt-get clean -y && rm -rf /var/lib/apt/lists/*
 
-# Nvidia software
-WORKDIR /tmp/cuda
-# CUDA Toolkit:
-# - https://developer.nvidia.com/cuda-downloads
-# - Installation guide: https://docs.nvidia.com/cuda/cuda-quick-start-guide/index.html#ubuntu
-# - cuda-toolkit metapackage: https://docs.nvidia.com/cuda/cuda-installation-guide-linux/#meta-packages
-# cuDNN:
-# - https://docs.nvidia.com/deeplearning/cudnn/latest/installation/linux.html#installing-cudnn-on-linux
-# NCCL: 
-# - https://docs.nvidia.com/deeplearning/nccl/install-guide/index.html#debian
-# *NOTE* to correctly install Apex below, CUDA toolkit version must match with the torch CUDA backend version
-ENV CUDA_VERSION=12.4 \
-    CUDA_TOOLKIT_VERSION=12-4 \
-    CUDA_MAJOR_VERSION=12
-RUN wget -q -O cuda-keyring.deb https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/cuda-keyring_1.1-1_all.deb \
-    && dpkg -i cuda-keyring.deb \
-    && apt-get update && apt-get install -y --no-install-recommends \
-    # CUDA toolkit metapackage (does not include the Nvidia driver)
-    cuda-toolkit-${CUDA_TOOLKIT_VERSION} \
-    # cuDNN
-    # cudnn-cuda-${CUDA_MAJOR_VERSION} \
-    # NCCL
-    libnccl2 \
-    libnccl-dev \
-    # Nvidia driver, as explained here: https://developer.nvidia.com/cuda-downloads
-    # nvidia-open \
-    && apt-get clean -y && rm -rf /var/lib/apt/lists/*
-ENV PATH=/usr/local/cuda-${CUDA_VERSION}/bin${PATH:+:${PATH}}\
-    LD_LIBRARY_PATH=/usr/local/cuda-${CUDA_VERSION}/lib64${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}
+# # Nvidia software
+# WORKDIR /tmp/cuda
+# # CUDA Toolkit:
+# # - https://developer.nvidia.com/cuda-downloads
+# # - Installation guide: https://docs.nvidia.com/cuda/cuda-quick-start-guide/index.html#ubuntu
+# # - cuda-toolkit metapackage: https://docs.nvidia.com/cuda/cuda-installation-guide-linux/#meta-packages
+# # cuDNN:
+# # - https://docs.nvidia.com/deeplearning/cudnn/latest/installation/linux.html#installing-cudnn-on-linux
+# # NCCL: 
+# # - https://docs.nvidia.com/deeplearning/nccl/install-guide/index.html#debian
+# # *NOTE* to correctly install Apex below, CUDA toolkit version must match with the torch CUDA backend version
+# ENV CUDA_VERSION=12.6 \
+#     CUDA_TOOLKIT_VERSION=12-6 \
+#     CUDA_MAJOR_VERSION=12 
+# RUN wget -q -O cuda-keyring.deb https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2404/x86_64/cuda-keyring_1.1-1_all.deb \
+#     && dpkg -i cuda-keyring.deb \
+#     && apt-get update && apt-get install -y --no-install-recommends \
+#     # CUDA toolkit metapackage (does not include the Nvidia driver)
+#     cuda-toolkit-${CUDA_TOOLKIT_VERSION} \
+#     # cuDNN
+#     # cudnn-cuda-${CUDA_MAJOR_VERSION} \
+#     # NCCL
+#     libnccl2 \
+#     libnccl-dev \
+#     # Nvidia driver, as explained here: https://developer.nvidia.com/cuda-downloads
+#     # nvidia-open \
+#     && apt-get clean -y && rm -rf /var/lib/apt/lists/*
+# ENV PATH=/usr/local/cuda-${CUDA_VERSION}/bin${PATH:+:${PATH}}\
+#     LD_LIBRARY_PATH=/usr/local/cuda-${CUDA_VERSION}/lib64${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}
 
 # Cleanup
 RUN rm -rf /tmp/*
 
 ENV VIRTUAL_ENV=/opt/venv \
-    PATH="/opt/venv/bin:$PATH"
+    PATH="/opt/venv/bin:$PATH" \
+    # Install uv packages system wide (no need for .venv):
+    # https://docs.astral.sh/uv/reference/environment/#uv_system_python
+    UV_SYSTEM_PYTHON=true \
+    # https://docs.astral.sh/uv/reference/environment/#uv_no_cache
+    UV_NO_CACHE=1
 
 # DeepSpeed, Horovod and other deps
 ENV HOROVOD_WITH_PYTORCH=1 \
@@ -105,24 +113,34 @@ ENV HOROVOD_WITH_PYTORCH=1 \
 WORKDIR /app
 COPY pyproject.toml pyproject.toml
 COPY src src
-RUN /usr/bin/python3.10 -m venv /opt/venv \
-    && pip install --no-cache-dir --upgrade pip wheel \
+# install uv so that uv → /usr/local/bin/uv
+RUN wget -qO - https://astral.sh/uv/install.sh \
+    | env UV_INSTALL_DIR=/usr/local/bin INSTALLER_NO_MODIFY_PATH=1 sh
+RUN uv venv /opt/venv 
+ENV UV_PYTHON=/opt/venv/bin/python
+RUN uv pip install --no-cache-dir --upgrade pip wheel \
     # Needed to run deepspeed (and Horovod?) with MPI backend
-    && pip install --no-cache-dir mpi4py \
-    && pip install --no-cache-dir .[torch] --extra-index-url https://download.pytorch.org/whl/cu124 \
-    "prov4ml[nvidia]@git+https://github.com/matbun/ProvML@v0.0.1" \
+    && uv pip install --no-cache-dir mpi4py \
+    && uv pip install --no-cache-dir \
+    # Select from which index to install torch
+    --extra-index-url https://download.pytorch.org/whl/cu126 \
+    # This is needed by UV to trust all indexes:
+    --index-strategy unsafe-best-match \
+    # Install packages
+    .[torch] \
+    "prov4ml[nvidia]@git+https://github.com/matbun/ProvML@v0.0.2" \
+    # Minimal installation to run CI tests in the container with pytest
     pytest \
     pytest-xdist \
-    psutil \
-    wheel
+    psutil
 
-# Install DeepSpeed, Horovod and Ray
-RUN CONTAINER_TORCH_VERSION="$(python -c 'import torch;print(torch.__version__)')" \
-    && pip install --no-cache-dir torch=="$CONTAINER_TORCH_VERSION" \
+# Install DeepSpeed and Horovod
+RUN uv pip install --no-cache-dir \
+    # Needed when working with uv venv
+    --no-build-isolation \
     deepspeed==0.15.* \
     git+https://github.com/horovod/horovod.git@3a31d93 
-# "prov4ml[nvidia]@git+https://github.com/matbun/ProvML@v0.0.1" \
-# pytest
+
 
 # Installation sanity check
 RUN itwinai sanity-check --torch \
@@ -135,10 +153,12 @@ RUN itwinai sanity-check --torch \
 FROM ${BASE_IMG_NAME}
 ARG BASE_IMG_NAME
 
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+
 COPY --from=build /opt/venv /opt/venv
 
-# Link /usr/local/bin/python3.10 (in the app image) to /usr/bin/python3.10 (in the builder image)
-RUN ln -s /usr/local/bin/python3.10 /usr/bin/python3.10
+# Override symlink in the venv
+RUN ln -sf /usr/local/bin/python3.12 /opt/venv/bin/python
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
@@ -176,7 +196,17 @@ ENV PATH="/opt/venv/bin:$PATH" \
     PYTHONNOUSERSITE=1 \
     # Prevent silent override of PYTHONPATH by Singularity/Apptainer
     PYTHONPATH="" \
-    SSL_CERT_FILE="/etc/ssl/certs/ca-certificates.crt"
+    SSL_CERT_FILE="/etc/ssl/certs/ca-certificates.crt" \
+    # Install uv packages system wide (no need for .venv):
+    # https://docs.astral.sh/uv/reference/environment/#uv_system_python
+    UV_SYSTEM_PYTHON=true \
+    # https://docs.astral.sh/uv/reference/environment/#uv_no_cache
+    UV_NO_CACHE=1 \
+    UV_PYTHON=/opt/venv/bin/python
+
+# Install uv
+RUN wget -qO - https://astral.sh/uv/install.sh \
+    | env UV_INSTALL_DIR=/usr/local/bin INSTALLER_NO_MODIFY_PATH=1 sh
 
 # Make sure that the virualenv is reacheable also from login shell
 # This is needed to use this container as Ray Worker/Head on k8s

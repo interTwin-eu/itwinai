@@ -20,6 +20,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     && apt-get clean -y && rm -rf /var/lib/apt/lists/*
 
+
+ENV \
+    # Install uv packages system wide (no need for .venv):
+    # https://docs.astral.sh/uv/reference/environment/#uv_system_python
+    UV_SYSTEM_PYTHON=true \
+    # https://docs.astral.sh/uv/reference/environment/#uv_no_cache
+    UV_NO_CACHE=1
+
 # Install UV package manager and upgrade pip
 RUN pip install --no-cache-dir --upgrade pip uv
 

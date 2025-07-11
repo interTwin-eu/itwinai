@@ -7,7 +7,17 @@
 # - Matteo Bunino <matteo.bunino@cern.ch> - CERN
 # --------------------------------------------------------------------------------------
 
+
+
+
+
+
 # WARNING: THIS DOCKERFILE IS OLD AND NOT MAINTAINED ANYMORE! LEFT HERE FOR REFERENCE
+
+
+
+
+
 
 ARG BASE_IMG_NAME=nvcr.io/nvidia/pytorch:24.05-py3 
 # ARG IMG_TAG=23.09-py3

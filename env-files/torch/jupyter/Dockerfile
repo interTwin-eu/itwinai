@@ -11,6 +11,16 @@
 # https://jupyter-docker-stacks.readthedocs.io/en/latest/using/selecting.html#jupyter-pytorch-notebook
 # https://github.com/jupyter/docker-stacks/wiki
 
+
+
+
+
+# WARNING: THIS DOCKERFILE IS OLD AND NOT MAINTAINED ANYMORE! LEFT HERE FOR REFERENCE
+
+
+
+
+
 # FROM quay.io/jupyter/pytorch-notebook:x86_64-cuda12-python-3.11
 ARG BASE_IMG_NAME=jupyter/scipy-notebook:python-3.10.11
 
