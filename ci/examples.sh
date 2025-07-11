@@ -169,7 +169,7 @@ dagger call \
 ############## TORCH SLIM ###############
 # Build container
 dagger call --name="$(git rev-parse --verify HEAD)"  \
-    build-container --context=.. --dockerfile=../env-files/torch/slim.Dockerfile \
+    build-container --context=.. --dockerfile=../env-files/torch/slim.Dockerfile --build-arm \
     test-local \
     logs
 

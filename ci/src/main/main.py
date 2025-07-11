@@ -11,7 +11,7 @@ import dataclasses
 import datetime
 import uuid
 from string import Template
-from typing import Annotated, Self
+from typing import Annotated, Dict, Self
 
 import dagger
 import yaml
@@ -47,6 +47,9 @@ class Itwinai:
 
     _unique_id: str | None = dataclasses.field(default=None, init=False)
     _logs: list[str] = dataclasses.field(default_factory=list, init=False)
+    _all_containers: Dict[str, dagger.Container] = dataclasses.field(
+        default_factory=dict, init=False
+    )
 
     @classmethod
     def create(
@@ -115,6 +118,10 @@ class Itwinai:
             list[str] | None,
             Doc("Comma-separated build args"),
         ] = None,
+        build_arm: Annotated[
+            bool,
+            Doc("Whether to build for ARM"),
+        ] = False,
     ) -> Self:
         """Build itwinai container image from existing Dockerfile"""
         if build_args:
@@ -123,8 +130,22 @@ class Itwinai:
                 for arg_couple in build_args
             ]
 
+        if build_arm:
+            # Build also for ARM
+            arm_container = (
+                await dag.container(platform=dagger.Platform("linux/arm64"))
+                .build(
+                    context=context,
+                    dockerfile=dockerfile,
+                    build_args=build_args,
+                )
+                .with_exec(["ls", "-la"])
+                .stdout()
+            )
+            self._all_containers["linux/arm64"] = arm_container
+
         self.container = (
-            dag.container()
+            dag.container(platform=dagger.Platform("linux/amd64"))
             .build(
                 context=context,
                 dockerfile=dockerfile,
@@ -135,6 +156,16 @@ class Itwinai:
                 value=datetime.datetime.now(datetime.timezone.utc).isoformat(),
             )
         )
+        self._all_containers["linux/amd64"] = self.container
+
+        # if build_arm:
+        #     # Build also for ARM
+        #     arm_container = dag.container(platform=dagger.Platform("linux/arm64")).build(
+        #         context=context,
+        #         dockerfile=dockerfile,
+        #         build_args=build_args,
+        #     )
+        #     self._all_containers["linux/arm64"] = arm_container
 
         # Get itwinai version
         itwinai_version = (
@@ -189,17 +220,22 @@ class Itwinai:
         """Push container to registry"""
 
         uri = uri or f"{self.docker_registry}/{self.image}:{self.tag}"
-        outcome = await (
-            self.container.with_label(
-                name="org.opencontainers.image.ref.name",
-                value=uri,
+
+        all_containers = []
+        for container in self._all_containers.values():
+            all_containers.append(
+                container.with_label(
+                    name="org.opencontainers.image.ref.name",
+                    value=uri,
+                )
+                # Invalidate cache to ensure that the container is always pushed
+                .with_env_variable(
+                    "CACHE", datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")
+                )
+                # TODO: check if these values are added in the container
             )
-            # Invalidate cache to ensure that the container is always pushed
-            .with_env_variable(
-                "CACHE", datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")
-            )
-            .publish(address=uri)
-        )
+        # TODO: check that this works
+        outcome = await dag.container().publish(address=uri, platform_variants=all_containers)
         self._logs.append(f"INFO: publishing Docker image to {uri}")
         self._logs.append(outcome)
         return self
