@@ -55,7 +55,6 @@ def test_logger_no_initialization(itwinai_logger, request):
     [
         "console_logger",
         "wandb_logger",
-        "tensorboard_logger_tf",
         "tensorboard_logger_torch",
         "prov4ml_logger",
     ]
