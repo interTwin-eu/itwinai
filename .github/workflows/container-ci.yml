@@ -11,7 +11,7 @@ name: Container CI
 
 on:
   push:
-    branches: [main]
+    # branches: [main]
 
   # If not triggered on push, but on PR, the commit hash is a bit weird
   # pull_request:
@@ -35,14 +35,14 @@ jobs:
           #   skip-hpc: false
           #   # Conversion to Singularity is skipped on GH actions as it would take too much space
           #   skip-singularity: true
-          - base-img-name: "python:3.10-slim"
+          - base-img-name: "python:3.12-slim"
             dockerfile: "../env-files/torch/skinny.Dockerfile"
             nickname: "torch-skinny"
             tag-template: "@{itwinai_version}-skinny-torch@{framework_version}-@{os_version}"
             # Tests on HPC are skipped as this image is not really meant to run on HPC
             skip-hpc: true
             skip-singularity: false
-          - base-img-name: "python:3.10-slim"
+          - base-img-name: "python:3.12-slim"
             dockerfile: "../env-files/torch/slim.Dockerfile"
             nickname: "torch-slim"
             tag-template: "@{itwinai_version}-slim-torch@{framework_version}-@{os_version}"

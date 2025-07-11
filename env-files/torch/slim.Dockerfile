@@ -9,7 +9,7 @@
 
 # Dockerfile for slim itwinai image. MPI, CUDA and other need to be mounted from the host machine.
 
-ARG BASE_IMG_NAME=python:3.10-slim
+ARG BASE_IMG_NAME=python:3.12-slim
 
 FROM ubuntu:jammy AS build
 
