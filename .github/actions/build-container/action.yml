@@ -26,6 +26,10 @@ inputs:
   tag-template:
     description: "Tag template for the image"
     required: true
+  build-arm:
+    description: "true to build also for arm platforms"
+    required: false
+    default: "false"
   release:
     description: "true if triggered during a release, false otherwise"
     required: false
@@ -157,6 +161,7 @@ runs:
           --context ..
           --dockerfile ${{ inputs.dockerfile }}
           --build-args "COMMIT_HASH=${{ env.COMMIT_HASH }},BASE_IMG_NAME=${{ inputs.base-img-name }},BASE_IMG_DIGEST=${{ env.BASE_IMG_DIGEST }}"
+          $([[ "${{ inputs.build-arm }}" == "true" ]] && echo '--build-arm' || echo '')
           dev-pipeline
           --tag-template ${{ inputs.tag-template }}-${{ env.COMMIT_HASH }}
           --framework TORCH

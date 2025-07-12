@@ -39,6 +39,7 @@ jobs:
             dockerfile: "../env-files/torch/skinny.Dockerfile"
             nickname: "torch-skinny"
             tag-template: "@{itwinai_version}-skinny-torch@{framework_version}-@{os_version}"
+            build-arm: true
             # Tests on HPC are skipped as this image is not really meant to run on HPC
             skip-hpc: true
             skip-singularity: false

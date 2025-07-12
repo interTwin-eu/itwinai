@@ -129,8 +129,7 @@ class Itwinai:
                 BuildArg(name=arg_couple.split("=")[0], value=arg_couple.split("=")[1])
                 for arg_couple in build_args
             ]
-        # TODO: fix
-        if build_arm or True:
+        if build_arm:
             # Build also for ARM
             print("INFO: Building container for linux/arm64 platform")
             arm_container = dag.container(platform=dagger.Platform("linux/arm64")).build(
@@ -139,7 +138,7 @@ class Itwinai:
                 build_args=build_args,
             )
             self._all_containers["linux/arm64"] = arm_container
-            # TODO: remove this. just to force build now
+            # Just a trick to force build now
             await arm_container.with_exec(["ls", "-la"]).stdout()
 
         print("INFO: Building container for linux/amd64 platform")
