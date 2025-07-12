@@ -129,20 +129,17 @@ class Itwinai:
                 BuildArg(name=arg_couple.split("=")[0], value=arg_couple.split("=")[1])
                 for arg_couple in build_args
             ]
-
+        # TODO: fix
         if build_arm or True:
             # Build also for ARM
-            arm_container = (
-                await dag.container(platform=dagger.Platform("linux/arm64"))
-                .build(
-                    context=context,
-                    dockerfile=dockerfile,
-                    build_args=build_args,
-                )
-                .with_exec(["ls", "-la"])
-                .stdout()
+            arm_container = dag.container(platform=dagger.Platform("linux/arm64")).build(
+                context=context,
+                dockerfile=dockerfile,
+                build_args=build_args,
             )
             self._all_containers["linux/arm64"] = arm_container
+            # TODO: remove this. just to force build now
+            await arm_container.with_exec(["ls", "-la"]).stdout()
 
         self.container = (
             dag.container(platform=dagger.Platform("linux/amd64"))
@@ -220,7 +217,7 @@ class Itwinai:
             Doc("Optional target URI for the image"),
         ] = None,
     ) -> Self:
-        """Push container to registry"""
+        """Push container to registry. Multi-arch support."""
 
         uri = uri or f"{self.docker_registry}/{self.image}:{self.tag}"
 
@@ -235,9 +232,7 @@ class Itwinai:
                 .with_env_variable(
                     "CACHE", datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")
                 )
-                # TODO: check if these values are added in the container
             )
-        # TODO: check that this works
         outcome = await dag.container().publish(address=uri, platform_variants=all_containers)
         self._logs.append(f"INFO: publishing Docker image to {uri}")
         self._logs.append(outcome)

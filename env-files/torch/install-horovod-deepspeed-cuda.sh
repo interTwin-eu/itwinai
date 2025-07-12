@@ -23,7 +23,7 @@ export DS_BUILD_STOCHASTIC_TRANSFORMER=1
 export DS_BUILD_TRANSFORMER_INFERENCE=1
 
 # Use --no-cache-dir to avoid caching packages in your $HOME, which may have small disk quota
-uv pip install --no-cache-dir --no-build-isolation "deepspeed==0.15.*"
+uv pip install --no-cache-dir --no-build-isolation "deepspeed==0.16.8"
 
 # Horovod variables
 export LDSHARED="$CC -shared" &&
