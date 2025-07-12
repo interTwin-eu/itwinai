@@ -21,6 +21,8 @@ pl-training.yml
 *.sif
 .DS_Store
 *slurm_scripts/
+*.json
+*.JSON
 
 # Use cases files
 3dgan-generated-data/

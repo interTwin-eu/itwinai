@@ -30,6 +30,9 @@ class_labels: null
 checkpoints_location: checkpoints
 checkpoint_every: 1
 
+# Ray
+ray_num_workers: 2
+
 # Workflows configuration
 training_pipeline:
   _target_: itwinai.pipeline.Pipeline
@@ -39,10 +42,10 @@ training_pipeline:
       save_path: ${dataset_root}
     training_step:
       _target_: itwinai.torch.trainer.TorchTrainer
-      measure_gpu_data: False
-      enable_torch_profiling: False
-      store_torch_profiling_traces: False
-      measure_epoch_time: False
+      measure_gpu_data: true
+      enable_torch_profiling: true
+      store_torch_profiling_traces: false
+      measure_epoch_time: true
       time_ray: True # track time for ray report and fit
       run_id: ${run_id}
       # from_checkpoint: ${itwinai.cwd:}/checkpoints_ddp/best_model/
@@ -58,14 +61,14 @@ training_pipeline:
         gradient_predivide_factor: ${gradient_predivide_factor}
       ray_scaling_config:
         _target_: ray.train.ScalingConfig
-        num_workers: 2
+        num_workers: ${ray_num_workers}
         use_gpu: true
         resources_per_worker:
           CPU: 11
           GPU: 1 # can be 0.0 < 1.0 as long as num_workers set to 1
       ray_tune_config:
         _target_: ray.tune.TuneConfig
-        num_samples: 4
+        num_samples: 1
         reuse_actors: True
         scheduler:
           _target_: ray.tune.schedulers.ASHAScheduler

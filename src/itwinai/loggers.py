@@ -1331,13 +1331,21 @@ class EmptyLogger(Logger):
 
 
 class EpochTimeTracker:
-    """Logger for epoch execution time during training."""
+    """Logger for epoch execution time during training.
+
+    Args:
+        strategy_name (str): name of the distributed strategy in use.
+        save_path (Path | str): path for the CSV log file.
+        num_workers (int): number of workers in the current distributed job.
+        should_log (bool): whether this instance of the logger should be active.
+            Defaults to True.
+    """
 
     def __init__(
         self,
         strategy_name: str,
         save_path: Path | str,
-        num_nodes: int,
+        num_workers: int,
         should_log: bool = True,
     ) -> None:
         if isinstance(save_path, str):
@@ -1346,11 +1354,11 @@ class EpochTimeTracker:
         self.should_log = should_log
         self.save_path: Path = save_path
         self.strategy_name = strategy_name
-        self.num_nodes = num_nodes
+        self.num_workers = num_workers
         self.data = {"epoch_id": [], "time": []}
 
         if not self.should_log:
-            py_logger.warning("EpochTimeLogger has been disabled!")
+            py_logger.debug("EpochTimeLogger has been disabled!")
 
     def add_epoch_time(self, epoch_idx: int, time: float) -> None:
         """Add epoch time to data."""
@@ -1370,7 +1378,7 @@ class EpochTimeTracker:
 
         df = pd.DataFrame(self.data)
         df["name"] = self.strategy_name
-        df["nodes"] = self.num_nodes
+        df["workers"] = self.num_workers
 
         self.save_path.parent.mkdir(parents=True, exist_ok=True)
         df.to_csv(self.save_path, index=False)

@@ -9,18 +9,20 @@
 #SBATCH --mail-type=ALL
 #SBATCH --output=job.out
 #SBATCH --error=job.err
-#SBATCH --time=00:15:00
+#SBATCH --time=00:25:00
 
 # Resources allocation
-#SBATCH --partition=booster
-#SBATCH --nodes=1
-#SBATCH --gpus-per-node=4
+#SBATCH --partition=develbooster
+#SBATCH --nodes=2
+#SBATCH --gpus-per-node=2
 #SBATCH --cpus-per-task=48
-#SBATCH --exclusive
+# SBATCH --exclusive
 
 
 # Load environment modules
-ml Stages/2024 GCC OpenMPI CUDA/12 MPI-settings/CUDA Python HDF5 PnetCDF libaio mpi4py
+ml --force purge
+ml Stages/2025 GCC OpenMPI CUDA/12 cuDNN MPI-settings/CUDA
+ml Python CMake HDF5 PnetCDF libaio mpi4py git
 
 # Job info
 echo "DEBUG: TIME: $(date)"
@@ -193,9 +195,8 @@ elif [ "$DIST_MODE" == "horovod" ] ; then
   echo "HOROVOD training: $TRAINING_CMD"
   srun-launcher "$TRAINING_CMD"
 
-  separation
-
-  ray-launcher "$TRAINING_CMD"
+  # NOTE: Ray does not support Horovod anymore
+  
 else
   >&2 echo "ERROR: unrecognized \$DIST_MODE env variable"
   exit 1
