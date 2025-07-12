@@ -22,8 +22,8 @@ on whether you want ``PyTorch`` or ``TensorFlow`` support:
                 .. code-block:: bash
 
                     ml --force purge
-                    ml Stages/2024 GCC OpenMPI CUDA/12 cuDNN MPI-settings/CUDA
-                    ml Python CMake HDF5 PnetCDF libaio mpi4py
+                    ml Stages/2025 GCC OpenMPI CUDA/12 cuDNN MPI-settings/CUDA
+                    ml Python CMake HDF5 PnetCDF libaio mpi4py git
 
                     # Now you can create or active the python environment here
 
