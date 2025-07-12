@@ -199,9 +199,6 @@ ENV PATH="/opt/venv/bin:$PATH" \
     # Prevent silent override of PYTHONPATH by Singularity/Apptainer
     PYTHONPATH="" \
     SSL_CERT_FILE="/etc/ssl/certs/ca-certificates.crt" \
-    # Install uv packages system wide (no need for .venv):
-    # https://docs.astral.sh/uv/reference/environment/#uv_system_python
-    UV_SYSTEM_PYTHON=true \
     # https://docs.astral.sh/uv/reference/environment/#uv_no_cache
     UV_NO_CACHE=1 \
     UV_PYTHON=/opt/venv/bin/python
