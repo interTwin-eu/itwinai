@@ -250,6 +250,8 @@ function srun-launcher(){
     $CONTAINER_PATH /bin/bash -c "
       source /opt/miniconda3/bin/activate pytorch && 
       export LD_LIBRARY_PATH=/usr/lib64/mpi/gcc/mpich/lib64:\$LD_LIBRARY_PATH &&
+      ldd /opt/aws-ofi-rccl/librccl-net.so | grep fabric &&
+      ls /opt/cray/libfabric/1.15.2.0/lib64/libfabric.so.1 &&
       $1"
 
     #       export ROCR_VISIBLE_DEVICES=\$SLURM_LOCALID && 
