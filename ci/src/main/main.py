@@ -130,7 +130,7 @@ class Itwinai:
                 for arg_couple in build_args
             ]
 
-        if build_arm:
+        if build_arm or True:
             # Build also for ARM
             arm_container = (
                 await dag.container(platform=dagger.Platform("linux/arm64"))
@@ -204,9 +204,12 @@ class Itwinai:
             "/app/tests",
         ]
 
-        tests_result = await self.container.with_exec(cmd).stdout()
-        self._logs.append("INFO: running pytest for 'local' tests:")
-        self._logs.append(tests_result)
+        for platform_name, container in self._all_containers.items():
+            self._logs.append(
+                f"INFO: running pytest for 'local' tests on container for {platform_name}:"
+            )
+            tests_result = await container.with_exec(cmd).stdout()
+            self._logs.append(tests_result)
         return self
 
     @function

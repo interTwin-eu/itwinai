@@ -123,7 +123,8 @@ RUN uv pip install --no-cache-dir --upgrade pip wheel \
     && uv pip install --no-cache-dir mpi4py \
     && uv pip install --no-cache-dir \
     # Select from which index to install torch
-    --extra-index-url https://download.pytorch.org/whl/cu126 \
+    --index-url https://download.pytorch.org/whl/cu126 \
+    --extra-index-url https://pypi.org/simple \
     # This is needed by UV to trust all indexes:
     --index-strategy unsafe-best-match \
     # Install packages
@@ -148,6 +149,10 @@ RUN itwinai sanity-check --torch \
     --optional-deps horovod \
     --optional-deps prov4ml \
     --optional-deps ray
+
+
+
+
 
 # App image
 FROM ${BASE_IMG_NAME}
