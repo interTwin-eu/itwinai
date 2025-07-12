@@ -67,9 +67,6 @@ RUN rm -rf /tmp/*
 
 ENV VIRTUAL_ENV=/opt/venv \
     PATH="/opt/venv/bin:$PATH" \
-    # Install uv packages system wide (no need for .venv):
-    # https://docs.astral.sh/uv/reference/environment/#uv_system_python
-    UV_SYSTEM_PYTHON=true \
     # https://docs.astral.sh/uv/reference/environment/#uv_no_cache
     UV_NO_CACHE=1
 
@@ -139,7 +136,7 @@ RUN uv pip install --no-cache-dir --upgrade pip wheel \
 RUN uv pip install --no-cache-dir \
     # Needed when working with uv venv
     --no-build-isolation \
-    deepspeed==0.15.* \
+    deepspeed==0.16.8 \
     git+https://github.com/horovod/horovod.git@3a31d93 
 
 

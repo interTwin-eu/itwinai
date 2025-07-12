@@ -132,6 +132,7 @@ class Itwinai:
         # TODO: fix
         if build_arm or True:
             # Build also for ARM
+            print("INFO: Building container for linux/arm64 platform")
             arm_container = dag.container(platform=dagger.Platform("linux/arm64")).build(
                 context=context,
                 dockerfile=dockerfile,
@@ -141,6 +142,7 @@ class Itwinai:
             # TODO: remove this. just to force build now
             await arm_container.with_exec(["ls", "-la"]).stdout()
 
+        print("INFO: Building container for linux/amd64 platform")
         self.container = (
             dag.container(platform=dagger.Platform("linux/amd64"))
             .build(
@@ -154,15 +156,6 @@ class Itwinai:
             )
         )
         self._all_containers["linux/amd64"] = self.container
-
-        # if build_arm:
-        #     # Build also for ARM
-        #     arm_container = dag.container(platform=dagger.Platform("linux/arm64")).build(
-        #         context=context,
-        #         dockerfile=dockerfile,
-        #         build_args=build_args,
-        #     )
-        #     self._all_containers["linux/arm64"] = arm_container
 
         # Get itwinai version
         itwinai_version = (
@@ -202,6 +195,7 @@ class Itwinai:
         ]
 
         for platform_name, container in self._all_containers.items():
+            print(f"INFO: Testing container for {platform_name} platform")
             self._logs.append(
                 f"INFO: running pytest for 'local' tests on container for {platform_name}:"
             )
@@ -222,7 +216,8 @@ class Itwinai:
         uri = uri or f"{self.docker_registry}/{self.image}:{self.tag}"
 
         all_containers = []
-        for container in self._all_containers.values():
+        for platform_name, container in self._all_containers.items():
+            print(f"INFO: Preparing to publish container for {platform_name} platform")
             all_containers.append(
                 container.with_label(
                     name="org.opencontainers.image.ref.name",

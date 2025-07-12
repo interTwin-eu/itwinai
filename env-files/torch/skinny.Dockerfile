@@ -22,9 +22,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 
 ENV \
-    # Install uv packages system wide (no need for .venv):
-    # https://docs.astral.sh/uv/reference/environment/#uv_system_python
-    UV_SYSTEM_PYTHON=true \
     # https://docs.astral.sh/uv/reference/environment/#uv_no_cache
     UV_NO_CACHE=1
 
@@ -61,7 +58,7 @@ RUN itwinai sanity-check --torch \
 COPY env-files/torch/skinny.Dockerfile Dockerfile
 COPY tests tests
 
-# This is here because the sknny container could be used to run PR tests
+# This is here because the skinny container could be used to run PR tests
 COPY use-cases use-cases
 # This is needed to override the default venv path used by functional
 # tests for torch-based use cases (under ./use-cases)
