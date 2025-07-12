@@ -12,7 +12,7 @@
 #SBATCH --time=00:15:00
 
 # Resources allocation
-#SBATCH --partition=small-g
+#SBATCH --partition=standard-g
 #SBATCH --nodes=2
 #SBATCH --gpus-per-node=2
 #SBATCH --cpus-per-task=32
@@ -30,6 +30,7 @@
 set -e
 
 # Load environment modules
+ml --force purge
 ml LUMI partition/G
 # These modules are needed to bind into the container the correct software suite on LUMI.
 # More info: https://lumi-supercomputer.github.io/LUMI-training-materials/ai-20250204/extra_05_RunningContainers/
@@ -56,6 +57,7 @@ echo
 # export NCCL_DEBUG=INFO
 # export RCCL_DEBUG=INFO
 # export NCCL_DEBUG_SUBSYS=INIT,COLL
+# export FI_LOG_LEVEL=info
 
 # Currently not used, but can be used for CPU mapping in the future
 c=fe
@@ -83,9 +85,18 @@ sleep 2
 # no access to on LUMI.
 export NCCL_SOCKET_IFNAME=hsn0,hsn1,hsn2,hsn3
 export NCCL_NET_GDR_LEVEL=3
+# Use the Slingshot CXI provider through OFI
+# export NCCL_NET=ofi             # optional; the plugin is auto‑detected but this is explicit
+export FI_PROVIDER=cxi          # tell libfabric to pick the CXI provider
+
+# Avoid high-speed interconnect (for debugging): the libfabric version in the container is 1.8,
+# but on lumi we only have 1.15, so the container is not able to talk over the high-speed network interconnect
+export NCCL_NET=Socket
 
 # Set HIP_VISIBLE_DEVICES so that each task uses the proper GPU
-export HIP_VISIBLE_DEVICES=$SLURM_LOCALID
+# export HIP_VISIBLE_DEVICES=$SLURM_LOCALID
+export HIP_VISIBLE_DEVICES=$(seq -s, 0 $((SLURM_GPUS_PER_NODE - 1)))
+echo "DEBUG: HIP_VISIBLE_DEVICES: $HIP_VISIBLE_DEVICES"
 
 # Report affinity to check
 echo "Rank $SLURM_PROCID --> $(taskset -p $$); GPU $HIP_VISIBLE_DEVICES"
@@ -98,7 +109,7 @@ fi
 
 export HYDRA_FULL_ERROR=1
 
-# Env vairables check
+# Env variables check
 if [ -z "$DIST_MODE" ]; then 
   >&2 echo "ERROR: env variable DIST_MODE is not set. Allowed values are 'horovod', 'ddp' or 'deepspeed'"
   exit 1
@@ -147,7 +158,7 @@ function ray-launcher(){
   srun --nodes=1 --ntasks=1 -w "$head_node" \
   singularity exec \
     --bind "$(pwd)" \
-    --bind /users/$USER/itwinai/src/:/app/src/ \
+    --bind $ITWINAI_LOCATION_HOST:/app/src/ \
     --rocm \
     "$CONTAINER_PATH" bash -c " \
       source /opt/miniconda3/bin/activate pytorch && 
@@ -181,7 +192,7 @@ function ray-launcher(){
     srun --nodes=1 --ntasks=1 -w "$node_i" \
       singularity exec \
       --bind "$(pwd)" \
-      --bind /users/$USER/itwinai/src/:/app/src/ \
+      --bind $ITWINAI_LOCATION_HOST:/app/src/ \
       --rocm \
       "$CONTAINER_PATH" bash -c " \
       source /opt/miniconda3/bin/activate pytorch && 
@@ -210,7 +221,7 @@ function ray-launcher(){
   # Run command without srun
   singularity exec \
     --bind $(pwd) \
-    --bind /users/$USER/itwinai/src/:/app/src/ \
+    --bind $ITWINAI_LOCATION_HOST:/app/src/ \
     $CONTAINER_PATH bash -c "\
       source /opt/miniconda3/bin/activate pytorch && \
       $1"
@@ -220,7 +231,7 @@ function torchrun-launcher(){
   srun --cpu-bind=none --ntasks-per-node=1 \
     singularity exec \
       --bind $(pwd) \
-      --bind /users/$USER/itwinai/src/:/app/src/ \
+      --bind $ITWINAI_LOCATION_HOST:/app/src/ \
       --rocm \
       $CONTAINER_PATH /bin/bash -c "\
         source /opt/miniconda3/bin/activate pytorch && \
@@ -252,8 +263,8 @@ function srun-launcher(){
     --cpus-per-task=$(($SLURM_CPUS_PER_TASK / $SLURM_GPUS_PER_NODE)) \
     --ntasks=$(($SLURM_GPUS_PER_NODE * $SLURM_NNODES)) \
     singularity exec \
-    --bind $(pwd),/users/eickhoff/itwinai:/mnt/itwinai/ \
-    --bind /users/$USER/itwinai/src/:/app/src/ \
+    --bind $(pwd) \
+    --bind $ITWINAI_LOCATION_HOST:/app/src/ \
     --rocm \
     $CONTAINER_PATH /bin/bash -c "
       source /opt/miniconda3/bin/activate pytorch && 
@@ -305,9 +316,7 @@ elif [ "$DIST_MODE" == "horovod" ] ; then
   echo "HOROVOD training: $TRAINING_CMD"
   srun-launcher "$TRAINING_CMD"
 
-  separation
-
-  ray-launcher "$TRAINING_CMD"
+  # Horovod is not supported anymore by Ray
 
 else
   >&2 echo "ERROR: unrecognized \$DIST_MODE env variable"
