@@ -64,7 +64,7 @@ training_pipeline:
         num_workers: ${ray_num_workers}
         use_gpu: true
         resources_per_worker:
-          CPU: 11
+          CPU: 3
           GPU: 1 # can be 0.0 < 1.0 as long as num_workers set to 1
       ray_tune_config:
         _target_: ray.tune.TuneConfig

@@ -23,6 +23,7 @@ pl-training.yml
 *slurm_scripts/
 *.json
 *.JSON
+core
 
 # Use cases files
 3dgan-generated-data/
