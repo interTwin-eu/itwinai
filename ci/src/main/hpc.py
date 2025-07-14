@@ -28,6 +28,7 @@ class Singularity:
     @function
     def client(self) -> dagger.Container:
         """Return base image container with Singularity and Oras clients."""
+
         oras_install_cmd = dedent("""
         # install prerequisites
         apk update && apk add --no-cache curl tar ca-certificates
@@ -41,6 +42,7 @@ class Singularity:
         chmod +x /usr/local/bin/oras
         rm -rf oras_${ORAS_VERSION}_linux_amd64.tar.gz /usr/local/oras-install
         """).strip()
+
         return (
             dag.container().from_(self.base_image).with_exec(["bash", "-c", oras_install_cmd])
         )

@@ -41,8 +41,8 @@ fi
 
 # Install Prov4ML
 if [[ "$(uname)" == "Darwin" ]]; then
-  uv pip install --no-cache-dir  "prov4ml[apple]@git+https://github.com/matbun/ProvML@new-main"
+  uv pip install --no-cache-dir  "prov4ml[apple]@git+https://github.com/matbun/ProvML@v0.0.1"
 else
   # Assuming Nvidia GPUs are available
-  uv pip install --no-cache-dir  "prov4ml[nvidia]@git+https://github.com/matbun/ProvML@new-main"
+  uv pip install --no-cache-dir  "prov4ml[nvidia]@git+https://github.com/matbun/ProvML@v0.0.1"
 fi

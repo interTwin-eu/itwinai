@@ -141,7 +141,7 @@ RUN uv pip install --no-cache-dir --upgrade pip \
     --index-strategy unsafe-best-match \
     # Install packages
     .[torch] \
-    "prov4ml[nvidia]@git+https://github.com/matbun/ProvML@new-main" \
+    "prov4ml[nvidia]@git+https://github.com/matbun/ProvML@v0.0.1" \
     pytest \
     pytest-xdist \
     psutil

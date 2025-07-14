@@ -67,7 +67,7 @@ COPY src src
 RUN /usr/bin/python3.10 -m venv /opt/venv \
     && pip install --no-cache-dir --upgrade pip \
     && pip install --no-cache-dir .[torch] --extra-index-url https://download.pytorch.org/whl/cu124 \
-    "prov4ml[nvidia]@git+https://github.com/matbun/ProvML@new-main" \
+    "prov4ml[nvidia]@git+https://github.com/matbun/ProvML@v0.0.1" \
     pytest
 
 # # Install DeepSpeed, Horovod and Ray
@@ -75,7 +75,7 @@ RUN /usr/bin/python3.10 -m venv /opt/venv \
 #     && pip install --no-cache-dir torch=="$CONTAINER_TORCH_VERSION" \
 #     deepspeed==0.15.* \
 #     git+https://github.com/horovod/horovod.git@3a31d93 \
-#     "prov4ml[nvidia]@git+https://github.com/matbun/ProvML@new-main" \
+#     "prov4ml[nvidia]@git+https://github.com/matbun/ProvML@v0.0.1" \
 #     pytest
 
 # Installation sanity check

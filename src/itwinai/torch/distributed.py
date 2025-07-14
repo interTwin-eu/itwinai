@@ -35,7 +35,6 @@ from torch.utils.data import (
 from torch.utils.data.dataloader import T_co, _collate_fn_t, _worker_init_fn_t
 
 from ..distributed import (
-    DistributedStrategy,
     detect_distributed_environment,
     ray_cluster_is_running,
 )
@@ -114,7 +113,7 @@ def initialize_ray() -> None:
     py_logger.info(f"Available cluster resources: {ray.available_resources()}")
 
 
-class TorchDistributedStrategy(DistributedStrategy):
+class TorchDistributedStrategy(abc.ABC):
     """Abstract class to define the distributed backend methods for
     PyTorch models.
     """
@@ -1143,7 +1142,6 @@ class NonDistributedStrategy(TorchDistributedStrategy):
 class RayTorchDistributedStrategy(TorchDistributedStrategy):
     """Base class for all ray distributed strategies."""
 
-
 class RayDDPStrategy(TorchDDPStrategy, RayTorchDistributedStrategy):
     """A distributed data-parallel (DDP) strategy using Ray Train for PyTorch training."""
 
@@ -1234,4 +1232,3 @@ class RayDeepSpeedStrategy(DeepSpeedStrategy, RayTorchDistributedStrategy):
         self.is_initialized = True
 
         self.set_device()
-

@@ -63,7 +63,7 @@ RUN CONTAINER_TORCH_VERSION="$(python -c 'import torch;print(torch.__version__)'
     && pip install --no-cache-dir torch=="$CONTAINER_TORCH_VERSION" \
     deepspeed==0.15.* \
     git+https://github.com/horovod/horovod.git@3a31d93 \
-    "prov4ml[nvidia]@git+https://github.com/matbun/ProvML@new-main" \
+    "prov4ml[nvidia]@git+https://github.com/matbun/ProvML@v0.0.1" \
     pytest \
     pytest-xdist \
     psutil \
