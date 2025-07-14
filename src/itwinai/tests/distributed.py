@@ -1,17 +1,16 @@
 """Some functions to test torch distributed setup"""
 
-import glob
-import os
 import socket
 import subprocess
 import sys
+from pathlib import Path
 
 import ray
-from ray.train.torch import TorchTrainer
-from ray.train import ScalingConfig, RunConfig
 import torch
 import torch.distributed as dist
 import typer
+from ray.train import RunConfig, ScalingConfig
+from ray.train.torch import TorchTrainer
 
 
 def test_cuda():
@@ -53,9 +52,10 @@ def test_rocm():
     # ----------------------------------------------------------------
     # HIPCC path → ROCm root/version
     try:
-        hipcc_path = subprocess.check_output(["which", "hipcc"], text=True).strip()
-        rocm_root = os.path.dirname(os.path.dirname(hipcc_path))
-        rocm_version = os.path.basename(rocm_root)
+        hipcc_path_str = subprocess.check_output(["which", "hipcc"], text=True).strip()
+        hipcc_path = Path(hipcc_path_str)
+        rocm_root = hipcc_path.parent.parent
+        rocm_version = rocm_root.name
         typer.echo(f"ROCm  root        : {rocm_root}")
         typer.echo(f"ROCm version      : {rocm_version}")
     except subprocess.CalledProcessError:
@@ -83,7 +83,8 @@ def test_rocm():
     # ----------------------------------------------------------------
     # librccl location
     if "rocm_root" in locals():
-        matches = glob.glob(os.path.join(rocm_root, "lib", "librccl.so*"))
+        lib_dir = rocm_root / "lib"
+        matches = list(lib_dir.glob("librccl.so*"))
         if matches:
             typer.echo(f"Librccl path      : {matches[0]}")
         else:
@@ -156,8 +157,7 @@ def test_ray():
         ctx = train.get_context()
         rank = ctx.get_local_rank()
         device = torch.device(
-            "cuda",
-            rank % torch.cuda.device_count() if torch.cuda.is_available() else "cpu"
+            "cuda", rank % torch.cuda.device_count() if torch.cuda.is_available() else "cpu"
         )
 
         # simple linear model
@@ -186,12 +186,11 @@ def test_ray():
     trainer = TorchTrainer(
         train_loop,
         scaling_config=ScalingConfig(
-            num_workers=num_gpus,    # change as needed
-            use_gpu=True,     # each worker gets 1 GPU
+            num_workers=num_gpus,  # change as needed
+            use_gpu=True,  # each worker gets 1 GPU
         ),
         run_config=RunConfig(
             name="ray-torch-test",
-            # local_dir="./ray_results",
         ),
     )
 

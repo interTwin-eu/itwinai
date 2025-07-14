@@ -14,7 +14,6 @@
 """Provides training logic for PyTorch models via Trainer classes."""
 
 import logging
-import os
 import sys
 import tempfile
 from collections import defaultdict
@@ -861,9 +860,9 @@ class TorchTrainer(Trainer, LogMixin):
             if contains_mlflow_logger(self.logger):
                 # Create mlflow runs per trial (will be started by the trial's main worker)
                 client = mlflow.tracking.MlflowClient()
-                experiment_id = (
-                    client.get_experiment_by_name(self.experiment_name).experiment_id
-                )
+                experiment_id = client.get_experiment_by_name(
+                    self.experiment_name
+                ).experiment_id
 
                 for trial_idx in range(self.ray_tune_config.num_samples):
                     # create a mlflow run for each trial (without starting it)
