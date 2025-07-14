@@ -105,6 +105,8 @@ class TorchTrainer(Trainer, LogMixin):
             Defaults to 'ddp'.
         test_every (int | None, optional): run a test epoch every ``test_every`` epochs.
             Disabled if None. Defaults to None.
+        validation_every (int, optional): run a validation epoch every ``validation_every``
+            epochs. Disabled if set to zero. Defaults to 1.
         random_seed (int | None, optional): set random seed for reproducibility. If None, the
             seed is not set. Defaults to None.
         logger (Logger | None, optional): logger for ML tracking. Defaults to None.
@@ -159,7 +161,7 @@ class TorchTrainer(Trainer, LogMixin):
     #: PyTorch ``DataLoader`` for test dataset.
     test_dataloader: DataLoader | None = None
     #: How often to perform the validation step
-    validation_every: int | None = None
+    validation_every: int  = 1
     #: How often to perform the test step
     test_every: int | None = None
     #: PyTorch model to train.
@@ -208,7 +210,7 @@ class TorchTrainer(Trainer, LogMixin):
         model: nn.Module | None = None,
         strategy: Literal["ddp", "deepspeed", "horovod"] = "ddp",
         test_every: int | None = None,
-        validation_every: int | None = None,
+        validation_every: int = 1,
         random_seed: int | None = None,
         logger: Logger | None = None,
         metrics: Dict[str, Metric] | None = None,
@@ -358,6 +360,19 @@ class TorchTrainer(Trainer, LogMixin):
             py_logger.info(
                 f"Ray cluster was detected, thus the Ray equivalent for {strategy} is used"
             )
+            if self.validation_every == 0 or self.validation_every > self.epochs:
+                raise ValueError(
+                    "Ray is activated but with 'validation_every' set to"
+                    f" {self.validation_every} and 'epochs' set to {self.epochs}, you will"
+                    " never report any metrics. Ray requires you to report at least one"
+                    " validation metric!"
+                )
+            if self.validation_every != 1:
+                py_logger.warning(
+                    "Ray is activated, but 'validation_every' is not set to one. Keep in mind"
+                    " that the validation metrics are used for tuning, so this could lead"
+                    " to suboptimal results."
+                )
 
         match strategy, ray_cluster_is_running():
             case "ddp", True:
@@ -1200,6 +1215,11 @@ class TorchTrainer(Trainer, LogMixin):
             self.set_epoch()
             self.train_epoch()
 
+            if self.strategy.is_main_worker and self.strategy.is_distributed:
+                assert epoch_time_logger is not None
+                epoch_time = default_timer() - epoch_start_time
+                epoch_time_logger.add_epoch_time(self.current_epoch + 1, epoch_time)
+
             if self.validation_every and (self.current_epoch + 1) % self.validation_every == 0:
                 val_metric = self.validation_epoch()
 
@@ -1248,11 +1268,6 @@ class TorchTrainer(Trainer, LogMixin):
 
             if self.test_every and (self.current_epoch + 1) % self.test_every == 0:
                 self.test_epoch()
-
-            if self.strategy.is_main_worker and self.strategy.is_distributed:
-                assert epoch_time_logger is not None
-                epoch_time = default_timer() - epoch_start_time
-                epoch_time_logger.add_epoch_time(self.current_epoch + 1, epoch_time)
 
     def train_epoch(self) -> torch.Tensor:
         """Perform a complete sweep over the training dataset, completing an epoch of training.
