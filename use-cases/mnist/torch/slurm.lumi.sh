@@ -99,6 +99,7 @@ echo "DEBUG: HIP_VISIBLE_DEVICES: $HIP_VISIBLE_DEVICES"
 # This is needed because Ray complains if ROCR_VISIBLE_DEVICES is set
 unset ROCR_VISIBLE_DEVICES
 
+
 # Setup env for distributed ML
 export OMP_NUM_THREADS=1
 if [ "$SLURM_GPUS_PER_NODE" -gt 0 ] ; then
@@ -167,7 +168,7 @@ function ray-launcher(){
   # Fix (?) for: HIP error: invalid device ordinal
   export RAY_EXPERIMENTAL_NOSET_ROCR_VISIBLE_DEVICES=1
   export RAY_EXPERIMENTAL_NOSET_HIP_VISIBLE_DEVICES=1
-  
+
   #########   Set up Ray cluster   ########
 
   # Get the node names

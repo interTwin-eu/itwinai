@@ -1142,7 +1142,6 @@ class NonDistributedStrategy(TorchDistributedStrategy):
 class RayTorchDistributedStrategy(TorchDistributedStrategy):
     """Base class for all ray distributed strategies."""
 
-
 class RayDDPStrategy(TorchDDPStrategy, RayTorchDistributedStrategy):
     """A distributed data-parallel (DDP) strategy using Ray Train for PyTorch training."""
 
