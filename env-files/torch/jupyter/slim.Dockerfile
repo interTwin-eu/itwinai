@@ -136,12 +136,12 @@ COPY --chown=${NB_UID} src src
 RUN uv pip install --no-cache-dir --upgrade pip \
     && uv pip install --no-cache-dir \
     # Select from which index to install torch
-    --extra-index-url https://download.pytorch.org/whl/cu124 \
+    --extra-index-url https://download.pytorch.org/whl/cu126 \
     # This is needed by UV to trust all indexes:
     --index-strategy unsafe-best-match \
     # Install packages
     .[torch] \
-    "prov4ml[nvidia]@git+https://github.com/matbun/ProvML@v0.0.1" \
+    "prov4ml[nvidia]@git+https://github.com/matbun/ProvML@v0.0.2" \
     pytest \
     pytest-xdist \
     psutil

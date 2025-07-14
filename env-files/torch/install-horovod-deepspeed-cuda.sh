@@ -27,7 +27,7 @@ uv pip install --no-cache-dir --no-build-isolation "deepspeed==0.16.8"
 
 # Horovod variables
 export LDSHARED="$CC -shared" &&
-export CMAKE_CXX_STANDARD=17 
+export CMAKE_CXX_STANDARD=17
 
 export HOROVOD_MPI_THREADS_DISABLE=1
 export HOROVOD_CPU_OPERATIONS=MPI
