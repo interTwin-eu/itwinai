@@ -9,7 +9,6 @@
 # --------------------------------------------------------------------------------------
 
 # General config
-experiment_name: mnist-classifier
 run_id: mnist-usecase-0
 dataset_root: .tmp/
 num_classes: 10
@@ -40,8 +39,7 @@ training_pipeline:
       save_path: ${dataset_root}
     training_step:
       _target_: itwinai.torch.trainer.TorchTrainer
-      experiment_name: ${experiment_name}
-      measure_gpu_data: True
+      measure_gpu_data: False
       enable_torch_profiling: False
       store_torch_profiling_traces: False
       measure_epoch_time: False
@@ -109,9 +107,8 @@ training_pipeline:
           - _target_: itwinai.loggers.ConsoleLogger
             log_freq: 10000
           - _target_: itwinai.loggers.MLFlowLogger
-            experiment_name: ${experiment_name}
+            experiment_name: MNIST classifier
             log_freq: epoch
-            run_name: ${run_id}
             tracking_uri: null
       strategy: ${strategy}
       checkpoint_every: ${checkpoint_every}
@@ -203,7 +200,7 @@ training_pipeline_gan:
           - _target_: itwinai.loggers.ConsoleLogger
             log_freq: 10000
           - _target_: itwinai.loggers.MLFlowLogger
-            experiment_name: ${experiment_name}
+            experiment_name: MNIST classifier
             log_freq: epoch
       strategy: ${strategy}
       checkpoint_every: ${checkpoint_every}
