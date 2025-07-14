@@ -66,5 +66,10 @@
     "python.analysis.extraPaths": [
         "./src/itwinai"
     ],
-    "makefile.configureOnOpen": false
+    "makefile.configureOnOpen": false,
+    "files.associations": {
+        "*.log.*": "log",
+        "*.err": "log",
+        "*.out": "log"
+    },
 }

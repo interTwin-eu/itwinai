@@ -6,6 +6,9 @@ import socket
 import subprocess
 import sys
 
+import ray
+from ray.train.torch import TorchTrainer
+from ray.train import ScalingConfig, RunConfig
 import torch
 import torch.distributed as dist
 import typer
@@ -129,3 +132,76 @@ def test_gloo():
 
     dist.destroy_process_group()
     typer.echo("Gloo test completed successfully.")
+
+
+def test_ray():
+    """Test Ray TorchTrainer distributed training."""
+    typer.echo("\nTesting Ray TorchTrainer distributed training:")
+    typer.echo(f"Ray version: {ray.__version__}")
+
+    # Connect to existing Ray cluster
+    try:
+        ray.init(address="auto")
+        typer.echo("Connected to Ray cluster.")
+    except Exception as e:
+        sys.exit(f"ERROR: Failed to initialize Ray cluster: {e}")
+
+    # Define the per-worker training loop
+    def train_loop(config):
+        import torch
+        import torch.nn as nn
+        import torch.optim as optim
+        from ray import train
+
+        ctx = train.get_context()
+        rank = ctx.get_local_rank()
+        device = torch.device(
+            "cuda",
+            rank % torch.cuda.device_count() if torch.cuda.is_available() else "cpu"
+        )
+
+        # simple linear model
+        model = nn.Linear(10, 1).to(device)
+        model = train.torch.prepare_model(model)
+
+        optimizer = optim.SGD(model.parameters(), lr=0.01)
+        loss_fn = nn.MSELoss()
+
+        # synthetic data
+        x = torch.randn(32, 10, device=device)
+        y = torch.randn(32, 1, device=device)
+
+        # one training step
+        optimizer.zero_grad()
+        pred = model(x)
+        loss = loss_fn(pred, y)
+        loss.backward()
+        optimizer.step()
+
+        # report loss back to driver
+        train.report({"loss": loss.item()})
+
+    num_gpus = int(ray.cluster_resources().get("GPU", 0))
+    # Launch the trainer
+    trainer = TorchTrainer(
+        train_loop,
+        scaling_config=ScalingConfig(
+            num_workers=num_gpus,    # change as needed
+            use_gpu=True,     # each worker gets 1 GPU
+        ),
+        run_config=RunConfig(
+            name="ray-torch-test",
+            # local_dir="./ray_results",
+        ),
+    )
+
+    # Execute training
+    result = trainer.fit()
+
+    # Print per-worker losses
+    typer.echo("Final losses per worker:")
+    typer.echo(result.metrics_dataframe.to_string(index=False))
+
+    # Clean up
+    ray.shutdown()
+    typer.echo("RAY test completed successfully.")

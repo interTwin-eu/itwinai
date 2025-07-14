@@ -14,8 +14,8 @@
 # Resources allocation
 #SBATCH --partition=standard-g
 #SBATCH --nodes=2
-#SBATCH --gpus-per-node=2
-#SBATCH --cpus-per-task=32
+#SBATCH --gpus-per-node=8
+#SBATCH --cpus-per-task=48
 #SBATCH --exclusive
 #SBATCH --mem=128G
 
@@ -50,6 +50,7 @@ echo "DEBUG: SLURMD_NODENAME: $SLURMD_NODENAME"
 echo "DEBUG: SLURM_CPUS_PER_TASK: $SLURM_CPUS_PER_TASK"
 echo "DEBUG: SLURM_GPUS_PER_NODE: $SLURM_GPUS_PER_NODE"
 echo "DEBUG: TRAINING_CMD: $TRAINING_CMD"
+echo "DEBUG: ROCR_VISIBLE_DEVICES: $ROCR_VISIBLE_DEVICES"
 echo
 
 # Optional: Inject the environment variables for NCCL debugging into the container.   
@@ -58,6 +59,8 @@ echo
 # export RCCL_DEBUG=INFO
 # export NCCL_DEBUG_SUBSYS=INIT,COLL
 # export FI_LOG_LEVEL=info
+# export TORCH_CPP_LOG_LEVEL=INFO
+# export TORCH_DISTRIBUTED_DEBUG=INFO
 
 # Currently not used, but can be used for CPU mapping in the future
 c=fe
@@ -85,21 +88,16 @@ sleep 2
 # no access to on LUMI.
 export NCCL_SOCKET_IFNAME=hsn0,hsn1,hsn2,hsn3
 export NCCL_NET_GDR_LEVEL=3
-# Use the Slingshot CXI provider through OFI
-# export NCCL_NET=ofi             # optional; the plugin is auto‑detected but this is explicit
-export FI_PROVIDER=cxi          # tell libfabric to pick the CXI provider
+export FI_PROVIDER=cxi
 
-# Avoid high-speed interconnect (for debugging): the libfabric version in the container is 1.8,
-# but on lumi we only have 1.15, so the container is not able to talk over the high-speed network interconnect
-export NCCL_NET=Socket
+# Avoid high-speed interconnect (for debugging)
+# export NCCL_NET=Socket
 
 # Set HIP_VISIBLE_DEVICES so that each task uses the proper GPU
-# export HIP_VISIBLE_DEVICES=$SLURM_LOCALID
-export HIP_VISIBLE_DEVICES=$(seq -s, 0 $((SLURM_GPUS_PER_NODE - 1)))
+export HIP_VISIBLE_DEVICES=$ROCR_VISIBLE_DEVICES #(seq -s, 0 $((SLURM_GPUS_PER_NODE - 1)))
 echo "DEBUG: HIP_VISIBLE_DEVICES: $HIP_VISIBLE_DEVICES"
-
-# Report affinity to check
-echo "Rank $SLURM_PROCID --> $(taskset -p $$); GPU $HIP_VISIBLE_DEVICES"
+# This is needed because Ray complains if ROCR_VISIBLE_DEVICES is set
+unset ROCR_VISIBLE_DEVICES
 
 # Setup env for distributed ML
 export OMP_NUM_THREADS=1
@@ -122,9 +120,39 @@ if [ -z "$CONTAINER_PATH" ]; then
   >&2 echo "WARNING: env variable CONTAINER_PATH is not set."
 fi
 
+
+function warn-if-bad-gpus() {
+  # Ensure SLURM_GPUS_PER_NODE is set
+  if [[ -z "${SLURM_GPUS_PER_NODE+x}" ]]; then
+    echo "Error: \$SLURM_GPUS_PER_NODE is not set."
+    return 1
+  fi
+
+  # If SLURM_GPUS_PER_NODE is neither 4 nor 8, emit a big red warning
+  if [[ "$SLURM_GPUS_PER_NODE" != "4" && "$SLURM_GPUS_PER_NODE" != "8" ]]; then
+    local RED='\033[1;31m'
+    local NC='\033[0m' # No Color
+
+    decho -e "   \n\n\n\n\n${RED}!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n\
+    ***  WARNING: Number of GPUs per node is set to ${SLURM_GPUS_PER_NODE},          ***\n\
+    ***  which is neither 4 nor 8.                              ***\n\
+    ***                                                         ***\n\
+    ***  In the past we noticed that Number of GPUs different   ***\n\
+    ***  from 4 and 8 created cryptic segfault errors when      ***\n\
+    ***  using NCCL with Ray. Please be very careful!           ***\n\
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!${NC}\n\n\n\n\n"
+  fi
+}
+
 function ray-launcher(){
-  num_gpus=$SLURM_GPUS_PER_NODE
-  num_cpus=$SLURM_CPUS_PER_TASK
+  # First: check if GPUs are OK
+  warn-if-bad-gpus
+
+  # Avoid high-speed interconnect (for debugging)
+  # TODO: THIS IS A TEMPORARY FIX. TO BE REMOVED!!
+  # You can remove this when running on a single node, but when having a trial that spans
+  # multiple nodes this seems to be needed, otherwise the trial fails
+  export NCCL_NET=Socket
 
   # This tells Tune to not change the working directory to the trial directory
   # which makes relative paths accessible from inside a trial
@@ -138,7 +166,7 @@ function ray-launcher(){
 
   # Fix (?) for: HIP error: invalid device ordinal
   export RAY_EXPERIMENTAL_NOSET_ROCR_VISIBLE_DEVICES=1
-  export HIP_VISIBLE_DEVICES=$(seq -s, 0 $((SLURM_GPUS_PER_NODE - 1))) #0,1,2,3,4,5,6,7
+  export RAY_EXPERIMENTAL_NOSET_HIP_VISIBLE_DEVICES=1
   
   #########   Set up Ray cluster   ########
 
@@ -162,7 +190,6 @@ function ray-launcher(){
     --rocm \
     "$CONTAINER_PATH" bash -c " \
       source /opt/miniconda3/bin/activate pytorch && 
-      export LD_LIBRARY_PATH=/usr/lib64/mpi/gcc/mpich/lib64:\$LD_LIBRARY_PATH &&
       ldd /opt/aws-ofi-rccl/librccl-net.so | grep fabric &&
       ls /opt/cray/libfabric/1.15.2.0/lib64/libfabric.so.1 &&
       unset ROCR_VISIBLE_DEVICES &&
@@ -170,8 +197,8 @@ function ray-launcher(){
         --head \
         --node-ip-address=$head_node \
         --port=$port \
-        --num-cpus=$num_cpus \
-        --num-gpus=$num_gpus \
+        --num-cpus=$SLURM_CPUS_PER_TASK \
+        --num-gpus=$SLURM_GPUS_PER_NODE \
         --log-color false \
         --block" &
   # Wait for a few seconds to ensure that the head node has fully initialized.
@@ -196,15 +223,14 @@ function ray-launcher(){
       --rocm \
       "$CONTAINER_PATH" bash -c " \
       source /opt/miniconda3/bin/activate pytorch && 
-      export LD_LIBRARY_PATH=/usr/lib64/mpi/gcc/mpich/lib64:\$LD_LIBRARY_PATH &&
       ldd /opt/aws-ofi-rccl/librccl-net.so | grep fabric &&
       ls /opt/cray/libfabric/1.15.2.0/lib64/libfabric.so.1 &&
       unset ROCR_VISIBLE_DEVICES &&
       ray start \
         --address $head_node:$port \
         --redis-password='5241580000000000' \
-        --num-cpus=$num_cpus \
-        --num-gpus=$num_gpus \
+        --num-cpus=$SLURM_CPUS_PER_TASK \
+        --num-gpus=$SLURM_GPUS_PER_NODE \
         --log-color false \
         --block" &      
       sleep 8 # wait before starting the next worker to prevent race conditions.
@@ -235,6 +261,7 @@ function torchrun-launcher(){
       --rocm \
       $CONTAINER_PATH /bin/bash -c "\
         source /opt/miniconda3/bin/activate pytorch && \
+        unset ROCR_VISIBLE_DEVICES && \
         torchrun \
         --log_dir='logs_torchrun' \
         --nnodes=$SLURM_NNODES \
@@ -268,6 +295,7 @@ function srun-launcher(){
     --rocm \
     $CONTAINER_PATH /bin/bash -c "
       source /opt/miniconda3/bin/activate pytorch && 
+      unset ROCR_VISIBLE_DEVICES && \
       export LD_LIBRARY_PATH=/usr/lib64/mpi/gcc/mpich/lib64:\$LD_LIBRARY_PATH &&
       ldd /opt/aws-ofi-rccl/librccl-net.so | grep fabric &&
       ls /opt/cray/libfabric/1.15.2.0/lib64/libfabric.so.1 &&

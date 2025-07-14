@@ -11,6 +11,7 @@
         "tamasfe.even-better-toml",
         "charliermarsh.ruff",
         "github.vscode-github-actions",
-        "dnut.rewrap-revived"
+        "dnut.rewrap-revived",
+        "emilast.logfilehighlighter"
     ]
 }
