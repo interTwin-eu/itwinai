@@ -23,7 +23,7 @@
 #SBATCH --time=00:20:00
 
 # Resources allocation
-#SBATCH --partition=dev
+#SBATCH --partition=gpu
 #SBATCH --nodes=2
 #SBATCH --gpus-per-node=2
 #SBATCH --gres=gpu:2

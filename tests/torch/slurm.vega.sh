@@ -45,15 +45,13 @@ echo "DEBUG: CUDA_VISIBLE_DEVICES (before): $CUDA_VISIBLE_DEVICES"
 
 # Load environment modules
 ml --force purge
-ml Python/3.11.5-GCCcore-13.2.0 
-ml CMake/3.24.3-GCCcore-11.3.0
-ml mpi4py
-ml OpenMPI
-ml CUDA/12.3
-ml GCCcore/11.3.0
-ml NCCL
+ml CMake/3.29.3-GCCcore-13.3.0
+ml mpi4py/3.1.5
+ml OpenMPI/4.1.6-GCC-13.2.0
 ml cuDNN/8.9.7.29-CUDA-12.3.0
-ml UCX-CUDA/1.15.0-GCCcore-13.2.0-CUDA-12.3.0 # this is needed by horovod!
+ml CUDA/12.6.0
+ml NCCL/2.22.3-GCCcore-13.3.0-CUDA-12.6.0
+ml Python/3.12.3-GCCcore-13.3.0
 module unload OpenSSL
 
 # source ~/.bashrc
@@ -73,7 +71,7 @@ export ITWINAI_LOG_LEVEL=DEBUG
 export NO_COLOR=1
 
 export NCCL_SOCKET_IFNAME=ib0   # Use infiniband interface ib0
-export NCCL_DEBUG=INFO          # Enables detailed logging
+# export NCCL_DEBUG=INFO          # Enables detailed logging
 export NCCL_P2P_DISABLE=0       # Ensure P2P communication is enabled
 export NCCL_IB_DISABLE=0        # Ensure InfiniBand is used if available
 export GLOO_SOCKET_IFNAME=ib0   # Ensure GLOO (fallback) also uses the correct interface
