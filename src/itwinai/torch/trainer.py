@@ -155,6 +155,10 @@ class TorchTrainer(Trainer, LogMixin):
     validation_dataloader: DataLoader | None = None
     #: PyTorch ``DataLoader`` for test dataset.
     test_dataloader: DataLoader | None = None
+    #: How often to perform the validation step
+    validation_every: int | None = None
+    #: How often to perform the test step
+    test_every: int | None = None
     #: PyTorch model to train.
     model: nn.Module | None = None
     #: Loss criterion.
@@ -197,6 +201,7 @@ class TorchTrainer(Trainer, LogMixin):
         model: nn.Module | None = None,
         strategy: Literal["ddp", "deepspeed", "horovod"] = "ddp",
         test_every: int | None = None,
+        validation_every: int | None = None,
         random_seed: int | None = None,
         logger: Logger | None = None,
         metrics: Dict[str, Metric] | None = None,
@@ -241,6 +246,7 @@ class TorchTrainer(Trainer, LogMixin):
         self.model = model
         self.strategy = strategy
         self.test_every = test_every
+        self.validation_every = validation_every
         self.random_seed = random_seed
         self.logger = logger
         self.metrics = metrics if metrics is not None else {}
@@ -1131,46 +1137,49 @@ class TorchTrainer(Trainer, LogMixin):
 
             self.set_epoch()
             self.train_epoch()
-            val_metric = self.validation_epoch()
 
-            # Periodic checkpointing
-            periodic_ckpt_path = self.save_checkpoint(name=f"epoch_{self.current_epoch}")
+            if self.validation_every and (self.current_epoch + 1) % self.validation_every == 0:
+                val_metric = self.validation_epoch()
 
-            # Checkpointing current best model
-            best_ckpt_path = None
-            worker_val_metrics = self.strategy.gather(val_metric, dst_rank=0)
+                # Checkpointing current best model
+                best_ckpt_path = None
+                worker_val_metrics = self.strategy.gather(val_metric, dst_rank=0)
 
-            if self.strategy.is_main_worker:
-                avg_metric = torch.mean(torch.stack(worker_val_metrics)).detach().cpu()
-                if avg_metric < self.best_validation_metric:
-                    best_ckpt_path = self.save_checkpoint(
-                        name="best_model",
-                        best_validation_metric=avg_metric,
-                        force=True,
+                if self.strategy.is_main_worker:
+                    avg_metric = torch.mean(torch.stack(worker_val_metrics)).detach().cpu()
+                    if avg_metric < self.best_validation_metric:
+                        best_ckpt_path = self.save_checkpoint(
+                            name="best_model",
+                            best_validation_metric=avg_metric,
+                            force=True,
+                        )
+                        self.best_validation_metric = avg_metric
+
+                # Periodic checkpointing
+                periodic_ckpt_path = self.save_checkpoint(name=f"epoch_{self.current_epoch}")
+
+                # Report validation metrics to Ray (useful for tuning!)
+                metric_name = _get_tuning_metric_name(self.ray_tune_config)
+                if metric_name is None:
+                    raise ValueError("Could not find a metric in the TuneConfig")
+
+                if self.time_ray and self.logger is not None:
+                    time_and_log(
+                        func=partial(
+                            self.ray_report,
+                            metrics={metric_name: val_metric.item()},
+                            checkpoint_dir=best_ckpt_path or periodic_ckpt_path,
+                        ),
+                        logger=self.logger,
+                        identifier="ray_report_time_s_per_epoch",
+                        step=self.current_epoch,
                     )
-                    self.best_validation_metric = avg_metric
-
-            # Report validation metrics to Ray (useful for tuning!)
-            metric_name = _get_tuning_metric_name(self.ray_tune_config)
-            if metric_name is None:
-                raise ValueError("Could not find a metric in the TuneConfig")
-
-            if self.time_ray and self.logger is not None:
-                time_and_log(
-                    func=partial(
-                        self.ray_report,
+                else:
+                    self.ray_report(
                         metrics={metric_name: val_metric.item()},
                         checkpoint_dir=best_ckpt_path or periodic_ckpt_path,
-                    ),
-                    logger=self.logger,
-                    identifier="ray_report_time_s_per_epoch",
-                    step=self.current_epoch,
-                )
-            else:
-                self.ray_report(
-                    metrics={metric_name: val_metric.item()},
-                    checkpoint_dir=best_ckpt_path or periodic_ckpt_path,
-                )
+                    )
+
 
             if self.test_every and (self.current_epoch + 1) % self.test_every == 0:
                 self.test_epoch()
