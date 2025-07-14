@@ -1,11 +1,9 @@
 name: Testing with pytest
 
-# on:
-#   pull_request:
-#     branches: [main, dev]
-on: 
-  push: 
-  
+on:
+  pull_request:
+    branches: [main, dev]
+
 jobs:
   test-torch:
     name: Testing with pytest
@@ -44,7 +42,7 @@ jobs:
             --context ..
             --dockerfile ../env-files/torch/skinny.Dockerfile
             test-local
-            --cmd "pytest,-vs,--disable-warnings,-n,logical,/app/tests/use-cases/test_radio_astronomy.py,--dist,loadfile,-m,not hpc and not tensorflow"
+            --cmd "pytest,-v,--disable-warnings,-n,logical,/app/tests/,--dist,loadfile,-m,not hpc and not tensorflow"
             logs
           cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
           version: latest
