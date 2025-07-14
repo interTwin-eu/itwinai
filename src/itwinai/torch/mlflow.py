@@ -9,10 +9,13 @@
 
 import logging
 from pathlib import Path
-from typing import Dict
+from typing import Dict, List
 
 import mlflow
+import mlflow.tracking
+import pandas as pd
 import yaml
+from mlflow.entities import Run
 
 py_logger = logging.getLogger(__name__)
 
@@ -96,3 +99,85 @@ def teardown_lightning_mlflow() -> None:
     """End active mlflow run, if any."""
     if mlflow.active_run() is not None:
         mlflow.end_run()
+
+
+def get_gpu_data_by_run(
+    mlflow_client: mlflow.tracking.MlflowClient,
+    experiment_id: str,
+    run: Run,
+) -> List[Run]:
+    def _children(parent_run_id: str) -> List[Run]:
+        return mlflow_client.search_runs(
+            [experiment_id],
+            filter_string=f"tags.mlflow.parentRunId = '{parent_run_id}'",
+        )
+
+    first_level = _children(run.info.run_id)
+    if first_level:
+        gpu_runs: List[Run] = []
+        for child in first_level:
+            for grand_child in _children(child.info.run_id):
+                if grand_child.info.run_name.startswith("gpu_"):
+                    gpu_runs.append(grand_child)
+
+        return gpu_runs
+
+    flat_gpu_runs = mlflow_client.search_runs(
+        [experiment_id],
+        filter_string=f"attributes.run_name LIKE '{run.info.run_name}_gpu_%'",
+        max_results=5000,
+    )
+
+    return flat_gpu_runs
+
+
+def get_metric_names(run: Run) -> List[str]:
+    run_data = run.data.to_dictionary()
+    metric_names = list(run_data["metrics"].keys())
+    return metric_names
+
+
+def get_params(run: Run) -> Dict[str, str]:
+    run_data = run.data.to_dictionary()
+    params = run_data["params"]
+    return params
+
+
+def get_run_metrics_as_df(mlflow_client: mlflow.MlflowClient, run: Run, metric_names=None):
+    if metric_names is None:
+        metric_names = get_metric_names(run)
+
+    params = get_params(run)
+
+    for_pd_collect = []
+    for metric in metric_names:
+        metric_history = mlflow_client.get_metric_history(run_id=run.info.run_id, key=metric)
+        pd_convertible_metric_history = [
+            {
+                "metric_name": mm.key,
+                "step": mm.step,
+                "timestamp": mm.timestamp,
+                "value": mm.value,
+                **params,
+            }
+            for mm in metric_history
+        ]
+        for_pd_collect += pd_convertible_metric_history
+
+    metrics_df = pd.DataFrame.from_records(for_pd_collect)
+    return metrics_df
+
+
+def history_to_frame(mlflow_client, run_id, metric_keys):
+    """Collect full metric history and return a tidy step-indexed DataFrame."""
+    rows = {}
+    for key in metric_keys:
+        for m in mlflow_client.get_metric_history(run_id, key):
+            rows.setdefault(m.step, {})[key] = m.value
+    df = (
+        pd.DataFrame.from_dict(rows, orient="index")
+        .sort_index()
+        .rename_axis("step")
+        .reset_index()
+    )
+    return df

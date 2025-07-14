@@ -13,22 +13,21 @@ import logging
 from pathlib import Path
 from typing import List
 
+import mlflow
+import mlflow.tracking
 import pandas as pd
 
 from itwinai.scalability_report.data import read_scalability_metrics_from_csv
-from itwinai.scalability_report.plot import (
-    absolute_avg_epoch_time_plot,
-    computation_fraction_bar_plot,
-    computation_vs_other_bar_plot,
-    gpu_bar_plot,
-    relative_epoch_time_speedup_plot,
-)
-from itwinai.scalability_report.utils import (
-    calculate_gpu_statistics,
-    get_computation_fraction_data,
-    get_computation_vs_other_data,
-)
-from itwinai.utils import deprecated
+from itwinai.scalability_report.plot import (absolute_avg_epoch_time_plot,
+                                             computation_fraction_bar_plot,
+                                             computation_vs_other_bar_plot,
+                                             gpu_bar_plot,
+                                             relative_epoch_time_speedup_plot)
+from itwinai.scalability_report.utils import (calculate_gpu_statistics,
+                                              get_computation_fraction_data,
+                                              get_computation_vs_other_data)
+from itwinai.torch.mlflow import get_gpu_data_by_run, get_run_metrics_as_df
+from itwinai.utils import RELATIVE_MLFLOW_PATH, deprecated
 
 cli_logger = logging.getLogger("cli_logger")
 
@@ -114,10 +113,9 @@ def epoch_time_report(
 
 
 def gpu_data_report(
-    log_dirs: List[Path] | List[str],
     plot_dir: Path | str,
-    backup_dir: Path,
-    do_backup: bool = False,
+    experiment_name: str,
+    run_names: List[str] | None = None,
     plot_file_suffix: str = ".png",
 ) -> str | None:
     """Generates reports and plots for GPU energy consumption and utilization across
@@ -144,22 +142,45 @@ def gpu_data_report(
         "sample_idx",
         "utilization",
         "power",
-        "local_rank",
-        "node_idx",
         "num_global_gpus",
         "strategy",
         "probing_interval",
     }
-    log_dir_paths = [Path(logdir) for logdir in log_dirs]
-    dataframes = []
-    for log_dir in log_dir_paths:
-        temp_df = read_scalability_metrics_from_csv(
-            data_dir=log_dir, expected_columns=gpu_data_expected_columns
+    mlflow_path = RELATIVE_MLFLOW_PATH.resolve()
+    mlflow.set_tracking_uri(mlflow_path)
+    mlflow_client = mlflow.tracking.MlflowClient()
+    experiment = mlflow_client.get_experiment_by_name(
+        name=experiment_name
+    )
+    if experiment is None:
+        raise ValueError(
+            f"Experiment '{experiment_name}' does not exist in MLflow at path '{mlflow_path}'."
         )
-        dataframes.append(temp_df)
-    if not dataframes:
-        return None
-    gpu_data_df = pd.concat(dataframes)
+    if not run_names:
+        # get all run IDs from the experiment
+        runs = mlflow_client.search_runs(
+                experiment_ids=[experiment.experiment_id]
+            )
+    else:
+        runs = []
+        for run_name in run_names:
+            runs += mlflow_client.search_runs(
+                experiment_ids=[experiment.experiment_id],
+                filter_string=f"run_name='{run_name}'",
+            )
+
+    gpu_dataframes = []
+    for run in runs:
+        gpu_runs = get_gpu_data_by_run(
+            mlflow_client, experiment.experiment_id, run
+        )
+        for gpu_run in gpu_runs:
+            gpu_dataframes.append(get_run_metrics_as_df(mlflow_client, gpu_run))
+
+    gpu_data_df = pd.concat(gpu_dataframes)
+    # store for debug
+    with open(plot_dir / "gpu_data_raw.csv", "w") as f:
+        gpu_data_df.to_csv(f, index=False)
 
     cli_logger.info("\nAnalyzing GPU Data...")
     gpu_data_statistics_df = calculate_gpu_statistics(

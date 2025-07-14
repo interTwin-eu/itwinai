@@ -8,13 +8,57 @@
 # - Matteo Bunino <matteo.bunino@cern.ch> - CERN
 # --------------------------------------------------------------------------------------
 
+from os.path import isdir
 from pathlib import Path
 from typing import Set
 
+import mlflow
 import pandas as pd
 
 from itwinai.scalability_report.utils import check_contains_columns
+from itwinai.utils import RELATIVE_MLFLOW_PATH
 
+
+# def read_gpu_metrics_from_mlflow(
+#     experiment_name: Path | str,
+#     run_name: str,
+# ) -> pd.DataFrame:
+#     """Reads and validates GPU metrics from a mlflow experiment and combines them into a
+#     single DataFrame.
+#
+#     Args:
+#         data_dir (Path | str): Path to the directory containing the CSV files. All files
+#             in the directory must have a .csv extension.
+#         expected_columns (Set): A set of column names expected to be present in each CSV
+#             file.
+#
+#     Returns:
+#         pd.DataFrame: A DataFrame containing the concatenated data from all valid CSV
+#         files in the directory.
+#
+#     Raises:
+#         ValueError: If the directory contains non-CSV files, if no .csv files are found,
+#         or if any file is missing the expected columns.
+#     """
+#     mlflow_path = RELATIVE_MLFLOW_PATH.resolve()
+#     if not isdir(mlflow_path):
+#         raise ValueError(
+#             f"Directory '{mlflow_path}' does not exist or is not a "
+#             "directory."
+#         )
+#     mlflow.set_tracking_uri(RELATIVE_MLFLOW_PATH.resolve())
+#
+#     client = mlflow.tracking.MlflowClient()
+#     experiment = client.get_experiment_by_name(experiment_name)
+#
+#     if experiment is None:
+#         raise ValueError(f"Experiment '{experiment_name}' does not exist in MLflow at path '{mlflow_path}'.")
+#
+#     runs = client.search_runs(
+#         experiment_ids=[experiment.experiment_id],
+#         filter_string=f"tags.mlflow.runName = '{run_name}'",
+#     )
+# )
 
 def read_scalability_metrics_from_csv(
     data_dir: Path | str, expected_columns: Set

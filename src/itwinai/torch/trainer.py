@@ -926,7 +926,10 @@ class TorchTrainer(Trainer, LogMixin):
         # Run the tuner and capture results
         if self.time_ray and self.logger is not None:
             self.tune_result_grid = time_and_log(
-                func=tuner.fit, logger=self.logger, identifier="ray_fit_time_s", step=0
+                func=tuner.fit,
+                logger=self.logger,
+                identifier="ray_fit_time_s",
+                step=0,
             )
         else:
             # Run the tuner and capture results

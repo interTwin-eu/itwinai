@@ -35,6 +35,8 @@ def profile_gpu_utilization(
     stop_flag: ValueProxy,
     local_rank: int,
     global_rank: int,
+    global_world_size: int,
+    strategy_name: str,
     logger: Logger,
     root_run_name: str,
     parent_run_id: str | None = None,
@@ -88,6 +90,30 @@ def profile_gpu_utilization(
         parent_run_id=parent_run_id,
         run_name=run_name,
     )
+    logger.log(
+        item=strategy_name,
+        identifier="strategy",
+        kind="param",
+        force=True,
+    )
+    logger.log(
+        item=global_rank,
+        identifier="global_rank",
+        kind="param",
+        force=True,
+    )
+    logger.log(
+        item=global_world_size,
+        identifier="num_global_gpus",
+        kind="param",
+        force=True,
+    )
+    logger.log(
+        item=probing_interval,
+        identifier="probing_interval",
+        kind="param",
+        force=True,
+    )
 
     t_start = time.monotonic()  # fractional seconds
 
@@ -130,8 +156,8 @@ def measure_gpu_utilization(method: Callable) -> Callable:
         if not self.logger:
             py_logger.warning(
                 f"No loggers set, while measure_gpu_data is set to {self.measure_gpu_data}"
-                " Please provide loggers so measure_gpu_data can log."
-                " Skipping GPU logging."
+                    " Please provide loggers so measure_gpu_data can log."
+                    " Skipping GPU logging."
             )
             return method(self, *args, **kwargs)
 
@@ -163,6 +189,8 @@ def measure_gpu_utilization(method: Callable) -> Callable:
                 "stop_flag": stop_flag,
                 "local_rank": local_rank,
                 "global_rank": global_rank,
+                "global_world_size": strategy.global_world_size(),
+                "strategy_name": strategy.name,
                 "logger": self.logger,
                 "root_run_name": self.run_id,
                 "parent_run_id": parent_run_id,

@@ -285,10 +285,9 @@ def generate_scalability_report(
         plot_file_suffix=plot_file_suffix,
     )
     gpu_data_table = gpu_data_report(
-        log_dirs=gpu_data_logdirs,
         plot_dir=plot_dir_path,
-        backup_dir=gpu_data_backup_dir,
-        do_backup=do_backup,
+        experiment_name="mnist-classifier",
+        run_names=["ddp-itwinai", "ddp-no-hpo"],
         plot_file_suffix=plot_file_suffix,
     )
 
