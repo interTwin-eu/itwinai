@@ -5,7 +5,6 @@
 #
 # Credit:
 # - Matteo Bunino <matteo.bunino@cern.ch> - CERN
-# - Linus Eickhoff <linus.maximilian.eickhoff@cern.ch> - CERN
 # -------------------------------------------------------------------------------------
 
 import logging
@@ -24,6 +23,7 @@ def enable_logs_propagation():
     yield
     itwinai.logger.propagate = False
 
+
 @pytest.mark.parametrize(
     "itwinai_logger",
     [
@@ -35,8 +35,7 @@ def enable_logs_propagation():
         "loggers_collection",
     ],
 )
-def test_logger_no_initialization(itwinai_logger, request):
-    """Test that the logger raises an error if it has not been initialized."""
+def test_logger_initialization(itwinai_logger, request, caplog, enable_logs_propagation):
     itwinai_logger = request.getfixturevalue(itwinai_logger)
     # Never initialized
     with pytest.raises(RuntimeError) as exc_info:
@@ -49,40 +48,18 @@ def test_logger_no_initialization(itwinai_logger, request):
         itwinai_logger.destroy_logger_context()
     assert "has not been initialized" in str(exc_info.value)
 
-# exclude the loggers_collection and mllogger from the initialization tests
-@pytest.mark.parametrize(
-    "initialize_once_logger",
-    [
-        "console_logger",
-        "wandb_logger",
-        "tensorboard_logger_torch",
-        "prov4ml_logger",
-    ]
-)
-def test_logger_double_initialization(
-    initialize_once_logger,
-    request,
-    caplog,
-    enable_logs_propagation,
-):
-    """Test that the logger is initialized only once."""
-    initialize_once_logger = request.getfixturevalue(initialize_once_logger)
-
-    # Initialize the logger
-    initialize_once_logger.create_logger_context()
+    itwinai_logger.create_logger_context()
 
     # Double initialization
     caplog.clear()
     with caplog.at_level(logging.WARNING):
-        initialize_once_logger.create_logger_context()
+        itwinai_logger.create_logger_context()
         assert len(caplog.records) == 1
         assert caplog.records[0].levelname == "WARNING"
         assert (
-            f"Trying to initialize {initialize_once_logger.__class__.__name__} twice.. "
+            f"Trying to initialize {itwinai_logger.__class__.__name__} twice.. "
             "Skipping initialization."
         ) in caplog.text
-
-    initialize_once_logger.destroy_logger_context()
 
 
 def test_console_logger_log(console_logger):

@@ -22,14 +22,12 @@ from pathlib import Path
 from time import perf_counter as default_timer
 from typing import Any, Callable, Dict, List, Literal, Tuple
 
-import mlflow
 import ray.train
 import ray.tune
 import torch
 import torch.nn as nn
 import torch.optim.lr_scheduler as lr_scheduler
 import yaml
-from mlflow.utils.mlflow_tags import MLFLOW_PARENT_RUN_ID
 from ray.train import Checkpoint, DataConfig, ScalingConfig
 from ray.train.torch import TorchConfig
 from ray.train.torch import TorchTrainer as RayTorchTrainer
@@ -46,7 +44,7 @@ from itwinai.torch.profiling.profiler import profile_torch_trainer
 
 from ..components import Trainer, monitor_exec
 from ..distributed import ray_cluster_is_running
-from ..loggers import EpochTimeTracker, Logger, LogMixin, contains_mlflow_logger
+from ..loggers import EpochTimeTracker, Logger, LogMixin
 from ..utils import (
     EPOCH_TIME_DIR,
     generate_random_name,
@@ -142,9 +140,8 @@ class TorchTrainer(Trainer, LogMixin):
             validation loss is computed. Example values are "inf" and "-inf", depending on
             wether the best validation metric should be minimized or maximized.
             Defaults to "inf".
-        experiment_name (str, optional): name of the experiment used for mlflow logging
-        run_id (str, optional): name used to identify a specific run when collecting
-            metrics on the trainer (e.g. GPU utilization). Defaults to None.
+        run_id (str, optional): name used to identify a specific run when collecting metrics
+            on the trainer (e.g. GPU utilization). Defaults to None.
         time_ray (bool): whether to time and log the execution of Ray functions. Defaults to
             False.
     """
@@ -187,14 +184,10 @@ class TorchTrainer(Trainer, LogMixin):
     store_torch_profiling_traces: bool = False
     #: Toggle for epoch time tracking
     measure_epoch_time: bool = False
-    #: Experiment Name for mlflow
-    experiment_name: str
     #: Run ID
     run_id: str
     #: Toggle for Ray time logging
     time_ray: bool = False
-    # Tune run id for nested runs in mlflow
-    mlflow_root_run_id: str | None = None
 
     def __init__(
         self,
@@ -224,7 +217,6 @@ class TorchTrainer(Trainer, LogMixin):
         ray_data_config: DataConfig | None = None,
         from_checkpoint: Path | str | None = None,
         initial_best_validation_metric: str = "inf",
-        experiment_name: str | None = None,
         run_id: str | None = None,
         time_ray: bool = False,
     ) -> None:
@@ -240,7 +232,7 @@ class TorchTrainer(Trainer, LogMixin):
         if store_torch_profiling_traces and not enable_torch_profiling:
             raise ValueError(
                 "`store_torch_profiling_traces` is True, but `enable_torch_profiling` is"
-                " False. Cannot store traces without enabling profiling."
+                "False. Cannot store traces without enabling profiling."
             )
 
         self.config = config
@@ -272,7 +264,6 @@ class TorchTrainer(Trainer, LogMixin):
         self.ray_data_config = ray_data_config
         self.from_checkpoint = from_checkpoint
         self.time_ray = time_ray
-        self.mlflow_trial_run_ids = []
         if self.from_checkpoint:
             self.from_checkpoint = Path(self.from_checkpoint)
             if not self.from_checkpoint.exists():
@@ -300,11 +291,6 @@ class TorchTrainer(Trainer, LogMixin):
         # If the validation metric is meant to be maximized, change this to -inf.
         self.best_validation_metric = float(initial_best_validation_metric)
         self.current_epoch = 0
-
-        if experiment_name is None:
-            experiment_name = generate_random_name()
-        self.experiment_name = experiment_name
-
         if run_id is None:
             run_id = generate_random_name()
         self.run_id = run_id
@@ -818,6 +804,14 @@ class TorchTrainer(Trainer, LogMixin):
             Dataset: The test dataset
             Any: The trained model
         """
+        # Passes datasets to workers efficiently through Ray storage
+        train_with_data = ray.tune.with_parameters(
+            self._run_worker,
+            train_dataset=train_dataset,
+            validation_dataset=validation_dataset,
+            test_dataset=test_dataset,
+        )
+
         if self.ray_run_config and self.ray_run_config.storage_path:
             # Create Ray checkpoints dir if it does not exist yet
             ckpt_dir = Path(self.ray_run_config.storage_path)
@@ -834,53 +828,6 @@ class TorchTrainer(Trainer, LogMixin):
                 " Please ensure that either num_workers is set to 1 or GPUs in"
                 " resources_per_worker is 0 or 1"
             )
-
-        if (
-            self.ray_tune_config
-            and self.ray_tune_config.scheduler is not None
-            and self.measure_gpu_data
-        ):
-            py_logger.info(
-                "A Trial scheduler for Ray is specified"
-                f" ({type(self.ray_tune_config.scheduler)}), while measuring gpu data."
-                " Trials stopped by the scheduler might not close logger context in time,"
-                " leaving the status of the mlflow run in 'pending'. This is just a visual"
-                " caveat and can be ignored."
-            )
-
-        if self.logger:
-            # Create a logger context for the root run
-            self.logger.create_logger_context(run_name=self.run_id)
-            if (run := mlflow.active_run()) is not None:
-                self.mlflow_root_run_id = run.info.run_id
-                py_logger.debug(
-                    f"Root mlflow run initialized with run ID: {self.mlflow_root_run_id}"
-                )
-
-            if contains_mlflow_logger(self.logger):
-                # Create mlflow runs per trial (will be started by the trial's main worker)
-                client = mlflow.tracking.MlflowClient()
-                experiment_id = client.get_experiment_by_name(
-                    self.experiment_name
-                ).experiment_id
-
-                for trial_idx in range(self.ray_tune_config.num_samples):
-                    # create a mlflow run for each trial (without starting it)
-                    trial_run = client.create_run(experiment_id, run_name=f"trial_{trial_idx}")
-                    client.set_tag(
-                        trial_run.info.run_id,
-                        MLFLOW_PARENT_RUN_ID,
-                        self.mlflow_root_run_id,
-                    )
-                    self.mlflow_trial_run_ids.append(trial_run.info.run_id)
-
-        # Passes datasets to workers efficiently through Ray storage
-        train_with_data = ray.tune.with_parameters(
-            self._run_worker,
-            train_dataset=train_dataset,
-            validation_dataset=validation_dataset,
-            test_dataset=test_dataset,
-        )
 
         if self.from_checkpoint:
             # Create trainer from checkpoint
@@ -913,6 +860,17 @@ class TorchTrainer(Trainer, LogMixin):
 
         # Create the parameter space for hyperparameter tuning
         param_space = {"train_loop_config": search_space(self.ray_search_space)}
+
+        if (
+            self.ray_tune_config
+            and self.ray_tune_config.scheduler is not None
+            and self.measure_gpu_data
+        ):
+            py_logger.warning(
+                "A Trial scheduler for Ray is specified"
+                f" ({type(self.ray_tune_config.scheduler)}), while measuring gpu data."
+                " Trials stopped by the scheduler will not store gpu data to disk."
+            )
 
         # Create the tuner with the driver function
         tuner = ray.tune.Tuner(
@@ -950,27 +908,7 @@ class TorchTrainer(Trainer, LogMixin):
 
         if self.logger:
             py_logger.debug(f"Using logger: {self.logger.__class__.__name__}")
-            if (
-                isinstance(self.strategy, RayTorchDistributedStrategy)
-                and self.strategy.is_main_worker
-                and contains_mlflow_logger(self.logger)
-            ):
-                # Nest the logger of each trial for ray (non-HPO is still nested as a trial)
-                trial_name = ray.tune.get_context().get_trial_name()
-                # The trial index is the last section of the trial name
-                # (e.g. 2 for "TorchTrainer_a6b44_00002")
-                trial_idx = int(trial_name.split("_")[-1])
-                self.logger.create_logger_context(
-                    rank=self.strategy.global_rank(),
-                    parent_run_id=self.mlflow_root_run_id,
-                    run_id=self.mlflow_trial_run_ids[trial_idx],
-                )
-            else:
-                # Create a logger context for the current worker without nesting
-                self.logger.create_logger_context(
-                    rank=self.strategy.global_rank(), run_name=self.run_id
-                )
-
+            self.logger.create_logger_context(rank=self.strategy.global_rank())
             py_logger.debug("...the logger has been initialized")
             hparams = self.config.model_dump()
             hparams["distributed_strategy"] = self.strategy.__class__.__name__
@@ -1213,11 +1151,7 @@ class TorchTrainer(Trainer, LogMixin):
             if metric_name is None:
                 raise ValueError("Could not find a metric in the TuneConfig")
 
-            if (
-                self.time_ray
-                and self.logger is not None
-                and isinstance(self.strategy, RayTorchDistributedStrategy)
-            ):
+            if self.time_ray and self.logger is not None:
                 time_and_log(
                     func=partial(
                         self.ray_report,

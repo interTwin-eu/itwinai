@@ -9,7 +9,6 @@
 # --------------------------------------------------------------------------------------
 
 # General config
-experiment_name: mnist-classifier
 run_id: mnist-usecase-0
 dataset_root: .tmp/
 num_classes: 10
@@ -111,9 +110,8 @@ training_pipeline:
           - _target_: itwinai.loggers.ConsoleLogger
             log_freq: 10000
           - _target_: itwinai.loggers.MLFlowLogger
-            experiment_name: ${experiment_name}
+            experiment_name: MNIST classifier
             log_freq: epoch
-            run_name: ${run_id}
             tracking_uri: null
       strategy: ${strategy}
       checkpoint_every: ${checkpoint_every}
@@ -205,7 +203,7 @@ training_pipeline_gan:
           - _target_: itwinai.loggers.ConsoleLogger
             log_freq: 10000
           - _target_: itwinai.loggers.MLFlowLogger
-            experiment_name: ${experiment_name}
+            experiment_name: MNIST classifier
             log_freq: epoch
       strategy: ${strategy}
       checkpoint_every: ${checkpoint_every}
