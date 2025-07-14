@@ -48,10 +48,20 @@ on whether you want ``PyTorch`` or ``TensorFlow`` support:
                 .. code-block:: bash
 
                     ml --force purge
-                    ml Python/3.11.5-GCCcore-13.2.0 CMake/3.24.3-GCCcore-11.3.0 mpi4py OpenMPI CUDA/12.3
-                    ml GCCcore/11.3.0 NCCL cuDNN/8.9.7.29-CUDA-12.3.0 UCX-CUDA/1.15.0-GCCcore-13.2.0-CUDA-12.3.0
+                    ml Python/3.11.5-GCCcore-13.2.0 
+                    ml CMake/3.24.3-GCCcore-11.3.0
+                    ml mpi4py
+                    ml OpenMPI
+                    ml CUDA/12.3
+                    ml GCCcore/11.3.0
+                    ml NCCL
+                    ml cuDNN/8.9.7.29-CUDA-12.3.0
 
                     # Now you can create or active the python environment here
+
+                    # Only before running your code, but not before installing, load also this,
+                    # which is needed by Horovod
+                    ml UCX-CUDA/1.15.0-GCCcore-13.2.0-CUDA-12.3.0
 
             .. tab-item:: TensorFlow
 
