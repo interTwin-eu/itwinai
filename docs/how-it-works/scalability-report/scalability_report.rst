@@ -15,7 +15,10 @@ The Scalability Report includes the following metrics:
 - Relative speedup of time per epoch
 - GPU Utilization (0-100%)
 - GPU Power Consumption (watt-hours)
-- Communication Overhead
+- Computation vs. other
+
+For more information about profiling with ``itwinai``, you can have a look at the
+:doc:`profiling overview <../../tutorials/profiling/profiling-overview>`.
 
 .. note:: 
 
@@ -42,24 +45,24 @@ which can be toggled using the following flags in your training configuration:
 The epoch time is measured using the `EpochTimeTracker`, while the remaining metrics
 are measured using the following decorators:
 
-- **PyTorch Profiler**: This profiler measures the time spent in computation (WIP)
-  of your distributed machine learning by aggregating the time spent in communication
-  functions (typically ``NCCL`` and ``cudaStream`` calls) and comparing it with the time
-  spent doing computations (typically any call to ``PyTorch``'s ``aTen`` library). It uses
-  the ``PyTorch`` Profiler to retrieve this information. 
+- **PyTorch Profiler**: This profiler measures the time spent in computation vs. other in your
+  distributed machine learning. This is done by comparing the time spent in PyTorch's ATen
+  library with the rest of the time. It uses the PyTorch Profiler to retrieve this
+  information and is enabled using the ``enable_torch_profiling`` flag.
 - **GPU Data Profiler**: This profiler measures the GPU utilization and the total power
   consumption of the training. This is done by probing the GPU at a pre-defined interval
-  and retrieving the needed data. 
+  and retrieving the needed data. The data from the GPU data profiler is saved to MLFlow and
+  therefore not a part of the `generate-scalability-report` command.
 
 If you overwrite the ``TorchTrainer``'s ``train()`` method, then the decorators need to
 be placed above your overwritten ``train()`` method as in the following example:
 
 .. code-block:: python
    
-   from itwinai.torch.profiling.profiler import profile_torch_trainer
-   from itwinai.torch.monitoring.monitoring import measure_gpu_utilization
+  from itwinai.torch.monitoring.monitoring import measure_gpu_utilization
+  from itwinai.torch.profiling.profiler import profile_torch_trainer
 
-   class MyTrainer(TorchTrainer):
+  class MyTrainer(TorchTrainer):
      ...
 
      @profile_torch_trainer
@@ -73,8 +76,9 @@ directory named ``scalability-metrics`` in the current working directory, under 
 three subdirectories will be created: 
 
 - ``epoch-time``: The wall-clock time data from the ``EpochTimeTracker``
-- ``gpu-energy-data``: The GPU utilization and power consumption data
-- ``communication-data``: The communication overhead data
+- ``computation-data``: The computation overhead data
+
+The GPU data will be written to MLFlow. 
 
 Generating the Report
 ---------------------
@@ -106,7 +110,7 @@ this, one can run more analyses and aggregate the results.
 
 The report will result in a table of scalability results, printed in the console, as
 well as plots showing the same results visually. An example of the resulting console
-output can be seen here
+output can be seen here # TODO: This needs to be updated
 
 .. code-block::
 
@@ -127,37 +131,20 @@ output can be seen here
     Saved absolute average time plot at '/Users/jarl/cern/cern_projects/itwinai/plots/absolute_epoch_time.png'.
     Saved relative average time plot at '/Users/jarl/cern/cern_projects/itwinai/plots/relative_epoch_time_speedup.png'.
 
-    ######## GPU Data Report ########
-     strategy  num_global_gpus total_energy_wh utilization
-    deepspeed                4       221.87 Wh     60.30 %
-    deepspeed                8       235.11 Wh     57.54 %
-    deepspeed               16       242.77 Wh     50.62 %
-    deepspeed               32       246.58 Wh     49.33 %
-      horovod                4       227.58 Wh     66.00 %
-      horovod                8       243.00 Wh     59.20 %
-      horovod               16       265.22 Wh     50.35 %
-      horovod               32       337.83 Wh     37.44 %
-    torch-ddp                4       264.86 Wh     70.63 %
-    torch-ddp                8       296.17 Wh     72.77 %
-    torch-ddp               16       253.62 Wh     65.53 %
-    torch-ddp               32       267.12 Wh     56.25 %
-    Saved GPU energy plot at '/Users/jarl/cern/cern_projects/itwinai/plots/gpu_energy_plot.png'.
-    Saved utilization plot at '/Users/jarl/cern/cern_projects/itwinai/plots/utilization_plot.png'.
-
-    ######## Communication Data Report ########
+    ######## Computation Data Report ########
      strategy  num_gpus computation_fraction
-    deepspeed         4              99.09 %
-    deepspeed         8              99.08 %
-    deepspeed        16              99.08 %
-    deepspeed        32              99.09 %
-      horovod         4              84.77 %
-      horovod         8              83.24 %
-      horovod        16              78.21 %
-      horovod        32              70.58 %
-    torch-ddp         4              68.50 %
-    torch-ddp         8              50.79 %
-    torch-ddp        16              71.03 %
-    torch-ddp        32              76.62 %
+    deepspeed         4              00.09 %
+    deepspeed         8              00.08 %
+    deepspeed        16              00.08 %
+    deepspeed        32              00.09 %
+      horovod         4              00.77 %
+      horovod         8              00.24 %
+      horovod        16              00.21 %
+      horovod        32              00.58 %
+    torch-ddp         4              00.50 %
+    torch-ddp         8              00.79 %
+    torch-ddp        16              00.03 %
+    torch-ddp        32              00.62 %
     Saved computation fraction plot at '/Users/jarl/cern/cern_projects/itwinai/plots/computation_fraction_plot.png'.
 
 In this case, data was collected for 4, 8, 16 and 32 GPUs for the ``DeepSpeed``, ``Horovod``
@@ -178,7 +165,7 @@ baseline.
 
 .. image:: ./images/relative_epoch_time_speedup.png
 
-Communication vs Computation
+Computation vs other
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 This plot shows how much of the GPU time is spent doing computation compared to
 communication between GPUs and nodes, for each strategy and number of nodes. The shaded
@@ -186,19 +173,3 @@ area is communication and the colored area is computation. They have all been
 normalized so that the values are between 0 and 1.0. 
 
 .. image:: ./images/computation_fraction_plot.png
-
-GPU Utilization
-~~~~~~~~~~~~~~~
-This plot shows how high the GPU utilization is for each strategy and number of nodes,
-as a percentage from 0 to 100. This is defined as how much time is spent in computation
-mode vs idle time, and does not directly correlate to FLOPs. See more here: 
-`NVML API Reference <https://docs.nvidia.com/deploy/nvml-api/structnvmlUtilization__t.html#structnvmlUtilization__t_1cf0e52a024f25abf0442e39851a85d46>`_
-
-.. image:: ./images/utilization_plot.png
-
-Power Consumption
-~~~~~~~~~~~~~~~~~
-This plot shows the total energy consumption in watt-hours for the different strategies
-and number of nodes. 
-
-.. image:: ./images/gpu_energy_plot.png
