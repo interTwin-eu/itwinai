@@ -84,11 +84,11 @@ sleep 2
 export NCCL_SOCKET_IFNAME=hsn0,hsn1,hsn2,hsn3
 export NCCL_NET_GDR_LEVEL=3
 
-# Set HIP_VISIBLE_DEVICES so that each task uses the proper GPU
-export HIP_VISIBLE_DEVICES=$SLURM_LOCALID
+# Set ROCR_VISIBLE_DEVICES so that each task uses the proper GPU
+export ROCR_VISIBLE_DEVICES=$SLURM_LOCALID
 
 # Report affinity to check
-echo "Rank $SLURM_PROCID --> $(taskset -p $$); GPU $HIP_VISIBLE_DEVICES"
+echo "Rank $SLURM_PROCID --> $(taskset -p $$); GPU $ROCR_VISIBLE_DEVICES"
 
 # Setup env for distributed ML
 export OMP_NUM_THREADS=1
@@ -127,7 +127,7 @@ function ray-launcher(){
 
   # Fix (?) for: HIP error: invalid device ordinal
   export RAY_EXPERIMENTAL_NOSET_ROCR_VISIBLE_DEVICES=1
-  export HIP_VISIBLE_DEVICES=$(seq -s, 0 $((SLURM_GPUS_PER_NODE - 1))) #0,1,2,3,4,5,6,7
+  export ROCR_VISIBLE_DEVICES=$(seq -s, 0 $((SLURM_GPUS_PER_NODE - 1))) #0,1,2,3,4,5,6,7
   
   #########   Set up Ray cluster   ########
 

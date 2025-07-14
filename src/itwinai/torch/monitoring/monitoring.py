@@ -13,36 +13,31 @@ import functools
 import logging
 import time
 from multiprocessing import Manager, Process
-from pathlib import Path
-from typing import TYPE_CHECKING, Any, Callable, Dict, List
+from multiprocessing.managers import ValueProxy
+from typing import TYPE_CHECKING, Any, Callable
 
-import pandas as pd
+import ray.tune
 
-from .backend import init_backend
+from itwinai.torch.distributed import RayTorchDistributedStrategy
+
+from ...loggers import Logger, contains_mlflow_logger
+from .backend import detect_gpu_backend
 
 if TYPE_CHECKING:
     from itwinai.torch.trainer import TorchTrainer
 
-logging_columns = [
-    "sample_idx",
-    "utilization",
-    "power",
-    "local_rank",
-    "node_idx",
-    "num_global_gpus",
-    "strategy",
-    "probing_interval",
-]
+py_logger = logging.getLogger(__name__)
 
 cli_logger = logging.getLogger("cli_logger")
 
 
-def probe_gpu_utilization_loop(
-    node_idx: int,
-    num_global_gpus: int,
-    strategy_name: str,
-    log_dict: Any,
-    stop_flag: Any,
+def profile_gpu_utilization(
+    stop_flag: ValueProxy,
+    local_rank: int,
+    global_rank: int,
+    logger: Logger,
+    root_run_name: str,
+    parent_run_id: str | None = None,
     probing_interval: int = 2,
     warmup_time: int = 5,
 ) -> None:
@@ -66,63 +61,65 @@ def probe_gpu_utilization_loop(
             properly start before reading.
 
     """
-    if not set(logging_columns).issubset(set(log_dict.keys())):
-        missing_columns = set(logging_columns) - set(log_dict.keys())
-        raise ValueError(f"log_dict is missing the following columns: {missing_columns}")
+    backend = detect_gpu_backend()
+    visible_gpu_ids = backend.get_visible_gpu_ids()
 
-    # load management library backend
-    man_lib_type, man_lib = init_backend()
+    if not visible_gpu_ids:
+        py_logger.warning("No visible GPUs found. Skipping GPU utilization profiling.")
+        return
 
+    if local_rank >= len(visible_gpu_ids):
+        raise ValueError("local_rank exceeds the number of visible GPUs.")
+
+    gpu_handle = backend.get_handle_by_id(visible_gpu_ids[local_rank])
+
+    # warmup time to wait for the training to start
     time.sleep(warmup_time)
 
-    if man_lib_type == "nvidia":
-        handles = [
-            man_lib.nvmlDeviceGetHandleByIndex(idx)
-            for idx in range(man_lib.nvmlDeviceGetCount())
-        ]
-    elif man_lib_type == "amd":
-        handles = man_lib.amdsmi_get_processor_handles()
-        # assumes that amdsmi_get_processor_handles() returns all GPUs on the node
-    else:
-        raise ValueError(f"Unsupported management library type: {man_lib_type}")
-
     sample_idx = 0
+
+    run_name = f"gpu_{global_rank}"
+    if parent_run_id is None:
+        run_name = f"{root_run_name}_gpu_{global_rank}"
+
+    logger.create_logger_context(
+        rank=global_rank,
+        force=True,
+        parent_run_id=parent_run_id,
+        run_name=run_name,
+    )
+
+    t_start = time.monotonic()  # fractional seconds
+
     while not stop_flag.value:
-        for local_rank, handle in enumerate(handles):
-            if man_lib_type == "nvidia":
-                gpu_util = man_lib.nvmlDeviceGetUtilizationRates(handle).gpu
-                power = man_lib.nvmlDeviceGetPowerUsage(handle) / 1000.0  # mW -> W
+        time_stamp = time.monotonic() - t_start
 
-            elif man_lib_type == "amd":
-                gpu_util = man_lib.amdsmi_get_gpu_activity(handle)["gfx_activity"]  # W
-                power = man_lib.amdsmi_get_power_info(handle)["average_socket_power"]
+        gpu_util = backend.get_gpu_utilization(gpu_handle)
+        gpu_power = backend.get_gpu_power_usage(gpu_handle)
 
-            log_dict["sample_idx"].append(sample_idx)
-            log_dict["utilization"].append(gpu_util)
-            log_dict["power"].append(power)
-            log_dict["local_rank"].append(local_rank)
-            log_dict["node_idx"].append(node_idx)
-            log_dict["num_global_gpus"].append(num_global_gpus)
-            log_dict["strategy"].append(strategy_name)
-            log_dict["probing_interval"].append(probing_interval)
+        logger.log(
+            item=gpu_power,
+            identifier="gpu_power_W",
+            kind="metric",
+            step=int(time_stamp),
+            force=True,
+        )
+        logger.log(
+            item=gpu_util,
+            identifier="gpu_utilization_percent",
+            kind="metric",
+            step=int(time_stamp),
+            force=True,
+        )
 
         sample_idx += 1
         time.sleep(probing_interval)
 
+    logger.destroy_logger_context(force=True)
+
 
 def measure_gpu_utilization(method: Callable) -> Callable:
     """Decorator for measuring GPU utilization and storing it to a .csv file."""
-
-    def write_logs_to_file(utilization_logs: List[Dict], output_path: Path) -> None:
-        dataframes = []
-        for log in utilization_logs:
-            if len(log) == 0:
-                continue
-            dataframes.append(pd.DataFrame(log))
-
-        log_df = pd.concat(dataframes)
-        log_df.to_csv(output_path, index=False)
-        cli_logger.info(f"Writing GPU energy dataframe to '{output_path.resolve()}'.")
 
     @functools.wraps(method)
     def measured_method(self: "TorchTrainer", *args, **kwargs) -> Any:
@@ -130,66 +127,61 @@ def measure_gpu_utilization(method: Callable) -> Callable:
             cli_logger.warning("Profiling of GPU data has been disabled!")
             return method(self, *args, **kwargs)
 
+        if not self.logger:
+            py_logger.warning(
+                f"No loggers set, while measure_gpu_data is set to {self.measure_gpu_data}"
+                " Please provide loggers so measure_gpu_data can log."
+                " Skipping GPU logging."
+            )
+            return method(self, *args, **kwargs)
+
         gpu_probing_interval = 1
         warmup_time = 5
 
         strategy = self.strategy
-        strategy_name = strategy.name
+        parent_run_id = None
+
+        if (
+            isinstance(strategy, RayTorchDistributedStrategy)
+            and contains_mlflow_logger(self.logger)
+        ):
+            trial_name = ray.tune.get_context().get_trial_name()
+            # The trial index are the last 5 characters of the trial name
+            # (e.g. 2 in "TorchTrainer_a6b44_00002")
+            trial_idx = int(trial_name.split("_")[-1])
+            parent_run_id = self.mlflow_trial_run_ids[trial_idx]
 
         local_rank = strategy.local_rank()
         global_rank = strategy.global_rank()
-        num_global_gpus = strategy.global_world_size()
-        num_local_gpus = strategy.local_world_size()
-        node_idx = global_rank // num_local_gpus
 
-        gpu_monitor_process = None
-        manager = None
-        stop_flag = None
-        data = None
+        manager = Manager()
+        stop_flag = manager.Value("i", False)
 
-        # Starting a child process once per node
-        if local_rank == 0:
-            # Setting up shared variables for the child process
-            manager = Manager()
-            data = manager.dict()
-            for col in logging_columns:
-                data[col] = manager.list()
-            stop_flag = manager.Value("i", False)
+        gpu_monitor_process = Process(
+            target=profile_gpu_utilization,
+            kwargs={
+                "stop_flag": stop_flag,
+                "local_rank": local_rank,
+                "global_rank": global_rank,
+                "logger": self.logger,
+                "root_run_name": self.run_id,
+                "parent_run_id": parent_run_id,
+                "probing_interval": gpu_probing_interval,
+                "warmup_time": warmup_time,
+            },
+        )
+        # Set child process as daemon such that child exits when parent exits
+        gpu_monitor_process.daemon = True
+        gpu_monitor_process.start()
 
-            gpu_monitor_process = Process(
-                target=probe_gpu_utilization_loop,
-                kwargs={
-                    "node_idx": node_idx,
-                    "num_global_gpus": num_global_gpus,
-                    "strategy_name": strategy_name,
-                    "log_dict": data,
-                    "stop_flag": stop_flag,
-                    "probing_interval": gpu_probing_interval,
-                    "warmup_time": warmup_time,
-                },
-            )
-            gpu_monitor_process.start()
-
-        local_utilization_log = {}
         try:
             result = method(self, *args, **kwargs)
         finally:
-            if local_rank == 0:
-                stop_flag.value = True
-                grace_period = 5  # extra time to let process finish gracefully
-                gpu_monitor_process.join(timeout=gpu_probing_interval + grace_period)
-
-                # Converting the shared log to non-shared log
-                local_utilization_log = {key: list(data[key]) for key in data}
-                manager.shutdown()
-
-        global_utilization_log = strategy.gather_obj(local_utilization_log, dst_rank=0)
-        if strategy.is_main_worker:
-            output_dir = Path(f"scalability-metrics/{self.run_id}/gpu-energy-data")
-            output_dir.mkdir(exist_ok=True, parents=True)
-            output_path = output_dir / f"{strategy_name}_{num_global_gpus}.csv"
-
-            write_logs_to_file(global_utilization_log, output_path)
+            # Terminate the process
+            stop_flag.value = True
+            grace_period = 4  # seconds
+            timeout = gpu_probing_interval + grace_period
+            gpu_monitor_process.join(timeout=timeout)
 
         return result
 
