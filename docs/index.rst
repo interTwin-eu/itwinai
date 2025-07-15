@@ -161,8 +161,8 @@ For the full list of scientific use cases refer to the navigation side bar.
 - :doc:`CLI Reference <api/cli_reference>`
 - :doc:`Python SDK <api/modules>`
 
-HPC integration with EuroHPC centers
-====================================
+Integration with EuroHPC centers
+================================
 
 Our code has been run and tested on the following EuroHPC systems:
 
