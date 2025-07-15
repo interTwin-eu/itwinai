@@ -58,9 +58,7 @@ def check_probing_interval_consistency(gpu_data_df: pd.DataFrame) -> None:
         )
 
 
-def calculate_gpu_statistics(
-    gpu_data_df: pd.DataFrame, expected_columns: Set
-) -> pd.DataFrame:
+def calculate_gpu_statistics(gpu_data_df: pd.DataFrame, expected_columns: Set) -> pd.DataFrame:
     """Calculates both the total energy expenditure (in Watt-hours) and the average GPU
     utilization for each strategy and number of GPUs. Ensures consistent probing intervals.
 
@@ -77,15 +75,43 @@ def calculate_gpu_statistics(
     check_contains_columns(df=gpu_data_df, expected_columns=expected_columns)
     check_probing_interval_consistency(gpu_data_df)
 
-    # Calculate total energy expenditure and average utilization
-    gpu_data_df["energy_wh"] = (
-        gpu_data_df["power"] * gpu_data_df["probing_interval"] / SECONDS_IN_HOUR
+    mask = gpu_data_df["metric_name"] == "gpu_power_W"
+    # Ensure value and probing_interval are numeric
+    gpu_data_df.loc[mask, "value"] = pd.to_numeric(
+        gpu_data_df.loc[mask, "value"], errors="coerce"
     )
+    gpu_data_df.loc[mask, "probing_interval"] = pd.to_numeric(
+        gpu_data_df.loc[mask, "probing_interval"], errors="coerce"
+    )
+
+    # Calculate energy in watt hours
+    gpu_data_df.loc[gpu_data_df["metric_name"] == "gpu_power_W", "energy_wh"] = (
+        gpu_data_df.loc[gpu_data_df["metric_name"] == "gpu_power_W", "value"]
+        * gpu_data_df.loc[gpu_data_df["metric_name"] == "gpu_power_W", "probing_interval"]
+        / SECONDS_IN_HOUR
+    )
+
+    # shift metrics to columns (assumes samples are the same for each strategy and
+    # num_global_gpus), ensured earlier by check_probing_interval_consistency
+    pivoted = gpu_data_df.pivot_table(
+        index=["strategy", "num_global_gpus", "timestamp"],
+        columns="metric_name",
+        values="value",
+    ).reset_index()
+
+    # Merge previous columns into the pivoted DataFrame
+    pivoted = pivoted.merge(
+        gpu_data_df[["strategy", "num_global_gpus", "timestamp", "energy_wh"]],
+        how="left",
+        on=["strategy", "num_global_gpus", "timestamp"],
+    )
+
+    # Aggregate as before
     aggregated_df = (
-        gpu_data_df.groupby(["strategy", "num_global_gpus"])
+        pivoted.groupby(["strategy", "num_global_gpus"])
         .agg(
-            total_energy_wh=("energy_wh", "sum"),
-            utilization=("utilization", "mean"),
+            total_energy_wh=("energy_wh", "sum"), # Total energy in watt-hours
+            utilization=("gpu_utilization_percent", "mean"), # Average GPU utilization
         )
         .reset_index()
     )
@@ -118,7 +144,7 @@ def calculate_comp_and_comm_time(df: pd.DataFrame) -> Tuple[float, float]:
     nccl_comm_pattern = rf"nccl:(?:{'|'.join(comm_types)})"
     cuda_stream_pattern = r"cudaStream(?:WaitEvent|Synchronize)"
 
-    # Any operation that is a part of PyTorch's ATen library and autograd is considered a 
+    # Any operation that is a part of PyTorch's ATen library and autograd is considered a
     # computation.
     # See torch namespaces: https://docs.pytorch.org/cppdocs/api/library_root.html
     aten_comp_pattern = r".*(?:aten|\sat|c10|autograd)::"
@@ -137,6 +163,7 @@ def calculate_comp_and_comm_time(df: pd.DataFrame) -> Tuple[float, float]:
     comm_time *= 1e-6
 
     return comp_time, comm_time
+
 
 def calculate_comp_time(df: pd.DataFrame) -> float:
     """Calculates the time spent on computation in seconds from the
@@ -163,6 +190,7 @@ def calculate_comp_time(df: pd.DataFrame) -> float:
 
     return comp_time
 
+
 @deprecated(
     "Communication calculation is unreliable and not comparable between GPU"
     " architectures. Please use get_computation_vs_other_data instead."
@@ -172,6 +200,7 @@ def get_computation_fraction_data(df: pd.DataFrame) -> pd.DataFrame:
     returning a DataFrame with the results. The computation fraction is defined as the
     ratio of computation time to the total time (computation + communication).
     """
+
     # Group by strategy and number of GPUs, calculate computation fraction
     def compute_fraction(group):
         comp_time, comm_time = calculate_comp_and_comm_time(df=group)
@@ -191,11 +220,13 @@ def get_computation_fraction_data(df: pd.DataFrame) -> pd.DataFrame:
     result_df.columns = ["strategy", "num_gpus", "computation_fraction"]
     return result_df
 
+
 def get_computation_vs_other_data(df: pd.DataFrame) -> pd.DataFrame:
     """Calculates the computation fraction for each strategy and GPU configuration,
     returning a DataFrame with the results. The computation fraction is defined as the
     ratio of computation time to the total time of profiling.
     """
+
     # Group by strategy and number of GPUs, calculate computation fraction
     def compute_fraction(group):
         # Theoretically, two identical float32 runtimes could be the same and thus disregarded
@@ -206,7 +237,7 @@ def get_computation_vs_other_data(df: pd.DataFrame) -> pd.DataFrame:
         profiler_overhead = group.loc[
             group["name"] == "ProfilerStep*", "self_cuda_time_total"
         ].values
-        profiler_overhead = profiler_overhead.sum() if len(profiler_overhead) > 0 else 0.
+        profiler_overhead = profiler_overhead.sum() if len(profiler_overhead) > 0 else 0.0
         profiler_overhead *= 1e-6  # Convert from microseconds to seconds
 
         total_time_without_profiler = total_time - profiler_overhead
@@ -220,8 +251,7 @@ def get_computation_vs_other_data(df: pd.DataFrame) -> pd.DataFrame:
     unique_num_gpus = sorted(df["num_gpus"].unique(), key=lambda x: int(x))
     unique_strategies = sorted(df["strategy"].unique())
     index = pd.MultiIndex.from_product(
-        [unique_num_gpus, unique_strategies],
-        names=["num_gpus", "strategy"]
+        [unique_num_gpus, unique_strategies], names=["num_gpus", "strategy"]
     )
     # Reindex to fill in missing combinations with NaN
     result_df = pd.DataFrame(grouped.reindex(index))

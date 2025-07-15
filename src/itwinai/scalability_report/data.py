@@ -8,57 +8,73 @@
 # - Matteo Bunino <matteo.bunino@cern.ch> - CERN
 # --------------------------------------------------------------------------------------
 
-from os.path import isdir
 from pathlib import Path
-from typing import Set
+from typing import List, Set
 
 import mlflow
+import mlflow.tracking
 import pandas as pd
 
 from itwinai.scalability_report.utils import check_contains_columns
+from itwinai.torch.mlflow import get_gpu_data_by_run, get_run_metrics_as_df
 from itwinai.utils import RELATIVE_MLFLOW_PATH
 
 
-# def read_gpu_metrics_from_mlflow(
-#     experiment_name: Path | str,
-#     run_name: str,
-# ) -> pd.DataFrame:
-#     """Reads and validates GPU metrics from a mlflow experiment and combines them into a
-#     single DataFrame.
-#
-#     Args:
-#         data_dir (Path | str): Path to the directory containing the CSV files. All files
-#             in the directory must have a .csv extension.
-#         expected_columns (Set): A set of column names expected to be present in each CSV
-#             file.
-#
-#     Returns:
-#         pd.DataFrame: A DataFrame containing the concatenated data from all valid CSV
-#         files in the directory.
-#
-#     Raises:
-#         ValueError: If the directory contains non-CSV files, if no .csv files are found,
-#         or if any file is missing the expected columns.
-#     """
-#     mlflow_path = RELATIVE_MLFLOW_PATH.resolve()
-#     if not isdir(mlflow_path):
-#         raise ValueError(
-#             f"Directory '{mlflow_path}' does not exist or is not a "
-#             "directory."
-#         )
-#     mlflow.set_tracking_uri(RELATIVE_MLFLOW_PATH.resolve())
-#
-#     client = mlflow.tracking.MlflowClient()
-#     experiment = client.get_experiment_by_name(experiment_name)
-#
-#     if experiment is None:
-#         raise ValueError(f"Experiment '{experiment_name}' does not exist in MLflow at path '{mlflow_path}'.")
-#
-#     runs = client.search_runs(
-#         experiment_ids=[experiment.experiment_id],
-#         filter_string=f"tags.mlflow.runName = '{run_name}'",
-#     )
-# )
+def read_gpu_metrics_from_mlflow(
+    experiment_name: str,
+    run_names: List[str] | None = None,
+) -> pd.DataFrame:
+    """Reads and validates GPU metrics from a mlflow experiment and combines them into a
+    single DataFrame.
+
+    Args:
+        experiment_name (str): Name of the MLflow experiment to read from.
+        run_names (List[str] | None): Name of the runs to read metrics from. If empty, all runs
+        in the experiment will be considered.
+
+    Returns:
+        pd.DataFrame: A DataFrame containing the concatenated data from all valid CSV
+        files in the directory.
+
+    Raises:
+        ValueError: If the experiment does not exist in MLflow, or if no runs are found
+        matching the specified names.
+    """
+    mlflow_path = RELATIVE_MLFLOW_PATH.resolve()
+    mlflow.set_tracking_uri(mlflow_path)
+    mlflow_client = mlflow.tracking.MlflowClient()
+
+    experiment = mlflow_client.get_experiment_by_name(name=experiment_name)
+    if experiment is None:
+        raise ValueError(
+            f"Experiment '{experiment_name}' does not exist in MLflow at path '{mlflow_path}'."
+        )
+    if not run_names:
+        # get all run IDs from the experiment
+        runs = mlflow_client.search_runs(experiment_ids=[experiment.experiment_id])
+    else:
+        runs = []
+        # get all runs in the experiment
+        for run_name in run_names:
+            runs += mlflow_client.search_runs(
+                experiment_ids=[experiment.experiment_id],
+                filter_string=f"run_name='{run_name}'",
+            )
+
+    gpu_dataframes = []
+    for run in runs:
+        gpu_runs = get_gpu_data_by_run(mlflow_client, experiment.experiment_id, run)
+        for gpu_run in gpu_runs:
+            gpu_dataframes.append(get_run_metrics_as_df(mlflow_client, gpu_run))
+
+    if not gpu_dataframes:
+        raise ValueError(
+            f"No GPU metrics found for experiment '{experiment_name}' with runs: {run_names}."
+        )
+    gpu_data_df = pd.concat(gpu_dataframes)
+
+    return gpu_data_df
+
 
 def read_scalability_metrics_from_csv(
     data_dir: Path | str, expected_columns: Set
@@ -88,8 +104,7 @@ def read_scalability_metrics_from_csv(
     # Checking that all files end with .csv
     if len([f for f in file_paths if f.suffix != ".csv"]) > 0:
         raise ValueError(
-            f"Directory '{data_dir.resolve()} contains files with suffix different "
-            f"from .csv!"
+            f"Directory '{data_dir.resolve()} contains files with suffix different from .csv!"
         )
 
     if len(file_paths) == 0:

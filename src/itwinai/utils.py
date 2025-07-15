@@ -37,7 +37,8 @@ py_logger = logging.getLogger(__name__)
 COMPUTATION_DATA_DIR = "computation-data"
 EPOCH_TIME_DIR = "epoch-time"
 GPU_ENERGY_DIR = "gpu-energy-data"
-RELATIVE_MLFLOW_PATH = Path("./mllogs/mlflow")
+RELATIVE_MLFLOW_PATH = Path("mllogs/mlflow")
+MLFLOW_MAX_RESULTS = 5000
 
 adjectives = [
     "quantum",

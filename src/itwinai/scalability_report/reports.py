@@ -17,7 +17,7 @@ import mlflow
 import mlflow.tracking
 import pandas as pd
 
-from itwinai.scalability_report.data import read_scalability_metrics_from_csv
+from itwinai.scalability_report.data import read_gpu_metrics_from_mlflow, read_scalability_metrics_from_csv
 from itwinai.scalability_report.plot import (absolute_avg_epoch_time_plot,
                                              computation_fraction_bar_plot,
                                              computation_vs_other_bar_plot,
@@ -117,70 +117,39 @@ def gpu_data_report(
     experiment_name: str,
     run_names: List[str] | None = None,
     plot_file_suffix: str = ".png",
-) -> str | None:
+    add_footnote: bool = False,
+) -> str:
     """Generates reports and plots for GPU energy consumption and utilization across
     distributed training strategies. Includes bar plots for energy consumption and GPU
-    utilization by strategy and number of GPUs. The function optionally creates backups
-    of the data.
+    utilization by strategy and number of GPUs.
 
     Args:
-        log_dirs (List[Path] | List[str]): List of paths to the directory containing CSV
-            files with GPU data. The files must include the columns "sample_idx",
-            "utilization", "power", "local_rank", "node_idx", "num_global_gpus", "strategy",
-            and "probing_interval".
         plot_dir (Path | str): Path to the directory where the generated plots will
             be saved.
-        backup_dir (Path): Path to the directory where backups of the data will be stored
-            if `do_backup` is True.
-        do_backup (bool): Whether to create a backup of the GPU data in the `backup_dir`.
-            Defaults to False.
+        experiment_name (str): Name of the MLflow experiment to retrieve GPU data from.
+        run_names (List[str] | None): List of specific run names to filter the GPU data.
+            If None, all runs in the experiment will be considered.
+        plot_file_suffix (str): Suffix for the plot file names. Defaults to ".png".
+        add_footnote (bool): If True, adds a footnote to the plots for ray strategies.
+
+    Returns:
+        str | None: A string representation of the GPU data statistics table, or None if
+            no data is available.
     """
     if isinstance(plot_dir, str):
         plot_dir = Path(plot_dir)
 
     gpu_data_expected_columns = {
+        "metric_name",
         "sample_idx",
-        "utilization",
-        "power",
         "num_global_gpus",
         "strategy",
         "probing_interval",
     }
-    mlflow_path = RELATIVE_MLFLOW_PATH.resolve()
-    mlflow.set_tracking_uri(mlflow_path)
-    mlflow_client = mlflow.tracking.MlflowClient()
-    experiment = mlflow_client.get_experiment_by_name(
-        name=experiment_name
+
+    gpu_data_df = read_gpu_metrics_from_mlflow(
+        experiment_name=experiment_name, run_names=run_names
     )
-    if experiment is None:
-        raise ValueError(
-            f"Experiment '{experiment_name}' does not exist in MLflow at path '{mlflow_path}'."
-        )
-    if not run_names:
-        # get all run IDs from the experiment
-        runs = mlflow_client.search_runs(
-                experiment_ids=[experiment.experiment_id]
-            )
-    else:
-        runs = []
-        for run_name in run_names:
-            runs += mlflow_client.search_runs(
-                experiment_ids=[experiment.experiment_id],
-                filter_string=f"run_name='{run_name}'",
-            )
-
-    gpu_dataframes = []
-    for run in runs:
-        gpu_runs = get_gpu_data_by_run(
-            mlflow_client, experiment.experiment_id, run
-        )
-        for gpu_run in gpu_runs:
-            gpu_dataframes.append(get_run_metrics_as_df(mlflow_client, gpu_run))
-
-    gpu_data_df = pd.concat(gpu_dataframes)
-    # store for debug
-    with open(plot_dir / "gpu_data_raw.csv", "w") as f:
-        gpu_data_df.to_csv(f, index=False)
 
     cli_logger.info("\nAnalyzing GPU Data...")
     gpu_data_statistics_df = calculate_gpu_statistics(
@@ -194,11 +163,22 @@ def gpu_data_report(
 
     energy_plot_path = plot_dir / ("gpu_energy_plot" + plot_file_suffix)
     utilization_plot_path = plot_dir / ("utilization_plot" + plot_file_suffix)
+
+    ray_footnote = None
+
+    if add_footnote:
+        ray_footnote = (
+            "For ray strategies, the number of GPUs is the number of GPUs per HPO trial.\n"
+            " Multiple trials, increase the total energy consumption, which makes the energy\n"
+            " consumption only comparable for ray runs with one trial.\n"
+        )
+
     energy_fig, _ = gpu_bar_plot(
         data_df=gpu_data_statistics_df,
         plot_title="Energy Consumption by Framework and Number of GPUs",
         y_label="Energy Consumption (Wh)",
         main_column="total_energy_wh",
+        ray_footnote=ray_footnote,
     )
     utilization_fig, _ = gpu_bar_plot(
         data_df=gpu_data_statistics_df,
@@ -211,13 +191,6 @@ def gpu_data_report(
     cli_logger.info(f"Saved GPU energy plot at '{energy_plot_path.resolve()}'.")
     cli_logger.info(f"Saved utilization plot at '{utilization_plot_path.resolve()}'.")
 
-    if not do_backup:
-        return gpu_data_table
-
-    backup_dir.mkdir(exist_ok=True, parents=True)
-    backup_path = backup_dir / "gpu_data.csv"
-    gpu_data_df.to_csv(backup_path)
-    cli_logger.info(f"Storing backup file at '{backup_path.resolve()}'.")
     return gpu_data_table
 
 

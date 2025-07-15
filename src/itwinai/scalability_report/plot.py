@@ -19,6 +19,7 @@ import pandas as pd
 import seaborn as sns
 from matplotlib.axes import Axes
 from matplotlib.figure import Figure
+from matplotlib.offsetbox import AnchoredText
 from matplotlib.patches import Patch
 from matplotlib.ticker import NullLocator, ScalarFormatter
 
@@ -188,7 +189,13 @@ def relative_epoch_time_speedup_plot(
     return fig, ax
 
 
-def gpu_bar_plot(data_df: pd.DataFrame, plot_title: str, y_label: str, main_column: str):
+def gpu_bar_plot(
+    data_df: pd.DataFrame,
+    plot_title: str,
+    y_label: str,
+    main_column: str,
+    ray_footnote: str | None = None,
+) -> Tuple[Figure, Axes]:
     """Creates a centered bar plot grouped by number of GPUs and strategy.
 
     Args:
@@ -197,6 +204,7 @@ def gpu_bar_plot(data_df: pd.DataFrame, plot_title: str, y_label: str, main_colu
         plot_title (str): The title of the plot.
         y_label (str): The label for the y-axis.
         main_column (str): Column name for bar heights.
+        ray_footnote (str | None): Optional footnote to add if a ray strategy is present.
 
     Returns:
         Tuple[Figure, Axes]: The generated bar plot.
@@ -251,6 +259,12 @@ def gpu_bar_plot(data_df: pd.DataFrame, plot_title: str, y_label: str, main_colu
                 label=label,
                 color=color,
             )
+
+    # Add a footnote if a ray strategy is present, and ray_footnote is given
+    if ray_footnote and any(s.startswith("ray") for s in strategies):
+        fig.text(0.5, 0.01, ray_footnote, ha='center', va='bottom', fontsize=9, color='gray')
+        # Increase bottom margin so it fits
+        plt.subplots_adjust(bottom=0.25)
 
     ax.set_xlabel("Number of GPUs")
     ax.set_ylabel(y_label)
@@ -482,5 +496,3 @@ def computation_vs_other_bar_plot(
     sns.reset_orig()
 
     return fig, ax
-
-
