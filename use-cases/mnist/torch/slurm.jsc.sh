@@ -136,14 +136,7 @@ function ray-launcher(){
 }
 
 function torchrun-launcher(){
-  export MASTER_ADDR="$(scontrol show hostnames "$SLURM_JOB_NODELIST" | head -n 1)"
-  if [ "$SYSTEMNAME" = juwelsbooster ] \
-        || [ "$SYSTEMNAME" = juwels ] \
-        || [ "$SYSTEMNAME" = jurecadc ] \
-        || [ "$SYSTEMNAME" = jusuf ]; then
-      # Allow communication over InfiniBand cells on JSC machines.
-      export MASTER_ADDR="${MASTER_ADDR}i"
-  fi
+  export MASTER_ADDR="$(scontrol show hostnames "$SLURM_JOB_NODELIST" | head -n 1)i"
   export MASTER_PORT=54123
 
   srun --cpu-bind=none --ntasks-per-node=1 \
