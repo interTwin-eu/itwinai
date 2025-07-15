@@ -78,8 +78,18 @@ on whether you want ``PyTorch`` or ``TensorFlow`` support:
     .. tab-item:: LUMI
 
         On `LUMI <https://docs.lumi-supercomputer.eu/hardware/lumig/>`_, Python virtual
-        environments are not allowed, in favour of containers. Therefore,
-        the software modules are a bit different (WIP).
+        environments are discouraged in favour of containers. Load the following modules before
+        running commands in your AI containers:
+
+            .. code-block:: bash
+
+                ml --force purge
+                ml LUMI partition/G
+                module use /appl/local/containers/ai-modules
+                module load singularity-AI-bindings
+
+        These modules are needed to bind into the container the correct software suite on LUMI.
+        More info can be found `here <https://lumi-supercomputer.github.io/LUMI-training-materials/ai-20250204/extra_05_RunningContainers/>`_.
 
 After using the commands above to load the modules, check which modules you loaded by running
 the ``ml`` command in the terminal.
