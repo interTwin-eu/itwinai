@@ -9,13 +9,7 @@
 # - Matteo Bunino <matteo.bunino@cern.ch> - CERN
 # - Linus Eickhoff <linus.maximilian.eickhoff@cern.ch> - CERN
 # --------------------------------------------------------------------------------------
-export CONTAINER_PATH="/scratch/project_465001592/itwinai-containers/itwinai-lumi-dev-3.sif"
 export CONTAINER_PATH="/scratch/project_465001592/itwinai-containers/itwinai-lumi-dev-2.sif"
-# export CONTAINER_PATH="/scratch/project_465001592/itwinai-containers/itwinai0.3.3-lumi-pytorch-rocm-6.2.4-python-3.12-pytorch-v2.6.0-dockerhash-ef203c810cc9.sif"
-# export CONTAINER_PATH="/project/project_465001592/itwinai-containers/itwinai-dev.sif" 
-# export CONTAINER_PATH="/scratch/project_465001592/itwinai-containers/lumi-itwinai-pytorch-rocm-6.1.3-python-3.12-pytorch-v2.4.1.sif"
-# export CONTAINER_PATH="/appl/local/containers/tested-containers/lumi-pytorch-rocm-6.2.4-python-3.12-pytorch-v2.6.0-dockerhash-ef203c810cc9.sif" 
-# export CONTAINER_PATH="/scratch/project_465001592/itwinai-containers/itwinai0.3.3-lumi-pytorch-rocm-6.2.4-python-3.12-pytorch-v2.6.0-dockerhash-ef203c810cc9.sif" 
 
 # This is the location to local itwinai library files (outside the container), to be mounted inside the container
 export ITWINAI_LOCATION_HOST="/project/project_465001592/buninoma/itwinai/src/" #"/users/$USER/itwinai/src/"

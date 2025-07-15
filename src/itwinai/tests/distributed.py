@@ -32,8 +32,8 @@ def test_cuda():
         nccl_ver = torch.cuda.nccl.version()
         ver_str = ".".join(map(str, nccl_ver))
         typer.echo(f"NCCL version: {ver_str}")
-    except Exception:
-        typer.echo("NCCL version info not available in this build.")
+    except Exception as exc:
+        typer.echo(f"NCCL version info not available in this build: {exc}")
 
 
 def test_rocm():
@@ -49,7 +49,6 @@ def test_rocm():
     else:
         typer.echo("No GPU device was found.")
 
-    # ----------------------------------------------------------------
     # HIPCC path → ROCm root/version
     try:
         hipcc_path_str = subprocess.check_output(["which", "hipcc"], text=True).strip()
@@ -58,9 +57,9 @@ def test_rocm():
         rocm_version = rocm_root.name
         typer.echo(f"ROCm  root        : {rocm_root}")
         typer.echo(f"ROCm version      : {rocm_version}")
-    except subprocess.CalledProcessError:
-        typer.echo("Could not locate hipcc; ROCm root/version unknown")
-    # ----------------------------------------------------------------
+    except subprocess.CalledProcessError as exc:
+        typer.echo(f"Could not locate hipcc; ROCm root/version unknown: {exc}")
+
     # HIP compiler version
     try:
         hipcc_out = subprocess.check_output(
@@ -75,12 +74,11 @@ def test_rocm():
             "n/a",
         )
         typer.echo(f"HIP version       : {hip_version}")
-    except Exception:
-        typer.echo("Could not parse HIP version from hipcc")
-    # ----------------------------------------------------------------
+    except Exception as exc:
+        typer.echo(f"Could not parse HIP version from hipcc: {exc}")
+
     # Hostname
     typer.echo(f"Hostname          : {socket.gethostname()}")
-    # ----------------------------------------------------------------
     # librccl location
     if "rocm_root" in locals():
         lib_dir = rocm_root / "lib"

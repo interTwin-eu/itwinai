@@ -33,6 +33,9 @@ checkpoint_every: 1
 
 # Ray
 ray_num_workers: 2
+ray_gpus_per_worker: 1  # can be 0.0 < 1.0 as long as num_workers set to 1
+ray_cpus_per_worker: 3
+ray_num_trials: 1 # how many HPO trials
 
 # Workflows configuration
 training_pipeline:
@@ -65,11 +68,11 @@ training_pipeline:
         num_workers: ${ray_num_workers}
         use_gpu: true
         resources_per_worker:
-          CPU: 3
-          GPU: 1 # can be 0.0 < 1.0 as long as num_workers set to 1
+          CPU: ${ray_cpus_per_worker}
+          GPU: ${ray_gpus_per_worker}
       ray_tune_config:
         _target_: ray.tune.TuneConfig
-        num_samples: 1
+        num_samples: ${ray_num_trials}
         reuse_actors: True
         scheduler:
           _target_: ray.tune.schedulers.ASHAScheduler
