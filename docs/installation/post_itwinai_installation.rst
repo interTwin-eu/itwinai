@@ -50,7 +50,7 @@ want to do this with or without GPU (CUDA) support:
    are available. On some HPC systems, such as the `JUWELS <https://apps.fz-juelich.de/jsc/hps/juwels/configuration.html>`_
    system on JSC, GPUs **are not available on login nodes** (the host you connect to when you
    SSH into the system), only on **compute nodes**. On the JUWELS system, run this command to
-   install DeepSpeed and Horovod directly:
+   install DeepSpeed and Horovod directly **from the repository's root**:
 
         .. code-block:: bash
 
