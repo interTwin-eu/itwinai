@@ -80,3 +80,6 @@ on whether you want ``PyTorch`` or ``TensorFlow`` support:
         On `LUMI <https://docs.lumi-supercomputer.eu/hardware/lumig/>`_, Python virtual
         environments are not allowed, in favour of containers. Therefore,
         the software modules are a bit different (WIP).
+
+After using the commands above to load the modules, check which modules you loaded by running
+the ``ml`` command in the terminal.
