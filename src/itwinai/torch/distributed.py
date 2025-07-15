@@ -32,7 +32,7 @@ from torch.utils.data import (
     Sampler,
     SequentialSampler,
 )
-from torch.utils.data.dataloader import T_co, _collate_fn_t, _worker_init_fn_t
+from torch.utils.data.dataloader import _collate_fn_t, _worker_init_fn_t
 
 from ..distributed import (
     detect_distributed_environment,
@@ -211,7 +211,7 @@ class TorchDistributedStrategy(abc.ABC):
     @check_initialized
     def create_dataloader(
         self,
-        dataset: Dataset[T_co],
+        dataset: Dataset,
         batch_size: Optional[int] = 1,
         shuffle: Optional[bool] = None,
         sampler: Union[Sampler, Iterable, None] = None,

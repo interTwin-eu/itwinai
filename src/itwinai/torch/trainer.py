@@ -14,7 +14,6 @@
 """Provides training logic for PyTorch models via Trainer classes."""
 
 import logging
-import os
 import sys
 import tempfile
 from collections import defaultdict
@@ -861,9 +860,9 @@ class TorchTrainer(Trainer, LogMixin):
             if contains_mlflow_logger(self.logger):
                 # Create mlflow runs per trial (will be started by the trial's main worker)
                 client = mlflow.tracking.MlflowClient()
-                experiment_id = (
-                    client.get_experiment_by_name(self.experiment_name).experiment_id
-                )
+                experiment_id = client.get_experiment_by_name(
+                    self.experiment_name
+                ).experiment_id
 
                 for trial_idx in range(self.ray_tune_config.num_samples):
                     # create a mlflow run for each trial (without starting it)
@@ -1162,24 +1161,21 @@ class TorchTrainer(Trainer, LogMixin):
             Dataset: The test dataset.
             Any: The trained model
         """
-        epoch_time_logger: EpochTimeTracker | None = None
-        if self.strategy.is_main_worker and self.strategy.is_distributed:
-            if "SLURM_NNODES" not in os.environ:
-                raise OSError(
-                    "'SLURM_NNODES' is not present in 'os.environ', but is required when "
-                    "running distributed training!"
-                )
-            num_nodes = int(os.environ["SLURM_NNODES"])
-            epoch_time_output_dir = Path(f"scalability-metrics/{self.run_id}/{EPOCH_TIME_DIR}")
-            epoch_time_file_name = f"epochtime_{self.strategy.name}_{num_nodes}N.csv"
-            epoch_time_output_path = epoch_time_output_dir / epoch_time_file_name
 
-            epoch_time_logger = EpochTimeTracker(
-                strategy_name=self.strategy.name,
-                save_path=epoch_time_output_path,
-                num_nodes=num_nodes,
-                should_log=self.measure_epoch_time,
-            )
+        epoch_time_output_dir = Path(f"scalability-metrics/{self.run_id}/{EPOCH_TIME_DIR}")
+        epoch_time_file_name = (
+            f"epochtime_{self.strategy.name}_{self.strategy.global_world_size()}N.csv"
+        )
+        epoch_time_output_path = epoch_time_output_dir / epoch_time_file_name
+
+        epoch_time_logger = EpochTimeTracker(
+            strategy_name=self.strategy.name,
+            save_path=epoch_time_output_path,
+            num_workers=self.strategy.global_world_size(),
+            should_log=self.measure_epoch_time
+            and self.strategy.is_main_worker
+            and self.strategy.is_distributed,
+        )
 
         progress_bar = tqdm(
             range(self.current_epoch, self.epochs),
@@ -1241,10 +1237,9 @@ class TorchTrainer(Trainer, LogMixin):
             if self.test_every and (self.current_epoch + 1) % self.test_every == 0:
                 self.test_epoch()
 
-            if self.strategy.is_main_worker and self.strategy.is_distributed:
-                assert epoch_time_logger is not None
-                epoch_time = default_timer() - epoch_start_time
-                epoch_time_logger.add_epoch_time(self.current_epoch + 1, epoch_time)
+            # Measure epoch time
+            epoch_time = default_timer() - epoch_start_time
+            epoch_time_logger.add_epoch_time(self.current_epoch + 1, epoch_time)
 
     def train_epoch(self) -> torch.Tensor:
         """Perform a complete sweep over the training dataset, completing an epoch of training.

@@ -62,7 +62,7 @@ def epoch_time_report(
         plot_dir = Path(plot_dir)
     log_dir_paths = [Path(logdir) for logdir in log_dirs]
 
-    epoch_time_expected_columns = {"name", "nodes", "epoch_id", "time"}
+    epoch_time_expected_columns = {"name", "workers", "epoch_id", "time"}
 
     # Reading data from all the logdirs and concatenating the results
     dataframes = []
@@ -78,7 +78,7 @@ def epoch_time_report(
     # Calculate the average time per epoch for each strategy and number of nodes
     cli_logger.info("\nAnalyzing Epoch Time Data...")
     avg_epoch_time_df = (
-        epoch_time_df.groupby(["name", "nodes"])
+        epoch_time_df.groupby(["name", "workers"])
         .agg(avg_epoch_time=("time", "mean"))
         .reset_index()
     )

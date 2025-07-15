@@ -45,19 +45,15 @@ def calculate_plot_dimensions(num_datapoints: int) -> Tuple[int, int]:
     return height, width
 
 
-def absolute_avg_epoch_time_plot(
-    avg_epoch_time_df: pd.DataFrame, gpus_per_node: int = 4
-) -> Tuple[Figure, Axes]:
+def absolute_avg_epoch_time_plot(avg_epoch_time_df: pd.DataFrame) -> Tuple[Figure, Axes]:
     """Generates a log-log plot of average epoch training times against the number of GPUs
     for distributed training strategies.
 
     Args:
         avg_epoch_time_df (pd.DataFrame): A DataFrame containing the following columns:
-            - "nodes": Number of nodes used in the training process.
+            - "workers": Number of workers used in the training process.
             - "avg_epoch_time": Average time (in seconds) taken for an epoch.
             - "name": Name of the distributed training strategy.
-        gpus_per_node (int): Number of GPUs per node. Used to calculate the total number
-            of GPUs for each training configuration. Defaults to 4.
 
     Returns:
         Tuple[Figure, Axes]: A tuple containing the matplotlib `Figure` and `Axes` objects
@@ -69,15 +65,14 @@ def absolute_avg_epoch_time_plot(
     sns.set_theme()
     fig, ax = plt.subplots()
 
-    unique_nodes = list(avg_epoch_time_df["nodes"].unique())
+    unique_workers = list(avg_epoch_time_df["workers"].unique())
     unique_names = avg_epoch_time_df["name"].unique()
-    num_gpus = [num_node * gpus_per_node for num_node in unique_nodes]
     for name in unique_names:
         data = avg_epoch_time_df[avg_epoch_time_df["name"] == name]
 
         marker = next(marker_cycle)
         ax.plot(
-            data["nodes"] * gpus_per_node,
+            data["workers"],
             data["avg_epoch_time"],
             marker=marker,
             label=name,
@@ -97,14 +92,14 @@ def absolute_avg_epoch_time_plot(
     # Remove minor ticks on x-axis and format new ticks
     ax.xaxis.set_minor_locator(NullLocator())
     ax.xaxis.set_major_formatter(ScalarFormatter())
-    ax.set_xticks(num_gpus)
+    ax.set_xticks(unique_workers)
 
-    ax.set_xlabel("Number of GPUs")
+    ax.set_xlabel("Number of workers")
     ax.set_ylabel("Average Epoch Time (s)")
-    ax.set_title("Average Epoch Time vs Number of GPUs")
+    ax.set_title("Average Epoch Time vs Number of workers")
     ax.legend(title="Method")
 
-    num_datapoints = len(unique_nodes)
+    num_datapoints = len(unique_workers)
     figure_height, figure_width = calculate_plot_dimensions(num_datapoints=num_datapoints)
     fig.set_figheight(figure_height)
     fig.set_figwidth(figure_width)
@@ -116,18 +111,16 @@ def absolute_avg_epoch_time_plot(
 
 
 def relative_epoch_time_speedup_plot(
-    avg_epoch_time_df: pd.DataFrame, gpus_per_node: int = 4
-) -> Tuple[Figure, Axes]:
+    avg_epoch_time_df: pd.DataFrame,
+) -> Tuple[plt.Figure, plt.Axes]:
     """Creates a log-log plot showing the relative training speedup for distributed
-    training strategies as the number of GPUs increases.
+    training strategies as the number of workers increases.
 
     Args:
-        avg_epoch_time_df (pd.DataFrame): A DataFrame containing the following columns:
-            - "nodes": Number of nodes used in the training process.
+        avg_epoch_time_df (pd.DataFrame): A DataFrame containing:
+            - "workers": Number of workers used in the training process.
             - "avg_epoch_time": Average time (in seconds) taken for an epoch.
             - "name": Name of the distributed training strategy.
-        gpus_per_node (int): Number of GPUs per node. Used to calculate the total number
-            of GPUs for each training configuration. Defaults to 4.
 
     Returns:
         Tuple[Figure, Axes]: A tuple containing the matplotlib `Figure` and `Axes` objects
@@ -136,55 +129,55 @@ def relative_epoch_time_speedup_plot(
     Raises:
         ValueError: If `avg_epoch_time_df` is missing required columns.
     """
+    required = {"workers", "avg_epoch_time", "name"}
+    if not required.issubset(avg_epoch_time_df.columns):
+        missing = required - set(avg_epoch_time_df.columns)
+        raise ValueError(f"avg_epoch_time_df is missing columns: {missing}")
+
     sns.set_theme()
     fig, ax = plt.subplots(figsize=(6, 4))
 
-    avg_epoch_time_df["num_gpus"] = avg_epoch_time_df["nodes"] * gpus_per_node
-    avg_epoch_time_df["linear_speedup"] = avg_epoch_time_df["nodes"].astype(float)
+    # add a linear-speedup column (speedup = #workers)
+    avg_epoch_time_df["linear_speedup"] = avg_epoch_time_df["workers"].astype(float)
 
-    # Plotting the speedup for each strategy
-    strategy_names = sorted(avg_epoch_time_df["name"].unique())
-    for strategy in strategy_names:
-        strategy_data = avg_epoch_time_df[avg_epoch_time_df.name == strategy]
+    # plot each strategy's actual speedup
+    for strategy in sorted(avg_epoch_time_df["name"].unique()):
+        sd = avg_epoch_time_df[avg_epoch_time_df["name"] == strategy]
+        base_time = sd["avg_epoch_time"].iloc[0]
+        speedup = base_time / sd["avg_epoch_time"]
+        workers = sd["workers"]
+        ax.plot(workers, speedup, marker=next(marker_cycle), lw=1.0, label=strategy, alpha=0.7)
 
-        base_time = strategy_data["avg_epoch_time"].iloc[0]
-        speedup = base_time / strategy_data["avg_epoch_time"]
-        num_gpus = strategy_data["num_gpus"]
+    # plot the ideal linear speedup line
+    workers = np.sort(avg_epoch_time_df["workers"].unique())
+    baseline = workers[0]
+    ideal = workers.astype(float) / baseline
+    ax.plot(workers, ideal, ls="dashed", lw=1.0, c="k", label="ideal linear speedup")
 
-        marker = next(marker_cycle)
-        ax.plot(num_gpus, speedup, marker=marker, lw=1.0, label=strategy, alpha=0.7)
-
-    # Plotting the linear line
-    num_gpus = np.array(avg_epoch_time_df["num_gpus"].unique())
-    linear_speedup = np.array(avg_epoch_time_df["linear_speedup"].unique())
-    ax.plot(num_gpus, linear_speedup, ls="dashed", lw=1.0, c="k", label="linear speedup")
-
-    # The log scale must be set before changing the ticks
-    ax.set_yscale("log", base=2)
+    # set log–log scales
     ax.set_xscale("log", base=2)
+    ax.set_yscale("log", base=2)
 
-    # Making the numbers on the y-axis scalars instead of exponents
-    ax.yaxis.set_major_formatter(ScalarFormatter())
-
-    # Remove minor ticks on x-axis and format new ticks
+    # format axes as scalars (not exponents)
     ax.xaxis.set_minor_locator(NullLocator())
     ax.xaxis.set_major_formatter(ScalarFormatter())
-    ax.set_xticks(num_gpus)
+    ax.yaxis.set_major_formatter(ScalarFormatter())
 
-    ax.set_xlabel("Number of GPUs")
+    # label & ticks
+    ax.set_xticks(workers)
+    ax.set_xlabel("Number of workers")
     ax.set_ylabel("Speedup")
-    ax.set_xticks(num_gpus)
-    ax.set_title("Relative Speedup of Average Epoch Time vs Number of GPUs")
+    ax.set_title("Relative Speedup of Average Epoch Time vs Number of Workers")
     ax.legend(ncol=1)
 
-    num_datapoints = len(num_gpus)
-    figure_height, figure_width = calculate_plot_dimensions(num_datapoints=num_datapoints)
-    fig.set_figheight(figure_height)
-    fig.set_figwidth(figure_width)
+    # adjust figure size based on number of points
+    num_datapoints = len(workers)
+    h, w = calculate_plot_dimensions(num_datapoints=num_datapoints)
+    fig.set_figheight(h)
+    fig.set_figwidth(w)
 
     plt.tight_layout()
     sns.reset_orig()
-
     return fig, ax
 
 
@@ -355,8 +348,8 @@ def computation_fraction_bar_plot(
         current_x = group_start_x + 1.0  # fixed group spacing
 
     ax.set_ylabel("Computation fraction")
-    ax.set_xlabel("Number of GPUs")
-    ax.set_title("Computation vs Communication Time by Framework and Number of GPUs")
+    ax.set_xlabel("Number of workers")
+    ax.set_title("Computation vs Communication Time by Framework and Number of Workers")
     ax.set_xticks(x_positions)
     ax.set_xticklabels(x_labels, rotation=0, ha="center")
     ax.set_ylim(0, 1.1)
@@ -464,8 +457,10 @@ def computation_vs_other_bar_plot(
         current_x = group_start_x + group_spacing
 
     ax.set_ylabel("Computation fraction")
-    ax.set_xlabel("Number of GPUs")
-    ax.set_title("Computation Time (ATen, Autograd) vs Other by Number of GPUs per Strategy")
+    ax.set_xlabel("Number of workers")
+    ax.set_title(
+        "Computation Time (ATen, Autograd) vs Other by Number of Workers per Strategy"
+    )
     ax.set_xticks(x_positions)
     ax.set_xticklabels(x_labels, rotation=0, ha="center")
     ax.set_ylim(0, 1.1)
@@ -482,5 +477,3 @@ def computation_vs_other_bar_plot(
     sns.reset_orig()
 
     return fig, ax
-
-

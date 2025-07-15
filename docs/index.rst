@@ -161,6 +161,16 @@ For the full list of scientific use cases refer to the navigation side bar.
 - :doc:`CLI Reference <api/cli_reference>`
 - :doc:`Python SDK <api/modules>`
 
+Integration with EuroHPC centers
+================================
+
+Our code has been run and tested on the following EuroHPC systems:
+
+- `LUMI <https://www.lumi-supercomputer.eu/>`_
+- `JSC <https://www.fz-juelich.de/jsc/>`_
+- `Vega <https://izum.si/en/vega-en/>`_
+- `Deucalion <https://eurohpc-ju.europa.eu/supercomputers/our-supercomputers_en#deucalion>`_ (coming soon)
+
 Community & Support
 ===================
 

@@ -12,10 +12,10 @@
 #SBATCH --time=00:15:00
 
 # Resources allocation
-#SBATCH --partition=small-g
+#SBATCH --partition=standard-g
 #SBATCH --nodes=2
-#SBATCH --gpus-per-node=2
-#SBATCH --cpus-per-task=32
+#SBATCH --gpus-per-node=8
+#SBATCH --cpus-per-task=48
 #SBATCH --exclusive
 #SBATCH --mem=128G
 
@@ -30,6 +30,7 @@
 set -e
 
 # Load environment modules
+ml --force purge
 ml LUMI partition/G
 # These modules are needed to bind into the container the correct software suite on LUMI.
 # More info: https://lumi-supercomputer.github.io/LUMI-training-materials/ai-20250204/extra_05_RunningContainers/
@@ -49,6 +50,7 @@ echo "DEBUG: SLURMD_NODENAME: $SLURMD_NODENAME"
 echo "DEBUG: SLURM_CPUS_PER_TASK: $SLURM_CPUS_PER_TASK"
 echo "DEBUG: SLURM_GPUS_PER_NODE: $SLURM_GPUS_PER_NODE"
 echo "DEBUG: TRAINING_CMD: $TRAINING_CMD"
+echo "DEBUG: ROCR_VISIBLE_DEVICES: $ROCR_VISIBLE_DEVICES"
 echo
 
 # Optional: Inject the environment variables for NCCL debugging into the container.   
@@ -56,6 +58,9 @@ echo
 # export NCCL_DEBUG=INFO
 # export RCCL_DEBUG=INFO
 # export NCCL_DEBUG_SUBSYS=INIT,COLL
+# export FI_LOG_LEVEL=info
+# export TORCH_CPP_LOG_LEVEL=INFO
+# export TORCH_DISTRIBUTED_DEBUG=INFO
 
 # Currently not used, but can be used for CPU mapping in the future
 c=fe
@@ -83,12 +88,17 @@ sleep 2
 # no access to on LUMI.
 export NCCL_SOCKET_IFNAME=hsn0,hsn1,hsn2,hsn3
 export NCCL_NET_GDR_LEVEL=3
+export FI_PROVIDER=cxi
 
-# Set ROCR_VISIBLE_DEVICES so that each task uses the proper GPU
-export ROCR_VISIBLE_DEVICES=$SLURM_LOCALID
+# Avoid high-speed interconnect (for debugging)
+# export NCCL_NET=Socket
 
-# Report affinity to check
-echo "Rank $SLURM_PROCID --> $(taskset -p $$); GPU $ROCR_VISIBLE_DEVICES"
+# Set HIP_VISIBLE_DEVICES so that each task uses the proper GPU
+export HIP_VISIBLE_DEVICES=$ROCR_VISIBLE_DEVICES #(seq -s, 0 $((SLURM_GPUS_PER_NODE - 1)))
+echo "DEBUG: HIP_VISIBLE_DEVICES: $HIP_VISIBLE_DEVICES"
+# This is needed because Ray complains if ROCR_VISIBLE_DEVICES is set
+unset ROCR_VISIBLE_DEVICES
+
 
 # Setup env for distributed ML
 export OMP_NUM_THREADS=1
@@ -98,7 +108,7 @@ fi
 
 export HYDRA_FULL_ERROR=1
 
-# Env vairables check
+# Env variables check
 if [ -z "$DIST_MODE" ]; then 
   >&2 echo "ERROR: env variable DIST_MODE is not set. Allowed values are 'horovod', 'ddp' or 'deepspeed'"
   exit 1
@@ -111,9 +121,39 @@ if [ -z "$CONTAINER_PATH" ]; then
   >&2 echo "WARNING: env variable CONTAINER_PATH is not set."
 fi
 
+
+function warn-if-bad-gpus() {
+  # Ensure SLURM_GPUS_PER_NODE is set
+  if [[ -z "${SLURM_GPUS_PER_NODE+x}" ]]; then
+    echo "Error: \$SLURM_GPUS_PER_NODE is not set."
+    return 1
+  fi
+
+  # If SLURM_GPUS_PER_NODE is neither 4 nor 8, emit a big red warning
+  if [[ "$SLURM_GPUS_PER_NODE" != "4" && "$SLURM_GPUS_PER_NODE" != "8" ]]; then
+    local RED='\033[1;31m'
+    local NC='\033[0m' # No Color
+
+    decho -e "   \n\n\n\n\n${RED}!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n\
+    ***  WARNING: Number of GPUs per node is set to ${SLURM_GPUS_PER_NODE},          ***\n\
+    ***  which is neither 4 nor 8.                              ***\n\
+    ***                                                         ***\n\
+    ***  In the past we noticed that Number of GPUs different   ***\n\
+    ***  from 4 and 8 created cryptic segfault errors when      ***\n\
+    ***  using NCCL with Ray. Please be very careful!           ***\n\
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!${NC}\n\n\n\n\n"
+  fi
+}
+
 function ray-launcher(){
-  num_gpus=$SLURM_GPUS_PER_NODE
-  num_cpus=$SLURM_CPUS_PER_TASK
+  # First: check if GPUs are OK
+  warn-if-bad-gpus
+
+  # Avoid high-speed interconnect (for debugging)
+  # TODO: THIS IS A TEMPORARY FIX. TO BE REMOVED!!
+  # You can remove this when running on a single node, but when having a trial that spans
+  # multiple nodes this seems to be needed, otherwise the trial fails
+  export NCCL_NET=Socket
 
   # This tells Tune to not change the working directory to the trial directory
   # which makes relative paths accessible from inside a trial
@@ -127,8 +167,8 @@ function ray-launcher(){
 
   # Fix (?) for: HIP error: invalid device ordinal
   export RAY_EXPERIMENTAL_NOSET_ROCR_VISIBLE_DEVICES=1
-  export ROCR_VISIBLE_DEVICES=$(seq -s, 0 $((SLURM_GPUS_PER_NODE - 1))) #0,1,2,3,4,5,6,7
-  
+  export RAY_EXPERIMENTAL_NOSET_HIP_VISIBLE_DEVICES=1
+
   #########   Set up Ray cluster   ########
 
   # Get the node names
@@ -147,11 +187,10 @@ function ray-launcher(){
   srun --nodes=1 --ntasks=1 -w "$head_node" \
   singularity exec \
     --bind "$(pwd)" \
-    --bind /users/$USER/itwinai/src/:/app/src/ \
+    --bind $ITWINAI_LOCATION_HOST:/app/src/ \
     --rocm \
     "$CONTAINER_PATH" bash -c " \
       source /opt/miniconda3/bin/activate pytorch && 
-      export LD_LIBRARY_PATH=/usr/lib64/mpi/gcc/mpich/lib64:\$LD_LIBRARY_PATH &&
       ldd /opt/aws-ofi-rccl/librccl-net.so | grep fabric &&
       ls /opt/cray/libfabric/1.15.2.0/lib64/libfabric.so.1 &&
       unset ROCR_VISIBLE_DEVICES &&
@@ -159,8 +198,8 @@ function ray-launcher(){
         --head \
         --node-ip-address=$head_node \
         --port=$port \
-        --num-cpus=$num_cpus \
-        --num-gpus=$num_gpus \
+        --num-cpus=$SLURM_CPUS_PER_TASK \
+        --num-gpus=$SLURM_GPUS_PER_NODE \
         --log-color false \
         --block" &
   # Wait for a few seconds to ensure that the head node has fully initialized.
@@ -181,19 +220,18 @@ function ray-launcher(){
     srun --nodes=1 --ntasks=1 -w "$node_i" \
       singularity exec \
       --bind "$(pwd)" \
-      --bind /users/$USER/itwinai/src/:/app/src/ \
+      --bind $ITWINAI_LOCATION_HOST:/app/src/ \
       --rocm \
       "$CONTAINER_PATH" bash -c " \
       source /opt/miniconda3/bin/activate pytorch && 
-      export LD_LIBRARY_PATH=/usr/lib64/mpi/gcc/mpich/lib64:\$LD_LIBRARY_PATH &&
       ldd /opt/aws-ofi-rccl/librccl-net.so | grep fabric &&
       ls /opt/cray/libfabric/1.15.2.0/lib64/libfabric.so.1 &&
       unset ROCR_VISIBLE_DEVICES &&
       ray start \
         --address $head_node:$port \
         --redis-password='5241580000000000' \
-        --num-cpus=$num_cpus \
-        --num-gpus=$num_gpus \
+        --num-cpus=$SLURM_CPUS_PER_TASK \
+        --num-gpus=$SLURM_GPUS_PER_NODE \
         --log-color false \
         --block" &      
       sleep 8 # wait before starting the next worker to prevent race conditions.
@@ -210,7 +248,7 @@ function ray-launcher(){
   # Run command without srun
   singularity exec \
     --bind $(pwd) \
-    --bind /users/$USER/itwinai/src/:/app/src/ \
+    --bind $ITWINAI_LOCATION_HOST:/app/src/ \
     $CONTAINER_PATH bash -c "\
       source /opt/miniconda3/bin/activate pytorch && \
       $1"
@@ -220,10 +258,11 @@ function torchrun-launcher(){
   srun --cpu-bind=none --ntasks-per-node=1 \
     singularity exec \
       --bind $(pwd) \
-      --bind /users/$USER/itwinai/src/:/app/src/ \
+      --bind $ITWINAI_LOCATION_HOST:/app/src/ \
       --rocm \
       $CONTAINER_PATH /bin/bash -c "\
         source /opt/miniconda3/bin/activate pytorch && \
+        unset ROCR_VISIBLE_DEVICES && \
         torchrun \
         --log_dir='logs_torchrun' \
         --nnodes=$SLURM_NNODES \
@@ -252,11 +291,12 @@ function srun-launcher(){
     --cpus-per-task=$(($SLURM_CPUS_PER_TASK / $SLURM_GPUS_PER_NODE)) \
     --ntasks=$(($SLURM_GPUS_PER_NODE * $SLURM_NNODES)) \
     singularity exec \
-    --bind $(pwd),/users/eickhoff/itwinai:/mnt/itwinai/ \
-    --bind /users/$USER/itwinai/src/:/app/src/ \
+    --bind $(pwd) \
+    --bind $ITWINAI_LOCATION_HOST:/app/src/ \
     --rocm \
     $CONTAINER_PATH /bin/bash -c "
       source /opt/miniconda3/bin/activate pytorch && 
+      unset ROCR_VISIBLE_DEVICES && \
       export LD_LIBRARY_PATH=/usr/lib64/mpi/gcc/mpich/lib64:\$LD_LIBRARY_PATH &&
       ldd /opt/aws-ofi-rccl/librccl-net.so | grep fabric &&
       ls /opt/cray/libfabric/1.15.2.0/lib64/libfabric.so.1 &&
@@ -305,9 +345,7 @@ elif [ "$DIST_MODE" == "horovod" ] ; then
   echo "HOROVOD training: $TRAINING_CMD"
   srun-launcher "$TRAINING_CMD"
 
-  separation
-
-  ray-launcher "$TRAINING_CMD"
+  # Horovod is not supported anymore by Ray
 
 else
   >&2 echo "ERROR: unrecognized \$DIST_MODE env variable"
