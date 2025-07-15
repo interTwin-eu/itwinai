@@ -243,7 +243,8 @@ The resulting SLURM script generated using the ``slurm_config.yaml`` file above 
       #SBATCH --exclusive
 
       # Pre-execution command
-      ml Stages/2024 GCC OpenMPI CUDA/12 MPI-settings/CUDA Python/3.11.3 HDF5 PnetCDF libaio mpi4py
+      ml --force purge
+      ml Stages/2025 GCC OpenMPI CUDA/12 cuDNN MPI-settings/CUDA Python CMake HDF5 PnetCDF libaio mpi4py git
       source .venv/bin/activate
       export OMP_NUM_THREADS=4
 
