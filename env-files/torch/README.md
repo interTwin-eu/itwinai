@@ -18,6 +18,11 @@ You can choose the following base images:
 - `oras://registry.egi.eu/dev.intertwin.eu/itwinai-dev:lumi-pytorch-rocm-6.1.3-python-3.12-pytorch-v2.4.1`
 - `oras://registry.cern.ch/itwinai/lumi:lumi-pytorch-rocm-6.2.4-python-3.12-pytorch-v2.6.0-dockerhash-ef203c810cc9`
 
+Other base images can be found on LUMI at `/appl/local/containers/tested-containers` and
+`/appl/local/containers/sif-images`. See the
+[docs](https://lumi-supercomputer.github.io/LUMI-EasyBuild-docs/p/PyTorch/#getting-the-container-image)
+for more info.
+
 Then build the final container with:
 
 ```bash
