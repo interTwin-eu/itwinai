@@ -426,7 +426,7 @@ def check_distributed_cluster(
         case "amd":
             test_rocm()
         case _:
-            type.echo("Unrecognized platform!")
+            typer.echo("Unrecognized platform!")
 
     match launcher:
         case "torchrun":
@@ -435,7 +435,7 @@ def check_distributed_cluster(
         case "ray":
             test_ray()
         case _:
-            type.echo("Unrecognized launcher!")
+            typer.echo("Unrecognized launcher!")
 
 
 @app.command(context_settings={"allow_extra_args": True, "ignore_unknown_options": True})
