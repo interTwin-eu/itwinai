@@ -24,7 +24,7 @@ mkdir -p logs_slurm
 export HYDRA_FULL_ERROR=1
 
 # SLURM config
-NNODES=8
+NNODES=2
 NGPUS_PER_NODE=4
 TOT_GPUS=$(( NNODES * NGPUS_PER_NODE ))
 
