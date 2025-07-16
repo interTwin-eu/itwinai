@@ -49,6 +49,8 @@ def syndata(tmp_path, torch_env,install_requirements):
         shutil.copy(USECASE_FOLDER / "data.py", tmp_path)
         shutil.copy(USECASE_FOLDER / "trainer.py", tmp_path)
 
+        print(f"Running synthetic data generation command: {cmd_data}")
+        
         subprocess.run(cmd_data.split(), check=True, cwd=tmp_path)
 
     return tmp_path
@@ -63,9 +65,7 @@ def generate_unet(torch_env, syndata):
 
     subprocess.run(cmd.split(), check=True, cwd=syndata)
 
-# @pytest.mark.skip(reason="dependent on .test_dataset, incoroporated into integration test")
-@pytest.mark.functional
-@pytest.mark.skip(reason="Seems to cause OOM error, halting the other tests.")
+@pytest.mark.skip(reason="not enough resources in the CI container to run this test")
 def test_radio_astronomy_unet(torch_env, syndata, install_requirements):
     """Test U-Net Pulsar-DDT trainer by running it end-to-end
     via the config-test.yaml configuration file."""
@@ -79,8 +79,8 @@ def test_radio_astronomy_unet(torch_env, syndata, install_requirements):
 
     subprocess.run(cmd.split(), check=True, cwd=syndata)
 
-@pytest.mark.functional
-@pytest.mark.skip(reason="Seems to cause OOM error, halting the other tests.")
+# @pytest.mark.functional
+@pytest.mark.skip(reason="not enough resources in the CI container to run this test")
 def test_radio_astronomy_filtercnn(torch_env, syndata, generate_unet, install_requirements):
     """Test Filter-CNN Pulsar-DDT trainer by running it end-to-end
     via the config-test.yaml configuration file. Requires the U-Net model to be present."""
@@ -94,8 +94,7 @@ def test_radio_astronomy_filtercnn(torch_env, syndata, generate_unet, install_re
 
     subprocess.run(cmd.split(), check=True, cwd=syndata)
 
-@pytest.mark.functional
-@pytest.mark.skip(reason="Seems to cause OOM error, halting the other tests.")
+@pytest.mark.skip(reason="not enough resources in the CI container to run this test")
 def test_radio_astronomy_cnn1d(torch_env, syndata, install_requirements):
     """Test CNN-1D Pulsar-DDT trainer by running it end-to-end
     via the config-test.yaml configuration file."""
@@ -109,8 +108,7 @@ def test_radio_astronomy_cnn1d(torch_env, syndata, install_requirements):
 
     subprocess.run(cmd.split(), check=True, cwd=syndata)
 
-@pytest.mark.skip(reason="Seems to cause OOM error, halting the other tests.")
-@pytest.mark.functional
+@pytest.mark.skip(reason="Requires all moodels to be saved to disk.")
 def test_radio_astronomy_evaluate(torch_env):
     """Test the evaluate pipeline by running it end-to-end
     via the config-test.yaml configuration file."""
