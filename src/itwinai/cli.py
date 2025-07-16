@@ -276,8 +276,8 @@ def generate_scalability_report(
         backup_run_id = f"aggregated_run_{timestamp}"
     backup_dir = Path(backup_root_dir) / backup_run_id
 
+    # GPU data does not need backup, as mlflow will not overwrite runs with the same name
     epoch_time_backup_dir = backup_dir / EPOCH_TIME_DIR
-    gpu_data_backup_dir = backup_dir / GPU_DATA_DIR
     computation_data_backup_dir = backup_dir / COMPUTATION_DATA_DIR
 
     plot_dir_path = Path(plot_dir)
@@ -302,8 +302,6 @@ def generate_scalability_report(
         plot_dir=plot_dir_path,
         experiment_name=experiment_name,
         run_names=run_ids_list,
-        backup_dir=gpu_data_backup_dir,
-        do_backup=do_backup,
         plot_file_suffix=plot_file_suffix,
         ray_footnote=ray_footnote,
     )

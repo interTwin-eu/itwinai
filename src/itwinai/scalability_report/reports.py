@@ -119,8 +119,6 @@ def epoch_time_report(
 def gpu_data_report(
     plot_dir: Path | str,
     experiment_name: str,
-    backup_dir: Path,
-    do_backup: bool = False,
     run_names: List[str] | None = None,
     plot_file_suffix: str = ".png",
     ray_footnote: str | None = None,
@@ -133,9 +131,6 @@ def gpu_data_report(
         plot_dir (Path | str): Path to the directory where the generated plots will
             be saved.
         experiment_name (str): Name of the MLflow experiment to retrieve GPU data from.
-        backup_dir (Path): Path to the directory where a backup df of the GPU data
-            will be stored if `do_backup` is True.
-        do_backup (bool): Whether to create a backup of the GPU data in the `backup_dir`.
         run_names (List[str] | None): List of specific run names to filter the GPU data.
             If None, all runs in the experiment will be considered.
         plot_file_suffix (str): Suffix for the plot file names. Defaults to ".png".
@@ -193,14 +188,6 @@ def gpu_data_report(
     utilization_fig.savefig(utilization_plot_path)
     cli_logger.info(f"Saved GPU energy plot at '{energy_plot_path.resolve()}'.")
     cli_logger.info(f"Saved utilization plot at '{utilization_plot_path.resolve()}'.")
-
-    if not do_backup:
-        return gpu_data_table
-
-    backup_dir.mkdir(exist_ok=True, parents=True)
-    backup_path = backup_dir / "gpu_data.csv"
-    gpu_data_statistics_df.to_csv(backup_path)
-    cli_logger.info(f"Storing backup file at '{backup_path.resolve()}'.")
 
     return gpu_data_table
 
