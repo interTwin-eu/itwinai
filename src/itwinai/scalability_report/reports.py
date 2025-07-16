@@ -13,21 +13,25 @@ import logging
 from pathlib import Path
 from typing import List
 
-import mlflow
-import mlflow.tracking
 import pandas as pd
 
-from itwinai.scalability_report.data import read_gpu_metrics_from_mlflow, read_scalability_metrics_from_csv
-from itwinai.scalability_report.plot import (absolute_avg_epoch_time_plot,
-                                             computation_fraction_bar_plot,
-                                             computation_vs_other_bar_plot,
-                                             gpu_bar_plot,
-                                             relative_epoch_time_speedup_plot)
-from itwinai.scalability_report.utils import (calculate_gpu_statistics,
-                                              get_computation_fraction_data,
-                                              get_computation_vs_other_data)
-from itwinai.torch.mlflow import get_gpu_data_by_run, get_run_metrics_as_df
-from itwinai.utils import RELATIVE_MLFLOW_PATH, deprecated
+from itwinai.scalability_report.data import (
+    read_gpu_metrics_from_mlflow,
+    read_scalability_metrics_from_csv,
+)
+from itwinai.scalability_report.plot import (
+    absolute_avg_epoch_time_plot,
+    computation_fraction_bar_plot,
+    computation_vs_other_bar_plot,
+    gpu_bar_plot,
+    relative_epoch_time_speedup_plot,
+)
+from itwinai.scalability_report.utils import (
+    calculate_gpu_statistics,
+    get_computation_fraction_data,
+    get_computation_vs_other_data,
+)
+from itwinai.utils import deprecated
 
 cli_logger = logging.getLogger("cli_logger")
 

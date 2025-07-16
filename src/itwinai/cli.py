@@ -33,7 +33,7 @@ import typer
 from omegaconf import DictConfig
 from typing_extensions import Annotated
 
-from itwinai.utils import COMPUTATION_DATA_DIR, EPOCH_TIME_DIR, GPU_ENERGY_DIR
+from itwinai.utils import COMPUTATION_DATA_DIR, EPOCH_TIME_DIR
 
 app = typer.Typer(pretty_exceptions_enable=False)
 
@@ -159,9 +159,7 @@ def generate_py_spy_report(
 def generate_scalability_report(
     experiment_name: Annotated[
         str,
-        typer.Option(
-            help="The name of the experiment to use for the GPU data report."
-        ),
+        typer.Option(help="The name of the experiment to use for the GPU data report."),
     ],
     log_dir: Annotated[
         str,
@@ -211,11 +209,7 @@ def generate_scalability_report(
     ] = False,
     no_warnings: Annotated[
         bool,
-        typer.Option(
-            help=(
-                "Create plots without warnings"
-            )
-        ),
+        typer.Option(help=("Create plots without warnings")),
     ] = False,
 ):
     """Generates scalability reports for epoch time, GPU data, and communication data
@@ -311,7 +305,8 @@ def generate_scalability_report(
             dedent("""
         The computation plots are experimental and do not account for parallelism.
         Calls traced by the torch profiler may overlap in time, so the sum of
-        individual operation durations does not necessarily equal the total training run duration.
+        individual operation durations does not necessarily equal the total training run
+        duration.
 
         The computed fractions are calculated as:
         (summed duration of ATen + Autograd operations) / (summed duration of all operations)
