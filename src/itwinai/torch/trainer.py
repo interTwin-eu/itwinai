@@ -104,6 +104,8 @@ class TorchTrainer(Trainer, LogMixin):
             Defaults to 'ddp'.
         test_every (int | None, optional): run a test epoch every ``test_every`` epochs.
             Disabled if None. Defaults to None.
+        validation_every (int, optional): run a validation epoch every ``validation_every``
+            epochs. Disabled if set to zero. Defaults to 1.
         random_seed (int | None, optional): set random seed for reproducibility. If None, the
             seed is not set. Defaults to None.
         logger (Logger | None, optional): logger for ML tracking. Defaults to None.
@@ -157,6 +159,10 @@ class TorchTrainer(Trainer, LogMixin):
     validation_dataloader: DataLoader | None = None
     #: PyTorch ``DataLoader`` for test dataset.
     test_dataloader: DataLoader | None = None
+    #: How often to perform the validation step
+    validation_every: int  = 1
+    #: How often to perform the test step
+    test_every: int | None = None
     #: PyTorch model to train.
     model: nn.Module | None = None
     #: Loss criterion.
@@ -203,6 +209,7 @@ class TorchTrainer(Trainer, LogMixin):
         model: nn.Module | None = None,
         strategy: Literal["ddp", "deepspeed", "horovod"] = "ddp",
         test_every: int | None = None,
+        validation_every: int = 1,
         random_seed: int | None = None,
         logger: Logger | None = None,
         metrics: Dict[str, Metric] | None = None,
@@ -248,6 +255,7 @@ class TorchTrainer(Trainer, LogMixin):
         self.model = model
         self.strategy = strategy
         self.test_every = test_every
+        self.validation_every = validation_every
         self.random_seed = random_seed
         self.logger = logger
         self.metrics = metrics if metrics is not None else {}
@@ -351,6 +359,19 @@ class TorchTrainer(Trainer, LogMixin):
             py_logger.info(
                 f"Ray cluster was detected, thus the Ray equivalent for {strategy} is used"
             )
+            if self.validation_every == 0 or self.validation_every > self.epochs:
+                raise ValueError(
+                    "Ray is activated but with 'validation_every' set to"
+                    f" {self.validation_every} and 'epochs' set to {self.epochs}, you will"
+                    " never report any metrics. Ray requires you to report at least one"
+                    " validation metric!"
+                )
+            if self.validation_every != 1:
+                py_logger.warning(
+                    "Ray is activated, but 'validation_every' is not set to one. Keep in mind"
+                    " that the validation metrics are used for tuning, so this could lead"
+                    " to suboptimal results."
+                )
 
         match strategy, ray_cluster_is_running():
             case "ddp", True:
@@ -1189,57 +1210,59 @@ class TorchTrainer(Trainer, LogMixin):
 
             self.set_epoch()
             self.train_epoch()
-            val_metric = self.validation_epoch()
-
-            # Periodic checkpointing
-            periodic_ckpt_path = self.save_checkpoint(name=f"epoch_{self.current_epoch}")
-
-            # Checkpointing current best model
-            best_ckpt_path = None
-            worker_val_metrics = self.strategy.gather(val_metric, dst_rank=0)
-
-            if self.strategy.is_main_worker:
-                avg_metric = torch.mean(torch.stack(worker_val_metrics)).detach().cpu()
-                if avg_metric < self.best_validation_metric:
-                    best_ckpt_path = self.save_checkpoint(
-                        name="best_model",
-                        best_validation_metric=avg_metric,
-                        force=True,
-                    )
-                    self.best_validation_metric = avg_metric
-
-            # Report validation metrics to Ray (useful for tuning!)
-            metric_name = _get_tuning_metric_name(self.ray_tune_config)
-            if metric_name is None:
-                raise ValueError("Could not find a metric in the TuneConfig")
-
-            if (
-                self.time_ray
-                and self.logger is not None
-                and isinstance(self.strategy, RayTorchDistributedStrategy)
-            ):
-                time_and_log(
-                    func=partial(
-                        self.ray_report,
-                        metrics={metric_name: val_metric.item()},
-                        checkpoint_dir=best_ckpt_path or periodic_ckpt_path,
-                    ),
-                    logger=self.logger,
-                    identifier="ray_report_time_s_per_epoch",
-                    step=self.current_epoch,
-                )
-            else:
-                self.ray_report(
-                    metrics={metric_name: val_metric.item()},
-                    checkpoint_dir=best_ckpt_path or periodic_ckpt_path,
-                )
-
-            if self.test_every and (self.current_epoch + 1) % self.test_every == 0:
-                self.test_epoch()
 
             # Measure epoch time
             epoch_time = default_timer() - epoch_start_time
             epoch_time_logger.add_epoch_time(self.current_epoch + 1, epoch_time)
+
+            if self.validation_every and (self.current_epoch + 1) % self.validation_every == 0:
+                val_metric = self.validation_epoch()
+
+                # Checkpointing current best model
+                best_ckpt_path = None
+                worker_val_metrics = self.strategy.gather(val_metric, dst_rank=0)
+
+                if self.strategy.is_main_worker:
+                    avg_metric = torch.mean(torch.stack(worker_val_metrics)).detach().cpu()
+                    if avg_metric < self.best_validation_metric:
+                        best_ckpt_path = self.save_checkpoint(
+                            name="best_model",
+                            best_validation_metric=avg_metric,
+                            force=True,
+                        )
+                        self.best_validation_metric = avg_metric
+
+                # Periodic checkpointing
+                periodic_ckpt_path = self.save_checkpoint(name=f"epoch_{self.current_epoch}")
+
+                # Report validation metrics to Ray (useful for tuning!)
+                metric_name = _get_tuning_metric_name(self.ray_tune_config)
+                if metric_name is None:
+                    raise ValueError("Could not find a metric in the TuneConfig")
+
+                if (
+                    self.time_ray
+                    and self.logger is not None
+                    and isinstance(self.strategy, RayTorchDistributedStrategy)
+                ):
+                    time_and_log(
+                        func=partial(
+                            self.ray_report,
+                            metrics={metric_name: val_metric.item()},
+                            checkpoint_dir=best_ckpt_path or periodic_ckpt_path,
+                        ),
+                        logger=self.logger,
+                        identifier="ray_report_time_s_per_epoch",
+                        step=self.current_epoch,
+                    )
+                else:
+                    self.ray_report(
+                        metrics={metric_name: val_metric.item()},
+                        checkpoint_dir=best_ckpt_path or periodic_ckpt_path,
+                    )
+
+            if self.test_every and (self.current_epoch + 1) % self.test_every == 0:
+                self.test_epoch()
 
     def train_epoch(self) -> torch.Tensor:
         """Perform a complete sweep over the training dataset, completing an epoch of training.
