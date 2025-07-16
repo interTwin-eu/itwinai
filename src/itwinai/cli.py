@@ -210,7 +210,7 @@ def generate_scalability_report(
     ] = False,
     no_warnings: Annotated[
         bool,
-        typer.Option(help=("Create plots without warnings")),
+        typer.Option(help=("Create plots without warnings.")),
     ] = False,
 ):
     """Generates scalability reports for epoch time, GPU data, and communication data

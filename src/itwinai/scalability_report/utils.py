@@ -77,17 +77,15 @@ def calculate_gpu_statistics(gpu_data_df: pd.DataFrame, expected_columns: Set) -
 
     mask = gpu_data_df["metric_name"] == "gpu_power_W"
     # Ensure value and probing_interval are numeric
-    gpu_data_df.loc[mask, "value"] = pd.to_numeric(
-        gpu_data_df.loc[mask, "value"], errors="coerce"
-    )
+    gpu_data_df.loc[mask, "value"] = pd.to_numeric(gpu_data_df.loc[mask, "value"])
     gpu_data_df.loc[mask, "probing_interval"] = pd.to_numeric(
-        gpu_data_df.loc[mask, "probing_interval"], errors="coerce"
+        gpu_data_df.loc[mask, "probing_interval"]
     )
 
     # Calculate energy in watt hours
-    gpu_data_df.loc[gpu_data_df["metric_name"] == "gpu_power_W", "energy_wh"] = (
-        gpu_data_df.loc[gpu_data_df["metric_name"] == "gpu_power_W", "value"]
-        * gpu_data_df.loc[gpu_data_df["metric_name"] == "gpu_power_W", "probing_interval"]
+    gpu_data_df.loc[mask, "energy_wh"] = (
+        gpu_data_df.loc[mask, "value"]
+        * gpu_data_df.loc[mask, "probing_interval"]
         / SECONDS_IN_HOUR
     )
 
