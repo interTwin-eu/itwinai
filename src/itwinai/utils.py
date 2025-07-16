@@ -36,7 +36,7 @@ py_logger = logging.getLogger(__name__)
 # Directory names for logging and profiling data
 COMPUTATION_DATA_DIR = "computation-data"
 EPOCH_TIME_DIR = "epoch-time"
-GPU_ENERGY_DIR = "gpu-energy-data"
+GPU_DATA_DIR = "gpu-energy-data"
 RELATIVE_MLFLOW_PATH = Path("mllogs/mlflow")
 MLFLOW_MAX_RESULTS = 5000
 

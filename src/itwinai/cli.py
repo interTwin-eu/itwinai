@@ -33,7 +33,7 @@ import typer
 from omegaconf import DictConfig
 from typing_extensions import Annotated
 
-from itwinai.utils import COMPUTATION_DATA_DIR, EPOCH_TIME_DIR
+from itwinai.utils import COMPUTATION_DATA_DIR, EPOCH_TIME_DIR, GPU_DATA_DIR
 
 app = typer.Typer(pretty_exceptions_enable=False)
 
@@ -213,13 +213,13 @@ def generate_scalability_report(
     ] = False,
 ):
     """Generates scalability reports for epoch time, GPU data, and communication data
-    based on log files in the specified directory. Optionally, backups of the reports
-    can be created.
+    based on log files in the specified directory and mlflow logs. Optionally, backups of the
+    reports can be created.
 
     This command processes log files stored in specific subdirectories under the given
-    `log_dir`. It generates plots and metrics for scalability analysis and saves them
-    in the `plot_dir`. If backups are enabled, the generated reports will also be
-    copied to a backup directory under `backup_root_dir`.
+    `log_dir`, as well as data from mlflow runs. It generates plots and metrics for scalability
+    analysis and saves them in the `plot_dir`. If backups are enabled, the generated reports
+    will also be copied to a backup directory under `backup_root_dir`.
     """
     from datetime import datetime
 
@@ -242,7 +242,7 @@ def generate_scalability_report(
             str(path.resolve()) for path in base_directories_for_runs if not path.exists()
         ]
         if non_existent_paths:
-            py_logger.warn(f"Given run_id paths do not exist: '{non_existent_paths}'!")
+            py_logger.warning(f"Given run_id paths do not exist: '{non_existent_paths}'!")
     else:
         # Ensure that all elements in log_dir are directories
         run_ids_list = None
@@ -276,6 +276,7 @@ def generate_scalability_report(
     backup_dir = Path(backup_root_dir) / backup_run_id
 
     epoch_time_backup_dir = backup_dir / EPOCH_TIME_DIR
+    gpu_data_backup_dir = backup_dir / GPU_DATA_DIR
     computation_data_backup_dir = backup_dir / COMPUTATION_DATA_DIR
 
     plot_dir_path = Path(plot_dir)
@@ -300,6 +301,8 @@ def generate_scalability_report(
         plot_dir=plot_dir_path,
         experiment_name=experiment_name,
         run_names=run_ids_list,
+        backup_dir=gpu_data_backup_dir,
+        do_backup=do_backup,
         plot_file_suffix=plot_file_suffix,
         ray_footnote=ray_footnote,
     )
