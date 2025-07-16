@@ -190,17 +190,19 @@ def get_run_metrics_as_df(
     params = get_params(run)
 
     for_pd_collect = []
-    for metric in metric_names:
-        metric_history = mlflow_client.get_metric_history(run_id=run.info.run_id, key=metric)
+    for metric_name in metric_names:
+        metric_history = mlflow_client.get_metric_history(
+            run_id=run.info.run_id, key=metric_name
+        )
         pd_convertible_metric_history = [
             {
-                "metric_name": mm.key,
-                "sample_idx": int(mm.step),
-                "timestamp": int(mm.timestamp),
-                "value": mm.value,
+                "metric_name": metric.key,
+                "sample_idx": int(metric.step),
+                "timestamp": int(metric.timestamp),
+                "value": metric.value,
                 **params,
             }
-            for mm in metric_history
+            for metric in metric_history
         ]
         for_pd_collect += pd_convertible_metric_history
 
