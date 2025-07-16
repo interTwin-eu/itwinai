@@ -189,7 +189,7 @@ def get_run_metrics_as_df(
 
     params = get_params(run)
 
-    for_pd_collect = []
+    collected_metrics = []
     for metric_name in metric_names:
         metric_history = mlflow_client.get_metric_history(
             run_id=run.info.run_id, key=metric_name
@@ -204,7 +204,7 @@ def get_run_metrics_as_df(
             }
             for metric in metric_history
         ]
-        for_pd_collect += pd_convertible_metric_history
+        collected_metrics += pd_convertible_metric_history
 
-    metrics_df = pd.DataFrame.from_records(for_pd_collect)
+    metrics_df = pd.DataFrame.from_records(collected_metrics)
     return metrics_df
