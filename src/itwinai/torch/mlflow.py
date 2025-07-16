@@ -110,8 +110,8 @@ def get_gpu_data_by_run(
 ) -> List[Run]:
     """Get all GPU worker runs associated with a given run.
     This function assumes that the GPU worker runs are either:
-        - Nested under the trial runs of a tuner run
-        - Named with a suffix '_gpu_<worker_rank>' in the case of flat runs (non-ray)
+    - Nested under the trial runs of a tuner run
+    - Named with a suffix '_gpu_<worker_rank>' in the case of flat runs (non-ray)
 
     Args:
         mlflow_client (mlflow.tracking.MlflowClient): MLFlow client to use.
