@@ -288,12 +288,20 @@ def generate_scalability_report(
         do_backup=do_backup,
         plot_file_suffix=plot_file_suffix,
     )
+
+    ray_footnote = None
+    if not no_warnings:
+        ray_footnote = (
+            "For ray strategies, the number of GPUs is the number of GPUs per HPO trial.\n"
+            " Keep in mind that multiple trials increase the total energy consumption."
+        )
+
     gpu_data_table = gpu_data_report(
         plot_dir=plot_dir_path,
         experiment_name=experiment_name,
         run_names=run_ids_list,
         plot_file_suffix=plot_file_suffix,
-        add_footnote=(not no_warnings),
+        ray_footnote=ray_footnote,
     )
 
     # Disclaimer for the plots

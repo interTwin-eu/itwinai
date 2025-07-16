@@ -263,7 +263,7 @@ def gpu_bar_plot(
     if ray_footnote and any(s.startswith("ray") for s in strategies):
         fig.text(0.5, 0.01, ray_footnote, ha='center', va='bottom', fontsize=9, color='gray')
         # Increase bottom margin so it fits
-        plt.subplots_adjust(bottom=0.25)
+        plt.subplots_adjust(bottom=0.20)
 
     ax.set_xlabel("Number of GPUs")
     ax.set_ylabel(y_label)

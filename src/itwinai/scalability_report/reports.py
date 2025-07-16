@@ -121,7 +121,7 @@ def gpu_data_report(
     experiment_name: str,
     run_names: List[str] | None = None,
     plot_file_suffix: str = ".png",
-    add_footnote: bool = False,
+    ray_footnote: str | None = None,
 ) -> str:
     """Generates reports and plots for GPU energy consumption and utilization across
     distributed training strategies. Includes bar plots for energy consumption and GPU
@@ -134,7 +134,7 @@ def gpu_data_report(
         run_names (List[str] | None): List of specific run names to filter the GPU data.
             If None, all runs in the experiment will be considered.
         plot_file_suffix (str): Suffix for the plot file names. Defaults to ".png".
-        add_footnote (bool): If True, adds a footnote to the plots for ray strategies.
+        ray_footnote (str | None): Optional footnote for the Ray plot. Defaults to None.
 
     Returns:
         str | None: A string representation of the GPU data statistics table, or None if
@@ -167,15 +167,6 @@ def gpu_data_report(
 
     energy_plot_path = plot_dir / ("gpu_energy_plot" + plot_file_suffix)
     utilization_plot_path = plot_dir / ("utilization_plot" + plot_file_suffix)
-
-    ray_footnote = None
-
-    if add_footnote:
-        ray_footnote = (
-            "For ray strategies, the number of GPUs is the number of GPUs per HPO trial.\n"
-            " Multiple trials, increase the total energy consumption, which makes the energy\n"
-            " consumption only comparable for ray runs with one trial.\n"
-        )
 
     energy_fig, _ = gpu_bar_plot(
         data_df=gpu_data_statistics_df,
