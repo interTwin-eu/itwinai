@@ -38,6 +38,8 @@ COMPUTATION_DATA_DIR = "computation-data"
 EPOCH_TIME_DIR = "epoch-time"
 GPU_DATA_DIR = "gpu-energy-data"
 RELATIVE_MLFLOW_PATH = Path("mllogs/mlflow")
+
+# mlflow
 MLFLOW_MAX_RESULTS = 5000
 
 adjectives = [

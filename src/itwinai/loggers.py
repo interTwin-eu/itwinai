@@ -84,11 +84,11 @@ from typing import (
     Tuple,
 )
 
+BASE_EXP_NAME: str = "unnamed-experiment"
+
 if TYPE_CHECKING:
     import mlflow
 
-
-BASE_EXP_NAME: str = "default_experiment"
 
 py_logger = logging.getLogger(__name__)
 
@@ -1411,7 +1411,6 @@ class EpochTimeTracker:
         self.save_path.parent.mkdir(parents=True, exist_ok=True)
         df.to_csv(self.save_path, index=False)
         py_logger.info(f"Saving EpochTimeLogging data to '{self.save_path.resolve()}'.")
-
 
 
 def contains_mlflow_logger(logger: Logger) -> bool:

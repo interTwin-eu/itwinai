@@ -47,7 +47,7 @@ from itwinai.torch.profiling.profiler import profile_torch_trainer
 
 from ..components import Trainer, monitor_exec
 from ..distributed import ray_cluster_is_running
-from ..loggers import EpochTimeTracker, Logger, LogMixin, contains_mlflow_logger
+from ..loggers import BASE_EXP_NAME, EpochTimeTracker, Logger, LogMixin, contains_mlflow_logger
 from ..utils import (
     EPOCH_TIME_DIR,
     generate_random_name,
@@ -303,7 +303,8 @@ class TorchTrainer(Trainer, LogMixin):
         self.current_epoch = 0
 
         if experiment_name is None:
-            experiment_name = generate_random_name()
+            experiment_name = BASE_EXP_NAME
+
         self.experiment_name = experiment_name
 
         if run_id is None:
@@ -861,9 +862,13 @@ class TorchTrainer(Trainer, LogMixin):
             if contains_mlflow_logger(self.logger):
                 # Create mlflow runs per trial (will be started by the trial's main worker)
                 client = mlflow.tracking.MlflowClient()
-                experiment_id = (
-                    client.get_experiment_by_name(self.experiment_name).experiment_id
-                )
+                experiment = client.get_experiment_by_name(self.experiment_name)
+                if experiment is None:
+                    raise ValueError(
+                        f"No experiment could be found under {self.experiment_name}. Ensure"
+                        " you have set the same experiment_name for the Trainer and for the"
+                        " MLFlowLogger."
+                    )
 
                 for trial_idx in range(self.ray_tune_config.num_samples):
                     # create a mlflow run for each trial (without starting it)
