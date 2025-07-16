@@ -869,6 +869,7 @@ class TorchTrainer(Trainer, LogMixin):
                         " you have set the same experiment_name for the Trainer and for the"
                         " MLFlowLogger."
                     )
+                experiment_id = experiment.experiment_id
 
                 for trial_idx in range(self.ray_tune_config.num_samples):
                     # create a mlflow run for each trial (without starting it)
