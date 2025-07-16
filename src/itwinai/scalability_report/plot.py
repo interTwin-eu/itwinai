@@ -19,7 +19,6 @@ import pandas as pd
 import seaborn as sns
 from matplotlib.axes import Axes
 from matplotlib.figure import Figure
-from matplotlib.offsetbox import AnchoredText
 from matplotlib.patches import Patch
 from matplotlib.ticker import NullLocator, ScalarFormatter
 
