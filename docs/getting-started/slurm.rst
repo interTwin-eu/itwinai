@@ -23,6 +23,7 @@ Commands
 - ``scancel -u USERNAME``: cancel all jobs of ``USERNAME`` user.
 - ``srun``: is used to execute a command in a SLURM job script. Example: ``srun python train.py``.
 - ``sacct -j JOBID``: Get job stats after completion/when running.
+- ``scontrol write batch_script JOBID -``: show the jos script associated with some job.
 
 More commands here: https://docs.rc.fas.harvard.edu/kb/convenient-slurm-commands/
 
@@ -243,7 +244,8 @@ The resulting SLURM script generated using the ``slurm_config.yaml`` file above 
       #SBATCH --exclusive
 
       # Pre-execution command
-      ml Stages/2024 GCC OpenMPI CUDA/12 MPI-settings/CUDA Python/3.11.3 HDF5 PnetCDF libaio mpi4py
+      ml --force purge
+      ml Stages/2025 GCC OpenMPI CUDA/12 cuDNN MPI-settings/CUDA Python CMake HDF5 PnetCDF libaio mpi4py git
       source .venv/bin/activate
       export OMP_NUM_THREADS=4
 
