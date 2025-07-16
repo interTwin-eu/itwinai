@@ -261,7 +261,7 @@ def gpu_bar_plot(
 
     # Add a footnote if a ray strategy is present, and ray_footnote is given
     if ray_footnote and any(s.startswith("ray") for s in strategies):
-        fig.text(0.5, 0.01, ray_footnote, ha='center', va='bottom', fontsize=9, color='gray')
+        fig.text(0.5, 0.01, ray_footnote, ha="center", va="bottom", fontsize=9, color="gray")
         # Increase bottom margin so it fits
         plt.subplots_adjust(bottom=0.20)
 

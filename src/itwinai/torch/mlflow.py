@@ -164,13 +164,17 @@ def get_params(run: Run) -> Dict[str, str]:
     return params
 
 
-def get_run_metrics_as_df(mlflow_client: mlflow.MlflowClient, run: Run, metric_names=None):
+def get_run_metrics_as_df(
+    mlflow_client: mlflow.MlflowClient,
+    run: Run,
+    metric_names: List[str] | None = None,
+):
     """Collect all metrics logged in a run and return them as a tidy DataFrame.
 
     Args:
         mlflow_client (mlflow.MlflowClient): MLFlow client to use.
         run (mlflow.entities.Run): The run from which to collect metrics.
-        metric_names (List[str], optional): If provided, only these metrics
+        metric_names (List[str] | None): If provided, only these metrics
             will be collected. If None, all metrics will be collected.
     Returns:
         pd.DataFrame: A DataFrame containing the metrics, with columns:

@@ -110,8 +110,8 @@ def calculate_gpu_statistics(gpu_data_df: pd.DataFrame, expected_columns: Set) -
     aggregated_df = (
         pivoted.groupby(["strategy", "num_global_gpus"])
         .agg(
-            total_energy_wh=("energy_wh", "sum"), # Total energy in watt-hours
-            utilization=("gpu_utilization_percent", "mean"), # Average GPU utilization
+            total_energy_wh=("energy_wh", "sum"),  # Total energy in watt-hours
+            utilization=("gpu_utilization_percent", "mean"),  # Average GPU utilization
         )
         .reset_index()
     )
