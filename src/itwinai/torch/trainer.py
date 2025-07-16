@@ -24,6 +24,7 @@ from time import perf_counter as default_timer
 from typing import Any, Callable, Dict, List, Literal, Tuple
 
 import mlflow
+import mlflow.tracking
 import ray.train
 import ray.tune
 import torch
@@ -48,13 +49,7 @@ from itwinai.torch.profiling.profiler import profile_torch_trainer
 from ..components import Trainer, monitor_exec
 from ..distributed import ray_cluster_is_running
 from ..loggers import BASE_EXP_NAME, EpochTimeTracker, Logger, LogMixin, contains_mlflow_logger
-from ..utils import (
-    EPOCH_TIME_DIR,
-    generate_random_name,
-    load_yaml,
-    time_and_log,
-    to_uri,
-)
+from ..utils import EPOCH_TIME_DIR, generate_random_name, load_yaml, time_and_log, to_uri
 from .config import TrainingConfiguration
 from .distributed import (
     DeepSpeedStrategy,
