@@ -421,6 +421,39 @@ def sanity_check(
         run_sanity_check(optional_deps)
 
 
+@app.command()
+def check_distributed_cluster(
+    platform: Annotated[
+        str, typer.Option(help=("Hardware platform: nvidia or amd"))
+    ] = "nvidia",
+    launcher: Annotated[
+        str, typer.Option(help=("Distributed ML cluster: torchrun or ray"))
+    ] = "torchrun",
+):
+    """This command provides a suite of tests for a quick sanity check of the network setup
+    for torch distributed. Useful when working with containers on HPC.
+    Remember to prepend *torchrun* in front of this command or to start a *Ray* cluster.
+    """
+    from itwinai.tests.distributed import test_cuda, test_gloo, test_nccl, test_ray, test_rocm
+
+    match platform:
+        case "nvidia":
+            test_cuda()
+        case "amd":
+            test_rocm()
+        case _:
+            typer.echo("Unrecognized platform!")
+
+    match launcher:
+        case "torchrun":
+            test_gloo()
+            test_nccl()
+        case "ray":
+            test_ray()
+        case _:
+            typer.echo("Unrecognized launcher!")
+
+
 @app.command(context_settings={"allow_extra_args": True, "ignore_unknown_options": True})
 def generate_slurm(
     job_name: Annotated[

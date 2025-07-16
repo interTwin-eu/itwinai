@@ -98,7 +98,7 @@ class InterLink:
                     "install",
                     "--debug",
                     "my-node",
-                    "oci://ghcr.io/intertwin-eu/interlink-helm-chart/interlink",
+                    "oci://ghcr.io/interlink-hq/interlink-helm-chart/interlink",
                     "--values",
                     "/values.yaml",
                 ]

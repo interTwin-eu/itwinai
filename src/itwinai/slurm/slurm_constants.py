@@ -34,14 +34,17 @@ SLURM_TEMPLATE = r"""#!/bin/bash
 {exec_command}"""
 
 JUWELS_HPC_MODULES = [
-    "Stages/2024",
+    "Stages/2025",
     "GCC",
     "OpenMPI",
     "CUDA/12",
+    "cuDNN",
     "MPI-settings/CUDA",
-    "Python/3.11.3",
+    "Python",
+    "CMake",
     "HDF5",
     "PnetCDF",
     "libaio",
     "mpi4py",
+    "git",
 ]

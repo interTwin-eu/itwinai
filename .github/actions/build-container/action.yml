@@ -10,11 +10,11 @@
 name: "Build and Test Container"
 description: "Builds, tests, and optimizes disk space for a container image"
 inputs:
-  free-disk-space:
+  free_disk_space:
     description: "Whether to free disk space before running the workflows"
     required: false
     default: "true"
-  base-img-name:
+  base_img_name:
     description: "Base image name"
     required: true
   dockerfile:
@@ -23,39 +23,43 @@ inputs:
   nickname:
     description: "Name of the container flavour, such as 'torch', 'torch-slim', and 'jhub-slim'"
     required: true
-  tag-template:
+  tag_template:
     description: "Tag template for the image"
     required: true
+  build_arm:
+    description: "true to build also for arm platforms"
+    required: false
+    default: "false"
   release:
     description: "true if triggered during a release, false otherwise"
     required: false
     default: "true"
-  skip-hpc:
+  skip_hpc:
     description: "Skip HPC-related tests (in release pipeline)"
     required: false
     default: "false"
-  skip-singularity:
+  skip_singularity:
     description: "Avoid publishing Singularity image"
     required: false
     default: "false"
-  docker-token:
+  docker_token:
     description: "Docker secret auth token"
     required: true
-  interlink-values:
+  interlink_values:
     description: "Interlink virtual kubelet (VK) configuration file (secret)"
     required: true
-  dagger-cloud-token:
+  dagger_cloud_token:
     description: "Dagger cloud secret token"
     required: true
-  commit-hash:
+  commit_hash:
     description: "commit hash"
     required: false
     default: "unk-commit-hash"
-  singularity-password:
+  singularity_password:
     description: "Password for Singularity registry"
     required: false
     default: null
-  singularity-username:
+  singularity_username:
     description: "Username for Singularity registry"
     required: false
     default: null
@@ -65,10 +69,9 @@ runs:
   steps:
 
     - name: Maximize Disk Space
-      if: inputs.free-disk-space == 'true'
+      if: ${{ inputs.free_disk_space == 'true' }}
       uses: easimon/maximize-build-space@v10
       with:
-        # Reserve space on root for docker/dagger cache
         build-mount-path: /docker
         root-reserve-mb: 2048
         overprovision-lvm: false
@@ -82,72 +85,59 @@ runs:
       uses: actions/checkout@v4
     
     - name: Move Docker directory
-      if: inputs.free-disk-space == 'true'
+      if: ${{ inputs.free_disk_space == 'true' }}
       shell: bash
       run: |
         sudo mv /var/lib/docker /docker/ &&
         sudo ln -s /docker/docker /var/lib/docker &&
         sudo systemctl restart docker
 
-    # - name: Setup tmate session
-    #   uses: mxschmitt/action-tmate@v3
-    #   with:
-    #     detached: true
-
     - name: Check Inputs
       shell: bash
       run: |
         echo &&
-        echo skip hpc flag: $([[ "${{ inputs.skip-hpc }}" == "true" ]] && echo '--skip-hpc' || echo '')
+        echo skip hpc flag: $([[ "${{ inputs.skip_hpc }}" == "true" ]] && echo '--skip-hpc' || echo '')
 
     - name: Delete unnecessary tools and packages
-      if: inputs.free-disk-space == 'true'
+      if: ${{ inputs.free_disk_space == 'true' }}
       shell: bash
       run: |
         rm -rf /opt/hostedtoolcache &&
         curl -fsSL https://raw.githubusercontent.com/apache/flink/02d30ace69dc18555a5085eccf70ee884e73a16e/tools/azure-pipelines/free_disk_space.sh | bash
-    # - name: Setup tmate session
-    #   uses: mxschmitt/action-tmate@v3
 
     - name: Get Repo Owner
       id: get_repo_owner
       shell: bash
       run: echo "name=repo_owner::$(echo ${{ github.repository_owner }} | tr '[:upper:]' '[:lower:]')" >> "$GITHUB_OUTPUT"
 
-    # Login to Docker container registry
     - name: Login to GitHub Container Registry
       uses: docker/login-action@v3
       with:
         registry: ghcr.io
         username: ${{ github.actor }}
-        password: ${{ inputs.docker-token }}
+        password: ${{ inputs.docker_token }}
 
-    # Login to Singularity container registry
     - name: Login to Harbor Container Registry
       uses: docker/login-action@v3
       with:
         registry: registry.cern.ch
-        username: ${{ inputs.singularity-username }}
-        password: ${{ inputs.singularity-password }}
+        username: ${{ inputs.singularity_username }}
+        password: ${{ inputs.singularity_password }}
 
     - name: Prepare Environment Variables
       shell: bash
       run: |
         echo "COMMIT_HASH=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
-        BASE_IMG_DIGEST=$(echo "${{ inputs.base-img-name }}" | cut -d ':' -f 1)@$(docker buildx imagetools inspect ${{ inputs.base-img-name }} | grep "Digest:" | head -n 1 | awk '{print $2}')
+        BASE_IMG_DIGEST=$(echo "${{ inputs.base_img_name }}" | cut -d ':' -f 1)@$(docker buildx imagetools inspect ${{ inputs.base_img_name }} | grep "Digest:" | head -n 1 | awk '{print $2}')
         echo "BASE_IMG_DIGEST=$BASE_IMG_DIGEST" >> "$GITHUB_ENV"
         docker system prune -af
 
-    # This pipeline runs when NOT creating a new release
     - name: Run Integration Test (development pipeline)
-      if: inputs.release == 'false'
+      if: ${{ inputs.release == 'false' }}
       uses: dagger/dagger-for-github@v7
       with:
         workdir: ci
         verb: call
-        # NOTES:
-        # - Singularity conversion and push in the dev pipeline is always skipped because it takes too long
-        # - The current commit hash is appended to the tag
         args: >-
           --nickname ${{ inputs.nickname }}
           --docker-registry ghcr.io/intertwin-eu
@@ -156,23 +146,23 @@ runs:
           build-container
           --context ..
           --dockerfile ${{ inputs.dockerfile }}
-          --build-args "COMMIT_HASH=${{ env.COMMIT_HASH }},BASE_IMG_NAME=${{ inputs.base-img-name }},BASE_IMG_DIGEST=${{ env.BASE_IMG_DIGEST }}"
+          --build-args "COMMIT_HASH=${{ env.COMMIT_HASH }},BASE_IMG_NAME=${{ inputs.base_img_name }},BASE_IMG_DIGEST=${{ env.BASE_IMG_DIGEST }}"
+          $([[ "${{ inputs.build_arm }}" == "true" ]] && echo '--build-arm' || echo '')
           dev-pipeline
-          --tag-template ${{ inputs.tag-template }}-${{ env.COMMIT_HASH }}
+          --tag-template ${{ inputs.tag_template }}-${{ env.COMMIT_HASH }}
           --framework TORCH
           --password env:SINGULARITY_PWD
           --username env:SINGULARITY_USR
           --skip-singularity
-        cloud-token: ${{ inputs.dagger-cloud-token }}
+        cloud-token: ${{ inputs.dagger_cloud_token }}
         version: latest
       env:
-          INTERLINK_VALUES: ${{ inputs.interlink-values }}
-          SINGULARITY_PWD: ${{ inputs.singularity-password }}
-          SINGULARITY_USR: ${{ inputs.singularity-username }}
+          INTERLINK_VALUES: ${{ inputs.interlink_values }}
+          SINGULARITY_PWD: ${{ inputs.singularity_password }}
+          SINGULARITY_USR: ${{ inputs.singularity_username }}
     
-    # This pipeline runs exclusively upon release
     - name: Run Integration Test (release pipeline)
-      if: inputs.release == 'true'
+      if: ${{ inputs.release == 'true' }}
       uses: dagger/dagger-for-github@v7
       with:
         workdir: ci
@@ -186,18 +176,19 @@ runs:
           build-container
           --context ..
           --dockerfile ${{ inputs.dockerfile }}
-          --build-args "COMMIT_HASH=${{ env.COMMIT_HASH }},BASE_IMG_NAME=${{ inputs.base-img-name }},BASE_IMG_DIGEST=${{ env.BASE_IMG_DIGEST }}"
+          --build-args "COMMIT_HASH=${{ env.COMMIT_HASH }},BASE_IMG_NAME=${{ inputs.base_img_name }},BASE_IMG_DIGEST=${{ env.BASE_IMG_DIGEST }}"
+          $([[ "${{ inputs.build_arm }}" == "true" ]] && echo '--build-arm' || echo '')
           release-pipeline
           --values env:INTERLINK_VALUES
           --framework TORCH
-          --tag-template ${{ inputs.tag-template }}
+          --tag-template ${{ inputs.tag_template }}
           --password env:SINGULARITY_PWD
           --username env:SINGULARITY_USR
-          $([[ "${{ inputs.skip-hpc }}" == "true" ]] && echo '--skip-hpc' || echo '')
-          $([[ "${{ inputs.skip-singularity }}" == "true" ]] && echo '--skip-singularity' || echo '')
-        cloud-token: ${{ inputs.dagger-cloud-token }}
+          $([[ "${{ inputs.skip_hpc }}" == "true" ]] && echo '--skip-hpc' || echo '')
+          $([[ "${{ inputs.skip_singularity }}" == "true" ]] && echo '--skip-singularity' || echo '')
+        cloud-token: ${{ inputs.dagger_cloud_token }}
         version: latest
       env:
-          INTERLINK_VALUES: ${{ inputs.interlink-values }}
-          SINGULARITY_PWD: ${{ inputs.singularity-password }}
-          SINGULARITY_USR: ${{ inputs.singularity-username }}
+          INTERLINK_VALUES: ${{ inputs.interlink_values }}
+          SINGULARITY_PWD: ${{ inputs.singularity_password }}
+          SINGULARITY_USR: ${{ inputs.singularity_username }}

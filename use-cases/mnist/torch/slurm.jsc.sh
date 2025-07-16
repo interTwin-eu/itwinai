@@ -9,24 +9,24 @@
 #SBATCH --mail-type=ALL
 #SBATCH --output=job.out
 #SBATCH --error=job.err
-#SBATCH --time=00:15:00
+#SBATCH --time=00:25:00
 
 # Resources allocation
 #SBATCH --partition=booster
-#SBATCH --nodes=1
-#SBATCH --gpus-per-node=4
+#SBATCH --nodes=2
+#SBATCH --gpus-per-node=2
 #SBATCH --cpus-per-task=48
-#SBATCH --exclusive
+# SBATCH --exclusive
 
 
 # Load environment modules
-ml Stages/2024 GCC OpenMPI CUDA/12 MPI-settings/CUDA Python HDF5 PnetCDF libaio mpi4py
+ml --force purge
+ml Stages/2025 GCC OpenMPI CUDA/12 cuDNN MPI-settings/CUDA
+ml Python CMake HDF5 PnetCDF libaio mpi4py git
 
 # Job info
 echo "DEBUG: TIME: $(date)"
-sysN="$(uname -n | cut -f2- -d.)"
-sysN="${sysN%%[0-9]*}"
-echo "Running on system: $sysN"
+echo "Running on system: $SYSTEMNAME"
 echo "DEBUG: EXECUTE: $EXEC"
 echo "DEBUG: SLURM_SUBMIT_DIR: $SLURM_SUBMIT_DIR"
 echo "DEBUG: SLURM_JOB_ID: $SLURM_JOB_ID"
@@ -68,6 +68,11 @@ else
   # Activate Python virtual env
   source $PYTHON_VENV/bin/activate
 fi
+
+# Prevent NCCL not figuring out how to initialize.
+export NCCL_SOCKET_IFNAME=ib0
+# Prevent Gloo not being able to communicate.
+export GLOO_SOCKET_IFNAME=ib0
 
 function ray-launcher(){
   num_gpus=$SLURM_GPUS_PER_NODE
@@ -131,15 +136,18 @@ function ray-launcher(){
 }
 
 function torchrun-launcher(){
+  export MASTER_ADDR="$(scontrol show hostnames "$SLURM_JOB_NODELIST" | head -n 1)i"
+  export MASTER_PORT=54123
+
   srun --cpu-bind=none --ntasks-per-node=1 \
-    bash -c "torchrun \
+    bash -c "torchrun_jsc \
     --log_dir='logs_torchrun' \
     --nnodes=$SLURM_NNODES \
     --nproc_per_node=$SLURM_GPUS_PER_NODE \
     --rdzv_id=$SLURM_JOB_ID \
     --rdzv_conf=is_host=\$(((SLURM_NODEID)) && echo 0 || echo 1) \
     --rdzv_backend=c10d \
-    --rdzv_endpoint='$(scontrol show hostnames "$SLURM_JOB_NODELIST" | head -n 1)'i:29500 \
+    --rdzv_endpoint=$MASTER_ADDR:$MASTER_PORT \
     --no-python \
     $1"
 }
@@ -193,9 +201,8 @@ elif [ "$DIST_MODE" == "horovod" ] ; then
   echo "HOROVOD training: $TRAINING_CMD"
   srun-launcher "$TRAINING_CMD"
 
-  separation
-
-  ray-launcher "$TRAINING_CMD"
+  # NOTE: Ray does not support Horovod anymore
+  
 else
   >&2 echo "ERROR: unrecognized \$DIST_MODE env variable"
   exit 1

@@ -22,8 +22,8 @@ on whether you want ``PyTorch`` or ``TensorFlow`` support:
                 .. code-block:: bash
 
                     ml --force purge
-                    ml Stages/2024 GCC OpenMPI CUDA/12 cuDNN MPI-settings/CUDA
-                    ml Python CMake HDF5 PnetCDF libaio mpi4py
+                    ml Stages/2025 GCC OpenMPI CUDA/12 cuDNN MPI-settings/CUDA
+                    ml Python CMake HDF5 PnetCDF libaio mpi4py git
 
                     # Now you can create or active the python environment here
 
@@ -48,18 +48,29 @@ on whether you want ``PyTorch`` or ``TensorFlow`` support:
                 .. code-block:: bash
 
                     ml --force purge
-                    ml Python/3.11.5-GCCcore-13.2.0 CMake/3.24.3-GCCcore-11.3.0 mpi4py OpenMPI CUDA/12.3
-                    ml GCCcore/11.3.0 NCCL cuDNN/8.9.7.29-CUDA-12.3.0 UCX-CUDA/1.15.0-GCCcore-13.2.0-CUDA-12.3.0
+                    ml CMake/3.29.3-GCCcore-13.3.0
+                    ml mpi4py/3.1.5
+                    ml OpenMPI/4.1.6-GCC-13.2.0
+                    ml cuDNN/8.9.7.29-CUDA-12.3.0
+                    ml CUDA/12.6.0
+                    ml NCCL/2.22.3-GCCcore-13.3.0-CUDA-12.6.0
+                    ml Python/3.12.3-GCCcore-13.3.0
 
                     # Now you can create or active the python environment here
+
 
             .. tab-item:: TensorFlow
 
                 .. code-block:: bash
 
                     ml --force purge
-                    ml Python/3.11.5-GCCcore-13.2.0 CMake/3.24.3-GCCcore-11.3.0 mpi4py OpenMPI CUDA/12.3
-                    ml GCCcore/11.3.0 NCCL cuDNN/8.9.7.29-CUDA-12.3.0 UCX-CUDA/1.15.0-GCCcore-13.2.0-CUDA-12.3.0
+                    ml CMake/3.29.3-GCCcore-13.3.0
+                    ml mpi4py/3.1.5
+                    ml OpenMPI/4.1.6-GCC-13.2.0
+                    ml cuDNN/8.9.7.29-CUDA-12.3.0
+                    ml CUDA/12.6.0
+                    ml NCCL/2.22.3-GCCcore-13.3.0-CUDA-12.6.0
+                    ml Python/3.12.3-GCCcore-13.3.0
 
                     # Now you can create or active the python environment here
 
@@ -67,5 +78,18 @@ on whether you want ``PyTorch`` or ``TensorFlow`` support:
     .. tab-item:: LUMI
 
         On `LUMI <https://docs.lumi-supercomputer.eu/hardware/lumig/>`_, Python virtual
-        environments are not allowed, in favour of containers. Therefore,
-        the software modules are a bit different (WIP).
+        environments are discouraged in favour of containers. Load the following modules before
+        running commands in your AI containers:
+
+            .. code-block:: bash
+
+                ml --force purge
+                ml LUMI partition/G
+                module use /appl/local/containers/ai-modules
+                module load singularity-AI-bindings
+
+        These modules are needed to bind into the container the correct software suite on LUMI.
+        More info can be found `here <https://lumi-supercomputer.github.io/LUMI-training-materials/ai-20250204/extra_05_RunningContainers/>`_.
+
+After using the commands above to load the modules, check which modules you loaded by running
+the ``ml`` command in the terminal.

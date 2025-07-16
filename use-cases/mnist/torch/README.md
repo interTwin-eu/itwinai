@@ -97,24 +97,28 @@ itwinai exec-pipeline --config-name config.yaml +pipe_key=training_pipeline_gan
 
 ## Docker image
 
-Build from project root with
+Build from the repository's root with:
 
 ```bash
-# Local
-docker buildx build -t itwinai:0.0.1-mnist-torch-0.1 -f use-cases/mnist/torch/Dockerfile .
+# Replace ghcr.io with your preferred containers registry
+docker build -t ghcr.io/intertwin-eu/itwinai-dev:mnist-torch-0.0.1 -f use-cases/mnist/torch/Dockerfile .
 
-# Ghcr.io
-docker buildx build -t ghcr.io/intertwin-eu/itwinai:0.0.1-mnist-torch-0.1 -f use-cases/mnist/torch/Dockerfile .
-docker push ghcr.io/intertwin-eu/itwinai:0.0.1-mnist-torch-0.1
+# Optionally, push the image to the containers registry
+docker push ghcr.io/intertwin-eu/itwinai-dev:mnist-torch-0.0.1
 ```
+
+Find more base image candidates under:
+
+- <https://github.com/interTwin-eu/itwinai/pkgs/container/itwinai>
+- <https://github.com/interTwin-eu/itwinai/pkgs/container/itwinai-dev>
 
 ### Training with Docker container
 
 ```bash
 docker run -it --rm --name running-inference \
-    -v "$PWD":/usr/data ghcr.io/intertwin-eu/itwinai:0.01-mnist-torch-0.1 \
+    -v "$PWD":/usr/data ghcr.io/intertwin-eu/itwinai-dev:mnist-torch-0.0.1 \
     /bin/bash -c "itwinai exec-pipeline \
-    --config-path /usr/src/app \
+    --config-path /app \
     +pipe_key=training_pipeline \
     dataset_root=/usr/data/mnist-dataset "
 ```
@@ -136,12 +140,12 @@ From wherever a sample of MNIST jpg images is available
 
 ```bash
 docker run -it --rm --name running-inference \
-    -v "$PWD":/usr/data ghcr.io/intertwin-eu/itwinai:0.01-mnist-torch-0.1 \
+    -v "$PWD":/usr/data ghcr.io/intertwin-eu/itwinai-dev:mnist-torch-0.0.1 \
     /bin/bash -c "itwinai exec-pipeline \
-    --config-path /usr/src/app \
+    --config-path /app \
     +pipe_key=inference_pipeline \
     test_data_path=/usr/data/mnist-sample-data \
-    inference_model_mlflow_uri=/usr/src/app/mnist-pre-trained.pth \
+    inference_model_mlflow_uri=/app/mnist-pre-trained.pth \
     predictions_dir=/usr/data/mnist-predictions "
 ```
 

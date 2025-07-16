@@ -11,8 +11,6 @@
 # Singularity definition file for ROCm with PyTorch, starting from ROCm base image provided
 # by LUMI and AMD. Allows for editable installation of the itwinai project.
 
-# Acquire the base image for rocm pytorch for lumi, by running the following command in the terminal:
-# singularity pull rocm-base-pytorch.sif oras://registry.egi.eu/dev.intertwin.eu/itwinai-dev:lumi-pytorch-rocm-6.1.3-python-3.12-pytorch-v2.4.1
 
 # To build from local image
 Bootstrap: localimage
@@ -86,8 +84,8 @@ From: rocm-base-pytorch.sif
     # Install in editable mode. For development on LUMI, mount the src directory to /app/src.
     pip install --no-cache-dir --no-binary=horovod -e \
         .[torch,dev,amd] \
-        --extra-index-url https://download.pytorch.org/whl/rocm6.1 \
-        "prov4ml[amd]@git+https://github.com/matbun/ProvML@v0.0.1" \
+        --extra-index-url https://download.pytorch.org/whl/rocm6.2 \
+        "prov4ml[amd]@git+https://github.com/matbun/ProvML@v0.0.2" \
         pytest pytest-xdist psutil wheel
 
 %labels

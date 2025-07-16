@@ -49,7 +49,7 @@ class TorchModelLoader(ModelLoader):
         """
         if Path(self.model_uri).exists():
             # Model is on local filesystem.
-            checkpoint = torch.load(self.model_uri)
+            checkpoint = torch.load(self.model_uri, weights_only=False)
 
             if isinstance(checkpoint, dict) and "model_state_dict" in checkpoint:
                 if self.model_class is None:
