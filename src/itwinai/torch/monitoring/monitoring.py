@@ -156,8 +156,8 @@ def measure_gpu_utilization(method: Callable) -> Callable:
         if not self.logger:
             py_logger.warning(
                 f"No loggers set, while measure_gpu_data is set to {self.measure_gpu_data}"
-                    " Please provide loggers so measure_gpu_data can log."
-                    " Skipping GPU logging."
+                " Please provide loggers so measure_gpu_data can log."
+                " Skipping GPU logging."
             )
             return method(self, *args, **kwargs)
 
