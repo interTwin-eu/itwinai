@@ -17,11 +17,12 @@ import mlflow
 import mlflow.tracking
 import pandas as pd
 
+from itwinai.constants import RELATIVE_MLFLOW_PATH
 from itwinai.scalability_report.utils import check_contains_columns
 from itwinai.torch.mlflow import get_gpu_data_by_run, get_run_metrics_as_df
-from itwinai.utils import RELATIVE_MLFLOW_PATH
 
 py_logger = logging.getLogger(__name__)
+
 
 def read_gpu_metrics_from_mlflow(
     experiment_name: str,

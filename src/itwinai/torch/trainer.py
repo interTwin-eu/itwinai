@@ -46,9 +46,10 @@ from itwinai.torch.monitoring.monitoring import measure_gpu_utilization
 from itwinai.torch.profiling.profiler import profile_torch_trainer
 
 from ..components import Trainer, monitor_exec
+from ..constants import BASE_EXP_NAME, EPOCH_TIME_DIR
 from ..distributed import ray_cluster_is_running
-from ..loggers import BASE_EXP_NAME, EpochTimeTracker, Logger, LogMixin, contains_mlflow_logger
-from ..utils import EPOCH_TIME_DIR, generate_random_name, load_yaml, time_and_log, to_uri
+from ..loggers import EpochTimeTracker, Logger, LogMixin, contains_mlflow_logger
+from ..utils import generate_random_name, load_yaml, time_and_log, to_uri
 from .config import TrainingConfiguration
 from .distributed import (
     DeepSpeedStrategy,

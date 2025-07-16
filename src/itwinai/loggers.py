@@ -74,17 +74,9 @@ import os
 from abc import ABC, abstractmethod
 from contextlib import contextmanager
 from pathlib import Path
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Callable,
-    Dict,
-    List,
-    Literal,
-    Tuple,
-)
+from typing import TYPE_CHECKING, Any, Callable, Dict, List, Literal, Tuple
 
-BASE_EXP_NAME: str = "unnamed-experiment"
+from .constants import BASE_EXP_NAME
 
 if TYPE_CHECKING:
     import mlflow

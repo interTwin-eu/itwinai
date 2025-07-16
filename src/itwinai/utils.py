@@ -29,68 +29,10 @@ import yaml
 from omegaconf import DictConfig, ListConfig, OmegaConf, errors
 from requests.exceptions import ConnectionError, HTTPError, RequestException, Timeout
 
+from .constants import adjectives, names
 from .loggers import Logger
 
 py_logger = logging.getLogger(__name__)
-
-# Directory names for logging and profiling data
-COMPUTATION_DATA_DIR = "computation-data"
-EPOCH_TIME_DIR = "epoch-time"
-RELATIVE_MLFLOW_PATH = Path("mllogs/mlflow")
-
-# mlflow
-MLFLOW_MAX_RESULTS = 5000
-
-adjectives = [
-    "quantum",
-    "relativistic",
-    "wavy",
-    "entangled",
-    "chiral",
-    "tachyonic",
-    "superluminal",
-    "anomalous",
-    "hypercharged",
-    "fermionic",
-    "hadronic",
-    "quarky",
-    "holographic",
-    "dark",
-    "force-sensitive",
-    "chaotic",
-]
-
-names = [
-    "neutrino",
-    "graviton",
-    "muon",
-    "gluon",
-    "tachyon",
-    "quasar",
-    "pulsar",
-    "blazar",
-    "meson",
-    "boson",
-    "hyperon",
-    "starlord",
-    "groot",
-    "rocket",
-    "yoda",
-    "skywalker",
-    "sithlord",
-    "midichlorian",
-    "womp-rat",
-    "beskar",
-    "mandalorian",
-    "ewok",
-    "vibranium",
-    "nova",
-    "gamora",
-    "drax",
-    "ronan",
-    "thanos",
-    "cosmo",
-]
 
 
 def generate_random_name():

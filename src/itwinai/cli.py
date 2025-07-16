@@ -33,8 +33,7 @@ import typer
 from omegaconf import DictConfig
 from typing_extensions import Annotated
 
-from itwinai.loggers import BASE_EXP_NAME
-from itwinai.utils import COMPUTATION_DATA_DIR, EPOCH_TIME_DIR
+from .constants import BASE_EXP_NAME, COMPUTATION_DATA_DIR, EPOCH_TIME_DIR
 
 app = typer.Typer(pretty_exceptions_enable=False)
 
