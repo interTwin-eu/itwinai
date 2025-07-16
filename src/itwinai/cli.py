@@ -33,6 +33,7 @@ import typer
 from omegaconf import DictConfig
 from typing_extensions import Annotated
 
+from itwinai.loggers import BASE_EXP_NAME
 from itwinai.utils import COMPUTATION_DATA_DIR, EPOCH_TIME_DIR, GPU_DATA_DIR
 
 app = typer.Typer(pretty_exceptions_enable=False)
@@ -160,7 +161,7 @@ def generate_scalability_report(
     experiment_name: Annotated[
         str,
         typer.Option(help="The name of the experiment to use for the GPU data report."),
-    ],
+    ] = BASE_EXP_NAME,
     log_dir: Annotated[
         str,
         typer.Option(help=("Which directory to search for the scalability metrics in.")),

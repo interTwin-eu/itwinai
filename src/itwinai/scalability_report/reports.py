@@ -124,7 +124,7 @@ def gpu_data_report(
     run_names: List[str] | None = None,
     plot_file_suffix: str = ".png",
     ray_footnote: str | None = None,
-) -> str:
+) -> str | None:
     """Generates reports and plots for GPU energy consumption and utilization across
     distributed training strategies. Includes bar plots for energy consumption and GPU
     utilization by strategy and number of GPUs.
@@ -160,6 +160,8 @@ def gpu_data_report(
     gpu_data_df = read_gpu_metrics_from_mlflow(
         experiment_name=experiment_name, run_names=run_names
     )
+    if gpu_data_df is None:
+        return None
 
     cli_logger.info("\nAnalyzing GPU Data...")
     gpu_data_statistics_df = calculate_gpu_statistics(

@@ -8,6 +8,7 @@
 # - Matteo Bunino <matteo.bunino@cern.ch> - CERN
 # --------------------------------------------------------------------------------------
 
+import logging
 from pathlib import Path
 from typing import List, Set
 
@@ -19,11 +20,12 @@ from itwinai.scalability_report.utils import check_contains_columns
 from itwinai.torch.mlflow import get_gpu_data_by_run, get_run_metrics_as_df
 from itwinai.utils import RELATIVE_MLFLOW_PATH
 
+py_logger = logging.getLogger(__name__)
 
 def read_gpu_metrics_from_mlflow(
     experiment_name: str,
     run_names: List[str] | None = None,
-) -> pd.DataFrame:
+) -> pd.DataFrame | None:
     """Reads and validates GPU metrics from a mlflow experiment and combines them into a
     single DataFrame.
 
@@ -33,12 +35,8 @@ def read_gpu_metrics_from_mlflow(
         in the experiment will be considered.
 
     Returns:
-        pd.DataFrame: A DataFrame containing the concatenated data from all valid CSV
+        pd.DataFrame | None: A DataFrame containing the concatenated data from all valid CSV
         files in the directory.
-
-    Raises:
-        ValueError: If the experiment does not exist in MLflow, or if no runs are found
-        matching the specified names.
     """
     mlflow_path = RELATIVE_MLFLOW_PATH.resolve()
     mlflow.set_tracking_uri(mlflow_path)
@@ -46,9 +44,11 @@ def read_gpu_metrics_from_mlflow(
 
     experiment = mlflow_client.get_experiment_by_name(name=experiment_name)
     if experiment is None:
-        raise ValueError(
+        py_logger.warning(
             f"Experiment '{experiment_name}' does not exist in MLflow at path '{mlflow_path}'."
         )
+        return None
+
     if not run_names:
         # get all run IDs from the experiment
         runs = mlflow_client.search_runs(experiment_ids=[experiment.experiment_id])
@@ -68,9 +68,11 @@ def read_gpu_metrics_from_mlflow(
             gpu_dataframes.append(get_run_metrics_as_df(mlflow_client, gpu_run))
 
     if not gpu_dataframes:
-        raise ValueError(
+        py_logger.warning(
             f"No GPU metrics found for experiment '{experiment_name}' with runs: {run_names}."
         )
+        return None
+
     gpu_data_df = pd.concat(gpu_dataframes)
 
     return gpu_data_df
