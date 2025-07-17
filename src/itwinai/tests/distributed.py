@@ -4,13 +4,14 @@ import socket
 import subprocess
 import sys
 from pathlib import Path
+from typing import Literal
 
 import ray
 import torch
 import torch.distributed as dist
 import typer
 from ray.train import RunConfig, ScalingConfig
-from ray.train.torch import TorchTrainer
+from ray.train.torch import TorchConfig, TorchTrainer
 
 
 def test_cuda():
@@ -93,51 +94,42 @@ def test_rocm():
         typer.echo("Skipping librccl lookup (no ROCm root)")
 
 
-def test_nccl():
-    """Test NCCL all-reduce connectivity (use with torchrun)."""
-    typer.echo("\nTesting NCCL all-reduce connectivity:")
-    dist.init_process_group(backend="nccl", init_method="env://")
+def test_all_reduce(backend: Literal["nccl", "gloo"]):
+    """Test all-reduce connectivity using the specified backend."""
+    typer.echo(f"\nTesting {backend.upper()} all-reduce connectivity:")
+
+    # initialize
+    dist.init_process_group(backend=backend, init_method="env://")
     rank = dist.get_rank()
     world = dist.get_world_size()
 
-    # Assign GPU based on rank
-    device_count = torch.cuda.device_count()
-    if device_count > 0:
+    # pick device
+    if backend == "nccl":
+        device_count = torch.cuda.device_count()
+        if device_count == 0:
+            sys.exit("ERROR: No CUDA devices available for NCCL backend.")
         torch.cuda.set_device(rank % device_count)
-        x = torch.tensor([float(rank)], device="cuda")
-    else:
-        sys.exit("ERROR: No CUDA devices for NCCL backend.")
+        device = torch.device("cuda")
+    else:  # gloo
+        device = torch.device("cpu")
 
-    # Perform all-reduce sum
+    # build tensor and all-reduce
+    x = torch.tensor([float(rank)], device=device)
     dist.all_reduce(x, op=dist.ReduceOp.SUM)
+
+    # only rank 0 reports
     if rank == 0:
         expected = float(sum(range(world)))
         typer.echo(f"SUM={x.item():.1f}, expected={expected:.1f}")
 
+    # cleanup
     dist.destroy_process_group()
-    typer.echo("NCCL test completed successfully.")
+    typer.echo(f"{backend.upper()} test completed successfully.")
 
 
-def test_gloo():
-    """Test Gloo all-reduce connectivity (use with torchrun)."""
-    typer.echo("\nTesting Gloo all-reduce connectivity:")
-    dist.init_process_group(backend="gloo", init_method="env://")
-    rank = dist.get_rank()
-    world = dist.get_world_size()
-
-    # CPU tensor
-    x = torch.tensor([float(rank)])
-    dist.all_reduce(x, op=dist.ReduceOp.SUM)
-    if rank == 0:
-        typer.echo(f"Gloo SUM OK: {x.item():.1f} (expected {sum(range(world)):.1f})")
-
-    dist.destroy_process_group()
-    typer.echo("Gloo test completed successfully.")
-
-
-def test_ray():
-    """Test Ray TorchTrainer distributed training."""
-    typer.echo("\nTesting Ray TorchTrainer distributed training:")
+def test_ray(backend: Literal["nccl", "gloo"]):
+    """Test Ray TorchTrainer distributed training with selectable backend."""
+    typer.echo(f"\nTesting Ray TorchTrainer distributed training (backend={backend}):")
     typer.echo(f"Ray version: {ray.__version__}")
 
     # Connect to existing Ray cluster
@@ -147,7 +139,7 @@ def test_ray():
     except Exception as e:
         sys.exit(f"ERROR: Failed to initialize Ray cluster: {e}")
 
-    # Define the per-worker training loop
+    # Per-worker training loop
     def train_loop(config):
         import torch
         import torch.nn as nn
@@ -156,51 +148,56 @@ def test_ray():
 
         ctx = train.get_context()
         rank = ctx.get_local_rank()
-        device = torch.device(
-            "cuda", rank % torch.cuda.device_count() if torch.cuda.is_available() else "cpu"
+        device = (
+            torch.device("cuda", rank % torch.cuda.device_count())
+            if torch.cuda.is_available()
+            else torch.device("cpu")
         )
 
-        # simple linear model
+        # simple model
         model = nn.Linear(10, 1).to(device)
         model = train.torch.prepare_model(model)
 
         optimizer = optim.SGD(model.parameters(), lr=0.01)
         loss_fn = nn.MSELoss()
 
-        # synthetic data
+        # synthetic data and one step
         x = torch.randn(32, 10, device=device)
         y = torch.randn(32, 1, device=device)
-
-        # one training step
         optimizer.zero_grad()
-        pred = model(x)
-        loss = loss_fn(pred, y)
+        loss = loss_fn(model(x), y)
         loss.backward()
         optimizer.step()
 
-        # report loss back to driver
         train.report({"loss": loss.item()})
 
+    # How many GPUs are available
     num_gpus = int(ray.cluster_resources().get("GPU", 0))
-    # Launch the trainer
+    use_gpu = num_gpus > 0
+    if use_gpu:
+        num_workers = num_gpus
+        typer.echo(f"Found {num_gpus} GPUs, so Ray will spawn {num_workers} workers")
+    else:
+        # This is a CPU-only job
+        num_workers = 4  # This is a magic number, could be improved
+        typer.echo(f"Found NO GPUs, so Ray will spawn {num_workers} CPU-only workers")
+
     trainer = TorchTrainer(
         train_loop,
         scaling_config=ScalingConfig(
-            num_workers=num_gpus,  # change as needed
-            use_gpu=True,  # each worker gets 1 GPU
+            num_workers=num_workers,
+            use_gpu=use_gpu,
         ),
-        run_config=RunConfig(
-            name="ray-torch-test",
-        ),
+        torch_config=TorchConfig(backend=backend),
+        run_config=RunConfig(name="ray-torch-backend-test"),
     )
 
     # Execute training
     result = trainer.fit()
 
-    # Print per-worker losses
-    typer.echo("Final losses per worker:")
+    # Show per-worker losses
+    typer.echo("\nFinal losses per worker:")
     typer.echo(result.metrics_dataframe.to_string(index=False))
 
-    # Clean up
     ray.shutdown()
     typer.echo("RAY test completed successfully.")

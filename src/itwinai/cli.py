@@ -408,7 +408,7 @@ def sanity_check(
 @app.command()
 def check_distributed_cluster(
     platform: Annotated[
-        str, typer.Option(help=("Hardware platform: nvidia or amd"))
+        str, typer.Option(help=("Hardware platform: nvidia, arm, or amd"))
     ] = "nvidia",
     launcher: Annotated[
         str, typer.Option(help=("Distributed ML cluster: torchrun or ray"))
@@ -418,24 +418,41 @@ def check_distributed_cluster(
     for torch distributed. Useful when working with containers on HPC.
     Remember to prepend *torchrun* in front of this command or to start a *Ray* cluster.
     """
-    from itwinai.tests.distributed import test_cuda, test_gloo, test_nccl, test_ray, test_rocm
+    from itwinai.tests.distributed import test_all_reduce, test_cuda, test_ray, test_rocm
 
-    match platform:
-        case "nvidia":
+    match (platform, launcher):
+        case ("nvidia", "torchrun"):
             test_cuda()
-        case "amd":
-            test_rocm()
-        case _:
-            type.echo("Unrecognized platform!")
+            test_all_reduce(backend="gloo")
+            test_all_reduce(backend="nccl")
 
-    match launcher:
-        case "torchrun":
-            test_gloo()
-            test_nccl()
-        case "ray":
-            test_ray()
+        case ("nvidia", "ray"):
+            test_cuda()
+            test_ray(backend="gloo")
+            test_ray(backend="nccl")
+
+        case ("amd", "torchrun"):
+            test_rocm()
+            test_all_reduce(backend="gloo")
+            test_all_reduce(backend="nccl")
+
+        case ("amd", "ray"):
+            test_rocm()
+            test_ray(backend="gloo")
+            test_ray(backend="nccl")
+
+        case ("arm", "torchrun"):
+            test_all_reduce(backend="gloo")
+
+        case ("arm", "ray"):
+            test_ray(backend="gloo")
+
         case _:
-            type.echo("Unrecognized launcher!")
+            typer.echo(
+                "Unrecognized platform or launcher! "
+                f"You specified: platform={platform}, launcher={launcher}"
+            )
+            raise typer.Exit(code=1)
 
 
 @app.command(context_settings={"allow_extra_args": True, "ignore_unknown_options": True})

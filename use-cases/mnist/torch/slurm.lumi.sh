@@ -118,6 +118,7 @@ if [ -z "$TRAINING_CMD" ]; then
 fi
 if [ -z "$CONTAINER_PATH" ]; then 
   >&2 echo "WARNING: env variable CONTAINER_PATH is not set."
+  exit 1
 fi
 
 

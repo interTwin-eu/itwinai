@@ -22,6 +22,7 @@ use_adasum: False
 gradient_predivide_factor: 1.0
 epochs: 5
 strategy: ddp
+communication_backend: nccl
 test_data_path: mnist-sample-data
 inference_model_mlflow_uri: mnist-pre-trained.pth
 predictions_dir: mnist-predictions
@@ -32,6 +33,10 @@ checkpoint_every: 1
 
 # Ray
 ray_num_workers: 2
+ray_gpus_per_worker: 1  # can be 0.0 < 1.0 as long as num_workers set to 1
+ray_cpus_per_worker: 3
+ray_num_trials: 1 # how many HPO trials
+ray_use_gpu: true
 
 # Workflows configuration
 training_pipeline:
@@ -50,6 +55,7 @@ training_pipeline:
       run_id: ${run_id}
       # from_checkpoint: ${itwinai.cwd:}/checkpoints_ddp/best_model/
       config:
+        dist_backend: ${communication_backend}
         batch_size: ${batch_size}
         num_workers_dataloader: ${num_workers_dataloader}
         pin_gpu_memory: ${pin_memory}
@@ -62,10 +68,10 @@ training_pipeline:
       ray_scaling_config:
         _target_: ray.train.ScalingConfig
         num_workers: ${ray_num_workers}
-        use_gpu: true
+        use_gpu: ${ray_use_gpu}
         resources_per_worker:
-          CPU: 3
-          GPU: 1 # can be 0.0 < 1.0 as long as num_workers set to 1
+          CPU: ${ray_cpus_per_worker}
+          GPU: ${ray_gpus_per_worker}
       ray_tune_config:
         _target_: ray.tune.TuneConfig
         num_samples: 1
