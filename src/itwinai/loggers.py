@@ -94,7 +94,6 @@ class LogMixin(ABC):
         kind: str = "metric",
         step: int | None = None,
         batch_idx: int | None = None,
-        force: bool = False,
         **kwargs,
     ) -> None:
         """Log ``item`` with ``identifier`` name of ``kind`` type at ``step``
@@ -246,18 +245,16 @@ class Logger(LogMixin):
             self.destroy_logger_context()
 
     @abstractmethod
-    def create_logger_context(self, rank: int = 0, force: bool = False, **kwargs) -> Any:
+    def create_logger_context(self, rank: int = 0, **kwargs) -> Any:
         """Initializes the logger context.
 
         Args:
             rank (int): global rank of current process,
                 used in distributed environments. Defaults to 0.
-            force (bool): if True, force logger initialization even if self.should_log()
-                returns False.
         """
 
     @abstractmethod
-    def destroy_logger_context(self, force: bool = False) -> None:
+    def destroy_logger_context(self) -> None:
         """Destroy logger."""
 
     @abstractmethod
@@ -356,18 +353,16 @@ class ConsoleLogger(Logger):
         super().__init__(savedir=cl_savedir, log_freq=log_freq, log_on_workers=log_on_workers)
 
     @check_not_initialized
-    def create_logger_context(self, rank: int = 0, force: bool = False, **kwargs):
+    def create_logger_context(self, rank: int = 0, **kwargs):
         """Initializes the logger context.
 
         Args:
             rank (int): global rank of current process,
                 used in distributed environments. Defaults to 0.
-            force (bool): if True, force logger initialization even if self.should_log()
-                returns False.
         """
         self.worker_rank = rank
 
-        if not self.should_log() and not force:
+        if not self.should_log():
             self.is_initialized = True
             return
 
@@ -389,7 +384,7 @@ class ConsoleLogger(Logger):
         self.is_initialized = True
 
     @check_initialized
-    def destroy_logger_context(self, force: bool = False) -> None:
+    def destroy_logger_context(self) -> None:
         """Destroy logger. Do nothing."""
 
     @check_initialized
@@ -412,7 +407,6 @@ class ConsoleLogger(Logger):
         kind: str = "metric",
         step: int | None = None,
         batch_idx: int | None = None,
-        force: bool = False,
         **kwargs,
     ) -> None:
         """Print metrics to stdout and save artifacts to the filesystem.
@@ -429,7 +423,7 @@ class ConsoleLogger(Logger):
                 (i.e., batch idx), if available. Defaults to None.
             kwargs: keyword arguments to pass to the logger.
         """
-        if not self.should_log(batch_idx=batch_idx) and not force:
+        if not self.should_log(batch_idx=batch_idx):
             return
 
         if kind == "artifact":
@@ -542,7 +536,6 @@ class MLFlowLogger(Logger):
     def create_logger_context(
         self,
         rank: int = 0,
-        force: bool = False,
         **kwargs,
     ) -> "mlflow.ActiveRun | None":
         """Initializes the logger context. Start MLFLow run.
@@ -550,8 +543,6 @@ class MLFlowLogger(Logger):
         Args:
             rank (int): global rank of current process,
                 used in distributed environments. Defaults to 0.
-            force (bool): if True, force logger initialization even if self.should_log()
-                returns False.
 
             kwargs:
                 - ``run_id`` (Optional[str]): MLFlow run ID to attach to.
@@ -568,7 +559,7 @@ class MLFlowLogger(Logger):
         run_name = kwargs.get("run_name")
 
         self.worker_rank = rank
-        if not self.should_log() and not force:
+        if not self.should_log():
             self.is_initialized = True
             return
 
@@ -604,9 +595,9 @@ class MLFlowLogger(Logger):
         return self.active_run
 
     @check_initialized
-    def destroy_logger_context(self, force: bool = False) -> None:
+    def destroy_logger_context(self) -> None:
         """Destroy logger. End current MLFlow run."""
-        if not self.should_log() and not force:
+        if not self.should_log():
             return
 
         self.mlflow.end_run()
@@ -632,7 +623,6 @@ class MLFlowLogger(Logger):
         kind: str = "metric",
         step: int | None = None,
         batch_idx: int | None = None,
-        force: bool = False,
         **kwargs,
     ) -> None:
         """Log with MLFlow.
@@ -650,7 +640,7 @@ class MLFlowLogger(Logger):
             kwargs: keyword arguments to pass to the logger.
 
         """
-        if not self.should_log(batch_idx=batch_idx) and not force:
+        if not self.should_log(batch_idx=batch_idx):
             return
 
         if kind == "metric":
@@ -766,18 +756,16 @@ class WandBLogger(Logger):
         self.wandb = wandb
 
     @check_not_initialized
-    def create_logger_context(self, rank: int = 0, force: bool = False, **kwargs) -> None:
+    def create_logger_context(self, rank: int = 0, **kwargs) -> None:
         """Initializes the logger context. Init WandB run.
 
         Args:
             rank (int): global rank of current process, used in distributed environments.
                 Defaults to 0.
-            force (bool): if True, force logger initialization even if self.should_log()
-                returns False.
         """
         self.worker_rank = rank
 
-        if not self.should_log() and not force:
+        if not self.should_log():
             self.is_initialized = True
             return
 
@@ -792,9 +780,9 @@ class WandBLogger(Logger):
         self.is_initialized = True
 
     @check_initialized
-    def destroy_logger_context(self, force: bool = False) -> None:
+    def destroy_logger_context(self) -> None:
         """Destroy logger."""
-        if not self.should_log() and not force:
+        if not self.should_log():
             return
         self.wandb.finish()
 
@@ -818,7 +806,6 @@ class WandBLogger(Logger):
         kind: str = "metric",
         step: int | None = None,
         batch_idx: int | None = None,
-        force: bool = False,
         **kwargs,
     ) -> None:
         """Log with WandB. Wrapper of https://docs.wandb.ai/ref/python/log
@@ -835,7 +822,7 @@ class WandBLogger(Logger):
                 (i.e., batch idx), if available. Defaults to None.
             kwargs: keyword arguments to pass to the logger.
         """
-        if not self.should_log(batch_idx=batch_idx) and not force:
+        if not self.should_log(batch_idx=batch_idx):
             return
 
         if kind == "watch":
@@ -904,18 +891,16 @@ class TensorBoardLogger(Logger):
         #     raise ValueError("Framework must be either 'tensorflow' or 'pytorch'")
 
     @check_not_initialized
-    def create_logger_context(self, rank: int = 0, force: bool = False, **kwargs) -> None:
+    def create_logger_context(self, rank: int = 0, **kwargs) -> None:
         """Initializes the logger context. Init Tensorboard run.
 
         Args:
             rank (int): global rank of current process,
                 used in distributed environments. Defaults to 0.
-            force (bool): if True, force logger initialization even if self.should_log()
-                returns False.
         """
         self.worker_rank = rank
 
-        if not self.should_log() and not force:
+        if not self.should_log():
             self.is_initialized = True
             return
 
@@ -940,9 +925,9 @@ class TensorBoardLogger(Logger):
         self.is_initialized = True
 
     @check_initialized
-    def destroy_logger_context(self, force: bool = False) -> None:
+    def destroy_logger_context(self) -> None:
         """Destroy logger."""
-        if not self.should_log() and not force:
+        if not self.should_log():
             return
 
         self.writer.close()
@@ -987,7 +972,6 @@ class TensorBoardLogger(Logger):
         kind: str = "metric",
         step: int | None = None,
         batch_idx: int | None = None,
-        force: bool = False,
         **kwargs,
     ) -> None:
         """Log with Tensorboard.
@@ -1004,7 +988,7 @@ class TensorBoardLogger(Logger):
                 (i.e., batch idx), if available. Defaults to None.
             kwargs: keyword arguments to pass to the logger.
         """
-        if not self.should_log(batch_idx=batch_idx) and not force:
+        if not self.should_log(batch_idx=batch_idx):
             return
 
         if self.framework == "tensorflow":
@@ -1065,7 +1049,6 @@ class LoggersCollection(Logger):
         kind: str = "metric",
         step: int | None = None,
         batch_idx: int | None = None,
-        force: bool = False,
         **kwargs,
     ) -> None:
         """Log on all loggers.
@@ -1089,29 +1072,26 @@ class LoggersCollection(Logger):
                 kind=kind,
                 step=step,
                 batch_idx=batch_idx,
-                force=force,
                 **kwargs,
             )
 
-    def create_logger_context(self, rank: int = 0, force: bool = False, **kwargs) -> None:
+    def create_logger_context(self, rank: int = 0, **kwargs) -> None:
         """Initializes all loggers.
 
         Args:
             rank (int): global rank of current process,
                 used in distributed environments. Defaults to 0.
-            force (bool): if True, force logger initialization even if self.should_log()
-                returns False.
         """
         for logger in self.loggers:
-            logger.create_logger_context(rank=rank, force=force, **kwargs)
+            logger.create_logger_context(rank=rank, **kwargs)
 
         self.is_initialized = True
 
     @check_initialized
-    def destroy_logger_context(self, force: bool = False) -> None:
+    def destroy_logger_context(self) -> None:
         """Destroy all loggers."""
         for logger in self.loggers:
-            logger.destroy_logger_context(force=force)
+            logger.destroy_logger_context()
 
     @check_initialized
     def save_hyperparameters(self, params: Dict[str, Any]) -> None:
@@ -1194,18 +1174,16 @@ class Prov4MLLogger(Logger):
         self.mlflow = mlflow
 
     @check_not_initialized
-    def create_logger_context(self, rank: int = 0, force: bool = False, **kwargs) -> None:
+    def create_logger_context(self, rank: int = 0, **kwargs) -> None:
         """Initializes the logger context.
 
         Args:
             rank (int): global rank of current process,
                 used in distributed environments. Defaults to 0.
-            force (bool): if True, force logger initialization even if self.should_log()
-                returns False.
         """
         self.worker_rank = rank
 
-        if not self.should_log() and not force:
+        if not self.should_log():
             self.is_initialized = True
             return
 
@@ -1223,9 +1201,9 @@ class Prov4MLLogger(Logger):
         self.is_initialized = True
 
     @check_initialized
-    def destroy_logger_context(self, force: bool = False) -> None:
+    def destroy_logger_context(self) -> None:
         """Destroy logger."""
-        if not self.should_log() and not force:
+        if not self.should_log():
             return
 
         self.prov4ml.end_run(create_graph=self.create_graph, create_svg=self.create_svg)
@@ -1248,7 +1226,6 @@ class Prov4MLLogger(Logger):
         step: int | None = None,
         batch_idx: int | None = None,
         context: str | None = "training",
-        force: bool = False,
         **kwargs,
     ) -> None:
         """Logs with Prov4ML.
@@ -1266,7 +1243,7 @@ class Prov4MLLogger(Logger):
             kwargs: keyword arguments to pass to the logger.
         """
 
-        if not self.should_log(batch_idx=batch_idx) and not force:
+        if not self.should_log(batch_idx=batch_idx):
             return
 
         if kind == "metric":
@@ -1336,10 +1313,10 @@ class EmptyLogger(Logger):
     ) -> None:
         super().__init__(savedir, log_freq, log_on_workers)
 
-    def create_logger_context(self, rank: int = 0, force: bool = False, **kwargs):
+    def create_logger_context(self, rank: int = 0, **kwargs):
         pass
 
-    def destroy_logger_context(self, force: bool = False) -> None:
+    def destroy_logger_context(self) -> None:
         pass
 
     def save_hyperparameters(self, params: Dict[str, Any]) -> None:
@@ -1352,7 +1329,6 @@ class EmptyLogger(Logger):
         kind: str = "metric",
         step: int | None = None,
         batch_idx: int | None = None,
-        force: bool = False,
         **kwargs,
     ) -> None:
         pass

@@ -80,13 +80,10 @@ def profile_gpu_utilization(
 
     sample_idx = 0
 
-    run_name = f"gpu_{global_rank}"
-    if parent_run_id is None:
-        run_name = f"{root_run_name}_gpu_{global_rank}"
+    run_name = f"worker_{global_rank}_gpu"
 
     logger.create_logger_context(
         rank=global_rank,
-        force=True,
         parent_run_id=parent_run_id,
         run_name=run_name,
     )
@@ -94,25 +91,21 @@ def profile_gpu_utilization(
         item=strategy_name,
         identifier="strategy",
         kind="param",
-        force=True,
     )
     logger.log(
         item=global_rank,
         identifier="global_rank",
         kind="param",
-        force=True,
     )
     logger.log(
         item=global_world_size,
         identifier="num_global_gpus",
         kind="param",
-        force=True,
     )
     logger.log(
         item=probing_interval,
         identifier="probing_interval",
         kind="param",
-        force=True,
     )
 
     t_start = time.monotonic()  # fractional seconds
@@ -128,20 +121,18 @@ def profile_gpu_utilization(
             identifier="gpu_power_W",
             kind="metric",
             step=int(time_stamp),
-            force=True,
         )
         logger.log(
             item=gpu_util,
             identifier="gpu_utilization_percent",
             kind="metric",
             step=int(time_stamp),
-            force=True,
         )
 
         sample_idx += 1
         time.sleep(probing_interval)
 
-    logger.destroy_logger_context(force=True)
+    logger.destroy_logger_context()
 
 
 def measure_gpu_utilization(method: Callable) -> Callable:
@@ -163,19 +154,11 @@ def measure_gpu_utilization(method: Callable) -> Callable:
 
         gpu_probing_interval = 1
         warmup_time = 5
+        # destroy logger context to enable logging on a new run
+        self.logger.destroy_logger_context()
 
         strategy = self.strategy
-        parent_run_id = None
-
-        if (
-            isinstance(strategy, RayTorchDistributedStrategy)
-            and contains_mlflow_logger(self.logger)
-        ):
-            trial_name = ray.tune.get_context().get_trial_name()
-            # The trial index are the last 5 characters of the trial name
-            # (e.g. 2 in "TorchTrainer_a6b44_00002")
-            trial_idx = int(trial_name.split("_")[-1])
-            parent_run_id = self.mlflow_trial_run_ids[trial_idx]
+        parent_run_id = self.mlflow_train_run_id
 
         local_rank = strategy.local_rank()
         global_rank = strategy.global_rank()

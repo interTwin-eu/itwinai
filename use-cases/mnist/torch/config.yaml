@@ -118,6 +118,7 @@ training_pipeline:
             experiment_name: ${experiment_name}
             log_freq: epoch
             run_name: ${run_id}
+            log_on_workers: -1
             tracking_uri: null
       strategy: ${strategy}
       checkpoint_every: ${checkpoint_every}
