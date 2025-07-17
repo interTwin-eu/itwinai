@@ -17,7 +17,6 @@
 #SBATCH --cpus-per-task=48
 #SBATCH --ntasks-per-node=1
 #SBATCH --exclusive
-#SBATCH --mem=128G
 
 
 set -e
