@@ -966,8 +966,7 @@ class TorchTrainer(Trainer, LogMixin):
             # create logger on worker level
             self.logger.create_logger_context(
                 rank=self.strategy.global_rank(),
-                parent_run_id=self.mlflow_tune_run_id,
-                run_id=self.mlflow_train_run_id,
+                parent_run_id=self.mlflow_train_run_id,
                 run_name=worker_run_name,
             )
             py_logger.debug("...the logger has been initialized")

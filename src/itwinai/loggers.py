@@ -536,7 +536,7 @@ class MLFlowLogger(Logger):
         self.mlflow.set_experiment(experiment_name=self.experiment_name)
 
 
-    @check_initialized
+    @check_not_initialized
     def create_logger_context(
         self,
         rank: int = 0,
@@ -1086,7 +1086,7 @@ class LoggersCollection(Logger):
                 **kwargs,
             )
 
-    @check_initialized
+    @check_not_initialized
     def create_logger_context(self, rank: int = 0, **kwargs) -> None:
         """Initializes all loggers.
 

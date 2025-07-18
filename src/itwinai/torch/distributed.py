@@ -653,9 +653,10 @@ class TorchDDPStrategy(TorchDistributedStrategy):
         Returns:
             Any: broadcasted object.
         """
+        obj_list = [obj]
         # https://pytorch.org/docs/stable/distributed.html#collective-functions
-        dist.broadcast_object_list([obj], src=src_rank)
-        return obj
+        dist.broadcast_object_list(obj_list, src=src_rank)
+        return obj_list[0]
 
 
 class DeepSpeedStrategy(TorchDistributedStrategy):
@@ -883,9 +884,10 @@ class DeepSpeedStrategy(TorchDistributedStrategy):
         Returns:
             Any: broadcasted object.
         """
+        obj_list = [obj]
         # https://pytorch.org/docs/stable/distributed.html#collective-functions
-        dist.broadcast_object_list([obj], src=src_rank)
-        return obj
+        dist.broadcast_object_list(obj_list, src=src_rank)
+        return obj_list[0]
 
 
 class HorovodStrategy(TorchDistributedStrategy):

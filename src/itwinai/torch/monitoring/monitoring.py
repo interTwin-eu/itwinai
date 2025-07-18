@@ -16,6 +16,7 @@ from multiprocessing import Manager, Process
 from multiprocessing.managers import ValueProxy
 from typing import TYPE_CHECKING, Any, Callable
 
+from ...loggers import Logger
 from .backend import detect_gpu_backend
 
 if TYPE_CHECKING:
@@ -33,7 +34,6 @@ def profile_gpu_utilization(
     global_world_size: int,
     strategy_name: str,
     logger: Logger,
-    root_run_name: str,
     parent_run_id: str | None = None,
     probing_interval: int = 2,
     warmup_time: int = 5,
@@ -170,7 +170,6 @@ def measure_gpu_utilization(method: Callable) -> Callable:
                 "global_world_size": strategy.global_world_size(),
                 "strategy_name": strategy.name,
                 "logger": self.logger,
-                "root_run_name": self.run_id,
                 "parent_run_id": parent_run_id,
                 "probing_interval": gpu_probing_interval,
                 "warmup_time": warmup_time,
