@@ -29,12 +29,12 @@ TOT_GPUS=$(( NNODES * NGPUS_PER_NODE ))
 
 # DDP itwinai
 DIST_MODE="ddp"
-run_id="$DIST_MODE-${1:-itwinai}"
-TRAINING_CMD="$PYTHON_VENV/bin/itwinai exec-pipeline strategy=ddp checkpoints_location=checkpoints_ddp run_id=$run_id +pipe_key=training_pipeline ray_num_workers=$TOT_GPUS"
-sbatch --export=ALL,DIST_MODE="$DIST_MODE",run_id="$run_id",TRAINING_CMD="$TRAINING_CMD",PYTHON_VENV="$PYTHON_VENV" \
-    --job-name="$run_id-n$TOT_GPUS" \
-    --output="logs_slurm/job-$run_id-n$TOT_GPUS.out" \
-    --error="logs_slurm/job-$run_id-n$TOT_GPUS.err" \
+run_name="$DIST_MODE-${1:-itwinai}"
+TRAINING_CMD="$PYTHON_VENV/bin/itwinai exec-pipeline strategy=ddp checkpoints_location=checkpoints_ddp run_name=$run_name +pipe_key=training_pipeline ray_num_workers=$TOT_GPUS"
+sbatch --export=ALL,DIST_MODE="$DIST_MODE",run_name="$run_name",TRAINING_CMD="$TRAINING_CMD",PYTHON_VENV="$PYTHON_VENV" \
+    --job-name="$run_name-n$TOT_GPUS" \
+    --output="logs_slurm/job-$run_name-n$TOT_GPUS.out" \
+    --error="logs_slurm/job-$run_name-n$TOT_GPUS.err" \
     --nodes=$NNODES \
     --gpus-per-node=$NGPUS_PER_NODE \
     --gres=gpu:$NGPUS_PER_NODE \
@@ -42,12 +42,12 @@ sbatch --export=ALL,DIST_MODE="$DIST_MODE",run_id="$run_id",TRAINING_CMD="$TRAIN
 
 # DeepSpeed itwinai
 DIST_MODE="deepspeed"
-run_id="$DIST_MODE-${1:-itwinai}"
-TRAINING_CMD="$PYTHON_VENV/bin/itwinai exec-pipeline strategy=deepspeed checkpoints_location=checkpoints_deepspeed run_id=$run_id +pipe_key=training_pipeline ray_num_workers=$TOT_GPUS"
-sbatch --export=ALL,DIST_MODE="$DIST_MODE",run_id="$run_id",TRAINING_CMD="$TRAINING_CMD",PYTHON_VENV="$PYTHON_VENV" \
-    --job-name="$run_id-n$TOT_GPUS" \
-    --output="logs_slurm/job-$run_id-n$TOT_GPUS.out" \
-    --error="logs_slurm/job-$run_id-n$TOT_GPUS.err" \
+run_name="$DIST_MODE-${1:-itwinai}"
+TRAINING_CMD="$PYTHON_VENV/bin/itwinai exec-pipeline strategy=deepspeed checkpoints_location=checkpoints_deepspeed run_name=$run_name +pipe_key=training_pipeline ray_num_workers=$TOT_GPUS"
+sbatch --export=ALL,DIST_MODE="$DIST_MODE",run_name="$run_name",TRAINING_CMD="$TRAINING_CMD",PYTHON_VENV="$PYTHON_VENV" \
+    --job-name="$run_name-n$TOT_GPUS" \
+    --output="logs_slurm/job-$run_name-n$TOT_GPUS.out" \
+    --error="logs_slurm/job-$run_name-n$TOT_GPUS.err" \
     --nodes=$NNODES \
     --gpus-per-node=$NGPUS_PER_NODE \
     --gres=gpu:$NGPUS_PER_NODE \
@@ -55,12 +55,12 @@ sbatch --export=ALL,DIST_MODE="$DIST_MODE",run_id="$run_id",TRAINING_CMD="$TRAIN
 
 # Horovod itwinai
 DIST_MODE="horovod"
-run_id="$DIST_MODE-${1:-itwinai}"
-TRAINING_CMD="$PYTHON_VENV/bin/itwinai exec-pipeline strategy=horovod checkpoints_location=checkpoints_hvd run_id=$run_id +pipe_key=training_pipeline ray_num_workers=$TOT_GPUS"
-sbatch --export=ALL,DIST_MODE="$DIST_MODE",run_id="$run_id",TRAINING_CMD="$TRAINING_CMD",PYTHON_VENV="$PYTHON_VENV" \
-    --job-name="$run_id-n$TOT_GPUS" \
-    --output="logs_slurm/job-$run_id-n$TOT_GPUS.out" \
-    --error="logs_slurm/job-$run_id-n$TOT_GPUS.err" \
+run_name="$DIST_MODE-${1:-itwinai}"
+TRAINING_CMD="$PYTHON_VENV/bin/itwinai exec-pipeline strategy=horovod checkpoints_location=checkpoints_hvd run_name=$run_name +pipe_key=training_pipeline ray_num_workers=$TOT_GPUS"
+sbatch --export=ALL,DIST_MODE="$DIST_MODE",run_name="$run_name",TRAINING_CMD="$TRAINING_CMD",PYTHON_VENV="$PYTHON_VENV" \
+    --job-name="$run_name-n$TOT_GPUS" \
+    --output="logs_slurm/job-$run_name-n$TOT_GPUS.out" \
+    --error="logs_slurm/job-$run_name-n$TOT_GPUS.err" \
     --nodes=$NNODES \
     --gpus-per-node=$NGPUS_PER_NODE \
     --gres=gpu:$NGPUS_PER_NODE \

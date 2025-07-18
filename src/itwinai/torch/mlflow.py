@@ -9,10 +9,15 @@
 
 import logging
 from pathlib import Path
-from typing import Dict
+from typing import Dict, List
 
 import mlflow
+import mlflow.tracking
+import pandas as pd
 import yaml
+from mlflow.entities import Run
+
+from ..constants import MLFLOW_MAX_RESULTS
 
 py_logger = logging.getLogger(__name__)
 
@@ -96,3 +101,110 @@ def teardown_lightning_mlflow() -> None:
     """End active mlflow run, if any."""
     if mlflow.active_run() is not None:
         mlflow.end_run()
+
+
+def get_gpu_data_by_run(
+    mlflow_client: mlflow.tracking.MlflowClient,
+    experiment_id: str,
+    run: Run,
+) -> List[Run]:
+    """Get all GPU worker runs associated with a given run.
+    This function assumes that the GPU worker runs are either:
+    - Nested under the trial runs of a tuner run
+    - Named with a suffix '_gpu_<worker_rank>' in the case of flat runs (non-ray)
+
+    Args:
+        mlflow_client (mlflow.tracking.MlflowClient): MLFlow client to use.
+        experiment_id (str): The ID of the experiment to search in.
+        run (mlflow.entities.Run): The run from which to collect GPU worker runs.
+
+    Returns:
+        List[Run]: A list of runs that are GPU workers associated with the given run.
+    """
+
+    def _children(parent_run_id: str) -> List[Run]:
+        return mlflow_client.search_runs(
+            [experiment_id],
+            filter_string=f"tags.mlflow.parentRunId = '{parent_run_id}'",
+        )
+
+    first_level = _children(run.info.run_id)
+    if first_level:
+        # Assumes that the gpu is in the second level of the hierarchy
+        # (tune_run -> trial_run -> gpu_worker)
+        gpu_runs: List[Run] = []
+        for child in first_level:
+            for grand_child in _children(child.info.run_id):
+                if grand_child.info.run_name.startswith("gpu_"):
+                    gpu_runs.append(grand_child)
+
+        return gpu_runs
+
+    # If no nesting, the gpu runs are found by the suffix _gpu_<worker_rank>
+    flat_gpu_runs = mlflow_client.search_runs(
+        [experiment_id],
+        filter_string=f"attributes.run_name LIKE '{run.info.run_name}_gpu_%'",
+        max_results=MLFLOW_MAX_RESULTS,
+    )
+
+    return flat_gpu_runs
+
+
+def get_metric_names(run: Run) -> List[str]:
+    """Get the names of all metrics logged in a run."""
+    run_data = run.data.to_dictionary()
+    metric_names = list(run_data["metrics"].keys())
+    return metric_names
+
+
+def get_params(run: Run) -> Dict[str, str]:
+    """Get the parameters logged in a run."""
+    run_data = run.data.to_dictionary()
+    params = run_data["params"]
+    return params
+
+
+def get_run_metrics_as_df(
+    mlflow_client: mlflow.MlflowClient,
+    run: Run,
+    metric_names: List[str] | None = None,
+):
+    """Collect all metrics logged in a run and return them as a tidy DataFrame.
+
+    Args:
+        mlflow_client (mlflow.MlflowClient): MLFlow client to use.
+        run (mlflow.entities.Run): The run from which to collect metrics.
+        metric_names (List[str] | None): If provided, only these metrics
+            will be collected. If None, all metrics will be collected.
+    Returns:
+        pd.DataFrame: A DataFrame containing the metrics, with columns:
+            - metric_name: the name of the metric
+            - sample_idx: the step index of the metric
+            - timestamp: the timestamp of the metric
+            - value: the value of the metric
+            - all parameters logged in the run
+    """
+    if metric_names is None:
+        metric_names = get_metric_names(run)
+
+    params = get_params(run)
+
+    collected_metrics = []
+    for metric_name in metric_names:
+        metric_history = mlflow_client.get_metric_history(
+            run_id=run.info.run_id, key=metric_name
+        )
+        pd_convertible_metric_history = [
+            {
+                "metric_name": metric.key,
+                "sample_idx": int(metric.step),
+                "timestamp": int(metric.timestamp),
+                "value": metric.value,
+                **params,
+            }
+            for metric in metric_history
+        ]
+        collected_metrics += pd_convertible_metric_history
+
+    metrics_df = pd.DataFrame.from_records(collected_metrics)
+    return metrics_df

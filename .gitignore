@@ -48,6 +48,8 @@ mllogs/
 lightning_logs/
 mlruns/
 ray_checkpoints/
+plots/
+
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

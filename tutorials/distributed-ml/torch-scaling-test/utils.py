@@ -16,8 +16,8 @@ from torch.optim.optimizer import Optimizer
 from torch.utils.data import DataLoader, Subset
 from torchvision import datasets, transforms
 
+from itwinai.constants import EPOCH_TIME_DIR
 from itwinai.parser import ArgumentParser as ItwinaiArgParser
-from itwinai.utils import EPOCH_TIME_DIR
 
 
 def imagenet_dataset(data_root: str, subset_size: int | None = None):
@@ -28,9 +28,7 @@ def imagenet_dataset(data_root: str, subset_size: int | None = None):
             transforms.RandomHorizontalFlip(),
             transforms.RandomVerticalFlip(),
             transforms.RandomRotation(degrees=45),
-            transforms.ColorJitter(
-                brightness=0.5, contrast=0.5, saturation=0.5, hue=0.5
-            ),
+            transforms.ColorJitter(brightness=0.5, contrast=0.5, saturation=0.5, hue=0.5),
             transforms.CenterCrop(224),
             transforms.ToTensor(),
             transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
@@ -77,7 +75,7 @@ def get_parser() -> ItwinaiArgParser:
     parser.add_argument(
         "--data-dir",
         default="./",
-        help=("location of the training dataset in the " "local filesystem"),
+        help=("location of the training dataset in the local filesystem"),
     )
     parser.add_argument(
         "--log-int",
@@ -89,7 +87,7 @@ def get_parser() -> ItwinaiArgParser:
         "--nworker",
         type=int,
         default=0,
-        help=("number of workers in DataLoader " "(default: 0 - only main)"),
+        help=("number of workers in DataLoader (default: 0 - only main)"),
     )
     parser.add_argument(
         "--prefetch",
@@ -106,9 +104,7 @@ def get_parser() -> ItwinaiArgParser:
     parser.add_argument(
         "--epochs", type=int, default=10, help="number of epochs to train (default: 10)"
     )
-    parser.add_argument(
-        "--lr", type=float, default=0.01, help="learning rate (default: 0.01)"
-    )
+    parser.add_argument("--lr", type=float, default=0.01, help="learning rate (default: 0.01)")
     parser.add_argument(
         "--momentum",
         type=float,
@@ -158,7 +154,7 @@ def get_parser() -> ItwinaiArgParser:
         "--gradient-predivide-factor",
         type=float,
         default=1.0,
-        help="apply gradient pre-divide factor in optimizer " "(default: 1.0)",
+        help="apply gradient pre-divide factor in optimizer (default: 1.0)",
     )
     parser.add_argument(
         "--strategy",

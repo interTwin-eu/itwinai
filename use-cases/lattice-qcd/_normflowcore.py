@@ -28,7 +28,7 @@ from torch.utils.data import Dataset
 import torch.optim.lr_scheduler as lr_scheduler
 import numpy as np
 
-from itwinai.utils import EPOCH_TIME_DIR
+from itwinai.constants import EPOCH_TIME_DIR
 
 from .mcmc import MCMCSampler, BlockedMCMCSampler
 from .lib.combo import estimate_logz, fmt_val_err
