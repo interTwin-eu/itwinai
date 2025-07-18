@@ -177,7 +177,7 @@ def generate_scalability_report(
             )
         ),
     ] = False,
-    run_ids: Annotated[
+    run_names: Annotated[
         str | None,
         typer.Option(
             help=(
@@ -234,18 +234,18 @@ def generate_scalability_report(
     if not log_dir_path.exists():
         raise ValueError(f"The provided log_dir, '{log_dir_path.resolve()}', does not exist.")
 
-    if run_ids:
-        run_ids_list = run_ids.split(",")
-        base_directories_for_runs = [log_dir_path / run_id for run_id in run_ids_list]
-        # Ensure that all passed run_ids actually exist as directories
+    if run_names:
+        run_names_list = run_names.split(",")
+        base_directories_for_runs = [log_dir_path / run_name for run_name in run_names_list]
+        # Ensure that all passed run_names actually exist as directories
         non_existent_paths = [
             str(path.resolve()) for path in base_directories_for_runs if not path.exists()
         ]
         if non_existent_paths:
-            py_logger.warning(f"Given run_id paths do not exist: '{non_existent_paths}'!")
+            py_logger.warning(f"Given run_names paths do not exist: '{non_existent_paths}'!")
     else:
         # Ensure that all elements in log_dir are directories
-        run_ids_list = None
+        run_names_list = None
         non_directory_paths = [
             str(path.resolve()) for path in log_dir_path.iterdir() if not path.is_dir()
         ]
@@ -300,7 +300,7 @@ def generate_scalability_report(
     gpu_data_table = gpu_data_report(
         plot_dir=plot_dir_path,
         experiment_name=experiment_name,
-        run_names=run_ids_list,
+        run_names=run_names_list,
         plot_file_suffix=plot_file_suffix,
         ray_footnote=ray_footnote,
     )

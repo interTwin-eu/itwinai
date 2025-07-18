@@ -10,7 +10,7 @@
 
 # General config
 experiment_name: mnist-classifier
-run_id: mnist-usecase-0
+run_name: mnist-usecase-0
 dataset_root: .tmp/
 num_classes: 10
 batch_size: 128
@@ -46,13 +46,12 @@ training_pipeline:
       save_path: ${dataset_root}
     training_step:
       _target_: itwinai.torch.trainer.TorchTrainer
-      experiment_name: ${experiment_name}
       measure_gpu_data: true
       enable_torch_profiling: true
       store_torch_profiling_traces: false
       measure_epoch_time: true
       time_ray: True # track time for ray report and fit
-      run_id: ${run_id}
+      run_name: ${run_name}
       # from_checkpoint: ${itwinai.cwd:}/checkpoints_ddp/best_model/
       config:
         batch_size: ${batch_size}
@@ -117,7 +116,7 @@ training_pipeline:
           - _target_: itwinai.loggers.MLFlowLogger
             experiment_name: ${experiment_name}
             log_freq: epoch
-            run_name: ${run_id}
+            run_name: ${run_name}
             log_on_workers: -1
             tracking_uri: null
       strategy: ${strategy}

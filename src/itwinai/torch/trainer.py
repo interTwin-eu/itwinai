@@ -138,7 +138,7 @@ class TorchTrainer(Trainer, LogMixin):
             validation loss is computed. Example values are "inf" and "-inf", depending on
             wether the best validation metric should be minimized or maximized.
             Defaults to "inf".
-        run_id (str, optional): name used to identify a specific run when collecting
+        run_name (str, optional): name used to identify a specific run when collecting
             metrics on the trainer (e.g. GPU utilization). Defaults to None.
         time_ray (bool): whether to time and log the execution of Ray functions. Defaults to
             False.
@@ -183,7 +183,7 @@ class TorchTrainer(Trainer, LogMixin):
     #: Toggle for epoch time tracking
     measure_epoch_time: bool = False
     #: Run ID
-    run_id: str
+    run_name: str
     #: Toggle for Ray time logging
     time_ray: bool = False
     # Tune run id for nested runs in mlflow
@@ -217,7 +217,7 @@ class TorchTrainer(Trainer, LogMixin):
         ray_data_config: DataConfig | None = None,
         from_checkpoint: Path | str | None = None,
         initial_best_validation_metric: str = "inf",
-        run_id: str | None = None,
+        run_name: str | None = None,
         time_ray: bool = False,
     ) -> None:
         super().__init__(name)
@@ -305,10 +305,10 @@ class TorchTrainer(Trainer, LogMixin):
                 )
             self.experiment_id = experiment.experiment_id
 
-        if run_id is None:
-            run_id = generate_random_name()
+        if run_name is None:
+            run_name = generate_random_name()
 
-        self.run_id = run_id
+        self.run_name = run_name
 
     @property
     def strategy(self) -> TorchDistributedStrategy:
@@ -851,8 +851,13 @@ class TorchTrainer(Trainer, LogMixin):
 
         if self.mlflow_logger:
             # Create mlflow runs per trial (will be started by the trial's main worker)
-            tune_run = self.mlflow_client.create_run(self.experiment_id, run_name=self.run_id)
+            tune_run = self.mlflow_client.create_run(
+                self.experiment_id, run_name=self.run_name
+            )
+            # start and stop run to ensure it exists in MLflow before logging
             self.mlflow_tune_run_id = tune_run.info.run_id
+            mlflow.start_run(run_id=self.mlflow_tune_run_id)
+            mlflow.end_run()
 
         # Passes datasets to workers efficiently through Ray storage
         train_with_data = ray.tune.with_parameters(
@@ -948,12 +953,15 @@ class TorchTrainer(Trainer, LogMixin):
                         self.mlflow_tune_run_id,
                     )
                 else:
-                    train_run_name = self.run_id
+                    train_run_name = self.run_name
                     train_run = self.mlflow_client.create_run(
                         self.experiment_id, run_name=train_run_name
                     )
 
                 self.mlflow_train_run_id = train_run.info.run_id
+                # start and stop run to ensure it exists in MLflow before logging
+                mlflow.start_run(run_id=self.mlflow_train_run_id)
+                mlflow.end_run()
                 worker_run_name += " (main)"
 
             # broadcast trial_run_id from main worker to all workers
@@ -1161,7 +1169,7 @@ class TorchTrainer(Trainer, LogMixin):
             Any: The trained model
         """
 
-        epoch_time_output_dir = Path(f"scalability-metrics/{self.run_id}/{EPOCH_TIME_DIR}")
+        epoch_time_output_dir = Path(f"scalability-metrics/{self.run_name}/{EPOCH_TIME_DIR}")
         epoch_time_file_name = (
             f"epochtime_{self.strategy.name}_{self.strategy.global_world_size()}N.csv"
         )

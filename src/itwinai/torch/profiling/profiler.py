@@ -106,7 +106,7 @@ def profile_torch_trainer(method: Callable) -> Callable:
         self.profiling_warmup_epochs = warmup_epochs
         if self.store_torch_profiling_traces:
             trace_handler = tensorboard_trace_handler(
-                dir_name=f"scalability-metrics/{self.run_id}/torch-traces",
+                dir_name=f"scalability-metrics/{self.run_name}/torch-traces",
                 worker_name=f"worker_{self.strategy.global_rank()}"
             )
         else:
@@ -138,7 +138,7 @@ def profile_torch_trainer(method: Callable) -> Callable:
         profiling_dataframe["strategy"] = strategy_name
         profiling_dataframe["num_gpus"] = num_gpus_global
         profiling_dataframe["global_rank"] = global_rank
-        profiling_log_dir = Path(f"scalability-metrics/{self.run_id}/{COMPUTATION_DATA_DIR}")
+        profiling_log_dir = Path(f"scalability-metrics/{self.run_name}/{COMPUTATION_DATA_DIR}")
         profiling_log_dir.mkdir(parents=True, exist_ok=True)
 
         filename = f"{strategy_name}_{num_gpus_global}_{global_rank}.csv"
