@@ -16,11 +16,6 @@ from multiprocessing import Manager, Process
 from multiprocessing.managers import ValueProxy
 from typing import TYPE_CHECKING, Any, Callable
 
-import ray.tune
-
-from itwinai.torch.distributed import RayTorchDistributedStrategy
-
-from ...loggers import Logger, contains_mlflow_logger
 from .backend import detect_gpu_backend
 
 if TYPE_CHECKING:

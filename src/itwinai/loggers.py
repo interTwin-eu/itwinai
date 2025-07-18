@@ -532,7 +532,11 @@ class MLFlowLogger(Logger):
         import mlflow
 
         self.mlflow = mlflow
+        self.mlflow.set_tracking_uri(self.tracking_uri)
+        self.mlflow.set_experiment(experiment_name=self.experiment_name)
 
+
+    @check_initialized
     def create_logger_context(
         self,
         rank: int = 0,
@@ -562,9 +566,6 @@ class MLFlowLogger(Logger):
         if not self.should_log():
             self.is_initialized = True
             return
-
-        self.mlflow.set_tracking_uri(self.tracking_uri)
-        self.mlflow.set_experiment(experiment_name=self.experiment_name)
 
         active_run = self.mlflow.active_run()
 
@@ -1018,7 +1019,11 @@ class LoggersCollection(Logger):
     """Wrapper of a set of loggers, allowing to use them simultaneously.
 
     Args:
-        loggers (List[Logger]): list of itwinai loggers.
+        loggers (List[Logger]): list of itwinai loggers. only one logger of each type is
+        allowed in the collection.
+
+    Raises:
+        ValueError: when multiple loggers of the same type are passed.
     """
 
     #: Supported kinds are delegated to the loggers in the collection.
@@ -1026,6 +1031,12 @@ class LoggersCollection(Logger):
 
     def __init__(self, loggers: List[Logger]) -> None:
         super().__init__(savedir=Path("/tmp/mllogs_LoggersCollection"), log_freq=1)
+        logger_types = [type(logger) for logger in loggers]
+        if len(set(logger_types)) != len(logger_types):
+            raise ValueError(
+                f"{self.__class__.__name__} does not allow for multiple loggers of the same"
+                f" type. Received: {logger_types}"
+            )
         self.loggers = loggers
 
     def should_log(self, batch_idx: int = None) -> bool:
@@ -1075,6 +1086,7 @@ class LoggersCollection(Logger):
                 **kwargs,
             )
 
+    @check_initialized
     def create_logger_context(self, rank: int = 0, **kwargs) -> None:
         """Initializes all loggers.
 
@@ -1389,9 +1401,17 @@ class EpochTimeTracker:
         py_logger.info(f"Saving EpochTimeLogging data to '{self.save_path.resolve()}'.")
 
 
-def contains_mlflow_logger(logger: Logger) -> bool:
-    """checks if logger contains or is an MLFlowLogger"""
-    if not isinstance(logger, LoggersCollection):
-        return isinstance(logger, MLFlowLogger)
+def get_mlflow_logger(logger: Logger | None) -> MLFlowLogger | None:
+    """Returns mlflow logger if found in the logger or its collection of loggers, otherwise,
+    returns None."""
+    if logger is None:
+        return None
 
-    return any(isinstance(logger_obj, MLFlowLogger) for logger_obj in logger.loggers)
+    if not isinstance(logger, LoggersCollection):
+        if isinstance(logger, MLFlowLogger):
+            return logger
+        return None
+
+    return next((l for l in logger.loggers if isinstance(l, MLFlowLogger)), None) # noqa: E741
+
+
