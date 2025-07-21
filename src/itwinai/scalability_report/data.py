@@ -53,10 +53,9 @@ def read_gpu_metrics_from_mlflow(
 
     if not run_names:
         # get all run IDs from the experiment that are not-nested
-        runs = mlflow.search_runs(
-            experiment_ids=[experiment.experiment_id],
-            filter_string="attributes.parent_run_id IS NULL"
-        )
+        runs = mlflow_client.search_runs([experiment.experiment_id])
+        runs = [run for run in runs if 'mlflow.parentRunId' not in run.data.tags]
+
     else:
         runs = []
         # get all runs in the experiment
