@@ -38,11 +38,21 @@ py_logger = logging.getLogger(__name__)
 
 
 def normalize_tracking_uri(uri: str) -> str:
+    """Normalize a tracking URI to a valid URI.
+    If the URI is empty, it will be treated as the current directory.
+
+    Args:
+        uri (str): URI to normalize.
+
+    Returns:
+        str: Normalized URI.
+    """
     if not uri:
         # treat uri as current path if empty string
+        py_logger.warning("Empty tracking URI provided, using current directory.")
         uri = "."
     parsed = urlparse(uri)
-    # If scheme is empty, treat as local path
+    # If scheme is empty, treat as path
     if parsed.scheme == "":
         return Path(uri).resolve().as_uri()
     # If url is a file, normalize the path portion

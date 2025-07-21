@@ -1036,7 +1036,7 @@ class LoggersCollection(Logger):
     """Wrapper of a set of loggers, allowing to use them simultaneously.
 
     Args:
-        loggers (List[Logger]): list of itwinai loggers. only one logger of each type is
+        loggers (List[Logger]): List of itwinai loggers. Only one logger of each type is
         allowed in the collection.
 
     Raises:
@@ -1422,16 +1422,17 @@ class EpochTimeTracker:
 
 
 def get_mlflow_logger(logger: Logger | None) -> MLFlowLogger | None:
-    """Returns mlflow logger if found in the logger or its collection of loggers, otherwise,
-    returns None."""
+    """Finds and returns the MLFlowLogger if present in the given logger."""
     if logger is None:
         return None
 
-    if not isinstance(logger, LoggersCollection):
-        if isinstance(logger, MLFlowLogger):
-            return logger
-        return None
+    if isinstance(logger, LoggersCollection):
+        return next((l for l in logger.loggers if isinstance(l, MLFlowLogger)), None) # noqa: E741
 
-    return next((l for l in logger.loggers if isinstance(l, MLFlowLogger)), None) # noqa: E741
+    if isinstance(logger, MLFlowLogger):
+        return logger
+
+    return None
+
 
 

@@ -159,7 +159,7 @@ def generate_py_spy_report(
 def generate_scalability_report(
     experiment_name: Annotated[
         str,
-        typer.Option(help="The name of the experiment to use for the GPU data report."),
+        typer.Option(help="The name of the mlflow experiment to use for the GPU data report."),
     ] = BASE_EXP_NAME,
     log_dir: Annotated[
         str,
@@ -181,7 +181,8 @@ def generate_scalability_report(
         str | None,
         typer.Option(
             help=(
-                "Which run ids to read, presented as comma-separated values, e.g. 'run0,run1'."
+                "Which run names to read, presented as comma-separated values"
+                " e.g. 'run0,run1'."
             )
         ),
     ] = None,

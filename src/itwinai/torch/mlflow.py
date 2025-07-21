@@ -108,8 +108,8 @@ def get_gpu_data_by_run(
 ) -> List[Run]:
     """Get all GPU worker runs associated with a given run.
     This function assumes that the GPU worker runs are either:
-    - Nested under the trial runs of a tuner run (if  Ray was used)
-    - Nested under the training run (if no Ray was used)
+    - Nested under the trial runs of a tuner run (if Ray was used)
+    - Nested under the training run (if Ray was not used)
 
     Args:
         mlflow_client (mlflow.tracking.MlflowClient): MLFlow client to use.
@@ -126,17 +126,19 @@ def get_gpu_data_by_run(
             filter_string=f"tags.mlflow.parentRunId = '{parent_run_id}'",
         )
 
-    first_level = _children(run.info.run_id)
-    if not first_level:
+    first_level_children = _children(run.info.run_id)
+    gpu_runs: List[Run] = []
+
+    if not first_level_children:
         py_logger.warning(
             f"No child runs found for run ID {run.info.run_id} in experiment {experiment_id}."
         )
+        return gpu_runs
 
-    gpu_runs: List[Run] = []
-    for child in first_level:
-        second_level = _children(child.info.run_id)
-        if second_level:
-            for grand_child in second_level:
+    for child in first_level_children:
+        second_level_children = _children(child.info.run_id)
+        if second_level_children:
+            for grand_child in second_level_children:
                 if any("gpu" in metric for metric in grand_child.data.metrics):
                     gpu_runs.append(grand_child)
         else:

@@ -16,9 +16,6 @@ EPOCH_TIME_DIR = "epoch-time"
 RELATIVE_MLFLOW_PATH = Path("mllogs/mlflow")
 BASE_EXP_NAME: str = "unnamed-experiment"
 
-# mlflow
-MLFLOW_MAX_RESULTS = 5000
-
 adjectives = [
     "quantum",
     "relativistic",

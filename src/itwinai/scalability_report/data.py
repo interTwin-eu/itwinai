@@ -83,9 +83,7 @@ def read_gpu_metrics_from_mlflow(
         )
         return None
 
-    gpu_data_df = pd.concat(gpu_dataframes)
-
-    return gpu_data_df
+    return pd.concat(gpu_dataframes)
 
 
 def read_scalability_metrics_from_csv(
