@@ -936,12 +936,12 @@ class TorchTrainer(Trainer, LogMixin):
             worker_run_name = f"worker_{self.strategy.global_rank()}"
 
             if self.mlflow_logger:
-                # set the tracking uri and experiment for each worker
+                # Set the tracking uri and experiment for each worker
                 mlflow.set_tracking_uri(self.mlflow_logger.tracking_uri)
                 mlflow.set_experiment(self.mlflow_logger.experiment_name)
 
             if self.strategy.is_main_worker and self.mlflow_logger:
-                # if a tune_run_id is set, we create a nested run (Ray)
+                # If a tune_run_id is set, we create a nested run (Ray)
                 if self.mlflow_tune_run_id:
                     train_run_name = ray.tune.get_context().get_trial_name()
                     train_run = self.mlflow_client.create_run(
@@ -959,19 +959,20 @@ class TorchTrainer(Trainer, LogMixin):
                     )
 
                 self.mlflow_train_run_id = train_run.info.run_id
-                # start and stop run to remove pending status in mlflow
+                # Start and stop run to remove pending status in mlflow
                 self.mlflow_logger.mlflow.start_run(run_id=self.mlflow_train_run_id)
                 self.mlflow_logger.mlflow.end_run()
                 worker_run_name += " (main)"
 
-            # broadcast trial_run_id from main worker to all workers
+            # Broadcast trial_run_id from main worker to all workers
+            # Ensure the broadcasted value is not None (Horovod otherwise deadlocks)
             self.mlflow_train_run_id = self.strategy.broadcast_obj(
-                self.mlflow_train_run_id, src_rank=0
+                self.mlflow_train_run_id or "", src_rank=0
             )
             py_logger.debug(
                 f"Broadcasted mlflow_trial_run_id {self.mlflow_train_run_id} to all workers"
             )
-            # create logger on worker level
+            # Create logger on worker level
             self.logger.create_logger_context(
                 rank=self.strategy.global_rank(),
                 parent_run_id=self.mlflow_train_run_id,

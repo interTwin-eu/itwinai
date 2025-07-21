@@ -1077,16 +1077,8 @@ class HorovodStrategy(TorchDistributedStrategy):
         Returns:
             Any: broadcasted object.
         """
-        if self.global_rank() != src_rank:
-            # set object to None if not on src_rank
-            obj = None
-
-        # Workaround instead of using hvd.broadcast_object() as the built-in broadcast does not
-        # work properly and leads to deadlocks.
-        result = self.allgather_obj(obj)
-        result = [r for r in result if r is not None]
-
-        return result[0] if result else None
+        # https://horovod.readthedocs.io/en/stable/_modules/horovod/torch/functions.html#broadcast_object
+        return self.hvd.broadcast_object(obj, root_rank=src_rank)
 
 
 
