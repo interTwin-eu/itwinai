@@ -77,6 +77,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, Callable, Dict, List, Literal, Tuple
 
 from .constants import BASE_EXP_NAME
+from .utils import normalize_tracking_uri
 
 if TYPE_CHECKING:
     import mlflow
@@ -197,7 +198,7 @@ class Logger(LogMixin):
 
     @property
     def experiment_id(self) -> str | None:
-        """Return the experiment name."""
+        """Return the experiment id."""
         return self._experiment_id
 
     @property
@@ -504,6 +505,7 @@ class MLFlowLogger(Logger):
 
     #: Current MLFLow experiment's run.
     active_run: "mlflow.ActiveRun"
+    tracking_uri: str
 
     def __init__(
         self,
@@ -517,7 +519,6 @@ class MLFlowLogger(Logger):
     ):
         mfl_savedir = Path(savedir) / "mlflow"
         super().__init__(savedir=mfl_savedir, log_freq=log_freq, log_on_workers=log_on_workers)
-        self.tracking_uri = tracking_uri
         self.run_description = run_description
         self.run_name = run_name
         self.experiment_name = experiment_name
@@ -525,16 +526,20 @@ class MLFlowLogger(Logger):
         mfl_savedir.mkdir(parents=True, exist_ok=True)
 
         self.tracking_uri = (
-            self.tracking_uri
+            tracking_uri
             or os.environ.get("MLFLOW_TRACKING_URI")
             or Path(self.savedir).resolve().as_uri()
         )
+        # make sure it is an absolute path
+        self.tracking_uri = normalize_tracking_uri(self.tracking_uri)
+        print("linus logger init", self.tracking_uri)
         import mlflow
 
         self.mlflow = mlflow
         self.mlflow.set_tracking_uri(self.tracking_uri)
-        self.mlflow.set_experiment(experiment_name=self.experiment_name)
-
+        self._experiment_id = self.mlflow.set_experiment(
+            experiment_name=self.experiment_name
+        ).experiment_id
 
     @check_not_initialized
     def create_logger_context(
@@ -558,11 +563,18 @@ class MLFlowLogger(Logger):
         Returns:
             mlflow.ActiveRun: active MLFlow run.
         """
+        # set tracking uri here again, as in multi-worker settings self.mlflow may reset
+        self.mlflow.set_tracking_uri(self.tracking_uri)
+        self._experiment_id = self.mlflow.set_experiment(
+            experiment_name=self.experiment_name
+        ).experiment_id
+
         run_id = kwargs.get("run_id")
         parent_run_id = kwargs.get("parent_run_id")
         run_name = kwargs.get("run_name")
 
         self.worker_rank = rank
+        print(f"linus should log {self.should_log()}")
         if not self.should_log():
             self.is_initialized = True
             return
@@ -590,7 +602,6 @@ class MLFlowLogger(Logger):
             )
 
         self._run_id = self.active_run.info.run_id
-        self._experiment_id = self.active_run.info.experiment_id
         self.is_initialized = True
 
         return self.active_run
@@ -602,6 +613,7 @@ class MLFlowLogger(Logger):
             return
 
         self.mlflow.end_run()
+        self.is_initialized = False
 
     @check_initialized
     def save_hyperparameters(self, params: Dict[str, Any]) -> None:
@@ -703,6 +715,11 @@ class MLFlowLogger(Logger):
         elif kind == "text":
             self.mlflow.log_text(artifact_file=identifier, text=item)
 
+    @property
+    def experiment_id(self) -> str:
+        """Return the experiment id."""
+        return self._experiment_id
+
 
 class WandBLogger(Logger):
     """Abstraction around WandB logger.
@@ -786,6 +803,7 @@ class WandBLogger(Logger):
         if not self.should_log():
             return
         self.wandb.finish()
+        self.is_initialized = False
 
     @check_initialized
     def save_hyperparameters(self, params: Dict[str, Any]) -> None:
@@ -932,6 +950,7 @@ class TensorBoardLogger(Logger):
             return
 
         self.writer.close()
+        self.is_initialized = False
 
     @check_initialized
     def save_hyperparameters(self, params: Dict[str, Any]) -> None:
@@ -1105,6 +1124,8 @@ class LoggersCollection(Logger):
         for logger in self.loggers:
             logger.destroy_logger_context()
 
+        self.is_initialized = False
+
     @check_initialized
     def save_hyperparameters(self, params: Dict[str, Any]) -> None:
         """Save hyperparameters for all loggers.
@@ -1219,6 +1240,7 @@ class Prov4MLLogger(Logger):
             return
 
         self.prov4ml.end_run(create_graph=self.create_graph, create_svg=self.create_svg)
+        self.is_initialized = False
 
     @check_initialized
     def save_hyperparameters(self, params: Dict[str, Any]) -> None:

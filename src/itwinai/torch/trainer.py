@@ -14,6 +14,7 @@
 """Provides training logic for PyTorch models via Trainer classes."""
 
 import logging
+import os
 import sys
 import tempfile
 from collections import defaultdict
@@ -188,6 +189,10 @@ class TorchTrainer(Trainer, LogMixin):
     time_ray: bool = False
     # Tune run id for nested runs in mlflow
     mlflow_tune_run_id: str | None = None
+    # train run id
+    mlflow_train_run_id: str | None = None
+    # worker run_id
+    mlflow_worker_run_id: str | None = None
 
     def __init__(
         self,
@@ -264,7 +269,7 @@ class TorchTrainer(Trainer, LogMixin):
         self.ray_data_config = ray_data_config
         self.from_checkpoint = from_checkpoint
         self.time_ray = time_ray
-        self.mlflow_train_run_id = None
+
         if self.from_checkpoint:
             self.from_checkpoint = Path(self.from_checkpoint)
             if not self.from_checkpoint.exists():
@@ -295,15 +300,11 @@ class TorchTrainer(Trainer, LogMixin):
 
         self.mlflow_logger = get_mlflow_logger(logger)
         if self.mlflow_logger:
+            print("linus tracking uri ", self.mlflow_logger.tracking_uri)
             self.mlflow_client = mlflow.tracking.MlflowClient(self.mlflow_logger.tracking_uri)
-            experiment = self.mlflow_client.get_experiment_by_name(
-                self.mlflow_logger.experiment_name
-            )
-            if experiment is None:
-                raise ValueError(
-                    f"No experiment could be found under {self.mlflow_logger.experiment_name}."
-                )
-            self.experiment_id = experiment.experiment_id
+            print("linus mlflow client: ", self.mlflow_client)
+            print("linus exp name in logger", self.mlflow_logger.experiment_name)
+            print("linus exp id in logger", self.mlflow_logger.experiment_id)
 
         if run_name is None:
             run_name = generate_random_name()
@@ -852,12 +853,11 @@ class TorchTrainer(Trainer, LogMixin):
         if self.mlflow_logger:
             # Create mlflow runs per trial (will be started by the trial's main worker)
             tune_run = self.mlflow_client.create_run(
-                self.experiment_id, run_name=self.run_name
+                self.mlflow_logger.experiment_id, run_name=self.run_name
             )
-            # start and stop run to ensure it exists in MLflow before logging
+            # Start and stop run to ensure it exists in MLflow before logging
             self.mlflow_tune_run_id = tune_run.info.run_id
-            mlflow.start_run(run_id=self.mlflow_tune_run_id)
-            mlflow.end_run()
+            print("linus, created run in tune successfully")
 
         # Passes datasets to workers efficiently through Ray storage
         train_with_data = ray.tune.with_parameters(
@@ -940,12 +940,22 @@ class TorchTrainer(Trainer, LogMixin):
         if self.logger:
             py_logger.debug(f"Using logger: {self.logger.__class__.__name__}")
             worker_run_name = f"worker_{self.strategy.global_rank()}"
+
+            if self.mlflow_logger:
+                # set the tracking uri and experiment for each worker
+                mlflow.set_tracking_uri(self.mlflow_logger.tracking_uri)
+                mlflow.set_experiment(self.mlflow_logger.experiment_name)
+
             if self.strategy.is_main_worker and self.mlflow_logger:
+                print("linus mlflow client: ", self.mlflow_client)
                 # if a tune_run_id is set, we create a nested run (Ray)
+                print("linus, exp id", self.mlflow_logger.experiment_id)
+                print("linus Worker tracking URI:", mlflow.get_tracking_uri())
+                print("linus logger tracking URI: ", self.mlflow_logger.tracking_uri)
                 if self.mlflow_tune_run_id:
                     train_run_name = ray.tune.get_context().get_trial_name()
                     train_run = self.mlflow_client.create_run(
-                        self.experiment_id, run_name=train_run_name
+                        self.mlflow_logger.experiment_id, run_name=train_run_name
                     )
                     self.mlflow_client.set_tag(
                         train_run.info.run_id,
@@ -955,13 +965,13 @@ class TorchTrainer(Trainer, LogMixin):
                 else:
                     train_run_name = self.run_name
                     train_run = self.mlflow_client.create_run(
-                        self.experiment_id, run_name=train_run_name
+                        self.mlflow_logger.experiment_id, run_name=train_run_name
                     )
 
                 self.mlflow_train_run_id = train_run.info.run_id
-                # start and stop run to ensure it exists in MLflow before logging
-                mlflow.start_run(run_id=self.mlflow_train_run_id)
-                mlflow.end_run()
+                # start and stop run to remove pending status in mlflow
+                self.mlflow_logger.mlflow.start_run(run_id=self.mlflow_train_run_id)
+                self.mlflow_logger.mlflow.end_run()
                 worker_run_name += " (main)"
 
             # broadcast trial_run_id from main worker to all workers
@@ -977,6 +987,9 @@ class TorchTrainer(Trainer, LogMixin):
                 parent_run_id=self.mlflow_train_run_id,
                 run_name=worker_run_name,
             )
+            if self.mlflow_logger:
+                self.mlflow_worker_run_id = self.mlflow_logger.active_run.info.run_id
+
             py_logger.debug("...the logger has been initialized")
 
             hparams = self.config.model_dump()

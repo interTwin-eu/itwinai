@@ -454,6 +454,7 @@ class TorchDistributedStrategy(abc.ABC):
 
         Args:
             obj (Any): object to broadcast to all workers.
+            src_rank (int): the rank that broadcasted
 
         Returns:
             Any: broadcasted object.
@@ -649,6 +650,7 @@ class TorchDDPStrategy(TorchDistributedStrategy):
 
         Args:
             obj (Any): object to broadcast to all workers.
+            src_rank (int): the rank that broadcasted
 
         Returns:
             Any: broadcasted object.
@@ -880,6 +882,7 @@ class DeepSpeedStrategy(TorchDistributedStrategy):
 
         Args:
             obj (Any): object to broadcast to all workers.
+            src_rank (int): the rank that broadcasted
 
         Returns:
             Any: broadcasted object.
@@ -1069,6 +1072,7 @@ class HorovodStrategy(TorchDistributedStrategy):
 
         Args:
             obj (Any): object to broadcast to all workers.
+            src_rank (int): the rank that broadcasted
 
         Returns:
             Any: broadcasted object.
@@ -1188,6 +1192,18 @@ class NonDistributedStrategy(TorchDistributedStrategy):
             list[Any]: input object wrapped in a list.
         """
         return [tensor]
+
+    def broadcast_obj(self, obj: Any, src_rank: int) -> Any:
+        """Broadcasts an object to all workers.
+
+        Args:
+            obj (Any): object to broadcast to all workers.
+            src_rank (int): the rank that broadcasted
+
+        Returns:
+            Any: broadcasted object.
+        """
+        return obj
 
 
 class RayTorchDistributedStrategy(TorchDistributedStrategy):

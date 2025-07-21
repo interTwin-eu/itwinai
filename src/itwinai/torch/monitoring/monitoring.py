@@ -9,6 +9,7 @@
 # - Linus Eickhoff <linus.maximilian.eickhoff@cern.ch> - CERN
 # --------------------------------------------------------------------------------------
 
+import copy
 import functools
 import logging
 import time
@@ -16,7 +17,7 @@ from multiprocessing import Manager, Process
 from multiprocessing.managers import ValueProxy
 from typing import TYPE_CHECKING, Any, Callable
 
-from ...loggers import Logger
+from ...loggers import Logger, LoggersCollection, get_mlflow_logger
 from .backend import detect_gpu_backend
 
 if TYPE_CHECKING:
@@ -34,6 +35,7 @@ def profile_gpu_utilization(
     global_world_size: int,
     strategy_name: str,
     logger: Logger,
+    run_id: str | None = None,
     parent_run_id: str | None = None,
     probing_interval: int = 2,
     warmup_time: int = 5,
@@ -75,12 +77,18 @@ def profile_gpu_utilization(
 
     sample_idx = 0
 
-    run_name = f"worker_{global_rank}_gpu"
+    # Make sure logger context can be created again for this process
+    if isinstance(logger, LoggersCollection):
+        for sublogger in logger.loggers:
+            sublogger.is_initialized = False
 
+    logger.is_initialized = False
+
+    # attach to the worker run
     logger.create_logger_context(
         rank=global_rank,
         parent_run_id=parent_run_id,
-        run_name=run_name,
+        run_id=run_id,
     )
     logger.log(
         item=strategy_name,
@@ -149,10 +157,11 @@ def measure_gpu_utilization(method: Callable) -> Callable:
 
         gpu_probing_interval = 1
         warmup_time = 5
-        # destroy logger context to enable logging on a new run
-        self.logger.destroy_logger_context()
 
         strategy = self.strategy
+
+        run_id = self.mlflow_worker_run_id
+        print("linus run id worker", run_id)
         parent_run_id = self.mlflow_train_run_id
 
         local_rank = strategy.local_rank()
@@ -170,6 +179,7 @@ def measure_gpu_utilization(method: Callable) -> Callable:
                 "global_world_size": strategy.global_world_size(),
                 "strategy_name": strategy.name,
                 "logger": self.logger,
+                "run_id": run_id,
                 "parent_run_id": parent_run_id,
                 "probing_interval": gpu_probing_interval,
                 "warmup_time": warmup_time,

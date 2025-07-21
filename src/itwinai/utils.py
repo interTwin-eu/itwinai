@@ -20,9 +20,10 @@ import time
 import warnings
 from collections.abc import MutableMapping
 from pathlib import Path
-from typing import Any, Callable, Dict, Hashable, List, Tuple, Type
+from typing import TYPE_CHECKING, Any, Callable, Dict, Hashable, List, Tuple, Type
 from urllib.parse import urlparse
 
+import os
 import requests
 import typer
 import yaml
@@ -30,9 +31,26 @@ from omegaconf import DictConfig, ListConfig, OmegaConf, errors
 from requests.exceptions import ConnectionError, HTTPError, RequestException, Timeout
 
 from .constants import adjectives, names
-from .loggers import Logger
+
+if TYPE_CHECKING:
+    from .loggers import Logger
 
 py_logger = logging.getLogger(__name__)
+
+
+def normalize_tracking_uri(uri: str) -> str:
+    if not uri:
+        # treat uri as current path if empty string
+        uri = "."
+    parsed = urlparse(uri)
+    # If scheme is empty, treat as local path
+    if parsed.scheme == "":
+        return Path(uri).resolve().as_uri()
+    # If url is a file, normalize the path portion
+    if parsed.scheme == "file":
+        return Path(parsed.path).resolve().as_uri()
+    # Otherwise (http, https, etc.) leave as it is
+    return uri
 
 
 def generate_random_name():
@@ -256,7 +274,7 @@ def deprecated(reason):
 
 def time_and_log(
     func: Callable,
-    logger: Logger,
+    logger: "Logger",
     identifier: str,
     step: int | None = None,
     destroy_current_logger_context: bool = False,
