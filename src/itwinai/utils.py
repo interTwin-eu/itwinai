@@ -23,7 +23,6 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, Callable, Dict, Hashable, List, Tuple, Type
 from urllib.parse import urlparse
 
-import os
 import requests
 import typer
 import yaml

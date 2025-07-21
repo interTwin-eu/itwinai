@@ -532,7 +532,6 @@ class MLFlowLogger(Logger):
         )
         # make sure it is an absolute path
         self.tracking_uri = normalize_tracking_uri(self.tracking_uri)
-        print("linus logger init", self.tracking_uri)
         import mlflow
 
         self.mlflow = mlflow
@@ -574,7 +573,6 @@ class MLFlowLogger(Logger):
         run_name = kwargs.get("run_name")
 
         self.worker_rank = rank
-        print(f"linus should log {self.should_log()}")
         if not self.should_log():
             self.is_initialized = True
             return

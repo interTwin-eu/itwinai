@@ -9,7 +9,6 @@
 # - Linus Eickhoff <linus.maximilian.eickhoff@cern.ch> - CERN
 # --------------------------------------------------------------------------------------
 
-import copy
 import functools
 import logging
 import time
@@ -17,7 +16,7 @@ from multiprocessing import Manager, Process
 from multiprocessing.managers import ValueProxy
 from typing import TYPE_CHECKING, Any, Callable
 
-from ...loggers import Logger, LoggersCollection, get_mlflow_logger
+from ...loggers import Logger, LoggersCollection
 from .backend import detect_gpu_backend
 
 if TYPE_CHECKING:
@@ -161,7 +160,6 @@ def measure_gpu_utilization(method: Callable) -> Callable:
         strategy = self.strategy
 
         run_id = self.mlflow_worker_run_id
-        print("linus run id worker", run_id)
         parent_run_id = self.mlflow_train_run_id
 
         local_rank = strategy.local_rank()

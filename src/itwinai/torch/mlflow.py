@@ -17,8 +17,6 @@ import pandas as pd
 import yaml
 from mlflow.entities import Run
 
-from ..constants import MLFLOW_MAX_RESULTS
-
 py_logger = logging.getLogger(__name__)
 
 
