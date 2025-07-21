@@ -110,8 +110,8 @@ def get_gpu_data_by_run(
 ) -> List[Run]:
     """Get all GPU worker runs associated with a given run.
     This function assumes that the GPU worker runs are either:
-    - Nested under the trial runs of a tuner run
-    - Named with a suffix '_gpu_<worker_rank>' in the case of flat runs (non-ray)
+    - Nested under the trial runs of a tuner run (if  Ray was used)
+    - Nested under the training run (if no Ray was used)
 
     Args:
         mlflow_client (mlflow.tracking.MlflowClient): MLFlow client to use.
@@ -129,25 +129,23 @@ def get_gpu_data_by_run(
         )
 
     first_level = _children(run.info.run_id)
-    if first_level:
-        # Assumes that the gpu is in the second level of the hierarchy
-        # (tune_run -> trial_run -> gpu_worker)
-        gpu_runs: List[Run] = []
-        for child in first_level:
-            for grand_child in _children(child.info.run_id):
-                if grand_child.info.run_name.startswith("gpu_"):
+    if not first_level:
+        py_logger.warning(
+            f"No child runs found for run ID {run.info.run_id} in experiment {experiment_id}."
+        )
+
+    gpu_runs: List[Run] = []
+    for child in first_level:
+        second_level = _children(child.info.run_id)
+        if second_level:
+            for grand_child in second_level:
+                if any("gpu" in metric for metric in grand_child.data.metrics):
                     gpu_runs.append(grand_child)
+        else:
+            if any("gpu" in metric for metric in child.data.metrics):
+                gpu_runs.append(child)
 
-        return gpu_runs
-
-    # If no nesting, the gpu runs are found by the suffix _gpu_<worker_rank>
-    flat_gpu_runs = mlflow_client.search_runs(
-        [experiment_id],
-        filter_string=f"attributes.run_name LIKE '{run.info.run_name}_gpu_%'",
-        max_results=MLFLOW_MAX_RESULTS,
-    )
-
-    return flat_gpu_runs
+    return gpu_runs
 
 
 def get_metric_names(run: Run) -> List[str]:
@@ -169,7 +167,7 @@ def get_run_metrics_as_df(
     run: Run,
     metric_names: List[str] | None = None,
 ):
-    """Collect all metrics logged in a run and return them as a tidy DataFrame.
+    """Collect metrics logged in a run and return them as a tidy DataFrame.
 
     Args:
         mlflow_client (mlflow.MlflowClient): MLFlow client to use.

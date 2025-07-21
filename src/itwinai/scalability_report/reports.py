@@ -155,6 +155,7 @@ def gpu_data_report(
     gpu_data_df = read_gpu_metrics_from_mlflow(
         experiment_name=experiment_name, run_names=run_names
     )
+    print(f"GPU data shape: {gpu_data_df.shape}")
     if gpu_data_df is None:
         return None
 

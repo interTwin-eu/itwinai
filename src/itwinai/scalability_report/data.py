@@ -52,8 +52,11 @@ def read_gpu_metrics_from_mlflow(
         return None
 
     if not run_names:
-        # get all run IDs from the experiment
-        runs = mlflow_client.search_runs(experiment_ids=[experiment.experiment_id])
+        # get all run IDs from the experiment that are not-nested
+        runs = mlflow.search_runs(
+            experiment_ids=[experiment.experiment_id],
+            filter_string="attributes.parent_run_id IS NULL"
+        )
     else:
         runs = []
         # get all runs in the experiment
@@ -67,7 +70,13 @@ def read_gpu_metrics_from_mlflow(
     for run in runs:
         gpu_runs = get_gpu_data_by_run(mlflow_client, experiment.experiment_id, run)
         for gpu_run in gpu_runs:
-            gpu_dataframes.append(get_run_metrics_as_df(mlflow_client, gpu_run))
+            gpu_dataframes.append(
+                get_run_metrics_as_df(
+                    mlflow_client,
+                    gpu_run,
+                    metric_names=["gpu_utilization_percent", "gpu_power_W"],
+                )
+            )
 
     if not gpu_dataframes:
         py_logger.warning(

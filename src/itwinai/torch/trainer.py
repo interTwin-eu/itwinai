@@ -14,7 +14,6 @@
 """Provides training logic for PyTorch models via Trainer classes."""
 
 import logging
-import os
 import sys
 import tempfile
 from collections import defaultdict
