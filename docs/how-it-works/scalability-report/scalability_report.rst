@@ -45,10 +45,10 @@ which can be toggled using the following flags in your training configuration:
 The epoch time is measured using the `EpochTimeTracker`, while the remaining
 metrics are measured using the following decorators:
 
-- **PyTorch Profiler**: This profiler measures the time spent in computation vs. in other
+- **PyTorch Profiler**: This profiler measures the time spent in computation vs. other
   operations in your distributed machine learning. This is done by comparing the time spent in
-  PyTorch's ATen library with the rest of the time. It uses the PyTorch Profiler to retrieve
-  this information and is enabled using the ``enable_torch_profiling`` flag.
+  PyTorch's ATen—i.e. computation—with any other operations. It uses the PyTorch Profiler to
+  retrieve this information and is enabled using the ``enable_torch_profiling`` flag.
 - **GPU Data Profiler**: This profiler measures the GPU utilization and the total power
   consumption of the training. This is done by probing the GPU at a pre-defined interval and
   retrieving the needed data. The data from the GPU data profiler is saved to MLFlow and
