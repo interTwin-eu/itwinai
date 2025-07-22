@@ -1,6 +1,8 @@
 import os
 from typing import Tuple
 from pathlib import Path
+import json
+from yarl import URL
 
 import h5py
 import numpy as np
@@ -11,6 +13,8 @@ from torch.utils.data import Dataset, random_split
 from itwinai.components import DataGetter, DataSplitter, monitor_exec
 from src.XMLHandler import XMLHandler
 
+import logging
+py_logger = logging.getLogger(__name__)
 
 class CaloChallengeDownloader(DataGetter):
     def __init__(
@@ -21,8 +25,11 @@ class CaloChallengeDownloader(DataGetter):
         """Initializes the CaloChallengeDownloader with the given dataset type and data path.
 
         Args:
-            data_path (str | None): Path to store downloaded dataset files. Defaults to "./calochallenge_data/".
-            dataset_type (str | None): Dataset identifier string ("dataset_1_photons", "dataset_1_pions", "dataset_2" or "dataset_3"). Defaults to "dataset_1_photons".
+            data_path (str | None): Path to store downloaded dataset files. 
+                                    Defaults to "./calochallenge_data/".
+            dataset_type (str | None): Dataset identifier string. 
+                                    Options: "dataset_1_photons", "dataset_1_pions", "dataset_2" 
+                                    or "dataset_3"). Defaults to "dataset_1_photons".
         """
         self.save_parameters(**self.locals2params(locals()))
         super().__init__()
@@ -31,36 +38,14 @@ class CaloChallengeDownloader(DataGetter):
         self.data_path = data_path
         self.dataset_type = dataset_type
 
-        type_to_link_train = {
-            "dataset_1_photons": [
-                "https://zenodo.org/records/8099322/files/dataset_1_photons_1.hdf5"
-            ],
-            "dataset_1_pions": [
-                "https://zenodo.org/records/8099322/files/dataset_1_pions_1.hdf5"
-            ],
-            "dataset_2": ["https://zenodo.org/records/6366271/files/dataset_2_1.hdf5"],
-            "dataset_3": [
-                "https://zenodo.org/records/6366324/files/dataset_3_1.hdf5",
-                "https://zenodo.org/records/6366324/files/dataset_3_2.hdf5",
-            ],
-        }
+        with open('./calochallenge_binning/paths_download_datasets_train.json', 'r') as f:
+            type_to_link_train = json.load(f)
 
-        type_to_link_test = {
-            "dataset_1_photons": [
-                "https://zenodo.org/records/8099322/files/dataset_1_photons_2.hdf5"
-            ],
-            "dataset_1_pions": [
-                "https://zenodo.org/records/8099322/files/dataset_1_pions_2.hdf5"
-            ],
-            "dataset_2": ["https://zenodo.org/records/6366271/files/dataset_2_2.hdf5"],
-            "dataset_3": [
-                "https://zenodo.org/records/6366324/files/dataset_3_3.hdf5",
-                "https://zenodo.org/records/6366324/files/dataset_3_4.hdf5",
-            ],
-        }
+        with open('./calochallenge_binning/paths_download_datasets_test.json', 'r') as f:
+            type_to_link_test = json.load(f)
 
         if dataset_type not in type_to_link_train.keys():
-            print("WARNING! Dataset type is invalid. Loading dataset 1 photon")
+            py_logger.exception("WARNING! Dataset type is invalid. Loading dataset 1 photon")
             self.dataset_type = "dataset_1_photons"
 
         self.data_train_url = type_to_link_train[self.dataset_type]
@@ -69,20 +54,15 @@ class CaloChallengeDownloader(DataGetter):
     @monitor_exec
     def execute(self):
         """Downloads and saves the train and test datasets for the specified dataset type."""
-        # Download data
         if not self.data_path.exists():
             if self.data_train_url is None:
-                print(
-                    "WARNING! Train data URL is None. Skipping train dataset downloading"
-                )
+                py_logger.exception("WARNING! Train data URL is None. Skipping train dataset downloading")
+
             if self.data_test_url is None:
-                print(
-                    "WARNING! Test data URL is None. Skipping test dataset downloading"
-                )
+                py_logger.exception("WARNING! Test data URL is None. Skipping test dataset downloading")
         
-        def download_rename(url_list, prefix):
-            """
-            Downloads CaloChallenge datasets according to the provided links
+        def download_rename(url_list: Tuple[str, ...], prefix: str):
+            """Downloads CaloChallenge datasets according to the provided links
             and renames the files adding prefix "train" or "test".
 
             Args:
@@ -95,16 +75,17 @@ class CaloChallengeDownloader(DataGetter):
                     print(f"Failed to download file from {url}")
                     continue
                 print(f"Downloading {url}")
-                new_filename = f"{url.split('/')[-1].split('.')[0]}_{prefix}.hdf5"
+                yarl_url = URL(url)
+                new_filename = f"{yarl_url.name.rsplit('.', 1)[0]}_{prefix}.hdf5"
                 with open(self.data_path / new_filename, "wb") as file:
                     # Write the content of the response to the file
                     for chunk in response.iter_content(chunk_size=8192):
                         file.write(chunk)
                 print(f"File downloaded and saved as: {new_filename}")                    
 
-        print(f"Downloading train dataset to {self.data_path}")
+        py_logger.info(f"Downloading train dataset to {self.data_path}")
         download_rename(self.data_train_url, "train")
-        print(f"Downloading test dataset to {self.data_path}")
+        py_logger.info(f"Downloading test dataset to {self.data_path}")
         download_rename(self.data_test_url, "test")
 
 
@@ -144,7 +125,7 @@ class CalochallengeDataset(Dataset):
 
         xml_handler = XMLHandler(
             particle_name=dataset_to_particle_type[self.dataset_type],
-            filename="./calochallenge_binning/binning_" + self.dataset_type + ".xml",
+            filename = Path("calochallenge_binning") / f"binning_{self.dataset_type}.xml"
         )
         self.layer_boundaries = np.unique(xml_handler.get_bin_edges())
 
@@ -183,30 +164,32 @@ class CalochallengeDataset(Dataset):
 
     def _load_data(self) -> None:
         """Loads HDF5 dataset files into memory and aggregates per-layer and energy information."""
-        print(f"Searching in : {self.data_path}")
+        py_logger.debug(f"Looking for data files in : {self.data_path}")
         files = [
             self.data_path / filename
             for filename in os.listdir(self.data_path)
             if self.dataset_type in filename and self.dataset_trainortest in filename
         ]
-        print(f"Found {len(files)} files.")
+        py_logger.debug(f"Found {len(files)} files.")
         if len(files) == 0:
-            raise FileNotFoundError(f"No H5 files found at '{self.data_path}'!")
+            raise ValueError(f"No H5 files found at '{self.data_path}'!")
+        
+        MeV_to_GeV = 1.0e3
 
         for file in files:
             with h5py.File(file, "r") as data_file:
                 if "energy" not in self.data:
-                    self.data["energy"] = data_file["incident_energies"][:] / 1.0e3
+                    self.data["energy"] = data_file["incident_energies"][:] / MeV_to_GeV
                 else:
                     self.data["energy"] = np.concatenate(
-                        (self.data["energy"], data_file["incident_energies"][:] / 1.0e3)
+                        (self.data["energy"], data_file["incident_energies"][:] / MeV_to_GeV)
                     )
 
                 for layer_index, (layer_start, layer_end) in enumerate(
                     zip(self.layer_boundaries[:-1], self.layer_boundaries[1:])
                 ):
                     self.data[f"layer_{layer_index}"] = (
-                        data_file["showers"][..., layer_start:layer_end] / 1.0e3
+                        data_file["showers"][..., layer_start:layer_end] / MeV_to_GeV
                     )
 
     def _preprocess_data(
@@ -214,6 +197,15 @@ class CalochallengeDataset(Dataset):
     ) -> None:
         """Transforms the dict 'data' into the ndarray 'x'. Furthermore, the events
         are masked and the extra dims are appended to the incident energies
+
+        Args:
+            eps (float): Small value added during normalization of energy deposits to
+            prevent division by zero when computing per-layer normalized energies
+            and derived extra dimensions.
+            u0up_cut (float): Upper threshold for the `normalized total energy deposition.
+            u0low_cut (float): Lower threshold for the normalized total energy deposition.
+            dep_cut (float): Energy deposition in voxels threshold; events where any layer 
+                exceeds this value are excluded.
         """
         c, x = self.get_energy_and_sorted_layers()
         self.data = None
@@ -228,15 +220,15 @@ class CalochallengeDataset(Dataset):
 
         binary_mask &= (x < dep_cut).prod(-1) != 0
 
-        print(f"cut on zero energy dep.: #", (np.sum(x, axis=1) >= 0).sum())
-        print(f"cut on u0 upper {u0up_cut}: #", (extra_dims[:, 0] < u0up_cut).sum())
-        print(f"cut on u0 lower {u0low_cut}: #", (extra_dims[:, 0] >= u0low_cut).sum())
-        print(f"dep cut {dep_cut}: #", (x < dep_cut).prod(-1).sum())
+        py_logger.debug(f"cut on zero energy dep.: #", (np.sum(x, axis=1) >= 0).sum())
+        py_logger.debug(f"cut on u0 upper {u0up_cut}: #", (extra_dims[:, 0] < u0up_cut).sum())
+        py_logger.debug(f"cut on u0 lower {u0low_cut}: #", (extra_dims[:, 0] >= u0low_cut).sum())
+        py_logger.debug(f"dep cut {dep_cut}: #", (x < dep_cut).prod(-1).sum())
 
         x = x[binary_mask]
         c = c[binary_mask]
         extra_dims = extra_dims[binary_mask]
-        print("final shape of dataset: ", x.shape)
+        py_logger.debug("final shape of dataset: ", x.shape)
 
         x = self.normalize_layers(x, c, eps)
         x = np.concatenate((x, extra_dims), axis=1)
@@ -350,10 +342,8 @@ class CalochallengeDataSplitter(DataSplitter):
         if validation_proportion >= 0.0 and validation_proportion < 1:
             self.validation_proportion = validation_proportion
         else:
-            print(
-                "WARNING! Wrong value of validation dataset proportion"
-                "Set validation dataset proportion to 0.1"
-            )
+            py_logger.warning("WARNING! Wrong value of validation dataset proportion"
+                "Set validation dataset proportion to 0.1")
 
         if rnd_seed:
             self.generator = torch.Generator().manual_seed(self.rnd_seed)

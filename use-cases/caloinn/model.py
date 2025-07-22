@@ -25,7 +25,7 @@ class Subnet(nn.Module):
         internal_size: int = None,
         dropout: float = 0.0,
         layer_class=nn.Linear,
-        layer_args={},
+        layer_args=None,
         layer_norm: str = None,
         layer_act: str = "nn.ReLU",
     ):
@@ -57,8 +57,10 @@ class Subnet(nn.Module):
         if internal_size is None:
             internal_size = size_out * 2
         if num_layers < 1:
-            raise (ValueError("Subnet size has to be 1 or greater"))
+            raise ValueError("Subnet size has to be 1 or greater")
         self.layer_list = []
+        if not layer_args:
+            layer_args = {}
         for n in range(num_layers - 1):
             if isinstance(internal_size, list):
                 input_dim, output_dim = internal_size[n], internal_size[n + 1]
@@ -177,7 +179,9 @@ class LogTransformation(fm.InvertibleModule):
         Returns:
             tuple: A tuple containing the transformed tensor(s) and a dummy Jacobian tensor (as a tensor of zeros).
         """
-        (x,) = x
+        if len(x) != 1:  
+            raise ValueError(f"x has to have length one along the first dimension, but was {len(x)}")  
+        x = x[0]
         if rev:
             z = torch.exp(x) - self.alpha
             jac = torch.sum(x, dim=1)
@@ -213,7 +217,7 @@ class CINN(nn.Module):
 
         Args:
             data_dim (int): Dimensionality of the input data.
-            config (Any): Configuration object containing model and training parameters.
+            config (Dict | TrainingConfiguration | None): Configuration object containing model and training parameters.
         """
         super(CINN, self).__init__()
 
@@ -440,9 +444,7 @@ class CINN(nn.Module):
             Output of the model forward pass.
         """
         if self.config.log_cond:
-            c_norm = torch.log10(
-                c
-            )  # use log10 for all the models (add a rescaling option)
+            c_norm = torch.log10(c)  # use log10 for all the models (add a rescaling option)
         else:
             c_norm = c
         if self.pre_subnet:

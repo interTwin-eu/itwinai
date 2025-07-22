@@ -103,8 +103,8 @@ class XMLHandler:
         r_list = []
         a_list = []
         actual_no_alpha_bins = self.n_bin_alpha_per_layer[layer][0]
-        for j0 in range(0, actual_no_alpha_bins):
-            for i0 in range(0, no_of_rbins):
+        for j0 in range(actual_no_alpha_bins):
+            for i0 in range(no_of_rbins):
                 r_list.append(list_mid_values[i0])
                 a_list.append(list_a_values[i0][j0])
         return r_list, a_list

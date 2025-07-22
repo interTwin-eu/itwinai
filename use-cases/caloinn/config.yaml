@@ -53,8 +53,8 @@ training_pipeline:
         batch_size: ${batch_size}
         eps: 1.0e-10
 
-        max_lr: 1.e-4
-        optim_lr: 1.e-5
+        max_lr: 1.0e-4
+        optim_lr: 1.0e-5
         cycle_epochs: 37
       num_epochs: ${epochs}
       checkpoint_path: ${checkpoint_path}
