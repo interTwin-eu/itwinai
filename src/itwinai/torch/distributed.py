@@ -1077,6 +1077,11 @@ class HorovodStrategy(TorchDistributedStrategy):
         Returns:
             Any: broadcasted object.
         """
+        if obj is None:
+            py_logger.warning(
+                "Broadcasting None object in Horovod. This might lead to unexpected behavior"
+                " such as deadlocks."
+            )
         # https://horovod.readthedocs.io/en/stable/_modules/horovod/torch/functions.html#broadcast_object
         return self.hvd.broadcast_object(obj, root_rank=src_rank)
 
