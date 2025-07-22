@@ -364,20 +364,20 @@ def generate_scalability_report(
         cli_logger.info("No Epoch Time Data Found\n")
 
     if gpu_data_table is not None:
-        cli_logger.info("#" * 8 + "GPU Data Report" + "#" * 8)
+        cli_logger.info("#" * 8 + " GPU Data Report " + "#" * 8)
         cli_logger.info(gpu_data_table + "\n")
     else:
         cli_logger.info("No GPU Data Found\n")
 
     if computation_data_table is not None:
-        cli_logger.info("#" * 8 + "Computation Data Report" + "#" * 8)
+        cli_logger.info("#" * 8 + " Computation Data Report " + "#" * 8)
         cli_logger.info(computation_data_table + "\n")
     else:
         cli_logger.info("No Computation Data Found\n")
 
     if include_communication:
         if communication_data_table is not None:
-            cli_logger.info("#" * 8 + "Communication Data Report" + "#" * 8)
+            cli_logger.info("#" * 8 + " Communication Data Report " + "#" * 8)
             cli_logger.info(communication_data_table + "\n")
         else:
             cli_logger.info("No Communication Data Found\n")
