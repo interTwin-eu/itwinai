@@ -9,6 +9,7 @@
 # --------------------------------------------------------------------------------------
 
 import argparse
+import logging
 import os
 from typing import Dict
 
@@ -20,6 +21,7 @@ from ray import tune
 
 from itwinai.cli import exec_pipeline_with_compose
 
+py_logger = logging.getLogger(__name__)
 
 def run_trial(config: Dict, data: Dict):
     """Execute a single trial using the given configuration (config).
@@ -107,27 +109,27 @@ def run_hpo(args):
 
     else:
         # Load results from an earlier Ray Tune run
-        print(f"Loading results from {args.experiment_path}...")
+        py_logger.info(f"Loading results from {args.experiment_path}...")
 
         # Restore tuner from saved results
         restored_tuner = tune.Tuner.restore(args.experiment_path, trainable=run_trial)
         result_grid = restored_tuner.get_results()
 
     # Display experiment statistics
-    print(f"Number of errored trials: {result_grid.num_errors}")
-    print(f"Number of terminated trials: {result_grid.num_terminated}")
-    print(f"Ray Tune experiment path: {result_grid.experiment_path}")
+    py_logger.info(f"Number of errored trials: {result_grid.num_errors}")
+    py_logger.info(f"Number of terminated trials: {result_grid.num_terminated}")
+    py_logger.info(f"Ray Tune experiment path: {result_grid.experiment_path}")
 
     # Get the best result based on the last 10 iterations' average
     best_result = result_grid.get_best_result(
         scope="last-10-avg", metric=args.metric, mode="min"
     )
-    print(f"Best result: {best_result}")
+    py_logger.info(f"Best result: {best_result}")
 
     # Print a dataframe with all trial results
     result_df = result_grid.get_dataframe()
-    print(f"All results dataframe: {result_df}")
-    print(f"All result columns: {result_df.columns}")
+    py_logger.info(f"All results dataframe: {result_df}")
+    py_logger.info(f"All result columns: {result_df.columns}")
 
     # Plot the results for all trials
     plot_results(result_grid, metric=args.metric, filename="ray-loss-plot.png")
@@ -198,9 +200,9 @@ if __name__ == "__main__":
     # Check for available GPU
     if torch.cuda.is_available():
         device = "cuda"
-        print(f"Using GPU: {torch.cuda.get_device_name(torch.cuda.current_device())}")
+        py_logger.info(f"Using GPU: {torch.cuda.get_device_name(torch.cuda.current_device())}")
     else:
         device = "cpu"
-        print("Using CPU")
+        py_logger.info("Using CPU")
 
     run_hpo(args)

@@ -1,60 +1,10 @@
-Welcome to itwinai's documentation!
-===================================
-
-``itwinai`` is a versatile toolkit designed to accelerate AI and machine learning (ML) workflows for researchers and scientists,
-particularly in the realm of Digital Twins (DTs). This toolkit provides a suite of user-friendly tools to effortlessly
-scale machine learning projects to high-performance computing (HPC) resources, seamlessly integrating with cloud-based services.
-The primary focus of ``itwinai`` is to reduce the engineering burden on researchers, enabling them to concentrate more on advancing
-their science.
-
-Empowering AI in Scientific Digital Twins
-+++++++++++++++++++++++++++++++++++++++++
-
-The ``itwinai`` toolkit is engineered to support AI-driven research in scientific digital twins. It offers powerful capabilities for
-distributed machine learning training and inference on HPC systems, efficient hyper-parameter optimization (HPO), and simplified
-ML logging with integration to popular tools like MLflow, Weights & Biases, and TensorBoard. Additionally, it includes an
-intuitive framework to define, configure, and manage modular and reusable ML workflows, providing a streamlined approach to
-experiment management.
-
-Moreover, the toolkit is designed with extensibility in mind, allowing third-party developers to build and integrate their own
-plugins, enhancing the flexibility and adaptability of the platform.
-
-``itwinai`` is an open-source Python library primarily developed by CERN, in collaboration with Forschungszentrum Jülich (FZJ).
-As the primary contributor, CERN will retain administrative rights to the repository during and after the interTwin project,
-except in cases where CERN is unable to maintain it.
-
-The library also benefits from contributions by members of the interTwin collaboration.
-For a complete list of contributors, visit the `GitHub contributors page <https://github.com/interTwin-eu/itwinai/graphs/contributors>`_.
-
-
-How to Read the Docs
-++++++++++++++++++++
-
-To effectively utilize the ``itwinai`` toolkit documentation, begin by exploring the "Getting Started" section. This part is essential
-for grasping the basics and setting up the toolkit, with detailed instructions for different installation scenarios, whether on HPC
-systems or your local machine.
-
-For a deeper dive into the core functionalities, check out the "How It Works" section, which breaks down the key concepts that power
-``itwinai``. The "Scientific Use Cases" section offers practical examples and scenarios from the `interTwin <https://www.intertwin.eu/>`_
-project, showcasing how the toolkit is applied in real-world research.
-
-Enhance your skills by exploring the "Tutorials" section, filled with step-by-step guides on distributed ML training and workflow
-creation. Lastly, the "Python API Reference" is your go-to resource for a detailed overview of the toolkit's capabilities, helping
-you implement specific features in your projects.
-
-Following these sections systematically will help you maximize your understanding and make the most of the ``itwinai`` toolkit in
-your research endeavors.
-
-``itwinai`` documentation is also available in different versions: 'latest', 'stable', and specific release versions like 'v0.2.1'.
-The 'latest' version reflects the most recent updates, while the 'stable' version is recommended for production use, as it
-contains thoroughly tested features aligned with the toolkit's most recent release
-(`learn more <https://docs.readthedocs.io/en/stable/versions.html#version-states>`_).
-
+.. ============================================================================================
+.. Sidenav entries
 
 .. toctree::
    :maxdepth: 2
    :hidden:
-   :caption: ⚙️ Installation
+   :caption: 🛠️ Installation
 
    installation/user_installation
    installation/developer_installation
@@ -63,13 +13,13 @@ contains thoroughly tested features aligned with the toolkit's most recent relea
 .. toctree::
    :maxdepth: 2
    :hidden:
-   :caption: 💡 Getting started
+   :caption: 🚀 Getting started
 
-   getting-started/getting_started_with_itwinai
    getting-started/slurm
    getting-started/containers
    getting-started/plugins
    getting-started/plugins-list
+   getting-started/glossary
 
 .. toctree::
    :maxdepth: 2
@@ -84,7 +34,7 @@ contains thoroughly tested features aligned with the toolkit's most recent relea
 .. toctree::
    :maxdepth: 2
    :hidden:
-   :caption: 🚀 Tutorials
+   :caption: 🎓 Tutorials
 
    tutorials/tutorials
 
@@ -118,33 +68,123 @@ contains thoroughly tested features aligned with the toolkit's most recent relea
 
    itwinai <https://github.com/interTwin-eu/itwinai>
 
-
-.. .. toctree::
-..    :maxdepth: 2
-..    :hidden:
-..    :caption: Additional resources
-
-..    notebooks/example
-
-
-interTwin Demo: itwinai integration with other DTE modules
-++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+.. ============================================================================================
+.. Here the Homepage starts
 
 .. raw:: html
 
-   <iframe width="560" height="315" src="https://www.youtube.com/embed/NoVCfSxwtX0" title="interTwin demo: itwinai (WP6)" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+   <div>
+     <a href="https://github.com/interTwin-eu/itwinai">
+       <img src="https://img.shields.io/github/stars/interTwin-eu/itwinai.svg?style=social&label=Star" alt="GitHub stars" />
+     </a>
+     &nbsp;
+     <a href="https://pypi.org/project/itwinai/">
+       <img src="https://img.shields.io/pypi/v/itwinai.svg" alt="PyPI version" />
+     </a>
+     &nbsp;
+     <a href="https://readthedocs.org/projects/itwinai/">
+       <img src="https://img.shields.io/readthedocs/itwinai.svg" alt="ReadTheDocs" />
+     </a>
+   </div>
+   </br>
 
+Welcome to **itwinai**
+======================
 
-|
-|
-|
+**Accelerate AI & ML workflows** for **Scientific Digital Twins**.
 
+**itwinai** streamlines distributed training, hyperparameter optimization, logging, and modular
+workflows, so you can focus on **science**, not plumbing.
 
-Indices and tables
-++++++++++++++++++
+Features
+--------
+
+- 🚀 **Seamless Scaling**: Run training and inference on HPC clusters or cloud with a single CLI command.
+- 🔍 **Effortless Logging**: Built-in support for MLflow, Weights & Biases, TensorBoard, and more.
+- 🧩 **Modular Workflows**: Define reusable pipelines for end-to-end experiment management.
+- 🤖 **HPO Made Easy**: Native hyperparameter optimization with minimal configuration.
+- 🔌 **Extensible Plugins**: Add custom integrations or contribute new features.
+
+Quick Start
+-----------
+
+.. code-block:: bash
+
+   # Install via pip
+   pip install itwinai
+
+   # Launch a simple distributed training job (assuming a valid config.yaml exists)
+   itwinai exec-pipeline
+
+   # View logs in MLflow
+   itwinai mlflow-ui --path mllogs/mlflow
+
+🚀 Begin Here
+==============
+
+- :doc:`User Installation (for non-developers) <installation/user_installation>`
+- :doc:`Developer Installation <installation/developer_installation>`
+- :doc:`Submitting jobs to SLURM on HPC <getting-started/slurm>`
+- :doc:`Using itwinai Container Images <getting-started/containers>`
+
+🛠️ Core Guides
+===============
+
+- :doc:`Training a Neural Network <how-it-works/training/training>`
+- :doc:`Logging and Tracking ML workflows <how-it-works/loggers/explain_loggers>`
+- :doc:`Defining machine learning workflows <how-it-works/workflows/explain_workflows>`
+- :doc:`Hyperparameter Optimization <how-it-works/hpo/explain-hpo>`
+
+🎓 Tutorials
+=============
+
+- :doc:`Writing Configuration Files for itwinai <tutorials/workflows/02-pipeline-configuration/tutorial_1_intermediate_workflow>`
+- :ref:`Distributed Training <distributed-training-tutorials>`
+- :ref:`Hyper-parameter Optimization <hpo-tutorials>`
+- :ref:`ML Workflows <ml-workflows-tutorials>`
+- :ref:`Code Profiling and Optimization <profiling-tutorials>`
+
+📚 Use Cases & 🧩 Plugins
+==========================
+
+- :doc:`MNIST — A Toy Use Case Example <use-cases/mnist_doc>`
+- :doc:`Drought Early Warning in the Alps (EURAC) <use-cases/eurac_doc>`
+- :doc:`Fast particle detector simulation (CERN) <use-cases/3dgan_doc>`
+- :doc:`Writing Plugins for itwinai <getting-started/plugins>`
+- :doc:`Current List of itwinai Plugins <getting-started/plugins-list>`
+
+For the full list of scientific use cases refer to the navigation side bar.
+
+⚡ API Reference
+================
+
+- :doc:`CLI Reference <api/cli_reference>`
+- :doc:`Python SDK <api/modules>`
+
+Integration with EuroHPC centers
+================================
+
+Our code has been run and tested on the following EuroHPC systems:
+
+- `LUMI <https://www.lumi-supercomputer.eu/>`_
+- `JSC <https://www.fz-juelich.de/jsc/>`_
+- `Vega <https://izum.si/en/vega-en/>`_
+- `Deucalion <https://eurohpc-ju.europa.eu/supercomputers/our-supercomputers_en#deucalion>`_ (coming soon)
+
+Community & Support
+===================
+
+- `GitHub Repository <https://github.com/interTwin-eu/itwinai>`_
+- `Contributors <https://github.com/interTwin-eu/itwinai/graphs/contributors>`_
+- `interTwin Project <https://www.intertwin.eu/>`_
+
+**itwinai** is an open-source Python library primarily developed by CERN, in collaboration with Forschungszentrum Jülich (FZJ).
+As the primary contributor, CERN will retain administrative rights to the repository during and after the interTwin project,
+except in cases where CERN is unable to maintain it.
+
+Indices and Tables
+==================
 
 * :ref:`genindex`
 * :ref:`modindex`
-
-.. * :ref:`search`
-
+* :ref:`search`

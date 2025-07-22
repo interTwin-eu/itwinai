@@ -98,7 +98,7 @@ class InterLink:
                     "install",
                     "--debug",
                     "my-node",
-                    "oci://ghcr.io/intertwin-eu/interlink-helm-chart/interlink",
+                    "oci://ghcr.io/interlink-hq/interlink-helm-chart/interlink",
                     "--values",
                     "/values.yaml",
                 ]
@@ -180,9 +180,9 @@ class InterLink:
             stdout.append(await self.submit_pod(pod_manifest_str))
             # await k8s_client.container().terminal()
             status, logs = await self.wait_pod(name=full_name, timeout=300, poll_interval=5)
-            assert (
-                status == "Succeeded"
-            ), f"Pod did not complete successfully as expected. Got status: {status}"
+            assert status == "Succeeded", (
+                f"Pod did not complete successfully as expected. Got status: {status}"
+            )
             stdout.extend([status, logs])
 
             # Test #2: test pod expected to fail
@@ -315,7 +315,7 @@ class InterLink:
         name: Annotated[str, Doc("pod name")],
         timeout: Annotated[int, Doc("timeout in seconds")] = 300,
         poll_interval: Annotated[int, Doc("how often to check the pod status")] = 5,
-    ) -> tuple[str, str]:
+    ) -> list[str]:
         """Wait for pod termination (Succeeded, Failed) or timeout.
         Returns last pod status and logs detected.
         """
@@ -336,4 +336,4 @@ class InterLink:
                 time.sleep(poll_interval)
         finally:
             await self.delete_pod(name=name)
-        return status, logs
+        return [status, logs]

@@ -9,14 +9,14 @@
 #SBATCH --error=horovod_ds_installation.err
 #SBATCH --time=00:30:00
 
-# Resources allocation
+# Resource allocation
 #SBATCH --partition=develbooster
 #SBATCH --nodes=1
 #SBATCH --gres=gpu
 
 ml --force purge
-ml Stages/2024 GCC OpenMPI CUDA/12 cuDNN MPI-settings/CUDA
-ml Python/3.11.3 CMake HDF5 PnetCDF libaio mpi4py git Clang
+ml Stages/2025 GCC OpenMPI CUDA/12 cuDNN MPI-settings/CUDA
+ml Python CMake HDF5 PnetCDF libaio mpi4py git
 
 source .venv/bin/activate
 source env-files/torch/install-horovod-deepspeed-cuda.sh

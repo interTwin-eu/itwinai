@@ -9,6 +9,7 @@
 # - Linus Eickhoff <linus.maximilian.eickhoff@cern.ch> - CERN
 # --------------------------------------------------------------------------------------
 
+import logging
 from pathlib import Path
 from typing import List
 
@@ -28,6 +29,8 @@ from itwinai.scalability_report.utils import (
     get_computation_vs_other_data,
 )
 from itwinai.utils import deprecated
+
+cli_logger = logging.getLogger("cli_logger")
 
 
 def epoch_time_report(
@@ -59,7 +62,7 @@ def epoch_time_report(
         plot_dir = Path(plot_dir)
     log_dir_paths = [Path(logdir) for logdir in log_dirs]
 
-    epoch_time_expected_columns = {"name", "nodes", "epoch_id", "time"}
+    epoch_time_expected_columns = {"name", "workers", "epoch_id", "time"}
 
     # Reading data from all the logdirs and concatenating the results
     dataframes = []
@@ -73,9 +76,9 @@ def epoch_time_report(
     epoch_time_df = pd.concat(dataframes)
 
     # Calculate the average time per epoch for each strategy and number of nodes
-    print("\nAnalyzing Epoch Time Data...")
+    cli_logger.info("\nAnalyzing Epoch Time Data...")
     avg_epoch_time_df = (
-        epoch_time_df.groupby(["name", "nodes"])
+        epoch_time_df.groupby(["name", "workers"])
         .agg(avg_epoch_time=("time", "mean"))
         .reset_index()
     )
@@ -93,8 +96,12 @@ def epoch_time_report(
 
     absolute_fig.savefig(absolute_avg_time_plot_path)
     relative_fig.savefig(relative_speedup_plot_path)
-    print(f"Saved absolute average time plot at '{absolute_avg_time_plot_path.resolve()}'.")
-    print(f"Saved relative average time plot at '{relative_speedup_plot_path.resolve()}'.")
+    cli_logger.info(
+        f"Saved absolute-average-time plot at '{absolute_avg_time_plot_path.resolve()}'."
+    )
+    cli_logger.info(
+        f"Saved relative-average-time plot at '{relative_speedup_plot_path.resolve()}'."
+    )
 
     if not do_backup:
         return epoch_time_table
@@ -102,7 +109,7 @@ def epoch_time_report(
     backup_dir.mkdir(exist_ok=True, parents=True)
     backup_path = backup_dir / "epoch_time_data.csv"
     epoch_time_df.to_csv(backup_path)
-    print(f"Storing backup file at '{backup_path.resolve()}'.")
+    cli_logger.info(f"Storing backup file at '{backup_path.resolve()}'.")
     return epoch_time_table
 
 
@@ -154,7 +161,7 @@ def gpu_data_report(
         return None
     gpu_data_df = pd.concat(dataframes)
 
-    print("\nAnalyzing Epoch Time Data...")
+    cli_logger.info("\nAnalyzing GPU Data...")
     gpu_data_statistics_df = calculate_gpu_statistics(
         gpu_data_df=gpu_data_df, expected_columns=gpu_data_expected_columns
     )
@@ -180,8 +187,8 @@ def gpu_data_report(
     )
     energy_fig.savefig(energy_plot_path)
     utilization_fig.savefig(utilization_plot_path)
-    print(f"Saved GPU energy plot at '{energy_plot_path.resolve()}'.")
-    print(f"Saved utilization plot at '{utilization_plot_path.resolve()}'.")
+    cli_logger.info(f"Saved GPU energy plot at '{energy_plot_path.resolve()}'.")
+    cli_logger.info(f"Saved utilization plot at '{utilization_plot_path.resolve()}'.")
 
     if not do_backup:
         return gpu_data_table
@@ -189,7 +196,7 @@ def gpu_data_report(
     backup_dir.mkdir(exist_ok=True, parents=True)
     backup_path = backup_dir / "gpu_data.csv"
     gpu_data_df.to_csv(backup_path)
-    print(f"Storing backup file at '{backup_path.resolve()}'.")
+    cli_logger.info(f"Storing backup file at '{backup_path.resolve()}'.")
     return gpu_data_table
 
 
@@ -238,20 +245,22 @@ def communication_data_report(
         return None
     communication_data_df = pd.concat(dataframes)
 
-    print("\nAnalyzing Communication Data...")
+    cli_logger.info("\nAnalyzing Communication Data...")
     computation_fraction_df = get_computation_fraction_data(communication_data_df)
 
-    formatters = {"computation_fraction": lambda x: "{:.2f} %".format(x * 100)}
+    formatters = {"computation_fraction": lambda x: f"{x * 100:.2f} %"}
     communication_data_table = computation_fraction_df.to_string(
         index=False, formatters=formatters
     )
 
     computation_fraction_plot_path = plot_dir / (
-        "computation_communication_plot" + plot_file_suffix
+        "computation_vs_communication_plot" + plot_file_suffix
     )
     computation_fraction_fig, _ = computation_fraction_bar_plot(computation_fraction_df)
     computation_fraction_fig.savefig(computation_fraction_plot_path)
-    print(f"Saved computation fraction plot at '{computation_fraction_plot_path.resolve()}'.")
+    cli_logger.info(
+        f"Saved computation fraction plot at '{computation_fraction_plot_path.resolve()}'."
+    )
 
     if not do_backup:
         return communication_data_table
@@ -259,8 +268,9 @@ def communication_data_report(
     backup_dir.mkdir(exist_ok=True, parents=True)
     backup_path = backup_dir / "communication_data.csv"
     communication_data_df.to_csv(backup_path)
-    print(f"Storing backup file at '{backup_path.resolve()}'.")
+    cli_logger.info(f"Storing backup file at '{backup_path.resolve()}'.")
     return communication_data_table
+
 
 def computation_data_report(
     log_dirs: List[Path] | List[str],
@@ -304,14 +314,13 @@ def computation_data_report(
         )
         dataframes.append(temp_df)
     if not dataframes:
-        print("No computation data found in the provided log directories.")
         return None
     computation_data_df = pd.concat(dataframes)
 
-    print("\nAnalyzing Computation Data...")
+    cli_logger.info("\nAnalyzing Computation Data...")
     computation_fraction_df = get_computation_vs_other_data(computation_data_df)
 
-    formatters = {"computation_fraction": lambda x: "{:.2f} %".format(x * 100)}
+    formatters = {"computation_fraction": lambda x: f"{x * 100:.2f} %"}
     computation_data_table = computation_fraction_df.to_string(
         index=False, formatters=formatters
     )
@@ -321,7 +330,9 @@ def computation_data_report(
     )
     computation_fraction_fig, _ = computation_vs_other_bar_plot(computation_fraction_df)
     computation_fraction_fig.savefig(computation_fraction_plot_path)
-    print(f"Saved computation fraction plot at '{computation_fraction_plot_path.resolve()}'.")
+    cli_logger.info(
+        f"Saved computation fraction plot at '{computation_fraction_plot_path.resolve()}'."
+    )
 
     if not do_backup:
         return computation_data_table
@@ -329,5 +340,5 @@ def computation_data_report(
     backup_dir.mkdir(exist_ok=True, parents=True)
     backup_path = backup_dir / "computation_data.csv"
     computation_data_df.to_csv(backup_path)
-    print(f"Storing backup file at '{backup_path.resolve()}'.")
+    cli_logger.info(f"Storing backup file at '{backup_path.resolve()}'.")
     return computation_data_table

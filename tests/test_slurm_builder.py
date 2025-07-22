@@ -31,7 +31,7 @@ def slurm_config():
         num_nodes=2,
         num_tasks_per_node=4,
         gpus_per_node=2,
-        cpus_per_gpu=8,
+        cpus_per_task=16,
     )
 
 

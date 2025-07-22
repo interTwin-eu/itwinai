@@ -28,6 +28,8 @@ from torch.utils.data import Dataset
 import torch.optim.lr_scheduler as lr_scheduler
 import numpy as np
 
+from itwinai.utils import EPOCH_TIME_DIR
+
 from .mcmc import MCMCSampler, BlockedMCMCSampler
 from .lib.combo import estimate_logz, fmt_val_err
 from normflow.prior import Prior
@@ -365,7 +367,7 @@ class Fitter(TorchTrainer):
             except (KeyError, ValueError):
                 logging.warning("SLURM_NNODES is not set or invalid; defaulting num_nodes to 1.")
                 num_nodes = 1
-            epoch_time_output_dir = Path("scalability-metrics/epoch-time")
+            epoch_time_output_dir = Path(f"scalability-metrics/{EPOCH_TIME_DIR}")
             epoch_time_file_name = f"epochtime_{self.strategy.name}_{num_nodes}N.csv"
             epoch_time_output_path = epoch_time_output_dir / epoch_time_file_name
 

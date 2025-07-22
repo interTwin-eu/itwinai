@@ -8,7 +8,6 @@
 # - Linus Eickhoff <linus.maximilian.eickhoff@cern.ch> - CERN
 # --------------------------------------------------------------------------------------
 
-import abc
 import builtins as __builtin__
 import functools
 import logging
@@ -24,10 +23,6 @@ if TYPE_CHECKING:
 
 
 py_logger = logging.getLogger(__name__)
-
-
-class DistributedStrategy(abc.ABC):
-    """Abstract class to define the distributed backend methods."""
 
 
 class ClusterEnvironment(BaseModel):
@@ -63,13 +58,12 @@ def ray_cluster_is_running() -> bool:
             and "Resources" in result.stdout
             and "Usage" in result.stdout
         )
-    except subprocess.CalledProcessError as exc:
+    except subprocess.CalledProcessError:
         # If the command fails, the cluster is not running
         py_logger.debug(
-            f"Subprocess failed with return code {exc.returncode} while checking if "
-            "a Ray cluster exists.\n"
-            f"Stdout: {exc.stdout}\n"
-            f"Stderr: {exc.stderr}"
+            "Ray was checking for the existence of a Ray cluster by trying to "
+            "connect to it, but could not do it. This is not a problem if you "
+            "are not planning to connect to a Ray cluster."
         )
         return False
     except FileNotFoundError:
@@ -81,70 +75,77 @@ def ray_cluster_is_running() -> bool:
         return False
 
 
-def detect_distributed_environment() -> ClusterEnvironment:
-    """Detects distributed environment, extracting information like
-    global ans local ranks, and world size.
+def _get_env(
+    name: str,
+    *,
+    default: Any | None = None,
+    cast: Callable[[str], Any] = lambda x: x,
+    required: bool = False,
+) -> Any:
+    """Fetches and casts an environment variable.
+
+    Args:
+        name: the ENV var name.
+        default: returned if var is unset (and required is False).
+        cast: function to transform the raw str into the desired type.
+        required: if True and var is missing, raises KeyError.
     """
+    raw = os.getenv(name)
+    if raw is None:
+        if required:
+            raise KeyError(f"Required environment variable {name!r} not set")
+        return default
+    try:
+        return cast(raw)
+    except Exception as e:
+        py_logger.warning("Failed to cast env %s=%r using %s: %s", name, raw, cast, e)
+        return default
+
+
+def _get_int(name: str, default: int | None = None, required: bool = False) -> int:
+    return _get_env(name, default=default, cast=int, required=required)
+
+
+def detect_distributed_environment() -> ClusterEnvironment:
+    """Detects a distributed environment by probing known env vars."""
+    # 1) TorchElastic
     if os.getenv("TORCHELASTIC_RUN_ID") is not None:
-        # Torch elastic environment
+        py_logger.debug("Using TorchElastic distributed cluster")
         # https://pytorch.org/docs/stable/elastic/run.html#environment-variables
         return ClusterEnvironment(
-            global_rank=os.getenv("RANK"),
-            local_rank=os.getenv("LOCAL_RANK"),
-            local_world_size=os.getenv("LOCAL_WORLD_SIZE"),
-            global_world_size=os.getenv("WORLD_SIZE"),
+            global_rank=_get_int("RANK", required=True),
+            local_rank=_get_int("LOCAL_RANK", required=True),
+            local_world_size=_get_int("LOCAL_WORLD_SIZE", required=True),
+            global_world_size=_get_int("WORLD_SIZE", required=True),
         )
-    # Fixes issue that OMPI_* env vars might be set despite using srun instead of mpirun
-    elif int(os.getenv("OMPI_COMM_WORLD_SIZE", -1)) >= int(os.getenv("SLURM_NTASKS", 0)):
-        py_logger.debug("Using Open MPI environment")
-        # Open MPI environment
+
+    # 2) Open MPI (guard against stale SLURM_* that might be set)
+    ompi_size = _get_int("OMPI_COMM_WORLD_SIZE", default=-1)
+    slurm_tasks = _get_int("SLURM_NTASKS", default=0)
+    if ompi_size >= slurm_tasks:
+        py_logger.debug("Using Open MPI distributed cluster")
         # https://docs.open-mpi.org/en/v5.0.x/tuning-apps/environment-var.html
         return ClusterEnvironment(
-            global_rank=os.getenv("OMPI_COMM_WORLD_RANK"),
-            local_rank=os.getenv("OMPI_COMM_WORLD_LOCAL_RANK"),
-            local_world_size=os.getenv("OMPI_COMM_WORLD_LOCAL_SIZE"),
-            global_world_size=os.getenv("OMPI_COMM_WORLD_SIZE"),
+            global_rank=_get_int("OMPI_COMM_WORLD_RANK", required=True),
+            local_rank=_get_int("OMPI_COMM_WORLD_LOCAL_RANK", required=True),
+            local_world_size=_get_int("OMPI_COMM_WORLD_LOCAL_SIZE", required=True),
+            global_world_size=ompi_size,
         )
-    # It is difficult to understand ranks from a Ray cluster... It could have been set up to
-    # tune a model with non-distributed strategy.
-    # elif ray_cluster_is_running():
-    #     import ray
 
-    #     ray_initialized_in_here = False
-
-    #     if not ray.is_initialized():
-    #         ray_initialized_in_here = True
-    #         ray.init(address="auto")
-    #     try:
-    #         # Determine the local rank and local world size
-    #         current_node = ray.util.get_node_ip_address()
-    #         all_nodes = [node["NodeManagerAddress"] for node in ray.nodes()]
-
-    #         # Filter tasks on the same node
-    #         local_world_size = all_nodes.count(current_node)
-    #         local_rank = (
-    # all_nodes[: all_nodes.index(current_node) + 1].count(current_node) - 1
-    # )
-    #         cluster = ClusterEnvironment(
-    #             global_rank=ray.get_runtime_context().get_node_id(),
-    #             local_rank=local_rank,
-    #             local_world_size=local_world_size,
-    #             global_world_size=len(ray.nodes()),
-    #         )
-    #     finally:
-    #         if ray_initialized_in_here:
-    #             ray.shutdown()
-    #     return cluster
-    elif os.getenv("SLURM_JOB_ID") is not None:
+    # 3) SLURM (fallback)
+    if os.getenv("SLURM_JOB_ID") is not None:
+        py_logger.debug("Using SLURM distributed environment")
         # https://hpcc.umd.edu/hpcc/help/slurmenv.html
         return ClusterEnvironment(
-            global_rank=os.getenv("SLURM_PROCID"),
-            local_rank=os.getenv("SLURM_LOCALID"),
-            local_world_size=os.getenv("SLURM_NTASKS_PER_NODE", 1),
-            global_world_size=os.getenv("SLURM_NTASKS"),
+            global_rank=_get_int("SLURM_PROCID", required=True),
+            local_rank=_get_int("SLURM_LOCALID", required=True),
+            local_world_size=_get_int("SLURM_NTASKS_PER_NODE", default=1),
+            global_world_size=_get_int("SLURM_NTASKS", required=True),
         )
-    else:
-        return ClusterEnvironment()
+
+    # 4) default: no distributed env
+    py_logger.debug("No distributed environment was detected")
+    return ClusterEnvironment()
 
 
 #: Save original builtin print before patching it in distributed environments

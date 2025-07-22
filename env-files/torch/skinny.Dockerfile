@@ -8,7 +8,7 @@
 # --------------------------------------------------------------------------------------
 
 
-ARG BASE_IMG_NAME=python:3.10-slim
+ARG BASE_IMG_NAME=python:3.12-slim
 
 FROM ${BASE_IMG_NAME}
 ARG BASE_IMG_NAME
@@ -19,6 +19,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     git \
     curl \
     && apt-get clean -y && rm -rf /var/lib/apt/lists/*
+
+
+ENV \
+    # https://docs.astral.sh/uv/reference/environment/#uv_no_cache
+    UV_NO_CACHE=1
 
 # Install UV package manager and upgrade pip
 RUN pip install --no-cache-dir --upgrade pip uv
@@ -31,12 +36,12 @@ RUN uv venv \
     && uv pip install --no-cache-dir --upgrade pip \
     && uv pip install --no-cache-dir \
     # Select from which index to install torch
-    --extra-index-url https://download.pytorch.org/whl/cu124 \
+    --extra-index-url https://download.pytorch.org/whl/cu126 \
     # This is needed by UV to trust all indexes:
     --index-strategy unsafe-best-match \
     # Install packages
     .[torch] \
-    "prov4ml[nvidia]@git+https://github.com/matbun/ProvML@new-main" \
+    "prov4ml[nvidia]@git+https://github.com/matbun/ProvML@v0.0.2" \
     pytest \
     pytest-xdist \
     psutil
@@ -53,7 +58,7 @@ RUN itwinai sanity-check --torch \
 COPY env-files/torch/skinny.Dockerfile Dockerfile
 COPY tests tests
 
-# This is here because the sknny container could be used to run PR tests
+# This is here because the skinny container could be used to run PR tests
 COPY use-cases use-cases
 # This is needed to override the default venv path used by functional
 # tests for torch-based use cases (under ./use-cases)

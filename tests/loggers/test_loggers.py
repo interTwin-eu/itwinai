@@ -5,6 +5,7 @@
 #
 # Credit:
 # - Matteo Bunino <matteo.bunino@cern.ch> - CERN
+# - Linus Eickhoff <linus.maximilian.eickhoff@cern.ch> - CERN
 # -------------------------------------------------------------------------------------
 
 import logging
@@ -23,7 +24,6 @@ def enable_logs_propagation():
     yield
     itwinai.logger.propagate = False
 
-
 @pytest.mark.parametrize(
     "itwinai_logger",
     [
@@ -35,38 +35,61 @@ def enable_logs_propagation():
         "loggers_collection",
     ],
 )
-def test_logger_initialization(itwinai_logger, request, caplog, enable_logs_propagation):
+def test_logger_no_initialization(itwinai_logger, request):
+    """Test that the logger raises an error if it has not been initialized."""
     itwinai_logger = request.getfixturevalue(itwinai_logger)
     # Never initialized
     with pytest.raises(RuntimeError) as exc_info:
         itwinai_logger.log(identifier="num", item=123, kind="metric")
     assert "has not been initialized" in str(exc_info.value)
     with pytest.raises(RuntimeError) as exc_info:
-        itwinai_logger.save_hyperparameters(dict(a=1, b=2))
+        itwinai_logger.save_hyperparameters({"a": 1, "b": 2})
     assert "has not been initialized" in str(exc_info.value)
     with pytest.raises(RuntimeError) as exc_info:
         itwinai_logger.destroy_logger_context()
     assert "has not been initialized" in str(exc_info.value)
 
-    itwinai_logger.create_logger_context()
+# exclude the loggers_collection and mllogger from the initialization tests
+@pytest.mark.parametrize(
+    "initialize_once_logger",
+    [
+        "console_logger",
+        "wandb_logger",
+        "tensorboard_logger_torch",
+        "prov4ml_logger",
+    ]
+)
+def test_logger_double_initialization(
+    initialize_once_logger,
+    request,
+    caplog,
+    enable_logs_propagation,
+):
+    """Test that the logger is initialized only once."""
+    initialize_once_logger = request.getfixturevalue(initialize_once_logger)
+
+    # Initialize the logger
+    initialize_once_logger.create_logger_context()
 
     # Double initialization
     caplog.clear()
     with caplog.at_level(logging.WARNING):
-        itwinai_logger.create_logger_context()
+        initialize_once_logger.create_logger_context()
         assert len(caplog.records) == 1
         assert caplog.records[0].levelname == "WARNING"
         assert (
-            f"Trying to initialize {itwinai_logger.__class__.__name__} twice.. "
+            f"Trying to initialize {initialize_once_logger.__class__.__name__} twice.. "
             "Skipping initialization."
         ) in caplog.text
+
+    initialize_once_logger.destroy_logger_context()
 
 
 def test_console_logger_log(console_logger):
     console_logger.create_logger_context()
-    with patch("builtins.print") as mocked_print:
-        console_logger.log("test_value", "test_identifier")
-        mocked_print.assert_called_with("ConsoleLogger: test_identifier = test_value")
+    with patch("itwinai.loggers.py_logger.info") as mocked_py_logger:
+        console_logger.log("test_value", "test_identifier", kind="metric")
+        mocked_py_logger.assert_called_with("ConsoleLogger: test_identifier = test_value")
     console_logger.destroy_logger_context()
 
 
@@ -84,6 +107,7 @@ def test_wandb_logger_log(wandb_logger):
         wandb_logger.create_logger_context()
         wandb_logger.log(0.5, "test_metric", kind="metric")
         mock_log.assert_called_once_with({"test_metric": 0.5}, commit=True)
+        wandb_logger.destroy_logger_context()
 
 
 @pytest.mark.tensorflow
@@ -143,7 +167,7 @@ def test_tensorboard_logger_log_torch(tensorboard_logger_torch):
 
 def test_loggers_collection_log(loggers_collection):
     with (
-        patch("builtins.print") as mocked_print,
+        patch("itwinai.loggers.py_logger.info") as mocked_py_logger_info,
         patch("mlflow.log_metric") as mock_log_metric,
         patch("wandb.init") as mock_wandb_init,
         patch("wandb.log") as mock_wandb_log,
@@ -157,7 +181,7 @@ def test_loggers_collection_log(loggers_collection):
         loggers_collection.create_logger_context()
         loggers_collection.log(0.5, "test_metric", kind="metric", step=1)
 
-        mocked_print.assert_called_with("ConsoleLogger: test_metric = 0.5")
+        mocked_py_logger_info.assert_called_with("ConsoleLogger: test_metric = 0.5")
         mock_log_metric.assert_called_once_with(key="test_metric", value=0.5, step=1)
         mock_wandb_log.assert_called_once_with({"test_metric": 0.5}, commit=True)
 

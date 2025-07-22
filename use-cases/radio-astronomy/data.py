@@ -27,6 +27,7 @@ from pulsar_analysis.pipeline_methods import (
 )
 from pulsar_analysis.neural_network_models import UNet
 from pulsar_simulation.generate_data_pipeline import generate_example_payloads_for_training
+import ray
 
 class SynthesizeData(DataGetter):
     def __init__(
@@ -61,6 +62,10 @@ class SynthesizeData(DataGetter):
     def execute(self) -> None:
         """Generate synthetic data and save it to disk.
         Relies on the pulsar_simulation package."""
+
+        # Ray is assumed to be running for the data generation. 
+        if ray.is_initialized() == False: ray.init(num_cpus=self.parameters["num_cpus"],
+                                                   include_dashboard=False)
         generate_example_payloads_for_training(
             tag=self.parameters["tag"],
             num_payloads=self.parameters["num_payloads"],
@@ -70,6 +75,7 @@ class SynthesizeData(DataGetter):
             num_cpus=self.parameters["num_cpus"],
             reinit_ray=False,
         )
+        if ray.is_initialized(): ray.shutdown()  # shutdown ray after the data generation is done
 
 
 class PulsarDataset(Dataset):

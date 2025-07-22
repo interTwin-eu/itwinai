@@ -25,10 +25,12 @@ import os
 import subprocess
 import sys
 from pathlib import Path
-from typing import List, Optional
+from textwrap import dedent
+from typing import List
 
 import hydra
 import typer
+from omegaconf import DictConfig
 from typing_extensions import Annotated
 
 from itwinai.utils import COMPUTATION_DATA_DIR, EPOCH_TIME_DIR, GPU_ENERGY_DIR
@@ -36,6 +38,7 @@ from itwinai.utils import COMPUTATION_DATA_DIR, EPOCH_TIME_DIR, GPU_ENERGY_DIR
 app = typer.Typer(pretty_exceptions_enable=False)
 
 py_logger = logging.getLogger(__name__)
+cli_logger = logging.getLogger("cli_logger")
 
 
 @app.command()
@@ -55,16 +58,14 @@ def generate_flamegraph(
 
     try:
         with open(output_filename, "w") as out:
-            subprocess.run(
-                ["perl", str(script_path), file],
-                stdout=out,
-                check=True,
-            )
-        typer.echo(f"Flamegraph saved to '{output_filename}'")
+            subprocess.run(["perl", str(script_path), file], stdout=out, check=True)
+        cli_logger.info(f"Flamegraph saved to '{output_filename}'")
     except FileNotFoundError:
-        typer.echo("Error: Perl is not installed or not in PATH.")
+        cli_logger.error("Perl is not installed or not in PATH.")
+        raise typer.Exit(code=1)
     except subprocess.CalledProcessError as e:
-        typer.echo(f"Flamegraph generation failed: {e}")
+        cli_logger.error(f"Flamegraph generation failed: {e}")
+        raise typer.Exit(code=1)
 
 
 @app.command()
@@ -111,11 +112,13 @@ def generate_py_spy_report(
     try:
         stack_traces = read_stack_traces(path=file_path)
     except ValueError as exception:
-        typer.echo(f"Failed to read stack traces with following error:\n{str(exception)}")
+        cli_logger.error(
+            f"Failed to read stack traces with following error:\n{str(exception)}"
+        )
         raise typer.Exit(code=1)
 
-    typer.echo(
-        "[WARNING]: Multiprocessing calls (e.g. Dataloader subprocesses) might be counted"
+    cli_logger.warning(
+        "Multiprocessing calls (e.g. Dataloader subprocesses) might be counted"
         " multiple times (once per process) and thus be overrepresented. Take this into"
         " consideration when reading the results.\n"
     )
@@ -149,7 +152,7 @@ def generate_py_spy_report(
         stack_frame_dict["proportion (n)"] = f"{proportion:.2f}% ({num_samples})"
         filtered_leaf_stack_dicts.append(stack_frame_dict)
 
-    typer.echo(tabulate(filtered_leaf_stack_dicts, headers="keys", tablefmt="presto"))
+    cli_logger.info(tabulate(filtered_leaf_stack_dicts, headers="keys", tablefmt="presto"))
 
 
 @app.command()
@@ -289,6 +292,31 @@ def generate_scalability_report(
         plot_file_suffix=plot_file_suffix,
     )
 
+    # Disclaimer for the plots
+    typer.echo(
+        typer.style("-" * 38 + "DISCLAIMER" + "-" * 38, fg=typer.colors.YELLOW, bold=True)
+    )
+    typer.echo(
+        dedent("""
+    The computation plots are experimental and do not account for parallelism.
+    Calls traced by the torch profiler may overlap in time, so the sum of
+    individual operation durations does not necessarily equal the total training run duration.
+
+    The computed fractions are calculated as:
+    (summed duration of ATen + Autograd operations) / (summed duration of all operations)
+
+    Note:
+        Different strategies handle computation and communication differently.
+        Therefore, these plots should *not* be used to compare strategies solely
+        based on computation fractions.
+
+    However:
+        Comparing the computation fraction across multiple GPU counts *within*
+        the same strategy may provide insights into its scalability.
+    """).strip()
+    )
+    typer.echo(typer.style("-" * 86, fg=typer.colors.YELLOW, bold=True))
+
     if include_communication:
         comm_time_logdirs = [
             path / COMPUTATION_DATA_DIR
@@ -312,44 +340,45 @@ def generate_scalability_report(
         plot_file_suffix=plot_file_suffix,
     )
 
-
-    typer.echo("")
+    cli_logger.info("")
     if epoch_time_table is not None:
-        typer.echo("#" * 8 + " Epoch Time Report " + "#" * 8)
-        typer.echo(epoch_time_table + "\n")
+        cli_logger.info("#" * 8 + " Epoch Time Report " + "#" * 8)
+        cli_logger.info(epoch_time_table + "\n")
     else:
-        typer.echo("No Epoch Time Data Found\n")
+        cli_logger.info("No Epoch Time Data Found\n")
 
     if gpu_data_table is not None:
-        typer.echo("#" * 8 + "GPU Data Report" + "#" * 8)
-        typer.echo(gpu_data_table + "\n")
+        cli_logger.info("#" * 8 + "GPU Data Report" + "#" * 8)
+        cli_logger.info(gpu_data_table + "\n")
     else:
-        typer.echo("No GPU Data Found\n")
+        cli_logger.info("No GPU Data Found\n")
 
     if computation_data_table is not None:
-        typer.echo("#" * 8 + "Computation Data Report" + "#" * 8)
-        typer.echo(computation_data_table + "\n")
+        cli_logger.info("#" * 8 + "Computation Data Report" + "#" * 8)
+        cli_logger.info(computation_data_table + "\n")
     else:
-        typer.echo("No Computation Data Found\n")
+        cli_logger.info("No Computation Data Found\n")
 
     if include_communication:
         if communication_data_table is not None:
-            typer.echo("#" * 8 + "Communication Data Report" + "#" * 8)
-            typer.echo(communication_data_table + "\n")
+            cli_logger.info("#" * 8 + "Communication Data Report" + "#" * 8)
+            cli_logger.info(communication_data_table + "\n")
         else:
-            typer.echo("No Communication Data Found\n")
+            cli_logger.info("No Communication Data Found\n")
 
 
 @app.command()
 def sanity_check(
     torch: Annotated[
-        Optional[bool], typer.Option(help=("Check also itwinai.torch modules."))
+        bool | None, typer.Option(help=("Check also itwinai.torch modules."))
     ] = False,
     tensorflow: Annotated[
-        Optional[bool], typer.Option(help=("Check also itwinai.tensorflow modules."))
+        bool | None, typer.Option(help=("Check also itwinai.tensorflow modules."))
     ] = False,
-    all: Annotated[Optional[bool], typer.Option(help=("Check all modules."))] = False,
-    optional_deps: List[str] = typer.Option(None, help="List of optional dependencies."),
+    all: Annotated[bool | None, typer.Option(help=("Check all modules."))] = False,
+    optional_deps: Annotated[
+        List[str] | None, typer.Option(help="List of optional dependencies.")
+    ] = None,
 ):
     """Run sanity checks on the installation of itwinai and its dependencies by trying
     to import itwinai modules. By default, only itwinai core modules (neither torch, nor
@@ -374,6 +403,39 @@ def sanity_check(
 
     if optional_deps is not None:
         run_sanity_check(optional_deps)
+
+
+@app.command()
+def check_distributed_cluster(
+    platform: Annotated[
+        str, typer.Option(help=("Hardware platform: nvidia or amd"))
+    ] = "nvidia",
+    launcher: Annotated[
+        str, typer.Option(help=("Distributed ML cluster: torchrun or ray"))
+    ] = "torchrun",
+):
+    """This command provides a suite of tests for a quick sanity check of the network setup
+    for torch distributed. Useful when working with containers on HPC.
+    Remember to prepend *torchrun* in front of this command or to start a *Ray* cluster.
+    """
+    from itwinai.tests.distributed import test_cuda, test_gloo, test_nccl, test_ray, test_rocm
+
+    match platform:
+        case "nvidia":
+            test_cuda()
+        case "amd":
+            test_rocm()
+        case _:
+            typer.echo("Unrecognized platform!")
+
+    match launcher:
+        case "torchrun":
+            test_gloo()
+            test_nccl()
+        case "ray":
+            test_ray()
+        case _:
+            typer.echo("Unrecognized launcher!")
 
 
 @app.command(context_settings={"allow_extra_args": True, "ignore_unknown_options": True})
@@ -407,16 +469,13 @@ def generate_slurm(
             help="The number of nodes that the SLURM job is going to run on.",
         ),
     ] = 1,
-    num_tasks_per_node: Annotated[
-        int, typer.Option("--num-tasks-per-node", help="The number of tasks per node.")
-    ] = 1,
     gpus_per_node: Annotated[
         int,
         typer.Option("--gpus-per-node", help="The requested number of GPUs per node."),
     ] = 4,
-    cpus_per_gpu: Annotated[
+    cpus_per_task: Annotated[
         int,
-        typer.Option("--cpus-per-gpu", help="The requested number of CPUs per GPU."),
+        typer.Option("--cpus-per-gpu", help="The requested number of CPUs per SLURM task."),
     ] = 4,
     config_path: Annotated[
         str,
@@ -604,7 +663,7 @@ def exec_pipeline(
         ),
     ] = "",
     overrides: Annotated[
-        Optional[List[str]],
+        List[str] | None,
         typer.Argument(
             help=(
                 "Any key=value arguments to override config values "
@@ -623,7 +682,9 @@ def exec_pipeline(
     by passing "+pipe_key=your_pipeline" in the list of overrides, and to execute only a
     subset of the steps, you can pass "+pipe_steps=[0,1]".
     """
-    from itwinai.utils import make_config_paths_absolute
+    from validators import url
+
+    from itwinai.utils import make_config_paths_absolute, retrieve_remote_omegaconf_file
 
     del sys.argv[0]
 
@@ -634,25 +695,32 @@ def exec_pipeline(
     # Process CLI arguments to handle paths
     sys.argv = make_config_paths_absolute(sys.argv)
 
-    exec_pipeline_with_compose()
+    config = None
+    if url(config_name):
+        py_logger.info("Treating `config-name` as a URL.")
+        config = retrieve_remote_omegaconf_file(url=config_name)
+
+    exec_pipeline_with_compose(cfg_passthrough=config)
 
 
 @hydra.main(version_base=None, config_path=os.getcwd(), config_name="config")
-def exec_pipeline_with_compose(cfg):
-    """Hydra entry function. The hydra.main decorator parses a configuration file
-    (under config_path), which contains a pipeline definition, and passes it to this function
-    as an omegaconf.DictConfig object (called cfg). This function then instantiates and
-    executes the resulting pipeline object.
-    Filters steps if `pipe_steps` is provided, otherwise executes the entire pipeline.
-    For more information on hydra.main, please see
-    https://hydra.cc/docs/tutorials/basic/your_first_app/simple_cli/."""
+def exec_pipeline_with_compose(cfg: DictConfig):
+    """Hydra entry function.
+
+    The hydra.main decorator parses a configuration file (under config_path), which contains a
+    pipeline definition, and passes it to this function as an omegaconf.DictConfig object
+    (called cfg).
+
+    This function then instantiates and executes the resulting pipeline object. Filters steps
+    if `pipe_steps` is provided, otherwise executes the entire pipeline. For more information
+    on hydra.main, please see
+    https://hydra.cc/docs/tutorials/basic/your_first_app/simple_cli/.
+    """
 
     from hydra.utils import instantiate
-    from omegaconf import OmegaConf, errors
+    from omegaconf import OmegaConf
 
-    # Register custom OmegaConf resolver to allow to dynaimcally compute the current working
-    # directory. Example: some_field: ${itwinai.cwd:}/some/nested/path/in/current/working/dir
-    OmegaConf.register_new_resolver("itwinai.cwd", lambda: os.getcwd())
+    from itwinai.utils import filter_pipeline_steps
 
     def range_resolver(x, y=None, step=1):
         """Custom OmegaConf resolver for range."""
@@ -660,40 +728,34 @@ def exec_pipeline_with_compose(cfg):
             return list(range(int(x)))
         return list(range(int(x), int(y), int(step)))
 
-    # Register custom OmegaConf resolver to allow to dynaimcally compute ranges
-    OmegaConf.register_new_resolver("itwinai.range", range_resolver)
+    if not OmegaConf.has_resolver("itwinai.range"):
+        OmegaConf.register_new_resolver("itwinai.range", range_resolver)
+    if not OmegaConf.has_resolver("itwinai.multiply"):
+        OmegaConf.register_new_resolver("itwinai.multiply", lambda x, y: x * y)
 
-    # Register custom OmegaConf resolver to allow to dynaimcally compute ranges
-    OmegaConf.register_new_resolver("itwinai.multiply", lambda x, y: x * y)
+    # Register custom OmegaConf resolver to allow dynamically computing the current working
+    # directory. Example: some_field: ${itwinai.cwd:}/some/nested/path/in/current/working/dir
+    if not OmegaConf.has_resolver("itwinai.cwd"):
+        OmegaConf.register_new_resolver("itwinai.cwd", os.getcwd)
 
     pipe_steps = OmegaConf.select(cfg, "pipe_steps", default=None)
     pipe_key = OmegaConf.select(cfg, "pipe_key", default="training_pipeline")
 
-    try:
-        cfg = OmegaConf.select(cfg, pipe_key, throw_on_missing=True)
-    except errors.MissingMandatoryValue as e:
-        e.add_note(
-            f"Could not find pipeline key {pipe_key}. Make sure that you provide the full "
+    pipeline_cfg = OmegaConf.select(cfg, key=pipe_key)
+    if pipeline_cfg is None:
+        py_logger.error(
+            f"Could not find pipeline key '{pipe_key}'. Make sure that you provide the full "
             "dotpath to your pipeline key."
         )
-        raise e
+        raise typer.Exit(1)
 
     if pipe_steps:
-        try:
-            cfg.steps = [cfg.steps[step] for step in pipe_steps]
-            typer.echo(f"Successfully selected steps {pipe_steps}")
-        except errors.ConfigKeyError as e:
-            e.add_note(
-                "Could not find all selected steps. Please ensure that all steps exist "
-                "and that you provided to the dotpath to them. "
-                f"Steps provided: {pipe_steps}."
-            )
-            raise e
+        filter_pipeline_steps(pipeline_cfg=pipeline_cfg, pipe_steps=pipe_steps)
     else:
-        typer.echo("No steps selected. Executing the whole pipeline.")
+        py_logger.info("No steps selected. Executing the whole pipeline.")
 
     # Instantiate and execute the pipeline
-    pipeline = instantiate(cfg, _convert_="all")
+    pipeline = instantiate(pipeline_cfg, _convert_="all")
     pipeline.execute()
 
 
@@ -758,10 +820,10 @@ def download_mlflow_data(
         "MLFLOW_TRACKING_USERNAME" in os.environ and "MLFLOW_TRACKING_PASSWORD" in os.environ
     )
     if not mlflow_credentials_set:
-        typer.echo(
-            "\nWarning: MLFlow authentication environment variables are not set. "
-            "If the server requires authentication, your request will fail."
-            "You can authenticate by setting environment variables before running:\n"
+        cli_logger.warning(
+            "MLFlow authentication environment variables are not set. If the server requires"
+            " authentication, your request will fail. You can authenticate by setting"
+            " environment variables before running:\n"
             "\texport MLFLOW_TRACKING_USERNAME=your_username\n"
             "\texport MLFLOW_TRACKING_PASSWORD=your_password\n"
         )
@@ -775,28 +837,28 @@ def download_mlflow_data(
 
     # Handling authentication
     try:
-        typer.echo(f"\nConnecting to MLFlow server at {tracking_uri}")
-        typer.echo(f"Accessing experiment ID: {experiment_id}")
+        cli_logger.info(f"\nConnecting to MLFlow server at {tracking_uri}")
+        cli_logger.info(f"Accessing experiment ID: {experiment_id}")
         runs = client.search_runs(experiment_ids=[experiment_id])
-        typer.echo(f"Authentication successful! Found {len(runs)} runs.")
+        cli_logger.info(f"Authentication successful! Found {len(runs)} runs.")
     except mlflow.MlflowException as e:
         status_code = e.get_http_status_code()
         if status_code == 401:
-            typer.echo(
+            cli_logger.error(
                 "Authentication with MLFlow failed with code 401! Either your "
                 "environment variables are not set or they are incorrect!"
             )
-            typer.Exit(code=1)
+            raise typer.Exit(code=1)
         else:
-            typer.echo(e.message)
-            typer.Exit(code=1)
+            cli_logger.info(e.message)
+            raise typer.Exit(code=1)
 
     all_metrics = []
     for run_idx, run in enumerate(runs):
         run_id = run.info.run_id
         metric_keys = run.data.metrics.keys()  # Get all metric names
 
-        typer.echo(f"Processing run {run_idx + 1}/{len(runs)}")
+        cli_logger.info(f"Processing run {run_idx + 1}/{len(runs)}")
         for metric_name in metric_keys:
             metrics = client.get_metric_history(run_id, metric_name)
             for metric in metrics:
@@ -811,14 +873,15 @@ def download_mlflow_data(
                 )
 
     if not all_metrics:
-        typer.echo("No metrics found in the runs")
-        typer.Exit(code=1)
+        cli_logger.error("No metrics found in the runs")
+        raise typer.Exit(code=1)
 
     df_metrics = pd.DataFrame(all_metrics)
     df_metrics.to_csv(output_file, index=False)
-    typer.echo(f"Saved data to '{Path(output_file).resolve()}'!")
+    cli_logger.info(f"Saved data to '{Path(output_file).resolve()}'!")
 
 
+@app.command()
 def tensorboard_ui(
     path: str = typer.Option("mllogs/tensorboard", help="Path to logs storage."),
     port: int = typer.Option(6006, help="Port on which the Tensorboard UI is listening."),

@@ -32,7 +32,7 @@ if [ -z "$NO_CUDA" ]; then
   # Install with CUDA support
   uv pip install -e ".[torch,dev]" \
     --no-cache-dir \
-    --extra-index-url https://download.pytorch.org/whl/cu121
+    --extra-index-url https://download.pytorch.org/whl/cu126
 else
   # Install without CUDA support
   uv pip install -e ".[torch,dev]" --no-cache-dir
@@ -41,8 +41,8 @@ fi
 
 # Install Prov4ML
 if [[ "$(uname)" == "Darwin" ]]; then
-  uv pip install --no-cache-dir  "prov4ml[apple]@git+https://github.com/matbun/ProvML@new-main"
+  uv pip install --no-cache-dir  "prov4ml[apple]@git+https://github.com/matbun/ProvML@v0.0.2"
 else
   # Assuming Nvidia GPUs are available
-  uv pip install --no-cache-dir  "prov4ml[nvidia]@git+https://github.com/matbun/ProvML@new-main"
+  uv pip install --no-cache-dir  "prov4ml[nvidia]@git+https://github.com/matbun/ProvML@v0.0.2"
 fi

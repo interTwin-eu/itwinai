@@ -11,7 +11,7 @@ import dataclasses
 import datetime
 import uuid
 from string import Template
-from typing import Annotated, Self
+from typing import Annotated, Dict, Self
 
 import dagger
 import yaml
@@ -47,6 +47,9 @@ class Itwinai:
 
     _unique_id: str | None = dataclasses.field(default=None, init=False)
     _logs: list[str] = dataclasses.field(default_factory=list, init=False)
+    _all_containers: Dict[str, dagger.Container] = dataclasses.field(
+        default_factory=dict, init=False
+    )
 
     @classmethod
     def create(
@@ -115,6 +118,10 @@ class Itwinai:
             list[str] | None,
             Doc("Comma-separated build args"),
         ] = None,
+        build_arm: Annotated[
+            bool,
+            Doc("Whether to build for ARM"),
+        ] = False,
     ) -> Self:
         """Build itwinai container image from existing Dockerfile"""
         if build_args:
@@ -122,9 +129,21 @@ class Itwinai:
                 BuildArg(name=arg_couple.split("=")[0], value=arg_couple.split("=")[1])
                 for arg_couple in build_args
             ]
+        if build_arm:
+            # Build also for ARM
+            print("INFO: Building container for linux/arm64 platform")
+            arm_container = dag.container(platform=dagger.Platform("linux/arm64")).build(
+                context=context,
+                dockerfile=dockerfile,
+                build_args=build_args,
+            )
+            self._all_containers["linux/arm64"] = arm_container
+            # Just a trick to force build now
+            await arm_container.with_exec(["ls", "-la"]).stdout()
 
+        print("INFO: Building container for linux/amd64 platform")
         self.container = (
-            dag.container()
+            dag.container(platform=dagger.Platform("linux/amd64"))
             .build(
                 context=context,
                 dockerfile=dockerfile,
@@ -135,6 +154,7 @@ class Itwinai:
                 value=datetime.datetime.now(datetime.timezone.utc).isoformat(),
             )
         )
+        self._all_containers["linux/amd64"] = self.container
 
         # Get itwinai version
         itwinai_version = (
@@ -173,9 +193,13 @@ class Itwinai:
             "/app/tests",
         ]
 
-        tests_result = await self.container.with_exec(cmd).stdout()
-        self._logs.append("INFO: running pytest for 'local' tests:")
-        self._logs.append(tests_result)
+        for platform_name, container in self._all_containers.items():
+            print(f"INFO: Testing container for {platform_name} platform")
+            self._logs.append(
+                f"INFO: running pytest for 'local' tests on container for {platform_name}:"
+            )
+            tests_result = await container.with_exec(cmd).stdout()
+            self._logs.append(tests_result)
         return self
 
     @function
@@ -186,20 +210,24 @@ class Itwinai:
             Doc("Optional target URI for the image"),
         ] = None,
     ) -> Self:
-        """Push container to registry"""
+        """Push container to registry. Multi-arch support."""
 
         uri = uri or f"{self.docker_registry}/{self.image}:{self.tag}"
-        outcome = await (
-            self.container.with_label(
-                name="org.opencontainers.image.ref.name",
-                value=uri,
+
+        all_containers = []
+        for platform_name, container in self._all_containers.items():
+            print(f"INFO: Preparing to publish container for {platform_name} platform")
+            all_containers.append(
+                container.with_label(
+                    name="org.opencontainers.image.ref.name",
+                    value=uri,
+                )
+                # Invalidate cache to ensure that the container is always pushed
+                .with_env_variable(
+                    "CACHE", datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")
+                )
             )
-            # Invalidate cache to ensure that the container is always pushed
-            .with_env_variable(
-                "CACHE", datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")
-            )
-            .publish(address=uri)
-        )
+        outcome = await dag.container().publish(address=uri, platform_variants=all_containers)
         self._logs.append(f"INFO: publishing Docker image to {uri}")
         self._logs.append(outcome)
         return self
@@ -570,8 +598,8 @@ class Itwinai:
     def singularity(
         self,
         base_image: Annotated[
-            dagger.Container, Doc("Base Singularity image")
-        ] = dag.container().from_("quay.io/singularity/docker2singularity"),
+            str, Doc("Base Singularity image")
+        ] = "quay.io/singularity/docker2singularity",
         docker: Annotated[
             dagger.Container | None,
             Doc(

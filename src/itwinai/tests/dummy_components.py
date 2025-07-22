@@ -52,6 +52,7 @@ class FakePreproc(BaseComponent):
         self.save_parameters(max_items=max_items, name=name)
         self.max_items = max_items
 
+    @monitor_exec
     def execute(self): ...
 
 
@@ -68,6 +69,7 @@ class FakeTrainer(BaseComponent):
         self.lr = lr
         self.batch_size = batch_size
 
+    @monitor_exec
     def execute(self): ...
 
 
