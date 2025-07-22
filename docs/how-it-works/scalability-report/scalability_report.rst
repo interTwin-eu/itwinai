@@ -7,7 +7,7 @@ bottlenecks or bugs as you distribute your workload, as well as help you monitor
 model's sustainability. The main goals are as follows:
 
 - Understand how well your model scales with regards to the given metrics
-- Discover which distributed strategy works best for your pipeline
+- Discover which distribution strategy works best for your pipeline
 
 The Scalability Report includes the following metrics: 
 
@@ -103,73 +103,73 @@ result in a warning.
 Example Results
 ---------------
 
-The following will show some example results from the Virgo use case. Note that this
-was run once and might therefore have some slightly distorted results due to random
-noise in the training, such as some nodes performing better than others. To mitigate
-this, one can run more analyses and aggregate the results.
+The following will show some example results from the MNIST plugin for ``itwinai``. The
+experiment was repeated three times to reduce random noise. Notice how the code seems to
+scale poorly, which is expected since the dataset is so small. Thus, the overhead of
+distributing it to multiple nodes ends up comprising a significant portion of the final
+training time.
 
-The report will result in a table of scalability results, printed in the console, as
+The report results in a table of scalability results—printed in the console—as
 well as plots showing the same results visually. An example of the resulting console
-output can be seen here # TODO: This needs to be updated
+output can be seen here.
 
 .. code-block::
 
-    ######## Epoch Time Report ########
-         name  nodes avg_epoch_time
-    deepspeed      1        59.01 s
-    deepspeed      2        31.37 s
-    deepspeed      4        17.86 s
-    deepspeed      8         9.48 s
-      horovod      1        59.77 s
-      horovod      2        34.91 s
-      horovod      4        21.95 s
-      horovod      8        16.75 s
-    torch-ddp      1        72.92 s
-    torch-ddp      2        48.62 s
-    torch-ddp      4        19.26 s
-    torch-ddp      8        10.30 s
-    Saved absolute average time plot at '/Users/jarl/cern/cern_projects/itwinai/plots/absolute_epoch_time.png'.
-    Saved relative average time plot at '/Users/jarl/cern/cern_projects/itwinai/plots/relative_epoch_time_speedup.png'.
+  ######## Epoch Time Report ########
+       name  workers avg_epoch_time
+  deepspeed        4         2.65 s
+  deepspeed        8         1.69 s
+  deepspeed       16         1.29 s
+  deepspeed       32         1.06 s
+    horovod        4         3.94 s
+    horovod        8         2.83 s
+    horovod       16         2.35 s
+    horovod       32         2.15 s
+  torch-ddp        4         2.92 s
+  torch-ddp        8         1.99 s
+  torch-ddp       16         1.41 s
+  torch-ddp       32         1.11 s
 
-    ######## Computation Data Report ########
-     strategy  num_gpus computation_fraction
-    deepspeed         4              00.09 %
-    deepspeed         8              00.08 %
-    deepspeed        16              00.08 %
-    deepspeed        32              00.09 %
-      horovod         4              00.77 %
-      horovod         8              00.24 %
-      horovod        16              00.21 %
-      horovod        32              00.58 %
-    torch-ddp         4              00.50 %
-    torch-ddp         8              00.79 %
-    torch-ddp        16              00.03 %
-    torch-ddp        32              00.62 %
-    Saved computation fraction plot at '/Users/jarl/cern/cern_projects/itwinai/plots/computation_fraction_plot.png'.
+  No GPU Data Found
+
+  ######## Computation Data Report ########
+  num_gpus  strategy computation_fraction
+         4 deepspeed              75.47 %
+         4   horovod              70.05 %
+         4 torch-ddp              10.67 %
+         8 deepspeed              30.66 %
+         8   horovod              55.40 %
+         8 torch-ddp               5.67 %
+        16 deepspeed               9.52 %
+        16   horovod              45.05 %
+        16 torch-ddp               3.96 %
+        32 deepspeed               4.80 %
+        32   horovod              38.94 %
+        32 torch-ddp               2.49 %
 
 In this case, data was collected for 4, 8, 16 and 32 GPUs for the ``DeepSpeed``, ``Horovod``
 and ``PyTorch DDP`` strategies. The associated plots can be seen below: 
 
 Average Epoch Time Comparison
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-This plot shows a comparison between the average time per epochs for each strategy
-and number of nodes. 
+This plot shows a comparison between the average time per epochs for each strategy and number
+of nodes. 
 
-.. image:: ./images/absolute_epoch_time.png
+.. image:: ./images/mnist_absolute_epoch_time.png
 
 Relative Epoch Time Speedup
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 This plot shows a comparison between the speedup between the different number of nodes
-for each strategy. The speedup is calculated using the lowest number of nodes as a
-baseline.
+for each strategy. The speedup is calculated using the lowest number of nodes as
+a baseline.
 
-.. image:: ./images/relative_epoch_time_speedup.png
+.. image:: ./images/mnist_relative_epoch_time_speedup.png
 
 Computation vs other
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-This plot shows how much of the GPU time is spent doing computation compared to
-communication between GPUs and nodes, for each strategy and number of nodes. The shaded
-area is communication and the colored area is computation. They have all been
-normalized so that the values are between 0 and 1.0. 
+This plot shows how much of the GPU time is spent doing computation compared to other
+operations, for each strategy and number of nodes. The colored area represents computation and
+the shaded area represents other operations, e.g. communication. For each strategy, the
+columns are normalized to be between 0.0 and 1.0. 
 
-.. image:: ./images/computation_fraction_plot.png
+.. image:: ./images/mnist_computation_vs_other_plot.png
