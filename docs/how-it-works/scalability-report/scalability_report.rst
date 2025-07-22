@@ -1,10 +1,10 @@
 Scalability Report
 ==================
 
-The ``itwinai`` Scalability Report provides insights into how well your model's
-performance scales when training across multiple GPUs and nodes. It can be used to find
-bottlenecks or bugs as you distribute your workload, as well as help you monitor your
-model's sustainability. The main goals are as follows:
+The ``itwinai`` Scalability Report provides insights into how well your model's performance
+scales when training across multiple GPUs and nodes. It can be used to find bottlenecks or bugs
+as you distribute your workload, as well as help you monitor your model's sustainability. The
+main goals are as follows:
 
 - Understand how well your model scales with regards to the given metrics
 - Discover which distribution strategy works best for your pipeline
@@ -22,8 +22,8 @@ For more information about profiling with ``itwinai``, you can have a look at th
 
 .. note:: 
 
-   To use the Scalability Report functionality of ``itwinai``, you need to use a
-   Trainer object that inherits the ``itwinai`` ``TorchTrainer``. 
+   To use the Scalability Report functionality of ``itwinai``, you need to use a Trainer object
+   that inherits the ``itwinai`` ``TorchTrainer``. 
 
 Generating the Data
 -------------------
@@ -42,16 +42,16 @@ which can be toggled using the following flags in your training configuration:
       measure_epoch_time: True  # Measures avg. epoch time and rel. speedup
       ...
 
-The epoch time is measured using the `EpochTimeTracker`, while the remaining metrics
-are measured using the following decorators:
+The epoch time is measured using the `EpochTimeTracker`, while the remaining
+metrics are measured using the following decorators:
 
-- **PyTorch Profiler**: This profiler measures the time spent in computation vs. other in your
-  distributed machine learning. This is done by comparing the time spent in PyTorch's ATen
-  library with the rest of the time. It uses the PyTorch Profiler to retrieve this
-  information and is enabled using the ``enable_torch_profiling`` flag.
+- **PyTorch Profiler**: This profiler measures the time spent in computation vs. in other
+  operations in your distributed machine learning. This is done by comparing the time spent in
+  PyTorch's ATen library with the rest of the time. It uses the PyTorch Profiler to retrieve
+  this information and is enabled using the ``enable_torch_profiling`` flag.
 - **GPU Data Profiler**: This profiler measures the GPU utilization and the total power
-  consumption of the training. This is done by probing the GPU at a pre-defined interval
-  and retrieving the needed data. The data from the GPU data profiler is saved to MLFlow and
+  consumption of the training. This is done by probing the GPU at a pre-defined interval and
+  retrieving the needed data. The data from the GPU data profiler is saved to MLFlow and
   therefore not a part of the `generate-scalability-report` command.
 
 If you overwrite the ``TorchTrainer``'s ``train()`` method, then the decorators need to
@@ -70,10 +70,10 @@ be placed above your overwritten ``train()`` method as in the following example:
      def train(self, ...):
         # Your train method here
 
-If your profilers are enabled in the configuration—and if applicable, your decorators have
-been appropriately positioned above your ``train()`` method—then this will create a
-directory named ``scalability-metrics`` in the current working directory, under which
-three subdirectories will be created: 
+If your profilers are enabled in the configuration—and if applicable, your decorators have been
+appropriately positioned above your ``train()`` method—then this will create a directory named
+``scalability-metrics`` in the current working directory, under which three subdirectories will
+be created: 
 
 - ``epoch-time``: The wall-clock time data from the ``EpochTimeTracker``
 - ``computation-data``: The computation overhead data
@@ -95,23 +95,20 @@ This command takes in some extra arguments that can be viewed with the ``--help`
 
    itwinai generate-scalability-report --help
 
-When running this command by default, it will look in your ``scalability-metrics``
-directory and look for the subdirectories listed above. Only the reports relevant to
-the subdirectories that are present will be created, while missing subdirectories will only
-result in a warning.
+When running this command by default, it will look in your ``scalability-metrics`` directory
+and look for the subdirectories listed above. Only the reports relevant to the subdirectories
+that are present will be created, while missing subdirectories will only result in a warning.
 
 Example Results
 ---------------
 
 The following will show some example results from the MNIST plugin for ``itwinai``. The
-experiment was repeated three times to reduce random noise. Notice how the code seems to
-scale poorly, which is expected since the dataset is so small. Thus, the overhead of
-distributing it to multiple nodes ends up comprising a significant portion of the final
-training time.
+experiment was repeated three times to reduce random noise. Notice how the code seems to scale
+poorly, which is expected since the dataset is so small. Thus, the overhead of distributing it
+to multiple nodes ends up comprising a significant portion of the final training time.
 
-The report results in a table of scalability results—printed in the console—as
-well as plots showing the same results visually. An example of the resulting console
-output can be seen here.
+The report results in a table of scalability results—printed in the console—as well as plots
+showing the same results visually. An example of the resulting console output can be seen here.
 
 .. code-block::
 
@@ -159,9 +156,8 @@ of nodes.
 
 Relative Epoch Time Speedup
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
-This plot shows a comparison between the speedup between the different number of nodes
-for each strategy. The speedup is calculated using the lowest number of nodes as
-a baseline.
+This plot shows a comparison between the speedup between the different number of nodes for each
+strategy. The speedup is calculated using the lowest number of nodes as a baseline.
 
 .. image:: ./images/mnist_relative_epoch_time_speedup.png
 
@@ -169,7 +165,7 @@ Computation vs other
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 This plot shows how much of the GPU time is spent doing computation compared to other
 operations, for each strategy and number of nodes. The colored area represents computation and
-the shaded area represents other operations, e.g. communication. For each strategy, the
-columns are normalized to be between 0.0 and 1.0. 
+the shaded area represents other operations, e.g. communication. For each strategy, the columns
+are normalized to be between 0.0 and 1.0. 
 
 .. image:: ./images/mnist_computation_vs_other_plot.png
