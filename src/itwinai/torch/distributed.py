@@ -16,7 +16,7 @@ import abc
 import functools
 import logging
 import os
-from typing import Any, Callable, Iterable, List, Literal, Optional, Tuple, Union
+from typing import Any, Callable, Iterable, List, Literal, Tuple
 
 import torch
 import torch.distributed as dist
@@ -34,10 +34,7 @@ from torch.utils.data import (
 )
 from torch.utils.data.dataloader import _collate_fn_t, _worker_init_fn_t
 
-from ..distributed import (
-    detect_distributed_environment,
-    ray_cluster_is_running,
-)
+from ..distributed import detect_distributed_environment, ray_cluster_is_running
 from .type import DistributedStrategyError, UninitializedStrategyError
 
 py_logger = logging.getLogger(__name__)
@@ -147,8 +144,8 @@ class TorchDistributedStrategy(abc.ABC):
         self,
         model: nn.Module,
         optimizer: Optimizer,
-        lr_scheduler: Optional[LRScheduler] = None,
-    ) -> Tuple[nn.Module, Optimizer, Optional[LRScheduler]]:
+        lr_scheduler: LRScheduler | None = None,
+    ) -> Tuple[nn.Module, Optimizer, LRScheduler | None]:
         """Setup model, optimizer and scheduler for distributed."""
 
     @abc.abstractmethod
@@ -212,20 +209,20 @@ class TorchDistributedStrategy(abc.ABC):
     def create_dataloader(
         self,
         dataset: Dataset,
-        batch_size: Optional[int] = 1,
-        shuffle: Optional[bool] = None,
-        sampler: Union[Sampler, Iterable, None] = None,
-        batch_sampler: Union[Sampler[List], Iterable[List], None] = None,
+        batch_size: int | None = 1,
+        shuffle: bool | None = None,
+        sampler: Sampler | Iterable | None = None,
+        batch_sampler: Sampler[List] | Iterable[List] | None = None,
         num_workers: int = 0,
-        collate_fn: Optional[_collate_fn_t] = None,
+        collate_fn: _collate_fn_t | None = None,
         pin_memory: bool = False,
         drop_last: bool = False,
         timeout: float = 0,
-        worker_init_fn: Optional[_worker_init_fn_t] = None,
+        worker_init_fn: _worker_init_fn_t | None = None,
         multiprocessing_context=None,
         generator=None,
         *,
-        prefetch_factor: Optional[int] = None,
+        prefetch_factor: int | None = None,
         persistent_workers: bool = False,
         pin_memory_device: str = "",
     ):
@@ -437,7 +434,7 @@ class TorchDistributedStrategy(abc.ABC):
         """
 
     @abc.abstractmethod
-    def gather(self, tensor: torch.Tensor, dst_rank: int = 0) -> Optional[List]:
+    def gather(self, tensor: torch.Tensor, dst_rank: int = 0) -> List | None:
         """Gathers any object from the whole group in a list
         (to all workers).
 
@@ -449,6 +446,18 @@ class TorchDistributedStrategy(abc.ABC):
         Returns:
             Optional[List[Any]]: list of objects gathered from all workers if main
                 worker, otherwise return None.
+        """
+
+    @abc.abstractmethod
+    def broadcast_obj(self, obj: Any, src_rank: int) -> Any:
+        """Broadcasts an object to all workers.
+
+        Args:
+            obj (Any): object to broadcast to all workers.
+            src_rank (int): the rank that broadcasted
+
+        Returns:
+            Any: broadcasted object.
         """
 
 
@@ -491,10 +500,10 @@ class TorchDDPStrategy(TorchDistributedStrategy):
         self,
         model: nn.Module,
         optimizer: Optimizer,
-        lr_scheduler: Optional[LRScheduler] = None,
+        lr_scheduler: LRScheduler | None = None,
         find_unused_parameters: bool = False,
         **kwargs,
-    ) -> Tuple[nn.Module, Optimizer, Optional[LRScheduler]]:
+    ) -> Tuple[nn.Module, Optimizer, LRScheduler | None]:
         """Setup model, optimizer and scheduler for distributed."""
 
         if torch.cuda.is_available():
@@ -594,7 +603,7 @@ class TorchDDPStrategy(TorchDistributedStrategy):
         return res
 
     @check_initialized
-    def gather_obj(self, obj: Any, dst_rank: int = 0) -> Optional[List[Any]]:
+    def gather_obj(self, obj: Any, dst_rank: int = 0) -> List | None:
         """Gathers any object from the whole group in a list
         (to all workers).
 
@@ -604,7 +613,7 @@ class TorchDDPStrategy(TorchDistributedStrategy):
                 are gathered.
 
         Returns:
-            Optional[List[Any]]: list of objects gathered from all workers
+            List | None: list of objects gathered from all workers
             or ``None`` on non-destination ranks.
         """
         # https://pytorch.org/docs/stable/distributed.html#collective-functions
@@ -616,7 +625,7 @@ class TorchDDPStrategy(TorchDistributedStrategy):
         dist.gather_object(obj, dst=dst_rank)
 
     @check_initialized
-    def gather(self, tensor: torch.Tensor, dst_rank: int = 0) -> Optional[List]:
+    def gather(self, tensor: torch.Tensor, dst_rank: int = 0) -> List | None:
         # https://pytorch.org/docs/stable/distributed.html#collective-functions
 
         # Ensure that the tensor is on the correct device (CUDA)
@@ -634,6 +643,22 @@ class TorchDDPStrategy(TorchDistributedStrategy):
 
         # Moving everything to the CPU before returning
         return [val.cpu() for val in res]
+
+    @check_initialized
+    def broadcast_obj(self, obj: Any, src_rank: int) -> Any:
+        """Broadcasts an object to all workers. (object must be picklable)
+
+        Args:
+            obj (Any): object to broadcast to all workers.
+            src_rank (int): the rank that broadcasted
+
+        Returns:
+            Any: broadcasted object.
+        """
+        obj_list = [obj]
+        # https://pytorch.org/docs/stable/distributed.html#collective-functions
+        dist.broadcast_object_list(obj_list, src=src_rank)
+        return obj_list[0]
 
 
 class DeepSpeedStrategy(TorchDistributedStrategy):
@@ -702,11 +727,11 @@ class DeepSpeedStrategy(TorchDistributedStrategy):
     def distributed(
         self,
         model: nn.Module,
-        optimizer: Optional[Optimizer] = None,
-        lr_scheduler: Optional[LRScheduler] = None,
-        model_parameters: Optional[Any] = None,
+        optimizer: Optimizer | None = None,
+        lr_scheduler: LRScheduler | None = None,
+        model_parameters: Any | None = None,
         **init_kwargs,
-    ) -> Tuple[nn.Module, Optimizer, Optional[LRScheduler]]:
+    ) -> Tuple[nn.Module, Optimizer, LRScheduler | None]:
         """Setup model, optimizer and scheduler for distributed."""
         py_logger.debug(f"Distributing the model using device: {self.device()}")
         # model = model.to(self.device())
@@ -798,7 +823,7 @@ class DeepSpeedStrategy(TorchDistributedStrategy):
         return res
 
     @check_initialized
-    def gather_obj(self, obj: Any, dst_rank: int = 0) -> Optional[List[Any]]:
+    def gather_obj(self, obj: Any, dst_rank: int = 0) -> List[Any] | None:
         """Gathers any object from the whole group in a list
         (to all workers).
 
@@ -820,7 +845,7 @@ class DeepSpeedStrategy(TorchDistributedStrategy):
         dist.gather_object(obj, dst=dst_rank)
 
     @check_initialized
-    def gather(self, tensor: torch.Tensor, dst_rank: int = 0) -> Optional[List[torch.Tensor]]:
+    def gather(self, tensor: torch.Tensor, dst_rank: int = 0) -> List[torch.Tensor] | None:
         """Gathers a tensor from the whole group in a list
         (to all workers).
 
@@ -850,6 +875,22 @@ class DeepSpeedStrategy(TorchDistributedStrategy):
 
         # Moving all the tensors to CPU before returning
         return [val.cpu() for val in res]
+
+    @check_initialized
+    def broadcast_obj(self, obj: Any, src_rank: int) -> Any:
+        """Broadcasts an object to all workers. (object must be picklable)
+
+        Args:
+            obj (Any): object to broadcast to all workers.
+            src_rank (int): the rank that broadcasted
+
+        Returns:
+            Any: broadcasted object.
+        """
+        obj_list = [obj]
+        # https://pytorch.org/docs/stable/distributed.html#collective-functions
+        dist.broadcast_object_list(obj_list, src=src_rank)
+        return obj_list[0]
 
 
 class HorovodStrategy(TorchDistributedStrategy):
@@ -885,10 +926,10 @@ class HorovodStrategy(TorchDistributedStrategy):
     def distributed(
         self,
         model: nn.Module,
-        optimizer: Optional[Optimizer] = None,
-        lr_scheduler: Optional[LRScheduler] = None,
+        optimizer: Optimizer | None = None,
+        lr_scheduler: LRScheduler | None = None,
         **optim_kwargs,
-    ) -> Tuple[nn.Module, Optimizer, Optional[LRScheduler]]:
+    ) -> Tuple[nn.Module, Optimizer, LRScheduler | None]:
         """Setup model, optimizer and scheduler for distributed."""
 
         model.to(self.device())
@@ -985,7 +1026,7 @@ class HorovodStrategy(TorchDistributedStrategy):
         return self.hvd.allgather_object(obj)
 
     @check_initialized
-    def gather_obj(self, obj: Any, dst_rank: int = 0) -> Optional[list[Any]]:
+    def gather_obj(self, obj: Any, dst_rank: int = 0) -> list[Any] | None:
         """Gathers any object from the whole group in a list
         (to all workers). Under the hood it relies on allgather as gather is
         not supported by Horovod.
@@ -1005,7 +1046,7 @@ class HorovodStrategy(TorchDistributedStrategy):
             return result
 
     @check_initialized
-    def gather(self, tensor: torch.Tensor, dst_rank: int = 0) -> Optional[List[torch.Tensor]]:
+    def gather(self, tensor: torch.Tensor, dst_rank: int = 0) -> List[torch.Tensor] | None:
         """Gathers a tensor from the whole group in a list
         (to all workers). Under the hood it relies on allgather as gather is
         not supported by Horovod.
@@ -1024,6 +1065,27 @@ class HorovodStrategy(TorchDistributedStrategy):
             # Return only if on rank == dst_rank
             # Moving all the tensors to CPU before returning
             return [val.cpu() for val in result]
+
+    @check_initialized
+    def broadcast_obj(self, obj: Any, src_rank: int) -> Any:
+        """Broadcasts an object to all workers. (object must be picklable)
+
+        Args:
+            obj (Any): object to broadcast to all workers.
+            src_rank (int): the rank that broadcasted
+
+        Returns:
+            Any: broadcasted object.
+        """
+        if obj is None:
+            py_logger.warning(
+                "Broadcasting None object in Horovod. This might lead to unexpected behavior"
+                " such as deadlocks."
+            )
+        # https://horovod.readthedocs.io/en/stable/_modules/horovod/torch/functions.html#broadcast_object
+        return self.hvd.broadcast_object(obj, root_rank=src_rank)
+
+
 
 
 class NonDistributedStrategy(TorchDistributedStrategy):
@@ -1053,10 +1115,10 @@ class NonDistributedStrategy(TorchDistributedStrategy):
     def distributed(
         self,
         model: nn.Module,
-        optimizer: Optional[Optimizer] = None,
-        lr_scheduler: Optional[LRScheduler] = None,
+        optimizer: Optimizer | None = None,
+        lr_scheduler: LRScheduler | None = None,
         **kwargs,
-    ) -> Tuple[nn.Module, Optimizer, Optional[LRScheduler]]:
+    ) -> Tuple[nn.Module, Optimizer, LRScheduler | None]:
         """Do nothing and return model, optimizer and scheduler."""
         if torch.cuda.is_available():
             model = model.cuda()
@@ -1138,9 +1200,22 @@ class NonDistributedStrategy(TorchDistributedStrategy):
         """
         return [tensor]
 
+    def broadcast_obj(self, obj: Any, src_rank: int) -> Any:
+        """Broadcasts an object to all workers.
+
+        Args:
+            obj (Any): object to broadcast to all workers.
+            src_rank (int): the rank that broadcasted
+
+        Returns:
+            Any: broadcasted object.
+        """
+        return obj
+
 
 class RayTorchDistributedStrategy(TorchDistributedStrategy):
     """Base class for all ray distributed strategies."""
+
 
 class RayDDPStrategy(TorchDDPStrategy, RayTorchDistributedStrategy):
     """A distributed data-parallel (DDP) strategy using Ray Train for PyTorch training."""
@@ -1185,7 +1260,7 @@ class RayDDPStrategy(TorchDDPStrategy, RayTorchDistributedStrategy):
         self,
         model: nn.Module,
         optimizer: Optimizer,
-        lr_scheduler: Optional[LRScheduler] = None,
+        lr_scheduler: LRScheduler | None = None,
     ) -> Tuple[nn.Module, Optimizer, LRScheduler | None]:
         model = self.ray_train.torch.prepare_model(model)
 

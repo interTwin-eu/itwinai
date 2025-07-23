@@ -12,12 +12,11 @@
 #SBATCH --time=00:25:00
 
 # Resources allocation
-#SBATCH --partition=booster
-#SBATCH --nodes=2
-#SBATCH --gpus-per-node=2
+#SBATCH --partition=develbooster
+#SBATCH --nodes=1
+#SBATCH --gpus-per-node=4
 #SBATCH --cpus-per-task=48
-# SBATCH --exclusive
-
+#SBATCH --exclusive
 
 # Load environment modules
 ml --force purge
@@ -184,7 +183,7 @@ export ITWINAI_LOG_LEVEL="DEBUG"
 if [ "$DIST_MODE" == "ddp" ] ; then
   echo "DDP training: $TRAINING_CMD"
   torchrun-launcher "$TRAINING_CMD"
- 
+
   separation
 
   ray-launcher "$TRAINING_CMD"

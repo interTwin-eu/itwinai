@@ -30,7 +30,7 @@ from itwinai.torch.distributed import DeepSpeedStrategy, RayDDPStrategy, RayDeep
 from itwinai.torch.monitoring.monitoring import measure_gpu_utilization
 from itwinai.torch.profiling.profiler import profile_torch_trainer
 from itwinai.torch.trainer import RayTorchTrainer, TorchTrainer
-from itwinai.utils import EPOCH_TIME_DIR
+from itwinai.constants import EPOCH_TIME_DIR
 from src.model import Decoder, Decoder_2d_deep, GeneratorResNet, UNet
 from src.utils import init_weights
 

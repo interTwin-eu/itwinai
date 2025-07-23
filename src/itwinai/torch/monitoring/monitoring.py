@@ -16,11 +16,7 @@ from multiprocessing import Manager, Process
 from multiprocessing.managers import ValueProxy
 from typing import TYPE_CHECKING, Any, Callable
 
-import ray.tune
-
-from itwinai.torch.distributed import RayTorchDistributedStrategy
-
-from ...loggers import Logger, contains_mlflow_logger
+from ...loggers import Logger, LoggersCollection
 from .backend import detect_gpu_backend
 
 if TYPE_CHECKING:
@@ -35,8 +31,10 @@ def profile_gpu_utilization(
     stop_flag: ValueProxy,
     local_rank: int,
     global_rank: int,
+    global_world_size: int,
+    strategy_name: str,
     logger: Logger,
-    root_run_name: str,
+    run_id: str | None = None,
     parent_run_id: str | None = None,
     probing_interval: int = 2,
     warmup_time: int = 5,
@@ -78,15 +76,38 @@ def profile_gpu_utilization(
 
     sample_idx = 0
 
-    run_name = f"gpu_{global_rank}"
-    if parent_run_id is None:
-        run_name = f"{root_run_name}_gpu_{global_rank}"
+    # Make sure logger context can be created again for this process
+    if isinstance(logger, LoggersCollection):
+        for sublogger in logger.loggers:
+            sublogger.is_initialized = False
 
+    logger.is_initialized = False
+
+    # attach to the worker run
     logger.create_logger_context(
         rank=global_rank,
-        force=True,
         parent_run_id=parent_run_id,
-        run_name=run_name,
+        run_id=run_id,
+    )
+    logger.log(
+        item=strategy_name,
+        identifier="strategy",
+        kind="param",
+    )
+    logger.log(
+        item=global_rank,
+        identifier="global_rank",
+        kind="param",
+    )
+    logger.log(
+        item=global_world_size,
+        identifier="num_global_gpus",
+        kind="param",
+    )
+    logger.log(
+        item=probing_interval,
+        identifier="probing_interval",
+        kind="param",
     )
 
     t_start = time.monotonic()  # fractional seconds
@@ -102,20 +123,18 @@ def profile_gpu_utilization(
             identifier="gpu_power_W",
             kind="metric",
             step=int(time_stamp),
-            force=True,
         )
         logger.log(
             item=gpu_util,
             identifier="gpu_utilization_percent",
             kind="metric",
             step=int(time_stamp),
-            force=True,
         )
 
         sample_idx += 1
         time.sleep(probing_interval)
 
-    logger.destroy_logger_context(force=True)
+    logger.destroy_logger_context()
 
 
 def measure_gpu_utilization(method: Callable) -> Callable:
@@ -139,17 +158,9 @@ def measure_gpu_utilization(method: Callable) -> Callable:
         warmup_time = 5
 
         strategy = self.strategy
-        parent_run_id = None
 
-        if (
-            isinstance(strategy, RayTorchDistributedStrategy)
-            and contains_mlflow_logger(self.logger)
-        ):
-            trial_name = ray.tune.get_context().get_trial_name()
-            # The trial index are the last 5 characters of the trial name
-            # (e.g. 2 in "TorchTrainer_a6b44_00002")
-            trial_idx = int(trial_name.split("_")[-1])
-            parent_run_id = self.mlflow_trial_run_ids[trial_idx]
+        run_id = self.mlflow_worker_run_id
+        parent_run_id = self.mlflow_train_run_id
 
         local_rank = strategy.local_rank()
         global_rank = strategy.global_rank()
@@ -163,8 +174,10 @@ def measure_gpu_utilization(method: Callable) -> Callable:
                 "stop_flag": stop_flag,
                 "local_rank": local_rank,
                 "global_rank": global_rank,
+                "global_world_size": strategy.global_world_size(),
+                "strategy_name": strategy.name,
                 "logger": self.logger,
-                "root_run_name": self.run_id,
+                "run_id": run_id,
                 "parent_run_id": parent_run_id,
                 "probing_interval": gpu_probing_interval,
                 "warmup_time": warmup_time,

@@ -20,7 +20,7 @@ import time
 import warnings
 from collections.abc import MutableMapping
 from pathlib import Path
-from typing import Any, Callable, Dict, Hashable, List, Tuple, Type
+from typing import TYPE_CHECKING, Any, Callable, Dict, Hashable, List, Tuple, Type
 from urllib.parse import urlparse
 
 import requests
@@ -29,65 +29,37 @@ import yaml
 from omegaconf import DictConfig, ListConfig, OmegaConf, errors
 from requests.exceptions import ConnectionError, HTTPError, RequestException, Timeout
 
-from .loggers import Logger
+from .constants import adjectives, names
+
+if TYPE_CHECKING:
+    from .loggers import Logger
 
 py_logger = logging.getLogger(__name__)
 
-# Directory names for logging and profiling data
-COMPUTATION_DATA_DIR = "computation-data"
-EPOCH_TIME_DIR = "epoch-time"
-GPU_ENERGY_DIR = "gpu-energy-data"
 
-adjectives = [
-    "quantum",
-    "relativistic",
-    "wavy",
-    "entangled",
-    "chiral",
-    "tachyonic",
-    "superluminal",
-    "anomalous",
-    "hypercharged",
-    "fermionic",
-    "hadronic",
-    "quarky",
-    "holographic",
-    "dark",
-    "force-sensitive",
-    "chaotic",
-]
+def normalize_tracking_uri(uri: str) -> str:
+    """Normalize a tracking URI to a valid URI.
+    If the URI is empty, it will be treated as the current directory.
 
-names = [
-    "neutrino",
-    "graviton",
-    "muon",
-    "gluon",
-    "tachyon",
-    "quasar",
-    "pulsar",
-    "blazar",
-    "meson",
-    "boson",
-    "hyperon",
-    "starlord",
-    "groot",
-    "rocket",
-    "yoda",
-    "skywalker",
-    "sithlord",
-    "midichlorian",
-    "womp-rat",
-    "beskar",
-    "mandalorian",
-    "ewok",
-    "vibranium",
-    "nova",
-    "gamora",
-    "drax",
-    "ronan",
-    "thanos",
-    "cosmo",
-]
+    Args:
+        uri (str): URI to normalize.
+
+    Returns:
+        str: Normalized URI.
+    """
+    if not uri:
+        # treat uri as current path if empty string
+        py_logger.warning("Empty tracking URI provided, using current directory.")
+        uri = "."
+    parsed = urlparse(uri)
+    # If scheme is empty, treat as path
+    if parsed.scheme == "":
+        return Path(uri).resolve().as_uri()
+    # If url is a file, normalize the path portion
+    if parsed.scheme == "file":
+        return Path(parsed.path).resolve().as_uri()
+    # Otherwise (http, https, etc.) leave as it is
+    return uri
 
 
 def generate_random_name():
@@ -311,7 +283,7 @@ def deprecated(reason):
 
 def time_and_log(
     func: Callable,
-    logger: Logger,
+    logger: "Logger",
     identifier: str,
     step: int | None = None,
     destroy_current_logger_context: bool = False,

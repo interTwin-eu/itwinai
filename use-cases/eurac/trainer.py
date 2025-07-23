@@ -16,6 +16,7 @@ from ray import tune
 from torch.utils.data import Dataset
 from tqdm.auto import tqdm
 
+from itwinai.constants import EPOCH_TIME_DIR
 from itwinai.distributed import suppress_workers_print
 from itwinai.loggers import EpochTimeTracker, Logger
 from itwinai.torch.config import TrainingConfiguration
@@ -29,7 +30,6 @@ from itwinai.torch.monitoring.monitoring import measure_gpu_utilization
 from itwinai.torch.profiling.profiler import profile_torch_trainer
 from itwinai.torch.trainer import TorchTrainer
 from itwinai.torch.type import Metric
-from itwinai.utils import EPOCH_TIME_DIR
 
 
 class RNNDistributedTrainer(TorchTrainer):

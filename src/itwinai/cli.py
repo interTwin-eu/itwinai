@@ -33,7 +33,7 @@ import typer
 from omegaconf import DictConfig
 from typing_extensions import Annotated
 
-from itwinai.utils import COMPUTATION_DATA_DIR, EPOCH_TIME_DIR, GPU_ENERGY_DIR
+from .constants import BASE_EXP_NAME, COMPUTATION_DATA_DIR, EPOCH_TIME_DIR
 
 app = typer.Typer(pretty_exceptions_enable=False)
 
@@ -157,6 +157,10 @@ def generate_py_spy_report(
 
 @app.command()
 def generate_scalability_report(
+    experiment_name: Annotated[
+        str,
+        typer.Option(help="The name of the mlflow experiment to use for the GPU data report."),
+    ] = BASE_EXP_NAME,
     log_dir: Annotated[
         str,
         typer.Option(help=("Which directory to search for the scalability metrics in.")),
@@ -173,11 +177,12 @@ def generate_scalability_report(
             )
         ),
     ] = False,
-    run_ids: Annotated[
+    run_names: Annotated[
         str | None,
         typer.Option(
             help=(
-                "Which run ids to read, presented as comma-separated values, e.g. 'run0,run1'."
+                "Which run names to read, presented as comma-separated values"
+                " e.g. 'run0,run1'."
             )
         ),
     ] = None,
@@ -203,15 +208,19 @@ def generate_scalability_report(
             )
         ),
     ] = False,
+    no_warnings: Annotated[
+        bool,
+        typer.Option(help=("Create plots without warnings.")),
+    ] = False,
 ):
     """Generates scalability reports for epoch time, GPU data, and communication data
-    based on log files in the specified directory. Optionally, backups of the reports
-    can be created.
+    based on log files in the specified directory and mlflow logs. Optionally, backups of the
+    reports can be created.
 
     This command processes log files stored in specific subdirectories under the given
-    `log_dir`. It generates plots and metrics for scalability analysis and saves them
-    in the `plot_dir`. If backups are enabled, the generated reports will also be
-    copied to a backup directory under `backup_root_dir`.
+    `log_dir`, as well as data from mlflow runs. It generates plots and metrics for scalability
+    analysis and saves them in the `plot_dir`. If backups are enabled, the generated reports
+    will also be copied to a backup directory under `backup_root_dir`.
     """
     from datetime import datetime
 
@@ -226,16 +235,18 @@ def generate_scalability_report(
     if not log_dir_path.exists():
         raise ValueError(f"The provided log_dir, '{log_dir_path.resolve()}', does not exist.")
 
-    if run_ids:
-        base_directories_for_runs = [log_dir_path / run_id for run_id in run_ids.split(",")]
-        # Ensure that all passed run_ids actually exist as directories
+    if run_names:
+        run_names_list = run_names.split(",")
+        base_directories_for_runs = [log_dir_path / run_name for run_name in run_names_list]
+        # Ensure that all passed run_names actually exist as directories
         non_existent_paths = [
             str(path.resolve()) for path in base_directories_for_runs if not path.exists()
         ]
         if non_existent_paths:
-            raise ValueError(f"Given run_id paths do not exist: '{non_existent_paths}'!")
+            py_logger.warning(f"Given run_names paths do not exist: '{non_existent_paths}'!")
     else:
         # Ensure that all elements in log_dir are directories
+        run_names_list = None
         non_directory_paths = [
             str(path.resolve()) for path in log_dir_path.iterdir() if not path.is_dir()
         ]
@@ -251,11 +262,6 @@ def generate_scalability_report(
         for path in base_directories_for_runs
         if (path / EPOCH_TIME_DIR).exists()
     ]
-    gpu_data_logdirs = [
-        path / GPU_ENERGY_DIR
-        for path in base_directories_for_runs
-        if (path / GPU_ENERGY_DIR).exists()
-    ]
     comp_time_logdirs = [
         path / COMPUTATION_DATA_DIR
         for path in base_directories_for_runs
@@ -270,8 +276,8 @@ def generate_scalability_report(
         backup_run_id = f"aggregated_run_{timestamp}"
     backup_dir = Path(backup_root_dir) / backup_run_id
 
+    # GPU data does not need backup, as mlflow will not overwrite runs with the same name
     epoch_time_backup_dir = backup_dir / EPOCH_TIME_DIR
-    gpu_data_backup_dir = backup_dir / GPU_ENERGY_DIR
     computation_data_backup_dir = backup_dir / COMPUTATION_DATA_DIR
 
     plot_dir_path = Path(plot_dir)
@@ -284,38 +290,48 @@ def generate_scalability_report(
         do_backup=do_backup,
         plot_file_suffix=plot_file_suffix,
     )
+
+    ray_footnote = None
+    if not no_warnings:
+        ray_footnote = (
+            "For ray strategies, the number of GPUs is the number of GPUs per HPO trial.\n"
+            " Keep in mind that multiple trials increase the total energy consumption."
+        )
+
     gpu_data_table = gpu_data_report(
-        log_dirs=gpu_data_logdirs,
         plot_dir=plot_dir_path,
-        backup_dir=gpu_data_backup_dir,
-        do_backup=do_backup,
+        experiment_name=experiment_name,
+        run_names=run_names_list,
         plot_file_suffix=plot_file_suffix,
+        ray_footnote=ray_footnote,
     )
 
     # Disclaimer for the plots
-    typer.echo(
-        typer.style("-" * 38 + "DISCLAIMER" + "-" * 38, fg=typer.colors.YELLOW, bold=True)
-    )
-    typer.echo(
-        dedent("""
-    The computation plots are experimental and do not account for parallelism.
-    Calls traced by the torch profiler may overlap in time, so the sum of
-    individual operation durations does not necessarily equal the total training run duration.
+    if not no_warnings:
+        typer.echo(
+            typer.style("-" * 38 + "DISCLAIMER" + "-" * 38, fg=typer.colors.YELLOW, bold=True)
+        )
+        typer.echo(
+            dedent("""
+        The computation plots are experimental and do not account for parallelism.
+        Calls traced by the torch profiler may overlap in time, so the sum of
+        individual operation durations does not necessarily equal the total training run
+        duration.
 
-    The computed fractions are calculated as:
-    (summed duration of ATen + Autograd operations) / (summed duration of all operations)
+        The computed fractions are calculated as:
+        (summed duration of ATen + Autograd operations) / (summed duration of all operations)
 
-    Note:
-        Different strategies handle computation and communication differently.
-        Therefore, these plots should *not* be used to compare strategies solely
-        based on computation fractions.
+        Note:
+            Different strategies handle computation and communication differently.
+            Therefore, these plots should *not* be used to compare strategies solely
+            based on computation fractions.
 
-    However:
-        Comparing the computation fraction across multiple GPU counts *within*
-        the same strategy may provide insights into its scalability.
-    """).strip()
-    )
-    typer.echo(typer.style("-" * 86, fg=typer.colors.YELLOW, bold=True))
+        However:
+            Comparing the computation fraction across multiple GPU counts *within*
+            the same strategy may provide insights into its scalability.
+        """).strip()
+        )
+        typer.echo(typer.style("-" * 86, fg=typer.colors.YELLOW, bold=True))
 
     if include_communication:
         comm_time_logdirs = [
@@ -348,20 +364,20 @@ def generate_scalability_report(
         cli_logger.info("No Epoch Time Data Found\n")
 
     if gpu_data_table is not None:
-        cli_logger.info("#" * 8 + "GPU Data Report" + "#" * 8)
+        cli_logger.info("#" * 8 + " GPU Data Report " + "#" * 8)
         cli_logger.info(gpu_data_table + "\n")
     else:
         cli_logger.info("No GPU Data Found\n")
 
     if computation_data_table is not None:
-        cli_logger.info("#" * 8 + "Computation Data Report" + "#" * 8)
+        cli_logger.info("#" * 8 + " Computation Data Report " + "#" * 8)
         cli_logger.info(computation_data_table + "\n")
     else:
         cli_logger.info("No Computation Data Found\n")
 
     if include_communication:
         if communication_data_table is not None:
-            cli_logger.info("#" * 8 + "Communication Data Report" + "#" * 8)
+            cli_logger.info("#" * 8 + " Communication Data Report " + "#" * 8)
             cli_logger.info(communication_data_table + "\n")
         else:
             cli_logger.info("No Communication Data Found\n")
