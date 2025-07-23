@@ -102,13 +102,17 @@ that are present will be created, while missing subdirectories will only result 
 Example Results
 ---------------
 
-The following will show some example results from the MNIST plugin for ``itwinai``. The
-experiment was repeated three times to reduce random noise. Notice how the code seems to scale
-poorly, which is expected since the dataset is so small. Thus, the overhead of distributing it
-to multiple nodes ends up comprising a significant portion of the final training time.
+The following will show some examples of scalability reports. In particular, it will show
+results from the MNIST plugin and from the Virgo use case. The Virgo use case scales fairly
+well, while the MNIST case does not, and this is reflected in the plots. 
 
-The report results in a table of scalability results—printed in the console—as well as plots
-showing the same results visually. An example of the resulting console output can be seen here.
+The reason for the poor scaling of the MNIST use case is likely that the dataset is quite
+small, resulting in the overhead of distribution taking up a significant portion of the final
+training time. The report results in a table of scalability results—printed in the console—as
+well as plots showing the same results visually. An example of the resulting console output can
+be seen here.
+
+**MNIST**
 
 .. code-block::
 
@@ -144,22 +148,75 @@ showing the same results visually. An example of the resulting console output ca
         32   horovod              38.94 %
         32 torch-ddp               2.49 %
 
-In this case, data was collected for 4, 8, 16 and 32 GPUs for the ``DeepSpeed``, ``Horovod``
+**Virgo**
+
+.. code-block::
+
+  ######## Epoch Time Report ########
+       name  workers avg_epoch_time
+  deepspeed        4        51.18 s
+  deepspeed        8        27.74 s
+  deepspeed       16        15.38 s
+  deepspeed       32         9.09 s
+    horovod        4        57.23 s
+    horovod        8        31.46 s
+    horovod       16        17.86 s
+    horovod       32        11.19 s
+  torch-ddp        4        57.83 s
+  torch-ddp        8        31.92 s
+  torch-ddp       16        18.42 s
+  torch-ddp       32        11.07 s
+
+  No GPU Data Found
+
+  ######## Computation Data Report ########
+  num_gpus  strategy computation_fraction
+        4 deepspeed              54.03 %
+        4   horovod              49.38 %
+        4 torch-ddp              35.04 %
+        8 deepspeed              53.97 %
+        8   horovod              48.21 %
+        8 torch-ddp              32.54 %
+       16 deepspeed              53.88 %
+       16   horovod              47.26 %
+       16 torch-ddp              29.44 %
+       32 deepspeed              53.67 %
+       32   horovod              45.44 %
+       32 torch-ddp              26.59 %
+
+In both cases, data was collected for 4, 8, 16 and 32 GPUs for the ``DeepSpeed``, ``Horovod``
 and ``PyTorch DDP`` strategies. The associated plots can be seen below: 
+
 
 Average Epoch Time Comparison
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 This plot shows a comparison between the average time per epochs for each strategy and number
 of nodes. 
 
+MNIST Use Case
+^^^^^^^^^^^^^^
+
 .. image:: ./images/mnist_absolute_epoch_time.png
+
+Virgo Use Case
+^^^^^^^^^^^^^^
+
+.. image:: ./images/virgo_absolute_epoch_time.png
 
 Relative Epoch Time Speedup
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 This plot shows a comparison between the speedup between the different number of nodes for each
-strategy. The speedup is calculated using the lowest number of nodes as a baseline.
+strategy. The speedup is calculated using the lowest number of nodes as a baseline. 
+
+MNIST Use Case
+^^^^^^^^^^^^^^
 
 .. image:: ./images/mnist_relative_epoch_time_speedup.png
+
+Virgo Use Case
+^^^^^^^^^^^^^^
+
+.. image:: ./images/virgo_relative_epoch_time_speedup.png
 
 Computation vs other
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -168,4 +225,12 @@ operations, for each strategy and number of nodes. The colored area represents c
 the shaded area represents other operations, e.g. communication. For each strategy, the columns
 are normalized to be between 0.0 and 1.0. 
 
+MNIST Use Case
+^^^^^^^^^^^^^^
+
 .. image:: ./images/mnist_computation_vs_other_plot.png
+
+Virgo Use Case
+^^^^^^^^^^^^^^
+
+.. image:: ./images/virgo_computation_vs_other_plot.png
