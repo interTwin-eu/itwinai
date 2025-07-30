@@ -32,7 +32,7 @@ logger.setLevel(getattr(logging, log_level.upper()))
 
 # Prevent duplicate handlers
 if not logger.hasHandlers():
-    handler = logging.StreamHandler()
+    handler = logging.StreamHandler(sys.stdout)
     formatter = logging.Formatter("[%(levelname)s] %(name)s:%(lineno)d - %(message)s")
     handler.setFormatter(formatter)
     logger.addHandler(handler)
