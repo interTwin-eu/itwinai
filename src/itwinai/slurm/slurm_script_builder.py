@@ -170,6 +170,8 @@ class SlurmScriptBuilder:
             pre_exec_command += "\nexport MASTER_PORT=54123"
             cli_logger.warning("Added `MASTER_PORT` as it was not found in pre-exec cmd.")
 
+        pre_exec_command += f"\nsource {self.python_venv}/bin/activate"
+
         pre_exec_command = pre_exec_command.strip()
         return remove_indentation_from_multiline_string(pre_exec_command)
 
