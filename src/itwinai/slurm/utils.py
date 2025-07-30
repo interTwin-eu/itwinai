@@ -67,7 +67,7 @@ def get_slurm_job_parser() -> ArgumentParser:
     default_config_file = "config"
     default_pipe_key = "rnn_training_pipeline"
     # Command to be executed before the main process starts.
-    default_pre_exec_command = None
+    default_pre_exec_script_path = None
     default_training_command = None
     default_python_venv = ".venv"
     default_scalability_nodes = "1,2,4,8"
@@ -159,10 +159,10 @@ def get_slurm_job_parser() -> ArgumentParser:
         help="Which distributed strategy to use.",
     )
     parser.add_argument(
-        "--pre-exec-cmd",
+        "--pre-exec-script-path",
         type=str,
-        default=default_pre_exec_command,
-        help="The pre-execution command to use for the python script.",
+        default=default_pre_exec_script_path,
+        help="The location of the script containing the pre-execution command.",
     )
     parser.add_argument(
         "--training-cmd",

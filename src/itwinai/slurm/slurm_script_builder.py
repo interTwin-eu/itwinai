@@ -17,7 +17,7 @@ from typing import Dict
 
 from pydantic import BaseModel
 
-from itwinai.slurm.slurm_constants import JUWELS_HPC_MODULES, SLURM_TEMPLATE
+from itwinai.slurm.slurm_constants import SLURM_TEMPLATE
 from itwinai.slurm.utils import (
     get_slurm_job_parser,
     remove_indentation_from_multiline_string,
@@ -75,7 +75,7 @@ class SlurmScriptBuilder:
         self,
         slurm_script_configuration: SlurmScriptConfiguration,
         distributed_strategy: str,
-        pre_exec_command: str | None = None,
+        pre_exec_script_path: str | Path | None = None,
         training_command: str | None = None,
         python_venv: str = ".venv",
         debug: bool = False,
@@ -88,7 +88,7 @@ class SlurmScriptBuilder:
     ):
         self.slurm_script_configuration = slurm_script_configuration
         self.distributed_strategy = distributed_strategy
-        self.pre_exec_command = pre_exec_command
+        self.pre_exec_script_path = pre_exec_script_path
         self.training_command = training_command
 
         self.python_venv = python_venv
@@ -155,16 +155,11 @@ class SlurmScriptBuilder:
         """Generates a pre-execution command for the SLURM script. This will load the
         standard HPC modules, source the given python venv and set the OpenMP number
         of threads. Will also add debug echo statements if debug flag is set to True."""
-        pre_exec_command = rf"""
-            ml {" ".join(JUWELS_HPC_MODULES)}
-            source {self.python_venv}/bin/activate
-            export OMP_NUM_THREADS={self.omp_num_threads}
-        """
+        pre_exec_command = ""
 
-        if self.pre_exec_command:
-            pre_exec_command += f"\n{self.pre_exec_command}"
-        if self.debug:
-            pre_exec_command += "\n" + self.get_debug_command()
+        if self.pre_exec_script_path:
+            with open(self.pre_exec_script_path) as file:
+                pre_exec_command = file.read()
 
         pre_exec_command = pre_exec_command.strip()
         return remove_indentation_from_multiline_string(pre_exec_command)
@@ -177,17 +172,17 @@ class SlurmScriptBuilder:
 
         if self.distributed_strategy in ["ddp", "deepspeed"]:
             rdzv_endpoint = (
-                "'$(scontrol show hostnames \"$SLURM_JOB_NODELIST\" | head -n 1)'i:29500"
+                '"$MASTER_ADDR:$MASTER_PORT"'
             )
-            bash_command = rf"""torchrun \
-                --log_dir='{torch_log_dir}' \
-                --nnodes=$SLURM_NNODES \
-                --nproc_per_node=$SLURM_GPUS_PER_NODE \
-                --rdzv_id=$SLURM_JOB_ID \
-                --rdzv_conf=is_host=\$(((SLURM_NODEID)) && echo 0 || echo 1) \
+            bash_command = rf"""'torchrun_jsc \
+                --log_dir="{torch_log_dir}" \
+                --nnodes="$SLURM_NNODES" \
+                --nproc_per_node="$SLURM_GPUS_PER_NODE" \
+                --rdzv_id="$SLURM_JOB_ID" \
+                --rdzv_conf=is_host=$(( SLURM_NODEID == 0 ? 1 : 0 )) \
                 --rdzv_backend=c10d \
                 --rdzv_endpoint={rdzv_endpoint} \
-                {self.get_training_command()}"""
+                {self.get_training_command()}'"""
             if self.py_spy_profiling:
                 # Prepending the py-spy profiling command
                 py_spy_profiling_dir = Path("py-spy-outputs")
@@ -206,8 +201,8 @@ class SlurmScriptBuilder:
 
             main_command = rf"""
             srun --cpu-bind=none --ntasks-per-node=1 \
-            bash -c "{bash_command}"
-        """
+            bash -c {bash_command}
+            """
         else:
             gpus_per_node = self.slurm_script_configuration.gpus_per_node
             num_nodes = self.slurm_script_configuration.num_nodes
@@ -223,7 +218,7 @@ class SlurmScriptBuilder:
                 --ntasks={num_tasks} \
                 --cpus-per-task=$((SLURM_CPUS_PER_TASK / SLURM_GPUS_PER_NODE)) \
                 {self.get_training_command()}
-        """
+            """
 
         main_command = main_command.strip()
         return remove_indentation_from_multiline_string(main_command)
@@ -410,7 +405,7 @@ def generate_default_slurm_script() -> None:
         distributed_strategy=args.dist_strat,
         debug=args.debug,
         python_venv=args.python_venv,
-        pre_exec_command=args.pre_exec_cmd,
+        pre_exec_script_path=args.pre_exec_script_path,
         training_command=args.training_cmd,
         config_path=args.config_path,
         config_name=args.config_name,
