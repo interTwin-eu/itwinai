@@ -978,7 +978,7 @@ class TorchTrainer(Trainer, LogMixin):
                 parent_run_id=self.mlflow_train_run_id,
                 run_name=worker_run_name,
             )
-            if self.mlflow_logger:
+            if self.mlflow_logger and self.mlflow_logger.should_log():
                 self.mlflow_worker_run_id = self.mlflow_logger.active_run.info.run_id
 
             py_logger.debug("...the logger has been initialized")
