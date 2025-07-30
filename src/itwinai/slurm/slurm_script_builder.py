@@ -161,6 +161,15 @@ class SlurmScriptBuilder:
             with open(self.pre_exec_script_path) as file:
                 pre_exec_command = file.read()
 
+        if "export MASTER_ADDR" not in pre_exec_command:
+            master_addr_cmd = '"$(scontrol show hostnames "$SLURM_JOB_NODELIST" | head -n 1)"'
+            pre_exec_command += f"\nexport MASTER_ADDR={master_addr_cmd}"
+            cli_logger.warning("Added `MASTER_ADDR` as it was not found in pre-exec cmd.")
+
+        if "export MASTER_PORT" not in pre_exec_command:
+            pre_exec_command += "\nexport MASTER_PORT=54123"
+            cli_logger.warning("Added `MASTER_PORT` as it was not found in pre-exec cmd.")
+
         pre_exec_command = pre_exec_command.strip()
         return remove_indentation_from_multiline_string(pre_exec_command)
 
@@ -171,9 +180,7 @@ class SlurmScriptBuilder:
         """
 
         if self.distributed_strategy in ["ddp", "deepspeed"]:
-            rdzv_endpoint = (
-                '"$MASTER_ADDR:$MASTER_PORT"'
-            )
+            rdzv_endpoint = '"$MASTER_ADDR:$MASTER_PORT"'
             bash_command = rf"""'torchrun_jsc \
                 --log_dir="{torch_log_dir}" \
                 --nnodes="$SLURM_NNODES" \
