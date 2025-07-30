@@ -7,10 +7,13 @@ ml CUDA/12.6.0
 ml NCCL/2.22.3-GCCcore-13.3.0-CUDA-12.6.0
 ml Python/3.12.3-GCCcore-13.3.0
 
-export OMP_NUM_THREADS=1
-if [ "$SLURM_CPUS_PER_TASK" > 0 ] ; then
-  export OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK
+OMP_NUM_THREADS=1
+if [ "$SLURM_CPUS_PER_TASK" -gt 0 ] ; then
+  OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK
 fi
  
-export MASTER_ADDR="$(scontrol show hostnames "$SLURM_JOB_NODELIST" | head -n 1)"
-export MASTER_PORT=54123
+MASTER_ADDR="$(scontrol show hostnames "$SLURM_JOB_NODELIST" | head -n 1)"
+MASTER_PORT=54123
+
+# Exporting at the end to comply with SC2155
+export MASTER_ADDR MASTER_PORT OMP_NUM_THREADS
