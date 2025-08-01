@@ -110,7 +110,17 @@ class Singularity:
             .with_secret_variable(name="PASSWORD", secret=password)
             .with_exec(["bash", "-c", f"oras login {registry_name} -u $USERNAME -p $PASSWORD"])
             .with_exec(
-                ["bash", "-c", f"oras push --concurrency {concurrency} {uri} container.sif"]
+                [
+                    "bash",
+                    "-c",
+                    "echo '{}' > sif-config.json && "
+                    "oras push "
+                    f"--concurrency {concurrency} "
+                    "--config sif-config.json:application/vnd.sylabs.sif.config.v1+json "
+                    "--artifact-type application/vnd.sylabs.sif.artifact.manifest.v1+json "
+                    f"{uri} "
+                    "container.sif:application/vnd.sylabs.sif.layer.v1.sif",
+                ]
             )
             .stdout()
         )

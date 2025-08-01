@@ -24,13 +24,8 @@ from .literals import MLFramework
 from .utils import get_codename
 
 ignore_list = [
-    "**",
-    "!src/itwinai/**",
-    "!tests/**",
-    "!env-files/**",
-    "!use-cases/**",
     "**/__pycache__",
-    "!pyproject.toml",
+    "**/.venv",
 ]
 
 
