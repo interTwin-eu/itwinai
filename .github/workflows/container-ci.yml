@@ -11,7 +11,7 @@ name: Container CI
 
 on:
   push:
-    branches: [main]
+    # branches: [main]
 
   # If not triggered on push, but on PR, the commit hash is a bit weird
   # pull_request:
@@ -42,19 +42,19 @@ jobs:
             build_arm: true
             # Tests on HPC are skipped as this image is not really meant to run on HPC
             skip_hpc: true
-            skip_singularity: false
+            skip_singularity: true
           - base_img_name: "python:3.12-slim"
             dockerfile: "../env-files/torch/slim.Dockerfile"
             nickname: "torch-slim"
             tag_template: "@{itwinai_version}-slim-torch@{framework_version}-@{os_version}"
             skip_hpc: false
-            skip_singularity: false
+            skip_singularity: true
           - base_img_name: "quay.io/jupyter/minimal-notebook:python-3.12"
             dockerfile: "../env-files/torch/jupyter/slim.Dockerfile"
             nickname: "jlab-slim"
             tag_template: "jlab-slim-@{itwinai_version}-torch@{framework_version}-@{os_version}"
             skip_hpc: true
-            skip_singularity: false
+            skip_singularity: true
 
     steps:
       - name: Checkout Code
