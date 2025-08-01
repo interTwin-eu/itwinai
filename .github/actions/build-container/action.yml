@@ -56,6 +56,9 @@ inputs:
   interlink_values:
     description: "Interlink virtual kubelet (VK) configuration file (secret)"
     required: true
+  dagger_itwinai_module:
+    description: "Dagger module to run the workflows. If on itwinai repo it has to be empty, otherwise 'itwinai'"
+    required: false
   dagger_cloud_token:
     description: "Dagger cloud secret token"
     required: true
@@ -148,6 +151,7 @@ runs:
       with:
         workdir: ci
         verb: call
+        module: ${{ inputs.dagger_itwinai_module }}
         args: >-
           --nickname ${{ inputs.nickname }}
           --docker-registry ${{ inputs.docker_registry }}
@@ -177,6 +181,7 @@ runs:
       with:
         workdir: ci
         verb: call
+        module: ${{ inputs.dagger_itwinai_module }}
         args: >-
           --tag "${{ env.COMMIT_HASH }}-${{ inputs.nickname }}"
           --nickname ${{ inputs.nickname }}
