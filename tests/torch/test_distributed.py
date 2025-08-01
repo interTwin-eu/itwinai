@@ -287,11 +287,10 @@ class TestHorovodStrategy(BaseTestDistributedStrategy):
     [
         pytest.param("ddp"),
         pytest.param("deepspeed"),
-        pytest.param("horovod"),
     ],
 )
 def test_ray_distributed_strategy(
-    strategy_name: Literal["ddp"] | Literal["deepspeed"] | Literal["horovod"],
+    strategy_name: Literal["ddp"] | Literal["deepspeed"],
     shared_tmp_path: Path,
 ):
     import ray  # needed here

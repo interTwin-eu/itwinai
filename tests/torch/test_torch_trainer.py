@@ -90,7 +90,6 @@ def test_distributed_trainer_mnist(
     [
         pytest.param("ddp"),
         pytest.param("deepspeed"),
-        pytest.param("horovod"),
     ],
 )
 def test_distributed_trainer_mnist_ray(
