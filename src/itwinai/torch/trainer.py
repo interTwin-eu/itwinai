@@ -852,6 +852,8 @@ class TorchTrainer(Trainer, LogMixin):
             )
             # Start and stop run to ensure it exists in MLflow before logging
             self.mlflow_tune_run_id = tune_run.info.run_id
+            py_logger.debug("Creating MLflow run for Ray tune experiment with id:"
+                            f" {self.mlflow_tune_run_id}")
 
         # Passes datasets to workers efficiently through Ray storage
         train_with_data = ray.tune.with_parameters(
@@ -937,12 +939,16 @@ class TorchTrainer(Trainer, LogMixin):
 
             if self.mlflow_logger:
                 # Set the tracking uri and experiment for each worker
+                py_logger.debug("Using MLflow logger:"
+                                f"{self.mlflow_logger.__class__.__name__}")
                 mlflow.set_tracking_uri(self.mlflow_logger.tracking_uri)
                 mlflow.set_experiment(self.mlflow_logger.experiment_name)
 
             if self.strategy.is_main_worker and self.mlflow_logger:
                 # If a tune_run_id is set, we create a nested run (Ray)
                 if self.mlflow_tune_run_id:
+                    py_logger.debug("Creating nested MLflow run for Ray trial with parent:"
+                                    f"{self.mlflow_tune_run_id}")
                     train_run_name = ray.tune.get_context().get_trial_name()
                     train_run = self.mlflow_client.create_run(
                         self.mlflow_logger.experiment_id, run_name=train_run_name
@@ -953,6 +959,8 @@ class TorchTrainer(Trainer, LogMixin):
                         self.mlflow_tune_run_id,
                     )
                 else:
+                    py_logger.debug("Creating MLflow run for main worker with name:"
+                                    f"{self.run_name}")
                     train_run_name = self.run_name
                     train_run = self.mlflow_client.create_run(
                         self.mlflow_logger.experiment_id, run_name=train_run_name
@@ -960,6 +968,7 @@ class TorchTrainer(Trainer, LogMixin):
 
                 self.mlflow_train_run_id = train_run.info.run_id
                 # Start and stop run to remove pending status in mlflow
+                mlflow.end_run()
                 self.mlflow_logger.mlflow.start_run(run_id=self.mlflow_train_run_id)
                 self.mlflow_logger.mlflow.end_run()
                 worker_run_name += " (main)"
