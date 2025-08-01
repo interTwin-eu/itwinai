@@ -37,7 +37,7 @@ def test_distributed_trainer_mnist(
     mnist_datasets, request, strategy_fixture, named_temp_dir, mnist_net
 ):
     """Test TorchTrainer on MNIST with different distributed strategies."""
-    training_config = dict(optimizer="sgd", loss="nllloss")
+    training_config = {"optimizer": "sgd", "loss": "nllloss"}
     trainer = TorchTrainer(
         model=mnist_net,
         config=training_config,
@@ -103,7 +103,7 @@ def test_distributed_trainer_mnist_ray(
     ray_run_config = RunConfig(storage_path=shared_tmp_path / "ray_checkpoints")
 
     ckpt_path = shared_tmp_path / "my_checkpoints" / strategy_name
-    training_config = dict(optimizer="sgd", loss="nllloss")
+    training_config = {"optimizer": "sgd", "loss": "nllloss"}
     trainer = TorchTrainer(
         model=mnist_net,
         config=training_config,

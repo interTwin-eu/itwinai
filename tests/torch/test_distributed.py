@@ -101,7 +101,7 @@ class BaseTestDistributedStrategy:
         with pytest.raises(UninitializedStrategyError):
             strategy.device()
         with pytest.raises(UninitializedStrategyError):
-            strategy.is_main_worker
+            _ = strategy.is_main_worker
         x = torch.ones(2)
         with pytest.raises(UninitializedStrategyError):
             strategy.gather(x)
@@ -386,7 +386,7 @@ def test_ray_distributed_strategy(
         with pytest.raises(UninitializedStrategyError):
             strategy.device()
         with pytest.raises(UninitializedStrategyError):
-            strategy.is_main_worker
+            _ = strategy.is_main_worker
         x = torch.ones(2)
         with pytest.raises(UninitializedStrategyError):
             strategy.gather(x)
