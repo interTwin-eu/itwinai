@@ -75,4 +75,6 @@ jobs:
           interlink_values: ${{ secrets.INTERLINK_VALUES }}
           singularity_password: ${{ secrets.SINGULARITY_PWD }}
           singularity_username: ${{ secrets.SINGULARITY_USR }}
-          release: ${{ github.event_name == 'release' && github.event.action == 'created' && 'true' || 'false' }}
+          # TODO: restore this to the conditional block
+          #   release: ${{ github.event_name == 'release' && github.event.action == 'created' && 'true' || 'false' }}
+          release: true
