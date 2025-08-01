@@ -7,9 +7,29 @@
 # - Jarl Sondre Sæther <jarl.sondre.saether@cern.ch> - CERN
 # --------------------------------------------------------------------------------------
 
+import io
+import logging
 from typing import List
 
+import requests
+
 from itwinai.parser import ArgumentParser
+
+cli_logger = logging.getLogger("cli_logger")
+
+
+def retrieve_remote_file(url: str) -> str:
+    """Fetches remote file from url.
+
+    Args:
+       url: URL to the raw configuration file (YAML/JSON format), e.g. raw GitHub link.
+
+    """
+    response = requests.get(url, timeout=10)
+    response.raise_for_status()
+
+    response_io_stream = io.StringIO(response.text)
+    return response_io_stream.getvalue()
 
 
 def remove_indentation_from_multiline_string(multiline_string: str) -> str:
@@ -67,7 +87,7 @@ def get_slurm_job_parser() -> ArgumentParser:
     default_config_file = "config"
     default_pipe_key = "rnn_training_pipeline"
     # Command to be executed before the main process starts.
-    default_pre_exec_script_path = None
+    default_pre_exec_script_location = None
     default_training_command = None
     default_python_venv = ".venv"
     default_scalability_nodes = "1,2,4,8"
@@ -159,10 +179,13 @@ def get_slurm_job_parser() -> ArgumentParser:
         help="Which distributed strategy to use.",
     )
     parser.add_argument(
-        "--pre-exec-script-path",
+        "--pre-exec-script-location",
         type=str,
-        default=default_pre_exec_script_path,
-        help="The location of the script containing the pre-execution command.",
+        default=default_pre_exec_script_location,
+        help=(
+            "The location of the script containing the pre-execution command. Also accepts"
+            " a remote url."
+        ),
     )
     parser.add_argument(
         "--training-cmd",
@@ -197,14 +220,14 @@ def get_slurm_job_parser() -> ArgumentParser:
         help="Whether to include debugging information or not.",
     )
     parser.add_argument(
-        "-ns",
-        "--no-save-script",
+        "-s",
+        "--save-script",
         action="store_true",
         help="Whether to save the script after processing it.",
     )
     parser.add_argument(
-        "-nj",
-        "--no-submit-job",
+        "-j",
+        "--submit-job",
         action="store_true",
         help="Whether to submit the job when processing the script.",
     )

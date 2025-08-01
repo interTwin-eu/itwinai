@@ -8,6 +8,8 @@
 # - Matteo Bunino <matteo.bunino@cern.ch> - CERN
 # --------------------------------------------------------------------------------------
 
+DEFAULT_SLURM_LOG_DIR = "slurm-job-logs"
+DEFAULT_SLURM_SAVE_DIR = "slurm-scripts"
 SLURM_TEMPLATE = r"""#!/bin/bash
 
 # Job configuration
@@ -27,8 +29,6 @@ SLURM_TEMPLATE = r"""#!/bin/bash
 #SBATCH --gres=gpu:{gpus_per_node}
 #SBATCH --exclusive
 
-# Pre-execution command
 {pre_exec_command}
 
-# Job execution command
 {exec_command}"""
