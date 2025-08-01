@@ -132,6 +132,7 @@ runs:
 
     - name: Login to Harbor Container Registry
       uses: docker/login-action@v3
+      if: ${{ inputs.skip_singularity == 'false' }}
       with:
         registry: registry.cern.ch
         username: ${{ inputs.singularity_username }}
