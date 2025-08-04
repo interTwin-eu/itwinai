@@ -33,8 +33,8 @@ WORKDIR /app
 COPY pyproject.toml pyproject.toml
 COPY src src
 
-# # Temporary fix for gpustat until https://github.com/wookayin/gpustat/issues/178 is resolved
-# ENV GPUSTAT_VERSION=1.1.1
+# Temporary fix for gpustat until https://github.com/wookayin/gpustat/issues/178 is resolved
+ENV GPUSTAT_VERSION=1.1.1
 
 RUN uv venv \
     && uv pip install --no-cache-dir --upgrade pip \
@@ -45,7 +45,7 @@ RUN uv venv \
     --index-strategy unsafe-best-match \
     # Install packages
     .[torch] \
-    # "prov4ml[nvidia]@git+https://github.com/matbun/ProvML@v0.0.2" \
+    "prov4ml[nvidia]@git+https://github.com/matbun/ProvML@v0.0.2" \
     pytest \
     pytest-xdist \
     psutil
