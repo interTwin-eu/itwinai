@@ -71,9 +71,6 @@ RUN wget -qO - https://astral.sh/uv/install.sh \
 RUN uv venv /opt/venv 
 ENV UV_PYTHON=/opt/venv/bin/python
 
-# Temporary fix for gpustat until https://github.com/wookayin/gpustat/issues/178 is resolved
-ENV GPUSTAT_VERSION=1.1.1
-
 RUN uv pip install --no-cache-dir --upgrade pip wheel \
     # Needed to run deepspeed (and Horovod?) with MPI backend
     && uv pip install --no-cache-dir mpi4py \

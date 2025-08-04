@@ -33,9 +33,6 @@ WORKDIR /app
 COPY pyproject.toml pyproject.toml
 COPY src src
 
-# Temporary fix for gpustat until https://github.com/wookayin/gpustat/issues/178 is resolved
-ENV GPUSTAT_VERSION=1.1.1
-
 RUN uv venv \
     && uv pip install --no-cache-dir --upgrade pip \
     && uv pip install --no-cache-dir \

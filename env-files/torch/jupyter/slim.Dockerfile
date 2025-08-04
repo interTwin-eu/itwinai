@@ -132,9 +132,6 @@ WORKDIR "$HOME/itwinai"
 COPY --chown=${NB_UID} pyproject.toml pyproject.toml
 COPY --chown=${NB_UID} src src
 
-# Temporary fix for gpustat until https://github.com/wookayin/gpustat/issues/178 is resolved
-ENV GPUSTAT_VERSION=1.1.1
-
 RUN uv pip install --no-cache-dir --upgrade pip \
     && uv pip install --no-cache-dir \
     # Select from which index to install torch
