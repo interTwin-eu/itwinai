@@ -18,7 +18,6 @@ from typing import Dict
 import typer
 from validators import url
 
-from itwinai.slurm import slurm_script_configuration
 from itwinai.slurm.slurm_constants import DEFAULT_SLURM_LOG_DIR, DEFAULT_SLURM_SAVE_DIR
 from itwinai.slurm.slurm_script_configuration import SlurmScriptConfiguration
 from itwinai.slurm.utils import (
@@ -36,16 +35,22 @@ class SlurmScriptBuilder:
         slurm_script_configuration: SlurmScriptConfiguration,
         should_submit: bool,
         should_save: bool,
+        save_path: str | Path | None = None,
     ):
         self.slurm_script_configuration = slurm_script_configuration
         self.should_submit = should_submit
         self.should_save = should_save
+
+        if isinstance(save_path, str):
+            save_path = Path(save_path)
+        self.save_path = save_path
 
     @staticmethod
     def submit_script(script: str) -> None:
         """Submits the given script with 'sbatch' using a temporary file."""
         with NamedTemporaryFile(mode="w") as temp_file:
             temp_file.write(script)
+            # Making sure the script is written to file before the cmd is launched
             temp_file.flush()
             try:
                 subprocess.run(["sbatch", temp_file.name], check=True)
@@ -68,7 +73,9 @@ class SlurmScriptBuilder:
                 "delete the file first."
             )
             raise typer.Exit(1)
-        file_path.parent.mkdir(parents=True, exist_ok=True)
+        if not file_path.parent.exists():
+            cli_logger.info(f"Creating directory '{file_path.parent.resolve()}'!")
+            file_path.parent.mkdir(parents=True, exist_ok=True)
         with open(file_path, "w") as f:
             f.write(script)
         cli_logger.info(f"Saved SLURM script to '{file_path.resolve()}'.")
@@ -99,9 +106,17 @@ class SlurmScriptBuilder:
 
     def _ensure_log_dirs_exist(self):
         if self.slurm_script_configuration.std_out is None:
-            raise ValueError("Cannot ensure existence of std_out as it is None!")
+            cli_logger.error(
+                "Failed to ensure existence of logging directories. Cannot ensure existence of"
+                "std_out as it is None!"
+            )
+            raise typer.Exit(1)
         if self.slurm_script_configuration.err_out is None:
-            raise ValueError("Cannot ensure existence of err_out as it is None!")
+            cli_logger.error(
+                "Failed to ensure existence of logging directories. Cannot ensure existence of"
+                "err_out (stderr) as it is None!"
+            )
+            raise typer.Exit(1)
 
         self.slurm_script_configuration.std_out.parent.mkdir(exist_ok=True, parents=True)
         self.slurm_script_configuration.err_out.parent.mkdir(exist_ok=True, parents=True)
@@ -118,10 +133,11 @@ class SlurmScriptBuilder:
             return
 
         if self.should_save:
-            file_path = (
+            default_save_path = (
                 Path(DEFAULT_SLURM_SAVE_DIR)
                 / f"{self.slurm_script_configuration.job_name}.slurm"
             )
+            file_path = self.save_path if self.save_path is not None else default_save_path
             self.save_script(script=script, file_path=file_path)
 
         if self.should_submit:
@@ -143,6 +159,7 @@ class MLSlurmBuilder(SlurmScriptBuilder):
         should_submit: bool,
         should_save: bool,
         distributed_strategy: str,
+        save_path: str | Path | None = None,
         pre_exec_script_location: str | Path | None = None,
         training_command: str | None = None,
         python_venv: str = ".venv",
@@ -158,6 +175,7 @@ class MLSlurmBuilder(SlurmScriptBuilder):
             slurm_script_configuration=slurm_script_configuration,
             should_submit=should_submit,
             should_save=should_save,
+            save_path=save_path,
         )
 
         self.distributed_strategy = distributed_strategy
@@ -182,21 +200,6 @@ class MLSlurmBuilder(SlurmScriptBuilder):
             // self.slurm_script_configuration.gpus_per_node,
         )
 
-    def _handle_directory_existence(self, directory: Path, should_create: bool) -> None:
-        if directory.exists():
-            return
-
-        dir_name = str(directory.resolve())
-        if should_create:
-            directory.mkdir(parents=True)
-            cli_logger.info(f"Creating directory '{dir_name}'")
-        else:
-            cli_logger.warning(
-                "If you're submitting the SLURM job manually, make sure to create "
-                f"the directory '{dir_name}' first. This is handled automatically when using "
-                "the SLURM builder."
-            )
-
     @property
     def _training_cmd_dict_formatter(self) -> Dict[str, str]:
         return {
@@ -206,7 +209,7 @@ class MLSlurmBuilder(SlurmScriptBuilder):
             "pipe_key": self.pipe_key,
         }
 
-    def generate_identifier(self) -> str:
+    def _generate_job_identifier(self) -> str:
         num_nodes = self.slurm_script_configuration.num_nodes
         gpus_per_node = self.slurm_script_configuration.gpus_per_node
         return f"{self.distributed_strategy}-{num_nodes}x{gpus_per_node}"
@@ -307,7 +310,13 @@ class MLSlurmBuilder(SlurmScriptBuilder):
         pre_exec_command = pre_exec_command.strip()
         return remove_indentation_from_multiline_string(pre_exec_command)
 
-    def process_slurm_script(self) -> None:
+    def _set_default_config_fields(self) -> None:
+        if self.slurm_script_configuration.job_name is None:
+            self.slurm_script_configuration.job_name = self._generate_job_identifier()
+
+        return super()._set_default_config_fields()
+
+    def process_script(self) -> None:
         """Will generate and process a SLURM script according to specifications. Will
         run the script if ``submit_slurm_job`` is set to True, will store the SLURM script file
         if ``save_script`` is set to True. If both are false, it will simply print the
@@ -320,30 +329,9 @@ class MLSlurmBuilder(SlurmScriptBuilder):
             save_script: Whether to keep or delete the file after finishing processing.
             submit_slurm_job: Whether to submit the script as a SLURM job.
         """
-        job_identifier = self.generate_identifier()
         self.slurm_script_configuration.pre_exec_command = self.get_pre_exec_command()
         self.slurm_script_configuration.exec_command = self.get_exec_command()
-
-        # Setting some default fields
-        if self.slurm_script_configuration.job_name is None:
-            self.slurm_script_configuration.job_name = job_identifier
-
-        if self.slurm_script_configuration.std_out is None:
-            std_out_path = Path(DEFAULT_SLURM_LOG_DIR) / f"{job_identifier}.out"
-            self.slurm_script_configuration.std_out = std_out_path
-        if self.slurm_script_configuration.err_out is None:
-            err_out_path = Path(DEFAULT_SLURM_LOG_DIR) / f"{job_identifier}.err"
-            self.slurm_script_configuration.err_out = err_out_path
-
-        # Making sure the std out and std err directories exist
-        self._handle_directory_existence(
-            directory=self.slurm_script_configuration.std_out.parent,
-            should_create=self.should_submit,
-        )
-        self._handle_directory_existence(
-            directory=self.slurm_script_configuration.err_out.parent,
-            should_create=self.should_submit,
-        )
+        self._set_default_config_fields()
 
         # Generate the script using the given configuration
         super().process_script()
@@ -352,22 +340,21 @@ class MLSlurmBuilder(SlurmScriptBuilder):
         self,
         strategies: Iterable[str] = ("ddp", "horovod", "deepspeed"),
     ):
-        """Runs the SLURM script with all the given strategies.
-
-        Does the same as the ``runall.sh`` script has been doing.
+        """Runs the SLURM script with all the given strategies. Meant to replace the
+        ``runall.sh`` script.
         """
         for strategy in strategies:
             self.distributed_strategy = strategy
-            job_identifier = self.generate_identifier()
+            job_identifier = self._generate_job_identifier()
 
-            # Overriding job_name, std_out and err_out
+            # Updating job_name, std_out and err_out
             self.slurm_script_configuration.job_name = job_identifier
-            std_out_path = Path("slurm_job_logs") / f"{job_identifier}.out"
-            err_out_path = Path("slurm_job_logs") / f"{job_identifier}.err"
+            std_out_path = Path(DEFAULT_SLURM_LOG_DIR) / f"{job_identifier}.out"
+            err_out_path = Path(DEFAULT_SLURM_LOG_DIR) / f"{job_identifier}.err"
             self.slurm_script_configuration.std_out = std_out_path
             self.slurm_script_configuration.err_out = err_out_path
 
-            self.process_slurm_script()
+            self.process_script()
 
     def process_scaling_test(
         self,
@@ -417,6 +404,7 @@ def generate_default_slurm_script() -> None:
         should_submit=args.submit_job,
         should_save=args.save_script,
         distributed_strategy=args.dist_strat,
+        save_path=args.save_path,
         debug=args.debug,
         python_venv=args.python_venv,
         pre_exec_script_location=args.pre_exec_script_location,
@@ -430,7 +418,7 @@ def generate_default_slurm_script() -> None:
 
     mode = args.mode
     if mode == "single":
-        slurm_script_builder.process_slurm_script()
+        slurm_script_builder.process_script()
     elif mode == "runall":
         slurm_script_builder.process_all_strategies()
     elif mode == "scaling-test":

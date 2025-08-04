@@ -6,6 +6,7 @@ from unittest.mock import patch
 import pytest
 
 from itwinai.slurm.slurm_script_builder import (
+    MLSlurmBuilder,
     SlurmScriptBuilder,
     SlurmScriptConfiguration,
 )
@@ -37,10 +38,12 @@ def slurm_config():
 
 @pytest.fixture
 def slurm_builder(slurm_config: SlurmScriptConfiguration):
-    return SlurmScriptBuilder(
+    return MLSlurmBuilder(
         slurm_script_configuration=slurm_config,
         distributed_strategy="ddp",
         training_command="python train.py",
+        should_submit=False,
+        should_save=False,
     )
 
 
@@ -61,11 +64,7 @@ def test_process_slurm_script(
     file_path = tmp_path / "slurm_script.sh"
 
     with patch("subprocess.run") as mock_run:
-        slurm_builder.process_slurm_script(
-            file_path=file_path,
-            save_script=save_script,
-            submit_slurm_job=submit_slurm_job,
-        )
+        slurm_builder.process_script()
 
         # Checking that it creates the stdout and stderr directories
 
@@ -97,19 +96,13 @@ def test_process_slurm_script_twice(
     file_path = Path(tmp_path) / "slurm_script.sh"
 
     # First call with save_script=True should succeed
-    slurm_builder.process_slurm_script(
-        file_path=file_path, save_script=True, submit_slurm_job=False
-    )
+    slurm_builder.process_script()
     assert file_path.exists()  # The script should be saved
 
     # Second call with save_script=False should not fail
-    slurm_builder.process_slurm_script(
-        file_path=file_path, save_script=False, submit_slurm_job=False
-    )
+    slurm_builder.process_script()
     assert file_path.exists()  # The script should still be there
 
     # Second call with save_script=True should fail due to file already existing
     with pytest.raises(FileExistsError):
-        slurm_builder.process_slurm_script(
-            file_path=file_path, save_script=True, submit_slurm_job=False
-        )
+        slurm_builder.process_script()
