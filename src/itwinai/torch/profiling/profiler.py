@@ -10,14 +10,11 @@
 
 import functools
 import logging
-from pathlib import Path
 from typing import TYPE_CHECKING, Any, Callable, Iterable, Tuple
 
 import matplotlib
 import pandas as pd
 from torch.profiler import ProfilerActivity, profile, schedule, tensorboard_trace_handler
-
-from itwinai.constants import COMPUTATION_DATA_DIR
 
 if TYPE_CHECKING:
     from itwinai.torch.trainer import TorchTrainer
