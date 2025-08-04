@@ -28,8 +28,6 @@ from torch.utils.data import Dataset
 import torch.optim.lr_scheduler as lr_scheduler
 import numpy as np
 
-from itwinai.constants import EPOCH_TIME_DIR
-
 from .mcmc import MCMCSampler, BlockedMCMCSampler
 from .lib.combo import estimate_logz, fmt_val_err
 from normflow.prior import Prior
@@ -38,7 +36,7 @@ from normflow.action.scalar_action import ScalarPhi4Action
 
 from itwinai.torch.trainer import TorchTrainer
 from itwinai.torch.distributed import DeepSpeedStrategy
-from itwinai.loggers import EpochTimeTracker, Logger
+from itwinai.loggers import Logger
 from itwinai.torch.monitoring.monitoring import measure_gpu_utilization
 from itwinai.torch.profiling.profiler import profile_torch_trainer
 from itwinai.distributed import suppress_workers_print
@@ -359,24 +357,6 @@ class Fitter(TorchTrainer):
     @measure_gpu_utilization
     def train(self) -> None:
         """Trains the neural network model."""
-
-        # Track epoch time for scaling statistics
-        if self.strategy.is_main_worker and self.strategy.is_distributed:
-            try:
-                num_nodes = int(os.environ["SLURM_NNODES"])
-            except (KeyError, ValueError):
-                logging.warning("SLURM_NNODES is not set or invalid; defaulting num_nodes to 1.")
-                num_nodes = 1
-            epoch_time_output_dir = Path(f"scalability-metrics/{EPOCH_TIME_DIR}")
-            epoch_time_file_name = f"epochtime_{self.strategy.name}_{num_nodes}N.csv"
-            epoch_time_output_path = epoch_time_output_dir / epoch_time_file_name
-
-            epoch_time_logger= EpochTimeTracker(
-                strategy_name=self.strategy.name,
-                save_path=epoch_time_output_path,
-                num_nodes=num_nodes,
-                should_log=self.measure_epoch_time
-            )
 
         if self.config.save_every == "None":
             self.config.save_every = self.epochs

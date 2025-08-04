@@ -162,10 +162,4 @@ def get_parser() -> ItwinaiArgParser:
         choices=["ddp", "horovod", "deepspeed"],
         default="ddp",
     )
-    parser.add_argument(
-        "--epoch-time-directory",
-        type=str,
-        default=f"scalability-metrics/{EPOCH_TIME_DIR}",
-        help="Where to store the epoch time metrics used in the scalability report",
-    )
     return parser
