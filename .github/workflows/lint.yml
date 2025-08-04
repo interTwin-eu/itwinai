@@ -67,3 +67,4 @@ jobs:
           # Skip linting of some locations
           FILTER_REGEX_EXCLUDE: .*ISSUE_TEMPLATE/.*|use-cases/.*
           BASH_SEVERITY: warning
+          BASH_EXEC_IGNORE_LIBRARIES: true
