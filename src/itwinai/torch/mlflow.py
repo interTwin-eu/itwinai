@@ -155,6 +155,57 @@ def get_epoch_time_runs_by_parent(
             )
     return epoch_time_runs
 
+def get_profiling_avg_by_parent(
+    mlflow_client: mlflow.tracking.MlflowClient,
+    experiment_id: str,
+    run: Run,
+) -> List[pd.DataFrame]:
+    def _children(parent_run_id: str) -> List[Run]:
+        return mlflow_client.search_runs(
+            [experiment_id],
+            filter_string=f"tags.mlflow.parentRunId = '{parent_run_id}'",
+        )
+
+    first_level_children = _children(run.info.run_id)
+    worker_profiling_averages: List[pd.DataFrame] = []
+
+    if not first_level_children:
+        py_logger.warning(
+            f"No child runs found for run ID {run.info.run_id} in experiment {experiment_id}."
+        )
+        return worker_profiling_averages
+
+    for child in first_level_children:
+        second_level_children = _children(child.info.run_id)
+        if second_level_children:
+            for grand_child in second_level_children:
+                # Retrieve CSV artifact and convert to DataFrame
+                artifact_uri = grand_child.info.artifact_uri
+                artifact_path = f"{artifact_uri}/torch_profiling_averages.csv"
+                try:
+                    worker_profiling_avg = pd.read_csv(artifact_path)
+                    worker_profiling_averages.append(worker_profiling_avg)
+                except FileNotFoundError:
+                    # Not every worker run will have the profiling averages CSV
+                    continue
+        else:
+            # Retrieve CSV artifact and convert to DataFrame
+            artifact_uri = grand_child.info.artifact_uri
+            artifact_path = f"{artifact_uri}/torch_profiling_averages.csv"
+            try:
+                worker_profiling_avg = pd.read_csv(artifact_path)
+                worker_profiling_averages.append(worker_profiling_avg)
+            except FileNotFoundError:
+                continue
+
+        if len(worker_profiling_averages) == 0:
+            py_logger.warning(
+                f"No profiling averages found for run ID {run.info.run_id} in experiment"
+                f" {experiment_id}."
+            )
+
+    return worker_profiling_averages
+
 def get_gpu_runs_by_parent(
     mlflow_client: mlflow.tracking.MlflowClient,
     experiment_id: str,

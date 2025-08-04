@@ -20,8 +20,9 @@ import pandas as pd
 from itwinai.constants import RELATIVE_MLFLOW_PATH
 from itwinai.scalability_report.utils import check_contains_columns
 from itwinai.torch.mlflow import (
-    get_epoch_time_runs,
-    get_gpu_data_by_run,
+    get_epoch_time_runs_by_parent,
+    get_gpu_runs_by_parent,
+    get_profiling_avg_by_parent,
     get_run_metrics_as_df,
     get_runs_by_name,
 )
@@ -32,6 +33,7 @@ py_logger = logging.getLogger(__name__)
 def read_profiling_data_from_mlflow(
     experiment_name: str,
     run_names: List[str] | None = None,
+    expected_columns: Set[str] | None = None,
 ) -> pd.DataFrame | None:
     """Reads and validates profiling data from a mlflow experiment and combines them into a
     single DataFrame.
@@ -56,40 +58,31 @@ def read_profiling_data_from_mlflow(
         )
         return None
 
-    if not run_names:
-        # get all run IDs from the experiment that are not-nested
-        runs = mlflow_client.search_runs([experiment.experiment_id])
-        runs = [run for run in runs if "mlflow.parentRunId" not in run.data.tags]
-
-    else:
-        runs = []
-        # get all runs in the experiment
-        for run_name in run_names:
-            runs += mlflow_client.search_runs(
-                experiment_ids=[experiment.experiment_id],
-                filter_string=f"run_name='{run_name}'",
-            )
+    runs = get_runs_by_name(
+        mlflow_client,
+        experiment.experiment_id,
+        run_names=run_names,
+    )
 
     profiling_dataframes = []
     for run in runs:
-        # STOPPED HERE TODO
-        gpu_runs = get_gpu_data_by_run(mlflow_client, experiment.experiment_id, run)
-        for gpu_run in gpu_runs:
-            profiling_dataframes.append(
-                get_run_metrics_as_df(
-                    mlflow_client,
-                    gpu_run,
-                    metric_names=["gpu_utilization_percent", "gpu_power_W"],
-                )
-            )
+        profiling_avg_dfs = get_profiling_avg_by_parent(
+            mlflow_client, experiment.experiment_id, run
+        )
+        profiling_dataframes.extend(profiling_avg_dfs)
 
     if not profiling_dataframes:
-        py_logger.warning(
-            f"No GPU metrics found for experiment '{experiment_name}' with runs: {run_names}."
-        )
+        # Warnings for no profiling data are already emitted in get_profiling_avg_by_parent
         return None
 
-    return pd.concat(profiling_dataframes)
+    profiling_dataframe_concat = pd.concat(profiling_dataframes)
+    if expected_columns is not None:
+        check_contains_columns(
+            df=profiling_dataframe_concat,
+            expected_columns=expected_columns,
+        )
+
+    return profiling_dataframe_concat
 
 
 def read_epoch_time_from_mlflow(
@@ -115,7 +108,7 @@ def read_epoch_time_from_mlflow(
 
     epoch_time_dataframes = []
     for run in runs:
-        epoch_time_runs = get_epoch_time_runs(mlflow_client, experiment.experiment_id, run)
+        epoch_time_runs = get_epoch_time_runs_by_parent(mlflow_client, experiment.experiment_id, run)
         for epoch_time_run in epoch_time_runs:
             epoch_time_dataframes.append(
                 get_run_metrics_as_df(
@@ -169,7 +162,7 @@ def read_gpu_metrics_from_mlflow(
 
     gpu_dataframes = []
     for run in runs:
-        gpu_runs = get_gpu_data_by_run(mlflow_client, experiment.experiment_id, run)
+        gpu_runs = get_gpu_runs_by_parent(mlflow_client, experiment.experiment_id, run)
         for gpu_run in gpu_runs:
             gpu_dataframes.append(
                 get_run_metrics_as_df(
