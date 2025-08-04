@@ -138,14 +138,18 @@ def profile_torch_trainer(method: Callable) -> Callable:
         profiling_dataframe["strategy"] = strategy_name
         profiling_dataframe["num_gpus"] = num_gpus_global
         profiling_dataframe["global_rank"] = global_rank
-        profiling_log_dir = Path(f"scalability-metrics/{self.run_name}/{COMPUTATION_DATA_DIR}")
-        profiling_log_dir.mkdir(parents=True, exist_ok=True)
 
-        filename = f"{strategy_name}_{num_gpus_global}_{global_rank}.csv"
-        output_path = profiling_log_dir / filename
-
-        py_logger.info(f"Writing torch-profiling dataframe to '{output_path}'.")
-        profiling_dataframe.to_csv(output_path)
+        # write profiling averages to mlflow logger
+        if self.mlflow_logger is not None:
+            self.mlflow_logger.log(
+                item=profiling_dataframe,
+                name="torch_profiling_averages",
+                kind="artifact",
+            )
+        else:
+            py_logger.warning(
+                "No MLflow logger is set, not logging the profiling data!"
+            )
 
         return result
 

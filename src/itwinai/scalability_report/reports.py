@@ -16,7 +16,9 @@ from typing import List
 import pandas as pd
 
 from itwinai.scalability_report.data import (
+    read_epoch_time_from_mlflow,
     read_gpu_metrics_from_mlflow,
+    read_profiling_data_from_mlflow,
     read_scalability_metrics_from_csv,
 )
 from itwinai.scalability_report.plot import (
@@ -27,6 +29,7 @@ from itwinai.scalability_report.plot import (
     relative_epoch_time_speedup_plot,
 )
 from itwinai.scalability_report.utils import (
+    calculate_epoch_statistics,
     calculate_gpu_statistics,
     get_computation_fraction_data,
     get_computation_vs_other_data,
@@ -37,53 +40,29 @@ cli_logger = logging.getLogger("cli_logger")
 
 
 def epoch_time_report(
-    log_dirs: List[Path] | List[str],
     plot_dir: Path | str,
-    backup_dir: Path,
-    do_backup: bool = False,
+    experiment_name: str,
+    run_names: List[str] | None = None,
     plot_file_suffix: str = ".png",
 ) -> str | None:
     """Generates reports and plots for epoch training times across distributed training
     strategies, including a log-log plot of absolute average epoch times against the
     number of GPUs and a log-log plot of relative speedup as more GPUs are added. The
     function optionally creates backups of the data.
-
-    Args:
-        log_dirs (List[Path] | List[str]): List of paths to the directory containing CSV
-            files with epoch time metrics. The files must include the columns "name", "nodes",
-            "epoch_id", and "time".
-        plot_dir (Path | str): Path to the directory where the generated plots will
-            be saved.
-        backup_dir (Path): Path to the directory where backups of the data will be stored
-            if `do_backup` is True.
-        do_backup (bool): Whether to create a backup of the epoch time data in the
-            `backup_dir`. Defaults to False.
-        plot_file_suffix (str): Suffix for the plot file names. Defaults to ".png".
-
     """
-    if isinstance(plot_dir, str):
-        plot_dir = Path(plot_dir)
-    log_dir_paths = [Path(logdir) for logdir in log_dirs]
+    epoch_time_expected_columns = {"strategy", "num_global_gpus", "sample_idx", "epoch_time_s"}
 
-    epoch_time_expected_columns = {"name", "workers", "epoch_id", "time"}
-
-    # Reading data from all the logdirs and concatenating the results
-    dataframes = []
-    for log_dir in log_dir_paths:
-        temp_df = read_scalability_metrics_from_csv(
-            data_dir=log_dir, expected_columns=epoch_time_expected_columns
-        )
-        dataframes.append(temp_df)
-    if not dataframes:
+    epoch_time_df = read_epoch_time_from_mlflow(
+        experiment_name=experiment_name,
+        run_names=run_names,
+    )
+    if epoch_time_df is None:
         return None
-    epoch_time_df = pd.concat(dataframes)
 
-    # Calculate the average time per epoch for each strategy and number of nodes
     cli_logger.info("\nAnalyzing Epoch Time Data...")
-    avg_epoch_time_df = (
-        epoch_time_df.groupby(["name", "workers"])
-        .agg(avg_epoch_time=("time", "mean"))
-        .reset_index()
+    avg_epoch_time_df = calculate_epoch_statistics(
+        epoch_time_df=epoch_time_df,
+        expected_columns=epoch_time_expected_columns,
     )
 
     # Print the resulting table
@@ -94,8 +73,10 @@ def epoch_time_report(
     absolute_fig, _ = absolute_avg_epoch_time_plot(avg_epoch_time_df=avg_epoch_time_df)
     relative_fig, _ = relative_epoch_time_speedup_plot(avg_epoch_time_df=avg_epoch_time_df)
 
-    absolute_avg_time_plot_path = plot_dir / ("absolute_epoch_time" + plot_file_suffix)
-    relative_speedup_plot_path = plot_dir / ("relative_epoch_time_speedup" + plot_file_suffix)
+    absolute_avg_time_plot_path = plot_dir / Path("absolute_epoch_time" + plot_file_suffix)
+    relative_speedup_plot_path = (
+        plot_dir / Path("relative_epoch_time_speedup" + plot_file_suffix)
+    )
 
     absolute_fig.savefig(absolute_avg_time_plot_path)
     relative_fig.savefig(relative_speedup_plot_path)
@@ -105,14 +86,6 @@ def epoch_time_report(
     cli_logger.info(
         f"Saved relative-average-time plot at '{relative_speedup_plot_path.resolve()}'."
     )
-
-    if not do_backup:
-        return epoch_time_table
-
-    backup_dir.mkdir(exist_ok=True, parents=True)
-    backup_path = backup_dir / "epoch_time_data.csv"
-    epoch_time_df.to_csv(backup_path)
-    cli_logger.info(f"Storing backup file at '{backup_path.resolve()}'.")
     return epoch_time_table
 
 
@@ -194,10 +167,9 @@ def gpu_data_report(
 
 @deprecated("Please use `computation_data_report` instead.")
 def communication_data_report(
-    log_dirs: List[Path] | List[str],
     plot_dir: Path | str,
-    backup_dir: Path,
-    do_backup: bool = False,
+    experiment_name: str,
+    run_names: List[str],
     plot_file_suffix: str = ".png",
 ) -> str | None:
     """Generates reports and plots for communication and computation fractions across
@@ -206,18 +178,15 @@ def communication_data_report(
     optionally creates backups of the data.
 
     Args:
-        log_dirs (List[Path] | List[str]): List of paths to the directory containing CSV
-            files with communication data. The files must include the columns "strategy",
-            "num_gpus", "global_rank", "name", and "self_cuda_time_total".
         plot_dir (Path | str): Path to the directory where the generated plot will
             be saved.
-        backup_dir (Path): Path to the directory where backups of the data will be stored
-            if `do_backup` is True.
-        do_backup (bool): Whether to create a backup of the communication data in the
-            `backup_dir`. Defaults to False.
+        experiment_name (str): Name of the MLflow experiment to retrieve data from.
+        run_names (List[str]): List of specific run names to filter the data.
+            If None, all runs in the experiment will be considered.
+        plot_file_suffix (str): Suffix for the plot file names. Defaults to ".png".
     """
     if isinstance(plot_dir, str):
-        plot_dir = Path(plot_dir)
+        plot_dir = Path(plot_dir).resolve()
 
     communication_data_expected_columns = {
         "strategy",
@@ -226,13 +195,9 @@ def communication_data_report(
         "name",
         "self_cuda_time_total",
     }
-    log_dir_paths = [Path(logdir) for logdir in log_dirs]
-    dataframes = []
-    for log_dir in log_dir_paths:
-        temp_df = read_scalability_metrics_from_csv(
-            data_dir=log_dir, expected_columns=communication_data_expected_columns
-        )
-        dataframes.append(temp_df)
+    communication_data_df = read_profiling_data_from_mlflow(
+        experiment_name, run_names, expected_columns=communication_data_expected_columns
+    )
     if not dataframes:
         return None
     communication_data_df = pd.concat(dataframes)
@@ -265,10 +230,9 @@ def communication_data_report(
 
 
 def computation_data_report(
-    log_dirs: List[Path] | List[str],
     plot_dir: Path | str,
-    backup_dir: Path,
-    do_backup: bool = False,
+    experiment_name: str | None = None,
+    run_names: List[str] | None = None,
     plot_file_suffix: str = ".png",
 ) -> str | None:
     """Generates reports and plots for computation and other fractions across

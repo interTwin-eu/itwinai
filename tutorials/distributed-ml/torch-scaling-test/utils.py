@@ -16,7 +16,6 @@ from torch.optim.optimizer import Optimizer
 from torch.utils.data import DataLoader, Subset
 from torchvision import datasets, transforms
 
-from itwinai.constants import EPOCH_TIME_DIR
 from itwinai.parser import ArgumentParser as ItwinaiArgParser
 
 

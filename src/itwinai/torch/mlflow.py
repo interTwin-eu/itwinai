@@ -16,6 +16,7 @@ import mlflow.tracking
 import pandas as pd
 import yaml
 from mlflow.entities import Run
+from mlflow.tracking import MlflowClient
 
 py_logger = logging.getLogger(__name__)
 
@@ -101,7 +102,60 @@ def teardown_lightning_mlflow() -> None:
         mlflow.end_run()
 
 
-def get_gpu_data_by_run(
+def get_epoch_time_runs_by_parent(
+    mlflow_client: mlflow.tracking.MlflowClient,
+    experiment_id: str,
+    run: Run,
+) -> List[Run]:
+    """Get all epoch time runs associated with a given run.
+    This function assumes that the data is in the main worker run of each train run.
+    Which is either:
+    - The main worker run in each trial run of a given tuner run (if Ray was used)
+    - The main worker run of the given training run (if Ray was not used)
+    Args:
+        mlflow_client (mlflow.tracking.MlflowClient): MLFlow client to use.
+        experiment_id (str): The ID of the experiment to search in.
+        run (mlflow.entities.Run): The run from which to collect epoch runs.
+    Returns:
+        List[Run]: A list of runs that contain epoch time data associated with the given run.
+    """
+
+    def _children(parent_run_id: str) -> List[Run]:
+        return mlflow_client.search_runs(
+            [experiment_id],
+            filter_string=f"tags.mlflow.parentRunId = '{parent_run_id}'",
+        )
+
+    first_level_children = _children(run.info.run_id)
+    epoch_time_runs: List[Run] = []
+
+    if not first_level_children:
+        py_logger.warning(
+            f"No child runs found for run ID {run.info.run_id} in experiment {experiment_id}."
+        )
+        return epoch_time_runs
+
+    for child in first_level_children:
+        second_level_children = _children(child.info.run_id)
+        # exists for ray runs
+        if second_level_children:
+            for grand_child in second_level_children:
+                if any("epoch_time_s" in metric for metric in grand_child.data.metrics):
+                    epoch_time_runs.append(grand_child)
+        else:
+            if any("epoch_time_s" in metric for metric in child.data.metrics):
+                epoch_time_runs.append(child)
+
+        if len(epoch_time_runs) > 1:
+            py_logger.warning(
+                f"Multiple epoch times found for run ID {run.info.run_id} in experiment"
+                f" {experiment_id}. This indicates Ray HPO was used with multiple trials."
+                " Hyperparameters can have a significant impact on epoch time, so keep in mind"
+                " that the averaged epoch time data may not be comparable with other runs."
+            )
+    return epoch_time_runs
+
+def get_gpu_runs_by_parent(
     mlflow_client: mlflow.tracking.MlflowClient,
     experiment_id: str,
     run: Run,
@@ -206,3 +260,33 @@ def get_run_metrics_as_df(
 
     metrics_df = pd.DataFrame.from_records(collected_metrics)
     return metrics_df
+
+
+def get_runs_by_name(
+    mlflow_client: MlflowClient, experiment_id: str, run_names: List[str] | None = None,
+) -> List[Run]:
+    """Get all runs in an experiment by their names.
+
+    Args:
+        mlflow_client (mlflow.tracking.MlflowClient): MLFlow client to use.
+        experiment_id (str): The ID of the experiment to search in.
+        run_names (List[str] | None): The names of the runs to retrieve. If None, all runs
+            in the experiment will be retrieved.
+
+    Returns:
+        List[Run]: A list of runs that match the given names.
+    """
+    if not run_names:
+        # get all run IDs from the experiment that are not-nested
+        runs = mlflow_client.search_runs([experiment_id])
+        runs = [run for run in runs if 'mlflow.parentRunId' not in run.data.tags]
+
+    else:
+        runs = []
+        # get all runs in the experiment
+        for run_name in run_names:
+            runs += mlflow_client.search_runs(
+                experiment_ids=[experiment_id],
+                filter_string=f"run_name='{run_name}'",
+            )
+    return runs

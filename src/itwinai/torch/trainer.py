@@ -19,7 +19,7 @@ import tempfile
 from collections import defaultdict
 from functools import partial
 from pathlib import Path
-from time import perf_counter as default_timer
+from time import perf_counter
 from typing import Any, Callable, Dict, List, Literal, Tuple
 
 import mlflow
@@ -46,9 +46,8 @@ from itwinai.torch.monitoring.monitoring import measure_gpu_utilization
 from itwinai.torch.profiling.profiler import profile_torch_trainer
 
 from ..components import Trainer, monitor_exec
-from ..constants import EPOCH_TIME_DIR
 from ..distributed import ray_cluster_is_running
-from ..loggers import EpochTimeTracker, Logger, LogMixin, get_mlflow_logger
+from ..loggers import Logger, LogMixin, get_mlflow_logger
 from ..utils import generate_random_name, load_yaml, time_and_log, to_uri
 from .config import TrainingConfiguration
 from .distributed import (
@@ -1173,21 +1172,6 @@ class TorchTrainer(Trainer, LogMixin):
             Any: The trained model
         """
 
-        epoch_time_output_dir = Path(f"scalability-metrics/{self.run_name}/{EPOCH_TIME_DIR}")
-        epoch_time_file_name = (
-            f"epochtime_{self.strategy.name}_{self.strategy.global_world_size()}N.csv"
-        )
-        epoch_time_output_path = epoch_time_output_dir / epoch_time_file_name
-
-        epoch_time_logger = EpochTimeTracker(
-            strategy_name=self.strategy.name,
-            save_path=epoch_time_output_path,
-            num_workers=self.strategy.global_world_size(),
-            should_log=self.measure_epoch_time
-            and self.strategy.is_main_worker
-            and self.strategy.is_distributed,
-        )
-
         progress_bar = tqdm(
             range(self.current_epoch, self.epochs),
             desc="Epochs",
@@ -1195,7 +1179,8 @@ class TorchTrainer(Trainer, LogMixin):
         )
 
         for self.current_epoch in progress_bar:
-            epoch_start_time = default_timer()
+            if self.strategy.is_main_worker:
+                epoch_start_time = perf_counter()
             progress_bar.set_description(f"Epoch {self.current_epoch + 1}/{self.epochs}")
 
             self.set_epoch()
@@ -1254,9 +1239,15 @@ class TorchTrainer(Trainer, LogMixin):
             if self.test_every and (self.current_epoch + 1) % self.test_every == 0:
                 self.test_epoch()
 
-            # Measure epoch time
-            epoch_time = default_timer() - epoch_start_time
-            epoch_time_logger.add_epoch_time(self.current_epoch + 1, epoch_time)
+            # Measure epoch time and log
+            if self.strategy.is_main_worker:
+                epoch_time = perf_counter() - epoch_start_time
+                self.log(
+                    item=epoch_time,
+                    identifier="epoch_time_s",
+                    kind="metric",
+                    step=self.current_epoch,
+                )
 
     def train_epoch(self) -> torch.Tensor:
         """Perform a complete sweep over the training dataset, completing an epoch of training.

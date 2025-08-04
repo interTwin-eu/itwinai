@@ -17,25 +17,17 @@ from scipy.constants import hour as SECONDS_IN_HOUR
 from itwinai.utils import deprecated
 
 
-def check_contains_columns(
-    df: pd.DataFrame, expected_columns: Set, file_path: Path | None = None
-) -> None:
+def check_contains_columns(df: pd.DataFrame, expected_columns: Set) -> None:
     """Validates that the given DataFrame contains all the expected columns. Raises a
     ValueError if any columns are missing, including the file path in the error message
     if provided.
     """
     if not expected_columns.issubset(df.columns):
         missing_columns = expected_columns - set(df.columns)
-        if file_path is not None:
-            raise ValueError(
-                f"Invalid data format! DataFrame at '{file_path.resolve}' is missing"
-                f" some necessary columns. \nMissing columns: {missing_columns}."
-            )
-        else:
-            raise ValueError(
-                f"Invalid data format for given DataFrame. \nMissing columns:"
-                f"{missing_columns}."
-            )
+        raise ValueError(
+            f"Invalid data format for given DataFrame. \nMissing columns:"
+            f"{missing_columns}."
+        )
 
 
 def check_probing_interval_consistency(gpu_data_df: pd.DataFrame) -> None:
@@ -56,6 +48,43 @@ def check_probing_interval_consistency(gpu_data_df: pd.DataFrame) -> None:
             f"number of GPUs, but was inconsistent for strategy: {inconsistent_group[0]} "
             f"and number of GPUs: {inconsistent_group[1]}."
         )
+
+
+def calculate_epoch_statistics(
+    epoch_time_df: pd.DataFrame, expected_columns: Set
+) -> pd.DataFrame:
+    check_contains_columns(df=epoch_time_df, expected_columns=expected_columns)
+
+    mask = epoch_time_df["metric_name"] == "epoch_time_s"
+    # Ensure value and num_global_gpus is numeric
+    epoch_time_df.loc[mask, "value"] = pd.to_numeric(epoch_time_df.loc[mask, "value"])
+    epoch_time_df.loc["num_global_gpus"] = pd.to_numeric(epoch_time_df["num_global_gpus"])
+
+    # shift metrics to columns (assumes samples are the same for each strategy and
+    # num_global_gpus), ensured earlier by check_probing_interval_consistency
+    pivoted = epoch_time_df.pivot_table(
+        index=["strategy", "num_global_gpus", "sample_idx"],
+        columns="metric_name",
+        values="value",
+    ).reset_index()
+
+    # Merge previous columns into the pivoted DataFrame
+    pivoted = pivoted.merge(
+        epoch_time_df[["strategy", "num_global_gpus", "sample_idx"]],
+        how="left",
+        on=["strategy", "num_global_gpus", "sample_idx"],
+    )
+
+    # Aggregate as before
+    aggregated_df = (
+        pivoted.groupby(["strategy", "num_global_gpus"])
+        .agg(
+            avg_epoch_time=("epoch_time_s", "mean"),  # Average epoch time
+        )
+        .reset_index()
+    )
+
+    return aggregated_df
 
 
 def calculate_gpu_statistics(gpu_data_df: pd.DataFrame, expected_columns: Set) -> pd.DataFrame:
@@ -81,6 +110,8 @@ def calculate_gpu_statistics(gpu_data_df: pd.DataFrame, expected_columns: Set) -
     gpu_data_df.loc[mask, "probing_interval"] = pd.to_numeric(
         gpu_data_df.loc[mask, "probing_interval"]
     )
+    # Ensure num_global_gpus is numeric
+    gpu_data_df.loc["num_global_gpus"] = pd.to_numeric(gpu_data_df["num_global_gpus"])
 
     # Calculate energy in watt hours
     gpu_data_df.loc[mask, "energy_wh"] = (

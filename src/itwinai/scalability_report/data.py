@@ -19,16 +19,21 @@ import pandas as pd
 
 from itwinai.constants import RELATIVE_MLFLOW_PATH
 from itwinai.scalability_report.utils import check_contains_columns
-from itwinai.torch.mlflow import get_gpu_data_by_run, get_run_metrics_as_df
+from itwinai.torch.mlflow import (
+    get_epoch_time_runs,
+    get_gpu_data_by_run,
+    get_run_metrics_as_df,
+    get_runs_by_name,
+)
 
 py_logger = logging.getLogger(__name__)
 
 
-def read_gpu_metrics_from_mlflow(
+def read_profiling_data_from_mlflow(
     experiment_name: str,
     run_names: List[str] | None = None,
 ) -> pd.DataFrame | None:
-    """Reads and validates GPU metrics from a mlflow experiment and combines them into a
+    """Reads and validates profiling data from a mlflow experiment and combines them into a
     single DataFrame.
 
     Args:
@@ -54,7 +59,7 @@ def read_gpu_metrics_from_mlflow(
     if not run_names:
         # get all run IDs from the experiment that are not-nested
         runs = mlflow_client.search_runs([experiment.experiment_id])
-        runs = [run for run in runs if 'mlflow.parentRunId' not in run.data.tags]
+        runs = [run for run in runs if "mlflow.parentRunId" not in run.data.tags]
 
     else:
         runs = []
@@ -64,6 +69,103 @@ def read_gpu_metrics_from_mlflow(
                 experiment_ids=[experiment.experiment_id],
                 filter_string=f"run_name='{run_name}'",
             )
+
+    profiling_dataframes = []
+    for run in runs:
+        # STOPPED HERE TODO
+        gpu_runs = get_gpu_data_by_run(mlflow_client, experiment.experiment_id, run)
+        for gpu_run in gpu_runs:
+            profiling_dataframes.append(
+                get_run_metrics_as_df(
+                    mlflow_client,
+                    gpu_run,
+                    metric_names=["gpu_utilization_percent", "gpu_power_W"],
+                )
+            )
+
+    if not profiling_dataframes:
+        py_logger.warning(
+            f"No GPU metrics found for experiment '{experiment_name}' with runs: {run_names}."
+        )
+        return None
+
+    return pd.concat(profiling_dataframes)
+
+
+def read_epoch_time_from_mlflow(
+    experiment_name: str,
+    run_names: List[str] | None = None,
+) -> pd.DataFrame | None:
+    mlflow_path = RELATIVE_MLFLOW_PATH.resolve()
+    mlflow.set_tracking_uri(mlflow_path)
+    mlflow_client = mlflow.tracking.MlflowClient()
+
+    experiment = mlflow_client.get_experiment_by_name(name=experiment_name)
+    if experiment is None:
+        py_logger.warning(
+            f"Experiment '{experiment_name}' does not exist in MLflow at path '{mlflow_path}'."
+        )
+        return None
+
+    runs = get_runs_by_name(
+        mlflow_client,
+        experiment.experiment_id,
+        run_names=run_names,
+    )
+
+    epoch_time_dataframes = []
+    for run in runs:
+        epoch_time_runs = get_epoch_time_runs(mlflow_client, experiment.experiment_id, run)
+        for epoch_time_run in epoch_time_runs:
+            epoch_time_dataframes.append(
+                get_run_metrics_as_df(
+                    mlflow_client,
+                    epoch_time_run,
+                    metric_names=["epoch_time_s"],
+                )
+            )
+
+    if not epoch_time_dataframes:
+        py_logger.warning(
+            f"No epoch time found for experiment '{experiment_name}' with runs: {run_names}."
+        )
+        return None
+
+    return pd.concat(epoch_time_dataframes)
+
+
+def read_gpu_metrics_from_mlflow(
+    experiment_name: str,
+    run_names: List[str] | None = None,
+) -> pd.DataFrame | None:
+    """Reads and validates GPU metrics from a mlflow experiment and combines them into a
+    single DataFrame.
+
+    Args:
+        experiment_name (str): Name of the MLflow experiment to read from.
+        run_names (List[str] | None): Name of the runs to read metrics from. If empty, all runs
+        in the experiment will be considered.
+
+    Returns:
+        pd.DataFrame | None: A DataFrame containing the concatenated data from all gpu metrics
+        in the given runs of the experiment.
+    """
+    mlflow_path = RELATIVE_MLFLOW_PATH.resolve()
+    mlflow.set_tracking_uri(mlflow_path)
+    mlflow_client = mlflow.tracking.MlflowClient()
+
+    experiment = mlflow_client.get_experiment_by_name(name=experiment_name)
+    if experiment is None:
+        py_logger.warning(
+            f"Experiment '{experiment_name}' does not exist in MLflow at path '{mlflow_path}'."
+        )
+        return None
+
+    runs = get_runs_by_name(
+        mlflow_client,
+        experiment.experiment_id,
+        run_names=run_names,
+    )
 
     gpu_dataframes = []
     for run in runs:

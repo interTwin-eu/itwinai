@@ -33,7 +33,7 @@ import typer
 from omegaconf import DictConfig
 from typing_extensions import Annotated
 
-from .constants import BASE_EXP_NAME, COMPUTATION_DATA_DIR, EPOCH_TIME_DIR
+from .constants import BASE_EXP_NAME
 
 app = typer.Typer(pretty_exceptions_enable=False)
 
@@ -161,22 +161,9 @@ def generate_scalability_report(
         str,
         typer.Option(help="The name of the mlflow experiment to use for the GPU data report."),
     ] = BASE_EXP_NAME,
-    log_dir: Annotated[
-        str,
-        typer.Option(help=("Which directory to search for the scalability metrics in.")),
-    ] = "scalability-metrics",
     plot_dir: Annotated[
         str, typer.Option(help=("Which directory to save the resulting plots in."))
     ] = "plots",
-    do_backup: Annotated[
-        bool,
-        typer.Option(
-            help=(
-                "Whether to store a backup of the scalability metrics that were used"
-                " to make the report or not."
-            )
-        ),
-    ] = False,
     run_names: Annotated[
         str | None,
         typer.Option(
@@ -186,9 +173,6 @@ def generate_scalability_report(
             )
         ),
     ] = None,
-    backup_root_dir: Annotated[
-        str, typer.Option(help=("Which directory to store the backup files in."))
-    ] = "backup-scalability-metrics/",
     plot_file_suffix: Annotated[
         str,
         typer.Option(
@@ -222,8 +206,6 @@ def generate_scalability_report(
     analysis and saves them in the `plot_dir`. If backups are enabled, the generated reports
     will also be copied to a backup directory under `backup_root_dir`.
     """
-    from datetime import datetime
-
     from itwinai.scalability_report.reports import (
         communication_data_report,
         computation_data_report,
@@ -231,63 +213,15 @@ def generate_scalability_report(
         gpu_data_report,
     )
 
-    log_dir_path = Path(log_dir)
-    if not log_dir_path.exists():
-        raise ValueError(f"The provided log_dir, '{log_dir_path.resolve()}', does not exist.")
-
-    if run_names:
-        run_names_list = run_names.split(",")
-        base_directories_for_runs = [log_dir_path / run_name for run_name in run_names_list]
-        # Ensure that all passed run_names actually exist as directories
-        non_existent_paths = [
-            str(path.resolve()) for path in base_directories_for_runs if not path.exists()
-        ]
-        if non_existent_paths:
-            py_logger.warning(f"Given run_names paths do not exist: '{non_existent_paths}'!")
-    else:
-        # Ensure that all elements in log_dir are directories
-        run_names_list = None
-        non_directory_paths = [
-            str(path.resolve()) for path in log_dir_path.iterdir() if not path.is_dir()
-        ]
-        if non_directory_paths:
-            raise ValueError(
-                f"Found elements in log_dir that are not directories: '{non_directory_paths}'"
-            )
-        base_directories_for_runs = list(log_dir_path.iterdir())
-
-    # Finding the respective data logging directories
-    epoch_time_logdirs = [
-        path / EPOCH_TIME_DIR
-        for path in base_directories_for_runs
-        if (path / EPOCH_TIME_DIR).exists()
-    ]
-    comp_time_logdirs = [
-        path / COMPUTATION_DATA_DIR
-        for path in base_directories_for_runs
-        if (path / COMPUTATION_DATA_DIR).exists()
-    ]
-
-    # Setting the backup directory from run name
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    if base_directories_for_runs:
-        backup_run_id = "_".join(map(str, base_directories_for_runs)) + f"_{timestamp}"
-    else:
-        backup_run_id = f"aggregated_run_{timestamp}"
-    backup_dir = Path(backup_root_dir) / backup_run_id
-
-    # GPU data does not need backup, as mlflow will not overwrite runs with the same name
-    epoch_time_backup_dir = backup_dir / EPOCH_TIME_DIR
-    computation_data_backup_dir = backup_dir / COMPUTATION_DATA_DIR
+    run_names_list = run_names.split(",") if run_names else None
 
     plot_dir_path = Path(plot_dir)
     plot_dir_path.mkdir(exist_ok=True, parents=True)
 
     epoch_time_table = epoch_time_report(
-        log_dirs=epoch_time_logdirs,
         plot_dir=plot_dir_path,
-        backup_dir=epoch_time_backup_dir,
-        do_backup=do_backup,
+        experiment_name=experiment_name,
+        run_names=run_names_list,
         plot_file_suffix=plot_file_suffix,
     )
 
@@ -333,26 +267,19 @@ def generate_scalability_report(
         )
         typer.echo(typer.style("-" * 86, fg=typer.colors.YELLOW, bold=True))
 
+    communication_data_table = None
     if include_communication:
-        comm_time_logdirs = [
-            path / COMPUTATION_DATA_DIR
-            for path in base_directories_for_runs
-            if (path / COMPUTATION_DATA_DIR).exists()
-        ]
-        communication_data_backup_dir = backup_dir / COMPUTATION_DATA_DIR
         communication_data_table = communication_data_report(
-            log_dirs=comm_time_logdirs,
             plot_dir=plot_dir_path,
-            backup_dir=communication_data_backup_dir,
-            do_backup=do_backup,
+            experiment_name=experiment_name,
+            run_names=run_names_list,
             plot_file_suffix=plot_file_suffix,
         )
 
     computation_data_table = computation_data_report(
-        log_dirs=comp_time_logdirs,
         plot_dir=plot_dir_path,
-        backup_dir=computation_data_backup_dir,
-        do_backup=do_backup,
+        experiment_name=experiment_name,
+        run_names=run_names_list,
         plot_file_suffix=plot_file_suffix,
     )
 

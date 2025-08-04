@@ -11,8 +11,7 @@
 from pathlib import Path
 
 # Directory names for logging and profiling data
-COMPUTATION_DATA_DIR = "computation-data"
-EPOCH_TIME_DIR = "epoch-time"
+PROFILER_TRACES_DIR = "profiler-traces"
 RELATIVE_MLFLOW_PATH = Path("mllogs/mlflow")
 BASE_EXP_NAME: str = "unnamed-experiment"
 
