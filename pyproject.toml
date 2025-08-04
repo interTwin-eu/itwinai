@@ -6,7 +6,6 @@
 requires = ["setuptools", "setuptools-scm", "wheel"]
 build-backend = "setuptools.build_meta"
 
-
 [project]
 name = "itwinai"
 version = "0.3.4-rc2"
