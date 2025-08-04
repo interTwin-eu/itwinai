@@ -493,6 +493,37 @@ def generate_slurm(
         int,
         typer.Option("--cpus-per-gpu", help="The requested number of CPUs per SLURM task."),
     ] = 4,
+    save_script: Annotated[
+        bool,
+        typer.Option(
+            "--save-script",
+            help="Whether to save the script or not.",
+        ),
+    ] = False,
+    submit_script: Annotated[
+        bool,
+        typer.Option(
+            "--submit-script",
+            help="Whether to submit the script or not",
+        ),
+    ] = False,
+    save_path: Annotated[
+        str | None,
+        typer.Option(
+            "--save-path",
+            help="Where to save the script, if saving it.",
+        ),
+    ] = None,
+    pre_exec_script_location: Annotated[
+        str | None,
+        typer.Option(
+            "--pre-exec-script-location",
+            help=(
+                "The location of the script containing the pre-execution command. Also accepts"
+                " a remote url."
+            ),
+        ),
+    ] = None,
     config_path: Annotated[
         str,
         typer.Option(
@@ -524,12 +555,6 @@ def generate_slurm(
             case_sensitive=False,
         ),
     ] = "ddp",
-    pre_exec_cmd: Annotated[
-        str | None,
-        typer.Option(
-            "--pre-exec-cmd", help="The pre-execution command to use for the python script."
-        ),
-    ] = None,
     training_cmd: Annotated[
         str | None,
         typer.Option(
@@ -552,19 +577,6 @@ def generate_slurm(
     debug: Annotated[
         bool,
         typer.Option("--debug", help="Whether to include debugging information or not"),
-    ] = False,
-    no_save_script: Annotated[
-        bool,
-        typer.Option(
-            "--no-save-script", help="Whether to save the script after processing it."
-        ),
-    ] = False,
-    no_submit_job: Annotated[
-        bool,
-        typer.Option(
-            "--no-submit-job",
-            help="Whether to submit the job when processing the script.",
-        ),
     ] = False,
     config: Annotated[
         str | None,
