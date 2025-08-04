@@ -180,6 +180,7 @@ ignore = [
   "SIM108", # Don't always use ternary operators — they can be kind of hard to read sometimes
   "N806",   # Allow UPPER_CASE_VARIABLE_NAMES in function scopes (for default values etc.)
   "N812",   # Allow importing stuff as uppercase (e.g. function as F)
+  "SC2148"  # Ignore enforcing shebang on top of scripts
 ]
 fixable = ["ALL"]
 
