@@ -10,11 +10,15 @@
 
 import functools
 import logging
+import tempfile
+from pathlib import Path
 from typing import TYPE_CHECKING, Any, Callable, Iterable, Tuple
 
 import matplotlib
 import pandas as pd
 from torch.profiler import ProfilerActivity, profile, schedule, tensorboard_trace_handler
+
+from itwinai.constants import PROFILER_TRACES_DIR_NAME
 
 if TYPE_CHECKING:
     from itwinai.torch.trainer import TorchTrainer
@@ -103,8 +107,8 @@ def profile_torch_trainer(method: Callable) -> Callable:
         self.profiling_warmup_epochs = warmup_epochs
         if self.store_torch_profiling_traces:
             trace_handler = tensorboard_trace_handler(
-                dir_name=f"scalability-metrics/{self.run_name}/torch-traces",
-                worker_name=f"worker_{self.strategy.global_rank()}"
+                dir_name=f"{PROFILER_TRACES_DIR_NAME}/{self.run_name}/torch-traces",
+                worker_name=f"worker_{self.strategy.global_rank()}",
             )
         else:
             py_logger.warning("Profiling computation without storing the traces!")
@@ -138,15 +142,17 @@ def profile_torch_trainer(method: Callable) -> Callable:
 
         # write profiling averages to mlflow logger
         if self.mlflow_logger is not None:
-            self.mlflow_logger.log(
-                item=profiling_dataframe,
-                name="torch_profiling_averages",
-                kind="artifact",
-            )
+            with tempfile.NamedTemporaryFile(suffix=".csv", delete=False) as tmp:
+                profiling_dataframe.to_csv(tmp.name, index=False)
+                self.mlflow_logger.log(
+                    item=tmp.name,
+                    identifier="torch_profiling_averages",
+                    kind="artifact",
+                )
+            # Remove the temporary file after logging
+            Path(tmp.name).unlink()
         else:
-            py_logger.warning(
-                "No MLflow logger is set, not logging the profiling data!"
-            )
+            py_logger.warning("No MLflow logger is set, not logging the profiling data!")
 
         return result
 
