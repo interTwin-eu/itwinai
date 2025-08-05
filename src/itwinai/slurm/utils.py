@@ -234,7 +234,7 @@ def get_slurm_job_parser() -> ArgumentParser:
         "--container-path",
         type=str | None,
         default=default_container_path,
-        help="Path to the container",
+        help="Path to container that should be exported.",
     )
 
     # Boolean arguments where you only need to include the flag and not an actual value

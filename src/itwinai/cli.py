@@ -500,7 +500,7 @@ def generate_slurm(
             help="Whether to save the script or not.",
         ),
     ] = False,
-    submit_script: Annotated[
+    submit_job: Annotated[
         bool,
         typer.Option(
             "--submit-script",
@@ -514,14 +514,38 @@ def generate_slurm(
             help="Where to save the script, if saving it.",
         ),
     ] = None,
-    pre_exec_script_location: Annotated[
+    exec_file: Annotated[
         str | None,
         typer.Option(
-            "--pre-exec-script-location",
+            "--exec-file",
             help=(
-                "The location of the script containing the pre-execution command. Also accepts"
+                "The location of the file containing the execution command. Also accepts a remote"
+                " url."
+            ),
+        ),
+    ] = None,
+    pre_exec_file: Annotated[
+        str | None,
+        typer.Option(
+            "--pre-exec-file",
+            help=(
+                "The location of the file containing the pre-execution command. Also accepts"
                 " a remote url."
             ),
+        ),
+    ] = None,
+    enable_ray: Annotated[
+        bool,
+        typer.Option(
+            "--enable-ray",
+            help="Whether to enable Ray or not.",
+        ),
+    ] = False,
+    container_path: Annotated[
+        str | None,
+        typer.Option(
+            "--container-path",
+            help="Path to container that should be exported.",
         ),
     ] = None,
     config_path: Annotated[
