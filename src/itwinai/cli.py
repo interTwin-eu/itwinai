@@ -519,8 +519,8 @@ def generate_slurm(
         typer.Option(
             "--exec-file",
             help=(
-                "The location of the file containing the execution command. Also accepts a remote"
-                " url."
+                "The location of the file containing the execution command. Also accepts a "
+                "remote url."
             ),
         ),
     ] = None,
