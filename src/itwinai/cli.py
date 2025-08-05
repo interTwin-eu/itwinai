@@ -574,10 +574,6 @@ def generate_slurm(
             help="A comma-separated list of node numbers to use for the scalability test.",
         ),
     ] = "1,2,4,8",
-    debug: Annotated[
-        bool,
-        typer.Option("--debug", help="Whether to include debugging information or not"),
-    ] = False,
     config: Annotated[
         str | None,
         typer.Option("--config", help="The path to the SLURM configuration file."),
