@@ -1,37 +1,3 @@
-#!/bin/bash
-
-# --------------------------------------------------------------------------------------
-# Part of the interTwin Project: https://www.intertwin.eu/
-#
-# Created by: Matteo Bunino
-#
-# Credit:
-# - Matteo Bunino <matteo.bunino@cern.ch> - CERN
-# --------------------------------------------------------------------------------------
-
-# shellcheck disable=all
-
-# SLURM jobscript for Vega systems
-
-# Job configuration
-#SBATCH --job-name=training
-#SBATCH --account=s24r05-03-users
-#SBATCH --mail-user=
-#SBATCH --mail-type=ALL
-#SBATCH --output=job.out
-#SBATCH --error=job.err
-#SBATCH --time=00:20:00
-
-# Resources allocation
-#SBATCH --partition=gpu
-#SBATCH --nodes=2
-#SBATCH --gpus-per-node=2
-#SBATCH --gres=gpu:2
-#SBATCH --cpus-per-task=48
-#SBATCH --ntasks-per-node=1
-# SBATCH --mem-per-gpu=10G
-# SBATCH --exclusive
-
 echo "DEBUG: SLURM_SUBMIT_DIR: $SLURM_SUBMIT_DIR"
 echo "DEBUG: SLURM_JOB_ID: $SLURM_JOB_ID"
 echo "DEBUG: SLURM_JOB_NODELIST: $SLURM_JOB_NODELIST"
@@ -57,30 +23,12 @@ ml NCCL/2.22.3-GCCcore-13.3.0-CUDA-12.6.0
 ml Python/3.12.3-GCCcore-13.3.0
 module unload OpenSSL
 
-source ~/.bashrc
-
-# Env vairables check
-if [ -z "$DIST_MODE" ]; then 
-  >&2 echo "ERROR: env variable DIST_MODE is not set. Allowed values are 'horovod', 'ddp' or 'deepspeed'"
-  exit 1
-fi
-if [ -z "$TRAINING_CMD" ]; then 
-  >&2 echo "ERROR: env variable TRAINING_CMD is not set. It's the python command to execute."
-  exit 1
-fi
-if [ -z "$PYTHON_VENV" ]; then 
-  >&2 echo "WARNING: env variable PYTHON_VENV is not set. It's the path to a python virtual environment."
-else
-  # Activate Python virtual env
-  source $PYTHON_VENV/bin/activate
-fi
-
 # Setup env for distributed ML
 export CUDA_VISIBLE_DEVICES=$(seq -s, 0 $((SLURM_GPUS_PER_NODE - 1)))
 echo "DEBUG: CUDA_VISIBLE_DEVICES (after): $CUDA_VISIBLE_DEVICES"
 export OMP_NUM_THREADS=1
-if [ $(($SLURM_CPUS_PER_TASK / $SLURM_GPUS_PER_NODE)) -gt 0 ] ; then
-  export OMP_NUM_THREADS=$(($SLURM_CPUS_PER_TASK / $SLURM_GPUS_PER_NODE))
+if [ $((SLURM_CPUS_PER_TASK / SLURM_GPUS_PER_NODE)) -gt 0 ] ; then
+  export OMP_NUM_THREADS=$((SLURM_CPUS_PER_TASK / SLURM_GPUS_PER_NODE))
 fi
 
 # Adjust itwinai logging level to help with debugging 
