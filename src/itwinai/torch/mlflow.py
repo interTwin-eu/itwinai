@@ -206,7 +206,7 @@ def get_profiling_avg_by_parent(
                 try:
                     worker_profiling_avg = pd.read_csv(artifact_path)
                     worker_profiling_averages.append(worker_profiling_avg)
-                except URLError:
+                except (URLError, FileNotFoundError):
                     # Not every worker run will have the profiling averages CSV
                     continue
         else:
@@ -220,7 +220,7 @@ def get_profiling_avg_by_parent(
             try:
                 worker_profiling_avg = pd.read_csv(artifact_path)
                 worker_profiling_averages.append(worker_profiling_avg)
-            except URLError:
+            except (URLError, FileNotFoundError):
                 continue
 
         if len(worker_profiling_averages) == 0:
