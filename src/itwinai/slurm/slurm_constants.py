@@ -10,6 +10,7 @@
 
 DEFAULT_SLURM_LOG_DIR = "slurm-job-logs"
 DEFAULT_SLURM_SAVE_DIR = "slurm-scripts"
+DEFAULT_PY_SPY_DIR = "py-spy-output"
 SLURM_TEMPLATE = r"""#!/bin/bash
 
 # Job configuration

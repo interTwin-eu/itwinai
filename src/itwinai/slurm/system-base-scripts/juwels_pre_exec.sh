@@ -25,12 +25,16 @@ fi
 echo
 
 # Setup env for distributed ML
-export CUDA_VISIBLE_DEVICES=$(seq -s, 0 $((SLURM_GPUS_PER_NODE - 1)))
+CUDA_VISIBLE_DEVICES=$(seq -s, 0 $((SLURM_GPUS_PER_NODE - 1)))
+export CUDA_VISIBLE_DEVICES
 echo "DEBUG: CUDA_VISIBLE_DEVICES: $CUDA_VISIBLE_DEVICES"
-export OMP_NUM_THREADS=1
+
+OMP_NUM_THREADS=1
 if [ "$SLURM_GPUS_PER_NODE" -gt 0 ] ; then
-  export OMP_NUM_THREADS=$((SLURM_CPUS_PER_TASK / SLURM_GPUS_PER_NODE))
+  OMP_NUM_THREADS=$((SLURM_CPUS_PER_TASK / SLURM_GPUS_PER_NODE))
 fi
+export OMP_NUM_THREADS
+
 
 # Prevent NCCL not figuring out how to initialize.
 export NCCL_SOCKET_IFNAME=ib0
@@ -99,20 +103,41 @@ function ray-launcher(){
 }
 
 function torchrun-launcher(){
-  export MASTER_ADDR="$(scontrol show hostnames "$SLURM_JOB_NODELIST" | head -n 1)i"
-  export MASTER_PORT=54123
+  MASTER_ADDR="$(scontrol show hostnames "$SLURM_JOB_NODELIST" | head -n 1)i"
+  MASTER_PORT=54123
+  export MASTER_ADDR, MASTER_PORT
 
   srun --cpu-bind=none --ntasks-per-node=1 \
-    bash -c "torchrun_jsc \
-    --log_dir='logs_torchrun' \
-    --nnodes=$SLURM_NNODES \
-    --nproc_per_node=$SLURM_GPUS_PER_NODE \
-    --rdzv_id=$SLURM_JOB_ID \
-    --rdzv_conf=is_host=\$(((SLURM_NODEID)) && echo 0 || echo 1) \
+    bash -c 'torchrun_jsc \
+    --log_dir="logs_torchrun" \
+    --nnodes="$SLURM_NNODES" \
+    --nproc_per_node="$SLURM_GPUS_PER_NODE" \
+    --rdzv_id="$SLURM_JOB_ID" \
+    --rdzv_conf=is_host="$(( SLURM_NODEID == 0 ? 1 : 0 ))" \
     --rdzv_backend=c10d \
-    --rdzv_endpoint=$MASTER_ADDR:$MASTER_PORT \
+    --rdzv_endpoint="$MASTER_ADDR":"$MASTER_PORT" \
+    --no-python' "$1"
+}
+
+function py-spy-torchrun-launcher(){
+  local rate="$1"
+  local output="$2"
+
+  MASTER_ADDR="$(scontrol show hostnames "$SLURM_JOB_NODELIST" | head -n 1)i"
+  MASTER_PORT=54123
+  export MASTER_ADDR, MASTER_PORT
+
+  srun --cpu-bind=none --ntasks-per-node=1 \
+    bash -c 'py-spy record -r "$0" -s -o "$1" -f raw -- torchrun_jsc \
+    --log_dir="logs_torchrun" \
+    --nnodes="$SLURM_NNODES" \
+    --nproc_per_node="$SLURM_GPUS_PER_NODE" \
+    --rdzv_id="$SLURM_JOB_ID" \
+    --rdzv_conf=is_host="$(( SLURM_NODEID == 0 ? 1 : 0 ))" \
+    --rdzv_backend=c10d \
+    --rdzv_endpoint="$MASTER_ADDR":"$MASTER_PORT" \
     --no-python \
-    $1"
+    "$@"' "$rate" "$output" "$3"
 }
 
 function srun-launcher(){
@@ -120,22 +145,6 @@ function srun-launcher(){
     --cpus-per-task=$((SLURM_CPUS_PER_TASK / SLURM_GPUS_PER_NODE)) \
     --ntasks=$((SLURM_GPUS_PER_NODE * SLURM_NNODES)) \
     "$1"
-}
-
-# Dual echo on both stdout and stderr
-function decho (){
-  echo "$@"
-  >&2 echo "$@"
-}
-
-function separation(){
-
-  decho
-  decho "======================================================================================"
-  decho "======================================================================================"
-  decho "======================================================================================"
-  decho
-
 }
 
 # Get GPUs info per node

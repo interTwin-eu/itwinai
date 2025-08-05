@@ -19,7 +19,11 @@ import typer
 from requests.exceptions import RequestException
 from validators import url
 
-from itwinai.slurm.slurm_constants import DEFAULT_SLURM_LOG_DIR, DEFAULT_SLURM_SAVE_DIR
+from itwinai.slurm.slurm_constants import (
+    DEFAULT_PY_SPY_DIR,
+    DEFAULT_SLURM_LOG_DIR,
+    DEFAULT_SLURM_SAVE_DIR,
+)
 from itwinai.slurm.slurm_script_configuration import SlurmScriptConfiguration
 from itwinai.slurm.utils import (
     get_slurm_job_parser,
@@ -264,8 +268,7 @@ class MLSlurmBuilder(SlurmScriptBuilder):
         self.config_path = config_path
         self.pipe_key = pipe_key
 
-    @property
-    def _training_cmd_dict_formatter(self) -> Dict[str, str]:
+    def _get_training_cmd_args(self) -> Dict[str, str]:
         return {
             "dist_strat": self.distributed_strategy,
             "config_name": self.config_name,
@@ -280,16 +283,23 @@ class MLSlurmBuilder(SlurmScriptBuilder):
 
     def get_training_command(self) -> str:
         if self.training_command:
-            return self.training_command.format(**self._training_cmd_dict_formatter)
+            return self.training_command.format(**self._get_training_cmd_args())
 
         # Default for the TorchTrainer
         default_command = rf"""
-            $(which itwinai) exec-pipeline strategy={self.distributed_strategy}
+            $(which itwinai) exec-pipeline \
+            --config-name={self.config_name} \
+            --config-path={self.config_path} \
+            +pipe_key={self.pipe_key} \
+            strategy={self.distributed_strategy}
         """
         default_command = default_command.strip()
         return remove_indentation_from_multiline_string(default_command)
 
     def get_exec_command(self) -> str:
+        """Generates an execution command for the SLURM script. Considers whether ray is
+        enabled or not and finds the appropriate expected bash function.
+        """
         if self.slurm_script_configuration.exec_command is not None:
             return self.slurm_script_configuration.exec_command
 
@@ -297,21 +307,40 @@ class MLSlurmBuilder(SlurmScriptBuilder):
         if self.distributed_strategy == "horovod" and self.enable_ray:
             cli_logger.error("Horovod together with Ray is not supported!")
             raise typer.Exit(1)
+        if self.enable_ray and self.py_spy_profiling:
+            cli_logger.error("Ray together with py-spy profiling is not supported!")
+            raise typer.Exit(1)
+        if self.py_spy_profiling and self.distributed_strategy == "horovod":
+            cli_logger.error("Horovod together with py-spy profiling is not supported!")
+            raise typer.Exit(1)
+
         if self.enable_ray:
             exec_cmd = "ray-launcher"
         elif self.distributed_strategy == "horovod":
             exec_cmd = "srun-launcher"
         elif self.distributed_strategy in ("ddp", "deepspeed"):
-            exec_cmd = "torchrun-launcher"
+            if self.py_spy_profiling:
+                py_spy_profiling_filename = (
+                    rf"{self.distributed_strategy}_profile_\$SLURM_NODEID.txt"
+                )
+                py_spy_output_file = Path(DEFAULT_PY_SPY_DIR) / py_spy_profiling_filename
+                exec_cmd = (
+                    f"py-spy-torchrun-launcher '{self.profiling_sampling_rate}'"
+                    f" '{py_spy_output_file}'"
+                )
+            else:
+                exec_cmd = "torchrun-launcher"
         else:
             cli_logger.error(f"Invalid strategy chosen: {self.distributed_strategy}")
             raise typer.Exit(1)
 
-        exec_cmd += f" \"{training_command}\""
+        exec_cmd += f" '{training_command}'"
         return exec_cmd
 
     def get_pre_exec_command(self) -> str:
-        """Generates a pre-execution command for the SLURM script."""
+        """Generates a pre-execution command for the SLURM script. Adds a command to source
+        the python venv if given and a command to export a container path variable if given.
+        """
         pre_exec_command = ""
         if self.slurm_script_configuration.pre_exec_command is not None:
             pre_exec_command = self.slurm_script_configuration.pre_exec_command
@@ -329,7 +358,7 @@ class MLSlurmBuilder(SlurmScriptBuilder):
         if self.slurm_script_configuration.job_name is None:
             self.slurm_script_configuration.job_name = self._generate_job_identifier()
 
-        return super()._set_default_config_fields()
+        super()._set_default_config_fields()
 
     def process_script(self) -> None:
         """Will generate and process a SLURM script according to specifications. Will
@@ -401,6 +430,7 @@ def generate_default_slurm_script() -> None:
     parser = get_slurm_job_parser()
     args = parser.parse_args()
 
+    # For all our purposes we want number of tasks to be one (in the sbatch directives)
     num_tasks_per_node = 1
 
     slurm_script_configuration = SlurmScriptConfiguration(
