@@ -30,11 +30,8 @@ from typing import List
 
 import hydra
 import typer
-from mlflow.tracking import MlflowClient
 from omegaconf import DictConfig
 from typing_extensions import Annotated
-
-from itwinai.utils import normalize_tracking_uri
 
 from .constants import BASE_EXP_NAME, RELATIVE_MLFLOW_PATH
 
@@ -209,12 +206,15 @@ def generate_scalability_report(
     This command processes runs under the given experiment at a tracking uri.
     It generates plots and metrics for scalability analysis and saves them in the `plot_dir`.
     """
+    from mlflow.tracking import MlflowClient
+
     from itwinai.scalability_report.reports import (
         communication_data_report,
         computation_data_report,
         epoch_time_report,
         gpu_data_report,
     )
+    from itwinai.utils import normalize_tracking_uri
 
     run_names_list = run_names.split(",") if run_names else None
 

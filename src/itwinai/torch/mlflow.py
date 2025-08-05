@@ -5,6 +5,7 @@
 #
 # Credit:
 # - Matteo Bunino <matteo.bunino@cern.ch> - CERN
+# - Linus Eickhoff <linus.maximilian.eickhoff@cern.ch> - CERN
 # --------------------------------------------------------------------------------------
 
 import logging

@@ -6,6 +6,7 @@
 # Credit:
 # - Jarl Sondre Sæther <jarl.sondre.saether@cern.ch> - CERN
 # - Matteo Bunino <matteo.bunino@cern.ch> - CERN
+# - Linus Eickhoff <linus.maximilian.eickhoff@cern.ch> - CERN
 # --------------------------------------------------------------------------------------
 
 import functools
