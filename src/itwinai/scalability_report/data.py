@@ -14,10 +14,9 @@ from pathlib import Path
 from typing import List, Set
 
 import mlflow
-import mlflow.tracking
 import pandas as pd
+from mlflow.tracking import MlflowClient
 
-from itwinai.constants import RELATIVE_MLFLOW_PATH
 from itwinai.scalability_report.utils import check_contains_columns
 from itwinai.torch.mlflow import (
     get_epoch_time_runs_by_parent,
@@ -31,6 +30,7 @@ py_logger = logging.getLogger(__name__)
 
 
 def read_profiling_data_from_mlflow(
+    mlflow_client: MlflowClient,
     experiment_name: str,
     run_names: List[str] | None = None,
     expected_columns: Set[str] | None = None,
@@ -39,22 +39,24 @@ def read_profiling_data_from_mlflow(
     single DataFrame.
 
     Args:
+        mlflow_client (MlflowClient): An instance of MlflowClient to interact with MLflow.
         experiment_name (str): Name of the MLflow experiment to read from.
         run_names (List[str] | None): Name of the runs to read metrics from. If empty, all runs
         in the experiment will be considered.
+        expected_columns (Set[str] | None): A set of column names expected to be present in
+        the profiling data. If None, no validation is performed on the columns.
 
     Returns:
         pd.DataFrame | None: A DataFrame containing the concatenated data from all valid CSV
         files in the directory.
     """
-    mlflow_path = RELATIVE_MLFLOW_PATH.resolve()
-    mlflow.set_tracking_uri(mlflow_path)
-    mlflow_client = mlflow.tracking.MlflowClient()
+    mlflow.set_tracking_uri(mlflow_client.tracking_uri)
 
     experiment = mlflow_client.get_experiment_by_name(name=experiment_name)
     if experiment is None:
         py_logger.warning(
-            f"Experiment '{experiment_name}' does not exist in MLflow at path '{mlflow_path}'."
+            f"Experiment '{experiment_name}' does not exist in MLflow at path"
+            f" '{mlflow_client.tracking_uri}'."
         )
         return None
 
@@ -66,10 +68,10 @@ def read_profiling_data_from_mlflow(
 
     profiling_dataframes = []
     for run in runs:
-        profiling_avg_dfs = get_profiling_avg_by_parent(
+        profiling_avg_dataframes = get_profiling_avg_by_parent(
             mlflow_client, experiment.experiment_id, run
         )
-        profiling_dataframes.extend(profiling_avg_dfs)
+        profiling_dataframes.extend(profiling_avg_dataframes)
 
     if not profiling_dataframes:
         # Warnings for no profiling data are already emitted in get_profiling_avg_by_parent
@@ -86,13 +88,21 @@ def read_profiling_data_from_mlflow(
 
 
 def read_epoch_time_from_mlflow(
+    mlflow_client: MlflowClient,
     experiment_name: str,
     run_names: List[str] | None = None,
 ) -> pd.DataFrame | None:
-    mlflow_path = RELATIVE_MLFLOW_PATH.resolve()
-    mlflow.set_tracking_uri(mlflow_path)
-    mlflow_client = mlflow.tracking.MlflowClient()
+    """Reads and validates epoch time metrics from a mlflow experiment and combines them into a
+    single DataFrame.
 
+    Args:
+        experiment_name (str): Name of the MLflow experiment to read from.
+        run_names (List[str] | None): Name of the runs to read metrics from. If empty, all runs
+        in the experiment will be considered.
+    Returns:
+        pd.DataFrame | None: A DataFrame containing the concatenated data from all epoch time
+        metrics in the given runs of the experiment.
+    """
     experiment = mlflow_client.get_experiment_by_name(name=experiment_name)
     if experiment is None:
         py_logger.warning(
@@ -130,6 +140,7 @@ def read_epoch_time_from_mlflow(
 
 
 def read_gpu_metrics_from_mlflow(
+    mlflow_client: MlflowClient,
     experiment_name: str,
     run_names: List[str] | None = None,
 ) -> pd.DataFrame | None:
@@ -145,9 +156,7 @@ def read_gpu_metrics_from_mlflow(
         pd.DataFrame | None: A DataFrame containing the concatenated data from all gpu metrics
         in the given runs of the experiment.
     """
-    mlflow_path = RELATIVE_MLFLOW_PATH.resolve()
-    mlflow.set_tracking_uri(mlflow_path)
-    mlflow_client = mlflow.tracking.MlflowClient()
+    mlflow.set_tracking_uri(mlflow_client.tracking_uri)
 
     experiment = mlflow_client.get_experiment_by_name(name=experiment_name)
     if experiment is None:

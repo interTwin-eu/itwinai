@@ -13,6 +13,8 @@ import logging
 from pathlib import Path
 from typing import List
 
+from mlflow.tracking import MlflowClient
+
 from itwinai.scalability_report.data import (
     read_epoch_time_from_mlflow,
     read_gpu_metrics_from_mlflow,
@@ -38,18 +40,30 @@ cli_logger = logging.getLogger("cli_logger")
 
 def epoch_time_report(
     plot_dir: Path | str,
+    mlflow_client: MlflowClient,
     experiment_name: str,
     run_names: List[str] | None = None,
     plot_file_suffix: str = ".png",
 ) -> str | None:
     """Generates reports and plots for epoch training times across distributed training
     strategies, including a log-log plot of absolute average epoch times against the
-    number of GPUs and a log-log plot of relative speedup as more GPUs are added. The
-    function optionally creates backups of the data.
-    """
-    epoch_time_expected_columns = {"strategy", "num_global_gpus", "avg_epoch_time"}
+    number of GPUs and a log-log plot of relative speedup as more GPUs are added.
 
+    Args:
+        plot_dir (Path | str): Path to the directory where the generated plots will
+            be saved.
+        mlflow_client (MlflowClient): MLflow client to interact with the MLflow tracking
+            server.
+        experiment_name (str): Name of the MLflow experiment to retrieve epoch time data
+            from.
+        run_names (List[str] | None): List of specific run names to filter the epoch
+            time data. If None, all runs in the experiment will be considered.
+        plot_file_suffix (str): Suffix for the plot file names. Defaults to ".png".
+    Returns:
+        str | None: A string representation of the epoch time statistics table, or None
+    """
     epoch_time_df = read_epoch_time_from_mlflow(
+        mlflow_client=mlflow_client,
         experiment_name=experiment_name,
         run_names=run_names,
     )
@@ -57,6 +71,13 @@ def epoch_time_report(
         return None
 
     cli_logger.info("\nAnalyzing Epoch Time Data...")
+    epoch_time_expected_columns = {
+        "strategy",
+        "num_global_gpus",
+        "sample_idx",
+        "metric_name",
+        "value",
+    }
     avg_epoch_time_df = calculate_epoch_statistics(
         epoch_time_df=epoch_time_df,
         expected_columns=epoch_time_expected_columns,
@@ -88,6 +109,7 @@ def epoch_time_report(
 
 def gpu_data_report(
     plot_dir: Path | str,
+    mlflow_client: MlflowClient,
     experiment_name: str,
     run_names: List[str] | None = None,
     plot_file_suffix: str = ".png",
@@ -100,6 +122,7 @@ def gpu_data_report(
     Args:
         plot_dir (Path | str): Path to the directory where the generated plots will
             be saved.
+        mlflow_client (MlflowClient): MLflow client to interact with the MLflow tracking
         experiment_name (str): Name of the MLflow experiment to retrieve GPU data from.
         run_names (List[str] | None): List of specific run names to filter the GPU data.
             If None, all runs in the experiment will be considered.
@@ -123,7 +146,7 @@ def gpu_data_report(
     }
 
     gpu_data_df = read_gpu_metrics_from_mlflow(
-        experiment_name=experiment_name, run_names=run_names
+        mlflow_client=mlflow_client, experiment_name=experiment_name, run_names=run_names
     )
     if gpu_data_df is None:
         return None
@@ -165,18 +188,20 @@ def gpu_data_report(
 @deprecated("Please use `computation_data_report` instead.")
 def communication_data_report(
     plot_dir: Path | str,
+    mlflow_client: MlflowClient,
     experiment_name: str,
     run_names: List[str] | None,
     plot_file_suffix: str = ".png",
 ) -> str | None:
     """Generates reports and plots for communication and computation fractions across
     distributed training strategies. Includes a bar plot showing the fraction of time
-    spent on computation vs communication for each strategy and GPU count. The function
-    optionally creates backups of the data.
+    spent on computation vs communication for each strategy and GPU count.
 
     Args:
         plot_dir (Path | str): Path to the directory where the generated plot will
             be saved.
+        mlflow_client (MlflowClient): MLflow client to interact with the MLflow tracking
+            server.
         experiment_name (str): Name of the MLflow experiment to retrieve data from.
         run_names (List[str]): List of specific run names to filter the data.
             If None, all runs in the experiment will be considered.
@@ -193,7 +218,10 @@ def communication_data_report(
         "self_cuda_time_total",
     }
     communication_data_df = read_profiling_data_from_mlflow(
-        experiment_name, run_names, expected_columns=communication_data_expected_columns
+        mlflow_client,
+        experiment_name,
+        run_names,
+        expected_columns=communication_data_expected_columns,
     )
     if communication_data_df is None:
         return None
@@ -220,26 +248,28 @@ def communication_data_report(
 
 def computation_data_report(
     plot_dir: Path | str,
+    mlflow_client: MlflowClient,
     experiment_name: str,
     run_names: List[str] | None = None,
     plot_file_suffix: str = ".png",
 ) -> str | None:
     """Generates reports and plots for computation and other fractions across
     distributed training strategies. Includes a bar plot showing the fraction of time
-    spent on computation vs other for each strategy and GPU count. The function
-    optionally creates backups of the data.
+    spent on computation vs other for each strategy and GPU count.
 
     Args:
-        log_dirs (List[Path] | List[str]): List of paths to the directory containing CSV
-            files with function-call data. The files must include the columns "strategy",
-            "num_gpus", "global_rank", "name", and "self_cuda_time_total".
         plot_dir (Path | str): Path to the directory where the generated plot will
             be saved.
-        backup_dir (Path): Path to the directory where backups of the data will be stored
-            if `do_backup` is True.
-        do_backup (bool): Whether to create a backup of the computation and other data in the
-            `backup_dir`. Defaults to False.
+        mlflow_client (MlflowClient): MLflow client to interact with the MLflow tracking
+            server.
+        experiment_name (str): Name of the MLflow experiment to retrieve data from.
+        run_names (List[str] | None): List of specific run names to filter the data.
+            If None, all runs in the experiment will be considered.
         plot_file_suffix (str): Suffix for the plot file names. Defaults to ".png".
+
+    Returns:
+        str | None: A string representation of the computation data statistics table,
+        or None if no data is available.
     """
     if isinstance(plot_dir, str):
         plot_dir = Path(plot_dir)
@@ -253,7 +283,10 @@ def computation_data_report(
     }
 
     computation_data_df = read_profiling_data_from_mlflow(
-        experiment_name, run_names, expected_columns=computation_data_expected_columns
+        mlflow_client,
+        experiment_name,
+        run_names,
+        expected_columns=computation_data_expected_columns,
     )
     if computation_data_df is None:
         return None

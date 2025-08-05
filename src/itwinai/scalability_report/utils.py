@@ -52,6 +52,27 @@ def check_probing_interval_consistency(gpu_data_df: pd.DataFrame) -> None:
 def calculate_epoch_statistics(
     epoch_time_df: pd.DataFrame, expected_columns: Set
 ) -> pd.DataFrame:
+    """Calculates the average epoch time for each strategy and number of GPUs from the
+    given DataFrame. The DataFrame is expected to contain the columns 'strategy',
+    'num_global_gpus', 'sample_idx', 'metric_name', and 'value'.
+    The 'metric_name' column should contain the value 'epoch_time_s' for epoch time
+    measurements.
+
+    Args:
+        epoch_time_df (pd.DataFrame): DataFrame containing epoch time data.
+        expected_columns (Set): Set of expected columns in the DataFrame.
+
+    Returns:
+        pd.DataFrame: A DataFrame containing the average epoch time for each strategy and
+            number of GPUs, with the columns ``strategy``, ``num_global_gpus``,
+            ``sample_idx``, and ``avg_epoch_time``.
+
+    Raises:
+        ValueError: If the given DataFrame does not contain the expected columns.
+        ValueError: If the probing intervals are inconsistent for any group.
+    """
+    check_contains_columns(df=epoch_time_df, expected_columns=expected_columns)
+
     mask = epoch_time_df["metric_name"] == "epoch_time_s"
     # Ensure value and num_global_gpus is numeric
     epoch_time_df.loc[mask, "value"] = pd.to_numeric(epoch_time_df.loc[mask, "value"])
@@ -79,7 +100,6 @@ def calculate_epoch_statistics(
         )
         .reset_index()
     )
-    check_contains_columns(df=aggregated_df, expected_columns=expected_columns)
 
     return aggregated_df
 

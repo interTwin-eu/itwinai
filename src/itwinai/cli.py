@@ -30,10 +30,13 @@ from typing import List
 
 import hydra
 import typer
+from mlflow.tracking import MlflowClient
 from omegaconf import DictConfig
 from typing_extensions import Annotated
 
-from .constants import BASE_EXP_NAME
+from itwinai.utils import normalize_tracking_uri
+
+from .constants import BASE_EXP_NAME, RELATIVE_MLFLOW_PATH
 
 app = typer.Typer(pretty_exceptions_enable=False)
 
@@ -157,6 +160,9 @@ def generate_py_spy_report(
 
 @app.command()
 def generate_scalability_report(
+    tracking_uri: Annotated[
+        str, typer.Option(help="The tracking URI of the MLFlow server.")
+    ] = RELATIVE_MLFLOW_PATH.as_posix(),
     experiment_name: Annotated[
         str,
         typer.Option(help="The name of the mlflow experiment to use for the GPU data report."),
@@ -198,13 +204,10 @@ def generate_scalability_report(
     ] = False,
 ):
     """Generates scalability reports for epoch time, GPU data, and communication data
-    based on log files in the specified directory and mlflow logs. Optionally, backups of the
-    reports can be created.
+    based the mlflow logs.
 
-    This command processes log files stored in specific subdirectories under the given
-    `log_dir`, as well as data from mlflow runs. It generates plots and metrics for scalability
-    analysis and saves them in the `plot_dir`. If backups are enabled, the generated reports
-    will also be copied to a backup directory under `backup_root_dir`.
+    This command processes runs under the given experiment at a tracking uri.
+    It generates plots and metrics for scalability analysis and saves them in the `plot_dir`.
     """
     from itwinai.scalability_report.reports import (
         communication_data_report,
@@ -215,11 +218,18 @@ def generate_scalability_report(
 
     run_names_list = run_names.split(",") if run_names else None
 
-    plot_dir_path = Path(plot_dir)
+    # Remove symbolic links and resolve the path
+    plot_dir_path = Path(plot_dir).resolve()
+
+    # ensure the tracking URI is normalized
+    tracking_uri = normalize_tracking_uri(tracking_uri)
+    mlflow_client = MlflowClient(tracking_uri=tracking_uri)
+
     plot_dir_path.mkdir(exist_ok=True, parents=True)
 
     epoch_time_table = epoch_time_report(
         plot_dir=plot_dir_path,
+        mlflow_client=mlflow_client,
         experiment_name=experiment_name,
         run_names=run_names_list,
         plot_file_suffix=plot_file_suffix,
@@ -234,6 +244,7 @@ def generate_scalability_report(
 
     gpu_data_table = gpu_data_report(
         plot_dir=plot_dir_path,
+        mlflow_client=mlflow_client,
         experiment_name=experiment_name,
         run_names=run_names_list,
         plot_file_suffix=plot_file_suffix,
@@ -271,6 +282,7 @@ def generate_scalability_report(
     if include_communication:
         communication_data_table = communication_data_report(
             plot_dir=plot_dir_path,
+            mlflow_client=mlflow_client,
             experiment_name=experiment_name,
             run_names=run_names_list,
             plot_file_suffix=plot_file_suffix,
@@ -278,6 +290,7 @@ def generate_scalability_report(
 
     computation_data_table = computation_data_report(
         plot_dir=plot_dir_path,
+        mlflow_client=mlflow_client,
         experiment_name=experiment_name,
         run_names=run_names_list,
         plot_file_suffix=plot_file_suffix,

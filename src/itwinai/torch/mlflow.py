@@ -162,6 +162,20 @@ def get_profiling_avg_by_parent(
     experiment_id: str,
     run: Run,
 ) -> List[pd.DataFrame]:
+    """Get all worker profiling averages associated with a given run.
+    This function assumes that the worker profiling averages are either:
+    - Nested under the trial runs of a tuner run (if Ray was used)
+    - Nested under the training run (if Ray was not used)
+
+    Args:
+        mlflow_client (mlflow.tracking.MlflowClient): MLFlow client to use
+        experiment_id (str): The ID of the experiment to search in.
+        run (mlflow.entities.Run): The run from which to collect worker profiling averages.
+
+    Returns:
+        List[pd.DataFrame]: A list of DataFrames containing the worker profiling averages
+            associated with the given run. Each DataFrame corresponds to a worker run.
+    """
     def _children(parent_run_id: str) -> List[Run]:
         return mlflow_client.search_runs(
             [experiment_id],
