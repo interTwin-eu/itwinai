@@ -277,7 +277,11 @@ class MLSlurmBuilder(SlurmScriptBuilder):
     def _generate_job_identifier(self) -> str:
         num_nodes = self.slurm_script_configuration.num_nodes
         gpus_per_node = self.slurm_script_configuration.gpus_per_node
-        return f"{self.distributed_strategy}-{num_nodes}x{gpus_per_node}"
+        identifier = (
+            f"{'ray-' if self.enable_ray else ''}"
+            f"{self.distributed_strategy}-{num_nodes}x{gpus_per_node}"
+        )
+        return identifier
 
     def get_training_command(self) -> str:
         if self.training_command:
