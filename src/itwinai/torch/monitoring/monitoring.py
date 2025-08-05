@@ -24,8 +24,6 @@ if TYPE_CHECKING:
 
 py_logger = logging.getLogger(__name__)
 
-cli_logger = logging.getLogger("cli_logger")
-
 
 def profile_gpu_utilization(
     stop_flag: ValueProxy,
@@ -143,7 +141,7 @@ def measure_gpu_utilization(method: Callable) -> Callable:
     @functools.wraps(method)
     def measured_method(self: "TorchTrainer", *args, **kwargs) -> Any:
         if not self.measure_gpu_data:
-            cli_logger.warning("Profiling of GPU data has been disabled!")
+            py_logger.warning("Profiling of GPU data has been disabled!")
             return method(self, *args, **kwargs)
 
         if not self.logger:

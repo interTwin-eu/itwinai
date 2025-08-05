@@ -142,18 +142,19 @@ def profile_torch_trainer(method: Callable) -> Callable:
         profiling_dataframe["global_rank"] = global_rank
 
         # write profiling averages to mlflow logger
-        if self.mlflow_logger is not None:
-            temp_dir = tempfile.gettempdir()
-            csv_path = Path(temp_dir) / "torch_profiling_averages.csv"
-            profiling_dataframe.to_csv(csv_path, index=False)
-            self.mlflow_logger.log(
-                item=str(csv_path),
-                identifier="torch_profiling_averages",
-                kind="artifact",
-            )
-            csv_path.unlink()  # Remove after logging
-        else:
-            py_logger.warning("No MLflow logger is set, not logging the profiling data!")
+        if self.mlflow_logger is None:
+            py_logger.info("No MLflow logger is set, not logging the profiling data!")
+            return result
+
+        temp_dir = tempfile.gettempdir()
+        csv_path = Path(temp_dir) / "torch_profiling_averages.csv"
+        profiling_dataframe.to_csv(csv_path, index=False)
+        self.mlflow_logger.log(
+            item=str(csv_path),
+            identifier="torch_profiling_averages",
+            kind="artifact",
+        )
+        csv_path.unlink()  # Remove after logging
 
         return result
 

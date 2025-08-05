@@ -73,6 +73,8 @@ def calculate_epoch_statistics(
     """
     check_contains_columns(df=epoch_time_df, expected_columns=expected_columns)
 
+    # do not modify inplace
+    epoch_time_df = epoch_time_df.copy()
     mask = epoch_time_df["metric_name"] == "epoch_time_s"
     # Ensure value and num_global_gpus is numeric
     epoch_time_df.loc[mask, "value"] = pd.to_numeric(epoch_time_df.loc[mask, "value"])

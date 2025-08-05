@@ -60,7 +60,8 @@ def epoch_time_report(
             time data. If None, all runs in the experiment will be considered.
         plot_file_suffix (str): Suffix for the plot file names. Defaults to ".png".
     Returns:
-        str | None: A string representation of the epoch time statistics table, or None
+        str | None: A string representation of the epoch time statistics table, or None if
+            no data was found.
     """
     epoch_time_df = read_epoch_time_from_mlflow(
         mlflow_client=mlflow_client,
@@ -91,10 +92,11 @@ def epoch_time_report(
     absolute_fig, _ = absolute_avg_epoch_time_plot(avg_epoch_time_df=avg_epoch_time_df)
     relative_fig, _ = relative_epoch_time_speedup_plot(avg_epoch_time_df=avg_epoch_time_df)
 
-    absolute_avg_time_plot_path = plot_dir / Path("absolute_epoch_time" + plot_file_suffix)
-    relative_speedup_plot_path = plot_dir / Path(
-        "relative_epoch_time_speedup" + plot_file_suffix
-    )
+    if isinstance(plot_dir, str):
+        plot_dir = Path(plot_dir).resolve()
+
+    absolute_avg_time_plot_path = plot_dir / ("absolute_epoch_time" + plot_file_suffix)
+    relative_speedup_plot_path = plot_dir / ("relative_epoch_time_speedup" + plot_file_suffix)
 
     absolute_fig.savefig(absolute_avg_time_plot_path)
     relative_fig.savefig(relative_speedup_plot_path)

@@ -142,11 +142,10 @@ def get_epoch_time_runs_by_parent(
         # exists for ray runs
         if second_level_children:
             for grand_child in second_level_children:
-                if any("epoch_time_s" in metric for metric in grand_child.data.metrics):
+                if "epoch_time_s" in grand_child.data.metrics:
                     epoch_time_runs.append(grand_child)
-        else:
-            if any("epoch_time_s" in metric for metric in child.data.metrics):
-                epoch_time_runs.append(child)
+        elif "epoch_time_s" in child.data.metrics:
+            epoch_time_runs.append(child)
 
         if len(epoch_time_runs) > 1:
             py_logger.warning(
@@ -192,42 +191,31 @@ def get_profiling_avg_by_parent(
         )
         return worker_profiling_averages
 
+    leaf_nodes = []
     for child in first_level_children:
         second_level_children = _children(child.info.run_id)
-        if second_level_children:
-            for grand_child in second_level_children:
-                # Retrieve CSV artifact and convert to DataFrame
-                artifact_uri = grand_child.info.artifact_uri
-                if not artifact_uri:
-                    continue
-                artifact_path = Path(
-                    artifact_uri, "torch_profiling_averages", "torch_profiling_averages.csv"
-                )
-                try:
-                    worker_profiling_avg = pd.read_csv(artifact_path)
-                    worker_profiling_averages.append(worker_profiling_avg)
-                except (URLError, FileNotFoundError):
-                    # Not every worker run will have the profiling averages CSV
-                    continue
-        else:
-            # Retrieve CSV artifact and convert to DataFrame
-            artifact_uri = child.info.artifact_uri
-            if not artifact_uri:
-                continue
-            artifact_path = Path(
-                artifact_uri, "torch_profiling_averages", "torch_profiling_averages.csv"
-            )
-            try:
-                worker_profiling_avg = pd.read_csv(artifact_path)
-                worker_profiling_averages.append(worker_profiling_avg)
-            except (URLError, FileNotFoundError):
-                continue
+        leaf_nodes += second_level_children if second_level_children else [child]
 
-        if len(worker_profiling_averages) == 0:
-            py_logger.warning(
-                f"No profiling averages found for run ID {run.info.run_id} in experiment"
-                f" {experiment_id}."
-            )
+
+    for child in leaf_nodes:
+        # Retrieve CSV artifact and convert to DataFrame
+        artifact_uri = child.info.artifact_uri
+        if not artifact_uri:
+            continue
+        artifact_path = Path(
+            artifact_uri, "torch_profiling_averages", "torch_profiling_averages.csv"
+        )
+        try:
+            worker_profiling_avg = pd.read_csv(artifact_path)
+            worker_profiling_averages.append(worker_profiling_avg)
+        except (URLError, FileNotFoundError):
+            continue
+
+    if len(worker_profiling_averages) == 0:
+        py_logger.warning(
+            f"No profiling averages found for run ID {run.info.run_id} in experiment"
+            f" {experiment_id}."
+        )
 
     return worker_profiling_averages
 

@@ -26,7 +26,7 @@ from itwinai.torch.mlflow import (
     get_runs_by_name,
 )
 
-py_logger = logging.getLogger(__name__)
+cli_logger = logging.getLogger("cli_logger")
 
 
 def read_profiling_data_from_mlflow(
@@ -54,7 +54,7 @@ def read_profiling_data_from_mlflow(
 
     experiment = mlflow_client.get_experiment_by_name(name=experiment_name)
     if experiment is None:
-        py_logger.warning(
+        cli_logger.warning(
             f"Experiment '{experiment_name}' does not exist in MLflow at path"
             f" '{mlflow_client.tracking_uri}'."
         )
@@ -105,7 +105,7 @@ def read_epoch_time_from_mlflow(
     """
     experiment = mlflow_client.get_experiment_by_name(name=experiment_name)
     if experiment is None:
-        py_logger.warning(
+        cli_logger.warning(
             f"Experiment '{experiment_name}' does not exist in MLflow at path"
             f"'{mlflow_client.tracking_uri}'."
         )
@@ -132,7 +132,7 @@ def read_epoch_time_from_mlflow(
             )
 
     if not epoch_time_dataframes:
-        py_logger.warning(
+        cli_logger.warning(
             f"No epoch time found for experiment '{experiment_name}' with runs: {run_names}."
         )
         return None
@@ -145,7 +145,7 @@ def read_gpu_metrics_from_mlflow(
     experiment_name: str,
     run_names: List[str] | None = None,
 ) -> pd.DataFrame | None:
-    """Reads and validates GPU metrics from a mlflow experiment and combines them into a
+    """Reads and validates GPU metrics from an mlflow experiment and combines them into a
     single DataFrame.
 
     Args:
@@ -161,7 +161,7 @@ def read_gpu_metrics_from_mlflow(
 
     experiment = mlflow_client.get_experiment_by_name(name=experiment_name)
     if experiment is None:
-        py_logger.warning(
+        cli_logger.warning(
             f"Experiment '{experiment_name}' does not exist in MLflow at path"
             f"'{mlflow_client.tracking_uri}'."
         )
@@ -186,52 +186,10 @@ def read_gpu_metrics_from_mlflow(
             )
 
     if not gpu_dataframes:
-        py_logger.warning(
+        cli_logger.warning(
             f"No GPU metrics found for experiment '{experiment_name}' with runs: {run_names}."
         )
         return None
 
     return pd.concat(gpu_dataframes)
 
-
-def read_scalability_metrics_from_csv(
-    data_dir: Path | str, expected_columns: Set
-) -> pd.DataFrame:
-    """Reads and validates scalability metric CSV files from a directory and combines
-    them into a single DataFrame.
-
-    Args:
-        data_dir (Path | str): Path to the directory containing the CSV files. All files
-            in the directory must have a .csv extension.
-        expected_columns (Set): A set of column names expected to be present in each CSV
-            file.
-
-    Returns:
-        pd.DataFrame: A DataFrame containing the concatenated data from all valid CSV
-        files in the directory.
-
-    Raises:
-        ValueError: If the directory contains non-CSV files, if no .csv files are found,
-        or if any file is missing the expected columns.
-    """
-    if isinstance(data_dir, str):
-        data_dir = Path(data_dir)
-
-    file_paths = list(data_dir.iterdir())
-
-    # Checking that all files end with .csv
-    if len([f for f in file_paths if f.suffix != ".csv"]) > 0:
-        raise ValueError(
-            f"Directory '{data_dir.resolve()} contains files with suffix different from .csv!"
-        )
-
-    if len(file_paths) == 0:
-        raise ValueError(f"Found no .csv files in directory: '{data_dir.resolve()}'")
-
-    dataframes = []
-    for file_path in file_paths:
-        df = pd.read_csv(file_path)
-        check_contains_columns(df=df, expected_columns=expected_columns, file_path=file_path)
-        dataframes.append(df)
-
-    return pd.concat(dataframes)
