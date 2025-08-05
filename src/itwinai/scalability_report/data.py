@@ -106,7 +106,8 @@ def read_epoch_time_from_mlflow(
     experiment = mlflow_client.get_experiment_by_name(name=experiment_name)
     if experiment is None:
         py_logger.warning(
-            f"Experiment '{experiment_name}' does not exist in MLflow at path '{mlflow_path}'."
+            f"Experiment '{experiment_name}' does not exist in MLflow at path"
+            f"'{mlflow_client.tracking_uri}'."
         )
         return None
 
@@ -161,7 +162,8 @@ def read_gpu_metrics_from_mlflow(
     experiment = mlflow_client.get_experiment_by_name(name=experiment_name)
     if experiment is None:
         py_logger.warning(
-            f"Experiment '{experiment_name}' does not exist in MLflow at path '{mlflow_path}'."
+            f"Experiment '{experiment_name}' does not exist in MLflow at path"
+            f"'{mlflow_client.tracking_uri}'."
         )
         return None
 
