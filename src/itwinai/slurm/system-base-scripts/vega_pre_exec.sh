@@ -24,12 +24,15 @@ ml Python/3.12.3-GCCcore-13.3.0
 module unload OpenSSL
 
 # Setup env for distributed ML
-export CUDA_VISIBLE_DEVICES=$(seq -s, 0 $((SLURM_GPUS_PER_NODE - 1)))
+CUDA_VISIBLE_DEVICES=$(seq -s, 0 $((SLURM_GPUS_PER_NODE - 1)))
+export CUDA_VISIBLE_DEVICES
 echo "DEBUG: CUDA_VISIBLE_DEVICES (after): $CUDA_VISIBLE_DEVICES"
-export OMP_NUM_THREADS=1
+
+OMP_NUM_THREADS=1
 if [ $((SLURM_CPUS_PER_TASK / SLURM_GPUS_PER_NODE)) -gt 0 ] ; then
-  export OMP_NUM_THREADS=$((SLURM_CPUS_PER_TASK / SLURM_GPUS_PER_NODE))
+  OMP_NUM_THREADS=$((SLURM_CPUS_PER_TASK / SLURM_GPUS_PER_NODE))
 fi
+export OMP_NUM_THREADS
 
 # Adjust itwinai logging level to help with debugging 
 export ITWINAI_LOG_LEVEL=DEBUG
@@ -97,9 +100,9 @@ function srun-launcher (){
   export RDMAV_FORK_SAFE=1
 
   # Launch command
-  srun --mpi=pmix_v3 --cpu-bind=none --ntasks-per-node=$SLURM_GPUS_PER_NODE \
-      --cpus-per-task=$(($SLURM_CPUS_PER_TASK / $SLURM_GPUS_PER_NODE)) \
-      --ntasks=$(($SLURM_GPUS_PER_NODE * $SLURM_NNODES)) \
+  srun --mpi=pmix_v3 --cpu-bind=none --ntasks-per-node="$SLURM_GPUS_PER_NODE" \
+      --cpus-per-task=$((SLURM_CPUS_PER_TASK / SLURM_GPUS_PER_NODE)) \
+      --ntasks=$((SLURM_GPUS_PER_NODE * SLURM_NNODES)) \
       /bin/bash -c \
       'if [ $SLURM_PROCID  -ne 0 ]; then exec > "logs_srun/$SLURM_JOB_ID/rank.$SLURM_PROCID" 2>&1; fi; exec '"${1}"
 }
