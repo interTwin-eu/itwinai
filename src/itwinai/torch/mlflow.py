@@ -10,6 +10,7 @@
 import logging
 from pathlib import Path
 from typing import Dict, List
+from urllib.error import URLError
 
 import mlflow
 import mlflow.tracking
@@ -190,17 +191,21 @@ def get_profiling_avg_by_parent(
                 try:
                     worker_profiling_avg = pd.read_csv(artifact_path)
                     worker_profiling_averages.append(worker_profiling_avg)
-                except FileNotFoundError:
+                except URLError:
                     # Not every worker run will have the profiling averages CSV
                     continue
         else:
             # Retrieve CSV artifact and convert to DataFrame
             artifact_uri = child.info.artifact_uri
-            artifact_path = f"{artifact_uri}/torch_profiling_averages.csv"
+            if not artifact_uri:
+                continue
+            artifact_path = Path(
+                artifact_uri, "torch_profiling_averages", "torch_profiling_averages.csv"
+            )
             try:
                 worker_profiling_avg = pd.read_csv(artifact_path)
                 worker_profiling_averages.append(worker_profiling_avg)
-            except FileNotFoundError:
+            except URLError:
                 continue
 
         if len(worker_profiling_averages) == 0:

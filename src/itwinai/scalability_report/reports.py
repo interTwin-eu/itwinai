@@ -186,8 +186,8 @@ def communication_data_report(
         plot_dir = Path(plot_dir).resolve()
 
     communication_data_expected_columns = {
-        "strategy",
         "num_gpus",
+        "strategy",
         "global_rank",
         "name",
         "self_cuda_time_total",
