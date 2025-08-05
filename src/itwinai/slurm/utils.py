@@ -23,7 +23,6 @@ def retrieve_remote_file(url: str) -> str:
 
     Args:
        url: URL to the raw configuration file (YAML/JSON format), e.g. raw GitHub link.
-
     """
     response = requests.get(url, timeout=10)
     response.raise_for_status()
@@ -87,10 +86,13 @@ def get_slurm_job_parser() -> ArgumentParser:
     default_config_file_path = "."
     default_config_file = "config"
     default_pipe_key = "rnn_training_pipeline"
+    default_container_path = None
+
     # Command to be executed before the main process starts.
-    default_pre_exec_script_location = None
+    default_pre_exec_file = None
+    default_exec_file = None
     default_training_command = None
-    default_python_venv = ".venv"
+    default_python_venv = None
     default_scalability_nodes = "1,2,4,8"
     default_profiling_sampling_rate = 10  # py-spy profiler sample rate/frequency
 
@@ -180,12 +182,21 @@ def get_slurm_job_parser() -> ArgumentParser:
         help="Which distributed strategy to use.",
     )
     parser.add_argument(
-        "--pre-exec-script-location",
-        type=str,
-        default=default_pre_exec_script_location,
+        "--pre-exec-file",
+        type=str | None,
+        default=default_pre_exec_file,
         help=(
-            "The location of the script containing the pre-execution command. Also accepts"
+            "The location of the file containing the pre-execution command. Also accepts"
             " a remote url."
+        ),
+    )
+    parser.add_argument(
+        "--exec-file",
+        type=str | None,
+        default=default_exec_file,
+        help=(
+            "The location of the file containing the execution command. Also accepts a remote"
+            " url."
         ),
     )
     parser.add_argument(
@@ -196,7 +207,7 @@ def get_slurm_job_parser() -> ArgumentParser:
     )
     parser.add_argument(
         "--python-venv",
-        type=str,
+        type=str | None,
         default=default_python_venv,
         help="Which python venv to use for running the command.",
     )
@@ -218,6 +229,12 @@ def get_slurm_job_parser() -> ArgumentParser:
         type=str | None,
         default=default_save_path,
         help="Where to save the script, if saving it.",
+    )
+    parser.add_argument(
+        "--container-path",
+        type=str | None,
+        default=default_container_path,
+        help="Path to the container",
     )
 
     # Boolean arguments where you only need to include the flag and not an actual value
@@ -243,6 +260,9 @@ def get_slurm_job_parser() -> ArgumentParser:
         "--py-spy",
         action="store_true",
         help="Whether to activate profiling with py-spy.",
+    )
+    parser.add_argument(
+        "--enable-ray", action="store_true", help="Whether to enable ray or not."
     )
 
     return parser

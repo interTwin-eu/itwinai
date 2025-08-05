@@ -16,6 +16,7 @@ from tempfile import NamedTemporaryFile
 from typing import Dict
 
 import typer
+from requests.exceptions import RequestException
 from validators import url
 
 from itwinai.slurm.slurm_constants import DEFAULT_SLURM_LOG_DIR, DEFAULT_SLURM_SAVE_DIR
@@ -36,10 +37,14 @@ class SlurmScriptBuilder:
         should_submit: bool,
         should_save: bool,
         save_path: str | Path | None = None,
+        pre_exec_file: str | None = None,
+        exec_file: str | None = None,
     ):
         self.slurm_script_configuration = slurm_script_configuration
         self.should_submit = should_submit
         self.should_save = should_save
+        self.pre_exec_file = pre_exec_file
+        self.exec_file = exec_file
 
         if isinstance(save_path, str):
             save_path = Path(save_path)
@@ -121,12 +126,73 @@ class SlurmScriptBuilder:
         self.slurm_script_configuration.std_out.parent.mkdir(exist_ok=True, parents=True)
         self.slurm_script_configuration.err_out.parent.mkdir(exist_ok=True, parents=True)
 
+    def _set_pre_exec_cmd(self) -> None:
+        """Sets the pre-execution command based on the given arguments. If the passed file is
+        a url then it downloads its contents. If it's a file, then it tries to read it from
+        the disk.
+        """
+        if self.pre_exec_file is None:
+            return
+        if self.slurm_script_configuration.pre_exec_command is not None:
+            return
+
+        if url(self.pre_exec_file):
+            try:
+                contents = retrieve_remote_file(str(self.pre_exec_file))
+            except RequestException as e:
+                cli_logger.error(
+                    f"Retrieving file from remote, '{self.pre_exec_file}', failed! Error:\n{e}"
+                )
+                raise typer.Exit(1)
+        else:
+            try:
+                with open(self.pre_exec_file) as file:
+                    contents = file.read()
+            except FileNotFoundError:
+                cli_logger.error(
+                    f"Failed to open pre-execution script. Couldn't find file: "
+                    f"'{self.pre_exec_file}'!"
+                )
+                raise typer.Exit(1)
+        self.slurm_script_configuration.pre_exec_command = contents
+
+    def _set_exec_cmd(self):
+        """Sets the execution command based on the given arguments. If the passed file is
+        a url then it downloads its contents. If it's a file, then it tries to read it from
+        the disk.
+        """
+        if self.exec_file is None:
+            return
+        if self.slurm_script_configuration.exec_command is not None:
+            return
+
+        if url(self.exec_file):
+            try:
+                contents = retrieve_remote_file(str(self.exec_file))
+            except RequestException as e:
+                cli_logger.error(
+                    f"Retrieving file from remote, '{self.exec_file}', failed! Error:\n{e}"
+                )
+                raise typer.Exit(1)
+        else:
+            try:
+                with open(self.exec_file) as file:
+                    contents = file.read()
+            except FileNotFoundError:
+                cli_logger.error(
+                    f"Failed to open execution script. Couldn't find file: '{self.exec_file}'!"
+                )
+                raise typer.Exit(1)
+        self.slurm_script_configuration.exec_command = contents
+
     def process_script(self) -> None:
         """Processes the given script by submitting and/or saving it, or by printing it to
         stdout. Also prepares the script by inserting default values wherever they are not
         set, as well as creating the needed directories.
         """
         self._set_default_config_fields()
+        self._set_pre_exec_cmd()
+        self._set_exec_cmd()
         script = self.slurm_script_configuration.generate_script()
         if not self.should_submit and not self.should_save:
             self.print_script(script=script)
@@ -159,15 +225,17 @@ class MLSlurmBuilder(SlurmScriptBuilder):
         should_submit: bool,
         should_save: bool,
         distributed_strategy: str,
+        enable_ray: bool = False,
+        pre_exec_file: str | None = None,
+        exec_file: str | None = None,
         save_path: str | Path | None = None,
-        pre_exec_script_location: str | Path | None = None,
+        container_path: str | Path | None = None,
         training_command: str | None = None,
-        python_venv: str = ".venv",
+        python_venv: str | None = None,
         debug: bool = False,
         config_name: str = "config",
         config_path: str = ".",
         pipe_key: str = "training_pipeline",
-        file_folder: Path = Path("slurm_scripts"),
         py_spy_profiling: bool = False,
         profiling_sampling_rate: int = 10,
     ):
@@ -176,15 +244,17 @@ class MLSlurmBuilder(SlurmScriptBuilder):
             should_submit=should_submit,
             should_save=should_save,
             save_path=save_path,
+            pre_exec_file=pre_exec_file,
+            exec_file=exec_file,
         )
 
         self.distributed_strategy = distributed_strategy
-        self.pre_exec_script_location = pre_exec_script_location
         self.training_command = training_command
+        self.enable_ray = enable_ray
+        self.container_path = container_path
 
         self.python_venv = python_venv
         self.debug = debug
-        self.file_folder = file_folder
 
         self.py_spy_profiling = py_spy_profiling
         self.profiling_sampling_rate = profiling_sampling_rate
@@ -193,12 +263,6 @@ class MLSlurmBuilder(SlurmScriptBuilder):
         self.config_name = config_name
         self.config_path = config_path
         self.pipe_key = pipe_key
-
-        self.omp_num_threads = max(
-            1,
-            self.slurm_script_configuration.cpus_per_task
-            // self.slurm_script_configuration.gpus_per_node,
-        )
 
     @property
     def _training_cmd_dict_formatter(self) -> Dict[str, str]:
@@ -225,90 +289,41 @@ class MLSlurmBuilder(SlurmScriptBuilder):
         default_command = default_command.strip()
         return remove_indentation_from_multiline_string(default_command)
 
-    def get_torchrun_command(self) -> str:
-        torchrun_log_dir = "torchrun_logs"
-        torchrun_cmd = rf"""torchrun_jsc \
-            --log_dir={torchrun_log_dir} \
-            --nnodes="$SLURM_NNODES" \
-            --nproc_per_node="$SLURM_GPUS_PER_NODE" \
-            --rdzv_id="$SLURM_JOB_ID" \
-            --rdzv_conf=is_host=$(( SLURM_NODEID == 0 ? 1 : 0 )) \
-            --rdzv_backend=c10d \
-            --rdzv_endpoint="$MASTER_ADDR":"$MASTER_PORT" \
-            {self.get_training_command()}"""
-        return remove_indentation_from_multiline_string(torchrun_cmd)
-
-    def get_horovod_command(self) -> str:
-        gpus_per_node = self.slurm_script_configuration.gpus_per_node
-        num_nodes = self.slurm_script_configuration.num_nodes
-        num_tasks = gpus_per_node * num_nodes
-
-        # E.g. "0,1,2,3" with 4 GPUs per node
-        cuda_visible_devices = ",".join(str(i) for i in range(gpus_per_node))
-
-        main_command = rf"""
-        export CUDA_VISIBLE_DEVICES="{cuda_visible_devices}"
-        srun --cpu-bind=none \
-            --ntasks-per-node=$SLURM_GPUS_PER_NODE \
-            --ntasks={num_tasks} \
-            --cpus-per-task=$((SLURM_CPUS_PER_TASK / SLURM_GPUS_PER_NODE)) \
-            {self.get_training_command()}
-        """
-
-        main_command = main_command.strip()
-        return main_command
-
     def get_exec_command(self) -> str:
         if self.slurm_script_configuration.exec_command is not None:
             return self.slurm_script_configuration.exec_command
 
-        if self.distributed_strategy in ("ddp", "deepspeed"):
-            tasks_per_node = "1"
-            task_cmd = self.get_torchrun_command()
+        training_command = self.get_training_command()
+        if self.distributed_strategy == "horovod" and self.enable_ray:
+            cli_logger.error("Horovod together with Ray is not supported!")
+            raise typer.Exit(1)
+        if self.enable_ray:
+            exec_cmd = "ray-launcher"
+        elif self.distributed_strategy == "horovod":
+            exec_cmd = "srun-launcher"
+        elif self.distributed_strategy in ("ddp", "deepspeed"):
+            exec_cmd = "torchrun-launcher"
         else:
-            tasks_per_node = "SLURM_GPUS_PER_NODE"
-            task_cmd = self.get_horovod_command()
+            cli_logger.error(f"Invalid strategy chosen: {self.distributed_strategy}")
+            raise typer.Exit(1)
 
-        exec_command = rf"""
-            srun --cpu-bind=none --ntasks-per-node={tasks_per_node} \
-            bash -c '{task_cmd}'
-        """
-        return remove_indentation_from_multiline_string(multiline_string=exec_command)
+        exec_cmd += f" \"{training_command}\""
+        return exec_cmd
 
     def get_pre_exec_command(self) -> str:
-        """Generates a pre-execution command for the SLURM script. This will load the
-        standard HPC modules, source the given python venv and set the OpenMP number
-        of threads. Will also add debug echo statements if debug flag is set to True."""
+        """Generates a pre-execution command for the SLURM script."""
         pre_exec_command = ""
+        if self.slurm_script_configuration.pre_exec_command is not None:
+            pre_exec_command = self.slurm_script_configuration.pre_exec_command
 
-        if self.pre_exec_script_location:
-            if url(self.pre_exec_script_location):
-                cli_logger.info("Reading pre-execution script from remote url!")
-                pre_exec_command = retrieve_remote_file(str(self.pre_exec_script_location))
-            else:
-                try:
-                    with open(self.pre_exec_script_location) as file:
-                        pre_exec_command = file.read()
-                except FileNotFoundError:
-                    cli_logger.error(
-                        f"Failed to open pre-execution script. Couldn't find file: "
-                        f"'{self.pre_exec_script_location}'!"
-                    )
-                    raise typer.Exit(1)
+        if self.python_venv is not None:
+            pre_exec_command += f"\nsource {self.python_venv}/bin/activate"
 
-        if (
-            "export" not in pre_exec_command
-            or "MASTER_ADDR" not in pre_exec_command
-            or "MASTER_PORT" not in pre_exec_command
-        ):
-            cli_logger.warning(
-                "It seems you are not exporting MASTER_ADDR and MASTER_PORT in your pre-exec"
-                " command. torchrun will not work without them!"
-            )
+        if self.container_path is not None:
+            pre_exec_command += f"\nexport CONTAINER_PATH={self.container_path}"
 
-        pre_exec_command += f"source {self.python_venv}/bin/activate"
         pre_exec_command = pre_exec_command.strip()
-        return remove_indentation_from_multiline_string(pre_exec_command)
+        return pre_exec_command
 
     def _set_default_config_fields(self) -> None:
         if self.slurm_script_configuration.job_name is None:
@@ -329,6 +344,8 @@ class MLSlurmBuilder(SlurmScriptBuilder):
             save_script: Whether to keep or delete the file after finishing processing.
             submit_slurm_job: Whether to submit the script as a SLURM job.
         """
+        self._set_pre_exec_cmd()
+        self._set_exec_cmd()
         self.slurm_script_configuration.pre_exec_command = self.get_pre_exec_command()
         self.slurm_script_configuration.exec_command = self.get_exec_command()
         self._set_default_config_fields()
@@ -403,11 +420,14 @@ def generate_default_slurm_script() -> None:
         slurm_script_configuration=slurm_script_configuration,
         should_submit=args.submit_job,
         should_save=args.save_script,
+        enable_ray=args.enable_ray,
+        container_path=args.container_path,
         distributed_strategy=args.dist_strat,
+        exec_file=args.exec_file,
+        pre_exec_file=args.pre_exec_file,
         save_path=args.save_path,
         debug=args.debug,
         python_venv=args.python_venv,
-        pre_exec_script_location=args.pre_exec_script_location,
         training_command=args.training_cmd,
         config_path=args.config_path,
         config_name=args.config_name,
