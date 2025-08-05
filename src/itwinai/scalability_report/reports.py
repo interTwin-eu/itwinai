@@ -13,8 +13,6 @@ import logging
 from pathlib import Path
 from typing import List
 
-import pandas as pd
-
 from itwinai.scalability_report.data import (
     read_epoch_time_from_mlflow,
     read_gpu_metrics_from_mlflow,
@@ -50,7 +48,7 @@ def epoch_time_report(
     number of GPUs and a log-log plot of relative speedup as more GPUs are added. The
     function optionally creates backups of the data.
     """
-    epoch_time_expected_columns = {"strategy", "num_global_gpus", "sample_idx", "epoch_time_s"}
+    epoch_time_expected_columns = {"strategy", "num_global_gpus", "avg_epoch_time"}
 
     epoch_time_df = read_epoch_time_from_mlflow(
         experiment_name=experiment_name,
@@ -169,7 +167,7 @@ def gpu_data_report(
 def communication_data_report(
     plot_dir: Path | str,
     experiment_name: str,
-    run_names: List[str],
+    run_names: List[str] | None,
     plot_file_suffix: str = ".png",
 ) -> str | None:
     """Generates reports and plots for communication and computation fractions across
@@ -198,9 +196,8 @@ def communication_data_report(
     communication_data_df = read_profiling_data_from_mlflow(
         experiment_name, run_names, expected_columns=communication_data_expected_columns
     )
-    if not dataframes:
+    if communication_data_df is None:
         return None
-    communication_data_df = pd.concat(dataframes)
 
     cli_logger.info("\nAnalyzing Communication Data...")
     computation_fraction_df = get_computation_fraction_data(communication_data_df)
@@ -219,19 +216,12 @@ def communication_data_report(
         f"Saved computation fraction plot at '{computation_fraction_plot_path.resolve()}'."
     )
 
-    if not do_backup:
-        return communication_data_table
-
-    backup_dir.mkdir(exist_ok=True, parents=True)
-    backup_path = backup_dir / "communication_data.csv"
-    communication_data_df.to_csv(backup_path)
-    cli_logger.info(f"Storing backup file at '{backup_path.resolve()}'.")
     return communication_data_table
 
 
 def computation_data_report(
     plot_dir: Path | str,
-    experiment_name: str | None = None,
+    experiment_name: str,
     run_names: List[str] | None = None,
     plot_file_suffix: str = ".png",
 ) -> str | None:
@@ -262,16 +252,14 @@ def computation_data_report(
         "name",
         "self_cuda_time_total",
     }
-    log_dir_paths = [Path(logdir) for logdir in log_dirs]
-    dataframes = []
-    for log_dir in log_dir_paths:
-        temp_df = read_scalability_metrics_from_csv(
-            data_dir=log_dir, expected_columns=computation_data_expected_columns
-        )
-        dataframes.append(temp_df)
-    if not dataframes:
+
+
+    computation_data_df = read_profiling_data_from_mlflow(
+        experiment_name, run_names, expected_columns=computation_data_expected_columns
+    )
+    if computation_data_df is None:
         return None
-    computation_data_df = pd.concat(dataframes)
+
 
     cli_logger.info("\nAnalyzing Computation Data...")
     computation_fraction_df = get_computation_vs_other_data(computation_data_df)
@@ -290,11 +278,4 @@ def computation_data_report(
         f"Saved computation fraction plot at '{computation_fraction_plot_path.resolve()}'."
     )
 
-    if not do_backup:
-        return computation_data_table
-
-    backup_dir.mkdir(exist_ok=True, parents=True)
-    backup_path = backup_dir / "computation_data.csv"
-    computation_data_df.to_csv(backup_path)
-    cli_logger.info(f"Storing backup file at '{backup_path.resolve()}'.")
     return computation_data_table

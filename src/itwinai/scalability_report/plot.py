@@ -69,7 +69,7 @@ def absolute_avg_epoch_time_plot(avg_epoch_time_df: pd.DataFrame) -> Tuple[Figur
     unique_workers = list(avg_epoch_time_df["num_global_gpus"].unique())
     unique_strategies = avg_epoch_time_df["strategy"].unique()
     for strategy in unique_strategies:
-        data = avg_epoch_time_df[avg_epoch_time_df["name"] == strategy]
+        data = avg_epoch_time_df[avg_epoch_time_df["strategy"] == strategy]
 
         marker = next(marker_cycle)
         ax.plot(

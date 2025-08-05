@@ -30,7 +30,6 @@
 #SBATCH --cpus-per-task=48
 #SBATCH --ntasks-per-node=1
 # SBATCH --mem-per-gpu=10G
-# SBATCH --exclusive
 
 echo "DEBUG: SLURM_SUBMIT_DIR: $SLURM_SUBMIT_DIR"
 echo "DEBUG: SLURM_JOB_ID: $SLURM_JOB_ID"
@@ -55,7 +54,7 @@ ml cuDNN/8.9.7.29-CUDA-12.3.0
 ml CUDA/12.6.0
 ml NCCL/2.22.3-GCCcore-13.3.0-CUDA-12.6.0
 ml Python/3.12.3-GCCcore-13.3.0
-module unload OpenSSL
+# module unload OpenSSL
 
 source ~/.bashrc
 
@@ -225,10 +224,10 @@ if [ "${DIST_MODE}" == "ddp" ] ; then
   decho -e "\nLaunching DDP strategy with torchrun"
   torchrun-launcher "${TRAINING_CMD}"
 
-  separation
-
-  decho -e "\nLaunching DDP strategy with Ray"
-  ray-launcher "${TRAINING_CMD}"
+  # separation
+  #
+  # decho -e "\nLaunching DDP strategy with Ray"
+  # ray-launcher "${TRAINING_CMD}"
 
 elif [ "${DIST_MODE}" == "deepspeed" ] ; then
 

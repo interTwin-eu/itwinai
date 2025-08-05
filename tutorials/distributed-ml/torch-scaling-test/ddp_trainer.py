@@ -11,8 +11,6 @@
 
 """Scaling test of torch Distributed Data Parallel on Imagenet using Resnet."""
 
-import os
-from pathlib import Path
 from timeit import default_timer as timer
 
 import torch

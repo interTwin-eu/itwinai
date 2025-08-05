@@ -108,7 +108,9 @@ def read_epoch_time_from_mlflow(
 
     epoch_time_dataframes = []
     for run in runs:
-        epoch_time_runs = get_epoch_time_runs_by_parent(mlflow_client, experiment.experiment_id, run)
+        epoch_time_runs = get_epoch_time_runs_by_parent(
+            mlflow_client, experiment.experiment_id, run
+        )
         for epoch_time_run in epoch_time_runs:
             epoch_time_dataframes.append(
                 get_run_metrics_as_df(

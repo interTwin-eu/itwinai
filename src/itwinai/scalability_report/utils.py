@@ -8,7 +8,6 @@
 # - Linus Eickhoff <linus.maximilian.eickhoff@cern.ch> - CERN
 # --------------------------------------------------------------------------------------
 
-from pathlib import Path
 from typing import Set, Tuple
 
 import pandas as pd
@@ -53,15 +52,12 @@ def check_probing_interval_consistency(gpu_data_df: pd.DataFrame) -> None:
 def calculate_epoch_statistics(
     epoch_time_df: pd.DataFrame, expected_columns: Set
 ) -> pd.DataFrame:
-    check_contains_columns(df=epoch_time_df, expected_columns=expected_columns)
-
     mask = epoch_time_df["metric_name"] == "epoch_time_s"
     # Ensure value and num_global_gpus is numeric
     epoch_time_df.loc[mask, "value"] = pd.to_numeric(epoch_time_df.loc[mask, "value"])
-    epoch_time_df.loc["num_global_gpus"] = pd.to_numeric(epoch_time_df["num_global_gpus"])
+    epoch_time_df["num_global_gpus"] = pd.to_numeric(epoch_time_df["num_global_gpus"])
 
-    # shift metrics to columns (assumes samples are the same for each strategy and
-    # num_global_gpus), ensured earlier by check_probing_interval_consistency
+
     pivoted = epoch_time_df.pivot_table(
         index=["strategy", "num_global_gpus", "sample_idx"],
         columns="metric_name",
@@ -83,6 +79,7 @@ def calculate_epoch_statistics(
         )
         .reset_index()
     )
+    check_contains_columns(df=aggregated_df, expected_columns=expected_columns)
 
     return aggregated_df
 
@@ -111,7 +108,7 @@ def calculate_gpu_statistics(gpu_data_df: pd.DataFrame, expected_columns: Set) -
         gpu_data_df.loc[mask, "probing_interval"]
     )
     # Ensure num_global_gpus is numeric
-    gpu_data_df.loc["num_global_gpus"] = pd.to_numeric(gpu_data_df["num_global_gpus"])
+    gpu_data_df["num_global_gpus"] = pd.to_numeric(gpu_data_df["num_global_gpus"])
 
     # Calculate energy in watt hours
     gpu_data_df.loc[mask, "energy_wh"] = (

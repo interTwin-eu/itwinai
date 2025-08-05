@@ -8,7 +8,9 @@
 # --------------------------------------------------------------------------------------
 
 import logging
+import os
 from pathlib import Path
+import pathlib
 from typing import Dict, List
 
 import mlflow
@@ -181,7 +183,11 @@ def get_profiling_avg_by_parent(
             for grand_child in second_level_children:
                 # Retrieve CSV artifact and convert to DataFrame
                 artifact_uri = grand_child.info.artifact_uri
-                artifact_path = f"{artifact_uri}/torch_profiling_averages.csv"
+                if not artifact_uri:
+                    continue
+                artifact_path = Path(
+                    artifact_uri, "torch_profiling_averages", "torch_profiling_averages.csv"
+                )
                 try:
                     worker_profiling_avg = pd.read_csv(artifact_path)
                     worker_profiling_averages.append(worker_profiling_avg)
@@ -190,7 +196,7 @@ def get_profiling_avg_by_parent(
                     continue
         else:
             # Retrieve CSV artifact and convert to DataFrame
-            artifact_uri = grand_child.info.artifact_uri
+            artifact_uri = child.info.artifact_uri
             artifact_path = f"{artifact_uri}/torch_profiling_averages.csv"
             try:
                 worker_profiling_avg = pd.read_csv(artifact_path)

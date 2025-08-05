@@ -142,15 +142,15 @@ def profile_torch_trainer(method: Callable) -> Callable:
 
         # write profiling averages to mlflow logger
         if self.mlflow_logger is not None:
-            with tempfile.NamedTemporaryFile(suffix=".csv", delete=False) as tmp:
-                profiling_dataframe.to_csv(tmp.name, index=False)
-                self.mlflow_logger.log(
-                    item=tmp.name,
-                    identifier="torch_profiling_averages",
-                    kind="artifact",
-                )
-            # Remove the temporary file after logging
-            Path(tmp.name).unlink()
+            temp_dir = tempfile.gettempdir()
+            csv_path = Path(temp_dir) / "torch_profiling_averages.csv"
+            profiling_dataframe.to_csv(csv_path, index=False)
+            self.mlflow_logger.log(
+                item=str(csv_path),
+                identifier="torch_profiling_averages",
+                kind="artifact",
+            )
+            csv_path.unlink()  # Remove after logging
         else:
             py_logger.warning("No MLflow logger is set, not logging the profiling data!")
 

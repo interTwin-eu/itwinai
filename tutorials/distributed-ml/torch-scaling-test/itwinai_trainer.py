@@ -45,22 +45,20 @@ def main():
         distribute_kwargs = {}
     elif args.strategy == "horovod":
         strategy = HorovodStrategy()
-        distribute_kwargs = dict(
-            compression=(
-                hvd.Compression.fp16 if args.fp16_allreduce else hvd.Compression.none
-            ),
-            op=hvd.Adasum if args.use_adasum else hvd.Average,
-            gradient_predivide_factor=args.gradient_predivide_factor,
-        )
+        distribute_kwargs = {
+            "compression": hvd.Compression.fp16
+            if args.fp16_allreduce
+            else hvd.Compression.none,
+            "op": hvd.Adasum if args.use_adasum else hvd.Average,
+            "gradient_predivide_factor": args.gradient_predivide_factor,
+        }
     elif args.strategy == "deepspeed":
         strategy = DeepSpeedStrategy(backend=args.backend)
-        distribute_kwargs = dict(
-            config_params=dict(train_micro_batch_size_per_gpu=args.batch_size)
-        )
+        distribute_kwargs = {
+            "config_params": {"train_micro_batch_size_per_gpu": args.batch_size}
+        }
     else:
-        raise NotImplementedError(
-            f"Strategy {args.strategy} is not recognized/implemented."
-        )
+        raise NotImplementedError(f"Strategy {args.strategy} is not recognized/implemented.")
     strategy.init()
 
     # Check resource availability
