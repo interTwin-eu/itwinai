@@ -236,7 +236,6 @@ class MLSlurmBuilder(SlurmScriptBuilder):
         container_path: str | Path | None = None,
         training_command: str | None = None,
         python_venv: str | None = None,
-        debug: bool = False,
         config_name: str = "config",
         config_path: str = ".",
         pipe_key: str = "training_pipeline",
@@ -258,7 +257,6 @@ class MLSlurmBuilder(SlurmScriptBuilder):
         self.container_path = container_path
 
         self.python_venv = python_venv
-        self.debug = debug
 
         self.py_spy_profiling = py_spy_profiling
         self.profiling_sampling_rate = profiling_sampling_rate
@@ -456,7 +454,6 @@ def generate_default_slurm_script() -> None:
         exec_file=args.exec_file,
         pre_exec_file=args.pre_exec_file,
         save_path=args.save_path,
-        debug=args.debug,
         python_venv=args.python_venv,
         training_command=args.training_cmd,
         config_path=args.config_path,

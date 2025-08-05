@@ -239,11 +239,6 @@ def get_slurm_job_parser() -> ArgumentParser:
 
     # Boolean arguments where you only need to include the flag and not an actual value
     parser.add_argument(
-        "--debug",
-        action="store_true",
-        help="Whether to include debugging information or not.",
-    )
-    parser.add_argument(
         "-s",
         "--save-script",
         action="store_true",
