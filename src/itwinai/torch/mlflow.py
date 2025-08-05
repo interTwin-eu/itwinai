@@ -8,9 +8,7 @@
 # --------------------------------------------------------------------------------------
 
 import logging
-import os
 from pathlib import Path
-import pathlib
 from typing import Dict, List
 
 import mlflow
@@ -157,6 +155,7 @@ def get_epoch_time_runs_by_parent(
             )
     return epoch_time_runs
 
+
 def get_profiling_avg_by_parent(
     mlflow_client: mlflow.tracking.MlflowClient,
     experiment_id: str,
@@ -211,6 +210,7 @@ def get_profiling_avg_by_parent(
             )
 
     return worker_profiling_averages
+
 
 def get_gpu_runs_by_parent(
     mlflow_client: mlflow.tracking.MlflowClient,
@@ -320,7 +320,9 @@ def get_run_metrics_as_df(
 
 
 def get_runs_by_name(
-    mlflow_client: MlflowClient, experiment_id: str, run_names: List[str] | None = None,
+    mlflow_client: MlflowClient,
+    experiment_id: str,
+    run_names: List[str] | None = None,
 ) -> List[Run]:
     """Get all runs in an experiment by their names.
 
@@ -336,7 +338,7 @@ def get_runs_by_name(
     if not run_names:
         # get all run IDs from the experiment that are not-nested
         runs = mlflow_client.search_runs([experiment_id])
-        runs = [run for run in runs if 'mlflow.parentRunId' not in run.data.tags]
+        runs = [run for run in runs if "mlflow.parentRunId" not in run.data.tags]
 
     else:
         runs = []

@@ -17,7 +17,6 @@ from itwinai.scalability_report.data import (
     read_epoch_time_from_mlflow,
     read_gpu_metrics_from_mlflow,
     read_profiling_data_from_mlflow,
-    read_scalability_metrics_from_csv,
 )
 from itwinai.scalability_report.plot import (
     absolute_avg_epoch_time_plot,
@@ -72,8 +71,8 @@ def epoch_time_report(
     relative_fig, _ = relative_epoch_time_speedup_plot(avg_epoch_time_df=avg_epoch_time_df)
 
     absolute_avg_time_plot_path = plot_dir / Path("absolute_epoch_time" + plot_file_suffix)
-    relative_speedup_plot_path = (
-        plot_dir / Path("relative_epoch_time_speedup" + plot_file_suffix)
+    relative_speedup_plot_path = plot_dir / Path(
+        "relative_epoch_time_speedup" + plot_file_suffix
     )
 
     absolute_fig.savefig(absolute_avg_time_plot_path)
@@ -253,13 +252,11 @@ def computation_data_report(
         "self_cuda_time_total",
     }
 
-
     computation_data_df = read_profiling_data_from_mlflow(
         experiment_name, run_names, expected_columns=computation_data_expected_columns
     )
     if computation_data_df is None:
         return None
-
 
     cli_logger.info("\nAnalyzing Computation Data...")
     computation_fraction_df = get_computation_vs_other_data(computation_data_df)
