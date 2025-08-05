@@ -3,7 +3,7 @@
 # https://setuptools.pypa.io/en/latest/userguide/dependency_management.html#dependencies-management-in-setuptools
 
 [build-system]
-requires = ["setuptools", "setuptools-scm", "wheel"]
+requires = ["setuptools", "wheel"]
 build-backend = "setuptools.build_meta"
 
 
