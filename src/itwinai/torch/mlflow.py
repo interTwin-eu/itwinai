@@ -11,14 +11,14 @@
 import logging
 from pathlib import Path
 from typing import Dict, List
-from urllib.error import URLError
 
 import mlflow
-import mlflow.tracking
 import pandas as pd
 import yaml
 from mlflow.entities import Run
 from mlflow.tracking import MlflowClient
+
+from itwinai.constants import PROFILING_AVG_NAME
 
 py_logger = logging.getLogger(__name__)
 
@@ -105,7 +105,7 @@ def teardown_lightning_mlflow() -> None:
 
 
 def get_epoch_time_runs_by_parent(
-    mlflow_client: mlflow.tracking.MlflowClient,
+    mlflow_client: MlflowClient,
     experiment_id: str,
     run: Run,
 ) -> List[Run]:
@@ -158,7 +158,7 @@ def get_epoch_time_runs_by_parent(
 
 
 def get_profiling_avg_by_parent(
-    mlflow_client: mlflow.tracking.MlflowClient,
+    mlflow_client: MlflowClient,
     experiment_id: str,
     run: Run,
 ) -> List[pd.DataFrame]:
@@ -199,17 +199,18 @@ def get_profiling_avg_by_parent(
 
     for child in leaf_nodes:
         # Retrieve CSV artifact and convert to DataFrame
-        artifact_uri = child.info.artifact_uri
-        if not artifact_uri:
-            continue
-        artifact_path = Path(
-            artifact_uri, "torch_profiling_averages", "torch_profiling_averages.csv"
+        # Cause MLflow is stupid we have to manual check if the artifact exists
+        artifacts = mlflow_client.list_artifacts(
+            child.info.run_id, path=PROFILING_AVG_NAME
         )
-        try:
-            worker_profiling_avg = pd.read_csv(artifact_path)
-            worker_profiling_averages.append(worker_profiling_avg)
-        except (URLError, FileNotFoundError):
-            continue
+        rel_path = str(Path(PROFILING_AVG_NAME, f"{PROFILING_AVG_NAME}.csv"))
+        if rel_path not in [artifact.path for artifact in artifacts]:
+            continue  # Skip if the profiling averages artifact does not exist
+
+        # If tracking_uri is local, no download will happen, otherwise downloads to temp
+        local_csv = mlflow_client.download_artifacts(child.info.run_id, rel_path)
+        print(f"Downloading profiling averages from {local_csv}")
+        worker_profiling_averages.append(pd.read_csv(local_csv))
 
     if len(worker_profiling_averages) == 0:
         py_logger.warning(
@@ -221,7 +222,7 @@ def get_profiling_avg_by_parent(
 
 
 def get_gpu_runs_by_parent(
-    mlflow_client: mlflow.tracking.MlflowClient,
+    mlflow_client: MlflowClient,
     experiment_id: str,
     run: Run,
 ) -> List[Run]:

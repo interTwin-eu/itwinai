@@ -19,7 +19,7 @@ import matplotlib
 import pandas as pd
 from torch.profiler import ProfilerActivity, profile, schedule, tensorboard_trace_handler
 
-from itwinai.constants import PROFILER_TRACES_DIR_NAME
+from itwinai.constants import PROFILER_TRACES_DIR_NAME, PROFILING_AVG_NAME
 
 if TYPE_CHECKING:
     from itwinai.torch.trainer import TorchTrainer
@@ -147,11 +147,11 @@ def profile_torch_trainer(method: Callable) -> Callable:
             return result
 
         temp_dir = tempfile.gettempdir()
-        csv_path = Path(temp_dir) / "torch_profiling_averages.csv"
+        csv_path = Path(temp_dir) / f"{PROFILING_AVG_NAME}.csv"
         profiling_dataframe.to_csv(csv_path, index=False)
         self.mlflow_logger.log(
             item=str(csv_path),
-            identifier="torch_profiling_averages",
+            identifier=PROFILING_AVG_NAME,
             kind="artifact",
         )
         csv_path.unlink()  # Remove after logging

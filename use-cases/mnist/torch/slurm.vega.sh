@@ -105,7 +105,7 @@ function torchrun-launcher(){
   srun uv run ray stop
 
   srun --cpu-bind=none --ntasks-per-node=1 \
-    bash -c "torchrun \
+    bash -c "torchrun_jsc \
     --log_dir='logs_torchrun' \
     --nnodes=$SLURM_NNODES \
     --nproc_per_node=$SLURM_GPUS_PER_NODE \
