@@ -20,7 +20,7 @@ from mlflow.tracking import MlflowClient
 
 from itwinai.constants import PROFILING_AVG_NAME
 
-py_logger = logging.getLogger(__name__)
+cli_logger = logging.getLogger("cli_logger")
 
 
 def _get_mlflow_logger_conf(pl_config: Dict) -> Dict | None:
@@ -89,7 +89,7 @@ def init_lightning_mlflow(
     mlflow.set_experiment(experiment_name)
     mlflow.pytorch.autolog(**autolog_kwargs)
     run = mlflow.start_run()
-    py_logger.info(f"MLFlow's artifacts URI: {run.info.artifact_uri}")
+    cli_logger.info(f"MLFlow's artifacts URI: {run.info.artifact_uri}")
 
     mlflow_conf["experiment_name"] = experiment_name
     mlflow_conf["run_id"] = mlflow.active_run().info.run_id
@@ -132,7 +132,7 @@ def get_epoch_time_runs_by_parent(
     epoch_time_runs: List[Run] = []
 
     if not first_level_children:
-        py_logger.warning(
+        cli_logger.warning(
             f"No child runs found for run ID {run.info.run_id} in experiment {experiment_id}."
         )
         return epoch_time_runs
@@ -148,7 +148,7 @@ def get_epoch_time_runs_by_parent(
             epoch_time_runs.append(child)
 
         if len(epoch_time_runs) > 1:
-            py_logger.warning(
+            cli_logger.warning(
                 f"Multiple epoch times found for run ID {run.info.run_id} in experiment"
                 f" {experiment_id}. This indicates Ray HPO was used with multiple trials."
                 " Hyperparameters can have a significant impact on epoch time, so keep in mind"
@@ -186,7 +186,7 @@ def get_profiling_avg_by_parent(
     worker_profiling_averages: List[pd.DataFrame] = []
 
     if not first_level_children:
-        py_logger.warning(
+        cli_logger.warning(
             f"No child runs found for run ID {run.info.run_id} in experiment {experiment_id}."
         )
         return worker_profiling_averages
@@ -209,11 +209,11 @@ def get_profiling_avg_by_parent(
 
         # If tracking_uri is local, no download will happen, otherwise downloads to temp
         local_csv = mlflow_client.download_artifacts(child.info.run_id, rel_path)
-        print(f"Downloading profiling averages from {local_csv}")
+        cli_logger.info(f"Downloading profiling averages from {local_csv}")
         worker_profiling_averages.append(pd.read_csv(local_csv))
 
     if len(worker_profiling_averages) == 0:
-        py_logger.warning(
+        cli_logger.warning(
             f"No profiling averages found for run ID {run.info.run_id} in experiment"
             f" {experiment_id}."
         )
@@ -250,7 +250,7 @@ def get_gpu_runs_by_parent(
     gpu_runs: List[Run] = []
 
     if not first_level_children:
-        py_logger.warning(
+        cli_logger.warning(
             f"No child runs found for run ID {run.info.run_id} in experiment {experiment_id}."
         )
         return gpu_runs
