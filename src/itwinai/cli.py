@@ -159,7 +159,7 @@ def generate_py_spy_report(
 def generate_scalability_report(
     tracking_uri: Annotated[
         str, typer.Option(help="The tracking URI of the MLFlow server.")
-    ] = RELATIVE_MLFLOW_PATH.as_posix(),
+    ] = str(RELATIVE_MLFLOW_PATH),
     experiment_name: Annotated[
         str,
         typer.Option(help="The name of the mlflow experiment to use for the GPU data report."),
