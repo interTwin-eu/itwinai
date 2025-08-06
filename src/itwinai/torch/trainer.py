@@ -941,23 +941,22 @@ class TorchTrainer(Trainer, LogMixin):
                 # If a tune_run_id is set, we create a nested run (Ray)
                 if self.mlflow_tune_run_id:
                     train_run_name = ray.tune.get_context().get_trial_name()
-                    train_run = self.mlflow_client.create_run(
-                        self.mlflow_logger.experiment_id, run_name=train_run_name
-                    )
-                    self.mlflow_client.set_tag(
-                        train_run.info.run_id,
-                        MLFLOW_PARENT_RUN_ID,
-                        self.mlflow_tune_run_id,
+                    train_run = self.mlflow_logger.mlflow.start_run(
+                        experiment_id=self.mlflow_logger.experiment_id,
+                        run_name=train_run_name,
+                        parent_run_id=self.mlflow_tune_run_id,
                     )
                 else:
                     train_run_name = self.run_name
-                    train_run = self.mlflow_client.create_run(
-                        self.mlflow_logger.experiment_id, run_name=train_run_name
+                    train_run = self.mlflow_logger.mlflow.start_run(
+                        experiment_id=self.mlflow_logger.experiment_id,
+                        run_name=train_run_name,
                     )
 
+                # store the mlflow run id as a parent for the worker runs
                 self.mlflow_train_run_id = train_run.info.run_id
-                # Start and stop run to remove pending status in mlflow
-                self.mlflow_logger.mlflow.start_run(run_id=self.mlflow_train_run_id)
+                # Stop train run to remove pending status in mlflow
+                # (metrics are logged to workers)
                 self.mlflow_logger.mlflow.end_run()
                 worker_run_name += " (main)"
 
