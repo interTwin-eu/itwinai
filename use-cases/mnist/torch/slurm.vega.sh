@@ -173,7 +173,7 @@ function ray-launcher(){
         --num-cpus "$SLURM_CPUS_PER_TASK" --num-gpus "$SLURM_GPUS_PER_NODE"  --block &
 
     # Wait for a few seconds to ensure that the head node has fully initialized.
-    sleep 5
+    sleep 8
 
     echo HEAD node started.
 
@@ -190,8 +190,9 @@ function ray-launcher(){
             ray start --address "$head_node":"$port" --redis-password='5241580000000000' \
             --num-cpus "$SLURM_CPUS_PER_TASK" --num-gpus "$SLURM_GPUS_PER_NODE" --block &
         
-        sleep 5 # Wait before starting the next worker to prevent race conditions.
+        sleep 8 # Wait before starting the next worker to prevent race conditions.
     done
+    sleep 30
     echo All Ray workers started.
 
     # Run command without srun
