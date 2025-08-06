@@ -30,7 +30,6 @@ import torch
 import torch.nn as nn
 import torch.optim.lr_scheduler as lr_scheduler
 import yaml
-from mlflow.utils.mlflow_tags import MLFLOW_PARENT_RUN_ID
 from ray.train import Checkpoint, DataConfig, ScalingConfig
 from ray.train.torch import TorchConfig
 from ray.train.torch import TorchTrainer as RayTorchTrainer
@@ -330,11 +329,13 @@ class TorchTrainer(Trainer, LogMixin):
 
         py_logger.debug(f"Strategy was set to {strategy}")
 
-        enough_resources = distributed_resources_available() or ray_cluster_is_running()
+        dist_resources = distributed_resources_available()
+        ray_cluster_running = ray_cluster_is_running()
+        enough_resources = dist_resources or ray_cluster_running
         py_logger.debug(
             f"Enough resources? {enough_resources} "
-            f"(distributed_resources_available: {distributed_resources_available()}) "
-            f"(ray_cluster_is_running: {ray_cluster_is_running()})"
+            f"(distributed_resources_available: {dist_resources}) "
+            f"(ray_cluster_is_running: {ray_cluster_running})"
         )
 
         # NOTE: setting strategy to None prevents the trainer to run distributed ML, regardless
