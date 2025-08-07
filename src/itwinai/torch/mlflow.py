@@ -210,7 +210,9 @@ def get_profiling_avg_by_parent(
         # If tracking_uri is local, no download will happen, otherwise downloads to temp
         local_csv = mlflow_client.download_artifacts(child.info.run_id, rel_path)
         cli_logger.info(f"Downloading profiling averages from {local_csv}")
-        worker_profiling_averages.append(pd.read_csv(local_csv))
+        worker_avg_df = pd.read_csv(local_csv)
+        worker_profiling_averages.append(worker_avg_df)
+
 
     if len(worker_profiling_averages) == 0:
         cli_logger.warning(
