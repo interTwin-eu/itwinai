@@ -21,7 +21,6 @@ ml cuDNN/8.9.7.29-CUDA-12.3.0
 ml CUDA/12.6.0
 ml NCCL/2.22.3-GCCcore-13.3.0-CUDA-12.6.0
 ml Python/3.12.3-GCCcore-13.3.0
-module unload OpenSSL
 
 # Setup env for distributed ML
 CUDA_VISIBLE_DEVICES=$(seq -s, 0 $((SLURM_GPUS_PER_NODE - 1)))
@@ -50,11 +49,14 @@ export GLOO_SOCKET_IFNAME=ib0   # Ensure GLOO (fallback) also uses the correct i
 # export FI_LOG_LEVEL=info
 # export TORCH_CPP_LOG_LEVEL=INFO
 # export TORCH_DISTRIBUTED_DEBUG=INFO
+export HYDRA_FULL_ERROR=1
 
 # Launchers
 function torchrun-launcher(){
-  srun --cpu-bind=none --ntasks-per-node=1 \
-    bash -c 'torchrun_jsc \
+  MASTER_ADDR="$(scontrol show hostnames "$SLURM_JOB_NODELIST" | head -n 1)"
+  MASTER_PORT=54123
+  export MASTER_ADDR MASTER_PORT
+  torchrun_command='torchrun_jsc \
     --log_dir="logs_torchrun" \
     --nnodes="$SLURM_NNODES" \
     --nproc_per_node="$SLURM_GPUS_PER_NODE" \
@@ -62,8 +64,10 @@ function torchrun-launcher(){
     --rdzv_conf=is_host="$(( SLURM_NODEID == 0 ? 1 : 0 ))" \
     --rdzv_backend=c10d \
     --rdzv_endpoint="$MASTER_ADDR":"$MASTER_PORT" \
-    --no-python \
-    --redirects="$(((SLURM_NODEID)) && echo "3" || echo "1:3,2:3,3:3")"' "$1"
+    --redirects="$(((SLURM_NODEID)) && echo "3" || echo "1:3,2:3,3:3")" \
+    --no-python'
+  torchrun_command="$torchrun_command $1"
+  srun --cpu-bind=none --ntasks-per-node=1 bash -c "$torchrun_command"
 }
 
 function py-spy-torchrun-launcher(){
