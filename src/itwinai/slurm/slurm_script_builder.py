@@ -415,7 +415,9 @@ class MLSlurmBuilder(SlurmScriptBuilder):
         """Runs a scaling test, i.e. runs all the strategies with separate runs for each
         distinct number of nodes.
         """
+        original_config = self.slurm_script_configuration.model_copy(deep=True)
         for num_nodes in num_nodes_list:
+            self.slurm_script_configuration = original_config.model_copy(deep=True)
             self.slurm_script_configuration.num_nodes = num_nodes
             self.process_all_strategies(strategies=strategies)
 
