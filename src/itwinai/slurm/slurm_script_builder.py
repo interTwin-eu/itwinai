@@ -393,6 +393,8 @@ class MLSlurmBuilder(SlurmScriptBuilder):
         """
         original_config = self.slurm_script_configuration.model_copy(deep=True)
         for strategy in strategies:
+            if strategy == "horovod" and self.enable_ray:
+                continue
             self.distributed_strategy = strategy
             job_identifier = self._generate_job_identifier()
 
