@@ -391,9 +391,12 @@ class MLSlurmBuilder(SlurmScriptBuilder):
         """Runs the SLURM script with all the given strategies. Meant to replace the
         ``runall.sh`` script.
         """
+        original_config = self.slurm_script_configuration.model_copy(deep=True)
         for strategy in strategies:
             self.distributed_strategy = strategy
             job_identifier = self._generate_job_identifier()
+
+            self.slurm_script_configuration = original_config.model_copy(deep=True)
 
             # Updating job_name, std_out and err_out
             self.slurm_script_configuration.job_name = job_identifier
