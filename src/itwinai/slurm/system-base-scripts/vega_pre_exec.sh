@@ -165,5 +165,5 @@ function ray-launcher(){
     echo All Ray workers started.
 
     # Run command without srun
-    $1 
+    bash -c "$1" 
 }
