@@ -105,10 +105,8 @@ function ray-launcher(){
 function torchrun-launcher(){
   MASTER_ADDR="$(scontrol show hostnames "$SLURM_JOB_NODELIST" | head -n 1)i"
   MASTER_PORT=54123
-  export MASTER_ADDR, MASTER_PORT
-
-  srun --cpu-bind=none --ntasks-per-node=1 \
-    bash -c 'torchrun_jsc \
+  export MASTER_ADDR MASTER_PORT
+  torchrun_command='torchrun_jsc \
     --log_dir="logs_torchrun" \
     --nnodes="$SLURM_NNODES" \
     --nproc_per_node="$SLURM_GPUS_PER_NODE" \
@@ -116,7 +114,9 @@ function torchrun-launcher(){
     --rdzv_conf=is_host="$(( SLURM_NODEID == 0 ? 1 : 0 ))" \
     --rdzv_backend=c10d \
     --rdzv_endpoint="$MASTER_ADDR":"$MASTER_PORT" \
-    --no-python' "$1"
+    --no-python'
+  torchrun_command="$torchrun_command $1"
+  srun --cpu-bind=none --ntasks-per-node=1 bash -c "$torchrun_command"
 }
 
 function py-spy-torchrun-launcher(){
@@ -125,7 +125,7 @@ function py-spy-torchrun-launcher(){
 
   MASTER_ADDR="$(scontrol show hostnames "$SLURM_JOB_NODELIST" | head -n 1)i"
   MASTER_PORT=54123
-  export MASTER_ADDR, MASTER_PORT
+  export MASTER_ADDR MASTER_PORT
 
   srun --cpu-bind=none --ntasks-per-node=1 \
     bash -c 'py-spy record -r "$0" -s -o "$1" -f raw -- torchrun_jsc \
@@ -144,7 +144,7 @@ function srun-launcher(){
   srun --cpu-bind=none --ntasks-per-node="$SLURM_GPUS_PER_NODE" \
     --cpus-per-task=$((SLURM_CPUS_PER_TASK / SLURM_GPUS_PER_NODE)) \
     --ntasks=$((SLURM_GPUS_PER_NODE * SLURM_NNODES)) \
-    "$1"
+    bash -c "$1"
 }
 
 # Get GPUs info per node
