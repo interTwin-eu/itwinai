@@ -288,7 +288,7 @@ class MLSlurmBuilder(SlurmScriptBuilder):
             return self.training_command.format(**self._get_training_cmd_args())
 
         if self.python_venv:
-            itwinai_launcher = f"{Path(self.python_venv, 'bin', 'python')} -m itwinai"
+            itwinai_launcher = Path(self.python_venv) / 'bin' / 'itwinai'
         else:
             itwinai_launcher = "itwinai"
 
