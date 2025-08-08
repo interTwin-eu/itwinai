@@ -40,7 +40,7 @@ class SlurmScriptBuilder:
         slurm_script_configuration: SlurmScriptConfiguration,
         should_submit: bool,
         should_save: bool,
-        save_path: str | Path | None = None,
+        save_dir: str | Path | None = None,
         pre_exec_file: str | None = None,
         exec_file: str | None = None,
     ):
@@ -50,9 +50,9 @@ class SlurmScriptBuilder:
         self.pre_exec_file = pre_exec_file
         self.exec_file = exec_file
 
-        if isinstance(save_path, str):
-            save_path = Path(save_path)
-        self.save_path = save_path
+        if isinstance(save_dir, str):
+            save_dir = Path(save_dir)
+        self.save_dir = save_dir
 
     @staticmethod
     def submit_script(script: str) -> None:
@@ -90,7 +90,6 @@ class SlurmScriptBuilder:
                 "delete the file first."
             )
             raise typer.Exit(1)
-
 
     @staticmethod
     def print_script(script: str) -> None:
@@ -206,12 +205,9 @@ class SlurmScriptBuilder:
             return
 
         if self.should_save:
-            default_save_path = (
-                Path(DEFAULT_SLURM_SAVE_DIR)
-                / f"{self.slurm_script_configuration.job_name}.slurm"
-            )
-            file_path = self.save_path if self.save_path is not None else default_save_path
-            self.save_script(script=script, file_path=file_path)
+            save_dir = self.save_dir if self.save_dir else Path(DEFAULT_SLURM_SAVE_DIR)
+            save_path = save_dir / f"{self.slurm_script_configuration.job_name}.slurm"
+            self.save_script(script=script, file_path=save_path)
 
         if self.should_submit:
             self._ensure_log_dirs_exist()
@@ -235,7 +231,7 @@ class MLSlurmBuilder(SlurmScriptBuilder):
         enable_ray: bool = False,
         pre_exec_file: str | None = None,
         exec_file: str | None = None,
-        save_path: str | Path | None = None,
+        save_dir: str | Path | None = None,
         container_path: str | Path | None = None,
         training_command: str | None = None,
         python_venv: str | None = None,
@@ -249,7 +245,7 @@ class MLSlurmBuilder(SlurmScriptBuilder):
             slurm_script_configuration=slurm_script_configuration,
             should_submit=should_submit,
             should_save=should_save,
-            save_path=save_path,
+            save_dir=save_dir,
             pre_exec_file=pre_exec_file,
             exec_file=exec_file,
         )
@@ -291,7 +287,7 @@ class MLSlurmBuilder(SlurmScriptBuilder):
             return self.training_command.format(**self._get_training_cmd_args())
 
         if self.python_venv:
-            itwinai_launcher = Path(self.python_venv) / 'bin' / 'itwinai'
+            itwinai_launcher = Path(self.python_venv) / "bin" / "itwinai"
         else:
             itwinai_launcher = "itwinai"
 
@@ -473,7 +469,7 @@ def generate_default_slurm_script() -> None:
         distributed_strategy=args.dist_strat,
         exec_file=args.exec_file,
         pre_exec_file=args.pre_exec_file,
-        save_path=args.save_path,
+        save_dir=args.save_dir,
         python_venv=args.python_venv,
         training_command=args.training_cmd,
         config_path=args.config_path,

@@ -78,7 +78,7 @@ def get_slurm_job_parser() -> ArgumentParser:
     default_num_nodes = 1
     default_gpus_per_node = 4
     default_cpus_per_task = 16
-    default_save_path = None
+    default_save_dir = None
 
     # Default other arguments
     default_mode = "single"
@@ -225,10 +225,10 @@ def get_slurm_job_parser() -> ArgumentParser:
         help="The rate at which the py-spy profiler should sample the call stack.",
     )
     parser.add_argument(
-        "--save-path",
+        "--save-dir",
         type=str | None,
-        default=default_save_path,
-        help="Where to save the script, if saving it.",
+        default=default_save_dir,
+        help="In which directory to save the script, if saving it.",
     )
     parser.add_argument(
         "--container-path",
