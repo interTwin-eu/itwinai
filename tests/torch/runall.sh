@@ -22,7 +22,7 @@ WHERE_TO_RUN=$1 #"jsc" # "vega"
 
 # Global config
 NUM_NODES=2
-GPUS_PER_NODE=1
+GPUS_PER_NODE=4
 
 # HPC-wise config
 if [[ $WHERE_TO_RUN == "jsc" ]]; then
@@ -30,13 +30,16 @@ if [[ $WHERE_TO_RUN == "jsc" ]]; then
     # JSC (venv)
     export MNIST_PATH="/p/project1/intertwin/smalldata/mnist"
     export PYTHON_VENV="../../.venv"
+    # Export this to force the use of containers
+    # export CONTAINER_PATH="../../itwinai.sif"
+    
     # Path to shared filesystem that all the Ray workers can access. /tmp is a local filesystem path to each worker
     # This is only needed by tests. This is needed by the torch trainer to store and retrieve checkpoints
     export SHARED_FS_PATH="/p/project1/intertwin/bunino1/tmp"
 
     TESTS_LOCATION="."
     SLURM_SCRIPT="slurm.jsc.sh"
-    PARTITION="booster"
+    PARTITION="develbooster"
 
 elif [[ $WHERE_TO_RUN == "vega" ]]; then
 
