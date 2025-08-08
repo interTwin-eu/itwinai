@@ -980,6 +980,21 @@ class TorchTrainer(Trainer, LogMixin):
                 parent_run_id=self.mlflow_train_run_id,
                 run_name=worker_run_name,
             )
+            self.log(
+                item=self.strategy.name,
+                identifier="strategy",
+                kind="param",
+            )
+            self.log(
+                item=self.strategy.global_rank(),
+                identifier="global_rank",
+                kind="param",
+            )
+            self.log(
+                item=self.strategy.global_world_size(),
+                identifier="global_world_size",
+                kind="param",
+            )
             if self.mlflow_logger and self.mlflow_logger.should_log():
                 self.mlflow_worker_run_id = self.mlflow_logger.active_run.info.run_id
 

@@ -36,7 +36,7 @@ def check_probing_interval_consistency(gpu_data_df: pd.DataFrame) -> None:
     Raises:
         ValueError: If the probing intervals are inconsistent for any group.
     """
-    unique_intervals = gpu_data_df.groupby(["strategy", "num_global_gpus"])[
+    unique_intervals = gpu_data_df.groupby(["strategy", "global_world_size"])[
         "probing_interval"
     ].nunique()
 
@@ -54,7 +54,7 @@ def calculate_epoch_statistics(
 ) -> pd.DataFrame:
     """Calculates the average epoch time for each strategy and number of GPUs from the
     given DataFrame. The DataFrame is expected to contain the columns 'strategy',
-    'num_global_gpus', 'sample_idx', 'metric_name', and 'value'.
+    'global_world_size', 'sample_idx', 'metric_name', and 'value'.
     The 'metric_name' column should contain the value 'epoch_time_s' for epoch time
     measurements.
 
@@ -64,7 +64,7 @@ def calculate_epoch_statistics(
 
     Returns:
         pd.DataFrame: A DataFrame containing the average epoch time for each strategy and
-            number of GPUs, with the columns ``strategy``, ``num_global_gpus``,
+            number of GPUs, with the columns ``strategy``, ``global_world_size``,
             ``sample_idx``, and ``avg_epoch_time``.
 
     Raises:
@@ -76,27 +76,27 @@ def calculate_epoch_statistics(
     # do not modify inplace
     epoch_time_df = epoch_time_df.copy()
     mask = epoch_time_df["metric_name"] == "epoch_time_s"
-    # Ensure value and num_global_gpus is numeric
+    # Ensure value and global_world_size is numeric
     epoch_time_df.loc[mask, "value"] = pd.to_numeric(epoch_time_df.loc[mask, "value"])
-    epoch_time_df["num_global_gpus"] = pd.to_numeric(epoch_time_df["num_global_gpus"])
+    epoch_time_df["global_world_size"] = pd.to_numeric(epoch_time_df["global_world_size"])
 
 
     pivoted = epoch_time_df.pivot_table(
-        index=["strategy", "num_global_gpus", "sample_idx"],
+        index=["strategy", "global_world_size", "sample_idx"],
         columns="metric_name",
         values="value",
     ).reset_index()
 
     # Merge previous columns into the pivoted DataFrame
     pivoted = pivoted.merge(
-        epoch_time_df[["strategy", "num_global_gpus", "sample_idx"]],
+        epoch_time_df[["strategy", "global_world_size", "sample_idx"]],
         how="left",
-        on=["strategy", "num_global_gpus", "sample_idx"],
+        on=["strategy", "global_world_size", "sample_idx"],
     )
 
     # Aggregate as before
     aggregated_df = (
-        pivoted.groupby(["strategy", "num_global_gpus"])
+        pivoted.groupby(["strategy", "global_world_size"])
         .agg(
             avg_epoch_time=("epoch_time_s", "mean"),  # Average epoch time
         )
@@ -113,7 +113,7 @@ def calculate_gpu_statistics(gpu_data_df: pd.DataFrame, expected_columns: Set) -
     Returns:
         pd.DataFrame: A DataFrame containing the total energy expenditure and
             average GPU utilization for each strategy and number of GPUs, with
-            the columns ``strategy``, ``num_global_gpus``, ``total_energy_wh``,
+            the columns ``strategy``, ``global_world_size``, ``total_energy_wh``,
             and ``utilization``.
 
     Raises:
@@ -129,8 +129,8 @@ def calculate_gpu_statistics(gpu_data_df: pd.DataFrame, expected_columns: Set) -
     gpu_data_df.loc[mask, "probing_interval"] = pd.to_numeric(
         gpu_data_df.loc[mask, "probing_interval"]
     )
-    # Ensure num_global_gpus is numeric
-    gpu_data_df["num_global_gpus"] = pd.to_numeric(gpu_data_df["num_global_gpus"])
+    # Ensure global_world_size is numeric
+    gpu_data_df["global_world_size"] = pd.to_numeric(gpu_data_df["global_world_size"])
 
     # Calculate energy in watt hours
     gpu_data_df.loc[mask, "energy_wh"] = (
@@ -140,23 +140,23 @@ def calculate_gpu_statistics(gpu_data_df: pd.DataFrame, expected_columns: Set) -
     )
 
     # shift metrics to columns (assumes samples are the same for each strategy and
-    # num_global_gpus), ensured earlier by check_probing_interval_consistency
+    # global_world_size), ensured earlier by check_probing_interval_consistency
     pivoted = gpu_data_df.pivot_table(
-        index=["strategy", "num_global_gpus", "timestamp"],
+        index=["strategy", "global_world_size", "timestamp"],
         columns="metric_name",
         values="value",
     ).reset_index()
 
     # Merge previous columns into the pivoted DataFrame
     pivoted = pivoted.merge(
-        gpu_data_df[["strategy", "num_global_gpus", "timestamp", "energy_wh"]],
+        gpu_data_df[["strategy", "global_world_size", "timestamp", "energy_wh"]],
         how="left",
-        on=["strategy", "num_global_gpus", "timestamp"],
+        on=["strategy", "global_world_size", "timestamp"],
     )
 
     # Aggregate as before
     aggregated_df = (
-        pivoted.groupby(["strategy", "num_global_gpus"])
+        pivoted.groupby(["strategy", "global_world_size"])
         .agg(
             total_energy_wh=("energy_wh", "sum"),  # Total energy in watt-hours
             utilization=("gpu_utilization_percent", "mean"),  # Average GPU utilization

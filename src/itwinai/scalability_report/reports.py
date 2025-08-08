@@ -74,7 +74,7 @@ def epoch_time_report(
     cli_logger.info("\nAnalyzing Epoch Time Data...")
     epoch_time_expected_columns = {
         "strategy",
-        "num_global_gpus",
+        "global_world_size",
         "sample_idx",
         "metric_name",
         "value",
@@ -142,7 +142,7 @@ def gpu_data_report(
     gpu_data_expected_columns = {
         "metric_name",
         "sample_idx",
-        "num_global_gpus",
+        "global_world_size",
         "strategy",
         "probing_interval",
     }
