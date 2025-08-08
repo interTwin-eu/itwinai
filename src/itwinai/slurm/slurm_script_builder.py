@@ -13,7 +13,7 @@ import subprocess
 from collections.abc import Iterable
 from pathlib import Path
 from tempfile import NamedTemporaryFile
-from typing import Dict
+from typing import Dict, Literal
 
 import typer
 from requests.exceptions import RequestException
@@ -228,7 +228,7 @@ class MLSlurmBuilder(SlurmScriptBuilder):
         slurm_script_configuration: SlurmScriptConfiguration,
         should_submit: bool,
         should_save: bool,
-        distributed_strategy: str,
+        distributed_strategy: Literal["ddp", "deepspeed", "horovod"],
         enable_ray: bool = False,
         pre_exec_file: str | None = None,
         exec_file: str | None = None,
@@ -287,9 +287,13 @@ class MLSlurmBuilder(SlurmScriptBuilder):
         if self.training_command:
             return self.training_command.format(**self._get_training_cmd_args())
 
-        # Default for the TorchTrainer
+        if self.python_venv:
+            itwinai_launcher = f"{Path(self.python_venv, 'bin', 'python')} -m itwinai"
+        else:
+            itwinai_launcher = "itwinai"
+
         default_command = rf"""
-            $(which itwinai) exec-pipeline \
+            {itwinai_launcher} exec-pipeline \
             --config-name={self.config_name} \
             --config-path={self.config_path} \
             +pipe_key={self.pipe_key} \
@@ -317,27 +321,29 @@ class MLSlurmBuilder(SlurmScriptBuilder):
             raise typer.Exit(1)
 
         if self.enable_ray:
-            exec_cmd = "ray-launcher"
+            base_cmd = "ray-launcher"
         elif self.distributed_strategy == "horovod":
-            exec_cmd = "srun-launcher"
+            base_cmd = "srun-launcher"
         elif self.distributed_strategy in ("ddp", "deepspeed"):
-            if self.py_spy_profiling:
-                py_spy_profiling_filename = (
-                    rf"{self.distributed_strategy}_profile_\$SLURM_NODEID.txt"
-                )
-                py_spy_output_file = Path(DEFAULT_PY_SPY_DIR) / py_spy_profiling_filename
-                exec_cmd = (
-                    f"py-spy-torchrun-launcher '{self.profiling_sampling_rate}'"
-                    f" '{py_spy_output_file}'"
-                )
-            else:
-                exec_cmd = "torchrun-launcher"
+            base_cmd = "torchrun-launcher"
         else:
             cli_logger.error(f"Invalid strategy chosen: {self.distributed_strategy}")
             raise typer.Exit(1)
 
-        exec_cmd += f" '{training_command}'"
-        return exec_cmd
+        if self.container_path:
+            base_cmd += "-container"
+
+        if self.py_spy_profiling and self.distributed_strategy in ("ddp", "deepspeed"):
+            py_spy_profiling_filename = (
+                rf"{self.distributed_strategy}_profile_\$SLURM_NODEID.txt"
+            )
+            py_spy_output_file = Path(DEFAULT_PY_SPY_DIR) / py_spy_profiling_filename
+            base_cmd = (
+                f"py-spy-{base_cmd} '{self.profiling_sampling_rate}' '{py_spy_output_file}'"
+            )
+
+        base_cmd += f" '{training_command}'"
+        return base_cmd
 
     def get_pre_exec_command(self) -> str:
         """Generates a pre-execution command for the SLURM script. Adds a command to source
