@@ -42,8 +42,8 @@ which can be toggled using the following flags in your training configuration:
       measure_epoch_time: True  # Measures avg. epoch time and rel. speedup
       ...
 
-The epoch time is measured using the `EpochTimeTracker`, while the remaining
-metrics are measured using the following decorators:
+The epoch time is measured inside the ``train()`` function of the ``TorchTrainer``,
+while the remaining metrics are measured using the following decorators:
 
 - **PyTorch Profiler**: This profiler measures the time spent in computation vs. other
   operations in your distributed machine learning. This is done by comparing the time spent in
