@@ -257,7 +257,7 @@ def get_slurm_job_parser() -> ArgumentParser:
         help="Whether to activate profiling with py-spy.",
     )
     parser.add_argument(
-        "--enable-ray", action="store_true", help="Whether to enable ray or not."
+        "--use-ray", action="store_true", help="Whether to use ray or not."
     )
 
     return parser

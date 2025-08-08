@@ -504,14 +504,14 @@ def generate_slurm(
         bool,
         typer.Option(
             "--submit-script",
-            help="Whether to submit the script or not",
+            help="Whether to submit the script or not.",
         ),
     ] = False,
-    save_path: Annotated[
+    save_dir: Annotated[
         str | None,
         typer.Option(
-            "--save-path",
-            help="Where to save the script, if saving it.",
+            "--save-dir",
+            help="In which directory to save the script, if saving it.",
         ),
     ] = None,
     exec_file: Annotated[
@@ -534,10 +534,10 @@ def generate_slurm(
             ),
         ),
     ] = None,
-    enable_ray: Annotated[
+    use_ray: Annotated[
         bool,
         typer.Option(
-            "--enable-ray",
+            "--use-ray",
             help="Whether to enable Ray or not.",
         ),
     ] = False,

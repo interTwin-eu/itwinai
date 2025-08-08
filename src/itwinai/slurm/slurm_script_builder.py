@@ -207,6 +207,7 @@ class SlurmScriptBuilder:
         if self.should_save:
             save_dir = self.save_dir if self.save_dir else Path(DEFAULT_SLURM_SAVE_DIR)
             save_path = save_dir / f"{self.slurm_script_configuration.job_name}.slurm"
+            save_path = save_path.resolve()
             self.save_script(script=script, file_path=save_path)
 
         if self.should_submit:
@@ -228,7 +229,7 @@ class MLSlurmBuilder(SlurmScriptBuilder):
         should_submit: bool,
         should_save: bool,
         distributed_strategy: Literal["ddp", "deepspeed", "horovod"],
-        enable_ray: bool = False,
+        use_ray: bool = False,
         pre_exec_file: str | None = None,
         exec_file: str | None = None,
         save_dir: str | Path | None = None,
@@ -252,7 +253,7 @@ class MLSlurmBuilder(SlurmScriptBuilder):
 
         self.distributed_strategy = distributed_strategy
         self.training_command = training_command
-        self.enable_ray = enable_ray
+        self.use_ray = use_ray
         self.container_path = container_path
 
         self.python_venv = python_venv
@@ -277,7 +278,7 @@ class MLSlurmBuilder(SlurmScriptBuilder):
         num_nodes = self.slurm_script_configuration.num_nodes
         gpus_per_node = self.slurm_script_configuration.gpus_per_node
         identifier = (
-            f"{'ray-' if self.enable_ray else ''}"
+            f"{'ray-' if self.use_ray else ''}"
             f"{self.distributed_strategy}-{num_nodes}x{gpus_per_node}"
         )
         return identifier
@@ -287,7 +288,7 @@ class MLSlurmBuilder(SlurmScriptBuilder):
             return self.training_command.format(**self._get_training_cmd_args())
 
         if self.python_venv:
-            itwinai_launcher = Path(self.python_venv) / "bin" / "itwinai"
+            itwinai_launcher = (Path(self.python_venv) / "bin" / "itwinai").resolve()
         else:
             itwinai_launcher = "itwinai"
 
@@ -309,17 +310,17 @@ class MLSlurmBuilder(SlurmScriptBuilder):
             return self.slurm_script_configuration.exec_command
 
         training_command = self.get_training_command()
-        if self.distributed_strategy == "horovod" and self.enable_ray:
+        if self.distributed_strategy == "horovod" and self.use_ray:
             cli_logger.error("Horovod together with Ray is not supported!")
             raise typer.Exit(1)
-        if self.enable_ray and self.py_spy_profiling:
+        if self.use_ray and self.py_spy_profiling:
             cli_logger.error("Ray together with py-spy profiling is not supported!")
             raise typer.Exit(1)
         if self.py_spy_profiling and self.distributed_strategy == "horovod":
             cli_logger.error("Horovod together with py-spy profiling is not supported!")
             raise typer.Exit(1)
 
-        if self.enable_ray:
+        if self.use_ray:
             base_cmd = "ray-launcher"
         elif self.distributed_strategy == "horovod":
             base_cmd = "srun-launcher"
@@ -398,7 +399,7 @@ class MLSlurmBuilder(SlurmScriptBuilder):
         """
         original_config = self.slurm_script_configuration.model_copy(deep=True)
         for strategy in strategies:
-            if strategy == "horovod" and self.enable_ray:
+            if strategy == "horovod" and self.use_ray:
                 continue
             self.distributed_strategy = strategy
             job_identifier = self._generate_job_identifier()
@@ -464,7 +465,7 @@ def generate_default_slurm_script() -> None:
         slurm_script_configuration=slurm_script_configuration,
         should_submit=args.submit_job,
         should_save=args.save_script,
-        enable_ray=args.enable_ray,
+        use_ray=args.use_ray,
         container_path=args.container_path,
         distributed_strategy=args.dist_strat,
         exec_file=args.exec_file,
