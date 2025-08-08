@@ -1,8 +1,8 @@
 Drought Early Warning in the Alps (EURAC)
 =========================================
 
-You can find the relevant code for the EURAC use case in the 
-`use case's folder on Github <https://github.com/interTwin-eu/itwinai/tree/main/use-cases/eurac>`_,
+You can find the relevant code for the EURAC hython use case on the plugin's repository page
+`hython-itwinai-plugin <https://github.com/interTwin-eu/itwinai/tree/main/use-cases/eurac>`_,
 or by consulting the use case's README: 
 
 .. include:: ../../use-cases/eurac/README.md
@@ -28,8 +28,17 @@ baseline.
 
 .. image:: ../../use-cases/eurac/scalability-plots/relative_scalability_plot.png
 
+Computation vs Other
+~~~~~~~~~~~~~~~~~~~~
+This plot shows how much of the GPU time is spent doing computation compared to
+all the other operations, for each strategy and number of nodes. The shaded
+area is showing all non-compute operations and the colored area is computation.
+They have all been normalized so that the values are between 0 and 1.0.
+
 Communication vs Computation
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+This plot is deprecated and has to be explicitly generated with the `--include-communication` flag.
+Computation vs Other is preferred as it is more comparable across different systems.
 This plot shows how much of the GPU time is spent doing computation compared to
 communication between GPUs and nodes, for each strategy and number of nodes. The shaded
 area is communication and the colored area is computation. They have all been
