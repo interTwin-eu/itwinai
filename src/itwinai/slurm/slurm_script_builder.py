@@ -76,18 +76,21 @@ class SlurmScriptBuilder:
     @staticmethod
     def save_script(script: str, file_path: Path) -> None:
         """Saves the given script to the given file path."""
-        if file_path.exists():
+        if not file_path.parent.exists():
+            cli_logger.info(f"Creating directory '{file_path.parent.resolve()}'!")
+            file_path.parent.mkdir(parents=True, exist_ok=True)
+
+        try:
+            with open(file_path, "x") as f:
+                f.write(script)
+            cli_logger.info(f"Saved SLURM script to '{file_path.resolve()}'.")
+        except FileExistsError:
             cli_logger.error(
                 f"File '{file_path.resolve()}' already exists! Give a different path or "
                 "delete the file first."
             )
             raise typer.Exit(1)
-        if not file_path.parent.exists():
-            cli_logger.info(f"Creating directory '{file_path.parent.resolve()}'!")
-            file_path.parent.mkdir(parents=True, exist_ok=True)
-        with open(file_path, "w") as f:
-            f.write(script)
-        cli_logger.info(f"Saved SLURM script to '{file_path.resolve()}'.")
+
 
     @staticmethod
     def print_script(script: str) -> None:
@@ -117,13 +120,13 @@ class SlurmScriptBuilder:
         if self.slurm_script_configuration.std_out is None:
             cli_logger.error(
                 "Failed to ensure existence of logging directories. Cannot ensure existence of"
-                "std_out as it is None!"
+                " std_out as it is None!"
             )
             raise typer.Exit(1)
         if self.slurm_script_configuration.err_out is None:
             cli_logger.error(
                 "Failed to ensure existence of logging directories. Cannot ensure existence of"
-                "err_out (stderr) as it is None!"
+                " err_out (stderr) as it is None!"
             )
             raise typer.Exit(1)
 
