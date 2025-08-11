@@ -26,6 +26,7 @@ class SlurmScriptConfiguration(BaseModel):
     gpus_per_node: int
     cpus_per_task: int
     memory: str
+    exclusive: bool = False
 
     # Typically used to set up the environment before executing the command,
     # e.g. "ml Python", "source .venv/bin/activate" etc.
@@ -33,6 +34,9 @@ class SlurmScriptConfiguration(BaseModel):
 
     # Command to execute, typically an 'srun' command
     exec_command: str | None = None
+
+    def exclusive_line(self) -> str:
+        return "#SBATCH --exclusive" if self.exclusive else ""
 
     def generate_script(self) -> str:
         """Uses the provided configuration parameters and formats a SLURM script with
@@ -54,4 +58,6 @@ class SlurmScriptConfiguration(BaseModel):
                 f"{repr(self)}"
             )
 
-        return SLURM_TEMPLATE.format_map(self.model_dump())
+        return SLURM_TEMPLATE.format_map(
+            self.model_dump() | {"exclusive_line": self.exclusive_line()}
+        )

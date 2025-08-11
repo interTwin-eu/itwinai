@@ -472,7 +472,8 @@ def generate_default_slurm_script() -> None:
         num_tasks_per_node=num_tasks_per_node,
         gpus_per_node=args.gpus_per_node,
         cpus_per_task=args.cpus_per_task,
-        memory=args.memory
+        memory=args.memory,
+        exclusive=args.exclusive,
     )
 
     slurm_script_builder = MLSlurmBuilder(

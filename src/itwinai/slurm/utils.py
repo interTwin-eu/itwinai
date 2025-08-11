@@ -280,5 +280,10 @@ def get_slurm_job_parser() -> ArgumentParser:
     parser.add_argument(
         "--use-ray", action="store_true", help="Whether to use ray or not."
     )
+    parser.add_argument(
+        "--exclusive",
+        action="store_true",
+        help="Whether to set the SLURM exclusive flag or not.",
+    )
 
     return parser
