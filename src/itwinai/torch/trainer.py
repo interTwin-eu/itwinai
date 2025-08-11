@@ -19,7 +19,7 @@ import tempfile
 from collections import defaultdict
 from functools import partial
 from pathlib import Path
-from time import perf_counter as default_timer
+from time import perf_counter
 from typing import Any, Callable, Dict, List, Literal, Tuple
 
 import mlflow
@@ -30,7 +30,6 @@ import torch
 import torch.nn as nn
 import torch.optim.lr_scheduler as lr_scheduler
 import yaml
-from mlflow.utils.mlflow_tags import MLFLOW_PARENT_RUN_ID
 from ray.train import Checkpoint, DataConfig, ScalingConfig
 from ray.train.torch import TorchConfig
 from ray.train.torch import TorchTrainer as RayTorchTrainer
@@ -46,9 +45,8 @@ from itwinai.torch.monitoring.monitoring import measure_gpu_utilization
 from itwinai.torch.profiling.profiler import profile_torch_trainer
 
 from ..components import Trainer, monitor_exec
-from ..constants import EPOCH_TIME_DIR
 from ..distributed import ray_cluster_is_running
-from ..loggers import EpochTimeTracker, Logger, LogMixin, get_mlflow_logger
+from ..loggers import Logger, LogMixin, get_mlflow_logger
 from ..utils import generate_random_name, load_yaml, time_and_log, to_uri
 from .config import TrainingConfiguration
 from .distributed import (
@@ -331,11 +329,13 @@ class TorchTrainer(Trainer, LogMixin):
 
         py_logger.debug(f"Strategy was set to {strategy}")
 
-        enough_resources = distributed_resources_available() or ray_cluster_is_running()
+        dist_resources = distributed_resources_available()
+        ray_cluster_running = ray_cluster_is_running()
+        enough_resources = dist_resources or ray_cluster_running
         py_logger.debug(
-            f"Enough resources? {enough_resources} "
-            f"(distributed_resources_available: {distributed_resources_available()}) "
-            f"(ray_cluster_is_running: {ray_cluster_is_running()})"
+            f"Enough resources? {enough_resources}"
+            f" (distributed_resources_available: {dist_resources},"
+            f" ray_cluster_is_running: {ray_cluster_running})"
         )
 
         # NOTE: setting strategy to None prevents the trainer to run distributed ML, regardless
@@ -935,32 +935,29 @@ class TorchTrainer(Trainer, LogMixin):
             py_logger.debug(f"Using logger: {self.logger.__class__.__name__}")
             worker_run_name = f"worker_{self.strategy.global_rank()}"
 
-            if self.mlflow_logger:
-                # Set the tracking uri and experiment for each worker
+            if self.strategy.is_main_worker and self.mlflow_logger:
+                # Set the tracking uri and experiment for the main worker
                 mlflow.set_tracking_uri(self.mlflow_logger.tracking_uri)
                 mlflow.set_experiment(self.mlflow_logger.experiment_name)
-
-            if self.strategy.is_main_worker and self.mlflow_logger:
                 # If a tune_run_id is set, we create a nested run (Ray)
                 if self.mlflow_tune_run_id:
                     train_run_name = ray.tune.get_context().get_trial_name()
-                    train_run = self.mlflow_client.create_run(
-                        self.mlflow_logger.experiment_id, run_name=train_run_name
-                    )
-                    self.mlflow_client.set_tag(
-                        train_run.info.run_id,
-                        MLFLOW_PARENT_RUN_ID,
-                        self.mlflow_tune_run_id,
+                    train_run = self.mlflow_logger.mlflow.start_run(
+                        experiment_id=self.mlflow_logger.experiment_id,
+                        run_name=train_run_name,
+                        parent_run_id=self.mlflow_tune_run_id,
                     )
                 else:
                     train_run_name = self.run_name
-                    train_run = self.mlflow_client.create_run(
-                        self.mlflow_logger.experiment_id, run_name=train_run_name
+                    train_run = self.mlflow_logger.mlflow.start_run(
+                        experiment_id=self.mlflow_logger.experiment_id,
+                        run_name=train_run_name,
                     )
 
+                # store the mlflow run id as a parent for the worker runs
                 self.mlflow_train_run_id = train_run.info.run_id
-                # Start and stop run to remove pending status in mlflow
-                self.mlflow_logger.mlflow.start_run(run_id=self.mlflow_train_run_id)
+                # Stop train run to remove pending status in mlflow
+                # (metrics are logged to workers)
                 self.mlflow_logger.mlflow.end_run()
                 worker_run_name += " (main)"
 
@@ -969,6 +966,11 @@ class TorchTrainer(Trainer, LogMixin):
             self.mlflow_train_run_id = self.strategy.broadcast_obj(
                 self.mlflow_train_run_id or "", src_rank=0
             )
+            if self.mlflow_logger and not self.strategy.is_main_worker:
+                # Set the tracking uri and experiment for other workers after main worker
+                mlflow.set_tracking_uri(self.mlflow_logger.tracking_uri)
+                mlflow.set_experiment(self.mlflow_logger.experiment_name)
+
             py_logger.debug(
                 f"Broadcasted mlflow_trial_run_id {self.mlflow_train_run_id} to all workers"
             )
@@ -978,7 +980,22 @@ class TorchTrainer(Trainer, LogMixin):
                 parent_run_id=self.mlflow_train_run_id,
                 run_name=worker_run_name,
             )
-            if self.mlflow_logger:
+            self.log(
+                item=self.strategy.name,
+                identifier="strategy",
+                kind="param",
+            )
+            self.log(
+                item=self.strategy.global_rank(),
+                identifier="global_rank",
+                kind="param",
+            )
+            self.log(
+                item=self.strategy.global_world_size(),
+                identifier="global_world_size",
+                kind="param",
+            )
+            if self.mlflow_logger and self.mlflow_logger.should_log():
                 self.mlflow_worker_run_id = self.mlflow_logger.active_run.info.run_id
 
             py_logger.debug("...the logger has been initialized")
@@ -1173,21 +1190,6 @@ class TorchTrainer(Trainer, LogMixin):
             Any: The trained model
         """
 
-        epoch_time_output_dir = Path(f"scalability-metrics/{self.run_name}/{EPOCH_TIME_DIR}")
-        epoch_time_file_name = (
-            f"epochtime_{self.strategy.name}_{self.strategy.global_world_size()}N.csv"
-        )
-        epoch_time_output_path = epoch_time_output_dir / epoch_time_file_name
-
-        epoch_time_logger = EpochTimeTracker(
-            strategy_name=self.strategy.name,
-            save_path=epoch_time_output_path,
-            num_workers=self.strategy.global_world_size(),
-            should_log=self.measure_epoch_time
-            and self.strategy.is_main_worker
-            and self.strategy.is_distributed,
-        )
-
         progress_bar = tqdm(
             range(self.current_epoch, self.epochs),
             desc="Epochs",
@@ -1195,7 +1197,8 @@ class TorchTrainer(Trainer, LogMixin):
         )
 
         for self.current_epoch in progress_bar:
-            epoch_start_time = default_timer()
+            if self.strategy.is_main_worker:
+                epoch_start_time = perf_counter()
             progress_bar.set_description(f"Epoch {self.current_epoch + 1}/{self.epochs}")
 
             self.set_epoch()
@@ -1254,9 +1257,15 @@ class TorchTrainer(Trainer, LogMixin):
             if self.test_every and (self.current_epoch + 1) % self.test_every == 0:
                 self.test_epoch()
 
-            # Measure epoch time
-            epoch_time = default_timer() - epoch_start_time
-            epoch_time_logger.add_epoch_time(self.current_epoch + 1, epoch_time)
+            # Measure epoch time and log
+            if self.strategy.is_main_worker:
+                epoch_time = perf_counter() - epoch_start_time
+                self.log(
+                    item=epoch_time,
+                    identifier="epoch_time_s",
+                    kind="metric",
+                    step=self.current_epoch,
+                )
 
     def train_epoch(self) -> torch.Tensor:
         """Perform a complete sweep over the training dataset, completing an epoch of training.
