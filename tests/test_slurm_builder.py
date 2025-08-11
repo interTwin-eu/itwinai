@@ -27,6 +27,7 @@ def slurm_config_with_all_fields(tmp_path) -> SlurmScriptConfiguration:
         gpus_per_node=2,
         cpus_per_task=16,
         pre_exec_command="source .venv/bin/activate",
+        memory="16G",
         exec_command="python main.py",
     )
 
