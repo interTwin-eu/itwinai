@@ -41,12 +41,8 @@ echo
 # export TORCH_CPP_LOG_LEVEL=INFO
 # export TORCH_DISTRIBUTED_DEBUG=INFO
 
-# Currently not used, but can be used for CPU mapping in the future
-c=fe
-MYMASKS="0x${c}000000000000,0x${c}00000000000000,0x${c}0000,0x${c}000000,0x${c},0x${c}00,0x${c}00000000,0x${c}0000000000"
-
 # Make sure GPUs are up
-if [ $SLURM_LOCALID -eq 0 ] ; then
+if [ "$SLURM_LOCALID" -eq 0 ] ; then
     rocm-smi
 fi
 sleep 2
@@ -56,9 +52,9 @@ sleep 2
 export MIOPEN_USER_DB_PATH="/tmp/$(whoami)-miopen-cache-$SLURM_NODEID"
 export MIOPEN_CUSTOM_CACHE_DIR=$MIOPEN_USER_DB_PATH
 
-if [ $SLURM_LOCALID -eq 0 ] ; then
-    rm -rf $MIOPEN_USER_DB_PATH
-    mkdir -p $MIOPEN_USER_DB_PATH
+if [ "$SLURM_LOCALID" -eq 0 ] ; then
+    rm -rf "$MIOPEN_USER_DB_PATH"
+    mkdir -p "$MIOPEN_USER_DB_PATH"
 fi
 sleep 2
 
@@ -125,10 +121,10 @@ function warn-if-bad-gpus() {
 function torchrun-launcher-container(){
   srun --cpu-bind=none --ntasks-per-node=1 \
     singularity exec \
-      --bind $(pwd) \
-      --bind $ITWINAI_LOCATION_HOST:/app/src/ \
+      --bind "$(pwd)" \
+      --bind "$ITWINAI_LOCATION_HOST":/app/src/ \
       --rocm \
-      $CONTAINER_PATH /bin/bash -c "\
+      "$CONTAINER_PATH" /bin/bash -c "\
         source /opt/miniconda3/bin/activate pytorch && \
         unset ROCR_VISIBLE_DEVICES && \
         torchrun \
@@ -155,14 +151,14 @@ function srun-launcher-container(){
 
   srun --cpu-bind=none \
     --mpi=pmi2 \
-    --ntasks-per-node=$SLURM_GPUS_PER_NODE \
-    --cpus-per-task=$(($SLURM_CPUS_PER_TASK / $SLURM_GPUS_PER_NODE)) \
-    --ntasks=$(($SLURM_GPUS_PER_NODE * $SLURM_NNODES)) \
+    --ntasks-per-node="$SLURM_GPUS_PER_NODE" \
+    --cpus-per-task=$((SLURM_CPUS_PER_TASK / SLURM_GPUS_PER_NODE)) \
+    --ntasks=$((SLURM_GPUS_PER_NODE * SLURM_NNODES)) \
     singularity exec \
-    --bind $(pwd) \
-    --bind $ITWINAI_LOCATION_HOST:/app/src/ \
+    --bind "$(pwd)" \
+    --bind "$ITWINAI_LOCATION_HOST":/app/src/ \
     --rocm \
-    $CONTAINER_PATH /bin/bash -c "
+    "$CONTAINER_PATH" /bin/bash -c "
       source /opt/miniconda3/bin/activate pytorch && 
       unset ROCR_VISIBLE_DEVICES && \
       export LD_LIBRARY_PATH=/usr/lib64/mpi/gcc/mpich/lib64:\$LD_LIBRARY_PATH &&
