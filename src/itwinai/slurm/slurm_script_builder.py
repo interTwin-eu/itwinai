@@ -241,6 +241,8 @@ class MLSlurmBuilder(SlurmScriptBuilder):
         pipe_key: str = "training_pipeline",
         py_spy_profiling: bool = False,
         profiling_sampling_rate: int = 10,
+        experiment_name: str = "main_experiment",
+        run_name: str = "run1"
     ):
         super().__init__(
             slurm_script_configuration=slurm_script_configuration,
@@ -266,12 +268,17 @@ class MLSlurmBuilder(SlurmScriptBuilder):
         self.config_path = config_path
         self.pipe_key = pipe_key
 
+        self.experiment_name = experiment_name
+        self.run_name = run_name
+
     def _get_training_cmd_args(self) -> Dict[str, str]:
         return {
             "dist_strat": self.distributed_strategy,
             "config_name": self.config_name,
             "config_path": self.config_path,
             "pipe_key": self.pipe_key,
+            "experiment_name": self.experiment_name,
+            "run_name": self.run_name,
         }
 
     def _generate_job_identifier(self) -> str:
@@ -297,7 +304,9 @@ class MLSlurmBuilder(SlurmScriptBuilder):
             --config-name={self.config_name} \
             --config-path={self.config_path} \
             +pipe_key={self.pipe_key} \
-            strategy={self.distributed_strategy}
+            strategy={self.distributed_strategy} \
+            experiment_name={self.experiment_name} \
+            run_name={self.run_name}
         """
         default_command = default_command.strip()
         return remove_indentation_from_multiline_string(default_command)
@@ -398,6 +407,7 @@ class MLSlurmBuilder(SlurmScriptBuilder):
         ``runall.sh`` script.
         """
         original_config = self.slurm_script_configuration.model_copy(deep=True)
+        original_run_name = self.run_name
         for strategy in strategies:
             if strategy == "horovod" and self.use_ray:
                 continue
@@ -405,6 +415,7 @@ class MLSlurmBuilder(SlurmScriptBuilder):
             job_identifier = self._generate_job_identifier()
 
             self.slurm_script_configuration = original_config.model_copy(deep=True)
+            self.run_name = f"{job_identifier}-{original_run_name}"
 
             # Updating job_name, std_out and err_out
             self.slurm_script_configuration.job_name = job_identifier
@@ -424,8 +435,10 @@ class MLSlurmBuilder(SlurmScriptBuilder):
         distinct number of nodes.
         """
         original_config = self.slurm_script_configuration.model_copy(deep=True)
+        original_run_name = self.run_name
         for num_nodes in num_nodes_list:
             self.slurm_script_configuration = original_config.model_copy(deep=True)
+            self.run_name = original_run_name
             self.slurm_script_configuration.num_nodes = num_nodes
             self.process_all_strategies(strategies=strategies)
 
@@ -459,6 +472,7 @@ def generate_default_slurm_script() -> None:
         num_tasks_per_node=num_tasks_per_node,
         gpus_per_node=args.gpus_per_node,
         cpus_per_task=args.cpus_per_task,
+        memory=args.memory
     )
 
     slurm_script_builder = MLSlurmBuilder(
@@ -478,6 +492,8 @@ def generate_default_slurm_script() -> None:
         pipe_key=args.pipe_key,
         py_spy_profiling=args.py_spy,
         profiling_sampling_rate=args.profiling_sampling_rate,
+        experiment_name=args.exp_name,
+        run_name=args.run_name
     )
 
     mode = args.mode

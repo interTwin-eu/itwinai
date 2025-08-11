@@ -25,6 +25,7 @@ class SlurmScriptConfiguration(BaseModel):
     num_tasks_per_node: int
     gpus_per_node: int
     cpus_per_task: int
+    memory: str
 
     # Typically used to set up the environment before executing the command,
     # e.g. "ml Python", "source .venv/bin/activate" etc.

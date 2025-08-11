@@ -78,6 +78,7 @@ def get_slurm_job_parser() -> ArgumentParser:
     default_num_nodes = 1
     default_gpus_per_node = 4
     default_cpus_per_task = 16
+    default_memory = "16G"
     default_save_dir = None
 
     # Default other arguments
@@ -87,6 +88,8 @@ def get_slurm_job_parser() -> ArgumentParser:
     default_config_file = "config"
     default_pipe_key = "rnn_training_pipeline"
     default_container_path = None
+    default_experiment_name = "main-experiment"
+    default_run_name = "main-run"
 
     # Command to be executed before the main process starts.
     default_pre_exec_file = None
@@ -146,6 +149,12 @@ def get_slurm_job_parser() -> ArgumentParser:
         type=int,
         default=default_cpus_per_task,
         help="The requested number of CPUs per task.",
+    )
+    parser.add_argument(
+        "--memory",
+        type=str,
+        default=default_memory,
+        help="How much memory to give to each node.",
     )
 
     # Arguments specific to the itwinai pipeline
@@ -235,6 +244,18 @@ def get_slurm_job_parser() -> ArgumentParser:
         type=str | None,
         default=default_container_path,
         help="Path to container that should be exported.",
+    )
+    parser.add_argument(
+        "--exp-name",
+        type=str,
+        default=default_experiment_name,
+        help="The name of the experiment to be stored in mlflow",
+    )
+    parser.add_argument(
+        "--run-name",
+        type=str,
+        default=default_run_name,
+        help="The name of the run to be stored in mlflow",
     )
 
     # Boolean arguments where you only need to include the flag and not an actual value

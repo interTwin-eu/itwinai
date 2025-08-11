@@ -541,6 +541,27 @@ def generate_slurm(
             help="Whether to enable Ray or not.",
         ),
     ] = False,
+    memory: Annotated[
+        str,
+        typer.Option(
+            "--memory",
+            help="How much memory to allocate per node.",
+        ),
+    ] = "16G",
+    run_name: Annotated[
+        str,
+        typer.Option(
+            "--run-name",
+            help="Which run name to use.",
+        ),
+    ] = "16G",
+    exp_name: Annotated[
+        str,
+        typer.Option(
+            "--exp-name",
+            help="Which experiment name to use.",
+        ),
+    ] = "16G",
     container_path: Annotated[
         str | None,
         typer.Option(
