@@ -1,0 +1,58 @@
+name: Test Juwels Runner
+
+on:
+  push:
+    branches:
+      - 'main'
+
+jobs:
+  run-command:
+    runs-on: [self-hosted, linux]  # adjust labels if you used custom ones
+    env:
+      GITHUB_WORKSPACE: /p/project1/intertwin/krochak1/itwinai
+      SLURM_SCRIPT: /p/project1/intertwin/krochak1/itwinai/test.sh
+      SLURM_LOGS: /p/project1/intertwin/krochak1/itwinai/pytest-runner/actions-runner-logs
+      
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Submit and monitor SLURM job
+        run: |
+          
+          cd $GITHUB_WORKSPACE || exit 
+
+          echo "Submitting job..."
+          JOBID=$(sbatch --parsable "$SLURM_SCRIPT")
+          echo "Submitted as $JOBID"
+          echo "JOBID=$JOBID" >> $GITHUB_ENV
+
+          echo "Waiting for job to complete..."
+          while squeue -j "$JOBID" 2>/dev/null | grep -q "$JOBID"; do
+            sleep 10
+          done
+
+          echo "Job $JOBID appears to have finished."
+
+          echo "Querying SLURM exit code..."
+          EXIT_CODE=$(sacct -j "${JOBID}.batch" --format=ExitCode -n | awk '{print $1}' | cut -d':' -f1)
+
+          if [[ -z "$EXIT_CODE" ]]; then
+            echo "ERROR: Could not retrieve exit code from sacct."
+            exit 1
+          fi
+
+          if [[ "$EXIT_CODE" -ne 0 ]]; then
+            echo "SLURM job failed with exit code $EXIT_CODE"
+            exit 1
+          else
+            echo "SLURM job completed successfully with exit code 0"
+          fi
+
+      - name: Read SLURM logs 
+        run: |
+          echo "=== SLURM STDOUT ==="
+          cat "${SLURM_LOGS}/output.${JOBID}.out" || echo "No output file found."
+
+          echo "=== SLURM STDERR ==="
+          cat "${SLURM_LOGS}/error.${JOBID}.out" || echo "No error file found."
