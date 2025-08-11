@@ -24,8 +24,7 @@ def check_contains_columns(df: pd.DataFrame, expected_columns: Set) -> None:
     if not expected_columns.issubset(df.columns):
         missing_columns = expected_columns - set(df.columns)
         raise ValueError(
-            f"Invalid data format for given DataFrame. \nMissing columns:"
-            f"{missing_columns}."
+            f"Invalid data format for given DataFrame. \nMissing columns:{missing_columns}."
         )
 
 
@@ -80,7 +79,6 @@ def calculate_epoch_statistics(
     epoch_time_df.loc[mask, "value"] = pd.to_numeric(epoch_time_df.loc[mask, "value"])
     epoch_time_df["global_world_size"] = pd.to_numeric(epoch_time_df["global_world_size"])
 
-
     pivoted = epoch_time_df.pivot_table(
         index=["strategy", "global_world_size", "sample_idx"],
         columns="metric_name",
@@ -97,9 +95,7 @@ def calculate_epoch_statistics(
     # Aggregate as before
     aggregated_df = (
         pivoted.groupby(["strategy", "global_world_size"])
-        .agg(
-            avg_epoch_time=("epoch_time_s", "mean"),  # Average epoch time
-        )
+        .agg(avg_epoch_time=("epoch_time_s", "mean"))
         .reset_index()
     )
 

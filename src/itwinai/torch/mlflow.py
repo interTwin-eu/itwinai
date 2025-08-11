@@ -147,13 +147,13 @@ def get_epoch_time_runs_by_parent(
         elif "epoch_time_s" in child.data.metrics:
             epoch_time_runs.append(child)
 
-        if len(epoch_time_runs) > 1:
-            cli_logger.warning(
-                f"Multiple epoch times found for run ID {run.info.run_id} in experiment"
-                f" {experiment_id}. This indicates Ray HPO was used with multiple trials."
-                " Hyperparameters can have a significant impact on epoch time, so keep in mind"
-                " that the averaged epoch time data may not be comparable with other runs."
-            )
+    if len(epoch_time_runs) > 1:
+        cli_logger.warning(
+            f"Multiple epoch times found for run ID {run.info.run_id} in experiment"
+            f" {experiment_id}. This indicates Ray HPO was used with multiple trials."
+            " Hyperparameters can have a significant impact on epoch time, so keep in mind"
+            " that the averaged epoch time data may not be comparable with other runs."
+        )
     return epoch_time_runs
 
 
@@ -176,6 +176,7 @@ def get_profiling_avg_by_parent(
         List[pd.DataFrame]: A list of DataFrames containing the worker profiling averages
             associated with the given run. Each DataFrame corresponds to a worker run.
     """
+
     def _children(parent_run_id: str) -> List[Run]:
         return mlflow_client.search_runs(
             [experiment_id],
@@ -196,13 +197,10 @@ def get_profiling_avg_by_parent(
         second_level_children = _children(child.info.run_id)
         leaf_nodes += second_level_children if second_level_children else [child]
 
-
     for child in leaf_nodes:
         # Retrieve CSV artifact and convert to DataFrame
         # Cause MLflow is stupid we have to manual check if the artifact exists
-        artifacts = mlflow_client.list_artifacts(
-            child.info.run_id, path=PROFILING_AVG_NAME
-        )
+        artifacts = mlflow_client.list_artifacts(child.info.run_id, path=PROFILING_AVG_NAME)
         rel_path = str(Path(PROFILING_AVG_NAME, f"{PROFILING_AVG_NAME}.csv"))
         if rel_path not in [artifact.path for artifact in artifacts]:
             continue  # Skip if the profiling averages artifact does not exist
@@ -212,7 +210,6 @@ def get_profiling_avg_by_parent(
         cli_logger.info(f"Downloading profiling averages from {local_csv}")
         worker_avg_df = pd.read_csv(local_csv)
         worker_profiling_averages.append(worker_avg_df)
-
 
     if len(worker_profiling_averages) == 0:
         cli_logger.warning(

@@ -333,9 +333,9 @@ class TorchTrainer(Trainer, LogMixin):
         ray_cluster_running = ray_cluster_is_running()
         enough_resources = dist_resources or ray_cluster_running
         py_logger.debug(
-            f"Enough resources? {enough_resources} "
-            f"(distributed_resources_available: {dist_resources}) "
-            f"(ray_cluster_is_running: {ray_cluster_running})"
+            f"Enough resources? {enough_resources}"
+            f" (distributed_resources_available: {dist_resources},"
+            f" ray_cluster_is_running: {ray_cluster_running})"
         )
 
         # NOTE: setting strategy to None prevents the trainer to run distributed ML, regardless

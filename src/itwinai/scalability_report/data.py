@@ -82,10 +82,8 @@ def read_profiling_data_from_mlflow(
     profiling_dataframe_concat = profiling_dataframe_concat.dropna(
         subset=["strategy", "num_gpus"]
     )
-    if (dropped := len_before - len(profiling_dataframe_concat)):
-        cli_logger.warning(
-            f"Dropped {dropped} corrupted rows.",
-        )
+    if num_dropped := len_before - len(profiling_dataframe_concat):
+        cli_logger.warning(f"Dropped {num_dropped} corrupted rows.")
     if expected_columns is not None:
         check_contains_columns(
             df=profiling_dataframe_concat,
@@ -200,4 +198,3 @@ def read_gpu_metrics_from_mlflow(
         return None
 
     return pd.concat(gpu_dataframes)
-
