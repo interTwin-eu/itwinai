@@ -49,7 +49,8 @@ sleep 2
 
 # MIOPEN needs some initialisation for the cache as the default location
 # does not work on LUMI as Lustre does not provide the necessary features.
-export MIOPEN_USER_DB_PATH="/tmp/$(whoami)-miopen-cache-$SLURM_NODEID"
+MIOPEN_USER_DB_PATH="/tmp/$(whoami)-miopen-cache-$SLURM_NODEID"
+export MIOPEN_USER_DB_PATH
 export MIOPEN_CUSTOM_CACHE_DIR=$MIOPEN_USER_DB_PATH
 
 if [ "$SLURM_LOCALID" -eq 0 ] ; then
@@ -137,7 +138,7 @@ function torchrun-launcher-container(){
         --rdzv_backend=c10d \
         --rdzv_endpoint='$(scontrol show hostnames "$SLURM_JOB_NODELIST" | head -n 1)':29500 \
         --no-python \
-        --redirects=\$(((SLURM_NODEID)) && echo "3" || echo "1:3,2:3,3:3") \
+        --redirects=\$(((SLURM_NODEID)) && echo 3 || echo 1:3,2:3,3:3) \
         $1"
 }
 
@@ -215,7 +216,7 @@ function ray-launcher-container(){
   srun --nodes=1 --ntasks=1 -w "$head_node" \
   singularity exec \
     --bind "$(pwd)" \
-    --bind $ITWINAI_LOCATION_HOST:/app/src/ \
+    --bind "$ITWINAI_LOCATION_HOST":/app/src/ \
     --rocm \
     "$CONTAINER_PATH" bash -c " \
       source /opt/miniconda3/bin/activate pytorch && 
@@ -248,7 +249,7 @@ function ray-launcher-container(){
     srun --nodes=1 --ntasks=1 -w "$node_i" \
       singularity exec \
       --bind "$(pwd)" \
-      --bind $ITWINAI_LOCATION_HOST:/app/src/ \
+      --bind "$ITWINAI_LOCATION_HOST":/app/src/ \
       --rocm \
       "$CONTAINER_PATH" bash -c " \
       source /opt/miniconda3/bin/activate pytorch && 
@@ -268,16 +269,16 @@ function ray-launcher-container(){
   echo all ray workers started.
 
   # Check cluster
-  singularity exec --rocm --bind $(pwd):$(pwd) $CONTAINER_PATH bash -c "\
+  singularity exec --rocm --bind "$(pwd)":"$(pwd)" "$CONTAINER_PATH" bash -c "\
     source /opt/miniconda3/bin/activate pytorch && \
     ray status"
   echo "============================================="
 
   # Run command without srun
   singularity exec \
-    --bind $(pwd) \
-    --bind $ITWINAI_LOCATION_HOST:/app/src/ \
-    $CONTAINER_PATH bash -c "\
+    --bind "$(pwd)" \
+    --bind "$ITWINAI_LOCATION_HOST":/app/src/ \
+    "$CONTAINER_PATH" bash -c "\
       source /opt/miniconda3/bin/activate pytorch && \
       $1"
 }
