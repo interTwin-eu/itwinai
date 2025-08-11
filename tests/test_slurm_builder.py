@@ -48,8 +48,9 @@ def test_slurm_script_directives(
     slurm_script_builder.process_script()
 
     assert save_dir.exists()
+    save_path = save_dir / f"{slurm_script_builder.slurm_script_configuration.job_name}.slurm"
 
-    with open(save_dir) as f:
+    with open(save_path) as f:
         file = f.read()
 
     directives = [
@@ -135,6 +136,7 @@ def test_save_slurm_script_twice(
     slurm_script_builder.process_script()
     with pytest.raises(typer.Exit):
         slurm_script_builder.process_script()
+
 
 def test_submit_slurm_script_twice(
     tmp_path: Path,
