@@ -347,13 +347,13 @@ def get_runs_by_name(
         # get all run IDs from the experiment that are not-nested
         runs = mlflow_client.search_runs([experiment_id])
         runs = [run for run in runs if "mlflow.parentRunId" not in run.data.tags]
+        return runs
 
-    else:
-        runs = []
-        # get all runs in the experiment
-        for run_name in run_names:
-            runs += mlflow_client.search_runs(
-                experiment_ids=[experiment_id],
-                filter_string=f"run_name='{run_name}'",
-            )
+    runs = []
+    # get all runs in the experiment
+    for run_name in run_names:
+        runs += mlflow_client.search_runs(
+            experiment_ids=[experiment_id],
+            filter_string=f"run_name='{run_name}'",
+        )
     return runs

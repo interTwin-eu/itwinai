@@ -104,7 +104,7 @@ def read_epoch_time_from_mlflow(
     Args:
         experiment_name (str): Name of the MLflow experiment to read from.
         run_names (List[str] | None): Name of the runs to read metrics from. If empty, all runs
-        in the experiment will be considered.
+            in the experiment will be considered.
     Returns:
         pd.DataFrame | None: A DataFrame containing the concatenated data from all epoch time
         metrics in the given runs of the experiment.
