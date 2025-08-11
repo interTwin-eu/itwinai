@@ -433,6 +433,89 @@ def generate_slurm(
         int,
         typer.Option("--cpus-per-gpu", help="The requested number of CPUs per SLURM task."),
     ] = 4,
+    save_script: Annotated[
+        bool,
+        typer.Option(
+            "--save-script",
+            help="Whether to save the script or not.",
+        ),
+    ] = False,
+    submit_job: Annotated[
+        bool,
+        typer.Option(
+            "--submit-script",
+            help="Whether to submit the script or not.",
+        ),
+    ] = False,
+    save_dir: Annotated[
+        str | None,
+        typer.Option(
+            "--save-dir",
+            help="In which directory to save the script, if saving it.",
+        ),
+    ] = None,
+    exec_file: Annotated[
+        str | None,
+        typer.Option(
+            "--exec-file",
+            help=(
+                "The location of the file containing the execution command. Also accepts a "
+                "remote url."
+            ),
+        ),
+    ] = None,
+    pre_exec_file: Annotated[
+        str | None,
+        typer.Option(
+            "--pre-exec-file",
+            help=(
+                "The location of the file containing the pre-execution command. Also accepts"
+                " a remote url."
+            ),
+        ),
+    ] = None,
+    use_ray: Annotated[
+        bool,
+        typer.Option(
+            "--use-ray",
+            help="Whether to enable Ray or not.",
+        ),
+    ] = False,
+    memory: Annotated[
+        str,
+        typer.Option(
+            "--memory",
+            help="How much memory to allocate per node.",
+        ),
+    ] = "16G",
+    exclusive: Annotated[
+        bool,
+        typer.Option(
+            "--exclusive",
+            help="Whether to make the SLURM job exclusive or not.",
+        ),
+    ] = False,
+    run_name: Annotated[
+        str,
+        typer.Option(
+            "--run-name",
+            help="Which run name to use.",
+        ),
+    ] = "16G",
+    exp_name: Annotated[
+        str,
+        typer.Option(
+            "--exp-name",
+            help="Which experiment name to use.",
+        ),
+    ] = "16G",
+    container_path: Annotated[
+        str | None,
+        typer.Option(
+            "--container-path",
+            help="Path to container that should be exported.",
+        ),
+    ] = None,
     config_path: Annotated[
         str,
         typer.Option(
@@ -464,12 +547,6 @@ def generate_slurm(
             case_sensitive=False,
         ),
     ] = "ddp",
-    pre_exec_cmd: Annotated[
-        str | None,
-        typer.Option(
-            "--pre-exec-cmd", help="The pre-execution command to use for the python script."
-        ),
-    ] = None,
     training_cmd: Annotated[
         str | None,
         typer.Option(
@@ -489,23 +566,6 @@ def generate_slurm(
             help="A comma-separated list of node numbers to use for the scalability test.",
         ),
     ] = "1,2,4,8",
-    debug: Annotated[
-        bool,
-        typer.Option("--debug", help="Whether to include debugging information or not"),
-    ] = False,
-    no_save_script: Annotated[
-        bool,
-        typer.Option(
-            "--no-save-script", help="Whether to save the script after processing it."
-        ),
-    ] = False,
-    no_submit_job: Annotated[
-        bool,
-        typer.Option(
-            "--no-submit-job",
-            help="Whether to submit the job when processing the script.",
-        ),
-    ] = False,
     config: Annotated[
         str | None,
         typer.Option("--config", help="The path to the SLURM configuration file."),
