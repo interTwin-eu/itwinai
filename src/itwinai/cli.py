@@ -548,6 +548,13 @@ def generate_slurm(
             help="How much memory to allocate per node.",
         ),
     ] = "16G",
+    exclusive: Annotated[
+        bool,
+        typer.Option(
+            "--exclusive",
+            help="Whether to make the SLURM job exclusive or not.",
+        ),
+    ] = False,
     run_name: Annotated[
         str,
         typer.Option(

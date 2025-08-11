@@ -66,7 +66,6 @@ def test_slurm_script_directives(
         f"#SBATCH --cpus-per-task={slurm_config_with_all_fields.cpus_per_task}",
         f"#SBATCH --gpus-per-node={slurm_config_with_all_fields.gpus_per_node}",
         f"#SBATCH --gres=gpu:{slurm_config_with_all_fields.gpus_per_node}",
-        "#SBATCH --exclusive",
     ]
     for directive in directives:
         assert directive in file
