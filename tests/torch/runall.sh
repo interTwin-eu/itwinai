@@ -22,7 +22,7 @@ WHERE_TO_RUN=$1 #"jsc" # "vega"
 
 # Global config
 NUM_NODES=2
-GPUS_PER_NODE=4
+GPUS_PER_NODE=2
 
 # HPC-wise config
 if [[ $WHERE_TO_RUN == "jsc" ]]; then
@@ -75,7 +75,6 @@ sbatch  \
     --error="logs_slurm/job-$RUN_NAME-n$NUM_NODES.err" \
     --nodes=$NUM_NODES \
     --gpus-per-node=$GPUS_PER_NODE \
-    --gres=gpu:$GPUS_PER_NODE \
     --partition=$PARTITION \
     $SLURM_SCRIPT
 
@@ -89,7 +88,6 @@ sbatch  \
     --error="logs_slurm/job-$RUN_NAME-n$NUM_NODES.err" \
     --nodes=$NUM_NODES \
     --gpus-per-node=$GPUS_PER_NODE \
-    --gres=gpu:$GPUS_PER_NODE \
     --partition=$PARTITION \
     $SLURM_SCRIPT
 
@@ -102,7 +100,6 @@ sbatch  \
     --error="logs_slurm/job-$RUN_NAME-n$NUM_NODES.err" \
     --nodes=$NUM_NODES \
     --gpus-per-node=$GPUS_PER_NODE \
-    --gres=gpu:$GPUS_PER_NODE \
     --partition=$PARTITION \
     $SLURM_SCRIPT
 
@@ -115,6 +112,5 @@ sbatch \
     --error="logs_slurm/job-$RUN_NAME-n$NUM_NODES.err" \
     --nodes=$NUM_NODES \
     --gpus-per-node=$GPUS_PER_NODE \
-    --gres=gpu:$GPUS_PER_NODE \
     --partition=$PARTITION \
     $SLURM_SCRIPT
