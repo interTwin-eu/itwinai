@@ -527,8 +527,8 @@ class MLFlowLogger(Logger):
 
         self.tracking_uri = (
             tracking_uri
-            or Path(self.savedir).resolve().as_uri()
             or os.environ.get("MLFLOW_TRACKING_URI")
+            or Path(self.savedir).resolve().as_uri()
         )
         # make sure it is an absolute path
         self.tracking_uri = normalize_tracking_uri(self.tracking_uri)
