@@ -13,7 +13,9 @@ with a large neural network trained on Imagenet dataset, showing how
 to use checkpoints.
 """
 
+import os
 import sys
+from pathlib import Path
 from timeit import default_timer as timer
 
 import horovod.torch as hvd
@@ -23,6 +25,7 @@ from torch.utils.data import DataLoader
 from torch.utils.data.distributed import DistributedSampler
 from utils import get_parser, imagenet_dataset, train_epoch
 
+from itwinai.loggers import EpochTimeTracker
 from itwinai.torch.distributed import (
     DeepSpeedStrategy,
     HorovodStrategy,
@@ -45,25 +48,28 @@ def main():
         distribute_kwargs = {}
     elif args.strategy == "horovod":
         strategy = HorovodStrategy()
-        distribute_kwargs = {
-            "compression": hvd.Compression.fp16
-            if args.fp16_allreduce
-            else hvd.Compression.none,
-            "op": hvd.Adasum if args.use_adasum else hvd.Average,
-            "gradient_predivide_factor": args.gradient_predivide_factor,
-        }
+        distribute_kwargs = dict(
+            compression=(
+                hvd.Compression.fp16 if args.fp16_allreduce else hvd.Compression.none
+            ),
+            op=hvd.Adasum if args.use_adasum else hvd.Average,
+            gradient_predivide_factor=args.gradient_predivide_factor,
+        )
     elif args.strategy == "deepspeed":
         strategy = DeepSpeedStrategy(backend=args.backend)
-        distribute_kwargs = {
-            "config_params": {"train_micro_batch_size_per_gpu": args.batch_size}
-        }
+        distribute_kwargs = dict(
+            config_params=dict(train_micro_batch_size_per_gpu=args.batch_size)
+        )
     else:
-        raise NotImplementedError(f"Strategy {args.strategy} is not recognized/implemented.")
+        raise NotImplementedError(
+            f"Strategy {args.strategy} is not recognized/implemented."
+        )
     strategy.init()
 
     # Check resource availability
     use_cuda = not args.no_cuda and torch.cuda.is_available()
     is_distributed = use_cuda and torch.cuda.device_count() > 0
+    epoch_time_save_dir = Path(args.epoch_time_directory)
 
     # Dataset
     train_dataset = imagenet_dataset(args.data_dir, subset_size=args.subset_size)
@@ -125,6 +131,16 @@ def main():
             model, optimizer, lr_scheduler=None, **distribute_kwargs
         )
 
+    if strategy.is_main_worker:
+        num_nodes = os.environ.get("SLURM_NNODES", 1)
+        strategy_name = f"{args.strategy}-it"
+        save_path = epoch_time_save_dir / f"epochtime_{strategy_name}_{num_nodes}.csv"
+        epoch_time_logger = EpochTimeTracker(
+            strategy_name=strategy_name,
+            save_path=save_path,
+            num_nodes=int(num_nodes),
+        )
+
     start_time = timer()
     for epoch_idx in range(1, args.epochs + 1):
         epoch_start_time = timer()
@@ -141,11 +157,13 @@ def main():
 
         if strategy.is_main_worker:
             epoch_elapsed_time = timer() - epoch_start_time
+            epoch_time_logger.add_epoch_time(epoch_idx, epoch_elapsed_time)
             print(f"[{epoch_idx}/{args.epochs}] - time: {epoch_elapsed_time:.2f}s")
 
     if global_rank == 0:
         total_time = timer() - start_time
         print(f"Training finished - took {total_time:.2f}s")
+        epoch_time_logger.save()
 
     # Clean-up
     if is_distributed:

@@ -107,7 +107,7 @@ function ray-launcher(){
       --num-cpus "$num_cpus" --num-gpus "$num_gpus"  --block &
 
   # Wait for a few seconds to ensure that the head node has fully initialized.
-  sleep 8
+  sleep 1
 
   echo HEAD node started.
 
@@ -124,9 +124,8 @@ function ray-launcher(){
           ray start --address "$head_node"i:"$port" --redis-password='5241580000000000' \
           --num-cpus "$num_cpus" --num-gpus "$num_gpus" --block &
       
-      sleep 8 # Wait before starting the next worker to prevent race conditions.
+      sleep 5 # Wait before starting the next worker to prevent race conditions.
   done
-  sleep 30
   echo All Ray workers started.
 
   # Run command without srun

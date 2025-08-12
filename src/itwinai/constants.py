@@ -11,12 +11,10 @@
 from pathlib import Path
 
 # Directory names for logging and profiling data
-PROFILER_TRACES_DIR_NAME = "profiler-traces"
-
-# mlflow
+COMPUTATION_DATA_DIR = "computation-data"
+EPOCH_TIME_DIR = "epoch-time"
 RELATIVE_MLFLOW_PATH = Path("mllogs/mlflow")
 BASE_EXP_NAME: str = "unnamed-experiment"
-PROFILING_AVG_NAME: str = "torch_profiling_averages"
 
 adjectives = [
     "quantum",

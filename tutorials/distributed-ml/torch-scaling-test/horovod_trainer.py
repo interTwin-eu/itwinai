@@ -10,6 +10,8 @@
 
 """Scaling test of Horovod on Imagenet using Resnet."""
 
+import os
+from pathlib import Path
 from timeit import default_timer as timer
 
 import horovod.torch as hvd
@@ -20,6 +22,7 @@ from torch.utils.data import DataLoader
 from torch.utils.data.distributed import DistributedSampler
 from utils import get_parser, imagenet_dataset, train_epoch
 
+from itwinai.loggers import EpochTimeTracker
 from itwinai.torch.reproducibility import seed_worker, set_seed
 
 
@@ -35,6 +38,7 @@ def main():
 
     shuffle = args.shuff and args.rnd_seed is None
     persistent_workers = args.nworker > 1
+    epoch_time_save_dir = Path(args.epoch_time_directory)
 
     train_dataset = imagenet_dataset(args.data_dir, subset_size=args.subset_size)
     train_sampler = None
@@ -110,6 +114,15 @@ def main():
             gradient_predivide_factor=args.gradient_predivide_factor,
         )
 
+    if global_rank == 0:
+        num_nodes = os.environ.get("SLURM_NNODES", 1)
+        save_path = epoch_time_save_dir / f"epochtime_horovod-bl_{num_nodes}.csv"
+        epoch_time_logger = EpochTimeTracker(
+            strategy_name="horovod-bl",
+            save_path=save_path,
+            num_nodes=int(num_nodes),
+        )
+
     start_time = timer()
     for epoch_idx in range(1, args.epochs + 1):
         epoch_start_time = timer()
@@ -127,11 +140,13 @@ def main():
 
         if global_rank == 0:
             epoch_elapsed_time = timer() - epoch_start_time
+            epoch_time_logger.add_epoch_time(epoch_idx, epoch_elapsed_time)
             print(f"[{epoch_idx}/{args.epochs}] - time: {epoch_elapsed_time:.2f}s")
 
     if global_rank == 0:
         total_time = timer() - start_time
         print(f"Training finished - took {total_time:.2f}s")
+        epoch_time_logger.save()
 
 
 if __name__ == "__main__":

@@ -1367,6 +1367,61 @@ class EmptyLogger(Logger):
         pass
 
 
+class EpochTimeTracker:
+    """Logger for epoch execution time during training.
+
+    Args:
+        strategy_name (str): name of the distributed strategy in use.
+        save_path (Path | str): path for the CSV log file.
+        num_workers (int): number of workers in the current distributed job.
+        should_log (bool): whether this instance of the logger should be active.
+            Defaults to True.
+    """
+
+    def __init__(
+        self,
+        strategy_name: str,
+        save_path: Path | str,
+        num_workers: int,
+        should_log: bool = True,
+    ) -> None:
+        if isinstance(save_path, str):
+            save_path = Path(save_path)
+
+        self.should_log = should_log
+        self.save_path: Path = save_path
+        self.strategy_name = strategy_name
+        self.num_workers = num_workers
+        self.data = {"epoch_id": [], "time": []}
+
+        if not self.should_log:
+            py_logger.debug("EpochTimeLogger has been disabled!")
+
+    def add_epoch_time(self, epoch_idx: int, time: float) -> None:
+        """Add epoch time to data."""
+        if not self.should_log:
+            return
+
+        self.data["epoch_id"].append(epoch_idx)
+        self.data["time"].append(time)
+        self.save()
+
+    def save(self) -> None:
+        """Save data to a new CSV file."""
+        if not self.should_log:
+            return
+
+        import pandas as pd
+
+        df = pd.DataFrame(self.data)
+        df["name"] = self.strategy_name
+        df["workers"] = self.num_workers
+
+        self.save_path.parent.mkdir(parents=True, exist_ok=True)
+        df.to_csv(self.save_path, index=False)
+        py_logger.info(f"Saving EpochTimeLogging data to '{self.save_path.resolve()}'.")
+
+
 def get_mlflow_logger(logger: Logger | None) -> MLFlowLogger | None:
     """Finds and returns the MLFlowLogger if present in the given logger."""
     if logger is None:

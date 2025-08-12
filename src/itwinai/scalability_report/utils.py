@@ -8,6 +8,7 @@
 # - Linus Eickhoff <linus.maximilian.eickhoff@cern.ch> - CERN
 # --------------------------------------------------------------------------------------
 
+from pathlib import Path
 from typing import Set, Tuple
 
 import pandas as pd
@@ -16,16 +17,25 @@ from scipy.constants import hour as SECONDS_IN_HOUR
 from itwinai.utils import deprecated
 
 
-def check_contains_columns(df: pd.DataFrame, expected_columns: Set) -> None:
+def check_contains_columns(
+    df: pd.DataFrame, expected_columns: Set, file_path: Path | None = None
+) -> None:
     """Validates that the given DataFrame contains all the expected columns. Raises a
     ValueError if any columns are missing, including the file path in the error message
     if provided.
     """
     if not expected_columns.issubset(df.columns):
         missing_columns = expected_columns - set(df.columns)
-        raise ValueError(
-            f"Invalid data format for given DataFrame. \nMissing columns:{missing_columns}."
-        )
+        if file_path is not None:
+            raise ValueError(
+                f"Invalid data format! DataFrame at '{file_path.resolve}' is missing"
+                f" some necessary columns. \nMissing columns: {missing_columns}."
+            )
+        else:
+            raise ValueError(
+                f"Invalid data format for given DataFrame. \nMissing columns:"
+                f"{missing_columns}."
+            )
 
 
 def check_probing_interval_consistency(gpu_data_df: pd.DataFrame) -> None:
@@ -35,7 +45,7 @@ def check_probing_interval_consistency(gpu_data_df: pd.DataFrame) -> None:
     Raises:
         ValueError: If the probing intervals are inconsistent for any group.
     """
-    unique_intervals = gpu_data_df.groupby(["strategy", "global_world_size"])[
+    unique_intervals = gpu_data_df.groupby(["strategy", "num_global_gpus"])[
         "probing_interval"
     ].nunique()
 
@@ -48,60 +58,6 @@ def check_probing_interval_consistency(gpu_data_df: pd.DataFrame) -> None:
         )
 
 
-def calculate_epoch_statistics(
-    epoch_time_df: pd.DataFrame, expected_columns: Set
-) -> pd.DataFrame:
-    """Calculates the average epoch time for each strategy and number of GPUs from the
-    given DataFrame. The DataFrame is expected to contain the columns 'strategy',
-    'global_world_size', 'sample_idx', 'metric_name', and 'value'.
-    The 'metric_name' column should contain the value 'epoch_time_s' for epoch time
-    measurements.
-
-    Args:
-        epoch_time_df (pd.DataFrame): DataFrame containing epoch time data.
-        expected_columns (Set): Set of expected columns in the DataFrame.
-
-    Returns:
-        pd.DataFrame: A DataFrame containing the average epoch time for each strategy and
-            number of GPUs, with the columns ``strategy``, ``global_world_size``,
-            ``sample_idx``, and ``avg_epoch_time``.
-
-    Raises:
-        ValueError: If the given DataFrame does not contain the expected columns.
-        ValueError: If the probing intervals are inconsistent for any group.
-    """
-    check_contains_columns(df=epoch_time_df, expected_columns=expected_columns)
-
-    # do not modify inplace
-    epoch_time_df = epoch_time_df.copy()
-    mask = epoch_time_df["metric_name"] == "epoch_time_s"
-    # Ensure value and global_world_size is numeric
-    epoch_time_df.loc[mask, "value"] = pd.to_numeric(epoch_time_df.loc[mask, "value"])
-    epoch_time_df["global_world_size"] = pd.to_numeric(epoch_time_df["global_world_size"])
-
-    pivoted = epoch_time_df.pivot_table(
-        index=["strategy", "global_world_size", "sample_idx"],
-        columns="metric_name",
-        values="value",
-    ).reset_index()
-
-    # Merge previous columns into the pivoted DataFrame
-    pivoted = pivoted.merge(
-        epoch_time_df[["strategy", "global_world_size", "sample_idx"]],
-        how="left",
-        on=["strategy", "global_world_size", "sample_idx"],
-    )
-
-    # Aggregate as before
-    aggregated_df = (
-        pivoted.groupby(["strategy", "global_world_size"])
-        .agg(avg_epoch_time=("epoch_time_s", "mean"))
-        .reset_index()
-    )
-
-    return aggregated_df
-
-
 def calculate_gpu_statistics(gpu_data_df: pd.DataFrame, expected_columns: Set) -> pd.DataFrame:
     """Calculates both the total energy expenditure (in Watt-hours) and the average GPU
     utilization for each strategy and number of GPUs. Ensures consistent probing intervals.
@@ -109,7 +65,7 @@ def calculate_gpu_statistics(gpu_data_df: pd.DataFrame, expected_columns: Set) -
     Returns:
         pd.DataFrame: A DataFrame containing the total energy expenditure and
             average GPU utilization for each strategy and number of GPUs, with
-            the columns ``strategy``, ``global_world_size``, ``total_energy_wh``,
+            the columns ``strategy``, ``num_global_gpus``, ``total_energy_wh``,
             and ``utilization``.
 
     Raises:
@@ -125,8 +81,6 @@ def calculate_gpu_statistics(gpu_data_df: pd.DataFrame, expected_columns: Set) -
     gpu_data_df.loc[mask, "probing_interval"] = pd.to_numeric(
         gpu_data_df.loc[mask, "probing_interval"]
     )
-    # Ensure global_world_size is numeric
-    gpu_data_df["global_world_size"] = pd.to_numeric(gpu_data_df["global_world_size"])
 
     # Calculate energy in watt hours
     gpu_data_df.loc[mask, "energy_wh"] = (
@@ -136,23 +90,23 @@ def calculate_gpu_statistics(gpu_data_df: pd.DataFrame, expected_columns: Set) -
     )
 
     # shift metrics to columns (assumes samples are the same for each strategy and
-    # global_world_size), ensured earlier by check_probing_interval_consistency
+    # num_global_gpus), ensured earlier by check_probing_interval_consistency
     pivoted = gpu_data_df.pivot_table(
-        index=["strategy", "global_world_size", "timestamp"],
+        index=["strategy", "num_global_gpus", "timestamp"],
         columns="metric_name",
         values="value",
     ).reset_index()
 
     # Merge previous columns into the pivoted DataFrame
     pivoted = pivoted.merge(
-        gpu_data_df[["strategy", "global_world_size", "timestamp", "energy_wh"]],
+        gpu_data_df[["strategy", "num_global_gpus", "timestamp", "energy_wh"]],
         how="left",
-        on=["strategy", "global_world_size", "timestamp"],
+        on=["strategy", "num_global_gpus", "timestamp"],
     )
 
     # Aggregate as before
     aggregated_df = (
-        pivoted.groupby(["strategy", "global_world_size"])
+        pivoted.groupby(["strategy", "num_global_gpus"])
         .agg(
             total_energy_wh=("energy_wh", "sum"),  # Total energy in watt-hours
             utilization=("gpu_utilization_percent", "mean"),  # Average GPU utilization
@@ -253,7 +207,7 @@ def get_computation_fraction_data(df: pd.DataFrame) -> pd.DataFrame:
     grouped = df.groupby(["strategy", "num_gpus"]).apply(compute_fraction)
 
     # Sort and create cartesian product of unique strategies and GPU counts
-    unique_num_gpus = sorted(df["num_gpus"].unique(), key=int)
+    unique_num_gpus = sorted(df["num_gpus"].unique(), key=lambda x: int(x))
     unique_strategies = sorted(df["strategy"].unique())
     index = pd.MultiIndex.from_product(
         [unique_strategies, unique_num_gpus], names=["strategy", "num_gpus"]
@@ -292,14 +246,14 @@ def get_computation_vs_other_data(df: pd.DataFrame) -> pd.DataFrame:
     grouped = df.groupby(["num_gpus", "strategy"]).apply(compute_fraction)
 
     # Sort and create cartesian product of unique strategies and GPU counts
-    unique_num_gpus = sorted(df["num_gpus"].unique(), key=int)
+    unique_num_gpus = sorted(df["num_gpus"].unique(), key=lambda x: int(x))
     unique_strategies = sorted(df["strategy"].unique())
     index = pd.MultiIndex.from_product(
-        [unique_num_gpus, unique_strategies], names=["strategy", "num_gpus"]
+        [unique_num_gpus, unique_strategies], names=["num_gpus", "strategy"]
     )
     # Reindex to fill in missing combinations with NaN
     result_df = pd.DataFrame(grouped.reindex(index))
     result_df = result_df.reset_index()
-    result_df.columns = ["strategy", "num_gpus", "computation_fraction"]
+    result_df.columns = ["num_gpus", "strategy", "computation_fraction"]
 
     return result_df

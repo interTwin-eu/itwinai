@@ -1885,7 +1885,7 @@ wheels = [
 
 [[package]]
 name = "itwinai"
-version = "0.3.4rc1"
+version = "0.3.3"
 source = { editable = "." }
 dependencies = [
     { name = "click" },

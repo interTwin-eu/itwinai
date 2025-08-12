@@ -12,6 +12,7 @@
 
 import os
 import time
+from pathlib import Path
 from timeit import default_timer as timer
 from typing import Any, Dict, Literal, Optional, Tuple
 
@@ -23,12 +24,13 @@ from torch.utils.data import Dataset, TensorDataset
 from tqdm import tqdm
 
 from itwinai.distributed import suppress_workers_print
-from itwinai.loggers import Logger
+from itwinai.loggers import EpochTimeTracker, Logger
 from itwinai.torch.config import TrainingConfiguration
 from itwinai.torch.distributed import DeepSpeedStrategy, RayDDPStrategy, RayDeepSpeedStrategy
 from itwinai.torch.monitoring.monitoring import measure_gpu_utilization
 from itwinai.torch.profiling.profiler import profile_torch_trainer
 from itwinai.torch.trainer import RayTorchTrainer, TorchTrainer
+from itwinai.constants import EPOCH_TIME_DIR
 from src.model import Decoder, Decoder_2d_deep, GeneratorResNet, UNet
 from src.utils import init_weights
 
@@ -201,6 +203,7 @@ class NoiseGeneratorTrainer(TorchTrainer):
         # Note that it significantly slows down the whole process
         # it also might not work as the function has not been fully
         # implemented yet
+        epoch_time_logger: EpochTimeTracker | None = None
         if self.strategy.is_main_worker and self.strategy.is_distributed:
             print("TIMER: broadcast:", timer() - st, "s")
             print("\nDEBUG: start training")
@@ -209,6 +212,16 @@ class NoiseGeneratorTrainer(TorchTrainer):
             # s_name = f"{os.environ.get('DIST_MODE', 'unk')}-torch"
             # save_path
 
+            num_nodes = int(os.environ.get("SLURM_NNODES", 1))
+            epoch_time_output_dir = Path(f"scalability-metrics/{self.run_id}/{EPOCH_TIME_DIR}")
+            epoch_time_file_name = f"epochtime_{self.strategy.name}_{num_nodes}N.csv"
+            epoch_time_output_path = epoch_time_output_dir / epoch_time_file_name
+            epoch_time_logger = EpochTimeTracker(
+                strategy_name=self.strategy.name,
+                save_path=epoch_time_output_path,
+                num_nodes=num_nodes,
+                should_log=self.measure_epoch_time
+            )
         loss_plot = []
         val_loss_plot = []
         acc_plot = []
@@ -366,6 +379,8 @@ class NoiseGeneratorTrainer(TorchTrainer):
             # acc_plot, val_acc_plot ,acc_plot, val_acc_plot)
             if self.strategy.is_main_worker and self.strategy.is_distributed:
                 print("TIMER: epoch time:", timer() - lt, "s")
+                assert epoch_time_logger is not None
+                epoch_time_logger.add_epoch_time(epoch - 1, timer() - lt)
 
             # Report training metrics of last epoch to Ray
             tune.report({"loss": np.mean(val_loss)})

@@ -6,12 +6,10 @@
 # Credit:
 # - Jarl Sondre Sæther <jarl.sondre.saether@cern.ch> - CERN
 # - Matteo Bunino <matteo.bunino@cern.ch> - CERN
-# - Linus Eickhoff <linus.maximilian.eickhoff@cern.ch> - CERN
 # --------------------------------------------------------------------------------------
 
 import functools
 import logging
-import tempfile
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Callable, Iterable, Tuple
 
@@ -19,7 +17,7 @@ import matplotlib
 import pandas as pd
 from torch.profiler import ProfilerActivity, profile, schedule, tensorboard_trace_handler
 
-from itwinai.constants import PROFILER_TRACES_DIR_NAME, PROFILING_AVG_NAME
+from itwinai.constants import COMPUTATION_DATA_DIR
 
 if TYPE_CHECKING:
     from itwinai.torch.trainer import TorchTrainer
@@ -108,8 +106,8 @@ def profile_torch_trainer(method: Callable) -> Callable:
         self.profiling_warmup_epochs = warmup_epochs
         if self.store_torch_profiling_traces:
             trace_handler = tensorboard_trace_handler(
-                dir_name=f"{PROFILER_TRACES_DIR_NAME}/{self.run_name}/torch-traces",
-                worker_name=f"worker_{self.strategy.global_rank()}",
+                dir_name=f"scalability-metrics/{self.run_name}/torch-traces",
+                worker_name=f"worker_{self.strategy.global_rank()}"
             )
         else:
             py_logger.warning("Profiling computation without storing the traces!")
@@ -140,21 +138,14 @@ def profile_torch_trainer(method: Callable) -> Callable:
         profiling_dataframe["strategy"] = strategy_name
         profiling_dataframe["num_gpus"] = num_gpus_global
         profiling_dataframe["global_rank"] = global_rank
+        profiling_log_dir = Path(f"scalability-metrics/{self.run_name}/{COMPUTATION_DATA_DIR}")
+        profiling_log_dir.mkdir(parents=True, exist_ok=True)
 
-        # write profiling averages to mlflow logger
-        if self.mlflow_logger is None:
-            py_logger.info("No MLflow logger is set, not logging the profiling data!")
-            return result
+        filename = f"{strategy_name}_{num_gpus_global}_{global_rank}.csv"
+        output_path = profiling_log_dir / filename
 
-        temp_dir = tempfile.gettempdir()
-        csv_path = Path(temp_dir) / f"{PROFILING_AVG_NAME}.csv"
-        profiling_dataframe.to_csv(csv_path, index=False)
-        self.mlflow_logger.log(
-            item=str(csv_path),
-            identifier=PROFILING_AVG_NAME,
-            kind="artifact",
-        )
-        csv_path.unlink()  # Remove after logging
+        py_logger.info(f"Writing torch-profiling dataframe to '{output_path}'.")
+        profiling_dataframe.to_csv(output_path)
 
         return result
 

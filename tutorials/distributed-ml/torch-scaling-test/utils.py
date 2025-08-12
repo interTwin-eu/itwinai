@@ -16,6 +16,7 @@ from torch.optim.optimizer import Optimizer
 from torch.utils.data import DataLoader, Subset
 from torchvision import datasets, transforms
 
+from itwinai.constants import EPOCH_TIME_DIR
 from itwinai.parser import ArgumentParser as ItwinaiArgParser
 
 
@@ -161,5 +162,11 @@ def get_parser() -> ItwinaiArgParser:
         type=str,
         choices=["ddp", "horovod", "deepspeed"],
         default="ddp",
+    )
+    parser.add_argument(
+        "--epoch-time-directory",
+        type=str,
+        default=f"scalability-metrics/{EPOCH_TIME_DIR}",
+        help="Where to store the epoch time metrics used in the scalability report",
     )
     return parser

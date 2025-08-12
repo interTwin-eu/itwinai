@@ -9,7 +9,7 @@
 # --------------------------------------------------------------------------------------
 
 # General config
-experiment_name: MNIST
+experiment_name: does-not-existww2
 run_name: mnist-usecase-0
 dataset_root: .tmp/
 num_classes: 10
