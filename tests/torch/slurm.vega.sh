@@ -241,7 +241,7 @@ ray_launcher ()
       --block &
 
   # Wait for a few seconds to ensure that the head node has fully initialized.
-  sleep 15
+  sleep 8
 
   echo HEAD node started.
 
@@ -264,8 +264,9 @@ ray_launcher ()
           --num-gpus "$SLURM_GPUS_PER_NODE" \
           --block &
       
-      sleep 15 # Wait before starting the next worker to prevent race conditions.
+      sleep 8 # Wait before starting the next worker to prevent race conditions.
   done
+  sleep 30
   echo All Ray workers started.
 
   # Check cluster
@@ -331,9 +332,6 @@ if [ "${DIST_MODE}" == "ddp" ] ; then
   decho -e "\nLaunching DDP strategy with torchrun"
   torchrun_launcher "${COMMAND}"
 
-  decho -e "\nLaunching DDP strategy with Ray"
-  ray_launcher "${COMMAND}"
-
 elif [ "${DIST_MODE}" == "deepspeed" ] ; then
 
   decho -e "\nLaunching DeepSpeed strategy with torchrun"
@@ -344,9 +342,6 @@ elif [ "${DIST_MODE}" == "deepspeed" ] ; then
 
   decho -e "\nLaunching DeepSpeed strategy with srun"
   srun_launcher "python -m ${COMMAND}"
-
-  decho -e "\nLaunching DeepSpeed strategy with Ray"
-  ray_launcher "${COMMAND}"
 
 elif [ "${DIST_MODE}" == "horovod" ] ; then
 
