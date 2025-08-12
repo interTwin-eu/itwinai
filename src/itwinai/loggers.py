@@ -532,7 +532,6 @@ class MLFlowLogger(Logger):
         )
         # make sure it is an absolute path
         self.tracking_uri = normalize_tracking_uri(self.tracking_uri)
-        print("linus normalized tracking uri", self.tracking_uri)
         import mlflow
 
         self.mlflow = mlflow
