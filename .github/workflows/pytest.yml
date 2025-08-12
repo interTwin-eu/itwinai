@@ -22,7 +22,7 @@ jobs:
           remove-haskell: true
           remove-codeql: true
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Move Docker directory
         shell: bash
@@ -51,7 +51,7 @@ jobs:
   #   name: Testing with pytest
   #   runs-on: ubuntu-latest
   #   steps:
-  #     - uses: actions/checkout@v4
+  #     - uses: actions/checkout@v5
 
   #     - name: Set up Python 3.11.9
   #       uses: actions/setup-python@v5
