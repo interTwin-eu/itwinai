@@ -969,7 +969,13 @@ class TorchTrainer(Trainer, LogMixin):
             if self.mlflow_logger and not self.strategy.is_main_worker:
                 # Set the tracking uri and experiment for other workers after main worker
                 mlflow.set_tracking_uri(self.mlflow_logger.tracking_uri)
-                mlflow.set_experiment(self.mlflow_logger.experiment_name)
+                experiment = mlflow.get_experiment_by_name(
+                    self.mlflow_logger.experiment_name
+                )
+                assert experiment is not None, (
+                    f"Experiment {self.mlflow_logger.experiment_name} not found in MLflow!"
+                )
+                mlflow.set_experiment(experiment.experiment_id)
 
             py_logger.debug(
                 f"Broadcasted mlflow_trial_run_id {self.mlflow_train_run_id} to all workers"
