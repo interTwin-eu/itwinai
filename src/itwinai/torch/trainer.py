@@ -22,8 +22,6 @@ from pathlib import Path
 from time import perf_counter
 from typing import Any, Callable, Dict, List, Literal, Tuple
 
-import mlflow
-import mlflow.tracking
 import ray.train
 import ray.tune
 import torch
@@ -296,8 +294,6 @@ class TorchTrainer(Trainer, LogMixin):
         self.current_epoch = 0
 
         self.mlflow_logger = get_mlflow_logger(logger)
-        if self.mlflow_logger:
-            self.mlflow_client = mlflow.tracking.MlflowClient(self.mlflow_logger.tracking_uri)
 
         if run_name is None:
             run_name = generate_random_name()
@@ -847,10 +843,12 @@ class TorchTrainer(Trainer, LogMixin):
 
         if self.mlflow_logger:
             # Create mlflow runs per trial (will be started by the trial's main worker)
-            tune_run = self.mlflow_client.create_run(
-                self.mlflow_logger.experiment_id, run_name=self.run_name
+            tune_run = self.mlflow_logger.mlflow.start_run(
+                experiment_id=self.mlflow_logger.set_experiment_id(),
+                run_name=self.run_name,
             )
             self.mlflow_tune_run_id = tune_run.info.run_id
+            self.mlflow_logger.mlflow.end_run()
 
         # Passes datasets to workers efficiently through Ray storage
         train_with_data = ray.tune.with_parameters(
@@ -939,14 +937,14 @@ class TorchTrainer(Trainer, LogMixin):
                 if self.mlflow_tune_run_id:
                     train_run_name = ray.tune.get_context().get_trial_name()
                     train_run = self.mlflow_logger.mlflow.start_run(
-                        experiment_id=self.mlflow_logger.experiment_id,
+                        experiment_id=self.mlflow_logger.set_experiment_id(),
                         run_name=train_run_name,
                         parent_run_id=self.mlflow_tune_run_id,
                     )
                 else:
                     train_run_name = self.run_name
                     train_run = self.mlflow_logger.mlflow.start_run(
-                        experiment_id=self.mlflow_logger.experiment_id,
+                        experiment_id=self.mlflow_logger.set_experiment_id(),
                         run_name=train_run_name,
                     )
 
