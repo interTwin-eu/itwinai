@@ -561,7 +561,7 @@ class MLFlowLogger(Logger):
         """
         # set tracking uri here again, as in multi-worker settings self.mlflow may reset
         self.mlflow.set_tracking_uri(self.tracking_uri)
-        self.set_experiment_id()
+        self.resolve_experiment_id()
 
         run_id = kwargs.get("run_id")
         parent_run_id = kwargs.get("parent_run_id")
@@ -708,9 +708,10 @@ class MLFlowLogger(Logger):
         elif kind == "text":
             self.mlflow.log_text(artifact_file=identifier, text=item)
 
-    def set_experiment_id(self) -> str:
-        """set experiment id by the experiment_name of the logger.
-        returns the set experiment id."""
+    def resolve_experiment_id(self) -> str:
+        """Sets experiment id by the experiment_name of the logger if not set.
+        Returns the experiment id.
+        """
         if self._experiment_id is None:
             self._experiment_id = self.mlflow.set_experiment(
                 experiment_name=self.experiment_name

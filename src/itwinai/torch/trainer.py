@@ -844,7 +844,7 @@ class TorchTrainer(Trainer, LogMixin):
         if self.mlflow_logger:
             # Create mlflow runs per trial (will be started by the trial's main worker)
             tune_run = self.mlflow_logger.mlflow.start_run(
-                experiment_id=self.mlflow_logger.set_experiment_id(),
+                experiment_id=self.mlflow_logger.resolve_experiment_id(),
                 run_name=self.run_name,
             )
             self.mlflow_tune_run_id = tune_run.info.run_id
@@ -937,14 +937,14 @@ class TorchTrainer(Trainer, LogMixin):
                 if self.mlflow_tune_run_id:
                     train_run_name = ray.tune.get_context().get_trial_name()
                     train_run = self.mlflow_logger.mlflow.start_run(
-                        experiment_id=self.mlflow_logger.set_experiment_id(),
+                        experiment_id=self.mlflow_logger.resolve_experiment_id(),
                         run_name=train_run_name,
                         parent_run_id=self.mlflow_tune_run_id,
                     )
                 else:
                     train_run_name = self.run_name
                     train_run = self.mlflow_logger.mlflow.start_run(
-                        experiment_id=self.mlflow_logger.set_experiment_id(),
+                        experiment_id=self.mlflow_logger.resolve_experiment_id(),
                         run_name=train_run_name,
                     )
 
