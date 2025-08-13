@@ -22,6 +22,7 @@ from pathlib import Path
 from time import perf_counter
 from typing import Any, Callable, Dict, List, Literal, Tuple
 
+import mlflow
 import ray.train
 import ray.tune
 import torch
@@ -843,6 +844,15 @@ class TorchTrainer(Trainer, LogMixin):
 
         if self.mlflow_logger:
             # Create mlflow runs per trial (will be started by the trial's main worker)
+            print(
+                "linus exp id before tune",
+                self.mlflow_logger.mlflow.get_experiment_by_name(
+                    self.mlflow_logger.experiment_name
+                ),
+            )
+            print(
+                "linus tracking uri before tune", self.mlflow_logger.mlflow.get_tracking_uri()
+            )
             tune_run = self.mlflow_logger.mlflow.start_run(
                 experiment_id=self.mlflow_logger.resolve_experiment_id(),
                 run_name=self.run_name,
@@ -933,18 +943,35 @@ class TorchTrainer(Trainer, LogMixin):
             worker_run_name = f"worker_{self.strategy.global_rank()}"
 
             if self.strategy.is_main_worker and self.mlflow_logger:
-                # If a tune_run_id is set, we create a nested run (Ray)
+                # required so env vars are set correctly
+                mlflow.set_tracking_uri(self.mlflow_logger.tracking_uri)
+                mlflow.set_experiment(self.mlflow_logger.experiment_name)
+
+                experiment_id = self.mlflow_logger.resolve_experiment_id()
+                self.mlflow_logger.mlflow.set_tracking_uri(self.mlflow_logger.tracking_uri)
+
+                print(
+                    "linus exp id in worker",
+                    self.mlflow_logger.mlflow.get_experiment_by_name(
+                        self.mlflow_logger.experiment_name
+                    ),
+                )
+                print(
+                    "linus tracking uri in worker",
+                    self.mlflow_logger.mlflow.get_tracking_uri(),
+                )
                 if self.mlflow_tune_run_id:
+                    # If a tune_run_id is set, we create a nested run (Ray)
                     train_run_name = ray.tune.get_context().get_trial_name()
                     train_run = self.mlflow_logger.mlflow.start_run(
-                        experiment_id=self.mlflow_logger.resolve_experiment_id(),
+                        experiment_id=experiment_id,
                         run_name=train_run_name,
                         parent_run_id=self.mlflow_tune_run_id,
                     )
                 else:
                     train_run_name = self.run_name
                     train_run = self.mlflow_logger.mlflow.start_run(
-                        experiment_id=self.mlflow_logger.resolve_experiment_id(),
+                        experiment_id=experiment_id,
                         run_name=train_run_name,
                     )
 
@@ -963,6 +990,11 @@ class TorchTrainer(Trainer, LogMixin):
             py_logger.debug(
                 f"Broadcasted mlflow_trial_run_id {self.mlflow_train_run_id} to all workers"
             )
+            if self.mlflow_logger and not self.strategy.is_main_worker:
+                # Set the tracking uri and experiment for other workers after main worker
+                mlflow.set_tracking_uri(self.mlflow_logger.tracking_uri)
+                mlflow.set_experiment(self.mlflow_logger.experiment_name)
+
             # Create logger on worker level
             self.logger.create_logger_context(
                 rank=self.strategy.global_rank(),

@@ -525,6 +525,7 @@ class MLFlowLogger(Logger):
 
         mfl_savedir.mkdir(parents=True, exist_ok=True)
 
+        print("linus mlflow traking uri env: ", os.environ.get("MLFLOW_TRACKING_URI"))
         self.tracking_uri = (
             tracking_uri
             or os.environ.get("MLFLOW_TRACKING_URI")
