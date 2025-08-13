@@ -527,19 +527,15 @@ class MLFlowLogger(Logger):
 
         self.tracking_uri = (
             tracking_uri
-            or Path(self.savedir).resolve().as_uri()
             or os.environ.get("MLFLOW_TRACKING_URI")
+            or Path(self.savedir).resolve().as_uri()
         )
         # make sure it is an absolute path
         self.tracking_uri = normalize_tracking_uri(self.tracking_uri)
-        print("linus normalized tracking uri", self.tracking_uri)
         import mlflow
 
         self.mlflow = mlflow
         self.mlflow.set_tracking_uri(self.tracking_uri)
-        self._experiment_id = self.mlflow.set_experiment(
-            experiment_name=self.experiment_name
-        ).experiment_id
 
     @check_not_initialized
     def create_logger_context(
@@ -565,9 +561,7 @@ class MLFlowLogger(Logger):
         """
         # set tracking uri here again, as in multi-worker settings self.mlflow may reset
         self.mlflow.set_tracking_uri(self.tracking_uri)
-        self._experiment_id = self.mlflow.set_experiment(
-            experiment_name=self.experiment_name
-        ).experiment_id
+        self.resolve_experiment_id()
 
         run_id = kwargs.get("run_id")
         parent_run_id = kwargs.get("parent_run_id")
@@ -714,9 +708,18 @@ class MLFlowLogger(Logger):
         elif kind == "text":
             self.mlflow.log_text(artifact_file=identifier, text=item)
 
+    def resolve_experiment_id(self) -> str:
+        """Sets experiment id by the experiment_name of the logger if not set.
+        Returns the experiment id.
+        """
+        if self._experiment_id is None:
+            self._experiment_id = self.mlflow.set_experiment(
+                experiment_name=self.experiment_name
+            ).experiment_id
+        return self._experiment_id
+
     @property
     def experiment_id(self) -> str:
-        """Return the experiment id."""
         return self._experiment_id
 
 

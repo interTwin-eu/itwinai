@@ -134,8 +134,14 @@ def profile_torch_trainer(method: Callable) -> Callable:
         num_gpus_global = strategy.global_world_size()
 
         # Extracting and storing the profiling data
+        py_logger.info(
+            "Computing key averages of the profiling data..."
+        )
         key_averages = profiler.key_averages()
 
+        py_logger.info(
+            "gathering profiling averages into a pandas DataFrame..."
+        )
         profiling_dataframe = gather_profiling_data(key_averages=key_averages)
         profiling_dataframe["strategy"] = strategy_name
         profiling_dataframe["num_gpus"] = num_gpus_global
@@ -153,6 +159,9 @@ def profile_torch_trainer(method: Callable) -> Callable:
             item=str(csv_path),
             identifier=PROFILING_AVG_NAME,
             kind="artifact",
+        )
+        py_logger.info(
+            f"Logged profiling averages to MLflow logger at: {csv_path}"
         )
         csv_path.unlink()  # Remove after logging
 
