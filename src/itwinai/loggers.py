@@ -536,9 +536,6 @@ class MLFlowLogger(Logger):
 
         self.mlflow = mlflow
         self.mlflow.set_tracking_uri(self.tracking_uri)
-        self._experiment_id = self.mlflow.set_experiment(
-            experiment_name=self.experiment_name
-        ).experiment_id
 
     @check_not_initialized
     def create_logger_context(
