@@ -9,7 +9,7 @@
 
 # Dockerfile for slim itwinai image. MPI, CUDA and other need to be mounted from the host machine.
 
-ARG BASE_IMG_NAME=python:3.12-slim
+ARG BASE_IMG_NAME=ubuntu:24.04
 
 FROM nvidia/cuda:12.6.3-devel-ubuntu24.04 AS build
 
@@ -70,6 +70,7 @@ RUN wget -qO - https://astral.sh/uv/install.sh \
     | env UV_INSTALL_DIR=/usr/local/bin INSTALLER_NO_MODIFY_PATH=1 sh
 RUN uv venv /opt/venv 
 ENV UV_PYTHON=/opt/venv/bin/python
+
 RUN uv pip install --no-cache-dir --upgrade pip wheel \
     # Needed to run deepspeed (and Horovod?) with MPI backend
     && uv pip install --no-cache-dir mpi4py \
@@ -114,14 +115,15 @@ SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
 COPY --from=build /opt/venv /opt/venv
 
-# Override symlink in the venv
-RUN ln -sf /usr/local/bin/python3.12 /opt/venv/bin/python
-
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     git \
     # OpenMPI dev library needed to build Horovod
     libopenmpi-dev \
+    # Install Python
+    python3.12 \
+    python3.12-venv \
+    python3.12-dev \
     # mpi4py, which may be needed and also installs mpirun
     python3-mpi4py \
     # Needed to pull OpenMPI and to use this container in ray k8s cluster as Head/Worker container

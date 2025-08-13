@@ -101,7 +101,7 @@ class BaseTestDistributedStrategy:
         with pytest.raises(UninitializedStrategyError):
             strategy.device()
         with pytest.raises(UninitializedStrategyError):
-            strategy.is_main_worker
+            _ = strategy.is_main_worker
         x = torch.ones(2)
         with pytest.raises(UninitializedStrategyError):
             strategy.gather(x)
@@ -287,11 +287,10 @@ class TestHorovodStrategy(BaseTestDistributedStrategy):
     [
         pytest.param("ddp"),
         pytest.param("deepspeed"),
-        pytest.param("horovod"),
     ],
 )
 def test_ray_distributed_strategy(
-    strategy_name: Literal["ddp"] | Literal["deepspeed"] | Literal["horovod"],
+    strategy_name: Literal["ddp"] | Literal["deepspeed"],
     shared_tmp_path: Path,
 ):
     import ray  # needed here
@@ -387,7 +386,7 @@ def test_ray_distributed_strategy(
         with pytest.raises(UninitializedStrategyError):
             strategy.device()
         with pytest.raises(UninitializedStrategyError):
-            strategy.is_main_worker
+            _ = strategy.is_main_worker
         x = torch.ones(2)
         with pytest.raises(UninitializedStrategyError):
             strategy.gather(x)

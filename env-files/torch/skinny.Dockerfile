@@ -8,7 +8,7 @@
 # --------------------------------------------------------------------------------------
 
 
-ARG BASE_IMG_NAME=python:3.12-slim
+ARG BASE_IMG_NAME=ubuntu:24.04
 
 FROM ${BASE_IMG_NAME}
 ARG BASE_IMG_NAME
@@ -18,6 +18,11 @@ SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 RUN apt-get update && apt-get install -y --no-install-recommends \
     git \
     curl \
+    # Install Python
+    python3.12 \
+    python3.12-venv \
+    python3.12-dev \
+    wget \
     && apt-get clean -y && rm -rf /var/lib/apt/lists/*
 
 
@@ -25,13 +30,15 @@ ENV \
     # https://docs.astral.sh/uv/reference/environment/#uv_no_cache
     UV_NO_CACHE=1
 
-# Install UV package manager and upgrade pip
-RUN pip install --no-cache-dir --upgrade pip uv
+# Install uv
+RUN wget -qO - https://astral.sh/uv/install.sh \
+    | env UV_INSTALL_DIR=/usr/local/bin INSTALLER_NO_MODIFY_PATH=1 sh
 
 # Install itwinai with torch
 WORKDIR /app
 COPY pyproject.toml pyproject.toml
 COPY src src
+
 RUN uv venv \
     && uv pip install --no-cache-dir --upgrade pip \
     && uv pip install --no-cache-dir \

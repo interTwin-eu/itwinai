@@ -45,8 +45,8 @@ echo "DEBUG: CUDA_VISIBLE_DEVICES (before): $CUDA_VISIBLE_DEVICES"
 
 # Load environment modules
 ml --force purge
-ml Stages/2024 GCC/12.3.0 OpenMPI CUDA/12 MPI-settings/CUDA
-ml Python/3.11 HDF5 PnetCDF libaio mpi4py CMake cuDNN/8.9.5.29-CUDA-12
+ml Stages/2025 GCC OpenMPI CUDA/12 cuDNN MPI-settings/CUDA
+ml Python CMake HDF5 PnetCDF libaio mpi4py git
 
 source ~/.bashrc
 source $PYTHON_VENV/bin/activate
@@ -79,33 +79,58 @@ export NCCL_IB_RETRY_CNT=50
 export UCX_TLS="^cma"
 export UCX_NET_DEVICES=mlx5_0:1,mlx5_1:1,mlx5_4:1,mlx5_5:1
 
-torchrun_launcher(){
-  # Stop Ray processes, if any
-  srun uv run ray stop
+function torchrun_launcher_venv(){
+  export MASTER_ADDR="$(scontrol show hostnames "$SLURM_JOB_NODELIST" | head -n 1)i"
+  export MASTER_PORT=54123
 
   srun --cpu-bind=none --ntasks-per-node=1 \
-    bash -c "torchrun \
+    bash -c "torchrun_jsc \
     --log_dir='logs_torchrun' \
     --nnodes=$SLURM_NNODES \
     --nproc_per_node=$SLURM_GPUS_PER_NODE \
     --rdzv_id=$SLURM_JOB_ID \
     --rdzv_conf=is_host=\$(((SLURM_NODEID)) && echo 0 || echo 1) \
     --rdzv_backend=c10d \
-    --rdzv_endpoint='$(scontrol show hostnames "$SLURM_JOB_NODELIST" | head -n 1)'i:29500 \
+    --rdzv_endpoint=$MASTER_ADDR:$MASTER_PORT \
     --no-python \
     --redirects=\$(((SLURM_NODEID)) && echo "3" || echo "1:3,2:3,3:3") \
     $1"
 }
 
+function torchrun_launcher_container(){
+  export MASTER_ADDR="$(scontrol show hostnames "$SLURM_JOB_NODELIST" | head -n 1)i"
+  export MASTER_PORT=54123
+
+  srun --cpu-bind=none --ntasks-per-node=1 \
+    singularity exec --nv $CONTAINER_PATH /bin/bash -c "torchrun_jsc \
+    --log_dir='logs_torchrun' \
+    --nnodes=$SLURM_NNODES \
+    --nproc_per_node=$SLURM_GPUS_PER_NODE \
+    --rdzv_id=$SLURM_JOB_ID \
+    --rdzv_conf=is_host=\$(((SLURM_NODEID)) && echo 0 || echo 1) \
+    --rdzv_backend=c10d \
+    --rdzv_endpoint=$MASTER_ADDR:$MASTER_PORT \
+    --no-python \
+    --redirects=\$(((SLURM_NODEID)) && echo "3" || echo "1:3,2:3,3:3") \
+    $1"
+}
+
+function torchrun_launcher(){
+
+  if [[ -n "${CONTAINER_PATH}" ]]; then
+    # CONTAINER_PATH is set and not empty
+    echo "CONTAINER_PATH is: $CONTAINER_PATH"
+    torchrun_launcher_container "$@"
+  else
+    # CONTAINER_PATH is either unset or empty
+    echo "No CONTAINER_PATH provided"
+    torchrun_launcher_venv "$@"
+  fi
+
+}
+
 # Launch distribtued job in container with srun
-srun_launcher ()
-{
-
-  # Stop Ray processes, if any
-  srun uv run ray stop
-
-  # Create mpirun logs folder
-  mkdir -p "logs_srun/$SLURM_JOB_ID"
+function srun_launcher_venv (){
 
   # Launch command
   srun --cpu-bind=none --ntasks-per-node=$SLURM_GPUS_PER_NODE \
@@ -115,21 +140,38 @@ srun_launcher ()
     'if [ $SLURM_PROCID  -ne 0 ]; then exec > "logs_srun/$SLURM_JOB_ID/rank.$SLURM_PROCID" 2>&1; fi; exec '"${1}"
 }
 
+function srun_launcher_container (){
+
+  # Launch command
+  srun --cpu-bind=none --ntasks-per-node=$SLURM_GPUS_PER_NODE \
+    --cpus-per-task=$(($SLURM_CPUS_PER_TASK / $SLURM_GPUS_PER_NODE)) \
+    --ntasks=$(($SLURM_GPUS_PER_NODE * $SLURM_NNODES)) \
+    singularity exec --nv \
+    "${CONTAINER_PATH}" /bin/bash -c \
+    'echo "Rank: $SLURM_PROCID, LD_LIBRARY_PATH=$LD_LIBRARY_PATH" && \
+    if [ $SLURM_PROCID  -ne 0 ]; then exec > "logs_srun/$SLURM_JOB_ID/rank.$SLURM_PROCID" 2>&1; fi; exec '"${1}"
+}
+
+
+function srun_launcher(){
+
+  # Create srun logs folder
+  mkdir -p "logs_srun/$SLURM_JOB_ID"
+
+  if [[ -n "${CONTAINER_PATH}" ]]; then
+    # CONTAINER_PATH is set and not empty
+    echo "CONTAINER_PATH is: $CONTAINER_PATH"
+    srun_launcher_container "$@"
+  else
+    # CONTAINER_PATH is either unset or empty
+    echo "No CONTAINER_PATH provided"
+    srun_launcher_venv "$@"
+  fi
+
+}
+
 # Launch distribtued job in container with Ray
-ray_launcher ()
-{
-
-  # Remove ray metadata if present
-  srun rm -rf /tmp/ray & disown
-
-  # This tells Tune to not change the working directory to the trial directory
-  # which makes relative paths accessible from inside a trial
-  export RAY_CHDIR_TO_TRIAL_DIR=0
-  export RAY_DEDUP_LOGS=0
-  export RAY_USAGE_STATS_DISABLE=1
-
-  # Disable colors in output
-  export RAY_COLOR_PREFIX=0
+function ray_launcher_venv (){
 
   #########   Set up Ray cluster   ########
 
@@ -190,6 +232,99 @@ ray_launcher ()
 
   # Run command without srun
   $1
+}
+
+function ray_launcher_container (){
+
+  #########   Set up Ray cluster   ########
+
+  # Get the node names
+  nodes=$(scontrol show hostnames "$SLURM_JOB_NODELIST")
+  mapfile -t nodes_array <<< "$nodes"
+  echo "Nodes in nodes_array: ${nodes_array[@]}"
+
+  # The head node will act as the central manager (head) of the Ray cluster.
+  head_node=${nodes_array[0]}
+  port=7639       # This port will be used by Ray to communicate with worker nodes.
+
+  echo "Starting HEAD at $head_node"
+  # Start Ray on the head node.
+  # The `--head` option specifies that this node will be the head of the Ray cluster.
+  # `srun` submits a job that runs on the head node to start the Ray head with the specified 
+  # number of CPUs and GPUs.
+
+  srun --nodes=1 --ntasks=1 -w "$head_node" \
+    singularity exec --nv $CONTAINER_PATH  \
+      ray start \
+      --head \
+      --log-color false \
+      --node-ip-address="$head_node"i \
+      --port=$port \
+      --num-cpus "$SLURM_CPUS_PER_TASK" \
+      --num-gpus "$SLURM_GPUS_PER_NODE" \
+      --block &
+
+  # Wait for a few seconds to ensure that the head node has fully initialized.
+  sleep 15
+
+  echo HEAD node started.
+
+  # Start Ray worker nodes
+  # These nodes will connect to the head node and become part of the Ray cluster.
+  worker_num=$((SLURM_JOB_NUM_NODES - 1))    # Total number of worker nodes (excl the head node)
+  for ((i = 1; i <= worker_num; i++)); do
+      node_i=${nodes_array[$i]}   # Get the current worker node hostname.
+      echo "Starting WORKER $i at $node_i"
+
+      # Use srun to start Ray on the worker node and connect it to the head node.
+      # The `--address` option tells the worker node where to find the head node.
+      srun --nodes=1 --ntasks=1 -w "$node_i" \
+        singularity exec --nv $CONTAINER_PATH  \
+          ray start \
+          --address "$head_node"i:"$port" \
+          --log-color false \
+          --redis-password='5241580000000000' \
+          --num-cpus "$SLURM_CPUS_PER_TASK" \
+          --num-gpus "$SLURM_GPUS_PER_NODE" \
+          --block &
+      
+      sleep 15 # Wait before starting the next worker to prevent race conditions.
+  done
+  echo All Ray workers started.
+
+  # Check cluster
+  singularity exec --nv $CONTAINER_PATH ray status
+  echo "============================================="
+
+  # Run command without srun
+  singularity exec --nv $CONTAINER_PATH $1
+
+}
+
+function ray_launcher (){
+
+  # Remove ray metadata if present
+  srun rm -rf /tmp/ray & disown
+
+  # This tells Tune to not change the working directory to the trial directory
+  # which makes relative paths accessible from inside a trial
+  export RAY_CHDIR_TO_TRIAL_DIR=0
+  export RAY_DEDUP_LOGS=0
+  export RAY_USAGE_STATS_DISABLE=1
+
+  # Disable colors in output
+  export RAY_COLOR_PREFIX=0
+
+  if [[ -n "${CONTAINER_PATH}" ]]; then
+    # CONTAINER_PATH is set and not empty
+    echo "CONTAINER_PATH is: $CONTAINER_PATH"
+    ray_launcher_container "$@"
+  else
+    # CONTAINER_PATH is either unset or empty
+    echo "No CONTAINER_PATH provided"
+    ray_launcher_venv "$@"
+  fi
+
 
 }
 

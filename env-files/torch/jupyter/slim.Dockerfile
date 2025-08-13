@@ -132,7 +132,6 @@ WORKDIR "$HOME/itwinai"
 COPY --chown=${NB_UID} pyproject.toml pyproject.toml
 COPY --chown=${NB_UID} src src
 
-
 RUN uv pip install --no-cache-dir --upgrade pip \
     && uv pip install --no-cache-dir \
     # Select from which index to install torch
