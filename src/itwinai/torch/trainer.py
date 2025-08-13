@@ -850,7 +850,6 @@ class TorchTrainer(Trainer, LogMixin):
             tune_run = self.mlflow_client.create_run(
                 self.mlflow_logger.experiment_id, run_name=self.run_name
             )
-            # Start and stop run to ensure it exists in MLflow before logging
             self.mlflow_tune_run_id = tune_run.info.run_id
 
         # Passes datasets to workers efficiently through Ray storage
@@ -936,9 +935,6 @@ class TorchTrainer(Trainer, LogMixin):
             worker_run_name = f"worker_{self.strategy.global_rank()}"
 
             if self.strategy.is_main_worker and self.mlflow_logger:
-                # Set the tracking uri and experiment for the main worker
-                mlflow.set_tracking_uri(self.mlflow_logger.tracking_uri)
-                mlflow.set_experiment(self.mlflow_logger.experiment_name)
                 # If a tune_run_id is set, we create a nested run (Ray)
                 if self.mlflow_tune_run_id:
                     train_run_name = ray.tune.get_context().get_trial_name()
@@ -966,11 +962,6 @@ class TorchTrainer(Trainer, LogMixin):
             self.mlflow_train_run_id = self.strategy.broadcast_obj(
                 self.mlflow_train_run_id or "", src_rank=0
             )
-            if self.mlflow_logger and not self.strategy.is_main_worker:
-                # Set the tracking uri and experiment for other workers after main worker
-                mlflow.set_tracking_uri(self.mlflow_logger.tracking_uri)
-                mlflow.set_experiment(self.mlflow_logger.experiment_name)
-
             py_logger.debug(
                 f"Broadcasted mlflow_trial_run_id {self.mlflow_train_run_id} to all workers"
             )

@@ -712,7 +712,12 @@ class MLFlowLogger(Logger):
 
     @property
     def experiment_id(self) -> str:
-        """Return the experiment id."""
+        """Return the experiment id. If not set yet, sets the experiment
+        with the name ``self.experiment_name`` and returns its id."""
+        if self._experiment_id is None:
+            self._experiment_id = self.mlflow.set_experiment(
+                experiment_name=self.experiment_name
+            ).experiment_id
         return self._experiment_id
 
 
