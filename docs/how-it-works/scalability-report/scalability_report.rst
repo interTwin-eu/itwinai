@@ -42,6 +42,16 @@ which can be toggled using the following flags in your training configuration:
       measure_epoch_time: True  # Measures avg. epoch time and rel. speedup
       ...
 
+``enable_torch_profiling`` will aggregate the times spent on unique operations.
+The raw traces data is stored with ``store_torch_profiling_traces``.
+As the traces get quite large quickly, keep the run time as short as acceptable for meaningful results.
+You can also tinker with the ``profiling_warmup_epochs``, ``profiling_wait_epochs`` and ``profiling_active_epochs``
+parameters to control how many epochs are profiled and when the profiling starts. After the warmup, the active epochs for profiling
+will be distributed evenly across all epochs. (e.g. 2 active epochs for 10 epochs will result in profiling every 5th epoch).
+
+Enabling the torch profiling will have a severe impact on runtime, so it is recommended to measure epoch time and GPU data
+(utilization and power consumption) in separation for the most realistic results.
+
 The epoch time is measured inside the ``train()`` function of the ``TorchTrainer``,
 while the remaining metrics are measured using the following decorators:
 
@@ -87,7 +97,7 @@ You can generate the report using the following command:
 
 .. code-block:: bash
 
-   itwinai generate-scalability-report
+   itwinai generate-scalability-report --experiment-name <mlflow_experiment_name>
 
 This command takes in some extra arguments that can be viewed with the ``--help`` flag:
 
@@ -95,9 +105,11 @@ This command takes in some extra arguments that can be viewed with the ``--help`
 
    itwinai generate-scalability-report --help
 
-When running this command by default, it will look in your ``scalability-metrics`` directory
-and look for the subdirectories listed above. Only the reports relevant to the subdirectories
-that are present will be created, while missing subdirectories will only result in a warning.
+This command expects to find all the data in one mlflow experiment.
+If the ``--tracking_uri`` flag is not specified, it expects the data in ``./mllogs/mlflow`` in
+the current working directory. 
+You can specify specific runs with ``--run-names`` flag. Per default all runs in the experiment
+are used.
 
 Example Results
 ---------------
