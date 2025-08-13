@@ -943,7 +943,7 @@ class TorchTrainer(Trainer, LogMixin):
             worker_run_name = f"worker_{self.strategy.global_rank()}"
 
             if self.strategy.is_main_worker and self.mlflow_logger:
-                # required so env vars are set correctly
+                # required so env vars are set correctly for ray
                 mlflow.set_tracking_uri(self.mlflow_logger.tracking_uri)
                 mlflow.set_experiment(self.mlflow_logger.experiment_name)
 
