@@ -63,7 +63,7 @@ function torchrun-launcher(){
     --rdzv_conf=is_host="$(( SLURM_NODEID == 0 ? 1 : 0 ))" \
     --rdzv_backend=c10d \
     --rdzv_endpoint="$MASTER_ADDR":"$MASTER_PORT" \
-    --redirects="$(((SLURM_NODEID)) && echo "3" || echo "1:3,2:3,3:3")" \
+    --redirects="$( $(( SLURM_NODEID )) && echo "3" || echo "1:3,2:3,3:3")" \
     --no-python'
   torchrun_command="$torchrun_command $1"
   srun --cpu-bind=none --ntasks-per-node=1 bash -c "$torchrun_command"
@@ -81,7 +81,7 @@ function torchrun-launcher-container(){
     --rdzv_conf=is_host="$(( SLURM_NODEID == 0 ? 1 : 0 ))" \
     --rdzv_backend=c10d \
     --rdzv_endpoint="$MASTER_ADDR":"$MASTER_PORT" \
-    --redirects="$(((SLURM_NODEID)) && echo "3" || echo "1:3,2:3,3:3")" \
+    --redirects="$( $(( SLURM_NODEID )) && echo "3" || echo "1:3,2:3,3:3")" \
     --no-python'
   torchrun_command="$torchrun_command $1"
   srun --cpu-bind=none --ntasks-per-node=1 "$CONTAINER_PATH" /bin/bash -c "$torchrun_command"
