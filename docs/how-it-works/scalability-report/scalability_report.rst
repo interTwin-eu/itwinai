@@ -111,8 +111,7 @@ This command takes in some extra arguments that can be viewed with the ``--help`
    itwinai generate-scalability-report --help
 
 This command expects to find all the data in one mlflow experiment.
-If the ``--tracking_uri`` flag is not specified, it expects the data in ``./mllogs/mlflow`` in
-the current working directory. 
+If the ``--tracking_uri`` flag is not specified, it expects the data in ``./mllogs/mlflow``.
 You can specify specific runs with ``--run-names`` flag. Per default all runs in the experiment
 are used.
 

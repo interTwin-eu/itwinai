@@ -334,12 +334,13 @@ def computation_fraction_bar_plot(
 
             ax.text(
                 x=x,
-                y=computation_frac + 0.01,
+                y=computation_frac + 0.02,
                 s=f"{computation_frac * 100:.1f}%",
                 ha="center",
                 va="bottom",
                 color="black",
-                fontsize=9,
+                fontsize=11,
+                bbox={"facecolor": "white", "alpha": 0.7, "edgecolor": "none"},
             )
 
             ax.bar(
@@ -443,12 +444,13 @@ def computation_vs_other_bar_plot(
 
             ax.text(
                 x=x,
-                y=computation_frac + 0.01,
+                y=computation_frac + 0.02,
                 s=f"{computation_frac * 100:.1f}%",
                 ha="center",
                 va="bottom",
                 color="black",
-                fontsize=9,
+                fontsize=11,
+                bbox={"facecolor": "white", "alpha": 0.7, "edgecolor": "none"},
             )
 
             ax.bar(
