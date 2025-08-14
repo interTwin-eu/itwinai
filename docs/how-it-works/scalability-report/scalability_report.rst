@@ -208,12 +208,12 @@ of nodes.
 MNIST Use Case
 ^^^^^^^^^^^^^^
 
-.. image:: ./images/mnist_absolute_epoch_time.png
+.. image:: ../images/scalability-plots/mnist/absolute_epoch_time.svg
 
 Virgo Use Case
 ^^^^^^^^^^^^^^
 
-.. image:: ./images/virgo_absolute_epoch_time.png
+.. image:: ../images/scalability-plots/virgo/absolute_epoch_time.svg
 
 Relative Epoch Time Speedup
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -223,12 +223,12 @@ strategy. The speedup is calculated using the lowest number of nodes as a baseli
 MNIST Use Case
 ^^^^^^^^^^^^^^
 
-.. image:: ./images/mnist_relative_epoch_time_speedup.png
+.. image:: ../images/scalability-plots/mnist/relative_epoch_time_speedup.svg
 
 Virgo Use Case
 ^^^^^^^^^^^^^^
 
-.. image:: ./images/virgo_relative_epoch_time_speedup.png
+.. image:: ../images/scalability-plots/virgo/relative_epoch_time_speedup.svg
 
 Computation vs other
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -240,9 +240,9 @@ are normalized to be between 0.0 and 1.0.
 MNIST Use Case
 ^^^^^^^^^^^^^^
 
-.. image:: ./images/mnist_computation_vs_other_plot.png
+.. image:: ../images/scalability-plots/mnist/computation_vs_other_plot.svg
 
 Virgo Use Case
 ^^^^^^^^^^^^^^
 
-.. image:: ./images/virgo_computation_vs_other_plot.png
+.. image:: ../images/scalability-plots/virgo/computation_vs_other_plot.svg
