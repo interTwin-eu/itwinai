@@ -43,17 +43,22 @@ which can be toggled using the following flags in your training configuration:
       ...
 
 ``enable_torch_profiling`` will aggregate the times spent on unique operations.
-The raw traces data is stored with ``store_torch_profiling_traces``.
-As the traces get quite large quickly, keep the run time as short as acceptable for meaningful results.
-You can also tinker with the ``profiling_warmup_epochs``, ``profiling_wait_epochs`` and ``profiling_active_epochs``
-parameters to control how many epochs are profiled and when the profiling starts. After the warmup, the active epochs for profiling
-will be distributed evenly across all epochs. (e.g. 2 active epochs for 10 epochs will result in profiling every 5th epoch).
+The raw traces are stored with ``store_torch_profiling_traces``. As the traces
+quickly get quite large, we advise you to keep the run time as short as
+acceptable for meaningful results. You can also tinker with the
+``profiling_warmup_epochs``, ``profiling_wait_epochs`` and
+``profiling_active_epochs`` parameters to control how many epochs are profiled
+and when the profiling starts. After the warmup, the active epochs for
+profiling will be distributed evenly across all epochs. (e.g. 2 active epochs
+for 10 epochs will result in profiling every 5th epoch).
 
-Enabling the torch profiling will have a severe impact on runtime, so it is recommended to measure epoch time and GPU data
-(utilization and power consumption) in separation for the most realistic results.
+Enabling the torch profiling will have a severe impact on runtime, so it is
+recommended to measure epoch time and GPU data (utilization and power
+consumption) in separation for the most realistic results.
 
-The epoch time is measured inside the ``train()`` function of the ``TorchTrainer``,
-while the remaining metrics are measured using the following decorators:
+The epoch time is measured inside the ``train()`` function of the
+``TorchTrainer``, while the remaining metrics are measured using the following
+decorators:
 
 - **PyTorch Profiler**: This profiler measures the time spent in computation vs. other
   operations in your distributed machine learning. This is done by comparing the time spent in
