@@ -137,7 +137,7 @@ HPC) with minimal code change.
 
 **Distributed training and inference**: `itwinai` supports multiple distributed
 ML training frameworks, including PyTorch-DDP, DeepSpeed, Horovod and
-Ray [@ray:2018]. The underlying implementation of these frameworks is hidden 
+Ray [@ray:2018]. The underlying implementation of these frameworks is hidden
 from the user and they can simply change the parallelization strategy through a
 flag, to investigate potential performance gains.
 

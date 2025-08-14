@@ -6,8 +6,8 @@
            version="5.3.1"
            xsi:schemaLocation="http://www.crossref.org/schema/5.3.1 http://www.crossref.org/schemas/crossref5.3.1.xsd">
   <head>
-    <doi_batch_id>20250814150235-51e2ce78be687f40a456d521626cb5352551b8a6</doi_batch_id>
-    <timestamp>20250814150235</timestamp>
+    <doi_batch_id>20250814150954-51e2ce78be687f40a456d521626cb5352551b8a6</doi_batch_id>
+    <timestamp>20250814150954</timestamp>
     <depositor>
       <depositor_name>JOSS Admin</depositor_name>
       <email_address>admin@theoj.org</email_address>
@@ -232,6 +232,28 @@
             <author>Liaw</author>
             <cYear>2018</cYear>
             <unstructured_citation>Liaw, R., Liang, E., Nishihara, R., Moritz, P., Gonzalez, J. E., &amp; Stoica, I. (2018). Tune: A research platform for distributed model selection and training. arXiv. https://arxiv.org/abs/1807.05118</unstructured_citation>
+          </citation>
+          <citation key="mlflow">
+            <article_title>Accelerating the Machine Learning Lifecycle with MLflow</article_title>
+            <author>Zaharia</author>
+            <journal_title>IEEE Data Eng. Bull.</journal_title>
+            <volume>41</volume>
+            <cYear>2018</cYear>
+            <unstructured_citation>Zaharia, M. A., Chen, A., Davidson, A., Ghodsi, A., Hong, S. A., Konwinski, A., Murching, S., Nykodym, T., Ogilvie, P., Parkhe, M., Xie, F., &amp; Zumar, C. (2018). Accelerating the Machine Learning Lifecycle with MLflow. IEEE Data Eng. Bull., 41, 39–45. https://api.semanticscholar.org/CorpusID:83459546</unstructured_citation>
+          </citation>
+          <citation key="wandb">
+            <article_title>Weights &amp; Biases</article_title>
+            <author>wandb Contributors</author>
+            <journal_title>GitHub repository</journal_title>
+            <cYear>2025</cYear>
+            <unstructured_citation>wandb Contributors. (2025). Weights &amp; Biases. In GitHub repository. GitHub. https://github.com/wandb/wandb</unstructured_citation>
+          </citation>
+          <citation key="tensorboard">
+            <article_title>TensorBoard</article_title>
+            <author>TensorBoard Contributors</author>
+            <journal_title>GitHub repository</journal_title>
+            <cYear>2025</cYear>
+            <unstructured_citation>TensorBoard Contributors. (2025). TensorBoard. In GitHub repository. GitHub. https://github.com/tensorflow/tensorboard</unstructured_citation>
           </citation>
           <citation key="yprovml">
             <article_title>yProvML</article_title>
