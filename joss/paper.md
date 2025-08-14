@@ -157,16 +157,9 @@ distributed studies (\autoref{fig:hpo}).
 about training time, GPU utilization and GPU power consumption.
 
 **ML logs tracking**:  `itwinai` integrates with existing ML logging frameworks,
-such as TensorBoard [^tensorboard], Mlflow [^mlflow], Weights&Biases [^wandb],
+such as TensorBoard [@tensorboard], Mlflow [@mlflow], Weights&Biases [@wandb],
 and yProvML [@yprovml] logger, and provides a unified interface across all of
 them through a thin abstraction layer.
-
-[^tensorboard]: TensorBoard logger: [www.tensorflow.org/tensorboard](https://www.tensorflow.org/tensorboard)
-(Accessed on 2025-08-14).
-
-[^mlflow]: MLflow logger: [mlflow.org](https://mlflow.org/) (Accessed on 2025-08-14).
-
-[^wandb]: Weights & Biases logger: [wandb.ai](https://wandb.ai/site/) (Accessed on 2025-08-14).
 
 **Offloading to HPC and Cloud**: To benefit from both cloud and HPC, interLink
 [@interlink] is used, a lightweight component to enable seamless offloading of
