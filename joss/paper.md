@@ -72,6 +72,8 @@ bibliography: paper.bib
 
 ---
 
+<!-- markdownlint-disable MD025 -->
+
 # Summary
 
 The integration of Artificial Intelligence (AI) into scientific research has
@@ -208,7 +210,7 @@ gravitational-wave analysis at the Virgo interferometer.
 
 To explain why performance degrades, `itwinai` integrates low-overhead,
 sample-based profiling (e.g., py-spy [@py_spy]) and summarizes flame-graph data
-into actionable hotspots (e.g., data loading/I-O, kernel execution, host–device
+into actionable hotspots (e.g., data loading and I/O, kernel execution, host–device
 transfer, communication). These summaries guide targeted remedies such as
 adjusting batch size, data-loader parallelism, gradient accumulation, or
 backend/collective settings.
