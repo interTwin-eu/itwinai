@@ -44,7 +44,7 @@ this target, as shown in the following example:
         measure_epoch_time: True
 
 
-The profiling data will be logged to the set loggers, if you want to generate a scalability
+The profiling data will be logged to the selected loggers, if you want to generate a scalability
 report afterwards, ensure that the the ``MLFlowLogger`` is set up in your configuration, as
 this is the data source used to generate the report.
 If you want a full example on how to set up your configuration, you can have a look at the
