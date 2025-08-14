@@ -12,7 +12,8 @@ We have the following scalability metrics available:
 
 - Absolute wall-clock time comparison
 - Relative wall-clock time speedup
-- Communication vs. Computation time
+- Computation vs. Other time
+- Communication vs. Computation time (deprecated)
 - GPU Utilization (%)
 - Power Consumption (Watt)
 

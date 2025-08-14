@@ -1,6 +1,10 @@
 # EURAC use case
 
-**Integration authors**: Jarl Sondre Saether (CERN), Henry Mutegeki (CERN), Iacopo Ferrario (EURAC), Matteo Bunino (CERN)
+**Integration authors**: Jarl Sondre Saether (CERN), Henry Mutegeki (CERN),
+Iacopo Ferrario (EURAC), Matteo Bunino (CERN), Linus Eickhoff (CERN)
+
+> [!WARNING] The code in this folder is no outdated and no longer maintained.
+> Please checkout the plugin's repository page [hython-itwinai-plugin](https://github.com/interTwin-eu/hython-itwinai-plugin) instead.
 
 ## Installation
 

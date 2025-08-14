@@ -1,8 +1,8 @@
 Drought Early Warning in the Alps (EURAC)
 =========================================
 
-You can find the relevant code for the EURAC use case in the 
-`use case's folder on Github <https://github.com/interTwin-eu/itwinai/tree/main/use-cases/eurac>`_,
+You can find the relevant code for the EURAC hython use case on the plugin's repository page
+`hython-itwinai-plugin <https://github.com/interTwin-eu/itwinai/tree/main/use-cases/eurac>`_,
 or by consulting the use case's README: 
 
 .. include:: ../../use-cases/eurac/README.md
@@ -11,6 +11,11 @@ or by consulting the use case's README:
 
 Scalability Metrics
 -------------------
+
+.. warning:: 
+    The scalability plots in here are outdated, the new plots are similar but are grouped by strategies instead
+    of number of nodes.
+
 Here are some examples of the scalability metrics for this use case: 
 
 Average Epoch Time Comparison
@@ -18,7 +23,7 @@ Average Epoch Time Comparison
 This plot shows a comparison between the average time per epochs for each strategy
 and number of nodes. 
 
-.. image:: ../../use-cases/eurac/scalability-plots/absolute_scalability_plot.png
+.. image:: ../images/scalability-plots/eurac/outdated/absolute_scalability_plot.png
 
 Relative Epoch Time Speedup
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -26,16 +31,25 @@ This plot shows a comparison between the speedup between the different number of
 for each strategy. The speedup is calculated using the lowest number of nodes as a
 baseline.
 
-.. image:: ../../use-cases/eurac/scalability-plots/relative_scalability_plot.png
+.. image:: ../images/scalability-plots/eurac/outdated/relative_scalability_plot.png
+
+Computation vs Other
+~~~~~~~~~~~~~~~~~~~~
+This plot shows how much of the GPU time is spent doing computation compared to
+all the other operations, for each strategy and number of nodes. The shaded
+area is showing all non-compute operations and the colored area is computation.
+They have all been normalized so that the values are between 0 and 1.0.
 
 Communication vs Computation
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+This plot is deprecated and has to be explicitly generated with the `--include-communication` flag.
+Computation vs Other is preferred as it is more comparable across different systems.
 This plot shows how much of the GPU time is spent doing computation compared to
 communication between GPUs and nodes, for each strategy and number of nodes. The shaded
 area is communication and the colored area is computation. They have all been
 normalized so that the values are between 0 and 1.0. 
 
-.. image:: ../../use-cases/eurac/scalability-plots/communication_plot.png
+.. image:: ../images/scalability-plots/eurac/outdated/communication_plot.png
 
 GPU Utilization
 ~~~~~~~~~~~~~~~
@@ -43,11 +57,11 @@ This plot shows how high the GPU utilization is for each strategy and number of 
 as a percentage from 0 to 100. This is the defined as how much of the time is spent
 in computation mode vs not, and does not directly correlate to FLOPs. 
 
-.. image:: ../../use-cases/eurac/scalability-plots/utilization_plot.png
+.. image:: ../images/scalability-plots/eurac/outdated/utilization_plot.png
 
 Power Consumption
 ~~~~~~~~~~~~~~~~~
 This plot shows the total energy consumption in watt-hours for the different strategies
 and number of nodes. 
 
-.. image:: ../../use-cases/eurac/scalability-plots/gpu_energy_plot.png
+.. image:: ../images/scalability-plots/eurac/outdated/gpu_energy_plot.png
