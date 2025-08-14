@@ -202,9 +202,9 @@ Figure (\autoref{fig:speedup}) and (\autoref{fig:compvsother}) show the
 scalability of the physics use case from INFN [@infn] targeting
 gravitational-wave analysis at the Virgo interferometer.
 
-![Virgo Relative Speedup.\label{fig:speedup}](img/virgo_relative_epoch_time_speedup.svg)
+![Virgo Relative Speedup.\label{fig:speedup}](img/virgo_relative_epoch_time_speedup.svg){ width=70% }
 
-![Virgo Computation vs. Other operations, including collective communication.\label{fig:compvsother}](img/virgo_computation_vs_other_plot.svg)
+![Virgo Computation vs. Other operations, including collective communication.\label{fig:compvsother}](img/virgo_computation_vs_other_plot.svg){ width=110% }
 
 ## Addressing bottlenecks
 

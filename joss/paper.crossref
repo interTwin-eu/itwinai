@@ -6,8 +6,8 @@
            version="5.3.1"
            xsi:schemaLocation="http://www.crossref.org/schema/5.3.1 http://www.crossref.org/schemas/crossref5.3.1.xsd">
   <head>
-    <doi_batch_id>20250814134036-51e2ce78be687f40a456d521626cb5352551b8a6</doi_batch_id>
-    <timestamp>20250814134036</timestamp>
+    <doi_batch_id>20250814141210-51e2ce78be687f40a456d521626cb5352551b8a6</doi_batch_id>
+    <timestamp>20250814141210</timestamp>
     <depositor>
       <depositor_name>JOSS Admin</depositor_name>
       <email_address>admin@theoj.org</email_address>
@@ -205,16 +205,28 @@
             <unstructured_citation>interLink. (2025). interTwin Community. https://github.com/interLink-hq/interLink</unstructured_citation>
           </citation>
           <citation key="horovod">
-            <article_title>Horovod</article_title>
-            <unstructured_citation>Horovod. (n.d.). Retrieved April 24, 2025, from https://horovod.readthedocs.io/en/latest/index.html#</unstructured_citation>
+            <article_title>Horovod: fast and easy distributed deep learning in TensorFlow</article_title>
+            <author>Sergeev</author>
+            <journal_title>arXiv:1802.05799</journal_title>
+            <doi>10.48550/arXiv.1802.05799</doi>
+            <cYear>2018</cYear>
+            <unstructured_citation>Sergeev, A., &amp; Del Balso, M. (2018). Horovod: fast and easy distributed deep learning in TensorFlow. arXiv:1802.05799. https://doi.org/10.48550/arXiv.1802.05799</unstructured_citation>
           </citation>
           <citation key="deepspeed">
-            <article_title>DeepSpeed</article_title>
-            <unstructured_citation>DeepSpeed. (n.d.). Retrieved April 24, 2025, from https://www.deepspeed.ai/</unstructured_citation>
+            <article_title>Deepspeed: System optimizations enable training deep learning models with over 100 billion parameters</article_title>
+            <author>Rasley</author>
+            <journal_title>Proc. 26th ACM SIGKDD international conference on knowledge discovery &amp; data mining</journal_title>
+            <doi>10.1145/3394486.3406703</doi>
+            <cYear>2020</cYear>
+            <unstructured_citation>Rasley, J., Rajbhandari, S., Ruwase, O., &amp; He, Y. (2020). Deepspeed: System optimizations enable training deep learning models with over 100 billion parameters. Proc. 26th ACM SIGKDD International Conference on Knowledge Discovery &amp; Data Mining, 3505–3506. https://doi.org/10.1145/3394486.3406703</unstructured_citation>
           </citation>
           <citation key="torch_ddp">
-            <article_title>PyTorch Distributed Data Parallel</article_title>
-            <unstructured_citation>PyTorch Distributed Data Parallel. (n.d.). Retrieved April 24, 2025, from https://pytorch.org/tutorials/intermediate/ddp_tutorial.html</unstructured_citation>
+            <article_title>Pytorch Distributed: Experiences on accelerating data parallel training</article_title>
+            <author>Li</author>
+            <journal_title>arXiv:2006.15704</journal_title>
+            <doi>10.48550/arXiv.2006.15704</doi>
+            <cYear>2020</cYear>
+            <unstructured_citation>Li, S., Zhao, Y., Varma, R., Salpekar, O., Noordhuis, P., Li, T., Paszke, A., Smith, J., Vaughan, B., Damania, P., &amp; others. (2020). Pytorch Distributed: Experiences on accelerating data parallel training. arXiv:2006.15704. https://doi.org/10.48550/arXiv.2006.15704</unstructured_citation>
           </citation>
           <citation key="infn">
             <article_title>Istituto Nazionale di Fisica Nucleare</article_title>
