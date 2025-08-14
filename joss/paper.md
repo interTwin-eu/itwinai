@@ -185,7 +185,7 @@ link](https://itwinai.readthedocs.io/latest/getting-started/plugins-list.html).
 enabling efficient and accountable use of HPC resources. Two complementary
 components are provided: scalability report generation and profiling.
 
-**Scalability Report**
+## Scalability Report
 
 For data-parallel training, throughput improves with worker count while
 all-reduce communication costs grow, until communication overhead dominates and
@@ -204,7 +204,7 @@ gravitational-wave analysis at the Virgo interferometer.
 
 ![Virgo Computation vs. Other operations, including collective communication.\label{fig:compvsother}](img/virgo_computation_vs_other_plot.svg)
 
-**Addressing bottlenecks**
+## Addressing bottlenecks
 
 To explain why performance degrades, `itwinai` integrates low-overhead,
 sample-based profiling (e.g., py-spy [@py_spy]) and summarizes flame-graph data
