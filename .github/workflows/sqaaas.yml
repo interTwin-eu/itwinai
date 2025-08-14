@@ -20,9 +20,10 @@ jobs:
         with:
           name: workflow_validation_step
           tool: commands
+
+          # Skipping tensorflow tests: make tensorflow-env-cpu
           commands: |
             make torch-env-cpu
-            make tensorflow-env-cpu
             .venv-pytorch/bin/pytest -v ./tests/ -m "not hpc and not memory_heavy and not tensorflow"
           container: eoscsynergy/sqaaas-micromamba:1.5.3-1-rc.8
       - name: Print out payload
