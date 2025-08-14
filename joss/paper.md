@@ -206,10 +206,8 @@ backends, reporting wall-clock epoch time, relative speedup
 (\autoref{fig:speedup}), GPU utilization (0–100%), energy (Wh), and
 compute-versus-other time (\autoref{fig:compvsother}). Considered jointly, these
 metrics identify the most efficient configuration and distribution strategy,
-rather than relying on a single indicator.
-
-Figure (\autoref{fig:speedup}) and (\autoref{fig:compvsother}) show the
-scalability of the physics use case from INFN [^infn] targeting
+rather than relying on a single indicator. \autoref{fig:speedup} and \autoref{fig:compvsother}
+show the scalability of the physics use case from INFN [^infn] targeting
 gravitational-wave analysis at the Virgo interferometer.
 
 [^infn]: Istituto Nazionale di Fisica Nucleare [infn.it](https://www.infn.it/en/)
