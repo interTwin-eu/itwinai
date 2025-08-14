@@ -116,12 +116,15 @@ work seamlessly from laptops to supercomputers with minimal changes.
 
 Built with a modular architecture, `itwinai` enables component integration and
 plugin-based extensions for independent development of scientific use cases.
-Developed as part of the interTwin [@intertwin_eu] project to support Digital
+Developed as part of the interTwin [^intertwin_eu] project to support Digital
 Twin applications across physics to environmental sciences, the library has
 proven versatile for general AI applications. By consolidating diverse
 functionalities into a single framework, `itwinai` significantly lowers the
 barrier to HPC adoption and empowers the scientific community to scale AI
 workloads efficiently.
+
+[^intertwin_eu]: interTwin project: [intertwin.eu](https://www.intertwin.eu/)
+(Accessed on 2025-08-14).
 
 # Package Features
 
@@ -154,9 +157,16 @@ distributed studies (\autoref{fig:hpo}).
 about training time, GPU utilization and GPU power consumption.
 
 **ML logs tracking**:  `itwinai` integrates with existing ML logging frameworks,
-such as TensorBoard [@tensorboard], Mlflow [@mlflow], Weights&Biases [@wandb],
+such as TensorBoard [^tensorboard], Mlflow [^mlflow], Weights&Biases [^wandb],
 and yProvML [@yprovml] logger, and provides a unified interface across all of
 them through a thin abstraction layer.
+
+[^tensorboard]: TensorBoard logger: [www.tensorflow.org/tensorboard](https://www.tensorflow.org/tensorboard)
+(Accessed on 2025-08-14).
+
+[^mlflow]: MLflow logger: [mlflow.org](https://mlflow.org/) (Accessed on 2025-08-14).
+
+[^wandb]: Weights & Biases logger: [wandb.ai](https://wandb.ai/site/) (Accessed on 2025-08-14).
 
 **Offloading to HPC and Cloud**: To benefit from both cloud and HPC, interLink
 [@interlink] is used, a lightweight component to enable seamless offloading of
@@ -164,10 +174,17 @@ compute-intensive jobs from cloud and HPC, performing an automatic translation
 from Kubernetes pods to SLURM jobs.
 
 **Continuous Integration and Development** `itwinai` includes extensive tests
-(library and use cases). A Dagger pipeline [@dagger] builds containers on
+(library and use cases). A Dagger pipeline [^dagger] builds containers on
 release, runs smoke tests on GitHub Actions (Azure runners: 4 CPUs, 16 GB)
-[@choosing_gh_runners], offloads distributed tests to HPC via interLink, and
+[^choosing_gh_runners], offloads distributed tests to HPC via interLink, and
 publishes on success.
+
+[^dagger]: Dagger: [dagger.io](https://dagger.io/) (Accessed on 2025-08-14).
+
+[^choosing_gh_runners]: GitHub hosted runners define the type of machine that will process a job
+in your workflow.
+[Find more here](https://docs-internal.github.com/en/actions/how-tos/write-workflows/choose-where-workflows-run/choose-the-runner-for-a-job?utm_source=chatgpt.com)
+(Accessed on 2025-08-14).
 
 # Use-case integrations
 
@@ -199,12 +216,19 @@ metrics identify the most efficient configuration and distribution strategy,
 rather than relying on a single indicator.
 
 Figure (\autoref{fig:speedup}) and (\autoref{fig:compvsother}) show the
-scalability of the physics use case from INFN [@infn] targeting
+scalability of the physics use case from INFN [^infn] targeting
 gravitational-wave analysis at the Virgo interferometer.
 
-![Relative speedup of average epoch time vs. number of workers for the Virgo use case.\label{fig:speedup}](img/virgo_relative_epoch_time_speedup.svg){ width=70% }
+[^infn]: Istituto Nazionale di Fisica Nucleare [infn.it](https://www.infn.it/en/)
+(Accessed on 2025-08-14).
 
-![Proportion of time spent on computation versus other operations, such as collective communication, in the Virgo use case, broken down by number of workers and distributed framework.\label{fig:compvsother}](img/virgo_computation_vs_other_plot.svg){ width=110% }
+![Relative speedup of average epoch time vs. number of workers for the Virgo use
+case.\label{fig:speedup}](img/virgo_relative_epoch_time_speedup.svg){ width=70% }
+
+![Proportion of time spent on computation versus other operations, such as
+collective communication, in the Virgo use case, broken down by number of
+workers and distributed framework
+\label{fig:compvsother}](img/virgo_computation_vs_other_plot.svg){ width=110% }
 
 ## Addressing bottlenecks
 
