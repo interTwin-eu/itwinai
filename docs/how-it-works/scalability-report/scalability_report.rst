@@ -48,9 +48,9 @@ quickly get quite large, we advise you to keep the run time as short as
 acceptable for meaningful results. You can also tinker with the
 ``profiling_warmup_epochs``, ``profiling_wait_epochs`` and
 ``profiling_active_epochs`` parameters to control how many epochs are profiled
-and when the profiling starts. After the warmup, the active epochs for
-profiling will be distributed evenly across all epochs. (e.g. 2 active epochs
-for 10 epochs will result in profiling every 5th epoch).
+and when the profiling starts. The warmup epochs will run first, then it alternates
+between the wait epochs and the active epochs, where the profiling is
+done until all epochs are done.
 
 Enabling the torch profiling will have a severe impact on runtime, so it is
 recommended to measure epoch time and GPU data (utilization and power
