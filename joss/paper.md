@@ -36,6 +36,7 @@ authors:
     surname: Mutegeki
     email: henry.mutegeki@cern.ch
     affiliation: 1
+    orcid: 0009-0001-9940-1167
   - given-names: Roman
     surname: Machacek
     email: roman.machacek@cern.ch
@@ -202,9 +203,9 @@ Figure (\autoref{fig:speedup}) and (\autoref{fig:compvsother}) show the
 scalability of the physics use case from INFN [@infn] targeting
 gravitational-wave analysis at the Virgo interferometer.
 
-![Virgo Relative Speedup.\label{fig:speedup}](img/virgo_relative_epoch_time_speedup.svg){ width=70% }
+![Relative speedup of average epoch time vs. number of workers for the Virgo use case.\label{fig:speedup}](img/virgo_relative_epoch_time_speedup.svg){ width=70% }
 
-![Virgo Computation vs. Other operations, including collective communication.\label{fig:compvsother}](img/virgo_computation_vs_other_plot.svg){ width=110% }
+![Proportion of time spent on computation versus other operations, such as collective communication, in the Virgo use case, broken down by number of workers and distributed framework.\label{fig:compvsother}](img/virgo_computation_vs_other_plot.svg){ width=110% }
 
 ## Addressing bottlenecks
 
