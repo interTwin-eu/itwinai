@@ -133,16 +133,15 @@ reproducible and portable executions across environments (workstation, cloud,
 HPC) with minimal code change.
 
 **Distributed training and inference**: `itwinai` supports multiple distributed
-ML training frameworks, including PyTorch-DDP [@torch_ddp], DeepSpeed
-[@deepspeed], Horovod [@horovod] and Ray [@ray:2018]. The underlying
-implementation of these frameworks is hidden from the user and they can simply
-change the parallelization strategy through a flag, to investigate potential
-performance gains.
+ML training frameworks, including PyTorch-DDP, DeepSpeed, Horovod and
+Ray [@ray:2018]. The underlying implementation of these frameworks is hidden 
+from the user and they can simply change the parallelization strategy through a
+flag, to investigate potential performance gains.
 
 <!-- ![Distributed Data Parallel](img/distributed_data_parallel.pdf) -->
 
 **HPO** systematically improves model performance by searching the
-hyperparameter space. Leveraging Ray [@ray_tune], itwinai scales HPO across HPC systems by
+hyperparameter space. Leveraging Ray, itwinai scales HPO across HPC systems by
 (i) assigning multiple workers to a single trial (e.g., data-parallel training)
 and (ii) running many trials concurrently to exploit massive parallelism. It
 also provides robust scheduling and fine-grained resource management for large,
