@@ -83,6 +83,7 @@ on whether you want ``PyTorch`` or ``TensorFlow`` support:
         therefore you'll have to build it yourself in your python environment:
 
             .. code-block:: bash
+
                 # Create the venv
                 uv venv
 
