@@ -56,7 +56,6 @@ on whether you want ``PyTorch`` or ``TensorFlow`` support:
 
                     ml --force purge
                     ml CMake/3.29.3-GCCcore-13.3.0
-                    ml mpi4py/3.1.5
                     ml OpenMPI/4.1.6-GCC-13.2.0
                     ml cuDNN/8.9.7.29-CUDA-12.3.0
                     ml CUDA/12.6.0
@@ -72,7 +71,6 @@ on whether you want ``PyTorch`` or ``TensorFlow`` support:
 
                     ml --force purge
                     ml CMake/3.29.3-GCCcore-13.3.0
-                    ml mpi4py/3.1.5
                     ml OpenMPI/4.1.6-GCC-13.2.0
                     ml cuDNN/8.9.7.29-CUDA-12.3.0
                     ml CUDA/12.6.0
@@ -80,6 +78,16 @@ on whether you want ``PyTorch`` or ``TensorFlow`` support:
                     ml Python/3.12.3-GCCcore-13.3.0
 
                     # Now you can create or active the python environment here
+        
+        Currently, the latest version of ``mpi4py`` on Vega is not compatible with Python 3.12,
+        therefore you'll have to build it yourself in your python environment:
+
+            .. code-block:: bash
+
+                # Create the venv
+                uv venv
+
+                uv pip install --no-cache-dir --force-reinstall --no-binary=mpi4py mpi4py
 
 
     .. tab-item:: LUMI
