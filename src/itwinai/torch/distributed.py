@@ -1086,8 +1086,6 @@ class HorovodStrategy(TorchDistributedStrategy):
         return self.hvd.broadcast_object(obj, root_rank=src_rank)
 
 
-
-
 class NonDistributedStrategy(TorchDistributedStrategy):
     """Dummy class for non-distributed environments."""
 
