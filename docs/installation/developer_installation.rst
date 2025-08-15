@@ -58,7 +58,7 @@ Below you can find complete commands for installation, depending on if you are i
 
 .. tab-set:: 
 
-    .. tab-item:: Local (CPU)
+    .. tab-item:: Local
     
         .. code-block:: bash
 
@@ -67,30 +67,17 @@ Below you can find complete commands for installation, depending on if you are i
             # Or alternatively, using pip
             uv pip install -e ".[torch,dev]"
 
-    
-    .. tab-item:: Local (CUDA)
 
-        .. code-block:: bash
+    .. tab-item:: HPC
 
-            uv sync --extra torch --extra dev
-            
-            # Or alternatively, using pip
-            uv pip install -e ".[torch,dev]" \
-                --extra-index-url https://download.pytorch.org/whl/cu121
-
-
-    .. tab-item:: HPC (CUDA)
-
-        Note: This is the same as ``Local (CUDA)`` but without using the cache directory.
+        Note: This is the same as ``Local`` but without using the cache directory.
 
         .. code-block:: bash
             
-            uv sync --extra torch --extra dev
+            uv sync --extra torch --extra dev --no-cache
             
             # Or alternatively, using pip
-            uv pip install -e ".[torch,dev]" \
-                --no-cache-dir \
-                --extra-index-url https://download.pytorch.org/whl/cu121
+            uv pip install -e ".[torch,dev]" --no-cache-dir
 
 .. Explanation for installing horovod, DS, and other packages that need to be installed AFTER itwinai
 .. include:: ./post_itwinai_installation.rst

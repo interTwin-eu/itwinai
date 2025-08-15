@@ -6,13 +6,13 @@
 
     .. code-block:: bash
 
-       uv pip install "prov4ml[nvidia]@git+https://github.com/matbun/ProvML@v0.0.1"
+       uv pip install "prov4ml[nvidia]@git+https://github.com/matbun/ProvML@v0.0.2"
 
     For macOS:
 
     .. code-block:: bash
 
-       uv pip install "prov4ml[apple]@git+https://github.com/matbun/ProvML@v0.0.1"
+       uv pip install "prov4ml[apple]@git+https://github.com/matbun/ProvML@v0.0.2"
 
 
 Installing Horovod and Microsoft DeepSpeed
