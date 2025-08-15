@@ -28,6 +28,7 @@ authors:
     surname: Tsolaki
     email: kalliopi.tsolaki@cern.ch
     affiliation: 1
+    orcid: 0000-0002-3192-4260
   - given-names: Killian
     surname: Verder
     email: killian.verder@cern.ch
