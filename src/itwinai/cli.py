@@ -20,6 +20,7 @@
 # NOTE: import libraries in the command's function, not here, as having them here will
 # slow down the CLI commands significantly.
 
+import importlib.metadata as im
 import logging
 import os
 import subprocess
@@ -39,6 +40,34 @@ app = typer.Typer(pretty_exceptions_enable=False)
 
 py_logger = logging.getLogger(__name__)
 cli_logger = logging.getLogger("cli_logger")
+
+
+def _version_callback(value: bool):
+    if not value:
+        return
+    try:
+        ver = im.version("itwinai")
+    except im.PackageNotFoundError:
+        ver = "0+unknown"
+    typer.echo(f"itwinai {ver}")
+    raise typer.Exit()
+
+
+@app.callback(invoke_without_command=True)
+def _root(
+    version: bool = typer.Option(
+        False,
+        "--version",
+        "-v",
+        help="Show version and exit.",
+        callback=_version_callback,
+        is_eager=True,
+        expose_value=False,  # don’t pass into _root
+    ),
+):
+    """itwinai command line interface."""
+    # no-op; options like --version are handled eagerly
+    return
 
 
 @app.command()
