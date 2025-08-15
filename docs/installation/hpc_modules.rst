@@ -79,7 +79,7 @@ on whether you want ``PyTorch`` or ``TensorFlow`` support:
 
                     # Now you can create or active the python environment here
         
-        As of now, the latest version of ``mpi4py`` on Vega is not compatible with Python 3.12,
+        Currently, the latest version of ``mpi4py`` on Vega is not compatible with Python 3.12,
         therefore you'll have to build it yourself in your python environment:
 
             .. code-block:: bash
