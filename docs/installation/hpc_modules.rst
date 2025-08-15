@@ -41,10 +41,13 @@ on whether you want ``PyTorch`` or ``TensorFlow`` support:
 
         Modules for `Vega <https://doc.vega.izum.si/introduction/>`_ Supercomputer. 
         
-        When installing the environment from the login node, make sure that the CUDA drivers are loaded correctly and the GPU
-        is visible by running the `nvidia-smi` command. If the GPU is not correctly visualized, consider logging-in again to
-        another login node. Alternatively, consider running the installation on a compute node. 
-
+        When installing the environment from the login node, make sure that the
+        CUDA drivers are loaded correctly and the GPU is visible by running the
+        `nvidia-smi` command. This is very important for a successful
+        installation of DeepSpeed and Horovod. If the GPU is not correctly
+        visualized, consider logging-in again to another login node.
+        Alternatively, consider running the installation on a compute node. 
+        
         .. tab-set::
 
             .. tab-item:: PyTorch
