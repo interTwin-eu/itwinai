@@ -1,4 +1,6 @@
 *.pdf
+# Add JOSS images
+!joss/img/*.pdf
 *_logs
 logs_*
 TODO
