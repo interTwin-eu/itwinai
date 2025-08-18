@@ -3,8 +3,61 @@ name: Testing with pytest
 on:
   pull_request:
     branches: [main, dev]
-
+  push:
+    branches: [juwels-runner]
 jobs:
+  test-on-juwels:
+    name: Testing with Pytest on self-hosted runner on JUWELS Booster
+    if: github.ref == 'refs/heads/juwels-runner'
+    runs-on: [self-hosted, linux]
+    env:
+      GITHUB_WORKSPACE: /p/project1/intertwin/krochak1/itwinai
+      SLURM_SCRIPT: /p/project1/intertwin/juwels-selfhosted-runner/RUNNER/batch-pytest.sh
+      SLURM_LOGS: /p/project1/intertwin/juwels-selfhosted-runner/RUNNER/slurm-logs
+      
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Submit and monitor SLURM job
+        run: |
+          cd $GITHUB_WORKSPACE || exit 
+
+          echo "Submitting job..."
+          JOBID=$(sbatch --parsable "$SLURM_SCRIPT")
+          echo "Submitted as $JOBID"
+          echo "JOBID=$JOBID" >> $GITHUB_ENV
+
+          echo "Waiting for job to complete..."
+          while squeue -j "$JOBID" 2>/dev/null | grep -q "$JOBID"; do
+            sleep 10
+          done
+
+          echo "Job $JOBID appears to have finished."
+
+          echo "Querying SLURM exit code..."
+          EXIT_CODE=$(sacct -j "${JOBID}.batch" --format=ExitCode -n | awk '{print $1}' | cut -d':' -f1)
+
+          if [[ -z "$EXIT_CODE" ]]; then
+            echo "ERROR: Could not retrieve exit code from sacct."
+            exit 1
+          fi
+
+          if [[ "$EXIT_CODE" -ne 0 ]]; then
+            echo "SLURM job failed with exit code $EXIT_CODE"
+            exit 1
+          else
+            echo "SLURM job completed successfully with exit code 0"
+          fi
+
+      - name: Read SLURM logs 
+        run: |
+          echo "=== SLURM STDOUT ==="
+          cat "${SLURM_LOGS}/output.${JOBID}.out" || echo "No output file found."
+
+          echo "=== SLURM STDERR ==="
+          cat "${SLURM_LOGS}/error.${JOBID}.out" || echo "No error file found."
+
   test-torch:
     name: Testing with pytest
     runs-on: ubuntu-latest
@@ -25,7 +78,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Move Docker directory
-        shell: bash
+        shell: bash 
         run: |
           sudo mv /var/lib/docker /docker/ &&
           sudo ln -s /docker/docker /var/lib/docker &&
@@ -47,30 +100,3 @@ jobs:
           cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
           version: latest
 
-  # test-torch:
-  #   name: Testing with pytest
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - uses: actions/checkout@v4
-
-  #     - name: Set up Python 3.11.9
-  #       uses: actions/setup-python@v5
-  #       with:
-  #         python-version: 3.11.9
-
-  #     - name: Make PyTorch virtualenv
-  #       shell: bash -l {0}
-  #       run: make torch-env-cpu
-
-  #     # Comment this back in to also build tensorflow env
-  #     # - name: Make Tensorflow virtualenv
-  #     #   shell: bash -l {0}
-  #     #   run: make tensorflow-env-cpu
-
-  #     # NOTE, to change the name of the env in which tests are run, set custom TORCH_ENV
-  #     # and TF_ENV env variables. Default environment names are ".venv-pytorch" and
-  #     # ".venv-tf"
-
-  #     - name: Run pytest for workflows
-  #       shell: bash -l {0}
-  #       run: .venv-pytorch/bin/pytest -v -n logical ./tests/ -m "not hpc and not tensorflow"
