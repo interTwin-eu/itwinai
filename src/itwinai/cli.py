@@ -623,23 +623,28 @@ def install_plugins(config):
 def run(
     config: Annotated[
         str,
-        typer.Option("--config", help="Path or URL to a configuration file in yaml format."),
+        typer.Option(
+            "-c", "--config", help="Path or URL to a configuration file in yaml format."
+        ),
     ],
 ):
+    """Launch ML jobs with dependency installation and SLURM scheduling."""
     from argparse import ArgumentParser
 
     from omegaconf import DictConfig, ListConfig, OmegaConf
 
     del sys.argv[0]
 
-    parser = ArgumentParser()
-    parser.add_argument(
-        "-c", "--config", help="Path or URL to a configuration file in yaml format."
-    )
-    args = parser.parse_args()
-
     if not OmegaConf.has_resolver("itwinai.cwd"):
         OmegaConf.register_new_resolver("itwinai.cwd", os.getcwd)
+
+    run_parser = ArgumentParser()
+    run_parser.add_argument(
+        "-c",
+        "--config",
+        help="Path or URL to configuration file in yaml format.",
+    )
+    args = run_parser.parse_args()
 
     config_file: DictConfig | ListConfig
     if url(args.config):
@@ -651,23 +656,22 @@ def run(
         cli_logger.error("'slurm_config' needs to be present in config, but was not!")
         raise typer.Exit(1)
 
-    install_plugins(config=config_file)
+    # install_plugins(config=config_file)
 
     slurm_config = config_file.slurm_config
 
-    # cast() to make the linter happy
+    # cast to make the linter happy
     slurm_config_dict = cast(Dict[str, Any], OmegaConf.to_object(slurm_config))
     if not isinstance(slurm_config_dict, dict):
-        cli_logger.error(
-            "The SLURM configuration configuration was not of type dict, which is must be!"
-        )
+        cli_logger.error("The SLURM configuration was not of type dict, which is must be!")
         raise typer.Exit(1)
 
     # The parser requires a metadata field so we add an empty one
     slurm_config_dict.update({"metadata": {}})
-    slurm_parser = get_slurm_job_parser()
 
+    slurm_parser = get_slurm_job_parser()
     values = slurm_parser.parse_object(slurm_config_dict)
+    print(type(values))
     num_tasks_per_node = 1
 
     slurm_script_configuration = SlurmScriptConfiguration(
