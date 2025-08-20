@@ -13,7 +13,7 @@ import subprocess
 from collections.abc import Iterable
 from pathlib import Path
 from tempfile import NamedTemporaryFile
-from typing import Dict, Literal
+from typing import Dict, List, Literal
 
 import typer
 from requests.exceptions import RequestException
@@ -242,7 +242,7 @@ class MLSlurmBuilder(SlurmScriptBuilder):
         py_spy_profiling: bool = False,
         profiling_sampling_rate: int = 10,
         experiment_name: str = "main_experiment",
-        run_name: str = "run1"
+        run_name: str = "run1",
     ):
         super().__init__(
             slurm_script_configuration=slurm_script_configuration,
@@ -494,13 +494,22 @@ def generate_default_slurm_script() -> None:
         py_spy_profiling=args.py_spy,
         profiling_sampling_rate=args.profiling_sampling_rate,
         experiment_name=args.exp_name,
-        run_name=args.run_name
+        run_name=args.run_name,
     )
 
     mode = args.mode
+    node_list = args.scalability_nodes
+    process_builder(slurm_script_builder=slurm_script_builder, mode=mode, node_list=node_list)
+
+
+def process_builder(
+    slurm_script_builder: MLSlurmBuilder,
+    mode: Literal["single", "runall", "scaling-test"],
+    node_list: List,
+):
     if mode == "single":
         slurm_script_builder.process_script()
     elif mode == "runall":
         slurm_script_builder.process_all_strategies()
     elif mode == "scaling-test":
-        slurm_script_builder.process_scaling_test(num_nodes_list=args.scalability_nodes)
+        slurm_script_builder.process_scaling_test(num_nodes_list=node_list)
