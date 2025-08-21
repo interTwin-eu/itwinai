@@ -4,28 +4,34 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## About itwinai
 
-itwinai is a Python toolkit designed for AI and machine learning workflows in digital twin applications. It's developed by CERN in collaboration with Forschungszentrum Jülich (FZJ) and provides distributed training, hyperparameter optimization on HPC systems, and integrated ML logging capabilities.
+itwinai is a Python toolkit designed for AI and machine learning workflows in digital twin applications.
+It's developed by CERN in collaboration with Forschungszentrum Jülich (FZJ) and provides distributed
+training, hyperparameter optimization on HPC systems, and integrated ML logging capabilities.
 
 ## Development Commands
 
 ### Installation and Environment Setup
+
 - **Developer installation**: `uv pip install -e ".[dev,torch]"` (editable install with dev dependencies and PyTorch support)
 - **PyTorch environment**: `make torch-env` (GPU support) or `make torch-env-cpu` (CPU only)
 - **TensorFlow environment**: `make tensorflow-env` (GPU support) or `make tensorflow-env-cpu` (CPU only) - rarely used
 - **Documentation environment**: `make docs-env-jsc` (JSC-specific)
 
 ### Testing
+
 - **Run all tests**: `make test` or `.venv/bin/pytest -v tests/`
 - **Local tests (skip HPC)**: `make test-local` or `PYTORCH_ENABLE_MPS_FALLBACK=1 .venv/bin/pytest -v tests/ -m "not hpc"`
 - **JSC-specific tests**: `make test-jsc`
 - **Functional tests**: `pytest -v tests/ -m "functional"`
 
 ### Code Quality
+
 - **Linting**: `ruff check src/` (configured in pyproject.toml)
 - **Formatting**: `ruff format src/`
 - **Type checking**: Uses pyright (configured in pyproject.toml)
 
 ### CLI Usage
+
 - **Main CLI entry point**: `itwinai --help`
 - **Execute pipeline**: `itwinai exec-pipeline --config config.yaml --pipe-key training_pipeline`
 - **Generate flamegraph**: `itwinai generate-flamegraph --file profiling_data.out`
@@ -35,7 +41,8 @@ itwinai is a Python toolkit designed for AI and machine learning workflows in di
 
 ### Core Components (`src/itwinai/`)
 
-**Pipeline System**: The framework is built around a modular component system where ML workflows are composed of `BaseComponent` objects arranged in `Pipeline` sequences.
+**Pipeline System**: The framework is built around a modular component system where ML workflows are
+composed of `BaseComponent` objects arranged in `Pipeline` sequences.
 
 - `components.py`: Base classes for all workflow components (`BaseComponent`, `Trainer`, etc.)
 - `pipeline.py`: `Pipeline` class that executes components sequentially, passing outputs to inputs
@@ -71,15 +78,19 @@ The framework uses **Hydra + OmegaConf** for configuration management:
 
 ### Key Patterns
 
-**Component-Based Architecture**: All workflow steps inherit from `BaseComponent` and implement an `execute()` method. Components can be chained in pipelines or used standalone.
+**Component-Based Architecture**: All workflow steps inherit from `BaseComponent` and implement an
+`execute()` method. Components can be chained in pipelines or used standalone.
 
-**Multi-Framework Support**: The same pipeline definition works with PyTorch or TensorFlow by swapping trainer components.
+**Multi-Framework Support**: The same pipeline definition works with PyTorch or TensorFlow by
+swapping trainer components.
 
-**HPC-First Design**: Built for supercomputing environments with automatic SLURM integration, multi-node scaling, and HPC-specific optimizations.
+**HPC-First Design**: Built for supercomputing environments with automatic SLURM integration,
+multi-node scaling, and HPC-specific optimizations.
 
 ## Working with Use Cases
 
 The `use-cases/` directory contains complete examples:
+
 - `mnist/torch/`: PyTorch MNIST training with distributed support
 - `3dgan/`: Generative adversarial network for 3D data
 - `virgo/`: Gravitational wave detection
@@ -87,6 +98,7 @@ The `use-cases/` directory contains complete examples:
 - `lattice-qcd/`: Quantum chromodynamics simulations
 
 Each use case includes:
+
 - `config.yaml`: Pipeline configuration
 - `slurm_config.yaml`: HPC job configuration  
 - `trainer.py`: Custom trainer implementation
@@ -95,6 +107,7 @@ Each use case includes:
 ## Plugin System
 
 itwinai supports plugins for extending functionality:
+
 - Plugins installed via `uv pip install git+<plugin-repo>`
 - Declared in configs: `plugins: [git+https://github.com/user/itwinai-plugin]`
 - Plugins can add new components, trainers, or data loaders
@@ -102,6 +115,7 @@ itwinai supports plugins for extending functionality:
 ## Testing Strategy
 
 Tests are organized by component type:
+
 - `tests/components/`: Core pipeline and component tests
 - `tests/torch/`: PyTorch-specific tests with distributed markers
 - `tests/use-cases/`: Integration tests for complete workflows
