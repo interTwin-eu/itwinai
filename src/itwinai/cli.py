@@ -656,7 +656,7 @@ def run(
         cli_logger.error("'slurm_config' needs to be present in config, but was not!")
         raise typer.Exit(1)
 
-    # install_plugins(config=config_file)
+    install_plugins(config=config_file)
 
     slurm_config = config_file.slurm_config
 
@@ -671,7 +671,6 @@ def run(
 
     slurm_parser = get_slurm_job_parser()
     values = slurm_parser.parse_object(slurm_config_dict)
-    print(type(values))
     num_tasks_per_node = 1
 
     slurm_script_configuration = SlurmScriptConfiguration(
