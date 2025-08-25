@@ -89,14 +89,14 @@ multi-node scaling, and HPC-specific optimizations.
 
 **CLI Architecture Pattern**: The CLI uses a hybrid approach mixing Typer, ArgumentParser, OmegaConf, and Hydra:
 
-- **Typer function signatures**: Define arguments purely for generating nice help text 
+- **Typer function signatures**: Define arguments purely for generating nice help text
   (`itwinai command --help`)
 - **Internal ArgumentParser**: Performs the actual argument parsing within command functions
-- **Rationale**: This allows leveraging Typer's excellent help generation while maintaining the 
+- **Rationale**: This allows leveraging Typer's excellent help generation while maintaining the
   flexibility of ArgumentParser for complex parsing logic that integrates with OmegaConf/Hydra
 
-Example: The `run` command defines `submit_job` and `save_script` in both the Typer signature 
-(for help text) and creates an internal ArgumentParser that actually processes these flags. The 
+Example: The `run` command defines `submit_job` and `save_script` in both the Typer signature
+(for help text) and creates an internal ArgumentParser that actually processes these flags. The
 parsed values override configuration file settings.
 
 ## Working with Use Cases
