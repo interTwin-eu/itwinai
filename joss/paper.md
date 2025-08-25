@@ -43,6 +43,10 @@ authors:
     surname: Machacek
     email: roman.machacek@cern.ch
     affiliation: 1
+  - given-names: Maria
+    surname: Girone
+    affiliation: 1
+    orcid: 0000-0003-0261-8392
   - given-names: Oleksandr
     surname: Krochak
     orcid: 0009-0007-2245-9452
@@ -55,10 +59,6 @@ authors:
     surname: Sarma
     orcid: 0000-0002-7069-4082
     affiliation: 2
-  - given-names: Maria
-    surname: Girone
-    affiliation: 1
-    orcid: 0000-0003-0261-8392
   - given-names: Andreas
     surname: Lintermann
     orcid: 0000-0003-3321-6599
