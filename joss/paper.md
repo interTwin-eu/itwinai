@@ -24,6 +24,7 @@ authors:
     surname: Lappe
     email: anna.elisa.lappe@cern.ch
     affiliation: 1
+    orcid: 0009-0009-4804-4188
   - given-names: Kalliopi
     surname: Tsolaki
     email: kalliopi.tsolaki@cern.ch
