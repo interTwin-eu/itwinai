@@ -15,6 +15,7 @@
    :hidden:
    :caption: 🚀 Getting started
 
+   getting-started/complete-workflow-example
    getting-started/slurm
    getting-started/containers
    getting-started/plugins
