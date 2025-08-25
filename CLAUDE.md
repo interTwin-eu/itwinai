@@ -87,6 +87,14 @@ swapping trainer components.
 **HPC-First Design**: Built for supercomputing environments with automatic SLURM integration,
 multi-node scaling, and HPC-specific optimizations.
 
+**CLI Architecture Pattern**: The CLI uses a hybrid approach mixing Typer, ArgumentParser, OmegaConf, and Hydra:
+
+- **Typer function signatures**: Define arguments purely for generating nice help text (`itwinai command --help`)
+- **Internal ArgumentParser**: Performs the actual argument parsing within command functions
+- **Rationale**: This allows leveraging Typer's excellent help generation while maintaining the flexibility of ArgumentParser for complex parsing logic that integrates with OmegaConf/Hydra
+
+Example: The `run` command defines `submit_job` and `save_script` in both the Typer signature (for help text) and creates an internal ArgumentParser that actually processes these flags. The parsed values override configuration file settings.
+
 ## Working with Use Cases
 
 The `use-cases/` directory contains complete examples:
@@ -126,7 +134,6 @@ Tests are organized by component type:
 - `ITWINAI_LOG_LEVEL`: Control logging verbosity (DEBUG, INFO, WARNING, ERROR, CRITICAL)
 - `TORCH_ENV`: Name of PyTorch environment for testing
 - `TF_ENV`: Name of TensorFlow environment for testing
-- `PYTORCH_ENABLE_MPS_FALLBACK=1`: Required for local macOS testing
 
 ## Development Workflow
 

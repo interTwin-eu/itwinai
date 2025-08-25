@@ -627,6 +627,20 @@ def run(
             "-c", "--config", help="Path or URL to a configuration file in yaml format."
         ),
     ],
+    submit_job: Annotated[
+        bool,
+        typer.Option(
+            "-j", "--submit-job",
+            help="Whether to submit the SLURM job after generating the script.",
+        ),
+    ] = False,
+    save_script: Annotated[
+        bool,
+        typer.Option(
+            "-s", "--save-script",
+            help="Whether to save the generated SLURM script to disk.",
+        ),
+    ] = False,
 ):
     """Launch ML jobs with dependency installation and SLURM scheduling."""
     from argparse import ArgumentParser
@@ -643,6 +657,18 @@ def run(
         "-c",
         "--config",
         help="Path or URL to configuration file in yaml format.",
+    )
+    run_parser.add_argument(
+        "-j",
+        "--submit-job",
+        action="store_true",
+        help="Whether to submit the SLURM job after generating the script.",
+    )
+    run_parser.add_argument(
+        "-s",
+        "--save-script",
+        action="store_true",
+        help="Whether to save the generated SLURM script to disk.",
     )
     args = run_parser.parse_args()
 
@@ -665,6 +691,10 @@ def run(
     if not isinstance(slurm_config_dict, dict):
         cli_logger.error("The SLURM configuration was not of type dict, which is must be!")
         raise typer.Exit(1)
+
+    # Override SLURM config with CLI flags (CLI takes precedence)
+    slurm_config_dict["submit_job"] = args.submit_job
+    slurm_config_dict["save_script"] = args.save_script
 
     # The parser requires a metadata field so we add an empty one
     slurm_config_dict.update({"metadata": {}})
