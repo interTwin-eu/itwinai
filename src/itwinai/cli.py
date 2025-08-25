@@ -647,101 +647,102 @@ def run(
 
     from omegaconf import DictConfig, ListConfig, OmegaConf
 
+    # We delete this as it's needed when combining the argparser with typer/omegaconf
     del sys.argv[0]
 
     if not OmegaConf.has_resolver("itwinai.cwd"):
         OmegaConf.register_new_resolver("itwinai.cwd", os.getcwd)
 
-    run_parser = ArgumentParser()
-    run_parser.add_argument(
+    initial_parser = ArgumentParser()
+    initial_parser.add_argument(
         "-c",
         "--config",
         help="Path or URL to configuration file in yaml format.",
     )
-    run_parser.add_argument(
+    initial_parser.add_argument(
         "-j",
         "--submit-job",
         action="store_true",
         help="Whether to submit the SLURM job after generating the script.",
     )
-    run_parser.add_argument(
+    initial_parser.add_argument(
         "-s",
         "--save-script",
         action="store_true",
         help="Whether to save the generated SLURM script to disk.",
     )
-    args = run_parser.parse_args()
+    args = initial_parser.parse_args()
 
-    config_file: DictConfig | ListConfig
+    root_config: DictConfig | ListConfig
     if url(args.config):
         cli_logger.info("Retrieving config from URL.")
-        config_file = retrieve_remote_omegaconf_file(url=args.config)
+        root_config = retrieve_remote_omegaconf_file(url=args.config)
     else:
-        config_file = OmegaConf.load(args.config)
-    if "slurm_config" not in config_file:
+        root_config = OmegaConf.load(args.config)
+    if "slurm_config" not in root_config:
         cli_logger.error("'slurm_config' needs to be present in config, but was not!")
         raise typer.Exit(1)
 
-    install_plugins(config=config_file)
+    install_plugins(config=root_config)
 
-    slurm_config = config_file.slurm_config
+    slurm_config = root_config.slurm_config
 
     # cast to make the linter happy
     slurm_config_dict = cast(Dict[str, Any], OmegaConf.to_object(slurm_config))
     if not isinstance(slurm_config_dict, dict):
-        cli_logger.error("The SLURM configuration was not of type dict, which is must be!")
+        cli_logger.error("The SLURM configuration must be of type dict, but was not.")
         raise typer.Exit(1)
 
     # Override SLURM config with CLI flags (CLI takes precedence)
     slurm_config_dict["submit_job"] = args.submit_job
     slurm_config_dict["save_script"] = args.save_script
 
-    # The parser requires a metadata field so we add an empty one
-    slurm_config_dict.update({"metadata": {}})
+    # The slurm parser requires a metadata field so we add an empty one
+    slurm_config_dict.setdefault("metadata", {})
 
     slurm_parser = get_slurm_job_parser()
-    values = slurm_parser.parse_object(slurm_config_dict)
+    slurm_args = slurm_parser.parse_object(slurm_config_dict)
     num_tasks_per_node = 1
 
-    slurm_script_configuration = SlurmScriptConfiguration(
-        job_name=values.job_name,
-        account=values.account,
-        time=values.time,
-        partition=values.partition,
-        std_out=values.std_out,
-        err_out=values.err_out,
-        num_nodes=values.num_nodes,
+    slurm_config_obj = SlurmScriptConfiguration(
+        job_name=slurm_args.job_name,
+        account=slurm_args.account,
+        time=slurm_args.time,
+        partition=slurm_args.partition,
+        std_out=slurm_args.std_out,
+        err_out=slurm_args.err_out,
+        num_nodes=slurm_args.num_nodes,
         num_tasks_per_node=num_tasks_per_node,
-        gpus_per_node=values.gpus_per_node,
-        cpus_per_task=values.cpus_per_task,
-        memory=values.memory,
-        exclusive=values.exclusive,
+        gpus_per_node=slurm_args.gpus_per_node,
+        cpus_per_task=slurm_args.cpus_per_task,
+        memory=slurm_args.memory,
+        exclusive=slurm_args.exclusive,
     )
 
     slurm_script_builder = MLSlurmBuilder(
-        slurm_script_configuration=slurm_script_configuration,
-        should_submit=values.submit_job,
-        should_save=values.save_script,
-        use_ray=values.use_ray,
-        container_path=values.container_path,
-        distributed_strategy=values.dist_strat,
-        exec_file=values.exec_file,
-        pre_exec_file=values.pre_exec_file,
-        save_dir=values.save_dir,
-        python_venv=values.python_venv,
-        training_command=values.training_cmd,
-        config_path=values.config_path,
-        config_name=values.config_name,
-        pipe_key=values.pipe_key,
-        py_spy_profiling=values.py_spy,
-        profiling_sampling_rate=values.profiling_sampling_rate,
-        experiment_name=values.exp_name,
-        run_name=values.run_name,
+        slurm_script_configuration=slurm_config_obj,
+        should_submit=slurm_args.submit_job,
+        should_save=slurm_args.save_script,
+        use_ray=slurm_args.use_ray,
+        container_path=slurm_args.container_path,
+        distributed_strategy=slurm_args.dist_strat,
+        exec_file=slurm_args.exec_file,
+        pre_exec_file=slurm_args.pre_exec_file,
+        save_dir=slurm_args.save_dir,
+        python_venv=slurm_args.python_venv,
+        training_command=slurm_args.training_cmd,
+        config_path=slurm_args.config_path,
+        config_name=slurm_args.config_name,
+        pipe_key=slurm_args.pipe_key,
+        py_spy_profiling=slurm_args.py_spy,
+        profiling_sampling_rate=slurm_args.profiling_sampling_rate,
+        experiment_name=slurm_args.exp_name,
+        run_name=slurm_args.run_name,
     )
     process_builder(
         slurm_script_builder=slurm_script_builder,
-        mode=values.mode,
-        node_list=values.scalability_nodes,
+        mode=slurm_args.mode,
+        node_list=slurm_args.scalability_nodes,
     )
 
 
