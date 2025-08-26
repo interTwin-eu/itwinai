@@ -46,7 +46,7 @@ slurm_config:
   mode: single
   num_nodes: 8
 
-  pre_exec_file: src/itwinai/slurm/system-base-scripts/juwels_pre_exec.sh
+  pre_exec_file: https://raw.githubusercontent.com/interTwin-eu/itwinai/refs/heads/main/src/itwinai/slurm/system-base-scripts/juwels_pre_exec.sh
 
 # Workflows configuration
 training_pipeline:

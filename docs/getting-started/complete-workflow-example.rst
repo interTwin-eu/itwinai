@@ -116,7 +116,7 @@ using the itwinai MNIST plugin. This simplified example shows the key components
    
    This example has been simplified for readability. The full configuration includes additional 
    parameters, hyperparameter optimization settings, detailed metrics, and more complete pipeline 
-   steps. For a working example, please refer to ``docs/examples/complete-workflow-config.yaml``.
+   steps. For a working example, please refer to ``use-cases/mnist/torch/run-example.yaml``.
 
 **Key Components:**
 
@@ -128,11 +128,11 @@ using the itwinai MNIST plugin. This simplified example shows the key components
 **Full Example Configuration**
 
 For a complete configuration with hyperparameter optimization, advanced metrics, and more detailed settings, 
-see the full example at ``docs/examples/complete-workflow-config.yaml``. You can run it directly with:
+see the full example at ``use-cases/mnist/torch/run-example.yaml``. You can run it directly with:
 
 .. code-block:: bash
 
-   itwinai run -c docs/examples/complete-workflow-config.yaml
+   itwinai run -c https://raw.githubusercontent.com/interTwin-eu/itwinai/refs/heads/main/use-cases/mnist/torch/run-example.yaml
 
 What This Example Does
 ----------------------
