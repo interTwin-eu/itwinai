@@ -1376,12 +1376,9 @@ def get_mlflow_logger(logger: Logger | None) -> MLFlowLogger | None:
         return None
 
     if isinstance(logger, LoggersCollection):
-        return next((l for l in logger.loggers if isinstance(l, MLFlowLogger)), None) # noqa: E741
+        return next((log for log in logger.loggers if isinstance(log, MLFlowLogger)), None)
 
     if isinstance(logger, MLFlowLogger):
         return logger
 
     return None
-
-
-
