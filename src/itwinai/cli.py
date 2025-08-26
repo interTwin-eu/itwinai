@@ -23,16 +23,23 @@
 import importlib.metadata as im
 import logging
 import os
+import shutil
 import subprocess
 import sys
 from pathlib import Path
 from textwrap import dedent
-from typing import List
+from typing import Any, Dict, List, cast
 
 import hydra
 import typer
 from omegaconf import DictConfig
 from typing_extensions import Annotated
+from validators import url
+
+from itwinai.slurm.slurm_script_builder import MLSlurmBuilder, process_builder
+from itwinai.slurm.slurm_script_configuration import SlurmScriptConfiguration
+from itwinai.slurm.utils import get_slurm_job_parser
+from itwinai.utils import retrieve_remote_omegaconf_file
 
 from .constants import BASE_EXP_NAME, RELATIVE_MLFLOW_PATH
 
@@ -617,6 +624,155 @@ def generate_slurm(
 
     del sys.argv[0]
     generate_default_slurm_script()
+
+
+def install_plugins(config):
+    if "plugins" not in config or config.plugins is None:
+        return
+
+    has_uv = shutil.which("uv")
+    if has_uv:
+        pip_installer = ["uv", "pip", "install"]
+    else:
+        pip_installer = [sys.executable, "-m", "pip", "install"]
+
+    for plugin in config.plugins:
+        cli_logger.info(f"Installing '{plugin}'")
+        try:
+            subprocess.run([*pip_installer, plugin], capture_output=True, check=True)
+        except subprocess.CalledProcessError as e:
+            cli_logger.error(f"Failed to install '{plugin}': {e}")
+            raise typer.Exit(1)
+        except FileNotFoundError:
+            cli_logger.error(f"Installer '{pip_installer[0]}' not found.")
+            raise typer.Exit(1)
+
+
+@app.command(context_settings={"allow_extra_args": True, "ignore_unknown_options": True})
+def run(
+    config: Annotated[
+        str,
+        typer.Option(
+            "-c", "--config", help="Path or URL to a configuration file in yaml format."
+        ),
+    ],
+    submit_job: Annotated[
+        bool,
+        typer.Option(
+            "-j", "--submit-job",
+            help="Whether to submit the SLURM job after generating the script.",
+        ),
+    ] = False,
+    save_script: Annotated[
+        bool,
+        typer.Option(
+            "-s", "--save-script",
+            help="Whether to save the generated SLURM script to disk.",
+        ),
+    ] = False,
+):
+    """Launch ML jobs with dependency installation and SLURM scheduling."""
+    from argparse import ArgumentParser
+
+    from omegaconf import DictConfig, ListConfig, OmegaConf
+
+    # We delete this as it's needed when combining the argparser with typer/omegaconf
+    del sys.argv[0]
+
+    if not OmegaConf.has_resolver("itwinai.cwd"):
+        OmegaConf.register_new_resolver("itwinai.cwd", os.getcwd)
+
+    initial_parser = ArgumentParser()
+    initial_parser.add_argument(
+        "-c",
+        "--config",
+        help="Path or URL to configuration file in yaml format.",
+    )
+    initial_parser.add_argument(
+        "-j",
+        "--submit-job",
+        action="store_true",
+        help="Whether to submit the SLURM job after generating the script.",
+    )
+    initial_parser.add_argument(
+        "-s",
+        "--save-script",
+        action="store_true",
+        help="Whether to save the generated SLURM script to disk.",
+    )
+    args = initial_parser.parse_args()
+
+    root_config: DictConfig | ListConfig
+    if url(args.config):
+        cli_logger.info("Retrieving config from URL.")
+        root_config = retrieve_remote_omegaconf_file(url=args.config)
+    else:
+        root_config = OmegaConf.load(args.config)
+    if "slurm_config" not in root_config:
+        cli_logger.error("'slurm_config' needs to be present in config, but was not!")
+        raise typer.Exit(1)
+
+    install_plugins(config=root_config)
+
+    slurm_config = root_config.slurm_config
+
+    # cast to make the linter happy
+    slurm_config_dict = cast(Dict[str, Any], OmegaConf.to_object(slurm_config))
+    if not isinstance(slurm_config_dict, dict):
+        cli_logger.error("The SLURM configuration must be of type dict, but was not.")
+        raise typer.Exit(1)
+
+    # Override SLURM config with CLI flags (CLI takes precedence)
+    slurm_config_dict["submit_job"] = args.submit_job
+    slurm_config_dict["save_script"] = args.save_script
+
+    # The slurm parser requires a metadata field so we add an empty one
+    slurm_config_dict.setdefault("metadata", {})
+
+    slurm_parser = get_slurm_job_parser()
+    slurm_args = slurm_parser.parse_object(slurm_config_dict)
+    num_tasks_per_node = 1
+
+    slurm_config_obj = SlurmScriptConfiguration(
+        job_name=slurm_args.job_name,
+        account=slurm_args.account,
+        time=slurm_args.time,
+        partition=slurm_args.partition,
+        std_out=slurm_args.std_out,
+        err_out=slurm_args.err_out,
+        num_nodes=slurm_args.num_nodes,
+        num_tasks_per_node=num_tasks_per_node,
+        gpus_per_node=slurm_args.gpus_per_node,
+        cpus_per_task=slurm_args.cpus_per_task,
+        memory=slurm_args.memory,
+        exclusive=slurm_args.exclusive,
+    )
+
+    slurm_script_builder = MLSlurmBuilder(
+        slurm_script_configuration=slurm_config_obj,
+        should_submit=slurm_args.submit_job,
+        should_save=slurm_args.save_script,
+        use_ray=slurm_args.use_ray,
+        container_path=slurm_args.container_path,
+        distributed_strategy=slurm_args.dist_strat,
+        exec_file=slurm_args.exec_file,
+        pre_exec_file=slurm_args.pre_exec_file,
+        save_dir=slurm_args.save_dir,
+        python_venv=slurm_args.python_venv,
+        training_command=slurm_args.training_cmd,
+        config_path=slurm_args.config_path,
+        config_name=slurm_args.config_name,
+        pipe_key=slurm_args.pipe_key,
+        py_spy_profiling=slurm_args.py_spy,
+        profiling_sampling_rate=slurm_args.profiling_sampling_rate,
+        experiment_name=slurm_args.exp_name,
+        run_name=slurm_args.run_name,
+    )
+    process_builder(
+        slurm_script_builder=slurm_script_builder,
+        mode=slurm_args.mode,
+        node_list=slurm_args.scalability_nodes,
+    )
 
 
 @app.command(context_settings={"allow_extra_args": True, "ignore_unknown_options": True})
