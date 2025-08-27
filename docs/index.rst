@@ -176,6 +176,7 @@ Our code has been run and tested on the following EuroHPC systems:
 Community & Support
 ===================
 
+- `Join our Discord <https://discord.gg/7ru8u2nP>`_
 - `GitHub Repository <https://github.com/interTwin-eu/itwinai>`_
 - `Contributors <https://github.com/interTwin-eu/itwinai/graphs/contributors>`_
 - `interTwin Project <https://www.intertwin.eu/>`_
