@@ -6,8 +6,8 @@
            version="5.3.1"
            xsi:schemaLocation="http://www.crossref.org/schema/5.3.1 http://www.crossref.org/schemas/crossref5.3.1.xsd">
   <head>
-    <doi_batch_id>20250814152314-51e2ce78be687f40a456d521626cb5352551b8a6</doi_batch_id>
-    <timestamp>20250814152314</timestamp>
+    <doi_batch_id>20250815140451-51e2ce78be687f40a456d521626cb5352551b8a6</doi_batch_id>
+    <timestamp>20250815140451</timestamp>
     <depositor>
       <depositor_name>JOSS Admin</depositor_name>
       <email_address>admin@theoj.org</email_address>
@@ -81,6 +81,7 @@
             <affiliations>
               <institution><institution_name>European Organization for Nuclear Research (CERN), Espl. des Particules 1, 1217 Genève, Switzerland</institution_name></institution>
             </affiliations>
+            <ORCID>https://orcid.org/0000-0002-3192-4260</ORCID>
           </person_name>
           <person_name sequence="additional"
                        contributor_role="author">
@@ -202,6 +203,12 @@
             <journal_title>GitHub repository</journal_title>
             <cYear>2025</cYear>
             <unstructured_citation>Ciangottini, D., Bianchini, G., &amp; Spiga, D. (2025). interLink. In GitHub repository. GitHub. https://github.com/interLink-hq/interLink</unstructured_citation>
+          </citation>
+          <citation key="saether_scalabiliy_2025">
+            <article_title>Scalabiliy analysis of GlitchFlow with itwinai</article_title>
+            <author>Sæther</author>
+            <cYear>2025</cYear>
+            <unstructured_citation>Sæther, J. S., Bunino, M., &amp; Eickhoff, L. M. (2025). Scalabiliy analysis of GlitchFlow with itwinai. Zenodo. https://zenodo.org/records/16882390</unstructured_citation>
           </citation>
           <citation key="horovod">
             <article_title>Horovod: fast and easy distributed deep learning in TensorFlow</article_title>
