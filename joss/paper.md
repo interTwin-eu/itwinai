@@ -126,7 +126,7 @@ and parallel efficiency metrics, and bottleneck identification.
 
 Built with a modular architecture, `itwinai` enables component integration and
 plugin-based extensions for independent development of scientific use cases.
-Developed as part of the interTwin [^intertwin_eu] project to support Digital Twin
+Developed as part of the interTwin[^intertwin_eu] project to support Digital Twin
 applications across physics to environmental sciences, the library has proven
 versatile for general AI applications. By consolidating diverse functionalities
 into a single framework, `itwinai` significantly lowers the barrier to HPC
@@ -181,9 +181,9 @@ compute-intensive jobs from cloud to HPC, performing an automatic translation
 from Kubernetes pods to SLURM jobs.
 
 **Continuous integration and deployment** `itwinai` includes extensive tests
-(library and use cases). A Dagger pipeline [^dagger] builds containers on
-release, runs smoke tests on GitHub Actions (Azure runners: 4 CPUs, 16 GB)
-[^choosing_gh_runners], offloads distributed tests to HPC via interLink, and
+(library and use cases). A Dagger pipeline[^dagger] builds containers on
+release, runs smoke tests on GitHub Actions (Azure runners: 4 CPUs, 16
+GB)[^choosing_gh_runners], offloads distributed tests to HPC via interLink, and
 publishes on success.
 
 [^dagger]: Dagger: [dagger.io](https://dagger.io/) (Accessed on 2025-08-14).
@@ -223,7 +223,7 @@ operations (\autoref{fig:compvsother}). Considered jointly, these metrics
 identify the most efficient configuration and distribution strategy, rather than
 relying on a single indicator. (\autoref{fig:speedup}) and
 (\autoref{fig:compvsother}) show the scalability of the physics use case from
-[^infn] targeting gravitational-wave analysis at the Virgo [^virgo]
+INFN[^infn] targeting gravitational-wave analysis at the Virgo[^virgo]
 interferometer [@tsolaki_2025_15120028] [@saether_scalabiliy_2025].
 
 [^infn]: Istituto Nazionale di Fisica Nucleare
