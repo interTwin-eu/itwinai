@@ -6,8 +6,8 @@
            version="5.3.1"
            xsi:schemaLocation="http://www.crossref.org/schema/5.3.1 http://www.crossref.org/schemas/crossref5.3.1.xsd">
   <head>
-    <doi_batch_id>20250815140451-51e2ce78be687f40a456d521626cb5352551b8a6</doi_batch_id>
-    <timestamp>20250815140451</timestamp>
+    <doi_batch_id>20250829160357-51e2ce78be687f40a456d521626cb5352551b8a6</doi_batch_id>
+    <timestamp>20250829160357</timestamp>
     <depositor>
       <depositor_name>JOSS Admin</depositor_name>
       <email_address>admin@theoj.org</email_address>
@@ -73,6 +73,7 @@
             <affiliations>
               <institution><institution_name>European Organization for Nuclear Research (CERN), Espl. des Particules 1, 1217 Genève, Switzerland</institution_name></institution>
             </affiliations>
+            <ORCID>https://orcid.org/0009-0009-4804-4188</ORCID>
           </person_name>
           <person_name sequence="additional"
                        contributor_role="author">
@@ -110,6 +111,15 @@
           </person_name>
           <person_name sequence="additional"
                        contributor_role="author">
+            <given_name>Maria</given_name>
+            <surname>Girone</surname>
+            <affiliations>
+              <institution><institution_name>European Organization for Nuclear Research (CERN), Espl. des Particules 1, 1217 Genève, Switzerland</institution_name></institution>
+            </affiliations>
+            <ORCID>https://orcid.org/0000-0003-0261-8392</ORCID>
+          </person_name>
+          <person_name sequence="additional"
+                       contributor_role="author">
             <given_name>Oleksandr</given_name>
             <surname>Krochak</surname>
             <affiliations>
@@ -135,15 +145,6 @@
               <institution><institution_name>Forschungszentrum Jülich, Jülich Supercomputing Center, Germany</institution_name></institution>
             </affiliations>
             <ORCID>https://orcid.org/0000-0002-7069-4082</ORCID>
-          </person_name>
-          <person_name sequence="additional"
-                       contributor_role="author">
-            <given_name>Maria</given_name>
-            <surname>Girone</surname>
-            <affiliations>
-              <institution><institution_name>European Organization for Nuclear Research (CERN), Espl. des Particules 1, 1217 Genève, Switzerland</institution_name></institution>
-            </affiliations>
-            <ORCID>https://orcid.org/0000-0003-0261-8392</ORCID>
           </person_name>
           <person_name sequence="additional"
                        contributor_role="author">
@@ -204,11 +205,18 @@
             <cYear>2025</cYear>
             <unstructured_citation>Ciangottini, D., Bianchini, G., &amp; Spiga, D. (2025). interLink. In GitHub repository. GitHub. https://github.com/interLink-hq/interLink</unstructured_citation>
           </citation>
+          <citation key="tsolaki_2025_15120028">
+            <article_title>interTwin D4.6 final architecture design of the DTs capabilities for high energy physics, radio astronomy and gravitational-wave astrophysics</article_title>
+            <author>Tsolaki</author>
+            <doi>10.5281/zenodo.15120028</doi>
+            <cYear>2025</cYear>
+            <unstructured_citation>Tsolaki, K., Vallecorsa, S., Vallero, S., Asprea, L., Sarandrea, F., Komijani, J., Ray, G. S., Pidopryhora, Y., &amp; Campos, I. (2025). interTwin D4.6 final architecture design of the DTs capabilities for high energy physics, radio astronomy and gravitational-wave astrophysics (1 Under EC Review). Zenodo. https://doi.org/10.5281/zenodo.15120028</unstructured_citation>
+          </citation>
           <citation key="saether_scalabiliy_2025">
-            <article_title>Scalabiliy analysis of GlitchFlow with itwinai</article_title>
+            <article_title>Scalability analysis of GlitchFlow with itwinai</article_title>
             <author>Sæther</author>
             <cYear>2025</cYear>
-            <unstructured_citation>Sæther, J. S., Bunino, M., &amp; Eickhoff, L. M. (2025). Scalabiliy analysis of GlitchFlow with itwinai. Zenodo. https://zenodo.org/records/16882390</unstructured_citation>
+            <unstructured_citation>Sæther, J. S., Bunino, M., &amp; Eickhoff, L. M. (2025). Scalability analysis of GlitchFlow with itwinai. Zenodo. https://zenodo.org/records/16882390</unstructured_citation>
           </citation>
           <citation key="horovod">
             <article_title>Horovod: fast and easy distributed deep learning in TensorFlow</article_title>
