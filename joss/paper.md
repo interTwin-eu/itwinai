@@ -87,8 +87,8 @@ High-Performance Computing (HPC) facilities housing thousands of accelerators:
 the JUWELS Booster system [@JUWELS] at the Jülich Supercomputing Center (JSC),
 Forschungszentrum Jülich, operates over 3,700 NVIDIA A100 GPUs, while Finland's
 LUMI supercomputer provides access to more than 11,000 AMD MI250X GPUs, and the
-upcoming first European Exascale system JUPITER (JSC) expanding capabilities up
-to 24,000 NVIDIA GH GPUs.
+upcoming first European Exascale system JUPITER hosted at JSC, expanding capabilities
+up to 24,000 NVIDIA GH200 GPUs.
 
 This growth has enabled development of numerous domain-specific AI solutions
 across scientific fields, offering the potential for faster experimentation and
@@ -155,7 +155,7 @@ to, e.g., investigate potential performance gains.
 
 <!-- ![Distributed Data Parallel](img/distributed_data_parallel.pdf) -->
 
-**Hyperparameter optimization**: leveraging Ray, `itwinai` allows to
+**Hyperparameter optimization**: Leveraging Ray, `itwinai` allows to
 systematically improve model performance by searching the hyperparameter space.
 Ray enables scaling HPO across HPC systems by (i) assigning multiple workers to
 a single trial (e.g., data-parallel training) and (ii) running many trials
@@ -176,8 +176,8 @@ and yProvML [@yprovml] logger, and provides a unified interface across all of
 them through a thin abstraction layer.
 
 **Offloading to HPC and cloud**: To benefit from both cloud and HPC, interLink
-[@interlink] is used, a lightweight component to enable seamless offloading of
-compute-intensive jobs from cloud to HPC, performing an automatic translation
+[@interlink] is used, which is a lightweight component to enable seamless offloading
+of compute-intensive jobs from cloud to HPC, performing an automatic translation
 from Kubernetes pods to SLURM jobs.
 
 **Continuous integration and deployment** `itwinai` includes extensive tests
@@ -195,7 +195,7 @@ here](https://docs-internal.github.com/en/actions/how-tos/write-workflows/choose
 
 # Use-case integrations
 
-There is a wide range of scientific use cases currently integrated with
+There are a wide range of scientific use cases currently integrated with
 `itwinai` via its plug-in architecture. Earth-observation plugins cover
 hydrological forecasting, drought prediction, and climate/remote-sensing
 pipelines; physics plugins include high-energy physics, radio astronomy, lattice
@@ -213,16 +213,16 @@ components are provided: scalability report generation and profiling.
 
 ## Scalability report
 
-For data-parallel training, throughput improves with worker count while
-all-reduce communication costs grow, until communication overhead dominates and
-scaling plateaus and decreases. The report characterizes this trade-off across
-GPUs/nodes and backends, reporting wall-clock epoch time, relative speedup
+For data-parallel training, adding more workers improves throughput, but
+as all-reduce communication costs grow, communication overhead eventually dominates,
+causing scaling to level-off or even decline. The report characterizes this trade-off
+across GPUs/nodes and backends, reporting wall-clock epoch time, relative speedup
 (\autoref{fig:speedup}), GPU utilization (0–100%), energy (Wh), and
 compute-versus-other time, including collective communication and memory
 operations (\autoref{fig:compvsother}). Considered jointly, these metrics
 identify the most efficient configuration and distribution strategy, rather than
-relying on a single indicator. (\autoref{fig:speedup}) and
-(\autoref{fig:compvsother}) show the scalability of the physics use case from
+relying on a single indicator. \autoref{fig:speedup} and
+\autoref{fig:compvsother} show the scalability of the physics use case from
 INFN[^infn] targeting gravitational-wave analysis at the Virgo[^virgo]
 interferometer [@tsolaki_2025_15120028] [@saether_scalabiliy_2025].
 
