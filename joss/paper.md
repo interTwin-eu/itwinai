@@ -240,7 +240,7 @@ collective communication, in the Virgo use case, broken down by number of
 workers and distributed framework.
 \label{fig:compvsother}](img/virgo_computation_vs_other_plot.svg){ width=110% }
 
-## Addressing bottlenecks
+## Addressing bottlenecks via profiling
 
 To explain why performance degrades, `itwinai` integrates low-overhead,
 sample-based profiling (e.g., py-spy [@py_spy]) and summarizes flame-graph data
