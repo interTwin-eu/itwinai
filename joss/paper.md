@@ -1,5 +1,5 @@
 ---
-title: "itwinai: A Python Toolkit For Scalable Scientific Machine Learning On HPC"
+title: "itwinai: A Python Toolkit for Scalable Scientific Machine Learning on HPC Systems"
 tags:
   - Python
   - Digital Twins
@@ -66,7 +66,7 @@ authors:
 affiliations:
  - name: European Organization for Nuclear Research (CERN), Espl. des Particules 1, 1217 Genève, Switzerland
    index: 1
- - name: Forschungszentrum Jülich, Jülich Supercomputing Center, Germany
+ - name:  Simulation and Data Lab Fluids & Solids Engineering, Jülich Supercomputing Center, Forschungszentrum Jülich, Germany
    index: 2
  - name: Data-Driven Fluid Engineering (DDFE) Laboratory, Inha University, Incheon, Republic of Korea
    index: 3
@@ -113,7 +113,7 @@ integration effort on the part of the scientific users, especially with HPC
 systems. `itwinai` is a Python library that streamlines the integration of
 AI-powered scientific workflows into HPC infrastructure through ready-to-use
 components. The library addresses three core scientific Machine Learning (ML)
-needs.
+needs:
 
 **Distributed training** with uniform interfaces across
 PyTorch-DDP [@torch_ddp], DeepSpeed [@deepspeed], and Horovod [@horovod]
@@ -127,7 +127,7 @@ and parallel efficiency metrics, and bottleneck identification.
 Built with a modular architecture, `itwinai` enables component integration and
 plugin-based extensions for independent development of scientific use cases.
 Developed as part of the interTwin[^intertwin_eu] project to support Digital Twin
-applications across physics to environmental sciences, the library has proven
+applications across physics and environmental sciences, the library has proven
 versatile for general AI applications. By consolidating diverse functionalities
 into a single framework, `itwinai` significantly lowers the barrier to HPC
 adoption and empowers the scientific community to scale AI workloads
@@ -145,7 +145,7 @@ declarative, YAML-based configuration system that separates experimental
 parameters from implementation code. Configurations are hierarchical,
 composable, and Command Line Interface (CLI)-overrideable. This design ensures
 reproducible and portable executions across environments (workstation, cloud,
-HPC) with minimal code changes.
+HPC systems) with minimal code changes.
 
 **Distributed training and inference**: `itwinai` supports multiple distributed
 ML training frameworks, including PyTorch-DDP, DeepSpeed, Horovod, and Ray
@@ -175,7 +175,7 @@ such as TensorBoard [@tensorboard], Mlflow [@mlflow], Weights&Biases [@wandb],
 and yProvML [@yprovml] logger, and provides a unified interface across all of
 them through a thin abstraction layer.
 
-**Offloading to HPC and cloud**: To benefit from both cloud and HPC, interLink
+**Offloading to HPC systems and cloud**: To benefit from both cloud and HPC, interLink
 [@interlink] is used, which is a lightweight component to enable seamless offloading
 of compute-intensive jobs from cloud to HPC, performing an automatic translation
 from Kubernetes pods to SLURM jobs.
@@ -183,7 +183,7 @@ from Kubernetes pods to SLURM jobs.
 **Continuous integration and deployment** `itwinai` includes extensive tests
 (library and use cases). A Dagger pipeline[^dagger] builds containers on
 release, runs smoke tests on GitHub Actions (Azure runners: 4 CPUs, 16
-GB)[^choosing_gh_runners], offloads distributed tests to HPC via interLink, and
+GB)[^choosing_gh_runners], offloads distributed tests to HPC systems via interLink, and
 publishes on success.
 
 [^dagger]: Dagger: [dagger.io](https://dagger.io/) (Accessed on 2025-08-14).
@@ -201,7 +201,7 @@ hydrological forecasting, drought prediction, and climate/remote-sensing
 pipelines; physics plugins include high-energy physics, radio astronomy, lattice
 quantum chromodynamics (QCD), and gravitational-wave/glitch analysis. Packaging
 these as `itwinai` plugins enables reproducible, shareable workflows that run
-consistently on hardware ranging from laptops to HPC. The full list of `itwinai`
+consistently on hardware ranging from personal computers to HPC systems. The full list of `itwinai`
 plugins can be found at [this
 link](https://itwinai.readthedocs.io/latest/getting-started/plugins-list.html).
 
@@ -240,7 +240,7 @@ collective communication, in the Virgo use case, broken down by number of
 workers and distributed framework
 \label{fig:compvsother}](img/virgo_computation_vs_other_plot.svg){ width=110% }
 
-## Addressing bottlenecks
+## Profiling
 
 To explain why performance degrades, `itwinai` integrates low-overhead,
 sample-based profiling (e.g., py-spy [@py_spy]) and summarizes flame-graph data
