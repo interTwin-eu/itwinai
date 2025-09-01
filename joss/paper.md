@@ -260,9 +260,9 @@ interfaces, and adding other EuroHPC systems and performance optimization
 features.
 
 [^odissee]: Online Data Intensive Solutions for Science in the Exabytes Era
-(ODISSEE): [odissee-project.eu](https://www.odissee-project.eu/)
+(ODISSEE): [odissee-project.eu](https://www.odissee-project.eu/) (Accessed on 2025-08-14).
 
-[^ri-scale]: RI-SCALE project: [riscale.eu](https://www.riscale.eu/)
+[^ri-scale]: RI-SCALE project: [riscale.eu](https://www.riscale.eu/) (Accessed on 2025-08-14).
 
 # Acknowledgements
 
