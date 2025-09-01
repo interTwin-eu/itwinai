@@ -237,7 +237,7 @@ case.\label{fig:speedup}](img/virgo_relative_epoch_time_speedup.svg){ width=70% 
 
 ![Proportion of time spent on computation versus other operations, such as
 collective communication, in the Virgo use case, broken down by number of
-workers and distributed framework
+workers and distributed framework.
 \label{fig:compvsother}](img/virgo_computation_vs_other_plot.svg){ width=110% }
 
 ## Profiling
