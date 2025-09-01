@@ -195,7 +195,7 @@ here](https://docs-internal.github.com/en/actions/how-tos/write-workflows/choose
 
 # Use-case integrations
 
-There are a wide range of scientific use cases currently integrated with
+There is a wide range of scientific use cases currently integrated with
 `itwinai` via its plug-in architecture. Earth-observation plugins cover
 hydrological forecasting, drought prediction, and climate/remote-sensing
 pipelines; physics plugins include high-energy physics, radio astronomy, lattice
@@ -240,7 +240,7 @@ collective communication, in the Virgo use case, broken down by number of
 workers and distributed framework.
 \label{fig:compvsother}](img/virgo_computation_vs_other_plot.svg){ width=110% }
 
-## Profiling
+## Addressing bottlenecks
 
 To explain why performance degrades, `itwinai` integrates low-overhead,
 sample-based profiling (e.g., py-spy [@py_spy]) and summarizes flame-graph data
