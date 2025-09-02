@@ -1,17 +1,17 @@
-name: Test Juwels Runner
+name: Pytest execution on JUWELS Booster via Apptainer
 
 on:
   push:
     branches:
-      - 'main'
+      - 'juwels-runner'
 
 jobs:
   run-command:
     runs-on: [self-hosted, linux]  # adjust labels if you used custom ones
     env:
       GITHUB_WORKSPACE: /p/project1/intertwin/krochak1/itwinai
-      SLURM_SCRIPT: /p/project1/intertwin/krochak1/itwinai/test.sh
-      SLURM_LOGS: /p/project1/intertwin/krochak1/itwinai/pytest-runner/actions-runner-logs
+      SLURM_SCRIPT: /p/project1/intertwin/juwels-selfhosted-runner/RUNNER/container.sh
+      SLURM_LOGS: /p/project1/intertwin/juwels-selfhosted-runner/RUNNER/slurm-logs
       
     steps:
       - name: Checkout code
