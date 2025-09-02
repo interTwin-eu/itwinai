@@ -17,7 +17,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Submit SLURM job and wait
+      - name: Submit and monitor SLURM job
         run: |
           cd "$GITHUB_WORKSPACE" || exit 
 
