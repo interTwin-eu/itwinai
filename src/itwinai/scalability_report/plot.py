@@ -22,6 +22,7 @@ from matplotlib.figure import Figure
 from matplotlib.patches import Patch
 from matplotlib.ticker import NullLocator, ScalarFormatter
 
+from itwinai.scalability_report.utils import check_contains_columns
 from itwinai.utils import deprecated
 
 # Doing this because otherwise I get an error about X11 Forwarding which I believe
@@ -51,9 +52,9 @@ def absolute_avg_epoch_time_plot(avg_epoch_time_df: pd.DataFrame) -> Tuple[Figur
 
     Args:
         avg_epoch_time_df (pd.DataFrame): A DataFrame containing the following columns:
-            - "workers": Number of workers used in the training process.
+            - "global_world_size": Number of GPUs used in the training process.
             - "avg_epoch_time": Average time (in seconds) taken for an epoch.
-            - "name": Name of the distributed training strategy.
+            - "strategy": Name of the distributed training strategy.
 
     Returns:
         Tuple[Figure, Axes]: A tuple containing the matplotlib `Figure` and `Axes` objects
@@ -65,17 +66,17 @@ def absolute_avg_epoch_time_plot(avg_epoch_time_df: pd.DataFrame) -> Tuple[Figur
     sns.set_theme()
     fig, ax = plt.subplots()
 
-    unique_workers = list(avg_epoch_time_df["workers"].unique())
-    unique_names = avg_epoch_time_df["name"].unique()
-    for name in unique_names:
-        data = avg_epoch_time_df[avg_epoch_time_df["name"] == name]
+    unique_workers = list(avg_epoch_time_df["global_world_size"].unique())
+    unique_strategies = avg_epoch_time_df["strategy"].unique()
+    for strategy in unique_strategies:
+        data = avg_epoch_time_df[avg_epoch_time_df["strategy"] == strategy]
 
         marker = next(marker_cycle)
         ax.plot(
-            data["workers"],
+            data["global_world_size"],
             data["avg_epoch_time"],
             marker=marker,
-            label=name,
+            label=strategy,
             linestyle="-",
             markersize=6,
         )
@@ -118,9 +119,9 @@ def relative_epoch_time_speedup_plot(
 
     Args:
         avg_epoch_time_df (pd.DataFrame): A DataFrame containing:
-            - "workers": Number of workers used in the training process.
+            - "global_world_size": Number of GPUs used in the training process.
             - "avg_epoch_time": Average time (in seconds) taken for an epoch.
-            - "name": Name of the distributed training strategy.
+            - "strategy": Name of the distributed training strategy.
 
     Returns:
         Tuple[Figure, Axes]: A tuple containing the matplotlib `Figure` and `Axes` objects
@@ -129,27 +130,25 @@ def relative_epoch_time_speedup_plot(
     Raises:
         ValueError: If `avg_epoch_time_df` is missing required columns.
     """
-    required = {"workers", "avg_epoch_time", "name"}
-    if not required.issubset(avg_epoch_time_df.columns):
-        missing = required - set(avg_epoch_time_df.columns)
-        raise ValueError(f"avg_epoch_time_df is missing columns: {missing}")
+    required = {"global_world_size", "avg_epoch_time", "strategy"}
+    check_contains_columns(avg_epoch_time_df, expected_columns=required)
 
     sns.set_theme()
     fig, ax = plt.subplots(figsize=(6, 4))
 
     # add a linear-speedup column (speedup = #workers)
-    avg_epoch_time_df["linear_speedup"] = avg_epoch_time_df["workers"].astype(float)
+    avg_epoch_time_df["linear_speedup"] = avg_epoch_time_df["global_world_size"].astype(float)
 
     # plot each strategy's actual speedup
-    for strategy in sorted(avg_epoch_time_df["name"].unique()):
-        sd = avg_epoch_time_df[avg_epoch_time_df["name"] == strategy]
+    for strategy in sorted(avg_epoch_time_df["strategy"].unique()):
+        sd = avg_epoch_time_df[avg_epoch_time_df["strategy"] == strategy]
         base_time = sd["avg_epoch_time"].iloc[0]
         speedup = base_time / sd["avg_epoch_time"]
-        workers = sd["workers"]
+        workers = sd["global_world_size"]
         ax.plot(workers, speedup, marker=next(marker_cycle), lw=1.0, label=strategy, alpha=0.7)
 
     # plot the ideal linear speedup line
-    workers = np.sort(avg_epoch_time_df["workers"].unique())
+    workers = np.sort(avg_epoch_time_df["global_world_size"].unique())
     baseline = workers[0]
     ideal = workers.astype(float) / baseline
     ax.plot(workers, ideal, ls="dashed", lw=1.0, c="k", label="ideal linear speedup")
@@ -191,7 +190,7 @@ def gpu_bar_plot(
     """Creates a centered bar plot grouped by number of GPUs and strategy.
 
     Args:
-        data_df (pd.DataFrame): DataFrame containing "strategy", "num_global_gpus",
+        data_df (pd.DataFrame): DataFrame containing "strategy", "global_world_size",
             and `main_column`.
         plot_title (str): The title of the plot.
         y_label (str): The label for the y-axis.
@@ -203,7 +202,7 @@ def gpu_bar_plot(
     """
     sns.set_theme()
 
-    unique_gpu_counts = np.sort(data_df["num_global_gpus"].unique())
+    unique_gpu_counts = np.sort(data_df["global_world_size"].unique())
 
     # Deciding the color for each strategy in advance
     color_map = plt.get_cmap("tab10")
@@ -219,14 +218,14 @@ def gpu_bar_plot(
     bar_positions = {}
 
     # Calculating the global bar_width based on the highest number of adjacent bars
-    max_num_strategies = data_df.groupby(["num_global_gpus"])["strategy"].nunique().max()
+    max_num_strategies = data_df.groupby(["global_world_size"])["strategy"].nunique().max()
     bar_width = 1 / (max_num_strategies + 1)
 
     # To only add labels the first time we see a strategy
     seen_strategies = set()
 
     for i, gpu_count in enumerate(unique_gpu_counts):
-        subset = data_df[data_df["num_global_gpus"] == gpu_count]
+        subset = data_df[data_df["global_world_size"] == gpu_count]
         strategies = subset["strategy"].unique()
         num_strategies = len(strategies)
 
@@ -335,12 +334,13 @@ def computation_fraction_bar_plot(
 
             ax.text(
                 x=x,
-                y=computation_frac + 0.01,
+                y=computation_frac + 0.02,
                 s=f"{computation_frac * 100:.1f}%",
                 ha="center",
                 va="bottom",
                 color="black",
-                fontsize=9,
+                fontsize=11,
+                bbox={"facecolor": "white", "alpha": 0.7, "edgecolor": "none"},
             )
 
             ax.bar(
@@ -444,12 +444,13 @@ def computation_vs_other_bar_plot(
 
             ax.text(
                 x=x,
-                y=computation_frac + 0.01,
+                y=computation_frac + 0.02,
                 s=f"{computation_frac * 100:.1f}%",
                 ha="center",
                 va="bottom",
                 color="black",
-                fontsize=9,
+                fontsize=11,
+                bbox={"facecolor": "white", "alpha": 0.7, "edgecolor": "none"},
             )
 
             ax.bar(

@@ -1,6 +1,8 @@
 num_nodes: 1
 gpus_per_node: 4
 python_venv: ../../../.venv/
+account: s24r05-03-users
+partition: gpu
 
 dist_strat: ddp
 pipe_key: training_pipeline

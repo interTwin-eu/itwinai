@@ -142,33 +142,21 @@ To generate and submit a SLURM script, you can use the following command:
 
    itwinai generate-slurm
 
-This will use the default variables for everything, and will save the script for
-reproducibility. You can override variables by setting flags. For example, to set
-the job name to ``my_test_job``, you can do the following:
+This will use the default variables for everything and will preview it in the console. To
+launch the script you can add ``-j`` and to save the script you can add ``-s``. You can
+override variables by setting flags. For example, to set the job name to ``my_test_job``, you
+can do the following:
 
 .. code-block:: bash
 
    itwinai generate-slurm --job-name my_test_job
 
-For a full list of options, add the ``--help`` or equivalently ``-h`` flag:
+For a full list of options, add the ``--help`` flag:
 
 .. code-block:: bash
 
    itwinai generate-slurm --help
 
-Preview SLURM Scripts
-+++++++++++++++++++++
-
-A common workflow is to preview the SLURM script before saving or submitting it. This
-can be done by adding ``--no-submit-job`` and ``--no-save-script`` as follows:
-
-.. code-block:: bash
-
-   itwinai generate-slurm --no-submit-job --no-save-script
-
-This will print the script in the console for inspection without saving the script or
-submitting the job. These arguments provide a quick way to verify that your script is
-configured correctly. 
 
 SLURM Configuration File
 ++++++++++++++++++++++++
@@ -187,9 +175,7 @@ configuration file:
     time: 01:00:00
     partition: develbooster
 
-    # Which distributed strategy/framework to use, controlling how the communication
-    # between workers is implemented. The acronym 'ddp' refers to PyTorch's Distributed
-    # Data Parallel.
+    # Which distributed strategy/framework to use    
     dist_strat: ddp # "ddp", "deepspeed" or "horovod"
 
     std_out: slurm_job_logs/${dist_strat}.out
@@ -197,7 +183,6 @@ configuration file:
     job_name: ${dist_strat}-job
 
     num_nodes: 1
-    num_tasks_per_node: 1
     gpus_per_node: 4
     cpus_per_task: 16
 
@@ -216,47 +201,3 @@ file but want a different job name without changing the config, you can do the f
 .. code-block:: bash
 
    itwinai generate-slurm -c slurm_config.yaml --job-name different_job_name
-
-
-The resulting SLURM script generated using the ``slurm_config.yaml`` file above is:
-
-.. code-block:: bash
-   :caption: ``ddp-1x4.sh``
-   :name: SLURM Job Script generated using the configuration above
-
-      #!/bin/bash
-
-      # Job configuration
-      #SBATCH --job-name=ddp-job
-      #SBATCH --account=intertwin
-      #SBATCH --partition=develbooster
-      #SBATCH --time=01:00:00
-
-      #SBATCH --output=slurm_job_logs/ddp.out
-      #SBATCH --error=slurm_job_logs/ddp.err
-
-      # Resource allocation
-      #SBATCH --nodes=1
-      #SBATCH --ntasks-per-node=1
-      #SBATCH --cpus-per-task=16
-      #SBATCH --gpus-per-node=4
-      #SBATCH --gres=gpu:4
-      #SBATCH --exclusive
-
-      # Pre-execution command
-      ml --force purge
-      ml Stages/2025 GCC OpenMPI CUDA/12 cuDNN MPI-settings/CUDA Python CMake HDF5 PnetCDF libaio mpi4py git
-      source .venv/bin/activate
-      export OMP_NUM_THREADS=4
-
-      # Job execution command
-      srun --cpu-bind=none --ntasks-per-node=1 \
-      bash -c "torchrun \
-      --log_dir='logs_torchrun' \
-      --nnodes=$SLURM_NNODES \
-      --nproc_per_node=$SLURM_GPUS_PER_NODE \
-      --rdzv_id=$SLURM_JOB_ID \
-      --rdzv_conf=is_host=\$(((SLURM_NODEID)) && echo 0 || echo 1) \
-      --rdzv_backend=c10d \
-      --rdzv_endpoint='$(scontrol show hostnames "$SLURM_JOB_NODELIST" | head -n 1)'i:29500 \
-      train.py"

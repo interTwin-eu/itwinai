@@ -527,19 +527,15 @@ class MLFlowLogger(Logger):
 
         self.tracking_uri = (
             tracking_uri
-            or Path(self.savedir).resolve().as_uri()
             or os.environ.get("MLFLOW_TRACKING_URI")
+            or Path(self.savedir).resolve().as_uri()
         )
         # make sure it is an absolute path
         self.tracking_uri = normalize_tracking_uri(self.tracking_uri)
-        print("linus normalized tracking uri", self.tracking_uri)
         import mlflow
 
         self.mlflow = mlflow
         self.mlflow.set_tracking_uri(self.tracking_uri)
-        self._experiment_id = self.mlflow.set_experiment(
-            experiment_name=self.experiment_name
-        ).experiment_id
 
     @check_not_initialized
     def create_logger_context(
@@ -565,9 +561,7 @@ class MLFlowLogger(Logger):
         """
         # set tracking uri here again, as in multi-worker settings self.mlflow may reset
         self.mlflow.set_tracking_uri(self.tracking_uri)
-        self._experiment_id = self.mlflow.set_experiment(
-            experiment_name=self.experiment_name
-        ).experiment_id
+        self.resolve_experiment_id()
 
         run_id = kwargs.get("run_id")
         parent_run_id = kwargs.get("parent_run_id")
@@ -714,9 +708,18 @@ class MLFlowLogger(Logger):
         elif kind == "text":
             self.mlflow.log_text(artifact_file=identifier, text=item)
 
+    def resolve_experiment_id(self) -> str:
+        """Sets experiment id by the experiment_name of the logger if not set.
+        Returns the experiment id.
+        """
+        if self._experiment_id is None:
+            self._experiment_id = self.mlflow.set_experiment(
+                experiment_name=self.experiment_name
+            ).experiment_id
+        return self._experiment_id
+
     @property
     def experiment_id(self) -> str:
-        """Return the experiment id."""
         return self._experiment_id
 
 
@@ -1367,73 +1370,15 @@ class EmptyLogger(Logger):
         pass
 
 
-class EpochTimeTracker:
-    """Logger for epoch execution time during training.
-
-    Args:
-        strategy_name (str): name of the distributed strategy in use.
-        save_path (Path | str): path for the CSV log file.
-        num_workers (int): number of workers in the current distributed job.
-        should_log (bool): whether this instance of the logger should be active.
-            Defaults to True.
-    """
-
-    def __init__(
-        self,
-        strategy_name: str,
-        save_path: Path | str,
-        num_workers: int,
-        should_log: bool = True,
-    ) -> None:
-        if isinstance(save_path, str):
-            save_path = Path(save_path)
-
-        self.should_log = should_log
-        self.save_path: Path = save_path
-        self.strategy_name = strategy_name
-        self.num_workers = num_workers
-        self.data = {"epoch_id": [], "time": []}
-
-        if not self.should_log:
-            py_logger.debug("EpochTimeLogger has been disabled!")
-
-    def add_epoch_time(self, epoch_idx: int, time: float) -> None:
-        """Add epoch time to data."""
-        if not self.should_log:
-            return
-
-        self.data["epoch_id"].append(epoch_idx)
-        self.data["time"].append(time)
-        self.save()
-
-    def save(self) -> None:
-        """Save data to a new CSV file."""
-        if not self.should_log:
-            return
-
-        import pandas as pd
-
-        df = pd.DataFrame(self.data)
-        df["name"] = self.strategy_name
-        df["workers"] = self.num_workers
-
-        self.save_path.parent.mkdir(parents=True, exist_ok=True)
-        df.to_csv(self.save_path, index=False)
-        py_logger.info(f"Saving EpochTimeLogging data to '{self.save_path.resolve()}'.")
-
-
 def get_mlflow_logger(logger: Logger | None) -> MLFlowLogger | None:
     """Finds and returns the MLFlowLogger if present in the given logger."""
     if logger is None:
         return None
 
     if isinstance(logger, LoggersCollection):
-        return next((l for l in logger.loggers if isinstance(l, MLFlowLogger)), None) # noqa: E741
+        return next((log for log in logger.loggers if isinstance(log, MLFlowLogger)), None)
 
     if isinstance(logger, MLFlowLogger):
         return logger
 
     return None
-
-
-

@@ -31,10 +31,8 @@ subset size to around 5000 works well for quick experimentation.
 
 ### Scalability Metrics
 
-The `itwinai` library offers multiple scalability metrics, but some of these require
+The `itwinai` library offers multiple scalability metrics, but these require
 the itwinai trainer, which is not used in this tutorial, and are therefore unavailable.
-We do have functionality of logging the relative and absolute time, however, and it is
-these metrics that are included.
 
 ### Configuration and argument parsing
 
@@ -120,20 +118,4 @@ this can be seen here:
 
 ```bash
 python slurm.py -c slurm_config.yaml --no-save-script --no-submit-job --mode scaling-test
-```
-
-## Analyze results
-
-Once all jobs have completed, you can generate a scalability report using the following
-command:
-
-```bash
-itwinai generate-scalability-report 
-    
-```
-
-To see the full list of possible arguments, type:
-
-```bash
-itwinai generate-scalability-report --help
 ```

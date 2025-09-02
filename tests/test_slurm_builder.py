@@ -1,9 +1,8 @@
-import os
 from pathlib import Path
-from typing import Generator
 from unittest.mock import patch
 
 import pytest
+import typer
 
 from itwinai.slurm.slurm_script_builder import (
     SlurmScriptBuilder,
@@ -12,104 +11,144 @@ from itwinai.slurm.slurm_script_builder import (
 
 
 @pytest.fixture
-def cd_tmpdir(tmp_path) -> Generator[None, None, None]:
-    old_cwd = Path.cwd()
-    os.chdir(tmp_path)
-    yield
-    os.chdir(old_cwd)
-
-
-@pytest.fixture
-def slurm_config():
+def slurm_config_with_all_fields(tmp_path) -> SlurmScriptConfiguration:
+    """Returns a SLURM script configuration with values for all field, including optional
+    ones.
+    """
     return SlurmScriptConfiguration(
         job_name="test_job",
         account="test_account",
         partition="test_partition",
         time="01:00:00",
-        std_out=Path("slurm_job_logs/test_job.out"),
-        err_out=Path("slurm_job_logs/test_job.err"),
-        num_nodes=2,
+        std_out=tmp_path / "my_test_job.out",
+        err_out=tmp_path / "my_test_job.err",
+        num_nodes=1,
         num_tasks_per_node=4,
         gpus_per_node=2,
         cpus_per_task=16,
+        pre_exec_command="source .venv/bin/activate",
+        memory="16G",
+        exec_command="python main.py",
     )
 
 
-@pytest.fixture
-def slurm_builder(slurm_config: SlurmScriptConfiguration):
-    return SlurmScriptBuilder(
-        slurm_script_configuration=slurm_config,
-        distributed_strategy="ddp",
-        training_command="python train.py",
+def test_slurm_script_directives(
+    tmp_path: Path, slurm_config_with_all_fields: SlurmScriptConfiguration
+):
+    """Checks that all directives exist in the saved script"""
+    assert isinstance(slurm_config_with_all_fields.std_out, Path)
+    assert isinstance(slurm_config_with_all_fields.err_out, Path)
+
+    save_dir = tmp_path
+    slurm_script_builder = SlurmScriptBuilder(
+        slurm_script_configuration=slurm_config_with_all_fields,
+        should_submit=False,
+        should_save=True,
+        save_dir=save_dir,
     )
+    slurm_script_builder.process_script()
+
+    assert save_dir.exists()
+    save_path = save_dir / f"{slurm_script_builder.slurm_script_configuration.job_name}.slurm"
+
+    with open(save_path) as f:
+        file = f.read()
+
+    directives = [
+        f"#SBATCH --job-name={slurm_config_with_all_fields.job_name}",
+        f"#SBATCH --account={slurm_config_with_all_fields.account}",
+        f"#SBATCH --partition={slurm_config_with_all_fields.partition}",
+        f"#SBATCH --time={slurm_config_with_all_fields.time}",
+        f"#SBATCH --output={slurm_config_with_all_fields.std_out.as_posix()}",
+        f"#SBATCH --error={slurm_config_with_all_fields.err_out.as_posix()}",
+        f"#SBATCH --nodes={slurm_config_with_all_fields.num_nodes}",
+        f"#SBATCH --ntasks-per-node={slurm_config_with_all_fields.num_tasks_per_node}",
+        f"#SBATCH --cpus-per-task={slurm_config_with_all_fields.cpus_per_task}",
+        f"#SBATCH --gpus-per-node={slurm_config_with_all_fields.gpus_per_node}",
+        f"#SBATCH --gres=gpu:{slurm_config_with_all_fields.gpus_per_node}",
+    ]
+    for directive in directives:
+        assert directive in file
 
 
 @pytest.mark.parametrize(
-    "save_script, submit_slurm_job",
+    ("should_save_script", "should_submit_script"),
     [(True, True), (True, False), (False, True), (False, False)],
 )
-def test_process_slurm_script(
-    slurm_builder: SlurmScriptBuilder,
-    save_script: bool,
-    submit_slurm_job: bool,
+def test_save_slurm_script(
     tmp_path: Path,
-    cd_tmpdir: None,
+    slurm_config_with_all_fields: SlurmScriptConfiguration,
+    should_save_script: bool,
+    should_submit_script: bool,
 ):
-    """Test that process_slurm_script behaves correctly for all cases of save_script
-    and submit_slurm_job."""
+    save_dir = tmp_path
+    slurm_script_builder = SlurmScriptBuilder(
+        slurm_script_configuration=slurm_config_with_all_fields,
+        should_submit=should_submit_script,
+        should_save=should_save_script,
+        save_dir=save_dir,
+    )
+    with patch("subprocess.run"):
+        slurm_script_builder.process_script()
 
-    file_path = tmp_path / "slurm_script.sh"
+    if should_save_script:
+        assert save_dir.exists()
 
+
+@pytest.mark.parametrize(
+    ("should_save_script", "should_submit_script"),
+    [(True, True), (True, False), (False, True), (False, False)],
+)
+def test_submit_slurm_script(
+    tmp_path: Path,
+    slurm_config_with_all_fields: SlurmScriptConfiguration,
+    should_save_script: bool,
+    should_submit_script: bool,
+):
+    save_dir = tmp_path
+    slurm_script_builder = SlurmScriptBuilder(
+        slurm_script_configuration=slurm_config_with_all_fields,
+        should_submit=should_submit_script,
+        should_save=should_save_script,
+        save_dir=save_dir,
+    )
     with patch("subprocess.run") as mock_run:
-        slurm_builder.process_slurm_script(
-            file_path=file_path,
-            save_script=save_script,
-            submit_slurm_job=submit_slurm_job,
-        )
-
-        # Checking that it creates the stdout and stderr directories
-
-        assert slurm_builder.slurm_script_configuration.std_out is not None
-        assert slurm_builder.slurm_script_configuration.err_out is not None
-        if submit_slurm_job:
-            assert slurm_builder.slurm_script_configuration.std_out.parent.exists()
-            assert slurm_builder.slurm_script_configuration.err_out.parent.exists()
-
-        # Check if sbatch was called
-        if submit_slurm_job:
+        slurm_script_builder.process_script()
+        if should_submit_script:
             mock_run.assert_called_once()
             called_args = mock_run.call_args[0][0]
             assert called_args[0] == "sbatch"
         else:
             mock_run.assert_not_called()
 
-        # Check if the script file exists
-        assert file_path.exists() == save_script
 
-
-def test_process_slurm_script_twice(
-    slurm_builder: SlurmScriptBuilder, tmp_path: Path, cd_tmpdir: None
+def test_save_slurm_script_twice(
+    tmp_path: Path,
+    slurm_config_with_all_fields: SlurmScriptConfiguration,
 ):
-    """Ensure that calling process_slurm_script twice with save_script=True fails,
-    but calling it first with save_script=True and then with save_script=False works fine.
-    """
-
-    file_path = Path(tmp_path) / "slurm_script.sh"
-
-    # First call with save_script=True should succeed
-    slurm_builder.process_slurm_script(
-        file_path=file_path, save_script=True, submit_slurm_job=False
+    save_dir = tmp_path
+    slurm_script_builder = SlurmScriptBuilder(
+        slurm_script_configuration=slurm_config_with_all_fields,
+        should_submit=False,
+        should_save=True,
+        save_dir=save_dir,
     )
-    assert file_path.exists()  # The script should be saved
+    slurm_script_builder.process_script()
+    with pytest.raises(typer.Exit):
+        slurm_script_builder.process_script()
 
-    # Second call with save_script=False should not fail
-    slurm_builder.process_slurm_script(
-        file_path=file_path, save_script=False, submit_slurm_job=False
+
+def test_submit_slurm_script_twice(
+    tmp_path: Path,
+    slurm_config_with_all_fields: SlurmScriptConfiguration,
+):
+    save_dir = tmp_path
+    slurm_script_builder = SlurmScriptBuilder(
+        slurm_script_configuration=slurm_config_with_all_fields,
+        should_submit=True,
+        should_save=False,
+        save_dir=save_dir,
     )
-    assert file_path.exists()  # The script should still be there
-
-    # Second call with save_script=True should fail due to file already existing
-    with pytest.raises(FileExistsError):
-        slurm_builder.process_slurm_script(
-            file_path=file_path, save_script=True, submit_slurm_job=False
-        )
+    with patch("subprocess.run"):
+        slurm_script_builder.process_script()
+        slurm_script_builder.process_script()

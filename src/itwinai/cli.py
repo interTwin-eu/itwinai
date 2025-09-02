@@ -20,25 +20,61 @@
 # NOTE: import libraries in the command's function, not here, as having them here will
 # slow down the CLI commands significantly.
 
+import importlib.metadata as im
 import logging
 import os
+import shutil
 import subprocess
 import sys
 from pathlib import Path
 from textwrap import dedent
-from typing import List
+from typing import Any, Dict, List, cast
 
 import hydra
 import typer
 from omegaconf import DictConfig
 from typing_extensions import Annotated
+from validators import url
 
-from .constants import BASE_EXP_NAME, COMPUTATION_DATA_DIR, EPOCH_TIME_DIR
+from itwinai.slurm.slurm_script_builder import MLSlurmBuilder, process_builder
+from itwinai.slurm.slurm_script_configuration import SlurmScriptConfiguration
+from itwinai.slurm.utils import get_slurm_job_parser
+from itwinai.utils import retrieve_remote_omegaconf_file
+
+from .constants import BASE_EXP_NAME, RELATIVE_MLFLOW_PATH
 
 app = typer.Typer(pretty_exceptions_enable=False)
 
 py_logger = logging.getLogger(__name__)
 cli_logger = logging.getLogger("cli_logger")
+
+
+def _version_callback(value: bool):
+    if not value:
+        return
+    try:
+        ver = im.version("itwinai")
+    except im.PackageNotFoundError:
+        ver = "0+unknown"
+    typer.echo(f"itwinai {ver}")
+    raise typer.Exit()
+
+
+@app.callback(invoke_without_command=True)
+def _root(
+    version: bool = typer.Option(
+        False,
+        "--version",
+        "-v",
+        help="Show version and exit.",
+        callback=_version_callback,
+        is_eager=True,
+        expose_value=False,  # don’t pass into _root
+    ),
+):
+    """itwinai command line interface."""
+    # no-op; options like --version are handled eagerly
+    return
 
 
 @app.command()
@@ -157,26 +193,16 @@ def generate_py_spy_report(
 
 @app.command()
 def generate_scalability_report(
+    tracking_uri: Annotated[
+        str, typer.Option(help="The tracking URI of the MLFlow server.")
+    ] = str(RELATIVE_MLFLOW_PATH),
     experiment_name: Annotated[
         str,
         typer.Option(help="The name of the mlflow experiment to use for the GPU data report."),
     ] = BASE_EXP_NAME,
-    log_dir: Annotated[
-        str,
-        typer.Option(help=("Which directory to search for the scalability metrics in.")),
-    ] = "scalability-metrics",
     plot_dir: Annotated[
         str, typer.Option(help=("Which directory to save the resulting plots in."))
     ] = "plots",
-    do_backup: Annotated[
-        bool,
-        typer.Option(
-            help=(
-                "Whether to store a backup of the scalability metrics that were used"
-                " to make the report or not."
-            )
-        ),
-    ] = False,
     run_names: Annotated[
         str | None,
         typer.Option(
@@ -186,9 +212,6 @@ def generate_scalability_report(
             )
         ),
     ] = None,
-    backup_root_dir: Annotated[
-        str, typer.Option(help=("Which directory to store the backup files in."))
-    ] = "backup-scalability-metrics/",
     plot_file_suffix: Annotated[
         str,
         typer.Option(
@@ -214,15 +237,12 @@ def generate_scalability_report(
     ] = False,
 ):
     """Generates scalability reports for epoch time, GPU data, and communication data
-    based on log files in the specified directory and mlflow logs. Optionally, backups of the
-    reports can be created.
+    based the mlflow logs.
 
-    This command processes log files stored in specific subdirectories under the given
-    `log_dir`, as well as data from mlflow runs. It generates plots and metrics for scalability
-    analysis and saves them in the `plot_dir`. If backups are enabled, the generated reports
-    will also be copied to a backup directory under `backup_root_dir`.
+    This command processes runs under the given experiment at a tracking uri.
+    It generates plots and metrics for scalability analysis and saves them in the `plot_dir`.
     """
-    from datetime import datetime
+    from mlflow.tracking import MlflowClient
 
     from itwinai.scalability_report.reports import (
         communication_data_report,
@@ -230,64 +250,24 @@ def generate_scalability_report(
         epoch_time_report,
         gpu_data_report,
     )
+    from itwinai.utils import normalize_tracking_uri
 
-    log_dir_path = Path(log_dir)
-    if not log_dir_path.exists():
-        raise ValueError(f"The provided log_dir, '{log_dir_path.resolve()}', does not exist.")
+    run_names_list = run_names.split(",") if run_names else None
 
-    if run_names:
-        run_names_list = run_names.split(",")
-        base_directories_for_runs = [log_dir_path / run_name for run_name in run_names_list]
-        # Ensure that all passed run_names actually exist as directories
-        non_existent_paths = [
-            str(path.resolve()) for path in base_directories_for_runs if not path.exists()
-        ]
-        if non_existent_paths:
-            py_logger.warning(f"Given run_names paths do not exist: '{non_existent_paths}'!")
-    else:
-        # Ensure that all elements in log_dir are directories
-        run_names_list = None
-        non_directory_paths = [
-            str(path.resolve()) for path in log_dir_path.iterdir() if not path.is_dir()
-        ]
-        if non_directory_paths:
-            raise ValueError(
-                f"Found elements in log_dir that are not directories: '{non_directory_paths}'"
-            )
-        base_directories_for_runs = list(log_dir_path.iterdir())
+    # Remove symbolic links and resolve the path
+    plot_dir_path = Path(plot_dir).resolve()
 
-    # Finding the respective data logging directories
-    epoch_time_logdirs = [
-        path / EPOCH_TIME_DIR
-        for path in base_directories_for_runs
-        if (path / EPOCH_TIME_DIR).exists()
-    ]
-    comp_time_logdirs = [
-        path / COMPUTATION_DATA_DIR
-        for path in base_directories_for_runs
-        if (path / COMPUTATION_DATA_DIR).exists()
-    ]
+    # ensure the tracking URI is normalized
+    tracking_uri = normalize_tracking_uri(tracking_uri)
+    mlflow_client = MlflowClient(tracking_uri=tracking_uri)
 
-    # Setting the backup directory from run name
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    if base_directories_for_runs:
-        backup_run_id = "_".join(map(str, base_directories_for_runs)) + f"_{timestamp}"
-    else:
-        backup_run_id = f"aggregated_run_{timestamp}"
-    backup_dir = Path(backup_root_dir) / backup_run_id
-
-    # GPU data does not need backup, as mlflow will not overwrite runs with the same name
-    epoch_time_backup_dir = backup_dir / EPOCH_TIME_DIR
-    computation_data_backup_dir = backup_dir / COMPUTATION_DATA_DIR
-
-    plot_dir_path = Path(plot_dir)
     plot_dir_path.mkdir(exist_ok=True, parents=True)
 
     epoch_time_table = epoch_time_report(
-        log_dirs=epoch_time_logdirs,
         plot_dir=plot_dir_path,
-        backup_dir=epoch_time_backup_dir,
-        do_backup=do_backup,
+        mlflow_client=mlflow_client,
+        experiment_name=experiment_name,
+        run_names=run_names_list,
         plot_file_suffix=plot_file_suffix,
     )
 
@@ -300,6 +280,7 @@ def generate_scalability_report(
 
     gpu_data_table = gpu_data_report(
         plot_dir=plot_dir_path,
+        mlflow_client=mlflow_client,
         experiment_name=experiment_name,
         run_names=run_names_list,
         plot_file_suffix=plot_file_suffix,
@@ -333,26 +314,21 @@ def generate_scalability_report(
         )
         typer.echo(typer.style("-" * 86, fg=typer.colors.YELLOW, bold=True))
 
+    communication_data_table = None
     if include_communication:
-        comm_time_logdirs = [
-            path / COMPUTATION_DATA_DIR
-            for path in base_directories_for_runs
-            if (path / COMPUTATION_DATA_DIR).exists()
-        ]
-        communication_data_backup_dir = backup_dir / COMPUTATION_DATA_DIR
         communication_data_table = communication_data_report(
-            log_dirs=comm_time_logdirs,
             plot_dir=plot_dir_path,
-            backup_dir=communication_data_backup_dir,
-            do_backup=do_backup,
+            mlflow_client=mlflow_client,
+            experiment_name=experiment_name,
+            run_names=run_names_list,
             plot_file_suffix=plot_file_suffix,
         )
 
     computation_data_table = computation_data_report(
-        log_dirs=comp_time_logdirs,
         plot_dir=plot_dir_path,
-        backup_dir=computation_data_backup_dir,
-        do_backup=do_backup,
+        mlflow_client=mlflow_client,
+        experiment_name=experiment_name,
+        run_names=run_names_list,
         plot_file_suffix=plot_file_suffix,
     )
 
@@ -493,6 +469,89 @@ def generate_slurm(
         int,
         typer.Option("--cpus-per-gpu", help="The requested number of CPUs per SLURM task."),
     ] = 4,
+    save_script: Annotated[
+        bool,
+        typer.Option(
+            "--save-script",
+            help="Whether to save the script or not.",
+        ),
+    ] = False,
+    submit_job: Annotated[
+        bool,
+        typer.Option(
+            "--submit-script",
+            help="Whether to submit the script or not.",
+        ),
+    ] = False,
+    save_dir: Annotated[
+        str | None,
+        typer.Option(
+            "--save-dir",
+            help="In which directory to save the script, if saving it.",
+        ),
+    ] = None,
+    exec_file: Annotated[
+        str | None,
+        typer.Option(
+            "--exec-file",
+            help=(
+                "The location of the file containing the execution command. Also accepts a "
+                "remote url."
+            ),
+        ),
+    ] = None,
+    pre_exec_file: Annotated[
+        str | None,
+        typer.Option(
+            "--pre-exec-file",
+            help=(
+                "The location of the file containing the pre-execution command. Also accepts"
+                " a remote url."
+            ),
+        ),
+    ] = None,
+    use_ray: Annotated[
+        bool,
+        typer.Option(
+            "--use-ray",
+            help="Whether to enable Ray or not.",
+        ),
+    ] = False,
+    memory: Annotated[
+        str,
+        typer.Option(
+            "--memory",
+            help="How much memory to allocate per node.",
+        ),
+    ] = "16G",
+    exclusive: Annotated[
+        bool,
+        typer.Option(
+            "--exclusive",
+            help="Whether to make the SLURM job exclusive or not.",
+        ),
+    ] = False,
+    run_name: Annotated[
+        str,
+        typer.Option(
+            "--run-name",
+            help="Which run name to use.",
+        ),
+    ] = "16G",
+    exp_name: Annotated[
+        str,
+        typer.Option(
+            "--exp-name",
+            help="Which experiment name to use.",
+        ),
+    ] = "16G",
+    container_path: Annotated[
+        str | None,
+        typer.Option(
+            "--container-path",
+            help="Path to container that should be exported.",
+        ),
+    ] = None,
     config_path: Annotated[
         str,
         typer.Option(
@@ -524,12 +583,6 @@ def generate_slurm(
             case_sensitive=False,
         ),
     ] = "ddp",
-    pre_exec_cmd: Annotated[
-        str | None,
-        typer.Option(
-            "--pre-exec-cmd", help="The pre-execution command to use for the python script."
-        ),
-    ] = None,
     training_cmd: Annotated[
         str | None,
         typer.Option(
@@ -549,23 +602,6 @@ def generate_slurm(
             help="A comma-separated list of node numbers to use for the scalability test.",
         ),
     ] = "1,2,4,8",
-    debug: Annotated[
-        bool,
-        typer.Option("--debug", help="Whether to include debugging information or not"),
-    ] = False,
-    no_save_script: Annotated[
-        bool,
-        typer.Option(
-            "--no-save-script", help="Whether to save the script after processing it."
-        ),
-    ] = False,
-    no_submit_job: Annotated[
-        bool,
-        typer.Option(
-            "--no-submit-job",
-            help="Whether to submit the job when processing the script.",
-        ),
-    ] = False,
     config: Annotated[
         str | None,
         typer.Option("--config", help="The path to the SLURM configuration file."),
@@ -588,6 +624,155 @@ def generate_slurm(
 
     del sys.argv[0]
     generate_default_slurm_script()
+
+
+def install_plugins(config):
+    if "plugins" not in config or config.plugins is None:
+        return
+
+    has_uv = shutil.which("uv")
+    if has_uv:
+        pip_installer = ["uv", "pip", "install"]
+    else:
+        pip_installer = [sys.executable, "-m", "pip", "install"]
+
+    for plugin in config.plugins:
+        cli_logger.info(f"Installing '{plugin}'")
+        try:
+            subprocess.run([*pip_installer, plugin], capture_output=True, check=True)
+        except subprocess.CalledProcessError as e:
+            cli_logger.error(f"Failed to install '{plugin}': {e}")
+            raise typer.Exit(1)
+        except FileNotFoundError:
+            cli_logger.error(f"Installer '{pip_installer[0]}' not found.")
+            raise typer.Exit(1)
+
+
+@app.command(context_settings={"allow_extra_args": True, "ignore_unknown_options": True})
+def run(
+    config: Annotated[
+        str,
+        typer.Option(
+            "-c", "--config", help="Path or URL to a configuration file in yaml format."
+        ),
+    ],
+    submit_job: Annotated[
+        bool,
+        typer.Option(
+            "-j", "--submit-job",
+            help="Whether to submit the SLURM job after generating the script.",
+        ),
+    ] = False,
+    save_script: Annotated[
+        bool,
+        typer.Option(
+            "-s", "--save-script",
+            help="Whether to save the generated SLURM script to disk.",
+        ),
+    ] = False,
+):
+    """Launch ML jobs with dependency installation and SLURM scheduling."""
+    from argparse import ArgumentParser
+
+    from omegaconf import DictConfig, ListConfig, OmegaConf
+
+    # We delete this as it's needed when combining the argparser with typer/omegaconf
+    del sys.argv[0]
+
+    if not OmegaConf.has_resolver("itwinai.cwd"):
+        OmegaConf.register_new_resolver("itwinai.cwd", os.getcwd)
+
+    initial_parser = ArgumentParser()
+    initial_parser.add_argument(
+        "-c",
+        "--config",
+        help="Path or URL to configuration file in yaml format.",
+    )
+    initial_parser.add_argument(
+        "-j",
+        "--submit-job",
+        action="store_true",
+        help="Whether to submit the SLURM job after generating the script.",
+    )
+    initial_parser.add_argument(
+        "-s",
+        "--save-script",
+        action="store_true",
+        help="Whether to save the generated SLURM script to disk.",
+    )
+    args = initial_parser.parse_args()
+
+    root_config: DictConfig | ListConfig
+    if url(args.config):
+        cli_logger.info("Retrieving config from URL.")
+        root_config = retrieve_remote_omegaconf_file(url=args.config)
+    else:
+        root_config = OmegaConf.load(args.config)
+    if "slurm_config" not in root_config:
+        cli_logger.error("'slurm_config' needs to be present in config, but was not!")
+        raise typer.Exit(1)
+
+    install_plugins(config=root_config)
+
+    slurm_config = root_config.slurm_config
+
+    # cast to make the linter happy
+    slurm_config_dict = cast(Dict[str, Any], OmegaConf.to_object(slurm_config))
+    if not isinstance(slurm_config_dict, dict):
+        cli_logger.error("The SLURM configuration must be of type dict, but was not.")
+        raise typer.Exit(1)
+
+    # Override SLURM config with CLI flags (CLI takes precedence)
+    slurm_config_dict["submit_job"] = args.submit_job
+    slurm_config_dict["save_script"] = args.save_script
+
+    # The slurm parser requires a metadata field so we add an empty one
+    slurm_config_dict.setdefault("metadata", {})
+
+    slurm_parser = get_slurm_job_parser()
+    slurm_args = slurm_parser.parse_object(slurm_config_dict)
+    num_tasks_per_node = 1
+
+    slurm_config_obj = SlurmScriptConfiguration(
+        job_name=slurm_args.job_name,
+        account=slurm_args.account,
+        time=slurm_args.time,
+        partition=slurm_args.partition,
+        std_out=slurm_args.std_out,
+        err_out=slurm_args.err_out,
+        num_nodes=slurm_args.num_nodes,
+        num_tasks_per_node=num_tasks_per_node,
+        gpus_per_node=slurm_args.gpus_per_node,
+        cpus_per_task=slurm_args.cpus_per_task,
+        memory=slurm_args.memory,
+        exclusive=slurm_args.exclusive,
+    )
+
+    slurm_script_builder = MLSlurmBuilder(
+        slurm_script_configuration=slurm_config_obj,
+        should_submit=slurm_args.submit_job,
+        should_save=slurm_args.save_script,
+        use_ray=slurm_args.use_ray,
+        container_path=slurm_args.container_path,
+        distributed_strategy=slurm_args.dist_strat,
+        exec_file=slurm_args.exec_file,
+        pre_exec_file=slurm_args.pre_exec_file,
+        save_dir=slurm_args.save_dir,
+        python_venv=slurm_args.python_venv,
+        training_command=slurm_args.training_cmd,
+        config_path=slurm_args.config_path,
+        config_name=slurm_args.config_name,
+        pipe_key=slurm_args.pipe_key,
+        py_spy_profiling=slurm_args.py_spy,
+        profiling_sampling_rate=slurm_args.profiling_sampling_rate,
+        experiment_name=slurm_args.exp_name,
+        run_name=slurm_args.run_name,
+    )
+    process_builder(
+        slurm_script_builder=slurm_script_builder,
+        mode=slurm_args.mode,
+        node_list=slurm_args.scalability_nodes,
+    )
 
 
 @app.command(context_settings={"allow_extra_args": True, "ignore_unknown_options": True})

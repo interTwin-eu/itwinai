@@ -42,8 +42,23 @@ which can be toggled using the following flags in your training configuration:
       measure_epoch_time: True  # Measures avg. epoch time and rel. speedup
       ...
 
-The epoch time is measured using the `EpochTimeTracker`, while the remaining
-metrics are measured using the following decorators:
+``enable_torch_profiling`` will aggregate the times spent on unique operations.
+The raw traces are stored with ``store_torch_profiling_traces``. As the traces
+quickly get quite large, we advise you to keep the run time as short as
+acceptable for meaningful results. You can also tinker with the
+``profiling_warmup_epochs``, ``profiling_wait_epochs`` and
+``profiling_active_epochs`` parameters to control how many epochs are profiled
+and when the profiling starts. The warmup epochs will run first, then it alternates
+between the wait epochs and the active epochs, where the profiling is
+done until all epochs are done.
+
+Enabling the torch profiling will have a severe impact on runtime, so it is
+recommended to measure epoch time and GPU data (utilization and power
+consumption) in separation for the most realistic results.
+
+The epoch time is measured inside the ``train()`` function of the
+``TorchTrainer``, while the remaining metrics are measured using the following
+decorators:
 
 - **PyTorch Profiler**: This profiler measures the time spent in computation vs. other
   operations in your distributed machine learning. This is done by comparing the time spent in
@@ -87,7 +102,7 @@ You can generate the report using the following command:
 
 .. code-block:: bash
 
-   itwinai generate-scalability-report
+   itwinai generate-scalability-report --experiment-name <mlflow_experiment_name>
 
 This command takes in some extra arguments that can be viewed with the ``--help`` flag:
 
@@ -95,9 +110,10 @@ This command takes in some extra arguments that can be viewed with the ``--help`
 
    itwinai generate-scalability-report --help
 
-When running this command by default, it will look in your ``scalability-metrics`` directory
-and look for the subdirectories listed above. Only the reports relevant to the subdirectories
-that are present will be created, while missing subdirectories will only result in a warning.
+This command fetches the data from mlflow.
+If the ``--tracking_uri`` flag is not specified, it expects the data in ``./mllogs/mlflow``.
+You can specify specific runs with the ``--run-names`` flag. Per default all runs in the experiment
+are used.
 
 Example Results
 ---------------
@@ -196,12 +212,12 @@ of nodes.
 MNIST Use Case
 ^^^^^^^^^^^^^^
 
-.. image:: ./images/mnist_absolute_epoch_time.png
+.. image:: ../../images/scalability-plots/mnist/absolute_epoch_time.svg
 
 Virgo Use Case
 ^^^^^^^^^^^^^^
 
-.. image:: ./images/virgo_absolute_epoch_time.png
+.. image:: ../../images/scalability-plots/virgo/absolute_epoch_time.svg
 
 Relative Epoch Time Speedup
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -211,12 +227,12 @@ strategy. The speedup is calculated using the lowest number of nodes as a baseli
 MNIST Use Case
 ^^^^^^^^^^^^^^
 
-.. image:: ./images/mnist_relative_epoch_time_speedup.png
+.. image:: ../../images/scalability-plots/mnist/relative_epoch_time_speedup.svg
 
 Virgo Use Case
 ^^^^^^^^^^^^^^
 
-.. image:: ./images/virgo_relative_epoch_time_speedup.png
+.. image:: ../../images/scalability-plots/virgo/relative_epoch_time_speedup.svg
 
 Computation vs other
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -228,9 +244,9 @@ are normalized to be between 0.0 and 1.0.
 MNIST Use Case
 ^^^^^^^^^^^^^^
 
-.. image:: ./images/mnist_computation_vs_other_plot.png
+.. image:: ../../images/scalability-plots/mnist/computation_vs_other_plot.svg
 
 Virgo Use Case
 ^^^^^^^^^^^^^^
 
-.. image:: ./images/virgo_computation_vs_other_plot.png
+.. image:: ../../images/scalability-plots/virgo/computation_vs_other_plot.svg

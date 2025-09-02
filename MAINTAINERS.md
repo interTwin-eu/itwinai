@@ -4,6 +4,7 @@
 
 - Matteo Bunino - CERN - matteo.bunino\<at\>cern.ch
 - Jarl Sondre Saether - CERN - jarl.sondre.saether\<at\>cern.ch
+- Linus Eickhoff - CERN - linus.maximilian.eickhoff\<at\>cern.ch
 - Anna Elisa Lappe - CERN - anna.elisa.lappe\<at\>cern.ch
 - Rakesh Sarma - FZJ - r.sarma\<at\>fz-juelich.de
 

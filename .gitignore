@@ -21,6 +21,7 @@ pl-training.yml
 *.sif
 .DS_Store
 *slurm_scripts/
+*slurm-scripts/
 *.json
 *.JSON
 core
@@ -219,3 +220,4 @@ cython_debug/
 
 # py-spy profiling output
 py_spy_outputs/
+py-spy-outputs/

@@ -6,6 +6,7 @@
 # Credit:
 # - Matteo Bunino <matteo.bunino@cern.ch> - CERN
 # - Anna Lappe <anna.elisa.lappe@cern.ch> - CERN
+# - Linus Eickhoff <linus.maximilian.eickhoff@cern.ch> - CERN
 # --------------------------------------------------------------------------------------
 
 import importlib
@@ -34,6 +35,7 @@ core_modules = [
     "itwinai.scalability_report.utils",
     "itwinai.scalability_report.reports",
     "itwinai.scalability_report.plot",
+    "itwinai.constants",
 ]
 
 torch_modules = [
@@ -51,6 +53,12 @@ torch_modules = [
     "itwinai.torch.type",
     "itwinai.torch.loggers",
     "itwinai.torch.tuning",
+    "itwinai.torch.utils",
+    "itwinai.torch.profiling.profiler",
+    "itwinai.torch.profiling.py_spy_aggregation",
+    "itwinai.torch.monitoring.monitoring",
+    "itwinai.torch.monitoring.backend",
+
 ]
 
 tensorflow_modules = [

@@ -24,15 +24,11 @@ if TYPE_CHECKING:
 
 py_logger = logging.getLogger(__name__)
 
-cli_logger = logging.getLogger("cli_logger")
-
 
 def profile_gpu_utilization(
     stop_flag: ValueProxy,
     local_rank: int,
     global_rank: int,
-    global_world_size: int,
-    strategy_name: str,
     logger: Logger,
     run_id: str | None = None,
     parent_run_id: str | None = None,
@@ -45,19 +41,14 @@ def profile_gpu_utilization(
     stop_flag.value is set to True.
 
     Args:
-        node_idx: The index of the compute node that the function is called by, used
-            for logging purposes.
-        num_global_gpus: Number of GPUs on all nodes combined.
-        strategy: Which distributed strategy is being used, e.g. "ddp" or "horovod".
-        log_dict: Dictionary for storing logging data on. Should be managed by a
-            multiprocessing.Manager object.
-        stop_flag: Shared value telling the function when to stop logging. Should be
-            managed by a multiprocessing.Manager object.
-        probing_interval: How long to wait between each time a read of the GPU
-            utilization is done.
-        warmup_time: How long to wait before logging starts, allowing the training to
-            properly start before reading.
-
+        stop_flag (ValueProxy): A shared flag to stop the profiling process.
+        local_rank (int): Local rank of the GPU being profiled.
+        global_rank (int): Global rank of the process.
+        logger (Logger): Logger instance to log GPU utilization data.
+        run_id (str | None): ID of the MLflow run for logging.
+        parent_run_id (str | None): ID of the parent MLflow run for logging.
+        probing_interval (int): Interval in seconds between each probing of GPU utilization.
+        warmup_time (int): Time in seconds to wait before starting the profiling.
     """
     backend = detect_gpu_backend()
     visible_gpu_ids = backend.get_visible_gpu_ids()
@@ -88,21 +79,6 @@ def profile_gpu_utilization(
         rank=global_rank,
         parent_run_id=parent_run_id,
         run_id=run_id,
-    )
-    logger.log(
-        item=strategy_name,
-        identifier="strategy",
-        kind="param",
-    )
-    logger.log(
-        item=global_rank,
-        identifier="global_rank",
-        kind="param",
-    )
-    logger.log(
-        item=global_world_size,
-        identifier="num_global_gpus",
-        kind="param",
     )
     logger.log(
         item=probing_interval,
@@ -143,7 +119,7 @@ def measure_gpu_utilization(method: Callable) -> Callable:
     @functools.wraps(method)
     def measured_method(self: "TorchTrainer", *args, **kwargs) -> Any:
         if not self.measure_gpu_data:
-            cli_logger.warning("Profiling of GPU data has been disabled!")
+            py_logger.warning("Profiling of GPU data has been disabled!")
             return method(self, *args, **kwargs)
 
         if not self.logger:
@@ -174,8 +150,6 @@ def measure_gpu_utilization(method: Callable) -> Callable:
                 "stop_flag": stop_flag,
                 "local_rank": local_rank,
                 "global_rank": global_rank,
-                "global_world_size": strategy.global_world_size(),
-                "strategy_name": strategy.name,
                 "logger": self.logger,
                 "run_id": run_id,
                 "parent_run_id": parent_run_id,

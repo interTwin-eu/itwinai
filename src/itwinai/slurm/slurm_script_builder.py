@@ -12,88 +12,253 @@ import logging
 import subprocess
 from collections.abc import Iterable
 from pathlib import Path
-from tempfile import TemporaryDirectory
-from typing import Dict
+from tempfile import NamedTemporaryFile
+from typing import Dict, List, Literal
 
-from pydantic import BaseModel
+import typer
+from requests.exceptions import RequestException
+from validators import url
 
-from itwinai.slurm.slurm_constants import JUWELS_HPC_MODULES, SLURM_TEMPLATE
+from itwinai.slurm.slurm_constants import (
+    DEFAULT_PY_SPY_DIR,
+    DEFAULT_SLURM_LOG_DIR,
+    DEFAULT_SLURM_SAVE_DIR,
+)
+from itwinai.slurm.slurm_script_configuration import SlurmScriptConfiguration
 from itwinai.slurm.utils import (
     get_slurm_job_parser,
     remove_indentation_from_multiline_string,
+    retrieve_remote_file,
 )
 
 cli_logger = logging.getLogger("cli_logger")
 
 
-class SlurmScriptConfiguration(BaseModel):
-    """Configuration object for the SLURM script. It contains all the settings for the
-    SLURM script such as which hardware you are requesting or for how long to run it.
-    As it allows for any ``pre_exec_command`` and ``exec_command``, it should work for
-    any SLURM script.
-    """
-
-    # Settings for the SLURM configuration
-    job_name: str | None = None
-    account: str
-    partition: str
-    time: str
-
-    std_out: Path | None = None
-    err_out: Path | None = None
-
-    num_nodes: int
-    num_tasks_per_node: int
-    gpus_per_node: int
-    cpus_per_task: int
-
-    # Typically used to set up the environment before executing the command,
-    # e.g. "ml Python", "source .venv/bin/activate" etc.
-    pre_exec_command: str | None = None
-
-    # Command to execute, typically an 'srun' command
-    exec_command: str | None = None
-
-    def format_script(self) -> str:
-        """Uses the provided configuration parameters and formats a SLURM script with
-        the requested settings.
-
-        Returns:
-            str: A string containing the SLURM script.
-        """
-        return SLURM_TEMPLATE.format_map(self.model_dump())
-
-
 class SlurmScriptBuilder:
-    """Builds a SLURM script for various itwinai use cases, typically machine-learning
-    use cases. Uses the provided ``SlurmScriptConfiguration`` to build the script. Some
-    methods, such as the run-all or scaling-test methods, will modify the given
-    configuration in-place, so be careful if reusing the configuration object.
+    def __init__(
+        self,
+        slurm_script_configuration: SlurmScriptConfiguration,
+        should_submit: bool,
+        should_save: bool,
+        save_dir: str | Path | None = None,
+        pre_exec_file: str | None = None,
+        exec_file: str | None = None,
+    ):
+        self.slurm_script_configuration = slurm_script_configuration
+        self.should_submit = should_submit
+        self.should_save = should_save
+        self.pre_exec_file = pre_exec_file
+        self.exec_file = exec_file
+
+        if isinstance(save_dir, str):
+            save_dir = Path(save_dir)
+        self.save_dir = save_dir
+
+    @staticmethod
+    def submit_script(script: str) -> None:
+        """Submits the given script with 'sbatch' using a temporary file."""
+        with NamedTemporaryFile(mode="w") as temp_file:
+            temp_file.write(script)
+            # Making sure the script is written to file before the cmd is launched
+            temp_file.flush()
+            try:
+                subprocess.run(["sbatch", temp_file.name], check=True)
+            except FileNotFoundError as e:
+                cli_logger.error(
+                    "'sbatch' failed. Are you sure you have it installed on your system? Error"
+                    f" message:\n{e}."
+                )
+                raise typer.Exit(1)
+            except subprocess.CalledProcessError as e:
+                cli_logger.error(f"'sbatch' failed to submit script. Error message:\n{e}")
+                raise typer.Exit(1)
+
+    @staticmethod
+    def save_script(script: str, file_path: Path) -> None:
+        """Saves the given script to the given file path."""
+        if not file_path.parent.exists():
+            cli_logger.info(f"Creating directory '{file_path.parent.resolve()}'!")
+            file_path.parent.mkdir(parents=True, exist_ok=True)
+
+        try:
+            with open(file_path, "x") as f:
+                f.write(script)
+            cli_logger.info(f"Saved SLURM script to '{file_path.resolve()}'.")
+        except FileExistsError:
+            cli_logger.error(
+                f"File '{file_path.resolve()}' already exists! Give a different path or "
+                "delete the file first."
+            )
+            raise typer.Exit(1)
+
+    @staticmethod
+    def print_script(script: str) -> None:
+        """Prints the given script to stdout using the cli_logger."""
+        upper_banner_str = f"{'#' * 20} SLURM Script Preview {'#' * 20}"
+        cli_logger.info(upper_banner_str)
+        cli_logger.info(script)
+        cli_logger.info("#" * len(upper_banner_str))
+
+    def _set_default_config_fields(self) -> None:
+        """Sets the job_name, std_out and err_out fields to default values if they are missing
+        from the configuration object.
+        """
+        if self.slurm_script_configuration.job_name is None:
+            self.slurm_script_configuration.job_name = "job"
+
+        job_name = self.slurm_script_configuration.job_name
+        if self.slurm_script_configuration.std_out is None:
+            std_out_path = Path(DEFAULT_SLURM_LOG_DIR) / f"{job_name}.out"
+            self.slurm_script_configuration.std_out = std_out_path
+
+        if self.slurm_script_configuration.err_out is None:
+            std_err_path = Path(DEFAULT_SLURM_LOG_DIR) / f"{job_name}.err"
+            self.slurm_script_configuration.err_out = std_err_path
+
+    def _ensure_log_dirs_exist(self):
+        if self.slurm_script_configuration.std_out is None:
+            cli_logger.error(
+                "Failed to ensure existence of logging directories. Cannot ensure existence of"
+                " std_out as it is None!"
+            )
+            raise typer.Exit(1)
+        if self.slurm_script_configuration.err_out is None:
+            cli_logger.error(
+                "Failed to ensure existence of logging directories. Cannot ensure existence of"
+                " err_out (stderr) as it is None!"
+            )
+            raise typer.Exit(1)
+
+        self.slurm_script_configuration.std_out.parent.mkdir(exist_ok=True, parents=True)
+        self.slurm_script_configuration.err_out.parent.mkdir(exist_ok=True, parents=True)
+
+    def _set_pre_exec_cmd(self) -> None:
+        """Sets the pre-execution command based on the given arguments. If the passed file is
+        a url then it downloads its contents. If it's a file, then it tries to read it from
+        the disk.
+        """
+        if self.pre_exec_file is None:
+            return
+        if self.slurm_script_configuration.pre_exec_command is not None:
+            return
+
+        if url(self.pre_exec_file):
+            try:
+                contents = retrieve_remote_file(str(self.pre_exec_file))
+            except RequestException as e:
+                cli_logger.error(
+                    f"Retrieving file from remote, '{self.pre_exec_file}', failed! Error:\n{e}"
+                )
+                raise typer.Exit(1)
+        else:
+            try:
+                with open(self.pre_exec_file) as file:
+                    contents = file.read()
+            except FileNotFoundError:
+                cli_logger.error(
+                    f"Failed to open pre-execution script. Couldn't find file: "
+                    f"'{self.pre_exec_file}'!"
+                )
+                raise typer.Exit(1)
+        self.slurm_script_configuration.pre_exec_command = contents
+
+    def _set_exec_cmd(self):
+        """Sets the execution command based on the given arguments. If the passed file is
+        a url then it downloads its contents. If it's a file, then it tries to read it from
+        the disk.
+        """
+        if self.exec_file is None:
+            return
+        if self.slurm_script_configuration.exec_command is not None:
+            return
+
+        if url(self.exec_file):
+            try:
+                contents = retrieve_remote_file(str(self.exec_file))
+            except RequestException as e:
+                cli_logger.error(
+                    f"Retrieving file from remote, '{self.exec_file}', failed! Error:\n{e}"
+                )
+                raise typer.Exit(1)
+        else:
+            try:
+                with open(self.exec_file) as file:
+                    contents = file.read()
+            except FileNotFoundError:
+                cli_logger.error(
+                    f"Failed to open execution script. Couldn't find file: '{self.exec_file}'!"
+                )
+                raise typer.Exit(1)
+        self.slurm_script_configuration.exec_command = contents
+
+    def process_script(self) -> None:
+        """Processes the given script by submitting and/or saving it, or by printing it to
+        stdout. Also prepares the script by inserting default values wherever they are not
+        set, as well as creating the needed directories.
+        """
+        self._set_default_config_fields()
+        self._set_pre_exec_cmd()
+        self._set_exec_cmd()
+        script = self.slurm_script_configuration.generate_script()
+        if not self.should_submit and not self.should_save:
+            self.print_script(script=script)
+            return
+
+        if self.should_save:
+            save_dir = self.save_dir if self.save_dir else Path(DEFAULT_SLURM_SAVE_DIR)
+            save_path = save_dir / f"{self.slurm_script_configuration.job_name}.slurm"
+            save_path = save_path.resolve()
+            self.save_script(script=script, file_path=save_path)
+
+        if self.should_submit:
+            self._ensure_log_dirs_exist()
+            self.submit_script(script=script)
+
+
+class MLSlurmBuilder(SlurmScriptBuilder):
+    """Builds a SLURM script tailed to distributed machine learning. Uses the provided
+    ``SlurmScriptConfiguration`` to build the script and inserts values as needed.
+
+    Note:
+        The given configuration object might be modified by some of the methods.
     """
 
     def __init__(
         self,
         slurm_script_configuration: SlurmScriptConfiguration,
-        distributed_strategy: str,
-        pre_exec_command: str | None = None,
+        should_submit: bool,
+        should_save: bool,
+        distributed_strategy: Literal["ddp", "deepspeed", "horovod"],
+        use_ray: bool = False,
+        pre_exec_file: str | None = None,
+        exec_file: str | None = None,
+        save_dir: str | Path | None = None,
+        container_path: str | Path | None = None,
         training_command: str | None = None,
-        python_venv: str = ".venv",
-        debug: bool = False,
+        python_venv: str | None = None,
         config_name: str = "config",
         config_path: str = ".",
         pipe_key: str = "training_pipeline",
-        file_folder: Path = Path("slurm_scripts"),
         py_spy_profiling: bool = False,
         profiling_sampling_rate: int = 10,
+        experiment_name: str = "main_experiment",
+        run_name: str = "run1",
     ):
-        self.slurm_script_configuration = slurm_script_configuration
+        super().__init__(
+            slurm_script_configuration=slurm_script_configuration,
+            should_submit=should_submit,
+            should_save=should_save,
+            save_dir=save_dir,
+            pre_exec_file=pre_exec_file,
+            exec_file=exec_file,
+        )
+
         self.distributed_strategy = distributed_strategy
-        self.pre_exec_command = pre_exec_command
         self.training_command = training_command
+        self.use_ray = use_ray
+        self.container_path = container_path
 
         self.python_venv = python_venv
-        self.debug = debug
-        self.file_folder = file_folder
 
         self.py_spy_profiling = py_spy_profiling
         self.profiling_sampling_rate = profiling_sampling_rate
@@ -103,160 +268,116 @@ class SlurmScriptBuilder:
         self.config_path = config_path
         self.pipe_key = pipe_key
 
-        self.omp_num_threads = max(
-            1,
-            self.slurm_script_configuration.cpus_per_task
-            // self.slurm_script_configuration.gpus_per_node,
-        )
+        self.experiment_name = experiment_name
+        self.run_name = run_name
 
-    @property
-    def training_cmd_formatter(self) -> Dict[str, str]:
+    def _get_training_cmd_args(self) -> Dict[str, str]:
         return {
             "dist_strat": self.distributed_strategy,
             "config_name": self.config_name,
             "config_path": self.config_path,
             "pipe_key": self.pipe_key,
+            "experiment_name": self.experiment_name,
+            "run_name": self.run_name,
         }
 
-    def generate_identifier(self) -> str:
+    def _generate_job_identifier(self) -> str:
         num_nodes = self.slurm_script_configuration.num_nodes
         gpus_per_node = self.slurm_script_configuration.gpus_per_node
-        return f"{self.distributed_strategy}-{num_nodes}x{gpus_per_node}"
-
-    def _handle_directory_existence(self, directory: Path, should_create: bool) -> None:
-        if directory.exists():
-            return
-
-        dir_name = str(directory.resolve())
-        if should_create:
-            directory.mkdir(parents=True)
-            cli_logger.info(f"Creating directory '{dir_name}'")
-        else:
-            cli_logger.warning(
-                "If you're submitting the SLURM job manually, make sure to create "
-                f"the directory '{dir_name}' first. This is handled automatically when using "
-                "the SLURM builder."
-            )
+        identifier = (
+            f"{'ray-' if self.use_ray else ''}"
+            f"{self.distributed_strategy}-{num_nodes}x{gpus_per_node}"
+        )
+        return identifier
 
     def get_training_command(self) -> str:
         if self.training_command:
-            return self.training_command.format(**self.training_cmd_formatter)
+            return self.training_command.format(**self._get_training_cmd_args())
 
-        # Default for the TorchTrainer
+        if self.python_venv:
+            itwinai_launcher = (Path(self.python_venv) / "bin" / "itwinai").resolve()
+        else:
+            itwinai_launcher = "itwinai"
+
         default_command = rf"""
-            $(which itwinai) exec-pipeline \
+            {itwinai_launcher} exec-pipeline \
+            --config-name={self.config_name} \
+            --config-path={self.config_path} \
+            +pipe_key={self.pipe_key} \
             strategy={self.distributed_strategy} \
-            checkpoints_location=checkpoints_{self.distributed_strategy}
+            experiment_name={self.experiment_name} \
+            run_name={self.run_name}
         """
         default_command = default_command.strip()
         return remove_indentation_from_multiline_string(default_command)
 
-    def get_pre_exec_command(self) -> str:
-        """Generates a pre-execution command for the SLURM script. This will load the
-        standard HPC modules, source the given python venv and set the OpenMP number
-        of threads. Will also add debug echo statements if debug flag is set to True."""
-        pre_exec_command = rf"""
-            ml {" ".join(JUWELS_HPC_MODULES)}
-            source {self.python_venv}/bin/activate
-            export OMP_NUM_THREADS={self.omp_num_threads}
+    def get_exec_command(self) -> str:
+        """Generates an execution command for the SLURM script. Considers whether ray is
+        enabled or not and finds the appropriate expected bash function.
         """
+        if self.slurm_script_configuration.exec_command is not None:
+            return self.slurm_script_configuration.exec_command
 
-        if self.pre_exec_command:
-            pre_exec_command += f"\n{self.pre_exec_command}"
-        if self.debug:
-            pre_exec_command += "\n" + self.get_debug_command()
+        training_command = self.get_training_command()
+        if self.distributed_strategy == "horovod" and self.use_ray:
+            cli_logger.error("Horovod together with Ray is not supported!")
+            raise typer.Exit(1)
+        if self.use_ray and self.py_spy_profiling:
+            cli_logger.error("Ray together with py-spy profiling is not supported!")
+            raise typer.Exit(1)
+        if self.py_spy_profiling and self.distributed_strategy == "horovod":
+            cli_logger.error("Horovod together with py-spy profiling is not supported!")
+            raise typer.Exit(1)
+
+        if self.use_ray:
+            base_cmd = "ray-launcher"
+        elif self.distributed_strategy == "horovod":
+            base_cmd = "srun-launcher"
+        elif self.distributed_strategy in ("ddp", "deepspeed"):
+            base_cmd = "torchrun-launcher"
+        else:
+            cli_logger.error(f"Invalid strategy chosen: {self.distributed_strategy}")
+            raise typer.Exit(1)
+
+        if self.container_path:
+            base_cmd += "-container"
+
+        if self.py_spy_profiling and self.distributed_strategy in ("ddp", "deepspeed"):
+            py_spy_profiling_filename = (
+                rf"{self.distributed_strategy}_profile_\$SLURM_NODEID.txt"
+            )
+            py_spy_output_file = Path(DEFAULT_PY_SPY_DIR) / py_spy_profiling_filename
+            base_cmd = (
+                f"py-spy-{base_cmd} '{self.profiling_sampling_rate}' '{py_spy_output_file}'"
+            )
+
+        base_cmd += f" '{training_command}'"
+        return base_cmd
+
+    def get_pre_exec_command(self) -> str:
+        """Generates a pre-execution command for the SLURM script. Adds a command to source
+        the python venv if given and a command to export a container path variable if given.
+        """
+        pre_exec_command = ""
+        if self.slurm_script_configuration.pre_exec_command is not None:
+            pre_exec_command = self.slurm_script_configuration.pre_exec_command
+
+        if self.python_venv is not None:
+            pre_exec_command += f"\nsource {self.python_venv}/bin/activate"
+
+        if self.container_path is not None:
+            pre_exec_command += f"\nexport CONTAINER_PATH={self.container_path}"
 
         pre_exec_command = pre_exec_command.strip()
-        return remove_indentation_from_multiline_string(pre_exec_command)
+        return pre_exec_command
 
-    def get_srun_command(self, torch_log_dir: str = "logs_torchrun") -> str:
-        """Generates an srun command for the different distributed ML frameworks using
-        the internal training command. Sets up rendezvous connections etc. when
-        necessary and exports necessary environment variables.
-        """
+    def _set_default_config_fields(self) -> None:
+        if self.slurm_script_configuration.job_name is None:
+            self.slurm_script_configuration.job_name = self._generate_job_identifier()
 
-        if self.distributed_strategy in ["ddp", "deepspeed"]:
-            rdzv_endpoint = (
-                "'$(scontrol show hostnames \"$SLURM_JOB_NODELIST\" | head -n 1)'i:29500"
-            )
-            bash_command = rf"""torchrun \
-                --log_dir='{torch_log_dir}' \
-                --nnodes=$SLURM_NNODES \
-                --nproc_per_node=$SLURM_GPUS_PER_NODE \
-                --rdzv_id=$SLURM_JOB_ID \
-                --rdzv_conf=is_host=\$(((SLURM_NODEID)) && echo 0 || echo 1) \
-                --rdzv_backend=c10d \
-                --rdzv_endpoint={rdzv_endpoint} \
-                {self.get_training_command()}"""
-            if self.py_spy_profiling:
-                # Prepending the py-spy profiling command
-                py_spy_profiling_dir = Path("py-spy-outputs")
-                self._handle_directory_existence(
-                    directory=py_spy_profiling_dir, should_create=True
-                )
-                py_spy_profiling_filename = (
-                    rf"{self.distributed_strategy}_profile_\$SLURM_NODEID.txt"
-                )
-                py_spy_output_file = py_spy_profiling_dir / py_spy_profiling_filename
+        super()._set_default_config_fields()
 
-                bash_command = (
-                    f"py-spy record -r {self.profiling_sampling_rate} -s "
-                    f"-o {py_spy_output_file} -f raw -- " + bash_command
-                )
-
-            main_command = rf"""
-            srun --cpu-bind=none --ntasks-per-node=1 \
-            bash -c "{bash_command}"
-        """
-        else:
-            gpus_per_node = self.slurm_script_configuration.gpus_per_node
-            num_nodes = self.slurm_script_configuration.num_nodes
-            num_tasks = gpus_per_node * num_nodes
-
-            # E.g. "0,1,2,3" with 4 GPUs per node
-            cuda_visible_devices = ",".join(str(i) for i in range(gpus_per_node))
-
-            main_command = rf"""
-            export CUDA_VISIBLE_DEVICES="{cuda_visible_devices}"
-            srun --cpu-bind=none \
-                --ntasks-per-node=$SLURM_GPUS_PER_NODE \
-                --ntasks={num_tasks} \
-                --cpus-per-task=$((SLURM_CPUS_PER_TASK / SLURM_GPUS_PER_NODE)) \
-                {self.get_training_command()}
-        """
-
-        main_command = main_command.strip()
-        return remove_indentation_from_multiline_string(main_command)
-
-    def get_debug_command(self) -> str:
-        """Generates a debug command to be added to the pre-exec command."""
-
-        debug_print_command = rf"""
-        echo "### SLURM Variables ###"
-        echo "SLURM_SUBMIT_DIR: $SLURM_SUBMIT_DIR"
-        echo "SLURM_JOB_ID: $SLURM_JOB_ID"
-        echo "SLURM_JOB_NODELIST: $SLURM_JOB_NODELIST"
-        echo "SLURM_NNODES: $SLURM_NNODES"
-        echo "SLURM_NTASKS: $SLURM_NTASKS"
-        echo "SLURM_TASKS_PER_NODE: $SLURM_TASKS_PER_NODE"
-        echo "SLURM_SUBMIT_HOST: $SLURM_SUBMIT_HOST"
-        echo "SLURMD_NODENAME: $SLURMD_NODENAME"
-        echo "CUDA_VISIBLE_DEVICES: $CUDA_VISIBLE_DEVICES"
-        echo ""
-        echo "### Other Variables ###"
-        echo "Distributed Strategy: {self.distributed_strategy}"
-        echo "Current working directory: $(pwd)"
-        echo "Which python: $(which python)"
-        """
-        debug_print_command = debug_print_command.strip()
-        return remove_indentation_from_multiline_string(debug_print_command)
-
-    def process_slurm_script(
-        self,
-        file_path: Path | None = None,
-        save_script: bool = True,
-        submit_slurm_job: bool = True,
-    ) -> None:
+    def process_script(self) -> None:
         """Will generate and process a SLURM script according to specifications. Will
         run the script if ``submit_slurm_job`` is set to True, will store the SLURM script file
         if ``save_script`` is set to True. If both are false, it will simply print the
@@ -269,110 +390,57 @@ class SlurmScriptBuilder:
             save_script: Whether to keep or delete the file after finishing processing.
             submit_slurm_job: Whether to submit the script as a SLURM job.
         """
-        job_identifier = self.generate_identifier()
+        self._set_pre_exec_cmd()
+        self._set_exec_cmd()
         self.slurm_script_configuration.pre_exec_command = self.get_pre_exec_command()
-        self.slurm_script_configuration.exec_command = self.get_srun_command()
-
-        # Setting some default fields
-        if self.slurm_script_configuration.job_name is None:
-            self.slurm_script_configuration.job_name = job_identifier
-
-        if self.slurm_script_configuration.std_out is None:
-            std_out_path = Path("slurm_job_logs") / f"{job_identifier}.out"
-            self.slurm_script_configuration.std_out = std_out_path
-        if self.slurm_script_configuration.err_out is None:
-            err_out_path = Path("slurm_job_logs") / f"{job_identifier}.err"
-            self.slurm_script_configuration.err_out = err_out_path
-
-        # Making sure the std out and std err directories exist
-        self._handle_directory_existence(
-            directory=self.slurm_script_configuration.std_out.parent,
-            should_create=submit_slurm_job,
-        )
-        self._handle_directory_existence(
-            directory=self.slurm_script_configuration.err_out.parent,
-            should_create=submit_slurm_job,
-        )
+        self.slurm_script_configuration.exec_command = self.get_exec_command()
+        self._set_default_config_fields()
 
         # Generate the script using the given configuration
-        script = self.slurm_script_configuration.format_script()
-        if not submit_slurm_job and not save_script:
-            upper_banner_str = f"{'#' * 20} SLURM Script Preview {'#' * 20}"
-            cli_logger.info(upper_banner_str)
-            cli_logger.info(script)
-            cli_logger.info("#" * len(upper_banner_str))
-            return
+        super().process_script()
 
-        temp_dir = None
-        if save_script:
-            file_path = file_path or self.file_folder / f"{job_identifier}.sh"
-            if file_path.exists():
-                raise FileExistsError(
-                    f"File '{file_path.resolve()}' already exists! Give a different path "
-                    f"or delete the file first."
-                )
-
-            self.file_folder.mkdir(exist_ok=True, parents=True)
-            cli_logger.info(f"Storing SLURM script at '{file_path.resolve()}'.")
-        else:
-            temp_dir = TemporaryDirectory()
-            file_path = Path(temp_dir.name) / f"{job_identifier}.sh"
-
-        with open(file_path, "w") as f:
-            f.write(script)
-
-        if submit_slurm_job:
-            subprocess.run(["sbatch", str(file_path.resolve())])
-
-        if temp_dir:
-            temp_dir.cleanup()
-
-    def run_slurm_script_all_strategies(
+    def process_all_strategies(
         self,
-        file_folder: Path = Path("slurm_scripts"),
-        save_script: bool = True,
-        submit_slurm_job: bool = True,
         strategies: Iterable[str] = ("ddp", "horovod", "deepspeed"),
     ):
-        """Runs the SLURM script with all the given strategies.
-
-        Does the same as the ``runall.sh`` script has been doing.
+        """Runs the SLURM script with all the given strategies. Meant to replace the
+        ``runall.sh`` script.
         """
-        self.file_folder = file_folder
+        original_config = self.slurm_script_configuration.model_copy(deep=True)
+        original_run_name = self.run_name
         for strategy in strategies:
+            if strategy == "horovod" and self.use_ray:
+                continue
             self.distributed_strategy = strategy
-            job_identifier = self.generate_identifier()
+            job_identifier = self._generate_job_identifier()
 
-            # Overriding job_name, std_out and err_out
+            self.slurm_script_configuration = original_config.model_copy(deep=True)
+            self.run_name = f"{job_identifier}-{original_run_name}"
+
+            # Updating job_name, std_out and err_out
             self.slurm_script_configuration.job_name = job_identifier
-            std_out_path = Path("slurm_job_logs") / f"{job_identifier}.out"
-            err_out_path = Path("slurm_job_logs") / f"{job_identifier}.err"
+            std_out_path = Path(DEFAULT_SLURM_LOG_DIR) / f"{job_identifier}.out"
+            err_out_path = Path(DEFAULT_SLURM_LOG_DIR) / f"{job_identifier}.err"
             self.slurm_script_configuration.std_out = std_out_path
             self.slurm_script_configuration.err_out = err_out_path
 
-            self.process_slurm_script(
-                save_script=save_script, submit_slurm_job=submit_slurm_job
-            )
+            self.process_script()
 
-    def run_scaling_test(
+    def process_scaling_test(
         self,
-        file_folder: Path = Path("slurm_scripts"),
-        save_script: bool = True,
-        submit_slurm_job: bool = True,
         strategies: Iterable[str] = ("ddp", "horovod", "deepspeed"),
         num_nodes_list: Iterable[int] = (1, 2, 4, 8),
     ):
         """Runs a scaling test, i.e. runs all the strategies with separate runs for each
         distinct number of nodes.
         """
+        original_config = self.slurm_script_configuration.model_copy(deep=True)
+        original_run_name = self.run_name
         for num_nodes in num_nodes_list:
+            self.slurm_script_configuration = original_config.model_copy(deep=True)
+            self.run_name = original_run_name
             self.slurm_script_configuration.num_nodes = num_nodes
-            self.run_slurm_script_all_strategies(
-                file_folder=file_folder,
-                save_script=save_script,
-                submit_slurm_job=submit_slurm_job,
-                strategies=strategies,
-            )
+            self.process_all_strategies(strategies=strategies)
 
 
 def generate_default_slurm_script() -> None:
@@ -390,6 +458,7 @@ def generate_default_slurm_script() -> None:
     parser = get_slurm_job_parser()
     args = parser.parse_args()
 
+    # For all our purposes we want number of tasks to be one (in the sbatch directives)
     num_tasks_per_node = 1
 
     slurm_script_configuration = SlurmScriptConfiguration(
@@ -403,37 +472,44 @@ def generate_default_slurm_script() -> None:
         num_tasks_per_node=num_tasks_per_node,
         gpus_per_node=args.gpus_per_node,
         cpus_per_task=args.cpus_per_task,
+        memory=args.memory,
+        exclusive=args.exclusive,
     )
 
-    slurm_script_builder = SlurmScriptBuilder(
+    slurm_script_builder = MLSlurmBuilder(
         slurm_script_configuration=slurm_script_configuration,
+        should_submit=args.submit_job,
+        should_save=args.save_script,
+        use_ray=args.use_ray,
+        container_path=args.container_path,
         distributed_strategy=args.dist_strat,
-        debug=args.debug,
+        exec_file=args.exec_file,
+        pre_exec_file=args.pre_exec_file,
+        save_dir=args.save_dir,
         python_venv=args.python_venv,
-        pre_exec_command=args.pre_exec_cmd,
         training_command=args.training_cmd,
         config_path=args.config_path,
         config_name=args.config_name,
         pipe_key=args.pipe_key,
         py_spy_profiling=args.py_spy,
         profiling_sampling_rate=args.profiling_sampling_rate,
+        experiment_name=args.exp_name,
+        run_name=args.run_name,
     )
 
-    submit_job = not args.no_submit_job
-    save_script = not args.no_save_script
-
     mode = args.mode
+    node_list = args.scalability_nodes
+    process_builder(slurm_script_builder=slurm_script_builder, mode=mode, node_list=node_list)
+
+
+def process_builder(
+    slurm_script_builder: MLSlurmBuilder,
+    mode: Literal["single", "runall", "scaling-test"],
+    node_list: List,
+):
     if mode == "single":
-        slurm_script_builder.process_slurm_script(
-            submit_slurm_job=submit_job, save_script=save_script
-        )
+        slurm_script_builder.process_script()
     elif mode == "runall":
-        slurm_script_builder.run_slurm_script_all_strategies(
-            submit_slurm_job=submit_job, save_script=save_script
-        )
+        slurm_script_builder.process_all_strategies()
     elif mode == "scaling-test":
-        slurm_script_builder.run_scaling_test(
-            submit_slurm_job=submit_job,
-            save_script=save_script,
-            num_nodes_list=args.scalability_nodes,
-        )
+        slurm_script_builder.process_scaling_test(num_nodes_list=node_list)

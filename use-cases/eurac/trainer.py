@@ -16,9 +16,8 @@ from ray import tune
 from torch.utils.data import Dataset
 from tqdm.auto import tqdm
 
-from itwinai.constants import EPOCH_TIME_DIR
 from itwinai.distributed import suppress_workers_print
-from itwinai.loggers import EpochTimeTracker, Logger
+from itwinai.loggers import Logger
 from itwinai.torch.config import TrainingConfiguration
 from itwinai.torch.distributed import (
     DeepSpeedStrategy,
@@ -196,20 +195,6 @@ class RNNDistributedTrainer(TorchTrainer):
     def train(self):
         """Override train_val version of hython to support distributed strategy."""
 
-        # Tracking epoch times for scaling test
-        if self.strategy.is_main_worker and self.strategy.is_distributed:
-            num_nodes = os.environ.get("SLURM_NNODES", "unk")
-            epoch_time_output_dir = Path(f"scalability-metrics/{EPOCH_TIME_DIR}")
-            epoch_time_file_name = f"epochtime_{self.strategy.name}_{num_nodes}N.csv"
-            epoch_time_output_path = epoch_time_output_dir / epoch_time_file_name
-
-            epoch_time_logger = EpochTimeTracker(
-                strategy_name=self.strategy.name,
-                save_path=epoch_time_output_path,
-                num_nodes=num_nodes,
-                should_log=self.measure_epoch_time,
-            )
-
         device = self.strategy.device()
         loss_history = {"train": [], "val": []}
         metric_history = {f"train_{target}": [] for target in self.config.target_variables}
@@ -217,7 +202,6 @@ class RNNDistributedTrainer(TorchTrainer):
 
         best_loss = float("inf")
         for epoch in tqdm(range(self.epochs)):
-            epoch_start_time = default_timer()
             self.set_epoch(epoch)
 
             # run train_valid epoch step of hython trainer
@@ -281,10 +265,6 @@ class RNNDistributedTrainer(TorchTrainer):
                 best_loss = avg_val_loss
                 best_model = self.model.state_dict()
                 # self.hython_trainer.save_weights(self.model)
-
-            if self.strategy.is_distributed:
-                epoch_time = default_timer() - epoch_start_time
-                epoch_time_logger.add_epoch_time(epoch + 1, epoch_time)
 
         if self.strategy.is_main_worker:
             self.model.load_state_dict(best_model)

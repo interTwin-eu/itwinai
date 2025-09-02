@@ -9,7 +9,7 @@
 # --------------------------------------------------------------------------------------
 
 # General config
-experiment_name: does-not-existww2
+experiment_name: MNIST
 run_name: mnist-usecase-0
 dataset_root: .tmp/
 num_classes: 10
@@ -36,6 +36,17 @@ ray_num_workers: 2
 ray_gpus_per_worker: 1  # can be 0.0 < 1.0 as long as num_workers set to 1
 ray_cpus_per_worker: 3
 ray_num_trials: 1 # how many HPO trials
+
+# plugins:
+# - git+https://github.com/matbun/itwinai-mnist-plugin.git
+
+slurm_config:
+  job_name: mnist-job
+  memory: 64G
+  mode: single
+  num_nodes: 8
+
+  pre_exec_file: https://raw.githubusercontent.com/interTwin-eu/itwinai/refs/heads/main/src/itwinai/slurm/system-base-scripts/juwels_pre_exec.sh
 
 # Workflows configuration
 training_pipeline:

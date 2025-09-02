@@ -15,6 +15,7 @@
    :hidden:
    :caption: 🚀 Getting started
 
+   getting-started/complete-workflow-example
    getting-started/slurm
    getting-started/containers
    getting-started/plugins
@@ -114,8 +115,8 @@ Quick Start
    # Install via pip
    pip install itwinai
 
-   # Launch a simple distributed training job (assuming a valid config.yaml exists)
-   itwinai exec-pipeline
+   # Launch a complete workflow with SLURM integration using the MNIST example
+   itwinai run -c https://raw.githubusercontent.com/interTwin-eu/itwinai/refs/heads/main/use-cases/mnist/torch/run-example.yaml
 
    # View logs in MLflow
    itwinai mlflow-ui --path mllogs/mlflow
@@ -175,6 +176,7 @@ Our code has been run and tested on the following EuroHPC systems:
 Community & Support
 ===================
 
+- `Join our Discord <https://discord.gg/7ru8u2nP>`_
 - `GitHub Repository <https://github.com/interTwin-eu/itwinai>`_
 - `Contributors <https://github.com/interTwin-eu/itwinai/graphs/contributors>`_
 - `interTwin Project <https://www.intertwin.eu/>`_
