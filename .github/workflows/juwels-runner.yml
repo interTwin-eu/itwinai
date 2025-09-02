@@ -17,15 +17,14 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Submit and monitor SLURM job
+      - name: Submit SLURM job and wait
         run: |
-          
-          cd $GITHUB_WORKSPACE || exit 
+          cd "$GITHUB_WORKSPACE" || exit 
 
           echo "Submitting job..."
-          JOBID=$(sbatch --parsable "$SLURM_SCRIPT")
+          JOBID="$(sbatch --parsable "$SLURM_SCRIPT")"
           echo "Submitted as $JOBID"
-          echo "JOBID=$JOBID" >> $GITHUB_ENV
+          echo "JOBID=$JOBID" >> "$GITHUB_ENV"
 
           echo "Waiting for job to complete..."
           while squeue -j "$JOBID" 2>/dev/null | grep -q "$JOBID"; do
@@ -35,7 +34,7 @@ jobs:
           echo "Job $JOBID appears to have finished."
 
           echo "Querying SLURM exit code..."
-          EXIT_CODE=$(sacct -j "${JOBID}.batch" --format=ExitCode -n | awk '{print $1}' | cut -d':' -f1)
+          EXIT_CODE="$(sacct -j "${JOBID}.batch" --format=ExitCode -n | awk '{print $1}' | cut -d':' -f1)"
 
           if [[ -z "$EXIT_CODE" ]]; then
             echo "ERROR: Could not retrieve exit code from sacct."
