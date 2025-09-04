@@ -79,62 +79,41 @@ bibliography: paper.bib
 
 # Summary
 
-The integration of Artificial Intelligence (AI) into scientific research has
-expanded significantly over the past decade, driven by the availability of
-large-scale datasets and specialized hardware accelerators. Graphics Processing
-Units (GPUs) have become essential for AI workloads, with modern
-High-Performance Computing (HPC) facilities housing thousands of accelerators:
-the JUWELS Booster system [@JUWELS] at the Jülich Supercomputing Center (JSC),
-Forschungszentrum Jülich, operates over 3,700 NVIDIA A100 GPUs, while Finland's
-LUMI supercomputer provides access to more than 11,000 AMD MI250X GPUs, and the
-upcoming first European Exascale system JUPITER hosted at JSC, expanding capabilities
-up to 24,000 NVIDIA GH200 GPUs.
+Artificial Intelligence (AI) is increasingly used in scientific research,
+supported by large datasets and HPC systems equipped with modern hardware
+accelerators.  Facilities such as [JUWELS
+Booster](https://apps.fz-juelich.de/jsc/hps/juwels/booster-overview.html),
+[LUMI](https://www.lumi-supercomputer.eu/), and the upcoming
+[JUPITER](https://www.fz-juelich.de/en/ias/jsc/jupiter) system enable
+large-scale training across scientific domains.
 
-This growth has enabled development of numerous domain-specific AI solutions
-across scientific fields, offering the potential for faster experimentation and
-shorter feedback cycles. However, many researchers face significant barriers
-when deploying AI workflows on HPC systems due to the complexity of, e.g.,
-running distributed training and Hyperparameter Optimization (HPO) at scale, or
-in utilizing accelerator technologies efficiently. The heterogeneous nature of
-HPC systems forces scientists to focus on low-level implementation details
-rather than on their core research.
+Despite these advancements, researchers often face difficulties in deploying AI
+workflows on HPC. Challenges include the complexity of distributed training,
+hyperparameter optimization, and adapting to heterogeneous architectures. These
+issues divert focus from scientific goals to technical details.
 
-To address these challenges, we present `itwinai`, a Python library designed to
-bridge the gap between domain sciences, AI, and HPC. The library provides a
-standardized interface, enabling seamless scaling from laptops to
-supercomputers.  Through its modular architecture, `itwinai` significantly
-lowers the entry barrier for domain specialists while ensuring optimal HPC
-resource utilization.
+To address this, we present `itwinai`, a Python library that simplifies scalable
+AI on HPC. Its modular architecture and standard interface allow users to scale
+workloads efficiently from laptops to supercomputers, reducing implementation
+overhead and improving resource usage.
 
 # Statement of need
 
-The integration of diverse ML tools and libraries requires significant
-integration effort on the part of the scientific users, especially with HPC
-systems. `itwinai` is a Python library that streamlines the integration of
-AI-powered scientific workflows into HPC infrastructure through ready-to-use
-components. The library addresses three core scientific Machine Learning (ML)
-needs:
+Integrating machine learning into scientific workflows on HPC systems remains
+complex. Researchers must often invest substantial effort to configure
+distributed training, manage hyperparameter optimization, and analyze
+performance, while adapting to varied system architectures.
 
-**Distributed training** with uniform interfaces across
-PyTorch-DDP [@torch_ddp], DeepSpeed [@deepspeed], and Horovod [@horovod]
-backends.
+`itwinai` is a Python library that streamlines this process by providing a
+unified framework for scalable AI workflows. It offers consistent interfaces for
+distributed training, supports large-scale hyperparameter optimization, and
+includes tools for profiling and code scalability analysis.
 
-**Scalable HPO** via Ray Tune [@ray_tune] supporting various search algorithms.
-
-**Comprehensive performance analysis** including profiling, scaling
-and parallel efficiency metrics, and bottleneck identification.
-
-Built with a modular architecture, `itwinai` enables component integration and
-plugin-based extensions for independent development of scientific use cases.
-Developed as part of the interTwin[^intertwin_eu] project to support Digital Twin
-applications across physics and environmental sciences, the library has proven
-versatile for general AI applications. By consolidating diverse functionalities
-into a single framework, `itwinai` significantly lowers the barrier to HPC
-adoption and empowers the scientific community to scale AI workloads
-efficiently.
-
-[^intertwin_eu]: interTwin project: [intertwin.eu](https://www.intertwin.eu/)
-(Accessed on 2025-08-14).
+Developed within the [interTwin](https://www.intertwin.eu/) project to support Digital Twin
+applications in physics and environmental sciences, `itwinai` is designed to be
+extensible and reusable. By consolidating core functionality into a single
+framework, it lowers the technical barrier to HPC adoption and enables
+researchers to focus on scientific objectives.
 
 # Package features
 
@@ -181,12 +160,10 @@ of compute-intensive jobs from cloud to HPC, performing an automatic translation
 from Kubernetes pods to SLURM jobs.
 
 **Continuous integration and deployment** `itwinai` includes extensive tests
-(library and use cases). A Dagger pipeline[^dagger] builds containers on
+(library and use cases). A [Dagger](https://dagger.io/) pipeline builds containers on
 release, runs smoke tests on GitHub Actions (Azure runners: 4 CPUs, 16
 GB)[^choosing_gh_runners], offloads distributed tests to HPC systems via interLink, and
 publishes on success.
-
-[^dagger]: Dagger: [dagger.io](https://dagger.io/) (Accessed on 2025-08-14).
 
 [^choosing_gh_runners]: GitHub hosted runners define the type of machine that
 will process a job in your workflow.  [Find more
