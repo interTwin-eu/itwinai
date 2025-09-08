@@ -79,18 +79,14 @@ bibliography: paper.bib
 
 # Summary
 
-Artificial Intelligence (AI) is increasingly used in scientific research,
-supported by large datasets and HPC systems equipped with modern hardware
-accelerators.  Facilities such as [JUWELS
-Booster](https://apps.fz-juelich.de/jsc/hps/juwels/booster-overview.html),
-[LUMI](https://www.lumi-supercomputer.eu/), and the upcoming
-[JUPITER](https://www.fz-juelich.de/en/ias/jsc/jupiter) system enable
-large-scale training across scientific domains.
+The integration of Artificial Intelligence (AI) into scientific research has
+expanded significantly over the past decade, driven by the availability of
+large-scale datasets and graphic processing units (GPUs),
+in particular at high performance computing (HPC) sites.
 
-Despite these advancements, researchers often face difficulties in deploying AI
-workflows on HPC. Challenges include the complexity of distributed training,
-hyperparameter optimization, and adapting to heterogeneous architectures. These
-issues divert focus from scientific goals to technical details.
+However, many researchers face significant barriers
+when deploying AI workflows on HPC systems, as their heterogeneous nature forces scientists to focus on low-level implementation details
+rather than on their core research. At the same time, the researchers often lack specialized HPC/AI knowledge to implement their workflows efficiently. 
 
 To address this, we present `itwinai`, a Python library that simplifies scalable
 AI on HPC. Its modular architecture and standard interface allow users to scale
@@ -99,48 +95,50 @@ overhead and improving resource usage.
 
 # Statement of need
 
-Integrating machine learning into scientific workflows on HPC systems remains
-complex. Researchers must often invest substantial effort to configure
-distributed training, manage hyperparameter optimization, and analyze
-performance, while adapting to varied system architectures.
+The integration of ML tools requires significant
+integration effort on the part of the scientific users, especially with HPC
+systems. `itwinai` is a Python library that streamlines the integration of
+AI-powered scientific workflows into HPC infrastructure by addressing
+three core scientific Machine Learning (ML) needs:
 
-`itwinai` is a Python library that streamlines this process by providing a
-unified framework for scalable AI workflows. It offers consistent interfaces for
-distributed training, supports large-scale hyperparameter optimization, and
-includes tools for profiling and code scalability analysis.
+**Distributed training** with uniform interfaces across
+PyTorch-DDP [@torch_ddp], DeepSpeed [@deepspeed], and Horovod [@horovod]
+backends.
 
-Developed within the [interTwin](https://www.intertwin.eu/) project to support Digital Twin
-applications in physics and environmental sciences, `itwinai` is designed to be
-extensible and reusable. By consolidating core functionality into a single
-framework, it lowers the technical barrier to HPC adoption and enables
-researchers to focus on scientific objectives.
+**Scalable HPO** via Ray Tune [@ray_tune] supporting various search algorithms.
+
+**Comprehensive performance analysis** including profiling, scaling
+and parallel efficiency metrics, and bottleneck identification.
+
+Built with a modular architecture, `itwinai` uses
+plugin-based extensions for independent application to scientific use cases.
+Developed as part of the interTwin[^intertwin_eu] project to support Digital Twin
+applications across physics and environmental sciences, the library has proven
+versatile for general AI applications.
+
+[^intertwin_eu]: interTwin project: [intertwin.eu](https://www.intertwin.eu/)
+(Accessed on 2025-08-14).
 
 # Package features
 
 The main features offered by the `itwinai` library are:
 
-**Configuration for reproducible AI workloads**: `itwinai` employs a
-declarative, YAML-based configuration system that separates experimental
-parameters from implementation code. Configurations are hierarchical,
-composable, and Command Line Interface (CLI)-overrideable. This design ensures
-reproducible and portable executions across environments (workstation, cloud,
-HPC systems) with minimal code changes.
+**Configuration for reproducible AI workloads**:
+a declarative, hierarchical, composable, and CLI-overrideable 
+YAML-based configuration system that separates experimental
+parameters from implementation code. 
 
-**Distributed training and inference**: `itwinai` supports multiple distributed
-ML training frameworks, including PyTorch-DDP, DeepSpeed, Horovod, and Ray
-[@ray:2018]. The underlying implementation of these frameworks is hidden from
-the user. The parallelization strategy can simply be changed by setting a flag,
-to, e.g., investigate potential performance gains.
+**Distributed training and inference**: 
+PyTorch-DDP, DeepSpeed, Horovod, and Ray[@ray:2018] 
+distributed ML training frameworks are suppported. 
 
 <!-- ![Distributed Data Parallel](img/distributed_data_parallel.pdf) -->
 
-**Hyperparameter optimization**: Leveraging Ray, `itwinai` allows to
-systematically improve model performance by searching the hyperparameter space.
-Ray enables scaling HPO across HPC systems by (i) assigning multiple workers to
-a single trial (e.g., data-parallel training) and (ii) running many trials
-concurrently to exploit massive parallelism. It also provides robust scheduling
-and fine-grained resource management for large, distributed studies
-(\autoref{fig:hpo}).
+**Hyperparameter optimization (HPO)**: 
+model performance can be improved by automatically traversing the hyperparameter space. 
+Ray integration provides two HPO strategies: (i) assigning multiple workers to
+a single trial or (ii) running many trials
+concurrently (\autoref{fig:hpo}).
 
 ![Conceptual representation of an HPO workflow in
 itwinai.\label{fig:hpo}](img/hpo_itwinai_figure.pdf)
@@ -160,10 +158,12 @@ of compute-intensive jobs from cloud to HPC, performing an automatic translation
 from Kubernetes pods to SLURM jobs.
 
 **Continuous integration and deployment** `itwinai` includes extensive tests
-(library and use cases). A [Dagger](https://dagger.io/) pipeline builds containers on
+(library and use cases). A Dagger pipeline[^dagger] builds containers on
 release, runs smoke tests on GitHub Actions (Azure runners: 4 CPUs, 16
 GB)[^choosing_gh_runners], offloads distributed tests to HPC systems via interLink, and
 publishes on success.
+
+[^dagger]: Dagger: [dagger.io](https://dagger.io/) (Accessed on 2025-08-14).
 
 [^choosing_gh_runners]: GitHub hosted runners define the type of machine that
 will process a job in your workflow.  [Find more
@@ -190,15 +190,11 @@ components are provided: scalability report generation and profiling.
 
 ## Scalability report
 
-For data-parallel training, adding more workers improves throughput, but
-as all-reduce communication costs grow, communication overhead eventually dominates,
-causing scaling to level-off or even decline. The report characterizes this trade-off
-across GPUs/nodes and backends, reporting wall-clock epoch time, relative speedup
+Wall-clock epoch time, relative speedup
 (\autoref{fig:speedup}), GPU utilization (0–100%), energy (Wh), and
-compute-versus-other time, including collective communication and memory
-operations (\autoref{fig:compvsother}). Considered jointly, these metrics
-identify the most efficient configuration and distribution strategy, rather than
-relying on a single indicator. \autoref{fig:speedup} and
+compute-versus-other time are provided (\autoref{fig:compvsother}). 
+Considered jointly, these metrics
+identify the most efficient configuration and distribution strategy. \autoref{fig:speedup} and
 \autoref{fig:compvsother} show the scalability of the physics use case from
 INFN[^infn] targeting gravitational-wave analysis at the Virgo[^virgo]
 interferometer [@tsolaki_2025_15120028] [@saether_scalabiliy_2025].
@@ -230,7 +226,7 @@ backend/collective settings.
 
 `itwinai` provides ready-to-use ML tools that are applicable across a wide range
 of scientific applications. The development of the library is continued through
-other follow-up projects, such as ODISSEE[^odissee] and RI-SCALE[^ri-scale]. The
+projects ODISSEE[^odissee] and RI-SCALE[^ri-scale]. The
 future developments include the integration of new scientific use cases,
 exploring additional parallelism approaches, integrating advanced user
 interfaces, and adding other EuroHPC systems and performance optimization
