@@ -81,12 +81,14 @@ bibliography: paper.bib
 
 The integration of Artificial Intelligence (AI) into scientific research has
 expanded significantly over the past decade, driven by the availability of
-large-scale datasets and graphic processing units (GPUs),
-in particular at high performance computing (HPC) sites.
+large-scale datasets and Graphic Processing Units (GPUs),
+in particular at High Performance Computing (HPC) sites.
 
 However, many researchers face significant barriers
-when deploying AI workflows on HPC systems, as their heterogeneous nature forces scientists to focus on low-level implementation details
-rather than on their core research. At the same time, the researchers often lack specialized HPC/AI knowledge to implement their workflows efficiently. 
+when deploying AI workflows on HPC systems, as their heterogeneous nature forces
+scientists to focus on low-level implementation details rather than on their core
+research. At the same time, the researchers often lack specialized HPC/AI knowledge
+to implement their workflows efficiently. 
 
 To address this, we present `itwinai`, a Python library that simplifies scalable
 AI on HPC. Its modular architecture and standard interface allow users to scale
@@ -131,8 +133,6 @@ parameters from implementation code.
 **Distributed training and inference**: 
 PyTorch-DDP, DeepSpeed, Horovod, and Ray[@ray:2018] 
 distributed ML training frameworks are suppported. 
-
-<!-- ![Distributed Data Parallel](img/distributed_data_parallel.pdf) -->
 
 **Hyperparameter optimization (HPO)**: 
 model performance can be improved by automatically traversing the hyperparameter space. 
