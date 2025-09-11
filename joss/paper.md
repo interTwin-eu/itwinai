@@ -81,20 +81,19 @@ bibliography: paper.bib
 
 The integration of Artificial Intelligence (AI) into scientific research has
 expanded significantly over the past decade, driven by the availability of
-large-scale datasets and graphic processing units (GPUs),
-in particular at high performance computing (HPC) sites.
+large-scale datasets and Graphic Processing Units (GPUs),
+in particular at High Performance Computing (HPC) sites.
 
 However, many researchers face significant barriers
-when deploying AI workflows on HPC systems, as their heterogeneous nature of
-forces scientists to focus on low-level implementation details
-rather than on their core research. At the same time, the researchers often lack 
-specialized HPC/AI knowledge to implement their workflows efficiently. 
+when deploying AI workflows on HPC systems, as their heterogeneous nature forces
+scientists to focus on low-level implementation details rather than on their core
+research. At the same time, the researchers often lack specialized HPC/AI knowledge
+to implement their workflows efficiently.
 
-To address these challenges, we present `itwinai`, a Python library designed to
-bridge the gap between domain sciences, AI, and HPC. 
-Through its modular architecture, `itwinai` significantly
-lowers the entry barrier for domain specialists while ensuring optimal HPC
-resource utilization.
+To address this, we present `itwinai`, a Python library that simplifies scalable
+AI on HPC. Its modular architecture and standard interface allow users to scale
+workloads efficiently from laptops to supercomputers, reducing implementation
+overhead and improving resource usage.
 
 # Statement of need
 
@@ -127,18 +126,17 @@ versatile for general AI applications.
 The main features offered by the `itwinai` library are:
 
 **Configuration for reproducible AI workloads**:
-a declarative, hierarchical, composable, and CLI-overrideable 
+a declarative, hierarchical, composable, and CLI-overrideable
 YAML-based configuration system that separates experimental
-parameters from implementation code. 
+parameters from implementation code.
 
-**Distributed training and inference**: 
-PyTorch-DDP, DeepSpeed, Horovod, and Ray[@ray:2018] 
-distributed ML training frameworks are suppported. 
+**Distributed training and inference**:
+PyTorch-DDP, DeepSpeed, Horovod, and Ray[@ray:2018]
+distributed ML training frameworks are suppported.
 
-<!-- ![Distributed Data Parallel](img/distributed_data_parallel.pdf) -->
+**Hyperparameter optimization (HPO)**:
+model performance can be improved by automatically traversing the hyperparameter space.
 
-**Hyperparameter optimization (HPO)**: 
-model performance can be improved by automatically traversing the hyperparameter space. 
 Ray integration provides two HPO strategies: (i) assigning multiple workers to
 a single trial or (ii) running many trials
 concurrently (\autoref{fig:hpo}).
@@ -195,7 +193,8 @@ components are provided: scalability report generation and profiling.
 
 Wall-clock epoch time, relative speedup
 (\autoref{fig:speedup}), GPU utilization (0–100%), energy (Wh), and
-compute-versus-other time are provided (\autoref{fig:compvsother}). 
+compute-versus-other time are provided (\autoref{fig:compvsother}).
+
 Considered jointly, these metrics
 identify the most efficient configuration and distribution strategy. \autoref{fig:speedup} and
 \autoref{fig:compvsother} show the scalability of the physics use case from

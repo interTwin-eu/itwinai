@@ -6,8 +6,8 @@
            version="5.3.1"
            xsi:schemaLocation="http://www.crossref.org/schema/5.3.1 http://www.crossref.org/schemas/crossref5.3.1.xsd">
   <head>
-    <doi_batch_id>20250829160357-51e2ce78be687f40a456d521626cb5352551b8a6</doi_batch_id>
-    <timestamp>20250829160357</timestamp>
+    <doi_batch_id>20250904085057-e520d610018f522a1cac648806c20ead0a9d5042</doi_batch_id>
+    <timestamp>20250904085057</timestamp>
     <depositor>
       <depositor_name>JOSS Admin</depositor_name>
       <email_address>admin@theoj.org</email_address>
@@ -37,7 +37,7 @@
       </journal_issue>
       <journal_article publication_type="full_text">
         <titles>
-          <title>itwinai: A Python Toolkit For Scalable Scientific Machine Learning On HPC</title>
+          <title>itwinai: A Python Toolkit for Scalable Scientific Machine Learning on HPC Systems</title>
         </titles>
         <contributors>
           <person_name sequence="first" contributor_role="author">
@@ -123,7 +123,7 @@
             <given_name>Oleksandr</given_name>
             <surname>Krochak</surname>
             <affiliations>
-              <institution><institution_name>Forschungszentrum Jülich, Jülich Supercomputing Center, Germany</institution_name></institution>
+              <institution><institution_name>Simulation and Data Lab Fluids &amp; Solids Engineering, Jülich Supercomputing Center, Forschungszentrum Jülich, Germany</institution_name></institution>
             </affiliations>
             <ORCID>https://orcid.org/0009-0007-2245-9452</ORCID>
           </person_name>
@@ -132,7 +132,7 @@
             <given_name>Mario</given_name>
             <surname>Rüttgers</surname>
             <affiliations>
-              <institution><institution_name>Forschungszentrum Jülich, Jülich Supercomputing Center, Germany</institution_name></institution>
+              <institution><institution_name>Simulation and Data Lab Fluids &amp; Solids Engineering, Jülich Supercomputing Center, Forschungszentrum Jülich, Germany</institution_name></institution>
               <institution><institution_name>Data-Driven Fluid Engineering (DDFE) Laboratory, Inha University, Incheon, Republic of Korea</institution_name></institution>
             </affiliations>
             <ORCID>https://orcid.org/0000-0003-3917-8407</ORCID>
@@ -142,7 +142,7 @@
             <given_name>Rakesh</given_name>
             <surname>Sarma</surname>
             <affiliations>
-              <institution><institution_name>Forschungszentrum Jülich, Jülich Supercomputing Center, Germany</institution_name></institution>
+              <institution><institution_name>Simulation and Data Lab Fluids &amp; Solids Engineering, Jülich Supercomputing Center, Forschungszentrum Jülich, Germany</institution_name></institution>
             </affiliations>
             <ORCID>https://orcid.org/0000-0002-7069-4082</ORCID>
           </person_name>
@@ -151,7 +151,7 @@
             <given_name>Andreas</given_name>
             <surname>Lintermann</surname>
             <affiliations>
-              <institution><institution_name>Forschungszentrum Jülich, Jülich Supercomputing Center, Germany</institution_name></institution>
+              <institution><institution_name>Simulation and Data Lab Fluids &amp; Solids Engineering, Jülich Supercomputing Center, Forschungszentrum Jülich, Germany</institution_name></institution>
             </affiliations>
             <ORCID>https://orcid.org/0000-0003-3321-6599</ORCID>
           </person_name>
@@ -218,36 +218,6 @@
             <cYear>2025</cYear>
             <unstructured_citation>Sæther, J. S., Bunino, M., &amp; Eickhoff, L. M. (2025). Scalability analysis of GlitchFlow with itwinai. Zenodo. https://zenodo.org/records/16882390</unstructured_citation>
           </citation>
-          <citation key="horovod">
-            <article_title>Horovod: fast and easy distributed deep learning in TensorFlow</article_title>
-            <author>Sergeev</author>
-            <journal_title>arXiv:1802.05799</journal_title>
-            <doi>10.48550/arXiv.1802.05799</doi>
-            <cYear>2018</cYear>
-            <unstructured_citation>Sergeev, A., &amp; Del Balso, M. (2018). Horovod: fast and easy distributed deep learning in TensorFlow. arXiv:1802.05799. https://doi.org/10.48550/arXiv.1802.05799</unstructured_citation>
-          </citation>
-          <citation key="deepspeed">
-            <article_title>Deepspeed: System optimizations enable training deep learning models with over 100 billion parameters</article_title>
-            <author>Rasley</author>
-            <journal_title>Proc. 26th ACM SIGKDD international conference on knowledge discovery &amp; data mining</journal_title>
-            <doi>10.1145/3394486.3406703</doi>
-            <cYear>2020</cYear>
-            <unstructured_citation>Rasley, J., Rajbhandari, S., Ruwase, O., &amp; He, Y. (2020). Deepspeed: System optimizations enable training deep learning models with over 100 billion parameters. Proc. 26th ACM SIGKDD International Conference on Knowledge Discovery &amp; Data Mining, 3505–3506. https://doi.org/10.1145/3394486.3406703</unstructured_citation>
-          </citation>
-          <citation key="torch_ddp">
-            <article_title>Pytorch Distributed: Experiences on accelerating data parallel training</article_title>
-            <author>Li</author>
-            <journal_title>arXiv:2006.15704</journal_title>
-            <doi>10.48550/arXiv.2006.15704</doi>
-            <cYear>2020</cYear>
-            <unstructured_citation>Li, S., Zhao, Y., Varma, R., Salpekar, O., Noordhuis, P., Li, T., Paszke, A., Smith, J., Vaughan, B., Damania, P., &amp; others. (2020). Pytorch Distributed: Experiences on accelerating data parallel training. arXiv:2006.15704. https://doi.org/10.48550/arXiv.2006.15704</unstructured_citation>
-          </citation>
-          <citation key="ray_tune">
-            <article_title>Tune: A research platform for distributed model selection and training</article_title>
-            <author>Liaw</author>
-            <cYear>2018</cYear>
-            <unstructured_citation>Liaw, R., Liang, E., Nishihara, R., Moritz, P., Gonzalez, J. E., &amp; Stoica, I. (2018). Tune: A research platform for distributed model selection and training. arXiv. https://arxiv.org/abs/1807.05118</unstructured_citation>
-          </citation>
           <citation key="mlflow">
             <article_title>Accelerating the Machine Learning Lifecycle with MLflow</article_title>
             <author>Zaharia</author>
@@ -283,16 +253,6 @@
             <journal_title>GitHub repository</journal_title>
             <cYear>2018</cYear>
             <unstructured_citation>Frederickson, B. (2018). py-spy: Sampling profiler for Python programs. In GitHub repository. GitHub. https://github.com/benfred/py-spy</unstructured_citation>
-          </citation>
-          <citation key="JUWELS">
-            <article_title>JUWELS: Modular tier-0/1 supercomputer at the Jülich Supercomputing Centre</article_title>
-            <author>Krause</author>
-            <journal_title>J. of Large-Scale Research Facilities</journal_title>
-            <issue>A135</issue>
-            <volume>5</volume>
-            <doi>10.17815/jlsrf-5-171</doi>
-            <cYear>2019</cYear>
-            <unstructured_citation>Krause, D. (2019). JUWELS: Modular tier-0/1 supercomputer at the Jülich Supercomputing Centre. J. Of Large-Scale Research Facilities, 5(A135). https://doi.org/10.17815/jlsrf-5-171</unstructured_citation>
           </citation>
         </citation_list>
       </journal_article>
