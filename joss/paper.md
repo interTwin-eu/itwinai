@@ -95,6 +95,7 @@ AI on HPC. Its modular architecture and standard interface allow users to scale
 workloads efficiently from laptops to supercomputers, reducing implementation
 overhead and improving resource usage.
 
+
 # Statement of need
 
 The integration of ML tools requires significant
@@ -136,6 +137,7 @@ distributed ML training frameworks are suppported.
 
 **Hyperparameter optimization (HPO)**:
 model performance can be improved by automatically traversing the hyperparameter space.
+
 Ray integration provides two HPO strategies: (i) assigning multiple workers to
 a single trial or (ii) running many trials
 concurrently (\autoref{fig:hpo}).
@@ -193,6 +195,7 @@ components are provided: scalability report generation and profiling.
 Wall-clock epoch time, relative speedup
 (\autoref{fig:speedup}), GPU utilization (0–100%), energy (Wh), and
 compute-versus-other time are provided (\autoref{fig:compvsother}).
+
 Considered jointly, these metrics
 identify the most efficient configuration and distribution strategy. \autoref{fig:speedup} and
 \autoref{fig:compvsother} show the scalability of the physics use case from
