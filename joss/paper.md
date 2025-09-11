@@ -95,7 +95,6 @@ AI on HPC. Its modular architecture and standard interface allow users to scale
 workloads efficiently from laptops to supercomputers, reducing implementation
 overhead and improving resource usage.
 
-
 # Statement of need
 
 The integration of ML tools requires significant
