@@ -97,29 +97,21 @@ overhead and improving resource usage.
 
 # Statement of need
 
-The integration of ML tools requires significant
-integration effort on the part of the scientific users, especially with HPC
-systems. `itwinai` is a Python library that streamlines the integration of
-AI-powered scientific workflows into HPC infrastructure by addressing
-three core scientific Machine Learning (ML) needs:
+Integrating machine learning into scientific workflows on HPC systems remains
+complex. Researchers must often invest substantial effort to configure
+distributed training, manage hyperparameter optimization, and analyze
+performance, while adapting to varied system architectures.
 
-**Distributed training** with uniform interfaces across
-PyTorch-DDP [@torch_ddp], DeepSpeed [@deepspeed], and Horovod [@horovod]
-backends.
+`itwinai` is a Python library that streamlines this process by providing a
+unified framework for scalable AI workflows. It offers consistent interfaces for
+distributed training, supports large-scale hyperparameter optimization, and
+includes tools for profiling and code scalability analysis.
 
-**Scalable HPO** via Ray Tune [@ray_tune] supporting various search algorithms.
-
-**Comprehensive performance analysis** including profiling, scaling
-and parallel efficiency metrics, and bottleneck identification.
-
-Built with a modular architecture, `itwinai` uses
-plugin-based extensions for independent application to scientific use cases.
-Developed as part of the interTwin[^intertwin_eu] project to support Digital Twin
-applications across physics and environmental sciences, the library has proven
-versatile for general AI applications.
-
-[^intertwin_eu]: interTwin project: [intertwin.eu](https://www.intertwin.eu/)
-(Accessed on 2025-08-14).
+Developed within the [interTwin](https://www.intertwin.eu/) project to support Digital Twin
+applications in physics and environmental sciences, `itwinai` is designed to be
+extensible and reusable. By consolidating core functionality into a single
+framework, it lowers the technical barrier to HPC adoption and enables
+researchers to focus on scientific objectives.
 
 # Package features
 
@@ -159,12 +151,10 @@ of compute-intensive jobs from cloud to HPC, performing an automatic translation
 from Kubernetes pods to SLURM jobs.
 
 **Continuous integration and deployment** `itwinai` includes extensive tests
-(library and use cases). A Dagger pipeline[^dagger] builds containers on
+(library and use cases). A [Dagger](https://dagger.io/) pipeline builds containers on
 release, runs smoke tests on GitHub Actions (Azure runners: 4 CPUs, 16
 GB)[^choosing_gh_runners], offloads distributed tests to HPC systems via interLink, and
 publishes on success.
-
-[^dagger]: Dagger: [dagger.io](https://dagger.io/) (Accessed on 2025-08-14).
 
 [^choosing_gh_runners]: GitHub hosted runners define the type of machine that
 will process a job in your workflow.  [Find more
