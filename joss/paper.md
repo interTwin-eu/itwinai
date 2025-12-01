@@ -66,7 +66,7 @@ authors:
 affiliations:
  - name: European Organization for Nuclear Research (CERN), Espl. des Particules 1, 1217 Genève, Switzerland
    index: 1
- - name:  Simulation and Data Lab Fluids & Solids Engineering, Jülich Supercomputing Center, Forschungszentrum Jülich, Germany
+ - name: Simulation and Data Lab Fluids & Solids Engineering, Jülich Supercomputing Center, Forschungszentrum Jülich, Germany
    index: 2
  - name: Data-Driven Fluid Engineering (DDFE) Laboratory, Inha University, Incheon, Republic of Korea
    index: 3
@@ -81,7 +81,7 @@ bibliography: paper.bib
 
 The integration of Artificial Intelligence (AI) into scientific research has
 expanded significantly over the past decade, driven by the availability of
-large-scale datasets and Graphic Processing Units (GPUs),
+large-scale datasets and Graphics Processing Units (GPUs),
 in particular at High Performance Computing (HPC) sites.
 
 However, many researchers face significant barriers
@@ -123,8 +123,8 @@ YAML-based configuration system that separates experimental
 parameters from implementation code.
 
 **Distributed training and inference**:
-PyTorch-DDP, DeepSpeed, Horovod, and Ray[@ray:2018]
-distributed ML training frameworks are suppported.
+PyTorch-DDP, DeepSpeed, Horovod, and Ray [@ray:2018]
+distributed ML training frameworks are supported.
 
 **Hyperparameter optimization (HPO)**:
 model performance can be improved by automatically traversing the hyperparameter space.
@@ -141,7 +141,7 @@ itwinai.\label{fig:hpo}](img/hpo_itwinai_figure.pdf)
 about training time, GPU utilization, and GPU power consumption.
 
 **ML logs tracking**:  `itwinai` integrates with existing ML logging frameworks,
-such as TensorBoard [@tensorboard], Mlflow [@mlflow], Weights&Biases [@wandb],
+such as TensorBoard [@tensorboard], MLflow [@mlflow], Weights & Biases [@wandb],
 and yProvML [@yprovml] logger, and provides a unified interface across all of
 them through a thin abstraction layer.
 
