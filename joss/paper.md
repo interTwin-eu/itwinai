@@ -123,7 +123,7 @@ YAML-based configuration system that separates experimental
 parameters from implementation code.
 
 **Distributed training and inference**:
-PyTorch-DDP, DeepSpeed, Horovod, and Ray [@ray:2018]
+PyTorch-DDP [@torch_ddp], DeepSpeed [@deepspeed], Horovod [@horovod], and Ray [@ray:2018]
 distributed ML training frameworks are supported.
 
 **Hyperparameter optimization (HPO)**:
