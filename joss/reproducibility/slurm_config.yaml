@@ -1,0 +1,41 @@
+# If you use this with in the runall or scaling mode, keep in mind that the strategies
+# will change, as well as the number of nodes. 
+#
+# Default arguments can be seen in src/itwinai/slurm/utils.py
+
+mode: single # "single", "runall" or "scaling-test" - defaults to "single"
+dist_strat: ddp # "ddp", "deepspeed" or "horovod"
+
+account: intertwin
+time: 00:30:00
+partition: develbooster
+
+num_nodes: 1
+num_tasks_per_node: 1
+gpus_per_node: 4
+cpus_per_task: 16
+
+# Keep in mind that these will be overwritten if "mode" is not "single", and that
+# if you override the dist_strat in the CLI, then these will already have evaluated
+# and thus might not correspond. Thus, we suggest you only change the dist_strat in
+# the config and avoid overriding it in the CLI.
+std_out: slurm_job_logs/${dist_strat}-${num_nodes}x${gpus_per_node}.out
+err_out: slurm_job_logs/${dist_strat}-${num_nodes}x${gpus_per_node}.err
+job_name: virgo-${dist_strat}-job
+##################################
+
+python_venv: ../../.venv
+pipe_key: training_pipeline
+config_path: .
+config_name: config
+
+
+# The different number of nodes to use for the scalability testing
+scalability_nodes: "1, 2, 4"
+
+# If you want to manually override the training command, comment in the following:
+training_cmd: "$(which itwinai) exec-pipeline \
+  --config-path {config_path} \
+  --config-name {config_name}
+  +pipe_key={pipe_key} \
+  strategy={dist_strat}"
