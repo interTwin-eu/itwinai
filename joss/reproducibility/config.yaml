@@ -81,6 +81,9 @@ training_pipeline_small:
         loss: l1
         save_best: true
         shuffle_train: true
+      measure_gpu_data: True
+      enable_torch_profiling: True
+      measure_epoch_time: True
       num_epochs: ${epochs}
       strategy: ${strategy}
       checkpoint_path: ${checkpoint_path}
