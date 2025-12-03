@@ -118,13 +118,13 @@ researchers to focus on scientific objectives.
 Scalable AI workflows on HPC systems are typically assembled from multiple
 specialized tools. PyTorch-DDP [@torch_ddp], DeepSpeed [@deepspeed], Horovod
 [@horovod], and Ray [@ray:2018] provide distributed training backends; Ray Tune
-[@ray_tune] and Optuna [@optuna_2019] offer hyperparameter optimization
-frameworks; and TensorBoard [@tensorboard], MLflow [@mlflow], and Weights \&
-Biases [@wandb] support experiment tracking and visualization. HeAT [@heat],
+[@ray_tune] and Optuna [@optuna_2019] offer HPO frameworks; and
+TensorBoard [@tensorboard], MLflow [@mlflow], and Weights \& Biases [@wandb]
+support experiment tracking and visualization. HeAT [@heat],
 AI4HPC [@ai4hpc], and perun [@perun] address, respectively, distributed tensor
-operations on HPC systems, CFD-oriented AI workflows, and performance or energy
-profiling, while interLink [@interlink] enables cloud to HPC offloading of
-containerized workloads.
+operations on HPC systems, Computational Fluid Dynamics (CFD)-oriented AI and HPO
+workflows on HPC systems, and performance or energy profiling, while
+interLink [@interlink] enables cloud to HPC offloading of containerized workloads.
 
 `itwinai` combines these capabilities into a single, configurable library: it
 offers a plugin system for domain use cases, uniform configuration and logging
