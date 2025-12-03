@@ -35,7 +35,8 @@ class TimeSeriesDatasetGenerator(DataGetter):
         data_root: str = "data",
         name: Optional[str] = None,
         num_processes: int = -1,
-        num_datapoints: int = 1000
+        num_datapoints: int = 1000,
+        rnd_seed: Optional[int] = None,
     ) -> None:
         """Initialize the TimeSeriesDatasetGenerator class.
 
@@ -45,6 +46,7 @@ class TimeSeriesDatasetGenerator(DataGetter):
             num_processes (int): Number of processes to use during dataset generation. If -1 is
                 give, all processes on the machine minus one are used.
             num_datapoints (int): Dataset size. Defaults to 1000.
+            rnd_seed (int): Random seed used during synthetic dataset generation.
         """
         super().__init__(name)
         self.save_parameters(**self.locals2params(locals()))
@@ -52,6 +54,7 @@ class TimeSeriesDatasetGenerator(DataGetter):
         self.num_datapoints = num_datapoints
         num_cores = multiprocessing.cpu_count() - 1
         self.num_processes = num_processes if num_processes > 0 else num_cores
+        self.rnd_seed = rnd_seed
         if not os.path.exists(data_root):
             os.makedirs(data_root, exist_ok=True)
 
@@ -63,31 +66,58 @@ class TimeSeriesDatasetGenerator(DataGetter):
         Returns:
             pd.DataFrame: dataset of Q-plot images.
         """
-        df_aux_ts = generate_dataset_aux_channels(
-            self.num_datapoints,
-            3,
-            duration=16,
-            sample_rate=500,
-            num_waves_range=(20, 25),
-            noise_amplitude=0.6,
-        )
-        df_main_ts = generate_dataset_main_channel(
-            df_aux_ts, weights=None, noise_amplitude=0.1
-        )
-
-        # save datasets
+        # Filenames
         save_name_main = "TimeSeries_dataset_synthetic_main.pkl"
         save_name_aux = "TimeSeries_dataset_synthetic_aux.pkl"
-        df_main_ts.to_pickle(os.path.join(self.data_root, save_name_main))
-        df_aux_ts.to_pickle(os.path.join(self.data_root, save_name_aux))
+        save_name_img = "Image_dataset_synthetic_64x64.pkl"
 
-        # Transform to images and save to disk
+        path_main = os.path.join(self.data_root, save_name_main)
+        path_aux = os.path.join(self.data_root, save_name_aux)
+        path_img = os.path.join(self.data_root, save_name_img)
+
+        # 1) If image dataset already exists, just load and return it
+        if os.path.exists(path_img):
+            return pd.read_pickle(path_img)
+
+        # 2) Otherwise, we need the time-series datasets (main + aux)
+        if os.path.exists(path_main) and os.path.exists(path_aux):
+            # Load existing time-series datasets
+            df_main_ts = pd.read_pickle(path_main)
+            df_aux_ts = pd.read_pickle(path_aux)
+        else:
+            # Generate aux channels
+            df_aux_ts = generate_dataset_aux_channels(
+                self.num_datapoints,
+                3,
+                duration=16,
+                sample_rate=500,
+                num_waves_range=(20, 25),
+                noise_amplitude=0.6,
+                random_state=self.rnd_seed,
+            )
+
+            # Generate main channel
+            df_main_ts = generate_dataset_main_channel(
+                df_aux_ts,
+                weights=None,
+                noise_amplitude=0.1,
+                random_state=self.rnd_seed,
+            )
+
+            # Save generated time-series datasets
+            df_main_ts.to_pickle(path_main)
+            df_aux_ts.to_pickle(path_aux)
+
+        # 3) Transform to images and save to disk
         df_ts = pd.concat([df_main_ts, df_aux_ts], axis=1)
         df = generate_cut_image_dataset(
-            df_ts, list(df_ts.columns), num_processes=self.num_processes, square_size=64
+            df_ts,
+            list(df_ts.columns),
+            num_processes=self.num_processes,
+            square_size=64,
         )
-        save_name = "Image_dataset_synthetic_64x64.pkl"
-        df.to_pickle(os.path.join(self.data_root, save_name))
+        df.to_pickle(path_img)
+
         return df
 
 
@@ -162,8 +192,8 @@ class TimeSeriesDatasetSplitter(DataSplitter):
         train_proportion: int | float,
         validation_proportion: int | float = 0.0,
         test_proportion: int | float = 0.0,
-        rnd_seed: Optional[int] = None,
         name: Optional[str] = None,
+        rnd_seed: Optional[int] = None,
         hdf5_file_location: str = "data/virgo_data.hdf5",
         hdf5_dataset_name: str = "virgo_dataset",
         chunk_size: int = 500,
