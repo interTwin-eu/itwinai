@@ -13,15 +13,6 @@
 # Load software modules (JUWELS system)
 ml Stages/2024 GCC OpenMPI CUDA/12 MPI-settings/CUDA Python HDF5 PnetCDF libaio mpi4py
 
-# Location where the datasets will be stored
-mkdir -p virgo_hdf5
-target_file="virgo_hdf5/virgo_data_${SLURM_ARRAY_TASK_ID}.hdf5"
-
-# Use the itwinai.sif container as the environment
+# Use the itwinai.sif container as the environment. Run only the first step in the pipeline
 srun singularity exec itwinai.sif \
-  python synthetic-data-gen/file_gen_hdf5.py \
-  --num-datapoints 10000 \
-  --num-processes 25 \
-  --save-frequency 1000 \
-  --save-location "$target_file"
-
+  itwinai exec-pipeline +pipe_key=training_pipeline_small +pipe_steps=[0]

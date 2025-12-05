@@ -34,7 +34,7 @@ training_pipeline:
       chunk_size: ${chunk_size}
       hdf5_dataset_name: ${hdf5_dataset_name}
     - _target_: trainer.NoiseGeneratorTrainer
-      measure_gpu_data: True
+      measure_gpu_data: False
       enable_torch_profiling: True
       measure_epoch_time: True
       run_name: ${run_name}
@@ -67,6 +67,7 @@ training_pipeline_small:
     - _target_: data.TimeSeriesDatasetGenerator
       data_root: ${data_root}
       rnd_seed: 42
+      num_datapoints: 1000
     - _target_: data.TimeSeriesDatasetSplitterSmall
       train_proportion: 0.9
       validation_proportion: 0.1
@@ -81,7 +82,7 @@ training_pipeline_small:
         loss: l1
         save_best: true
         shuffle_train: true
-      measure_gpu_data: True
+      measure_gpu_data: False
       enable_torch_profiling: True
       measure_epoch_time: True
       num_epochs: ${epochs}
