@@ -12,11 +12,12 @@
 hdf5_file_location: /data/virgo_data.hdf5
 hdf5_dataset_name: virgo_dataset
 data_root: /data
-epochs: 5
+epochs: 1 #5
 chunk_size: 1000 # equivalent to chunk size
 batch_size: 64 # Note: not used for "training_pipeline"
 learning_rate: 0.0001
 strategy: ddp
+dist_backend: gloo # could be nccl
 checkpoint_path: checkpoints/epoch_{}.pth
 validation_proportion: 0.1
 rnd_seed: 42
@@ -82,9 +83,11 @@ training_pipeline_small:
         loss: l1
         save_best: true
         shuffle_train: true
+        dist_backend: ${dist_backend}
       measure_gpu_data: False
       enable_torch_profiling: True
       measure_epoch_time: True
+      # run_name: ${run_name}
       num_epochs: ${epochs}
       strategy: ${strategy}
       checkpoint_path: ${checkpoint_path}
@@ -93,7 +96,7 @@ training_pipeline_small:
         _target_: itwinai.loggers.LoggersCollection
         loggers:
           - _target_: itwinai.loggers.ConsoleLogger
-            log_freq: 1
+            log_freq: epoch
           - _target_: itwinai.loggers.MLFlowLogger
-            experiment_name: Noise simulator (Virgo)
+            experiment_name: virgo-small
             log_freq: batch

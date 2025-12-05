@@ -9,32 +9,30 @@
 # - Matteo Bunino <matteo.bunino@cern.ch> - CERN
 # --------------------------------------------------------------------------------------
 
-
 import os
-import time
-from timeit import default_timer as timer
 from typing import Any, Dict, Literal, Optional, Tuple
 
-import numpy as np
 import torch
 import torch.nn as nn
-from ray import tune
 from torch.utils.data import Dataset, TensorDataset
-from tqdm import tqdm
 
 from itwinai.distributed import suppress_workers_print
 from itwinai.loggers import Logger
 from itwinai.torch.config import TrainingConfiguration
-from itwinai.torch.distributed import DeepSpeedStrategy, RayDDPStrategy, RayDeepSpeedStrategy
-from itwinai.torch.monitoring.monitoring import measure_gpu_utilization
-from itwinai.torch.profiling.profiler import profile_torch_trainer
-from itwinai.torch.trainer import RayTorchTrainer, TorchTrainer
+from itwinai.torch.trainer import TorchTrainer
+
 from src.model import Decoder, Decoder_2d_deep, GeneratorResNet, UNet
 from src.utils import init_weights
 
 
 class VirgoTrainingConfiguration(TrainingConfiguration):
-    """Virgo TrainingConfiguration"""
+    """Virgo TrainingConfiguration (extends base TrainingConfiguration).
+
+    Additional fields:
+    - save_best: whether to save best model on validation dataset.
+    - loss: 'l1' or 'l2' for this specific use case.
+    - generator: which generator architecture to use.
+    """
 
     #: Whether to save best model on validation dataset. Defaults to True.
     save_best: bool = True
@@ -45,43 +43,71 @@ class VirgoTrainingConfiguration(TrainingConfiguration):
 
 
 class NoiseGeneratorTrainer(TorchTrainer):
+    """Trainer for Virgo noise generator models.
+
+    Reuses the generic TorchTrainer:
+    - uses its Ray / checkpoint / logging / profiling logic
+    - customizes model, loss, dataloaders and train/validation steps
+    """
+
     def __init__(
         self,
         num_epochs: int = 2,
-        config: Dict | TrainingConfiguration | None = None,
+        config: Dict | VirgoTrainingConfiguration | None = None,
         strategy: Literal["ddp", "deepspeed", "horovod"] | None = "ddp",
-        checkpoint_path: str = "checkpoints/epoch_{}.pth",
+        checkpoint_path: str = "checkpoints/epoch_{}.pth",  # kept for backwards compat
         logger: Logger | None = None,
         random_seed: int | None = None,
         name: str | None = None,
-        validation_every: int = 0,
+        validation_every: int | None = None,
+        checkpoint_every: int | None = None,
         **kwargs,
     ) -> None:
+        # Normalize config to our custom VirgoTrainingConfiguration
+        if config is None:
+            config = {}
+        if isinstance(config, dict):
+            config = VirgoTrainingConfiguration(**config)
+        elif not isinstance(config, VirgoTrainingConfiguration):
+            # If someone passes a plain TrainingConfiguration, upgrade it
+            config = VirgoTrainingConfiguration(**config.model_dump())
+
+        # Map old `checkpoint_path` to the new `checkpoints_location` directory
+        # Old default was "checkpoints/epoch_{}.pth" -> we keep only the directory.
+        if ("{" in checkpoint_path) or checkpoint_path.endswith(".pth"):
+            ckpt_root = os.path.dirname(checkpoint_path) or "checkpoints"
+        else:
+            ckpt_root = checkpoint_path
+
+        # If user passes validation_every, use it as checkpoint_every unless overridden
+        if checkpoint_every is None and validation_every is not None:
+            checkpoint_every = validation_every
+
         super().__init__(
-            epochs=num_epochs,
             config=config,
-            strategy=strategy,
-            logger=logger,
+            epochs=num_epochs,
+            model=None,  # created in create_model_loss_optimizer
+            strategy=strategy or "ddp",
+            test_every=None,  # no periodic test by default
             random_seed=random_seed,
+            logger=logger,
+            checkpoints_location=ckpt_root,
+            checkpoint_every=checkpoint_every,
             name=name,
             **kwargs,
         )
-        self.save_parameters(**self.locals2params(locals()))
-        # Global training configuration
-
-        if isinstance(config, dict):
-            config = VirgoTrainingConfiguration(**config)
-        self.config = config
-        self.num_epochs = num_epochs
-        self.checkpoints_location = checkpoint_path
-        os.makedirs(os.path.dirname(checkpoint_path), exist_ok=True)
-        self.validation_every = validation_every
 
     def create_model_loss_optimizer(self) -> None:
-        # Select generator
+        """Instantiate model + loss + optimizer, then distribute them.
 
+        We override the base implementation because:
+        - we pick generator architecture from VirgoTrainingConfiguration,
+        - we use L1/L2 losses,
+        - we still reuse strategy.distributed() from the generic trainer.
+        """
         generator = self.config.generator.lower()
         scaling = 0.02
+
         if generator == "simple":
             self.model = Decoder(3, norm=False)
         elif generator == "deep":
@@ -92,35 +118,32 @@ class NoiseGeneratorTrainer(TorchTrainer):
         elif generator == "unet":
             self.model = UNet(input_channels=3, output_channels=1, norm=False)
         else:
-            raise ValueError("Unrecognized generator type! Got", generator)
+            raise ValueError(f"Unrecognized generator type! Got {generator}")
 
+        # Weight initialization
         init_weights(self.model, "normal", scaling=scaling)
 
-        loss = self.config.loss.lower()
-        if loss == "l1":
+        # Loss
+        loss_name = self.config.loss.lower()
+        if loss_name == "l1":
             self.loss = nn.L1Loss()
-        elif loss == "l2":
+        elif loss_name == "l2":
             self.loss = nn.MSELoss()
         else:
-            raise ValueError("Unrecognized loss type! Got", loss)
+            raise ValueError(f"Unrecognized loss type for Virgo trainer! Got {loss_name}")
 
-        # Optimizer
-        self.optimizer = torch.optim.Adam(self.model.parameters(), lr=self.config.optim_lr)
+        # Optimizer: you can keep using the same one here, or reuse config.optimizer.
+        # To keep behaviour of the old trainer, we use Adam with optim_lr from config.
+        self.optimizer = torch.optim.Adam(
+            self.model.parameters(),
+            lr=self.config.optim_lr,
+            weight_decay=self.config.optim_weight_decay,
+        )
 
-        # IMPORTANT: model, optimizer, and scheduler need to be distributed
-
-        # First, define strategy-wise optional configurations
-        if isinstance(self.strategy, DeepSpeedStrategy):
-            # Batch size definition is not optional for DeepSpeedStrategy!
-            distribute_kwargs = dict(
-                config_params=dict(train_micro_batch_size_per_gpu=self.config.batch_size)
-            )
-        else:
-            distribute_kwargs = {}
-
-        # Distributed model, optimizer, and scheduler
-        self.model, self.optimizer, _ = self.strategy.distributed(
-            self.model, self.optimizer, **distribute_kwargs
+        # IMPORTANT: distribute model/optimizer/scheduler via strategy
+        distribute_kwargs = self.get_default_distributed_kwargs()
+        self.model, self.optimizer, self.lr_scheduler = self.strategy.distributed(
+            self.model, self.optimizer, self.lr_scheduler, **distribute_kwargs
         )
 
     def create_dataloaders(
@@ -129,58 +152,60 @@ class NoiseGeneratorTrainer(TorchTrainer):
         validation_dataset: Dataset | None = None,
         test_dataset: Dataset | None = None,
     ) -> None:
-        """Override the create_dataloaders function to use the custom_collate function."""
-        # This is the case if a small dataset is used in-memory
-        # - we can use the default collate_fn function
+        """Override to use custom_collate when dataset is not a TensorDataset."""
         if isinstance(train_dataset, TensorDataset):
+            # Use generic implementation (pairs (x, y) etc.)
             return super().create_dataloaders(
                 train_dataset=train_dataset,
                 validation_dataset=validation_dataset,
                 test_dataset=test_dataset,
             )
-        else:
-            # If we are using a custom dataset for the large dataset,
-            # we need to overwrite the collate_fn function
-            self.train_dataloader = self.strategy.create_dataloader(
-                dataset=train_dataset,
+
+        # Custom dataset -> use custom_collate to concat elements
+        self.train_dataloader = self.strategy.create_dataloader(
+            dataset=train_dataset,
+            batch_size=self.config.batch_size,
+            num_workers=self.config.num_workers_dataloader,
+            pin_memory=self.config.pin_gpu_memory,
+            generator=self.torch_rng,
+            shuffle=self.config.shuffle_train,
+            collate_fn=self.custom_collate,
+        )
+        if validation_dataset is not None:
+            self.validation_dataloader = self.strategy.create_dataloader(
+                dataset=validation_dataset,
                 batch_size=self.config.batch_size,
                 num_workers=self.config.num_workers_dataloader,
                 pin_memory=self.config.pin_gpu_memory,
                 generator=self.torch_rng,
-                shuffle=self.config.shuffle_train,
+                shuffle=self.config.shuffle_validation,
                 collate_fn=self.custom_collate,
             )
-            if validation_dataset is not None:
-                self.validation_dataloader = self.strategy.create_dataloader(
-                    dataset=validation_dataset,
-                    batch_size=self.config.batch_size,
-                    num_workers=self.config.num_workers_dataloader,
-                    pin_memory=self.config.pin_gpu_memory,
-                    generator=self.torch_rng,
-                    shuffle=self.config.shuffle_validation,
-                    collate_fn=self.custom_collate,
-                )
-            if test_dataset is not None:
-                self.test_dataloader = self.strategy.create_dataloader(
-                    dataset=test_dataset,
-                    batch_size=self.config.batch_size,
-                    num_workers=self.config.num_workers_dataloader,
-                    pin_memory=self.config.pin_gpu_memory,
-                    generator=self.torch_rng,
-                    shuffle=self.config.shuffle_test,
-                    collate_fn=self.custom_collate,
-                )
+        if test_dataset is not None:
+            self.test_dataloader = self.strategy.create_dataloader(
+                dataset=test_dataset,
+                batch_size=self.config.batch_size,
+                num_workers=self.config.num_workers_dataloader,
+                pin_memory=self.config.pin_gpu_memory,
+                generator=self.torch_rng,
+                shuffle=self.config.shuffle_test,
+                collate_fn=self.custom_collate,
+            )
 
     def custom_collate(self, batch):
-        """
-        Custom collate function to concatenate input tensors along their first dimension.
-        """
-        # Some batches contain None values, if any files from the dataset did not match the
-        # criteria (i.e. three auxilliary channels)
-        batch = [x for x in batch if x is not None]
+        """Custom collate: filter None and concatenate along the batch dimension.
 
+        Each item in the dataset is expected to be a tensor of shape:
+            (num_channels, H, W)
+        and we want a batch of shape:
+            (batch_size, num_channels, H, W)
+        """
+        batch = [x for x in batch if x is not None]
         return torch.cat(batch)
 
+    # -------------------------------------------------------------------------
+    # Execute hook: keep suppress_workers_print but reuse TorchTrainer.execute
+    # -------------------------------------------------------------------------
     @suppress_workers_print
     def execute(
         self,
@@ -190,184 +215,77 @@ class NoiseGeneratorTrainer(TorchTrainer):
     ) -> Tuple[Dataset, Dataset, Dataset, Any]:
         return super().execute(train_dataset, validation_dataset, test_dataset)
 
-    @profile_torch_trainer
-    @measure_gpu_utilization
-    def train(self):
-        # Start the timer for profiling
-        #
-        st = timer()
-        # uncomment all lines relative to accuracy if you want to measure
-        # IOU between generated and real spectrograms.
-        # Note that it significantly slows down the whole process
-        # it also might not work as the function has not been fully
-        # implemented yet
-        if self.strategy.is_main_worker and self.strategy.is_distributed:
-            print("TIMER: broadcast:", timer() - st, "s")
-            print("\nDEBUG: start training")
-            print("--------------------------------------------------------")
-            # nnod = os.environ.get('SLURM_NNODES', 'unk')
-            # s_name = f"{os.environ.get('DIST_MODE', 'unk')}-torch"
-            # save_path
+    def _split_batch(self, batch: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
+        """Split batch into (input, target) as used in the original trainer.
 
-        loss_plot = []
-        val_loss_plot = []
-        acc_plot = []
-        val_acc_plot = []
-        best_val_loss = float("inf")
+        Input layout (as in the old code):
+            batch[:, 0]   -> target (main channel)
+            batch[:, 1:]  -> input  (aux channels)
+        """
+        if isinstance(batch, list):
+            batch = batch[0]
 
-        for self.current_epoch in tqdm(range(self.num_epochs)):
-            lt = timer()
-            # itwinai - IMPORTANT: set current epoch ID
-            self.set_epoch()
-            t_list = []
-            st = time.time()
-            epoch_loss = []
-            # epoch_acc = []
-            for i, batch in enumerate(self.train_dataloader):
-                t = timer()
-                # The TensorDataset returns batches as lists of length 1
-                if isinstance(batch, list):
-                    batch = batch[0]
-                # batch= transform(batch)
-                target = batch[:, 0].unsqueeze(1).to(self.device)
-                # print(f'TARGET ON DEVICE: {target.get_device()}')
-                target = target.float()
-                input = batch[:, 1:].to(self.device)
-                # print(f'INPUT ON DEVICE: {input.get_device()}')
+        # batch shape: (B, C, H, W)
+        target = batch[:, 0].unsqueeze(1).to(self.device).float()
+        inp = batch[:, 1:].to(self.device).float()
+        return inp, target
 
-                self.optimizer.zero_grad()
-                generated = self.model(input.float())
-                # generated=normalize_(generated,1)
-                loss = self.loss(generated, target)
-                loss.backward()
-                self.optimizer.step()
-                epoch_loss.append(loss.detach().cpu().numpy())
-                t_list.append(timer() - t)
-                # itwinai - log loss as metric
-                self.log(
-                    loss.detach().cpu().numpy(),
-                    "epoch_loss_batch",
-                    kind="metric",
-                    step=self.current_epoch * len(self.train_dataloader) + i,
-                    batch_idx=i,
-                )
-                # acc=accuracy(generated.detach().cpu().numpy(),target.detach().cpu().numpy(),20)
-                # epoch_acc.append(acc)
-            if self.strategy.is_main_worker:
-                print("TIMER: train time", sum(t_list) / len(t_list), "s")
-            val_loss = []
-            # val_acc = []
-            for i, batch in enumerate(self.validation_dataloader):
-                # batch= transform(batch)
-                if isinstance(batch, list):
-                    batch = batch[0]
-                target = batch[:, 0].unsqueeze(1).to(self.device)
-                target = target.float()
-                input = batch[:, 1:].to(self.device)
-                with torch.no_grad():
-                    generated = self.model(input.float())
-                    # generated=normalize_(generated,1)
-                    loss = self.loss(generated, target)
-                val_loss.append(loss.detach().cpu().numpy())
-                # itwinai -log loss as metric
-                self.log(
-                    loss.detach().cpu().numpy(),
-                    "val_loss_batch",
-                    kind="metric",
-                    step=self.current_epoch * len(self.validation_dataloader) + i,
-                    batch_idx=i,
-                )
-                # acc=accuracy(generated.detach().cpu().numpy(),target.detach().cpu().numpy(),20)
-                # val_acc.append(acc)
-            loss_plot.append(np.mean(epoch_loss))
-            val_loss_plot.append(np.mean(val_loss))
-            # acc_plot.append(np.mean(epoch_acc))
-            # val_acc_plot.append(np.mean(val_acc))
+    def train_step(
+        self, batch: torch.Tensor, batch_idx: int
+    ) -> Tuple[torch.Tensor, Dict[str, Any]]:
+        """Single optimization step using Virgo layout batch."""
+        inp, target = self._split_batch(batch)
 
-            # itwinai - Log metrics/losses
-            self.log(np.mean(epoch_loss), "epoch_loss", kind="metric", step=self.current_epoch)
-            self.log(np.mean(val_loss), "val_loss", kind="metric", step=self.current_epoch)
-            # self.log(np.mean(epoch_acc), 'epoch_acc',
-            #          kind='metric', step=epoch)
-            # self.log(np.mean(val_acc), 'val_acc',
-            #          kind='metric', step=epoch)
+        self.optimizer.zero_grad()
+        generated = self.model(inp)
+        loss: torch.Tensor = self.loss(generated, target)
+        loss.backward()
+        self.optimizer.step()
 
-            # print('epoch: {} loss: {} val loss: {} accuracy: {} val
-            # accuracy: {}'.format(epoch,loss_plot[-1],val_loss_plot[-1],
-            # acc_plot[-1],val_acc_plot[-1]))
-            et = time.time()
-            # itwinai - print() in a multi-worker context (distributed)
-            if self.strategy.is_main_worker:
-                print(
-                    "epoch: {} loss: {} val loss: {} time:{}s".format(
-                        self.current_epoch, loss_plot[-1], val_loss_plot[-1], et - st
-                    )
-                )
+        # Log per-batch loss
+        self.log(
+            item=loss.item(),
+            identifier="train_loss",
+            kind="metric",
+            step=self.train_glob_step,
+            batch_idx=batch_idx,
+        )
 
-            # Save checkpoint every #validation_every epochs
-            if self.validation_every and self.current_epoch % self.validation_every == 0:
-                # uncomment the following if you want to save checkpoint every
-                # 100 epochs regardless of the performance of the model
-                # checkpoint = {
-                #     'epoch': epoch,
-                #     'model_state_dict': generator.state_dict(),
-                #     'optim_state_dict': optimizer.state_dict(),
-                #     'loss': loss_plot[-1],
-                #     'val_loss': val_loss_plot[-1],
-                # }
-                # if self.strategy.is_main_worker:
-                #     # Save only in the main worker
-                #     checkpoint_filename = checkpoint_path.format(epoch)
-                #     torch.save(checkpoint, checkpoint_filename)
+        # Optional extra metrics via torchmetrics
+        metrics: Dict[str, Any] = self.compute_metrics(
+            true=target,
+            pred=generated,
+            logger_step=self.train_glob_step,
+            batch_idx=batch_idx,
+            stage="train",
+        )
+        return loss, metrics
 
-                # Average loss among all workers
-                # itwinai - gather local loss from all the workers
-                worker_val_losses = self.strategy.gather_obj(val_loss_plot[-1])
-                if self.strategy.is_main_worker:
-                    # Save only in the main worker
+    def validation_step(
+        self, batch: torch.Tensor, batch_idx: int
+    ) -> Tuple[torch.Tensor, Dict[str, Any]]:
+        """Single validation step using Virgo layout batch."""
+        inp, target = self._split_batch(batch)
 
-                    # avg_loss has a meaning only in the main worker
-                    avg_loss = np.mean(worker_val_losses)
+        with torch.no_grad():
+            generated = self.model(inp)
+            loss: torch.Tensor = self.loss(generated, target)
 
-                    # instead of val_loss and best_val loss we should
-                    # use accuracy!!!
-                    if self.config.save_best and avg_loss < best_val_loss:
-                        # create checkpoint
-                        checkpoint = {
-                            "epoch": self.current_epoch,
-                            "model_state_dict": self.model.state_dict(),
-                            "optim_state_dict": self.optimizer.state_dict(),
-                            "loss": loss_plot[-1],
-                            "val_loss": val_loss_plot[-1],
-                        }
+        # Log per-batch validation loss
+        self.log(
+            item=loss.item(),
+            identifier="validation_loss",
+            kind="metric",
+            step=self.validation_glob_step,
+            batch_idx=batch_idx,
+        )
 
-                        # save checkpoint only if it is better than
-                        # the previous ones
-                        checkpoint_filename = self.checkpoints_location.format(self.current_epoch)
-                        torch.save(checkpoint, checkpoint_filename)
-                        # itwinai - log checkpoint as artifact
-                        self.log(
-                            checkpoint_filename,
-                            os.path.basename(checkpoint_filename),
-                            kind="artifact",
-                        )
+        metrics: Dict[str, Any] = self.compute_metrics(
+            true=target,
+            pred=generated,
+            logger_step=self.validation_glob_step,
+            batch_idx=batch_idx,
+            stage="validation",
+        )
+        return loss, metrics
 
-                        # update best model
-                        best_val_loss = val_loss_plot[-1]
-                        best_checkpoint_filename = self.checkpoints_location.format("best")
-                        torch.save(checkpoint, best_checkpoint_filename)
-                        # itwinai - log checkpoint as artifact
-                        self.log(
-                            best_checkpoint_filename,
-                            os.path.basename(best_checkpoint_filename),
-                            kind="artifact",
-                        )
-            # return (loss_plot, val_loss_plot,
-            # acc_plot, val_acc_plot ,acc_plot, val_acc_plot)
-            if self.strategy.is_main_worker and self.strategy.is_distributed:
-                print("TIMER: epoch time:", timer() - lt, "s")
-
-            # Report training metrics of last epoch to Ray
-            tune.report({"loss": np.mean(val_loss)})
-
-        return loss_plot, val_loss_plot, acc_plot, val_acc_plot

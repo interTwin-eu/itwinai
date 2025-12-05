@@ -52,7 +52,9 @@ reader is referred to the `README-use-case.md` file.
 
 First we need to generate a synthetic training dataset. For the sake of
 simplicity, we will generate a smaller one compared to the one used in the
-experiments reported in the paper.  Therefore, the results may not be identical.
+experiments reported in the paper. Therefore, the results may not be identical.
+In particular, do not pay too much attention to the loss curves as the model
+may not be able to learn well on such this synthetic dataset.
 
 On an single-host setup, generate a sample training dataset by executing only
 the first step in the pipeline. Notice that the local `$PWD/data` directory is
@@ -102,14 +104,58 @@ These are already the default values in the provided configuration file.
 In this guide we will not discuss the collection of GPU metrics, so
 `measure_gpu_data` is set to `False`.
 
-Before running a scalability test, you can check that training works by
-executing this command as a dry run:
+Before running a scalability test, on a single-host environment you can check
+that training works by executing this command as a dry run:
 
 ```bash
-docker run --rm -v "$PWD/data":/data -v "$PWD":/experiments \
+docker run --rm -v "$PWD/data":/data -v "$PWD":/experiments --user $UID \
     ghcr.io/intertwin-eu/itwinai:joss-virgo-experiments \
     itwinai exec-pipeline +pipe_key=training_pipeline_small
 ```
 
 This will run training in a non-distributed way using the synthetic dataset
 generated before. The results will be stored in the current working directory.
+
+On an HPC system you can adapt the command above for Singularity.
+
+### Scalability experiment
+
+Here we run a set of experiments changing the number of workers used for
+distributed data-parallel ML training.
+
+On a single-host setting run:
+
+```bash
+bash scalability/scalability_local.sh
+```
+
+This script will launch multiple training runs with different number of workers each.
+
+On HPC...TODO
+
+### Visualize the scalability metrics
+
+Once all the trainings are completed, generate the **scalability report**.
+
+On a single-host machine you can do the following:
+
+```bash
+docker run --rm -v "$PWD/data":/data -v "$PWD":/experiments --user $UID \
+    ghcr.io/intertwin-eu/itwinai:joss-virgo-experiments \
+    itwinai generate-scalability-report --experiment-name virgo-small
+```
+
+You can see the generated plots in the `plots` directory. Please consider that the plots
+may be different from the ones shown on the paper both because you may be using different
+hardware and because the dataset is different.
+
+You can also inspect the training metrics collected during training with MLflow:
+
+```bash
+docker run --rm -v "$PWD/data":/data -v "$PWD":/experiments --user $UID -p 5000:5000\
+    ghcr.io/intertwin-eu/itwinai:joss-virgo-experiments \
+    mlflow ui --host 0.0.0.0 --backend-store-uri mllogs/mlflow
+```
+
+On the login node of an HPC you can run the commands above, adapting the docker syntax
+to Apptainer/Singularity.
