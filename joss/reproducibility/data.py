@@ -9,34 +9,34 @@
 # - Jarl Sondre Sæther <jarl.sondre.saether@cern.ch> - CERN
 # --------------------------------------------------------------------------------------
 
+import multiprocessing
 import os
 from pathlib import Path
-from typing import Optional, Tuple
+from typing import Tuple
 
-import multiprocessing
 import h5py
 import pandas as pd
 import torch
 from sklearn.model_selection import train_test_split
-from torch.utils.data import Dataset, TensorDataset, random_split
-
-from itwinai.components import DataGetter, DataProcessor, DataSplitter, monitor_exec
 from src.dataset import (
     generate_cut_image_dataset,
     generate_dataset_aux_channels,
     generate_dataset_main_channel,
     normalize_,
 )
+from torch.utils.data import Dataset, TensorDataset, random_split
+
+from itwinai.components import DataGetter, DataProcessor, DataSplitter, monitor_exec
 
 
 class TimeSeriesDatasetGenerator(DataGetter):
     def __init__(
         self,
         data_root: str = "data",
-        name: Optional[str] = None,
+        name: str | None = None,
         num_processes: int = -1,
         num_datapoints: int = 1000,
-        rnd_seed: Optional[int] = None,
+        rnd_seed: int | None = None,
     ) -> None:
         """Initialize the TimeSeriesDatasetGenerator class.
 
@@ -192,8 +192,8 @@ class TimeSeriesDatasetSplitter(DataSplitter):
         train_proportion: int | float,
         validation_proportion: int | float = 0.0,
         test_proportion: int | float = 0.0,
-        name: Optional[str] = None,
-        rnd_seed: Optional[int] = None,
+        name: str | None = None,
+        rnd_seed: int | None = None,
         hdf5_file_location: str = "data/virgo_data.hdf5",
         hdf5_dataset_name: str = "virgo_dataset",
         chunk_size: int = 500,
@@ -248,9 +248,9 @@ class TimeSeriesDatasetSplitterSmall(DataSplitter):
         train_proportion: int | float,
         validation_proportion: int | float = 0.0,
         test_proportion: int | float = 0.0,
-        rnd_seed: Optional[int] = None,
+        rnd_seed: int | None = None,
         images_dataset: str = "data/Image_dataset_synthetic_64x64.pkl",
-        name: Optional[str] = None,
+        name: str | None = None,
     ) -> None:
         """Class for splitting of smaller datasets. Use this class in the pipeline if the
         entire dataset can fit into memory.
@@ -270,7 +270,7 @@ class TimeSeriesDatasetSplitterSmall(DataSplitter):
         self.rnd_seed = rnd_seed
         self.images_dataset = images_dataset
 
-    def get_or_load(self, dataset: Optional[pd.DataFrame] = None):
+    def get_or_load(self, dataset: pd.DataFrame | None = None):
         """If the dataset is not given, load it from disk."""
         if dataset is None:
             print("WARNING: loading time series dataset from disk.")
@@ -278,7 +278,7 @@ class TimeSeriesDatasetSplitterSmall(DataSplitter):
         return dataset
 
     @monitor_exec
-    def execute(self, dataset: Optional[pd.DataFrame] = None) -> Tuple:
+    def execute(self, dataset: pd.DataFrame | None = None) -> Tuple:
         """Splits a dataset into train, validation and test splits.
 
         Args:

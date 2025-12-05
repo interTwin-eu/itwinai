@@ -10,19 +10,18 @@
 # --------------------------------------------------------------------------------------
 
 import os
-from typing import Any, Dict, Literal, Optional, Tuple
+from typing import Any, Dict, Literal, Tuple
 
 import torch
 import torch.nn as nn
+from src.model import Decoder, Decoder_2d_deep, GeneratorResNet, UNet
+from src.utils import init_weights
 from torch.utils.data import Dataset, TensorDataset
 
 from itwinai.distributed import suppress_workers_print
 from itwinai.loggers import Logger
 from itwinai.torch.config import TrainingConfiguration
 from itwinai.torch.trainer import TorchTrainer
-
-from src.model import Decoder, Decoder_2d_deep, GeneratorResNet, UNet
-from src.utils import init_weights
 
 
 class VirgoTrainingConfiguration(TrainingConfiguration):
@@ -210,8 +209,8 @@ class NoiseGeneratorTrainer(TorchTrainer):
     def execute(
         self,
         train_dataset: Dataset,
-        validation_dataset: Optional[Dataset] = None,
-        test_dataset: Optional[Dataset] = None,
+        validation_dataset: Dataset | None = None,
+        test_dataset: Dataset | None = None,
     ) -> Tuple[Dataset, Dataset, Dataset, Any]:
         return super().execute(train_dataset, validation_dataset, test_dataset)
 
