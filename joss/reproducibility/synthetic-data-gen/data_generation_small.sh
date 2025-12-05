@@ -13,6 +13,8 @@
 # Load software modules (JUWELS system)
 ml Stages/2024 GCC OpenMPI CUDA/12 MPI-settings/CUDA Python HDF5 PnetCDF libaio mpi4py
 
+mkdir -p data
+
 # Use the itwinai.sif container as the environment. Run only the first step in the pipeline
-srun singularity exec itwinai.sif \
+srun singularity exec itwinai.sif -B data:/data\
   itwinai exec-pipeline +pipe_key=training_pipeline_small +pipe_steps=[0]

@@ -60,7 +60,8 @@ mounted on `/data` to store the data on a persistent location. Remember to mount
 that every time you want to use the generated dataset.
 
 ```bash
-docker run --rm -v "$PWD/data":/data ghcr.io/intertwin-eu/itwinai:joss-virgo-experiments \
+docker run --rm -v "$PWD/data":/data -v "$PWD":/experiments \
+    ghcr.io/intertwin-eu/itwinai:joss-virgo-experiments \
     itwinai exec-pipeline +pipe_key=training_pipeline_small +pipe_steps=[0] 
 ```
 
@@ -105,9 +106,10 @@ Before running a scalability test, you can check that training works by
 executing this command as a dry run:
 
 ```bash
-docker run --rm -v "$PWD/data":/data ghcr.io/intertwin-eu/itwinai:joss-virgo-experiments \
+docker run --rm -v "$PWD/data":/data -v "$PWD":/experiments \
+    ghcr.io/intertwin-eu/itwinai:joss-virgo-experiments \
     itwinai exec-pipeline +pipe_key=training_pipeline_small
 ```
 
 This will run training in a non-distributed way using the synthetic dataset
-generated before.
+generated before. The results will be stored in the current working directory.
