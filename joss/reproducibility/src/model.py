@@ -30,7 +30,7 @@ class Decoder(nn.Module):
     """
 
     def __init__(self, in_channels, kernel_size=7, norm=True):
-        super(Decoder, self).__init__()
+        super().__init__()
 
         self.conv1 = nn.Conv2d(
             in_channels, 32, kernel_size=kernel_size, stride=1,
@@ -89,7 +89,7 @@ class Decoder(nn.Module):
 # DEEP DECODER
 
 
-class Decoder_2d_deep(nn.Module):
+class Decoder2dDeep(nn.Module):
     """
     Deep 2D decoder network.
 
@@ -99,7 +99,7 @@ class Decoder_2d_deep(nn.Module):
     """
 
     def __init__(self, in_channels, kernel_size=5, norm=True):
-        super(Decoder_2d_deep, self).__init__()
+        super().__init__()
 
         self.conv1 = nn.Conv2d(
             in_channels, 64, kernel_size=kernel_size, stride=1,
@@ -166,7 +166,7 @@ class ResidualBlock(nn.Module):
     """
 
     def __init__(self, in_features):
-        super(ResidualBlock, self).__init__()
+        super().__init__()
 
         # Define the block sequence
         self.block = nn.Sequential(
@@ -206,7 +206,7 @@ class GeneratorResNet(nn.Module):
     def __init__(
             self, input_shape, num_residual_block, output_shape, norm=False
     ):
-        super(GeneratorResNet, self).__init__()
+        super().__init__()
 
         channels = input_shape
         target_channels = output_shape
@@ -285,7 +285,7 @@ class Conv2dBlock(nn.Module):
     """
 
     def __init__(self, in_channels, out_channels, kernel_size=3):
-        super(Conv2dBlock, self).__init__()
+        super().__init__()
         self.conv1 = nn.Conv2d(in_channels, out_channels,
                                kernel_size, padding=1)
         self.conv2 = nn.Conv2d(
@@ -322,7 +322,7 @@ class EncoderBlock(nn.Module):
 
     def __init__(self, in_channels, out_channels, pool_size=(2, 2),
                  dropout=0.3):
-        super(EncoderBlock, self).__init__()
+        super().__init__()
         self.conv_block = Conv2dBlock(in_channels, out_channels)
         self.maxpool = nn.MaxPool2d(pool_size)
         self.dropout = nn.Dropout2d(dropout)
@@ -352,7 +352,7 @@ class UNetEncoder(nn.Module):
     """
 
     def __init__(self, input_channels):
-        super(UNetEncoder, self).__init__()
+        super().__init__()
         self.block1 = EncoderBlock(input_channels, 64)
         self.block2 = EncoderBlock(64, 128)
         self.block3 = EncoderBlock(128, 256)
@@ -382,7 +382,7 @@ class Bottleneck(nn.Module):
     """
 
     def __init__(self):
-        super(Bottleneck, self).__init__()
+        super().__init__()
         self.conv_block = Conv2dBlock(512, 1024)
 
     def forward(self, x):
@@ -413,7 +413,7 @@ class DecoderBlock(nn.Module):
 
     def __init__(self, in_channels, out_channels, kernel_size=3, stride=2,
                  dropout=0.3):
-        super(DecoderBlock, self).__init__()
+        super().__init__()
         self.deconv = nn.ConvTranspose2d(
             in_channels, out_channels, kernel_size, stride=stride, padding=1,
             output_padding=1)
@@ -448,7 +448,7 @@ class UNetDecoder(nn.Module):
     """
 
     def __init__(self, output_channels):
-        super(UNetDecoder, self).__init__()
+        super().__init__()
         self.block6 = DecoderBlock(1024, 512)
         self.block7 = DecoderBlock(512, 256)
         self.block8 = DecoderBlock(256, 128)
@@ -487,7 +487,7 @@ class UNet(nn.Module):
     """
 
     def __init__(self, input_channels=3, output_channels=1, norm=True):
-        super(UNet, self).__init__()
+        super().__init__()
         self.encoder = UNetEncoder(input_channels)
         self.bottleneck = Bottleneck()
         self.decoder = UNetDecoder(output_channels)

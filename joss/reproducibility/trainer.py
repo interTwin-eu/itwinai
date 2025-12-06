@@ -9,12 +9,12 @@
 # - Matteo Bunino <matteo.bunino@cern.ch> - CERN
 # --------------------------------------------------------------------------------------
 
-import os
+from pathlib import Path
 from typing import Any, Dict, Literal, Tuple
 
 import torch
 import torch.nn as nn
-from src.model import Decoder, Decoder_2d_deep, GeneratorResNet, UNet
+from src.model import Decoder, Decoder2dDeep, GeneratorResNet, UNet
 from src.utils import init_weights
 from torch.utils.data import Dataset, TensorDataset
 
@@ -52,7 +52,7 @@ class NoiseGeneratorTrainer(TorchTrainer):
     def __init__(
         self,
         num_epochs: int = 2,
-        config: Dict | VirgoTrainingConfiguration | None = None,
+        config: Dict | VirgoTrainingConfiguration | TrainingConfiguration | None = None,
         strategy: Literal["ddp", "deepspeed", "horovod"] | None = "ddp",
         checkpoint_path: str = "checkpoints/epoch_{}.pth",  # kept for backwards compat
         logger: Logger | None = None,
@@ -74,7 +74,7 @@ class NoiseGeneratorTrainer(TorchTrainer):
         # Map old `checkpoint_path` to the new `checkpoints_location` directory
         # Old default was "checkpoints/epoch_{}.pth" -> we keep only the directory.
         if ("{" in checkpoint_path) or checkpoint_path.endswith(".pth"):
-            ckpt_root = os.path.dirname(checkpoint_path) or "checkpoints"
+            ckpt_root = Path(checkpoint_path).parent or "checkpoints"
         else:
             ckpt_root = checkpoint_path
 
@@ -110,7 +110,7 @@ class NoiseGeneratorTrainer(TorchTrainer):
         if generator == "simple":
             self.model = Decoder(3, norm=False)
         elif generator == "deep":
-            self.model = Decoder_2d_deep(3)
+            self.model = Decoder2dDeep(3)
         elif generator == "resnet":
             self.model = GeneratorResNet(3, 12, 1)
             scaling = 0.01

@@ -107,7 +107,7 @@ def generate_hdf5_dataset(
         dataset.attrs["main_channel_idx"] = 0
         dataset.attrs["seed"] = str(seed)
 
-    for f in tqdm(range(num_datapoints)):
+    for _ in tqdm(range(num_datapoints)):
         times = np.linspace(0, duration, duration * sample_rate)
         # Initialise the main data as a list of zeros
         main_data = np.zeros(len(times))

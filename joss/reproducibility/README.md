@@ -147,7 +147,8 @@ docker run --rm -v "$PWD/data":/data -v "$PWD":/experiments --user $UID \
 
 You can see the generated plots in the `plots` directory. Please consider that the plots
 may be different from the ones shown on the paper both because you may be using different
-hardware and because the dataset is different.
+hardware and because the dataset is different. Also, consider that when running scalability
+analysis on small datasets there may be quite some noise in the plots.
 
 You can also inspect the training metrics collected during training with MLflow:
 

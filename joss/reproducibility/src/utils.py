@@ -26,7 +26,7 @@ def init_weights(net, init_type='normal', scaling=0.02, generator=None):
             torch.nn.init.normal_(m.weight.data, 1.0, scaling)
             torch.nn.init.constant_(m.bias.data, 0.0)
 
-    print('initialize network with %s' % init_type)
+    print(f'initialize network with {init_type}')
     net.apply(init_func)  # apply the initialization function
 
 
@@ -60,12 +60,12 @@ def calculate_iou_2d(generated, target, threshold):
     mask2 = [spectrogram >= threshold for spectrogram in spectrograms_real]
 
     # Calculate the intersection and union of the binary masks
-    intersection = [np.logical_and(m1, m2) for m1, m2 in zip(mask1, mask2)]
-    union = [np.logical_or(m1, m2) for m1, m2 in zip(mask1, mask2)]
+    intersection = [np.logical_and(m1, m2) for m1, m2 in zip(mask1, mask2, strict=False)]
+    union = [np.logical_or(m1, m2) for m1, m2 in zip(mask1, mask2, strict=False)]
 
     # Calculate Intersection over Union (IoU)
     iou_list = np.array([np.sum(inter) / np.sum(uni)
-                        for inter, uni in zip(intersection, union)])
+                        for inter, uni in zip(intersection, union, strict=False)])
 
     iou = iou_list.mean()
     return iou

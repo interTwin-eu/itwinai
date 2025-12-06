@@ -128,7 +128,7 @@ def generate_dataset_main_channel(
     """
     rng = _get_rng(random_state)
 
-    dt = input_df.iloc[0, 0].dt
+    # input_df.iloc[0, 0].dt
 
     # Generate random weights if not provided
     if weights is None:

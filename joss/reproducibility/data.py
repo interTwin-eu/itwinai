@@ -10,7 +10,6 @@
 # --------------------------------------------------------------------------------------
 
 import multiprocessing
-import os
 from pathlib import Path
 from typing import Tuple
 
@@ -50,13 +49,13 @@ class TimeSeriesDatasetGenerator(DataGetter):
         """
         super().__init__(name)
         self.save_parameters(**self.locals2params(locals()))
-        self.data_root = data_root
+        self.data_root = Path(data_root)
         self.num_datapoints = num_datapoints
         num_cores = multiprocessing.cpu_count() - 1
         self.num_processes = num_processes if num_processes > 0 else num_cores
         self.rnd_seed = rnd_seed
-        if not os.path.exists(data_root):
-            os.makedirs(data_root, exist_ok=True)
+        if not self.data_root.exists():
+            self.data_root.mkdir(parents=True)
 
     @monitor_exec
     def execute(self) -> pd.DataFrame:
@@ -71,16 +70,16 @@ class TimeSeriesDatasetGenerator(DataGetter):
         save_name_aux = "TimeSeries_dataset_synthetic_aux.pkl"
         save_name_img = "Image_dataset_synthetic_64x64.pkl"
 
-        path_main = os.path.join(self.data_root, save_name_main)
-        path_aux = os.path.join(self.data_root, save_name_aux)
-        path_img = os.path.join(self.data_root, save_name_img)
+        path_main = self.data_root / save_name_main
+        path_aux = self.data_root / save_name_aux
+        path_img = self.data_root / save_name_img
 
         # 1) If image dataset already exists, just load and return it
-        if os.path.exists(path_img):
+        if path_img.exists():
             return pd.read_pickle(path_img)
 
         # 2) Otherwise, we need the time-series datasets (main + aux)
-        if os.path.exists(path_main) and os.path.exists(path_aux):
+        if path_main.exists() and path_aux.exists():
             # Load existing time-series datasets
             df_main_ts = pd.read_pickle(path_main)
             df_aux_ts = pd.read_pickle(path_aux)
