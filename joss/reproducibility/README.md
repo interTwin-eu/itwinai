@@ -145,10 +145,11 @@ docker run --rm -v "$PWD/data":/data -v "$PWD":/experiments --user $UID \
     itwinai generate-scalability-report --experiment-name virgo-small
 ```
 
-You can see the generated plots in the `plots` directory. Please consider that the plots
-may be different from the ones shown on the paper both because you may be using different
-hardware and because the dataset is different. Also, consider that when running scalability
-analysis on small datasets there may be quite some noise in the plots.
+You can see the generated plots in the `plots` directory. Please consider that
+the plots may be different from the ones shown on the paper both because you may
+be using different hardware and because the dataset is different. Also, consider
+that when running scalability analysis on small datasets there may be quite some
+noise in the plots.
 
 You can also inspect the training metrics collected during training with MLflow:
 
@@ -158,5 +159,5 @@ docker run --rm -v "$PWD/data":/data -v "$PWD":/experiments --user $UID -p 5000:
     mlflow ui --host 0.0.0.0 --backend-store-uri mllogs/mlflow
 ```
 
-On the login node of an HPC you can run the commands above, adapting the docker syntax
-to Apptainer/Singularity.
+On the login node of an HPC you can run the commands above, adapting the Docker
+syntax to Apptainer/Singularity.
