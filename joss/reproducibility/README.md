@@ -62,7 +62,7 @@ mounted on `/data` to store the data on a persistent location. Remember to mount
 that every time you want to use the generated dataset.
 
 ```bash
-docker run --rm -v "$PWD/data":/data -v "$PWD":/experiments \
+docker run --rm -v "$PWD/data":/data -v "$PWD":/experiments --user $UID \
     ghcr.io/intertwin-eu/itwinai:joss-virgo-experiments \
     itwinai exec-pipeline +pipe_key=training_pipeline_small +pipe_steps=[0] 
 ```

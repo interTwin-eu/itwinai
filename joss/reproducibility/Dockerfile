@@ -2,7 +2,12 @@ FROM ghcr.io/intertwin-eu/itwinai:0.3.4-slim-torch2.6-noble@sha256:0e25ba06f34bc
 WORKDIR /experiments
 COPY requirements.txt /experiments/
 RUN uv pip install --no-cache-dir -r requirements.txt
-COPY . /experiments/
+
+# Ship experiment files inside the container 
+COPY synthetic-data-gen /experiments/synthetic-data-gen
+COPY src /experiments/src
+COPY *.yaml *.py *.md Dockerfile /experiments/
+
 ENV HYDRA_FULL_ERROR=1 
 
 # docker build -t ghcr.io/intertwin-eu/itwinai:joss-virgo-experiments .
