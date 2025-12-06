@@ -1,3 +1,7 @@
 data/
 *.pkl
 *.pickle
+mllogs/
+checkpoints/
+outputs/
+plots/

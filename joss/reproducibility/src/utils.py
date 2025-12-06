@@ -1,3 +1,13 @@
+# --------------------------------------------------------------------------------------
+# Part of the interTwin Project: https://www.intertwin.eu/
+#
+# Created by: Matteo Bunino <matteo.bunino@cern.ch> - CERN
+#
+# Credit:
+# - Matteo Bunino <matteo.bunino@cern.ch> - CERN
+# - Francesco Sarandrea (INFN) et al.
+# --------------------------------------------------------------------------------------
+
 
 import numpy as np
 import torch
@@ -44,10 +54,6 @@ def calculate_iou_2d(generated, target, threshold):
     - IoU: Intersection over Union
     """
     # Extract spectrogram values from time series
-    # print(generated[0][0])
-    # print(generated[0][0].shape)
-    # print(type(generated[0][0]))
-
     spectrograms_gen = [TimeSeries(
         t[0], dt=1/4096.0).q_transform(frange=(10, 1000)).value
         for t in generated]

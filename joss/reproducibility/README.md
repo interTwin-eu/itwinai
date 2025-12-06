@@ -48,6 +48,10 @@ compute-intensive workload using the `training_pipeline` pipeline in
 `config.yaml`. However, this is not covered in this guide and the interested
 reader is referred to the `README-use-case.md` file.
 
+The interested reader can refer to [this
+page](https://itwinai.readthedocs.io/v0.3.4/tutorials/workflows/02-pipeline-configuration/tutorial_1_intermediate_workflow.html)
+to know more on how configuration files are defined and used in itwinai.
+
 ## Dataset Generation
 
 First we need to generate a synthetic training dataset. For the sake of

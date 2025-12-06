@@ -1,3 +1,13 @@
+# --------------------------------------------------------------------------------------
+# Part of the interTwin Project: https://www.intertwin.eu/
+#
+# Created by: Matteo Bunino <matteo.bunino@cern.ch> - CERN
+#
+# Credit:
+# - Matteo Bunino <matteo.bunino@cern.ch> - CERN
+# - Francesco Sarandrea (INFN) et al.
+# --------------------------------------------------------------------------------------
+
 """
 Utils to create a synthetic dataset to train generative models with.
 

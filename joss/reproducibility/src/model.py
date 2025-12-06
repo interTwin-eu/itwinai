@@ -1,3 +1,13 @@
+# --------------------------------------------------------------------------------------
+# Part of the interTwin Project: https://www.intertwin.eu/
+#
+# Created by: Matteo Bunino <matteo.bunino@cern.ch> - CERN
+#
+# Credit:
+# - Matteo Bunino <matteo.bunino@cern.ch> - CERN
+# - Francesco Sarandrea (INFN) et al.
+# --------------------------------------------------------------------------------------
+
 """
 In this section we define different NN architectures models, and initialise
 one of them as the generator to use in training and inference.
@@ -14,8 +24,6 @@ This section is split in three parts:
 
 import torch
 import torch.nn as nn
-
-# SHALLOW DECODER
 
 
 class Decoder(nn.Module):
@@ -86,9 +94,6 @@ class Decoder(nn.Module):
         return self._forward_features(x)
 
 
-# DEEP DECODER
-
-
 class Decoder2dDeep(nn.Module):
     """
     Deep 2D decoder network.
@@ -152,9 +157,6 @@ class Decoder2dDeep(nn.Module):
             - torch.Tensor: Output tensor.
         """
         return self._forward_features(x)
-
-
-# RESNET
 
 
 class ResidualBlock(nn.Module):

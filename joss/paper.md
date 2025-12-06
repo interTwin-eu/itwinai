@@ -203,8 +203,7 @@ For the Virgo scalability study (\autoref{fig:speedup},
 \autoref{fig:compvsother}), `itwinai` was driven by YAML configurations that
 specify dataset, model, optimizer, batch size, and number of epochs. The exact
 configuration files, SLURM scripts, and commands used to generate these figures
-are stored in the `itwinai` repository and versioned at a fixed commit, for
-example: `https://github.com/interTwin-eu/itwinai/tree/<COMMIT_SHA>/<PATH_TBD>`.
+are stored in the `itwinai` repository inside `joss/reproducibility`.
 The scalability-report and profiling workflow used to produce the plots is
 described in the documentation [@itwinai_docs_scalability;
 @itwinai_docs_profiling].
