@@ -55,6 +55,7 @@ for num_workers in 2 3 4; do
     echo -e "\n#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*\n"
 done
 
+# NOTE: DeepSpeed may fail on CPU-only systems
 # # DeepSpeed scaling test
 # for num_workers in 2 3 4; do
 #     torchrun_launcher $num_workers "deepspeed"

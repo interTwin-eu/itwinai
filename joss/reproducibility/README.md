@@ -133,9 +133,14 @@ On a single-host setting run:
 bash scalability/scalability_local.sh
 ```
 
-This script will launch multiple training runs with different number of workers each.
+Alternatively, on an HPC system use:
 
-On HPC...TODO
+```bash
+bash scalability/scalability_hpc.sh
+```
+
+Either script, for single-host or HPC, will launch multiple training runs with
+different number of workers each.
 
 ### Visualize the scalability metrics
 
