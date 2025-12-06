@@ -9,6 +9,8 @@
 # - Jarl Sondre Sæther <jarl.sondre.saether@cern.ch> - CERN
 # --------------------------------------------------------------------------------------
 
+# ruff: noqa: I001
+
 import multiprocessing
 from pathlib import Path
 from typing import Tuple
@@ -16,17 +18,16 @@ from typing import Tuple
 import h5py
 import pandas as pd
 import torch
+from itwinai.components import DataGetter, DataProcessor, DataSplitter, monitor_exec
 from sklearn.model_selection import train_test_split
+from torch.utils.data import Dataset, TensorDataset, random_split
+
 from src.dataset import (
     generate_cut_image_dataset,
     generate_dataset_aux_channels,
     generate_dataset_main_channel,
     normalize_,
 )
-from torch.utils.data import Dataset, TensorDataset, random_split
-
-from itwinai.components import DataGetter, DataProcessor, DataSplitter, monitor_exec
-
 
 class TimeSeriesDatasetGenerator(DataGetter):
     def __init__(
