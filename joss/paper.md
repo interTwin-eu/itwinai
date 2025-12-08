@@ -191,9 +191,31 @@ hydrological forecasting, drought prediction, and climate/remote-sensing
 pipelines; physics plugins include high-energy physics, radio astronomy, lattice
 quantum chromodynamics (QCD), and gravitational-wave/glitch analysis. Packaging
 these as `itwinai` plugins enables reproducible, shareable workflows that run
-consistently on hardware ranging from personal computers to HPC systems. The full list of `itwinai`
-plugins can be found at [this
+consistently on hardware ranging from personal computers to HPC systems. The
+full list of `itwinai` plugins can be found at [this
 link](https://itwinai.readthedocs.io/latest/getting-started/plugins-list.html).
+
+# Reproducibility
+
+The scalability results in this paper were obtained on the JUWELS Booster GPU
+partition at the Jülich Supercomputing Centre [@JUWELS], a SLURM-managed system.
+For the Virgo scalability study (\autoref{fig:speedup},
+\autoref{fig:compvsother}), `itwinai` was driven by YAML configurations that
+specify dataset, model, optimizer, batch size, and number of epochs. The exact
+configuration files, SLURM scripts, and commands used to generate these figures
+are stored in the `itwinai` repository inside
+[`joss/reproducibility`](https://github.com/interTwin-eu/itwinai/tree/joss/joss/reproducibility).
+The scalability-report and profiling workflow used to produce the plots is
+described in the documentation [@itwinai_docs_scalability;
+@itwinai_docs_profiling].
+
+The same scalability-report machinery applies to single- and multi-node
+training: on SLURM clusters, the configurations are launched via SLURM, while on
+a single node (CPU or GPU) they can be run with a local backend and reduced
+problem size. This allows readers with access to a comparable SLURM cluster to
+reproduce the multi-node results and readers without SLURM to run a smaller,
+single-node variant that produces reports and plots with the same structure as
+those shown in this paper.
 
 # Performance
 
