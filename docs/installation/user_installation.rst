@@ -28,7 +28,7 @@ TensorFlow by using extras:
 
         .. code-block:: bash
 
-            uv pip install ".[torch]" \
+            uv pip install "itwinai[torch]" \
                 --extra-index-url https://download.pytorch.org/whl/cu121
 
 
@@ -45,7 +45,7 @@ TensorFlow by using extras:
 
         .. code-block:: bash
 
-            uv pip install ".[tf-cuda]"
+            uv pip install "itwinai[tf-cuda]"
 
 .. Explanation for installing horovod, DS, and other packages that need to be installed AFTER itwinai
 .. include:: ./post_itwinai_installation.rst
