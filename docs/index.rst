@@ -185,6 +185,15 @@ Community & Support
 As the primary contributor, CERN will retain administrative rights to the repository during and after the interTwin project,
 except in cases where CERN is unable to maintain it.
 
+How to contribute
+=================
+
+Want to help improve **itwinai**? Here are a few good ways to get involved:
+
+- **Report a bug / request a feature:** open a `GitHub issue <https://github.com/interTwin-eu/itwinai/issues>`_.
+- **Contribute code or docs:** fork the repo and submit a `pull request <https://github.com/interTwin-eu/itwinai/pulls>`_.
+- **Ask questions or float ideas:** start a `GitHub discussion <https://github.com/interTwin-eu/itwinai/discussions>`_ or join us on `Discord <https://discord.gg/7ru8u2nP>`_.
+
 Indices and Tables
 ==================
 
