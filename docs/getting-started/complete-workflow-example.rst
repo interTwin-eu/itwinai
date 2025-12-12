@@ -18,7 +18,7 @@ refer to the official CLI reference for `run
 
 .. note::
 
-   **Difference between ``itwinai run`` and ``itwinai exec-pipeline``**
+   **Difference between** ``itwinai run`` **and** ``itwinai exec-pipeline``
 
    - ``itwinai run`` receives a configuration file that includes configuration for plugins, the
      SLURM cluster, and ML workflows, and it takes care of executing the complete workflow
@@ -80,12 +80,12 @@ Steps
 
       itwinai run -c run_config.yaml
 
-The command above will install the dependencies and produce a SLURM job script, but it will not
-submit the job to SLURM. To also submit the job to the SLURM queue, add the ``-j`` option:
+   The command above will install the dependencies and produce a SLURM job script, but it will not
+   submit the job to SLURM. To also submit the job to the SLURM queue, add the ``-j`` option:
 
-.. code-block:: bash
+   .. code-block:: bash
 
-   itwinai run -jc run_config.yaml
+      itwinai run -jc run_config.yaml
 
 MNIST Example
 -------------
