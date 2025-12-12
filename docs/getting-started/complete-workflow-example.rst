@@ -54,6 +54,13 @@ Steps
 
    itwinai run -c run_config.yaml
 
+The command above will only install the dependencies and produce a SLURM job script, but it
+will not run the job on SLURM. To also submit the job to the SLURM queue, add the `-j` option:
+
+.. code-block:: bash
+
+   itwinai run -jc run_config.yaml
+
 MNIST Example
 -------------
 
@@ -132,7 +139,7 @@ see the full example at ``use-cases/mnist/torch/run-example.yaml``. You can run 
 
 .. code-block:: bash
 
-   itwinai run -c https://raw.githubusercontent.com/interTwin-eu/itwinai/refs/heads/main/use-cases/mnist/torch/run-example.yaml
+   itwinai run -jc https://raw.githubusercontent.com/interTwin-eu/itwinai/refs/heads/main/use-cases/mnist/torch/run-example.yaml
 
 What This Example Does
 ----------------------
