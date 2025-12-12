@@ -192,7 +192,7 @@ Want to help improve **itwinai**? Here are a few good ways to get involved:
 
 - **Report a bug / request a feature:** open a `GitHub issue <https://github.com/interTwin-eu/itwinai/issues>`_.
 - **Contribute code or docs:** fork the repository and submit a `pull request <https://github.com/interTwin-eu/itwinai/pulls>`_.
-- **Ask questions or float ideas:** start a `GitHub discussion <https://github.com/interTwin-eu/itwinai/discussions>`_ or join us on `Discord <https://discord.gg/7ru8u2nP>`_.
+- **Ask questions or float ideas:** start a `GitHub discussion <https://github.com/interTwin-eu/itwinai/discussions>`_ or join us on `Discord <https://discord.gg/EZRtuK9Vjr>`_.
 
 Indices and Tables
 ==================
