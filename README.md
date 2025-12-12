@@ -32,3 +32,15 @@ at the following documents:
 
 - [Working with containers](/docs/working-with-containers.md)
 - [Testing with pytest](/docs/testing-with-pytest.md)
+
+## How to contribute
+
+You can create a [new issue](https://github.com/interTwin-eu/itwinai/issues) in GitHub
+if you found any issues or problems, or want to seek support.
+
+Fork and create a [Pull Request](https://github.com/interTwin-eu/itwinai/pulls) if you want
+to contribute.
+
+If you want to discuss something in particular you can open a [new discussion](
+https://github.com/interTwin-eu/itwinai/discussions) or join our [Discord channel](
+https://discord.gg/7ru8u2nP).
