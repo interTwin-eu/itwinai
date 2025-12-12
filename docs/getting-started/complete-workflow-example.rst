@@ -14,7 +14,7 @@ plugin configuration, SLURM cluster configuration, and ML workflow definition
 
 If you want to know more about how to use the ``itwinai run`` command, please
 refer to the official CLI reference for `run
-<https://itwinai.readthedocs.io/latest/api/cli_reference.html#run>`__.
+<https://itwinai.readthedocs.io/stable/api/cli_reference.html#run>`__.
 
 .. note::
 
@@ -25,7 +25,7 @@ refer to the official CLI reference for `run
      end-to-end.
 
      See the official CLI reference for
-     `run <https://itwinai.readthedocs.io/latest/api/cli_reference.html#run>`__.
+     `run <https://itwinai.readthedocs.io/stable/api/cli_reference.html#run>`__.
 
    - ``itwinai exec-pipeline`` is more low-level and is designed to receive only the
      configuration of an ML workflow (a.k.a. a "pipeline"). It does not take care of SLURM
@@ -33,7 +33,7 @@ refer to the official CLI reference for `run
      pipeline, i.e., a subset of the configuration that ``itwinai run`` would use.
 
      See the official CLI reference for
-     `exec-pipeline <https://itwinai.readthedocs.io/latest/api/cli_reference.html#exec-pipeline>`__.
+     `exec-pipeline <https://itwinai.readthedocs.io/stable/api/cli_reference.html#exec-pipeline>`__.
 
 Prerequisites
 -------------
