@@ -2,7 +2,7 @@
 
 **Integration author(s)**: Matteo Bunino (CERN)
 
-In this simple use case integration we demostrate how to use itwinai for a set of simple
+In this simple use case integration we demonstrate how to use itwinai for a set of simple
 use cases based on the popular MNIST dataset.
 
 ## Training a CNN classifier
