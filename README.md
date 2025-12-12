@@ -35,12 +35,8 @@ at the following documents:
 
 ## How to contribute
 
-If you found a bug, want to request a feature, or have a question, please open a
-[new issue](https://github.com/interTwin-eu/itwinai/issues).
+Want to help improve **itwinai**? Here are a few good ways to get involved:
 
-If you want to contribute code or documentation, please fork the repository and open a
-[pull request](https://github.com/interTwin-eu/itwinai/pulls).
-
-If you’d like to discuss an idea first, you can start a
-[new discussion](https://github.com/interTwin-eu/itwinai/discussions) or join our
-[Discord channel](https://discord.gg/7ru8u2nP).
+- **Report a bug / request a feature:** open a [GitHub issue](https://github.com/interTwin-eu/itwinai/issues).
+- **Contribute code or docs:** fork the repo and submit a [pull request](https://github.com/interTwin-eu/itwinai/pulls).
+- **Ask questions or float ideas:** start a [GitHub discussion](https://github.com/interTwin-eu/itwinai/discussions) or join us on [Discord](https://discord.gg/7ru8u2nP).
