@@ -12,6 +12,8 @@ YAML configuration file describing the whole training workflow.
 In this case, the `itwinai exec-pipeline` command is used to execute a ML workflow defined
 in the `config.yaml` file. You can find more details on this command in the [`exec-pipeline`](
 https://itwinai.readthedocs.io/latest/api/cli_reference.html#exec-pipeline) CLI reference.
+If not specified differently, the pipeline defined under `training_pipeline` is selected by
+default.
 
 ```bash
 # Run the whole training pipeline
