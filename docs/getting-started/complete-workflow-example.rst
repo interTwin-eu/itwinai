@@ -14,7 +14,7 @@ plugin configuration, SLURM cluster configuration, and ML workflow definition
 
 If you want to know more about how to use the ``itwinai run`` command, please
 refer to the official CLI reference for `run
-<https://itwinai.readthedocs.io/latest/api/cli_reference.html#run>`__
+<https://itwinai.readthedocs.io/latest/api/cli_reference.html#run>`__.
 
 .. note::
 
