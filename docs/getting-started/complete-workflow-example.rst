@@ -169,7 +169,7 @@ see the full example at ``use-cases/mnist/torch/run-example.yaml``. You can run 
    itwinai run -jc https://raw.githubusercontent.com/interTwin-eu/itwinai/refs/heads/main/use-cases/mnist/torch/run-example.yaml
 
 What This Example Does
-----------------------
+~~~~~~~~~~~~~~~~~~~~~~
 
 This configuration demonstrates several key itwinai features:
 
@@ -188,7 +188,7 @@ This configuration demonstrates several key itwinai features:
   Configured for 2-node distributed training using DDP (Distributed Data Parallel) strategy.
 
 Expected Output
----------------
+~~~~~~~~~~~~~~~
 
 When you run this example, itwinai will:
 
