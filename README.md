@@ -35,12 +35,12 @@ at the following documents:
 
 ## How to contribute
 
-You can create a [new issue](https://github.com/interTwin-eu/itwinai/issues) in GitHub
-if you found any issues or problems, or want to seek support.
+If you found a bug, want to request a feature, or have a question, please open a
+[new issue](https://github.com/interTwin-eu/itwinai/issues).
 
-Fork and create a [Pull Request](https://github.com/interTwin-eu/itwinai/pulls) if you want
-to contribute.
+If you want to contribute code or documentation, please fork the repository and open a
+[pull request](https://github.com/interTwin-eu/itwinai/pulls).
 
-If you want to discuss something in particular you can open a [new discussion](
-https://github.com/interTwin-eu/itwinai/discussions) or join our [Discord channel](
-https://discord.gg/7ru8u2nP).
+If you’d like to discuss an idea first, you can start a
+[new discussion](https://github.com/interTwin-eu/itwinai/discussions) or join our
+[Discord channel](https://discord.gg/7ru8u2nP).
